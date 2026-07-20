@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file   EBGeometry_GPUSmoke.cu
- * @brief  CUDA translation unit for the compile-only GPU smoke test.
+ * @file   EBGeometry_GPUSmoke.hip
+ * @brief  HIP translation unit for the compile-only GPU smoke test.
  * @details Thin includer: the backend-agnostic test body lives in EBGeometry_GPUSmoke.hpp and is
- * shared with the HIP twin EBGeometry_GPUSmoke.hip.
+ * shared with the CUDA twin EBGeometry_GPUSmoke.cu.
  * @author Robert Marskar
  */
 

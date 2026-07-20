@@ -66,6 +66,19 @@
         "EBGEOMETRY_SIMD": "none",
         "EBGEOMETRY_BUILD_EXAMPLES": "OFF"
       }
+    },
+    {
+      "name": "hip",
+      "inherits": "base",
+      "displayName": "HIP (tests + device golden test)",
+      "description": "Release-type build with the HIP device runtime and the GPU golden test. Requires a ROCm/HIP toolchain; the GPUTapeGolden test self-skips without a GPU.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "EBGEOMETRY_ENABLE_HIP": "ON",
+        "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",
+        "EBGEOMETRY_SIMD": "none",
+        "EBGEOMETRY_BUILD_EXAMPLES": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -73,7 +86,8 @@
     { "name": "debug-san",    "configurePreset": "debug-san"    },
     { "name": "release",      "configurePreset": "release"      },
     { "name": "release-test", "configurePreset": "release-test" },
-    { "name": "cuda",         "configurePreset": "cuda"         }
+    { "name": "cuda",         "configurePreset": "cuda"         },
+    { "name": "hip",          "configurePreset": "hip"          }
   ],
   "testPresets": [
     {
@@ -111,6 +125,14 @@
       "name": "cuda",
       "displayName": "GPU golden test (CUDA)",
       "configurePreset": "cuda",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "gpu" } },
+      "execution": { "timeout": 120 }
+    },
+    {
+      "name": "hip",
+      "displayName": "GPU golden test (HIP)",
+      "configurePreset": "hip",
       "output": { "outputOnFailure": true },
       "filter": { "include": { "label": "gpu" } },
       "execution": { "timeout": 120 }

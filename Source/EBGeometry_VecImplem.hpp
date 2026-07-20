@@ -571,10 +571,17 @@ max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
 }
 
 template <typename T>
+EBGEOMETRY_HOST_DEVICE inline constexpr T
+clamp(const T& v, const T& lo, const T& hi) noexcept
+{
+  return (v < lo) ? lo : (hi < v) ? hi : v;
+}
+
+template <typename T>
 EBGEOMETRY_HOST_DEVICE inline constexpr Vec3T<T>
 clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi) noexcept
 {
-  return Vec3T<T>(std::clamp(v[0], lo[0], hi[0]), std::clamp(v[1], lo[1], hi[1]), std::clamp(v[2], lo[2], hi[2]));
+  return Vec3T<T>(clamp(v[0], lo[0], hi[0]), clamp(v[1], lo[1], hi[1]), clamp(v[2], lo[2], hi[2]));
 }
 
 template <typename T>

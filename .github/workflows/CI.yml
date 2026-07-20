@@ -453,6 +453,31 @@ jobs:
       - name: Build CUDA targets (compile-only)
         run: cmake --build build/cuda --target EBGeometry_GPUSmoke EBGeometry_GPUTape --parallel 2
 
+  GPU-HIP-Compile:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: GPU HIP compile (device-portability smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Advisory while the GPU port is in progress: compiles the Tests/GPU/*.hip TUs with the HIP
+    # toolchain from the Ubuntu 24.04 archive (hipcc 5.7 -> clang-17 + rocm-device-libs;
+    # ~1-2 GB, no external apt repo, no multi-GB rocm/dev container). Compile-only -- no AMD GPU
+    # is needed. continue-on-error keeps it off the merge gate until confirmed green; promote it
+    # together with GPU-CUDA-Compile.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install HIP toolchain (Ubuntu archive)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y hipcc clang-17 libamdhip64-dev rocm-device-libs-17
+      - name: Configure (HIP smoke test)
+        # CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER ("Use Clang directly, or let
+        # CMake pick a default"); drive the HIP language with the clang that Ubuntu hipcc 5.7 itself
+        # wraps (clang-17, matching rocm-device-libs-17).
+        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17
+      - name: Build HIP targets (compile-only)
+        run: cmake --build build/hip --target EBGeometry_GPUSmoke EBGeometry_GPUTape --parallel 2
+
   CI-passed:
     needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
     runs-on: ubuntu-latest

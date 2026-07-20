@@ -684,12 +684,27 @@ template <typename T>
 max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /**
+ * @brief Scalar clamp of v to [lo, hi].
+ * @details EBGeometry-owned replacement for std::clamp in device-reachable code: libstdc++ 14's
+ * std::clamp contains a __glibcxx_assert whose failure handler is a host-only function, which the
+ * HIP/CUDA device compilation pass rejects when reached from EBGEOMETRY_HOST_DEVICE code.
+ * @tparam T Value type.
+ * @param[in] v  Value to be clamped.
+ * @param[in] lo Lower bound.
+ * @param[in] hi Upper bound.
+ * @return lo if v < lo, hi if hi < v, otherwise v.
+ */
+template <typename T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE inline constexpr T
+clamp(const T& v, const T& lo, const T& hi) noexcept;
+
+/**
  * @brief Component-wise clamp of a 3D vector.
  * @tparam T Floating-point precision.
  * @param[in] v  Vector to be clamped.
  * @param[in] lo Component-wise lower bound.
  * @param[in] hi Component-wise upper bound.
- * @return New vector with X[i] = std::clamp(v[i], lo[i], hi[i]).
+ * @return New vector with X[i] = clamp(v[i], lo[i], hi[i]).
  */
 template <typename T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline constexpr Vec3T<T>

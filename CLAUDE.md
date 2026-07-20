@@ -122,7 +122,7 @@ cmake --build --preset debug --target TestBVH
 ./build/debug/Tests/TestBVH
 ```
 
-### GPU/CUDA
+### GPU (CUDA / HIP)
 
 The `cuda` preset builds the CUDA targets (requires nvcc; not part of `Scripts/run-all-checks.sh`):
 
@@ -132,13 +132,29 @@ cmake --build --preset cuda --parallel $(nproc)
 ctest --preset cuda                      # runs GPUTapeGolden; reports "Skipped" without a GPU
 ```
 
-- `Tests/GPU/*.cu` (the Tier 0 device-portability smoke test and the Tier 7 `EBGeometry_GPUTape`
-  golden test) are compiled only under `EBGEOMETRY_ENABLE_CUDA=ON`; no host preset ever touches
-  them.
+The `hip` preset is its exact mirror for AMD (requires a ROCm/HIP toolchain; CMake >= 3.21, or
+>= 3.28 to drive hipcc as the HIP compiler):
+
+```bash
+cmake --preset hip                       # optionally -DCMAKE_HIP_ARCHITECTURES=<gfx...> (e.g. gfx90a, the default) to match your GPU
+cmake --build --preset hip --parallel $(nproc)
+ctest --preset hip                       # runs GPUTapeGolden; reports "Skipped" without a GPU
+```
+
+- The GPU test bodies live in shared, backend-agnostic headers (`Tests/GPU/EBGeometry_GPUSmoke.hpp`
+  and `Tests/GPU/EBGeometry_GPUTape.hpp`, calling the backend-neutral `EBGeometry::GPU` wrappers
+  from `Source/EBGeometry_GPURuntime.hpp`); the `.cu` (CUDA) and `.hip` (HIP) files are thin
+  includer translation units. They compile only under `EBGEOMETRY_ENABLE_CUDA=ON` or
+  `EBGEOMETRY_ENABLE_HIP=ON` respectively — one backend per configure (the two options are
+  mutually exclusive), and no host preset ever touches them.
 - `GPUTapeGolden` self-skips with exit code 77 (mapped to a ctest "Skipped" via
-  `SKIP_RETURN_CODE`) when no CUDA device is present, so the preset is safe on GPU-less machines.
-- CI's `GPU-CUDA-Compile` lane is compile-only (`continue-on-error`); behavioral GPU validation
-  happens on a developer's CUDA machine.
+  `SKIP_RETURN_CODE`) when no GPU device is present, so both presets are safe on GPU-less
+  machines.
+- CI's `GPU-CUDA-Compile` and `GPU-HIP-Compile` lanes are compile-only (`continue-on-error`);
+  behavioral GPU validation happens on a developer's GPU machine.
+- On an NVIDIA box without AMD hardware, the HIP code path itself can be validated behaviorally
+  via HIP's NVIDIA platform: `cmake --preset hip -DCMAKE_HIP_PLATFORM=nvidia` (needs CMake >=
+  3.28, the CUDA toolkit, and the ROCm HIP headers).
 
 ## Documentation
 

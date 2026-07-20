@@ -413,7 +413,7 @@ MeshT<T, Meta>::computeVertexNormalAngleWeighted(const DCELIndex a_vertexIdx)
     const Vec3& norm = m_faces[faceIdx].getNormal();
 
     // Clamp to [-1,1] to guard against std::acos(NaN) from floating-point rounding.
-    const T alpha = std::acos(std::clamp(v1.dot(v2), T(-1), T(1)));
+    const T alpha = std::acos(clamp(v1.dot(v2), T(-1), T(1)));
 
     normal += alpha * norm;
   }
@@ -685,7 +685,7 @@ MeshT<T, Meta>::unsignedDistance2ToEdge(const DCELIndex a_edgeIdx, const Vec3& a
 
   EBGEOMETRY_EXPECT(x2x1.dot(x2x1) > T(0));
 
-  const T t = std::clamp((a_x0 - x1).dot(x2x1) / x2x1.dot(x2x1), T(0.0), T(1.0));
+  const T t = clamp((a_x0 - x1).dot(x2x1) / x2x1.dot(x2x1), T(0.0), T(1.0));
 
   const Vec3 linePoint = x1 + t * x2x1;
   const Vec3 delta     = a_x0 - linePoint;
