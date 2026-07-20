@@ -282,7 +282,9 @@ runScene(const char* a_name, const char* a_precision, const ImplicitFunction<T>&
     const double deltaTape = std::abs(gpu - double(cpuTape[i]));
     const double deltaTree = std::abs(gpu - double(oracle[i]));
 
-    if (deltaTape > a_margin || deltaTree > a_margin) {
+    // Negated conjunction so that a NaN device result fails loudly (NaN comparisons are false, so
+    // the naive delta > margin form would silently count a NaN as passing).
+    if (!(deltaTape <= a_margin && deltaTree <= a_margin)) {
       if (numMismatches < 5) {
         std::printf("  mismatch [%s, %s] at point (%g, %g, %g): gpu=%.12g cpuTape=%.12g oracle=%.12g margin=%g\n",
                     a_name,

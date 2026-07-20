@@ -127,7 +127,7 @@ cmake --build --preset debug --target TestBVH
 The `cuda` preset builds the CUDA targets (requires nvcc; not part of `Scripts/run-all-checks.sh`):
 
 ```bash
-cmake --preset cuda                      # add -DCMAKE_CUDA_ARCHITECTURES=native to match your GPU
+cmake --preset cuda                      # optionally -DCMAKE_CUDA_ARCHITECTURES=native (needs CMake >= 3.24) to match your GPU
 cmake --build --preset cuda --parallel $(nproc)
 ctest --preset cuda                      # runs GPUTapeGolden; reports "Skipped" without a GPU
 ```

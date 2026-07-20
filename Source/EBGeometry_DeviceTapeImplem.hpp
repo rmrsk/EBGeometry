@@ -119,6 +119,16 @@ DeviceTape<T>::DeviceTape(const Tape<T>& a_tape)
     std::abort();
   }
 
+  // A default-constructed Tape reports device-eligible but has zero clauses and zero slots;
+  // evaluating its view would write coordScratch[0] out of bounds with assertions off. Every tape
+  // produced by compile() has at least one clause, so this gate only rejects misuse.
+  EBGEOMETRY_EXPECT(!a_tape.getClauses().empty());
+
+  if (a_tape.getClauses().empty()) {
+    std::fprintf(stderr, "EBGeometry::DeviceTape: tape is empty (not produced by compile())\n");
+    std::abort();
+  }
+
   using namespace DeviceTapeDetail;
 
   // ── Pass 1: size the pool ───────────────────────────────────────────────────
