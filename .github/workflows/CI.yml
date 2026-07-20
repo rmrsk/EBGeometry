@@ -469,9 +469,12 @@ jobs:
       - name: Install HIP toolchain (Ubuntu archive)
         run: |
           sudo apt-get update
-          sudo apt-get install -y hipcc libamdhip64-dev rocm-device-libs-17
+          sudo apt-get install -y hipcc clang-17 libamdhip64-dev rocm-device-libs-17
       - name: Configure (HIP smoke test)
-        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=hipcc
+        # CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER ("Use Clang directly, or let
+        # CMake pick a default"); drive the HIP language with the clang that Ubuntu hipcc 5.7 itself
+        # wraps (clang-17, matching rocm-device-libs-17).
+        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17
       - name: Build HIP targets (compile-only)
         run: cmake --build build/hip --target EBGeometry_GPUSmoke EBGeometry_GPUTape --parallel 2
 
