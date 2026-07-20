@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file   EBGeometry_GPUTape.cu
- * @brief  CUDA translation unit for the DeviceTape golden test.
+ * @file   EBGeometry_GPUTape.hip
+ * @brief  HIP translation unit for the DeviceTape golden test.
  * @details Thin includer: the backend-agnostic test body lives in EBGeometry_GPUTape.hpp and is
- * shared with the HIP twin EBGeometry_GPUTape.hip.
+ * shared with the CUDA twin EBGeometry_GPUTape.cu.
  * @author Robert Marskar
  */
 

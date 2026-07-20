@@ -8,7 +8,7 @@
  * @details Holds the out-of-line DeviceTape definitions: the pooled-upload constructor (a sizing
  * pass and a copy pass, both driven by the EBGEOMETRY_TAPE_PARAM_SOA X-macro registry), the move
  * operations, and the destructor. Included last from EBGeometry_DeviceTape.hpp, inside the same
- * EBGEOMETRY_CUDA guard, so it is inert on a plain host compiler.
+ * GPU-backend (CUDA or HIP) guard, so it is inert on a plain host compiler.
  * @author Robert Marskar
  */
 
@@ -18,7 +18,7 @@
 // Our includes
 #include "EBGeometry_GPU.hpp"
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_DOXYGEN)
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) || defined(EBGEOMETRY_DOXYGEN)
 
 // Std includes
 #include <cstdio>
@@ -26,11 +26,9 @@
 #include <type_traits>
 #include <vector>
 
-// CUDA runtime API.
-#include <cuda_runtime.h>
-
 // Our includes
 #include "EBGeometry_DeviceTape.hpp"
+#include "EBGeometry_GPURuntime.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Tape.hpp"
 
@@ -41,7 +39,8 @@ namespace DeviceTapeDetail {
 /**
  * @brief Byte alignment of every sub-array section inside the DeviceTape pool.
  * @details 256 bytes is at least the natural alignment of every stored type and matches the base
- * alignment cudaMalloc itself guarantees, so base + paddedOffset preserves it for every section.
+ * alignment the device allocator (cudaMalloc/hipMalloc) itself guarantees, so base + paddedOffset
+ * preserves it for every section.
  */
 inline constexpr size_t DeviceTapeAlign = 256;
 
@@ -95,7 +94,7 @@ uploadArray(unsigned char* a_base, size_t& a_offset, const std::vector<U>& a_hos
 
   const size_t numBytes = a_host.size() * sizeof(U);
 
-  EBGEOMETRY_CUDA_CHECK(cudaMemcpy(a_base + a_offset, a_host.data(), numBytes, cudaMemcpyHostToDevice));
+  EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_base + a_offset, a_host.data(), numBytes, GPU::MemcpyHostToDevice));
 
   const U* devicePtr = reinterpret_cast<const U*>(a_base + a_offset);
 
@@ -150,7 +149,7 @@ DeviceTape<T>::DeviceTape(const Tape<T>& a_tape)
   m_numBytes = numBytes;
 
   if (numBytes > 0) {
-    EBGEOMETRY_CUDA_CHECK(cudaMalloc(&m_pool, numBytes));
+    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(&m_pool, numBytes));
   }
 
   // ── Pass 2: copy each array and assemble the device view ────────────────────
@@ -196,7 +195,7 @@ DeviceTape<T>::operator=(DeviceTape&& a_other) noexcept
 {
   if (this != &a_other) {
     if (m_pool != nullptr) {
-      (void)cudaFree(m_pool);
+      (void)GPU::memFree(m_pool);
     }
 
     m_pool     = a_other.m_pool;
@@ -215,12 +214,12 @@ template <class T>
 DeviceTape<T>::~DeviceTape() noexcept
 {
   if (m_pool != nullptr) {
-    (void)cudaFree(m_pool);
+    (void)GPU::memFree(m_pool);
   }
 }
 
 } // namespace EBGeometry
 
-#endif // EBGEOMETRY_CUDA || EBGEOMETRY_DOXYGEN
+#endif // EBGEOMETRY_CUDA || EBGEOMETRY_HIP || EBGEOMETRY_DOXYGEN
 
 #endif // EBGEOMETRY_DEVICETAPEIMPLEM_HPP
