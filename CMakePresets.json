@@ -53,13 +53,27 @@
         "EBGEOMETRY_BUILD_TESTS": "ON",
         "EBGEOMETRY_BUILD_EXAMPLES": "ON"
       }
+    },
+    {
+      "name": "cuda",
+      "inherits": "base",
+      "displayName": "CUDA (tests + device golden test)",
+      "description": "Release-type build with the CUDA device runtime and the GPU golden test. Requires nvcc; the GPUTapeGolden test self-skips without a GPU.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "EBGEOMETRY_ENABLE_CUDA": "ON",
+        "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",
+        "EBGEOMETRY_SIMD": "none",
+        "EBGEOMETRY_BUILD_EXAMPLES": "OFF"
+      }
     }
   ],
   "buildPresets": [
     { "name": "debug",        "configurePreset": "debug"        },
     { "name": "debug-san",    "configurePreset": "debug-san"    },
     { "name": "release",      "configurePreset": "release"      },
-    { "name": "release-test", "configurePreset": "release-test" }
+    { "name": "release-test", "configurePreset": "release-test" },
+    { "name": "cuda",         "configurePreset": "cuda"         }
   ],
   "testPresets": [
     {
@@ -91,6 +105,14 @@
       "displayName": "Unit tests + examples (release)",
       "configurePreset": "release-test",
       "output": { "outputOnFailure": true },
+      "execution": { "timeout": 120 }
+    },
+    {
+      "name": "cuda",
+      "displayName": "GPU golden test (CUDA)",
+      "configurePreset": "cuda",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "gpu" } },
       "execution": { "timeout": 120 }
     }
   ]

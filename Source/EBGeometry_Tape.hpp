@@ -446,6 +446,15 @@ template <class T>
 class TapeBuilder;
 
 /**
+ * @brief Forward declaration of the CUDA device-side tape uploader (defined in
+ * EBGeometry_DeviceTape.hpp; friend of @ref Tape). The class is only defined when an offload
+ * compiler translates the TU, so this declaration is harmless on plain host compilers.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class DeviceTape;
+
+/**
  * @brief Trivially-copyable, non-owning view of a @ref Tape suitable for passing to the interpreter
  * (and, in a later tier, to device code).
  * @details Holds raw pointers into a host-owned @ref Tape's arrays plus the slot counts and root
@@ -547,6 +556,11 @@ struct TapeView
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE T
   value(const Vec3T<T>& a_point, Vec3T<T>* a_coordScratch, T* a_valueScratch) const noexcept;
 };
+
+// TapeView is passed BY VALUE as a device kernel argument (see EBGeometry_DeviceTape.hpp), so it
+// must stay trivially copyable for both precisions.
+static_assert(std::is_trivially_copyable_v<TapeView<float>>, "TapeView must be trivially copyable (kernel argument)");
+static_assert(std::is_trivially_copyable_v<TapeView<double>>, "TapeView must be trivially copyable (kernel argument)");
 
 /**
  * @brief Host-owned flat tape: the clause array plus every per-op parameter array.
@@ -691,6 +705,7 @@ public:
 
 private:
   friend class TapeBuilder<T>;
+  friend class DeviceTape<T>;
 
   /**
    * @brief The flat clause array, in single-forward-pass order.

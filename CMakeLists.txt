@@ -71,6 +71,23 @@ if(EBGEOMETRY_ENABLE_CUDA)
   # __host__ __device__ code; --expt-relaxed-constexpr lets nvcc call those from device code.
   target_compile_options(EBGeometry_GPUSmoke PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+
+  # Tier 7: device-runtime golden test (DeviceTape upload + kernel evaluation vs CPU references).
+  # Compiles without a GPU (the CI CUDA lane is compile-only); at runtime it exits with code 77
+  # (SKIP_RETURN_CODE below) when no CUDA device is present, so ctest reports it as "Skipped".
+  add_executable(EBGeometry_GPUTape Tests/GPU/EBGeometry_GPUTape.cu)
+  target_link_libraries(EBGeometry_GPUTape PRIVATE EBGeometry::EBGeometry)
+  target_compile_options(EBGeometry_GPUTape PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+
+  if(EBGEOMETRY_BUILD_TESTS)
+    enable_testing() # idempotent; the Tests block below also calls it
+    add_test(NAME GPUTapeGolden COMMAND EBGeometry_GPUTape)
+    set_tests_properties(GPUTapeGolden PROPERTIES
+      LABELS "gpu"
+      SKIP_RETURN_CODE 77
+      TIMEOUT 120)
+  endif()
 endif()
 
 # ── Tests ─────────────────────────────────────────────────────────────────────

@@ -122,6 +122,24 @@ cmake --build --preset debug --target TestBVH
 ./build/debug/Tests/TestBVH
 ```
 
+### GPU/CUDA
+
+The `cuda` preset builds the CUDA targets (requires nvcc; not part of `Scripts/run-all-checks.sh`):
+
+```bash
+cmake --preset cuda                      # add -DCMAKE_CUDA_ARCHITECTURES=native to match your GPU
+cmake --build --preset cuda --parallel $(nproc)
+ctest --preset cuda                      # runs GPUTapeGolden; reports "Skipped" without a GPU
+```
+
+- `Tests/GPU/*.cu` (the Tier 0 device-portability smoke test and the Tier 7 `EBGeometry_GPUTape`
+  golden test) are compiled only under `EBGEOMETRY_ENABLE_CUDA=ON`; no host preset ever touches
+  them.
+- `GPUTapeGolden` self-skips with exit code 77 (mapped to a ctest "Skipped" via
+  `SKIP_RETURN_CODE`) when no CUDA device is present, so the preset is safe on GPU-less machines.
+- CI's `GPU-CUDA-Compile` lane is compile-only (`continue-on-error`); behavioral GPU validation
+  happens on a developer's CUDA machine.
+
 ## Documentation
 
 Two independent systems; both are also pre-commit hooks (see below) and CI jobs.
