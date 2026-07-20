@@ -788,7 +788,7 @@ struct CapsuleOp
     const Vec3T<T> v1 = a_point - a_params.center1;
     const Vec3T<T> v2 = a_params.center2 - a_params.center1;
 
-    const T h = std::clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
+    const T h = clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
     const T d = length(v1 - h * v2) - a_params.radius;
 
     return d;
@@ -990,8 +990,8 @@ struct ConeOp
 
     const Vec2T<T> q = a_params.height * Vec2T<T>(a_params.c.x / a_params.c.y, -1.0);
     const Vec2T<T> w = Vec2T<T>(dr, dz);
-    const Vec2T<T> a = w - std::clamp(dot(w, q) / dot(q, q), zero, one) * q;
-    const Vec2T<T> b = w - Vec2T<T>(q.x * std::clamp(w.x / q.x, zero, one), q.y);
+    const Vec2T<T> a = w - clamp(dot(w, q) / dot(q, q), zero, one) * q;
+    const Vec2T<T> b = w - Vec2T<T>(q.x * clamp(w.x / q.x, zero, one), q.y);
 
     auto sign = [](const T& x) -> int { return (x > zero) - (x < zero); };
 
