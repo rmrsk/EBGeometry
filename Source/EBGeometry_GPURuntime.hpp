@@ -9,10 +9,10 @@
  * decoration macros, pulling in no backend runtime headers -- this header IS the runtime-API
  * layer: it includes the backend runtime header (<cuda_runtime.h> or <hip/hip_runtime.h>) and
  * exposes the small memory-management/error surface EBGeometry needs through backend-neutral
- * aliases and inline wrappers in the EBGeometry::GPU namespace, so DeviceTape and the GPU tests
- * compile unchanged as CUDA (.cu) or HIP (.hip) translation units. On an ordinary host compiler
- * the whole header is inert (empty after preprocessing), so the umbrella EBGeometry.hpp can
- * include it unconditionally.
+ * aliases and inline wrappers in the EBGeometry::GPU namespace, so any translation unit that uses
+ * it compiles unchanged whether built as a CUDA (.cu) or HIP (.hip) translation unit. On an
+ * ordinary host compiler the whole header is inert (empty after preprocessing), so the umbrella
+ * EBGeometry.hpp can include it unconditionally.
  *
  * HIP is checked before CUDA: hipcc on the NVIDIA platform defines both @c __HIPCC__ and
  * @c __CUDACC__, and there the hip* entry points exist and forward to cuda*, so mapping to hip*
@@ -314,9 +314,9 @@ getErrorString(Error a_error) noexcept
 /**
  * @brief Always-on GPU runtime API error check: prints the failing call and aborts.
  * @details Host-side only. Deliberately NOT gated on EBGEOMETRY_ENABLE_ASSERTIONS (unlike
- * EBGEOMETRY_EXPECT): a failed allocation or copy leaves DeviceTape's view pointing at garbage,
- * which a release build must not silently evaluate. Abort (rather than an exception) matches the
- * library's no-exceptions convention.
+ * EBGEOMETRY_EXPECT): a failed allocation or copy leaves the caller holding a null or dangling
+ * device pointer, which a release build must not silently proceed to use. Abort (rather than an
+ * exception) matches the library's no-exceptions convention.
  * @param x GPU runtime API call (or any expression) yielding an EBGeometry::GPU::Error.
  */
 #define EBGEOMETRY_GPU_CHECK(x)                                                      \
