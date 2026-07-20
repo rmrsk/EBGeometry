@@ -53,13 +53,41 @@
         "EBGEOMETRY_BUILD_TESTS": "ON",
         "EBGEOMETRY_BUILD_EXAMPLES": "ON"
       }
+    },
+    {
+      "name": "cuda",
+      "inherits": "base",
+      "displayName": "CUDA (device-portability smoke, compile-only)",
+      "description": "Release-type build that compiles the CUDA memory-foundation smoke test. Requires nvcc; no GPU is needed to compile it.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "EBGEOMETRY_ENABLE_CUDA": "ON",
+        "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",
+        "EBGEOMETRY_SIMD": "none",
+        "EBGEOMETRY_BUILD_EXAMPLES": "OFF"
+      }
+    },
+    {
+      "name": "hip",
+      "inherits": "base",
+      "displayName": "HIP (device-portability smoke, compile-only)",
+      "description": "Release-type build that compiles the HIP memory-foundation smoke test. Requires a ROCm/HIP toolchain; no GPU is needed to compile it.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "EBGEOMETRY_ENABLE_HIP": "ON",
+        "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",
+        "EBGEOMETRY_SIMD": "none",
+        "EBGEOMETRY_BUILD_EXAMPLES": "OFF"
+      }
     }
   ],
   "buildPresets": [
     { "name": "debug",        "configurePreset": "debug"        },
     { "name": "debug-san",    "configurePreset": "debug-san"    },
     { "name": "release",      "configurePreset": "release"      },
-    { "name": "release-test", "configurePreset": "release-test" }
+    { "name": "release-test", "configurePreset": "release-test" },
+    { "name": "cuda",         "configurePreset": "cuda"         },
+    { "name": "hip",          "configurePreset": "hip"          }
   ],
   "testPresets": [
     {

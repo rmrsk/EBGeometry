@@ -14,6 +14,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "EBGeometry_GPU.hpp"
+
 /**
  * @brief Runtime precondition assertion for EBGeometry.
  *
@@ -46,6 +48,12 @@
  * @param cond  Boolean-convertible expression to test.
  */
 #if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+// Device compilation pass (CUDA/HIP): std::fprintf/std::abort are host-only, so fall back to the
+// device-capable assert(). It still aborts the kernel on failure and prints the failing expression.
+#include <cassert>
+#define EBGEOMETRY_EXPECT(cond) assert(cond)
+#else
 #define EBGEOMETRY_EXPECT(cond)                                                                   \
   do {                                                                                            \
     if (!(cond)) {                                                                                \
@@ -58,6 +66,7 @@
       std::abort();                                                                               \
     }                                                                                             \
   } while (0)
+#endif
 #else
 #define EBGEOMETRY_EXPECT(cond) ((void)(cond))
 #endif

@@ -95,7 +95,12 @@ using Meta = short;
   template class FaceT<PREC, Meta>;                                         \
   template class EdgeT<PREC, Meta>;                                         \
   template class VertexT<PREC, Meta>;                                       \
-  }
+  }                                                                          \
+                                                                               \
+  /* -- GPU memory foundation (POD storage) ------------------------------- */ \
+  template struct PODVector<PREC>;                                           \
+  template struct PODSpan<PREC>;                                             \
+  template struct PODVector<Vec3T<PREC>>;
 
 EBGEOMETRY_INSTANTIATE_ALL(double)
 EBGEOMETRY_INSTANTIATE_ALL(float)
@@ -112,6 +117,36 @@ instantiateFunctionTemplates()
 {
   const std::string              file;
   const std::vector<std::string> files;
+
+  // GPU memory foundation: the non-template Pool/MemoryResource machinery and the PODVector
+  // build/query surface (odr-used so clang-tidy and the strong warning set analyse their bodies
+  // for both precisions).
+  {
+    HostMemoryResource& resource = hostMemoryResource();
+
+    Pool pool(resource, 256);
+
+    PODVector<T> vec;
+    vec.reserveFrom(pool, 4);
+    vec.push_back(pool.base(), T(1));
+
+    const T source[2] = {T(2), T(3)};
+    vec.assign(pool.base(), source, 2);
+
+    pool.freeze();
+
+    (void)vec.at(pool.base(), 0);
+    (void)vec.data(pool.base());
+    (void)vec.bind(pool.base());
+    (void)static_cast<const PODVector<T>&>(vec).bind(static_cast<const void*>(pool.base()));
+
+    Pool mirrored = Pool::mirror(pool, resource);
+
+    (void)mirrored.base();
+    (void)pool.usedBytes();
+    (void)pool.capacityBytes();
+    (void)pool.resource().isDeviceAccessible();
+  }
 
   (void)Parser::readPLY<T>(file);
   (void)Parser::readPLY<T>(files);

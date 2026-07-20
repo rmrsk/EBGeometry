@@ -86,6 +86,10 @@ ebgeometry_add_test(TestPointCloudBVH)
 ebgeometry_add_test(TestPointCloudHashGrid)
 ebgeometry_add_test(TestSimpleTimer)
 ebgeometry_add_test(TestRandom)
+ebgeometry_add_test(TestMemoryResource)
+ebgeometry_add_test(TestPool)
+ebgeometry_add_test(TestPODVector)
+ebgeometry_add_test(TestPoolRebase)
 
 # Compile-only target that explicitly instantiates every public class template so
 # clang-tidy (and the strong warning set) analyse them all regardless of what the
