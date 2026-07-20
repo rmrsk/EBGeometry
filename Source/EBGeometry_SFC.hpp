@@ -17,6 +17,7 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -75,7 +76,7 @@ struct Morton
    * @param[in] a_point 3D grid index to encode. Each component must be <= ValidSpan.
    * @return 64-bit Morton code for a_point.
    */
-  [[nodiscard]] inline static uint64_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline static uint64_t
   encode(const Index& a_point) noexcept;
 
   /**
@@ -84,7 +85,7 @@ struct Morton
    * bits above position 3*ValidBits-1 may be set.
    * @return 3D grid index corresponding to a_code.
    */
-  [[nodiscard]] inline static Index
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline static Index
   decode(const uint64_t& a_code) noexcept;
 
 protected:
@@ -106,7 +107,7 @@ struct Nested
    * @param[in] a_point 3D grid index to encode. Each component must be <= ValidSpan.
    * @return 64-bit nested SFC code for a_point.
    */
-  [[nodiscard]] inline static uint64_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline static uint64_t
   encode(const Index& a_point) noexcept;
 
   /**
@@ -115,7 +116,7 @@ struct Nested
    * most (ValidSpan+1)^3 - 1.
    * @return 3D grid index corresponding to a_code.
    */
-  [[nodiscard]] inline static Index
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline static Index
   decode(const uint64_t& a_code) noexcept;
 };
 
@@ -137,7 +138,7 @@ struct Hilbert
    * @param[in] a_point 3D grid index to encode. Each component must be <= ValidSpan.
    * @return 64-bit Hilbert code (distance along the curve) for a_point.
    */
-  [[nodiscard]] inline static uint64_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline static uint64_t
   encode(const Index& a_point) noexcept;
 
   /**
@@ -146,9 +147,45 @@ struct Hilbert
    * bits above position 3*ValidBits-1 may be set.
    * @return 3D grid index corresponding to a_code.
    */
-  [[nodiscard]] inline static Index
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline static Index
   decode(const uint64_t& a_code) noexcept;
 };
+
+/**
+ * @brief Compute the per-axis normalization divisor computeBins()/computeBin() use to grid points.
+ * @details Hoisted out of computeBins() (bit-identical arithmetic, including the zero-axis clamp)
+ * so that host and device code binning one point at a time produce exactly the codes the host bulk
+ * path produces. The divisor is delta = (max - min) / ValidSpan per axis; an axis on which every
+ * point coincides (a planar cloud or duplicate points) would give delta = 0, which is clamped to 1
+ * (the numerator in computeBin() is also exactly zero there for every point, so any nonzero
+ * divisor yields the same, correct bin index of 0), avoiding a divide-by-zero.
+ * @tparam T Floating-point precision.
+ * @param[in] a_minCoord Componentwise minimum over the points to be binned.
+ * @param[in] a_maxCoord Componentwise maximum over the points to be binned.
+ * @return Per-axis divisor for computeBin(), every component nonzero.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE inline Vec3T<T>
+binningDelta(const Vec3T<T>& a_minCoord, const Vec3T<T>& a_maxCoord) noexcept;
+
+/**
+ * @brief Bin a single point into the space-filling curve's integer grid.
+ * @details The per-point form of computeBins(): given the cloud minimum and the divisor returned
+ * by binningDelta(), grids one point with arithmetic bit-identical to the bulk path (the divisor
+ * is divided by, exactly as in computeBins() -- deliberately not a reciprocal multiplication,
+ * which could differ in the last ulp). Each floored index is clamped into [0, ValidSpan], the
+ * range encode() requires: the two floating-point divisions can round a max-boundary point's index
+ * to ValidSpan + 1 (and a min-boundary point's to a tiny negative, which would wrap on the
+ * unsigned cast); the clamp defends both.
+ * @tparam T Floating-point precision.
+ * @param[in] a_point    Point to bin.
+ * @param[in] a_minCoord Componentwise minimum over the points being binned.
+ * @param[in] a_delta    Per-axis divisor from binningDelta(a_minCoord, a_maxCoord).
+ * @return The point's 3D grid index, each component in [0, ValidSpan].
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE inline Index
+computeBin(const Vec3T<T>& a_point, const Vec3T<T>& a_minCoord, const Vec3T<T>& a_delta) noexcept;
 
 /**
  * @brief Bin a set of points into the space-filling curve's integer grid, normalizing by their own
@@ -159,7 +196,9 @@ struct Hilbert
  * curve-parameterized ordering built on top of it). If every point coincides on some axis (a planar
  * cloud or duplicate points), that axis's normalization divisor would be zero; it is clamped to 1
  * (the numerator is also exactly zero there for every point, so any nonzero divisor yields the same,
- * correct bin index of 0), avoiding a divide-by-zero.
+ * correct bin index of 0), avoiding a divide-by-zero. Implemented as a min/max reduction plus
+ * binningDelta() and one computeBin() per point -- those helpers are the per-point form of the same
+ * arithmetic, usable from device code, and binning through them is bit-identical to this bulk path.
  * @tparam T Floating-point precision.
  * @param[in] a_points Points to bin (e.g. bounding-volume centroids, or a raw point cloud).
  * @return One SFC::Index per input point, in the same order.

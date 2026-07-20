@@ -24,6 +24,31 @@
 
 namespace EBGeometry {
 
+namespace PointCloudHashGridDetail {
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE inline int
+cellCoord(T a_x, T a_lo, T a_invH, int a_n) noexcept
+{
+  EBGEOMETRY_EXPECT(a_n >= 1);
+
+  const int c = int((a_x - a_lo) * a_invH);
+
+  return c < 0 ? 0 : (c >= a_n ? a_n - 1 : c);
+}
+
+EBGEOMETRY_HOST_DEVICE inline std::size_t
+cellIndex(int a_ix, int a_iy, int a_iz, int a_nx, int a_ny) noexcept
+{
+  EBGEOMETRY_EXPECT(a_ix >= 0 && a_ix < a_nx);
+  EBGEOMETRY_EXPECT(a_iy >= 0 && a_iy < a_ny);
+  EBGEOMETRY_EXPECT(a_iz >= 0);
+
+  return std::size_t(a_ix) + std::size_t(a_nx) * (std::size_t(a_iy) + std::size_t(a_ny) * std::size_t(a_iz));
+}
+
+} // namespace PointCloudHashGridDetail
+
 template <class T, class Meta>
 inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T>>& a_positions,
                                                        const std::vector<Meta>&     a_metadata,
@@ -155,23 +180,20 @@ template <class T, class Meta>
 inline int
 PointCloudHashGrid<T, Meta>::cellCoord(T a_x, T a_lo, int a_n) const noexcept
 {
+  // The finiteness precondition is asserted here (host-only input validation); the shared math
+  // lives in PointCloudHashGridDetail.
   EBGEOMETRY_EXPECT(std::isfinite(a_x));
-  EBGEOMETRY_EXPECT(a_n >= 1);
 
-  const int c = int((a_x - a_lo) * m_invH);
-
-  return c < 0 ? 0 : (c >= a_n ? a_n - 1 : c);
+  return PointCloudHashGridDetail::cellCoord<T>(a_x, a_lo, m_invH, a_n);
 }
 
 template <class T, class Meta>
 inline std::size_t
 PointCloudHashGrid<T, Meta>::cellIndex(int a_ix, int a_iy, int a_iz) const noexcept
 {
-  EBGEOMETRY_EXPECT(a_ix >= 0 && a_ix < m_nx);
-  EBGEOMETRY_EXPECT(a_iy >= 0 && a_iy < m_ny);
-  EBGEOMETRY_EXPECT(a_iz >= 0 && a_iz < m_nz);
+  EBGEOMETRY_EXPECT(a_iz < m_nz);
 
-  return std::size_t(a_ix) + std::size_t(m_nx) * (std::size_t(a_iy) + std::size_t(m_ny) * std::size_t(a_iz));
+  return PointCloudHashGridDetail::cellIndex(a_ix, a_iy, a_iz, m_nx, m_ny);
 }
 
 template <class T, class Meta>

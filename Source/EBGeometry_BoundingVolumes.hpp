@@ -295,9 +295,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @details Defaulted on its first declaration (not user-provided) so that AABBT remains
+   * trivially copyable -- BVH::PackedNode embeds an AABBT by value and is memcpy'd across the
+   * host/device boundary, which requires triviality of every member. A trivial copy is implicitly
+   * callable from both host and device code, so no decoration macro is needed.
    * @param[in] a_other Bounding box to copy.
    */
-  EBGEOMETRY_HOST_DEVICE inline AABBT(const AABBT& a_other) noexcept;
+  AABBT(const AABBT& a_other) noexcept = default;
 
   /**
    * @brief Construct the smallest AABB enclosing all boxes in @p a_others.
@@ -316,8 +320,10 @@ public:
 
   /**
    * @brief Destructor.
+   * @details Defaulted on its first declaration (not user-provided) so that AABBT remains
+   * trivially copyable; see the copy constructor.
    */
-  EBGEOMETRY_HOST_DEVICE ~AABBT() noexcept;
+  ~AABBT() noexcept = default;
 
   /**
    * @brief Copy assignment.
@@ -445,6 +451,12 @@ protected:
    */
   Vec3 m_hiCorner = -Vec3::infinity();
 };
+
+// AABBT is embedded by value in trivially-copyable node types (e.g. BVH::PackedNode) that are
+// memcpy'd across the host/device boundary; its special member functions are deliberately
+// defaulted on first declaration to keep this guarantee.
+static_assert(std::is_trivially_copyable_v<AABBT<float>>, "AABBT<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<AABBT<double>>, "AABBT<double> must be trivially copyable");
 
 /**
  * @brief Test whether two bounding spheres overlap.

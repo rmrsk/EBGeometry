@@ -159,6 +159,11 @@ using Meta = short;
   template class SphereT<PREC>;                                              \
   }                                                                          \
                                                                                \
+  namespace BVH {                                                            \
+  template struct PackedNode<PREC, 4>;                                       \
+  template struct PackedNode<PREC, 8>;                                       \
+  }                                                                          \
+                                                                               \
   namespace DCEL {                                                           \
   template class MeshT<PREC, Meta>;                                         \
   template class FaceT<PREC, Meta>;                                         \
@@ -214,6 +219,28 @@ instantiateFunctionTemplates()
   const SphereSDF<T> sphere;
   const Tape<T>      tape = EBGeometry::compile<T>(sphere);
   (void)tape.value(Vec3T<T>::zeros());
+
+  // The shared PackedBVH node-emission stages, the per-point SFC binning helpers, and the
+  // non-template RadixSort host references: odr-use them so their bodies join the analysis (the
+  // template ones are additionally reached through the SFC-constructor instantiations above, but
+  // odr-using them directly keeps the coverage independent of that constructor's internals).
+  const std::vector<Vec3T<T>>     positions(1, Vec3T<T>::zeros());
+  BVH::PackedNode<T, 4>           packedNode;
+  const BoundingVolumes::AABBT<T> pointBV(positions.front(), positions.front());
+  BVH::fillLeafNode<T, 4>(packedNode, &pointBV, 0, 1, 1, 1);
+  BVH::fillInteriorNode<T, 4>(&packedNode, 0, 0, 1);
+  (void)BVH::paddedDfsIndex(0, 0, 0, 4);
+  (void)BVH::paddedSubtreeSize(0, 0, 4);
+  (void)BVH::paddedTreeDepth(1, 4);
+  (void)SFC::computeBin<T>(positions.front(), positions.front(), Vec3T<T>::ones());
+  (void)SFC::binningDelta<T>(positions.front(), positions.front());
+
+  std::vector<uint64_t> radixKeys;
+  std::vector<uint32_t> radixValues;
+  RadixSort::hostStableSort(radixKeys, radixValues);
+  RadixSort::hostExclusiveScan(radixValues.data(), 0, 1);
+  RadixSort::hostPass(radixKeys.data(), radixValues.data(), 0, 0, 1, nullptr, nullptr);
+  (void)RadixSort::digit(0, 0);
 }
 
 template void

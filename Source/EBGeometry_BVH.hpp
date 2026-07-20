@@ -1228,6 +1228,243 @@ protected:
 };
 
 /**
+ * @brief Compact BVH node stored in PackedBVH's flat node array.
+ * @details Each node holds a bounding volume and a primitive range (leaves) or child index table
+ * (interior nodes). Lives at namespace scope (rather than nested inside PackedBVH) so that code
+ * which only needs the node topology -- e.g. a device-side builder or traversal -- can name it
+ * without dragging in PackedBVH's primitive type; PackedBVH retains the member alias
+ * @c Node so existing @c typename @c PackedBVH<...>::Node spellings keep working. The type is
+ * trivially copyable (enforced by static_assert below) so node arrays can be memcpy'd across the
+ * host/device boundary, and every method is @c EBGEOMETRY_HOST_DEVICE.
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ */
+template <class T, size_t K>
+struct PackedNode
+{
+  /**
+   * @brief AABB type used for the bounding volume.
+   */
+  using BV = EBGeometry::BoundingVolumes::AABBT<T>;
+
+  /**
+   * @brief Axis-aligned bounding box for this node's subtree.
+   */
+  BV m_bv{};
+
+  /**
+   * @brief Index of the first primitive in the global primitive list (leaf nodes only).
+   */
+  uint32_t m_primOff{};
+
+  /**
+   * @brief Number of primitives in this leaf (zero for interior nodes).
+   */
+  uint32_t m_numPrims{};
+
+  /**
+   * @brief Depth-first indices of the K child nodes (interior nodes only).
+   */
+  std::array<uint32_t, K> m_childOff{};
+
+  /**
+   * @brief Set the bounding volume for this node.
+   * @param[in] a_bv Bounding volume.
+   */
+  EBGEOMETRY_HOST_DEVICE inline void
+  setBoundingVolume(const BV& a_bv) noexcept;
+
+  /**
+   * @brief Set the primitive offset for this leaf node.
+   * @param[in] a_off Index into the global primitive list.
+   */
+  EBGEOMETRY_HOST_DEVICE inline void
+  setPrimitivesOffset(uint32_t a_off) noexcept;
+
+  /**
+   * @brief Set the primitive count for this leaf node.
+   * @param[in] a_n Number of primitives.
+   */
+  EBGEOMETRY_HOST_DEVICE inline void
+  setNumPrimitives(uint32_t a_n) noexcept;
+
+  /**
+   * @brief Set the depth-first index of the k-th child.
+   * @param[in] a_off Node index of the child.
+   * @param[in] a_k   Child slot (0 … K-1).
+   */
+  EBGEOMETRY_HOST_DEVICE inline void
+  setChildOffset(uint32_t a_off, size_t a_k) noexcept;
+
+  /**
+   * @brief Get the bounding volume.
+   * @return Reference to m_bv.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline const BV&
+  getBoundingVolume() const noexcept;
+
+  /**
+   * @brief Get the primitive offset (leaf nodes only).
+   * @return Index of the first primitive in the global list.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline uint32_t
+  getPrimitivesOffset() const noexcept;
+
+  /**
+   * @brief Get the primitive count.
+   * @return Number of primitives; zero for interior nodes.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline uint32_t
+  getNumPrimitives() const noexcept;
+
+  /**
+   * @brief Get the child index table.
+   * @return Reference to the K-element child-offset array.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline const std::array<uint32_t, K>&
+  getChildOffsets() const noexcept;
+
+  /**
+   * @brief Return true if this is a leaf node.
+   * @return True if m_numPrims > 0 (leaf), false otherwise (interior).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline bool
+  isLeaf() const noexcept;
+
+  /**
+   * @brief Get the distance from a_point to this node's bounding volume.
+   * @param[in] a_point Query point.
+   * @return Distance to the bounding-box surface, or zero if inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline T
+  getDistanceToBoundingVolume(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Get the squared distance from a_point to this node's bounding volume.
+   * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. pruneTraverse()'s
+   * scalar-fallback branch-and-bound compares against a squared pruning bound, so it uses this
+   * directly rather than taking a square root only to square it again.
+   * @param[in] a_point Query point.
+   * @return Squared distance to the bounding-box surface, or zero if inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE inline T
+  getDistanceToBoundingVolume2(const Vec3T<T>& a_point) const noexcept;
+};
+
+// PackedNode arrays are memcpy'd across the host/device boundary (and passed to kernels by
+// pointer), which requires triviality. Assert it for the SIMD-supported branching factors.
+static_assert(std::is_trivially_copyable_v<PackedNode<float, 4>>, "PackedNode must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PackedNode<double, 4>>, "PackedNode must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PackedNode<float, 8>>, "PackedNode must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PackedNode<double, 8>>, "PackedNode must be trivially copyable");
+
+// ─── Stages of PackedBVH's direct space-filling-curve build ──────────────────────────────────────
+//
+// PackedBVH's SFC constructor (sort primitives by SFC code, cut leaves every targetLeafSize,
+// pad the leaf count to a power of K with padding slots duplicating the last real leaf, merge
+// level by level, lay the tree out in depth-first pre-order with the root at index 0) emits its
+// node array through the functions below. They are the *single* implementation of that emission:
+// every node of the padded complete K-ary tree has a closed-form array position (paddedDfsIndex()
+// of its (level, position)), leaves are filled by fillLeafNode() and interior nodes by
+// fillInteriorNode() with no shared mutable state within a level. The host constructor runs them
+// as sequential loops; because each call is an independent pure function, a device build of the
+// same constructor can run the identical emission as one parallel map per stage/level (children
+// before parents, one kernel launch per level), producing a field-identical node array. All
+// functions are EBGEOMETRY_HOST_DEVICE for exactly that reason.
+//
+// Conventions: levels are counted from the root (level 0) down to the leaves (level = depth);
+// "position" is a node's slot within its level, in [0, K^level). All functions require K >= 2 and
+// a total padded node count that fits in uint32_t (the same limit the 32-bit child offsets in
+// PackedNode impose).
+
+/**
+ * @brief Depth of the padded complete K-ary tree the SFC build emits over a given leaf count.
+ * @details The smallest d with K^d >= a_numLeaves, i.e. the leaf level of the padded tree; the
+ * padded leaf count is K^d. A single leaf gives depth 0: the root is itself the leaf.
+ * @param[in] a_numLeaves Number of real leaves. Must be > 0.
+ * @param[in] a_K         Branching factor. Must be >= 2.
+ * @return Tree depth d.
+ */
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE inline uint32_t
+paddedTreeDepth(uint32_t a_numLeaves, uint32_t a_K) noexcept;
+
+/**
+ * @brief Number of nodes in the subtree hanging off one node at a given level of the padded
+ * complete K-ary tree.
+ * @details A node at level l of a depth-d tree roots a complete K-ary subtree with leaves at
+ * depth d - l, so its size is (K^(d - l + 1) - 1) / (K - 1) (geometric series; 1 for a leaf).
+ * @param[in] a_level Level of the node, in [0, a_depth].
+ * @param[in] a_depth Depth of the tree (the leaf level).
+ * @param[in] a_K     Branching factor. Must be >= 2.
+ * @return Node count of the subtree, including the node itself.
+ */
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE inline uint32_t
+paddedSubtreeSize(uint32_t a_level, uint32_t a_depth, uint32_t a_K) noexcept;
+
+/**
+ * @brief Depth-first pre-order array index of a node of the padded complete K-ary tree.
+ * @details The closed form of the SFC build's depth-first relayout: with a_1 ... a_l the base-K
+ * digits (most significant first) of the node's level position j, the pre-order index is
+ * l + sum over m of a_m * paddedSubtreeSize(m, d, K) -- each digit skips a_m whole sibling
+ * subtrees at level m, and the l accounts for the ancestors emitted on the path down. Computable
+ * independently per node, which is what lets every node of a level be written in one parallel map.
+ * @param[in] a_level    Level of the node, in [0, a_depth].
+ * @param[in] a_position Position of the node within its level, in [0, K^a_level).
+ * @param[in] a_depth    Depth of the tree (the leaf level).
+ * @param[in] a_K        Branching factor. Must be >= 2.
+ * @return Index of the node in the depth-first pre-order node array (root at 0).
+ */
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE inline uint32_t
+paddedDfsIndex(uint32_t a_level, uint32_t a_position, uint32_t a_depth, uint32_t a_K) noexcept;
+
+/**
+ * @brief SFC-build stage: fill one leaf node of the padded tree from the sorted per-primitive
+ * bounding volumes.
+ * @details Leaf slot s covers sorted primitives [s * a_leafSize, min((s + 1) * a_leafSize,
+ * a_numPrimitives)) -- the closed form of the constructor's linear leaf-cutting scan. A padding
+ * slot (s >= a_numRealLeaves) is filled as a copy of the last real leaf, which is exactly what
+ * the relayout of the padded tree materializes for its duplicated padding entries. The bounding
+ * volume is the running union (componentwise min/max) over the leaf's primitive volumes -- exact
+ * arithmetic, so identical in any evaluation order.
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ * @param[out] a_node          Node to fill.
+ * @param[in]  a_sortedBVs     Per-primitive bounding volumes in SFC-sorted order.
+ * @param[in]  a_leafSlot      Leaf slot in [0, K^depth).
+ * @param[in]  a_numRealLeaves Number of real (non-padding) leaves. Must be > 0.
+ * @param[in]  a_numPrimitives Total number of primitives. Must be > 0.
+ * @param[in]  a_leafSize      Target primitives per leaf. Must be > 0.
+ */
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline void
+fillLeafNode(PackedNode<T, K>&                            a_node,
+             const EBGeometry::BoundingVolumes::AABBT<T>* a_sortedBVs,
+             uint32_t                                     a_leafSlot,
+             uint32_t                                     a_numRealLeaves,
+             uint32_t                                     a_numPrimitives,
+             uint32_t                                     a_leafSize) noexcept;
+
+/**
+ * @brief SFC-build stage: fill one interior node of the padded tree (child offsets and bounding
+ * volume).
+ * @details The node at (a_level, a_position) parents the K nodes at (a_level + 1,
+ * a_position * K + c); each child offset is that child's paddedDfsIndex() (padding duplicates are
+ * distinct array entries, one per referencing parent), and the bounding volume is the union of
+ * the children's already-written bounding volumes. All K children must therefore have been filled
+ * first: process levels bottom-up (a device build synchronizes by launching one map per level).
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ * @param[in,out] a_nodes    Full node array in depth-first pre-order (this node is written at its
+ *                           own paddedDfsIndex()).
+ * @param[in]     a_level    Level of the node, in [0, a_depth).
+ * @param[in]     a_position Position of the node within its level, in [0, K^a_level).
+ * @param[in]     a_depth    Depth of the tree (the leaf level). Must be > a_level.
+ */
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline void
+fillInteriorNode(PackedNode<T, K>* a_nodes, uint32_t a_level, uint32_t a_position, uint32_t a_depth) noexcept;
+
+/**
  * @brief Linearised, AABB-backed BVH with SIMD-accelerated traversal.
  * @details PackedBVH is the runtime query class. It stores a flat depth-first array of
  * Node structs, a contiguous primitive list, and a per-node SoA AABB cache that enables
@@ -1280,149 +1517,11 @@ public:
 
   /**
    * @brief Compact BVH node stored in the flat node array.
-   * @details Each node holds a bounding volume, a primitive range (leaves) or child
-   * index table (interior nodes). Exposed as a public nested type so that users can
-   * write traverse() callbacks (PrunePredicate, NodeKeyFactory) that inspect nodes.
+   * @details Member alias for the namespace-scope BVH::PackedNode (see its documentation), kept so
+   * that users can keep writing traverse() callbacks (PrunePredicate, NodeKeyFactory) against
+   * @c typename @c PackedBVH<...>::Node.
    */
-  struct Node
-  {
-    /**
-     * @brief Axis-aligned bounding box for this node's subtree.
-     */
-    BV m_bv{};
-
-    /**
-     * @brief Index of the first primitive in the global primitive list (leaf nodes only).
-     */
-    uint32_t m_primOff{};
-
-    /**
-     * @brief Number of primitives in this leaf (zero for interior nodes).
-     */
-    uint32_t m_numPrims{};
-
-    /**
-     * @brief Depth-first indices of the K child nodes (interior nodes only).
-     */
-    std::array<uint32_t, K> m_childOff{};
-
-    /**
-     * @brief Set the bounding volume for this node.
-     * @param[in] a_bv Bounding volume.
-     */
-    inline void
-    setBoundingVolume(const BV& a_bv) noexcept
-    {
-      m_bv = a_bv;
-    }
-
-    /**
-     * @brief Set the primitive offset for this leaf node.
-     * @param[in] a_off Index into the global primitive list.
-     */
-    inline void
-    setPrimitivesOffset(uint32_t a_off) noexcept
-    {
-      m_primOff = a_off;
-    }
-
-    /**
-     * @brief Set the primitive count for this leaf node.
-     * @param[in] a_n Number of primitives.
-     */
-    inline void
-    setNumPrimitives(uint32_t a_n) noexcept
-    {
-      m_numPrims = a_n;
-    }
-
-    /**
-     * @brief Set the depth-first index of the k-th child.
-     * @param[in] a_off Node index of the child.
-     * @param[in] a_k   Child slot (0 … K-1).
-     */
-    inline void
-    setChildOffset(uint32_t a_off, size_t a_k) noexcept
-    {
-      EBGEOMETRY_EXPECT(a_k < K);
-      m_childOff[a_k] = a_off;
-    }
-
-    /**
-     * @brief Get the bounding volume.
-     * @return Reference to m_bv.
-     */
-    [[nodiscard]] inline const BV&
-    getBoundingVolume() const noexcept
-    {
-      return m_bv;
-    }
-
-    /**
-     * @brief Get the primitive offset (leaf nodes only).
-     * @return Index of the first primitive in the global list.
-     */
-    [[nodiscard]] inline uint32_t
-    getPrimitivesOffset() const noexcept
-    {
-      return m_primOff;
-    }
-
-    /**
-     * @brief Get the primitive count.
-     * @return Number of primitives; zero for interior nodes.
-     */
-    [[nodiscard]] inline uint32_t
-    getNumPrimitives() const noexcept
-    {
-      return m_numPrims;
-    }
-
-    /**
-     * @brief Get the child index table.
-     * @return Reference to the K-element child-offset array.
-     */
-    [[nodiscard]] inline const std::array<uint32_t, K>&
-    getChildOffsets() const noexcept
-    {
-      return m_childOff;
-    }
-
-    /**
-     * @brief Return true if this is a leaf node.
-     * @return True if m_numPrims > 0 (leaf), false otherwise (interior).
-     */
-    [[nodiscard]] inline bool
-    isLeaf() const noexcept
-    {
-      return m_numPrims > 0;
-    }
-
-    /**
-     * @brief Get the distance from a_point to this node's bounding volume.
-     * @param[in] a_point Query point.
-     * @return Distance to the bounding-box surface, or zero if inside.
-     */
-    [[nodiscard]] inline T
-    getDistanceToBoundingVolume(const Vec3T<T>& a_point) const noexcept
-    {
-      return m_bv.getDistance(a_point);
-    }
-
-    /**
-     * @brief Get the squared distance from a_point to this node's bounding volume.
-     * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. pruneTraverse()'s
-     * scalar-fallback branch-and-bound compares against a squared pruning bound, so it uses this
-     * directly rather than taking a square root only to square it again.
-     * @param[in] a_point Query point.
-     * @return Squared distance to the bounding-box surface, or zero if inside.
-     */
-    [[nodiscard]] inline T
-    getDistanceToBoundingVolume2(const Vec3T<T>& a_point) const noexcept
-    {
-      return m_bv.getDistance2(a_point);
-    }
-  };
+  using Node = PackedNode<T, K>;
 
   /**
    * @brief Deleted default constructor. Use TreeBVH::pack() or TreeBVH::packWith() to construct.
@@ -1482,11 +1581,16 @@ public:
    * from N and K, this lets the caller control leaf size directly.
    *
    * Because the resulting leaf count generally isn't a power of K, the K-ary merge pads up to the
-   * next power of K by re-using the last real leaf's index in place of a missing child -- so every
+   * next power of K by duplicating the last real leaf in place of a missing child -- so every
    * interior node still has exactly K children (no change to Node's shape or to traverse()/
    * pruneTraverse(), which assume this), at the cost of that one leaf's primitives potentially
    * being visited more than once by a query in the (bounded, rare) case where the real leaf count
    * isn't already a power of K. This never duplicates primitive data, only (cheap) Node entries.
+   *
+   * The node array itself is emitted through the shared stage functions declared next to
+   * PackedNode (paddedTreeDepth() / paddedDfsIndex() / fillLeafNode() / fillInteriorNode()); see
+   * their documentation for the closed-form layout and why a device build can run the identical
+   * emission.
    *
    * @tparam S Space-filling curve type (e.g. SFC::Morton, SFC::Nested). Defaults to SFC::Morton;
    * a constructor template's own parameters cannot be explicitly specified the way a named

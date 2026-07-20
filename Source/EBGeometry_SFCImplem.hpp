@@ -28,7 +28,7 @@
 namespace EBGeometry {
 namespace SFC {
 
-inline uint64_t
+EBGEOMETRY_HOST_DEVICE inline uint64_t
 Morton::encode(const Index& a_point) noexcept
 {
   EBGEOMETRY_EXPECT(a_point[0] <= ValidSpan);
@@ -58,7 +58,7 @@ Morton::encode(const Index& a_point) noexcept
   return code;
 }
 
-inline Index
+EBGEOMETRY_HOST_DEVICE inline Index
 Morton::decode(const uint64_t& a_code) noexcept
 {
   EBGEOMETRY_EXPECT(a_code <= ((static_cast<uint64_t>(1) << (3 * ValidBits)) - 1));
@@ -82,7 +82,7 @@ Morton::decode(const uint64_t& a_code) noexcept
   return Index({x, y, z});
 }
 
-inline uint64_t
+EBGEOMETRY_HOST_DEVICE inline uint64_t
 Nested::encode(const Index& a_point) noexcept
 {
   EBGEOMETRY_EXPECT(a_point[0] <= ValidSpan);
@@ -101,7 +101,7 @@ Nested::encode(const Index& a_point) noexcept
   return x + y * base + z * base * base;
 }
 
-inline Index
+EBGEOMETRY_HOST_DEVICE inline Index
 Nested::decode(const uint64_t& a_code) noexcept
 {
   constexpr uint64_t base    = static_cast<uint64_t>(SFC::ValidSpan) + 1ULL;
@@ -116,7 +116,7 @@ Nested::decode(const uint64_t& a_code) noexcept
   return Index({x, y, z});
 }
 
-inline uint64_t
+EBGEOMETRY_HOST_DEVICE inline uint64_t
 Hilbert::encode(const Index& a_point) noexcept
 {
   EBGEOMETRY_EXPECT(a_point[0] <= ValidSpan);
@@ -173,7 +173,7 @@ Hilbert::encode(const Index& a_point) noexcept
   return code;
 }
 
-inline Index
+EBGEOMETRY_HOST_DEVICE inline Index
 Hilbert::decode(const uint64_t& a_code) noexcept
 {
   constexpr unsigned int nDims     = 3;
@@ -225,6 +225,50 @@ Hilbert::decode(const uint64_t& a_code) noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE inline Vec3T<T>
+binningDelta(const Vec3T<T>& a_minCoord, const Vec3T<T>& a_maxCoord) noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::SFC::binningDelta requires a floating-point type T");
+
+  Vec3T<T> delta = (a_maxCoord - a_minCoord) / ValidSpan;
+
+  // A zero delta component means every point coincides on that axis (a planar cloud or duplicate
+  // points). The numerator in computeBin() is then also exactly zero there for every point, so any
+  // nonzero divisor yields the same, correct bin index of 0; clamp to 1 only to avoid the
+  // divide-by-zero.
+  for (size_t axis = 0; axis < 3; axis++) {
+    if (delta[axis] == T(0)) {
+      delta[axis] = T(1);
+    }
+  }
+
+  return delta;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE inline Index
+computeBin(const Vec3T<T>& a_point, const Vec3T<T>& a_minCoord, const Vec3T<T>& a_delta) noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::SFC::computeBin requires a floating-point type T");
+
+  EBGEOMETRY_EXPECT(a_delta[0] != T(0));
+  EBGEOMETRY_EXPECT(a_delta[1] != T(0));
+  EBGEOMETRY_EXPECT(a_delta[2] != T(0));
+
+  // Clamp each floored index into [0, ValidSpan], the range encode() requires. Two float divisions
+  // can round a max-boundary point's index to ValidSpan + 1 (and a min-boundary point's to a tiny
+  // negative, which would wrap on the unsigned cast); the clamp defends both.
+  const auto toBin = [](T a_v) noexcept -> unsigned int {
+    const T f = std::floor(a_v);
+    return static_cast<unsigned int>(f < T(0) ? T(0) : (f > T(ValidSpan) ? T(ValidSpan) : f));
+  };
+
+  const Vec3T<T> curBin = (a_point - a_minCoord) / a_delta;
+
+  return Index{toBin(curBin[0]), toBin(curBin[1]), toBin(curBin[2])};
+}
+
+template <class T>
 inline std::vector<Index>
 computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
 {
@@ -244,32 +288,13 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
     maxCoord = max(maxCoord, p);
   }
 
-  Vec3T<T> delta = (maxCoord - minCoord) / ValidSpan;
-
-  // A zero delta component means every point coincides on that axis (a planar cloud or duplicate
-  // points). The numerator below is then also exactly zero there for every point, so any nonzero
-  // divisor yields the same, correct bin index of 0; clamp to 1 only to avoid the divide-by-zero.
-  for (size_t axis = 0; axis < 3; axis++) {
-    if (delta[axis] == T(0)) {
-      delta[axis] = T(1);
-    }
-  }
+  const Vec3T<T> delta = binningDelta(minCoord, maxCoord);
 
   std::vector<Index> bins;
   bins.reserve(a_points.size());
 
-  // Clamp each floored index into [0, ValidSpan], the range encode() requires. Two float divisions
-  // can round a max-boundary point's index to ValidSpan + 1 (and a min-boundary point's to a tiny
-  // negative, which would wrap on the unsigned cast); the clamp defends both.
-  const auto toBin = [](T a_v) noexcept -> unsigned int {
-    const T f = std::floor(a_v);
-    return static_cast<unsigned int>(f < T(0) ? T(0) : (f > T(ValidSpan) ? T(ValidSpan) : f));
-  };
-
   for (const auto& p : a_points) {
-    const Vec3T<T> curBin = (p - minCoord) / delta;
-
-    bins.emplace_back(Index{toBin(curBin[0]), toBin(curBin[1]), toBin(curBin[2])});
+    bins.emplace_back(computeBin(p, minCoord, delta));
   }
 
   return bins;

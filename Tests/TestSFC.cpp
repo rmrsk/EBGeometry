@@ -209,6 +209,63 @@ TEST_CASE("SFC::computeBins: coincident points collapse to bin 0 (no divide-by-z
   }
 }
 
+TEST_CASE("SFC::computeBin: per-point binning matches computeBins exactly", "[SFC][bins]")
+{
+  using Vec3 = Vec3T<double>;
+
+  // A pseudo-random cloud (mixed signs and magnitudes), plus a planar cloud (a degenerate axis
+  // exercising binningDelta's zero-axis clamp) and boundary points sitting exactly on the cloud
+  // min/max corners.
+  unsigned int state = 987654321u;
+  const auto   next  = [&state]() -> double {
+    state = state * 1103515245u + 12345u;
+    return double(state >> 8) / double(1u << 24);
+  };
+
+  std::vector<Vec3> cloud;
+  cloud.reserve(203);
+
+  for (int i = 0; i < 200; i++) {
+    cloud.emplace_back(10.0 * next() - 5.0, 0.1 * next(), 1000.0 * next());
+  }
+
+  cloud.emplace_back(-5.0, 0.0, 0.0);
+  cloud.emplace_back(5.0, 0.1, 1000.0);
+  cloud.emplace_back(0.0, 0.05, 500.0);
+
+  std::vector<Vec3> planar;
+
+  for (int i = 0; i < 50; i++) {
+    planar.emplace_back(next(), 0.25, next());
+  }
+
+  for (const auto& points : {cloud, planar}) {
+    // The per-point path: an explicit min/max reduction, binningDelta(), then one computeBin()
+    // per point -- what a device builder runs, thread per point.
+    Vec3 minCoord = +Vec3::infinity();
+    Vec3 maxCoord = -Vec3::infinity();
+
+    for (const auto& p : points) {
+      minCoord = min(minCoord, p);
+      maxCoord = max(maxCoord, p);
+    }
+
+    const Vec3 delta = SFC::binningDelta(minCoord, maxCoord);
+
+    for (size_t axis = 0; axis < 3; axis++) {
+      REQUIRE(delta[axis] != 0.0);
+    }
+
+    const auto bins = SFC::computeBins<double>(points);
+
+    REQUIRE(bins.size() == points.size());
+
+    for (size_t i = 0; i < points.size(); i++) {
+      REQUIRE(SFC::computeBin(points[i], minCoord, delta) == bins[i]);
+    }
+  }
+}
+
 TEST_CASE("SFC::order: is a permutation ordering points by non-decreasing SFC code", "[SFC][order]")
 {
   using Vec3 = Vec3T<double>;

@@ -34,6 +34,214 @@ namespace EBGeometry {
 
 namespace BVH {
 
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline void
+PackedNode<T, K>::setBoundingVolume(const BV& a_bv) noexcept
+{
+  m_bv = a_bv;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline void
+PackedNode<T, K>::setPrimitivesOffset(uint32_t a_off) noexcept
+{
+  m_primOff = a_off;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline void
+PackedNode<T, K>::setNumPrimitives(uint32_t a_n) noexcept
+{
+  m_numPrims = a_n;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline void
+PackedNode<T, K>::setChildOffset(uint32_t a_off, size_t a_k) noexcept
+{
+  EBGEOMETRY_EXPECT(a_k < K);
+  m_childOff[a_k] = a_off;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline const typename PackedNode<T, K>::BV&
+PackedNode<T, K>::getBoundingVolume() const noexcept
+{
+  return m_bv;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline uint32_t
+PackedNode<T, K>::getPrimitivesOffset() const noexcept
+{
+  return m_primOff;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline uint32_t
+PackedNode<T, K>::getNumPrimitives() const noexcept
+{
+  return m_numPrims;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline const std::array<uint32_t, K>&
+PackedNode<T, K>::getChildOffsets() const noexcept
+{
+  return m_childOff;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline bool
+PackedNode<T, K>::isLeaf() const noexcept
+{
+  return m_numPrims > 0;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline T
+PackedNode<T, K>::getDistanceToBoundingVolume(const Vec3T<T>& a_point) const noexcept
+{
+  return m_bv.getDistance(a_point);
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline T
+PackedNode<T, K>::getDistanceToBoundingVolume2(const Vec3T<T>& a_point) const noexcept
+{
+  return m_bv.getDistance2(a_point);
+}
+
+EBGEOMETRY_HOST_DEVICE inline uint32_t
+paddedTreeDepth(uint32_t a_numLeaves, uint32_t a_K) noexcept
+{
+  EBGEOMETRY_EXPECT(a_numLeaves > 0);
+  EBGEOMETRY_EXPECT(a_K >= 2);
+
+  uint32_t depth = 0;
+  uint64_t span  = 1;
+
+  while (span < a_numLeaves) {
+    span *= a_K;
+    depth++;
+  }
+
+  return depth;
+}
+
+EBGEOMETRY_HOST_DEVICE inline uint32_t
+paddedSubtreeSize(uint32_t a_level, uint32_t a_depth, uint32_t a_K) noexcept
+{
+  EBGEOMETRY_EXPECT(a_level <= a_depth);
+  EBGEOMETRY_EXPECT(a_K >= 2);
+
+  uint64_t power = 1;
+
+  for (uint32_t i = 0; i < a_depth - a_level + 1; i++) {
+    power *= a_K;
+  }
+
+  const uint64_t size = (power - 1) / (a_K - 1);
+
+  EBGEOMETRY_EXPECT(size <= std::numeric_limits<uint32_t>::max());
+
+  return static_cast<uint32_t>(size);
+}
+
+EBGEOMETRY_HOST_DEVICE inline uint32_t
+paddedDfsIndex(uint32_t a_level, uint32_t a_position, uint32_t a_depth, uint32_t a_K) noexcept
+{
+  EBGEOMETRY_EXPECT(a_level <= a_depth);
+  EBGEOMETRY_EXPECT(a_K >= 2);
+
+  // stride = K^(a_level - 1): the level-position weight of the most significant base-K digit.
+  uint64_t stride = 1;
+
+  for (uint32_t i = 1; i < a_level; i++) {
+    stride *= a_K;
+  }
+
+  EBGEOMETRY_EXPECT(a_level == 0 || a_position < stride * a_K);
+
+  uint64_t index     = 0;
+  uint64_t remainder = a_position;
+
+  for (uint32_t m = 1; m <= a_level; m++) {
+    const uint64_t digit = remainder / stride;
+
+    remainder -= digit * stride;
+    stride /= a_K;
+
+    index += 1 + digit * paddedSubtreeSize(m, a_depth, a_K);
+  }
+
+  EBGEOMETRY_EXPECT(index <= std::numeric_limits<uint32_t>::max());
+
+  return static_cast<uint32_t>(index);
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline void
+fillLeafNode(PackedNode<T, K>&                a_node,
+             const BoundingVolumes::AABBT<T>* a_sortedBVs,
+             uint32_t                         a_leafSlot,
+             uint32_t                         a_numRealLeaves,
+             uint32_t                         a_numPrimitives,
+             uint32_t                         a_leafSize) noexcept
+{
+  EBGEOMETRY_EXPECT(a_sortedBVs != nullptr);
+  EBGEOMETRY_EXPECT(a_numRealLeaves > 0);
+  EBGEOMETRY_EXPECT(a_numPrimitives > 0);
+  EBGEOMETRY_EXPECT(a_leafSize > 0);
+
+  // Padding slots duplicate the last real leaf -- the closed form of the constructor's padding
+  // aliasing, which the relayout materializes as one copy per referencing parent.
+  const uint32_t realSlot = (a_leafSlot < a_numRealLeaves) ? a_leafSlot : a_numRealLeaves - 1;
+  const uint32_t primOff  = realSlot * a_leafSize;
+
+  EBGEOMETRY_EXPECT(primOff < a_numPrimitives);
+
+  const uint32_t numPrims = ((a_numPrimitives - primOff) < a_leafSize) ? (a_numPrimitives - primOff) : a_leafSize;
+
+  Vec3T<T> lo = a_sortedBVs[primOff].getLowCorner();
+  Vec3T<T> hi = a_sortedBVs[primOff].getHighCorner();
+
+  for (uint32_t i = 1; i < numPrims; i++) {
+    lo = min(lo, a_sortedBVs[primOff + i].getLowCorner());
+    hi = max(hi, a_sortedBVs[primOff + i].getHighCorner());
+  }
+
+  a_node.setBoundingVolume(BoundingVolumes::AABBT<T>(lo, hi));
+  a_node.setPrimitivesOffset(primOff);
+  a_node.setNumPrimitives(numPrims);
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE inline void
+fillInteriorNode(PackedNode<T, K>* a_nodes, uint32_t a_level, uint32_t a_position, uint32_t a_depth) noexcept
+{
+  EBGEOMETRY_EXPECT(a_nodes != nullptr);
+  EBGEOMETRY_EXPECT(a_level < a_depth);
+
+  const uint32_t treeK = static_cast<uint32_t>(K);
+
+  PackedNode<T, K>& node = a_nodes[paddedDfsIndex(a_level, a_position, a_depth, treeK)];
+
+  Vec3T<T> lo = +Vec3T<T>::infinity();
+  Vec3T<T> hi = -Vec3T<T>::infinity();
+
+  for (uint32_t c = 0; c < treeK; c++) {
+    const uint32_t childIndex = paddedDfsIndex(a_level + 1, a_position * treeK + c, a_depth, treeK);
+
+    node.setChildOffset(childIndex, c);
+
+    lo = min(lo, a_nodes[childIndex].getBoundingVolume().getLowCorner());
+    hi = max(hi, a_nodes[childIndex].getBoundingVolume().getHighCorner());
+  }
+
+  node.setBoundingVolume(BoundingVolumes::AABBT<T>(lo, hi));
+}
+
 template <class T, class P, class BV, size_t K>
 inline TreeBVH<T, P, BV, K>::TreeBVH() noexcept
 {
@@ -586,34 +794,18 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
               return std::get<2>(a_lhs) < std::get<2>(a_rhs);
             });
 
-  // Cut leaves via a single linear scan at the target leaf size (unlike
-  // TreeBVH::bottomUpSortAndPartition(), which derives a leaf count of K^floor(log_K(N)) from N
-  // and K alone).
-  struct LeafRange
-  {
-    uint32_t offset;
-    uint32_t count;
-    BV       bv;
-  };
+  // Per-primitive bounding volumes in final sorted order -- the input consumed by the leaf stage
+  // of the shared node emission below.
+  std::vector<BV> sortedBVs;
 
-  std::vector<LeafRange> leafRanges;
-  leafRanges.reserve(numPrimitives / a_targetLeafSize + 1);
-  for (size_t i = 0; i < numPrimitives;) {
-    const size_t count = std::min(a_targetLeafSize, numPrimitives - i);
+  sortedBVs.reserve(numPrimitives);
 
-    std::vector<BV> leafBVs;
-    leafBVs.reserve(count);
-    for (size_t j = 0; j < count; j++) {
-      leafBVs.push_back(std::get<1>(sortedPrimitives[i + j]));
-    }
-
-    leafRanges.push_back({static_cast<uint32_t>(i), static_cast<uint32_t>(count), BV(leafBVs)});
-
-    i += count;
+  for (const auto& entry : sortedPrimitives) {
+    sortedBVs.push_back(std::get<1>(entry));
   }
 
   // Populate the primitive array once, in final sorted order -- independent of whatever order
-  // the node array below ends up being built/relaid-out in.
+  // the node array below ends up being built in.
   auto primBlock = std::make_shared<std::vector<P>>();
 
   primBlock->reserve(numPrimitives);
@@ -624,90 +816,54 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 
   StoragePolicy::appendAliased(m_primitives, primBlock);
 
-  // Build the K-ary structure bottom-up in a scratch array (reusing Node's own shape), then relay
-  // it out into m_linearNodes in depth-first pre-order below -- a bottom-up merge naturally
-  // produces the root last, but PackedBVH's traversal assumes the root is always at index 0.
-  const size_t numRealLeaves = leafRanges.size();
+  // Emit the node array stage-wise through the shared emission functions declared next to
+  // PackedNode (see their documentation in EBGeometry_BVH.hpp): cut leaves every
+  // a_targetLeafSize primitives in closed form, pad the leaf count to a power of K (padding
+  // slots duplicating the last real leaf -- cheap Node copies, one per referencing parent, and
+  // re-visiting the same primitives more than once is harmless for any min-reduction query; see
+  // the constructor's doxygen comment), and write every node of the padded complete K-ary tree
+  // directly at its depth-first pre-order position (root at index 0, the invariant the other
+  // constructors establish) -- leaves first, then each interior level bottom-up so a parent
+  // always unions already-written child volumes. Every call is an independent pure function, so
+  // a device build can run this exact emission as one parallel map per stage/level.
+  EBGEOMETRY_EXPECT(numPrimitives <= std::numeric_limits<uint32_t>::max());
 
-  size_t paddedLeafCount = 1;
+  const uint32_t treeK         = static_cast<uint32_t>(K);
+  const uint32_t numPrims32    = static_cast<uint32_t>(numPrimitives);
+  const uint32_t leafSize32    = static_cast<uint32_t>(std::min(a_targetLeafSize, numPrimitives));
+  const uint32_t numRealLeaves = (numPrims32 + leafSize32 - 1) / leafSize32;
+  const uint32_t depth         = paddedTreeDepth(numRealLeaves, treeK);
 
-  while (paddedLeafCount < numRealLeaves) {
-    paddedLeafCount *= K;
+  uint64_t paddedLeafCount = 1;
+
+  for (uint32_t i = 0; i < depth; i++) {
+    paddedLeafCount *= treeK;
   }
 
-  std::vector<Node> scratch(paddedLeafCount);
-  // Reserve the exact final node count up front -- for a full K-ary tree with paddedLeafCount
-  // leaves (itself a power of K), the total node count across every level is
-  // (paddedLeafCount * K - 1) / (K - 1) (geometric series 1 + K + K^2 + ... + paddedLeafCount) --
-  // so the emplace_back() calls building interior nodes below never trigger a reallocation.
-  scratch.reserve((paddedLeafCount * K - 1) / (K - 1));
+  const uint64_t numNodes = (paddedLeafCount * treeK - 1) / (treeK - 1);
 
-  for (size_t i = 0; i < numRealLeaves; i++) {
-    scratch[i].setBoundingVolume(leafRanges[i].bv);
-    scratch[i].setPrimitivesOffset(leafRanges[i].offset);
-    scratch[i].setNumPrimitives(leafRanges[i].count);
+  EBGEOMETRY_EXPECT(numNodes <= std::numeric_limits<uint32_t>::max());
+
+  m_linearNodes.assign(numNodes, Node{});
+
+  for (uint64_t slot = 0; slot < paddedLeafCount; slot++) {
+    fillLeafNode<T, K>(m_linearNodes[paddedDfsIndex(depth, static_cast<uint32_t>(slot), depth, treeK)],
+                       sortedBVs.data(),
+                       static_cast<uint32_t>(slot),
+                       numRealLeaves,
+                       numPrims32,
+                       leafSize32);
   }
 
-  // Padding slots (present only when numRealLeaves isn't already a power of K) reuse the last
-  // real leaf's scratch index rather than inventing an empty placeholder node: the resulting
-  // duplicate Node entries (one per parent that references it) are cheap, and re-visiting the
-  // same primitives more than once is harmless for any min-reduction query -- see the
-  // constructor's doxygen comment.
-  std::vector<uint32_t> levelIndices(paddedLeafCount);
+  uint64_t numAtLevel = paddedLeafCount;
 
-  for (size_t i = 0; i < paddedLeafCount; i++) {
-    levelIndices[i] = static_cast<uint32_t>(i < numRealLeaves ? i : numRealLeaves - 1);
-  }
+  for (uint32_t level = depth; level-- > 0;) {
+    numAtLevel /= treeK;
 
-  while (levelIndices.size() > 1) {
-    const size_t          numParents = levelIndices.size() / K;
-    std::vector<uint32_t> parentIndices(numParents);
-
-    for (size_t p = 0; p < numParents; p++) {
-      const uint32_t parentIdx = static_cast<uint32_t>(scratch.size());
-      scratch.emplace_back();
-
-      std::vector<BV> childBVs;
-
-      childBVs.reserve(K);
-
-      for (size_t c = 0; c < K; c++) {
-        const uint32_t childIdx = levelIndices[p * K + c];
-        scratch[parentIdx].setChildOffset(childIdx, c);
-        childBVs.push_back(scratch[childIdx].getBoundingVolume());
-      }
-
-      scratch[parentIdx].setBoundingVolume(BV(childBVs));
-
-      parentIndices[p] = parentIdx;
+    for (uint64_t position = 0; position < numAtLevel; position++) {
+      fillInteriorNode<T, K>(m_linearNodes.data(), level, static_cast<uint32_t>(position), depth);
     }
-
-    levelIndices = std::move(parentIndices);
   }
-
-  const uint32_t scratchRoot = levelIndices.front();
-
-  // Relay the scratch tree into m_linearNodes in depth-first pre-order (root at index 0), exactly
-  // matching the invariant the other two constructors establish.
-  m_linearNodes.reserve(scratch.size());
-
-  std::function<uint32_t(uint32_t)> relayout = [&](uint32_t a_scratchIdx) -> uint32_t {
-    const uint32_t newIdx = static_cast<uint32_t>(m_linearNodes.size());
-
-    m_linearNodes.push_back(scratch[a_scratchIdx]);
-
-    if (!scratch[a_scratchIdx].isLeaf()) {
-      for (size_t c = 0; c < K; c++) {
-        const uint32_t newChildIdx = relayout(scratch[a_scratchIdx].getChildOffsets()[c]);
-
-        m_linearNodes[newIdx].setChildOffset(static_cast<uint32_t>(newChildIdx), c);
-      }
-    }
-
-    return newIdx;
-  };
-
-  relayout(scratchRoot);
 
   buildSoA();
 }

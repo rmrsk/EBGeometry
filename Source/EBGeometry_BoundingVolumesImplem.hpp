@@ -311,18 +311,6 @@ AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept
 }
 
 template <class T>
-EBGEOMETRY_HOST_DEVICE
-AABBT<T>::AABBT(const AABBT<T>& a_other) noexcept
-{
-  EBGEOMETRY_EXPECT(a_other.m_loCorner[0] <= a_other.m_hiCorner[0]);
-  EBGEOMETRY_EXPECT(a_other.m_loCorner[1] <= a_other.m_hiCorner[1]);
-  EBGEOMETRY_EXPECT(a_other.m_loCorner[2] <= a_other.m_hiCorner[2]);
-
-  m_loCorner = a_other.m_loCorner;
-  m_hiCorner = a_other.m_hiCorner;
-}
-
-template <class T>
 EBGEOMETRY_HOST
 AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others) noexcept
 {
@@ -350,9 +338,6 @@ AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points) noexcept
 
   this->define(a_points);
 }
-
-template <class T>
-EBGEOMETRY_HOST_DEVICE AABBT<T>::~AABBT() noexcept = default;
 
 template <class T>
 template <class P>

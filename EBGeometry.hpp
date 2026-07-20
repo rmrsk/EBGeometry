@@ -33,6 +33,7 @@
 #include "Source/EBGeometry_PointCloudHashGrid.hpp"
 #include "Source/EBGeometry_PointSoA.hpp"
 #include "Source/EBGeometry_Polygon2D.hpp"
+#include "Source/EBGeometry_RadixSort.hpp"
 #include "Source/EBGeometry_Random.hpp"
 #include "Source/EBGeometry_SFC.hpp"
 #include "Source/EBGeometry_STL.hpp"

@@ -19,9 +19,46 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
+
+/**
+ * @brief Namespace for the cell-binning math shared by PointCloudHashGrid and its device-side
+ * counterpart.
+ * @details Hoisted out of the class as pure @c EBGEOMETRY_HOST_DEVICE free functions so device
+ * code can bin points into cells with arithmetic bit-identical to the host grid; the host class
+ * methods forward here (zero behavior change).
+ */
+namespace PointCloudHashGridDetail {
+
+/**
+ * @brief Integer cell coordinate of a coordinate value along one axis, clamped into [0, a_n).
+ * @tparam T Floating-point precision.
+ * @param[in] a_x    Coordinate value (one component of a point).
+ * @param[in] a_lo   Grid lower corner on this axis.
+ * @param[in] a_invH Reciprocal cell size (1 / h).
+ * @param[in] a_n    Number of cells on this axis. Must be >= 1.
+ * @return The clamped integer cell coordinate.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE inline int
+cellCoord(T a_x, T a_lo, T a_invH, int a_n) noexcept;
+
+/**
+ * @brief Linear cell id from clamped integer cell coordinates.
+ * @param[in] a_ix Cell coordinate along x, in [0, a_nx).
+ * @param[in] a_iy Cell coordinate along y, in [0, a_ny).
+ * @param[in] a_iz Cell coordinate along z.
+ * @param[in] a_nx Number of cells along x.
+ * @param[in] a_ny Number of cells along y.
+ * @return The linear cell index a_ix + a_nx * (a_iy + a_ny * a_iz).
+ */
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE inline std::size_t
+cellIndex(int a_ix, int a_iy, int a_iz, int a_nx, int a_ny) noexcept;
+
+} // namespace PointCloudHashGridDetail
 
 /**
  * @brief A uniform spatial grid specialized for point clouds, with a fast build and turnkey queries.
@@ -211,6 +248,7 @@ public:
 private:
   /**
    * @brief Integer cell coordinate of a coordinate value along one axis, clamped into [0, a_n).
+   * @details Forwards to PointCloudHashGridDetail::cellCoord() (the host/device-shared math).
    * @param[in] a_x  Coordinate value (one component of a point).
    * @param[in] a_lo Grid lower corner on this axis.
    * @param[in] a_n  Number of cells on this axis.
@@ -221,6 +259,7 @@ private:
 
   /**
    * @brief Linear cell id from clamped integer cell coordinates.
+   * @details Forwards to PointCloudHashGridDetail::cellIndex() (the host/device-shared math).
    * @param[in] a_ix Cell coordinate along x.
    * @param[in] a_iy Cell coordinate along y.
    * @param[in] a_iz Cell coordinate along z.

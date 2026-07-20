@@ -278,8 +278,8 @@ inline constexpr uint32_t TapeBVHMaxChildren = 16;
  * @details All index fields are global indices into the tape's shared @c bvhNodes / @c bvhChildren
  * / @c bvhLeaves arrays (blocks are appended back to back, so no per-block base arithmetic is
  * needed at query time). The bounding box is stored as raw corners rather than an
- * @c BoundingVolumes::AABBT (whose user-provided copy constructor makes it not trivially
- * copyable); the interpreter rebuilds an @c AABBT on the fly and evaluates its
+ * @c BoundingVolumes::AABBT (keeping this struct a bare bundle of corners and indices); the
+ * interpreter rebuilds an @c AABBT on the fly and evaluates its
  * @c getDistance2 -- the single source of truth for the point-to-box distance.
  * @tparam T Floating-point precision.
  */
