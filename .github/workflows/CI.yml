@@ -430,15 +430,11 @@ jobs:
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
           ASAN_OPTIONS: detect_leaks=1
 
-  GPU-CUDA-Compile:
+  GPU-CUDA:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: GPU CUDA compile (memory-foundation smoke)
+    name: GPU CUDA compile
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Advisory while the GPU port is in progress: compiles the Tests/GPU/*.cu device-portability
-    # smoke test for the POD memory foundation (MemoryResource / Pool / PODVector) with nvcc.
-    # Compile-only -- no GPU is needed. continue-on-error keeps it off the merge gate until it has
-    # been confirmed green; promote it (add to CI-passed needs, drop continue-on-error) once stable.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
@@ -448,34 +444,27 @@ jobs:
           cuda: '12.5.0'
           method: 'network'
           sub-packages: '["nvcc", "cudart"]'
-      - name: Configure (CUDA smoke test)
+      - name: Configure
         run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON
-      - name: Build CUDA target (compile-only)
+      - name: Build
         run: cmake --build build/cuda --target EBGeometry_GPUMemorySmoke --parallel 2
 
-  GPU-HIP-Compile:
+  GPU-HIP:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: GPU HIP compile (memory-foundation smoke)
+    name: GPU HIP compile
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Advisory while the GPU port is in progress: compiles the Tests/GPU/*.hip TU with the HIP
-    # toolchain from the Ubuntu 24.04 archive (hipcc 5.7 -> clang-17 + rocm-device-libs;
-    # ~1-2 GB, no external apt repo, no multi-GB rocm/dev container). Compile-only -- no AMD GPU
-    # is needed. continue-on-error keeps it off the merge gate until confirmed green; promote it
-    # together with GPU-CUDA-Compile.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
-      - name: Install HIP toolchain (Ubuntu archive)
+      - name: Install HIP toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y hipcc clang-17 libamdhip64-dev rocm-device-libs-17
-      - name: Configure (HIP smoke test)
-        # CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER ("Use Clang directly, or let
-        # CMake pick a default"); drive the HIP language with the clang that Ubuntu hipcc 5.7 itself
-        # wraps (clang-17, matching rocm-device-libs-17).
+      - name: Configure
+        # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
         run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17
-      - name: Build HIP target (compile-only)
+      - name: Build
         run: cmake --build build/hip --target EBGeometry_GPUMemorySmoke --parallel 2
 
   CI-passed:
