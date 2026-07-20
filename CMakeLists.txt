@@ -69,12 +69,15 @@ endif()
 
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
   if(EBGEOMETRY_ENABLE_CUDA)
-    enable_language(CUDA)
-    set(CMAKE_CUDA_STANDARD 17)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    # The default architecture must be chosen BEFORE enable_language: CMake's compiler
+    # determination otherwise caches its own detected/toolchain default first, making a later
+    # if(NOT DEFINED ...) guard dead code.
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
       set(CMAKE_CUDA_ARCHITECTURES 70)
     endif()
+    enable_language(CUDA)
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     set(EBGEOMETRY_GPU_SOURCE_EXT cu)
   else()
     # enable_language(HIP) exists from CMake 3.21; driving it with hipcc needs 3.28. The
@@ -82,12 +85,16 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
     if(CMAKE_VERSION VERSION_LESS 3.21)
       message(FATAL_ERROR "EBGEOMETRY_ENABLE_HIP requires CMake >= 3.21 (>= 3.28 for hipcc)")
     endif()
-    enable_language(HIP)
-    set(CMAKE_HIP_STANDARD 17)
-    set(CMAKE_HIP_STANDARD_REQUIRED ON)
+
+    # Set before enable_language for the same reason as the CUDA default above; without this the
+    # effective default is whatever rocm_agent_enumerator or the compiler reports (gfx906, a
+    # deprecated Vega part, on a GPU-less box with the Ubuntu-archive hipcc).
     if(NOT DEFINED CMAKE_HIP_ARCHITECTURES)
       set(CMAKE_HIP_ARCHITECTURES gfx90a)
     endif()
+    enable_language(HIP)
+    set(CMAKE_HIP_STANDARD 17)
+    set(CMAKE_HIP_STANDARD_REQUIRED ON)
     set(EBGEOMETRY_GPU_SOURCE_EXT hip)
   endif()
 

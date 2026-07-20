@@ -32,8 +32,8 @@
  * @author Robert Marskar
  */
 
-#ifndef EBGEOMETRY_GPUTAPE_TEST_HPP
-#define EBGEOMETRY_GPUTAPE_TEST_HPP
+#ifndef EBGEOMETRY_GPUTAPE_HPP
+#define EBGEOMETRY_GPUTAPE_HPP
 
 #include "EBGeometry.hpp" // Pulls in Tape + DeviceTape (active: this body is compiled by an offload compiler).
 
@@ -424,4 +424,4 @@ main()
   return failures == 0 ? 0 : 1;
 }
 
-#endif // EBGEOMETRY_GPUTAPE_TEST_HPP
+#endif // EBGEOMETRY_GPUTAPE_HPP
