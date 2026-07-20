@@ -119,7 +119,7 @@
 // function (CUDA/HIP compile each such function twice). Used to select device-safe code paths, e.g.
 // the assertion in EBGeometry_Macros.hpp.
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-#define EBGEOMETRY_DEVICE_COMPILE 1
+#define EBGEOMETRY_DEVICE_COMPILE
 #endif
 
 #endif // EBGEOMETRY_GPU_HPP
