@@ -49,6 +49,10 @@
 // node definitions (not just their forward declarations) to define the flatten() overrides.
 #include "Source/EBGeometry_Tape.hpp"
 
+// EBGeometry_DeviceTape.hpp is inert (empty after preprocessing) unless the TU is translated by an
+// offload compiler (CUDA), so it is always safe to include here.
+#include "Source/EBGeometry_DeviceTape.hpp"
+
 /**
  * @brief Namespace containing all of EBGeometry's functionality.
  * @details EBGeometry is a header-only C++17 library for implicit functions, signed distance

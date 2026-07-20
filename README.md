@@ -16,6 +16,10 @@
 > partially-ported state, and public interfaces may change without deprecation
 > aliases (clean breaks). Pin a tagged release if you need stability while the port
 > lands.
+> *Status: Tiers 0-7 landed — device-eligible tapes upload to CUDA devices
+> (`DeviceTape<T>`) with a kernel golden test wired into ctest, pending behavioral
+> validation on real GPU hardware (CI compiles but cannot run CUDA); remaining tiers
+> cover HIP/SYCL backends and async/performance work.*
 
 ## EBGeometry - a header-only C++ library for signed distance fields
 

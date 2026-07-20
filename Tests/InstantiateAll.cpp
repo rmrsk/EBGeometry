@@ -111,6 +111,10 @@ using Meta = short;
   template struct ReflectOp<PREC>;                                          \
                                                                                \
   /* -- Flat tape + interpreter -------------------------------------------*/ \
+  /* DeviceTape<PREC> is deliberately absent: it is CUDA-only (inert without */ \
+  /* an offload compiler), so it cannot be instantiated in this host-only    */ \
+  /* TU. Its device-side analogue is Tests/GPU/EBGeometry_GPUTape.cu, which  */ \
+  /* instantiates and exercises it for both precisions under nvcc.           */ \
   template class Tape<PREC>;                                                 \
   template struct TapeView<PREC>;                                            \
   template class TapeBuilder<PREC>;                                          \

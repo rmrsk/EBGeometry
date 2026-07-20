@@ -450,8 +450,8 @@ jobs:
           sub-packages: '["nvcc", "cudart"]'
       - name: Configure (CUDA smoke test)
         run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON
-      - name: Build CUDA smoke test
-        run: cmake --build build/cuda --target EBGeometry_GPUSmoke --parallel 2
+      - name: Build CUDA targets (compile-only)
+        run: cmake --build build/cuda --target EBGeometry_GPUSmoke EBGeometry_GPUTape --parallel 2
 
   CI-passed:
     needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
