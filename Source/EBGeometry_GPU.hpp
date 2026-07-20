@@ -36,20 +36,18 @@
 #define EBGEOMETRY_GPU_HPP
 
 // ── Backend detection ─────────────────────────────────────────────────────────
-#if defined(__CUDACC__)
-#define EBGEOMETRY_CUDA 1
-#endif
-
+// A single #if/#elif chain, so at most one backend flag is defined per translation unit. HIP is
+// tested BEFORE CUDA: hipcc on the NVIDIA platform defines both __HIPCC__ and __CUDACC__, and there
+// the hip* entry points exist and forward to cuda*, so hip-on-NVIDIA must resolve to HIP. The flags
+// are value-less: every consumer tests them with #if defined(...), never by arithmetic value.
 #if defined(__HIPCC__)
-#define EBGEOMETRY_HIP 1
-#endif
-
-#if defined(SYCL_LANGUAGE_VERSION) || defined(__SYCL_DEVICE_ONLY__)
-#define EBGEOMETRY_SYCL 1
-#endif
-
-#if defined(_OPENACC)
-#define EBGEOMETRY_OPENACC 1
+#define EBGEOMETRY_HIP
+#elif defined(__CUDACC__)
+#define EBGEOMETRY_CUDA
+#elif defined(SYCL_LANGUAGE_VERSION) || defined(__SYCL_DEVICE_ONLY__)
+#define EBGEOMETRY_SYCL
+#elif defined(_OPENACC)
+#define EBGEOMETRY_OPENACC
 #endif
 
 // ── Function decoration ───────────────────────────────────────────────────────

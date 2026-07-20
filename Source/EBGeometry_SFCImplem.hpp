@@ -104,8 +104,9 @@ Nested::encode(const Index& a_point) noexcept
 inline Index
 Nested::decode(const uint64_t& a_code) noexcept
 {
-  constexpr uint64_t base    = static_cast<uint64_t>(SFC::ValidSpan) + 1ULL;
-  constexpr uint64_t maxCode = static_cast<uint64_t>(SFC::ValidSpan) * (1ULL + base + base * base);
+  constexpr uint64_t base = static_cast<uint64_t>(SFC::ValidSpan) + 1ULL;
+
+  [[maybe_unused]] constexpr uint64_t maxCode = static_cast<uint64_t>(SFC::ValidSpan) * (1ULL + base + base * base);
 
   EBGEOMETRY_EXPECT(a_code <= maxCode);
 

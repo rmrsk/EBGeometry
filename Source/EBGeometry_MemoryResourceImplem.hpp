@@ -64,7 +64,7 @@ hostMemoryResource() noexcept
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) || defined(EBGEOMETRY_DOXYGEN)
 
 inline void*
-DeviceMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+DeviceMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
 {
   // The backend allocator already returns a base aligned to >= PoolBaseAlign (256), so we only
   // validate that no larger alignment was requested rather than enforce it. See PoolBaseAlign.
@@ -89,7 +89,7 @@ DeviceMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
 }
 
 inline void*
-ManagedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+ManagedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
 {
   EBGEOMETRY_EXPECT(a_alignment <= 256);
 
@@ -112,7 +112,7 @@ ManagedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignmen
 }
 
 inline void*
-PinnedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+PinnedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
 {
   EBGEOMETRY_EXPECT(a_alignment <= 256);
 

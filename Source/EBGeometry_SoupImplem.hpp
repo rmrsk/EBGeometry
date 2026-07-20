@@ -86,7 +86,7 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
   //       those duplicates and also update a_facets such that each facet references the compressed
   //       vertex vector.
 
-  const size_t originalVertexCount = a_vertices.size();
+  [[maybe_unused]] const size_t originalVertexCount = a_vertices.size();
 
   // Create a "map" of the vertices, storing their original indices. Then sort
   // the map lexicographically.

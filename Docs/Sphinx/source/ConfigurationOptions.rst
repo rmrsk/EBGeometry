@@ -76,11 +76,13 @@ When ``EBGEOMETRY_ENABLE_ASSERTIONS`` is **not** defined (the default):
 
 .. code-block:: cpp
 
-   #define EBGEOMETRY_EXPECT(cond) ((void)(cond))
+   #define EBGEOMETRY_EXPECT(cond) ((void)0)
 
-The condition is evaluated (preventing unused-variable warnings) but the branch is
-absent from the generated code — a modern optimising compiler eliminates it entirely
-at ``-O2`` or higher.
+The condition is **not** evaluated at all — the macro expands to a no-op, so an
+assertion costs exactly nothing in release, including not running its predicate.
+A local variable that exists only to be asserted therefore becomes unused; mark
+such a declaration ``[[maybe_unused]]`` at its site to keep the release build
+warning-clean.
 
 When ``EBGEOMETRY_ENABLE_ASSERTIONS`` **is** defined:
 

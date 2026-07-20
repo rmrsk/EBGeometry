@@ -26,10 +26,12 @@
  * if it is false, prints a diagnostic message to @c stderr and calls
  * @c std::abort().
  *
- * When @c EBGEOMETRY_ENABLE_ASSERTIONS is not defined the macro still
- * evaluates the condition (to suppress "unused variable" warnings from
- * variables that appear only inside assertions) but the result is
- * discarded at zero runtime cost.
+ * When @c EBGEOMETRY_ENABLE_ASSERTIONS is not defined the macro expands
+ * to @c ((void)0): @a cond is not evaluated at all, so an assertion costs
+ * exactly nothing in release. A variable computed solely to be asserted is
+ * then unused and must be marked @c [[maybe_unused]] at its declaration.
+ * On a device (CUDA/HIP) compilation pass with assertions enabled the macro
+ * uses the device-capable @c assert() instead of @c std::fprintf / @c std::abort.
  *
  * @par Enabling assertions
  * @code{.cmake}
@@ -68,7 +70,10 @@
   } while (0)
 #endif
 #else
-#define EBGEOMETRY_EXPECT(cond) ((void)(cond))
+// Assertions off: expand to a no-op that does NOT evaluate cond -- an assertion costs exactly
+// nothing in release, including not running its predicate. A local computed solely to be asserted
+// therefore becomes unused; mark such a declaration [[maybe_unused]] at its site.
+#define EBGEOMETRY_EXPECT(cond) ((void)0)
 #endif
 
 #endif // EBGEOMETRY_MACROS_HPP

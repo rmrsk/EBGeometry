@@ -425,7 +425,7 @@ BVHUnionIF<T, P, BV, K>::BVHUnionIF(const std::vector<std::pair<std::shared_ptr<
 {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-  for (const auto& [prim, bv] : a_primsAndBVs) {
+  for ([[maybe_unused]] const auto& [prim, bv] : a_primsAndBVs) {
     EBGEOMETRY_EXPECT(prim != nullptr);
   }
 
@@ -439,7 +439,7 @@ BVHUnionIF<T, P, BV, K>::BVHUnionIF(const std::vector<std::shared_ptr<P>>& a_pri
   EBGEOMETRY_EXPECT(!a_primitives.empty());
   EBGEOMETRY_EXPECT(a_primitives.size() == a_boundingVolumes.size());
 
-  for (const auto& p : a_primitives) {
+  for ([[maybe_unused]] const auto& p : a_primitives) {
     EBGEOMETRY_EXPECT(p != nullptr);
   }
 
@@ -519,7 +519,7 @@ BVHSmoothUnionIF<T, P, BV, K>::BVHSmoothUnionIF(
   EBGEOMETRY_EXPECT(a_distanceFunctions.size() == a_boundingVolumes.size());
   EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
-  for (const auto& p : a_distanceFunctions) {
+  for ([[maybe_unused]] const auto& p : a_distanceFunctions) {
     EBGEOMETRY_EXPECT(p != nullptr);
   }
 
