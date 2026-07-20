@@ -3,7 +3,7 @@
 
 // Test suite for EBGeometry_CSG.hpp: the sharp and smoothly-blended CSG combinators (union,
 // intersection, difference), their BVH-accelerated counterparts, finite periodic repetition, and
-// the SmoothMin/SmoothMax/ExpMin blending primitives they're built on. Uses analytic spheres as
+// the SmoothMinOp/SmoothMaxOp/ExpMinOp blend operator traits they're built on. Uses analytic spheres as
 // fixtures so every expected value is hand-computable.
 
 #include "EBGeometry.hpp"
@@ -93,7 +93,7 @@ exactMargin()
   return std::is_same_v<T, float> ? 1.0e-4 : 1.0e-12;
 }
 
-// A hand-computed closed-form expected value (SmoothMin's exact blend formula, FiniteRepetition's
+// A hand-computed closed-form expected value (SmoothMinOp's exact blend formula, FiniteRepetition's
 // tile folding, ...), or a "never worse than the sharp value" bound that holds by construction of
 // the blending formula, swept over many sample points.
 template <class T>
@@ -115,97 +115,97 @@ asymptoticMargin()
 } // namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SmoothMin / SmoothMax / ExpMin
+// SmoothMinOp / SmoothMaxOp / ExpMinOp
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("SmoothMin: reduces to the sharp minimum once |a - b| exceeds the smoothing length",
-                   "[CSG][SmoothMin]",
+TEMPLATE_TEST_CASE("SmoothMinOp: reduces to the sharp minimum once |a - b| exceeds the smoothing length",
+                   "[CSG][SmoothMinOp]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   const T s = T(0.5);
 
-  REQUIRE_THAT(SmoothMin<T>(T(1.0), T(3.0), s), withinAbsT(T(1.0), exactMargin<T>()));
-  REQUIRE_THAT(SmoothMin<T>(T(3.0), T(1.0), s), withinAbsT(T(1.0), exactMargin<T>()));
-  REQUIRE_THAT(SmoothMin<T>(T(-5.0), T(-1.0), s), withinAbsT(T(-5.0), exactMargin<T>()));
+  REQUIRE_THAT(SmoothMinOp<T>::eval(T(1.0), T(3.0), s), withinAbsT(T(1.0), exactMargin<T>()));
+  REQUIRE_THAT(SmoothMinOp<T>::eval(T(3.0), T(1.0), s), withinAbsT(T(1.0), exactMargin<T>()));
+  REQUIRE_THAT(SmoothMinOp<T>::eval(T(-5.0), T(-1.0), s), withinAbsT(T(-5.0), exactMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("SmoothMin: equal inputs blend to a - 0.25*s", "[CSG][SmoothMin]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("SmoothMinOp: equal inputs blend to a - 0.25*s", "[CSG][SmoothMinOp]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   const T a = T(2.0);
   const T s = T(0.4);
 
-  REQUIRE_THAT(SmoothMin<T>(a, a, s), withinAbsT(a - T(0.25) * s, exactMargin<T>()));
+  REQUIRE_THAT(SmoothMinOp<T>::eval(a, a, s), withinAbsT(a - T(0.25) * s, exactMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("SmoothMin: never returns a value smaller (more negative) than the sharp minimum",
-                   "[CSG][SmoothMin]",
+TEMPLATE_TEST_CASE("SmoothMinOp: never returns a value smaller (more negative) than the sharp minimum",
+                   "[CSG][SmoothMinOp]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   for (const T a : sweepValues<T>(T(-3.0), T(3.0), 16)) {
     for (const T b : sweepValues<T>(T(-3.0), T(3.0), 14)) {
-      REQUIRE(SmoothMin<T>(a, b, T(1.0)) <= std::min(a, b) + T(exactMargin<T>()));
+      REQUIRE(SmoothMinOp<T>::eval(a, b, T(1.0)) <= std::min(a, b) + T(exactMargin<T>()));
     }
   }
 }
 
-TEMPLATE_TEST_CASE("SmoothMax: reduces to the sharp maximum once |a - b| exceeds the smoothing length",
-                   "[CSG][SmoothMax]",
+TEMPLATE_TEST_CASE("SmoothMaxOp: reduces to the sharp maximum once |a - b| exceeds the smoothing length",
+                   "[CSG][SmoothMaxOp]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   const T s = T(0.5);
 
-  REQUIRE_THAT(SmoothMax<T>(T(1.0), T(3.0), s), withinAbsT(T(3.0), exactMargin<T>()));
-  REQUIRE_THAT(SmoothMax<T>(T(-5.0), T(-1.0), s), withinAbsT(T(-1.0), exactMargin<T>()));
+  REQUIRE_THAT(SmoothMaxOp<T>::eval(T(1.0), T(3.0), s), withinAbsT(T(3.0), exactMargin<T>()));
+  REQUIRE_THAT(SmoothMaxOp<T>::eval(T(-5.0), T(-1.0), s), withinAbsT(T(-1.0), exactMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("SmoothMax: equal inputs blend to a + 0.25*s", "[CSG][SmoothMax]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("SmoothMaxOp: equal inputs blend to a + 0.25*s", "[CSG][SmoothMaxOp]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   const T a = T(2.0);
   const T s = T(0.4);
 
-  REQUIRE_THAT(SmoothMax<T>(a, a, s), withinAbsT(a + T(0.25) * s, exactMargin<T>()));
+  REQUIRE_THAT(SmoothMaxOp<T>::eval(a, a, s), withinAbsT(a + T(0.25) * s, exactMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("SmoothMax: never returns a value larger than the sharp maximum",
-                   "[CSG][SmoothMax]",
+TEMPLATE_TEST_CASE("SmoothMaxOp: never returns a value larger than the sharp maximum",
+                   "[CSG][SmoothMaxOp]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   for (const T a : sweepValues<T>(T(-3.0), T(3.0), 16)) {
     for (const T b : sweepValues<T>(T(-3.0), T(3.0), 14)) {
-      REQUIRE(SmoothMax<T>(a, b, T(1.0)) >= std::max(a, b) - T(exactMargin<T>()));
+      REQUIRE(SmoothMaxOp<T>::eval(a, b, T(1.0)) >= std::max(a, b) - T(exactMargin<T>()));
     }
   }
 }
 
-TEMPLATE_TEST_CASE("ExpMin: equal inputs blend to a - s*ln(2)", "[CSG][ExpMin]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("ExpMinOp: equal inputs blend to a - s*ln(2)", "[CSG][ExpMinOp]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   const T a = T(2.0);
   const T s = T(0.4);
 
-  REQUIRE_THAT(ExpMin<T>(a, a, s), withinAbsT(a - s * std::log(T(2.0)), formulaMargin<T>()));
+  REQUIRE_THAT(ExpMinOp<T>::eval(a, a, s), withinAbsT(a - s * std::log(T(2.0)), formulaMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("ExpMin: never exceeds the sharp minimum", "[CSG][ExpMin]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("ExpMinOp: never exceeds the sharp minimum", "[CSG][ExpMinOp]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   for (const T a : sweepValues<T>(T(-3.0), T(3.0), 16)) {
     for (const T b : sweepValues<T>(T(-3.0), T(3.0), 14)) {
-      REQUIRE(ExpMin<T>(a, b, T(1.0)) <= std::min(a, b) + T(formulaMargin<T>()));
+      REQUIRE(ExpMinOp<T>::eval(a, b, T(1.0)) <= std::min(a, b) + T(formulaMargin<T>()));
     }
   }
 }
@@ -311,14 +311,34 @@ TEMPLATE_TEST_CASE("SmoothUnion: free function matches SmoothUnionIF for both th
   const auto a = sphereA<T>();
   const auto b = sphereB<T>();
 
-  const T    smoothLen = T(0.5);
-  const auto pairwise  = SmoothUnion<T>(a, b, smoothLen);
-  const auto vectorArg = SmoothUnion<T, Sphere<T>>(std::vector<std::shared_ptr<Sphere<T>>>{a, b}, smoothLen);
+  const T                smoothLen = T(0.5);
+  const auto             pairwise  = SmoothUnion<T>(a, b, smoothLen);
+  const auto             vectorArg = SmoothUnion<T>(std::vector<std::shared_ptr<Sphere<T>>>{a, b}, smoothLen);
   const SmoothUnionIF<T> direct({a, b}, smoothLen);
 
   for (const Vec3 p : {Vec3::zeros(), Vec3(1.5, 0, 0), Vec3(3, 0, 0)}) {
     REQUIRE_THAT(pairwise->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
     REQUIRE_THAT(vectorArg->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("SmoothUnion: an explicitly chosen ExpMinOp blend applies the exponential formula",
+                   "[CSG][SmoothUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto a = sphereA<T>();
+  const auto b = sphereB<T>();
+
+  const T    smoothLen = T(0.5);
+  const auto expUnion  = SmoothUnion<T, ExpMinOp<T>>(a, b, smoothLen);
+
+  for (const Vec3 p : {Vec3::zeros(), Vec3(1.5, 0, 0), Vec3(3, 0, 0)}) {
+    const T expected = ExpMinOp<T>::eval(a->value(p), b->value(p), smoothLen);
+
+    REQUIRE_THAT(expUnion->value(p), withinAbsT(expected, formulaMargin<T>()));
   }
 }
 
@@ -480,7 +500,7 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: matches a brute-force two-nearest smooth-m
       }
     }
 
-    return SmoothMin<T>(a, b, smoothLen);
+    return SmoothMinOp<T>::eval(a, b, smoothLen);
   };
 
   for (const auto& p : lineQueryPoints<T>()) {

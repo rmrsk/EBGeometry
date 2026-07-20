@@ -251,15 +251,20 @@ in the Doxygen listing above -- one taking a ``std::vector`` of any number of im
 and one taking exactly two -- both constructing the same underlying wrapper class.
 
 The "smooth" combinators blend the transition between objects instead of leaving a sharp crease,
-using a caller-replaceable blending functor rather than a plain ``min``/``max``. Two are provided
-as ``std::function`` template variables in :file:`Source/EBGeometry_CSG.hpp`: ``SmoothMin<T>``
-(a cheap polynomial smooth-minimum, the default for ``SmoothUnion``) and ``SmoothMax<T>`` (its
-symmetric counterpart, the default for both ``SmoothIntersection`` and ``SmoothDifference`` --
-difference is implemented internally as the intersection of ``A`` with the complement of ``B``,
-which is why it defaults to the same operator as intersection rather than to ``SmoothMin<T>``),
-plus a more expensive exponential alternative, ``ExpMin<T>``. Any of the three -- or a
-user-supplied functor of the same signature, ``T(const T&, const T&, const T&)`` -- can be passed
-as the smoothing operator to the smooth combinators' constructors/free functions.
+using a compile-time blend operator rather than a plain ``min``/``max``. The blend is a template
+parameter (``Blend``) on the smooth wrapper classes and free functions, with sensible defaults.
+Three operators are provided as trait structs in :file:`Source/EBGeometry_CSG.hpp`:
+``SmoothMinOp<T>`` (a cheap polynomial smooth-minimum, the default for ``SmoothUnion`` and
+``BVHSmoothUnion``) and ``SmoothMaxOp<T>`` (its symmetric counterpart, the default for both
+``SmoothIntersection`` and ``SmoothDifference`` -- difference is implemented internally as the
+intersection of ``A`` with the complement of ``B``, which is why it defaults to the same operator
+as intersection rather than to ``SmoothMinOp<T>``), plus a more expensive exponential alternative,
+``ExpMinOp<T>``. A non-default blend is chosen by naming it explicitly, e.g.
+``SmoothUnion<T, ExpMinOp<T>>(...)``, and a user-supplied operator with the same trait shape -- a
+struct exposing ``static T eval(T a, T b, T s) noexcept`` -- works the same way. See the Doxygen
+pages for `SmoothMinOp <doxygen/html/structEBGeometry_1_1SmoothMinOp.html>`__ /
+`SmoothMaxOp <doxygen/html/structEBGeometry_1_1SmoothMaxOp.html>`__ /
+`ExpMinOp <doxygen/html/structEBGeometry_1_1ExpMinOp.html>`__ for the exact formulas.
 
 Because a plain CSG union is evaluated as :math:`\min(I_1, \ldots, I_N)`, querying it costs
 :math:`\mathcal{O}(N)` per point for :math:`N` objects. ``BVHUnionIF``/``BVHUnion`` and

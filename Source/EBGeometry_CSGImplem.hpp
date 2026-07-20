@@ -16,7 +16,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -135,7 +134,7 @@ Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>&
   return std::make_shared<UnionIF<T>>(implicitFunctions);
 }
 
-template <class T, class P>
+template <class T, class Blend, class P>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth)
 {
@@ -153,10 +152,10 @@ SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T 
     implicitFunctions.emplace_back(f);
   }
 
-  return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
+  return std::make_shared<SmoothUnionIF<T, Blend>>(implicitFunctions, a_smooth);
 }
 
-template <class T, class P1, class P2>
+template <class T, class Blend, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
             const std::shared_ptr<P2>& a_implicitFunction2,
@@ -175,7 +174,7 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
   implicitFunctions.emplace_back(a_implicitFunction1);
   implicitFunctions.emplace_back(a_implicitFunction2);
 
-  return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
+  return std::make_shared<SmoothUnionIF<T, Blend>>(implicitFunctions, a_smooth);
 }
 
 template <class T, class P, class BV, size_t K>
@@ -191,7 +190,7 @@ BVHUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::
   return std::make_shared<EBGeometry::BVHUnionIF<T, P, BV, K>>(a_implicitFunctions, a_boundingVolumes);
 }
 
-template <class T, class P, class BV, size_t K>
+template <class T, class P, class BV, size_t K, class Blend>
 std::shared_ptr<ImplicitFunction<T>>
 BVHSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
                const std::vector<BV>&                 a_boundingVolumes,
@@ -204,7 +203,7 @@ BVHSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
   EBGEOMETRY_EXPECT(a_implicitFunctions.size() == a_boundingVolumes.size());
   EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
-  return std::make_shared<EBGeometry::BVHSmoothUnionIF<T, P, BV, K>>(
+  return std::make_shared<EBGeometry::BVHSmoothUnionIF<T, P, BV, K, Blend>>(
     a_implicitFunctions, a_boundingVolumes, a_smoothLen);
 }
 
@@ -247,7 +246,7 @@ Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_p
   return std::make_shared<IntersectionIF<T>>(implicitFunctions);
 }
 
-template <class T, class P>
+template <class T, class Blend, class P>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth)
 {
@@ -263,10 +262,10 @@ SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, c
     implicitFunctions.emplace_back(f);
   }
 
-  return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
+  return std::make_shared<SmoothIntersectionIF<T, Blend>>(implicitFunctions, a_smooth);
 }
 
-template <class T, class P1, class P2>
+template <class T, class Blend, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
                    const std::shared_ptr<P2>& a_implicitFunction2,
@@ -285,7 +284,7 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
   implicitFunctions.emplace_back(a_implicitFunction1);
   implicitFunctions.emplace_back(a_implicitFunction2);
 
-  return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
+  return std::make_shared<SmoothIntersectionIF<T, Blend>>(implicitFunctions, a_smooth);
 }
 
 template <class T, class P1, class P2>
@@ -302,7 +301,7 @@ Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr
   return std::make_shared<DifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB);
 }
 
-template <class T, class P1, class P2>
+template <class T, class Blend, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
                  const std::shared_ptr<P2>& a_implicitFunctionB,
@@ -316,7 +315,7 @@ SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
   EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
   EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
-  return std::make_shared<SmoothDifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
+  return std::make_shared<SmoothDifferenceIF<T, Blend>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
 }
 
 template <class T, class P>
@@ -373,10 +372,9 @@ UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   return ret;
 }
 
-template <class T>
-SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
-                                const T                                                     a_smoothLen,
-                                const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin)
+template <class T, class Blend>
+SmoothUnionIF<T, Blend>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions,
+                                       const T                                                  a_smoothLen)
 {
   EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
   EBGEOMETRY_EXPECT(a_smoothLen > T(0));
@@ -388,14 +386,13 @@ SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFuncti
   }
 
   m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
-  m_smoothMin = a_smoothMin;
 
   this->m_sdf = false;
 }
 
-template <class T>
+template <class T, class Blend>
 T
-SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
+SmoothUnionIF<T, Blend>::value(const Vec3T<T>& a_point) const noexcept
 {
   T ret = std::numeric_limits<T>::infinity();
 
@@ -422,7 +419,7 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    ret = m_smoothMin(a, b, m_smoothLen);
+    ret = Blend::eval(a, b, m_smoothLen);
   }
 
   return ret;
@@ -528,12 +525,10 @@ BVHUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
   return m_bvh->getBoundingVolume();
 }
 
-template <class T, class P, class BV, size_t K>
-BVHSmoothUnionIF<T, P, BV, K>::BVHSmoothUnionIF(
-  const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
-  const std::vector<BV>&                               a_boundingVolumes,
-  const T                                              a_smoothLen,
-  const std::function<T(const T&, const T&, const T&)> a_smoothMin) noexcept
+template <class T, class P, class BV, size_t K, class Blend>
+BVHSmoothUnionIF<T, P, BV, K, Blend>::BVHSmoothUnionIF(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
+                                                       const std::vector<BV>&                 a_boundingVolumes,
+                                                       const T                                a_smoothLen) noexcept
 {
   EBGEOMETRY_EXPECT(!a_distanceFunctions.empty());
   EBGEOMETRY_EXPECT(a_distanceFunctions.size() == a_boundingVolumes.size());
@@ -554,22 +549,21 @@ BVHSmoothUnionIF<T, P, BV, K>::BVHSmoothUnionIF(
   this->buildTree(primsAndBVs);
 
   m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
-  m_smoothMin = a_smoothMin;
 
   this->m_sdf = false;
 }
 
-template <class T, class P, class BV, size_t K>
+template <class T, class P, class BV, size_t K, class Blend>
 void
-BVHSmoothUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
-                                         const BVH::Build                                            a_build) noexcept
+BVHSmoothUnionIF<T, P, BV, K, Blend>::buildTree(
+  const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs, const BVH::Build a_build) noexcept
 {
   m_bvh = CSGDetail::buildBVH<T, P, BV, K>(a_primsAndBVs, a_build);
 }
 
-template <class T, class P, class BV, size_t K>
+template <class T, class P, class BV, size_t K, class Blend>
 T
-BVHSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+BVHSmoothUnionIF<T, P, BV, K, Blend>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
 
@@ -617,12 +611,12 @@ BVHSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 
   m_bvh->pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
 
-  return m_smoothMin(closest.a, closest.b, m_smoothLen);
+  return Blend::eval(closest.a, closest.b, m_smoothLen);
 }
 
-template <class T, class P, class BV, size_t K>
+template <class T, class P, class BV, size_t K, class Blend>
 const EBGeometry::BoundingVolumes::AABBT<T>&
-BVHSmoothUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
+BVHSmoothUnionIF<T, P, BV, K, Blend>::getBoundingVolume() const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
 
@@ -664,12 +658,10 @@ IntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   return ret;
 }
 
-template <class T>
-SmoothIntersectionIF<T>::SmoothIntersectionIF(
-  const std::shared_ptr<ImplicitFunction<T>>&           a_implicitFunctionA,
-  const std::shared_ptr<ImplicitFunction<T>>&           a_implicitFunctionB,
-  const T                                               a_smoothLen,
-  const std::function<T(const T&, const T&, const T&)>& a_smoothMax) noexcept
+template <class T, class Blend>
+SmoothIntersectionIF<T, Blend>::SmoothIntersectionIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
+                                                     const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB,
+                                                     const T                                     a_smoothLen) noexcept
 {
   EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
   EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
@@ -679,16 +671,13 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   m_implicitFunctions.emplace_back(a_implicitFunctionB);
 
   m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
-  m_smoothMax = a_smoothMax;
 
   this->m_sdf = false;
 }
 
-template <class T>
-SmoothIntersectionIF<T>::SmoothIntersectionIF(
-  const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions,
-  const T                                                  a_smoothLen,
-  const std::function<T(const T&, const T&, const T&)>&    a_smoothMax) noexcept
+template <class T, class Blend>
+SmoothIntersectionIF<T, Blend>::SmoothIntersectionIF(
+  const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions, const T a_smoothLen) noexcept
 {
   EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
   EBGEOMETRY_EXPECT(a_smoothLen > T(0));
@@ -700,14 +689,13 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   }
 
   m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
-  m_smoothMax = a_smoothMax;
 
   this->m_sdf = false;
 }
 
-template <class T>
+template <class T, class Blend>
 T
-SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
+SmoothIntersectionIF<T, Blend>::value(const Vec3T<T>& a_point) const noexcept
 {
   T ret = std::numeric_limits<T>::infinity();
 
@@ -734,7 +722,7 @@ SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    ret = m_smoothMax(a, b, m_smoothLen);
+    ret = Blend::eval(a, b, m_smoothLen);
   }
 
   return ret;
@@ -779,29 +767,26 @@ DifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
   return DifferenceOp<T>::combine(a, b);
 }
 
-template <class T>
-SmoothDifferenceIF<T>::SmoothDifferenceIF(
-  const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
-  const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionB,
-  const T                                                     a_smoothLen,
-  const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
+template <class T, class Blend>
+SmoothDifferenceIF<T, Blend>::SmoothDifferenceIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
+                                                 const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB,
+                                                 const T                                     a_smoothLen) noexcept
 {
   EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
   EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
   EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
-  m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T>>(
-    a_implicitFunctionA, EBGeometry::Complement<T>(a_implicitFunctionB), a_smoothLen, a_smoothMax);
+  m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T, Blend>>(
+    a_implicitFunctionA, EBGeometry::Complement<T>(a_implicitFunctionB), a_smoothLen);
 
   this->m_sdf = false;
 }
 
-template <class T>
-SmoothDifferenceIF<T>::SmoothDifferenceIF(
-  const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
-  const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctionsB,
-  const T                                                     a_smoothLen,
-  const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
+template <class T, class Blend>
+SmoothDifferenceIF<T, Blend>::SmoothDifferenceIF(
+  const std::shared_ptr<ImplicitFunction<T>>&              a_implicitFunctionA,
+  const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctionsB,
+  const T                                                  a_smoothLen) noexcept
 {
   EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
   EBGEOMETRY_EXPECT(!a_implicitFunctionsB.empty());
@@ -818,14 +803,14 @@ SmoothDifferenceIF<T>::SmoothDifferenceIF(
     implicitFunctions.emplace_back(EBGeometry::Complement<T>(subtractedFunction));
   }
 
-  m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smoothLen, a_smoothMax);
+  m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T, Blend>>(implicitFunctions, a_smoothLen);
 
   this->m_sdf = false;
 }
 
-template <class T>
+template <class T, class Blend>
 T
-SmoothDifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
+SmoothDifferenceIF<T, Blend>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_smoothIntersectionIF != nullptr);
 

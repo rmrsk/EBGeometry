@@ -505,8 +505,9 @@ One such union is known as the *smooth union*, in which the transition between t
 ``b`` (``a`` the closest, ``b`` the second-closest): the leaf-evaluator updates both as leaves are
 scanned, and the pruning rule returns ``max(0, b)`` squared -- pruning against the *second*-smallest
 value rather than the nearest, so a primitive that is not the single closest but still contributes to
-the blend is never pruned away. Once traversal completes, the two values are blended with the stored
-smooth-minimum operator. ``BVHUnionIF::value()`` is the same pattern with a single running minimum
+the blend is never pruned away. Once traversal completes, the two values are blended with the
+class's smooth-minimum blend operator (its ``Blend`` template parameter, ``SmoothMinOp`` by
+default). ``BVHUnionIF::value()`` is the same pattern with a single running minimum
 and a ``max(0, minDist)``-squared pruning bound. See :ref:`Chap:ImplemCSG` for the CSG combinators
 themselves, and the Doxygen reference for
 `BVHSmoothUnionIF <doxygen/html/classEBGeometry_1_1BVHSmoothUnionIF.html>`__ /
