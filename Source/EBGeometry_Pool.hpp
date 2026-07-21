@@ -38,16 +38,6 @@
 namespace EBGeometry {
 
 /**
- * @brief Block-base alignment for every @ref Pool, in bytes.
- * @details 256 matches the @c cudaMalloc / @c hipMalloc base-address guarantee and is >= the
- * natural alignment of every type the library stores in a pool (including the 64-byte-aligned SoA
- * child-AABB blocks), so @c base() + (an @c alignof(T)-aligned offset) is always correctly aligned,
- * and stays so after a grow (the new block is also 256-aligned) and after a mirror (a device base
- * is >= 256-aligned).
- */
-inline constexpr size_t PoolBaseAlign = 256;
-
-/**
  * @brief Build-time-grow-then-freeze arena over a @ref MemoryResource.
  * @details Move-only, single-owner RAII. See the file-level documentation for the two-phase
  * (build / query) contract.

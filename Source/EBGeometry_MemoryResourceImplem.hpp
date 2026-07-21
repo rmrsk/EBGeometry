@@ -68,7 +68,7 @@ DeviceMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignme
 {
   // The backend allocator already returns a base aligned to >= PoolBaseAlign (256), so we only
   // validate that no larger alignment was requested rather than enforce it. See PoolBaseAlign.
-  EBGEOMETRY_EXPECT(a_alignment <= 256);
+  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);
 
   void* ptr = nullptr;
 
@@ -91,7 +91,7 @@ DeviceMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
 inline void*
 ManagedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
 {
-  EBGEOMETRY_EXPECT(a_alignment <= 256);
+  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);
 
   void* ptr = nullptr;
 
@@ -114,7 +114,7 @@ ManagedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignmen
 inline void*
 PinnedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
 {
-  EBGEOMETRY_EXPECT(a_alignment <= 256);
+  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);
 
   void* ptr = nullptr;
 
@@ -137,7 +137,7 @@ PinnedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
 inline void*
 MappedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
 {
-  EBGEOMETRY_EXPECT(a_alignment <= 256);
+  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);
 
   void* ptr = nullptr;
 

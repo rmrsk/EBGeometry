@@ -96,6 +96,7 @@ inline uint64_t
 Pool::reserve(size_t a_count, size_t a_elemSize, size_t a_alignment)
 {
   EBGEOMETRY_EXPECT(!m_frozen);                              // no reserve after freeze
+  EBGEOMETRY_EXPECT(a_alignment > 0);                        // 0 would underflow the mask below
   EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);           // base is 256-aligned; larger unsupported
   EBGEOMETRY_EXPECT((a_alignment & (a_alignment - 1)) == 0); // power of two
 

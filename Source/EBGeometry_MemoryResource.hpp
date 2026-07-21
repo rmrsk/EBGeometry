@@ -37,6 +37,17 @@
 namespace EBGeometry {
 
 /**
+ * @brief Block-base alignment for every @ref Pool, in bytes.
+ * @details 256 matches the @c cudaMalloc / @c hipMalloc base-address guarantee and is >= the
+ * natural alignment of every type the library stores in a pool (including the 64-byte-aligned SoA
+ * child-AABB blocks), so @c base() + (an @c alignof(T)-aligned offset) is always correctly aligned,
+ * and stays so after a grow (the new block is also 256-aligned) and after a mirror (a device base
+ * is >= 256-aligned). Defined here, in the placement layer, so both @ref Pool and the device
+ * @ref MemoryResource allocators reference a single source of truth.
+ */
+inline constexpr size_t PoolBaseAlign = 256;
+
+/**
  * @brief Abstract placement policy: allocates and frees raw, correctly-aligned byte blocks.
  * @details Runtime-virtual so that placement (host/device/managed/pinned) is a runtime choice.
  * Allocation and deallocation are host-only operations -- memory is never obtained from device
