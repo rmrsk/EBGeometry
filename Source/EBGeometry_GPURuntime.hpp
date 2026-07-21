@@ -117,6 +117,18 @@ memAllocManaged(void** a_ptr, size_t a_numBytes) noexcept;
 memAllocHost(void** a_ptr, size_t a_numBytes) noexcept;
 
 /**
+ * @brief Allocate page-locked (pinned) host memory that is additionally mapped into the device
+ * address space for zero-copy access (@c cudaHostAlloc with @c cudaHostAllocMapped / @c hipHostMalloc
+ * with @c hipHostMallocMapped). Under unified virtual addressing the returned host pointer is
+ * directly valid on the device. Free with @ref memFreeHost.
+ * @param[out] a_ptr      Receives the host pointer to the mapped pinned allocation.
+ * @param[in]  a_numBytes Number of bytes to allocate.
+ * @return Backend error code (@ref Success on success).
+ */
+[[nodiscard]] inline Error
+memAllocHostMapped(void** a_ptr, size_t a_numBytes) noexcept;
+
+/**
  * @brief Free page-locked host memory allocated with @ref memAllocHost (@c cudaFreeHost /
  * @c hipHostFree).
  * @param[in] a_ptr Host pointer to free (null is a no-op).
@@ -202,6 +214,12 @@ memAllocHost(void** a_ptr, size_t a_numBytes) noexcept
 }
 
 [[nodiscard]] inline Error
+memAllocHostMapped(void** a_ptr, size_t a_numBytes) noexcept
+{
+  return hipHostMalloc(a_ptr, a_numBytes, hipHostMallocMapped);
+}
+
+[[nodiscard]] inline Error
 memFreeHost(void* a_ptr) noexcept
 {
   return hipHostFree(a_ptr);
@@ -268,6 +286,12 @@ memAllocManaged(void** a_ptr, size_t a_numBytes) noexcept
 memAllocHost(void** a_ptr, size_t a_numBytes) noexcept
 {
   return cudaHostAlloc(a_ptr, a_numBytes, cudaHostAllocDefault);
+}
+
+[[nodiscard]] inline Error
+memAllocHostMapped(void** a_ptr, size_t a_numBytes) noexcept
+{
+  return cudaHostAlloc(a_ptr, a_numBytes, cudaHostAllocMapped);
 }
 
 [[nodiscard]] inline Error

@@ -16,10 +16,10 @@
  *
  * @ref EBGeometry::HostMemoryResource is always compiled (plain aligned host allocation). The
  * device-backed resources -- @ref EBGeometry::DeviceMemoryResource,
- * @ref EBGeometry::ManagedMemoryResource, @ref EBGeometry::PinnedMemoryResource -- are compiled
- * only when an offload backend is active (CUDA/HIP) or for documentation, behind the same guard
- * used elsewhere in the GPU port, and reach the backend exclusively through the backend-neutral
- * @ref EBGeometry::GPU alias layer.
+ * @ref EBGeometry::ManagedMemoryResource, @ref EBGeometry::PinnedMemoryResource,
+ * @ref EBGeometry::MappedMemoryResource -- are compiled only when an offload backend is active
+ * (CUDA/HIP) or for documentation, behind the same guard used elsewhere in the GPU port, and reach
+ * the backend exclusively through the backend-neutral @ref EBGeometry::GPU alias layer.
  * @author Robert Marskar
  */
 
@@ -361,6 +361,70 @@ public:
 };
 
 /**
+ * @brief Mapped (zero-copy) pinned host memory resource: page-locked host memory also mapped into
+ *        the device address space (@c GPU::memAllocHostMapped / @c GPU::memFreeHost).
+ * @details Compiled only under an offload backend (CUDA/HIP) or for documentation. Blocks are both
+ * host- and device-accessible: the same base pointer is dereferenced by the CPU and by a kernel,
+ * which reaches it over the host/device interconnect on each access. Unlike @ref
+ * ManagedMemoryResource there is @e no page migration -- the block stays in host RAM and the device
+ * reads it in place, which suits small or write-once/streamed data rather than hot, reused data.
+ * Requires unified virtual addressing (all 64-bit CUDA; HIP under HSA) so the host pointer is
+ * directly valid on the device.
+ */
+class MappedMemoryResource final : public MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  EBGEOMETRY_HOST
+  MappedMemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  EBGEOMETRY_HOST ~MappedMemoryResource() override = default;
+
+  /**
+   * @brief Allocate a block of mapped (zero-copy) pinned host memory.
+   * @param[in] a_bytes     Number of bytes to allocate.
+   * @param[in] a_alignment Required alignment (validated to be <= @ref PoolBaseAlign).
+   * @return Host pointer to the mapped block (never null on success; aborts on failure).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST void*
+  allocate(size_t a_bytes, size_t a_alignment) override;
+
+  /**
+   * @brief Free a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Host pointer to free (null is a no-op).
+   * @param[in] a_bytes     Unused.
+   * @param[in] a_alignment Unused.
+   */
+  EBGEOMETRY_HOST void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
+
+  /**
+   * @brief Mapped blocks are host-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief Mapped blocks are device-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+};
+
+/**
  * @brief Process-wide default device memory resource.
  * @details Returns a reference to a function-local static @ref DeviceMemoryResource.
  * @return Reference to the shared device resource.
@@ -383,6 +447,14 @@ managedMemoryResource() noexcept;
  */
 [[nodiscard]] EBGEOMETRY_HOST PinnedMemoryResource&
 pinnedMemoryResource() noexcept;
+
+/**
+ * @brief Process-wide default mapped (zero-copy) pinned host memory resource.
+ * @details Returns a reference to a function-local static @ref MappedMemoryResource.
+ * @return Reference to the shared mapped resource.
+ */
+[[nodiscard]] EBGEOMETRY_HOST MappedMemoryResource&
+mappedMemoryResource() noexcept;
 
 #endif // EBGEOMETRY_CUDA || EBGEOMETRY_HIP || EBGEOMETRY_DOXYGEN
 

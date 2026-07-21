@@ -134,6 +134,29 @@ PinnedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
   }
 }
 
+inline void*
+MappedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
+{
+  EBGEOMETRY_EXPECT(a_alignment <= 256);
+
+  void* ptr = nullptr;
+
+  EBGEOMETRY_GPU_CHECK(GPU::memAllocHostMapped(&ptr, a_bytes));
+
+  return ptr;
+}
+
+inline void
+MappedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept
+{
+  (void)a_bytes;
+  (void)a_alignment;
+
+  if (a_ptr != nullptr) {
+    EBGEOMETRY_GPU_CHECK(GPU::memFreeHost(a_ptr));
+  }
+}
+
 inline DeviceMemoryResource&
 deviceMemoryResource() noexcept
 {
@@ -154,6 +177,14 @@ inline PinnedMemoryResource&
 pinnedMemoryResource() noexcept
 {
   static PinnedMemoryResource s_resource;
+
+  return s_resource;
+}
+
+inline MappedMemoryResource&
+mappedMemoryResource() noexcept
+{
+  static MappedMemoryResource s_resource;
 
   return s_resource;
 }
