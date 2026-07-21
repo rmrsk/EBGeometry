@@ -45,7 +45,7 @@ template <class T, class Meta>
 void
 Triangle<T, Meta>::setVertexPositions(const std::array<Vec3T<T>, 3>& a_vertexPositions) noexcept
 {
-  for (const auto& v : a_vertexPositions) {
+  for ([[maybe_unused]] const auto& v : a_vertexPositions) {
     EBGEOMETRY_EXPECT(std::isfinite(v[0]));
     EBGEOMETRY_EXPECT(std::isfinite(v[1]));
     EBGEOMETRY_EXPECT(std::isfinite(v[2]));
@@ -60,7 +60,7 @@ template <class T, class Meta>
 void
 Triangle<T, Meta>::setVertexNormals(const std::array<Vec3T<T>, 3>& a_vertexNormals) noexcept
 {
-  for (const auto& n : a_vertexNormals) {
+  for ([[maybe_unused]] const auto& n : a_vertexNormals) {
     EBGEOMETRY_EXPECT(std::isfinite(n[0]));
     EBGEOMETRY_EXPECT(std::isfinite(n[1]));
     EBGEOMETRY_EXPECT(std::isfinite(n[2]));
@@ -74,7 +74,7 @@ template <class T, class Meta>
 void
 Triangle<T, Meta>::setEdgeNormals(const std::array<Vec3T<T>, 3>& a_edgeNormals) noexcept
 {
-  for (const auto& n : a_edgeNormals) {
+  for ([[maybe_unused]] const auto& n : a_edgeNormals) {
     EBGEOMETRY_EXPECT(std::isfinite(n[0]));
     EBGEOMETRY_EXPECT(std::isfinite(n[1]));
     EBGEOMETRY_EXPECT(std::isfinite(n[2]));
