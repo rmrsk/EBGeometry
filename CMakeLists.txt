@@ -102,13 +102,21 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
   # Sub-tier 0: device-portability smoke test for the POD memory foundation (MemoryResource / Pool /
   # PODVector). Builds a host pool, mirrors it to the device, and reads a PODVector back in a kernel.
   # Compiles without a GPU (the CI GPU lanes are compile-only).
-  add_executable(EBGeometry_GPUMemorySmoke Tests/GPU/EBGeometry_GPUMemorySmoke.${EBGEOMETRY_GPU_SOURCE_EXT})
-  target_link_libraries(EBGeometry_GPUMemorySmoke PRIVATE EBGeometry::EBGeometry)
-  # The memory foundation reaches for constexpr std helpers inside __host__ __device__ code;
-  # --expt-relaxed-constexpr lets nvcc call those from device code. The genex keeps the flag off HIP
-  # compiles, where clang's HIP semantics already allow it without any flag.
-  target_compile_options(EBGeometry_GPUMemorySmoke PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+  #
+  # The Vec smoke test is the migration counterpart: it exercises the device-callable Vec2T/Vec3T
+  # surface from a kernel, so a regression (a dropped EBGEOMETRY_HOST_DEVICE, a reintroduced host-only
+  # std::min in device code) fails the same compile-only GPU CI lanes.
+  #
+  # Both reach for constexpr std helpers inside __host__ __device__ code; --expt-relaxed-constexpr
+  # lets nvcc call those from device code. The genex keeps the flag off HIP compiles, where clang's
+  # HIP semantics already allow it without any flag.
+  foreach(EBGEOMETRY_GPU_SMOKE GPUMemorySmoke GPUVecSmoke)
+    add_executable(EBGeometry_${EBGEOMETRY_GPU_SMOKE}
+      Tests/GPU/EBGeometry_${EBGEOMETRY_GPU_SMOKE}.${EBGEOMETRY_GPU_SOURCE_EXT})
+    target_link_libraries(EBGeometry_${EBGEOMETRY_GPU_SMOKE} PRIVATE EBGeometry::EBGeometry)
+    target_compile_options(EBGeometry_${EBGEOMETRY_GPU_SMOKE} PRIVATE
+      $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+  endforeach()
 endif()
 
 # ── Tests ─────────────────────────────────────────────────────────────────────

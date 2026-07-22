@@ -48,6 +48,7 @@ Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 DisableFormat:   false
 ForEachMacros:   [ foreach, Q_FOREACH, BOOST_FOREACH ]
+StatementMacros: [ EBGEOMETRY_HOST_DEVICE, EBGEOMETRY_HOST, EBGEOMETRY_DEVICE, EBGEOMETRY_GLOBAL ]
 IncludeCategories: 
   - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
     Priority:        2
