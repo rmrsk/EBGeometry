@@ -57,12 +57,14 @@ public:
    * @param[in] a_initialBytes If non-zero, the initial block byte capacity to reserve up front
    *                           (avoids the first grow). The block is still empty (@c usedBytes()==0).
    */
-  EBGEOMETRY_HOST explicit Pool(MemoryResource& a_resource, size_t a_initialBytes = 0);
+  EBGEOMETRY_HOST
+  explicit Pool(MemoryResource& a_resource, size_t a_initialBytes = 0);
 
   /**
    * @brief Destructor. Returns the block to the backing resource.
    */
-  EBGEOMETRY_HOST ~Pool() noexcept;
+  EBGEOMETRY_HOST
+  ~Pool() noexcept;
 
   /**
    * @brief Copy constructor. Deleted: a pool uniquely owns its block.
@@ -87,7 +89,8 @@ public:
    * @param[in,out] a_other Source pool, left owning nothing.
    * @return Reference to this pool.
    */
-  EBGEOMETRY_HOST Pool&
+  EBGEOMETRY_HOST
+  Pool&
   operator=(Pool&& a_other) noexcept;
 
   /**
@@ -99,7 +102,8 @@ public:
    * @param[in] a_alignment Required alignment of the sub-region (power of two, <= @ref PoolBaseAlign).
    * @return Byte offset of the sub-region from @ref base; @c base() + offset is @p a_alignment-aligned.
    */
-  [[nodiscard]] EBGEOMETRY_HOST uint64_t
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint64_t
   reserve(size_t a_count, size_t a_elemSize, size_t a_alignment);
 
   /**
@@ -107,14 +111,16 @@ public:
    * @details Idempotent. This is the single synchronization point between the mutating build phase
    *          and the read-only query phase.
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   freeze() noexcept;
 
   /**
    * @brief Base address of the block.
    * @return Pointer to the first byte of the block (null if nothing has been reserved yet).
    */
-  [[nodiscard]] EBGEOMETRY_HOST void*
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
   base() const noexcept
   {
     return m_base;
@@ -124,7 +130,8 @@ public:
    * @brief Bytes currently in use (the bump cursor).
    * @return Number of reserved bytes.
    */
-  [[nodiscard]] EBGEOMETRY_HOST size_t
+  [[nodiscard]] EBGEOMETRY_HOST
+  size_t
   usedBytes() const noexcept
   {
     return m_size;
@@ -134,7 +141,8 @@ public:
    * @brief Bytes currently allocated for the block.
    * @return Block byte capacity.
    */
-  [[nodiscard]] EBGEOMETRY_HOST size_t
+  [[nodiscard]] EBGEOMETRY_HOST
+  size_t
   capacityBytes() const noexcept
   {
     return m_capacity;
@@ -144,7 +152,8 @@ public:
    * @brief Whether the pool has been frozen.
    * @return True after @ref freeze.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isFrozen() const noexcept
   {
     return m_frozen;
@@ -154,7 +163,8 @@ public:
    * @brief The backing memory resource.
    * @return Reference to the resource passed at construction.
    */
-  [[nodiscard]] EBGEOMETRY_HOST MemoryResource&
+  [[nodiscard]] EBGEOMETRY_HOST
+  MemoryResource&
   resource() const noexcept
   {
     return *m_resource;
@@ -171,7 +181,8 @@ public:
    * @param[in] a_dstResource Destination resource for the mirrored block.
    * @return A new, frozen pool holding a byte-identical copy of @p a_src's block.
    */
-  [[nodiscard]] EBGEOMETRY_HOST static Pool
+  [[nodiscard]] EBGEOMETRY_HOST
+  static Pool
   mirror(const Pool& a_src, MemoryResource& a_dstResource);
 
 private:
@@ -212,7 +223,8 @@ private:
    *          @ref PoolBaseAlign. Copies the in-use bytes into the new block and frees the old one.
    * @param[in] a_need Minimum required byte capacity.
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   grow(size_t a_need);
 };
 

@@ -73,7 +73,8 @@ public:
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST virtual ~MemoryResource() = default;
+  EBGEOMETRY_HOST
+  virtual ~MemoryResource() = default;
 
   /**
    * @brief Copy constructor. Deleted: a resource's identity is meaningful and non-copyable.
@@ -94,7 +95,8 @@ public:
    * @param[in] a_alignment Required alignment in bytes. Must be a power of two.
    * @return Pointer to the allocated block.
    */
-  [[nodiscard]] EBGEOMETRY_HOST virtual void*
+  [[nodiscard]] EBGEOMETRY_HOST
+  virtual void*
   allocate(size_t a_bytes, size_t a_alignment) = 0;
 
   /**
@@ -103,21 +105,24 @@ public:
    * @param[in] a_bytes     The same byte count passed to the matching @ref allocate call.
    * @param[in] a_alignment The same alignment passed to the matching @ref allocate call.
    */
-  EBGEOMETRY_HOST virtual void
+  EBGEOMETRY_HOST
+  virtual void
   deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept = 0;
 
   /**
    * @brief Whether a plain host pointer dereference / @c std::memcpy is valid on returned blocks.
    * @return True if returned blocks are host-accessible.
    */
-  [[nodiscard]] EBGEOMETRY_HOST virtual bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  virtual bool
   isHostAccessible() const noexcept = 0;
 
   /**
    * @brief Whether a device kernel may dereference returned blocks.
    * @return True if returned blocks are device-accessible.
    */
-  [[nodiscard]] EBGEOMETRY_HOST virtual bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  virtual bool
   isDeviceAccessible() const noexcept = 0;
 };
 
@@ -138,7 +143,8 @@ public:
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST ~HostMemoryResource() override = default;
+  EBGEOMETRY_HOST
+  ~HostMemoryResource() override = default;
 
   /**
    * @brief Allocate an aligned block of host memory.
@@ -146,7 +152,8 @@ public:
    * @param[in] a_alignment Required alignment in bytes (power of two).
    * @return Pointer to the allocated host block (never null on success).
    */
-  [[nodiscard]] EBGEOMETRY_HOST void*
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
   allocate(size_t a_bytes, size_t a_alignment) override;
 
   /**
@@ -155,14 +162,16 @@ public:
    * @param[in] a_bytes     Unused (host free needs no size).
    * @param[in] a_alignment Unused (host free needs no alignment).
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
 
   /**
    * @brief Host blocks are host-accessible.
    * @return Always true.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isHostAccessible() const noexcept override
   {
     return true;
@@ -172,7 +181,8 @@ public:
    * @brief Host blocks are not device-accessible.
    * @return Always false.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isDeviceAccessible() const noexcept override
   {
     return false;
@@ -185,7 +195,8 @@ public:
  * constructed on first use and lives for the remainder of the program.
  * @return Reference to the shared host resource.
  */
-[[nodiscard]] EBGEOMETRY_HOST HostMemoryResource&
+[[nodiscard]] EBGEOMETRY_HOST
+HostMemoryResource&
 hostMemoryResource() noexcept;
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) || defined(EBGEOMETRY_DOXYGEN)
@@ -209,7 +220,8 @@ public:
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST ~DeviceMemoryResource() override = default;
+  EBGEOMETRY_HOST
+  ~DeviceMemoryResource() override = default;
 
   /**
    * @brief Allocate a block of device memory.
@@ -218,7 +230,8 @@ public:
    *                        base already satisfies it).
    * @return Device pointer to the allocated block (never null on success; aborts on failure).
    */
-  [[nodiscard]] EBGEOMETRY_HOST void*
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
   allocate(size_t a_bytes, size_t a_alignment) override;
 
   /**
@@ -227,14 +240,16 @@ public:
    * @param[in] a_bytes     Unused.
    * @param[in] a_alignment Unused.
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
 
   /**
    * @brief Device blocks are not host-accessible.
    * @return Always false.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isHostAccessible() const noexcept override
   {
     return false;
@@ -244,7 +259,8 @@ public:
    * @brief Device blocks are device-accessible.
    * @return Always true.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isDeviceAccessible() const noexcept override
   {
     return true;
@@ -270,7 +286,8 @@ public:
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST ~ManagedMemoryResource() override = default;
+  EBGEOMETRY_HOST
+  ~ManagedMemoryResource() override = default;
 
   /**
    * @brief Allocate a block of managed (unified) memory.
@@ -278,7 +295,8 @@ public:
    * @param[in] a_alignment Required alignment (validated to be <= @ref PoolBaseAlign).
    * @return Managed pointer to the allocated block (never null on success; aborts on failure).
    */
-  [[nodiscard]] EBGEOMETRY_HOST void*
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
   allocate(size_t a_bytes, size_t a_alignment) override;
 
   /**
@@ -287,14 +305,16 @@ public:
    * @param[in] a_bytes     Unused.
    * @param[in] a_alignment Unused.
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
 
   /**
    * @brief Managed blocks are host-accessible.
    * @return Always true.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isHostAccessible() const noexcept override
   {
     return true;
@@ -304,7 +324,8 @@ public:
    * @brief Managed blocks are device-accessible.
    * @return Always true.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isDeviceAccessible() const noexcept override
   {
     return true;
@@ -330,7 +351,8 @@ public:
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST ~PinnedMemoryResource() override = default;
+  EBGEOMETRY_HOST
+  ~PinnedMemoryResource() override = default;
 
   /**
    * @brief Allocate a block of page-locked host memory.
@@ -338,7 +360,8 @@ public:
    * @param[in] a_alignment Required alignment (validated to be <= @ref PoolBaseAlign).
    * @return Host pointer to the pinned block (never null on success; aborts on failure).
    */
-  [[nodiscard]] EBGEOMETRY_HOST void*
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
   allocate(size_t a_bytes, size_t a_alignment) override;
 
   /**
@@ -347,14 +370,16 @@ public:
    * @param[in] a_bytes     Unused.
    * @param[in] a_alignment Unused.
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
 
   /**
    * @brief Pinned blocks are host-accessible.
    * @return Always true.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isHostAccessible() const noexcept override
   {
     return true;
@@ -364,7 +389,8 @@ public:
    * @brief Pinned blocks are not device-accessible.
    * @return Always false.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isDeviceAccessible() const noexcept override
   {
     return false;
@@ -394,7 +420,8 @@ public:
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST ~MappedMemoryResource() override = default;
+  EBGEOMETRY_HOST
+  ~MappedMemoryResource() override = default;
 
   /**
    * @brief Allocate a block of mapped (zero-copy) pinned host memory.
@@ -402,7 +429,8 @@ public:
    * @param[in] a_alignment Required alignment (validated to be <= @ref PoolBaseAlign).
    * @return Host pointer to the mapped block (never null on success; aborts on failure).
    */
-  [[nodiscard]] EBGEOMETRY_HOST void*
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
   allocate(size_t a_bytes, size_t a_alignment) override;
 
   /**
@@ -411,14 +439,16 @@ public:
    * @param[in] a_bytes     Unused.
    * @param[in] a_alignment Unused.
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
 
   /**
    * @brief Mapped blocks are host-accessible.
    * @return Always true.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isHostAccessible() const noexcept override
   {
     return true;
@@ -428,7 +458,8 @@ public:
    * @brief Mapped blocks are device-accessible.
    * @return Always true.
    */
-  [[nodiscard]] EBGEOMETRY_HOST bool
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
   isDeviceAccessible() const noexcept override
   {
     return true;
@@ -440,7 +471,8 @@ public:
  * @details Returns a reference to a function-local static @ref DeviceMemoryResource.
  * @return Reference to the shared device resource.
  */
-[[nodiscard]] EBGEOMETRY_HOST DeviceMemoryResource&
+[[nodiscard]] EBGEOMETRY_HOST
+DeviceMemoryResource&
 deviceMemoryResource() noexcept;
 
 /**
@@ -448,7 +480,8 @@ deviceMemoryResource() noexcept;
  * @details Returns a reference to a function-local static @ref ManagedMemoryResource.
  * @return Reference to the shared managed resource.
  */
-[[nodiscard]] EBGEOMETRY_HOST ManagedMemoryResource&
+[[nodiscard]] EBGEOMETRY_HOST
+ManagedMemoryResource&
 managedMemoryResource() noexcept;
 
 /**
@@ -456,7 +489,8 @@ managedMemoryResource() noexcept;
  * @details Returns a reference to a function-local static @ref PinnedMemoryResource.
  * @return Reference to the shared pinned resource.
  */
-[[nodiscard]] EBGEOMETRY_HOST PinnedMemoryResource&
+[[nodiscard]] EBGEOMETRY_HOST
+PinnedMemoryResource&
 pinnedMemoryResource() noexcept;
 
 /**
@@ -464,7 +498,8 @@ pinnedMemoryResource() noexcept;
  * @details Returns a reference to a function-local static @ref MappedMemoryResource.
  * @return Reference to the shared mapped resource.
  */
-[[nodiscard]] EBGEOMETRY_HOST MappedMemoryResource&
+[[nodiscard]] EBGEOMETRY_HOST
+MappedMemoryResource&
 mappedMemoryResource() noexcept;
 
 #endif // EBGEOMETRY_CUDA || EBGEOMETRY_HIP || EBGEOMETRY_DOXYGEN

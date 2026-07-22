@@ -58,7 +58,8 @@ struct PODSpan
    * @param[in] a_i Element index (must be < @c m_size).
    * @return Reference to element @p a_i.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T&
   operator[](uint32_t a_i) const noexcept
   {
     EBGEOMETRY_EXPECT(a_i < m_size);
@@ -70,7 +71,8 @@ struct PODSpan
    * @brief Iterator to the first element.
    * @return Pointer to element 0.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE T*
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T*
   begin() const noexcept
   {
     return m_ptr;
@@ -80,7 +82,8 @@ struct PODSpan
    * @brief Iterator past the last element.
    * @return Pointer to one past element @c m_size-1.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE T*
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T*
   end() const noexcept
   {
     return m_ptr + m_size;
@@ -90,7 +93,8 @@ struct PODSpan
    * @brief Number of elements.
    * @return @c m_size.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE uint32_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
   size() const noexcept
   {
     return m_size;
@@ -128,7 +132,8 @@ struct PODVector
    * @param[in,out] a_pool     Pool to reserve from (must not be frozen).
    * @param[in]     a_capacity Number of element slots to reserve.
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   reserveFrom(Pool& a_pool, uint32_t a_capacity)
   {
     m_offset   = a_pool.reserve(a_capacity, sizeof(T), alignof(T));
@@ -141,7 +146,8 @@ struct PODVector
    * @param[in] a_base Base address of the pool holding this array.
    * @return Pointer to element 0.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE T*
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T*
   data(void* a_base) const noexcept
   {
     return reinterpret_cast<T*>(static_cast<unsigned char*>(a_base) + m_offset);
@@ -152,7 +158,8 @@ struct PODVector
    * @param[in] a_base Base address of the pool holding this array.
    * @return Const pointer to element 0.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE const T*
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T*
   data(const void* a_base) const noexcept
   {
     return reinterpret_cast<const T*>(static_cast<const unsigned char*>(a_base) + m_offset);
@@ -164,7 +171,8 @@ struct PODVector
    * @param[in] a_i    Element index (must be < @c m_size).
    * @return Reference to element @p a_i.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T&
   at(void* a_base, uint32_t a_i) const noexcept
   {
     EBGEOMETRY_EXPECT(a_i < m_size);
@@ -178,7 +186,8 @@ struct PODVector
    * @param[in] a_i    Element index (must be < @c m_size).
    * @return Const reference to element @p a_i.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE const T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
   at(const void* a_base, uint32_t a_i) const noexcept
   {
     EBGEOMETRY_EXPECT(a_i < m_size);
@@ -190,7 +199,8 @@ struct PODVector
    * @brief Number of constructed elements.
    * @return @c m_size.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE uint32_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
   size() const noexcept
   {
     return m_size;
@@ -200,7 +210,8 @@ struct PODVector
    * @brief Whether the array is empty.
    * @return True if @c m_size == 0.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE bool
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  bool
   empty() const noexcept
   {
     return m_size == 0;
@@ -213,7 +224,8 @@ struct PODVector
    * @param[in] a_base  Base address of the pool holding this array.
    * @param[in] a_value Value to append.
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   push_back(void* a_base, const T& a_value)
   {
     EBGEOMETRY_EXPECT(m_size < m_capacity); // the no-realloc invariant
@@ -229,7 +241,8 @@ struct PODVector
    * @param[in] a_src   Source array of at least @p a_count elements.
    * @param[in] a_count Number of elements to copy (must be <= @c m_capacity).
    */
-  EBGEOMETRY_HOST void
+  EBGEOMETRY_HOST
+  void
   assign(void* a_base, const T* a_src, uint32_t a_count)
   {
     EBGEOMETRY_EXPECT(a_count <= m_capacity);
@@ -245,8 +258,9 @@ struct PODVector
    * @param[in] a_base Base address of the (frozen) pool holding this array.
    * @return A @ref PODSpan over the array.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE PODSpan<T>
-                                       bind(void* a_base) const noexcept
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  PODSpan<T>
+  bind(void* a_base) const noexcept
   {
     return PODSpan<T>{this->data(a_base), m_size};
   }
@@ -257,8 +271,9 @@ struct PODVector
    * @param[in] a_base Base address of the (frozen) pool holding this array.
    * @return A @ref PODSpan of const elements over the array.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE PODSpan<const T>
-                                       bind(const void* a_base) const noexcept
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  PODSpan<const T>
+  bind(const void* a_base) const noexcept
   {
     return PODSpan<const T>{this->data(a_base), m_size};
   }
