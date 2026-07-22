@@ -12,7 +12,6 @@
 #define EBGEOMETRY_VECIMPLEM_HPP
 
 // Std includes
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <limits>
