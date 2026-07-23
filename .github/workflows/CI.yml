@@ -447,7 +447,7 @@ jobs:
       - name: Configure
         run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON
       - name: Build
-        run: cmake --build build/cuda --target EBGeometry_GPUMemorySmoke EBGeometry_GPUVecSmoke --parallel 2
+        run: cmake --build build/cuda --target EBGeometry_GPUMemorySmoke EBGeometry_GPUVecSmoke EBGeometry_GPUBvSmoke --parallel 2
 
   GPU-HIP:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -465,7 +465,7 @@ jobs:
         # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
         run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17
       - name: Build
-        run: cmake --build build/hip --target EBGeometry_GPUMemorySmoke EBGeometry_GPUVecSmoke --parallel 2
+        run: cmake --build build/hip --target EBGeometry_GPUMemorySmoke EBGeometry_GPUVecSmoke EBGeometry_GPUBvSmoke --parallel 2
 
   CI-passed:
     needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]

@@ -99,18 +99,18 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
     set(EBGEOMETRY_GPU_SOURCE_EXT hip)
   endif()
 
-  # Sub-tier 0: device-portability smoke test for the POD memory foundation (MemoryResource / Pool /
-  # PODVector). Builds a host pool, mirrors it to the device, and reads a PODVector back in a kernel.
-  # Compiles without a GPU (the CI GPU lanes are compile-only).
+  # Compile-only device-portability smoke tests, built with the backend compiler (no GPU is needed to
+  # build them; the CI GPU lanes are compile-only). Each exercises a device-callable surface from a
+  # kernel:
+  #   - GPUMemorySmoke: the POD memory foundation (MemoryResource / Pool / PODVector) -- builds a host
+  #     pool, mirrors it to the device, and reads a PODVector back via base + offset.
+  #   - GPUVecSmoke:    the Vec2T / Vec3T arithmetic and query surface.
+  #   - GPUBvSmoke:     the AABBT / SphereT accessors and geometric queries.
   #
-  # The Vec smoke test is the migration counterpart: it exercises the device-callable Vec2T/Vec3T
-  # surface from a kernel, so a regression (a dropped EBGEOMETRY_HOST_DEVICE, a reintroduced host-only
-  # std::min in device code) fails the same compile-only GPU CI lanes.
-  #
-  # Both reach for constexpr std helpers inside __host__ __device__ code; --expt-relaxed-constexpr
-  # lets nvcc call those from device code. The genex keeps the flag off HIP compiles, where clang's
-  # HIP semantics already allow it without any flag.
-  foreach(EBGEOMETRY_GPU_SMOKE GPUMemorySmoke GPUVecSmoke)
+  # All three reach for constexpr std helpers inside __host__ __device__ code; --expt-relaxed-constexpr
+  # lets nvcc call those from device code. The genex keeps the flag off HIP compiles, where clang's HIP
+  # semantics already allow it without any flag.
+  foreach(EBGEOMETRY_GPU_SMOKE GPUMemorySmoke GPUVecSmoke GPUBvSmoke)
     add_executable(EBGeometry_${EBGEOMETRY_GPU_SMOKE}
       Tests/GPU/EBGeometry_${EBGEOMETRY_GPU_SMOKE}.${EBGEOMETRY_GPU_SOURCE_EXT})
     target_link_libraries(EBGeometry_${EBGEOMETRY_GPU_SMOKE} PRIVATE EBGeometry::EBGeometry)
