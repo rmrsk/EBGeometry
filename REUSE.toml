@@ -6,7 +6,7 @@
 # Source code carries inline SPDX headers instead; see Source/ and Examples/*/main.cpp.
 #
 # NOTE: third-party example meshes are no longer redistributed here; they are pulled in
-# via the common-3d-test-models git submodule at the repository root (a separate repository
+# via the top-level common-3d-test-models git submodule (a separate repository
 # with its own licensing, which REUSE does not descend into).
 
 version = 1
@@ -65,6 +65,16 @@ path = [
   "Integrations/**/Make.package",
   "Integrations/**/*.inputs",
   "Integrations/**/README.md",
+]
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Benchmark comparison programs (illustrative, not CI-tested). main.cpp files carry inline SPDX.
+[[annotations]]
+path = [
+  "Benchmark/README.md",
+  "Benchmark/**/GNUmakefile",
+  "Benchmark/**/README.md",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"

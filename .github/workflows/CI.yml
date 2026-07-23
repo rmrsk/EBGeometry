@@ -430,8 +430,39 @@ jobs:
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
           ASAN_OPTIONS: detect_leaks=1
 
+  Benchmark-Compile:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Benchmarks (compile-only, ${{ matrix.directory }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # The benchmarks link against external comparison libraries with their own build
+    # systems, so they are not part of the normal test build. This job only *compiles*
+    # them (a smoke test against bit-rot as the library evolves) -- it never runs or
+    # times them, so no mesh data (common-3d-test-models) is needed and results are
+    # never treated as measurements. See Benchmark/README.md.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - directory: Benchmark/NearestNeighbor
+            submodules: Benchmark/picoflann Benchmark/nanoflann Benchmark/kd3
+          - directory: Benchmark/MeshSDF
+            submodules: Benchmark/fcpw Benchmark/TriangleMeshDistance
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fetch comparison-library submodules
+        run: |
+          git submodule update --init --depth 1 ${{ matrix.submodules }}
+          if [ "${{ matrix.directory }}" = "Benchmark/MeshSDF" ]; then
+            # fcpw's Eigen (nested submodule); Enoki is vendored inside fcpw, GPU slang-rhi is skipped.
+            git -C Benchmark/fcpw submodule update --init --depth 1 deps/eigen
+          fi
+      - name: Compile benchmark (build only, do not run)
+        working-directory: ${{ matrix.directory }}
+        run: make
+
   CI-passed:
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers, Benchmark-Compile]
     runs-on: ubuntu-latest
     steps:
       - name: Do nothing

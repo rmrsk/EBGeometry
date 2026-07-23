@@ -9,10 +9,11 @@ check: code formatting (``clang-format``) and static analysis (``clang-tidy``, a
 correctness and assurance (the Catch2 unit-test suite, under multiple compilers, SIMD levels,
 and both ``float`` and ``double`` precision; every bundled example, built and run via CMake, GNU
 Make, and direct compiler invocation, under GCC, Clang, and Intel's ``icpx``; AddressSanitizer
-and UndefinedBehaviorSanitizer runs of the same test suite); spelling (``codespell``); license
-and copyright compliance (REUSE); and the project's documentation (a warnings-as-errors Doxygen
-build, and HTML/PDF Sphinx builds). A single aggregator job (``CI-passed``) then gates on all of
-the above so branch-protection rules only need to target one required check.
+and UndefinedBehaviorSanitizer runs of the same test suite; a compile-only smoke test of the
+:file:`Benchmark/` programs against their external comparison libraries); spelling (``codespell``);
+license and copyright compliance (REUSE); and the project's documentation (a warnings-as-errors
+Doxygen build, and HTML/PDF Sphinx builds). A single aggregator job (``CI-passed``) then gates on
+all of the above so branch-protection rules only need to target one required check.
 
 .. contents:: On this page
    :local:
@@ -122,6 +123,15 @@ Configures with the ``debug-san`` preset (examples disabled) across a matrix of 
 ``{g++-12, clang++-14}`` × SIMD levels ``{none, avx}``, with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``,
 and runs ``ctest --preset debug-san`` under AddressSanitizer and UndefinedBehaviorSanitizer.
 
+Benchmark-Compile
+~~~~~~~~~~~~~~~~~~
+
+Fetches each benchmark's comparison-library submodules and *compiles* the two programs under
+:file:`Benchmark/` (matrix over ``NearestNeighbor`` and ``MeshSDF``) via their ``GNUmakefile``. This
+is a compile-only smoke test guarding against bit-rot as the library evolves -- the benchmarks are
+never run or timed in CI, so no mesh data is fetched and no result is treated as a measurement (see
+:ref:`Chap:Benchmark`).
+
 CI-passed
 ~~~~~~~~~
 
@@ -145,6 +155,7 @@ Dependency graph
     +-- Unit-Tests
     +-- Release-Test
     +-- Sanitizers
+    +-- Benchmark-Compile
          (all of the above except Static-analysis) --> CI-passed
 
 ``Formatting``, ``Codespell``, ``Reuse``, and ``Doxygen-check`` themselves have no

@@ -2,3 +2,22 @@
 	path = common-3d-test-models
 	url = https://github.com/alecjacobson/common-3d-test-models
 	shallow = true
+[submodule "Benchmark/nanoflann"]
+	path = Benchmark/nanoflann
+	url = https://github.com/jlblancoc/nanoflann.git
+	shallow = true
+[submodule "Benchmark/picoflann"]
+	path = Benchmark/picoflann
+	url = https://github.com/rmsalinas/picoflann.git
+	shallow = true
+[submodule "Benchmark/fcpw"]
+	path = Benchmark/fcpw
+	url = https://github.com/rohan-sawhney/fcpw.git
+	shallow = true
+[submodule "Benchmark/TriangleMeshDistance"]
+	path = Benchmark/TriangleMeshDistance
+	url = https://github.com/InteractiveComputerGraphics/TriangleMeshDistance
+[submodule "Benchmark/kd3"]
+	path = Benchmark/kd3
+	url = https://github.com/KaruroChori/kd3
+	shallow = true
