@@ -47,6 +47,20 @@ TEMPLATE_TEST_CASE("AABBT: construction from point cloud", "[AABBT]", EBGEOMETRY
   REQUIRE(box.getHighCorner()[2] == T(5.0));
 }
 
+TEMPLATE_TEST_CASE("AABBT: pointer constructor matches the std::vector constructor",
+                   "[AABBT]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const std::vector<Vec3T<T>> pts = {Vec3T<T>(0, 0, 0), Vec3T<T>(3, 0, 0), Vec3T<T>(0, 4, 0), Vec3T<T>(0, 0, 5)};
+  const AABBT<T>              fromVector(pts);
+  const AABBT<T>              fromPointer(pts.data(), pts.size());
+
+  REQUIRE(fromPointer.getLowCorner() == fromVector.getLowCorner());
+  REQUIRE(fromPointer.getHighCorner() == fromVector.getHighCorner());
+}
+
 TEMPLATE_TEST_CASE("AABBT: volume and surface area", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
@@ -181,6 +195,20 @@ TEMPLATE_TEST_CASE("SphereT: construction from point cloud (Ritter)", "[SphereT]
     const T dist = (p - s.getCentroid()).length();
     REQUIRE(dist <= s.getRadius() + relativeMargin * s.getRadius());
   }
+}
+
+TEMPLATE_TEST_CASE("SphereT: pointer constructor matches the std::vector constructor",
+                   "[SphereT]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const std::vector<Vec3T<T>> pts = {Vec3T<T>(-2, 0, 0), Vec3T<T>(2, 0, 0), Vec3T<T>(0, 2, 0), Vec3T<T>(0, -2, 0)};
+  const SphereT<T>            fromVector(pts);
+  const SphereT<T>            fromPointer(pts.data(), pts.size());
+
+  REQUIRE(fromPointer.getCentroid() == fromVector.getCentroid());
+  REQUIRE(fromPointer.getRadius() == fromVector.getRadius());
 }
 
 TEMPLATE_TEST_CASE("SphereT: intersects", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)

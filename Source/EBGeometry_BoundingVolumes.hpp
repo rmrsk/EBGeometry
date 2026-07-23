@@ -12,6 +12,7 @@
 #define EBGEOMETRY_BOUNDINGVOLUMES_HPP
 
 // Std includes
+#include <cstddef>
 #include <ostream>
 #include <type_traits>
 #include <vector>
@@ -104,6 +105,18 @@ public:
   template <class P>
   EBGEOMETRY_HOST
   inline SphereT(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_alg = BuildAlgorithm::Ritter) noexcept;
+
+  /**
+   * @brief Construct a bounding sphere enclosing a point array, using Ritter's algorithm.
+   * @details Callable from host and device. @p a_points must reference @p a_numPoints points that are
+   * accessible from wherever the constructor runs (a device pointer for a device call).
+   * @tparam P Floating-point precision of the input points.
+   * @param[in] a_points    Pointer to the first of @p a_numPoints points.
+   * @param[in] a_numPoints Number of points to enclose (must be > 0).
+   */
+  template <class P>
+  EBGEOMETRY_HOST_DEVICE
+  inline SphereT(const Vec3T<P>* a_points, size_t a_numPoints) noexcept;
 
   /**
    * @brief Destructor.
@@ -252,6 +265,17 @@ protected:
   EBGEOMETRY_HOST
   inline void
   buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept;
+
+  /**
+   * @brief Fit a bounding sphere to a point array using Ritter's algorithm.
+   * @tparam P Floating-point precision of the input points.
+   * @param[in] a_points    Pointer to the first of @p a_numPoints points.
+   * @param[in] a_numPoints Number of points to enclose (must be > 0).
+   */
+  template <class P>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  buildRitter(const Vec3T<P>* a_points, size_t a_numPoints) noexcept;
 };
 
 /**
@@ -324,6 +348,18 @@ public:
   inline AABBT(const std::vector<Vec3T<P>>& a_points) noexcept;
 
   /**
+   * @brief Construct the smallest AABB enclosing a point array.
+   * @details Callable from host and device. @p a_points must reference @p a_numPoints points that are
+   * accessible from wherever the constructor runs (a device pointer for a device call).
+   * @tparam P Floating-point precision of the input points.
+   * @param[in] a_points    Pointer to the first of @p a_numPoints points.
+   * @param[in] a_numPoints Number of points to enclose (must be > 0).
+   */
+  template <class P>
+  EBGEOMETRY_HOST_DEVICE
+  inline AABBT(const Vec3T<P>* a_points, size_t a_numPoints) noexcept;
+
+  /**
    * @brief Destructor.
    */
   ~AABBT() noexcept = default;
@@ -360,6 +396,19 @@ public:
   EBGEOMETRY_HOST
   inline void
   define(const std::vector<Vec3T<P>>& a_points) noexcept;
+
+  /**
+   * @brief Fit this AABB to the smallest box enclosing a point array.
+   * @details Callable from host and device. @p a_points must reference @p a_numPoints points that are
+   * accessible from wherever the call runs (a device pointer for a device call).
+   * @tparam P Floating-point precision of the input points.
+   * @param[in] a_points    Pointer to the first of @p a_numPoints points.
+   * @param[in] a_numPoints Number of points to enclose (must be > 0).
+   */
+  template <class P>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  define(const Vec3T<P>* a_points, size_t a_numPoints) noexcept;
 
   /**
    * @brief Test whether this AABB intersects @p a_other.
