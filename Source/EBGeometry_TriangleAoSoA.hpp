@@ -52,6 +52,8 @@ struct TriangleAoSoA
 {
   static_assert(W > 0, "W must be positive");
   static_assert(std::is_floating_point_v<T>, "TriangleAoSoA requires a floating-point type T");
+  static_assert(std::is_trivially_copyable_v<Meta>,
+                "TriangleAoSoA requires a trivially copyable Meta (device-visible storage)");
 
 public:
   /**
@@ -63,6 +65,7 @@ public:
    * @param[in] a_triangles Source triangle array with at least a_count elements. Must not be null.
    * @param[in] a_count     Number of valid triangles to pack. Must satisfy 1 <= a_count <= W.
    */
+  EBGEOMETRY_HOST
   void
   pack(const Triangle<T, Meta>* a_triangles, uint32_t a_count) noexcept;
 
@@ -73,7 +76,8 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return Signed distance from a_point to the closest valid triangle.
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -88,7 +92,8 @@ public:
    * @param[out] a_closestMeta Set to the metadata of the winning (minimum-|distance|) triangle.
    * @return Signed distance from a_point to the closest valid triangle.
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   signedDistance(const Vec3T<T>& a_point, Meta& a_closestMeta) const noexcept;
 
   /**
@@ -98,18 +103,20 @@ public:
    * triangle's metadata -- see pack()).
    * @return Metadata for the triangle at a_lane.
    */
-  [[nodiscard]] const Meta&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Meta&
   getMetaData(size_t a_lane) const noexcept;
 
   /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
    * @details Delegates entirely to the embedded TriangleSoAT<T, W>.
-   * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a
-   * std::vector<Vec3T<T>> of vertex positions.
+   * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a point array (a
+   * Vec3T<T> pointer and a count).
    * @return Bounding volume enclosing all vertices of the valid triangles.
    */
   template <class BV>
-  [[nodiscard]] BV
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BV
   computeBoundingVolume() const noexcept;
 
 protected:
@@ -134,6 +141,11 @@ protected:
    */
   uint32_t m_validCount = 0;
 };
+
+static_assert(std::is_trivially_copyable_v<TriangleAoSoA<float, uint32_t>>,
+              "TriangleAoSoA<float, uint32_t> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TriangleAoSoA<double, uint32_t>>,
+              "TriangleAoSoA<double, uint32_t> must be trivially copyable");
 
 } // namespace EBGeometry
 

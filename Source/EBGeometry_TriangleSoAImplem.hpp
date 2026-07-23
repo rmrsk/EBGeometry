@@ -27,6 +27,7 @@ namespace EBGeometry {
 
 template <class T, size_t W>
 template <class Meta>
+EBGEOMETRY_HOST
 void
 TriangleSoAT<T, W>::pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept
 {
@@ -70,6 +71,7 @@ TriangleSoAT<T, W>::pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 {
@@ -1197,6 +1199,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 TriangleSoAT<T, W>::signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept
 {
@@ -1293,6 +1296,7 @@ TriangleSoAT<T, W>::signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point)
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 std::array<T, W>
 TriangleSoAT<T, W>::signedDistances(const Vec3T<T>& a_point) const noexcept
 {
@@ -1317,20 +1321,22 @@ TriangleSoAT<T, W>::signedDistances(const Vec3T<T>& a_point) const noexcept
 
 template <class T, size_t W>
 template <class BV>
+EBGEOMETRY_HOST_DEVICE
 BV
 TriangleSoAT<T, W>::computeBoundingVolume() const noexcept
 {
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-  std::vector<Vec3T<T>> pts;
-  pts.reserve(3 * m_validCount);
+  Vec3T<T> pts[3 * W];
+
   for (uint32_t j = 0; j < m_validCount; j++) {
-    pts.emplace_back(m_vx[0][j], m_vy[0][j], m_vz[0][j]);
-    pts.emplace_back(m_vx[1][j], m_vy[1][j], m_vz[1][j]);
-    pts.emplace_back(m_vx[2][j], m_vy[2][j], m_vz[2][j]);
+    pts[3 * j + 0] = Vec3T<T>(m_vx[0][j], m_vy[0][j], m_vz[0][j]);
+    pts[3 * j + 1] = Vec3T<T>(m_vx[1][j], m_vy[1][j], m_vz[1][j]);
+    pts[3 * j + 2] = Vec3T<T>(m_vx[2][j], m_vy[2][j], m_vz[2][j]);
   }
-  return BV(pts);
+
+  return BV(pts, 3 * m_validCount);
 }
 
 } // namespace EBGeometry

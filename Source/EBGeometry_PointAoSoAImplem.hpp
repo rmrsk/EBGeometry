@@ -22,6 +22,7 @@
 namespace EBGeometry {
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST
 void
 PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* a_positions, const Meta* a_metaData, uint32_t a_count) noexcept
 {
@@ -43,6 +44,7 @@ PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* a_positions, const Meta* a_metaData
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 std::array<T, W>
 PointAoSoA<T, Meta, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 {
@@ -50,6 +52,7 @@ PointAoSoA<T, Meta, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 std::array<T, W>
 PointAoSoA<T, Meta, W>::getDistances(const Vec3T<T>& a_point) const noexcept
 {
@@ -57,6 +60,7 @@ PointAoSoA<T, Meta, W>::getDistances(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 PointAoSoA<T, Meta, W>::getMinimumDistance2(const Vec3T<T>& a_point) const noexcept
 {
@@ -64,6 +68,7 @@ PointAoSoA<T, Meta, W>::getMinimumDistance2(const Vec3T<T>& a_point) const noexc
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 PointAoSoA<T, Meta, W>::getMinimumDistance(const Vec3T<T>& a_point) const noexcept
 {
@@ -71,6 +76,7 @@ PointAoSoA<T, Meta, W>::getMinimumDistance(const Vec3T<T>& a_point) const noexce
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 PointAoSoA<T, Meta, W>::getMaximumDistance2(const Vec3T<T>& a_point) const noexcept
 {
@@ -78,6 +84,7 @@ PointAoSoA<T, Meta, W>::getMaximumDistance2(const Vec3T<T>& a_point) const noexc
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 PointAoSoA<T, Meta, W>::getMaximumDistance(const Vec3T<T>& a_point) const noexcept
 {
@@ -85,6 +92,7 @@ PointAoSoA<T, Meta, W>::getMaximumDistance(const Vec3T<T>& a_point) const noexce
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 const Meta&
 PointAoSoA<T, Meta, W>::getMetaData(size_t a_lane) const noexcept
 {
@@ -96,6 +104,7 @@ PointAoSoA<T, Meta, W>::getMetaData(size_t a_lane) const noexcept
 
 template <class T, class Meta, size_t W>
 template <class BV>
+EBGEOMETRY_HOST_DEVICE
 BV
 PointAoSoA<T, Meta, W>::computeBoundingVolume() const noexcept
 {
