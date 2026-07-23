@@ -3,6 +3,7 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -248,3 +249,61 @@ TEMPLATE_TEST_CASE("SphereT: volume and area", "[SphereT]", EBGEOMETRY_TEST_PREC
   REQUIRE_THAT(s.getVolume(), WithinRel((T(4.0) / T(3.0)) * pi * T(8.0), T(1.0e-4)));
   REQUIRE_THAT(s.getArea(), WithinRel(T(4.0) * pi * T(4.0), T(1.0e-4)));
 }
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: the AABBT / SphereT surface is callable from a kernel and matches the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+EBGEOMETRY_GLOBAL
+void
+bvDeviceKernel(double* a_out)
+{
+  const AABBT<double>   box(Vec3T<double>(0.0, 0.0, 0.0), Vec3T<double>(1.0, 1.0, 1.0));
+  const AABBT<double>   other(Vec3T<double>(0.5, 0.5, 0.5), Vec3T<double>(2.0, 2.0, 2.0));
+  const SphereT<double> sphere(Vec3T<double>(0.5, 0.5, 0.5), 0.5);
+
+  const Vec3T<double> p(2.0, 2.0, 2.0);
+
+  double d = box.getDistance(p) + box.getVolume() + box.getArea() + box.getCentroid().length();
+  d += (box.intersects(other) ? 1.0 : 0.0) + box.getOverlappingVolume(other);
+  d += sphere.getDistance(p) + sphere.getVolume() + sphere.getRadius();
+
+  a_out[0] = d;
+}
+
+// Host mirror of bvDeviceKernel's reduction.
+static double
+bvHostReduction()
+{
+  const AABBT<double>   box(Vec3T<double>(0.0, 0.0, 0.0), Vec3T<double>(1.0, 1.0, 1.0));
+  const AABBT<double>   other(Vec3T<double>(0.5, 0.5, 0.5), Vec3T<double>(2.0, 2.0, 2.0));
+  const SphereT<double> sphere(Vec3T<double>(0.5, 0.5, 0.5), 0.5);
+
+  const Vec3T<double> p(2.0, 2.0, 2.0);
+
+  double d = box.getDistance(p) + box.getVolume() + box.getArea() + box.getCentroid().length();
+  d += (box.intersects(other) ? 1.0 : 0.0) + box.getOverlappingVolume(other);
+  d += sphere.getDistance(p) + sphere.getVolume() + sphere.getRadius();
+
+  return d;
+}
+
+TEST_CASE("AABBT/SphereT: device query surface matches the host", "[AABBT][SphereT][gpu]")
+{
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  double* deviceOut = deviceScalar();
+
+  bvDeviceKernel<<<1, 1>>>(deviceOut);
+  (void)GPU::deviceSynchronize();
+
+  REQUIRE_THAT(readScalar(deviceOut), WithinRel(bvHostReduction(), 1.0e-9));
+
+  deviceFree(deviceOut);
+}
+#endif

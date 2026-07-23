@@ -445,9 +445,11 @@ jobs:
           method: 'network'
           sub-packages: '["nvcc", "cudart"]'
       - name: Configure
-        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON
+        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON
       - name: Build
-        run: cmake --build build/cuda --target EBGeometry_GPUMemorySmoke EBGeometry_GPUVecSmoke EBGeometry_GPUBvSmoke EBGeometry_GPUSoASmoke --parallel 2
+        # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
+        # with nvcc, exercising the device-callable surface. No GPU is needed to build them.
+        run: cmake --build build/cuda --target TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA --parallel 2
 
   GPU-HIP:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -463,9 +465,11 @@ jobs:
           sudo apt-get install -y hipcc clang-17 libamdhip64-dev rocm-device-libs-17
       - name: Configure
         # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
-        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17
+        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON
       - name: Build
-        run: cmake --build build/hip --target EBGeometry_GPUMemorySmoke EBGeometry_GPUVecSmoke EBGeometry_GPUBvSmoke EBGeometry_GPUSoASmoke --parallel 2
+        # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP)
+        # with hipcc/clang, exercising the device-callable surface. No GPU is needed to build them.
+        run: cmake --build build/hip --target TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA --parallel 2
 
   CI-passed:
     needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]

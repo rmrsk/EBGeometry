@@ -8,6 +8,7 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -201,3 +202,45 @@ TEMPLATE_TEST_CASE("PointAoSoA: omitting W defaults to PointSoA::DefaultWidth<T>
     REQUIRE(group.getMetaData(i) == static_cast<short>(10 + i));
   }
 }
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: a host-packed PointAoSoA is queried in a kernel and matches the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+EBGEOMETRY_GLOBAL
+void
+pointAoSoADeviceKernel(const AoSoA<double>* a_group, Vec3T<double> a_point, double* a_out)
+{
+  a_out[0] = a_group->getMinimumDistance2(a_point) + static_cast<double>(a_group->getMetaData(0));
+}
+
+TEST_CASE("PointAoSoA: device query surface matches the host", "[PointAoSoA][gpu]")
+{
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const auto positions = fourPositions<double>();
+  const auto metaData  = fourMetaData<double>();
+
+  AoSoA<double> group;
+  group.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
+
+  const Vec3T<double> q(0.1, 0.1, 0.1);
+  const double        host = group.getMinimumDistance2(q) + static_cast<double>(group.getMetaData(0));
+
+  AoSoA<double>* deviceGroup = mirrorToDevice(group);
+  double*        deviceOut   = deviceScalar();
+
+  pointAoSoADeviceKernel<<<1, 1>>>(deviceGroup, q, deviceOut);
+  (void)GPU::deviceSynchronize();
+
+  REQUIRE_THAT(readScalar(deviceOut), Catch::Matchers::WithinRel(host, 1.0e-12));
+
+  deviceFree(deviceGroup);
+  deviceFree(deviceOut);
+}
+#endif

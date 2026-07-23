@@ -3,6 +3,7 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -258,3 +259,47 @@ TEMPLATE_TEST_CASE("Vec2T: dot product", "[Vec2T]", EBGEOMETRY_TEST_PRECISIONS)
   REQUIRE(dot(a, b) == T(0.0));
   REQUIRE(dot(a, a) == T(1.0));
 }
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: the Vec3T query surface is callable from a kernel and matches the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+EBGEOMETRY_GLOBAL
+void
+vecDeviceKernel(Vec3T<double> a_a, Vec3T<double> a_b, double* a_out)
+{
+  const Vec3T<double> c  = a_a + a_b - a_b * 2.0 + a_a / 2.0;
+  const Vec3T<double> mn = min(a_a, a_b);
+  const Vec3T<double> mx = max(a_a, a_b);
+  const Vec3T<double> cl = clamp(c, mn, mx);
+
+  a_out[0] = dot(a_a, a_b) + cross(a_a, a_b).length() + c.length2() + cl.dot(mx);
+}
+
+TEST_CASE("Vec3T: device query surface matches the host", "[Vec3T][gpu]")
+{
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const Vec3T<double> a(1.0, 2.0, 3.0);
+  const Vec3T<double> b = Vec3T<double>::ones();
+
+  const Vec3T<double> c    = a + b - b * 2.0 + a / 2.0;
+  const Vec3T<double> mn   = min(a, b);
+  const Vec3T<double> mx   = max(a, b);
+  const double        host = dot(a, b) + cross(a, b).length() + c.length2() + clamp(c, mn, mx).dot(mx);
+
+  double* deviceOut = deviceScalar();
+
+  vecDeviceKernel<<<1, 1>>>(a, b, deviceOut);
+  (void)GPU::deviceSynchronize();
+
+  REQUIRE_THAT(readScalar(deviceOut), WithinRel(host, 1.0e-9));
+
+  deviceFree(deviceOut);
+}
+#endif

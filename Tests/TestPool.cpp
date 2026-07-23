@@ -3,6 +3,7 @@
 
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
+#include "TestGPU.hpp"
 
 #include <cstdint>
 #include <type_traits>
@@ -243,3 +244,72 @@ TEST_CASE("Pool: move assignment frees the target's old block and steals the sou
     REQUIRE(vec.at(target.base(), i) == double(i) + 0.5);
   }
 }
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: a PODVector built into a host Pool, mirrored to the device, reads back
+// correctly through base + offset with no pointer patching
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+struct PoolSmokeElement
+{
+  double m_a;
+  double m_b;
+};
+
+static_assert(std::is_trivially_copyable_v<PoolSmokeElement>, "PoolSmokeElement must be trivially copyable");
+} // namespace
+
+EBGEOMETRY_GLOBAL
+void
+poolDeviceKernel(PODVector<PoolSmokeElement> a_vec, void* a_base, double* a_out)
+{
+  double sum = 0.0;
+
+  for (uint32_t i = 0; i < a_vec.size(); i++) {
+    const PoolSmokeElement element = a_vec.at(a_base, i);
+
+    sum += element.m_a + element.m_b;
+  }
+
+  a_out[0] = sum;
+}
+
+TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Pool][PODVector][gpu]")
+{
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool hostPool(hostMemoryResource());
+
+  PODVector<PoolSmokeElement> vec;
+  vec.reserveFrom(hostPool, 8);
+
+  double hostSum = 0.0;
+  for (uint32_t i = 0; i < 8; i++) {
+    const PoolSmokeElement element{double(i), double(2 * i)};
+
+    vec.push_back(hostPool.base(), element);
+    hostSum += element.m_a + element.m_b;
+  }
+
+  hostPool.freeze();
+
+  Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+
+  double* deviceOut = deviceScalar();
+
+  poolDeviceKernel<<<1, 1>>>(vec, devicePool.base(), deviceOut);
+  (void)GPU::deviceSynchronize();
+
+  // The reduction sums small integer-valued doubles in the same order on host and device, so the
+  // result is bit-exact -- no floating-point matcher (or its header) is needed here.
+  REQUIRE(readScalar(deviceOut) == hostSum);
+
+  deviceFree(deviceOut);
+}
+#endif
