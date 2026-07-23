@@ -445,7 +445,8 @@ jobs:
           method: 'network'
           sub-packages: '["nvcc", "cudart"]'
       - name: Configure
-        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON
+        # Both precisions so the float instantiations of the device kernels are compiled too.
+        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
         # with nvcc, exercising the device-callable surface. The device-test list lives in
@@ -466,7 +467,8 @@ jobs:
           sudo apt-get install -y hipcc clang-17 libamdhip64-dev rocm-device-libs-17
       - name: Configure
         # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
-        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON
+        # Both precisions so the float instantiations of the device kernels are compiled too.
+        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP)
         # with hipcc/clang, exercising the device-callable surface. The device-test list lives in

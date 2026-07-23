@@ -302,15 +302,13 @@ TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Poo
 
   Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
 
-  double* deviceOut = deviceScalar();
+  DeviceBuffer<double> deviceOut;
 
-  poolDeviceKernel<<<1, 1>>>(vec, devicePool.base(), deviceOut);
+  poolDeviceKernel<<<1, 1>>>(vec, devicePool.base(), deviceOut.get());
   (void)GPU::deviceSynchronize();
 
   // The reduction sums small integer-valued doubles in the same order on host and device, so the
   // result is bit-exact -- no floating-point matcher (or its header) is needed here.
-  REQUIRE(readScalar(deviceOut) == hostSum);
-
-  deviceFree(deviceOut);
+  REQUIRE(readScalar(deviceOut.get()) == hostSum);
 }
 #endif

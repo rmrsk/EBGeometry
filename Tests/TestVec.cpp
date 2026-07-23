@@ -265,41 +265,42 @@ TEMPLATE_TEST_CASE("Vec2T: dot product", "[Vec2T]", EBGEOMETRY_TEST_PRECISIONS)
 // Device: the Vec3T query surface is callable from a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
+template <class T>
 EBGEOMETRY_GLOBAL
 void
-vecDeviceKernel(Vec3T<double> a_a, Vec3T<double> a_b, double* a_out)
+vecDeviceKernel(Vec3T<T> a_a, Vec3T<T> a_b, T* a_out)
 {
-  const Vec3T<double> c  = a_a + a_b - a_b * 2.0 + a_a / 2.0;
-  const Vec3T<double> mn = min(a_a, a_b);
-  const Vec3T<double> mx = max(a_a, a_b);
-  const Vec3T<double> cl = clamp(c, mn, mx);
+  const Vec3T<T> c  = a_a + a_b - a_b * T(2.0) + a_a / T(2.0);
+  const Vec3T<T> mn = min(a_a, a_b);
+  const Vec3T<T> mx = max(a_a, a_b);
+  const Vec3T<T> cl = clamp(c, mn, mx);
 
   a_out[0] = dot(a_a, a_b) + cross(a_a, a_b).length() + c.length2() + cl.dot(mx);
 }
 
-TEST_CASE("Vec3T: device query surface matches the host", "[Vec3T][gpu]")
+TEMPLATE_TEST_CASE("Vec3T: device query surface matches the host", "[Vec3T][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T = TestType;
+
   using namespace EBGeometryTestGPU;
 
   if (!deviceAvailable()) {
     SKIP("no GPU device available");
   }
 
-  const Vec3T<double> a(1.0, 2.0, 3.0);
-  const Vec3T<double> b = Vec3T<double>::ones();
+  const Vec3T<T> a(T(1.0), T(2.0), T(3.0));
+  const Vec3T<T> b = Vec3T<T>::ones();
 
-  const Vec3T<double> c    = a + b - b * 2.0 + a / 2.0;
-  const Vec3T<double> mn   = min(a, b);
-  const Vec3T<double> mx   = max(a, b);
-  const double        host = dot(a, b) + cross(a, b).length() + c.length2() + clamp(c, mn, mx).dot(mx);
+  const Vec3T<T> c    = a + b - b * T(2.0) + a / T(2.0);
+  const Vec3T<T> mn   = min(a, b);
+  const Vec3T<T> mx   = max(a, b);
+  const T        host = dot(a, b) + cross(a, b).length() + c.length2() + clamp(c, mn, mx).dot(mx);
 
-  double* deviceOut = deviceScalar();
+  DeviceBuffer<T> deviceOut;
 
-  vecDeviceKernel<<<1, 1>>>(a, b, deviceOut);
+  vecDeviceKernel<T><<<1, 1>>>(a, b, deviceOut.get());
   (void)GPU::deviceSynchronize();
 
-  REQUIRE_THAT(readScalar(deviceOut), WithinRel(host, 1.0e-9));
-
-  deviceFree(deviceOut);
+  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(host, gpuTol<T>()));
 }
 #endif
