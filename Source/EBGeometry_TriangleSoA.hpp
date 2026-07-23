@@ -16,7 +16,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
-#include <vector>
 
 #if defined(__SSE4_1__) || defined(__AVX__) || defined(__AVX512F__)
 #include <immintrin.h>

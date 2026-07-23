@@ -12,13 +12,11 @@
 #define EBGEOMETRY_POINTSOAIMPLEM_HPP
 
 // Std includes
-#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <vector>
 
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_PointSoA.hpp"

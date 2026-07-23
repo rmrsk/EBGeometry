@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <limits>
 #include <type_traits>
-#include <vector>
 
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
