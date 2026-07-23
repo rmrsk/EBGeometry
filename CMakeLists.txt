@@ -106,11 +106,13 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
   #     pool, mirrors it to the device, and reads a PODVector back via base + offset.
   #   - GPUVecSmoke:    the Vec2T / Vec3T arithmetic and query surface.
   #   - GPUBvSmoke:     the AABBT / SphereT accessors and geometric queries.
+  #   - GPUSoASmoke:    the PointAoSoA / TriangleAoSoA SoA leaf query surface (host-packed,
+  #     device-queried).
   #
   # All three reach for constexpr std helpers inside __host__ __device__ code; --expt-relaxed-constexpr
   # lets nvcc call those from device code. The genex keeps the flag off HIP compiles, where clang's HIP
   # semantics already allow it without any flag.
-  foreach(EBGEOMETRY_GPU_SMOKE GPUMemorySmoke GPUVecSmoke GPUBvSmoke)
+  foreach(EBGEOMETRY_GPU_SMOKE GPUMemorySmoke GPUVecSmoke GPUBvSmoke GPUSoASmoke)
     add_executable(EBGeometry_${EBGEOMETRY_GPU_SMOKE}
       Tests/GPU/EBGeometry_${EBGEOMETRY_GPU_SMOKE}.${EBGEOMETRY_GPU_SOURCE_EXT})
     target_link_libraries(EBGeometry_${EBGEOMETRY_GPU_SMOKE} PRIVATE EBGeometry::EBGeometry)

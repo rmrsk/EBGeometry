@@ -12,13 +12,11 @@
 #define EBGEOMETRY_POINTSOAIMPLEM_HPP
 
 // Std includes
-#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <vector>
 
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_PointSoA.hpp"
@@ -26,6 +24,7 @@
 namespace EBGeometry {
 
 template <class T, size_t W>
+EBGEOMETRY_HOST
 void
 PointSoAT<T, W>::pack(const Vec3T<T>* a_positions, uint32_t a_count) noexcept
 {
@@ -56,6 +55,7 @@ PointSoAT<T, W>::pack(const Vec3T<T>* a_positions, uint32_t a_count) noexcept
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 std::array<T, W>
 PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 {
@@ -228,6 +228,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 std::array<T, W>
 PointSoAT<T, W>::getDistances(const Vec3T<T>& a_point) const noexcept
 {
@@ -240,6 +241,7 @@ PointSoAT<T, W>::getDistances(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 PointSoAT<T, W>::getMinimumDistance2(const Vec3T<T>& a_point) const noexcept
 {
@@ -248,13 +250,14 @@ PointSoAT<T, W>::getMinimumDistance2(const Vec3T<T>& a_point) const noexcept
   T best2 = std::numeric_limits<T>::max();
 
   for (uint32_t i = 0; i < m_validCount; i++) {
-    best2 = std::min(best2, distances[i]);
+    best2 = (distances[i] < best2) ? distances[i] : best2;
   }
 
   return best2;
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 PointSoAT<T, W>::getMinimumDistance(const Vec3T<T>& a_point) const noexcept
 {
@@ -262,6 +265,7 @@ PointSoAT<T, W>::getMinimumDistance(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 PointSoAT<T, W>::getMaximumDistance2(const Vec3T<T>& a_point) const noexcept
 {
@@ -270,13 +274,14 @@ PointSoAT<T, W>::getMaximumDistance2(const Vec3T<T>& a_point) const noexcept
   T best2 = std::numeric_limits<T>::lowest();
 
   for (uint32_t i = 0; i < m_validCount; i++) {
-    best2 = std::max(best2, distances[i]);
+    best2 = (distances[i] > best2) ? distances[i] : best2;
   }
 
   return best2;
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 PointSoAT<T, W>::getMaximumDistance(const Vec3T<T>& a_point) const noexcept
 {
@@ -285,21 +290,20 @@ PointSoAT<T, W>::getMaximumDistance(const Vec3T<T>& a_point) const noexcept
 
 template <class T, size_t W>
 template <class BV>
+EBGEOMETRY_HOST_DEVICE
 BV
 PointSoAT<T, W>::computeBoundingVolume() const noexcept
 {
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-  std::vector<Vec3T<T>> positions;
-
-  positions.reserve(m_validCount);
+  Vec3T<T> positions[W];
 
   for (uint32_t j = 0; j < m_validCount; j++) {
-    positions.emplace_back(m_x[j], m_y[j], m_z[j]);
+    positions[j] = Vec3T<T>(m_x[j], m_y[j], m_z[j]);
   }
 
-  return BV(positions);
+  return BV(positions, m_validCount);
 }
 
 } // namespace EBGeometry

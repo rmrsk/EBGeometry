@@ -44,6 +44,8 @@ struct PointAoSoA
 {
   static_assert(W > 0, "W must be positive");
   static_assert(std::is_floating_point_v<T>, "PointAoSoA requires a floating-point type T");
+  static_assert(std::is_trivially_copyable_v<Meta>,
+                "PointAoSoA requires a trivially copyable Meta (device-visible storage)");
 
 public:
   /**
@@ -56,6 +58,7 @@ public:
    * @param[in] a_count     Number of valid (position, metadata) pairs to pack. Must satisfy
    * 1 <= a_count <= W.
    */
+  EBGEOMETRY_HOST
   void
   pack(const Vec3T<T>* a_positions, const Meta* a_metaData, uint32_t a_count) noexcept;
 
@@ -67,7 +70,8 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return Per-lane squared distances, one per W lanes.
    */
-  [[nodiscard]] std::array<T, W>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  std::array<T, W>
   getDistances2(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -76,7 +80,8 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return Per-lane distances, one per W lanes.
    */
-  [[nodiscard]] std::array<T, W>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  std::array<T, W>
   getDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -87,7 +92,8 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return Squared distance from a_point to the closest valid point in this group.
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   getMinimumDistance2(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -96,7 +102,8 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return Distance from a_point to the closest valid point in this group.
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   getMinimumDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -105,7 +112,8 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return Squared distance from a_point to the farthest valid point in this group.
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   getMaximumDistance2(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -114,7 +122,8 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return Distance from a_point to the farthest valid point in this group.
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   getMaximumDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -124,18 +133,20 @@ public:
    * point's metadata -- see pack()).
    * @return Metadata for the point at a_lane.
    */
-  [[nodiscard]] const Meta&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Meta&
   getMetaData(size_t a_lane) const noexcept;
 
   /**
    * @brief Compute the bounding volume enclosing all valid points in this group.
    * @details Delegates entirely to the embedded PointSoAT<T, W>.
-   * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a
-   * std::vector<Vec3T<T>> of point positions.
+   * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a point array (a
+   * Vec3T<T> pointer and a count).
    * @return Bounding volume enclosing all valid point positions.
    */
   template <class BV>
-  [[nodiscard]] BV
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BV
   computeBoundingVolume() const noexcept;
 
 protected:
@@ -160,6 +171,11 @@ protected:
    */
   uint32_t m_validCount = 0;
 };
+
+static_assert(std::is_trivially_copyable_v<PointAoSoA<float, uint32_t>>,
+              "PointAoSoA<float, uint32_t> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PointAoSoA<double, uint32_t>>,
+              "PointAoSoA<double, uint32_t> must be trivially copyable");
 
 } // namespace EBGeometry
 

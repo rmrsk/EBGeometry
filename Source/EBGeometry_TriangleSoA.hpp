@@ -16,7 +16,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
-#include <vector>
 
 #if defined(__SSE4_1__) || defined(__AVX__) || defined(__AVX512F__)
 #include <immintrin.h>
@@ -113,6 +112,7 @@ public:
    * @param[in] count Number of valid triangles to pack. Must satisfy 1 <= count <= W.
    */
   template <class Meta>
+  EBGEOMETRY_HOST
   void
   pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept;
 
@@ -126,7 +126,8 @@ public:
    * @return Signed distance from a_point to the closest valid triangle, with sign determined by
    * the outward normal of the nearest feature (face, edge, or vertex).
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -142,18 +143,20 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return Per-lane signed distances, one per W lanes.
    */
-  [[nodiscard]] std::array<T, W>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  std::array<T, W>
   signedDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
-   * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a
-   * std::vector<Vec3T<T>> of vertex positions.
+   * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a point array (a
+   * Vec3T<T> pointer and a count).
    * @return Bounding volume enclosing all vertices of the m_validCount triangles.
    */
   template <class BV>
-  [[nodiscard]] BV
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BV
   computeBoundingVolume() const noexcept;
 
 protected:
@@ -165,7 +168,8 @@ protected:
    * @param[in] a_point Query point.
    * @return Signed distance from a_point to lane a_lane's triangle, sign from its nearest feature.
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -236,6 +240,9 @@ protected:
    */
   uint32_t m_validCount = 0;
 };
+
+static_assert(std::is_trivially_copyable_v<TriangleSoAT<float, 4>>, "TriangleSoAT<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TriangleSoAT<double, 4>>, "TriangleSoAT<double> must be trivially copyable");
 
 } // namespace EBGeometry
 

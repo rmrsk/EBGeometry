@@ -25,6 +25,7 @@
 namespace EBGeometry {
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST
 void
 TriangleAoSoA<T, Meta, W>::pack(const Triangle<T, Meta>* a_triangles, uint32_t a_count) noexcept
 {
@@ -54,6 +55,7 @@ TriangleAoSoA<T, Meta, W>::pack(const Triangle<T, Meta>* a_triangles, uint32_t a
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
@@ -61,6 +63,7 @@ TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point) const noexcep
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 T
 TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point, Meta& a_closestMeta) const noexcept
 {
@@ -89,6 +92,7 @@ TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point, Meta& a_close
 }
 
 template <class T, class Meta, size_t W>
+EBGEOMETRY_HOST_DEVICE
 const Meta&
 TriangleAoSoA<T, Meta, W>::getMetaData(size_t a_lane) const noexcept
 {
@@ -100,6 +104,7 @@ TriangleAoSoA<T, Meta, W>::getMetaData(size_t a_lane) const noexcept
 
 template <class T, class Meta, size_t W>
 template <class BV>
+EBGEOMETRY_HOST_DEVICE
 BV
 TriangleAoSoA<T, Meta, W>::computeBoundingVolume() const noexcept
 {
