@@ -290,6 +290,7 @@ TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Poo
   vec.reserveFrom(hostPool, 8);
 
   double hostSum = 0.0;
+
   for (uint32_t i = 0; i < 8; i++) {
     const PoolSmokeElement element{double(i), double(2 * i)};
 

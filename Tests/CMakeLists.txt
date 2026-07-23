@@ -109,6 +109,11 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
       set_source_files_properties(${_ebgeometry_gpu_test}.cpp PROPERTIES LANGUAGE HIP)
     endif()
   endforeach()
+
+  # Aggregate target so the GPU CI lanes can build every device-bearing test with one stable name,
+  # keeping the device-test list here as the single source of truth rather than duplicating it in CI.
+  add_custom_target(EBGeometry_GPUDeviceTests)
+  add_dependencies(EBGeometry_GPUDeviceTests ${EBGEOMETRY_GPU_TESTS})
 endif()
 
 # Compile-only target that explicitly instantiates every public class template so

@@ -448,8 +448,9 @@ jobs:
         run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
-        # with nvcc, exercising the device-callable surface. No GPU is needed to build them.
-        run: cmake --build build/cuda --target TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA --parallel 2
+        # with nvcc, exercising the device-callable surface. The device-test list lives in
+        # Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them. No GPU is needed to build.
+        run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests --parallel 2
 
   GPU-HIP:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -468,8 +469,9 @@ jobs:
         run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP)
-        # with hipcc/clang, exercising the device-callable surface. No GPU is needed to build them.
-        run: cmake --build build/hip --target TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA --parallel 2
+        # with hipcc/clang, exercising the device-callable surface. The device-test list lives in
+        # Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them. No GPU is needed to build.
+        run: cmake --build build/hip --target EBGeometry_GPUDeviceTests --parallel 2
 
   CI-passed:
     needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
