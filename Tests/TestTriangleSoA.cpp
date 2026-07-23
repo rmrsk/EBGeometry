@@ -7,6 +7,7 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -254,3 +255,54 @@ TEMPLATE_TEST_CASE("TriangleAoSoA::getMetaData returns each lane's metadata and 
   REQUIRE(group.getMetaData(2) == short(11)); // padded -> last real triangle's metadata
   REQUIRE(group.getMetaData(3) == short(11)); // padded -> last real triangle's metadata
 }
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: a host-packed TriangleAoSoA is queried in a kernel and matches the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+EBGEOMETRY_GLOBAL
+void
+triangleAoSoADeviceKernel(const AoSoA<double>* a_group, Vec3T<double> a_point, double* a_out)
+{
+  short closestMeta = 0;
+
+  double d = a_group->signedDistance(a_point);
+  d += a_group->signedDistance(a_point, closestMeta);
+  d += static_cast<double>(closestMeta) + static_cast<double>(a_group->getMetaData(0));
+
+  a_out[0] = d;
+}
+
+TEST_CASE("TriangleAoSoA: device query surface matches the host", "[TriangleAoSoA][gpu]")
+{
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const auto tris = fourTrianglesWithMeta<double>();
+
+  AoSoA<double> group;
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
+
+  const Vec3T<double> p(0.2, 0.2, 0.5);
+
+  short  hostMeta = 0;
+  double host     = group.signedDistance(p);
+  host += group.signedDistance(p, hostMeta);
+  host += static_cast<double>(hostMeta) + static_cast<double>(group.getMetaData(0));
+
+  AoSoA<double>* deviceGroup = mirrorToDevice(group);
+  double*        deviceOut   = deviceScalar();
+
+  triangleAoSoADeviceKernel<<<1, 1>>>(deviceGroup, p, deviceOut);
+  (void)GPU::deviceSynchronize();
+
+  REQUIRE_THAT(readScalar(deviceOut), withinAbsT(host, looseMargin<double>()));
+
+  deviceFree(deviceGroup);
+  deviceFree(deviceOut);
+}
+#endif
