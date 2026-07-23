@@ -60,6 +60,17 @@ bvSmokeKernel(double* a_out)
 
   d += (intersects(box, other) ? 1.0 : 0.0) + getOverlappingVolume(box, other);
 
+  // Construct both bounding volumes from a device-local point array.
+  const Vec3T<double> pts[4] = {Vec3T<double>(0.0, 0.0, 0.0),
+                                Vec3T<double>(1.0, 0.0, 0.0),
+                                Vec3T<double>(0.0, 1.0, 0.0),
+                                Vec3T<double>(0.0, 0.0, 1.0)};
+
+  const AABBT<double>   boxFromPoints(pts, 4);
+  const SphereT<double> sphereFromPoints(pts, 4);
+
+  d += boxFromPoints.getVolume() + sphereFromPoints.getRadius();
+
   a_out[0] = d;
 }
 

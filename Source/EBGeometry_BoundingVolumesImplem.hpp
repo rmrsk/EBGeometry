@@ -75,6 +75,17 @@ SphereT<T>::SphereT(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm&
 
 template <class T>
 template <class P>
+EBGEOMETRY_HOST_DEVICE
+SphereT<T>::SphereT(const Vec3T<P>* a_points, size_t a_numPoints) noexcept
+{
+  EBGEOMETRY_EXPECT(a_points != nullptr);
+  EBGEOMETRY_EXPECT(a_numPoints > 0);
+
+  this->buildRitter(a_points, a_numPoints);
+}
+
+template <class T>
+template <class P>
 EBGEOMETRY_HOST
 inline void
 SphereT<T>::define(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
@@ -243,6 +254,18 @@ SphereT<T>::buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept
 {
   EBGEOMETRY_EXPECT(!a_points.empty());
 
+  this->buildRitter(a_points.data(), a_points.size());
+}
+
+template <class T>
+template <class P>
+EBGEOMETRY_HOST_DEVICE
+inline void
+SphereT<T>::buildRitter(const Vec3T<P>* a_points, size_t a_numPoints) noexcept
+{
+  EBGEOMETRY_EXPECT(a_points != nullptr);
+  EBGEOMETRY_EXPECT(a_numPoints > 0);
+
   m_radius = T(0);
   m_center = Vec3::zeros();
 
@@ -250,10 +273,10 @@ SphereT<T>::buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept
   constexpr size_t DIM  = 3;
 
   // For each axis find the points with the minimum and maximum coordinate.
-  std::vector<Vec3> minPt(DIM, a_points[0]);
-  std::vector<Vec3> maxPt(DIM, a_points[0]);
+  Vec3 minPt[DIM] = {a_points[0], a_points[0], a_points[0]};
+  Vec3 maxPt[DIM] = {a_points[0], a_points[0], a_points[0]};
 
-  for (size_t i = 1; i < a_points.size(); i++) {
+  for (size_t i = 1; i < a_numPoints; i++) {
     for (size_t dir = 0; dir < DIM; dir++) {
       if (a_points[i][dir] < minPt[dir][dir]) {
         minPt[dir] = a_points[i];
@@ -282,7 +305,7 @@ SphereT<T>::buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept
   m_radius = half * (p2 - p1).length();
 
   // Expand the sphere to include any point that lies outside.
-  for (size_t i = 0; i < a_points.size(); i++) {
+  for (size_t i = 0; i < a_numPoints; i++) {
     const T excess = (a_points[i] - m_center).length() - m_radius;
 
     if (excess > T(0)) {
@@ -342,18 +365,41 @@ AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points) noexcept
 
 template <class T>
 template <class P>
+EBGEOMETRY_HOST_DEVICE
+AABBT<T>::AABBT(const Vec3T<P>* a_points, size_t a_numPoints) noexcept
+{
+  EBGEOMETRY_EXPECT(a_points != nullptr);
+  EBGEOMETRY_EXPECT(a_numPoints > 0);
+
+  this->define(a_points, a_numPoints);
+}
+
+template <class T>
+template <class P>
 EBGEOMETRY_HOST
 inline void
 AABBT<T>::define(const std::vector<Vec3T<P>>& a_points) noexcept
 {
   EBGEOMETRY_EXPECT(!a_points.empty());
 
-  m_loCorner = a_points.front();
-  m_hiCorner = a_points.front();
+  this->define(a_points.data(), a_points.size());
+}
 
-  for (const auto& p : a_points) {
-    m_loCorner = min(m_loCorner, p);
-    m_hiCorner = max(m_hiCorner, p);
+template <class T>
+template <class P>
+EBGEOMETRY_HOST_DEVICE
+inline void
+AABBT<T>::define(const Vec3T<P>* a_points, size_t a_numPoints) noexcept
+{
+  EBGEOMETRY_EXPECT(a_points != nullptr);
+  EBGEOMETRY_EXPECT(a_numPoints > 0);
+
+  m_loCorner = a_points[0];
+  m_hiCorner = a_points[0];
+
+  for (size_t i = 0; i < a_numPoints; i++) {
+    m_loCorner = min(m_loCorner, a_points[i]);
+    m_hiCorner = max(m_hiCorner, a_points[i]);
   }
 }
 
