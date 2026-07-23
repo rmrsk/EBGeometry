@@ -261,48 +261,50 @@ TEMPLATE_TEST_CASE("TriangleAoSoA::getMetaData returns each lane's metadata and 
 // Device: a host-packed TriangleAoSoA is queried in a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
+template <class T>
 EBGEOMETRY_GLOBAL
 void
-triangleAoSoADeviceKernel(const AoSoA<double>* a_group, Vec3T<double> a_point, double* a_out)
+triangleAoSoADeviceKernel(const AoSoA<T>* a_group, Vec3T<T> a_point, T* a_out)
 {
   short closestMeta = 0;
 
-  double d = a_group->signedDistance(a_point);
+  T d = a_group->signedDistance(a_point);
   d += a_group->signedDistance(a_point, closestMeta);
-  d += static_cast<double>(closestMeta) + static_cast<double>(a_group->getMetaData(0));
+  d += static_cast<T>(closestMeta) + static_cast<T>(a_group->getMetaData(0));
 
   a_out[0] = d;
 }
 
-TEST_CASE("TriangleAoSoA: device query surface matches the host", "[TriangleAoSoA][gpu]")
+TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
+                   "[TriangleAoSoA][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T = TestType;
+
   using namespace EBGeometryTestGPU;
 
   if (!deviceAvailable()) {
     SKIP("no GPU device available");
   }
 
-  const auto tris = fourTrianglesWithMeta<double>();
+  const auto tris = fourTrianglesWithMeta<T>();
 
-  AoSoA<double> group;
+  AoSoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
-  const Vec3T<double> p(0.2, 0.2, 0.5);
+  const Vec3T<T> p(0.2, 0.2, 0.5);
 
-  short  hostMeta = 0;
-  double host     = group.signedDistance(p);
+  short hostMeta = 0;
+  T     host     = group.signedDistance(p);
   host += group.signedDistance(p, hostMeta);
-  host += static_cast<double>(hostMeta) + static_cast<double>(group.getMetaData(0));
+  host += static_cast<T>(hostMeta) + static_cast<T>(group.getMetaData(0));
 
-  AoSoA<double>* deviceGroup = mirrorToDevice(group);
-  double*        deviceOut   = deviceScalar();
+  const DeviceBuffer<AoSoA<T>> deviceGroup = mirrorToDevice(group);
+  DeviceBuffer<T>              deviceOut;
 
-  triangleAoSoADeviceKernel<<<1, 1>>>(deviceGroup, p, deviceOut);
+  triangleAoSoADeviceKernel<T><<<1, 1>>>(deviceGroup.get(), p, deviceOut.get());
   (void)GPU::deviceSynchronize();
 
-  REQUIRE_THAT(readScalar(deviceOut), withinAbsT(host, looseMargin<double>()));
-
-  deviceFree(deviceGroup);
-  deviceFree(deviceOut);
+  REQUIRE_THAT(readScalar(deviceOut.get()), Catch::Matchers::WithinRel(host, gpuTol<T>()));
 }
 #endif
