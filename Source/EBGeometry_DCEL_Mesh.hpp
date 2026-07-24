@@ -22,6 +22,9 @@
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
+#include "EBGeometry_DCEL_Edge.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
 
 namespace EBGeometry {
 
@@ -32,11 +35,14 @@ namespace DCEL {
  * functions)
  * @details This encapsulates a full DCEL mesh, and also includes DIRECT signed
  * distance functions. The mesh consists of a set of vertices, half-edges, and
- * polygon faces who each have references to other vertices, half-edges, and
- * polygon faces. The signed distance functions DIRECT, which means that they go
- * through ALL of the polygon faces and compute the signed distance to them. This
- * is extremely inefficient, which is why this class is almost always embedded
- * into a bounding volume hierarchy.
+ * polygon faces, stored by value in this class's own arrays; every
+ * cross-reference between them (vertex-to-outgoing-edge, edge-to-vertex/pair
+ * edge/next edge/face, face-to-half-edge) is an index into these arrays rather
+ * than a pointer -- see the class-level notes on VertexT/EdgeT/FaceT. The
+ * signed distance functions DIRECT, which means that they go through ALL of the
+ * polygon faces and compute the signed distance to them. This is extremely
+ * inefficient, which is why this class is almost always embedded into a
+ * bounding volume hierarchy.
  * @note This class is not for the light of heart -- it will almost always be
  * instantiated through a file parser which reads vertices and edges from file
  * and builds the mesh from that. Do not try to build a MeshT object yourself,
@@ -88,21 +94,6 @@ public:
   using Mesh = MeshT<T, Meta>;
 
   /**
-   * @brief Alias for vertex pointer type
-   */
-  using VertexPtr = std::shared_ptr<Vertex>;
-
-  /**
-   * @brief Alias for edge pointer type
-   */
-  using EdgePtr = std::shared_ptr<Edge>;
-
-  /**
-   * @brief Alias for face pointer type
-   */
-  using FacePtr = std::shared_ptr<Face>;
-
-  /**
    * @brief Default constructor.
    * @details Leaves the mesh empty (no vertices, edges, or faces) with the default search
    * algorithm; use define() or the mutable getVertices()/getEdges()/getFaces() to populate it.
@@ -111,11 +102,9 @@ public:
 
   /**
    * @brief Disallowed copy construction.
-   * @details Copying is deliberately disallowed: a shallow copy of m_vertices/m_edges/m_faces would
-   * share the same underlying vertex/edge/face objects as the original (they reference each other
-   * internally), so it would not behave like an independent mesh -- mutating the "copy" would also
-   * mutate the original. Use a file parser to build an independent mesh instead. Moving is allowed
-   * (see the move constructor), since that transfers ownership rather than aliasing it.
+   * @details Copying is deliberately disallowed to keep a single supported way to duplicate a mesh
+   * (deepCopy()) rather than two subtly-different ones. Moving is allowed (see the move
+   * constructor), since that transfers ownership rather than duplicating it.
    * @param[in] a_otherMesh Other mesh.
    */
   MeshT(const Mesh& a_otherMesh) = delete;
@@ -130,8 +119,8 @@ public:
    * @brief Full constructor. This provides the faces, edges, and vertices to the
    * mesh.
    * @details Copies the three vectors directly into m_faces/m_edges/m_vertices. This only
-   * associates pointer structures through the mesh; internal parameters like face area and normal
-   * are computed by reconcile().
+   * associates the index-based topology already recorded on the faces/edges/vertices; internal
+   * parameters like face area and normal are computed by reconcile().
    * @param[in] a_faces    Polygon faces
    * @param[in] a_edges    Half-edges
    * @param[in] a_vertices Vertices
@@ -139,7 +128,7 @@ public:
    * description. This is usually done through a file parser which reads a mesh
    * file format and creates the DCEL mesh structure
    */
-  MeshT(std::vector<FacePtr>& a_faces, std::vector<EdgePtr>& a_edges, std::vector<VertexPtr>& a_vertices) noexcept;
+  MeshT(std::vector<Face>& a_faces, std::vector<Edge>& a_edges, std::vector<Vertex>& a_vertices) noexcept;
 
   /**
    * @brief Destructor (does nothing)
@@ -166,13 +155,13 @@ public:
   /**
    * @brief Create an independent, fully-decoupled copy of this mesh.
    * @details Since copy construction/assignment are disallowed (see their documentation), this is
-   * the supported way to duplicate a mesh. Unlike a shallow copy, this creates brand new
-   * VertexT/EdgeT/FaceT objects and relinks all of their internal pointers (outgoing edge, pair
-   * edge, next edge, half edge, adjacent faces) so that the copy shares no vertex, edge, or face
-   * with the original -- mutating one mesh does not affect the other. Every field is preserved
-   * exactly (position, normal vector, centroid, area, meta-data, search algorithm) rather than
-   * recomputed, so a mesh that has had flipNormal()/flip() called on it and not yet been
-   * re-reconciled will be copied faithfully rather than silently "un-flipped".
+   * the supported way to duplicate a mesh. Because every VertexT/EdgeT/FaceT cross-reference is an
+   * index into this mesh's own arrays rather than a pointer, a plain copy of the three arrays is
+   * already a fully independent, correctly-linked mesh -- every index remains meaningful against
+   * the copied arrays with no relinking pass required. Every field is preserved exactly (position,
+   * normal vector, centroid, area, meta-data, search algorithm) rather than recomputed, so a mesh
+   * that has had flipNormal()/flip() called on it and not yet been re-reconciled is copied
+   * faithfully rather than silently "un-flipped".
    * @return A new mesh, independent of this one.
    */
   [[nodiscard]] inline std::shared_ptr<Mesh>
@@ -181,7 +170,7 @@ public:
   /**
    * @brief Perform a sanity check.
    * @details This will provide error messages if vertices are badly linked,
-   * faces are nullptr, and so on. These messages are logged by calling
+   * faces have no half-edge, and so on. These messages are logged by calling
    * incrementWarning() which identifies types of errors that can occur, and how
    * many of those errors have occurred.
    * @param[in] a_id Identifier when printing error messages (can be empty string).
@@ -230,14 +219,14 @@ public:
    * @brief Get modifiable vertices in this mesh
    * @return Reference to the vector of vertices.
    */
-  [[nodiscard]] inline std::vector<VertexPtr>&
+  [[nodiscard]] inline std::vector<Vertex>&
   getVertices() noexcept;
 
   /**
    * @brief Get immutable vertices in this mesh
    * @return Const reference to the vector of vertices.
    */
-  [[nodiscard]] inline const std::vector<VertexPtr>&
+  [[nodiscard]] inline const std::vector<Vertex>&
   getVertices() const noexcept;
 
   /**
@@ -251,28 +240,28 @@ public:
    * @brief Get modifiable half-edges in this mesh
    * @return Reference to the vector of half-edges.
    */
-  [[nodiscard]] inline std::vector<EdgePtr>&
+  [[nodiscard]] inline std::vector<Edge>&
   getEdges() noexcept;
 
   /**
    * @brief Get immutable half-edges in this mesh
    * @return Const reference to the vector of half-edges.
    */
-  [[nodiscard]] inline const std::vector<EdgePtr>&
+  [[nodiscard]] inline const std::vector<Edge>&
   getEdges() const noexcept;
 
   /**
    * @brief Get modifiable faces in this mesh
    * @return Reference to the vector of polygon faces.
    */
-  [[nodiscard]] inline std::vector<FacePtr>&
+  [[nodiscard]] inline std::vector<Face>&
   getFaces() noexcept;
 
   /**
    * @brief Get immutable faces in this mesh
    * @return Const reference to the vector of polygon faces.
    */
-  [[nodiscard]] inline const std::vector<FacePtr>&
+  [[nodiscard]] inline const std::vector<Face>&
   getFaces() const noexcept;
 
   /**
@@ -324,17 +313,17 @@ protected:
   /**
    * @brief Mesh vertices
    */
-  std::vector<VertexPtr> m_vertices;
+  std::vector<Vertex> m_vertices;
 
   /**
    * @brief Mesh half-edges
    */
-  std::vector<EdgePtr> m_edges;
+  std::vector<Edge> m_edges;
 
   /**
    * @brief Mesh faces
    */
-  std::vector<FacePtr> m_faces;
+  std::vector<Face> m_faces;
 
   /**
    * @brief Function which computes internal things for the polygon faces.

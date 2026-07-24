@@ -13,7 +13,6 @@
 
 // Std includes
 #include <cstddef>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -74,15 +73,16 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
 /**
  * @brief Reconcile pair edges: link each half-edge with its reverse.
  * @details For every half-edge (u→v) the function finds the corresponding reverse
- * half-edge (v→u) by iterating over all faces incident to u and sets the pair-edge
- * pointer on both.
+ * half-edge (v→u) by circulating the half-edges around u (via pair/next edges of
+ * whichever edges already have their pair set, falling back to a scan of u's
+ * outgoing edges discovered so far) and sets the pair-edge index on both.
  * @tparam T    Floating-point precision type.
  * @tparam Meta Metadata type attached to DCEL edges.
- * @param[in,out] a_edges Collection of all half-edges to reconcile.
+ * @param[in,out] a_mesh Mesh whose half-edges are reconciled in place.
  */
 template <typename T, typename Meta>
 inline static void
-reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept;
+reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept;
 
 } // namespace Soup
 
