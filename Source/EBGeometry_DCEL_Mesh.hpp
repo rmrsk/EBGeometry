@@ -22,7 +22,6 @@
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
-#include "EBGeometry_Polygon2D.hpp"
 
 namespace EBGeometry {
 
@@ -206,7 +205,7 @@ public:
    * @param[in] a_algorithm Algorithm to use
    */
   inline void
-  setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept;
+  setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept;
 
   /**
    * @brief Reconcile function which computes the internal parameters in

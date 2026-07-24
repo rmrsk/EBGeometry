@@ -237,7 +237,7 @@ Test coverage
        custom sort order; :cpp:func:`ImplicitFunction::approximateBoundingVolumeOctree`
        correctness (tightening bound with depth, degenerate/non-intersecting input fallback).
    * - ``TestPolygon2D``
-     - :cpp:class:`Polygon2D`: winding-number/crossing-number/subtended-angle containment
+     - :cpp:class:`DCEL::FaceT` point-in-face containment: winding-number/crossing-number/subtended-angle
        algorithms, agreement between them on convex and concave (notched) polygons, and on a
        non-axis-aligned embedding plane.
    * - ``TestTriangleSoA``

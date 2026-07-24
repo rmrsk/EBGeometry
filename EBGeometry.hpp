@@ -34,7 +34,6 @@
 #include "Source/EBGeometry_PointCloudBVH.hpp"
 #include "Source/EBGeometry_PointCloudHashGrid.hpp"
 #include "Source/EBGeometry_PointSoA.hpp"
-#include "Source/EBGeometry_Polygon2D.hpp"
 #include "Source/EBGeometry_Pool.hpp"
 #include "Source/EBGeometry_Random.hpp"
 #include "Source/EBGeometry_SFC.hpp"

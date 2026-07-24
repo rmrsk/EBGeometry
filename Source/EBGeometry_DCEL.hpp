@@ -76,6 +76,22 @@ enum class VertexNormalWeight
   Angle, ///< Angle-weighted pseudonormal (Baerentzen and Aanes, DOI: 10.1109/TVCG.2005.49).
 };
 
+/**
+ * @brief Supported algorithms for testing whether a point projects to the inside of a polygon face.
+ * @details A 3D point projected onto a face's plane lies inside or outside the polygon; the test
+ * reduces to 2D by dropping the coordinate of the largest normal component (see FaceT). These are
+ * the well-known 2D inside/outside tests.
+ */
+enum class InsideOutsideAlgorithm
+{
+  SubtendedAngle, ///< Sums the subtended angle of the point with each polygon edge; the point is
+                  ///< inside if the sum is +-2*pi (360 degrees) and outside if it is 0.
+  CrossingNumber, ///< Casts a ray from the point along +x and counts how many times it crosses a
+                  ///< polygon edge; the point is inside if the crossing count is odd (even-odd rule).
+  WindingNumber   ///< Computes the winding number of the polygon boundary around the point; the
+                  ///< point is inside if the winding number is non-zero.
+};
+
 } // namespace DCEL
 
 } // namespace EBGeometry

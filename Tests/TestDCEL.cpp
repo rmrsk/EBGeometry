@@ -846,14 +846,15 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy produces an independent mesh with the same g
     REQUIRE_THAT(copy->getFaces()[i]->getArea(), withinAbsT(mesh->getFaces()[i]->getArea(), exactMargin<T>()));
   }
 
+  // The copy must be usable for signed-distance queries (validates that the projection axes were
+  // correctly rebuilt for every face). Done before mutating the copy, since the point-in-face test
+  // projects the face's vertices on the fly and so reflects the live geometry.
+  const Vec3T<T> p(0.1, 0.1, 0.1);
+  REQUIRE_THAT(copy->signedDistance(p), withinAbsT(mesh->signedDistance(p), formulaMargin<T>()));
+
   // Mutating the copy must not affect the original.
   copy->getVertices()[0]->setPosition(Vec3T<T>(999, 999, 999));
   REQUIRE(mesh->getVertices()[0]->getPosition() != Vec3T<T>(999, 999, 999));
-
-  // The copy must still be usable for signed-distance queries (validates that the 2D embedding
-  // was correctly rebuilt for every face).
-  const Vec3T<T> p(0.1, 0.1, 0.1);
-  REQUIRE_THAT(copy->signedDistance(p), withinAbsT(mesh->signedDistance(p), formulaMargin<T>()));
 }
 
 TEMPLATE_TEST_CASE("MeshT: deepCopy preserves a prior flip() instead of silently re-deriving normals",

@@ -156,7 +156,7 @@ MeshT<T, Meta>::deepCopy() const
     newF->getCentroid() = oldF->getCentroid();
     newF->getArea()     = oldF->getArea();
     newF->setMetaData(oldF->getMetaData());
-    newF->computePolygon2D();
+    newF->computeProjectionDirections();
   }
 
   auto newMesh = std::make_shared<Mesh>();
@@ -290,7 +290,7 @@ MeshT<T, Meta>::setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept
 
 template <class T, class Meta>
 inline void
-MeshT<T, Meta>::setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept
+MeshT<T, Meta>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 {
   for (auto& f : m_faces) {
     EBGEOMETRY_EXPECT(f != nullptr);

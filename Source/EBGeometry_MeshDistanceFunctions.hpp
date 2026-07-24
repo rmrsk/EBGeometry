@@ -135,12 +135,13 @@ protected:
  * @details The mesh faces are packed into a flat-array PackedBVH. SIMD traversal
  * is used when T and K match an available ISA path. Unlike TriMeshSDF, MeshSDF does not expose a
  * PackedBVH StoragePolicy choice: its PackedBVH always uses BVH::SharedPtrStorage<Face>, sharing
- * each packed face with the DCEL mesh's own face list rather than copying it. This is not just a
- * default -- DCEL::FaceT's copy constructor deliberately does not copy its cached 2D polygon
- * embedding (m_poly2, used by signedDistance()'s point-in-face test), so a naive by-value copy
- * (as BVH::ValueStorage would produce) is left with a null embedding and crashes on first query;
- * see FaceT's copy-constructor documentation. See the user documentation for the full rationale,
- * including why TriMeshSDF's SoA groups do not have this restriction.
+ * each packed face with the DCEL mesh's own face list rather than copying it. A DCEL::FaceT is not a
+ * self-contained value -- its point-in-face test walks the face's half-edge loop into the mesh's
+ * edges and vertices -- so MeshSDF retains the source mesh (m_mesh) to keep that topology alive, and
+ * shares the faces with it rather than storing independent copies that would depend on the same mesh
+ * anyway. TriMeshSDF's SoA groups, by contrast, are self-contained value types (they pack the
+ * triangle geometry by value), which is why it can store them inline and offers a StoragePolicy. See
+ * the user documentation for the full rationale.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).
