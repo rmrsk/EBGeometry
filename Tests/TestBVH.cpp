@@ -955,12 +955,12 @@ TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSo
   using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
   // MeshSDF always shares each packed face with the DCEL mesh's own face list (no copy, and no
-  // StoragePolicy template parameter to override it): DCEL::FaceT's copy constructor deliberately
-  // does not copy its cached 2D polygon embedding (m_poly2, needed by signedDistance()'s
-  // point-in-face test), so a naive by-value copy is unsafe -- see FaceT's copy-constructor
-  // documentation. TriMeshSDF's SoA groups have no such restriction (freshly built by packing,
-  // shared with nothing else), so it defaults to storing them inline with no indirection. See
-  // ImplemBVH.rst's "Storage policy" section for the full rationale.
+  // StoragePolicy template parameter to override it): a DCEL::FaceT is not a self-contained value --
+  // its point-in-face test walks the face's half-edge loop into the mesh's edges/vertices -- so
+  // MeshSDF retains the mesh and shares its faces rather than storing copies that would depend on the
+  // same mesh anyway. TriMeshSDF's SoA groups are self-contained value types (freshly built by
+  // packing, shared with nothing else), so it defaults to storing them inline with no indirection.
+  // See ImplemBVH.rst's "Storage policy" section for the full rationale.
   static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root::StorageType, std::shared_ptr<const Face>>);
   static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root::StorageType, TriAoSoA>);
 }

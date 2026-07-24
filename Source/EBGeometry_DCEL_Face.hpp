@@ -14,6 +14,7 @@
 
 // Std includes
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -22,7 +23,6 @@
 #include "EBGeometry_DCEL.hpp"
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
-#include "EBGeometry_Polygon2D.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -110,26 +110,19 @@ public:
 
   /**
    * @brief Copy constructor.
-   * @details Copies the normal vector, half-edge pointer, centroid, and area from the other face.
-   * Meta-data (m_metaData), the 2D embedding (m_poly2), and the inside/outside algorithm
-   * (m_poly2Algorithm) are deliberately NOT copied -- they default-construct instead; use
-   * setMetaData() and reconcile() afterwards if they need to be (re)populated. Rationale: m_halfEdge
-   * is a back-reference into a specific mesh's topology (same as VertexT/EdgeT's copy constructors),
-   * so copying it wholesale is not topologically meaningful in general, but is occasionally useful.
-   * m_normal, m_centroid, and m_area are plain geometric/cached values with no such concern, so they
-   * are copied like any other value. operator=(const Face&) has identical semantics.
+   * @details Copies every member -- the normal vector, half-edge pointer, centroid, area,
+   * 2D-projection axes (m_xDir, m_yDir), inside/outside algorithm, and meta-data (m_metaData) -- so
+   * the copy is immediately usable for a point-in-face test and carries the same meta-data as the
+   * source face. operator=(const Face&) has identical semantics.
    * @param[in] a_otherFace Other face to copy from.
    */
   FaceT(const Face& a_otherFace);
 
   /**
    * @brief Move constructor.
-   * @details Unlike the copy constructor, this transfers the entire state (including m_metaData,
-   * m_poly2, and m_poly2Algorithm) from a_otherFace, since moving relocates a single object's
-   * identity. Defaulted (memberwise move) rather than hand-written: explicitly defaulting is
-   * required here since the presence of a user-declared copy constructor would otherwise suppress
-   * the implicitly-generated move constructor. Not marked noexcept since Meta is an unconstrained
-   * template parameter whose move constructor is not guaranteed to be noexcept.
+   * @details Transfers every member (memberwise move) from a_otherFace. Explicitly defaulted because
+   * the user-declared copy constructor would otherwise suppress it. Not marked noexcept since Meta is
+   * an unconstrained template parameter whose move constructor is not guaranteed to be noexcept.
    * @param[in, out] a_otherFace Other face.
    */
   FaceT(Face&& a_otherFace) = default;
@@ -185,7 +178,7 @@ public:
    * @note The face must be complete with half edges and there can be no dangling edges.
    */
   inline void
-  computePolygon2D();
+  computeProjectionDirections();
 
   /**
    * @brief Flip the normal vector
@@ -211,11 +204,9 @@ public:
    * @brief Set the inside/outside algorithm when determining if a point projects
    * to the inside or outside of the polygon.
    * @param[in] a_algorithm Desired algorithm
-   * @note See CD_DCELAlgorithms.H for options (and CD_DCELPolyImplem.H for how
-   * the algorithms operate).
    */
   inline void
-  setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
+  setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept;
 
   /**
    * @brief Get the starting half-edge.
@@ -371,10 +362,8 @@ public:
 protected:
   /**
    * @brief This polygon's half-edge. A valid face will always have this set.
-   * @details Stored as a weak_ptr: the edge is owned by the mesh's own edge list, and a plain
-   * shared_ptr here would form a reference cycle with EdgeT::m_face (and, transitively, with
-   * EdgeT::m_nextEdge/m_pairEdge and VertexT::m_outgoingEdge) that shared_ptr's reference
-   * counting can never collect.
+   * @details Stored as a weak_ptr because the mesh's edge list owns the edge, not this face; an
+   * owning shared_ptr here would form a reference cycle that could never be collected.
    */
   std::weak_ptr<Edge> m_halfEdge;
 
@@ -402,15 +391,26 @@ protected:
   T m_area{T(0)};
 
   /**
-   * @brief 2D embedding of this polygon. This is the 2D view of the current
-   * object projected along its normal vector cardinal.
+   * @brief Cartesian axis used as the 2D x-direction of this polygon's 2D embedding (stored by
+   * reconcile()). The inside/outside test projects points to 2D by keeping (m_xDir, m_yDir) and
+   * dropping the coordinate of the largest normal component.
+   * @details Defaults to the out-of-range sentinel UINT32_MAX rather than a valid axis (0-2) so that
+   * a face used before reconcile()/computeProjectionDirections() has run trips the `m_xDir < 3`
+   * assertions in projectPoint() and isPointInsideFace() instead of silently projecting onto axis 0.
    */
-  std::shared_ptr<Polygon2D<T>> m_poly2 = nullptr;
+  uint32_t m_xDir = UINT32_MAX;
+
+  /**
+   * @brief Cartesian axis used as the 2D y-direction of this polygon's 2D embedding (stored by
+   * reconcile()).
+   * @details Defaults to the out-of-range sentinel UINT32_MAX for the same reason as m_xDir.
+   */
+  uint32_t m_yDir = UINT32_MAX;
 
   /**
    * @brief Algorithm for inside/outside tests
    */
-  typename Polygon2D<T>::InsideOutsideAlgorithm m_poly2Algorithm = Polygon2D<T>::InsideOutsideAlgorithm::CrossingNumber;
+  InsideOutsideAlgorithm m_insideOutsideAlgorithm = InsideOutsideAlgorithm::CrossingNumber;
 
   /**
    * @brief Compute the centroid position of this polygon
@@ -452,6 +452,41 @@ protected:
    */
   [[nodiscard]] inline bool
   isPointInsideFace(const Vec3& a_p) const noexcept;
+
+  /**
+   * @brief Project a 3D point to this face's 2D embedding by dropping one coordinate.
+   * @param[in] a_point 3D point.
+   * @return The 2D point (a_point[m_xDir], a_point[m_yDir]).
+   */
+  [[nodiscard]] inline Vec2T<T>
+  projectPoint(const Vec3& a_point) const noexcept;
+
+  /**
+   * @brief Compute the winding number of this polygon's boundary around a projected 2D point.
+   * @details Walks the face's half-edge loop, projecting each vertex on the fly.
+   * @param[in] a_point Projected 2D query point.
+   * @return The winding number.
+   */
+  [[nodiscard]] inline int
+  computeWindingNumber(const Vec2T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Compute the crossing number of a +x ray from a projected 2D point with this polygon.
+   * @details Walks the face's half-edge loop, projecting each vertex on the fly.
+   * @param[in] a_point Projected 2D query point.
+   * @return The crossing number.
+   */
+  [[nodiscard]] inline size_t
+  computeCrossingNumber(const Vec2T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Compute the total subtended angle of this polygon's edges around a projected 2D point.
+   * @details Walks the face's half-edge loop, projecting each vertex on the fly.
+   * @param[in] a_point Projected 2D query point.
+   * @return The subtended angle (+-2*pi for an interior point, 0 for an exterior one).
+   */
+  [[nodiscard]] inline T
+  computeSubtendedAngle(const Vec2T<T>& a_point) const noexcept;
 };
 } // namespace DCEL
 

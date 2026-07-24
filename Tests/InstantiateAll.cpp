@@ -21,10 +21,9 @@ using Meta = short;
 
 // clang-format off
 #define EBGEOMETRY_INSTANTIATE_ALL(PREC)                                     \
-  /* -- Vectors, polygons ------------------------------------------------ */ \
+  /* -- Vectors ---------------------------------------------------------- */ \
   template class Vec2T<PREC>;                                                \
   template class Vec3T<PREC>;                                                \
-  template class Polygon2D<PREC>;                                            \
                                                                                \
   /* -- Abstract bases --------------------------------------------------- */ \
   template class ImplicitFunction<PREC>;                                     \
