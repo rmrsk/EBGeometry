@@ -15,12 +15,11 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <map>
-#include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 // Our includes
@@ -36,9 +35,9 @@ namespace EBGeometry {
 namespace DCEL {
 
 template <class T, class Meta>
-inline MeshT<T, Meta>::MeshT(std::vector<FacePtr>&   a_faces,
-                             std::vector<EdgePtr>&   a_edges,
-                             std::vector<VertexPtr>& a_vertices) noexcept
+inline MeshT<T, Meta>::MeshT(std::vector<Face>&   a_faces,
+                             std::vector<Edge>&   a_edges,
+                             std::vector<Vertex>& a_vertices) noexcept
   : MeshT()
 {
   m_faces    = a_faces;
@@ -52,118 +51,15 @@ MeshT<T, Meta>::deepCopy() const
 {
   EBGEOMETRY_EXPECT(m_vertices.size() > 0 || m_edges.size() > 0 || m_faces.size() > 0);
 
-  // Pass 0: allocate a fresh, default-constructed object for every existing vertex/edge/face, and
-  // record the old->new correspondence. This must happen before any relinking below, since a
-  // vertex/edge/face's pointers can reference any other vertex/edge/face in the mesh.
-  std::vector<VertexPtr> newVertices(m_vertices.size());
-  std::vector<EdgePtr>   newEdges(m_edges.size());
-  std::vector<FacePtr>   newFaces(m_faces.size());
-
-  std::unordered_map<VertexPtr, VertexPtr> vertexMap;
-  std::unordered_map<EdgePtr, EdgePtr>     edgeMap;
-  std::unordered_map<FacePtr, FacePtr>     faceMap;
-
-  for (size_t i = 0; i < m_vertices.size(); i++) {
-    EBGEOMETRY_EXPECT(m_vertices[i] != nullptr);
-
-    newVertices[i]           = std::make_shared<Vertex>();
-    vertexMap[m_vertices[i]] = newVertices[i];
-  }
-  for (size_t i = 0; i < m_edges.size(); i++) {
-    EBGEOMETRY_EXPECT(m_edges[i] != nullptr);
-
-    newEdges[i]         = std::make_shared<Edge>();
-    edgeMap[m_edges[i]] = newEdges[i];
-  }
-  for (size_t i = 0; i < m_faces.size(); i++) {
-    EBGEOMETRY_EXPECT(m_faces[i] != nullptr);
-
-    newFaces[i]         = std::make_shared<Face>();
-    faceMap[m_faces[i]] = newFaces[i];
-  }
-
-  // Remap a possibly-null old pointer to its corresponding new one. A non-null pointer that is not
-  // in the map means it refers to a vertex/edge/face outside of this mesh's own vectors, which is a
-  // corrupted/inconsistent mesh (the same condition sanityCheck() is meant to catch beforehand).
-  auto remapVertex = [&](const VertexPtr& a_v) -> VertexPtr {
-    if (a_v == nullptr) {
-      return nullptr;
-    }
-    const auto it = vertexMap.find(a_v);
-    EBGEOMETRY_EXPECT(it != vertexMap.end());
-
-    return it->second;
-  };
-  auto remapEdge = [&](const EdgePtr& a_e) -> EdgePtr {
-    if (a_e == nullptr) {
-      return nullptr;
-    }
-    const auto it = edgeMap.find(a_e);
-    EBGEOMETRY_EXPECT(it != edgeMap.end());
-
-    return it->second;
-  };
-  auto remapFace = [&](const FacePtr& a_f) -> FacePtr {
-    if (a_f == nullptr) {
-      return nullptr;
-    }
-    const auto it = faceMap.find(a_f);
-    EBGEOMETRY_EXPECT(it != faceMap.end());
-
-    return it->second;
-  };
-
-  // Pass 1: vertices. Copy value data (position, normal, meta-data) exactly, and relink the
-  // outgoing edge and face list to the new objects.
-  for (size_t i = 0; i < m_vertices.size(); i++) {
-    const VertexPtr& oldV = m_vertices[i];
-    const VertexPtr& newV = newVertices[i];
-
-    newV->setPosition(oldV->getPosition());
-    newV->setNormal(oldV->getNormal());
-    newV->setMetaData(oldV->getMetaData());
-    newV->setEdge(remapEdge(oldV->getOutgoingEdge()));
-
-    for (const auto& f : oldV->getFaces()) {
-      newV->addFace(remapFace(f));
-    }
-  }
-
-  // Pass 2: edges. Copy the normal vector and meta-data exactly, and relink the vertex, pair edge,
-  // next edge, and face to the new objects.
-  for (size_t i = 0; i < m_edges.size(); i++) {
-    const EdgePtr& oldE = m_edges[i];
-    const EdgePtr& newE = newEdges[i];
-
-    newE->setVertex(remapVertex(oldE->getVertex()));
-    newE->setPairEdge(remapEdge(oldE->getPairEdge()));
-    newE->setNextEdge(remapEdge(oldE->getNextEdge()));
-    newE->setFace(remapFace(oldE->getFace()));
-    newE->getNormal() = oldE->getNormal();
-    newE->setMetaData(oldE->getMetaData());
-  }
-
-  // Pass 3: faces. Copy the normal vector, centroid, area, and meta-data exactly, relink the half
-  // edge to the new object, and rebuild the 2D embedding from the (already-relinked) topology and
-  // the (already-restored) normal vector. This deliberately does NOT call reconcile(), which would
-  // recompute the normal vector from vertex winding and silently discard a prior flipNormal().
-  for (size_t i = 0; i < m_faces.size(); i++) {
-    const FacePtr& oldF = m_faces[i];
-    const FacePtr& newF = newFaces[i];
-
-    newF->setHalfEdge(remapEdge(oldF->getHalfEdge()));
-    newF->getNormal()   = oldF->getNormal();
-    newF->getCentroid() = oldF->getCentroid();
-    newF->getArea()     = oldF->getArea();
-    newF->setMetaData(oldF->getMetaData());
-    newF->computeProjectionDirections();
-  }
-
+  // Every VertexT/EdgeT/FaceT cross-reference is an index into these three arrays, not a pointer,
+  // so a plain copy of the arrays is already an independent, correctly-linked mesh -- no relinking
+  // pass is needed (contrast the old shared_ptr/weak_ptr scheme, which required allocating fresh
+  // objects and remapping every pointer).
   auto newMesh = std::make_shared<Mesh>();
 
-  newMesh->getVertices() = std::move(newVertices);
-  newMesh->getEdges()    = std::move(newEdges);
-  newMesh->getFaces()    = std::move(newFaces);
+  newMesh->getVertices() = m_vertices;
+  newMesh->getEdges()    = m_edges;
+  newMesh->getFaces()    = m_faces;
   newMesh->setSearchAlgorithm(m_algorithm);
 
   return newMesh;
@@ -199,44 +95,33 @@ template <class T, class Meta>
 inline void
 MeshT<T, Meta>::sanityCheck(const std::string a_id) const
 {
-  const std::string f_null       = "nullptr face";
   const std::string f_noEdge     = "face with no edge";
   const std::string f_degenerate = "degenerate face";
 
-  const std::string e_null       = "nullptr edges";
   const std::string e_degenerate = "degenerate edge";
   const std::string e_noPairEdge = "no pair edge (not watertight)";
   const std::string e_noNextEdge = "no next edge (badly linked dcel)";
   const std::string e_noOrigVert = "no origin vertex found for half edge (badly linked dcel)";
   const std::string e_noFace     = "no face found for half edge (badly linked dcel)";
 
-  const std::string v_null   = "nullptr vertex";
   const std::string v_noEdge = "no referenced edge for vertex (unreferenced vertex)";
 
-  std::map<std::string, size_t> warnings = {{f_null, 0},
-                                            {f_noEdge, 0},
+  std::map<std::string, size_t> warnings = {{f_noEdge, 0},
                                             {f_degenerate, 0},
-                                            {e_null, 0},
                                             {e_degenerate, 0},
                                             {e_noPairEdge, 0},
                                             {e_noNextEdge, 0},
                                             {e_noOrigVert, 0},
                                             {e_noFace, 0},
-                                            {v_null, 0},
                                             {v_noEdge, 0}};
 
   for (const auto& f : m_faces) {
-    if (f == nullptr) {
-      this->incrementWarning(warnings, f_null);
+    if (f.getHalfEdgeIndex() == UINT32_MAX) {
+      this->incrementWarning(warnings, f_noEdge);
       continue;
     }
 
-    const auto& halfEdge = f->getHalfEdge();
-    if (halfEdge == nullptr) {
-      this->incrementWarning(warnings, f_noEdge);
-    }
-
-    auto vertices = f->gatherVertices();
+    auto vertices = f.gatherVertexIndices(*this);
     std::sort(vertices.begin(), vertices.end());
     auto       it           = std::unique(vertices.begin(), vertices.end());
     const bool noDuplicates = (it == vertices.end());
@@ -246,34 +131,27 @@ MeshT<T, Meta>::sanityCheck(const std::string a_id) const
   }
 
   for (const auto& e : m_edges) {
-    if (e == nullptr) {
-      this->incrementWarning(warnings, e_null);
-      continue;
-    }
-
-    if (e->getVertex() == e->getOtherVertex()) {
-      this->incrementWarning(warnings, e_degenerate);
-    }
-    if (e->getPairEdge() == nullptr) {
-      this->incrementWarning(warnings, e_noPairEdge);
-    }
-    if (e->getNextEdge() == nullptr) {
-      this->incrementWarning(warnings, e_noNextEdge);
-    }
-    if (e->getVertex() == nullptr) {
+    if (e.getVertexIndex() == UINT32_MAX) {
       this->incrementWarning(warnings, e_noOrigVert);
     }
-    if (e->getFace() == nullptr) {
+    else if (e.getNextEdgeIndex() != UINT32_MAX && e.getVertexIndex() == e.getNextEdge(*this).getVertexIndex()) {
+      this->incrementWarning(warnings, e_degenerate);
+    }
+
+    if (e.getPairEdgeIndex() == UINT32_MAX) {
+      this->incrementWarning(warnings, e_noPairEdge);
+    }
+    if (e.getNextEdgeIndex() == UINT32_MAX) {
+      this->incrementWarning(warnings, e_noNextEdge);
+    }
+    if (e.getFaceIndex() == UINT32_MAX) {
       this->incrementWarning(warnings, e_noFace);
     }
   }
 
   // Vertex check
   for (const auto& v : m_vertices) {
-    if (v == nullptr) {
-      this->incrementWarning(warnings, v_null);
-    }
-    else if (v->getOutgoingEdge() == nullptr) {
+    if (v.getOutgoingEdgeIndex() == UINT32_MAX) {
       this->incrementWarning(warnings, v_noEdge);
     }
   }
@@ -293,9 +171,7 @@ inline void
 MeshT<T, Meta>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 {
   for (auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    f->setInsideOutsideAlgorithm(a_algorithm);
+    f.setInsideOutsideAlgorithm(a_algorithm);
   }
 }
 
@@ -322,9 +198,7 @@ inline void
 MeshT<T, Meta>::reconcileFaces() noexcept
 {
   for (auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    f->reconcile();
+    f.reconcile(*this);
   }
 }
 
@@ -333,9 +207,7 @@ inline void
 MeshT<T, Meta>::reconcileEdges() noexcept
 {
   for (auto& e : m_edges) {
-    EBGEOMETRY_EXPECT(e != nullptr);
-
-    e->reconcile();
+    e.reconcile(*this);
   }
 }
 
@@ -343,17 +215,33 @@ template <class T, class Meta>
 inline void
 MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept
 {
-  for (auto& v : m_vertices) {
-    EBGEOMETRY_EXPECT(v != nullptr);
+  // Transient (not stored) adjacency: for each vertex, every face touching it, found by walking
+  // each face's OWN boundary loop (nextEdge only -- no pair edge needed). This is exactly as
+  // robust to non-watertight/"dirty" meshes as the per-vertex face list this class used to cache
+  // permanently, but is rebuilt here and discarded once vertex normals are computed, so it never
+  // threatens VertexT's trivial copyability.
+  std::vector<std::vector<uint32_t>> facesTouchingVertex(m_vertices.size());
+
+  for (uint32_t faceIndex = 0; faceIndex < m_faces.size(); faceIndex++) {
+    for (const uint32_t vertexIndex : m_faces[faceIndex].gatherVertexIndices(*this)) {
+      EBGEOMETRY_EXPECT(vertexIndex < facesTouchingVertex.size());
+
+      facesTouchingVertex[vertexIndex].push_back(faceIndex);
+    }
+  }
+
+  for (uint32_t vertexIndex = 0; vertexIndex < m_vertices.size(); vertexIndex++) {
+    auto&       v           = m_vertices[vertexIndex];
+    const auto& faceIndices = facesTouchingVertex[vertexIndex];
 
     switch (a_weight) {
     case DCEL::VertexNormalWeight::None: {
-      v->computeVertexNormalAverage();
+      v.computeVertexNormalAverage(faceIndices, *this);
 
       break;
     }
     case DCEL::VertexNormalWeight::Angle: {
-      v->computeVertexNormalAngleWeighted();
+      v.computeVertexNormalAngleWeighted(vertexIndex, faceIndices, *this);
 
       break;
     }
@@ -375,9 +263,7 @@ inline void
 MeshT<T, Meta>::flipFaceNormals() noexcept
 {
   for (auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    f->flipNormal();
+    f.flipNormal();
   }
 }
 
@@ -386,9 +272,7 @@ inline void
 MeshT<T, Meta>::flipEdgeNormals() noexcept
 {
   for (auto& e : m_edges) {
-    EBGEOMETRY_EXPECT(e != nullptr);
-
-    e->flipNormal();
+    e.flipNormal();
   }
 }
 
@@ -397,49 +281,47 @@ inline void
 MeshT<T, Meta>::flipVertexNormals() noexcept
 {
   for (auto& v : m_vertices) {
-    EBGEOMETRY_EXPECT(v != nullptr);
-
-    v->flipNormal();
+    v.flipNormal();
   }
 }
 
 template <class T, class Meta>
-inline std::vector<std::shared_ptr<VertexT<T, Meta>>>&
+inline std::vector<VertexT<T, Meta>>&
 MeshT<T, Meta>::getVertices() noexcept
 {
   return m_vertices;
 }
 
 template <class T, class Meta>
-inline const std::vector<std::shared_ptr<VertexT<T, Meta>>>&
+inline const std::vector<VertexT<T, Meta>>&
 MeshT<T, Meta>::getVertices() const noexcept
 {
   return m_vertices;
 }
 
 template <class T, class Meta>
-inline std::vector<std::shared_ptr<EdgeT<T, Meta>>>&
+inline std::vector<EdgeT<T, Meta>>&
 MeshT<T, Meta>::getEdges() noexcept
 {
   return m_edges;
 }
 
 template <class T, class Meta>
-inline const std::vector<std::shared_ptr<EdgeT<T, Meta>>>&
+inline const std::vector<EdgeT<T, Meta>>&
 MeshT<T, Meta>::getEdges() const noexcept
 {
   return m_edges;
 }
 
 template <class T, class Meta>
-inline std::vector<std::shared_ptr<FaceT<T, Meta>>>&
+inline std::vector<FaceT<T, Meta>>&
 MeshT<T, Meta>::getFaces() noexcept
 {
   return m_faces;
 }
 
 template <class T, class Meta>
-inline const std::vector<std::shared_ptr<FaceT<T, Meta>>>&
+inline const std::vector<FaceT<T, Meta>>&
 MeshT<T, Meta>::getFaces() const noexcept
 {
   return m_faces;
@@ -452,9 +334,7 @@ MeshT<T, Meta>::getAllVertexCoordinates() const noexcept
   std::vector<Vec3> vertexCoordinates;
   vertexCoordinates.reserve(m_vertices.size());
   for (const auto& v : m_vertices) {
-    EBGEOMETRY_EXPECT(v != nullptr);
-
-    vertexCoordinates.emplace_back(v->getPosition());
+    vertexCoordinates.emplace_back(v.getPosition());
   }
 
   return vertexCoordinates;
@@ -486,9 +366,7 @@ MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
   T minDist2 = std::numeric_limits<T>::max();
 
   for (const auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    const T curDist2 = f->unsignedDistance2(a_point);
+    const T curDist2 = f.unsignedDistance2(a_point, *this);
 
     minDist2 = std::min(minDist2, curDist2);
   }
@@ -543,15 +421,11 @@ MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
     return std::numeric_limits<T>::infinity();
   }
 
-  EBGEOMETRY_EXPECT(m_faces.front() != nullptr);
-
-  T minDist  = m_faces.front()->signedDistance(a_point);
+  T minDist  = m_faces.front().signedDistance(a_point, *this);
   T minDist2 = minDist * minDist;
 
   for (const auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    const T curDist  = f->signedDistance(a_point);
+    const T curDist  = f.signedDistance(a_point, *this);
     const T curDist2 = curDist * curDist;
 
     if (curDist2 < minDist2) {
@@ -575,23 +449,19 @@ MeshT<T, Meta>::DirectSignedDistance2(const Vec3& a_point) const noexcept
     return std::numeric_limits<T>::infinity();
   }
 
-  EBGEOMETRY_EXPECT(m_faces.front() != nullptr);
-
-  FacePtr closest  = m_faces.front();
-  T       minDist2 = closest->unsignedDistance2(a_point);
+  const Face* closest  = &m_faces.front();
+  T           minDist2 = closest->unsignedDistance2(a_point, *this);
 
   for (const auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    const T curDist2 = f->unsignedDistance2(a_point);
+    const T curDist2 = f.unsignedDistance2(a_point, *this);
 
     if (curDist2 < minDist2) {
-      closest  = f;
+      closest  = &f;
       minDist2 = curDist2;
     }
   }
 
-  return closest->signedDistance(a_point);
+  return closest->signedDistance(a_point, *this);
 }
 } // namespace DCEL
 

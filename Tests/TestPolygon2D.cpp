@@ -30,54 +30,72 @@ allAlgorithms()
 }
 
 // Test-only subclass that exposes FaceT's protected point-in-face test (used internally by
-// signedDistance()) so the containment algorithms can be exercised directly.
+// signedDistance()) so the containment algorithms can be exercised directly. MeshT stores plain
+// FaceT<T,Meta> by value (no polymorphism), so this can't be the type actually stored in a mesh's
+// face array; instead, castIsPointInsideFace() below reinterprets a real mesh-owned FaceT as this
+// subclass to call the promoted method. That's safe here because AccessibleFace adds no data
+// members and no virtual functions -- the `using` declaration only changes name visibility, so the
+// call resolves to the exact same non-virtual FaceT method on the exact same object.
 template <class T>
 struct AccessibleFace : public DCEL::FaceT<T, DCEL::DefaultMetaData>
 {
   using DCEL::FaceT<T, DCEL::DefaultMetaData>::isPointInsideFace;
 };
 
-// A single DCEL face wired up from a vertex list, holding its vertices/edges alive so the face's
-// on-the-fly (half-edge-walking) containment test can be queried. reconcile() derives the normal,
-// centroid, and 2D-projection axes from the geometry, matching how a parsed mesh's faces are set up.
+template <class T>
+[[nodiscard]] bool
+castIsPointInsideFace(DCEL::FaceT<T, DCEL::DefaultMetaData>&       a_face,
+                      const Vec3T<T>&                              a_point,
+                      const DCEL::MeshT<T, DCEL::DefaultMetaData>& a_mesh)
+{
+  return static_cast<AccessibleFace<T>&>(a_face).isPointInsideFace(a_point, a_mesh);
+}
+
+// A single DCEL face wired up from a vertex list, held inside a real DCEL::MeshT so the face's
+// on-the-fly (half-edge-walking, index-based) containment test can be queried against it.
+// reconcile() derives the normal, centroid, and 2D-projection axes from the geometry, matching how
+// a parsed mesh's faces are set up.
 template <class T>
 struct BuiltFace
 {
-  using Vertex = DCEL::VertexT<T, DCEL::DefaultMetaData>;
-  using Edge   = DCEL::EdgeT<T, DCEL::DefaultMetaData>;
-  using Face   = AccessibleFace<T>;
+  using Meta = DCEL::DefaultMetaData;
+  using Mesh = DCEL::MeshT<T, Meta>;
 
-  std::shared_ptr<Face>                m_face;
-  std::vector<std::shared_ptr<Vertex>> m_vertices;
-  std::vector<std::shared_ptr<Edge>>   m_edges;
+  Mesh m_mesh;
 
   explicit BuiltFace(const std::vector<Vec3T<T>>& a_positions)
   {
-    const size_t N = a_positions.size();
+    const uint32_t N = static_cast<uint32_t>(a_positions.size());
 
-    m_face = std::make_shared<Face>();
+    auto& vertices = m_mesh.getVertices();
+    auto& edges    = m_mesh.getEdges();
+    auto& faces    = m_mesh.getFaces();
 
-    for (size_t i = 0; i < N; i++) {
-      m_vertices.push_back(std::make_shared<Vertex>(a_positions[i]));
-      m_edges.push_back(std::make_shared<Edge>());
+    for (const auto& p : a_positions) {
+      vertices.emplace_back(p);
     }
 
-    for (size_t i = 0; i < N; i++) {
-      m_edges[i]->setVertex(m_vertices[i]);
-      m_edges[i]->setNextEdge(m_edges[(i + 1) % N]);
-      m_edges[i]->setFace(m_face);
+    for (uint32_t i = 0; i < N; i++) {
+      edges.emplace_back(i); // half-edge i starts at vertex i
     }
 
-    m_face->setHalfEdge(m_edges[0]);
-    m_face->reconcile();
+    for (uint32_t i = 0; i < N; i++) {
+      edges[i].setNextEdge((i + 1) % N);
+      edges[i].setFace(0);
+    }
+
+    faces.emplace_back(0u); // half-edge index 0
+    faces[0].reconcile(m_mesh);
   }
 
   [[nodiscard]] bool
-  isPointInside(const Vec3T<T>& a_point, DCEL::InsideOutsideAlgorithm a_algorithm) const
+  isPointInside(const Vec3T<T>& a_point, DCEL::InsideOutsideAlgorithm a_algorithm)
   {
-    m_face->setInsideOutsideAlgorithm(a_algorithm);
+    auto& face = m_mesh.getFaces()[0];
 
-    return m_face->isPointInsideFace(a_point);
+    face.setInsideOutsideAlgorithm(a_algorithm);
+
+    return castIsPointInsideFace(face, a_point, m_mesh);
   }
 };
 
@@ -113,7 +131,7 @@ TEMPLATE_TEST_CASE("FaceT: a point clearly inside a square reads as inside for e
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const BuiltFace<T> square = unitSquare<T>();
+  BuiltFace<T> square = unitSquare<T>();
 
   for (const auto algo : allAlgorithms<T>()) {
     REQUIRE(square.isPointInside(Vec3(0.5, 0.5, 0), algo));
@@ -127,7 +145,7 @@ TEMPLATE_TEST_CASE("FaceT: a point clearly outside a square reads as outside for
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const BuiltFace<T> square = unitSquare<T>();
+  BuiltFace<T> square = unitSquare<T>();
 
   for (const auto algo : allAlgorithms<T>()) {
     REQUIRE_FALSE(square.isPointInside(Vec3(2, 2, 0), algo));
@@ -142,7 +160,7 @@ TEMPLATE_TEST_CASE("FaceT: containment ignores the coordinate normal to the poly
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const BuiltFace<T> square = unitSquare<T>();
+  BuiltFace<T> square = unitSquare<T>();
 
   // The polygon lies in z=0, but containment only depends on (x, y): the projection direction
   // discards z, so a point "floating" well above or below the plane still reads as inside when its
@@ -160,7 +178,7 @@ TEMPLATE_TEST_CASE("FaceT: a concave polygon correctly excludes points in its no
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const BuiltFace<T> lPolygon = lShape<T>();
+  BuiltFace<T> lPolygon = lShape<T>();
 
   // Inside the solid part of the L.
   for (const auto algo : allAlgorithms<T>()) {
@@ -186,7 +204,7 @@ TEMPLATE_TEST_CASE("FaceT: containment works for a triangle in a non-axis-aligne
   using Vec3 = Vec3T<T>;
 
   // A triangle in the plane x + y + z = 3, with an oblique (but not axis-aligned) normal.
-  const BuiltFace<T> triangle({Vec3(3, 0, 0), Vec3(0, 3, 0), Vec3(0, 0, 3)});
+  BuiltFace<T> triangle({Vec3(3, 0, 0), Vec3(0, 3, 0), Vec3(0, 0, 3)});
 
   // The triangle's centroid (1, 1, 1) must project to the inside.
   for (const auto algo : allAlgorithms<T>()) {
@@ -206,7 +224,7 @@ TEMPLATE_TEST_CASE("FaceT: the three containment algorithms agree over a grid of
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const BuiltFace<T> lPolygon = lShape<T>();
+  BuiltFace<T> lPolygon = lShape<T>();
 
   // Offset the grid so it never lands exactly on one of the L-shape's edges or vertices (all at
   // multiples of 0.25) -- boundary points are inherently ambiguous between algorithms and aren't a

@@ -95,7 +95,7 @@ TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical,
     REQUIRE(mesh->getEdges().size() == 108); // 54 undirected edges * 2 half-edges each.
 
     for (const auto& e : mesh->getEdges()) {
-      REQUIRE(e->getPairEdge() != nullptr); // Watertight: every half-edge has a pair.
+      REQUIRE(e.getPairEdgeIndex() != UINT32_MAX); // Watertight: every half-edge has a pair.
     }
   }
 
@@ -126,7 +126,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
   for (const auto& f : mesh->getFaces()) {
-    primsAndBVs.emplace_back(f, AABB(f->getAllVertexCoordinates()));
+    primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(*mesh)));
   }
   REQUIRE(primsAndBVs.size() == 36);
 
@@ -153,9 +153,9 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
     for (const auto& p : queryPoints<T>()) {
       T state = std::numeric_limits<T>::max();
 
-      const auto evalLeaf = [&faces, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      const auto evalLeaf = [&faces, &p, &mesh](T& a_state, size_t a_offset, size_t a_count) noexcept {
         for (size_t i = 0; i < a_count; i++) {
-          const T d = faces[a_offset + i]->signedDistance(p);
+          const T d = faces[a_offset + i]->signedDistance(p, *mesh);
           if (std::abs(d) < std::abs(a_state)) {
             a_state = d;
           }
@@ -1950,7 +1950,7 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
   for (const auto& f : mesh->getFaces()) {
-    primsAndBVs.emplace_back(f, AABB(f->getAllVertexCoordinates()));
+    primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(*mesh)));
   }
 
   const FlatMeshSDF<T, Meta> flat(mesh);
@@ -1963,9 +1963,9 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 
     for (const auto& p : queryPoints<T>()) {
       T          state    = std::numeric_limits<T>::max();
-      const auto evalLeaf = [&faces, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      const auto evalLeaf = [&faces, &p, &mesh](T& a_state, size_t a_offset, size_t a_count) noexcept {
         for (size_t i = 0; i < a_count; i++) {
-          const T d = faces[a_offset + i]->signedDistance(p);
+          const T d = faces[a_offset + i]->signedDistance(p, *mesh);
           if (std::abs(d) < std::abs(a_state)) {
             a_state = d;
           }

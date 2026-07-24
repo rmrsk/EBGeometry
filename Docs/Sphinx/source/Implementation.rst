@@ -26,14 +26,14 @@ components). A handful of design choices recur throughout the implementation:
   same bounding volume hierarchy machinery, reducing an :math:`\mathcal{O}(N)` linear scan to an
   :math:`\mathcal{O}(\log N)` tree traversal in either case. See :ref:`Chap:ImplemBVH`.
 
-* **Value types where topology permits it.** A DCEL mesh needs pointer-based topology (a
-  half-edge, its pair, and its owning face are genuinely different objects referencing each
-  other), so it uses ``weak_ptr`` back-references to avoid reference cycles. Where no topology is
-  needed, however, EBGeometry prefers small, self-contained value types instead -- a triangle
-  with no half-edge structure, or a bounding-volume-hierarchy node stored by index offset rather
-  than by pointer -- since these can be packed tightly in memory and, where the data layout
-  allows it, evaluated with SIMD instructions. See :ref:`Chap:ImplemDCEL` and
-  :ref:`Chap:ImplemBVH`.
+* **Value types, even where topology is needed.** A DCEL mesh's half-edges, their pairs, and
+  their owning faces are genuinely different objects referencing each other -- but rather than
+  pointers or reference-counted back-references, every such cross-reference is a plain
+  ``uint32_t`` index into the owning mesh's own vertex/edge/face arrays. This makes
+  ``VertexT``/``EdgeT``/``FaceT`` themselves trivially copyable value types, the same as a
+  bounding-volume-hierarchy node stored by index offset rather than by pointer, so both can be
+  packed tightly in memory and, where the data layout allows it, evaluated with SIMD instructions.
+  See :ref:`Chap:ImplemDCEL` and :ref:`Chap:ImplemBVH`.
 
 * **SIMD as an opt-in, compile-time-detected layer.** SIMD acceleration is implemented with
   hand-written compiler intrinsics in exactly two places, selected at compile time from the
