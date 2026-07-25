@@ -76,7 +76,7 @@ OBJ<T>::getFacets() const noexcept
 template <typename T>
 template <typename Meta>
 std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-OBJ<T>::convertToDCEL() const noexcept
+OBJ<T>::convertToDCEL(Pool& a_pool) const noexcept
 {
   // Do a deep copy of the vertices and facets since they need to be compressed.
   std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
@@ -86,7 +86,7 @@ OBJ<T>::convertToDCEL() const noexcept
     std::cerr << "OBJ::convertToDCEL - OBJ contains degenerate faces\n";
   }
 
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>(a_pool);
 
   Soup::compress(vertices, facets);
   Soup::soupToDCEL(*mesh, vertices, facets, m_id);

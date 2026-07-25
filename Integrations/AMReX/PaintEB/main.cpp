@@ -34,13 +34,16 @@ public:
   */
   AMReXSDF(const std::string a_filename)
   {
-    // Read in the mesh into a DCEL mesh and partition it into a bounding volume hierarchy
-    auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
+    // Read in the mesh into a DCEL mesh and partition it into a bounding volume hierarchy. The mesh
+    // reserves its storage from m_pool; MeshSDF retains the mesh (see its docs), so m_pool is a
+    // shared_ptr member kept alive alongside m_sdf for exactly as long as this object needs it.
+    m_pool = std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource());
+
+    auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename, *m_pool);
 
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
-    auto& faces = mesh->getFaces();
-    for (size_t i = 0; i < faces.size(); i++) {
-      faces[i].getMetaData() = 1.0 * i;
+    for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+      mesh->getFace(i).getMetaData() = 1.0 * i;
     }
 
     m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, EBGeometry::BVH::Build::SAH);
@@ -52,7 +55,8 @@ public:
   */
   AMReXSDF(const AMReXSDF& a_other)
   {
-    this->m_sdf = a_other.m_sdf;
+    this->m_sdf  = a_other.m_sdf;
+    this->m_pool = a_other.m_pool;
   }
 
   /*!
@@ -87,6 +91,11 @@ protected:
     @brief DCEL mesh represented as a BVH of its facets, exposed as an implicit function.
   */
   std::shared_ptr<EBGeometry::MeshSDF<T, Meta, K>> m_sdf;
+
+  /*!
+    @brief Pool backing m_sdf's retained mesh's vertex/edge/face storage.
+  */
+  std::shared_ptr<EBGeometry::Pool> m_pool;
 };
 
 int

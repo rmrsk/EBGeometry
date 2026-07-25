@@ -30,11 +30,15 @@ public:
   */
   AMReXSDF(const std::string a_filename, const bool a_use_bvh)
   {
+    // The mesh reserves its storage from m_pool. readIntoMesh's FlatMeshSDF retains its mesh (see
+    // its docs), so m_pool is a shared_ptr member kept alive alongside m_sdf.
+    m_pool = std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource());
+
     if (a_use_bvh) {
-      m_sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(a_filename);
+      m_sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(a_filename, *m_pool);
     }
     else {
-      m_sdf = EBGeometry::Parser::readIntoMesh<T, Meta>(a_filename);
+      m_sdf = EBGeometry::Parser::readIntoMesh<T, Meta>(a_filename, *m_pool);
     }
   }
 
@@ -66,6 +70,11 @@ protected:
     @brief Signed distance function (BVH-accelerated or flat mesh).
   */
   std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_sdf;
+
+  /*!
+    @brief Pool backing the DCEL mesh's vertex/edge/face storage.
+  */
+  std::shared_ptr<EBGeometry::Pool> m_pool;
 };
 
 int

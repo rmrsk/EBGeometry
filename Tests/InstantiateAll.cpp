@@ -156,21 +156,25 @@ instantiateFunctionTemplates()
   (void)Parser::readVTK<T>(file);
   (void)Parser::readVTK<T>(files);
 
-  (void)Parser::readIntoDCEL<T, Meta>(file);
-  (void)Parser::readIntoDCEL<T, Meta>(files);
-  (void)Parser::readIntoMesh<T, Meta>(file);
-  (void)Parser::readIntoMesh<T, Meta>(files);
-  (void)Parser::readIntoPackedBVH<T, Meta>(file);
-  (void)Parser::readIntoPackedBVH<T, Meta>(files);
-  (void)Parser::readIntoTriangles<T, Meta>(file);
-  (void)Parser::readIntoTriangles<T, Meta>(files);
-  (void)Parser::readIntoTriangleBVH<T, Meta>(file);
-  (void)Parser::readIntoTriangleBVH<T, Meta>(files);
+  // A second, unfrozen Pool for every DCEL-mesh-building entry point below (the one above is
+  // frozen by this point, and MeshT reservations are forbidden against a frozen Pool).
+  Pool meshPool(hostMemoryResource());
 
-  (void)STL<T>().template convertToDCEL<Meta>();
-  (void)PLY<T>().template convertToDCEL<Meta>();
-  (void)VTK<T>().template convertToDCEL<Meta>();
-  (void)OBJ<T>().template convertToDCEL<Meta>();
+  (void)Parser::readIntoDCEL<T, Meta>(file, meshPool);
+  (void)Parser::readIntoDCEL<T, Meta>(files, meshPool);
+  (void)Parser::readIntoMesh<T, Meta>(file, meshPool);
+  (void)Parser::readIntoMesh<T, Meta>(files, meshPool);
+  (void)Parser::readIntoPackedBVH<T, Meta>(file, meshPool);
+  (void)Parser::readIntoPackedBVH<T, Meta>(files, meshPool);
+  (void)Parser::readIntoTriangles<T, Meta>(file, meshPool);
+  (void)Parser::readIntoTriangles<T, Meta>(files, meshPool);
+  (void)Parser::readIntoTriangleBVH<T, Meta>(file, meshPool);
+  (void)Parser::readIntoTriangleBVH<T, Meta>(files, meshPool);
+
+  (void)STL<T>().template convertToDCEL<Meta>(meshPool);
+  (void)PLY<T>().template convertToDCEL<Meta>(meshPool);
+  (void)VTK<T>().template convertToDCEL<Meta>(meshPool);
+  (void)OBJ<T>().template convertToDCEL<Meta>(meshPool);
 }
 
 template void

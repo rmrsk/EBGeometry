@@ -29,9 +29,9 @@ static const std::string g_dataDir = EBGEOMETRY_TEST_DATA_DIR;
 
 template <class T>
 static std::shared_ptr<MeshT<T, DefaultMetaData>>
-loadTetrahedron()
+loadTetrahedron(Pool& a_pool)
 {
-  return Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.stl");
+  return Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.stl", a_pool);
 }
 
 // Build a tetrahedron DCEL mesh entirely from hard-coded data (no file I/O).
@@ -41,7 +41,7 @@ loadTetrahedron()
 // outside.
 template <class T>
 static std::shared_ptr<MeshT<T, DefaultMetaData>>
-buildTetrahedron()
+buildTetrahedron(Pool& a_pool)
 {
   std::vector<Vec3T<T>> verts = {
     {0.0, 0.0, 0.0}, // 0 = A
@@ -60,7 +60,7 @@ buildTetrahedron()
 
   Soup::compress(verts, facets);
 
-  auto mesh = std::make_shared<MeshT<T, DefaultMetaData>>();
+  auto mesh = std::make_shared<MeshT<T, DefaultMetaData>>(a_pool);
   Soup::soupToDCEL(*mesh, verts, facets, "tetrahedron-hard");
   mesh->reconcile();
 
@@ -343,13 +343,20 @@ TEMPLATE_TEST_CASE("EdgeT: flipNormal negates the normal vector", "[DCEL][Edge]"
 {
   using T = TestType;
 
-  TestMesh<T> mesh;
-  mesh.getFaces().emplace_back();
-  mesh.getFaces()[0].define(Vec3T<T>(0, 0, 1), UINT32_MAX);
-  mesh.getEdges().emplace_back();
-  mesh.getEdges()[0].setFace(0);
+  Pool        pool(hostMemoryResource());
+  TestMesh<T> mesh(pool);
+  mesh.reserveFaces(1);
+  mesh.reserveEdges(1);
 
-  auto& e = mesh.getEdges()[0];
+  TestFace<T> face;
+  face.define(Vec3T<T>(0, 0, 1), UINT32_MAX);
+  mesh.addFace(face);
+
+  TestEdge<T> edge;
+  edge.setFace(0);
+  mesh.addEdge(edge);
+
+  auto& e = mesh.getEdge(0);
   e.reconcile(mesh);
 
   REQUIRE(e.getNormal() == Vec3T<T>(0, 0, 1));
@@ -363,13 +370,20 @@ TEMPLATE_TEST_CASE("EdgeT: computeNormal with a single face returns that face's 
 {
   using T = TestType;
 
-  TestMesh<T> mesh;
-  mesh.getFaces().emplace_back();
-  mesh.getFaces()[0].define(Vec3T<T>(1, 0, 0), UINT32_MAX);
-  mesh.getEdges().emplace_back();
-  mesh.getEdges()[0].setFace(0);
+  Pool        pool(hostMemoryResource());
+  TestMesh<T> mesh(pool);
+  mesh.reserveFaces(1);
+  mesh.reserveEdges(1);
 
-  REQUIRE(mesh.getEdges()[0].computeNormal(mesh) == Vec3T<T>(1, 0, 0));
+  TestFace<T> face;
+  face.define(Vec3T<T>(1, 0, 0), UINT32_MAX);
+  mesh.addFace(face);
+
+  TestEdge<T> edge;
+  edge.setFace(0);
+  mesh.addEdge(edge);
+
+  REQUIRE(mesh.getEdge(0).computeNormal(mesh) == Vec3T<T>(1, 0, 0));
 }
 
 TEMPLATE_TEST_CASE("EdgeT: computeNormal averages both incident faces' normals",
@@ -378,24 +392,28 @@ TEMPLATE_TEST_CASE("EdgeT: computeNormal averages both incident faces' normals",
 {
   using T = TestType;
 
-  TestMesh<T> mesh;
-  auto&       faces = mesh.getFaces();
-  auto&       edges = mesh.getEdges();
+  Pool        pool(hostMemoryResource());
+  TestMesh<T> mesh(pool);
+  mesh.reserveFaces(2);
+  mesh.reserveEdges(2);
 
-  faces.emplace_back();
-  faces[0].define(Vec3T<T>(1, 0, 0), UINT32_MAX);
-  faces.emplace_back();
-  faces[1].define(Vec3T<T>(0, 1, 0), UINT32_MAX);
+  TestFace<T> face0;
+  face0.define(Vec3T<T>(1, 0, 0), UINT32_MAX);
+  mesh.addFace(face0);
 
-  edges.emplace_back(); // edge under test
-  edges.emplace_back(); // its pair edge
+  TestFace<T> face1;
+  face1.define(Vec3T<T>(0, 1, 0), UINT32_MAX);
+  mesh.addFace(face1);
 
-  edges[0].setFace(0);
-  edges[1].setFace(1);
-  edges[0].setPairEdge(1);
+  mesh.addEdge(TestEdge<T>()); // edge under test
+  mesh.addEdge(TestEdge<T>()); // its pair edge
+
+  mesh.getEdge(0).setFace(0);
+  mesh.getEdge(1).setFace(1);
+  mesh.getEdge(0).setPairEdge(1);
 
   const Vec3T<T> expected = Vec3T<T>(1, 1, 0) / Vec3T<T>(1, 1, 0).length();
-  const Vec3T<T> actual   = edges[0].computeNormal(mesh);
+  const Vec3T<T> actual   = mesh.getEdge(0).computeNormal(mesh);
 
   REQUIRE_THAT(actual[0], withinAbsT(expected[0], exactMargin<T>()));
   REQUIRE_THAT(actual[1], withinAbsT(expected[1], exactMargin<T>()));
@@ -406,13 +424,20 @@ TEMPLATE_TEST_CASE("EdgeT: reconcile stores computeNormal's result", "[DCEL][Edg
 {
   using T = TestType;
 
-  TestMesh<T> mesh;
-  mesh.getFaces().emplace_back();
-  mesh.getFaces()[0].define(Vec3T<T>(0, 1, 0), UINT32_MAX);
-  mesh.getEdges().emplace_back();
-  mesh.getEdges()[0].setFace(0);
+  Pool        pool(hostMemoryResource());
+  TestMesh<T> mesh(pool);
+  mesh.reserveFaces(1);
+  mesh.reserveEdges(1);
 
-  auto& e = mesh.getEdges()[0];
+  TestFace<T> face;
+  face.define(Vec3T<T>(0, 1, 0), UINT32_MAX);
+  mesh.addFace(face);
+
+  TestEdge<T> edge;
+  edge.setFace(0);
+  mesh.addEdge(edge);
+
+  auto& e = mesh.getEdge(0);
   e.reconcile(mesh);
 
   REQUIRE(e.getNormal() == Vec3T<T>(0, 1, 0));
@@ -424,35 +449,38 @@ TEMPLATE_TEST_CASE("EdgeT: signedDistance and unsignedDistance2 on a simple segm
 {
   using T = TestType;
 
-  TestMesh<T> mesh;
-  auto&       vertices = mesh.getVertices();
-  auto&       edges    = mesh.getEdges();
-  auto&       faces    = mesh.getFaces();
+  Pool        pool(hostMemoryResource());
+  TestMesh<T> mesh(pool);
+  mesh.reserveVertices(2);
+  mesh.reserveEdges(2);
+  mesh.reserveFaces(1);
 
   // Build a two-vertex chain: e0 (start v0) -> e1 (start v1), so e0's "other vertex" is v1.
-  vertices.emplace_back(Vec3T<T>(0, 0, 0));
-  vertices.emplace_back(Vec3T<T>(1, 0, 0));
+  mesh.addVertex(TestVertex<T>(Vec3T<T>(0, 0, 0)));
+  mesh.addVertex(TestVertex<T>(Vec3T<T>(1, 0, 0)));
 
-  edges.emplace_back(0u);
-  edges.emplace_back(1u);
-  edges[0].setNextEdge(1);
+  mesh.addEdge(TestEdge<T>(0u));
+  mesh.addEdge(TestEdge<T>(1u));
+  mesh.getEdge(0).setNextEdge(1);
 
   // Outward normal perpendicular to the edge, pointing +y.
-  faces.emplace_back();
-  faces[0].define(Vec3T<T>(0, 1, 0), UINT32_MAX);
-  edges[0].setFace(0);
-  edges[0].reconcile(mesh);
+  TestFace<T> face;
+  face.define(Vec3T<T>(0, 1, 0), UINT32_MAX);
+  mesh.addFace(face);
 
-  REQUIRE(edges[0].getOtherVertex(mesh).getPosition() == vertices[1].getPosition());
+  mesh.getEdge(0).setFace(0);
+  mesh.getEdge(0).reconcile(mesh);
+
+  REQUIRE(mesh.getEdge(0).getOtherVertex(mesh).getPosition() == mesh.getVertex(1).getPosition());
 
   // Point above the middle of the edge: on the normal side, distance 2.
-  REQUIRE_THAT(edges[0].signedDistance(Vec3T<T>(0.5, 2, 0), mesh), WithinRel(T(2.0)));
+  REQUIRE_THAT(mesh.getEdge(0).signedDistance(Vec3T<T>(0.5, 2, 0), mesh), WithinRel(T(2.0)));
 
   // Point below the middle of the edge: against the normal, negative distance.
-  REQUIRE_THAT(edges[0].signedDistance(Vec3T<T>(0.5, -2, 0), mesh), WithinRel(T(-2.0)));
+  REQUIRE_THAT(mesh.getEdge(0).signedDistance(Vec3T<T>(0.5, -2, 0), mesh), WithinRel(T(-2.0)));
 
   // unsignedDistance2 clamps the projection to the segment.
-  REQUIRE_THAT(edges[0].unsignedDistance2(Vec3T<T>(0.5, 3, 0), mesh), WithinRel(T(9.0)));
+  REQUIRE_THAT(mesh.getEdge(0).unsignedDistance2(Vec3T<T>(0.5, 3, 0), mesh), WithinRel(T(9.0)));
 }
 
 TEMPLATE_TEST_CASE("EdgeT: copy construction copies every member, including meta-data",
@@ -540,20 +568,21 @@ TEMPLATE_TEST_CASE("EdgeIteratorT: iterating a face visits exactly its own half-
 {
   using T = TestType;
 
-  auto        mesh = buildTetrahedron<T>();
-  const auto& face = mesh->getFaces()[0];
+  Pool        pool(hostMemoryResource());
+  auto        mesh = buildTetrahedron<T>(pool);
+  const auto& face = mesh->getFace(0);
 
   std::vector<uint32_t> visited;
   for (TestEdgeIterator<T> it(*mesh, face); it.ok(); ++it) {
-    REQUIRE(mesh->getEdges()[it()].getFaceIndex() == 0);
+    REQUIRE(mesh->getEdge(it()).getFaceIndex() == 0);
     visited.push_back(it());
   }
 
   REQUIRE(visited.size() == 3); // Every face in a tetrahedron is a triangle.
   REQUIRE(visited[0] == face.getHalfEdgeIndex());
-  REQUIRE(mesh->getEdges()[visited[0]].getNextEdgeIndex() == visited[1]);
-  REQUIRE(mesh->getEdges()[visited[1]].getNextEdgeIndex() == visited[2]);
-  REQUIRE(mesh->getEdges()[visited[2]].getNextEdgeIndex() == visited[0]); // Loops back to the start.
+  REQUIRE(mesh->getEdge(visited[0]).getNextEdgeIndex() == visited[1]);
+  REQUIRE(mesh->getEdge(visited[1]).getNextEdgeIndex() == visited[2]);
+  REQUIRE(mesh->getEdge(visited[2]).getNextEdgeIndex() == visited[0]); // Loops back to the start.
 }
 
 TEMPLATE_TEST_CASE("EdgeIteratorT: constructing from an edge index directly matches constructing from its face",
@@ -562,8 +591,9 @@ TEMPLATE_TEST_CASE("EdgeIteratorT: constructing from an edge index directly matc
 {
   using T = TestType;
 
-  auto        mesh = buildTetrahedron<T>();
-  const auto& face = mesh->getFaces()[0];
+  Pool        pool(hostMemoryResource());
+  auto        mesh = buildTetrahedron<T>(pool);
+  const auto& face = mesh->getFace(0);
 
   std::vector<uint32_t> fromFace;
   for (TestEdgeIterator<T> it(*mesh, face); it.ok(); ++it) {
@@ -584,7 +614,8 @@ TEMPLATE_TEST_CASE("EdgeIteratorT: ok() is immediately false for an unset starti
 {
   using T = TestType;
 
-  TestMesh<T>         mesh;
+  Pool                pool(hostMemoryResource());
+  TestMesh<T>         mesh(pool);
   TestEdgeIterator<T> it(mesh, UINT32_MAX);
   REQUIRE_FALSE(it.ok());
 }
@@ -595,8 +626,9 @@ TEMPLATE_TEST_CASE("EdgeIteratorT: reset returns the iterator to its starting ed
 {
   using T = TestType;
 
-  auto        mesh = buildTetrahedron<T>();
-  const auto& face = mesh->getFaces()[0];
+  Pool        pool(hostMemoryResource());
+  auto        mesh = buildTetrahedron<T>(pool);
+  const auto& face = mesh->getFace(0);
 
   TestEdgeIterator<T> it(*mesh, face);
   const auto          start = it();
@@ -616,8 +648,9 @@ TEMPLATE_TEST_CASE("EdgeIteratorT: copy and move both preserve iteration state",
 {
   using T = TestType;
 
-  auto        mesh = buildTetrahedron<T>();
-  const auto& face = mesh->getFaces()[0];
+  Pool        pool(hostMemoryResource());
+  auto        mesh = buildTetrahedron<T>(pool);
+  const auto& face = mesh->getFace(0);
 
   TestEdgeIterator<T> src(*mesh, face);
   ++src;
@@ -644,14 +677,16 @@ TEMPLATE_TEST_CASE("EdgeIteratorT: copy and move both preserve iteration state",
 // MeshT tests
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("MeshT: default construction is empty", "[DCEL][Mesh]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("MeshT: a freshly constructed mesh is empty", "[DCEL][Mesh]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
-  TestMesh<T> mesh;
 
-  REQUIRE(mesh.getVertices().empty());
-  REQUIRE(mesh.getEdges().empty());
-  REQUIRE(mesh.getFaces().empty());
+  Pool        pool(hostMemoryResource());
+  TestMesh<T> mesh(pool);
+
+  REQUIRE(mesh.numVertices() == 0);
+  REQUIRE(mesh.numEdges() == 0);
+  REQUIRE(mesh.numFaces() == 0);
   REQUIRE(mesh.getAllVertexCoordinates().empty());
 
   // An empty mesh has no faces to measure a distance to.
@@ -660,24 +695,31 @@ TEMPLATE_TEST_CASE("MeshT: default construction is empty", "[DCEL][Mesh]", EBGEO
   REQUIRE(mesh.unsignedDistance2(Vec3T<T>(0, 0, 0)) == inf);
 }
 
-TEMPLATE_TEST_CASE("MeshT: full constructor assigns vertices, edges, and faces",
-                   "[DCEL][Mesh]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("MeshT: reserveX/addX/getX/numX populate the mesh", "[DCEL][Mesh]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  std::vector<TestVertex<T>> verts = {TestVertex<T>(Vec3T<T>(1, 2, 3))};
-  std::vector<TestEdge<T>>   edges = {TestEdge<T>(0u)};
-  std::vector<TestFace<T>>   faces = {TestFace<T>(0u)};
+  Pool        pool(hostMemoryResource());
+  TestMesh<T> mesh(pool);
 
-  TestMesh<T> mesh(faces, edges, verts);
+  mesh.reserveVertices(1);
+  mesh.reserveEdges(1);
+  mesh.reserveFaces(1);
 
-  REQUIRE(mesh.getVertices().size() == 1);
-  REQUIRE(mesh.getEdges().size() == 1);
-  REQUIRE(mesh.getFaces().size() == 1);
-  REQUIRE(mesh.getVertices()[0].getPosition() == Vec3T<T>(1, 2, 3));
-  REQUIRE(mesh.getEdges()[0].getVertexIndex() == 0);
-  REQUIRE(mesh.getFaces()[0].getHalfEdgeIndex() == 0);
+  const uint32_t vIdx = mesh.addVertex(TestVertex<T>(Vec3T<T>(1, 2, 3)));
+  const uint32_t eIdx = mesh.addEdge(TestEdge<T>(0u));
+  const uint32_t fIdx = mesh.addFace(TestFace<T>(0u));
+
+  REQUIRE(vIdx == 0);
+  REQUIRE(eIdx == 0);
+  REQUIRE(fIdx == 0);
+
+  REQUIRE(mesh.numVertices() == 1);
+  REQUIRE(mesh.numEdges() == 1);
+  REQUIRE(mesh.numFaces() == 1);
+  REQUIRE(mesh.getVertex(0).getPosition() == Vec3T<T>(1, 2, 3));
+  REQUIRE(mesh.getEdge(0).getVertexIndex() == 0);
+  REQUIRE(mesh.getFace(0).getHalfEdgeIndex() == 0);
 }
 
 TEMPLATE_TEST_CASE("MeshT: copy is disallowed, move is allowed", "[DCEL][Mesh]", EBGEOMETRY_TEST_PRECISIONS)
@@ -695,30 +737,35 @@ TEMPLATE_TEST_CASE("MeshT: move construction and move assignment transfer owners
 {
   using T = TestType;
 
-  auto       moveCtorSrc = buildTetrahedron<T>();
-  const auto v0Position  = moveCtorSrc->getVertices()[0].getPosition();
+  Pool pool(hostMemoryResource());
+
+  auto       moveCtorSrc = buildTetrahedron<T>(pool);
+  const auto v0Position  = moveCtorSrc->getVertex(0).getPosition();
 
   TestMesh<T> moved(std::move(*moveCtorSrc));
-  REQUIRE(moved.getVertices().size() == 4);
-  REQUIRE(moved.getFaces().size() == 4);
-  REQUIRE(moved.getVertices()[0].getPosition() == v0Position);
+  REQUIRE(moved.numVertices() == 4);
+  REQUIRE(moved.numFaces() == 4);
+  REQUIRE(moved.getVertex(0).getPosition() == v0Position);
 
-  auto        moveAssignSrc = buildTetrahedron<T>();
-  const auto  v0PositionB   = moveAssignSrc->getVertices()[0].getPosition();
-  TestMesh<T> moveAssignDst;
+  auto        moveAssignSrc = buildTetrahedron<T>(pool);
+  const auto  v0PositionB   = moveAssignSrc->getVertex(0).getPosition();
+  TestMesh<T> moveAssignDst(pool);
   moveAssignDst = std::move(*moveAssignSrc);
-  REQUIRE(moveAssignDst.getVertices().size() == 4);
-  REQUIRE(moveAssignDst.getVertices()[0].getPosition() == v0PositionB);
+  REQUIRE(moveAssignDst.numVertices() == 4);
+  REQUIRE(moveAssignDst.getVertex(0).getPosition() == v0PositionB);
 }
 
 TEMPLATE_TEST_CASE("MeshT: reconcile computes positive face areas and unit-length normals",
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
+  using T = TestType;
 
-  for (const auto& f : mesh->getFaces()) {
+  Pool pool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(pool);
+
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    const auto& f = mesh->getFace(i);
     REQUIRE(f.getArea() > T(0.0));
     REQUIRE_THAT(f.getNormal().length(), withinAbsT(T(1.0), exactMargin<T>()));
   }
@@ -726,30 +773,32 @@ TEMPLATE_TEST_CASE("MeshT: reconcile computes positive face areas and unit-lengt
 
 TEMPLATE_TEST_CASE("MeshT: flip negates all vertex, edge, and face normals", "[DCEL][Mesh]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(pool);
 
   std::vector<Vec3T<T>> vertexNormals, edgeNormals, faceNormals;
-  for (const auto& v : mesh->getVertices()) {
-    vertexNormals.push_back(v.getNormal());
+  for (uint32_t i = 0; i < mesh->numVertices(); i++) {
+    vertexNormals.push_back(mesh->getVertex(i).getNormal());
   }
-  for (const auto& e : mesh->getEdges()) {
-    edgeNormals.push_back(e.getNormal());
+  for (uint32_t i = 0; i < mesh->numEdges(); i++) {
+    edgeNormals.push_back(mesh->getEdge(i).getNormal());
   }
-  for (const auto& f : mesh->getFaces()) {
-    faceNormals.push_back(f.getNormal());
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    faceNormals.push_back(mesh->getFace(i).getNormal());
   }
 
   mesh->flip();
 
-  for (size_t i = 0; i < mesh->getVertices().size(); i++) {
-    REQUIRE((mesh->getVertices()[i].getNormal() - (-vertexNormals[i])).length() < T(exactMargin<T>()));
+  for (uint32_t i = 0; i < mesh->numVertices(); i++) {
+    REQUIRE((mesh->getVertex(i).getNormal() - (-vertexNormals[i])).length() < T(exactMargin<T>()));
   }
-  for (size_t i = 0; i < mesh->getEdges().size(); i++) {
-    REQUIRE((mesh->getEdges()[i].getNormal() - (-edgeNormals[i])).length() < T(exactMargin<T>()));
+  for (uint32_t i = 0; i < mesh->numEdges(); i++) {
+    REQUIRE((mesh->getEdge(i).getNormal() - (-edgeNormals[i])).length() < T(exactMargin<T>()));
   }
-  for (size_t i = 0; i < mesh->getFaces().size(); i++) {
-    REQUIRE((mesh->getFaces()[i].getNormal() - (-faceNormals[i])).length() < T(exactMargin<T>()));
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    REQUIRE((mesh->getFace(i).getNormal() - (-faceNormals[i])).length() < T(exactMargin<T>()));
   }
 }
 
@@ -757,8 +806,10 @@ TEMPLATE_TEST_CASE("MeshT: signedDistance agrees between Direct and Direct2 sear
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(pool);
 
   const std::vector<Vec3T<T>> queryPoints = {{0.1, 0.1, 0.1}, {2.0, 2.0, 2.0}, {-1.0, -1.0, -1.0}, {0.25, 0.25, 0.0}};
 
@@ -774,8 +825,10 @@ TEMPLATE_TEST_CASE("MeshT: setSearchAlgorithm changes the algorithm used by the 
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(pool);
 
   const Vec3T<T> p(0.1, 0.1, 0.1);
 
@@ -792,14 +845,16 @@ TEMPLATE_TEST_CASE("MeshT: getAllVertexCoordinates matches the vertex positions"
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(pool);
 
   const auto coords = mesh->getAllVertexCoordinates();
-  REQUIRE(coords.size() == mesh->getVertices().size());
+  REQUIRE(coords.size() == mesh->numVertices());
 
   for (size_t i = 0; i < coords.size(); i++) {
-    REQUIRE(coords[i] == mesh->getVertices()[i].getPosition());
+    REQUIRE(coords[i] == mesh->getVertex(static_cast<uint32_t>(i)).getPosition());
   }
 }
 
@@ -807,18 +862,22 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy produces an independent mesh with the same g
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
-  auto copy = mesh->deepCopy();
+  using T = TestType;
+
+  Pool srcPool(hostMemoryResource());
+  Pool dstPool(hostMemoryResource());
+
+  auto mesh = buildTetrahedron<T>(srcPool);
+  auto copy = mesh->deepCopy(dstPool);
 
   REQUIRE(copy != nullptr);
-  REQUIRE(copy->getVertices().size() == mesh->getVertices().size());
-  REQUIRE(copy->getEdges().size() == mesh->getEdges().size());
-  REQUIRE(copy->getFaces().size() == mesh->getFaces().size());
+  REQUIRE(copy->numVertices() == mesh->numVertices());
+  REQUIRE(copy->numEdges() == mesh->numEdges());
+  REQUIRE(copy->numFaces() == mesh->numFaces());
 
-  for (size_t i = 0; i < mesh->getFaces().size(); i++) {
-    REQUIRE((copy->getFaces()[i].getNormal() - mesh->getFaces()[i].getNormal()).length() < T(exactMargin<T>()));
-    REQUIRE_THAT(copy->getFaces()[i].getArea(), withinAbsT(mesh->getFaces()[i].getArea(), exactMargin<T>()));
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    REQUIRE((copy->getFace(i).getNormal() - mesh->getFace(i).getNormal()).length() < T(exactMargin<T>()));
+    REQUIRE_THAT(copy->getFace(i).getArea(), withinAbsT(mesh->getFace(i).getArea(), exactMargin<T>()));
   }
 
   // The copy must be usable for signed-distance queries (validates that the projection axes were
@@ -829,22 +888,26 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy produces an independent mesh with the same g
 
   // Mutating the copy must not affect the original -- this is the meaningful test of independence
   // now that vertices/edges/faces are plain values rather than shared_ptr-identified objects.
-  copy->getVertices()[0].setPosition(Vec3T<T>(999, 999, 999));
-  REQUIRE(mesh->getVertices()[0].getPosition() != Vec3T<T>(999, 999, 999));
+  copy->getVertex(0).setPosition(Vec3T<T>(999, 999, 999));
+  REQUIRE(mesh->getVertex(0).getPosition() != Vec3T<T>(999, 999, 999));
 }
 
 TEMPLATE_TEST_CASE("MeshT: deepCopy preserves a prior flip() instead of silently re-deriving normals",
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
+  using T = TestType;
+
+  Pool srcPool(hostMemoryResource());
+  Pool dstPool(hostMemoryResource());
+
+  auto mesh = buildTetrahedron<T>(srcPool);
   mesh->flip();
 
-  auto copy = mesh->deepCopy();
+  auto copy = mesh->deepCopy(dstPool);
 
-  for (size_t i = 0; i < mesh->getFaces().size(); i++) {
-    REQUIRE((copy->getFaces()[i].getNormal() - mesh->getFaces()[i].getNormal()).length() < T(exactMargin<T>()));
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    REQUIRE((copy->getFace(i).getNormal() - mesh->getFace(i).getNormal()).length() < T(exactMargin<T>()));
   }
 }
 
@@ -928,25 +991,28 @@ TEMPLATE_TEST_CASE("Soup::soupToDCEL builds correct vertex, edge, and face count
                    "[Soup]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
+  using T = TestType;
 
-  REQUIRE(mesh->getVertices().size() == 4);
-  REQUIRE(mesh->getFaces().size() == 4);
-  REQUIRE(mesh->getEdges().size() == 12); // 4 triangular faces * 3 half-edges each.
+  Pool pool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(pool);
+
+  REQUIRE(mesh->numVertices() == 4);
+  REQUIRE(mesh->numFaces() == 4);
+  REQUIRE(mesh->numEdges() == 12); // 4 triangular faces * 3 half-edges each.
 }
 
 TEMPLATE_TEST_CASE("Soup::soupToDCEL reconciles every half-edge's pair edge on a closed mesh",
                    "[Soup]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = buildTetrahedron<T>();
+  using T = TestType;
 
-  const auto& edges = mesh->getEdges();
-  for (uint32_t i = 0; i < edges.size(); i++) {
-    REQUIRE(edges[i].getPairEdgeIndex() != UINT32_MAX);
-    REQUIRE(edges[edges[i].getPairEdgeIndex()].getPairEdgeIndex() == i); // Pairing must be symmetric.
+  Pool pool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(pool);
+
+  for (uint32_t i = 0; i < mesh->numEdges(); i++) {
+    REQUIRE(mesh->getEdge(i).getPairEdgeIndex() != UINT32_MAX);
+    REQUIRE(mesh->getEdge(mesh->getEdge(i).getPairEdgeIndex()).getPairEdgeIndex() == i); // Pairing must be symmetric.
   }
 }
 
@@ -956,63 +1022,75 @@ TEMPLATE_TEST_CASE("Soup::soupToDCEL reconciles every half-edge's pair edge on a
 
 TEMPLATE_TEST_CASE("DCEL: tetrahedron loads without error", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = loadTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 }
 
 TEMPLATE_TEST_CASE("DCEL: tetrahedron has correct face and vertex counts", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = loadTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 
   // A tetrahedron has 4 faces and 4 vertices
-  REQUIRE(mesh->getFaces().size() == 4);
-  REQUIRE(mesh->getVertices().size() == 4);
+  REQUIRE(mesh->numFaces() == 4);
+  REQUIRE(mesh->numVertices() == 4);
 
   // 4 faces × 3 half-edges each = 12 half-edges
-  REQUIRE(mesh->getEdges().size() == 12);
+  REQUIRE(mesh->numEdges() == 12);
 }
 
 TEMPLATE_TEST_CASE("DCEL: all faces have a half-edge", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = loadTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 
-  for (const auto& face : mesh->getFaces()) {
-    REQUIRE(face.getHalfEdgeIndex() != UINT32_MAX);
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    REQUIRE(mesh->getFace(i).getHalfEdgeIndex() != UINT32_MAX);
   }
 }
 
 TEMPLATE_TEST_CASE("DCEL: all half-edges have a pair and a face", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = loadTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 
-  for (const auto& edge : mesh->getEdges()) {
-    REQUIRE(edge.getPairEdgeIndex() != UINT32_MAX);
-    REQUIRE(edge.getFaceIndex() != UINT32_MAX);
+  for (uint32_t i = 0; i < mesh->numEdges(); i++) {
+    REQUIRE(mesh->getEdge(i).getPairEdgeIndex() != UINT32_MAX);
+    REQUIRE(mesh->getEdge(i).getFaceIndex() != UINT32_MAX);
   }
 }
 
 TEMPLATE_TEST_CASE("DCEL: all face normals are unit-length", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = loadTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 
-  for (const auto& face : mesh->getFaces()) {
-    REQUIRE_THAT(face.getNormal().length(), withinAbsT(T(1.0), formulaMargin<T>()));
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    REQUIRE_THAT(mesh->getFace(i).getNormal().length(), withinAbsT(T(1.0), formulaMargin<T>()));
   }
 }
 
 TEMPLATE_TEST_CASE("DCEL: sanityCheck completes without crashing", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T   = TestType;
-  auto mesh = loadTetrahedron<T>();
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 
   // sanityCheck() returns void; it prints to stderr only if the mesh has errors.
@@ -1030,7 +1108,8 @@ TEMPLATE_TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]", E
   // Tetrahedron vertices: (0,0,0), (1,0,0), (0,1,0), (0,0,1).
   // Standard SDF convention: negative inside, positive outside.
 
-  auto mesh = loadTetrahedron<T>();
+  Pool pool(hostMemoryResource());
+  auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 
   TestMeshSDF<T> sdf(mesh, BVH::Build::SAH);
@@ -1063,8 +1142,10 @@ TEMPLATE_TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]", E
 
 TEMPLATE_TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DCEL][sign]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T             = TestType;
-  auto           mesh = buildTetrahedron<T>();
+  using T = TestType;
+
+  Pool           pool(hostMemoryResource());
+  auto           mesh = buildTetrahedron<T>(pool);
   TestMeshSDF<T> sdf(mesh, BVH::Build::SAH);
 
   // Far outside: must be positive.
@@ -1077,8 +1158,10 @@ TEMPLATE_TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DC
 
 TEMPLATE_TEST_CASE("DCEL sign convention: interior point has negative SDF", "[DCEL][sign]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T             = TestType;
-  auto           mesh = buildTetrahedron<T>();
+  using T = TestType;
+
+  Pool           pool(hostMemoryResource());
+  auto           mesh = buildTetrahedron<T>(pool);
   TestMeshSDF<T> sdf(mesh, BVH::Build::SAH);
 
   // Centroid of the tetrahedron is clearly inside.
@@ -1095,8 +1178,10 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
 {
   using T                = TestType;
   const std::string path = g_dataDir + "/tetrahedron.stl";
-  auto              fast = Parser::readIntoTriangleBVH<T>(path);
-  auto              mesh = Parser::readIntoMesh<T>(path);
+
+  Pool pool(hostMemoryResource());
+  auto fast = Parser::readIntoTriangleBVH<T>(path, pool);
+  auto mesh = Parser::readIntoMesh<T>(path, pool);
 
   REQUIRE(fast != nullptr);
   REQUIRE(mesh != nullptr);

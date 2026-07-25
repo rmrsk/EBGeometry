@@ -60,7 +60,7 @@ EdgeIteratorT<T, Meta>::operator++() noexcept
   EBGEOMETRY_EXPECT(m_curEdge != UINT32_MAX);
   EBGEOMETRY_EXPECT(m_mesh != nullptr);
 
-  m_curEdge  = m_mesh->getEdges()[m_curEdge].getNextEdgeIndex();
+  m_curEdge  = m_mesh->getEdge(m_curEdge).getNextEdgeIndex();
   m_fullLoop = (m_curEdge == m_startEdge);
 }
 

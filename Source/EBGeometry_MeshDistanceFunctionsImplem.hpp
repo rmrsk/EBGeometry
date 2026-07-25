@@ -61,7 +61,7 @@ buildDCELTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcel
   static_assert(K >= 2, "MeshDistanceFunctionsDetail::buildDCELTreeBVH: branching factor K must be at least 2");
 
   EBGEOMETRY_EXPECT(a_dcelMesh != nullptr);
-  EBGEOMETRY_EXPECT(!a_dcelMesh->getFaces().empty());
+  EBGEOMETRY_EXPECT(a_dcelMesh->numFaces() > 0);
 
   using Prim          = EBGeometry::DCEL::FaceT<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
@@ -72,7 +72,9 @@ buildDCELTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcel
   // resolved against the same retained mesh (see MeshSDF::m_mesh) both before and after the copy.
   PrimAndBVList primsAndBVs;
 
-  for (const auto& f : a_dcelMesh->getFaces()) {
+  for (uint32_t i = 0; i < a_dcelMesh->numFaces(); i++) {
+    const auto& f = a_dcelMesh->getFace(i);
+
     primsAndBVs.emplace_back(
       std::make_pair(std::make_shared<const Prim>(f), BV(f.getAllVertexCoordinates(*a_dcelMesh))));
   }
@@ -432,10 +434,11 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
 
   std::vector<std::shared_ptr<Tri>> triangles;
 
-  for (const auto& f : a_mesh->getFaces()) {
-    const auto normal        = f.getNormal();
-    const auto vertexIndices = f.gatherVertexIndices(*a_mesh);
-    const auto edgeIndices   = f.gatherEdgeIndices(*a_mesh);
+  for (uint32_t faceIndex = 0; faceIndex < a_mesh->numFaces(); faceIndex++) {
+    const auto& f             = a_mesh->getFace(faceIndex);
+    const auto  normal        = f.getNormal();
+    const auto  vertexIndices = f.gatherVertexIndices(*a_mesh);
+    const auto  edgeIndices   = f.gatherEdgeIndices(*a_mesh);
 
     EBGEOMETRY_EXPECT(vertexIndices.size() == 3);
     EBGEOMETRY_EXPECT(edgeIndices.size() == 3);
@@ -444,13 +447,13 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
       std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
     }
 
-    const auto& v0 = a_mesh->getVertices()[vertexIndices[0]];
-    const auto& v1 = a_mesh->getVertices()[vertexIndices[1]];
-    const auto& v2 = a_mesh->getVertices()[vertexIndices[2]];
+    const auto& v0 = a_mesh->getVertex(vertexIndices[0]);
+    const auto& v1 = a_mesh->getVertex(vertexIndices[1]);
+    const auto& v2 = a_mesh->getVertex(vertexIndices[2]);
 
-    const auto& e0 = a_mesh->getEdges()[edgeIndices[0]];
-    const auto& e1 = a_mesh->getEdges()[edgeIndices[1]];
-    const auto& e2 = a_mesh->getEdges()[edgeIndices[2]];
+    const auto& e0 = a_mesh->getEdge(edgeIndices[0]);
+    const auto& e1 = a_mesh->getEdge(edgeIndices[1]);
+    const auto& e2 = a_mesh->getEdge(edgeIndices[2]);
 
     auto tri = std::make_shared<Tri>();
 

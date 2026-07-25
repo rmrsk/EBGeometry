@@ -21,6 +21,7 @@
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
+#include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -178,11 +179,12 @@ public:
    * @details This call does not populate any meta-data in the DCEL mesh structures. If you need to also populate
    * the meta-data on vertices and faces, you should not use this function but supply your own constructor.
    * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
+   * @param[in,out] a_pool Pool to reserve the constructed mesh's vertex/edge/face storage from.
    * @return Shared pointer to the constructed DCEL mesh.
    */
   template <typename Meta>
   [[nodiscard]] std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-  convertToDCEL() const noexcept;
+  convertToDCEL(Pool& a_pool) const noexcept;
 
 protected:
   /**

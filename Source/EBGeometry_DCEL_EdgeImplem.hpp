@@ -189,7 +189,7 @@ EdgeT<T, Meta>::getVertex(Mesh& a_mesh) noexcept
 {
   EBGEOMETRY_EXPECT(m_vertex != UINT32_MAX);
 
-  return a_mesh.getVertices()[m_vertex];
+  return a_mesh.getVertex(m_vertex);
 }
 
 template <class T, class Meta>
@@ -198,7 +198,7 @@ EdgeT<T, Meta>::getVertex(const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(m_vertex != UINT32_MAX);
 
-  return a_mesh.getVertices()[m_vertex];
+  return a_mesh.getVertex(m_vertex);
 }
 
 template <class T, class Meta>
@@ -225,7 +225,7 @@ EdgeT<T, Meta>::getPairEdge(Mesh& a_mesh) noexcept
 {
   EBGEOMETRY_EXPECT(m_pairEdge != UINT32_MAX);
 
-  return a_mesh.getEdges()[m_pairEdge];
+  return a_mesh.getEdge(m_pairEdge);
 }
 
 template <class T, class Meta>
@@ -234,7 +234,7 @@ EdgeT<T, Meta>::getPairEdge(const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(m_pairEdge != UINT32_MAX);
 
-  return a_mesh.getEdges()[m_pairEdge];
+  return a_mesh.getEdge(m_pairEdge);
 }
 
 template <class T, class Meta>
@@ -243,7 +243,7 @@ EdgeT<T, Meta>::getNextEdge(Mesh& a_mesh) noexcept
 {
   EBGEOMETRY_EXPECT(m_nextEdge != UINT32_MAX);
 
-  return a_mesh.getEdges()[m_nextEdge];
+  return a_mesh.getEdge(m_nextEdge);
 }
 
 template <class T, class Meta>
@@ -252,7 +252,7 @@ EdgeT<T, Meta>::getNextEdge(const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(m_nextEdge != UINT32_MAX);
 
-  return a_mesh.getEdges()[m_nextEdge];
+  return a_mesh.getEdge(m_nextEdge);
 }
 
 template <class T, class Meta>
@@ -273,7 +273,7 @@ EdgeT<T, Meta>::getFace(Mesh& a_mesh) noexcept
 {
   EBGEOMETRY_EXPECT(m_face != UINT32_MAX);
 
-  return a_mesh.getFaces()[m_face];
+  return a_mesh.getFace(m_face);
 }
 
 template <class T, class Meta>
@@ -282,7 +282,7 @@ EdgeT<T, Meta>::getFace(const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(m_face != UINT32_MAX);
 
-  return a_mesh.getFaces()[m_face];
+  return a_mesh.getFace(m_face);
 }
 
 template <class T, class Meta>

@@ -58,40 +58,51 @@ castIsPointInsideFace(DCEL::FaceT<T, DCEL::DefaultMetaData>&       a_face,
 template <class T>
 struct BuiltFace
 {
-  using Meta = DCEL::DefaultMetaData;
-  using Mesh = DCEL::MeshT<T, Meta>;
+  using Meta   = DCEL::DefaultMetaData;
+  using Mesh   = DCEL::MeshT<T, Meta>;
+  using Vertex = DCEL::VertexT<T, Meta>;
+  using Edge   = DCEL::EdgeT<T, Meta>;
+  using Face   = DCEL::FaceT<T, Meta>;
 
+  // m_mesh holds a raw Pool* pointing at m_pool (see MeshT's class-level note), so BuiltFace is not
+  // safe to copy or move -- a moved-to object's m_mesh would keep pointing at the moved-FROM
+  // object's m_pool. Every use site relies on C++17's guaranteed copy elision for prvalue returns
+  // (e.g. `return BuiltFace<T>(...)`), which needs no copy/move constructor at all.
+  Pool m_pool;
   Mesh m_mesh;
 
-  explicit BuiltFace(const std::vector<Vec3T<T>>& a_positions)
+  explicit BuiltFace(const std::vector<Vec3T<T>>& a_positions) : m_pool(hostMemoryResource()), m_mesh(m_pool)
   {
     const uint32_t N = static_cast<uint32_t>(a_positions.size());
 
-    auto& vertices = m_mesh.getVertices();
-    auto& edges    = m_mesh.getEdges();
-    auto& faces    = m_mesh.getFaces();
+    m_mesh.reserveVertices(N);
+    m_mesh.reserveEdges(N);
+    m_mesh.reserveFaces(1);
 
     for (const auto& p : a_positions) {
-      vertices.emplace_back(p);
+      m_mesh.addVertex(Vertex(p));
     }
 
     for (uint32_t i = 0; i < N; i++) {
-      edges.emplace_back(i); // half-edge i starts at vertex i
+      m_mesh.addEdge(Edge(i)); // half-edge i starts at vertex i
     }
 
     for (uint32_t i = 0; i < N; i++) {
-      edges[i].setNextEdge((i + 1) % N);
-      edges[i].setFace(0);
+      m_mesh.getEdge(i).setNextEdge((i + 1) % N);
+      m_mesh.getEdge(i).setFace(0);
     }
 
-    faces.emplace_back(0u); // half-edge index 0
-    faces[0].reconcile(m_mesh);
+    m_mesh.addFace(Face(0u)); // half-edge index 0
+    m_mesh.getFace(0).reconcile(m_mesh);
   }
+
+  BuiltFace(const BuiltFace&) = delete;
+  BuiltFace(BuiltFace&&)      = delete;
 
   [[nodiscard]] bool
   isPointInside(const Vec3T<T>& a_point, DCEL::InsideOutsideAlgorithm a_algorithm)
   {
-    auto& face = m_mesh.getFaces()[0];
+    auto& face = m_mesh.getFace(0);
 
     face.setInsideOutsideAlgorithm(a_algorithm);
 

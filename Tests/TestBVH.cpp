@@ -83,19 +83,21 @@ TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical,
 {
   using T = TestType;
 
-  const auto meshSTL = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
-  const auto meshPLY = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"));
-  const auto meshOBJ = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"));
-  const auto meshVTK = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"));
+  Pool pool(hostMemoryResource());
+
+  const auto meshSTL = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+  const auto meshPLY = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"), pool);
+  const auto meshOBJ = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto meshVTK = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"), pool);
 
   for (const auto& mesh : {meshSTL, meshPLY, meshOBJ, meshVTK}) {
     REQUIRE(mesh != nullptr);
-    REQUIRE(mesh->getVertices().size() == 20);
-    REQUIRE(mesh->getFaces().size() == 36);
-    REQUIRE(mesh->getEdges().size() == 108); // 54 undirected edges * 2 half-edges each.
+    REQUIRE(mesh->numVertices() == 20);
+    REQUIRE(mesh->numFaces() == 36);
+    REQUIRE(mesh->numEdges() == 108); // 54 undirected edges * 2 half-edges each.
 
-    for (const auto& e : mesh->getEdges()) {
-      REQUIRE(e.getPairEdgeIndex() != UINT32_MAX); // Watertight: every half-edge has a pair.
+    for (uint32_t i = 0; i < mesh->numEdges(); i++) {
+      REQUIRE(mesh->getEdge(i).getPairEdgeIndex() != UINT32_MAX); // Watertight: every half-edge has a pair.
     }
   }
 
@@ -119,13 +121,15 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 
   constexpr size_t K = 4;
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"));
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
   REQUIRE(mesh != nullptr);
 
   using Face = DCEL::FaceT<T, Meta>;
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
-  for (const auto& f : mesh->getFaces()) {
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    const auto& f = mesh->getFace(i);
     primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(*mesh)));
   }
   REQUIRE(primsAndBVs.size() == 36);
@@ -201,7 +205,8 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
 
   constexpr size_t K = 4;
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
 
   const FlatMeshSDF<T, Meta> flat(mesh);
@@ -224,7 +229,8 @@ TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshS
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"));
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"), pool);
   REQUIRE(mesh != nullptr);
 
   const FlatMeshSDF<T, Meta> flat(mesh);
@@ -248,7 +254,8 @@ TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candi
 
   constexpr size_t K = 4;
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"));
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"), pool);
   REQUIRE(mesh != nullptr);
 
   const MeshSDF<T, Meta, K> packed(mesh, BVH::Build::SAH);
@@ -631,11 +638,12 @@ TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly fro
 
   constexpr size_t K = 4;
 
-  const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  Pool       pool(hostMemoryResource());
+  const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(direct != nullptr);
 
   const MeshSDF<T, Meta, K> expected(direct, BVH::Build::SAH);
-  const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"));
+  const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"), pool);
 
   REQUIRE(fromFile != nullptr);
 
@@ -658,15 +666,17 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
   // loop, not some kind of multi-mesh merge.
   const std::vector<std::string> files = {dataPath("dodecahedron.stl"), dataPath("dodecahedron.ply")};
 
+  Pool pool(hostMemoryResource());
+
   SECTION("readIntoDCEL")
   {
-    const auto meshes = Parser::readIntoDCEL<T, Meta>(files);
+    const auto meshes = Parser::readIntoDCEL<T, Meta>(files, pool);
     REQUIRE(meshes.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoDCEL<T, Meta>(files[i]);
-      REQUIRE(meshes[i]->getVertices().size() == single->getVertices().size());
-      REQUIRE(meshes[i]->getFaces().size() == single->getFaces().size());
+      const auto single = Parser::readIntoDCEL<T, Meta>(files[i], pool);
+      REQUIRE(meshes[i]->numVertices() == single->numVertices());
+      REQUIRE(meshes[i]->numFaces() == single->numFaces());
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(meshes[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
@@ -675,11 +685,11 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
 
   SECTION("readIntoMesh")
   {
-    const auto flatSDFs = Parser::readIntoMesh<T, Meta>(files);
+    const auto flatSDFs = Parser::readIntoMesh<T, Meta>(files, pool);
     REQUIRE(flatSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoMesh<T, Meta>(files[i]);
+      const auto single = Parser::readIntoMesh<T, Meta>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(flatSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
@@ -688,11 +698,11 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
 
   SECTION("readIntoPackedBVH")
   {
-    const auto packedSDFs = Parser::readIntoPackedBVH<T, Meta, K>(files);
+    const auto packedSDFs = Parser::readIntoPackedBVH<T, Meta, K>(files, pool);
     REQUIRE(packedSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i]);
+      const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(packedSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
@@ -701,11 +711,11 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
 
   SECTION("readIntoTriangleBVH")
   {
-    const auto triSDFs = Parser::readIntoTriangleBVH<T, Meta>(files);
+    const auto triSDFs = Parser::readIntoTriangleBVH<T, Meta>(files, pool);
     REQUIRE(triSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoTriangleBVH<T, Meta>(files[i]);
+      const auto single = Parser::readIntoTriangleBVH<T, Meta>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(triSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
@@ -977,7 +987,8 @@ TEMPLATE_TEST_CASE("TriMeshSDF: explicit BVH::SharedPtrStorage<TriAoSoA> agrees 
 
   using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
 
   const TriMeshSDF<T, Meta, K, W>                                  defaultStorage(mesh, BVH::Build::SAH, 2);
@@ -999,9 +1010,10 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangleBVH accepts an explicit StoragePolic
 
   using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
-  const auto defaultTri = Parser::readIntoTriangleBVH<T, Meta, K, W>(dataPath("dodecahedron.stl"));
+  Pool       pool(hostMemoryResource());
+  const auto defaultTri = Parser::readIntoTriangleBVH<T, Meta, K, W>(dataPath("dodecahedron.stl"), pool);
   const auto sharedTri =
-    Parser::readIntoTriangleBVH<T, Meta, K, W, BVH::SharedPtrStorage<TriAoSoA>>(dataPath("dodecahedron.stl"));
+    Parser::readIntoTriangleBVH<T, Meta, K, W, BVH::SharedPtrStorage<TriAoSoA>>(dataPath("dodecahedron.stl"), pool);
 
   REQUIRE(defaultTri != nullptr);
   REQUIRE(sharedTri != nullptr);
@@ -1413,11 +1425,12 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 
   constexpr size_t K = 4;
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"));
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
-  REQUIRE(mesh->getFaces().size() == 4);
+  REQUIRE(mesh->numFaces() == 4);
 
-  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"));
+  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(triangles.size() == 4);
 
   const FlatMeshSDF<T, Meta> flat(mesh);
@@ -1886,8 +1899,9 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
   // Two distinct triangle meshes read from the in-repo fixtures. Each TriMeshSDF owns an inner
   // PackedBVH over SoA triangle groups (ValueStorage by default) -- these are the inner BVHs that
   // the outer union BVH nests over.
-  const auto dodec = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
-  const auto tetra = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"));
+  Pool       pool(hostMemoryResource());
+  const auto dodec = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+  const auto tetra = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(dodec != nullptr);
   REQUIRE(tetra != nullptr);
 
@@ -1945,11 +1959,13 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 
   constexpr size_t K = 4;
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
-  for (const auto& f : mesh->getFaces()) {
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    const auto& f = mesh->getFace(i);
     primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(*mesh)));
   }
 
