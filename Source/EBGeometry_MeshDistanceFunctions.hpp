@@ -134,14 +134,16 @@ protected:
  * SIMD-accelerated traversal. Accepts any polygon, not just triangles.
  * @details The mesh faces are packed into a flat-array PackedBVH. SIMD traversal
  * is used when T and K match an available ISA path. Unlike TriMeshSDF, MeshSDF does not expose a
- * PackedBVH StoragePolicy choice: its PackedBVH always uses BVH::SharedPtrStorage<Face>, sharing
- * each packed face with the DCEL mesh's own face list rather than copying it. A DCEL::FaceT is not a
- * self-contained value -- its point-in-face test walks the face's half-edge loop into the mesh's
- * edges and vertices -- so MeshSDF retains the source mesh (m_mesh) to keep that topology alive, and
- * shares the faces with it rather than storing independent copies that would depend on the same mesh
- * anyway. TriMeshSDF's SoA groups, by contrast, are self-contained value types (they pack the
- * triangle geometry by value), which is why it can store them inline and offers a StoragePolicy. See
- * the user documentation for the full rationale.
+ * PackedBVH StoragePolicy choice: its PackedBVH always uses BVH::SharedPtrStorage<Face>, each
+ * packed face being a fresh copy of the corresponding DCEL mesh face (DCEL::FaceT is a plain,
+ * trivially-copyable value, so copying it is cheap and free of aliasing). That copy is only
+ * meaningful together with the mesh it was built from, though: a FaceT stores its half-edge as an
+ * index into its owning mesh's edge array, not a self-resolving reference, so MeshSDF retains the
+ * source mesh (m_mesh) and passes it to every DCEL::FaceT query that needs to resolve topology
+ * (point-in-face tests, signed distance). TriMeshSDF's SoA groups, by contrast, need no such
+ * external context -- they pack the triangle geometry by value with no index into anything else --
+ * which is why it can store them inline and offers a StoragePolicy. See the user documentation for
+ * the full rationale.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).

@@ -12,7 +12,7 @@
 #define EBGEOMETRY_DCEL_ITERATOR_HPP
 
 // Std includes
-#include <memory>
+#include <cstdint>
 #include <type_traits>
 
 // Our includes
@@ -25,13 +25,15 @@ namespace DCEL {
 /**
  * @brief Class which makes it easier to iterate through DCEL edges
  * @details Iterates the half-edge loop bounding a polygon face (or starting from an arbitrary
- * half-edge), following EdgeT::getNextEdge() until either the loop returns to its starting edge
- * (a well-formed, closed face) or a null next-edge is reached (an incomplete/open half-edge chain).
- * Typical usage:
+ * half-edge index), following EdgeT::getNextEdgeIndex() until either the loop returns to its
+ * starting edge (a well-formed, closed face) or an unset next-edge index is reached (an
+ * incomplete/open half-edge chain). Resolves indices against the mesh passed at construction, so
+ * the iterator itself is a lightweight, short-lived (stack-only) helper -- it is not stored inside
+ * any DCEL object and does not need to be trivially copyable or portable. Typical usage:
  * @code{.cpp}
- * for (EdgeIterator it(someFace); it.ok(); ++it) {
- *   const EdgePtr& edge = it();
- *   // ... use edge ...
+ * for (EdgeIterator it(mesh, someFace); it.ok(); ++it) {
+ *   const uint32_t edgeIndex = it();
+ *   // ... use mesh.getEdges()[edgeIndex] ...
  * }
  * @endcode
  * @tparam T    Floating-point precision type.
@@ -59,19 +61,9 @@ public:
   using Face = FaceT<T, Meta>;
 
   /**
-   * @brief Alias for vertex pointer
+   * @brief Alias for DCEL mesh type
    */
-  using VertexPtr = std::shared_ptr<Vertex>;
-
-  /**
-   * @brief Alias for edge pointer
-   */
-  using EdgePtr = std::shared_ptr<Edge>;
-
-  /**
-   * @brief Alias for face pointer
-   */
-  using FacePtr = std::shared_ptr<Face>;
+  using Mesh = MeshT<T, Meta>;
 
   /**
    * @brief Default construction is not allowed. Use one of the full constructors
@@ -79,31 +71,23 @@ public:
   EdgeIteratorT() = delete;
 
   /**
-   * @brief Constructor, taking a face as argument. The iterator begins at the
-   * half-edge pointer contained in the face
+   * @brief Constructor, taking a mesh and a face as argument. The iterator begins at the
+   * half-edge index contained in the face.
+   * @param[in] a_mesh Owning mesh, used to resolve edge indices.
    * @param[in] a_face DCEL polygon face
-   * @note This constructor will will iterate through the half-edges in the
-   * polygon face.
+   * @note This constructor will iterate through the half-edges in the polygon face.
    */
-  EdgeIteratorT(Face& a_face) noexcept;
+  EdgeIteratorT(const Mesh& a_mesh, const Face& a_face) noexcept;
 
   /**
-   * @brief Constructor, taking a face as argument. The iterator begins at the
-   * half-edge pointer contained in the face
-   * @param[in] a_face DCEL polygon face
-   * @note This constructor will will iterate through the half-edges in the
-   * polygon face.
+   * @brief Constructor, taking a mesh and an arbitrary starting half-edge index directly (rather
+   * than a face's own half-edge). Useful for iterating a half-edge loop when only an edge index --
+   * not its face -- is available.
+   * @param[in] a_mesh          Owning mesh, used to resolve edge indices.
+   * @param[in] a_startEdgeIndex Starting half-edge index. May be UINT32_MAX (ok() will then
+   * immediately return false).
    */
-  EdgeIteratorT(const Face& a_face) noexcept;
-
-  /**
-   * @brief Constructor, taking an arbitrary starting half-edge directly (rather than a face's own
-   * half-edge). Useful for iterating a half-edge loop when only an edge -- not its face -- is
-   * available.
-   * @param[in] a_startEdge Starting half-edge. May be nullptr (ok() will then immediately return
-   * false).
-   */
-  EdgeIteratorT(const EdgePtr& a_startEdge) noexcept;
+  EdgeIteratorT(const Mesh& a_mesh, const uint32_t a_startEdgeIndex) noexcept;
 
   /**
    * @brief Copy constructor.
@@ -139,17 +123,10 @@ public:
   operator=(EdgeIteratorT&& a_other) noexcept = default;
 
   /**
-   * @brief Operator returning a pointer to the current half-edge
-   * @return Reference to the shared pointer to the current half-edge.
+   * @brief Operator returning the index of the current half-edge
+   * @return Index of the current half-edge in the owning mesh's edge array.
    */
-  [[nodiscard]] inline EdgePtr&
-  operator()() noexcept;
-
-  /**
-   * @brief Operator returning a pointer to the current half-edge (const overload)
-   * @return Const reference to the shared pointer to the current half-edge.
-   */
-  [[nodiscard]] inline const EdgePtr&
+  [[nodiscard]] inline uint32_t
   operator()() const noexcept;
 
   /**
@@ -167,26 +144,31 @@ public:
 
   /**
    * @brief Function which checks if the iteration can be continued.
-   * @return True if the iterator has not completed a full loop and the current edge is not null.
+   * @return True if the iterator has not completed a full loop and the current edge index is set.
    */
   [[nodiscard]] inline bool
   ok() const noexcept;
 
 protected:
   /**
+   * @brief Owning mesh, used to resolve edge indices. Non-owning; must outlive the iterator.
+   */
+  const Mesh* m_mesh = nullptr;
+
+  /**
    * @brief If true, a full loop has been made around the polygon face
    */
   bool m_fullLoop = false;
 
   /**
-   * @brief Starting half-edge
+   * @brief Starting half-edge index, or UINT32_MAX if unset.
    */
-  std::shared_ptr<Edge> m_startEdge = nullptr;
+  uint32_t m_startEdge = UINT32_MAX;
 
   /**
-   * @brief Current half-edge
+   * @brief Current half-edge index, or UINT32_MAX if unset.
    */
-  std::shared_ptr<Edge> m_curEdge = nullptr;
+  uint32_t m_curEdge = UINT32_MAX;
 };
 } // namespace DCEL
 

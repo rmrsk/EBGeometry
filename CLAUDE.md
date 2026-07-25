@@ -287,16 +287,22 @@ does not follow this template, edit the PR body to conform to it.
   `debug-san`, OFF in `release`/`release-test`) and are the primary way internal invariant
   violations (e.g. a dangling half-edge, a malformed mesh) surface during development; they compile
   to nothing in Release.
-- **DCEL topology uses `weak_ptr` for back-references** (edge→pair edge, edge→face, vertex→
-  outgoing edge, etc.) with the `DCEL::MeshT`'s own vertex/edge/face vectors as the sole
-  `shared_ptr` owners. Introducing a *new* back-reference field as a `shared_ptr` will very likely
-  create a reference cycle that leaks (invisible without a leak-checking sanitizer, since nothing
-  crashes) — always use `weak_ptr` + `.lock()` for anything that points "backward" in the mesh
-  graph.
+- **DCEL topology is index-based, not pointer-based.** Every cross-reference (edge→pair edge,
+  edge→face, vertex→outgoing edge, face→half-edge, etc.) is a plain `uint32_t` index into the
+  owning `DCEL::MeshT`'s own vertex/edge/face arrays, sentinel `UINT32_MAX` for "unset" — never a
+  `weak_ptr`/`shared_ptr`. This is what makes `VertexT`/`EdgeT`/`FaceT` trivially copyable
+  (`static_assert`-checked in their headers), a prerequisite for the GPU port's `memcpy`-based
+  mirroring. Any member function that needs to resolve one of these indices back into an actual
+  vertex/edge/face therefore takes the owning `MeshT` as an explicit parameter (e.g.
+  `edge.getVertex(mesh)`, `face.signedDistance(point, mesh)`) — introducing a *new* back-reference
+  field should follow the same pattern (an index member, resolved via an explicit mesh parameter),
+  not a cached pointer, which would only be valid in the address space it was set in and would
+  need re-patching after every host-to-device mirror.
 - **`MeshSDF` retains its source `DCEL::MeshT`, not just the packed BVH.** If you write a similar
   wrapper around a DCEL mesh, remember that a `PackedBVH` of faces holds `shared_ptr<const
-  DCEL::FaceT>`s that transitively `weak_ptr`-reference the mesh's edges/vertices — nothing keeps
-  the mesh itself alive unless something holds an explicit `shared_ptr<DCEL::MeshT>`.
+  DCEL::FaceT>`s whose half-edge index is only meaningful together with the mesh it was resolved
+  against — nothing keeps the mesh itself alive unless something holds an explicit
+  `shared_ptr<DCEL::MeshT>`.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s
   `binaryDir`) specifically so switching presets can't silently reuse a stale `CMakeCache.txt` from
   a different configuration.

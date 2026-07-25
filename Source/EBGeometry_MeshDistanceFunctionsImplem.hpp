@@ -66,13 +66,15 @@ buildDCELTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcel
   using Prim          = EBGeometry::DCEL::FaceT<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
 
-  // Create a pair-wise list of DCEL faces and their bounding volumes.
+  // Create a pair-wise list of DCEL faces and their bounding volumes. Each face is copied into a
+  // fresh shared_ptr here (rather than aliasing the mesh's own array) since DCEL::FaceT is now a
+  // plain, trivially-copyable value -- the copy's topology indices remain valid because they are
+  // resolved against the same retained mesh (see MeshSDF::m_mesh) both before and after the copy.
   PrimAndBVList primsAndBVs;
 
   for (const auto& f : a_dcelMesh->getFaces()) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    primsAndBVs.emplace_back(std::make_pair(f, BV(f->getAllVertexCoordinates())));
+    primsAndBVs.emplace_back(
+      std::make_pair(std::make_shared<const Prim>(f), BV(f.getAllVertexCoordinates(*a_dcelMesh))));
   }
 
   // Partition the BVH using the default input arguments.
@@ -256,12 +258,10 @@ MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Bui
 
   m_bvh = bvh->pack();
 
-  // DCEL::FaceT/EdgeT/VertexT only hold weak_ptr back-references to their neighboring
-  // half-edges/vertices/faces (to avoid reference cycles); the mesh's own vertex/edge/face
-  // vectors are the sole owners keeping them alive. m_bvh only keeps the faces themselves
-  // alive (as its primitives), so the source mesh must be retained here too, or every face's
-  // half-edge (and the rest of its edge loop) would dangle as soon as the caller's mesh
-  // shared_ptr goes out of scope.
+  // Each DCEL::FaceT held by m_bvh only stores a half-edge INDEX, meaningful solely against the
+  // mesh's own vertex/edge/face arrays -- it carries no owning reference to them. The source mesh
+  // must therefore be retained here too, or those indices would dangle as soon as the caller's
+  // mesh shared_ptr goes out of scope.
   m_mesh = a_mesh;
 }
 
@@ -274,12 +274,15 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
+  EBGEOMETRY_EXPECT(m_mesh != nullptr);
+
   T           minDist = std::numeric_limits<T>::max();
   const auto& faces   = m_bvh->getPrimitives();
+  const auto& mesh    = *m_mesh;
 
-  const auto evalLeaf = [&faces, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
+  const auto evalLeaf = [&faces, &a_point, &mesh](T& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      const T curDist = faces[i]->signedDistance(a_point);
+      const T curDist = faces[i]->signedDistance(a_point, mesh);
 
       EBGEOMETRY_EXPECT(!std::isnan(curDist));
 
@@ -299,9 +302,12 @@ std::vector<std::pair<std::shared_ptr<const EBGeometry::DCEL::FaceT<T, Meta>>, T
 MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
+  EBGEOMETRY_EXPECT(m_mesh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+  const auto& mesh = *m_mesh;
 
   using FaceAndDist = std::pair<std::shared_ptr<const Face>, T>;
 
@@ -331,10 +337,10 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
     [&a_point](const Node& a_node) noexcept -> BVHNodeKey { return a_node.getDistanceToBoundingVolume(a_point); };
 
   const EBGeometry::BVH::PackedLeafEvaluator<Face> leafEvaluator =
-    [&shortestDistanceSoFar, &a_point, &candidateFaces](
+    [&shortestDistanceSoFar, &a_point, &candidateFaces, &mesh](
       const std::vector<std::shared_ptr<const Face>>& a_faces, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
-      const T distToFace = std::sqrt(a_faces[i]->unsignedDistance2(a_point));
+      const T distToFace = std::sqrt(a_faces[i]->unsignedDistance2(a_point, mesh));
 
       EBGEOMETRY_EXPECT(!std::isnan(distToFace));
 
@@ -427,26 +433,32 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
   std::vector<std::shared_ptr<Tri>> triangles;
 
   for (const auto& f : a_mesh->getFaces()) {
-    EBGEOMETRY_EXPECT(f != nullptr);
+    const auto normal        = f.getNormal();
+    const auto vertexIndices = f.gatherVertexIndices(*a_mesh);
+    const auto edgeIndices   = f.gatherEdgeIndices(*a_mesh);
 
-    const auto normal   = f->getNormal();
-    const auto vertices = f->gatherVertices();
-    const auto edges    = f->gatherEdges();
+    EBGEOMETRY_EXPECT(vertexIndices.size() == 3);
+    EBGEOMETRY_EXPECT(edgeIndices.size() == 3);
 
-    EBGEOMETRY_EXPECT(vertices.size() == 3);
-    EBGEOMETRY_EXPECT(edges.size() == 3);
-
-    if ((vertices.size() != 3) || (edges.size() != 3)) {
+    if ((vertexIndices.size() != 3) || (edgeIndices.size() != 3)) {
       std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
     }
+
+    const auto& v0 = a_mesh->getVertices()[vertexIndices[0]];
+    const auto& v1 = a_mesh->getVertices()[vertexIndices[1]];
+    const auto& v2 = a_mesh->getVertices()[vertexIndices[2]];
+
+    const auto& e0 = a_mesh->getEdges()[edgeIndices[0]];
+    const auto& e1 = a_mesh->getEdges()[edgeIndices[1]];
+    const auto& e2 = a_mesh->getEdges()[edgeIndices[2]];
 
     auto tri = std::make_shared<Tri>();
 
     tri->setNormal(normal);
-    tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
-    tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
-    tri->setEdgeNormals({edges[0]->getNormal(), edges[1]->getNormal(), edges[2]->getNormal()});
-    tri->setMetaData(f->getMetaData());
+    tri->setVertexPositions({v0.getPosition(), v1.getPosition(), v2.getPosition()});
+    tri->setVertexNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
+    tri->setEdgeNormals({e0.getNormal(), e1.getNormal(), e2.getNormal()});
+    tri->setMetaData(f.getMetaData());
 
     triangles.emplace_back(tri);
   }

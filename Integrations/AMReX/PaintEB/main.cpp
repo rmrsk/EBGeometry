@@ -40,7 +40,7 @@ public:
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
     auto& faces = mesh->getFaces();
     for (size_t i = 0; i < faces.size(); i++) {
-      faces[i]->getMetaData() = 1.0 * i;
+      faces[i].getMetaData() = 1.0 * i;
     }
 
     m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, EBGeometry::BVH::Build::SAH);

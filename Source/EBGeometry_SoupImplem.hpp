@@ -14,9 +14,9 @@
 // Std includes
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <map>
-#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -158,67 +158,56 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   using Edge   = EBGeometry::DCEL::EdgeT<T, Meta>;
   using Face   = EBGeometry::DCEL::FaceT<T, Meta>;
 
-  std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh.getVertices();
-  std::vector<std::shared_ptr<Edge>>&   edges    = a_mesh.getEdges();
-  std::vector<std::shared_ptr<Face>>&   faces    = a_mesh.getFaces();
+  std::vector<Vertex>& vertices = a_mesh.getVertices();
+  std::vector<Edge>&   edges    = a_mesh.getEdges();
+  std::vector<Face>&   faces    = a_mesh.getFaces();
 
-  // Build the vertex vectors from the input vertices.
+  // Build the vertex array from the input vertices; index i here becomes vertex index i in the
+  // mesh, matching how a_facets already indexes into a_vertices.
+  vertices.reserve(a_vertices.size());
   for (const auto& v : a_vertices) {
-    vertices.emplace_back(std::make_shared<Vertex>(v, Vec3::zeros()));
+    vertices.emplace_back(v, Vec3::zeros());
   }
 
-  // Now build the faces.
+  // Now build the faces, appending each facet's half-edges directly into the mesh's own edge/face
+  // arrays and wiring them by index rather than by pointer.
   for (const auto& curFacet : a_facets) {
     if (curFacet.size() < 3) {
       std::cerr << "Parser::soupToDCEL -- not enough vertices in face, skipping it\n";
 
-      // The cerr above only warns; falling through here would reach halfEdges.front() on a
-      // possibly-empty vector below, which is undefined behavior for a 0-vertex facet.
+      // The cerr above only warns; falling through here would reach edges[firstEdgeIndex] below
+      // on a 0-vertex facet, which is a bounds violation.
       EBGEOMETRY_EXPECT(curFacet.size() >= 3);
 
       continue;
     }
 
-    // Figure out which vertices are involved here.
-    std::vector<std::shared_ptr<Vertex>> faceVertices;
-    faceVertices.reserve(curFacet.size());
-    for (const size_t i : curFacet) {
-      EBGEOMETRY_EXPECT(i < vertices.size());
+    const uint32_t firstEdgeIndex = static_cast<uint32_t>(edges.size());
+    const uint32_t numEdges       = static_cast<uint32_t>(curFacet.size());
 
-      faceVertices.emplace_back(vertices[i]);
+    // Build the half-edges for this polygon: one per vertex, appended contiguously.
+    for (uint32_t i = 0; i < numEdges; i++) {
+      const uint32_t vertexIndex = static_cast<uint32_t>(curFacet[i]);
+      EBGEOMETRY_EXPECT(vertexIndex < vertices.size());
+
+      edges.emplace_back(vertexIndex);
+      vertices[vertexIndex].setEdge(firstEdgeIndex + i);
     }
 
-    // Build the half-edges for this polygon.
-    std::vector<std::shared_ptr<Edge>> halfEdges;
-    for (const auto& v : faceVertices) {
-      halfEdges.emplace_back(std::make_shared<Edge>(v));
-      v->setEdge(halfEdges.back());
+    for (uint32_t i = 0; i < numEdges; i++) {
+      edges[firstEdgeIndex + i].setNextEdge(firstEdgeIndex + (i + 1) % numEdges);
     }
 
-    for (size_t i = 0; i < halfEdges.size(); i++) {
-      auto& curEdge  = halfEdges[i];
-      auto& nextEdge = halfEdges[(i + 1) % halfEdges.size()];
+    const uint32_t faceIndex = static_cast<uint32_t>(faces.size());
+    faces.emplace_back(firstEdgeIndex);
 
-      curEdge->setNextEdge(nextEdge);
-    }
-
-    edges.insert(edges.end(), halfEdges.begin(), halfEdges.end());
-
-    faces.emplace_back(std::make_shared<Face>(halfEdges.front()));
-    auto& curFace = faces.back();
-
-    for (auto& e : halfEdges) {
-      e->setFace(curFace);
-    }
-
-    // Must give vertices access to all faces associated them.
-    for (const auto& v : faceVertices) {
-      v->addFace(curFace);
+    for (uint32_t i = 0; i < numEdges; i++) {
+      edges[firstEdgeIndex + i].setFace(faceIndex);
     }
   }
 
   // Reconcile the pair edges and run a sanity check.
-  Soup::reconcilePairEdgesDCEL(edges);
+  Soup::reconcilePairEdgesDCEL(a_mesh);
 
   a_mesh.sanityCheck(a_id);
 
@@ -227,37 +216,48 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
 
 template <typename T, typename Meta>
 inline void
-Soup::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept
+Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept
 {
   static_assert(std::is_floating_point_v<T>, "Soup::reconcilePairEdgesDCEL requires a floating-point T");
 
-  for (auto& curEdge : a_edges) {
-    EBGEOMETRY_EXPECT(curEdge != nullptr);
+  using Edge = EBGeometry::DCEL::EdgeT<T, Meta>;
 
-    const auto& nextEdge = curEdge->getNextEdge();
-    EBGEOMETRY_EXPECT(nextEdge != nullptr);
+  std::vector<Edge>& edges       = a_mesh.getEdges();
+  const size_t       numVertices = a_mesh.getVertices().size();
 
-    const auto& vertexStart = curEdge->getVertex();
-    const auto& vertexEnd   = nextEdge->getVertex();
-    EBGEOMETRY_EXPECT(vertexStart != nullptr);
+  // Local, transient bookkeeping (NOT stored on VertexT, which keeps only a single outgoing-edge
+  // index -- see its class-level note): which half-edges start at each vertex, so the search below
+  // stays O(V + E) instead of an O(E^2) scan over every edge pair.
+  std::vector<std::vector<uint32_t>> edgesStartingAtVertex(numVertices);
+  for (uint32_t i = 0; i < edges.size(); i++) {
+    const uint32_t v = edges[i].getVertexIndex();
 
-    for (const auto& p : vertexStart->getFaces()) {
-      EBGEOMETRY_EXPECT(p != nullptr);
+    EBGEOMETRY_EXPECT(v < numVertices);
 
-      for (EBGeometry::DCEL::EdgeIteratorT<T, Meta> edgeIt(*p); edgeIt.ok(); ++edgeIt) {
-        const auto& polyCurEdge = edgeIt();
-        EBGEOMETRY_EXPECT(polyCurEdge != nullptr);
+    edgesStartingAtVertex[v].push_back(i);
+  }
 
-        const auto& polyNextEdge = polyCurEdge->getNextEdge();
-        EBGEOMETRY_EXPECT(polyNextEdge != nullptr);
+  for (uint32_t curIndex = 0; curIndex < edges.size(); curIndex++) {
+    Edge& curEdge = edges[curIndex];
 
-        const auto& polyVertexStart = polyCurEdge->getVertex();
-        const auto& polyVertexEnd   = polyNextEdge->getVertex();
+    const uint32_t nextIndex = curEdge.getNextEdgeIndex();
+    EBGEOMETRY_EXPECT(nextIndex != UINT32_MAX);
 
-        if (vertexStart == polyVertexEnd && polyVertexStart == vertexEnd) { // Found the pair edge
-          curEdge->setPairEdge(polyCurEdge);
-          polyCurEdge->setPairEdge(curEdge);
-        }
+    const uint32_t vertexStart = curEdge.getVertexIndex();
+    const uint32_t vertexEnd   = edges[nextIndex].getVertexIndex();
+
+    // The pair edge starts where this edge ends, and ends where this edge starts.
+    for (const uint32_t candIndex : edgesStartingAtVertex[vertexEnd]) {
+      Edge&          candEdge      = edges[candIndex];
+      const uint32_t candNextIndex = candEdge.getNextEdgeIndex();
+
+      EBGEOMETRY_EXPECT(candNextIndex != UINT32_MAX);
+
+      if (edges[candNextIndex].getVertexIndex() == vertexStart) { // Found the pair edge
+        curEdge.setPairEdge(candIndex);
+        candEdge.setPairEdge(curIndex);
+
+        break;
       }
     }
   }

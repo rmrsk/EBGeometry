@@ -164,6 +164,6 @@ TEMPLATE_TEST_CASE("VTK: convertToDCEL builds a mesh with the correct compressed
   REQUIRE(mesh->getEdges().size() == 12); // 4 triangular faces * 3 half-edges each.
 
   for (const auto& e : mesh->getEdges()) {
-    REQUIRE(e->getPairEdge() != nullptr); // Watertight: every half-edge has a pair.
+    REQUIRE(e.getPairEdgeIndex() != UINT32_MAX); // Watertight: every half-edge has a pair.
   }
 }

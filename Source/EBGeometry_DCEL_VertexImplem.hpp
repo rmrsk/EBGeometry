@@ -16,7 +16,6 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
-#include <memory>
 #include <vector>
 
 // Our includes
@@ -55,29 +54,8 @@ inline VertexT<T, Meta>::VertexT(const Vec3& a_position, const Vec3& a_normal) :
 }
 
 template <class T, class Meta>
-inline VertexT<T, Meta>::VertexT(const VertexT<T, Meta>& a_otherVertex)
-{
-  m_position     = a_otherVertex.m_position;
-  m_normal       = a_otherVertex.m_normal;
-  m_outgoingEdge = a_otherVertex.m_outgoingEdge;
-}
-
-template <class T, class Meta>
-inline VertexT<T, Meta>&
-VertexT<T, Meta>::operator=(const VertexT<T, Meta>& a_otherVertex)
-{
-  if (this != &a_otherVertex) {
-    m_position     = a_otherVertex.m_position;
-    m_normal       = a_otherVertex.m_normal;
-    m_outgoingEdge = a_otherVertex.m_outgoingEdge;
-  }
-
-  return *this;
-}
-
-template <class T, class Meta>
 inline void
-VertexT<T, Meta>::define(const Vec3& a_position, const EdgePtr& a_edge, const Vec3& a_normal) noexcept
+VertexT<T, Meta>::define(const Vec3& a_position, const uint32_t a_edgeIndex, const Vec3& a_normal) noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_position[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_position[1]));
@@ -86,9 +64,9 @@ VertexT<T, Meta>::define(const Vec3& a_position, const EdgePtr& a_edge, const Ve
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[2]));
 
-  // a_edge == nullptr is valid here (e.g. a freshly-created vertex not yet wired into the mesh).
+  // a_edgeIndex == UINT32_MAX is valid here (e.g. a freshly-created vertex not yet wired into a mesh).
   m_position     = a_position;
-  m_outgoingEdge = a_edge;
+  m_outgoingEdge = a_edgeIndex;
   m_normal       = a_normal;
 }
 
@@ -105,11 +83,11 @@ VertexT<T, Meta>::setPosition(const Vec3& a_position) noexcept
 
 template <class T, class Meta>
 inline void
-VertexT<T, Meta>::setEdge(const EdgePtr& a_edge) noexcept
+VertexT<T, Meta>::setEdge(const uint32_t a_edgeIndex) noexcept
 {
-  // a_edge == nullptr is valid here; callers that dereference m_outgoingEdge are responsible for
-  // checking it first (see e.g. computeVertexNormalAngleWeighted).
-  m_outgoingEdge = a_edge;
+  // a_edgeIndex == UINT32_MAX is valid here; callers that resolve m_outgoingEdge are responsible
+  // for checking it first (see e.g. computeVertexNormalAngleWeighted).
+  m_outgoingEdge = a_edgeIndex;
 }
 
 template <class T, class Meta>
@@ -132,15 +110,6 @@ VertexT<T, Meta>::setNormal(const Vec3& a_normal) noexcept
 
 template <class T, class Meta>
 inline void
-VertexT<T, Meta>::addFace(const FacePtr& a_face)
-{
-  EBGEOMETRY_EXPECT(a_face != nullptr);
-
-  m_faces.emplace_back(a_face);
-}
-
-template <class T, class Meta>
-inline void
 VertexT<T, Meta>::normalizeNormalVector() noexcept
 {
   const T len = m_normal.length();
@@ -154,27 +123,18 @@ VertexT<T, Meta>::normalizeNormalVector() noexcept
 
 template <class T, class Meta>
 inline void
-VertexT<T, Meta>::computeVertexNormalAverage() noexcept
+VertexT<T, Meta>::computeVertexNormalAverage(const std::vector<uint32_t>& a_faceIndices, const Mesh& a_mesh) noexcept
 {
-  this->computeVertexNormalAverage(m_faces);
-}
-
-template <class T, class Meta>
-inline void
-VertexT<T, Meta>::computeVertexNormalAverage(const std::vector<FacePtr>& a_faces) noexcept
-{
-  EBGEOMETRY_EXPECT(!a_faces.empty());
+  EBGEOMETRY_EXPECT(!a_faceIndices.empty());
 
   m_normal = Vec3::zeros();
 
   // TLDR: We simply compute the sum of the normal vectors for each face in
-  // a_faces and then normalize. This
+  // a_faceIndices and then normalize. This
   //       will yield an "average" of the normal vectors of the faces
   //       circulating this vertex.
-  for (const auto& f : a_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    m_normal += f->getNormal();
+  for (const uint32_t faceIndex : a_faceIndices) {
+    m_normal += a_mesh.getFaces()[faceIndex].getNormal();
   }
 
   this->normalizeNormalVector();
@@ -182,17 +142,10 @@ VertexT<T, Meta>::computeVertexNormalAverage(const std::vector<FacePtr>& a_faces
 
 template <class T, class Meta>
 inline void
-VertexT<T, Meta>::computeVertexNormalAngleWeighted()
+VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               a_thisVertexIndex,
+                                                   const std::vector<uint32_t>& a_faceIndices,
+                                                   const Mesh&                  a_mesh)
 {
-  this->computeVertexNormalAngleWeighted(m_faces);
-}
-
-template <class T, class Meta>
-inline void
-VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces)
-{
-  m_normal = Vec3::zeros();
-
   // This routine computes the pseudonormal from pseudnormal algorithm from
   // Baerentzen and Aanes in "Signed distance computation using the angle
   // weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49). This algorithm computes
@@ -210,41 +163,41 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a
   // want the two half edges that has the current vertex as a mutual vertex
   // (i.e. the "incoming" and "outgoing" edges into this vertex). Normally we'd
   // just iterate through edges, but if it happens that an input face is
-  // flipped, this will result in infinite iteration. Instead, we have stored
-  // the pointers to each face connected to this vertex. We look through each
-  // face to find the endpoints of the edges the have the current vertex as the
-  // common vertex, and then compute the subtended angle between those. Sigh...
+  // flipped, this will result in infinite iteration. Instead, the caller has
+  // given us the indices of each face connected to this vertex. We look through
+  // each face to find the endpoints of the edges that have the current vertex
+  // as the common vertex, and then compute the subtended angle between those.
+  // Sigh...
 
-  EBGEOMETRY_EXPECT(!a_faces.empty());
-  EBGEOMETRY_EXPECT(!m_outgoingEdge.expired());
-  const VertexPtr originVertex = m_outgoingEdge.lock()->getVertex(); // AKA 'this'
+  EBGEOMETRY_EXPECT(!a_faceIndices.empty());
 
-  for (const auto& f : a_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
+  m_normal = Vec3::zeros();
 
-    std::vector<VertexPtr> inoutVertices(0);
-    for (EdgeIterator edgeIt(f->getHalfEdge()); edgeIt.ok(); ++edgeIt) {
-      const auto& e = edgeIt();
+  const uint32_t originVertexIndex = a_thisVertexIndex;
 
-      const auto& v1 = e->getVertex();
-      const auto& v2 = e->getOtherVertex();
+  for (const uint32_t faceIndex : a_faceIndices) {
+    const Face& f = a_mesh.getFaces()[faceIndex];
 
-      EBGEOMETRY_EXPECT(v1 != nullptr);
-      EBGEOMETRY_EXPECT(v2 != nullptr);
+    std::vector<uint32_t> inoutVertices(0);
+    for (EdgeIterator edgeIt(a_mesh, f); edgeIt.ok(); ++edgeIt) {
+      const Edge& e = a_mesh.getEdges()[edgeIt()];
 
-      if (v1 == originVertex || v2 == originVertex) {
-        if (v1 == originVertex) {
+      const uint32_t v1 = e.getVertexIndex();
+      const uint32_t v2 = e.getNextEdge(a_mesh).getVertexIndex();
+
+      if (v1 == originVertexIndex || v2 == originVertexIndex) {
+        if (v1 == originVertexIndex) {
           inoutVertices.emplace_back(v2);
         }
-        else if (v2 == originVertex) {
+        else if (v2 == originVertexIndex) {
           inoutVertices.emplace_back(v1);
         }
         else {
           std::cerr << "VertexT<T, Meta>::computeVertexNormalAngleWeighted(): unreachable branch "
-                       "hit -- a half-edge of face f was found to have originVertex as one of its "
-                       "two endpoints, but neither v1 nor v2 compares equal to it. This points to "
-                       "a corrupted or inconsistent half-edge/vertex topology (e.g. a stale vertex "
-                       "pointer) rather than a normal mesh-quality issue.\n";
+                       "hit -- a half-edge of face f was found to have originVertexIndex as one of "
+                       "its two endpoints, but neither v1 nor v2 compares equal to it. This points "
+                       "to a corrupted or inconsistent half-edge/vertex topology (e.g. a stale "
+                       "vertex index) rather than a normal mesh-quality issue.\n";
         }
       }
     }
@@ -264,9 +217,9 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a
     // well-formed triangle incident on exactly two edges at this vertex.
     EBGEOMETRY_EXPECT(inoutVertices.size() == 2);
 
-    const Vec3& x0 = originVertex->getPosition();
-    const Vec3& x1 = inoutVertices[0]->getPosition();
-    const Vec3& x2 = inoutVertices[1]->getPosition();
+    const Vec3& x0 = a_mesh.getVertices()[originVertexIndex].getPosition();
+    const Vec3& x1 = a_mesh.getVertices()[inoutVertices[0]].getPosition();
+    const Vec3& x2 = a_mesh.getVertices()[inoutVertices[1]].getPosition();
 
     if (x0 == x1 || x0 == x2 || x1 == x2) {
       std::cerr << "VertexT<T, Meta>::computeVertexNormalAngleWeighted(): degenerate face f -- two "
@@ -289,7 +242,7 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a
     v1 = v1 / v1.length();
     v2 = v2 / v2.length();
 
-    const Vec3& norm = f->getNormal();
+    const Vec3& norm = f.getNormal();
 
     // Clamp to [-1,1] to guard against std::acos(NaN) from floating-point rounding.
     const T alpha = std::acos(std::clamp(v1.dot(v2), T(-1), T(1)));
@@ -336,31 +289,28 @@ VertexT<T, Meta>::getNormal() const noexcept
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<EdgeT<T, Meta>>
-VertexT<T, Meta>::getOutgoingEdge() noexcept
+inline uint32_t
+VertexT<T, Meta>::getOutgoingEdgeIndex() const noexcept
 {
-  return m_outgoingEdge.lock();
+  return m_outgoingEdge;
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<EdgeT<T, Meta>>
-VertexT<T, Meta>::getOutgoingEdge() const noexcept
+inline EdgeT<T, Meta>&
+VertexT<T, Meta>::getOutgoingEdge(Mesh& a_mesh) noexcept
 {
-  return m_outgoingEdge.lock();
+  EBGEOMETRY_EXPECT(m_outgoingEdge != UINT32_MAX);
+
+  return a_mesh.getEdges()[m_outgoingEdge];
 }
 
 template <class T, class Meta>
-inline std::vector<std::shared_ptr<FaceT<T, Meta>>>&
-VertexT<T, Meta>::getFaces() noexcept
+inline const EdgeT<T, Meta>&
+VertexT<T, Meta>::getOutgoingEdge(const Mesh& a_mesh) const noexcept
 {
-  return m_faces;
-}
+  EBGEOMETRY_EXPECT(m_outgoingEdge != UINT32_MAX);
 
-template <class T, class Meta>
-inline const std::vector<std::shared_ptr<FaceT<T, Meta>>>&
-VertexT<T, Meta>::getFaces() const noexcept
-{
-  return m_faces;
+  return a_mesh.getEdges()[m_outgoingEdge];
 }
 
 template <class T, class Meta>

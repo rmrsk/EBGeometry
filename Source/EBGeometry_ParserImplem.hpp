@@ -1848,21 +1848,24 @@ Parser::readIntoTriangles(const std::string a_filename)
   bool onlyTriangles = true;
 
   for (const auto& f : mesh->getFaces()) {
-    const auto normal   = f->getNormal();
-    const auto vertices = f->gatherVertices();
-    const auto edges    = f->gatherEdges();
+    const auto normal        = f.getNormal();
+    const auto vertexIndices = f.gatherVertexIndices(*mesh);
 
-    if (vertices.size() != 3) {
+    if (vertexIndices.size() != 3) {
       onlyTriangles = false;
     }
+
+    const auto& v0 = mesh->getVertices()[vertexIndices[0]];
+    const auto& v1 = mesh->getVertices()[vertexIndices[1]];
+    const auto& v2 = mesh->getVertices()[vertexIndices[2]];
 
     // Create the triangle
     auto tri = std::make_shared<Triangle<T, Meta>>();
 
     tri->setNormal(normal);
-    tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
-    tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
-    tri->setEdgeNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
+    tri->setVertexPositions({v0.getPosition(), v1.getPosition(), v2.getPosition()});
+    tri->setVertexNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
+    tri->setEdgeNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
 
     triangles.emplace_back(tri);
   }
