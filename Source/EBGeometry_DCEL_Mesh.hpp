@@ -52,7 +52,15 @@ namespace DCEL {
  * giving every mesh its own Pool. The caller is responsible for keeping the
  * Pool alive for at least as long as any MeshT built into it, and for its
  * lifetime otherwise (see EBGeometry_Pool.hpp -- a Pool is a pure bump
- * allocator; nothing reserved from it is individually freed).
+ * allocator; nothing reserved from it is individually freed). MeshT stores a
+ * raw, non-owning pointer to that Pool object (not merely to its underlying
+ * block): the Pool object itself must also not be moved once a mesh has been
+ * built into it, since Pool's move constructor/assignment relocate its state
+ * into the destination object, leaving every already-built MeshT holding a
+ * pointer to a moved-from Pool. Keep a Pool that already backs a MeshT in a
+ * fixed location (e.g. a local variable or a heap allocation held by
+ * shared_ptr/unique_ptr) rather than moving it into a container or a new
+ * owner.
  * @note This class is not for the light of heart -- it will almost always be
  * instantiated through a file parser which reads vertices and edges from file
  * and builds the mesh from that. Do not try to build a MeshT object yourself,

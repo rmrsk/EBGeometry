@@ -1029,6 +1029,26 @@ TEMPLATE_TEST_CASE("DCEL: tetrahedron loads without error", "[DCEL]", EBGEOMETRY
   REQUIRE(mesh != nullptr);
 }
 
+TEMPLATE_TEST_CASE("Parser::readIntoDCEL returns a valid, empty mesh (not nullptr) for an "
+                   "unrecognized file extension",
+                   "[DCEL][Parser]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.unsupported-extension", pool);
+
+  REQUIRE(mesh != nullptr);
+  REQUIRE(mesh->numVertices() == 0);
+  REQUIRE(mesh->numEdges() == 0);
+  REQUIRE(mesh->numFaces() == 0);
+
+  const auto inf = std::numeric_limits<T>::infinity();
+  REQUIRE(mesh->signedDistance(Vec3T<T>(0, 0, 0)) == inf);
+  REQUIRE(mesh->unsignedDistance2(Vec3T<T>(0, 0, 0)) == inf);
+}
+
 TEMPLATE_TEST_CASE("DCEL: tetrahedron has correct face and vertex counts", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;

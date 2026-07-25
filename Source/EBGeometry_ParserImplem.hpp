@@ -1752,7 +1752,13 @@ template <typename T, typename Meta>
 Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoDCEL requires T to be a floating-point type");
-  std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>> mesh;
+
+  // Default to an empty (but valid, non-null) mesh so that an unsupported file type -- caught only
+  // by the Unsupported/default branches below, which just log to std::cerr -- still returns a mesh
+  // callers can safely use (0 faces; signedDistance()/unsignedDistance2() correctly report
+  // +infinity), rather than a nullptr that every readInto*/convertToDCEL caller downstream would
+  // need to guard against separately.
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>(a_pool);
 
   const auto ft = Parser::getFileType(a_filename);
 

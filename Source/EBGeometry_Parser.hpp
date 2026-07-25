@@ -167,7 +167,9 @@ readVTK(const std::vector<std::string>& a_filenames);
  * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
- * @return Shared pointer to the constructed DCEL mesh.
+ * @return Shared pointer to the constructed DCEL mesh. Never null: if the file extension is not
+ * recognized, this logs to std::cerr and returns a valid but empty mesh (0 faces; its
+ * signedDistance()/unsignedDistance2() correctly report +infinity) rather than a nullptr.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
