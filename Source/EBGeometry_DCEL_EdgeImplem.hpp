@@ -12,7 +12,6 @@
 #define EBGEOMETRY_DCEL_EDGEIMPLEM_HPP
 
 // Std includes
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -398,8 +397,12 @@ EdgeT<T, Meta>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const no
   constexpr T zero = 0.0;
   constexpr T one  = 1.0;
 
-  // Project point to edge and restrict to edge length.
-  const auto t = std::clamp(this->projectPointToEdge(a_x0, a_mesh), zero, one);
+  // Project point to edge and restrict to edge length. Hand-rolled rather than std::clamp: under
+  // libstdc++'s hardened mode, std::clamp expands to an assertion that calls a __host__-only
+  // function, which HIP's device compiler (unlike nvcc) rejects from a __host__ __device__
+  // function -- see Vec3T's own clamp() for the same reasoning.
+  const T tRaw = this->projectPointToEdge(a_x0, a_mesh);
+  const T t    = (tRaw < zero) ? zero : (tRaw > one ? one : tRaw);
 
   // Compute distance to this edge.
   const Vec3T<T> x2x1      = this->getX2X1(a_mesh);
