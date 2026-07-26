@@ -1293,7 +1293,33 @@ dcelDeviceKernel(TestMesh<T> a_mesh, Vec3T<T> a_point, T* a_out)
 
   const T vertexTerm = a_mesh.getVertex(1).getPosition().length();
 
-  a_out[0] = face.signedDistance(a_point, a_mesh) + a_mesh.unsignedDistance2(a_point) + T(edgeCount) + vertexTerm;
+  const T baseTerms =
+    face.signedDistance(a_point, a_mesh) + a_mesh.unsignedDistance2(a_point) + T(edgeCount) + vertexTerm;
+
+  // MeshT's own public, device-callable signedDistance() (the algorithm-dispatching entry point --
+  // Direct2 by default -- that used to be EBGEOMETRY_HOST-only because of a std::cerr call in its
+  // switch's defensive default case; see the class-level note in EBGeometry_DCEL_Mesh.hpp).
+  const T meshSignedDist = a_mesh.signedDistance(a_point);
+
+  // setInsideOutsideAlgorithm() plus the WindingNumber/SubtendedAngle branches of
+  // FaceT::isPointInsideFace (buildTetrahedron leaves every face at the default CrossingNumber,
+  // already exercised by the calls above).
+  a_mesh.setInsideOutsideAlgorithm(InsideOutsideAlgorithm::WindingNumber);
+  const T windingDist = face.signedDistance(a_point, a_mesh);
+
+  a_mesh.setInsideOutsideAlgorithm(InsideOutsideAlgorithm::SubtendedAngle);
+  const T subtendedDist = face.signedDistance(a_point, a_mesh);
+
+  // flip(): negating every normal must exactly negate signedDistance for the same point (the
+  // inside/outside classification itself is magnitude-based, so it is unaffected by which
+  // InsideOutsideAlgorithm is currently selected) -- self-verifying, no separate host expectation
+  // needed for this term beyond "it sums to zero".
+  const T preFlipDist = face.signedDistance(a_point, a_mesh);
+  a_mesh.flip();
+  const T postFlipDist    = face.signedDistance(a_point, a_mesh);
+  const T flipConsistency = preFlipDist + postFlipDist;
+
+  a_out[0] = baseTerms + meshSignedDist + windingDist + subtendedDist + flipConsistency;
 }
 
 TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surface matches the host",
@@ -1315,10 +1341,32 @@ TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surfac
 
   const TestFace<T>& face      = mesh->getFace(0);
   const uint32_t     edgeCount = 3; // every face built by buildTetrahedron is a triangle
-  const T            hostVal   = face.signedDistance(point, *mesh) + mesh->unsignedDistance2(point) + T(edgeCount) +
-                    mesh->getVertex(1).getPosition().length();
+  const T            baseTerms = face.signedDistance(point, *mesh) + mesh->unsignedDistance2(point) + T(edgeCount) +
+                      mesh->getVertex(1).getPosition().length();
 
+  const T meshSignedDist = mesh->signedDistance(point);
+
+  // Mirror now, while hostPool is still in its pristine (CrossingNumber, unflipped) state: the
+  // device kernel runs the exact same WindingNumber/SubtendedAngle/flip() progression below,
+  // starting from this same snapshot, so mutating hostPool afterward (to compute the matching host
+  // expectation) does not need to -- and must not -- touch the already-mirrored device copy.
   Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+
+  mesh->setInsideOutsideAlgorithm(InsideOutsideAlgorithm::WindingNumber);
+  const T windingDist = mesh->getFace(0).signedDistance(point, *mesh);
+
+  mesh->setInsideOutsideAlgorithm(InsideOutsideAlgorithm::SubtendedAngle);
+  const T subtendedDist = mesh->getFace(0).signedDistance(point, *mesh);
+
+  // Mirrors the kernel's own flip() self-consistency check: this term is mathematically ~0
+  // regardless of host/device, so it is included in hostVal purely so a broken flip() (device-side
+  // or, in principle, host-side) shows up as a real mismatch rather than being masked by summation.
+  const T preFlipDist = mesh->getFace(0).signedDistance(point, *mesh);
+  mesh->flip();
+  const T postFlipDist    = mesh->getFace(0).signedDistance(point, *mesh);
+  const T flipConsistency = preFlipDist + postFlipDist;
+
+  const T hostVal = baseTerms + meshSignedDist + windingDist + subtendedDist + flipConsistency;
 
   const TestMesh<T> deviceView = mesh->boundView(devicePool.base());
 

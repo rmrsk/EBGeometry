@@ -60,6 +60,8 @@ template <class T, class Meta>
 class EdgeT
 {
   static_assert(std::is_floating_point_v<T>, "EdgeT<T,Meta>: T must be a floating-point type");
+  static_assert(std::is_trivially_copyable_v<Meta>,
+                "EdgeT<T,Meta> requires a trivially copyable Meta (device-visible storage)");
 
 public:
   /**

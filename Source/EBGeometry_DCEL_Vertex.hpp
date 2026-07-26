@@ -62,6 +62,8 @@ template <class T, class Meta>
 class VertexT
 {
   static_assert(std::is_floating_point_v<T>, "VertexT<T,Meta>: T must be a floating-point type");
+  static_assert(std::is_trivially_copyable_v<Meta>,
+                "VertexT<T,Meta> requires a trivially copyable Meta (device-visible storage)");
 
 public:
   /**

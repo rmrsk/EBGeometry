@@ -75,15 +75,16 @@ namespace DCEL {
  * methods that are themselves EBGEOMETRY_HOST_DEVICE (getVertex/getEdge/getFace, numVertices/
  * numEdges/numFaces, boundView, setSearchAlgorithm, setInsideOutsideAlgorithm, reconcileEdges,
  * flipFaceNormals/flipEdgeNormals/flipVertexNormals, flip, DirectSignedDistance/
- * DirectSignedDistance2, unsignedDistance2) is annotated EBGEOMETRY_HOST_DEVICE. The rest stays
- * EBGEOMETRY_HOST because it touches a Pool directly (bind, deepCopy, reserveVertices/Edges/Faces,
- * addVertex/Edge/Face), returns a host container (getAllVertexCoordinates), logs diagnostics to
- * std::cerr (sanityCheck and its incrementWarning/printWarnings helpers), or delegates to a
- * VertexT/EdgeT/FaceT method that itself allocates a std::vector or can log a diagnostic the same
- * way (reconcileFaces calls FaceT::reconcile; reconcileVertices builds a transient per-vertex face
- * list and can warn on a corrupted VertexNormalWeight; signedDistance's algorithm-selecting
- * overloads can likewise warn on a corrupted SearchAlgorithm) -- reconcile/reconcileFaces/
- * reconcileVertices and every signedDistance overload therefore remain EBGEOMETRY_HOST.
+ * DirectSignedDistance2, every signedDistance overload, unsignedDistance2) is annotated
+ * EBGEOMETRY_HOST_DEVICE -- signedDistance's algorithm-selecting switch deliberately relies on
+ * EBGEOMETRY_EXPECT() alone (not std::cerr) to flag a corrupted SearchAlgorithm, specifically so it
+ * stays device-callable; see the implementation. The rest stays EBGEOMETRY_HOST because it touches a
+ * Pool directly (bind, deepCopy, reserveVertices/Edges/Faces, addVertex/Edge/Face), returns a host
+ * container (getAllVertexCoordinates), logs diagnostics to std::cerr (sanityCheck and its
+ * incrementWarning/printWarnings helpers), or delegates to a VertexT/EdgeT/FaceT method that itself
+ * allocates a std::vector or can log a diagnostic the same way (reconcileFaces calls FaceT::reconcile;
+ * reconcileVertices builds a transient per-vertex face list and can warn on a corrupted
+ * VertexNormalWeight) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -559,7 +560,7 @@ public:
    * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
    * the mesh has no faces.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   signedDistance(const void* a_base, const Vec3& a_x0) const noexcept;
 
@@ -570,7 +571,7 @@ public:
    * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
    * the mesh has no faces.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   signedDistance(const Vec3& a_x0) const noexcept;
 
@@ -587,7 +588,7 @@ public:
    * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
    * the mesh has no faces.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   signedDistance(const void* a_base, const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;
 
@@ -599,7 +600,7 @@ public:
    * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
    * the mesh has no faces.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   signedDistance(const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;
 
@@ -639,11 +640,18 @@ public:
    * pass wherever a bound `const Mesh&` is required before the real mesh can be bound (e.g.
    * Soup/Parser building a mesh whose Pool isn't frozen yet, or TriMeshSDF's mesh-based constructor,
    * which deliberately never binds/freezes -- see EBGeometry_MeshDistanceFunctions.hpp).
+   * @details a_base is frequently a caller's `const void*` (a promise not to mutate whatever it
+   * points to), so the returned view's own m_base is set via a const_cast internally; the return
+   * type is deliberately `const Mesh`, not `Mesh`, so that promise cannot be broken by chaining a
+   * mutating call directly onto the returned value (e.g. `mesh.boundView(constBase).flip()` fails to
+   * compile). Always bind the result to a `const Mesh`/`const Mesh&` at the call site too -- copying
+   * it into a non-const local (`Mesh view = ...`) produces an independent, fully mutable object and
+   * defeats this protection.
    * @param[in] a_base Base to bind the returned view to.
    * @return A mesh view sharing this mesh's data but bound to a_base.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Mesh
+  inline const Mesh
   boundView(const void* a_base) const noexcept;
 
 protected:

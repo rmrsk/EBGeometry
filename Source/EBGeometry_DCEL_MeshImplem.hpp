@@ -46,15 +46,16 @@ MeshT<T, Meta>::bind(const Pool& a_pool) noexcept
 
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
-inline MeshT<T, Meta>
+inline const MeshT<T, Meta>
 MeshT<T, Meta>::boundView(const void* a_base) const noexcept
 {
   Mesh view = *this;
 
   // Mesh::m_base is void* (Pool::base() never hands back a const void*, and the same field
   // resolves both mutable and immutable accessors), so a caller reaching us through a const-
-  // qualified explicit-base overload needs this cast. It is safe: view is a disposable local that
-  // is only ever handed onward as a const Mesh&, so its own non-const accessors are never invoked.
+  // qualified explicit-base overload needs this cast. The `const Mesh` return type (see the
+  // declaration's doc comment) is what actually keeps this safe -- it stops a caller from writing
+  // through the const_cast'd base via a chained mutating call on the returned value.
   view.m_base = const_cast<void*>(a_base);
 
   return view;
@@ -581,7 +582,7 @@ MeshT<T, Meta>::getAllVertexCoordinates() const noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point) const noexcept
 {
@@ -593,7 +594,7 @@ MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point) const no
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::signedDistance(const Vec3& a_point) const noexcept
 {
@@ -635,7 +636,7 @@ MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
 {
@@ -657,10 +658,10 @@ MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point, SearchAl
     break;
   }
   default: {
-    std::cerr << "Error in file 'EBGeometry_DCEL_MeshImplem.hpp' MeshT<T, Meta>::signedDistance - "
-                 "a_algorithm does not match any of the known SearchAlgorithm enumerators; this "
-                 "indicates a corrupted or out-of-range enum value rather than a normal runtime "
-                 "condition.\n";
+    // a_algorithm does not match any of the known SearchAlgorithm enumerators -- a corrupted or
+    // out-of-range enum value rather than a normal runtime condition. EBGEOMETRY_EXPECT() alone
+    // (not std::cerr, unlike the equivalent defensive branches elsewhere in this class) is the sole
+    // diagnostic here so this function stays EBGEOMETRY_HOST_DEVICE.
     EBGEOMETRY_EXPECT(false);
 
     break;
@@ -671,7 +672,7 @@ MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point, SearchAl
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
 {

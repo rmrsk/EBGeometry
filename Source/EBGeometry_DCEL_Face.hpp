@@ -68,6 +68,8 @@ template <class T, class Meta>
 class FaceT
 {
   static_assert(std::is_floating_point_v<T>, "FaceT requires a floating-point T");
+  static_assert(std::is_trivially_copyable_v<Meta>,
+                "FaceT requires a trivially copyable Meta (device-visible storage)");
 
 public:
   /**
