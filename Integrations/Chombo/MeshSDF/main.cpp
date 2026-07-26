@@ -26,13 +26,19 @@ public:
 
   ChomboSDF(const std::string a_filename)
   {
-    m_implicitFunction = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(a_filename);
+    // TriMeshSDF extracts flat Triangle objects from the parsed DCEL mesh and does not retain the
+    // mesh itself, so m_pool only needs to outlive this constructor -- but it is still kept as a
+    // member (rather than a local) so the copy constructor below has something to copy.
+    m_pool = std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource());
+
+    m_implicitFunction = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(a_filename, *m_pool);
     m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 
   ChomboSDF(const ChomboSDF& a_other)
   {
     m_implicitFunction = a_other.m_implicitFunction;
+    m_pool             = a_other.m_pool;
   }
 
   Real
@@ -57,6 +63,11 @@ public:
 
 protected:
   std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_implicitFunction;
+
+  /*!
+    @brief Pool backing the DCEL mesh's vertex/edge/face storage.
+  */
+  std::shared_ptr<EBGeometry::Pool> m_pool;
 };
 
 int

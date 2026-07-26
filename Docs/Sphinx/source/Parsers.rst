@@ -21,16 +21,23 @@ The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`.
 Quickstart
 ----------
 
-Every reader function in ``EBGeometry::Parser`` comes in two overloads: one that takes a single
-file name, and one that takes a ``std::vector<std::string>`` of file names and returns a vector
-of results, one per file.  If you have one or multiple mesh files, the quickest way to turn them
-into BVH-accelerated signed distance fields is
+Every ``readInto*`` function in ``EBGeometry::Parser`` takes an explicit
+`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__, in addition to a single file name or a
+``std::vector<std::string>`` of file names (with a vector-per-file result for the latter): every
+DCEL mesh it builds reserves its vertex/edge/face storage from that Pool. The Pool is
+caller-owned and caller-managed -- EBGeometry never constructs one for you -- so it must outlive
+every mesh (or SDF wrapper retaining one, see :ref:`Chap:MeshSDFClasses`) built into it. One Pool
+can back many meshes, built one after another with their arrays laid out contiguously in the same
+block, which is cheaper than giving every mesh its own Pool. If you have one or multiple mesh
+files, the quickest way to turn them into BVH-accelerated signed distance fields is
 
 .. code-block:: c++
 
    std::vector<std::string> files; // <---- List of file names.
 
-   const auto distanceFields = EBGeometry::Parser::readIntoPackedBVH<float>(files);
+   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+   const auto distanceFields = EBGeometry::Parser::readIntoPackedBVH<float>(files, pool);
 
 This will build a DCEL mesh for each input file and wrap it in a :cpp:class:`MeshSDF`, backed by
 a SIMD-accelerated ``PackedBVH`` over the mesh's faces.  See :ref:`Chap:PackedBVHParser` for
@@ -44,7 +51,9 @@ further details.
 
       std::vector<std::string> files; // <---- List of file names.
 
-      const auto distanceFields = EBGeometry::Parser::readIntoTriangleBVH<float>(files);
+      EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+      const auto distanceFields = EBGeometry::Parser::readIntoTriangleBVH<float>(files, pool);
 
    This version will convert all DCEL polygons to triangles, pack them into SIMD-width groups,
    and usually provides a nice code speedup over ``readIntoPackedBVH``.
@@ -107,8 +116,9 @@ See :ref:`Chap:MeshSDFClasses` for how the three SDF classes (options 2-4 above)
 DCEL representation
 ___________________
 
-To read one or multiple files and turn it into DCEL meshes, use ``readIntoDCEL<T, Meta>(filename)``
-(or the ``std::vector<std::string>`` overload for multiple files at once), returning a
+To read one or multiple files and turn it into DCEL meshes, use
+``readIntoDCEL<T, Meta>(filename, pool)`` (or the ``std::vector<std::string>`` overload for
+multiple files at once, which reserves every mesh's storage from the same ``pool``), returning a
 ``shared_ptr<DCEL::MeshT<T, Meta>>`` (or a vector thereof).
 Note that this will only expose the DCEL mesh, but not include any signed distance functionality.
 
@@ -116,43 +126,52 @@ DCEL mesh SDF
 _____________
 
 To read one or multiple files and also turn it into a bare (BVH-free) signed distance
-representation, use ``readIntoMesh<T, Meta>(filename)``, returning a
-``shared_ptr<FlatMeshSDF<T, Meta>>`` (or a vector thereof for the multi-file overload).
+representation, use ``readIntoMesh<T, Meta>(filename, pool)``, returning a
+``shared_ptr<FlatMeshSDF<T, Meta>>`` (or a vector thereof for the multi-file overload). The
+returned ``FlatMeshSDF`` retains the mesh (see :ref:`Chap:MeshSDFClasses`), so ``pool`` must
+outlive it.
 
 .. _Chap:PackedBVHParser:
 
 DCEL mesh SDF with PackedBVH
 _____________________________
 
-``readIntoPackedBVH<T, Meta, K>(filename, build)`` wraps a DCEL mesh in a ``PackedBVH`` (depth-first
-flat layout) with SIMD traversal, returning a ``shared_ptr<MeshSDF<T, Meta, K>>`` (or a vector
-thereof). It supports any polygon, not just triangles; the BVH branching factor ``K`` defaults to
-4 and the build strategy ``a_build`` defaults to ``BVH::Build::SAH``. For maximum throughput on
+``readIntoPackedBVH<T, Meta, K>(filename, pool, build)`` wraps a DCEL mesh in a ``PackedBVH``
+(depth-first flat layout) with SIMD traversal, returning a ``shared_ptr<MeshSDF<T, Meta, K>>`` (or
+a vector thereof). It supports any polygon, not just triangles; the BVH branching factor ``K``
+defaults to 4 and the build strategy ``a_build`` defaults to ``BVH::Build::SAH``. The returned
+``MeshSDF`` retains the mesh, so ``pool`` must outlive it. For maximum throughput on
 triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
 
 Triangle meshes with PackedBVH
 ________________________________
 
-``readIntoTriangleBVH<T, Meta, K, W, StoragePolicy>(filename, maxLeafGroups, build)`` converts all
-DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a ``PackedBVH``,
-returning a ``shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>`` (or a vector thereof). SIMD
-intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to the
-SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRatio<T>()`` and
+``readIntoTriangleBVH<T, Meta, K, W, StoragePolicy>(filename, pool, maxLeafGroups, build)``
+converts all DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a
+``PackedBVH``, returning a ``shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>`` (or a vector
+thereof). SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to
+the SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRatio<T>()`` and
 ``TriangleSoA::DefaultWidth<T>()``, see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 4)
 bounds the number of full ``W``-sized SoA groups per BVH leaf; ``StoragePolicy`` defaults to
 ``BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>``, matching ``TriMeshSDF``'s own default (see
 :ref:`Chap:MeshSDFClasses` for the rationale, and why ``readIntoPackedBVH``/``MeshSDF`` above has
-no equivalent parameter). The code will raise an error if any face is not a triangle.
+no equivalent parameter). The code will raise an error if any face is not a triangle. Unlike
+``readIntoMesh``/``readIntoPackedBVH``, the returned ``TriMeshSDF`` extracts flat ``Triangle``
+values from the intermediate DCEL mesh and does not retain it, so ``pool`` only needs to outlive
+this call -- though since a ``Pool`` never individually frees what it reserves (see
+`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), that intermediate mesh's storage stays
+reserved in ``pool`` regardless.
 
 Flat triangle list
 ____________________
 
-``readIntoTriangles<T, Meta>(filename)`` returns a flat ``std::vector<shared_ptr<Triangle<T,
+``readIntoTriangles<T, Meta>(filename, pool)`` returns a flat ``std::vector<shared_ptr<Triangle<T,
 Meta>>>`` (or, for the multi-file overload, one such vector per file) -- every face of the
 parsed mesh as an independent, self-contained ``Triangle`` value, with no DCEL/half-edge
-topology connecting them. Use this when some other part of your code wants raw triangle values
-(for example, to build a custom acceleration structure) rather than any of EBGeometry's own SDF
-wrappers.
+topology connecting them. As with ``readIntoTriangleBVH`` above, the intermediate DCEL mesh built
+along the way is not retained by the result, so ``pool`` only needs to outlive this call. Use this
+when some other part of your code wants raw triangle values (for example, to build a custom
+acceleration structure) rather than any of EBGeometry's own SDF wrappers.
 
 .. note::
 
@@ -192,7 +211,9 @@ in namespace ``EBGeometry::Soup``:
   (already-compressed) soup into the output DCEL mesh, reconciles pair edges (internally, via
   ``reconcilePairEdgesDCEL``, which links each half-edge :math:`u \to v` to its reverse
   :math:`v \to u`), and runs a mesh sanity check. This also computes the vertex and edge normal
-  vectors.
+  vectors. ``mesh`` must already be constructed against a ``Pool`` (i.e. via
+  ``DCEL::MeshT<T, Meta>(pool)``) before this call -- ``soupToDCEL`` reserves the mesh's
+  vertex/edge/half-edge storage from that pool itself, sized from ``vertices``/``facets``.
 
 .. note::
 

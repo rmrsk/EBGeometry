@@ -5,6 +5,7 @@
 #include "TestFloatingPointUtils.hpp"
 
 #include <array>
+#include <cstdint>
 #include <stdexcept>
 #include <vector>
 
@@ -156,14 +157,15 @@ TEMPLATE_TEST_CASE("VTK: convertToDCEL builds a mesh with the correct compressed
   REQUIRE(vtk.getVertexCoordinates().size() == 12);
   REQUIRE(vtk.getFacets().size() == 4);
 
-  auto mesh = vtk.template convertToDCEL<DCEL::DefaultMetaData>();
+  Pool pool(hostMemoryResource());
+  auto mesh = vtk.template convertToDCEL<DCEL::DefaultMetaData>(pool);
 
   REQUIRE(mesh != nullptr);
-  REQUIRE(mesh->getVertices().size() == 4); // Compressed down to the 4 unique corners.
-  REQUIRE(mesh->getFaces().size() == 4);
-  REQUIRE(mesh->getEdges().size() == 12); // 4 triangular faces * 3 half-edges each.
+  REQUIRE(mesh->numVertices() == 4); // Compressed down to the 4 unique corners.
+  REQUIRE(mesh->numFaces() == 4);
+  REQUIRE(mesh->numEdges() == 12); // 4 triangular faces * 3 half-edges each.
 
-  for (const auto& e : mesh->getEdges()) {
-    REQUIRE(e.getPairEdgeIndex() != UINT32_MAX); // Watertight: every half-edge has a pair.
+  for (uint32_t i = 0; i < mesh->numEdges(); i++) {
+    REQUIRE(mesh->getEdge(i).getPairEdgeIndex() != UINT32_MAX); // Watertight: every half-edge has a pair.
   }
 }

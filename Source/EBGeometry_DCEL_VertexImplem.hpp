@@ -134,7 +134,7 @@ VertexT<T, Meta>::computeVertexNormalAverage(const std::vector<uint32_t>& a_face
   //       will yield an "average" of the normal vectors of the faces
   //       circulating this vertex.
   for (const uint32_t faceIndex : a_faceIndices) {
-    m_normal += a_mesh.getFaces()[faceIndex].getNormal();
+    m_normal += a_mesh.getFace(faceIndex).getNormal();
   }
 
   this->normalizeNormalVector();
@@ -176,11 +176,11 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               
   const uint32_t originVertexIndex = a_thisVertexIndex;
 
   for (const uint32_t faceIndex : a_faceIndices) {
-    const Face& f = a_mesh.getFaces()[faceIndex];
+    const Face& f = a_mesh.getFace(faceIndex);
 
     std::vector<uint32_t> inoutVertices(0);
     for (EdgeIterator edgeIt(a_mesh, f); edgeIt.ok(); ++edgeIt) {
-      const Edge& e = a_mesh.getEdges()[edgeIt()];
+      const Edge& e = a_mesh.getEdge(edgeIt());
 
       const uint32_t v1 = e.getVertexIndex();
       const uint32_t v2 = e.getNextEdge(a_mesh).getVertexIndex();
@@ -217,9 +217,9 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               
     // well-formed triangle incident on exactly two edges at this vertex.
     EBGEOMETRY_EXPECT(inoutVertices.size() == 2);
 
-    const Vec3& x0 = a_mesh.getVertices()[originVertexIndex].getPosition();
-    const Vec3& x1 = a_mesh.getVertices()[inoutVertices[0]].getPosition();
-    const Vec3& x2 = a_mesh.getVertices()[inoutVertices[1]].getPosition();
+    const Vec3& x0 = a_mesh.getVertex(originVertexIndex).getPosition();
+    const Vec3& x1 = a_mesh.getVertex(inoutVertices[0]).getPosition();
+    const Vec3& x2 = a_mesh.getVertex(inoutVertices[1]).getPosition();
 
     if (x0 == x1 || x0 == x2 || x1 == x2) {
       std::cerr << "VertexT<T, Meta>::computeVertexNormalAngleWeighted(): degenerate face f -- two "
@@ -301,7 +301,7 @@ VertexT<T, Meta>::getOutgoingEdge(Mesh& a_mesh) noexcept
 {
   EBGEOMETRY_EXPECT(m_outgoingEdge != UINT32_MAX);
 
-  return a_mesh.getEdges()[m_outgoingEdge];
+  return a_mesh.getEdge(m_outgoingEdge);
 }
 
 template <class T, class Meta>
@@ -310,7 +310,7 @@ VertexT<T, Meta>::getOutgoingEdge(const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(m_outgoingEdge != UINT32_MAX);
 
-  return a_mesh.getEdges()[m_outgoingEdge];
+  return a_mesh.getEdge(m_outgoingEdge);
 }
 
 template <class T, class Meta>

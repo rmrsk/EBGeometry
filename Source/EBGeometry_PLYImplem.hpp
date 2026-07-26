@@ -119,7 +119,7 @@ PLY<T>::setFaceProperties(const std::string a_property, std::vector<T> a_data)
 template <typename T>
 template <typename Meta>
 std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-PLY<T>::convertToDCEL() const noexcept
+PLY<T>::convertToDCEL(Pool& a_pool) const noexcept
 {
   // Do a deep copy of the vertices and facets since they might need to be compressed.
   std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
@@ -129,7 +129,7 @@ PLY<T>::convertToDCEL() const noexcept
     std::cerr << "PLY::convertToDCEL - PLY contains degenerate faces\n";
   }
 
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>(a_pool);
 
   Soup::compress(vertices, facets);
   Soup::soupToDCEL(*mesh, vertices, facets, m_id);

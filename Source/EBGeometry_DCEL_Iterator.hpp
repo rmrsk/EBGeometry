@@ -33,7 +33,7 @@ namespace DCEL {
  * @code{.cpp}
  * for (EdgeIterator it(mesh, someFace); it.ok(); ++it) {
  *   const uint32_t edgeIndex = it();
- *   // ... use mesh.getEdges()[edgeIndex] ...
+ *   // ... use mesh.getEdge(edgeIndex) ...
  * }
  * @endcode
  * @tparam T    Floating-point precision type.

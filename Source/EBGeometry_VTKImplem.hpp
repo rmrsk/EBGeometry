@@ -119,7 +119,7 @@ VTK<T>::setCellDataScalars(const std::string a_name, std::vector<T> a_data)
 template <typename T>
 template <typename Meta>
 std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-VTK<T>::convertToDCEL() const noexcept
+VTK<T>::convertToDCEL(Pool& a_pool) const noexcept
 {
   // Do a deep copy of the vertices and facets since they might need to be compressed.
   std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
@@ -129,7 +129,7 @@ VTK<T>::convertToDCEL() const noexcept
     std::cerr << "VTK::convertToDCEL - VTK contains degenerate faces\n";
   }
 
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>(a_pool);
 
   Soup::compress(vertices, facets);
   Soup::soupToDCEL(*mesh, vertices, facets, m_id);

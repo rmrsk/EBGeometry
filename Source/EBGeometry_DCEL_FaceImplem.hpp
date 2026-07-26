@@ -105,7 +105,7 @@ FaceT<T, Meta>::computeCentroid(const Mesh& a_mesh)
   EBGEOMETRY_EXPECT(!vertexIndices.empty());
 
   for (const uint32_t v : vertexIndices) {
-    m_centroid += a_mesh.getVertices()[v].getPosition();
+    m_centroid += a_mesh.getVertex(v).getPosition();
   }
 
   m_centroid = m_centroid / vertexIndices.size();
@@ -125,9 +125,9 @@ FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
   // To compute the normal vector we find three vertices in this polygon face.
   // They span a plane, and we just compute the normal vector of that plane.
   for (size_t i = 0; i < N; i++) {
-    const auto& x0 = a_mesh.getVertices()[vertexIndices[i]].getPosition();
-    const auto& x1 = a_mesh.getVertices()[vertexIndices[(i + 1) % N]].getPosition();
-    const auto& x2 = a_mesh.getVertices()[vertexIndices[(i + 2) % N]].getPosition();
+    const auto& x0 = a_mesh.getVertex(vertexIndices[i]).getPosition();
+    const auto& x1 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
+    const auto& x2 = a_mesh.getVertex(vertexIndices[(i + 2) % N]).getPosition();
 
     m_normal = (x2 - x0).cross(x2 - x1);
 
@@ -191,8 +191,8 @@ FaceT<T, Meta>::computeArea(const Mesh& a_mesh)
   // the origin, and omitting the wraparound edge silently produces a wrong (generally too large or
   // too small) area for any polygon that doesn't happen to pass through the origin.
   for (size_t i = 0; i < N; i++) {
-    const auto& v1 = a_mesh.getVertices()[vertexIndices[i]].getPosition();
-    const auto& v2 = a_mesh.getVertices()[vertexIndices[(i + 1) % N]].getPosition();
+    const auto& v1 = a_mesh.getVertex(vertexIndices[i]).getPosition();
+    const auto& v2 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
 
     area += m_normal.dot(v2.cross(v1));
   }
@@ -285,7 +285,7 @@ FaceT<T, Meta>::gatherVertexIndices(const Mesh& a_mesh) const
   vertexIndices.reserve(3);
 
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
-    vertexIndices.emplace_back(a_mesh.getEdges()[iter()].getVertexIndex());
+    vertexIndices.emplace_back(a_mesh.getEdge(iter()).getVertexIndex());
   }
 
   return vertexIndices;
@@ -313,7 +313,7 @@ FaceT<T, Meta>::getAllVertexCoordinates(const Mesh& a_mesh) const
   ret.reserve(3);
 
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
-    ret.emplace_back(a_mesh.getEdges()[iter()].getVertex(a_mesh).getPosition());
+    ret.emplace_back(a_mesh.getEdge(iter()).getVertex(a_mesh).getPosition());
   }
 
   return ret;
@@ -385,7 +385,7 @@ FaceT<T, Meta>::computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh
   };
 
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
-    const Edge&    edge = a_mesh.getEdges()[iter()];
+    const Edge&    edge = a_mesh.getEdge(iter());
     const Vec2T<T> P1   = this->projectPoint(edge.getVertex(a_mesh).getPosition());
     const Vec2T<T> P2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition());
     const T        res  = isLeft(P1, P2, a_point);
@@ -416,7 +416,7 @@ FaceT<T, Meta>::computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mes
   size_t cn = 0;
 
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
-    const Edge&    edge = a_mesh.getEdges()[iter()];
+    const Edge&    edge = a_mesh.getEdge(iter());
     const Vec2T<T> P1   = this->projectPoint(edge.getVertex(a_mesh).getPosition());
     const Vec2T<T> P2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition());
 
@@ -449,7 +449,7 @@ FaceT<T, Meta>::computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mes
   T sumTheta = T(0);
 
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
-    const Edge&    edge = a_mesh.getEdges()[iter()];
+    const Edge&    edge = a_mesh.getEdge(iter());
     const Vec2T<T> p1   = this->projectPoint(edge.getVertex(a_mesh).getPosition()) - a_point;
     const Vec2T<T> p2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition()) - a_point;
 
@@ -519,7 +519,7 @@ FaceT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexc
   }
   else {
     for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
-      const Edge& cur = a_mesh.getEdges()[iter()];
+      const Edge& cur = a_mesh.getEdge(iter());
 
       const T curDist = cur.signedDistance(a_x0, a_mesh);
 
@@ -550,7 +550,7 @@ FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const no
   }
   else {
     for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
-      const Edge& cur = a_mesh.getEdges()[iter()];
+      const Edge& cur = a_mesh.getEdge(iter());
 
       const T curDist2 = cur.unsignedDistance2(a_x0, a_mesh);
 

@@ -14,6 +14,7 @@
 
 // Std includes
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -25,6 +26,8 @@
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_PODVector.hpp"
+#include "EBGeometry_Pool.hpp"
 
 namespace EBGeometry {
 
@@ -35,14 +38,29 @@ namespace DCEL {
  * functions)
  * @details This encapsulates a full DCEL mesh, and also includes DIRECT signed
  * distance functions. The mesh consists of a set of vertices, half-edges, and
- * polygon faces, stored by value in this class's own arrays; every
- * cross-reference between them (vertex-to-outgoing-edge, edge-to-vertex/pair
- * edge/next edge/face, face-to-half-edge) is an index into these arrays rather
- * than a pointer -- see the class-level notes on VertexT/EdgeT/FaceT. The
- * signed distance functions DIRECT, which means that they go through ALL of the
- * polygon faces and compute the signed distance to them. This is extremely
- * inefficient, which is why this class is almost always embedded into a
- * bounding volume hierarchy.
+ * polygon faces, stored as PODVectors into a caller-owned, externally-supplied
+ * Pool; every cross-reference between them (vertex-to-outgoing-edge,
+ * edge-to-vertex/pair edge/next edge/face, face-to-half-edge) is an index into
+ * these arrays rather than a pointer -- see the class-level notes on
+ * VertexT/EdgeT/FaceT. The signed distance functions DIRECT, which means that
+ * they go through ALL of the polygon faces and compute the signed distance to
+ * them. This is extremely inefficient, which is why this class is almost
+ * always embedded into a bounding volume hierarchy.
+ * @note MeshT does not own the Pool it is built into -- see the constructor.
+ * This is deliberate: one Pool can back many meshes (built one after another,
+ * their arrays laid out contiguously in the same block), which is cheaper than
+ * giving every mesh its own Pool. The caller is responsible for keeping the
+ * Pool alive for at least as long as any MeshT built into it, and for its
+ * lifetime otherwise (see EBGeometry_Pool.hpp -- a Pool is a pure bump
+ * allocator; nothing reserved from it is individually freed). MeshT stores a
+ * raw, non-owning pointer to that Pool object (not merely to its underlying
+ * block): the Pool object itself must also not be moved once a mesh has been
+ * built into it, since Pool's move constructor/assignment relocate its state
+ * into the destination object, leaving every already-built MeshT holding a
+ * pointer to a moved-from Pool. Keep a Pool that already backs a MeshT in a
+ * fixed location (e.g. a local variable or a heap allocation held by
+ * shared_ptr/unique_ptr) rather than moving it into a container or a new
+ * owner.
  * @note This class is not for the light of heart -- it will almost always be
  * instantiated through a file parser which reads vertices and edges from file
  * and builds the mesh from that. Do not try to build a MeshT object yourself,
@@ -94,11 +112,22 @@ public:
   using Mesh = MeshT<T, Meta>;
 
   /**
-   * @brief Default constructor.
-   * @details Leaves the mesh empty (no vertices, edges, or faces) with the default search
-   * algorithm; use define() or the mutable getVertices()/getEdges()/getFaces() to populate it.
+   * @brief Disallowed default construction.
+   * @details A MeshT always needs a backing Pool to reserve its vertex/edge/face storage from;
+   * use the Pool-taking constructor.
    */
-  MeshT() noexcept = default;
+  MeshT() = delete;
+
+  /**
+   * @brief Full constructor. Associates this mesh with the Pool it will reserve its
+   * vertex/edge/face storage from.
+   * @details Leaves the mesh empty (no vertices, edges, or faces); use reserveVertices()/
+   * reserveEdges()/reserveFaces() followed by addVertex()/addEdge()/addFace() to populate it (a
+   * file parser normally does this).
+   * @param[in,out] a_pool Backing Pool. Non-owning: the caller must keep it alive for at least as
+   * long as this mesh (and any other mesh built into the same Pool).
+   */
+  explicit MeshT(Pool& a_pool) noexcept;
 
   /**
    * @brief Disallowed copy construction.
@@ -111,27 +140,17 @@ public:
 
   /**
    * @brief Move constructor.
+   * @details Defaulted memberwise move. Every member (the Pool pointer, and the PODVector
+   * descriptors) is a plain value, so this is a cheap value-copy of the descriptor rather than a
+   * transfer of exclusive ownership -- unlike the old std::vector-backed MeshT, the moved-from
+   * mesh is left referencing the exact same Pool data (not emptied), since the underlying storage
+   * was never owned by this mesh in the first place (see the class-level note on the Pool).
    * @param[in, out] a_otherMesh Other mesh.
    */
   MeshT(Mesh&& a_otherMesh) noexcept = default;
 
   /**
-   * @brief Full constructor. This provides the faces, edges, and vertices to the
-   * mesh.
-   * @details Copies the three vectors directly into m_faces/m_edges/m_vertices. This only
-   * associates the index-based topology already recorded on the faces/edges/vertices; internal
-   * parameters like face area and normal are computed by reconcile().
-   * @param[in] a_faces    Polygon faces
-   * @param[in] a_edges    Half-edges
-   * @param[in] a_vertices Vertices
-   * @note The constructor arguments should provide a complete DCEL mesh
-   * description. This is usually done through a file parser which reads a mesh
-   * file format and creates the DCEL mesh structure
-   */
-  MeshT(std::vector<Face>& a_faces, std::vector<Edge>& a_edges, std::vector<Vertex>& a_vertices) noexcept;
-
-  /**
-   * @brief Destructor (does nothing)
+   * @brief Destructor (does nothing; the backing Pool is not owned by this mesh)
    */
   ~MeshT() noexcept = default;
 
@@ -146,6 +165,7 @@ public:
 
   /**
    * @brief Move assignment operator.
+   * @details Has the same semantics as the move constructor; see its documentation.
    * @param[in, out] a_otherMesh Other mesh.
    * @return Reference to (*this).
    */
@@ -153,19 +173,20 @@ public:
   operator=(Mesh&& a_otherMesh) noexcept = default;
 
   /**
-   * @brief Create an independent, fully-decoupled copy of this mesh.
+   * @brief Create an independent, fully-decoupled copy of this mesh in another Pool.
    * @details Since copy construction/assignment are disallowed (see their documentation), this is
-   * the supported way to duplicate a mesh. Because every VertexT/EdgeT/FaceT cross-reference is an
-   * index into this mesh's own arrays rather than a pointer, a plain copy of the three arrays is
-   * already a fully independent, correctly-linked mesh -- every index remains meaningful against
-   * the copied arrays with no relinking pass required. Every field is preserved exactly (position,
-   * normal vector, centroid, area, meta-data, search algorithm) rather than recomputed, so a mesh
-   * that has had flipNormal()/flip() called on it and not yet been re-reconciled is copied
-   * faithfully rather than silently "un-flipped".
+   * the supported way to duplicate a mesh. Reserves fresh storage in a_dstPool and copies every
+   * vertex/edge/face by value; since every cross-reference is an index rather than a pointer, the
+   * copy is already fully independent and correctly linked -- no relinking pass is needed. Every
+   * field is preserved exactly (position, normal vector, centroid, area, meta-data, search
+   * algorithm) rather than recomputed, so a mesh that has had flipNormal()/flip() called on it and
+   * not yet been re-reconciled is copied faithfully rather than silently "un-flipped".
+   * @param[in,out] a_dstPool Pool to reserve the copy's storage from. May be the same Pool this
+   * mesh is built into, or a different one.
    * @return A new mesh, independent of this one.
    */
   [[nodiscard]] inline std::shared_ptr<Mesh>
-  deepCopy() const;
+  deepCopy(Pool& a_dstPool) const;
 
   /**
    * @brief Perform a sanity check.
@@ -216,18 +237,124 @@ public:
   flip() noexcept;
 
   /**
-   * @brief Get modifiable vertices in this mesh
-   * @return Reference to the vector of vertices.
+   * @brief Reserve storage for a_capacity vertices.
+   * @details Must be called before any addVertex() call, and only once -- PODVector never
+   * reallocates once reserved (see EBGeometry_PODVector.hpp).
+   * @param[in] a_capacity Number of vertex slots to reserve.
    */
-  [[nodiscard]] inline std::vector<Vertex>&
-  getVertices() noexcept;
+  inline void
+  reserveVertices(uint32_t a_capacity);
 
   /**
-   * @brief Get immutable vertices in this mesh
-   * @return Const reference to the vector of vertices.
+   * @brief Reserve storage for a_capacity half-edges.
+   * @details Must be called before any addEdge() call, and only once -- PODVector never
+   * reallocates once reserved (see EBGeometry_PODVector.hpp).
+   * @param[in] a_capacity Number of half-edge slots to reserve.
    */
-  [[nodiscard]] inline const std::vector<Vertex>&
-  getVertices() const noexcept;
+  inline void
+  reserveEdges(uint32_t a_capacity);
+
+  /**
+   * @brief Reserve storage for a_capacity faces.
+   * @details Must be called before any addFace() call, and only once -- PODVector never
+   * reallocates once reserved (see EBGeometry_PODVector.hpp).
+   * @param[in] a_capacity Number of face slots to reserve.
+   */
+  inline void
+  reserveFaces(uint32_t a_capacity);
+
+  /**
+   * @brief Append a vertex into the pre-reserved capacity (see reserveVertices()).
+   * @param[in] a_vertex Vertex to append.
+   * @return Index of the newly-appended vertex in this mesh's vertex array.
+   */
+  inline uint32_t
+  addVertex(const Vertex& a_vertex);
+
+  /**
+   * @brief Append a half-edge into the pre-reserved capacity (see reserveEdges()).
+   * @param[in] a_edge Half-edge to append.
+   * @return Index of the newly-appended half-edge in this mesh's edge array.
+   */
+  inline uint32_t
+  addEdge(const Edge& a_edge);
+
+  /**
+   * @brief Append a face into the pre-reserved capacity (see reserveFaces()).
+   * @param[in] a_face Face to append.
+   * @return Index of the newly-appended face in this mesh's face array.
+   */
+  inline uint32_t
+  addFace(const Face& a_face);
+
+  /**
+   * @brief Get modifiable vertex by index.
+   * @param[in] a_index Vertex index (must be < numVertices()).
+   * @return Reference to the vertex.
+   */
+  [[nodiscard]] inline Vertex&
+  getVertex(uint32_t a_index) noexcept;
+
+  /**
+   * @brief Get immutable vertex by index.
+   * @param[in] a_index Vertex index (must be < numVertices()).
+   * @return Const reference to the vertex.
+   */
+  [[nodiscard]] inline const Vertex&
+  getVertex(uint32_t a_index) const noexcept;
+
+  /**
+   * @brief Get modifiable half-edge by index.
+   * @param[in] a_index Half-edge index (must be < numEdges()).
+   * @return Reference to the half-edge.
+   */
+  [[nodiscard]] inline Edge&
+  getEdge(uint32_t a_index) noexcept;
+
+  /**
+   * @brief Get immutable half-edge by index.
+   * @param[in] a_index Half-edge index (must be < numEdges()).
+   * @return Const reference to the half-edge.
+   */
+  [[nodiscard]] inline const Edge&
+  getEdge(uint32_t a_index) const noexcept;
+
+  /**
+   * @brief Get modifiable face by index.
+   * @param[in] a_index Face index (must be < numFaces()).
+   * @return Reference to the face.
+   */
+  [[nodiscard]] inline Face&
+  getFace(uint32_t a_index) noexcept;
+
+  /**
+   * @brief Get immutable face by index.
+   * @param[in] a_index Face index (must be < numFaces()).
+   * @return Const reference to the face.
+   */
+  [[nodiscard]] inline const Face&
+  getFace(uint32_t a_index) const noexcept;
+
+  /**
+   * @brief Number of vertices in this mesh.
+   * @return Vertex count.
+   */
+  [[nodiscard]] inline uint32_t
+  numVertices() const noexcept;
+
+  /**
+   * @brief Number of half-edges in this mesh.
+   * @return Half-edge count.
+   */
+  [[nodiscard]] inline uint32_t
+  numEdges() const noexcept;
+
+  /**
+   * @brief Number of faces in this mesh.
+   * @return Face count.
+   */
+  [[nodiscard]] inline uint32_t
+  numFaces() const noexcept;
 
   /**
    * @brief Return all vertex coordinates in the mesh.
@@ -235,34 +362,6 @@ public:
    */
   [[nodiscard]] inline std::vector<Vec3T<T>>
   getAllVertexCoordinates() const noexcept;
-
-  /**
-   * @brief Get modifiable half-edges in this mesh
-   * @return Reference to the vector of half-edges.
-   */
-  [[nodiscard]] inline std::vector<Edge>&
-  getEdges() noexcept;
-
-  /**
-   * @brief Get immutable half-edges in this mesh
-   * @return Const reference to the vector of half-edges.
-   */
-  [[nodiscard]] inline const std::vector<Edge>&
-  getEdges() const noexcept;
-
-  /**
-   * @brief Get modifiable faces in this mesh
-   * @return Reference to the vector of polygon faces.
-   */
-  [[nodiscard]] inline std::vector<Face>&
-  getFaces() noexcept;
-
-  /**
-   * @brief Get immutable faces in this mesh
-   * @return Const reference to the vector of polygon faces.
-   */
-  [[nodiscard]] inline const std::vector<Face>&
-  getFaces() const noexcept;
 
   /**
    * @brief Compute the signed distance from a point to this mesh
@@ -306,6 +405,11 @@ public:
 
 protected:
   /**
+   * @brief Backing Pool. Non-owning -- see the class-level note and the constructor.
+   */
+  Pool* m_pool = nullptr;
+
+  /**
    * @brief Search algorithm. Only used in signed distance functions.
    */
   SearchAlgorithm m_algorithm = SearchAlgorithm::Direct2;
@@ -313,17 +417,17 @@ protected:
   /**
    * @brief Mesh vertices
    */
-  std::vector<Vertex> m_vertices;
+  PODVector<Vertex> m_vertices;
 
   /**
    * @brief Mesh half-edges
    */
-  std::vector<Edge> m_edges;
+  PODVector<Edge> m_edges;
 
   /**
    * @brief Mesh faces
    */
-  std::vector<Face> m_faces;
+  PODVector<Face> m_faces;
 
   /**
    * @brief Function which computes internal things for the polygon faces.

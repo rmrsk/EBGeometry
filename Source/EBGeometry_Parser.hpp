@@ -24,6 +24,7 @@
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_OBJ.hpp"
 #include "EBGeometry_PLY.hpp"
+#include "EBGeometry_Pool.hpp"
 #include "EBGeometry_STL.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleAoSoA.hpp"
@@ -164,45 +165,53 @@ readVTK(const std::vector<std::string>& a_filenames);
  * @brief Read a file containing a single watertight object and return it as a DCEL mesh.
  * @tparam T    Floating-point precision for vertex coordinates.
  * @tparam Meta Per-face metadata type stored in the DCEL mesh.
- * @param[in] a_filename File name (STL, PLY, or VTK).
- * @return Shared pointer to the constructed DCEL mesh.
+ * @param[in]     a_filename File name (STL, PLY, or VTK).
+ * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
+ * @return Shared pointer to the constructed DCEL mesh. Never null: if the file extension is not
+ * recognized, this logs to std::cerr and returns a valid but empty mesh (0 faces; its
+ * signedDistance()/unsignedDistance2() correctly report +infinity) rather than a nullptr.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-readIntoDCEL(const std::string a_filename);
+readIntoDCEL(const std::string a_filename, Pool& a_pool);
 
 /**
  * @brief Read multiple files containing single watertight objects and return them as DCEL meshes.
  * @tparam T    Floating-point precision for vertex coordinates.
  * @tparam Meta Per-face metadata type stored in the DCEL mesh.
- * @param[in] a_files List of file names (STL, PLY, or VTK).
+ * @param[in]     a_files List of file names (STL, PLY, or VTK).
+ * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
+ * share this one Pool, laid out contiguously.
  * @return Vector of shared pointers to the constructed DCEL meshes, one per file.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
-readIntoDCEL(const std::vector<std::string>& a_files);
+readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool);
 
 /**
  * @brief Read a file and return it as a bare DCEL signed-distance function (O(N) scan, no BVH).
  * @tparam T    Floating-point precision for signed-distance evaluation.
  * @tparam Meta Per-face metadata type stored in the DCEL mesh.
- * @param[in] a_filename File name (STL, PLY, or VTK).
+ * @param[in]     a_filename File name (STL, PLY, or VTK).
+ * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
  * @return Shared pointer to the FlatMeshSDF wrapping the parsed DCEL mesh.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::shared_ptr<FlatMeshSDF<T, Meta>>
-readIntoMesh(const std::string a_filename);
+readIntoMesh(const std::string a_filename, Pool& a_pool);
 
 /**
  * @brief Read multiple files and return each as a bare DCEL signed-distance function.
  * @tparam T    Floating-point precision for signed-distance evaluation.
  * @tparam Meta Per-face metadata type stored in the DCEL mesh.
- * @param[in] a_files List of file names (STL, PLY, or VTK).
+ * @param[in]     a_files List of file names (STL, PLY, or VTK).
+ * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
+ * share this one Pool, laid out contiguously.
  * @return Vector of shared pointers to FlatMeshSDF objects, one per file.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
-readIntoMesh(const std::vector<std::string>& a_files);
+readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool);
 
 /**
  * @brief Read a file and return it enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
@@ -211,26 +220,30 @@ readIntoMesh(const std::vector<std::string>& a_files);
  * @tparam T    Floating-point precision for signed-distance evaluation.
  * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @tparam K    BVH branching factor (number of children per internal node).
- * @param[in] a_filename File name (STL, PLY, or VTK).
- * @param[in] a_build    BVH build strategy. SAH is the default and recommended choice.
+ * @param[in]     a_filename File name (STL, PLY, or VTK).
+ * @param[in,out] a_pool     Pool to reserve the underlying DCEL mesh's storage from. The
+ * returned MeshSDF retains the mesh, so a_pool must outlive it.
+ * @param[in]     a_build    BVH build strategy. SAH is the default and recommended choice.
  * @return Shared pointer to the MeshSDF enclosing the mesh.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static std::shared_ptr<MeshSDF<T, Meta, K>>
-readIntoPackedBVH(const std::string a_filename, const BVH::Build a_build = BVH::Build::SAH);
+readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::Build a_build = BVH::Build::SAH);
 
 /**
  * @brief Read multiple files and return each enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
  * @tparam T    Floating-point precision for signed-distance evaluation.
  * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @tparam K    BVH branching factor (number of children per internal node).
- * @param[in] a_files List of file names (STL, PLY, or VTK).
- * @param[in] a_build BVH build strategy. SAH is the default and recommended choice.
+ * @param[in]     a_files List of file names (STL, PLY, or VTK).
+ * @param[in,out] a_pool  Pool to reserve every underlying DCEL mesh's storage from -- all meshes
+ * share this one Pool, laid out contiguously. Must outlive the returned MeshSDF objects.
+ * @param[in]     a_build BVH build strategy. SAH is the default and recommended choice.
  * @return Vector of shared pointers to MeshSDF objects, one per file.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
-readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_build = BVH::Build::SAH);
+readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const BVH::Build a_build = BVH::Build::SAH);
 
 /**
  * @brief Read a file and return the mesh enclosed in a SIMD-optimised triangle BVH.
@@ -246,11 +259,15 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_bu
  * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF (see
  * BVH::SharedPtrStorage / BVH::ValueStorage). Defaults to
  * BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, matching TriMeshSDF's own default.
- * @param[in] a_filename      File name (STL, PLY, or VTK).
- * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
+ * @param[in]     a_filename      File name (STL, PLY, or VTK).
+ * @param[in,out] a_pool          Pool to reserve the intermediate DCEL mesh's storage from. The
+ * mesh is only used transiently to extract triangles into the returned TriMeshSDF, which does not
+ * retain it, but the Pool itself is a pure bump allocator (see EBGeometry_Pool.hpp) -- the space
+ * reserved here is not reclaimed until a_pool itself is destroyed.
+ * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
  * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W (see TriMeshSDF's mesh-based
  * constructor for the tree-quality/SIMD-occupancy trade-off). Defaults to 4.
- * @param[in] a_build         BVH build strategy. SAH is the default and recommended choice.
+ * @param[in]     a_build         BVH build strategy. SAH is the default and recommended choice.
  * @return Shared pointer to the TriMeshSDF enclosing the mesh.
  */
 template <typename T,
@@ -260,6 +277,7 @@ template <typename T,
           class StoragePolicy = BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>>
 [[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>
 readIntoTriangleBVH(const std::string a_filename,
+                    Pool&             a_pool,
                     const size_t      a_maxLeafGroups = 4,
                     const BVH::Build  a_build         = BVH::Build::SAH);
 
@@ -271,10 +289,12 @@ readIntoTriangleBVH(const std::string a_filename,
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>().
  * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF (see the
  * single-file overload).
- * @param[in] a_files         List of file names (STL, PLY, or VTK).
- * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
+ * @param[in]     a_files         List of file names (STL, PLY, or VTK).
+ * @param[in,out] a_pool          Pool to reserve every intermediate DCEL mesh's storage from (see
+ * the single-file overload for details) -- all meshes share this one Pool, laid out contiguously.
+ * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
  * the single-file overload for details). Defaults to 4.
- * @param[in] a_build         BVH build strategy. SAH is the default and recommended choice.
+ * @param[in]     a_build         BVH build strategy. SAH is the default and recommended choice.
  * @return Vector of shared pointers to TriMeshSDF objects, one per file.
  */
 template <typename T,
@@ -284,6 +304,7 @@ template <typename T,
           class StoragePolicy = BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>>
 [[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>>
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
+                    Pool&                           a_pool,
                     const size_t                    a_maxLeafGroups = 4,
                     const BVH::Build                a_build         = BVH::Build::SAH);
 
@@ -293,23 +314,29 @@ readIntoTriangleBVH(const std::vector<std::string>& a_files,
  * independent Triangle with precomputed vertex positions, normals, and edge normals.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
  * @tparam Meta Per-face metadata type.
- * @param[in] a_filename File name (STL, PLY, or VTK).
+ * @param[in]     a_filename File name (STL, PLY, or VTK).
+ * @param[in,out] a_pool     Pool to reserve the intermediate DCEL mesh's storage from. The mesh is
+ * only used transiently to extract triangles and is not retained by the returned list, but the
+ * Pool itself is a pure bump allocator (see EBGeometry_Pool.hpp) -- the space reserved here is not
+ * reclaimed until a_pool itself is destroyed.
  * @return Flat vector of shared pointers to Triangle objects.
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<std::shared_ptr<Triangle<T, Meta>>>
-readIntoTriangles(const std::string a_filename);
+readIntoTriangles(const std::string a_filename, Pool& a_pool);
 
 /**
  * @brief Read multiple files and return all faces from each as flat lists of Triangle objects.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
  * @tparam Meta Per-face metadata type.
- * @param[in] a_files List of file names (STL, PLY, or VTK).
+ * @param[in]     a_files List of file names (STL, PLY, or VTK).
+ * @param[in,out] a_pool  Pool to reserve every intermediate DCEL mesh's storage from -- all meshes
+ * share this one Pool, laid out contiguously (see the single-file overload for details).
  * @return Outer vector indexed by file; each inner vector is the flat triangle list for that file.
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-readIntoTriangles(const std::vector<std::string>& a_files);
+readIntoTriangles(const std::vector<std::string>& a_files, Pool& a_pool);
 } // namespace Parser
 
 } // namespace EBGeometry

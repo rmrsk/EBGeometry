@@ -5,6 +5,7 @@
 #include "TestFloatingPointUtils.hpp"
 
 #include <array>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -130,12 +131,13 @@ TEMPLATE_TEST_CASE("STL: convertToDCEL builds a mesh with the correct compressed
   REQUIRE(stl.getVertexCoordinates().size() == 12);
   REQUIRE(stl.getFacets().size() == 4);
 
-  auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>();
+  Pool pool(hostMemoryResource());
+  auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>(pool);
 
   REQUIRE(mesh != nullptr);
-  REQUIRE(mesh->getVertices().size() == 4); // Compressed down to the 4 unique corners.
-  REQUIRE(mesh->getFaces().size() == 4);
-  REQUIRE(mesh->getEdges().size() == 12); // 4 triangular faces * 3 half-edges each.
+  REQUIRE(mesh->numVertices() == 4); // Compressed down to the 4 unique corners.
+  REQUIRE(mesh->numFaces() == 4);
+  REQUIRE(mesh->numEdges() == 12); // 4 triangular faces * 3 half-edges each.
 
   // convertToDCEL() must not mutate the STL object's own (uncompressed) data.
   REQUIRE(stl.getVertexCoordinates().size() == 12);
@@ -163,15 +165,17 @@ TEMPLATE_TEST_CASE("Parser::readSTL + convertToDCEL round-trips into a valid, wa
 {
   using T = TestType;
 
-  auto stl  = Parser::readSTL<T>(g_dataDir + "/tetrahedron.stl");
-  auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>();
+  auto stl = Parser::readSTL<T>(g_dataDir + "/tetrahedron.stl");
+
+  Pool pool(hostMemoryResource());
+  auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>(pool);
 
   REQUIRE(mesh != nullptr);
-  REQUIRE(mesh->getVertices().size() == 4);
-  REQUIRE(mesh->getFaces().size() == 4);
-  REQUIRE(mesh->getEdges().size() == 12);
+  REQUIRE(mesh->numVertices() == 4);
+  REQUIRE(mesh->numFaces() == 4);
+  REQUIRE(mesh->numEdges() == 12);
 
-  for (const auto& e : mesh->getEdges()) {
-    REQUIRE(e.getPairEdgeIndex() != UINT32_MAX); // Watertight: every half-edge has a pair.
+  for (uint32_t i = 0; i < mesh->numEdges(); i++) {
+    REQUIRE(mesh->getEdge(i).getPairEdgeIndex() != UINT32_MAX); // Watertight: every half-edge has a pair.
   }
 }

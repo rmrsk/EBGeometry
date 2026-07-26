@@ -21,8 +21,11 @@ when instantiating a class or calling a function template:
 
 .. code-block:: cpp
 
-   auto sdfDouble = EBGeometry::Parser::readIntoTriangleBVH<double>("bunny.ply");
-   auto sdfFloat  = EBGeometry::Parser::readIntoTriangleBVH<float>("bunny.ply");
+   EBGeometry::Pool poolDouble(EBGeometry::hostMemoryResource());
+   EBGeometry::Pool poolFloat(EBGeometry::hostMemoryResource());
+
+   auto sdfDouble = EBGeometry::Parser::readIntoTriangleBVH<double>("bunny.ply", poolDouble);
+   auto sdfFloat  = EBGeometry::Parser::readIntoTriangleBVH<float>("bunny.ply", poolFloat);
 
 Consuming code (including every example under :file:`Examples/`) typically reads precision from
 a preprocessor define so it can be overridden from the build system without editing source:

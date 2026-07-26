@@ -60,7 +60,11 @@ instance:
    every packed face's ``signedDistance()``/``unsignedDistance2()`` call, since a face's half-edge
    index is only meaningful together with the mesh it was built from. A mesh is typically never
    constructed by hand -- it is built by a file parser reading vertices and faces from disk, see
-   :ref:`Chap:Parsers`. For the full API, see the Doxygen reference for
+   :ref:`Chap:Parsers`. Its vertex/edge/face arrays are reserved from a caller-supplied, non-owning
+   `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__ passed to its constructor (and, one level up,
+   to every ``Parser::readInto*`` entry point) -- the caller owns and manages the Pool's lifetime,
+   which must outlive the mesh (and, transitively, anything retaining it -- see
+   :ref:`Chap:MeshSDFClasses`). For the full API, see the Doxygen reference for
    `MeshT <doxygen/html/classEBGeometry_1_1DCEL_1_1MeshT.html>`__.
 
 Meta-data can be attached to the DCEL primitives by selecting an appropriate type for ``Meta`` above.

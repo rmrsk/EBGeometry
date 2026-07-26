@@ -66,7 +66,11 @@ main(int argc, char* argv[])
   // same object, shared by pointer and never rebuilt or copied per placement. This is the idiomatic
   // way to replicate one mesh across a scene. (To place genuinely different meshes instead, read one
   // TriMeshSDF per mesh file and translate each.)
-  const auto tri   = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file);
+  // TriMeshSDF extracts flat Triangle objects from the parsed DCEL mesh and does not retain the
+  // mesh itself, so this Pool only needs to outlive the readIntoTriangleBVH call.
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+  const auto tri   = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool);
   const BV   triBV = tri->computeBoundingVolume();
 
   const std::vector<Vec3> shifts = {

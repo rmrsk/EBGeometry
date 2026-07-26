@@ -49,9 +49,12 @@ main(int argc, char* argv[])
               << "Usage: ./a.out <mesh-file>  (STL/PLY/VTK/OBJ)\n";
   }
 
-  // Read the mesh into a signed distance function and bound it with an axis-aligned box.
-  const auto meshSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
-  const BV   meshBV(meshSDF->getMesh()->getAllVertexCoordinates());
+  // Read the mesh into a signed distance function and bound it with an axis-aligned box. The mesh's
+  // vertex/edge/face storage is reserved from this Pool; meshSDF retains the mesh (see MeshSDF's
+  // docs), so the Pool must outlive it -- keeping both in main()'s scope satisfies that.
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+  const auto       meshSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file, pool);
+  const BV         meshBV(meshSDF->getMesh()->getAllVertexCoordinates());
 
   // Analytic sphere centred on the mesh, with radius equal to the shortest axis (half-extent) of the
   // mesh bounding box. It is bounded by its own axis-aligned box for the union hierarchy.
