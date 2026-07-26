@@ -3,7 +3,7 @@ name: Continuous integration
 
 on:
   pull_request:
-    branches : main
+    branches: [main, dev]
     types: [push, opened, synchronize, reopened, ready_for_review]
 
 concurrency:
@@ -452,6 +452,14 @@ jobs:
         # with nvcc, exercising the device-callable surface. The device-test list lives in
         # Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them. No GPU is needed to build.
         run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests --parallel 2
+      - name: Run device-tagged tests
+        # This runner has no physical GPU, so deviceAvailable() is false and every one of these
+        # SKIP()s (see TestGPU.hpp) rather than actually exercising device execution -- but running
+        # them still verifies the host-side setup around each kernel launch and the SKIP() path
+        # itself execute cleanly, not just that they compile. "gpu-device" is the CTest label
+        # Tests/CMakeLists.txt attaches to exactly the [gpu]-tagged Catch2 cases in the GPU test
+        # binaries, so this doesn't need its own copy of the device-test list.
+        run: ctest --test-dir build/cuda -L gpu-device --output-on-failure
 
   GPU-HIP:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -474,6 +482,11 @@ jobs:
         # with hipcc/clang, exercising the device-callable surface. The device-test list lives in
         # Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them. No GPU is needed to build.
         run: cmake --build build/hip --target EBGeometry_GPUDeviceTests --parallel 2
+      - name: Run device-tagged tests
+        # See the matching step in the GPU-CUDA job above: this runner has no physical GPU, so these
+        # SKIP() cleanly (TestGPU.hpp's deviceAvailable()) rather than exercising real device
+        # execution, but still verify the host-side setup and the SKIP() path itself run cleanly.
+        run: ctest --test-dir build/hip -L gpu-device --output-on-failure
 
   CI-passed:
     needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
