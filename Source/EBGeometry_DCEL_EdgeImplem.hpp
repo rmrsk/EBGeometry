@@ -28,12 +28,14 @@ namespace EBGeometry {
 namespace DCEL {
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline EdgeT<T, Meta>::EdgeT(const uint32_t a_vertexIndex) noexcept
 {
   m_vertex = a_vertexIndex;
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline size_t
 EdgeT<T, Meta>::size() const noexcept
 {
@@ -41,6 +43,7 @@ EdgeT<T, Meta>::size() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeT<T, Meta>::define(const uint32_t a_vertexIndex,
                        const uint32_t a_pairEdgeIndex,
@@ -52,6 +55,7 @@ EdgeT<T, Meta>::define(const uint32_t a_vertexIndex,
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeT<T, Meta>::flipNormal() noexcept
 {
@@ -59,6 +63,7 @@ EdgeT<T, Meta>::flipNormal() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeT<T, Meta>::reconcile(const Mesh& a_mesh) noexcept
 {
@@ -66,6 +71,7 @@ EdgeT<T, Meta>::reconcile(const Mesh& a_mesh) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeT<T, Meta>::setVertex(const uint32_t a_vertexIndex) noexcept
 {
@@ -73,6 +79,7 @@ EdgeT<T, Meta>::setVertex(const uint32_t a_vertexIndex) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeT<T, Meta>::setPairEdge(const uint32_t a_pairEdgeIndex) noexcept
 {
@@ -80,6 +87,7 @@ EdgeT<T, Meta>::setPairEdge(const uint32_t a_pairEdgeIndex) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeT<T, Meta>::setNextEdge(const uint32_t a_nextEdgeIndex) noexcept
 {
@@ -87,6 +95,7 @@ EdgeT<T, Meta>::setNextEdge(const uint32_t a_nextEdgeIndex) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeT<T, Meta>::setFace(const uint32_t a_faceIndex) noexcept
 {
@@ -94,6 +103,7 @@ EdgeT<T, Meta>::setFace(const uint32_t a_faceIndex) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeT<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
 {
@@ -101,6 +111,7 @@ EdgeT<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 EdgeT<T, Meta>::getVertexIndex() const noexcept
 {
@@ -108,6 +119,7 @@ EdgeT<T, Meta>::getVertexIndex() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 EdgeT<T, Meta>::getPairEdgeIndex() const noexcept
 {
@@ -115,6 +127,7 @@ EdgeT<T, Meta>::getPairEdgeIndex() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 EdgeT<T, Meta>::getNextEdgeIndex() const noexcept
 {
@@ -122,6 +135,7 @@ EdgeT<T, Meta>::getNextEdgeIndex() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 EdgeT<T, Meta>::getFaceIndex() const noexcept
 {
@@ -129,6 +143,7 @@ EdgeT<T, Meta>::getFaceIndex() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
 EdgeT<T, Meta>::computeNormal(const Mesh& a_mesh) const noexcept
 {
@@ -170,6 +185,7 @@ EdgeT<T, Meta>::computeNormal(const Mesh& a_mesh) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
 EdgeT<T, Meta>::getNormal() noexcept
 {
@@ -177,6 +193,7 @@ EdgeT<T, Meta>::getNormal() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
 EdgeT<T, Meta>::getNormal() const noexcept
 {
@@ -184,6 +201,7 @@ EdgeT<T, Meta>::getNormal() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline VertexT<T, Meta>&
 EdgeT<T, Meta>::getVertex(Mesh& a_mesh) noexcept
 {
@@ -193,6 +211,7 @@ EdgeT<T, Meta>::getVertex(Mesh& a_mesh) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const VertexT<T, Meta>&
 EdgeT<T, Meta>::getVertex(const Mesh& a_mesh) const noexcept
 {
@@ -202,6 +221,7 @@ EdgeT<T, Meta>::getVertex(const Mesh& a_mesh) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline VertexT<T, Meta>&
 EdgeT<T, Meta>::getOtherVertex(Mesh& a_mesh) noexcept
 {
@@ -211,6 +231,7 @@ EdgeT<T, Meta>::getOtherVertex(Mesh& a_mesh) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const VertexT<T, Meta>&
 EdgeT<T, Meta>::getOtherVertex(const Mesh& a_mesh) const noexcept
 {
@@ -220,6 +241,7 @@ EdgeT<T, Meta>::getOtherVertex(const Mesh& a_mesh) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline EdgeT<T, Meta>&
 EdgeT<T, Meta>::getPairEdge(Mesh& a_mesh) noexcept
 {
@@ -229,6 +251,7 @@ EdgeT<T, Meta>::getPairEdge(Mesh& a_mesh) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const EdgeT<T, Meta>&
 EdgeT<T, Meta>::getPairEdge(const Mesh& a_mesh) const noexcept
 {
@@ -238,6 +261,7 @@ EdgeT<T, Meta>::getPairEdge(const Mesh& a_mesh) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline EdgeT<T, Meta>&
 EdgeT<T, Meta>::getNextEdge(Mesh& a_mesh) noexcept
 {
@@ -247,6 +271,7 @@ EdgeT<T, Meta>::getNextEdge(Mesh& a_mesh) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const EdgeT<T, Meta>&
 EdgeT<T, Meta>::getNextEdge(const Mesh& a_mesh) const noexcept
 {
@@ -256,6 +281,7 @@ EdgeT<T, Meta>::getNextEdge(const Mesh& a_mesh) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
 EdgeT<T, Meta>::getX2X1(const Mesh& a_mesh) const noexcept
 {
@@ -268,6 +294,7 @@ EdgeT<T, Meta>::getX2X1(const Mesh& a_mesh) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline FaceT<T, Meta>&
 EdgeT<T, Meta>::getFace(Mesh& a_mesh) noexcept
 {
@@ -277,6 +304,7 @@ EdgeT<T, Meta>::getFace(Mesh& a_mesh) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const FaceT<T, Meta>&
 EdgeT<T, Meta>::getFace(const Mesh& a_mesh) const noexcept
 {
@@ -286,6 +314,7 @@ EdgeT<T, Meta>::getFace(const Mesh& a_mesh) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Meta&
 EdgeT<T, Meta>::getMetaData() noexcept
 {
@@ -293,6 +322,7 @@ EdgeT<T, Meta>::getMetaData() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const Meta&
 EdgeT<T, Meta>::getMetaData() const noexcept
 {
@@ -300,6 +330,7 @@ EdgeT<T, Meta>::getMetaData() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline T
 EdgeT<T, Meta>::projectPointToEdge(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
@@ -317,6 +348,7 @@ EdgeT<T, Meta>::projectPointToEdge(const Vec3& a_x0, const Mesh& a_mesh) const n
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline T
 EdgeT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
@@ -354,6 +386,7 @@ EdgeT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexc
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline T
 EdgeT<T, Meta>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {

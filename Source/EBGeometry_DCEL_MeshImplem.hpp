@@ -221,7 +221,7 @@ MeshT<T, Meta>::setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::setInsideOutsideAlgorithm(void* a_base, InsideOutsideAlgorithm a_algorithm) noexcept
 {
@@ -231,7 +231,7 @@ MeshT<T, Meta>::setInsideOutsideAlgorithm(void* a_base, InsideOutsideAlgorithm a
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 {
@@ -257,7 +257,7 @@ MeshT<T, Meta>::reconcile(const DCEL::VertexNormalWeight a_weight) noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::flip(void* a_base) noexcept
 {
@@ -267,7 +267,7 @@ MeshT<T, Meta>::flip(void* a_base) noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::flip() noexcept
 {
@@ -467,7 +467,7 @@ MeshT<T, Meta>::reconcileFaces(void* a_base) noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::reconcileEdges(void* a_base) noexcept
 {
@@ -528,7 +528,7 @@ MeshT<T, Meta>::reconcileVertices(void* a_base, const DCEL::VertexNormalWeight a
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::flipFaceNormals(void* a_base) noexcept
 {
@@ -538,7 +538,7 @@ MeshT<T, Meta>::flipFaceNormals(void* a_base) noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::flipEdgeNormals(void* a_base) noexcept
 {
@@ -548,7 +548,7 @@ MeshT<T, Meta>::flipEdgeNormals(void* a_base) noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::flipVertexNormals(void* a_base) noexcept
 {
@@ -601,7 +601,7 @@ MeshT<T, Meta>::signedDistance(const Vec3& a_point) const noexcept
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::unsignedDistance2(const void* a_base, const Vec3& a_point) const noexcept
 {
@@ -627,7 +627,7 @@ MeshT<T, Meta>::unsignedDistance2(const void* a_base, const Vec3& a_point) const
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
 {
@@ -679,7 +679,7 @@ MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm)
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::DirectSignedDistance(const void* a_base, const Vec3& a_point) const noexcept
 {
@@ -710,7 +710,7 @@ MeshT<T, Meta>::DirectSignedDistance(const void* a_base, const Vec3& a_point) co
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::DirectSignedDistance2(const void* a_base, const Vec3& a_point) const noexcept
 {

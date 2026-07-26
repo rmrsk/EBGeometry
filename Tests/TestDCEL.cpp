@@ -3,6 +3,7 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 
 #include <cstdint>
 #include <string>
@@ -1270,3 +1271,62 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
   const T dEdgeFast  = fast->signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
   REQUIRE_THAT(dEdgeFast, withinAbsT(dEdgeBrute, traversalMargin<T>()));
 }
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: the DCEL query surface (MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT) is
+// callable from a kernel and matches the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+template <class T>
+EBGEOMETRY_GLOBAL
+void
+dcelDeviceKernel(TestMesh<T> a_mesh, Vec3T<T> a_point, T* a_out)
+{
+  const TestFace<T>& face = a_mesh.getFace(0);
+
+  uint32_t edgeCount = 0;
+
+  for (TestEdgeIterator<T> it(a_mesh, face); it.ok(); ++it) {
+    ++edgeCount;
+  }
+
+  const T vertexTerm = a_mesh.getVertex(1).getPosition().length();
+
+  a_out[0] = face.signedDistance(a_point, a_mesh) + a_mesh.unsignedDistance2(a_point) + T(edgeCount) + vertexTerm;
+}
+
+TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surface matches the host",
+                   "[DCEL][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool hostPool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(hostPool); // freezes+binds hostPool
+
+  const Vec3T<T> point(2.0, 2.0, 2.0);
+
+  const TestFace<T>& face      = mesh->getFace(0);
+  const uint32_t     edgeCount = 3; // every face built by buildTetrahedron is a triangle
+  const T            hostVal   = face.signedDistance(point, *mesh) + mesh->unsignedDistance2(point) + T(edgeCount) +
+                    mesh->getVertex(1).getPosition().length();
+
+  Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+
+  const TestMesh<T> deviceView = mesh->boundView(devicePool.base());
+
+  DeviceBuffer<T> deviceOut;
+
+  dcelDeviceKernel<T><<<1, 1>>>(deviceView, point, deviceOut.get());
+  (void)GPU::deviceSynchronize();
+
+  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
+}
+#endif

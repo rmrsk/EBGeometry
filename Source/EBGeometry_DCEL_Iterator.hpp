@@ -17,6 +17,7 @@
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
+#include "EBGeometry_GPU.hpp"
 
 namespace EBGeometry {
 
@@ -36,6 +37,9 @@ namespace DCEL {
  *   // ... use mesh.getEdge(edgeIndex) ...
  * }
  * @endcode
+ * @note Every member resolves purely through m_mesh (itself resolved via EBGEOMETRY_HOST_DEVICE
+ * MeshT accessors) and plain uint32_t/bool values, so the entire public and protected interface is
+ * annotated EBGEOMETRY_HOST_DEVICE.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -77,6 +81,7 @@ public:
    * @param[in] a_face DCEL polygon face
    * @note This constructor will iterate through the half-edges in the polygon face.
    */
+  EBGEOMETRY_HOST_DEVICE
   EdgeIteratorT(const Mesh& a_mesh, const Face& a_face) noexcept;
 
   /**
@@ -87,6 +92,7 @@ public:
    * @param[in] a_startEdgeIndex Starting half-edge index. May be UINT32_MAX (ok() will then
    * immediately return false).
    */
+  EBGEOMETRY_HOST_DEVICE
   EdgeIteratorT(const Mesh& a_mesh, const uint32_t a_startEdgeIndex) noexcept;
 
   /**
@@ -126,19 +132,22 @@ public:
    * @brief Operator returning the index of the current half-edge
    * @return Index of the current half-edge in the owning mesh's edge array.
    */
-  [[nodiscard]] inline uint32_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
   operator()() const noexcept;
 
   /**
    * @brief Reset function for the iterator. This resets the iterator so that it
    * begins from the starting half-edge
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   reset() noexcept;
 
   /**
    * @brief Incrementation operator, bringing the iterator to the next half-edge
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   operator++() noexcept;
 
@@ -146,7 +155,8 @@ public:
    * @brief Function which checks if the iteration can be continued.
    * @return True if the iterator has not completed a full loop and the current edge index is set.
    */
-  [[nodiscard]] inline bool
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
   ok() const noexcept;
 
 protected:

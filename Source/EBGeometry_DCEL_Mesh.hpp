@@ -71,13 +71,19 @@ namespace DCEL {
  * always take an explicit Pool&, since reserving can grow (and move) the
  * Pool's block; there is no cached-base convenience form for these, since
  * building only happens on the host, with a live Pool in hand.
- * @note Everything that resolves purely through m_base and the PODVectors (getVertex/getEdge/
- * getFace, numVertices/numEdges/numFaces, boundView) is annotated EBGEOMETRY_HOST_DEVICE.
- * Everything that touches a Pool directly (bind, deepCopy, reserveVertices/Edges/Faces,
- * addVertex/Edge/Face), returns a host container (getAllVertexCoordinates), or delegates to a
- * VertexT/EdgeT/FaceT method (reconcile, flip, sanityCheck, signedDistance, unsignedDistance2 --
- * none of which are themselves device-annotated yet) is EBGEOMETRY_HOST for now; that set becomes
- * EBGEOMETRY_HOST_DEVICE once VertexT/EdgeT/FaceT are annotated in turn.
+ * @note Everything that resolves purely through m_base, the PODVectors, and VertexT/EdgeT/FaceT
+ * methods that are themselves EBGEOMETRY_HOST_DEVICE (getVertex/getEdge/getFace, numVertices/
+ * numEdges/numFaces, boundView, setSearchAlgorithm, setInsideOutsideAlgorithm, reconcileEdges,
+ * flipFaceNormals/flipEdgeNormals/flipVertexNormals, flip, DirectSignedDistance/
+ * DirectSignedDistance2, unsignedDistance2) is annotated EBGEOMETRY_HOST_DEVICE. The rest stays
+ * EBGEOMETRY_HOST because it touches a Pool directly (bind, deepCopy, reserveVertices/Edges/Faces,
+ * addVertex/Edge/Face), returns a host container (getAllVertexCoordinates), logs diagnostics to
+ * std::cerr (sanityCheck and its incrementWarning/printWarnings helpers), or delegates to a
+ * VertexT/EdgeT/FaceT method that itself allocates a std::vector or can log a diagnostic the same
+ * way (reconcileFaces calls FaceT::reconcile; reconcileVertices builds a transient per-vertex face
+ * list and can warn on a corrupted VertexNormalWeight; signedDistance's algorithm-selecting
+ * overloads can likewise warn on a corrupted SearchAlgorithm) -- reconcile/reconcileFaces/
+ * reconcileVertices and every signedDistance overload therefore remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -260,7 +266,7 @@ public:
    * @param[in] a_base      Base to resolve this mesh's data against.
    * @param[in] a_algorithm Algorithm to use
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   setInsideOutsideAlgorithm(void* a_base, InsideOutsideAlgorithm a_algorithm) noexcept;
 
@@ -269,7 +275,7 @@ public:
    * faces, resolving against this mesh's bound base (see bind()).
    * @param[in] a_algorithm Algorithm to use
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept;
 
@@ -306,7 +312,7 @@ public:
    * @param[in] a_base Base to resolve this mesh's data against.
    * @note Should be called AFTER all normals have been computed.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   flip(void* a_base) noexcept;
 
@@ -315,7 +321,7 @@ public:
    * bound base (see bind()).
    * @note Should be called AFTER all normals have been computed.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   flip() noexcept;
 
@@ -608,7 +614,7 @@ public:
    * in a bounding volume hierarchy for faster access.
    * @return Squared unsigned distance to the nearest face, or +infinity if the mesh has no faces.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   unsignedDistance2(const void* a_base, const Vec3& a_x0) const noexcept;
 
@@ -618,7 +624,7 @@ public:
    * @param[in] a_x0 3D point in space.
    * @return Squared unsigned distance to the nearest face, or +infinity if the mesh has no faces.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   unsignedDistance2(const Vec3& a_x0) const noexcept;
 
@@ -680,7 +686,7 @@ protected:
    * @param[in] a_base Base to resolve this mesh's data against.
    * @note This calls DCEL::EdgeT<T, Meta>::reconcile()
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   reconcileEdges(void* a_base) noexcept;
 
@@ -699,7 +705,7 @@ protected:
    * @brief Flip all face normals
    * @param[in] a_base Base to resolve this mesh's data against.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   flipFaceNormals(void* a_base) noexcept;
 
@@ -707,7 +713,7 @@ protected:
    * @brief Flip all edge normals
    * @param[in] a_base Base to resolve this mesh's data against.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   flipEdgeNormals(void* a_base) noexcept;
 
@@ -715,7 +721,7 @@ protected:
    * @brief Flip all vertex normals
    * @param[in] a_base Base to resolve this mesh's data against.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   flipVertexNormals(void* a_base) noexcept;
 
@@ -726,7 +732,7 @@ protected:
    * @param[in] a_point 3D point
    * @return Signed distance to the nearest face.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   DirectSignedDistance(const void* a_base, const Vec3& a_point) const noexcept;
 
@@ -740,7 +746,7 @@ protected:
    * @param[in] a_point 3D point
    * @return Signed distance to the nearest face.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   DirectSignedDistance2(const void* a_base, const Vec3& a_point) const noexcept;
 
