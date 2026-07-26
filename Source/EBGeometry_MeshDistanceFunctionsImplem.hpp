@@ -212,9 +212,12 @@ buildTriTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>
 } // namespace MeshDistanceFunctionsDetail
 
 template <class T, class Meta>
-FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
+FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool) noexcept
 {
   EBGEOMETRY_EXPECT(a_mesh != nullptr);
+
+  a_pool.freeze();
+  a_mesh->bind(a_pool);
 
   m_mesh = a_mesh;
 }
@@ -251,9 +254,12 @@ FlatMeshSDF<T, Meta>::computeBoundingVolume() const
 };
 
 template <class T, class Meta, size_t K>
-MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build)
+MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool, const BVH::Build a_build)
 {
   EBGEOMETRY_EXPECT(a_mesh != nullptr);
+
+  a_pool.freeze();
+  a_mesh->bind(a_pool);
 
   using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
   const auto bvh = EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, AABB, K>(a_mesh, a_build);
@@ -424,6 +430,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::groupTrianglesIntoSoA(
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
 TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
+                                                     Pool&                        a_pool,
                                                      const BVH::Build             a_build,
                                                      const size_t                 a_maxLeafGroups) noexcept
 {
@@ -432,13 +439,19 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
 
   using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
+  // Deliberately not frozen/bound here -- see this constructor's doc. a_mesh's data is resolved
+  // against a_pool's current base explicitly throughout, via the mesh-bound Mesh view below, since
+  // the mesh may still be unbound (or a_pool still open for more meshes) at this point.
+  void* const base     = a_pool.base();
+  const Mesh  meshView = a_mesh->boundView(base);
+
   std::vector<std::shared_ptr<Tri>> triangles;
 
   for (uint32_t faceIndex = 0; faceIndex < a_mesh->numFaces(); faceIndex++) {
-    const auto& f             = a_mesh->getFace(faceIndex);
+    const auto& f             = a_mesh->getFace(base, faceIndex);
     const auto  normal        = f.getNormal();
-    const auto  vertexIndices = f.gatherVertexIndices(*a_mesh);
-    const auto  edgeIndices   = f.gatherEdgeIndices(*a_mesh);
+    const auto  vertexIndices = f.gatherVertexIndices(meshView);
+    const auto  edgeIndices   = f.gatherEdgeIndices(meshView);
 
     EBGEOMETRY_EXPECT(vertexIndices.size() == 3);
     EBGEOMETRY_EXPECT(edgeIndices.size() == 3);
@@ -447,13 +460,13 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
       std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
     }
 
-    const auto& v0 = a_mesh->getVertex(vertexIndices[0]);
-    const auto& v1 = a_mesh->getVertex(vertexIndices[1]);
-    const auto& v2 = a_mesh->getVertex(vertexIndices[2]);
+    const auto& v0 = a_mesh->getVertex(base, vertexIndices[0]);
+    const auto& v1 = a_mesh->getVertex(base, vertexIndices[1]);
+    const auto& v2 = a_mesh->getVertex(base, vertexIndices[2]);
 
-    const auto& e0 = a_mesh->getEdge(edgeIndices[0]);
-    const auto& e1 = a_mesh->getEdge(edgeIndices[1]);
-    const auto& e2 = a_mesh->getEdge(edgeIndices[2]);
+    const auto& e0 = a_mesh->getEdge(base, edgeIndices[0]);
+    const auto& e1 = a_mesh->getEdge(base, edgeIndices[1]);
+    const auto& e2 = a_mesh->getEdge(base, edgeIndices[2]);
 
     auto tri = std::make_shared<Tri>();
 

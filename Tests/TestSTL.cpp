@@ -170,6 +170,11 @@ TEMPLATE_TEST_CASE("Parser::readSTL + convertToDCEL round-trips into a valid, wa
   Pool pool(hostMemoryResource());
   auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>(pool);
 
+  // convertToDCEL never freezes/binds pool itself (it may still be shared with more files -- see
+  // Chap:MemoryModel), but mesh is queried below via its no-argument accessors.
+  pool.freeze();
+  mesh->bind(pool);
+
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->numVertices() == 4);
   REQUIRE(mesh->numFaces() == 4);

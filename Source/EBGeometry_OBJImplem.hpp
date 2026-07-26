@@ -86,10 +86,10 @@ OBJ<T>::convertToDCEL(Pool& a_pool) const noexcept
     std::cerr << "OBJ::convertToDCEL - OBJ contains degenerate faces\n";
   }
 
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>(a_pool);
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
   Soup::compress(vertices, facets);
-  Soup::soupToDCEL(*mesh, vertices, facets, m_id);
+  Soup::soupToDCEL(*mesh, a_pool, vertices, facets, m_id);
 
   return mesh;
 }

@@ -61,13 +61,58 @@ instance:
    index is only meaningful together with the mesh it was built from. A mesh is typically never
    constructed by hand -- it is built by a file parser reading vertices and faces from disk, see
    :ref:`Chap:Parsers`. Its vertex/edge/face arrays are reserved from a caller-supplied, non-owning
-   `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__ passed to its constructor (and, one level up,
-   to every ``Parser::readInto*`` entry point) -- the caller owns and manages the Pool's lifetime,
-   which must outlive the mesh (and, transitively, anything retaining it -- see
-   :ref:`Chap:MeshSDFClasses`). For the full API, see the Doxygen reference for
+   `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__ -- see :ref:`Sec:DCELMemoryModel` below for
+   how this works. For the full API, see the Doxygen reference for
    `MeshT <doxygen/html/classEBGeometry_1_1DCEL_1_1MeshT.html>`__.
 
 Meta-data can be attached to the DCEL primitives by selecting an appropriate type for ``Meta`` above.
+
+.. _Sec:DCELMemoryModel:
+
+Memory model
+------------
+
+See :ref:`Chap:MemoryModel` first for the generic ``Pool``/``PODVector``/``MemoryResource``
+foundation (build/freeze/query, mirroring, the ``at()``-vs-``bind()`` access-style choice) --
+this section covers only how ``MeshT`` specifically is built on top of it.
+
+``MeshT<T, Meta>``'s vertex/edge/face arrays are three ``PODVector``\ s, and its own accessors
+mirror the same two-style choice as ``PODVector`` itself:
+
+* an **explicit-base** overload (e.g. ``getVertex(void* a_base, uint32_t)``), which resolves fresh
+  against whatever base is passed in, valid even mid-build against a pool that has not been
+  frozen yet, and
+* a **bound**, no-argument convenience overload (e.g. ``getVertex(uint32_t)``), which resolves
+  against a base cached once via ``bind(const Pool&)`` -- itself ``EBGEOMETRY_EXPECT``-checked to
+  require a frozen pool, for exactly the reason given in :ref:`Chap:MemoryModel`.
+
+Build-phase mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
+``addVertex()``/``addEdge()``/``addFace()``) always take the ``Pool&`` explicitly, since reserving
+can grow (and move) the pool's block -- there is no cached-base convenience form for these.
+Because ``MeshT`` never stores anything but ``PODVector``\ s, a plain value, and one resolved base
+pointer, it -- like ``VertexT``/``EdgeT``/``FaceT`` themselves -- is trivially copyable, and a mesh
+built and reconciled entirely on the host can be handed to ``Pool::mirror()`` and re-``bind()``'d
+against the mirrored, device-resident base with zero pointer patching.
+
+.. warning::
+
+   **One ``Pool`` can safely back many meshes, but they all share one freeze point.** Building
+   several meshes one after another into the *same* still-open ``Pool`` is safe and cheaper than
+   giving each its own pool (see :ref:`Chap:Parsers`): a ``grow()`` triggered while building the
+   fifth mesh ``memcpy``\ s *everything* reserved so far, including the first four, and every
+   ``PODVector``'s offset stays correct against the new base regardless. But ``freeze()`` applies to
+   the whole pool, not to an individual mesh -- nobody sharing a pool can move to the query phase
+   (``bind()``, ``Pool::mirror()``) until *everyone* sharing it has finished building. If different
+   meshes need to become query-ready at different times, give them separate pools instead.
+
+.. warning::
+
+   Do not call a bound (no-argument) accessor (``getVertex(i)``, ``signedDistance(p)``, ...) on a
+   mesh that has not been ``bind()``'d yet -- its cached base is null (or stale), and dereferencing
+   through it is undefined behaviour, not a checked error. This is exactly why the build-phase code
+   inside ``Soup``/``Parser`` (:ref:`Chap:Parsers`) uses the explicit-base overloads throughout: at
+   that point the owning ``Pool`` may still be open for more meshes and is not guaranteed frozen
+   yet.
 
 .. _Chap:BVHIntegration:
 

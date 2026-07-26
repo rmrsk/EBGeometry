@@ -98,6 +98,7 @@ Implementation
    :hidden:
 
    Implementation.rst
+   MemoryModel.rst
    ImplemVec.rst
    ImplemCSG.rst
    ImplemDCEL.rst

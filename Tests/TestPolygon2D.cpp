@@ -64,35 +64,39 @@ struct BuiltFace
   using Edge   = DCEL::EdgeT<T, Meta>;
   using Face   = DCEL::FaceT<T, Meta>;
 
-  // m_mesh holds a raw Pool* pointing at m_pool (see MeshT's class-level note), so BuiltFace is not
-  // safe to copy or move -- a moved-to object's m_mesh would keep pointing at the moved-FROM
-  // object's m_pool. Every use site relies on C++17's guaranteed copy elision for prvalue returns
+  // m_mesh's vertex/edge/face storage is reserved from m_pool, and m_mesh is bound to it (see the
+  // constructor) -- both members must stay together at a fixed address, so BuiltFace is not safe
+  // to copy or move. Every use site relies on C++17's guaranteed copy elision for prvalue returns
   // (e.g. `return BuiltFace<T>(...)`), which needs no copy/move constructor at all.
   Pool m_pool;
   Mesh m_mesh;
 
-  explicit BuiltFace(const std::vector<Vec3T<T>>& a_positions) : m_pool(hostMemoryResource()), m_mesh(m_pool)
+  explicit BuiltFace(const std::vector<Vec3T<T>>& a_positions) : m_pool(hostMemoryResource())
   {
     const uint32_t N = static_cast<uint32_t>(a_positions.size());
 
-    m_mesh.reserveVertices(N);
-    m_mesh.reserveEdges(N);
-    m_mesh.reserveFaces(1);
+    m_mesh.reserveVertices(m_pool, N);
+    m_mesh.reserveEdges(m_pool, N);
+    m_mesh.reserveFaces(m_pool, 1);
 
     for (const auto& p : a_positions) {
-      m_mesh.addVertex(Vertex(p));
+      m_mesh.addVertex(m_pool, Vertex(p));
     }
 
     for (uint32_t i = 0; i < N; i++) {
-      m_mesh.addEdge(Edge(i)); // half-edge i starts at vertex i
+      m_mesh.addEdge(m_pool, Edge(i)); // half-edge i starts at vertex i
     }
 
     for (uint32_t i = 0; i < N; i++) {
-      m_mesh.getEdge(i).setNextEdge((i + 1) % N);
-      m_mesh.getEdge(i).setFace(0);
+      m_mesh.getEdge(m_pool.base(), i).setNextEdge((i + 1) % N);
+      m_mesh.getEdge(m_pool.base(), i).setFace(0);
     }
 
-    m_mesh.addFace(Face(0u)); // half-edge index 0
+    m_mesh.addFace(m_pool, Face(0u)); // half-edge index 0
+
+    m_pool.freeze();
+    m_mesh.bind(m_pool);
+
     m_mesh.getFace(0).reconcile(m_mesh);
   }
 

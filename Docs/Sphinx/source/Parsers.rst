@@ -28,8 +28,11 @@ DCEL mesh it builds reserves its vertex/edge/face storage from that Pool. The Po
 caller-owned and caller-managed -- EBGeometry never constructs one for you -- so it must outlive
 every mesh (or SDF wrapper retaining one, see :ref:`Chap:MeshSDFClasses`) built into it. One Pool
 can back many meshes, built one after another with their arrays laid out contiguously in the same
-block, which is cheaper than giving every mesh its own Pool. If you have one or multiple mesh
-files, the quickest way to turn them into BVH-accelerated signed distance fields is
+block, which is cheaper than giving every mesh its own Pool -- see :ref:`Chap:MemoryModel` for how
+this works internally, and the pitfalls in :ref:`Sec:DCELMemoryModel` for what it means in practice
+(in particular, everyone sharing a Pool must finish building before anyone can freeze it). If you
+have one or multiple mesh files, the quickest way to turn them into BVH-accelerated signed
+distance fields is
 
 .. code-block:: c++
 
@@ -122,6 +125,15 @@ multiple files at once, which reserves every mesh's storage from the same ``pool
 ``shared_ptr<DCEL::MeshT<T, Meta>>`` (or a vector thereof).
 Note that this will only expose the DCEL mesh, but not include any signed distance functionality.
 
+.. note::
+
+   ``readIntoDCEL`` never freezes or ``bind()``\ s ``pool`` (it may still be shared with more
+   files -- see :ref:`Chap:MemoryModel`), so the returned mesh is not yet queryable through its
+   no-argument accessors (``mesh->getVertex(i)``, ``mesh->signedDistance(p)``, ...). Freeze
+   ``pool`` and call ``mesh->bind(pool)`` yourself if you want to query a raw ``readIntoDCEL``
+   result directly; every other ``readInto*`` function below does this for you as part of building
+   its SDF wrapper.
+
 DCEL mesh SDF
 _____________
 
@@ -130,6 +142,16 @@ representation, use ``readIntoMesh<T, Meta>(filename, pool)``, returning a
 ``shared_ptr<FlatMeshSDF<T, Meta>>`` (or a vector thereof for the multi-file overload). The
 returned ``FlatMeshSDF`` retains the mesh (see :ref:`Chap:MeshSDFClasses`), so ``pool`` must
 outlive it.
+
+.. warning::
+
+   ``FlatMeshSDF``'s constructor freezes ``pool`` (see :ref:`Chap:MemoryModel`): once a call to
+   ``readIntoMesh`` (or a direct ``FlatMeshSDF`` construction) has run, no more meshes can be built
+   into that same ``pool`` -- including from a second, separate ``readIntoMesh`` call. The
+   multi-file overload handles this correctly internally (it builds every file's mesh before
+   wrapping any of them); if you need several *independent* ``readIntoMesh`` calls sharing one
+   file's worth of build work, use the multi-file overload rather than chaining single-file calls
+   by hand, or give each single-file call its own ``Pool``.
 
 .. _Chap:PackedBVHParser:
 
@@ -142,6 +164,11 @@ a vector thereof). It supports any polygon, not just triangles; the BVH branchin
 defaults to 4 and the build strategy ``a_build`` defaults to ``BVH::Build::SAH``. The returned
 ``MeshSDF`` retains the mesh, so ``pool`` must outlive it. For maximum throughput on
 triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
+
+.. warning::
+
+   ``MeshSDF``'s constructor freezes ``pool`` too, for the same reason as ``FlatMeshSDF`` above --
+   the same caution about chaining single-file calls by hand applies here.
 
 Triangle meshes with PackedBVH
 ________________________________
@@ -207,13 +234,17 @@ in namespace ``EBGeometry::Soup``:
   spending time compressing/converting it.
 * ``compress(vertices, facets)`` discards duplicate vertices from the soup in place, updating
   ``facets`` to reference the compressed vertex list.
-* ``soupToDCEL(mesh, vertices, facets, id)`` builds the vertices, half-edges, and faces of the
-  (already-compressed) soup into the output DCEL mesh, reconciles pair edges (internally, via
+* ``soupToDCEL(mesh, pool, vertices, facets, id)`` builds the vertices, half-edges, and faces of
+  the (already-compressed) soup into the output DCEL mesh, reconciles pair edges (internally, via
   ``reconcilePairEdgesDCEL``, which links each half-edge :math:`u \to v` to its reverse
   :math:`v \to u`), and runs a mesh sanity check. This also computes the vertex and edge normal
-  vectors. ``mesh`` must already be constructed against a ``Pool`` (i.e. via
-  ``DCEL::MeshT<T, Meta>(pool)``) before this call -- ``soupToDCEL`` reserves the mesh's
-  vertex/edge/half-edge storage from that pool itself, sized from ``vertices``/``facets``.
+  vectors. ``mesh`` can be freshly default-constructed (``DCEL::MeshT<T, Meta> mesh;``, no ``Pool``
+  needed at construction); ``soupToDCEL`` reserves its vertex/edge/half-edge storage from ``pool``
+  itself, sized from ``vertices``/``facets``. Since ``pool`` may still be shared with more meshes
+  after this call, ``soupToDCEL`` never freezes/binds it -- see :ref:`Chap:MemoryModel` and
+  :ref:`Sec:DCELMemoryModel` -- so ``mesh`` is not yet queryable through its no-argument accessors
+  at this point; freeze and ``bind()`` it yourself once you are done building into ``pool``, the
+  same way :ref:`Chap:MeshSDFClasses`'s constructors do.
 
 .. note::
 
