@@ -24,10 +24,13 @@
  * if it is false, prints a diagnostic message to @c stderr and calls
  * @c std::abort().
  *
- * When @c EBGEOMETRY_ENABLE_ASSERTIONS is not defined the macro still
- * evaluates the condition (to suppress "unused variable" warnings from
- * variables that appear only inside assertions) but the result is
- * discarded at zero runtime cost.
+ * When @c EBGEOMETRY_ENABLE_ASSERTIONS is not defined the macro does
+ * @b not evaluate the condition at all: it expands to a discarded
+ * @c sizeof, which is an unevaluated context. The expression is therefore
+ * never executed (guaranteed zero runtime cost and no side effects, even
+ * at @c -O0), yet is still parsed -- so it stays syntax-checked and any
+ * variables/parameters that appear only inside assertions are still
+ * considered "used" and do not trigger unused-entity warnings.
  *
  * @par Enabling assertions
  * @code{.cmake}
@@ -59,7 +62,9 @@
     }                                                                                             \
   } while (0)
 #else
-#define EBGEOMETRY_EXPECT(cond) ((void)(cond))
+// Unevaluated sizeof: cond is parsed (syntax-checked, names count as "used") but never evaluated,
+// so disabled assertions have exactly zero runtime cost and cannot have observable side effects.
+#define EBGEOMETRY_EXPECT(cond) (static_cast<void>(sizeof((cond))))
 #endif
 
 #endif // EBGEOMETRY_MACROS_HPP
