@@ -76,11 +76,14 @@ When ``EBGEOMETRY_ENABLE_ASSERTIONS`` is **not** defined (the default):
 
 .. code-block:: cpp
 
-   #define EBGEOMETRY_EXPECT(cond) ((void)(cond))
+   #define EBGEOMETRY_EXPECT(cond) (static_cast<void>(sizeof((cond))))
 
-The condition is evaluated (preventing unused-variable warnings) but the branch is
-absent from the generated code — a modern optimising compiler eliminates it entirely
-at ``-O2`` or higher.
+The condition is **not** evaluated: ``sizeof`` is an unevaluated context, so the
+expression is parsed (which keeps it syntax-checked, and keeps variables or
+parameters that appear only inside assertions from tripping unused-entity warnings)
+but is never executed.  Disabled assertions therefore have exactly zero runtime cost
+and cannot produce side effects, at any optimisation level — not merely once the
+optimiser eliminates a discarded branch.
 
 When ``EBGEOMETRY_ENABLE_ASSERTIONS`` **is** defined:
 
