@@ -131,6 +131,11 @@ kernel and compares against the host:
 
 ## Roadmap
 
+> While it exists, `PLAN.md` in this directory carries the agreed design for the next two PRs in
+> detail: a pool-ergonomics change that removes `freeze()`/`bind()` from user workflows, and the BVH
+> port (step 2 below), which depends on it. It settles several questions this page only lists.
+> `PLAN.md` is deleted once that work lands, at which point whatever is still true moves here.
+
 1. **DCEL reconcile chain.** `FaceT::computeCentroid`/`computeNormal`/`computeArea` rewritten as
    streaming half-edge walks (they currently open with `gatherVertexIndices()`, which materializes a
    `std::vector`), then device-resident CSR vertex→face adjacency, then
@@ -140,9 +145,10 @@ kernel and compares against the host:
 2. **BVH.** Give `pruneTraverse` a real scalar implementation (fixed stack, hand-rolled sort over
    the ≤K children); move `PackedBVH`'s three arrays onto `Pool`/`PODVector`; add a trivially-copyable
    view plus a `[gpu]` test; then `TriMeshSDF` and `MeshSDF`. `TreeBVH` stays host-only — it is the
-   builder, and static geometry builds on the host. Open decisions: whether to drop
-   `SharedPtrStorage` entirely, and the device stack depth (`[256]` is 4 KB/thread for `double`,
-   occupancy-hostile; 64 covers a million primitives at K=4).
+   builder, and static geometry builds on the host. Two questions this page previously left open are
+   settled in `PLAN.md`: `SharedPtrStorage` is dropped in favour of two POD policies (`Value` and a
+   new `Index`), and the traversal stack depth differs by entry point (256 host, 64 device — `[256]`
+   is 4 KB/thread at `double`, and `log_K(N)·K` says 64 covers a million primitives at K=4).
 3. **Point clouds.** Device-side `PointCloudBVH` build (Morton codes + radix sort) and a
    `PointCloudHashGrid` counterpart. Independent of 1–2.
 4. **Analytic SDF / transform / combiner traits.** Each primitive's formula moves into a trait as a
