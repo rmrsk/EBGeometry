@@ -153,7 +153,10 @@ kernel and compares against the host:
    switch is precisely a dispatcher over these trait statics, and because a kernel can call
    `eval()` directly, giving the formulas real device coverage before any tape exists. The
    exceptions are `BVHUnionIF`/`BVHSmoothUnionIF`, which wrap a `PackedBVH` and therefore wait for
-   step 2.
+   step 2. **`SignedDistanceFunction<T>` stays** for now: the first attempt deleted it outright and
+   collapsed everything onto `ImplicitFunction<T, Op>` + `bool m_sdf`, but that is a user-visible API
+   break with no GPU motivation of its own. Revisit it as a deliberate change on its own terms, not
+   as a side effect of this step.
 5. **The tape.** The linear-SSA clause list and interpreter that replaces virtual dispatch, built on
    `Pool`/`PODVector` from the start rather than on `std::vector` with an upload path bolted on. It
    depends on step 4 for its opcodes and on step 2 for the BVH-union opcodes, which reference the
