@@ -113,7 +113,9 @@ We welcome contributions to EBGeometry -- the best approach is either to reach o
 if we have time to implement a specific feature, or fork the repository and submit a pull request.
 See [Contributing and testing](https://rmrsk.github.io/EBGeometry/Contributing.html) in the user
 guide for how to build and run the test suite locally, what the continuous integration pipeline
-checks, and the code style/conventions expected of contributions.
+checks, and the code style/conventions expected of contributions. If you are contributing to the
+ongoing GPU port, start from [PORTING.md](PORTING.md) -- it covers the memory model the port is
+built on, what is and is not ported yet, and the conventions for porting a class.
 
 ## AI usage
 
