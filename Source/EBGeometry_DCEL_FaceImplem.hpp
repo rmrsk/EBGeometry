@@ -346,36 +346,31 @@ FaceT<T, Meta>::getAllVertexCoordinates(const Mesh& a_mesh) const
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::getSmallestCoordinate(const Mesh& a_mesh) const
+FaceT<T, Meta>::getSmallestCoordinate(const Mesh& a_mesh) const noexcept
 {
-  const auto coords = this->getAllVertexCoordinates(a_mesh);
+  // Seeded with the most-positive vector and reduced in place, rather than seeding from a
+  // materialized coordinate list -- the loop always runs at least once (EdgeIterator's constructor
+  // EBGEOMETRY_EXPECTs a valid half-edge), so the seed is never observable in the return value.
+  Vec3 minCoord = Vec3::max();
 
-  EBGEOMETRY_EXPECT(!coords.empty());
-
-  auto minCoord = coords.front();
-
-  for (const auto& c : coords) {
-    minCoord = min(minCoord, c);
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    minCoord = min(minCoord, a_mesh.getEdge(iter()).getVertex(a_mesh).getPosition());
   }
 
   return minCoord;
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::getHighestCoordinate(const Mesh& a_mesh) const
+FaceT<T, Meta>::getHighestCoordinate(const Mesh& a_mesh) const noexcept
 {
-  const auto coords = this->getAllVertexCoordinates(a_mesh);
+  Vec3 maxCoord = Vec3::min();
 
-  EBGEOMETRY_EXPECT(!coords.empty());
-
-  auto maxCoord = coords.front();
-
-  for (const auto& c : coords) {
-    maxCoord = max(maxCoord, c);
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    maxCoord = max(maxCoord, a_mesh.getEdge(iter()).getVertex(a_mesh).getPosition());
   }
 
   return maxCoord;

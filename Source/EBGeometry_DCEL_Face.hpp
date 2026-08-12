@@ -56,11 +56,10 @@ namespace DCEL {
  * computeProjectionDirections, flipNormal, setHalfEdge/setMetaData/setInsideOutsideAlgorithm,
  * normalizeNormalVector, the getters, projectPointIntoFacePlane/projectPoint,
  * computeWindingNumber/computeCrossingNumber/computeSubtendedAngle, isPointInsideFace,
- * signedDistance, unsignedDistance2) are annotated EBGEOMETRY_HOST_DEVICE.
- * computeCentroid/computeNormal/computeArea (and therefore reconcile, which calls all three),
- * gatherVertexIndices/gatherEdgeIndices/getAllVertexCoordinates, and
- * getSmallestCoordinate/getHighestCoordinate all materialize a std::vector, so they remain
- * EBGEOMETRY_HOST.
+ * signedDistance, unsignedDistance2, getSmallestCoordinate/getHighestCoordinate) are annotated
+ * EBGEOMETRY_HOST_DEVICE. computeCentroid/computeNormal/computeArea (and therefore reconcile,
+ * which calls all three) and gatherVertexIndices/gatherEdgeIndices/getAllVertexCoordinates all
+ * materialize a std::vector, so they remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -372,21 +371,27 @@ public:
 
   /**
    * @brief Get the lower-left-most coordinate of this polygon face
+   * @details Streams the half-edge loop and reduces componentwise, rather than going through
+   * getAllVertexCoordinates(), so that no std::vector is materialized and the function stays
+   * callable from device code.
    * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @return Lower-left-most coordinate of this polygon face.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Vec3T<T>
-  getSmallestCoordinate(const Mesh& a_mesh) const;
+  getSmallestCoordinate(const Mesh& a_mesh) const noexcept;
 
   /**
    * @brief Get the upper-right-most coordinate of this polygon face
+   * @details Streams the half-edge loop and reduces componentwise, rather than going through
+   * getAllVertexCoordinates(), so that no std::vector is materialized and the function stays
+   * callable from device code.
    * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @return Upper-right-most coordinate of this polygon face.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Vec3T<T>
-  getHighestCoordinate(const Mesh& a_mesh) const;
+  getHighestCoordinate(const Mesh& a_mesh) const noexcept;
 
 protected:
   /**

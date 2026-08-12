@@ -897,6 +897,45 @@ TEMPLATE_TEST_CASE("MeshT: getAllVertexCoordinates matches the vertex positions"
   }
 }
 
+TEMPLATE_TEST_CASE("FaceT: getSmallestCoordinate/getHighestCoordinate bound the face's vertices",
+                   "[DCEL][Face]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = buildTetrahedron<T>(pool);
+
+  // Face 0 is {A,C,B} = (0,0,0), (0,1,0), (1,0,0) -- flat in the z=0 plane.
+  REQUIRE(mesh->getFace(0).getSmallestCoordinate(*mesh) == Vec3T<T>(0.0, 0.0, 0.0));
+  REQUIRE(mesh->getFace(0).getHighestCoordinate(*mesh) == Vec3T<T>(1.0, 1.0, 0.0));
+
+  // Face 3 is the slant face {B,C,D} = (1,0,0), (0,1,0), (0,0,1).
+  REQUIRE(mesh->getFace(3).getSmallestCoordinate(*mesh) == Vec3T<T>(0.0, 0.0, 0.0));
+  REQUIRE(mesh->getFace(3).getHighestCoordinate(*mesh) == Vec3T<T>(1.0, 1.0, 1.0));
+
+  // Both stream the half-edge loop rather than materializing a coordinate list (so that they stay
+  // device-callable); tie that implementation back to the container-based source of truth for
+  // every face, not just the two spot-checked above.
+  for (uint32_t f = 0; f < mesh->numFaces(); f++) {
+    const auto& face   = mesh->getFace(f);
+    const auto  coords = face.getAllVertexCoordinates(*mesh);
+
+    REQUIRE(!coords.empty());
+
+    Vec3T<T> expectedLo = coords.front();
+    Vec3T<T> expectedHi = coords.front();
+
+    for (const auto& c : coords) {
+      expectedLo = min(expectedLo, c);
+      expectedHi = max(expectedHi, c);
+    }
+
+    REQUIRE(face.getSmallestCoordinate(*mesh) == expectedLo);
+    REQUIRE(face.getHighestCoordinate(*mesh) == expectedHi);
+  }
+}
+
 TEMPLATE_TEST_CASE("MeshT: deepCopy produces an independent mesh with the same geometry",
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1293,8 +1332,12 @@ dcelDeviceKernel(TestMesh<T> a_mesh, Vec3T<T> a_point, T* a_out)
 
   const T vertexTerm = a_mesh.getVertex(1).getPosition().length();
 
+  // getSmallestCoordinate/getHighestCoordinate reduce componentwise over the half-edge loop
+  // without materializing a std::vector, which is what keeps them callable from here.
+  const T bboxTerm = (face.getHighestCoordinate(a_mesh) - face.getSmallestCoordinate(a_mesh)).length();
+
   const T baseTerms =
-    face.signedDistance(a_point, a_mesh) + a_mesh.unsignedDistance2(a_point) + T(edgeCount) + vertexTerm;
+    face.signedDistance(a_point, a_mesh) + a_mesh.unsignedDistance2(a_point) + T(edgeCount) + vertexTerm + bboxTerm;
 
   // MeshT's own public, device-callable signedDistance() (the algorithm-dispatching entry point --
   // Direct2 by default -- that used to be EBGEOMETRY_HOST-only because of a std::cerr call in its
@@ -1341,8 +1384,9 @@ TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surfac
 
   const TestFace<T>& face      = mesh->getFace(0);
   const uint32_t     edgeCount = 3; // every face built by buildTetrahedron is a triangle
+  const T            bboxTerm  = (face.getHighestCoordinate(*mesh) - face.getSmallestCoordinate(*mesh)).length();
   const T            baseTerms = face.signedDistance(point, *mesh) + mesh->unsignedDistance2(point) + T(edgeCount) +
-                      mesh->getVertex(1).getPosition().length();
+                      mesh->getVertex(1).getPosition().length() + bboxTerm;
 
   const T meshSignedDist = mesh->signedDistance(point);
 
