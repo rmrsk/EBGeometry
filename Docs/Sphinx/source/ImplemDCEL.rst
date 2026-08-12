@@ -86,6 +86,25 @@ mirror the same two-style choice as ``PODVector`` itself:
   against a base cached once via ``bind(const Pool&)`` -- itself ``EBGEOMETRY_EXPECT``-checked to
   require a frozen pool, for exactly the reason given in :ref:`Chap:MemoryModel`.
 
+A third accessor, ``boundView(a_base)``, bridges the two. ``VertexT``/``EdgeT``/``FaceT``'s
+``const MeshT&``-taking methods (``reconcile()``, ``getNextEdge()``,
+``computeVertexNormalAverage()``, ...) resolve their indices through the mesh's *bound* accessors,
+so they cannot be handed a mesh that has not been ``bind()``'d yet. ``boundView()`` returns a
+disposable copy of the mesh's descriptor -- all plain values, so trivially cheap -- with its cached
+base set to ``a_base``, which is safe to pass wherever a bound ``const MeshT&`` is required before
+the real mesh can be bound. This is how ``Soup``/``Parser`` (:ref:`Chap:Parsers`) reconcile a mesh
+whose ``Pool`` is still open for further building, and how ``TriMeshSDF``'s mesh-based constructor
+works without ever freezing or binding.
+
+.. note::
+
+   ``boundView()`` returns ``const MeshT``, not ``MeshT``, deliberately: the base it is given is
+   usually a caller's ``const void*``, and a ``const`` return keeps that promise from being broken
+   by chaining a mutating call onto the temporary (``mesh.boundView(base).flip()`` does not
+   compile). Bind the result to a ``const MeshT``/``const MeshT&`` at the call site as well --
+   copying it into a non-``const`` local (``MeshT view = mesh.boundView(base);``) produces an
+   independent, fully mutable object and defeats the protection.
+
 Build-phase mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
 ``addVertex()``/``addEdge()``/``addFace()``) always take the ``Pool&`` explicitly, since reserving
 can grow (and move) the pool's block -- there is no cached-base convenience form for these.
