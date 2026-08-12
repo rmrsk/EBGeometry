@@ -1834,8 +1834,8 @@ template <typename T, typename Meta>
 Parser::readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool)
 {
   // Deliberately not a loop over the single-file overload: FlatMeshSDF's constructor freezes
-  // a_pool, so every mesh sharing it must finish building first -- see :ref:`Chap:MemoryModel`'s
-  // pitfalls. Build all of them (still unbound), then wrap/freeze/bind each in a second pass.
+  // a_pool, so every mesh sharing it must finish building first. Build all of them (still
+  // unbound), then wrap/freeze/bind each in a second pass.
   const auto meshes = Parser::readIntoDCEL<T, Meta>(a_files, a_pool);
 
   std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>> implicitFunctions;
@@ -1855,7 +1855,7 @@ Parser::readIntoTriangles(const std::string a_filename, Pool& a_pool)
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
 
   // mesh is not bind()'d (readIntoDCEL never freezes a_pool, since it may still be shared with
-  // more files -- see :ref:`Chap:MemoryModel`), so its data is resolved against a_pool's current
+  // more files, so its data is resolved against a_pool's current
   // base explicitly throughout, via the mesh-bound Mesh view below.
   void* const base     = a_pool.base();
   const auto  meshView = mesh->boundView(base);
