@@ -24,6 +24,7 @@
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_Pool.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleAoSoA.hpp"
@@ -57,9 +58,15 @@ public:
 
   /**
    * @brief Full constructor.
-   * @param[in] a_mesh Input mesh
+   * @details Freezes a_pool (idempotent -- safe even if already frozen by a sibling wrapper built
+   * from the same pool) and binds a_mesh to it, so the mesh is immediately queryable through its
+   * no-argument accessors. See EBGeometry_DCEL_Mesh.hpp's class-level note and
+   * :ref:`Chap:MemoryModel` for why this is the natural place for that to happen: retaining the
+   * mesh for long-term querying is exactly the point at which building must be considered finished.
+   * @param[in]     a_mesh Input mesh, built (but not necessarily bound) against a_pool.
+   * @param[in,out] a_pool Pool a_mesh's storage was reserved from.
    */
-  FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
+  FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool) noexcept;
 
   /**
    * @brief Destructor
@@ -184,11 +191,13 @@ public:
    * @brief Full constructor. Takes the input mesh and creates the BVH.
    * @details No default arguments: this is a low-level constructor, and callers working at this
    * level must consciously choose a build strategy. Use Parser::readIntoPackedBVH for sensible
-   * defaults.
-   * @param[in] a_mesh   Input mesh.
-   * @param[in] a_build  BVH build strategy. SAH (binned Surface Area Heuristic) is recommended.
+   * defaults. Freezes a_pool (idempotent) and binds a_mesh to it before building the BVH, for the
+   * same reason given on FlatMeshSDF's constructor.
+   * @param[in]     a_mesh   Input mesh, built (but not necessarily bound) against a_pool.
+   * @param[in,out] a_pool   Pool a_mesh's storage was reserved from.
+   * @param[in]     a_build  BVH build strategy. SAH (binned Surface Area Heuristic) is recommended.
    */
-  MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build);
+  MeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool, const BVH::Build a_build);
 
   /**
    * @brief Destructor
@@ -363,10 +372,16 @@ public:
    * @details No default arguments: this is a low-level constructor, and callers who excavate down
    * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
    * defaults.
-   * @param[in] a_mesh          DCEL mesh.
-   * @param[in] a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
+   * @param[in]     a_mesh          DCEL mesh, built (but not necessarily bound) against a_pool.
+   * @param[in,out] a_pool          Pool a_mesh's storage was reserved from. Unlike FlatMeshSDF/
+   * MeshSDF, this constructor does not retain a_mesh -- it extracts flat Triangle values from it and
+   * discards it -- so it deliberately does not freeze a_pool either: doing so would forbid building
+   * any more meshes into a still-open, shared a_pool (see :ref:`Chap:MemoryModel`'s pitfalls), which
+   * this one-shot, non-retaining use has no need to impose on the caller. It reads a_pool's current
+   * base once, explicitly, instead.
+   * @param[in]     a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
    * near-optimal traversal cost; TopDown (centroid median) is faster to build but yields deeper trees.
-   * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
+   * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
    * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W. This bounds the pre-packing
    * tree's leaf size, not the packed representation directly: each leaf's triangles become their
    * own TriangleSoA group(s) during packing, with no batching across leaves, so a leaf smaller
@@ -376,7 +391,10 @@ public:
    * count) makes it impossible to accidentally pick a leaf size that isn't a multiple of W. Must
    * be > 0.
    */
-  TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build, const size_t a_maxLeafGroups) noexcept;
+  TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
+             Pool&                        a_pool,
+             const BVH::Build             a_build,
+             const size_t                 a_maxLeafGroups) noexcept;
 
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.

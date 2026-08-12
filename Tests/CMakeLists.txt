@@ -98,7 +98,7 @@ ebgeometry_add_test(TestPoolRebase)
 # When a GPU backend is enabled we compile just those files with the backend compiler (per-file
 # LANGUAGE) so the guarded device kernels are built and, on hardware, run.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
-  set(EBGEOMETRY_GPU_TESTS TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA)
+  set(EBGEOMETRY_GPU_TESTS TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL)
 
   foreach(_ebgeometry_gpu_test ${EBGEOMETRY_GPU_TESTS})
     if(EBGEOMETRY_ENABLE_CUDA)
@@ -108,6 +108,19 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
     else()
       set_source_files_properties(${_ebgeometry_gpu_test}.cpp PROPERTIES LANGUAGE HIP)
     endif()
+
+    # Re-register just this binary's [gpu]-tagged Catch2 cases (every device-portability check
+    # across these files carries that tag, regardless of its own name) under a "gpu:"-prefixed name
+    # and a "gpu-device" CTest label, alongside the normal "unit"-labeled registration from
+    # ebgeometry_add_test() above. This lets CI run exactly the device-callable surface via
+    # `ctest -L gpu-device` without duplicating this file's EBGEOMETRY_GPU_TESTS list in the
+    # workflow YAML. On a runner with no physical GPU these SKIP() cleanly (see TestGPU.hpp's
+    # deviceAvailable()) rather than failing -- CI running them still exercises the host-side setup
+    # and the SKIP() path itself, just not real device execution.
+    catch_discover_tests(${_ebgeometry_gpu_test}
+      TEST_SPEC "[gpu]"
+      TEST_PREFIX "gpu:"
+      PROPERTIES LABELS "gpu-device")
   endforeach()
 
   # Aggregate target so the GPU CI lanes can build every device-bearing test with one stable name,

@@ -28,12 +28,14 @@ namespace EBGeometry {
 namespace DCEL {
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline FaceT<T, Meta>::FaceT(const uint32_t a_edgeIndex)
 {
   m_halfEdge = a_edgeIndex;
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::define(const Vec3& a_normal, const uint32_t a_edgeIndex) noexcept
 {
@@ -47,6 +49,7 @@ FaceT<T, Meta>::define(const Vec3& a_normal, const uint32_t a_edgeIndex) noexcep
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST
 inline void
 FaceT<T, Meta>::reconcile(const Mesh& a_mesh)
 {
@@ -58,6 +61,7 @@ FaceT<T, Meta>::reconcile(const Mesh& a_mesh)
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::flipNormal() noexcept
 {
@@ -65,6 +69,7 @@ FaceT<T, Meta>::flipNormal() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::setHalfEdge(const uint32_t a_halfEdgeIndex) noexcept
 {
@@ -72,6 +77,7 @@ FaceT<T, Meta>::setHalfEdge(const uint32_t a_halfEdgeIndex) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
 {
@@ -79,6 +85,7 @@ FaceT<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::normalizeNormalVector() noexcept
 {
@@ -88,6 +95,7 @@ FaceT<T, Meta>::normalizeNormalVector() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 {
@@ -95,6 +103,7 @@ FaceT<T, Meta>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) no
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST
 inline void
 FaceT<T, Meta>::computeCentroid(const Mesh& a_mesh)
 {
@@ -112,6 +121,7 @@ FaceT<T, Meta>::computeCentroid(const Mesh& a_mesh)
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST
 inline void
 FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
 {
@@ -144,6 +154,7 @@ FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::computeProjectionDirections() noexcept
 {
@@ -175,6 +186,7 @@ FaceT<T, Meta>::computeProjectionDirections() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST
 inline void
 FaceT<T, Meta>::computeArea(const Mesh& a_mesh)
 {
@@ -201,6 +213,7 @@ FaceT<T, Meta>::computeArea(const Mesh& a_mesh)
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline T&
 FaceT<T, Meta>::getArea() noexcept
 {
@@ -208,6 +221,7 @@ FaceT<T, Meta>::getArea() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const T&
 FaceT<T, Meta>::getArea() const noexcept
 {
@@ -215,6 +229,7 @@ FaceT<T, Meta>::getArea() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline T&
 FaceT<T, Meta>::getCentroid(const size_t a_dir) noexcept
 {
@@ -222,6 +237,7 @@ FaceT<T, Meta>::getCentroid(const size_t a_dir) noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const T&
 FaceT<T, Meta>::getCentroid(const size_t a_dir) const noexcept
 {
@@ -229,6 +245,7 @@ FaceT<T, Meta>::getCentroid(const size_t a_dir) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
 FaceT<T, Meta>::getCentroid() noexcept
 {
@@ -236,6 +253,7 @@ FaceT<T, Meta>::getCentroid() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
 FaceT<T, Meta>::getCentroid() const noexcept
 {
@@ -243,6 +261,7 @@ FaceT<T, Meta>::getCentroid() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
 FaceT<T, Meta>::getNormal() noexcept
 {
@@ -250,6 +269,7 @@ FaceT<T, Meta>::getNormal() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
 FaceT<T, Meta>::getNormal() const noexcept
 {
@@ -257,6 +277,7 @@ FaceT<T, Meta>::getNormal() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 FaceT<T, Meta>::getHalfEdgeIndex() const noexcept
 {
@@ -264,6 +285,7 @@ FaceT<T, Meta>::getHalfEdgeIndex() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Meta&
 FaceT<T, Meta>::getMetaData() noexcept
 {
@@ -271,6 +293,7 @@ FaceT<T, Meta>::getMetaData() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline const Meta&
 FaceT<T, Meta>::getMetaData() const noexcept
 {
@@ -278,6 +301,7 @@ FaceT<T, Meta>::getMetaData() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST
 inline std::vector<uint32_t>
 FaceT<T, Meta>::gatherVertexIndices(const Mesh& a_mesh) const
 {
@@ -292,6 +316,7 @@ FaceT<T, Meta>::gatherVertexIndices(const Mesh& a_mesh) const
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST
 inline std::vector<uint32_t>
 FaceT<T, Meta>::gatherEdgeIndices(const Mesh& a_mesh) const
 {
@@ -306,6 +331,7 @@ FaceT<T, Meta>::gatherEdgeIndices(const Mesh& a_mesh) const
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST
 inline std::vector<Vec3T<T>>
 FaceT<T, Meta>::getAllVertexCoordinates(const Mesh& a_mesh) const
 {
@@ -320,40 +346,38 @@ FaceT<T, Meta>::getAllVertexCoordinates(const Mesh& a_mesh) const
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::getSmallestCoordinate(const Mesh& a_mesh) const
+FaceT<T, Meta>::getSmallestCoordinate(const Mesh& a_mesh) const noexcept
 {
-  const auto coords = this->getAllVertexCoordinates(a_mesh);
+  // Seeded with the most-positive vector and reduced in place, rather than seeding from a
+  // materialized coordinate list -- the loop always runs at least once (EdgeIterator's constructor
+  // EBGEOMETRY_EXPECTs a valid half-edge), so the seed is never observable in the return value.
+  Vec3 minCoord = Vec3::max();
 
-  EBGEOMETRY_EXPECT(!coords.empty());
-
-  auto minCoord = coords.front();
-
-  for (const auto& c : coords) {
-    minCoord = min(minCoord, c);
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    minCoord = min(minCoord, a_mesh.getEdge(iter()).getVertex(a_mesh).getPosition());
   }
 
   return minCoord;
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::getHighestCoordinate(const Mesh& a_mesh) const
+FaceT<T, Meta>::getHighestCoordinate(const Mesh& a_mesh) const noexcept
 {
-  const auto coords = this->getAllVertexCoordinates(a_mesh);
+  Vec3 maxCoord = Vec3::min();
 
-  EBGEOMETRY_EXPECT(!coords.empty());
-
-  auto maxCoord = coords.front();
-
-  for (const auto& c : coords) {
-    maxCoord = max(maxCoord, c);
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    maxCoord = max(maxCoord, a_mesh.getEdge(iter()).getVertex(a_mesh).getPosition());
   }
 
   return maxCoord;
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
 FaceT<T, Meta>::projectPointIntoFacePlane(const Vec3& a_p) const noexcept
 {
@@ -365,6 +389,7 @@ FaceT<T, Meta>::projectPointIntoFacePlane(const Vec3& a_p) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline Vec2T<T>
 FaceT<T, Meta>::projectPoint(const Vec3& a_point) const noexcept
 {
@@ -375,20 +400,21 @@ FaceT<T, Meta>::projectPoint(const Vec3& a_point) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline int
 FaceT<T, Meta>::computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
 {
   int wn = 0;
 
-  const auto isLeft = [](const Vec2T<T>& P0, const Vec2T<T>& P1, const Vec2T<T>& P2) {
-    return (P1.x - P0.x) * (P2.y - P0.y) - (P2.x - P0.x) * (P1.y - P0.y);
-  };
-
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
     const Edge&    edge = a_mesh.getEdge(iter());
     const Vec2T<T> P1   = this->projectPoint(edge.getVertex(a_mesh).getPosition());
     const Vec2T<T> P2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition());
-    const T        res  = isLeft(P1, P2, a_point);
+
+    // Cross product sign of (P2-P1) x (a_point-P1), i.e. whether a_point lies to the left of the
+    // directed edge P1->P2. Inlined (rather than a local lambda) so this function stays callable
+    // from device code without requiring nvcc's --extended-lambda.
+    const T res = (P2.x - P1.x) * (a_point.y - P1.y) - (a_point.x - P1.x) * (P2.y - P1.y);
 
     if (P1.y <= a_point.y) {
       if (P2.y > a_point.y) {
@@ -410,6 +436,7 @@ FaceT<T, Meta>::computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline size_t
 FaceT<T, Meta>::computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
 {
@@ -441,6 +468,7 @@ FaceT<T, Meta>::computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mes
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline T
 FaceT<T, Meta>::computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
 {
@@ -473,6 +501,7 @@ FaceT<T, Meta>::computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mes
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline bool
 FaceT<T, Meta>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noexcept
 {
@@ -502,6 +531,7 @@ FaceT<T, Meta>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noe
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline T
 FaceT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
@@ -531,6 +561,7 @@ FaceT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexc
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline T
 FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {

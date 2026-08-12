@@ -90,6 +90,14 @@ TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical,
   const auto meshOBJ = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
   const auto meshVTK = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"), pool);
 
+  // readIntoDCEL never freezes/binds pool itself (it may still be shared with more files -- see
+  // Chap:MemoryModel), but every mesh below is queried directly via its no-argument accessors, so
+  // this test freezes+binds once all four builds are done.
+  pool.freeze();
+  for (const auto& mesh : {meshSTL, meshPLY, meshOBJ, meshVTK}) {
+    mesh->bind(pool);
+  }
+
   for (const auto& mesh : {meshSTL, meshPLY, meshOBJ, meshVTK}) {
     REQUIRE(mesh != nullptr);
     REQUIRE(mesh->numVertices() == 20);
@@ -125,6 +133,11 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
   REQUIRE(mesh != nullptr);
 
+  // readIntoDCEL never freezes/binds pool itself, but mesh is queried via its no-argument
+  // accessors below (before any SDF wrapper would otherwise do this for us).
+  pool.freeze();
+  mesh->bind(pool);
+
   using Face = DCEL::FaceT<T, Meta>;
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
@@ -134,7 +147,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   }
   REQUIRE(primsAndBVs.size() == 36);
 
-  const FlatMeshSDF<T, Meta> flat(mesh);
+  const FlatMeshSDF<T, Meta> flat(mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   // Every value of BVH::Build is exercised through one BVH::TreeBVH built the same way MeshSDF
@@ -209,10 +222,10 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
 
-  const FlatMeshSDF<T, Meta> flat(mesh);
+  const FlatMeshSDF<T, Meta> flat(mesh, pool);
 
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
-    const MeshSDF<T, Meta, K> packed(mesh, build);
+    const MeshSDF<T, Meta, K> packed(mesh, pool, build);
 
     for (const auto& p : queryPoints<T>()) {
       REQUIRE_THAT(packed.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
@@ -233,11 +246,11 @@ TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshS
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"), pool);
   REQUIRE(mesh != nullptr);
 
-  const FlatMeshSDF<T, Meta> flat(mesh);
-  const MeshSDF<T, Meta, K>  packed(mesh, BVH::Build::SAH);
+  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const MeshSDF<T, Meta, K>  packed(mesh, pool, BVH::Build::SAH);
 
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
-    const TriMeshSDF<T, Meta, K, W> tri(mesh, build, 2);
+    const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, build, 2);
 
     for (const auto& p : queryPoints<T>()) {
       REQUIRE_THAT(tri.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
@@ -258,7 +271,7 @@ TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candi
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"), pool);
   REQUIRE(mesh != nullptr);
 
-  const MeshSDF<T, Meta, K> packed(mesh, BVH::Build::SAH);
+  const MeshSDF<T, Meta, K> packed(mesh, pool, BVH::Build::SAH);
 
   const Vec3T<T> p(0.5, 0.5, 0.5);
 
@@ -638,12 +651,15 @@ TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly fro
 
   constexpr size_t K = 4;
 
-  Pool       pool(hostMemoryResource());
-  const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+  // Two separate pools: MeshSDF's constructor freezes its pool, so it must not be the same pool
+  // readIntoPackedBVH below still needs to build its own (independent) mesh into.
+  Pool       directPool(hostMemoryResource());
+  Pool       filePool(hostMemoryResource());
+  const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), directPool);
   REQUIRE(direct != nullptr);
 
-  const MeshSDF<T, Meta, K> expected(direct, BVH::Build::SAH);
-  const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"), pool);
+  const MeshSDF<T, Meta, K> expected(direct, directPool, BVH::Build::SAH);
+  const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"), filePool);
 
   REQUIRE(fromFile != nullptr);
 
@@ -673,8 +689,25 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     const auto meshes = Parser::readIntoDCEL<T, Meta>(files, pool);
     REQUIRE(meshes.size() == 2);
 
+    // readIntoDCEL never freezes/binds pool itself, and every single-file mesh below must finish
+    // building before anyone binds -- see Chap:MemoryModel. Build all of them first, then
+    // freeze+bind once, then compare.
+    std::vector<std::shared_ptr<DCEL::MeshT<T, Meta>>> singles;
+    singles.reserve(files.size());
+    for (const auto& file : files) {
+      singles.push_back(Parser::readIntoDCEL<T, Meta>(file, pool));
+    }
+
+    pool.freeze();
+    for (const auto& mesh : meshes) {
+      mesh->bind(pool);
+    }
+    for (const auto& single : singles) {
+      single->bind(pool);
+    }
+
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoDCEL<T, Meta>(files[i], pool);
+      const auto& single = singles[i];
       REQUIRE(meshes[i]->numVertices() == single->numVertices());
       REQUIRE(meshes[i]->numFaces() == single->numFaces());
       for (const auto& p : queryPoints<T>()) {
@@ -689,7 +722,10 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     REQUIRE(flatSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoMesh<T, Meta>(files[i], pool);
+      // FlatMeshSDF's constructor (inside readIntoMesh) freezes its pool, so the per-file
+      // comparison below -- an independent build -- needs its own, separate pool.
+      Pool       singlePool(hostMemoryResource());
+      const auto single = Parser::readIntoMesh<T, Meta>(files[i], singlePool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(flatSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
@@ -702,7 +738,10 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     REQUIRE(packedSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i], pool);
+      // MeshSDF's constructor (inside readIntoPackedBVH) freezes its pool -- see the readIntoMesh
+      // SECTION above.
+      Pool       singlePool(hostMemoryResource());
+      const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i], singlePool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(packedSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
@@ -991,8 +1030,8 @@ TEMPLATE_TEST_CASE("TriMeshSDF: explicit BVH::SharedPtrStorage<TriAoSoA> agrees 
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
 
-  const TriMeshSDF<T, Meta, K, W>                                  defaultStorage(mesh, BVH::Build::SAH, 2);
-  const TriMeshSDF<T, Meta, K, W, BVH::SharedPtrStorage<TriAoSoA>> sharedStorage(mesh, BVH::Build::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W>                                  defaultStorage(mesh, pool, BVH::Build::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W, BVH::SharedPtrStorage<TriAoSoA>> sharedStorage(mesh, pool, BVH::Build::SAH, 2);
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(sharedStorage.signedDistance(p), withinAbsT(defaultStorage.signedDistance(p), traversalMargin<T>()));
@@ -1433,7 +1472,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(triangles.size() == 4);
 
-  const FlatMeshSDF<T, Meta> flat(mesh);
+  const FlatMeshSDF<T, Meta> flat(mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   BVH::PrimAndBVList<Tri, AABB> primsAndBVs;
@@ -1921,7 +1960,7 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
 
   for (const auto& [mesh, shift] : placements) {
     // Inner BVH: a TriMeshSDF holds its own PackedBVH over the mesh's SoA triangle groups.
-    const auto tri = std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, BVH::Build::SAH, 2);
+    const auto tri = std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, pool, BVH::Build::SAH, 2);
     const BV   bv  = tri->computeBoundingVolume();
 
     // Store each mesh SDF as the common base type, translated into place. Its bounding volume for
@@ -1963,13 +2002,18 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
 
+  // readIntoDCEL never freezes/binds pool itself, but mesh is queried via its no-argument
+  // accessors below (before any SDF wrapper would otherwise do this for us).
+  pool.freeze();
+  mesh->bind(pool);
+
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
   for (uint32_t i = 0; i < mesh->numFaces(); i++) {
     const auto& f = mesh->getFace(i);
     primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(*mesh)));
   }
 
-  const FlatMeshSDF<T, Meta> flat(mesh);
+  const FlatMeshSDF<T, Meta> flat(mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   // Pack a (partitioned) tree and query it the way MeshSDF does, comparing to the brute-force scan.

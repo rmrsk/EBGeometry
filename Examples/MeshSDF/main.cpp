@@ -52,14 +52,19 @@ main(int argc, char* argv[])
   // Note that this reads the mesh and builds the BVH tree independently for each
   // representation. There are converters that avoid this, but users will almost always
   // only use one of these representations.
-  // Each representation reserves its DCEL mesh storage from this Pool; dcelSDF and meshSDF retain
-  // their mesh for its lifetime (see FlatMeshSDF/MeshSDF's docs), so the Pool must outlive them --
-  // keeping it in main()'s scope alongside them satisfies that.
-  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+  // Each representation gets its own Pool: FlatMeshSDF's and MeshSDF's constructors freeze the
+  // Pool they are given (the point at which a mesh commits to long-term querying -- see
+  // EBGeometry_MeshDistanceFunctions.hpp and the Memory model docs page), so three independent
+  // parses cannot share one Pool the way they could when nothing about a Pool was ever frozen.
+  // dcelSDF and meshSDF retain their mesh for its lifetime (see FlatMeshSDF/MeshSDF's docs), so
+  // each Pool must outlive its corresponding SDF -- keeping them in main()'s scope satisfies that.
+  EBGeometry::Pool dcelPool(EBGeometry::hostMemoryResource());
+  EBGeometry::Pool meshPool(EBGeometry::hostMemoryResource());
+  EBGeometry::Pool triPool(EBGeometry::hostMemoryResource());
 
-  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file, pool);
-  const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, pool);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool, 4, BVH::Build::SAH);
+  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file, dcelPool);
+  const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, meshPool);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, triPool, 4, BVH::Build::SAH);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 1000;

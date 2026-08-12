@@ -23,6 +23,7 @@ namespace EBGeometry {
 namespace DCEL {
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Mesh& a_mesh, const Face& a_face) noexcept
 {
   m_mesh      = &a_mesh;
@@ -31,6 +32,7 @@ inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Mesh& a_mesh, const Face& a_f
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Mesh& a_mesh, const uint32_t a_startEdgeIndex) noexcept
 {
   m_mesh      = &a_mesh;
@@ -39,6 +41,7 @@ inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Mesh& a_mesh, const uint32_t 
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 EdgeIteratorT<T, Meta>::operator()() const noexcept
 {
@@ -46,6 +49,7 @@ EdgeIteratorT<T, Meta>::operator()() const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeIteratorT<T, Meta>::reset() noexcept
 {
@@ -54,6 +58,7 @@ EdgeIteratorT<T, Meta>::reset() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline void
 EdgeIteratorT<T, Meta>::operator++() noexcept
 {
@@ -65,6 +70,7 @@ EdgeIteratorT<T, Meta>::operator++() noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
 inline bool
 EdgeIteratorT<T, Meta>::ok() const noexcept
 {

@@ -46,6 +46,8 @@ components). A handful of design choices recur throughout the implementation:
 
 The remaining pages in this section cover each component in more detail:
 
+* :ref:`Chap:MemoryModel` -- the placement-independent ``Pool``/``PODVector`` storage foundation
+  that ``DCEL::MeshT`` (and, going forward, other GPU-mirrored structures) is built on.
 * :ref:`Chap:Vector` -- the ``Vec2T``/``Vec3T`` vector types used throughout the library.
 * :ref:`Chap:ImplemCSG` -- the ``ImplicitFunction``/``SignedDistanceFunction`` interface, the
   analytic shape library, transforms, and CSG combinators.

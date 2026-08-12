@@ -147,6 +147,7 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
 template <typename T, typename Meta>
 inline void
 Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
+                 Pool&                                    a_pool,
                  const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                  const std::vector<std::vector<size_t>>&  a_facets,
                  const std::string&                       a_id) noexcept
@@ -167,18 +168,20 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
     numEdgesUpperBound += curFacet.size();
   }
 
-  a_mesh.reserveVertices(static_cast<uint32_t>(a_vertices.size()));
-  a_mesh.reserveEdges(static_cast<uint32_t>(numEdgesUpperBound));
-  a_mesh.reserveFaces(static_cast<uint32_t>(a_facets.size()));
+  a_mesh.reserveVertices(a_pool, static_cast<uint32_t>(a_vertices.size()));
+  a_mesh.reserveEdges(a_pool, static_cast<uint32_t>(numEdgesUpperBound));
+  a_mesh.reserveFaces(a_pool, static_cast<uint32_t>(a_facets.size()));
 
   // Build the vertex array from the input vertices; index i here becomes vertex index i in the
   // mesh, matching how a_facets already indexes into a_vertices.
   for (const auto& v : a_vertices) {
-    a_mesh.addVertex(Vertex(v, Vec3::zeros()));
+    a_mesh.addVertex(a_pool, Vertex(v, Vec3::zeros()));
   }
 
   // Now build the faces, appending each facet's half-edges directly into the mesh's own edge/face
-  // arrays and wiring them by index rather than by pointer.
+  // arrays and wiring them by index rather than by pointer. a_pool.base() is re-read on every use
+  // rather than cached across these calls, since addVertex/addEdge/addFace can grow (and move) the
+  // pool's block.
   for (const auto& curFacet : a_facets) {
     if (curFacet.size() < 3) {
       std::cerr << "Parser::soupToDCEL -- not enough vertices in face, skipping it\n";
@@ -198,37 +201,40 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
       const uint32_t vertexIndex = static_cast<uint32_t>(curFacet[i]);
       EBGEOMETRY_EXPECT(vertexIndex < a_mesh.numVertices());
 
-      a_mesh.addEdge(Edge(vertexIndex));
-      a_mesh.getVertex(vertexIndex).setEdge(firstEdgeIndex + i);
+      a_mesh.addEdge(a_pool, Edge(vertexIndex));
+      a_mesh.getVertex(a_pool.base(), vertexIndex).setEdge(firstEdgeIndex + i);
     }
 
     for (uint32_t i = 0; i < numFaceEdges; i++) {
-      a_mesh.getEdge(firstEdgeIndex + i).setNextEdge(firstEdgeIndex + (i + 1) % numFaceEdges);
+      a_mesh.getEdge(a_pool.base(), firstEdgeIndex + i).setNextEdge(firstEdgeIndex + (i + 1) % numFaceEdges);
     }
 
     const uint32_t faceIndex = a_mesh.numFaces();
-    a_mesh.addFace(Face(firstEdgeIndex));
+    a_mesh.addFace(a_pool, Face(firstEdgeIndex));
 
     for (uint32_t i = 0; i < numFaceEdges; i++) {
-      a_mesh.getEdge(firstEdgeIndex + i).setFace(faceIndex);
+      a_mesh.getEdge(a_pool.base(), firstEdgeIndex + i).setFace(faceIndex);
     }
   }
 
-  // Reconcile the pair edges and run a sanity check.
-  Soup::reconcilePairEdgesDCEL(a_mesh);
+  // Reconcile the pair edges and run a sanity check. Both run before a_mesh can be bind()'d (see
+  // soupToDCEL's own doc), so they resolve against a_pool's current base explicitly.
+  Soup::reconcilePairEdgesDCEL(a_mesh, a_pool);
 
-  a_mesh.sanityCheck(a_id);
+  a_mesh.sanityCheck(a_pool.base(), a_id);
 
-  a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
+  a_mesh.reconcile(a_pool.base(), EBGeometry::DCEL::VertexNormalWeight::Angle);
 }
 
 template <typename T, typename Meta>
 inline void
-Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept
+Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh, Pool& a_pool) noexcept
 {
   static_assert(std::is_floating_point_v<T>, "Soup::reconcilePairEdgesDCEL requires a floating-point T");
 
   using Edge = EBGeometry::DCEL::EdgeT<T, Meta>;
+
+  void* const base = a_pool.base();
 
   const uint32_t numEdges    = a_mesh.numEdges();
   const uint32_t numVertices = a_mesh.numVertices();
@@ -238,7 +244,7 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept
   // stays O(V + E) instead of an O(E^2) scan over every edge pair.
   std::vector<std::vector<uint32_t>> edgesStartingAtVertex(numVertices);
   for (uint32_t i = 0; i < numEdges; i++) {
-    const uint32_t v = a_mesh.getEdge(i).getVertexIndex();
+    const uint32_t v = a_mesh.getEdge(base, i).getVertexIndex();
 
     EBGEOMETRY_EXPECT(v < numVertices);
 
@@ -246,22 +252,22 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept
   }
 
   for (uint32_t curIndex = 0; curIndex < numEdges; curIndex++) {
-    Edge& curEdge = a_mesh.getEdge(curIndex);
+    Edge& curEdge = a_mesh.getEdge(base, curIndex);
 
     const uint32_t nextIndex = curEdge.getNextEdgeIndex();
     EBGEOMETRY_EXPECT(nextIndex != UINT32_MAX);
 
     const uint32_t vertexStart = curEdge.getVertexIndex();
-    const uint32_t vertexEnd   = a_mesh.getEdge(nextIndex).getVertexIndex();
+    const uint32_t vertexEnd   = a_mesh.getEdge(base, nextIndex).getVertexIndex();
 
     // The pair edge starts where this edge ends, and ends where this edge starts.
     for (const uint32_t candIndex : edgesStartingAtVertex[vertexEnd]) {
-      Edge&          candEdge      = a_mesh.getEdge(candIndex);
+      Edge&          candEdge      = a_mesh.getEdge(base, candIndex);
       const uint32_t candNextIndex = candEdge.getNextEdgeIndex();
 
       EBGEOMETRY_EXPECT(candNextIndex != UINT32_MAX);
 
-      if (a_mesh.getEdge(candNextIndex).getVertexIndex() == vertexStart) { // Found the pair edge
+      if (a_mesh.getEdge(base, candNextIndex).getVertexIndex() == vertexStart) { // Found the pair edge
         curEdge.setPairEdge(candIndex);
         candEdge.setPairEdge(curIndex);
 

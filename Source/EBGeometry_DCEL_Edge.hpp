@@ -19,6 +19,7 @@
 // Our includes
 #include "EBGeometry_DCEL.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -45,10 +46,13 @@ namespace DCEL {
  * @note All topology indices below (m_vertex, m_pairEdge, m_nextEdge, m_face) are
  * indices into the owning DCEL::MeshT's own vertex/edge/face arrays, resolved by
  * passing that mesh to the accessors below. Using indices rather than pointers
- * (the previous weak_ptr/shared_ptr scheme) keeps EdgeT a plain, relocatable
- * value: the owning mesh's arrays are the sole storage, and every
- * cross-reference is a position within them, not an address -- so an EdgeT is
- * meaningful under a memcpy or a host-to-device mirror with no pointer patching.
+ * keeps EdgeT a plain, relocatable value: the owning mesh's arrays are the sole
+ * storage, and every cross-reference is a position within them, not an address
+ * -- so an EdgeT is meaningful under a memcpy or a host-to-device mirror with no
+ * pointer patching.
+ * @note Every member here resolves purely through plain values and an
+ * explicitly-supplied Mesh&, so the entire public and protected interface is
+ * annotated EBGEOMETRY_HOST_DEVICE.
  * @tparam T    Floating-point precision.
  * @tparam Meta Meta-data type stored per edge.
  */
@@ -56,6 +60,8 @@ template <class T, class Meta>
 class EdgeT
 {
   static_assert(std::is_floating_point_v<T>, "EdgeT<T,Meta>: T must be a floating-point type");
+  static_assert(std::is_trivially_copyable_v<Meta>,
+                "EdgeT<T,Meta> requires a trivially copyable Meta (device-visible storage)");
 
 public:
   /**
@@ -92,11 +98,10 @@ public:
   /**
    * @brief Copy constructor.
    * @details Defaulted memberwise copy of every member -- the normal vector, all four topology
-   * indices (vertex, pair edge, next edge, face), and meta-data. Copying every member (rather than
-   * the narrow, metadata-excluding copy this used to have) is what lets EdgeT be trivially
-   * copyable: `std::is_trivially_copyable` requires the copy constructor to be the implicit/defaulted
-   * one, so a user-provided body -- even one that does nothing but a plain memberwise copy --
-   * would disqualify it. operator=(const Edge&) has identical semantics.
+   * indices (vertex, pair edge, next edge, face), and meta-data. This is what lets EdgeT be
+   * trivially copyable: `std::is_trivially_copyable` requires the copy constructor to be the
+   * implicit/defaulted one, so a user-provided body -- even one that does nothing but a plain
+   * memberwise copy -- would disqualify it. operator=(const Edge&) has identical semantics.
    * @param[in] a_otherEdge Other edge.
    */
   EdgeT(const Edge& a_otherEdge) = default;
@@ -114,6 +119,7 @@ public:
    * starting vertex.
    * @param[in] a_vertexIndex Index of the starting vertex in the owning mesh's vertex array.
    */
+  EBGEOMETRY_HOST_DEVICE
   EdgeT(const uint32_t a_vertexIndex) noexcept;
 
   /**
@@ -144,7 +150,8 @@ public:
    * @brief Get size (in bytes) of this object.
    * @return Size in bytes of this edge object.
    */
-  [[nodiscard]] inline size_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline size_t
   size() const noexcept;
 
   /**
@@ -155,6 +162,7 @@ public:
    * @param[in] a_nextEdgeIndex Index of the next half-edge in the owning mesh's edge array, or
    * UINT32_MAX if unset.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   define(const uint32_t a_vertexIndex, const uint32_t a_pairEdgeIndex, const uint32_t a_nextEdgeIndex) noexcept;
 
@@ -163,12 +171,14 @@ public:
    * @details Computes the normal vector.
    * @param[in] a_mesh Owning mesh, used to resolve the face/pair-edge indices.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   reconcile(const Mesh& a_mesh) noexcept;
 
   /**
    * @brief Flip surface normal
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   flipNormal() noexcept;
 
@@ -176,6 +186,7 @@ public:
    * @brief Set the index of the starting vertex
    * @param[in] a_vertexIndex Index of the starting vertex in the owning mesh's vertex array.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   setVertex(const uint32_t a_vertexIndex) noexcept;
 
@@ -184,6 +195,7 @@ public:
    * @param[in] a_pairEdgeIndex Index of the pair edge in the owning mesh's edge array, or
    * UINT32_MAX to mark it unset.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   setPairEdge(const uint32_t a_pairEdgeIndex) noexcept;
 
@@ -192,6 +204,7 @@ public:
    * @param[in] a_nextEdgeIndex Index of the next edge in the owning mesh's edge array, or
    * UINT32_MAX to mark it unset.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   setNextEdge(const uint32_t a_nextEdgeIndex) noexcept;
 
@@ -200,6 +213,7 @@ public:
    * @param[in] a_faceIndex Index of the face in the owning mesh's face array, or UINT32_MAX to
    * mark it unset.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   setFace(const uint32_t a_faceIndex) noexcept;
 
@@ -207,6 +221,7 @@ public:
    * @brief Set the meta-data.
    * @param[in] a_metaData Meta-data.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   setMetaData(const Meta& a_metaData) noexcept;
 
@@ -215,28 +230,32 @@ public:
    * @return Index of the starting vertex in the owning mesh's vertex array, or UINT32_MAX if
    * unset.
    */
-  [[nodiscard]] inline uint32_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
   getVertexIndex() const noexcept;
 
   /**
    * @brief Get the index of the pair edge.
    * @return Index of the pair edge in the owning mesh's edge array, or UINT32_MAX if unset.
    */
-  [[nodiscard]] inline uint32_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
   getPairEdgeIndex() const noexcept;
 
   /**
    * @brief Get the index of the next edge.
    * @return Index of the next edge in the owning mesh's edge array, or UINT32_MAX if unset.
    */
-  [[nodiscard]] inline uint32_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
   getNextEdgeIndex() const noexcept;
 
   /**
    * @brief Get the index of this half-edge's face.
    * @return Index of the face in the owning mesh's face array, or UINT32_MAX if unset.
    */
-  [[nodiscard]] inline uint32_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
   getFaceIndex() const noexcept;
 
   /**
@@ -244,7 +263,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the vertex index.
    * @return Reference to the starting vertex. m_vertex must be set (see getVertexIndex()).
    */
-  [[nodiscard]] inline Vertex&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vertex&
   getVertex(Mesh& a_mesh) noexcept;
 
   /**
@@ -252,7 +272,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the vertex index.
    * @return Const reference to the starting vertex. m_vertex must be set (see getVertexIndex()).
    */
-  [[nodiscard]] inline const Vertex&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Vertex&
   getVertex(const Mesh& a_mesh) const noexcept;
 
   /**
@@ -260,7 +281,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the next-edge and vertex indices.
    * @return Reference to the next half-edge's starting vertex. m_nextEdge must be set.
    */
-  [[nodiscard]] inline Vertex&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vertex&
   getOtherVertex(Mesh& a_mesh) noexcept;
 
   /**
@@ -268,7 +290,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the next-edge and vertex indices.
    * @return Const reference to the next half-edge's starting vertex. m_nextEdge must be set.
    */
-  [[nodiscard]] inline const Vertex&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Vertex&
   getOtherVertex(const Mesh& a_mesh) const noexcept;
 
   /**
@@ -276,7 +299,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the pair-edge index.
    * @return Reference to the pair edge. m_pairEdge must be set (see getPairEdgeIndex()).
    */
-  [[nodiscard]] inline Edge&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Edge&
   getPairEdge(Mesh& a_mesh) noexcept;
 
   /**
@@ -284,7 +308,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the pair-edge index.
    * @return Const reference to the pair edge. m_pairEdge must be set (see getPairEdgeIndex()).
    */
-  [[nodiscard]] inline const Edge&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Edge&
   getPairEdge(const Mesh& a_mesh) const noexcept;
 
   /**
@@ -292,7 +317,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the next-edge index.
    * @return Reference to the next edge. m_nextEdge must be set (see getNextEdgeIndex()).
    */
-  [[nodiscard]] inline Edge&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Edge&
   getNextEdge(Mesh& a_mesh) noexcept;
 
   /**
@@ -300,7 +326,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the next-edge index.
    * @return Const reference to the next edge. m_nextEdge must be set (see getNextEdgeIndex()).
    */
-  [[nodiscard]] inline const Edge&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Edge&
   getNextEdge(const Mesh& a_mesh) const noexcept;
 
   /**
@@ -309,21 +336,24 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the face/pair-edge indices.
    * @return Unit normal vector for this edge.
    */
-  [[nodiscard]] inline Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
   computeNormal(const Mesh& a_mesh) const noexcept;
 
   /**
    * @brief Get modifiable normal vector.
    * @return Reference to m_normal.
    */
-  [[nodiscard]] inline Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>&
   getNormal() noexcept;
 
   /**
    * @brief Get the stored normal vector.
    * @return Const reference to m_normal.
    */
-  [[nodiscard]] inline const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Vec3T<T>&
   getNormal() const noexcept;
 
   /**
@@ -331,7 +361,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the face index.
    * @return Reference to the owning face. m_face must be set (see getFaceIndex()).
    */
-  [[nodiscard]] inline Face&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Face&
   getFace(Mesh& a_mesh) noexcept;
 
   /**
@@ -339,21 +370,24 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the face index.
    * @return Const reference to the owning face. m_face must be set (see getFaceIndex()).
    */
-  [[nodiscard]] inline const Face&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Face&
   getFace(const Mesh& a_mesh) const noexcept;
 
   /**
    * @brief Get meta-data
    * @return m_metaData
    */
-  [[nodiscard]] inline Meta&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Meta&
   getMetaData() noexcept;
 
   /**
    * @brief Get meta-data
    * @return m_metaData
    */
-  [[nodiscard]] inline const Meta&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Meta&
   getMetaData() const noexcept;
 
   /**
@@ -365,7 +399,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the vertex indices.
    * @return Signed distance; positive on the normal side of the edge.
    */
-  [[nodiscard]] inline T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
   signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept;
 
   /**
@@ -377,7 +412,8 @@ public:
    * @param[in] a_mesh Owning mesh, used to resolve the vertex indices.
    * @return Squared Euclidean distance to the closest point on the edge.
    */
-  [[nodiscard]] inline T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
   unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept;
 
 protected:
@@ -425,7 +461,8 @@ protected:
    * @param[in] a_mesh Owning mesh, used to resolve the vertex indices.
    * @return Projection parameter t.
    */
-  [[nodiscard]] inline T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
   projectPointToEdge(const Vec3& a_x0, const Mesh& a_mesh) const noexcept;
 
   /**
@@ -434,7 +471,8 @@ protected:
    * @return x2 - x1, where x1 = getVertex(a_mesh).getPosition() and x2 =
    * getOtherVertex(a_mesh).getPosition().
    */
-  [[nodiscard]] inline Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
   getX2X1(const Mesh& a_mesh) const noexcept;
 };
 
