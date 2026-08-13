@@ -162,8 +162,6 @@ TEMPLATE_TEST_CASE("PLY: convertToDCEL builds a mesh with the correct compressed
 
   // convertToDCEL never freezes/binds pool itself (it may still be shared with more files -- see
   // Chap:MemoryModel), but mesh is queried below via its no-argument accessors.
-  pool.freeze();
-  mesh->bind(pool);
 
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->numVertices() == 4); // Compressed down to the 4 unique corners.

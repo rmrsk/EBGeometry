@@ -207,6 +207,22 @@ struct PODVector
   }
 
   /**
+   * @brief One past the last byte this array occupies, measured from the pool base.
+   * @details Deliberately computed from @c m_capacity rather than @c m_size: it bounds the
+   *          @e reserved region, which is what a mirrored block must be large enough to contain.
+   *          Used to check that an array actually fits inside a pool it is being rebased onto (see
+   *          @ref EBGeometry::DCEL::MeshT::rebasedView), which catches the realistic mistake of
+   *          mirroring a pool before the last @ref Pool::reserve.
+   * @return @c m_offset + @c m_capacity * @c sizeof(T).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint64_t
+  endByte() const noexcept
+  {
+    return m_offset + static_cast<uint64_t>(m_capacity) * sizeof(T);
+  }
+
+  /**
    * @brief Whether the array is empty.
    * @return True if @c m_size == 0.
    */

@@ -88,14 +88,11 @@ struct BuiltFace
     }
 
     for (uint32_t i = 0; i < N; i++) {
-      m_mesh.getEdge(m_pool.base(), i).setNextEdge((i + 1) % N);
-      m_mesh.getEdge(m_pool.base(), i).setFace(0);
+      m_mesh.getEdge(i).setNextEdge((i + 1) % N);
+      m_mesh.getEdge(i).setFace(0);
     }
 
     m_mesh.addFace(m_pool, Face(0u)); // half-edge index 0
-
-    m_pool.freeze();
-    m_mesh.bind(m_pool);
 
     m_mesh.getFace(0).reconcile(m_mesh);
   }

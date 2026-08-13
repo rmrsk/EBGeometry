@@ -48,39 +48,48 @@ namespace DCEL {
  * which is why this class is almost always embedded into a bounding volume
  * hierarchy.
  * @note MeshT owns no resources: every member (three PODVectors, the
- * search-algorithm enum, and a resolved base pointer) is a plain value, so
- * MeshT is trivially copyable -- a bytewise copy is meaningful in any address
- * space, since it never needs to dereference anything beyond its own bytes.
- * This is what makes a mesh built and reconciled on the host mirror-safe: its
- * Pool can be mirrored to a device, and the mesh re-bound (see bind())
- * against the mirrored Pool's device base, with zero pointer patching inside
- * the mesh itself.
- * @details Two families of accessors resolve a PODVector offset into an
- * actual vertex/edge/face:
- * - An explicit-base overload (e.g. getVertex(void* a_base, uint32_t)),
- *   which resolves fresh against whatever base is passed in. Valid even
- *   against a Pool that is still being built into (mid-construction), as
- *   long as the base passed in is the Pool's *current* base at the time of
- *   the call -- this is what Soup/Parser use while building and reconciling
- *   a mesh, since the mesh cannot yet be bind()'d (its Pool may still be
- *   open for more meshes, and may not even be frozen).
- * - A no-argument overload (e.g. getVertex(uint32_t)), which resolves
- *   against a base cached once via bind(). This is the ergonomic path for
- *   querying a finished mesh -- see bind() for the contract.
- * Build-phase mutators (reserveVertices/Edges/Faces, addVertex/Edge/Face)
- * always take an explicit Pool&, since reserving can grow (and move) the
- * Pool's block; there is no cached-base convenience form for these, since
- * building only happens on the host, with a live Pool in hand.
- * @note Everything that resolves purely through m_base, the PODVectors, and VertexT/EdgeT/FaceT
+ * search-algorithm enum, a control-block pointer and a base pointer) is a
+ * plain value, so MeshT is trivially copyable -- a bytewise copy is
+ * meaningful in any address space, since it never needs to dereference
+ * anything beyond its own bytes. This is what makes a mesh built and
+ * reconciled on the host mirror-safe: its Pool can be mirrored to a device
+ * and the mesh rebased onto the mirror (see rebasedView()), with zero
+ * pointer patching inside the mesh itself.
+ * @details A mesh resolves its PODVector offsets through whichever of two
+ * pointers is set, and exactly one of them always is:
+ * - m_control, the stable control block of the Pool the mesh was reserved
+ *   from. Set on the first reserveVertices/Edges/Faces() call. Because the
+ *   base is re-read from the control block on every access, a mesh is
+ *   queryable at any point during the build, including across a
+ *   Pool::reserve that grows and moves the block -- there is no freeze,
+ *   and nothing to re-bind.
+ * - m_base, a plain base address, set only by rebasedView() and only for a
+ *   device-accessible target, since a kernel cannot follow a control block.
+ * A device view therefore has m_control == nullptr and nothing else does,
+ * which is what lets base() assert exactly, in both directions: a non-null
+ * m_control on device means a host descriptor was copied into a kernel
+ * without rebasedView(), and a null m_control on the host means either a
+ * device view being dereferenced on the host or a mesh nobody ever
+ * reserved into.
+ * @warning A reference returned by getVertex()/getEdge()/getFace() is a raw
+ * address resolved at the moment of the call, and Pool::reserve may
+ * deallocate the block it points into (see the warning on Pool::reserve).
+ * Resolve, use, discard: to carry an element across a reserve, copy it by
+ * value and write it back through a fresh accessor call.
+ * @details Build-phase mutators (reserveVertices/Edges/Faces,
+ * addVertex/Edge/Face) take an explicit Pool&, since reserving can grow
+ * (and move) the Pool's block; building only happens on the host, with a
+ * live Pool in hand.
+ * @note Everything that resolves purely through base(), the PODVectors, and VertexT/EdgeT/FaceT
  * methods that are themselves EBGEOMETRY_HOST_DEVICE (getVertex/getEdge/getFace, numVertices/
- * numEdges/numFaces, boundView, setSearchAlgorithm, setInsideOutsideAlgorithm, reconcileEdges,
+ * numEdges/numFaces, setSearchAlgorithm, setInsideOutsideAlgorithm, reconcileEdges,
  * flipFaceNormals/flipEdgeNormals/flipVertexNormals, flip, DirectSignedDistance/
  * DirectSignedDistance2, every signedDistance overload, unsignedDistance2) is annotated
  * EBGEOMETRY_HOST_DEVICE -- signedDistance's algorithm-selecting switch deliberately relies on
  * EBGEOMETRY_EXPECT() alone (not std::cerr) to flag a corrupted SearchAlgorithm, specifically so it
  * stays device-callable; see the implementation. The rest stays EBGEOMETRY_HOST because it touches a
- * Pool directly (bind, deepCopy, reserveVertices/Edges/Faces, addVertex/Edge/Face), returns a host
- * container (getAllVertexCoordinates), logs diagnostics to std::cerr (sanityCheck and its
+ * Pool directly (rebasedView, deepCopy, reserveVertices/Edges/Faces, addVertex/Edge/Face), returns a
+ * host container (getAllVertexCoordinates), logs diagnostics to std::cerr (sanityCheck and its
  * incrementWarning/printWarnings helpers), or delegates to a VertexT/EdgeT/FaceT method that itself
  * allocates a std::vector or can log a diagnostic the same way (reconcileFaces calls FaceT::reconcile;
  * reconcileVertices builds a transient per-vertex face list and can warn on a corrupted
@@ -132,12 +141,13 @@ public:
   using Mesh = MeshT<T, Meta>;
 
   /**
-   * @brief Default constructor. Leaves the mesh empty (no vertices, edges, faces) and unbound (see
-   * bind()).
+   * @brief Default constructor. Leaves the mesh empty (no vertices, edges, faces) and attached to
+   * no Pool, so it cannot yet resolve anything.
    * @details No Pool is needed at construction -- every build-phase method (reserveX/addX) takes
    * its Pool explicitly. Use reserveVertices()/reserveEdges()/reserveFaces() followed by
-   * addVertex()/addEdge()/addFace() to populate the mesh (a file parser normally does this), then
-   * bind() it to a frozen Pool for ergonomic, no-argument querying.
+   * addVertex()/addEdge()/addFace() to populate the mesh (a file parser normally does this); the
+   * first reserve attaches the mesh to that Pool, after which it is queryable immediately -- there
+   * is no separate binding or freezing step.
    */
   MeshT() noexcept = default;
 
@@ -185,43 +195,18 @@ public:
   operator=(Mesh&& a_otherMesh) noexcept = default;
 
   /**
-   * @brief Bind this mesh to a frozen Pool's base, enabling the no-argument query overloads
-   * (getVertex(i), signedDistance(p), ...).
-   * @details The bound base must remain valid (and unchanged) for as long as it is relied on: this
-   * requires a_pool to be frozen (EBGEOMETRY_EXPECT-checked), since Pool::reserve() can grow (move)
-   * the block, which would silently invalidate a base cached before the pool stopped changing. Safe
-   * to call again later (e.g. to re-bind against a mirrored Pool's device base before transporting
-   * this mesh to a device) -- rebinding is just overwriting one plain pointer value.
-   * @param[in] a_pool Frozen Pool this mesh's vertex/edge/face storage was reserved from (directly,
-   * or via the same Pool a source mesh was deepCopy()'d from).
-   */
-  EBGEOMETRY_HOST
-  inline void
-  bind(const Pool& a_pool) noexcept;
-
-  /**
    * @brief Create an independent, fully-decoupled copy of this mesh's data in another Pool.
    * @details Reserves fresh storage in a_dstPool and copies every vertex/edge/face by value; since
    * every cross-reference is an index rather than a pointer, the copy is already fully independent
    * and correctly linked -- no relinking pass is needed. Every field is preserved exactly (position,
    * normal vector, centroid, area, meta-data, search algorithm) rather than recomputed, so a mesh
    * that has had flipNormal()/flip() called on it and not yet been re-reconciled is copied
-   * faithfully rather than silently "un-flipped". The returned mesh is unbound (see bind()); unlike
-   * the copy/move constructors, this creates genuinely separate storage rather than sharing the
-   * source's.
-   * @param[in]     a_srcBase Base to resolve this mesh's own data against while reading it (this
-   * mesh's bound base if already bind()'d, or the building Pool's current base otherwise).
-   * @param[in,out] a_dstPool Pool to reserve the copy's storage from. May be the same Pool this
-   * mesh's data lives in, or a different one.
-   * @return A new mesh, independent of this one.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline std::shared_ptr<Mesh>
-  deepCopy(const void* a_srcBase, Pool& a_dstPool) const;
-
-  /**
-   * @brief Create an independent, fully-decoupled copy of this mesh's data in another Pool, using
-   * this mesh's bound base (see bind()) to read from.
+   * faithfully rather than silently "un-flipped". Unlike the copy/move constructors, this creates
+   * genuinely separate storage rather than sharing the source's, and the returned mesh is attached
+   * to a_dstPool.
+   * @note a_dstPool may be the same Pool this mesh's data already lives in. That is safe even
+   * though the reserves below can grow (and move) the block, because both meshes re-resolve through
+   * the Pool's control block on every access rather than caching an address.
    * @param[in,out] a_dstPool Pool to reserve the copy's storage from.
    * @return A new mesh, independent of this one.
    */
@@ -230,20 +215,11 @@ public:
   deepCopy(Pool& a_dstPool) const;
 
   /**
-   * @brief Perform a sanity check, resolving against an explicitly-supplied base.
+   * @brief Perform a sanity check.
    * @details This will provide error messages if vertices are badly linked,
    * faces have no half-edge, and so on. These messages are logged by calling
    * incrementWarning() which identifies types of errors that can occur, and how
    * many of those errors have occurred.
-   * @param[in] a_base Base to resolve this mesh's data against.
-   * @param[in] a_id   Identifier when printing error messages (can be empty string).
-   */
-  EBGEOMETRY_HOST
-  inline void
-  sanityCheck(const void* a_base, const std::string a_id) const;
-
-  /**
-   * @brief Perform a sanity check, resolving against this mesh's bound base (see bind()).
    * @param[in] a_id Identifier when printing error messages (can be empty string).
    */
   EBGEOMETRY_HOST
@@ -260,20 +236,10 @@ public:
 
   /**
    * @brief Set the inside/outside algorithm to use when computing the signed distance to polygon
-   * faces, resolving against an explicitly-supplied base.
+   * faces.
    * @details Computing the signed distance to faces requires testing if a point
    * projected to a polygo face plane falls inside or outside the polygon face.
    * There are multiple algorithms to use here.
-   * @param[in] a_base      Base to resolve this mesh's data against.
-   * @param[in] a_algorithm Algorithm to use
-   */
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  setInsideOutsideAlgorithm(void* a_base, InsideOutsideAlgorithm a_algorithm) noexcept;
-
-  /**
-   * @brief Set the inside/outside algorithm to use when computing the signed distance to polygon
-   * faces, resolving against this mesh's bound base (see bind()).
    * @param[in] a_algorithm Algorithm to use
    */
   EBGEOMETRY_HOST_DEVICE
@@ -282,44 +248,19 @@ public:
 
   /**
    * @brief Reconcile function which computes the internal parameters in vertices, edges, and faces
-   * for use with signed distance functionality, resolving against an explicitly-supplied base.
-   * @param[in] a_base   Base to resolve this mesh's data against.
+   * for use with signed distance functionality.
    * @param[in] a_weight Vertex angle weighting function. Either
    * VertexNormalWeight::None for unweighted vertex normals or
    * VertexNormalWeight::Angle for the pseudonormal
    * @details This will reconcile faces, edges, and vertices, e.g. computing the
-   * area and normal vector for faces. This is the overload Soup/Parser use internally while
-   * building a mesh, since the mesh is not yet bind()'able at that point (see the class-level note).
-   */
-  EBGEOMETRY_HOST
-  inline void
-  reconcile(void* a_base, const DCEL::VertexNormalWeight a_weight = DCEL::VertexNormalWeight::Angle) noexcept;
-
-  /**
-   * @brief Reconcile function which computes the internal parameters in vertices, edges, and faces
-   * for use with signed distance functionality, resolving against this mesh's bound base (see
-   * bind()).
-   * @param[in] a_weight Vertex angle weighting function. Either
-   * VertexNormalWeight::None for unweighted vertex normals or
-   * VertexNormalWeight::Angle for the pseudonormal
+   * area and normal vector for faces.
    */
   EBGEOMETRY_HOST
   inline void
   reconcile(const DCEL::VertexNormalWeight a_weight = DCEL::VertexNormalWeight::Angle) noexcept;
 
   /**
-   * @brief Flip the mesh, making all the normals change direction, resolving against an
-   * explicitly-supplied base.
-   * @param[in] a_base Base to resolve this mesh's data against.
-   * @note Should be called AFTER all normals have been computed.
-   */
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  flip(void* a_base) noexcept;
-
-  /**
-   * @brief Flip the mesh, making all the normals change direction, resolving against this mesh's
-   * bound base (see bind()).
+   * @brief Flip the mesh, making all the normals change direction.
    * @note Should be called AFTER all normals have been computed.
    */
   EBGEOMETRY_HOST_DEVICE
@@ -390,27 +331,9 @@ public:
   addFace(Pool& a_pool, const Face& a_face);
 
   /**
-   * @brief Get modifiable vertex by index, resolving against an explicitly-supplied base.
-   * @param[in] a_base  Base to resolve this mesh's data against.
-   * @param[in] a_index Vertex index (must be < numVertices()).
-   * @return Reference to the vertex.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Vertex&
-  getVertex(void* a_base, uint32_t a_index) noexcept;
-
-  /**
-   * @brief Get immutable vertex by index, resolving against an explicitly-supplied base.
-   * @param[in] a_base  Base to resolve this mesh's data against.
-   * @param[in] a_index Vertex index (must be < numVertices()).
-   * @return Const reference to the vertex.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Vertex&
-  getVertex(const void* a_base, uint32_t a_index) const noexcept;
-
-  /**
-   * @brief Get modifiable vertex by index, resolving against this mesh's bound base (see bind()).
+   * @brief Get modifiable vertex by index.
+   * @warning The returned reference is invalidated by any Pool::reserve on this mesh's Pool; see
+   * the class-level warning.
    * @param[in] a_index Vertex index (must be < numVertices()).
    * @return Reference to the vertex.
    */
@@ -419,7 +342,9 @@ public:
   getVertex(uint32_t a_index) noexcept;
 
   /**
-   * @brief Get immutable vertex by index, resolving against this mesh's bound base (see bind()).
+   * @brief Get immutable vertex by index.
+   * @warning The returned reference is invalidated by any Pool::reserve on this mesh's Pool; see
+   * the class-level warning.
    * @param[in] a_index Vertex index (must be < numVertices()).
    * @return Const reference to the vertex.
    */
@@ -428,28 +353,9 @@ public:
   getVertex(uint32_t a_index) const noexcept;
 
   /**
-   * @brief Get modifiable half-edge by index, resolving against an explicitly-supplied base.
-   * @param[in] a_base  Base to resolve this mesh's data against.
-   * @param[in] a_index Half-edge index (must be < numEdges()).
-   * @return Reference to the half-edge.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Edge&
-  getEdge(void* a_base, uint32_t a_index) noexcept;
-
-  /**
-   * @brief Get immutable half-edge by index, resolving against an explicitly-supplied base.
-   * @param[in] a_base  Base to resolve this mesh's data against.
-   * @param[in] a_index Half-edge index (must be < numEdges()).
-   * @return Const reference to the half-edge.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Edge&
-  getEdge(const void* a_base, uint32_t a_index) const noexcept;
-
-  /**
-   * @brief Get modifiable half-edge by index, resolving against this mesh's bound base (see
-   * bind()).
+   * @brief Get modifiable half-edge by index.
+   * @warning The returned reference is invalidated by any Pool::reserve on this mesh's Pool; see
+   * the class-level warning.
    * @param[in] a_index Half-edge index (must be < numEdges()).
    * @return Reference to the half-edge.
    */
@@ -458,7 +364,9 @@ public:
   getEdge(uint32_t a_index) noexcept;
 
   /**
-   * @brief Get immutable half-edge by index, resolving against this mesh's bound base (see bind()).
+   * @brief Get immutable half-edge by index.
+   * @warning The returned reference is invalidated by any Pool::reserve on this mesh's Pool; see
+   * the class-level warning.
    * @param[in] a_index Half-edge index (must be < numEdges()).
    * @return Const reference to the half-edge.
    */
@@ -467,27 +375,9 @@ public:
   getEdge(uint32_t a_index) const noexcept;
 
   /**
-   * @brief Get modifiable face by index, resolving against an explicitly-supplied base.
-   * @param[in] a_base  Base to resolve this mesh's data against.
-   * @param[in] a_index Face index (must be < numFaces()).
-   * @return Reference to the face.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Face&
-  getFace(void* a_base, uint32_t a_index) noexcept;
-
-  /**
-   * @brief Get immutable face by index, resolving against an explicitly-supplied base.
-   * @param[in] a_base  Base to resolve this mesh's data against.
-   * @param[in] a_index Face index (must be < numFaces()).
-   * @return Const reference to the face.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Face&
-  getFace(const void* a_base, uint32_t a_index) const noexcept;
-
-  /**
-   * @brief Get modifiable face by index, resolving against this mesh's bound base (see bind()).
+   * @brief Get modifiable face by index.
+   * @warning The returned reference is invalidated by any Pool::reserve on this mesh's Pool; see
+   * the class-level warning.
    * @param[in] a_index Face index (must be < numFaces()).
    * @return Reference to the face.
    */
@@ -496,13 +386,27 @@ public:
   getFace(uint32_t a_index) noexcept;
 
   /**
-   * @brief Get immutable face by index, resolving against this mesh's bound base (see bind()).
+   * @brief Get immutable face by index.
+   * @warning The returned reference is invalidated by any Pool::reserve on this mesh's Pool; see
+   * the class-level warning.
    * @param[in] a_index Face index (must be < numFaces()).
    * @return Const reference to the face.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline const Face&
   getFace(uint32_t a_index) const noexcept;
+
+  /**
+   * @brief Whether this mesh's storage was reserved from a_pool.
+   * @details A mesh attaches to a Pool on its first reserveVertices/Edges/Faces() call and resolves
+   * everything through that Pool thereafter, so the Pool must outlive the mesh. This is the check a
+   * caller that holds both can make to confirm they belong together.
+   * @param[in] a_pool Pool to test against.
+   * @return True if this mesh resolves through a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline bool
+  isAttachedTo(const Pool& a_pool) const noexcept;
 
   /**
    * @brief Number of vertices in this mesh.
@@ -529,18 +433,7 @@ public:
   numFaces() const noexcept;
 
   /**
-   * @brief Return all vertex coordinates in the mesh, resolving against an explicitly-supplied
-   * base.
-   * @param[in] a_base Base to resolve this mesh's data against.
-   * @return Vector of 3D coordinates of all vertices.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline std::vector<Vec3T<T>>
-  getAllVertexCoordinates(const void* a_base) const noexcept;
-
-  /**
-   * @brief Return all vertex coordinates in the mesh, resolving against this mesh's bound base (see
-   * bind()).
+   * @brief Return all vertex coordinates in the mesh.
    * @return Vector of 3D coordinates of all vertices.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -548,10 +441,8 @@ public:
   getAllVertexCoordinates() const noexcept;
 
   /**
-   * @brief Compute the signed distance from a point to this mesh, resolving against an
-   * explicitly-supplied base.
-   * @param[in] a_base Base to resolve this mesh's data against.
-   * @param[in] a_x0   3D point in space.
+   * @brief Compute the signed distance from a point to this mesh.
+   * @param[in] a_x0 3D point in space.
    * @details This function will iterate through ALL faces in the mesh and return
    * the value with the smallest magnitude. This is horrendously slow, which is
    * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
@@ -562,41 +453,17 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
-  signedDistance(const void* a_base, const Vec3& a_x0) const noexcept;
-
-  /**
-   * @brief Compute the signed distance from a point to this mesh, resolving against this mesh's
-   * bound base (see bind()).
-   * @param[in] a_x0 3D point in space.
-   * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
-   * the mesh has no faces.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline T
   signedDistance(const Vec3& a_x0) const noexcept;
 
   /**
-   * @brief Compute the signed distance from a point to this mesh, resolving against an
-   * explicitly-supplied base.
-   * @param[in] a_base      Base to resolve this mesh's data against.
+   * @brief Compute the signed distance from a point to this mesh, using an explicit search
+   * algorithm.
    * @param[in] a_x0        3D point in space.
    * @param[in] a_algorithm Search algorithm
    * @details This function will iterate through ALL faces in the mesh and return
    * the value with the smallest magnitude. This is horrendously slow, which is
    * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
    * in a bounding volume hierarchy for faster access.
-   * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
-   * the mesh has no faces.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline T
-  signedDistance(const void* a_base, const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;
-
-  /**
-   * @brief Compute the signed distance from a point to this mesh, resolving against this mesh's
-   * bound base (see bind()).
-   * @param[in] a_x0        3D point in space.
-   * @param[in] a_algorithm Search algorithm
    * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
    * the mesh has no faces.
    */
@@ -605,10 +472,8 @@ public:
   signedDistance(const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;
 
   /**
-   * @brief Compute the unsigned square distance from a point to this mesh, resolving against an
-   * explicitly-supplied base.
-   * @param[in] a_base Base to resolve this mesh's data against.
-   * @param[in] a_x0   3D point in space.
+   * @brief Compute the unsigned square distance from a point to this mesh.
+   * @param[in] a_x0 3D point in space.
    * @details This function will iterate through ALL faces in the mesh and return
    * the value with the smallest magnitude. This is horrendously slow, which is
    * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
@@ -617,46 +482,55 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
-  unsignedDistance2(const void* a_base, const Vec3& a_x0) const noexcept;
-
-  /**
-   * @brief Compute the unsigned square distance from a point to this mesh, resolving against this
-   * mesh's bound base (see bind()).
-   * @param[in] a_x0 3D point in space.
-   * @return Squared unsigned distance to the nearest face, or +infinity if the mesh has no faces.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline T
   unsignedDistance2(const Vec3& a_x0) const noexcept;
 
   /**
-   * @brief Build a lightweight, stack-only, read-resolving view of this mesh bound to an
-   * explicitly-supplied base.
-   * @details VertexT/EdgeT/FaceT's `const Mesh&`-taking methods (reconcile(), gatherVertexIndices(),
-   * getNextEdge(), computeVertexNormalAverage(), ...) always resolve indices through the mesh's own
-   * no-argument (bound) accessors, so *this cannot be passed to them directly unless it is already
-   * bind()'d against the base being resolved with. boundView() bridges this: a disposable copy of
-   * this mesh's descriptor (all plain values, so trivially cheap) with m_base set to a_base, safe to
-   * pass wherever a bound `const Mesh&` is required before the real mesh can be bound (e.g.
-   * Soup/Parser building a mesh whose Pool isn't frozen yet, or TriMeshSDF's mesh-based constructor,
-   * which deliberately never binds/freezes -- see EBGeometry_MeshDistanceFunctions.hpp).
-   * @details a_base is frequently a caller's `const void*` (a promise not to mutate whatever it
-   * points to), so the returned view's own m_base is set via a const_cast internally; the return
-   * type is deliberately `const Mesh`, not `Mesh`, so that promise cannot be broken by chaining a
-   * mutating call directly onto the returned value (e.g. `mesh.boundView(constBase).flip()` fails to
-   * compile). Always bind the result to a `const Mesh`/`const Mesh&` at the call site too -- copying
-   * it into a non-const local (`Mesh view = ...`) produces an independent, fully mutable object and
-   * defeats this protection.
-   * @param[in] a_base Base to bind the returned view to.
-   * @return A mesh view sharing this mesh's data but bound to a_base.
+   * @brief Produce a copy of this mesh's descriptor that resolves against a mirror of this mesh's
+   * Pool, rather than against the Pool the mesh was built in.
+   * @details This is the one sanctioned way to move a mesh between address spaces. Only the
+   * descriptor is copied -- the vertex/edge/face data is whatever a_pool already contains, which
+   * Pool::mirror put there. Since every cross-reference is a byte offset rather than a pointer, no
+   * patching is needed on either side:
+   *
+   * @code
+   * hostPool.freeze();
+   * Pool       devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+   * const Mesh deviceMesh = mesh->rebasedView(devicePool);   // rebase on the host ...
+   * myKernel<<<blocks, threads>>>(deviceMesh, ...);          // ... then copy by value
+   * @endcode
+   *
+   * How the returned view resolves depends on a_pool, not on a separate choice by the caller:
+   * - a device-accessible target (Device, Managed, Mapped) yields a view holding a plain base
+   *   address, since a kernel cannot follow a host control block. Such a view must not be
+   *   dereferenced on the host, which base() asserts.
+   * - a host-only target (Host, Pinned) yields a view holding that Pool's control block, so it is
+   *   growth-immune exactly like the original mesh.
+   * @note a_pool must be a mirror of the Pool this mesh was built in -- directly, or through any
+   * number of intermediate mirrors, since Pool::mirrorOf() names the root of the chain (so
+   * host -> pinned staging -> device works). It must also be large enough to contain this mesh's
+   * arrays, which catches a Pool mirrored before the mesh's last reserve. Both are
+   * EBGEOMETRY_EXPECT-checked.
+   * @param[in] a_pool Pool to rebase onto; a mirror of this mesh's own Pool.
+   * @return A mesh descriptor resolving against a_pool.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Mesh
-  boundView(const void* a_base) const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline Mesh
+  rebasedView(const Pool& a_pool) const noexcept;
 
 protected:
   /**
-   * @brief Resolved base pointer, set via bind(). Null until bound.
+   * @brief Control block of the Pool this mesh was reserved from; null if, and only if, this is a
+   * device view produced by rebasedView().
+   * @details Host bookkeeping. Never mirrored, never dereferenced from device code. Re-reading the
+   * base through it on every access is what makes a mesh immune to a Pool::reserve that grows and
+   * moves the block.
+   */
+  const PoolControl* m_control = nullptr;
+
+  /**
+   * @brief Base address for a device view, set by rebasedView() and unused otherwise.
+   * @note Write-only on the host: nothing reads this until the descriptor has been byte-copied into
+   * a device address space, so it will look dead to a host-only reader.
    */
   void* m_base = nullptr;
 
@@ -681,68 +555,81 @@ protected:
   PODVector<Face> m_faces;
 
   /**
+   * @brief Resolve this mesh's current base address.
+   * @details Reads through m_control on the host (so a Pool::reserve that moves the block is
+   * invisible) and through m_base on device. Exactly one of the two is set; which one is asserted,
+   * since a mismatch means a descriptor crossed an address-space boundary the wrong way.
+   * @return Base address to resolve this mesh's PODVector offsets against.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline void*
+  base() const noexcept;
+
+  /**
+   * @brief Attach this mesh to a_pool, or check that it is already attached to it.
+   * @details Called by every reserveX(); a mesh's storage must come from exactly one Pool.
+   * @param[in] a_pool Pool being reserved from.
+   */
+  EBGEOMETRY_HOST
+  inline void
+  attachTo(const Pool& a_pool) noexcept;
+
+  /**
    * @brief Function which computes internal things for the polygon faces.
-   * @param[in] a_base Base to resolve this mesh's data against.
    * @note This calls DCEL::FaceT<T, Meta>::reconcile()
    */
   EBGEOMETRY_HOST
   inline void
-  reconcileFaces(void* a_base) noexcept;
+  reconcileFaces() noexcept;
 
   /**
    * @brief Function which computes internal things for the half-edges
-   * @param[in] a_base Base to resolve this mesh's data against.
    * @note This calls DCEL::EdgeT<T, Meta>::reconcile()
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
-  reconcileEdges(void* a_base) noexcept;
+  reconcileEdges() noexcept;
 
   /**
    * @brief Function which computes internal things for the vertices
-   * @param[in] a_base   Base to resolve this mesh's data against.
    * @param[in] a_weight Vertex angle weighting
    * @note This calls DCEL::VertexT<T, Meta>::computeVertexNormalAverage() or
    * DCEL::VertexT<T, Meta>::computeVertexNormalAngleWeighted()
    */
   EBGEOMETRY_HOST
   inline void
-  reconcileVertices(void* a_base, const DCEL::VertexNormalWeight a_weight) noexcept;
+  reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept;
 
   /**
    * @brief Flip all face normals
-   * @param[in] a_base Base to resolve this mesh's data against.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
-  flipFaceNormals(void* a_base) noexcept;
+  flipFaceNormals() noexcept;
 
   /**
    * @brief Flip all edge normals
-   * @param[in] a_base Base to resolve this mesh's data against.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
-  flipEdgeNormals(void* a_base) noexcept;
+  flipEdgeNormals() noexcept;
 
   /**
    * @brief Flip all vertex normals
-   * @param[in] a_base Base to resolve this mesh's data against.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
-  flipVertexNormals(void* a_base) noexcept;
+  flipVertexNormals() noexcept;
 
   /**
    * @brief Implementation of signed distance function which iterates through all
    * faces
-   * @param[in] a_base  Base to resolve this mesh's data against.
    * @param[in] a_point 3D point
    * @return Signed distance to the nearest face.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
-  DirectSignedDistance(const void* a_base, const Vec3& a_point) const noexcept;
+  DirectSignedDistance(const Vec3& a_point) const noexcept;
 
   /**
    * @brief Implementation of squared signed distance function which iterates
@@ -750,13 +637,12 @@ protected:
    * @details This first find the face with the smallest unsigned square
    * distance, and the returns the signed distance to that face (more efficient
    * than the other version).
-   * @param[in] a_base  Base to resolve this mesh's data against.
    * @param[in] a_point 3D point
    * @return Signed distance to the nearest face.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
-  DirectSignedDistance2(const void* a_base, const Vec3& a_point) const noexcept;
+  DirectSignedDistance2(const Vec3& a_point) const noexcept;
 
   /**
    * @brief Increment a warning. This is used in sanityCheck() for locating holes

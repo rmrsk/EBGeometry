@@ -90,14 +90,8 @@ TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical,
   const auto meshOBJ = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
   const auto meshVTK = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"), pool);
 
-  // readIntoDCEL never freezes/binds pool itself (it may still be shared with more files -- see
-  // Chap:MemoryModel), but every mesh below is queried directly via its no-argument accessors, so
-  // this test freezes+binds once all four builds are done.
-  pool.freeze();
-  for (const auto& mesh : {meshSTL, meshPLY, meshOBJ, meshVTK}) {
-    mesh->bind(pool);
-  }
-
+  // Every mesh below is queried directly through its own accessors; each attaches to pool on its
+  // first reserve inside readIntoDCEL, so nothing has to be frozen or bound first.
   for (const auto& mesh : {meshSTL, meshPLY, meshOBJ, meshVTK}) {
     REQUIRE(mesh != nullptr);
     REQUIRE(mesh->numVertices() == 20);
@@ -135,8 +129,6 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 
   // readIntoDCEL never freezes/binds pool itself, but mesh is queried via its no-argument
   // accessors below (before any SDF wrapper would otherwise do this for us).
-  pool.freeze();
-  mesh->bind(pool);
 
   using Face = DCEL::FaceT<T, Meta>;
 
@@ -696,14 +688,6 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     singles.reserve(files.size());
     for (const auto& file : files) {
       singles.push_back(Parser::readIntoDCEL<T, Meta>(file, pool));
-    }
-
-    pool.freeze();
-    for (const auto& mesh : meshes) {
-      mesh->bind(pool);
-    }
-    for (const auto& single : singles) {
-      single->bind(pool);
     }
 
     for (size_t i = 0; i < files.size(); i++) {
@@ -2004,8 +1988,6 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 
   // readIntoDCEL never freezes/binds pool itself, but mesh is queried via its no-argument
   // accessors below (before any SDF wrapper would otherwise do this for us).
-  pool.freeze();
-  mesh->bind(pool);
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
   for (uint32_t i = 0; i < mesh->numFaces(); i++) {

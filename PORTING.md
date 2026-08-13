@@ -20,17 +20,22 @@ which makes the identical bit pattern resolve correctly against a host base *and
 with no pointer-patching pass after the copy.
 
 The practical consequence is that a portable structure has **at most one** address-space-specific
-field, and it is set at the moment of copying rather than being a property of the object. For
-`DCEL::MeshT` that field is `m_base`, and `MeshT::boundView(base)` is the sanctioned way to produce
-a copy bound to a different address space:
+field, and it is set at the moment of crossing rather than being a property of the object. For
+`DCEL::MeshT` that field is `m_base`, and `MeshT::rebasedView(pool)` is the sanctioned way to
+produce a copy that resolves in a different address space:
 
 ```cpp
 EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
-const auto       deviceMesh = mesh->boundView(devicePool.base());   // rebase on the host …
+const auto       deviceMesh = mesh->rebasedView(devicePool);        // rebase on the host …
 myKernel<<<blocks, threads>>>(deviceMesh, …);                       // … then copy by value
 ```
 
-Rebase, then copy — never copy a host-bound value and try to repair it afterwards.
+Rebase, then copy — never copy a host-resident value and try to repair it afterwards.
+
+A host-resident object does *not* hold a base at all: it holds a pointer to its `Pool`'s control
+block and re-reads the base through it on every access. That is what makes it immune to a
+`reserve()` that grows and moves the block, and what makes `m_control == nullptr` mean "device
+view" and nothing else — the assertion both `base()` branches rely on.
 
 ## Why the first attempt was rewound
 
@@ -92,18 +97,26 @@ Three layers, documented in full on the
 * **`MemoryResource`** — a runtime-virtual placement policy deciding *where* bytes live. Host,
   Device, Managed, Pinned and Mapped resources exist; the latter four require a CUDA/HIP build.
   Allocation is always a host-side operation, and every block is aligned to `PoolBaseAlign` (256 B).
-* **`Pool`** — one contiguous block from a resource, with two phases. **Build**: `reserve()`
-  bump-allocates and may grow (moving the base). **Query**: `freeze()` makes the base stable and
-  enables `mirror()`, which copies a whole frozen block into another resource — the host-to-device
-  upload, one `memcpy`, no patching. Move-only, host-only; never pass a `Pool` to a kernel.
+* **`Pool`** — one contiguous block from a resource. `reserve()` bump-allocates and may grow,
+  which reallocates and frees the old block; the current base is published through a heap-resident
+  `PoolControl`, so pool-resident objects see the move and already-resolved addresses do not.
+  `freeze()` seals the pool and exists solely as the precondition for `mirror()`, which copies a
+  whole frozen block into another resource — the host-to-device upload, one `memcpy`, no patching.
+  Move-only (moving a `Pool` does not disturb its control block), host-only; never pass a `Pool` to
+  a kernel.
 * **`PODVector` / `PODSpan`** — array descriptors holding a byte offset plus size and capacity.
   Trivially copyable, resolved against a base supplied per call (`at(base, i)`) or bound once
   (`bind(base)`).
 
-Classes built on this expose two accessor families — an explicit-base overload valid mid-build, and
-a no-argument bound overload for a finished structure — plus `boundView()` where a bound
-`const Mesh&` is needed before the real object can be bound. `DCEL::MeshT` is the reference
-implementation of the pattern.
+Classes built on this expose **one** accessor per operation. They attach to a `Pool` on their first
+`reserve` and resolve through its control block from then on, so there is no bound/unbound
+distinction, no freeze-before-query rule, and no base parameter threaded through the API;
+`rebasedView(pool)` is the single crossing point. `DCEL::MeshT` is the reference implementation of
+the pattern.
+
+Two rules survive from this and must be documented on anything that adopts it: a resolved address
+(a reference, a `PODSpan`) must not outlive the next `reserve()` on its pool, and the pool must
+outlive every object reserved from it.
 
 ## What is ported
 
@@ -179,7 +192,8 @@ kernel and compares against the host:
 2. Move array storage onto `PODVector` reserved from a caller-supplied `Pool`. Build-phase mutators
    take the `Pool&` explicitly, since `reserve()` can move the base.
 3. Annotate: `EBGEOMETRY_HOST_DEVICE` for anything that resolves purely through values, indices and
-   other device-callable calls; `EBGEOMETRY_HOST` for anything touching a `Pool`, `std::vector`,
+   other device-callable calls; `EBGEOMETRY_HOST` for anything touching a `Pool` (including
+   `rebasedView`, which reads one), `std::vector`,
    `std::string`, `std::cerr` or `std::map`. Watch for standard-library helpers that look innocent —
    `std::clamp` pulls in a host-only assert handler under libstdc++ hardened mode and must be
    hand-rolled.

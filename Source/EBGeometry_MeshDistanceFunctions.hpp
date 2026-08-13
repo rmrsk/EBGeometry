@@ -372,13 +372,10 @@ public:
    * @details No default arguments: this is a low-level constructor, and callers who excavate down
    * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
    * defaults.
-   * @param[in]     a_mesh          DCEL mesh, built (but not necessarily bound) against a_pool.
+   * @param[in]     a_mesh          DCEL mesh built against a_pool.
    * @param[in,out] a_pool          Pool a_mesh's storage was reserved from. Unlike FlatMeshSDF/
    * MeshSDF, this constructor does not retain a_mesh -- it extracts flat Triangle values from it and
-   * discards it -- so it deliberately does not freeze a_pool either: doing so would forbid building
-   * any more meshes into a still-open, shared a_pool (see :ref:`Chap:MemoryModel`'s pitfalls), which
-   * this one-shot, non-retaining use has no need to impose on the caller. It reads a_pool's current
-   * base once, explicitly, instead.
+   * discards it -- so nothing here depends on a_pool outliving the returned object.
    * @param[in]     a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
    * near-optimal traversal cost; TopDown (centroid median) is faster to build but yields deeper trees.
    * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the

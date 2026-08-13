@@ -1833,16 +1833,12 @@ template <typename T, typename Meta>
 [[nodiscard]] inline std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
 Parser::readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool)
 {
-  // Deliberately not a loop over the single-file overload: FlatMeshSDF's constructor freezes
-  // a_pool, so every mesh sharing it must finish building first. Build all of them (still
-  // unbound), then wrap/freeze/bind each in a second pass.
-  const auto meshes = Parser::readIntoDCEL<T, Meta>(a_files, a_pool);
-
   std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>> implicitFunctions;
 
-  implicitFunctions.reserve(meshes.size());
-  for (const auto& mesh : meshes) {
-    implicitFunctions.emplace_back(std::make_shared<FlatMeshSDF<T, Meta>>(mesh, a_pool));
+  implicitFunctions.reserve(a_files.size());
+
+  for (const auto& file : a_files) {
+    implicitFunctions.emplace_back(Parser::readIntoMesh<T, Meta>(file, a_pool));
   }
 
   return implicitFunctions;
@@ -1854,28 +1850,22 @@ Parser::readIntoTriangles(const std::string a_filename, Pool& a_pool)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
 
-  // mesh is not bind()'d (readIntoDCEL never freezes a_pool, since it may still be shared with
-  // more files, so its data is resolved against a_pool's current
-  // base explicitly throughout, via the mesh-bound Mesh view below.
-  void* const base     = a_pool.base();
-  const auto  meshView = mesh->boundView(base);
-
   std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
 
   bool onlyTriangles = true;
 
   for (uint32_t i = 0; i < mesh->numFaces(); i++) {
-    const auto& f             = mesh->getFace(base, i);
+    const auto& f             = mesh->getFace(i);
     const auto  normal        = f.getNormal();
-    const auto  vertexIndices = f.gatherVertexIndices(meshView);
+    const auto  vertexIndices = f.gatherVertexIndices(*mesh);
 
     if (vertexIndices.size() != 3) {
       onlyTriangles = false;
     }
 
-    const auto& v0 = mesh->getVertex(base, vertexIndices[0]);
-    const auto& v1 = mesh->getVertex(base, vertexIndices[1]);
-    const auto& v2 = mesh->getVertex(base, vertexIndices[2]);
+    const auto& v0 = mesh->getVertex(vertexIndices[0]);
+    const auto& v1 = mesh->getVertex(vertexIndices[1]);
+    const auto& v2 = mesh->getVertex(vertexIndices[2]);
 
     // Create the triangle
     auto tri = std::make_shared<Triangle<T, Meta>>();
@@ -1963,16 +1953,12 @@ Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool,
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
 
-  // Deliberately not a loop over the single-file overload: MeshSDF's constructor freezes a_pool,
-  // so every mesh sharing it must finish building first -- see :ref:`Chap:MemoryModel`'s pitfalls.
-  // Build all of them (still unbound), then wrap/freeze/bind each in a second pass.
-  const auto meshes = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_files, a_pool);
-
   std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>> implicitFunctions;
 
-  implicitFunctions.reserve(meshes.size());
-  for (const auto& mesh : meshes) {
-    implicitFunctions.emplace_back(std::make_shared<MeshSDF<T, Meta, K>>(mesh, a_pool, a_build));
+  implicitFunctions.reserve(a_files.size());
+
+  for (const auto& file : a_files) {
+    implicitFunctions.emplace_back(EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, a_pool, a_build));
   }
 
   return implicitFunctions;

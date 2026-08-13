@@ -28,7 +28,7 @@
 
 namespace EBGeometry {
 
-inline Pool::Pool(MemoryResource& a_resource, size_t a_initialBytes) : m_resource(&a_resource)
+inline Pool::Pool(MemoryResource& a_resource, size_t a_initialBytes) : m_resource(&a_resource), m_control(makeControl())
 {
   // A build pool must be host-accessible: reserve()/push_back()/grow() write through base() with the
   // host CPU. Device-resident pools are produced only by mirror() (via the private MirrorTag
@@ -44,28 +44,32 @@ inline Pool::Pool(MemoryResource& a_resource, size_t a_initialBytes) : m_resourc
   if (a_initialBytes > 0) {
     const size_t rounded = (a_initialBytes + (PoolBaseAlign - 1)) & ~(PoolBaseAlign - 1);
 
-    m_base     = m_resource->allocate(rounded, PoolBaseAlign);
-    m_capacity = rounded;
+    m_control->m_base = m_resource->allocate(rounded, PoolBaseAlign);
+    m_capacity        = rounded;
   }
 }
 
 inline Pool::~Pool() noexcept
 {
-  if (m_base != nullptr) {
-    m_resource->deallocate(m_base, m_capacity, PoolBaseAlign);
+  if (m_control != nullptr && m_control->m_base != nullptr) {
+    m_resource->deallocate(m_control->m_base, m_capacity, PoolBaseAlign);
   }
 }
 
+// The move steals the control block itself, so the block's *address* is unchanged and every
+// pool-resident object pointing at it keeps resolving -- that is the control block's entire reason
+// for existing. Nothing about the base needs fixing up here.
 inline Pool::Pool(Pool&& a_other) noexcept
   : m_resource(a_other.m_resource),
-    m_base(a_other.m_base),
+    m_control(std::move(a_other.m_control)),
     m_size(a_other.m_size),
     m_capacity(a_other.m_capacity),
+    m_mirrorOf(a_other.m_mirrorOf),
     m_frozen(a_other.m_frozen)
 {
-  a_other.m_base     = nullptr;
   a_other.m_size     = 0;
   a_other.m_capacity = 0;
+  a_other.m_mirrorOf = 0;
   a_other.m_frozen   = false;
 }
 
@@ -73,19 +77,20 @@ inline Pool&
 Pool::operator=(Pool&& a_other) noexcept
 {
   if (this != &a_other) {
-    if (m_base != nullptr) {
-      m_resource->deallocate(m_base, m_capacity, PoolBaseAlign);
+    if (m_control != nullptr && m_control->m_base != nullptr) {
+      m_resource->deallocate(m_control->m_base, m_capacity, PoolBaseAlign);
     }
 
     m_resource = a_other.m_resource;
-    m_base     = a_other.m_base;
+    m_control  = std::move(a_other.m_control);
     m_size     = a_other.m_size;
     m_capacity = a_other.m_capacity;
+    m_mirrorOf = a_other.m_mirrorOf;
     m_frozen   = a_other.m_frozen;
 
-    a_other.m_base     = nullptr;
     a_other.m_size     = 0;
     a_other.m_capacity = 0;
+    a_other.m_mirrorOf = 0;
     a_other.m_frozen   = false;
   }
 
@@ -95,6 +100,14 @@ Pool::operator=(Pool&& a_other) noexcept
 inline uint64_t
 Pool::reserve(size_t a_count, size_t a_elemSize, size_t a_alignment)
 {
+  // Always-on, NOT EBGEOMETRY_EXPECT: a moved-from pool owns no control block, so every path below
+  // (and every base resolution by an object reserved here) would dereference null. Failing hard
+  // beats a release build wandering into undefined behaviour.
+  if (m_control == nullptr) {
+    std::fprintf(stderr, "EBGeometry::Pool::reserve: cannot reserve from a moved-from pool\n");
+    std::abort();
+  }
+
   EBGEOMETRY_EXPECT(!m_frozen);                              // no reserve after freeze
   EBGEOMETRY_EXPECT(a_alignment > 0);                        // 0 would underflow the mask below
   EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);           // base is 256-aligned; larger unsupported
@@ -128,13 +141,16 @@ Pool::grow(size_t a_need)
 
   void* newBase = m_resource->allocate(newCap, PoolBaseAlign);
 
-  if (m_base != nullptr) {
-    std::memcpy(newBase, m_base, m_size);
-    m_resource->deallocate(m_base, m_capacity, PoolBaseAlign);
+  if (m_control->m_base != nullptr) {
+    std::memcpy(newBase, m_control->m_base, m_size);
+    m_resource->deallocate(m_control->m_base, m_capacity, PoolBaseAlign);
   }
 
-  m_base     = newBase;
-  m_capacity = newCap;
+  // Publishing the new base through the control block is what makes pool-resident objects immune to
+  // a grow: they re-read it on every access. Addresses already resolved against the old base are
+  // dangling from here on -- see the warning on reserve().
+  m_control->m_base = newBase;
+  m_capacity        = newCap;
 }
 
 inline void
@@ -154,20 +170,23 @@ Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
   Pool dst(a_dstResource, MirrorTag{});
 
   if (a_src.m_size > 0) {
-    dst.m_base = a_dstResource.allocate(a_src.m_size, PoolBaseAlign); // exact size, no slack
+    void* const srcBase = a_src.m_control->m_base;
+    void* const dstBase = a_dstResource.allocate(a_src.m_size, PoolBaseAlign); // exact size, no slack
+
+    dst.m_control->m_base = dstBase;
 
     const bool srcHost = a_src.m_resource->isHostAccessible();
     const bool dstHost = a_dstResource.isHostAccessible();
 
     if (srcHost && dstHost) {
-      std::memcpy(dst.m_base, a_src.m_base, a_src.m_size);
+      std::memcpy(dstBase, srcBase, a_src.m_size);
     }
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
     else if (srcHost && !dstHost) {
-      EBGEOMETRY_GPU_CHECK(GPU::memcpy(dst.m_base, a_src.m_base, a_src.m_size, GPU::MemcpyHostToDevice));
+      EBGEOMETRY_GPU_CHECK(GPU::memcpy(dstBase, srcBase, a_src.m_size, GPU::MemcpyHostToDevice));
     }
     else if (!srcHost && dstHost) {
-      EBGEOMETRY_GPU_CHECK(GPU::memcpy(dst.m_base, a_src.m_base, a_src.m_size, GPU::MemcpyDeviceToHost));
+      EBGEOMETRY_GPU_CHECK(GPU::memcpy(dstBase, srcBase, a_src.m_size, GPU::MemcpyDeviceToHost));
     }
     else {
       // Device-to-device is out of scope for the mirror (the foundation only builds on host and
@@ -190,6 +209,11 @@ Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
   dst.m_capacity = a_src.m_size;
   dst.m_size     = a_src.m_size;
   dst.m_frozen   = true;
+
+  // Record the *root* of the mirror chain, not the immediate source: mirroring host -> pinned
+  // staging -> device must leave the device pool naming the original host pool, so that an object
+  // built in that host pool can still validate a rebase onto the device pool.
+  dst.m_mirrorOf = (a_src.m_mirrorOf != 0) ? a_src.m_mirrorOf : a_src.id();
 
   return dst;
 }

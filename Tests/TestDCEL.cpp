@@ -6,8 +6,10 @@
 #include "TestGPU.hpp"
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -34,12 +36,8 @@ loadTetrahedron(Pool& a_pool)
 {
   auto mesh = Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.stl", a_pool);
 
-  // readIntoDCEL never freezes/binds a_pool itself (it may still be shared with more files -- see
-  // Chap:MemoryModel), but every call site below queries the returned mesh directly via its
-  // no-argument accessors, so this helper -- unlike the real Parser entry point -- freezes+binds on
-  // its caller's behalf. Each call site below uses its own fresh, single-use Pool.
-  a_pool.freeze();
-  mesh->bind(a_pool);
+  // The mesh is attached to a_pool by its first reserve inside readIntoDCEL and is queryable from
+  // that point on: no freeze, no bind. Each call site below uses its own fresh, single-use Pool.
 
   return mesh;
 }
@@ -75,8 +73,6 @@ buildTetrahedron(Pool& a_pool)
 
   // See loadTetrahedron's comment: every call site below queries the returned mesh via its
   // no-argument accessors, so this test helper freezes+binds a_pool on its caller's behalf.
-  a_pool.freeze();
-  mesh->bind(a_pool);
 
   return mesh;
 }
@@ -370,9 +366,6 @@ TEMPLATE_TEST_CASE("EdgeT: flipNormal negates the normal vector", "[DCEL][Edge]"
   edge.setFace(0);
   mesh.addEdge(pool, edge);
 
-  pool.freeze();
-  mesh.bind(pool);
-
   auto& e = mesh.getEdge(0);
   e.reconcile(mesh);
 
@@ -400,9 +393,6 @@ TEMPLATE_TEST_CASE("EdgeT: computeNormal with a single face returns that face's 
   edge.setFace(0);
   mesh.addEdge(pool, edge);
 
-  pool.freeze();
-  mesh.bind(pool);
-
   REQUIRE(mesh.getEdge(0).computeNormal(mesh) == Vec3T<T>(1, 0, 0));
 }
 
@@ -427,9 +417,6 @@ TEMPLATE_TEST_CASE("EdgeT: computeNormal averages both incident faces' normals",
 
   mesh.addEdge(pool, TestEdge<T>()); // edge under test
   mesh.addEdge(pool, TestEdge<T>()); // its pair edge
-
-  pool.freeze();
-  mesh.bind(pool);
 
   mesh.getEdge(0).setFace(0);
   mesh.getEdge(1).setFace(1);
@@ -460,9 +447,6 @@ TEMPLATE_TEST_CASE("EdgeT: reconcile stores computeNormal's result", "[DCEL][Edg
   edge.setFace(0);
   mesh.addEdge(pool, edge);
 
-  pool.freeze();
-  mesh.bind(pool);
-
   auto& e = mesh.getEdge(0);
   e.reconcile(mesh);
 
@@ -492,9 +476,6 @@ TEMPLATE_TEST_CASE("EdgeT: signedDistance and unsignedDistance2 on a simple segm
   TestFace<T> face;
   face.define(Vec3T<T>(0, 1, 0), UINT32_MAX);
   mesh.addFace(pool, face);
-
-  pool.freeze();
-  mesh.bind(pool);
 
   mesh.getEdge(0).setNextEdge(1);
   mesh.getEdge(0).setFace(0);
@@ -741,9 +722,6 @@ TEMPLATE_TEST_CASE("MeshT: reserveX/addX/getX/numX populate the mesh", "[DCEL][M
   REQUIRE(eIdx == 0);
   REQUIRE(fIdx == 0);
 
-  pool.freeze();
-  mesh.bind(pool);
-
   REQUIRE(mesh.numVertices() == 1);
   REQUIRE(mesh.numEdges() == 1);
   REQUIRE(mesh.numFaces() == 1);
@@ -759,7 +737,7 @@ TEMPLATE_TEST_CASE("MeshT: copy and move are both allowed, and the whole type is
   using T = TestType;
   // Unlike the Pool-owning design this superseded, MeshT holds only plain values (three
   // PODVectors, the search algorithm, and a resolved base pointer) -- copying is a cheap,
-  // always-safe descriptor copy that shares the underlying data (see bind()/deepCopy()'s docs).
+  // always-safe descriptor copy that shares the underlying data (see deepCopy()'s docs).
   static_assert(std::is_copy_constructible_v<TestMesh<T>>);
   static_assert(std::is_copy_assignable_v<TestMesh<T>>);
   static_assert(std::is_move_constructible_v<TestMesh<T>>);
@@ -948,11 +926,6 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy produces an independent mesh with the same g
   auto mesh = buildTetrahedron<T>(srcPool);
   auto copy = mesh->deepCopy(dstPool);
 
-  // deepCopy() never freezes/binds dstPool itself (dstPool may still be shared with more copies --
-  // see Chap:MemoryModel), but every call below queries copy through its no-argument accessors.
-  dstPool.freeze();
-  copy->bind(dstPool);
-
   REQUIRE(copy != nullptr);
   REQUIRE(copy->numVertices() == mesh->numVertices());
   REQUIRE(copy->numEdges() == mesh->numEdges());
@@ -989,12 +962,167 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy preserves a prior flip() instead of silently
 
   auto copy = mesh->deepCopy(dstPool);
 
-  dstPool.freeze();
-  copy->bind(dstPool);
-
   for (uint32_t i = 0; i < mesh->numFaces(); i++) {
     REQUIRE((copy->getFace(i).getNormal() - mesh->getFace(i).getNormal()).length() < T(exactMargin<T>()));
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pool residency: a mesh stays queryable across everything its Pool does
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("MeshT: a mesh keeps answering after its Pool grows and moves the block",
+                   "[DCEL][Mesh][PoolResidency]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Start deliberately tiny so the reserves below are certain to grow the block.
+  Pool pool(hostMemoryResource(), 64);
+
+  auto mesh = buildTetrahedron<T>(pool);
+
+  const Vec3T<T> p(0.1, 0.1, 0.1);
+
+  const void* const baseBeforeGrow = pool.base();
+  const T           before         = mesh->signedDistance(p);
+  const Vec3T<T>    vertexBefore   = mesh->getVertex(0).getPosition();
+
+  // Keep building into the same Pool. Under the old freeze-then-bind contract this was impossible:
+  // querying required a frozen Pool, and reserving into a frozen Pool aborts.
+  auto second = buildTetrahedron<T>(pool);
+
+  REQUIRE(pool.base() != baseBeforeGrow); // the block really did move
+
+  // Same answers, with no rebinding of any kind.
+  REQUIRE_THAT(mesh->signedDistance(p), withinAbsT(before, exactMargin<T>()));
+  REQUIRE(mesh->getVertex(0).getPosition() == vertexBefore);
+  REQUIRE_THAT(second->signedDistance(p), withinAbsT(before, exactMargin<T>()));
+
+  // Both meshes resolve through the same Pool, and know it.
+  REQUIRE(mesh->isAttachedTo(pool));
+  REQUIRE(second->isAttachedTo(pool));
+}
+
+TEMPLATE_TEST_CASE("MeshT: an element survives a growing reserve when carried by value",
+                   "[DCEL][Mesh][PoolResidency]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // The reference-returning accessors hand back an address resolved at the moment of the call, so
+  // a grow invalidates it (see the warning on Pool::reserve). This is the sanctioned way to carry
+  // an element across a reserve: snapshot by value, then write back through a fresh accessor.
+  Pool pool(hostMemoryResource(), 64);
+
+  auto mesh = buildTetrahedron<T>(pool);
+
+  VertexT<T, DefaultMetaData> vertex = mesh->getVertex(0); // by value, deliberately not by reference
+
+  auto other = buildTetrahedron<T>(pool); // may grow, moving the block
+
+  vertex.setPosition(Vec3T<T>(7, 8, 9));
+  mesh->getVertex(0) = vertex; // fresh resolution against the current base
+
+  REQUIRE(mesh->getVertex(0).getPosition() == Vec3T<T>(7, 8, 9));
+
+  // The write landed in this mesh only.
+  REQUIRE(other->getVertex(0).getPosition() != Vec3T<T>(7, 8, 9));
+}
+
+TEMPLATE_TEST_CASE("MeshT: a mesh survives its Pool being moved, including a vector reallocation",
+                   "[DCEL][Mesh][PoolResidency]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A mesh points at its Pool's control block, not at the Pool object, so relocating the Pool is
+  // invisible to it. The vector case is the sharp one: the source Pool is moved *and destroyed*.
+  std::vector<Pool> pools;
+  pools.reserve(1);
+  pools.emplace_back(hostMemoryResource());
+
+  auto mesh = buildTetrahedron<T>(pools[0]);
+
+  const Vec3T<T> p(0.1, 0.1, 0.1);
+  const T        before = mesh->signedDistance(p);
+
+  while (pools.size() < 16) {
+    pools.emplace_back(hostMemoryResource());
+  }
+
+  REQUIRE_THAT(mesh->signedDistance(p), withinAbsT(before, exactMargin<T>()));
+  REQUIRE(mesh->isAttachedTo(pools[0]));
+
+  // And again after a plain move-construction.
+  Pool moved(std::move(pools[0]));
+
+  REQUIRE_THAT(mesh->signedDistance(p), withinAbsT(before, exactMargin<T>()));
+  REQUIRE(mesh->isAttachedTo(moved));
+}
+
+TEMPLATE_TEST_CASE("MeshT: deepCopy into the same Pool is safe even when it grows",
+                   "[DCEL][Mesh][PoolResidency]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // deepCopy reserves three times from the destination Pool while reading the source. With the
+  // source and destination being the same Pool, those reserves move the very block being read
+  // from -- safe only because every read re-resolves through the control block.
+  Pool pool(hostMemoryResource(), 64);
+
+  auto mesh = buildTetrahedron<T>(pool);
+  auto copy = mesh->deepCopy(pool);
+
+  REQUIRE(copy->numVertices() == mesh->numVertices());
+  REQUIRE(copy->numFaces() == mesh->numFaces());
+
+  const Vec3T<T> p(0.1, 0.1, 0.1);
+  REQUIRE_THAT(copy->signedDistance(p), withinAbsT(mesh->signedDistance(p), formulaMargin<T>()));
+
+  for (uint32_t i = 0; i < mesh->numVertices(); i++) {
+    REQUIRE(copy->getVertex(i).getPosition() == mesh->getVertex(i).getPosition());
+  }
+}
+
+TEMPLATE_TEST_CASE("MeshT: rebasedView onto a host-to-host mirror answers identically",
+                   "[DCEL][Mesh][PoolResidency]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // The offset/rebase proof applied to real geometry rather than a synthetic struct, and without a
+  // GPU: mirroring host-to-host produces a byte-identical block at a different address, and the
+  // same descriptor must resolve against it unchanged.
+  Pool pool(hostMemoryResource());
+
+  auto mesh = buildTetrahedron<T>(pool);
+
+  pool.freeze();
+
+  Pool mirrored = Pool::mirror(pool, hostMemoryResource());
+
+  REQUIRE(mirrored.base() != pool.base());
+  REQUIRE(mirrored.mirrorOf() == pool.id());
+
+  const auto view = mesh->rebasedView(mirrored);
+
+  REQUIRE(view.isAttachedTo(mirrored));
+  REQUIRE(view.numVertices() == mesh->numVertices());
+  REQUIRE(view.numFaces() == mesh->numFaces());
+
+  const Vec3T<T> p(0.1, 0.1, 0.1);
+  REQUIRE_THAT(view.signedDistance(p), withinAbsT(mesh->signedDistance(p), exactMargin<T>()));
+
+  for (uint32_t i = 0; i < mesh->numVertices(); i++) {
+    REQUIRE(view.getVertex(i).getPosition() == mesh->getVertex(i).getPosition());
+  }
+
+  // The mirror is an independent copy: corrupting the source must not disturb the view.
+  std::memset(pool.base(), 0, pool.usedBytes());
+
+  REQUIRE_THAT(view.signedDistance(p), withinAbsT(mesh->rebasedView(mirrored).signedDistance(p), exactMargin<T>()));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1412,7 +1540,7 @@ TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surfac
 
   const T hostVal = baseTerms + meshSignedDist + windingDist + subtendedDist + flipConsistency;
 
-  const TestMesh<T> deviceView = mesh->boundView(devicePool.base());
+  const TestMesh<T> deviceView = mesh->rebasedView(devicePool);
 
   DeviceBuffer<T> deviceOut;
 

@@ -27,8 +27,10 @@
 #define EBGEOMETRY_POOL_HPP
 
 // Std includes
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
@@ -36,6 +38,30 @@
 #include "EBGeometry_MemoryResource.hpp"
 
 namespace EBGeometry {
+
+/**
+ * @brief Stable, heap-resident handle to a @ref Pool's current base address and identity.
+ * @details A pool-resident object (e.g. @ref EBGeometry::DCEL::MeshT) must be able to re-read its
+ * pool's base on every access, because @ref Pool::reserve may grow the block and move it. Pointing
+ * such an object at the @ref Pool itself would work until the pool is @e moved -- pools are
+ * move-only but movable (@ref Pool::mirror returns by value), and a @c Pool* would be left naming a
+ * relocated, possibly destroyed object. The control block solves this: it is heap-allocated,
+ * uniquely owned by the pool, and its @e address never changes for the lifetime of the pool,
+ * however many times the pool itself is moved.
+ *
+ * @note This is host bookkeeping. It is never mirrored to a device and must never be dereferenced
+ * from device code -- a device-bound view of a pool-resident object holds a plain base pointer
+ * instead. See @ref EBGeometry::DCEL::MeshT::rebasedView.
+ */
+struct PoolControl
+{
+  /// @brief Current base address of the owning pool's block. Rewritten whenever a
+  /// @ref Pool::reserve grows the block.
+  void* m_base = nullptr;
+
+  /// @brief Identity of the owning pool; see @ref Pool::id. Never zero for a live pool.
+  uint64_t m_id = 0;
+};
 
 /**
  * @brief Build-time-grow-then-freeze arena over a @ref MemoryResource.
@@ -97,6 +123,29 @@ public:
    * @brief Bump-reserve @p a_count * @p a_elemSize bytes aligned to @p a_alignment.
    * @details Returns the byte offset of the reserved sub-region from @ref base. May grow the
    *          block (on a host-accessible resource only). Forbidden after @ref freeze.
+   *
+   * @warning A grow does @b not extend the block in place: it allocates a new block, copies the
+   * live bytes into it, and @e deallocates the old one. Every address that was already resolved
+   * against the old base -- a raw pointer, a @c T& handed out by @ref PODVector::at or by a
+   * pool-resident container's accessor, a @ref PODSpan from @ref PODVector::bind -- is dangling
+   * afterwards. Every @ref PODVector is @e unaffected, because it stores a byte offset rather than
+   * an address, and so is anything that re-resolves through @ref PoolControl::m_base.
+   *
+   * The rule is therefore: @b resolve, @b use, @b discard. A resolved address must not outlive the
+   * next @ref reserve on the same pool. To carry data across a @ref reserve, carry it @e by value
+   * and write it back through a fresh resolution:
+   *
+   * @code
+   * Edge e = mesh.getEdge(3);      // snapshot; independent of any base
+   * mesh.reserveFaces(pool, n);    // may grow, moving the block
+   * e.setFace(7);
+   * mesh.getEdge(3) = e;           // fresh resolution against the current base
+   * @endcode
+   *
+   * Note that the hazard is intermittent -- a grow only happens when the request exceeds the
+   * current capacity -- and its quiet form is worse than a crash: if the freed block is still
+   * mapped, a write through a stale address lands in the abandoned copy and is silently lost.
+   *
    * @param[in] a_count     Number of elements.
    * @param[in] a_elemSize  Size of one element in bytes.
    * @param[in] a_alignment Required alignment of the sub-region (power of two, <= @ref PoolBaseAlign).
@@ -117,13 +166,59 @@ public:
 
   /**
    * @brief Base address of the block.
-   * @return Pointer to the first byte of the block (null if nothing has been reserved yet).
+   * @return Pointer to the first byte of the block (null if nothing has been reserved yet, or if
+   *         this pool has been moved from).
    */
   [[nodiscard]] EBGEOMETRY_HOST
   void*
   base() const noexcept
   {
-    return m_base;
+    return (m_control != nullptr) ? m_control->m_base : nullptr;
+  }
+
+  /**
+   * @brief This pool's stable control block, through which pool-resident objects re-resolve the
+   * base on every access.
+   * @details The returned address is fixed for the lifetime of the pool and survives every move of
+   * the pool object, which is precisely why pool-resident objects store this rather than a
+   * @c Pool*. It does @b not survive the pool's destruction: the pool must outlive every object
+   * reserved from it.
+   * @return Pointer to the control block (null only for a moved-from pool).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const PoolControl*
+  control() const noexcept
+  {
+    return m_control.get();
+  }
+
+  /**
+   * @brief Identity of this pool, unique among all pools constructed in this process.
+   * @details Assigned at construction from a monotonic counter and never reused; a mirror gets its
+   *          own fresh identity. Used by @ref mirrorOf to record lineage.
+   * @return This pool's identity (zero only for a moved-from pool).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint64_t
+  id() const noexcept
+  {
+    return (m_control != nullptr) ? m_control->m_id : 0;
+  }
+
+  /**
+   * @brief Identity of the pool this one ultimately mirrors, or zero if it is not a mirror.
+   * @details This names the @e root of the mirror chain, not the immediate source: mirroring
+   *          host -> pinned staging -> device leaves the device pool naming the original host pool,
+   *          not the staging pool. That is what lets a pool-resident object built in the host pool
+   *          validate a rebase onto the device pool (see @ref EBGeometry::DCEL::MeshT::rebasedView)
+   *          without having to know how many hops the block travelled.
+   * @return Identity of the root source pool, or 0 if this pool is not a mirror.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint64_t
+  mirrorOf() const noexcept
+  {
+    return m_mirrorOf;
   }
 
   /**
@@ -199,20 +294,43 @@ private:
    * @param[in] a_resource Backing resource (may be device-resident).
    */
   EBGEOMETRY_HOST
-  Pool(MemoryResource& a_resource, MirrorTag) noexcept : m_resource(&a_resource)
+  Pool(MemoryResource& a_resource, MirrorTag) : m_resource(&a_resource), m_control(makeControl())
   {}
+
+  /**
+   * @brief Allocate a fresh control block carrying the next pool identity.
+   * @details The counter is an atomic because EBGeometry is header-only and nothing prevents two
+   *          threads from constructing pools concurrently. Identities start at one, so zero is
+   *          available as the "not a mirror" / "moved-from" sentinel.
+   * @return Owning pointer to the new control block.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static std::unique_ptr<PoolControl>
+  makeControl()
+  {
+    static std::atomic<uint64_t> s_nextID{1};
+
+    auto control = std::make_unique<PoolControl>();
+
+    control->m_id = s_nextID.fetch_add(1, std::memory_order_relaxed);
+
+    return control;
+  }
 
   /// @brief Backing memory resource (non-owning; must outlive the pool).
   MemoryResource* m_resource = nullptr;
 
-  /// @brief Base address of the block.
-  void* m_base = nullptr;
+  /// @brief Stable handle to the block's base address and this pool's identity. Null if moved from.
+  std::unique_ptr<PoolControl> m_control;
 
   /// @brief Bump cursor: bytes currently in use.
   size_t m_size = 0;
 
   /// @brief Bytes currently allocated.
   size_t m_capacity = 0;
+
+  /// @brief Identity of the root pool this one mirrors; 0 if this pool is not a mirror.
+  uint64_t m_mirrorOf = 0;
 
   /// @brief Whether the pool has been frozen.
   bool m_frozen = false;

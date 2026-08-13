@@ -73,65 +73,70 @@ Memory model
 ------------
 
 See :ref:`Chap:MemoryModel` first for the generic ``Pool``/``PODVector``/``MemoryResource``
-foundation (build/freeze/query, mirroring, the ``at()``-vs-``bind()`` access-style choice) --
+foundation (the control block, mirroring, the ``at()``-vs-``bind()`` access-style choice) --
 this section covers only how ``MeshT`` specifically is built on top of it.
 
-``MeshT<T, Meta>``'s vertex/edge/face arrays are three ``PODVector``\ s, and its own accessors
-mirror the same two-style choice as ``PODVector`` itself:
+``MeshT<T, Meta>``'s vertex/edge/face arrays are three ``PODVector``\ s. The mesh attaches itself to
+a ``Pool`` on its first ``reserveVertices()``/``reserveEdges()``/``reserveFaces()`` call and resolves
+every access through that pool's control block from then on, so there is exactly one accessor of
+each kind (``getVertex(i)``, ``signedDistance(p)``, ...) and no binding, freezing, or base-passing
+step of any sort. A mesh is queryable as soon as it has data, including while the same pool is still
+being built into -- which is what lets ``Soup``/``Parser`` (:ref:`Chap:Parsers`) reconcile and sanity
+-check a mesh mid-build, and lets several meshes share one pool without coordinating.
 
-* an **explicit-base** overload (e.g. ``getVertex(void* a_base, uint32_t)``), which resolves fresh
-  against whatever base is passed in, valid even mid-build against a pool that has not been
-  frozen yet, and
-* a **bound**, no-argument convenience overload (e.g. ``getVertex(uint32_t)``), which resolves
-  against a base cached once via ``bind(const Pool&)`` -- itself ``EBGEOMETRY_EXPECT``-checked to
-  require a frozen pool, for exactly the reason given in :ref:`Chap:MemoryModel`.
+Build-phase mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
+``addVertex()``/``addEdge()``/``addFace()``) still take the ``Pool&`` explicitly, since they reserve
+from it. ``isAttachedTo(pool)`` reports whether a mesh's storage came from a given pool, which is how
+a caller holding both can confirm they belong together.
 
-A third accessor, ``boundView(a_base)``, bridges the two. ``VertexT``/``EdgeT``/``FaceT``'s
-``const MeshT&``-taking methods (``reconcile()``, ``getNextEdge()``,
-``computeVertexNormalAverage()``, ...) resolve their indices through the mesh's *bound* accessors,
-so they cannot be handed a mesh that has not been ``bind()``'d yet. ``boundView()`` returns a
-disposable copy of the mesh's descriptor -- all plain values, so trivially cheap -- with its cached
-base set to ``a_base``, which is safe to pass wherever a bound ``const MeshT&`` is required before
-the real mesh can be bound. This is how ``Soup``/``Parser`` (:ref:`Chap:Parsers`) reconcile a mesh
-whose ``Pool`` is still open for further building, and how ``TriMeshSDF``'s mesh-based constructor
-works without ever freezing or binding.
+Because ``MeshT`` stores nothing but ``PODVector``\ s and plain values, it -- like
+``VertexT``/``EdgeT``/``FaceT`` themselves -- is trivially copyable, so a mesh built and reconciled
+entirely on the host can cross into another address space by value.
+
+.. warning::
+
+   A reference handed back by ``getVertex(i)``/``getEdge(i)``/``getFace(i)`` is an address resolved
+   at the moment of the call, and any ``Pool::reserve()`` may free the block it points into. This is
+   the general rule of :ref:`Sec:ResolvedAddresses` applied to ``MeshT``: resolve, use, discard, and
+   carry elements across a ``reserve`` by value rather than by reference. Everything returning by
+   value -- ``signedDistance()``, ``getAllVertexCoordinates()``, and so on -- is unaffected.
 
 .. note::
 
-   ``boundView()`` returns ``const MeshT``, not ``MeshT``, deliberately: the base it is given is
-   usually a caller's ``const void*``, and a ``const`` return keeps that promise from being broken
-   by chaining a mutating call onto the temporary (``mesh.boundView(base).flip()`` does not
-   compile). Bind the result to a ``const MeshT``/``const MeshT&`` at the call site as well --
-   copying it into a non-``const`` local (``MeshT view = mesh.boundView(base);``) produces an
-   independent, fully mutable object and defeats the protection.
+   **One ``Pool`` backing many meshes is the normal case.** Building several meshes one after
+   another into the same pool is both safe and cheaper than giving each its own (see
+   :ref:`Chap:Parsers`): a ``grow()`` triggered while building the fifth mesh ``memcpy``\ s
+   everything reserved so far, including the first four, and every mesh keeps resolving correctly
+   against the new base without being told. The pool must simply outlive every mesh in it.
 
-Build-phase mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
-``addVertex()``/``addEdge()``/``addFace()``) always take the ``Pool&`` explicitly, since reserving
-can grow (and move) the pool's block -- there is no cached-base convenience form for these.
-Because ``MeshT`` never stores anything but ``PODVector``\ s, a plain value, and one resolved base
-pointer, it -- like ``VertexT``/``EdgeT``/``FaceT`` themselves -- is trivially copyable, and a mesh
-built and reconciled entirely on the host can be handed to ``Pool::mirror()`` and re-``bind()``'d
-against the mirrored, device-resident base with zero pointer patching.
+Crossing address spaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning::
+``rebasedView(const Pool&)`` is the one sanctioned way to point a mesh at a
+`mirror <doxygen/html/classEBGeometry_1_1Pool.html#aa141bf4919e1aeb78aaee9667da8ebc3>`__ of its own
+pool. It copies only the descriptor -- the vertex/edge/face data is whatever the mirror already
+contains -- and since every cross-reference is a byte offset, nothing needs patching on either side:
 
-   **One ``Pool`` can safely back many meshes, but they all share one freeze point.** Building
-   several meshes one after another into the *same* still-open ``Pool`` is safe and cheaper than
-   giving each its own pool (see :ref:`Chap:Parsers`): a ``grow()`` triggered while building the
-   fifth mesh ``memcpy``\ s *everything* reserved so far, including the first four, and every
-   ``PODVector``'s offset stays correct against the new base regardless. But ``freeze()`` applies to
-   the whole pool, not to an individual mesh -- nobody sharing a pool can move to the query phase
-   (``bind()``, ``Pool::mirror()``) until *everyone* sharing it has finished building. If different
-   meshes need to become query-ready at different times, give them separate pools instead.
+.. code-block:: c++
 
-.. warning::
+   hostPool.freeze();
 
-   Do not call a bound (no-argument) accessor (``getVertex(i)``, ``signedDistance(p)``, ...) on a
-   mesh that has not been ``bind()``'d yet -- its cached base is null (or stale), and dereferencing
-   through it is undefined behaviour, not a checked error. This is exactly why the build-phase code
-   inside ``Soup``/``Parser`` (:ref:`Chap:Parsers`) uses the explicit-base overloads throughout: at
-   that point the owning ``Pool`` may still be open for more meshes and is not guaranteed frozen
-   yet.
+   EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
+   const auto       deviceMesh = mesh->rebasedView(devicePool);   // rebase on the host ...
+
+   myKernel<<<blocks, threads>>>(deviceMesh, ...);                // ... then copy by value
+
+How the returned view resolves follows from the pool it is given, not from a separate choice by the
+caller. A device-accessible target (``Device``, ``Managed``, ``Mapped``) yields a view holding a
+plain base address, since a kernel cannot follow a host control block; such a view must not be
+dereferenced on the host. A host-only target (``Host``, ``Pinned``) yields a view holding that
+pool's control block, so it stays growth-immune exactly like the original mesh -- this is what makes
+a host-to-host mirror usable, and testable without a GPU.
+
+``rebasedView`` checks that the pool it is handed really is a mirror of the mesh's own pool
+(directly, or through any number of intermediate mirrors) and that the mesh's arrays fit inside it,
+which catches the realistic mistakes: the wrong pool, or a pool mirrored before the mesh's last
+``reserve``. See :ref:`Sec:Assertions` for when those checks are compiled in.
 
 .. _Chap:BVHIntegration:
 

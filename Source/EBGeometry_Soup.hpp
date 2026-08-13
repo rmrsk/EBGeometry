@@ -56,10 +56,9 @@ compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<
 /**
  * @brief Convert a polygon soup into a DCEL half-edge mesh.
  * @details Builds vertices, half-edges, and faces from the input arrays, reconciles
- * pair edges, and runs a mesh sanity check. Everything here runs before a_mesh can be bind()'d
- * (a_pool may still be open for more meshes, see EBGeometry_DCEL_Mesh.hpp), so it resolves
- * a_mesh's data through a_pool's current base explicitly throughout, rather than through a_mesh's
- * own no-argument accessors.
+ * pair edges, and runs a mesh sanity check. a_mesh is attached to a_pool by the first reserve here
+ * and is queryable from that point on, including across the reserves that follow -- a_pool need not
+ * be frozen, and may stay open for further meshes.
  * @tparam T    Floating-point precision type for vertex coordinates.
  * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
  * @param[out]    a_mesh     Output DCEL mesh populated by this call.
@@ -81,16 +80,15 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
  * @details For every half-edge (u→v) the function finds the corresponding reverse
  * half-edge (v→u) by circulating the half-edges around u (via pair/next edges of
  * whichever edges already have their pair set, falling back to a scan of u's
- * outgoing edges discovered so far) and sets the pair-edge index on both. Resolves a_mesh's data
- * against a_pool's current base explicitly (see soupToDCEL).
+ * outgoing edges discovered so far) and sets the pair-edge index on both.
  * @tparam T    Floating-point precision type.
  * @tparam Meta Metadata type attached to DCEL edges.
- * @param[in,out] a_mesh Mesh whose half-edges are reconciled in place.
- * @param[in,out] a_pool Pool a_mesh's half-edge storage was reserved from.
+ * @param[in,out] a_mesh Mesh whose half-edges are reconciled in place. Must already be attached to
+ * the Pool its storage was reserved from, which its first reserveX() call does.
  */
 template <typename T, typename Meta>
 inline static void
-reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh, Pool& a_pool) noexcept;
+reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept;
 
 } // namespace Soup
 

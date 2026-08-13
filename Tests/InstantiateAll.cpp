@@ -142,9 +142,13 @@ instantiateFunctionTemplates()
     Pool mirrored = Pool::mirror(pool, resource);
 
     (void)mirrored.base();
+    (void)mirrored.mirrorOf();
     (void)pool.usedBytes();
     (void)pool.capacityBytes();
+    (void)pool.control();
+    (void)pool.id();
     (void)pool.resource().isDeviceAccessible();
+    (void)vec.endByte();
   }
 
   (void)Parser::readPLY<T>(file);

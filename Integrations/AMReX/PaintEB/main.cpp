@@ -41,13 +41,6 @@ public:
 
     auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename, *m_pool);
 
-    // readIntoDCEL never freezes/binds m_pool (it may still be shared with more meshes), so the
-    // mesh isn't queryable through its no-argument accessors yet -- freeze and bind it before
-    // touching faces by index below. MeshSDF's own constructor freeze is idempotent, so doing it
-    // here first is safe.
-    m_pool->freeze();
-    mesh->bind(*m_pool);
-
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
     for (uint32_t i = 0; i < mesh->numFaces(); i++) {
       mesh->getFace(i).getMetaData() = 1.0 * i;
