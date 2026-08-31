@@ -127,9 +127,6 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
   REQUIRE(mesh != nullptr);
 
-  // readIntoDCEL never freezes/binds pool itself, but mesh is queried via its no-argument
-  // accessors below (before any SDF wrapper would otherwise do this for us).
-
   using Face = DCEL::FaceT<T, Meta>;
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
@@ -643,15 +640,14 @@ TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly fro
 
   constexpr size_t K = 4;
 
-  // Two separate pools: MeshSDF's constructor freezes its pool, so it must not be the same pool
-  // readIntoPackedBVH below still needs to build its own (independent) mesh into.
-  Pool       directPool(hostMemoryResource());
-  Pool       filePool(hostMemoryResource());
-  const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), directPool);
+  // One pool for both: the direct MeshSDF below and readIntoPackedBVH's own independent build
+  // share it, which is only sound because building one mesh no longer closes the pool to the next.
+  Pool       pool(hostMemoryResource());
+  const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(direct != nullptr);
 
-  const MeshSDF<T, Meta, K> expected(direct, directPool, BVH::Build::SAH);
-  const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"), filePool);
+  const MeshSDF<T, Meta, K> expected(direct, pool, BVH::Build::SAH);
+  const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"), pool);
 
   REQUIRE(fromFile != nullptr);
 
@@ -681,9 +677,6 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     const auto meshes = Parser::readIntoDCEL<T, Meta>(files, pool);
     REQUIRE(meshes.size() == 2);
 
-    // readIntoDCEL never freezes/binds pool itself, and every single-file mesh below must finish
-    // building before anyone binds -- see Chap:MemoryModel. Build all of them first, then
-    // freeze+bind once, then compare.
     std::vector<std::shared_ptr<DCEL::MeshT<T, Meta>>> singles;
     singles.reserve(files.size());
     for (const auto& file : files) {
@@ -706,10 +699,7 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     REQUIRE(flatSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      // FlatMeshSDF's constructor (inside readIntoMesh) freezes its pool, so the per-file
-      // comparison below -- an independent build -- needs its own, separate pool.
-      Pool       singlePool(hostMemoryResource());
-      const auto single = Parser::readIntoMesh<T, Meta>(files[i], singlePool);
+      const auto single = Parser::readIntoMesh<T, Meta>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(flatSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
@@ -722,10 +712,7 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     REQUIRE(packedSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      // MeshSDF's constructor (inside readIntoPackedBVH) freezes its pool -- see the readIntoMesh
-      // SECTION above.
-      Pool       singlePool(hostMemoryResource());
-      const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i], singlePool);
+      const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(packedSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
@@ -1985,9 +1972,6 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
   Pool       pool(hostMemoryResource());
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
-
-  // readIntoDCEL never freezes/binds pool itself, but mesh is queried via its no-argument
-  // accessors below (before any SDF wrapper would otherwise do this for us).
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
   for (uint32_t i = 0; i < mesh->numFaces(); i++) {

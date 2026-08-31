@@ -58,13 +58,14 @@ public:
 
   /**
    * @brief Full constructor.
-   * @details Freezes a_pool (idempotent -- safe even if already frozen by a sibling wrapper built
-   * from the same pool) and binds a_mesh to it, so the mesh is immediately queryable through its
-   * no-argument accessors. See EBGeometry_DCEL_Mesh.hpp's class-level note and
-   * :ref:`Chap:MemoryModel` for why this is the natural place for that to happen: retaining the
-   * mesh for long-term querying is exactly the point at which building must be considered finished.
-   * @param[in]     a_mesh Input mesh, built (but not necessarily bound) against a_pool.
-   * @param[in,out] a_pool Pool a_mesh's storage was reserved from.
+   * @details Nothing is frozen or bound: a_mesh resolves its storage through a_pool's control
+   * block on every access, so it is queryable the moment it has been built, and stays queryable
+   * across a Pool::reserve that grows and moves the block. See EBGeometry_DCEL_Mesh.hpp's
+   * class-level note for how that resolution works. a_pool is taken here only to assert that
+   * a_mesh really was reserved from it, and to make visible at the call site that it must outlive
+   * this object -- the mesh is retained, the pool is not.
+   * @param[in]     a_mesh Input mesh, built against a_pool.
+   * @param[in,out] a_pool Pool a_mesh's storage was reserved from. Must outlive this object.
    */
   FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool) noexcept;
 
@@ -191,10 +192,11 @@ public:
    * @brief Full constructor. Takes the input mesh and creates the BVH.
    * @details No default arguments: this is a low-level constructor, and callers working at this
    * level must consciously choose a build strategy. Use Parser::readIntoPackedBVH for sensible
-   * defaults. Freezes a_pool (idempotent) and binds a_mesh to it before building the BVH, for the
-   * same reason given on FlatMeshSDF's constructor.
-   * @param[in]     a_mesh   Input mesh, built (but not necessarily bound) against a_pool.
-   * @param[in,out] a_pool   Pool a_mesh's storage was reserved from.
+   * defaults. Nothing is frozen or bound; see FlatMeshSDF's constructor. a_pool must outlive this
+   * object for the same reason given there, and additionally because the BVH built below holds DCEL
+   * faces whose indices are meaningful only against that same storage.
+   * @param[in]     a_mesh   Input mesh, built against a_pool.
+   * @param[in,out] a_pool   Pool a_mesh's storage was reserved from. Must outlive this object.
    * @param[in]     a_build  BVH build strategy. SAH (binned Surface Area Heuristic) is recommended.
    */
   MeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool, const BVH::Build a_build);

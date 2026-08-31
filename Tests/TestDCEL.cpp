@@ -71,9 +71,6 @@ buildTetrahedron(Pool& a_pool)
   auto mesh = std::make_shared<MeshT<T, DefaultMetaData>>();
   Soup::soupToDCEL(*mesh, a_pool, verts, facets, "tetrahedron-hard"); // reconciles internally
 
-  // See loadTetrahedron's comment: every call site below queries the returned mesh via its
-  // no-argument accessors, so this test helper freezes+binds a_pool on its caller's behalf.
-
   return mesh;
 }
 
@@ -751,12 +748,9 @@ TEMPLATE_TEST_CASE("MeshT: move construction and move assignment transfer owners
 {
   using T = TestType;
 
-  // Two separate pools -- buildTetrahedron freezes its pool before returning (see its doc), so
-  // reusing one pool across two builds would break the second build's reserveX() calls.
-  Pool poolA(hostMemoryResource());
-  Pool poolB(hostMemoryResource());
+  Pool pool(hostMemoryResource());
 
-  auto       moveCtorSrc = buildTetrahedron<T>(poolA);
+  auto       moveCtorSrc = buildTetrahedron<T>(pool);
   const auto v0Position  = moveCtorSrc->getVertex(0).getPosition();
 
   TestMesh<T> moved(std::move(*moveCtorSrc));
@@ -764,7 +758,7 @@ TEMPLATE_TEST_CASE("MeshT: move construction and move assignment transfer owners
   REQUIRE(moved.numFaces() == 4);
   REQUIRE(moved.getVertex(0).getPosition() == v0Position);
 
-  auto        moveAssignSrc = buildTetrahedron<T>(poolB);
+  auto        moveAssignSrc = buildTetrahedron<T>(pool);
   const auto  v0PositionB   = moveAssignSrc->getVertex(0).getPosition();
   TestMesh<T> moveAssignDst;
   moveAssignDst = std::move(*moveAssignSrc);
@@ -1506,7 +1500,7 @@ TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surfac
   }
 
   Pool hostPool(hostMemoryResource());
-  auto mesh = buildTetrahedron<T>(hostPool); // freezes+binds hostPool
+  auto mesh = buildTetrahedron<T>(hostPool);
 
   const Vec3T<T> point(2.0, 2.0, 2.0);
 

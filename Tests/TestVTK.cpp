@@ -160,9 +160,6 @@ TEMPLATE_TEST_CASE("VTK: convertToDCEL builds a mesh with the correct compressed
   Pool pool(hostMemoryResource());
   auto mesh = vtk.template convertToDCEL<DCEL::DefaultMetaData>(pool);
 
-  // convertToDCEL never freezes/binds pool itself (it may still be shared with more files -- see
-  // Chap:MemoryModel), but mesh is queried below via its no-argument accessors.
-
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->numVertices() == 4); // Compressed down to the 4 unique corners.
   REQUIRE(mesh->numFaces() == 4);
