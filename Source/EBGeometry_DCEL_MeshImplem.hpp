@@ -35,28 +35,66 @@ namespace EBGeometry {
 namespace DCEL {
 
 template <class T, class Meta>
-EBGEOMETRY_HOST
-inline void
-MeshT<T, Meta>::bind(const Pool& a_pool) noexcept
+EBGEOMETRY_HOST_DEVICE
+inline void*
+MeshT<T, Meta>::base() const noexcept
 {
-  EBGEOMETRY_EXPECT(a_pool.isFrozen());
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+  // A non-null control block here means a host descriptor was copied into a kernel directly,
+  // instead of going through rebasedView(). The pointer it holds is a host address.
+  EBGEOMETRY_EXPECT(m_control == nullptr);
 
-  m_base = a_pool.base();
+  return m_base;
+#else
+  // Null here means either a device view being dereferenced on the host, or a mesh nobody ever
+  // reserved into. rebasedView() is the only producer of a null control block, and only for a
+  // device-accessible target, so this test is exact rather than heuristic.
+  EBGEOMETRY_EXPECT(m_control != nullptr);
+
+  return m_control->m_base;
+#endif
 }
 
 template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline const MeshT<T, Meta>
-MeshT<T, Meta>::boundView(const void* a_base) const noexcept
+EBGEOMETRY_HOST
+inline void
+MeshT<T, Meta>::attachTo(const Pool& a_pool) noexcept
 {
+  // A mesh's three arrays must all live in the same Pool: they are resolved against a single base.
+  EBGEOMETRY_EXPECT(m_control == nullptr || m_control == a_pool.control());
+
+  m_control = a_pool.control();
+}
+
+template <class T, class Meta>
+EBGEOMETRY_HOST
+inline MeshT<T, Meta>
+MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_control != nullptr);                       // not already a view
+  EBGEOMETRY_EXPECT(a_pool.mirrorOf() == m_control->m_id);       // a mirror of *our* pool
+  EBGEOMETRY_EXPECT(m_vertices.endByte() <= a_pool.usedBytes()); // our arrays fit inside it
+  EBGEOMETRY_EXPECT(m_edges.endByte() <= a_pool.usedBytes());
+  EBGEOMETRY_EXPECT(m_faces.endByte() <= a_pool.usedBytes());
+
   Mesh view = *this;
 
-  // Mesh::m_base is void* (Pool::base() never hands back a const void*, and the same field
-  // resolves both mutable and immutable accessors), so a caller reaching us through a const-
-  // qualified explicit-base overload needs this cast. The `const Mesh` return type (see the
-  // declaration's doc comment) is what actually keeps this safe -- it stops a caller from writing
-  // through the const_cast'd base via a chained mutating call on the returned value.
-  view.m_base = const_cast<void*>(a_base);
+  if (a_pool.resource().isDeviceAccessible()) {
+    // A kernel cannot follow a host control block, so the base has to be captured by value. That is
+    // safe precisely here: a device-accessible pool can only come from Pool::mirror, which freezes
+    // it, and Pool::grow refuses a non-host-accessible resource outright -- the base cannot move.
+    EBGEOMETRY_EXPECT(a_pool.isFrozen());
+
+    view.m_control = nullptr;
+    view.m_base    = a_pool.base();
+  }
+  else {
+    // Host target: follow the destination's control block instead of snapshotting its base, so the
+    // rebased view is growth-immune exactly like the original mesh -- and so that a null control
+    // block keeps meaning "device view" and nothing else.
+    view.m_control = a_pool.control();
+    view.m_base    = nullptr;
+  }
 
   return view;
 }
@@ -64,7 +102,7 @@ MeshT<T, Meta>::boundView(const void* a_base) const noexcept
 template <class T, class Meta>
 EBGEOMETRY_HOST
 inline std::shared_ptr<MeshT<T, Meta>>
-MeshT<T, Meta>::deepCopy(const void* a_srcBase, Pool& a_dstPool) const
+MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
 {
   EBGEOMETRY_EXPECT(this->numVertices() > 0 || this->numEdges() > 0 || this->numFaces() > 0);
 
@@ -73,33 +111,28 @@ MeshT<T, Meta>::deepCopy(const void* a_srcBase, Pool& a_dstPool) const
   // independent, correctly-linked mesh -- no relinking pass is needed.
   auto newMesh = std::make_shared<Mesh>();
 
+  // Note that a_dstPool may be this mesh's own Pool. The reserves below can then grow (and move)
+  // the block out from under this mesh, which is harmless: every read here re-resolves through the
+  // control block rather than against an address captured before the reserves.
   newMesh->reserveVertices(a_dstPool, this->numVertices());
   newMesh->reserveEdges(a_dstPool, this->numEdges());
   newMesh->reserveFaces(a_dstPool, this->numFaces());
 
   for (uint32_t i = 0; i < this->numVertices(); i++) {
-    newMesh->addVertex(a_dstPool, this->getVertex(a_srcBase, i));
+    newMesh->addVertex(a_dstPool, this->getVertex(i));
   }
 
   for (uint32_t i = 0; i < this->numEdges(); i++) {
-    newMesh->addEdge(a_dstPool, this->getEdge(a_srcBase, i));
+    newMesh->addEdge(a_dstPool, this->getEdge(i));
   }
 
   for (uint32_t i = 0; i < this->numFaces(); i++) {
-    newMesh->addFace(a_dstPool, this->getFace(a_srcBase, i));
+    newMesh->addFace(a_dstPool, this->getFace(i));
   }
 
   newMesh->setSearchAlgorithm(m_algorithm);
 
   return newMesh;
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST
-inline std::shared_ptr<MeshT<T, Meta>>
-MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
-{
-  return this->deepCopy(m_base, a_dstPool);
 }
 
 template <class T, class Meta>
@@ -133,7 +166,7 @@ MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings, c
 template <class T, class Meta>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::sanityCheck(const void* a_base, const std::string a_id) const
+MeshT<T, Meta>::sanityCheck(const std::string a_id) const
 {
   const std::string f_noEdge     = "face with no edge";
   const std::string f_degenerate = "degenerate face";
@@ -155,17 +188,15 @@ MeshT<T, Meta>::sanityCheck(const void* a_base, const std::string a_id) const
                                             {e_noFace, 0},
                                             {v_noEdge, 0}};
 
-  const Mesh view = this->boundView(a_base);
-
   for (uint32_t i = 0; i < this->numFaces(); i++) {
-    const auto& f = this->getFace(a_base, i);
+    const auto& f = this->getFace(i);
 
     if (f.getHalfEdgeIndex() == UINT32_MAX) {
       this->incrementWarning(warnings, f_noEdge);
       continue;
     }
 
-    auto vertices = f.gatherVertexIndices(view);
+    auto vertices = f.gatherVertexIndices(*this);
     std::sort(vertices.begin(), vertices.end());
     auto       it           = std::unique(vertices.begin(), vertices.end());
     const bool noDuplicates = (it == vertices.end());
@@ -175,12 +206,12 @@ MeshT<T, Meta>::sanityCheck(const void* a_base, const std::string a_id) const
   }
 
   for (uint32_t i = 0; i < this->numEdges(); i++) {
-    const auto& e = this->getEdge(a_base, i);
+    const auto& e = this->getEdge(i);
 
     if (e.getVertexIndex() == UINT32_MAX) {
       this->incrementWarning(warnings, e_noOrigVert);
     }
-    else if (e.getNextEdgeIndex() != UINT32_MAX && e.getVertexIndex() == e.getNextEdge(view).getVertexIndex()) {
+    else if (e.getNextEdgeIndex() != UINT32_MAX && e.getVertexIndex() == e.getNextEdge(*this).getVertexIndex()) {
       this->incrementWarning(warnings, e_degenerate);
     }
 
@@ -197,20 +228,12 @@ MeshT<T, Meta>::sanityCheck(const void* a_base, const std::string a_id) const
 
   // Vertex check
   for (uint32_t i = 0; i < this->numVertices(); i++) {
-    if (this->getVertex(a_base, i).getOutgoingEdgeIndex() == UINT32_MAX) {
+    if (this->getVertex(i).getOutgoingEdgeIndex() == UINT32_MAX) {
       this->incrementWarning(warnings, v_noEdge);
     }
   }
 
   this->printWarnings(warnings, a_id);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST
-inline void
-MeshT<T, Meta>::sanityCheck(const std::string a_id) const
-{
-  this->sanityCheck(m_base, a_id);
 }
 
 template <class T, class Meta>
@@ -224,29 +247,11 @@ MeshT<T, Meta>::setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::setInsideOutsideAlgorithm(void* a_base, InsideOutsideAlgorithm a_algorithm) noexcept
-{
-  for (uint32_t i = 0; i < this->numFaces(); i++) {
-    this->getFace(a_base, i).setInsideOutsideAlgorithm(a_algorithm);
-  }
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline void
 MeshT<T, Meta>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 {
-  this->setInsideOutsideAlgorithm(m_base, a_algorithm);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST
-inline void
-MeshT<T, Meta>::reconcile(void* a_base, const DCEL::VertexNormalWeight a_weight) noexcept
-{
-  this->reconcileFaces(a_base);
-  this->reconcileEdges(a_base);
-  this->reconcileVertices(a_base, a_weight);
+  for (uint32_t i = 0; i < this->numFaces(); i++) {
+    this->getFace(i).setInsideOutsideAlgorithm(a_algorithm);
+  }
 }
 
 template <class T, class Meta>
@@ -254,17 +259,9 @@ EBGEOMETRY_HOST
 inline void
 MeshT<T, Meta>::reconcile(const DCEL::VertexNormalWeight a_weight) noexcept
 {
-  this->reconcile(m_base, a_weight);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline void
-MeshT<T, Meta>::flip(void* a_base) noexcept
-{
-  this->flipFaceNormals(a_base);
-  this->flipEdgeNormals(a_base);
-  this->flipVertexNormals(a_base);
+  this->reconcileFaces();
+  this->reconcileEdges();
+  this->reconcileVertices(a_weight);
 }
 
 template <class T, class Meta>
@@ -272,7 +269,9 @@ EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T, Meta>::flip() noexcept
 {
-  this->flip(m_base);
+  this->flipFaceNormals();
+  this->flipEdgeNormals();
+  this->flipVertexNormals();
 }
 
 template <class T, class Meta>
@@ -280,6 +279,8 @@ EBGEOMETRY_HOST
 inline void
 MeshT<T, Meta>::reserveVertices(Pool& a_pool, uint32_t a_capacity)
 {
+  this->attachTo(a_pool);
+
   m_vertices.reserveFrom(a_pool, a_capacity);
 }
 
@@ -288,6 +289,8 @@ EBGEOMETRY_HOST
 inline void
 MeshT<T, Meta>::reserveEdges(Pool& a_pool, uint32_t a_capacity)
 {
+  this->attachTo(a_pool);
+
   m_edges.reserveFrom(a_pool, a_capacity);
 }
 
@@ -296,6 +299,8 @@ EBGEOMETRY_HOST
 inline void
 MeshT<T, Meta>::reserveFaces(Pool& a_pool, uint32_t a_capacity)
 {
+  this->attachTo(a_pool);
+
   m_faces.reserveFrom(a_pool, a_capacity);
 }
 
@@ -338,25 +343,9 @@ MeshT<T, Meta>::addFace(Pool& a_pool, const Face& a_face)
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline VertexT<T, Meta>&
-MeshT<T, Meta>::getVertex(void* a_base, uint32_t a_index) noexcept
-{
-  return m_vertices.at(a_base, a_index);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline const VertexT<T, Meta>&
-MeshT<T, Meta>::getVertex(const void* a_base, uint32_t a_index) const noexcept
-{
-  return m_vertices.at(a_base, a_index);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline VertexT<T, Meta>&
 MeshT<T, Meta>::getVertex(uint32_t a_index) noexcept
 {
-  return this->getVertex(m_base, a_index);
+  return m_vertices.at(this->base(), a_index);
 }
 
 template <class T, class Meta>
@@ -364,23 +353,7 @@ EBGEOMETRY_HOST_DEVICE
 inline const VertexT<T, Meta>&
 MeshT<T, Meta>::getVertex(uint32_t a_index) const noexcept
 {
-  return this->getVertex(m_base, a_index);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline EdgeT<T, Meta>&
-MeshT<T, Meta>::getEdge(void* a_base, uint32_t a_index) noexcept
-{
-  return m_edges.at(a_base, a_index);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline const EdgeT<T, Meta>&
-MeshT<T, Meta>::getEdge(const void* a_base, uint32_t a_index) const noexcept
-{
-  return m_edges.at(a_base, a_index);
+  return m_vertices.at(this->base(), a_index);
 }
 
 template <class T, class Meta>
@@ -388,7 +361,7 @@ EBGEOMETRY_HOST_DEVICE
 inline EdgeT<T, Meta>&
 MeshT<T, Meta>::getEdge(uint32_t a_index) noexcept
 {
-  return this->getEdge(m_base, a_index);
+  return m_edges.at(this->base(), a_index);
 }
 
 template <class T, class Meta>
@@ -396,23 +369,7 @@ EBGEOMETRY_HOST_DEVICE
 inline const EdgeT<T, Meta>&
 MeshT<T, Meta>::getEdge(uint32_t a_index) const noexcept
 {
-  return this->getEdge(m_base, a_index);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline FaceT<T, Meta>&
-MeshT<T, Meta>::getFace(void* a_base, uint32_t a_index) noexcept
-{
-  return m_faces.at(a_base, a_index);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline const FaceT<T, Meta>&
-MeshT<T, Meta>::getFace(const void* a_base, uint32_t a_index) const noexcept
-{
-  return m_faces.at(a_base, a_index);
+  return m_edges.at(this->base(), a_index);
 }
 
 template <class T, class Meta>
@@ -420,7 +377,7 @@ EBGEOMETRY_HOST_DEVICE
 inline FaceT<T, Meta>&
 MeshT<T, Meta>::getFace(uint32_t a_index) noexcept
 {
-  return this->getFace(m_base, a_index);
+  return m_faces.at(this->base(), a_index);
 }
 
 template <class T, class Meta>
@@ -428,7 +385,15 @@ EBGEOMETRY_HOST_DEVICE
 inline const FaceT<T, Meta>&
 MeshT<T, Meta>::getFace(uint32_t a_index) const noexcept
 {
-  return this->getFace(m_base, a_index);
+  return m_faces.at(this->base(), a_index);
+}
+
+template <class T, class Meta>
+EBGEOMETRY_HOST
+inline bool
+MeshT<T, Meta>::isAttachedTo(const Pool& a_pool) const noexcept
+{
+  return m_control != nullptr && m_control == a_pool.control();
 }
 
 template <class T, class Meta>
@@ -458,34 +423,28 @@ MeshT<T, Meta>::numFaces() const noexcept
 template <class T, class Meta>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::reconcileFaces(void* a_base) noexcept
+MeshT<T, Meta>::reconcileFaces() noexcept
 {
-  const Mesh view = this->boundView(a_base);
-
   for (uint32_t i = 0; i < this->numFaces(); i++) {
-    this->getFace(a_base, i).reconcile(view);
+    this->getFace(i).reconcile(*this);
   }
 }
 
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::reconcileEdges(void* a_base) noexcept
+MeshT<T, Meta>::reconcileEdges() noexcept
 {
-  const Mesh view = this->boundView(a_base);
-
   for (uint32_t i = 0; i < this->numEdges(); i++) {
-    this->getEdge(a_base, i).reconcile(view);
+    this->getEdge(i).reconcile(*this);
   }
 }
 
 template <class T, class Meta>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::reconcileVertices(void* a_base, const DCEL::VertexNormalWeight a_weight) noexcept
+MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept
 {
-  const Mesh view = this->boundView(a_base);
-
   // Transient (not stored) adjacency: for each vertex, every face touching it, found by walking
   // each face's own boundary loop (nextEdge only -- no pair edge needed, so this works even on a
   // non-watertight/"dirty" mesh). Rebuilt here and discarded once vertex normals are computed;
@@ -493,7 +452,7 @@ MeshT<T, Meta>::reconcileVertices(void* a_base, const DCEL::VertexNormalWeight a
   std::vector<std::vector<uint32_t>> facesTouchingVertex(this->numVertices());
 
   for (uint32_t faceIndex = 0; faceIndex < this->numFaces(); faceIndex++) {
-    for (const uint32_t vertexIndex : this->getFace(a_base, faceIndex).gatherVertexIndices(view)) {
+    for (const uint32_t vertexIndex : this->getFace(faceIndex).gatherVertexIndices(*this)) {
       EBGEOMETRY_EXPECT(vertexIndex < facesTouchingVertex.size());
 
       facesTouchingVertex[vertexIndex].push_back(faceIndex);
@@ -501,17 +460,17 @@ MeshT<T, Meta>::reconcileVertices(void* a_base, const DCEL::VertexNormalWeight a
   }
 
   for (uint32_t vertexIndex = 0; vertexIndex < this->numVertices(); vertexIndex++) {
-    auto&       v           = this->getVertex(a_base, vertexIndex);
+    auto&       v           = this->getVertex(vertexIndex);
     const auto& faceIndices = facesTouchingVertex[vertexIndex];
 
     switch (a_weight) {
     case DCEL::VertexNormalWeight::None: {
-      v.computeVertexNormalAverage(faceIndices, view);
+      v.computeVertexNormalAverage(faceIndices, *this);
 
       break;
     }
     case DCEL::VertexNormalWeight::Angle: {
-      v.computeVertexNormalAngleWeighted(vertexIndex, faceIndices, view);
+      v.computeVertexNormalAngleWeighted(vertexIndex, faceIndices, *this);
 
       break;
     }
@@ -531,46 +490,31 @@ MeshT<T, Meta>::reconcileVertices(void* a_base, const DCEL::VertexNormalWeight a
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::flipFaceNormals(void* a_base) noexcept
+MeshT<T, Meta>::flipFaceNormals() noexcept
 {
   for (uint32_t i = 0; i < this->numFaces(); i++) {
-    this->getFace(a_base, i).flipNormal();
+    this->getFace(i).flipNormal();
   }
 }
 
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::flipEdgeNormals(void* a_base) noexcept
+MeshT<T, Meta>::flipEdgeNormals() noexcept
 {
   for (uint32_t i = 0; i < this->numEdges(); i++) {
-    this->getEdge(a_base, i).flipNormal();
+    this->getEdge(i).flipNormal();
   }
 }
 
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::flipVertexNormals(void* a_base) noexcept
+MeshT<T, Meta>::flipVertexNormals() noexcept
 {
   for (uint32_t i = 0; i < this->numVertices(); i++) {
-    this->getVertex(a_base, i).flipNormal();
+    this->getVertex(i).flipNormal();
   }
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST
-inline std::vector<Vec3T<T>>
-MeshT<T, Meta>::getAllVertexCoordinates(const void* a_base) const noexcept
-{
-  std::vector<Vec3> vertexCoordinates;
-  vertexCoordinates.reserve(this->numVertices());
-
-  for (uint32_t i = 0; i < this->numVertices(); i++) {
-    vertexCoordinates.emplace_back(this->getVertex(a_base, i).getPosition());
-  }
-
-  return vertexCoordinates;
 }
 
 template <class T, class Meta>
@@ -578,19 +522,14 @@ EBGEOMETRY_HOST
 inline std::vector<Vec3T<T>>
 MeshT<T, Meta>::getAllVertexCoordinates() const noexcept
 {
-  return this->getAllVertexCoordinates(m_base);
-}
+  std::vector<Vec3> vertexCoordinates;
+  vertexCoordinates.reserve(this->numVertices());
 
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline T
-MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point) const noexcept
-{
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+  for (uint32_t i = 0; i < this->numVertices(); i++) {
+    vertexCoordinates.emplace_back(this->getVertex(i).getPosition());
+  }
 
-  return this->signedDistance(a_base, a_point, m_algorithm);
+  return vertexCoordinates;
 }
 
 template <class T, class Meta>
@@ -598,13 +537,17 @@ EBGEOMETRY_HOST_DEVICE
 inline T
 MeshT<T, Meta>::signedDistance(const Vec3& a_point) const noexcept
 {
-  return this->signedDistance(m_base, a_point);
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+  return this->signedDistance(a_point, m_algorithm);
 }
 
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::unsignedDistance2(const void* a_base, const Vec3& a_point) const noexcept
+MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -614,12 +557,10 @@ MeshT<T, Meta>::unsignedDistance2(const void* a_base, const Vec3& a_point) const
     return std::numeric_limits<T>::infinity();
   }
 
-  const Mesh view = this->boundView(a_base);
-
   T minDist2 = std::numeric_limits<T>::max();
 
   for (uint32_t i = 0; i < this->numFaces(); i++) {
-    const T curDist2 = this->getFace(a_base, i).unsignedDistance2(a_point, view);
+    const T curDist2 = this->getFace(i).unsignedDistance2(a_point, *this);
 
     minDist2 = std::min(minDist2, curDist2);
   }
@@ -630,15 +571,7 @@ MeshT<T, Meta>::unsignedDistance2(const void* a_base, const Vec3& a_point) const
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
-{
-  return this->unsignedDistance2(m_base, a_point);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline T
-MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
+MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -648,12 +581,12 @@ MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point, SearchAl
 
   switch (a_algorithm) {
   case SearchAlgorithm::Direct: {
-    minDist = this->DirectSignedDistance(a_base, a_point);
+    minDist = this->DirectSignedDistance(a_point);
 
     break;
   }
   case SearchAlgorithm::Direct2: {
-    minDist = this->DirectSignedDistance2(a_base, a_point);
+    minDist = this->DirectSignedDistance2(a_point);
 
     break;
   }
@@ -674,15 +607,7 @@ MeshT<T, Meta>::signedDistance(const void* a_base, const Vec3& a_point, SearchAl
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
-{
-  return this->signedDistance(m_base, a_point, a_algorithm);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline T
-MeshT<T, Meta>::DirectSignedDistance(const void* a_base, const Vec3& a_point) const noexcept
+MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -692,13 +617,11 @@ MeshT<T, Meta>::DirectSignedDistance(const void* a_base, const Vec3& a_point) co
     return std::numeric_limits<T>::infinity();
   }
 
-  const Mesh view = this->boundView(a_base);
-
-  T minDist  = this->getFace(a_base, 0).signedDistance(a_point, view);
+  T minDist  = this->getFace(0).signedDistance(a_point, *this);
   T minDist2 = minDist * minDist;
 
   for (uint32_t i = 0; i < this->numFaces(); i++) {
-    const T curDist  = this->getFace(a_base, i).signedDistance(a_point, view);
+    const T curDist  = this->getFace(i).signedDistance(a_point, *this);
     const T curDist2 = curDist * curDist;
 
     if (curDist2 < minDist2) {
@@ -713,7 +636,7 @@ MeshT<T, Meta>::DirectSignedDistance(const void* a_base, const Vec3& a_point) co
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::DirectSignedDistance2(const void* a_base, const Vec3& a_point) const noexcept
+MeshT<T, Meta>::DirectSignedDistance2(const Vec3& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -723,13 +646,11 @@ MeshT<T, Meta>::DirectSignedDistance2(const void* a_base, const Vec3& a_point) c
     return std::numeric_limits<T>::infinity();
   }
 
-  const Mesh view = this->boundView(a_base);
-
   uint32_t closestIndex = 0;
-  T        minDist2     = this->getFace(a_base, closestIndex).unsignedDistance2(a_point, view);
+  T        minDist2     = this->getFace(closestIndex).unsignedDistance2(a_point, *this);
 
   for (uint32_t i = 0; i < this->numFaces(); i++) {
-    const T curDist2 = this->getFace(a_base, i).unsignedDistance2(a_point, view);
+    const T curDist2 = this->getFace(i).unsignedDistance2(a_point, *this);
 
     if (curDist2 < minDist2) {
       closestIndex = i;
@@ -737,7 +658,7 @@ MeshT<T, Meta>::DirectSignedDistance2(const void* a_base, const Vec3& a_point) c
     }
   }
 
-  return this->getFace(a_base, closestIndex).signedDistance(a_point, view);
+  return this->getFace(closestIndex).signedDistance(a_point, *this);
 }
 } // namespace DCEL
 

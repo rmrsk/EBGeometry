@@ -179,9 +179,9 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   }
 
   // Now build the faces, appending each facet's half-edges directly into the mesh's own edge/face
-  // arrays and wiring them by index rather than by pointer. a_pool.base() is re-read on every use
-  // rather than cached across these calls, since addVertex/addEdge/addFace can grow (and move) the
-  // pool's block.
+  // arrays and wiring them by index rather than by pointer. The mesh re-resolves its base through
+  // a_pool's control block on every access, so a grow that moves the block mid-loop is invisible
+  // here -- but a reference obtained from getVertex/getEdge must still not be held across one.
   for (const auto& curFacet : a_facets) {
     if (curFacet.size() < 3) {
       std::cerr << "Parser::soupToDCEL -- not enough vertices in face, skipping it\n";
@@ -202,39 +202,37 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
       EBGEOMETRY_EXPECT(vertexIndex < a_mesh.numVertices());
 
       a_mesh.addEdge(a_pool, Edge(vertexIndex));
-      a_mesh.getVertex(a_pool.base(), vertexIndex).setEdge(firstEdgeIndex + i);
+      a_mesh.getVertex(vertexIndex).setEdge(firstEdgeIndex + i);
     }
 
     for (uint32_t i = 0; i < numFaceEdges; i++) {
-      a_mesh.getEdge(a_pool.base(), firstEdgeIndex + i).setNextEdge(firstEdgeIndex + (i + 1) % numFaceEdges);
+      a_mesh.getEdge(firstEdgeIndex + i).setNextEdge(firstEdgeIndex + (i + 1) % numFaceEdges);
     }
 
     const uint32_t faceIndex = a_mesh.numFaces();
     a_mesh.addFace(a_pool, Face(firstEdgeIndex));
 
     for (uint32_t i = 0; i < numFaceEdges; i++) {
-      a_mesh.getEdge(a_pool.base(), firstEdgeIndex + i).setFace(faceIndex);
+      a_mesh.getEdge(firstEdgeIndex + i).setFace(faceIndex);
     }
   }
 
-  // Reconcile the pair edges and run a sanity check. Both run before a_mesh can be bind()'d (see
-  // soupToDCEL's own doc), so they resolve against a_pool's current base explicitly.
-  Soup::reconcilePairEdgesDCEL(a_mesh, a_pool);
+  // Reconcile the pair edges and run a sanity check. The mesh is queryable from its first reserve
+  // onwards, so these need no base of their own and a_pool need not be frozen.
+  Soup::reconcilePairEdgesDCEL(a_mesh);
 
-  a_mesh.sanityCheck(a_pool.base(), a_id);
+  a_mesh.sanityCheck(a_id);
 
-  a_mesh.reconcile(a_pool.base(), EBGeometry::DCEL::VertexNormalWeight::Angle);
+  a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
 }
 
 template <typename T, typename Meta>
 inline void
-Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh, Pool& a_pool) noexcept
+Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept
 {
   static_assert(std::is_floating_point_v<T>, "Soup::reconcilePairEdgesDCEL requires a floating-point T");
 
   using Edge = EBGeometry::DCEL::EdgeT<T, Meta>;
-
-  void* const base = a_pool.base();
 
   const uint32_t numEdges    = a_mesh.numEdges();
   const uint32_t numVertices = a_mesh.numVertices();
@@ -244,7 +242,7 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh, Pool& a_p
   // stays O(V + E) instead of an O(E^2) scan over every edge pair.
   std::vector<std::vector<uint32_t>> edgesStartingAtVertex(numVertices);
   for (uint32_t i = 0; i < numEdges; i++) {
-    const uint32_t v = a_mesh.getEdge(base, i).getVertexIndex();
+    const uint32_t v = a_mesh.getEdge(i).getVertexIndex();
 
     EBGEOMETRY_EXPECT(v < numVertices);
 
@@ -252,22 +250,22 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh, Pool& a_p
   }
 
   for (uint32_t curIndex = 0; curIndex < numEdges; curIndex++) {
-    Edge& curEdge = a_mesh.getEdge(base, curIndex);
+    Edge& curEdge = a_mesh.getEdge(curIndex);
 
     const uint32_t nextIndex = curEdge.getNextEdgeIndex();
     EBGEOMETRY_EXPECT(nextIndex != UINT32_MAX);
 
     const uint32_t vertexStart = curEdge.getVertexIndex();
-    const uint32_t vertexEnd   = a_mesh.getEdge(base, nextIndex).getVertexIndex();
+    const uint32_t vertexEnd   = a_mesh.getEdge(nextIndex).getVertexIndex();
 
     // The pair edge starts where this edge ends, and ends where this edge starts.
     for (const uint32_t candIndex : edgesStartingAtVertex[vertexEnd]) {
-      Edge&          candEdge      = a_mesh.getEdge(base, candIndex);
+      Edge&          candEdge      = a_mesh.getEdge(candIndex);
       const uint32_t candNextIndex = candEdge.getNextEdgeIndex();
 
       EBGEOMETRY_EXPECT(candNextIndex != UINT32_MAX);
 
-      if (a_mesh.getEdge(base, candNextIndex).getVertexIndex() == vertexStart) { // Found the pair edge
+      if (a_mesh.getEdge(candNextIndex).getVertexIndex() == vertexStart) { // Found the pair edge
         curEdge.setPairEdge(candIndex);
         candEdge.setPairEdge(curIndex);
 

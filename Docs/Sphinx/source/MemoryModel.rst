@@ -5,7 +5,7 @@ Memory model
 
 Underneath the DCEL mesh representation (:ref:`Chap:ImplemDCEL`), and progressively the rest of
 the library, sits a small, self-contained memory foundation: a placement policy
-(`MemoryResource <doxygen/html/classEBGeometry_1_1MemoryResource.html>`__), a build-then-freeze
+(`MemoryResource <doxygen/html/classEBGeometry_1_1MemoryResource.html>`__), a bump-allocating
 arena over it (`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), and a placement-independent
 array descriptor stored inside it
 (`PODVector <doxygen/html/structEBGeometry_1_1PODVector.html>`__/
@@ -38,8 +38,8 @@ patching pass required.
 .. important::
 
    The recurring idea across every class on this page is: **store an offset, not a pointer; the
-   base is supplied by the caller.** Everything else -- ``Pool``'s two phases, ``PODVector``'s two
-   access styles, ``mirror()`` -- follows from that one decision.
+   base is supplied by the caller.** Everything else -- ``Pool``'s control block, ``PODVector``'s
+   two access styles, ``mirror()`` -- follows from that one decision.
 
 ``MemoryResource``: where bytes live
 --------------------------------------
@@ -93,71 +93,118 @@ ever stores in a pool, including SIMD-width SoA blocks.
    *same* resource share a placement), and copying an allocator has no meaning. Pass it by
    reference, and it must outlive every ``Pool`` built over it.
 
-``Pool``: the build/freeze/query arena
+``Pool``: the arena
 ------------------------------------------
 
 A `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__ is a single contiguous byte block obtained
-from a ``MemoryResource``. It has exactly two phases, and moving between them is a one-way
-operation:
+from a ``MemoryResource``.
+`reserve(count, elemSize, alignment) <doxygen/html/classEBGeometry_1_1Pool.html#a0c1f5b771e29cce6ae10fae19b766fb7>`__
+bump-allocates a sub-region and returns its byte offset from
+`base() <doxygen/html/classEBGeometry_1_1Pool.html#a049dfaa90b3aa55a410ce19b358fc583>`__. Nothing is
+ever individually freed. If the block is too small, ``reserve`` transparently grows it: it allocates
+a new, larger block (geometric doubling), ``memcpy``\ s every byte currently in use into it, and
+**frees the old block** -- so ``base()`` can change on any ``reserve()`` call.
 
-#. **Build.**
-   `reserve(count, elemSize, alignment) <doxygen/html/classEBGeometry_1_1Pool.html#a0c1f5b771e29cce6ae10fae19b766fb7>`__
-   bump-allocates a sub-region and returns its byte offset from
-   `base() <doxygen/html/classEBGeometry_1_1Pool.html#a049dfaa90b3aa55a410ce19b358fc583>`__.
-   Nothing is ever individually freed. If the block is too small, ``reserve`` transparently grows
-   it: it allocates a new, larger block (geometric doubling), ``memcpy``\ s every byte currently in
-   use into it, and frees the old block -- so ``base()`` can change on *any* ``reserve()`` call
-   during this phase.
-#. **Query.**
-   `freeze() <doxygen/html/classEBGeometry_1_1Pool.html#a7c5696404d11babfad42fc7d99b37ebd>`__ is
-   the single synchronization point between the two phases: afterwards, ``reserve()`` is forbidden
-   (an ``EBGEOMETRY_EXPECT``-checked precondition, see :ref:`Sec:Assertions`), ``base()`` is
-   guaranteed stable for the remaining lifetime of the pool, and
-   `mirror() <doxygen/html/classEBGeometry_1_1Pool.html#aa141bf4919e1aeb78aaee9667da8ebc3>`__
-   becomes available.
+Building and querying are not separate phases. A pool-resident object is usable from the moment its
+storage is reserved, including while the same pool keeps being built into, because it does not
+remember an address: it holds a pointer to the pool's *control block*
+(`PoolControl <doxygen/html/structEBGeometry_1_1PoolControl.html>`__), a small heap-resident record
+holding the current base, and re-reads the base through it on every access. ``grow()`` publishes the
+new base there, so a block move is invisible to every object resolving through it.
 
 .. code-block:: c++
 
    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-   // Build phase: reserve()/push_back()-style calls, offsets resolved against a freshly-read
-   // pool.base() every time -- never a cached pointer.
-   ...
+   auto first  = EBGeometry::Parser::readIntoMesh<T>("a.stl", pool);
+   const T d   = first->signedDistance(x);      // queryable immediately
 
-   pool.freeze();                 // one-way: no unfreeze().
-   void* base = pool.base();      // now guaranteed stable.
+   auto second = EBGeometry::Parser::readIntoMesh<T>("b.stl", pool);   // may grow and move the block
 
-``mirror(src, dstResource)`` copies a *frozen* source pool's entire block, byte-for-byte, into a
-fresh block from ``dstResource`` (a plain ``memcpy`` for a host-to-host copy, or a
-``GPU::memcpy`` for a host/device transfer), and returns the result already frozen. Because every
-offset stored inside the block is relative rather than absolute, the copy is immediately usable
-against its own (possibly device-resident) ``base()`` -- this is the host-to-device upload, and,
-used host-to-host, an exact independent copy.
+   const T same = first->signedDistance(x);     // ... which changes nothing here
+
+The control block is also why a ``Pool`` can be moved freely -- into a container, into a class
+member, out of a factory -- without disturbing anything built into it. A move transfers ownership of
+the control block, whose address does not change. What a pool-resident object cannot survive is the
+pool being *destroyed*: the block dies with it, so the pool must outlive everything reserved from
+it.
+
+``freeze()``: the mirror precondition
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`freeze() <doxygen/html/classEBGeometry_1_1Pool.html#a7c5696404d11babfad42fc7d99b37ebd>`__ seals a
+pool: ``reserve()`` is forbidden afterwards (an ``EBGEOMETRY_EXPECT``-checked precondition, see
+:ref:`Sec:Assertions`) and ``base()`` can no longer move. It exists for exactly one reason -- it is
+the precondition for
+`mirror() <doxygen/html/classEBGeometry_1_1Pool.html#aa141bf4919e1aeb78aaee9667da8ebc3>`__, since
+you cannot take a byte-for-byte copy of a block that might still be reallocated. Freezing is *not*
+required to query anything.
+
+``mirror(src, dstResource)`` copies a frozen source pool's entire block, byte-for-byte, into a fresh
+block from ``dstResource`` (a plain ``memcpy`` for a host-to-host copy, or a ``GPU::memcpy`` for a
+host/device transfer), and returns the result already frozen. Because every offset stored inside the
+block is relative rather than absolute, the copy is immediately usable against its own (possibly
+device-resident) ``base()`` -- this is the host-to-device upload, and, used host-to-host, an exact
+independent copy. A mirror records the identity of the pool it ultimately came from
+(``mirrorOf()``), which is what lets an object built in the original pool verify that it is being
+rebased onto a faithful copy of its own storage; mirroring through intermediate pools (host to
+pinned staging to device) preserves that identity across every hop.
 
 .. warning::
 
-   ``freeze()`` has no inverse. Once a pool is frozen it can never be reserved into again, even to
-   append more of the same kind of data. If you need to build several batches of data (e.g. several
-   mesh files) into one shared pool, do all of the building *before* the first ``freeze()`` call --
-   see the pitfalls in :ref:`Sec:DCELMemoryModel` for what this means in practice for
-   ``DCEL::MeshT``.
+   ``freeze()`` has no inverse. Once a pool is frozen it can never be reserved into again. Since
+   freezing is only needed in order to mirror, the practical rule is simply to do it last.
 
-.. warning::
+.. _Sec:ResolvedAddresses:
 
-   Never cache the result of ``base()`` across a call that might trigger another ``reserve()``
-   (directly, or indirectly through anything still in its build phase). A block move during
-   ``grow()`` silently invalidates any pointer computed against the old base; there is no way to
-   detect this after the fact; the failure mode is a wild pointer, not a diagnosable error. Always
-   re-read ``base()`` immediately before using it, and treat it as disposable in between.
+Resolved addresses do not survive a ``reserve``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The control block protects anything that *re-resolves*. It cannot protect an address that has
+already been resolved, and a ``reserve`` that grows the pool deallocates the block such an address
+points into:
+
+.. code-block:: c++
+
+   auto& e = mesh->getEdge(3);      // a raw address, resolved right now
+   mesh->reserveFaces(pool, n);     // may grow -- the old block is freed
+   e.setFace(7);                    // undefined behaviour: write into freed memory
+
+The hazard is intermittent (a grow only happens when a request exceeds the current capacity) and its
+quiet form is worse than a crash: if the freed block is still mapped, the write lands in the
+abandoned copy and is silently lost, while the object itself now reads from the new block.
+
+.. important::
+
+   **Resolve, use, discard.** A pointer, reference or ``PODSpan`` obtained from pool storage must
+   not outlive the next ``reserve()`` on that pool. To carry data across a ``reserve``, carry it by
+   *value* and write it back through a fresh resolution:
+
+   .. code-block:: c++
+
+      Edge e = mesh->getEdge(3);      // snapshot, independent of any base
+      mesh->reserveFaces(pool, n);    // may grow
+      e.setFace(7);
+      mesh->getEdge(3) = e;           // fresh resolution against the current base
+
+   Everything that returns *by value* -- ``signedDistance()``, ``getAllVertexCoordinates()``, and so
+   on -- is unaffected, which is the overwhelming majority of the query surface.
 
 .. note::
 
-   ``Pool`` is move-only, RAII, and deliberately *not* trivially copyable -- it owns a block and a
-   ``MemoryResource*`` with real lifetime semantics. This is by design: it is one of only two
-   non-trivial types anywhere in this memory model (``MemoryResource`` is the other). Everything
-   *stored inside* a ``Pool`` -- every ``PODVector``, and every structure built entirely from
-   ``PODVector``\ s and plain values -- is trivially copyable POD; the ``Pool`` itself never is,
-   and is never mirrored to a device or passed to device code directly.
+   For the same reason, querying an object while another thread reserves from the same pool is a
+   data race: the reader may observe a base being republished, or have the block reallocated
+   underneath it. Pools are not internally synchronized. Finish building before sharing a pool
+   across threads, or serialize the reserves.
+
+.. note::
+
+   ``Pool`` is move-only, RAII, and deliberately *not* trivially copyable -- it owns a block, a
+   control block and a ``MemoryResource*`` with real lifetime semantics. This is by design: it is
+   one of only two non-trivial types anywhere in this memory model (``MemoryResource`` is the
+   other). Everything *stored inside* a ``Pool`` -- every ``PODVector``, and every structure built
+   entirely from ``PODVector``\ s and plain values -- is trivially copyable POD; the ``Pool`` itself
+   never is, and is never mirrored to a device or passed to device code directly.
 
 ``PODVector`` and ``PODSpan``: placement-independent storage
 ------------------------------------------------------------------
@@ -171,7 +218,7 @@ copyable, since it is device-visible storage.
 
    EBGeometry::PODVector<MyPodType> vec;
 
-   vec.reserveFrom(pool, 128);              // build phase, must not be frozen
+   vec.reserveFrom(pool, 128);              // must not be frozen
    vec.push_back(pool.base(), someValue);   // never reallocates -- capacity is fixed at reserveFrom()
 
 Two access styles are provided, and choosing between them is the main day-to-day decision this
@@ -186,23 +233,22 @@ memory model asks of a caller:
      - When to use it
    * - Resolve every call
      - ``at(base, i)``, ``data(base)``
-     - The default. Resolves ``base + offset`` fresh on every call, so it is correct during the
-       build phase, after ``freeze()``, and against any base you have in hand -- host or (mirrored)
-       device. Costs one extra addition per access.
+     - The default. Resolves ``base + offset`` fresh on every call, so it is correct while the pool
+       is still being built into, after ``freeze()``, and against any base you have in hand -- host
+       or (mirrored) device. Costs one extra addition per access.
    * - Bind once
      - ``bind(base) -> PODSpan<T>``
      - A raw ``pointer + size`` pair for a genuinely hot inner loop (SIMD traversal, a tight BVH
-       query), where re-deriving the pointer every iteration is measurable overhead. Only valid
-       against a **frozen** pool -- the freeze contract is exactly what makes a captured raw
-       pointer safe here.
+       query), where re-deriving the pointer every iteration is measurable overhead. Safe only for
+       as long as no further ``reserve()`` happens on the pool.
 
 .. important::
 
-   ``PODSpan<T>`` (returned by ``bind()``) captures a raw pointer. It is only ever safe to take
-   against a frozen (or already-mirrored) pool, whose base cannot move again -- taking it during
-   the build phase and holding it across a later ``reserve()``/``grow()`` reproduces exactly the
-   dangling-pointer hazard described above for ``base()`` itself, just one level removed. Prefer
-   ``at()``/``data()`` unless you have measured that the resolve-every-call cost actually matters.
+   ``PODSpan<T>`` (returned by ``bind()``) captures a raw pointer, so it is exactly the
+   resolved-address hazard of :ref:`Sec:ResolvedAddresses` in container form: it must not outlive
+   the next ``reserve()``. Taking one against a frozen (or already-mirrored) pool removes the
+   question entirely, since such a pool can never be reserved into again. Prefer ``at()``/``data()``
+   unless you have measured that the resolve-every-call cost actually matters.
 
 .. code-block:: c++
 

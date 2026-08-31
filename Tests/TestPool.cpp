@@ -187,6 +187,20 @@ TEST_CASE("Pool: mirror of a non-frozen pool aborts", "[Pool][death]")
   }));
 }
 
+TEST_CASE("Pool: reserving from a moved-from pool aborts", "[Pool][death]")
+{
+  // A moved-from pool owns no control block, so there is nowhere to publish a base. This abort is
+  // always-on rather than an EBGEOMETRY_EXPECT (a release build would otherwise dereference null),
+  // but the death-test helper itself only exists under assertions.
+  REQUIRE(abortsUnderAssertions([] {
+    Pool source(hostMemoryResource(), 128);
+    Pool moved(std::move(source));
+
+    PODVector<double> vec;
+    vec.reserveFrom(source, 4); // must abort
+  }));
+}
+
 #endif // EBGEOMETRY_ENABLE_ASSERTIONS
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -242,6 +256,105 @@ TEST_CASE("Pool: move assignment frees the target's old block and steals the sou
 
   for (uint32_t i = 0; i < 4; i++) {
     REQUIRE(vec.at(target.base(), i) == double(i) + 0.5);
+  }
+}
+
+TEST_CASE("Pool: the control block survives a move, including a vector reallocation", "[Pool]")
+{
+  // The reason a pool-resident object stores a PoolControl* rather than a Pool*: moving a Pool must
+  // not disturb anything resolving through it. A std::vector<Pool> reallocation is the sharp case,
+  // since it moves *and then destroys* the source object rather than merely emptying it.
+  std::vector<Pool> pools;
+  pools.reserve(1);
+  pools.emplace_back(hostMemoryResource(), 512);
+
+  const PoolControl* control = pools[0].control();
+  const uint64_t     id      = pools[0].id();
+
+  REQUIRE(control != nullptr);
+  REQUIRE(id != 0);
+
+  PODVector<double> vec;
+  vec.reserveFrom(pools[0], 8);
+
+  for (uint32_t i = 0; i < 8; i++) {
+    vec.push_back(pools[0].base(), double(i) + 0.25);
+  }
+
+  // Force a reallocation: pools[0] is move-constructed into fresh storage, and the original object
+  // is destroyed.
+  while (pools.size() < 16) {
+    pools.emplace_back(hostMemoryResource(), 64);
+  }
+
+  // Same control block, same identity, same data -- resolved without ever touching the (now dead)
+  // original Pool object.
+  REQUIRE(pools[0].control() == control);
+  REQUIRE(pools[0].id() == id);
+
+  for (uint32_t i = 0; i < 8; i++) {
+    REQUIRE(vec.at(control->m_base, i) == double(i) + 0.25);
+  }
+}
+
+TEST_CASE("Pool: a grow republishes the base through the control block", "[Pool]")
+{
+  // The other half of the contract: an object that re-resolves through the control block sees a
+  // grow immediately, with no freeze and no rebinding.
+  Pool pool(hostMemoryResource(), 64);
+
+  const PoolControl* control = pool.control();
+
+  PODVector<double> vec;
+  vec.reserveFrom(pool, 4);
+
+  for (uint32_t i = 0; i < 4; i++) {
+    vec.push_back(pool.base(), double(i) + 0.5);
+  }
+
+  void* const baseBeforeGrow = control->m_base;
+
+  PODVector<double> filler;
+  filler.reserveFrom(pool, 4096); // certain to exceed the 64-byte initial capacity
+
+  REQUIRE(control->m_base != baseBeforeGrow); // the block really did move
+  REQUIRE(pool.control() == control);         // but the control block did not
+
+  for (uint32_t i = 0; i < 4; i++) {
+    REQUIRE(vec.at(control->m_base, i) == double(i) + 0.5);
+  }
+}
+
+TEST_CASE("Pool: identities are unique and mirrorOf names the root of a chain", "[Pool]")
+{
+  Pool a(hostMemoryResource(), 128);
+  Pool b(hostMemoryResource(), 128);
+
+  REQUIRE(a.id() != b.id());
+  REQUIRE(a.mirrorOf() == 0); // not a mirror
+  REQUIRE(b.mirrorOf() == 0);
+
+  PODVector<double> vec;
+  vec.reserveFrom(a, 4);
+
+  for (uint32_t i = 0; i < 4; i++) {
+    vec.push_back(a.base(), double(i));
+  }
+
+  a.freeze();
+
+  const Pool hop1 = Pool::mirror(a, hostMemoryResource());
+  const Pool hop2 = Pool::mirror(hop1, hostMemoryResource());
+
+  // A mirror is its own pool, but every hop names the *root*, so an object built in `a` can still
+  // recognise `hop2` as a faithful copy of its own storage.
+  REQUIRE(hop1.id() != a.id());
+  REQUIRE(hop2.id() != hop1.id());
+  REQUIRE(hop1.mirrorOf() == a.id());
+  REQUIRE(hop2.mirrorOf() == a.id());
+
+  for (uint32_t i = 0; i < 4; i++) {
+    REQUIRE(vec.at(hop2.base(), i) == double(i));
   }
 }
 
