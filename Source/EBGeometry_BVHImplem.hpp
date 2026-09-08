@@ -549,8 +549,8 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
 
 template <class T, class P, size_t K, class StoragePolicy>
 template <class S>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs,
-                                                    size_t                        a_targetLeafSize,
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
+                                                    size_t                                  a_targetLeafSize,
                                                     S)
 {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
@@ -569,7 +569,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 
   const std::vector<SFC::Index> bins = SFC::computeBins<T>(centroids);
 
-  using PrimBvAndCode = std::tuple<P, BV, SFC::Code>;
+  using PrimBvAndCode = std::tuple<StorageType, BV, SFC::Code>;
 
   std::vector<PrimBvAndCode> sortedPrimitives;
 
@@ -614,7 +614,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 
   // Populate the primitive array once, in final sorted order -- independent of whatever order
   // the node array below ends up being built/relaid-out in.
-  auto primBlock = std::make_shared<std::vector<P>>();
+  auto primBlock = std::make_shared<std::vector<StorageType>>();
 
   primBlock->reserve(numPrimitives);
 
@@ -713,9 +713,9 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>>          a_primsAndBVs,
-                                                    const BVH::Partitioner<P, BV, K>&      a_partitioner,
-                                                    const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit)
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
+                                                    const BVH::Partitioner<P, BV, K>&       a_partitioner,
+                                                    const BVH::LeafPredicate<T, P, BV, K>&  a_stopCrit)
 {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
@@ -777,8 +777,8 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs,
-                                                    BVH::ClusterSpec              a_spec)
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
+                                                    BVH::ClusterSpec                        a_spec)
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "ClusterSAH requires BV == AABBT<T>");
 
@@ -790,9 +790,9 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   // A cluster: its bounding volume, centroid, and the primitives it owns (moved in).
   struct Cluster
   {
-    BV                            bv;
-    Vec3T<T>                      centroid;
-    std::vector<std::pair<P, BV>> prims;
+    BV                                      bv;
+    Vec3T<T>                                centroid;
+    std::vector<std::pair<StorageType, BV>> prims;
   };
 
   // ---- Phase 1: density-adaptive clustering --------------------------------------------------
@@ -972,7 +972,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 
   // Build the flat node array top-down (pre-order), populating the primitive block in DFS-leaf order
   // so each leaf's primitives are a contiguous [offset, count) range.
-  auto primBlock = std::make_shared<std::vector<P>>();
+  auto primBlock = std::make_shared<std::vector<StorageType>>();
 
   size_t total = 0;
 
@@ -1033,6 +1033,13 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 template <class T, class P, size_t K, class StoragePolicy>
 inline const std::vector<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>&
 PackedBVH<T, P, K, StoragePolicy>::getPrimitives() const noexcept
+{
+  return m_primitives;
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+inline std::vector<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>&
+PackedBVH<T, P, K, StoragePolicy>::getPrimitives() noexcept
 {
   return m_primitives;
 }
@@ -1417,7 +1424,7 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
 template <class T, class P, size_t K, class StoragePolicy>
 template <class BVConstructor>
 inline void
-PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor)
+PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor, const void* a_base)
 {
   // m_linearNodes is a depth-first pre-order flattening, so every child has a higher index than its
   // parent. Sweeping the array in reverse therefore refits all of a node's children before the node
@@ -1441,7 +1448,7 @@ PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor)
       boundingVolumes.reserve(count);
 
       for (uint32_t p = 0; p < count; p++) {
-        boundingVolumes.emplace_back(a_bvConstructor(StoragePolicy::get(m_primitives[offset + p])));
+        boundingVolumes.emplace_back(a_bvConstructor(StoragePolicy::get(m_primitives[offset + p], a_base)));
       }
     }
     else {

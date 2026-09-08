@@ -30,6 +30,7 @@ using MeshSDF = EBGeometry::FlatMeshSDF<T, Meta>;
 int
 main(int argc, char* argv[])
 {
+#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
   // This example shows how to merge two objects of *different* kinds into a single implicit function
   // using a BVH-accelerated CSG union (BVHUnionIF): a triangulated surface read from a mesh file, and
   // an analytic sphere. Because the two objects have different C++ types, they are combined through
@@ -80,4 +81,17 @@ main(int argc, char* argv[])
   std::cout << "value(far)    = " << csgUnion->value(hi + extent) << "\n";
 
   return 0;
+#else
+  // BVH-accelerated CSG unions are compiled out while the implicit-function layer awaits its
+  // index-based redesign; see the EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
+  (void)argc;
+  (void)argv;
+
+  std::cout << "This example is temporarily disabled: it is built on EBGeometry's BVH-accelerated\n"
+               "CSG union (BVHUnion/BVHUnionIF), which is compiled out during the GPU port while\n"
+               "the implicit-function and CSG layer is moved to an index-based design.\n"
+               "See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.\n";
+
+  return 0;
+#endif
 }

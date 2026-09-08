@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <iostream>
 #include <random>
 #include <string>
 #include <thread>
@@ -30,6 +31,7 @@ using namespace std::chrono_literals;
 int
 main()
 {
+#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
 
   // TLDR: This program places some random boxes on a lattice; the boxes represent buildings in a "random city". The buildings are placed on a
   //       an MxM sized lattice where the building width, length, and height are drawn from a uniform distribution with user-specified parameters.
@@ -151,4 +153,14 @@ main()
   std::cout << "Average speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
 
   return 0;
+#else
+  // BVH-accelerated CSG unions are compiled out while the implicit-function layer awaits its
+  // index-based redesign; see the EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
+  std::cout << "This example is temporarily disabled: it is built on EBGeometry's BVH-accelerated\n"
+               "CSG union (BVHUnion/BVHUnionIF), which is compiled out during the GPU port while\n"
+               "the implicit-function and CSG layer is moved to an index-based design.\n"
+               "See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.\n";
+
+  return 0;
+#endif
 }

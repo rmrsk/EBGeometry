@@ -3,6 +3,17 @@
 CSGUnion
 =========
 
+.. warning::
+
+   **Temporarily disabled.** The BVH-accelerated CSG unions (``BVHUnionIF``, ``BVHSmoothUnionIF``
+   and their ``BVHUnion``/``BVHSmoothUnion`` factories) are compiled out during the GPU port, behind
+   ``EBGEOMETRY_ENABLE_BVH_CSG_UNION`` in :file:`Source/EBGeometry_CSG.hpp`. They stored their
+   primitives as ``std::shared_ptr<const ImplicitFunction<T>>``, which the removed
+   ``BVH::SharedPtrStorage`` policy provided and neither remaining policy can (see
+   :ref:`Sec:PolymorphicPrimitives`). They return with the index-based redesign of the
+   implicit-function and CSG layer. Until then this program builds, but prints a notice and exits
+   without doing any work.
+
 Builds a CSG *union* of two different kinds of implicit function — a signed distance field read
 from a surface mesh, and an analytic sphere.  Both derive from ``ImplicitFunction<T>``, so they
 combine directly through ``BVHUnion``, which places the objects in a bounding volume hierarchy so

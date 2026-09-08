@@ -125,82 +125,30 @@ template <class P>
 using PrimitiveList = std::vector<std::shared_ptr<const P>>;
 
 /**
- * @brief Default storage policy for PackedBVH: primitives stored as std::shared_ptr<const P>,
- * exactly as PackedBVH has always stored them.
+ * @brief Storage policy that stores primitives directly by value. The default.
  * @details A storage policy is a stateless struct bundling an associated storage representation
  * (@c StorageType) with the handful of operations PackedBVH needs to build and read it: @c get()
  * (per-element access, used by every leaf-visit callback), @c appendTreeLeaf() (copying a TreeBVH
  * leaf's primitives into PackedBVH's flat array during the identity pack() constructor), and
- * @c appendAliased() (appending a converting packWith() constructor's single contiguous
- * conversion buffer to PackedBVH's flat array). Both @c appendTreeLeaf() and @c appendAliased()
- * are appenders: they add to whatever @p a_dst already holds rather than replacing it, so every
- * policy behaves identically no matter how many times PackedBVH calls them. Swapping the policy
- * changes nothing about tree
- * construction or traversal -- TreeBVH itself always stores primitives as shared_ptr, regardless
- * of which policy the PackedBVH built from it uses -- only what PackedBVH's own primitive array
- * holds.
- * @tparam P Primitive type.
- */
-template <class P>
-struct SharedPtrStorage
-{
-  /**
-   * @brief Storage representation: a shared pointer to a const primitive, as PackedBVH has
-   * always stored it.
-   */
-  using StorageType = std::shared_ptr<const P>;
-
-  /**
-   * @brief Dereference stored element to the primitive it refers to.
-   * @param[in] a_stored Stored element.
-   * @return Reference to the underlying primitive.
-   */
-  [[nodiscard]] static const P&
-  get(const StorageType& a_stored) noexcept
-  {
-    return *a_stored;
-  }
-
-  /**
-   * @brief Append one TreeBVH leaf's primitives to PackedBVH's flat primitive array.
-   * @details Used by PackedBVH's identity pack() constructor. Trivial for this policy: the source
-   * leaf's shared_ptrs are copied in as-is.
-   * @param[in,out] a_dst       PackedBVH's flat primitive array.
-   * @param[in]     a_leafPrims One TreeBVH leaf's primitive list.
-   */
-  static void
-  appendTreeLeaf(std::vector<StorageType>& a_dst, const PrimitiveList<P>& a_leafPrims)
-  {
-    a_dst.insert(a_dst.end(), a_leafPrims.begin(), a_leafPrims.end());
-  }
-
-  /**
-   * @brief Materialise a converting packWith() constructor's single contiguous conversion buffer
-   * into PackedBVH's flat primitive array.
-   * @details Uses the shared_ptr aliasing constructor so every element shares one control block
-   * (one allocation for the whole buffer) while still presenting as an independent
-   * shared_ptr<const P> per element.
-   * @param[in,out] a_dst   PackedBVH's flat primitive array.
-   * @param[in]     a_block Single contiguous buffer holding every converted primitive.
-   */
-  static void
-  appendAliased(std::vector<StorageType>& a_dst, const std::shared_ptr<std::vector<P>>& a_block)
-  {
-    a_dst.reserve(a_dst.size() + a_block->size());
-
-    for (size_t i = 0; i < a_block->size(); i++) {
-      a_dst.emplace_back(a_block, &(*a_block)[i]);
-    }
-  }
-};
-
-/**
- * @brief Storage policy that stores primitives directly by value, with no pointer indirection at
- * all.
- * @details Removes the per-primitive heap allocation and pointer-chasing that
- * SharedPtrStorage<P> pays on every leaf visit -- worthwhile when P is a self-contained value type
- * (no shared ownership needed) and leaves are visited often, e.g. a nearest-neighbor search over a
- * point cloud.
+ * @c appendAliased() (appending a direct or converting constructor's single contiguous buffer to
+ * PackedBVH's flat array). Both @c appendTreeLeaf() and @c appendAliased() are appenders: they add
+ * to whatever @p a_dst already holds rather than replacing it, so every policy behaves identically
+ * no matter how many times PackedBVH calls them. Swapping the policy changes nothing about tree
+ * construction or traversal -- TreeBVH itself always stores primitives as shared_ptr, regardless of
+ * which policy the PackedBVH built from it uses -- only what PackedBVH's own primitive array holds.
+ *
+ * Every policy's @c StorageType is trivially copyable, which is what lets PackedBVH keep a single
+ * primitive-array backend for all of them. A policy storing @c std::shared_ptr<const P> existed
+ * until the GPU port and was removed for exactly that reason: a shared_ptr cannot be byte-copied
+ * into a device address space, so keeping it would have forced a second, permanently host-only
+ * backend. See @ref IndexStorage for what replaced its one genuine use -- sharing one primitive set
+ * between many BVHs -- and the @c EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp for
+ * the one use that needs a redesign rather than a different policy.
+ *
+ * This policy stores each primitive inline, with no indirection at all: no per-primitive heap
+ * allocation, and no pointer chase on any leaf visit. It is the right choice whenever P is a
+ * self-contained value type needing no shared ownership, which covers every primitive the library
+ * itself packs.
  * @tparam P Primitive type.
  */
 template <class P>
@@ -214,11 +162,16 @@ struct ValueStorage
   /**
    * @brief Identity access -- the stored element already is the primitive.
    * @param[in] a_stored Stored element.
+   * @param[in] a_base   Unused. Present so that every storage policy shares one @c get() signature,
+   * which is what lets a traversal call it without knowing which policy it was instantiated with.
    * @return Reference to the primitive.
    */
-  [[nodiscard]] static const P&
-  get(const StorageType& a_stored) noexcept
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static const P&
+  get(const StorageType& a_stored, const void* a_base = nullptr) noexcept
   {
+    (void)a_base;
+
     return a_stored;
   }
 
@@ -247,18 +200,17 @@ struct ValueStorage
   }
 
   /**
-   * @brief Materialise a converting packWith() constructor's single contiguous conversion buffer
-   * into PackedBVH's flat primitive array.
-   * @details Like SharedPtrStorage<P>'s equivalent, this *appends* @p a_block to @p a_dst, so the
-   * two policies honour the same contract regardless of how many times it is called. When @p a_dst
-   * is still empty (the case for PackedBVH's single-call converting constructor) it takes the fast
-   * path of stealing the already-contiguous buffer wholesale -- no aliasing shared_ptr machinery,
-   * no control-block allocation, and no per-element move; otherwise it move-appends each element.
+   * @brief Materialise a direct or converting constructor's single contiguous buffer into
+   * PackedBVH's flat primitive array.
+   * @details *Appends* @p a_block to @p a_dst, so the contract holds regardless of how many times
+   * it is called. When @p a_dst is still empty -- the case for PackedBVH's single-call direct and
+   * converting constructors -- it takes the fast path of stealing the already-contiguous buffer
+   * wholesale, with no per-element move; otherwise it move-appends each element.
    * @param[in,out] a_dst   PackedBVH's flat primitive array.
-   * @param[in]     a_block Single contiguous buffer holding every converted primitive.
+   * @param[in]     a_block Single contiguous buffer holding every element to append.
    */
   static void
-  appendAliased(std::vector<StorageType>& a_dst, const std::shared_ptr<std::vector<P>>& a_block)
+  appendAliased(std::vector<StorageType>& a_dst, const std::shared_ptr<std::vector<StorageType>>& a_block)
   {
     if (a_dst.empty()) {
       a_dst = std::move(*a_block);
@@ -270,12 +222,97 @@ struct ValueStorage
 };
 
 /**
+ * @brief Storage policy that stores a @c uint32_t index into a caller-owned array of primitives.
+ * @details The indirection @ref ValueStorage does not have, at four bytes and with no ownership.
+ * @c get() resolves an index against a base pointer supplied by the caller -- the address of
+ * element zero of the array the indices refer to -- so several BVHs can index one primitive set,
+ * and editing a primitive in that set is seen by all of them at once. That is what the removed
+ * shared_ptr policy was actually wanted for, at a quarter of the size and with no control block.
+ *
+ * The trade against @ref ValueStorage is locality versus duplication. ValueStorage reorders
+ * primitives into leaf order while packing, so a leaf scan walks contiguous memory; IndexStorage
+ * leaves the primitives where they are and pays a scattered load per primitive, but stores each one
+ * only once no matter how many BVHs refer to it. Prefer ValueStorage unless the duplication is the
+ * binding constraint or the sharing is the point.
+ *
+ * What it does not do is manage lifetime. The array the indices resolve against must outlive every
+ * BVH indexing into it, and nothing checks that -- unlike a shared_ptr, an index is not an owner.
+ *
+ * @note Not constructible from a TreeBVH. @c pack() and @c packWith() start from a tree whose
+ * leaves hold @c shared_ptr<const P> with no notion of any owning array's indices, so there is
+ * nothing for @c appendTreeLeaf() to record; calling either is a compile error. Build these through
+ * PackedBVH's direct constructors instead, passing (index, bounding volume) pairs -- those partition
+ * on the bounding volumes alone and never need the primitive itself.
+ * @tparam P Primitive type the indices refer to.
+ */
+template <class P>
+struct IndexStorage
+{
+  /**
+   * @brief Storage representation: an index into the caller-owned primitive array.
+   */
+  using StorageType = uint32_t;
+
+  /**
+   * @brief Resolve a stored index against the caller-owned primitive array.
+   * @param[in] a_stored Index of the primitive.
+   * @param[in] a_base   Address of element zero of the array the indices refer to. Must not be null.
+   * @return Reference to the primitive.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static const P&
+  get(const StorageType& a_stored, const void* a_base) noexcept
+  {
+    EBGEOMETRY_EXPECT(a_base != nullptr);
+
+    return static_cast<const P*>(a_base)[a_stored];
+  }
+
+  /**
+   * @brief Not supported -- see the class-level note.
+   * @details Deliberately a compile error rather than a runtime failure. The static_assert is made
+   * dependent on P so it fires only if this overload is actually instantiated, not on every
+   * IndexStorage instantiation.
+   * @param[in,out] a_dst       Unused.
+   * @param[in]     a_leafPrims Unused.
+   */
+  static void
+  appendTreeLeaf(std::vector<StorageType>& a_dst, const PrimitiveList<P>& a_leafPrims)
+  {
+    static_assert(sizeof(P) == 0,
+                  "BVH::IndexStorage cannot be built from a TreeBVH: a tree's leaves hold "
+                  "shared_ptr<const P> and carry no index into any owning array. Use one of "
+                  "PackedBVH's direct constructors with (index, bounding volume) pairs instead.");
+
+    (void)a_dst;
+    (void)a_leafPrims;
+  }
+
+  /**
+   * @brief Materialise a direct constructor's contiguous index buffer into PackedBVH's flat array.
+   * @details Same appending contract as @ref ValueStorage::appendAliased.
+   * @param[in,out] a_dst   PackedBVH's flat primitive array.
+   * @param[in]     a_block Single contiguous buffer holding every index to append.
+   */
+  static void
+  appendAliased(std::vector<StorageType>& a_dst, const std::shared_ptr<std::vector<StorageType>>& a_block)
+  {
+    if (a_dst.empty()) {
+      a_dst = std::move(*a_block);
+    }
+    else {
+      a_dst.insert(a_dst.end(), a_block->begin(), a_block->end());
+    }
+  }
+};
+
+/**
  * @brief Forward declaration of the linearised BVH. Needed so that TreeBVH::pack() and
  * TreeBVH::packWith() can name their return types before PackedBVH is fully defined.
- * @details StoragePolicy defaults to SharedPtrStorage<P>, preserving today's exact behaviour for
- * every existing 3-argument PackedBVH<T, P, K> instantiation.
+ * @details StoragePolicy defaults to ValueStorage<P>: primitives stored inline, which is what every
+ * PackedBVH<T, P, K> that does not name a policy explicitly gets.
  */
-template <class T, class P, size_t K, class StoragePolicy = SharedPtrStorage<P>>
+template <class T, class P, size_t K, class StoragePolicy = ValueStorage<P>>
 class PackedBVH;
 
 /**
@@ -336,15 +373,15 @@ using LeafEvaluator = std::function<void(const PrimitiveList<P>& a_primitives)>;
  * @details Receives a view into the global primitive array (offset + count) rather than a
  * temporary sub-list, avoiding a heap allocation per leaf visit. The primitive array's element
  * type depends on the PackedBVH's storage policy (StorageType), not necessarily
- * std::shared_ptr<const P> -- see SharedPtrStorage/ValueStorage.
+ * P itself for the default ValueStorage<P>, or uint32_t for IndexStorage<P>.
  * @tparam P             Primitive type.
- * @tparam StoragePolicy PackedBVH storage policy (default: SharedPtrStorage<P>, matching every
+ * @tparam StoragePolicy PackedBVH storage policy (default: ValueStorage<P>, matching every
  * PackedBVH<T, P, K> that does not name a storage policy explicitly).
  * @param[in] a_primitives Global primitive array (element type StoragePolicy::StorageType).
  * @param[in] a_offset     Index of the first primitive belonging to this leaf.
  * @param[in] a_count      Number of primitives in this leaf.
  */
-template <class P, class StoragePolicy = SharedPtrStorage<P>>
+template <class P, class StoragePolicy = ValueStorage<P>>
 using PackedLeafEvaluator = std::function<void(
   const std::vector<typename StoragePolicy::StorageType>& a_primitives, size_t a_offset, size_t a_count)>;
 
@@ -1154,10 +1191,11 @@ public:
    * @brief Flatten this tree into a cache-friendly PackedBVH with the same primitive type.
    * @details Requires BV == AABBT<T>; enforced by static_assert at instantiation.
    * @tparam StoragePolicy Storage policy for the resulting PackedBVH's primitive array (default:
-   * BVH::SharedPtrStorage<P>, matching every existing caller that does not name one explicitly).
+   * BVH::ValueStorage<P>, matching every caller that does not name one explicitly). BVH::IndexStorage
+   * is not valid here -- see its class documentation.
    * @return Shared pointer to the resulting PackedBVH.
    */
-  template <class StoragePolicy = BVH::SharedPtrStorage<P>>
+  template <class StoragePolicy = BVH::ValueStorage<P>>
   [[nodiscard]] inline std::shared_ptr<PackedBVH<T, P, K, StoragePolicy>>
   pack() const;
 
@@ -1171,11 +1209,12 @@ public:
    * @tparam Q             Destination primitive type.
    * @tparam Converter     Callable: (PrimitiveList<P>, uint32_t offset, uint32_t count) → std::vector<Q>.
    * @tparam StoragePolicy Storage policy for the resulting PackedBVH's primitive array (default:
-   * BVH::SharedPtrStorage<Q>, matching every existing caller that does not name one explicitly).
+   * BVH::ValueStorage<Q>, matching every caller that does not name one explicitly). BVH::IndexStorage
+   * is not valid here -- see its class documentation.
    * @param[in] a_converter Leaf-conversion function.
    * @return Shared pointer to the resulting PackedBVH<T, Q, K, StoragePolicy>.
    */
-  template <class Q, class Converter, class StoragePolicy = BVH::SharedPtrStorage<Q>>
+  template <class Q, class Converter, class StoragePolicy = BVH::ValueStorage<Q>>
   [[nodiscard]] inline std::shared_ptr<PackedBVH<T, Q, K, StoragePolicy>>
   packWith(Converter&& a_converter) const;
 
@@ -1252,12 +1291,12 @@ protected:
  * What StoragePolicy governs: purely the representation of PackedBVH's own primitive array
  * (StorageType -- std::shared_ptr<const P> by default, or a raw P with ValueStorage<P>). It has
  * no effect on TreeBVH (always shared_ptr-based) or on tree construction/traversal -- see
- * SharedPtrStorage/ValueStorage above for the exact operations a storage policy provides.
+ * ValueStorage/IndexStorage above for the exact operations a storage policy provides.
  *
  * @tparam T             Floating-point precision.
  * @tparam P             Primitive type.
  * @tparam K             BVH branching factor.
- * @tparam StoragePolicy Governs how the primitive array is stored (default: SharedPtrStorage<P>).
+ * @tparam StoragePolicy Governs how the primitive array is stored (default: ValueStorage<P>).
  */
 template <class T, class P, size_t K, class StoragePolicy>
 class PackedBVH
@@ -1273,8 +1312,7 @@ public:
 
   /**
    * @brief Storage representation of one entry in the primitive array, as determined by
-   * StoragePolicy (std::shared_ptr<const P> for the default SharedPtrStorage<P>, or P itself for
-   * ValueStorage<P>).
+   * StoragePolicy (P itself for the default ValueStorage<P>, or uint32_t for IndexStorage<P>).
    */
   using StorageType = typename StoragePolicy::StorageType;
 
@@ -1468,8 +1506,8 @@ public:
    * the first primitive in the global list, and @p count is the number of primitives in
    * the leaf.  All returned vectors are stored contiguously in one buffer, which this
    * PackedBVH's storage policy then materialises into its own primitive array -- via aliased
-   * @c shared_ptr (no extra copies) for the default SharedPtrStorage<P>, or by taking ownership
-   * of the buffer directly for ValueStorage<P>.
+   * this PackedBVH's storage policy then materialises into its own primitive array, taking
+   * ownership of the buffer directly.
    *
    * The source tree must have been built with BV == AABBT<T>; bounding volumes are reused
    * without conversion.
@@ -1511,7 +1549,7 @@ public:
    * @param[in] a_sfc Unused tag value; see @p S.
    */
   template <class S = SFC::Morton>
-  inline PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs, size_t a_targetLeafSize, S a_sfc = S{});
+  inline PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs, size_t a_targetLeafSize, S a_sfc = S{});
 
   /**
    * @brief Construct directly from a flat primitive list via top-down (optionally SAH) recursive
@@ -1541,9 +1579,9 @@ public:
    * @param[in] a_stopCrit Stop function. Returns true when a node should become a leaf. Defaults
    * to DefaultLeafPredicate.
    */
-  inline PackedBVH(std::vector<std::pair<P, BV>>          a_primsAndBVs,
-                   const BVH::Partitioner<P, BV, K>&      a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
-                   const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit    = DefaultLeafPredicate<T, P, BV, K>);
+  inline PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
+                   const BVH::Partitioner<P, BV, K>&       a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
+                   const BVH::LeafPredicate<T, P, BV, K>&  a_stopCrit    = DefaultLeafPredicate<T, P, BV, K>);
 
   /**
    * @brief Construct directly via ClusterSAH: cluster primitives, then SAH over the clusters.
@@ -1562,7 +1600,7 @@ public:
    * the caller can std::move in) -- never requires shared_ptr-wrapping regardless of StoragePolicy.
    * @param[in] a_spec Clustering configuration (bucket size). See ClusterSpec.
    */
-  inline PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec);
+  inline PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec);
 
   /**
    * @brief Destructor.
@@ -1575,11 +1613,10 @@ public:
    * @details Explicitly defaulted for documentation purposes: unlike TreeBVH, PackedBVH's
    * members (m_linearNodes, m_primitives, m_childAabbSoA) are all owned value containers with no
    * shared mutable substructure, so the implicitly-generated deep copy is correct and safe under
-   * both BVH::SharedPtrStorage (primitives are aliased shared_ptr, the same sharing model as
-   * TreeBVH) and BVH::ValueStorage (primitives are copied by value -- safe as long as the
-   * primitive type's own copy constructor is complete; see DCEL::FaceT's copy-constructor
-   * documentation for a case where it deliberately is not, which is why MeshSDF never uses
-   * BVH::ValueStorage).
+   * both storage policies. Under BVH::ValueStorage the primitives themselves are copied, which is
+   * sound for every primitive the library packs -- DCEL::FaceT included, whose members are all
+   * plain values. Under BVH::IndexStorage only the indices are copied, so the copy refers to the
+   * same caller-owned primitive array as the original and that array must outlive both.
    * @param[in] a_other Other instance to copy.
    */
   PackedBVH(const PackedBVH& a_other) = default;
@@ -1614,6 +1651,21 @@ public:
    */
   [[nodiscard]] inline const std::vector<StorageType>&
   getPrimitives() const noexcept;
+
+  /**
+   * @brief Get the global primitive list for modification (in leaf-traversal order).
+   * @details Under BVH::ValueStorage the packed BVH owns its primitives outright -- packing copies
+   * them out of whatever they were built from -- so this is the only way to move a packed geometry
+   * in place. Mutating a primitive's position invalidates every node bounding volume that encloses
+   * it, so a caller that moves primitives must follow up with refit() before querying again.
+   *
+   * Note that changing which leaf a primitive *belongs* to is not supported: the node array's
+   * primitive ranges are fixed at build time, and refit() only recomputes bounding volumes. Moving
+   * primitives far enough to want a different partitioning needs a rebuild.
+   * @return Mutable reference to m_primitives.
+   */
+  [[nodiscard]] inline std::vector<StorageType>&
+  getPrimitives() noexcept;
 
   /**
    * @brief Get the bounding volume of the root node.
@@ -1739,10 +1791,12 @@ public:
    *
    * @tparam BVConstructor Callable: (const P&) -> BV, returning one primitive's current bounding volume.
    * @param[in] a_bvConstructor Bounding-volume constructor for a single primitive.
+   * @param[in] a_base Base of the caller-owned primitive array, for BVH::IndexStorage. Ignored by
+   * BVH::ValueStorage, which owns its primitives and needs no base.
    */
   template <class BVConstructor>
   inline void
-  refit(const BVConstructor& a_bvConstructor);
+  refit(const BVConstructor& a_bvConstructor, const void* a_base = nullptr);
 
 protected:
   /**

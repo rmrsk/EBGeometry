@@ -1,6 +1,12 @@
 Examples/CSGUnion
 -----------------
 
+> **Temporarily disabled.** This example is built on EBGeometry's BVH-accelerated CSG union
+> (`BVHUnion`/`BVHUnionIF`/`BVHSmoothUnion`), which is compiled out during the GPU port while the
+> implicit-function and CSG layer is moved to an index-based design -- see
+> `EBGEOMETRY_ENABLE_BVH_CSG_UNION` in `Source/EBGeometry_CSG.hpp`. The program still builds, but
+> prints a notice and exits without doing any work.
+
 This folder shows how to merge two objects of *different* kinds -- a triangulated surface mesh
 loaded from a file, and an analytic sphere -- into a single combined shape, using constructive
 solid geometry (CSG).

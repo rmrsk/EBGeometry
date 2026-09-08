@@ -1,6 +1,12 @@
 Examples/PackedSpheres
 ----------------------
 
+> **Temporarily disabled.** This example is built on EBGeometry's BVH-accelerated CSG union
+> (`BVHUnion`/`BVHUnionIF`/`BVHSmoothUnion`), which is compiled out during the GPU port while the
+> implicit-function and CSG layer is moved to an index-based design -- see
+> `EBGEOMETRY_ENABLE_BVH_CSG_UNION` in `Source/EBGeometry_CSG.hpp`. The program still builds, but
+> prints a notice and exits without doing any work.
+
 This folder shows how evaluation cost scales when a scene contains many repeated objects, using
 a densely packed lattice of identical spheres (80x80x80 = 512,000 of them) as an example.
 

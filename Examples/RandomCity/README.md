@@ -1,6 +1,12 @@
 Examples/RandomCity
 -------------------
 
+> **Temporarily disabled.** This example is built on EBGeometry's BVH-accelerated CSG union
+> (`BVHUnion`/`BVHUnionIF`/`BVHSmoothUnion`), which is compiled out during the GPU port while the
+> implicit-function and CSG layer is moved to an index-based design -- see
+> `EBGEOMETRY_ENABLE_BVH_CSG_UNION` in `Source/EBGeometry_CSG.hpp`. The program still builds, but
+> prints a notice and exits without doing any work.
+
 This folder shows the same "many objects in one scene" idea as `PackedSpheres`, but
 with a less regular scene: a toy city of randomly-sized box-shaped buildings (tens of thousands
 of them) placed on a grid, with each building's width, length, and height drawn independently

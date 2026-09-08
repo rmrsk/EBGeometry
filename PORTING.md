@@ -140,6 +140,7 @@ kernel and compares against the host:
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
 | `PointCloudBVH`, `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform`, analytic SDFs | Still the original virtual-`value()` design; this is where the tape returns |
+| `BVHUnionIF` / `BVHSmoothUnionIF` | **Compiled out** behind `EBGEOMETRY_ENABLE_BVH_CSG_UNION`. They stored polymorphic primitives as `shared_ptr`, which no trivially-copyable storage policy can hold; they return with the index-based CSG redesign in step 4 |
 | Parsers (`OBJ`/`PLY`/`STL`/`VTK`/`Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended |
 
 ## Roadmap
@@ -148,6 +149,13 @@ kernel and compares against the host:
 > detail: a pool-ergonomics change that removes `freeze()`/`bind()` from user workflows, and the BVH
 > port (step 2 below), which depends on it. It settles several questions this page only lists.
 > `PLAN.md` is deleted once that work lands, at which point whatever is still true moves here.
+
+0. **Note on ordering.** Step 1 below is listed first for historical reasons but is *not* a
+   prerequisite for step 2, and is being deferred. `MeshT::reconcile()`'s only production call site is
+   `Soup::readIntoDCEL` (`SoupImplem.hpp`), and `Soup` is host-only by design — so a device
+   `reconcile()` would today have no device caller. Its hard part (device-resident CSR vertex→face
+   adjacency) is the same parallel-build problem as step 3 and is better done once, with a real
+   consumer driving the design. The BVH (step 2) is being done first.
 
 1. **DCEL reconcile chain.** `FaceT::computeCentroid`/`computeNormal`/`computeArea` rewritten as
    streaming half-edge walks (they currently open with `gatherVertexIndices()`, which materializes a

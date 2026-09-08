@@ -296,7 +296,7 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
   const auto evalLeaf = [&faces, &a_point, &mesh](T& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      const T curDist = faces[i]->signedDistance(a_point, mesh);
+      const T curDist = faces[i].signedDistance(a_point, mesh);
 
       EBGEOMETRY_EXPECT(!std::isnan(curDist));
 
@@ -312,7 +312,7 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class Meta, size_t K>
-std::vector<std::pair<std::shared_ptr<const EBGeometry::DCEL::FaceT<T, Meta>>, T>>
+std::vector<std::pair<uint32_t, T>>
 MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
@@ -323,9 +323,11 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
 
   const auto& mesh = *m_mesh;
 
-  using FaceAndDist = std::pair<std::shared_ptr<const Face>, T>;
+  using FaceAndDist = std::pair<uint32_t, T>;
 
-  // List of candidate faces.
+  // Candidate faces, named by their index into this BVH's own primitive array (getPrimitives()),
+  // not by an index into the source mesh: packing reorders primitives into leaf order and stores
+  // them by value, so nothing records where a given face came from in the mesh.
   std::vector<FaceAndDist> candidateFaces;
 
   // Declaration of the BVH metadata attached to each node - this will be the distance to the node itself.
@@ -352,14 +354,14 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
 
   const EBGeometry::BVH::PackedLeafEvaluator<Face> leafEvaluator =
     [&shortestDistanceSoFar, &a_point, &candidateFaces, &mesh](
-      const std::vector<std::shared_ptr<const Face>>& a_faces, size_t offset, size_t count) noexcept -> void {
+      const std::vector<Face>& a_faces, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
-      const T distToFace = std::sqrt(a_faces[i]->unsignedDistance2(a_point, mesh));
+      const T distToFace = std::sqrt(a_faces[i].unsignedDistance2(a_point, mesh));
 
       EBGEOMETRY_EXPECT(!std::isnan(distToFace));
 
       if (distToFace <= shortestDistanceSoFar) {
-        candidateFaces.emplace_back(a_faces[i], distToFace);
+        candidateFaces.emplace_back(static_cast<uint32_t>(i), distToFace);
         shortestDistanceSoFar = distToFace;
       }
     }

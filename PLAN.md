@@ -91,62 +91,66 @@ results — currently nothing pins the two together, and this PR is precisely wh
 silently diverge. Build the SIMD matrix explicitly (`EBGEOMETRY_SIMD=none|sse41|avx|avx512`) rather
 than trusting the default preset.
 
-## PR B — storage policies
+## PR B — storage policies *(done)*
 
-Host-only. Reduce the mechanism to two POD policies; `SharedPtrStorage` is purged.
+Reduce the mechanism to two POD policies. `SharedPtrStorage` is **purged**.
 
 | Policy | Indirection | Dedup | Needs a canonical owner array | Crosses to device |
 |---|---|---|---|---|
-| `ValueStorage` | none | no | — | yes |
+| `ValueStorage` (default) | none | no | — | yes |
 | `IndexStorage` *(new)* | index | yes | yes | yes |
 
-`IndexStorage<P>` is `StorageType = uint32_t`, resolved as `static_cast<const P*>(base)[idx]`. It
-recovers what `SharedPtrStorage` was actually wanted for — one primitive set shared by many
-translated copies, edited in one place — at 4 bytes instead of 16 plus a control block. What it
-cannot recover is automatic lifetime: the owning pool must outlive every copy, by convention rather
-than refcount.
+`IndexStorage<P>` is `StorageType = uint32_t`, resolved as `static_cast<const P*>(base)[idx]` through
+`get(stored, base)`. It recovers what `SharedPtrStorage` was wanted for — one primitive set shared by
+many BVHs, edited in one place — at 4 bytes instead of 16 plus a control block. What it does not
+recover is automatic lifetime: the owning array must outlive every BVH indexing into it.
 
-Purging `SharedPtrStorage` is what makes PR C possible at all: both remaining policies are trivially
-copyable, so `m_primitives` is a `PODVector` in every instantiation and `PackedBVH` needs no
-`std::vector` fallback backend.
+Purging `SharedPtrStorage` is what makes PR C possible: both remaining policies are trivially
+copyable, so `m_primitives` can become a `PODVector` in *every* instantiation and `PackedBVH` needs
+no second, permanently host-only backend.
 
-Work items:
+### What the purge cost: BVH-accelerated CSG unions are compiled out
 
-* `get()` gains a base parameter: `get(const StorageType&, const void* a_base)`. `Value` ignores it.
-  Three call sites (`MeshDistanceFunctionsImplem.hpp:522,559`, `BVHImplem.hpp:1635`).
-* Move the four default-policy sites from `SharedPtrStorage` to `ValueStorage`: `BVH.hpp:278`
-  (`PackedBVH`), `:347` (`PackedLeafEvaluator`), `:1160` (`TreeBVH::pack`), `:1178` (`packWith`).
-* `MeshSDF` → `ValueStorage`; `TriMeshSDF` already is. Correct the stale copy-constructor comment
-  (finding 1) and the policy prose at `MeshDistanceFunctions.hpp:145` and `Parser.hpp:260`.
-* `SharedPtrStorage::appendAliased`'s aliasing-constructor trick and the comment at
-  `BVHImplem.hpp:506` go with it.
-* `TreeBVH` keeps its own `shared_ptr` storage and `PrimitiveList<P>` — it is the host-only builder
-  and is not policy-parameterised. Packing dereferences into values, which
-  `ValueStorage::appendTreeLeaf` already does.
+`BVHUnionIF`/`BVHSmoothUnionIF` keep their primitives alive through the primitive array of the
+`PackedBVH` they own, storing them as `shared_ptr<const P>` where `P` is the **abstract** base
+`ImplicitFunction<T>` in every real use (`Examples/CSGUnion`, `Examples/NestedBVH`,
+`Tests/TestBVH.cpp`; concrete `Sphere<T>` only in `TestCSG`). Neither remaining policy can serve a
+polymorphic primitive — `ValueStorage` would store an abstract type by value, and `IndexStorage`
+indexes a flat array of one concrete type. There is no storage policy that fixes this; the fix is the
+index-based redesign of the implicit-function/CSG layer (roadmap steps 4–5).
 
-### `getClosestFaces`, and which index space it returns
+So the union classes and everything depending on them are **compiled out**, not deleted, behind a
+single `EBGEOMETRY_ENABLE_BVH_CSG_UNION` guard in `EBGeometry_CSG.hpp`:
 
-`MeshSDF::getClosestFaces` returns `std::vector<std::pair<std::shared_ptr<const FaceT>, T>>`
-(`MeshDistanceFunctionsImplem.hpp:316`) and must change. The earlier sketch left the index space
-open; it resolves as follows.
+* `BVHUnionIF`, `BVHSmoothUnionIF`, `BVHUnion`, `BVHSmoothUnion`, and `CSGDetail::buildBVH`
+  (`EBGeometry_CSG.hpp`, `EBGeometry_CSGImplem.hpp`).
+* `Tests/TestCSG.cpp`'s whole BVH-union section; `Tests/TestBVH.cpp`'s nested-BVH case.
+* `Examples/{CSGUnion,NestedBVH,PackedSpheres,RandomCity}` — the guard wraps each `main()` body, and
+  the disabled branch prints why and exits 0, so the programs still build and `ctest` still runs them.
+* `Integrations/{AMReX,Chombo}/{PackedSpheres,RandomCity}` — carry a header note only. They are
+  illustrative, are not built or tested by CI, and will compile again unchanged.
 
-The returned `shared_ptr` today points at *the BVH's own copy* of the face, not at the mesh's face.
-The faithful translation is therefore an index into the BVH's primitive array, and that is also what
-the traversal naturally produces. A *mesh* face index cannot be recovered under `ValueStorage` at
-all — packing reorders primitives into leaf order and stores copies, so nothing remembers where a
-face came from.
+Restoring is one line, plus a policy that can hold polymorphic primitives.
 
-So: **return `std::vector<std::pair<uint32_t, T>>` indexing the BVH primitive array**, with the
-accessor to resolve it. The more useful mesh-face-index version becomes natural once `IndexStorage`
-lands, because there the stored `uint32_t` *is* the owner-array index — and that is a good reason to
-land `IndexStorage` in this PR even though `MeshSDF` does not default to it.
+### Other changes in this PR
 
-### Open wrinkle: filling `IndexStorage` from a `TreeBVH`
-
-A tree holds `shared_ptr<const P>` with no notion of the owner's array index, so `appendTreeLeaf`
-cannot produce indices from it. Either have `MeshSDF` build the tree over face indices directly, or
-give the packing path an explicit primitive→index mapping. This gates only `IndexStorage`'s build
-path, not `ValueStorage`'s, so it can be settled inside this PR without blocking anything else.
+* `MeshSDF` → `ValueStorage<Face>`. The stale claim that it *could not* use `ValueStorage` (because
+  `DCEL::FaceT`'s copy constructor was incomplete) was wrong in three places — `PackedBVH`'s
+  copy-constructor comment, `ImplemBVH.rst`'s storage-policy section, and its mesh-SDF section — all
+  corrected. `FaceT` became a plain trivially-copyable value in #137.
+* `getClosestFaces` returns `std::vector<std::pair<uint32_t, T>>`. The index is into the **BVH's own
+  primitive array**, which is what the traversal produces and the faithful translation of the old
+  `shared_ptr` (which pointed at the BVH's copy, not the mesh's face). A mesh face index cannot be
+  recovered under `ValueStorage` at all — packing reorders into leaf order and stores copies.
+* The three direct constructors take `std::vector<std::pair<StorageType, BV>>` rather than
+  `pair<P, BV>`. Identity for `ValueStorage`; it is what makes `IndexStorage` constructible, since
+  those constructors partition on bounding volumes alone and never need the primitive.
+* `pack()`/`packWith()` reject `IndexStorage` with a `static_assert`: a tree's leaves carry no index
+  into any owning array.
+* `refit()` gains a defaulted `const void* a_base` for `IndexStorage`.
+* **New:** a mutable `getPrimitives()`. Under `ValueStorage` the packed BVH owns its primitives, so
+  mutating the source no longer reaches it — this is the only way to move a packed geometry in place
+  before `refit()`. The refit test caught this and now exercises the new path.
 
 ## PR C — pool-backed storage and the device view
 
