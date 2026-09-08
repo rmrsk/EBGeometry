@@ -1310,6 +1310,7 @@ public:
      * @brief Set the bounding volume for this node.
      * @param[in] a_bv Bounding volume.
      */
+    EBGEOMETRY_HOST_DEVICE
     inline void
     setBoundingVolume(const BV& a_bv) noexcept
     {
@@ -1320,6 +1321,7 @@ public:
      * @brief Set the primitive offset for this leaf node.
      * @param[in] a_off Index into the global primitive list.
      */
+    EBGEOMETRY_HOST_DEVICE
     inline void
     setPrimitivesOffset(uint32_t a_off) noexcept
     {
@@ -1330,6 +1332,7 @@ public:
      * @brief Set the primitive count for this leaf node.
      * @param[in] a_n Number of primitives.
      */
+    EBGEOMETRY_HOST_DEVICE
     inline void
     setNumPrimitives(uint32_t a_n) noexcept
     {
@@ -1341,6 +1344,7 @@ public:
      * @param[in] a_off Node index of the child.
      * @param[in] a_k   Child slot (0 … K-1).
      */
+    EBGEOMETRY_HOST_DEVICE
     inline void
     setChildOffset(uint32_t a_off, size_t a_k) noexcept
     {
@@ -1352,7 +1356,8 @@ public:
      * @brief Get the bounding volume.
      * @return Reference to m_bv.
      */
-    [[nodiscard]] inline const BV&
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline const BV&
     getBoundingVolume() const noexcept
     {
       return m_bv;
@@ -1362,7 +1367,8 @@ public:
      * @brief Get the primitive offset (leaf nodes only).
      * @return Index of the first primitive in the global list.
      */
-    [[nodiscard]] inline uint32_t
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline uint32_t
     getPrimitivesOffset() const noexcept
     {
       return m_primOff;
@@ -1372,7 +1378,8 @@ public:
      * @brief Get the primitive count.
      * @return Number of primitives; zero for interior nodes.
      */
-    [[nodiscard]] inline uint32_t
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline uint32_t
     getNumPrimitives() const noexcept
     {
       return m_numPrims;
@@ -1382,7 +1389,8 @@ public:
      * @brief Get the child index table.
      * @return Reference to the K-element child-offset array.
      */
-    [[nodiscard]] inline const std::array<uint32_t, K>&
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline const std::array<uint32_t, K>&
     getChildOffsets() const noexcept
     {
       return m_childOff;
@@ -1392,7 +1400,8 @@ public:
      * @brief Return true if this is a leaf node.
      * @return True if m_numPrims > 0 (leaf), false otherwise (interior).
      */
-    [[nodiscard]] inline bool
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline bool
     isLeaf() const noexcept
     {
       return m_numPrims > 0;
@@ -1403,7 +1412,8 @@ public:
      * @param[in] a_point Query point.
      * @return Distance to the bounding-box surface, or zero if inside.
      */
-    [[nodiscard]] inline T
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline T
     getDistanceToBoundingVolume(const Vec3T<T>& a_point) const noexcept
     {
       return m_bv.getDistance(a_point);
@@ -1417,7 +1427,8 @@ public:
      * @param[in] a_point Query point.
      * @return Squared distance to the bounding-box surface, or zero if inside.
      */
-    [[nodiscard]] inline T
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline T
     getDistanceToBoundingVolume2(const Vec3T<T>& a_point) const noexcept
     {
       return m_bv.getDistance2(a_point);
@@ -1760,6 +1771,20 @@ protected:
   std::vector<StorageType> m_primitives;
 
   /**
+   * @brief Alignment of one SoA axis row, in bytes.
+   * @details A row is @c sizeof(T)*K bytes wide, and every ISA path in computeChildDistances2()
+   * loads a whole row with one aligned SIMD load, so the row wants to be aligned to its own width.
+   * That width is only a legal alignment when it is a power of two, which it is for exactly the
+   * (T, K) combinations that have a SIMD path -- 16, 32 and 64 bytes. For every other K (3, 5, 6,
+   * 7, ...) no SIMD path is compiled, nothing performs an aligned vector load on the row, and the
+   * natural alignment of T is both sufficient and legal. Asking for @c sizeof(T)*K unconditionally
+   * is what made @c PackedBVH<double, P, 3> and its odd-K siblings fail to compile at all
+   * ("requested alignment 24 is not a positive power of 2").
+   */
+  static constexpr size_t s_soaRowAlignment =
+    (((sizeof(T) * K) & ((sizeof(T) * K) - 1)) == 0) ? (sizeof(T) * K) : alignof(T);
+
+  /**
    * @brief SoA layout of K children's AABBs for a single interior node.
    * @details m_lo[axis][child] / m_hi[axis][child] layout places each axis row in a
    * contiguous T[K] buffer that can be loaded as a single SIMD register.
@@ -1770,18 +1795,61 @@ protected:
     /**
      * @brief Lower corners: m_lo[axis][child], axis in {0,1,2}, child in {0,…,K-1}.
      */
-    alignas(sizeof(T) * K) T m_lo[3][K];
+    alignas(s_soaRowAlignment) T m_lo[3][K];
 
     /**
      * @brief Upper corners: m_hi[axis][child], axis in {0,1,2}, child in {0,…,K-1}.
      */
-    alignas(sizeof(T) * K) T m_hi[3][K];
+    alignas(s_soaRowAlignment) T m_hi[3][K];
   };
 
   /**
    * @brief Per-node SoA AABB cache used by the SIMD traversal in pruneTraverse().
    */
   std::vector<ChildAABBSoA> m_childAabbSoA;
+
+  /**
+   * @brief One entry on pruneTraverse()'s explicit traversal stack.
+   * @details Holds a node index plus the squared distance from the query point to that node's
+   * bounding volume, recorded when the entry was pushed. Keeping the distance on the stack lets a
+   * popped entry be re-tested against a pruning bound that may have tightened since the push, which
+   * is what makes deferred (pop-time) pruning possible in addition to the push-time filter.
+   */
+  struct StackEntry
+  {
+    /// @brief Index into m_linearNodes.
+    uint32_t m_idx;
+
+    /// @brief Squared distance from the query point to that node's bounding volume at push time.
+    T m_dist2;
+  };
+
+  /**
+   * @brief Traversal stack depth used by pruneTraverse() on the host.
+   * @details A branch-and-bound descent pushes at most K entries per level, so this bounds the
+   * tree depth times K. 256 is the value this traversal has always used; it is a compile-time
+   * constant rather than a literal so the device entry point can select a smaller stack (device
+   * local memory is per-thread, and StackEntry is 16 B at double, so 256 would be 4 KB/thread).
+   */
+  static constexpr size_t s_hostStackDepth = 256;
+
+  /**
+   * @brief Compute the squared distances from a query point to all K children of one interior node.
+   * @details The single vectorised kernel of pruneTraverse(), and the only part of that traversal
+   * that differs between instruction sets. Dispatches at compile time on (T, K) and the compiled
+   * ISA: AVX-512F for (double, K=8) and (float, K=16), AVX for (double, K=4), (float, K=8) and
+   * (double, K=8) as two 4-wide passes, SSE4.1 for (float, K=4), and a scalar loop for every other
+   * combination and for device compilation. Every path computes the same quantity in the same
+   * association order -- max(0, max(lo-p, p-hi)) per axis, then dx*dx + (dy*dy + dz*dz) -- so all of
+   * them agree bit-for-bit.
+   * @param[in]  a_soa   SoA child bounding boxes for the node being expanded.
+   * @param[in]  a_point Query point.
+   * @param[out] a_dist2 Receives one squared distance per child. Needs no particular alignment --
+   * every SIMD path writes it with an unaligned store.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, T (&a_dist2)[K]) noexcept;
 
   /**
    * @brief Populate m_childAabbSoA from the completed m_linearNodes array.

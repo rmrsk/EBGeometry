@@ -1096,34 +1096,33 @@ PackedBVH<T, P, K, StoragePolicy>::traverse(const BVH::PackedLeafEvaluator<P, St
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
-template <class State, class LeafEvaluator, class PruneDistSquared>
+EBGEOMETRY_HOST_DEVICE
 inline void
-PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
-                                                 State&             a_state,
-                                                 LeafEvaluator&&    a_evalLeaf,
-                                                 PruneDistSquared&& a_pruneDist2) const noexcept
+PackedBVH<T, P, K, StoragePolicy>::computeChildDistances2(const ChildAABBSoA& a_soa,
+                                                          const Vec3T<T>&     a_point,
+                                                          T (&a_dist2)[K]) noexcept
 {
-  struct StackEntry
-  {
-    uint32_t idx;
-    T        dist2;
-  };
+  // Device code takes the scalar path unconditionally: the x86 ISA macros below may still be
+  // defined during nvcc's/hipcc's *host* pass over this same __host__ __device__ function, so the
+  // guard has to be on the compilation pass rather than on the intrinsics being available.
+#if !defined(EBGEOMETRY_DEVICE_COMPILE)
 
   // ──────────────────────────────────────────────────────────────────────────────
   // AVX-512F paths: K==8/double and K==16/float.
   //
-  // When compiled with -mavx512f these are selected in preference to the AVX
-  // paths below because they appear first and each path ends with a return.
-  // The compiler will dead-code-eliminate the corresponding AVX branches.
+  // These appear first and return, so on -mavx512f hardware the compiler dead-code-eliminates the
+  // corresponding AVX branches below.
   //
-  // Alignment: ChildAABBSoA uses alignas(sizeof(T)*K), which equals 64 bytes
-  // for both (K=8, T=double) and (K=16, T=float).  _mm512_load_pd / _mm512_load_ps
-  // both require 64-byte alignment — the static_assert below catches any mismatch.
+  // Alignment: ChildAABBSoA is alignas(sizeof(T)*K), which is 64 bytes for both (K=8, T=double) and
+  // (K=16, T=float) -- exactly what _mm512_load_pd / _mm512_load_ps require. The static_asserts
+  // catch any mismatch. The *store* into a_dist2 is unaligned (storeu), so callers need not align
+  // their output buffer; on an aligned address storeu costs the same as store on every CPU that has
+  // AVX-512 at all.
   //
   // Recommended configurations on AVX-512 hardware:
-  //   float  → K=16, W=16  (one _mm512_load_ps covers all children and one leaf group)
-  //   double → K=8,  W=8   (one _mm512_load_pd covers all children; AVX-512F replaces
-  //                          the 2×_mm256_load_pd emulation in the AVX fallback below)
+  //   float  -> K=16, W=16  (one _mm512_load_ps covers all children and one leaf group)
+  //   double -> K=8,  W=8   (one _mm512_load_pd covers all children; AVX-512F replaces
+  //                          the 2x_mm256_load_pd emulation in the AVX fallback below)
   // ──────────────────────────────────────────────────────────────────────────────
 #if defined(__AVX512F__)
   if constexpr (K == 8 && std::is_same_v<T, double>) {
@@ -1135,65 +1134,20 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
     const __m512d pz   = _mm512_set1_pd(a_point[2]);
     const __m512d zero = _mm512_setzero_pd();
 
-    alignas(64) StackEntry stack[256];
+    const __m512d lo_x = _mm512_load_pd(a_soa.m_lo[0]);
+    const __m512d lo_y = _mm512_load_pd(a_soa.m_lo[1]);
+    const __m512d lo_z = _mm512_load_pd(a_soa.m_lo[2]);
+    const __m512d hi_x = _mm512_load_pd(a_soa.m_hi[0]);
+    const __m512d hi_y = _mm512_load_pd(a_soa.m_hi[1]);
+    const __m512d hi_z = _mm512_load_pd(a_soa.m_hi[2]);
 
-    int top      = 0;
-    stack[top++] = {0U, 0.0};
+    const __m512d dx = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_x, px), _mm512_sub_pd(px, hi_x)));
+    const __m512d dy = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_y, py), _mm512_sub_pd(py, hi_y)));
+    const __m512d dz = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_z, pz), _mm512_sub_pd(pz, hi_z)));
+    const __m512d d2 =
+      _mm512_add_pd(_mm512_mul_pd(dx, dx), _mm512_add_pd(_mm512_mul_pd(dy, dy), _mm512_mul_pd(dz, dz)));
 
-    while (top > 0) {
-      const StackEntry entry    = stack[--top];
-      const double     curBest2 = static_cast<double>(a_pruneDist2(a_state));
-
-      if (entry.dist2 > curBest2) {
-        continue;
-      }
-
-      const Node& node = m_linearNodes[entry.idx];
-
-      if (node.isLeaf()) {
-        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
-      }
-      else {
-        const auto& soa = m_childAabbSoA[entry.idx];
-
-        const __m512d lo_x = _mm512_load_pd(soa.m_lo[0]);
-        const __m512d lo_y = _mm512_load_pd(soa.m_lo[1]);
-        const __m512d lo_z = _mm512_load_pd(soa.m_lo[2]);
-        const __m512d hi_x = _mm512_load_pd(soa.m_hi[0]);
-        const __m512d hi_y = _mm512_load_pd(soa.m_hi[1]);
-        const __m512d hi_z = _mm512_load_pd(soa.m_hi[2]);
-
-        const __m512d dx = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_x, px), _mm512_sub_pd(px, hi_x)));
-        const __m512d dy = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_y, py), _mm512_sub_pd(py, hi_y)));
-        const __m512d dz = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_z, pz), _mm512_sub_pd(pz, hi_z)));
-        const __m512d d2 =
-          _mm512_add_pd(_mm512_mul_pd(dx, dx), _mm512_add_pd(_mm512_mul_pd(dy, dy), _mm512_mul_pd(dz, dz)));
-
-        alignas(64) double dist2[K];
-        _mm512_store_pd(dist2, d2);
-
-        const auto&                                offsets = node.getChildOffsets();
-        std::array<std::pair<double, uint32_t>, K> children;
-
-        for (size_t k = 0; k < K; k++) {
-          children[k] = {dist2[k], offsets[k]};
-        }
-
-        std::sort(children.begin(),
-                  children.end(),
-                  [](const std::pair<double, uint32_t>& a, const std::pair<double, uint32_t>& b) noexcept {
-                    return a.first > b.first;
-                  });
-
-        const double newBest2 = static_cast<double>(a_pruneDist2(a_state));
-
-        for (const auto& [d, idx] : children) {
-          if (d <= newBest2) {
-            stack[top++] = {idx, d};
-          }
-        }
-      }
-    }
+    _mm512_storeu_pd(a_dist2, d2);
 
     return;
   }
@@ -1207,65 +1161,19 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
     const __m512 pz   = _mm512_set1_ps((float)a_point[2]);
     const __m512 zero = _mm512_setzero_ps();
 
-    alignas(64) StackEntry stack[256];
+    const __m512 lo_x = _mm512_load_ps(a_soa.m_lo[0]);
+    const __m512 lo_y = _mm512_load_ps(a_soa.m_lo[1]);
+    const __m512 lo_z = _mm512_load_ps(a_soa.m_lo[2]);
+    const __m512 hi_x = _mm512_load_ps(a_soa.m_hi[0]);
+    const __m512 hi_y = _mm512_load_ps(a_soa.m_hi[1]);
+    const __m512 hi_z = _mm512_load_ps(a_soa.m_hi[2]);
 
-    int top      = 0;
-    stack[top++] = {0U, 0.f};
+    const __m512 dx = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_x, px), _mm512_sub_ps(px, hi_x)));
+    const __m512 dy = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_y, py), _mm512_sub_ps(py, hi_y)));
+    const __m512 dz = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_z, pz), _mm512_sub_ps(pz, hi_z)));
+    const __m512 d2 = _mm512_add_ps(_mm512_mul_ps(dx, dx), _mm512_add_ps(_mm512_mul_ps(dy, dy), _mm512_mul_ps(dz, dz)));
 
-    while (top > 0) {
-      const StackEntry entry    = stack[--top];
-      const float      curBest2 = static_cast<float>(a_pruneDist2(a_state));
-
-      if (entry.dist2 > curBest2) {
-        continue;
-      }
-
-      const Node& node = m_linearNodes[entry.idx];
-
-      if (node.isLeaf()) {
-        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
-      }
-      else {
-        const auto& soa = m_childAabbSoA[entry.idx];
-
-        const __m512 lo_x = _mm512_load_ps(soa.m_lo[0]);
-        const __m512 lo_y = _mm512_load_ps(soa.m_lo[1]);
-        const __m512 lo_z = _mm512_load_ps(soa.m_lo[2]);
-        const __m512 hi_x = _mm512_load_ps(soa.m_hi[0]);
-        const __m512 hi_y = _mm512_load_ps(soa.m_hi[1]);
-        const __m512 hi_z = _mm512_load_ps(soa.m_hi[2]);
-
-        const __m512 dx = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_x, px), _mm512_sub_ps(px, hi_x)));
-        const __m512 dy = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_y, py), _mm512_sub_ps(py, hi_y)));
-        const __m512 dz = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_z, pz), _mm512_sub_ps(pz, hi_z)));
-        const __m512 d2 =
-          _mm512_add_ps(_mm512_mul_ps(dx, dx), _mm512_add_ps(_mm512_mul_ps(dy, dy), _mm512_mul_ps(dz, dz)));
-
-        alignas(64) float dist2[K];
-        _mm512_store_ps(dist2, d2);
-
-        const auto&                               offsets = node.getChildOffsets();
-        std::array<std::pair<float, uint32_t>, K> children;
-
-        for (size_t k = 0; k < K; k++) {
-          children[k] = {dist2[k], offsets[k]};
-        }
-
-        std::sort(children.begin(),
-                  children.end(),
-                  [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) noexcept {
-                    return a.first > b.first;
-                  });
-
-        const float newBest2 = static_cast<float>(a_pruneDist2(a_state));
-
-        for (const auto& [d, idx] : children) {
-          if (d <= newBest2) {
-            stack[top++] = {idx, d};
-          }
-        }
-      }
-    }
+    _mm512_storeu_ps(a_dist2, d2);
 
     return;
   }
@@ -1273,7 +1181,7 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
 
   // ──────────────────────────────────────────────────────────────────────────────
   // AVX paths: K==4/double (single pass), K==8/float (single pass),
-  //            K==8/double (two 4-wide passes — superseded by AVX-512F above).
+  //            K==8/double (two 4-wide passes -- superseded by AVX-512F above).
   // ──────────────────────────────────────────────────────────────────────────────
 #if defined(__AVX__)
   if constexpr (K == 4 && std::is_same_v<T, double>) {
@@ -1285,67 +1193,24 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
     const __m256d pz   = _mm256_set1_pd(a_point[2]);
     const __m256d zero = _mm256_setzero_pd();
 
-    alignas(32) StackEntry stack[256];
+    const __m256d lo_x = _mm256_load_pd(a_soa.m_lo[0]);
+    const __m256d lo_y = _mm256_load_pd(a_soa.m_lo[1]);
+    const __m256d lo_z = _mm256_load_pd(a_soa.m_lo[2]);
+    const __m256d hi_x = _mm256_load_pd(a_soa.m_hi[0]);
+    const __m256d hi_y = _mm256_load_pd(a_soa.m_hi[1]);
+    const __m256d hi_z = _mm256_load_pd(a_soa.m_hi[2]);
 
-    int top      = 0;
-    stack[top++] = {0U, 0.0};
+    const __m256d dx = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x, px), _mm256_sub_pd(px, hi_x)));
+    const __m256d dy = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y, py), _mm256_sub_pd(py, hi_y)));
+    const __m256d dz = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z, pz), _mm256_sub_pd(pz, hi_z)));
+    const __m256d d2 =
+      _mm256_add_pd(_mm256_mul_pd(dx, dx), _mm256_add_pd(_mm256_mul_pd(dy, dy), _mm256_mul_pd(dz, dz)));
 
-    while (top > 0) {
-      const StackEntry entry    = stack[--top];
-      const double     curBest2 = static_cast<double>(a_pruneDist2(a_state));
-
-      if (entry.dist2 > curBest2) {
-        continue;
-      }
-
-      const Node& node = m_linearNodes[entry.idx];
-      if (node.isLeaf()) {
-        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
-      }
-      else {
-        const auto& soa = m_childAabbSoA[entry.idx];
-
-        const __m256d lo_x = _mm256_load_pd(soa.m_lo[0]);
-        const __m256d lo_y = _mm256_load_pd(soa.m_lo[1]);
-        const __m256d lo_z = _mm256_load_pd(soa.m_lo[2]);
-        const __m256d hi_x = _mm256_load_pd(soa.m_hi[0]);
-        const __m256d hi_y = _mm256_load_pd(soa.m_hi[1]);
-        const __m256d hi_z = _mm256_load_pd(soa.m_hi[2]);
-
-        const __m256d dx = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x, px), _mm256_sub_pd(px, hi_x)));
-        const __m256d dy = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y, py), _mm256_sub_pd(py, hi_y)));
-        const __m256d dz = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z, pz), _mm256_sub_pd(pz, hi_z)));
-        const __m256d d2 =
-          _mm256_add_pd(_mm256_mul_pd(dx, dx), _mm256_add_pd(_mm256_mul_pd(dy, dy), _mm256_mul_pd(dz, dz)));
-
-        alignas(32) double dist2[K];
-
-        _mm256_store_pd(dist2, d2);
-
-        const auto&                                offsets = node.getChildOffsets();
-        std::array<std::pair<double, uint32_t>, K> children;
-
-        for (size_t k = 0; k < K; k++) {
-          children[k] = {dist2[k], offsets[k]};
-        }
-
-        std::sort(children.begin(),
-                  children.end(),
-                  [](const std::pair<double, uint32_t>& a, const std::pair<double, uint32_t>& b) noexcept {
-                    return a.first > b.first;
-                  });
-
-        const double newBest2 = static_cast<double>(a_pruneDist2(a_state));
-
-        for (const auto& [d, idx] : children) {
-          if (d <= newBest2)
-            stack[top++] = {idx, d};
-        }
-      }
-    }
+    _mm256_storeu_pd(a_dist2, d2);
 
     return;
   }
+
   if constexpr (K == 8 && std::is_same_v<T, float>) {
     static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
                   "ChildAABBSoA alignment mismatch: _mm256_load_ps requires 32-byte alignment");
@@ -1355,65 +1220,19 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
     const __m256 pz   = _mm256_set1_ps((float)a_point[2]);
     const __m256 zero = _mm256_setzero_ps();
 
-    alignas(32) StackEntry stack[256];
+    const __m256 lo_x = _mm256_load_ps(a_soa.m_lo[0]);
+    const __m256 lo_y = _mm256_load_ps(a_soa.m_lo[1]);
+    const __m256 lo_z = _mm256_load_ps(a_soa.m_lo[2]);
+    const __m256 hi_x = _mm256_load_ps(a_soa.m_hi[0]);
+    const __m256 hi_y = _mm256_load_ps(a_soa.m_hi[1]);
+    const __m256 hi_z = _mm256_load_ps(a_soa.m_hi[2]);
 
-    int top      = 0;
-    stack[top++] = {0U, 0.f};
+    const __m256 dx = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_x, px), _mm256_sub_ps(px, hi_x)));
+    const __m256 dy = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_y, py), _mm256_sub_ps(py, hi_y)));
+    const __m256 dz = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_z, pz), _mm256_sub_ps(pz, hi_z)));
+    const __m256 d2 = _mm256_add_ps(_mm256_mul_ps(dx, dx), _mm256_add_ps(_mm256_mul_ps(dy, dy), _mm256_mul_ps(dz, dz)));
 
-    while (top > 0) {
-      const StackEntry entry    = stack[--top];
-      const float      curBest2 = static_cast<float>(a_pruneDist2(a_state));
-
-      if (entry.dist2 > curBest2) {
-        continue;
-      }
-
-      const Node& node = m_linearNodes[entry.idx];
-      if (node.isLeaf()) {
-        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
-      }
-      else {
-        const auto& soa = m_childAabbSoA[entry.idx];
-
-        const __m256 lo_x = _mm256_load_ps(soa.m_lo[0]);
-        const __m256 lo_y = _mm256_load_ps(soa.m_lo[1]);
-        const __m256 lo_z = _mm256_load_ps(soa.m_lo[2]);
-        const __m256 hi_x = _mm256_load_ps(soa.m_hi[0]);
-        const __m256 hi_y = _mm256_load_ps(soa.m_hi[1]);
-        const __m256 hi_z = _mm256_load_ps(soa.m_hi[2]);
-
-        const __m256 dx = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_x, px), _mm256_sub_ps(px, hi_x)));
-        const __m256 dy = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_y, py), _mm256_sub_ps(py, hi_y)));
-        const __m256 dz = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_z, pz), _mm256_sub_ps(pz, hi_z)));
-        const __m256 d2 =
-          _mm256_add_ps(_mm256_mul_ps(dx, dx), _mm256_add_ps(_mm256_mul_ps(dy, dy), _mm256_mul_ps(dz, dz)));
-
-        alignas(32) float dist2[K];
-        _mm256_store_ps(dist2, d2);
-
-        const auto& offsets = node.getChildOffsets();
-
-        std::array<std::pair<float, uint32_t>, K> children;
-
-        for (size_t k = 0; k < K; k++) {
-          children[k] = {dist2[k], offsets[k]};
-        }
-
-        std::sort(children.begin(),
-                  children.end(),
-                  [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) noexcept {
-                    return a.first > b.first;
-                  });
-
-        const float newBest2 = static_cast<float>(a_pruneDist2(a_state));
-
-        for (const auto& [d, idx] : children) {
-          if (d <= newBest2) {
-            stack[top++] = {idx, d};
-          }
-        }
-      }
-    }
+    _mm256_storeu_ps(a_dist2, d2);
 
     return;
   }
@@ -1427,182 +1246,172 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
     const __m256d pz   = _mm256_set1_pd(a_point[2]);
     const __m256d zero = _mm256_setzero_pd();
 
-    alignas(32) StackEntry stack[256];
+    const __m256d lo_x0 = _mm256_load_pd(a_soa.m_lo[0]);
+    const __m256d lo_y0 = _mm256_load_pd(a_soa.m_lo[1]);
+    const __m256d lo_z0 = _mm256_load_pd(a_soa.m_lo[2]);
+    const __m256d hi_x0 = _mm256_load_pd(a_soa.m_hi[0]);
+    const __m256d hi_y0 = _mm256_load_pd(a_soa.m_hi[1]);
+    const __m256d hi_z0 = _mm256_load_pd(a_soa.m_hi[2]);
 
-    int top      = 0;
-    stack[top++] = {0U, 0.0};
+    const __m256d dx0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x0, px), _mm256_sub_pd(px, hi_x0)));
+    const __m256d dy0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y0, py), _mm256_sub_pd(py, hi_y0)));
+    const __m256d dz0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z0, pz), _mm256_sub_pd(pz, hi_z0)));
+    const __m256d d2_0 =
+      _mm256_add_pd(_mm256_mul_pd(dx0, dx0), _mm256_add_pd(_mm256_mul_pd(dy0, dy0), _mm256_mul_pd(dz0, dz0)));
 
-    while (top > 0) {
-      const StackEntry entry    = stack[--top];
-      const double     curBest2 = static_cast<double>(a_pruneDist2(a_state));
+    const __m256d lo_x1 = _mm256_load_pd(a_soa.m_lo[0] + 4);
+    const __m256d lo_y1 = _mm256_load_pd(a_soa.m_lo[1] + 4);
+    const __m256d lo_z1 = _mm256_load_pd(a_soa.m_lo[2] + 4);
+    const __m256d hi_x1 = _mm256_load_pd(a_soa.m_hi[0] + 4);
+    const __m256d hi_y1 = _mm256_load_pd(a_soa.m_hi[1] + 4);
+    const __m256d hi_z1 = _mm256_load_pd(a_soa.m_hi[2] + 4);
 
-      if (entry.dist2 > curBest2) {
-        continue;
-      }
+    const __m256d dx1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x1, px), _mm256_sub_pd(px, hi_x1)));
+    const __m256d dy1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y1, py), _mm256_sub_pd(py, hi_y1)));
+    const __m256d dz1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z1, pz), _mm256_sub_pd(pz, hi_z1)));
+    const __m256d d2_1 =
+      _mm256_add_pd(_mm256_mul_pd(dx1, dx1), _mm256_add_pd(_mm256_mul_pd(dy1, dy1), _mm256_mul_pd(dz1, dz1)));
 
-      const Node& node = m_linearNodes[entry.idx];
-
-      if (node.isLeaf()) {
-        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
-      }
-      else {
-        const auto& soa = m_childAabbSoA[entry.idx];
-
-        const __m256d lo_x0 = _mm256_load_pd(soa.m_lo[0]);
-        const __m256d lo_y0 = _mm256_load_pd(soa.m_lo[1]);
-        const __m256d lo_z0 = _mm256_load_pd(soa.m_lo[2]);
-        const __m256d hi_x0 = _mm256_load_pd(soa.m_hi[0]);
-        const __m256d hi_y0 = _mm256_load_pd(soa.m_hi[1]);
-        const __m256d hi_z0 = _mm256_load_pd(soa.m_hi[2]);
-
-        const __m256d dx0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x0, px), _mm256_sub_pd(px, hi_x0)));
-        const __m256d dy0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y0, py), _mm256_sub_pd(py, hi_y0)));
-        const __m256d dz0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z0, pz), _mm256_sub_pd(pz, hi_z0)));
-        const __m256d d2_0 =
-          _mm256_add_pd(_mm256_mul_pd(dx0, dx0), _mm256_add_pd(_mm256_mul_pd(dy0, dy0), _mm256_mul_pd(dz0, dz0)));
-
-        const __m256d lo_x1 = _mm256_load_pd(soa.m_lo[0] + 4);
-        const __m256d lo_y1 = _mm256_load_pd(soa.m_lo[1] + 4);
-        const __m256d lo_z1 = _mm256_load_pd(soa.m_lo[2] + 4);
-        const __m256d hi_x1 = _mm256_load_pd(soa.m_hi[0] + 4);
-        const __m256d hi_y1 = _mm256_load_pd(soa.m_hi[1] + 4);
-        const __m256d hi_z1 = _mm256_load_pd(soa.m_hi[2] + 4);
-
-        const __m256d dx1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x1, px), _mm256_sub_pd(px, hi_x1)));
-        const __m256d dy1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y1, py), _mm256_sub_pd(py, hi_y1)));
-        const __m256d dz1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z1, pz), _mm256_sub_pd(pz, hi_z1)));
-        const __m256d d2_1 =
-          _mm256_add_pd(_mm256_mul_pd(dx1, dx1), _mm256_add_pd(_mm256_mul_pd(dy1, dy1), _mm256_mul_pd(dz1, dz1)));
-
-        alignas(32) double dist2[K];
-        _mm256_store_pd(dist2, d2_0);
-        _mm256_store_pd(dist2 + 4, d2_1);
-
-        const auto& offsets = node.getChildOffsets();
-
-        std::array<std::pair<double, uint32_t>, K> children;
-
-        for (size_t k = 0; k < K; k++) {
-          children[k] = {dist2[k], offsets[k]};
-        }
-
-        std::sort(children.begin(),
-                  children.end(),
-                  [](const std::pair<double, uint32_t>& a, const std::pair<double, uint32_t>& b) noexcept {
-                    return a.first > b.first;
-                  });
-
-        const double newBest2 = static_cast<double>(a_pruneDist2(a_state));
-
-        for (const auto& [d, idx] : children) {
-          if (d <= newBest2) {
-            stack[top++] = {idx, d};
-          }
-        }
-      }
-    }
+    _mm256_storeu_pd(a_dist2, d2_0);
+    _mm256_storeu_pd(a_dist2 + 4, d2_1);
 
     return;
   }
-#endif
+#endif // __AVX__
+
 #if defined(__SSE4_1__)
   if constexpr (K == 4 && std::is_same_v<T, float>) {
     static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
                   "ChildAABBSoA alignment mismatch: _mm_load_ps requires 16-byte alignment");
 
-    const __m128 px   = _mm_set1_ps(a_point[0]);
-    const __m128 py   = _mm_set1_ps(a_point[1]);
-    const __m128 pz   = _mm_set1_ps(a_point[2]);
+    const __m128 px   = _mm_set1_ps((float)a_point[0]);
+    const __m128 py   = _mm_set1_ps((float)a_point[1]);
+    const __m128 pz   = _mm_set1_ps((float)a_point[2]);
     const __m128 zero = _mm_setzero_ps();
 
-    alignas(16) StackEntry stack[256];
-    int                    top = 0;
-    stack[top++]               = {0U, 0.0f};
+    const __m128 lo_x = _mm_load_ps(a_soa.m_lo[0]);
+    const __m128 lo_y = _mm_load_ps(a_soa.m_lo[1]);
+    const __m128 lo_z = _mm_load_ps(a_soa.m_lo[2]);
+    const __m128 hi_x = _mm_load_ps(a_soa.m_hi[0]);
+    const __m128 hi_y = _mm_load_ps(a_soa.m_hi[1]);
+    const __m128 hi_z = _mm_load_ps(a_soa.m_hi[2]);
 
-    while (top > 0) {
-      const StackEntry entry    = stack[--top];
-      const float      curBest2 = static_cast<float>(a_pruneDist2(a_state));
+    const __m128 dx = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_x, px), _mm_sub_ps(px, hi_x)));
+    const __m128 dy = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_y, py), _mm_sub_ps(py, hi_y)));
+    const __m128 dz = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_z, pz), _mm_sub_ps(pz, hi_z)));
+    const __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx), _mm_add_ps(_mm_mul_ps(dy, dy), _mm_mul_ps(dz, dz)));
 
-      if (entry.dist2 > curBest2) {
-        continue;
-      }
-
-      const Node& node = m_linearNodes[entry.idx];
-
-      if (node.isLeaf()) {
-        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
-      }
-      else {
-        const auto& soa = m_childAabbSoA[entry.idx];
-
-        const __m128 lo_x = _mm_load_ps(soa.m_lo[0]);
-        const __m128 lo_y = _mm_load_ps(soa.m_lo[1]);
-        const __m128 lo_z = _mm_load_ps(soa.m_lo[2]);
-        const __m128 hi_x = _mm_load_ps(soa.m_hi[0]);
-        const __m128 hi_y = _mm_load_ps(soa.m_hi[1]);
-        const __m128 hi_z = _mm_load_ps(soa.m_hi[2]);
-
-        const __m128 dx = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_x, px), _mm_sub_ps(px, hi_x)));
-        const __m128 dy = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_y, py), _mm_sub_ps(py, hi_y)));
-        const __m128 dz = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_z, pz), _mm_sub_ps(pz, hi_z)));
-        const __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx), _mm_add_ps(_mm_mul_ps(dy, dy), _mm_mul_ps(dz, dz)));
-
-        alignas(16) float dist2[K];
-        _mm_store_ps(dist2, d2);
-
-        const auto& offsets = node.getChildOffsets();
-
-        std::array<std::pair<float, uint32_t>, K> children;
-
-        for (size_t k = 0; k < K; k++) {
-          children[k] = {dist2[k], offsets[k]};
-        }
-
-        std::sort(children.begin(),
-                  children.end(),
-                  [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) noexcept {
-                    return a.first > b.first;
-                  });
-
-        const float newBest2 = static_cast<float>(a_pruneDist2(a_state));
-
-        for (const auto& [d, idx] : children) {
-          if (d <= newBest2) {
-            stack[top++] = {idx, d};
-          }
-        }
-      }
-    }
+    _mm_storeu_ps(a_dist2, d2);
 
     return;
   }
-#endif
+#endif // __SSE4_1__
 
-  // Scalar fallback for all other (T, K) combinations.
-  const BVH::PackedLeafEvaluator<P, StoragePolicy> leafEvaluator =
-    [&a_state, &a_evalLeaf](const std::vector<StorageType>&, size_t offset, size_t count) noexcept -> void {
-    a_evalLeaf(a_state, offset, count);
-  };
+#endif // !EBGEOMETRY_DEVICE_COMPILE
 
-  // The node key is the *squared* box distance (getDistanceToBoundingVolume2), matching the squared
-  // pruning bound a_pruneDist2 returns -- so the predicate compares directly, with no sqrt anywhere.
-  // (Squaring is monotonic, so ordering children by squared distance is identical to ordering by
-  // distance.) The SIMD paths above already work entirely in squared distance; this keeps the
-  // scalar fallback consistent instead of taking a square root only to square it back.
-  const BVH::PrunePredicate<Node, T> prunePredicate =
-    [&a_state, &a_pruneDist2](const Node& /*n*/, const T& d2) noexcept -> bool { return d2 <= a_pruneDist2(a_state); };
+  // Scalar path: every (T, K) with no compiled ISA path above, and all device code.
+  //
+  // max() and the zero clamp are hand-rolled rather than taken from <algorithm>: std::max is fine on
+  // the host but the hardened libstdc++ configurations this library is built under route some of
+  // those helpers through host-only assert machinery, and none of them are callable from device
+  // code. The per-axis clamp and the dx*dx + (dy*dy + dz*dz) association below match the SIMD paths
+  // exactly, so every path produces bit-identical results.
 
-  const BVH::PackedChildOrderer<T, K> childOrderer = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
-    std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
-      return a.second > b.second;
-    });
-  };
+  for (size_t k = 0; k < K; k++) {
+    T delta[3];
 
-  const BVH::NodeKeyFactory<Node, T> nodeKeyFactory = [&a_point](const Node& n) noexcept -> T {
-    return n.getDistanceToBoundingVolume2(a_point);
-  };
+    for (size_t dir = 0; dir < 3; dir++) {
+      const T p     = a_point[dir];
+      const T lower = a_soa.m_lo[dir][k] - p;
+      const T upper = p - a_soa.m_hi[dir][k];
 
-  this->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
+      const T d = (upper > lower) ? upper : lower;
+
+      delta[dir] = (d > T(0.0)) ? d : T(0.0);
+    }
+
+    a_dist2[k] = delta[0] * delta[0] + (delta[1] * delta[1] + delta[2] * delta[2]);
+  }
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+template <class State, class LeafEvaluator, class PruneDistSquared>
+inline void
+PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
+                                                 State&             a_state,
+                                                 LeafEvaluator&&    a_evalLeaf,
+                                                 PruneDistSquared&& a_pruneDist2) const noexcept
+{
+  StackEntry stack[s_hostStackDepth];
+
+  int top = 0;
+
+  stack[top++] = StackEntry{0U, T(0.0)};
+
+  while (top > 0) {
+    const StackEntry entry = stack[--top];
+
+    // Read the pruning bound once per node visit. A leaf visited anywhere earlier -- in any subtree,
+    // not just this one -- may have tightened it since this entry was pushed, so an entry that
+    // looked promising at push time can be discarded here without descending.
+    const T pruneDist2 = a_pruneDist2(a_state);
+
+    if (entry.m_dist2 > pruneDist2) {
+      continue;
+    }
+
+    const Node& node = m_linearNodes[entry.m_idx];
+
+    if (node.isLeaf()) {
+      a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
+    }
+    else {
+      T dist2[K];
+
+      PackedBVH::computeChildDistances2(m_childAabbSoA[entry.m_idx], a_point, dist2);
+
+      const auto& offsets = node.getChildOffsets();
+
+      StackEntry children[K];
+
+      for (size_t k = 0; k < K; k++) {
+        children[k] = StackEntry{offsets[k], dist2[k]};
+      }
+
+      // Sort into descending distance order. The stack is LIFO, so the nearest child ends up on top
+      // and is expanded first -- which is what makes the bound tighten quickly.
+      //
+      // Insertion sort, not std::sort: K is a handful of elements, where insertion sort is simply
+      // faster than an introsort's setup, and std::sort is not callable from device code. It is also
+      // stable, so children whose boxes are exactly equidistant keep their child-slot order rather
+      // than an unspecified one -- which matters because the SFC build constructor pads a
+      // non-power-of-K leaf count by repeating the last real leaf's index, guaranteeing exact ties.
+      for (size_t i = 1; i < K; i++) {
+        const StackEntry key = children[i];
+
+        size_t j = i;
+
+        while (j > 0 && children[j - 1].m_dist2 < key.m_dist2) {
+          children[j] = children[j - 1];
+          j--;
+        }
+
+        children[j] = key;
+      }
+
+      // Filter at push time as well as at pop time. Nothing between the read above and here can
+      // have changed a_state (a_evalLeaf runs only on the leaf branch), so the bound is the same
+      // value -- but applying it here keeps hopeless children off the stack entirely instead of
+      // paying a push, a pop and a re-test for each of them.
+      for (size_t k = 0; k < K; k++) {
+        if (children[k].m_dist2 <= pruneDist2) {
+          EBGEOMETRY_EXPECT(top < static_cast<int>(s_hostStackDepth));
+
+          stack[top++] = children[k];
+        }
+      }
+    }
+  }
 }
 
 template <class T, class P, size_t K, class StoragePolicy>

@@ -75,6 +75,55 @@ traversalMargin()
   return std::is_same_v<T, float> ? 1.0e-2 : 1.0e-6;
 }
 
+// Nearest unsigned squared distance from each query point to a dodecahedron's faces, found through
+// a PackedBVH with branching factor K. Used to pin PackedBVH::pruneTraverse()'s per-ISA
+// child-distance paths against its scalar path: which of the two runs is chosen at compile time
+// from (T, K) and the compiled ISA, so varying K over a build's SIMD and non-SIMD widths runs both
+// within one binary.
+//
+// A pure minimum over the primitive set is deliberate. Its value cannot depend on the order leaves
+// are visited in, so a disagreement between two K values is a real disagreement about the computed
+// child distances (or about the pruning they drive), never a tie-break artefact of one traversal
+// order versus another.
+template <class T, size_t K>
+std::vector<T>
+nearestDist2PerQueryPoint(const std::shared_ptr<DCEL::MeshT<T, Meta>>&                               a_mesh,
+                          const BVH::PrimAndBVList<DCEL::FaceT<T, Meta>, BoundingVolumes::AABBT<T>>& a_primsAndBVs)
+{
+  using Face = DCEL::FaceT<T, Meta>;
+  using AABB = BoundingVolumes::AABBT<T>;
+
+  auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(a_primsAndBVs);
+  tree->topDownSortAndPartition();
+
+  const auto  packed = tree->pack();
+  const auto& prims  = packed->getPrimitives();
+
+  std::vector<T> result;
+
+  for (const auto& p : queryPoints<T>()) {
+    T state = std::numeric_limits<T>::max();
+
+    const auto evalLeaf = [&prims, &p, &a_mesh](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = prims[a_offset + i]->unsignedDistance2(p, *a_mesh);
+
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+    packed->pruneTraverse(p, state, evalLeaf, pruneDist2);
+
+    result.push_back(state);
+  }
+
+  return result;
+}
+
 } // namespace
 
 TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical, watertight DCEL mesh",
@@ -197,6 +246,63 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   buildAndCheck("BottomUp (Morton)", [](auto& a_tree) { a_tree.template bottomUpSortAndPartition<SFC::Morton>(); });
 
   buildAndCheck("BottomUp (Nested)", [](auto& a_tree) { a_tree.template bottomUpSortAndPartition<SFC::Nested>(); });
+}
+
+TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: every compiled SIMD child-distance path agrees "
+                   "bit-for-bit with the scalar path",
+                   "[BVH][Dodecahedron]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Face = DCEL::FaceT<T, Meta>;
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  REQUIRE(mesh != nullptr);
+
+  BVH::PrimAndBVList<Face, AABB> primsAndBVs;
+
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    const auto& f = mesh->getFace(i);
+
+    primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(*mesh)));
+  }
+
+  REQUIRE(primsAndBVs.size() == 36);
+
+  // pruneTraverse() dispatches its per-child box-distance computation on (T, K) and the compiled
+  // ISA: AVX-512F claims (double, K=8) and (float, K=16), AVX claims (double, K=4), (float, K=8)
+  // and (double, K=8), SSE4.1 claims (float, K=4), and everything else runs the scalar loop. No K
+  // value has a SIMD path in every build, and K = 3, 5, 6, 7 never have one in any build -- so
+  // sweeping K covers the scalar path and whichever vector paths this binary compiled, and requires
+  // them to agree.
+  //
+  // Equality is exact, not within a margin. Each path computes the same quantity in the same
+  // association order, so "close enough" would hide precisely the kind of drift this pins down.
+  const std::vector<T> reference = nearestDist2PerQueryPoint<T, 3>(mesh, primsAndBVs);
+
+  REQUIRE(reference.size() == queryPoints<T>().size());
+
+  const auto requireAgreesWithReference = [&reference](const char* a_label, const std::vector<T>& a_values) {
+    INFO("Branching factor: " << a_label);
+
+    REQUIRE(a_values.size() == reference.size());
+
+    for (size_t i = 0; i < reference.size(); i++) {
+      INFO("Query point index: " << i);
+
+      REQUIRE(a_values[i] == reference[i]);
+    }
+  };
+
+  requireAgreesWithReference("K=2", nearestDist2PerQueryPoint<T, 2>(mesh, primsAndBVs));
+  requireAgreesWithReference("K=4", nearestDist2PerQueryPoint<T, 4>(mesh, primsAndBVs));
+  requireAgreesWithReference("K=5", nearestDist2PerQueryPoint<T, 5>(mesh, primsAndBVs));
+  requireAgreesWithReference("K=6", nearestDist2PerQueryPoint<T, 6>(mesh, primsAndBVs));
+  requireAgreesWithReference("K=7", nearestDist2PerQueryPoint<T, 7>(mesh, primsAndBVs));
+  requireAgreesWithReference("K=8", nearestDist2PerQueryPoint<T, 8>(mesh, primsAndBVs));
+  requireAgreesWithReference("K=16", nearestDist2PerQueryPoint<T, 16>(mesh, primsAndBVs));
 }
 
 TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BVH::Build strategy",
