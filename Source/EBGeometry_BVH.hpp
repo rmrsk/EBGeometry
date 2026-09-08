@@ -1749,7 +1749,8 @@ public:
    * @brief Get the bounding volume of the root node.
    * @return Reference to the root node's bounding volume.
    */
-  [[nodiscard]] inline const BV&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const BV&
   getBoundingVolume() const noexcept;
 
   /**
@@ -1758,7 +1759,8 @@ public:
    * interface, enabling PackedBVH to serve as a primitive in an outer TreeBVH hierarchy.
    * @return Root node bounding volume.
    */
-  [[nodiscard]] inline BV
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline BV
   computeBoundingVolume() const noexcept;
 
   /**

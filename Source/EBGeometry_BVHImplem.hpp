@@ -1209,6 +1209,7 @@ PackedBVH<T, P, K, StoragePolicy>::getPrimitives() noexcept
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST_DEVICE
 inline const EBGeometry::BoundingVolumes::AABBT<T>&
 PackedBVH<T, P, K, StoragePolicy>::getBoundingVolume() const noexcept
 {
@@ -1216,6 +1217,7 @@ PackedBVH<T, P, K, StoragePolicy>::getBoundingVolume() const noexcept
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST_DEVICE
 inline EBGeometry::BoundingVolumes::AABBT<T>
 PackedBVH<T, P, K, StoragePolicy>::computeBoundingVolume() const noexcept
 {
