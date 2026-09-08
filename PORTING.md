@@ -7,7 +7,8 @@ discussion and is worth reading for the *rationale* behind individual decisions,
 checklist describes the abandoned first attempt and is **stale**. Where the two disagree, this file
 wins.
 
-Status as of 2026-08-12, `dev` at `fae8eeb`.
+Status as of 2026-09-08. `dev` is at `e6914d4`; the BVH port (roadmap step 2) is on branch
+`bvh_port_PR1` / [PR #145](https://github.com/rmrsk/EBGeometry/pull/145) and is reflected below.
 
 ## The one rule
 
@@ -137,54 +138,94 @@ kernel and compares against the host:
 | Component | Blocker |
 |---|---|
 | `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
-| `MeshSDF` / `FlatMeshSDF` / `TriMeshSDF` | Their `PackedBVH` is ported and pool-backed, but the wrappers themselves are not yet device-callable; that is the next step |
+| `MeshSDF` / `FlatMeshSDF` / `TriMeshSDF` | Their `PackedBVH` is ported and pool-backed, but the wrappers are not device-callable and, more to the point, not trivially copyable: each holds its BVH and/or mesh as a `shared_ptr` member. Next step |
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
-| `PointCloudBVH`, `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
+| `PointCloudBVH` | **Half-ported, and currently unsound to mirror.** Its inherited `PackedBVH` arrays are pool-backed, but its own cloud arrays (`m_positions`, `m_metadata`, `m_order`, `m_leafOff`, `m_leafCnt`) are still `std::vector`, so the class is not trivially copyable — while the `rebasedView()`/`deepCopy()` it inherits *are* callable on it and silently slice to the base. See the roadmap's step 0b |
+| `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform`, analytic SDFs | Still the original virtual-`value()` design; this is where the tape returns |
 | `BVHUnionIF` / `BVHSmoothUnionIF` | **Compiled out** behind `EBGEOMETRY_ENABLE_BVH_CSG_UNION`. They stored polymorphic primitives as `shared_ptr`, which no trivially-copyable storage policy can hold; they return with the index-based CSG redesign in step 4 |
 | Parsers (`OBJ`/`PLY`/`STL`/`VTK`/`Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended |
 
 ## Roadmap
 
-> While it exists, `PLAN.md` in this directory carries the agreed design for the next two PRs in
-> detail: a pool-ergonomics change that removes `freeze()`/`bind()` from user workflows, and the BVH
-> port (step 2 below), which depends on it. It settles several questions this page only lists.
+> While it exists, `PLAN.md` in this directory carries the detail: what the BVH port (step 2)
+> actually did and where the plan was wrong about the code, then the agreed design for the mesh SDFs,
+> the implicit-function layer and the tape. It settles several questions this page only lists.
 > `PLAN.md` is deleted once that work lands, at which point whatever is still true moves here.
 
-0. **Note on ordering.** Step 1 below is listed first for historical reasons but is *not* a
-   prerequisite for step 2, and is being deferred. `MeshT::reconcile()`'s only production call site is
-   `Soup::readIntoDCEL` (`SoupImplem.hpp`), and `Soup` is host-only by design — so a device
-   `reconcile()` would today have no device caller. Its hard part (device-resident CSR vertex→face
-   adjacency) is the same parallel-build problem as step 3 and is better done once, with a real
-   consumer driving the design. The BVH (step 2) is being done first.
+**The numbered steps below are kept in their original order for continuity; the order they are being
+*done* in is different.** Actual sequence, agreed after the BVH port:
 
-1. **DCEL reconcile chain.** `FaceT::computeCentroid`/`computeNormal`/`computeArea` rewritten as
-   streaming half-edge walks (they currently open with `gatherVertexIndices()`, which materializes a
-   `std::vector`), then device-resident CSR vertex→face adjacency, then
+> step 2 (done) → **0a** → **0b** → step 4 restricted to the mesh SDFs → step 4 proper → step 5 →
+> steps 1, 3, 6 and the remaining loose ends.
+
+0a. **Prerequisite: a CUDA/HIP toolkit on the development machine.** There is none at present (a GPU
+   is present; `nvcc` is not installed), so neither the `cuda` nor the `hip` preset configures and no
+   `[gpu]` case can be compiled locally. This is not hypothetical: two `PackedBVH` accessors were
+   found missing their `EBGEOMETRY_HOST_DEVICE` annotations *after* a `[gpu]` kernel calling one of
+   them had been written, by reading the code rather than building it. Everything from step 4 onward
+   adds far more device code than the BVH port did.
+
+0b. **`PointCloudBVH` should consume a `PackedBVH`, not derive from one.** `PackedBVH` documents
+   itself as "not intended to be subclassed"; `PointCloudBVH` subclasses it anyway. Since the BVH
+   port added `rebasedView()`/`deepCopy()` returning `PackedBVH` **by value**, both are silently
+   sliced on the derived type — mirroring a point cloud compiles cleanly and produces a BVH whose
+   leaves reference a cloud that was never copied. Hold the BVH by value as a member instead (it is
+   trivially copyable now), move the cloud arrays onto `PODVector`, give the class its own
+   `rebasedView()`, and mark `PackedBVH` `final`. Worth doing before the mesh SDFs because it is the
+   same BVH-plus-payload rebase that `MeshSDF` needs, on a smaller subject.
+
+1. **DCEL reconcile chain.** *(Deferred deliberately.)* Not a prerequisite for anything else.
+   `MeshT::reconcile()`'s only production call site is `Soup::readIntoDCEL` (`SoupImplem.hpp`), and
+   `Soup` is host-only by design — so a device `reconcile()` would today have no device caller. Its
+   hard part (device-resident CSR vertex→face adjacency) is the same parallel-build problem as step 3
+   and is better done once, with a real consumer driving the design.
+
+   The work itself, when it happens: `FaceT::computeCentroid`/`computeNormal`/`computeArea` rewritten
+   as streaming half-edge walks (they currently open with `gatherVertexIndices()`, which materializes
+   a `std::vector`), then device-resident CSR vertex→face adjacency, then
    `VertexT::computeVertexNormalAngleWeighted`. All three parts or none: the angle-weighted
    pseudonormal is what makes the sign correct, so a device `reconcile()` covering only faces would
    leave signs silently wrong near vertices and edges.
-2. **BVH.** *(done on the `bvh_port_PR1` branch.)* Give `pruneTraverse` a real scalar implementation (fixed stack, hand-rolled sort over
-   the ≤K children); move `PackedBVH`'s three arrays onto `Pool`/`PODVector`; add a trivially-copyable
-   view plus a `[gpu]` test; then `TriMeshSDF` and `MeshSDF`. `TreeBVH` stays host-only — it is the
-   builder, and static geometry builds on the host. Two questions this page previously left open are
-   settled in `PLAN.md`: `SharedPtrStorage` is dropped in favour of two POD policies (`Value` and a
-   new `Index`), and the traversal stack depth differs by entry point (256 host, 64 device — `[256]`
-   is 4 KB/thread at `double`, and `log_K(N)·K` says 64 covers a million primitives at K=4).
+2. **BVH.** *(Done, on branch `bvh_port_PR1` / PR #145.)* `pruneTraverse` factored into one loop with
+   a real scalar implementation (fixed stack, hand-rolled sort over the ≤K children);
+   `SharedPtrStorage` dropped in favour of two POD policies (`ValueStorage`, and a new
+   `IndexStorage`); `PackedBVH`'s three arrays moved onto `Pool`/`PODVector`; the class is
+   `static_assert`-ed trivially copyable and has `rebasedView()`/`deepCopy()`; stack depth differs by
+   entry point (256 host, 64 device). `TreeBVH` stays host-only — it is the builder, and static
+   geometry builds on the host.
+
+   Two things did **not** land with it. The mesh SDF wrappers are step 4 below rather than part of
+   this step. And `BVHUnionIF`/`BVHSmoothUnionIF` had to be compiled out, because they store
+   polymorphic primitives as `shared_ptr` and no trivially-copyable policy can hold those — see the
+   "What is not" table and step 4.
 3. **Point clouds.** Device-side `PointCloudBVH` build (Morton codes + radix sort) and a
    `PointCloudHashGrid` counterpart. Independent of 1–2.
-4. **Analytic SDF / transform / combiner traits.** Each primitive's formula moves into a trait as a
-   `static EBGEOMETRY_HOST_DEVICE eval()`, with the existing virtual `value()` becoming a thin
-   delegate. **This has no dependency on the memory work** — the parameters are a handful of plain
-   values, there is nothing to place in a `Pool` — so it can run in parallel with steps 1–3 rather
-   than queuing behind them. It is worth doing separately and first because the tape's interpreter
-   switch is precisely a dispatcher over these trait statics, and because a kernel can call
-   `eval()` directly, giving the formulas real device coverage before any tape exists. The
-   exceptions are `BVHUnionIF`/`BVHSmoothUnionIF`, which wrap a `PackedBVH` and therefore wait for
-   step 2. **`SignedDistanceFunction<T>` stays** for now: the first attempt deleted it outright and
-   collapsed everything onto `ImplicitFunction<T, Op>` + `bool m_sdf`, but that is a user-visible API
-   break with no GPU motivation of its own. Revisit it as a deliberate change on its own terms, not
-   as a side effect of this step.
+4. **Standalone, tag-nameable types: the mesh SDFs first, then the analytic SDFs / transforms /
+   combiners.** Each type's formula moves into a trait as a `static EBGEOMETRY_HOST_DEVICE eval()`,
+   with the existing virtual `value()` becoming a thin delegate — no API break, and a kernel can call
+   `eval()` directly, giving real device coverage before any tape exists.
+
+   **Do this in two passes.** First the mesh distance functions (`FlatMeshSDF`, then `TriMeshSDF`,
+   then `MeshSDF` — ascending by number of moving parts), because their primitives and BVH are
+   already ported and `FlatMeshSDF` yields a device-side brute-force oracle to validate the rest
+   against. Then the analytic layer proper, which is where `BVHUnionIF`/`BVHSmoothUnionIF` come back
+   and where re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is the acceptance test.
+
+   **De-virtualising is only half of it.** Every one of these classes also holds its payload as a
+   `shared_ptr` member (`FlatMeshSDF`: the mesh; `TriMeshSDF`: the BVH; `MeshSDF`: both). Annotating
+   methods changes nothing while those remain — the class stays non-trivially-copyable and cannot be
+   mirrored. They must become by-value members, which is newly possible: `PackedBVH` and
+   `DCEL::MeshT` are both trivially copyable as of step 2.
+
+   **Define the tag/opcode registry once, in the first pass**, even though only a few types populate
+   it at first, so the mesh SDFs and the analytic layer do not end up with two schemes to merge.
+
+   **`SignedDistanceFunction<T>` stays**, as does `ImplicitFunction<T>`: they are the compatibility
+   surface the thin delegates hang off. The first attempt deleted `SignedDistanceFunction<T>` outright
+   and collapsed everything onto `ImplicitFunction<T, Op>` + `bool m_sdf`, which was a user-visible
+   API break with no GPU motivation of its own. Revisit that as a deliberate change on its own terms,
+   not as a side effect of this step.
 5. **The tape.** The linear-SSA clause list and interpreter that replaces virtual dispatch, built on
    `Pool`/`PODVector` from the start rather than on `std::vector` with an upload path bolted on. It
    depends on step 4 for its opcodes and on step 2 for the BVH-union opcodes, which reference the
@@ -222,10 +263,17 @@ The `cuda` and `hip` presets compile the device-bearing tests. Compilation needs
 `[gpu]` cases additionally need a visible device and `SKIP()` cleanly without one.
 
 ```bash
-cmake --preset cuda -DCMAKE_CUDA_ARCHITECTURES=<arch>   # e.g. 86 for an RTX 3080 Ti; preset default is 70
+cmake --preset cuda -DCMAKE_CUDA_ARCHITECTURES=<arch>   # match the local GPU; preset default is 70
 cmake --build build/cuda --target EBGeometry_GPUDeviceTests --parallel $(nproc)
 cd build/cuda && ctest -L gpu-device --output-on-failure
 ```
+
+> **This does not currently work on the development machine.** A GPU is present but no CUDA toolkit
+> is installed, so `cmake --preset cuda` cannot configure and no `[gpu]` case has been compiled since
+> the BVH port. Roadmap step 0a exists to fix that, and it should be fixed before more device code is
+> written: two `PackedBVH` accessors were found missing their `EBGEOMETRY_HOST_DEVICE` annotations
+> only by reading the code, *after* a kernel calling one of them had already been written and
+> committed.
 
 CI compiles both backends on every push but has no physical GPU, so the device-side assertions only
 ever execute on a developer machine. Running the above before pushing GPU work is therefore not

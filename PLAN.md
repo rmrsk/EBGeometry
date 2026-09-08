@@ -1,14 +1,17 @@
-# Plan: the BVH port
+# Plan: the BVH port, and what follows it
 
 The pool-ergonomics work this document previously described as "PR 1" landed as
 [#143](https://github.com/rmrsk/EBGeometry/pull/143); what survived of it is folded into
-`PORTING.md`'s "current foundation" section, so it has been removed here. What remains is the BVH
-port, expanded from the sketch that accompanied it and revised against the code as it stands at
-`e6914d4`.
+`PORTING.md`'s "current foundation" section, so it has been removed here.
 
-> **This is a working document with a finite life.** When the PRs below have landed, fold whatever
-> is still true into `PORTING.md` and delete this file — a plan that outlives its work becomes a
-> second, stale source of truth.
+The BVH port itself — PRs A, B and C below — is **done**, on branch `bvh_port_PR1`
+([#145](https://github.com/rmrsk/EBGeometry/pull/145)), against `dev` at `e6914d4`. Those three
+sections are kept as a record of what was decided and why, including several places where the plan
+turned out to be wrong about the code. "What comes next" is the live part.
+
+> **This is a working document with a finite life.** Once the mesh SDFs and the implicit-function
+> layer have followed, fold whatever is still true into `PORTING.md` and delete this file — a plan
+> that outlives its work becomes a second, stale source of truth.
 
 ## Findings that revise the earlier sketch
 
@@ -65,7 +68,7 @@ a pool-resident SoA array is still correctly aligned for `_mm512_load_pd`, with 
 The only limit is `alignof(ChildAABBSoA) <= 256`, i.e. `sizeof(T)*K <= 256`, which an
 `EBGEOMETRY_EXPECT` in `Pool::reserve` already enforces — unreachable for any realistic K.
 
-## PR A — factor the traversal, give the scalar path a real implementation
+## PR A — factor the traversal, give the scalar path a real implementation *(done)*
 
 Host-only. No API change, no `Pool`, no storage change. Independently useful as a CPU speedup for
 any `(T, K)` with no compiled ISA path.
@@ -185,17 +188,124 @@ The functors the kernel passes to `pruneTraverse` are hoisted out of the device-
 by the host rebase test, so the callable path is compiled and run on every build; the kernel launch
 itself is the only unverified part. It needs a machine with a toolkit before this is trusted.
 
-## PR D — the SDF wrappers on device
+## What comes next
 
-`TriMeshSDF` first (its `TriangleAoSoA` primitives are self-contained), then `MeshSDF` (whose faces
-resolve topology against the retained `DCEL::MeshT`, so the mesh and the BVH must be rebased onto
-the same mirrored pool). `getClosestFaces` stays host-only — it runs on `traverse()`, which keeps its
-`std::function` interface.
+PRs A–C are done and are what this branch contains. The rest of the port proceeds in the order
+below. The shape is: make each layer a concrete, self-contained, trivially-copyable type that a tag
+can name, layer by layer, and only then build the tape that dispatches over those tags.
 
-This closes five rows of `PORTING.md`'s "What is not" table and unblocks the `BVHUnionIF` /
-`BVHSmoothUnionIF` exception in roadmap step 4.
+### 0. Prerequisite: close the verification gap
 
-## Documentation
+**There is no CUDA toolkit on the development machine** (an RTX A4000 is present; `nvcc` is not
+installed), so neither the `cuda` nor the `hip` preset can be configured, and every `EBGEOMETRY_HOST_DEVICE`
+annotation added from here lands unverified. This is not hypothetical: `PackedBVH::getBoundingVolume`
+and `computeBoundingVolume` were missing their annotations and the `[gpu]` test's own kernel calls
+one of them, so that case could never have compiled. It was caught by reading the code, not by
+building it.
+
+Everything below adds several times more device code than PRs A–C did. Install a toolkit before
+starting, or the port accumulates device code that nobody has compiled.
+
+### 1. The mesh distance functions, as standalone types
+
+**This is two changes, not one, and the second is the one that gets forgotten.**
+
+* **De-virtualise.** Give each class a concrete, non-virtual `EBGEOMETRY_HOST_DEVICE signedDistance()`,
+  and let the existing virtual override become a one-line delegate to it. No API break at all. This
+  is exactly the pattern `PORTING.md`'s roadmap step 4 prescribes for the analytic SDFs.
+* **Drop the `shared_ptr` members.** `FlatMeshSDF` holds `shared_ptr<Mesh> m_mesh`; `TriMeshSDF` holds
+  `shared_ptr<Root> m_bvh`; `MeshSDF` holds both. Annotating every method changes nothing while those
+  members remain: the class is not trivially copyable and cannot be mirrored. They must become
+  by-value members.
+
+The second half is **newly possible because of this branch**: `PackedBVH` is now `static_assert`-ed
+trivially copyable, and `DCEL::MeshT` has been verified to be so as well. Before PR C, holding either
+by value was not an option.
+
+Order, ascending by number of moving parts:
+
+1. **`FlatMeshSDF`** — one member, no BVH. The smallest complete instance of the pattern, and porting
+   it yields a *device-side brute-force oracle* to validate the other two against. Best value first.
+2. **`TriMeshSDF`** — one member; its `TriangleAoSoA` primitives are self-contained.
+3. **`MeshSDF`** — two members which must be rebased onto the *same* mirrored pool consistently. The
+   only genuinely new problem in the group, so do it last.
+
+`getClosestFaces` stays host-only: it runs on `traverse()`, which keeps its `std::function` interface.
+
+**Define the tag/opcode registry once, here**, even though only three types populate it at first.
+`PORTING.md` already calls for a generated opcode registry as the single source of truth; if the mesh
+SDFs get an ad-hoc scheme now and the implicit functions get the real one in step 2, the two have to
+be merged later.
+
+Keep `ImplicitFunction<T>` and `SignedDistanceFunction<T>` alive throughout as the compatibility
+surface. The first attempt deleted `SignedDistanceFunction<T>` outright, and that was a user-visible
+break with no GPU motivation of its own.
+
+### 2. The implicit-function and CSG layer
+
+The same treatment, applied to the analytic SDFs, transforms and combinators: formula into a trait as
+a `static EBGEOMETRY_HOST_DEVICE eval()`, virtual `value()` as a thin delegate, primitives named by
+index rather than held by `shared_ptr`.
+
+**Acceptance test:** re-enable `EBGEOMETRY_ENABLE_BVH_CSG_UNION` and get `TestCSG`'s union section and
+the four disabled examples back to green. That turns "the CSG layer is index-based now" into a
+pass/fail rather than a judgement call, and it repays the debt PR B took on.
+
+### 3. The tape
+
+Last, as planned: the linear-SSA clause list and interpreter, built on `Pool`/`PODVector` from the
+start. It depends on step 2 for its opcodes and on PR C for the BVH-union opcodes, which reference
+the packed BVH arrays directly.
+
+### 4. Loose ends
+
+`Triangle<T, Meta>` (AoS), `Octree`, `PointCloudHashGrid`, `SFC`, and the device-side point-cloud
+*build* (Morton codes + radix sort). None of these blocks anything, so they genuinely can wait.
+
+## Pull forward: `PointCloudBVH` should consume a PackedBVH, not derive from one
+
+Not urgent in the sense that nothing blocks on it, but it should be done **before** step 1 rather
+than left with the loose ends, for two reasons: PR C introduced a live bug there, and fixing it
+establishes the exact pattern step 1's hardest case needs.
+
+**The bug.** `PackedBVH`'s destructor documentation says it "is not intended to be subclassed or used
+polymorphically", and `PointCloudBVH` publicly subclasses it anyway. That was a documentation
+inconsistency until PR C added `rebasedView()` and `deepCopy()`, both of which return `PackedBVH`
+**by value**. On the derived type they are therefore silently sliced. Verified by compiling a probe:
+
+```cpp
+auto rebased = pointCloud.rebasedView(pool);  // compiles; type is PackedBVH, not PointCloudBVH
+auto deep    = pointCloud.deepCopy(pool);     // same
+static_assert(!std::is_trivially_copyable_v<PointCloudBVH<double>>);        // holds
+static_assert( std::is_trivially_copyable_v<PointCloudBVH<double>::Base>);  // holds
+```
+
+Mirroring a point cloud to a device therefore compiles cleanly and produces a BVH whose leaves refer
+to a cloud that was never copied. Public inheritance additionally exposes the whole `PackedBVH`
+surface — `refit()`, `traverse()`, and the mutable `getPrimitives()` that lets a caller reorder the
+SoA groups out from under `m_order`.
+
+**It is not an is-a relationship** in the first place. A `PointCloudBVH` owns a cloud
+(`m_positions`, `m_metadata`) and a seeding table (`m_order`, `m_leafOff`, `m_leafCnt`), and *uses* a
+BVH to index it. Its public API — `closestPoint`, `nearestNeighbor`, the brute-force references — has
+no overlap with the BVH's.
+
+The work, one pass over one file:
+
+1. Hold `PackedBVH m_bvh` by value instead of deriving (it is trivially copyable now).
+2. Cloud arrays (`m_positions`, `m_metadata`, `m_order`, `m_leafOff`, `m_leafCnt`) become `PODVector`s
+   via the same `finalize()` pattern PR C established.
+3. Its own `base()` / `rebasedView()`, rebasing the BVH member and the cloud arrays together;
+   `static_assert` the whole class trivially copyable.
+4. Delete the protected `PackedBVH(Pool&, nodes, prims)` constructor, which exists only to serve this
+   derivation, and mark `PackedBVH` `final` — turning "not intended to be subclassed" from a comment
+   into something the compiler enforces. **Check first** that no other subclass exists, including in
+   `Integrations/` and downstream users.
+
+Step 3 there is the same BVH-plus-payload rebase that `MeshSDF` will need in step 1, which is the
+other reason to do it first.
+
+## Documentation (done with PRs A–C)
 
 Per `CLAUDE.md`, in the same PRs, not after:
 
@@ -213,13 +323,17 @@ Per `CLAUDE.md`, in the same PRs, not after:
 
 ## Verification
 
-Every PR: the full debug suite plus `debug-san`, and the SIMD matrix for PR A. PRs C and D
-additionally need `cmake --preset cuda -DCMAKE_CUDA_ARCHITECTURES=86` and `ctest -L gpu-device` on
-the local RTX 3080 Ti. CI compiles both backends but has no GPU, so a green GPU lane means "it
+Every PR: the full debug suite plus `debug-san`, `release-test`, `examples`, and the SIMD matrix
+(`EBGEOMETRY_SIMD=none|sse41|avx|avx512`) for anything touching traversal.
+
+Device coverage is currently **not** obtainable on this machine: there is no CUDA toolkit installed,
+so neither `cmake --preset cuda` nor `--preset hip` configures, and the `[gpu]` cases cannot be
+compiled, let alone run. This is the prerequisite recorded at the top of "What comes next". CI
+compiles both backends but has no GPU, so even once a toolkit is available a green CI lane means "it
 compiles" and nothing more — running the device tests locally before pushing is not optional.
 
 ## Sequencing note
 
-PR A is worth landing on its own even if the rest slips: it is host-only, has no API change, is
-fully covered by the existing `TestBVH`, removes the `std::function`/heap-stack fallback that is the
-single largest blocker in `PORTING.md`'s table, and is a CPU speedup in its own right.
+PRs A–C landed together on `bvh_port_PR1` rather than as three PRs, at the maintainer's request. They
+are separate commits and are reviewable in order; PR A in particular stands entirely on its own (host
+only, no API change, covered by the existing `TestBVH`, and a CPU speedup in its own right).
