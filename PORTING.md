@@ -199,6 +199,23 @@ kernel and compares against the host:
    this step. And `BVHUnionIF`/`BVHSmoothUnionIF` had to be compiled out, because they store
    polymorphic primitives as `shared_ptr` and no trivially-copyable policy can hold those — see the
    "What is not" table and step 4.
+
+   **The device traversal is correctness-first, and is not a tuned GPU kernel.** It is the textbook
+   formulation: one query point per thread, each with a private 64-entry stack, every lane descending
+   its own path. That is divergence-bound by construction — the warp executes the union of 32
+   different descents and retires with the slowest lane — and the private stack is local memory
+   (1 KB/thread at `double`, 512 B at `float`), touched on every push and pop. `ChildAABBSoA` is also
+   laid out for the wrong axis here: it exists so one *thread* can load K children into one SIMD
+   register, which is a CPU idea and buys nothing when a lane reads all K serially.
+
+   None of that is measured — see step 0a; the kernel has never been compiled. It is recorded so the
+   layout is not mistaken for a finished design, and so nobody benchmarks it and draws a conclusion
+   about the library's GPU ceiling. Tuning is deliberately deferred; the options, cheapest first, are
+   Morton-sorting queries before launch (no kernel change at all), warp-cooperative traversal (one
+   warp per query, K children one-per-lane — which is what would finally make the SoA layout pay off
+   on device), stackless traversal, and persistent threads with a work queue. **Measure with
+   spatially coherent queries before choosing**: the real consumers generate query points cell-by-cell
+   over a grid, which is far more coherent than the random-point worst case this analysis assumed.
 3. **Point clouds.** Device-side `PointCloudBVH` build (Morton codes + radix sort) and a
    `PointCloudHashGrid` counterpart. Independent of 1–2.
 4. **Standalone, tag-nameable types: the mesh SDFs first, then the analytic SDFs / transforms /
