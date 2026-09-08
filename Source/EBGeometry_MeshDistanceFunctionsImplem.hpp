@@ -270,7 +270,7 @@ MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool, 
   using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
   const auto bvh = EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, AABB, K>(a_mesh, a_build);
 
-  m_bvh = bvh->pack();
+  m_bvh = bvh->pack(a_pool);
 
   // Each DCEL::FaceT held by m_bvh only stores a half-edge INDEX, meaningful solely against the
   // mesh's own vertex/edge/face arrays -- it carries no owning reference to them. The source mesh
@@ -354,7 +354,7 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
 
   const EBGeometry::BVH::PackedLeafEvaluator<Face> leafEvaluator =
     [&shortestDistanceSoFar, &a_point, &candidateFaces, &mesh](
-      const std::vector<Face>& a_faces, size_t offset, size_t count) noexcept -> void {
+      PODSpan<const Face> a_faces, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
       const T distToFace = std::sqrt(a_faces[i].unsignedDistance2(a_point, mesh));
 
@@ -486,11 +486,12 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
   using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);
 
   m_bvh = EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(triangles, a_build, maxLeafSize)
-            ->template packWith<TriAoSoA, Converter, StoragePolicy>(&TriMeshSDF::groupTrianglesIntoSoA);
+            ->template packWith<TriAoSoA, Converter, StoragePolicy>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
 TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+                                                     Pool&                                    a_pool,
                                                      const BVH::Build                         a_build,
                                                      const size_t                             a_maxLeafGroups) noexcept
 {
@@ -504,7 +505,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::vector<std::shar
   using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);
 
   m_bvh = EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, maxLeafSize)
-            ->template packWith<TriAoSoA, Converter, StoragePolicy>(&TriMeshSDF::groupTrianglesIntoSoA);
+            ->template packWith<TriAoSoA, Converter, StoragePolicy>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>

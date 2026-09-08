@@ -403,11 +403,13 @@ public:
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
    * @param[in] a_triangles     Input triangle soup.
+   * @param[in,out] a_pool      Pool the packed BVH's arrays are reserved from; must outlive this object.
    * @param[in] a_build         BVH build strategy (see the mesh-based constructor for details).
    * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
    * the mesh-based constructor for the tree-quality/SIMD-occupancy trade-off). Must be > 0.
    */
   TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+             Pool&                                    a_pool,
              const BVH::Build                         a_build,
              const size_t                             a_maxLeafGroups) noexcept;
 

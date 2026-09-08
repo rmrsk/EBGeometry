@@ -405,38 +405,178 @@ TreeBVH<T, P, BV, K>::refit(const BVConstructor& a_bvConstructor)
 template <class T, class P, class BV, size_t K>
 template <class StoragePolicy>
 inline std::shared_ptr<PackedBVH<T, P, K, StoragePolicy>>
-TreeBVH<T, P, BV, K>::pack() const
+TreeBVH<T, P, BV, K>::pack(Pool& a_pool) const
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::pack requires BV == AABBT<T>");
 
-  return std::make_shared<PackedBVH<T, P, K, StoragePolicy>>(*this);
+  return std::make_shared<PackedBVH<T, P, K, StoragePolicy>>(a_pool, *this);
 }
 
 template <class T, class P, class BV, size_t K>
 template <class Q, class Converter, class StoragePolicy>
 inline std::shared_ptr<PackedBVH<T, Q, K, StoragePolicy>>
-TreeBVH<T, P, BV, K>::packWith(Converter&& a_converter) const
+TreeBVH<T, P, BV, K>::packWith(Pool& a_pool, Converter&& a_converter) const
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::packWith requires BV == AABBT<T>");
 
-  return std::make_shared<PackedBVH<T, Q, K, StoragePolicy>>(*this, std::forward<Converter>(a_converter));
+  return std::make_shared<PackedBVH<T, Q, K, StoragePolicy>>(a_pool, *this, std::forward<Converter>(a_converter));
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST
 inline void
-PackedBVH<T, P, K, StoragePolicy>::buildSoA()
+PackedBVH<T, P, K, StoragePolicy>::attachTo(Pool& a_pool) noexcept
 {
-  m_childAabbSoA.resize(m_linearNodes.size());
+  if (m_control == nullptr) {
+    m_control = a_pool.control();
+  }
 
-  for (size_t i = 0; i < m_linearNodes.size(); i++) {
-    const auto& node = m_linearNodes[i];
+  // Every array of one BVH must come from the same pool -- offsets from two different blocks cannot
+  // both resolve against one base.
+  EBGEOMETRY_EXPECT(m_control == a_pool.control());
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST_DEVICE
+inline const void*
+PackedBVH<T, P, K, StoragePolicy>::base() const noexcept
+{
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+  // A non-null control block here means a host descriptor was copied into a kernel directly,
+  // instead of going through rebasedView(). The pointer it holds is a host address.
+  EBGEOMETRY_EXPECT(m_control == nullptr);
+
+  return m_base;
+#else
+  // Null here means either a device view being dereferenced on the host, or a BVH nobody ever
+  // reserved into. rebasedView() is the only producer of a null control block, and only for a
+  // device-accessible target, so this test is exact rather than heuristic.
+  EBGEOMETRY_EXPECT(m_control != nullptr);
+
+  return m_control->m_base;
+#endif
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST
+inline bool
+PackedBVH<T, P, K, StoragePolicy>::isAttachedTo(const Pool& a_pool) const noexcept
+{
+  return m_control != nullptr && m_control == a_pool.control();
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST
+inline PackedBVH<T, P, K, StoragePolicy>
+PackedBVH<T, P, K, StoragePolicy>::rebasedView(const Pool& a_pool) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_control != nullptr);                          // not already a view
+  EBGEOMETRY_EXPECT(a_pool.mirrorOf() == m_control->m_id);          // a mirror of *our* pool
+  EBGEOMETRY_EXPECT(m_linearNodes.endByte() <= a_pool.usedBytes()); // our arrays fit inside it
+  EBGEOMETRY_EXPECT(m_primitives.endByte() <= a_pool.usedBytes());
+  EBGEOMETRY_EXPECT(m_childAabbSoA.endByte() <= a_pool.usedBytes());
+
+  PackedBVH view = *this;
+
+  if (a_pool.resource().isDeviceAccessible()) {
+    // A kernel cannot follow a host control block, so the base has to be captured by value. That is
+    // safe precisely here: a device-accessible pool can only come from Pool::mirror, which freezes
+    // it, and Pool::grow refuses a non-host-accessible resource outright -- the base cannot move.
+    EBGEOMETRY_EXPECT(a_pool.isFrozen());
+
+    view.m_control = nullptr;
+    view.m_base    = a_pool.base();
+  }
+  else {
+    // Host target: follow the destination's control block rather than snapshotting its base, so the
+    // rebased view is growth-immune exactly like the original -- and so that a null control block
+    // keeps meaning "device view" and nothing else.
+    view.m_control = a_pool.control();
+    view.m_base    = nullptr;
+  }
+
+  return view;
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST
+inline PackedBVH<T, P, K, StoragePolicy>
+PackedBVH<T, P, K, StoragePolicy>::deepCopy(Pool& a_dstPool) const
+{
+  const void* srcBase = this->base();
+
+  std::vector<Node>        nodes(m_linearNodes.size());
+  std::vector<StorageType> prims(m_primitives.size());
+
+  for (uint32_t i = 0; i < m_linearNodes.size(); i++) {
+    nodes[i] = m_linearNodes.at(srcBase, i);
+  }
+
+  for (uint32_t i = 0; i < m_primitives.size(); i++) {
+    prims[i] = m_primitives.at(srcBase, i);
+  }
+
+  PackedBVH copy = *this;
+
+  copy.m_control      = nullptr;
+  copy.m_base         = nullptr;
+  copy.m_linearNodes  = PODVector<Node>{};
+  copy.m_primitives   = PODVector<StorageType>{};
+  copy.m_childAabbSoA = PODVector<ChildAABBSoA>{};
+
+  copy.finalize(a_dstPool, nodes, prims);
+
+  return copy;
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST
+inline void
+PackedBVH<T, P, K, StoragePolicy>::finalize(Pool&                           a_pool,
+                                            const std::vector<Node>&        a_linearNodes,
+                                            const std::vector<StorageType>& a_primitives)
+{
+  this->attachTo(a_pool);
+
+  m_linearNodes.reserveFrom(a_pool, static_cast<uint32_t>(a_linearNodes.size()));
+  m_primitives.reserveFrom(a_pool, static_cast<uint32_t>(a_primitives.size()));
+
+  // Resolve the base only after every reservation above: a reserve can grow the pool, which moves
+  // the block and invalidates any address taken before it.
+  void* poolBase = const_cast<void*>(this->base());
+
+  m_linearNodes.assign(poolBase, a_linearNodes.data(), static_cast<uint32_t>(a_linearNodes.size()));
+  m_primitives.assign(poolBase, a_primitives.data(), static_cast<uint32_t>(a_primitives.size()));
+
+  this->buildSoA(&a_pool);
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+EBGEOMETRY_HOST
+inline void
+PackedBVH<T, P, K, StoragePolicy>::buildSoA(Pool* a_pool)
+{
+  if (a_pool != nullptr) {
+    m_childAabbSoA.reserveFrom(*a_pool, m_linearNodes.size());
+  }
+
+  // Resolved after the reservation above, for the reason given in finalize().
+  const void* poolBase = this->base();
+
+  // Assembled host-side and copied in one shot, like the node and primitive arrays: a PODVector
+  // never reallocates, so it has no way to be filled element-by-element without its final size
+  // already fixed, and this keeps the one finalize pattern everywhere.
+  std::vector<ChildAABBSoA> soaCache(m_linearNodes.size());
+
+  for (uint32_t i = 0; i < m_linearNodes.size(); i++) {
+    const auto& node = m_linearNodes.at(poolBase, i);
 
     if (!node.isLeaf()) {
       const auto& offsets = node.getChildOffsets();
-      auto&       soa     = m_childAabbSoA[i];
+      auto&       soa     = soaCache[i];
 
       for (size_t k = 0; k < K; k++) {
-        const auto& bv = m_linearNodes[offsets[k]].getBoundingVolume();
+        const auto& bv = m_linearNodes.at(poolBase, offsets[k]).getBoundingVolume();
         const auto& lo = bv.getLowCorner();
         const auto& hi = bv.getHighCorner();
 
@@ -450,90 +590,100 @@ PackedBVH<T, P, K, StoragePolicy>::buildSoA()
       }
     }
   }
+
+  m_childAabbSoA.assign(const_cast<void*>(poolBase), soaCache.data(), static_cast<uint32_t>(soaCache.size()));
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
 inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
-  const TreeBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree)
+  Pool& a_pool, const TreeBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree)
 {
   using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
+
+  // Host-only scratch: the node count is not known until the walk finishes, and growth here costs
+  // nothing because finalize() copies the result into pool storage in one shot.
+  std::vector<Node>        nodes;
+  std::vector<StorageType> prims;
 
   // Depth-first. Each call reserves a slot by index, then fills child offsets
   // after recursion. Indexing by position (not pointer) is safe across
   // vector reallocation; C++17 RHS-before-LHS ensures fresh re-fetch of
-  // m_linearNodes[idx] after any push_back inside the recursive call.
+  // nodes[idx] after any push_back inside the recursive call.
   std::function<uint32_t(const TreeBVH<T, P, AABBType, K>&)> dfs =
     [&](const TreeBVH<T, P, AABBType, K>& node) -> uint32_t {
-    const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+    const uint32_t idx = static_cast<uint32_t>(nodes.size());
 
-    m_linearNodes.push_back({});
-    m_linearNodes[idx].m_bv = node.getBoundingVolume();
+    nodes.push_back({});
+    nodes[idx].m_bv = node.getBoundingVolume();
 
     if (node.isLeaf()) {
-      const auto& prims = node.getPrimitives();
+      const auto& leafPrims = node.getPrimitives();
 
-      m_linearNodes[idx].m_primOff  = static_cast<uint32_t>(m_primitives.size());
-      m_linearNodes[idx].m_numPrims = static_cast<uint32_t>(prims.size());
+      nodes[idx].m_primOff  = static_cast<uint32_t>(prims.size());
+      nodes[idx].m_numPrims = static_cast<uint32_t>(leafPrims.size());
 
-      StoragePolicy::appendTreeLeaf(m_primitives, prims);
+      StoragePolicy::appendTreeLeaf(prims, leafPrims);
     }
     else {
-      m_linearNodes[idx].m_numPrims = 0U;
-      m_linearNodes[idx].m_primOff  = 0U;
+      nodes[idx].m_numPrims = 0U;
+      nodes[idx].m_primOff  = 0U;
 
       const auto& children = node.getChildren();
 
       for (size_t k = 0; k < K; k++) {
-        m_linearNodes[idx].m_childOff[k] = dfs(*children[k]);
+        nodes[idx].m_childOff[k] = dfs(*children[k]);
       }
     }
     return idx;
   };
 
   dfs(a_tree);
-  buildSoA();
+  this->finalize(a_pool, nodes, prims);
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
 template <class Q, class Converter>
 inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
-  const TreeBVH<T, Q, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree, Converter&& a_converter)
+  Pool& a_pool, const TreeBVH<T, Q, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree, Converter&& a_converter)
 {
+  std::vector<Node>        nodes;
+  std::vector<StorageType> prims;
+
   using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
   // Accumulate converted P-values into a single contiguous buffer; StoragePolicy::appendAliased
-  // materialises it into m_primitives once every push_back below has completed (aliased
+  // materialises it into prims once every push_back below has completed (aliased
   // shared_ptrs, for the default SharedPtrStorage<P>, so no dangling pointers).
   auto dstStorage = std::make_shared<std::vector<P>>();
 
   std::function<uint32_t(const TreeBVH<T, Q, AABBType, K>&)> dfs =
     [&](const TreeBVH<T, Q, AABBType, K>& node) -> uint32_t {
-    const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+    const uint32_t idx = static_cast<uint32_t>(nodes.size());
 
-    m_linearNodes.push_back({});
-    m_linearNodes[idx].m_bv = node.getBoundingVolume();
+    nodes.push_back({});
+    nodes[idx].m_bv = node.getBoundingVolume();
 
     if (node.isLeaf()) {
-      const auto&    prims  = node.getPrimitives();
-      const uint32_t dstOff = static_cast<uint32_t>(dstStorage->size());
+      const auto&    leafPrims = node.getPrimitives();
+      const uint32_t dstOff    = static_cast<uint32_t>(dstStorage->size());
 
-      auto newVals = a_converter(prims, 0U, static_cast<uint32_t>(prims.size()));
+      auto newVals = a_converter(leafPrims, 0U, static_cast<uint32_t>(leafPrims.size()));
 
-      m_linearNodes[idx].m_primOff  = dstOff;
-      m_linearNodes[idx].m_numPrims = static_cast<uint32_t>(newVals.size());
+      nodes[idx].m_primOff  = dstOff;
+      nodes[idx].m_numPrims = static_cast<uint32_t>(newVals.size());
 
       for (auto&& v : newVals) {
         dstStorage->push_back(std::move(v));
       }
     }
     else {
-      m_linearNodes[idx].m_numPrims = 0U;
-      m_linearNodes[idx].m_primOff  = 0U;
+      nodes[idx].m_numPrims = 0U;
+      nodes[idx].m_primOff  = 0U;
 
       const auto& children = node.getChildren();
 
       for (size_t k = 0; k < K; k++) {
-        m_linearNodes[idx].m_childOff[k] = dfs(*children[k]);
+        nodes[idx].m_childOff[k] = dfs(*children[k]);
       }
     }
 
@@ -542,18 +692,22 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
 
   dfs(a_tree);
 
-  StoragePolicy::appendAliased(m_primitives, dstStorage);
+  StoragePolicy::appendAliased(prims, dstStorage);
 
-  this->buildSoA();
+  this->finalize(a_pool, nodes, prims);
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
 template <class S>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                                   a_pool,
+                                                    std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
                                                     size_t                                  a_targetLeafSize,
                                                     S)
 {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
+  std::vector<Node>        nodes;
+  std::vector<StorageType> prims;
   EBGEOMETRY_EXPECT(a_targetLeafSize > 0);
 
   const size_t numPrimitives = a_primsAndBVs.size();
@@ -622,10 +776,10 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
     primBlock->push_back(std::move(std::get<0>(entry)));
   }
 
-  StoragePolicy::appendAliased(m_primitives, primBlock);
+  StoragePolicy::appendAliased(prims, primBlock);
 
   // Build the K-ary structure bottom-up in a scratch array (reusing Node's own shape), then relay
-  // it out into m_linearNodes in depth-first pre-order below -- a bottom-up merge naturally
+  // it out into nodes in depth-first pre-order below -- a bottom-up merge naturally
   // produces the root last, but PackedBVH's traversal assumes the root is always at index 0.
   const size_t numRealLeaves = leafRanges.size();
 
@@ -687,20 +841,20 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
 
   const uint32_t scratchRoot = levelIndices.front();
 
-  // Relay the scratch tree into m_linearNodes in depth-first pre-order (root at index 0), exactly
+  // Relay the scratch tree into nodes in depth-first pre-order (root at index 0), exactly
   // matching the invariant the other two constructors establish.
-  m_linearNodes.reserve(scratch.size());
+  nodes.reserve(scratch.size());
 
   std::function<uint32_t(uint32_t)> relayout = [&](uint32_t a_scratchIdx) -> uint32_t {
-    const uint32_t newIdx = static_cast<uint32_t>(m_linearNodes.size());
+    const uint32_t newIdx = static_cast<uint32_t>(nodes.size());
 
-    m_linearNodes.push_back(scratch[a_scratchIdx]);
+    nodes.push_back(scratch[a_scratchIdx]);
 
     if (!scratch[a_scratchIdx].isLeaf()) {
       for (size_t c = 0; c < K; c++) {
         const uint32_t newChildIdx = relayout(scratch[a_scratchIdx].getChildOffsets()[c]);
 
-        m_linearNodes[newIdx].setChildOffset(static_cast<uint32_t>(newChildIdx), c);
+        nodes[newIdx].setChildOffset(static_cast<uint32_t>(newChildIdx), c);
       }
     }
 
@@ -709,15 +863,19 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
 
   relayout(scratchRoot);
 
-  buildSoA();
+  this->finalize(a_pool, nodes, prims);
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                                   a_pool,
+                                                    std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
                                                     const BVH::Partitioner<P, BV, K>&       a_partitioner,
                                                     const BVH::LeafPredicate<T, P, BV, K>&  a_stopCrit)
 {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
+  std::vector<Node>        nodes;
+  std::vector<StorageType> prims;
 
   // shared_ptr-wrap each primitive once, up front, so the existing Partitioner/LeafPredicate
   // machinery (which operates on PrimAndBVList) can be reused unchanged. This is not the cost
@@ -733,7 +891,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
 
   a_primsAndBVs.clear();
 
-  // Recursively partition top-down, writing nodes directly into m_linearNodes in pre-order (root
+  // Recursively partition top-down, writing nodes directly into nodes in pre-order (root
   // first) as the recursion unwinds -- unlike the SFC-build constructor above, top-down
   // partitioning visits the root before its children, so no relayout pass is needed here. At every
   // split, a lightweight, stack-local TreeBVH ("probe") is constructed purely to evaluate
@@ -741,21 +899,21 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
   // TreeBVH::topDownSortAndPartition()'s own contract) and to read off its primitive list; it is
   // discarded immediately afterward, never linked into a persistent tree.
   std::function<uint32_t(BVH::PrimAndBVList<P, BV>)> build = [&](BVH::PrimAndBVList<P, BV> a_prims) -> uint32_t {
-    const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+    const uint32_t idx = static_cast<uint32_t>(nodes.size());
 
-    m_linearNodes.push_back({});
+    nodes.push_back({});
 
     const BVH::TreeBVH<T, P, BV, K> probe(a_prims);
 
-    m_linearNodes[idx].setBoundingVolume(probe.getBoundingVolume());
+    nodes[idx].setBoundingVolume(probe.getBoundingVolume());
 
     if (a_stopCrit(probe) || a_prims.size() < K) {
       const auto& leafPrims = probe.getPrimitives();
 
-      m_linearNodes[idx].setPrimitivesOffset(static_cast<uint32_t>(m_primitives.size()));
-      m_linearNodes[idx].setNumPrimitives(static_cast<uint32_t>(leafPrims.size()));
+      nodes[idx].setPrimitivesOffset(static_cast<uint32_t>(prims.size()));
+      nodes[idx].setNumPrimitives(static_cast<uint32_t>(leafPrims.size()));
 
-      StoragePolicy::appendTreeLeaf(m_primitives, leafPrims);
+      StoragePolicy::appendTreeLeaf(prims, leafPrims);
     }
     else {
       // The partitioner takes its list by value and moves the sub-lists out; a_prims is not used
@@ -764,7 +922,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
 
       for (size_t k = 0; k < K; k++) {
         const uint32_t childIdx = build(std::move(children[k]));
-        m_linearNodes[idx].setChildOffset(childIdx, k);
+        nodes[idx].setChildOffset(childIdx, k);
       }
     }
 
@@ -773,16 +931,20 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
 
   build(std::move(wrapped));
 
-  buildSoA();
+  this->finalize(a_pool, nodes, prims);
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                                   a_pool,
+                                                    std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
                                                     BVH::ClusterSpec                        a_spec)
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "ClusterSAH requires BV == AABBT<T>");
 
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
+  std::vector<Node>        nodes;
+  std::vector<StorageType> prims;
   EBGEOMETRY_EXPECT(a_spec.maxClusterSize > 0);
 
   const size_t maxC = a_spec.maxClusterSize;
@@ -983,8 +1145,8 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
   primBlock->reserve(total);
 
   std::function<uint32_t(size_t, size_t)> build = [&](size_t a_begin, size_t a_end) -> uint32_t {
-    const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
-    m_linearNodes.push_back({});
+    const uint32_t idx = static_cast<uint32_t>(nodes.size());
+    nodes.push_back({});
 
     Vec3T<T> nlo = +Vec3T<T>::max();
     Vec3T<T> nhi = -Vec3T<T>::max();
@@ -994,11 +1156,11 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
       nhi = max(nhi, clusters[i].bv.getHighCorner());
     }
 
-    m_linearNodes[idx].setBoundingVolume(BV(nlo, nhi));
+    nodes[idx].setBoundingVolume(BV(nlo, nhi));
 
     if (a_end - a_begin < K) {
       // Leaf: fewer than K clusters -- append their primitives to the block, contiguously.
-      m_linearNodes[idx].setPrimitivesOffset(static_cast<uint32_t>(primBlock->size()));
+      nodes[idx].setPrimitivesOffset(static_cast<uint32_t>(primBlock->size()));
 
       uint32_t count = 0;
 
@@ -1008,7 +1170,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
           count++;
         }
       }
-      m_linearNodes[idx].setNumPrimitives(count);
+      nodes[idx].setNumPrimitives(count);
     }
     else {
       std::vector<std::pair<size_t, size_t>> groups;
@@ -1017,7 +1179,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
 
       for (size_t k = 0; k < K; k++) {
         const uint32_t childIdx = build(groups[k].first, groups[k].second);
-        m_linearNodes[idx].setChildOffset(childIdx, k);
+        nodes[idx].setChildOffset(childIdx, k);
       }
     }
 
@@ -1025,37 +1187,39 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<Storag
   };
   build(0, clusters.size());
 
-  StoragePolicy::appendAliased(m_primitives, primBlock);
+  StoragePolicy::appendAliased(prims, primBlock);
 
-  buildSoA();
+  this->finalize(a_pool, nodes, prims);
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
-inline const std::vector<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>&
+EBGEOMETRY_HOST_DEVICE
+inline PODSpan<const typename PackedBVH<T, P, K, StoragePolicy>::StorageType>
 PackedBVH<T, P, K, StoragePolicy>::getPrimitives() const noexcept
 {
-  return m_primitives;
+  return m_primitives.bind(this->base());
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
-inline std::vector<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>&
+EBGEOMETRY_HOST_DEVICE
+inline PODSpan<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>
 PackedBVH<T, P, K, StoragePolicy>::getPrimitives() noexcept
 {
-  return m_primitives;
+  return m_primitives.bind(const_cast<void*>(this->base()));
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
 inline const EBGeometry::BoundingVolumes::AABBT<T>&
 PackedBVH<T, P, K, StoragePolicy>::getBoundingVolume() const noexcept
 {
-  return m_linearNodes.front().getBoundingVolume();
+  return m_linearNodes.at(this->base(), 0).getBoundingVolume();
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
 inline EBGeometry::BoundingVolumes::AABBT<T>
 PackedBVH<T, P, K, StoragePolicy>::computeBoundingVolume() const noexcept
 {
-  return m_linearNodes.front().getBoundingVolume();
+  return m_linearNodes.at(this->base(), 0).getBoundingVolume();
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
@@ -1066,30 +1230,32 @@ PackedBVH<T, P, K, StoragePolicy>::traverse(const BVH::PackedLeafEvaluator<P, St
                                             const BVH::PackedChildOrderer<NodeKey, K>&        a_childOrderer,
                                             const BVH::NodeKeyFactory<Node, NodeKey>& a_nodeKeyFactory) const noexcept
 {
+  const void* poolBase = this->base();
+
   std::array<std::pair<uint32_t, NodeKey>, K> children;
 
   // Vector-backed stack avoids deque chunk allocations; reserve avoids reallocs.
   std::vector<std::pair<uint32_t, NodeKey>> q;
 
   q.reserve(64);
-  q.emplace_back(static_cast<uint32_t>(0), a_nodeKeyFactory(m_linearNodes[0]));
+  q.emplace_back(static_cast<uint32_t>(0), a_nodeKeyFactory(m_linearNodes.at(poolBase, 0)));
 
   while (!q.empty()) {
     const uint32_t nodeIdx = q.back().first;
     const NodeKey  nodeKey = q.back().second;
     q.pop_back();
 
-    const Node& node = m_linearNodes[nodeIdx];
+    const Node& node = m_linearNodes.at(poolBase, nodeIdx);
 
     if (a_prunePredicate(node, nodeKey)) {
       if (node.isLeaf()) {
-        a_leafEvaluator(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+        a_leafEvaluator(m_primitives.bind(poolBase), node.getPrimitivesOffset(), node.getNumPrimitives());
       }
       else {
         for (size_t k = 0; k < K; k++) {
           const uint32_t childIdx = node.getChildOffsets()[k];
           children[k].first       = childIdx;
-          children[k].second      = a_nodeKeyFactory(m_linearNodes[childIdx]);
+          children[k].second      = a_nodeKeyFactory(m_linearNodes.at(poolBase, childIdx));
         }
 
         a_childOrderer(children);
@@ -1343,13 +1509,24 @@ PackedBVH<T, P, K, StoragePolicy>::computeChildDistances2(const ChildAABBSoA& a_
 
 template <class T, class P, size_t K, class StoragePolicy>
 template <class State, class LeafEvaluator, class PruneDistSquared>
+EBGEOMETRY_HOST_DEVICE
 inline void
 PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
                                                  State&             a_state,
                                                  LeafEvaluator&&    a_evalLeaf,
                                                  PruneDistSquared&& a_pruneDist2) const noexcept
 {
-  StackEntry stack[s_hostStackDepth];
+  // One resolution for the whole traversal. Safe because a query performs no reservation, so the
+  // base cannot move underneath it.
+  const void* poolBase = this->base();
+
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+  constexpr size_t stackDepth = s_deviceStackDepth;
+#else
+  constexpr size_t stackDepth = s_hostStackDepth;
+#endif
+
+  StackEntry stack[stackDepth];
 
   int top = 0;
 
@@ -1367,7 +1544,7 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
       continue;
     }
 
-    const Node& node = m_linearNodes[entry.m_idx];
+    const Node& node = m_linearNodes.at(poolBase, entry.m_idx);
 
     if (node.isLeaf()) {
       a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
@@ -1375,7 +1552,7 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
     else {
       T dist2[K];
 
-      PackedBVH::computeChildDistances2(m_childAabbSoA[entry.m_idx], a_point, dist2);
+      PackedBVH::computeChildDistances2(m_childAabbSoA.at(poolBase, entry.m_idx), a_point, dist2);
 
       const auto& offsets = node.getChildOffsets();
 
@@ -1412,7 +1589,7 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
       // paying a push, a pop and a re-test for each of them.
       for (size_t k = 0; k < K; k++) {
         if (children[k].m_dist2 <= pruneDist2) {
-          EBGEOMETRY_EXPECT(top < static_cast<int>(s_hostStackDepth));
+          EBGEOMETRY_EXPECT(top < static_cast<int>(stackDepth));
 
           stack[top++] = children[k];
         }
@@ -1436,8 +1613,11 @@ PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor, c
   // allocations.
   std::vector<BV> boundingVolumes;
 
-  for (size_t i = m_linearNodes.size(); i-- > 0;) {
-    Node& node = m_linearNodes[i];
+  // refit() reserves nothing, so one resolution covers the whole sweep.
+  void* poolBase = const_cast<void*>(this->base());
+
+  for (uint32_t i = m_linearNodes.size(); i-- > 0;) {
+    Node& node = m_linearNodes.at(poolBase, i);
 
     boundingVolumes.clear();
 
@@ -1448,7 +1628,8 @@ PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor, c
       boundingVolumes.reserve(count);
 
       for (uint32_t p = 0; p < count; p++) {
-        boundingVolumes.emplace_back(a_bvConstructor(StoragePolicy::get(m_primitives[offset + p], a_base)));
+        boundingVolumes.emplace_back(
+          a_bvConstructor(StoragePolicy::get(m_primitives.at(poolBase, offset + p), a_base)));
       }
     }
     else {
@@ -1457,14 +1638,15 @@ PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor, c
       boundingVolumes.reserve(K);
 
       for (size_t k = 0; k < K; k++) {
-        boundingVolumes.emplace_back(m_linearNodes[childOffsets[k]].getBoundingVolume());
+        boundingVolumes.emplace_back(m_linearNodes.at(poolBase, childOffsets[k]).getBoundingVolume());
       }
     }
 
     node.setBoundingVolume(BV(boundingVolumes));
   }
 
-  this->buildSoA();
+  // Node count is unchanged, so the existing cache is refilled rather than re-reserved.
+  this->buildSoA(nullptr);
 }
 
 } // namespace BVH

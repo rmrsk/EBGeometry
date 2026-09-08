@@ -98,7 +98,7 @@ ebgeometry_add_test(TestPoolRebase)
 # When a GPU backend is enabled we compile just those files with the backend compiler (per-file
 # LANGUAGE) so the guarded device kernels are built and, on hardware, run.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
-  set(EBGEOMETRY_GPU_TESTS TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL)
+  set(EBGEOMETRY_GPU_TESTS TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVH)
 
   foreach(_ebgeometry_gpu_test ${EBGEOMETRY_GPU_TESTS})
     if(EBGEOMETRY_ENABLE_CUDA)

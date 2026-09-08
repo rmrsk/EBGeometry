@@ -61,13 +61,15 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
 
   constexpr std::size_t n = 2000;
 
+  Pool pool(hostMemoryResource());
+
   const std::vector<Vec3T<T>> pos = makeCloud<T>(n, 20260708u);
   std::vector<std::size_t>    meta(n);
   for (std::size_t i = 0; i < n; i++) {
     meta[i] = 7 * i + 3; // arbitrary user metadata, distinct from the cloud index
   }
 
-  const PointCloudBVH<T, std::size_t> bvh(pos, meta);
+  const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta);
 
   REQUIRE(bvh.numPoints() == n);
 
@@ -205,13 +207,15 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
   using T   = TestType;
   using Hit = typename PointCloudBVH<T, std::size_t>::Hit;
 
+  Pool pool(hostMemoryResource());
+
   const T notFound = std::numeric_limits<T>::max();
 
   SECTION("empty cloud: no out-of-bounds access, queries report nothing")
   {
     const std::vector<Vec3T<T>>         pos;
     const std::vector<std::size_t>      meta;
-    const PointCloudBVH<T, std::size_t> bvh(pos, meta);
+    const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta);
 
     CHECK(bvh.numPoints() == 0);
     // Must not read m_linearNodes[0]; a miss is signalled by the sentinel distance.
@@ -226,7 +230,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
   {
     const std::vector<Vec3T<T>>         pos  = {Vec3T<T>(T(0.25), T(0.5), T(0.75))};
     const std::vector<std::size_t>      meta = {42};
-    const PointCloudBVH<T, std::size_t> bvh(pos, meta);
+    const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta);
 
     const auto hit = bvh.closestPoint(pos[0]);
     CHECK(hit.index == 0);
@@ -243,7 +247,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
     constexpr std::size_t               n   = 3000;
     const std::vector<Vec3T<T>>         pos = makeCloud<T>(n, 555u);
     std::vector<std::size_t>            meta(n, 0);
-    const PointCloudBVH<T, std::size_t> bvh(pos, meta, /* targetLeafSize */ 2);
+    const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta, /* targetLeafSize */ 2);
 
     for (std::size_t i = 0; i < n; i += 23) {
       const auto truth = bruteForce<T>(pos, pos[i], 1, i);

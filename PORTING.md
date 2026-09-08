@@ -130,13 +130,14 @@ kernel and compares against the host:
 | Bounding volumes | `EBGeometry_BoundingVolumes.hpp` (`AABBT`, `SphereT`) | #132, #133 |
 | SoA/AoSoA leaves | `PointSoA`, `PointAoSoA`, `TriangleSoA`, `TriangleAoSoA` | #134 |
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
+| BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
 
 ## What is not
 
 | Component | Blocker |
 |---|---|
-| `TreeBVH` / `PackedBVH` | `std::vector` storage; `SharedPtrStorage` primitives; the scalar `pruneTraverse` path delegates to a `std::function`-based `traverse()` on a heap stack |
-| `MeshSDF` / `FlatMeshSDF` / `TriMeshSDF` | Blocked on the BVH |
+| `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
+| `MeshSDF` / `FlatMeshSDF` / `TriMeshSDF` | Their `PackedBVH` is ported and pool-backed, but the wrappers themselves are not yet device-callable; that is the next step |
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
 | `PointCloudBVH`, `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform`, analytic SDFs | Still the original virtual-`value()` design; this is where the tape returns |
@@ -163,7 +164,7 @@ kernel and compares against the host:
    `VertexT::computeVertexNormalAngleWeighted`. All three parts or none: the angle-weighted
    pseudonormal is what makes the sign correct, so a device `reconcile()` covering only faces would
    leave signs silently wrong near vertices and edges.
-2. **BVH.** Give `pruneTraverse` a real scalar implementation (fixed stack, hand-rolled sort over
+2. **BVH.** *(done on the `bvh_port_PR1` branch.)* Give `pruneTraverse` a real scalar implementation (fixed stack, hand-rolled sort over
    the ≤K children); move `PackedBVH`'s three arrays onto `Pool`/`PODVector`; add a trivially-copyable
    view plus a `[gpu]` test; then `TriMeshSDF` and `MeshSDF`. `TreeBVH` stays host-only — it is the
    builder, and static geometry builds on the host. Two questions this page previously left open are

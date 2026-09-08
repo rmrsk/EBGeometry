@@ -152,31 +152,38 @@ Restoring is one line, plus a policy that can hold polymorphic primitives.
   mutating the source no longer reaches it — this is the only way to move a packed geometry in place
   before `refit()`. The refit test caught this and now exercises the new path.
 
-## PR C — pool-backed storage and the device view
+## PR C — pool-backed storage and the device view *(done)*
 
-* All three arrays become `PODVector`: `m_linearNodes`, `m_childAabbSoA`, `m_primitives`. `Node` and
-  `ChildAABBSoA` are already trivially copyable, so only the containers change. Alignment needs no
-  special handling (finding 5).
-* Every construction entry point gains a `Pool&`: `pack(Pool&)`, `packWith(Pool&, converter)`, the
-  three direct `primsAndBVs` constructors, and the protected constructor `PointCloudBVH` uses.
-  `MeshSDF` and `TriMeshSDF` already take a `Pool&`, so their signatures are unchanged and the mesh
-  and its BVH land in one pool — one `mirror()`, one base, one `rebasedView`.
-* Add `m_control` / `m_base` / `base()` / `rebasedView(const Pool&)`, duplicating `DCEL::MeshT`'s
-  pattern rather than introducing a CRTP mixin (~15 lines; a base class complicates the
-  trivial-copyability `static_assert`s for no real saving).
-* `static_assert(std::is_trivially_copyable_v<PackedBVH<…>>)`, and on `StorageType`.
-* Device stack depth 64; add the device child-distance evaluator as the eighth evaluator.
-* Device callables: we compile with `--expt-relaxed-constexpr` but not `--extended-lambda`, so
-  device callers must pass functors, not lambdas. Keep the templated API for that, and additionally
-  ship the two common queries (signed distance, closest point) as ready-made device entry points so
-  ordinary users never write a callback.
-* `TreeBVH` stays host-only and unchanged — it is the builder, and static geometry builds on the
-  host. `refit()` likewise stays host-only; nothing yet needs moving geometry resident on device.
-* Add `TestBVH` to `EBGEOMETRY_GPU_TESTS` (`Tests/CMakeLists.txt:101`) and add a `[gpu]`-tagged case
-  that launches a kernel and compares against the host, following `TestDCEL.cpp:1491`.
-* Add a **host-to-host** `rebasedView` case: build a BVH, `mirror()` its pool into a second host
-  pool, rebase, require identical query results. This is the only way the rebase invariant executes
-  in CI, which has no GPU.
+* All three arrays are `PODVector`s reserved from a caller-supplied `Pool`: `m_linearNodes`,
+  `m_childAabbSoA`, `m_primitives`. Alignment needed no special handling (finding 5).
+* Every construction entry point takes a `Pool&`: `pack`, `packWith`, the three direct constructors,
+  the protected builder constructor, `PointCloudBVH`, and `TriMeshSDF`'s triangle-list constructor
+  (which previously had no pool at all). `MeshSDF`/`TriMeshSDF`'s mesh constructors already had one.
+* Construction still assembles into `std::vector` scratch and copies into the pool once, through a
+  single `finalize()`. A `PODVector` never reallocates, and no build knows its node count up front;
+  growth belongs in the host-only build step.
+* `m_control` / `m_base` / `base()` / `rebasedView()` / `deepCopy()` / `isAttachedTo()` duplicate
+  `DCEL::MeshT`'s pattern, as planned.
+* `static_assert(std::is_trivially_copyable_v<PackedBVH<...>>)` at both precisions and under both
+  storage policies.
+* `pruneTraverse` is `EBGEOMETRY_HOST_DEVICE`, with the stack depth selected by compilation pass:
+  256 on host, 64 on device.
+* `getPrimitives()` returns a `PODSpan` (const and mutable), and `PackedLeafEvaluator` takes one.
+* `TestBVH` is registered in `EBGEOMETRY_GPU_TESTS`, with a `[gpu]` case that launches a kernel over
+  a rebased view, plus a host-to-host `rebasedView` case that runs everywhere.
+
+### Two things worth knowing
+
+**A copy is no longer a deep copy.** A pool-resident `PackedBVH` is descriptors plus two address
+fields, so a copy aliases the original's pool memory. That shallowness is exactly what makes the type
+trivially copyable and therefore mirrorable, but it inverts what the old copy constructor meant.
+`deepCopy(Pool&)` is the replacement, and the copy test now asserts both halves.
+
+**The `[gpu]` case has never been compiled.** This machine has an NVIDIA RTX A4000 but no CUDA
+toolkit (`nvcc` is not installed), so neither the `cuda` nor the `hip` preset can be configured here.
+The functors the kernel passes to `pruneTraverse` are hoisted out of the device-only guard and used
+by the host rebase test, so the callable path is compiled and run on every build; the kernel launch
+itself is the only unverified part. It needs a machine with a toolkit before this is trusted.
 
 ## PR D — the SDF wrappers on device
 

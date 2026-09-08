@@ -67,7 +67,8 @@ main()
   // Build once. Everything (SoA grouping, PackedBVH construction) happens inside the constructor.
   EBGeometry::SimpleTimer timer;
   timer.start();
-  const PointCloud bvh(positions, metadata);
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+  const PointCloud bvh(pool, positions, metadata);
   timer.stop();
   const double buildSeconds = timer.seconds();
 

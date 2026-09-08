@@ -308,6 +308,30 @@ Swapping the policy only changes the element type of ``getPrimitives()`` and the
 vector handed to ``LeafEvaluator``/``PackedLeafEvaluator`` callbacks, never the tree structure,
 traversal order, or query results.
 
+Pool-backed storage
+____________________
+
+``PackedBVH``'s three arrays -- the flat node array, the primitive array, and the SoA child-AABB
+cache -- are ``PODVector``\ s reserved from a caller-supplied ``Pool`` (see :ref:`Chap:MemoryModel`),
+not ``std::vector``\ s. Every construction entry point therefore takes a ``Pool&``: ``pack()``,
+``packWith()``, all three direct constructors, and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
+which pass along the pool they already take. The pool must outlive the BVH.
+
+Construction itself still assembles the arrays in ordinary ``std::vector``\ s and copies them into
+the pool in one shot at the end. That is deliberate: a ``PODVector`` never reallocates, so it has no
+way to be filled incrementally without its final size fixed up front, and the node count is not
+known until a build finishes. Growth belongs in the host-only build step; nothing that crosses to a
+device is ever built incrementally.
+
+What this buys is that a ``PackedBVH`` is trivially copyable -- three 16-byte descriptors, a control
+block pointer, and a base pointer -- so a whole hierarchy crosses to a device as a byte copy with no
+pointer patching. ``rebasedView(Pool&)`` is the single sanctioned crossing, exactly as for
+``DCEL::MeshT``: mirror the pool, rebase on the host, then pass the returned value to a kernel.
+
+``getPrimitives()`` returns a ``PODSpan`` rather than a container reference. A span is a *resolved*
+address into pool memory, so it must not outlive the next ``Pool::reserve`` on that pool -- re-obtain
+it rather than caching it across a build step.
+
 Copy and move semantics
 ________________________
 
@@ -326,13 +350,14 @@ storage-sharing question above:
    ``std::shared_ptr<TreeBVH>``) while still sharing the immutable ``std::shared_ptr<const P>``
    primitives by handle. (Copying a ``std::shared_ptr<TreeBVH>`` is, of course, always fine -- that
    is shared ownership of the *same* tree, not a replica.)
-*  ``PackedBVH`` allows both copying and moving. Its members (the flattened node array, the
-   primitive array, and the SIMD AABB cache) are all owned value containers with no shared
-   mutable substructure, so the compiler-generated deep copy is correct and safe under both
-   policies. Under ``BVH::ValueStorage`` the primitives themselves are copied, which is sound for
-   every primitive the library packs. Under ``BVH::IndexStorage`` only the indices are copied, so
-   the copy refers to the same caller-owned primitive array as the original, and that array must
-   outlive both.
+*  ``PackedBVH`` allows both copying and moving, but a copy is **not** a deep copy. Its members are
+   three ``PODVector`` descriptors plus two address fields, so copying one copies offsets: the copy
+   resolves against the same pool memory as the original, and writing through either is visible
+   through the other. That shallowness is the point -- it is what makes the type trivially copyable,
+   and therefore what lets ``rebasedView()`` produce a value a kernel can consume directly. Use
+   ``deepCopy(Pool&)`` for storage of its own. (Under ``BVH::IndexStorage`` even a deep copy still
+   shares the caller-owned primitive array the indices refer to; only the BVH's own arrays are
+   duplicated.)
 
 Both classes' destructors are non-virtual: neither is intended to be subclassed or used
 polymorphically.
