@@ -247,6 +247,34 @@ kernel and compares against the host:
    `Pool`/`PODVector` from the start rather than on `std::vector` with an upload path bolted on. It
    depends on step 4 for its opcodes and on step 2 for the BVH-union opcodes, which reference the
    packed BVH arrays directly.
+
+   **After this, not before: a batched traversal path.** The device traversal step 2 shipped is
+   correctness-first (see its note above), and the eventual fix is a second traversal loop. The
+   agreed shape, recorded here so the reasoning survives the gap:
+
+   * **One API, two implementations — not a GPU-special function.** Add a batched entry point,
+     `pruneTraverseBatch(PODSpan<const Vec3T<T>> points, PODSpan<State> states, ...)`, implemented
+     twice: on host as a loop over queries using the existing SIMD child test, on device as a mapping
+     of queries onto threads or warps. Batching earns its keep on the host too (better node-cache
+     reuse), so the host exercises the batched API constantly and it cannot rot. The single-query
+     `pruneTraverse` stays for callers who want it.
+   * **Share the primitives, duplicate the loop.** `computeChildDistances2()`, the
+     descending-distance child ordering, and the `State`/`LeafEvaluator`/`PruneDistSquared` contract
+     stay common. The loop itself forks. Factoring on the child-distance evaluator was right for *ISA*
+     variation — that is all the seven pre-port copies differed by — but a batched device traversal
+     changes the parallelism axis, not the instruction: what a thread is, who owns the stack, where
+     queries come from. One loop serving both would be shaped for neither.
+   * **Do not build it before there are measurements.** Try Morton-sorting queries before launch
+     first; it attacks divergence and locality together and needs no kernel change at all. And measure
+     a *representative* workload: the real consumers (AMReX/Chombo EB generation) evaluate points
+     cell-by-cell over a grid, which is already close to Morton order, so a random-point benchmark
+     would overstate divergence badly and could justify a rebuild on false evidence.
+   * **Why after the tape and not before it.** Step 5 changes what a leaf evaluator is, so a batched
+     traversal built earlier gets partly rebuilt anyway.
+
+   Nothing needs doing now to keep this open: `pruneTraverse`'s contract already says nothing about
+   threads. The one thing worth adding alongside the first `[gpu]` benchmark is a coherent-query
+   case, so the choice of formulation has evidence behind it.
 6. **Examples and integrations.** A GPU section in `Examples/MeshSDF` (mirror to managed memory,
    evaluate the same points in a kernel), and an AMReX integration exercising device evaluation
    end to end.
