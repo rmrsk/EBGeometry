@@ -142,16 +142,15 @@ protected:
  * SIMD-accelerated traversal. Accepts any polygon, not just triangles.
  * @details The mesh faces are packed into a flat-array PackedBVH. SIMD traversal
  * is used when T and K match an available ISA path. Unlike TriMeshSDF, MeshSDF does not expose a
- * PackedBVH StoragePolicy choice: its PackedBVH always uses BVH::SharedPtrStorage<Face>, each
- * packed face being a fresh copy of the corresponding DCEL mesh face (DCEL::FaceT is a plain,
- * trivially-copyable value, so copying it is cheap and free of aliasing). That copy is only
+ * PackedBVH StoragePolicy choice: its PackedBVH always uses BVH::ValueStorage<Face>, each packed
+ * face being a fresh copy of the corresponding DCEL mesh face stored inline (DCEL::FaceT is a
+ * plain, trivially-copyable value, so copying it is cheap and free of aliasing). That copy is only
  * meaningful together with the mesh it was built from, though: a FaceT stores its half-edge as an
  * index into its owning mesh's edge array, not a self-resolving reference, so MeshSDF retains the
  * source mesh (m_mesh) and passes it to every DCEL::FaceT query that needs to resolve topology
  * (point-in-face tests, signed distance). TriMeshSDF's SoA groups, by contrast, need no such
  * external context -- they pack the triangle geometry by value with no index into anything else --
- * which is why it can store them inline and offers a StoragePolicy. See the user documentation for
- * the full rationale.
+ * which is why it offers a StoragePolicy. See the user documentation for the full rationale.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).
@@ -248,14 +247,20 @@ public:
 
   /**
    * @brief Return faces within BVH-pruned candidate distance of a_point.
-   * @details Traverses the PackedBVH and collects candidate faces.  The
-   * result pairs each face with its unsigned distance to a_point.
+   * @details Traverses the PackedBVH and collects candidate faces, pairing each with its unsigned
+   * distance to @p a_point.
+   *
+   * Faces are named by their index into this object's own BVH primitive array -- the array
+   * getBVH()->getPrimitives() returns -- and *not* by an index into the source mesh's face array.
+   * Packing reorders primitives into leaf order and (under the default BVH::ValueStorage) stores
+   * them by value, so nothing records which mesh face a packed face came from. Resolve an index
+   * with getBVH()->getPrimitives()[index].
    * @param[in] a_point  Query point.
    * @param[in] a_sorted If true, the returned vector is sorted by ascending
    * unsigned distance (closest face first).
-   * @return Vector of (face, unsigned_distance) pairs, optionally sorted.
+   * @return Vector of (BVH primitive index, unsigned_distance) pairs, optionally sorted.
    */
-  [[nodiscard]] virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  [[nodiscard]] virtual std::vector<std::pair<uint32_t, T>>
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const;
 
   /**
@@ -311,8 +316,8 @@ protected:
  * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
  * never reads the metadata; getClosestTriangle() does, returning the closest triangle's signed
  * distance together with its Meta (see issue #105).
- * @tparam StoragePolicy PackedBVH primitive storage policy (see BVH::SharedPtrStorage /
- * BVH::ValueStorage). Defaults to BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, storing each group
+ * @tparam StoragePolicy PackedBVH primitive storage policy (see BVH::ValueStorage /
+ * BVH::IndexStorage). Defaults to BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, storing each group
  * inline with no pointer indirection -- unlike MeshSDF's faces, these groups are freshly
  * constructed by groupTrianglesIntoSoA() during packing and shared with nothing else, so there is
  * no aliasing benefit to give up. Note that instancing the same mesh multiple times (e.g. via
@@ -398,11 +403,13 @@ public:
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
    * @param[in] a_triangles     Input triangle soup.
+   * @param[in,out] a_pool      Pool the packed BVH's arrays are reserved from; must outlive this object.
    * @param[in] a_build         BVH build strategy (see the mesh-based constructor for details).
    * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
    * the mesh-based constructor for the tree-quality/SIMD-occupancy trade-off). Must be > 0.
    */
   TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+             Pool&                                    a_pool,
              const BVH::Build                         a_build,
              const size_t                             a_maxLeafGroups) noexcept;
 

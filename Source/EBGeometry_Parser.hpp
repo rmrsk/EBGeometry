@@ -257,7 +257,7 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const B
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>()
  * (8/float or 4/double on AVX; 4 otherwise).
  * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF (see
- * BVH::SharedPtrStorage / BVH::ValueStorage). Defaults to
+ * BVH::ValueStorage / BVH::IndexStorage). Defaults to
  * BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, matching TriMeshSDF's own default.
  * @param[in]     a_filename      File name (STL, PLY, or VTK).
  * @param[in,out] a_pool          Pool to reserve the intermediate DCEL mesh's storage from. The

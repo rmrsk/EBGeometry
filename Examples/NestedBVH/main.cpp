@@ -30,6 +30,7 @@ using IF   = EBGeometry::ImplicitFunction<T>;
 int
 main(int argc, char* argv[])
 {
+#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
   // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated CSG union
   // (BVHUnionIF) whose primitives are themselves BVH-backed mesh signed distance functions
   // (TriMeshSDF). Each TriMeshSDF owns an inner PackedBVH over its SoA triangle groups, so a single
@@ -105,4 +106,17 @@ main(int argc, char* argv[])
   }
 
   return 0;
+#else
+  // BVH-accelerated CSG unions are compiled out while the implicit-function layer awaits its
+  // index-based redesign; see the EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
+  (void)argc;
+  (void)argv;
+
+  std::cout << "This example is temporarily disabled: it is built on EBGeometry's BVH-accelerated\n"
+               "CSG union (BVHUnion/BVHUnionIF), which is compiled out during the GPU port while\n"
+               "the implicit-function and CSG layer is moved to an index-based design.\n"
+               "See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.\n";
+
+  return 0;
+#endif
 }

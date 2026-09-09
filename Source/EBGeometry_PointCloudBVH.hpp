@@ -103,11 +103,13 @@ public:
 
   /**
    * @brief Build a BVH over a point cloud.
+   * @param[in,out] a_pool       Pool the packed BVH's arrays are reserved from; must outlive this object.
    * @param[in] a_positions      Point positions.
    * @param[in] a_metadata       Per-point user metadata (same length/order as a_positions).
    * @param[in] a_targetLeafSize Target points per leaf (the build stops splitting at or below it).
    */
-  inline PointCloudBVH(const std::vector<Vec3T<T>>& a_positions,
+  inline PointCloudBVH(Pool&                        a_pool,
+                       const std::vector<Vec3T<T>>& a_positions,
                        const std::vector<Meta>&     a_metadata,
                        std::size_t                  a_targetLeafSize = 16 * W);
 
@@ -255,11 +257,13 @@ private:
    * @brief Delegated-to constructor: adopt a completed build result and retain the cloud data.
    * @details Moves the BVH arrays out of a_build into the base PackedBVH, and copies the point cloud
    * (positions, metadata) and per-point seeding tables into this class.
+   * @param[in,out] a_pool      Pool the packed BVH's arrays are reserved from; must outlive this object.
    * @param[in,out] a_build     Completed index-based build result (consumed).
    * @param[in]     a_positions Point positions (indexed by cloud index).
    * @param[in]     a_metadata  Per-point user metadata (same length/order as a_positions).
    */
-  inline PointCloudBVH(BuildResult&&                a_build,
+  inline PointCloudBVH(Pool&                        a_pool,
+                       BuildResult&&                a_build,
                        const std::vector<Vec3T<T>>& a_positions,
                        const std::vector<Meta>&     a_metadata);
 

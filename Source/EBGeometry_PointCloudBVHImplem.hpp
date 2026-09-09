@@ -25,10 +25,11 @@
 namespace EBGeometry {
 
 template <class T, class Meta, size_t K, size_t W>
-inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(const std::vector<Vec3T<T>>& a_positions,
+inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(Pool&                        a_pool,
+                                                   const std::vector<Vec3T<T>>& a_positions,
                                                    const std::vector<Meta>&     a_metadata,
                                                    std::size_t                  a_targetLeafSize)
-  : PointCloudBVH(buildTree(a_positions, a_targetLeafSize), a_positions, a_metadata)
+  : PointCloudBVH(a_pool, buildTree(a_positions, a_targetLeafSize), a_positions, a_metadata)
 {
   static_assert(std::is_floating_point_v<T>, "PointCloudBVH requires a floating-point type T");
   static_assert(K >= 2, "PointCloudBVH requires a branching factor K >= 2");
@@ -39,10 +40,11 @@ inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(const std::vector<Vec3T<T>>& 
 }
 
 template <class T, class Meta, size_t K, size_t W>
-inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(BuildResult&&                a_build,
+inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(Pool&                        a_pool,
+                                                   BuildResult&&                a_build,
                                                    const std::vector<Vec3T<T>>& a_positions,
                                                    const std::vector<Meta>&     a_metadata)
-  : Base(std::move(a_build.nodes), std::move(a_build.primitives)),
+  : Base(a_pool, a_build.nodes, a_build.primitives),
     m_positions(a_positions),
     m_metadata(a_metadata),
     m_leafOff(std::move(a_build.leafOff)),
@@ -271,7 +273,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
 
     const auto scanLeafBest = [this, &a_query, a_exclude](Best& a_best, std::size_t a_off, std::size_t a_cnt) noexcept {
       for (std::size_t g = 0; g < a_cnt; g++) {
-        const PointGroup&      group     = this->m_primitives[a_off + g];
+        const PointGroup&      group     = this->m_primitives.at(this->base(), a_off + g);
         const std::array<T, W> distances = group.getDistances2(a_query);
 
         for (std::size_t lane = 0; lane < W; lane++) {
@@ -306,7 +308,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
       stack[stackTop++] = 0U;
 
       while (stackTop > 0) {
-        const Node& node = this->m_linearNodes[stack[--stackTop]];
+        const Node& node = this->m_linearNodes.at(this->base(), stack[--stackTop]);
 
         if (node.getDistanceToBoundingVolume2(a_query) >= best.distanceSquared) {
           continue; // stale: best tightened since this node was pushed
@@ -323,7 +325,8 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
           const auto& childOffsets = node.getChildOffsets();
 
           for (std::size_t k = 0; k < K; k++) {
-            if (this->m_linearNodes[childOffsets[k]].getDistanceToBoundingVolume2(a_query) < best.distanceSquared) {
+            if (this->m_linearNodes.at(this->base(), childOffsets[k]).getDistanceToBoundingVolume2(a_query) <
+                best.distanceSquared) {
               EBGEOMETRY_EXPECT(stackTop < maxStack);
 
               stack[stackTop++] = childOffsets[k];
@@ -396,7 +399,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
 
   const auto processLeaf = [this, &a_query](QState& a_state, std::size_t a_off, std::size_t a_cnt) noexcept {
     for (std::size_t g = 0; g < a_cnt; g++) {
-      const PointGroup&      group     = this->m_primitives[a_off + g];
+      const PointGroup&      group     = this->m_primitives.at(this->base(), a_off + g);
       const std::array<T, W> distances = group.getDistances2(a_query);
 
       for (std::size_t lane = 0; lane < W; lane++) {

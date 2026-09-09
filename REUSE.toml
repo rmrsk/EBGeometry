@@ -24,6 +24,7 @@ path = [
   "CLAUDE.md",
   "Scripts/CheckDocs.py",
   "Copyright.txt",
+  "BVH_PORT_SUMMARY.md",
   "PLAN.md",
   "PORTING.md",
   "README.md",

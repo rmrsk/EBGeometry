@@ -323,6 +323,10 @@ TEMPLATE_TEST_CASE("SmoothUnion: free function matches SmoothUnionIF for both th
   }
 }
 
+// The whole BVH-accelerated union section is compiled out together with the classes it exercises,
+// which await the index-based redesign of the implicit-function layer. See the
+// EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
+#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
 // ─────────────────────────────────────────────────────────────────────────────
 // BVHUnionIF / BVHUnion() and BVHSmoothUnionIF / BVHSmoothUnion()
 // ─────────────────────────────────────────────────────────────────────────────
@@ -530,6 +534,7 @@ TEMPLATE_TEST_CASE("BVHUnionIF::getBoundingVolume encloses every input sphere",
     REQUIRE(rootBV.getHighCorner()[0] >= bv.getHighCorner()[0] - T(exactMargin<T>()));
   }
 }
+#endif // EBGEOMETRY_ENABLE_BVH_CSG_UNION
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IntersectionIF / Intersection()

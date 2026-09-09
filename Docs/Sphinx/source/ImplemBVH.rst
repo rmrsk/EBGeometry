@@ -277,24 +277,60 @@ policy is a stateless struct exposing a ``StorageType`` type alias plus the stat
 ``get()``, ``appendTreeLeaf()``, and ``appendAliased()`` that ``PackedBVH`` calls internally when
 packing and querying; see `the BVH namespace's doxygen page
 <doxygen/html/namespaceEBGeometry_1_1BVH.html>`__ for the exact member list each one must provide.
-Two are provided out of the box:
+Every policy's ``StorageType`` is trivially copyable. That is a hard requirement, not a
+coincidence: it is what lets ``PackedBVH`` keep a single primitive-array backend rather than a
+separate, permanently host-only one, and it is what will let a packed BVH be mirrored into a device
+address space by a plain byte copy. A ``SharedPtrStorage`` policy existed until the GPU port and was
+removed for exactly that reason — see :ref:`Sec:PolymorphicPrimitives` below for the one use that
+depended on it. Two policies are provided:
 
-*  ``BVH::SharedPtrStorage<P>`` (the default for both ``pack()`` and ``packWith()``) stores each
-   primitive as a ``std::shared_ptr<const P>``, matching the pre-existing behavior of every
-   caller that does not name a ``StoragePolicy`` explicitly. Primitives are shared with whatever
-   else still holds a pointer to them (e.g. a ``DCEL::FaceT`` referenced by a ``TreeBVH``), at the
-   cost of one pointer indirection per access during traversal.
-*  ``BVH::ValueStorage<P>`` stores each primitive inline, by value: ``StorageType`` is ``P``
-   itself, with no indirection at all. This trades away sharing (the ``PackedBVH`` now owns an
-   independent copy of every primitive) for a smaller, more cache-friendly primitive array — most
-   useful when ``P`` is a small, cheaply-copyable value type (e.g. a point or particle) rather
-   than something large or already reference-counted elsewhere.
+*  ``BVH::ValueStorage<P>`` (**the default**, for ``pack()``, ``packWith()`` and the direct
+   constructors) stores each primitive inline, by value: ``StorageType`` is ``P`` itself, with no
+   indirection at all. The ``PackedBVH`` owns an independent copy of every primitive, and because
+   packing reorders primitives into leaf order, a leaf scan walks contiguous memory.
+*  ``BVH::IndexStorage<P>`` stores a ``uint32_t`` index into a primitive array the *caller* owns.
+   ``get()`` resolves an index against a base pointer supplied by the caller, so several BVHs can
+   index one primitive set and an edit to that set is seen by all of them at once. Four bytes per
+   primitive and no duplication, traded against a scattered load per primitive instead of a
+   contiguous one. It does not manage lifetime: the array the indices resolve against must outlive
+   every BVH indexing into it, and nothing checks that.
 
-Both policies are drop-in compatible with every existing ``PackedBVH`` consumer: swapping the
-policy only changes the element type of ``getPrimitives()`` and the leaf-primitive vector handed
-to ``LeafEvaluator``/``PackedLeafEvaluator`` callbacks, never the tree structure, traversal order,
-or query results. A caller that wants ``ValueStorage`` instead of the default simply names it
-explicitly, e.g. ``tree->pack<BVH::ValueStorage<P>>()``.
+Prefer ``ValueStorage`` — it is the default for good reason — unless the duplication is the binding
+constraint on a large primitive set, or the sharing itself is the point.
+
+``IndexStorage`` cannot be built from a ``TreeBVH``: a tree's leaves hold ``shared_ptr<const P>``
+and carry no index into any owning array, so there is nothing for ``appendTreeLeaf()`` to record and
+calling ``pack()``/``packWith()`` with it is a compile error. Build one through ``PackedBVH``'s
+direct constructors instead, passing ``(index, bounding volume)`` pairs; those partition on the
+bounding volumes alone and never need the primitive itself.
+
+Swapping the policy only changes the element type of ``getPrimitives()`` and the leaf-primitive
+vector handed to ``LeafEvaluator``/``PackedLeafEvaluator`` callbacks, never the tree structure,
+traversal order, or query results.
+
+Pool-backed storage
+____________________
+
+``PackedBVH``'s three arrays -- the flat node array, the primitive array, and the SoA child-AABB
+cache -- are ``PODVector``\ s reserved from a caller-supplied ``Pool`` (see :ref:`Chap:MemoryModel`),
+not ``std::vector``\ s. Every construction entry point therefore takes a ``Pool&``: ``pack()``,
+``packWith()``, all three direct constructors, and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
+which pass along the pool they already take. The pool must outlive the BVH.
+
+Construction itself still assembles the arrays in ordinary ``std::vector``\ s and copies them into
+the pool in one shot at the end. That is deliberate: a ``PODVector`` never reallocates, so it has no
+way to be filled incrementally without its final size fixed up front, and the node count is not
+known until a build finishes. Growth belongs in the host-only build step; nothing that crosses to a
+device is ever built incrementally.
+
+What this buys is that a ``PackedBVH`` is trivially copyable -- three 16-byte descriptors, a control
+block pointer, and a base pointer -- so a whole hierarchy crosses to a device as a byte copy with no
+pointer patching. ``rebasedView(Pool&)`` is the single sanctioned crossing, exactly as for
+``DCEL::MeshT``: mirror the pool, rebase on the host, then pass the returned value to a kernel.
+
+``getPrimitives()`` returns a ``PODSpan`` rather than a container reference. A span is a *resolved*
+address into pool memory, so it must not outlive the next ``Pool::reserve`` on that pool -- re-obtain
+it rather than caching it across a build step.
 
 Copy and move semantics
 ________________________
@@ -314,48 +350,46 @@ storage-sharing question above:
    ``std::shared_ptr<TreeBVH>``) while still sharing the immutable ``std::shared_ptr<const P>``
    primitives by handle. (Copying a ``std::shared_ptr<TreeBVH>`` is, of course, always fine -- that
    is shared ownership of the *same* tree, not a replica.)
-*  ``PackedBVH`` allows both copying and moving. Its members (the flattened node array, the
-   primitive array, and the SIMD AABB cache) are all owned value containers with no shared
-   mutable substructure, so the compiler-generated deep copy is correct and safe under both
-   ``BVH::SharedPtrStorage`` (primitives are aliased ``shared_ptr``, the same sharing model as
-   ``TreeBVH``) and ``BVH::ValueStorage`` (primitives are copied by value -- safe as long as the
-   primitive type's own copy constructor is complete; see the note on ``DCEL::FaceT`` in
-   :ref:`Chap:MeshSDFClasses` for a case where it deliberately is not).
+*  ``PackedBVH`` allows both copying and moving, but a copy is **not** a deep copy. Its members are
+   three ``PODVector`` descriptors plus two address fields, so copying one copies offsets: the copy
+   resolves against the same pool memory as the original, and writing through either is visible
+   through the other. That shallowness is the point -- it is what makes the type trivially copyable,
+   and therefore what lets ``rebasedView()`` produce a value a kernel can consume directly. Use
+   ``deepCopy(Pool&)`` for storage of its own. (Under ``BVH::IndexStorage`` even a deep copy still
+   shares the caller-owned primitive array the indices refer to; only the BVH's own arrays are
+   duplicated.)
 
 Both classes' destructors are non-virtual: neither is intended to be subclassed or used
 polymorphically.
 
-When ``ValueStorage`` is the wrong choice
-_________________________________________
+.. _Sec:PolymorphicPrimitives:
 
-There are two situations where ``ValueStorage`` should not be used and ``SharedPtrStorage`` (the
-default) must be kept:
+Polymorphic primitives are not currently supported
+___________________________________________________
 
-*  **Polymorphic primitives.** ``ValueStorage<P>`` stores ``P`` by value, so it requires ``P`` to
-   be a concrete, copyable value type. If ``P`` is an abstract base (or you rely on virtual
-   dispatch through a base pointer), value storage either fails to compile or slices the object to
-   its static type. This is exactly the situation of the BVH-accelerated CSG unions
-   (:ref:`Chap:ImplemCSG`), whose primitive is ``ImplicitFunction<T>`` and whose leaf evaluator
-   calls a virtual ``value()`` through a ``std::shared_ptr<const ImplicitFunction<T>>``; those
-   classes therefore always use ``SharedPtrStorage`` and do not expose the policy. Use
-   ``ValueStorage`` only when ``P`` is a self-contained value type (a point, a particle, an SoA
-   triangle group), never for a polymorphic hierarchy.
-*  **Nesting a BVH inside a BVH.** A ``PackedBVH`` whose primitive is itself another
-   ``PackedBVH`` (or a mesh SDF that owns one) is a supported construction, and nothing stops it
-   recursing further — ``PackedBVH`` of ``PackedBVH`` of ``PackedBVH``, to any depth. At every
-   level the *outer* ``PackedBVH`` should stay on ``SharedPtrStorage`` so it shares each inner BVH
-   by pointer. Naming ``ValueStorage`` on an outer level instead copies every inner ``PackedBVH``
-   wholesale — its node, SoA, and primitive arrays — into the outer array: packing draws each
-   primitive from the source tree as a ``std::shared_ptr<const P>``, so each inner BVH is *copied*
-   (not moved) into place, even though ``PackedBVH`` is otherwise fully movable (see *Copy and move
-   semantics* above). The cost of that copy is proportional to the *entire* memory footprint
-   reachable below the primitive, so it becomes exceedingly expensive whenever an inner BVH is
-   large, and compounds with nesting depth: each by-value level duplicates everything beneath it,
-   which may itself be duplicating everything beneath *it*. ``SharedPtrStorage`` at every outer
-   level avoids this for no loss of correctness. The common realisation of nesting — a
-   ``BVHUnion`` over several mesh SDFs, each holding its own inner ``PackedBVH`` — is exactly the
-   polymorphic-primitive case above, so it already sits on ``SharedPtrStorage`` at the outer level
-   and shares each mesh SDF by pointer.
+Both policies require ``P`` to be a concrete type. ``ValueStorage<P>`` stores ``P`` by value, so an
+abstract base either fails to compile or slices the object to its static type; ``IndexStorage<P>``
+indexes a flat array of ``P``, which is meaningless when the elements are of different derived types
+and therefore different sizes. Neither can hold a polymorphic hierarchy, and the ``SharedPtrStorage``
+policy that could has been removed because a ``shared_ptr`` is not trivially copyable and so can
+never cross into a device address space.
+
+One part of the library depended on exactly that: the BVH-accelerated CSG unions
+(:ref:`Chap:ImplemCSG`), whose primitive is ``ImplicitFunction<T>`` and whose leaf evaluator calls a
+virtual ``value()`` through a base pointer. ``BVHUnionIF``, ``BVHSmoothUnionIF`` and their
+``BVHUnion``/``BVHSmoothUnion`` factories are therefore **compiled out** at present, behind
+``EBGEOMETRY_ENABLE_BVH_CSG_UNION`` in :file:`Source/EBGeometry_CSG.hpp`, along with the examples
+and tests that exercise them.
+
+The resolution is not another storage policy but the index-based redesign of the implicit-function
+and CSG layer as a whole, which replaces virtual dispatch with a linear-SSA tape. Nesting a BVH
+inside a BVH — the common realisation of which was a ``BVHUnion`` over several mesh SDFs — returns
+with it.
+
+Note that a ``PackedBVH`` whose primitive is a concrete BVH-backed type is still a by-value copy of
+everything reachable below that primitive, which is expensive for a large inner BVH and compounds
+with nesting depth. ``IndexStorage`` is the tool for that case: it stores four bytes per inner
+object and leaves the objects themselves in one caller-owned array.
 
 Tree traversal
 ---------------
@@ -454,7 +488,16 @@ distance to the query point exceeds the pruning rule's *current* bound; otherwis
 leaf, calls leaf-eval once for the whole leaf; otherwise (an interior node), computes all ``K``
 children's squared distances to the query point in a single SIMD batch, sorts them so the
 closest child is visited next, and pushes every child still within the (freshly re-evaluated)
-pruning bound. Because the bound is re-read from the current ``State`` at every node visited --
+pruning bound.
+
+There is exactly **one** such loop, and it runs whether or not the ``(K, T)`` pair in use has a
+compiled SIMD path. Only the per-child squared-distance computation differs: a vector batch when
+one of the ISA paths matches, and an ordinary scalar loop over the ``K`` children otherwise (which
+is also what device code runs). Both compute the same quantity in the same association order, so
+they agree bit-for-bit -- a query answered on a build with no SIMD returns exactly what the same
+query returns on an AVX-512 build, and the unit tests pin this by sweeping ``K`` across values
+that do and do not have a vector path and requiring exact equality. Stack handling, pruning,
+child ordering and leaf dispatch are shared code in every configuration. Because the bound is re-read from the current ``State`` at every node visited --
 never cached from the start of the traversal -- a leaf visited anywhere earlier on the stack
 immediately tightens the pruning applied to every node visited afterwards, regardless of which
 subtree it came from.
@@ -537,7 +580,7 @@ BVH type, and supported geometry:
      - Debug / tiny meshes only; no build cost
    * - ``MeshSDF<T, Meta, K>``
      - DCEL mesh
-     - ``PackedBVH`` over ``DCEL::FaceT`` (always ``BVH::SharedPtrStorage``)
+     - ``PackedBVH`` over ``DCEL::FaceT`` (always ``BVH::ValueStorage``)
      - ``pruneTraverse()`` (SIMD when ``(K, T)`` matches a compiled ISA path)
      - Any polygon mesh; not restricted to triangles
    * - ``TriMeshSDF<T, Meta, K, W, StoragePolicy>``
@@ -581,25 +624,22 @@ What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
 Primitive storage: Facets or triangles
 ______________________________________
 
-Both classes' underlying ``PackedBVH`` accepts the ``StoragePolicy`` axis described above, but
-they default -- and, for ``MeshSDF``, are restricted -- differently:
+Both classes store their primitives inline, by value, though only one of them lets you say so:
 
-*  ``MeshSDF`` always uses ``BVH::SharedPtrStorage<DCEL::FaceT<T, Meta>>`` and does not expose a
-   ``StoragePolicy`` template parameter at all. This is not merely a default: ``DCEL::FaceT``'s
-   copy constructor deliberately does *not* copy its cached 2D polygon embedding (used by
-   ``signedDistance()``'s point-in-face test) or its inside/outside algorithm choice, since
-   ``FaceT``'s half-edge back-reference is only topologically meaningful relative to a specific
-   mesh (the same reasoning documented for ``VertexT``/``EdgeT``'s copy constructors). A
-   ``BVH::ValueStorage``-style plain copy would therefore leave every packed face with an
-   uninitialized embedding, crashing on the first query rather than merely losing sharing --
-   so ``MeshSDF`` simply never offers that choice.
-*  ``TriMeshSDF`` defaults to ``BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>`` instead of
-   ``BVH::SharedPtrStorage``, and *does* expose ``StoragePolicy`` as an overridable template
-   parameter (its 5th, after ``W``). Unlike ``DCEL::FaceT``, each ``TriangleAoSoA<T, Meta, W>`` group
-   is a plain aggregate of coordinate arrays plus a per-lane metadata array, with no cached derived
-   state or back-references, built fresh by ``groupTrianglesIntoSoA()`` during packing and shared
-   with nothing else -- so storing it inline is both safe and, avoiding one heap allocation and
-   pointer indirection per group, the better default.
+*  ``MeshSDF`` always uses ``BVH::ValueStorage<DCEL::FaceT<T, Meta>>`` and does not expose a
+   ``StoragePolicy`` template parameter at all. A ``DCEL::FaceT`` is a plain, trivially-copyable
+   value -- every member is a scalar, a ``Vec3``, or a ``uint32_t`` index -- so copying one into the
+   packed array is cheap and free of aliasing. What a copied face is *not* is self-contained: it
+   stores its half-edge as an index into its owning mesh's edge array rather than a self-resolving
+   reference, so it is only meaningful together with that mesh. ``MeshSDF`` therefore retains the
+   source mesh and passes it to every face query that has to resolve topology (point-in-face tests,
+   signed distance). Sharing the faces with the mesh instead would not avoid that, which is why
+   there is no policy to choose.
+*  ``TriMeshSDF`` also defaults to ``BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>``, and *does*
+   expose ``StoragePolicy`` as an overridable template parameter (its 5th, after ``W``). Unlike
+   ``DCEL::FaceT``, each ``TriangleAoSoA<T, Meta, W>`` group is fully self-contained -- a plain
+   aggregate of coordinate arrays plus a per-lane metadata array, with no index into anything else,
+   built fresh by ``groupTrianglesIntoSoA()`` during packing.
 
 Neither default is affected by instancing the same mesh multiple times (e.g. placing several
 ``Translate``/``Rotate``/``Scale``-wrapped copies of one mesh into a ``Union``): those wrappers
