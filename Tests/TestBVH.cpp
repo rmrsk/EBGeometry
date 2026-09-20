@@ -1340,8 +1340,9 @@ bruteForceNearest2(const std::vector<Vec3T<T>>& a_positions, const Vec3T<T>& a_q
 }
 
 // Nearest-squared-distance query via pruneTraverse(), shared by the direct-SFC-build tests below.
-// Works for both BVH::SharedPtrStorage and BVH::ValueStorage primitives since StorageType's `->`
-// vs `.` access is hidden behind the caller-supplied evalLeaf in each test.
+// Works for both BVH::ValueStorage and BVH::IndexStorage since resolving a StorageType back to a
+// primitive -- identity for one, an index lookup against a caller-owned array for the other -- is
+// hidden behind the caller-supplied evalLeaf in each test.
 
 } // namespace
 

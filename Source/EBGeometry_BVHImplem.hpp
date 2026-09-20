@@ -652,8 +652,8 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
   using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
   // Accumulate converted P-values into a single contiguous buffer; StoragePolicy::appendAliased
-  // materialises it into prims once every push_back below has completed (aliased
-  // shared_ptrs, for the default SharedPtrStorage<P>, so no dangling pointers).
+  // materialises it into prims once every push_back below has completed. Under the default
+  // ValueStorage<P> that is a move of the whole buffer, so no element is copied twice.
   auto dstStorage = std::make_shared<std::vector<P>>();
 
   std::function<uint32_t(const TreeBVH<T, Q, AABBType, K>&)> dfs =

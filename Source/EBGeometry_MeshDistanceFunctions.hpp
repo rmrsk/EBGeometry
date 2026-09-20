@@ -316,14 +316,18 @@ protected:
  * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
  * never reads the metadata; getClosestTriangle() does, returning the closest triangle's signed
  * distance together with its Meta (see issue #105).
- * @tparam StoragePolicy PackedBVH primitive storage policy (see BVH::ValueStorage /
- * BVH::IndexStorage). Defaults to BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, storing each group
- * inline with no pointer indirection -- unlike MeshSDF's faces, these groups are freshly
- * constructed by groupTrianglesIntoSoA() during packing and shared with nothing else, so there is
- * no aliasing benefit to give up. Note that instancing the same mesh multiple times (e.g. via
+ * @tparam StoragePolicy PackedBVH primitive storage policy. Must be a by-value policy whose
+ * StorageType is TriangleAoSoA<T, Meta, W>; BVH::ValueStorage<TriangleAoSoA<T, Meta, W>> is the
+ * default and, today, the only such policy. BVH::IndexStorage is *not* usable here and is rejected
+ * by a static_assert below: an index has to resolve against an array somebody else owns, and these
+ * SoA groups are built by groupTrianglesIntoSoA() during packing and owned by nothing else, so
+ * there is no such array to index into. Storing them inline is therefore not a trade-off but the
+ * only representation available. Note that instancing the same mesh multiple times (e.g. via
  * Translate/Rotate/Scale or a CSG union) is unaffected either way: those wrappers hold a
- * shared_ptr to the whole TriMeshSDF, so its packed data -- however StoragePolicy stores it -- is
- * never duplicated per placement. See the user documentation for the full rationale.
+ * shared_ptr to the whole TriMeshSDF, so its packed data is never duplicated per placement.
+ * Giving TriMeshSDF a pool-resident group array that a policy could index belongs with the
+ * de-virtualisation of the SDF wrappers (PORTING.md step 4), not with the storage policy. See the
+ * user documentation for the full rationale.
  */
 template <class T,
           class Meta,
@@ -335,6 +339,12 @@ class TriMeshSDF : public SignedDistanceFunction<T>
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
   static_assert(K >= 2, "TriMeshSDF requires branching factor K >= 2");
   static_assert(W > 0, "TriMeshSDF requires SoA width W > 0");
+  static_assert(
+    std::is_same_v<typename StoragePolicy::StorageType, EBGeometry::TriangleAoSoA<T, Meta, W>>,
+    "TriMeshSDF requires a by-value StoragePolicy storing TriangleAoSoA<T, Meta, W> (the default, "
+    "BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>). BVH::IndexStorage is not supported: its get() "
+    "resolves an index against a caller-owned array, and TriMeshSDF's SoA groups are created during "
+    "packing and owned by nothing else, so no such array exists. See PORTING.md step 4.");
 
 public:
   /**
