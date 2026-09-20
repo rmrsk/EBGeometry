@@ -155,16 +155,14 @@ triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
 Triangle meshes with PackedBVH
 ________________________________
 
-``readIntoTriangleBVH<T, Meta, K, W, StoragePolicy>(filename, pool, maxLeafGroups, build)``
+``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, maxLeafGroups, build)``
 converts all DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a
-``PackedBVH``, returning a ``shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>`` (or a vector
+``PackedBVH``, returning a ``shared_ptr<TriMeshSDF<T, Meta, K, W>>`` (or a vector
 thereof). SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to
 the SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRatio<T>()`` and
 ``TriangleSoA::DefaultWidth<T>()``, see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 4)
-bounds the number of full ``W``-sized SoA groups per BVH leaf; ``StoragePolicy`` defaults to
-``BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>``, matching ``TriMeshSDF``'s own default (see
-:ref:`Chap:MeshSDFClasses` for the rationale, and why ``readIntoPackedBVH``/``MeshSDF`` above has
-no equivalent parameter). The code will raise an error if any face is not a triangle. Unlike
+bounds the number of full ``W``-sized SoA groups per BVH leaf. The code will raise an error if any
+face is not a triangle. Unlike
 ``readIntoMesh``/``readIntoPackedBVH``, the returned ``TriMeshSDF`` extracts flat ``Triangle``
 values from the intermediate DCEL mesh and does not retain it, so ``pool`` only needs to outlive
 this call -- though since a ``Pool`` never individually frees what it reserves (see

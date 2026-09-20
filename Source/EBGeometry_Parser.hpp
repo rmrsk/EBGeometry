@@ -256,9 +256,6 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const B
  * on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>()
  * (8/float or 4/double on AVX; 4 otherwise).
- * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF. Defaults to
- * BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, matching TriMeshSDF's own default, which also
- * constrains what may be passed here -- see TriMeshSDF's StoragePolicy documentation.
  * @param[in]     a_filename      File name (STL, PLY, or VTK).
  * @param[in,out] a_pool          Pool to reserve the intermediate DCEL mesh's storage from. The
  * mesh is only used transiently to extract triangles into the returned TriMeshSDF, which does not
@@ -271,11 +268,10 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const B
  * @return Shared pointer to the TriMeshSDF enclosing the mesh.
  */
 template <typename T,
-          typename Meta       = DCEL::DefaultMetaData,
-          size_t K            = BVH::DefaultBranchingRatio<T>(),
-          size_t W            = TriangleSoA::DefaultWidth<T>(),
-          class StoragePolicy = BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>>
-[[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>
+          typename Meta = DCEL::DefaultMetaData,
+          size_t K      = BVH::DefaultBranchingRatio<T>(),
+          size_t W      = TriangleSoA::DefaultWidth<T>()>
+[[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
 readIntoTriangleBVH(const std::string a_filename,
                     Pool&             a_pool,
                     const size_t      a_maxLeafGroups = 4,
@@ -287,8 +283,6 @@ readIntoTriangleBVH(const std::string a_filename,
  * @tparam Meta Per-face metadata type.
  * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (see single-file overload).
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>().
- * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF (see the
- * single-file overload).
  * @param[in]     a_files         List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool          Pool to reserve every intermediate DCEL mesh's storage from (see
  * the single-file overload for details) -- all meshes share this one Pool, laid out contiguously.
@@ -298,11 +292,10 @@ readIntoTriangleBVH(const std::string a_filename,
  * @return Vector of shared pointers to TriMeshSDF objects, one per file.
  */
 template <typename T,
-          typename Meta       = DCEL::DefaultMetaData,
-          size_t K            = BVH::DefaultBranchingRatio<T>(),
-          size_t W            = TriangleSoA::DefaultWidth<T>(),
-          class StoragePolicy = BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>>
-[[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>>
+          typename Meta = DCEL::DefaultMetaData,
+          size_t K      = BVH::DefaultBranchingRatio<T>(),
+          size_t W      = TriangleSoA::DefaultWidth<T>()>
+[[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
                     Pool&                           a_pool,
                     const size_t                    a_maxLeafGroups = 4,

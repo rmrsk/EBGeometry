@@ -143,7 +143,7 @@ kernel and compares against the host:
 | `PointCloudBVH` | **Half-ported, and currently unsound to mirror.** Its inherited `PackedBVH` arrays are pool-backed, but its own cloud arrays (`m_positions`, `m_metadata`, `m_order`, `m_leafOff`, `m_leafCnt`) are still `std::vector`, so the class is not trivially copyable — while the `rebasedView()`/`deepCopy()` it inherits *are* callable on it and silently slice to the base. See the roadmap's step 0b |
 | `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform`, analytic SDFs | Still the original virtual-`value()` design; this is where the tape returns |
-| `BVHUnionIF` / `BVHSmoothUnionIF` | **Compiled out** behind `EBGEOMETRY_ENABLE_BVH_CSG_UNION`. They stored polymorphic primitives as `shared_ptr`, which no trivially-copyable storage policy can hold; they return with the index-based CSG redesign in step 4 |
+| `BVHUnionIF` / `BVHSmoothUnionIF` | **Compiled out** behind `EBGEOMETRY_ENABLE_BVH_CSG_UNION`. They stored polymorphic primitives as `shared_ptr`, which a trivially-copyable primitive array cannot hold; they return with the index-based CSG redesign in step 4 |
 | Parsers (`OBJ`/`PLY`/`STL`/`VTK`/`Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended |
 
 ## Roadmap
@@ -187,17 +187,22 @@ kernel and compares against the host:
    `VertexT::computeVertexNormalAngleWeighted`. All three parts or none: the angle-weighted
    pseudonormal is what makes the sign correct, so a device `reconcile()` covering only faces would
    leave signs silently wrong near vertices and edges.
-2. **BVH.** *(Done, on branch `bvh_port_PR1` / PR #145.)* `pruneTraverse` factored into one loop with
-   a real scalar implementation (fixed stack, hand-rolled sort over the ≤K children);
-   `SharedPtrStorage` dropped in favour of two POD policies (`ValueStorage`, and a new
-   `IndexStorage`); `PackedBVH`'s three arrays moved onto `Pool`/`PODVector`; the class is
-   `static_assert`-ed trivially copyable and has `rebasedView()`/`deepCopy()`; stack depth differs by
-   entry point (256 host, 64 device). `TreeBVH` stays host-only — it is the builder, and static
-   geometry builds on the host.
+2. **BVH.** *(Done, PR #145, with a follow-up scrub.)* `pruneTraverse` factored into one loop with
+   a real scalar implementation (fixed stack, hand-rolled sort over the ≤K children); `PackedBVH`'s
+   three arrays moved onto `Pool`/`PODVector`; the class is `static_assert`-ed trivially copyable and
+   has `rebasedView()`/`deepCopy()`; stack depth differs by entry point (256 host, 64 device).
+   `TreeBVH` stays host-only — it is the builder, and static geometry builds on the host.
+
+   The `shared_ptr`-based primitive array is gone, since a `shared_ptr` cannot be byte-copied into a
+   device address space. PR #145 replaced it with a `StoragePolicy` template parameter offering
+   `ValueStorage` and `IndexStorage`; the follow-up scrub removed that parameter again, after
+   `IndexStorage` turned out to have no use a `PackedBVH<T, uint32_t, K>` does not serve more
+   cheaply (`PLAN.md`'s "PR D" carries the measurements). `PackedBVH` now stores its primitives by
+   value, full stop, and an indexed BVH is just one whose primitive type is `uint32_t`.
 
    Two things did **not** land with it. The mesh SDF wrappers are step 4 below rather than part of
    this step. And `BVHUnionIF`/`BVHSmoothUnionIF` had to be compiled out, because they store
-   polymorphic primitives as `shared_ptr` and no trivially-copyable policy can hold those — see the
+   polymorphic primitives as `shared_ptr`, which a by-value primitive array cannot hold — see the
    "What is not" table and step 4.
 
    **The device traversal is correctness-first, and is not a tuned GPU kernel.** It is the textbook
@@ -229,15 +234,12 @@ kernel and compares against the host:
    against. Then the analytic layer proper, which is where `BVHUnionIF`/`BVHSmoothUnionIF` come back
    and where re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is the acceptance test.
 
-   **This step is not blocked on `BVH::IndexStorage`, which is recommended for deletion.** Under the
-   tape a union's primitive is a clause id, and `ValueStorage<uint32_t>` stores that in the same four
-   bytes with no indirection: `StorageType == P == uint32_t`. A `PackedBVH<T, uint32_t, K>` with the
-   *default* policy already builds through all four construction paths — the SFC, partitioner/SAH and
-   `ClusterSpec` constructors and `TreeBVH::pack()` — and is trivially copyable, verified against the
-   tree. Say `ValueStorage<uint32_t>` explicitly when this lands, so the intent is on the page; the
-   default is already right. `PLAN.md`'s "PR D" section carries the evidence, and flags a follow-on
-   question this step should leave alone: with one policy left, `StoragePolicy` has exactly one legal
-   argument, and whether to drop the parameter is a public-API decision of its own.
+   **The BVH side of this is already in place.** Under the tape a union's primitive is a clause id,
+   so the union's BVH is a `PackedBVH<T, uint32_t, K>`: four bytes per primitive, no indirection, and
+   it already builds through all four construction paths — the SFC, partitioner/SAH and `ClusterSpec`
+   constructors and `TreeBVH::pack()` — and is trivially copyable, verified against the tree.
+   `PLAN.md`'s "PR D" section carries the evidence, including why the `IndexStorage` policy that once
+   wrapped this pattern bought nothing over it.
 
    **De-virtualising is only half of it.** Every one of these classes also holds its payload as a
    `shared_ptr` member (`FlatMeshSDF`: the mesh; `TriMeshSDF`: the BVH; `MeshSDF`: both). Annotating

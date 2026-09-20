@@ -94,9 +94,14 @@ results — currently nothing pins the two together, and this PR is precisely wh
 silently diverge. Build the SIMD matrix explicitly (`EBGEOMETRY_SIMD=none|sse41|avx|avx512`) rather
 than trusting the default preset.
 
-## PR B — storage policies *(done)*
+## PR B — storage policies *(done, then largely reversed — see PR D)*
 
 Reduce the mechanism to two POD policies. `SharedPtrStorage` is **purged**.
+
+> The `ValueStorage`/`IndexStorage` split described here shipped and was then removed again by PR D.
+> What survives is the part that mattered: the `shared_ptr`-based primitive array is gone for good,
+> and `PackedBVH` stores its primitives by value with no policy parameter. The rest of this section
+> is kept as the record of how that was arrived at.
 
 | Policy | Indirection | Dedup | Needs a canonical owner array | Crosses to device |
 |---|---|---|---|---|
@@ -188,13 +193,14 @@ The functors the kernel passes to `pruneTraverse` are hoisted out of the device-
 by the host rebase test, so the callable path is compiled and run on every build; the kernel launch
 itself is the only unverified part. It needs a machine with a toolkit before this is trusted.
 
-## PR D — the `IndexStorage` path: **recommend deleting the policy** *(investigated, nothing built)*
+## PR D — the `IndexStorage` path: **delete the policy** *(done — this PR)*
 
 `IndexStorage` shipped with PR B reachable from two of `PackedBVH`'s five constructors and used by
 nothing. Investigating what it would take to finish it turned up, instead, that every justification
-for it fails, and that two unrelated levers are worth far more. **The recommendation is to remove the
-policy rather than complete it.** This section is the evidence, so the decision does not have to be
-re-derived.
+for it fails, and that two unrelated levers are worth far more. **So it was removed rather than
+completed, along with the `StoragePolicy` parameter it was the only other argument for.** This
+section is the evidence, kept so the decision does not have to be re-derived — and so a future
+reader who wants the pattern back finds out first that `PackedBVH<T, uint32_t, K>` already is it.
 
 Measurements below are a 135,200-face watertight torus, `T = double`, `K = 4`, `sizeof(FaceT)` = 88 B,
 host, single-threaded.
@@ -220,19 +226,18 @@ delta of zero**, aliasing the source; `deepCopy()` is opt-in and called nowhere 
 the one original. The nesting case PR B named is the case the trivially-copyable descriptor already
 solved: **a `PackedBVH` is itself an index** — three `PODVector` offsets plus a base.
 
-**The CSG/tape layer — `ValueStorage<uint32_t>` is byte-identical.** Under the tape a union's
-primitive is a clause id. `ValueStorage<uint32_t>` has `StorageType == P == uint32_t`, stores the same
-four bytes with no indirection, and a `PackedBVH<T, uint32_t, K>` with the **default** policy builds
-through all four construction paths — SFC, partitioner/SAH, `ClusterSpec` and `TreeBVH::pack()`.
-`IndexStorage` would only move the indexing into the policy, for nothing: `pruneTraverse` never calls
-`get()`. This confirms PR B's own wording, that the fix for the compiled-out unions "is not another
-storage policy".
+**The CSG/tape layer — a `uint32_t` primitive is byte-identical.** Under the tape a union's
+primitive is a clause id. `PackedBVH<T, uint32_t, K>` stores the same four bytes with no indirection,
+and — `uint32_t` being an ordinary primitive type — it builds through all four construction paths:
+SFC, partitioner/SAH, `ClusterSpec` and `TreeBVH::pack()`. `IndexStorage` would only move the indexing into the policy, for
+nothing: `pruneTraverse` never calls `get()`. This confirms PR B's own wording, that the fix for the
+compiled-out unions "is not another storage policy".
 
 **`MeshSDF` deduplication — reproducible today, and beaten by a better fix.** `MeshSDF` retains
 `m_mesh` *and* a `PackedBVH<Face>` of copies, so every face is stored twice. But the same saving is
 available with no library change at all: `PackedBVH<T, uint32_t, K>` over mesh face indices, with a
 leaf evaluator resolving `mesh.getFace(idx)`, was verified against `MeshSDF` over 81 queries at
-**worst |delta| = 0** — exact agreement, default `ValueStorage`, no policy.
+**worst |delta| = 0** — exact agreement, default storage, no policy.
 
 And it is beaten outright: **the BVH query path never reads the mesh's face array.**
 `FaceT::signedDistance` resolves topology through `a_mesh.getEdge(...)` and `.getVertex(...)`; the only
@@ -248,7 +253,7 @@ so it touches all 88 bytes regardless:
 
 | | bytes stored | bytes read per leaf of *n* faces |
 |---|---|---|
-| `ValueStorage` | `n x 88` | `n x 88`, contiguous |
+| primitives stored by value | `n x 88` | `n x 88`, contiguous |
 | `IndexStorage` | `n x 4` | `n x 4` contiguous **plus** `n x 88` scattered |
 
 Its only effect is resident footprint, and even there it is third on the list. Ranked on the same
@@ -260,27 +265,43 @@ Note also that `FaceT` is a materialised cache, not a fat primitive: 4 B of iden
 plus **64 B of derived geometry** (normal, centroid, area, two projection axes), 2 B metadata, a 4 B
 policy enum and 14 B of padding. "88 versus 4" is the whole cache against the key to it.
 
-### What deleting it involves
+### What was removed
 
-* `BVH::IndexStorage` itself, and `appendTreeLeaf`'s `static_assert`.
-* The partitioner/leaf-predicate constructor's `static_assert` (`b042765`), which exists only to
-  reject this policy.
-* `TestBVH`'s two `IndexStorage`/`ValueStorage` agreement cases.
-* `InstantiateAll.cpp`'s note on why the policy cannot be explicitly instantiated (`4c61fda`).
-* `ImplemBVH.rst`'s storage-policy section, and `TriMeshSDF`/`Parser`'s `@tparam` text (`c9d347f`).
+Both policies went, not just `IndexStorage`: with one policy left, `StoragePolicy` would have been a
+template parameter with exactly one legal argument, and every operation it abstracted over collapses
+to something simpler when there is nothing to abstract.
 
-**It raises a follow-on question worth answering deliberately:** with one policy left, `StoragePolicy`
-is a template parameter with exactly one legal argument. Removing it too would simplify real code —
-`m_primitives` becomes `PODVector<P>`, `get()` is identity and disappears, `appendTreeLeaf` and
-`appendAliased` become plain functions — but it changes `TriMeshSDF`'s and `Parser`'s public template
-signatures. Decide that on its own terms rather than as a side effect.
+* `BVH::IndexStorage` and `BVH::ValueStorage`, and with them `appendTreeLeaf`'s `static_assert` and
+  the partitioner/leaf-predicate constructor's (`b042765`), which existed only to reject the former.
+* The `StoragePolicy` template parameter on all five public surfaces: `PackedBVH`, `TreeBVH::pack`,
+  `TreeBVH::packWith`, `TriMeshSDF`, and `Parser::readIntoTriangleBVH` (both overloads). The
+  `StorageType` alias is gone too — `m_primitives` is a `PODVector<P>` and `getPrimitives()` returns
+  a `PODSpan<P>`.
+* `get()`, which was identity in the surviving policy. `appendTreeLeaf` and `appendAliased` became
+  protected static helpers on `PackedBVH`, keeping `appendTreeLeaf`'s no-`reserve` comment — the one
+  that prevents an O(N²) build, and has a regression test of its own.
+* `refit`'s defaulted `const void* a_base`, which existed only to resolve `IndexStorage` indices.
 
-### What would reverse the recommendation
+The only source-level break is for a caller naming the removed template argument. In-tree that was
+`TestBVH` alone; `MeshSDF`, `PointCloudBVH`, `TriMeshSDF` and both `Parser` entry points all used the
+default and are unaffected.
+
+`TestBVH`'s two agreement cases were kept and re-pointed: instead of `IndexStorage` versus
+`ValueStorage`, they now check a `PackedBVH<T, uint32_t, K>` over indices against a
+`PackedBVH<T, Pnt, K>` over the primitives themselves, still requiring bit-identical results, through
+the SFC and `ClusterSpec` constructors. The SFC case additionally builds the same indices through
+`TreeBVH::pack()` and requires that to agree too — the path `IndexStorage` could never take, since a
+tree's leaves hold `shared_ptr<const P>` and carried no index for `appendTreeLeaf` to record. With
+`P = uint32_t` there is nothing to record: the index *is* the primitive.
+
+### What would bring it back
 
 A consumer that needs genuine *sharing* — several BVHs with different partitionings over one primitive
 set, editing a primitive once and having all of them see it — rather than deduplication. Nothing in
 the tree wants that today, and the two candidates that looked like they might (nesting, CSG) turned
-out not to.
+out not to. Note that even then the first thing to reach for is `PackedBVH<T, uint32_t, K>`, which
+gives the sharing without any policy machinery; a policy would only be warranted if the index-resolve
+step itself had to vary per instantiation.
 
 ## Bigger levers, unrelated to the storage policy
 
@@ -381,9 +402,10 @@ The same treatment, applied to the analytic SDFs, transforms and combinators: fo
 a `static EBGEOMETRY_HOST_DEVICE eval()`, virtual `value()` as a thin delegate, primitives named by
 index rather than held by `shared_ptr`.
 
-Primitives named by index means `IndexStorage`, whose remaining work — and the two decisions that
-constrain how this step names its primitives — is set out in PR D above. Settle those before starting
-here.
+Primitives named by index needs no new BVH machinery: the union's BVH is a
+`PackedBVH<T, uint32_t, K>`, four bytes per primitive with the index resolved in the leaf callback.
+PR D above has the evidence, including why the `IndexStorage` policy that once wrapped this pattern
+was removed rather than finished.
 
 **Acceptance test:** re-enable `EBGEOMETRY_ENABLE_BVH_CSG_UNION` and get `TestCSG`'s union section and
 the four disabled examples back to green. That turns "the CSG layer is index-based now" into a

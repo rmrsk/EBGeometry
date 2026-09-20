@@ -261,9 +261,9 @@ as the smoothing operator to the smooth combinators' constructors/free functions
    **The BVH-accelerated unions described below are temporarily disabled.** ``BVHUnionIF``,
    ``BVHSmoothUnionIF`` and their ``BVHUnion``/``BVHSmoothUnion`` factories are compiled out during
    the GPU port, behind ``EBGEOMETRY_ENABLE_BVH_CSG_UNION`` in :file:`Source/EBGeometry_CSG.hpp`.
-   They store their primitives as ``std::shared_ptr<const ImplicitFunction<T>>``, which the removed
-   ``BVH::SharedPtrStorage`` policy provided and neither remaining storage policy can hold -- see
-   :ref:`Sec:PolymorphicPrimitives`. They return with the index-based redesign of the
+   They store their primitives as ``std::shared_ptr<const ImplicitFunction<T>>``, which
+   ``PackedBVH`` no longer supports -- it stores its primitives by value, and an abstract type has
+   no size to store; see :ref:`Sec:PolymorphicPrimitives`. They return with the index-based redesign of the
    implicit-function and CSG layer, which replaces virtual dispatch with a linear-SSA tape.
 
    The plain (non-BVH) combinators on this page -- ``UnionIF``, ``SmoothUnionIF``,

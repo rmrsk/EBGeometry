@@ -1,5 +1,11 @@
 # BVH GPU port — work summary
 
+> **Historical record of PR #145, kept as written.** One part of it has since been reversed: the
+> `ValueStorage`/`IndexStorage` storage policies described in section 2 were removed again in the
+> follow-up scrub, after `IndexStorage` turned out to have no use a `PackedBVH<T, uint32_t, K>` does
+> not serve more cheaply. `PackedBVH` now stores its primitives by value with no policy parameter at
+> all. See `PLAN.md`'s "PR D" for the measurements behind that, and `PORTING.md` for current state.
+
 Branch `bvh_port_PR1`, three commits on top of `dev` (`e6914d4`). This covers steps A–C of the BVH
 plan in `PLAN.md`; step D (the mesh-SDF wrappers on device) is not started.
 
@@ -75,8 +81,8 @@ trivially copyable and therefore mirrorable, but it inverts what the old copy co
 
 The BVH-accelerated CSG unions are **compiled out**, not deleted, behind one
 `EBGEOMETRY_ENABLE_BVH_CSG_UNION` guard in `EBGeometry_CSG.hpp`. Restoring is a one-line change plus
-a storage policy that can hold a polymorphic hierarchy — which is the index-based redesign of the
-implicit-function layer (`PORTING.md` roadmap steps 4–5), not another policy.
+a primitive representation that can hold a polymorphic hierarchy — which is the index-based
+redesign of the implicit-function layer (`PORTING.md` roadmap steps 4–5).
 
 * `BVHUnionIF`, `BVHSmoothUnionIF`, `BVHUnion`, `BVHSmoothUnion`, `CSGDetail::buildBVH`
 * `Tests/TestCSG.cpp`'s BVH-union section (6 cases); `Tests/TestBVH.cpp`'s nested-BVH case
