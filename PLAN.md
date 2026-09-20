@@ -188,6 +188,110 @@ The functors the kernel passes to `pruneTraverse` are hoisted out of the device-
 by the host rebase test, so the callable path is compiled and run on every build; the kernel launch
 itself is the only unverified part. It needs a machine with a toolkit before this is trusted.
 
+## PR D — the `IndexStorage` path *(planned, not started)*
+
+`IndexStorage` shipped with PR B but is reachable from only two of `PackedBVH`'s five constructors
+and is used by nothing in the library. It is nevertheless load-bearing: step 2 below cannot re-enable
+the BVH CSG unions without it. This section records what it is for, what blocks it, and the order the
+remaining work has to happen in, because the decisions here constrain step 2's design and are much
+cheaper to settle now than to retrofit.
+
+### There are two consumers, and they need different things
+
+Conflating them is why the policy looks half-finished.
+
+**Consumer A — one concrete primitive set shared by many BVHs.** The `Examples/NestedBVH` case, and
+the rationale in PR B above. Many BVHs index one array of real `P`. Needs `get(idx, base)` to resolve
+to an actual `P&`, needs a base at query time, needs the owner array to outlive every BVH.
+
+**Consumer B — the index-based CSG layer (step 2).** Here `P` is the abstract `ImplicitFunction<T>`,
+and PR B is right that no storage policy can hold that. But under the tape a union's primitive is a
+**clause id**, not a `P`: the index is an opaque handle the leaf evaluator interprets, and there is no
+flat `P[]` for it to point into at all.
+
+**`pruneTraverse` never calls `StoragePolicy::get()`.** It hands the evaluator `(offset, count)` and
+the caller resolves whatever it likes. `get()` has exactly three call sites — `refit()`, which already
+takes a base, and `TriMeshSDF`'s two `signedDistance` paths. So **Consumer B needs nothing from the
+resolution mechanics; they are already the right shape.** What it needs is the *construction* path.
+That is a far smaller job than "redesign the storage policy", and mis-scoping it is the main risk
+this section exists to prevent.
+
+### Blockers
+
+* **B1 — the SAH constructor rejects `IndexStorage`.** The one that actually bites.
+  `BinnedSAHPartitioner` is the build quality wanted for a union over many objects, and it is
+  reachable only through the partitioner/leaf-predicate constructor, which rejects the policy.
+  The cause is that this constructor is not really direct: it wraps every input in `shared_ptr<P>`
+  and builds a stack-local `TreeBVH<T, P, BV, K>` probe per split, to reuse the `Partitioner` and
+  `LeafPredicate` contracts unchanged — both typed on `P`.
+
+  Of the three shipped partitioners, only one needs the primitive:
+
+  | Partitioner | Reads the primitive? |
+  |---|---|
+  | `BVCentroidPartitioner` | no — bounding volumes only |
+  | `BinnedSAHPartitioner` | no — bounding volumes only |
+  | `PrimitiveCentroidPartitioner` | **yes** — `pbv.first->getCentroid()` |
+
+* **B2 — no base at traversal time.** Harmless on host, where the caller captures it. On device the
+  base must be a *device* address and nothing in the BVH knows it, so a kernel caller would have to
+  carry it separately and keep it in step with `Pool::mirror` by hand — the exact class of manual
+  pointer-patching the port exists to remove. Resolved by the decision below.
+
+* **B3 — lifetime is unmanaged.** Nothing enforces "the owner array outlives every BVH indexing into
+  it". Also resolved by the decision below.
+
+* **B4 — the two `TreeBVH` constructors reject it, permanently and correctly.** A tree's leaves hold
+  `shared_ptr<const P>` and carry no index. Not to be fixed — but the consequence is that every
+  `IndexStorage` BVH must come from a direct constructor, which is what promotes B1 from cosmetic to
+  blocking.
+
+* **B5 — it cannot be explicitly instantiated**, so it cannot follow `InstantiateAll.cpp`'s
+  convention; both rejections live in non-template members. Recorded there; test-harness shape only.
+
+* **B6 — `TriMeshSDF`/`Parser` cannot use it.** Gated on step 1's de-virtualisation, not on this
+  section: their SoA groups are built during packing and owned by nothing else, so there is no array
+  for an index to resolve against until those classes hold their payload by value.
+
+### Decision: the owner array is pool-resident
+
+The caller reserves a `PODVector<P>` from the **same `Pool`** as the BVH and hands the descriptor
+over; `get()` resolves it through the BVH's own `base()`. The alternatives were an external
+caller-owned array (what PR B shipped — simple, but B2 and B3 stand) and a BVH-owned array (which
+defeats the sharing that justifies the policy at all).
+
+Pool residency settles B2 and B3 together and for the same reason the node and primitive arrays are
+already pool-resident: the descriptor is an offset, so `Pool::mirror` relocates it for free,
+`rebasedView()` rebases it with everything else, and the Pool's lifetime is the array's. No kernel
+ever sees a host address.
+
+The layout consequence needs care: `PackedBVH` must stay trivially copyable and must keep **one**
+layout across both policies, so the descriptor is carried unconditionally (16 bytes, left empty under
+`ValueStorage`) rather than varying the class per policy.
+
+### Order of work
+
+1. **Make the SAH path reachable** (B1). Retype the partitioner constructor's machinery on
+   `StorageType`: `PrimAndBVList<StorageType, BV>`, `Partitioner<StorageType, BV, K>`,
+   `LeafPredicate<T, StorageType, BV, K>`, a `TreeBVH<T, StorageType, BV, K>` probe, and a real
+   `IndexStorage::appendTreeLeaf` dereferencing back to indices. **Source-compatible for every
+   existing caller**, since `StorageType == P` under `ValueStorage`. Independent of everything else
+   and landable alone.
+2. **Carry the pool-resident owner descriptor** and resolve `get()` through `base()`. After this,
+   Consumer A works on device with no caller plumbing.
+3. **Step 2's acceptance test** — re-enable `EBGEOMETRY_ENABLE_BVH_CSG_UNION` — becomes reachable.
+   Confirm first that the union opcode stores clause ids with `get()` unused, per the framing above.
+
+### Still open
+
+* **The partitioner contract under `IndexStorage`.** Either document that partitioners must be
+  geometry-agnostic and `static_assert` `PrimitiveCentroidPartitioner` out of the combination, or
+  widen the contract to carry a base so it can resolve. The first is cheap and honest; the second is
+  uniform at the price of a public callback signature.
+* **Whether `get() -> const P&` is the right primitive for Consumer B**, or whether the policy should
+  expose the raw handle and let the evaluator interpret it. Today it accidentally serves both, which
+  invites the next reader to assume a flat `P[]` must exist.
+
 ## What comes next
 
 PRs A–C are done and are what this branch contains. The rest of the port proceeds in the order
@@ -246,6 +350,10 @@ break with no GPU motivation of its own.
 The same treatment, applied to the analytic SDFs, transforms and combinators: formula into a trait as
 a `static EBGEOMETRY_HOST_DEVICE eval()`, virtual `value()` as a thin delegate, primitives named by
 index rather than held by `shared_ptr`.
+
+Primitives named by index means `IndexStorage`, whose remaining work — and the two decisions that
+constrain how this step names its primitives — is set out in PR D above. Settle those before starting
+here.
 
 **Acceptance test:** re-enable `EBGEOMETRY_ENABLE_BVH_CSG_UNION` and get `TestCSG`'s union section and
 the four disabled examples back to green. That turns "the CSG layer is index-based now" into a

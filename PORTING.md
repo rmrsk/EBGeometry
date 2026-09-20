@@ -229,6 +229,12 @@ kernel and compares against the host:
    against. Then the analytic layer proper, which is where `BVHUnionIF`/`BVHSmoothUnionIF` come back
    and where re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is the acceptance test.
 
+   **The `IndexStorage` work that unblocks that acceptance test is planned separately**, in
+   `PLAN.md`'s "PR D — the `IndexStorage` path" section. It carries two still-open decisions (the
+   partitioner contract, and whether the policy should expose a resolved `P&` or a raw handle) which
+   constrain how this step names its primitives, so settle them before starting here rather than
+   after.
+
    **De-virtualising is only half of it.** Every one of these classes also holds its payload as a
    `shared_ptr` member (`FlatMeshSDF`: the mesh; `TriMeshSDF`: the BVH; `MeshSDF`: both). Annotating
    methods changes nothing while those remain — the class stays non-trivially-copyable and cannot be
