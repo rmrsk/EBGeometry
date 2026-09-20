@@ -339,12 +339,11 @@ class TriMeshSDF : public SignedDistanceFunction<T>
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
   static_assert(K >= 2, "TriMeshSDF requires branching factor K >= 2");
   static_assert(W > 0, "TriMeshSDF requires SoA width W > 0");
-  static_assert(
-    std::is_same_v<typename StoragePolicy::StorageType, EBGeometry::TriangleAoSoA<T, Meta, W>>,
-    "TriMeshSDF requires a by-value StoragePolicy storing TriangleAoSoA<T, Meta, W> (the default, "
-    "BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>). BVH::IndexStorage is not supported: its get() "
-    "resolves an index against a caller-owned array, and TriMeshSDF's SoA groups are created during "
-    "packing and owned by nothing else, so no such array exists. See PORTING.md step 4.");
+  static_assert(std::is_same_v<typename StoragePolicy::StorageType, EBGeometry::TriangleAoSoA<T, Meta, W>>,
+                "TriMeshSDF requires a by-value StoragePolicy storing TriangleAoSoA<T, Meta, W> (the default, "
+                "BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>). BVH::IndexStorage is not supported: its get() "
+                "resolves an index against a caller-owned array, and TriMeshSDF's SoA groups are created during "
+                "packing and owned by nothing else, so no such array exists. See PORTING.md step 4.");
 
 public:
   /**

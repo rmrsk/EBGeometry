@@ -1226,8 +1226,7 @@ struct IdentityPruneDist2
 template <class T, size_t K>
 EBGEOMETRY_HOST_DEVICE
 T
-packedBvhTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh,
-                        const Vec3T<T>                                          a_query) noexcept
+packedBvhTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh, const Vec3T<T> a_query) noexcept
 {
   T state = std::numeric_limits<T>::max();
 
