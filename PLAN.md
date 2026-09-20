@@ -188,7 +188,7 @@ The functors the kernel passes to `pruneTraverse` are hoisted out of the device-
 by the host rebase test, so the callable path is compiled and run on every build; the kernel launch
 itself is the only unverified part. It needs a machine with a toolkit before this is trusted.
 
-## PR D — the `IndexStorage` path *(planned; phase 1 only, and not yet justified beyond it)*
+## PR D — the `IndexStorage` path *(planned; blocked on one measurement, and possibly on nothing else)*
 
 `IndexStorage` shipped with PR B reachable from two of `PackedBVH`'s five constructors and used by
 nothing. This section records what it is actually for — which is **not** what PR B's prose says — what
@@ -249,56 +249,75 @@ mesh's own face array, so `getClosestFaces` could return a **mesh** face index i
 one PR B had to document as unrecoverable — the wart that forced `Integrations/AMReX/PaintEB` to be
 rewritten.
 
-### Is it worth building? Phase 1 yes; the rest, not yet
+### The CSG layer does not need it: `ValueStorage<uint32_t>` already does that job
 
-**Phase 1 — retype the construction machinery on `StorageType`. Worth doing.**
+This was the second justification for the policy, and it does not survive either.
 
-The partitioner/leaf-predicate constructor wraps every input in `shared_ptr<P>` and builds a
-stack-local `TreeBVH<T, P, BV, K>` probe per split, to reuse the `Partitioner` and `LeafPredicate`
-contracts unchanged — both typed on `P`. Retyping that machinery on `StorageType`
-(`PrimAndBVList<StorageType, BV>`, `Partitioner<StorageType, BV, K>`,
+Under the tape a BVH union's primitive is a **clause id**. The natural reading is that a `uint32_t`
+primitive means `IndexStorage` — but `ValueStorage<uint32_t>` has `StorageType == P == uint32_t` and
+stores exactly the same four bytes, with no indirection. Verified against the tree: a
+`PackedBVH<T, uint32_t, K>` with the **default** policy builds through all four construction paths —
+the SFC, partitioner/SAH and `ClusterSpec` constructors *and* `TreeBVH::pack()` — and is trivially
+copyable. None of PR D's work is needed for any of it.
+
+The distinction between the two is semantic, not physical:
+
+* `ValueStorage<uint32_t>` — *the primitive is a clause id.*
+* `IndexStorage<P>` — *the uint32 is an index into an array of `P`*, and `get(id, base)` returns a
+  `P&`.
+
+For the tape the clause id genuinely **is** the primitive: there is no array of `ImplicitFunction<T>`
+to index into, because a tape is a clause list an interpreter walks, not an array of objects. So
+`ValueStorage<uint32_t>` is the more honest model, and `IndexStorage` would only relocate the
+indexing into the policy — for nothing, since `pruneTraverse` never calls `get()`.
+
+**Consequence: re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is not blocked on this section at all.**
+It is blocked on step 1's de-virtualisation and step 3's tape, which is what PR B's own prose already
+said ("the fix is not another storage policy").
+
+### Is it worth building? One measurement decides
+
+After both justifications fall away, `IndexStorage` has exactly **one** candidate consumer left:
+`MeshSDF`, the measured 88-bytes-twice case above. Everything therefore hangs on a question nobody has
+answered:
+
+> **Is 4 bytes scattered better than 88 bytes contiguous, for this access pattern?**
+
+Not obviously. `ValueStorage` exists to make a leaf scan walk contiguous memory, and `IndexStorage`
+forfeits exactly that. For a mesh whose faces fit in cache it is plainly worse; for one that does not,
+storing a quarter of the bytes may win it back. And the workload is not the random-point worst case —
+the real consumers (AMReX/Chombo EB generation) evaluate cell-by-cell over a grid, which is spatially
+coherent, so a random-query benchmark would overstate the scatter cost badly. Measure that pattern,
+across mesh sizes that straddle L2/L3, before writing any of the code below.
+
+**If the measurement favours `IndexStorage` for `MeshSDF`:**
+
+*Phase 1 — retype the construction machinery on `StorageType`.* The partitioner/leaf-predicate
+constructor wraps every input in `shared_ptr<P>` and builds a stack-local `TreeBVH<T, P, BV, K>` probe
+per split, to reuse the `Partitioner` and `LeafPredicate` contracts unchanged — both typed on `P`.
+Retyping that machinery (`PrimAndBVList<StorageType, BV>`, `Partitioner<StorageType, BV, K>`,
 `LeafPredicate<T, StorageType, BV, K>`, a `TreeBVH<T, StorageType, BV, K>` probe) is
-**source-compatible for every existing caller**, since `StorageType == P` under `ValueStorage`.
+**source-compatible for every existing caller**, since `StorageType == P` under `ValueStorage`. What
+it unlocks that matters is **`pack()`/`packWith()`** — a tree built over `StorageType` *does* carry
+indices in its leaves, so `IndexStorage::appendTreeLeaf` becomes implementable rather than a
+`static_assert` — and `MeshSDF` builds through `pack()`. (Of the three shipped partitioners only
+`PrimitiveCentroidPartitioner` reads the primitive; `BVCentroidPartitioner` and
+`BinnedSAHPartitioner` read bounding volumes only and work over indices verbatim.)
 
-It unlocks three things at once, not one:
-
-* the **SAH constructor**, the build quality wanted for a union over many objects;
-* **`pack()`/`packWith()`**, because a tree built over `StorageType` *does* carry indices in its
-  leaves, so `IndexStorage::appendTreeLeaf` becomes implementable rather than a `static_assert`;
-* and therefore **`MeshSDF`**, which builds through `pack()` and is the one measured consumer.
-
-Of the three shipped partitioners only `PrimitiveCentroidPartitioner` reads the primitive
-(`pbv.first->getCentroid()`); `BVCentroidPartitioner` and `BinnedSAHPartitioner` read bounding volumes
-only and work over indices verbatim.
-
-**Phase 2 — the pool-resident owner array. Designed, deliberately not built yet.**
-
-When it is built, the decision is settled: the caller reserves a `PODVector<P>` from the **same
+*Phase 2 — the pool-resident owner array.* The caller reserves a `PODVector<P>` from the **same
 `Pool`** and `get()` resolves through the BVH's own `base()`. That is the only option that works on
 device without hand-patched pointers — the descriptor is an offset, so `Pool::mirror` relocates it and
 `rebasedView()` rebases it with everything else — and it ties the owner array's lifetime to the Pool,
 which an index otherwise cannot do. An external caller-owned array (what PR B shipped) leaves both
-problems standing; a BVH-owned array defeats the sharing entirely.
+problems standing; a BVH-owned array defeats the sharing entirely. Note the cost is borne by
+everybody: `PackedBVH` must keep one layout across both policies and stay trivially copyable, so the
+owner descriptor is carried unconditionally — 16 bytes in every BVH including every `ValueStorage`
+one, mirrored to device on every view.
 
-It should not be built before a consumer needs it, for three reasons:
-
-* **The only consumer that needs `get()` to resolve is `MeshSDF`, and switching it is a performance
-  trade that has to be measured rather than assumed.** 4 bytes scattered is not obviously better than
-  88 bytes contiguous; for a mesh whose faces fit in cache it is plainly worse. Measure before moving
-  `MeshSDF`, on the coherent cell-by-cell query pattern the real consumers generate.
-* **The CSG/tape consumer does not need it at all.** Under the tape a union's primitive is a clause
-  id, not a `P`, and there is no flat `P[]` to resolve against. `pruneTraverse` never calls
-  `StoragePolicy::get()` — it hands the evaluator `(offset, count)` and the caller resolves whatever it
-  likes; `get()` has exactly three call sites, `refit()` and `TriMeshSDF`'s two `signedDistance` paths.
-  That consumer needs phase 1 and nothing else.
-* **Its layout cost is paid by everybody.** `PackedBVH` must keep one layout across both policies and
-  stay trivially copyable, so the owner descriptor is carried unconditionally — 16 bytes in every BVH
-  including every `ValueStorage` one, mirrored to device on every view.
-
-**So the honest status:** the policy's mechanics are right, its stated rationale is not, and one of
-its two consumers needs only the construction half. Land phase 1, narrow the documentation to the
-locality-versus-duplication trade the header already describes, and let a measurement decide whether
-`MeshSDF` ever moves.
+**If the measurement does not favour it**, `IndexStorage` has no consumer, and the right move is to
+delete it rather than carry a policy, two `static_assert`s and a documented asymmetry for nobody. What
+would be lost is a type-level way to say "this uint32 indexes an array of `P`" — documentation, not
+capability.
 
 ### Still open
 
@@ -306,12 +325,13 @@ locality-versus-duplication trade the header already describes, and let a measur
   geometry-agnostic and `static_assert` `PrimitiveCentroidPartitioner` out of the combination, or widen
   the contract to carry a base so it can resolve. The first is cheap and honest; the second is uniform
   at the price of a public callback signature.
-* **Whether `get() -> const P&` is the right primitive for the tape**, or whether the policy should
-  expose the raw handle and let the evaluator interpret it. Today it accidentally serves both, which
-  invites the next reader to assume a flat `P[]` must exist.
-* **Whether `IndexStorage` earns its place at all if `MeshSDF` does not move.** If the measurement says
-  keep `ValueStorage` there, the remaining consumer wants a `uint32_t` handle with no resolution
-  semantics, which is a smaller thing than a storage policy and might be better named as one.
+* **Whether `IndexStorage` earns its place at all.** This is now the section's real question, and the
+  `MeshSDF` measurement answers it: that is the only candidate consumer left. Keeping a policy, two
+  `static_assert`s and a documented constructor asymmetry for a feature nothing uses is a cost with no
+  payer.
+* **Whether the CSG layer should say `ValueStorage<uint32_t>` explicitly** when it lands, rather than
+  leaving a bare `PackedBVH<T, uint32_t, K>` for the next reader to mistake for an oversight. The
+  default is already correct; the intent is what is missing.
 
 ## What comes next
 

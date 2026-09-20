@@ -229,14 +229,14 @@ kernel and compares against the host:
    against. Then the analytic layer proper, which is where `BVHUnionIF`/`BVHSmoothUnionIF` come back
    and where re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is the acceptance test.
 
-   **The `IndexStorage` work that unblocks that acceptance test is planned separately**, in
-   `PLAN.md`'s "PR D — the `IndexStorage` path" section. What this step needs from it is only the
-   *construction* half: under the tape a union's primitive is a clause id, not a `P`, so there is no
-   flat `P[]` to resolve against and `StoragePolicy::get()` goes unused — `pruneTraverse` never calls
-   it. That is phase 1 of PR D and nothing more. The section also carries decisions still open (what a
-   partitioner may inspect under the policy, and whether it should expose a resolved `P&` or a raw
-   handle) which constrain how this step names its primitives, so settle those before starting here
-   rather than after.
+   **This step is not blocked on `BVH::IndexStorage`.** Under the tape a union's primitive is a
+   clause id, and `ValueStorage<uint32_t>` stores that in the same four bytes with no indirection:
+   `StorageType == P == uint32_t`. A `PackedBVH<T, uint32_t, K>` with the *default* policy already
+   builds through all four construction paths — the SFC, partitioner/SAH and `ClusterSpec`
+   constructors and `TreeBVH::pack()` — and is trivially copyable, verified against the tree. Say
+   `ValueStorage<uint32_t>` explicitly when this lands, so the intent is on the page; the default is
+   already right. `PLAN.md`'s "PR D — the `IndexStorage` path" section records why the policy is not
+   needed here, and what single measurement decides whether it is needed anywhere.
 
    **De-virtualising is only half of it.** Every one of these classes also holds its payload as a
    `shared_ptr` member (`FlatMeshSDF`: the mesh; `TriMeshSDF`: the BVH; `MeshSDF`: both). Annotating
