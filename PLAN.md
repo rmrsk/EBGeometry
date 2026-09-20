@@ -244,6 +244,30 @@ Measured in-tree:
 edge array, so evaluating a face needs the mesh. Both really are required; it is the 88-byte face
 *records* that are duplicated, not the edges and vertices.
 
+**What those 88 bytes are matters for the trade below**, because a face is not an inherently fat
+object — `FaceT` is a materialised cache:
+
+| member | offset | size | |
+|---|---|---|---|
+| `m_halfEdge` | 0 | 4 | the face's only real identity — the index the mesh resolves |
+| `m_normal` | 8 | 24 | cached geometry, derived from the mesh |
+| `m_centroid` | 32 | 24 | cached geometry, derived |
+| `m_metaData` | 56 | 2 | user payload |
+| `m_area` | 64 | 8 | cached geometry, derived |
+| `m_xDir` / `m_yDir` | 72 / 76 | 4 + 4 | cached 2D-projection axes, derived |
+| `m_insideOutsideAlgorithm` | 80 | 4 | per-face policy enum |
+
+74 B of members plus 14 B of padding. **64 of the 88 are precomputed geometry**, all recoverable from
+`m_halfEdge` and the mesh. So "88 versus 4" is the whole cache against the key to it — not a fat
+primitive against a thin one. The cache itself is not waste; it is what keeps `signedDistance` from
+recomputing a normal per query. The defect is only that `MeshSDF` holds two copies of it.
+
+Two unrelated savings are visible in that layout and are worth taking regardless of what happens to
+`IndexStorage`, because both shrink the number that would make it attractive: the 14 B of padding is
+16% of the struct in *both* copies and member reordering recovers about 8 B of it, and
+`m_insideOutsideAlgorithm` is a per-face 4-byte enum that is almost certainly uniform across a mesh
+and belongs on the mesh.
+
 There is also a non-memory payoff for `MeshSDF`: under `IndexStorage` the indices would point into the
 mesh's own face array, so `getClosestFaces` could return a **mesh** face index instead of the BVH-local
 one PR B had to document as unrecoverable — the wart that forced `Integrations/AMReX/PaintEB` to be
@@ -281,14 +305,32 @@ After both justifications fall away, `IndexStorage` has exactly **one** candidat
 `MeshSDF`, the measured 88-bytes-twice case above. Everything therefore hangs on a question nobody has
 answered:
 
-> **Is 4 bytes scattered better than 88 bytes contiguous, for this access pattern?**
+> **Does halving the resident footprint pay for scattering every leaf read?**
 
-Not obviously. `ValueStorage` exists to make a leaf scan walk contiguous memory, and `IndexStorage`
-forfeits exactly that. For a mesh whose faces fit in cache it is plainly worse; for one that does not,
-storing a quarter of the bytes may win it back. And the workload is not the random-point worst case —
-the real consumers (AMReX/Chombo EB generation) evaluate cell-by-cell over a grid, which is spatially
-coherent, so a random-query benchmark would overstate the scatter cost badly. Measure that pattern,
-across mesh sizes that straddle L2/L3, before writing any of the code below.
+Note the shape of that question, because the obvious phrasing — "4 bytes scattered versus 88 bytes
+contiguous" — is wrong, and the layout above shows why. The leaf evaluator still needs the normal,
+centroid and projection axes, so it still touches all 88 bytes either way:
+
+| | bytes stored | bytes read per leaf of *n* faces |
+|---|---|---|
+| `ValueStorage` | `n x 88` | `n x 88`, contiguous |
+| `IndexStorage` | `n x 4` | `n x 4` contiguous **plus** `n x 88` scattered |
+
+`IndexStorage` does not read less. It reads **the same data, less contiguously, with an index array on
+top** — so per query it is strictly worse. Its only win is footprint: half the resident bytes for the
+whole mesh, which pays off only when the working set is the binding constraint and the smaller
+footprint keeps more of the *mesh* in cache. That is a second-order effect, and it sets a high bar for
+the measurement:
+
+* the mesh must be large enough that `88 B x faces` genuinely does not fit — a benchmark where both
+  representations fit comfortably measures nothing;
+* the query pattern must be the coherent cell-by-cell sweep the real consumers (AMReX/Chombo EB
+  generation) perform, not random points, which would overstate the scatter cost;
+* and it should be run after the padding and per-face-enum savings above, since those move the
+  footprint ratio the whole argument rests on.
+
+On the evidence so far the expectation should be that `MeshSDF` stays on `ValueStorage`. Measure
+before writing any of the code below.
 
 **If the measurement favours `IndexStorage` for `MeshSDF`:**
 
