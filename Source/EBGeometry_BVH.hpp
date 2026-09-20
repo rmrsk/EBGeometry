@@ -283,8 +283,12 @@ struct IndexStorage
   {
     static_assert(sizeof(P) == 0,
                   "BVH::IndexStorage cannot be built from a TreeBVH: a tree's leaves hold "
-                  "shared_ptr<const P> and carry no index into any owning array. Use one of "
-                  "PackedBVH's direct constructors with (index, bounding volume) pairs instead.");
+                  "shared_ptr<const P> and carry no index into any owning array. Build it with "
+                  "PackedBVH's SFC-build constructor (pool, primsAndBVs, targetLeafSize) or its "
+                  "ClusterSpec constructor (pool, primsAndBVs, spec), passing (index, bounding "
+                  "volume) pairs. Note that PackedBVH's partitioner/leaf-predicate constructor is "
+                  "NOT one of these: it also routes through a TreeBVH and rejects IndexStorage "
+                  "with a static_assert of its own.");
 
     (void)a_dst;
     (void)a_leafPrims;
@@ -1586,9 +1590,16 @@ public:
    * lifetime at every level -- measured as the dominant cost of the traditional
    * build-then-pack() path (see the "Direct construction" section of the Sphinx docs).
    *
+   * Reusing that machinery is also what restricts this constructor to a by-value storage policy:
+   * Partitioner and LeafPredicate are typed on P, and the stack-local probe is a TreeBVH of P, so
+   * a stored element has to *be* a primitive. Under BVH::IndexStorage it is a uint32_t index, which
+   * cannot travel through either contract -- and a shared_ptr<const P> coming back out of the probe
+   * has lost the index, so it could not be recovered on the way out either. A static_assert says so
+   * directly. Use the SFC-build constructor above or the ClusterSpec constructor below for an
+   * BVH::IndexStorage build; both partition on bounding volumes alone and never need the primitive.
+   *
    * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink
-   * parameter the caller can std::move in) -- never requires shared_ptr-wrapping by the caller,
-   * regardless of this PackedBVH's StoragePolicy.
+   * parameter the caller can std::move in) -- never requires shared_ptr-wrapping by the caller.
    * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
    * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K
    * sub-lists. Defaults to BVCentroidPartitioner; pass BinnedSAHPartitioner for an SAH build.

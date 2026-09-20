@@ -134,12 +134,16 @@ allocation this implies can dominate build time. ``PackedBVH`` has a constructor
 
 .. code-block:: cpp
 
-   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), targetLeafSize);
+   BVH::PackedBVH<T, P, K> packed(pool, std::move(primsAndBVs), targetLeafSize);
 
-It takes primitives **by value** (``std::vector<std::pair<P, BV>>``, a sink parameter the caller
-can ``std::move`` in) rather than requiring a ``shared_ptr``-wrapped list, regardless of this
-``PackedBVH``'s ``StoragePolicy`` (see :ref:`Chap:PackedBVH`'s "Storage policy" section) — combined
-with ``BVH::ValueStorage<P>``, this is genuinely pointer-free from input to final storage.
+Every ``PackedBVH`` constructor takes the ``Pool`` its flat arrays are reserved from as its first
+argument; that pool must outlive the BVH. It takes primitives **by value**
+(``std::vector<std::pair<StorageType, BV>>``, a sink parameter the caller can ``std::move`` in)
+rather than requiring a ``shared_ptr``-wrapped list, regardless of this ``PackedBVH``'s
+``StoragePolicy`` (see :ref:`Chap:PackedBVH`'s "Storage policy" section) — combined with
+``BVH::ValueStorage<P>``, this is genuinely pointer-free from input to final storage. This
+constructor and the ``ClusterSpec`` one below are also the two that accept
+``BVH::IndexStorage``.
 
 Internally, this constructor:
 
@@ -163,8 +167,13 @@ construction rather than the SFC-based one above:
 
 .. code-block:: cpp
 
-   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs));                                    // top-down
-   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, AABBT<T>, K>, stopCrit); // SAH
+   BVH::PackedBVH<T, P, K> packed(pool, std::move(primsAndBVs));                                    // top-down
+   BVH::PackedBVH<T, P, K> packed(pool, std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, AABBT<T>, K>, stopCrit); // SAH
+
+Unlike the other two direct constructors, this one requires a by-value storage policy and rejects
+``BVH::IndexStorage`` with a ``static_assert``: ``Partitioner`` and ``LeafPredicate`` are typed on
+``P``, and the stack-local probe is a ``TreeBVH`` of ``P``, so a stored element has to *be* a
+primitive rather than an index into someone else's array.
 
 It reuses ``TreeBVH``'s own ``Partitioner``/``LeafPredicate`` machinery unchanged (any of
 ``BVCentroidPartitioner``, ``BinnedSAHPartitioner``, ``PrimitiveCentroidPartitioner``, or a
@@ -185,7 +194,7 @@ A third direct constructor builds via **ClusterSAH**, a fast approximation of a 
 
 .. code-block:: cpp
 
-   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), BVH::ClusterSpec{maxClusterSize});
+   BVH::PackedBVH<T, P, K> packed(pool, std::move(primsAndBVs), BVH::ClusterSpec{maxClusterSize});
 
 It first groups the primitives into small, spatially-tight *clusters* (buckets of at most
 ``maxClusterSize`` primitives, formed by a cheap density-adaptive midpoint subdivision that stops

@@ -872,6 +872,19 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
                                                     const BVH::Partitioner<P, BV, K>&       a_partitioner,
                                                     const BVH::LeafPredicate<T, P, BV, K>&  a_stopCrit)
 {
+  // Dependent on the class template parameters, so it fires only if this constructor is actually
+  // instantiated -- and, being the first thing in the body, it fires before the lambda below drags
+  // in IndexStorage::appendTreeLeaf's own static_assert, whose message describes the leaf append
+  // rather than this constructor.
+  static_assert(std::is_same_v<StorageType, P>,
+                "PackedBVH's partitioner/leaf-predicate constructor requires a by-value storage "
+                "policy (StorageType == P), i.e. BVH::ValueStorage. It reuses the Partitioner and "
+                "LeafPredicate contracts, which are typed on P, and builds a stack-local TreeBVH of "
+                "P at every split to evaluate the stop criterion -- none of which an index can "
+                "travel through. For a BVH::IndexStorage build use the SFC-build constructor "
+                "(pool, primsAndBVs, targetLeafSize) or the ClusterSpec constructor "
+                "(pool, primsAndBVs, spec); both partition on bounding volumes alone.");
+
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   std::vector<Node>        nodes;
