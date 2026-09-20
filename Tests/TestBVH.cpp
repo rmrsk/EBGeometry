@@ -1213,6 +1213,33 @@ struct IdentityPruneDist2
   }
 };
 
+/**
+ * @brief The entire body of the device kernel further below, factored out so the host suite
+ * compiles and runs the exact code the kernel runs -- not merely the same functors.
+ *
+ * The BVH is taken by value and const, matching the kernel exactly. Both halves matter: by value
+ * because that is how a descriptor reaches a kernel, and const because a non-const PackedBVH
+ * selects getPrimitives()'s mutable overload, whose PODSpan<P> does not convert to the functors'
+ * PODSpan<const P>. A test that reaches pruneTraverse() only through a const reference exercises a
+ * different overload than the kernel does, and so cannot catch that mismatch.
+ */
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE
+T
+packedBvhTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh,
+                        const Vec3T<T>                                          a_query) noexcept
+{
+  T state = std::numeric_limits<T>::max();
+
+  const NearestLeafEval<T>    evalLeaf{a_bvh.getPrimitives(), a_query};
+  const IdentityPruneDist2<T> pruneDist2{};
+
+  a_bvh.pruneTraverse(a_query, state, evalLeaf, pruneDist2);
+
+  // Also exercise the plain accessors so a broken base() shows up even if traversal were to pass.
+  return state + T(a_bvh.getPrimitives().size()) + a_bvh.getBoundingVolume().getLowCorner().length();
+}
+
 } // namespace
 
 TEMPLATE_TEST_CASE("PackedBVH: a host-to-host rebasedView answers every query identically",
@@ -1264,21 +1291,11 @@ TEMPLATE_TEST_CASE("PackedBVH: a host-to-host rebasedView answers every query id
   // Different address space, same answers, bit for bit.
   REQUIRE(rebased.getPrimitives().begin() != bvh.getPrimitives().begin());
 
-  // Deliberately the functor form rather than lambdas: this is exactly what a device caller must
-  // pass, so running it here compiles and checks that path on every build, GPU or not.
-  const auto nearest2 = [](const Packed& a_bvh, const Vec3& a_query) -> T {
-    T state = std::numeric_limits<T>::max();
-
-    const NearestLeafEval<T>    evalLeaf{a_bvh.getPrimitives(), a_query};
-    const IdentityPruneDist2<T> pruneDist2{};
-
-    a_bvh.pruneTraverse(a_query, state, evalLeaf, pruneDist2);
-
-    return state;
-  };
-
+  // Deliberately packedBvhTraversalProbe() rather than a lambda written to look like it: the probe
+  // *is* the device kernel's body, so running it here compiles and checks that path -- functors,
+  // by-value const descriptor and all -- on every build, GPU or not.
   for (const auto& q : queryPoints<T>()) {
-    REQUIRE(nearest2(rebased, q) == nearest2(bvh, q));
+    REQUIRE(packedBvhTraversalProbe<T, K>(rebased, q) == packedBvhTraversalProbe<T, K>(bvh, q));
   }
 }
 
@@ -2286,15 +2303,7 @@ EBGEOMETRY_GLOBAL
 void
 packedBvhDeviceKernel(EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh, Vec3T<T> a_query, T* a_out)
 {
-  T state = std::numeric_limits<T>::max();
-
-  const NearestLeafEval<T>    evalLeaf{a_bvh.getPrimitives(), a_query};
-  const IdentityPruneDist2<T> pruneDist2{};
-
-  a_bvh.pruneTraverse(a_query, state, evalLeaf, pruneDist2);
-
-  // Also exercise the plain accessors so a broken base() shows up even if traversal were to pass.
-  a_out[0] = state + T(a_bvh.getPrimitives().size()) + a_bvh.getBoundingVolume().getLowCorner().length();
+  a_out[0] = packedBvhTraversalProbe<T, K>(a_bvh, a_query);
 }
 
 TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches the host",

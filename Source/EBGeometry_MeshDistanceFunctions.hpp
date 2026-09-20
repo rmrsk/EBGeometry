@@ -251,10 +251,10 @@ public:
    * distance to @p a_point.
    *
    * Faces are named by their index into this object's own BVH primitive array -- the array
-   * getBVH()->getPrimitives() returns -- and *not* by an index into the source mesh's face array.
+   * getRoot()->getPrimitives() returns -- and *not* by an index into the source mesh's face array.
    * Packing reorders primitives into leaf order and (under the default BVH::ValueStorage) stores
    * them by value, so nothing records which mesh face a packed face came from. Resolve an index
-   * with getBVH()->getPrimitives()[index].
+   * with getRoot()->getPrimitives()[index].
    * @param[in] a_point  Query point.
    * @param[in] a_sorted If true, the returned vector is sorted by ascending
    * unsigned distance (closest face first).
