@@ -188,192 +188,139 @@ The functors the kernel passes to `pruneTraverse` are hoisted out of the device-
 by the host rebase test, so the callable path is compiled and run on every build; the kernel launch
 itself is the only unverified part. It needs a machine with a toolkit before this is trusted.
 
-## PR D — the `IndexStorage` path *(planned; blocked on one measurement, and possibly on nothing else)*
+## PR D — the `IndexStorage` path: **recommend deleting the policy** *(investigated, nothing built)*
 
 `IndexStorage` shipped with PR B reachable from two of `PackedBVH`'s five constructors and used by
-nothing. This section records what it is actually for — which is **not** what PR B's prose says — what
-blocks it, and how much of it is worth building now.
+nothing. Investigating what it would take to finish it turned up, instead, that every justification
+for it fails, and that two unrelated levers are worth far more. **The recommendation is to remove the
+policy rather than complete it.** This section is the evidence, so the decision does not have to be
+re-derived.
 
-### The crux is the reorder, not the Pool
+Measurements below are a 135,200-face watertight torus, `T = double`, `K = 4`, `sizeof(FaceT)` = 88 B,
+host, single-threaded.
 
-Packing **reorders primitives into leaf order** so that a leaf scan walks contiguous memory. That is
-the property the packed representation exists to create. The consequence is that a packed BVH can
-never simply alias the array it was built from, because that array is in source order.
+### The crux: packing reorders, so the Pool cannot dedupe
 
-This is worth stating plainly because the `Pool` looks like it should already solve the problem and
-does not. `m_primitives` is a `PODVector<StorageType>` — an offset, not a pointer — so two BVHs
-*could* share one primitive array by holding the same descriptor, with no storage policy involved at
-all. But only if they agree on leaf order, and two different partitionings never do. Pool residency
-gives position independence and lifetime; it does not give a shared ordering.
+Worth stating first because the `Pool` looks like it should already make this a non-issue. Packing
+**reorders primitives into leaf order** — that is the property the packed representation exists to
+create — so a packed BVH can never alias the array it was built from. `m_primitives` is a
+`PODVector`, an offset rather than a pointer, so two BVHs *could* share one descriptor; but only if
+they agree on leaf order, and two partitionings never do. Pool residency buys position independence
+and lifetime, not a shared ordering. That leaves copy, index, or reorder-the-source, and no fourth
+option — which is why a storage *policy* looked like the answer.
 
-So a packed BVH has exactly three options for its primitives, and there is no fourth:
+### Why each justification fails
 
-1. **Copy them into leaf order** — `ValueStorage`. Contiguous leaf scans, `sizeof(P)` per primitive.
-2. **Store indices in leaf order** — `IndexStorage`. 4 bytes per primitive, one scattered load per
-   primitive evaluated.
-3. **Reorder the source itself** to match leaf order. For a DCEL mesh that renumbers every face index
-   the topology refers to. Not free, and not on any roadmap.
+**Sharing and instancing — already solved a layer up.** `Examples/NestedBVH` builds one `TriMeshSDF`
+and instances it; its own comment says the inner BVH is "built and stored exactly once", shared by
+`shared_ptr`. `TriMeshSDF`'s class documentation says instancing "is unaffected either way". And since
+PR C a `PackedBVH` copy is shallow — measured on an 87,381-node BVH, a copy is **64 bytes with a pool
+delta of zero**, aliasing the source; `deepCopy()` is opt-in and called nowhere in `Source/`,
+`Examples/` or `Integrations/`. A BVH of 8 inner BVHs costs **1,856 bytes** in total, all 8 aliasing
+the one original. The nesting case PR B named is the case the trivially-copyable descriptor already
+solved: **a `PackedBVH` is itself an index** — three `PODVector` offsets plus a base.
 
-`IndexStorage` is therefore a **locality-versus-duplication trade**, exactly as
-`EBGeometry_BVH.hpp`'s own policy comment says — not a sharing mechanism that the rest of the design
-was missing.
+**The CSG/tape layer — `ValueStorage<uint32_t>` is byte-identical.** Under the tape a union's
+primitive is a clause id. `ValueStorage<uint32_t>` has `StorageType == P == uint32_t`, stores the same
+four bytes with no indirection, and a `PackedBVH<T, uint32_t, K>` with the **default** policy builds
+through all four construction paths — SFC, partitioner/SAH, `ClusterSpec` and `TreeBVH::pack()`.
+`IndexStorage` would only move the indexing into the policy, for nothing: `pruneTraverse` never calls
+`get()`. This confirms PR B's own wording, that the fix for the compiled-out unions "is not another
+storage policy".
 
-### What PR B says it is for is wrong
+**`MeshSDF` deduplication — reproducible today, and beaten by a better fix.** `MeshSDF` retains
+`m_mesh` *and* a `PackedBVH<Face>` of copies, so every face is stored twice. But the same saving is
+available with no library change at all: `PackedBVH<T, uint32_t, K>` over mesh face indices, with a
+leaf evaluator resolving `mesh.getFace(idx)`, was verified against `MeshSDF` over 81 queries at
+**worst |delta| = 0** — exact agreement, default `ValueStorage`, no policy.
 
-PR B justifies the policy as "one primitive set shared by many BVHs — the `NestedBVH` case". Measured,
-that case duplicates nothing and `IndexStorage` would save nothing:
+And it is beaten outright: **the BVH query path never reads the mesh's face array.**
+`FaceT::signedDistance` resolves topology through `a_mesh.getEdge(...)` and `.getVertex(...)`; the only
+query-shaped function touching `getFace` is `EdgeT::computeNormal`, called once at reconcile time
+(`EdgeImplem.hpp:69`) and cached into `m_normal`. So after `pack()` the mesh's face array is dead
+weight for a `MeshSDF`, and discarding it (build into pool A, compact into pool B, drop A) saves the
+same ~11.9 MB **at zero query cost**, where `IndexStorage` makes every query slower.
 
-* `Examples/NestedBVH` builds one `TriMeshSDF` and instances it; its own comment says the inner BVH is
-  "built and stored exactly once", shared by `shared_ptr` at the SDF level.
-* `TriMeshSDF`'s class documentation already says instancing "is unaffected either way".
-* `PackedBVH`'s copy constructor has been shallow since PR C, and `deepCopy()` is called nowhere in
-  `Source/`, `Examples/` or `Integrations/`. Copying a BVH duplicates nothing either.
+### Why it is not a footprint win either
 
-The real shape is the mirror image: **one BVH over primitives that something else already owns.** The
-duplication comes from packing by value while the owner keeps the source, not from copying or nesting.
-Measured in-tree:
-
-| | duplication today | `IndexStorage` helps? |
-|---|---|---|
-| **`MeshSDF`** | every face stored twice — it retains `m_mesh` *and* a `PackedBVH<Face>` of copies. `sizeof(FaceT<double,short>)` is 88 B against 4 B for an index | **yes — 22x on the BVH's half** |
-| `PointCloudBVH` | ~2.6x (100k points: 3.20 MB retained + 5.07 MB packed groups = 82.7 B/point for 32 B of data) | no — its primitive is an AoSoA *group*, a SIMD reformatting of the points rather than a copy of one. See the pull-forward section below |
-| `TriMeshSDF` | none | no — groups are built at pack time and the mesh is discarded |
-| nesting / instancing | none | no — already shared a layer up |
-
-`MeshSDF` cannot drop the mesh to avoid this: `FaceT` stores `m_halfEdge`, an index into the mesh's
-edge array, so evaluating a face needs the mesh. Both really are required; it is the 88-byte face
-*records* that are duplicated, not the edges and vertices.
-
-**What those 88 bytes are matters for the trade below**, because a face is not an inherently fat
-object — `FaceT` is a materialised cache:
-
-| member | offset | size | |
-|---|---|---|---|
-| `m_halfEdge` | 0 | 4 | the face's only real identity — the index the mesh resolves |
-| `m_normal` | 8 | 24 | cached geometry, derived from the mesh |
-| `m_centroid` | 32 | 24 | cached geometry, derived |
-| `m_metaData` | 56 | 2 | user payload |
-| `m_area` | 64 | 8 | cached geometry, derived |
-| `m_xDir` / `m_yDir` | 72 / 76 | 4 + 4 | cached 2D-projection axes, derived |
-| `m_insideOutsideAlgorithm` | 80 | 4 | per-face policy enum |
-
-74 B of members plus 14 B of padding. **64 of the 88 are precomputed geometry**, all recoverable from
-`m_halfEdge` and the mesh. So "88 versus 4" is the whole cache against the key to it — not a fat
-primitive against a thin one. The cache itself is not waste; it is what keeps `signedDistance` from
-recomputing a normal per query. The defect is only that `MeshSDF` holds two copies of it.
-
-Two unrelated savings are visible in that layout and are worth taking regardless of what happens to
-`IndexStorage`, because both shrink the number that would make it attractive: the 14 B of padding is
-16% of the struct in *both* copies and member reordering recovers about 8 B of it, and
-`m_insideOutsideAlgorithm` is a per-face 4-byte enum that is almost certainly uniform across a mesh
-and belongs on the mesh.
-
-There is also a non-memory payoff for `MeshSDF`: under `IndexStorage` the indices would point into the
-mesh's own face array, so `getClosestFaces` could return a **mesh** face index instead of the BVH-local
-one PR B had to document as unrecoverable — the wart that forced `Integrations/AMReX/PaintEB` to be
-rewritten.
-
-### The CSG layer does not need it: `ValueStorage<uint32_t>` already does that job
-
-This was the second justification for the policy, and it does not survive either.
-
-Under the tape a BVH union's primitive is a **clause id**. The natural reading is that a `uint32_t`
-primitive means `IndexStorage` — but `ValueStorage<uint32_t>` has `StorageType == P == uint32_t` and
-stores exactly the same four bytes, with no indirection. Verified against the tree: a
-`PackedBVH<T, uint32_t, K>` with the **default** policy builds through all four construction paths —
-the SFC, partitioner/SAH and `ClusterSpec` constructors *and* `TreeBVH::pack()` — and is trivially
-copyable. None of PR D's work is needed for any of it.
-
-The distinction between the two is semantic, not physical:
-
-* `ValueStorage<uint32_t>` — *the primitive is a clause id.*
-* `IndexStorage<P>` — *the uint32 is an index into an array of `P`*, and `get(id, base)` returns a
-  `P&`.
-
-For the tape the clause id genuinely **is** the primitive: there is no array of `ImplicitFunction<T>`
-to index into, because a tape is a clause list an interpreter walks, not an array of objects. So
-`ValueStorage<uint32_t>` is the more honest model, and `IndexStorage` would only relocate the
-indexing into the policy — for nothing, since `pruneTraverse` never calls `get()`.
-
-**Consequence: re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is not blocked on this section at all.**
-It is blocked on step 1's de-virtualisation and step 3's tape, which is what PR B's own prose already
-said ("the fix is not another storage policy").
-
-### Is it worth building? One measurement decides
-
-After both justifications fall away, `IndexStorage` has exactly **one** candidate consumer left:
-`MeshSDF`, the measured 88-bytes-twice case above. Everything therefore hangs on a question nobody has
-answered:
-
-> **Does halving the resident footprint pay for scattering every leaf read?**
-
-Note the shape of that question, because the obvious phrasing — "4 bytes scattered versus 88 bytes
-contiguous" — is wrong, and the layout above shows why. The leaf evaluator still needs the normal,
-centroid and projection axes, so it still touches all 88 bytes either way:
+`IndexStorage` does not read less. The evaluator still needs the normal, centroid and projection axes,
+so it touches all 88 bytes regardless:
 
 | | bytes stored | bytes read per leaf of *n* faces |
 |---|---|---|
 | `ValueStorage` | `n x 88` | `n x 88`, contiguous |
 | `IndexStorage` | `n x 4` | `n x 4` contiguous **plus** `n x 88` scattered |
 
-`IndexStorage` does not read less. It reads **the same data, less contiguously, with an index array on
-top** — so per query it is strictly worse. Its only win is footprint: half the resident bytes for the
-whole mesh, which pays off only when the working set is the binding constraint and the smaller
-footprint keeps more of the *mesh* in cache. That is a second-order effect, and it sets a high bar for
-the measurement:
+Its only effect is resident footprint, and even there it is third on the list. Ranked on the same
+79 MB pool: zero-filled leaf SoA rows ~17.3 MB (22%, no downside); discarding the mesh's face array
+~11.9 MB (15%, no query cost); `IndexStorage` 11.36 MB (14%, **every query slower**). Last, and the
+only one that costs something.
 
-* the mesh must be large enough that `88 B x faces` genuinely does not fit — a benchmark where both
-  representations fit comfortably measures nothing;
-* the query pattern must be the coherent cell-by-cell sweep the real consumers (AMReX/Chombo EB
-  generation) perform, not random points, which would overstate the scatter cost;
-* and it should be run after the padding and per-face-enum savings above, since those move the
-  footprint ratio the whole argument rests on.
+Note also that `FaceT` is a materialised cache, not a fat primitive: 4 B of identity (`m_halfEdge`)
+plus **64 B of derived geometry** (normal, centroid, area, two projection axes), 2 B metadata, a 4 B
+policy enum and 14 B of padding. "88 versus 4" is the whole cache against the key to it.
 
-On the evidence so far the expectation should be that `MeshSDF` stays on `ValueStorage`. Measure
-before writing any of the code below.
+### What deleting it involves
 
-**If the measurement favours `IndexStorage` for `MeshSDF`:**
+* `BVH::IndexStorage` itself, and `appendTreeLeaf`'s `static_assert`.
+* The partitioner/leaf-predicate constructor's `static_assert` (`b042765`), which exists only to
+  reject this policy.
+* `TestBVH`'s two `IndexStorage`/`ValueStorage` agreement cases.
+* `InstantiateAll.cpp`'s note on why the policy cannot be explicitly instantiated (`4c61fda`).
+* `ImplemBVH.rst`'s storage-policy section, and `TriMeshSDF`/`Parser`'s `@tparam` text (`c9d347f`).
 
-*Phase 1 — retype the construction machinery on `StorageType`.* The partitioner/leaf-predicate
-constructor wraps every input in `shared_ptr<P>` and builds a stack-local `TreeBVH<T, P, BV, K>` probe
-per split, to reuse the `Partitioner` and `LeafPredicate` contracts unchanged — both typed on `P`.
-Retyping that machinery (`PrimAndBVList<StorageType, BV>`, `Partitioner<StorageType, BV, K>`,
-`LeafPredicate<T, StorageType, BV, K>`, a `TreeBVH<T, StorageType, BV, K>` probe) is
-**source-compatible for every existing caller**, since `StorageType == P` under `ValueStorage`. What
-it unlocks that matters is **`pack()`/`packWith()`** — a tree built over `StorageType` *does* carry
-indices in its leaves, so `IndexStorage::appendTreeLeaf` becomes implementable rather than a
-`static_assert` — and `MeshSDF` builds through `pack()`. (Of the three shipped partitioners only
-`PrimitiveCentroidPartitioner` reads the primitive; `BVCentroidPartitioner` and
-`BinnedSAHPartitioner` read bounding volumes only and work over indices verbatim.)
+**It raises a follow-on question worth answering deliberately:** with one policy left, `StoragePolicy`
+is a template parameter with exactly one legal argument. Removing it too would simplify real code —
+`m_primitives` becomes `PODVector<P>`, `get()` is identity and disappears, `appendTreeLeaf` and
+`appendAliased` become plain functions — but it changes `TriMeshSDF`'s and `Parser`'s public template
+signatures. Decide that on its own terms rather than as a side effect.
 
-*Phase 2 — the pool-resident owner array.* The caller reserves a `PODVector<P>` from the **same
-`Pool`** and `get()` resolves through the BVH's own `base()`. That is the only option that works on
-device without hand-patched pointers — the descriptor is an offset, so `Pool::mirror` relocates it and
-`rebasedView()` rebases it with everything else — and it ties the owner array's lifetime to the Pool,
-which an index otherwise cannot do. An external caller-owned array (what PR B shipped) leaves both
-problems standing; a BVH-owned array defeats the sharing entirely. Note the cost is borne by
-everybody: `PackedBVH` must keep one layout across both policies and stay trivially copyable, so the
-owner descriptor is carried unconditionally — 16 bytes in every BVH including every `ValueStorage`
-one, mirrored to device on every view.
+### What would reverse the recommendation
 
-**If the measurement does not favour it**, `IndexStorage` has no consumer, and the right move is to
-delete it rather than carry a policy, two `static_assert`s and a documented asymmetry for nobody. What
-would be lost is a type-level way to say "this uint32 indexes an array of `P`" — documentation, not
-capability.
+A consumer that needs genuine *sharing* — several BVHs with different partitionings over one primitive
+set, editing a primitive once and having all of them see it — rather than deduplication. Nothing in
+the tree wants that today, and the two candidates that looked like they might (nesting, CSG) turned
+out not to.
 
-### Still open
+## Bigger levers, unrelated to the storage policy
 
-* **What a partitioner may inspect under `IndexStorage`.** Either document that partitioners must be
-  geometry-agnostic and `static_assert` `PrimitiveCentroidPartitioner` out of the combination, or widen
-  the contract to carry a base so it can resolve. The first is cheap and honest; the second is uniform
-  at the price of a public callback signature.
-* **Whether `IndexStorage` earns its place at all.** This is now the section's real question, and the
-  `MeshSDF` measurement answers it: that is the only candidate consumer left. Keeping a policy, two
-  `static_assert`s and a documented constructor asymmetry for a feature nothing uses is a cost with no
-  payer.
-* **Whether the CSG layer should say `ValueStorage<uint32_t>` explicitly** when it lands, rather than
-  leaving a bare `PackedBVH<T, uint32_t, K>` for the next reader to mistake for an oversight. The
-  default is already correct; the intent is what is missing.
+These came out of the same investigation, are independent of it, and are worth more. Same mesh and
+build as above (the SFC constructor, so `targetLeafSize` is explicit).
+
+| target leaf | nodes | pool | faces evaluated/query | coherent ns/query |
+|---|---|---|---|---|
+| **1** | 349,525 | 99.3 MB | 613 | 79,888 |
+| 2 | 349,525 | 99.3 MB | 1,898 | 170,635 |
+| **4** | 87,381 | 33.3 MB | 1,053 | **74,167** |
+| 8 | 87,381 | 33.3 MB | 3,981 | 203,133 |
+| **16** | 21,845 | 16.8 MB | 4,510 | 211,924 |
+| 32 | 21,845 | 16.8 MB | 17,938 | 761,018 |
+| **64** | 5,461 | 12.7 MB | 4,745 | 230,059 |
+
+**1. A `targetLeafSize` that is not a power of K is a silent trap.** 2, 8 and 32 are each *strictly
+dominated* by the power of K below them — identical node count and identical pool bytes, but 2 to 4
+times the faces evaluated per query. The SFC build picks a level count, so the tree only changes at
+powers of K; an in-between value keeps the same tree and packs more primitives into each leaf,
+coarsening the pruning, with no warning. Rounding the argument to a power of K, or documenting it, is
+small and self-contained.
+
+**2. Leaf size moves total footprint further than any storage decision.** Going from leaf 1 to leaf 4
+cut the pool **99.3 -> 33.3 MB (66%)** while getting slightly *faster* — 1.7x more faces evaluated,
+won back on locality. That is roughly six times what `IndexStorage` could save, from a constructor
+argument that already exists. For reference `MeshSDF`'s SAH build lands at ~119,925 nodes / 43.6 MB,
+between leaf 1 and 4, because `DefaultLeafPredicate` stops at `< K` primitives.
+
+**3. About 75% of the `ChildAABBSoA` cache is zeros.** `buildSoA` reserves one 192-byte row per node
+and fills only interior ones, and `pruneTraverse` reads the SoA only in its non-leaf branch — so leaf
+rows are allocated, zeroed and never read. In a K-ary tree where every interior node has exactly K
+children, `N = 1 + K*I`, so at K = 4 leaves are 75% of nodes: **~17.3 MB of the 79 MB pool**, larger
+than everything `IndexStorage` could save, and recoverable with no indirection or policy.
+
+**Caveats.** One mesh, one `K`, one query pattern, host-only, single-threaded, and a torus is unusually
+uniform so the SFC build flatters itself here. Finding 1 is structural and should generalise; the
+"leaf = 4" figure is specific to this case and should be repeated on a real mesh under the SAH build
+before becoming a default. Wall-clock on this machine was unreliable until cross-checked against the
+deterministic faces-per-query count — treat the ns column as corroboration, not as a benchmark.
 
 ## What comes next
 

@@ -229,14 +229,15 @@ kernel and compares against the host:
    against. Then the analytic layer proper, which is where `BVHUnionIF`/`BVHSmoothUnionIF` come back
    and where re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is the acceptance test.
 
-   **This step is not blocked on `BVH::IndexStorage`.** Under the tape a union's primitive is a
-   clause id, and `ValueStorage<uint32_t>` stores that in the same four bytes with no indirection:
-   `StorageType == P == uint32_t`. A `PackedBVH<T, uint32_t, K>` with the *default* policy already
-   builds through all four construction paths — the SFC, partitioner/SAH and `ClusterSpec`
-   constructors and `TreeBVH::pack()` — and is trivially copyable, verified against the tree. Say
-   `ValueStorage<uint32_t>` explicitly when this lands, so the intent is on the page; the default is
-   already right. `PLAN.md`'s "PR D — the `IndexStorage` path" section records why the policy is not
-   needed here, and what single measurement decides whether it is needed anywhere.
+   **This step is not blocked on `BVH::IndexStorage`, which is recommended for deletion.** Under the
+   tape a union's primitive is a clause id, and `ValueStorage<uint32_t>` stores that in the same four
+   bytes with no indirection: `StorageType == P == uint32_t`. A `PackedBVH<T, uint32_t, K>` with the
+   *default* policy already builds through all four construction paths — the SFC, partitioner/SAH and
+   `ClusterSpec` constructors and `TreeBVH::pack()` — and is trivially copyable, verified against the
+   tree. Say `ValueStorage<uint32_t>` explicitly when this lands, so the intent is on the page; the
+   default is already right. `PLAN.md`'s "PR D" section carries the evidence, and flags a follow-on
+   question this step should leave alone: with one policy left, `StoragePolicy` has exactly one legal
+   argument, and whether to drop the parameter is a public-API decision of its own.
 
    **De-virtualising is only half of it.** Every one of these classes also holds its payload as a
    `shared_ptr` member (`FlatMeshSDF`: the mesh; `TriMeshSDF`: the BVH; `MeshSDF`: both). Annotating
