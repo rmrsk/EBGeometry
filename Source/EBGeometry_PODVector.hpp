@@ -263,7 +263,12 @@ struct PODVector
   {
     EBGEOMETRY_EXPECT(a_count <= m_capacity);
 
-    std::memcpy(this->data(a_base), a_src, static_cast<size_t>(a_count) * sizeof(T));
+    // Guard the zero-element case: an empty build reserves nothing, so both this->data(a_base) and
+    // a_src are null, and memcpy's parameters are declared nonnull -- UBSan's nonnull check flags
+    // memcpy(nullptr, nullptr, 0) even though it copies nothing.
+    if (a_count > 0) {
+      std::memcpy(this->data(a_base), a_src, static_cast<size_t>(a_count) * sizeof(T));
+    }
 
     m_size = a_count;
   }
