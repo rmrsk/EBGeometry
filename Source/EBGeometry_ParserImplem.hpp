@@ -1911,7 +1911,7 @@ Parser::readIntoTriangleBVH(const std::string a_filename,
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename, a_pool);
 
-  return std::make_shared<TriMeshSDF<T, Meta, K, W, StoragePolicy>>(mesh, a_build, a_maxLeafGroups);
+  return std::make_shared<TriMeshSDF<T, Meta, K, W, StoragePolicy>>(mesh, a_pool, a_build, a_maxLeafGroups);
 }
 
 template <typename T, typename Meta, size_t K, size_t W, class StoragePolicy>

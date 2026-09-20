@@ -267,5 +267,19 @@ memory model asks of a caller:
    on every class described here, is cheap insurance that a later change does not silently break
    the contract.
 
-See :ref:`Chap:ImplemDCEL` for how ``DCEL::MeshT`` -- the main consumer of this memory model today
--- is built on top of ``Pool``/``PODVector``, including the pitfalls specific to it.
+Two classes adopt this model today, ``DCEL::MeshT`` and ``BVH::PackedBVH``. Both hold the same two
+address fields (a ``PoolControl*`` for host resolution, a raw base for a device view), both resolve
+every array through a ``base()`` with the same pair of assertions, and both offer ``rebasedView()``
+as their single crossing point and ``deepCopy()`` for genuinely independent storage. The convention
+is deliberately duplicated rather than factored into a base class: it is about fifteen lines, and a
+base class would complicate the trivial-copyability ``static_assert`` that the whole model rests on.
+
+One consequence worth stating plainly, because it changes what familiar code means: **copying a
+pool-resident object copies descriptors, not data.** The copy resolves against the same pool memory
+as the original, so writing through one is visible through the other. That is exactly what makes the
+type trivially copyable, and therefore what lets a rebased view be byte-copied into a device address
+space -- but it means a copy constructor is not a deep copy. Use ``deepCopy(Pool&)`` when
+independent storage is what you want.
+
+See :ref:`Chap:ImplemDCEL` for how ``DCEL::MeshT`` is built on top of ``Pool``/``PODVector``,
+including the pitfalls specific to it, and :ref:`Chap:ImplemBVH` for ``BVH::PackedBVH``.

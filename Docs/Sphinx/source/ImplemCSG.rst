@@ -256,6 +256,20 @@ plus a more expensive exponential alternative, ``ExpMin<T>``. Any of the three -
 user-supplied functor of the same signature, ``T(const T&, const T&, const T&)`` -- can be passed
 as the smoothing operator to the smooth combinators' constructors/free functions.
 
+.. warning::
+
+   **The BVH-accelerated unions described below are temporarily disabled.** ``BVHUnionIF``,
+   ``BVHSmoothUnionIF`` and their ``BVHUnion``/``BVHSmoothUnion`` factories are compiled out during
+   the GPU port, behind ``EBGEOMETRY_ENABLE_BVH_CSG_UNION`` in :file:`Source/EBGeometry_CSG.hpp`.
+   They store their primitives as ``std::shared_ptr<const ImplicitFunction<T>>``, which the removed
+   ``BVH::SharedPtrStorage`` policy provided and neither remaining storage policy can hold -- see
+   :ref:`Sec:PolymorphicPrimitives`. They return with the index-based redesign of the
+   implicit-function and CSG layer, which replaces virtual dispatch with a linear-SSA tape.
+
+   The plain (non-BVH) combinators on this page -- ``UnionIF``, ``SmoothUnionIF``,
+   ``IntersectionIF`` and the rest -- are unaffected and fully available. A union over many objects
+   is :math:`\mathcal{O}(N)` per query until the accelerated variants return.
+
 Because a plain CSG union is evaluated as :math:`\min(I_1, \ldots, I_N)`, querying it costs
 :math:`\mathcal{O}(N)` per point for :math:`N` objects. ``BVHUnionIF``/``BVHUnion`` and
 ``BVHSmoothUnionIF``/``BVHSmoothUnion`` accelerate this by placing the objects' bounding volumes

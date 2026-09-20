@@ -118,6 +118,10 @@ rule pair to get the same SIMD node pruning over a different search (e.g. neares
 over a primitive type with no ``signedDistance()`` at all). See :ref:`Chap:PruneTraverse` for the
 full callback contract and traversal algorithm.
 
+When ``(K, T)`` matches no compiled ISA path, this one step -- and only this step -- falls back to
+a scalar loop over the :math:`K` children; the surrounding traversal is the same code either way,
+and the two produce bit-identical results.
+
 **What this means in practice:** the cost of deciding which subtree(s) to visit next no longer
 scales with :math:`K` the way a scalar loop would; a wider branching factor (larger :math:`K`)
 is close to "free" for this step as long as it still fits in one SIMD batch for the target ISA,

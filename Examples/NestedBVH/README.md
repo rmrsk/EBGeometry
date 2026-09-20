@@ -1,6 +1,12 @@
 Examples/NestedBVH
 ------------------
 
+> **Temporarily disabled.** This example is built on EBGeometry's BVH-accelerated CSG union
+> (`BVHUnion`/`BVHUnionIF`/`BVHSmoothUnion`), which is compiled out during the GPU port while the
+> implicit-function and CSG layer is moved to an index-based design -- see
+> `EBGEOMETRY_ENABLE_BVH_CSG_UNION` in `Source/EBGeometry_CSG.hpp`. The program still builds, but
+> prints a notice and exits without doing any work.
+
 This folder shows how to build a *nested* bounding volume hierarchy (BVH): an outer,
 BVH-accelerated CSG union whose primitives are themselves BVH-backed mesh signed distance
 functions.
@@ -14,13 +20,14 @@ placements) is near the query point, then the mesh's own inner hierarchy, to fin
 triangle. The union's value is the minimum signed distance over all placements -- negative inside
 any of them, positive outside all of them.
 
-The outer union stores its primitives as `std::shared_ptr<const ImplicitFunction<T>>` (the default
-`SharedPtrStorage`), so it *shares* each placement by pointer rather than copying it -- and because
-the placements all point at one `TriMeshSDF`, the inner packed BVH is built and stored just once.
-This is the recommended way to nest BVHs. See the "Storage policy" section of the
-[BVH implementation](https://rmrsk.github.io/EBGeometry/ImplemBVH.html) documentation for why the
-outer level should not use `ValueStorage` here: it would deep-copy every inner BVH, and because the
-union primitive is the polymorphic base `ImplicitFunction<T>` it cannot be stored by value at all.
+The outer union stores its primitives as `std::shared_ptr<const ImplicitFunction<T>>`, so it
+*shares* each placement by pointer rather than copying it -- and because the placements all point at
+one `TriMeshSDF`, the inner packed BVH is built and stored just once. That sharing came from the
+`SharedPtrStorage` policy, which has been removed: a `shared_ptr` is not trivially copyable and so
+can never be mirrored into a device address space. Neither remaining policy can hold a polymorphic
+primitive like `ImplicitFunction<T>` -- `ValueStorage` would have to store an abstract type by value,
+and `IndexStorage` indexes a flat array of one concrete type. See the "Polymorphic primitives" section
+of the [BVH implementation](https://rmrsk.github.io/EBGeometry/ImplemBVH.html) documentation.
 
 By default the example uses the small `dodecahedron.stl` fixture shipped in the repository
 (`Tests/data/`), so it needs no submodule. Pass a different triangle mesh (STL/PLY/VTK/OBJ) on the

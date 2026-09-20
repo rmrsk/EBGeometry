@@ -32,6 +32,7 @@
 
 namespace EBGeometry {
 
+#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
 /**
  * @brief Internal helpers shared by BVHUnionIF and BVHSmoothUnionIF
  */
@@ -95,6 +96,7 @@ buildBVH(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndB
 }
 
 } // namespace CSGDetail
+#endif // EBGEOMETRY_ENABLE_BVH_CSG_UNION
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
@@ -178,6 +180,7 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
   return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
 }
 
+#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
 BVHUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes)
@@ -207,6 +210,7 @@ BVHSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
   return std::make_shared<EBGeometry::BVHSmoothUnionIF<T, P, BV, K>>(
     a_implicitFunctions, a_boundingVolumes, a_smoothLen);
 }
+#endif // EBGEOMETRY_ENABLE_BVH_CSG_UNION
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
@@ -420,6 +424,7 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   return ret;
 }
 
+#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
 template <class T, class P, class BV, size_t K>
 BVHUnionIF<T, P, BV, K>::BVHUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs)
 {
@@ -606,6 +611,7 @@ BVHSmoothUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
 
   return m_bvh->getBoundingVolume();
 }
+#endif // EBGEOMETRY_ENABLE_BVH_CSG_UNION
 
 template <class T>
 IntersectionIF<T>::IntersectionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept

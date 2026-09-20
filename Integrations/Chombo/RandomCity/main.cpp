@@ -2,6 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// NOTE: This integration example does not currently compile.
+//
+// It is built on EBGeometry's BVH-accelerated CSG union (BVHUnion / BVHSmoothUnion), which is
+// compiled out during the GPU port while the implicit-function and CSG layer is moved to an
+// index-based design. See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.
+//
+// The integration examples are illustrative and are not built or tested by CI, so this file is left
+// as-is rather than stubbed out: it shows the intended usage and will compile again unchanged once
+// the union classes return.
+
 // Std includes
 #include <chrono>
 #include <random>
