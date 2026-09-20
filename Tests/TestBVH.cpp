@@ -1580,6 +1580,99 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::IndexStorage
   }
 }
 
+TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- BVH::IndexStorage agrees exactly "
+                   "with BVH::ValueStorage over the same primitives",
+                   "[BVH][StoragePolicy][IndexStorage]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  Pool pool(hostMemoryResource());
+
+  // Same construction as the SFC-build case above, but through the ClusterSpec constructor. Its
+  // internal std::partition predicate used to name std::pair<P, BV> rather than
+  // std::pair<StorageType, BV>, so this constructor could not be instantiated with IndexStorage at
+  // all -- the compiler tried to build a Pnt from a uint32_t. The predicate only reads the bounding
+  // volume, so it never cared which of the two the pair holds.
+  std::vector<Pnt> owner;
+
+  owner.reserve(29);
+
+  for (int i = 0; i < 29; i++) {
+    const T t = T(i);
+
+    owner.push_back(Pnt{Vec3(std::cos(t) * t, std::sin(t) * t, T(0.4) * t)});
+  }
+
+  std::vector<std::pair<Pnt, AABB>>      valuePrims;
+  std::vector<std::pair<uint32_t, AABB>> indexPrims;
+
+  valuePrims.reserve(owner.size());
+  indexPrims.reserve(owner.size());
+
+  for (uint32_t i = 0; i < owner.size(); i++) {
+    const AABB bv(owner[i].m_pos, owner[i].m_pos);
+
+    valuePrims.emplace_back(owner[i], bv);
+    indexPrims.emplace_back(i, bv);
+  }
+
+  const BVH::ClusterSpec spec{/* maxClusterSize */ 5};
+
+  const BVH::PackedBVH<T, Pnt, K, BVH::ValueStorage<Pnt>> valueStorage(pool, valuePrims, spec);
+  const BVH::PackedBVH<T, Pnt, K, BVH::IndexStorage<Pnt>> indexStorage(pool, indexPrims, spec);
+
+  REQUIRE(valueStorage.getPrimitives().size() == owner.size());
+  REQUIRE(indexStorage.getPrimitives().size() == owner.size());
+
+  const auto& valuePrimArray = valueStorage.getPrimitives();
+  const auto& indexPrimArray = indexStorage.getPrimitives();
+
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  for (const auto& q : queryPoints<T>()) {
+    T valueState = std::numeric_limits<T>::max();
+    T indexState = std::numeric_limits<T>::max();
+
+    const auto valueEval = [&valuePrimArray, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (BVH::ValueStorage<Pnt>::get(valuePrimArray[a_offset + i]).m_pos - q).length2();
+
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    const auto indexEval = [&indexPrimArray, &owner, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (BVH::IndexStorage<Pnt>::get(indexPrimArray[a_offset + i], owner.data()).m_pos - q).length2();
+
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    valueStorage.pruneTraverse(q, valueState, valueEval, pruneDist2);
+    indexStorage.pruneTraverse(q, indexState, indexEval, pruneDist2);
+
+    T bruteMin2 = std::numeric_limits<T>::max();
+
+    for (const auto& pnt : owner) {
+      bruteMin2 = std::min(bruteMin2, (pnt.m_pos - q).length2());
+    }
+
+    REQUIRE(indexState == valueState);
+    REQUIRE_THAT(indexState, withinAbsT(bruteMin2, traversalMargin<T>()));
+  }
+}
+
 TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor accepts an explicit SFC curve "
                    "(SFC::Nested)",
                    "[BVH][DirectSFCBuild]",

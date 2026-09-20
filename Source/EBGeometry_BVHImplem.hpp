@@ -999,7 +999,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
     const auto pivot = std::partition(
       a_primsAndBVs.begin() + a_begin,
       a_primsAndBVs.begin() + a_end,
-      [axis, mid](const std::pair<P, BV>& a_pb) noexcept { return a_pb.second.getCentroid()[axis] < mid; });
+      [axis, mid](const std::pair<StorageType, BV>& a_pb) noexcept { return a_pb.second.getCentroid()[axis] < mid; });
 
     size_t split = static_cast<size_t>(pivot - a_primsAndBVs.begin());
     if (split == a_begin || split == a_end) {
