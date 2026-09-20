@@ -2027,6 +2027,49 @@ protected:
   static constexpr size_t s_deviceStackDepth = 64;
 
   /**
+   * @brief Maximum root-to-leaf depth of the finalized node array (root counts as depth 1).
+   * @details One O(number of child slots) walk of the pre-order array, used only by the build-time
+   * traversal-stack bound below. Host-only: it is a build/mirror step, never a query step, so it
+   * may use std::vector for its own working stack. Safe against the SFC build's leaf padding, which
+   * repeats a *leaf* index -- leaves have no children, so the walk cannot cycle.
+   * @param[in] a_base Base address the node array resolves against.
+   * @return Depth of the deepest leaf, or 0 for an empty BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline size_t
+  maxNodeDepth(const void* a_base) const;
+
+  /**
+   * @brief Largest tree depth whose traversal is guaranteed to fit a stack of @p a_stackDepth.
+   * @details pruneTraverse pops one entry and pushes up to K per interior node expanded, so a
+   * root-to-leaf path of depth D peaks at 1 + (K-1)*(D-1) entries. Inverting that gives the deepest
+   * tree the fixed stack can hold. Used to reject, at build time, a tree that would overflow the
+   * traversal stack -- which in Release is silent memory corruption, since the stack's own
+   * EBGEOMETRY_EXPECT compiles to nothing.
+   * @param[in] a_stackDepth Number of StackEntry slots available.
+   * @return Maximum safe tree depth.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static constexpr size_t
+  maxSafeDepth(const size_t a_stackDepth) noexcept
+  {
+    return (K > 1) ? (1 + (a_stackDepth - 1) / (K - 1)) : a_stackDepth;
+  }
+
+  /**
+   * @brief Abort if the finalized tree is too deep for a traversal stack of @p a_stackDepth.
+   * @details Always on, not EBGEOMETRY_EXPECT: the failure it prevents is an out-of-bounds write
+   * into pruneTraverse's fixed stack, which Release builds would otherwise perform silently. Same
+   * reasoning, and the same shape, as Pool::reserve's moved-from check.
+   * @param[in] a_base       Base address the node array resolves against.
+   * @param[in] a_stackDepth Traversal stack size to validate against.
+   * @param[in] a_context    Short label naming the caller, for the diagnostic.
+   */
+  EBGEOMETRY_HOST
+  inline void
+  requireDepthFits(const void* a_base, const size_t a_stackDepth, const char* a_context) const;
+
+  /**
    * @brief Compute the squared distances from a query point to all K children of one interior node.
    * @details The single vectorised kernel of pruneTraverse(), and the only part of that traversal
    * that differs between instruction sets. Dispatches at compile time on (T, K) and the compiled

@@ -9,6 +9,7 @@
 // enough primitives to meaningfully exercise BVH partitioning and traversal.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
@@ -1579,6 +1580,47 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::IndexStorage
     REQUIRE_THAT(indexState, withinAbsT(bruteMin2, traversalMargin<T>()));
   }
 }
+
+#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+
+TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack is rejected at build time", "[BVH][death]")
+{
+  using T    = double;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  // pruneTraverse peaks at 1 + (K-1)*(depth-1) stack entries, so the 256-entry host stack holds a
+  // tree of depth 1 + 255/(K-1). For the branching factors anyone actually uses that bound is far
+  // out of reach -- at K = 4 it is depth 86, or 4^85 leaves -- which is why this test needs an
+  // absurd K = 256 to reach it at all: there the limit is depth 2, and any tree with more than one
+  // interior level exceeds it. That the bound is unreachable in practice is the point; what is
+  // being tested is that exceeding it fails loudly rather than overflowing the stack, which in
+  // Release would be a silent out-of-bounds write.
+  constexpr size_t K = 256;
+
+  REQUIRE(abortsUnderAssertions([] {
+    Pool pool(hostMemoryResource());
+
+    std::vector<std::pair<Pnt, AABB>> prims;
+
+    prims.reserve(2000);
+
+    for (int i = 0; i < 2000; i++) {
+      const T    t = T(i) * T(0.01);
+      const Vec3 p(std::sin(t) * t, std::cos(t) * t, T(0.3) * t);
+
+      prims.emplace_back(Pnt{p}, AABB(p, p));
+    }
+
+    // 2000 leaves under K = 256 is depth 3 -- one level past what the stack can hold.
+    const BVH::PackedBVH<T, Pnt, K> tooDeep(pool, prims, size_t(1));
+
+    (void)tooDeep;
+  }));
+}
+
+#endif // EBGEOMETRY_ENABLE_ASSERTIONS
 
 TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- BVH::IndexStorage agrees exactly "
                    "with BVH::ValueStorage over the same primitives",

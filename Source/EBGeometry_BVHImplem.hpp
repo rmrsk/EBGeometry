@@ -17,6 +17,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -484,6 +486,11 @@ PackedBVH<T, P, K, StoragePolicy>::rebasedView(const Pool& a_pool) const noexcep
     // it, and Pool::grow refuses a non-host-accessible resource outright -- the base cannot move.
     EBGEOMETRY_EXPECT(a_pool.isFrozen());
 
+    // The device traversal stack is smaller than the host's, so a tree that finalize() accepted can
+    // still be too deep to traverse on device. This is the moment the caller commits to that, and
+    // the last one that still runs on the host where it can say so.
+    this->requireDepthFits(this->base(), s_deviceStackDepth, "device view");
+
     view.m_control = nullptr;
     view.m_base    = a_pool.base();
   }
@@ -549,6 +556,10 @@ PackedBVH<T, P, K, StoragePolicy>::finalize(Pool&                           a_po
   m_primitives.assign(poolBase, a_primitives.data(), static_cast<uint32_t>(a_primitives.size()));
 
   this->buildSoA(&a_pool);
+
+  // buildSoA() reserves, so re-resolve; after it nothing else moves the block. Reject here, once,
+  // rather than letting pruneTraverse walk off its fixed stack later with no way to notice.
+  this->requireDepthFits(this->base(), s_hostStackDepth, "host build");
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
@@ -1284,6 +1295,72 @@ PackedBVH<T, P, K, StoragePolicy>::traverse(const BVH::PackedLeafEvaluator<P, St
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
+inline size_t
+PackedBVH<T, P, K, StoragePolicy>::maxNodeDepth(const void* a_base) const
+{
+  if (m_linearNodes.size() == 0) {
+    return 0;
+  }
+
+  size_t maxDepth = 0;
+
+  // (node index, depth of that node). A host-side build/mirror step, so std::vector is fine here --
+  // this is precisely the heap stack pruneTraverse itself can no longer use.
+  std::vector<std::pair<uint32_t, size_t>> stack;
+
+  stack.reserve(64);
+  stack.emplace_back(uint32_t(0), size_t(1));
+
+  while (!stack.empty()) {
+    const uint32_t idx   = stack.back().first;
+    const size_t   depth = stack.back().second;
+
+    stack.pop_back();
+
+    if (depth > maxDepth) {
+      maxDepth = depth;
+    }
+
+    const Node& node = m_linearNodes.at(a_base, idx);
+
+    if (!node.isLeaf()) {
+      const auto& offsets = node.getChildOffsets();
+
+      for (size_t k = 0; k < K; k++) {
+        stack.emplace_back(offsets[k], depth + 1);
+      }
+    }
+  }
+
+  return maxDepth;
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+inline void
+PackedBVH<T, P, K, StoragePolicy>::requireDepthFits(const void*  a_base,
+                                                    const size_t a_stackDepth,
+                                                    const char*  a_context) const
+{
+  const size_t depth = this->maxNodeDepth(a_base);
+  const size_t limit = PackedBVH::maxSafeDepth(a_stackDepth);
+
+  if (depth > limit) {
+    std::fprintf(stderr,
+                 "EBGeometry::BVH::PackedBVH: %s -- tree depth %zu exceeds what a %zu-entry "
+                 "traversal stack can hold (max %zu at K = %zu).\n"
+                 "  pruneTraverse would overflow its fixed stack, which Release builds do not "
+                 "detect. Rebuild with a larger target leaf size, or a branching factor whose\n"
+                 "  tree is shallower, before querying this BVH.\n",
+                 a_context,
+                 depth,
+                 a_stackDepth,
+                 limit,
+                 K);
+    std::abort();
+  }
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
 EBGEOMETRY_HOST_DEVICE
 inline void
 PackedBVH<T, P, K, StoragePolicy>::computeChildDistances2(const ChildAABBSoA& a_soa,
@@ -1531,6 +1608,16 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
                                                  LeafEvaluator&&    a_evalLeaf,
                                                  PruneDistSquared&& a_pruneDist2) const noexcept
 {
+  // An empty BVH has no root to descend from. Nothing that builds through a TreeBVH or through the
+  // direct constructors can reach this -- they assert a non-empty primitive list and would have
+  // died long before -- but finalize() will happily produce a zero-node BVH from an empty build
+  // result, which is how PointCloudBVH represents an empty cloud (it guards its own traversal the
+  // same way). Guarding here rather than at each call site means the pool-backed build path cannot
+  // grow a caller that reads node 0 out of bounds, which in Release is silent.
+  if (m_linearNodes.size() == 0) {
+    return;
+  }
+
   // One resolution for the whole traversal. Safe because a query performs no reservation, so the
   // base cannot move underneath it.
   const void* poolBase = this->base();
