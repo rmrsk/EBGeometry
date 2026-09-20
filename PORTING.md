@@ -230,10 +230,13 @@ kernel and compares against the host:
    and where re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is the acceptance test.
 
    **The `IndexStorage` work that unblocks that acceptance test is planned separately**, in
-   `PLAN.md`'s "PR D — the `IndexStorage` path" section. It carries two still-open decisions (the
-   partitioner contract, and whether the policy should expose a resolved `P&` or a raw handle) which
-   constrain how this step names its primitives, so settle them before starting here rather than
-   after.
+   `PLAN.md`'s "PR D — the `IndexStorage` path" section. What this step needs from it is only the
+   *construction* half: under the tape a union's primitive is a clause id, not a `P`, so there is no
+   flat `P[]` to resolve against and `StoragePolicy::get()` goes unused — `pruneTraverse` never calls
+   it. That is phase 1 of PR D and nothing more. The section also carries decisions still open (what a
+   partitioner may inspect under the policy, and whether it should expose a resolved `P&` or a raw
+   handle) which constrain how this step names its primitives, so settle those before starting here
+   rather than after.
 
    **De-virtualising is only half of it.** Every one of these classes also holds its payload as a
    `shared_ptr` member (`FlatMeshSDF`: the mesh; `TriMeshSDF`: the BVH; `MeshSDF`: both). Annotating

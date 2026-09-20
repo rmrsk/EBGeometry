@@ -188,109 +188,130 @@ The functors the kernel passes to `pruneTraverse` are hoisted out of the device-
 by the host rebase test, so the callable path is compiled and run on every build; the kernel launch
 itself is the only unverified part. It needs a machine with a toolkit before this is trusted.
 
-## PR D — the `IndexStorage` path *(planned, not started)*
+## PR D — the `IndexStorage` path *(planned; phase 1 only, and not yet justified beyond it)*
 
-`IndexStorage` shipped with PR B but is reachable from only two of `PackedBVH`'s five constructors
-and is used by nothing in the library. It is nevertheless load-bearing: step 2 below cannot re-enable
-the BVH CSG unions without it. This section records what it is for, what blocks it, and the order the
-remaining work has to happen in, because the decisions here constrain step 2's design and are much
-cheaper to settle now than to retrofit.
+`IndexStorage` shipped with PR B reachable from two of `PackedBVH`'s five constructors and used by
+nothing. This section records what it is actually for — which is **not** what PR B's prose says — what
+blocks it, and how much of it is worth building now.
 
-### There are two consumers, and they need different things
+### The crux is the reorder, not the Pool
 
-Conflating them is why the policy looks half-finished.
+Packing **reorders primitives into leaf order** so that a leaf scan walks contiguous memory. That is
+the property the packed representation exists to create. The consequence is that a packed BVH can
+never simply alias the array it was built from, because that array is in source order.
 
-**Consumer A — one concrete primitive set shared by many BVHs.** The `Examples/NestedBVH` case, and
-the rationale in PR B above. Many BVHs index one array of real `P`. Needs `get(idx, base)` to resolve
-to an actual `P&`, needs a base at query time, needs the owner array to outlive every BVH.
+This is worth stating plainly because the `Pool` looks like it should already solve the problem and
+does not. `m_primitives` is a `PODVector<StorageType>` — an offset, not a pointer — so two BVHs
+*could* share one primitive array by holding the same descriptor, with no storage policy involved at
+all. But only if they agree on leaf order, and two different partitionings never do. Pool residency
+gives position independence and lifetime; it does not give a shared ordering.
 
-**Consumer B — the index-based CSG layer (step 2).** Here `P` is the abstract `ImplicitFunction<T>`,
-and PR B is right that no storage policy can hold that. But under the tape a union's primitive is a
-**clause id**, not a `P`: the index is an opaque handle the leaf evaluator interprets, and there is no
-flat `P[]` for it to point into at all.
+So a packed BVH has exactly three options for its primitives, and there is no fourth:
 
-**`pruneTraverse` never calls `StoragePolicy::get()`.** It hands the evaluator `(offset, count)` and
-the caller resolves whatever it likes. `get()` has exactly three call sites — `refit()`, which already
-takes a base, and `TriMeshSDF`'s two `signedDistance` paths. So **Consumer B needs nothing from the
-resolution mechanics; they are already the right shape.** What it needs is the *construction* path.
-That is a far smaller job than "redesign the storage policy", and mis-scoping it is the main risk
-this section exists to prevent.
+1. **Copy them into leaf order** — `ValueStorage`. Contiguous leaf scans, `sizeof(P)` per primitive.
+2. **Store indices in leaf order** — `IndexStorage`. 4 bytes per primitive, one scattered load per
+   primitive evaluated.
+3. **Reorder the source itself** to match leaf order. For a DCEL mesh that renumbers every face index
+   the topology refers to. Not free, and not on any roadmap.
 
-### Blockers
+`IndexStorage` is therefore a **locality-versus-duplication trade**, exactly as
+`EBGeometry_BVH.hpp`'s own policy comment says — not a sharing mechanism that the rest of the design
+was missing.
 
-* **B1 — the SAH constructor rejects `IndexStorage`.** The one that actually bites.
-  `BinnedSAHPartitioner` is the build quality wanted for a union over many objects, and it is
-  reachable only through the partitioner/leaf-predicate constructor, which rejects the policy.
-  The cause is that this constructor is not really direct: it wraps every input in `shared_ptr<P>`
-  and builds a stack-local `TreeBVH<T, P, BV, K>` probe per split, to reuse the `Partitioner` and
-  `LeafPredicate` contracts unchanged — both typed on `P`.
+### What PR B says it is for is wrong
 
-  Of the three shipped partitioners, only one needs the primitive:
+PR B justifies the policy as "one primitive set shared by many BVHs — the `NestedBVH` case". Measured,
+that case duplicates nothing and `IndexStorage` would save nothing:
 
-  | Partitioner | Reads the primitive? |
-  |---|---|
-  | `BVCentroidPartitioner` | no — bounding volumes only |
-  | `BinnedSAHPartitioner` | no — bounding volumes only |
-  | `PrimitiveCentroidPartitioner` | **yes** — `pbv.first->getCentroid()` |
+* `Examples/NestedBVH` builds one `TriMeshSDF` and instances it; its own comment says the inner BVH is
+  "built and stored exactly once", shared by `shared_ptr` at the SDF level.
+* `TriMeshSDF`'s class documentation already says instancing "is unaffected either way".
+* `PackedBVH`'s copy constructor has been shallow since PR C, and `deepCopy()` is called nowhere in
+  `Source/`, `Examples/` or `Integrations/`. Copying a BVH duplicates nothing either.
 
-* **B2 — no base at traversal time.** Harmless on host, where the caller captures it. On device the
-  base must be a *device* address and nothing in the BVH knows it, so a kernel caller would have to
-  carry it separately and keep it in step with `Pool::mirror` by hand — the exact class of manual
-  pointer-patching the port exists to remove. Resolved by the decision below.
+The real shape is the mirror image: **one BVH over primitives that something else already owns.** The
+duplication comes from packing by value while the owner keeps the source, not from copying or nesting.
+Measured in-tree:
 
-* **B3 — lifetime is unmanaged.** Nothing enforces "the owner array outlives every BVH indexing into
-  it". Also resolved by the decision below.
+| | duplication today | `IndexStorage` helps? |
+|---|---|---|
+| **`MeshSDF`** | every face stored twice — it retains `m_mesh` *and* a `PackedBVH<Face>` of copies. `sizeof(FaceT<double,short>)` is 88 B against 4 B for an index | **yes — 22x on the BVH's half** |
+| `PointCloudBVH` | ~2.6x (100k points: 3.20 MB retained + 5.07 MB packed groups = 82.7 B/point for 32 B of data) | no — its primitive is an AoSoA *group*, a SIMD reformatting of the points rather than a copy of one. See the pull-forward section below |
+| `TriMeshSDF` | none | no — groups are built at pack time and the mesh is discarded |
+| nesting / instancing | none | no — already shared a layer up |
 
-* **B4 — the two `TreeBVH` constructors reject it, permanently and correctly.** A tree's leaves hold
-  `shared_ptr<const P>` and carry no index. Not to be fixed — but the consequence is that every
-  `IndexStorage` BVH must come from a direct constructor, which is what promotes B1 from cosmetic to
-  blocking.
+`MeshSDF` cannot drop the mesh to avoid this: `FaceT` stores `m_halfEdge`, an index into the mesh's
+edge array, so evaluating a face needs the mesh. Both really are required; it is the 88-byte face
+*records* that are duplicated, not the edges and vertices.
 
-* **B5 — it cannot be explicitly instantiated**, so it cannot follow `InstantiateAll.cpp`'s
-  convention; both rejections live in non-template members. Recorded there; test-harness shape only.
+There is also a non-memory payoff for `MeshSDF`: under `IndexStorage` the indices would point into the
+mesh's own face array, so `getClosestFaces` could return a **mesh** face index instead of the BVH-local
+one PR B had to document as unrecoverable — the wart that forced `Integrations/AMReX/PaintEB` to be
+rewritten.
 
-* **B6 — `TriMeshSDF`/`Parser` cannot use it.** Gated on step 1's de-virtualisation, not on this
-  section: their SoA groups are built during packing and owned by nothing else, so there is no array
-  for an index to resolve against until those classes hold their payload by value.
+### Is it worth building? Phase 1 yes; the rest, not yet
 
-### Decision: the owner array is pool-resident
+**Phase 1 — retype the construction machinery on `StorageType`. Worth doing.**
 
-The caller reserves a `PODVector<P>` from the **same `Pool`** as the BVH and hands the descriptor
-over; `get()` resolves it through the BVH's own `base()`. The alternatives were an external
-caller-owned array (what PR B shipped — simple, but B2 and B3 stand) and a BVH-owned array (which
-defeats the sharing that justifies the policy at all).
+The partitioner/leaf-predicate constructor wraps every input in `shared_ptr<P>` and builds a
+stack-local `TreeBVH<T, P, BV, K>` probe per split, to reuse the `Partitioner` and `LeafPredicate`
+contracts unchanged — both typed on `P`. Retyping that machinery on `StorageType`
+(`PrimAndBVList<StorageType, BV>`, `Partitioner<StorageType, BV, K>`,
+`LeafPredicate<T, StorageType, BV, K>`, a `TreeBVH<T, StorageType, BV, K>` probe) is
+**source-compatible for every existing caller**, since `StorageType == P` under `ValueStorage`.
 
-Pool residency settles B2 and B3 together and for the same reason the node and primitive arrays are
-already pool-resident: the descriptor is an offset, so `Pool::mirror` relocates it for free,
-`rebasedView()` rebases it with everything else, and the Pool's lifetime is the array's. No kernel
-ever sees a host address.
+It unlocks three things at once, not one:
 
-The layout consequence needs care: `PackedBVH` must stay trivially copyable and must keep **one**
-layout across both policies, so the descriptor is carried unconditionally (16 bytes, left empty under
-`ValueStorage`) rather than varying the class per policy.
+* the **SAH constructor**, the build quality wanted for a union over many objects;
+* **`pack()`/`packWith()`**, because a tree built over `StorageType` *does* carry indices in its
+  leaves, so `IndexStorage::appendTreeLeaf` becomes implementable rather than a `static_assert`;
+* and therefore **`MeshSDF`**, which builds through `pack()` and is the one measured consumer.
 
-### Order of work
+Of the three shipped partitioners only `PrimitiveCentroidPartitioner` reads the primitive
+(`pbv.first->getCentroid()`); `BVCentroidPartitioner` and `BinnedSAHPartitioner` read bounding volumes
+only and work over indices verbatim.
 
-1. **Make the SAH path reachable** (B1). Retype the partitioner constructor's machinery on
-   `StorageType`: `PrimAndBVList<StorageType, BV>`, `Partitioner<StorageType, BV, K>`,
-   `LeafPredicate<T, StorageType, BV, K>`, a `TreeBVH<T, StorageType, BV, K>` probe, and a real
-   `IndexStorage::appendTreeLeaf` dereferencing back to indices. **Source-compatible for every
-   existing caller**, since `StorageType == P` under `ValueStorage`. Independent of everything else
-   and landable alone.
-2. **Carry the pool-resident owner descriptor** and resolve `get()` through `base()`. After this,
-   Consumer A works on device with no caller plumbing.
-3. **Step 2's acceptance test** — re-enable `EBGEOMETRY_ENABLE_BVH_CSG_UNION` — becomes reachable.
-   Confirm first that the union opcode stores clause ids with `get()` unused, per the framing above.
+**Phase 2 — the pool-resident owner array. Designed, deliberately not built yet.**
+
+When it is built, the decision is settled: the caller reserves a `PODVector<P>` from the **same
+`Pool`** and `get()` resolves through the BVH's own `base()`. That is the only option that works on
+device without hand-patched pointers — the descriptor is an offset, so `Pool::mirror` relocates it and
+`rebasedView()` rebases it with everything else — and it ties the owner array's lifetime to the Pool,
+which an index otherwise cannot do. An external caller-owned array (what PR B shipped) leaves both
+problems standing; a BVH-owned array defeats the sharing entirely.
+
+It should not be built before a consumer needs it, for three reasons:
+
+* **The only consumer that needs `get()` to resolve is `MeshSDF`, and switching it is a performance
+  trade that has to be measured rather than assumed.** 4 bytes scattered is not obviously better than
+  88 bytes contiguous; for a mesh whose faces fit in cache it is plainly worse. Measure before moving
+  `MeshSDF`, on the coherent cell-by-cell query pattern the real consumers generate.
+* **The CSG/tape consumer does not need it at all.** Under the tape a union's primitive is a clause
+  id, not a `P`, and there is no flat `P[]` to resolve against. `pruneTraverse` never calls
+  `StoragePolicy::get()` — it hands the evaluator `(offset, count)` and the caller resolves whatever it
+  likes; `get()` has exactly three call sites, `refit()` and `TriMeshSDF`'s two `signedDistance` paths.
+  That consumer needs phase 1 and nothing else.
+* **Its layout cost is paid by everybody.** `PackedBVH` must keep one layout across both policies and
+  stay trivially copyable, so the owner descriptor is carried unconditionally — 16 bytes in every BVH
+  including every `ValueStorage` one, mirrored to device on every view.
+
+**So the honest status:** the policy's mechanics are right, its stated rationale is not, and one of
+its two consumers needs only the construction half. Land phase 1, narrow the documentation to the
+locality-versus-duplication trade the header already describes, and let a measurement decide whether
+`MeshSDF` ever moves.
 
 ### Still open
 
-* **The partitioner contract under `IndexStorage`.** Either document that partitioners must be
-  geometry-agnostic and `static_assert` `PrimitiveCentroidPartitioner` out of the combination, or
-  widen the contract to carry a base so it can resolve. The first is cheap and honest; the second is
-  uniform at the price of a public callback signature.
-* **Whether `get() -> const P&` is the right primitive for Consumer B**, or whether the policy should
+* **What a partitioner may inspect under `IndexStorage`.** Either document that partitioners must be
+  geometry-agnostic and `static_assert` `PrimitiveCentroidPartitioner` out of the combination, or widen
+  the contract to carry a base so it can resolve. The first is cheap and honest; the second is uniform
+  at the price of a public callback signature.
+* **Whether `get() -> const P&` is the right primitive for the tape**, or whether the policy should
   expose the raw handle and let the evaluator interpret it. Today it accidentally serves both, which
   invites the next reader to assume a flat `P[]` must exist.
+* **Whether `IndexStorage` earns its place at all if `MeshSDF` does not move.** If the measurement says
+  keep `ValueStorage` there, the remaining consumer wants a `uint32_t` handle with no resolution
+  semantics, which is a smaller thing than a storage policy and might be better named as one.
 
 ## What comes next
 
