@@ -2291,8 +2291,8 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
   constexpr size_t W = 4;
 
   // Two distinct triangle meshes read from the in-repo fixtures. Each TriMeshSDF owns an inner
-  // PackedBVH over SoA triangle groups -- these are the inner BVHs that
-  // the outer union BVH nests over.
+  // PackedBVH over SoA triangle groups -- these are the inner BVHs that the outer union BVH nests
+  // over.
   Pool       pool(hostMemoryResource());
   const auto dodec = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   const auto tetra = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
