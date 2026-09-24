@@ -37,14 +37,12 @@ main(int argc, char* argv[])
   // distance query descends the outer union BVH to locate the nearby mesh(es), then descends each of
   // those meshes' own inner BVH -- two levels of BVH traversal for one query.
   //
-  // The outer union stores its primitives as std::shared_ptr<const ImplicitFunction<T>> (the default
-  // SharedPtrStorage): it shares each mesh SDF by pointer rather than copying it. This is the
-  // recommended way to nest BVHs -- and nesting can recurse to any depth (a BVH of BVHs of BVHs...).
-  // See the "Storage policy" section in the user documentation of the BVH implementation for why the
-  // outer level must not use ValueStorage here: ImplicitFunction<T> is polymorphic so it
-  // cannot be stored by value at all, and even for a concrete primitive by-value storage copies each
-  // inner BVH's entire memory footprint, which becomes exceedingly expensive for large inner BVHs and
-  // compounds with nesting depth.
+  // The outer union stores its primitives as std::shared_ptr<const ImplicitFunction<T>>: it shares
+  // each mesh SDF by pointer rather than copying it. This is the recommended way to nest BVHs -- and
+  // nesting can recurse to any depth (a BVH of BVHs of BVHs...). See the "Polymorphic primitives"
+  // section in the user documentation of the BVH implementation for why the outer level cannot be a
+  // PackedBVH here: PackedBVH stores its primitives by value, and ImplicitFunction<T> is polymorphic
+  // so it cannot be stored by value at all.
 
   // Mesh to place at several positions. Pass a path on the command line, or fall back to the
   // dodecahedron fixture shipped in the repository (Tests/data), so this example needs no
@@ -60,7 +58,7 @@ main(int argc, char* argv[])
   }
 
   // Read the mesh directly into a BVH-backed TriMeshSDF using the library's default parameters
-  // (SIMD-optimal branching factor and SoA width, ValueStorage, SAH build). Build it *once*, then
+  // (SIMD-optimal branching factor and SoA width, SAH build). Build it *once*, then
   // instance it at several positions below: because every placement is the same mesh, they all
   // share this single TriMeshSDF -- its (value-stored) inner packed BVH is built and stored exactly
   // once, and each placement is just an EBGeometry::Translate wrapper holding a shared_ptr to that

@@ -405,10 +405,11 @@ MeshSDF<T, Meta, K>::computeBoundingVolume() const noexcept
   return m_bvh->getBoundingVolume();
 };
 
-template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-std::vector<typename TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriAoSoA>
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::groupTrianglesIntoSoA(
-  const std::vector<std::shared_ptr<const Tri>>& a_triangles, uint32_t a_offset, uint32_t a_count)
+template <class T, class Meta, size_t K, size_t W>
+std::vector<typename TriMeshSDF<T, Meta, K, W>::TriAoSoA>
+TriMeshSDF<T, Meta, K, W>::groupTrianglesIntoSoA(const std::vector<std::shared_ptr<const Tri>>& a_triangles,
+                                                 uint32_t                                       a_offset,
+                                                 uint32_t                                       a_count)
 {
   constexpr uint32_t soaWidth = static_cast<uint32_t>(W);
 
@@ -436,11 +437,11 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::groupTrianglesIntoSoA(
   return groups;
 }
 
-template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
-                                                     Pool&                        a_pool,
-                                                     const BVH::Build             a_build,
-                                                     const size_t                 a_maxLeafGroups) noexcept
+template <class T, class Meta, size_t K, size_t W>
+TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
+                                      Pool&                        a_pool,
+                                      const BVH::Build             a_build,
+                                      const size_t                 a_maxLeafGroups) noexcept
 {
   EBGEOMETRY_EXPECT(a_mesh != nullptr);
   EBGEOMETRY_EXPECT(a_maxLeafGroups > 0);
@@ -486,14 +487,14 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
   using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);
 
   m_bvh = EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(triangles, a_build, maxLeafSize)
-            ->template packWith<TriAoSoA, Converter, StoragePolicy>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
+            ->template packWith<TriAoSoA, Converter>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
 }
 
-template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-                                                     Pool&                                    a_pool,
-                                                     const BVH::Build                         a_build,
-                                                     const size_t                             a_maxLeafGroups) noexcept
+template <class T, class Meta, size_t K, size_t W>
+TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+                                      Pool&                                    a_pool,
+                                      const BVH::Build                         a_build,
+                                      const size_t                             a_maxLeafGroups) noexcept
 {
   EBGEOMETRY_EXPECT(!a_triangles.empty());
   EBGEOMETRY_EXPECT(a_maxLeafGroups > 0);
@@ -505,12 +506,12 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::vector<std::shar
   using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);
 
   m_bvh = EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, maxLeafSize)
-            ->template packWith<TriAoSoA, Converter, StoragePolicy>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
+            ->template packWith<TriAoSoA, Converter>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
 }
 
-template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
+template <class T, class Meta, size_t K, size_t W>
 T
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::signedDistance(const Vec3T<T>& a_point) const noexcept
+TriMeshSDF<T, Meta, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -522,7 +523,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::signedDistance(const Vec3T<T>& a_point
 
   const auto evalLeaf = [&groups, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      const T d = StoragePolicy::get(groups[i]).signedDistance(a_point);
+      const T d = groups[i].signedDistance(a_point);
 
       EBGEOMETRY_EXPECT(!std::isnan(d));
 
@@ -539,9 +540,9 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::signedDistance(const Vec3T<T>& a_point
   return minDist;
 }
 
-template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-typename TriMeshSDF<T, Meta, K, W, StoragePolicy>::ClosestTriangle
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::getClosestTriangle(const Vec3T<T>& a_point) const noexcept
+template <class T, class Meta, size_t K, size_t W>
+typename TriMeshSDF<T, Meta, K, W>::ClosestTriangle
+TriMeshSDF<T, Meta, K, W>::getClosestTriangle(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -559,7 +560,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::getClosestTriangle(const Vec3T<T>& a_p
   const auto evalLeaf = [&groups, &a_point](ClosestTriangle& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
       Meta    groupMeta{};
-      const T d = StoragePolicy::get(groups[i]).signedDistance(a_point, groupMeta);
+      const T d = groups[i].signedDistance(a_point, groupMeta);
 
       EBGEOMETRY_EXPECT(!std::isnan(d));
 
@@ -579,27 +580,27 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::getClosestTriangle(const Vec3T<T>& a_p
   return closest;
 }
 
-template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleAoSoA<T, Meta, W>, K, StoragePolicy>>&
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::getRoot() noexcept
+template <class T, class Meta, size_t K, size_t W>
+std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleAoSoA<T, Meta, W>, K>>&
+TriMeshSDF<T, Meta, K, W>::getRoot() noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
 
   return m_bvh;
 }
 
-template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleAoSoA<T, Meta, W>, K, StoragePolicy>>&
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::getRoot() const noexcept
+template <class T, class Meta, size_t K, size_t W>
+const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleAoSoA<T, Meta, W>, K>>&
+TriMeshSDF<T, Meta, K, W>::getRoot() const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
 
   return m_bvh;
 }
 
-template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
+template <class T, class Meta, size_t K, size_t W>
 EBGeometry::BoundingVolumes::AABBT<T>
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::computeBoundingVolume() const noexcept
+TriMeshSDF<T, Meta, K, W>::computeBoundingVolume() const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
 

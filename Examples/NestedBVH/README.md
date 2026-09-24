@@ -23,10 +23,10 @@ any of them, positive outside all of them.
 The outer union stores its primitives as `std::shared_ptr<const ImplicitFunction<T>>`, so it
 *shares* each placement by pointer rather than copying it -- and because the placements all point at
 one `TriMeshSDF`, the inner packed BVH is built and stored just once. That sharing came from the
-`SharedPtrStorage` policy, which has been removed: a `shared_ptr` is not trivially copyable and so
-can never be mirrored into a device address space. Neither remaining policy can hold a polymorphic
-primitive like `ImplicitFunction<T>` -- `ValueStorage` would have to store an abstract type by value,
-and `IndexStorage` indexes a flat array of one concrete type. See the "Polymorphic primitives" section
+`PackedBVH`'s ability to store primitives as `shared_ptr`, which has been removed: a `shared_ptr` is
+not trivially copyable and so can never be mirrored into a device address space. A packed BVH now
+stores plain values, which cannot hold a polymorphic primitive like `ImplicitFunction<T>` -- an
+abstract type has no size to store. See the "Polymorphic primitives" section
 of the [BVH implementation](https://rmrsk.github.io/EBGeometry/ImplemBVH.html) documentation.
 
 By default the example uses the small `dodecahedron.stl` fixture shipped in the repository
