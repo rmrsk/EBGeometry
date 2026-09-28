@@ -516,22 +516,20 @@ TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: nearest-neighbor search over a pri
   }
 }
 
-// Regression test for the ValueStorage::appendTreeLeaf O(N^2) build bug: a per-leaf
+// Regression test for the PackedBVH::appendTreeLeaf O(N^2) build bug: a per-leaf
 // reserve(size + leafSize) that defeated std::vector's geometric growth, reallocating the whole
-// primitive buffer on every leaf. Both ValueStorage build paths that append leaves one at a time
-// -- the direct top-down PackedBVH constructor and TreeBVH::pack<ValueStorage>() -- hit it, so this
-// exercises both and checks nearest-neighbor correctness against brute force. The primitive count
-// is deliberately large: a reintroduced quadratic would blow well past the unit-test timeout here
-// (minutes), while the linear build stays well under a second. Double only -- the append path is
-// precision-independent, and one heavy build is enough of a guard.
-TEST_CASE("PackedBVH (ValueStorage): a large per-leaf build stays linear and correct",
-          "[BVH][pruneTraverse][regression]")
+// primitive buffer on every leaf. Both build paths that append leaves one at a time -- the direct
+// top-down PackedBVH constructor and TreeBVH::pack() -- hit it, so this exercises both and checks
+// nearest-neighbor correctness against brute force. The primitive count is deliberately large: a
+// reintroduced quadratic would blow well past the unit-test timeout here (minutes), while the
+// linear build stays well under a second. Double only -- the append path is precision-independent,
+// and one heavy build is enough of a guard.
+TEST_CASE("PackedBVH: a large per-leaf build stays linear and correct", "[BVH][pruneTraverse][regression]")
 {
-  using T     = double;
-  using AABB  = BoundingVolumes::AABBT<T>;
-  using Vec3  = Vec3T<T>;
-  using Pnt   = BareTestPoint<T>;
-  using Store = BVH::ValueStorage<Pnt>;
+  using T    = double;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
 
   constexpr size_t K = 4;
   constexpr size_t N = 60000;
@@ -547,10 +545,10 @@ TEST_CASE("PackedBVH (ValueStorage): a large per-leaf build stays linear and cor
     positions.emplace_back(dist(rng), dist(rng), dist(rng));
   }
 
-  using Packed = BVH::PackedBVH<T, Pnt, K, Store>;
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
 
-  // Path 1: the direct top-down PackedBVH constructor (ValueStorage), which appends each leaf via
-  // appendTreeLeaf as it linearizes.
+  // Path 1: the direct top-down PackedBVH constructor, which appends each leaf via appendTreeLeaf
+  // as it linearizes.
   std::vector<std::pair<Pnt, AABB>> flat;
   flat.reserve(N);
   for (const auto& pos : positions) {
@@ -558,7 +556,7 @@ TEST_CASE("PackedBVH (ValueStorage): a large per-leaf build stays linear and cor
   }
   const Packed directBVH(pool, std::move(flat));
 
-  // Path 2: TreeBVH::pack<ValueStorage>(), which appends each leaf the same way.
+  // Path 2: TreeBVH::pack(), which appends each leaf the same way.
   BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
   primsAndBVs.reserve(N);
   for (const auto& pos : positions) {
@@ -566,7 +564,7 @@ TEST_CASE("PackedBVH (ValueStorage): a large per-leaf build stays linear and cor
   }
   auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
   tree->topDownSortAndPartition();
-  const auto packedBVH = tree->template pack<Store>(pool);
+  const auto packedBVH = tree->pack(pool);
 
   REQUIRE(directBVH.getPrimitives().size() == N);
   REQUIRE(packedBVH->getPrimitives().size() == N);
@@ -580,7 +578,7 @@ TEST_CASE("PackedBVH (ValueStorage): a large per-leaf build stays linear and cor
 
     const auto evalLeaf = [&prims, &a_query](T& a_state, size_t a_offset, size_t a_count) noexcept {
       for (size_t i = 0; i < a_count; i++) {
-        const T d2 = (Store::get(prims[a_offset + i]).m_pos - a_query).length2();
+        const T d2 = (prims[a_offset + i].m_pos - a_query).length2();
         if (d2 < a_state) {
           a_state = d2;
         }
@@ -630,10 +628,10 @@ TEMPLATE_TEST_CASE("BVH refit: TreeBVH::refit and PackedBVH::refit update boundi
 
   // Keep mutable handles so the geometry can be *moved* after the BVH is built. TreeBVH stores
   // these very objects as shared_ptr<const Pnt>, so mutating a handle is what a moving geometry does
-  // for the tree. The packed BVH is different: under the default BVH::ValueStorage, packing copies
-  // each primitive out, so it owns its own copies and cannot see a handle change. Its counterpart is
-  // to move the packed primitives directly through the mutable getPrimitives(); the loop below moves
-  // both representations by the same displacement so the two must still agree afterwards.
+  // for the tree. The packed BVH is different: packing copies each primitive out, so it owns its own
+  // copies and cannot see a handle change. Its counterpart is to move the packed primitives directly
+  // through the mutable getPrimitives(); the loop below moves both representations by the same
+  // displacement so the two must still agree afterwards.
   std::vector<std::shared_ptr<Pnt>> handles;
   handles.reserve(positions.size());
   for (const auto& pos : positions) {
@@ -974,32 +972,47 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets who
   }
 }
 
-TEMPLATE_TEST_CASE("PackedBVH: BVH::ValueStorage stores primitives inline with no pointer indirection",
-                   "[BVH][StoragePolicy]",
+TEMPLATE_TEST_CASE("PackedBVH: primitives are stored inline with no pointer indirection",
+                   "[BVH][PrimitiveStorage]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T   = TestType;
   using Pnt = BareTestPoint<T>;
 
-  // BVH::ValueStorage<P>::StorageType is P itself -- packing must not add any indirection.
-  static_assert(std::is_same_v<typename BVH::ValueStorage<Pnt>::StorageType, Pnt>);
-  static_assert(sizeof(typename BVH::ValueStorage<Pnt>::StorageType) == sizeof(Pnt));
+  constexpr size_t K = 4;
 
-  // Every storage policy's StorageType must be trivially copyable -- that is what lets PackedBVH
-  // keep one primitive-array backend for all of them, and what a shared_ptr-based policy could never
-  // satisfy.
-  static_assert(std::is_trivially_copyable_v<typename BVH::ValueStorage<Pnt>::StorageType>);
-  static_assert(std::is_trivially_copyable_v<typename BVH::IndexStorage<Pnt>::StorageType>);
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+
+  // The primitive array's element type is P itself -- packing must not add any indirection, and
+  // the span handed to a leaf callback must be a span of primitives, not of handles to them.
+  static_assert(std::is_same_v<decltype(std::declval<const Packed&>().getPrimitives()), PODSpan<const Pnt>>);
+  static_assert(std::is_same_v<decltype(std::declval<Packed&>().getPrimitives()), PODSpan<Pnt>>);
+
+  // ... which in turn requires P to be trivially copyable: that is what lets a completed BVH be
+  // byte-copied into a device address space, and what a shared_ptr-based primitive array could
+  // never satisfy.
+  static_assert(std::is_trivially_copyable_v<Pnt>);
+  static_assert(std::is_trivially_copyable_v<Packed>);
 }
 
-TEMPLATE_TEST_CASE("StoragePolicy: appendAliased genuinely appends for both policies (not only on the "
-                   "single-call direct-build path)",
-                   "[BVH][StoragePolicy]",
+TEMPLATE_TEST_CASE("PackedBVH: appendAliased genuinely appends (not only on the single-call "
+                   "direct-build path)",
+                   "[BVH][PrimitiveStorage]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
   using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  // appendAliased is a protected build helper -- every constructor that materialises a contiguous
+  // conversion buffer into the flat primitive array goes through it. Reach it the way a specialized
+  // builder in a derived class would.
+  struct Expose : public BVH::PackedBVH<T, Pnt, K>
+  {
+    using BVH::PackedBVH<T, Pnt, K>::appendAliased;
+  };
 
   // Build a fresh contiguous conversion buffer of three points offset by a_base.
   const auto makeBlock = [](T a_base) {
@@ -1010,45 +1023,21 @@ TEMPLATE_TEST_CASE("StoragePolicy: appendAliased genuinely appends for both poli
     return block;
   };
 
-  // Build a fresh contiguous index buffer of three indices offset by a_base.
-  const auto makeIndexBlock = [](uint32_t a_base) {
-    auto block = std::make_shared<std::vector<uint32_t>>();
-
-    for (uint32_t i = 0; i < 3; i++) {
-      block->push_back(a_base + i);
-    }
-
-    return block;
-  };
-
   // Two calls: the first into an empty destination (the fast path that steals the buffer wholesale),
   // the second into a non-empty one. appendAliased must add to what is already there rather than
   // replace it, or a second call site would silently lose the first block.
-  {
-    std::vector<Pnt> dst;
+  std::vector<Pnt> dst;
 
-    BVH::ValueStorage<Pnt>::appendAliased(dst, makeBlock(T(0)));
-    BVH::ValueStorage<Pnt>::appendAliased(dst, makeBlock(T(10)));
+  Expose::appendAliased(dst, makeBlock(T(0)));
+  Expose::appendAliased(dst, makeBlock(T(10)));
 
-    REQUIRE(dst.size() == 6);
-    REQUIRE(dst[0].m_pos == Vec3(0, 0, 0));
-    REQUIRE(dst[3].m_pos == Vec3(10, 10, 10));
-  }
-  {
-    std::vector<uint32_t> dst;
-
-    BVH::IndexStorage<Pnt>::appendAliased(dst, makeIndexBlock(0));
-    BVH::IndexStorage<Pnt>::appendAliased(dst, makeIndexBlock(10));
-
-    REQUIRE(dst.size() == 6);
-    REQUIRE(dst[0] == 0);
-    REQUIRE(dst[3] == 10);
-  }
+  REQUIRE(dst.size() == 6);
+  REQUIRE(dst[0].m_pos == Vec3(0, 0, 0));
+  REQUIRE(dst[3].m_pos == Vec3(10, 10, 10));
 }
 
-TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSoA>; MeshSDF has no "
-                   "StoragePolicy choice at all",
-                   "[BVH][StoragePolicy]",
+TEMPLATE_TEST_CASE("MeshSDF/TriMeshSDF: both pack their primitives by value",
+                   "[BVH][PrimitiveStorage]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
@@ -1059,15 +1048,14 @@ TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSo
   using Face     = DCEL::FaceT<T, Meta>;
   using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
-  // MeshSDF stores each packed face inline, by value, and offers no StoragePolicy parameter to
-  // override that. A DCEL::FaceT is a plain trivially-copyable value, so the copy is cheap; what it
-  // is not is self-contained -- its point-in-face test walks the face's half-edge loop into the
-  // mesh's edges and vertices -- which is why MeshSDF retains the source mesh and hands it to every
-  // face query. TriMeshSDF's SoA groups are self-contained (freshly built by packing, shared with
-  // nothing), so it stores them inline too but does expose the policy.
-  // See ImplemBVH.rst's "Storage policy" section for the full rationale.
-  static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root::StorageType, Face>);
-  static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root::StorageType, TriAoSoA>);
+  // MeshSDF stores each packed face inline, by value. A DCEL::FaceT is a plain trivially-copyable
+  // value, so the copy is cheap; what it is not is self-contained -- its point-in-face test walks
+  // the face's half-edge loop into the mesh's edges and vertices -- which is why MeshSDF retains the
+  // source mesh and hands it to every face query. TriMeshSDF's SoA groups are self-contained
+  // (freshly built by packing, shared with nothing), so they need no such companion.
+  // See ImplemBVH.rst's "Primitive storage" section for the full rationale.
+  static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root, BVH::PackedBVH<T, Face, K>>);
+  static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root, BVH::PackedBVH<T, TriAoSoA, K>>);
 }
 
 TEMPLATE_TEST_CASE("TreeBVH: copy is disallowed (would alias mutable child subtrees); move is allowed",
@@ -1340,9 +1328,9 @@ bruteForceNearest2(const std::vector<Vec3T<T>>& a_positions, const Vec3T<T>& a_q
 }
 
 // Nearest-squared-distance query via pruneTraverse(), shared by the direct-SFC-build tests below.
-// Works for both BVH::ValueStorage and BVH::IndexStorage since resolving a StorageType back to a
-// primitive -- identity for one, an index lookup against a caller-owned array for the other -- is
-// hidden behind the caller-supplied evalLeaf in each test.
+// Works whether the packed primitive is the point itself or a uint32_t index into a caller-owned
+// array, since resolving a stored element back to a point is hidden behind the caller-supplied
+// evalLeaf in each test.
 
 } // namespace
 
@@ -1487,9 +1475,16 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor handles degenerate-a
   }
 }
 
-TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::IndexStorage agrees exactly with "
-                   "BVH::ValueStorage over the same primitives",
-                   "[BVH][StoragePolicy][IndexStorage]",
+// A BVH whose primitive *is* a uint32_t index into a caller-owned array is the supported way to
+// build an indexed BVH: PackedBVH<T, uint32_t, K> stores four bytes per primitive and the leaf
+// callback resolves the index against whatever array the caller owns. Because uint32_t is just an
+// ordinary primitive type, every build path accepts it -- this checks the SFC-build constructor and
+// TreeBVH::pack(), the latter being the one an index could *not* travel through while the primitive
+// array was governed by a storage policy. Both must agree exactly -- bit-for-bit, not just to a
+// tolerance -- with a BVH packing the primitives themselves over identical bounding volumes.
+TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- a uint32_t-index BVH agrees exactly "
+                   "with one packing the primitives themselves",
+                   "[BVH][DirectSFCBuild][PrimitiveStorage]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -1501,9 +1496,9 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::IndexStorage
 
   Pool pool(hostMemoryResource());
 
-  // One canonical primitive array. ValueStorage copies these into the BVH; IndexStorage stores only
-  // uint32_t indices back into this array, which therefore has to outlive the BVH -- an index is not
-  // an owner. Both BVHs see exactly the same primitives, so every query must agree bit-for-bit.
+  // One canonical primitive array. The by-value BVH copies these in; the indexed one stores only
+  // uint32_t indices back into this array, which therefore has to outlive it -- an index is not an
+  // owner. Both BVHs see exactly the same primitives, so every query must agree bit-for-bit.
   std::vector<Pnt> owner;
 
   owner.reserve(23);
@@ -1527,27 +1522,46 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::IndexStorage
     indexPrims.emplace_back(i, bv);
   }
 
-  const BVH::PackedBVH<T, Pnt, K, BVH::ValueStorage<Pnt>> valueStorage(pool, valuePrims, size_t(7));
-  const BVH::PackedBVH<T, Pnt, K, BVH::IndexStorage<Pnt>> indexStorage(pool, indexPrims, size_t(7));
+  const BVH::PackedBVH<T, Pnt, K>      valueBVH(pool, valuePrims, size_t(7));
+  const BVH::PackedBVH<T, uint32_t, K> indexBVH(pool, indexPrims, size_t(7));
 
-  REQUIRE(valueStorage.getPrimitives().size() == owner.size());
-  REQUIRE(indexStorage.getPrimitives().size() == owner.size());
+  // The same index primitives, but flattened out of a TreeBVH instead of built directly.
+  BVH::PrimAndBVList<uint32_t, AABB> treePrims;
 
-  static_assert(std::is_same_v<typename BVH::IndexStorage<Pnt>::StorageType, uint32_t>);
-  static_assert(sizeof(typename BVH::IndexStorage<Pnt>::StorageType) == 4);
+  treePrims.reserve(owner.size());
 
-  const auto& valuePrimArray = valueStorage.getPrimitives();
-  const auto& indexPrimArray = indexStorage.getPrimitives();
+  for (uint32_t i = 0; i < owner.size(); i++) {
+    treePrims.emplace_back(std::make_shared<const uint32_t>(i), AABB(owner[i].m_pos, owner[i].m_pos));
+  }
+
+  auto indexTree = std::make_shared<BVH::TreeBVH<T, uint32_t, AABB, K>>(treePrims);
+  indexTree->topDownSortAndPartition();
+
+  const auto packedIndexBVH = indexTree->pack(pool);
+
+  REQUIRE(valueBVH.getPrimitives().size() == owner.size());
+  REQUIRE(indexBVH.getPrimitives().size() == owner.size());
+  REQUIRE(packedIndexBVH->getPrimitives().size() == owner.size());
+
+  // Four bytes per primitive, and still trivially copyable -- so an indexed BVH mirrors to a device
+  // exactly like any other.
+  static_assert(sizeof(indexBVH.getPrimitives()[0]) == 4);
+  static_assert(std::is_trivially_copyable_v<BVH::PackedBVH<T, uint32_t, K>>);
+
+  const auto& valuePrimArray  = valueBVH.getPrimitives();
+  const auto& indexPrimArray  = indexBVH.getPrimitives();
+  const auto& packedPrimArray = packedIndexBVH->getPrimitives();
 
   const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
 
   for (const auto& q : queryPoints<T>()) {
-    T valueState = std::numeric_limits<T>::max();
-    T indexState = std::numeric_limits<T>::max();
+    T valueState  = std::numeric_limits<T>::max();
+    T indexState  = std::numeric_limits<T>::max();
+    T packedState = std::numeric_limits<T>::max();
 
     const auto valueEval = [&valuePrimArray, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
       for (size_t i = 0; i < a_count; i++) {
-        const T d2 = (BVH::ValueStorage<Pnt>::get(valuePrimArray[a_offset + i]).m_pos - q).length2();
+        const T d2 = (valuePrimArray[a_offset + i].m_pos - q).length2();
 
         if (d2 < a_state) {
           a_state = d2;
@@ -1555,11 +1569,11 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::IndexStorage
       }
     };
 
-    // The whole point of IndexStorage: get() resolves the stored index against a base the caller
-    // owns, rather than against anything the BVH holds.
+    // The indexed counterpart: the leaf callback resolves each stored index against the array the
+    // caller owns, rather than against anything the BVH holds.
     const auto indexEval = [&indexPrimArray, &owner, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
       for (size_t i = 0; i < a_count; i++) {
-        const T d2 = (BVH::IndexStorage<Pnt>::get(indexPrimArray[a_offset + i], owner.data()).m_pos - q).length2();
+        const T d2 = (owner[indexPrimArray[a_offset + i]].m_pos - q).length2();
 
         if (d2 < a_state) {
           a_state = d2;
@@ -1567,8 +1581,19 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::IndexStorage
       }
     };
 
-    valueStorage.pruneTraverse(q, valueState, valueEval, pruneDist2);
-    indexStorage.pruneTraverse(q, indexState, indexEval, pruneDist2);
+    const auto packedEval = [&packedPrimArray, &owner, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (owner[packedPrimArray[a_offset + i]].m_pos - q).length2();
+
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    valueBVH.pruneTraverse(q, valueState, valueEval, pruneDist2);
+    indexBVH.pruneTraverse(q, indexState, indexEval, pruneDist2);
+    packedIndexBVH->pruneTraverse(q, packedState, packedEval, pruneDist2);
 
     T bruteMin2 = std::numeric_limits<T>::max();
 
@@ -1577,6 +1602,7 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::IndexStorage
     }
 
     REQUIRE(indexState == valueState);
+    REQUIRE(packedState == valueState);
     REQUIRE_THAT(indexState, withinAbsT(bruteMin2, traversalMargin<T>()));
   }
 }
@@ -1622,9 +1648,9 @@ TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack is rejecte
 
 #endif // EBGEOMETRY_ENABLE_ASSERTIONS
 
-TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- BVH::IndexStorage agrees exactly "
-                   "with BVH::ValueStorage over the same primitives",
-                   "[BVH][StoragePolicy][IndexStorage]",
+TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- a uint32_t-index BVH agrees exactly "
+                   "with one packing the primitives themselves",
+                   "[BVH][ClusterSAH][PrimitiveStorage]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -1636,11 +1662,10 @@ TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- BVH::IndexStora
 
   Pool pool(hostMemoryResource());
 
-  // Same construction as the SFC-build case above, but through the ClusterSpec constructor. Its
-  // internal std::partition predicate used to name std::pair<P, BV> rather than
-  // std::pair<StorageType, BV>, so this constructor could not be instantiated with IndexStorage at
-  // all -- the compiler tried to build a Pnt from a uint32_t. The predicate only reads the bounding
-  // volume, so it never cared which of the two the pair holds.
+  // Same construction as the SFC-build case above, but through the ClusterSpec constructor, which
+  // has its own internal std::partition predicate over the (primitive, BV) pairs. That predicate
+  // only reads the bounding volume, so a four-byte index has to travel through it exactly as a full
+  // primitive does.
   std::vector<Pnt> owner;
 
   owner.reserve(29);
@@ -1666,14 +1691,14 @@ TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- BVH::IndexStora
 
   const BVH::ClusterSpec spec{/* maxClusterSize */ 5};
 
-  const BVH::PackedBVH<T, Pnt, K, BVH::ValueStorage<Pnt>> valueStorage(pool, valuePrims, spec);
-  const BVH::PackedBVH<T, Pnt, K, BVH::IndexStorage<Pnt>> indexStorage(pool, indexPrims, spec);
+  const BVH::PackedBVH<T, Pnt, K>      valueBVH(pool, valuePrims, spec);
+  const BVH::PackedBVH<T, uint32_t, K> indexBVH(pool, indexPrims, spec);
 
-  REQUIRE(valueStorage.getPrimitives().size() == owner.size());
-  REQUIRE(indexStorage.getPrimitives().size() == owner.size());
+  REQUIRE(valueBVH.getPrimitives().size() == owner.size());
+  REQUIRE(indexBVH.getPrimitives().size() == owner.size());
 
-  const auto& valuePrimArray = valueStorage.getPrimitives();
-  const auto& indexPrimArray = indexStorage.getPrimitives();
+  const auto& valuePrimArray = valueBVH.getPrimitives();
+  const auto& indexPrimArray = indexBVH.getPrimitives();
 
   const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
 
@@ -1683,7 +1708,7 @@ TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- BVH::IndexStora
 
     const auto valueEval = [&valuePrimArray, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
       for (size_t i = 0; i < a_count; i++) {
-        const T d2 = (BVH::ValueStorage<Pnt>::get(valuePrimArray[a_offset + i]).m_pos - q).length2();
+        const T d2 = (valuePrimArray[a_offset + i].m_pos - q).length2();
 
         if (d2 < a_state) {
           a_state = d2;
@@ -1693,7 +1718,7 @@ TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- BVH::IndexStora
 
     const auto indexEval = [&indexPrimArray, &owner, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
       for (size_t i = 0; i < a_count; i++) {
-        const T d2 = (BVH::IndexStorage<Pnt>::get(indexPrimArray[a_offset + i], owner.data()).m_pos - q).length2();
+        const T d2 = (owner[indexPrimArray[a_offset + i]].m_pos - q).length2();
 
         if (d2 < a_state) {
           a_state = d2;
@@ -1701,8 +1726,8 @@ TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- BVH::IndexStora
       }
     };
 
-    valueStorage.pruneTraverse(q, valueState, valueEval, pruneDist2);
-    indexStorage.pruneTraverse(q, indexState, indexEval, pruneDist2);
+    valueBVH.pruneTraverse(q, valueState, valueEval, pruneDist2);
+    indexBVH.pruneTraverse(q, indexState, indexEval, pruneDist2);
 
     T bruteMin2 = std::numeric_limits<T>::max();
 
@@ -2266,8 +2291,8 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
   constexpr size_t W = 4;
 
   // Two distinct triangle meshes read from the in-repo fixtures. Each TriMeshSDF owns an inner
-  // PackedBVH over SoA triangle groups (ValueStorage by default) -- these are the inner BVHs that
-  // the outer union BVH nests over.
+  // PackedBVH over SoA triangle groups -- these are the inner BVHs that the outer union BVH nests
+  // over.
   Pool       pool(hostMemoryResource());
   const auto dodec = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   const auto tetra = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);

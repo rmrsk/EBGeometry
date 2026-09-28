@@ -97,17 +97,8 @@ using Meta = short;
   }                                                                          \
                                                                                \
   /* -- BVH ---------------------------------------------------------------- */\
-  /* BVH::IndexStorage and PackedBVH instantiated with it are deliberately    */\
-  /* absent: both reject a TreeBVH-routed build with a static_assert placed   */\
-  /* in a NON-template member (IndexStorage::appendTreeLeaf, and PackedBVH's  */\
-  /* partitioner/leaf-predicate constructor). Explicit class instantiation    */\
-  /* instantiates every non-template member, so naming either here is a hard  */\
-  /* compile error by construction, not an oversight. IndexStorage's coverage */\
-  /* comes from TestBVH's two agreement cases instead, which build through    */\
-  /* the SFC and ClusterSpec constructors under both precisions.              */\
-  template struct BVH::ValueStorage<Vec3T<PREC>>;                            \
   template class BVH::TreeBVH<PREC, Vec3T<PREC>, BoundingVolumes::AABBT<PREC>, 4>; \
-  template class BVH::PackedBVH<PREC, Vec3T<PREC>, 4, BVH::ValueStorage<Vec3T<PREC>>>; \
+  template class BVH::PackedBVH<PREC, Vec3T<PREC>, 4>;                       \
                                                                                \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
   template struct PODVector<PREC>;                                           \

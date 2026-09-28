@@ -141,16 +141,13 @@ protected:
  * @brief Signed distance function for a DCEL mesh. Stores the mesh in a PackedBVH for
  * SIMD-accelerated traversal. Accepts any polygon, not just triangles.
  * @details The mesh faces are packed into a flat-array PackedBVH. SIMD traversal
- * is used when T and K match an available ISA path. Unlike TriMeshSDF, MeshSDF does not expose a
- * PackedBVH StoragePolicy choice: its PackedBVH always uses BVH::ValueStorage<Face>, each packed
- * face being a fresh copy of the corresponding DCEL mesh face stored inline (DCEL::FaceT is a
- * plain, trivially-copyable value, so copying it is cheap and free of aliasing). That copy is only
- * meaningful together with the mesh it was built from, though: a FaceT stores its half-edge as an
- * index into its owning mesh's edge array, not a self-resolving reference, so MeshSDF retains the
- * source mesh (m_mesh) and passes it to every DCEL::FaceT query that needs to resolve topology
- * (point-in-face tests, signed distance). TriMeshSDF's SoA groups, by contrast, need no such
- * external context -- they pack the triangle geometry by value with no index into anything else --
- * which is why it offers a StoragePolicy. See the user documentation for the full rationale.
+ * is used when T and K match an available ISA path. Each packed face is a fresh copy of the
+ * corresponding DCEL mesh face, stored inline (DCEL::FaceT is a plain, trivially-copyable value, so
+ * copying it is cheap and free of aliasing). That copy is only meaningful together with the mesh it
+ * was built from, though: a FaceT stores its half-edge as an index into its owning mesh's edge
+ * array, not a self-resolving reference, so MeshSDF retains the source mesh (m_mesh) and passes it
+ * to every DCEL::FaceT query that needs to resolve topology (point-in-face tests, signed
+ * distance).
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).
@@ -252,9 +249,8 @@ public:
    *
    * Faces are named by their index into this object's own BVH primitive array -- the array
    * getRoot()->getPrimitives() returns -- and *not* by an index into the source mesh's face array.
-   * Packing reorders primitives into leaf order and (under the default BVH::ValueStorage) stores
-   * them by value, so nothing records which mesh face a packed face came from. Resolve an index
-   * with getRoot()->getPrimitives()[index].
+   * Packing reorders primitives into leaf order and stores them by value, so nothing records which
+   * mesh face a packed face came from. Resolve an index with getRoot()->getPrimitives()[index].
    * @param[in] a_point  Query point.
    * @param[in] a_sorted If true, the returned vector is sorted by ascending
    * unsigned distance (closest face first).
@@ -316,34 +312,19 @@ protected:
  * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
  * never reads the metadata; getClosestTriangle() does, returning the closest triangle's signed
  * distance together with its Meta (see issue #105).
- * @tparam StoragePolicy PackedBVH primitive storage policy. Must be a by-value policy whose
- * StorageType is TriangleAoSoA<T, Meta, W>; BVH::ValueStorage<TriangleAoSoA<T, Meta, W>> is the
- * default and, today, the only such policy. BVH::IndexStorage is *not* usable here and is rejected
- * by a static_assert below: an index has to resolve against an array somebody else owns, and these
- * SoA groups are built by groupTrianglesIntoSoA() during packing and owned by nothing else, so
- * there is no such array to index into. Storing them inline is therefore not a trade-off but the
- * only representation available. Note that instancing the same mesh multiple times (e.g. via
- * Translate/Rotate/Scale or a CSG union) is unaffected either way: those wrappers hold a
- * shared_ptr to the whole TriMeshSDF, so its packed data is never duplicated per placement.
- * Giving TriMeshSDF a pool-resident group array that a policy could index belongs with the
- * de-virtualisation of the SDF wrappers (PORTING.md step 4), not with the storage policy. See the
- * user documentation for the full rationale.
+ * The SoA groups are built by groupTrianglesIntoSoA() while packing and owned by nothing else, so
+ * the packed BVH stores them inline, by value. Instancing the same mesh multiple times (e.g. via
+ * Translate/Rotate/Scale or a CSG union) does not duplicate them: those wrappers hold a shared_ptr
+ * to the whole TriMeshSDF, so its packed data exists once no matter how many placements refer to
+ * it. Making the group array pool-resident in its own right belongs with the de-virtualisation of
+ * the SDF wrappers (PORTING.md step 4).
  */
-template <class T,
-          class Meta,
-          size_t K,
-          size_t W,
-          class StoragePolicy = BVH::ValueStorage<EBGeometry::TriangleAoSoA<T, Meta, W>>>
+template <class T, class Meta, size_t K, size_t W>
 class TriMeshSDF : public SignedDistanceFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
   static_assert(K >= 2, "TriMeshSDF requires branching factor K >= 2");
   static_assert(W > 0, "TriMeshSDF requires SoA width W > 0");
-  static_assert(std::is_same_v<typename StoragePolicy::StorageType, EBGeometry::TriangleAoSoA<T, Meta, W>>,
-                "TriMeshSDF requires a by-value StoragePolicy storing TriangleAoSoA<T, Meta, W> (the default, "
-                "BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>). BVH::IndexStorage is not supported: its get() "
-                "resolves an index against a caller-owned array, and TriMeshSDF's SoA groups are created during "
-                "packing and owned by nothing else, so no such array exists. See PORTING.md step 4.");
 
 public:
   /**
@@ -364,7 +345,7 @@ public:
   /**
    * @brief Alias for which BVH root node
    */
-  using Root = typename EBGeometry::BVH::PackedBVH<T, TriAoSoA, K, StoragePolicy>;
+  using Root = typename EBGeometry::BVH::PackedBVH<T, TriAoSoA, K>;
 
   /**
    * @brief Result of getClosestTriangle(): the signed distance to the closest triangle and that

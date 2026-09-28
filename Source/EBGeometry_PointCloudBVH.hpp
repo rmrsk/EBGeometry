@@ -57,8 +57,7 @@ template <class T,
           class Meta = std::size_t,
           size_t K   = BVH::DefaultBranchingRatio<T>(),
           size_t W   = PointSoA::DefaultWidth<T>()>
-class PointCloudBVH
-  : public BVH::PackedBVH<T, PointAoSoA<T, std::size_t, W>, K, BVH::ValueStorage<PointAoSoA<T, std::size_t, W>>>
+class PointCloudBVH : public BVH::PackedBVH<T, PointAoSoA<T, std::size_t, W>, K>
 {
 public:
   /**
@@ -69,7 +68,7 @@ public:
   /**
    * @brief The general packed BVH this specializes.
    */
-  using Base = BVH::PackedBVH<T, PointGroup, K, BVH::ValueStorage<PointGroup>>;
+  using Base = BVH::PackedBVH<T, PointGroup, K>;
 
   /**
    * @brief Flat node type inherited from Base.

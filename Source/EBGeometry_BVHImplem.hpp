@@ -405,29 +405,28 @@ TreeBVH<T, P, BV, K>::refit(const BVConstructor& a_bvConstructor)
 }
 
 template <class T, class P, class BV, size_t K>
-template <class StoragePolicy>
-inline std::shared_ptr<PackedBVH<T, P, K, StoragePolicy>>
+inline std::shared_ptr<PackedBVH<T, P, K>>
 TreeBVH<T, P, BV, K>::pack(Pool& a_pool) const
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::pack requires BV == AABBT<T>");
 
-  return std::make_shared<PackedBVH<T, P, K, StoragePolicy>>(a_pool, *this);
+  return std::make_shared<PackedBVH<T, P, K>>(a_pool, *this);
 }
 
 template <class T, class P, class BV, size_t K>
-template <class Q, class Converter, class StoragePolicy>
-inline std::shared_ptr<PackedBVH<T, Q, K, StoragePolicy>>
+template <class Q, class Converter>
+inline std::shared_ptr<PackedBVH<T, Q, K>>
 TreeBVH<T, P, BV, K>::packWith(Pool& a_pool, Converter&& a_converter) const
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::packWith requires BV == AABBT<T>");
 
-  return std::make_shared<PackedBVH<T, Q, K, StoragePolicy>>(a_pool, *this, std::forward<Converter>(a_converter));
+  return std::make_shared<PackedBVH<T, Q, K>>(a_pool, *this, std::forward<Converter>(a_converter));
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline void
-PackedBVH<T, P, K, StoragePolicy>::attachTo(Pool& a_pool) noexcept
+PackedBVH<T, P, K>::attachTo(Pool& a_pool) noexcept
 {
   if (m_control == nullptr) {
     m_control = a_pool.control();
@@ -438,10 +437,10 @@ PackedBVH<T, P, K, StoragePolicy>::attachTo(Pool& a_pool) noexcept
   EBGEOMETRY_EXPECT(m_control == a_pool.control());
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST_DEVICE
 inline const void*
-PackedBVH<T, P, K, StoragePolicy>::base() const noexcept
+PackedBVH<T, P, K>::base() const noexcept
 {
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
   // A non-null control block here means a host descriptor was copied into a kernel directly,
@@ -459,18 +458,18 @@ PackedBVH<T, P, K, StoragePolicy>::base() const noexcept
 #endif
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline bool
-PackedBVH<T, P, K, StoragePolicy>::isAttachedTo(const Pool& a_pool) const noexcept
+PackedBVH<T, P, K>::isAttachedTo(const Pool& a_pool) const noexcept
 {
   return m_control != nullptr && m_control == a_pool.control();
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST
-inline PackedBVH<T, P, K, StoragePolicy>
-PackedBVH<T, P, K, StoragePolicy>::rebasedView(const Pool& a_pool) const noexcept
+inline PackedBVH<T, P, K>
+PackedBVH<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
 {
   EBGEOMETRY_EXPECT(m_control != nullptr);                          // not already a view
   EBGEOMETRY_EXPECT(a_pool.mirrorOf() == m_control->m_id);          // a mirror of *our* pool
@@ -505,15 +504,15 @@ PackedBVH<T, P, K, StoragePolicy>::rebasedView(const Pool& a_pool) const noexcep
   return view;
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST
-inline PackedBVH<T, P, K, StoragePolicy>
-PackedBVH<T, P, K, StoragePolicy>::deepCopy(Pool& a_dstPool) const
+inline PackedBVH<T, P, K>
+PackedBVH<T, P, K>::deepCopy(Pool& a_dstPool) const
 {
   const void* srcBase = this->base();
 
-  std::vector<Node>        nodes(m_linearNodes.size());
-  std::vector<StorageType> prims(m_primitives.size());
+  std::vector<Node> nodes(m_linearNodes.size());
+  std::vector<P>    prims(m_primitives.size());
 
   for (uint32_t i = 0; i < m_linearNodes.size(); i++) {
     nodes[i] = m_linearNodes.at(srcBase, i);
@@ -528,7 +527,7 @@ PackedBVH<T, P, K, StoragePolicy>::deepCopy(Pool& a_dstPool) const
   copy.m_control      = nullptr;
   copy.m_base         = nullptr;
   copy.m_linearNodes  = PODVector<Node>{};
-  copy.m_primitives   = PODVector<StorageType>{};
+  copy.m_primitives   = PODVector<P>{};
   copy.m_childAabbSoA = PODVector<ChildAABBSoA>{};
 
   copy.finalize(a_dstPool, nodes, prims);
@@ -536,12 +535,10 @@ PackedBVH<T, P, K, StoragePolicy>::deepCopy(Pool& a_dstPool) const
   return copy;
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline void
-PackedBVH<T, P, K, StoragePolicy>::finalize(Pool&                           a_pool,
-                                            const std::vector<Node>&        a_linearNodes,
-                                            const std::vector<StorageType>& a_primitives)
+PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives)
 {
   this->attachTo(a_pool);
 
@@ -562,10 +559,10 @@ PackedBVH<T, P, K, StoragePolicy>::finalize(Pool&                           a_po
   this->requireDepthFits(this->base(), s_hostStackDepth, "host build");
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline void
-PackedBVH<T, P, K, StoragePolicy>::buildSoA(Pool* a_pool)
+PackedBVH<T, P, K>::buildSoA(Pool* a_pool)
 {
   if (a_pool != nullptr) {
     m_childAabbSoA.reserveFrom(*a_pool, m_linearNodes.size());
@@ -605,16 +602,16 @@ PackedBVH<T, P, K, StoragePolicy>::buildSoA(Pool* a_pool)
   m_childAabbSoA.assign(const_cast<void*>(poolBase), soaCache.data(), static_cast<uint32_t>(soaCache.size()));
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
-  Pool& a_pool, const TreeBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree)
+template <class T, class P, size_t K>
+inline PackedBVH<T, P, K>::PackedBVH(Pool&                                                          a_pool,
+                                     const TreeBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree)
 {
   using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
   // Host-only scratch: the node count is not known until the walk finishes, and growth here costs
   // nothing because finalize() copies the result into pool storage in one shot.
-  std::vector<Node>        nodes;
-  std::vector<StorageType> prims;
+  std::vector<Node> nodes;
+  std::vector<P>    prims;
 
   // Depth-first. Each call reserves a slot by index, then fills child offsets
   // after recursion. Indexing by position (not pointer) is safe across
@@ -633,7 +630,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
       nodes[idx].m_primOff  = static_cast<uint32_t>(prims.size());
       nodes[idx].m_numPrims = static_cast<uint32_t>(leafPrims.size());
 
-      StoragePolicy::appendTreeLeaf(prims, leafPrims);
+      PackedBVH::appendTreeLeaf(prims, leafPrims);
     }
     else {
       nodes[idx].m_numPrims = 0U;
@@ -652,19 +649,20 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
   this->finalize(a_pool, nodes, prims);
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 template <class Q, class Converter>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
-  Pool& a_pool, const TreeBVH<T, Q, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree, Converter&& a_converter)
+inline PackedBVH<T, P, K>::PackedBVH(Pool&                                                          a_pool,
+                                     const TreeBVH<T, Q, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree,
+                                     Converter&&                                                    a_converter)
 {
-  std::vector<Node>        nodes;
-  std::vector<StorageType> prims;
+  std::vector<Node> nodes;
+  std::vector<P>    prims;
 
   using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
-  // Accumulate converted P-values into a single contiguous buffer; StoragePolicy::appendAliased
-  // materialises it into prims once every push_back below has completed. Under the default
-  // ValueStorage<P> that is a move of the whole buffer, so no element is copied twice.
+  // Accumulate converted P-values into a single contiguous buffer; appendAliased materialises it
+  // into prims once every push_back below has completed -- a move of the whole buffer, so no
+  // element is copied twice.
   auto dstStorage = std::make_shared<std::vector<P>>();
 
   std::function<uint32_t(const TreeBVH<T, Q, AABBType, K>&)> dfs =
@@ -703,22 +701,22 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
 
   dfs(a_tree);
 
-  StoragePolicy::appendAliased(prims, dstStorage);
+  PackedBVH::appendAliased(prims, dstStorage);
 
   this->finalize(a_pool, nodes, prims);
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 template <class S>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                                   a_pool,
-                                                    std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
-                                                    size_t                                  a_targetLeafSize,
-                                                    S)
+inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
+                                     std::vector<std::pair<P, BV>> a_primsAndBVs,
+                                     size_t                        a_targetLeafSize,
+                                     S)
 {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-  std::vector<Node>        nodes;
-  std::vector<StorageType> prims;
+  std::vector<Node> nodes;
+  std::vector<P>    prims;
   EBGEOMETRY_EXPECT(a_targetLeafSize > 0);
 
   const size_t numPrimitives = a_primsAndBVs.size();
@@ -734,7 +732,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
 
   const std::vector<SFC::Index> bins = SFC::computeBins<T>(centroids);
 
-  using PrimBvAndCode = std::tuple<StorageType, BV, SFC::Code>;
+  using PrimBvAndCode = std::tuple<P, BV, SFC::Code>;
 
   std::vector<PrimBvAndCode> sortedPrimitives;
 
@@ -779,7 +777,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
 
   // Populate the primitive array once, in final sorted order -- independent of whatever order
   // the node array below ends up being built/relaid-out in.
-  auto primBlock = std::make_shared<std::vector<StorageType>>();
+  auto primBlock = std::make_shared<std::vector<P>>();
 
   primBlock->reserve(numPrimitives);
 
@@ -787,7 +785,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
     primBlock->push_back(std::move(std::get<0>(entry)));
   }
 
-  StoragePolicy::appendAliased(prims, primBlock);
+  PackedBVH::appendAliased(prims, primBlock);
 
   // Build the K-ary structure bottom-up in a scratch array (reusing Node's own shape), then relay
   // it out into nodes in depth-first pre-order below -- a bottom-up merge naturally
@@ -877,29 +875,16 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
   this->finalize(a_pool, nodes, prims);
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                                   a_pool,
-                                                    std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
-                                                    const BVH::Partitioner<P, BV, K>&       a_partitioner,
-                                                    const BVH::LeafPredicate<T, P, BV, K>&  a_stopCrit)
+template <class T, class P, size_t K>
+inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_pool,
+                                     std::vector<std::pair<P, BV>>          a_primsAndBVs,
+                                     const BVH::Partitioner<P, BV, K>&      a_partitioner,
+                                     const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit)
 {
-  // Dependent on the class template parameters, so it fires only if this constructor is actually
-  // instantiated -- and, being the first thing in the body, it fires before the lambda below drags
-  // in IndexStorage::appendTreeLeaf's own static_assert, whose message describes the leaf append
-  // rather than this constructor.
-  static_assert(std::is_same_v<StorageType, P>,
-                "PackedBVH's partitioner/leaf-predicate constructor requires a by-value storage "
-                "policy (StorageType == P), i.e. BVH::ValueStorage. It reuses the Partitioner and "
-                "LeafPredicate contracts, which are typed on P, and builds a stack-local TreeBVH of "
-                "P at every split to evaluate the stop criterion -- none of which an index can "
-                "travel through. For a BVH::IndexStorage build use the SFC-build constructor "
-                "(pool, primsAndBVs, targetLeafSize) or the ClusterSpec constructor "
-                "(pool, primsAndBVs, spec); both partition on bounding volumes alone.");
-
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-  std::vector<Node>        nodes;
-  std::vector<StorageType> prims;
+  std::vector<Node> nodes;
+  std::vector<P>    prims;
 
   // shared_ptr-wrap each primitive once, up front, so the existing Partitioner/LeafPredicate
   // machinery (which operates on PrimAndBVList) can be reused unchanged. This is not the cost
@@ -937,7 +922,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
       nodes[idx].setPrimitivesOffset(static_cast<uint32_t>(prims.size()));
       nodes[idx].setNumPrimitives(static_cast<uint32_t>(leafPrims.size()));
 
-      StoragePolicy::appendTreeLeaf(prims, leafPrims);
+      PackedBVH::appendTreeLeaf(prims, leafPrims);
     }
     else {
       // The partitioner takes its list by value and moves the sub-lists out; a_prims is not used
@@ -958,17 +943,15 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
   this->finalize(a_pool, nodes, prims);
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
-inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                                   a_pool,
-                                                    std::vector<std::pair<StorageType, BV>> a_primsAndBVs,
-                                                    BVH::ClusterSpec                        a_spec)
+template <class T, class P, size_t K>
+inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec)
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "ClusterSAH requires BV == AABBT<T>");
 
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-  std::vector<Node>        nodes;
-  std::vector<StorageType> prims;
+  std::vector<Node> nodes;
+  std::vector<P>    prims;
   EBGEOMETRY_EXPECT(a_spec.maxClusterSize > 0);
 
   const size_t maxC = a_spec.maxClusterSize;
@@ -976,9 +959,9 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
   // A cluster: its bounding volume, centroid, and the primitives it owns (moved in).
   struct Cluster
   {
-    BV                                      bv;
-    Vec3T<T>                                centroid;
-    std::vector<std::pair<StorageType, BV>> prims;
+    BV                            bv;
+    Vec3T<T>                      centroid;
+    std::vector<std::pair<P, BV>> prims;
   };
 
   // ---- Phase 1: density-adaptive clustering --------------------------------------------------
@@ -1023,7 +1006,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
     const auto pivot = std::partition(
       a_primsAndBVs.begin() + a_begin,
       a_primsAndBVs.begin() + a_end,
-      [axis, mid](const std::pair<StorageType, BV>& a_pb) noexcept { return a_pb.second.getCentroid()[axis] < mid; });
+      [axis, mid](const std::pair<P, BV>& a_pb) noexcept { return a_pb.second.getCentroid()[axis] < mid; });
 
     size_t split = static_cast<size_t>(pivot - a_primsAndBVs.begin());
     if (split == a_begin || split == a_end) {
@@ -1158,7 +1141,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
 
   // Build the flat node array top-down (pre-order), populating the primitive block in DFS-leaf order
   // so each leaf's primitives are a contiguous [offset, count) range.
-  auto primBlock = std::make_shared<std::vector<StorageType>>();
+  auto primBlock = std::make_shared<std::vector<P>>();
 
   size_t total = 0;
 
@@ -1211,50 +1194,50 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(Pool&                       
   };
   build(0, clusters.size());
 
-  StoragePolicy::appendAliased(prims, primBlock);
+  PackedBVH::appendAliased(prims, primBlock);
 
   this->finalize(a_pool, nodes, prims);
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST_DEVICE
-inline PODSpan<const typename PackedBVH<T, P, K, StoragePolicy>::StorageType>
-PackedBVH<T, P, K, StoragePolicy>::getPrimitives() const noexcept
+inline PODSpan<const P>
+PackedBVH<T, P, K>::getPrimitives() const noexcept
 {
   return m_primitives.bind(this->base());
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST_DEVICE
-inline PODSpan<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>
-PackedBVH<T, P, K, StoragePolicy>::getPrimitives() noexcept
+inline PODSpan<P>
+PackedBVH<T, P, K>::getPrimitives() noexcept
 {
   return m_primitives.bind(const_cast<void*>(this->base()));
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST_DEVICE
 inline const EBGeometry::BoundingVolumes::AABBT<T>&
-PackedBVH<T, P, K, StoragePolicy>::getBoundingVolume() const noexcept
+PackedBVH<T, P, K>::getBoundingVolume() const noexcept
 {
   return m_linearNodes.at(this->base(), 0).getBoundingVolume();
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST_DEVICE
 inline EBGeometry::BoundingVolumes::AABBT<T>
-PackedBVH<T, P, K, StoragePolicy>::computeBoundingVolume() const noexcept
+PackedBVH<T, P, K>::computeBoundingVolume() const noexcept
 {
   return m_linearNodes.at(this->base(), 0).getBoundingVolume();
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 template <class NodeKey>
 inline void
-PackedBVH<T, P, K, StoragePolicy>::traverse(const BVH::PackedLeafEvaluator<P, StoragePolicy>& a_leafEvaluator,
-                                            const BVH::PrunePredicate<Node, NodeKey>&         a_prunePredicate,
-                                            const BVH::PackedChildOrderer<NodeKey, K>&        a_childOrderer,
-                                            const BVH::NodeKeyFactory<Node, NodeKey>& a_nodeKeyFactory) const noexcept
+PackedBVH<T, P, K>::traverse(const BVH::PackedLeafEvaluator<P>&         a_leafEvaluator,
+                             const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
+                             const BVH::PackedChildOrderer<NodeKey, K>& a_childOrderer,
+                             const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept
 {
   const void* poolBase = this->base();
 
@@ -1294,9 +1277,9 @@ PackedBVH<T, P, K, StoragePolicy>::traverse(const BVH::PackedLeafEvaluator<P, St
   }
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 inline size_t
-PackedBVH<T, P, K, StoragePolicy>::maxNodeDepth(const void* a_base) const
+PackedBVH<T, P, K>::maxNodeDepth(const void* a_base) const
 {
   if (m_linearNodes.size() == 0) {
     return 0;
@@ -1335,11 +1318,9 @@ PackedBVH<T, P, K, StoragePolicy>::maxNodeDepth(const void* a_base) const
   return maxDepth;
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 inline void
-PackedBVH<T, P, K, StoragePolicy>::requireDepthFits(const void*  a_base,
-                                                    const size_t a_stackDepth,
-                                                    const char*  a_context) const
+PackedBVH<T, P, K>::requireDepthFits(const void* a_base, const size_t a_stackDepth, const char* a_context) const
 {
   const size_t depth = this->maxNodeDepth(a_base);
   const size_t limit = PackedBVH::maxSafeDepth(a_stackDepth);
@@ -1360,12 +1341,10 @@ PackedBVH<T, P, K, StoragePolicy>::requireDepthFits(const void*  a_base,
   }
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST_DEVICE
 inline void
-PackedBVH<T, P, K, StoragePolicy>::computeChildDistances2(const ChildAABBSoA& a_soa,
-                                                          const Vec3T<T>&     a_point,
-                                                          T (&a_dist2)[K]) noexcept
+PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, T (&a_dist2)[K]) noexcept
 {
   // Device code takes the scalar path unconditionally: the x86 ISA macros below may still be
   // defined during nvcc's/hipcc's *host* pass over this same __host__ __device__ function, so the
@@ -1599,14 +1578,14 @@ PackedBVH<T, P, K, StoragePolicy>::computeChildDistances2(const ChildAABBSoA& a_
   }
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 template <class State, class LeafEvaluator, class PruneDistSquared>
 EBGEOMETRY_HOST_DEVICE
 inline void
-PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
-                                                 State&             a_state,
-                                                 LeafEvaluator&&    a_evalLeaf,
-                                                 PruneDistSquared&& a_pruneDist2) const noexcept
+PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
+                                  State&             a_state,
+                                  LeafEvaluator&&    a_evalLeaf,
+                                  PruneDistSquared&& a_pruneDist2) const noexcept
 {
   // An empty BVH has no root to descend from. Nothing that builds through a TreeBVH or through the
   // direct constructors can reach this -- they assert a non-empty primitive list and would have
@@ -1700,10 +1679,10 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
   }
 }
 
-template <class T, class P, size_t K, class StoragePolicy>
+template <class T, class P, size_t K>
 template <class BVConstructor>
 inline void
-PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor, const void* a_base)
+PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor)
 {
   // m_linearNodes is a depth-first pre-order flattening, so every child has a higher index than its
   // parent. Sweeping the array in reverse therefore refits all of a node's children before the node
@@ -1730,8 +1709,7 @@ PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor, c
       boundingVolumes.reserve(count);
 
       for (uint32_t p = 0; p < count; p++) {
-        boundingVolumes.emplace_back(
-          a_bvConstructor(StoragePolicy::get(m_primitives.at(poolBase, offset + p), a_base)));
+        boundingVolumes.emplace_back(a_bvConstructor(m_primitives.at(poolBase, offset + p)));
       }
     }
     else {

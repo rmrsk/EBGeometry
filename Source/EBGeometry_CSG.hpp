@@ -32,22 +32,19 @@
 //
 // BVHUnionIF/BVHSmoothUnionIF keep their primitives alive through the primitive array of the
 // PackedBVH they own, storing them as std::shared_ptr<const P> where P is normally the abstract
-// base ImplicitFunction<T>. That required BVH::SharedPtrStorage, which has been removed: a
-// shared_ptr is not trivially copyable, so a PackedBVH holding one can never be mirrored to a
-// device, and keeping the policy would have forced PackedBVH to carry a second, host-only storage
-// backend forever.
+// base ImplicitFunction<T>. PackedBVH no longer stores anything but plain values: a shared_ptr is
+// not trivially copyable, so a PackedBVH holding one can never be mirrored to a device, and
+// keeping that capability would have forced a second, permanently host-only storage backend.
 //
-// Neither replacement policy can serve a polymorphic primitive. BVH::ValueStorage would need to
-// store an abstract type by value, and BVH::IndexStorage indexes a flat array of P, which is
-// meaningless when the elements are of different derived types and sizes.
+// Storing by value cannot serve a polymorphic primitive either -- an abstract type has no size to
+// store -- so there is no drop-in replacement for what was removed.
 //
-// The fix is not a different storage policy but an index-based redesign of the implicit-function
-// and CSG layer as a whole (see PORTING.md, roadmap steps 4-5: the per-primitive traits and the
-// linear-SSA tape that replaces virtual dispatch). Until that lands, everything below is compiled
-// out rather than deleted, so restoring it is a one-line change here.
+// The fix is an index-based redesign of the implicit-function and CSG layer as a whole (see
+// PORTING.md, roadmap steps 4-5: the per-primitive traits and the linear-SSA tape that replaces
+// virtual dispatch). Until that lands, everything below is compiled out rather than deleted, so
+// restoring it is a one-line change here.
 //
-// Flip to 1 only together with a storage policy that can hold polymorphic primitives; on its own
-// this will not compile.
+// Flip to 1 only together with that redesign; on its own this will not compile.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
