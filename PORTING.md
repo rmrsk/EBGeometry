@@ -132,6 +132,7 @@ kernel and compares against the host:
 | SoA/AoSoA leaves | `PointSoA`, `PointAoSoA`, `TriangleSoA`, `TriangleAoSoA` | #134 |
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
 | BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
+| Point-cloud BVH queries | `PointCloudBVH` (holds a `PackedBVH`; the build stays host-side) | roadmap step 0b |
 
 ## What is not
 
@@ -140,7 +141,6 @@ kernel and compares against the host:
 | `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
 | `MeshSDF` / `FlatMeshSDF` / `TriMeshSDF` | Their `PackedBVH` is ported and pool-backed, but the wrappers are not device-callable and, more to the point, not trivially copyable: each holds its BVH and/or mesh as a `shared_ptr` member. Next step |
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
-| `PointCloudBVH` | **Half-ported, and currently unsound to mirror.** Its inherited `PackedBVH` arrays are pool-backed, but its own cloud arrays (`m_positions`, `m_metadata`, `m_order`, `m_leafOff`, `m_leafCnt`) are still `std::vector`, so the class is not trivially copyable — while the `rebasedView()`/`deepCopy()` it inherits *are* callable on it and silently slice to the base. See the roadmap's step 0b |
 | `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform`, analytic SDFs | Still the original virtual-`value()` design; this is where the tape returns |
 | `BVHUnionIF` / `BVHSmoothUnionIF` | **Compiled out** behind `EBGEOMETRY_ENABLE_BVH_CSG_UNION`. They stored polymorphic primitives as `shared_ptr`, which a trivially-copyable primitive array cannot hold; they return with the index-based CSG redesign in step 4 |
@@ -166,7 +166,19 @@ kernel and compares against the host:
    them had been written, by reading the code rather than building it. Everything from step 4 onward
    adds far more device code than the BVH port did.
 
-0b. **`PointCloudBVH` should consume a `PackedBVH`, not derive from one.** `PackedBVH` documents
+   *Stopgap, not a fix:* the same clang-17 HIP invocation CI's `GPU-HIP` job uses (see
+   `.github/workflows/CI.yml`) installs from the distribution's packages and compiles every `[gpu]`
+   kernel for a real AMD target with no GPU present. That is how step 0b's device code was
+   compiled before it was pushed. It catches missing annotations and non-device-callable calls; it
+   runs nothing, and it needs `EBGEOMETRY_ENABLE_ASSERTIONS=OFF` (the distribution's HIP headers
+   provide no device-side `assert`). Actually executing a kernel still needs the toolkit this step
+   asks for.
+
+0b. **Done.** `PointCloudBVH` now holds its `PackedBVH` by value, keeps its cloud arrays as `PODVector`s
+   in the same pool, is trivially copyable, and has its own `rebasedView()`/`deepCopy()` returning
+   `PointCloudBVH`; `PackedBVH` is `final`. The original rationale follows.
+
+   **`PointCloudBVH` should consume a `PackedBVH`, not derive from one.** `PackedBVH` documents
    itself as "not intended to be subclassed"; `PointCloudBVH` subclasses it anyway. Since the BVH
    port added `rebasedView()`/`deepCopy()` returning `PackedBVH` **by value**, both are silently
    sliced on the derived type — mirroring a point cloud compiles cleanly and produces a BVH whose
@@ -334,4 +346,6 @@ cd build/cuda && ctest -L gpu-device --output-on-failure
 
 CI compiles both backends on every push but has no physical GPU, so the device-side assertions only
 ever execute on a developer machine. Running the above before pushing GPU work is therefore not
-optional — a green CI GPU lane means "it compiles", nothing more.
+optional — a green CI GPU lane means "it compiles", nothing more. Note also that both GPU jobs are
+`continue-on-error` and are not among `CI-passed`'s requirements, so a PR that breaks device
+compilation still shows a green overall check; read the GPU lanes themselves.

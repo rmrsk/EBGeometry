@@ -8,9 +8,9 @@
 // search from the point's own leaf (a strictly cheaper traversal). The whole pipeline is again
 // hidden behind the constructor and one call:
 //
-//   PointCloudBVH<T> bvh(positions, metadata);       // build once
-//   bvh.nearestNeighbor(i);                            // nearest OTHER point to point i
-//   auto graph = bvh.allNearestNeighbors(kNN);         // kNN nearest of EVERY point, batched
+//   PointCloudBVH<T> bvh(pool, positions, metadata);       // build once
+//   bvh.nearestNeighbor(i);                                // nearest OTHER point to point i
+//   auto graph = bvh.allNearestNeighbors(kNN);             // kNN nearest of EVERY point, batched
 //
 // A sample of the batch result is checked against a brute-force scan. See README.md.
 

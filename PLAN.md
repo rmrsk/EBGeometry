@@ -424,6 +424,17 @@ the packed BVH arrays directly.
 
 ## Pull forward: `PointCloudBVH` should consume a PackedBVH, not derive from one
 
+**Done** (roadmap step 0b). What changed from the plan below: step 4 was wrong about the adopting
+constructor. It does not exist only to serve the derivation -- composition needs it just as much,
+because `PointCloudBVH` still runs its own index-based build and hands the finished arrays over. It
+became public instead of being deleted, guarded by an always-on well-formedness check since it is now
+the one entry point whose arrays the library did not build. Composition also needed two more public
+members, `getNodes()` (the seeded self-query walks the tree itself) and `traversalStackDepth()` (so
+that walk sizes its stack by the same per-pass budget `pruneTraverse()` is validated against). Marking
+`PackedBVH` `final` broke one test helper that subclassed it to reach the protected leaf appenders;
+those became free functions in `BVH::detail`. No other subclass existed in `Source/`, `Tests/`,
+`Examples/` or `Integrations/`.
+
 Not urgent in the sense that nothing blocks on it, but it should be done **before** step 1 rather
 than left with the loose ends, for two reasons: PR C introduced a live bug there, and fixing it
 establishes the exact pattern step 1's hardest case needs.

@@ -30,14 +30,24 @@ unaccelerated path) and are not meant for production queries.
 PointCloudBVH
 -------------
 
-``PointCloudBVH`` specializes the :ref:`Chap:ImplemBVH` machinery: it is a subclass of
-``BVH::PackedBVH`` with two things the general path does not offer -- a much cheaper **index-based
-build**, and **turnkey query methods** that hide ``pruneTraverse()`` entirely. It is built by
-partitioning an index permutation in place with a longest-axis midpoint split and packing the
-``PointAoSoA`` leaves inline (no intermediate primitive list, no ``shared_ptr``, no separate packing
-pass), which is several times faster to build than a full Surface-Area-Heuristic tree and, for
-near-uniform clouds, just as tight to query. Because it is a BVH, it can also be composed as a
-primitive inside an outer BVH or CSG tree.
+``PointCloudBVH`` is built on the :ref:`Chap:ImplemBVH` machinery: it holds a ``BVH::PackedBVH``
+over ``PointAoSoA`` leaf groups as a member, and adds two things the general path does not offer --
+a much cheaper **index-based build**, and **turnkey query methods** that hide ``pruneTraverse()``
+entirely. It is built by partitioning an index permutation in place with a longest-axis midpoint
+split and packing the ``PointAoSoA`` leaves inline (no intermediate primitive list, no
+``shared_ptr``, no separate packing pass), which is several times faster to build than a full
+Surface-Area-Heuristic tree and, for near-uniform clouds, just as tight to query. ``getBVH()`` exposes
+the held ``PackedBVH`` for anything that needs the general BVH interface.
+
+The held BVH and every cloud array (positions, user metadata, the per-point seeding tables, the leaf
+order) are reserved from the one ``Pool`` passed to the constructor, so a ``PointCloudBVH`` is
+trivially copyable and crosses to a device the same way a ``PackedBVH`` does (see
+:ref:`Chap:MemoryModel`): mirror the pool, call ``rebasedView()``, and pass the returned value into a
+kernel. ``rebasedView()`` and ``deepCopy()`` both return a ``PointCloudBVH``. On the device,
+``closestPoint()``, ``closestPoints()``, ``nearestNeighbor()``, ``nearestNeighbors()`` and the
+single-result brute-force references are callable; ``allNearestNeighbors()`` and the k-result
+brute-force references return or allocate ``std::vector``\ s and stay host-only. Because the metadata
+lives in pool memory, the ``Meta`` template argument must be trivially copyable.
 
 See the `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and

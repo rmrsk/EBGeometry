@@ -6,9 +6,9 @@
 // pipeline -- grouping points into SIMD PointAoSoA leaves, building the PackedBVH, and driving the
 // pruned traversal -- is hidden behind a single constructor and two query methods:
 //
-//   PointCloudBVH<T> bvh(positions, metadata);   // build once
-//   bvh.closestPoint(q);                          // nearest point to an arbitrary point q
-//   bvh.closestPoints(q, k, out);                 // the k nearest, ascending by distance
+//   PointCloudBVH<T> bvh(pool, positions, metadata);   // build once
+//   bvh.closestPoint(q);                               // nearest point to an arbitrary point q
+//   bvh.closestPoints(q, k, out);                      // the k nearest, ascending by distance
 //
 // Every query is checked against a brute-force scan. See README.md. The self-query counterpart
 // (nearest neighbors of points already in the cloud) is Examples/NearestNeighborBVH.
