@@ -154,10 +154,22 @@ kernel and compares against the host:
 > `PLAN.md` is deleted once that work lands, at which point whatever is still true moves here.
 
 **The numbered steps below are kept in their original order for continuity; the order they are being
-*done* in is different.** Actual sequence, agreed after the BVH port:
+*done* in is different.** The governing rule: **every existing class is ported before the tape is
+started.** Actual sequence:
 
-> step 2 (done) → **0a** → **0b** → step 4 restricted to the mesh SDFs → step 4 proper → step 5 →
-> steps 1, 3, 6 and the remaining loose ends.
+> step 2 (done) → **0b** (done) → step 4 restricted to the mesh SDFs → step 4 proper (analytic SDFs,
+> transforms, CSG) → step 3 (point clouds) → the loose ends (`Triangle`, `Octree`, `SFC`) → step 1
+> (DCEL reconcile) → step 6 (GPU examples, AMReX integration) → **step 5 (the tape), last**.
+>
+> **0a** (a CUDA/HIP toolkit on the development machine) is not a sequence step: it is still open
+> and should be closed as early as possible, since every step after it adds device code.
+
+One consequence of porting step 4 before the tape: `BVHUnionIF`/`BVHSmoothUnionIF` come back on the
+host in step 4, but a union over primitives of *different* concrete types has no way to pick each
+primitive's formula on a device without some form of runtime dispatch -- which is what the tape is.
+Until step 5, such unions are host-only; homogeneous ones (every primitive the same concrete type)
+need no dispatch and can run on a device. No interim dispatch mechanism is to be built in the
+meantime, since it would be a second tape.
 
 0a. **Prerequisite: a CUDA/HIP toolkit on the development machine.** There is none at present (a GPU
    is present; `nvcc` is not installed), so neither the `cuda` nor the `hip` preset configures and no

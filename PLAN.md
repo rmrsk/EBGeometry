@@ -349,6 +349,11 @@ PRs A–C are done and are what this branch contains. The rest of the port proce
 below. The shape is: make each layer a concrete, self-contained, trivially-copyable type that a tag
 can name, layer by layer, and only then build the tape that dispatches over those tags.
 
+**Revised after 0b:** every existing class is ported before the tape. The point clouds, the loose
+ends, the DCEL reconcile chain and the GPU examples (sections 4 below and `PORTING.md`'s steps 1, 3
+and 6) therefore move ahead of section 3 (the tape), which becomes the last step. `PORTING.md`'s
+roadmap carries the authoritative sequence.
+
 ### 0. Prerequisite: close the verification gap
 
 **There is no CUDA toolkit on the development machine** (an RTX A4000 is present; `nvcc` is not
