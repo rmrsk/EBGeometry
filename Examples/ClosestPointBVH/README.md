@@ -9,9 +9,9 @@ class.
 `PointAoSoA` leaves, building the `PackedBVH`, and running the pruned traversal -- behind a single
 constructor and a couple of query methods:
 
-    PointCloudBVH<T> bvh(positions, metadata);   // build once
-    bvh.closestPoint(q);                          // nearest point to an arbitrary point q
-    bvh.closestPoints(q, k, out);                 // the k nearest, ascending by distance
+    PointCloudBVH<T> bvh(pool, positions, metadata);   // build once
+    bvh.closestPoint(q);                               // nearest point to an arbitrary point q
+    bvh.closestPoints(q, k, out);                      // the k nearest, ascending by distance
 
 This is the **external** query form: the query points are arbitrary, not members of the cloud. Its
 counterpart, [`Examples/NearestNeighborBVH`](../NearestNeighborBVH/README.md), queries with points

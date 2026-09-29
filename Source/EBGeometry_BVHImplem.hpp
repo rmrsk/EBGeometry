@@ -630,7 +630,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
       nodes[idx].m_primOff  = static_cast<uint32_t>(prims.size());
       nodes[idx].m_numPrims = static_cast<uint32_t>(leafPrims.size());
 
-      PackedBVH::appendTreeLeaf(prims, leafPrims);
+      detail::appendTreeLeaf(prims, leafPrims);
     }
     else {
       nodes[idx].m_numPrims = 0U;
@@ -701,7 +701,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
 
   dfs(a_tree);
 
-  PackedBVH::appendAliased(prims, dstStorage);
+  detail::appendAliased(prims, dstStorage);
 
   this->finalize(a_pool, nodes, prims);
 }
@@ -785,7 +785,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
     primBlock->push_back(std::move(std::get<0>(entry)));
   }
 
-  PackedBVH::appendAliased(prims, primBlock);
+  detail::appendAliased(prims, primBlock);
 
   // Build the K-ary structure bottom-up in a scratch array (reusing Node's own shape), then relay
   // it out into nodes in depth-first pre-order below -- a bottom-up merge naturally
@@ -922,7 +922,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
       nodes[idx].setPrimitivesOffset(static_cast<uint32_t>(prims.size()));
       nodes[idx].setNumPrimitives(static_cast<uint32_t>(leafPrims.size()));
 
-      PackedBVH::appendTreeLeaf(prims, leafPrims);
+      detail::appendTreeLeaf(prims, leafPrims);
     }
     else {
       // The partitioner takes its list by value and moves the sub-lists out; a_prims is not used
@@ -1194,7 +1194,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
   };
   build(0, clusters.size());
 
-  PackedBVH::appendAliased(prims, primBlock);
+  detail::appendAliased(prims, primBlock);
 
   this->finalize(a_pool, nodes, prims);
 }
@@ -1213,6 +1213,14 @@ inline PODSpan<P>
 PackedBVH<T, P, K>::getPrimitives() noexcept
 {
   return m_primitives.bind(const_cast<void*>(this->base()));
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline PODSpan<const typename PackedBVH<T, P, K>::Node>
+PackedBVH<T, P, K>::getNodes() const noexcept
+{
+  return m_linearNodes.bind(this->base());
 }
 
 template <class T, class P, size_t K>
@@ -1338,6 +1346,57 @@ PackedBVH<T, P, K>::requireDepthFits(const void* a_base, const size_t a_stackDep
                  limit,
                  K);
     std::abort();
+  }
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST
+inline void
+PackedBVH<T, P, K>::requireWellFormed(const std::vector<Node>& a_linearNodes, const size_t a_numPrimitives)
+{
+  const size_t numNodes = a_linearNodes.size();
+
+  // Report the first defect and stop: once one offset is wrong, later ones say nothing reliable.
+  const auto reject = [](const char* a_what, const size_t a_node, const size_t a_value, const size_t a_bound) {
+    std::fprintf(stderr,
+                 "EBGeometry::BVH::PackedBVH: adopted node array is malformed -- node %zu: %s "
+                 "(%zu, bound %zu).\n"
+                 "  The array must be a depth-first pre-order flattening: every child strictly after "
+                 "its parent and inside the array, every leaf's primitives inside the primitive "
+                 "array.\n",
+                 a_node,
+                 a_what,
+                 a_value,
+                 a_bound);
+    std::abort();
+  };
+
+  if (numNodes == 0) {
+    if (a_numPrimitives != 0) {
+      reject("empty node array with a non-empty primitive array", 0, a_numPrimitives, 0);
+    }
+
+    return;
+  }
+
+  for (size_t i = 0; i < numNodes; i++) {
+    const Node& node = a_linearNodes[i];
+
+    if (node.isLeaf()) {
+      const size_t end = size_t(node.getPrimitivesOffset()) + size_t(node.getNumPrimitives());
+
+      if (end > a_numPrimitives) {
+        reject("leaf primitive range ends past the primitive array", i, end, a_numPrimitives);
+      }
+
+      continue;
+    }
+
+    for (const uint32_t child : node.getChildOffsets()) {
+      if (child <= i || child >= numNodes) {
+        reject("child offset not strictly after its parent and inside the array", i, child, numNodes);
+      }
+    }
   }
 }
 

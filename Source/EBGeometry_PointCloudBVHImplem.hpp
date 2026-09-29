@@ -25,6 +25,7 @@
 namespace EBGeometry {
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
 inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(Pool&                        a_pool,
                                                    const std::vector<Vec3T<T>>& a_positions,
                                                    const std::vector<Meta>&     a_metadata,
@@ -40,25 +41,111 @@ inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(Pool&                        
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
 inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(Pool&                        a_pool,
-                                                   BuildResult&&                a_build,
+                                                   const BuildResult&           a_build,
                                                    const std::vector<Vec3T<T>>& a_positions,
                                                    const std::vector<Meta>&     a_metadata)
-  : Base(a_pool, a_build.nodes, a_build.primitives),
-    m_positions(a_positions),
-    m_metadata(a_metadata),
-    m_leafOff(std::move(a_build.leafOff)),
-    m_leafCnt(std::move(a_build.leafCnt)),
-    m_order(std::move(a_build.order))
+  : m_bvh(a_pool, a_build.nodes, a_build.primitives)
 {
-  // a_build was consumed above, so validate the arrays now living in this class against the cloud.
-  EBGEOMETRY_EXPECT(m_metadata.size() == m_positions.size());
-  EBGEOMETRY_EXPECT(m_leafOff.size() == m_positions.size());
-  EBGEOMETRY_EXPECT(m_leafCnt.size() == m_positions.size());
-  EBGEOMETRY_EXPECT(m_order.size() == m_positions.size());
+  this->storeCloud(a_pool, a_positions, a_metadata, a_build.leafOff, a_build.leafCnt, a_build.order);
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
+inline void
+PointCloudBVH<T, Meta, K, W>::storeCloud(Pool&                             a_pool,
+                                         const std::vector<Vec3T<T>>&      a_positions,
+                                         const std::vector<Meta>&          a_metadata,
+                                         const std::vector<std::uint32_t>& a_leafOff,
+                                         const std::vector<std::uint32_t>& a_leafCnt,
+                                         const std::vector<std::uint32_t>& a_order)
+{
+  // Every array must come from the pool the BVH was built in: they all resolve against its base.
+  EBGEOMETRY_EXPECT(m_bvh.isAttachedTo(a_pool));
+  EBGEOMETRY_EXPECT(a_positions.size() <= std::numeric_limits<std::uint32_t>::max());
+  EBGEOMETRY_EXPECT(a_metadata.size() == a_positions.size());
+  EBGEOMETRY_EXPECT(a_leafOff.size() == a_positions.size());
+  EBGEOMETRY_EXPECT(a_leafCnt.size() == a_positions.size());
+  EBGEOMETRY_EXPECT(a_order.size() == a_positions.size());
+
+  const auto numPoints = static_cast<std::uint32_t>(a_positions.size());
+  const auto numMeta   = static_cast<std::uint32_t>(a_metadata.size());
+
+  m_positions.reserveFrom(a_pool, numPoints);
+  m_metadata.reserveFrom(a_pool, numMeta);
+  m_leafOff.reserveFrom(a_pool, numPoints);
+  m_leafCnt.reserveFrom(a_pool, numPoints);
+  m_order.reserveFrom(a_pool, numPoints);
+
+  // Resolve the base only after every reservation above: a reserve can grow the pool, which moves
+  // the block and invalidates any address taken before it.
+  void* poolBase = const_cast<void*>(this->base());
+
+  m_positions.assign(poolBase, a_positions.data(), numPoints);
+  m_metadata.assign(poolBase, a_metadata.data(), numMeta);
+  m_leafOff.assign(poolBase, a_leafOff.data(), numPoints);
+  m_leafCnt.assign(poolBase, a_leafCnt.data(), numPoints);
+  m_order.assign(poolBase, a_order.data(), numPoints);
+}
+
+template <class T, class Meta, size_t K, size_t W>
+template <class U>
+EBGEOMETRY_HOST
+inline std::vector<U>
+PointCloudBVH<T, Meta, K, W>::toHost(const PODVector<U>& a_array, const void* a_base)
+{
+  const U* first = a_array.data(a_base);
+
+  return std::vector<U>(first, first + a_array.size());
+}
+
+template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
+inline PointCloudBVH<T, Meta, K, W>
+PointCloudBVH<T, Meta, K, W>::rebasedView(const Pool& a_pool) const noexcept
+{
+  // The held BVH checks its own arrays; these are the cloud's, which live in the same pool.
+  EBGEOMETRY_EXPECT(m_positions.endByte() <= a_pool.usedBytes());
+  EBGEOMETRY_EXPECT(m_metadata.endByte() <= a_pool.usedBytes());
+  EBGEOMETRY_EXPECT(m_leafOff.endByte() <= a_pool.usedBytes());
+  EBGEOMETRY_EXPECT(m_leafCnt.endByte() <= a_pool.usedBytes());
+  EBGEOMETRY_EXPECT(m_order.endByte() <= a_pool.usedBytes());
+
+  // The cloud descriptors are pool-relative offsets, identical in any mirror of the pool, so only
+  // the held BVH's attachment changes.
+  PointCloudBVH view = *this;
+
+  view.m_bvh = m_bvh.rebasedView(a_pool);
+
+  return view;
+}
+
+template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
+inline PointCloudBVH<T, Meta, K, W>
+PointCloudBVH<T, Meta, K, W>::deepCopy(Pool& a_dstPool) const
+{
+  // Read everything out before reserving anything: a_dstPool may be this object's own pool, and a
+  // reserve there can move the block under any address taken from it.
+  const void* srcBase = this->base();
+
+  const std::vector<Vec3T<T>>      positions = toHost(m_positions, srcBase);
+  const std::vector<Meta>          metadata  = toHost(m_metadata, srcBase);
+  const std::vector<std::uint32_t> leafOff   = toHost(m_leafOff, srcBase);
+  const std::vector<std::uint32_t> leafCnt   = toHost(m_leafCnt, srcBase);
+  const std::vector<std::uint32_t> order     = toHost(m_order, srcBase);
+
+  PointCloudBVH copy = *this;
+
+  copy.m_bvh = m_bvh.deepCopy(a_dstPool);
+  copy.storeCloud(a_dstPool, positions, metadata, leafOff, leafCnt, order);
+
+  return copy;
+}
+
+template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
 inline typename PointCloudBVH<T, Meta, K, W>::BuildResult
 PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions, std::size_t a_leafSize)
 {
@@ -235,6 +322,7 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline void
 PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
                                     std::size_t     a_k,
@@ -250,12 +338,17 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
   EBGEOMETRY_EXPECT(std::isfinite(a_query[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_query[2]));
   EBGEOMETRY_EXPECT(a_exclude == s_none || a_exclude < m_positions.size());
-  EBGEOMETRY_EXPECT(a_seedCnt == 0 || (a_seedOff + a_seedCnt) <= this->m_primitives.size());
+
+  // Resolved once per query: a query reserves nothing, so the pool block cannot move under them.
+  const PODSpan<const Node>       nodes  = m_bvh.getNodes();
+  const PODSpan<const PointGroup> groups = m_bvh.getPrimitives();
+
+  EBGEOMETRY_EXPECT(a_seedCnt == 0 || (a_seedOff + a_seedCnt) <= groups.size());
 
   a_found = 0;
 
-  // An empty cloud has no nodes; every traversal below would index m_linearNodes[0]. Bail out.
-  if (this->m_linearNodes.empty()) {
+  // An empty cloud has no nodes; every traversal below would index node 0. Bail out.
+  if (nodes.size() == 0) {
     return;
   }
 
@@ -271,21 +364,22 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
 
     Best best;
 
-    const auto scanLeafBest = [this, &a_query, a_exclude](Best& a_best, std::size_t a_off, std::size_t a_cnt) noexcept {
-      for (std::size_t g = 0; g < a_cnt; g++) {
-        const PointGroup&      group     = this->m_primitives.at(this->base(), a_off + g);
-        const std::array<T, W> distances = group.getDistances2(a_query);
+    const auto scanLeafBest =
+      [&groups, &a_query, a_exclude](Best& a_best, std::size_t a_off, std::size_t a_cnt) noexcept {
+        for (std::size_t g = 0; g < a_cnt; g++) {
+          const PointGroup&      group     = groups[static_cast<std::uint32_t>(a_off + g)];
+          const std::array<T, W> distances = group.getDistances2(a_query);
 
-        for (std::size_t lane = 0; lane < W; lane++) {
-          const std::size_t cloudIndex = group.getMetaData(lane);
+          for (std::size_t lane = 0; lane < W; lane++) {
+            const std::size_t cloudIndex = group.getMetaData(lane);
 
-          if (cloudIndex != a_exclude && distances[lane] < a_best.distanceSquared) {
-            a_best.distanceSquared = distances[lane];
-            a_best.index           = cloudIndex;
+            if (cloudIndex != a_exclude && distances[lane] < a_best.distanceSquared) {
+              a_best.distanceSquared = distances[lane];
+              a_best.index           = cloudIndex;
+            }
           }
         }
-      }
-    };
+      };
 
     if (a_seedCnt > 0) {
       // Seeded self-query: scanning the query point's own leaf first gives a tight prune bound
@@ -298,17 +392,19 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
       // Prune-before-push scalar DFS: a child is pushed only when its bounding volume is closer than
       // the current best, so the working set stays bounded to nodes that can still improve the result
       // (the seed gives a tight bound up front). This keeps the stack small without pruneTraverse's
-      // per-node child sort / SoA load. The 256-entry stack matches PackedBVH::pruneTraverse's
-      // convention; the guard catches a pathological overrun in debug builds.
-      constexpr int maxStack = 256;
+      // per-node child sort / SoA load. It pushes at most K children per visited node, exactly as
+      // pruneTraverse does, so the stack depth PackedBVH already validated the tree against for this
+      // compilation pass (host, or the smaller device budget at rebasedView()) bounds it too; the
+      // guard catches a pathological overrun in debug builds.
+      constexpr std::size_t maxStack = Packed::traversalStackDepth();
 
       std::uint32_t stack[maxStack];
-      int           stackTop = 0;
+      std::size_t   stackTop = 0;
 
       stack[stackTop++] = 0U;
 
       while (stackTop > 0) {
-        const Node& node = this->m_linearNodes.at(this->base(), stack[--stackTop]);
+        const Node& node = nodes[stack[--stackTop]];
 
         if (node.getDistanceToBoundingVolume2(a_query) >= best.distanceSquared) {
           continue; // stale: best tightened since this node was pushed
@@ -325,8 +421,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
           const auto& childOffsets = node.getChildOffsets();
 
           for (std::size_t k = 0; k < K; k++) {
-            if (this->m_linearNodes.at(this->base(), childOffsets[k]).getDistanceToBoundingVolume2(a_query) <
-                best.distanceSquared) {
+            if (nodes[childOffsets[k]].getDistanceToBoundingVolume2(a_query) < best.distanceSquared) {
               EBGEOMETRY_EXPECT(stackTop < maxStack);
 
               stack[stackTop++] = childOffsets[k];
@@ -347,7 +442,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
 
       const auto pruneDist2 = [](const Best& a_best) noexcept -> T { return a_best.distanceSquared; };
 
-      this->pruneTraverse(a_query, best, evalLeaf, pruneDist2);
+      m_bvh.pruneTraverse(a_query, best, evalLeaf, pruneDist2);
     }
 
     if (best.index != s_none) {
@@ -359,7 +454,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
   }
 
   // A running a_k-best set (ascending by distance) plus the config the leaf scan needs. It is the
-  // pruneTraverse() state, so the inherited SIMD-optimized traversal prunes off its current bound.
+  // pruneTraverse() state, so the held BVH's SIMD-optimized traversal prunes off its current bound.
   struct QState
   {
     Hit*        out;
@@ -368,6 +463,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
     std::size_t found = 0;
     T           bound = std::numeric_limits<T>::max();
 
+    EBGEOMETRY_HOST_DEVICE
     inline void
     insert(T a_d2, std::size_t a_idx) noexcept
     {
@@ -386,8 +482,12 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
       std::size_t slot = (found < k) ? found++ : (k - 1);
       out[slot]        = Hit{a_idx, a_d2};
 
+      // Hand-rolled swap: std::swap is not callable from device code before C++20.
       while (slot > 0 && out[slot].distanceSquared < out[slot - 1].distanceSquared) {
-        std::swap(out[slot], out[slot - 1]);
+        const Hit tmp = out[slot];
+
+        out[slot]     = out[slot - 1];
+        out[slot - 1] = tmp;
         slot--;
       }
 
@@ -397,9 +497,9 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
 
   QState state{a_out, a_k, a_exclude};
 
-  const auto processLeaf = [this, &a_query](QState& a_state, std::size_t a_off, std::size_t a_cnt) noexcept {
+  const auto processLeaf = [&groups, &a_query](QState& a_state, std::size_t a_off, std::size_t a_cnt) noexcept {
     for (std::size_t g = 0; g < a_cnt; g++) {
-      const PointGroup&      group     = this->m_primitives.at(this->base(), a_off + g);
+      const PointGroup&      group     = groups[static_cast<std::uint32_t>(a_off + g)];
       const std::array<T, W> distances = group.getDistances2(a_query);
 
       for (std::size_t lane = 0; lane < W; lane++) {
@@ -424,12 +524,13 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
 
   const auto pruneDist2 = [](const QState& a_state) noexcept -> T { return a_state.bound; };
 
-  this->pruneTraverse(a_query, state, evalLeaf, pruneDist2);
+  m_bvh.pruneTraverse(a_query, state, evalLeaf, pruneDist2);
 
   a_found = state.found;
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline typename PointCloudBVH<T, Meta, K, W>::Hit
 PointCloudBVH<T, Meta, K, W>::closestPoint(const Vec3T<T>& a_query) const noexcept
 {
@@ -442,6 +543,7 @@ PointCloudBVH<T, Meta, K, W>::closestPoint(const Vec3T<T>& a_query) const noexce
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline std::size_t
 PointCloudBVH<T, Meta, K, W>::closestPoints(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const noexcept
 {
@@ -456,20 +558,26 @@ PointCloudBVH<T, Meta, K, W>::closestPoints(const Vec3T<T>& a_query, std::size_t
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline typename PointCloudBVH<T, Meta, K, W>::Hit
 PointCloudBVH<T, Meta, K, W>::nearestNeighbor(std::size_t a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(a_point < m_positions.size());
 
+  const void*         poolBase = this->base();
+  const std::uint32_t p        = static_cast<std::uint32_t>(a_point);
+
   Hit         hit;
   std::size_t found = 0;
 
-  this->query(m_positions[a_point], 1, &hit, found, a_point, m_leafOff[a_point], m_leafCnt[a_point]);
+  this->query(
+    m_positions.at(poolBase, p), 1, &hit, found, a_point, m_leafOff.at(poolBase, p), m_leafCnt.at(poolBase, p));
 
   return hit;
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline std::size_t
 PointCloudBVH<T, Meta, K, W>::nearestNeighbors(std::size_t a_point, std::size_t a_k, Hit* a_out) const noexcept
 {
@@ -477,20 +585,26 @@ PointCloudBVH<T, Meta, K, W>::nearestNeighbors(std::size_t a_point, std::size_t 
   EBGEOMETRY_EXPECT(a_k >= 1);
   EBGEOMETRY_EXPECT(a_out != nullptr);
 
+  const void*         poolBase = this->base();
+  const std::uint32_t p        = static_cast<std::uint32_t>(a_point);
+
   std::size_t found = 0;
 
-  this->query(m_positions[a_point], a_k, a_out, found, a_point, m_leafOff[a_point], m_leafCnt[a_point]);
+  this->query(
+    m_positions.at(poolBase, p), a_k, a_out, found, a_point, m_leafOff.at(poolBase, p), m_leafCnt.at(poolBase, p));
 
   return found;
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
 inline std::vector<typename PointCloudBVH<T, Meta, K, W>::Hit>
 PointCloudBVH<T, Meta, K, W>::allNearestNeighbors(std::size_t a_k) const
 {
   EBGEOMETRY_EXPECT(a_k >= 1);
 
   const std::size_t numPoints = m_positions.size();
+  const void*       poolBase  = this->base();
 
   std::vector<Hit> result(numPoints * a_k);
 
@@ -498,18 +612,25 @@ PointCloudBVH<T, Meta, K, W>::allNearestNeighbors(std::size_t a_k) const
   // consecutive queries touch nearby leaves and each seeded own-leaf stays hot in cache -- the same
   // benefit a Hilbert sort would give, but reusing m_order costs nothing per call (no re-sort).
   // Ordering affects only speed, not results.
-  for (const std::uint32_t p : m_order) {
+  for (const std::uint32_t p : m_order.bind(poolBase)) {
     EBGEOMETRY_EXPECT(p < numPoints);
 
     std::size_t found = 0;
 
-    this->query(m_positions[p], a_k, &result[p * a_k], found, p, m_leafOff[p], m_leafCnt[p]);
+    this->query(m_positions.at(poolBase, p),
+                a_k,
+                &result[p * a_k],
+                found,
+                p,
+                m_leafOff.at(poolBase, p),
+                m_leafCnt.at(poolBase, p));
   }
 
   return result;
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline typename PointCloudBVH<T, Meta, K, W>::Hit
 PointCloudBVH<T, Meta, K, W>::bruteForceOne(const Vec3T<T>& a_query, std::size_t a_exclude) const noexcept
 {
@@ -518,14 +639,16 @@ PointCloudBVH<T, Meta, K, W>::bruteForceOne(const Vec3T<T>& a_query, std::size_t
   EBGEOMETRY_EXPECT(std::isfinite(a_query[2]));
   EBGEOMETRY_EXPECT(a_exclude == s_none || a_exclude < m_positions.size());
 
+  const PODSpan<const Vec3T<T>> positions = m_positions.bind(this->base());
+
   Hit best;
 
-  for (std::size_t i = 0; i < m_positions.size(); i++) {
+  for (std::size_t i = 0; i < positions.size(); i++) {
     if (i == a_exclude) {
       continue;
     }
 
-    const T distanceSquared = (m_positions[i] - a_query).length2();
+    const T distanceSquared = (positions[static_cast<std::uint32_t>(i)] - a_query).length2();
 
     if (distanceSquared < best.distanceSquared) {
       best.distanceSquared = distanceSquared;
@@ -537,6 +660,7 @@ PointCloudBVH<T, Meta, K, W>::bruteForceOne(const Vec3T<T>& a_query, std::size_t
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
 inline std::size_t
 PointCloudBVH<T, Meta, K, W>::bruteForceK(const Vec3T<T>& a_query,
                                           std::size_t     a_k,
@@ -552,15 +676,17 @@ PointCloudBVH<T, Meta, K, W>::bruteForceK(const Vec3T<T>& a_query,
 
   // Full scan into a scratch buffer, then partial_sort the a_k smallest to the front. Deliberately
   // simple and obviously correct -- this is the reference path, not a hot one.
-  std::vector<Hit> all;
-  all.reserve(m_positions.size());
+  const PODSpan<const Vec3T<T>> positions = m_positions.bind(this->base());
 
-  for (std::size_t i = 0; i < m_positions.size(); i++) {
+  std::vector<Hit> all;
+  all.reserve(positions.size());
+
+  for (std::size_t i = 0; i < positions.size(); i++) {
     if (i == a_exclude) {
       continue;
     }
 
-    all.push_back(Hit{i, (m_positions[i] - a_query).length2()});
+    all.push_back(Hit{i, (positions[static_cast<std::uint32_t>(i)] - a_query).length2()});
   }
 
   const std::size_t k = std::min(a_k, all.size());
@@ -579,6 +705,7 @@ PointCloudBVH<T, Meta, K, W>::bruteForceK(const Vec3T<T>& a_query,
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline typename PointCloudBVH<T, Meta, K, W>::Hit
 PointCloudBVH<T, Meta, K, W>::closestPointBruteForce(const Vec3T<T>& a_query) const noexcept
 {
@@ -586,6 +713,7 @@ PointCloudBVH<T, Meta, K, W>::closestPointBruteForce(const Vec3T<T>& a_query) co
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
 inline std::size_t
 PointCloudBVH<T, Meta, K, W>::closestPointsBruteForce(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const
 {
@@ -593,15 +721,17 @@ PointCloudBVH<T, Meta, K, W>::closestPointsBruteForce(const Vec3T<T>& a_query, s
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline typename PointCloudBVH<T, Meta, K, W>::Hit
 PointCloudBVH<T, Meta, K, W>::nearestNeighborBruteForce(std::size_t a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(a_point < m_positions.size());
 
-  return this->bruteForceOne(m_positions[a_point], a_point);
+  return this->bruteForceOne(this->position(a_point), a_point);
 }
 
 template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST
 inline std::size_t
 PointCloudBVH<T, Meta, K, W>::nearestNeighborsBruteForce(std::size_t a_point, std::size_t a_k, Hit* a_out) const
 {
@@ -609,7 +739,7 @@ PointCloudBVH<T, Meta, K, W>::nearestNeighborsBruteForce(std::size_t a_point, st
   EBGEOMETRY_EXPECT(a_k >= 1);
   EBGEOMETRY_EXPECT(a_out != nullptr);
 
-  return this->bruteForceK(m_positions[a_point], a_k, a_out, a_point);
+  return this->bruteForceK(this->position(a_point), a_k, a_out, a_point);
 }
 
 } // namespace EBGeometry

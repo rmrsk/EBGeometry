@@ -132,6 +132,7 @@ kernel and compares against the host:
 | SoA/AoSoA leaves | `PointSoA`, `PointAoSoA`, `TriangleSoA`, `TriangleAoSoA` | #134 |
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
 | BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
+| Point-cloud BVH queries | `PointCloudBVH` (holds a `PackedBVH`; the build stays host-side) | roadmap step 0b |
 
 ## What is not
 
@@ -140,7 +141,6 @@ kernel and compares against the host:
 | `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
 | `MeshSDF` / `FlatMeshSDF` / `TriMeshSDF` | Their `PackedBVH` is ported and pool-backed, but the wrappers are not device-callable and, more to the point, not trivially copyable: each holds its BVH and/or mesh as a `shared_ptr` member. Next step |
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
-| `PointCloudBVH` | **Half-ported, and currently unsound to mirror.** Its inherited `PackedBVH` arrays are pool-backed, but its own cloud arrays (`m_positions`, `m_metadata`, `m_order`, `m_leafOff`, `m_leafCnt`) are still `std::vector`, so the class is not trivially copyable — while the `rebasedView()`/`deepCopy()` it inherits *are* callable on it and silently slice to the base. See the roadmap's step 0b |
 | `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform`, analytic SDFs | Still the original virtual-`value()` design; this is where the tape returns |
 | `BVHUnionIF` / `BVHSmoothUnionIF` | **Compiled out** behind `EBGEOMETRY_ENABLE_BVH_CSG_UNION`. They stored polymorphic primitives as `shared_ptr`, which a trivially-copyable primitive array cannot hold; they return with the index-based CSG redesign in step 4 |
@@ -154,10 +154,22 @@ kernel and compares against the host:
 > `PLAN.md` is deleted once that work lands, at which point whatever is still true moves here.
 
 **The numbered steps below are kept in their original order for continuity; the order they are being
-*done* in is different.** Actual sequence, agreed after the BVH port:
+*done* in is different.** The governing rule: **every existing class is ported before the tape is
+started.** Actual sequence:
 
-> step 2 (done) → **0a** → **0b** → step 4 restricted to the mesh SDFs → step 4 proper → step 5 →
-> steps 1, 3, 6 and the remaining loose ends.
+> step 2 (done) → **0b** (done) → step 4 restricted to the mesh SDFs → step 4 proper (analytic SDFs,
+> transforms, CSG) → step 3 (point clouds) → the loose ends (`Triangle`, `Octree`, `SFC`) → step 1
+> (DCEL reconcile) → step 6 (GPU examples, AMReX integration) → **step 5 (the tape), last**.
+>
+> **0a** (a CUDA/HIP toolkit on the development machine) is not a sequence step: it is still open
+> and should be closed as early as possible, since every step after it adds device code.
+
+One consequence of porting step 4 before the tape: `BVHUnionIF`/`BVHSmoothUnionIF` come back on the
+host in step 4, but a union over primitives of *different* concrete types has no way to pick each
+primitive's formula on a device without some form of runtime dispatch -- which is what the tape is.
+Until step 5, such unions are host-only; homogeneous ones (every primitive the same concrete type)
+need no dispatch and can run on a device. No interim dispatch mechanism is to be built in the
+meantime, since it would be a second tape.
 
 0a. **Prerequisite: a CUDA/HIP toolkit on the development machine.** There is none at present (a GPU
    is present; `nvcc` is not installed), so neither the `cuda` nor the `hip` preset configures and no
@@ -166,7 +178,19 @@ kernel and compares against the host:
    them had been written, by reading the code rather than building it. Everything from step 4 onward
    adds far more device code than the BVH port did.
 
-0b. **`PointCloudBVH` should consume a `PackedBVH`, not derive from one.** `PackedBVH` documents
+   *Stopgap, not a fix:* the same clang-17 HIP invocation CI's `GPU-HIP` job uses (see
+   `.github/workflows/CI.yml`) installs from the distribution's packages and compiles every `[gpu]`
+   kernel for a real AMD target with no GPU present. That is how step 0b's device code was
+   compiled before it was pushed. It catches missing annotations and non-device-callable calls; it
+   runs nothing, and it needs `EBGEOMETRY_ENABLE_ASSERTIONS=OFF` (the distribution's HIP headers
+   provide no device-side `assert`). Actually executing a kernel still needs the toolkit this step
+   asks for.
+
+0b. **Done.** `PointCloudBVH` now holds its `PackedBVH` by value, keeps its cloud arrays as `PODVector`s
+   in the same pool, is trivially copyable, and has its own `rebasedView()`/`deepCopy()` returning
+   `PointCloudBVH`; `PackedBVH` is `final`. The original rationale follows.
+
+   **`PointCloudBVH` should consume a `PackedBVH`, not derive from one.** `PackedBVH` documents
    itself as "not intended to be subclassed"; `PointCloudBVH` subclasses it anyway. Since the BVH
    port added `rebasedView()`/`deepCopy()` returning `PackedBVH` **by value**, both are silently
    sliced on the derived type — mirroring a point cloud compiles cleanly and produces a BVH whose
@@ -334,4 +358,6 @@ cd build/cuda && ctest -L gpu-device --output-on-failure
 
 CI compiles both backends on every push but has no physical GPU, so the device-side assertions only
 ever execute on a developer machine. Running the above before pushing GPU work is therefore not
-optional — a green CI GPU lane means "it compiles", nothing more.
+optional — a green CI GPU lane means "it compiles", nothing more. Note also that both GPU jobs are
+`continue-on-error` and are not among `CI-passed`'s requirements, so a PR that breaks device
+compilation still shows a green overall check; read the GPU lanes themselves.

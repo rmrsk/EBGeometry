@@ -7,15 +7,19 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <random>
+#include <type_traits>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace EBGeometry;
 
@@ -51,6 +55,54 @@ bruteForce(const std::vector<Vec3T<T>>& a_pos, const Vec3T<T>& a_query, std::siz
   std::sort(d2.begin(), d2.end());
   d2.resize(std::min(a_k, d2.size()));
   return d2;
+}
+
+// Non-default user metadata, to check it round-trips through pool storage field by field.
+struct TagMeta
+{
+  std::int32_t m_id;
+  float        m_weight;
+};
+
+/**
+ * @brief Fold every device-callable query into one scalar.
+ * @details The whole body of the device kernel below, factored out so the host suite runs exactly
+ * the code the kernel runs. Takes the cloud by value and const, as the kernel does.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+T
+pointCloudProbe(const PointCloudBVH<T, std::size_t> a_cloud, const Vec3T<T> a_query) noexcept
+{
+  using Hit = typename PointCloudBVH<T, std::size_t>::Hit;
+
+  constexpr std::size_t k = 3;
+
+  Hit out[k];
+
+  T sum = a_cloud.closestPoint(a_query).distanceSquared + a_cloud.closestPointBruteForce(a_query).distanceSquared;
+
+  const std::size_t foundExternal = a_cloud.closestPoints(a_query, k, out);
+
+  for (std::size_t j = 0; j < foundExternal; j++) {
+    sum += out[j].distanceSquared + T(out[j].index);
+  }
+
+  for (std::size_t i = 0; i < a_cloud.numPoints(); i += 7) {
+    const Hit nn = a_cloud.nearestNeighbor(i);
+
+    sum += nn.distanceSquared + T(nn.index) + a_cloud.nearestNeighborBruteForce(i).distanceSquared;
+
+    const std::size_t foundSelf = a_cloud.nearestNeighbors(i, k, out);
+
+    for (std::size_t j = 0; j < foundSelf; j++) {
+      sum += out[j].distanceSquared;
+    }
+
+    sum += a_cloud.position(i).length() + T(a_cloud.metadata(i));
+  }
+
+  return sum;
 }
 
 } // namespace
@@ -255,3 +307,205 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
     }
   }
 }
+
+TEMPLATE_TEST_CASE("PointCloudBVH: rebasedView and deepCopy stay PointCloudBVHs and answer identically",
+                   "[PointCloudBVH][Pool][rebase]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T     = TestType;
+  using Cloud = PointCloudBVH<T, TagMeta>;
+  using Hit   = typename Cloud::Hit;
+
+  // Both used to compile and return a sliced PackedBVH, silently dropping every point-cloud query.
+  static_assert(std::is_same_v<decltype(std::declval<const Cloud&>().rebasedView(std::declval<const Pool&>())), Cloud>);
+  static_assert(std::is_same_v<decltype(std::declval<const Cloud&>().deepCopy(std::declval<Pool&>())), Cloud>);
+  static_assert(std::is_trivially_copyable_v<Cloud>);
+
+  constexpr std::size_t n = 700;
+  constexpr std::size_t k = 4;
+
+  const std::vector<Vec3T<T>> pos = makeCloud<T>(n, 777u);
+  std::vector<TagMeta>        meta(n);
+
+  for (std::size_t i = 0; i < n; i++) {
+    meta[i] = TagMeta{static_cast<std::int32_t>(3 * i + 1), float(i) * 0.5F};
+  }
+
+  const std::vector<Vec3T<T>> queries = makeCloud<T>(40, 31u);
+
+  // Every query result of a_other must match a_cloud's exactly: same tree, same data.
+  const auto requireSameAnswers = [&](const Cloud& a_cloud, const Cloud& a_other) {
+    REQUIRE(a_other.numPoints() == a_cloud.numPoints());
+
+    for (std::size_t i = 0; i < n; i += 11) {
+      REQUIRE(a_other.position(i) == a_cloud.position(i));
+      REQUIRE(a_other.metadata(i).m_id == a_cloud.metadata(i).m_id);
+      REQUIRE(a_other.metadata(i).m_weight == a_cloud.metadata(i).m_weight);
+
+      const Hit lhs = a_cloud.nearestNeighbor(i);
+      const Hit rhs = a_other.nearestNeighbor(i);
+
+      REQUIRE(rhs.index == lhs.index);
+      REQUIRE(rhs.distanceSquared == lhs.distanceSquared);
+    }
+
+    for (const auto& q : queries) {
+      Hit lhs[k];
+      Hit rhs[k];
+
+      REQUIRE(a_other.closestPoints(q, k, rhs) == a_cloud.closestPoints(q, k, lhs));
+
+      for (std::size_t j = 0; j < k; j++) {
+        REQUIRE(rhs[j].index == lhs[j].index);
+        REQUIRE(rhs[j].distanceSquared == lhs[j].distanceSquared);
+      }
+    }
+
+    const auto lhsAll = a_cloud.allNearestNeighbors(2);
+    const auto rhsAll = a_other.allNearestNeighbors(2);
+
+    REQUIRE(rhsAll.size() == lhsAll.size());
+
+    for (std::size_t i = 0; i < lhsAll.size(); i++) {
+      REQUIRE(rhsAll[i].index == lhsAll[i].index);
+    }
+  };
+
+  Pool pool(hostMemoryResource());
+
+  const Cloud cloud(pool, pos, meta);
+
+  REQUIRE(cloud.isAttachedTo(pool));
+  REQUIRE(cloud.getBVH().isAttachedTo(pool));
+
+  // Every one of the cloud's own answers is still checked against brute force, so the comparisons
+  // below are against a known-good reference rather than merely self-consistent.
+  for (std::size_t i = 0; i < n; i += 37) {
+    const auto truth = bruteForce<T>(pos, pos[i], 1, i);
+
+    REQUIRE_THAT(cloud.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tightMargin<T>()));
+  }
+
+  SECTION("deepCopy into a separate pool is independent storage")
+  {
+    Pool other(hostMemoryResource());
+
+    const Cloud copy = cloud.deepCopy(other);
+
+    REQUIRE(copy.isAttachedTo(other));
+    REQUIRE_FALSE(copy.isAttachedTo(pool));
+    requireSameAnswers(cloud, copy);
+  }
+
+  SECTION("deepCopy into its own pool survives the pool growing under it")
+  {
+    // The copy's reserves can grow (and so move) the very block the source reads from.
+    const Cloud copy = cloud.deepCopy(pool);
+
+    REQUIRE(copy.isAttachedTo(pool));
+    REQUIRE(copy.base() == cloud.base());
+    requireSameAnswers(cloud, copy);
+  }
+
+  SECTION("a host-to-host rebasedView resolves against the mirror")
+  {
+    pool.freeze();
+
+    Pool        mirror = Pool::mirror(pool, hostMemoryResource());
+    const Cloud view   = cloud.rebasedView(mirror);
+
+    REQUIRE(view.isAttachedTo(mirror));
+    REQUIRE(view.base() == mirror.base());
+    REQUIRE(view.base() != cloud.base());
+    requireSameAnswers(cloud, view);
+  }
+}
+
+TEMPLATE_TEST_CASE("PointCloudBVH: the device kernel's query probe agrees across a host-to-host rebase",
+                   "[PointCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  constexpr std::size_t n = 500;
+
+  const std::vector<Vec3T<T>> pos = makeCloud<T>(n, 4321u);
+  std::vector<std::size_t>    meta(n);
+
+  for (std::size_t i = 0; i < n; i++) {
+    meta[i] = i % 17;
+  }
+
+  const PointCloudBVH<T, std::size_t> cloud(pool, pos, meta, 8);
+
+  const Vec3T<T> query(T(0.3), T(0.7), T(0.45));
+
+  // Instantiates the kernel's probe on every build, not only GPU ones, and runs it against a
+  // rebased descriptor passed by value -- the host-side analogue of what the kernel receives.
+  const T probe = pointCloudProbe<T>(cloud, query);
+
+  pool.freeze();
+
+  Pool mirror = Pool::mirror(pool, hostMemoryResource());
+
+  REQUIRE(std::isfinite(probe));
+  REQUIRE(pointCloudProbe<T>(cloud.rebasedView(mirror), query) == probe);
+}
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: a rebased PointCloudBVH answers queries in a kernel and agrees with the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+template <class T>
+EBGEOMETRY_GLOBAL
+void
+pointCloudDeviceKernel(const PointCloudBVH<T, std::size_t> a_cloud, Vec3T<T> a_query, T* a_out)
+{
+  a_out[0] = pointCloudProbe<T>(a_cloud, a_query);
+}
+
+TEMPLATE_TEST_CASE("PointCloudBVH: a rebased view answers queries on device and matches the host",
+                   "[PointCloudBVH][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  constexpr std::size_t n = 500;
+
+  const std::vector<Vec3T<T>> pos = makeCloud<T>(n, 4321u);
+  std::vector<std::size_t>    meta(n);
+
+  for (std::size_t i = 0; i < n; i++) {
+    meta[i] = i % 17;
+  }
+
+  const PointCloudBVH<T, std::size_t> cloud(pool, pos, meta, 8);
+
+  const Vec3T<T> query(T(0.3), T(0.7), T(0.45));
+
+  const T hostVal = pointCloudProbe<T>(cloud, query);
+
+  pool.freeze();
+
+  Pool                                devicePool = Pool::mirror(pool, deviceMemoryResource());
+  const PointCloudBVH<T, std::size_t> deviceView = cloud.rebasedView(devicePool);
+
+  DeviceBuffer<T> deviceOut;
+
+  pointCloudDeviceKernel<T><<<1, 1>>>(deviceView, query, deviceOut.get());
+  (void)GPU::deviceSynchronize();
+
+  REQUIRE_THAT(readScalar(deviceOut.get()), Catch::Matchers::WithinRel(hostVal, gpuTol<T>()));
+}
+#endif

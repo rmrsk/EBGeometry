@@ -314,7 +314,7 @@ ____________________
 ``PackedBVH``'s three arrays -- the flat node array, the primitive array, and the SoA child-AABB
 cache -- are ``PODVector``\ s reserved from a caller-supplied ``Pool`` (see :ref:`Chap:MemoryModel`),
 not ``std::vector``\ s. Every construction entry point therefore takes a ``Pool&``: ``pack()``,
-``packWith()``, all three direct constructors, and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
+``packWith()``, every direct constructor (the adopting one included), and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
 which pass along the pool they already take. The pool must outlive the BVH.
 
 Construction itself still assembles the arrays in ordinary ``std::vector``\ s and copies them into
@@ -331,6 +331,28 @@ pointer patching. ``rebasedView(Pool&)`` is the single sanctioned crossing, exac
 ``getPrimitives()`` returns a ``PODSpan`` rather than a container reference. A span is a *resolved*
 address into pool memory, so it must not outlive the next ``Pool::reserve`` on that pool -- re-obtain
 it rather than caching it across a build step.
+
+Holding a PackedBVH inside another class
+_________________________________________
+
+``PackedBVH`` is ``final``. A class that needs a BVH over its own payload holds one by value
+instead, and keeps its own arrays in the same pool so that one ``rebasedView()`` of the held BVH
+rebases everything; ``PointCloudBVH`` (:ref:`Chap:ImplemPointCloud`) is the worked case. Deriving
+was ruled out because ``rebasedView()`` and ``deepCopy()`` return a ``PackedBVH`` by value, which on
+a derived type silently slices away the payload the leaves refer to.
+
+Three public members exist for such a class. The adopting constructor
+``PackedBVH(Pool&, const std::vector<Node>&, const std::vector<P>&)`` takes a node and primitive
+array built by some other means -- ``PointCloudBVH`` runs its own index-based build -- and checks,
+always on rather than only under assertions, that the node array is a well-formed depth-first
+pre-order flattening (every child strictly after its parent and inside the array, every leaf's
+primitives inside the primitive array); a malformed array aborts with a diagnostic instead of
+surfacing later as an out-of-bounds read. ``getNodes()`` returns the flat node array as a read-only
+``PODSpan``, for a class that walks the tree with a traversal of its own. And
+``traversalStackDepth()`` gives the fixed traversal-stack size for the current compilation pass
+(host or device), which the build and ``rebasedView()`` validate the tree's depth against -- a custom
+traversal that pushes at most ``K`` children per visited node, as ``pruneTraverse()`` does, can size
+its own stack with it and inherit the same guarantee.
 
 Copy and move semantics
 ________________________
@@ -360,7 +382,7 @@ storage-sharing question above:
    only the BVH's own arrays are duplicated.)
 
 Both classes' destructors are non-virtual: neither is intended to be subclassed or used
-polymorphically.
+polymorphically, and ``PackedBVH`` is declared ``final`` to enforce it (see above).
 
 .. _Sec:PolymorphicPrimitives:
 

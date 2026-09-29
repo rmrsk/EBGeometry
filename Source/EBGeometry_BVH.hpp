@@ -127,6 +127,62 @@ template <class P>
 using PrimitiveList = std::vector<std::shared_ptr<const P>>;
 
 /**
+ * @brief Build-phase helpers shared by PackedBVH's constructors. Not part of the public API.
+ */
+namespace detail {
+
+/**
+ * @brief Append one TreeBVH leaf's primitives to a flat primitive array under construction.
+ * @details Used by PackedBVH's identity/converting pack() constructors and its partitioner
+ * constructor, all of which route through a TreeBVH whose leaves hold shared_ptr<const P>; this
+ * dereferences and copies each one by value. Appends to whatever @p a_dst already holds, so the
+ * contract is the same no matter how many leaves are packed.
+ * @tparam P Primitive type.
+ * @param[in,out] a_dst       Flat primitive array under construction.
+ * @param[in]     a_leafPrims One TreeBVH leaf's primitive list.
+ */
+template <class P>
+EBGEOMETRY_HOST
+inline void
+appendTreeLeaf(std::vector<P>& a_dst, const PrimitiveList<P>& a_leafPrims)
+{
+  // NB: do NOT reserve(a_dst.size() + a_leafPrims.size()) here. appendTreeLeaf is called once per
+  // leaf as the whole tree is packed, and reserving to an each-time-slightly-larger *exact* size
+  // defeats std::vector's geometric growth -- it forces a fresh reallocation (copying every
+  // element already appended) on every leaf, making a whole build O(N^2) in the primitive count.
+  // Plain push_back grows the buffer geometrically and keeps construction linear.
+  for (const auto& p : a_leafPrims) {
+    a_dst.push_back(*p);
+  }
+}
+
+/**
+ * @brief Materialise a single contiguous buffer into a flat primitive array under construction.
+ * @details *Appends* @p a_block to @p a_dst, so the contract holds regardless of how many times
+ * it is called. When @p a_dst is still empty -- the case for PackedBVH's single-call direct,
+ * converting and ClusterSpec constructors -- it takes the fast path of stealing the
+ * already-contiguous buffer wholesale, with no per-element move; otherwise it move-appends each
+ * element.
+ * @tparam P Primitive type.
+ * @param[in,out] a_dst   Flat primitive array under construction.
+ * @param[in]     a_block Single contiguous buffer holding every element to append.
+ */
+template <class P>
+EBGEOMETRY_HOST
+inline void
+appendAliased(std::vector<P>& a_dst, const std::shared_ptr<std::vector<P>>& a_block)
+{
+  if (a_dst.empty()) {
+    a_dst = std::move(*a_block);
+  }
+  else {
+    a_dst.insert(a_dst.end(), std::make_move_iterator(a_block->begin()), std::make_move_iterator(a_block->end()));
+  }
+}
+
+} // namespace detail
+
+/**
  * @brief Forward declaration of the linearised BVH. Needed so that TreeBVH::pack() and
  * TreeBVH::packWith() can name their return types before PackedBVH is fully defined.
  */
@@ -1111,7 +1167,7 @@ protected:
  * @tparam K BVH branching factor.
  */
 template <class T, class P, size_t K>
-class PackedBVH
+class PackedBVH final
 {
   static_assert(std::is_floating_point_v<T>, "PackedBVH: T must be a floating-point type");
   static_assert(K >= 2, "PackedBVH: branching factor K must be at least 2");
@@ -1418,8 +1474,34 @@ public:
   inline PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec);
 
   /**
+   * @brief Adopt a node array and primitive array built elsewhere.
+   * @details For a specialized builder that produces the flat representation itself -- e.g.
+   * PointCloudBVH, which runs its own index-based point-cloud build -- rather than going through a
+   * TreeBVH or a list of (primitive, bounding volume) pairs. The arrays are copied into @p a_pool and
+   * the SoA child-AABB cache is built from them, exactly as for every other constructor.
+   *
+   * The node array must be a depth-first pre-order flattening with the root at index 0: every
+   * interior node's K children lie strictly after it and inside the array, and every leaf's
+   * primitive range lies inside @p a_primitives. refit() and the traversal-depth bound both rely on
+   * that shape. It is checked here, always on rather than as an EBGEOMETRY_EXPECT, because a
+   * malformed array would otherwise surface as an out-of-bounds read in Release; an empty node array
+   * (an empty BVH) is accepted only with an empty primitive array.
+   * @param[in,out] a_pool        Pool the three arrays are reserved from; must outlive this object.
+   * @param[in]     a_linearNodes Flattened node array (copied into the pool).
+   * @param[in]     a_primitives  Global primitive list in leaf-traversal order (copied into the pool).
+   */
+  EBGEOMETRY_HOST
+  inline PackedBVH(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives)
+  {
+    PackedBVH::requireWellFormed(a_linearNodes, a_primitives.size());
+
+    this->finalize(a_pool, a_linearNodes, a_primitives);
+  }
+
+  /**
    * @brief Destructor.
-   * @details Not virtual: PackedBVH is not intended to be subclassed or used polymorphically.
+   * @details Not virtual: PackedBVH is final and is not used polymorphically. A class that needs a
+   * BVH over its own payload holds one by value instead -- see PointCloudBVH.
    */
   inline ~PackedBVH() = default;
 
@@ -1486,6 +1568,38 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline PODSpan<P>
   getPrimitives() noexcept;
+
+  /**
+   * @brief Get the flat node array (depth-first pre-order, root at index 0).
+   * @details Read-only: a node's child and primitive offsets define the tree's shape, which is fixed
+   * at build time. For a class that holds a PackedBVH and walks it with its own traversal rather
+   * than through pruneTraverse() -- PointCloudBVH's seeded self-query, for instance. Same lifetime
+   * caveat as getPrimitives(): the span must not outlive the next Pool::reserve.
+   * @return Span over the node array; empty for an empty BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PODSpan<const Node>
+  getNodes() const noexcept;
+
+  /**
+   * @brief Traversal stack size, in entries, for the current compilation pass.
+   * @details The same bound pruneTraverse() sizes its own stack by: the host value in a host pass,
+   * the (smaller) device value in a device pass. Every BVH is checked against it when it is built,
+   * and again when rebasedView() produces a device view, so a caller's own traversal that pushes at
+   * most K entries per node expanded -- as pruneTraverse() does -- cannot overflow a stack of this
+   * many entries.
+   * @return Number of stack entries.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static constexpr size_t
+  traversalStackDepth() noexcept
+  {
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+    return s_deviceStackDepth;
+#else
+    return s_hostStackDepth;
+#endif
+  }
 
   /**
    * @brief Resolve the base address this BVH's arrays are offsets from.
@@ -1669,23 +1783,7 @@ public:
   inline void
   refit(const BVConstructor& a_bvConstructor);
 
-protected:
-  /**
-   * @brief Adopt pre-built node and primitive arrays, then finalize the SoA child-AABB layout.
-   * @details Not part of the public API. It exists so a specialized builder in a derived class (e.g.
-   * PointCloudBVH, which fills the arrays with its own index-based build) can construct the packed
-   * representation directly, without going through a TreeBVH or a PrimAndBVList. The node array must
-   * be a valid depth-first pre-order flattening (root at index 0) referencing @p a_primitives.
-   * @param[in,out] a_pool        Pool the three arrays are reserved from; must outlive this object.
-   * @param[in]     a_linearNodes Flattened node array (copied into the pool).
-   * @param[in]     a_primitives  Global primitive list in leaf-traversal order (copied into the pool).
-   */
-  EBGEOMETRY_HOST
-  inline PackedBVH(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives)
-  {
-    this->finalize(a_pool, a_linearNodes, a_primitives);
-  }
-
+private:
   /**
    * @brief Copy a completed host-side build into pool storage and rebuild the SoA cache.
    * @details The single finalize path shared by every constructor. Each of them assembles the node
@@ -1708,50 +1806,6 @@ protected:
   EBGEOMETRY_HOST
   inline void
   attachTo(Pool& a_pool) noexcept;
-
-  /**
-   * @brief Append one TreeBVH leaf's primitives to the flat primitive array being assembled.
-   * @details Used by the identity/converting pack() constructors and the partitioner constructor,
-   * all of which route through a TreeBVH whose leaves hold shared_ptr<const P>; this dereferences
-   * and copies each one by value. Appends to whatever @p a_dst already holds, so the contract is
-   * the same no matter how many leaves are packed.
-   * @param[in,out] a_dst       Flat primitive array under construction.
-   * @param[in]     a_leafPrims One TreeBVH leaf's primitive list.
-   */
-  EBGEOMETRY_HOST
-  static void
-  appendTreeLeaf(std::vector<P>& a_dst, const PrimitiveList<P>& a_leafPrims)
-  {
-    // NB: do NOT reserve(a_dst.size() + a_leafPrims.size()) here. appendTreeLeaf is called once per
-    // leaf as the whole tree is packed, and reserving to an each-time-slightly-larger *exact* size
-    // defeats std::vector's geometric growth -- it forces a fresh reallocation (copying every
-    // element already appended) on every leaf, making a whole build O(N^2) in the primitive count.
-    // Plain push_back grows the buffer geometrically and keeps construction linear.
-    for (const auto& p : a_leafPrims) {
-      a_dst.push_back(*p);
-    }
-  }
-
-  /**
-   * @brief Materialise a single contiguous buffer into the flat primitive array being assembled.
-   * @details *Appends* @p a_block to @p a_dst, so the contract holds regardless of how many times
-   * it is called. When @p a_dst is still empty -- the case for the single-call direct, converting
-   * and ClusterSpec constructors -- it takes the fast path of stealing the already-contiguous
-   * buffer wholesale, with no per-element move; otherwise it move-appends each element.
-   * @param[in,out] a_dst   Flat primitive array under construction.
-   * @param[in]     a_block Single contiguous buffer holding every element to append.
-   */
-  EBGEOMETRY_HOST
-  static void
-  appendAliased(std::vector<P>& a_dst, const std::shared_ptr<std::vector<P>>& a_block)
-  {
-    if (a_dst.empty()) {
-      a_dst = std::move(*a_block);
-    }
-    else {
-      a_dst.insert(a_dst.end(), std::make_move_iterator(a_block->begin()), std::make_move_iterator(a_block->end()));
-    }
-  }
 
   /**
    * @brief Control block of the Pool this BVH was reserved from. Null in, and only in, a device view.
@@ -1891,6 +1945,20 @@ protected:
   EBGEOMETRY_HOST
   inline void
   requireDepthFits(const void* a_base, const size_t a_stackDepth, const char* a_context) const;
+
+  /**
+   * @brief Abort unless a caller-supplied node array is a well-formed pre-order flattening.
+   * @details Guards the public adopt constructor, the one entry point whose arrays the library did
+   * not build itself. Always on, for the same reason as requireDepthFits(). Checks that every
+   * interior node's children lie strictly after it and inside the array (which also rules out
+   * cycles), that every leaf's primitive range lies inside the primitive array, and that an empty
+   * node array comes with an empty primitive array.
+   * @param[in] a_linearNodes   Node array to validate.
+   * @param[in] a_numPrimitives Size of the primitive array it indexes into.
+   */
+  EBGEOMETRY_HOST
+  static inline void
+  requireWellFormed(const std::vector<Node>& a_linearNodes, const size_t a_numPrimitives);
 
   /**
    * @brief Compute the squared distances from a query point to all K children of one interior node.

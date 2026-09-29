@@ -1004,16 +1004,9 @@ TEMPLATE_TEST_CASE("PackedBVH: appendAliased genuinely appends (not only on the 
   using Vec3 = Vec3T<T>;
   using Pnt  = BareTestPoint<T>;
 
-  constexpr size_t K = 4;
-
-  // appendAliased is a protected build helper -- every constructor that materialises a contiguous
-  // conversion buffer into the flat primitive array goes through it. Reach it the way a specialized
-  // builder in a derived class would.
-  struct Expose : public BVH::PackedBVH<T, Pnt, K>
-  {
-    using BVH::PackedBVH<T, Pnt, K>::appendAliased;
-  };
-
+  // appendAliased is the build helper every constructor that materialises a contiguous conversion
+  // buffer into the flat primitive array goes through. It is a free function in BVH::detail rather
+  // than a PackedBVH member precisely so it can be tested directly -- PackedBVH is final.
   // Build a fresh contiguous conversion buffer of three points offset by a_base.
   const auto makeBlock = [](T a_base) {
     auto block = std::make_shared<std::vector<Pnt>>();
@@ -1028,8 +1021,8 @@ TEMPLATE_TEST_CASE("PackedBVH: appendAliased genuinely appends (not only on the 
   // replace it, or a second call site would silently lose the first block.
   std::vector<Pnt> dst;
 
-  Expose::appendAliased(dst, makeBlock(T(0)));
-  Expose::appendAliased(dst, makeBlock(T(10)));
+  BVH::detail::appendAliased(dst, makeBlock(T(0)));
+  BVH::detail::appendAliased(dst, makeBlock(T(10)));
 
   REQUIRE(dst.size() == 6);
   REQUIRE(dst[0].m_pos == Vec3(0, 0, 0));
@@ -1646,7 +1639,145 @@ TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack is rejecte
   }));
 }
 
+TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[BVH][death]")
+{
+  using T    = double;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+  using Node   = typename Packed::Node;
+
+  // A leaf over prims [0, 2) under a root whose children are nodes 1..4 -- well formed, as the
+  // first REQUIRE confirms, so each death below is caused by the one defect it introduces.
+  const std::vector<Pnt> prims = {Pnt{Vec3(T(0), T(0), T(0))}, Pnt{Vec3(T(1), T(1), T(1))}};
+  const AABB             box(Vec3(T(0), T(0), T(0)), Vec3(T(1), T(1), T(1)));
+
+  std::vector<Node> good(K + 1);
+
+  good[0].setBoundingVolume(box);
+
+  for (size_t k = 0; k < K; k++) {
+    good[0].setChildOffset(static_cast<uint32_t>(k + 1), k);
+    good[k + 1].setBoundingVolume(box);
+    good[k + 1].setPrimitivesOffset(0);
+    good[k + 1].setNumPrimitives(2);
+  }
+
+  REQUIRE_FALSE(abortsUnderAssertions([&] {
+    Pool         pool(hostMemoryResource());
+    const Packed bvh(pool, good, prims);
+
+    (void)bvh;
+  }));
+
+  SECTION("a leaf whose primitive range runs past the primitive array")
+  {
+    std::vector<Node> bad = good;
+
+    bad[K].setNumPrimitives(3);
+
+    REQUIRE(abortsUnderAssertions([&] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, bad, prims);
+
+      (void)bvh;
+    }));
+  }
+
+  SECTION("a child offset pointing back at its own parent")
+  {
+    std::vector<Node> bad = good;
+
+    bad[0].setChildOffset(0, K - 1);
+
+    REQUIRE(abortsUnderAssertions([&] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, bad, prims);
+
+      (void)bvh;
+    }));
+  }
+
+  SECTION("a child offset past the end of the node array")
+  {
+    std::vector<Node> bad = good;
+
+    bad[0].setChildOffset(static_cast<uint32_t>(K + 1), 0);
+
+    REQUIRE(abortsUnderAssertions([&] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, bad, prims);
+
+      (void)bvh;
+    }));
+  }
+
+  SECTION("an empty node array paired with a non-empty primitive array")
+  {
+    REQUIRE(abortsUnderAssertions([&] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, std::vector<Node>{}, prims);
+
+      (void)bvh;
+    }));
+  }
+}
+
 #endif // EBGEOMETRY_ENABLE_ASSERTIONS
+
+TEMPLATE_TEST_CASE("PackedBVH: the adopt constructor rebuilds an identical BVH from getNodes() and "
+                   "getPrimitives()",
+                   "[BVH][adopt]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+  using Node   = typename Packed::Node;
+
+  Pool pool(hostMemoryResource());
+
+  std::vector<std::pair<Pnt, AABB>> flat;
+
+  flat.reserve(200);
+
+  for (int i = 0; i < 200; i++) {
+    const T    t = T(i) * T(0.1);
+    const Vec3 p(std::sin(t) * t, std::cos(t) * t, T(0.3) * t);
+
+    flat.emplace_back(Pnt{p}, AABB(p, p));
+  }
+
+  const Packed built(pool, flat, size_t(4));
+
+  // Read the arrays back out through the public accessors a composing class uses, then adopt them.
+  const auto nodeSpan = built.getNodes();
+  const auto primSpan = built.getPrimitives();
+
+  const std::vector<Node> nodes(nodeSpan.begin(), nodeSpan.end());
+  const std::vector<Pnt>  prims(primSpan.begin(), primSpan.end());
+
+  const Packed adopted(pool, nodes, prims);
+
+  REQUIRE(adopted.getNodes().size() == built.getNodes().size());
+  REQUIRE(adopted.getPrimitives().size() == built.getPrimitives().size());
+
+  for (int i = 0; i < 25; i++) {
+    const T    t = T(i) * T(0.7);
+    const Vec3 query(t * T(0.5), T(1) - t, std::sin(t) * T(4));
+
+    REQUIRE(packedBvhTraversalProbe<T, K>(adopted, query) == packedBvhTraversalProbe<T, K>(built, query));
+  }
+}
 
 TEMPLATE_TEST_CASE("PackedBVH: direct ClusterSpec constructor -- a uint32_t-index BVH agrees exactly "
                    "with one packing the primitives themselves",
