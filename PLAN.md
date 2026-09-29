@@ -431,6 +431,14 @@ was removed rather than finished.
 the four disabled examples back to green. That turns "the CSG layer is index-based now" into a
 pass/fail rather than a judgement call, and it repays the debt PR B took on.
 
+**Correction (decided before porting the analytic shapes):** the trait-plus-delegate pattern fails
+for the same reason it failed for the mesh SDFs -- a class with a vtable is never trivially
+copyable. The analytic shapes therefore became plain value types with no base class (done), and
+dropped out of the transforms and CSG, which keep their virtual interface for user-written implicit
+functions until the tape; no adapter. The BVH unions come back next restricted to one primitive
+type, which needs no dispatch; that brings back `RandomCity`, `PackedSpheres` and `NestedBVH`, while
+`CSGUnion` (a mesh plus a sphere) waits for the tape. `PORTING.md`'s step 4 has the details.
+
 ### 3. The tape
 
 Last, as planned: the linear-SSA clause list and interpreter, built on `Pool`/`PODVector` from the

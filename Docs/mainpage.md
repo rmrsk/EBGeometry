@@ -14,7 +14,9 @@ integration, the underlying geometric concepts), see the
 ### Where to start reading
 
 * EBGeometry::SignedDistanceFunction and EBGeometry::ImplicitFunction — the two abstract base
-  classes almost everything else in the library implements.
+  classes the transformations and CSG combinators implement. The analytic shapes (e.g.
+  EBGeometry::SphereSDF) and the mesh distance fields (e.g. EBGeometry::TriMeshSDF) are plain,
+  GPU-callable value types that implement neither.
 * EBGeometry::DCEL::MeshT — the half-edge (doubly-connected edge list) surface mesh
   representation, together with EBGeometry::DCEL::VertexT, EBGeometry::DCEL::EdgeT, and
   EBGeometry::DCEL::FaceT.

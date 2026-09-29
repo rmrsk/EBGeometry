@@ -5,6 +5,11 @@
 /**
  * @file   EBGeometry_AnalyticDistanceFunctions.hpp
  * @brief  File containing various analytic signed distance fields.
+ * @details Every shape here is a plain, trivially copyable value type with no base class and no
+ * virtual functions. Its signedDistance() and accessors are callable on the host and on a device, so
+ * a shape can be copied into a kernel by value and evaluated there. Constructors run on the host.
+ * The shapes are not ImplicitFunction objects, so they cannot be passed to the CSG operations or
+ * the transforms; composing them returns with the tape.
  * @author Robert Marskar
  */
 
@@ -17,15 +22,14 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
-#include <memory>
 #include <random>
 #include <type_traits>
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Constants.hpp"
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
-#include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -39,7 +43,7 @@ namespace EBGeometry {
  * @tparam T Floating-point precision.
  */
 template <class T>
-class PlaneSDF : public SignedDistanceFunction<T>
+class PlaneSDF
 {
   static_assert(std::is_floating_point_v<T>, "PlaneSDF<T>: T must be a floating-point type");
 
@@ -95,17 +99,13 @@ public:
   operator=(PlaneSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~PlaneSDF() override = default;
-
-  /**
    * @brief Signed distance function for the plane.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the plane; negative on the side opposite to the normal.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -135,7 +135,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class SphereSDF : public SignedDistanceFunction<T>
+class SphereSDF
 {
   static_assert(std::is_floating_point_v<T>, "SphereSDF<T>: T must be a floating-point type");
 
@@ -187,15 +187,11 @@ public:
   operator=(SphereSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~SphereSDF() override = default;
-
-  /**
    * @brief Get sphere center (const).
    * @return Const reference to the center position.
    */
-  [[nodiscard]] const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
   getCenter() const noexcept
   {
     return m_center;
@@ -205,6 +201,7 @@ public:
    * @brief Get sphere center (mutable).
    * @return Mutable reference to the center position.
    */
+  EBGEOMETRY_HOST_DEVICE
   Vec3T<T>&
   getCenter() noexcept
   {
@@ -215,7 +212,8 @@ public:
    * @brief Get sphere radius (const).
    * @return Const reference to the radius.
    */
-  [[nodiscard]] const T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
   getRadius() const noexcept
   {
     return m_radius;
@@ -225,6 +223,7 @@ public:
    * @brief Get sphere radius (mutable).
    * @return Mutable reference to the radius.
    */
+  EBGEOMETRY_HOST_DEVICE
   T&
   getRadius() noexcept
   {
@@ -236,8 +235,9 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the sphere surface; negative inside the sphere.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -267,7 +267,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class BoxSDF : public SignedDistanceFunction<T>
+class BoxSDF
 {
   static_assert(std::is_floating_point_v<T>, "BoxSDF<T>: T must be a floating-point type");
 
@@ -324,15 +324,11 @@ public:
   operator=(BoxSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~BoxSDF() override = default;
-
-  /**
    * @brief Get lower-left corner
    * @return m_loCorner
    */
-  [[nodiscard]] const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
   getLowCorner() const noexcept
   {
     return m_loCorner;
@@ -342,6 +338,7 @@ public:
    * @brief Get lower-left corner
    * @return m_loCorner
    */
+  EBGEOMETRY_HOST_DEVICE
   Vec3T<T>&
   getLowCorner() noexcept
   {
@@ -352,7 +349,8 @@ public:
    * @brief Get upper-right corner
    * @return m_hiCorner
    */
-  [[nodiscard]] const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
   getHighCorner() const noexcept
   {
     return m_hiCorner;
@@ -362,6 +360,7 @@ public:
    * @brief Get upper-right corner
    * @return m_hiCorner
    */
+  EBGEOMETRY_HOST_DEVICE
   Vec3T<T>&
   getHighCorner() noexcept
   {
@@ -373,8 +372,9 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the box surface; negative inside the box.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -422,7 +422,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class TorusSDF : public SignedDistanceFunction<T>
+class TorusSDF
 {
   static_assert(std::is_floating_point_v<T>, "TorusSDF<T>: T must be a floating-point type");
 
@@ -479,15 +479,11 @@ public:
   operator=(TorusSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~TorusSDF() override = default;
-
-  /**
    * @brief Get torus center.
    * @return m_center
    */
-  [[nodiscard]] const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
   getCenter() const noexcept
   {
     return m_center;
@@ -497,6 +493,7 @@ public:
    * @brief Get torus center.
    * @return m_center
    */
+  EBGEOMETRY_HOST_DEVICE
   Vec3T<T>&
   getCenter() noexcept
   {
@@ -507,7 +504,8 @@ public:
    * @brief Get major radius.
    * @return m_majorRadius
    */
-  [[nodiscard]] const T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
   getMajorRadius() const noexcept
   {
     return m_majorRadius;
@@ -517,6 +515,7 @@ public:
    * @brief Get major radius.
    * @return m_majorRadius
    */
+  EBGEOMETRY_HOST_DEVICE
   T&
   getMajorRadius() noexcept
   {
@@ -527,7 +526,8 @@ public:
    * @brief Get minor radius.
    * @return m_minorRadius
    */
-  [[nodiscard]] const T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
   getMinorRadius() const noexcept
   {
     return m_minorRadius;
@@ -537,6 +537,7 @@ public:
    * @brief Get minor radius.
    * @return m_minorRadius
    */
+  EBGEOMETRY_HOST_DEVICE
   T&
   getMinorRadius() noexcept
   {
@@ -547,8 +548,9 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the torus surface; negative inside the torus tube.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -588,7 +590,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class CylinderSDF : public SignedDistanceFunction<T>
+class CylinderSDF
 {
   static_assert(std::is_floating_point_v<T>, "CylinderSDF<T>: T must be a floating-point type");
 
@@ -651,15 +653,11 @@ public:
   operator=(CylinderSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~CylinderSDF() override = default;
-
-  /**
    * @brief Get one endpoint
    * @return m_center1
    */
-  [[nodiscard]] const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
   getCenter1() const noexcept
   {
     return m_center1;
@@ -669,7 +667,8 @@ public:
    * @brief Get the other endpoint
    * @return m_center2
    */
-  [[nodiscard]] const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
   getCenter2() const noexcept
   {
     return m_center2;
@@ -679,7 +678,8 @@ public:
    * @brief Get radius.
    * @return m_radius.
    */
-  [[nodiscard]] const T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
   getRadius() const noexcept
   {
     return m_radius;
@@ -690,8 +690,9 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the cylinder surface; negative inside.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -775,7 +776,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class InfiniteCylinderSDF : public SignedDistanceFunction<T>
+class InfiniteCylinderSDF
 {
   static_assert(std::is_floating_point_v<T>, "InfiniteCylinderSDF<T>: T must be a floating-point type");
 
@@ -831,17 +832,13 @@ public:
   operator=(InfiniteCylinderSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~InfiniteCylinderSDF() override = default;
-
-  /**
    * @brief Signed distance function for the infinite cylinder.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the cylinder surface; negative inside.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -890,7 +887,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class CapsuleSDF : public SignedDistanceFunction<T>
+class CapsuleSDF
 {
   static_assert(std::is_floating_point_v<T>, "CapsuleSDF<T>: T must be a floating-point type");
 
@@ -957,17 +954,13 @@ public:
   operator=(CapsuleSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~CapsuleSDF() override = default;
-
-  /**
    * @brief Signed distance function for the capsule.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the capsule surface; negative inside.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -1016,7 +1009,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class InfiniteConeSDF : public SignedDistanceFunction<T>
+class InfiniteConeSDF
 {
   static_assert(std::is_floating_point_v<T>, "InfiniteConeSDF<T>: T must be a floating-point type");
 
@@ -1072,17 +1065,13 @@ public:
   operator=(InfiniteConeSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~InfiniteConeSDF() override = default;
-
-  /**
    * @brief Signed distance function for the infinite cone.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the cone surface; negative inside the cone.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -1123,7 +1112,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class ConeSDF : public SignedDistanceFunction<T>
+class ConeSDF
 {
   static_assert(std::is_floating_point_v<T>, "ConeSDF<T>: T must be a floating-point type");
 
@@ -1182,17 +1171,13 @@ public:
   operator=(ConeSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~ConeSDF() override = default;
-
-  /**
    * @brief Signed distance function for the finite cone.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the cone surface; negative inside the cone.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -1249,7 +1234,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class RoundedBoxSDF : public SignedDistanceFunction<T>
+class RoundedBoxSDF
 {
   static_assert(std::is_floating_point_v<T>, "RoundedBoxSDF<T>: T must be a floating-point type");
 
@@ -1279,11 +1264,11 @@ public:
     EBGEOMETRY_EXPECT(a_curvature > T(0));
 
     m_dimensions = T(0.5) * a_dimensions;
-    m_sphere     = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), a_curvature);
+    m_sphere     = SphereSDF<T>(Vec3T<T>::zeros(), a_curvature);
   }
 
   /**
-   * @brief Copy constructor. Shares the internal sphere object.
+   * @brief Copy constructor.
    */
   RoundedBoxSDF(const RoundedBoxSDF&) = default;
 
@@ -1293,7 +1278,7 @@ public:
   RoundedBoxSDF(RoundedBoxSDF&&) = default;
 
   /**
-   * @brief Copy assignment. Shares the internal sphere object.
+   * @brief Copy assignment.
    * @return Reference to (*this).
    */
   RoundedBoxSDF&
@@ -1307,30 +1292,26 @@ public:
   operator=(RoundedBoxSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~RoundedBoxSDF() override = default;
-
-  /**
    * @brief Signed distance function for the rounded box.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the rounded-box surface; negative inside.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    return m_sphere->signedDistance(a_point - clamp(a_point, -m_dimensions, m_dimensions));
+    return m_sphere.signedDistance(a_point - clamp(a_point, -m_dimensions, m_dimensions));
   }
 
 protected:
   /**
    * @brief Sphere of radius = curvature used to round the corners.
    */
-  std::shared_ptr<SphereSDF<T>> m_sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(0.1));
+  SphereSDF<T> m_sphere = SphereSDF<T>(Vec3T<T>::zeros(), T(0.1));
 
   /**
    * @brief Half-extents of the inner box (= 0.5 * the user-supplied dimensions).
@@ -1356,7 +1337,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class PerlinSDF : public SignedDistanceFunction<T>
+class PerlinSDF
 {
   static_assert(std::is_floating_point_v<T>, "PerlinSDF<T>: T must be a floating-point type");
 
@@ -1424,17 +1405,13 @@ public:
   operator=(PerlinSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~PerlinSDF() override = default;
-
-  /**
    * @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude].
    * @param[in] a_point Input point.
    * @return Octave-summed Perlin noise value scaled by m_noiseAmplitude.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -1548,7 +1525,8 @@ protected:
    * @param[in] b End value.
    * @return a + t*(b - a).
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   lerp(const T t, const T a, const T b) const noexcept
   {
     return a + t * (b - a);
@@ -1559,7 +1537,8 @@ protected:
    * @param[in] t Input in [0,1].
    * @return Smoothed value in [0,1].
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   fade(const T t) const noexcept
   {
     return t * t * t * (t * (t * 6 - 15) + 10);
@@ -1573,7 +1552,8 @@ protected:
    * @param[in] z    z-component of the relative position.
    * @return Dot product of the selected pseudo-random gradient with (x, y, z).
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   grad(const int hash, const T x, const T y, const T z) const noexcept
   {
     const int h = hash & 15;
@@ -1587,7 +1567,8 @@ protected:
    * @param[in] a_point Input point in noise space.
    * @return Noise value in [-1, 1].
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   noise(const Vec3T<T>& a_point) const noexcept
   {
     // Lower cube corner
@@ -1650,7 +1631,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class RoundedCylinderSDF : public SignedDistanceFunction<T>
+class RoundedCylinderSDF
 {
   static_assert(std::is_floating_point_v<T>, "RoundedCylinderSDF<T>: T must be a floating-point type");
 
@@ -1709,17 +1690,13 @@ public:
   operator=(RoundedCylinderSDF&&) = default;
 
   /**
-   * @brief Destructor.
-   */
-  ~RoundedCylinderSDF() override = default;
-
-  /**
    * @brief Signed distance function for the rounded cylinder.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the rounded-cylinder surface; negative inside.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -1748,6 +1725,41 @@ protected:
    */
   T m_height = T(0.4);
 };
+
+/**
+ * @brief Every analytic shape must be trivially copyable: that is what lets it be byte-copied into a
+ * device address space, or into a pool-backed array, with no pointer patching.
+ */
+static_assert(std::is_trivially_copyable_v<PlaneSDF<float>>, "PlaneSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PlaneSDF<double>>, "PlaneSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<SphereSDF<float>>, "SphereSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<SphereSDF<double>>, "SphereSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<BoxSDF<float>>, "BoxSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<BoxSDF<double>>, "BoxSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TorusSDF<float>>, "TorusSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TorusSDF<double>>, "TorusSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CylinderSDF<float>>, "CylinderSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CylinderSDF<double>>, "CylinderSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<InfiniteCylinderSDF<float>>,
+              "InfiniteCylinderSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<InfiniteCylinderSDF<double>>,
+              "InfiniteCylinderSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CapsuleSDF<float>>, "CapsuleSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CapsuleSDF<double>>, "CapsuleSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<InfiniteConeSDF<float>>,
+              "InfiniteConeSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<InfiniteConeSDF<double>>,
+              "InfiniteConeSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<ConeSDF<float>>, "ConeSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<ConeSDF<double>>, "ConeSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<RoundedBoxSDF<float>>, "RoundedBoxSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<RoundedBoxSDF<double>>, "RoundedBoxSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PerlinSDF<float>>, "PerlinSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PerlinSDF<double>>, "PerlinSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<RoundedCylinderSDF<float>>,
+              "RoundedCylinderSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<RoundedCylinderSDF<double>>,
+              "RoundedCylinderSDF<double> must be trivially copyable");
 
 } // namespace EBGeometry
 

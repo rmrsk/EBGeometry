@@ -134,6 +134,7 @@ kernel and compares against the host:
 | BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
 | Point-cloud BVH queries | `PointCloudBVH` (holds a `PackedBVH`; the build stays host-side) | roadmap step 0b |
 | Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF` (plain value types; no longer `SignedDistanceFunction`s; `MeshSDF::getClosestFaces` stays host-only) | roadmap step 4a |
+| Analytic shapes | The twelve classes in `EBGeometry_AnalyticDistanceFunctions.hpp` (plain value types; no longer `SignedDistanceFunction`s; constructors stay host-only) | roadmap step 4b, first PR |
 
 ## What is not
 
@@ -142,7 +143,7 @@ kernel and compares against the host:
 | `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
 | `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
-| `ImplicitFunction`, `CSG`, `Transform`, analytic SDFs | Still the original virtual-`value()` design; this is where the tape returns |
+| `ImplicitFunction`, `CSG`, `Transform` | Still the original virtual-`value()` design, now fed by user-written implicit functions only; this is where the tape returns. `approximateBoundingVolumeOctree` is a host-only free function taking any shape, mesh SDF, implicit function or callable |
 | `BVHUnionIF` / `BVHSmoothUnionIF` | **Compiled out** behind `EBGEOMETRY_ENABLE_BVH_CSG_UNION`. They stored polymorphic primitives as `shared_ptr`, which a trivially-copyable primitive array cannot hold; they return with the index-based CSG redesign in step 4 |
 | Parsers (`OBJ`/`PLY`/`STL`/`VTK`/`Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended |
 
@@ -157,8 +158,8 @@ kernel and compares against the host:
 *done* in is different.** The governing rule: **every existing class is ported before the tape is
 started.** Actual sequence:
 
-> step 2 (done) → **0b** (done) → step 4 restricted to the mesh SDFs (done) → step 4 proper (analytic SDFs,
-> transforms, CSG) → step 3 (point clouds) → the loose ends (`Triangle`, `Octree`, `SFC`) → step 1
+> step 2 (done) → **0b** (done) → step 4 restricted to the mesh SDFs (done) → step 4 proper (analytic
+> shapes (done), then the homogeneous BVH unions) → step 3 (point clouds) → the loose ends (`Triangle`, `Octree`, `SFC`) → step 1
 > (DCEL reconcile) → step 6 (GPU examples, AMReX integration) → **step 5 (the tape), last**.
 >
 > **0a** (a CUDA/HIP toolkit on the development machine) is not a sequence step: it is still open
@@ -276,12 +277,30 @@ meantime, since it would be a second tape.
    CSG, transforms and the AMReX/Chombo integrations) until the tape brings composition back; no
    host-side adapter is to be built in the meantime.
 
+   **The analytic shapes follow the mesh SDFs exactly (step 4b, first PR, done).** All twelve are
+   plain, trivially copyable value types with an `EBGEOMETRY_HOST_DEVICE` `signedDistance()`; the
+   "formula in a trait, virtual `value()` as a thin delegate" pattern above was dropped for them for
+   the same vtable reason. `RoundedBoxSDF` holds its sphere by value, and `PerlinSDF`'s helpers are
+   no longer virtual. The shapes are therefore no longer `ImplicitFunction`s: the transforms and CSG
+   combinators keep their virtual interface and accept user-written implicit functions only, with no
+   adapter, until the tape. The transform/CSG tests present shapes as `ImplicitFunction`s through a
+   test-only helper (`Tests/TestShapeIF.hpp`), and `approximateBoundingVolumeOctree` became a free
+   function taking anything with a `signedDistance()`, a `value()` or a call operator.
+
+   **Next: the BVH unions, restricted to one primitive type (step 4b, second PR).** A
+   `PackedBVH<T, uint32_t, K>` plus a pool-backed array of value-type primitives (`SphereSDF`,
+   `BoxSDF`, `TriMeshSDF`, ...), trivially copyable and device-callable; the smooth-min/max blends
+   become copyable types instead of `std::function`s; `EBGEOMETRY_ENABLE_BVH_CSG_UNION` goes away.
+   This revises the acceptance test above: `RandomCity`, `PackedSpheres` and `NestedBVH` (with the
+   mesh translated before building rather than through `Translate`) come back, but `CSGUnion` -- a
+   union of a mesh and a sphere, i.e. of different types -- stays disabled until the tape.
+
    **The tag/opcode registry is deferred to the tape.** It was to be defined in the first pass so the
    mesh SDFs and the analytic layer shared one scheme, but only the tape consumes it, and the tape is
    now the last step; defining it there avoids designing it before its one consumer exists.
 
-   **`SignedDistanceFunction<T>` stays**, as does `ImplicitFunction<T>`: they are the compatibility
-   surface the thin delegates hang off. The first attempt deleted `SignedDistanceFunction<T>` outright
+   **`SignedDistanceFunction<T>` stays**, as does `ImplicitFunction<T>`: they are the interface the
+   transforms and CSG combinators (and user-written implicit functions) still use. The first attempt deleted `SignedDistanceFunction<T>` outright
    and collapsed everything onto `ImplicitFunction<T, Op>` + `bool m_sdf`, which was a user-visible
    API break with no GPU motivation of its own. Revisit that as a deliberate change on its own terms,
    not as a side effect of this step.

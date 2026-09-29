@@ -17,7 +17,6 @@
 #include <memory>
 
 // Our includes
-#include "EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "EBGeometry_Constants.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Transform.hpp"
@@ -93,7 +92,7 @@ Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T 
 {
   EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
 
-  auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), std::abs(a_dist));
+  auto mollifier = std::make_shared<TransformDetail::SphereMollifierIF<T>>(std::abs(a_dist));
 
   return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), a_mollifierSamples);
 }

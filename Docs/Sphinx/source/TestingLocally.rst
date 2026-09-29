@@ -180,8 +180,9 @@ Test coverage
        intersection predicate, overlapping volume.
    * - ``TestAnalyticSDF``
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
-       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`; CSG
-       :cpp:func:`Union`, :cpp:func:`Intersection`, :cpp:func:`Complement`.
+       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances;
+       every analytic shape is a trivially copyable, non-polymorphic value type; on a GPU build,
+       device ``signedDistance()`` of all twelve shapes matches the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
@@ -228,17 +229,21 @@ Test coverage
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin` blending primitives;
        sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`
        (and their BVH-accelerated counterparts); :cpp:class:`FiniteRepetitionIF` tiling and
-       boundary clamping.
+       boundary clamping. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp` to present
+       analytic spheres as ``ImplicitFunction`` objects.
    * - ``TestTransform``
      - :cpp:class:`ComplementIF`, :cpp:class:`TranslateIF`, :cpp:class:`RotateIF`,
        :cpp:class:`ScaleIF`, :cpp:class:`OffsetIF`, :cpp:class:`AnnularIF`, :cpp:class:`BlurIF`,
        :cpp:class:`MollifyIF`, :cpp:class:`ElongateIF`, :cpp:class:`ReflectIF`: each transform's
        free-function/class-constructor equivalence, and correctness against a hand-computable
-       expected value.
+       expected value. The wrapped functions are analytic shapes presented as
+       ``ImplicitFunction`` objects by the test-only helper :file:`Tests/TestShapeIF.hpp`, since the
+       shapes themselves are not ``ImplicitFunction`` objects.
    * - ``TestOctree``
      - :cpp:class:`Octree::Node`: depth-first/breadth-first construction, traversal pruning and
-       custom sort order; :cpp:func:`ImplicitFunction::approximateBoundingVolumeOctree`
-       correctness (tightening bound with depth, degenerate/non-intersecting input fallback).
+       custom sort order; :cpp:func:`approximateBoundingVolumeOctree` correctness (tightening
+       bound with depth, degenerate/non-intersecting input fallback), and agreement between the
+       free function called with a shape or a lambda and the ``ImplicitFunction`` member.
    * - ``TestPolygon2D``
      - :cpp:class:`DCEL::FaceT` point-in-face containment: winding-number/crossing-number/subtended-angle
        algorithms, agreement between them on convex and concave (notched) polygons, and on a

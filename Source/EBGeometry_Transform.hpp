@@ -686,6 +686,46 @@ protected:
   T m_alpha;
 };
 
+namespace TransformDetail {
+
+/**
+ * @brief Sphere-shaped implicit function used as Mollify()'s mollifier.
+ * @details The analytic shapes are plain value types rather than ImplicitFunction objects, so
+ * Mollify() cannot hand MollifyIF a SphereSDF. This class evaluates the same formula,
+ * `|x| - radius`, as an ImplicitFunction.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class SphereMollifierIF : public ImplicitFunction<T>
+{
+public:
+  /**
+   * @brief Full constructor.
+   * @param[in] a_radius Sphere radius.
+   */
+  explicit SphereMollifierIF(const T a_radius) noexcept : m_radius(a_radius)
+  {}
+
+  /**
+   * @brief Signed distance to a sphere of radius m_radius centred at the origin.
+   * @param[in] a_point Evaluation point.
+   * @return `|a_point| - m_radius`.
+   */
+  [[nodiscard]] T
+  value(const Vec3T<T>& a_point) const noexcept override
+  {
+    return a_point.length() - m_radius;
+  }
+
+private:
+  /**
+   * @brief Sphere radius.
+   */
+  T m_radius;
+};
+
+} // namespace TransformDetail
+
 /**
  * @brief Mollified implicit function.
  * @details Convolves the wrapped implicit function with a pre-sampled mollifier kernel

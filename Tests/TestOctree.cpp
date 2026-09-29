@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Test suite for EBGeometry_Octree.hpp (the generic Octree::Node tree) and
-// ImplicitFunction::approximateBoundingVolumeOctree, which is built on top of it. Neither had any
-// Tests/ coverage before: approximateBoundingVolumeOctree was only exercised by the
-// OctreeBoundingVolume example, which prints a bounding box but never asserts it's correct.
+// approximateBoundingVolumeOctree, which is built on top of it -- both the free function, which takes
+// any shape, and the ImplicitFunction member that calls it. Neither had any Tests/ coverage before:
+// approximateBoundingVolumeOctree was only exercised by the OctreeBoundingVolume example, which
+// prints a bounding box but never asserts it's correct.
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestShapeIF.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -196,7 +198,7 @@ TEST_CASE("Octree::Node::traverse: a custom childOrderer changes the visitation 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ImplicitFunction::approximateBoundingVolumeOctree
+// approximateBoundingVolumeOctree
 // ─────────────────────────────────────────────────────────────────────────────
 
 TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: encloses a sphere within a margin that "
@@ -219,7 +221,7 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: encloses a sphere within a 
   T previousMargin = std::numeric_limits<T>::max();
 
   for (const unsigned int depth : {2U, 4U, 6U, 8U}) {
-    const auto bv = sphere.template approximateBoundingVolumeOctree<BV>(initLo, initHi, depth, T(0.0));
+    const auto bv = approximateBoundingVolumeOctree<BV>(sphere, initLo, initHi, depth, T(0.0));
 
     // Must actually enclose the true bounding box [-1, 1]^3 (never smaller than the real shape).
     for (int i = 0; i < 3; i++) {
@@ -234,7 +236,7 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: encloses a sphere within a 
   }
 
   // At depth 8, the approximation should be tight to well within a tenth of the sphere's radius.
-  const auto tightBV = sphere.template approximateBoundingVolumeOctree<BV>(initLo, initHi, 8U, T(0.0));
+  const auto tightBV = approximateBoundingVolumeOctree<BV>(sphere, initLo, initHi, 8U, T(0.0));
   REQUIRE(tightBV.getHighCorner()[0] < T(1.1));
 }
 
@@ -250,7 +252,7 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: an inverted initial box (lo
 
   const Sphere sphere(Vec3::zeros(), T(1));
 
-  const auto bv = sphere.template approximateBoundingVolumeOctree<BV>(Vec3::ones(), Vec3::zeros(), 4U, T(0.0));
+  const auto bv = approximateBoundingVolumeOctree<BV>(sphere, Vec3::ones(), Vec3::zeros(), 4U, T(0.0));
 
   // The fallback uses -Vec3::max()/+Vec3::max(), so the result is far larger than any reasonable
   // search box.
@@ -274,7 +276,7 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: an initial box that never t
   const Vec3 farLo(100, 100, 100);
   const Vec3 farHi(101, 101, 101);
 
-  const auto bv = sphere.template approximateBoundingVolumeOctree<BV>(farLo, farHi, 4U, T(0.0));
+  const auto bv = approximateBoundingVolumeOctree<BV>(sphere, farLo, farHi, 4U, T(0.0));
 
   REQUIRE(bv.getLowCorner()[0] < T(-1.0e10));
   REQUIRE(bv.getHighCorner()[0] > T(1.0e10));
@@ -298,11 +300,42 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: a larger safety factor neve
   const Vec3 initHi = +2 * Vec3::ones();
 
   for (const T safety : {T(0.0), T(0.25), T(1.0)}) {
-    const auto bv = sphere.template approximateBoundingVolumeOctree<BV>(initLo, initHi, 6U, safety);
+    const auto bv = approximateBoundingVolumeOctree<BV>(sphere, initLo, initHi, 6U, safety);
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(bv.getLowCorner()[i] <= T(-1.0) + slop);
       REQUIRE(bv.getHighCorner()[i] >= T(1.0) - slop);
     }
+  }
+}
+
+TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: the ImplicitFunction member matches the free "
+                   "function called with a plain shape",
+                   "[Octree][ImplicitFunction]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using BV   = BoundingVolumes::AABBT<T>;
+
+  const SphereSDF<T>           sphere(Vec3(T(0.25), T(-0.5), T(0.125)), T(1));
+  const TestUtils::SphereIF<T> sphereIF(Vec3(T(0.25), T(-0.5), T(0.125)), T(1));
+  const ImplicitFunction<T>&   implicitFunction = sphereIF;
+
+  const Vec3 initLo = -2 * Vec3::ones();
+  const Vec3 initHi = +2 * Vec3::ones();
+
+  const auto fromShape  = approximateBoundingVolumeOctree<BV>(sphere, initLo, initHi, 6U, T(0.25));
+  const auto fromMember = implicitFunction.template approximateBoundingVolumeOctree<BV>(initLo, initHi, 6U, T(0.25));
+  const auto fromLambda = approximateBoundingVolumeOctree<BV>(
+    [&sphere](const Vec3& a_point) { return sphere.signedDistance(a_point); }, initLo, initHi, 6U, T(0.25));
+
+  // All three evaluate the same formula at the same points, so the octrees and hence the bounding
+  // volumes are identical.
+  for (int i = 0; i < 3; i++) {
+    REQUIRE(fromMember.getLowCorner()[i] == fromShape.getLowCorner()[i]);
+    REQUIRE(fromMember.getHighCorner()[i] == fromShape.getHighCorner()[i]);
+    REQUIRE(fromLambda.getLowCorner()[i] == fromShape.getLowCorner()[i]);
+    REQUIRE(fromLambda.getHighCorner()[i] == fromShape.getHighCorner()[i]);
   }
 }

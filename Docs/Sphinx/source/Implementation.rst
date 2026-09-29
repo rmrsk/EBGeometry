@@ -12,13 +12,14 @@ components). A handful of design choices recur throughout the implementation:
   ``T`` (almost always ``float`` or ``double``). Precision is a compile-time choice: the library
   has no notion of a "current" precision at runtime, and nothing dispatches on it dynamically.
 
-* **A common interface for composability.** Every signed distance field and implicit function --
-  analytic shapes, surface meshes, CSG combinations of either -- derives from the same small
-  polymorphic interface, ``ImplicitFunction<T>`` (with ``SignedDistanceFunction<T>`` as a
-  refinement of it). Because every concrete type honors exactly the same interface, the
-  transform and CSG combinators can wrap or combine *any* of them interchangeably through
-  ordinary virtual dispatch, without needing to know which concrete type they are actually
-  holding. See :ref:`Chap:ImplemCSG`.
+* **Plain value types for distance fields, a common interface for composition.** The analytic
+  shapes and the surface-mesh distance fields are plain, trivially copyable value types with no
+  virtual functions, so they can be copied to a GPU and evaluated there. The transformations and
+  CSG combinators instead derive from a small polymorphic interface, ``ImplicitFunction<T>`` (with
+  ``SignedDistanceFunction<T>`` as a refinement of it), and wrap or combine any object that
+  implements it through ordinary virtual dispatch. That interface currently accepts user-written
+  implicit functions only: combining the built-in distance fields returns with the redesign of the
+  CSG layer that replaces virtual dispatch with a linear-SSA tape. See :ref:`Chap:ImplemCSG`.
 
 * **The same acceleration structure for two different problems.** Finding the closest facet in
   a surface mesh, and finding the closest object in a CSG union of many objects, are both,
@@ -50,7 +51,7 @@ The remaining pages in this section cover each component in more detail:
   that ``DCEL::MeshT`` (and, going forward, other GPU-mirrored structures) is built on.
 * :ref:`Chap:Vector` -- the ``Vec2T``/``Vec3T`` vector types used throughout the library.
 * :ref:`Chap:ImplemCSG` -- the ``ImplicitFunction``/``SignedDistanceFunction`` interface, the
-  analytic shape library, transforms, and CSG combinators.
+  analytic shapes, transforms, and CSG combinators.
 * :ref:`Chap:ImplemDCEL` -- the half-edge (DCEL) surface mesh representation.
 * :ref:`Chap:ImplemBVH` -- bounding volume hierarchy construction, traversal, and the packed
   mesh/CSG signed distance function classes built on top of it.
