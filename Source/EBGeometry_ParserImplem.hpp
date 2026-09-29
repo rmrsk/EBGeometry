@@ -1821,27 +1821,27 @@ Parser::readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool)
 }
 
 template <typename T, typename Meta>
-[[nodiscard]] inline std::shared_ptr<FlatMeshSDF<T, Meta>>
+[[nodiscard]] inline FlatMeshSDF<T, Meta>
 Parser::readIntoMesh(const std::string a_filename, Pool& a_pool)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
 
-  return std::make_shared<FlatMeshSDF<T, Meta>>(mesh, a_pool);
+  return FlatMeshSDF<T, Meta>(*mesh, a_pool);
 }
 
 template <typename T, typename Meta>
-[[nodiscard]] inline std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
+[[nodiscard]] inline std::vector<FlatMeshSDF<T, Meta>>
 Parser::readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool)
 {
-  std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>> implicitFunctions;
+  std::vector<FlatMeshSDF<T, Meta>> sdfs;
 
-  implicitFunctions.reserve(a_files.size());
+  sdfs.reserve(a_files.size());
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoMesh<T, Meta>(file, a_pool));
+    sdfs.emplace_back(Parser::readIntoMesh<T, Meta>(file, a_pool));
   }
 
-  return implicitFunctions;
+  return sdfs;
 }
 
 template <typename T, typename Meta>

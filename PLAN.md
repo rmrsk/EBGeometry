@@ -383,13 +383,14 @@ trivially copyable, and `DCEL::MeshT` has been verified to be so as well. Before
 by value was not an option.
 
 **Correction (found porting `FlatMeshSDF`):** dropping the `shared_ptr` members is necessary but not
-sufficient. These classes derive from `SignedDistanceFunction`, and any class with virtual functions
-carries a host-side vtable pointer, so it is never trivially copyable whatever its members are. The
-by-value payload and the non-virtual `EBGEOMETRY_HOST_DEVICE` query therefore live in a nested
-`View`, which is what `rebasedView()` returns and what a kernel receives; the class keeps its API and
-delegates to the `View`. `FlatMeshSDF::View` is the reference instance. The wrapper can keep its
-`shared_ptr` members, since it never crosses, so `getMesh()` and friends are unchanged. The tag/opcode
-registry below is deferred: only the tape needs it, and the tape is now last.
+sufficient, and "de-virtualise, keep the virtual override as a delegate" does not work. These classes
+derive from `SignedDistanceFunction`, and any class with virtual functions carries a host-side vtable
+pointer, so it is never trivially copyable whatever its members are. Decided instead: the mesh SDFs
+drop the inheritance and become plain value types (payload by value, no `shared_ptr` constructors,
+`rebasedView()`/`deepCopy()` returning the class itself, returned by value from the parser).
+`FlatMeshSDF` is the reference instance. Their use as `ImplicitFunction`s (CSG, transforms,
+integrations) is dropped until the tape, with no interim adapter. The tag/opcode registry below is
+deferred: only the tape needs it, and the tape is now last.
 
 Order, ascending by number of moving parts:
 

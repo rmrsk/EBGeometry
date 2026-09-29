@@ -194,10 +194,11 @@ readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool);
  * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
- * @return Shared pointer to the FlatMeshSDF wrapping the parsed DCEL mesh.
+ * The returned FlatMeshSDF resolves its mesh through a_pool, so a_pool must outlive it.
+ * @return The FlatMeshSDF over the parsed DCEL mesh, by value.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
-[[nodiscard]] inline static std::shared_ptr<FlatMeshSDF<T, Meta>>
+[[nodiscard]] inline static FlatMeshSDF<T, Meta>
 readIntoMesh(const std::string a_filename, Pool& a_pool);
 
 /**
@@ -207,10 +208,10 @@ readIntoMesh(const std::string a_filename, Pool& a_pool);
  * @param[in]     a_files List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously.
- * @return Vector of shared pointers to FlatMeshSDF objects, one per file.
+ * @return Vector of FlatMeshSDF objects, one per file.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
-[[nodiscard]] inline static std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
+[[nodiscard]] inline static std::vector<FlatMeshSDF<T, Meta>>
 readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool);
 
 /**

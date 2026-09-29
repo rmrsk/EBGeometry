@@ -70,7 +70,7 @@ main(int argc, char* argv[])
   Vec3 lo = Vec3::infinity();
   Vec3 hi = -Vec3::infinity();
 
-  for (const auto& v : dcelSDF->getMesh()->getAllVertexCoordinates()) {
+  for (const auto& v : dcelSDF.getMesh().getAllVertexCoordinates()) {
     lo = min(lo, v);
     hi = max(hi, v);
   }
@@ -92,7 +92,7 @@ main(int argc, char* argv[])
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    dcelSum += dcelSDF->signedDistance(x);
+    dcelSum += dcelSDF.signedDistance(x);
   }
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {

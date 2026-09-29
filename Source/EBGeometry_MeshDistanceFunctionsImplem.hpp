@@ -212,23 +212,21 @@ buildTriTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>
 } // namespace MeshDistanceFunctionsDetail
 
 template <class T, class Meta>
-FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool) noexcept
+EBGEOMETRY_HOST
+inline FlatMeshSDF<T, Meta>::FlatMeshSDF(const Mesh& a_mesh, Pool& a_pool) noexcept : m_mesh(a_mesh)
 {
-  EBGEOMETRY_EXPECT(a_mesh != nullptr);
-  EBGEOMETRY_EXPECT(a_mesh->isAttachedTo(a_pool));
+  EBGEOMETRY_EXPECT(a_mesh.isAttachedTo(a_pool));
 
-  // This object retains a_mesh but not a_pool, and the mesh resolves everything through the pool,
-  // so a_pool must outlive this object. Taking it by reference here is what makes that requirement
-  // visible at the call site (and checkable above); nothing else is done with it.
+  // The mesh descriptor copied above resolves through a_pool, so a_pool must outlive this object.
+  // Taking it by reference is what makes that requirement visible at the call site (and checkable
+  // above); nothing else is done with it.
   (void)a_pool;
-
-  m_mesh = a_mesh;
 }
 
 template <class T, class Meta>
 EBGEOMETRY_HOST_DEVICE
 inline T
-FlatMeshSDF<T, Meta>::View::signedDistance(const Vec3T<T>& a_point) const noexcept
+FlatMeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -238,52 +236,37 @@ FlatMeshSDF<T, Meta>::View::signedDistance(const Vec3T<T>& a_point) const noexce
 }
 
 template <class T, class Meta>
-T
-FlatMeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
-{
-  EBGEOMETRY_EXPECT(m_mesh != nullptr);
-
-  return this->view().signedDistance(a_point);
-}
-
-template <class T, class Meta>
 EBGEOMETRY_HOST
-inline typename FlatMeshSDF<T, Meta>::View
-FlatMeshSDF<T, Meta>::view() const noexcept
-{
-  EBGEOMETRY_EXPECT(m_mesh != nullptr);
-
-  return View(*m_mesh);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST
-inline typename FlatMeshSDF<T, Meta>::View
+inline FlatMeshSDF<T, Meta>
 FlatMeshSDF<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
 {
-  EBGEOMETRY_EXPECT(m_mesh != nullptr);
+  FlatMeshSDF view = *this;
 
-  return View(m_mesh->rebasedView(a_pool));
+  view.m_mesh = m_mesh.rebasedView(a_pool);
+
+  return view;
 }
 
 template <class T, class Meta>
-const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-FlatMeshSDF<T, Meta>::getMesh() const noexcept
+EBGEOMETRY_HOST
+inline FlatMeshSDF<T, Meta>
+FlatMeshSDF<T, Meta>::deepCopy(Pool& a_dstPool) const
 {
-  EBGEOMETRY_EXPECT(m_mesh != nullptr);
+  FlatMeshSDF copy = *this;
 
-  return m_mesh;
+  copy.m_mesh = *m_mesh.deepCopy(a_dstPool);
+
+  return copy;
 }
 
 template <class T, class Meta>
 template <class BV>
-BV
+EBGEOMETRY_HOST
+inline BV
 FlatMeshSDF<T, Meta>::computeBoundingVolume() const
 {
-  EBGEOMETRY_EXPECT(m_mesh != nullptr);
-
-  return BV(m_mesh->getAllVertexCoordinates());
-};
+  return BV(m_mesh.getAllVertexCoordinates());
+}
 
 template <class T, class Meta, size_t K>
 MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool, const BVH::Build a_build)
@@ -635,15 +618,6 @@ TriMeshSDF<T, Meta, K, W>::computeBoundingVolume() const noexcept
 
   return m_bvh->getBoundingVolume();
 };
-
-/**
- * @brief A FlatMeshSDF::View must be trivially copyable: it is what crosses to a device, by value,
- * with no pointer patching. (FlatMeshSDF itself cannot be -- it has virtual functions.)
- */
-static_assert(std::is_trivially_copyable_v<FlatMeshSDF<float>::View>,
-              "FlatMeshSDF<float>::View must be trivially copyable");
-static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>::View>,
-              "FlatMeshSDF<double>::View must be trivially copyable");
 
 } // namespace EBGeometry
 

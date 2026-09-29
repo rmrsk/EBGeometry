@@ -135,9 +135,9 @@ _____________
 
 To read one or multiple files and also turn it into a bare (BVH-free) signed distance
 representation, use ``readIntoMesh<T, Meta>(filename, pool)``, returning a
-``shared_ptr<FlatMeshSDF<T, Meta>>`` (or a vector thereof for the multi-file overload). The
-returned ``FlatMeshSDF`` retains the mesh (see :ref:`Chap:MeshSDFClasses`), so ``pool`` must
-outlive it. Repeated calls can share one ``pool`` freely, in any combination with the other
+``FlatMeshSDF<T, Meta>`` by value (or a ``std::vector`` of them for the multi-file overload). The
+returned ``FlatMeshSDF`` resolves its mesh through ``pool`` (see :ref:`Chap:MeshSDFClasses`), so
+``pool`` must outlive it and every copy of it. Repeated calls can share one ``pool`` freely, in any combination with the other
 ``readInto*`` functions.
 
 .. _Chap:PackedBVHParser:

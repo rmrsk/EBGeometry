@@ -190,7 +190,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   }
   REQUIRE(primsAndBVs.size() == 36);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   // Every value of BVH::Build is exercised through one BVH::TreeBVH built the same way MeshSDF
@@ -322,7 +322,7 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
 
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
     const MeshSDF<T, Meta, K> packed(mesh, pool, build);
@@ -346,7 +346,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshS
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"), pool);
   REQUIRE(mesh != nullptr);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
   const MeshSDF<T, Meta, K>  packed(mesh, pool, BVH::Build::SAH);
 
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
@@ -844,7 +844,7 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     for (size_t i = 0; i < files.size(); i++) {
       const auto single = Parser::readIntoMesh<T, Meta>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
-        REQUIRE_THAT(flatSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
+        REQUIRE_THAT(flatSDFs[i].signedDistance(p), withinAbsT(single.signedDistance(p), formatMargin<T>()));
       }
     }
   }
@@ -1306,47 +1306,71 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment 
   static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
 }
 
-TEMPLATE_TEST_CASE("FlatMeshSDF::View: the device-facing view answers exactly as the virtual interface does",
+TEMPLATE_TEST_CASE("FlatMeshSDF: rebasedView and deepCopy answer exactly as the original does",
                    "[BVH][FlatMeshSDF][rebase]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Flat = FlatMeshSDF<T, Meta>;
-  using View = typename Flat::View;
 
-  // The View is what crosses to a device; the wrapper cannot, since it has virtual functions.
-  static_assert(std::is_trivially_copyable_v<View>);
-  static_assert(!std::is_trivially_copyable_v<Flat>);
+  // FlatMeshSDF is itself what crosses to a device, so it must stay trivially copyable, and both
+  // crossings must return a FlatMeshSDF rather than some narrower type.
+  static_assert(std::is_trivially_copyable_v<Flat>);
+  static_assert(std::is_same_v<decltype(std::declval<const Flat&>().rebasedView(std::declval<const Pool&>())), Flat>);
+  static_assert(std::is_same_v<decltype(std::declval<const Flat&>().deepCopy(std::declval<Pool&>())), Flat>);
 
   Pool       pool(hostMemoryResource());
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
   REQUIRE(mesh != nullptr);
 
-  const Flat flat(mesh, pool);
-  const View view = flat.view();
+  const Flat flat(*mesh, pool);
 
-  REQUIRE(view.isAttachedTo(pool));
+  REQUIRE(flat.isAttachedTo(pool));
 
   for (const auto& p : queryPoints<T>()) {
-    REQUIRE(view.signedDistance(p) == flat.signedDistance(p));
-    REQUIRE(view.signedDistance(p) == mesh->signedDistance(p));
+    REQUIRE(flat.signedDistance(p) == mesh->signedDistance(p));
   }
 
-  // A host-to-host mirror is the host-side analogue of the device crossing: same offsets, a
-  // different block, identical answers -- from the wrapper's rebasedView() and a View's own alike.
-  pool.freeze();
+  SECTION("deepCopy into a separate pool is independent storage")
+  {
+    Pool other(hostMemoryResource());
 
-  Pool       mirror          = Pool::mirror(pool, hostMemoryResource());
-  const View rebased         = flat.rebasedView(mirror);
-  const View rebasedFromView = view.rebasedView(mirror);
+    const Flat copy = flat.deepCopy(other);
 
-  REQUIRE(rebased.isAttachedTo(mirror));
-  REQUIRE_FALSE(rebased.isAttachedTo(pool));
-  REQUIRE(rebasedFromView.isAttachedTo(mirror));
+    REQUIRE(copy.isAttachedTo(other));
+    REQUIRE_FALSE(copy.isAttachedTo(pool));
 
-  for (const auto& p : queryPoints<T>()) {
-    REQUIRE(rebased.signedDistance(p) == flat.signedDistance(p));
-    REQUIRE(rebasedFromView.signedDistance(p) == flat.signedDistance(p));
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE(copy.signedDistance(p) == flat.signedDistance(p));
+    }
+  }
+
+  SECTION("deepCopy into its own pool survives the pool growing under it")
+  {
+    const Flat copy = flat.deepCopy(pool);
+
+    REQUIRE(copy.isAttachedTo(pool));
+
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE(copy.signedDistance(p) == flat.signedDistance(p));
+    }
+  }
+
+  SECTION("a host-to-host rebasedView resolves against the mirror")
+  {
+    // The host-side analogue of the device crossing: same offsets, a different block, identical
+    // answers.
+    pool.freeze();
+
+    Pool       mirror  = Pool::mirror(pool, hostMemoryResource());
+    const Flat rebased = flat.rebasedView(mirror);
+
+    REQUIRE(rebased.isAttachedTo(mirror));
+    REQUIRE_FALSE(rebased.isAttachedTo(pool));
+
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE(rebased.signedDistance(p) == flat.signedDistance(p));
+    }
   }
 }
 
@@ -1988,7 +2012,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(triangles.size() == 4);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   BVH::PrimAndBVList<Tri, AABB> primsAndBVs;
@@ -2539,7 +2563,7 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
     primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(*mesh)));
   }
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   // Pack a (partitioned) tree and query it the way MeshSDF does, comparing to the brute-force scan.
@@ -2718,7 +2742,7 @@ TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches th
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Device: a rebased FlatMeshSDF::View evaluates in a kernel and agrees with the host
+// Device: a rebased FlatMeshSDF evaluates in a kernel and agrees with the host
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Deterministic probe points shared by host and kernel: a 5x5x5 lattice over [-2, 2]^3. The
@@ -2741,7 +2765,7 @@ constexpr uint32_t s_numFlatMeshProbes = 125;
 template <class T>
 EBGEOMETRY_GLOBAL
 void
-flatMeshSDFDeviceKernel(const typename FlatMeshSDF<T, Meta>::View a_sdf, T* a_out)
+flatMeshSDFDeviceKernel(const FlatMeshSDF<T, Meta> a_sdf, T* a_out)
 {
   T sum = T(0);
 
@@ -2752,7 +2776,7 @@ flatMeshSDFDeviceKernel(const typename FlatMeshSDF<T, Meta>::View a_sdf, T* a_ou
   a_out[0] = sum;
 }
 
-TEMPLATE_TEST_CASE("FlatMeshSDF: a rebased View evaluates on device and matches the host",
+TEMPLATE_TEST_CASE("FlatMeshSDF: a rebased FlatMeshSDF evaluates on device and matches the host",
                    "[BVH][FlatMeshSDF][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -2768,9 +2792,8 @@ TEMPLATE_TEST_CASE("FlatMeshSDF: a rebased View evaluates on device and matches 
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
   REQUIRE(mesh != nullptr);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
 
-  // Host expectation through the virtual interface, i.e. the path existing callers use.
   T hostVal = T(0);
 
   for (uint32_t i = 0; i < s_numFlatMeshProbes; i++) {

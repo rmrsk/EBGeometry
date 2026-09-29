@@ -36,20 +36,30 @@ namespace EBGeometry {
 
 /**
  * @brief Signed distance function for a DCEL mesh. Does not use BVHs.
- * @details Iterates over every face of the mesh on every query — O(N) per call.
- * Suitable only for very small meshes or debugging.
+ * @details Iterates over every face of the mesh on every query -- O(N) per call. Suitable only for
+ * very small meshes, debugging, and as a brute-force reference for the BVH-accelerated mesh SDFs.
  *
- * @note Device use goes through FlatMeshSDF::View, not through this class. FlatMeshSDF derives from
- * SignedDistanceFunction, and a class with virtual functions carries a pointer to its host-side
- * virtual-function table, so it is never trivially copyable and cannot be passed to a kernel. The
- * View holds the mesh descriptor by value and the query itself; this class wraps it for the
- * existing virtual interface. Mirror the pool, call rebasedView(), and pass the returned View into
- * a kernel.
+ * A plain value type: it holds the mesh descriptor by value (offsets into a Pool plus the pool's
+ * control block or base address) and nothing else, so it is trivially copyable and every query is
+ * callable on the host and on a device. It does not derive from SignedDistanceFunction -- a class
+ * with virtual functions can never be passed to a kernel.
+ *
+ * Copying a FlatMeshSDF copies descriptors only: every copy resolves against the same pool memory,
+ * and the pool must outlive all of them. A FlatMeshSDF sees the mesh as it was when it was
+ * constructed; build a new one after changing the mesh's size. To evaluate on a device, freeze and
+ * mirror the pool, then pass rebasedView() into a kernel:
+ *
+ * @code
+ * hostPool.freeze();
+ * Pool       devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+ * const auto deviceSDF  = flatSDF.rebasedView(devicePool);
+ * myKernel<<<blocks, threads>>>(deviceSDF, ...);
+ * @endcode
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  */
 template <class T, class Meta = DCEL::DefaultMetaData>
-class FlatMeshSDF : public SignedDistanceFunction<T>
+class FlatMeshSDF
 {
   static_assert(std::is_floating_point_v<T>, "FlatMeshSDF requires a floating-point T");
 
@@ -60,179 +70,76 @@ public:
   using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
 
   /**
-   * @brief The device-callable part of a FlatMeshSDF: the mesh descriptor and the distance query.
-   * @details Trivially copyable, since it holds nothing but the mesh descriptor (itself trivially
-   * copyable: offsets into a Pool plus the pool's control block or base address). Copying a View
-   * copies descriptors only, so every copy resolves against the same pool memory, and the pool must
-   * outlive every View of it. A View reflects the mesh as it was when the View was made: take a new
-   * one after changing the mesh's size.
-   */
-  class View
-  {
-  public:
-    /**
-     * @brief No default construction -- a mesh is required.
-     */
-    View() = delete;
-
-    /**
-     * @brief Wrap a mesh descriptor.
-     * @param[in] a_mesh Mesh descriptor to query; resolves against whatever pool it is attached to
-     *                   (a host pool, or the mirror it was rebased onto).
-     */
-    EBGEOMETRY_HOST_DEVICE
-    explicit View(const Mesh& a_mesh) noexcept : m_mesh(a_mesh)
-    {}
-
-    /**
-     * @brief Compute the signed distance from a_point to the mesh.
-     * @param[in] a_point Query point.
-     * @return Signed distance to the nearest face; negative inside the mesh.
-     */
-    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-    inline T
-    signedDistance(const Vec3T<T>& a_point) const noexcept;
-
-    /**
-     * @brief Get the mesh descriptor this View queries.
-     * @return The mesh descriptor.
-     */
-    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-    inline const Mesh&
-    getMesh() const noexcept
-    {
-      return m_mesh;
-    }
-
-    /**
-     * @brief Produce a copy of this View that resolves against @p a_pool.
-     * @details Rebases the mesh descriptor; see DCEL::MeshT::rebasedView() for the contract.
-     * @param[in] a_pool Pool to rebase onto; must be a mirror of the mesh's own pool.
-     * @return A View resolving against @p a_pool.
-     */
-    [[nodiscard]] EBGEOMETRY_HOST
-    inline View
-    rebasedView(const Pool& a_pool) const noexcept
-    {
-      return View(m_mesh.rebasedView(a_pool));
-    }
-
-    /**
-     * @brief Check whether the mesh this View queries was reserved from @p a_pool.
-     * @param[in] a_pool Pool to test against.
-     * @return True if the mesh is attached to @p a_pool.
-     */
-    [[nodiscard]] EBGEOMETRY_HOST
-    inline bool
-    isAttachedTo(const Pool& a_pool) const noexcept
-    {
-      return m_mesh.isAttachedTo(a_pool);
-    }
-
-  private:
-    /**
-     * @brief The mesh descriptor, held by value.
-     */
-    Mesh m_mesh;
-  };
-
-  /**
    * @brief Disallowed constructor
    */
   FlatMeshSDF() = delete;
 
   /**
    * @brief Full constructor.
-   * @details Nothing is frozen or bound: a_mesh resolves its storage through a_pool's control
-   * block on every access, so it is queryable the moment it has been built, and stays queryable
-   * across a Pool::reserve that grows and moves the block. See EBGeometry_DCEL_Mesh.hpp's
-   * class-level note for how that resolution works. a_pool is taken here only to assert that
+   * @details Copies the mesh descriptor. Nothing is frozen or bound: the mesh resolves its storage
+   * through a_pool's control block on every access, so this object is queryable at once and stays
+   * queryable across a Pool::reserve that grows and moves the block. a_pool is taken to assert that
    * a_mesh really was reserved from it, and to make visible at the call site that it must outlive
-   * this object -- the mesh is retained, the pool is not.
+   * this object and every copy of it.
    * @param[in]     a_mesh Input mesh, built against a_pool.
    * @param[in,out] a_pool Pool a_mesh's storage was reserved from. Must outlive this object.
    */
-  FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool) noexcept;
-
-  /**
-   * @brief Destructor
-   */
-  ~FlatMeshSDF() override = default;
-
-  /**
-   * @brief Copy constructor.
-   * @details Explicitly defaulted for documentation purposes: FlatMeshSDF's only member (m_mesh)
-   * is a shared_ptr, so the implicitly-generated copy is a cheap, correct handle-copy.
-   * @param[in] a_other Other instance to copy.
-   */
-  FlatMeshSDF(const FlatMeshSDF& a_other) = default;
-
-  /**
-   * @brief Copy assignment operator.
-   * @param[in] a_other Other instance to copy.
-   * @return Reference to *this.
-   */
-  FlatMeshSDF&
-  operator=(const FlatMeshSDF& a_other) = default;
-
-  /**
-   * @brief Move constructor.
-   * @details Explicitly defaulted: the user-declared destructor above would otherwise suppress
-   * the implicitly-generated move constructor.
-   * @param[in,out] a_other Other instance to move from.
-   */
-  FlatMeshSDF(FlatMeshSDF&& a_other) noexcept = default;
-
-  /**
-   * @brief Move assignment operator.
-   * @param[in,out] a_other Other instance to move from.
-   * @return Reference to *this.
-   */
-  FlatMeshSDF&
-  operator=(FlatMeshSDF&& a_other) noexcept = default;
+  EBGEOMETRY_HOST
+  inline FlatMeshSDF(const Mesh& a_mesh, Pool& a_pool) noexcept;
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
-   * @details Delegates to View::signedDistance(), so host and device evaluate the same code.
    * @param[in] a_point Query point.
    * @return Signed distance to the nearest face; negative inside the mesh.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Get the underlying DCEL mesh.
-   * @return Shared pointer to the mesh.
+   * @brief Get the underlying DCEL mesh descriptor.
+   * @return The mesh.
    */
-  [[nodiscard]] const std::shared_ptr<Mesh>
-  getMesh() const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Mesh&
+  getMesh() const noexcept
+  {
+    return m_mesh;
+  }
 
   /**
-   * @brief A View of the mesh as it is now, resolving against the mesh's own pool.
-   * @details Host-side counterpart of rebasedView(), for code that wants the non-virtual query
-   * without a mirror.
-   * @return A View of the mesh.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline View
-  view() const noexcept;
-
-  /**
-   * @brief A View of the mesh that resolves against @p a_pool.
-   * @details The one sanctioned crossing to a device, exactly as for DCEL::MeshT::rebasedView():
-   *
-   * @code
-   * hostPool.freeze();
-   * Pool       devicePool = Pool::mirror(hostPool, deviceMemoryResource());
-   * const auto deviceSDF  = flatSDF->rebasedView(devicePool);   // a FlatMeshSDF::View
-   * myKernel<<<blocks, threads>>>(deviceSDF, ...);
-   * @endcode
+   * @brief Produce a copy of this object that resolves against @p a_pool.
+   * @details Rebases the mesh descriptor; see DCEL::MeshT::rebasedView() for the contract. This is
+   * the one sanctioned crossing to a device.
    * @param[in] a_pool Pool to rebase onto; must be a mirror of the mesh's own pool.
-   * @return A View resolving against @p a_pool.
+   * @return A FlatMeshSDF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  inline View
+  inline FlatMeshSDF
   rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief Duplicate the mesh's storage into @p a_dstPool.
+   * @details The copy constructor copies descriptors only, leaving both objects resolving against
+   * the same pool memory. This is the operation that gives genuinely independent storage.
+   * @param[in,out] a_dstPool Pool to reserve the copy's mesh from; may be this object's own pool.
+   * @return A FlatMeshSDF over an independent copy of the mesh, attached to @p a_dstPool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline FlatMeshSDF
+  deepCopy(Pool& a_dstPool) const;
+
+  /**
+   * @brief Check whether the mesh was reserved from @p a_pool.
+   * @param[in] a_pool Pool to test against.
+   * @return True if the mesh is attached to @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline bool
+  isAttachedTo(const Pool& a_pool) const noexcept
+  {
+    return m_mesh.isAttachedTo(a_pool);
+  }
 
   /**
    * @brief Compute the axis-aligned bounding volume enclosing the mesh.
@@ -240,18 +147,23 @@ public:
    * @return Bounding volume that encloses all mesh vertices.
    */
   template <class BV>
-  [[nodiscard]] BV
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline BV
   computeBoundingVolume() const;
 
-protected:
+private:
   /**
-   * @brief DCEL mesh
-   * @details Kept as a shared_ptr rather than a View so that getMesh() keeps returning the caller's
-   * own mesh, and so that every query builds its View from the mesh as it is at that moment -- a View
-   * cached here would go stale if the caller changed the mesh after construction.
+   * @brief The mesh descriptor, held by value.
    */
-  std::shared_ptr<Mesh> m_mesh;
+  Mesh m_mesh;
 };
+
+/**
+ * @brief A FlatMeshSDF must be trivially copyable: that is what lets a rebasedView() be byte-copied
+ * into a device address space with no pointer patching.
+ */
+static_assert(std::is_trivially_copyable_v<FlatMeshSDF<float>>, "FlatMeshSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>>, "FlatMeshSDF<double> must be trivially copyable");
 
 /**
  * @brief Signed distance function for a DCEL mesh. Stores the mesh in a PackedBVH for

@@ -70,7 +70,8 @@ For the full API, see the Doxygen page for
    :file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` (spheres, boxes, planes, cylinders,
    tori, and other closed-form primitives) and in
    :file:`Source/EBGeometry_MeshDistanceFunctions.hpp` (the DCEL/triangle-mesh-backed classes
-   ``FlatMeshSDF``, ``MeshSDF``, and ``TriMeshSDF`` -- see :ref:`Chap:MeshSDFClasses`).
+   ``MeshSDF`` and ``TriMeshSDF`` -- see :ref:`Chap:MeshSDFClasses`). ``FlatMeshSDF``, declared in
+   the same file, is a plain device-callable value type and does not implement either interface.
 
 Transformations
 ----------------
