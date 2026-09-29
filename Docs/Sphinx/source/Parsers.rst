@@ -175,7 +175,10 @@ ____________________
 
 ``readIntoTriangles<T, Meta>(filename, pool)`` returns a flat ``std::vector<Triangle<T, Meta>>``
 (or, for the multi-file overload, one such vector per file) -- every face of the parsed mesh as an
-independent, self-contained ``Triangle`` value, with no DCEL/half-edge topology connecting them.
+independent, self-contained ``Triangle`` value, with no DCEL/half-edge topology connecting them. Each
+triangle carries its face's normal and metadata, and its vertices' and half-edges' normals -- the
+same extraction ``TriMeshSDF``'s mesh constructor performs, so ``readIntoTriangleBVH`` and
+``TriMeshSDF(mesh, ...)`` build identical triangles.
 The triangles are plain values that do not refer back to ``pool``, so ``pool`` only needs to outlive
 this call. Use this
 when some other part of your code wants raw triangle values (for example, to build a custom

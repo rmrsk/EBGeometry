@@ -141,14 +141,14 @@ public:
   }
 
   /**
-   * @brief Compute the axis-aligned bounding volume enclosing the mesh.
-   * @tparam BV Bounding-volume type to construct (e.g. AABBT<T>).
-   * @return Bounding volume that encloses all mesh vertices.
+   * @brief Compute the AABB enclosing the entire mesh.
+   * @details A componentwise min/max over the mesh vertices, so it is callable on host and device
+   * alike. An empty mesh yields an inverted box (low corner +max, high corner -max).
+   * @return Axis-aligned bounding box of the mesh.
    */
-  template <class BV>
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline BV
-  computeBoundingVolume() const;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline EBGeometry::BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept;
 
 private:
   /**

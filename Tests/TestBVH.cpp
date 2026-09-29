@@ -1297,6 +1297,70 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment 
   static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
 }
 
+TEMPLATE_TEST_CASE("Parser::readIntoTriangles and TriMeshSDF's mesh constructor extract identical triangles",
+                   "[BVH][TriMeshSDF][Parser]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh      = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.obj"), pool);
+
+  REQUIRE(triangles.size() == mesh.numFaces());
+
+  // Each triangle carries its face's metadata and its three half-edges' normals -- not the vertex
+  // normals, which readIntoTriangles used to substitute for them.
+  for (uint32_t i = 0; i < mesh.numFaces(); i++) {
+    const auto& face        = mesh.getFace(i);
+    const auto  edgeIndices = face.gatherEdgeIndices(mesh);
+
+    REQUIRE(edgeIndices.size() == 3);
+    REQUIRE(triangles[i].getMetaData() == face.getMetaData());
+
+    for (size_t e = 0; e < 3; e++) {
+      REQUIRE(triangles[i].getEdgeNormals()[e] == mesh.getEdge(edgeIndices[e]).getNormal());
+    }
+  }
+
+  // Built from identical triangles with the same strategy, the two constructors give identical trees.
+  const TriMeshSDF<T, Meta, K, W> fromMesh(mesh, pool, BVH::Build::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W> fromSoup(triangles, pool, BVH::Build::SAH, 2);
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE(fromSoup.signedDistance(p) == fromMesh.signedDistance(p));
+    REQUIRE(fromSoup.getClosestTriangle(p).metaData == fromMesh.getClosestTriangle(p).metaData);
+  }
+}
+
+TEMPLATE_TEST_CASE("FlatMeshSDF::computeBoundingVolume is the vertex AABB, as MeshSDF's root box is",
+                   "[BVH][FlatMeshSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+
+  constexpr size_t K = 4;
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+
+  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const MeshSDF<T, Meta, K>  meshSDF(mesh, pool, BVH::Build::SAH);
+
+  const AABB fromFlat     = flat.computeBoundingVolume();
+  const AABB fromVertices = AABB(mesh.getAllVertexCoordinates());
+  const AABB fromBVH      = meshSDF.computeBoundingVolume();
+
+  REQUIRE(fromFlat.getLowCorner() == fromVertices.getLowCorner());
+  REQUIRE(fromFlat.getHighCorner() == fromVertices.getHighCorner());
+  REQUIRE(fromFlat.getLowCorner() == fromBVH.getLowCorner());
+  REQUIRE(fromFlat.getHighCorner() == fromBVH.getHighCorner());
+}
+
 TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebasedView and deepCopy answer exactly as the original does",
                    "[BVH][FlatMeshSDF][MeshSDF][TriMeshSDF][rebase]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -2803,7 +2867,10 @@ meshSDFProbeSum(const SDF& a_sdf) noexcept
     sum += d < T(0) ? -d : d;
   }
 
-  return sum;
+  // Also exercise the device-callable bounding box every mesh SDF provides.
+  const auto box = a_sdf.computeBoundingVolume();
+
+  return sum + box.getHighCorner().length() + box.getLowCorner().length();
 }
 
 template <class T, class SDF>

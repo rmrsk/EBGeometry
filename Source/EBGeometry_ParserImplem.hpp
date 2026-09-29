@@ -1849,35 +1849,11 @@ Parser::readIntoTriangles(const std::string a_filename, Pool& a_pool)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
 
-  std::vector<Triangle<T, Meta>> triangles;
-
+  // The same extraction TriMeshSDF's mesh constructor uses: real half-edge normals and the face
+  // metadata, so readIntoTriangleBVH and TriMeshSDF(mesh, ...) build identical triangles.
   bool onlyTriangles = true;
 
-  triangles.reserve(mesh.numFaces());
-
-  for (uint32_t i = 0; i < mesh.numFaces(); i++) {
-    const auto& f             = mesh.getFace(i);
-    const auto  normal        = f.getNormal();
-    const auto  vertexIndices = f.gatherVertexIndices(mesh);
-
-    if (vertexIndices.size() != 3) {
-      onlyTriangles = false;
-    }
-
-    const auto& v0 = mesh.getVertex(vertexIndices[0]);
-    const auto& v1 = mesh.getVertex(vertexIndices[1]);
-    const auto& v2 = mesh.getVertex(vertexIndices[2]);
-
-    // Create the triangle
-    Triangle<T, Meta> tri;
-
-    tri.setNormal(normal);
-    tri.setVertexPositions({v0.getPosition(), v1.getPosition(), v2.getPosition()});
-    tri.setVertexNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
-    tri.setEdgeNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
-
-    triangles.emplace_back(tri);
-  }
+  std::vector<Triangle<T, Meta>> triangles = MeshDistanceFunctionsDetail::extractTriangles(mesh, onlyTriangles);
 
   if (!onlyTriangles) {
     std::cerr << "Parser::readIntoTriangles -- file '" + a_filename + "' is not composed of only triangles!" << "\n";

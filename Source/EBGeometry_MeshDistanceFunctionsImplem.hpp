@@ -118,6 +118,65 @@ buildDCELTreeBVH(const EBGeometry::DCEL::MeshT<T, Meta>& a_dcelMesh, const BVH::
 }
 
 /**
+ * @brief Extract every face of a DCEL mesh as a flat, self-contained Triangle.
+ * @details Internal helper shared by TriMeshSDF's mesh constructor and Parser::readIntoTriangles, so
+ * both produce identical triangles: the face normal, the three vertex positions and vertex normals,
+ * the three half-edge normals (edge i runs from vertex i to vertex i+1, the order both
+ * FaceT::gatherVertexIndices and FaceT::gatherEdgeIndices walk the face), and the face metadata.
+ * A face with more than three vertices contributes its first three, and a_onlyTriangles is cleared;
+ * callers decide how to report that.
+ * @tparam T    Floating-point precision type.
+ * @tparam Meta Face metadata type.
+ * @param[in]  a_mesh          DCEL mesh.
+ * @param[out] a_onlyTriangles Set to true if every face is a triangle, false otherwise.
+ * @return One Triangle per face, in face order.
+ */
+template <class T, class Meta>
+[[nodiscard]] EBGEOMETRY_HOST
+inline std::vector<Triangle<T, Meta>>
+extractTriangles(const DCEL::MeshT<T, Meta>& a_mesh, bool& a_onlyTriangles)
+{
+  std::vector<Triangle<T, Meta>> triangles;
+
+  triangles.reserve(a_mesh.numFaces());
+
+  a_onlyTriangles = true;
+
+  for (uint32_t faceIndex = 0; faceIndex < a_mesh.numFaces(); faceIndex++) {
+    const auto& f             = a_mesh.getFace(faceIndex);
+    const auto  vertexIndices = f.gatherVertexIndices(a_mesh);
+    const auto  edgeIndices   = f.gatherEdgeIndices(a_mesh);
+
+    EBGEOMETRY_EXPECT(vertexIndices.size() >= 3);
+    EBGEOMETRY_EXPECT(edgeIndices.size() == vertexIndices.size());
+
+    if (vertexIndices.size() != 3) {
+      a_onlyTriangles = false;
+    }
+
+    const auto& v0 = a_mesh.getVertex(vertexIndices[0]);
+    const auto& v1 = a_mesh.getVertex(vertexIndices[1]);
+    const auto& v2 = a_mesh.getVertex(vertexIndices[2]);
+
+    const auto& e0 = a_mesh.getEdge(edgeIndices[0]);
+    const auto& e1 = a_mesh.getEdge(edgeIndices[1]);
+    const auto& e2 = a_mesh.getEdge(edgeIndices[2]);
+
+    Triangle<T, Meta> tri;
+
+    tri.setNormal(f.getNormal());
+    tri.setVertexPositions({v0.getPosition(), v1.getPosition(), v2.getPosition()});
+    tri.setVertexNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
+    tri.setEdgeNormals({e0.getNormal(), e1.getNormal(), e2.getNormal()});
+    tri.setMetaData(f.getMetaData());
+
+    triangles.emplace_back(tri);
+  }
+
+  return triangles;
+}
+
+/**
  * @brief Build a tree BVH from a flat triangle soup.
  * @details Internal helper; not part of the public API. Creates one BV per triangle from its
  * vertex positions, then builds a K-ary tree BVH according to a_build.  For TopDown builds the
@@ -259,12 +318,21 @@ FlatMeshSDF<T, Meta>::deepCopy(Pool& a_dstPool) const
 }
 
 template <class T, class Meta>
-template <class BV>
-EBGEOMETRY_HOST
-inline BV
-FlatMeshSDF<T, Meta>::computeBoundingVolume() const
+EBGEOMETRY_HOST_DEVICE
+inline EBGeometry::BoundingVolumes::AABBT<T>
+FlatMeshSDF<T, Meta>::computeBoundingVolume() const noexcept
 {
-  return BV(m_mesh.getAllVertexCoordinates());
+  Vec3T<T> lo = +Vec3T<T>::max();
+  Vec3T<T> hi = -Vec3T<T>::max();
+
+  for (uint32_t i = 0; i < m_mesh.numVertices(); i++) {
+    const Vec3T<T>& x = m_mesh.getVertex(i).getPosition();
+
+    lo = min(lo, x);
+    hi = max(hi, x);
+  }
+
+  return EBGeometry::BoundingVolumes::AABBT<T>(lo, hi);
 }
 
 template <class T, class Meta, size_t K>
@@ -450,40 +518,14 @@ EBGEOMETRY_HOST
 inline std::vector<typename TriMeshSDF<T, Meta, K, W>::Tri>
 TriMeshSDF<T, Meta, K, W>::extractTriangles(const Mesh& a_mesh)
 {
-  std::vector<Tri> triangles;
+  bool onlyTriangles = true;
 
-  triangles.reserve(a_mesh.numFaces());
+  std::vector<Tri> triangles = EBGeometry::MeshDistanceFunctionsDetail::extractTriangles(a_mesh, onlyTriangles);
 
-  for (uint32_t faceIndex = 0; faceIndex < a_mesh.numFaces(); faceIndex++) {
-    const auto& f             = a_mesh.getFace(faceIndex);
-    const auto  normal        = f.getNormal();
-    const auto  vertexIndices = f.gatherVertexIndices(a_mesh);
-    const auto  edgeIndices   = f.gatherEdgeIndices(a_mesh);
+  EBGEOMETRY_EXPECT(onlyTriangles);
 
-    EBGEOMETRY_EXPECT(vertexIndices.size() == 3);
-    EBGEOMETRY_EXPECT(edgeIndices.size() == 3);
-
-    if ((vertexIndices.size() != 3) || (edgeIndices.size() != 3)) {
-      std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
-    }
-
-    const auto& v0 = a_mesh.getVertex(vertexIndices[0]);
-    const auto& v1 = a_mesh.getVertex(vertexIndices[1]);
-    const auto& v2 = a_mesh.getVertex(vertexIndices[2]);
-
-    const auto& e0 = a_mesh.getEdge(edgeIndices[0]);
-    const auto& e1 = a_mesh.getEdge(edgeIndices[1]);
-    const auto& e2 = a_mesh.getEdge(edgeIndices[2]);
-
-    Tri tri;
-
-    tri.setNormal(normal);
-    tri.setVertexPositions({v0.getPosition(), v1.getPosition(), v2.getPosition()});
-    tri.setVertexNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
-    tri.setEdgeNormals({e0.getNormal(), e1.getNormal(), e2.getNormal()});
-    tri.setMetaData(f.getMetaData());
-
-    triangles.emplace_back(tri);
+  if (!onlyTriangles) {
+    std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
   }
 
   return triangles;
