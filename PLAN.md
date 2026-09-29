@@ -382,6 +382,15 @@ The second half is **newly possible because of this branch**: `PackedBVH` is now
 trivially copyable, and `DCEL::MeshT` has been verified to be so as well. Before PR C, holding either
 by value was not an option.
 
+**Correction (found porting `FlatMeshSDF`):** dropping the `shared_ptr` members is necessary but not
+sufficient. These classes derive from `SignedDistanceFunction`, and any class with virtual functions
+carries a host-side vtable pointer, so it is never trivially copyable whatever its members are. The
+by-value payload and the non-virtual `EBGEOMETRY_HOST_DEVICE` query therefore live in a nested
+`View`, which is what `rebasedView()` returns and what a kernel receives; the class keeps its API and
+delegates to the `View`. `FlatMeshSDF::View` is the reference instance. The wrapper can keep its
+`shared_ptr` members, since it never crosses, so `getMesh()` and friends are unchanged. The tag/opcode
+registry below is deferred: only the tape needs it, and the tape is now last.
+
 Order, ascending by number of moving parts:
 
 1. **`FlatMeshSDF`** — one member, no BVH. The smallest complete instance of the pattern, and porting
@@ -392,10 +401,10 @@ Order, ascending by number of moving parts:
 
 `getClosestFaces` stays host-only: it runs on `traverse()`, which keeps its `std::function` interface.
 
-**Define the tag/opcode registry once, here**, even though only three types populate it at first.
-`PORTING.md` already calls for a generated opcode registry as the single source of truth; if the mesh
-SDFs get an ad-hoc scheme now and the implicit functions get the real one in step 2, the two have to
-be merged later.
+**(Deferred to the tape -- see the correction above.)** Define the tag/opcode registry once, here,
+even though only three types populate it at first. `PORTING.md` already calls for a generated opcode
+registry as the single source of truth; if the mesh SDFs get an ad-hoc scheme now and the implicit
+functions get the real one in step 2, the two have to be merged later.
 
 Keep `ImplicitFunction<T>` and `SignedDistanceFunction<T>` alive throughout as the compatibility
 surface. The first attempt deleted `SignedDistanceFunction<T>` outright, and that was a user-visible

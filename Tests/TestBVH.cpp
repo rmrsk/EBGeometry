@@ -1306,6 +1306,50 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment 
   static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
 }
 
+TEMPLATE_TEST_CASE("FlatMeshSDF::View: the device-facing view answers exactly as the virtual interface does",
+                   "[BVH][FlatMeshSDF][rebase]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Flat = FlatMeshSDF<T, Meta>;
+  using View = typename Flat::View;
+
+  // The View is what crosses to a device; the wrapper cannot, since it has virtual functions.
+  static_assert(std::is_trivially_copyable_v<View>);
+  static_assert(!std::is_trivially_copyable_v<Flat>);
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  REQUIRE(mesh != nullptr);
+
+  const Flat flat(mesh, pool);
+  const View view = flat.view();
+
+  REQUIRE(view.isAttachedTo(pool));
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE(view.signedDistance(p) == flat.signedDistance(p));
+    REQUIRE(view.signedDistance(p) == mesh->signedDistance(p));
+  }
+
+  // A host-to-host mirror is the host-side analogue of the device crossing: same offsets, a
+  // different block, identical answers -- from the wrapper's rebasedView() and a View's own alike.
+  pool.freeze();
+
+  Pool       mirror          = Pool::mirror(pool, hostMemoryResource());
+  const View rebased         = flat.rebasedView(mirror);
+  const View rebasedFromView = view.rebasedView(mirror);
+
+  REQUIRE(rebased.isAttachedTo(mirror));
+  REQUIRE_FALSE(rebased.isAttachedTo(pool));
+  REQUIRE(rebasedFromView.isAttachedTo(mirror));
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE(rebased.signedDistance(p) == flat.signedDistance(p));
+    REQUIRE(rebasedFromView.signedDistance(p) == flat.signedDistance(p));
+  }
+}
+
 namespace {
 
 // Brute-force nearest-squared-distance scan, shared by the direct-SFC-build tests below.
@@ -2668,6 +2712,79 @@ TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches th
   DeviceBuffer<T> deviceOut;
 
   packedBvhDeviceKernel<T, K><<<1, 1>>>(deviceView, query, deviceOut.get());
+  (void)GPU::deviceSynchronize();
+
+  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: a rebased FlatMeshSDF::View evaluates in a kernel and agrees with the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Deterministic probe points shared by host and kernel: a 5x5x5 lattice over [-2, 2]^3. The
+// dodecahedron fixture is centred at the origin with vertices within 1.62 of it on each axis, so the
+// lattice covers points inside, outside, and near its surface.
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+Vec3T<T>
+flatMeshProbePoint(uint32_t a_i) noexcept
+{
+  const T x = T(-2) + T(a_i % 5U);
+  const T y = T(-2) + T((a_i / 5U) % 5U);
+  const T z = T(-2) + T(a_i / 25U);
+
+  return Vec3T<T>(x, y, z);
+}
+
+constexpr uint32_t s_numFlatMeshProbes = 125;
+
+template <class T>
+EBGEOMETRY_GLOBAL
+void
+flatMeshSDFDeviceKernel(const typename FlatMeshSDF<T, Meta>::View a_sdf, T* a_out)
+{
+  T sum = T(0);
+
+  for (uint32_t i = 0; i < s_numFlatMeshProbes; i++) {
+    sum += a_sdf.signedDistance(flatMeshProbePoint<T>(i));
+  }
+
+  a_out[0] = sum;
+}
+
+TEMPLATE_TEST_CASE("FlatMeshSDF: a rebased View evaluates on device and matches the host",
+                   "[BVH][FlatMeshSDF][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  REQUIRE(mesh != nullptr);
+
+  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+
+  // Host expectation through the virtual interface, i.e. the path existing callers use.
+  T hostVal = T(0);
+
+  for (uint32_t i = 0; i < s_numFlatMeshProbes; i++) {
+    hostVal += flat.signedDistance(flatMeshProbePoint<T>(i));
+  }
+
+  pool.freeze();
+
+  Pool       devicePool = Pool::mirror(pool, deviceMemoryResource());
+  const auto deviceView = flat.rebasedView(devicePool);
+
+  DeviceBuffer<T> deviceOut;
+
+  flatMeshSDFDeviceKernel<T><<<1, 1>>>(deviceView, deviceOut.get());
   (void)GPU::deviceSynchronize();
 
   REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));

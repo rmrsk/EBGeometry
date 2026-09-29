@@ -615,6 +615,16 @@ BVH type, and supported geometry:
 ``FlatMeshSDF`` is useful for correctness checks and tiny meshes. See `its doxygen page
 <doxygen/html/classEBGeometry_1_1FlatMeshSDF.html>`__.
 
+``FlatMeshSDF`` can also be evaluated on a GPU, through its nested ``FlatMeshSDF::View`` rather than
+through the class itself. ``FlatMeshSDF`` derives from ``SignedDistanceFunction``, and a class with
+virtual functions carries a pointer to a host-side function table, so it can never be byte-copied
+into a kernel. The ``View`` holds the mesh descriptor by value and does the actual distance query;
+``FlatMeshSDF::signedDistance()`` delegates to it, so host and device run the same code. As for
+``PackedBVH`` (see :ref:`Chap:MemoryModel`), freeze and mirror the pool, call
+``rebasedView(devicePool)``, and pass the returned ``View`` to a kernel; ``view()`` gives the same
+object for host use without a mirror. A ``View`` reflects the mesh as it was when the ``View`` was
+made. ``MeshSDF`` and ``TriMeshSDF`` are not yet device-callable.
+
 ``MeshSDF`` handles arbitrary polygon meshes; its ``signedDistance()`` builds the traversal
 criteria shown above (a leaf-eval and a pruning rule, not the full four-callback ``traverse()``
 shape) and drives them through ``PackedBVH::pruneTraverse()``, picking up SIMD node pruning

@@ -24,6 +24,7 @@
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_Triangle.hpp"
@@ -37,6 +38,13 @@ namespace EBGeometry {
  * @brief Signed distance function for a DCEL mesh. Does not use BVHs.
  * @details Iterates over every face of the mesh on every query — O(N) per call.
  * Suitable only for very small meshes or debugging.
+ *
+ * @note Device use goes through FlatMeshSDF::View, not through this class. FlatMeshSDF derives from
+ * SignedDistanceFunction, and a class with virtual functions carries a pointer to its host-side
+ * virtual-function table, so it is never trivially copyable and cannot be passed to a kernel. The
+ * View holds the mesh descriptor by value and the query itself; this class wraps it for the
+ * existing virtual interface. Mirror the pool, call rebasedView(), and pass the returned View into
+ * a kernel.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  */
@@ -50,6 +58,83 @@ public:
    * @brief Alias for DCEL mesh type
    */
   using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
+
+  /**
+   * @brief The device-callable part of a FlatMeshSDF: the mesh descriptor and the distance query.
+   * @details Trivially copyable, since it holds nothing but the mesh descriptor (itself trivially
+   * copyable: offsets into a Pool plus the pool's control block or base address). Copying a View
+   * copies descriptors only, so every copy resolves against the same pool memory, and the pool must
+   * outlive every View of it. A View reflects the mesh as it was when the View was made: take a new
+   * one after changing the mesh's size.
+   */
+  class View
+  {
+  public:
+    /**
+     * @brief No default construction -- a mesh is required.
+     */
+    View() = delete;
+
+    /**
+     * @brief Wrap a mesh descriptor.
+     * @param[in] a_mesh Mesh descriptor to query; resolves against whatever pool it is attached to
+     *                   (a host pool, or the mirror it was rebased onto).
+     */
+    EBGEOMETRY_HOST_DEVICE
+    explicit View(const Mesh& a_mesh) noexcept : m_mesh(a_mesh)
+    {}
+
+    /**
+     * @brief Compute the signed distance from a_point to the mesh.
+     * @param[in] a_point Query point.
+     * @return Signed distance to the nearest face; negative inside the mesh.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline T
+    signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+    /**
+     * @brief Get the mesh descriptor this View queries.
+     * @return The mesh descriptor.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline const Mesh&
+    getMesh() const noexcept
+    {
+      return m_mesh;
+    }
+
+    /**
+     * @brief Produce a copy of this View that resolves against @p a_pool.
+     * @details Rebases the mesh descriptor; see DCEL::MeshT::rebasedView() for the contract.
+     * @param[in] a_pool Pool to rebase onto; must be a mirror of the mesh's own pool.
+     * @return A View resolving against @p a_pool.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST
+    inline View
+    rebasedView(const Pool& a_pool) const noexcept
+    {
+      return View(m_mesh.rebasedView(a_pool));
+    }
+
+    /**
+     * @brief Check whether the mesh this View queries was reserved from @p a_pool.
+     * @param[in] a_pool Pool to test against.
+     * @return True if the mesh is attached to @p a_pool.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST
+    inline bool
+    isAttachedTo(const Pool& a_pool) const noexcept
+    {
+      return m_mesh.isAttachedTo(a_pool);
+    }
+
+  private:
+    /**
+     * @brief The mesh descriptor, held by value.
+     */
+    Mesh m_mesh;
+  };
 
   /**
    * @brief Disallowed constructor
@@ -108,6 +193,7 @@ public:
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
+   * @details Delegates to View::signedDistance(), so host and device evaluate the same code.
    * @param[in] a_point Query point.
    * @return Signed distance to the nearest face; negative inside the mesh.
    */
@@ -122,6 +208,33 @@ public:
   getMesh() const noexcept;
 
   /**
+   * @brief A View of the mesh as it is now, resolving against the mesh's own pool.
+   * @details Host-side counterpart of rebasedView(), for code that wants the non-virtual query
+   * without a mirror.
+   * @return A View of the mesh.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline View
+  view() const noexcept;
+
+  /**
+   * @brief A View of the mesh that resolves against @p a_pool.
+   * @details The one sanctioned crossing to a device, exactly as for DCEL::MeshT::rebasedView():
+   *
+   * @code
+   * hostPool.freeze();
+   * Pool       devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+   * const auto deviceSDF  = flatSDF->rebasedView(devicePool);   // a FlatMeshSDF::View
+   * myKernel<<<blocks, threads>>>(deviceSDF, ...);
+   * @endcode
+   * @param[in] a_pool Pool to rebase onto; must be a mirror of the mesh's own pool.
+   * @return A View resolving against @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline View
+  rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
    * @brief Compute the axis-aligned bounding volume enclosing the mesh.
    * @tparam BV Bounding-volume type to construct (e.g. AABBT<T>).
    * @return Bounding volume that encloses all mesh vertices.
@@ -133,6 +246,9 @@ public:
 protected:
   /**
    * @brief DCEL mesh
+   * @details Kept as a shared_ptr rather than a View so that getMesh() keeps returning the caller's
+   * own mesh, and so that every query builds its View from the mesh as it is at that moment -- a View
+   * cached here would go stale if the caller changed the mesh after construction.
    */
   std::shared_ptr<Mesh> m_mesh;
 };
