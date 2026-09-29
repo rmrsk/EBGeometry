@@ -101,7 +101,7 @@ MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
 
 template <class T, class Meta>
 EBGEOMETRY_HOST
-inline std::shared_ptr<MeshT<T, Meta>>
+inline MeshT<T, Meta>
 MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
 {
   EBGEOMETRY_EXPECT(this->numVertices() > 0 || this->numEdges() > 0 || this->numFaces() > 0);
@@ -109,28 +109,28 @@ MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
   // Every VertexT/EdgeT/FaceT cross-reference is an index into the owning mesh's arrays, not a
   // pointer, so copying each element by value into freshly-reserved storage is already an
   // independent, correctly-linked mesh -- no relinking pass is needed.
-  auto newMesh = std::make_shared<Mesh>();
+  Mesh newMesh;
 
   // Note that a_dstPool may be this mesh's own Pool. The reserves below can then grow (and move)
   // the block out from under this mesh, which is harmless: every read here re-resolves through the
   // control block rather than against an address captured before the reserves.
-  newMesh->reserveVertices(a_dstPool, this->numVertices());
-  newMesh->reserveEdges(a_dstPool, this->numEdges());
-  newMesh->reserveFaces(a_dstPool, this->numFaces());
+  newMesh.reserveVertices(a_dstPool, this->numVertices());
+  newMesh.reserveEdges(a_dstPool, this->numEdges());
+  newMesh.reserveFaces(a_dstPool, this->numFaces());
 
   for (uint32_t i = 0; i < this->numVertices(); i++) {
-    newMesh->addVertex(a_dstPool, this->getVertex(i));
+    newMesh.addVertex(a_dstPool, this->getVertex(i));
   }
 
   for (uint32_t i = 0; i < this->numEdges(); i++) {
-    newMesh->addEdge(a_dstPool, this->getEdge(i));
+    newMesh.addEdge(a_dstPool, this->getEdge(i));
   }
 
   for (uint32_t i = 0; i < this->numFaces(); i++) {
-    newMesh->addFace(a_dstPool, this->getFace(i));
+    newMesh.addFace(a_dstPool, this->getFace(i));
   }
 
-  newMesh->setSearchAlgorithm(m_algorithm);
+  newMesh.setSearchAlgorithm(m_algorithm);
 
   return newMesh;
 }

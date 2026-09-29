@@ -1748,17 +1748,16 @@ Parser::readOBJ(const std::vector<std::string>& a_filenames)
 }
 
 template <typename T, typename Meta>
-[[nodiscard]] inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+[[nodiscard]] inline EBGeometry::DCEL::MeshT<T, Meta>
 Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoDCEL requires T to be a floating-point type");
 
-  // Default to an empty (but valid, non-null) mesh so that an unsupported file type -- caught only
-  // by the Unsupported/default branches below, which just log to std::cerr -- still returns a mesh
-  // callers can safely use (0 faces; signedDistance()/unsignedDistance2() correctly report
-  // +infinity), rather than a nullptr that every readInto*/convertToDCEL caller downstream would
-  // need to guard against separately.
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+  // Default to an empty mesh so that an unsupported file type -- caught only by the
+  // Unsupported/default branches below, which just log to std::cerr -- still returns a mesh callers
+  // can safely use (0 faces; signedDistance()/unsignedDistance2() correctly report +infinity).
+  // The per-format readers still hand back a shared_ptr; only its descriptor is returned.
+  EBGeometry::DCEL::MeshT<T, Meta> mesh;
 
   const auto ft = Parser::getFileType(a_filename);
 
@@ -1766,28 +1765,28 @@ Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool)
   case Parser::FileType::STL: {
     const STL<T> stl = readSTL<T>(a_filename);
 
-    mesh = stl.template convertToDCEL<Meta>(a_pool);
+    mesh = *stl.template convertToDCEL<Meta>(a_pool);
 
     break;
   }
   case Parser::FileType::PLY: {
     const PLY<T> ply = readPLY<T>(a_filename);
 
-    mesh = ply.template convertToDCEL<Meta>(a_pool);
+    mesh = *ply.template convertToDCEL<Meta>(a_pool);
 
     break;
   }
   case Parser::FileType::VTK: {
     const VTK<T> vtk = readVTK<T>(a_filename);
 
-    mesh = vtk.template convertToDCEL<Meta>(a_pool);
+    mesh = *vtk.template convertToDCEL<Meta>(a_pool);
 
     break;
   }
   case Parser::FileType::OBJ: {
     const OBJ<T> obj = readOBJ<T>(a_filename);
 
-    mesh = obj.template convertToDCEL<Meta>(a_pool);
+    mesh = *obj.template convertToDCEL<Meta>(a_pool);
 
     break;
   }
@@ -1807,10 +1806,10 @@ Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool)
 }
 
 template <typename T, typename Meta>
-[[nodiscard]] inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
+[[nodiscard]] inline std::vector<EBGeometry::DCEL::MeshT<T, Meta>>
 Parser::readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool)
 {
-  std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>> objects;
+  std::vector<EBGeometry::DCEL::MeshT<T, Meta>> objects;
 
   objects.reserve(a_files.size());
   for (const auto& file : a_files) {
@@ -1826,7 +1825,7 @@ Parser::readIntoMesh(const std::string a_filename, Pool& a_pool)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
 
-  return FlatMeshSDF<T, Meta>(*mesh, a_pool);
+  return FlatMeshSDF<T, Meta>(mesh, a_pool);
 }
 
 template <typename T, typename Meta>
@@ -1845,35 +1844,37 @@ Parser::readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool)
 }
 
 template <typename T, typename Meta>
-[[nodiscard]] std::vector<std::shared_ptr<Triangle<T, Meta>>>
+[[nodiscard]] std::vector<Triangle<T, Meta>>
 Parser::readIntoTriangles(const std::string a_filename, Pool& a_pool)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
 
-  std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
+  std::vector<Triangle<T, Meta>> triangles;
 
   bool onlyTriangles = true;
 
-  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
-    const auto& f             = mesh->getFace(i);
+  triangles.reserve(mesh.numFaces());
+
+  for (uint32_t i = 0; i < mesh.numFaces(); i++) {
+    const auto& f             = mesh.getFace(i);
     const auto  normal        = f.getNormal();
-    const auto  vertexIndices = f.gatherVertexIndices(*mesh);
+    const auto  vertexIndices = f.gatherVertexIndices(mesh);
 
     if (vertexIndices.size() != 3) {
       onlyTriangles = false;
     }
 
-    const auto& v0 = mesh->getVertex(vertexIndices[0]);
-    const auto& v1 = mesh->getVertex(vertexIndices[1]);
-    const auto& v2 = mesh->getVertex(vertexIndices[2]);
+    const auto& v0 = mesh.getVertex(vertexIndices[0]);
+    const auto& v1 = mesh.getVertex(vertexIndices[1]);
+    const auto& v2 = mesh.getVertex(vertexIndices[2]);
 
     // Create the triangle
-    auto tri = std::make_shared<Triangle<T, Meta>>();
+    Triangle<T, Meta> tri;
 
-    tri->setNormal(normal);
-    tri->setVertexPositions({v0.getPosition(), v1.getPosition(), v2.getPosition()});
-    tri->setVertexNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
-    tri->setEdgeNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
+    tri.setNormal(normal);
+    tri.setVertexPositions({v0.getPosition(), v1.getPosition(), v2.getPosition()});
+    tri.setVertexNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
+    tri.setEdgeNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
 
     triangles.emplace_back(tri);
   }
@@ -1886,10 +1887,10 @@ Parser::readIntoTriangles(const std::string a_filename, Pool& a_pool)
 }
 
 template <typename T, typename Meta>
-[[nodiscard]] std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
+[[nodiscard]] std::vector<std::vector<Triangle<T, Meta>>>
 Parser::readIntoTriangles(const std::vector<std::string>& a_files, Pool& a_pool)
 {
-  std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>> triangles;
+  std::vector<std::vector<Triangle<T, Meta>>> triangles;
 
   triangles.reserve(a_files.size());
   for (const auto& file : a_files) {
@@ -1900,7 +1901,7 @@ Parser::readIntoTriangles(const std::vector<std::string>& a_files, Pool& a_pool)
 }
 
 template <typename T, typename Meta, size_t K, size_t W>
-[[nodiscard]] inline std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
+[[nodiscard]] inline TriMeshSDF<T, Meta, K, W>
 Parser::readIntoTriangleBVH(const std::string a_filename,
                             Pool&             a_pool,
                             const size_t      a_maxLeafGroups,
@@ -1909,13 +1910,13 @@ Parser::readIntoTriangleBVH(const std::string a_filename,
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
-  const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename, a_pool);
+  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename, a_pool);
 
-  return std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, a_pool, a_build, a_maxLeafGroups);
+  return TriMeshSDF<T, Meta, K, W>(triangles, a_pool, a_build, a_maxLeafGroups);
 }
 
 template <typename T, typename Meta, size_t K, size_t W>
-[[nodiscard]] inline std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
+[[nodiscard]] inline std::vector<TriMeshSDF<T, Meta, K, W>>
 Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
                             Pool&                           a_pool,
                             const size_t                    a_maxLeafGroups,
@@ -1924,7 +1925,7 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
-  std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>> implicitFunctions;
+  std::vector<TriMeshSDF<T, Meta, K, W>> implicitFunctions;
 
   implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
@@ -1935,24 +1936,24 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
 }
 
 template <typename T, typename Meta, size_t K>
-[[nodiscard]] inline std::shared_ptr<MeshSDF<T, Meta, K>>
+[[nodiscard]] inline MeshSDF<T, Meta, K>
 Parser::readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::Build a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
 
-  return std::make_shared<MeshSDF<T, Meta, K>>(mesh, a_pool, a_build);
+  return MeshSDF<T, Meta, K>(mesh, a_pool, a_build);
 }
 
 template <typename T, typename Meta, size_t K>
-[[nodiscard]] inline std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
+[[nodiscard]] inline std::vector<MeshSDF<T, Meta, K>>
 Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const BVH::Build a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
 
-  std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>> implicitFunctions;
+  std::vector<MeshSDF<T, Meta, K>> implicitFunctions;
 
   implicitFunctions.reserve(a_files.size());
 

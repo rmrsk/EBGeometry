@@ -56,7 +56,7 @@ instance:
    ``unsignedDistance2()``, that scan every face directly. It is not itself a
    ``SignedDistanceFunction<T>``: for anything beyond small meshes, one instead wraps a
    ``MeshT<T, Meta>`` in one of the BVH-accelerated classes described in
-   :ref:`Chap:MeshSDFClasses`, which hold a ``shared_ptr<MeshT<T, Meta>>`` internally and pass it to
+   :ref:`Chap:MeshSDFClasses`, which hold the ``MeshT<T, Meta>`` descriptor by value and pass it to
    every packed face's ``signedDistance()``/``unsignedDistance2()`` call, since a face's half-edge
    index is only meaningful together with the mesh it was built from. A mesh is typically never
    constructed by hand -- it is built by a file parser reading vertices and faces from disk, see

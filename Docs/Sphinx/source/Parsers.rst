@@ -121,12 +121,13 @@ ___________________
 To read one or multiple files and turn it into DCEL meshes, use
 ``readIntoDCEL<T, Meta>(filename, pool)`` (or the ``std::vector<std::string>`` overload for
 multiple files at once, which reserves every mesh's storage from the same ``pool``), returning a
-``shared_ptr<DCEL::MeshT<T, Meta>>`` (or a vector thereof).
+``DCEL::MeshT<T, Meta>`` by value (or a ``std::vector`` of them). The mesh resolves its storage
+through ``pool``, so ``pool`` must outlive it and every copy of it.
 Note that this will only expose the DCEL mesh, but not include any signed distance functionality.
 
 .. note::
 
-   The returned mesh is queryable immediately (``mesh->getVertex(i)``, ``mesh->signedDistance(p)``,
+   The returned mesh is queryable immediately (``mesh.getVertex(i)``, ``mesh.signedDistance(p)``,
    ...), and stays queryable as further meshes are built into the same ``pool``. Nothing has to be
    frozen first -- see :ref:`Chap:MemoryModel`.
 
@@ -137,8 +138,8 @@ To read one or multiple files and also turn it into a bare (BVH-free) signed dis
 representation, use ``readIntoMesh<T, Meta>(filename, pool)``, returning a
 ``FlatMeshSDF<T, Meta>`` by value (or a ``std::vector`` of them for the multi-file overload). The
 returned ``FlatMeshSDF`` resolves its mesh through ``pool`` (see :ref:`Chap:MeshSDFClasses`), so
-``pool`` must outlive it and every copy of it. Repeated calls can share one ``pool`` freely, in any combination with the other
-``readInto*`` functions.
+``pool`` must outlive it and every copy of it. Repeated calls can share one ``pool`` freely, in any
+combination with the other ``readInto*`` functions.
 
 .. _Chap:PackedBVHParser:
 
@@ -146,37 +147,37 @@ DCEL mesh SDF with PackedBVH
 _____________________________
 
 ``readIntoPackedBVH<T, Meta, K>(filename, pool, build)`` wraps a DCEL mesh in a ``PackedBVH``
-(depth-first flat layout) with SIMD traversal, returning a ``shared_ptr<MeshSDF<T, Meta, K>>`` (or
-a vector thereof). It supports any polygon, not just triangles; the BVH branching factor ``K``
-defaults to 4 and the build strategy ``a_build`` defaults to ``BVH::Build::SAH``. The returned
-``MeshSDF`` retains the mesh, so ``pool`` must outlive it. For maximum throughput on
-triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
+(depth-first flat layout) with SIMD traversal, returning a ``MeshSDF<T, Meta, K>`` by value (or a
+``std::vector`` of them). It supports any polygon, not just triangles; the BVH branching factor
+``K`` defaults to 4 and the build strategy ``a_build`` defaults to ``BVH::Build::SAH``. The returned
+``MeshSDF`` holds the mesh and its BVH in ``pool``, so ``pool`` must outlive it and every copy of
+it. For maximum throughput on triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
 
 Triangle meshes with PackedBVH
 ________________________________
 
 ``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, maxLeafGroups, build)``
 converts all DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a
-``PackedBVH``, returning a ``shared_ptr<TriMeshSDF<T, Meta, K, W>>`` (or a vector
-thereof). SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to
+``PackedBVH``, returning a ``TriMeshSDF<T, Meta, K, W>`` by value (or a ``std::vector`` of them).
+SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to
 the SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRatio<T>()`` and
 ``TriangleSoA::DefaultWidth<T>()``, see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 4)
 bounds the number of full ``W``-sized SoA groups per BVH leaf. The code will raise an error if any
 face is not a triangle. Unlike
 ``readIntoMesh``/``readIntoPackedBVH``, the returned ``TriMeshSDF`` extracts flat ``Triangle``
-values from the intermediate DCEL mesh and does not retain it, so ``pool`` only needs to outlive
-this call -- though since a ``Pool`` never individually frees what it reserves (see
-`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), that intermediate mesh's storage stays
-reserved in ``pool`` regardless.
+values from the intermediate DCEL mesh and does not retain it; its BVH is still reserved from
+``pool``, though, so ``pool`` must outlive it. Since a ``Pool`` never individually frees what it
+reserves (see `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), the intermediate mesh's storage
+also stays reserved in ``pool``.
 
 Flat triangle list
 ____________________
 
-``readIntoTriangles<T, Meta>(filename, pool)`` returns a flat ``std::vector<shared_ptr<Triangle<T,
-Meta>>>`` (or, for the multi-file overload, one such vector per file) -- every face of the
-parsed mesh as an independent, self-contained ``Triangle`` value, with no DCEL/half-edge
-topology connecting them. As with ``readIntoTriangleBVH`` above, the intermediate DCEL mesh built
-along the way is not retained by the result, so ``pool`` only needs to outlive this call. Use this
+``readIntoTriangles<T, Meta>(filename, pool)`` returns a flat ``std::vector<Triangle<T, Meta>>``
+(or, for the multi-file overload, one such vector per file) -- every face of the parsed mesh as an
+independent, self-contained ``Triangle`` value, with no DCEL/half-edge topology connecting them.
+The triangles are plain values that do not refer back to ``pool``, so ``pool`` only needs to outlive
+this call. Use this
 when some other part of your code wants raw triangle values (for example, to build a custom
 acceleration structure) rather than any of EBGeometry's own SDF wrappers.
 

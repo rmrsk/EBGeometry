@@ -368,6 +368,11 @@ starting, or the port accumulates device code that nobody has compiled.
 
 ### 1. The mesh distance functions, as standalone types
 
+**Done** (`FlatMeshSDF`, then `MeshSDF` and `TriMeshSDF` together), as plain value types per the
+correction below. Two `shared_ptr` returns were deliberately left for later: `TreeBVH::pack()`/
+`packWith()`, and the per-format readers' `convertToDCEL()` (STL/PLY/OBJ/VTK); the parser entry points
+dereference both.
+
 **This is two changes, not one, and the second is the one that gets forgotten.**
 
 * **De-virtualise.** Give each class a concrete, non-virtual `EBGEOMETRY_HOST_DEVICE signedDistance()`,
