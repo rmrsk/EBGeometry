@@ -132,7 +132,10 @@ CMake options
        message rather than silently producing wrong results.
    * - ``EBGEOMETRY_ENABLE_SANITIZERS``
      - ``OFF``
-     - Add ``-fsanitize=address,undefined`` to tests and examples.
+     - Add ``-fsanitize=address,undefined`` to tests and examples. Under GCC this also adds
+       ``--param=asan-use-after-return=0``: GCC places use-after-return-checked stack frames in
+       32-byte-aligned slots while still emitting 64-byte-aligned AVX-512 spills, which faults on an
+       AVX-512 host in correct code. Clang keeps the use-after-return check.
    * - ``EBGEOMETRY_SIMD``
      - ``avx``
      - ``avx512`` enables ``-mavx512f -mavx2 -mavx -mfma -msse4.1``; ``avx``

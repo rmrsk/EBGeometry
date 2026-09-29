@@ -26,6 +26,16 @@ option(EBGEOMETRY_ENABLE_ASSERTIONS
 option(EBGEOMETRY_ENABLE_SANITIZERS
   "Enable AddressSanitizer and UndefinedBehaviourSanitizer for tests and examples" OFF)
 
+# Compile flags for EBGEOMETRY_ENABLE_SANITIZERS, shared by Tests/ and Examples/. GCC additionally
+# gets its use-after-return instrumentation switched off: that check moves stack frames onto ASan's
+# "fake stack", whose slots GCC 13 only aligns to 32 bytes while still spilling AVX-512 temporaries
+# with 64-byte-aligned stores -- a general-protection fault (reported as a SEGV) on any AVX-512 host,
+# in code that is correct. Clang aligns its fake-stack frames properly and keeps the check.
+set(EBGEOMETRY_SANITIZER_COMPILE_OPTIONS -fsanitize=address,undefined -fno-omit-frame-pointer)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  list(APPEND EBGEOMETRY_SANITIZER_COMPILE_OPTIONS --param=asan-use-after-return=0)
+endif()
+
 option(EBGEOMETRY_ENABLE_CUDA
   "Compile the CUDA device-portability smoke test (requires a CUDA toolkit / nvcc)" OFF)
 

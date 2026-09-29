@@ -190,7 +190,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   }
   REQUIRE(primsAndBVs.size() == 36);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   // Every value of BVH::Build is exercised through one BVH::TreeBVH built the same way MeshSDF
@@ -322,7 +322,7 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
   REQUIRE(mesh != nullptr);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
 
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
     const MeshSDF<T, Meta, K> packed(mesh, pool, build);
@@ -346,7 +346,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshS
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"), pool);
   REQUIRE(mesh != nullptr);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
   const MeshSDF<T, Meta, K>  packed(mesh, pool, BVH::Build::SAH);
 
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
@@ -844,7 +844,7 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     for (size_t i = 0; i < files.size(); i++) {
       const auto single = Parser::readIntoMesh<T, Meta>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
-        REQUIRE_THAT(flatSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
+        REQUIRE_THAT(flatSDFs[i].signedDistance(p), withinAbsT(single.signedDistance(p), formatMargin<T>()));
       }
     }
   }
@@ -1304,6 +1304,74 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment 
   static_assert(std::is_copy_assignable_v<TriMeshSDF<T, Meta, K, W>>);
   static_assert(std::is_move_constructible_v<TriMeshSDF<T, Meta, K, W>>);
   static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
+}
+
+TEMPLATE_TEST_CASE("FlatMeshSDF: rebasedView and deepCopy answer exactly as the original does",
+                   "[BVH][FlatMeshSDF][rebase]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Flat = FlatMeshSDF<T, Meta>;
+
+  // FlatMeshSDF is itself what crosses to a device, so it must stay trivially copyable, and both
+  // crossings must return a FlatMeshSDF rather than some narrower type.
+  static_assert(std::is_trivially_copyable_v<Flat>);
+  static_assert(std::is_same_v<decltype(std::declval<const Flat&>().rebasedView(std::declval<const Pool&>())), Flat>);
+  static_assert(std::is_same_v<decltype(std::declval<const Flat&>().deepCopy(std::declval<Pool&>())), Flat>);
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  REQUIRE(mesh != nullptr);
+
+  const Flat flat(*mesh, pool);
+
+  REQUIRE(flat.isAttachedTo(pool));
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE(flat.signedDistance(p) == mesh->signedDistance(p));
+  }
+
+  SECTION("deepCopy into a separate pool is independent storage")
+  {
+    Pool other(hostMemoryResource());
+
+    const Flat copy = flat.deepCopy(other);
+
+    REQUIRE(copy.isAttachedTo(other));
+    REQUIRE_FALSE(copy.isAttachedTo(pool));
+
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE(copy.signedDistance(p) == flat.signedDistance(p));
+    }
+  }
+
+  SECTION("deepCopy into its own pool survives the pool growing under it")
+  {
+    const Flat copy = flat.deepCopy(pool);
+
+    REQUIRE(copy.isAttachedTo(pool));
+
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE(copy.signedDistance(p) == flat.signedDistance(p));
+    }
+  }
+
+  SECTION("a host-to-host rebasedView resolves against the mirror")
+  {
+    // The host-side analogue of the device crossing: same offsets, a different block, identical
+    // answers.
+    pool.freeze();
+
+    Pool       mirror  = Pool::mirror(pool, hostMemoryResource());
+    const Flat rebased = flat.rebasedView(mirror);
+
+    REQUIRE(rebased.isAttachedTo(mirror));
+    REQUIRE_FALSE(rebased.isAttachedTo(pool));
+
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE(rebased.signedDistance(p) == flat.signedDistance(p));
+    }
+  }
 }
 
 namespace {
@@ -1944,7 +2012,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(triangles.size() == 4);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   BVH::PrimAndBVList<Tri, AABB> primsAndBVs;
@@ -2495,7 +2563,7 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
     primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(*mesh)));
   }
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   // Pack a (partitioned) tree and query it the way MeshSDF does, comparing to the brute-force scan.
@@ -2668,6 +2736,78 @@ TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches th
   DeviceBuffer<T> deviceOut;
 
   packedBvhDeviceKernel<T, K><<<1, 1>>>(deviceView, query, deviceOut.get());
+  (void)GPU::deviceSynchronize();
+
+  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: a rebased FlatMeshSDF evaluates in a kernel and agrees with the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Deterministic probe points shared by host and kernel: a 5x5x5 lattice over [-2, 2]^3. The
+// dodecahedron fixture is centred at the origin with vertices within 1.62 of it on each axis, so the
+// lattice covers points inside, outside, and near its surface.
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+Vec3T<T>
+flatMeshProbePoint(uint32_t a_i) noexcept
+{
+  const T x = T(-2) + T(a_i % 5U);
+  const T y = T(-2) + T((a_i / 5U) % 5U);
+  const T z = T(-2) + T(a_i / 25U);
+
+  return Vec3T<T>(x, y, z);
+}
+
+constexpr uint32_t s_numFlatMeshProbes = 125;
+
+template <class T>
+EBGEOMETRY_GLOBAL
+void
+flatMeshSDFDeviceKernel(const FlatMeshSDF<T, Meta> a_sdf, T* a_out)
+{
+  T sum = T(0);
+
+  for (uint32_t i = 0; i < s_numFlatMeshProbes; i++) {
+    sum += a_sdf.signedDistance(flatMeshProbePoint<T>(i));
+  }
+
+  a_out[0] = sum;
+}
+
+TEMPLATE_TEST_CASE("FlatMeshSDF: a rebased FlatMeshSDF evaluates on device and matches the host",
+                   "[BVH][FlatMeshSDF][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  REQUIRE(mesh != nullptr);
+
+  const FlatMeshSDF<T, Meta> flat(*mesh, pool);
+
+  T hostVal = T(0);
+
+  for (uint32_t i = 0; i < s_numFlatMeshProbes; i++) {
+    hostVal += flat.signedDistance(flatMeshProbePoint<T>(i));
+  }
+
+  pool.freeze();
+
+  Pool       devicePool = Pool::mirror(pool, deviceMemoryResource());
+  const auto deviceView = flat.rebasedView(devicePool);
+
+  DeviceBuffer<T> deviceOut;
+
+  flatMeshSDFDeviceKernel<T><<<1, 1>>>(deviceView, deviceOut.get());
   (void)GPU::deviceSynchronize();
 
   REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));

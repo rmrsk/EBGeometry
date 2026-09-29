@@ -212,49 +212,61 @@ buildTriTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>
 } // namespace MeshDistanceFunctionsDetail
 
 template <class T, class Meta>
-FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool) noexcept
+EBGEOMETRY_HOST
+inline FlatMeshSDF<T, Meta>::FlatMeshSDF(const Mesh& a_mesh, Pool& a_pool) noexcept : m_mesh(a_mesh)
 {
-  EBGEOMETRY_EXPECT(a_mesh != nullptr);
-  EBGEOMETRY_EXPECT(a_mesh->isAttachedTo(a_pool));
+  EBGEOMETRY_EXPECT(a_mesh.isAttachedTo(a_pool));
 
-  // This object retains a_mesh but not a_pool, and the mesh resolves everything through the pool,
-  // so a_pool must outlive this object. Taking it by reference here is what makes that requirement
-  // visible at the call site (and checkable above); nothing else is done with it.
+  // The mesh descriptor copied above resolves through a_pool, so a_pool must outlive this object.
+  // Taking it by reference is what makes that requirement visible at the call site (and checkable
+  // above); nothing else is done with it.
   (void)a_pool;
-
-  m_mesh = a_mesh;
 }
 
 template <class T, class Meta>
-T
+EBGEOMETRY_HOST_DEVICE
+inline T
 FlatMeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  EBGEOMETRY_EXPECT(m_mesh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return m_mesh->signedDistance(a_point);
+  return m_mesh.signedDistance(a_point);
 }
 
 template <class T, class Meta>
-const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-FlatMeshSDF<T, Meta>::getMesh() const noexcept
+EBGEOMETRY_HOST
+inline FlatMeshSDF<T, Meta>
+FlatMeshSDF<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
 {
-  EBGEOMETRY_EXPECT(m_mesh != nullptr);
+  FlatMeshSDF view = *this;
 
-  return m_mesh;
+  view.m_mesh = m_mesh.rebasedView(a_pool);
+
+  return view;
+}
+
+template <class T, class Meta>
+EBGEOMETRY_HOST
+inline FlatMeshSDF<T, Meta>
+FlatMeshSDF<T, Meta>::deepCopy(Pool& a_dstPool) const
+{
+  FlatMeshSDF copy = *this;
+
+  copy.m_mesh = *m_mesh.deepCopy(a_dstPool);
+
+  return copy;
 }
 
 template <class T, class Meta>
 template <class BV>
-BV
+EBGEOMETRY_HOST
+inline BV
 FlatMeshSDF<T, Meta>::computeBoundingVolume() const
 {
-  EBGEOMETRY_EXPECT(m_mesh != nullptr);
-
-  return BV(m_mesh->getAllVertexCoordinates());
-};
+  return BV(m_mesh.getAllVertexCoordinates());
+}
 
 template <class T, class Meta, size_t K>
 MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool, const BVH::Build a_build)

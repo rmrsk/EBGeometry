@@ -382,6 +382,16 @@ The second half is **newly possible because of this branch**: `PackedBVH` is now
 trivially copyable, and `DCEL::MeshT` has been verified to be so as well. Before PR C, holding either
 by value was not an option.
 
+**Correction (found porting `FlatMeshSDF`):** dropping the `shared_ptr` members is necessary but not
+sufficient, and "de-virtualise, keep the virtual override as a delegate" does not work. These classes
+derive from `SignedDistanceFunction`, and any class with virtual functions carries a host-side vtable
+pointer, so it is never trivially copyable whatever its members are. Decided instead: the mesh SDFs
+drop the inheritance and become plain value types (payload by value, no `shared_ptr` constructors,
+`rebasedView()`/`deepCopy()` returning the class itself, returned by value from the parser).
+`FlatMeshSDF` is the reference instance. Their use as `ImplicitFunction`s (CSG, transforms,
+integrations) is dropped until the tape, with no interim adapter. The tag/opcode registry below is
+deferred: only the tape needs it, and the tape is now last.
+
 Order, ascending by number of moving parts:
 
 1. **`FlatMeshSDF`** — one member, no BVH. The smallest complete instance of the pattern, and porting
@@ -392,10 +402,10 @@ Order, ascending by number of moving parts:
 
 `getClosestFaces` stays host-only: it runs on `traverse()`, which keeps its `std::function` interface.
 
-**Define the tag/opcode registry once, here**, even though only three types populate it at first.
-`PORTING.md` already calls for a generated opcode registry as the single source of truth; if the mesh
-SDFs get an ad-hoc scheme now and the implicit functions get the real one in step 2, the two have to
-be merged later.
+**(Deferred to the tape -- see the correction above.)** Define the tag/opcode registry once, here,
+even though only three types populate it at first. `PORTING.md` already calls for a generated opcode
+registry as the single source of truth; if the mesh SDFs get an ad-hoc scheme now and the implicit
+functions get the real one in step 2, the two have to be merged later.
 
 Keep `ImplicitFunction<T>` and `SignedDistanceFunction<T>` alive throughout as the compatibility
 surface. The first attempt deleted `SignedDistanceFunction<T>` outright, and that was a user-visible

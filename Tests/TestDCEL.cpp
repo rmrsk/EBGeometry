@@ -1412,7 +1412,6 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
   auto mesh = Parser::readIntoMesh<T>(path, pool);
 
   REQUIRE(fast != nullptr);
-  REQUIRE(mesh != nullptr);
 
   // Compare a handful of query points.  Near-zero values use WithinAbs.
   const std::vector<Vec3T<T>> queries = {
@@ -1422,13 +1421,13 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
   };
 
   for (const auto& q : queries) {
-    const T dBrute = mesh->signedDistance(q);
+    const T dBrute = mesh.signedDistance(q);
     const T dFast  = fast->signedDistance(q);
     REQUIRE_THAT(dFast, WithinRel(dBrute, T(traversalMargin<T>())));
   }
 
   // Edge point: both should be near-zero
-  const T dEdgeBrute = mesh->signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
+  const T dEdgeBrute = mesh.signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
   const T dEdgeFast  = fast->signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
   REQUIRE_THAT(dEdgeFast, withinAbsT(dEdgeBrute, traversalMargin<T>()));
 }

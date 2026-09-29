@@ -133,13 +133,14 @@ kernel and compares against the host:
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
 | BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
 | Point-cloud BVH queries | `PointCloudBVH` (holds a `PackedBVH`; the build stays host-side) | roadmap step 0b |
+| Brute-force mesh SDF | `FlatMeshSDF` (a plain value type; no longer a `SignedDistanceFunction`) | roadmap step 4a |
 
 ## What is not
 
 | Component | Blocker |
 |---|---|
 | `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
-| `MeshSDF` / `FlatMeshSDF` / `TriMeshSDF` | Their `PackedBVH` is ported and pool-backed, but the wrappers are not device-callable and, more to the point, not trivially copyable: each holds its BVH and/or mesh as a `shared_ptr` member. Next step |
+| `MeshSDF` / `TriMeshSDF` | Their `PackedBVH` is ported and pool-backed, but the wrappers are not device-callable and not trivially copyable. Next step, following `FlatMeshSDF`'s pattern (plain value type, no `SignedDistanceFunction` base) |
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
 | `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform`, analytic SDFs | Still the original virtual-`value()` design; this is where the tape returns |
@@ -265,14 +266,20 @@ meantime, since it would be a second tape.
    `PLAN.md`'s "PR D" section carries the evidence, including why the `IndexStorage` policy that once
    wrapped this pattern bought nothing over it.
 
-   **De-virtualising is only half of it.** Every one of these classes also holds its payload as a
-   `shared_ptr` member (`FlatMeshSDF`: the mesh; `TriMeshSDF`: the BVH; `MeshSDF`: both). Annotating
-   methods changes nothing while those remain — the class stays non-trivially-copyable and cannot be
-   mirrored. They must become by-value members, which is newly possible: `PackedBVH` and
-   `DCEL::MeshT` are both trivially copyable as of step 2.
+   **The mesh SDFs stop deriving from `SignedDistanceFunction`.** A class with virtual functions
+   carries a pointer to a host-side virtual-function table, so it is never trivially copyable however
+   its members are stored, and CUDA forbids passing one to a kernel. Each mesh SDF therefore becomes
+   a plain value type: its payload held by value (`PackedBVH`, `DCEL::MeshT`, both trivially copyable
+   as of step 2), constructed without `shared_ptr`s, with an `EBGEOMETRY_HOST_DEVICE`
+   `signedDistance()`, and with `rebasedView(pool)`/`deepCopy(pool)` returning the class itself.
+   Parser entry points return them by value. `FlatMeshSDF` (step 4a, first pass) is the reference
+   instance. This deliberately drops their use as `ImplicitFunction`s (in CSG, transforms and the
+   AMReX/Chombo integrations) until the tape brings composition back; no host-side adapter is to be
+   built in the meantime.
 
-   **Define the tag/opcode registry once, in the first pass**, even though only a few types populate
-   it at first, so the mesh SDFs and the analytic layer do not end up with two schemes to merge.
+   **The tag/opcode registry is deferred to the tape.** It was to be defined in the first pass so the
+   mesh SDFs and the analytic layer shared one scheme, but only the tape consumes it, and the tape is
+   now the last step; defining it there avoids designing it before its one consumer exists.
 
    **`SignedDistanceFunction<T>` stays**, as does `ImplicitFunction<T>`: they are the compatibility
    surface the thin delegates hang off. The first attempt deleted `SignedDistanceFunction<T>` outright

@@ -11,7 +11,7 @@ function(ebgeometry_add_example name)
   add_subdirectory(${name})
 
   if(EBGEOMETRY_ENABLE_SANITIZERS)
-    target_compile_options(${name} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_compile_options(${name} PRIVATE ${EBGEOMETRY_SANITIZER_COMPILE_OPTIONS})
     target_link_options(${name} PRIVATE -fsanitize=address,undefined)
   endif()
 
