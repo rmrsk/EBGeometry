@@ -53,8 +53,10 @@ distinction is one of guarantee rather than signature -- an arbitrary ``Implicit
 only promises that the sign of its output indicates inside/outside, whereas a
 ``SignedDistanceFunction<T>`` additionally promises that the *magnitude* of its output is the
 true Euclidean distance to the surface (the Eikonal property, :math:`|\nabla S| = 1`; see
-:ref:`Chap:GeometryRepresentations` for why this property matters). Every analytic shape and
-mesh distance field shipped with EBGeometry is a ``SignedDistanceFunction<T>``.
+:ref:`Chap:GeometryRepresentations` for why this property matters). Every analytic shape shipped
+with EBGeometry is a ``SignedDistanceFunction<T>``. The mesh distance fields (``FlatMeshSDF``,
+``MeshSDF``, ``TriMeshSDF``) are not: they are plain device-callable value types that provide
+``signedDistance()`` without the virtual interface, see :ref:`Chap:MeshSDFClasses`.
 
 Because the true distance is available, ``SignedDistanceFunction<T>`` also provides a concrete
 ``normal(point, delta)`` member function that estimates the outward unit normal from central
@@ -68,10 +70,10 @@ For the full API, see the Doxygen page for
 
    Various ready-to-use implementations of both interfaces are declared in
    :file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` (spheres, boxes, planes, cylinders,
-   tori, and other closed-form primitives) and in
-   :file:`Source/EBGeometry_MeshDistanceFunctions.hpp` (the DCEL/triangle-mesh-backed classes
-   ``MeshSDF`` and ``TriMeshSDF`` -- see :ref:`Chap:MeshSDFClasses`). ``FlatMeshSDF``, declared in
-   the same file, is a plain device-callable value type and does not implement either interface.
+   tori, and other closed-form primitives). The mesh-backed ``FlatMeshSDF``, ``MeshSDF`` and
+   ``TriMeshSDF`` in :file:`Source/EBGeometry_MeshDistanceFunctions.hpp` (see
+   :ref:`Chap:MeshSDFClasses`) are plain device-callable value types and implement neither
+   interface.
 
 Transformations
 ----------------

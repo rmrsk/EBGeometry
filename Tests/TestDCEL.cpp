@@ -34,12 +34,11 @@ template <class T>
 static std::shared_ptr<MeshT<T, DefaultMetaData>>
 loadTetrahedron(Pool& a_pool)
 {
-  auto mesh = Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.stl", a_pool);
-
   // The mesh is attached to a_pool by its first reserve inside readIntoDCEL and is queryable from
   // that point on: no freeze, no bind. Each call site below uses its own fresh, single-use Pool.
-
-  return mesh;
+  // readIntoDCEL returns the mesh descriptor by value; it is wrapped here only so that the many
+  // call sites below can share one handle.
+  return std::make_shared<MeshT<T, DefaultMetaData>>(Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.stl", a_pool));
 }
 
 // Build a tetrahedron DCEL mesh entirely from hard-coded data (no file I/O).
@@ -920,25 +919,24 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy produces an independent mesh with the same g
   auto mesh = buildTetrahedron<T>(srcPool);
   auto copy = mesh->deepCopy(dstPool);
 
-  REQUIRE(copy != nullptr);
-  REQUIRE(copy->numVertices() == mesh->numVertices());
-  REQUIRE(copy->numEdges() == mesh->numEdges());
-  REQUIRE(copy->numFaces() == mesh->numFaces());
+  REQUIRE(copy.numVertices() == mesh->numVertices());
+  REQUIRE(copy.numEdges() == mesh->numEdges());
+  REQUIRE(copy.numFaces() == mesh->numFaces());
 
   for (uint32_t i = 0; i < mesh->numFaces(); i++) {
-    REQUIRE((copy->getFace(i).getNormal() - mesh->getFace(i).getNormal()).length() < T(exactMargin<T>()));
-    REQUIRE_THAT(copy->getFace(i).getArea(), withinAbsT(mesh->getFace(i).getArea(), exactMargin<T>()));
+    REQUIRE((copy.getFace(i).getNormal() - mesh->getFace(i).getNormal()).length() < T(exactMargin<T>()));
+    REQUIRE_THAT(copy.getFace(i).getArea(), withinAbsT(mesh->getFace(i).getArea(), exactMargin<T>()));
   }
 
   // The copy must be usable for signed-distance queries (validates that the projection axes were
   // correctly rebuilt for every face). Done before mutating the copy, since the point-in-face test
   // projects the face's vertices on the fly and so reflects the live geometry.
   const Vec3T<T> p(0.1, 0.1, 0.1);
-  REQUIRE_THAT(copy->signedDistance(p), withinAbsT(mesh->signedDistance(p), formulaMargin<T>()));
+  REQUIRE_THAT(copy.signedDistance(p), withinAbsT(mesh->signedDistance(p), formulaMargin<T>()));
 
   // Mutating the copy must not affect the original -- this is the meaningful test of independence
   // now that vertices/edges/faces are plain values rather than shared_ptr-identified objects.
-  copy->getVertex(0).setPosition(Vec3T<T>(999, 999, 999));
+  copy.getVertex(0).setPosition(Vec3T<T>(999, 999, 999));
   REQUIRE(mesh->getVertex(0).getPosition() != Vec3T<T>(999, 999, 999));
 }
 
@@ -957,7 +955,7 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy preserves a prior flip() instead of silently
   auto copy = mesh->deepCopy(dstPool);
 
   for (uint32_t i = 0; i < mesh->numFaces(); i++) {
-    REQUIRE((copy->getFace(i).getNormal() - mesh->getFace(i).getNormal()).length() < T(exactMargin<T>()));
+    REQUIRE((copy.getFace(i).getNormal() - mesh->getFace(i).getNormal()).length() < T(exactMargin<T>()));
   }
 }
 
@@ -1069,14 +1067,14 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy into the same Pool is safe even when it grow
   auto mesh = buildTetrahedron<T>(pool);
   auto copy = mesh->deepCopy(pool);
 
-  REQUIRE(copy->numVertices() == mesh->numVertices());
-  REQUIRE(copy->numFaces() == mesh->numFaces());
+  REQUIRE(copy.numVertices() == mesh->numVertices());
+  REQUIRE(copy.numFaces() == mesh->numFaces());
 
   const Vec3T<T> p(0.1, 0.1, 0.1);
-  REQUIRE_THAT(copy->signedDistance(p), withinAbsT(mesh->signedDistance(p), formulaMargin<T>()));
+  REQUIRE_THAT(copy.signedDistance(p), withinAbsT(mesh->signedDistance(p), formulaMargin<T>()));
 
   for (uint32_t i = 0; i < mesh->numVertices(); i++) {
-    REQUIRE(copy->getVertex(i).getPosition() == mesh->getVertex(i).getPosition());
+    REQUIRE(copy.getVertex(i).getPosition() == mesh->getVertex(i).getPosition());
   }
 }
 
@@ -1237,7 +1235,7 @@ TEMPLATE_TEST_CASE("DCEL: tetrahedron loads without error", "[DCEL]", EBGEOMETRY
   REQUIRE(mesh != nullptr);
 }
 
-TEMPLATE_TEST_CASE("Parser::readIntoDCEL returns a valid, empty mesh (not nullptr) for an "
+TEMPLATE_TEST_CASE("Parser::readIntoDCEL returns a valid, empty mesh for an "
                    "unrecognized file extension",
                    "[DCEL][Parser]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1247,14 +1245,13 @@ TEMPLATE_TEST_CASE("Parser::readIntoDCEL returns a valid, empty mesh (not nullpt
   Pool pool(hostMemoryResource());
   auto mesh = Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.unsupported-extension", pool);
 
-  REQUIRE(mesh != nullptr);
-  REQUIRE(mesh->numVertices() == 0);
-  REQUIRE(mesh->numEdges() == 0);
-  REQUIRE(mesh->numFaces() == 0);
+  REQUIRE(mesh.numVertices() == 0);
+  REQUIRE(mesh.numEdges() == 0);
+  REQUIRE(mesh.numFaces() == 0);
 
   const auto inf = std::numeric_limits<T>::infinity();
-  REQUIRE(mesh->signedDistance(Vec3T<T>(0, 0, 0)) == inf);
-  REQUIRE(mesh->unsignedDistance2(Vec3T<T>(0, 0, 0)) == inf);
+  REQUIRE(mesh.signedDistance(Vec3T<T>(0, 0, 0)) == inf);
+  REQUIRE(mesh.unsignedDistance2(Vec3T<T>(0, 0, 0)) == inf);
 }
 
 TEMPLATE_TEST_CASE("DCEL: tetrahedron has correct face and vertex counts", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
@@ -1340,7 +1337,7 @@ TEMPLATE_TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]", E
   auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 
-  TestMeshSDF<T> sdf(mesh, pool, BVH::Build::SAH);
+  TestMeshSDF<T> sdf(*mesh, pool, BVH::Build::SAH);
 
   SECTION("centroid is inside (SDF < 0)")
   {
@@ -1374,7 +1371,7 @@ TEMPLATE_TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DC
 
   Pool           pool(hostMemoryResource());
   auto           mesh = buildTetrahedron<T>(pool);
-  TestMeshSDF<T> sdf(mesh, pool, BVH::Build::SAH);
+  TestMeshSDF<T> sdf(*mesh, pool, BVH::Build::SAH);
 
   // Far outside: must be positive.
   REQUIRE(sdf.signedDistance(Vec3T<T>(2.0, 2.0, 2.0)) > T(0.0));
@@ -1390,7 +1387,7 @@ TEMPLATE_TEST_CASE("DCEL sign convention: interior point has negative SDF", "[DC
 
   Pool           pool(hostMemoryResource());
   auto           mesh = buildTetrahedron<T>(pool);
-  TestMeshSDF<T> sdf(mesh, pool, BVH::Build::SAH);
+  TestMeshSDF<T> sdf(*mesh, pool, BVH::Build::SAH);
 
   // Centroid of the tetrahedron is clearly inside.
   REQUIRE(sdf.signedDistance(Vec3T<T>(0.25, 0.25, 0.25)) < T(0.0));
@@ -1411,8 +1408,6 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
   auto fast = Parser::readIntoTriangleBVH<T>(path, pool);
   auto mesh = Parser::readIntoMesh<T>(path, pool);
 
-  REQUIRE(fast != nullptr);
-
   // Compare a handful of query points.  Near-zero values use WithinAbs.
   const std::vector<Vec3T<T>> queries = {
     {0.25, 0.25, 0.25}, // centroid (inside)
@@ -1422,13 +1417,13 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
 
   for (const auto& q : queries) {
     const T dBrute = mesh.signedDistance(q);
-    const T dFast  = fast->signedDistance(q);
+    const T dFast  = fast.signedDistance(q);
     REQUIRE_THAT(dFast, WithinRel(dBrute, T(traversalMargin<T>())));
   }
 
   // Edge point: both should be near-zero
   const T dEdgeBrute = mesh.signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
-  const T dEdgeFast  = fast->signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
+  const T dEdgeFast  = fast.signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
   REQUIRE_THAT(dEdgeFast, withinAbsT(dEdgeBrute, traversalMargin<T>()));
 }
 

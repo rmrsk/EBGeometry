@@ -208,10 +208,10 @@ public:
    * though the reserves below can grow (and move) the block, because both meshes re-resolve through
    * the Pool's control block on every access rather than caching an address.
    * @param[in,out] a_dstPool Pool to reserve the copy's storage from.
-   * @return A new mesh, independent of this one.
+   * @return A new mesh, independent of this one, by value.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  inline std::shared_ptr<Mesh>
+  inline Mesh
   deepCopy(Pool& a_dstPool) const;
 
   /**

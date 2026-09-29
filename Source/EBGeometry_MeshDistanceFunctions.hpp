@@ -26,7 +26,6 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Pool.hpp"
-#include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleAoSoA.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
@@ -142,14 +141,14 @@ public:
   }
 
   /**
-   * @brief Compute the axis-aligned bounding volume enclosing the mesh.
-   * @tparam BV Bounding-volume type to construct (e.g. AABBT<T>).
-   * @return Bounding volume that encloses all mesh vertices.
+   * @brief Compute the AABB enclosing the entire mesh.
+   * @details A componentwise min/max over the mesh vertices, so it is callable on host and device
+   * alike. An empty mesh yields an inverted box (low corner +max, high corner -max).
+   * @return Axis-aligned bounding box of the mesh.
    */
-  template <class BV>
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline BV
-  computeBoundingVolume() const;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline EBGeometry::BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept;
 
 private:
   /**
@@ -166,22 +165,25 @@ static_assert(std::is_trivially_copyable_v<FlatMeshSDF<float>>, "FlatMeshSDF<flo
 static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>>, "FlatMeshSDF<double> must be trivially copyable");
 
 /**
- * @brief Signed distance function for a DCEL mesh. Stores the mesh in a PackedBVH for
- * SIMD-accelerated traversal. Accepts any polygon, not just triangles.
- * @details The mesh faces are packed into a flat-array PackedBVH. SIMD traversal
- * is used when T and K match an available ISA path. Each packed face is a fresh copy of the
- * corresponding DCEL mesh face, stored inline (DCEL::FaceT is a plain, trivially-copyable value, so
- * copying it is cheap and free of aliasing). That copy is only meaningful together with the mesh it
- * was built from, though: a FaceT stores its half-edge as an index into its owning mesh's edge
- * array, not a self-resolving reference, so MeshSDF retains the source mesh (m_mesh) and passes it
- * to every DCEL::FaceT query that needs to resolve topology (point-in-face tests, signed
- * distance).
+ * @brief Signed distance function for a DCEL mesh, accelerated by a PackedBVH over its faces.
+ * Accepts any polygon, not just triangles.
+ * @details The mesh faces are packed into a flat-array PackedBVH; SIMD node pruning is used when T
+ * and K match an available ISA path. Each packed face is a copy of the corresponding DCEL face,
+ * whose half-edge is an index into the mesh's own edge array, so MeshSDF holds the mesh as well and
+ * passes it to every face query that resolves topology.
+ *
+ * A plain value type, like FlatMeshSDF: it holds the mesh descriptor and the BVH by value, both
+ * resolving against the one Pool passed to the constructor, so it is trivially copyable and
+ * signedDistance() is callable on the host and on a device. It does not derive from
+ * SignedDistanceFunction -- a class with virtual functions can never be passed to a kernel. Copies
+ * share the pool memory, and the pool must outlive all of them. To evaluate on a device, freeze and
+ * mirror the pool and pass rebasedView() into a kernel.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).
  */
 template <class T, class Meta, size_t K>
-class MeshSDF : public SignedDistanceFunction<T>
+class MeshSDF
 {
   static_assert(std::is_floating_point_v<T>, "MeshSDF requires a floating-point T");
   static_assert(K >= 2, "MeshSDF requires branching factor K >= 2");
@@ -213,114 +215,149 @@ public:
   MeshSDF() = delete;
 
   /**
-   * @brief Full constructor. Takes the input mesh and creates the BVH.
+   * @brief Full constructor. Copies the mesh descriptor and builds the BVH over its faces.
    * @details No default arguments: this is a low-level constructor, and callers working at this
    * level must consciously choose a build strategy. Use Parser::readIntoPackedBVH for sensible
-   * defaults. Nothing is frozen or bound; see FlatMeshSDF's constructor. a_pool must outlive this
-   * object for the same reason given there, and additionally because the BVH built below holds DCEL
-   * faces whose indices are meaningful only against that same storage.
+   * defaults. The BVH is reserved from a_pool, which must be the pool a_mesh was built in, so that
+   * one rebasedView() rebases both. a_pool must outlive this object and every copy of it.
    * @param[in]     a_mesh   Input mesh, built against a_pool.
-   * @param[in,out] a_pool   Pool a_mesh's storage was reserved from. Must outlive this object.
+   * @param[in,out] a_pool   Pool a_mesh's storage was reserved from; the BVH is reserved here too.
    * @param[in]     a_build  BVH build strategy. SAH (binned Surface Area Heuristic) is recommended.
    */
-  MeshSDF(const std::shared_ptr<Mesh>& a_mesh, Pool& a_pool, const BVH::Build a_build);
-
-  /**
-   * @brief Destructor
-   */
-  ~MeshSDF() override = default;
-
-  /**
-   * @brief Copy constructor.
-   * @details Explicitly defaulted for documentation purposes: MeshSDF's members (m_bvh, m_mesh)
-   * are both shared_ptr, so the implicitly-generated copy is a cheap, correct handle-copy.
-   * @param[in] a_other Other instance to copy.
-   */
-  MeshSDF(const MeshSDF& a_other) = default;
-
-  /**
-   * @brief Copy assignment operator.
-   * @param[in] a_other Other instance to copy.
-   * @return Reference to *this.
-   */
-  MeshSDF&
-  operator=(const MeshSDF& a_other) = default;
-
-  /**
-   * @brief Move constructor.
-   * @details Explicitly defaulted: the user-declared destructor above would otherwise suppress
-   * the implicitly-generated move constructor.
-   * @param[in,out] a_other Other instance to move from.
-   */
-  MeshSDF(MeshSDF&& a_other) noexcept = default;
-
-  /**
-   * @brief Move assignment operator.
-   * @param[in,out] a_other Other instance to move from.
-   * @return Reference to *this.
-   */
-  MeshSDF&
-  operator=(MeshSDF&& a_other) noexcept = default;
+  EBGEOMETRY_HOST
+  inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
    * @param[in] a_point Query point.
    * @return Signed distance to the nearest face; negative inside the mesh.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Return faces within BVH-pruned candidate distance of a_point.
    * @details Traverses the PackedBVH and collects candidate faces, pairing each with its unsigned
-   * distance to @p a_point.
+   * distance to @p a_point. Host-only: it runs on PackedBVH::traverse(), whose callbacks are
+   * std::functions, and returns a std::vector.
    *
    * Faces are named by their index into this object's own BVH primitive array -- the array
-   * getRoot()->getPrimitives() returns -- and *not* by an index into the source mesh's face array.
+   * getRoot().getPrimitives() returns -- and *not* by an index into the source mesh's face array.
    * Packing reorders primitives into leaf order and stores them by value, so nothing records which
-   * mesh face a packed face came from. Resolve an index with getRoot()->getPrimitives()[index].
+   * mesh face a packed face came from. Resolve an index with getRoot().getPrimitives()[index].
    * @param[in] a_point  Query point.
    * @param[in] a_sorted If true, the returned vector is sorted by ascending
    * unsigned distance (closest face first).
    * @return Vector of (BVH primitive index, unsigned_distance) pairs, optionally sorted.
    */
-  [[nodiscard]] virtual std::vector<std::pair<uint32_t, T>>
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline std::vector<std::pair<uint32_t, T>>
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const;
 
   /**
    * @brief Get the PackedBVH enclosing the mesh.
-   * @return Mutable reference to the shared-pointer owning the packed BVH root.
+   * @details Mutable, so that a caller who moves the mesh's vertices can refit() the BVH in place.
+   * @return The packed BVH.
    */
-  [[nodiscard]] virtual std::shared_ptr<Root>&
-  getRoot() noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Root&
+  getRoot() noexcept
+  {
+    return m_bvh;
+  }
 
   /**
    * @brief Get the PackedBVH enclosing the mesh (const overload).
-   * @return Const reference to the shared-pointer owning the packed BVH root.
+   * @return The packed BVH.
    */
-  [[nodiscard]] virtual const std::shared_ptr<Root>&
-  getRoot() const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Root&
+  getRoot() const noexcept
+  {
+    return m_bvh;
+  }
+
+  /**
+   * @brief Get the DCEL mesh descriptor the BVH's faces resolve against.
+   * @return The mesh.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Mesh&
+  getMesh() const noexcept
+  {
+    return m_mesh;
+  }
 
   /**
    * @brief Compute the AABB enclosing the entire mesh.
    * @return Axis-aligned bounding box of the mesh.
    */
-  [[nodiscard]] EBGeometry::BoundingVolumes::AABBT<T>
-  computeBoundingVolume() const noexcept;
-
-protected:
-  /**
-   * @brief Linearized BVH
-   */
-  std::shared_ptr<Root> m_bvh;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline EBGeometry::BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return m_bvh.getBoundingVolume();
+  }
 
   /**
-   * @brief Source DCEL mesh.
-   * @details Retained so that the faces held by m_bvh -- whose half-edges (and the edges/vertices
-   * reachable from them) are only weakly referenced, not owned, see DCEL::FaceT::m_halfEdge -- stay
-   * valid. The mesh's own vertex/edge/face vectors are the sole owners of that topology.
+   * @brief Produce a copy of this object that resolves against @p a_pool.
+   * @details Rebases the mesh descriptor and the BVH together; see DCEL::MeshT::rebasedView() and
+   * BVH::PackedBVH::rebasedView() for the contract. This is the one sanctioned crossing to a device.
+   * @param[in] a_pool Pool to rebase onto; must be a mirror of this object's own pool.
+   * @return A MeshSDF resolving against @p a_pool.
    */
-  std::shared_ptr<Mesh> m_mesh;
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline MeshSDF
+  rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief Duplicate the mesh's and the BVH's storage into @p a_dstPool.
+   * @details The copy constructor copies descriptors only. This gives genuinely independent storage.
+   * The copied faces still index the copied mesh correctly, since a mesh deep copy preserves every
+   * element's index.
+   * @param[in,out] a_dstPool Pool to reserve the copy from; may be this object's own pool.
+   * @return A MeshSDF over independent copies of the mesh and BVH, attached to @p a_dstPool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline MeshSDF
+  deepCopy(Pool& a_dstPool) const;
+
+  /**
+   * @brief Check whether the mesh and the BVH were both reserved from @p a_pool.
+   * @param[in] a_pool Pool to test against.
+   * @return True if both are attached to @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline bool
+  isAttachedTo(const Pool& a_pool) const noexcept
+  {
+    return m_mesh.isAttachedTo(a_pool) && m_bvh.isAttachedTo(a_pool);
+  }
+
+private:
+  /**
+   * @brief Build and pack the BVH over a mesh's faces.
+   * @param[in]     a_mesh  Mesh whose faces to index.
+   * @param[in,out] a_pool  Pool to reserve the packed BVH from.
+   * @param[in]     a_build BVH build strategy.
+   * @return The packed BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline Root
+  buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
+
+  /**
+   * @brief Source DCEL mesh descriptor.
+   * @details Held because the faces in m_bvh store their half-edge as an index into this mesh's
+   * edge array, meaningful only together with it.
+   */
+  Mesh m_mesh;
+
+  /**
+   * @brief Linearized BVH over copies of the mesh's faces.
+   */
+  Root m_bvh;
 };
 
 /**
@@ -332,23 +369,25 @@ protected:
  * No default arguments: this is a low-level constructor, and callers who excavate down to it
  * must consciously choose K and W. Use Parser::readIntoTriangleBVH for sensible ISA-tuned
  * defaults (BVH::DefaultBranchingRatio<T>() for K, TriangleSoA::DefaultWidth<T>() for W).
+ *
+ * Each leaf primitive is a TriangleAoSoA<T, Meta, W>: an SoA triangle block for SIMD signed-distance
+ * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
+ * never reads the metadata; getClosestTriangle() does, returning the closest triangle's signed
+ * distance together with its Meta (see issue #105). The groups are self-contained -- no reference
+ * back to a mesh -- so the packed BVH is the only thing this class holds.
+ *
+ * A plain value type, like FlatMeshSDF and MeshSDF: the BVH is held by value in the Pool passed to
+ * the constructor, so the class is trivially copyable and every query is callable on the host and
+ * on a device. It does not derive from SignedDistanceFunction. Copies share the pool memory, and
+ * the pool must outlive all of them. To evaluate on a device, freeze and mirror the pool and pass
+ * rebasedView() into a kernel.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type.
  * @tparam K    BVH branching factor (number of children per internal node). Must be >= 2.
  * @tparam W    SoA width: number of triangles per SIMD group. Must be > 0.
- * Each leaf primitive is a TriangleAoSoA<T, Meta, W>: an SoA triangle block for SIMD signed-distance
- * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
- * never reads the metadata; getClosestTriangle() does, returning the closest triangle's signed
- * distance together with its Meta (see issue #105).
- * The SoA groups are built by groupTrianglesIntoSoA() while packing and owned by nothing else, so
- * the packed BVH stores them inline, by value. Instancing the same mesh multiple times (e.g. via
- * Translate/Rotate/Scale or a CSG union) does not duplicate them: those wrappers hold a shared_ptr
- * to the whole TriMeshSDF, so its packed data exists once no matter how many placements refer to
- * it. Making the group array pool-resident in its own right belongs with the de-virtualisation of
- * the SDF wrappers (PORTING.md step 4).
  */
 template <class T, class Meta, size_t K, size_t W>
-class TriMeshSDF : public SignedDistanceFunction<T>
+class TriMeshSDF
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
   static_assert(K >= 2, "TriMeshSDF requires branching factor K >= 2");
@@ -361,7 +400,7 @@ public:
   using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
 
   /**
-   * @brief Alias for DCEL face type
+   * @brief Alias for the flat triangle type the BVH is built from.
    */
   using Tri = typename EBGeometry::Triangle<T, Meta>;
 
@@ -393,14 +432,12 @@ public:
   TriMeshSDF() = delete;
 
   /**
-   * @brief Full constructor. Takes a DCEL mesh and creates the input triangles. Then creates the BVH.
+   * @brief Full constructor. Extracts flat triangles from a DCEL mesh, then builds the BVH.
    * @details No default arguments: this is a low-level constructor, and callers who excavate down
    * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
-   * defaults.
-   * @param[in]     a_mesh          DCEL mesh built against a_pool.
-   * @param[in,out] a_pool          Pool a_mesh's storage was reserved from. Unlike FlatMeshSDF/
-   * MeshSDF, this constructor does not retain a_mesh -- it extracts flat Triangle values from it and
-   * discards it -- so nothing here depends on a_pool outliving the returned object.
+   * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups.
+   * @param[in]     a_mesh          DCEL mesh; every face must be a triangle.
+   * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
    * @param[in]     a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
    * near-optimal traversal cost; TopDown (centroid median) is faster to build but yields deeper trees.
    * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
@@ -413,68 +450,31 @@ public:
    * count) makes it impossible to accidentally pick a leaf size that isn't a multiple of W. Must
    * be > 0.
    */
-  TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
-             Pool&                        a_pool,
-             const BVH::Build             a_build,
-             const size_t                 a_maxLeafGroups) noexcept;
+  EBGEOMETRY_HOST
+  inline TriMeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
 
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
-   * @param[in] a_triangles     Input triangle soup.
-   * @param[in,out] a_pool      Pool the packed BVH's arrays are reserved from; must outlive this object.
-   * @param[in] a_build         BVH build strategy (see the mesh-based constructor for details).
-   * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
+   * @param[in]     a_triangles     Input triangle soup; copied into the BVH's SoA groups.
+   * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
+   * @param[in]     a_build         BVH build strategy (see the mesh-based constructor for details).
+   * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
    * the mesh-based constructor for the tree-quality/SIMD-occupancy trade-off). Must be > 0.
    */
-  TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-             Pool&                                    a_pool,
-             const BVH::Build                         a_build,
-             const size_t                             a_maxLeafGroups) noexcept;
-
-  /**
-   * @brief Destructor
-   */
-  ~TriMeshSDF() override = default;
-
-  /**
-   * @brief Copy constructor.
-   * @details Explicitly defaulted for documentation purposes: TriMeshSDF's only member (m_bvh)
-   * is a shared_ptr, so the implicitly-generated copy is a cheap, correct handle-copy.
-   * @param[in] a_other Other instance to copy.
-   */
-  TriMeshSDF(const TriMeshSDF& a_other) = default;
-
-  /**
-   * @brief Copy assignment operator.
-   * @param[in] a_other Other instance to copy.
-   * @return Reference to *this.
-   */
-  TriMeshSDF&
-  operator=(const TriMeshSDF& a_other) = default;
-
-  /**
-   * @brief Move constructor.
-   * @details Explicitly defaulted: the user-declared destructor above would otherwise suppress
-   * the implicitly-generated move constructor.
-   * @param[in,out] a_other Other instance to move from.
-   */
-  TriMeshSDF(TriMeshSDF&& a_other) noexcept = default;
-
-  /**
-   * @brief Move assignment operator.
-   * @param[in,out] a_other Other instance to move from.
-   * @return Reference to *this.
-   */
-  TriMeshSDF&
-  operator=(TriMeshSDF&& a_other) noexcept = default;
+  EBGEOMETRY_HOST
+  inline TriMeshSDF(const std::vector<Tri>& a_triangles,
+                    Pool&                   a_pool,
+                    const BVH::Build        a_build,
+                    const size_t            a_maxLeafGroups);
 
   /**
    * @brief Compute the signed distance from a_point to the triangle mesh.
    * @param[in] a_point Query point.
    * @return Signed distance to the nearest triangle; negative inside the mesh.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Signed distance to the closest triangle, together with that triangle's metadata.
@@ -487,51 +487,131 @@ public:
    * @param[in] a_point Query point. Must be finite.
    * @return The closest triangle's signed distance and metadata.
    */
-  [[nodiscard]] ClosestTriangle
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline ClosestTriangle
   getClosestTriangle(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Get the PackedBVH storing SoA triangle groups.
-   * @return Mutable reference to the shared-pointer owning the packed BVH root.
+   * @return The packed BVH.
    */
-  [[nodiscard]] virtual std::shared_ptr<Root>&
-  getRoot() noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Root&
+  getRoot() noexcept
+  {
+    return m_bvh;
+  }
 
   /**
    * @brief Get the PackedBVH storing SoA triangle groups (const overload).
-   * @return Const reference to the shared-pointer owning the packed BVH root.
+   * @return The packed BVH.
    */
-  [[nodiscard]] virtual const std::shared_ptr<Root>&
-  getRoot() const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Root&
+  getRoot() const noexcept
+  {
+    return m_bvh;
+  }
 
   /**
    * @brief Compute the AABB enclosing the entire triangle mesh.
    * @return Axis-aligned bounding box of the mesh.
    */
-  [[nodiscard]] EBGeometry::BoundingVolumes::AABBT<T>
-  computeBoundingVolume() const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline EBGeometry::BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return m_bvh.getBoundingVolume();
+  }
 
-protected:
   /**
-   * @brief Bounding volume hierarchy storing SoA triangle groups.
+   * @brief Produce a copy of this object that resolves against @p a_pool.
+   * @details Rebases the BVH; see BVH::PackedBVH::rebasedView() for the contract. This is the one
+   * sanctioned crossing to a device.
+   * @param[in] a_pool Pool to rebase onto; must be a mirror of this object's own pool.
+   * @return A TriMeshSDF resolving against @p a_pool.
    */
-  std::shared_ptr<Root> m_bvh;
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline TriMeshSDF
+  rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief Duplicate the BVH's storage into @p a_dstPool.
+   * @details The copy constructor copies descriptors only. This gives genuinely independent storage.
+   * @param[in,out] a_dstPool Pool to reserve the copy from; may be this object's own pool.
+   * @return A TriMeshSDF over an independent copy of the BVH, attached to @p a_dstPool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline TriMeshSDF
+  deepCopy(Pool& a_dstPool) const;
+
+  /**
+   * @brief Check whether the BVH was reserved from @p a_pool.
+   * @param[in] a_pool Pool to test against.
+   * @return True if the BVH is attached to @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline bool
+  isAttachedTo(const Pool& a_pool) const noexcept
+  {
+    return m_bvh.isAttachedTo(a_pool);
+  }
+
+private:
+  /**
+   * @brief Extract every face of a triangulated DCEL mesh as a flat Triangle.
+   * @param[in] a_mesh DCEL mesh; every face must be a triangle.
+   * @return One Triangle per face, in face order.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline std::vector<Tri>
+  extractTriangles(const Mesh& a_mesh);
+
+  /**
+   * @brief Build and pack the BVH over a triangle soup.
+   * @param[in]     a_triangles     Triangles to index.
+   * @param[in,out] a_pool          Pool to reserve the packed BVH from.
+   * @param[in]     a_build         BVH build strategy.
+   * @param[in]     a_maxLeafGroups Maximum number of W-sized groups per leaf.
+   * @return The packed BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline Root
+  buildBVH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
 
   /**
    * @brief Leaf-conversion callback for TreeBVH::packWith: groups a BVH leaf's triangles
    * into SoA blocks of width W.
-   * @details Shared by both constructors; stateless (captures nothing), so it is a static
-   * member rather than a per-constructor lambda.
+   * @details Stateless (captures nothing), so it is a static member rather than a lambda.
    * @param[in] a_triangles Leaf's triangle list.
    * @param[in] a_offset    Index of the first triangle in this leaf to convert.
    * @param[in] a_count     Number of triangles in this leaf to convert.
    * @return SoA-packed triangle groups covering [a_offset, a_offset + a_count).
    */
-  [[nodiscard]] static std::vector<TriAoSoA>
+  [[nodiscard]] EBGEOMETRY_HOST
+  static std::vector<TriAoSoA>
   groupTrianglesIntoSoA(const std::vector<std::shared_ptr<const Tri>>& a_triangles,
                         uint32_t                                       a_offset,
                         uint32_t                                       a_count);
+
+  /**
+   * @brief Bounding volume hierarchy storing SoA triangle groups.
+   */
+  Root m_bvh;
 };
+
+/**
+ * @brief MeshSDF and TriMeshSDF must be trivially copyable: that is what lets a rebasedView() be
+ * byte-copied into a device address space with no pointer patching.
+ */
+static_assert(std::is_trivially_copyable_v<MeshSDF<float, DCEL::DefaultMetaData, 4>>,
+              "MeshSDF<float, ...> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<MeshSDF<double, DCEL::DefaultMetaData, 4>>,
+              "MeshSDF<double, ...> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TriMeshSDF<float, DCEL::DefaultMetaData, 4, 4>>,
+              "TriMeshSDF<float, ...> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TriMeshSDF<double, DCEL::DefaultMetaData, 4, 4>>,
+              "TriMeshSDF<double, ...> must be trivially copyable");
 
 } // namespace EBGeometry
 

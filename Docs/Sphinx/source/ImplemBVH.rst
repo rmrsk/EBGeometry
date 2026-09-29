@@ -616,21 +616,32 @@ BVH type, and supported geometry:
 <doxygen/html/classEBGeometry_1_1FlatMeshSDF.html>`__.
 
 ``FlatMeshSDF`` is a plain value type that can be evaluated on a GPU. It holds the DCEL mesh
-descriptor by value and nothing else, so it is trivially copyable, and ``signedDistance()`` is
-callable on both host and device. It deliberately does not derive from ``SignedDistanceFunction``:
-a class with virtual functions carries a pointer to a host-side function table and can never be
-passed to a kernel. As a consequence it cannot currently be used where an ``ImplicitFunction`` is
-expected, such as the CSG and transform factories. As for ``PackedBVH`` (see
-:ref:`Chap:MemoryModel`), freeze and mirror the pool, call ``rebasedView(devicePool)``, and pass the
-returned ``FlatMeshSDF`` to a kernel; ``deepCopy(pool)`` gives independent storage. Copies share
-the pool memory, and a ``FlatMeshSDF`` sees the mesh as it was when it was constructed. ``MeshSDF``
-and ``TriMeshSDF`` are not yet device-callable, and still derive from ``SignedDistanceFunction``.
+descriptor by value and nothing else, so it is trivially copyable, and ``signedDistance()`` and
+``computeBoundingVolume()`` (the vertex AABB) are callable on both host and device. It deliberately
+does not derive from ``SignedDistanceFunction``: a class with virtual functions carries a pointer to
+a host-side function table and can never be passed to a kernel. As a consequence it cannot currently
+be used where an ``ImplicitFunction`` is expected, such as the CSG and transform factories. As for
+``PackedBVH`` (see :ref:`Chap:MemoryModel`), freeze and mirror the pool, call
+``rebasedView(devicePool)``, and pass the returned ``FlatMeshSDF`` to a kernel; ``deepCopy(pool)``
+gives independent storage. Copies share the pool memory, and a ``FlatMeshSDF`` sees the mesh as it
+was when it was constructed. ``MeshSDF`` and ``TriMeshSDF`` follow the same pattern; see below.
 
 ``MeshSDF`` handles arbitrary polygon meshes; its ``signedDistance()`` builds the traversal
 criteria shown above (a leaf-eval and a pruning rule, not the full four-callback ``traverse()``
 shape) and drives them through ``PackedBVH::pruneTraverse()``, picking up SIMD node pruning
 whenever ``(K, T)`` matches a compiled ISA path and falling back to the generic, scalar
 ``traverse()`` otherwise. See `its doxygen page <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
+
+``MeshSDF`` and ``TriMeshSDF`` are plain value types exactly like ``FlatMeshSDF``: ``MeshSDF``
+holds the mesh descriptor and its ``PackedBVH`` by value, ``TriMeshSDF`` just its ``PackedBVH``,
+all reserved from the one ``Pool`` passed to the constructor. Both are trivially copyable,
+constructed without ``shared_ptr``\ s, and neither derives from ``SignedDistanceFunction``.
+``signedDistance()``, ``TriMeshSDF::getClosestTriangle()``, ``getRoot()`` and
+``computeBoundingVolume()`` are callable on host and device; ``rebasedView(pool)`` and
+``deepCopy(pool)`` return the class itself, so a rebased copy is what a kernel receives.
+``MeshSDF::getClosestFaces()`` stays host-only, since it runs on the ``std::function``-based
+``traverse()``. As for ``FlatMeshSDF``, none of the three can currently be used as an
+``ImplicitFunction`` (in the CSG or transform factories).
 
 ``TriMeshSDF`` is the recommended default for triangle meshes: it packs triangles into
 Structure-of-Arrays groups of width ``W`` (via ``TreeBVH::packWith()``, see above) and builds the
