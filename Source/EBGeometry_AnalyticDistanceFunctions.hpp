@@ -970,7 +970,9 @@ public:
     const Vec3T<T> v1 = a_point - m_center1;
     const Vec3T<T> v2 = m_center2 - m_center1;
 
-    const T h = std::clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
+    // std::min/std::max rather than std::clamp: libstdc++ 14's std::clamp asserts lo <= hi through a
+    // host-only function, which a device compile rejects.
+    const T h = std::min(std::max(dot(v1, v2) / dot(v2, v2), T(0.0)), T(1.0));
     const T d = length(v1 - h * v2) - m_radius;
 
     return d;
@@ -1194,8 +1196,10 @@ public:
 
     const Vec2T<T> q = m_height * Vec2T<T>(m_c.x / m_c.y, -1.0);
     const Vec2T<T> w = Vec2T<T>(dr, dz);
-    const Vec2T<T> a = w - std::clamp(dot(w, q) / dot(q, q), zero, one) * q;
-    const Vec2T<T> b = w - Vec2T<T>(q.x * std::clamp(w.x / q.x, zero, one), q.y);
+    // std::min/std::max rather than std::clamp, which is not device-callable with libstdc++ 14 (see
+    // CapsuleSDF::signedDistance).
+    const Vec2T<T> a = w - std::min(std::max(dot(w, q) / dot(q, q), zero), one) * q;
+    const Vec2T<T> b = w - Vec2T<T>(q.x * std::min(std::max(w.x / q.x, zero), one), q.y);
 
     auto sign = [](const T& x) -> int { return (x > zero) - (x < zero); };
 
