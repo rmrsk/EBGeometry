@@ -476,6 +476,7 @@ Phase 0 is complete. Items 7–10 were:
 | 11. Error policy (D8) | Done | `df9ebdc`, `9505d11`, `f619cae` |
 | 12. Device math header and toolchain contract (D6) | Done; the CUDA lane (advisory) now builds without `--expt-relaxed-constexpr`, and has not run yet | `c975031` |
 | 13. CMake target (D12, QA-4/21) | Done; also install rules and `find_package` support, checked by a new CI job | `eb86481` |
+| 14. Fixed K and W (D7) | Done; defaults are 4, host-tuned values opt-in, `Examples/HostTuning` | `92aae41` |
 
 Findings from item 11:
 
