@@ -320,7 +320,7 @@ public:
    * const auto deviceCloud = cloud.rebasedView(devicePool);
    * myKernel<<<blocks, threads>>>(deviceCloud, ...);
    * @endcode
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this object's own pool.
+   * @param[in] a_pool Pool to rebase onto: the object's own pool or one in its mirror chain.
    * @return A copy of this object resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST

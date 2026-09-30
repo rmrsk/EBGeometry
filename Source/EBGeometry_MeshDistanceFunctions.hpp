@@ -110,7 +110,7 @@ public:
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Rebases the mesh descriptor; see DCEL::MeshT::rebasedView() for the contract. This is
    * the one sanctioned crossing to a device.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of the mesh's own pool.
+   * @param[in] a_pool Pool to rebase onto: the object's own pool or one in its mirror chain.
    * @return A FlatMeshSDF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -321,7 +321,7 @@ public:
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Rebases the mesh descriptor and the BVH together; see DCEL::MeshT::rebasedView() and
    * BVH::PackedBVH::rebasedView() for the contract. This is the one sanctioned crossing to a device.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this object's own pool.
+   * @param[in] a_pool Pool to rebase onto: the object's own pool or one in its mirror chain.
    * @return A MeshSDF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -557,7 +557,7 @@ public:
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Rebases the BVH; see BVH::PackedBVH::rebasedView() for the contract. This is the one
    * sanctioned crossing to a device.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this object's own pool.
+   * @param[in] a_pool Pool to rebase onto: the object's own pool or one in its mirror chain.
    * @return A TriMeshSDF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST

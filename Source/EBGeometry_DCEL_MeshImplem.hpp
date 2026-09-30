@@ -39,20 +39,7 @@ EBGEOMETRY_HOST_DEVICE
 inline void*
 MeshT<T, Meta>::base() const noexcept
 {
-#if defined(EBGEOMETRY_DEVICE_COMPILE)
-  // A non-null control block here means a host descriptor was copied into a kernel directly,
-  // instead of going through rebasedView(). The pointer it holds is a host address.
-  EBGEOMETRY_EXPECT(m_control == nullptr);
-
-  return m_base;
-#else
-  // Null here means either a device view being dereferenced on the host, or a mesh nobody ever
-  // reserved into. rebasedView() is the only producer of a null control block, and only for a
-  // device-accessible target, so this test is exact rather than heuristic.
-  EBGEOMETRY_EXPECT(m_control != nullptr);
-
-  return m_control->m_base;
-#endif
+  return m_location.base();
 }
 
 template <class T, class Meta>
@@ -60,11 +47,7 @@ EBGEOMETRY_HOST
 inline void
 MeshT<T, Meta>::attachTo(const Pool& a_pool) noexcept
 {
-  // A mesh's three arrays must all live in the same Pool: they are resolved against a single base.
-  EBGEOMETRY_REQUIRE(m_control == nullptr || m_control == a_pool.control(),
-                     "DCEL::MeshT::attachTo: all of a mesh's arrays must be reserved from the same Pool");
-
-  m_control = a_pool.control();
+  m_location.attach(a_pool, "DCEL::MeshT::attachTo");
 }
 
 template <class T, class Meta>
@@ -72,35 +55,11 @@ EBGEOMETRY_HOST
 inline MeshT<T, Meta>
 MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
 {
-  EBGEOMETRY_REQUIRE(m_control != nullptr,
-                     "DCEL::MeshT::rebasedView: the mesh must not already be a device view, nor unbuilt");
-  EBGEOMETRY_REQUIRE(a_pool.mirrorOf() == m_control->m_id,
-                     "DCEL::MeshT::rebasedView: the target pool must be a mirror of the mesh's own pool");
-
-  // A mirror taken before the mesh's last reserve is too small to hold its arrays.
-  EBGEOMETRY_REQUIRE(m_vertices.endByte() <= a_pool.usedBytes() && m_edges.endByte() <= a_pool.usedBytes() &&
-                       m_faces.endByte() <= a_pool.usedBytes(),
-                     "DCEL::MeshT::rebasedView: the mesh's arrays must fit inside the target pool (%zu bytes)",
-                     a_pool.usedBytes());
+  const uint64_t endByte = Math::max(m_vertices.endByte(), Math::max(m_edges.endByte(), m_faces.endByte()));
 
   Mesh view = *this;
 
-  if (a_pool.resource().isDeviceAccessible()) {
-    // A kernel cannot follow a host control block, so the base has to be captured by value. That is
-    // safe precisely here: a device-accessible pool can only come from Pool::mirror, which freezes
-    // it, and Pool::grow refuses a non-host-accessible resource outright -- the base cannot move.
-    EBGEOMETRY_REQUIRE(a_pool.isFrozen(), "DCEL::MeshT::rebasedView: a device-accessible target pool must be frozen");
-
-    view.m_control = nullptr;
-    view.m_base    = a_pool.base();
-  }
-  else {
-    // Host target: follow the destination's control block instead of snapshotting its base, so the
-    // rebased view is growth-immune exactly like the original mesh -- and so that a null control
-    // block keeps meaning "device view" and nothing else.
-    view.m_control = a_pool.control();
-    view.m_base    = nullptr;
-  }
+  view.m_location = m_location.rebasedOnto(a_pool, endByte, "DCEL::MeshT");
 
   return view;
 }
@@ -110,7 +69,7 @@ EBGEOMETRY_HOST_DEVICE
 inline PoolLocation
 MeshT<T, Meta>::location() const noexcept
 {
-  return PoolLocation{m_control, m_base};
+  return m_location;
 }
 
 template <class T, class Meta>
@@ -120,8 +79,7 @@ MeshT<T, Meta>::relocatedTo(const PoolLocation& a_location) const noexcept
 {
   MeshT<T, Meta> view = *this;
 
-  view.m_control = a_location.m_control;
-  view.m_base    = a_location.m_base;
+  view.m_location = a_location;
 
   return view;
 }
@@ -420,7 +378,7 @@ EBGEOMETRY_HOST
 inline bool
 MeshT<T, Meta>::isAttachedTo(const Pool& a_pool) const noexcept
 {
-  return m_control != nullptr && m_control == a_pool.control();
+  return m_location.isAttachedTo(a_pool);
 }
 
 template <class T, class Meta>

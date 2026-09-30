@@ -605,7 +605,7 @@ public:
    * discarded, purely so that the checks rebasedView() makes (a mirror of the right pool, a BVH
    * shallow enough for the device traversal stack) run for them too. This is the one sanctioned
    * crossing to a device.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this union's own pool.
+   * @param[in] a_pool Pool to rebase onto: the union's own pool or one in its mirror chain.
    * @return A BVHUnionIF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -739,7 +739,7 @@ public:
   /**
    * @brief Produce a copy of this smooth union that resolves against @p a_pool; see
    * BVHUnionIF::rebasedView().
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this union's own pool.
+   * @param[in] a_pool Pool to rebase onto: the union's own pool or one in its mirror chain.
    * @return A BVHSmoothUnionIF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST

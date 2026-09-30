@@ -2224,7 +2224,7 @@ TEST_CASE("PackedBVH: rebasedView rejects a pool that is not a mirror of its own
 
       (void)view;
     },
-    "PackedBVH::rebasedView: the pool must be a mirror of this BVH's pool"));
+    "BVH::PackedBVH::rebasedView: the pool must be the object's own pool or a mirror of it"));
 }
 
 TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: the constructors reject a mismatched pool or a zero leaf size",

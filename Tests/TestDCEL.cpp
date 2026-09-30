@@ -1157,7 +1157,7 @@ TEST_CASE("MeshT: rebasedView onto a pool that is not a mirror of the mesh's own
 
       (void)mesh->rebasedView(wrongMirror); // must abort
     },
-    "DCEL::MeshT::rebasedView: the target pool must be a mirror of the mesh's own pool"));
+    "DCEL::MeshT::rebasedView: the pool must be the object's own pool or a mirror of it"));
 }
 
 TEST_CASE("MeshT: reserving a mesh's arrays from two different pools aborts", "[DCEL][Mesh][death]")
@@ -1174,7 +1174,7 @@ TEST_CASE("MeshT: reserving a mesh's arrays from two different pools aborts", "[
       mesh.reserveVertices(poolA, 3);
       mesh.reserveEdges(poolB, 3); // must abort
     },
-    "DCEL::MeshT::attachTo: all of a mesh's arrays must be reserved from the same Pool"));
+    "DCEL::MeshT::attachTo: all of its arrays must be reserved from the same Pool"));
 }
 
 TEST_CASE("MeshT: reconciling a hand-built face with fewer than 3 vertices aborts", "[DCEL][Mesh][death]")

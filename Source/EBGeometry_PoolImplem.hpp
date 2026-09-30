@@ -192,9 +192,70 @@ Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
   // Record the *root* of the mirror chain, not the immediate source: mirroring host -> pinned
   // staging -> device must leave the device pool naming the original host pool, so that an object
   // built in that host pool can still validate a rebase onto the device pool.
-  dst.m_mirrorOf = (a_src.m_mirrorOf != 0) ? a_src.m_mirrorOf : a_src.id();
+  dst.m_mirrorOf          = (a_src.m_mirrorOf != 0) ? a_src.m_mirrorOf : a_src.id();
+  dst.m_control->m_rootId = a_src.m_control->m_rootId;
 
   return dst;
+}
+
+inline bool
+PoolLocation::isAttachedTo(const Pool& a_pool) const noexcept
+{
+  return m_control != nullptr && m_control == a_pool.control();
+}
+
+inline void
+PoolLocation::attach(const Pool& a_pool, const char* a_who) noexcept
+{
+  EBGEOMETRY_REQUIRE(m_control == nullptr || m_control == a_pool.control(),
+                     "%s: all of its arrays must be reserved from the same Pool",
+                     a_who);
+
+  m_control        = a_pool.control();
+  m_base           = nullptr;
+  m_hostAccessible = false;
+}
+
+inline PoolLocation
+PoolLocation::rebasedOnto(const Pool& a_pool, const uint64_t a_endByte, const char* a_who) const noexcept
+{
+  EBGEOMETRY_REQUIRE(m_control != nullptr,
+                     "%s::rebasedView: rebase the original, not a view onto a device-accessible pool or an object "
+                     "that was never built",
+                     a_who);
+  EBGEOMETRY_REQUIRE(a_pool.rootId() == m_control->m_rootId,
+                     "%s::rebasedView: the pool must be the object's own pool or a mirror of it (its mirror chain "
+                     "starts at pool %llu, the object's at pool %llu)",
+                     a_who,
+                     static_cast<unsigned long long>(a_pool.rootId()),
+                     static_cast<unsigned long long>(m_control->m_rootId));
+
+  // A mirror taken before the object's last reserve is too small to hold its arrays.
+  EBGEOMETRY_REQUIRE(a_endByte <= a_pool.usedBytes(),
+                     "%s::rebasedView: the object's arrays must fit inside the pool (they end at byte %llu, the pool "
+                     "holds %zu)",
+                     a_who,
+                     static_cast<unsigned long long>(a_endByte),
+                     a_pool.usedBytes());
+
+  PoolLocation location;
+
+  if (a_pool.resource().isDeviceAccessible()) {
+    // A kernel cannot follow a host control block, so the base is captured by value. That is safe only
+    // for a frozen pool, whose base cannot move: a mirror is frozen when it is made, and a pool built
+    // directly in managed memory must be frozen first.
+    EBGEOMETRY_REQUIRE(a_pool.isFrozen(), "%s::rebasedView: a device-accessible pool must be frozen", a_who);
+
+    location.m_base           = a_pool.base();
+    location.m_hostAccessible = a_pool.resource().isHostAccessible();
+  }
+  else {
+    // Host pool: follow its control block rather than snapshot its base, so the view is immune to
+    // growth exactly like the original.
+    location.m_control = a_pool.control();
+  }
+
+  return location;
 }
 
 } // namespace EBGeometry

@@ -178,6 +178,13 @@ Test coverage
      - ``Math::min``/``max``/``clamp`` and ``Math::Limits`` against their ``std`` counterparts
        (including NaN arguments and constant evaluation), and ``Array<T, N>``: aggregate
        initialization, trivial copyability, iteration, sorting, ``fill``, comparison.
+   * - ``TestPoolRebase``
+     - ``Pool::mirror`` and ``PoolLocation``: offsets resolving identically against a mirrored block;
+       a view onto a managed (host- and device-accessible) mirror answering queries on the host; an
+       object built directly in managed memory rebased onto its own frozen pool; a view of a staging
+       mirror rebased again onto that mirror's mirror; and the rejected cases (an unfrozen
+       device-accessible pool, a device-only view used on the host), with a fake memory resource in
+       place of a GPU.
    * - ``TestBoundingVolumes``
      - :cpp:class:`AABBT` and :cpp:class:`SphereT`: construction from
        corners and point clouds, volume, surface area, point distance,

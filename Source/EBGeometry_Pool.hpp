@@ -66,32 +66,111 @@ struct PoolControl
 
   /// @brief Identity of the owning pool; see @ref Pool::id. Never zero for a live pool.
   uint64_t m_id = 0;
+
+  /// @brief Identity of the root of the owning pool's mirror chain: its own identity for a pool that
+  /// is not a mirror, else the identity of the pool the chain started from. See @ref Pool::rootId.
+  uint64_t m_rootId = 0;
 };
 
+class Pool;
+
 /**
- * @brief Where a pool-resident descriptor resolves its offsets: the pair of fields every such
- * descriptor (@ref EBGeometry::DCEL::MeshT, @ref EBGeometry::BVH::PackedBVH) carries.
- * @details Exactly one field is set. A host descriptor follows its pool's control block, so a
- * growing pool is invisible to it; a device view, produced by @c rebasedView() for a
- * device-accessible pool, holds the mirror's base address instead and has a null control block.
+ * @brief Where a pool-resident descriptor resolves its offsets, and the rules for moving it.
+ * @details Every pool-resident descriptor (@ref EBGeometry::DCEL::MeshT, @ref EBGeometry::BVH::PackedBVH,
+ * and the classes built on them) holds one PoolLocation, and delegates attaching, resolving and
+ * rebasing to it. It is in one of three states, decided by its value:
  *
- * A descriptor normally changes location only through @c rebasedView(). The exception is a
- * descriptor stored @e inside another object's pool -- a @c TriMeshSDF held in the primitive array of
- * a @ref EBGeometry::BVHUnionIF, for instance. Mirroring that pool copies the inner descriptor's
- * bytes verbatim, host control block included, and rebasing the outer object cannot rewrite them in
- * place. The outer object therefore reads its own location and applies it to a local copy of each
- * inner descriptor as it evaluates it (@c relocatedTo()), which is sound because both were reserved
- * from the same pool.
+ * - @b Unset: nothing has been reserved yet.
+ * - @b Following a pool: @c m_control is set. base() reads the pool's current base through the
+ *   control block on every call, so a pool that grows and moves its block is invisible to the
+ *   descriptor. Only host code can follow a pool.
+ * - @b Snapshot: @c m_control is null and @c m_base holds the base of a frozen, device-accessible
+ *   pool, captured by rebasedOnto(). This is what a kernel receives. If that memory is also
+ *   host-accessible (managed or mapped memory), @c m_hostAccessible is set and host code may use the
+ *   snapshot too.
+ *
+ * A descriptor normally changes location only through @c rebasedView(), which calls rebasedOnto().
+ * The exception is a descriptor stored @e inside another object's pool -- a @c TriMeshSDF held in the
+ * primitive array of a @ref EBGeometry::BVHUnionIF, for instance. Mirroring that pool copies the inner
+ * descriptor's bytes verbatim, host control block included, and rebasing the outer object cannot
+ * rewrite them in place. The outer object therefore reads its own location and applies it to a local
+ * copy of each inner descriptor as it evaluates it (@c relocatedTo()), which is sound because both were
+ * reserved from the same pool.
  */
 struct PoolLocation
 {
-  /// @brief Control block of the pool the descriptor resolves against; null for a device view.
+  /// @brief Control block of the pool the descriptor follows; null for a snapshot or when unset.
   const PoolControl* m_control = nullptr;
 
-  /// @brief Base address of a device view; null for a host descriptor.
+  /// @brief Base address captured by a snapshot; null otherwise.
   void* m_base = nullptr;
-};
 
+  /// @brief Whether host code may dereference a snapshot's base (managed or mapped memory).
+  bool m_hostAccessible = false;
+
+  /**
+   * @brief The base address the descriptor's offsets resolve against.
+   * @details On the host, the followed pool's current base, or a snapshot's base if host code may use
+   * it. On a device, the snapshot's base: a location that still follows a host pool means a host
+   * descriptor was copied into a kernel without rebasedView(), which EBGEOMETRY_EXPECT catches.
+   * @return The base address.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline void*
+  base() const noexcept
+  {
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+    EBGEOMETRY_EXPECT(m_control == nullptr);
+
+    return m_base;
+#else
+    if (m_control != nullptr) {
+      return m_control->m_base;
+    }
+
+    // Unset, or a snapshot of memory the host cannot reach (a device-only mirror).
+    EBGEOMETRY_EXPECT(m_hostAccessible);
+
+    return m_base;
+#endif
+  }
+
+  /**
+   * @brief Whether this location follows the given pool.
+   * @param[in] a_pool Pool to compare with.
+   * @return True if the descriptor follows @p a_pool's control block.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline bool
+  isAttachedTo(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief Start following a pool, as the descriptor's first reservation from it does.
+   * @details Aborts, in every build, if the location already follows a different pool: all of a
+   * descriptor's arrays resolve against one base, so they must come from one pool.
+   * @param[in] a_pool Pool to follow.
+   * @param[in] a_who  Name of the descriptor class, for the message.
+   */
+  EBGEOMETRY_HOST
+  inline void
+  attach(const Pool& a_pool, const char* a_who) noexcept;
+
+  /**
+   * @brief The location of the same arrays in another pool of the same mirror chain.
+   * @details The descriptor must follow a pool (not be a snapshot or unset), @p a_pool must belong to
+   * the same mirror chain -- the pool itself, one of its mirrors, or a mirror of a mirror -- and the
+   * descriptor's arrays must fit inside it. Each is checked in every build. A device-accessible
+   * @p a_pool, which must be frozen so its base cannot move, gives a snapshot; a host pool gives a
+   * location that follows it.
+   * @param[in] a_pool    Pool to resolve against.
+   * @param[in] a_endByte First byte past the descriptor's last array.
+   * @param[in] a_who     Name of the descriptor class, for the messages.
+   * @return The new location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline PoolLocation
+  rebasedOnto(const Pool& a_pool, uint64_t a_endByte, const char* a_who) const noexcept;
+};
 /**
  * @brief Growable bump arena over a @ref MemoryResource.
  * @details Move-only, single-owner RAII. See the file-level documentation for how growth, freezing
@@ -253,6 +332,20 @@ public:
   }
 
   /**
+   * @brief Identity of the root of this pool's mirror chain.
+   * @details This pool's own identity if it is not a mirror, else @ref mirrorOf. Two pools with the
+   *          same root hold byte-identical copies of the root's block, as far as the root's frozen
+   *          contents go, so a descriptor built in one can be rebased onto any other.
+   * @return The root identity (zero only for a moved-from pool).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint64_t
+  rootId() const noexcept
+  {
+    return (m_control != nullptr) ? m_control->m_rootId : 0;
+  }
+
+  /**
    * @brief Bytes currently in use (the bump cursor).
    * @return Number of reserved bytes.
    */
@@ -344,7 +437,8 @@ private:
 
     auto control = std::make_unique<PoolControl>();
 
-    control->m_id = s_nextID.fetch_add(1, std::memory_order_relaxed);
+    control->m_id     = s_nextID.fetch_add(1, std::memory_order_relaxed);
+    control->m_rootId = control->m_id;
 
     return control;
   }

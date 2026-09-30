@@ -12,10 +12,10 @@
  * once-per-build operation, so the virtual dispatch cost is irrelevant and the runtime-swappable
  * placement is the whole point: the same POD scene structure (see @ref EBGeometry::Pool and
  * @ref EBGeometry::PODVector) can be built into a host resource for a CPU query, or mirrored into a
- * device resource for a kernel. Managed and mapped blocks are reachable from both sides, but that
- * is not yet a way to skip the mirror: an object reaches a kernel only through @c rebasedView()
- * onto a mirror, and the resulting view of a device-accessible pool (managed and mapped included)
- * cannot be dereferenced on the host.
+ * device resource for a kernel. Managed and mapped blocks are reachable from both sides: an object
+ * built directly in a managed pool reaches a kernel through @c rebasedView() onto that same pool once
+ * it is frozen, and a view of a managed or mapped pool also answers queries on the host (see
+ * @ref EBGeometry::PoolLocation).
  *
  * @ref EBGeometry::HostMemoryResource is always compiled (plain aligned host allocation). The
  * device-backed resources -- @ref EBGeometry::DeviceMemoryResource,

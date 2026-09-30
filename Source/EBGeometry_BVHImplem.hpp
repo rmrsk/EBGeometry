@@ -428,13 +428,9 @@ EBGEOMETRY_HOST
 inline void
 PackedBVH<T, P, K>::attachTo(Pool& a_pool) noexcept
 {
-  if (m_control == nullptr) {
-    m_control = a_pool.control();
-  }
-
   // Every array of one BVH must come from the same pool -- offsets from two different blocks cannot
   // both resolve against one base.
-  EBGEOMETRY_EXPECT(m_control == a_pool.control());
+  m_location.attach(a_pool, "BVH::PackedBVH");
 }
 
 template <class T, class P, size_t K>
@@ -442,20 +438,7 @@ EBGEOMETRY_HOST_DEVICE
 inline const void*
 PackedBVH<T, P, K>::base() const noexcept
 {
-#if defined(EBGEOMETRY_DEVICE_COMPILE)
-  // A non-null control block here means a host descriptor was copied into a kernel directly,
-  // instead of going through rebasedView(). The pointer it holds is a host address.
-  EBGEOMETRY_EXPECT(m_control == nullptr);
-
-  return m_base;
-#else
-  // Null here means either a device view being dereferenced on the host, or a BVH nobody ever
-  // reserved into. rebasedView() is the only producer of a null control block, and only for a
-  // device-accessible target, so this test is exact rather than heuristic.
-  EBGEOMETRY_EXPECT(m_control != nullptr);
-
-  return m_control->m_base;
-#endif
+  return m_location.base();
 }
 
 template <class T, class P, size_t K>
@@ -463,7 +446,7 @@ EBGEOMETRY_HOST
 inline bool
 PackedBVH<T, P, K>::isAttachedTo(const Pool& a_pool) const noexcept
 {
-  return m_control != nullptr && m_control == a_pool.control();
+  return m_location.isAttachedTo(a_pool);
 }
 
 template <class T, class P, size_t K>
@@ -471,44 +454,18 @@ EBGEOMETRY_HOST
 inline PackedBVH<T, P, K>
 PackedBVH<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
 {
-  EBGEOMETRY_REQUIRE(m_control != nullptr,
-                     "PackedBVH::rebasedView: this BVH is a device view or was never built; rebase the original");
-  EBGEOMETRY_REQUIRE(a_pool.mirrorOf() == m_control->m_id,
-                     "PackedBVH::rebasedView: the pool must be a mirror of this BVH's pool (it mirrors pool %llu, "
-                     "this BVH lives in pool %llu)",
-                     static_cast<unsigned long long>(a_pool.mirrorOf()),
-                     static_cast<unsigned long long>(m_control->m_id));
-  EBGEOMETRY_REQUIRE(m_linearNodes.endByte() <= a_pool.usedBytes() && m_primitives.endByte() <= a_pool.usedBytes() &&
-                       m_childAabbSoA.endByte() <= a_pool.usedBytes(),
-                     "PackedBVH::rebasedView: the BVH's arrays must fit inside the pool (they end at bytes %llu, %llu "
-                     "and %llu, the pool holds %zu)",
-                     static_cast<unsigned long long>(m_linearNodes.endByte()),
-                     static_cast<unsigned long long>(m_primitives.endByte()),
-                     static_cast<unsigned long long>(m_childAabbSoA.endByte()),
-                     a_pool.usedBytes());
+  const uint64_t endByte =
+    Math::max(m_linearNodes.endByte(), Math::max(m_primitives.endByte(), m_childAabbSoA.endByte()));
 
   PackedBVH view = *this;
 
-  if (a_pool.resource().isDeviceAccessible()) {
-    // A kernel cannot follow a host control block, so the base has to be captured by value. That is
-    // safe precisely here: a device-accessible pool can only come from Pool::mirror, which freezes
-    // it, and Pool::grow refuses a non-host-accessible resource outright -- the base cannot move.
-    EBGEOMETRY_EXPECT(a_pool.isFrozen());
+  view.m_location = m_location.rebasedOnto(a_pool, endByte, "BVH::PackedBVH");
 
-    // The device traversal stack is smaller than the host's, so a tree that finalize() accepted can
-    // still be too deep to traverse on device. This is the moment the caller commits to that, and
-    // the last one that still runs on the host where it can say so.
+  if (view.m_location.m_control == nullptr) {
+    // A snapshot is what a kernel receives. The device traversal stack is smaller than the host's, so
+    // a tree that finalize() accepted can still be too deep to traverse on device. This is the moment
+    // the caller commits to that, and the last one that still runs on the host where it can say so.
     this->requireDepthFits(this->base(), s_deviceStackDepth, "device view");
-
-    view.m_control = nullptr;
-    view.m_base    = a_pool.base();
-  }
-  else {
-    // Host target: follow the destination's control block rather than snapshotting its base, so the
-    // rebased view is growth-immune exactly like the original -- and so that a null control block
-    // keeps meaning "device view" and nothing else.
-    view.m_control = a_pool.control();
-    view.m_base    = nullptr;
   }
 
   return view;
@@ -519,7 +476,7 @@ EBGEOMETRY_HOST_DEVICE
 inline PoolLocation
 PackedBVH<T, P, K>::location() const noexcept
 {
-  return PoolLocation{m_control, m_base};
+  return m_location;
 }
 
 template <class T, class P, size_t K>
@@ -529,8 +486,7 @@ PackedBVH<T, P, K>::relocatedTo(const PoolLocation& a_location) const noexcept
 {
   PackedBVH<T, P, K> view = *this;
 
-  view.m_control = a_location.m_control;
-  view.m_base    = a_location.m_base;
+  view.m_location = a_location;
 
   return view;
 }
@@ -555,8 +511,7 @@ PackedBVH<T, P, K>::deepCopy(Pool& a_dstPool) const
 
   PackedBVH copy = *this;
 
-  copy.m_control      = nullptr;
-  copy.m_base         = nullptr;
+  copy.m_location     = PoolLocation{};
   copy.m_linearNodes  = PODVector<Node>{};
   copy.m_primitives   = PODVector<P>{};
   copy.m_childAabbSoA = PODVector<ChildAABBSoA>{};

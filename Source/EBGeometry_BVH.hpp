@@ -1651,8 +1651,8 @@ public:
    * @endcode
    *
    * A host-to-host mirror is supported too and follows the target's control block instead of
-   * snapshotting its base, so a null control block keeps meaning "device view" and nothing else.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this BVH's own pool.
+   * snapshotting its base. The rules are DCEL::MeshT::rebasedView()'s (see PoolLocation::rebasedOnto()).
+   * @param[in] a_pool Pool to rebase onto: this BVH's own pool or one in its mirror chain.
    * @return A copy of this BVH resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -1858,19 +1858,11 @@ private:
   attachTo(Pool& a_pool) noexcept;
 
   /**
-   * @brief Control block of the Pool this BVH was reserved from. Null in, and only in, a device view.
-   * @details Host-only bookkeeping: it is never mirrored, so it has no device counterpart. Reading
-   * the base through it rather than caching the base is what makes a host-resident BVH immune to a
-   * Pool::reserve that grows and moves the block.
+   * @brief Where the BVH's arrays live: the Pool it follows, or a snapshot made by rebasedView().
+   * @details Host bookkeeping for a BVH in a host pool, which re-reads the base through the pool's
+   * control block on every access and so is immune to a Pool::reserve that grows and moves the block.
    */
-  const PoolControl* m_control = nullptr;
-
-  /**
-   * @brief Base address for a device view, set by rebasedView() and unused otherwise.
-   * @details Write-only on the host: nothing reads it until the descriptor has been byte-copied into
-   * a device address space, which makes it look dead to a host-only reader.
-   */
-  void* m_base = nullptr;
+  PoolLocation m_location;
 
   /**
    * @brief Flat depth-first node array.

@@ -89,12 +89,11 @@ ever stores in a pool, including SIMD-width SoA blocks.
 
 .. note::
 
-   A host-and-device-accessible resource does not make the objects built in it usable on both
-   sides. An object built directly in a ``Managed`` or ``Mapped`` pool resolves through the pool's
-   host control block (see below), which a kernel cannot follow, so it still has to reach a device
-   through ``rebasedView()`` onto a ``mirror()`` of its pool. Conversely, a view rebased onto a
-   ``Managed`` or ``Mapped`` mirror holds a plain device base and must not be dereferenced on the
-   host.
+   An object built directly in a ``Managed`` or ``Mapped`` pool resolves through the pool's host
+   control block (see below), which a kernel cannot follow. To hand it to a kernel without a mirror,
+   freeze the pool and call ``rebasedView()`` onto the pool itself: the view holds the pool's base
+   address, which both sides can use. A view rebased onto a ``Managed`` or ``Mapped`` mirror can
+   likewise be used on the host; a view of a ``Device`` pool cannot.
 
 .. note::
 

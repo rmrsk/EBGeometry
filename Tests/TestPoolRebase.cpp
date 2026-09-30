@@ -7,11 +7,14 @@
 // exactly the host-to-device invariant, exercised without a GPU.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
 
@@ -119,3 +122,224 @@ TEMPLATE_TEST_CASE("Pool::mirror: the copy is independent of the source", "[Pool
     REQUIRE(pm[2] == T(3 * i));
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Where a pool-resident object resolves its arrays (PoolLocation)
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// Stands in for CUDA/HIP managed or mapped memory without a GPU: memory both the host and a device
+// can address. (Mirroring into it takes the resource's host-to-host copy path.)
+class FakeManagedResource final : public MemoryResource
+{
+public:
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override
+  {
+    return hostMemoryResource().allocate(a_bytes, a_alignment);
+  }
+
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
+  {
+    hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+  }
+
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+};
+
+using Meta = DCEL::DefaultMetaData;
+
+template <class T>
+using TestSDF = MeshSDF<T, Meta, 4>;
+
+std::string
+dodecahedron()
+{
+  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl";
+}
+
+template <class T>
+std::vector<Vec3T<T>>
+probes()
+{
+  return {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(2), T(0.5), T(-0.25)), Vec3T<T>(T(-1.2), T(1.1), T(0.9))};
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("PoolLocation: a view onto a managed mirror answers queries on the host",
+                   "[PoolRebase][PoolLocation]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool       host(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
+  const auto sdf  = TestSDF<T>(mesh, host, BVH::Build::SAH);
+
+  host.freeze();
+
+  FakeManagedResource managed;
+  const Pool          mirror = Pool::mirror(host, managed);
+
+  // A snapshot of memory the host can reach: before PoolLocation decided this by value, the host
+  // pass dereferenced the (null) control block of any device-accessible view.
+  const auto view = sdf.rebasedView(mirror);
+
+  REQUIRE(view.getRoot().location().m_control == nullptr);
+  REQUIRE(view.getRoot().location().m_hostAccessible);
+
+  for (const auto& p : probes<T>()) {
+    REQUIRE(view.signedDistance(p) == sdf.signedDistance(p));
+  }
+}
+
+TEMPLATE_TEST_CASE("PoolLocation: an object built directly in managed memory can be rebased onto its own pool",
+                   "[PoolRebase][PoolLocation]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  FakeManagedResource managed;
+  Pool                pool(managed);
+
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), pool);
+  const auto sdf  = TestSDF<T>(mesh, pool, BVH::Build::SAH);
+
+  pool.freeze();
+
+  // No mirror needed: the pool is already device-accessible. The view is what a kernel would take.
+  const auto view = sdf.rebasedView(pool);
+
+  REQUIRE(view.getRoot().location().m_control == nullptr);
+
+  for (const auto& p : probes<T>()) {
+    REQUIRE(view.signedDistance(p) == sdf.signedDistance(p));
+  }
+}
+
+TEMPLATE_TEST_CASE("PoolLocation: a view rebased onto a staging mirror can be rebased again onto its mirror",
+                   "[PoolRebase][PoolLocation]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool       host(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
+  const auto sdf  = TestSDF<T>(mesh, host, BVH::Build::SAH);
+
+  host.freeze();
+
+  // host -> staging (host memory, as pinned memory would be) -> final (managed). The staging view
+  // follows the staging pool, whose identity is not the root's; lineage is checked by root.
+  const Pool staging = Pool::mirror(host, hostMemoryResource());
+
+  FakeManagedResource managed;
+  const Pool          final = Pool::mirror(staging, managed);
+
+  const auto stagingView = sdf.rebasedView(staging);
+  const auto finalView   = stagingView.rebasedView(final);
+
+  REQUIRE(stagingView.getRoot().location().isAttachedTo(staging));
+  REQUIRE(finalView.getRoot().location().m_control == nullptr);
+
+  for (const auto& p : probes<T>()) {
+    REQUIRE(stagingView.signedDistance(p) == sdf.signedDistance(p));
+    REQUIRE(finalView.signedDistance(p) == sdf.signedDistance(p));
+  }
+}
+
+TEST_CASE("PoolLocation: rebasing onto an unfrozen device-accessible pool aborts", "[PoolRebase][PoolLocation][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      FakeManagedResource managed;
+      Pool                pool(managed);
+
+      const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), pool);
+      const auto sdf  = TestSDF<T>(mesh, pool, BVH::Build::SAH);
+
+      // Not frozen: the pool could still grow and move, so a snapshot of its base would go stale.
+      [[maybe_unused]] const auto view = sdf.rebasedView(pool);
+    },
+    "::rebasedView: a device-accessible pool must be frozen"));
+}
+
+#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+namespace {
+
+// Device memory the host cannot reach, without a GPU.
+class FakeDeviceOnlyResource final : public MemoryResource
+{
+public:
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override
+  {
+    return hostMemoryResource().allocate(a_bytes, a_alignment);
+  }
+
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
+  {
+    hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+  }
+
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return false;
+  }
+
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  void
+  copy(void* a_dst, const MemoryResource&, const void* a_src, const MemoryResource&, size_t a_bytes)
+    const noexcept override
+  {
+    std::memcpy(a_dst, a_src, a_bytes);
+  }
+};
+
+} // namespace
+
+TEST_CASE("PoolLocation: a view of device-only memory used on the host fails an assertion",
+          "[PoolRebase][PoolLocation][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool       host(hostMemoryResource());
+      const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
+      const auto sdf  = TestSDF<T>(mesh, host, BVH::Build::SAH);
+
+      host.freeze();
+
+      FakeDeviceOnlyResource device;
+      const Pool             mirror = Pool::mirror(host, device);
+      const auto             view   = sdf.rebasedView(mirror);
+
+      // The view is meant for a kernel. On the host its base would be a device address.
+      [[maybe_unused]] const T d = view.signedDistance(Vec3T<T>::zeros());
+    },
+    "EBGeometry assertion failed: (m_hostAccessible)"));
+}
+#endif

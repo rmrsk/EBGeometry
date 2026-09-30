@@ -503,18 +503,19 @@ public:
    * myKernel<<<blocks, threads>>>(deviceMesh, ...);          // ... then copy by value
    * @endcode
    *
-   * How the returned view resolves depends on a_pool, not on a separate choice by the caller:
-   * - a device-accessible target (Device, Managed, Mapped) yields a view holding a plain base
-   *   address, since a kernel cannot follow a host control block. Such a view must not be
-   *   dereferenced on the host, which base() asserts.
+   * How the returned view resolves depends on a_pool, not on a separate choice by the caller (see
+   * PoolLocation::rebasedOnto()):
+   * - a device-accessible target (Device, Managed, Mapped), which must be frozen, yields a view
+   *   holding a plain base address, since a kernel cannot follow a host control block. The host can
+   *   use the view too if the memory is host-accessible (Managed, Mapped), but not for a Device pool.
    * - a host-only target (Host, Pinned) yields a view holding that Pool's control block, so it is
    *   growth-immune exactly like the original mesh.
-   * @note a_pool must be a mirror of the Pool this mesh was built in -- directly, or through any
-   * number of intermediate mirrors, since Pool::mirrorOf() names the root of the chain (so
-   * host -> pinned staging -> device works). It must also be large enough to contain this mesh's
-   * arrays, which catches a Pool mirrored before the mesh's last reserve. Both are checked in every
+   * @note a_pool must be the Pool this mesh was built in or belong to its mirror chain -- a mirror of
+   * it, or a mirror of a mirror (so host -> pinned staging -> device works, including rebasing a view
+   * of the staging pool onto the device pool). It must also be large enough to contain this mesh's
+   * arrays, which catches a Pool mirrored before the mesh's last reserve. Each is checked in every
    * build; a violation aborts with a message.
-   * @param[in] a_pool Pool to rebase onto; a mirror of this mesh's own Pool.
+   * @param[in] a_pool Pool to rebase onto: this mesh's own Pool or one in its mirror chain.
    * @return A mesh descriptor resolving against a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -545,20 +546,11 @@ public:
 
 protected:
   /**
-   * @brief Control block of the Pool this mesh was reserved from; null if, and only if, this is a
-   * device view produced by rebasedView().
-   * @details Host bookkeeping. Never mirrored, never dereferenced from device code. Re-reading the
-   * base through it on every access is what makes a mesh immune to a Pool::reserve that grows and
-   * moves the block.
+   * @brief Where the mesh's arrays live: the Pool it follows, or a snapshot made by rebasedView().
+   * @details Host bookkeeping for a mesh in a host pool, which re-reads the base through the pool's
+   * control block on every access and so is immune to a Pool::reserve that grows and moves the block.
    */
-  const PoolControl* m_control = nullptr;
-
-  /**
-   * @brief Base address for a device view, set by rebasedView() and unused otherwise.
-   * @note Write-only on the host: nothing reads this until the descriptor has been byte-copied into
-   * a device address space, so it will look dead to a host-only reader.
-   */
-  void* m_base = nullptr;
+  PoolLocation m_location;
 
   /**
    * @brief Search algorithm. Only used in signed distance functions.
