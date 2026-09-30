@@ -474,6 +474,7 @@ Phase 0 is complete. Items 7–10 were:
 | Item | Status | Commit |
 |------|--------|--------|
 | 11. Error policy (D8) | Done | `df9ebdc`, `9505d11`, `f619cae` |
+| 12. Device math header and toolchain contract (D6) | Done; the CUDA lane (advisory) now builds without `--expt-relaxed-constexpr`, and has not run yet | `c975031` |
 
 Findings from item 11:
 
