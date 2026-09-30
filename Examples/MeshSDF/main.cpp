@@ -65,7 +65,13 @@ try {
 
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file, pool);
   const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, pool);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool, 4, BVH::Build::SAH);
+
+  // For the triangle BVH, the build specification is spelled out: binned SAH, with at most 4 * W triangles
+  // (four full SIMD groups) per leaf. This is also the default.
+  constexpr size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
+
+  const BVH::BuildSpec triSpec{BVH::Strategy::SAH, BVH::Curve::Morton, uint32_t(4 * W)};
+  const auto           triSDF = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool, triSpec);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 1000;

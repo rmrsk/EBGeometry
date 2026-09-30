@@ -1,7 +1,7 @@
 This folder contains examples of using EBGeometry on its own (header-only, C++17, no
 third-party dependencies):
 
-* `BuildBVH` For comparing BVH build strategies (TreeBVH top-down/SAH/Morton/Nested/Hilbert, and PackedBVH's direct constructor) by build time.
+* `BuildBVH` For comparing the BVH build strategies (SAH, Centroid, Midpoint, ClusterSAH, and the Morton/Nested/Hilbert space-filling curves) by build time, tree shape and closest-point query time.
 * `ClosestPointBVH` For closest-point search over a point cloud using the turnkey `PointCloudBVH` class: build once from positions, then `closestPoint()` / `closestPoints()` for arbitrary query points, checked against brute force.
 * `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union.
 * `HostTuning` For choosing the BVH branching factor and SIMD width: the portable defaults against the values tuned to the host's SIMD flags, with timings.

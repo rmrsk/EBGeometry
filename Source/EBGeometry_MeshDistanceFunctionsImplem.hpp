@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -55,83 +54,6 @@ requireNonEmpty(const char* a_who, const size_t a_count) noexcept
 {
   EBGEOMETRY_REQUIRE(
     a_count > 0, "%s: the mesh has no faces, so there is nothing to build a distance function from", a_who);
-}
-
-/**
- * @brief Build a tree BVH from a DCEL mesh.
- * @details Internal helper; not part of the public API.
- * @tparam T    Floating-point precision type.
- * @tparam Meta Face and vertex metadata type.
- * @tparam BV   Bounding-volume type (e.g. AABBT<T>).
- * @tparam K    BVH branching factor (number of children per node).
- * @param[in] a_dcelMesh Input DCEL mesh.
- * @param[in] a_build    Build strategy (TopDown, Morton, Nested, or SAH). SAH is the default.
- * @return Shared pointer to the root of the resulting tree BVH.
- */
-template <class T, class Meta, class BV, size_t K>
-[[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, DCEL::FaceT<T, Meta>, BV, K>>
-buildDCELTreeBVH(const EBGeometry::DCEL::MeshT<T, Meta>& a_dcelMesh, const BVH::Build a_build = BVH::Build::SAH)
-{
-  static_assert(std::is_floating_point_v<T>,
-                "MeshDistanceFunctionsDetail::buildDCELTreeBVH requires a floating-point type T");
-  static_assert(K >= 2, "MeshDistanceFunctionsDetail::buildDCELTreeBVH: branching factor K must be at least 2");
-
-  requireNonEmpty("MeshSDF", a_dcelMesh.numFaces());
-
-  using Prim          = EBGeometry::DCEL::FaceT<T, Meta>;
-  using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
-
-  // Create a pair-wise list of DCEL faces and their bounding volumes. Each face is copied into a
-  // fresh shared_ptr here (rather than aliasing the mesh's own array) since DCEL::FaceT is now a
-  // plain, trivially-copyable value -- the copy's topology indices remain valid because they are
-  // resolved against the same retained mesh (see MeshSDF::m_mesh) both before and after the copy.
-  PrimAndBVList primsAndBVs;
-
-  for (uint32_t i = 0; i < a_dcelMesh.numFaces(); i++) {
-    const auto& f = a_dcelMesh.getFace(i);
-
-    primsAndBVs.emplace_back(
-      std::make_pair(std::make_shared<const Prim>(f), BV(f.getAllVertexCoordinates(a_dcelMesh))));
-  }
-
-  // Partition the BVH using the default input arguments.
-  auto bvh = std::make_shared<EBGeometry::BVH::TreeBVH<T, Prim, BV, K>>(primsAndBVs);
-
-  switch (a_build) {
-  case BVH::Build::TopDown: {
-    bvh->topDownSortAndPartition();
-
-    break;
-  }
-  case BVH::Build::Morton: {
-    bvh->template bottomUpSortAndPartition<SFC::Morton>();
-
-    break;
-  }
-  case BVH::Build::Nested: {
-    bvh->template bottomUpSortAndPartition<SFC::Nested>();
-
-    break;
-  }
-  case BVH::Build::SAH: {
-    using Node     = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using LeafPred = typename Node::LeafPredicate;
-
-    const LeafPred stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
-
-    bvh->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Prim, BV, K>, stopCrit);
-
-    break;
-  }
-  default: {
-    std::cerr << "EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH - unsupported build method requested"
-              << '\n';
-
-    break;
-  }
-  }
-
-  return bvh;
 }
 
 /**
@@ -233,97 +155,6 @@ extractTriangles(const DCEL::MeshT<T, Meta>& a_mesh)
   return triangles;
 }
 
-/**
- * @brief Build a tree BVH from a flat triangle soup.
- * @details Internal helper; not part of the public API. Creates one BV per triangle from its
- * vertex positions, then builds a K-ary tree BVH according to a_build.  For TopDown builds the
- * tree is partitioned until each leaf holds at most a_maxLeafSize triangles.
- * @tparam T    Floating-point precision type.
- * @tparam Meta Triangle metadata type.
- * @tparam BV   Bounding-volume type (e.g. AABBT<T>).
- * @tparam K    BVH branching factor (number of children per internal node).
- * @param[in] a_triangles   Triangle soup to build the BVH over.
- * @param[in] a_build       Build strategy (TopDown, Morton, Nested, or SAH).
- * @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf node
- * (ignored for Morton and Nested builds).
- * @return Shared pointer to the root of the resulting tree BVH.
- */
-template <class T, class Meta, class BV, size_t K>
-std::shared_ptr<EBGeometry::BVH::TreeBVH<T, Triangle<T, Meta>, BV, K>>
-buildTriTreeBVH(const std::vector<EBGeometry::Triangle<T, Meta>>& a_triangles,
-                const BVH::Build                                  a_build,
-                const size_t                                      a_maxLeafSize)
-{
-  static_assert(std::is_floating_point_v<T>,
-                "MeshDistanceFunctionsDetail::buildTriTreeBVH requires a floating-point type T");
-  static_assert(K >= 2, "MeshDistanceFunctionsDetail::buildTriTreeBVH: branching factor K must be at least 2");
-
-  requireNonEmpty("TriMeshSDF", a_triangles.size());
-
-  using Prim          = EBGeometry::Triangle<T, Meta>;
-  using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
-
-  // Create a pair-wise list of triangles and their bounding volumes. TreeBVH is the host-side
-  // builder and holds its primitives by shared_ptr, so each triangle is copied into one here.
-  PrimAndBVList primsAndBVs;
-
-  primsAndBVs.reserve(a_triangles.size());
-
-  for (const auto& tri : a_triangles) {
-    const auto& vertexPositions = tri.getVertexPositions();
-
-    const std::vector<EBGeometry::Vec3T<T>> vertices{vertexPositions[0], vertexPositions[1], vertexPositions[2]};
-
-    primsAndBVs.emplace_back(std::make_pair(std::make_shared<const Prim>(tri), BV(vertices)));
-  }
-
-  // Partition the BVH using the default input arguments.
-  auto bvh = std::make_shared<EBGeometry::BVH::TreeBVH<T, Prim, BV, K>>(primsAndBVs);
-
-  switch (a_build) {
-  case BVH::Build::TopDown: {
-    using Node              = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using LeafPred          = typename Node::LeafPredicate;
-    const LeafPred stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
-      return n.getPrimitives().size() <= a_maxLeafSize;
-    };
-    bvh->topDownSortAndPartition(EBGeometry::BVH::BVCentroidPartitioner<T, Prim, BV, K>, stopCrit);
-
-    break;
-  }
-  case BVH::Build::Morton: {
-    bvh->template bottomUpSortAndPartition<SFC::Morton>();
-
-    break;
-  }
-  case BVH::Build::Nested: {
-    bvh->template bottomUpSortAndPartition<SFC::Nested>();
-
-    break;
-  }
-  case BVH::Build::SAH: {
-    using Node     = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using LeafPred = typename Node::LeafPredicate;
-
-    const LeafPred stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
-      return n.getPrimitives().size() <= a_maxLeafSize;
-    };
-
-    bvh->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Prim, BV, K>, stopCrit);
-
-    break;
-  }
-  default: {
-    std::cerr << "EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH - unsupported build method requested"
-              << '\n';
-
-    break;
-  }
-  }
-
-  return bvh;
-}
-
 } // namespace MeshDistanceFunctionsDetail
 
 template <class T, class Meta>
@@ -406,8 +237,8 @@ FlatMeshSDF<T, Meta>::computeBoundingVolume() const noexcept
 
 template <class T, class Meta, size_t K>
 EBGEOMETRY_HOST
-inline MeshSDF<T, Meta, K>::MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build)
-  : m_mesh(a_mesh), m_bvh(MeshSDF::buildBVH(a_mesh, a_pool, a_build))
+inline MeshSDF<T, Meta, K>::MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::BuildSpec& a_spec)
+  : m_mesh(a_mesh), m_bvh(MeshSDF::buildBVH(a_mesh, a_pool, a_spec))
 {
   // The mesh and the BVH must share one pool: rebasedView() rebases both onto the same mirror, and
   // the BVH's faces index the mesh's arrays. a_pool must outlive this object and every copy of it.
@@ -418,13 +249,25 @@ inline MeshSDF<T, Meta, K>::MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH:
 template <class T, class Meta, size_t K>
 EBGEOMETRY_HOST
 inline typename MeshSDF<T, Meta, K>::Root
-MeshSDF<T, Meta, K>::buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build)
+MeshSDF<T, Meta, K>::buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::BuildSpec& a_spec)
 {
   using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
-  // pack() still returns a shared_ptr; the PackedBVH it points to is a descriptor into a_pool, so
-  // copying it out is all that is needed.
-  return *EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, AABB, K>(a_mesh, a_build)->pack(a_pool);
+  MeshDistanceFunctionsDetail::requireNonEmpty("MeshSDF", a_mesh.numFaces());
+
+  // Each face is stored by value. Its topology indices stay valid, since they resolve against the
+  // same mesh (m_mesh) both before and after the copy.
+  std::vector<std::pair<Face, AABB>> facesAndBVs;
+
+  facesAndBVs.reserve(a_mesh.numFaces());
+
+  for (uint32_t i = 0; i < a_mesh.numFaces(); i++) {
+    const Face& face = a_mesh.getFace(i);
+
+    facesAndBVs.emplace_back(face, AABB(face.getAllVertexCoordinates(a_mesh)));
+  }
+
+  return Root(a_pool, std::move(facesAndBVs), a_spec);
 }
 
 template <class T, class Meta, size_t K>
@@ -475,44 +318,38 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   // them by value, so nothing records where a given face came from in the mesh.
   std::vector<FaceAndDist> candidateFaces;
 
-  // Declaration of the BVH metadata attached to each node - this will be the distance to the node itself.
-  using BVHNodeKey = T;
-
-  // Shortest distance so far.
-  BVHNodeKey shortestDistanceSoFar = Math::Limits<T>::max();
-
-  const EBGeometry::BVH::PrunePredicate<Node, T> prunePredicate =
-    [&shortestDistanceSoFar](const Node&, const BVHNodeKey& a_bvDist) noexcept -> bool {
-    return a_bvDist <= T(0.0) || a_bvDist <= shortestDistanceSoFar;
+  // Keep every face that is at least as close as every face visited before it. The pruning bound is
+  // the closest distance so far, so a box farther than that is skipped.
+  struct State
+  {
+    std::vector<FaceAndDist>& candidates;
+    T                         shortest;
   };
 
-  const EBGeometry::BVH::PackedChildOrderer<T, K> childOrderer =
-    [](Array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-        return n1.second > n2.second;
-      });
-  };
+  State      state{candidateFaces, Math::Limits<T>::max()};
+  const auto faces = m_bvh.getPrimitives();
 
-  const EBGeometry::BVH::NodeKeyFactory<Node, BVHNodeKey> nodeKeyFactory =
-    [&a_point](const Node& a_node) noexcept -> BVHNodeKey { return a_node.getDistanceToBoundingVolume(a_point); };
-
-  const EBGeometry::BVH::PackedLeafEvaluator<Face> leafEvaluator =
-    [&shortestDistanceSoFar, &a_point, &candidateFaces, &mesh](
-      PODSpan<const Face> a_faces, size_t offset, size_t count) noexcept -> void {
-    for (size_t i = offset; i < offset + count; i++) {
-      const T distToFace = std::sqrt(a_faces[i].unsignedDistance2(a_point, mesh));
+  // Not noexcept: collecting candidates allocates. pruneTraverse itself is noexcept, so an allocation
+  // failure here terminates, as it would anywhere else in a query.
+  const auto evalLeaf = [&faces, &a_point, &mesh](State& a_state, size_t a_offset, size_t a_count) {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      const T distToFace = std::sqrt(faces[static_cast<uint32_t>(i)].unsignedDistance2(a_point, mesh));
 
       EBGEOMETRY_EXPECT(!std::isnan(distToFace));
 
-      if (distToFace <= shortestDistanceSoFar) {
-        candidateFaces.emplace_back(static_cast<uint32_t>(i), distToFace);
-        shortestDistanceSoFar = distToFace;
+      if (distToFace <= a_state.shortest) {
+        a_state.candidates.emplace_back(static_cast<uint32_t>(i), distToFace);
+        a_state.shortest = distToFace;
       }
     }
   };
 
-  m_bvh.traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
+  const auto pruneDist2 = [](const State& a_state) noexcept -> T {
+    return (a_state.shortest < Math::Limits<T>::max()) ? a_state.shortest * a_state.shortest
+                                                       : Math::Limits<T>::infinity();
+  };
+
+  m_bvh.pruneTraverse(a_point, state, evalLeaf, pruneDist2);
 
   if (a_sorted) {
     std::sort(candidateFaces.begin(), candidateFaces.end(), [](const FaceAndDist& a, const FaceAndDist& b) {
@@ -564,39 +401,6 @@ MeshSDF<T, Meta, K>::deepCopy(Pool& a_dstPool) const
 
 template <class T, class Meta, size_t K, size_t W>
 EBGEOMETRY_HOST
-std::vector<typename TriMeshSDF<T, Meta, K, W>::TriAoSoA>
-TriMeshSDF<T, Meta, K, W>::groupTrianglesIntoSoA(const std::vector<std::shared_ptr<const Tri>>& a_triangles,
-                                                 uint32_t                                       a_offset,
-                                                 uint32_t                                       a_count)
-{
-  constexpr uint32_t soaWidth = static_cast<uint32_t>(W);
-
-  std::vector<TriAoSoA> groups;
-
-  const uint32_t numGroups = (a_count + soaWidth - 1U) / soaWidth;
-  groups.reserve(numGroups);
-
-  for (uint32_t group = 0; group < numGroups; group++) {
-    const uint32_t groupOffset = a_offset + group * soaWidth;
-    const uint32_t groupCount  = Math::min(soaWidth, a_count - group * soaWidth);
-
-    Array<Tri, W> trisArr;
-    for (uint32_t i = 0; i < groupCount; i++) {
-      EBGEOMETRY_EXPECT(a_triangles[groupOffset + i] != nullptr);
-
-      trisArr[i] = *a_triangles[groupOffset + i];
-    }
-
-    TriAoSoA soa;
-    soa.pack(trisArr.data(), groupCount);
-    groups.push_back(std::move(soa));
-  }
-
-  return groups;
-}
-
-template <class T, class Meta, size_t K, size_t W>
-EBGEOMETRY_HOST
 inline std::vector<typename TriMeshSDF<T, Meta, K, W>::Tri>
 TriMeshSDF<T, Meta, K, W>::extractTriangles(const Mesh& a_mesh)
 {
@@ -608,42 +412,58 @@ TriMeshSDF<T, Meta, K, W>::extractTriangles(const Mesh& a_mesh)
 template <class T, class Meta, size_t K, size_t W>
 EBGEOMETRY_HOST
 inline typename TriMeshSDF<T, Meta, K, W>::Root
-TriMeshSDF<T, Meta, K, W>::buildBVH(const std::vector<Tri>& a_triangles,
-                                    Pool&                   a_pool,
-                                    const BVH::Build        a_build,
-                                    const size_t            a_maxLeafGroups)
+TriMeshSDF<T, Meta, K, W>::buildBVH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::BuildSpec& a_spec)
 {
+  using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
+
   MeshDistanceFunctionsDetail::requireNonEmpty("TriMeshSDF", a_triangles.size());
-  EBGEOMETRY_REQUIRE(
-    a_maxLeafGroups > 0, "TriMeshSDF: the maximum number of leaf groups must be positive (%zu)", a_maxLeafGroups);
 
-  using AABB      = EBGeometry::BoundingVolumes::AABBT<T>;
-  using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);
+  std::vector<AABB> boxes;
 
-  const size_t maxLeafSize = a_maxLeafGroups * W;
+  boxes.reserve(a_triangles.size());
 
-  // packWith() still returns a shared_ptr; the PackedBVH it points to is a descriptor into a_pool,
-  // so copying it out is all that is needed.
-  return *EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, maxLeafSize)
-            ->template packWith<TriAoSoA, Converter>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
+  for (const auto& tri : a_triangles) {
+    const auto& x = tri.getVertexPositions();
+
+    boxes.emplace_back(min(x[0], min(x[1], x[2])), max(x[0], max(x[1], x[2])));
+  }
+
+  // Each leaf's triangles become their own SoA groups of W, the last one padded.
+  const auto packLeaf = [&a_triangles](const uint32_t* a_items, uint32_t a_count, std::vector<TriAoSoA>& a_out) {
+    constexpr uint32_t width = static_cast<uint32_t>(W);
+
+    for (uint32_t first = 0; first < a_count; first += width) {
+      const uint32_t groupCount = Math::min(width, a_count - first);
+
+      Array<Tri, W> group;
+
+      for (uint32_t i = 0; i < groupCount; i++) {
+        group[i] = a_triangles[a_items[first + i]];
+      }
+
+      TriAoSoA soa;
+
+      soa.pack(group.data(), groupCount);
+
+      a_out.push_back(soa);
+    }
+  };
+
+  return Root(a_pool, BVH::buildTopology<T, K>(boxes, a_spec), packLeaf);
 }
 
 template <class T, class Meta, size_t K, size_t W>
 EBGEOMETRY_HOST
-inline TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const Mesh&      a_mesh,
-                                             Pool&            a_pool,
-                                             const BVH::Build a_build,
-                                             const size_t     a_maxLeafGroups)
-  : TriMeshSDF(TriMeshSDF::extractTriangles(a_mesh), a_pool, a_build, a_maxLeafGroups)
+inline TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::BuildSpec& a_spec)
+  : TriMeshSDF(TriMeshSDF::extractTriangles(a_mesh), a_pool, a_spec)
 {}
 
 template <class T, class Meta, size_t K, size_t W>
 EBGEOMETRY_HOST
 inline TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::vector<Tri>& a_triangles,
                                              Pool&                   a_pool,
-                                             const BVH::Build        a_build,
-                                             const size_t            a_maxLeafGroups)
-  : m_bvh(TriMeshSDF::buildBVH(a_triangles, a_pool, a_build, a_maxLeafGroups))
+                                             const BVH::BuildSpec&   a_spec)
+  : m_bvh(TriMeshSDF::buildBVH(a_triangles, a_pool, a_spec))
 {}
 
 template <class T, class Meta, size_t K, size_t W>

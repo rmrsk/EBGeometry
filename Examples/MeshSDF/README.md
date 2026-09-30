@@ -21,6 +21,11 @@ using your CPU's SIMD (vector) instructions. All three give identical results fo
 mesh; the example measures how much faster each accelerated representation is in practice, over
 many random query points.
 
+How a hierarchy is built is set by a `BVH::BuildSpec`: a partitioning strategy (binned SAH by
+default) and the maximum number of primitives per leaf. The example uses the default for the face
+hierarchy, and spells the triangle hierarchy's specification out -- binned SAH with at most four
+full SIMD groups of triangles per leaf, which is also its default -- to show where to change it.
+
 Note that the achievable speedup depends on both the geometry and where you query it: a
 tessellated sphere, for example, has a "blind spot" at its center where every point on the surface
 is roughly equidistant, so even a bounding volume hierarchy ends up visiting most of the

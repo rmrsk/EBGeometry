@@ -213,7 +213,7 @@ PoolLocation::attach(const Pool& a_pool, const char* a_who) noexcept
 
   m_control        = a_pool.control();
   m_base           = nullptr;
-  m_hostAccessible = false;
+  m_hostAccessible = a_pool.resource().isHostAccessible();
 }
 
 inline PoolLocation
@@ -252,7 +252,8 @@ PoolLocation::rebasedOnto(const Pool& a_pool, const uint64_t a_endByte, const ch
   else {
     // Host pool: follow its control block rather than snapshot its base, so the view is immune to
     // growth exactly like the original.
-    location.m_control = a_pool.control();
+    location.m_control        = a_pool.control();
+    location.m_hostAccessible = a_pool.resource().isHostAccessible();
   }
 
   return location;

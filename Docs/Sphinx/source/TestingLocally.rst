@@ -197,10 +197,17 @@ Test coverage
        mirror rebased again onto that mirror's mirror; and the rejected cases (an unfrozen
        device-accessible pool, a device-only view used on the host), with a fake memory resource in
        place of a GPU.
+   * - ``TestPODVector``
+     - :cpp:class:`PODVector`: 16-byte, trivially copyable layout for floating-point, integer and
+       mixed-POD element types; ``reserveFrom`` with ``push_back``, ``assign``, or an in-place fill
+       followed by ``setSize``, reading back identically through ``at()`` and a bound ``PODSpan``;
+       reserved offsets honouring the element type's alignment; and the always-on aborts on writing
+       past the reserved capacity and on an out-of-range ``at()``.
    * - ``TestBoundingVolumes``
      - :cpp:class:`AABBT` and :cpp:class:`SphereT`: construction from
        corners and point clouds, volume, surface area, point distance,
-       intersection predicate, overlapping volume.
+       intersection predicate, overlapping volume; :cpp:func:`AABBT::merged` as the union of two
+       boxes, with the default (inverted) box as its identity.
    * - ``TestAnalyticSDF``
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
        :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances; every
@@ -219,7 +226,11 @@ Test coverage
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,
        monotonicity along one axis, injectivity, ``ValidSpan`` boundary
-       regression, and (for Hilbert) the consecutive-code adjacency property.
+       regression, and (for Hilbert) the consecutive-code adjacency property;
+       :cpp:func:`SFC::computeBins` mapping points into the valid grid with one cubic cell size
+       for all three axes (isotropic binning), coincident points collapsing to bin 0, and
+       non-finite points rejected;
+       :cpp:func:`SFC::order` returning a permutation in non-decreasing code order.
    * - ``TestTriangle``
      - :cpp:class:`Triangle`: face normal from vertex ordering, and
        signed-distance correctness for points closest to the face interior,
@@ -245,19 +256,23 @@ Test coverage
        corrupted files throwing ``ParseError`` with the file, line and reason; unused vertices being
        ignored; and mesh distance functions and BVH unions refusing to build from no faces.
    * - ``TestBVH``
-     - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
-       supported formats, used to verify: identical topology/geometry across formats;
-       :cpp:class:`BVH::TreeBVH`/:cpp:class:`BVH::PackedBVH` ``signedDistance`` agreement with a
-       brute-force scan across every partitioning strategy (top-down with the default and SAH
-       partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
-       :cpp:class:`MeshSDF`
-       and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
-       :cpp:class:`BVH::Build` strategy; signs on two concave meshes (an L-shaped prism and a box with a
-       narrow notch, whose concave edges need both adjacent faces' normals) against an analytic
-       inside test; :cpp:func:`MeshSDF::getClosestFaces` ordering; and
-       :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
-       correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
-       brute-force scan after displacement).
+     - :cpp:func:`BVH::buildTopology` for every :cpp:enum:`BVH::Strategy` (and every
+       :cpp:enum:`BVH::Curve`) and several branching factors ``K``: the structural guarantees
+       (root at node 0, children after parents, occupied slots first, every primitive in exactly one
+       leaf, no leaf above ``maxLeafSize``, at most :math:`\max(1, N - 1)` nodes, depth within the
+       device limit), on degenerate inputs as well as ordinary ones;
+       :cpp:func:`BVH::PackedBVH::pruneTraverse` results matching a brute-force scan exactly,
+       with every leaf visited at most once; adoption of host arrays and of pool-resident arrays
+       (:cpp:class:`BVH::PackedBVH` from ``std::vector`` and from :cpp:class:`PODVector`), and the
+       abort on every kind of malformed node array; the depth limits for host construction and for
+       device views from :cpp:func:`BVH::PackedBVH::rebasedView`;
+       :cpp:func:`BVH::PackedBVH::refit` keeping boxes correct after the primitives move
+       (idempotent on an unchanged geometry, queries still matching a brute-force scan after
+       displacement); and, on a regular dodecahedron read from disk in all four supported formats,
+       :cpp:class:`MeshSDF` and :cpp:class:`TriMeshSDF` agreeing with the :cpp:class:`FlatMeshSDF`
+       brute-force oracle for every strategy, signs on two concave meshes (an L-shaped prism and a
+       box with a narrow notch, whose concave edges need both adjacent faces' normals) against an
+       analytic inside test, and :cpp:func:`MeshSDF::getClosestFaces` ordering.
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
        primitives, including far from the blend region;

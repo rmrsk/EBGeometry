@@ -2,9 +2,29 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// A benchmark of EBGeometry's BVH build strategies. The same random point cloud is built into a BVH
+// with every BVH::Strategy (and, for Strategy::SpaceFillingCurve, every BVH::Curve), and for each one
+// the example times
+//
+//   1. BVH::buildTopology() alone -- the tree's shape, before any primitive is stored,
+//   2. the full PackedBVH construction -- the shape plus the primitives copied into leaf order, and
+//   3. a fixed query workload -- the closest cloud point to each of a few thousand random query
+//      points, found with PackedBVH::pruneTraverse(),
+//
+// and prints them as a table, together with the depth and node count of each tree. Every strategy
+// must find the same closest points; the example checks that, and a sample of the queries against a
+// brute-force scan, and fails if any disagree. See README.md.
+
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
-#include <random>
+#include <limits>
+#include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <EBGeometry.hpp>
@@ -22,142 +42,140 @@ using Vec3 = EBGeometry::Vec3T<T>;
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
 // The library's default branching factor (BVH::DefaultBranchingRatio<T>() is 4 on every machine).
-constexpr size_t K = 4;
+constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 
-// A minimal point primitive -- deliberately example-local, not a library type. This example only
-// needs some small, cheaply-copyable primitive to benchmark build strategies against; a bare
-// position is enough, since every partitioner and SFC build below works off the primitive's
-// bounding-volume centroid, never the primitive itself.
+// A minimal point primitive -- deliberately example-local, not a library type. A PackedBVH asks
+// nothing of its primitive but that it be trivially copyable; the builder only sees its bounding box.
 struct Point
 {
   Vec3 m_pos;
 };
 
-using Tree   = EBGeometry::BVH::TreeBVH<T, Point, AABB, K>;
 using Packed = EBGeometry::BVH::PackedBVH<T, Point, K>;
+
+// Run configuration: large enough for the build times to mean something, small enough that the whole
+// benchmark finishes in seconds even in a Debug build.
+constexpr size_t        numPoints    = 500'000;
+constexpr size_t        numQueries   = 4'000;
+constexpr size_t        numVerified  = 50;
+constexpr std::uint64_t pointSeed    = 123456789ULL;
+constexpr std::uint64_t querySeed    = 987654321ULL;
+constexpr uint32_t      leafCapacity = 4;
 
 namespace {
 
-// Build a fresh (primitive, bounding volume) pair list, wrapping each point in a shared_ptr --
-// this is the traditional TreeBVH input, and the wrapping is a real, timed part of that path's
-// cost, not incidental setup.
-EBGeometry::BVH::PrimAndBVList<Point, AABB>
-makeWrappedPrimitives(const std::vector<Vec3>& a_positions)
+// One row of the benchmark: a build specification and a label for it.
+struct Candidate
 {
-  EBGeometry::BVH::PrimAndBVList<Point, AABB> primsAndBVs;
-  primsAndBVs.reserve(a_positions.size());
-
-  for (const auto& pos : a_positions) {
-    primsAndBVs.emplace_back(std::make_shared<Point>(Point{pos}), AABB(pos, pos));
-  }
-
-  return primsAndBVs;
-}
-
-// Build the flat (primitive, bounding volume) pair list PackedBVH's direct constructors want --
-// no shared_ptr anywhere, matching what those constructors are actually for.
-std::vector<std::pair<Point, AABB>>
-makeFlatPrimitives(const std::vector<Vec3>& a_positions)
-{
-  std::vector<std::pair<Point, AABB>> primsAndBVs;
-  primsAndBVs.reserve(a_positions.size());
-
-  for (const auto& pos : a_positions) {
-    primsAndBVs.emplace_back(Point{pos}, AABB(pos, pos));
-  }
-
-  return primsAndBVs;
-}
-
-// Build-time results for one strategy: treeBuildTime is TreeBVH construction + partitioning
-// alone; packTime is the additional pack() call; directBuildTime is PackedBVH's direct
-// constructor (no TreeBVH at all). treeBuildTime + packTime is the fair number to compare against
-// directBuildTime, since a bare TreeBVH cannot answer queries on its own.
-struct StrategyResult
-{
-  double treeBuildTime;
-  double packTime;
-  double directBuildTime;
+  const char*                label;
+  EBGeometry::BVH::BuildSpec spec;
 };
 
-// Times one "partitioner family" strategy (TopDown/SAH/Midpoint): both the TreeBVH path (build +
-// a_partitionFn, then pack()) and PackedBVH's direct top-down constructor with the same
-// a_partitioner/a_stopCrit.
-template <class PartitionFn, class Partitioner, class LeafPred>
-StrategyResult
-runPartitionerFamily(const std::vector<Vec3>& a_positions,
-                     PartitionFn&&            a_partitionFn,
-                     Partitioner&&            a_partitioner,
-                     LeafPred&&               a_stopCrit)
+// What one strategy measured.
+struct Result
 {
-  EBGeometry::SimpleTimer timer;
+  double topologyTime; // BVH::buildTopology() alone.
+  double packedTime;   // The full PackedBVH construction (which runs buildTopology() itself).
+  double queryTime;    // All closest-point queries.
+  size_t depth;        // Node levels.
+  size_t nodes;        // Number of wide nodes.
 
-  timer.start();
-  auto tree = std::make_shared<Tree>(makeWrappedPrimitives(a_positions));
-  a_partitionFn(*tree);
-  timer.stop();
-  const double treeBuildTime = timer.seconds();
+  std::vector<T> closest; // Per query: the squared distance to the closest cloud point.
+};
 
-  timer.start();
-  EBGeometry::Pool packPool(EBGeometry::hostMemoryResource());
-  auto             packed = tree->pack(packPool);
-  timer.stop();
-  const double packTime = timer.seconds();
+// The closest-point search state carried through PackedBVH::pruneTraverse().
+struct Nearest
+{
+  T        dist2 = std::numeric_limits<T>::infinity();
+  uint32_t index = std::numeric_limits<uint32_t>::max();
+};
 
-  timer.start();
-  EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed     direct(directPool, makeFlatPrimitives(a_positions), a_partitioner, a_stopCrit);
-  timer.stop();
-  const double directBuildTime = timer.seconds();
+// The closest primitive to a_query, as an index into the BVH's own (leaf-ordered) primitive array.
+Nearest
+closestPoint(const Packed& a_bvh, const Vec3& a_query) noexcept
+{
+  const auto primitives = a_bvh.getPrimitives();
 
-  return {treeBuildTime, packTime, directBuildTime};
+  Nearest state;
+
+  // Leaf visit: scan the leaf's primitives and keep the closest. Pruning bound: the best squared
+  // distance so far, so every slot whose box is farther away than that is skipped.
+  a_bvh.pruneTraverse(
+    a_query,
+    state,
+    [&primitives, &a_query](Nearest& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = a_offset; i < a_offset + a_count; i++) {
+        const T d2 = (primitives[uint32_t(i)].m_pos - a_query).length2();
+
+        if (d2 < a_state.dist2) {
+          a_state.dist2 = d2;
+          a_state.index = uint32_t(i);
+        }
+      }
+    },
+    [](const Nearest& a_state) noexcept -> T { return a_state.dist2; });
+
+  return state;
 }
 
-// Times one "SFC family" strategy (Morton/Nested/Hilbert): both the TreeBVH path
-// (bottomUpSortAndPartition<S>(), then pack()) and PackedBVH's direct SFC-build constructor with
-// the same curve S.
-template <class S>
-StrategyResult
-runSFCFamily(const std::vector<Vec3>& a_positions, size_t a_targetLeafSize)
+// Build, time and query one strategy.
+Result
+runStrategy(const EBGeometry::BVH::BuildSpec& a_spec,
+            const std::vector<Vec3>&          a_positions,
+            const std::vector<AABB>&          a_boxes,
+            const std::vector<Vec3>&          a_queries)
 {
   EBGeometry::SimpleTimer timer;
 
+  Result result;
+
+  // 1. The shape of the tree alone.
   timer.start();
-  auto tree = std::make_shared<Tree>(makeWrappedPrimitives(a_positions));
-  tree->template bottomUpSortAndPartition<S>();
+  const auto topology = EBGeometry::BVH::buildTopology<T, K>(a_boxes, a_spec);
   timer.stop();
-  const double treeBuildTime = timer.seconds();
 
-  timer.start();
-  EBGeometry::Pool packPool(EBGeometry::hostMemoryResource());
-  auto             packed = tree->pack(packPool);
-  timer.stop();
-  const double packTime = timer.seconds();
+  result.topologyTime = timer.seconds();
 
-  timer.start();
-  EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed     direct(directPool, makeFlatPrimitives(a_positions), a_targetLeafSize, S{});
-  timer.stop();
-  const double directBuildTime = timer.seconds();
+  // 2. The full construction. The (primitive, box) list is set up outside the timer: it is the input,
+  // and the same for every strategy.
+  std::vector<std::pair<Point, AABB>> primsAndBVs;
 
-  return {treeBuildTime, packTime, directBuildTime};
-}
+  primsAndBVs.reserve(a_positions.size());
 
-// Times ClusterSAH: PackedBVH's direct ClusterSAH constructor (density-adaptive clustering, then SAH
-// over the clusters). Direct-only -- there is no TreeBVH path -- so treeBuild/pack are reported as
-// "--".
-StrategyResult
-runClusterSAH(const std::vector<Vec3>& a_positions, size_t a_maxClusterSize)
-{
-  EBGeometry::SimpleTimer timer;
+  for (size_t i = 0; i < a_positions.size(); i++) {
+    primsAndBVs.emplace_back(Point{a_positions[i]}, a_boxes[i]);
+  }
+
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
   timer.start();
-  EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed     direct(directPool, makeFlatPrimitives(a_positions), EBGeometry::BVH::ClusterSpec{a_maxClusterSize});
+  const Packed bvh(pool, std::move(primsAndBVs), a_spec);
   timer.stop();
-  const double directBuildTime = timer.seconds();
 
-  return {-1.0, -1.0, directBuildTime}; // treeBuild/pack sentinel: direct-only strategy
+  result.packedTime = timer.seconds();
+
+  const auto nodes = bvh.getNodes();
+
+  result.nodes = nodes.size();
+  result.depth = EBGeometry::BVH::treeDepth(nodes.begin(), nodes.size());
+
+  // 3. The query workload.
+  result.closest.resize(a_queries.size());
+
+  timer.start();
+
+  for (size_t q = 0; q < a_queries.size(); q++) {
+    result.closest[q] = closestPoint(bvh, a_queries[q]).dist2;
+  }
+
+  timer.stop();
+
+  result.queryTime = timer.seconds();
+
+  // The topology was built only to be timed.
+  (void)topology;
+
+  return result;
 }
 
 } // namespace
@@ -165,93 +183,90 @@ runClusterSAH(const std::vector<Vec3>& a_positions, size_t a_maxClusterSize)
 int
 main()
 {
-  // Benchmark: build the same random point cloud into a BVH with every construction strategy
-  // EBGeometry offers, and time each. For the top-down and space-filling-curve strategies, both the
-  // traditional TreeBVH-then-pack() path and PackedBVH's direct constructor are timed; ClusterSAH is
-  // direct-only.
+  std::cout << "BuildBVH: every BVH build strategy over a " << numPoints << "-point cloud in the unit cube\n";
+  std::cout << "  Precision T      = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
+  std::cout << "  Branching K      = " << K << '\n';
+  std::cout << "  Max leaf size    = " << leafCapacity << '\n';
+  std::cout << "  Closest-point    = " << numQueries << " queries\n\n";
 
-  const std::vector<size_t> sizes = {500'000};
+  const std::vector<Vec3> positions = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
+  const std::vector<Vec3> queries   = EBGeometry::Random::samplePoints<T>(numQueries, querySeed);
 
-  // Target leaf size for the SFC-family direct constructors. Chosen to match K, the leaf
-  // occupancy every strategy naturally converges to (topDownSortAndPartition()'s default
-  // LeafPredicate stops once a node holds fewer than K primitives; bottomUpSortAndPartition()'s
-  // leaf count likewise divides the primitives into groups of roughly K), so the comparison isn't
-  // skewed by one strategy simply building shallower or deeper trees than the others.
-  constexpr size_t targetLeafSize = K;
+  // A point's bounding box is the degenerate box at the point.
+  std::vector<AABB> boxes;
 
-  std::mt19937_64                   rng(123456789ULL); // Fixed seed: reproducible run-to-run.
-  std::uniform_real_distribution<T> udist(T(0.0), T(1.0));
+  boxes.reserve(positions.size());
+
+  for (const auto& p : positions) {
+    boxes.emplace_back(p, p);
+  }
+
+  using EBGeometry::BVH::Curve;
+  using EBGeometry::BVH::Strategy;
+
+  const std::vector<Candidate> candidates = {
+    {"SAH", {Strategy::SAH, Curve::Morton, leafCapacity}},
+    {"Centroid", {Strategy::Centroid, Curve::Morton, leafCapacity}},
+    {"Midpoint", {Strategy::Midpoint, Curve::Morton, leafCapacity}},
+    {"ClusterSAH", {Strategy::ClusterSAH, Curve::Morton, leafCapacity}},
+    {"SFC/Morton", {Strategy::SpaceFillingCurve, Curve::Morton, leafCapacity}},
+    {"SFC/Nested", {Strategy::SpaceFillingCurve, Curve::Nested, leafCapacity}},
+    {"SFC/Hilbert", {Strategy::SpaceFillingCurve, Curve::Hilbert, leafCapacity}},
+  };
+
+  std::cout << std::left << std::setw(14) << "Strategy" << std::right << std::setw(16) << "Topology (s)"
+            << std::setw(16) << "PackedBVH (s)" << std::setw(8) << "Depth" << std::setw(10) << "Nodes" << std::setw(14)
+            << "Queries (s)" << '\n';
 
   std::cout << std::fixed << std::setprecision(6);
 
-  for (const size_t N : sizes) {
-    std::cout << "\n=== N = " << N << " points, K = " << K << " ===\n";
+  std::vector<Result> results;
 
-    std::vector<Vec3> positions;
-    positions.reserve(N);
+  for (const auto& candidate : candidates) {
+    results.push_back(runStrategy(candidate.spec, positions, boxes, queries));
 
-    for (size_t i = 0; i < N; i++) {
-      positions.emplace_back(udist(rng), udist(rng), udist(rng));
-    }
+    const Result& r = results.back();
 
-    using LeafPred          = typename Tree::LeafPredicate;
-    const LeafPred stopCrit = [](const Tree& a_node) noexcept -> bool { return a_node.getPrimitives().size() < K; };
-
-    const auto topDown = runPartitionerFamily(
-      positions,
-      [](Tree& a_tree) { a_tree.topDownSortAndPartition(); },
-      EBGeometry::BVH::BVCentroidPartitioner<T, Point, AABB, K>,
-      stopCrit);
-
-    const auto sah = runPartitionerFamily(
-      positions,
-      [stopCrit](Tree& a_tree) {
-        a_tree.topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>, stopCrit);
-      },
-      EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>,
-      stopCrit);
-
-    const auto midpoint = runPartitionerFamily(
-      positions,
-      [stopCrit](Tree& a_tree) {
-        a_tree.topDownSortAndPartition(EBGeometry::BVH::MidpointPartitioner<T, Point, AABB, K>, stopCrit);
-      },
-      EBGeometry::BVH::MidpointPartitioner<T, Point, AABB, K>,
-      stopCrit);
-
-    const auto morton  = runSFCFamily<EBGeometry::SFC::Morton>(positions, targetLeafSize);
-    const auto nested  = runSFCFamily<EBGeometry::SFC::Nested>(positions, targetLeafSize);
-    const auto hilbert = runSFCFamily<EBGeometry::SFC::Hilbert>(positions, targetLeafSize);
-
-    // ClusterSAH is direct-only: cluster to <= maxClusterSize primitives, then SAH over the clusters.
-    const auto clusterSah = runClusterSAH(positions, /*maxClusterSize=*/8);
-
-    std::cout << std::left << std::setw(12) << "Strategy" << std::right << std::setw(16) << "TreeBVH (s)"
-              << std::setw(16) << "+ pack() (s)" << std::setw(16) << "Total (s)" << std::setw(18) << "Direct build (s)"
-              << "\n";
-
-    auto printRow = [](const char* a_label, const StrategyResult& a_result) {
-      std::cout << std::left << std::setw(12) << a_label << std::right;
-
-      if (a_result.treeBuildTime < 0.0) { // direct-only strategy: no TreeBVH path
-        std::cout << std::setw(16) << "--" << std::setw(16) << "--" << std::setw(16) << "--";
-      }
-      else {
-        std::cout << std::setw(16) << a_result.treeBuildTime << std::setw(16) << a_result.packTime << std::setw(16)
-                  << (a_result.treeBuildTime + a_result.packTime);
-      }
-
-      std::cout << std::setw(18) << a_result.directBuildTime << "\n";
-    };
-
-    printRow("TopDown", topDown);
-    printRow("SAH", sah);
-    printRow("Midpoint", midpoint);
-    printRow("Morton", morton);
-    printRow("Nested", nested);
-    printRow("Hilbert", hilbert);
-    printRow("ClusterSAH", clusterSah);
+    std::cout << std::left << std::setw(14) << candidate.label << std::right << std::setw(16) << r.topologyTime
+              << std::setw(16) << r.packedTime << std::setw(8) << r.depth << std::setw(10) << r.nodes << std::setw(14)
+              << r.queryTime << '\n';
   }
 
-  return 0;
+  // Check the answers. Every strategy must find a point at the same distance as a brute-force scan
+  // (for a sample of the queries) and as every other strategy (for all of them). Distances are
+  // compared rather than indices, since two cloud points may be equally close, and exactly, since
+  // every path computes them with the same arithmetic.
+  bool ok = true;
+
+  for (size_t q = 0; q < numVerified; q++) {
+    T best = std::numeric_limits<T>::infinity();
+
+    for (size_t i = 0; i < positions.size(); i++) {
+      best = std::min(best, (positions[i] - queries[q]).length2());
+    }
+
+    for (size_t s = 0; s < results.size(); s++) {
+      if (results[s].closest[q] != best) {
+        std::cerr << "Mismatch: " << candidates[s].label << " disagrees with brute force on query " << q << '\n';
+        ok = false;
+      }
+    }
+  }
+
+  for (size_t q = 0; q < numQueries; q++) {
+    for (size_t s = 1; s < results.size(); s++) {
+      if (results[s].closest[q] != results[0].closest[q]) {
+        std::cerr << "Mismatch: " << candidates[s].label << " disagrees with " << candidates[0].label << " on query "
+                  << q << '\n';
+        ok = false;
+      }
+    }
+  }
+
+  std::cout << '\n'
+            << (ok ? "All strategies agree with each other, and with brute force on the first "
+                   : "FAILED: the strategies disagree (see above); brute force checked the first ")
+            << numVerified << " queries.\n";
+
+  return ok ? 0 : 1;
 }

@@ -2,13 +2,17 @@ Examples/BuildBVH
 -----------------
 
 A benchmark of EBGeometry's BVH construction strategies. It builds a BVH over a random point cloud
-with each available strategy -- top-down (centroid, SAH, and midpoint partitioners), bottom-up along
-the Morton, Nested, and Hilbert space-filling curves, and ClusterSAH -- and reports the build time
-for each.
+with every `BVH::Strategy` -- top-down binned SAH, Centroid (equal-count) and Midpoint splits,
+ClusterSAH, and a space-filling-curve build along each of the Morton, Nested and Hilbert curves --
+each with at most four points per leaf, and for each one times
 
-For most strategies it times two ways of reaching a queryable `PackedBVH`: the traditional
-`TreeBVH`-then-`pack()` path, and `PackedBVH`'s direct constructor, which packs the primitives
-straight into the flat, queryable layout without building a `TreeBVH` first.
+* `BVH::buildTopology()` alone: the shape of the tree, before any primitive is stored;
+* the full `PackedBVH` construction: the shape plus the primitives, copied into leaf order;
+* a fixed query workload: the closest cloud point to each of a few thousand random query points,
+  found with `PackedBVH::pruneTraverse()`.
+
+Every strategy must find the same closest points. The example checks that, and a sample of the
+queries against a brute-force scan, and exits with an error if any disagree.
 
 Building
 --------
@@ -51,6 +55,9 @@ Running
 
     ./BuildBVH.ex
 
-Takes no arguments. It prints a table of build times, in seconds, for every strategy (`TreeBVH`,
-`+ pack()`, and their `Total`, alongside the direct-constructor `Direct build` time). This times
-*build* only, not query performance or tree quality.
+Takes no arguments. It prints one row per strategy: the `buildTopology()` time and the full
+`PackedBVH` construction time (which includes a `buildTopology()` of its own), the depth and node
+count of the tree, and the time for all the closest-point queries, all in seconds. A fast build is
+not the same as a fast tree: compare the build columns against the query column for the trade-off
+between them. Build in Release (`-O3`) for timings that mean anything; a Debug build runs the same
+workload in a few seconds.

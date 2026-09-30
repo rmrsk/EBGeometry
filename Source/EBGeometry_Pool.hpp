@@ -83,7 +83,8 @@ class Pool;
  * - @b Unset: nothing has been reserved yet.
  * - @b Following a pool: @c m_control is set. base() reads the pool's current base through the
  *   control block on every call, so a pool that grows and moves its block is invisible to the
- *   descriptor. Only host code can follow a pool.
+ *   descriptor. Only host code can follow a pool. A pool in device-only memory can be followed only
+ *   to hand its arrays to a kernel, never to read them on the host; @c m_hostAccessible says which.
  * - @b Snapshot: @c m_control is null and @c m_base holds the base of a frozen, device-accessible
  *   pool, captured by rebasedOnto(). This is what a kernel receives. If that memory is also
  *   host-accessible (managed or mapped memory), @c m_hostAccessible is set and host code may use the
@@ -105,14 +106,17 @@ struct PoolLocation
   /// @brief Base address captured by a snapshot; null otherwise.
   void* m_base = nullptr;
 
-  /// @brief Whether host code may dereference a snapshot's base (managed or mapped memory).
+  /// @brief Whether host code may dereference the memory this location resolves to: always, for a
+  /// host pool; for managed or mapped memory; never for device-only memory.
   bool m_hostAccessible = false;
 
   /**
    * @brief The base address the descriptor's offsets resolve against.
-   * @details On the host, the followed pool's current base, or a snapshot's base if host code may use
-   * it. On a device, the snapshot's base: a location that still follows a host pool means a host
-   * descriptor was copied into a kernel without rebasedView(), which EBGEOMETRY_EXPECT catches.
+   * @details On the host, the followed pool's current base, or a snapshot's base. Either must be memory
+   * the host can read, which EBGEOMETRY_EXPECT checks: a descriptor adopted from a pool in device-only
+   * memory resolves only on a device. On a device, the snapshot's base: a location that still follows
+   * a host pool means a host descriptor was copied into a kernel without rebasedView(), which
+   * EBGEOMETRY_EXPECT catches.
    * @return The base address.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -124,14 +128,10 @@ struct PoolLocation
 
     return m_base;
 #else
-    if (m_control != nullptr) {
-      return m_control->m_base;
-    }
-
-    // Unset, or a snapshot of memory the host cannot reach (a device-only mirror).
+    // Unset, or memory the host cannot reach (a device-only mirror or pool).
     EBGEOMETRY_EXPECT(m_hostAccessible);
 
-    return m_base;
+    return (m_control != nullptr) ? m_control->m_base : m_base;
 #endif
   }
 

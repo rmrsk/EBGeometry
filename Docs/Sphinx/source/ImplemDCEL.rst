@@ -36,7 +36,9 @@ instance:
 *  ``FaceT<T, Meta>`` represents a polygon face. Besides the index of its half-edge, it also
    stores the face normal vector, a 2D embedding of the polygon, and its centroid position: the
    normal and 2D embedding exist because the signed distance computation needs them, and the
-   centroid exists because BVH partitioners use it when partitioning the surface mesh. For the
+   centroid is the average of the face's vertices. The BVH builder does not use the stored
+   centroid: it partitions faces by the centres of their bounding boxes (see
+   :ref:`Chap:BVHConstruction`). For the
    full API, see the Doxygen reference for
    `FaceT <doxygen/html/classEBGeometry_1_1DCEL_1_1FaceT.html>`__.
 
@@ -145,29 +147,25 @@ BVH integration
 
 A ``MeshT<T, Meta>`` is never queried directly for anything beyond tiny meshes -- see
 :ref:`Chap:BVH` for why an :math:`\mathcal{O}(N)` scan over faces doesn't scale, and
-:ref:`Chap:ImplemBVH` for how ``TreeBVH``/``PackedBVH`` are actually built and traversed. This
+:ref:`Chap:ImplemBVH` for how ``PackedBVH`` is actually built and traversed. This
 section covers only the DCEL-specific half of that integration: how a mesh's faces become BVH
 primitives in the first place.
 
-Embedding a mesh in a BVH is a matter of pairing each ``FaceT<T, Meta>`` with a bounding volume
-and handing the resulting list to a ``TreeBVH``. Concretely,
-``MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, BV, K>`` (in
-:file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp`, the shared helper behind both
-``MeshSDF`` and ``TriMeshSDF``'s construction) does this by:
+Embedding a mesh in a BVH is a matter of pairing each ``FaceT<T, Meta>`` with a bounding box and
+handing the boxes to the one BVH builder, ``BVH::buildTopology()``, with a ``BVH::BuildSpec``
+(see :ref:`Chap:BVHConstruction`). The two BVH-backed mesh distance fields differ in what they
+store in the leaves:
 
-#. Building each face's bounding volume ``BV`` directly from its vertex coordinates
-   (``FaceT::getAllVertexCoordinates(mesh)``, which walks the face's half-edge loop and resolves
-   each vertex index against the owning mesh).
-#. Constructing a ``TreeBVH<T, FaceT<T, Meta>, BV, K>`` from the resulting
-   ``(face, bounding volume)`` pairs.
-#. Partitioning that tree according to the requested ``BVH::Build`` strategy (``TopDown``,
-   ``Morton``, ``Nested``, or ``SAH`` -- see :ref:`Chap:BVHConstruction`), where the
-   ``BVCentroidPartitioner``/``BinnedSAHPartitioner`` used by the default and SAH strategies
-   consult ``FaceT::getCentroid()`` (see above) when deciding how to split a set of faces.
+*  ``MeshSDF(mesh, pool, spec)`` builds each face's ``AABBT<T>`` directly from its vertex
+   coordinates (``FaceT::getAllVertexCoordinates(mesh)``, which walks the face's half-edge loop and
+   resolves each vertex index against the owning mesh), and builds a ``PackedBVH`` of faces from the
+   resulting ``(face, bounding box)`` pairs, storing each face by value.
+   ``BuildSpec::maxLeafSize`` counts faces.
+*  ``TriMeshSDF(mesh, pool, spec)`` first converts every face into a ``Triangle`` (fan-triangulating
+   faces with more than three vertices), builds the tree over one box per triangle, and packs each
+   leaf's triangles into SIMD-width ``TriangleAoSoA`` groups as it stores the tree.
+   ``BuildSpec::maxLeafSize`` counts triangles.
 
-``MeshSDF`` then packs this ``TreeBVH`` into a ``PackedBVH`` of faces directly (``pack()``), while
-``TriMeshSDF`` additionally converts each face into a triangle and groups triangles into
-SIMD-width ``TriangleSoAT`` blocks while packing (``packWith()``) -- see :ref:`Chap:MeshSDFClasses`
-for how the two differ, and :ref:`Chap:Parsers` for the file-reading entry points that produce a
-``MeshSDF``/``TriMeshSDF`` from a mesh file directly, without driving any of the steps above by
-hand.
+See :ref:`Chap:MeshSDFClasses` for how the two differ, and :ref:`Chap:Parsers` for the file-reading
+entry points that produce a ``MeshSDF``/``TriMeshSDF`` from a mesh file directly, with a
+recommended default ``BuildSpec``.

@@ -20,8 +20,9 @@ integration, the underlying geometric concepts), see the
 * EBGeometry::DCEL::MeshT — the half-edge (doubly-connected edge list) surface mesh
   representation, together with EBGeometry::DCEL::VertexT, EBGeometry::DCEL::EdgeT, and
   EBGeometry::DCEL::FaceT.
-* EBGeometry::BVH::TreeBVH and EBGeometry::BVH::PackedBVH — the pointer-based build-time BVH and
-  its flattened, SIMD-traversable counterpart.
+* EBGeometry::BVH::buildTopology and EBGeometry::BVH::PackedBVH — the one BVH builder
+  (configured by EBGeometry::BVH::BuildSpec) and the flat, SIMD-traversable BVH of
+  EBGeometry::BVH::WideNode nodes it produces.
 * EBGeometry::MeshSDF, EBGeometry::TriMeshSDF, and EBGeometry::FlatMeshSDF — the concrete
   signed-distance-function classes that wrap a mesh in a BVH (or not, for `FlatMeshSDF`).
 * EBGeometry::Parser — free functions for reading STL/PLY/OBJ/VTK files directly into a DCEL
@@ -33,7 +34,7 @@ integration, the underlying geometric concepts), see the
 |---|---|
 | `EBGeometry` | Vectors (`Vec2T`, `Vec3T`), implicit functions, signed distance functions, analytic shapes, CSG operators, transformations, the SDF/BVH wrapper classes (`MeshSDF`, `TriMeshSDF`, `FlatMeshSDF`) |
 | `EBGeometry::DCEL` | The half-edge surface mesh: `VertexT`, `EdgeT`, `FaceT`, `MeshT`, and mesh iterators |
-| `EBGeometry::BVH` | `TreeBVH`, `PackedBVH`, partitioners, traversal callback types (`LeafEvaluator`, `PrunePredicate`, `ChildOrderer`, `NodeKeyFactory`) |
+| `EBGeometry::BVH` | The build specification (`BuildSpec`, `Strategy`, `Curve`), the builder `buildTopology` and its `Topology`, the node layout `WideNode`, and `PackedBVH` with its one traversal `pruneTraverse` |
 | `EBGeometry::BoundingVolumes` | `AABBT` (axis-aligned box) and `SphereT` (bounding sphere) |
 | `EBGeometry::Octree` | Pointer-based octree used internally for bounding-volume estimation of arbitrary implicit functions |
 | `EBGeometry::Random` | Centralized random sampling utilities |

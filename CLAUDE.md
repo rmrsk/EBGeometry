@@ -8,8 +8,9 @@ EBGeometry is a **header-only C++17 library** for:
 
 1. Turning watertight, orientable surface meshes into signed distance functions (SDFs), via a
    half-edge (DCEL) mesh or raw triangle representation.
-2. Fast SDF evaluation using bounding volume hierarchies (BVHs) — both a pointer-based `TreeBVH`
-   and a flattened, SIMD-friendly `PackedBVH`.
+2. Fast SDF evaluation using bounding volume hierarchies (BVHs) — one host-side builder
+   (`BVH::buildTopology`, configured by a `BVH::BuildSpec`) producing a flat, SIMD-friendly
+   `PackedBVH` of wide nodes, queried through its one traversal, `pruneTraverse()`.
 3. BVH-accelerated constructive solid geometry (CSG) unions of many objects.
 4. Analytic SDFs/implicit functions (spheres, boxes, etc.) and transforms (union, intersection,
    rounding, blending, rotation/translation/scaling).
@@ -163,7 +164,7 @@ rebuild and a careful read of the rendered excerpt.
 **`literalinclude` is banned in `Docs/Sphinx/source/*.rst`.** Every occurrence has been removed;
 never add a new one. Where a reader needs the exact C++ signature of a class or function, link to
 its Doxygen-generated page instead (e.g.
-`` `TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ ``) rather than showing source
+`` `PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__ ``) rather than showing source
 inline -- Doxygen is regenerated from the header itself on every build, so it cannot drift the way
 a hand-maintained line range could. Before adding a Doxygen link, verify the target actually
 exists: build Doxygen locally (`cd Docs && doxygen doxygen.conf`) and check the generated `.html`

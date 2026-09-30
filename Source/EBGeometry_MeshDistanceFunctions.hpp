@@ -229,15 +229,15 @@ public:
   /**
    * @brief Full constructor. Copies the mesh descriptor and builds the BVH over its faces.
    * @details No default arguments: this is a low-level constructor, and callers working at this
-   * level must consciously choose a build strategy. Use Parser::readIntoPackedBVH for sensible
+   * level must consciously choose how to build the BVH. Use Parser::readIntoPackedBVH for sensible
    * defaults. The BVH is reserved from a_pool, which must be the pool a_mesh was built in, so that
    * one rebasedView() rebases both. a_pool must outlive this object and every copy of it.
-   * @param[in]     a_mesh   Input mesh, built against a_pool.
-   * @param[in,out] a_pool   Pool a_mesh's storage was reserved from; the BVH is reserved here too.
-   * @param[in]     a_build  BVH build strategy. SAH (binned Surface Area Heuristic) is recommended.
+   * @param[in]     a_mesh Input mesh, built against a_pool.
+   * @param[in,out] a_pool Pool a_mesh's storage was reserved from; the BVH is reserved here too.
+   * @param[in]     a_spec How to build the BVH; a leaf holds at most a_spec.maxLeafSize faces.
    */
   EBGEOMETRY_HOST
-  inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
+  inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::BuildSpec& a_spec);
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
@@ -251,8 +251,9 @@ public:
   /**
    * @brief Return faces within BVH-pruned candidate distance of a_point.
    * @details Traverses the PackedBVH and collects candidate faces, pairing each with its unsigned
-   * distance to @p a_point. Host-only: it runs on PackedBVH::traverse(), whose callbacks are
-   * std::functions, and returns a std::vector.
+   * distance to @p a_point. Host-only, since it returns a std::vector: it runs on
+   * PackedBVH::pruneTraverse(), keeping every face that is at least as close as all faces visited
+   * before it.
    *
    * Faces are named by their index into this object's own BVH primitive array -- the array
    * getRoot().getPrimitives() returns -- and *not* by an index into the source mesh's face array.
@@ -369,12 +370,12 @@ private:
    * @brief Build and pack the BVH over a mesh's faces.
    * @param[in]     a_mesh  Mesh whose faces to index.
    * @param[in,out] a_pool  Pool to reserve the packed BVH from.
-   * @param[in]     a_build BVH build strategy.
+   * @param[in]     a_spec  How to build the BVH.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
+  buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::BuildSpec& a_spec);
 
   /**
    * @brief Source DCEL mesh descriptor.
@@ -467,34 +468,22 @@ public:
    * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups.
    * @param[in]     a_mesh          DCEL mesh. Faces with more than three vertices are fan-triangulated.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
-   * @param[in]     a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
-   * near-optimal traversal cost; TopDown (centroid median) is faster to build but yields deeper trees.
-   * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
-   * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W. This bounds the pre-packing
-   * tree's leaf size, not the packed representation directly: each leaf's triangles become their
-   * own TriangleSoA group(s) during packing, with no batching across leaves, so a leaf smaller
-   * than W wastes some of its group's SIMD lanes on padding. It is an upper bound, not a target —
-   * the SAH/TopDown partitioner still splits down to tighter, more selective leaves wherever the
-   * geometry warrants it. Expressing this as a count of W-sized groups (rather than a raw triangle
-   * count) makes it impossible to accidentally pick a leaf size that isn't a multiple of W. Must
-   * be > 0.
+   * @param[in]     a_spec          How to build the BVH. a_spec.maxLeafSize counts triangles: a
+   * leaf's triangles are packed into SoA groups of W, with no batching across leaves, so a leaf size
+   * that is a multiple of W keeps every SIMD lane of a full leaf busy. It is an upper bound: SAH
+   * still splits down to smaller leaves where the geometry warrants it.
    */
   EBGEOMETRY_HOST
-  inline TriMeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
+  inline TriMeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::BuildSpec& a_spec);
 
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
    * @param[in]     a_triangles     Input triangle soup; copied into the BVH's SoA groups.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
-   * @param[in]     a_build         BVH build strategy (see the mesh-based constructor for details).
-   * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
-   * the mesh-based constructor for the tree-quality/SIMD-occupancy trade-off). Must be > 0.
+   * @param[in]     a_spec          How to build the BVH (see the mesh-based constructor).
    */
   EBGEOMETRY_HOST
-  inline TriMeshSDF(const std::vector<Tri>& a_triangles,
-                    Pool&                   a_pool,
-                    const BVH::Build        a_build,
-                    const size_t            a_maxLeafGroups);
+  inline TriMeshSDF(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::BuildSpec& a_spec);
 
   /**
    * @brief Compute the signed distance from a_point to the triangle mesh.
@@ -612,28 +601,12 @@ private:
    * @brief Build and pack the BVH over a triangle soup.
    * @param[in]     a_triangles     Triangles to index.
    * @param[in,out] a_pool          Pool to reserve the packed BVH from.
-   * @param[in]     a_build         BVH build strategy.
-   * @param[in]     a_maxLeafGroups Maximum number of W-sized groups per leaf.
+   * @param[in]     a_spec          How to build the BVH.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildBVH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
-
-  /**
-   * @brief Leaf-conversion callback for TreeBVH::packWith: groups a BVH leaf's triangles
-   * into SoA blocks of width W.
-   * @details Stateless (captures nothing), so it is a static member rather than a lambda.
-   * @param[in] a_triangles Leaf's triangle list.
-   * @param[in] a_offset    Index of the first triangle in this leaf to convert.
-   * @param[in] a_count     Number of triangles in this leaf to convert.
-   * @return SoA-packed triangle groups covering [a_offset, a_offset + a_count).
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  static std::vector<TriAoSoA>
-  groupTrianglesIntoSoA(const std::vector<std::shared_ptr<const Tri>>& a_triangles,
-                        uint32_t                                       a_offset,
-                        uint32_t                                       a_count);
+  buildBVH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::BuildSpec& a_spec);
 
   /**
    * @brief Bounding volume hierarchy storing SoA triangle groups.

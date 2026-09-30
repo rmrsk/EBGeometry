@@ -105,7 +105,8 @@ using Meta = short;
   }                                                                          \
                                                                                \
   /* -- BVH ---------------------------------------------------------------- */\
-  template class BVH::TreeBVH<PREC, Vec3T<PREC>, BoundingVolumes::AABBT<PREC>, 4>; \
+  template struct BVH::WideNode<PREC, 4>;                                   \
+  template struct BVH::Topology<PREC, 4>;                                   \
   template class BVH::PackedBVH<PREC, Vec3T<PREC>, 4>;                       \
                                                                                \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
@@ -161,6 +162,31 @@ instantiateFunctionTemplates()
     (void)pool.id();
     (void)pool.resource().isDeviceAccessible();
     (void)vec.endByte();
+  }
+
+  // The BVH builder, and the PackedBVH members only a caller reaches (constructors from a topology or
+  // from pool-resident arrays, refit, traversal).
+  {
+    using Packed = BVH::PackedBVH<T, Vec3T<T>, 4>;
+
+    const std::vector<BoundingVolumes::AABBT<T>> boxes;
+
+    Pool pool(hostMemoryResource());
+
+    const BVH::Topology<T, 4> topology = BVH::buildTopology<T, 4>(boxes, BVH::BuildSpec{});
+
+    Packed bvh(pool, topology, [](const uint32_t*, uint32_t, std::vector<Vec3T<T>>&) {});
+    Packed adopted(pool, PODVector<typename Packed::Node>{}, PODVector<Vec3T<T>>{});
+
+    bvh.refit([](const Vec3T<T>& a_x) { return BoundingVolumes::AABBT<T>(a_x, a_x); });
+
+    T state = T(0);
+
+    bvh.pruneTraverse(
+      Vec3T<T>(T(0), T(0), T(0)), state, [](T&, size_t, size_t) noexcept {}, [](const T& a_s) noexcept { return a_s; });
+
+    (void)adopted.getBoundingVolume();
+    (void)BVH::treeDepth(topology.nodes.data(), topology.nodes.size());
   }
 
   (void)Parser::readPLY<T>(file);
