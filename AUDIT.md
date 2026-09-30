@@ -398,7 +398,7 @@ Taken by the maintainer on 30 September 2026. "Recommended" is what this audit p
 | # | Decision | Recommended | Taken | Affects |
 |---|----------|-------------|-------|---------|
 | D1 | Where a pool object keeps its location | Layout/handle split | **Two steps.** `PoolLocation` takes over the location logic now (fixing the managed-memory crash and the duplication); the layout/handle split is the first step of the tape work | MEM-1/2/7/8/12 |
-| D2 | Retire instead of port (§2.6) | All seven | **All seven**: `Octree::Node`, `TreeBVH` + `pack`/`packWith`, both `traverse()`s and their aliases, `SphereT`, `SignedDistanceFunction`, SYCL/OpenACC branches and dead macros, `Random`/`SimpleTimer` out of the umbrella | §2.6 |
+| D2 | Retire instead of port (§2.6) | All seven | **All seven**: `Octree::Node`, `TreeBVH` + `pack`/`packWith`, both `traverse()`s and their aliases, `SphereT`, `SignedDistanceFunction`, SYCL/OpenACC branches and dead macros, `Random`/`SimpleTimer` out of the umbrella. **Amended during item 17:** `TreeBVH`, its partitioners and `pack`/`packWith` stay, as the flexible host builder third-party codes rely on; `PackedBVH::traverse()` is to become a template, device-callable custom traversal | §2.6 |
 | D3 | Mesh SDFs and `Meta` | Only `TriMeshSDF`, `uint32` face id | **Keep all three mesh SDFs**; replace `Meta` with a `uint32_t` face id and a user-side array. `MeshSDF` leaves store that face index and resolve the face through the mesh (fixes MESH-4, shrinks leaves) | MESH-4/6/7/17 |
 | D4 | Tape front-end | Value-type expression builder | **Value-type expression builder** | CSG-5 |
 | D5 | Host-only shape adapter now | Maintainer's call | **No adapter. Retire `ImplicitFunction`** and the virtual transform/CSG layer, replaced by a trait (`signedDistance`, later `computeBoundingVolume`) checked with `static_assert`. Removed **in the same change that introduces the builder and a host evaluator**, so there is no gap; the transform/CSG test expectations move to the builder | CSG-5/6/14/20 |
@@ -479,7 +479,7 @@ Phase 0 is complete. Items 7–10 were:
 | 14. Fixed K and W (D7) | Done; defaults are 4, host-tuned values opt-in, `Examples/HostTuning` | `92aae41` |
 | 15. Location, step one (D1, MEM-2, MEM-8) | Done; the layout/handle split remains the first tape step | `3145b5a` |
 | 16. GPU test harness (QA-5/13) | Done; the tests also run in every host build, emulated. No lane runs a real kernel yet (no GPU runner) | `2e4f700` |
-| 17. One builder, wide nodes, one traversal (BVH-2/3/4/5/7/8/11/12/13) | Done; also retires `TreeBVH`, the partitioners and both `traverse()`s (from item 21) | `6c58ae0` |
+| 17. Stack, empty leaves, SIMD rows, builder fixes (BVH-5/8/11/12/13) | Done, narrowly: a first, wider version (`6c58ae0`: one builder, a wide-node layout, `TreeBVH` retired) was reverted in `9481022`, since code outside EBGeometry relies on `TreeBVH`'s custom partitioners. BVH-2 (one build rule) and a template custom traversal are open | `051f53c` |
 
 Findings from item 11:
 
@@ -498,12 +498,22 @@ Findings from item 11:
 
 Findings from item 17:
 
-- **Size and speed.** On the armadillo mesh (100k faces) the MeshSDF BVH takes 12.5 MB instead of
-  31.1 MB, the TriMeshSDF BVH 29.8 MB instead of 35.5 MB, and both build in about half the time.
-  Distances are identical to before, and query times are unchanged within this VM's noise.
-- **Two more bugs found by the new tests.** The SAH builder's bin scale overflowed for centroid
-  ranges below about 2^-123 (float) and indexed its bins out of bounds; merging two empty boxes
-  tripped an assertion. Both fixed, with tests.
+- **Kept narrow on purpose.** Third-party codes use `TreeBVH` with their own partitioners to
+  partition other object types, then pack into `PackedBVH`. Item 17 therefore changes internals
+  only: the traversal stack, how empty leaves are caught, which nodes get SIMD child-box rows, and
+  the bug fixes below. Every class keeps its API. D2 is amended accordingly.
+- **Size.** On the armadillo mesh (100k faces) the MeshSDF BVH takes 19.6 MB instead of 31.1 MB and
+  the TriMeshSDF BVH 33.0 MB instead of 35.5 MB, from dropping the SIMD row every leaf used to get.
+  Distances are identical and query times unchanged.
+- **Bugs found and fixed.** The binned SAH partitioner and ClusterSAH indexed their bins out of bounds
+  when a range of centroids had a subnormal extent (the old code segfaults on 60 points at 2^-i);
+  `bottomUpSortAndPartition` built one level too few at N = 3^5, 10^3 and other exact powers;
+  `TreeBVH::traverse` read its stack entry after popping it. All three have tests that fail
+  without the fix.
+- **Deep trees on adversarial input.** SAH and midpoint splits give trees whose depth grows linearly
+  on a geometric sequence of points (352 levels for 1100 points). The host limit is 256 levels, so
+  such a build aborts with a message rather than overflowing the stack; an equal-count fallback
+  would keep them shallow, and is part of the open BVH-2 question.
 - **Four integrations do not compile, independently of this item.** `Integrations/AMReX` and
   `Integrations/Chombo` `PackedSpheres`/`RandomCity` still call the BVH unions in a form older
   than the Pool; they are not built by CI. Item 22 (D13) ports them.
@@ -531,8 +541,8 @@ Findings from item 17:
     `getClosestFace` on `pruneTraverse`; parser renames (MESH-12); one polygon-soup container (MESH-11).
 20. **Point clouds** (D9): one `Hit` type with a `uint32` index, a shared k-best helper, the hash grid
     on Pool/`PODVector` (PC-4/7/8/10/12/14).
-21. **Retirements** (D2) and **union names** (D11). `TreeBVH`, `pack`/`packWith`, the partitioners and both `traverse()`s
-    went in item 17.
+21. **Retirements** (D2) and **union names** (D11). `TreeBVH`, `pack`/`packWith` and the
+    partitioners stay (D2 amended); `PackedBVH::traverse()` waits on the custom-traversal design.
 22. **Integrations and examples** (D13, QA-1/17/18/19).
 23. **Planning documents** (D14).
 
