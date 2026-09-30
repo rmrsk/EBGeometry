@@ -8,10 +8,13 @@
 // (e.g. a translated sphere vs. a sphere built directly at the shifted center).
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestShapeIF.hpp"
 
 #include <cmath>
+#include <limits>
+#include <memory>
 #include <type_traits>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -663,4 +666,117 @@ TEMPLATE_TEST_CASE("Reflect: free function matches ReflectIF", "[Transform][Refl
   for (const auto& p : samplePoints<T>()) {
     REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Argument checks: EBGEOMETRY_REQUIREs, so these abort in every build.
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// A null implicit function to hand to the constructors and free functions.
+std::shared_ptr<ImplicitFunction<double>>
+nullIF()
+{
+  return nullptr;
+}
+
+std::shared_ptr<ImplicitFunction<double>>
+unitSphere()
+{
+  return std::make_shared<Sphere<double>>(Vec3T<double>::zeros(), 1.0);
+}
+
+} // namespace
+
+TEST_CASE("ComplementIF and Complement: reject a null implicit function", "[Transform][Complement]")
+{
+  REQUIRE(
+    abortsWith([] { (void)ComplementIF<double>(nullIF()); }, "ComplementIF: the implicit function must not be null"));
+  REQUIRE(abortsWith([] { (void)Complement<double>(nullIF()); }, "Complement: the implicit function must not be null"));
+}
+
+TEST_CASE("TranslateIF and Translate: reject a null function and a non-finite translation", "[Transform][Translate]")
+{
+  using Vec3 = Vec3T<double>;
+
+  const double inf = std::numeric_limits<double>::infinity();
+
+  REQUIRE(abortsWith([inf] { (void)TranslateIF<double>(unitSphere(), Vec3(0, inf, 0)); },
+                     "TranslateIF: the translation must be finite"));
+  REQUIRE(abortsWith([] { (void)Translate<double>(nullIF(), Vec3::zeros()); },
+                     "Translate: the implicit function must not be null"));
+}
+
+TEST_CASE("RotateIF and Rotate: reject a null function and an invalid axis", "[Transform][Rotate]")
+{
+  REQUIRE(abortsWith([] { (void)RotateIF<double>(unitSphere(), 45.0, 3); },
+                     "RotateIF: the rotation axis must be 0, 1 or 2 (3)"));
+  REQUIRE(
+    abortsWith([] { (void)Rotate<double>(nullIF(), 45.0, 0); }, "Rotate: the implicit function must not be null"));
+}
+
+TEST_CASE("ScaleIF and Scale: reject a null function and a zero scale factor", "[Transform][Scale]")
+{
+  REQUIRE(abortsWith([] { (void)ScaleIF<double>(unitSphere(), 0.0); },
+                     "ScaleIF: the scale factor must be finite and non-zero (0)"));
+  REQUIRE(abortsWith([] { (void)Scale<double>(nullIF(), 2.0); }, "Scale: the implicit function must not be null"));
+}
+
+TEST_CASE("OffsetIF and Offset: reject a null function and a non-finite offset", "[Transform][Offset]")
+{
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+
+  REQUIRE(abortsWith([nan] { (void)OffsetIF<double>(unitSphere(), nan); }, "OffsetIF: the offset must be finite"));
+  REQUIRE(abortsWith([] { (void)Offset<double>(nullIF(), 0.1); }, "Offset: the implicit function must not be null"));
+}
+
+TEST_CASE("AnnularIF and Annular: reject a null function and a non-finite thickness", "[Transform][Annular]")
+{
+  const double inf = std::numeric_limits<double>::infinity();
+
+  REQUIRE(
+    abortsWith([inf] { (void)AnnularIF<double>(unitSphere(), inf); }, "AnnularIF: the shell thickness must be finite"));
+  REQUIRE(abortsWith([] { (void)Annular<double>(nullIF(), 0.1); }, "Annular: the implicit function must not be null"));
+}
+
+TEST_CASE("BlurIF and Blur: reject a null function, a negative distance and alpha outside [0, 1]", "[Transform][Blur]")
+{
+  REQUIRE(abortsWith([] { (void)BlurIF<double>(unitSphere(), -0.1); },
+                     "BlurIF: the blur distance must be finite and non-negative (-0.1)"));
+  REQUIRE(abortsWith([] { (void)BlurIF<double>(unitSphere(), 0.1, 1.5); },
+                     "BlurIF: the blending weight alpha must lie in [0, 1] (1.5)"));
+  REQUIRE(abortsWith([] { (void)Blur<double>(nullIF(), 0.1); }, "Blur: the implicit function must not be null"));
+}
+
+TEST_CASE("MollifyIF and Mollify: reject a null function, a null mollifier and a zero-sum kernel",
+          "[Transform][Mollify]")
+{
+  // A kernel that is zero everywhere cannot be normalized.
+  const auto zeroKernel = [] { return std::make_shared<ConstantIF<double>>(0.0); };
+
+  REQUIRE(abortsWith([] { (void)MollifyIF<double>(unitSphere(), nullIF(), 0.1, 3); },
+                     "MollifyIF: the mollifier must not be null"));
+  REQUIRE(abortsWith([&zeroKernel] { (void)MollifyIF<double>(unitSphere(), zeroKernel(), 0.1, 3); },
+                     "MollifyIF: the sampled mollifier weights must not sum to zero (3 samples per axis)"));
+  REQUIRE(
+    abortsWith([] { (void)Mollify<double>(nullIF(), 0.1, 3); }, "Mollify: the implicit function must not be null"));
+}
+
+TEST_CASE("ElongateIF and Elongate: reject a null function and a negative elongation", "[Transform][Elongate]")
+{
+  using Vec3 = Vec3T<double>;
+
+  REQUIRE(abortsWith([] { (void)ElongateIF<double>(unitSphere(), Vec3(1, -1, 0)); },
+                     "ElongateIF: the elongation must be finite and non-negative (1, -1, 0)"));
+  REQUIRE(abortsWith([] { (void)Elongate<double>(nullIF(), Vec3::ones()); },
+                     "Elongate: the implicit function must not be null"));
+}
+
+TEST_CASE("ReflectIF and Reflect: reject a null function and an invalid plane", "[Transform][Reflect]")
+{
+  REQUIRE(abortsWith([] { (void)ReflectIF<double>(unitSphere(), size_t(3)); },
+                     "ReflectIF: the reflection plane must be 0, 1 or 2 (3)"));
+  REQUIRE(
+    abortsWith([] { (void)Reflect<double>(nullIF(), size_t(0)); }, "Reflect: the implicit function must not be null"));
 }

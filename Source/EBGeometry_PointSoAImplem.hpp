@@ -28,17 +28,25 @@ EBGEOMETRY_HOST
 void
 PointSoAT<T, W>::pack(const Vec3T<T>* a_positions, uint32_t a_count) noexcept
 {
-  EBGEOMETRY_EXPECT(a_positions != nullptr);
-  EBGEOMETRY_EXPECT(a_count >= 1U);
-  EBGEOMETRY_EXPECT(a_count <= W);
+  EBGEOMETRY_REQUIRE(a_positions != nullptr, "PointSoAT::pack: the position array must not be null");
+  EBGEOMETRY_REQUIRE(a_count >= 1U && a_count <= W,
+                     "PointSoAT::pack: the point count must be between 1 and %zu (%u)",
+                     W,
+                     unsigned(a_count));
 
   // The distance kernels assume finite stored coordinates (getDistances2() only checks the query
   // point). Catch a non-finite input here, at the point where it enters the SoA, rather than as a
   // silent NaN surfacing in a later query.
   for (uint32_t i = 0; i < a_count; i++) {
-    EBGEOMETRY_EXPECT(std::isfinite(a_positions[i][0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_positions[i][1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_positions[i][2]));
+    const Vec3T<T>& p = a_positions[i];
+
+    EBGEOMETRY_REQUIRE(std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]),
+                       "PointSoAT::pack: point %u of %u has a non-finite coordinate (%g, %g, %g)",
+                       unsigned(i),
+                       unsigned(a_count),
+                       double(p[0]),
+                       double(p[1]),
+                       double(p[2]));
   }
 
   m_validCount = a_count;

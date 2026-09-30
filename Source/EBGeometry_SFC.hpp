@@ -161,7 +161,8 @@ struct Hilbert
  * (the numerator is also exactly zero there for every point, so any nonzero divisor yields the same,
  * correct bin index of 0), avoiding a divide-by-zero.
  * @tparam T Floating-point precision.
- * @param[in] a_points Points to bin (e.g. bounding-volume centroids, or a raw point cloud).
+ * @param[in] a_points Points to bin (e.g. bounding-volume centroids, or a raw point cloud). Every
+ * coordinate must be finite; this is checked in every build.
  * @return One SFC::Index per input point, in the same order.
  */
 template <class T>

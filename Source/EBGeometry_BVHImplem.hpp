@@ -471,11 +471,21 @@ EBGEOMETRY_HOST
 inline PackedBVH<T, P, K>
 PackedBVH<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
 {
-  EBGEOMETRY_EXPECT(m_control != nullptr);                          // not already a view
-  EBGEOMETRY_EXPECT(a_pool.mirrorOf() == m_control->m_id);          // a mirror of *our* pool
-  EBGEOMETRY_EXPECT(m_linearNodes.endByte() <= a_pool.usedBytes()); // our arrays fit inside it
-  EBGEOMETRY_EXPECT(m_primitives.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_childAabbSoA.endByte() <= a_pool.usedBytes());
+  EBGEOMETRY_REQUIRE(m_control != nullptr,
+                     "PackedBVH::rebasedView: this BVH is a device view or was never built; rebase the original");
+  EBGEOMETRY_REQUIRE(a_pool.mirrorOf() == m_control->m_id,
+                     "PackedBVH::rebasedView: the pool must be a mirror of this BVH's pool (it mirrors pool %llu, "
+                     "this BVH lives in pool %llu)",
+                     static_cast<unsigned long long>(a_pool.mirrorOf()),
+                     static_cast<unsigned long long>(m_control->m_id));
+  EBGEOMETRY_REQUIRE(m_linearNodes.endByte() <= a_pool.usedBytes() && m_primitives.endByte() <= a_pool.usedBytes() &&
+                       m_childAabbSoA.endByte() <= a_pool.usedBytes(),
+                     "PackedBVH::rebasedView: the BVH's arrays must fit inside the pool (they end at bytes %llu, %llu "
+                     "and %llu, the pool holds %zu)",
+                     static_cast<unsigned long long>(m_linearNodes.endByte()),
+                     static_cast<unsigned long long>(m_primitives.endByte()),
+                     static_cast<unsigned long long>(m_childAabbSoA.endByte()),
+                     a_pool.usedBytes());
 
   PackedBVH view = *this;
 
@@ -734,11 +744,12 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
                                      size_t                        a_targetLeafSize,
                                      S)
 {
-  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+  EBGEOMETRY_REQUIRE(!a_primsAndBVs.empty(), "PackedBVH: the SFC build needs at least one primitive");
+  EBGEOMETRY_REQUIRE(
+    a_targetLeafSize > 0, "PackedBVH: the SFC build's target leaf size must be positive (%zu)", a_targetLeafSize);
 
   std::vector<Node> nodes;
   std::vector<P>    prims;
-  EBGEOMETRY_EXPECT(a_targetLeafSize > 0);
 
   const size_t numPrimitives = a_primsAndBVs.size();
 
@@ -909,7 +920,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
                                      const BVH::Partitioner<P, BV, K>&      a_partitioner,
                                      const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit)
 {
-  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+  EBGEOMETRY_REQUIRE(!a_primsAndBVs.empty(), "PackedBVH: the top-down build needs at least one primitive");
 
   std::vector<Node> nodes;
   std::vector<P>    prims;
@@ -976,11 +987,12 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "ClusterSAH requires BV == AABBT<T>");
 
-  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+  EBGEOMETRY_REQUIRE(!a_primsAndBVs.empty(), "PackedBVH: the ClusterSAH build needs at least one primitive");
+  EBGEOMETRY_REQUIRE(
+    a_spec.maxClusterSize > 0, "PackedBVH: ClusterSpec::maxClusterSize must be positive (%zu)", a_spec.maxClusterSize);
 
   std::vector<Node> nodes;
   std::vector<P>    prims;
-  EBGEOMETRY_EXPECT(a_spec.maxClusterSize > 0);
 
   const size_t maxC = a_spec.maxClusterSize;
 

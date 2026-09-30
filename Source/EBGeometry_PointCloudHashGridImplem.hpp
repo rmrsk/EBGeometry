@@ -37,7 +37,9 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
   // must fit that width; every coordinate must also be finite, or the cell computations below break.
   PointCloudDetail::requireValidCloud("PointCloudHashGrid", a_positions, a_metadata.size());
 
-  EBGEOMETRY_EXPECT(a_targetPerCell > T(0));
+  EBGEOMETRY_REQUIRE(a_targetPerCell > T(0),
+                     "PointCloudHashGrid: the target points per cell must be positive (%g)",
+                     double(a_targetPerCell));
 
   const std::size_t numPoints = m_positions.size();
 

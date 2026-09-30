@@ -100,10 +100,16 @@ Pool::reserve(size_t a_count, size_t a_elemSize, size_t a_alignment)
   // object reserved here) would dereference null.
   EBGEOMETRY_REQUIRE(m_control != nullptr, "Pool::reserve: cannot reserve from a moved-from pool");
 
-  EBGEOMETRY_EXPECT(!m_frozen);                              // no reserve after freeze
-  EBGEOMETRY_EXPECT(a_alignment > 0);                        // 0 would underflow the mask below
-  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);           // base is 256-aligned; larger unsupported
-  EBGEOMETRY_EXPECT((a_alignment & (a_alignment - 1)) == 0); // power of two
+  // A frozen block may already have been mirrored, and growing it would silently diverge from the
+  // mirror (and invalidate a captured base).
+  EBGEOMETRY_REQUIRE(!m_frozen, "Pool::reserve: cannot reserve from a frozen pool");
+
+  // Zero would underflow the mask below; the base is only PoolBaseAlign-aligned, so a larger
+  // alignment cannot be honoured.
+  EBGEOMETRY_REQUIRE(a_alignment > 0 && (a_alignment & (a_alignment - 1)) == 0 && a_alignment <= PoolBaseAlign,
+                     "Pool::reserve: the alignment must be a power of two no larger than %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
 
   const size_t bytes   = a_count * a_elemSize;
   const size_t aligned = (m_size + (a_alignment - 1)) & ~(a_alignment - 1);
@@ -154,7 +160,8 @@ Pool::freeze() noexcept
 inline Pool
 Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
 {
-  EBGEOMETRY_EXPECT(a_src.isFrozen());
+  // An unfrozen source could still grow after the copy, leaving the mirror stale.
+  EBGEOMETRY_REQUIRE(a_src.isFrozen(), "Pool::mirror: the source pool must be frozen before it is mirrored");
 
   // MirrorTag: the destination may be device-resident (not host-accessible), so it must NOT go
   // through the public constructor's host-accessibility guard. mirror allocates its exact block

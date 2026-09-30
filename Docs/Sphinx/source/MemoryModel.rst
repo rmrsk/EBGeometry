@@ -142,8 +142,8 @@ it.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 `freeze() <doxygen/html/classEBGeometry_1_1Pool.html#a7c5696404d11babfad42fc7d99b37ebd>`__ seals a
-pool: ``reserve()`` is forbidden afterwards (an ``EBGEOMETRY_EXPECT``-checked precondition, see
-:ref:`Sec:Assertions`) and ``base()`` can no longer move. It exists for exactly one reason -- it is
+pool: ``reserve()`` is forbidden afterwards (it aborts in every build, see :ref:`Sec:AlwaysOnChecks`)
+and ``base()`` can no longer move. It exists for exactly one reason -- it is
 the precondition for
 `mirror() <doxygen/html/classEBGeometry_1_1Pool.html#aa141bf4919e1aeb78aaee9667da8ebc3>`__, since
 you cannot take a byte-for-byte copy of a block that might still be reallocated. Freezing is *not*

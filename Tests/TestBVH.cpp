@@ -2137,6 +2137,135 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
   }
 }
 
+TEST_CASE("PackedBVH: the direct builders reject an empty primitive list and a zero leaf or cluster size",
+          "[BVH][death]")
+{
+  using T    = double;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+  using List   = std::vector<std::pair<Pnt, AABB>>;
+
+  List prims;
+
+  for (int i = 0; i < 8; i++) {
+    const Vec3 pos(T(i), T(0), T(0));
+
+    prims.emplace_back(Pnt{pos}, AABB(pos, pos));
+  }
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
+  REQUIRE(abortsWith(
+    [] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, List{}, size_t(4));
+    },
+    "PackedBVH: the SFC build needs at least one primitive"));
+
+  REQUIRE(abortsWith(
+    [&prims] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, prims, size_t(0));
+    },
+    "PackedBVH: the SFC build's target leaf size must be positive (0)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, List{});
+    },
+    "PackedBVH: the top-down build needs at least one primitive"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, List{}, BVH::ClusterSpec{});
+    },
+    "PackedBVH: the ClusterSAH build needs at least one primitive"));
+
+  REQUIRE(abortsWith(
+    [&prims] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, prims, BVH::ClusterSpec{0});
+    },
+    "PackedBVH: ClusterSpec::maxClusterSize must be positive (0)"));
+}
+
+TEST_CASE("PackedBVH: rebasedView rejects a pool that is not a mirror of its own", "[BVH][rebase][death]")
+{
+  using T    = double;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+      Pool unrelated(hostMemoryResource());
+
+      std::vector<std::pair<Pnt, AABB>> prims;
+
+      for (int i = 0; i < 8; i++) {
+        const Vec3 pos(T(i), T(0), T(0));
+
+        prims.emplace_back(Pnt{pos}, AABB(pos, pos));
+      }
+
+      const Packed bvh(pool, prims, size_t(2));
+      const Packed view = bvh.rebasedView(unrelated);
+
+      (void)view;
+    },
+    "PackedBVH::rebasedView: the pool must be a mirror of this BVH's pool"));
+}
+
+TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: the constructors reject a mismatched pool or a zero leaf size",
+          "[BVH][FlatMeshSDF][MeshSDF][TriMeshSDF][death]")
+{
+  using T = double;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
+  REQUIRE(abortsWith(
+    [] {
+      Pool       pool(hostMemoryResource());
+      Pool       other(hostMemoryResource());
+      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+
+      const FlatMeshSDF<T, Meta> sdf(mesh, other);
+    },
+    "FlatMeshSDF: the mesh must live in the pool passed in"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool       pool(hostMemoryResource());
+      Pool       other(hostMemoryResource());
+      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+
+      const MeshSDF<T, Meta, K> sdf(mesh, other, BVH::Build::SAH);
+    },
+    "MeshSDF: the mesh must live in the pool passed in"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool       pool(hostMemoryResource());
+      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+
+      const TriMeshSDF<T, Meta, K, W> sdf(mesh, pool, BVH::Build::SAH, 0);
+    },
+    "TriMeshSDF: the maximum number of leaf groups must be positive (0)"));
+}
+
 TEMPLATE_TEST_CASE("PackedBVH: the adopt constructor rebuilds an identical BVH from getNodes() and "
                    "getPrimitives()",
                    "[BVH][adopt]",

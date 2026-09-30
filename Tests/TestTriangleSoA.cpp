@@ -6,6 +6,7 @@
 // directly against the individual Triangle::signedDistance() values it's built from.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
@@ -308,3 +309,41 @@ TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
   REQUIRE_THAT(readScalar(deviceOut.get()), Catch::Matchers::WithinRel(host, gpuTol<T>()));
 }
 #endif
+
+TEST_CASE("TriangleSoAT/TriangleAoSoA::pack: reject a count outside [1, W] and a null array",
+          "[TriangleSoA][TriangleAoSoA][death]")
+{
+  using T = double;
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build. The count is checked before any triangle is
+  // read, so the fixture needs no more than W triangles even for the count of W + 1.
+  const std::vector<Tri<T>> tris = fourTriangles<T>();
+
+  REQUIRE(abortsWith(
+    [&tris] {
+      SoA<T> soa;
+      soa.pack(tris.data(), 0U);
+    },
+    "TriangleSoAT::pack: the triangle count must be between 1 and 4 (0)"));
+
+  REQUIRE(abortsWith(
+    [&tris] {
+      SoA<T> soa;
+      soa.pack(tris.data(), static_cast<uint32_t>(W + 1));
+    },
+    "TriangleSoAT::pack: the triangle count must be between 1 and 4 (5)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      SoA<T> soa;
+      soa.pack(static_cast<const Tri<T>*>(nullptr), 1U);
+    },
+    "TriangleSoAT::pack: the triangle array must not be null"));
+
+  REQUIRE(abortsWith(
+    [&tris] {
+      AoSoA<T> aosoa;
+      aosoa.pack(tris.data(), 0U);
+    },
+    "TriangleAoSoA::pack: the triangle count must be between 1 and 4 (0)"));
+}

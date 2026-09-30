@@ -330,7 +330,7 @@ template <class T, class Meta>
 EBGEOMETRY_HOST
 inline FlatMeshSDF<T, Meta>::FlatMeshSDF(const Mesh& a_mesh, Pool& a_pool) noexcept : m_mesh(a_mesh)
 {
-  EBGEOMETRY_EXPECT(a_mesh.isAttachedTo(a_pool));
+  EBGEOMETRY_REQUIRE(a_mesh.isAttachedTo(a_pool), "FlatMeshSDF: the mesh must live in the pool passed in");
 
   // The mesh descriptor copied above resolves through a_pool, so a_pool must outlive this object.
   // Taking it by reference is what makes that requirement visible at the call site (and checkable
@@ -411,7 +411,7 @@ inline MeshSDF<T, Meta, K>::MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH:
 {
   // The mesh and the BVH must share one pool: rebasedView() rebases both onto the same mirror, and
   // the BVH's faces index the mesh's arrays. a_pool must outlive this object and every copy of it.
-  EBGEOMETRY_EXPECT(a_mesh.isAttachedTo(a_pool));
+  EBGEOMETRY_REQUIRE(a_mesh.isAttachedTo(a_pool), "MeshSDF: the mesh must live in the pool passed in");
   EBGEOMETRY_EXPECT(m_bvh.isAttachedTo(a_pool));
 }
 
@@ -614,7 +614,8 @@ TriMeshSDF<T, Meta, K, W>::buildBVH(const std::vector<Tri>& a_triangles,
                                     const size_t            a_maxLeafGroups)
 {
   MeshDistanceFunctionsDetail::requireNonEmpty("TriMeshSDF", a_triangles.size());
-  EBGEOMETRY_EXPECT(a_maxLeafGroups > 0);
+  EBGEOMETRY_REQUIRE(
+    a_maxLeafGroups > 0, "TriMeshSDF: the maximum number of leaf groups must be positive (%zu)", a_maxLeafGroups);
 
   using AABB      = EBGeometry::BoundingVolumes::AABBT<T>;
   using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);

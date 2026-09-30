@@ -92,8 +92,8 @@ namespace DCEL {
  * host container (getAllVertexCoordinates), logs diagnostics to std::cerr (sanityCheck and its
  * incrementWarning/printWarnings helpers), or delegates to a VertexT/EdgeT/FaceT method that itself
  * allocates a std::vector or can log a diagnostic the same way (reconcileFaces calls FaceT::reconcile;
- * reconcileVertices builds a transient per-vertex face list and can warn on a corrupted
- * VertexNormalWeight) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
+ * reconcileVertices builds a transient per-vertex face list and aborts with a message on a
+ * corrupted VertexNormalWeight) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -254,7 +254,10 @@ public:
    * VertexNormalWeight::None for unweighted vertex normals or
    * VertexNormalWeight::Angle for the pseudonormal
    * @details This will reconcile faces, edges, and vertices, e.g. computing the
-   * area and normal vector for faces.
+   * area and normal vector for faces. A malformed topology that would otherwise read out of bounds
+   * (a face with fewer than 3 vertices, a vertex index past the end of the vertex array, or, with
+   * VertexNormalWeight::Angle, a face visiting a vertex more than once) aborts with a message in
+   * every build.
    */
   EBGEOMETRY_HOST
   inline void
@@ -509,8 +512,8 @@ public:
    * @note a_pool must be a mirror of the Pool this mesh was built in -- directly, or through any
    * number of intermediate mirrors, since Pool::mirrorOf() names the root of the chain (so
    * host -> pinned staging -> device works). It must also be large enough to contain this mesh's
-   * arrays, which catches a Pool mirrored before the mesh's last reserve. Both are
-   * EBGEOMETRY_EXPECT-checked.
+   * arrays, which catches a Pool mirrored before the mesh's last reserve. Both are checked in every
+   * build; a violation aborts with a message.
    * @param[in] a_pool Pool to rebase onto; a mirror of this mesh's own Pool.
    * @return A mesh descriptor resolving against a_pool.
    */
@@ -590,7 +593,8 @@ protected:
 
   /**
    * @brief Attach this mesh to a_pool, or check that it is already attached to it.
-   * @details Called by every reserveX(); a mesh's storage must come from exactly one Pool.
+   * @details Called by every reserveX(); a mesh's storage must come from exactly one Pool, and
+   * reserving from a second one aborts, in every build.
    * @param[in] a_pool Pool being reserved from.
    */
   EBGEOMETRY_HOST

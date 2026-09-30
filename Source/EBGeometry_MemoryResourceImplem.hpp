@@ -28,8 +28,9 @@ namespace EBGeometry {
 inline void*
 HostMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 {
-  EBGEOMETRY_EXPECT(a_alignment > 0);
-  EBGEOMETRY_EXPECT((a_alignment & (a_alignment - 1)) == 0); // power of two
+  EBGEOMETRY_REQUIRE(a_alignment > 0 && (a_alignment & (a_alignment - 1)) == 0,
+                     "HostMemoryResource::allocate: the alignment must be a power of two (%zu)",
+                     a_alignment);
 
   // std::aligned_alloc requires the size to be a multiple of the alignment, and a zero-byte
   // request is implementation-defined, so round the byte count up to a non-zero multiple.
@@ -161,11 +162,14 @@ MappedMemoryResource::copy(void*                 a_dst,
 }
 
 inline void*
-DeviceMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
+DeviceMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 {
   // The backend allocator already returns a base aligned to >= PoolBaseAlign (256), so we only
   // validate that no larger alignment was requested rather than enforce it. See PoolBaseAlign.
-  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);
+  EBGEOMETRY_REQUIRE(a_alignment <= PoolBaseAlign,
+                     "DeviceMemoryResource::allocate: the alignment must not exceed %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
 
   void* ptr = nullptr;
 
@@ -186,9 +190,12 @@ DeviceMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
 }
 
 inline void*
-ManagedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
+ManagedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 {
-  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);
+  EBGEOMETRY_REQUIRE(a_alignment <= PoolBaseAlign,
+                     "ManagedMemoryResource::allocate: the alignment must not exceed %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
 
   void* ptr = nullptr;
 
@@ -209,9 +216,12 @@ ManagedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignmen
 }
 
 inline void*
-PinnedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
+PinnedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 {
-  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);
+  EBGEOMETRY_REQUIRE(a_alignment <= PoolBaseAlign,
+                     "PinnedMemoryResource::allocate: the alignment must not exceed %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
 
   void* ptr = nullptr;
 
@@ -232,9 +242,12 @@ PinnedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
 }
 
 inline void*
-MappedMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)
+MappedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 {
-  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);
+  EBGEOMETRY_REQUIRE(a_alignment <= PoolBaseAlign,
+                     "MappedMemoryResource::allocate: the alignment must not exceed %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
 
   void* ptr = nullptr;
 

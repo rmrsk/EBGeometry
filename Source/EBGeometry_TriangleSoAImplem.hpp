@@ -30,9 +30,11 @@ EBGEOMETRY_HOST
 void
 TriangleSoAT<T, W>::pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept
 {
-  EBGEOMETRY_EXPECT(tris != nullptr);
-  EBGEOMETRY_EXPECT(count >= 1U);
-  EBGEOMETRY_EXPECT(count <= W);
+  EBGEOMETRY_REQUIRE(tris != nullptr, "TriangleSoAT::pack: the triangle array must not be null");
+  EBGEOMETRY_REQUIRE(count >= 1U && count <= W,
+                     "TriangleSoAT::pack: the triangle count must be between 1 and %zu (%u)",
+                     W,
+                     unsigned(count));
 
   m_validCount = count;
 

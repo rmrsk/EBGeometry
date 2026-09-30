@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
@@ -13,6 +14,7 @@
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace EBGeometry;
@@ -414,6 +416,112 @@ TEMPLATE_TEST_CASE("PerlinSDF: the default constructor and zero persistence give
     REQUIRE(std::isfinite(zeroPersistence.signedDistance(p)));
     REQUIRE_THAT(zeroPersistence.signedDistance(p), WithinAbs(double(oneOctave.signedDistance(p)), looseMargin<T>()));
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constructor argument checks (EBGEOMETRY_REQUIRE, on in every build)
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("Analytic shapes: invalid constructor arguments abort with a message", "[AnalyticSDF][death]")
+{
+  using T    = double;
+  using Vec3 = Vec3T<T>;
+
+  REQUIRE(abortsWith(
+    [] {
+      const PlaneSDF<T> plane(Vec3(0, 0, 0), Vec3(0, 0, 0));
+
+      (void)plane;
+    },
+    "PlaneSDF: the normal must be nonzero (0, 0, 0)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const SphereSDF<T> sphere(Vec3(0, 0, 0), T(-1));
+
+      (void)sphere;
+    },
+    "SphereSDF: the radius must be finite and positive (-1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const BoxSDF<T> box(Vec3(0, 0, 0), Vec3(1, -1, 1));
+
+      (void)box;
+    },
+    "BoxSDF: the low corner (0, 0, 0) must be below the high corner (1, -1, 1) in every direction"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const TorusSDF<T> torus(Vec3(0, 0, 0), T(1), T(2));
+
+      (void)torus;
+    },
+    "TorusSDF: the minor radius (2) must be less than the major radius (1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const CylinderSDF<T> cylinder(Vec3(1, 2, 3), Vec3(1, 2, 3), T(1));
+
+      (void)cylinder;
+    },
+    "CylinderSDF: the two centers must differ (1, 2, 3)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const InfiniteCylinderSDF<T> cylinder(Vec3(0, 0, 0), T(1), 3);
+
+      (void)cylinder;
+    },
+    "InfiniteCylinderSDF: the axis must be 0, 1 or 2 (3)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const CapsuleSDF<T> capsule(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1));
+
+      (void)capsule;
+    },
+    "CapsuleSDF: the tips must be at least two radii apart (distance 1, radius 1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const InfiniteConeSDF<T> cone(Vec3(0, 0, 0), T(180));
+
+      (void)cone;
+    },
+    "InfiniteConeSDF: the angle must be in (0, 180) degrees (180)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const ConeSDF<T> cone(Vec3(0, 0, 0), T(0), T(30));
+
+      (void)cone;
+    },
+    "ConeSDF: the height must be finite and positive (0)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const RoundedBoxSDF<T> box(Vec3(1, 0, 1), T(0.1));
+
+      (void)box;
+    },
+    "RoundedBoxSDF: the dimensions must be finite and positive (1, 0, 1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const PerlinSDF<T> perlin(std::numeric_limits<T>::infinity(), Vec3::ones(), T(0.5), 1U);
+
+      (void)perlin;
+    },
+    "PerlinSDF: the noise amplitude must be finite (inf)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const RoundedCylinderSDF<T> cylinder(T(1), T(0.5), T(1));
+
+      (void)cylinder;
+    },
+    "RoundedCylinderSDF: twice the curvature (0.5) must be less than the height (1)"));
 }
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)

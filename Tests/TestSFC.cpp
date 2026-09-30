@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstddef>
 #include <cstdlib>
+#include <limits>
 #include <vector>
 
 using namespace EBGeometry;
@@ -253,4 +255,19 @@ TEST_CASE("SFC::order: is a permutation ordering points by non-decreasing SFC co
   for (size_t i = 1; i < orderHilbert.size(); i++) {
     REQUIRE(SFC::Hilbert::encode(bins[orderHilbert[i - 1]]) <= SFC::Hilbert::encode(bins[orderHilbert[i]]));
   }
+}
+
+TEST_CASE("SFC::computeBins: rejects a non-finite point", "[SFC][bins][death]")
+{
+  // An EBGEOMETRY_REQUIRE, so it aborts in every build.
+  REQUIRE(abortsWith(
+    [] {
+      const std::vector<Vec3T<double>> points = {Vec3T<double>(0.0, 0.0, 0.0),
+                                                 Vec3T<double>(std::numeric_limits<double>::infinity(), 0.0, 0.0)};
+
+      const auto bins = SFC::computeBins<double>(points);
+
+      (void)bins;
+    },
+    "SFC::computeBins: point 1 of 2 has a non-finite coordinate"));
 }

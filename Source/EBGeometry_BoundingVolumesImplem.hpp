@@ -338,7 +338,7 @@ template <class T>
 EBGEOMETRY_HOST
 AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_others.empty());
+  EBGEOMETRY_REQUIRE(!a_others.empty(), "AABBT: cannot enclose an empty list of bounding boxes");
 
   m_loCorner = a_others.front().getLowCorner();
   m_hiCorner = a_others.front().getHighCorner();
@@ -358,7 +358,7 @@ template <class P>
 EBGEOMETRY_HOST
 AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
+  EBGEOMETRY_REQUIRE(!a_points.empty(), "AABBT: cannot enclose an empty list of points");
 
   this->define(a_points);
 }
@@ -380,7 +380,7 @@ EBGEOMETRY_HOST
 inline void
 AABBT<T>::define(const std::vector<Vec3T<P>>& a_points) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
+  EBGEOMETRY_REQUIRE(!a_points.empty(), "AABBT::define: cannot enclose an empty list of points");
 
   this->define(a_points.data(), a_points.size());
 }

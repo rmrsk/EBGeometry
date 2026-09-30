@@ -8,6 +8,7 @@
 // precisions.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 
 #include <algorithm>
@@ -368,4 +369,18 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid edge cases", "[PointCloudHashGrid]", EBGE
       CHECK_THAT(grid.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tol));
     }
   }
+}
+
+TEST_CASE("PointCloudHashGrid: rejects a non-positive target occupancy", "[PointCloudHashGrid][death]")
+{
+  using T = double;
+
+  // An EBGEOMETRY_REQUIRE, so it aborts in every build.
+  REQUIRE(abortsWith(
+    [] {
+      const std::vector<Vec3T<T>>              pos  = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(1), T(0), T(0))};
+      const std::vector<std::size_t>           meta = {0, 1};
+      const PointCloudHashGrid<T, std::size_t> grid(pos, meta, T(0));
+    },
+    "PointCloudHashGrid: the target points per cell must be positive (0)"));
 }

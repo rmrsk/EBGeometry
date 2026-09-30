@@ -7,6 +7,7 @@
 // retrieved correctly per lane, including for padded lanes.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
@@ -201,6 +202,28 @@ TEMPLATE_TEST_CASE("PointAoSoA: omitting W defaults to PointSoA::DefaultWidth<T>
   for (size_t i = 0; i < defaultWidth; i++) {
     REQUIRE(group.getMetaData(i) == static_cast<short>(10 + i));
   }
+}
+
+TEST_CASE("PointAoSoA::pack rejects a null array and a count outside [1, W]", "[PointAoSoA][death]")
+{
+  using T = double;
+
+  const Vec3T<T> point(T(0), T(0), T(0));
+  const short    meta = 0;
+
+  REQUIRE(abortsWith(
+    [&point] {
+      PointAoSoA<T, short, 4> group;
+      group.pack(&point, nullptr, 1U);
+    },
+    "PointAoSoA::pack: the position and metadata arrays must not be null"));
+
+  REQUIRE(abortsWith(
+    [&point, &meta] {
+      PointAoSoA<T, short, 4> group;
+      group.pack(&point, &meta, 5U);
+    },
+    "PointAoSoA::pack: the point count must be between 1 and 4 (5)"));
 }
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)

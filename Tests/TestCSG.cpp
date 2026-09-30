@@ -1282,3 +1282,117 @@ TEMPLATE_TEST_CASE("FiniteRepetition: free function matches FiniteRepetitionIF",
     REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), formulaMargin<T>()));
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Argument checks: EBGEOMETRY_REQUIREs, so these abort in every build.
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+using IFList = std::vector<std::shared_ptr<ImplicitFunction<double>>>;
+
+// A null implicit function to hand to the constructors and free functions.
+std::shared_ptr<ImplicitFunction<double>>
+nullIF()
+{
+  return nullptr;
+}
+
+} // namespace
+
+TEST_CASE("UnionIF and Union: reject an empty list, a null entry and a null argument", "[CSG][Union]")
+{
+  REQUIRE(
+    abortsWith([] { (void)UnionIF<double>(IFList{}); }, "UnionIF: the list of implicit functions must not be empty"));
+  REQUIRE(abortsWith([] { (void)UnionIF<double>(IFList{sphereA<double>(), nullIF()}); },
+                     "UnionIF: the list of implicit functions must not contain a null entry"));
+  REQUIRE(abortsWith([] { (void)Union<double>(IFList{}); }, "Union: the list of implicit functions must not be empty"));
+  REQUIRE(abortsWith([] { (void)Union<double>(sphereA<double>(), nullIF()); },
+                     "Union: the second implicit function must not be null"));
+}
+
+TEST_CASE("SmoothUnionIF and SmoothUnion: reject a non-positive smoothing length and a null argument",
+          "[CSG][SmoothUnion]")
+{
+  REQUIRE(abortsWith([] { (void)SmoothUnionIF<double>(IFList{sphereA<double>(), sphereB<double>()}, 0.0); },
+                     "SmoothUnionIF: the smoothing length must be positive (0)"));
+  REQUIRE(abortsWith([] { (void)SmoothUnion<double>(IFList{sphereA<double>()}, -1.0); },
+                     "SmoothUnion: the smoothing length must be positive (-1)"));
+  REQUIRE(abortsWith([] { (void)SmoothUnion<double>(nullIF(), sphereB<double>(), 0.1); },
+                     "SmoothUnion: the first implicit function must not be null"));
+}
+
+TEST_CASE("BVHUnionIF and BVHSmoothUnionIF: reject an unknown build strategy and a non-positive smoothing length",
+          "[CSG][BVHUnion][BVHSmoothUnion]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)BVHUnionIF<double, SphereSDF<double>, 4>(
+        pool, sphereRow<double>(), sphereRowBVs<double>(), static_cast<BVH::Build>(42));
+    },
+    "BVHUnionIF: unknown BVH::Build strategy (42)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)BVHSmoothUnionIF<double, SphereSDF<double>, 4>(pool, sphereRow<double>(), sphereRowBVs<double>(), 0.0);
+    },
+    "BVHSmoothUnionIF: the smoothing length must be positive (0)"));
+}
+
+TEST_CASE("IntersectionIF and Intersection: reject an empty list, a null entry and a null argument",
+          "[CSG][Intersection]")
+{
+  REQUIRE(abortsWith([] { (void)IntersectionIF<double>(IFList{nullIF()}); },
+                     "IntersectionIF: the list of implicit functions must not contain a null entry"));
+  REQUIRE(abortsWith([] { (void)Intersection<double>(IFList{}); },
+                     "Intersection: the list of implicit functions must not be empty"));
+  REQUIRE(abortsWith([] { (void)Intersection<double>(nullIF(), sphereB<double>()); },
+                     "Intersection: the first implicit function must not be null"));
+}
+
+TEST_CASE("SmoothIntersectionIF and SmoothIntersection: reject a non-positive smoothing length and a null argument",
+          "[CSG][SmoothIntersection]")
+{
+  REQUIRE(abortsWith([] { (void)SmoothIntersectionIF<double>(sphereC<double>(), nullIF(), 0.1); },
+                     "SmoothIntersectionIF: implicit function B must not be null"));
+  REQUIRE(abortsWith([] { (void)SmoothIntersectionIF<double>(IFList{sphereC<double>(), sphereD<double>()}, 0.0); },
+                     "SmoothIntersectionIF: the smoothing length must be positive (0)"));
+  REQUIRE(abortsWith([] { (void)SmoothIntersection<double>(sphereC<double>(), sphereD<double>(), -0.5); },
+                     "SmoothIntersection: the smoothing length must be positive (-0.5)"));
+}
+
+TEST_CASE("DifferenceIF and Difference: reject a null argument and an empty subtrahend list", "[CSG][Difference]")
+{
+  REQUIRE(abortsWith([] { (void)DifferenceIF<double>(sphereC<double>(), IFList{}); },
+                     "DifferenceIF: the list of subtracted implicit functions must not be empty"));
+  REQUIRE(abortsWith([] { (void)Difference<double>(sphereC<double>(), nullIF()); },
+                     "Difference: implicit function B must not be null"));
+}
+
+TEST_CASE("SmoothDifferenceIF and SmoothDifference: reject a null subtrahend and a non-positive smoothing length",
+          "[CSG][SmoothDifference]")
+{
+  REQUIRE(abortsWith([] { (void)SmoothDifferenceIF<double>(sphereC<double>(), IFList{nullIF()}, 0.1); },
+                     "SmoothDifferenceIF: the list of subtracted implicit functions must not contain a null entry"));
+  REQUIRE(abortsWith([] { (void)SmoothDifference<double>(sphereC<double>(), sphereD<double>(), 0.0); },
+                     "SmoothDifference: the smoothing length must be positive (0)"));
+}
+
+TEST_CASE("FiniteRepetitionIF and FiniteRepetition: reject a non-positive period and a negative repetition count",
+          "[CSG][FiniteRepetition]")
+{
+  using Vec3 = Vec3T<double>;
+
+  REQUIRE(
+    abortsWith([] { (void)FiniteRepetitionIF<double>(sphereA<double>(), Vec3(1, 0, 1), Vec3::ones(), Vec3::ones()); },
+               "FiniteRepetitionIF: the period must be positive in every direction (1, 0, 1)"));
+  REQUIRE(
+    abortsWith([] { (void)FiniteRepetitionIF<double>(sphereA<double>(), Vec3::ones(), Vec3(0, -1, 0), Vec3::ones()); },
+               "FiniteRepetitionIF: the low repetition counts must not be negative (0, -1, 0)"));
+  REQUIRE(abortsWith([] { (void)FiniteRepetition<double>(nullIF(), Vec3::ones(), Vec3::ones(), Vec3::ones()); },
+                     "FiniteRepetition: the implicit function must not be null"));
+}

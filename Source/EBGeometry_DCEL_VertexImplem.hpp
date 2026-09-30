@@ -195,6 +195,7 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               
     }
 
     std::vector<uint32_t> inoutVertices(0);
+
     for (EdgeIterator edgeIt(a_mesh, f); edgeIt.ok(); ++edgeIt) {
       const Edge& e = a_mesh.getEdge(edgeIt());
 
@@ -218,39 +219,27 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               
       }
     }
 
-    if (inoutVertices.size() != 2) {
-      std::cerr << "VertexT<T, Meta>::computeVertexNormalAngleWeighted(): face f should be incident "
-                   "on the origin vertex through exactly 2 half-edges (one incoming, one "
-                   "outgoing), but "
-                << inoutVertices.size()
-                << " were found. This means f is not a well-formed triangle sharing this vertex "
-                   "(e.g. the origin vertex appears more than once on f's boundary, or not at "
-                   "all) -- check the mesh for degenerate or non-manifold faces.\n";
-    }
-
-    // The cerr above only warns; this used to fall through to indexing inoutVertices[0]/[1]
-    // unconditionally, which is undefined behaviour (out-of-bounds read) if the face isn't a
-    // well-formed triangle incident on exactly two edges at this vertex.
-    EBGEOMETRY_EXPECT(inoutVertices.size() == 2);
+    // Indexing inoutVertices[0]/[1] below is an out-of-bounds read unless the face is incident on
+    // this vertex through exactly two half-edges (one incoming, one outgoing).
+    EBGEOMETRY_REQUIRE(inoutVertices.size() == 2,
+                       "DCEL::VertexT::computeVertexNormalAngleWeighted: face %u must visit vertex %u exactly once "
+                       "(found %zu incident half-edges instead of 2)",
+                       unsigned(faceIndex),
+                       unsigned(originVertexIndex),
+                       inoutVertices.size());
 
     const Vec3& x0 = a_mesh.getVertex(originVertexIndex).getPosition();
     const Vec3& x1 = a_mesh.getVertex(inoutVertices[0]).getPosition();
     const Vec3& x2 = a_mesh.getVertex(inoutVertices[1]).getPosition();
 
-    if (x0 == x1 || x0 == x2 || x1 == x2) {
-      std::cerr << "VertexT<T, Meta>::computeVertexNormalAngleWeighted(): degenerate face f -- two "
-                   "of the origin vertex position ("
-                << x0 << ") and its two neighboring vertex positions (" << x1 << ", " << x2
-                << ") coincide. This produces a zero-length edge, which has no well-defined "
-                   "subtended angle -- check the mesh for duplicate/collapsed vertices.\n";
-    }
-
-    // Likewise, the cerr above only warns; this used to fall through to dividing by
-    // v1.length()/v2.length() unconditionally, which is a division by zero if x0 coincides with
-    // x1 or x2 (a degenerate/zero-length edge).
-    EBGEOMETRY_EXPECT(x0 != x1);
-    EBGEOMETRY_EXPECT(x0 != x2);
-    EBGEOMETRY_EXPECT(x1 != x2);
+    // A zero-length edge has no subtended angle; normalizing it below would divide by zero.
+    EBGEOMETRY_REQUIRE(x0 != x1 && x0 != x2 && x1 != x2,
+                       "DCEL::VertexT::computeVertexNormalAngleWeighted: face %u has coincident positions among "
+                       "vertices %u, %u and %u",
+                       unsigned(faceIndex),
+                       unsigned(originVertexIndex),
+                       unsigned(inoutVertices[0]),
+                       unsigned(inoutVertices[1]));
 
     Vec3 v1 = x1 - x0;
     Vec3 v2 = x2 - x0;

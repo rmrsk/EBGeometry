@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
@@ -1132,6 +1133,126 @@ TEMPLATE_TEST_CASE("MeshT: rebasedView onto a host-to-host mirror answers identi
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Caller-controlled setup and topology checks (EBGEOMETRY_REQUIRE: abort in every build)
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("MeshT: rebasedView onto a pool that is not a mirror of the mesh's own pool aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+      Pool otherPool(hostMemoryResource());
+
+      auto mesh = buildTetrahedron<T>(pool);
+
+      (void)buildTetrahedron<T>(otherPool);
+
+      pool.freeze();
+      otherPool.freeze();
+
+      // A byte-identical block, but mirrored from the wrong pool: the mesh's offsets mean nothing there.
+      const Pool wrongMirror = Pool::mirror(otherPool, hostMemoryResource());
+
+      (void)mesh->rebasedView(wrongMirror); // must abort
+    },
+    "DCEL::MeshT::rebasedView: the target pool must be a mirror of the mesh's own pool"));
+}
+
+TEST_CASE("MeshT: reserving a mesh's arrays from two different pools aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool poolA(hostMemoryResource());
+      Pool poolB(hostMemoryResource());
+
+      TestMesh<T> mesh;
+
+      mesh.reserveVertices(poolA, 3);
+      mesh.reserveEdges(poolB, 3); // must abort
+    },
+    "DCEL::MeshT::attachTo: all of a mesh's arrays must be reserved from the same Pool"));
+}
+
+TEST_CASE("MeshT: reconciling a hand-built face with fewer than 3 vertices aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      mesh.reserveVertices(pool, 2);
+      mesh.reserveEdges(pool, 2);
+      mesh.reserveFaces(pool, 1);
+
+      (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(0, 0, 0)));
+      (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(1, 0, 0)));
+
+      // A two-edge loop 0 -> 1 -> 0: a "face" that cannot span a plane.
+      for (uint32_t e = 0; e < 2; e++) {
+        TestEdge<T> edge(e);
+
+        edge.setNextEdge((e + 1) % 2);
+        edge.setFace(0);
+
+        (void)mesh.addEdge(pool, edge);
+      }
+
+      (void)mesh.addFace(pool, TestFace<T>(0u));
+
+      mesh.reconcile(); // must abort
+    },
+    "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (2)"));
+}
+
+TEST_CASE("MeshT: reconciling a hand-built face that visits a vertex twice aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  // The file readers reject such a face (Soup::containsDegeneratePolygons), so it can only be built
+  // by hand. The angle-weighted vertex normal needs exactly one incoming and one outgoing half-edge
+  // per face at the vertex; before this was an always-on check, a release build read past the end of
+  // the two-element neighbour list.
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      // Boundary loop 0 -> 1 -> 2 -> 0 -> 3 -> (back to 0): vertex 0 is visited twice. Its Newell
+      // normal is +z, so the face is not skipped as zero-area.
+      const std::vector<Vec3T<T>> positions = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, -1, 0}};
+      const std::vector<uint32_t> loop      = {0, 1, 2, 0, 3};
+
+      mesh.reserveVertices(pool, static_cast<uint32_t>(positions.size()));
+      mesh.reserveEdges(pool, static_cast<uint32_t>(loop.size()));
+      mesh.reserveFaces(pool, 1);
+
+      for (const auto& x : positions) {
+        (void)mesh.addVertex(pool, TestVertex<T>(x));
+      }
+
+      for (uint32_t e = 0; e < loop.size(); e++) {
+        TestEdge<T> edge(loop[e]);
+
+        edge.setNextEdge((e + 1) % static_cast<uint32_t>(loop.size()));
+        edge.setFace(0);
+
+        (void)mesh.addEdge(pool, edge);
+      }
+
+      (void)mesh.addFace(pool, TestFace<T>(0u));
+
+      mesh.reconcile(VertexNormalWeight::Angle); // must abort
+    },
+    "DCEL::VertexT::computeVertexNormalAngleWeighted: face 0 must visit vertex 0 exactly once (found 4"));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Soup tests
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1604,6 +1725,8 @@ TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surfac
   // device kernel runs the exact same WindingNumber/SubtendedAngle/flip() progression below,
   // starting from this same snapshot, so mutating hostPool afterward (to compute the matching host
   // expectation) does not need to -- and must not -- touch the already-mirrored device copy.
+  hostPool.freeze();
+
   Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
 
   mesh->setInsideOutsideAlgorithm(InsideOutsideAlgorithm::WindingNumber);

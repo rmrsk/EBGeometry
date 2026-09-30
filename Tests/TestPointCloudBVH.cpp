@@ -573,3 +573,31 @@ TEST_CASE("PointCloudBVH and PointCloudHashGrid reject a cloud they cannot index
     },
     "PointCloudBVH: point 0 of 1 has a non-finite coordinate"));
 }
+
+TEST_CASE("PointCloudBVH: rejects a zero leaf size, and a rebase onto a pool too small to hold it",
+          "[PointCloudBVH][death]")
+{
+  using T = double;
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
+  const std::vector<Vec3T<T>>    pos  = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(1), T(0), T(0))};
+  const std::vector<std::size_t> meta = {0, 1};
+
+  REQUIRE(abortsWith(
+    [&pos, &meta] {
+      Pool                                pool(hostMemoryResource());
+      const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta, 0);
+    },
+    "PointCloudBVH: the target leaf size must be at least 1 (0)"));
+
+  REQUIRE(abortsWith(
+    [&pos, &meta] {
+      Pool                                pool(hostMemoryResource());
+      Pool                                unrelated(hostMemoryResource());
+      const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta);
+      const PointCloudBVH<T, std::size_t> view = bvh.rebasedView(unrelated);
+
+      (void)view;
+    },
+    "PointCloudBVH::rebasedView: the cloud's arrays must fit inside the pool"));
+}

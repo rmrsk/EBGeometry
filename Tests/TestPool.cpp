@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -160,35 +161,71 @@ TEST_CASE("Pool: freeze stabilises base and is idempotent", "[Pool]")
   REQUIRE(pool.base() == beforeFreeze);
 }
 
-#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+// The checks below are EBGEOMETRY_REQUIREs, so they abort in every build: a release build would
+// otherwise silently grow a frozen (possibly already mirrored) block, mask with a bad alignment, or
+// mirror a block that can still change.
 
 TEST_CASE("Pool: reserve after freeze aborts", "[Pool][death]")
 {
-  REQUIRE(abortsUnderAssertions([] {
-    Pool pool(hostMemoryResource());
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
 
-    pool.freeze();
+      pool.freeze();
 
-    (void)pool.reserve(1, sizeof(double), alignof(double)); // must abort
-  }));
+      (void)pool.reserve(1, sizeof(double), alignof(double)); // must abort
+    },
+    "Pool::reserve: cannot reserve from a frozen pool"));
+}
+
+TEST_CASE("Pool: reserve with an invalid alignment aborts", "[Pool][death]")
+{
+  const char* const message = "Pool::reserve: the alignment must be a power of two no larger than 256";
+
+  // Zero (would underflow the alignment mask).
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(1, sizeof(double), 0);
+    },
+    message));
+
+  // Not a power of two.
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(1, sizeof(double), 24);
+    },
+    std::string(message) + " (24)"));
+
+  // Larger than the base alignment, which the block cannot honour.
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(1, sizeof(double), 2 * PoolBaseAlign);
+    },
+    std::string(message) + " (512)"));
 }
 
 TEST_CASE("Pool: mirror of a non-frozen pool aborts", "[Pool][death]")
 {
-  REQUIRE(abortsUnderAssertions([] {
-    Pool pool(hostMemoryResource());
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
 
-    PODVector<double> vec;
-    vec.reserveFrom(pool, 4);
+      PODVector<double> vec;
+      vec.reserveFrom(pool, 4);
 
-    // Not frozen -- mirror must abort.
-    Pool mirror = Pool::mirror(pool, hostMemoryResource());
+      // Not frozen -- mirror must abort.
+      Pool mirror = Pool::mirror(pool, hostMemoryResource());
 
-    (void)mirror.base();
-  }));
+      (void)mirror.base();
+    },
+    "Pool::mirror: the source pool must be frozen before it is mirrored"));
 }
-
-#endif // EBGEOMETRY_ENABLE_ASSERTIONS
 
 TEST_CASE("Pool: reserving from a moved-from pool aborts", "[Pool][death]")
 {

@@ -236,10 +236,16 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
   Vec3T<T> minCoord = +Vec3T<T>::infinity();
   Vec3T<T> maxCoord = -Vec3T<T>::infinity();
 
-  for (const auto& p : a_points) {
-    EBGEOMETRY_EXPECT(std::isfinite(p[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(p[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(p[2]));
+  for (size_t i = 0; i < a_points.size(); i++) {
+    const Vec3T<T>& p = a_points[i];
+
+    EBGEOMETRY_REQUIRE(std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]),
+                       "SFC::computeBins: point %zu of %zu has a non-finite coordinate (%g, %g, %g)",
+                       i,
+                       a_points.size(),
+                       double(p[0]),
+                       double(p[1]),
+                       double(p[2]));
 
     minCoord = min(minCoord, p);
     maxCoord = max(maxCoord, p);

@@ -61,7 +61,8 @@ inline void
 MeshT<T, Meta>::attachTo(const Pool& a_pool) noexcept
 {
   // A mesh's three arrays must all live in the same Pool: they are resolved against a single base.
-  EBGEOMETRY_EXPECT(m_control == nullptr || m_control == a_pool.control());
+  EBGEOMETRY_REQUIRE(m_control == nullptr || m_control == a_pool.control(),
+                     "DCEL::MeshT::attachTo: all of a mesh's arrays must be reserved from the same Pool");
 
   m_control = a_pool.control();
 }
@@ -71,11 +72,16 @@ EBGEOMETRY_HOST
 inline MeshT<T, Meta>
 MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
 {
-  EBGEOMETRY_EXPECT(m_control != nullptr);                       // not already a view
-  EBGEOMETRY_EXPECT(a_pool.mirrorOf() == m_control->m_id);       // a mirror of *our* pool
-  EBGEOMETRY_EXPECT(m_vertices.endByte() <= a_pool.usedBytes()); // our arrays fit inside it
-  EBGEOMETRY_EXPECT(m_edges.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_faces.endByte() <= a_pool.usedBytes());
+  EBGEOMETRY_REQUIRE(m_control != nullptr,
+                     "DCEL::MeshT::rebasedView: the mesh must not already be a device view, nor unbuilt");
+  EBGEOMETRY_REQUIRE(a_pool.mirrorOf() == m_control->m_id,
+                     "DCEL::MeshT::rebasedView: the target pool must be a mirror of the mesh's own pool");
+
+  // A mirror taken before the mesh's last reserve is too small to hold its arrays.
+  EBGEOMETRY_REQUIRE(m_vertices.endByte() <= a_pool.usedBytes() && m_edges.endByte() <= a_pool.usedBytes() &&
+                       m_faces.endByte() <= a_pool.usedBytes(),
+                     "DCEL::MeshT::rebasedView: the mesh's arrays must fit inside the target pool (%zu bytes)",
+                     a_pool.usedBytes());
 
   Mesh view = *this;
 
@@ -83,7 +89,7 @@ MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
     // A kernel cannot follow a host control block, so the base has to be captured by value. That is
     // safe precisely here: a device-accessible pool can only come from Pool::mirror, which freezes
     // it, and Pool::grow refuses a non-host-accessible resource outright -- the base cannot move.
-    EBGEOMETRY_EXPECT(a_pool.isFrozen());
+    EBGEOMETRY_REQUIRE(a_pool.isFrozen(), "DCEL::MeshT::rebasedView: a device-accessible target pool must be frozen");
 
     view.m_control = nullptr;
     view.m_base    = a_pool.base();
@@ -474,7 +480,11 @@ MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexc
 
   for (uint32_t faceIndex = 0; faceIndex < this->numFaces(); faceIndex++) {
     for (const uint32_t vertexIndex : this->getFace(faceIndex).gatherVertexIndices(*this)) {
-      EBGEOMETRY_EXPECT(vertexIndex < facesTouchingVertex.size());
+      EBGEOMETRY_REQUIRE(vertexIndex < facesTouchingVertex.size(),
+                         "DCEL::MeshT::reconcileVertices: face %u references vertex %u, but the mesh has %zu vertices",
+                         unsigned(faceIndex),
+                         unsigned(vertexIndex),
+                         facesTouchingVertex.size());
 
       facesTouchingVertex[vertexIndex].push_back(faceIndex);
     }
@@ -504,11 +514,9 @@ MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexc
       break;
     }
     default: {
-      std::cerr << "In file 'EBGeometry_DCEL_MeshImplem.hpp' function "
-                   "DCEL::MeshT<T, Meta>::reconcileVertices(VertexNormalWeighting) - a_weight does "
-                   "not match any of the known VertexNormalWeight enumerators; this indicates a "
-                   "corrupted or out-of-range enum value rather than a normal runtime condition.\n";
-      EBGEOMETRY_EXPECT(false);
+      EBGEOMETRY_REQUIRE(false,
+                         "DCEL::MeshT::reconcileVertices: unknown VertexNormalWeight enumerator (%d)",
+                         static_cast<int>(a_weight));
 
       break;
     }

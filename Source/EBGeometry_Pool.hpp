@@ -18,8 +18,8 @@
  * already resolved against the old base (a pointer, reference or @ref EBGeometry::PODSpan), hence
  * the rule @b resolve, @b use, @b discard -- see @ref EBGeometry::Pool::reserve.
  *
- * @ref EBGeometry::Pool::freeze seals the pool (a further reserve is an EBGEOMETRY_EXPECT failure)
- * and is the precondition for @ref EBGeometry::Pool::mirror, which copies the whole block (one
+ * @ref EBGeometry::Pool::freeze seals the pool (a further reserve aborts, in every build) and is
+ * the precondition for @ref EBGeometry::Pool::mirror, which copies the whole block (one
  * @c memcpy) into another resource -- the host-to-device upload. The same offsets resolve against
  * the new base with zero pointer patching. Freezing is not required to query anything.
  *
@@ -151,7 +151,8 @@ public:
   /**
    * @brief Bump-reserve @p a_count * @p a_elemSize bytes aligned to @p a_alignment.
    * @details Returns the byte offset of the reserved sub-region from @ref base. May grow the
-   *          block (on a host-accessible resource only). Forbidden after @ref freeze.
+   *          block (on a host-accessible resource only). Forbidden after freeze(): a reserve
+   *          on a frozen pool, or an invalid @p a_alignment, aborts with a message in every build.
    *
    * @warning A grow does @b not extend the block in place: it allocates a new block, copies the
    * live bytes into it, and @e deallocates the old one. Every address that was already resolved
@@ -187,8 +188,8 @@ public:
   /**
    * @brief Freeze the block: forbid further @ref reserve, stabilize @ref base, enable @ref mirror.
    * @details Idempotent and irreversible. The only precondition it establishes is the one
-   *          @ref mirror needs (a block that can no longer be reallocated); a reserve after it is an
-   *          EBGEOMETRY_EXPECT failure. Freezing is not required to query anything built in the pool.
+   *          @ref mirror needs (a block that can no longer be reallocated); a reserve after it
+   *          aborts, in every build. Freezing is not required to query anything built in the pool.
    */
   EBGEOMETRY_HOST
   void
@@ -302,7 +303,8 @@ public:
    *          @c std::memcpy for a host-to-host copy), and returns the result @b frozen. Every
    *          @ref PODVector offset resolves unchanged against the new base -- this is the
    *          host-to-device mirror (and, host-to-host, an exact independent copy).
-   * @param[in] a_src         Source pool. Must be frozen (@c a_src.isFrozen()).
+   * @param[in] a_src         Source pool. Must be frozen (@c a_src.isFrozen()); an unfrozen source
+   *                          aborts, in every build.
    * @param[in] a_dstResource Destination resource for the mirrored block.
    * @return A new, frozen pool holding a byte-identical copy of @p a_src's block.
    */

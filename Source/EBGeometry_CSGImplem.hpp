@@ -105,7 +105,8 @@ buildBVH(Pool&                                         a_pool,
   }
   case BVH::Build::SAH:
   default: {
-    EBGEOMETRY_EXPECT(a_build == BVH::Build::SAH);
+    EBGEOMETRY_REQUIRE(
+      a_build == BVH::Build::SAH, "BVHUnionIF: unknown BVH::Build strategy (%d)", static_cast<int>(a_build));
 
     return Root(a_pool, std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, BV, K>);
   }
@@ -192,7 +193,7 @@ Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
   static_assert(std::is_floating_point_v<T>, "Union requires a floating-point type T");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_REQUIRE(!a_implicitFunctions.empty(), "Union: the list of implicit functions must not be empty");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -213,8 +214,8 @@ Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>&
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(a_implicitFunction1 != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunction2 != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction1 != nullptr, "Union: the first implicit function must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunction2 != nullptr, "Union: the second implicit function must not be null");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -231,8 +232,8 @@ SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T 
   static_assert(std::is_floating_point_v<T>, "SmoothUnion requires a floating-point type T");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
-  EBGEOMETRY_EXPECT(a_smooth > T(0));
+  EBGEOMETRY_REQUIRE(!a_implicitFunctions.empty(), "SmoothUnion: the list of implicit functions must not be empty");
+  EBGEOMETRY_REQUIRE(a_smooth > T(0), "SmoothUnion: the smoothing length must be positive (%g)", double(a_smooth));
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -255,9 +256,9 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(a_implicitFunction1 != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunction2 != nullptr);
-  EBGEOMETRY_EXPECT(a_smooth > T(0));
+  EBGEOMETRY_REQUIRE(a_implicitFunction1 != nullptr, "SmoothUnion: the first implicit function must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunction2 != nullptr, "SmoothUnion: the second implicit function must not be null");
+  EBGEOMETRY_REQUIRE(a_smooth > T(0), "SmoothUnion: the smoothing length must be positive (%g)", double(a_smooth));
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -295,7 +296,7 @@ Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
   static_assert(std::is_floating_point_v<T>, "Intersection requires a floating-point type T");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_REQUIRE(!a_implicitFunctions.empty(), "Intersection: the list of implicit functions must not be empty");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -316,8 +317,8 @@ Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_p
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(a_implicitFunction1 != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunction2 != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction1 != nullptr, "Intersection: the first implicit function must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunction2 != nullptr, "Intersection: the second implicit function must not be null");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -334,8 +335,10 @@ SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, c
   static_assert(std::is_floating_point_v<T>, "SmoothIntersection requires a floating-point type T");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
-  EBGEOMETRY_EXPECT(a_smooth > T(0));
+  EBGEOMETRY_REQUIRE(!a_implicitFunctions.empty(),
+                     "SmoothIntersection: the list of implicit functions must not be empty");
+  EBGEOMETRY_REQUIRE(
+    a_smooth > T(0), "SmoothIntersection: the smoothing length must be positive (%g)", double(a_smooth));
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -356,9 +359,12 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(a_implicitFunction1 != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunction2 != nullptr);
-  EBGEOMETRY_EXPECT(a_smooth > T(0));
+  EBGEOMETRY_REQUIRE(a_implicitFunction1 != nullptr,
+                     "SmoothIntersection: the first implicit function must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunction2 != nullptr,
+                     "SmoothIntersection: the second implicit function must not be null");
+  EBGEOMETRY_REQUIRE(
+    a_smooth > T(0), "SmoothIntersection: the smoothing length must be positive (%g)", double(a_smooth));
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -376,8 +382,8 @@ Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunctionA != nullptr, "Difference: implicit function A must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunctionB != nullptr, "Difference: implicit function B must not be null");
 
   return std::make_shared<DifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB);
 }
@@ -392,9 +398,10 @@ SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
-  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+  EBGEOMETRY_REQUIRE(a_implicitFunctionA != nullptr, "SmoothDifference: implicit function A must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunctionB != nullptr, "SmoothDifference: implicit function B must not be null");
+  EBGEOMETRY_REQUIRE(
+    a_smoothLen > T(0), "SmoothDifference: the smoothing length must be positive (%g)", double(a_smoothLen));
 
   return std::make_shared<SmoothDifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
 }
@@ -409,11 +416,13 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
   static_assert(std::is_floating_point_v<T>, "FiniteRepetition requires a floating-point type T");
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "FiniteRepetition: the implicit function must not be null");
 
-  for (size_t i = 0; i < 3; i++) {
-    EBGEOMETRY_EXPECT(a_period[i] > T(0));
-  }
+  EBGEOMETRY_REQUIRE(a_period[0] > T(0) && a_period[1] > T(0) && a_period[2] > T(0),
+                     "FiniteRepetition: the period must be positive in every direction (%g, %g, %g)",
+                     double(a_period[0]),
+                     double(a_period[1]),
+                     double(a_period[2]));
 
   return std::make_shared<FiniteRepetitionIF<T>>(a_implicitFunction, a_period, a_repeatLo, a_repeatHi);
 }
@@ -421,10 +430,10 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
 template <class T>
 UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions)
 {
-  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_REQUIRE(!a_implicitFunctions.empty(), "UnionIF: the list of implicit functions must not be empty");
 
   for (const auto& prim : a_implicitFunctions) {
-    EBGEOMETRY_EXPECT(prim != nullptr);
+    EBGEOMETRY_REQUIRE(prim != nullptr, "UnionIF: the list of implicit functions must not contain a null entry");
 
     m_implicitFunctions.emplace_back(prim);
   }
@@ -452,11 +461,12 @@ SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFuncti
                                 const T                                                     a_smoothLen,
                                 const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin)
 {
-  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
-  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+  EBGEOMETRY_REQUIRE(!a_implicitFunctions.empty(), "SmoothUnionIF: the list of implicit functions must not be empty");
+  EBGEOMETRY_REQUIRE(
+    a_smoothLen > T(0), "SmoothUnionIF: the smoothing length must be positive (%g)", double(a_smoothLen));
 
   for (const auto& prim : a_implicitFunctions) {
-    EBGEOMETRY_EXPECT(prim != nullptr);
+    EBGEOMETRY_REQUIRE(prim != nullptr, "SmoothUnionIF: the list of implicit functions must not contain a null entry");
 
     m_implicitFunctions.emplace_back(prim);
   }
@@ -610,7 +620,8 @@ BVHSmoothUnionIF<T, P, K, Blend>::BVHSmoothUnionIF(Pool&                  a_pool
     m_smoothLen(std::max(a_smoothLen, std::numeric_limits<T>::min())),
     m_blend(a_blend)
 {
-  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+  EBGEOMETRY_REQUIRE(
+    a_smoothLen > T(0), "BVHSmoothUnionIF: the smoothing length must be positive (%g)", double(a_smoothLen));
 }
 
 template <class T, class P, size_t K, class Blend>
@@ -720,10 +731,10 @@ BVHSmoothUnionIF<T, P, K, Blend>::isAttachedTo(const Pool& a_pool) const noexcep
 template <class T>
 IntersectionIF<T>::IntersectionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_REQUIRE(!a_implicitFunctions.empty(), "IntersectionIF: the list of implicit functions must not be empty");
 
   for (const auto& prim : a_implicitFunctions) {
-    EBGEOMETRY_EXPECT(prim != nullptr);
+    EBGEOMETRY_REQUIRE(prim != nullptr, "IntersectionIF: the list of implicit functions must not contain a null entry");
 
     m_implicitFunctions.emplace_back(prim);
   }
@@ -753,9 +764,10 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   const T                                               a_smoothLen,
   const std::function<T(const T&, const T&, const T&)>& a_smoothMax) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
-  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+  EBGEOMETRY_REQUIRE(a_implicitFunctionA != nullptr, "SmoothIntersectionIF: implicit function A must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunctionB != nullptr, "SmoothIntersectionIF: implicit function B must not be null");
+  EBGEOMETRY_REQUIRE(
+    a_smoothLen > T(0), "SmoothIntersectionIF: the smoothing length must be positive (%g)", double(a_smoothLen));
 
   m_implicitFunctions.emplace_back(a_implicitFunctionA);
   m_implicitFunctions.emplace_back(a_implicitFunctionB);
@@ -770,11 +782,14 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   const T                                                  a_smoothLen,
   const std::function<T(const T&, const T&, const T&)>&    a_smoothMax) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
-  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+  EBGEOMETRY_REQUIRE(!a_implicitFunctions.empty(),
+                     "SmoothIntersectionIF: the list of implicit functions must not be empty");
+  EBGEOMETRY_REQUIRE(
+    a_smoothLen > T(0), "SmoothIntersectionIF: the smoothing length must be positive (%g)", double(a_smoothLen));
 
   for (const auto& prim : a_implicitFunctions) {
-    EBGEOMETRY_EXPECT(prim != nullptr);
+    EBGEOMETRY_REQUIRE(prim != nullptr,
+                       "SmoothIntersectionIF: the list of implicit functions must not contain a null entry");
 
     m_implicitFunctions.emplace_back(prim);
   }
@@ -822,8 +837,8 @@ template <class T>
 DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
                               const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunctionA != nullptr, "DifferenceIF: implicit function A must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunctionB != nullptr, "DifferenceIF: implicit function B must not be null");
 
   m_implicitFunctionA = a_implicitFunctionA;
   m_implicitFunctionB = a_implicitFunctionB;
@@ -833,8 +848,9 @@ template <class T>
 DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&              a_implicitFunctionA,
                               const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctionsB) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
-  EBGEOMETRY_EXPECT(!a_implicitFunctionsB.empty());
+  EBGEOMETRY_REQUIRE(a_implicitFunctionA != nullptr, "DifferenceIF: implicit function A must not be null");
+  EBGEOMETRY_REQUIRE(!a_implicitFunctionsB.empty(),
+                     "DifferenceIF: the list of subtracted implicit functions must not be empty");
 
   m_implicitFunctionA = a_implicitFunctionA;
   m_implicitFunctionB = EBGeometry::Union<T>(a_implicitFunctionsB);
@@ -860,9 +876,10 @@ SmoothDifferenceIF<T>::SmoothDifferenceIF(
   const T                                                     a_smoothLen,
   const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
-  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
-  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+  EBGEOMETRY_REQUIRE(a_implicitFunctionA != nullptr, "SmoothDifferenceIF: implicit function A must not be null");
+  EBGEOMETRY_REQUIRE(a_implicitFunctionB != nullptr, "SmoothDifferenceIF: implicit function B must not be null");
+  EBGEOMETRY_REQUIRE(
+    a_smoothLen > T(0), "SmoothDifferenceIF: the smoothing length must be positive (%g)", double(a_smoothLen));
 
   m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T>>(
     a_implicitFunctionA, EBGeometry::Complement<T>(a_implicitFunctionB), a_smoothLen, a_smoothMax);
@@ -875,9 +892,11 @@ SmoothDifferenceIF<T>::SmoothDifferenceIF(
   const T                                                     a_smoothLen,
   const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
-  EBGEOMETRY_EXPECT(!a_implicitFunctionsB.empty());
-  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+  EBGEOMETRY_REQUIRE(a_implicitFunctionA != nullptr, "SmoothDifferenceIF: implicit function A must not be null");
+  EBGEOMETRY_REQUIRE(!a_implicitFunctionsB.empty(),
+                     "SmoothDifferenceIF: the list of subtracted implicit functions must not be empty");
+  EBGEOMETRY_REQUIRE(
+    a_smoothLen > T(0), "SmoothDifferenceIF: the smoothing length must be positive (%g)", double(a_smoothLen));
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -885,7 +904,8 @@ SmoothDifferenceIF<T>::SmoothDifferenceIF(
   implicitFunctions.emplace_back(a_implicitFunctionA);
 
   for (const auto& subtractedFunction : a_implicitFunctionsB) {
-    EBGEOMETRY_EXPECT(subtractedFunction != nullptr);
+    EBGEOMETRY_REQUIRE(subtractedFunction != nullptr,
+                       "SmoothDifferenceIF: the list of subtracted implicit functions must not contain a null entry");
 
     implicitFunctions.emplace_back(EBGeometry::Complement<T>(subtractedFunction));
   }
@@ -908,7 +928,22 @@ FiniteRepetitionIF<T>::FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction
                                           const Vec3T<T>&                             a_repeatLo,
                                           const Vec3T<T>&                             a_repeatHi) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "FiniteRepetitionIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(a_period[0] > T(0) && a_period[1] > T(0) && a_period[2] > T(0),
+                     "FiniteRepetitionIF: the period must be positive in every direction (%g, %g, %g)",
+                     double(a_period[0]),
+                     double(a_period[1]),
+                     double(a_period[2]));
+  EBGEOMETRY_REQUIRE(a_repeatLo[0] >= T(0) && a_repeatLo[1] >= T(0) && a_repeatLo[2] >= T(0),
+                     "FiniteRepetitionIF: the low repetition counts must not be negative (%g, %g, %g)",
+                     double(a_repeatLo[0]),
+                     double(a_repeatLo[1]),
+                     double(a_repeatLo[2]));
+  EBGEOMETRY_REQUIRE(a_repeatHi[0] >= T(0) && a_repeatHi[1] >= T(0) && a_repeatHi[2] >= T(0),
+                     "FiniteRepetitionIF: the high repetition counts must not be negative (%g, %g, %g)",
+                     double(a_repeatHi[0]),
+                     double(a_repeatHi[1]),
+                     double(a_repeatHi[2]));
 
   m_implicitFunction = a_implicitFunction;
   m_period           = a_period;
@@ -916,10 +951,6 @@ FiniteRepetitionIF<T>::FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction
   // Whole tiles only: rounding after clamping to a fractional bound would otherwise produce a tile
   // past it.
   for (size_t i = 0; i < 3; i++) {
-    EBGEOMETRY_EXPECT(a_period[i] > T(0));
-    EBGEOMETRY_EXPECT(a_repeatLo[i] >= T(0));
-    EBGEOMETRY_EXPECT(a_repeatHi[i] >= T(0));
-
     m_repeatLo[i] = std::round(a_repeatLo[i]);
     m_repeatHi[i] = std::round(a_repeatHi[i]);
   }

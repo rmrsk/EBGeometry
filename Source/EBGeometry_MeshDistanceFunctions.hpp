@@ -77,7 +77,7 @@ public:
    * @brief Full constructor.
    * @details Copies the mesh descriptor. Nothing is frozen or bound: the mesh resolves its storage
    * through a_pool's control block on every access, so this object is queryable at once and stays
-   * queryable across a Pool::reserve that grows and moves the block. a_pool is taken to assert that
+   * queryable across a Pool::reserve that grows and moves the block. a_pool is taken to check that
    * a_mesh really was reserved from it, and to make visible at the call site that it must outlive
    * this object and every copy of it.
    * @param[in]     a_mesh Input mesh, built against a_pool.

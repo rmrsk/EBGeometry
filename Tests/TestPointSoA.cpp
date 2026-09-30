@@ -6,6 +6,7 @@
 // TestPointAoSoA.cpp.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -327,4 +328,25 @@ TEMPLATE_TEST_CASE("PointSoAT: omitting W defaults to PointSoA::DefaultWidth<T>(
     REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
     REQUIRE_THAT(group.getMinimumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
   }
+}
+
+TEST_CASE("PointSoAT::pack rejects a count outside [1, W] and a null array", "[PointSoA][death]")
+{
+  using T = double;
+
+  const std::array<Vec3T<T>, 1> points = {Vec3T<T>(T(0), T(0), T(0))};
+
+  REQUIRE(abortsWith(
+    [&points] {
+      PointSoAT<T, 4> group;
+      group.pack(points.data(), 0U);
+    },
+    "PointSoAT::pack: the point count must be between 1 and 4 (0)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      PointSoAT<T, 4> group;
+      group.pack(nullptr, 1U);
+    },
+    "PointSoAT::pack: the position array must not be null"));
 }

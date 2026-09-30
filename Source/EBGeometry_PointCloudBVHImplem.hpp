@@ -37,7 +37,7 @@ inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(Pool&                        
   static_assert(K >= 2, "PointCloudBVH requires a branching factor K >= 2");
   static_assert(W >= 1, "PointCloudBVH requires a SIMD width W >= 1");
 
-  EBGEOMETRY_EXPECT(a_targetLeafSize >= 1);
+  // a_targetLeafSize is checked by buildTree(), before the build uses it.
 }
 
 template <class T, class Meta, size_t K, size_t W>
@@ -107,11 +107,14 @@ inline PointCloudBVH<T, Meta, K, W>
 PointCloudBVH<T, Meta, K, W>::rebasedView(const Pool& a_pool) const noexcept
 {
   // The held BVH checks its own arrays; these are the cloud's, which live in the same pool.
-  EBGEOMETRY_EXPECT(m_positions.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_metadata.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_leafOff.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_leafCnt.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_order.endByte() <= a_pool.usedBytes());
+  const size_t poolBytes = a_pool.usedBytes();
+
+  EBGEOMETRY_REQUIRE(m_positions.endByte() <= poolBytes && m_metadata.endByte() <= poolBytes &&
+                       m_leafOff.endByte() <= poolBytes && m_leafCnt.endByte() <= poolBytes &&
+                       m_order.endByte() <= poolBytes,
+                     "PointCloudBVH::rebasedView: the cloud's arrays must fit inside the pool (the pool holds %zu "
+                     "bytes)",
+                     poolBytes);
 
   // The cloud descriptors are pool-relative offsets, identical in any mirror of the pool, so only
   // the held BVH's attachment changes.
@@ -156,6 +159,8 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
 
   // Before anything is sized from it: the build stores uint32 indices.
   PointCloudDetail::requireValidCloud("PointCloudBVH", a_positions, a_positions.size());
+
+  EBGEOMETRY_REQUIRE(a_leafSize >= 1, "PointCloudBVH: the target leaf size must be at least 1 (%zu)", a_leafSize);
 
   const std::size_t numPoints = a_positions.size();
 

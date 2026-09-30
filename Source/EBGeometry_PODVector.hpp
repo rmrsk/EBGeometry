@@ -260,13 +260,17 @@ struct PODVector
    *          operation (the finalize path).
    * @param[in] a_base  Base address of the pool holding this array.
    * @param[in] a_src   Source array of at least @p a_count elements.
-   * @param[in] a_count Number of elements to copy (must be <= @c m_capacity).
+   * @param[in] a_count Number of elements to copy (must be <= @c m_capacity; aborts otherwise, in
+   *                    every build).
    */
   EBGEOMETRY_HOST
   void
   assign(void* a_base, const T* a_src, uint32_t a_count)
   {
-    EBGEOMETRY_EXPECT(a_count <= m_capacity);
+    EBGEOMETRY_REQUIRE(a_count <= m_capacity,
+                       "PODVector::assign: the element count must not exceed the reserved capacity (%u > %u)",
+                       unsigned(a_count),
+                       unsigned(m_capacity));
 
     // Guard the zero-element case: an empty build reserves nothing, so both this->data(a_base) and
     // a_src are null, and memcpy's parameters are declared nonnull -- UBSan's nonnull check flags

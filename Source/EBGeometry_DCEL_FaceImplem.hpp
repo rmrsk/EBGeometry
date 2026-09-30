@@ -114,7 +114,7 @@ FaceT<T, Meta>::computeCentroid(const Mesh& a_mesh)
 
   const auto vertexIndices = this->gatherVertexIndices(a_mesh);
 
-  EBGEOMETRY_EXPECT(!vertexIndices.empty());
+  EBGEOMETRY_REQUIRE(!vertexIndices.empty(), "DCEL::FaceT::computeCentroid: the face has no vertices");
 
   for (const uint32_t v : vertexIndices) {
     m_centroid += a_mesh.getVertex(v).getPosition();
@@ -133,7 +133,7 @@ FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
   const size_t N = vertexIndices.size();
 
   // A polygon face needs at least 3 vertices to span a plane.
-  EBGEOMETRY_EXPECT(N >= 3);
+  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (%zu)", N);
 
   // Newell's method: the sum of x_i cross x_(i+1) around the polygon is twice its vector area. It
   // uses every vertex, so it is robust for polygons with near-collinear consecutive vertices.
@@ -204,7 +204,7 @@ FaceT<T, Meta>::computeArea(const Mesh& a_mesh)
   const auto   vertexIndices = this->gatherVertexIndices(a_mesh);
   const size_t N             = vertexIndices.size();
 
-  EBGEOMETRY_EXPECT(N >= 3);
+  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeArea: a face needs at least 3 vertices (%zu)", N);
 
   // Sum over ALL N edges, including the wraparound edge from vertices[N-1] back to vertices[0] --
   // this is the standard cross-product/shoelace formula for a planar polygon's area relative to

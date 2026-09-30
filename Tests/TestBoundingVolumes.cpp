@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
@@ -60,6 +61,35 @@ TEMPLATE_TEST_CASE("AABBT: pointer constructor matches the std::vector construct
 
   REQUIRE(fromPointer.getLowCorner() == fromVector.getLowCorner());
   REQUIRE(fromPointer.getHighCorner() == fromVector.getHighCorner());
+}
+
+TEST_CASE("AABBT: the list constructors reject an empty list", "[AABBT][death]")
+{
+  using T = double;
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
+  REQUIRE(abortsWith(
+    [] {
+      const AABBT<T> box(std::vector<AABBT<T>>{});
+
+      (void)box;
+    },
+    "AABBT: cannot enclose an empty list of bounding boxes"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const AABBT<T> box(std::vector<Vec3T<T>>{});
+
+      (void)box;
+    },
+    "AABBT: cannot enclose an empty list of points"));
+
+  REQUIRE(abortsWith(
+    [] {
+      AABBT<T> box;
+      box.define(std::vector<Vec3T<T>>{});
+    },
+    "AABBT::define: cannot enclose an empty list of points"));
 }
 
 TEMPLATE_TEST_CASE("AABBT: volume and surface area", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)

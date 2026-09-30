@@ -215,6 +215,26 @@ TEST_CASE("PODVector: reserved offsets satisfy the element type's alignment", "[
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// assign precondition (EBGEOMETRY_REQUIRE: aborts in every build)
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("PODVector: assign past capacity aborts", "[PODVector][death]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      PODVector<double> vec;
+      vec.reserveFrom(pool, 2);
+
+      const double src[3] = {1.0, 2.0, 3.0};
+
+      vec.assign(pool.base(), src, 3); // capacity is 2 -- must abort
+    },
+    "PODVector::assign: the element count must not exceed the reserved capacity (3 > 2)"));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // No-realloc / bounds invariants (assert-death, assertions build only)
 // ─────────────────────────────────────────────────────────────────────────────
 

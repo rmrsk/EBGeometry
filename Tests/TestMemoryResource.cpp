@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -57,6 +58,19 @@ TEST_CASE("HostMemoryResource: deallocate round-trips without leak", "[MemoryRes
 
   // A null deallocate is a no-op (must not crash).
   resource.deallocate(nullptr, 0, 8);
+}
+
+TEST_CASE("HostMemoryResource: allocate with a non-power-of-two alignment aborts", "[MemoryResource][death]")
+{
+  // An EBGEOMETRY_REQUIRE, so it aborts in every build: std::aligned_alloc's behaviour for such an
+  // alignment is implementation-defined, and the rounding mask below it would be wrong.
+  REQUIRE(abortsWith(
+    [] {
+      void* ptr = hostMemoryResource().allocate(64, 24);
+
+      hostMemoryResource().deallocate(ptr, 64, 24);
+    },
+    "HostMemoryResource::allocate: the alignment must be a power of two (24)"));
 }
 
 TEST_CASE("HostMemoryResource: accessibility flags", "[MemoryResource]")
