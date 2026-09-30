@@ -89,9 +89,12 @@ EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::normalizeNormalVector() noexcept
 {
-  EBGEOMETRY_EXPECT(m_normal.length() > std::numeric_limits<T>::epsilon());
+  // A zero-area face keeps its zero normal; see computeNormal().
+  const T length = m_normal.length();
 
-  m_normal = m_normal / m_normal.length();
+  if (length > T(0)) {
+    m_normal = m_normal / length;
+  }
 }
 
 template <class T, class Meta>
@@ -132,23 +135,27 @@ FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
   // A polygon face needs at least 3 vertices to span a plane.
   EBGEOMETRY_EXPECT(N >= 3);
 
-  // To compute the normal vector we find three vertices in this polygon face.
-  // They span a plane, and we just compute the normal vector of that plane.
+  // Newell's method: the sum of x_i cross x_(i+1) around the polygon is twice its vector area. It
+  // uses every vertex, so it is robust for polygons with near-collinear consecutive vertices.
+  m_normal = Vec3::zeros();
+
+  T longestEdge2 = T(0);
+
   for (size_t i = 0; i < N; i++) {
     const auto& x0 = a_mesh.getVertex(vertexIndices[i]).getPosition();
     const auto& x1 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
-    const auto& x2 = a_mesh.getVertex(vertexIndices[(i + 2) % N]).getPosition();
 
-    m_normal = (x2 - x0).cross(x2 - x1);
-
-    if (m_normal.length() > T(0.0)) {
-      break; // Found one.
-    }
+    m_normal += x0.cross(x1);
+    longestEdge2 = std::max(longestEdge2, (x1 - x0).length2());
   }
 
-  // If every vertex triple was degenerate (collinear/coincident points), m_normal is still zero
-  // here and normalizeNormalVector() below would divide by zero.
-  EBGEOMETRY_EXPECT(m_normal.length() > std::numeric_limits<T>::epsilon());
+  // A zero-area face (collinear or coincident vertices) has no normal. It gets a zero one instead of
+  // the NaN a normalization would give: a zero normal contributes nothing to the angle-weighted
+  // vertex and edge pseudonormals around it. The parsers remove such faces before they get here
+  // (Soup::removeDegeneratePolygons); this covers meshes built by hand.
+  if (m_normal.length() <= T(64) * std::numeric_limits<T>::epsilon() * longestEdge2) {
+    m_normal = Vec3::zeros();
+  }
 
   this->normalizeNormalVector();
 }
@@ -158,8 +165,9 @@ EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::computeProjectionDirections() noexcept
 {
-  EBGEOMETRY_EXPECT(m_normal.length() > std::numeric_limits<T>::epsilon());
-
+  // A zero-area face has a zero normal and gets the x- and y-axes; they are never used, since
+  // isPointInsideFace() reports no interior for it.
+  //
   // Drop the coordinate of the largest normal component (projecting along it maximizes the projected
   // area), keeping the other two as the 2D x- and y-axes with m_xDir < m_yDir.
   uint32_t ignoreDir = 0;
@@ -507,6 +515,11 @@ FaceT<T, Meta>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noe
 {
   EBGEOMETRY_EXPECT(m_xDir < 3);
   EBGEOMETRY_EXPECT(m_yDir < 3);
+
+  // A zero-area face has no interior and no plane to project onto; only its edges count.
+  if (m_normal.length2() == T(0)) {
+    return false;
+  }
 
   const Vec3     pInPlane = this->projectPointIntoFacePlane(a_p);
   const Vec2T<T> p2D      = this->projectPoint(pInPlane);

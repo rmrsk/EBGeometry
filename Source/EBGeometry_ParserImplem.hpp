@@ -1851,13 +1851,7 @@ Parser::readIntoTriangles(const std::string a_filename, Pool& a_pool)
 
   // The same extraction TriMeshSDF's mesh constructor uses: real half-edge normals and the face
   // metadata, so readIntoTriangleBVH and TriMeshSDF(mesh, ...) build identical triangles.
-  bool onlyTriangles = true;
-
-  std::vector<Triangle<T, Meta>> triangles = MeshDistanceFunctionsDetail::extractTriangles(mesh, onlyTriangles);
-
-  if (!onlyTriangles) {
-    std::cerr << "Parser::readIntoTriangles -- file '" + a_filename + "' is not composed of only triangles!" << "\n";
-  }
+  std::vector<Triangle<T, Meta>> triangles = MeshDistanceFunctionsDetail::extractTriangles(mesh);
 
   return triangles;
 }

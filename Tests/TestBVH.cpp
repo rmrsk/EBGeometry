@@ -37,6 +37,21 @@ dataPath(const std::string& a_filename)
   return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/" + a_filename;
 }
 
+// a_count + 1 evenly spaced values from a_lo to a_hi inclusive, for sweeping a query grid.
+template <class T>
+std::vector<T>
+sweepValues(const T a_lo, const T a_hi, const int a_count)
+{
+  std::vector<T> values;
+  values.reserve(static_cast<size_t>(a_count) + 1);
+
+  for (int i = 0; i <= a_count; i++) {
+    values.push_back(a_lo + (a_hi - a_lo) * T(i) / T(a_count));
+  }
+
+  return values;
+}
+
 // A handful of query points spanning inside, outside, and near-surface -- enough to catch a BVH
 // traversal or partitioning bug without the test suite taking noticeably longer to run.
 template <class T>
@@ -350,6 +365,85 @@ TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshS
     for (const auto& p : queryPoints<T>()) {
       REQUIRE_THAT(tri.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
       REQUIRE_THAT(tri.signedDistance(p), withinAbsT(packed.signedDistance(p), traversalMargin<T>()));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: a zero-area sliver face leaves the signed distance unchanged",
+                   "[BVH][Tetrahedron][Degenerate]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // tetrahedron_sliver.stl is tetrahedron.stl with its bottom face split at the hypotenuse midpoint
+  // and the resulting T-junction closed by a zero-area triangle lying along the hypotenuse -- the
+  // kind of filler CAD exporters write. The sliver has no normal of its own, and it sits exactly on
+  // the sharp edge between the bottom and the slanted face, so every pseudonormal near that edge
+  // depends on how it is handled.
+  Pool       pool(hostMemoryResource());
+  const auto clean  = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
+  const auto sliver = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron_sliver.stl"), pool);
+
+  for (uint32_t f = 0; f < sliver.numFaces(); f++) {
+    const Vec3T<T>& n = sliver.getFace(f).getNormal();
+
+    REQUIRE(std::isfinite(n[0]));
+    REQUIRE(std::isfinite(n[1]));
+    REQUIRE(std::isfinite(n[2]));
+    REQUIRE_THAT(n.length(), withinAbsT(T(1), looseMargin<T>()));
+  }
+
+  const FlatMeshSDF<T, Meta>      reference(clean, pool);
+  const FlatMeshSDF<T, Meta>      flat(sliver, pool);
+  const MeshSDF<T, Meta, K>       packed(sliver, pool, BVH::Build::SAH);
+  const TriMeshSDF<T, Meta, K, W> tri(sliver, pool, BVH::Build::SAH, 2);
+
+  for (const T x : sweepValues<T>(T(-0.5), T(1.0), 16)) {
+    for (const T y : sweepValues<T>(T(-0.5), T(1.0), 16)) {
+      for (const T z : sweepValues<T>(T(-0.5), T(1.0), 16)) {
+        const Vec3T<T> p(x, y, z);
+        const T        expected = reference.signedDistance(p);
+
+        INFO("p = " << p);
+        REQUIRE_THAT(flat.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
+        REQUIRE_THAT(packed.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
+        REQUIRE_THAT(tri.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("TriMeshSDF: polygon faces are fan-triangulated, not truncated to their first three vertices",
+                   "[BVH][Degenerate]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  Pool       pool(hostMemoryResource());
+  const auto cube = Parser::readIntoDCEL<T, Meta>(dataPath("cube_quads.obj"), pool);
+
+  REQUIRE(cube.numFaces() == 6);
+
+  const BoxSDF<T>                 box(Vec3T<T>::zeros(), Vec3T<T>::ones());
+  const TriMeshSDF<T, Meta, K, W> tri(cube, pool, BVH::Build::SAH, 2);
+  const auto                      triangles = Parser::readIntoTriangles<T, Meta>(dataPath("cube_quads.obj"), pool);
+
+  REQUIRE(triangles.size() == 12);
+
+  for (const T x : sweepValues<T>(T(-0.5), T(1.5), 12)) {
+    for (const T y : sweepValues<T>(T(-0.5), T(1.5), 12)) {
+      for (const T z : sweepValues<T>(T(-0.5), T(1.5), 12)) {
+        const Vec3T<T> p(x, y, z);
+
+        INFO("p = " << p);
+        REQUIRE_THAT(tri.signedDistance(p), withinAbsT(box.signedDistance(p), looseMargin<T>()));
+      }
     }
   }
 }

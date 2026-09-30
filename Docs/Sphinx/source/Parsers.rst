@@ -57,7 +57,7 @@ further details.
 
       const auto distanceFields = EBGeometry::Parser::readIntoTriangleBVH<float>(files, pool);
 
-   This version will convert all DCEL polygons to triangles, pack them into SIMD-width groups,
+   This version fan-triangulates every DCEL polygon, packs the triangles into SIMD-width groups,
    and usually provides a nice code speedup over ``readIntoPackedBVH``.
 
 Reading raw file data
@@ -162,8 +162,8 @@ converts all DCEL polygons to triangles, packs them into SoA groups of ``W``, an
 SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to
 the SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRatio<T>()`` and
 ``TriangleSoA::DefaultWidth<T>()``, see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 4)
-bounds the number of full ``W``-sized SoA groups per BVH leaf. The code will raise an error if any
-face is not a triangle. Unlike
+bounds the number of full ``W``-sized SoA groups per BVH leaf. Faces with more than three vertices
+are fan-triangulated, which is exact for the planar convex faces the DCEL mesh requires. Unlike
 ``readIntoMesh``/``readIntoPackedBVH``, the returned ``TriMeshSDF`` extracts flat ``Triangle``
 values from the intermediate DCEL mesh and does not retain it; its BVH is still reserved from
 ``pool``, though, so ``pool`` must outlive it. Since a ``Pool`` never individually frees what it
@@ -209,15 +209,20 @@ A triangle soup is represented as
 
 Here, ``vertices`` contains the :math:`x,y,z` coordinates of each vertex, while each entry ``faces`` contains a list of vertices for the face.
 
-Turning a soup into a DCEL mesh is a two- (optionally three-) step process, using the functions
-in namespace ``EBGeometry::Soup``:
+Turning a soup into a DCEL mesh is a three- (optionally four-) step process, using the functions
+in namespace ``EBGeometry::Soup``. The file readers run the three required steps themselves.
 
 * ``containsDegeneratePolygons(vertices, facets)`` is an optional up-front check: it returns
-  ``true`` if any face has fewer than three vertices, or two or more vertices that coincide
-  after lexicographic sorting. Useful for validating a soup produced by an external tool before
-  spending time compressing/converting it.
+  ``true`` if any face has fewer than three vertices, two or more coincident vertices, or zero
+  area (collinear vertices). Useful for validating a soup produced by an external tool.
 * ``compress(vertices, facets)`` discards duplicate vertices from the soup in place, updating
   ``facets`` to reference the compressed vertex list.
+* ``removeDegeneratePolygons(vertices, facets)`` removes faces that have no area, and returns how
+  many it removed. A zero-area triangle whose three vertices are collinear is usually a
+  *T-junction filler*, written by CAD exporters to close the gap where one edge meets the middle of
+  another. It is removed, and its middle vertex is inserted into the face across its longest edge,
+  so the mesh stays closed. This matters for the sign of the distance: a zero-area face has no
+  normal, and left in place it would corrupt the edge and vertex pseudonormals next to it.
 * ``soupToDCEL(mesh, pool, vertices, facets, id)`` builds the vertices, half-edges, and faces of
   the (already-compressed) soup into the output DCEL mesh, reconciles pair edges (internally, via
   ``reconcilePairEdgesDCEL``, which links each half-edge :math:`u \to v` to its reverse

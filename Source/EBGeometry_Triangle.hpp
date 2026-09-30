@@ -114,8 +114,8 @@ public:
   /**
    * @brief Set the triangle vertex positions
    * @details Also recomputes the triangle face normal from the new vertex positions (see
-   * computeNormal). The three vertices must not be collinear (or coincident), or the
-   * face normal is undefined.
+   * computeNormal). If the three vertices are collinear or coincident the normal is set to zero:
+   * such a triangle has no interior, and its signed distance is not meaningful.
    * @param[in] a_vertexPositions Vertex positions. Each component must be finite.
    */
   void
@@ -145,8 +145,8 @@ public:
   /**
    * @brief Compute the triangle normal vector.
    * @details This computes the normal vector from two of the triangle edges, using the
-   * right-hand rule and vertex ordering to infer the normal vector. The three vertices
-   * must not be collinear (or coincident): a zero-area triangle has an undefined face normal.
+   * right-hand rule and vertex ordering to infer the normal vector. A zero-area triangle (collinear
+   * or coincident vertices) gets a zero normal.
    */
   void
   computeNormal() noexcept;

@@ -100,9 +100,13 @@ Triangle<T, Meta>::computeNormal() noexcept
 
   m_triangleNormal = cross(x2x0, x2x1);
 
-  EBGEOMETRY_EXPECT(m_triangleNormal.length() > T(0));
+  // Collinear or coincident vertices leave a zero normal rather than NaN. Such a triangle has no
+  // interior; mesh extraction never produces one (see MeshDistanceFunctionsDetail::extractTriangles).
+  const T length = m_triangleNormal.length();
 
-  m_triangleNormal = m_triangleNormal / m_triangleNormal.length();
+  if (length > T(0)) {
+    m_triangleNormal = m_triangleNormal / length;
+  }
 }
 
 template <class T, class Meta>

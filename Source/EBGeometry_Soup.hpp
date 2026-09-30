@@ -29,8 +29,8 @@ namespace EBGeometry {
 namespace Soup {
 /**
  * @brief Check if a polygon soup contains degenerate polygons.
- * @details A polygon is degenerate if it has fewer than 3 vertices or if two or more vertices
- * coincide after lexicographic sorting.
+ * @details A polygon is degenerate if it has fewer than 3 vertices, if two or more of its vertices
+ * coincide, or if it has zero area (see isZeroArea()).
  * @tparam T Floating-point precision type for vertex coordinates.
  * @param[in] a_vertices Vertex coordinate list.
  * @param[in] a_facets   Index lists defining each polygon face.
@@ -52,6 +52,46 @@ containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
 template <typename T>
 inline static void
 compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept;
+
+/**
+ * @brief Whether a polygon has zero area to within rounding.
+ * @details Uses the polygon's Newell normal, whose length is twice the area of a planar polygon, and
+ * compares it against 64 machine epsilons times the square of the polygon's longest edge. This
+ * catches exactly collinear vertices after rounding, not merely thin polygons.
+ * @tparam T Floating-point precision type for vertex coordinates.
+ * @param[in] a_vertices Vertex coordinate list.
+ * @param[in] a_facet    Index list of one polygon.
+ * @return True if the polygon's area is zero to within rounding.
+ */
+template <typename T>
+[[nodiscard]] inline static bool
+isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vector<size_t>& a_facet) noexcept;
+
+/**
+ * @brief Remove degenerate polygons from a compressed polygon soup, repairing the mesh around them.
+ * @details Run after compress(), so that coincident vertices share an index. For each facet:
+ *
+ * - Repeated consecutive vertex indices are merged. A facet left with fewer than three vertices is
+ *   removed; the facets around it pair up with each other directly.
+ * - A zero-area triangle (three collinear vertices) is a T-junction filler: its middle vertex lies on
+ *   its longest edge, and the facet across that edge has one fewer vertex than the geometry needs.
+ *   The triangle is removed and its middle vertex is inserted into that facet between the longest
+ *   edge's endpoints. The neighbour becomes a planar polygon with one straight-angle vertex, and the
+ *   mesh stays closed. Without the repair, the triangle has no normal, and every edge and vertex
+ *   pseudonormal next to it is wrong.
+ * - Any other zero-area facet, and a zero-area triangle with no facet across its longest edge, is
+ *   removed.
+ *
+ * @tparam T Floating-point precision type for vertex coordinates.
+ * @param[in]     a_vertices Compressed vertex coordinate list.
+ * @param[in,out] a_facets   Index lists; degenerate facets are removed, and neighbours of repaired
+ * T-junctions gain a vertex.
+ * @return Number of facets removed.
+ */
+template <typename T>
+inline static size_t
+removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                         std::vector<std::vector<size_t>>&        a_facets) noexcept;
 
 /**
  * @brief Convert a polygon soup into a DCEL half-edge mesh.

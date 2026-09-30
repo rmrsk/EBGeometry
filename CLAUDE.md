@@ -306,7 +306,8 @@ does not follow this template, edit the PR body to conform to it.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s
   `binaryDir`) specifically so switching presets can't silently reuse a stale `CMakeCache.txt` from
   a different configuration.
-- **`TriMeshSDF` requires an all-triangular mesh**; `MeshSDF`/`FlatMeshSDF` accept arbitrary
-  (planar, convex) polygon faces. The `Tests/data/dodecahedron.*` fixture (20 vertices, 36
-  triangulated faces, exercised by `Tests/TestBVH.cpp`) works for both, since its pentagonal faces
-  were pre-triangulated when generated.
+- **`TriMeshSDF` fan-triangulates polygon faces**; `MeshSDF`/`FlatMeshSDF` use the (planar, convex)
+  polygon faces directly. Fan triangulation of a planar convex face gives the same signed distance.
+  The file readers remove zero-area faces and repair the T-junctions they fill
+  (`Soup::removeDegeneratePolygons`); `Tests/data/tetrahedron_sliver.stl` and `cube_quads.obj` cover
+  both.

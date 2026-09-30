@@ -460,7 +460,7 @@ public:
    * @details No default arguments: this is a low-level constructor, and callers who excavate down
    * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
    * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups.
-   * @param[in]     a_mesh          DCEL mesh; every face must be a triangle.
+   * @param[in]     a_mesh          DCEL mesh. Faces with more than three vertices are fan-triangulated.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
    * @param[in]     a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
    * near-optimal traversal cost; TopDown (centroid median) is faster to build but yields deeper trees.
@@ -595,9 +595,9 @@ public:
 
 private:
   /**
-   * @brief Extract every face of a triangulated DCEL mesh as a flat Triangle.
-   * @param[in] a_mesh DCEL mesh; every face must be a triangle.
-   * @return One Triangle per face, in face order.
+   * @brief Extract every face of a DCEL mesh as flat Triangles, fan-triangulating polygons.
+   * @param[in] a_mesh DCEL mesh.
+   * @return The triangles of every face, in face order.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline std::vector<Tri>

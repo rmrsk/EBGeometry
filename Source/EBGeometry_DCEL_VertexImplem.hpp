@@ -188,6 +188,12 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               
   for (const uint32_t faceIndex : a_faceIndices) {
     const Face& f = a_mesh.getFace(faceIndex);
 
+    // A zero-area face has a zero normal (FaceT::computeNormal) and contributes nothing. Skipping it
+    // here also avoids measuring an angle across one of its zero-length edges.
+    if (f.getNormal().length2() == T(0)) {
+      continue;
+    }
+
     std::vector<uint32_t> inoutVertices(0);
     for (EdgeIterator edgeIt(a_mesh, f); edgeIt.ok(); ++edgeIt) {
       const Edge& e = a_mesh.getEdge(edgeIt());

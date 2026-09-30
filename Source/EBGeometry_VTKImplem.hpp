@@ -125,13 +125,16 @@ VTK<T>::convertToDCEL(Pool& a_pool) const noexcept
   std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
   std::vector<std::vector<size_t>> facets   = m_facets;
 
-  if (Soup::containsDegeneratePolygons(vertices, facets)) {
-    std::cerr << "VTK::convertToDCEL - VTK contains degenerate faces\n";
-  }
-
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
   Soup::compress(vertices, facets);
+
+  const size_t numRemoved = Soup::removeDegeneratePolygons(vertices, facets);
+
+  if (numRemoved > 0) {
+    std::cerr << "VTK::convertToDCEL - removed " << numRemoved << " degenerate (zero-area) faces from '" << m_id
+              << "', merging T-junction fillers into their neighbours\n";
+  }
   Soup::soupToDCEL(*mesh, a_pool, vertices, facets, m_id);
 
   return mesh;

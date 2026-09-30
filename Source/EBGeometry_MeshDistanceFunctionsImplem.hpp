@@ -118,59 +118,99 @@ buildDCELTreeBVH(const EBGeometry::DCEL::MeshT<T, Meta>& a_dcelMesh, const BVH::
 }
 
 /**
- * @brief Extract every face of a DCEL mesh as a flat, self-contained Triangle.
+ * @brief Extract every face of a DCEL mesh as flat, self-contained Triangles.
  * @details Internal helper shared by TriMeshSDF's mesh constructor and Parser::readIntoTriangles, so
- * both produce identical triangles: the face normal, the three vertex positions and vertex normals,
- * the three half-edge normals (edge i runs from vertex i to vertex i+1, the order both
- * FaceT::gatherVertexIndices and FaceT::gatherEdgeIndices walk the face), and the face metadata.
- * A face with more than three vertices contributes its first three, and a_onlyTriangles is cleared;
- * callers decide how to report that.
+ * both produce identical triangles. Each triangle carries the face normal, its three vertex positions
+ * and vertex normals, its three edge normals (edge i runs from vertex i to vertex i+1), and the face
+ * metadata.
+ *
+ * A face with more than three vertices is fan-triangulated. For a planar convex face this is exact:
+ * a fan diagonal lies in the face plane, so its pseudonormal is the face normal, and the angles the
+ * fan triangles subtend at each vertex add up to the polygon's angle there. The apex is the vertex
+ * whose fan has the largest smallest triangle, so a face with straight-angle vertices (for example
+ * one that received a T-junction vertex in Soup::removeDegeneratePolygons) yields no zero-area
+ * triangles. A zero-area face has no interior and yields no triangles; its edges belong to its
+ * neighbours as well.
+ *
+ * The face normal is set after the vertex positions, so a mesh flipped with MeshT::flip() keeps its
+ * flipped normals (setting the positions recomputes the normal from vertex order).
  * @tparam T    Floating-point precision type.
  * @tparam Meta Face metadata type.
- * @param[in]  a_mesh          DCEL mesh.
- * @param[out] a_onlyTriangles Set to true if every face is a triangle, false otherwise.
- * @return One Triangle per face, in face order.
+ * @param[in] a_mesh DCEL mesh.
+ * @return The triangles of every face, in face order.
  */
 template <class T, class Meta>
 [[nodiscard]] EBGEOMETRY_HOST
 inline std::vector<Triangle<T, Meta>>
-extractTriangles(const DCEL::MeshT<T, Meta>& a_mesh, bool& a_onlyTriangles)
+extractTriangles(const DCEL::MeshT<T, Meta>& a_mesh)
 {
   std::vector<Triangle<T, Meta>> triangles;
 
   triangles.reserve(a_mesh.numFaces());
 
-  a_onlyTriangles = true;
-
   for (uint32_t faceIndex = 0; faceIndex < a_mesh.numFaces(); faceIndex++) {
     const auto& f             = a_mesh.getFace(faceIndex);
     const auto  vertexIndices = f.gatherVertexIndices(a_mesh);
     const auto  edgeIndices   = f.gatherEdgeIndices(a_mesh);
+    const auto& faceNormal    = f.getNormal();
+    const auto  N             = vertexIndices.size();
 
-    EBGEOMETRY_EXPECT(vertexIndices.size() >= 3);
-    EBGEOMETRY_EXPECT(edgeIndices.size() == vertexIndices.size());
+    EBGEOMETRY_EXPECT(N >= 3);
+    EBGEOMETRY_EXPECT(edgeIndices.size() == N);
 
-    if (vertexIndices.size() != 3) {
-      a_onlyTriangles = false;
+    if (faceNormal.length2() == T(0)) {
+      continue;
     }
 
-    const auto& v0 = a_mesh.getVertex(vertexIndices[0]);
-    const auto& v1 = a_mesh.getVertex(vertexIndices[1]);
-    const auto& v2 = a_mesh.getVertex(vertexIndices[2]);
+    const auto position = [&](size_t a_i) -> const Vec3T<T>& {
+      return a_mesh.getVertex(vertexIndices[a_i % N]).getPosition();
+    };
 
-    const auto& e0 = a_mesh.getEdge(edgeIndices[0]);
-    const auto& e1 = a_mesh.getEdge(edgeIndices[1]);
-    const auto& e2 = a_mesh.getEdge(edgeIndices[2]);
+    // Pick the fan apex whose smallest fan triangle is largest (twice its area, via the cross
+    // product). Any apex works for a strictly convex face.
+    size_t apex = 0;
 
-    Triangle<T, Meta> tri;
+    if (N > 3) {
+      T bestSmallest = T(-1);
 
-    tri.setNormal(f.getNormal());
-    tri.setVertexPositions({v0.getPosition(), v1.getPosition(), v2.getPosition()});
-    tri.setVertexNormals({v0.getNormal(), v1.getNormal(), v2.getNormal()});
-    tri.setEdgeNormals({e0.getNormal(), e1.getNormal(), e2.getNormal()});
-    tri.setMetaData(f.getMetaData());
+      for (size_t a = 0; a < N; a++) {
+        T smallest = std::numeric_limits<T>::max();
 
-    triangles.emplace_back(tri);
+        for (size_t j = 1; j + 1 < N; j++) {
+          const T area2 = (position(a + j) - position(a)).cross(position(a + j + 1) - position(a)).length();
+
+          smallest = std::min(smallest, area2);
+        }
+
+        if (smallest > bestSmallest) {
+          bestSmallest = smallest;
+          apex         = a;
+        }
+      }
+    }
+
+    for (size_t j = 1; j + 1 < N; j++) {
+      const size_t i0 = apex;
+      const size_t i1 = (apex + j) % N;
+      const size_t i2 = (apex + j + 1) % N;
+
+      // Polygon boundary edges keep their half-edge normals; fan diagonals lie in the face plane.
+      const Vec3T<T> n01 = (j == 1) ? a_mesh.getEdge(edgeIndices[i0]).getNormal() : faceNormal;
+      const Vec3T<T> n12 = a_mesh.getEdge(edgeIndices[i1]).getNormal();
+      const Vec3T<T> n20 = (j + 2 == N) ? a_mesh.getEdge(edgeIndices[i2]).getNormal() : faceNormal;
+
+      Triangle<T, Meta> tri;
+
+      tri.setVertexPositions({position(i0), position(i1), position(i2)});
+      tri.setNormal(faceNormal);
+      tri.setVertexNormals({a_mesh.getVertex(vertexIndices[i0]).getNormal(),
+                            a_mesh.getVertex(vertexIndices[i1]).getNormal(),
+                            a_mesh.getVertex(vertexIndices[i2]).getNormal()});
+      tri.setEdgeNormals({n01, n12, n20});
+      tri.setMetaData(f.getMetaData());
+
+      triangles.emplace_back(tri);
+    }
   }
 
   return triangles;
@@ -543,15 +583,7 @@ EBGEOMETRY_HOST
 inline std::vector<typename TriMeshSDF<T, Meta, K, W>::Tri>
 TriMeshSDF<T, Meta, K, W>::extractTriangles(const Mesh& a_mesh)
 {
-  bool onlyTriangles = true;
-
-  std::vector<Tri> triangles = EBGeometry::MeshDistanceFunctionsDetail::extractTriangles(a_mesh, onlyTriangles);
-
-  EBGEOMETRY_EXPECT(onlyTriangles);
-
-  if (!onlyTriangles) {
-    std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
-  }
+  std::vector<Tri> triangles = EBGeometry::MeshDistanceFunctionsDetail::extractTriangles(a_mesh);
 
   return triangles;
 }

@@ -1155,6 +1155,75 @@ TEMPLATE_TEST_CASE("Soup::containsDegeneratePolygons detects a facet with a repe
   REQUIRE(Soup::containsDegeneratePolygons(verts, facets));
 }
 
+TEMPLATE_TEST_CASE("Soup::containsDegeneratePolygons detects a zero-area facet with distinct, collinear vertices",
+                   "[Soup]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T                                       = TestType;
+  const std::vector<Vec3T<T>>            verts  = {{0, 0, 0}, {1, 0, 0}, {T(0.5), 0, 0}};
+  const std::vector<std::vector<size_t>> facets = {{0, 1, 2}};
+
+  REQUIRE(Soup::isZeroArea(verts, facets[0]));
+  REQUIRE(Soup::containsDegeneratePolygons(verts, facets));
+}
+
+TEMPLATE_TEST_CASE("Soup::removeDegeneratePolygons repairs a T-junction filler and drops collapsed facets",
+                   "[Soup]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A square split into two triangles along its diagonal 0-2, where one side of the diagonal has
+  // been split at its midpoint 4 and the T-junction closed by the zero-area triangle {2, 0, 4}.
+  // Facet {0, 4, 4} collapses to a segment once its repeated vertex is merged.
+  const std::vector<Vec3T<T>> verts = {{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}, {T(0.5), T(0.5), 0}};
+
+  std::vector<std::vector<size_t>> facets = {{0, 1, 4}, {1, 2, 4}, {2, 0, 4}, {0, 2, 3}, {0, 4, 4}};
+
+  REQUIRE(Soup::removeDegeneratePolygons(verts, facets) == 2);
+  REQUIRE(facets.size() == 3);
+  REQUIRE_FALSE(Soup::containsDegeneratePolygons(verts, facets));
+
+  // The facet across the filler's longest edge (0 -> 2 reversed, in {0, 2, 3}) gained its middle
+  // vertex, so every directed edge now has its reverse and the mesh is closed around vertex 4.
+  REQUIRE(facets[2] == std::vector<size_t>{0, 4, 2, 3});
+}
+
+TEMPLATE_TEST_CASE("DCEL: a zero-area face built without the soup repair gets a zero normal, never NaN",
+                   "[DCEL][Face]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  // soupToDCEL directly, bypassing Soup::removeDegeneratePolygons: face 2 is a zero-area filler.
+  const std::vector<Vec3T<T>> verts = {{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}, {T(0.5), T(0.5), 0}};
+
+  const std::vector<std::vector<size_t>> facets = {{0, 1, 4}, {1, 2, 4}, {2, 0, 4}, {0, 2, 3}};
+
+  MeshT<T, DefaultMetaData> mesh;
+  Soup::soupToDCEL(mesh, pool, verts, facets, "t-junction");
+
+  REQUIRE(mesh.getFace(2).getNormal() == Vec3T<T>::zeros());
+
+  for (uint32_t v = 0; v < mesh.numVertices(); v++) {
+    const Vec3T<T>& n = mesh.getVertex(v).getNormal();
+
+    REQUIRE(std::isfinite(n[0]));
+    REQUIRE(std::isfinite(n[1]));
+    REQUIRE(std::isfinite(n[2]));
+  }
+
+  for (uint32_t e = 0; e < mesh.numEdges(); e++) {
+    const Vec3T<T>& n = mesh.getEdge(e).getNormal();
+
+    REQUIRE(std::isfinite(n[0]));
+    REQUIRE(std::isfinite(n[1]));
+    REQUIRE(std::isfinite(n[2]));
+  }
+}
+
 TEMPLATE_TEST_CASE("Soup::compress removes duplicate vertices and reindexes facets consistently",
                    "[Soup]",
                    EBGEOMETRY_TEST_PRECISIONS)
