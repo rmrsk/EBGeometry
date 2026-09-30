@@ -14,7 +14,7 @@ centered at the origin is simply
 $$S(\mathbf{x}) = \lvert \mathbf{x} \rvert - r.$$
 
 The other shapes follow the same idea with more involved formulas. See the
-[Geometry representations](https://rmrsk.github.io/EBGeometry/Concepts.html) page in the user
+[Geometry representations](https://rmrsk.github.io/EBGeometry/GeometryRepresentations.html) page in the user
 documentation for the general theory, including the sign convention and why it matters.
 
 The example also constructs a fractal Perlin noise field: a smoothly varying, pseudo-random
@@ -31,9 +31,9 @@ Building
 This example is standalone and can be built in three ways. Each needs the path
 to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
 is two levels up from this folder (`../..`) when building in place. See
-[Direct compilation](https://rmrsk.github.io/EBGeometry/BuildingDirectCompile.html),
-[Building with GNU Make](https://rmrsk.github.io/EBGeometry/BuildingGNUMake.html), and
-[Building with CMake](https://rmrsk.github.io/EBGeometry/BuildingCMake.html) in the user
+[Direct compilation](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingdirectcompile),
+[Building with GNU Make](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildinggnumake), and
+[Building with CMake](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingcmake) in the user
 documentation for more detail on each approach.
 
 **CMake**
