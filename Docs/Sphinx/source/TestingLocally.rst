@@ -200,7 +200,8 @@ Test coverage
    * - ``TestBoundingVolumes``
      - :cpp:class:`AABBT` and :cpp:class:`SphereT`: construction from
        corners and point clouds, volume, surface area, point distance,
-       intersection predicate, overlapping volume.
+       intersection predicate, overlapping volume; ``AABBT::merged``, the allocation-free union,
+       with the default (empty) box as its identity.
    * - ``TestAnalyticSDF``
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
        :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances; every
@@ -219,7 +220,9 @@ Test coverage
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,
        monotonicity along one axis, injectivity, ``ValidSpan`` boundary
-       regression, and (for Hilbert) the consecutive-code adjacency property.
+       regression, and (for Hilbert) the consecutive-code adjacency property; ``computeBins``
+       binning into cubic cells (a flat cloud keeps a thin slab of bins), and coincident points or a
+       vanishing extent giving bin 0.
    * - ``TestTriangle``
      - :cpp:class:`Triangle`: face normal from vertex ordering, and
        signed-distance correctness for points closest to the face interior,
@@ -257,7 +260,12 @@ Test coverage
        inside test; :cpp:func:`MeshSDF::getClosestFaces` ordering; and
        :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
        correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
-       brute-force scan after displacement).
+       brute-force scan after displacement). Also the build-time checks: a tree too deep for the
+       host or device traversal stack at ``K`` = 2, 4 and 16, every kind of malformed node array (a
+       leaf with no primitives among them), and a partitioner that returns an empty partition, all
+       rejected; the stack's float distance bound never pruning a closer primitive; only interior
+       nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
+       extent; the bottom-up build at exact powers of ``K``; and an empty BVH.
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
        primitives, including far from the blend region;

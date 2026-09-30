@@ -103,7 +103,8 @@ See :ref:`Chap:BVH` for the conceptual picture of bounding volume hierarchies an
 
 **What it stores:** each interior node's :math:`K` children's bounding boxes, laid out as a
 *structure of arrays* (``ChildAABBSoA``: flat, ``alignas``-aligned low/high-corner coordinate
-arrays across all :math:`K` children), alongside the usual index-offset node data. See
+arrays across all :math:`K` children), one row per interior node, alongside the usual index-offset
+node data. See
 :ref:`Chap:PackedBVH` for the rest of the packed representation.
 
 **What is vectorised:** the point-to-bounding-box squared-distance test used to decide which

@@ -229,7 +229,9 @@ mechanism is to be built in the meantime, since it would be a second tape.
 2. **BVH.** *(Done, PR #145, with a follow-up scrub.)* `pruneTraverse` factored into one loop with
    a real scalar implementation (fixed stack, hand-rolled sort over the ≤K children); `PackedBVH`'s
    three arrays moved onto `Pool`/`PODVector`; the class is `static_assert`-ed trivially copyable and
-   has `rebasedView()`/`deepCopy()`; stack depth differs by entry point (256 host, 64 device).
+   has `rebasedView()`/`deepCopy()`; stack depth differs by entry point. (Since then: the stack holds
+   256 levels on the host and 32 on a device at every K, in 8-byte entries, and only interior nodes
+   get a SIMD child-box row.)
    `TreeBVH` stays host-only — it is the builder, and static geometry builds on the host.
 
    The `shared_ptr`-based primitive array is gone, since a `shared_ptr` cannot be byte-copied into a
@@ -245,10 +247,10 @@ mechanism is to be built in the meantime, since it would be a second tape.
    "What is not" table and step 4.
 
    **The device traversal is correctness-first, and is not a tuned GPU kernel.** It is the textbook
-   formulation: one query point per thread, each with a private 64-entry stack, every lane descending
+   formulation: one query point per thread, each with a private stack, every lane descending
    its own path. That is divergence-bound by construction — the warp executes the union of 32
    different descents and retires with the slowest lane — and the private stack is local memory
-   (1 KB/thread at `double`, 512 B at `float`), touched on every push and pop. `ChildAABBSoA` is also
+   (752 B/thread at K = 4), touched on every push and pop. `ChildAABBSoA` is also
    laid out for the wrong axis here: it exists so one *thread* can load K children into one SIMD
    register, which is a CPU idea and buys nothing when a lane reads all K serially.
 

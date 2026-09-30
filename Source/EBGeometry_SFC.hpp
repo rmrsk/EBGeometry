@@ -156,10 +156,11 @@ struct Hilbert
  * @details Converts real-valued points into SFC::Index values suitable for SFC::Morton::encode() or
  * SFC::Nested::encode(). The binning itself is curve-independent -- every curve grids the same way;
  * only the subsequent encode() differs -- so this takes no curve type (see order() for the
- * curve-parameterized ordering built on top of it). If every point coincides on some axis (a planar
- * cloud or duplicate points), that axis's normalization divisor would be zero; it is clamped to 1
- * (the numerator is also exactly zero there for every point, so any nonzero divisor yields the same,
- * correct bin index of 0), avoiding a divide-by-zero.
+ * curve-parameterized ordering built on top of it). The grid cells are cubes, sized so that the
+ * longest extent of the points spans the whole grid; a flat cloud therefore occupies only a thin
+ * slab of bins along its short axis, and the curve keeps following distance. If the points coincide,
+ * or their extent is too small for a cell size that is a normal floating-point number, every point
+ * gets bin 0 on every axis.
  * @tparam T Floating-point precision.
  * @param[in] a_points Points to bin (e.g. bounding-volume centroids, or a raw point cloud). Every
  * coordinate must be finite; this is checked in every build.

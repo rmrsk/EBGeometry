@@ -13,6 +13,7 @@
 
 // Std includes
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -73,6 +74,24 @@ struct ClusterSpec
 {
   size_t maxClusterSize = 8; ///< Maximum primitives per cluster (bucket); a leaf holds 1 to K-1 clusters. Must be > 0.
 };
+
+/**
+ * @brief Deepest tree, in node levels (the root alone is one level), that a host traversal handles.
+ * @details PackedBVH::pruneTraverse() keeps a fixed stack sized from this and the branching factor,
+ * so the limit is the same for every K. Every PackedBVH is checked against it when it is built. At
+ * no K is it lower than the limit the earlier fixed 256-entry stack gave (256 levels at K = 2, 86
+ * at K = 4), and the stack takes (K - 1) * 255 + 1 entries of 8 bytes: about 6 KB at K = 4.
+ */
+inline constexpr size_t HostTraversalDepth = 256;
+
+/**
+ * @brief Deepest tree, in node levels, that a device traversal handles.
+ * @details Smaller than the host value, since device stack memory is per thread: (K - 1) * 31 + 1
+ * entries of 8 bytes, 752 bytes at K = 4. The earlier fixed 64-entry stack allowed 22 levels at K = 4
+ * and only 5 at K = 16; it allowed more only at K = 2 (64 levels). PackedBVH::rebasedView() checks
+ * every device view against it.
+ */
+inline constexpr size_t DeviceTraversalDepth = 32;
 
 /**
  * @brief The default branching factor K: 4, for both float and double, in every translation unit.
@@ -179,6 +198,35 @@ appendTreeLeaf(std::vector<P>& a_dst, const PrimitiveList<P>& a_leafPrims)
   // Plain push_back grows the buffer geometrically and keeps construction linear.
   for (const auto& p : a_leafPrims) {
     a_dst.push_back(*p);
+  }
+}
+
+/**
+ * @brief Abort unless every partition a partitioner returned holds at least one primitive.
+ * @details An empty partition would become a leaf with no primitives, which the packed layout
+ * cannot represent: a node with no primitives reads as an interior node. The built-in partitioners
+ * never return one; a caller-supplied partitioner might, and this catches it at build time, in
+ * every build, where it is cheap and the message can say which call produced it.
+ * @tparam List Partition type (a list of primitives with their bounding volumes).
+ * @tparam K    Number of partitions.
+ * @param[in] a_partitions Partitions returned by the partitioner.
+ * @param[in] a_numInput   Number of primitives the partitioner was given.
+ * @param[in] a_who        Name of the calling builder, for the message.
+ */
+template <class List, size_t K>
+EBGEOMETRY_HOST
+inline void
+requireNonEmptyPartitions(const Array<List, K>& a_partitions, const size_t a_numInput, const char* a_who)
+{
+  for (size_t k = 0; k < K; k++) {
+    EBGEOMETRY_REQUIRE(!a_partitions[k].empty(),
+                       "%s: the partitioner returned an empty partition (%zu of %zu, from %zu primitives). A leaf "
+                       "must hold at least one primitive; a partitioner must return %zu non-empty partitions.",
+                       a_who,
+                       k,
+                       K,
+                       a_numInput,
+                       K);
   }
 }
 
@@ -495,11 +543,12 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
     const T hi  = chi[axis];
     const T ext = hi - lo;
 
-    if (ext <= T(0)) {
+    // An extent so small that BINS / ext overflows cannot be binned; leave that axis out.
+    const T scale = T(BINS) / ext;
+
+    if (!(ext > T(0)) || !std::isfinite(scale)) {
       continue;
     }
-
-    const T scale = T(BINS) / ext;
 
     for (int b = 0; b < BINS; b++) {
       binLo[b]  = Vec3T<T>::max();
@@ -508,7 +557,9 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
     }
 
     for (size_t i = a_begin; i < a_end; i++) {
-      const int b = Math::min(BINS - 1, (int)((a_list[i].second.getCentroid()[axis] - lo) * scale));
+      // Clamped in floating point before the conversion, which is undefined past int's range.
+      const T   x = (a_list[i].second.getCentroid()[axis] - lo) * scale;
+      const int b = (x > T(0)) ? ((x < T(BINS - 1)) ? static_cast<int>(x) : BINS - 1) : 0;
       binLo[b]    = min(binLo[b], a_list[i].second.getLowCorner());
       binHi[b]    = max(binHi[b], a_list[i].second.getHighCorner());
       binCnt[b]   = binCnt[b] + 1;
@@ -931,8 +982,10 @@ public:
 
   /**
    * @brief Recursively partition this node top-down.
-   * @details The stop criterion and partitioner determine the tree shape.
-   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K sub-lists.
+   * @details The stop criterion and partitioner determine the tree shape. Every one of the K
+   * sub-lists the partitioner returns must hold at least one primitive: an empty one would become a
+   * leaf with no primitives, which aborts, in every build, with a message naming the partition.
+   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K non-empty sub-lists.
    * @param[in] a_stopCrit    Stop function. Returns true when a node should become a leaf.
    */
   inline void
@@ -1236,6 +1289,14 @@ public:
     Array<uint32_t, K> m_childOff{};
 
     /**
+     * @brief Row of this interior node's children's boxes in PackedBVH's SIMD box array.
+     * @details Owned by PackedBVH, which assigns it when the BVH is built or adopted, overwriting
+     * whatever the node array held; leaves have no row. Only interior nodes get a row, so the box
+     * array has one row per interior node rather than one per node.
+     */
+    uint32_t m_childBoxRow{};
+
+    /**
      * @brief Set the bounding volume for this node.
      * @param[in] a_bv Bounding volume.
      */
@@ -1323,6 +1384,17 @@ public:
     getChildOffsets() const noexcept
     {
       return m_childOff;
+    }
+
+    /**
+     * @brief Get the row of this interior node's children's boxes in the SIMD box array.
+     * @return Row index; meaningless for a leaf.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline uint32_t
+    getChildBoxRow() const noexcept
+    {
+      return m_childBoxRow;
     }
 
     /**
@@ -1469,8 +1541,9 @@ public:
    * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink
    * parameter the caller can std::move in) -- never requires shared_ptr-wrapping by the caller.
    * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
-   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K
-   * sub-lists. Defaults to BVCentroidPartitioner; pass BinnedSAHPartitioner for an SAH build.
+   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K non-empty
+   * sub-lists (an empty one aborts; see TreeBVH::topDownSortAndPartition()). Defaults to
+   * BVCentroidPartitioner; pass BinnedSAHPartitioner for an SAH build.
    * @param[in] a_stopCrit Stop function. Returns true when a node should become a leaf. Defaults
    * to DefaultLeafPredicate.
    */
@@ -1511,9 +1584,9 @@ public:
    * The node array must be a depth-first pre-order flattening with the root at index 0: every
    * interior node's K children lie strictly after it and inside the array, and every leaf's
    * primitive range lies inside @p a_primitives. refit() and the traversal-depth bound both rely on
-   * that shape. It is checked here, always on rather than as an EBGEOMETRY_EXPECT, because a
-   * malformed array would otherwise surface as an out-of-bounds read in Release; an empty node array
-   * (an empty BVH) is accepted only with an empty primitive array.
+   * that shape. It is checked by requireWellFormed(), always on rather than as an EBGEOMETRY_EXPECT,
+   * because a malformed array would otherwise surface as an out-of-bounds read in Release; an empty
+   * node array (an empty BVH) is accepted only with an empty primitive array.
    * @param[in,out] a_pool        Pool the three arrays are reserved from; must outlive this object.
    * @param[in]     a_linearNodes Flattened node array (copied into the pool).
    * @param[in]     a_primitives  Global primitive list in leaf-traversal order (copied into the pool).
@@ -1521,8 +1594,6 @@ public:
   EBGEOMETRY_HOST
   inline PackedBVH(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives)
   {
-    PackedBVH::requireWellFormed(a_linearNodes, a_primitives.size());
-
     this->finalize(a_pool, a_linearNodes, a_primitives);
   }
 
@@ -1610,11 +1681,11 @@ public:
 
   /**
    * @brief Traversal stack size, in entries, for the current compilation pass.
-   * @details The same bound pruneTraverse() sizes its own stack by: the host value in a host pass,
-   * the (smaller) device value in a device pass. Every BVH is checked against it when it is built,
-   * and again when rebasedView() produces a device view, so a caller's own traversal that pushes at
-   * most K entries per node expanded -- as pruneTraverse() does -- cannot overflow a stack of this
-   * many entries.
+   * @details The same bound pruneTraverse() sizes its own stack by: enough entries for a tree
+   * HostTraversalDepth levels deep in a host pass, and DeviceTraversalDepth levels in a device pass.
+   * Every BVH is checked against the host depth when it is built, and against the device depth when
+   * rebasedView() produces a device view, so a caller's own traversal that pushes at most K entries
+   * per node expanded -- as pruneTraverse() does -- cannot overflow a stack of this many entries.
    * @return Number of stack entries.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1622,9 +1693,9 @@ public:
   traversalStackDepth() noexcept
   {
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
-    return s_deviceStackDepth;
+    return PackedBVH::stackEntriesFor(DeviceTraversalDepth);
 #else
-    return s_hostStackDepth;
+    return PackedBVH::stackEntriesFor(HostTraversalDepth);
 #endif
   }
 
@@ -1703,6 +1774,8 @@ public:
 
   /**
    * @brief Get the bounding volume of the root node.
+   * @details An empty BVH has no root, so this must not be called on one (an EBGEOMETRY_EXPECT
+   * checks it); computeBoundingVolume() handles that case.
    * @return Reference to the root node's bounding volume.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1712,7 +1785,8 @@ public:
   /**
    * @brief Compute and return the bounding volume of this BVH.
    * @details Identical to getBoundingVolume(), but returns by value under the
-   * computeBoundingVolume() name other bounded objects use (BVHUnionIF forwards to it).
+   * computeBoundingVolume() name other bounded objects use (BVHUnionIF forwards to it), and
+   * returns the empty (inverted) box for an empty BVH instead of reading a root that does not exist.
    * @return Root node bounding volume.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1908,42 +1982,50 @@ private:
   };
 
   /**
-   * @brief Per-node SoA AABB cache used by the SIMD traversal in pruneTraverse().
+   * @brief SoA child-box rows used by the SIMD traversal in pruneTraverse(): one per interior node,
+   * found through Node::m_childBoxRow.
    */
   PODVector<ChildAABBSoA> m_childAabbSoA;
 
   /**
-   * @brief One entry on pruneTraverse()'s explicit traversal stack.
-   * @details Holds a node index plus the squared distance from the query point to that node's
-   * bounding volume, recorded when the entry was pushed. Keeping the distance on the stack lets a
-   * popped entry be re-tested against a pruning bound that may have tightened since the push, which
-   * is what makes deferred (pop-time) pruning possible in addition to the push-time filter.
+   * @brief One entry on pruneTraverse()'s explicit traversal stack: 8 bytes in either precision.
+   * @details Holds a node index plus a lower bound on the squared distance from the query point to
+   * that node's bounding volume, recorded when the entry was pushed. Keeping the distance on the
+   * stack lets a popped entry be re-tested against a pruning bound that may have tightened since the
+   * push. The distance is rounded down to float, never up, so the re-test can only keep an entry
+   * that an exact comparison would have dropped, never drop one it would have kept.
    */
   struct StackEntry
   {
     /// @brief Index into m_linearNodes.
     uint32_t m_idx;
 
-    /// @brief Squared distance from the query point to that node's bounding volume at push time.
-    T m_dist2;
+    /// @brief Lower bound on the squared distance from the query point to the node's bounding volume.
+    float m_dist2;
   };
 
   /**
-   * @brief Traversal stack depth used by pruneTraverse() on the host.
-   * @details A branch-and-bound descent pushes at most K entries per level, so this bounds the
-   * tree depth times K. 256 is the value this traversal has always used; it is a compile-time
-   * constant rather than a literal so the device entry point can select a smaller stack (device
-   * local memory is per-thread, and StackEntry is 16 B at double, so 256 would be 4 KB/thread).
+   * @brief @p a_dist2 rounded down to float.
+   * @param[in] a_dist2 Non-negative squared distance.
+   * @return A float no larger than @p a_dist2.
    */
-  static constexpr size_t s_hostStackDepth = 256;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline float
+  lowerBound(T a_dist2) noexcept;
 
   /**
-   * @brief Traversal stack depth used by pruneTraverse() in device code.
-   * @details Device local memory is per-thread, and StackEntry is 16 B at double, so the host's 256
-   * entries would be 4 KB/thread. A branch-and-bound descent pushes at most K entries per level, and
-   * log_K(N)*K says 64 covers a million primitives at K = 4.
+   * @brief Stack entries needed to traverse a tree @p a_depth levels deep.
+   * @details pruneTraverse pops one entry and pushes up to K per interior node expanded, so a
+   * root-to-leaf path through @p a_depth nodes peaks at 1 + (K - 1) * (depth - 1) entries.
+   * @param[in] a_depth Tree depth in node levels (at least 1).
+   * @return Number of stack entries.
    */
-  static constexpr size_t s_deviceStackDepth = 64;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static constexpr size_t
+  stackEntriesFor(const size_t a_depth) noexcept
+  {
+    return 1 + (K - 1) * (a_depth - 1);
+  }
 
   /**
    * @brief Maximum root-to-leaf depth of the finalized node array (root counts as depth 1).
@@ -1958,42 +2040,27 @@ private:
   maxNodeDepth(const void* a_base) const;
 
   /**
-   * @brief Largest tree depth whose traversal is guaranteed to fit a stack of @p a_stackDepth.
-   * @details pruneTraverse pops one entry and pushes up to K per interior node expanded, so a
-   * root-to-leaf path of depth D peaks at 1 + (K-1)*(D-1) entries. Inverting that gives the deepest
-   * tree the fixed stack can hold. Used to reject, at build time, a tree that would overflow the
-   * traversal stack -- which in Release is silent memory corruption, since the stack's own
-   * EBGEOMETRY_EXPECT compiles to nothing.
-   * @param[in] a_stackDepth Number of StackEntry slots available.
-   * @return Maximum safe tree depth.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  static constexpr size_t
-  maxSafeDepth(const size_t a_stackDepth) noexcept
-  {
-    return (K > 1) ? (1 + (a_stackDepth - 1) / (K - 1)) : a_stackDepth;
-  }
-
-  /**
-   * @brief Abort if the finalized tree is too deep for a traversal stack of @p a_stackDepth.
+   * @brief Abort if the finalized tree is deeper than @p a_maxDepth levels.
    * @details Always on, not EBGEOMETRY_EXPECT: the failure it prevents is an out-of-bounds write
    * into pruneTraverse's fixed stack, which Release builds would otherwise perform silently. Same
    * reasoning, and the same shape, as Pool::reserve's moved-from check.
-   * @param[in] a_base       Base address the node array resolves against.
-   * @param[in] a_stackDepth Traversal stack size to validate against.
-   * @param[in] a_context    Short label naming the caller, for the diagnostic.
+   * @param[in] a_base     Base address the node array resolves against.
+   * @param[in] a_maxDepth Deepest allowed tree, in node levels: HostTraversalDepth or DeviceTraversalDepth.
+   * @param[in] a_context  Short label naming the caller, for the diagnostic.
    */
   EBGEOMETRY_HOST
   inline void
-  requireDepthFits(const void* a_base, const size_t a_stackDepth, const char* a_context) const;
+  requireDepthFits(const void* a_base, const size_t a_maxDepth, const char* a_context) const;
 
   /**
-   * @brief Abort unless a caller-supplied node array is a well-formed pre-order flattening.
-   * @details Guards the public adopt constructor, the one entry point whose arrays the library did
-   * not build itself. Always on, for the same reason as requireDepthFits(). Checks that every
-   * interior node's children lie strictly after it and inside the array (which also rules out
-   * cycles), that every leaf's primitive range lies inside the primitive array, and that an empty
-   * node array comes with an empty primitive array.
+   * @brief Abort unless a node array is a well-formed pre-order flattening.
+   * @details Run on every build, by finalize(), so it guards the library's own builders as well as
+   * the public adopt constructor. Always on, for the same reason as requireDepthFits(). Checks that
+   * every interior node's children lie strictly after it and inside the array (which also rules out
+   * cycles), that every node but the root has exactly one parent, that every leaf's primitive range
+   * lies inside the primitive array, and that an empty node array comes with an empty primitive
+   * array. A leaf with no primitives reads as an interior node whose children are all node 0, so the
+   * first check rejects it.
    * @param[in] a_linearNodes   Node array to validate.
    * @param[in] a_numPrimitives Size of the primitive array it indexes into.
    */
@@ -2020,8 +2087,9 @@ private:
   computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, T (&a_dist2)[K]) noexcept;
 
   /**
-   * @brief Populate m_childAabbSoA from the completed m_linearNodes array.
-   * @details Called from finalize() once m_linearNodes is fully built, and again by refit().
+   * @brief Populate m_childAabbSoA from the completed m_linearNodes array, one row per interior node.
+   * @details Called from finalize() once m_linearNodes is fully built, and again by refit(). Assigns
+   * each interior node's Node::m_childBoxRow.
    * @param[in,out] a_pool Pool to reserve the cache from, or nullptr to refill a cache that already
    * exists (refit's case, where the node count cannot have changed).
    */

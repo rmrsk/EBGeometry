@@ -174,7 +174,10 @@ It reuses ``TreeBVH``'s own ``Partitioner``/``LeafPredicate`` machinery unchange
 ``BVCentroidPartitioner``, ``BinnedSAHPartitioner``, ``PrimitiveCentroidPartitioner``, or a
 caller-supplied one), so it accepts the same arguments ``topDownSortAndPartition()`` does — but
 writes nodes directly into the flat node array in depth-first pre-order as the recursion unwinds,
-rather than building a persistent, ``shared_ptr``-linked ``TreeBVH`` first. Since top-down
+rather than building a persistent, ``shared_ptr``-linked ``TreeBVH`` first. As for
+``topDownSortAndPartition()``, every one of the ``K`` partitions a partitioner returns must hold at
+least one primitive: an empty one would become a leaf with no primitives, which the packed layout
+cannot represent, and it aborts the build, in every build, with a message naming the partition. Since top-down
 recursion visits the root before its children, this needs no relayout pass (unlike the SFC-build
 constructor above, where a bottom-up merge naturally produces the root last). Each split still
 shared_ptr-wraps primitives once, up front (to reuse the existing ``Partitioner``/``LeafPredicate``
@@ -218,8 +221,9 @@ place, leaving the tree topology (node hierarchy and each leaf's primitive assig
 the cheap way to keep a BVH valid for a geometry whose primitives have *moved* between frames,
 without a full rebuild-and-repack. It takes a single functor mapping one primitive to its current
 bounding volume and unions volumes bottom-up: each leaf's from its primitives, each interior node's
-from its children. ``PackedBVH::refit()`` also rebuilds the per-node SoA AABB cache used by the SIMD
-``pruneTraverse()`` (see :ref:`Chap:PruneTraverse`) so queries stay consistent. Because it never
+from its children. ``PackedBVH::refit()`` merges the boxes pairwise, allocating nothing, and also
+rebuilds the SoA child-box rows used by the SIMD ``pruneTraverse()`` (see :ref:`Chap:PruneTraverse`)
+so queries stay consistent. Because it never
 re-partitions, a geometry that deforms enough for primitives to migrate across the tree accumulates
 looser bounding volumes over time and should periodically be rebuilt instead; see :ref:`Chap:BVH`
 for that trade-off. For the exact signatures, see the Doxygen references for `TreeBVH
@@ -353,16 +357,18 @@ a derived type silently slices away the payload the leaves refer to.
 
 Three public members exist for such a class. The adopting constructor
 ``PackedBVH(Pool&, const std::vector<Node>&, const std::vector<P>&)`` takes a node and primitive
-array built by some other means -- ``PointCloudBVH`` runs its own index-based build -- and checks,
-always on rather than only under assertions, that the node array is a well-formed depth-first
-pre-order flattening (every child strictly after its parent and inside the array, every leaf's
-primitives inside the primitive array); a malformed array aborts with a diagnostic instead of
-surfacing later as an out-of-bounds read. ``getNodes()`` returns the flat node array as a read-only
-``PODSpan``, for a class that walks the tree with a traversal of its own. And
+array built by some other means -- ``PointCloudBVH`` runs its own index-based build. Every
+constructor, this one included, checks always on rather than only under assertions that the node
+array is a well-formed depth-first pre-order flattening: every child strictly after its parent and
+inside the array, every node but the root with exactly one parent, every leaf's primitives inside
+the primitive array. A malformed array aborts with a diagnostic instead of surfacing later as an
+out-of-bounds read. A leaf with no primitives is one such defect: it reads as an interior node whose
+children are all node 0, which the first check rejects. ``getNodes()`` returns the flat node array
+as a read-only ``PODSpan``, for a class that walks the tree with a traversal of its own. And
 ``traversalStackDepth()`` gives the fixed traversal-stack size for the current compilation pass
-(host or device), which the build and ``rebasedView()`` validate the tree's depth against -- a custom
-traversal that pushes at most ``K`` children per visited node, as ``pruneTraverse()`` does, can size
-its own stack with it and inherit the same guarantee.
+(host or device; see :ref:`Sec:TraversalStack`), which the build and ``rebasedView()`` validate the
+tree's depth against -- a custom traversal that pushes at most ``K`` children per visited node, as
+``pruneTraverse()`` does, can size its own stack with it and inherit the same guarantee.
 
 Copy and move semantics
 ________________________
@@ -537,6 +543,45 @@ child ordering and leaf dispatch are shared code in every configuration. Because
 never cached from the start of the traversal -- a leaf visited anywhere earlier on the stack
 immediately tightens the pruning applied to every node visited afterwards, regardless of which
 subtree it came from.
+
+.. _Sec:TraversalStack:
+
+The traversal stack
+___________________
+
+The stack is a fixed-size array, so the traversal allocates nothing and runs unchanged on a device.
+Each entry is 8 bytes in either precision: a ``uint32_t`` node index and the node's squared distance
+from the query point, stored as a ``float`` rounded *down*. The pop-time test compares that stored
+bound with the current pruning bound, and since it never exceeds the true distance, it can only keep
+an entry an exact comparison would have dropped, never drop one it would have kept. The push-time
+test and the child ordering use the exact distances.
+
+The traversal pops one entry and pushes up to ``K`` per interior node it expands, so a tree ``D``
+levels deep needs at most :math:`1 + (K - 1)(D - 1)` entries. The stack is sized for a depth, the
+same for every ``K``:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 20 25 25
+
+   * - Pass
+     - Depth (levels)
+     - Entries at K = 4
+     - Entries at K = 16
+   * - Host (``BVH::HostTraversalDepth``)
+     - 256
+     - 766 (6 KB)
+     - 3826 (30 KB)
+   * - Device (``BVH::DeviceTraversalDepth``)
+     - 32
+     - 94 (752 B)
+     - 466 (3.7 KB)
+
+Every ``PackedBVH`` is checked against the host depth when it is built, and every device view
+against the device depth when ``rebasedView()`` makes it, in every build: a tree too deep aborts with
+a message giving its depth, rather than overflowing the stack, which in Release would be a silent
+out-of-bounds write. (The stack used to be a fixed 256 entries on the host and 64 on a device, of 16
+bytes at ``double``, which held 22 levels on a device at ``K = 4`` and only 5 at ``K = 16``.)
 
 Splitting the pruning rule apart from the leaf-eval like this is what lets a primitive with no
 notion of "signed distance" reuse the same SIMD box test: a nearest-neighbor search over a point
@@ -744,8 +789,9 @@ flags, for host-only code; see :ref:`Sec:DefaultKW` for when to use which, and a
      - 4
 
 The K=16/float and K=8/double paths use 512-bit-wide SIMD loads on AVX-512F and require the
-``ChildAABBSoA`` struct to be 64-byte aligned, which is guaranteed by ``alignas(sizeof(T)*K)`` on
-the struct. The K=8/float and K=4/double paths use 256-bit-wide AVX loads instead (as does
+``ChildAABBSoA`` rows to be 64-byte aligned, which is guaranteed by ``alignas(sizeof(T)*K)`` on
+the struct. Only interior nodes have children, so only they get a row: each node records its row in
+``Node::m_childBoxRow``, and the row array has one entry per interior node rather than one per node. The K=8/float and K=4/double paths use 256-bit-wide AVX loads instead (as does
 K=8/double without AVX-512F, in two passes), and K=4/float uses 128-bit SSE4.1 loads. All other
 (K, T) combinations test the children with a scalar loop over the same ``ChildAABBSoA`` cache,
 inside the same ``pruneTraverse()``.
@@ -778,5 +824,5 @@ Rules of thumb:
 * ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
   available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
   a single SIMD batch, and the wider fan-out reduces tree depth — but measure: on the
-  benchmark in :ref:`Sec:DefaultKW` it was no faster. A tree with ``K = 16`` also fits the
-  device traversal stack only up to a depth of 5.
+  benchmark in :ref:`Sec:DefaultKW` it was no faster. A wider tree also takes a larger traversal
+  stack for the same depth (see :ref:`Sec:TraversalStack`).

@@ -504,6 +504,17 @@ public:
   inline T
   getArea() const noexcept;
 
+  /**
+   * @brief The smallest AABB enclosing this box and @p a_other.
+   * @details Allocation-free, and callable on a device, unlike the constructor from a list of boxes.
+   * The default-constructed (inverted) box is its identity: merging it with any box returns that box.
+   * @param[in] a_other The other AABB.
+   * @return The union of the two boxes.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline AABBT<T>
+  merged(const AABBT<T>& a_other) const noexcept;
+
 protected:
   /**
    * @brief Low corner of the bounding box. Initialised to +∞ (inverted sentinel).

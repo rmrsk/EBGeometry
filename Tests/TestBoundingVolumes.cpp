@@ -6,6 +6,10 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <cstddef>
+#include <random>
+#include <vector>
+
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -174,6 +178,104 @@ TEMPLATE_TEST_CASE("AABBT: overlapping volume", "[AABBT]", EBGEOMETRY_TEST_PRECI
 
   // Identical boxes
   REQUIRE_THAT(a.getOverlappingVolume(a), WithinRel(T(8.0)));
+}
+
+namespace {
+
+// Exact corner-by-corner equality of two boxes.
+template <class T>
+bool
+sameBox(const AABBT<T>& a_box1, const AABBT<T>& a_box2)
+{
+  for (size_t dir = 0; dir < 3; dir++) {
+    if (a_box1.getLowCorner()[dir] != a_box2.getLowCorner()[dir] ||
+        a_box1.getHighCorner()[dir] != a_box2.getHighCorner()[dir]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("AABBT::merged: the union of two boxes", "[AABBT][merged]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const AABBT<T> a(Vec3T<T>(0, -1, 2), Vec3T<T>(1, 3, 4));
+  const AABBT<T> b(Vec3T<T>(-2, 0, 3), Vec3T<T>(0.5, 5, 3.5));
+
+  SECTION("encloses both boxes")
+  {
+    REQUIRE(sameBox(a.merged(b), AABBT<T>(Vec3T<T>(-2, -1, 2), Vec3T<T>(1, 5, 4))));
+  }
+
+  SECTION("is commutative")
+  {
+    REQUIRE(sameBox(a.merged(b), b.merged(a)));
+  }
+
+  SECTION("a box merged with itself, or with a box inside it, is unchanged")
+  {
+    REQUIRE(sameBox(a.merged(a), a));
+    REQUIRE(sameBox(a.merged(AABBT<T>(Vec3T<T>(0.25, 0, 2.5), Vec3T<T>(0.75, 1, 3))), a));
+  }
+
+  SECTION("the default (inverted) box is the identity on either side")
+  {
+    const AABBT<T> empty;
+
+    REQUIRE(sameBox(empty.merged(a), a));
+    REQUIRE(sameBox(a.merged(empty), a));
+    REQUIRE(sameBox(AABBT<T>().merged(b).merged(a), a.merged(b)));
+  }
+
+  SECTION("two default boxes merge into the default box, with assertions on too")
+  {
+    const AABBT<T> empty;
+    const AABBT<T> merged = empty.merged(empty);
+
+    REQUIRE(merged.getLowCorner() == empty.getLowCorner());
+    REQUIRE(merged.getHighCorner() == empty.getHighCorner());
+  }
+}
+
+TEMPLATE_TEST_CASE("AABBT::merged: folding a list matches the list constructor for random boxes",
+                   "[AABBT][merged]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  std::mt19937                      rng(3);
+  std::uniform_real_distribution<T> coord(T(-100), T(100));
+  std::uniform_real_distribution<T> size(T(0), T(10));
+  std::uniform_int_distribution<>   count(1, 40);
+
+  for (int trial = 0; trial < 100; trial++) {
+    std::vector<AABBT<T>> boxes;
+
+    const int numBoxes = count(rng);
+
+    for (int i = 0; i < numBoxes; i++) {
+      const Vec3T<T> lo(coord(rng), coord(rng), coord(rng));
+
+      boxes.emplace_back(lo, lo + Vec3T<T>(size(rng), size(rng), size(rng)));
+    }
+
+    AABBT<T> forward;
+    AABBT<T> backward;
+
+    for (size_t i = 0; i < boxes.size(); i++) {
+      forward  = forward.merged(boxes[i]);
+      backward = boxes[boxes.size() - 1 - i].merged(backward);
+    }
+
+    const AABBT<T> expected(boxes);
+
+    REQUIRE(sameBox(forward, expected));
+    REQUIRE(sameBox(backward, expected));
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

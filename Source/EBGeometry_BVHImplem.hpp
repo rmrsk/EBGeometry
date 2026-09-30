@@ -193,6 +193,8 @@ TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, 
     // then move each sub-list into its child node.
     Array<PrimAndBVList<P, BV>, K> newPartitions = a_partitioner(std::move(primsAndBVs));
 
+    detail::requireNonEmptyPartitions(newPartitions, numPrimsInThisNode, "BVH::TreeBVH::topDownSortAndPartition");
+
     for (size_t c = 0; c < K; c++) {
       m_children[c] = std::make_shared<TreeBVH<T, P, BV, K>>(std::move(newPartitions[c]));
     }
@@ -242,10 +244,20 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
   // Go through the SFC and merge leaves that are nearby. We are trying to build a _balanced_
   // tree where all the leaves exist on the same level, so the number of leaves is a power of K and
   // merging in groups of K ends in a single root node.
+  //
+  // The depth is the largest d with K^d <= N, counted in integers: floor(log(N) / log(K)) in floating
+  // point comes out one short at exact powers of K, and is undefined for N = 0.
   const size_t numPrimitives = sortedPrimitives.size();
-  const size_t treeDepth     = std::floor(std::log(numPrimitives) / std::log(K));
-  const size_t numLeaves     = std::pow(K, treeDepth);
-  const size_t primsPerLeaf  = numPrimitives / numLeaves;
+
+  size_t treeDepth = 0;
+  size_t numLeaves = 1;
+
+  while (numLeaves <= numPrimitives / K) {
+    numLeaves *= K;
+    treeDepth++;
+  }
+
+  const size_t primsPerLeaf = numPrimitives / numLeaves;
 
   if (treeDepth > 0) {
 
@@ -352,8 +364,9 @@ TreeBVH<T, P, BV, K>::traverse(const BVH::LeafEvaluator<P>&               a_leaf
   q.emplace(this->shared_from_this(), a_nodeKeyFactory(*this));
 
   while (!(q.empty())) {
-    const auto& node    = q.top().first;
-    const auto& nodeKey = q.top().second;
+    // Copied, not referenced: pop() destroys the entry, and with it a reference's target.
+    const auto node    = q.top().first;
+    const auto nodeKey = q.top().second;
 
     q.pop();
 
@@ -465,7 +478,7 @@ PackedBVH<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
     // A snapshot is what a kernel receives. The device traversal stack is smaller than the host's, so
     // a tree that finalize() accepted can still be too deep to traverse on device. This is the moment
     // the caller commits to that, and the last one that still runs on the host where it can say so.
-    this->requireDepthFits(this->base(), s_deviceStackDepth, "device view");
+    this->requireDepthFits(this->base(), DeviceTraversalDepth, "device view");
   }
 
   return view;
@@ -526,6 +539,11 @@ EBGEOMETRY_HOST
 inline void
 PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives)
 {
+  // Every build path ends here, so this checks the library's own builders as well as adopted arrays:
+  // a malformed array -- a leaf with no primitives read as an interior node, say -- would otherwise
+  // surface as an out-of-bounds read in Release.
+  PackedBVH::requireWellFormed(a_linearNodes, a_primitives.size());
+
   this->attachTo(a_pool);
 
   m_linearNodes.reserveFrom(a_pool, static_cast<uint32_t>(a_linearNodes.size()));
@@ -542,7 +560,7 @@ PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNode
 
   // buildSoA() reserves, so re-resolve; after it nothing else moves the block. Reject here, once,
   // rather than letting pruneTraverse walk off its fixed stack later with no way to notice.
-  this->requireDepthFits(this->base(), s_hostStackDepth, "host build");
+  this->requireDepthFits(this->base(), HostTraversalDepth, "host build");
 }
 
 template <class T, class P, size_t K>
@@ -550,24 +568,40 @@ EBGEOMETRY_HOST
 inline void
 PackedBVH<T, P, K>::buildSoA(Pool* a_pool)
 {
-  if (a_pool != nullptr) {
-    m_childAabbSoA.reserveFrom(*a_pool, m_linearNodes.size());
+  // Only interior nodes have children, so only they get a row; a leaf, typically most of the nodes,
+  // gets none.
+  uint32_t numInterior = 0;
+
+  for (uint32_t i = 0; i < m_linearNodes.size(); i++) {
+    if (!m_linearNodes.at(this->base(), i).isLeaf()) {
+      numInterior++;
+    }
   }
 
+  if (a_pool != nullptr) {
+    m_childAabbSoA.reserveFrom(*a_pool, numInterior);
+  }
+
+  EBGEOMETRY_EXPECT(m_childAabbSoA.m_capacity == numInterior);
+
   // Resolved after the reservation above, for the reason given in finalize().
-  const void* poolBase = this->base();
+  void* poolBase = const_cast<void*>(this->base());
 
   // Assembled host-side and copied in one shot, like the node and primitive arrays: a PODVector
   // never reallocates, so it has no way to be filled element-by-element without its final size
   // already fixed, and this keeps the one finalize pattern everywhere.
-  std::vector<ChildAABBSoA> soaCache(m_linearNodes.size());
+  std::vector<ChildAABBSoA> soaCache(numInterior);
+
+  uint32_t row = 0;
 
   for (uint32_t i = 0; i < m_linearNodes.size(); i++) {
-    const auto& node = m_linearNodes.at(poolBase, i);
+    Node& node = m_linearNodes.at(poolBase, i);
 
     if (!node.isLeaf()) {
       const auto& offsets = node.getChildOffsets();
-      auto&       soa     = soaCache[i];
+      auto&       soa     = soaCache[row];
+
+      node.m_childBoxRow = row++;
 
       for (size_t k = 0; k < K; k++) {
         const auto& bv = m_linearNodes.at(poolBase, offsets[k]).getBoundingVolume();
@@ -585,7 +619,7 @@ PackedBVH<T, P, K>::buildSoA(Pool* a_pool)
     }
   }
 
-  m_childAabbSoA.assign(const_cast<void*>(poolBase), soaCache.data(), static_cast<uint32_t>(soaCache.size()));
+  m_childAabbSoA.assign(poolBase, soaCache.data(), numInterior);
 }
 
 template <class T, class P, size_t K>
@@ -625,6 +659,10 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
       const auto& children = node.getChildren();
 
       for (size_t k = 0; k < K; k++) {
+        EBGEOMETRY_REQUIRE(children[k] != nullptr,
+                           "BVH::PackedBVH: the tree has a node with neither primitives nor children; partition "
+                           "it before packing, and never into an empty partition");
+
         nodes[idx].m_childOff[k] = dfs(*children[k]);
       }
     }
@@ -678,6 +716,10 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
       const auto& children = node.getChildren();
 
       for (size_t k = 0; k < K; k++) {
+        EBGEOMETRY_REQUIRE(children[k] != nullptr,
+                           "BVH::PackedBVH: the tree has a node with neither primitives nor children; partition "
+                           "it before packing, and never into an empty partition");
+
         nodes[idx].m_childOff[k] = dfs(*children[k]);
       }
     }
@@ -761,14 +803,13 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
   for (size_t leaf = 0, i = 0; leaf < numLeaves; leaf++) {
     const size_t count = numPrimitives / numLeaves + (leaf < numPrimitives % numLeaves ? 1 : 0);
 
-    std::vector<BV> leafBVs;
-    leafBVs.reserve(count);
+    BV leafBV;
 
     for (size_t j = 0; j < count; j++) {
-      leafBVs.push_back(std::get<1>(sortedPrimitives[i + j]));
+      leafBV = leafBV.merged(std::get<1>(sortedPrimitives[i + j]));
     }
 
-    leafRanges.push_back({static_cast<uint32_t>(i), static_cast<uint32_t>(count), BV(leafBVs)});
+    leafRanges.push_back({static_cast<uint32_t>(i), static_cast<uint32_t>(count), leafBV});
 
     i += count;
   }
@@ -820,17 +861,15 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
       const uint32_t parentIdx = static_cast<uint32_t>(scratch.size());
       scratch.emplace_back();
 
-      std::vector<BV> childBVs;
-
-      childBVs.reserve(K);
+      BV parentBV;
 
       for (size_t c = 0; c < K; c++) {
         const uint32_t childIdx = levelIndices[p * K + c];
         scratch[parentIdx].setChildOffset(childIdx, c);
-        childBVs.push_back(scratch[childIdx].getBoundingVolume());
+        parentBV = parentBV.merged(scratch[childIdx].getBoundingVolume());
       }
 
-      scratch[parentIdx].setBoundingVolume(BV(childBVs));
+      scratch[parentIdx].setBoundingVolume(parentBV);
 
       nextLevel.push_back(parentIdx);
     }
@@ -921,7 +960,11 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
     else {
       // The partitioner takes its list by value and moves the sub-lists out; a_prims is not used
       // after this, so move it in, and move each child sub-list into the recursion.
+      const size_t numInput = a_prims.size();
+
       Array<BVH::PrimAndBVList<P, BV>, K> children = a_partitioner(std::move(a_prims));
+
+      detail::requireNonEmptyPartitions(children, numInput, "BVH::PackedBVH");
 
       for (size_t k = 0; k < K; k++) {
         const uint32_t childIdx = build(std::move(children[k]));
@@ -1044,10 +1087,13 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
       const T lo  = clo[axis];
       const T hi  = chi[axis];
       const T ext = hi - lo;
-      if (ext <= T(0)) {
+
+      // An extent so small that BINS / ext overflows cannot be binned; leave that axis out.
+      const T scale = T(BINS) / ext;
+
+      if (!(ext > T(0)) || !std::isfinite(scale)) {
         continue;
       }
-      const T scale = T(BINS) / ext;
 
       for (int b = 0; b < BINS; b++) {
         binLo[b]  = Vec3T<T>::max();
@@ -1055,7 +1101,9 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
         binCnt[b] = 0;
       }
       for (size_t i = a_begin; i < a_end; i++) {
-        const int b = Math::min(BINS - 1, static_cast<int>((clusters[i].centroid[axis] - lo) * scale));
+        // Clamped in floating point before the conversion, which is undefined past int's range.
+        const T   x = (clusters[i].centroid[axis] - lo) * scale;
+        const int b = (x > T(0)) ? ((x < T(BINS - 1)) ? static_cast<int>(x) : BINS - 1) : 0;
         binLo[b]    = min(binLo[b], clusters[i].bv.getLowCorner());
         binHi[b]    = max(binHi[b], clusters[i].bv.getHighCorner());
         binCnt[b]   = binCnt[b] + 1;
@@ -1223,6 +1271,8 @@ EBGEOMETRY_HOST_DEVICE
 inline const EBGeometry::BoundingVolumes::AABBT<T>&
 PackedBVH<T, P, K>::getBoundingVolume() const noexcept
 {
+  EBGEOMETRY_EXPECT(m_linearNodes.size() > 0);
+
   return m_linearNodes.at(this->base(), 0).getBoundingVolume();
 }
 
@@ -1231,6 +1281,10 @@ EBGEOMETRY_HOST_DEVICE
 inline EBGeometry::BoundingVolumes::AABBT<T>
 PackedBVH<T, P, K>::computeBoundingVolume() const noexcept
 {
+  if (m_linearNodes.size() == 0) {
+    return EBGeometry::BoundingVolumes::AABBT<T>();
+  }
+
   return m_linearNodes.at(this->base(), 0).getBoundingVolume();
 }
 
@@ -1323,22 +1377,43 @@ PackedBVH<T, P, K>::maxNodeDepth(const void* a_base) const
 
 template <class T, class P, size_t K>
 inline void
-PackedBVH<T, P, K>::requireDepthFits(const void* a_base, const size_t a_stackDepth, const char* a_context) const
+PackedBVH<T, P, K>::requireDepthFits(const void* a_base, const size_t a_maxDepth, const char* a_context) const
 {
   const size_t depth = this->maxNodeDepth(a_base);
-  const size_t limit = PackedBVH::maxSafeDepth(a_stackDepth);
 
-  EBGEOMETRY_REQUIRE(depth <= limit,
-                     "BVH::PackedBVH: %s -- tree depth %zu exceeds what a %zu-entry traversal stack can hold "
-                     "(max %zu at K = %zu).\n"
+  EBGEOMETRY_REQUIRE(depth <= a_maxDepth,
+                     "BVH::PackedBVH: %s -- the tree is %zu levels deep, more than the %zu levels a traversal stack "
+                     "holds.\n"
                      "  pruneTraverse would overflow its fixed stack, which Release builds do not detect. Rebuild "
-                     "with a larger target leaf size, or a branching factor whose\n"
-                     "  tree is shallower, before querying this BVH.",
+                     "with a larger leaf size, or a partitioner that splits more evenly, before querying this BVH.",
                      a_context,
                      depth,
-                     a_stackDepth,
-                     limit,
-                     K);
+                     a_maxDepth);
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline float
+PackedBVH<T, P, K>::lowerBound(const T a_dist2) noexcept
+{
+  if constexpr (std::is_same_v<T, float>) {
+    return a_dist2;
+  }
+  else {
+    // A double narrows to the nearest float, which may be above it. Shrinking the value by 2^-22
+    // first keeps the rounded float below the original, since rounding moves it by at most 2^-24
+    // relative -- except for results that would be float subnormals, which go to zero, and values
+    // past the float range, which go to the largest float.
+    if (!(a_dist2 >= T(Math::Limits<float>::min()))) {
+      return 0.0F;
+    }
+
+    if (a_dist2 >= T(Math::Limits<float>::max())) {
+      return Math::Limits<float>::max();
+    }
+
+    return static_cast<float>(a_dist2 * (T(1) - T(1.0 / 4194304.0)));
+  }
 }
 
 template <class T, class P, size_t K>
@@ -1360,6 +1435,9 @@ PackedBVH<T, P, K>::requireWellFormed(const std::vector<Node>& a_linearNodes, co
     return;
   }
 
+  // Every node but the root has exactly one parent, so a traversal reaches each primitive once.
+  std::vector<bool> hasParent(numNodes, false);
+
   for (size_t i = 0; i < numNodes; i++) {
     const Node& node = a_linearNodes[i];
 
@@ -1367,7 +1445,7 @@ PackedBVH<T, P, K>::requireWellFormed(const std::vector<Node>& a_linearNodes, co
       const size_t end = size_t(node.getPrimitivesOffset()) + size_t(node.getNumPrimitives());
 
       EBGEOMETRY_REQUIRE(end <= a_numPrimitives,
-                         "BVH::PackedBVH: adopted node array is malformed -- leaf %zu's primitive range ends at "
+                         "BVH::PackedBVH: node array is malformed -- leaf %zu's primitive range ends at "
                          "%zu, past the primitive array's %zu primitives",
                          i,
                          end,
@@ -1376,14 +1454,29 @@ PackedBVH<T, P, K>::requireWellFormed(const std::vector<Node>& a_linearNodes, co
       continue;
     }
 
+    // An interior node. A node meant as a leaf but holding no primitives lands here too, with its
+    // child offsets unset (zero), and the first check below rejects it.
     for (const uint32_t child : node.getChildOffsets()) {
       EBGEOMETRY_REQUIRE(child > i && child < numNodes,
-                         "BVH::PackedBVH: adopted node array is malformed -- node %zu has child offset %zu, which "
-                         "is not strictly after its parent and inside the array of %zu nodes",
+                         "BVH::PackedBVH: node array is malformed -- node %zu has child offset %zu, which "
+                         "is not strictly after its parent and inside the array of %zu nodes (a leaf with no "
+                         "primitives reads as an interior node like this)",
                          i,
                          size_t(child),
                          numNodes);
+
+      EBGEOMETRY_REQUIRE(!hasParent[child],
+                         "BVH::PackedBVH: node array is malformed -- node %zu names child %zu, which already has "
+                         "another parent",
+                         i,
+                         size_t(child));
+
+      hasParent[child] = true;
     }
+  }
+
+  for (size_t i = 1; i < numNodes; i++) {
+    EBGEOMETRY_REQUIRE(hasParent[i], "BVH::PackedBVH: node array is malformed -- node %zu has no parent", i);
   }
 }
 
@@ -1644,27 +1737,24 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
   // base cannot move underneath it.
   const void* poolBase = this->base();
 
-#if defined(EBGEOMETRY_DEVICE_COMPILE)
-  constexpr size_t stackDepth = s_deviceStackDepth;
-#else
-  constexpr size_t stackDepth = s_hostStackDepth;
-#endif
+  constexpr size_t stackDepth = PackedBVH::traversalStackDepth();
 
   StackEntry stack[stackDepth];
 
   int top = 0;
 
-  stack[top++] = StackEntry{0U, T(0.0)};
+  stack[top++] = StackEntry{0U, 0.0F};
 
   while (top > 0) {
     const StackEntry entry = stack[--top];
 
     // Read the pruning bound once per node visit. A leaf visited anywhere earlier -- in any subtree,
     // not just this one -- may have tightened it since this entry was pushed, so an entry that
-    // looked promising at push time can be discarded here without descending.
+    // looked promising at push time can be discarded here without descending. The stored distance
+    // never exceeds the true one, so this never discards an entry that could hold the answer.
     const T pruneDist2 = a_pruneDist2(a_state);
 
-    if (entry.m_dist2 > pruneDist2) {
+    if (T(entry.m_dist2) > pruneDist2) {
       continue;
     }
 
@@ -1676,46 +1766,43 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
     else {
       T dist2[K];
 
-      PackedBVH::computeChildDistances2(m_childAabbSoA.at(poolBase, entry.m_idx), a_point, dist2);
+      PackedBVH::computeChildDistances2(m_childAabbSoA.at(poolBase, node.getChildBoxRow()), a_point, dist2);
 
       const auto& offsets = node.getChildOffsets();
 
-      StackEntry children[K];
-
-      for (size_t k = 0; k < K; k++) {
-        children[k] = StackEntry{offsets[k], dist2[k]};
-      }
-
-      // Sort into descending distance order. The stack is LIFO, so the nearest child ends up on top
-      // and is expanded first -- which is what makes the bound tighten quickly.
+      // The children within the bound, sorted into descending distance order. The stack is LIFO, so
+      // the nearest child ends up on top and is expanded first -- which is what makes the bound
+      // tighten quickly. Filtering here as well as at pop time keeps hopeless children off the stack
+      // entirely; nothing between the read above and here can have changed a_state (a_evalLeaf runs
+      // only on the leaf branch), so the bound is the same value.
       //
       // Insertion sort, not std::sort: K is a handful of elements, where insertion sort is simply
       // faster than an introsort's setup, and std::sort is not callable from device code. It is also
       // stable, so children whose boxes are exactly equidistant keep their child-slot order rather
-      // than an unspecified one, which keeps traversal order deterministic.
-      for (size_t i = 1; i < K; i++) {
-        const StackEntry key = children[i];
+      // than an unspecified one, which keeps traversal order deterministic. It sorts on the exact
+      // distances; only the stored copies are rounded.
+      size_t slots[K];
+      size_t numSlots = 0;
 
-        size_t j = i;
+      for (size_t k = 0; k < K; k++) {
+        EBGEOMETRY_EXPECT(offsets[k] > entry.m_idx);
 
-        while (j > 0 && children[j - 1].m_dist2 < key.m_dist2) {
-          children[j] = children[j - 1];
-          j--;
+        if (dist2[k] <= pruneDist2) {
+          size_t j = numSlots++;
+
+          while (j > 0 && dist2[slots[j - 1]] < dist2[k]) {
+            slots[j] = slots[j - 1];
+            j--;
+          }
+
+          slots[j] = k;
         }
-
-        children[j] = key;
       }
 
-      // Filter at push time as well as at pop time. Nothing between the read above and here can
-      // have changed a_state (a_evalLeaf runs only on the leaf branch), so the bound is the same
-      // value -- but applying it here keeps hopeless children off the stack entirely instead of
-      // paying a push, a pop and a re-test for each of them.
-      for (size_t k = 0; k < K; k++) {
-        if (children[k].m_dist2 <= pruneDist2) {
-          EBGEOMETRY_EXPECT(top < static_cast<int>(stackDepth));
+      for (size_t i = 0; i < numSlots; i++) {
+        EBGEOMETRY_EXPECT(top < static_cast<int>(stackDepth));
 
-          stack[top++] = children[k];
-        }
+        stack[top++] = StackEntry{offsets[slots[i]], PackedBVH::lowerBound(dist2[slots[i]])};
       }
     }
   }
@@ -1728,43 +1815,34 @@ PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor)
 {
   // m_linearNodes is a depth-first pre-order flattening, so every child has a higher index than its
   // parent. Sweeping the array in reverse therefore refits all of a node's children before the node
-  // itself -- no recursion or explicit stack needed.
+  // itself -- no recursion or explicit stack needed. Boxes are merged pairwise, so a refit (meant as
+  // cheap per-frame maintenance) allocates nothing.
   //
-  // The scratch vector feeding AABBT's union constructor is declared once here and clear()ed per
-  // node rather than reallocated inside the loop: its capacity stabilizes after the first few nodes,
-  // so a refit() (meant as cheap per-frame maintenance) makes effectively no steady-state heap
-  // allocations.
-  std::vector<BV> boundingVolumes;
-
   // refit() reserves nothing, so one resolution covers the whole sweep.
   void* poolBase = const_cast<void*>(this->base());
 
   for (uint32_t i = m_linearNodes.size(); i-- > 0;) {
     Node& node = m_linearNodes.at(poolBase, i);
 
-    boundingVolumes.clear();
+    BV bv;
 
     if (node.isLeaf()) {
       const uint32_t offset = node.getPrimitivesOffset();
       const uint32_t count  = node.getNumPrimitives();
 
-      boundingVolumes.reserve(count);
-
       for (uint32_t p = 0; p < count; p++) {
-        boundingVolumes.emplace_back(a_bvConstructor(m_primitives.at(poolBase, offset + p)));
+        bv = bv.merged(a_bvConstructor(m_primitives.at(poolBase, offset + p)));
       }
     }
     else {
       const auto& childOffsets = node.getChildOffsets();
 
-      boundingVolumes.reserve(K);
-
       for (size_t k = 0; k < K; k++) {
-        boundingVolumes.emplace_back(m_linearNodes.at(poolBase, childOffsets[k]).getBoundingVolume());
+        bv = bv.merged(m_linearNodes.at(poolBase, childOffsets[k]).getBoundingVolume());
       }
     }
 
-    node.setBoundingVolume(BV(boundingVolumes));
+    node.setBoundingVolume(bv);
   }
 
   // Node count is unchanged, so the existing cache is refilled rather than re-reserved.
