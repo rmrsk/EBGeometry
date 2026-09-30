@@ -478,6 +478,7 @@ Phase 0 is complete. Items 7–10 were:
 | 13. CMake target (D12, QA-4/21) | Done; also install rules and `find_package` support, checked by a new CI job | `eb86481` |
 | 14. Fixed K and W (D7) | Done; defaults are 4, host-tuned values opt-in, `Examples/HostTuning` | `92aae41` |
 | 15. Location, step one (D1, MEM-2, MEM-8) | Done; the layout/handle split remains the first tape step | `3145b5a` |
+| 16. GPU test harness (QA-5/13) | Done; the tests also run in every host build, emulated. No lane runs a real kernel yet (no GPU runner) | `2e4f700` |
 
 Findings from item 11:
 
