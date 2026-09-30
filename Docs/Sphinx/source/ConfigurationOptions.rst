@@ -132,7 +132,10 @@ preconditions that are known at compile time (from the template parameters alone
 ``EBGEOMETRY_EXPECT`` to guard preconditions that can only be checked at runtime (from actual
 argument values).  ``EBGEOMETRY_EXPECT`` is available in any translation unit that (directly or
 transitively) includes ``EBGeometry_Macros.hpp``, which is pulled in automatically through
-``EBGeometry.hpp``. An example combining both is given below:
+``EBGeometry.hpp``. An example combining both is given below. Like the built-in analytic shapes
+(:ref:`Sec:AnalyticShapes`), it is a plain, trivially copyable value type with a
+``signedDistance()`` member rather than a subclass of a virtual base, so it can also be evaluated on
+a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
 
 .. code-block:: cpp
 
@@ -140,15 +143,24 @@ transitively) includes ``EBGeometry_Macros.hpp``, which is pulled in automatical
    #include <type_traits>
 
    template <class T>
-   class MySDF : public EBGeometry::SignedDistanceFunction<T>
+   class MySDF
    {
    public:
      static_assert(std::is_floating_point_v<T>, "MySDF requires a floating-point type T");
 
-     MySDF(T a_radius)
+     explicit MySDF(T a_radius) noexcept
      {
        EBGEOMETRY_EXPECT(a_radius > T(0));
 
        m_radius = a_radius;
      }
+
+     [[nodiscard]] EBGEOMETRY_HOST_DEVICE T
+     signedDistance(const EBGeometry::Vec3T<T>& a_point) const noexcept
+     {
+       return a_point.length() - m_radius;
+     }
+
+   private:
+     T m_radius = T(1);
    };

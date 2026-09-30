@@ -89,6 +89,15 @@ ever stores in a pool, including SIMD-width SoA blocks.
 
 .. note::
 
+   A host-and-device-accessible resource does not make the objects built in it usable on both
+   sides. An object built directly in a ``Managed`` or ``Mapped`` pool resolves through the pool's
+   host control block (see below), which a kernel cannot follow, so it still has to reach a device
+   through ``rebasedView()`` onto a ``mirror()`` of its pool. Conversely, a view rebased onto a
+   ``Managed`` or ``Mapped`` mirror holds a plain device base and must not be dereferenced on the
+   host.
+
+.. note::
+
    A ``MemoryResource`` is non-copyable: its identity is meaningful (two ``Pool``\ s built over the
    *same* resource share a placement), and copying an allocator has no meaning. Pass it by
    reference, and it must outlive every ``Pool`` built over it.
@@ -166,8 +175,8 @@ points into:
 
 .. code-block:: c++
 
-   auto& e = mesh->getEdge(3);      // a raw address, resolved right now
-   mesh->reserveFaces(pool, n);     // may grow -- the old block is freed
+   auto& e = mesh.getEdge(3);       // a raw address, resolved right now
+   mesh.reserveFaces(pool, n);      // may grow -- the old block is freed
    e.setFace(7);                    // undefined behaviour: write into freed memory
 
 The hazard is intermittent (a grow only happens when a request exceeds the current capacity) and its
@@ -182,10 +191,10 @@ abandoned copy and is silently lost, while the object itself now reads from the 
 
    .. code-block:: c++
 
-      Edge e = mesh->getEdge(3);      // snapshot, independent of any base
-      mesh->reserveFaces(pool, n);    // may grow
+      Edge e = mesh.getEdge(3);       // snapshot, independent of any base
+      mesh.reserveFaces(pool, n);     // may grow
       e.setFace(7);
-      mesh->getEdge(3) = e;           // fresh resolution against the current base
+      mesh.getEdge(3) = e;            // fresh resolution against the current base
 
    Everything that returns *by value* -- ``signedDistance()``, ``getAllVertexCoordinates()``, and so
    on -- is unaffected, which is the overwhelming majority of the query surface.
@@ -267,16 +276,21 @@ memory model asks of a caller:
    on every class described here, is cheap insurance that a later change does not silently break
    the contract.
 
-Two classes adopt this model today, ``DCEL::MeshT`` and ``BVH::PackedBVH``. Both hold the same two
-address fields (a ``PoolControl*`` for host resolution, a raw base for a device view), both resolve
-every array through a ``base()`` with the same pair of assertions, and both offer ``rebasedView()``
-as their single crossing point and ``deepCopy()`` for genuinely independent storage. The convention
-is deliberately duplicated rather than factored into a base class: it is about fifteen lines, and a
-base class would complicate the trivial-copyability ``static_assert`` that the whole model rests on.
+Eight classes adopt this model today. Two of them hold pool addresses directly, ``DCEL::MeshT`` and
+``BVH::PackedBVH``: both hold the same two address fields (a ``PoolControl*`` for host resolution, a
+raw base for a device view), and both resolve every array through a ``base()`` with the same pair
+of assertions. The other six are built from those two, holding a mesh, a packed BVH, or both by
+value and delegating to them: the mesh distance fields ``FlatMeshSDF``, ``MeshSDF`` and
+``TriMeshSDF``, ``PointCloudBVH``, and the BVH unions ``BVHUnionIF`` and ``BVHSmoothUnionIF``. All
+eight offer ``rebasedView()`` as their single crossing point and ``deepCopy()`` for genuinely
+independent storage. The convention is deliberately duplicated rather than factored into a base
+class: it is about fifteen lines, and a base class would complicate the trivial-copyability
+``static_assert`` that the whole model rests on.
 
 The pair itself has a name,
-`PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__, which both classes read with
-``location()`` and apply to a copy of themselves with ``relocatedTo()``. That exists for one case
+`PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__, which ``MeshT`` and
+``PackedBVH`` read with ``location()``, and which every one of the eight classes except
+``PointCloudBVH`` applies to a copy of itself with ``relocatedTo()``. That exists for one case
 ``rebasedView()`` cannot handle: a pool-resident descriptor stored *inside* another object's pool,
 such as a ``TriMeshSDF`` held in the primitive array of a BVH union (:ref:`Sec:BVHUnions`).
 Mirroring the pool copies the inner descriptor's bytes verbatim, host control block included, and

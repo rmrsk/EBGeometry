@@ -26,7 +26,9 @@ Main features:
 * Generic BVH traversal, adaptable to custom queries like nearest-neighbor searches.
 * A library of analytic signed distance functions and implicit functions (spheres, boxes, and
   more)
-* Composable with transforms (translation, rotation, scaling, rounding, blending).
+* Transforms (translation, rotation, scaling, rounding, blending) of implicit functions. These
+  currently wrap user-written `ImplicitFunction`s only: the built-in analytic shapes and mesh
+  SDFs are plain, GPU-callable value types that the transforms do not accept.
 * Constructive solid geometry (CSG): unions, intersections, differences, and smooth blends of
   implicit functions, and BVH-accelerated (smooth) unions of many analytic shapes or meshes that
   also run on a GPU.
@@ -90,7 +92,7 @@ through `ctest`:
 cmake --preset debug                # configure: Debug, assertions on, tests + examples enabled
 cmake --build --preset debug --parallel $(nproc)
 
-ctest --preset debug                # unit tests only (Catch2), sub-second
+ctest --preset debug                # unit tests only (Catch2), about 10 seconds
 ctest --preset examples --parallel $(nproc)   # every example under Examples/, several minutes in Debug mode
 ```
 

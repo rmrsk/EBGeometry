@@ -84,7 +84,7 @@ step of any sort. A mesh is queryable as soon as it has data, including while th
 being built into -- which is what lets ``Soup``/``Parser`` (:ref:`Chap:Parsers`) reconcile and sanity
 -check a mesh mid-build, and lets several meshes share one pool without coordinating.
 
-Build-phase mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
+The mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
 ``addVertex()``/``addEdge()``/``addFace()``) still take the ``Pool&`` explicitly, since they reserve
 from it. ``isAttachedTo(pool)`` reports whether a mesh's storage came from a given pool, which is how
 a caller holding both can confirm they belong together.
@@ -122,7 +122,7 @@ contains -- and since every cross-reference is a byte offset, nothing needs patc
    hostPool.freeze();
 
    EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
-   const auto       deviceMesh = mesh->rebasedView(devicePool);   // rebase on the host ...
+   const auto       deviceMesh = mesh.rebasedView(devicePool);    // rebase on the host ...
 
    myKernel<<<blocks, threads>>>(deviceMesh, ...);                // ... then copy by value
 

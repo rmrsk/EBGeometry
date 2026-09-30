@@ -3,16 +3,18 @@
 Continuous integration
 ========================
 
-Every pull request targeting ``main`` triggers the CI pipeline defined in
-``.github/workflows/CI.yml``, on GitHub-hosted ``ubuntu-latest`` runners. Together, the jobs
-check: code formatting (``clang-format``) and static analysis (``clang-tidy``, advisory); code
-correctness and assurance (the Catch2 unit-test suite, under multiple compilers, SIMD levels,
-and both ``float`` and ``double`` precision; every bundled example, built and run via CMake, GNU
-Make, and direct compiler invocation, under GCC, Clang, and Intel's ``icpx``; AddressSanitizer
-and UndefinedBehaviorSanitizer runs of the same test suite); spelling (``codespell``); license
-and copyright compliance (REUSE); and the project's documentation (a warnings-as-errors Doxygen
-build, and HTML/PDF Sphinx builds). A single aggregator job (``CI-passed``) then gates on all of
-the above so branch-protection rules only need to target one required check.
+Every pull request targeting ``main`` or ``dev``, and every push to ``main`` or ``dev`` (so the
+merged result is checked too), triggers the CI pipeline defined in ``.github/workflows/CI.yml``, on
+GitHub-hosted ``ubuntu-latest`` runners. Together, the jobs check: code formatting
+(``clang-format``) and static analysis (``clang-tidy``, advisory); code correctness and assurance
+(the Catch2 unit-test suite, under multiple compilers, SIMD levels, and both ``float`` and
+``double`` precision; every bundled example, built and run via CMake, GNU Make, and direct compiler
+invocation, under GCC, Clang, and Intel's ``icpx``; AddressSanitizer and UndefinedBehaviorSanitizer
+runs of the same test suite; device compiles of the GPU-callable code with HIP and, advisory, CUDA);
+spelling (``codespell``); license and copyright compliance (REUSE); and the project's documentation
+(a warnings-as-errors Doxygen build, the ``check-docs`` rule, and HTML/PDF Sphinx builds, the
+HTML one with warnings as errors). A single aggregator job (``CI-passed``) then gates on all of the
+above so branch-protection rules only need to target one required check.
 
 .. contents:: On this page
    :local:
@@ -36,7 +38,9 @@ formatted output.
 Codespell
 ~~~~~~~~~
 
-Runs the ``codespell`` pre-commit hook over every tracked file.
+Runs the ``codespell`` pre-commit hook over the files it is configured for: ``Source/``,
+``Docs/``, ``Examples/``, ``Tests/`` (except the fixture files in ``Tests/data/``),
+``Integrations/``, ``Scripts/``, ``.github/``, and the top-level text files.
 
 Reuse
 ~~~~~
@@ -47,8 +51,9 @@ file.
 Doxygen-check
 ~~~~~~~~~~~~~
 
-Runs the ``doxygen-check`` pre-commit hook: builds the Doxygen API reference from
-``Docs/doxygen.conf`` with warnings treated as errors.
+Runs the ``doxygen-check`` pre-commit hook, which builds the Doxygen API reference from
+``Docs/doxygen.conf`` with warnings treated as errors, and the ``check-docs`` hook (see
+`Running CI checks locally with pre-commit`_ below).
 
 Static-analysis
 ~~~~~~~~~~~~~~~
@@ -97,7 +102,9 @@ Build-documentation
 Installs Doxygen, Graphviz, a LaTeX toolchain, Poppler (for the documentation figure pipeline), and
 Sphinx (with ``sphinx_rtd_theme`` and ``sphinxcontrib-bibtex``); builds the Doxygen API reference;
 renders the documentation figures from their LaTeX/TikZ sources (``Scripts/build-doc-figures.sh``);
-builds the Sphinx HTML and PDF documentation; uploads the result as a workflow artifact.
+builds the Sphinx HTML documentation with warnings treated as errors (``-W --keep-going``, so a
+broken cross-reference or a missing figure fails the job) and the PDF documentation; uploads the
+result as a workflow artifact.
 
 Unit-Tests
 ~~~~~~~~~~
@@ -122,11 +129,31 @@ Configures with the ``debug-san`` preset (examples disabled) across a matrix of 
 ``{g++-12, clang++-14}`` × SIMD levels ``{none, avx}``, with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``,
 and runs ``ctest --preset debug-san`` under AddressSanitizer and UndefinedBehaviorSanitizer.
 
+GPU-HIP
+~~~~~~~
+
+Installs a HIP toolchain (``hipcc``, ``clang-17``) and compiles the unit-test files that carry a
+device block in clang's HIP mode, with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, so the
+GPU-callable code must compile for the device. It builds a second time with host SIMD flags
+(``-mavx -mfma -msse4.1``), which catches a SIMD block that is not excluded from device
+compilation. The runner has no GPU, so the device-tagged tests it then runs skip before launching a
+kernel: the step checks that the binaries start and that the device query is safe, not that device
+code gives correct results. This job is required by ``CI-passed``.
+
+GPU-CUDA
+~~~~~~~~
+
+The same device compile with ``nvcc`` (CUDA 12.5), without the second SIMD-flags build. Marked
+``continue-on-error: true``, because its toolkit install is the least reliable step in the
+workflow, so it is advisory and does not gate ``CI-passed``.
+
 CI-passed
 ~~~~~~~~~
 
-Dummy job whose only role is to aggregate every job above -- except the advisory ``Static-analysis``
--- as a single required status check. Branch-protection rules can target this job instead of each
+Aggregates every job above -- except the advisory ``Static-analysis`` and ``GPU-CUDA`` -- as a single
+required status check. It runs even when one of those jobs fails or is cancelled, and fails unless
+every one of them succeeded; a skipped dependency counts as a failure too, since a skipped required
+check would not block a merge. Branch-protection rules can target this job instead of each
 individual job.
 
 Dependency graph
@@ -145,7 +172,9 @@ Dependency graph
     +-- Unit-Tests
     +-- Release-Test
     +-- Sanitizers
-         (all of the above except Static-analysis) --> CI-passed
+    +-- GPU-CUDA                 (advisory; not required by CI-passed)
+    +-- GPU-HIP
+         (all of the above except Static-analysis and GPU-CUDA) --> CI-passed
 
 ``Formatting``, ``Codespell``, ``Reuse``, and ``Doxygen-check`` themselves have no
 dependencies and run first, in parallel; every other job depends on all four of them.
@@ -167,9 +196,12 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
 * **clang-format** — formats ``Source/`` and ``Examples/`` C/C++ files (default stage; runs on
   every ``git commit`` once ``pre-commit install`` has been run).
 * **reuse** — REUSE license/copyright header compliance (default stage).
-* **codespell** — typo detection across ``Source/``, ``Docs/``, and ``Exec/`` (default stage).
+* **codespell** — typo detection across ``Source/``, ``Docs/``, ``Examples/``, ``Tests/``
+  (except ``Tests/data/``), ``Integrations/``, ``Scripts/``, ``.github/``, and the top-level text
+  files (default stage).
 * **doxygen-check** — builds Doxygen from ``Docs/doxygen.conf`` (warnings as
-  errors; default stage).
+  errors; default stage). It runs whenever a header, ``EBGeometry.hpp``, ``Docs/mainpage.md`` or
+  ``Docs/doxygen.conf`` changes.
 * **clang-tidy** — static analysis over the library headers, via
   ``Scripts/clang-tidy-check.sh`` (``stages: [manual]``; needs a compile
   database, so it (re)configures the ``debug`` preset first).
@@ -177,7 +209,8 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
   (``stages: [manual]``), catching template-instantiation errors locally
   before they show up first in CI.
 * **check-docs** — enforces the ban on ``.. literalinclude::`` in the Sphinx docs
-  (``stages: [manual]``; see ``Scripts/CheckDocs.py``): it fails if any
+  (default stage, run whenever a ``Docs/Sphinx/source/*.rst`` file changes; CI's
+  ``Doxygen-check`` job also runs it; see ``Scripts/CheckDocs.py``): it fails if any
   ``.. literalinclude::`` directive exists anywhere under ``Docs/Sphinx/source/``.
   A clean run only guarantees the banned directive is absent, not that the
   surrounding prose still accurately describes the code -- that still needs a
@@ -186,7 +219,7 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
   LaTeX/TikZ sources under ``Docs/Sphinx/source/_static/`` (``stages: [manual]``;
   requires ``pdflatex`` and ``pdftoppm`` on ``PATH``, see :ref:`Chap:Contributing`).
 * **sphinx-build-html** — builds the Sphinx HTML docs in a managed Python virtual
-  environment (``stages: [manual]``; run with
+  environment, with warnings treated as errors (``stages: [manual]``; run with
   ``pre-commit run sphinx-build-html --hook-stage manual``).
 * **sphinx-build-pdf** — builds the Sphinx PDF docs via ``make latexpdf``
   (``stages: [manual]``; requires a full LaTeX toolchain — ``texlive-latex-extra``

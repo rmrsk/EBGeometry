@@ -9,14 +9,14 @@ EBGeometry is a header-only C++17 library for
 This page is the entry point for the **Doxygen API reference**, generated directly from the
 `Source/` headers. For a narrative, example-driven introduction (installation, build-system
 integration, the underlying geometric concepts), see the
-[user documentation](../../Sphinx/build/html/index.html) instead.
+[user documentation](https://rmrsk.github.io/EBGeometry/) instead.
 
 ### Where to start reading
 
-* EBGeometry::SignedDistanceFunction and EBGeometry::ImplicitFunction — the two abstract base
-  classes the transformations and CSG combinators implement. The analytic shapes (e.g.
-  EBGeometry::SphereSDF) and the mesh distance fields (e.g. EBGeometry::TriMeshSDF) are plain,
-  GPU-callable value types that implement neither.
+* EBGeometry::ImplicitFunction — the abstract base class the transformations and CSG combinators
+  implement, and EBGeometry::SignedDistanceFunction, its refinement for user-written distance
+  functions. The analytic shapes (e.g. EBGeometry::SphereSDF) and the mesh distance fields (e.g.
+  EBGeometry::TriMeshSDF) are plain, GPU-callable value types that implement neither.
 * EBGeometry::DCEL::MeshT — the half-edge (doubly-connected edge list) surface mesh
   representation, together with EBGeometry::DCEL::VertexT, EBGeometry::DCEL::EdgeT, and
   EBGeometry::DCEL::FaceT.

@@ -55,7 +55,7 @@ EBGeometry supports the following bounding volumes, which are defined in :file:`
    <doxygen/html/classEBGeometry_1_1BoundingVolumes_1_1AABBT.html>`__.
 
 For full API details, see `the doxygen API <doxygen/html/namespaceEBGeometry_1_1BoundingVolumes.html>`_.
-Other types of bounding volumes can in principle be added, with the only requirement being that they conform to the same interface as the ``AABB`` and ``BoundingSphere`` volumes. Note that
+Other types of bounding volumes can in principle be added, with the only requirement being that they conform to the same interface as the ``AABBT`` and ``SphereT`` volumes. Note that
 ``PackedBVH`` hard-codes ``AABBT<T>`` as its bounding volume (see above), so a custom bounding
 volume can only be used with ``TreeBVH`` while building, and must still be convertible to an AABB
 before the tree is packed.
@@ -225,6 +225,13 @@ looser bounding volumes over time and should periodically be rebuilt instead; se
 for that trade-off. For the exact signatures, see the Doxygen references for `TreeBVH
 <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ and `PackedBVH
 <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
+
+Refitting recomputes bounding volumes only, never the primitives themselves. That matters for
+``MeshSDF`` (:ref:`Chap:MeshSDFClasses`), whose packed faces are by-value copies with a normal,
+centroid and projection axes cached at build time: refitting its BVH (through ``getRoot()``) after
+moving the mesh's vertices leaves those cached values stale, so ``signedDistance()`` would mix live
+vertex positions with stale face data. After moving vertices, reconcile the mesh and build a new
+``MeshSDF``.
 
 .. _Chap:PackedBVH:
 
@@ -559,11 +566,11 @@ The DCEL mesh distance fields use a traversal pattern based on
 * When visiting a subtree, investigate the closest bounding volume first.
 * When visiting a leaf node, check if the primitives are closer than the minimum distance computed so far.
 
-``MeshSDF::signedDistance()`` implements these rules directly as the four traversal callbacks:
-the leaf-evaluator scans a leaf's faces and keeps the signed distance with the smallest magnitude seen so
-far; the prune-predicate prunes any node whose bounding-volume distance already exceeds that magnitude;
-the child-orderer visits the closest child first; and the node-key-factory supplies each node's distance to
-its bounding volume. For the full API, see the Doxygen reference for
+``MeshSDF::signedDistance()`` implements these rules through ``pruneTraverse()`` (see
+:ref:`Chap:PruneTraverse`): its leaf-eval scans a leaf's faces and keeps the signed distance with the
+smallest magnitude seen so far, and its pruning rule prunes any node whose bounding-volume distance
+already exceeds that magnitude, while ``pruneTraverse()`` itself visits the closest child first. For
+the full API, see the Doxygen reference for
 `MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
 
 CSG Union
@@ -572,13 +579,13 @@ CSG Union
 Combinations of implicit functions in EBGeometry into aggregate objects can be done by means of CSG unions.
 One such union is known as the *smooth union*, in which the transition between two objects is gradual rather than abrupt.
 
-``BVHSmoothUnionIF::value()`` drives the SIMD-accelerated ``pruneTraverse()`` (see
+``BVHSmoothUnionIF::signedDistance()`` drives the SIMD-accelerated ``pruneTraverse()`` (see
 :ref:`Chap:PruneTraverse`) with a ``State`` holding the two smallest values seen so far, ``a`` and
 ``b`` (``a`` the closest, ``b`` the second-closest): the leaf-evaluator updates both as leaves are
 scanned, and the pruning rule returns ``max(0, b)`` squared -- pruning against the *second*-smallest
 value rather than the nearest, so a primitive that is not the single closest but still contributes to
 the blend is never pruned away. Once traversal completes, the two values are blended with the stored
-smooth-minimum operator. ``BVHUnionIF::value()`` is the same pattern with a single running minimum
+smooth-minimum operator. ``BVHUnionIF::signedDistance()`` is the same pattern with a single running minimum
 and a ``max(0, minDist)``-squared pruning bound. See :ref:`Chap:ImplemCSG` for the CSG combinators
 themselves, and the Doxygen reference for
 `BVHSmoothUnionIF <doxygen/html/classEBGeometry_1_1BVHSmoothUnionIF.html>`__ /
@@ -635,8 +642,8 @@ was when it was constructed. ``MeshSDF`` and ``TriMeshSDF`` follow the same patt
 ``MeshSDF`` handles arbitrary polygon meshes; its ``signedDistance()`` builds the traversal
 criteria shown above (a leaf-eval and a pruning rule, not the full four-callback ``traverse()``
 shape) and drives them through ``PackedBVH::pruneTraverse()``, picking up SIMD node pruning
-whenever ``(K, T)`` matches a compiled ISA path and falling back to the generic, scalar
-``traverse()`` otherwise. See `its doxygen page <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
+whenever ``(K, T)`` matches a compiled ISA path and testing the children with a scalar loop
+otherwise. See `its doxygen page <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
 
 ``MeshSDF`` and ``TriMeshSDF`` are plain value types exactly like ``FlatMeshSDF``: ``MeshSDF``
 holds the mesh descriptor and its ``PackedBVH`` by value, ``TriMeshSDF`` just its ``PackedBVH``,
@@ -690,10 +697,12 @@ Both classes store their primitives inline, by value, but what that copy *means*
    ``groupTrianglesIntoSoA()`` during packing. Nothing outside the BVH owns those groups, so there
    is no array for an index to refer to even in principle.
 
-Neither is affected by instancing the same mesh multiple times (e.g. placing several
-``Translate``/``Rotate``/``Scale``-wrapped copies of one mesh into a ``Union``): those wrappers
-hold a ``shared_ptr`` to the whole ``MeshSDF``/``TriMeshSDF`` object (see :ref:`Chap:ImplemCSG`),
-so its packed data exists exactly once no matter how many placements refer to it.
+Neither is affected by copying the distance field itself: a copy of a ``MeshSDF``/``TriMeshSDF``
+is a copy of its descriptors, which resolve against the same pool memory, so the packed data exists
+exactly once no matter how many copies refer to it -- including copies stored as the primitives of
+a BVH union (:ref:`Sec:BVHUnions`). Placing one mesh at several different positions is not
+currently possible, however: the ``Translate``/``Rotate``/``Scale`` wrappers take an
+``ImplicitFunction``, which the mesh distance fields are not (see :ref:`Chap:ImplemCSG`).
 
 SIMD-optimal K and W by ISA
 ______________________________
@@ -732,10 +741,12 @@ matching SoA width. Both are used as template defaults for ``TriMeshSDF`` and
      - 4
      - 4
 
-The K=16/float and K=8/double paths use 512-bit-wide SIMD loads and require the ``ChildAABBSoA``
-struct to be 64-byte aligned, which is guaranteed by ``alignas(sizeof(T)*K)`` on the struct. The
-K=8/float and K=4/double paths use 256-bit-wide loads instead. All other (K, T) combinations fall
-back to a scalar loop that goes through the generic ``traverse()`` described above.
+The K=16/float and K=8/double paths use 512-bit-wide SIMD loads on AVX-512F and require the
+``ChildAABBSoA`` struct to be 64-byte aligned, which is guaranteed by ``alignas(sizeof(T)*K)`` on
+the struct. The K=8/float and K=4/double paths use 256-bit-wide AVX loads instead (as does
+K=8/double without AVX-512F, in two passes), and K=4/float uses 128-bit SSE4.1 loads. All other
+(K, T) combinations test the children with a scalar loop over the same ``ChildAABBSoA`` cache,
+inside the same ``pruneTraverse()``.
 
 Each ``TriangleSoAT<T, W>`` block is likewise ``alignas``-aligned to its own SIMD register width
 (64 bytes for ``<float, 16>``/``<double, 8>``, 32 bytes for ``<float, 8>``, 16 bytes for
@@ -757,11 +768,12 @@ Rules of thumb:
 
 * Keep ``W`` equal to ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` unless you
   have a specific reason to deviate.  The library is tuned for this default.
-* ``a_maxLeafSize`` (the maximum number of raw triangles per BVH leaf, before
-  SoA packing) defaults to ``2 * W``: leaves land on up to two full SoA blocks,
-  while the SAH/TopDown partitioner is still free to split down to smaller,
-  tighter leaves wherever the geometry calls for it. A leaf smaller than ``W``
-  simply pads its SoA block's unused lanes.
+* ``a_maxLeafGroups`` (the maximum number of full ``W``-sized SoA groups per BVH
+  leaf, so at most ``a_maxLeafGroups * W`` raw triangles before SoA packing)
+  defaults to ``4`` in ``Parser::readIntoTriangleBVH`` (the ``TriMeshSDF``
+  constructors have no default), while the SAH/TopDown partitioner is still free
+  to split down to smaller, tighter leaves wherever the geometry calls for it. A
+  leaf smaller than ``W`` simply pads its SoA block's unused lanes.
 * ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
   available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
   a single SIMD batch, and the wider fan-out reduces tree depth.

@@ -27,7 +27,7 @@ debugger output), and turns on both the test suite and the examples.
    # 2. Build
    cmake --build --preset debug --parallel $(nproc)
 
-   # 3a. Run unit tests only  (< 1 s)
+   # 3a. Run unit tests only  (about 10 s)
    ctest --preset debug
 
    # 3b. Run example programs (allow several minutes in Debug mode)
@@ -35,9 +35,9 @@ debugger output), and turns on both the test suite and the examples.
 
 A successful unit-test run looks like::
 
-   100% tests passed, 0 tests failed out of 220
+   100% tests passed, 0 tests failed out of 351
    Label Time Summary:
-   unit    =   1.43 sec*proc (220 tests)
+   unit    =   8.38 sec*proc (351 tests)
 
 Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
 ``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
