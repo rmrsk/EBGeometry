@@ -13,12 +13,10 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iterator>
-#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -29,8 +27,10 @@
 #endif
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_SFC.hpp"
@@ -221,7 +221,7 @@ using PrimAndBVList = std::vector<PrimAndBV<P, BV>>;
  * @return K-element array of sub-lists.
  */
 template <class P, class BV, size_t K>
-using Partitioner = std::function<std::array<PrimAndBVList<P, BV>, K>(PrimAndBVList<P, BV> a_primsAndBVs)>;
+using Partitioner = std::function<Array<PrimAndBVList<P, BV>, K>(PrimAndBVList<P, BV> a_primsAndBVs)>;
 
 /**
  * @brief Predicate for deciding when a TreeBVH node should become a leaf (i.e., no further splitting).
@@ -280,8 +280,7 @@ using PrunePredicate = std::function<bool(const NodeType& a_node, const NodeKey&
  * @param[in,out] a_children K child nodes together with their node keys.
  */
 template <class NodeType, class NodeKey, size_t K>
-using ChildOrderer =
-  std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, NodeKey>, K>& a_children)>;
+using ChildOrderer = std::function<void(Array<std::pair<std::shared_ptr<const NodeType>, NodeKey>, K>& a_children)>;
 
 /**
  * @brief Child-ordering callback for PackedBVH traversal.
@@ -292,7 +291,7 @@ using ChildOrderer =
  * @param[in,out] a_children K (node-index, key) pairs to sort.
  */
 template <class NodeKey, size_t K>
-using PackedChildOrderer = std::function<void(std::array<std::pair<uint32_t, NodeKey>, K>& a_children)>;
+using PackedChildOrderer = std::function<void(Array<std::pair<uint32_t, NodeKey>, K>& a_children)>;
 
 /**
  * @brief Node-key factory called once per node during BVH traversal.
@@ -314,7 +313,7 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * @return Array of K sub-vectors whose sizes differ by at most 1.
  */
 template <class X, size_t K>
-auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> std::array<std::vector<X>, K> {
+auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> Array<std::vector<X>, K> {
   static_assert(K >= 2, "EqualCounts<X, K>: branching factor K must be at least 2");
 
   EBGEOMETRY_EXPECT(!a_primitives.empty());
@@ -325,7 +324,7 @@ auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> std::array<std::v
   int begin = 0;
   int end   = 0;
 
-  std::array<std::vector<X>, K> chunks;
+  Array<std::vector<X>, K> chunks;
 
   for (size_t k = 0; k < K; k++) {
     end += (remain > 0) ? length + 1 : length;
@@ -352,8 +351,7 @@ auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> std::array<std::v
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto PrimitiveCentroidPartitioner =
-  [](PrimAndBVList<P, BV> a_primsAndBVs) noexcept -> std::array<PrimAndBVList<P, BV>, K> {
+auto PrimitiveCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) noexcept -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -386,7 +384,7 @@ auto PrimitiveCentroidPartitioner =
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto BVCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto BVCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -453,7 +451,7 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
     chi = max(chi, c);
   }
 
-  T   bestCost  = std::numeric_limits<T>::max();
+  T   bestCost  = Math::Limits<T>::max();
   T   bestPlane = T(0);
   int bestAxis  = -1;
 
@@ -486,7 +484,7 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
     }
 
     for (size_t i = a_begin; i < a_end; i++) {
-      const int b = std::min(BINS - 1, (int)((a_list[i].second.getCentroid()[axis] - lo) * scale));
+      const int b = Math::min(BINS - 1, (int)((a_list[i].second.getCentroid()[axis] - lo) * scale));
       binLo[b]    = min(binLo[b], a_list[i].second.getLowCorner());
       binHi[b]    = max(binHi[b], a_list[i].second.getHighCorner());
       binCnt[b]   = binCnt[b] + 1;
@@ -589,7 +587,7 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
   // AABBT(vector::front()) when the vector is empty.
   // The clamp is valid whenever a_end - a_begin >= a_K = K1 + K2.
   const size_t rawMid = SAH2WaySplit<T, P, BV>(a_list, a_begin, a_end, a_longestAxisOnly);
-  const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
+  const size_t mid    = Math::max(a_begin + K1, Math::min(a_end - K2, rawMid));
 
   SAHKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups, a_longestAxisOnly);
   SAHKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups, a_longestAxisOnly);
@@ -622,7 +620,7 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K, bool LongestAxisOnly = false>
-auto BinnedSAHPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto BinnedSAHPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   // The input is taken by value; partition it in place (no working copy). SAHKWaySplit reorders it
@@ -632,7 +630,7 @@ auto BinnedSAHPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array
 
   SAHKWaySplit<T, P, BV>(a_primsAndBVs, 0, a_primsAndBVs.size(), K, groups, LongestAxisOnly);
 
-  std::array<PrimAndBVList<P, BV>, K> result;
+  Array<PrimAndBVList<P, BV>, K> result;
   for (size_t k = 0; k < K; k++) {
     const auto [b, e] = groups[k];
     result[k]         = PrimAndBVList<P, BV>(std::make_move_iterator(a_primsAndBVs.begin() + b),
@@ -727,7 +725,7 @@ MidpointKWaySplit(PrimAndBVList<P, BV>&                   a_list,
   // recursive call receives an under-populated range (see SAHKWaySplit's identical clamp for why:
   // an empty sub-list reaching the TreeBVH constructor crashes on AABBT(vector::front())).
   const size_t rawMid = Midpoint2WaySplit<T, P, BV>(a_list, a_begin, a_end);
-  const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
+  const size_t mid    = Math::max(a_begin + K1, Math::min(a_end - K2, rawMid));
 
   MidpointKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups);
   MidpointKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups);
@@ -755,7 +753,7 @@ MidpointKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   // The input is taken by value; partition it in place (no working copy). MidpointKWaySplit reorders
@@ -767,7 +765,7 @@ auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<
 
   MidpointKWaySplit<T, P, BV>(a_primsAndBVs, 0, a_primsAndBVs.size(), K, groups);
 
-  std::array<PrimAndBVList<P, BV>, K> result;
+  Array<PrimAndBVList<P, BV>, K> result;
   for (size_t k = 0; k < K; k++) {
     const auto [b, e] = groups[k];
     result[k]         = PrimAndBVList<P, BV>(std::make_move_iterator(a_primsAndBVs.begin() + b),
@@ -980,7 +978,7 @@ public:
    * @details All K children are non-null for interior nodes; the array is unused for leaf nodes.
    * @return Reference to m_children.
    */
-  [[nodiscard]] inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
+  [[nodiscard]] inline const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
   getChildren() const noexcept;
 
   /**
@@ -1113,7 +1111,7 @@ protected:
   /**
    * @brief K child nodes. Non-null for interior nodes only.
    */
-  std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> m_children;
+  Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> m_children;
 
   /**
    * @brief Non-const accessor for the primitive list (used during construction).
@@ -1134,7 +1132,7 @@ protected:
    * @param[in] a_children New child nodes.
    */
   inline void
-  setChildren(const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept;
+  setChildren(const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept;
 };
 
 /**
@@ -1211,7 +1209,7 @@ public:
     /**
      * @brief Depth-first indices of the K child nodes (interior nodes only).
      */
-    std::array<uint32_t, K> m_childOff{};
+    Array<uint32_t, K> m_childOff{};
 
     /**
      * @brief Set the bounding volume for this node.
@@ -1297,7 +1295,7 @@ public:
      * @return Reference to the K-element child-offset array.
      */
     [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-    inline const std::array<uint32_t, K>&
+    inline const Array<uint32_t, K>&
     getChildOffsets() const noexcept
     {
       return m_childOff;

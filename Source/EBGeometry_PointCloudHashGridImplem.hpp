@@ -14,12 +14,12 @@
 // Std includes
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <type_traits>
 #include <vector>
 
 // Our includes
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PointCloudDetail.hpp"
 #include "EBGeometry_PointCloudHashGrid.hpp"
 
@@ -71,7 +71,7 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
     m_h = std::cbrt(vol / T(numPoints) * a_targetPerCell);
   }
   else {
-    const T maxExt = std::max(ext[0], std::max(ext[1], ext[2]));
+    const T maxExt = Math::max(ext[0], Math::max(ext[1], ext[2]));
 
     m_h = (maxExt > T(0) && numPoints > 0) ? maxExt / std::cbrt(T(numPoints)) : T(1);
   }
@@ -93,7 +93,7 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
   // The budget is also capped to INT_MAX so no single axis dimension can overflow int. Coarsening
   // changes only grid resolution, never query results (the query is exact for any cell size).
   const std::size_t maxCells =
-    std::min(std::size_t(64) + std::size_t(8) * numPoints, std::size_t(std::numeric_limits<int>::max()));
+    Math::min(std::size_t(64) + std::size_t(8) * numPoints, std::size_t(Math::Limits<int>::max()));
 
   const auto predictedCells = [&]() noexcept -> double {
     const double dx = std::floor(double(hi[0] - m_lo[0]) * double(m_invH)) + 1.0;
@@ -119,9 +119,9 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
 
   // Derive the integer dimensions from the same double-valued counts used for the cap, so the product
   // is guaranteed to match the budget check above and the int() casts cannot overflow.
-  m_nx = std::max(1, int(std::floor(double(hi[0] - m_lo[0]) * double(m_invH)) + 1.0));
-  m_ny = std::max(1, int(std::floor(double(hi[1] - m_lo[1]) * double(m_invH)) + 1.0));
-  m_nz = std::max(1, int(std::floor(double(hi[2] - m_lo[2]) * double(m_invH)) + 1.0));
+  m_nx = Math::max(1, int(std::floor(double(hi[0] - m_lo[0]) * double(m_invH)) + 1.0));
+  m_ny = Math::max(1, int(std::floor(double(hi[1] - m_lo[1]) * double(m_invH)) + 1.0));
+  m_nz = Math::max(1, int(std::floor(double(hi[2] - m_lo[2]) * double(m_invH)) + 1.0));
 
   EBGEOMETRY_EXPECT(m_nx >= 1 && m_ny >= 1 && m_nz >= 1);
 
@@ -232,13 +232,13 @@ PointCloudHashGrid<T, Meta>::query(
 
   // Largest shell radius that still adds cells (beyond it the whole grid is searched).
   const int rMax =
-    std::max(std::max(cx, m_nx - 1 - cx), std::max(std::max(cy, m_ny - 1 - cy), std::max(cz, m_nz - 1 - cz)));
+    Math::max(Math::max(cx, m_nx - 1 - cx), Math::max(Math::max(cy, m_ny - 1 - cy), Math::max(cz, m_nz - 1 - cz)));
 
   for (int r = 0; r <= rMax; r++) {
     // Visit only the new shell at Chebyshev radius r (cells with max(|dx|,|dy|,|dz|) == r).
-    const int xlo = std::max(0, cx - r), xhi = std::min(m_nx - 1, cx + r);
-    const int ylo = std::max(0, cy - r), yhi = std::min(m_ny - 1, cy + r);
-    const int zlo = std::max(0, cz - r), zhi = std::min(m_nz - 1, cz + r);
+    const int xlo = Math::max(0, cx - r), xhi = Math::min(m_nx - 1, cx + r);
+    const int ylo = Math::max(0, cy - r), yhi = Math::min(m_ny - 1, cy + r);
+    const int zlo = Math::max(0, cz - r), zhi = Math::min(m_nz - 1, cz + r);
 
     for (int iz = zlo; iz <= zhi; iz++) {
       const bool zEdge = (iz == cz - r) || (iz == cz + r);
@@ -289,7 +289,7 @@ PointCloudHashGrid<T, Meta>::query(
     // for any realistic grid, at the cost of at most one extra shell. The inward face needs the query
     // cell to lie strictly inside the searched box, so the bound is only evaluated for r >= 1.
     if (a_found == a_k && r >= 1) {
-      const T inf   = std::numeric_limits<T>::max();
+      const T inf   = Math::Limits<T>::max();
       T       bound = inf;
 
       for (int axis = 0; axis < 3; axis++) {
@@ -299,12 +299,12 @@ PointCloudHashGrid<T, Meta>::query(
         // Left: uncovered cells exist iff c-r > 0; guaranteed-covered lower face pulled in to cell
         // (c-r+1).
         if (c - r > 0) {
-          bound = std::min(bound, a_query[axis] - (m_lo[axis] + T(c - r + 1) * m_h));
+          bound = Math::min(bound, a_query[axis] - (m_lo[axis] + T(c - r + 1) * m_h));
         }
         // Right: uncovered cells exist iff c+r < nAxis-1; guaranteed-covered upper face pulled in to
         // the top of cell (c+r-1), i.e. m_lo + (c+r)*m_h.
         if (c + r < nAxis - 1) {
-          bound = std::min(bound, (m_lo[axis] + T(c + r) * m_h) - a_query[axis]);
+          bound = Math::min(bound, (m_lo[axis] + T(c + r) * m_h) - a_query[axis]);
         }
       }
 
@@ -445,7 +445,7 @@ PointCloudHashGrid<T, Meta>::bruteForceK(const Vec3T<T>& a_query,
     all.push_back(Hit{i, (m_positions[i] - a_query).length2()});
   }
 
-  const std::size_t k = std::min(a_k, all.size());
+  const std::size_t k = Math::min(a_k, all.size());
 
   std::partial_sort(
     all.begin(),

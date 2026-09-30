@@ -17,11 +17,11 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <limits>
 #include <vector>
 
 // Our includes
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -52,11 +52,11 @@ requireValidCloud(const char* a_who, const std::vector<Vec3T<T>>& a_positions, c
                      a_numMetadata,
                      a_positions.size());
 
-  EBGEOMETRY_REQUIRE(a_positions.size() <= std::size_t(std::numeric_limits<std::uint32_t>::max()),
+  EBGEOMETRY_REQUIRE(a_positions.size() <= std::size_t(Math::Limits<std::uint32_t>::max()),
                      "%s: too many points for 32-bit indices (%zu points, limit %zu)",
                      a_who,
                      a_positions.size(),
-                     std::size_t(std::numeric_limits<std::uint32_t>::max()));
+                     std::size_t(Math::Limits<std::uint32_t>::max()));
 
   for (std::size_t i = 0; i < a_positions.size(); i++) {
     const Vec3T<T>& p = a_positions[i];

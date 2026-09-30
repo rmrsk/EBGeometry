@@ -26,6 +26,7 @@
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_ImplicitFunction.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -222,7 +223,7 @@ struct ExpMinOp
   {
     EBGEOMETRY_EXPECT(s > T(0));
 
-    return std::min(a, b) - s * std::log1p(std::exp(-std::abs(a - b) / s));
+    return Math::min(a, b) - s * std::log1p(std::exp(-std::abs(a - b) / s));
   }
 };
 
@@ -252,7 +253,7 @@ struct ExpMaxOp
   {
     EBGEOMETRY_EXPECT(s > T(0));
 
-    return std::max(a, b) + s * std::log1p(std::exp(-std::abs(a - b) / s));
+    return Math::max(a, b) + s * std::log1p(std::exp(-std::abs(a - b) / s));
   }
 };
 
@@ -282,9 +283,9 @@ struct SmoothMinOp
   {
     EBGEOMETRY_EXPECT(s > T(0));
 
-    const T h = std::max(s - std::abs(a - b), T(0)) / s;
+    const T h = Math::max(s - std::abs(a - b), T(0)) / s;
 
-    return std::min(a, b) - T(0.25) * h * h * s;
+    return Math::min(a, b) - T(0.25) * h * h * s;
   }
 };
 
@@ -313,9 +314,9 @@ struct SmoothMaxOp
   {
     EBGEOMETRY_EXPECT(s > T(0));
 
-    const T h = std::max(s - std::abs(a - b), T(0)) / s;
+    const T h = Math::max(s - std::abs(a - b), T(0)) / s;
 
-    return std::max(a, b) + T(0.25) * h * h * s;
+    return Math::max(a, b) + T(0.25) * h * h * s;
   }
 };
 

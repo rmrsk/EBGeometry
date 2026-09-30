@@ -41,6 +41,31 @@ See :ref:`Chap:ConfigurationOptions`'s "Compile-time assertions (``static_assert
 :ref:`Sec:AlwaysOnChecks` and :ref:`Sec:Assertions` subsections for the full detail on how each
 mechanism behaves, including with and without ``EBGEOMETRY_ENABLE_ASSERTIONS``.
 
+.. _Sec:WritingDeviceCode:
+
+Writing device code
+-------------------
+
+Functions marked ``EBGEOMETRY_HOST_DEVICE`` are compiled for the GPU as well as the host. nvcc
+rejects a call from device code to a ``constexpr`` host function -- ``std::min``, ``std::max``,
+``std::clamp``, ``std::numeric_limits<T>::max()``, ``std::array::operator[]``, ``std::move`` and
+many more -- unless every translation unit is compiled with ``--expt-relaxed-constexpr``.
+EBGeometry does not require that flag of the projects that use it, and HIP accepts such calls, so
+the HIP CI build cannot catch them. The library therefore keeps to two rules, which
+``Scripts/CheckDeviceMath.py`` checks as a pre-commit hook and in CI:
+
+* Nowhere under ``Source/``: ``std::min``, ``std::max``, ``std::clamp``, ``std::numeric_limits``,
+  ``std::array``. Use ``Math::min``, ``Math::max``, ``Math::clamp`` and ``Math::Limits<T>`` from
+  ``EBGeometry_Math.hpp``, and ``Array<T, N>`` from ``EBGeometry_Array.hpp``. They behave like their
+  ``std`` counterparts and are callable on both host and device. The rule covers host-only code too,
+  so that a function can later become ``EBGEOMETRY_HOST_DEVICE`` without a hidden failure.
+* Inside an ``EBGEOMETRY_HOST_DEVICE`` function (and in the device code of the tests): no call to a
+  ``std::`` function other than the math functions CUDA and HIP provide for device code, such as
+  ``std::sqrt``, ``std::abs`` and ``std::isfinite``.
+
+The CUDA test build deliberately omits ``--expt-relaxed-constexpr``, so that it also checks these
+rules.
+
 Adding tests
 --------------
 

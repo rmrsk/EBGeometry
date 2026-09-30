@@ -21,6 +21,7 @@
 
 // Our includes
 #include "EBGeometry_ImplicitFunction.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -720,7 +721,7 @@ public:
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override
   {
-    const T t = std::max(T(0), T(1) - a_point.length2() / (T(4) * m_radius * m_radius));
+    const T t = Math::max(T(0), T(1) - a_point.length2() / (T(4) * m_radius * m_radius));
 
     return t * t;
   }

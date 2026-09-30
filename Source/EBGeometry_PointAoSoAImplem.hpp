@@ -12,10 +12,10 @@
 #define EBGEOMETRY_POINTAOSOAIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_PointAoSoA.hpp"
 
@@ -47,7 +47,7 @@ PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* a_positions, const Meta* a_metaData
 
 template <class T, class Meta, size_t W>
 EBGEOMETRY_HOST_DEVICE
-std::array<T, W>
+Array<T, W>
 PointAoSoA<T, Meta, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 {
   return m_positions.getDistances2(a_point);
@@ -55,7 +55,7 @@ PointAoSoA<T, Meta, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 
 template <class T, class Meta, size_t W>
 EBGEOMETRY_HOST_DEVICE
-std::array<T, W>
+Array<T, W>
 PointAoSoA<T, Meta, W>::getDistances(const Vec3T<T>& a_point) const noexcept
 {
   return m_positions.getDistances(a_point);

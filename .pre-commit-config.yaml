@@ -54,6 +54,13 @@ repos:
         files: \.(hpp|cpp)$
         stages: [manual]
 
+      - id: check-device-math
+        name: Device toolchain contract (no std::min/max/clamp/numeric_limits/array in Source/)
+        entry: python3 Scripts/CheckDeviceMath.py
+        language: system
+        pass_filenames: false
+        files: ^(Source/.*\.hpp|Tests/.*\.[ch]pp|Scripts/CheckDeviceMath\.py)$
+
       - id: check-docs
         name: Ban literalinclude in Sphinx docs
         entry: python3 Scripts/CheckDocs.py

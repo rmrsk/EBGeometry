@@ -65,6 +65,7 @@ function(ebgeometry_add_test name)
 endfunction()
 
 ebgeometry_add_test(TestVec)
+ebgeometry_add_test(TestMath)
 ebgeometry_add_test(TestBoundingVolumes)
 ebgeometry_add_test(TestAnalyticSDF)
 ebgeometry_add_test(TestDCEL)
@@ -103,9 +104,9 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
 
   foreach(_ebgeometry_gpu_test ${EBGEOMETRY_GPU_TESTS})
     if(EBGEOMETRY_ENABLE_CUDA)
+      # Deliberately without --expt-relaxed-constexpr: the library does not require it of its users
+      # (Scripts/CheckDeviceMath.py), and building the tests without it is what checks that.
       set_source_files_properties(${_ebgeometry_gpu_test}.cpp PROPERTIES LANGUAGE CUDA)
-      # constexpr std helpers (std::array, ...) reached inside __host__ __device__ code need this on nvcc.
-      target_compile_options(${_ebgeometry_gpu_test} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
     else()
       set_source_files_properties(${_ebgeometry_gpu_test}.cpp PROPERTIES LANGUAGE HIP)
     endif()

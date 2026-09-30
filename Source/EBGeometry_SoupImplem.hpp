@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <string>
 #include <type_traits>
@@ -30,6 +29,7 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Soup.hpp"
 
 namespace EBGeometry {
@@ -208,10 +208,10 @@ Soup::isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std:
     const Vec3& x1 = a_vertices[a_facet[(i + 1) % N]];
 
     normal += x0.cross(x1);
-    longestEdge2 = std::max(longestEdge2, (x1 - x0).length2());
+    longestEdge2 = Math::max(longestEdge2, (x1 - x0).length2());
   }
 
-  return normal.length() <= T(64) * std::numeric_limits<T>::epsilon() * longestEdge2;
+  return normal.length() <= T(64) * Math::Limits<T>::epsilon() * longestEdge2;
 }
 
 template <typename T>

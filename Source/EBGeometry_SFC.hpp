@@ -12,11 +12,11 @@
 #define EBGEOMETRY_SFC_HPP
 
 // Std includes
-#include <array>
 #include <cstdint>
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -52,7 +52,7 @@ using Code = uint64_t;
 /**
  * @brief Alias for 3D cell index
  */
-using Index = std::array<unsigned int, 3>;
+using Index = Array<unsigned int, 3>;
 
 /**
  * @brief Maximum available bits per dimension. 21 is the largest value for which 3*ValidBits (63)

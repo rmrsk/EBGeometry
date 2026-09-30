@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -29,6 +28,7 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -591,15 +591,15 @@ MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
   if (this->numFaces() == 0) {
-    return std::numeric_limits<T>::infinity();
+    return Math::Limits<T>::infinity();
   }
 
-  T minDist2 = std::numeric_limits<T>::max();
+  T minDist2 = Math::Limits<T>::max();
 
   for (uint32_t i = 0; i < this->numFaces(); i++) {
     const T curDist2 = this->getFace(i).unsignedDistance2(a_point, *this);
 
-    minDist2 = std::min(minDist2, curDist2);
+    minDist2 = Math::min(minDist2, curDist2);
   }
 
   return minDist2;
@@ -614,7 +614,7 @@ MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm)
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T minDist = std::numeric_limits<T>::max();
+  T minDist = Math::Limits<T>::max();
 
   switch (a_algorithm) {
   case SearchAlgorithm::Direct: {
@@ -651,7 +651,7 @@ MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
   if (this->numFaces() == 0) {
-    return std::numeric_limits<T>::infinity();
+    return Math::Limits<T>::infinity();
   }
 
   T minDist  = this->getFace(0).signedDistance(a_point, *this);
@@ -680,7 +680,7 @@ MeshT<T, Meta>::DirectSignedDistance2(const Vec3& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
   if (this->numFaces() == 0) {
-    return std::numeric_limits<T>::infinity();
+    return Math::Limits<T>::infinity();
   }
 
   uint32_t closestIndex = 0;

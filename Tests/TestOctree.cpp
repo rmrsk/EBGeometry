@@ -183,7 +183,7 @@ TEST_CASE("Octree::Node::traverse: a custom childOrderer changes the visitation 
   };
   const LevelNode::PrunePredicate visitAll = [](const LevelNode&) -> bool { return true; };
   const LevelNode::ChildOrderer   reverseChildren =
-    [](std::array<std::shared_ptr<const LevelNode>, 8>& a_children) -> void {
+    [](EBGeometry::Array<std::shared_ptr<const LevelNode>, 8>& a_children) -> void {
     std::reverse(a_children.begin(), a_children.end());
   };
 

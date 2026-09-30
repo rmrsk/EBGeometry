@@ -12,14 +12,14 @@
 #define EBGEOMETRY_TRIANGLESOAIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <type_traits>
 
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 
 namespace EBGeometry {
@@ -255,8 +255,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(64) float d16[16];
     _mm512_store_ps(d16, best_d);
 
-    float best = std::numeric_limits<float>::max();
-    float babs = std::numeric_limits<float>::max();
+    float best = Math::Limits<float>::max();
+    float babs = Math::Limits<float>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d16[i]);
       if (ad < babs) {
@@ -418,8 +418,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(64) double d8[8];
     _mm512_store_pd(d8, best_d);
 
-    double best = std::numeric_limits<double>::max();
-    double babs = std::numeric_limits<double>::max();
+    double best = Math::Limits<double>::max();
+    double babs = Math::Limits<double>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d8[i]);
       if (ad < babs) {
@@ -618,8 +618,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(16) float d4[4];
     _mm_store_ps(d4, best_d);
 
-    float best = std::numeric_limits<float>::max();
-    float babs = std::numeric_limits<float>::max();
+    float best = Math::Limits<float>::max();
+    float babs = Math::Limits<float>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d4[i]);
       if (ad < babs) {
@@ -771,8 +771,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(32) float d8[8];
     _mm256_store_ps(d8, best_d);
 
-    float best = std::numeric_limits<float>::max();
-    float babs = std::numeric_limits<float>::max();
+    float best = Math::Limits<float>::max();
+    float babs = Math::Limits<float>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d8[i]);
       if (ad < babs) {
@@ -1020,8 +1020,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     _mm256_store_pd(d8, best_d_lo);
     _mm256_store_pd(d8 + 4, best_d_hi);
 
-    double best = std::numeric_limits<double>::max();
-    double babs = std::numeric_limits<double>::max();
+    double best = Math::Limits<double>::max();
+    double babs = Math::Limits<double>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d8[i]);
       if (ad < babs) {
@@ -1173,8 +1173,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(32) double d4[4];
     _mm256_store_pd(d4, best_d);
 
-    double best = std::numeric_limits<double>::max();
-    double babs = std::numeric_limits<double>::max();
+    double best = Math::Limits<double>::max();
+    double babs = Math::Limits<double>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d4[i]);
       if (ad < babs) {
@@ -1186,8 +1186,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   }
 #endif
 
-  T best     = std::numeric_limits<T>::max();
-  T best_abs = std::numeric_limits<T>::max();
+  T best     = Math::Limits<T>::max();
+  T best_abs = Math::Limits<T>::max();
 
   for (uint32_t i = 0; i < m_validCount; i++) {
     const T d  = this->signedDistanceLane(i, a_p);
@@ -1301,7 +1301,7 @@ TriangleSoAT<T, W>::signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point)
 
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
-std::array<T, W>
+Array<T, W>
 TriangleSoAT<T, W>::signedDistances(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -1310,7 +1310,7 @@ TriangleSoAT<T, W>::signedDistances(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-  std::array<T, W> distances;
+  Array<T, W> distances;
 
   // Real lanes computed directly; padded lanes (m_validCount..W-1) repeat the last real lane's
   // distance, matching pack()'s padding convention so a lane-iterating caller sees no fresh values.

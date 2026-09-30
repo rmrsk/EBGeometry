@@ -14,10 +14,10 @@
 // Std includes
 #include <cmath>
 #include <cstddef>
-#include <limits>
 
 // Our includes
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -53,7 +53,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
 Vec2T<T>::min() noexcept
 {
-  return Vec2T<T>(-std::numeric_limits<T>::max(), -std::numeric_limits<T>::max());
+  return Vec2T<T>(-Math::Limits<T>::max(), -Math::Limits<T>::max());
 }
 
 template <typename T>
@@ -61,7 +61,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
 Vec2T<T>::max() noexcept
 {
-  return Vec2T<T>(std::numeric_limits<T>::max(), std::numeric_limits<T>::max());
+  return Vec2T<T>(Math::Limits<T>::max(), Math::Limits<T>::max());
 }
 
 template <typename T>
@@ -69,7 +69,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
 Vec2T<T>::infinity() noexcept
 {
-  return Vec2T<T>(std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity());
+  return Vec2T<T>(Math::Limits<T>::infinity(), Math::Limits<T>::infinity());
 }
 
 template <typename T>
@@ -250,7 +250,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 Vec3T<T>::min() noexcept
 {
-  return Vec3T<T>(-std::numeric_limits<T>::max(), -std::numeric_limits<T>::max(), -std::numeric_limits<T>::max());
+  return Vec3T<T>(-Math::Limits<T>::max(), -Math::Limits<T>::max(), -Math::Limits<T>::max());
 }
 
 template <typename T>
@@ -258,7 +258,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 Vec3T<T>::max() noexcept
 {
-  return Vec3T<T>(std::numeric_limits<T>::max(), std::numeric_limits<T>::max(), std::numeric_limits<T>::max());
+  return Vec3T<T>(Math::Limits<T>::max(), Math::Limits<T>::max(), Math::Limits<T>::max());
 }
 
 template <typename T>
@@ -266,8 +266,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 Vec3T<T>::infinity() noexcept
 {
-  return Vec3T<T>(
-    std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity());
+  return Vec3T<T>(Math::Limits<T>::infinity(), Math::Limits<T>::infinity(), Math::Limits<T>::infinity());
 }
 
 template <typename T>

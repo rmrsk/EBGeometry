@@ -12,10 +12,10 @@
 #define EBGEOMETRY_TRIANGLE_HPP
 
 // Std includes
-#include <array>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -80,7 +80,7 @@ public:
    * @brief Full constructor.
    * @param[in] a_vertexPositions Triangle vertex positions.
    */
-  Triangle(const std::array<Vec3, 3>& a_vertexPositions) noexcept;
+  Triangle(const Array<Vec3, 3>& a_vertexPositions) noexcept;
 
   /**
    * @brief Destructor (does nothing).
@@ -119,21 +119,21 @@ public:
    * @param[in] a_vertexPositions Vertex positions. Each component must be finite.
    */
   void
-  setVertexPositions(const std::array<Vec3, 3>& a_vertexPositions) noexcept;
+  setVertexPositions(const Array<Vec3, 3>& a_vertexPositions) noexcept;
 
   /**
    * @brief Set the triangle vertex normals
    * @param[in] a_vertexNormals Vertex normals. Each must be finite and unit length.
    */
   void
-  setVertexNormals(const std::array<Vec3, 3>& a_vertexNormals) noexcept;
+  setVertexNormals(const Array<Vec3, 3>& a_vertexNormals) noexcept;
 
   /**
    * @brief Set the triangle edge normals
    * @param[in] a_edgeNormals Edge normals. Each must be finite and unit length.
    */
   void
-  setEdgeNormals(const std::array<Vec3, 3>& a_edgeNormals) noexcept;
+  setEdgeNormals(const Array<Vec3, 3>& a_edgeNormals) noexcept;
 
   /**
    * @brief Set the triangle meta-data
@@ -166,7 +166,7 @@ public:
    * Use setVertexPositions instead.
    * @return m_vertexPositions
    */
-  [[nodiscard]] const std::array<Vec3, 3>&
+  [[nodiscard]] const Array<Vec3, 3>&
   getVertexPositions() const noexcept;
 
   /**
@@ -174,7 +174,7 @@ public:
    * @details Const-only; use setVertexNormals to update.
    * @return m_vertexNormals
    */
-  [[nodiscard]] const std::array<Vec3, 3>&
+  [[nodiscard]] const Array<Vec3, 3>&
   getVertexNormals() const noexcept;
 
   /**
@@ -182,7 +182,7 @@ public:
    * @details Const-only; use setEdgeNormals to update.
    * @return m_edgeNormals
    */
-  [[nodiscard]] const std::array<Vec3, 3>&
+  [[nodiscard]] const Array<Vec3, 3>&
   getEdgeNormals() const noexcept;
 
   /**
@@ -212,17 +212,17 @@ protected:
   /**
    * @brief Triangle vertex positions
    */
-  std::array<Vec3, 3> m_vertexPositions{Vec3::max(), Vec3::max(), Vec3::max()};
+  Array<Vec3, 3> m_vertexPositions{Vec3::max(), Vec3::max(), Vec3::max()};
 
   /**
    * @brief Triangle vertex normals
    */
-  std::array<Vec3, 3> m_vertexNormals{Vec3::max(), Vec3::max(), Vec3::max()};
+  Array<Vec3, 3> m_vertexNormals{Vec3::max(), Vec3::max(), Vec3::max()};
 
   /**
    * @brief Triangle edge normals
    */
-  std::array<Vec3, 3> m_edgeNormals{Vec3::max(), Vec3::max(), Vec3::max()};
+  Array<Vec3, 3> m_edgeNormals{Vec3::max(), Vec3::max(), Vec3::max()};
 
   /**
    * @brief Triangle meta-data normals

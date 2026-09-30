@@ -12,12 +12,12 @@
 #define EBGEOMETRY_OCTREE_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <functional>
 #include <memory>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -47,27 +47,27 @@ enum OctantIndex : size_t
  * @brief Lower-left corners of the octants on the unit cube, indexed lexicographically in x-y-z.
  */
 template <typename T>
-constexpr std::array<Vec3T<T>, 8> LowCorner = {Vec3T<T>(0.0, 0.0, 0.0),
-                                               Vec3T<T>(0.5, 0.0, 0.0),
-                                               Vec3T<T>(0.0, 0.5, 0.0),
-                                               Vec3T<T>(0.5, 0.5, 0.0),
-                                               Vec3T<T>(0.0, 0.0, 0.5),
-                                               Vec3T<T>(0.5, 0.0, 0.5),
-                                               Vec3T<T>(0.0, 0.5, 0.5),
-                                               Vec3T<T>(0.5, 0.5, 0.5)};
+constexpr Array<Vec3T<T>, 8> LowCorner = {Vec3T<T>(0.0, 0.0, 0.0),
+                                          Vec3T<T>(0.5, 0.0, 0.0),
+                                          Vec3T<T>(0.0, 0.5, 0.0),
+                                          Vec3T<T>(0.5, 0.5, 0.0),
+                                          Vec3T<T>(0.0, 0.0, 0.5),
+                                          Vec3T<T>(0.5, 0.0, 0.5),
+                                          Vec3T<T>(0.0, 0.5, 0.5),
+                                          Vec3T<T>(0.5, 0.5, 0.5)};
 
 /**
  * @brief Upper-right corners of the octants on the unit cube, indexed lexicographically in x-y-z.
  */
 template <typename T>
-constexpr std::array<Vec3T<T>, 8> HighCorner = {LowCorner<T>[0] + 0.5 * Vec3T<T>::ones(),
-                                                LowCorner<T>[1] + 0.5 * Vec3T<T>::ones(),
-                                                LowCorner<T>[2] + 0.5 * Vec3T<T>::ones(),
-                                                LowCorner<T>[3] + 0.5 * Vec3T<T>::ones(),
-                                                LowCorner<T>[4] + 0.5 * Vec3T<T>::ones(),
-                                                LowCorner<T>[5] + 0.5 * Vec3T<T>::ones(),
-                                                LowCorner<T>[6] + 0.5 * Vec3T<T>::ones(),
-                                                LowCorner<T>[7] + 0.5 * Vec3T<T>::ones()};
+constexpr Array<Vec3T<T>, 8> HighCorner = {LowCorner<T>[0] + 0.5 * Vec3T<T>::ones(),
+                                           LowCorner<T>[1] + 0.5 * Vec3T<T>::ones(),
+                                           LowCorner<T>[2] + 0.5 * Vec3T<T>::ones(),
+                                           LowCorner<T>[3] + 0.5 * Vec3T<T>::ones(),
+                                           LowCorner<T>[4] + 0.5 * Vec3T<T>::ones(),
+                                           LowCorner<T>[5] + 0.5 * Vec3T<T>::ones(),
+                                           LowCorner<T>[6] + 0.5 * Vec3T<T>::ones(),
+                                           LowCorner<T>[7] + 0.5 * Vec3T<T>::ones()};
 
 /**
  * @brief Octree class without anything special (this uses full tree representation rather than linear/pointerless).
@@ -120,7 +120,7 @@ public:
    * @brief ChildOrderer for traverse pattern. This is called on interior nodes for deciding which sub-tree to visit first.
    * @param[inout] a_children Sortable children nodes, first node is visited first, then the second, etc.
    */
-  using ChildOrderer = std::function<void(std::array<std::shared_ptr<const Node<Meta, Data>>, 8>& a_children)>;
+  using ChildOrderer = std::function<void(Array<std::shared_ptr<const Node<Meta, Data>>, 8>& a_children)>;
 
   /**
    * @brief Default constructor. All children default-null (leaf node); m_meta and m_data are
@@ -168,14 +168,14 @@ public:
    * @brief Get children.
    * @return m_children
    */
-  [[nodiscard]] inline const std::array<std::shared_ptr<Node<Meta, Data>>, 8>&
+  [[nodiscard]] inline const Array<std::shared_ptr<Node<Meta, Data>>, 8>&
   getChildren() const noexcept;
 
   /**
    * @brief Get children.
    * @return m_children
    */
-  [[nodiscard]] inline std::array<std::shared_ptr<Node<Meta, Data>>, 8>&
+  [[nodiscard]] inline Array<std::shared_ptr<Node<Meta, Data>>, 8>&
   getChildren() noexcept;
 
   /**
@@ -254,7 +254,7 @@ public:
   traverse(
     const LeafEvaluator&  a_leafEvaluator,
     const PrunePredicate& a_prunePredicate,
-    const ChildOrderer&   a_childOrderer = [](std::array<std::shared_ptr<const Node<Meta, Data>>, 8>&) -> void {
+    const ChildOrderer&   a_childOrderer = [](Array<std::shared_ptr<const Node<Meta, Data>>, 8>&) -> void {
       return;
     }) const noexcept;
 
@@ -273,7 +273,7 @@ protected:
   /**
    * @brief Node children
    */
-  std::array<std::shared_ptr<Node<Meta, Data>>, 8> m_children;
+  Array<std::shared_ptr<Node<Meta, Data>>, 8> m_children;
 };
 } // namespace Octree
 

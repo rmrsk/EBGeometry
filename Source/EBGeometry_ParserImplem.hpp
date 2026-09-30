@@ -19,7 +19,6 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
-#include <limits>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -29,6 +28,7 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Parser.hpp"
 #include "EBGeometry_Soup.hpp"
 
@@ -241,7 +241,7 @@ parseCount(const std::string& a_token, const std::string& a_filename, const size
 inline size_t
 reserveHint(const size_t a_declared) noexcept
 {
-  return std::min(a_declared, size_t(1) << 20);
+  return Math::min(a_declared, size_t(1) << 20);
 }
 
 } // namespace ParserDetail
@@ -896,7 +896,7 @@ Parser::readPLY(const std::string& a_filename)
           value = data.u8;
         }
 
-        return value < 0 ? std::numeric_limits<size_t>::max() : static_cast<size_t>(value);
+        return value < 0 ? Math::Limits<size_t>::max() : static_cast<size_t>(value);
       };
 
       // Get references to the PLY data members
@@ -1224,7 +1224,7 @@ Parser::readVTK(const std::string& a_filename)
               filestream >> numIndices;
 
               // A polygon cannot have more corners than there are points.
-              if (!filestream || numIndices > std::max(numPoints, vertices.size())) {
+              if (!filestream || numIndices > Math::max(numPoints, vertices.size())) {
                 malformed = true;
 
                 break;
@@ -1580,7 +1580,7 @@ Parser::readVTK(const std::string& a_filename)
 
               // A polygon cannot have more corners than there are points.
               if (!filestream || numIndices < 0 ||
-                  static_cast<size_t>(numIndices) > std::max(numPoints, vertices.size())) {
+                  static_cast<size_t>(numIndices) > Math::max(numPoints, vertices.size())) {
                 malformed = true;
 
                 break;

@@ -298,6 +298,13 @@ does not follow this template, edit the PR body to conform to it.
   including for meshes that cannot form a half-edge surface or that fold back onto themselves
   (`Soup::findTopologyDefect`/`findFoldedFeature`); holes are still allowed. Death tests for
   `REQUIRE` checks use `abortsWith()` from `Tests/TestDeath.hpp` and run in every build.
+- **Device code needs no special compiler flags, and must stay that way.** Under `Source/`, never use
+  `std::min`/`std::max`/`std::clamp`/`std::numeric_limits`/`std::array`; use `Math::min`/`max`/`clamp`/
+  `Limits<T>` (`EBGeometry_Math.hpp`) and `Array<T, N>` (`EBGeometry_Array.hpp`). Inside an
+  `EBGEOMETRY_HOST_DEVICE` function, call no `std::` function except device math (`std::sqrt`,
+  `std::abs`, `std::isfinite`, ...). nvcc rejects the others without `--expt-relaxed-constexpr`, which
+  users are not required to pass, and HIP accepts them, so only `Scripts/CheckDeviceMath.py` (a
+  pre-commit hook and CI step) and the advisory CUDA lane catch a violation.
 - **`EBGEOMETRY_EXPECT()` assertions are opt-in** (`EBGEOMETRY_ENABLE_ASSERTIONS`, ON in `debug`/
   `debug-san`, OFF in `release`/`release-test`) and are the primary way internal invariant
   violations (e.g. a dangling half-edge, a malformed mesh) surface during development; they compile

@@ -18,18 +18,18 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
-#include <limits>
 #include <random>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Constants.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -118,7 +118,7 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(m_normal.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(std::abs(m_normal.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
 
     return dot((a_point - m_point), m_normal);
   }
@@ -405,16 +405,16 @@ public:
     // between xLo and xHi. In this case delta[dir] will be the signed distance
     // to the closest box face in the dir-direction. Otherwise, if a_point[dir]
     // is outside the corner we have delta[dir] > 0.
-    const Vec3T<T> delta(std::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
-                         std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
-                         std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
+    const Vec3T<T> delta(Math::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
+                         Math::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
+                         Math::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
 
     // Note: max is max(Vec3T<T>, Vec3T<T>) and not std::max. It returns a
     // vector with coordinate-wise largest components. Note that the first part
-    // std::min(...) is the signed distance on the inside of the box (delta will
+    // Math::min(...) is the signed distance on the inside of the box (delta will
     // have negative components). The other part max(Vec3T<T>::zeros(), ...) is
     // for outside the box.
-    const T d = std::min(T(0.0), delta[delta.maxDir(false)]) + max(Vec3T<T>::zeros(), delta).length();
+    const T d = Math::min(T(0.0), delta[delta.maxDir(false)]) + max(Vec3T<T>::zeros(), delta).length();
 
     return d;
   }
@@ -735,10 +735,10 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    T d = std::numeric_limits<T>::infinity();
+    T d = Math::Limits<T>::infinity();
 
     if (m_length > T(0.0) && m_radius > T(0.0)) {
-      EBGEOMETRY_EXPECT(std::abs(m_axis.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+      EBGEOMETRY_EXPECT(std::abs(m_axis.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
 
       const Vec3T<T> point = a_point - m_center;
       const T        para  = dot(point, m_axis);
@@ -1021,9 +1021,7 @@ public:
     // projection, which would otherwise divide zero by zero.
     const T len2 = dot(v2, v2);
 
-    // std::min/std::max rather than std::clamp: libstdc++ 14's std::clamp asserts lo <= hi through a
-    // host-only function, which a device compile rejects.
-    const T h = (len2 > T(0)) ? std::min(std::max(dot(v1, v2) / len2, T(0.0)), T(1.0)) : T(0.0);
+    const T h = (len2 > T(0)) ? Math::clamp(dot(v1, v2) / len2, T(0.0), T(1.0)) : T(0.0);
     const T d = length(v1 - h * v2) - m_radius;
 
     return d;
@@ -1131,12 +1129,12 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
 
     const Vec3T<T> delta = a_point - m_tip;
     const Vec2T<T> q(std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
 
-    const T d1 = length(q - m_c * std::max(dot(q, m_c), T(0.0)));
+    const T d1 = length(q - m_c * Math::max(dot(q, m_c), T(0.0)));
     const T d2 = d1 * ((q.x * m_c.y - q.y * m_c.x < T(0.0)) ? T(-1.0) : T(1.0));
 
     return d2;
@@ -1239,7 +1237,7 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
     EBGEOMETRY_EXPECT(m_c.y > T(0));
 
     const Vec3T<T> delta = a_point - m_tip;
@@ -1251,16 +1249,14 @@ public:
 
     const Vec2T<T> q = m_height * Vec2T<T>(m_c.x / m_c.y, -1.0);
     const Vec2T<T> w = Vec2T<T>(dr, dz);
-    // std::min/std::max rather than std::clamp, which is not device-callable with libstdc++ 14 (see
-    // CapsuleSDF::signedDistance).
-    const Vec2T<T> a = w - std::min(std::max(dot(w, q) / dot(q, q), zero), one) * q;
-    const Vec2T<T> b = w - Vec2T<T>(q.x * std::min(std::max(w.x / q.x, zero), one), q.y);
+    const Vec2T<T> a = w - Math::clamp(dot(w, q) / dot(q, q), zero, one) * q;
+    const Vec2T<T> b = w - Vec2T<T>(q.x * Math::clamp(w.x / q.x, zero, one), q.y);
 
     auto sign = [](const T& x) -> int { return (x > zero) - (x < zero); };
 
     const T k = sign(q.y);
-    const T d = std::min(dot(a, a), dot(b, b));
-    const T s = std::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
+    const T d = Math::min(dot(a, a), dot(b, b));
+    const T s = Math::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
 
     return std::sqrt(d) * sign(s);
   }
@@ -1373,7 +1369,7 @@ public:
                      std::abs(a_point[2]) - m_dimensions[2]);
 
     const T outside = length(max(q, Vec3T<T>::zeros()));
-    const T inside  = std::min(std::max(q[0], std::max(q[1], q[2])), T(0));
+    const T inside  = Math::min(Math::max(q[0], Math::max(q[1], q[2])), T(0));
 
     return outside + inside - m_curvature;
   }
@@ -1444,8 +1440,8 @@ public:
 
     m_noiseAmplitude   = a_noiseAmplitude;
     m_noiseFrequency   = a_noiseFrequency;
-    m_noisePersistence = std::min(T(1), a_noisePersistence);
-    m_noiseOctaves     = std::max(1U, a_noiseOctaves);
+    m_noisePersistence = Math::min(T(1), a_noisePersistence);
+    m_noiseOctaves     = Math::max(1U, a_noiseOctaves);
 
     // Each octave divides the frequency by the persistence, so zero would give an infinite frequency
     // (and NaN noise) for an octave that contributes nothing anyway.
@@ -1547,7 +1543,7 @@ public:
    * @brief Get the internal permutation table
    * @return m_permutationTable.
    */
-  std::array<int, 512>&
+  Array<int, 512>&
   getPermutationTable() noexcept
   {
     return m_permutationTable;
@@ -1560,7 +1556,7 @@ protected:
    * static constexpr member so it is available to subclasses without polluting the enclosing
    * namespace.
    */
-  static constexpr std::array<int, 256> s_perlinPermutationTable = {
+  static constexpr Array<int, 256> s_perlinPermutationTable = {
     151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225, 140, 36,  103, 30,  69,  142,
     8,   99,  37,  240, 21,  10,  23,  190, 6,   148, 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203,
     117, 35,  11,  32,  57,  177, 33,  88,  237, 149, 56,  87,  174, 20,  125, 136, 171, 168, 68,  175, 74,  165,
@@ -1594,7 +1590,7 @@ protected:
    * @details Default-constructed with all zeros (degenerate, constant-zero noise).
    * Use the full constructor or shuffle() to populate with a real permutation.
    */
-  std::array<int, 512> m_permutationTable = {};
+  Array<int, 512> m_permutationTable = {};
 
   /**
    * @brief Number of noise octaves.
@@ -1796,9 +1792,9 @@ public:
 
     const T    xz = std::sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
     const auto d1 = Vec2T<T>(xz - m_majorRadius, std::abs(a_point[1]) - m_height);
-    const auto d2 = Vec2T<T>(std::max(d1.x, T(0)), std::max(d1.y, T(0)));
+    const auto d2 = Vec2T<T>(Math::max(d1.x, T(0)), Math::max(d1.y, T(0)));
 
-    return std::min(std::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
+    return Math::min(Math::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
   }
 
 protected:

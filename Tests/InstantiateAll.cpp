@@ -24,6 +24,7 @@ using Meta = short;
   /* -- Vectors ---------------------------------------------------------- */ \
   template class Vec2T<PREC>;                                                \
   template class Vec3T<PREC>;                                                \
+  template struct Array<PREC, 3>;                                            \
                                                                                \
   /* -- Abstract bases --------------------------------------------------- */ \
   template class ImplicitFunction<PREC>;                                     \

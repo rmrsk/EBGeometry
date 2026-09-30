@@ -73,7 +73,7 @@ jobs:
         run: pre-commit run --show-diff-on-failure --color=always reuse --all-files
 
   Doxygen-check:
-    name: Doxygen (warnings as errors) and docs rules
+    name: Doxygen (warnings as errors), docs rules and device contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -95,6 +95,8 @@ jobs:
         run: pre-commit run --show-diff-on-failure --color=always doxygen-check --all-files
       - name: Run check-docs (pre-commit hook)
         run: pre-commit run --show-diff-on-failure --color=always check-docs --all-files
+      - name: Run check-device-math (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always check-device-math --all-files
 
   Static-analysis:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]

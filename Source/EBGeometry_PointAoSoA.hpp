@@ -12,12 +12,12 @@
 #define EBGEOMETRY_POINTAOSOA_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_PointSoA.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -27,7 +27,7 @@ namespace EBGeometry {
  * @brief Metadata-carrying wrapper around a single PointSoAT<T, W>.
  * @details Structurally this is an AoSoA (Array of Structures of Arrays): PointSoAT<T, W> itself
  * is true SoA (one flat array per coordinate, no per-point structure at all), and PointAoSoA adds
- * exactly one more member -- a std::array<Meta, W> -- alongside it. The two are never merged or
+ * exactly one more member -- a Array<Meta, W> -- alongside it. The two are never merged or
  * interleaved: the distance queries (getMinimumDistance2(), getMaximumDistance2(), getDistances2(),
  * and their sqrt forms -- all delegated straight through to the embedded PointSoAT) never read
  * m_metaData at all, so a pure position-only distance traversal over PointAoSoA-packed leaves
@@ -71,7 +71,7 @@ public:
    * @return Per-lane squared distances, one per W lanes.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  std::array<T, W>
+  Array<T, W>
   getDistances2(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -81,7 +81,7 @@ public:
    * @return Per-lane distances, one per W lanes.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  std::array<T, W>
+  Array<T, W>
   getDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -160,7 +160,7 @@ protected:
    * @brief Per-lane metadata, physically separate from m_positions. m_metaData[j] = metadata of
    * point j. Never read by getDistance()/getDistance2().
    */
-  std::array<Meta, W> m_metaData;
+  Array<Meta, W> m_metaData;
 
   /**
    * @brief Number of valid (non-padded) points in this group (1..W).

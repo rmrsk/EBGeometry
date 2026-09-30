@@ -12,7 +12,6 @@
 #define EBGEOMETRY_TRIANGLESOA_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -22,6 +21,7 @@
 #endif
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -145,7 +145,7 @@ public:
    * @return Per-lane signed distances, one per W lanes.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  std::array<T, W>
+  Array<T, W>
   signedDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**

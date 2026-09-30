@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <limits>
 #include <vector>
 
 // Our includes
@@ -24,6 +23,7 @@
 #include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -124,7 +124,7 @@ VertexT<T, Meta>::normalizeNormalVector() noexcept
   // reject that (Soup::findFoldedFeature); a mesh built by hand keeps a zero normal rather than a NaN.
   const T len = m_normal.length();
 
-  if (len > std::numeric_limits<T>::epsilon()) {
+  if (len > Math::Limits<T>::epsilon()) {
     m_normal = m_normal / len;
   }
 }
@@ -250,7 +250,7 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               
     const Vec3& norm = f.getNormal();
 
     // Clamp to [-1,1] to guard against std::acos(NaN) from floating-point rounding.
-    const T alpha = std::acos(std::clamp(v1.dot(v2), T(-1), T(1)));
+    const T alpha = std::acos(Math::clamp(v1.dot(v2), T(-1), T(1)));
 
     m_normal += alpha * norm;
   }

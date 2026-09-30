@@ -39,7 +39,7 @@ fourTriangles()
   std::vector<Tri<T>> tris;
   for (int i = 0; i < 4; i++) {
     const Vec3 base(T(3.0 * i), T(0), T(0));
-    tris.emplace_back(std::array<Vec3, 3>{base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
+    tris.emplace_back(Array<Vec3, 3>{base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
   }
   return tris;
 }
@@ -184,7 +184,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistances returns per-lane distances who
   group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
-    const std::array<T, W> perLane = group.signedDistances(p);
+    const Array<T, W> perLane = group.signedDistances(p);
 
     // Each lane must match the corresponding individual triangle, and the min-|lane| must equal the
     // reduced signedDistance().

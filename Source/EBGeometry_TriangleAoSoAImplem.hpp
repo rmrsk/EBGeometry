@@ -12,13 +12,12 @@
 #define EBGEOMETRY_TRIANGLEAOSOAIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_TriangleAoSoA.hpp"
 
@@ -72,7 +71,7 @@ TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point, Meta& a_close
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-  const std::array<T, W> distances = m_triangles.signedDistances(a_point);
+  const Array<T, W> distances = m_triangles.signedDistances(a_point);
 
   T        best     = distances[0];
   T        bestAbs  = std::abs(distances[0]);

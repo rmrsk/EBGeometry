@@ -174,6 +174,10 @@ Test coverage
      - :cpp:class:`Vec2T` and :cpp:class:`Vec3T`: construction, arithmetic,
        dot/cross products, length, component-wise min/max, ``minDir``/``maxDir``,
        lexicographic ordering, scalar-over-vector ``operator/``.
+   * - ``TestMath``
+     - ``Math::min``/``max``/``clamp`` and ``Math::Limits`` against their ``std`` counterparts
+       (including NaN arguments and constant evaluation), and ``Array<T, N>``: aggregate
+       initialization, trivial copyability, iteration, sorting, ``fill``, comparison.
    * - ``TestBoundingVolumes``
      - :cpp:class:`AABBT` and :cpp:class:`SphereT`: construction from
        corners and point clouds, volume, surface area, point distance,

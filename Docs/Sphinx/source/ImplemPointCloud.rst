@@ -22,7 +22,7 @@ the squared distance; the user metadata is reachable through ``metadata()``. ``c
 excluding it from its own result and seeding the search from the group it lives in -- a strictly
 cheaper search an external point cannot use (see :ref:`Chap:PointCloud`). A query with no match (an
 empty cloud, or a self-query on a single point) returns a ``Hit`` whose ``valid()`` is false: its
-index is ``std::numeric_limits<std::size_t>::max()`` and its squared distance the largest ``T``.
+index is ``SIZE_MAX`` and its squared distance the largest ``T``.
 Slots a multi-result query cannot fill hold the same value.
 
 Each accelerated query also has an ``O(N)`` brute-force counterpart -- ``closestPointBruteForce`` /

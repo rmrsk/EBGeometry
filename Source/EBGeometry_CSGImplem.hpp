@@ -13,14 +13,12 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
-#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -29,6 +27,7 @@
 // Our includes
 #include "EBGeometry_CSG.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_SFC.hpp"
 #include "EBGeometry_Transform.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -443,14 +442,14 @@ template <class T>
 T
 UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  T ret = std::numeric_limits<T>::infinity();
+  T ret = Math::Limits<T>::infinity();
 
   for (const auto& prim : m_implicitFunctions) {
     const T v = prim->value(a_point);
 
     EBGEOMETRY_EXPECT(!std::isnan(v));
 
-    ret = std::min(ret, v);
+    ret = Math::min(ret, v);
   }
 
   return ret;
@@ -471,7 +470,7 @@ SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFuncti
     m_implicitFunctions.emplace_back(prim);
   }
 
-  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
+  m_smoothLen = Math::max(a_smoothLen, Math::Limits<T>::min());
   m_smoothMin = a_smoothMin;
 }
 
@@ -479,7 +478,7 @@ template <class T>
 T
 SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  T ret = std::numeric_limits<T>::infinity();
+  T ret = Math::Limits<T>::infinity();
 
   if (m_implicitFunctions.size() == 1) {
     ret = m_implicitFunctions.front()->value(a_point);
@@ -487,8 +486,8 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
     EBGEOMETRY_EXPECT(!std::isnan(ret));
   }
   else if (m_implicitFunctions.size() > 1) {
-    T a = std::numeric_limits<T>::infinity();
-    T b = std::numeric_limits<T>::infinity();
+    T a = Math::Limits<T>::infinity();
+    T b = Math::Limits<T>::infinity();
 
     for (const auto& implicitFunction : m_implicitFunctions) {
       const T curValue = implicitFunction->value(a_point);
@@ -528,7 +527,7 @@ BVHUnionIF<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T minDist = std::numeric_limits<T>::infinity();
+  T minDist = Math::Limits<T>::infinity();
 
   const auto         primitives = m_bvh.getPrimitives();
   const PoolLocation location   = m_bvh.location();
@@ -539,7 +538,7 @@ BVHUnionIF<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
       EBGEOMETRY_EXPECT(!std::isnan(v));
 
-      a_minDist = std::min(a_minDist, v);
+      a_minDist = Math::min(a_minDist, v);
     }
   };
 
@@ -548,7 +547,7 @@ BVHUnionIF<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   // distance is within max(0, minDist). When the running best is negative (a_point is inside a
   // primitive) the bound collapses to 0, so only nodes whose box contains a_point are descended into.
   const auto pruneDist2 = [](const T& a_minDist) noexcept -> T {
-    const T bound = std::max(T(0), a_minDist);
+    const T bound = Math::max(T(0), a_minDist);
 
     return bound * bound;
   };
@@ -617,7 +616,7 @@ BVHSmoothUnionIF<T, P, K, Blend>::BVHSmoothUnionIF(Pool&                  a_pool
                                                    const Blend            a_blend,
                                                    const BVH::Build       a_build)
   : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_build)),
-    m_smoothLen(std::max(a_smoothLen, std::numeric_limits<T>::min())),
+    m_smoothLen(Math::max(a_smoothLen, Math::Limits<T>::min())),
     m_blend(a_blend)
 {
   EBGEOMETRY_REQUIRE(
@@ -637,8 +636,8 @@ BVHSmoothUnionIF<T, P, K, Blend>::signedDistance(const Vec3T<T>& a_point) const 
   // two smallest values seen so far (a <= b).
   struct Closest
   {
-    T a = std::numeric_limits<T>::infinity();
-    T b = std::numeric_limits<T>::infinity();
+    T a = Math::Limits<T>::infinity();
+    T b = Math::Limits<T>::infinity();
   };
 
   Closest closest;
@@ -668,7 +667,7 @@ BVHSmoothUnionIF<T, P, K, Blend>::signedDistance(const Vec3T<T>& a_point) const 
   // pruned. The result depends only on the two smallest values, and the b-bound provably retains
   // both -- extra nodes it would admit hold only values larger than b, which cannot change a or b.
   const auto pruneDist2 = [](const Closest& a_closest) noexcept -> T {
-    const T bound = std::max(T(0), a_closest.b);
+    const T bound = Math::max(T(0), a_closest.b);
 
     return bound * bound;
   };
@@ -744,14 +743,14 @@ template <class T>
 T
 IntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  T ret = -std::numeric_limits<T>::infinity();
+  T ret = -Math::Limits<T>::infinity();
 
   for (const auto& prim : m_implicitFunctions) {
     const T v = prim->value(a_point);
 
     EBGEOMETRY_EXPECT(!std::isnan(v));
 
-    ret = std::max(ret, v);
+    ret = Math::max(ret, v);
   }
 
   return ret;
@@ -772,7 +771,7 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   m_implicitFunctions.emplace_back(a_implicitFunctionA);
   m_implicitFunctions.emplace_back(a_implicitFunctionB);
 
-  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
+  m_smoothLen = Math::max(a_smoothLen, Math::Limits<T>::min());
   m_smoothMax = a_smoothMax;
 }
 
@@ -794,7 +793,7 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
     m_implicitFunctions.emplace_back(prim);
   }
 
-  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
+  m_smoothLen = Math::max(a_smoothLen, Math::Limits<T>::min());
   m_smoothMax = a_smoothMax;
 }
 
@@ -802,7 +801,7 @@ template <class T>
 T
 SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  T ret = std::numeric_limits<T>::infinity();
+  T ret = Math::Limits<T>::infinity();
 
   if (m_implicitFunctions.size() == 1) {
     ret = m_implicitFunctions.front()->value(a_point);
@@ -810,8 +809,8 @@ SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
     EBGEOMETRY_EXPECT(!std::isnan(ret));
   }
   else if (m_implicitFunctions.size() > 1) {
-    T a = -std::numeric_limits<T>::infinity();
-    T b = -std::numeric_limits<T>::infinity();
+    T a = -Math::Limits<T>::infinity();
+    T b = -Math::Limits<T>::infinity();
 
     for (const auto& implicitFunction : m_implicitFunctions) {
       const T curValue = implicitFunction->value(a_point);
@@ -866,7 +865,7 @@ DifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(!std::isnan(a));
   EBGEOMETRY_EXPECT(!std::isnan(b));
 
-  return std::max(a, -b);
+  return Math::max(a, -b);
 }
 
 template <class T>
@@ -963,9 +962,9 @@ FiniteRepetitionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   Vec3T<T> q;
 
   for (size_t i = 0; i < 3; i++) {
-    // std::min/std::max rather than std::clamp: std::clamp is undefined if the bounds cross.
+    // Math::min/Math::max rather than Math::clamp, so the result stays defined if the bounds cross.
     q[i] = a_point[i] -
-           m_period[i] * std::round(std::min(std::max(a_point[i] / m_period[i], -m_repeatLo[i]), m_repeatHi[i]));
+           m_period[i] * std::round(Math::min(Math::max(a_point[i] / m_period[i], -m_repeatLo[i]), m_repeatHi[i]));
   }
 
   const T ret = m_implicitFunction->value(q);

@@ -12,13 +12,13 @@
 #define EBGEOMETRY_POINTSOAIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PointSoA.hpp"
 
 namespace EBGeometry {
@@ -64,7 +64,7 @@ PointSoAT<T, W>::pack(const Vec3T<T>* a_positions, uint32_t a_count) noexcept
 
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
-std::array<T, W>
+Array<T, W>
 PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 {
   // Only m_x carries an explicit alignas in the class declaration: since each array's size (a
@@ -105,7 +105,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 
     const __m512 d2 = _mm512_add_ps(_mm512_add_ps(_mm512_mul_ps(dx, dx), _mm512_mul_ps(dy, dy)), _mm512_mul_ps(dz, dz));
 
-    std::array<T, W> distances;
+    Array<T, W> distances;
     _mm512_storeu_ps(distances.data(), d2);
 
     return distances;
@@ -125,7 +125,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
     const __m512d d2 =
       _mm512_add_pd(_mm512_add_pd(_mm512_mul_pd(dx, dx), _mm512_mul_pd(dy, dy)), _mm512_mul_pd(dz, dz));
 
-    std::array<T, W> distances;
+    Array<T, W> distances;
     _mm512_storeu_pd(distances.data(), d2);
 
     return distances;
@@ -146,7 +146,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 
     const __m128 d2 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(dx, dx), _mm_mul_ps(dy, dy)), _mm_mul_ps(dz, dz));
 
-    std::array<T, W> distances;
+    Array<T, W> distances;
     _mm_storeu_ps(distances.data(), d2);
 
     return distances;
@@ -167,7 +167,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 
     const __m256 d2 = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(dx, dx), _mm256_mul_ps(dy, dy)), _mm256_mul_ps(dz, dz));
 
-    std::array<T, W> distances;
+    Array<T, W> distances;
     _mm256_storeu_ps(distances.data(), d2);
 
     return distances;
@@ -187,7 +187,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
     const __m256d d2 =
       _mm256_add_pd(_mm256_add_pd(_mm256_mul_pd(dx, dx), _mm256_mul_pd(dy, dy)), _mm256_mul_pd(dz, dz));
 
-    std::array<T, W> distances;
+    Array<T, W> distances;
     _mm256_storeu_pd(distances.data(), d2);
 
     return distances;
@@ -215,7 +215,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
     const __m256d d2_hi = _mm256_add_pd(_mm256_add_pd(_mm256_mul_pd(dx_hi, dx_hi), _mm256_mul_pd(dy_hi, dy_hi)),
                                         _mm256_mul_pd(dz_hi, dz_hi));
 
-    std::array<T, W> distances;
+    Array<T, W> distances;
     _mm256_storeu_pd(distances.data(), d2_lo);
     _mm256_storeu_pd(distances.data() + 4, d2_hi);
 
@@ -225,7 +225,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 
   // Scalar fallback for every (T, W) combination not covered above. Computes all W lanes; padded
   // lanes hold the last real position (see pack()), so their squared distance is a valid duplicate.
-  std::array<T, W> distances;
+  Array<T, W> distances;
 
   for (uint32_t j = 0; j < W; j++) {
     const T dx = a_point[0] - m_x[j];
@@ -240,10 +240,10 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
-std::array<T, W>
+Array<T, W>
 PointSoAT<T, W>::getDistances(const Vec3T<T>& a_point) const noexcept
 {
-  std::array<T, W> distances = this->getDistances2(a_point);
+  Array<T, W> distances = this->getDistances2(a_point);
   for (size_t j = 0; j < W; j++) {
     distances[j] = std::sqrt(distances[j]);
   }
@@ -256,9 +256,9 @@ EBGEOMETRY_HOST_DEVICE
 T
 PointSoAT<T, W>::getMinimumDistance2(const Vec3T<T>& a_point) const noexcept
 {
-  const std::array<T, W> distances = this->getDistances2(a_point);
+  const Array<T, W> distances = this->getDistances2(a_point);
 
-  T best2 = std::numeric_limits<T>::max();
+  T best2 = Math::Limits<T>::max();
 
   for (uint32_t i = 0; i < m_validCount; i++) {
     best2 = (distances[i] < best2) ? distances[i] : best2;
@@ -280,9 +280,9 @@ EBGEOMETRY_HOST_DEVICE
 T
 PointSoAT<T, W>::getMaximumDistance2(const Vec3T<T>& a_point) const noexcept
 {
-  const std::array<T, W> distances = this->getDistances2(a_point);
+  const Array<T, W> distances = this->getDistances2(a_point);
 
-  T best2 = std::numeric_limits<T>::lowest();
+  T best2 = Math::Limits<T>::lowest();
 
   for (uint32_t i = 0; i < m_validCount; i++) {
     best2 = (distances[i] > best2) ? distances[i] : best2;

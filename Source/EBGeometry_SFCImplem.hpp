@@ -21,6 +21,7 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_SFC.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -129,7 +130,7 @@ Hilbert::encode(const Index& a_point) noexcept
 
   // Skilling's AxesToTranspose: transform the coordinates in place into the Hilbert transpose
   // representation.
-  std::array<uint32_t, nDims> X = {a_point[0], a_point[1], a_point[2]};
+  Array<uint32_t, nDims> X = {a_point[0], a_point[1], a_point[2]};
 
   const uint32_t highBit = uint32_t(1) << (nBits - 1);
 
@@ -185,7 +186,7 @@ Hilbert::decode(const uint64_t& a_code) noexcept
 
   // De-interleave the linear distance back into the transpose representation (exact inverse of the
   // interleave loop in encode()).
-  std::array<uint32_t, nDims> X = {0, 0, 0};
+  Array<uint32_t, nDims> X = {0, 0, 0};
 
   for (unsigned int k = 0; k < totalBits; k++) {
     const uint32_t     bitVal = static_cast<uint32_t>((a_code >> (totalBits - 1 - k)) & uint64_t(1));

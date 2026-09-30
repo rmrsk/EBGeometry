@@ -12,12 +12,12 @@
 #define EBGEOMETRY_TRIANGLEAOSOA_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -28,7 +28,7 @@ namespace EBGeometry {
  * @brief Metadata-carrying wrapper around a single TriangleSoAT<T, W>.
  * @details Structurally this is an AoSoA (Array of Structures of Arrays): TriangleSoAT<T, W> itself
  * is true SoA (one flat array per coordinate, no per-triangle structure at all), and TriangleAoSoA
- * adds exactly one more member -- a std::array<Meta, W> -- alongside it. The two are never merged or
+ * adds exactly one more member -- a Array<Meta, W> -- alongside it. The two are never merged or
  * interleaved: the hot signedDistance(const Vec3T<T>&) query is delegated straight through to the
  * embedded TriangleSoAT and never reads m_metaData at all, so a pure signed-distance traversal over
  * TriangleAoSoA-packed leaves touches exactly the same bytes it would touch over bare
@@ -129,7 +129,7 @@ protected:
    * @brief Per-lane metadata, physically separate from m_triangles. m_metaData[j] = metadata of
    * triangle j. Never read by signedDistance(const Vec3T<T>&).
    */
-  std::array<Meta, W> m_metaData;
+  Array<Meta, W> m_metaData;
 
   /**
    * @brief Number of valid (non-padded) triangles in this group (1..W).

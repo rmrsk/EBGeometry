@@ -14,7 +14,6 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -25,6 +24,7 @@
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleAoSoA.hpp"
@@ -451,8 +451,8 @@ public:
    */
   struct ClosestTriangle
   {
-    T    signedDistance = std::numeric_limits<T>::max(); ///< Signed distance to the closest triangle.
-    Meta metaData{};                                     ///< Metadata of the closest triangle.
+    T    signedDistance = Math::Limits<T>::max(); ///< Signed distance to the closest triangle.
+    Meta metaData{};                              ///< Metadata of the closest triangle.
   };
 
   /**

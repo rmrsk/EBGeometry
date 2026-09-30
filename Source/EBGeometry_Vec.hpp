@@ -14,15 +14,15 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cstddef>
-#include <limits>
 #include <ostream>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -93,7 +93,7 @@ public:
 
   /**
    * @brief Return the most-negative representable vector.
-   * @return Vector with each component equal to -std::numeric_limits<T>::max().
+   * @return Vector with each component equal to -Math::Limits<T>::max().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec2T<T>
@@ -101,7 +101,7 @@ public:
 
   /**
    * @brief Return the most-positive representable vector.
-   * @return Vector with each component equal to std::numeric_limits<T>::max().
+   * @return Vector with each component equal to Math::Limits<T>::max().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec2T<T>
@@ -109,7 +109,7 @@ public:
 
   /**
    * @brief Return a vector with infinite components.
-   * @return Vector with each component equal to std::numeric_limits<T>::infinity().
+   * @return Vector with each component equal to Math::Limits<T>::infinity().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec2T<T>
@@ -315,7 +315,7 @@ public:
 
   /**
    * @brief Return the most-negative representable vector.
-   * @return Vector with each component equal to -std::numeric_limits<T>::max().
+   * @return Vector with each component equal to -Math::Limits<T>::max().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec3T<T>
@@ -323,7 +323,7 @@ public:
 
   /**
    * @brief Return the most-positive representable vector.
-   * @return Vector with each component equal to std::numeric_limits<T>::max().
+   * @return Vector with each component equal to Math::Limits<T>::max().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec3T<T>
@@ -331,7 +331,7 @@ public:
 
   /**
    * @brief Return a vector with infinite components.
-   * @return Vector with each component equal to std::numeric_limits<T>::infinity().
+   * @return Vector with each component equal to Math::Limits<T>::infinity().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec3T<T>
@@ -582,7 +582,7 @@ protected:
   /**
    * @brief Vector components
    */
-  std::array<T, 3> m_X;
+  Array<T, 3> m_X;
 };
 
 /**

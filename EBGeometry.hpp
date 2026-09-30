@@ -9,6 +9,7 @@
  */
 
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
+#include "Source/EBGeometry_Array.hpp"
 #include "Source/EBGeometry_BVH.hpp"
 #include "Source/EBGeometry_BoundingVolumes.hpp"
 #include "Source/EBGeometry_CSG.hpp"
@@ -23,6 +24,7 @@
 #include "Source/EBGeometry_GPURuntime.hpp"
 #include "Source/EBGeometry_ImplicitFunction.hpp"
 #include "Source/EBGeometry_Macros.hpp"
+#include "Source/EBGeometry_Math.hpp"
 #include "Source/EBGeometry_MemoryResource.hpp"
 #include "Source/EBGeometry_MeshDistanceFunctions.hpp"
 #include "Source/EBGeometry_OBJ.hpp"

@@ -190,8 +190,8 @@ TEMPLATE_TEST_CASE("PointSoAT: getDistances2/getDistances return every lane's di
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
   for (const auto& q : queryPoints<T>()) {
-    const std::array<T, W> d2 = group.getDistances2(q);
-    const std::array<T, W> d  = group.getDistances(q);
+    const Array<T, W> d2 = group.getDistances2(q);
+    const Array<T, W> d  = group.getDistances(q);
 
     for (size_t lane = 0; lane < W; lane++) {
       const size_t src      = (lane < positions.size()) ? lane : (positions.size() - 1); // padding source

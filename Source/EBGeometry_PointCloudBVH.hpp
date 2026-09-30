@@ -15,7 +15,6 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <type_traits>
 #include <vector>
 
@@ -23,6 +22,7 @@
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PointAoSoA.hpp"
 #include "EBGeometry_PointSoA.hpp"
@@ -102,14 +102,14 @@ public:
    * @details @c index is the point's position in the input @c positions / @c metadata arrays; use
    * position()/metadata() to recover its data. @c distanceSquared avoids a sqrt on the hot path.
    * @note A "no match" result (an empty cloud, or a self-query on a cloud with no other point) has
-   * @c index == std::numeric_limits<std::size_t>::max() and @c distanceSquared ==
-   * std::numeric_limits<T>::max(); valid() tests for it. Slots a multi-result query could not fill
+   * @c index == Math::Limits<std::size_t>::max() and @c distanceSquared ==
+   * Math::Limits<T>::max(); valid() tests for it. Slots a multi-result query could not fill
    * hold the same value, and those queries also report the count found via their return value.
    */
   struct Hit
   {
-    std::size_t index           = std::numeric_limits<std::size_t>::max(); ///< Cloud index of the matched point.
-    T           distanceSquared = std::numeric_limits<T>::max();           ///< Squared distance from the query to it.
+    std::size_t index           = Math::Limits<std::size_t>::max(); ///< Cloud index of the matched point.
+    T           distanceSquared = Math::Limits<T>::max();           ///< Squared distance from the query to it.
 
     /**
      * @brief Whether this is a match rather than a "no match" result.
@@ -119,7 +119,7 @@ public:
     bool
     valid() const noexcept
     {
-      return index != std::numeric_limits<std::size_t>::max();
+      return index != Math::Limits<std::size_t>::max();
     }
   };
 
@@ -472,7 +472,7 @@ private:
   /**
    * @brief Sentinel meaning "exclude no point".
    */
-  static constexpr std::size_t s_none = std::numeric_limits<std::size_t>::max();
+  static constexpr std::size_t s_none = Math::Limits<std::size_t>::max();
 
   /**
    * @brief The packed BVH over the point groups. Owns the pool attachment every array below shares.

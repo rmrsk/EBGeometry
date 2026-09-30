@@ -1423,7 +1423,7 @@ EBGEOMETRY_HOST_DEVICE
 T
 packedBvhTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh, const Vec3T<T> a_query) noexcept
 {
-  T state = std::numeric_limits<T>::max();
+  T state = EBGeometry::Math::Limits<T>::max();
 
   const NearestLeafEval<T>    evalLeaf{a_bvh.getPrimitives(), a_query};
   const IdentityPruneDist2<T> pruneDist2{};

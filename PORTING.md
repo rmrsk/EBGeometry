@@ -371,9 +371,10 @@ mechanism is to be built in the meantime, since it would be a second tape.
 3. Annotate: `EBGEOMETRY_HOST_DEVICE` for anything that resolves purely through values, indices and
    other device-callable calls; `EBGEOMETRY_HOST` for anything touching a `Pool` (including
    `rebasedView`, which reads one), `std::vector`,
-   `std::string`, `std::cerr` or `std::map`. Watch for standard-library helpers that look innocent —
-   `std::clamp` pulls in a host-only assert handler under libstdc++ hardened mode and must be
-   hand-rolled.
+   `std::string`, `std::cerr` or `std::map`. Use `Math::min`/`max`/`clamp`/`Limits` and
+   `Array<T, N>` instead of their `std` counterparts, and call no other `std::` function in device
+   code except the math functions (`Scripts/CheckDeviceMath.py` checks both; see "Writing device
+   code" in the contribution guidelines).
 4. `static_assert(std::is_trivially_copyable_v<…>)` on the class, and on any `Meta` template
    parameter it stores.
 5. If a container-returning method (`std::vector`) is genuinely useful on device, add a *streaming*

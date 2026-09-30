@@ -27,7 +27,7 @@ See :ref:`Chap:Triangles` for the conceptual picture of why triangles are packed
 **What it stores:** the vertex positions, vertex normals, edge normals, and face normal of
 :math:`W` triangles, laid out as a *structure of arrays* (one flat, ``alignas``-aligned array
 per coordinate/component, rather than :math:`W` separate ``Triangle`` objects). ``TriangleSoAT``
-is geometry-only; ``TriangleAoSoA<T, Meta, W>`` adds a physically separate ``std::array<Meta, W>``
+is geometry-only; ``TriangleAoSoA<T, Meta, W>`` adds a physically separate ``Array<Meta, W>``
 of per-triangle metadata alongside it, never interleaved with the coordinates, so the
 signed-distance kernel touches exactly the same bytes either way -- metadata is read only afterward,
 via ``getMetaData(lane)``. This is the exact same relationship ``PointAoSoA`` has with ``PointSoAT``
@@ -70,7 +70,7 @@ metadata-carrying wrapper :file:`EBGeometry_PointAoSoA.hpp` / :file:`EBGeometry_
 **What it stores:** the positions of :math:`W` points, laid out as a *structure of arrays* (one
 flat, ``alignas``-aligned array per coordinate, rather than :math:`W` separate point objects).
 ``PointSoAT`` is position-only; ``PointAoSoA<T, Meta, W>`` adds a physically separate
-``std::array<Meta, W>`` of per-point metadata alongside it, never interleaved with the positions, so
+``Array<Meta, W>`` of per-point metadata alongside it, never interleaved with the positions, so
 the distance kernel touches exactly the same bytes either way -- metadata is read only afterward, via
 ``getMetaData(lane)``.
 

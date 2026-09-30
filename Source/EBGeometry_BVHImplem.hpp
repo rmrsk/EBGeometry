@@ -13,14 +13,12 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
-#include <limits>
 #include <memory>
 #include <stack>
 #include <tuple>
@@ -29,8 +27,10 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -132,7 +132,7 @@ TreeBVH<T, P, BV, K>::getBoundingVolumes() const noexcept
 }
 
 template <class T, class P, class BV, size_t K>
-inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
+inline const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
 TreeBVH<T, P, BV, K>::getChildren() const noexcept
 {
   return m_children;
@@ -191,7 +191,7 @@ TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, 
 
     // Partition into sub-sets (the partitioner takes the list by value and moves the sub-lists out),
     // then move each sub-list into its child node.
-    std::array<PrimAndBVList<P, BV>, K> newPartitions = a_partitioner(std::move(primsAndBVs));
+    Array<PrimAndBVList<P, BV>, K> newPartitions = a_partitioner(std::move(primsAndBVs));
 
     for (size_t c = 0; c < K; c++) {
       m_children[c] = std::make_shared<TreeBVH<T, P, BV, K>>(std::move(newPartitions[c]));
@@ -292,7 +292,7 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
 
       for (size_t inode = 0; inode < numNodesAtLevel; inode++) {
 
-        std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> children;
+        Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> children;
 
         for (size_t child = 0; child < K; child++) {
           children[child] = nodes[static_cast<size_t>(lvl) + 1][inode * K + child];
@@ -315,7 +315,7 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
 
 template <class T, class P, class BV, size_t K>
 inline void
-TreeBVH<T, P, BV, K>::setChildren(const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept
+TreeBVH<T, P, BV, K>::setChildren(const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept
 {
   std::vector<BV> boundingVolumes;
   boundingVolumes.reserve(a_children.size());
@@ -346,8 +346,8 @@ TreeBVH<T, P, BV, K>::traverse(const BVH::LeafEvaluator<P>&               a_leaf
                                const BVH::ChildOrderer<Node, NodeKey, K>& a_childOrderer,
                                const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept
 {
-  std::array<std::pair<std::shared_ptr<const Node>, NodeKey>, K> children;
-  std::stack<std::pair<std::shared_ptr<const Node>, NodeKey>>    q;
+  Array<std::pair<std::shared_ptr<const Node>, NodeKey>, K>   children;
+  std::stack<std::pair<std::shared_ptr<const Node>, NodeKey>> q;
 
   q.emplace(this->shared_from_this(), a_nodeKeyFactory(*this));
 
@@ -966,7 +966,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
     else {
       // The partitioner takes its list by value and moves the sub-lists out; a_prims is not used
       // after this, so move it in, and move each child sub-list into the recursion.
-      std::array<BVH::PrimAndBVList<P, BV>, K> children = a_partitioner(std::move(a_prims));
+      Array<BVH::PrimAndBVList<P, BV>, K> children = a_partitioner(std::move(a_prims));
 
       for (size_t k = 0; k < K; k++) {
         const uint32_t childIdx = build(std::move(children[k]));
@@ -1075,7 +1075,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
       chi = max(chi, clusters[i].centroid);
     }
 
-    T   bestCost  = std::numeric_limits<T>::max();
+    T   bestCost  = Math::Limits<T>::max();
     T   bestPlane = T(0);
     int bestAxis  = -1;
 
@@ -1100,7 +1100,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
         binCnt[b] = 0;
       }
       for (size_t i = a_begin; i < a_end; i++) {
-        const int b = std::min(BINS - 1, static_cast<int>((clusters[i].centroid[axis] - lo) * scale));
+        const int b = Math::min(BINS - 1, static_cast<int>((clusters[i].centroid[axis] - lo) * scale));
         binLo[b]    = min(binLo[b], clusters[i].bv.getLowCorner());
         binHi[b]    = max(binHi[b], clusters[i].bv.getHighCorner());
         binCnt[b]   = binCnt[b] + 1;
@@ -1173,7 +1173,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
     const size_t K2 = a_K - K1;
 
     const size_t raw = sah2Way(a_begin, a_end);
-    const size_t mid = std::max(a_begin + K1, std::min(a_end - K2, raw));
+    const size_t mid = Math::max(a_begin + K1, Math::min(a_end - K2, raw));
 
     sahKWay(a_begin, mid, K1, a_groups);
     sahKWay(mid, a_end, K2, a_groups);
@@ -1289,7 +1289,7 @@ PackedBVH<T, P, K>::traverse(const BVH::PackedLeafEvaluator<P>&         a_leafEv
 {
   const void* poolBase = this->base();
 
-  std::array<std::pair<uint32_t, NodeKey>, K> children;
+  Array<std::pair<uint32_t, NodeKey>, K> children;
 
   // Vector-backed stack avoids deque chunk allocations; reserve avoids reallocs.
   std::vector<std::pair<uint32_t, NodeKey>> q;
@@ -1646,11 +1646,8 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
 
   // Scalar path: every (T, K) with no compiled ISA path above, and all device code.
   //
-  // max() and the zero clamp are hand-rolled rather than taken from <algorithm>: std::max is fine on
-  // the host but the hardened libstdc++ configurations this library is built under route some of
-  // those helpers through host-only assert machinery, and none of them are callable from device
-  // code. The per-axis clamp and the dx*dx + (dy*dy + dz*dz) association below match the SIMD paths
-  // exactly, so every path produces bit-identical results.
+  // The per-axis clamp and the dx*dx + (dy*dy + dz*dz) association below are written out so that
+  // they match the SIMD paths exactly, and every path produces bit-identical results.
 
   for (size_t k = 0; k < K; k++) {
     T delta[3];

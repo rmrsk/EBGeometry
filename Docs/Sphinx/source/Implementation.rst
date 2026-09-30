@@ -44,6 +44,11 @@ components). A handful of design choices recur throughout the implementation:
   compiler-predefined ISA macros -- never a runtime dispatch. See
   :ref:`Chap:SIMDClasses`.
 
+* **Device-callable basics.** Scalar helpers and numeric limits (``Math::min``, ``Math::max``,
+  ``Math::clamp``, ``Math::Limits``) and the fixed-size ``Array<T, N>`` replace their ``std``
+  counterparts throughout the library, so its device code needs no special compiler flags. See
+  :ref:`Sec:WritingDeviceCode`.
+
 * **Three checking mechanisms.** ``static_assert`` guards template-parameter invariants decidable
   at compile time; the always-on ``EBGEOMETRY_REQUIRE`` macro checks what a caller controls, once,
   when an object is built; the opt-in ``EBGEOMETRY_EXPECT`` macro guards internal invariants,

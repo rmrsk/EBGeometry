@@ -12,7 +12,6 @@
 #define EBGEOMETRY_POINTSOA_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -22,6 +21,7 @@
 #endif
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -130,7 +130,7 @@ public:
    * @return Per-lane squared distances, one per W lanes.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  std::array<T, W>
+  Array<T, W>
   getDistances2(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -141,7 +141,7 @@ public:
    * @return Per-lane distances, one per W lanes.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  std::array<T, W>
+  Array<T, W>
   getDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**

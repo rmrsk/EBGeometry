@@ -13,25 +13,25 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -191,12 +191,12 @@ extractTriangles(const DCEL::MeshT<T, Meta>& a_mesh)
       T bestSmallest = T(-1);
 
       for (size_t a = 0; a < N; a++) {
-        T smallest = std::numeric_limits<T>::max();
+        T smallest = Math::Limits<T>::max();
 
         for (size_t j = 1; j + 1 < N; j++) {
           const T area2 = (position(a + j) - position(a)).cross(position(a + j + 1) - position(a)).length();
 
-          smallest = std::min(smallest, area2);
+          smallest = Math::min(smallest, area2);
         }
 
         if (smallest > bestSmallest) {
@@ -436,7 +436,7 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T           minDist = std::numeric_limits<T>::max();
+  T           minDist = Math::Limits<T>::max();
   const auto  faces   = m_bvh.getPrimitives();
   const auto& mesh    = m_mesh;
 
@@ -479,7 +479,7 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   using BVHNodeKey = T;
 
   // Shortest distance so far.
-  BVHNodeKey shortestDistanceSoFar = std::numeric_limits<T>::max();
+  BVHNodeKey shortestDistanceSoFar = Math::Limits<T>::max();
 
   const EBGeometry::BVH::PrunePredicate<Node, T> prunePredicate =
     [&shortestDistanceSoFar](const Node&, const BVHNodeKey& a_bvDist) noexcept -> bool {
@@ -487,7 +487,7 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   };
 
   const EBGeometry::BVH::PackedChildOrderer<T, K> childOrderer =
-    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+    [](Array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
         return n1.second > n2.second;
@@ -578,9 +578,9 @@ TriMeshSDF<T, Meta, K, W>::groupTrianglesIntoSoA(const std::vector<std::shared_p
 
   for (uint32_t group = 0; group < numGroups; group++) {
     const uint32_t groupOffset = a_offset + group * soaWidth;
-    const uint32_t groupCount  = std::min(soaWidth, a_count - group * soaWidth);
+    const uint32_t groupCount  = Math::min(soaWidth, a_count - group * soaWidth);
 
-    std::array<Tri, W> trisArr;
+    Array<Tri, W> trisArr;
     for (uint32_t i = 0; i < groupCount; i++) {
       EBGEOMETRY_EXPECT(a_triangles[groupOffset + i] != nullptr);
 
@@ -655,7 +655,7 @@ TriMeshSDF<T, Meta, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcep
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T          minDist = std::numeric_limits<T>::max();
+  T          minDist = Math::Limits<T>::max();
   const auto groups  = m_bvh.getPrimitives();
 
   const auto evalLeaf = [&groups, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {

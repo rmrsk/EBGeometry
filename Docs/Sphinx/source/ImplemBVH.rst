@@ -670,7 +670,7 @@ Just as ``MeshSDF::getClosestFaces()`` recovers the nearest face (and its ``Meta
 ``TriMeshSDF::getClosestTriangle()`` recovers the nearest triangle's signed distance *and* its
 metadata through the SIMD SoA path -- the supported route when you need both maximum SIMD throughput
 and per-triangle metadata retrieval. Each leaf group is a ``TriangleAoSoA<T, Meta, W>``: a
-geometry-only ``TriangleSoAT<T, W>`` plus a physically-separate per-lane ``std::array<Meta, W>`` (the
+geometry-only ``TriangleSoAT<T, W>`` plus a physically-separate per-lane ``Array<Meta, W>`` (the
 same metadata-carrying wrapper relationship ``PointAoSoA`` has with ``PointSoAT``). The hot
 ``signedDistance()`` path never reads the metadata array; only ``getClosestTriangle()`` does, taking a
 scalar per-lane step to recover the winning lane. See `the doxygen page for TriangleAoSoA

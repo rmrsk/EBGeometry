@@ -16,12 +16,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 
 // Our includes
 #include "EBGeometry_Constants.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Iterator.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -146,14 +146,14 @@ FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
     const auto& x1 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
 
     m_normal += x0.cross(x1);
-    longestEdge2 = std::max(longestEdge2, (x1 - x0).length2());
+    longestEdge2 = Math::max(longestEdge2, (x1 - x0).length2());
   }
 
   // A zero-area face (collinear or coincident vertices) has no normal. It gets a zero one instead of
   // the NaN a normalization would give: a zero normal contributes nothing to the angle-weighted
   // vertex and edge pseudonormals around it. The parsers remove such faces before they get here
   // (Soup::removeDegeneratePolygons); this covers meshes built by hand.
-  if (m_normal.length() <= T(64) * std::numeric_limits<T>::epsilon() * longestEdge2) {
+  if (m_normal.length() <= T(64) * Math::Limits<T>::epsilon() * longestEdge2) {
     m_normal = Vec3::zeros();
   }
 
@@ -183,8 +183,8 @@ FaceT<T, Meta>::computeProjectionDirections() noexcept
 
   for (uint32_t dir = 0; dir < 3; dir++) {
     if (dir != ignoreDir) {
-      m_xDir = std::min(m_xDir, dir);
-      m_yDir = std::max(m_yDir, dir);
+      m_xDir = Math::min(m_xDir, dir);
+      m_yDir = Math::max(m_yDir, dir);
     }
   }
 
@@ -554,7 +554,7 @@ FaceT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexc
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
   EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
 
-  T retval = std::numeric_limits<T>::infinity();
+  T retval = Math::Limits<T>::infinity();
 
   const bool inside = this->isPointInsideFace(a_x0, a_mesh);
 
@@ -584,7 +584,7 @@ FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const no
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
   EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
 
-  T retval = std::numeric_limits<T>::infinity();
+  T retval = Math::Limits<T>::infinity();
 
   const bool inside = this->isPointInsideFace(a_x0, a_mesh);
 
