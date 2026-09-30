@@ -78,7 +78,18 @@ DCEL construction at all.
 .. note::
 
    If an STL file contains multiple solids (uncommon, but technically valid STL), ``readSTL``
-   only reads the first one.
+   only reads the first one. In a binary STL, the two "attribute" bytes after each triangle are
+   ignored; some exporters store a colour there.
+
+A file that cannot be read in full is rejected rather than read in part: a partial mesh has holes,
+and a mesh with holes gives wrong signs without any other symptom. If a file is missing, empty,
+truncated (it ends before the vertex and face counts in its header say it should, or an ASCII STL
+has no ``endsolid``), or corrupted (a face refers to a vertex that does not exist, or a coordinate
+is not a finite number), the reader prints the reason to ``std::cerr`` and returns an empty data
+structure, and ``readIntoDCEL`` returns a mesh with no faces. Building a :cpp:class:`MeshSDF` or
+:cpp:class:`TriMeshSDF` from a mesh with no faces stops the program with a message, in Release
+builds as well. OBJ files state neither counts nor an end marker, so a truncated OBJ file cannot
+be detected; it reads as whatever faces it still contains.
 
 For the raw readers' exact signatures, see the Doxygen entries for
 `readPLY <doxygen/html/namespaceEBGeometry_1_1Parser.html#ac78a6a540855effb6af095bb6c5c2982>`__,

@@ -13,6 +13,7 @@
 
 // Std includes
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
@@ -76,6 +77,38 @@ Soup::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vert
   }
 
   return false;
+}
+
+template <typename T>
+inline bool
+Soup::isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+              const std::vector<std::vector<size_t>>&  a_facets,
+              std::string&                             a_reason) noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "Soup::isValid requires a floating-point T");
+
+  for (size_t v = 0; v < a_vertices.size(); v++) {
+    const EBGeometry::Vec3T<T>& x = a_vertices[v];
+
+    if (!(std::isfinite(x[0]) && std::isfinite(x[1]) && std::isfinite(x[2]))) {
+      a_reason = "vertex " + std::to_string(v) + " has a non-finite coordinate";
+
+      return false;
+    }
+  }
+
+  for (size_t f = 0; f < a_facets.size(); f++) {
+    for (const size_t v : a_facets[f]) {
+      if (v >= a_vertices.size()) {
+        a_reason = "face " + std::to_string(f) + " refers to vertex " + std::to_string(v) + ", but there are only " +
+                   std::to_string(a_vertices.size()) + " vertices";
+
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 template <typename T>

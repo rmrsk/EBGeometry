@@ -78,6 +78,22 @@ getFileType(const std::string& a_filename) noexcept;
 getFileEncoding(const std::string& a_filename) noexcept;
 
 /**
+ * @brief Clear a polygon soup read from a file if it cannot describe a mesh.
+ * @details Every reader runs this last. A soup that fails Soup::isValid (a vertex index out of
+ * range, or a non-finite coordinate, as corrupted files produce) is reported to std::cerr and
+ * cleared, so the file reads as empty rather than as garbage.
+ * @tparam T Floating-point precision type for vertex coordinates.
+ * @param[in,out] a_vertices Vertex coordinate list; cleared if the soup is invalid.
+ * @param[in,out] a_facets   Index lists; cleared if the soup is invalid.
+ * @param[in]     a_filename File the soup was read from, for the message.
+ */
+template <typename T>
+inline static void
+rejectInvalidSoup(std::vector<Vec3T<T>>&            a_vertices,
+                  std::vector<std::vector<size_t>>& a_facets,
+                  const std::string&                a_filename) noexcept;
+
+/**
  * @brief Read a single PLY file into a raw PLY data structure.
  * @tparam T Floating-point precision used for vertex coordinates.
  * @param[in] a_filename PLY file name.

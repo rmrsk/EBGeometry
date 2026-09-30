@@ -127,6 +127,15 @@ PLY<T>::convertToDCEL(Pool& a_pool) const noexcept
 
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
+  std::string reason;
+
+  if (!Soup::isValid(vertices, facets, reason)) {
+    std::cerr << "PLY::convertToDCEL - '" << m_id << "' cannot describe a mesh (" << reason
+              << "); returning an empty mesh\n";
+
+    return mesh;
+  }
+
   Soup::compress(vertices, facets);
 
   const size_t numRemoved = Soup::removeDegeneratePolygons(vertices, facets);

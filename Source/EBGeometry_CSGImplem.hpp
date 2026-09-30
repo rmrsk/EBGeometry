@@ -63,15 +63,19 @@ buildBVH(Pool&                                         a_pool,
   using BV   = BoundingVolumes::AABBT<T>;
   using Root = BVH::PackedBVH<T, P, K>;
 
-  EBGEOMETRY_EXPECT(!a_primitives.empty());
-
-  // The two checks below are always on rather than EBGEOMETRY_EXPECTs: each guards against a mistake
+  // The checks below are always on rather than EBGEOMETRY_EXPECTs: each guards against a mistake
   // that a Release build would otherwise turn into a silent wrong answer or an out-of-bounds read,
   // and each runs once at build time, costing nothing per evaluation.
   const auto reject = [](const char* a_what, const size_t a_value, const size_t a_bound) {
     std::fprintf(stderr, "EBGeometry::BVHUnionIF: %s (%zu, %zu).\n", a_what, a_value, a_bound);
     std::abort();
   };
+
+  if (a_primitives.empty()) {
+    reject("a union needs at least one primitive (primitives, bounding volumes)",
+           a_primitives.size(),
+           a_boundingVolumes.size());
+  }
 
   if (a_primitives.size() != a_boundingVolumes.size()) {
     reject("need one bounding volume per primitive (primitives, bounding volumes)",

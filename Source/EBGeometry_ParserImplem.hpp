@@ -12,12 +12,14 @@
 #define EBGEOMETRY_PARSERIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -166,6 +168,22 @@ Parser::getFileEncoding(const std::string& a_filename) noexcept
 }
 
 template <typename T>
+inline void
+Parser::rejectInvalidSoup(std::vector<Vec3T<T>>&            a_vertices,
+                          std::vector<std::vector<size_t>>& a_facets,
+                          const std::string&                a_filename) noexcept
+{
+  std::string reason;
+
+  if (!Soup::isValid(a_vertices, a_facets, reason)) {
+    std::cerr << "Parser -- Error! Ignoring corrupted file '" + a_filename + "': " + reason + "\n";
+
+    a_vertices.clear();
+    a_facets.clear();
+  }
+}
+
+template <typename T>
 [[nodiscard]] STL<T>
 Parser::readSTL(const std::string& a_filename)
 {
@@ -184,164 +202,151 @@ Parser::readSTL(const std::string& a_filename)
 
   switch (encoding) {
   case Parser::Encoding::ASCII: {
+    std::ifstream filestream(a_filename);
 
-    std::vector<std::string> fileContents;
+    if (!filestream.is_open()) {
+      std::cerr << "Parser::readSTL -- Error! Could not open ASCII file " + a_filename + "\n";
 
-    size_t curLine    = 0;
-    size_t solidBegin = -1;
-    size_t solidEnd   = -1;
+      break;
+    }
 
-    std::ifstream     filestream(a_filename);
-    std::stringstream ss;
-    std::string       str;
-    std::string       line;
+    // One pass over the lines: a 'facet' line starts a new facet, 'vertex' lines add to the current
+    // facet, and 'endsolid' ends the solid. Blank lines, 'outer loop'/'endloop'/'endfacet', and
+    // anything before 'solid' are ignored. Only the first solid in the file is read. A file that ends
+    // before 'endsolid' is rejected: it is almost certainly truncated, and a partial mesh would give
+    // wrong signs silently.
+    bool        inSolid  = false;
+    bool        inFacet  = false;
+    bool        complete = false;
+    std::string line;
 
-    if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::stringstream sstream(line);
+      std::string       keyword;
 
-      // Figure out where to begin reading and where to stop reading
-      while (std::getline(filestream, line)) {
-        fileContents.emplace_back(line);
+      sstream >> keyword;
 
-        std::string       str;
-        std::stringstream sstream(line);
-        sstream >> str;
-
-        if (str == "solid") {
-          solidBegin = curLine;
-        }
-        else if (str == "endsolid") {
-          solidEnd = curLine;
-
-          break;
-        }
-
-        curLine++;
+      if (keyword == "solid") {
+        inSolid = true;
       }
+      else if (!inSolid) {
+        continue;
+      }
+      else if (keyword == "endsolid") {
+        complete = true;
 
-      for (size_t line = solidBegin + 1; line < solidEnd; line++) {
-        ss = std::stringstream(fileContents[line]);
+        break;
+      }
+      else if (keyword == "facet") {
+        facets.emplace_back();
 
-        ss >> str;
+        inFacet = true;
+      }
+      else if (keyword == "endfacet") {
+        inFacet = false;
+      }
+      else if (keyword == "vertex" && inFacet) {
+        T x;
+        T y;
+        T z;
 
-        if (str == "facet") {
-          facets.emplace_back();
-        }
-        else if (str == "vertex") {
-          T x;
-          T y;
-          T z;
+        sstream >> x >> y >> z;
 
-          ss >> x >> y >> z;
+        if (sstream.fail()) {
+          std::cerr << "Parser::readSTL -- Error! Malformed vertex line '" + line + "' in file " + a_filename + "\n";
 
-          vertices.emplace_back(Vec3T<T>(x, y, z));
-          facets.back().emplace_back(vertices.size() - 1);
-        }
-
-        if (facets.back().size() > 100) {
-          std::cerr << "EBGeometry::readSTL (ASCII) -- unbounded facet detected in file '" + a_filename + "'\n";
+          vertices.clear();
+          facets.clear();
 
           break;
         }
+
+        vertices.emplace_back(Vec3T<T>(x, y, z));
+        facets.back().emplace_back(vertices.size() - 1);
       }
     }
-    else {
-      std::cerr << "Parser::readSTL -- Error! Could not open ASCII file " + a_filename + "\n";
+
+    if (!complete && !facets.empty()) {
+      std::cerr << "Parser::readSTL -- Error! ASCII file " + a_filename +
+                     " ends without 'endsolid'; it is probably truncated\n";
+
+      vertices.clear();
+      facets.clear();
     }
 
     break;
   }
   case Parser::Encoding::Binary: {
-    std::ifstream fstream(a_filename);
+    std::ifstream fstream(a_filename, std::ios::in | std::ios::binary);
 
-    if (fstream.is_open()) {
+    if (!fstream.is_open()) {
+      std::cerr << "Parser::readSTL -- Error! Could not open binary file " + a_filename + "\n";
 
-      // Read STL header and discard that info rightaway.
-      char header[80];
-      fstream.read(header, 80);
+      break;
+    }
 
-      // Read the number of triangles
-      char tmp[4];
-      fstream.read(tmp, 4);
-      uint32_t numTriangles;
-      memcpy(&numTriangles, &tmp, 4);
+    // An 80-byte header, a uint32 triangle count, then 50 bytes per triangle: a normal and three
+    // vertices (12 float32 values) followed by a 2-byte "attribute byte count". The standard says the
+    // attribute is zero, but some exporters store a colour in it; it carries no geometry and is
+    // ignored. The normal is recomputed from the vertices.
+    fstream.seekg(0, std::ios::end);
 
-      using VertexList = std::vector<Vec3T<T>>;
-      using FacetList  = std::vector<std::vector<size_t>>;
+    const std::streamoff fileSize = fstream.tellg();
 
-      std::map<uint16_t, std::pair<VertexList, FacetList>> verticesAndFacets;
+    fstream.seekg(0, std::ios::beg);
 
-      // Read triangles into raw vertices and facets.
-      char normal[12];
-      char v1[12];
-      char v2[12];
-      char v3[12];
-      char att[2];
+    char header[80];
+    char countBytes[4];
 
-      float x;
-      float y;
-      float z;
+    fstream.read(header, 80);
+    fstream.read(countBytes, 4);
 
-      uint16_t id;
+    if (!fstream) {
+      std::cerr << "Parser::readSTL -- Error! Binary file " + a_filename + " is too short to hold an STL header\n";
 
-      for (size_t i = 0; i < numTriangles; i++) {
-        fstream.read(normal, 12);
-        fstream.read(v1, 12);
-        fstream.read(v2, 12);
-        fstream.read(v3, 12);
-        fstream.read(att, 2);
+      break;
+    }
 
-        char* ptr = nullptr;
+    uint32_t numTriangles;
+    std::memcpy(&numTriangles, countBytes, 4);
 
-        Vec3T<T> v[3];
+    const std::streamoff expectedSize = 84 + 50 * static_cast<std::streamoff>(numTriangles);
 
-        ptr = v1;
-        memcpy(&x, ptr, 4);
-        ptr += 4;
-        memcpy(&y, ptr, 4);
-        ptr += 4;
-        memcpy(&z, ptr, 4);
-        v[0] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
+    if (fileSize < expectedSize) {
+      std::cerr << "Parser::readSTL -- Error! Binary file " + a_filename + " declares " + std::to_string(numTriangles) +
+                     " triangles but is truncated (" + std::to_string(fileSize) + " bytes, expected " +
+                     std::to_string(expectedSize) + ")\n";
 
-        ptr = v2;
-        memcpy(&x, ptr, 4);
-        ptr += 4;
-        memcpy(&y, ptr, 4);
-        ptr += 4;
-        memcpy(&z, ptr, 4);
-        v[1] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
+      break;
+    }
 
-        ptr = v3;
-        memcpy(&x, ptr, 4);
-        ptr += 4;
-        memcpy(&y, ptr, 4);
-        ptr += 4;
-        memcpy(&z, ptr, 4);
-        v[2] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
+    vertices.reserve(3 * static_cast<size_t>(numTriangles));
+    facets.reserve(numTriangles);
 
-        memcpy(&id, &att, 2);
+    char record[50];
 
-        if (verticesAndFacets.find(id) == verticesAndFacets.end()) {
-          verticesAndFacets.emplace(id, std::make_pair(VertexList(), FacetList()));
-        }
+    for (uint32_t i = 0; i < numTriangles; i++) {
+      fstream.read(record, 50);
 
-        auto& objectVertices = verticesAndFacets.at(id).first;
-        auto& objectFacets   = verticesAndFacets.at(id).second;
+      std::vector<size_t> facet;
 
-        // Insert a new facet.
-        std::vector<size_t> curFacet;
-        for (auto& j : v) {
-          objectVertices.emplace_back(j);
-          curFacet.emplace_back(objectVertices.size() - 1);
-        }
+      for (int v = 0; v < 3; v++) {
+        float xyz[3];
 
-        objectFacets.emplace_back(curFacet);
+        std::memcpy(xyz, record + 12 * (v + 1), 12);
+
+        vertices.emplace_back(Vec3T<T>(static_cast<T>(xyz[0]), static_cast<T>(xyz[1]), static_cast<T>(xyz[2])));
+        facet.emplace_back(vertices.size() - 1);
       }
 
-      vertices = verticesAndFacets.begin()->second.first;
-      facets   = verticesAndFacets.begin()->second.second;
+      facets.emplace_back(std::move(facet));
     }
-    else {
-      std::cerr << "Parser::readSTL -- Error! Could not open binary file " + a_filename + "\n";
+
+    if (!fstream) {
+      std::cerr << "Parser::readSTL -- Error! Could not read binary file " + a_filename + "\n";
+
+      vertices.clear();
+      facets.clear();
     }
 
     break;
@@ -352,6 +357,8 @@ Parser::readSTL(const std::string& a_filename)
     break;
   }
   }
+
+  Parser::rejectInvalidSoup(vertices, facets, a_filename);
 
   return stl;
 }
@@ -505,8 +512,11 @@ Parser::readPLY(const std::string& a_filename)
         }
       }
 
+      // A record that is missing or cannot be parsed means a truncated or corrupted file.
+      bool malformed = false;
+
       // Read vertex data
-      for (size_t v = 0; v < numVertices; v++) {
+      for (size_t v = 0; v < numVertices && !malformed; v++) {
         std::getline(filestream, line);
         std::stringstream sstream(line);
 
@@ -529,6 +539,8 @@ Parser::readPLY(const std::string& a_filename)
           }
         }
 
+        malformed = malformed || !filestream || sstream.fail();
+
         vertices.emplace_back(Vec3T<T>(x, y, z));
 
         // Store all vertex properties
@@ -538,7 +550,7 @@ Parser::readPLY(const std::string& a_filename)
       }
 
       // Read face data
-      for (size_t f = 0; f < numFaces; f++) {
+      for (size_t f = 0; f < numFaces && !malformed; f++) {
         std::getline(filestream, line);
         std::stringstream sstream(line);
 
@@ -548,8 +560,15 @@ Parser::readPLY(const std::string& a_filename)
         for (size_t i = 0; i < facePropertyNames.size(); i++) {
           if (facePropertyTypes[i] == "list") {
             // Read list property (typically vertex_indices or similar)
-            size_t numIndices;
+            size_t numIndices = 0;
             sstream >> numIndices;
+
+            // A face cannot have more corners than the file has vertices.
+            if (sstream.fail() || numIndices > numVertices) {
+              malformed = true;
+
+              break;
+            }
 
             faceIndices.resize(numIndices);
             for (size_t j = 0; j < numIndices; j++) {
@@ -564,6 +583,12 @@ Parser::readPLY(const std::string& a_filename)
           }
         }
 
+        malformed = malformed || !filestream || sstream.fail();
+
+        if (malformed) {
+          break;
+        }
+
         facets.emplace_back(faceIndices);
 
         // Store scalar face properties
@@ -574,6 +599,17 @@ Parser::readPLY(const std::string& a_filename)
             scalarIdx++;
           }
         }
+      }
+
+      if (malformed) {
+        std::cerr << "Parser::readPLY -- Error! ASCII file " + a_filename + " is truncated or corrupted: it declares " +
+                       std::to_string(numVertices) + " vertices and " + std::to_string(numFaces) +
+                       " faces, and a record is missing or unreadable\n";
+
+        vertices.clear();
+        facets.clear();
+
+        break;
       }
 
       // Copy properties to PLY object using the setter methods, skipping x/y/z coordinates
@@ -753,9 +789,55 @@ Parser::readPLY(const std::string& a_filename)
         return 0;
       };
 
-      // Helper lambda to read size_t value (for list counts)
+      // Helper lambda to read a list count or vertex index. These are read as integers, never through
+      // T: a float T cannot represent every index above 2^24. A negative value, or a floating-point
+      // list type, is corrupt data and maps to SIZE_MAX, which the count and index checks reject.
       auto readBinarySizeT = [&](const std::string& type) -> size_t {
-        return static_cast<size_t>(readBinaryValue(type));
+        union {
+          char     bytes[4];
+          int32_t  i32;
+          uint32_t u32;
+          int16_t  i16;
+          uint16_t u16;
+          int8_t   i8;
+          uint8_t  u8;
+        } data;
+
+        int64_t value = -1;
+
+        const auto readSwapped = [&](const std::streamsize a_bytes) {
+          filestream.read(data.bytes, a_bytes);
+          if (!isLittleEndian) {
+            std::reverse(data.bytes, data.bytes + a_bytes);
+          }
+        };
+
+        if (type == "int" || type == "int32") {
+          readSwapped(4);
+          value = data.i32;
+        }
+        else if (type == "uint" || type == "uint32") {
+          readSwapped(4);
+          value = data.u32;
+        }
+        else if (type == "short" || type == "int16") {
+          readSwapped(2);
+          value = data.i16;
+        }
+        else if (type == "ushort" || type == "uint16") {
+          readSwapped(2);
+          value = data.u16;
+        }
+        else if (type == "char" || type == "int8") {
+          readSwapped(1);
+          value = data.i8;
+        }
+        else if (type == "uchar" || type == "uint8") {
+          readSwapped(1);
+          value = data.u8;
+        }
+
+        return value < 0 ? std::numeric_limits<size_t>::max() : static_cast<size_t>(value);
       };
 
       // Get references to the PLY data members
@@ -796,7 +878,7 @@ Parser::readPLY(const std::string& a_filename)
       }
 
       // Read binary vertex data
-      for (size_t v = 0; v < numVertices; v++) {
+      for (size_t v = 0; v < numVertices && filestream; v++) {
         T              x = 0, y = 0, z = 0;
         std::vector<T> propValues(vertexPropertyNames.size());
 
@@ -823,8 +905,11 @@ Parser::readPLY(const std::string& a_filename)
         }
       }
 
+      // A face cannot have more corners than the file has vertices; a larger count means corrupted data.
+      bool malformed = !filestream;
+
       // Read binary face data
-      for (size_t f = 0; f < numFaces; f++) {
+      for (size_t f = 0; f < numFaces && !malformed; f++) {
         std::vector<T>      scalarPropValues;
         std::vector<size_t> faceIndices;
 
@@ -832,6 +917,12 @@ Parser::readPLY(const std::string& a_filename)
           if (facePropertyTypes[i] == "list") {
             // Read list property
             const size_t numIndices = readBinarySizeT(faceListSizeTypes[i]);
+
+            if (!filestream || numIndices > numVertices) {
+              malformed = true;
+
+              break;
+            }
 
             faceIndices.resize(numIndices);
             for (size_t j = 0; j < numIndices; j++) {
@@ -845,6 +936,12 @@ Parser::readPLY(const std::string& a_filename)
           }
         }
 
+        malformed = malformed || !filestream;
+
+        if (malformed) {
+          break;
+        }
+
         facets.emplace_back(faceIndices);
 
         // Store scalar face properties
@@ -855,6 +952,17 @@ Parser::readPLY(const std::string& a_filename)
             scalarIdx++;
           }
         }
+      }
+
+      if (malformed) {
+        std::cerr << "Parser::readPLY -- Error! Binary file " + a_filename +
+                       " is truncated or corrupted: it declares " + std::to_string(numVertices) + " vertices and " +
+                       std::to_string(numFaces) + " faces\n";
+
+        vertices.clear();
+        facets.clear();
+
+        break;
       }
 
       // Copy properties to PLY object using the setter methods, skipping x/y/z coordinates
@@ -884,6 +992,8 @@ Parser::readPLY(const std::string& a_filename)
     break;
   }
   }
+
+  Parser::rejectInvalidSoup(ply.getVertexCoordinates(), ply.getFacets(), a_filename);
 
   return ply;
 }
@@ -931,8 +1041,12 @@ Parser::readVTK(const std::string& a_filename)
       size_t numPoints   = 0;
       size_t numPolygons = 0;
 
+      // A section that is shorter than it declares, or that cannot be parsed, means a truncated or
+      // corrupted file.
+      bool malformed = false;
+
       // Read POINTS section
-      while (std::getline(filestream, line)) {
+      while (!malformed && std::getline(filestream, line)) {
         std::stringstream sstream(line);
         std::string       keyword;
         sstream >> keyword;
@@ -944,8 +1058,18 @@ Parser::readVTK(const std::string& a_filename)
           vertices.reserve(numPoints);
 
           for (size_t i = 0; i < numPoints; i++) {
-            T x, y, z;
+            T x = T(0);
+            T y = T(0);
+            T z = T(0);
+
             filestream >> x >> y >> z;
+
+            if (!filestream) {
+              malformed = true;
+
+              break;
+            }
+
             vertices.emplace_back(Vec3T<T>(x, y, z));
           }
           std::getline(filestream, line); // Consume rest of line after last point
@@ -976,6 +1100,12 @@ Parser::readVTK(const std::string& a_filename)
                 break;
               }
               offsets.emplace_back(offset);
+            }
+
+            if (offsets.size() != numPolygons) {
+              malformed = true;
+
+              break;
             }
 
             // Skip to CONNECTIVITY keyword - it should be on the next line after offsets
@@ -1036,13 +1166,27 @@ Parser::readVTK(const std::string& a_filename)
             filestream.seekg(pos);
 
             for (size_t i = 0; i < numPolygons; i++) {
-              size_t numIndices;
+              size_t numIndices = 0;
               filestream >> numIndices;
+
+              // A polygon cannot have more corners than there are points.
+              if (!filestream || numIndices > std::max(numPoints, vertices.size())) {
+                malformed = true;
+
+                break;
+              }
 
               std::vector<size_t> faceIndices(numIndices);
               for (size_t j = 0; j < numIndices; j++) {
                 filestream >> faceIndices[j];
               }
+
+              if (!filestream) {
+                malformed = true;
+
+                break;
+              }
+
               facets.emplace_back(faceIndices);
             }
             std::getline(filestream, line); // Consume rest of line
@@ -1179,6 +1323,15 @@ Parser::readVTK(const std::string& a_filename)
         }
       }
 
+      if (malformed || vertices.size() != numPoints) {
+        std::cerr << "Parser::readVTK -- Error! ASCII file " + a_filename + " is truncated or corrupted: it declares " +
+                       std::to_string(numPoints) + " points and " + std::to_string(numPolygons) +
+                       " polygons, and a section is missing or unreadable\n";
+
+        vertices.clear();
+        facets.clear();
+      }
+
       filestream.close();
     }
     else {
@@ -1237,8 +1390,12 @@ Parser::readVTK(const std::string& a_filename)
         return data.i;
       };
 
+      // A section that is shorter than it declares, or that cannot be parsed, means a truncated or
+      // corrupted file.
+      bool malformed = false;
+
       // Read sections - they are still labeled in ASCII
-      while (std::getline(filestream, line)) {
+      while (!malformed && std::getline(filestream, line)) {
         std::stringstream sstream(line);
         std::string       keyword;
         sstream >> keyword;
@@ -1265,6 +1422,12 @@ Parser::readVTK(const std::string& a_filename)
               T z = static_cast<T>(readBinaryDouble());
               vertices.emplace_back(Vec3T<T>(x, y, z));
             }
+          }
+
+          if (!filestream) {
+            malformed = true;
+
+            break;
           }
         }
         else if (keyword == "POLYGONS") {
@@ -1362,6 +1525,14 @@ Parser::readVTK(const std::string& a_filename)
             for (size_t i = 0; i < numPolygons; i++) {
               const int32_t numIndices = readBinaryInt();
 
+              // A polygon cannot have more corners than there are points.
+              if (!filestream || numIndices < 0 ||
+                  static_cast<size_t>(numIndices) > std::max(numPoints, vertices.size())) {
+                malformed = true;
+
+                break;
+              }
+
               std::vector<size_t> faceIndices;
               faceIndices.reserve(numIndices);
 
@@ -1369,6 +1540,13 @@ Parser::readVTK(const std::string& a_filename)
                 const int32_t idx = readBinaryInt();
                 faceIndices.emplace_back(static_cast<size_t>(idx));
               }
+
+              if (!filestream) {
+                malformed = true;
+
+                break;
+              }
+
               facets.emplace_back(faceIndices);
             }
           }
@@ -1625,6 +1803,15 @@ Parser::readVTK(const std::string& a_filename)
         }
       }
 
+      if (malformed || vertices.size() != numPoints) {
+        std::cerr << "Parser::readVTK -- Error! Binary file " + a_filename +
+                       " is truncated or corrupted: it declares " + std::to_string(numPoints) + " points and " +
+                       std::to_string(numPolygons) + " polygons\n";
+
+        vertices.clear();
+        facets.clear();
+      }
+
       filestream.close();
     }
     else {
@@ -1639,6 +1826,8 @@ Parser::readVTK(const std::string& a_filename)
     break;
   }
   }
+
+  Parser::rejectInvalidSoup(vtk.getVertexCoordinates(), vtk.getFacets(), a_filename);
 
   return vtk;
 }
@@ -1729,6 +1918,8 @@ Parser::readOBJ(const std::string& a_filename)
     std::cerr << "Parser::readOBJ -- Error! Could not open file " + a_filename + "\n";
   }
 
+  Parser::rejectInvalidSoup(vertices, facets, a_filename);
+
   return obj;
 }
 
@@ -1800,6 +1991,10 @@ Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool)
 
     break;
   }
+  }
+
+  if (ft != Parser::FileType::Unsupported && mesh.numFaces() == 0) {
+    std::cerr << "Parser::readIntoDCEL -- '" + a_filename + "' produced a mesh with no faces\n";
   }
 
   return mesh;

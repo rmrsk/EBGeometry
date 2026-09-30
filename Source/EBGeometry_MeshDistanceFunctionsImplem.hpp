@@ -17,6 +17,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -41,6 +43,26 @@ namespace EBGeometry {
 namespace MeshDistanceFunctionsDetail {
 
 /**
+ * @brief Abort with a message if a mesh distance function would be built from nothing.
+ * @details Internal helper. Always on rather than an EBGEOMETRY_EXPECT: a Release build would
+ * otherwise dereference a null bounding-volume list. The usual cause is a mesh file that is missing
+ * or unreadable, for which the parser has already printed the reason.
+ * @param[in] a_who   Class being built, for the message.
+ * @param[in] a_count Number of faces or triangles it was given.
+ */
+inline void
+requireNonEmpty(const char* a_who, const size_t a_count) noexcept
+{
+  if (a_count == 0) {
+    std::fprintf(stderr,
+                 "EBGeometry::%s: the mesh has no faces, so there is nothing to build a distance function from. "
+                 "Check that the mesh file exists and could be read.\n",
+                 a_who);
+    std::abort();
+  }
+}
+
+/**
  * @brief Build a tree BVH from a DCEL mesh.
  * @details Internal helper; not part of the public API.
  * @tparam T    Floating-point precision type.
@@ -59,7 +81,7 @@ buildDCELTreeBVH(const EBGeometry::DCEL::MeshT<T, Meta>& a_dcelMesh, const BVH::
                 "MeshDistanceFunctionsDetail::buildDCELTreeBVH requires a floating-point type T");
   static_assert(K >= 2, "MeshDistanceFunctionsDetail::buildDCELTreeBVH: branching factor K must be at least 2");
 
-  EBGEOMETRY_EXPECT(a_dcelMesh.numFaces() > 0);
+  requireNonEmpty("MeshSDF", a_dcelMesh.numFaces());
 
   using Prim          = EBGeometry::DCEL::FaceT<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
@@ -241,7 +263,7 @@ buildTriTreeBVH(const std::vector<EBGeometry::Triangle<T, Meta>>& a_triangles,
                 "MeshDistanceFunctionsDetail::buildTriTreeBVH requires a floating-point type T");
   static_assert(K >= 2, "MeshDistanceFunctionsDetail::buildTriTreeBVH: branching factor K must be at least 2");
 
-  EBGEOMETRY_EXPECT(!a_triangles.empty());
+  requireNonEmpty("TriMeshSDF", a_triangles.size());
 
   using Prim          = EBGeometry::Triangle<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
@@ -596,7 +618,7 @@ TriMeshSDF<T, Meta, K, W>::buildBVH(const std::vector<Tri>& a_triangles,
                                     const BVH::Build        a_build,
                                     const size_t            a_maxLeafGroups)
 {
-  EBGEOMETRY_EXPECT(!a_triangles.empty());
+  MeshDistanceFunctionsDetail::requireNonEmpty("TriMeshSDF", a_triangles.size());
   EBGEOMETRY_EXPECT(a_maxLeafGroups > 0);
 
   using AABB      = EBGeometry::BoundingVolumes::AABBT<T>;

@@ -31,8 +31,10 @@ abortsUnderAssertions(F&& a_fn)
   const pid_t pid = fork();
 
   if (pid == 0) {
-    // Silence the child's stderr: the expected EBGEOMETRY_EXPECT diagnostic and Catch2's own
-    // SIGABRT-handler summary would otherwise clutter the parent test's output.
+    // Silence the child: the expected diagnostic (stderr) and Catch2's own SIGABRT-handler summary
+    // (stdout, reported as a failure of the child's copy of the test) would otherwise clutter the
+    // parent test's output and read like a real failure.
+    (void)std::freopen("/dev/null", "w", stdout);
     (void)std::freopen("/dev/null", "w", stderr);
 
     a_fn();

@@ -42,6 +42,23 @@ containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                            const std::vector<std::vector<size_t>>&  a_facets) noexcept;
 
 /**
+ * @brief Check that a polygon soup can describe a mesh at all.
+ * @details Every vertex index must refer to an existing vertex, and every vertex coordinate must be
+ * finite. A soup read from a corrupted file typically fails one of these; the other Soup functions
+ * assume both.
+ * @tparam T Floating-point precision type for vertex coordinates.
+ * @param[in]  a_vertices Vertex coordinate list.
+ * @param[in]  a_facets   Index lists defining each polygon face.
+ * @param[out] a_reason   Why the soup is invalid; untouched if it is valid.
+ * @return True if the soup is valid.
+ */
+template <typename T>
+[[nodiscard]] inline static bool
+isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+        const std::vector<std::vector<size_t>>&  a_facets,
+        std::string&                             a_reason) noexcept;
+
+/**
  * @brief Compress a polygon soup by removing duplicate vertices.
  * @details After this call, `a_vertices` contains only unique vertex positions and
  * `a_facets` has been updated to reference the new indices.
