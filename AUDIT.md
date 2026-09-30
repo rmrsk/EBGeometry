@@ -471,6 +471,25 @@ Phase 0 is complete. Items 7–10 were:
 
 ### Phase 1 — foundations
 
+| Item | Status | Commit |
+|------|--------|--------|
+| 11. Error policy (D8) | Done | `df9ebdc`, `9505d11`, `f619cae` |
+
+Findings from item 11:
+
+- **The "tree too deep" death test never reached the depth check.** Its K = 256 node needs 2048-byte
+  alignment, above the Pool's 256; a Debug-only check on the alignment fired first, and Release would
+  have misaligned the block silently. `PODVector` now rejects such a type at compile time (MEM-16),
+  and the test builds a 101-level chain by hand.
+- **Fuzzing.** 40 byte flips per fixture (598 inputs) found seven more ways a corrupted file reached a
+  Debug abort, or undefined behaviour in Release: two STL facets merged by a damaged `endfacet`, faces
+  that could not be joined into a half-edge mesh, and faces folded back onto each other. The readers
+  now reject all three with a `ParseError`; the run ends with a `ParseError` or a mesh every time.
+- **Real meshes now rejected.** Three of the submodule's 24 OBJ models throw: `beetle.obj` and
+  `xyzrgb_dragon.obj` (inconsistent orientation or non-manifold edges) and `ogre.obj` (a fold). They
+  already aborted in Debug; Release loaded them with undefined signs near the defect. Holes are still
+  accepted. An opt-out that loads such meshes with a warning is possible if wanted.
+
 11. **Error policy** (D8): an always-on `EBGEOMETRY_REQUIRE` for user input and one-time host checks;
     parsers throw a `ParseError` with file, line and reason.
 12. **Device math header and toolchain contract** (D6, MEM-5): `EBGeometry_Math.hpp`, `T m_X[3]` in
