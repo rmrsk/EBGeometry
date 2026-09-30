@@ -172,6 +172,10 @@ started.** Actual sequence:
 > written against the virtual CSG interface; the `CSGUnion` example's disabled code; and
 > `SignedDistanceFunction<T>`, which no built-in class implements any more.
 >
+> The audit was run early, after step 4, rather than after steps 3, 1 and 6: its findings reshape
+> those steps, including several items to retire rather than port. The findings, the design review
+> and the fix plan are in [AUDIT.md](AUDIT.md).
+>
 > **0a** (a CUDA/HIP toolkit on the development machine) is not a sequence step: it is still open
 > and should be closed as early as possible, since every step after it adds device code.
 
