@@ -1984,8 +1984,6 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- a uint32_t-index 
   }
 }
 
-#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
-
 TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack is rejected at build time", "[BVH][death]")
 {
   using T    = double;
@@ -1993,34 +1991,54 @@ TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack is rejecte
   using Vec3 = Vec3T<T>;
   using Pnt  = BareTestPoint<T>;
 
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+  using Node   = typename Packed::Node;
+
   // pruneTraverse peaks at 1 + (K-1)*(depth-1) stack entries, so the 256-entry host stack holds a
-  // tree of depth 1 + 255/(K-1). For the branching factors anyone actually uses that bound is far
-  // out of reach -- at K = 4 it is depth 86, or 4^85 leaves -- which is why this test needs an
-  // absurd K = 256 to reach it at all: there the limit is depth 2, and any tree with more than one
-  // interior level exceeds it. That the bound is unreachable in practice is the point; what is
-  // being tested is that exceeding it fails loudly rather than overflowing the stack, which in
-  // Release would be a silent out-of-bounds write.
-  constexpr size_t K = 256;
+  // tree of depth 1 + 255/(K-1) = 86 at K = 4. No builder gets near that (it would take 4^85
+  // leaves), so the tree is written by hand and handed to the node-array constructor: a chain of
+  // interior nodes, each with its first child the next node in the chain and the others a shared
+  // leaf at the end. What is being tested is that exceeding the bound fails loudly, rather than
+  // overflowing the stack, which in Release would be a silent out-of-bounds write.
+  const std::vector<Pnt> prims = {Pnt{Vec3(T(0), T(0), T(0))}};
+  const AABB             box(Vec3(T(0), T(0), T(0)), Vec3(T(1), T(1), T(1)));
 
-  REQUIRE(abortsUnderAssertions([] {
-    Pool pool(hostMemoryResource());
+  const auto chain = [&box](const size_t a_interior) {
+    std::vector<Node> nodes(a_interior + 1);
 
-    std::vector<std::pair<Pnt, AABB>> prims;
+    for (size_t i = 0; i < a_interior; i++) {
+      nodes[i].setBoundingVolume(box);
+      nodes[i].setChildOffset(static_cast<uint32_t>(i + 1), 0);
 
-    prims.reserve(2000);
-
-    for (int i = 0; i < 2000; i++) {
-      const T    t = T(i) * T(0.01);
-      const Vec3 p(std::sin(t) * t, std::cos(t) * t, T(0.3) * t);
-
-      prims.emplace_back(Pnt{p}, AABB(p, p));
+      for (size_t k = 1; k < K; k++) {
+        nodes[i].setChildOffset(static_cast<uint32_t>(a_interior), k);
+      }
     }
 
-    // 2000 leaves under K = 256 is depth 3 -- one level past what the stack can hold.
-    const BVH::PackedBVH<T, Pnt, K> tooDeep(pool, prims, size_t(1));
+    nodes[a_interior].setBoundingVolume(box);
+    nodes[a_interior].setPrimitivesOffset(0);
+    nodes[a_interior].setNumPrimitives(1);
 
-    (void)tooDeep;
+    return nodes;
+  };
+
+  REQUIRE_FALSE(aborts([&] {
+    Pool         pool(hostMemoryResource());
+    const Packed bvh(pool, chain(80), prims);
+
+    (void)bvh;
   }));
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, chain(100), prims);
+
+      (void)bvh;
+    },
+    "host build -- tree depth 101 exceeds what a 256-entry traversal stack can hold (max 86 at K = 4)"));
 }
 
 TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[BVH][death]")
@@ -2051,7 +2069,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     good[k + 1].setNumPrimitives(2);
   }
 
-  REQUIRE_FALSE(abortsUnderAssertions([&] {
+  REQUIRE_FALSE(aborts([&] {
     Pool         pool(hostMemoryResource());
     const Packed bvh(pool, good, prims);
 
@@ -2064,12 +2082,14 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
 
     bad[K].setNumPrimitives(3);
 
-    REQUIRE(abortsUnderAssertions([&] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, bad, prims);
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
 
-      (void)bvh;
-    }));
+        (void)bvh;
+      },
+      "leaf 4's primitive range ends at 3, past the primitive array's 2 primitives"));
   }
 
   SECTION("a child offset pointing back at its own parent")
@@ -2078,12 +2098,14 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
 
     bad[0].setChildOffset(0, K - 1);
 
-    REQUIRE(abortsUnderAssertions([&] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, bad, prims);
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
 
-      (void)bvh;
-    }));
+        (void)bvh;
+      },
+      "node 0 has child offset 0, which is not strictly after its parent"));
   }
 
   SECTION("a child offset past the end of the node array")
@@ -2092,26 +2114,28 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
 
     bad[0].setChildOffset(static_cast<uint32_t>(K + 1), 0);
 
-    REQUIRE(abortsUnderAssertions([&] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, bad, prims);
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
 
-      (void)bvh;
-    }));
+        (void)bvh;
+      },
+      "node 0 has child offset 5, which is not strictly after its parent"));
   }
 
   SECTION("an empty node array paired with a non-empty primitive array")
   {
-    REQUIRE(abortsUnderAssertions([&] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, std::vector<Node>{}, prims);
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, std::vector<Node>{}, prims);
 
-      (void)bvh;
-    }));
+        (void)bvh;
+      },
+      "it is empty, but the primitive array holds 2 primitives"));
   }
 }
-
-#endif // EBGEOMETRY_ENABLE_ASSERTIONS
 
 TEMPLATE_TEST_CASE("PackedBVH: the adopt constructor rebuilds an identical BVH from getNodes() and "
                    "getPrimitives()",

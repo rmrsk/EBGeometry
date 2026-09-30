@@ -1361,20 +1361,17 @@ PackedBVH<T, P, K>::requireDepthFits(const void* a_base, const size_t a_stackDep
   const size_t depth = this->maxNodeDepth(a_base);
   const size_t limit = PackedBVH::maxSafeDepth(a_stackDepth);
 
-  if (depth > limit) {
-    std::fprintf(stderr,
-                 "EBGeometry::BVH::PackedBVH: %s -- tree depth %zu exceeds what a %zu-entry "
-                 "traversal stack can hold (max %zu at K = %zu).\n"
-                 "  pruneTraverse would overflow its fixed stack, which Release builds do not "
-                 "detect. Rebuild with a larger target leaf size, or a branching factor whose\n"
-                 "  tree is shallower, before querying this BVH.\n",
-                 a_context,
-                 depth,
-                 a_stackDepth,
-                 limit,
-                 K);
-    std::abort();
-  }
+  EBGEOMETRY_REQUIRE(depth <= limit,
+                     "BVH::PackedBVH: %s -- tree depth %zu exceeds what a %zu-entry traversal stack can hold "
+                     "(max %zu at K = %zu).\n"
+                     "  pruneTraverse would overflow its fixed stack, which Release builds do not detect. Rebuild "
+                     "with a larger target leaf size, or a branching factor whose\n"
+                     "  tree is shallower, before querying this BVH.",
+                     a_context,
+                     depth,
+                     a_stackDepth,
+                     limit,
+                     K);
 }
 
 template <class T, class P, size_t K>
@@ -1384,25 +1381,14 @@ PackedBVH<T, P, K>::requireWellFormed(const std::vector<Node>& a_linearNodes, co
 {
   const size_t numNodes = a_linearNodes.size();
 
-  // Report the first defect and stop: once one offset is wrong, later ones say nothing reliable.
-  const auto reject = [](const char* a_what, const size_t a_node, const size_t a_value, const size_t a_bound) {
-    std::fprintf(stderr,
-                 "EBGeometry::BVH::PackedBVH: adopted node array is malformed -- node %zu: %s "
-                 "(%zu, bound %zu).\n"
-                 "  The array must be a depth-first pre-order flattening: every child strictly after "
-                 "its parent and inside the array, every leaf's primitives inside the primitive "
-                 "array.\n",
-                 a_node,
-                 a_what,
-                 a_value,
-                 a_bound);
-    std::abort();
-  };
-
+  // Report the first defect and stop: once one offset is wrong, later ones say nothing reliable. The
+  // array must be a depth-first pre-order flattening: every child strictly after its parent and
+  // inside the array, every leaf's primitives inside the primitive array.
   if (numNodes == 0) {
-    if (a_numPrimitives != 0) {
-      reject("empty node array with a non-empty primitive array", 0, a_numPrimitives, 0);
-    }
+    EBGEOMETRY_REQUIRE(a_numPrimitives == 0,
+                       "BVH::PackedBVH: adopted node array is malformed -- it is empty, but the primitive "
+                       "array holds %zu primitives",
+                       a_numPrimitives);
 
     return;
   }
@@ -1413,17 +1399,23 @@ PackedBVH<T, P, K>::requireWellFormed(const std::vector<Node>& a_linearNodes, co
     if (node.isLeaf()) {
       const size_t end = size_t(node.getPrimitivesOffset()) + size_t(node.getNumPrimitives());
 
-      if (end > a_numPrimitives) {
-        reject("leaf primitive range ends past the primitive array", i, end, a_numPrimitives);
-      }
+      EBGEOMETRY_REQUIRE(end <= a_numPrimitives,
+                         "BVH::PackedBVH: adopted node array is malformed -- leaf %zu's primitive range ends at "
+                         "%zu, past the primitive array's %zu primitives",
+                         i,
+                         end,
+                         a_numPrimitives);
 
       continue;
     }
 
     for (const uint32_t child : node.getChildOffsets()) {
-      if (child <= i || child >= numNodes) {
-        reject("child offset not strictly after its parent and inside the array", i, child, numNodes);
-      }
+      EBGEOMETRY_REQUIRE(child > i && child < numNodes,
+                         "BVH::PackedBVH: adopted node array is malformed -- node %zu has child offset %zu, which "
+                         "is not strictly after its parent and inside the array of %zu nodes",
+                         i,
+                         size_t(child),
+                         numNodes);
     }
   }
 }

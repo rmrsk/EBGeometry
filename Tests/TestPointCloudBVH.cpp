@@ -542,31 +542,34 @@ TEMPLATE_TEST_CASE("PointCloudBVH: a rebased view answers queries on device and 
 }
 #endif
 
-#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
 TEST_CASE("PointCloudBVH and PointCloudHashGrid reject a cloud they cannot index", "[PointCloudBVH][death]")
 {
   using T = double;
 
-  // Always-on checks, independent of EBGEOMETRY_ENABLE_ASSERTIONS; exercised here because this is
-  // where the fork-based death-test helper is available.
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
   const std::vector<Vec3T<T>> pos = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(1), T(0), T(0))};
 
-  REQUIRE(abortsUnderAssertions([&pos] {
-    Pool                                pool(hostMemoryResource());
-    const std::vector<std::size_t>      tooShort = {0};
-    const PointCloudBVH<T, std::size_t> bvh(pool, pos, tooShort);
-  }));
+  REQUIRE(abortsWith(
+    [&pos] {
+      Pool                                pool(hostMemoryResource());
+      const std::vector<std::size_t>      tooShort = {0};
+      const PointCloudBVH<T, std::size_t> bvh(pool, pos, tooShort);
+    },
+    "PointCloudBVH: need one metadata entry per point (1 metadata entries, 2 points)"));
 
-  REQUIRE(abortsUnderAssertions([&pos] {
-    const std::vector<std::size_t>           tooShort = {0};
-    const PointCloudHashGrid<T, std::size_t> grid(pos, tooShort);
-  }));
+  REQUIRE(abortsWith(
+    [&pos] {
+      const std::vector<std::size_t>           tooShort = {0};
+      const PointCloudHashGrid<T, std::size_t> grid(pos, tooShort);
+    },
+    "PointCloudHashGrid: need one metadata entry per point"));
 
-  REQUIRE(abortsUnderAssertions([] {
-    Pool                                pool(hostMemoryResource());
-    const std::vector<Vec3T<T>>         bad  = {Vec3T<T>(T(0), std::numeric_limits<T>::quiet_NaN(), T(0))};
-    const std::vector<std::size_t>      meta = {0};
-    const PointCloudBVH<T, std::size_t> bvh(pool, bad, meta);
-  }));
+  REQUIRE(abortsWith(
+    [] {
+      Pool                                pool(hostMemoryResource());
+      const std::vector<Vec3T<T>>         bad  = {Vec3T<T>(T(0), std::numeric_limits<T>::quiet_NaN(), T(0))};
+      const std::vector<std::size_t>      meta = {0};
+      const PointCloudBVH<T, std::size_t> bvh(pool, bad, meta);
+    },
+    "PointCloudBVH: point 0 of 1 has a non-finite coordinate"));
 }
-#endif

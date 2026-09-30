@@ -118,6 +118,8 @@ template <class T>
 struct PODVector
 {
   static_assert(std::is_trivially_copyable_v<T>, "PODVector<T>: T must be trivially copyable (device-visible storage)");
+  static_assert(alignof(T) <= PoolBaseAlign,
+                "PODVector<T>: T's alignment exceeds the Pool's base alignment, so no reservation can align it");
 
   /// @brief Byte offset of element 0 from @ref Pool::base.
   uint64_t m_offset = 0;

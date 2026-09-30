@@ -44,9 +44,10 @@ components). A handful of design choices recur throughout the implementation:
   compiler-predefined ISA macros -- never a runtime dispatch. See
   :ref:`Chap:SIMDClasses`.
 
-* **Two complementary assertion mechanisms.** ``static_assert`` guards template-parameter
-  invariants decidable at compile time; the opt-in ``EBGEOMETRY_EXPECT`` macro guards runtime
-  preconditions on actual argument values. See :ref:`Chap:ConfigurationOptions`.
+* **Three checking mechanisms.** ``static_assert`` guards template-parameter invariants decidable
+  at compile time; the always-on ``EBGEOMETRY_REQUIRE`` macro checks what a caller controls, once,
+  when an object is built; the opt-in ``EBGEOMETRY_EXPECT`` macro guards internal invariants,
+  including on hot paths. See :ref:`Chap:ConfigurationOptions`.
 
 The remaining pages in this section cover each component in more detail:
 

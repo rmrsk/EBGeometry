@@ -44,22 +44,17 @@ namespace MeshDistanceFunctionsDetail {
 
 /**
  * @brief Abort with a message if a mesh distance function would be built from nothing.
- * @details Internal helper. Always on rather than an EBGEOMETRY_EXPECT: a Release build would
- * otherwise dereference a null bounding-volume list. The usual cause is a mesh file that is missing
- * or unreadable, for which the parser has already printed the reason.
+ * @details Internal helper. Always on (EBGEOMETRY_REQUIRE): a Release build would otherwise
+ * dereference a null bounding-volume list. The file readers throw rather than return an empty mesh,
+ * so the usual cause is a mesh built by hand.
  * @param[in] a_who   Class being built, for the message.
  * @param[in] a_count Number of faces or triangles it was given.
  */
 inline void
 requireNonEmpty(const char* a_who, const size_t a_count) noexcept
 {
-  if (a_count == 0) {
-    std::fprintf(stderr,
-                 "EBGeometry::%s: the mesh has no faces, so there is nothing to build a distance function from. "
-                 "Check that the mesh file exists and could be read.\n",
-                 a_who);
-    std::abort();
-  }
+  EBGEOMETRY_REQUIRE(
+    a_count > 0, "%s: the mesh has no faces, so there is nothing to build a distance function from", a_who);
 }
 
 /**

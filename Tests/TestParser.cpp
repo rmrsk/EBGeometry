@@ -194,33 +194,39 @@ TEMPLATE_TEST_CASE("Parser: readIntoTriangleBVH keeps the intermediate DCEL mesh
   REQUIRE(sdf.signedDistance(Vec3T<T>::zeros()) == fromMesh.signedDistance(Vec3T<T>::zeros()));
 }
 
-#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
 TEST_CASE("Mesh distance functions and BVH unions refuse to build from nothing", "[Parser][death]")
 {
   using T = double;
 
-  // Always-on checks, independent of EBGEOMETRY_ENABLE_ASSERTIONS; they are exercised here because
-  // this is where the fork-based death-test helper is available.
-  REQUIRE(abortsUnderAssertions([] {
-    Pool                            pool(hostMemoryResource());
-    const DCEL::MeshT<T, Meta>      empty;
-    const TriMeshSDF<T, Meta, 4, 4> sdf(empty, pool, BVH::Build::SAH, 2);
-  }));
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
+  REQUIRE(abortsWith(
+    [] {
+      Pool                            pool(hostMemoryResource());
+      const DCEL::MeshT<T, Meta>      empty;
+      const TriMeshSDF<T, Meta, 4, 4> sdf(empty, pool, BVH::Build::SAH, 2);
+    },
+    "TriMeshSDF: the mesh has no faces"));
 
-  REQUIRE(abortsUnderAssertions([] {
-    Pool                       pool(hostMemoryResource());
-    const DCEL::MeshT<T, Meta> empty;
-    const MeshSDF<T, Meta, 4>  sdf(empty, pool, BVH::Build::SAH);
-  }));
+  REQUIRE(abortsWith(
+    [] {
+      Pool                       pool(hostMemoryResource());
+      const DCEL::MeshT<T, Meta> empty;
+      const MeshSDF<T, Meta, 4>  sdf(empty, pool, BVH::Build::SAH);
+    },
+    "MeshSDF: the mesh has no faces"));
 
-  REQUIRE(abortsUnderAssertions([] {
-    Pool                        pool(hostMemoryResource());
-    [[maybe_unused]] const auto sdf = Parser::readIntoTriangleBVH<T, Meta, 4, 4>(dataPath("does_not_exist.stl"), pool);
-  }));
+  REQUIRE(abortsWith(
+    [] {
+      Pool                        pool(hostMemoryResource());
+      [[maybe_unused]] const auto sdf =
+        Parser::readIntoTriangleBVH<T, Meta, 4, 4>(dataPath("does_not_exist.stl"), pool);
+    },
+    "TriMeshSDF: the mesh has no faces"));
 
-  REQUIRE(abortsUnderAssertions([] {
-    Pool                                 pool(hostMemoryResource());
-    const BVHUnionIF<T, SphereSDF<T>, 4> u(pool, {}, {});
-  }));
+  REQUIRE(abortsWith(
+    [] {
+      Pool                                 pool(hostMemoryResource());
+      const BVHUnionIF<T, SphereSDF<T>, 4> u(pool, {}, {});
+    },
+    "BVHUnionIF: a union needs at least one primitive"));
 }
-#endif

@@ -21,6 +21,7 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -45,27 +46,26 @@ template <class T>
 inline void
 requireValidCloud(const char* a_who, const std::vector<Vec3T<T>>& a_positions, const std::size_t a_numMetadata) noexcept
 {
-  const auto reject = [a_who](const char* a_what, const std::size_t a_value, const std::size_t a_bound) {
-    std::fprintf(stderr, "EBGeometry::%s: %s (%zu, %zu).\n", a_who, a_what, a_value, a_bound);
-    std::abort();
-  };
+  EBGEOMETRY_REQUIRE(a_numMetadata == a_positions.size(),
+                     "%s: need one metadata entry per point (%zu metadata entries, %zu points)",
+                     a_who,
+                     a_numMetadata,
+                     a_positions.size());
 
-  if (a_numMetadata != a_positions.size()) {
-    reject("need one metadata entry per point (metadata, points)", a_numMetadata, a_positions.size());
-  }
-
-  if (a_positions.size() > std::size_t(std::numeric_limits<std::uint32_t>::max())) {
-    reject("too many points for 32-bit indices (points, limit)",
-           a_positions.size(),
-           std::size_t(std::numeric_limits<std::uint32_t>::max()));
-  }
+  EBGEOMETRY_REQUIRE(a_positions.size() <= std::size_t(std::numeric_limits<std::uint32_t>::max()),
+                     "%s: too many points for 32-bit indices (%zu points, limit %zu)",
+                     a_who,
+                     a_positions.size(),
+                     std::size_t(std::numeric_limits<std::uint32_t>::max()));
 
   for (std::size_t i = 0; i < a_positions.size(); i++) {
     const Vec3T<T>& p = a_positions[i];
 
-    if (!(std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]))) {
-      reject("a point has a non-finite coordinate (point, points)", i, a_positions.size());
-    }
+    EBGEOMETRY_REQUIRE(std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]),
+                       "%s: point %zu of %zu has a non-finite coordinate",
+                       a_who,
+                       i,
+                       a_positions.size());
   }
 }
 

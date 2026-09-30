@@ -32,14 +32,10 @@ inline Pool::Pool(MemoryResource& a_resource, size_t a_initialBytes) : m_resourc
 {
   // A build pool must be host-accessible: reserve()/push_back()/grow() write through base() with the
   // host CPU. Device-resident pools are produced only by mirror() (via the private MirrorTag
-  // constructor). This guard is always-on, NOT EBGEOMETRY_EXPECT, because a host store into device
-  // memory in a release build is silent undefined behaviour, not a recoverable precondition slip.
-  if (!a_resource.isHostAccessible()) {
-    std::fprintf(stderr,
-                 "EBGeometry::Pool: a build pool requires a host-accessible MemoryResource; a "
-                 "device-resident pool is produced only by Pool::mirror\n");
-    std::abort();
-  }
+  // constructor). A host store into device memory would be silent undefined behaviour.
+  EBGEOMETRY_REQUIRE(a_resource.isHostAccessible(),
+                     "Pool: a build pool requires a host-accessible MemoryResource; a device-resident pool is "
+                     "produced only by Pool::mirror");
 
   if (a_initialBytes > 0) {
     const size_t rounded = (a_initialBytes + (PoolBaseAlign - 1)) & ~(PoolBaseAlign - 1);
@@ -100,13 +96,9 @@ Pool::operator=(Pool&& a_other) noexcept
 inline uint64_t
 Pool::reserve(size_t a_count, size_t a_elemSize, size_t a_alignment)
 {
-  // Always-on, NOT EBGEOMETRY_EXPECT: a moved-from pool owns no control block, so every path below
-  // (and every base resolution by an object reserved here) would dereference null. Failing hard
-  // beats a release build wandering into undefined behaviour.
-  if (m_control == nullptr) {
-    std::fprintf(stderr, "EBGeometry::Pool::reserve: cannot reserve from a moved-from pool\n");
-    std::abort();
-  }
+  // A moved-from pool owns no control block, so every path below (and every base resolution by an
+  // object reserved here) would dereference null.
+  EBGEOMETRY_REQUIRE(m_control != nullptr, "Pool::reserve: cannot reserve from a moved-from pool");
 
   EBGEOMETRY_EXPECT(!m_frozen);                              // no reserve after freeze
   EBGEOMETRY_EXPECT(a_alignment > 0);                        // 0 would underflow the mask below

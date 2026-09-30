@@ -63,36 +63,25 @@ buildBVH(Pool&                                         a_pool,
   using BV   = BoundingVolumes::AABBT<T>;
   using Root = BVH::PackedBVH<T, P, K>;
 
-  // The checks below are always on rather than EBGEOMETRY_EXPECTs: each guards against a mistake
-  // that a Release build would otherwise turn into a silent wrong answer or an out-of-bounds read,
-  // and each runs once at build time, costing nothing per evaluation.
-  const auto reject = [](const char* a_what, const size_t a_value, const size_t a_bound) {
-    std::fprintf(stderr, "EBGeometry::BVHUnionIF: %s (%zu, %zu).\n", a_what, a_value, a_bound);
-    std::abort();
-  };
+  // Each check guards against a mistake that a Release build would otherwise turn into a silent wrong
+  // answer or an out-of-bounds read, and runs once at build time, costing nothing per evaluation.
+  EBGEOMETRY_REQUIRE(!a_primitives.empty(), "BVHUnionIF: a union needs at least one primitive");
 
-  if (a_primitives.empty()) {
-    reject("a union needs at least one primitive (primitives, bounding volumes)",
-           a_primitives.size(),
-           a_boundingVolumes.size());
-  }
-
-  if (a_primitives.size() != a_boundingVolumes.size()) {
-    reject("need one bounding volume per primitive (primitives, bounding volumes)",
-           a_primitives.size(),
-           a_boundingVolumes.size());
-  }
+  EBGEOMETRY_REQUIRE(a_primitives.size() == a_boundingVolumes.size(),
+                     "BVHUnionIF: need one bounding volume per primitive (%zu primitives, %zu bounding volumes)",
+                     a_primitives.size(),
+                     a_boundingVolumes.size());
 
   // A pool-resident primitive is evaluated against the union's own pool location, so it must have
   // been reserved from the same pool; a primitive from another pool would be read from the wrong
   // memory.
   if constexpr (IsPoolResident<P>::value) {
     for (size_t i = 0; i < a_primitives.size(); i++) {
-      if (!a_primitives[i].isAttachedTo(a_pool)) {
-        reject("a primitive that lives in a Pool must be built in the union's own Pool (primitive, count)",
-               i,
-               a_primitives.size());
-      }
+      EBGEOMETRY_REQUIRE(a_primitives[i].isAttachedTo(a_pool),
+                         "BVHUnionIF: primitive %zu of %zu lives in another Pool; a pool-resident primitive must "
+                         "be built in the union's own Pool",
+                         i,
+                         a_primitives.size());
     }
   }
 

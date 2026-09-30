@@ -188,21 +188,23 @@ TEST_CASE("Pool: mirror of a non-frozen pool aborts", "[Pool][death]")
   }));
 }
 
+#endif // EBGEOMETRY_ENABLE_ASSERTIONS
+
 TEST_CASE("Pool: reserving from a moved-from pool aborts", "[Pool][death]")
 {
-  // A moved-from pool owns no control block, so there is nowhere to publish a base. This abort is
-  // always-on rather than an EBGEOMETRY_EXPECT (a release build would otherwise dereference null),
-  // but the death-test helper itself only exists under assertions.
-  REQUIRE(abortsUnderAssertions([] {
-    Pool source(hostMemoryResource(), 128);
-    Pool moved(std::move(source));
+  // A moved-from pool owns no control block, so there is nowhere to publish a base. The check is an
+  // EBGEOMETRY_REQUIRE, so it aborts in every build (a release build would otherwise dereference
+  // null).
+  REQUIRE(abortsWith(
+    [] {
+      Pool source(hostMemoryResource(), 128);
+      Pool moved(std::move(source));
 
-    PODVector<double> vec;
-    vec.reserveFrom(source, 4); // must abort
-  }));
+      PODVector<double> vec;
+      vec.reserveFrom(source, 4); // must abort
+    },
+    "Pool::reserve: cannot reserve from a moved-from pool"));
 }
-
-#endif // EBGEOMETRY_ENABLE_ASSERTIONS
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Move semantics

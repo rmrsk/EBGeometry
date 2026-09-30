@@ -43,10 +43,7 @@ HostMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 
   // Always on, as the declaration promises: a Release build would otherwise carry on with a null
   // base, and every later write would land at nullptr + offset.
-  if (ptr == nullptr) {
-    std::fprintf(stderr, "EBGeometry::HostMemoryResource::allocate: out of memory (%zu bytes)\n", rounded);
-    std::abort();
-  }
+  EBGEOMETRY_REQUIRE(ptr != nullptr, "HostMemoryResource::allocate: out of memory (%zu bytes)", rounded);
 
   return ptr;
 }
@@ -75,17 +72,12 @@ MemoryResource::copy(void*                 a_dst,
                      const MemoryResource& a_srcResource,
                      size_t                a_bytes) const noexcept
 {
-  if (a_dstResource.isHostAccessible() && a_srcResource.isHostAccessible()) {
-    std::memcpy(a_dst, a_src, a_bytes);
-
-    return;
-  }
-
   // Only a device resource can hand out non-host memory, and every device resource overrides this.
-  // Always-on rather than EBGEOMETRY_EXPECT: continuing would leave the destination uninitialized.
-  std::fprintf(stderr,
-               "EBGeometry::MemoryResource::copy: copying to or from non-host memory needs a device resource\n");
-  std::abort();
+  // Continuing would leave the destination uninitialized.
+  EBGEOMETRY_REQUIRE(a_dstResource.isHostAccessible() && a_srcResource.isHostAccessible(),
+                     "MemoryResource::copy: copying to or from non-host memory needs a device resource");
+
+  std::memcpy(a_dst, a_src, a_bytes);
 }
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) || defined(EBGEOMETRY_DOXYGEN)
@@ -110,22 +102,19 @@ gpuCopy(void*                 a_dst,
   const bool dstHost = a_dstResource.isHostAccessible();
   const bool srcHost = a_srcResource.isHostAccessible();
 
+  // Device-to-device is out of scope for the mirror (the foundation only builds on host and uploads
+  // once); the alias layer exposes no device-to-device direction. Continuing would leave the
+  // destination block uncopied.
+  EBGEOMETRY_REQUIRE(dstHost || srcHost, "MemoryResource::copy: device-to-device copies are not supported");
+
   if (dstHost && srcHost) {
     std::memcpy(a_dst, a_src, a_bytes);
   }
   else if (srcHost) {
     EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyHostToDevice));
   }
-  else if (dstHost) {
-    EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyDeviceToHost));
-  }
   else {
-    // Device-to-device is out of scope for the mirror (the foundation only builds on host and
-    // uploads once); the alias layer exposes no device-to-device direction. Always-on abort, NOT
-    // EBGEOMETRY_EXPECT, so a release build fails hard here instead of leaving the destination
-    // block uncopied (silent garbage).
-    std::fprintf(stderr, "EBGeometry::MemoryResource::copy: device-to-device copies are not supported\n");
-    std::abort();
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyDeviceToHost));
   }
 }
 

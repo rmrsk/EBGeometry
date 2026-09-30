@@ -302,5 +302,6 @@ default.  To activate it:
        -I/path/to/EBGeometry \
        main.cpp -o my_program_debug
 
+Checks on what a caller controls (``EBGEOMETRY_REQUIRE``) are on in every build and need no flag.
 See :ref:`Chap:ConfigurationOptions` for assertion semantics, the diagnostic message format, and
 the recommended build-type/assertion matrix.

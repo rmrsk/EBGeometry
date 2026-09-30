@@ -20,23 +20,24 @@ Code style
 Static and dynamic assertions
 --------------------------------
 
-EBGeometry guards its preconditions with two complementary mechanisms: a compile-time
-``static_assert`` for anything decidable from template parameters alone, and the runtime
-``EBGEOMETRY_EXPECT(cond)`` macro for anything that can only be checked from actual argument
-values. When adding new functionality, follow the same split:
+EBGeometry guards its preconditions with three mechanisms. When adding new functionality, follow
+the same split:
 
-* Guard all public-facing runtime preconditions (non-zero radii, valid axis indices,
-  non-null pointers in public API, non-empty containers) with
-  ``EBGEOMETRY_EXPECT(cond)``. Do **not** guard internal invariants that the surrounding code
-  already enforces — this adds noise without safety benefit.
 * Guard template-parameter invariants that are known at compile time (a floating-point type,
-  an in-range branching factor, ...) with ``static_assert`` instead — a violation should fail
-  the build rather than exercise a runtime check that can never actually be reached.
+  an in-range branching factor, ...) with ``static_assert`` -- a violation should fail the build
+  rather than exercise a runtime check that can never actually be reached.
+* Guard what a caller controls and what is checked once, when an object is built (positive radii,
+  valid axis indices, matching array sizes, non-empty inputs, a suitable memory resource), with the
+  always-on ``EBGEOMETRY_REQUIRE(cond, "Class: message", ...)``. A Release build must not carry on
+  into a wrong answer or undefined behaviour because of bad input.
+* Guard internal invariants, and anything on a path that runs many times (a query, a traversal
+  step), with ``EBGEOMETRY_EXPECT(cond)``, which compiles to nothing unless
+  ``EBGEOMETRY_ENABLE_ASSERTIONS`` is defined. Do **not** guard invariants that the surrounding code
+  already enforces -- this adds noise without safety benefit.
 
-See :ref:`Chap:ConfigurationOptions`'s "Compile-time assertions (``static_assert``)" and
-:ref:`Sec:Assertions` ("Runtime assertions (``EBGEOMETRY_EXPECT``)") subsections for the full
-detail on how each mechanism behaves, including with and without
-``EBGEOMETRY_ENABLE_ASSERTIONS``.
+See :ref:`Chap:ConfigurationOptions`'s "Compile-time assertions (``static_assert``)",
+:ref:`Sec:AlwaysOnChecks` and :ref:`Sec:Assertions` subsections for the full detail on how each
+mechanism behaves, including with and without ``EBGEOMETRY_ENABLE_ASSERTIONS``.
 
 Adding tests
 --------------

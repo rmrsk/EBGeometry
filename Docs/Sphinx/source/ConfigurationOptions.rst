@@ -50,9 +50,9 @@ See :ref:`Chap:SIMDAcceleration` for a conceptual overview of SIMD acceleration 
 Compile-time assertions (``static_assert``)
 ----------------------------------------------
 
-Alongside ``EBGEOMETRY_EXPECT``, EBGeometry uses ordinary C++ ``static_assert`` throughout to
-enforce template-parameter invariants that are known at compile time -- these are always
-active and cannot be disabled, unlike ``EBGEOMETRY_EXPECT``. A violation fails the build with a
+Alongside its two runtime checks (:ref:`Sec:AlwaysOnChecks` and :ref:`Sec:Assertions`), EBGeometry
+uses ordinary C++ ``static_assert`` throughout to enforce template-parameter invariants that are
+known at compile time -- these are always active and cannot be disabled. A violation fails the build with a
 compiler error rather than misbehaving, crashing, or aborting at runtime. Examples of what is
 guarded this way:
 
@@ -62,8 +62,32 @@ guarded this way:
 * Type constraints between template parameters.
 * The SIMD data-alignment invariants described in :ref:`Chap:SIMDClasses`.
 
-See the end of this page for an example combining ``static_assert`` with ``EBGEOMETRY_EXPECT``
-in a custom class.
+See the end of this page for an example combining ``static_assert`` with the runtime checks in a
+custom class.
+
+.. _Sec:AlwaysOnChecks:
+
+Always-on checks (``EBGEOMETRY_REQUIRE``)
+--------------------------------------------
+
+EBGeometry checks what a caller controls -- constructor arguments, sizes and counts, the memory
+resource a pool is built on -- with ``EBGEOMETRY_REQUIRE(cond, message...)``. These checks are on in
+every build, whether or not ``EBGEOMETRY_ENABLE_ASSERTIONS`` is defined: without them, a Release
+build given bad input would carry on into a wrong answer or undefined behaviour. Each runs once,
+when an object is built, outside any query loop, so it costs a few comparisons per object.
+
+On failure the program prints what went wrong, the failed condition, the file and the line to
+``stderr``, then calls ``std::abort()``:
+
+.. code-block:: text
+
+   EBGeometry::BVHUnionIF: need one bounding volume per primitive (4 primitives, 3 bounding volumes)
+     check: (a_primitives.size() == a_boundingVolumes.size())
+     file: Source/EBGeometry_CSGImplem.hpp
+     line: 70
+
+The message argument is a ``printf`` format string literal, starting with the class or function
+that checks, followed by its arguments, so the compiler checks the format against the arguments.
 
 .. _Sec:Assertions:
 
@@ -128,11 +152,11 @@ Writing your own assertions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you extend EBGeometry with new functionality classes, use ``static_assert`` to guard
-preconditions that are known at compile time (from the template parameters alone), and
-``EBGEOMETRY_EXPECT`` to guard preconditions that can only be checked at runtime (from actual
-argument values).  ``EBGEOMETRY_EXPECT`` is available in any translation unit that (directly or
-transitively) includes ``EBGeometry_Macros.hpp``, which is pulled in automatically through
-``EBGeometry.hpp``. An example combining both is given below. Like the built-in analytic shapes
+preconditions that are known at compile time (from the template parameters alone),
+``EBGEOMETRY_REQUIRE`` for argument values checked once when an object is built, and
+``EBGEOMETRY_EXPECT`` for invariants on paths that run many times, such as a signed-distance query.
+Both macros are available in any translation unit that (directly or transitively) includes
+``EBGeometry_Macros.hpp``, which is pulled in automatically through ``EBGeometry.hpp``. An example combining both is given below. Like the built-in analytic shapes
 (:ref:`Sec:AnalyticShapes`), it is a plain, trivially copyable value type with a
 ``signedDistance()`` member rather than a subclass of a virtual base, so it can also be evaluated on
 a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
@@ -150,7 +174,7 @@ a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
 
      explicit MySDF(T a_radius) noexcept
      {
-       EBGEOMETRY_EXPECT(a_radius > T(0));
+       EBGEOMETRY_REQUIRE(a_radius > T(0), "MySDF: the radius must be positive (%g)", double(a_radius));
 
        m_radius = a_radius;
      }
