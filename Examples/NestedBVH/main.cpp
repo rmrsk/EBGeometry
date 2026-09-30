@@ -61,7 +61,7 @@ main(int argc, char* argv[])
   // TriMeshSDF (with its own inner BVH) is built using the library's default parameters. A union
   // holds primitives of a single type, so placing genuinely different meshes works the same way, as
   // long as they are all TriMeshSDF<T, Meta, K, W> with the same parameters.
-  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(file, pool);
+  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(file);
 
   const std::vector<Vec3> shifts = {
     Vec3(0, 0, 0),

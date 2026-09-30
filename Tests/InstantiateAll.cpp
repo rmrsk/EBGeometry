@@ -181,8 +181,8 @@ instantiateFunctionTemplates()
   (void)Parser::readIntoMesh<T, Meta>(files, meshPool);
   (void)Parser::readIntoPackedBVH<T, Meta>(file, meshPool);
   (void)Parser::readIntoPackedBVH<T, Meta>(files, meshPool);
-  (void)Parser::readIntoTriangles<T, Meta>(file, meshPool);
-  (void)Parser::readIntoTriangles<T, Meta>(files, meshPool);
+  (void)Parser::readIntoTriangles<T, Meta>(file);
+  (void)Parser::readIntoTriangles<T, Meta>(files);
   (void)Parser::readIntoTriangleBVH<T, Meta>(file, meshPool);
   (void)Parser::readIntoTriangleBVH<T, Meta>(files, meshPool);
 

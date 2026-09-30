@@ -502,38 +502,6 @@ Vec3T<T>::operator!=(const Vec3T<T>& u) const noexcept
 
 template <typename T>
 EBGEOMETRY_HOST_DEVICE
-inline constexpr bool
-Vec3T<T>::operator<(const Vec3T<T>& u) const noexcept
-{
-  return (m_X[0] < u[0] && m_X[1] < u[1] && m_X[2] < u[2]);
-}
-
-template <typename T>
-EBGEOMETRY_HOST_DEVICE
-inline constexpr bool
-Vec3T<T>::operator>(const Vec3T<T>& u) const noexcept
-{
-  return (m_X[0] > u[0] && m_X[1] > u[1] && m_X[2] > u[2]);
-}
-
-template <typename T>
-EBGEOMETRY_HOST_DEVICE
-inline constexpr bool
-Vec3T<T>::operator<=(const Vec3T<T>& u) const noexcept
-{
-  return (m_X[0] <= u[0] && m_X[1] <= u[1] && m_X[2] <= u[2]);
-}
-
-template <typename T>
-EBGEOMETRY_HOST_DEVICE
-inline constexpr bool
-Vec3T<T>::operator>=(const Vec3T<T>& u) const noexcept
-{
-  return (m_X[0] >= u[0] && m_X[1] >= u[1] && m_X[2] >= u[2]);
-}
-
-template <typename T>
-EBGEOMETRY_HOST_DEVICE
 inline constexpr T
 Vec3T<T>::dot(const Vec3T<T>& u) const noexcept
 {

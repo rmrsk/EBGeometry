@@ -432,7 +432,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF: polygon faces are fan-triangulated, not truncate
 
   const BoxSDF<T>                 box(Vec3T<T>::zeros(), Vec3T<T>::ones());
   const TriMeshSDF<T, Meta, K, W> tri(cube, pool, BVH::Build::SAH, 2);
-  const auto                      triangles = Parser::readIntoTriangles<T, Meta>(dataPath("cube_quads.obj"), pool);
+  const auto                      triangles = Parser::readIntoTriangles<T, Meta>(dataPath("cube_quads.obj"));
 
   REQUIRE(triangles.size() == 12);
 
@@ -1402,7 +1402,7 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangles and TriMeshSDF's mesh constructor 
 
   Pool       pool(hostMemoryResource());
   const auto mesh      = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
-  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.obj"));
 
   REQUIRE(triangles.size() == mesh.numFaces());
 
@@ -2282,7 +2282,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(mesh.numFaces() == 4);
 
-  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
+  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"));
   REQUIRE(triangles.size() == 4);
 
   const FlatMeshSDF<T, Meta> flat(mesh, pool);
@@ -2763,8 +2763,8 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
   // PackedBVH over SoA triangle groups -- these are the inner BVHs that the outer union BVH nests
   // over. Both are the same C++ type, which is all a BVHUnion needs.
   Pool       pool(hostMemoryResource());
-  const auto dodec = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.stl"), pool);
-  const auto tetra = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
+  const auto dodec = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.stl"));
+  const auto tetra = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"));
 
   // Spread several translated mesh SDFs out so the outer union BVH has real structure to partition
   // and prune, rather than collapsing to a single leaf. Each copy is translated before its

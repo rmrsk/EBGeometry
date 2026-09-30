@@ -468,7 +468,7 @@ std::vector<TestTriMesh<T>>
 dodecahedronGrid(Pool& a_pool)
 {
   const auto triangles =
-    Parser::readIntoTriangles<T, TestMeta>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.obj", a_pool);
+    Parser::readIntoTriangles<T, TestMeta>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.obj");
 
   std::vector<TestTriMesh<T>> meshes;
 

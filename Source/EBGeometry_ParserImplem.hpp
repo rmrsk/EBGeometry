@@ -2040,9 +2040,14 @@ Parser::readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool)
 
 template <typename T, typename Meta>
 [[nodiscard]] std::vector<Triangle<T, Meta>>
-Parser::readIntoTriangles(const std::string a_filename, Pool& a_pool)
+Parser::readIntoTriangles(const std::string a_filename)
 {
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
+  // The DCEL mesh is only a step on the way to the triangles, which are plain values. Keeping it in a
+  // Pool private to this call frees it on return; in the caller's Pool it would stay reserved (a
+  // Pool never frees individual reservations) and be mirrored to the device with everything else.
+  Pool scratch(hostMemoryResource());
+
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, scratch);
 
   // The same extraction TriMeshSDF's mesh constructor uses: real half-edge normals and the face
   // metadata, so readIntoTriangleBVH and TriMeshSDF(mesh, ...) build identical triangles.
@@ -2053,13 +2058,13 @@ Parser::readIntoTriangles(const std::string a_filename, Pool& a_pool)
 
 template <typename T, typename Meta>
 [[nodiscard]] std::vector<std::vector<Triangle<T, Meta>>>
-Parser::readIntoTriangles(const std::vector<std::string>& a_files, Pool& a_pool)
+Parser::readIntoTriangles(const std::vector<std::string>& a_files)
 {
   std::vector<std::vector<Triangle<T, Meta>>> triangles;
 
   triangles.reserve(a_files.size());
   for (const auto& file : a_files) {
-    triangles.emplace_back(Parser::readIntoTriangles<T, Meta>(file, a_pool));
+    triangles.emplace_back(Parser::readIntoTriangles<T, Meta>(file));
   }
 
   return triangles;
@@ -2075,7 +2080,7 @@ Parser::readIntoTriangleBVH(const std::string a_filename,
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
-  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename, a_pool);
+  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
   return TriMeshSDF<T, Meta, K, W>(triangles, a_pool, a_build, a_maxLeafGroups);
 }

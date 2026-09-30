@@ -5,6 +5,9 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <type_traits>
+#include <utility>
+
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -14,6 +17,35 @@ using Catch::Matchers::WithinRel;
 // ─────────────────────────────────────────────────────────────────────────────
 // Vec3T
 // ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+template <class V, class = void>
+struct HasLess : std::false_type
+{
+};
+
+template <class V>
+struct HasLess<V, std::void_t<decltype(std::declval<const V&>() < std::declval<const V&>())>> : std::true_type
+{
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Vec3T: has no ordering operators, so it cannot silently break std::set or std::sort",
+                   "[Vec3T]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // "Every component less" is not a strict weak ordering: (1, 0, 0) and (0, 1, 0) are each not less
+  // than the other, so a std::set would treat them as equal.
+  STATIC_REQUIRE_FALSE(HasLess<Vec3T<T>>::value);
+
+  // lessLX is the lexicographic ordering to use instead.
+  REQUIRE(Vec3T<T>(T(0), T(1), T(0)).lessLX(Vec3T<T>(T(1), T(0), T(0))));
+  REQUIRE_FALSE(Vec3T<T>(T(1), T(0), T(0)).lessLX(Vec3T<T>(T(0), T(1), T(0))));
+}
 
 TEMPLATE_TEST_CASE("Vec3T: default construction is zero", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {

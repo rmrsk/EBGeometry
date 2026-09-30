@@ -30,7 +30,9 @@ namespace Random {
  * @brief Sample a_count uniform random points in the unit cube [0,1]^3.
  * @details Deterministic for a given seed: the same a_seed always produces the same points (a
  * std::mt19937_64 seeded with a_seed drives a std::uniform_real_distribution over [0,1)), so
- * callers get reproducible run-to-run results.
+ * callers get reproducible run-to-run results. The engine's output is fixed by the standard, but the
+ * distribution's is not, so the points are only guaranteed to match across builds that use the same
+ * standard library.
  * @tparam T Floating-point precision.
  * @param[in] a_count Number of points to sample.
  * @param[in] a_seed  RNG seed.

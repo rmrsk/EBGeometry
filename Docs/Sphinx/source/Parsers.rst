@@ -176,22 +176,24 @@ the SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRat
 bounds the number of full ``W``-sized SoA groups per BVH leaf. Faces with more than three vertices
 are fan-triangulated, which is exact for the planar convex faces the DCEL mesh requires. Unlike
 ``readIntoMesh``/``readIntoPackedBVH``, the returned ``TriMeshSDF`` extracts flat ``Triangle``
-values from the intermediate DCEL mesh and does not retain it; its BVH is still reserved from
-``pool``, though, so ``pool`` must outlive it. Since a ``Pool`` never individually frees what it
-reserves (see `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), the intermediate mesh's storage
-also stays reserved in ``pool``.
+values from the intermediate DCEL mesh and does not retain it; its BVH is reserved from
+``pool``, so ``pool`` must outlive it. The intermediate mesh itself lives in a ``Pool`` private to
+the call and is freed on return. A ``Pool`` never frees individual reservations (see
+`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), so building the mesh in ``pool`` would leave
+it reserved there, and mirrored to the device along with the BVH.
 
 Flat triangle list
 ____________________
 
-``readIntoTriangles<T, Meta>(filename, pool)`` returns a flat ``std::vector<Triangle<T, Meta>>``
+``readIntoTriangles<T, Meta>(filename)`` returns a flat ``std::vector<Triangle<T, Meta>>``
 (or, for the multi-file overload, one such vector per file) -- every face of the parsed mesh as an
 independent, self-contained ``Triangle`` value, with no DCEL/half-edge topology connecting them. Each
 triangle carries its face's normal and metadata, and its vertices' and half-edges' normals -- the
 same extraction ``TriMeshSDF``'s mesh constructor performs, so ``readIntoTriangleBVH`` and
 ``TriMeshSDF(mesh, ...)`` build identical triangles.
-The triangles are plain values that do not refer back to ``pool``, so ``pool`` only needs to outlive
-this call. Use this
+The triangles are plain values, and the intermediate DCEL mesh lives in a ``Pool`` private to the
+call, so no ``Pool`` of yours is involved. ``readIntoTriangleBVH`` works the same way: only the
+returned ``TriMeshSDF``'s BVH is reserved from the ``pool`` you pass. Use this
 when some other part of your code wants raw triangle values (for example, to build a custom
 acceleration structure) rather than any of EBGeometry's own SDF wrappers.
 

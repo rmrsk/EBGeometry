@@ -274,12 +274,10 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const B
  * on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>()
  * (8/float or 4/double on AVX; 4 otherwise).
- * @param[in]     a_filename      File name (STL, PLY, or VTK).
- * @param[in,out] a_pool          Pool to reserve the intermediate DCEL mesh's storage from. The
- * mesh is only used transiently to extract triangles into the returned TriMeshSDF, which does not
- * retain it, but the Pool itself is a pure bump allocator (see EBGeometry_Pool.hpp) -- the space
- * reserved here is not reclaimed until a_pool itself is destroyed. The returned TriMeshSDF's BVH is
- * also reserved from a_pool, so a_pool must outlive it.
+ * @param[in]     a_filename      File name (STL, PLY, VTK or OBJ).
+ * @param[in,out] a_pool          Pool the returned TriMeshSDF's BVH is reserved from; must outlive
+ * it. The intermediate DCEL mesh lives in a Pool private to this call (see readIntoTriangles), so
+ * it takes no space in a_pool and is not mirrored along with it.
  * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
  * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W (see TriMeshSDF's mesh-based
  * constructor for the tree-quality/SIMD-occupancy trade-off). Defaults to 4.
@@ -303,8 +301,8 @@ readIntoTriangleBVH(const std::string a_filename,
  * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (see single-file overload).
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>().
  * @param[in]     a_files         List of file names (STL, PLY, or VTK).
- * @param[in,out] a_pool          Pool to reserve every intermediate DCEL mesh's storage from (see
- * the single-file overload for details) -- all meshes share this one Pool, laid out contiguously.
+ * @param[in,out] a_pool          Pool every returned TriMeshSDF's BVH is reserved from (see the
+ * single-file overload).
  * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
  * the single-file overload for details). Defaults to 4.
  * @param[in]     a_build         BVH build strategy. SAH is the default and recommended choice.
@@ -326,29 +324,25 @@ readIntoTriangleBVH(const std::vector<std::string>& a_files,
  * independent Triangle with precomputed vertex positions, normals, and edge normals.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
  * @tparam Meta Per-face metadata type.
- * @param[in]     a_filename File name (STL, PLY, or VTK).
- * @param[in,out] a_pool     Pool to reserve the intermediate DCEL mesh's storage from. The mesh is
- * only used transiently to extract triangles and is not retained by the returned list, but the
- * Pool itself is a pure bump allocator (see EBGeometry_Pool.hpp) -- the space reserved here is not
- * reclaimed until a_pool itself is destroyed.
+ * The intermediate DCEL mesh lives in a Pool private to this call and is freed on return, so it
+ * never occupies (or gets mirrored along with) any Pool of the caller's.
+ * @param[in] a_filename File name (STL, PLY, VTK or OBJ).
  * @return Flat vector of Triangle objects, by value.
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<Triangle<T, Meta>>
-readIntoTriangles(const std::string a_filename, Pool& a_pool);
+readIntoTriangles(const std::string a_filename);
 
 /**
  * @brief Read multiple files and return all faces from each as flat lists of Triangle objects.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
  * @tparam Meta Per-face metadata type.
- * @param[in]     a_files List of file names (STL, PLY, or VTK).
- * @param[in,out] a_pool  Pool to reserve every intermediate DCEL mesh's storage from -- all meshes
- * share this one Pool, laid out contiguously (see the single-file overload for details).
+ * @param[in] a_files List of file names (STL, PLY, VTK or OBJ).
  * @return Outer vector indexed by file; each inner vector is the flat triangle list for that file.
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<std::vector<Triangle<T, Meta>>>
-readIntoTriangles(const std::vector<std::string>& a_files, Pool& a_pool);
+readIntoTriangles(const std::vector<std::string>& a_files);
 } // namespace Parser
 
 } // namespace EBGeometry

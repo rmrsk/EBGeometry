@@ -386,51 +386,23 @@ public:
   operator!=(const Vec3T<T>& u) const noexcept;
 
   /**
-   * @brief "Smaller than" operator.
-   * @details Returns true if this->x < u.x AND this->y < u.y AND this->z < u.z
-   * and false otherwise
-   * @param[in] u Other vector
-   * @return True if all three components of *this are strictly less than the
-   * corresponding components of u, false otherwise.
+   * @name Deleted ordering operators
+   * @brief Vec3T has no ordering operators.
+   * @details These once meant "every component less (greater, ...) than", which is not a strict weak
+   * ordering: two different vectors can each fail to be less than the other, so std::set, std::map and
+   * std::sort built on them silently merge or misorder distinct vectors. Compare components
+   * explicitly, or use lessLX() for a lexicographic ordering.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr bool
-  operator<(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Greater than" operator.
-   * @details Returns true if this->x > u.x AND this->y > u.y AND this->z > u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are strictly greater than the
-   * corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr bool
-  operator>(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Smaller or equal to" operator.
-   * @details Returns true if this->x <= u.x AND this->y <= u.y AND this->z <=
-   * u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are less than or equal to the
-   * corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr bool
-  operator<=(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Greater or equal to" operator.
-   * @details Returns true if this->x >= u.x AND this->y >= u.y AND this->z >=
-   * u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are greater than or equal to
-   * the corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr bool
-  operator>=(const Vec3T<T>& u) const noexcept;
+  ///@{
+  bool
+  operator<(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator>(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator<=(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator>=(const Vec3T<T>& u) const noexcept = delete;
+  ///@}
 
   /**
    * @brief Assignment operator.

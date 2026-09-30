@@ -125,8 +125,8 @@ EBGEOMETRY_HOST
 inline MeshT<T, Meta>
 MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
 {
-  EBGEOMETRY_EXPECT(this->numVertices() > 0 || this->numEdges() > 0 || this->numFaces() > 0);
-
+  // An empty mesh (as a parser returns for an unreadable file) copies to an empty mesh.
+  //
   // Every VertexT/EdgeT/FaceT cross-reference is an index into the owning mesh's arrays, not a
   // pointer, so copying each element by value into freshly-reserved storage is already an
   // independent, correctly-linked mesh -- no relinking pass is needed.

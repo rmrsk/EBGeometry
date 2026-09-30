@@ -907,6 +907,19 @@ TEMPLATE_TEST_CASE("FaceT: getSmallestCoordinate/getHighestCoordinate bound the 
   }
 }
 
+TEMPLATE_TEST_CASE("MeshT: deepCopy of an empty mesh is an empty mesh", "[DCEL][Mesh]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool                            pool(hostMemoryResource());
+  const MeshT<T, DefaultMetaData> empty;
+  const auto                      copy = empty.deepCopy(pool);
+
+  REQUIRE(copy.numVertices() == 0);
+  REQUIRE(copy.numEdges() == 0);
+  REQUIRE(copy.numFaces() == 0);
+}
+
 TEMPLATE_TEST_CASE("MeshT: deepCopy produces an independent mesh with the same geometry",
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)

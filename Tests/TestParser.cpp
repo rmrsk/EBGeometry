@@ -171,6 +171,29 @@ TEMPLATE_TEST_CASE("Parser: missing, empty, truncated and corrupted files read a
   }
 }
 
+TEMPLATE_TEST_CASE("Parser: readIntoTriangleBVH keeps the intermediate DCEL mesh out of the caller's Pool",
+                   "[Parser]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A Pool never frees individual reservations, so a mesh built in the caller's Pool would stay there
+  // and be mirrored to the device with the BVH.
+  Pool direct(hostMemoryResource());
+
+  const auto sdf = Parser::readIntoTriangleBVH<T, Meta, 4, 4>(dataPath("dodecahedron.stl"), direct);
+
+  Pool       viaMesh(hostMemoryResource());
+  const auto mesh      = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), viaMesh);
+  const auto meshBytes = viaMesh.usedBytes();
+
+  const TriMeshSDF<T, Meta, 4, 4> fromMesh(mesh, viaMesh, BVH::Build::SAH, 4);
+
+  REQUIRE(meshBytes > 0);
+  REQUIRE(direct.usedBytes() + meshBytes <= viaMesh.usedBytes() + PoolBaseAlign);
+  REQUIRE(sdf.signedDistance(Vec3T<T>::zeros()) == fromMesh.signedDistance(Vec3T<T>::zeros()));
+}
+
 #if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
 TEST_CASE("Mesh distance functions and BVH unions refuse to build from nothing", "[Parser][death]")
 {

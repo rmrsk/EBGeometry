@@ -258,6 +258,13 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: an inverted initial box (lo
   // search box.
   REQUIRE(bv.getLowCorner()[0] < T(-1.0e10));
   REQUIRE(bv.getHighCorner()[0] > T(1.0e10));
+
+  // Inverted along one axis only. The check used to require every component to be inverted.
+  const auto partly =
+    approximateBoundingVolumeOctree<BV>(sphere, Vec3(T(-2), T(2), T(-2)), Vec3(T(2), T(-2), T(2)), 4U, T(0.0));
+
+  REQUIRE(partly.getLowCorner()[0] < T(-1.0e10));
+  REQUIRE(partly.getHighCorner()[0] > T(1.0e10));
 }
 
 TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: an initial box that never touches the "
