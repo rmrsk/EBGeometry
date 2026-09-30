@@ -113,10 +113,11 @@ the host and on a GPU, so a shape can be passed to a kernel by value and evaluat
 constructors run on the host. The :ref:`Chap:ExampleShapes` example constructs every one of them.
 
 Because the shapes are not ``ImplicitFunction<T>`` objects, they cannot be passed to the
-transformations and CSG combinators below. Composing them returns with the redesign of the CSG
-layer that replaces virtual dispatch with a linear-SSA tape. Until then, user code can combine
-shapes directly, as in the lambda passed to ``approximateBoundingVolumeOctree`` in the
-:ref:`Chap:ExampleOctreeBoundingVolume` example.
+transformations and to most of the CSG combinators below. The exception is the BVH-accelerated
+unions (:ref:`Sec:BVHUnions`), which take many shapes of one type directly and run on a GPU too.
+Other compositions return with the redesign of the CSG layer that replaces virtual dispatch with a
+linear-SSA tape. Until then, user code can combine shapes directly, as in the lambda passed to
+``approximateBoundingVolumeOctree`` in the :ref:`Chap:ExampleOctreeBoundingVolume` example.
 
 Transformations
 ----------------
@@ -294,65 +295,86 @@ in the Doxygen listing above -- one taking a ``std::vector`` of any number of im
 and one taking exactly two -- both constructing the same underlying wrapper class.
 
 The "smooth" combinators blend the transition between objects instead of leaving a sharp crease,
-using a caller-replaceable blending functor rather than a plain ``min``/``max``. Two are provided
-as ``std::function`` template variables in :file:`Source/EBGeometry_CSG.hpp`: ``SmoothMin<T>``
-(a cheap polynomial smooth-minimum, the default for ``SmoothUnion``) and ``SmoothMax<T>`` (its
-symmetric counterpart, the default for both ``SmoothIntersection`` and ``SmoothDifference`` --
-difference is implemented internally as the intersection of ``A`` with the complement of ``B``,
-which is why it defaults to the same operator as intersection rather than to ``SmoothMin<T>``),
-plus a more expensive exponential alternative, ``ExpMin<T>``. Any of the three -- or a
-user-supplied functor of the same signature, ``T(const T&, const T&, const T&)`` -- can be passed
-as the smoothing operator to the smooth combinators' constructors/free functions.
+using a caller-replaceable blending functor rather than a plain ``min``/``max``. Three are provided
+in :file:`Source/EBGeometry_CSG.hpp`, each a small, trivially copyable function object that can
+also be called on a GPU -- ``SmoothMinOp<T>``, ``SmoothMaxOp<T>`` and ``ExpMinOp<T>`` -- together
+with ready-made instances of them, ``SmoothMin<T>``, ``SmoothMax<T>`` and ``ExpMin<T>``, called as
+``SmoothMin<T>(a, b, s)``. ``SmoothMin`` is a cheap polynomial smooth-minimum and the default for
+``SmoothUnion``; ``SmoothMax`` is its symmetric counterpart and the default for both
+``SmoothIntersection`` and ``SmoothDifference`` (difference is implemented internally as the
+intersection of ``A`` with the complement of ``B``, which is why it defaults to the same operator
+as intersection rather than to ``SmoothMin``); ``ExpMin`` is a more expensive exponential
+alternative. The smooth combinators take the operator as a
+``std::function<T(const T&, const T&, const T&)>``, to which any of the three -- or a
+user-supplied functor of the same signature -- converts.
 
-.. warning::
-
-   **The BVH-accelerated unions described below are temporarily disabled.** ``BVHUnionIF``,
-   ``BVHSmoothUnionIF`` and their ``BVHUnion``/``BVHSmoothUnion`` factories are compiled out during
-   the GPU port, behind ``EBGEOMETRY_ENABLE_BVH_CSG_UNION`` in :file:`Source/EBGeometry_CSG.hpp`.
-   They store their primitives as ``std::shared_ptr<const ImplicitFunction<T>>``, which
-   ``PackedBVH`` no longer supports -- it stores its primitives by value, and an abstract type has
-   no size to store; see :ref:`Sec:PolymorphicPrimitives`. They return with the index-based redesign of the
-   implicit-function and CSG layer, which replaces virtual dispatch with a linear-SSA tape.
-
-   The plain (non-BVH) combinators on this page -- ``UnionIF``, ``SmoothUnionIF``,
-   ``IntersectionIF`` and the rest -- are unaffected and fully available. A union over many objects
-   is :math:`\mathcal{O}(N)` per query until the accelerated variants return.
-
-Because a plain CSG union is evaluated as :math:`\min(I_1, \ldots, I_N)`, querying it costs
-:math:`\mathcal{O}(N)` per point for :math:`N` objects. ``BVHUnionIF``/``BVHUnion`` and
-``BVHSmoothUnionIF``/``BVHSmoothUnion`` accelerate this by placing the objects' bounding volumes
-in a ``PackedBVH`` and reducing a closest-object query to an :math:`\mathcal{O}(\log N)` tree
-traversal instead of a linear scan -- see :ref:`Chap:ImplemBVH` for how the BVH itself is built
-and traversed; this section only concerns how CSG uses it. Unlike the plain combinators, the BVH
-variants take the objects' bounding volumes explicitly (a ``std::vector<BV>``, one per object)
-since these are needed up front to build the tree.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 20 20 40
-
-   * - Combinator
-     - Wrapper class
-     - Free function
-     - Doxygen
-   * - BVH-accelerated union
-     - ``BVHUnionIF``
-     - ``BVHUnion``
-     - `class <doxygen/html/classEBGeometry_1_1BVHUnionIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#aa213a6a488504ce79c222c8c37f9c6fa>`__
-   * - BVH-accelerated smooth union
-     - ``BVHSmoothUnionIF``
-     - ``BVHSmoothUnion``
-     - `class <doxygen/html/classEBGeometry_1_1BVHSmoothUnionIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#a5625be266d4f77c6b7035b3c6f4ef11c>`__
-
-Finally, ``FiniteRepetitionIF``/``FiniteRepetition`` tiles a single base implicit function
+``FiniteRepetitionIF``/``FiniteRepetition`` tiles a single base implicit function
 periodically over a finite number of repetitions per axis, by mapping the query point into the
 nearest tile before evaluating the wrapped function -- effectively a cheap way to instance the
 same shape many times without constructing a separate ``ImplicitFunction<T>`` (or a CSG union) per
 copy. See its Doxygen entries for
 `FiniteRepetitionIF <doxygen/html/classEBGeometry_1_1FiniteRepetitionIF.html>`__ and
 `FiniteRepetition <doxygen/html/namespaceEBGeometry.html#a46761e494f4b02faadb31fce9ebb8d80>`__.
+
+.. _Sec:BVHUnions:
+
+BVH-accelerated unions
+______________________
+
+Because a plain CSG union is evaluated as :math:`\min(I_1, \ldots, I_N)`, querying it costs
+:math:`\mathcal{O}(N)` per point for :math:`N` objects. ``BVHUnionIF`` and ``BVHSmoothUnionIF``
+accelerate this by placing the objects' bounding boxes in a ``PackedBVH`` and reducing a
+closest-object query to an :math:`\mathcal{O}(\log N)` tree traversal instead of a linear scan --
+see :ref:`Chap:ImplemBVH` for how the BVH itself is built and traversed; this section only concerns
+how the unions use it. ``BVHSmoothUnionIF`` blends the two nearest objects with a smooth-minimum
+functor, ``SmoothMinOp<T>`` by default.
+
+Unlike the combinators above, the BVH unions are not ``ImplicitFunction<T>`` objects. Each is a
+plain, trivially copyable value type, in the same way as the analytic shapes and the mesh distance
+fields, whose ``signedDistance()`` can be called on the host or inside a GPU kernel:
+
+* **One primitive type per union.** ``BVHUnionIF<T, P, K>`` holds its primitives by value in the
+  ``PackedBVH``, so every primitive has the same type ``P``: an analytic shape, a mesh distance
+  field, or another BVH union. No runtime dispatch is needed to evaluate them. A union of objects
+  of *different* types needs exactly that dispatch, and returns with the redesign of the CSG layer
+  that replaces virtual dispatch with a linear-SSA tape.
+* **Built in a** ``Pool``. The constructor takes the ``Pool`` to reserve the BVH from, the
+  primitives, and one bounding box per primitive, which the BVH needs up front, plus an optional
+  ``BVH::Build`` strategy (SAH by default). The free functions ``BVHUnion``/``BVHSmoothUnion``
+  construct the same objects.
+* **Mirrored to a GPU like any pool-backed type.** Freeze the pool, mirror it, and pass
+  ``rebasedView(devicePool)`` to a kernel; ``deepCopy(pool)`` duplicates the storage.
+* **Primitives that live in a pool.** A mesh distance field, or a nested union, stored as a
+  primitive must have been built in the same ``Pool`` as the union. Mirroring the pool copies such a
+  primitive's bytes verbatim, including the host bookkeeping that locates its own arrays, so
+  rebasing the union cannot rewrite it in place. Instead the union applies its own pool location to
+  each such primitive as it evaluates it (``relocatedTo()``, see
+  `PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__). That is what makes a union
+  of ``TriMeshSDF`` objects -- a BVH whose primitives are themselves BVHs -- evaluable on a mirrored
+  pool and on a GPU.
+
+The :ref:`Chap:ExamplePackedSpheres` and :ref:`Chap:ExampleRandomCity` examples compare a BVH union
+of spheres and of boxes against a brute-force scan, and :ref:`Chap:ExampleNestedBVH` builds a union
+of mesh distance fields.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 20 20 40
+
+   * - Combinator
+     - Class
+     - Free function
+     - Doxygen
+   * - BVH-accelerated union
+     - ``BVHUnionIF``
+     - ``BVHUnion``
+     - `class <doxygen/html/classEBGeometry_1_1BVHUnionIF.html>`__ /
+       `function <doxygen/html/namespaceEBGeometry.html#ac994e9e8414acc49b7db50d2d9982883>`__
+   * - BVH-accelerated smooth union
+     - ``BVHSmoothUnionIF``
+     - ``BVHSmoothUnion``
+     - `class <doxygen/html/classEBGeometry_1_1BVHSmoothUnionIF.html>`__ /
+       `function <doxygen/html/namespaceEBGeometry.html#aab346be4b1350a6dfe4e5dd535f7dfab>`__
 
 For the complete, single-page API listing of every class and free function on this page, see the
 Doxygen page for `EBGeometry_CSG.hpp <doxygen/html/EBGeometry__CSG_8hpp.html>`__.

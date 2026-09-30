@@ -18,8 +18,10 @@ components). A handful of design choices recur throughout the implementation:
   CSG combinators instead derive from a small polymorphic interface, ``ImplicitFunction<T>`` (with
   ``SignedDistanceFunction<T>`` as a refinement of it), and wrap or combine any object that
   implements it through ordinary virtual dispatch. That interface currently accepts user-written
-  implicit functions only: combining the built-in distance fields returns with the redesign of the
-  CSG layer that replaces virtual dispatch with a linear-SSA tape. See :ref:`Chap:ImplemCSG`.
+  implicit functions only. The built-in distance fields can be combined through the BVH-accelerated
+  unions, which are plain value types too and take many objects of one type; other compositions of
+  them return with the redesign of the CSG layer that replaces virtual dispatch with a linear-SSA
+  tape. See :ref:`Chap:ImplemCSG`.
 
 * **The same acceleration structure for two different problems.** Finding the closest facet in
   a surface mesh, and finding the closest object in a CSG union of many objects, are both,

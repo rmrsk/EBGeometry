@@ -1,11 +1,11 @@
 Examples/CSGUnion
 -----------------
 
-> **Temporarily disabled.** This example is built on EBGeometry's BVH-accelerated CSG union
-> (`BVHUnion`/`BVHUnionIF`/`BVHSmoothUnion`), which is compiled out during the GPU port while the
-> implicit-function and CSG layer is moved to an index-based design -- see
-> `EBGEOMETRY_ENABLE_BVH_CSG_UNION` in `Source/EBGeometry_CSG.hpp`. The program still builds, but
-> prints a notice and exits without doing any work.
+> **Temporarily disabled.** This example unions two objects of *different* types, a mesh SDF and an
+> analytic sphere. EBGeometry's BVH-accelerated union (`BVHUnionIF`) holds primitives of a single
+> type, and a union of different types needs the runtime dispatch of the tape, which is still to
+> come in the GPU port. The program still builds, but prints a notice and exits without doing any
+> work.
 
 This folder shows how to merge two objects of *different* kinds -- a triangulated surface mesh
 loaded from a file, and an analytic sphere -- into a single combined shape, using constructive

@@ -23,35 +23,11 @@
 
 // Our includes
 #include "EBGeometry_BVH.hpp"
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_ImplicitFunction.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BVH-accelerated CSG unions -- TEMPORARILY DISABLED during the GPU port.
-//
-// BVHUnionIF/BVHSmoothUnionIF keep their primitives alive through the primitive array of the
-// PackedBVH they own, storing them as std::shared_ptr<const P> where P is normally the abstract
-// base ImplicitFunction<T>. PackedBVH no longer stores anything but plain values: a shared_ptr is
-// not trivially copyable, so a PackedBVH holding one can never be mirrored to a device, and
-// keeping that capability would have forced a second, permanently host-only storage backend.
-//
-// Storing by value cannot serve a polymorphic primitive either -- an abstract type has no size to
-// store -- so there is no drop-in replacement for what was removed.
-//
-// The fix is an index-based redesign of the implicit-function and CSG layer as a whole (see
-// PORTING.md, roadmap steps 4-5: the per-primitive traits and the linear-SSA tape that replaces
-// virtual dispatch). Until that lands, everything below is compiled out rather than deleted, so
-// restoring it is a one-line change here.
-//
-// Flip to 1 only together with that redesign; on its own this will not compile.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * @brief Compile guard for the BVH-accelerated CSG unions; 0 while they await the index-based
- * redesign of the implicit-function layer. See the comment block above this macro.
- */
-#define EBGEOMETRY_ENABLE_BVH_CSG_UNION 0
 
 namespace EBGeometry {
 
@@ -108,44 +84,6 @@ template <class T, class P1, class P2>
 SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
             const std::shared_ptr<P2>& a_implicitFunctionB,
             const T                    a_smooth);
-
-#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
-/**
- * @brief Constructs a BVH-accelerated union of implicit functions.
- * @details Wraps a PackedBVH over the inputs; at query time the BVH culls primitives whose bounding
- * volume is further than the current best distance, giving sub-linear cost on large scenes. Interior
- * semantics are identical to UnionIF.
- * @tparam T  Floating-point precision.
- * @tparam P  Primitive type; must derive from ImplicitFunction<T>.
- * @tparam BV Bounding volume type (e.g. AABBT<T>).
- * @tparam K  BVH branching factor.
- * @param[in] a_implicitFunctions Input implicit functions.
- * @param[in] a_boundingVolumes   Bounding volumes for each implicit function.
- * @return Shared pointer to a BVHUnionIF<T,P,BV,K> with an internal BVH.
- */
-template <class T, class P, class BV, size_t K>
-[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-BVHUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes);
-
-/**
- * @brief Constructs a BVH-accelerated smooth union of implicit functions.
- * @details Uses the BVH to locate the two nearest primitives and applies a smooth-minimum to their
- * values, yielding C1 (or better) blending across nearby surfaces. Sub-linear query cost.
- * @tparam T  Floating-point precision.
- * @tparam P  Primitive type; must derive from ImplicitFunction<T>.
- * @tparam BV Bounding volume type (e.g. AABBT<T>).
- * @tparam K  BVH branching factor.
- * @param[in] a_implicitFunctions Input implicit functions.
- * @param[in] a_boundingVolumes   Bounding volumes for each implicit function.
- * @param[in] a_smoothLen         Smoothing length (must be > 0).
- * @return Shared pointer to a BVHSmoothUnionIF<T,P,BV,K> with an internal BVH.
- */
-template <class T, class P, class BV, size_t K>
-[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-BVHSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
-               const std::vector<BV>&                 a_boundingVolumes,
-               const T                                a_smoothLen) noexcept;
-#endif // EBGEOMETRY_ENABLE_BVH_CSG_UNION
 
 /**
  * @brief Constructs an implicit function whose interior is the intersection of the interiors of all input functions.
@@ -254,62 +192,120 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
 /**
  * @brief Exponential smooth minimum for blending two signed-distance values.
  * @details Approximates min(a, b) with exponential weighting; the blend region width scales with s.
- * Useful when a differentiable interface is required. Approaches min(a, b) as s → 0.
+ * Useful when a differentiable interface is required. Approaches min(a, b) as s → 0. A trivially
+ * copyable function object, so it can be stored in a BVHSmoothUnionIF and evaluated on a device.
  * @tparam T Floating-point precision.
- * @param[in] a First value.
- * @param[in] b Second value.
- * @param[in] s Smoothing length (must be > 0).
- * @return Exponentially blended approximation of min(a, b).
  */
 template <class T>
-std::function<T(const T& a, const T& b, const T& s)> ExpMin = [](const T& a, const T& b, const T& s) -> T {
-  static_assert(std::is_floating_point_v<T>, "ExpMin requires a floating-point type T");
+struct ExpMinOp
+{
+  static_assert(std::is_floating_point_v<T>, "ExpMinOp requires a floating-point type T");
 
-  EBGEOMETRY_EXPECT(s > T(0));
-  T ret = std::exp(-a / s) + std::exp(-b / s);
+  /**
+   * @brief Evaluate the exponential smooth minimum.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @param[in] s Smoothing length (must be > 0).
+   * @return Exponentially blended approximation of min(a, b).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const T& a, const T& b, const T& s) const noexcept
+  {
+    EBGEOMETRY_EXPECT(s > T(0));
 
-  return -std::log(ret) * s;
+    const T ret = std::exp(-a / s) + std::exp(-b / s);
+
+    return -std::log(ret) * s;
+  }
 };
 
 /**
  * @brief Quadratic polynomial smooth minimum for blending two signed-distance values.
  * @details Approximates min(a, b) within the overlap region |a - b| < s; coincides exactly with
- * min(a, b) outside that region. Cheaper to evaluate than ExpMin and the default choice for CSG unions.
+ * min(a, b) outside that region. Cheaper to evaluate than ExpMinOp and the default choice for CSG
+ * unions. A trivially copyable function object, so it can be stored in a BVHSmoothUnionIF and
+ * evaluated on a device.
  * @tparam T Floating-point precision.
- * @param[in] a First value.
- * @param[in] b Second value.
- * @param[in] s Smoothing length (must be > 0). Controls the blend region width.
- * @return Polynomial-blended approximation of min(a, b).
  */
 template <class T>
-std::function<T(const T& a, const T& b, const T& s)> SmoothMin = [](const T& a, const T& b, const T& s) -> T {
-  static_assert(std::is_floating_point_v<T>, "SmoothMin requires a floating-point type T");
+struct SmoothMinOp
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothMinOp requires a floating-point type T");
 
-  EBGEOMETRY_EXPECT(s > T(0));
-  const T h = std::max(s - std::abs(a - b), T(0)) / s;
+  /**
+   * @brief Evaluate the polynomial smooth minimum.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @param[in] s Smoothing length (must be > 0). Controls the blend region width.
+   * @return Polynomial-blended approximation of min(a, b).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const T& a, const T& b, const T& s) const noexcept
+  {
+    EBGEOMETRY_EXPECT(s > T(0));
 
-  return std::min(a, b) - T(0.25) * h * h * s;
+    const T h = std::max(s - std::abs(a - b), T(0)) / s;
+
+    return std::min(a, b) - T(0.25) * h * h * s;
+  }
 };
 
 /**
  * @brief Quadratic polynomial smooth maximum for blending two signed-distance values.
  * @details Approximates max(a, b) within the overlap region |a - b| < s; coincides exactly with
- * max(a, b) outside that region. Symmetric counterpart to SmoothMin; used for CSG intersections and differences.
+ * max(a, b) outside that region. Symmetric counterpart to SmoothMinOp; used for CSG intersections
+ * and differences.
  * @tparam T Floating-point precision.
- * @param[in] a First value.
- * @param[in] b Second value.
- * @param[in] s Smoothing length (must be > 0). Controls the blend region width.
- * @return Polynomial-blended approximation of max(a, b).
  */
 template <class T>
-std::function<T(const T& a, const T& b, const T& s)> SmoothMax = [](const T& a, const T& b, const T& s) -> T {
-  static_assert(std::is_floating_point_v<T>, "SmoothMax requires a floating-point type T");
+struct SmoothMaxOp
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothMaxOp requires a floating-point type T");
 
-  EBGEOMETRY_EXPECT(s > T(0));
-  const T h = std::max(s - std::abs(a - b), T(0)) / s;
+  /**
+   * @brief Evaluate the polynomial smooth maximum.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @param[in] s Smoothing length (must be > 0). Controls the blend region width.
+   * @return Polynomial-blended approximation of max(a, b).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const T& a, const T& b, const T& s) const noexcept
+  {
+    EBGEOMETRY_EXPECT(s > T(0));
 
-  return std::max(a, b) + T(0.25) * h * h * s;
+    const T h = std::max(s - std::abs(a - b), T(0)) / s;
+
+    return std::max(a, b) + T(0.25) * h * h * s;
+  }
 };
+
+/**
+ * @brief The exponential smooth minimum, as a ready-made function object: `ExpMin<T>(a, b, s)`.
+ * @details Converts implicitly to the `std::function` the smooth CSG combinators take.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+inline constexpr ExpMinOp<T> ExpMin{};
+
+/**
+ * @brief The polynomial smooth minimum, as a ready-made function object: `SmoothMin<T>(a, b, s)`.
+ * @details Converts implicitly to the `std::function` the smooth CSG combinators take.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+inline constexpr SmoothMinOp<T> SmoothMin{};
+
+/**
+ * @brief The polynomial smooth maximum, as a ready-made function object: `SmoothMax<T>(a, b, s)`.
+ * @details Converts implicitly to the `std::function` the smooth CSG combinators take.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+inline constexpr SmoothMaxOp<T> SmoothMax{};
 
 /**
  * @brief Implicit function whose interior is the union of all input function interiors.
@@ -416,29 +412,99 @@ protected:
   std::function<T(const T&, const T&, const T&)> m_smoothMin;
 };
 
-#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
 /**
- * @brief BVH-accelerated union of implicit functions.
- * @details Wraps a PackedBVH over the input primitives. At query time the BVH culls primitives
- * whose bounding volume lies further than the current best distance, giving sub-linear cost on
- * large scenes. Interior semantics are identical to UnionIF.
- * @tparam T  Floating-point precision.
- * @tparam P  Primitive type; must derive from ImplicitFunction<T>.
- * @tparam BV Bounding volume type (e.g. AABBT<T>).
- * @tparam K  BVH branching factor.
+ * @brief Internal helpers shared by BVHUnionIF and BVHSmoothUnionIF.
  */
-template <class T, class P, class BV, size_t K>
-class BVHUnionIF : public ImplicitFunction<T>
+namespace CSGDetail {
+
+/**
+ * @brief Detects a primitive that lives in a Pool and must be relocated before it is evaluated.
+ * @details True for any P with a `relocatedTo(const PoolLocation&)` member -- the mesh distance
+ * functions and the BVH unions themselves -- and false for a self-contained value type such as an
+ * analytic shape. See PoolLocation for why such a primitive cannot be rebased in place.
+ * @tparam P Primitive type.
+ */
+template <class P, class = void>
+struct IsPoolResident : std::false_type
+{
+};
+
+/**
+ * @brief Detects a primitive that lives in a Pool (positive case).
+ * @tparam P Primitive type.
+ */
+template <class P>
+struct IsPoolResident<P,
+                      std::void_t<decltype(std::declval<const P&>().relocatedTo(std::declval<const PoolLocation&>()))>>
+  : std::true_type
+{
+};
+
+/**
+ * @brief Evaluate one primitive of a BVH union at a point.
+ * @details A pool-resident primitive is first relocated to the union's own location, so it resolves
+ * against the same pool the union does -- the host pool, a host mirror, or a device mirror. Any
+ * other primitive is evaluated as stored.
+ * @tparam T Floating-point precision.
+ * @tparam P Primitive type.
+ * @param[in] a_primitive Primitive as stored in the union's BVH.
+ * @param[in] a_point     Query point.
+ * @param[in] a_location  The union's pool location.
+ * @return Signed distance from a_point to the primitive.
+ */
+template <class T, class P>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+signedDistance(const P& a_primitive, const Vec3T<T>& a_point, [[maybe_unused]] const PoolLocation& a_location) noexcept
+{
+  if constexpr (IsPoolResident<P>::value) {
+    return a_primitive.relocatedTo(a_location).signedDistance(a_point);
+  }
+  else {
+    return a_primitive.signedDistance(a_point);
+  }
+}
+
+} // namespace CSGDetail
+
+/**
+ * @brief BVH-accelerated union of many primitives of one type.
+ * @details A PackedBVH over the primitives, stored by value in a Pool. At query time the BVH culls
+ * primitives whose bounding volume lies further than the current best distance, giving sub-linear
+ * cost on large scenes. Interior semantics are those of UnionIF: the value is the minimum over all
+ * primitives, negative inside the union.
+ *
+ * This is a plain, trivially copyable value type with no virtual functions, so it is not an
+ * ImplicitFunction. signedDistance() is callable on the host and on a device: mirror the pool, call
+ * rebasedView(), and pass the result to a kernel. Because every primitive has the same type P, no
+ * runtime dispatch is needed; a union of primitives of different types waits for the tape.
+ *
+ * P can be any trivially copyable type with an EBGEOMETRY_HOST_DEVICE
+ * `signedDistance(const Vec3T<T>&)`: an analytic shape, a mesh distance function, or another BVH
+ * union. A pool-resident primitive (a mesh distance function or a union) must have been built in
+ * the same Pool as this union, and is relocated to the union's location as it is evaluated (see
+ * PoolLocation).
+ * @tparam T Floating-point precision.
+ * @tparam P Primitive type.
+ * @tparam K BVH branching factor.
+ */
+template <class T, class P, size_t K>
+class BVHUnionIF
 {
 public:
   static_assert(std::is_floating_point_v<T>, "BVHUnionIF requires a floating-point type T");
-  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "BVHUnionIF requires an implicit function");
-  static_assert(K > 0, "BVHUnionIF BVH branching factor K must be positive");
+  static_assert(std::is_trivially_copyable_v<P>, "BVHUnionIF requires a trivially copyable primitive type");
+  static_assert(K > 1, "BVHUnionIF BVH branching factor K must be at least 2");
 
   /**
-   * @brief Alias for the flat BVH type.
+   * @brief Alias for the packed BVH type.
    */
-  using Root = EBGeometry::BVH::PackedBVH<T, P, K>;
+  using Root = BVH::PackedBVH<T, P, K>;
+
+  /**
+   * @brief Alias for the bounding volume type.
+   */
+  using BV = BoundingVolumes::AABBT<T>;
 
   /**
    * @brief Disallowed, use the full constructor.
@@ -446,79 +512,134 @@ public:
   BVHUnionIF() = delete;
 
   /**
-   * @brief Constructs the BVH-accelerated union from pre-paired primitives and bounding volumes.
-   * @param[in] a_primsAndBVs Primitives and their bounding volumes (must be non-empty; no null primitives).
+   * @brief Build the union.
+   * @param[in,out] a_pool            Pool the BVH is reserved from; pool-resident primitives must live
+   * in it too. Must outlive this object and every copy of it.
+   * @param[in]     a_primitives      Primitives (must be non-empty).
+   * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
+   * @param[in]     a_build           BVH construction strategy.
    */
-  BVHUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs);
+  EBGEOMETRY_HOST
+  BVHUnionIF(Pool&                  a_pool,
+             const std::vector<P>&  a_primitives,
+             const std::vector<BV>& a_boundingVolumes,
+             BVH::Build             a_build = BVH::Build::SAH);
 
   /**
-   * @brief Constructs the BVH-accelerated union from separate primitive and bounding-volume lists.
-   * @param[in] a_primitives      Input primitives (must be non-empty; same length as a_boundingVolumes; no nulls).
-   * @param[in] a_boundingVolumes Bounding volumes for each primitive.
-   */
-  BVHUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes);
-
-  /**
-   * @brief Destructor.
-   */
-  ~BVHUnionIF() override = default;
-
-  /**
-   * @brief Evaluates the signed distance at a_point using BVH traversal.
+   * @brief Evaluate the union at a point.
    * @details Returns the minimum value over all primitives not pruned by the BVH. Negative when
    * inside the union.
    * @param[in] a_point 3D query point.
    * @return Minimum signed distance among all non-culled primitives.
    */
-  [[nodiscard]] T
-  value(const Vec3T<T>& a_point) const noexcept override;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Returns the axis-aligned bounding box enclosing all primitives.
-   * @return Const reference to the root bounding volume of the BVH.
+   * @brief The axis-aligned bounding box enclosing all primitives.
+   * @return The root bounding volume of the BVH.
    */
-  [[nodiscard]] const EBGeometry::BoundingVolumes::AABBT<T>&
-  getBoundingVolume() const noexcept;
-
-protected:
-  /**
-   * @brief Flat BVH over all input primitives.
-   */
-  std::shared_ptr<EBGeometry::BVH::PackedBVH<T, P, K>> m_bvh;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline BV
+  computeBoundingVolume() const noexcept;
 
   /**
-   * @brief Builds the internal BVH from primitive/BV pairs.
-   * @param[in] a_primsAndBVs Primitives and their bounding volumes.
-   * @param[in] a_build        BVH construction strategy.
+   * @brief Get the packed BVH over the primitives.
+   * @return The BVH.
    */
-  inline void
-  buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
-            const BVH::Build                                            a_build = BVH::Build::SAH) noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Root&
+  getBVH() const noexcept;
+
+  /**
+   * @brief Produce a copy of this union that resolves against @p a_pool.
+   * @details Rebases the BVH; see BVH::PackedBVH::rebasedView() for the contract. Pool-resident
+   * primitives follow the union at evaluation time; each is still rebased once here, and the result
+   * discarded, purely so that the checks rebasedView() makes (a mirror of the right pool, a BVH
+   * shallow enough for the device traversal stack) run for them too. This is the one sanctioned
+   * crossing to a device.
+   * @param[in] a_pool Pool to rebase onto; must be a mirror of this union's own pool.
+   * @return A BVHUnionIF resolving against @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline BVHUnionIF
+  rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief Duplicate this union's storage, and that of any pool-resident primitive, into @p a_dstPool.
+   * @param[in,out] a_dstPool Pool to reserve the copy from.
+   * @return A BVHUnionIF with the same structure, backed by @p a_dstPool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline BVHUnionIF
+  deepCopy(Pool& a_dstPool) const;
+
+  /**
+   * @brief A copy of this union resolving against @p a_location, so that a union can itself be the
+   * primitive of an outer union. See PoolLocation.
+   * @param[in] a_location Location to resolve against.
+   * @return A BVHUnionIF resolving against @p a_location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline BVHUnionIF
+  relocatedTo(const PoolLocation& a_location) const noexcept;
+
+  /**
+   * @brief Check whether this union's storage was reserved from @p a_pool.
+   * @param[in] a_pool Pool to test against.
+   * @return True if this union is attached to @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline bool
+  isAttachedTo(const Pool& a_pool) const noexcept;
+
+private:
+  /**
+   * @brief Adopt an already built BVH; used by rebasedView(), deepCopy() and relocatedTo().
+   * @param[in] a_bvh The BVH.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  explicit BVHUnionIF(const Root& a_bvh) noexcept : m_bvh(a_bvh)
+  {}
+
+  /**
+   * @brief Packed BVH over all primitives, held by value.
+   */
+  Root m_bvh;
 };
 
 /**
- * @brief BVH-accelerated smooth union of implicit functions.
- * @details Uses the BVH to locate the two nearest primitives and applies a smooth-minimum operator
- * to their values, yielding C1 (or better) blending across nearby surfaces. Query cost is sub-linear
- * in the number of primitives.
- * @tparam T  Floating-point precision.
- * @tparam P  Primitive type; must derive from ImplicitFunction<T>.
- * @tparam BV Bounding volume type (e.g. AABBT<T>).
- * @tparam K  BVH branching factor.
+ * @brief BVH-accelerated smooth union of many primitives of one type.
+ * @details Uses the BVH to locate the two nearest primitives and blends their values with a
+ * smooth-minimum operator, yielding C1 (or better) blending across nearby surfaces with
+ * sub-linear query cost. Otherwise identical to BVHUnionIF: a plain, trivially copyable value type
+ * whose signedDistance() is callable on the host and on a device.
+ * @tparam T     Floating-point precision.
+ * @tparam P     Primitive type; see BVHUnionIF.
+ * @tparam K     BVH branching factor.
+ * @tparam Blend Smooth-minimum operator: a trivially copyable function object with an
+ * EBGEOMETRY_HOST_DEVICE `T operator()(const T& a, const T& b, const T& s) const`, such as
+ * SmoothMinOp (the default) or ExpMinOp.
  */
-template <class T, class P, class BV, size_t K>
-class BVHSmoothUnionIF : public ImplicitFunction<T>
+template <class T, class P, size_t K, class Blend = SmoothMinOp<T>>
+class BVHSmoothUnionIF
 {
 public:
   static_assert(std::is_floating_point_v<T>, "BVHSmoothUnionIF requires a floating-point type T");
-  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>,
-                "BVHSmoothUnionIF requires an implicit function");
-  static_assert(K > 0, "BVHSmoothUnionIF BVH branching factor K must be positive");
+  static_assert(std::is_trivially_copyable_v<P>, "BVHSmoothUnionIF requires a trivially copyable primitive type");
+  static_assert(std::is_trivially_copyable_v<Blend>, "BVHSmoothUnionIF requires a trivially copyable blend operator");
+  static_assert(K > 1, "BVHSmoothUnionIF BVH branching factor K must be at least 2");
 
   /**
-   * @brief Alias for the flat BVH type.
+   * @brief Alias for the packed BVH type.
    */
-  using Root = EBGeometry::BVH::PackedBVH<T, P, K>;
+  using Root = BVH::PackedBVH<T, P, K>;
+
+  /**
+   * @brief Alias for the bounding volume type.
+   */
+  using BV = BoundingVolumes::AABBT<T>;
 
   /**
    * @brief Disallowed, use the full constructor.
@@ -526,44 +647,102 @@ public:
   BVHSmoothUnionIF() = delete;
 
   /**
-   * @brief Constructs the BVH-accelerated smooth union.
-   * @param[in] a_distanceFunctions Input implicit functions (must be non-empty; no null entries).
-   * @param[in] a_boundingVolumes   Bounding volumes for each function (same length as a_distanceFunctions).
-   * @param[in] a_smoothLen         Smoothing length (must be > 0).
-   * @param[in] a_smoothMin         Smooth-minimum operator; defaults to SmoothMin<T>.
+   * @brief Build the smooth union.
+   * @param[in,out] a_pool            Pool the BVH is reserved from; see BVHUnionIF.
+   * @param[in]     a_primitives      Primitives (must be non-empty).
+   * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
+   * @param[in]     a_smoothLen       Smoothing length (must be > 0).
+   * @param[in]     a_blend           Smooth-minimum operator.
+   * @param[in]     a_build           BVH construction strategy.
    */
-  BVHSmoothUnionIF(const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
-                   const std::vector<BV>&                               a_boundingVolumes,
-                   const T                                              a_smoothLen,
-                   const std::function<T(const T&, const T&, const T&)> a_smoothMin = SmoothMin<T>) noexcept;
+  EBGEOMETRY_HOST
+  BVHSmoothUnionIF(Pool&                  a_pool,
+                   const std::vector<P>&  a_primitives,
+                   const std::vector<BV>& a_boundingVolumes,
+                   T                      a_smoothLen,
+                   Blend                  a_blend = Blend{},
+                   BVH::Build             a_build = BVH::Build::SAH);
 
   /**
-   * @brief Destructor.
-   */
-  ~BVHSmoothUnionIF() override = default;
-
-  /**
-   * @brief Evaluates the smoothly blended signed distance at a_point using BVH traversal.
-   * @details Finds the two nearest primitives via BVH and applies the stored smooth-minimum. Negative
-   * when inside the smooth union.
+   * @brief Evaluate the smooth union at a point.
+   * @details Finds the two nearest primitives via the BVH and blends their values. Negative when
+   * inside the smooth union.
    * @param[in] a_point 3D query point.
-   * @return Smooth minimum signed distance blended from the two closest primitives.
+   * @return Smooth minimum of the values of the two closest primitives.
    */
-  [[nodiscard]] T
-  value(const Vec3T<T>& a_point) const noexcept override;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Returns the axis-aligned bounding box enclosing all primitives.
-   * @return Const reference to the root bounding volume of the BVH.
+   * @brief The axis-aligned bounding box enclosing all primitives.
+   * @return The root bounding volume of the BVH.
    */
-  [[nodiscard]] const EBGeometry::BoundingVolumes::AABBT<T>&
-  getBoundingVolume() const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline BV
+  computeBoundingVolume() const noexcept;
 
-protected:
   /**
-   * @brief Flat BVH over all input primitives.
+   * @brief Get the packed BVH over the primitives.
+   * @return The BVH.
    */
-  std::shared_ptr<EBGeometry::BVH::PackedBVH<T, P, K>> m_bvh;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Root&
+  getBVH() const noexcept;
+
+  /**
+   * @brief Produce a copy of this smooth union that resolves against @p a_pool; see
+   * BVHUnionIF::rebasedView().
+   * @param[in] a_pool Pool to rebase onto; must be a mirror of this union's own pool.
+   * @return A BVHSmoothUnionIF resolving against @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline BVHSmoothUnionIF
+  rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief Duplicate this smooth union's storage into @p a_dstPool; see BVHUnionIF::deepCopy().
+   * @param[in,out] a_dstPool Pool to reserve the copy from.
+   * @return A BVHSmoothUnionIF with the same structure, backed by @p a_dstPool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline BVHSmoothUnionIF
+  deepCopy(Pool& a_dstPool) const;
+
+  /**
+   * @brief A copy of this smooth union resolving against @p a_location; see BVHUnionIF::relocatedTo().
+   * @param[in] a_location Location to resolve against.
+   * @return A BVHSmoothUnionIF resolving against @p a_location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline BVHSmoothUnionIF
+  relocatedTo(const PoolLocation& a_location) const noexcept;
+
+  /**
+   * @brief Check whether this smooth union's storage was reserved from @p a_pool.
+   * @param[in] a_pool Pool to test against.
+   * @return True if this union is attached to @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline bool
+  isAttachedTo(const Pool& a_pool) const noexcept;
+
+private:
+  /**
+   * @brief Adopt an already built BVH; used by rebasedView(), deepCopy() and relocatedTo().
+   * @param[in] a_bvh       The BVH.
+   * @param[in] a_smoothLen Smoothing length.
+   * @param[in] a_blend     Smooth-minimum operator.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  BVHSmoothUnionIF(const Root& a_bvh, T a_smoothLen, Blend a_blend) noexcept
+    : m_bvh(a_bvh), m_smoothLen(a_smoothLen), m_blend(a_blend)
+  {}
+
+  /**
+   * @brief Packed BVH over all primitives, held by value.
+   */
+  Root m_bvh;
 
   /**
    * @brief Smoothing length.
@@ -573,18 +752,45 @@ protected:
   /**
    * @brief Smooth-minimum operator.
    */
-  std::function<T(const T&, const T&, const T&)> m_smoothMin;
-
-  /**
-   * @brief Builds the internal BVH from primitive/BV pairs.
-   * @param[in] a_primsAndBVs Primitives and their bounding volumes.
-   * @param[in] a_build        BVH construction strategy.
-   */
-  inline void
-  buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
-            const BVH::Build                                            a_build = BVH::Build::SAH) noexcept;
+  Blend m_blend;
 };
-#endif // EBGEOMETRY_ENABLE_BVH_CSG_UNION
+
+/**
+ * @brief Build a BVH-accelerated union of many primitives of one type.
+ * @tparam T Floating-point precision.
+ * @tparam P Primitive type; see BVHUnionIF.
+ * @tparam K BVH branching factor.
+ * @param[in,out] a_pool            Pool the BVH is reserved from; see BVHUnionIF.
+ * @param[in]     a_primitives      Primitives (must be non-empty).
+ * @param[in]     a_boundingVolumes Bounding box of each primitive.
+ * @return The union, by value.
+ */
+template <class T, class P, size_t K>
+[[nodiscard]] EBGEOMETRY_HOST
+BVHUnionIF<T, P, K>
+BVHUnion(Pool&                                         a_pool,
+         const std::vector<P>&                         a_primitives,
+         const std::vector<BoundingVolumes::AABBT<T>>& a_boundingVolumes);
+
+/**
+ * @brief Build a BVH-accelerated smooth union of many primitives of one type, blended with
+ * SmoothMinOp.
+ * @tparam T Floating-point precision.
+ * @tparam P Primitive type; see BVHUnionIF.
+ * @tparam K BVH branching factor.
+ * @param[in,out] a_pool            Pool the BVH is reserved from; see BVHUnionIF.
+ * @param[in]     a_primitives      Primitives (must be non-empty).
+ * @param[in]     a_boundingVolumes Bounding box of each primitive.
+ * @param[in]     a_smoothLen       Smoothing length (must be > 0).
+ * @return The smooth union, by value.
+ */
+template <class T, class P, size_t K>
+[[nodiscard]] EBGEOMETRY_HOST
+BVHSmoothUnionIF<T, P, K>
+BVHSmoothUnion(Pool&                                         a_pool,
+               const std::vector<P>&                         a_primitives,
+               const std::vector<BoundingVolumes::AABBT<T>>& a_boundingVolumes,
+               T                                             a_smoothLen);
 
 /**
  * @brief Implicit function whose interior is the intersection of all input function interiors.

@@ -1158,8 +1158,9 @@ protected:
  * Primitives are stored by value, inline in the flat array: no per-primitive heap allocation and
  * no pointer chase on a leaf visit. P must therefore be a self-contained, trivially copyable value
  * type -- a prerequisite for mirroring the whole BVH into a device address space with a byte copy.
- * That rules out a polymorphic primitive; see the @c EBGEOMETRY_ENABLE_BVH_CSG_UNION block in
- * EBGeometry_CSG.hpp for the one place in the library that wants one, and needs a redesign.
+ * That rules out a polymorphic primitive: a BVH over primitives of different types (a CSG union of
+ * a mesh and a sphere, say) needs the runtime dispatch of the tape. A primitive that itself lives in
+ * a Pool, such as a TriMeshSDF inside a BVHUnionIF, is fine; see PoolLocation.
  * TreeBVH is unaffected by any of this -- it always stores primitives as shared_ptr.
  *
  * @tparam T Floating-point precision.
@@ -1631,6 +1632,28 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline PackedBVH
   rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief The pool location this BVH resolves against.
+   * @return This BVH's control block (host) or base address (device view).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PoolLocation
+  location() const noexcept;
+
+  /**
+   * @brief A copy of this BVH resolving against @p a_location instead of its own location.
+   * @details For a descriptor stored inside another object's pool (see PoolLocation): the outer
+   * object applies its own location to a local copy of this descriptor, on the host and on a
+   * device alike. Unlike rebasedView() it checks nothing, since a device has no pool to check
+   * against: @p a_location must belong to the pool this BVH was reserved from, or to a mirror
+   * of it.
+   * @param[in] a_location Location to resolve against.
+   * @return A copy of this BVH resolving against @p a_location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PackedBVH
+  relocatedTo(const PoolLocation& a_location) const noexcept;
 
   /**
    * @brief Duplicate this BVH's storage into @p a_dstPool.

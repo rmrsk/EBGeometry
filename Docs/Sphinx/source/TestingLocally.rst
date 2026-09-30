@@ -227,10 +227,14 @@ Test coverage
        brute-force scan after displacement).
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin` blending primitives;
-       sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`
-       (and their BVH-accelerated counterparts); :cpp:class:`FiniteRepetitionIF` tiling and
-       boundary clamping. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp` to present
-       analytic spheres as ``ImplicitFunction`` objects.
+       sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`;
+       :cpp:class:`FiniteRepetitionIF` tiling and boundary clamping. The BVH-accelerated
+       :cpp:class:`BVHUnionIF`/:cpp:class:`BVHSmoothUnionIF` over spheres (against the virtual
+       unions and a brute-force scan, for every build strategy and blend) and over translated
+       ``TriMeshSDF`` objects, including a union of unions; host-mirror and deep copies of a mesh
+       union evaluated after the source pool is destroyed; on a GPU build, device results of all
+       three unions against the host. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp`
+       to present analytic spheres as ``ImplicitFunction`` objects.
    * - ``TestTransform``
      - :cpp:class:`ComplementIF`, :cpp:class:`TranslateIF`, :cpp:class:`RotateIF`,
        :cpp:class:`ScaleIF`, :cpp:class:`OffsetIF`, :cpp:class:`AnnularIF`, :cpp:class:`BlurIF`,

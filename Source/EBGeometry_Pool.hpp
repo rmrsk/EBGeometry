@@ -64,6 +64,30 @@ struct PoolControl
 };
 
 /**
+ * @brief Where a pool-resident descriptor resolves its offsets: the pair of fields every such
+ * descriptor (@ref EBGeometry::DCEL::MeshT, @ref EBGeometry::BVH::PackedBVH) carries.
+ * @details Exactly one field is set. A host descriptor follows its pool's control block, so a
+ * growing pool is invisible to it; a device view, produced by @c rebasedView() for a
+ * device-accessible pool, holds the mirror's base address instead and has a null control block.
+ *
+ * A descriptor normally changes location only through @c rebasedView(). The exception is a
+ * descriptor stored @e inside another object's pool -- a @c TriMeshSDF held in the primitive array of
+ * a @ref EBGeometry::BVHUnionIF, for instance. Mirroring that pool copies the inner descriptor's
+ * bytes verbatim, host control block included, and rebasing the outer object cannot rewrite them in
+ * place. The outer object therefore reads its own location and applies it to a local copy of each
+ * inner descriptor as it evaluates it (@c relocatedTo()), which is sound because both were reserved
+ * from the same pool.
+ */
+struct PoolLocation
+{
+  /// @brief Control block of the pool the descriptor resolves against; null for a device view.
+  const PoolControl* m_control = nullptr;
+
+  /// @brief Base address of a device view; null for a host descriptor.
+  void* m_base = nullptr;
+};
+
+/**
  * @brief Build-time-grow-then-freeze arena over a @ref MemoryResource.
  * @details Move-only, single-owner RAII. See the file-level documentation for the two-phase
  * (build / query) contract.

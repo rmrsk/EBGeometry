@@ -505,6 +505,27 @@ PackedBVH<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
 }
 
 template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline PoolLocation
+PackedBVH<T, P, K>::location() const noexcept
+{
+  return PoolLocation{m_control, m_base};
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline PackedBVH<T, P, K>
+PackedBVH<T, P, K>::relocatedTo(const PoolLocation& a_location) const noexcept
+{
+  PackedBVH<T, P, K> view = *this;
+
+  view.m_control = a_location.m_control;
+  view.m_base    = a_location.m_base;
+
+  return view;
+}
+
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline PackedBVH<T, P, K>
 PackedBVH<T, P, K>::deepCopy(Pool& a_dstPool) const
