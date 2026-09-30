@@ -477,6 +477,7 @@ Phase 0 is complete. Items 7–10 were:
 | 12. Device math header and toolchain contract (D6) | Done; the CUDA lane (advisory) now builds without `--expt-relaxed-constexpr`, and has not run yet | `c975031` |
 | 13. CMake target (D12, QA-4/21) | Done; also install rules and `find_package` support, checked by a new CI job | `eb86481` |
 | 14. Fixed K and W (D7) | Done; defaults are 4, host-tuned values opt-in, `Examples/HostTuning` | `92aae41` |
+| 15. Location, step one (D1, MEM-2, MEM-8) | Done; the layout/handle split remains the first tape step | `3145b5a` |
 
 Findings from item 11:
 
