@@ -12,6 +12,7 @@
 #define EBGEOMETRY_TRANSFORM_HPP
 
 // Std includes
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <type_traits>
@@ -61,7 +62,8 @@ Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a
  * @brief Convenience function for scaling an implicit function.
  * @tparam T Floating-point precision
  * @param[in] a_implicitFunction Input implicit function to be scaled.
- * @param[in] a_scale Scaling factor (must be non-zero)
+ * @param[in] a_scale Scaling factor (must be non-zero). A negative factor also reflects the shape
+ * through the origin.
  * @return New implicit function representing the uniformly scaled input
  */
 template <class T>
@@ -102,10 +104,10 @@ template <class T>
 Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blurDistance);
 
 /**
- * @brief Convenience function for mollification with an input sphere.
+ * @brief Convenience function for mollification with a smooth, centre-weighted bump kernel.
  * @tparam T Floating-point precision
  * @param[in] a_implicitFunction Input implicit function to be mollified
- * @param[in] a_dist Mollification distance.
+ * @param[in] a_dist Mollification distance: the half-width of the sampling cube.
  * @param[in] a_mollifierSamples Number of samples per dimension for the convolution kernel (must be >= 1).
  * @return New implicit function representing the mollified (smoothed) input
  */
@@ -451,6 +453,9 @@ protected:
 
 /**
  * @brief Uniformly scaled implicit function.
+ * @details Evaluates `|s| * f(x / s)`. A negative factor reflects the shape through the origin as
+ * well as scaling it; the value is scaled by `|s|`, so a signed distance function stays one and the
+ * inside stays inside.
  * @tparam T Floating-point precision
  */
 template <class T>
@@ -689,37 +694,40 @@ protected:
 namespace TransformDetail {
 
 /**
- * @brief Sphere-shaped implicit function used as Mollify()'s mollifier.
- * @details The analytic shapes are plain value types rather than ImplicitFunction objects, so
- * Mollify() cannot hand MollifyIF a SphereSDF. This class evaluates the same formula,
- * `|x| - radius`, as an ImplicitFunction.
+ * @brief Mollify()'s default kernel: a smooth, non-negative bump centred at the origin.
+ * @details Evaluates `max(0, 1 - |x|^2 / (2 r)^2)^2` for mollification distance r. It is largest at
+ * the centre and decreases smoothly outward. Its support has radius 2 r, so every sample MollifyIF
+ * takes in the cube [-r, r]^3 (whose corners are sqrt(3) r away) gets a positive weight, including
+ * the two-sample case, where all samples are corners.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class SphereMollifierIF : public ImplicitFunction<T>
+class BumpMollifierIF : public ImplicitFunction<T>
 {
 public:
   /**
    * @brief Full constructor.
-   * @param[in] a_radius Sphere radius.
+   * @param[in] a_radius Mollification distance r (> 0).
    */
-  explicit SphereMollifierIF(const T a_radius) noexcept : m_radius(a_radius)
+  explicit BumpMollifierIF(const T a_radius) noexcept : m_radius(a_radius)
   {}
 
   /**
-   * @brief Signed distance to a sphere of radius m_radius centred at the origin.
-   * @param[in] a_point Evaluation point.
-   * @return `|a_point| - m_radius`.
+   * @brief Kernel weight at an offset from the centre.
+   * @param[in] a_point Offset.
+   * @return `max(0, 1 - |a_point|^2 / (2 r)^2)^2`.
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override
   {
-    return a_point.length() - m_radius;
+    const T t = std::max(T(0), T(1) - a_point.length2() / (T(4) * m_radius * m_radius));
+
+    return t * t;
   }
 
 private:
   /**
-   * @brief Sphere radius.
+   * @brief Mollification distance r.
    */
   T m_radius;
 };
@@ -728,9 +736,13 @@ private:
 
 /**
  * @brief Mollified implicit function.
- * @details Convolves the wrapped implicit function with a pre-sampled mollifier kernel
- * (typically a sphere SDF) over a uniform 3-D grid of a_numPoints^3 sample offsets
- * spanning [-a_maxValue, a_maxValue]^3.  Weights are normalized to sum to 1.
+ * @details Convolves the wrapped implicit function with a pre-sampled mollifier kernel over a
+ * uniform 3-D grid of a_numPoints^3 sample offsets spanning [-a_maxValue, a_maxValue]^3. The
+ * kernel is evaluated at each offset to give that sample's weight, and the weights are normalized
+ * to sum to 1. The kernel must therefore return weights, not distances: non-negative, and not all
+ * zero on the grid. With such weights the result is a convex combination of shifted copies of the
+ * wrapped function, so a 1-Lipschitz input stays 1-Lipschitz. Mollify() uses a smooth bump
+ * (TransformDetail::BumpMollifierIF).
  * @tparam T Floating-point precision
  */
 template <class T>
@@ -759,7 +771,7 @@ public:
   /**
    * @brief Full constructor
    * @param[in] a_implicitFunction  Input implicit function.
-   * @param[in] a_mollifier         Mollifier implicit function (e.g. a sphere SDF)
+   * @param[in] a_mollifier         Kernel returning the (non-negative) weight of each sample offset.
    * @param[in] a_maxValue          Half-width of the sampling region; must be > 0 for any smoothing to occur.
    * @param[in] a_numPoints         Number of sample points per axis; must be >= 2 for any smoothing to occur.
    */
@@ -818,7 +830,10 @@ protected:
  * @brief Implicit function which is an elongation of another implicit function along each axis.
  * @details Elongation clamps the query point component-wise to [-elongation, +elongation] and
  * subtracts the clamped value before evaluating the wrapped function — effectively stretching
- * the shape without changing its cross-section profile.
+ * the shape without changing its cross-section profile. For a signed distance function the result
+ * is exact outside the shape. Inside, wherever the point lies within [-elongation, +elongation] on
+ * every elongated axis, the value is the constant f(0) rather than the distance to the surface, so
+ * it underestimates the depth there.
  * @tparam T Floating-point precision
  */
 template <class T>

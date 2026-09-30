@@ -904,8 +904,8 @@ public:
    * @details The hemisphere centres stored internally are derived from the tips:
    * `m_center1 = a_tip1 + a_radius * axis` and `m_center2 = a_tip2 - a_radius * axis`,
    * where `axis = (a_tip2 - a_tip1) / distance(a_tip1, a_tip2)`.
-   * The cylindrical body length is `distance(a_tip1, a_tip2) - 2 * a_radius`; for a valid
-   * non-degenerate shape this must be positive, i.e. `distance(a_tip1, a_tip2) > 2 * a_radius`.
+   * The cylindrical body length is `distance(a_tip1, a_tip2) - 2 * a_radius`, which must not be
+   * negative: `distance(a_tip1, a_tip2) >= 2 * a_radius`. At equality the capsule is a sphere.
    * @param[in] a_tip1   Outer tip of one hemispherical cap (outermost point in that direction).
    * @param[in] a_tip2   Outer tip of the other hemispherical cap.
    * @param[in] a_radius Capsule radius (applied to both the tube and the hemispherical caps).
@@ -920,7 +920,7 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_tip2[2]));
     EBGEOMETRY_EXPECT(std::isfinite(a_radius));
     EBGEOMETRY_EXPECT(a_radius > T(0));
-    EBGEOMETRY_EXPECT((a_tip2 - a_tip1).length() > T(0));
+    EBGEOMETRY_EXPECT((a_tip2 - a_tip1).length() >= T(2) * a_radius);
 
     const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
 
@@ -965,14 +965,17 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT((m_center2 - m_center1).length() > T(0));
 
     const Vec3T<T> v1 = a_point - m_center1;
     const Vec3T<T> v2 = m_center2 - m_center1;
 
+    // Tips exactly two radii apart put both hemisphere centres at the same point: a sphere. Guard the
+    // projection, which would otherwise divide zero by zero.
+    const T len2 = dot(v2, v2);
+
     // std::min/std::max rather than std::clamp: libstdc++ 14's std::clamp asserts lo <= hi through a
     // host-only function, which a device compile rejects.
-    const T h = std::min(std::max(dot(v1, v2) / dot(v2, v2), T(0.0)), T(1.0));
+    const T h = (len2 > T(0)) ? std::min(std::max(dot(v1, v2) / len2, T(0.0)), T(1.0)) : T(0.0);
     const T d = length(v1 - h * v2) - m_radius;
 
     return d;
@@ -1268,7 +1271,7 @@ public:
     EBGEOMETRY_EXPECT(a_curvature > T(0));
 
     m_dimensions = T(0.5) * a_dimensions;
-    m_sphere     = SphereSDF<T>(Vec3T<T>::zeros(), a_curvature);
+    m_curvature  = a_curvature;
   }
 
   /**
@@ -1308,14 +1311,24 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    return m_sphere.signedDistance(a_point - clamp(a_point, -m_dimensions, m_dimensions));
+    // q is the point's per-axis distance beyond the inner box (negative inside it). Outside, the
+    // distance to the inner box is the length of q's positive part; inside, it is the distance to
+    // the nearest face, max(q) <= 0. Either way the rounding moves the surface out by m_curvature.
+    const Vec3T<T> q(std::abs(a_point[0]) - m_dimensions[0],
+                     std::abs(a_point[1]) - m_dimensions[1],
+                     std::abs(a_point[2]) - m_dimensions[2]);
+
+    const T outside = length(max(q, Vec3T<T>::zeros()));
+    const T inside  = std::min(std::max(q[0], std::max(q[1], q[2])), T(0));
+
+    return outside + inside - m_curvature;
   }
 
 protected:
   /**
-   * @brief Sphere of radius = curvature used to round the corners.
+   * @brief Corner rounding radius.
    */
-  SphereSDF<T> m_sphere = SphereSDF<T>(Vec3T<T>::zeros(), T(0.1));
+  T m_curvature = T(0.1);
 
   /**
    * @brief Half-extents of the inner box (= 0.5 * the user-supplied dimensions).
@@ -1335,9 +1348,6 @@ protected:
  * (controlled by `m_noisePersistence` dividing the frequency) and attenuates the amplitude by
  * `m_noisePersistence`.
  *
- * @note The default constructor leaves the permutation table all-zeros, producing constant-zero
- * noise. Use the full constructor (which initialises the table from Ken Perlin's reference
- * permutation and then shuffles it) or call `shuffle()` explicitly before use.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -1348,15 +1358,17 @@ class PerlinSDF
 public:
   /**
    * @brief Default constructor. Constructs a single-octave Perlin noise field with unit amplitude,
-   * unit frequency along all axes, and persistence 0.5.
+   * unit frequency along all axes, and persistence 0.5: the full constructor with those values.
    */
-  PerlinSDF() = default;
+  PerlinSDF() noexcept : PerlinSDF(T(1), Vec3T<T>::ones(), T(0.5), 1U)
+  {}
 
   /**
    * @brief Full constructor.
    * @param[in] a_noiseAmplitude   Noise amplitude (output scale).
    * @param[in] a_noiseFrequency   Spatial frequency along each Cartesian axis.
-   * @param[in] a_noisePersistence Per-octave amplitude decay factor. Clamped to [0, 1].
+   * @param[in] a_noisePersistence Per-octave amplitude decay factor, at most 1. A value of zero or
+   * less keeps only the first octave, since every later one would have zero amplitude.
    * @param[in] a_noiseOctaves     Number of noise octaves. Clamped to >= 1.
    */
   PerlinSDF(const T            a_noiseAmplitude,
@@ -1374,6 +1386,13 @@ public:
     m_noiseFrequency   = a_noiseFrequency;
     m_noisePersistence = std::min(T(1), a_noisePersistence);
     m_noiseOctaves     = std::max(1U, a_noiseOctaves);
+
+    // Each octave divides the frequency by the persistence, so zero would give an infinite frequency
+    // (and NaN noise) for an octave that contributes nothing anyway.
+    if (!(m_noisePersistence > T(0))) {
+      m_noisePersistence = T(1);
+      m_noiseOctaves     = 1U;
+    }
 
     for (int i = 0; i < 256; i++) {
       m_permutationTable[i]       = s_perlinPermutationTable[i];

@@ -54,6 +54,7 @@ using Meta = short;
   template struct SmoothMinOp<PREC>;                                         \
   template struct SmoothMaxOp<PREC>;                                         \
   template struct ExpMinOp<PREC>;                                            \
+  template struct ExpMaxOp<PREC>;                                            \
   template class BVHUnionIF<PREC, SphereSDF<PREC>, 4>;                       \
   template class BVHSmoothUnionIF<PREC, SphereSDF<PREC>, 4>;                 \
   template class BVHSmoothUnionIF<PREC, BoxSDF<PREC>, 4, ExpMinOp<PREC>>;    \

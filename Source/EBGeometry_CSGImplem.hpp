@@ -921,14 +921,19 @@ FiniteRepetitionIF<T>::FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction
 {
   EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
 
-  for (size_t i = 0; i < 3; i++) {
-    EBGEOMETRY_EXPECT(a_period[i] > T(0));
-  }
-
   m_implicitFunction = a_implicitFunction;
   m_period           = a_period;
-  m_repeatLo         = a_repeatLo;
-  m_repeatHi         = a_repeatHi;
+
+  // Whole tiles only: rounding after clamping to a fractional bound would otherwise produce a tile
+  // past it.
+  for (size_t i = 0; i < 3; i++) {
+    EBGEOMETRY_EXPECT(a_period[i] > T(0));
+    EBGEOMETRY_EXPECT(a_repeatLo[i] >= T(0));
+    EBGEOMETRY_EXPECT(a_repeatHi[i] >= T(0));
+
+    m_repeatLo[i] = std::round(a_repeatLo[i]);
+    m_repeatHi[i] = std::round(a_repeatHi[i]);
+  }
 }
 
 template <class T>
@@ -938,7 +943,9 @@ FiniteRepetitionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   Vec3T<T> q;
 
   for (size_t i = 0; i < 3; i++) {
-    q[i] = a_point[i] - m_period[i] * std::round(std::clamp((a_point[i] / m_period[i]), -m_repeatLo[i], m_repeatHi[i]));
+    // std::min/std::max rather than std::clamp: std::clamp is undefined if the bounds cross.
+    q[i] = a_point[i] -
+           m_period[i] * std::round(std::min(std::max(a_point[i] / m_period[i], -m_repeatLo[i]), m_repeatHi[i]));
   }
 
   const T ret = m_implicitFunction->value(q);

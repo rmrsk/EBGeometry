@@ -187,12 +187,15 @@ EBGeometry implements several further transformations that have no closed-form c
   equal to the blur distance, with per-sample weights controlled by a blend factor ``alpha``
   (``1`` = no blur, ``0`` = maximal blur).
 * **Mollify** (``MollifyIF``/``Mollify``) is a more general smoothing operation: it convolves the
-  wrapped function with a caller-supplied mollifier implicit function (typically a small sphere
-  SDF) sampled on a uniform grid of offsets, normalizing the sample weights to sum to one.
+  wrapped function with a kernel sampled on a uniform grid of offsets, normalizing the sample
+  weights to sum to one. The kernel returns a non-negative weight for each offset. ``Mollify`` uses
+  a smooth bump that is largest at the centre; ``MollifyIF`` takes any kernel.
 * **Elongate** (``ElongateIF``/``Elongate``) stretches a shape along one or more axes without
   changing its cross-section: the query point is clamped component-wise to
   :math:`[-\mathbf{e}, \mathbf{e}]` for a per-axis elongation vector :math:`\mathbf{e}`, and the
-  clamped offset is subtracted from the point before evaluating the wrapped function.
+  clamped offset is subtracted from the point before evaluating the wrapped function. For a signed
+  distance function the result is exact outside; inside the elongated core it is constant, so it
+  underestimates the depth there.
 
 .. list-table::
    :header-rows: 1
@@ -295,16 +298,18 @@ in the Doxygen listing above -- one taking a ``std::vector`` of any number of im
 and one taking exactly two -- both constructing the same underlying wrapper class.
 
 The "smooth" combinators blend the transition between objects instead of leaving a sharp crease,
-using a caller-replaceable blending functor rather than a plain ``min``/``max``. Three are provided
+using a caller-replaceable blending functor rather than a plain ``min``/``max``. Four are provided
 in :file:`Source/EBGeometry_CSG.hpp`, each a small, trivially copyable function object that can
-also be called on a GPU -- ``SmoothMinOp<T>``, ``SmoothMaxOp<T>`` and ``ExpMinOp<T>`` -- together
-with ready-made instances of them, ``SmoothMin<T>``, ``SmoothMax<T>`` and ``ExpMin<T>``, called as
+also be called on a GPU -- ``SmoothMinOp<T>``, ``SmoothMaxOp<T>``, ``ExpMinOp<T>`` and
+``ExpMaxOp<T>`` -- together with ready-made instances of them, ``SmoothMin<T>``, ``SmoothMax<T>``,
+``ExpMin<T>`` and ``ExpMax<T>``, called as
 ``SmoothMin<T>(a, b, s)``. ``SmoothMin`` is a cheap polynomial smooth-minimum and the default for
 ``SmoothUnion``; ``SmoothMax`` is its symmetric counterpart and the default for both
 ``SmoothIntersection`` and ``SmoothDifference`` (difference is implemented internally as the
 intersection of ``A`` with the complement of ``B``, which is why it defaults to the same operator
-as intersection rather than to ``SmoothMin``); ``ExpMin`` is a more expensive exponential
-alternative. The smooth combinators take the operator as a
+as intersection rather than to ``SmoothMin``); ``ExpMin`` and ``ExpMax`` are more expensive
+exponential alternatives, evaluated in a form that cannot overflow however far the inputs are from
+zero. The smooth combinators take the operator as a
 ``std::function<T(const T&, const T&, const T&)>``, to which any of the three -- or a
 user-supplied functor of the same signature -- converts.
 
@@ -312,7 +317,10 @@ user-supplied functor of the same signature -- converts.
 periodically over a finite number of repetitions per axis, by mapping the query point into the
 nearest tile before evaluating the wrapped function -- effectively a cheap way to instance the
 same shape many times without constructing a separate ``ImplicitFunction<T>`` (or a CSG union) per
-copy. See its Doxygen entries for
+copy. The repetition counts are whole numbers of tiles, rounded if fractional. The result is a
+distance bound only if the base shape fits inside its own cell (half a period either side of the
+origin on each axis); a shape reaching into a neighbouring cell is cut off where the cells meet.
+See its Doxygen entries for
 `FiniteRepetitionIF <doxygen/html/classEBGeometry_1_1FiniteRepetitionIF.html>`__ and
 `FiniteRepetition <doxygen/html/namespaceEBGeometry.html#a46761e494f4b02faadb31fce9ebb8d80>`__.
 

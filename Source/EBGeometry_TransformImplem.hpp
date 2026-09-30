@@ -92,7 +92,7 @@ Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T 
 {
   EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
 
-  auto mollifier = std::make_shared<TransformDetail::SphereMollifierIF<T>>(std::abs(a_dist));
+  auto mollifier = std::make_shared<TransformDetail::BumpMollifierIF<T>>(std::abs(a_dist));
 
   return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), a_mollifierSamples);
 }
@@ -265,7 +265,9 @@ ScaleIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return (m_implicitFunction->value(a_point / m_scale)) * m_scale;
+  // |s|, not s: a negative factor reflects the point through the origin, and multiplying the value by
+  // a negative number would also swap inside and outside.
+  return (m_implicitFunction->value(a_point / m_scale)) * std::abs(m_scale);
 }
 
 template <class T>

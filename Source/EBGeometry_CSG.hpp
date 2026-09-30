@@ -172,14 +172,19 @@ SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
 /**
  * @brief Constructs a periodically tiled implicit function with finite extent.
  * @details The query point is folded into the nearest cell before evaluating the base function.
- * The repetition count is clamped to [a_repeatLo, a_repeatHi] per axis; outside this range the
- * nearest tile is evaluated.
+ * Along each axis the tiles are those at offsets -a_repeatLo, ..., 0, ..., a_repeatHi periods from
+ * the base; outside this range the nearest tile is evaluated. The counts are whole numbers of
+ * tiles: fractional values are rounded, and they must not be negative.
+ *
+ * The result is a distance bound only if the base shape fits inside its own cell,
+ * [-a_period/2, a_period/2] on each axis. A shape that reaches into a neighbouring cell is cut off
+ * where the cells meet, and the value there can overestimate the true distance.
  * @tparam T Floating-point precision.
  * @tparam P Primitive type; must derive from ImplicitFunction<T>.
  * @param[in] a_implicitFunction Base implicit function to tile.
  * @param[in] a_period           Tile period in each coordinate direction (all components must be > 0).
- * @param[in] a_repeatLo         Repetition count for decreasing coordinates (integer values).
- * @param[in] a_repeatHi         Repetition count for increasing coordinates (integer values).
+ * @param[in] a_repeatLo         Number of tiles in the decreasing direction of each axis (>= 0).
+ * @param[in] a_repeatHi         Number of tiles in the increasing direction of each axis (>= 0).
  * @return Shared pointer to a FiniteRepetitionIF<T>.
  */
 template <class T, class P = ImplicitFunction<T>>
@@ -191,9 +196,12 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
 
 /**
  * @brief Exponential smooth minimum for blending two signed-distance values.
- * @details Approximates min(a, b) with exponential weighting; the blend region width scales with s.
- * Useful when a differentiable interface is required. Approaches min(a, b) as s → 0. A trivially
- * copyable function object, so it can be stored in a BVHSmoothUnionIF and evaluated on a device.
+ * @details Evaluates `-s log(exp(-a/s) + exp(-b/s))`, which approximates min(a, b) with exponential
+ * weighting; the blend region width scales with s. Useful when a differentiable interface is
+ * required. Approaches min(a, b) as s → 0. Computed as `min(a, b) - s log1p(exp(-|a - b| / s))`,
+ * which equals the formula above but cannot overflow or underflow however far a and b are from zero.
+ * A trivially copyable function object, so it can be stored in a BVHSmoothUnionIF and evaluated on
+ * a device.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -214,9 +222,37 @@ struct ExpMinOp
   {
     EBGEOMETRY_EXPECT(s > T(0));
 
-    const T ret = std::exp(-a / s) + std::exp(-b / s);
+    return std::min(a, b) - s * std::log1p(std::exp(-std::abs(a - b) / s));
+  }
+};
 
-    return -std::log(ret) * s;
+/**
+ * @brief Exponential smooth maximum for blending two signed-distance values.
+ * @details Evaluates `s log(exp(a/s) + exp(b/s))`, the counterpart of ExpMinOp for intersections
+ * and differences: approximates max(a, b) and approaches it as s → 0. Computed as
+ * `max(a, b) + s log1p(exp(-|a - b| / s))`, which cannot overflow. A trivially copyable function
+ * object.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct ExpMaxOp
+{
+  static_assert(std::is_floating_point_v<T>, "ExpMaxOp requires a floating-point type T");
+
+  /**
+   * @brief Evaluate the exponential smooth maximum.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @param[in] s Smoothing length (must be > 0).
+   * @return Exponentially blended approximation of max(a, b).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const T& a, const T& b, const T& s) const noexcept
+  {
+    EBGEOMETRY_EXPECT(s > T(0));
+
+    return std::max(a, b) + s * std::log1p(std::exp(-std::abs(a - b) / s));
   }
 };
 
@@ -290,6 +326,14 @@ struct SmoothMaxOp
  */
 template <class T>
 inline constexpr ExpMinOp<T> ExpMin{};
+
+/**
+ * @brief The exponential smooth maximum, as a ready-made function object: `ExpMax<T>(a, b, s)`.
+ * @details Converts implicitly to the `std::function` the smooth CSG combinators take.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+inline constexpr ExpMaxOp<T> ExpMax{};
 
 /**
  * @brief The polynomial smooth minimum, as a ready-made function object: `SmoothMin<T>(a, b, s)`.
@@ -1053,8 +1097,10 @@ public:
    * @brief Constructs the periodically tiled implicit function.
    * @param[in] a_implicitFunction Base function to tile (must not be null).
    * @param[in] a_period           Tile period per coordinate direction (all components must be > 0).
-   * @param[in] a_repeatLo         Repetition count for decreasing coordinates (integer values).
-   * @param[in] a_repeatHi         Repetition count for increasing coordinates (integer values).
+   * @param[in] a_repeatLo         Number of tiles in the decreasing direction of each axis (>= 0;
+   * rounded to a whole number).
+   * @param[in] a_repeatHi         Number of tiles in the increasing direction of each axis (>= 0;
+   * rounded to a whole number).
    */
   FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
                      const Vec3T<T>&                             a_period,

@@ -208,6 +208,29 @@ TEMPLATE_TEST_CASE("ExpMin: equal inputs blend to a - s*ln(2)", "[CSG][ExpMin]",
   REQUIRE_THAT(ExpMin<T>(a, a, s), withinAbsT(a - s * std::log(T(2.0)), formulaMargin<T>()));
 }
 
+TEMPLATE_TEST_CASE("ExpMin and ExpMax: finite and close to the sharp min/max far from the blend region",
+                   "[CSG][ExpMin]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // exp(-a/s) under- or overflows once |a|/s passes ~100 (float) or ~700 (double); the blend must
+  // not, since a BVHSmoothUnionIF evaluates it at arbitrary distances from the surface.
+  const T s = T(1);
+
+  for (const T a : {T(200), T(-100), T(1000), T(-800)}) {
+    const T b = a + T(5);
+
+    INFO("a = " << a);
+    REQUIRE(std::isfinite(ExpMin<T>(a, b, s)));
+    REQUIRE(std::isfinite(ExpMax<T>(a, b, s)));
+    REQUIRE_THAT(ExpMin<T>(a, b, s), withinAbsT(a - s * std::log1p(std::exp(-T(5))), formulaMargin<T>()));
+    REQUIRE_THAT(ExpMax<T>(a, b, s), withinAbsT(b + s * std::log1p(std::exp(-T(5))), formulaMargin<T>()));
+  }
+
+  REQUIRE_THAT(ExpMax<T>(T(2), T(2), s), withinAbsT(T(2) + s * std::log(T(2)), formulaMargin<T>()));
+}
+
 TEMPLATE_TEST_CASE("ExpMin: never exceeds the sharp minimum", "[CSG][ExpMin]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
@@ -1210,6 +1233,32 @@ TEMPLATE_TEST_CASE("FiniteRepetitionIF: clamps to the boundary tile beyond the r
   const Vec3 farBelow(-23.0, 0, 0);
   const Vec3 expectedLocalNeg = farBelow + Vec3(5.0, 0, 0);
   REQUIRE_THAT(tiled.value(farBelow), withinAbsT(base->signedDistance(expectedLocalNeg), formulaMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("FiniteRepetitionIF: fractional repetition counts round to whole tiles",
+                   "[CSG][FiniteRepetition]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto base = std::make_shared<Sphere<T>>(Vec3::zeros(), T(0.25));
+
+  const FiniteRepetitionIF<T> roundsDown(base, Vec3::ones(), Vec3(T(0.4), T(0), T(0)), Vec3(T(2.4), T(0), T(0)));
+  const FiniteRepetitionIF<T> roundsUp(base, Vec3::ones(), Vec3(T(0.6), T(0), T(0)), Vec3(T(2.6), T(0), T(0)));
+  const FiniteRepetitionIF<T> two(base, Vec3::ones(), Vec3(T(0), T(0), T(0)), Vec3(T(2), T(0), T(0)));
+  const FiniteRepetitionIF<T> three(base, Vec3::ones(), Vec3(T(1), T(0), T(0)), Vec3(T(3), T(0), T(0)));
+
+  for (const T x : {T(-2), T(-1), T(0), T(1), T(2), T(2.6), T(3), T(4)}) {
+    const Vec3 p(x, T(0.1), T(0));
+
+    INFO("x = " << x);
+    REQUIRE_THAT(roundsDown.value(p), withinAbsT(two.value(p), exactMargin<T>()));
+    REQUIRE_THAT(roundsUp.value(p), withinAbsT(three.value(p), exactMargin<T>()));
+  }
+
+  REQUIRE(two.value(Vec3(T(3), T(0), T(0))) > T(0));
+  REQUIRE(three.value(Vec3(T(3), T(0), T(0))) < T(0));
 }
 
 TEMPLATE_TEST_CASE("FiniteRepetition: free function matches FiniteRepetitionIF",

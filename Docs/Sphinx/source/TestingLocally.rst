@@ -180,8 +180,11 @@ Test coverage
        intersection predicate, overlapping volume.
    * - ``TestAnalyticSDF``
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
-       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances;
-       every analytic shape is a trivially copyable, non-polymorphic value type; on a GPU build,
+       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances; every
+       exact shape (all but :cpp:class:`PerlinSDF`) checked as a true signed distance function at
+       random points (unit gradient, a step back along the gradient lands on the surface,
+       1-Lipschitz); the capsule's sphere limit and Perlin's defaults; every analytic shape is a
+       trivially copyable, non-polymorphic value type; on a GPU build,
        device ``signedDistance()`` of all twelve shapes matches the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
@@ -231,7 +234,8 @@ Test coverage
        correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
        brute-force scan after displacement).
    * - ``TestCSG``
-     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin` blending primitives;
+     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
+       primitives, including far from the blend region;
        sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`;
        :cpp:class:`FiniteRepetitionIF` tiling and boundary clamping. The BVH-accelerated
        :cpp:class:`BVHUnionIF`/:cpp:class:`BVHSmoothUnionIF` over spheres (against the virtual

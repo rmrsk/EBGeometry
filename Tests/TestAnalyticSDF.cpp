@@ -7,6 +7,8 @@
 
 #include <cmath>
 #include <cstring>
+#include <limits>
+#include <random>
 #include <type_traits>
 #include <vector>
 
@@ -244,7 +246,10 @@ TEMPLATE_TEST_CASE("RoundedBoxSDF: distances, and copies no longer share the rou
 
   REQUIRE_THAT(roundedBox.signedDistance(Vec3(T(3), T(0), T(0))), WithinRel(T(1.5)));
   REQUIRE_THAT(roundedBox.signedDistance(Vec3(T(0), T(0), T(1.5))), WithinAbs(0.0, looseMargin<T>()));
-  REQUIRE_THAT(roundedBox.signedDistance(Vec3::zeros()), WithinRel(T(-0.5)));
+  // Inside, the distance is to the nearest face (half-extent 1 + rounding 0.5), not the rounding
+  // radius alone.
+  REQUIRE_THAT(roundedBox.signedDistance(Vec3::zeros()), WithinRel(T(-1.5)));
+  REQUIRE_THAT(roundedBox.signedDistance(Vec3(T(0.75), T(0), T(0))), WithinRel(T(-0.75)));
 
   // Before this class held its sphere by value, a copy shared it through a shared_ptr. A copy is now
   // an independent object, and a default-constructed box is unaffected by another box's radius.
@@ -254,6 +259,161 @@ TEMPLATE_TEST_CASE("RoundedBoxSDF: distances, and copies no longer share the rou
   REQUIRE(copy.signedDistance(Vec3(T(3), T(0), T(0))) == roundedBox.signedDistance(Vec3(T(3), T(0), T(0))));
   REQUIRE_THAT(other.signedDistance(Vec3(T(3), T(0), T(0))), WithinRel(T(1.75)));
   REQUIRE_THAT(RoundedBoxSDF<T>().signedDistance(Vec3(T(1), T(0), T(0))), WithinRel(T(0.4)));
+}
+
+namespace {
+
+// Checks that a_shape behaves as an exact signed distance function at random points in the cube
+// [-a_extent, a_extent]^3. For an exact SDF f and a point p off the medial axis, |grad f| = 1, and
+// stepping back along the gradient by f(p) lands on the surface: f(p - f(p) grad f(p)) = 0. A
+// formula that is constant somewhere (zero gradient), or that over- or underestimates the distance,
+// fails one of the two. Points near the medial axis, where the gradient is discontinuous and a
+// central difference straddles the ridge, are skipped; they must be rare. f must also be
+// 1-Lipschitz between any two sample points.
+template <class T, class Shape>
+void
+requireExactSDF(const Shape& a_shape, const T a_extent)
+{
+  using Vec3 = Vec3T<T>;
+
+  const T h   = std::cbrt(std::numeric_limits<T>::epsilon()) * a_extent;
+  const T tol = std::is_same_v<T, float> ? T(2e-2) : T(1e-5);
+
+  std::mt19937                      rng(12345);
+  std::uniform_real_distribution<T> coord(-a_extent, a_extent);
+
+  constexpr int numPoints = 2000;
+
+  int  ridgePoints = 0;
+  Vec3 previous    = Vec3::zeros();
+
+  for (int i = 0; i < numPoints; i++) {
+    const Vec3 p(coord(rng), coord(rng), coord(rng));
+    const T    f = a_shape.signedDistance(p);
+
+    REQUIRE(std::isfinite(f));
+
+    INFO("p = " << p << ", f = " << f);
+
+    if (i > 0) {
+      REQUIRE(std::abs(f - a_shape.signedDistance(previous)) <= (p - previous).length() * (T(1) + tol) + tol);
+    }
+
+    previous = p;
+
+    Vec3 grad;
+
+    for (size_t d = 0; d < 3; d++) {
+      const Vec3 e = h * Vec3::unit(d);
+
+      grad[d] = (a_shape.signedDistance(p + e) - a_shape.signedDistance(p - e)) / (T(2) * h);
+    }
+
+    if (std::abs(grad.length() - T(1)) > tol) {
+      ridgePoints++;
+
+      continue;
+    }
+
+    const Vec3 onSurface = p - f * grad / grad.length();
+
+    REQUIRE(std::abs(a_shape.signedDistance(onSurface)) <= tol * std::max(T(1), std::abs(f)));
+  }
+
+  REQUIRE(ridgePoints <= numPoints / 50);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Analytic shapes: every exact shape is a true signed distance function",
+                   "[AnalyticSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  SECTION("SphereSDF")
+  {
+    requireExactSDF<T>(SphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.3)), T(0.8)), T(2));
+  }
+  SECTION("PlaneSDF")
+  {
+    requireExactSDF<T>(PlaneSDF<T>(Vec3(T(0.1), T(0.2), T(0.3)), Vec3(T(1), T(2), T(-1))), T(2));
+  }
+  SECTION("BoxSDF")
+  {
+    requireExactSDF<T>(BoxSDF<T>(Vec3(T(-0.5), T(-0.3), T(-0.8)), Vec3(T(0.7), T(0.4), T(0.2))), T(2));
+  }
+  SECTION("TorusSDF")
+  {
+    requireExactSDF<T>(TorusSDF<T>(Vec3(T(0.1), T(0), T(-0.1)), T(1), T(0.3)), T(2));
+  }
+  SECTION("CylinderSDF")
+  {
+    requireExactSDF<T>(CylinderSDF<T>(Vec3(T(-0.2), T(-0.5), T(0.1)), Vec3(T(0.3), T(0.6), T(-0.2)), T(0.4)), T(2));
+  }
+  SECTION("InfiniteCylinderSDF")
+  {
+    requireExactSDF<T>(InfiniteCylinderSDF<T>(Vec3(T(0.1), T(0.2), T(0)), T(0.5), 1), T(2));
+  }
+  SECTION("CapsuleSDF")
+  {
+    requireExactSDF<T>(CapsuleSDF<T>(Vec3(T(0), T(0), T(-1)), Vec3(T(0.2), T(0.1), T(1.5)), T(0.4)), T(2));
+  }
+  SECTION("ConeSDF")
+  {
+    requireExactSDF<T>(ConeSDF<T>(Vec3(T(0), T(0), T(0.8)), T(1.5), T(60)), T(2));
+  }
+  SECTION("InfiniteConeSDF")
+  {
+    requireExactSDF<T>(InfiniteConeSDF<T>(Vec3(T(0), T(0), T(0.5)), T(50)), T(2));
+  }
+  SECTION("RoundedBoxSDF")
+  {
+    requireExactSDF<T>(RoundedBoxSDF<T>(Vec3(T(1), T(0.6), T(0.4)), T(0.1)), T(1));
+  }
+  SECTION("RoundedCylinderSDF")
+  {
+    requireExactSDF<T>(RoundedCylinderSDF<T>(T(0.8), T(0.2), T(1.6)), T(1.5));
+  }
+}
+
+TEMPLATE_TEST_CASE("CapsuleSDF: tips exactly two radii apart give a sphere, not NaN",
+                   "[CapsuleSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const CapsuleSDF<T> capsule(Vec3(T(0), T(0), T(-0.5)), Vec3(T(0), T(0), T(0.5)), T(0.5));
+  const SphereSDF<T>  sphere(Vec3::zeros(), T(0.5));
+
+  for (const auto& p : {Vec3::zeros(), Vec3(T(1), T(0), T(0)), Vec3(T(0.2), T(-0.3), T(0.9))}) {
+    REQUIRE_THAT(capsule.signedDistance(p), WithinAbs(double(sphere.signedDistance(p)), looseMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("PerlinSDF: the default constructor and zero persistence give defined noise",
+                   "[PerlinSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // The default constructor is the full constructor with the documented defaults.
+  const PerlinSDF<T> byDefault;
+  const PerlinSDF<T> explicitDefaults(T(1), Vec3::ones(), T(0.5), 1U);
+
+  // Zero persistence leaves every octave after the first with zero amplitude; it must not divide
+  // the frequency by zero.
+  const PerlinSDF<T> zeroPersistence(T(1), Vec3::ones(), T(0), 3U);
+  const PerlinSDF<T> oneOctave(T(1), Vec3::ones(), T(0.5), 1U);
+
+  for (const auto& p : {Vec3(T(0.3), T(0.6), T(0.1)), Vec3(T(0.7), T(0.2), T(0.9)), Vec3(T(-1.3), T(2.1), T(0.4))}) {
+    REQUIRE(byDefault.signedDistance(p) == explicitDefaults.signedDistance(p));
+    REQUIRE(std::isfinite(zeroPersistence.signedDistance(p)));
+    REQUIRE_THAT(zeroPersistence.signedDistance(p), WithinAbs(double(oneOctave.signedDistance(p)), looseMargin<T>()));
+  }
 }
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)

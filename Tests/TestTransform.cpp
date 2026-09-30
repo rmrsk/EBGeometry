@@ -266,6 +266,23 @@ TEMPLATE_TEST_CASE("ScaleIF: matches an equivalent sphere built directly with th
   }
 }
 
+TEMPLATE_TEST_CASE("ScaleIF: a negative factor reflects the shape through the origin without turning it inside out",
+                   "[Transform][Scale]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Scaling by -2 maps the sphere at (1, 0, 0) with radius 0.5 to the sphere at (-2, 0, 0) with
+  // radius 1: negative inside, positive outside, and distances scaled by |s| = 2.
+  const auto       sphere = std::make_shared<Sphere<T>>(Vec3(T(1), T(0), T(0)), T(0.5));
+  const ScaleIF<T> scaled(sphere, T(-2));
+
+  REQUIRE_THAT(scaled.value(Vec3(T(-2), T(0), T(0))), withinAbsT(T(-1), exactMargin<T>()));
+  REQUIRE_THAT(scaled.value(Vec3(T(10), T(0), T(0))), withinAbsT(T(11), exactMargin<T>()));
+  REQUIRE_THAT(scaled.value(Vec3(T(-2), T(3), T(0))), withinAbsT(T(2), exactMargin<T>()));
+}
+
 TEMPLATE_TEST_CASE("Scale: free function matches ScaleIF", "[Transform][Scale]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
@@ -461,6 +478,54 @@ TEMPLATE_TEST_CASE("MollifyIF: sample weights are normalized to sum to one",
 
   for (const auto& p : samplePoints<T>()) {
     REQUIRE_THAT(mollified.value(p), withinAbsT(T(-3.5), formulaMargin<T>()));
+  }
+}
+
+namespace {
+
+// |x|^2, a convex function whose mollified value at the origin is the kernel's weighted mean of
+// |offset|^2 over the sample grid.
+template <class T>
+class SquaredNormIF : public ImplicitFunction<T>
+{
+public:
+  [[nodiscard]] T
+  value(const Vec3T<T>& a_point) const noexcept override
+  {
+    return a_point.length2();
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Mollify: the default kernel is non-negative and weights the centre most",
+                   "[Transform][Mollify]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Over the sample grid in [-r, r]^3, the unweighted mean of |offset|^2 is three times the mean of
+  // the squared 1D sample positions. A kernel that peaks at the centre and decays outward pulls the
+  // weighted mean below that; with non-negative weights it stays positive. The old kernel (the
+  // sphere SDF |o| - r) gave the centre a negative weight and the corners the largest, pushing the
+  // mean above it.
+  const T r = T(0.5);
+
+  for (const size_t samples : {size_t(3), size_t(5)}) {
+    T uniformMean = T(0);
+
+    for (size_t k = 0; k < samples; k++) {
+      const T x = -r + T(2) * r * T(k) / T(samples - 1);
+
+      uniformMean += T(3) * x * x / T(samples);
+    }
+
+    const auto mollified = Mollify<T>(std::make_shared<SquaredNormIF<T>>(), r, samples);
+    const T    mean      = mollified->value(Vec3T<T>::zeros());
+
+    INFO("samples = " << samples << ", uniform mean = " << uniformMean);
+    REQUIRE(mean > T(0));
+    REQUIRE(mean < uniformMean);
   }
 }
 

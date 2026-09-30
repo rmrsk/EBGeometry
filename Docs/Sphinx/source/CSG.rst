@@ -44,16 +44,17 @@ Scaling
 ~~~~~~~~
 
 Uniform scaling by a non-zero factor :math:`s` shrinks the query point by :math:`s` before
-evaluating the original function, and scales the result back up by :math:`s`:
+evaluating the original function, and scales the result back up by :math:`|s|`:
 
 .. math::
 
-   I^\prime(\mathbf{x}) = s \, I\left(\mathbf{x}/s\right).
+   I^\prime(\mathbf{x}) = |s| \, I\left(\mathbf{x}/s\right).
 
-Rescaling the value by :math:`s` alongside the query point is what preserves the signed
+Rescaling the value by :math:`|s|` alongside the query point is what preserves the signed
 distance property (see :ref:`Chap:GeometryRepresentations`) for a scaled *signed distance*
 function -- omitting it would still shrink or grow the shape correctly, but the result would no
-longer report true distances.
+longer report true distances. A negative :math:`s` also reflects the shape through the origin;
+the absolute value keeps the inside negative.
 
 Complement
 ~~~~~~~~~~~
