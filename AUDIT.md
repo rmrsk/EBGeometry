@@ -85,7 +85,7 @@ decision to make now, not during tape implementation.
 
 The recommended order (section 5) is: correctness fixes first, as small independent PRs with
 regression tests; then the three foundation refactors; then retirements and API cleanup; then tape
-design. Section 4 lists the decisions that need the maintainer.
+design. Section 4 records the decisions the maintainer took.
 
 ---
 
@@ -391,102 +391,116 @@ belongs in the tape design document; it is summarised in Appendix A.
 
 ---
 
-## 4. Decisions for the maintainer
+## 4. Decisions
 
-| # | Decision | Recommendation | Affects |
-|---|----------|----------------|---------|
-| D1 | Location refactor: full layout/handle split, or `PoolLocation` with behaviour only | Layout/handle split (§2.1) | MEM-1/2/12, every pool-resident class |
-| D2 | Retirement list in §2.6 | Accept as listed | PORTING.md "port"/"loose ends" |
-| D3 | Mesh SDFs: keep only `TriMeshSDF` (+ `FlatMeshSDF` as reference), retire `MeshSDF`; replace `Meta` with a `uint32` element id | Yes to both | MESH-4/6/7/8/17, parsers, AMReX integration |
-| D4 | Tape front-end: new value-semantic builder (a), or `lower()` on `ImplicitFunction` (b) | (a) | CSG-5, all CSG/transform factories |
-| D5 | A host-only `ShapeIF<T,S>` adapter in `Source/` now (reverses the "no adapter until the tape" decision) | Maintainer's call; the benefit is host CSG over shapes and meshes now, plus a tape oracle | CSG-6/20, `CSGUnion` example, integrations |
-| D6 | Device math: propagate `--expt-relaxed-constexpr`, or own HOST_DEVICE math header + `T m_X[3]` in `Vec3T` | Own header | MEM-5/19/20, every device path |
-| D7 | Device-visible K and W fixed per precision (ISA-independent) | Yes | MESH-9, BVH-5/18, PC-14 |
-| D8 | Error policy of §2.5 (always-on for user input; parsers throw or return `optional`) | Yes; throwing is fine on host-only parsers | MEM-4/7, MESH-1/3/13, PC-13 |
-| D9 | `PointCloudHashGrid`: keep and port to Pool/`PODVector`, or retire. It is 2–2.5× slower than the BVH even on its documented best case, but its counting-sort build is trivially parallel on the device | Keep, fix PC-2/10, unify with PC-4 | PC-2/4/10/11 |
-| D10 | Shape API breaks (centres, axis convention, outer sizes, rename `PerlinSDF` → `PerlinNoise`) | Yes, before the tape | CSG-6/8 |
-| D11 | Rename `BVHUnionIF` → `BVHUnion` and delete (or rename) the factory functions | Delete the factories | CSG-16 |
-| D12 | Default `EBGEOMETRY_SIMD`: `none` for consumers (ISA flags only when top-level or requested), instead of `avx` on the INTERFACE target | `none` for consumers | QA-2, §2.4 |
-| D13 | Integrations: port the homogeneous ones (Shapes without transforms, PackedSpheres, RandomCity, PaintEB) to the value-type API now; mark the transform/CSG ones and `CSGUnion` as tape acceptance tests; drop `CSGUnion` from the CI matrices | Yes | QA-1, QA-18 |
-| D14 | Delete `PLAN.md` and `BVH_PORT_SUMMARY.md` after folding their live facts into PORTING.md | Yes | QA-11 |
-| D15 | Make the HIP compile lane a required check | Yes | QA-5 |
+Taken by the maintainer on 30 September 2026. "Recommended" is what this audit proposed.
+
+| # | Decision | Recommended | Taken | Affects |
+|---|----------|-------------|-------|---------|
+| D1 | Where a pool object keeps its location | Layout/handle split | **Two steps.** `PoolLocation` takes over the location logic now (fixing the managed-memory crash and the duplication); the layout/handle split is the first step of the tape work | MEM-1/2/7/8/12 |
+| D2 | Retire instead of port (§2.6) | All seven | **All seven**: `Octree::Node`, `TreeBVH` + `pack`/`packWith`, both `traverse()`s and their aliases, `SphereT`, `SignedDistanceFunction`, SYCL/OpenACC branches and dead macros, `Random`/`SimpleTimer` out of the umbrella | §2.6 |
+| D3 | Mesh SDFs and `Meta` | Only `TriMeshSDF`, `uint32` face id | **Keep all three mesh SDFs**; replace `Meta` with a `uint32_t` face id and a user-side array. `MeshSDF` leaves store that face index and resolve the face through the mesh (fixes MESH-4, shrinks leaves) | MESH-4/6/7/17 |
+| D4 | Tape front-end | Value-type expression builder | **Value-type expression builder** | CSG-5 |
+| D5 | Host-only shape adapter now | Maintainer's call | **No adapter. Retire `ImplicitFunction`** and the virtual transform/CSG layer, replaced by a trait (`signedDistance`, later `computeBoundingVolume`) checked with `static_assert`. Removed **in the same change that introduces the builder and a host evaluator**, so there is no gap; the transform/CSG test expectations move to the builder | CSG-5/6/14/20 |
+| D6 | Device math | Own header | **Own HOST_DEVICE math header**, `T m_X[3]` in `Vec3T` | MEM-5/19/20 |
+| D7 | K and W of device-visible types | Fixed defaults | **Fixed defaults, ISA-tuned values opt-in**; documented prominently, with an `Examples/` program | MESH-9, BVH-5/18 |
+| D8 | Bad input | Always-on checks; parsers throw | **Always-on checks; parsers throw** | MEM-4/7, MESH-3/13, PC-13 |
+| D9 | Point-cloud hash grid | Keep | **Keep**: fix, unify with `PointCloudBVH`, move onto the Pool | PC-2/4/10/11 |
+| D10 | Shape parameter conventions | Placement + one axis convention | **Placement everywhere, one axis convention** | CSG-6/8 |
+| D11 | BVH union names | Delete factories, rename classes | **Delete the factories; rename to `BVHUnion`/`BVHSmoothUnion`** | CSG-16 |
+| D12 | SIMD flags for consumers | `none` for consumers | **`none` for consumers, `avx` when top-level** | QA-2 |
+| D13 | Integrations | Port six, mark the rest | **Port the six; Shapes integrations and `CSGUnion` become tape acceptance tests** | QA-1/18 |
+| D14 | Planning documents | Fold and delete | **Fold into PORTING.md and delete** | QA-11 |
+| D15 | Required GPU check | HIP required | **HIP required, CUDA advisory**; `CI-passed` fails (not skips) when a job fails | QA-5/22 |
 
 ---
 
-## 5. Prioritised fix plan
+## 5. Fix plan
 
-Each bullet is intended as one reviewable PR with its own regression tests. Phase 0 needs no
-decisions and can start immediately; later phases wait on the decisions they cite.
+Each item is one reviewable change with its own regression tests.
 
-### Phase 0 — correctness and safety (no design decisions needed)
+### Phase 0 — correctness and safety
 
-1. **BVH visit-once**: empty child slots instead of padding in the SFC constructor (BVH-1), plus the
-   object-median fallback for zero-extent splits (PC-1, and the same fallback in every builder).
-   Tests: smooth union under every `Build`; visit-once counter; coincident point cloud.
-2. **Degenerate faces**: Newell normals, zero normal for zero-area faces, exclude them from BVHs,
-   collinearity check in the soup check; same for `Triangle::computeNormal` (MESH-1).
-3. **Parsers**: ignore STL attribute bytes (MESH-2); open binary STL with `std::ios::binary`; check
-   stream state; validate OBJ indices; reject 0-face meshes; explicit failure reporting per D8, which
-   can land here with a narrow scope (MESH-3). Add binary fixtures (MESH-20).
-4. **Transform and shape formulas**: `Scale` uses `|s|` (CSG-1); a non-negative `Mollify` kernel
-   (CSG-2); exact `RoundedBoxSDF` (CSG-3); stable `ExpMinOp` plus `ExpMaxOp` (CSG-4, CSG-15);
-   Capsule tip-distance check (CSG-11); `FiniteRepetition` integer counts and bounds (CSG-9);
-   document `Elongate`'s interior (CSG-10); Perlin default and persistence fixes (CSG-8). Add a
-   generic brute-force surface-sampling test to `TestAnalyticSDF`.
-5. **Point clouds**: clamp before the float→int cast in the hash grid (PC-2); uint32 cloud index
-   and an invalid-index sentinel for misses (PC-7, PC-9); always-on constructor checks (PC-13).
-6. **Device build safety**: guard every SIMD block in `TriangleSoA`/`PointSoA` on
-   `EBGEOMETRY_DEVICE_COMPILE` (MESH-5, PC-3) and add a HIP + `EBGEOMETRY_SIMD=avx` CI job; move
-   the backend copy in `Pool::mirror` into a `MemoryResource` virtual (MEM-3); device
-   `EBGEOMETRY_EXPECT` becomes printf + trap (MEM-6); always-on host allocation failure (MEM-4).
-7. **Small fixes**: `SphereT` (delete per D2, or fix: BVH-6); `Random` argument evaluation order
-   (PC-15); replace Vec3T's non-ordering `operator<` family with named predicates (MEM-10);
-   `MeshT::deepCopy` of an empty mesh (MEM-13); the loaders' transient DCEL goes into a scratch pool
-   rather than the caller's (MESH-10: 43% of a dodecahedron pool is dead DCEL, mirrored to device).
-8. **Oracle tests** (§2.9, QA-6/7): host tests for the six untested shapes, a concave mesh fixture
-   with an independent sign check, a quad-face input for `TriMeshSDF` (QA-8). These should land
-   *before* the formula fixes in item 4 where possible, so each fix is shown by a failing test.
-9. **Docs corrections** (QA-8/10/12/23, MEM-9, BVH-9, MESH-18, PC-19): stale composition claims in
-   README/index/ImplemBVH/Implementation/mainpage; the Parsers "triangulates" claim; 37 broken
-   example-README links; outdated snippets; the stale `MeshSDF` note in CLAUDE.md (it says a
-   `PackedBVH` of faces holds `shared_ptr`s).
-10. **CI and hook hygiene** (QA-20/22): `if: always()` + `needs.*.result` on `CI-passed`, CI on push
-    to `dev`/`main`, Doxygen hook on `.hpp`, codespell paths, Sphinx `-W` (after the figure
-    warnings are handled), `CheckDocs.py` in CI, correct the `[gpu]` CI comments.
+Status as of 30 September 2026, on `claude/pre-tape-audit`:
 
-### Phase 1 — foundations (after D1, D6, D7, D12, D15)
+| Item | Status | Commit |
+|------|--------|--------|
+| 1. BVH visit-once (BVH-1), coincident points (PC-1) | Done | `b0ad100` |
+| 2. Degenerate faces (MESH-1), fan triangulation (MESH-13, QA-8) | Done | `218d7fe` |
+| 3. Parsers (MESH-2/3/20, QA-9) | Done | `b4481f3` |
+| 4. Transform and shape formulas (CSG-1/2/3/4/8/9/10/11/15, QA-6) | Done | `c92d13d` |
+| 5. Point clouds (PC-2/9/13) | Done; the `uint32` index type (PC-7) moves to the `Hit` unification in Phase 2 | `581a47b` |
+| 6. Device build safety (MESH-5, PC-3, MEM-3/4/6) | Done | `fab7299` |
+| 7. Small fixes | Open | |
+| 8. Oracle tests | Open (the shape property test landed with item 4) | |
+| 9. Docs corrections | Open | |
+| 10. CI and hook hygiene | Open | |
 
-11. **Location refactor** (§2.1, MEM-1/2/7/8/12), including managed/mapped-memory tests using a fake
-    host+device-accessible resource.
-12. **Device math header, toolchain contract and CMake target** (§2.4, MEM-5, QA-2/4/21), written
-    into PORTING.md, with the GPU build documented in Sphinx.
-13. **GPU test harness** (§2.9, QA-5/13) and the required HIP lane.
-14. **Single BVH builder, build spec, wide-node layout, device stack policy** (§2.2,
-    BVH-2/3/4/5/8/11/12/13). The largest item; may split into builder, then layout.
-15. **Header splits** (§2.8).
+Corrections found while fixing:
 
-### Phase 2 — consolidation and retirement (after D2, D3, D9, D11, D13, D14)
+- **MESH-1.** A zero normal for a zero-area face is not enough: the filler lies on a crease, and
+  without it the crease's pseudonormals see only one side (765 wrong signs remain on the test mesh).
+  The readers now repair T-junctions (`Soup::removeDegeneratePolygons`); the zero normal remains as
+  the fallback for meshes built by hand.
+- **CSG-9.** Fractional repetition counts already behaved as rounded (2.5 gives tile 3 in both the old
+  and new code). What remained was `std::clamp`'s undefined behaviour for negative counts, its
+  host-only assertion, and the missing documentation.
+- **MESH-3.** Running every reader over corrupted copies of the fixtures under ASan found crashes in
+  all four formats, beyond the ones listed, and a precision bug: binary PLY indices were converted
+  through `T`, so with `T = float` any index above 2^24 rounded to a neighbouring vertex.
 
-16. **Mesh consolidation** (§2.3, D3): `uint32` element id replaces `Meta`; retire `MeshSDF`;
-    one scalar + one SIMD triangle kernel; fixed K/W; `getClosestFace` on `pruneTraverse`;
-    parser renames (MESH-12); one polygon-soup container (MESH-11).
-17. **Point-cloud unification** (PC-4/8/12/14) and, per D9, the hash grid on Pool/`PODVector`.
-18. **Retirements** (§2.6): `Octree::Node` and its docs/test, `TreeBVH`, `traverse()`,
-    `SignedDistanceFunction` (with a free `normal()`), SYCL/OpenACC, `Random`/`SimpleTimer` out of
-    the umbrella, the union factories and the `IF` suffix.
-19. **Integrations and examples** (D13, QA-1/17/18/19): port the homogeneous integrations; remove
-    or stub `CSGUnion`; fixed seeds and always-on per-point checks in the examples; drive the CI
-    example matrices from one list.
-20. **Planning documents** (D14, QA-11): fold PLAN.md and BVH_PORT_SUMMARY.md into PORTING.md, update
-    its status header and sequence, drop the nonexistent `TODO.md` from `REUSE.toml`.
+Remaining Phase 0 items:
 
-### Phase 3 — shape API for the tape (after D4, D5, D10)
+7. **Small fixes**: `Random` argument evaluation order (PC-15); replace Vec3T's non-ordering
+   `operator<` family with named predicates (MEM-10); `MeshT::deepCopy` of an empty mesh (MEM-13);
+   the loaders' transient DCEL goes into a scratch pool rather than the caller's (MESH-10). `SphereT`
+   is deleted with the other retirements (D2) rather than fixed.
+8. **Oracle tests** (§2.9, QA-7): a concave mesh fixture with an independent sign check.
+9. **Docs corrections** (QA-10/12/23, MEM-9, BVH-9, MESH-18, PC-19): stale composition claims in
+   README/index/ImplemBVH/Implementation/mainpage; broken example-README links; outdated snippets;
+   the stale `MeshSDF` note in CLAUDE.md.
+10. **CI and hook hygiene** (QA-20/22, D15): `CI-passed` fails when a job fails, and the HIP job
+    becomes one of its dependencies; CI on push to `dev`/`main`; Doxygen hook on `.hpp`; codespell
+    paths; `CheckDocs.py` in CI; correct the `[gpu]` CI comments.
 
-21. Shape conventions and per-shape `computeBoundingVolume()` (CSG-6/7); distance-quality classes
-    documented.
-22. The front-end decision implemented or prototyped (§2.7), and the `ShapeIF` adapter if D5 says so.
-23. Close the checkpoint in PORTING.md, and move the tape design inputs (Appendix A) into the tape
-    design document. This file (AUDIT.md) is then deleted.
+### Phase 1 — foundations
+
+11. **Error policy** (D8): an always-on `EBGEOMETRY_REQUIRE` for user input and one-time host checks;
+    parsers throw a `ParseError` with file, line and reason.
+12. **Device math header and toolchain contract** (D6, MEM-5): `EBGeometry_Math.hpp`, `T m_X[3]` in
+    `Vec3T`, a lint against `std::min`/`std::max`/`std::numeric_limits` in device paths, written into
+    PORTING.md.
+13. **CMake target** (D12, QA-4/21): `none` SIMD default for consumers, `cxx_std_17` on the target,
+    the GPU build documented in Sphinx.
+14. **Fixed K and W** (D7): device-visible defaults fixed per precision, ISA-tuned values opt-in,
+    documented, with an `Examples/` program.
+15. **Location, step one** (D1): `PoolLocation` owns `base()`, attach, lineage checks and rebasing;
+    location decided by value, so views onto managed/mapped memory work on the host (MEM-2), with
+    tests using a fake host+device-accessible resource.
+16. **GPU test harness** (§2.9, QA-5/13): array-based, many-thread, error-checked device tests.
+17. **Single BVH builder, build spec, wide-node layout, device stack policy** (§2.2,
+    BVH-2/3/4/5/8/11/12/13). A prerequisite for retiring `TreeBVH` (D2).
+18. **Header splits** (§2.8).
+
+### Phase 2 — consolidation and retirement
+
+19. **Mesh SDFs** (D3): `uint32` face id replaces `Meta`; `MeshSDF` leaves store face indices;
+    `getClosestFace` on `pruneTraverse`; parser renames (MESH-12); one polygon-soup container (MESH-11).
+20. **Point clouds** (D9): one `Hit` type with a `uint32` index, a shared k-best helper, the hash grid
+    on Pool/`PODVector` (PC-4/7/8/10/12/14).
+21. **Retirements** (D2) and **union names** (D11).
+22. **Integrations and examples** (D13, QA-1/17/18/19).
+23. **Planning documents** (D14).
+
+### Phase 3 — shape API, then the tape
+
+24. **Shape conventions** (D10) and per-shape `computeBoundingVolume()` (CSG-7); distance-quality
+    classes documented.
+25. **Tape, first steps** (D1 step two, D4, D5): the layout/handle split; the value-type builder with a
+    host evaluator; `ImplicitFunction` and the virtual transform/CSG layer retired in the same change,
+    with their test expectations carried over; a shape trait checked with `static_assert`.
+26. Close the checkpoint in PORTING.md and move the tape design inputs (Appendix A) into the tape
+    design document. This file is then deleted.
 
 The MINOR and NIT items not named above are folded into whichever PR touches the same file; they
 are listed per area in section 6.
