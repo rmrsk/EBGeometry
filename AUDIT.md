@@ -479,6 +479,7 @@ Phase 0 is complete. Items 7–10 were:
 | 14. Fixed K and W (D7) | Done; defaults are 4, host-tuned values opt-in, `Examples/HostTuning` | `92aae41` |
 | 15. Location, step one (D1, MEM-2, MEM-8) | Done; the layout/handle split remains the first tape step | `3145b5a` |
 | 16. GPU test harness (QA-5/13) | Done; the tests also run in every host build, emulated. No lane runs a real kernel yet (no GPU runner) | `2e4f700` |
+| 17. One builder, wide nodes, one traversal (BVH-2/3/4/5/7/8/11/12/13) | Done; also retires `TreeBVH`, the partitioners and both `traverse()`s (from item 21) | `6c58ae0` |
 
 Findings from item 11:
 
@@ -494,6 +495,18 @@ Findings from item 11:
   `xyzrgb_dragon.obj` (inconsistent orientation or non-manifold edges) and `ogre.obj` (a fold). They
   already aborted in Debug; Release loaded them with undefined signs near the defect. Holes are still
   accepted. An opt-out that loads such meshes with a warning is possible if wanted.
+
+Findings from item 17:
+
+- **Size and speed.** On the armadillo mesh (100k faces) the MeshSDF BVH takes 12.5 MB instead of
+  31.1 MB, the TriMeshSDF BVH 29.8 MB instead of 35.5 MB, and both build in about half the time.
+  Distances are identical to before, and query times are unchanged within this VM's noise.
+- **Two more bugs found by the new tests.** The SAH builder's bin scale overflowed for centroid
+  ranges below about 2^-123 (float) and indexed its bins out of bounds; merging two empty boxes
+  tripped an assertion. Both fixed, with tests.
+- **Four integrations do not compile, independently of this item.** `Integrations/AMReX` and
+  `Integrations/Chombo` `PackedSpheres`/`RandomCity` still call the BVH unions in a form older
+  than the Pool; they are not built by CI. Item 22 (D13) ports them.
 
 11. **Error policy** (D8): an always-on `EBGEOMETRY_REQUIRE` for user input and one-time host checks;
     parsers throw a `ParseError` with file, line and reason.
@@ -518,7 +531,8 @@ Findings from item 11:
     `getClosestFace` on `pruneTraverse`; parser renames (MESH-12); one polygon-soup container (MESH-11).
 20. **Point clouds** (D9): one `Hit` type with a `uint32` index, a shared k-best helper, the hash grid
     on Pool/`PODVector` (PC-4/7/8/10/12/14).
-21. **Retirements** (D2) and **union names** (D11).
+21. **Retirements** (D2) and **union names** (D11). `TreeBVH`, `pack`/`packWith`, the partitioners and both `traverse()`s
+    went in item 17.
 22. **Integrations and examples** (D13, QA-1/17/18/19).
 23. **Planning documents** (D14).
 
