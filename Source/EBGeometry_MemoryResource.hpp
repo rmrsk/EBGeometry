@@ -124,6 +124,27 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   virtual bool
   isDeviceAccessible() const noexcept = 0;
+
+  /**
+   * @brief Copy a block between memory from two resources, one of which is this one.
+   * @details Pool::mirror calls this on whichever of its two resources is not host-accessible (or on
+   * the destination's, if both are). This implementation copies between host-accessible blocks and
+   * aborts for any other pair. The device resources override it with the GPU runtime's copy. That
+   * keeps every backend-specific call inside classes that exist only in translation units compiled
+   * with a GPU backend, so Pool::mirror compiles to the same code in every translation unit.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
+  EBGEOMETRY_HOST
+  virtual void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept;
 };
 
 /**
@@ -265,6 +286,13 @@ public:
   {
     return true;
   }
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
 };
 
 /**
@@ -330,6 +358,13 @@ public:
   {
     return true;
   }
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
 };
 
 /**
@@ -395,6 +430,13 @@ public:
   {
     return false;
   }
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
 };
 
 /**
@@ -464,6 +506,13 @@ public:
   {
     return true;
   }
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
 };
 
 /**

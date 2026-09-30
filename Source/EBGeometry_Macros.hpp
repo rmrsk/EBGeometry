@@ -31,7 +31,9 @@
  * exactly nothing in release. A variable computed solely to be asserted is
  * then unused and must be marked @c [[maybe_unused]] at its declaration.
  * On a device (CUDA/HIP) compilation pass with assertions enabled the macro
- * uses the device-capable @c assert() instead of @c std::fprintf / @c std::abort.
+ * prints the failing expression with the device @c printf and traps, instead of
+ * @c std::fprintf / @c std::abort. Unlike @c assert(), this does not depend on
+ * @c NDEBUG, which Release configurations define.
  *
  * @par Enabling assertions
  * @code{.cmake}
@@ -50,11 +52,39 @@
  * @param cond  Boolean-convertible expression to test.
  */
 #if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+#if defined(EBGEOMETRY_HIP)
+// Declares the device printf used below. It must be visible before the first header that uses the
+// macro: in a template, a call that does not depend on a template parameter binds at the point of
+// definition, and would otherwise bind to the host printf.
+#include <hip/hip_runtime.h>
+#endif
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
-// Device compilation pass (CUDA/HIP): std::fprintf/std::abort are host-only, so fall back to the
-// device-capable assert(). It still aborts the kernel on failure and prints the failing expression.
-#include <cassert>
-#define EBGEOMETRY_EXPECT(cond) assert(cond)
+// Device compilation pass (CUDA/HIP): std::fprintf/std::abort are host-only. assert() is not an
+// option either: NDEBUG, which CMake's Release configurations define, would silently remove every
+// device check while the host checks stayed. Print with the device printf and trap instead.
+#if defined(EBGEOMETRY_CUDA)
+#define EBGEOMETRY_DEVICE_TRAP() __trap()
+#else
+#define EBGEOMETRY_DEVICE_TRAP() __builtin_trap()
+#endif
+namespace EBGeometry {
+namespace MacrosDetail {
+// Out of line, like the backends' own assert: the device printf expands to a lot of code, and an
+// inline copy at every assertion site makes device compiles of large files take many minutes.
+__device__ __noinline__ inline void
+deviceAssertionFailed(const char* a_cond, const char* a_file, const int a_line)
+{
+  printf("EBGeometry device assertion failed: (%s)\n  file: %s\n  line: %d\n", a_cond, a_file, a_line);
+  EBGEOMETRY_DEVICE_TRAP();
+}
+} // namespace MacrosDetail
+} // namespace EBGeometry
+#define EBGEOMETRY_EXPECT(cond)                                                     \
+  do {                                                                              \
+    if (!(cond)) {                                                                  \
+      ::EBGeometry::MacrosDetail::deviceAssertionFailed(#cond, __FILE__, __LINE__); \
+    }                                                                               \
+  } while (0)
 #else
 #define EBGEOMETRY_EXPECT(cond)                                                                   \
   do {                                                                                            \

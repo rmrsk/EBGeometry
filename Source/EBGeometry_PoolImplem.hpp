@@ -175,35 +175,15 @@ Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
 
     dst.m_control->m_base = dstBase;
 
-    const bool srcHost = a_src.m_resource->isHostAccessible();
-    const bool dstHost = a_dstResource.isHostAccessible();
+    // The copy itself belongs to the resources: only a device resource (defined only in translation
+    // units compiled with a GPU backend) knows how to reach device memory. Backend #ifs here would
+    // give this non-template inline function different definitions in host and device translation
+    // units, and the linker would keep just one of them.
+    const MemoryResource& copier = !a_dstResource.isHostAccessible()       ? a_dstResource
+                                   : !a_src.m_resource->isHostAccessible() ? *a_src.m_resource
+                                                                           : a_dstResource;
 
-    if (srcHost && dstHost) {
-      std::memcpy(dstBase, srcBase, a_src.m_size);
-    }
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-    else if (srcHost && !dstHost) {
-      EBGEOMETRY_GPU_CHECK(GPU::memcpy(dstBase, srcBase, a_src.m_size, GPU::MemcpyHostToDevice));
-    }
-    else if (!srcHost && dstHost) {
-      EBGEOMETRY_GPU_CHECK(GPU::memcpy(dstBase, srcBase, a_src.m_size, GPU::MemcpyDeviceToHost));
-    }
-    else {
-      // Device-to-device is out of scope for the mirror (the foundation only builds on host and
-      // uploads once); the alias layer exposes no device-to-device direction. Always-on abort, NOT
-      // EBGEOMETRY_EXPECT, so a release build fails hard here instead of returning a frozen pool
-      // whose block was allocated but never copied (silent garbage).
-      std::fprintf(stderr, "EBGeometry::Pool::mirror: device-to-device mirroring is not supported\n");
-      std::abort();
-    }
-#else
-    else {
-      // With no offload backend active there is no device placement, so a non-host source or
-      // destination is impossible here. Always-on abort for the same reason as above.
-      std::fprintf(stderr, "EBGeometry::Pool::mirror: non-host memory requires a GPU backend\n");
-      std::abort();
-    }
-#endif
+    copier.copy(dstBase, a_dstResource, srcBase, *a_src.m_resource, a_src.m_size);
   }
 
   dst.m_capacity = a_src.m_size;

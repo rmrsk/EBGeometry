@@ -482,6 +482,13 @@ jobs:
         # with hipcc/clang, exercising the device-callable surface. The device-test list lives in
         # Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them. No GPU is needed to build.
         run: cmake --build build/hip --target EBGeometry_GPUDeviceTests --parallel 2
+      - name: Configure and build with host SIMD flags
+        # A HIP translation unit compiled with -mavx: clang's device pass then sees __AVX__ as well,
+        # so any SIMD block in a __host__ __device__ function that is not also guarded on
+        # EBGEOMETRY_DEVICE_COMPILE fails to compile for the device.
+        run: |
+          cmake -S . -B build/hip-avx -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_SIMD=avx "-DCMAKE_HIP_FLAGS=-mavx -mfma -msse4.1"
+          cmake --build build/hip-avx --target EBGeometry_GPUDeviceTests --parallel 2
       - name: Run device-tagged tests
         # See the matching step in the GPU-CUDA job above: this runner has no physical GPU, so these
         # SKIP() cleanly (TestGPU.hpp's deviceAvailable()) rather than exercising real device

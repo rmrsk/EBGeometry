@@ -98,7 +98,10 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-#if defined(__AVX512F__)
+  // Every SIMD block is guarded on the compilation pass as well as on the ISA: clang's HIP (and
+  // nvcc's) device pass sees the host's ISA macros, but the intrinsics are host-only. Device code
+  // takes the scalar path below. See PackedBVH::computeChildDistances2().
+#if defined(__AVX512F__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 16 && std::is_same_v<T, float>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
                   "TriangleSoAT alignment mismatch: _mm512_load_ps requires 64-byte alignment");
@@ -425,7 +428,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     return static_cast<T>(best);
   }
 #endif
-#if defined(__SSE4_1__)
+#if defined(__SSE4_1__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 4 && std::is_same_v<T, float>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
                   "TriangleSoAT alignment mismatch: _mm_load_ps requires 16-byte alignment");
@@ -625,7 +628,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     return best;
   }
 #endif
-#if defined(__AVX__)
+#if defined(__AVX__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 8 && std::is_same_v<T, float>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
                   "TriangleSoAT alignment mismatch: _mm256_load_ps requires 32-byte alignment");

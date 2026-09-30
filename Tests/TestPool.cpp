@@ -6,6 +6,7 @@
 #include "TestGPU.hpp"
 
 #include <cstdint>
+#include <cstring>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -206,6 +207,76 @@ TEST_CASE("Pool: reserving from a moved-from pool aborts", "[Pool][death]")
 // ─────────────────────────────────────────────────────────────────────────────
 // Move semantics
 // ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// A stand-in for a device resource: host memory that reports itself as device-only, and counts the
+// copies routed through it. Lets a host-only build check that Pool::mirror hands the copy to the
+// non-host resource, as it must for a real device resource.
+class FakeDeviceResource final : public MemoryResource
+{
+public:
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override
+  {
+    return hostMemoryResource().allocate(a_bytes, a_alignment);
+  }
+
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
+  {
+    hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+  }
+
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return false;
+  }
+
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  void
+  copy(void* a_dst, const MemoryResource&, const void* a_src, const MemoryResource&, size_t a_bytes)
+    const noexcept override
+  {
+    std::memcpy(a_dst, a_src, a_bytes);
+
+    m_copies++;
+  }
+
+  mutable int m_copies = 0;
+};
+
+} // namespace
+
+TEST_CASE("Pool: mirror hands the copy to the non-host resource", "[Pool]")
+{
+  Pool host(hostMemoryResource());
+
+  const size_t offset = host.reserve(1, sizeof(int), alignof(int));
+
+  *static_cast<int*>(static_cast<void*>(static_cast<char*>(host.base()) + offset)) = 42;
+
+  host.freeze();
+
+  FakeDeviceResource device;
+
+  const Pool mirror = Pool::mirror(host, device);
+
+  REQUIRE(device.m_copies == 1);
+  REQUIRE(*static_cast<const int*>(static_cast<const void*>(static_cast<const char*>(mirror.base()) + offset)) == 42);
+
+  // Host to host goes through the base implementation, not the fake.
+  const Pool hostMirror = Pool::mirror(host, hostMemoryResource());
+
+  REQUIRE(device.m_copies == 1);
+  REQUIRE(hostMirror.usedBytes() == host.usedBytes());
+}
 
 TEST_CASE("Pool: move construction transfers ownership and empties the source", "[Pool]")
 {

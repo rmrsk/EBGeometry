@@ -13,7 +13,9 @@
 
 // Std includes
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
@@ -39,7 +41,12 @@ HostMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 
   void* ptr = std::aligned_alloc(a_alignment, rounded);
 
-  EBGEOMETRY_EXPECT(ptr != nullptr);
+  // Always on, as the declaration promises: a Release build would otherwise carry on with a null
+  // base, and every later write would land at nullptr + offset.
+  if (ptr == nullptr) {
+    std::fprintf(stderr, "EBGeometry::HostMemoryResource::allocate: out of memory (%zu bytes)\n", rounded);
+    std::abort();
+  }
 
   return ptr;
 }
@@ -61,7 +68,108 @@ hostMemoryResource() noexcept
   return s_resource;
 }
 
+inline void
+MemoryResource::copy(void*                 a_dst,
+                     const MemoryResource& a_dstResource,
+                     const void*           a_src,
+                     const MemoryResource& a_srcResource,
+                     size_t                a_bytes) const noexcept
+{
+  if (a_dstResource.isHostAccessible() && a_srcResource.isHostAccessible()) {
+    std::memcpy(a_dst, a_src, a_bytes);
+
+    return;
+  }
+
+  // Only a device resource can hand out non-host memory, and every device resource overrides this.
+  // Always-on rather than EBGEOMETRY_EXPECT: continuing would leave the destination uninitialized.
+  std::fprintf(stderr,
+               "EBGeometry::MemoryResource::copy: copying to or from non-host memory needs a device resource\n");
+  std::abort();
+}
+
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) || defined(EBGEOMETRY_DOXYGEN)
+
+namespace MemoryResourceDetail {
+
+/**
+ * @brief Copy between host and device memory with the GPU runtime; shared by the device resources.
+ * @param[out] a_dst         Destination block.
+ * @param[in]  a_dstResource Resource that allocated a_dst.
+ * @param[in]  a_src         Source block.
+ * @param[in]  a_srcResource Resource that allocated a_src.
+ * @param[in]  a_bytes       Number of bytes to copy.
+ */
+inline void
+gpuCopy(void*                 a_dst,
+        const MemoryResource& a_dstResource,
+        const void*           a_src,
+        const MemoryResource& a_srcResource,
+        size_t                a_bytes) noexcept
+{
+  const bool dstHost = a_dstResource.isHostAccessible();
+  const bool srcHost = a_srcResource.isHostAccessible();
+
+  if (dstHost && srcHost) {
+    std::memcpy(a_dst, a_src, a_bytes);
+  }
+  else if (srcHost) {
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyHostToDevice));
+  }
+  else if (dstHost) {
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyDeviceToHost));
+  }
+  else {
+    // Device-to-device is out of scope for the mirror (the foundation only builds on host and
+    // uploads once); the alias layer exposes no device-to-device direction. Always-on abort, NOT
+    // EBGEOMETRY_EXPECT, so a release build fails hard here instead of leaving the destination
+    // block uncopied (silent garbage).
+    std::fprintf(stderr, "EBGeometry::MemoryResource::copy: device-to-device copies are not supported\n");
+    std::abort();
+  }
+}
+
+} // namespace MemoryResourceDetail
+
+inline void
+DeviceMemoryResource::copy(void*                 a_dst,
+                           const MemoryResource& a_dstResource,
+                           const void*           a_src,
+                           const MemoryResource& a_srcResource,
+                           size_t                a_bytes) const noexcept
+{
+  MemoryResourceDetail::gpuCopy(a_dst, a_dstResource, a_src, a_srcResource, a_bytes);
+}
+
+inline void
+ManagedMemoryResource::copy(void*                 a_dst,
+                            const MemoryResource& a_dstResource,
+                            const void*           a_src,
+                            const MemoryResource& a_srcResource,
+                            size_t                a_bytes) const noexcept
+{
+  MemoryResourceDetail::gpuCopy(a_dst, a_dstResource, a_src, a_srcResource, a_bytes);
+}
+
+inline void
+PinnedMemoryResource::copy(void*                 a_dst,
+                           const MemoryResource& a_dstResource,
+                           const void*           a_src,
+                           const MemoryResource& a_srcResource,
+                           size_t                a_bytes) const noexcept
+{
+  MemoryResourceDetail::gpuCopy(a_dst, a_dstResource, a_src, a_srcResource, a_bytes);
+}
+
+inline void
+MappedMemoryResource::copy(void*                 a_dst,
+                           const MemoryResource& a_dstResource,
+                           const void*           a_src,
+                           const MemoryResource& a_srcResource,
+                           size_t                a_bytes) const noexcept
+{
+  MemoryResourceDetail::gpuCopy(a_dst, a_dstResource, a_src, a_srcResource, a_bytes);
+}
 
 inline void*
 DeviceMemoryResource::allocate(size_t a_bytes, [[maybe_unused]] size_t a_alignment)

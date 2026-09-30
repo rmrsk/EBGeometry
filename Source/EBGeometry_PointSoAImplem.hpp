@@ -79,7 +79,10 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
   // -- every branch below is just "squared distance to W points, computed simultaneously, then
   // stored per-lane." The horizontal reductions (min/max) live in the small wrappers below, so this
   // one kernel serves all of them and getDistances2() alike.
-#if defined(__AVX512F__)
+  // Every SIMD block is guarded on the compilation pass as well as on the ISA: clang's HIP (and
+  // nvcc's) device pass sees the host's ISA macros, but the intrinsics are host-only. Device code
+  // takes the scalar path below. See PackedBVH::computeChildDistances2().
+#if defined(__AVX512F__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 16 && std::is_same_v<T, float>) {
     static_assert(alignof(SoA) == W * sizeof(T),
                   "PointSoAT alignment mismatch: _mm512_load_ps requires 64-byte alignment");
@@ -120,7 +123,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
     return distances;
   }
 #endif
-#if defined(__SSE4_1__)
+#if defined(__SSE4_1__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 4 && std::is_same_v<T, float>) {
     static_assert(alignof(SoA) == W * sizeof(T),
                   "PointSoAT alignment mismatch: _mm_load_ps requires 16-byte alignment");
@@ -141,7 +144,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
     return distances;
   }
 #endif
-#if defined(__AVX__)
+#if defined(__AVX__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 8 && std::is_same_v<T, float>) {
     static_assert(alignof(SoA) == W * sizeof(T),
                   "PointSoAT alignment mismatch: _mm256_load_ps requires 32-byte alignment");
