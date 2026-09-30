@@ -380,15 +380,19 @@ mechanism is to be built in the meantime, since it would be a second tape.
 5. If a container-returning method (`std::vector`) is genuinely useful on device, add a *streaming*
    sibling rather than trying to annotate it — see
    `FaceT::getSmallestCoordinate`/`getHighestCoordinate`.
-6. Add the class to `Tests/InstantiateAll.cpp`, add a `[gpu]`-tagged test case that launches a
-   kernel and compares against the host, and add the test binary to `EBGEOMETRY_GPU_TESTS` in
+6. Add the class to `Tests/InstantiateAll.cpp`, add a `[gpu]`-tagged test case that evaluates it on
+   many queries with the `Tests/TestGPU.hpp` harness and compares element by element against the
+   host (see "Adding tests" in the contribution guidelines), and add the test binary to `EBGEOMETRY_GPU_TESTS` in
    `Tests/CMakeLists.txt`.
 7. Update the Sphinx page that documents the class, per the rules in `CLAUDE.md`.
 
 ## Verifying locally
 
 The `cuda` and `hip` presets compile the device-bearing tests. Compilation needs only a toolkit; the
-`[gpu]` cases additionally need a visible device and `SKIP()` cleanly without one.
+`[gpu]` cases additionally need a visible device and `SKIP()` cleanly without one. Every host build
+also runs the `[gpu]` cases, in emulation (host memory that reports itself device-accessible, and a
+host loop in place of the kernel), so a device test that fails for a reason other than the device
+compile or the launch already fails in the ordinary test suite.
 
 ```bash
 cmake --preset cuda -DCMAKE_CUDA_ARCHITECTURES=<arch>   # match the local GPU; preset default is 70

@@ -226,18 +226,37 @@ TEST_CASE("PointAoSoA::pack rejects a null array and a count outside [1, W]", "[
     "PointAoSoA::pack: the point count must be between 1 and 4 (5)"));
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: a host-packed PointAoSoA is queried in a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
+// The minimum squared distance from a query point to the group, which is held by value.
 template <class T>
-EBGEOMETRY_GLOBAL
-void
-pointAoSoADeviceKernel(const AoSoA<T>* a_group, Vec3T<T> a_point, T* a_out)
+struct PointAoSoADistanceQuery
 {
-  a_out[0] = a_group->getMinimumDistance2(a_point) + static_cast<T>(a_group->getMetaData(0));
-}
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_group.getMinimumDistance2(a_point);
+  }
+};
+
+// The metadata of lane i % W.
+template <class T>
+struct PointAoSoAMetaDataQuery
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  int
+  operator()(const int& a_i) const noexcept
+  {
+    return static_cast<int>(m_group.getMetaData(static_cast<size_t>(a_i) % W));
+  }
+};
 
 TEMPLATE_TEST_CASE("PointAoSoA: device query surface matches the host", "[PointAoSoA][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -255,15 +274,27 @@ TEMPLATE_TEST_CASE("PointAoSoA: device query surface matches the host", "[PointA
   AoSoA<T> group;
   group.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
 
-  const Vec3T<T> q(0.1, 0.1, 0.1);
-  const T        host = group.getMinimumDistance2(q) + static_cast<T>(group.getMetaData(0));
+  // The points lie at x = 0, 3, 6, 9 on the x-axis; the grid surrounds all of them, so each is the
+  // closest one for some queries.
+  const auto points = queryGrid<T>(Vec3T<T>(T(-2), T(-3), T(-3)), Vec3T<T>(T(11), T(3), T(3)), 10);
 
-  const DeviceBuffer<AoSoA<T>> deviceGroup = mirrorToDevice(group);
-  DeviceBuffer<T>              deviceOut;
+  requireSameResults(evaluateOnDevice<T>(PointAoSoADistanceQuery<T>{group}, points),
+                     evaluateOnHost<T>(PointAoSoADistanceQuery<T>{group}, points));
 
-  pointAoSoADeviceKernel<T><<<1, 1>>>(deviceGroup.get(), q, deviceOut.get());
-  (void)GPU::deviceSynchronize();
+  std::vector<int> lanes;
 
-  REQUIRE_THAT(readScalar(deviceOut.get()), Catch::Matchers::WithinRel(host, gpuTol<T>()));
+  for (int i = 0; i < 256; i++) {
+    lanes.push_back(i);
+  }
+
+  const auto deviceMeta = evaluateOnDevice<int>(PointAoSoAMetaDataQuery<T>{group}, lanes);
+  const auto hostMeta   = evaluateOnHost<int>(PointAoSoAMetaDataQuery<T>{group}, lanes);
+
+  REQUIRE(deviceMeta.size() == hostMeta.size());
+
+  for (size_t i = 0; i < hostMeta.size(); i++) {
+    INFO("query " << i);
+    REQUIRE(hostMeta[i] == int(metaData[i % W]));
+    REQUIRE(deviceMeta[i] == hostMeta[i]);
+  }
 }
-#endif

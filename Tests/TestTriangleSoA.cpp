@@ -257,23 +257,70 @@ TEMPLATE_TEST_CASE("TriangleAoSoA::getMetaData returns each lane's metadata and 
   REQUIRE(group.getMetaData(3) == short(11)); // padded -> last real triangle's metadata
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: a host-packed TriangleAoSoA is queried in a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
+// The signed distance from a query point to the group, which is held by value. With m_withMeta, it
+// comes from the overload that also reports the closest triangle's metadata.
 template <class T>
-EBGEOMETRY_GLOBAL
-void
-triangleAoSoADeviceKernel(const AoSoA<T>* a_group, Vec3T<T> a_point, T* a_out)
+struct TriangleAoSoADistanceQuery
 {
-  short closestMeta = 0;
+  AoSoA<T> m_group;
+  bool     m_withMeta;
 
-  T d = a_group->signedDistance(a_point);
-  d += a_group->signedDistance(a_point, closestMeta);
-  d += static_cast<T>(closestMeta) + static_cast<T>(a_group->getMetaData(0));
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    short closestMeta = 0;
 
-  a_out[0] = d;
+    return m_withMeta ? m_group.signedDistance(a_point, closestMeta) : m_group.signedDistance(a_point);
+  }
+};
+
+// The closest triangle's metadata, as reported by signedDistance(point, meta).
+template <class T>
+struct TriangleAoSoAClosestMetaQuery
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  int
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    short closestMeta = 0;
+
+    (void)m_group.signedDistance(a_point, closestMeta);
+
+    return static_cast<int>(closestMeta);
+  }
+};
+
+// The metadata of lane i % W.
+template <class T>
+struct TriangleAoSoAMetaDataQuery
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  int
+  operator()(const int& a_i) const noexcept
+  {
+    return static_cast<int>(m_group.getMetaData(static_cast<size_t>(a_i) % W));
+  }
+};
+
+// Require two integer result lists to be identical, element by element.
+inline void
+requireSameIntegers(const std::vector<int>& a_device, const std::vector<int>& a_host)
+{
+  REQUIRE(a_device.size() == a_host.size());
+
+  for (size_t i = 0; i < a_host.size(); i++) {
+    INFO("query " << i);
+    REQUIRE(a_device[i] == a_host[i]);
+  }
 }
 
 TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
@@ -293,22 +340,28 @@ TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
   AoSoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
-  const Vec3T<T> p(0.2, 0.2, 0.5);
+  // The triangles lie in the z = 0 plane at x in [0, 10]; the grid surrounds all of them on both
+  // sides of the plane, so each one is the closest for some queries and both signs occur.
+  const auto points = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-1.5)), Vec3T<T>(T(12), T(3), T(1.5)), 10);
 
-  short hostMeta = 0;
-  T     host     = group.signedDistance(p);
-  host += group.signedDistance(p, hostMeta);
-  host += static_cast<T>(hostMeta) + static_cast<T>(group.getMetaData(0));
+  for (const bool withMeta : {false, true}) {
+    INFO("with metadata: " << withMeta);
+    requireSameResults(evaluateOnDevice<T>(TriangleAoSoADistanceQuery<T>{group, withMeta}, points),
+                       evaluateOnHost<T>(TriangleAoSoADistanceQuery<T>{group, withMeta}, points));
+  }
 
-  const DeviceBuffer<AoSoA<T>> deviceGroup = mirrorToDevice(group);
-  DeviceBuffer<T>              deviceOut;
+  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAClosestMetaQuery<T>{group}, points),
+                      evaluateOnHost<int>(TriangleAoSoAClosestMetaQuery<T>{group}, points));
 
-  triangleAoSoADeviceKernel<T><<<1, 1>>>(deviceGroup.get(), p, deviceOut.get());
-  (void)GPU::deviceSynchronize();
+  std::vector<int> lanes;
 
-  REQUIRE_THAT(readScalar(deviceOut.get()), Catch::Matchers::WithinRel(host, gpuTol<T>()));
+  for (int i = 0; i < 256; i++) {
+    lanes.push_back(i);
+  }
+
+  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAMetaDataQuery<T>{group}, lanes),
+                      evaluateOnHost<int>(TriangleAoSoAMetaDataQuery<T>{group}, lanes));
 }
-#endif
 
 TEST_CASE("TriangleSoAT/TriangleAoSoA::pack: reject a count outside [1, W] and a null array",
           "[TriangleSoA][TriangleAoSoA][death]")

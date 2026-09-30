@@ -838,26 +838,21 @@ TEMPLATE_TEST_CASE("BVHUnionIF: rejects a mesh from another pool and a missing b
     "need one bounding volume per primitive"));
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-
-using Catch::Matchers::WithinRel;
-
 namespace {
 
-// Evaluates a sphere union, a smooth sphere union and a TriMeshSDF union on the device. Each arrives
-// by value as a kernel argument.
-template <class T>
-EBGEOMETRY_GLOBAL
-void
-unionsDeviceKernel(const BVHUnionIF<T, SphereSDF<T>, 4>       a_sphereUnion,
-                   const BVHSmoothUnionIF<T, SphereSDF<T>, 4> a_smoothUnion,
-                   const BVHUnionIF<T, TestTriMesh<T>, 4>     a_meshUnion,
-                   const Vec3T<T>                             a_point,
-                   T*                                         a_out)
+// One signed distance per query point, for any of the BVH unions, held by value as a kernel receives it.
+template <class T, class Union>
+struct UnionDistanceQuery
 {
-  a_out[0] = a_sphereUnion.signedDistance(a_point) + T(2) * a_smoothUnion.signedDistance(a_point) +
-             T(3) * a_meshUnion.signedDistance(a_point);
-}
+  Union m_union;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_union.signedDistance(a_point);
+  }
+};
 
 } // namespace
 
@@ -881,26 +876,28 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
 
   pool.freeze();
 
-  Pool devicePool = Pool::mirror(pool, deviceMemoryResource());
+  Pool devicePool = Pool::mirror(pool, deviceTestResource());
 
-  const auto sphereView = sphereUnion.rebasedView(devicePool);
-  const auto smoothView = smoothUnion.rebasedView(devicePool);
-  const auto meshView   = meshUnion.rebasedView(devicePool);
+  // The unit spheres sit at x = 0, 3, ..., 33 on the x-axis, and the dodecahedra (vertices within 1.62
+  // of their centres) at x = 0, 4, 8 and y = 0, 4. Each grid covers points inside, outside, near the
+  // surfaces and between the primitives of its union.
+  const T    rowEnd       = T(3) * T(NumRowSpheres - 1) + T(2);
+  const auto spherePoints = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-2)), Vec3T<T>(rowEnd, T(2), T(2)), 16);
+  const auto meshPoints   = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-2)), Vec3T<T>(T(10), T(6), T(2)), 16);
 
-  for (const auto& p : gridQueryPoints<T>()) {
-    const T hostVal =
-      sphereUnion.signedDistance(p) + T(2) * smoothUnion.signedDistance(p) + T(3) * meshUnion.signedDistance(p);
+  const auto check = [&](const auto& a_union, const std::vector<Vec3T<T>>& a_points) {
+    using Union = std::decay_t<decltype(a_union)>;
 
-    DeviceBuffer<T> deviceOut;
+    const Union view = a_union.rebasedView(devicePool);
 
-    unionsDeviceKernel<T><<<1, 1>>>(sphereView, smoothView, meshView, p, deviceOut.get());
-    (void)GPU::deviceSynchronize();
+    requireSameResults(evaluateOnDevice<T>(UnionDistanceQuery<T, Union>{view}, a_points),
+                       evaluateOnHost<T>(UnionDistanceQuery<T, Union>{a_union}, a_points));
+  };
 
-    REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
-  }
+  check(sphereUnion, spherePoints);
+  check(smoothUnion, spherePoints);
+  check(meshUnion, meshPoints);
 }
-
-#endif
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IntersectionIF / Intersection()

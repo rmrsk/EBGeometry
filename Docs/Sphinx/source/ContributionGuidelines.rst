@@ -81,3 +81,17 @@ convention.
 Adding new public classes should also be reflected in ``Tests/InstantiateAll.cpp``,
 which explicitly instantiates every public class template so that ``clang-tidy``
 and the project's warning set analyse them regardless of what the tests exercise.
+
+A class that is callable on a GPU also gets a device test: a test case tagged ``[gpu]`` in its test
+file, whose binary is listed in ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``.
+``Tests/TestGPU.hpp`` holds the harness. Write the check as a functor -- a trivially copyable struct
+holding the object under test (a ``rebasedView()`` onto a pool mirrored into
+``deviceTestResource()``, for anything pool-resident) whose ``EBGEOMETRY_HOST_DEVICE`` call operator
+maps one query to one result -- then run it over many queries with ``evaluateOnDevice`` (one thread
+per query) and ``evaluateOnHost``, and compare the two element by element with
+``requireSameResults``. Under a GPU backend the functor runs in a real kernel, every runtime call
+(including the launch and its completion) is checked, and the test skips when no GPU is present. In
+a host build the same test runs in emulation: ``deviceTestResource()`` is host memory that reports
+itself device-accessible, so the view takes the device-view path, and ``evaluateOnDevice`` copies
+the functor and runs it in a host loop. Every ordinary build, including the sanitizer build,
+therefore runs the device tests; only the device compile and the kernel launch need a GPU lane.

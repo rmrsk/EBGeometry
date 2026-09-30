@@ -468,7 +468,6 @@ TEST_CASE("Pool: identities are unique and mirrorOf names the root of a chain", 
   }
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: a PODVector built into a host Pool, mirrored to the device, reads back
 // correctly through base + offset with no pointer patching
@@ -484,20 +483,35 @@ struct PoolSmokeElement
 static_assert(std::is_trivially_copyable_v<PoolSmokeElement>, "PoolSmokeElement must be trivially copyable");
 } // namespace
 
-EBGEOMETRY_GLOBAL
-void
-poolDeviceKernel(PODVector<PoolSmokeElement> a_vec, void* a_base, double* a_out)
+// Element i of a PODVector read through a pool base: field m_a if m_second is false, else m_b.
+struct PODVectorElementQuery
 {
-  double sum = 0.0;
+  PODVector<PoolSmokeElement> m_vec;
+  const void*                 m_base;
+  bool                        m_second;
 
-  for (uint32_t i = 0; i < a_vec.size(); i++) {
-    const PoolSmokeElement element = a_vec.at(a_base, i);
+  EBGEOMETRY_HOST_DEVICE
+  double
+  operator()(const int& a_i) const noexcept
+  {
+    const PoolSmokeElement& element = m_vec.at(m_base, static_cast<uint32_t>(a_i));
 
-    sum += element.m_a + element.m_b;
+    return m_second ? element.m_b : element.m_a;
   }
+};
 
-  a_out[0] = sum;
-}
+// The PODVector's size, read from the descriptor (the same for every query).
+struct PODVectorSizeQuery
+{
+  PODVector<PoolSmokeElement> m_vec;
+
+  EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  operator()(const int& /*a_i*/) const noexcept
+  {
+    return m_vec.size();
+  }
+};
 
 TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Pool][PODVector][gpu]")
 {
@@ -507,31 +521,43 @@ TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Poo
     SKIP("no GPU device available");
   }
 
+  constexpr uint32_t n = 1000;
+
   Pool hostPool(hostMemoryResource());
 
   PODVector<PoolSmokeElement> vec;
-  vec.reserveFrom(hostPool, 8);
+  vec.reserveFrom(hostPool, n);
 
-  double hostSum = 0.0;
+  std::vector<int> indices;
 
-  for (uint32_t i = 0; i < 8; i++) {
-    const PoolSmokeElement element{double(i), double(2 * i)};
-
-    vec.push_back(hostPool.base(), element);
-    hostSum += element.m_a + element.m_b;
+  for (uint32_t i = 0; i < n; i++) {
+    vec.push_back(hostPool.base(), PoolSmokeElement{0.5 * double(i) + 1.0, -3.0 * double(i)});
+    indices.push_back(static_cast<int>(i));
   }
 
   hostPool.freeze();
 
-  Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+  Pool devicePool = Pool::mirror(hostPool, deviceTestResource());
 
-  DeviceBuffer<double> deviceOut;
+  // The device reads the mirrored bytes and the host its own, so every value must match exactly --
+  // and equal the value pushed.
+  for (const bool second : {false, true}) {
+    const auto device = evaluateOnDevice<double>(PODVectorElementQuery{vec, devicePool.base(), second}, indices);
+    const auto host   = evaluateOnHost<double>(PODVectorElementQuery{vec, hostPool.base(), second}, indices);
 
-  poolDeviceKernel<<<1, 1>>>(vec, devicePool.base(), deviceOut.get());
-  (void)GPU::deviceSynchronize();
+    REQUIRE(device.size() == host.size());
 
-  // The reduction sums small integer-valued doubles in the same order on host and device, so the
-  // result is bit-exact -- no floating-point matcher (or its header) is needed here.
-  REQUIRE(readScalar(deviceOut.get()) == hostSum);
+    for (size_t i = 0; i < host.size(); i++) {
+      INFO("element " << i << (second ? ", m_b" : ", m_a"));
+      REQUIRE(host[i] == (second ? -3.0 * double(i) : 0.5 * double(i) + 1.0));
+      REQUIRE(device[i] == host[i]);
+    }
+  }
+
+  const auto sizes = evaluateOnDevice<uint32_t>(PODVectorSizeQuery{vec}, indices);
+
+  for (size_t i = 0; i < sizes.size(); i++) {
+    INFO("query " << i);
+    REQUIRE(sizes[i] == n);
+  }
 }
-#endif

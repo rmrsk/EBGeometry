@@ -161,6 +161,18 @@ Catch2 test cases are registered with CTest so you can filter by name or tag:
    ./Tests/TestVec --list-tests
    ./Tests/TestAnalyticSDF "[SphereSDF]"
 
+   # Run only the device tests
+   ./Tests/TestBVH "[gpu]"
+
+Device tests
+---------------
+
+Every class that is callable on a GPU has a test case tagged ``[gpu]`` that evaluates its queries as
+a kernel would, over many query points, and compares each result with the host. In an ordinary host
+build these tests run in emulation, on host memory that reports itself device-accessible, so they
+run in every preset. Under a GPU backend the same tests launch real kernels, and they skip when no
+GPU is visible. See :ref:`Chap:ContributionGuidelines` for how to write one.
+
 Test coverage
 ---------------
 
@@ -195,8 +207,8 @@ Test coverage
        exact shape (all but :cpp:class:`PerlinSDF`) checked as a true signed distance function at
        random points (unit gradient, a step back along the gradient lands on the surface,
        1-Lipschitz); the capsule's sphere limit and Perlin's defaults; every analytic shape is a
-       trivially copyable, non-polymorphic value type; on a GPU build,
-       device ``signedDistance()`` of all twelve shapes matches the host.
+       trivially copyable, non-polymorphic value type; the device
+       ``signedDistance()`` of all twelve shapes matches the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
@@ -254,8 +266,8 @@ Test coverage
        :cpp:class:`BVHUnionIF`/:cpp:class:`BVHSmoothUnionIF` over spheres (against the virtual
        unions and a brute-force scan, for every build strategy and blend) and over translated
        ``TriMeshSDF`` objects, including a union of unions; host-mirror and deep copies of a mesh
-       union evaluated after the source pool is destroyed; on a GPU build, device results of all
-       three unions against the host. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp`
+       union evaluated after the source pool is destroyed; device results of all three unions
+       against the host. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp`
        to present analytic spheres as ``ImplicitFunction`` objects.
    * - ``TestTransform``
      - :cpp:class:`ComplementIF`, :cpp:class:`TranslateIF`, :cpp:class:`RotateIF`,

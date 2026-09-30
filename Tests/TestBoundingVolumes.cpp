@@ -280,38 +280,66 @@ TEMPLATE_TEST_CASE("SphereT: volume and area", "[SphereT]", EBGEOMETRY_TEST_PREC
   REQUIRE_THAT(s.getArea(), WithinRel(T(4.0) * pi * T(4.0), T(1.0e-4)));
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: the AABBT / SphereT surface is callable from a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
-// The reduction over the AABBT/SphereT surface, shared by the device kernel and the host mirror so
-// the two are guaranteed to compute the same thing.
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-T
-bvReduction()
+// The AABBT/SphereT operations checked on the device. Each is evaluated for a query point p against
+// a fixed box and sphere, or on a box/sphere built around p.
+enum BoundingVolumeOp : int
 {
-  const AABBT<T>   box(Vec3T<T>(0.0, 0.0, 0.0), Vec3T<T>(1.0, 1.0, 1.0));
-  const AABBT<T>   other(Vec3T<T>(0.5, 0.5, 0.5), Vec3T<T>(2.0, 2.0, 2.0));
-  const SphereT<T> sphere(Vec3T<T>(0.5, 0.5, 0.5), T(0.5));
+  BoxDistance,
+  BoxIntersects,
+  BoxOverlappingVolume,
+  BoxVolume,
+  BoxArea,
+  BoxCentroid,
+  SphereDistance,
+  SphereVolume,
+  SphereRadius,
+  NumBoundingVolumeOps
+};
 
-  const Vec3T<T> p(2.0, 2.0, 2.0);
-
-  T d = box.getDistance(p) + box.getVolume() + box.getArea() + box.getCentroid().length();
-  d += (box.intersects(other) ? T(1.0) : T(0.0)) + box.getOverlappingVolume(other);
-  d += sphere.getDistance(p) + sphere.getVolume() + sphere.getRadius();
-
-  return d;
-}
-
+// One AABBT/SphereT operation for the query point p.
 template <class T>
-EBGEOMETRY_GLOBAL
-void
-bvDeviceKernel(T* a_out)
+struct BoundingVolumeQuery
 {
-  a_out[0] = bvReduction<T>();
-}
+  AABBT<T>   m_box;
+  SphereT<T> m_sphere;
+  int        m_op;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_p) const noexcept
+  {
+    // A box from p - 0.4 to p + 0.8 (so its centroid is not p), overlapping m_box for some queries
+    // and not for others, and a sphere around p whose radius varies with p.
+    const Vec3T<T>   offset(T(0.4), T(0.4), T(0.4));
+    const AABBT<T>   other(a_p - offset, a_p + offset * T(2.0));
+    const SphereT<T> sphere(a_p, T(0.1) + a_p.length());
+
+    switch (m_op) {
+    case BoxDistance:
+      return m_box.getDistance(a_p);
+    case BoxIntersects:
+      return m_box.intersects(other) ? T(1.0) : T(0.0);
+    case BoxOverlappingVolume:
+      return m_box.getOverlappingVolume(other);
+    case BoxVolume:
+      return other.getVolume();
+    case BoxArea:
+      return other.getArea();
+    case BoxCentroid:
+      return other.getCentroid().length();
+    case SphereDistance:
+      return m_sphere.getDistance(a_p);
+    case SphereVolume:
+      return sphere.getVolume();
+    default:
+      return sphere.getRadius();
+    }
+  }
+};
 
 TEMPLATE_TEST_CASE("AABBT/SphereT: device query surface matches the host",
                    "[AABBT][SphereT][gpu]",
@@ -325,11 +353,16 @@ TEMPLATE_TEST_CASE("AABBT/SphereT: device query surface matches the host",
     SKIP("no GPU device available");
   }
 
-  DeviceBuffer<T> deviceOut;
+  const AABBT<T>   box(Vec3T<T>(T(0.0), T(0.0), T(0.0)), Vec3T<T>(T(1.0), T(1.0), T(1.0)));
+  const SphereT<T> sphere(Vec3T<T>(T(0.5), T(0.5), T(0.5)), T(0.5));
 
-  bvDeviceKernel<T><<<1, 1>>>(deviceOut.get());
-  (void)GPU::deviceSynchronize();
+  // Points inside, outside, and near both volumes.
+  const auto points = queryGrid<T>(Vec3T<T>(T(-1), T(-1), T(-1)), Vec3T<T>(T(2), T(2), T(2)), 10);
 
-  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(bvReduction<T>(), gpuTol<T>()));
+  for (int op = 0; op < NumBoundingVolumeOps; op++) {
+    const BoundingVolumeQuery<T> query{box, sphere, op};
+
+    INFO("operation " << op);
+    requireSameResults(evaluateOnDevice<T>(query, points), evaluateOnHost<T>(query, points));
+  }
 }
-#endif

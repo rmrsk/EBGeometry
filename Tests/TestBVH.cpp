@@ -1409,10 +1409,11 @@ struct IdentityPruneDist2
 };
 
 /**
- * @brief The entire body of the device kernel further below, factored out so the host suite
- * compiles and runs the exact code the kernel runs -- not merely the same functors.
+ * @brief The entire body of the device query functor further below (PackedBvhTraversalQuery),
+ * factored out so the host suite compiles and runs the exact code the device runs -- not merely the
+ * same functors.
  *
- * The BVH is taken by value and const, matching the kernel exactly. Both halves matter: by value
+ * The BVH is taken by value and const, matching the device side exactly. Both halves matter: by value
  * because that is how a descriptor reaches a kernel, and const because a non-const PackedBVH
  * selects getPrimitives()'s mutable overload, whose PODSpan<P> does not convert to the functors'
  * PODSpan<const P>. A test that reaches pruneTraverse() only through a const reference exercises a
@@ -1486,8 +1487,8 @@ TEMPLATE_TEST_CASE("PackedBVH: a host-to-host rebasedView answers every query id
   REQUIRE(rebased.getPrimitives().begin() != bvh.getPrimitives().begin());
 
   // Deliberately packedBvhTraversalProbe() rather than a lambda written to look like it: the probe
-  // *is* the device kernel's body, so running it here compiles and checks that path -- functors,
-  // by-value const descriptor and all -- on every build, GPU or not.
+  // *is* what the device test evaluates per query point, so running it here compiles and checks that
+  // path -- functors, by-value const descriptor and all -- on every build, GPU or not.
   for (const auto& q : queryPoints<T>()) {
     REQUIRE(packedBvhTraversalProbe<T, K>(rebased, q) == packedBvhTraversalProbe<T, K>(bvh, q));
   }
@@ -3204,18 +3205,24 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
   }
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: a rebased PackedBVH traverses in a kernel and agrees with the host
 // ─────────────────────────────────────────────────────────────────────────────
 
+// One traversal per query point: the probe the host suite also runs, so the device executes exactly
+// the code the host checks, with the BVH held by value as a kernel receives it.
 template <class T, size_t K>
-EBGEOMETRY_GLOBAL
-void
-packedBvhDeviceKernel(EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh, Vec3T<T> a_query, T* a_out)
+struct PackedBvhTraversalQuery
 {
-  a_out[0] = packedBvhTraversalProbe<T, K>(a_bvh, a_query);
-}
+  EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> m_bvh;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return packedBvhTraversalProbe<T, K>(m_bvh, a_point);
+  }
+};
 
 TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches the host",
                    "[BVH][gpu]",
@@ -3258,90 +3265,54 @@ TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches th
 
   const Packed bvh(pool, flat, size_t(4));
 
-  const Vec3 query(T(3.5), T(-2.25), T(1.75));
-
-  // Host expectation, computed through the same traversal the kernel runs.
-  T          hostState = std::numeric_limits<T>::max();
-  const auto prims     = bvh.getPrimitives();
-
-  const auto evalLeaf = [&prims, &query](T& a_state, size_t a_offset, size_t a_count) noexcept {
-    for (size_t i = 0; i < a_count; i++) {
-      const T d2 = (prims[a_offset + i].m_pos - query).length2();
-
-      if (d2 < a_state) {
-        a_state = d2;
-      }
-    }
-  };
-
-  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
-
-  bvh.pruneTraverse(query, hostState, evalLeaf, pruneDist2);
-
-  const T hostVal = hostState + T(bvh.getPrimitives().size()) + bvh.getBoundingVolume().getLowCorner().length();
-
   pool.freeze();
 
-  Pool         devicePool = Pool::mirror(pool, deviceMemoryResource());
+  Pool         devicePool = Pool::mirror(pool, deviceTestResource());
   const Packed deviceView = bvh.rebasedView(devicePool);
 
-  DeviceBuffer<T> deviceOut;
+  // The points spiral out to a radius of 63 in the xy-plane and rise to z = 12.6, so this grid
+  // covers query points among them as well as well outside the cloud.
+  const auto points = queryGrid<T>(Vec3(T(-70), T(-70), T(-5)), Vec3(T(70), T(70), T(18)), 10);
 
-  packedBvhDeviceKernel<T, K><<<1, 1>>>(deviceView, query, deviceOut.get());
-  (void)GPU::deviceSynchronize();
-
-  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
+  requireSameResults(evaluateOnDevice<T>(PackedBvhTraversalQuery<T, K>{deviceView}, points),
+                     evaluateOnHost<T>(PackedBvhTraversalQuery<T, K>{bvh}, points));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: rebased FlatMeshSDF/MeshSDF/TriMeshSDF evaluate in a kernel and agree with the host
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Deterministic probe points shared by host and kernel: a 5x5x5 lattice over [-2, 2]^3. The
-// dodecahedron fixture is centred at the origin with vertices within 1.62 of it on each axis, so the
-// lattice covers points inside, outside, and near its surface.
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-Vec3T<T>
-flatMeshProbePoint(uint32_t a_i) noexcept
-{
-  const T x = T(-2) + T(a_i % 5U);
-  const T y = T(-2) + T((a_i / 5U) % 5U);
-  const T z = T(-2) + T(a_i / 25U);
-
-  return Vec3T<T>(x, y, z);
-}
-
-constexpr uint32_t s_numFlatMeshProbes = 125;
-
-// Sums |signed distance| rather than signed distance, so that errors at inside and outside points
-// cannot cancel. Any of FlatMeshSDF, MeshSDF, TriMeshSDF, taken by value as a kernel receives it.
+// One signed distance per query point. Any of FlatMeshSDF, MeshSDF, TriMeshSDF, held by value as a
+// kernel receives it.
 template <class T, class SDF>
-EBGEOMETRY_HOST_DEVICE
-T
-meshSDFProbeSum(const SDF& a_sdf) noexcept
+struct SignedDistanceQuery
 {
-  T sum = T(0);
+  SDF m_sdf;
 
-  for (uint32_t i = 0; i < s_numFlatMeshProbes; i++) {
-    const T d = a_sdf.signedDistance(flatMeshProbePoint<T>(i));
-
-    sum += d < T(0) ? -d : d;
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_sdf.signedDistance(a_point);
   }
+};
 
-  // Also exercise the device-callable bounding box every mesh SDF provides.
-  const auto box = a_sdf.computeBoundingVolume();
-
-  return sum + box.getHighCorner().length() + box.getLowCorner().length();
-}
-
+// The device-callable bounding box every mesh SDF provides: query i < 3 returns the upper corner's
+// component i, and query i >= 3 the lower corner's component i - 3.
 template <class T, class SDF>
-EBGEOMETRY_GLOBAL
-void
-meshSDFDeviceKernel(const SDF a_sdf, T* a_out)
+struct BoundingBoxQuery
 {
-  a_out[0] = meshSDFProbeSum<T>(a_sdf);
-}
+  SDF m_sdf;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const int& a_i) const noexcept
+  {
+    const auto box = m_sdf.computeBoundingVolume();
+
+    return (a_i < 3) ? box.getHighCorner()[static_cast<size_t>(a_i)] : box.getLowCorner()[static_cast<size_t>(a_i - 3)];
+  }
+};
 
 TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate on device and match the host",
                    "[BVH][FlatMeshSDF][MeshSDF][TriMeshSDF][gpu]",
@@ -3364,28 +3335,31 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate on d
   const FlatMeshSDF<T, Meta>      flat(mesh, pool);
   const MeshSDF<T, Meta, K>       meshSDF(mesh, pool, BVH::Build::SAH);
   const TriMeshSDF<T, Meta, K, W> triSDF(mesh, pool, BVH::Build::SAH, 2);
-  const T                         flatHost = meshSDFProbeSum<T>(flat);
-  const T                         meshHost = meshSDFProbeSum<T>(meshSDF);
-  const T                         triHost  = meshSDFProbeSum<T>(triSDF);
 
   pool.freeze();
 
-  Pool devicePool = Pool::mirror(pool, deviceMemoryResource());
+  Pool devicePool = Pool::mirror(pool, deviceTestResource());
 
-  DeviceBuffer<T> flatOut;
-  DeviceBuffer<T> meshOut;
-  DeviceBuffer<T> triOut;
+  // The dodecahedron is centred at the origin with vertices within 1.62 of it on each axis, so this
+  // grid covers points inside, outside, and near the surface.
+  const auto points  = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-2)), Vec3T<T>(T(2), T(2), T(2)), 12);
+  const auto corners = std::vector<int>{0, 1, 2, 3, 4, 5};
 
-  meshSDFDeviceKernel<T><<<1, 1>>>(flat.rebasedView(devicePool), flatOut.get());
-  meshSDFDeviceKernel<T><<<1, 1>>>(meshSDF.rebasedView(devicePool), meshOut.get());
-  meshSDFDeviceKernel<T><<<1, 1>>>(triSDF.rebasedView(devicePool), triOut.get());
-  (void)GPU::deviceSynchronize();
+  const auto check = [&](const auto& a_sdf) {
+    using SDF = std::decay_t<decltype(a_sdf)>;
 
-  REQUIRE_THAT(readScalar(flatOut.get()), WithinRel(flatHost, gpuTol<T>()));
-  REQUIRE_THAT(readScalar(meshOut.get()), WithinRel(meshHost, gpuTol<T>()));
-  REQUIRE_THAT(readScalar(triOut.get()), WithinRel(triHost, gpuTol<T>()));
+    const SDF view = a_sdf.rebasedView(devicePool);
+
+    requireSameResults(evaluateOnDevice<T>(SignedDistanceQuery<T, SDF>{view}, points),
+                       evaluateOnHost<T>(SignedDistanceQuery<T, SDF>{a_sdf}, points));
+    requireSameResults(evaluateOnDevice<T>(BoundingBoxQuery<T, SDF>{view}, corners),
+                       evaluateOnHost<T>(BoundingBoxQuery<T, SDF>{a_sdf}, corners));
+  };
+
+  check(flat);
+  check(meshSDF);
+  check(triSDF);
 }
-#endif
 
 TEST_CASE("Default K and W are 4 whatever the compiler flags; host-tuned values follow the SIMD flags", "[BVH]")
 {

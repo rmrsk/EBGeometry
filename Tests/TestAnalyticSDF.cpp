@@ -524,19 +524,22 @@ TEST_CASE("Analytic shapes: invalid constructor arguments abort with a message",
     "RoundedCylinderSDF: twice the curvature (0.5) must be less than the height (1)"));
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-
 namespace {
 
-// Evaluates every shape at a_point on the device. The shapes arrive by value as a kernel argument,
-// which is exactly what being trivially copyable is for.
-template <class T>
-EBGEOMETRY_GLOBAL
-void
-shapesDeviceKernel(const AllShapes<T> a_shapes, const Vec3T<T> a_point, T* a_out)
+// One signed distance per query point, for any one of the analytic shapes. The shape is held by value,
+// as a kernel receives it, which is exactly what being trivially copyable is for.
+template <class T, class Shape>
+struct ShapeDistanceQuery
 {
-  a_out[0] = sumOfShapes(a_shapes, a_point);
-}
+  Shape m_shape;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_shape.signedDistance(a_point);
+  }
+};
 
 } // namespace
 
@@ -554,14 +557,29 @@ TEMPLATE_TEST_CASE("Analytic shapes: device signedDistance matches the host",
 
   const AllShapes<T> shapes;
 
-  for (const auto& p : shapeSamplePoints<T>()) {
-    DeviceBuffer<T> deviceOut;
+  // The shapes are centred at (or anchored to) the origin and extend at most ~1.1 from it, so this grid
+  // covers points inside, outside and near every surface, including the thin (radius 0.1) tubes.
+  // PerlinSDF is a positive noise field with no surface, so it is simply sampled over the same box.
+  const auto points = queryGrid<T>(Vec3T<T>(T(-1.5), T(-1.5), T(-1.5)), Vec3T<T>(T(1.5), T(1.5), T(1.5)), 15);
 
-    shapesDeviceKernel<T><<<1, 1>>>(shapes, p, deviceOut.get());
-    (void)GPU::deviceSynchronize();
+  const auto check = [&](const auto& a_shape, const char* a_name) {
+    using Shape = std::decay_t<decltype(a_shape)>;
 
-    REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(sumOfShapes(shapes, p), gpuTol<T>()));
-  }
+    INFO(a_name);
+    requireSameResults(evaluateOnDevice<T>(ShapeDistanceQuery<T, Shape>{a_shape}, points),
+                       evaluateOnHost<T>(ShapeDistanceQuery<T, Shape>{a_shape}, points));
+  };
+
+  check(shapes.plane, "PlaneSDF");
+  check(shapes.sphere, "SphereSDF");
+  check(shapes.box, "BoxSDF");
+  check(shapes.torus, "TorusSDF");
+  check(shapes.cylinder, "CylinderSDF");
+  check(shapes.infiniteCylinder, "InfiniteCylinderSDF");
+  check(shapes.capsule, "CapsuleSDF");
+  check(shapes.infiniteCone, "InfiniteConeSDF");
+  check(shapes.cone, "ConeSDF");
+  check(shapes.roundedBox, "RoundedBoxSDF");
+  check(shapes.perlin, "PerlinSDF");
+  check(shapes.roundedCylinder, "RoundedCylinderSDF");
 }
-
-#endif

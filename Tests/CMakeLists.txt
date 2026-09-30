@@ -94,11 +94,10 @@ ebgeometry_add_test(TestPODVector)
 ebgeometry_add_test(TestPoolRebase)
 
 # ── GPU device blocks in the per-class tests ──────────────────────────────────
-# Several per-class test files carry a device-portability check behind an
-# #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) guard (see TestGPU.hpp). On an ordinary
-# host build those blocks preprocess away and the files compile as plain C++ like any other test.
-# When a GPU backend is enabled we compile just those files with the backend compiler (per-file
-# LANGUAGE) so the guarded device kernels are built and, on hardware, run.
+# Several per-class test files carry a [gpu]-tagged device check (see TestGPU.hpp). On an ordinary
+# host build those checks run in emulation: the "device" is host memory that reports itself
+# device-accessible, and the kernel is a host loop. When a GPU backend is enabled we compile just
+# those files with the backend compiler (per-file LANGUAGE) so the checks run as real kernels.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
   set(EBGEOMETRY_GPU_TESTS TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVH TestPointCloudBVH TestAnalyticSDF TestCSG)
 
@@ -117,8 +116,7 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
     # ebgeometry_add_test() above. This lets CI run exactly the device-callable surface via
     # `ctest -L gpu-device` without duplicating this file's EBGEOMETRY_GPU_TESTS list in the
     # workflow YAML. On a runner with no physical GPU these SKIP() cleanly (see TestGPU.hpp's
-    # deviceAvailable()) rather than failing -- CI running them still exercises the host-side setup
-    # and the SKIP() path itself, just not real device execution.
+    # deviceAvailable()) rather than failing; the host builds have already run them in emulation.
     catch_discover_tests(${_ebgeometry_gpu_test}
       TEST_SPEC "[gpu]"
       TEST_PREFIX "gpu:"
