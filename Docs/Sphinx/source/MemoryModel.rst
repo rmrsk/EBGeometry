@@ -274,6 +274,19 @@ as their single crossing point and ``deepCopy()`` for genuinely independent stor
 is deliberately duplicated rather than factored into a base class: it is about fifteen lines, and a
 base class would complicate the trivial-copyability ``static_assert`` that the whole model rests on.
 
+The pair itself has a name,
+`PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__, which both classes read with
+``location()`` and apply to a copy of themselves with ``relocatedTo()``. That exists for one case
+``rebasedView()`` cannot handle: a pool-resident descriptor stored *inside* another object's pool,
+such as a ``TriMeshSDF`` held in the primitive array of a BVH union (:ref:`Sec:BVHUnions`).
+Mirroring the pool copies the inner descriptor's bytes verbatim, host control block included, and
+rebasing the outer object cannot rewrite them in place -- on a device mirror they are not even
+host-writable. The outer object therefore reads its own location and applies it to a local copy of
+each inner descriptor as it evaluates it. That is sound because both were reserved from the same
+pool, which the BVH unions check when they are built. Unlike ``rebasedView()``, ``relocatedTo()``
+checks nothing and is callable on a device, so it is for this composition only, never a substitute
+for ``rebasedView()``.
+
 One consequence worth stating plainly, because it changes what familiar code means: **copying a
 pool-resident object copies descriptors, not data.** The copy resolves against the same pool memory
 as the original, so writing through one is visible through the other. That is exactly what makes the
