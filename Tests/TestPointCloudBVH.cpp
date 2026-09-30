@@ -6,6 +6,7 @@
 // cloud, so both the tree and the seed-from-own-leaf query path get real coverage in both precisions.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
@@ -290,6 +291,14 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
 
     // nearestNeighbor excludes self, so with only one particle there is no neighbor.
     CHECK(bvh.nearestNeighbor(0).distanceSquared == notFound);
+    CHECK_FALSE(bvh.nearestNeighbor(0).valid());
+    CHECK(hit.valid());
+
+    // Rows of allNearestNeighbors that cannot be filled hold "no match" results.
+    const auto all = bvh.allNearestNeighbors(3);
+    REQUIRE(all.size() == 3);
+    CHECK_FALSE(all[0].valid());
+    CHECK_FALSE(all[2].valid());
   }
 
   SECTION("deep tree (small leaves) still resolves seeded queries correctly")
@@ -530,5 +539,34 @@ TEMPLATE_TEST_CASE("PointCloudBVH: a rebased view answers queries on device and 
   (void)GPU::deviceSynchronize();
 
   REQUIRE_THAT(readScalar(deviceOut.get()), Catch::Matchers::WithinRel(hostVal, gpuTol<T>()));
+}
+#endif
+
+#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+TEST_CASE("PointCloudBVH and PointCloudHashGrid reject a cloud they cannot index", "[PointCloudBVH][death]")
+{
+  using T = double;
+
+  // Always-on checks, independent of EBGEOMETRY_ENABLE_ASSERTIONS; exercised here because this is
+  // where the fork-based death-test helper is available.
+  const std::vector<Vec3T<T>> pos = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(1), T(0), T(0))};
+
+  REQUIRE(abortsUnderAssertions([&pos] {
+    Pool                                pool(hostMemoryResource());
+    const std::vector<std::size_t>      tooShort = {0};
+    const PointCloudBVH<T, std::size_t> bvh(pool, pos, tooShort);
+  }));
+
+  REQUIRE(abortsUnderAssertions([&pos] {
+    const std::vector<std::size_t>           tooShort = {0};
+    const PointCloudHashGrid<T, std::size_t> grid(pos, tooShort);
+  }));
+
+  REQUIRE(abortsUnderAssertions([] {
+    Pool                                pool(hostMemoryResource());
+    const std::vector<Vec3T<T>>         bad  = {Vec3T<T>(T(0), std::numeric_limits<T>::quiet_NaN(), T(0))};
+    const std::vector<std::size_t>      meta = {0};
+    const PointCloudBVH<T, std::size_t> bvh(pool, bad, meta);
+  }));
 }
 #endif

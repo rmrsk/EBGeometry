@@ -5,13 +5,14 @@ Point clouds
 
 EBGeometry provides two turnkey classes for nearest-neighbor and closest-point work over a point
 cloud: ``PointCloudBVH`` (:file:`Source/EBGeometry_PointCloudBVH.hpp`) and ``PointCloudHashGrid``
-(:file:`Source/EBGeometry_PointCloudHashGrid.hpp`). They answer the same queries and expose the
-**same public interface** -- the same ``Hit`` result type, the same ``closestPoint`` /
-``closestPoints`` / ``nearestNeighbor`` / ``nearestNeighbors`` / ``allNearestNeighbors`` query
-methods, the same ``O(N)`` brute-force reference queries, and the same ``position()`` /
-``metadata()`` accessors -- so the two are drop-in interchangeable. They differ only in the spatial
-acceleration structure they build: a hierarchical tree, or a uniform grid. See :ref:`Chap:PointCloud`
-for the conceptual picture and the trade-off between the two.
+(:file:`Source/EBGeometry_PointCloudHashGrid.hpp`). They answer the same queries with the same
+query methods -- ``closestPoint`` / ``closestPoints`` / ``nearestNeighbor`` / ``nearestNeighbors`` /
+``allNearestNeighbors`` -- the same ``O(N)`` brute-force reference queries, and the same
+``position()`` / ``metadata()`` accessors, and each returns its own ``Hit`` type of the same shape.
+They are not drop-in interchangeable, though: ``PointCloudBVH`` is built in a ``Pool`` and can be
+queried on a GPU, while ``PointCloudHashGrid`` owns ``std::vector`` storage and is host-only. They
+differ in the spatial acceleration structure they build: a hierarchical tree, or a uniform grid. See
+:ref:`Chap:PointCloud` for the conceptual picture and the trade-off between the two.
 
 Both are built directly from a raw cloud -- point positions plus a parallel array of user metadata --
 and both return the matched point's **cloud index** (its position in the input arrays) together with
@@ -19,7 +20,10 @@ the squared distance; the user metadata is reachable through ``metadata()``. ``c
 ``closestPoints`` answer an arbitrary external query point, while ``nearestNeighbor`` /
 ``nearestNeighbors`` (and the batch ``allNearestNeighbors``) answer a point already in the cloud,
 excluding it from its own result and seeding the search from the group it lives in -- a strictly
-cheaper search an external point cannot use (see :ref:`Chap:PointCloud`).
+cheaper search an external point cannot use (see :ref:`Chap:PointCloud`). A query with no match (an
+empty cloud, or a self-query on a single point) returns a ``Hit`` whose ``valid()`` is false: its
+index is ``std::numeric_limits<std::size_t>::max()`` and its squared distance the largest ``T``.
+Slots a multi-result query cannot fill hold the same value.
 
 Each accelerated query also has an ``O(N)`` brute-force counterpart -- ``closestPointBruteForce`` /
 ``closestPointsBruteForce`` / ``nearestNeighborBruteForce`` / ``nearestNeighborsBruteForce`` -- that
@@ -34,7 +38,8 @@ PointCloudBVH
 over ``PointAoSoA`` leaf groups as a member, and adds two things the general path does not offer --
 a much cheaper **index-based build**, and **turnkey query methods** that hide ``pruneTraverse()``
 entirely. It is built by partitioning an index permutation in place with a longest-axis midpoint
-split and packing the ``PointAoSoA`` leaves inline (no intermediate primitive list, no
+split (falling back to a split by count where the midpoint cannot separate the points, as with
+coincident points, so the tree stays shallow) and packing the ``PointAoSoA`` leaves inline (no intermediate primitive list, no
 ``shared_ptr``, no separate packing pass), which is several times faster to build than a full
 Surface-Area-Heuristic tree and, for near-uniform clouds, just as tight to query. ``getBVH()`` exposes
 the held ``PackedBVH`` for anything that needs the general BVH interface.

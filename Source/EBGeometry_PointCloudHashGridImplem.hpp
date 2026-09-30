@@ -20,6 +20,7 @@
 
 // Our includes
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_PointCloudDetail.hpp"
 #include "EBGeometry_PointCloudHashGrid.hpp"
 
 namespace EBGeometry {
@@ -32,14 +33,13 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
 {
   static_assert(std::is_floating_point_v<T>, "PointCloudHashGrid requires a floating-point type T");
 
-  EBGEOMETRY_EXPECT(a_positions.size() == a_metadata.size());
+  // Cloud indices are stored as uint32_t in the CSR arrays (m_cellStart / m_cellPoints), so the cloud
+  // must fit that width; every coordinate must also be finite, or the cell computations below break.
+  PointCloudDetail::requireValidCloud("PointCloudHashGrid", a_positions, a_metadata.size());
+
   EBGEOMETRY_EXPECT(a_targetPerCell > T(0));
 
   const std::size_t numPoints = m_positions.size();
-
-  // Cloud indices are stored as uint32_t in the CSR arrays (m_cellStart / m_cellPoints), so the cloud
-  // must fit that width.
-  EBGEOMETRY_EXPECT(numPoints <= std::size_t(std::numeric_limits<std::uint32_t>::max()));
 
   // Bounding box of the cloud. Non-finite input would poison the min/max reductions (and every cell
   // computation downstream), so catch it here as a precondition.
@@ -158,9 +158,16 @@ PointCloudHashGrid<T, Meta>::cellCoord(T a_x, T a_lo, int a_n) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_x));
   EBGEOMETRY_EXPECT(a_n >= 1);
 
-  const int c = int((a_x - a_lo) * m_invH);
+  // Clamp in floating point before converting: a query far outside the grid would otherwise
+  // overflow the int conversion (undefined behaviour, and in practice a cell on the wrong side of
+  // the grid). A NaN coordinate fails both comparisons and lands in cell 0.
+  const T t = std::floor((a_x - a_lo) * m_invH);
 
-  return c < 0 ? 0 : (c >= a_n ? a_n - 1 : c);
+  if (!(t > T(0))) {
+    return 0;
+  }
+
+  return (t >= T(a_n - 1)) ? a_n - 1 : int(t);
 }
 
 template <class T, class Meta>

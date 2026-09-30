@@ -58,15 +58,25 @@ public:
    * @brief One query result: the cloud index of a matched point and its squared distance.
    * @details Identical in shape to PointCloudBVH::Hit. @c index is the point's position in the input
    * @c positions / @c metadata arrays; @c distanceSquared avoids a sqrt on the hot path.
-   * @note A "no match" result (an empty cloud, or a self-query on a cloud with no other point) is
-   * signalled by @c distanceSquared == std::numeric_limits<T>::max(); test that rather than @c index,
-   * since the default @c index of 0 is indistinguishable from a genuine match on point 0. The
-   * multi-result queries instead report the count found via their return value.
+   * @note A "no match" result (an empty cloud, or a self-query on a cloud with no other point) has
+   * @c index == std::numeric_limits<std::size_t>::max() and @c distanceSquared ==
+   * std::numeric_limits<T>::max(); valid() tests for it. Slots a multi-result query could not fill
+   * hold the same value, and those queries also report the count found via their return value.
    */
   struct Hit
   {
-    std::size_t index           = 0;                             ///< Cloud index of the matched point.
-    T           distanceSquared = std::numeric_limits<T>::max(); ///< Squared distance from the query to it.
+    std::size_t index           = std::numeric_limits<std::size_t>::max(); ///< Cloud index of the matched point.
+    T           distanceSquared = std::numeric_limits<T>::max();           ///< Squared distance from the query to it.
+
+    /**
+     * @brief Whether this is a match rather than a "no match" result.
+     * @return True if @c index refers to a point.
+     */
+    [[nodiscard]] bool
+    valid() const noexcept
+    {
+      return index != std::numeric_limits<std::size_t>::max();
+    }
   };
 
   /**

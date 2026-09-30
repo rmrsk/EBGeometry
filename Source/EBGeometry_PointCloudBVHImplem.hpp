@@ -21,6 +21,7 @@
 // Our includes
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_PointCloudBVH.hpp"
+#include "EBGeometry_PointCloudDetail.hpp"
 
 namespace EBGeometry {
 
@@ -36,7 +37,6 @@ inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(Pool&                        
   static_assert(K >= 2, "PointCloudBVH requires a branching factor K >= 2");
   static_assert(W >= 1, "PointCloudBVH requires a SIMD width W >= 1");
 
-  EBGEOMETRY_EXPECT(a_positions.size() == a_metadata.size());
   EBGEOMETRY_EXPECT(a_targetLeafSize >= 1);
 }
 
@@ -63,8 +63,9 @@ PointCloudBVH<T, Meta, K, W>::storeCloud(Pool&                             a_poo
 {
   // Every array must come from the pool the BVH was built in: they all resolve against its base.
   EBGEOMETRY_EXPECT(m_bvh.isAttachedTo(a_pool));
-  EBGEOMETRY_EXPECT(a_positions.size() <= std::numeric_limits<std::uint32_t>::max());
-  EBGEOMETRY_EXPECT(a_metadata.size() == a_positions.size());
+
+  PointCloudDetail::requireValidCloud("PointCloudBVH", a_positions, a_metadata.size());
+
   EBGEOMETRY_EXPECT(a_leafOff.size() == a_positions.size());
   EBGEOMETRY_EXPECT(a_leafCnt.size() == a_positions.size());
   EBGEOMETRY_EXPECT(a_order.size() == a_positions.size());
@@ -152,6 +153,9 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
   static_assert(std::is_floating_point_v<T>, "PointCloudBVH::buildTree requires a floating-point type T");
   static_assert(K >= 2, "PointCloudBVH::buildTree requires a branching factor K >= 2");
   static_assert(W >= 1, "PointCloudBVH::buildTree requires a SIMD width W >= 1");
+
+  // Before anything is sized from it: the build stores uint32 indices.
+  PointCloudDetail::requireValidCloud("PointCloudBVH", a_positions, a_positions.size());
 
   const std::size_t numPoints = a_positions.size();
 
