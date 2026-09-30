@@ -148,13 +148,16 @@ Internally, this constructor:
    ``SFC::Hilbert{}`` or ``SFC::Nested{}`` as an optional trailing argument to select another curve —
    a constructor template's own parameters can't be explicitly named the way a regular function
    template's can, so this is a stateless tag value purely to let the curve type be deduced).
-#. Cuts leaves via a single linear left-to-right scan at a caller-chosen **target leaf size**,
+#. Splits the sorted primitives into consecutive leaves of a caller-chosen **target leaf size**,
    rather than deriving a leaf count purely from primitive count and ``K`` the way
-   ``bottomUpSortAndPartition()`` does — giving direct control over leaf occupancy.
-#. Merges the resulting leaves upward in groups of ``K``, padding the leaf count up to the next
-   power of ``K`` (by re-using the last real leaf's node in place of any missing child, rather than
-   inventing an empty placeholder) whenever it isn't already one, so every interior node still has
-   exactly ``K`` children — no change to ``Node``'s shape or to ``traverse()``/``pruneTraverse()``.
+   ``bottomUpSortAndPartition()`` does, giving direct control over leaf occupancy. Every interior
+   node has exactly ``K`` children, and a tree like that has a leaf count ``L`` with
+   ``L = 1 (mod K - 1)``, so the constructor picks the smallest such ``L`` that keeps leaves within
+   the target (or, when that would leave a leaf empty, the largest one below it) and splits the
+   primitives evenly across the leaves.
+#. Merges the leaves upward in groups of ``K``. When a level's node count is not a multiple of
+   ``K``, the remainder is carried up to the next level unmerged. Every node has exactly one parent,
+   so a traversal reaches each primitive exactly once.
 
 Since this still produces an ordinary ``PackedBVH``, every existing traversal/query facility
 (``traverse()``, ``pruneTraverse()``, the SIMD dispatch) works with it identically, unchanged.

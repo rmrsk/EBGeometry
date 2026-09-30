@@ -306,6 +306,29 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
       CHECK_THAT(bvh.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tightMargin<T>()));
     }
   }
+
+  SECTION("coincident points: many copies of one point beside a few others build a shallow tree")
+  {
+    // A midpoint split cannot separate points that share a coordinate. Real clouds have such
+    // duplicates (repeated vertices, grid-snapped samples); the build must still terminate with a
+    // tree shallow enough for the traversal stack, for the default and for a tiny leaf size.
+    for (const std::size_t leafSize : {std::size_t(2), std::size_t(64)}) {
+      std::vector<Vec3T<T>> pos(5000, Vec3T<T>(T(0.5), T(0.5), T(0.5)));
+
+      pos.emplace_back(T(0), T(0), T(0));
+      pos.emplace_back(T(1), T(0.25), T(0));
+
+      const std::vector<std::size_t>      meta(pos.size(), 0);
+      const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta, leafSize);
+
+      const auto nearOrigin = bvh.nearestNeighbor(5000);
+      CHECK(nearOrigin.index < 5000);
+      CHECK_THAT(nearOrigin.distanceSquared, withinAbsT<T>(T(0.75), tightMargin<T>()));
+
+      const auto duplicate = bvh.nearestNeighbor(17);
+      CHECK_THAT(duplicate.distanceSquared, withinAbsT<T>(T(0), tightMargin<T>()));
+    }
+  }
 }
 
 TEMPLATE_TEST_CASE("PointCloudBVH: rebasedView and deepCopy stay PointCloudBVHs and answer identically",

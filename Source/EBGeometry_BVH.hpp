@@ -1391,18 +1391,17 @@ public:
    * @brief Construct directly from a flat primitive list, without ever building a TreeBVH.
    * @details Bypasses TreeBVH entirely: no per-node shared_ptr<TreeBVH> allocation, and no
    * per-primitive shared_ptr allocation either. Primitives are sorted along the space-filling
-   * curve @p S (same normalization as
-   * TreeBVH::bottomUpSortAndPartition(), via SFC::computeBins()), then cut into leaves by one
-   * linear left-to-right scan at @p a_targetLeafSize -- unlike
-   * TreeBVH::bottomUpSortAndPartition(), which derives a leaf count of K^floor(log_K(N)) purely
-   * from N and K, this lets the caller control leaf size directly.
+   * curve @p S (same normalization as TreeBVH::bottomUpSortAndPartition(), via
+   * SFC::computeBins()), then split into consecutive leaves and merged bottom-up into a K-ary tree.
    *
-   * Because the resulting leaf count generally isn't a power of K, the K-ary merge pads up to the
-   * next power of K by re-using the last real leaf's index in place of a missing child -- so every
-   * interior node still has exactly K children (no change to Node's shape or to traverse()/
-   * pruneTraverse(), which assume this), at the cost of that one leaf's primitives potentially
-   * being visited more than once by a query in the (bounded, rare) case where the real leaf count
-   * isn't already a power of K. This never duplicates primitive data, only (cheap) Node entries.
+   * Every interior node has exactly K children, and such a tree has a leaf count L with
+   * L = 1 (mod K - 1). The constructor takes the smallest such L that keeps every leaf at or below
+   * @p a_targetLeafSize primitives, and splits the primitives as evenly as possible, so leaf sizes
+   * differ by at most one. When that L would exceed the number of primitives, it takes the largest
+   * such L below it instead, and leaves may then hold slightly more than the target (for example,
+   * five primitives with K = 4 and a target of one give four leaves). When a level of the merge has
+   * a node count that is not a multiple of K, the remainder is carried up to the next level. Every
+   * node has exactly one parent, so a traversal reaches each primitive exactly once.
    *
    * @tparam S Space-filling curve type (e.g. SFC::Morton, SFC::Nested). Defaults to SFC::Morton;
    * a constructor template's own parameters cannot be explicitly specified the way a named
@@ -1412,7 +1411,8 @@ public:
    * @param[in] a_primsAndBVs   Primitives and their bounding volumes, taken by value (a sink
    * parameter the caller can std::move in) -- never requires shared_ptr-wrapping.
    * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
-   * @param[in] a_targetLeafSize Target number of primitives per leaf. Must be > 0.
+   * @param[in] a_targetLeafSize Target (maximum, where the leaf-count rule above allows it) number
+   * of primitives per leaf. Must be > 0.
    * @param[in] a_sfc Unused tag value; see @p S.
    */
   template <class S = SFC::Morton>
@@ -1930,8 +1930,7 @@ private:
    * @brief Maximum root-to-leaf depth of the finalized node array (root counts as depth 1).
    * @details One O(number of child slots) walk of the pre-order array, used only by the build-time
    * traversal-stack bound below. Host-only: it is a build/mirror step, never a query step, so it
-   * may use std::vector for its own working stack. Safe against the SFC build's leaf padding, which
-   * repeats a *leaf* index -- leaves have no children, so the walk cannot cycle.
+   * may use std::vector for its own working stack.
    * @param[in] a_base Base address the node array resolves against.
    * @return Depth of the deepest leaf, or 0 for an empty BVH.
    */

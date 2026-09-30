@@ -2086,6 +2086,92 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor accepts an explicit 
   }
 }
 
+TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor puts every primitive in exactly one leaf, "
+                   "for any leaf count",
+                   "[BVH][DirectSFCBuild]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  // An exhaustive traversal (the prune bound never rejects anything) must reach every primitive
+  // exactly once, whatever the leaf count: a union that keeps the two smallest values, or any
+  // other non-idempotent reduction, depends on it.
+  const auto check = [](auto a_branching, size_t a_numPrims, size_t a_targetLeafSize) {
+    constexpr size_t K = decltype(a_branching)::value;
+
+    Pool pool(hostMemoryResource());
+
+    std::vector<std::pair<uint32_t, AABB>> primsAndBVs;
+
+    for (uint32_t i = 0; i < a_numPrims; i++) {
+      const Vec3 p(T(i % 7), T((i / 7) % 5), T(i / 35));
+
+      primsAndBVs.emplace_back(i, AABB(p, p));
+    }
+
+    const BVH::PackedBVH<T, uint32_t, K> packed(pool, std::move(primsAndBVs), a_targetLeafSize);
+
+    const auto&           prims = packed.getPrimitives();
+    std::vector<unsigned> visits(a_numPrims, 0U);
+
+    const auto evalLeaf = [&prims, &visits](int&, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        visits[prims[a_offset + i]]++;
+      }
+    };
+    const auto noPrune = [](const int&) noexcept -> T { return std::numeric_limits<T>::max(); };
+
+    int state = 0;
+    packed.pruneTraverse(Vec3::zeros(), state, evalLeaf, noPrune);
+
+    for (size_t i = 0; i < a_numPrims; i++) {
+      INFO("K = " << K << ", N = " << a_numPrims << ", leaf size = " << a_targetLeafSize << ", primitive " << i);
+      REQUIRE(visits[i] == 1U);
+    }
+
+    // Every node is referenced once: a full K-ary tree with L leaves has L + (L - 1)/(K - 1) nodes.
+    const auto& nodes    = packed.getNodes();
+    size_t      leaves   = 0;
+    size_t      smallest = a_numPrims;
+    size_t      largest  = 0;
+
+    for (size_t i = 0; i < nodes.size(); i++) {
+      if (nodes[i].isLeaf()) {
+        leaves++;
+        smallest = std::min(smallest, size_t(nodes[i].getNumPrimitives()));
+        largest  = std::max(largest, size_t(nodes[i].getNumPrimitives()));
+      }
+    }
+
+    INFO("K = " << K << ", N = " << a_numPrims << ", leaf size = " << a_targetLeafSize);
+    REQUIRE(nodes.size() == leaves + (leaves - 1) / (K - 1));
+    REQUIRE(largest - smallest <= 1U);
+
+    // A full K-ary tree needs a leaf count L = 1 (mod K - 1). When such an L lies between
+    // ceil(N / target) and N, no leaf exceeds the target size.
+    const size_t minLeaves  = (a_numPrims + a_targetLeafSize - 1) / a_targetLeafSize;
+    bool         targetable = false;
+
+    for (size_t l = minLeaves; l <= a_numPrims; l++) {
+      targetable = targetable || ((l - 1) % (K - 1) == 0);
+    }
+
+    if (targetable) {
+      REQUIRE(largest <= a_targetLeafSize);
+    }
+  };
+
+  for (const size_t n : {1, 2, 3, 4, 5, 7, 16, 17, 64, 65, 68, 100, 257}) {
+    for (const size_t leafSize : {1, 2, 3, 4, 8}) {
+      check(std::integral_constant<size_t, 2>{}, n, leafSize);
+      check(std::integral_constant<size_t, 4>{}, n, leafSize);
+      check(std::integral_constant<size_t, 8>{}, n, leafSize);
+    }
+  }
+}
+
 TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-force mesh scan, for "
                    "every build method including PackedBVH's direct SFC-build (cheap fixture: "
                    "tetrahedron)",

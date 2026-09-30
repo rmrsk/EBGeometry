@@ -16,6 +16,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <random>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -601,6 +602,75 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: matches a brute-force two-nearest blend in
     REQUIRE_THAT(expSmooth.signedDistance(p),
                  withinAbsT(bruteTwoNearest(spheres, p, smoothLen, ExpMinOp<T>{}), formulaMargin<T>()));
     REQUIRE_THAT(freeFunc.signedDistance(p), withinAbsT(polySmooth.signedDistance(p), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHSmoothUnionIF: every build strategy matches brute force when the leaf count is not a "
+                   "power of K",
+                   "[CSG][BVHSmoothUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+
+  // 68 spheres give 17 leaves of K = 4 under the space-filling-curve builds. A builder that pads the
+  // leaf count up to a power of K by repeating a leaf visits some spheres twice, and the smooth
+  // union then blends a sphere with itself.
+  std::mt19937                      rng(1);
+  std::uniform_real_distribution<T> coord(T(0), T(10));
+
+  std::vector<SphereSDF<T>> spheres;
+  std::vector<BV<T>>        bvs;
+
+  for (int i = 0; i < 68; i++) {
+    const Vec3T<T> center(coord(rng), coord(rng), coord(rng));
+    const T        radius = T(0.3);
+
+    spheres.emplace_back(center, radius);
+    bvs.emplace_back(center - radius * Vec3T<T>::ones(), center + radius * Vec3T<T>::ones());
+  }
+
+  std::vector<Vec3T<T>> queries;
+
+  for (int i = 0; i < 2000; i++) {
+    queries.emplace_back(coord(rng), coord(rng), coord(rng));
+  }
+
+  const T smoothLen = T(0.5);
+
+  Pool pool(hostMemoryResource());
+
+  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH, BVH::Build::Morton, BVH::Build::Nested}) {
+    const BVHSmoothUnionIF<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
+
+    for (const auto& p : queries) {
+      REQUIRE_THAT(smooth.signedDistance(p),
+                   withinAbsT(bruteTwoNearest(spheres, p, smoothLen, SmoothMinOp<T>{}), formulaMargin<T>()));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy handles many coincident primitives",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Identical bounding volumes give every splitting rule a zero extent to work with.
+  std::vector<SphereSDF<T>> spheres(2000, SphereSDF<T>(Vec3T<T>::ones(), T(0.5)));
+  std::vector<BV<T>>        bvs(2000, BV<T>(T(0.5) * Vec3T<T>::ones(), T(1.5) * Vec3T<T>::ones()));
+
+  spheres.emplace_back(T(5) * Vec3T<T>::ones(), T(0.5));
+  bvs.emplace_back(T(4.5) * Vec3T<T>::ones(), T(5.5) * Vec3T<T>::ones());
+
+  Pool pool(hostMemoryResource());
+
+  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH, BVH::Build::Morton, BVH::Build::Nested}) {
+    const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, bvs, build);
+
+    REQUIRE_THAT(bvhUnion.signedDistance(Vec3T<T>::zeros()), withinAbsT(std::sqrt(T(3)) - T(0.5), formulaMargin<T>()));
+    REQUIRE_THAT(bvhUnion.signedDistance(T(5) * Vec3T<T>::ones()), withinAbsT(T(-0.5), formulaMargin<T>()));
   }
 }
 

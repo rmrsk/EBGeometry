@@ -770,9 +770,18 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
               return std::get<2>(a_lhs) < std::get<2>(a_rhs);
             });
 
-  // Cut leaves via a single linear scan at the target leaf size (unlike
-  // TreeBVH::bottomUpSortAndPartition(), which derives a leaf count of K^floor(log_K(N)) from N
-  // and K alone).
+  // Choose the leaf count. Every interior node has exactly K children, and a tree like that has
+  // L = 1 (mod K - 1) leaves. Take the smallest such L that keeps leaves at or below the target
+  // size; if that would leave some leaf empty (L > N), take the largest such L below it instead.
+  // The primitives are then split as evenly as possible, so leaf sizes differ by at most one.
+  const size_t minLeaves = (numPrimitives + a_targetLeafSize - 1) / a_targetLeafSize;
+
+  size_t numLeaves = 1 + ((minLeaves - 1 + (K - 2)) / (K - 1)) * (K - 1);
+
+  if (numLeaves > numPrimitives) {
+    numLeaves = 1 + ((minLeaves - 1) / (K - 1)) * (K - 1);
+  }
+
   struct LeafRange
   {
     uint32_t offset;
@@ -781,12 +790,14 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
   };
 
   std::vector<LeafRange> leafRanges;
-  leafRanges.reserve(numPrimitives / a_targetLeafSize + 1);
-  for (size_t i = 0; i < numPrimitives;) {
-    const size_t count = std::min(a_targetLeafSize, numPrimitives - i);
+  leafRanges.reserve(numLeaves);
+
+  for (size_t leaf = 0, i = 0; leaf < numLeaves; leaf++) {
+    const size_t count = numPrimitives / numLeaves + (leaf < numPrimitives % numLeaves ? 1 : 0);
 
     std::vector<BV> leafBVs;
     leafBVs.reserve(count);
+
     for (size_t j = 0; j < count; j++) {
       leafBVs.push_back(std::get<1>(sortedPrimitives[i + j]));
     }
@@ -811,41 +822,33 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
   // Build the K-ary structure bottom-up in a scratch array (reusing Node's own shape), then relay
   // it out into nodes in depth-first pre-order below -- a bottom-up merge naturally
   // produces the root last, but PackedBVH's traversal assumes the root is always at index 0.
-  const size_t numRealLeaves = leafRanges.size();
+  //
+  // Each level merges consecutive groups of K nodes. When a level's node count is not a multiple of
+  // K, the last (count mod K) nodes are carried up to the next level unmerged, keeping curve order.
+  // Since the leaf count is 1 (mod K - 1), every level's count is too, and the merge ends at exactly
+  // one root. Every node is referenced by exactly one parent, so a traversal reaches each primitive
+  // once. A full K-ary tree with L leaves has L + (L - 1)/(K - 1) nodes.
+  std::vector<Node> scratch(numLeaves);
+  scratch.reserve(numLeaves + (numLeaves - 1) / (K - 1));
 
-  size_t paddedLeafCount = 1;
-
-  while (paddedLeafCount < numRealLeaves) {
-    paddedLeafCount *= K;
-  }
-
-  std::vector<Node> scratch(paddedLeafCount);
-  // Reserve the exact final node count up front -- for a full K-ary tree with paddedLeafCount
-  // leaves (itself a power of K), the total node count across every level is
-  // (paddedLeafCount * K - 1) / (K - 1) (geometric series 1 + K + K^2 + ... + paddedLeafCount) --
-  // so the emplace_back() calls building interior nodes below never trigger a reallocation.
-  scratch.reserve((paddedLeafCount * K - 1) / (K - 1));
-
-  for (size_t i = 0; i < numRealLeaves; i++) {
+  for (size_t i = 0; i < numLeaves; i++) {
     scratch[i].setBoundingVolume(leafRanges[i].bv);
     scratch[i].setPrimitivesOffset(leafRanges[i].offset);
     scratch[i].setNumPrimitives(leafRanges[i].count);
   }
 
-  // Padding slots (present only when numRealLeaves isn't already a power of K) reuse the last
-  // real leaf's scratch index rather than inventing an empty placeholder node: the resulting
-  // duplicate Node entries (one per parent that references it) are cheap, and re-visiting the
-  // same primitives more than once is harmless for any min-reduction query -- see the
-  // constructor's doxygen comment.
-  std::vector<uint32_t> levelIndices(paddedLeafCount);
+  std::vector<uint32_t> levelIndices(numLeaves);
 
-  for (size_t i = 0; i < paddedLeafCount; i++) {
-    levelIndices[i] = static_cast<uint32_t>(i < numRealLeaves ? i : numRealLeaves - 1);
+  for (size_t i = 0; i < numLeaves; i++) {
+    levelIndices[i] = static_cast<uint32_t>(i);
   }
 
   while (levelIndices.size() > 1) {
-    const size_t          numParents = levelIndices.size() / K;
-    std::vector<uint32_t> parentIndices(numParents);
+    const size_t numParents = levelIndices.size() / K;
+    const size_t numCarried = levelIndices.size() % K;
+
+    std::vector<uint32_t> nextLevel;
+    nextLevel.reserve(numParents + numCarried);
 
     for (size_t p = 0; p < numParents; p++) {
       const uint32_t parentIdx = static_cast<uint32_t>(scratch.size());
@@ -863,10 +866,14 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
 
       scratch[parentIdx].setBoundingVolume(BV(childBVs));
 
-      parentIndices[p] = parentIdx;
+      nextLevel.push_back(parentIdx);
     }
 
-    levelIndices = std::move(parentIndices);
+    for (size_t c = 0; c < numCarried; c++) {
+      nextLevel.push_back(levelIndices[numParents * K + c]);
+    }
+
+    levelIndices = std::move(nextLevel);
   }
 
   const uint32_t scratchRoot = levelIndices.front();
@@ -1729,8 +1736,7 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
       // Insertion sort, not std::sort: K is a handful of elements, where insertion sort is simply
       // faster than an introsort's setup, and std::sort is not callable from device code. It is also
       // stable, so children whose boxes are exactly equidistant keep their child-slot order rather
-      // than an unspecified one -- which matters because the SFC build constructor pads a
-      // non-power-of-K leaf count by repeating the last real leaf's index, guaranteeing exact ties.
+      // than an unspecified one, which keeps traversal order deterministic.
       for (size_t i = 1; i < K; i++) {
         const StackEntry key = children[i];
 

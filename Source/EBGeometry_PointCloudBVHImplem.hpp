@@ -218,6 +218,25 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
       const int leftParts  = a_numParts / 2;
       const int rightParts = a_numParts - leftParts;
 
+      // The midpoint can leave one side with fewer points than its share of leaves: points that
+      // coincide along the axis never separate, and a tight cluster beside a few outliers puts
+      // nearly everything on one side. Clamping alone would then peel off only a few points per
+      // level, and the tree depth would grow linearly with the cluster size. Split by count instead
+      // (an object median along the same axis), which keeps the depth logarithmic.
+      if (splitIndex < a_lo + leftParts || splitIndex > a_hi - rightParts) {
+        const std::uint64_t count = a_hi - a_lo;
+
+        splitIndex = a_lo + static_cast<std::uint32_t>(count * static_cast<std::uint64_t>(leftParts) /
+                                                       static_cast<std::uint64_t>(a_numParts));
+
+        std::nth_element(indices.begin() + a_lo,
+                         indices.begin() + splitIndex,
+                         indices.begin() + a_hi,
+                         [this, axis](std::uint32_t a_lhs, std::uint32_t a_rhs) noexcept {
+                           return positions[a_lhs][axis] < positions[a_rhs][axis];
+                         });
+      }
+
       // Keep each half populated enough to yield its share of non-empty leaves.
       splitIndex = std::max<std::uint32_t>(a_lo + leftParts, std::min<std::uint32_t>(a_hi - rightParts, splitIndex));
 
