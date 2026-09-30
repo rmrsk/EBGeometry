@@ -5,14 +5,17 @@ This folder shows how to automatically find a tight bounding box around a shape 
 extent isn't known in advance.
 
 Simple shapes like a sphere or a box have an obvious bounding box, but once you start combining
-and transforming shapes -- translating, scaling, smoothing, rotating -- the result's exact
-extent is no longer obvious from its formula alone. This example builds such a shape (a sphere
-that is translated, scaled, slightly smoothed to round off any sharp features, and rotated), then
-finds a tight box around it *numerically* rather than analytically: starting from a large, coarse
-box known to contain the shape, it recursively splits each box into eight equal sub-boxes (an
-*octree*), discards the ones that don't touch the shape's surface, and keeps refining until it
-reaches a target resolution. The result is a box that hugs the shape closely, without ever having
-derived its extent algebraically.
+shapes the result's exact extent is no longer obvious from any one formula. This example finds a
+tight box *numerically* rather than analytically: starting from a large, coarse box known to
+contain the shape, it recursively splits each box into eight equal sub-boxes (an *octree*),
+discards the ones that don't touch the shape's surface, and keeps refining until it reaches a
+target resolution. The result is a box that hugs the shape closely, without ever having derived
+its extent algebraically.
+
+`approximateBoundingVolumeOctree` accepts anything that returns a distance for a point. The
+example uses it twice: once on a single shape (a cone) passed in directly, and once on a lambda
+that takes the union -- the pointwise minimum -- of a sphere, a torus around it and a capsule
+poking out of it.
 
 Building
 --------
@@ -55,7 +58,7 @@ Running
 
     ./OctreeBoundingVolume.ex
 
-This example takes no arguments. It prints the resulting approximate bounding box (its low and
-high corners) for the transformed sphere. The search starts from a fixed, deliberately loose
+This example takes no arguments. It prints the resulting approximate bounding boxes (their low
+and high corners) for the cone and for the union. The search starts from a fixed, deliberately loose
 box of $\pm 10$ in each direction and refines for 8 octree levels; increasing the level count in
 `main.cpp` tightens the result further, at the cost of more subdivision work.

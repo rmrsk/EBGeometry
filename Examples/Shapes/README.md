@@ -2,8 +2,8 @@ Examples/Shapes
 ---------------
 
 This folder shows how to construct a gallery of basic geometric shapes: a plane, a sphere, a
-box, a torus, finite and infinite cylinders, a capsule, finite and infinite cones, and a rounded
-box.
+box, a torus, finite and infinite cylinders, a capsule, finite and infinite cones, a rounded
+box, and a rounded cylinder.
 
 Each of these shapes is represented as a *signed distance function*: given any point in space,
 it returns how far that point is from the shape's surface, with a sign that tells you which

@@ -3,9 +3,12 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 
 #include <cmath>
-#include <memory>
+#include <cstring>
+#include <type_traits>
+#include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -154,58 +157,143 @@ TEMPLATE_TEST_CASE("TorusSDF: point on surface", "[TorusSDF]", EBGEOMETRY_TEST_P
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CSG: Union and Complement
+// Plain value types
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("CSG Union of two spheres", "[CSG][Union]", EBGEOMETRY_TEST_PRECISIONS)
+namespace {
+
+// Every analytic shape, with arguments matching the Shapes example. Shared by the value-type checks
+// below and the device test at the bottom of this file.
+template <class T>
+struct AllShapes
 {
-  using T  = TestType;
-  using IF = ImplicitFunction<T>;
+  PlaneSDF<T>            plane{Vec3T<T>::zeros(), Vec3T<T>::ones()};
+  SphereSDF<T>           sphere{Vec3T<T>::zeros(), T(1)};
+  BoxSDF<T>              box{Vec3T<T>::zeros(), Vec3T<T>::ones()};
+  TorusSDF<T>            torus{Vec3T<T>::zeros(), T(1), T(0.1)};
+  CylinderSDF<T>         cylinder{Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.1)};
+  InfiniteCylinderSDF<T> infiniteCylinder{Vec3T<T>::zeros(), T(0.1), 2};
+  CapsuleSDF<T>          capsule{Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.1)};
+  InfiniteConeSDF<T>     infiniteCone{Vec3T<T>::zeros(), T(45)};
+  ConeSDF<T>             cone{Vec3T<T>::zeros(), T(1), T(45)};
+  RoundedBoxSDF<T>       roundedBox{Vec3T<T>::ones(), T(0.1)};
+  PerlinSDF<T>           perlin{T(1), Vec3T<T>::ones(), T(0.5), 4U};
+  RoundedCylinderSDF<T>  roundedCylinder{T(1), T(0.1), T(1)};
+};
 
-  auto s1 = std::make_shared<SphereSDF<T>>(Vec3T<T>(-2, 0, 0), T(1.0));
-  auto s2 = std::make_shared<SphereSDF<T>>(Vec3T<T>(2, 0, 0), T(1.0));
-
-  auto u = Union<T>(std::vector<std::shared_ptr<IF>>{s1, s2});
-
-  // Points inside either sphere are inside the union
-  REQUIRE(u->value(Vec3T<T>(-2, 0, 0)) < T(0.0));
-  REQUIRE(u->value(Vec3T<T>(2, 0, 0)) < T(0.0));
-
-  // Point between the spheres is outside both
-  REQUIRE(u->value(Vec3T<T>(0, 0, 0)) > T(0.0));
-
-  // Point far away is outside
-  REQUIRE(u->value(Vec3T<T>(100, 0, 0)) > T(0.0));
+// Sum of every shape's signed distance at a_point, so one number checks all twelve formulas.
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+T
+sumOfShapes(const AllShapes<T>& a_shapes, const Vec3T<T>& a_point) noexcept
+{
+  return a_shapes.plane.signedDistance(a_point) + a_shapes.sphere.signedDistance(a_point) +
+         a_shapes.box.signedDistance(a_point) + a_shapes.torus.signedDistance(a_point) +
+         a_shapes.cylinder.signedDistance(a_point) + a_shapes.infiniteCylinder.signedDistance(a_point) +
+         a_shapes.capsule.signedDistance(a_point) + a_shapes.infiniteCone.signedDistance(a_point) +
+         a_shapes.cone.signedDistance(a_point) + a_shapes.roundedBox.signedDistance(a_point) +
+         a_shapes.perlin.signedDistance(a_point) + a_shapes.roundedCylinder.signedDistance(a_point);
 }
 
-TEMPLATE_TEST_CASE("CSG Complement of sphere inverts sign", "[CSG][Complement]", EBGEOMETRY_TEST_PRECISIONS)
+// Points that land inside, outside and near the surfaces of the shapes above.
+template <class T>
+std::vector<Vec3T<T>>
+shapeSamplePoints()
+{
+  return {Vec3T<T>(T(0.1), T(0.2), T(0.3)),
+          Vec3T<T>(T(0.5), T(0.5), T(0.5)),
+          Vec3T<T>(T(1.05), T(0), T(0)),
+          Vec3T<T>(T(-0.7), T(0.4), T(0.9)),
+          Vec3T<T>(T(2), T(-1.5), T(3))};
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Analytic shapes: plain, trivially copyable value types with no ImplicitFunction base",
+                   "[AnalyticSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  auto sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>(0, 0, 0), T(1.0));
-  auto comp   = Complement<T>(sphere);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<AllShapes<T>>);
+  STATIC_REQUIRE_FALSE(std::is_polymorphic_v<SphereSDF<T>>);
+  STATIC_REQUIRE_FALSE(std::is_polymorphic_v<PerlinSDF<T>>);
+  STATIC_REQUIRE_FALSE(std::is_polymorphic_v<RoundedBoxSDF<T>>);
+  STATIC_REQUIRE_FALSE(std::is_base_of_v<ImplicitFunction<T>, SphereSDF<T>>);
+  STATIC_REQUIRE_FALSE(std::is_base_of_v<ImplicitFunction<T>, BoxSDF<T>>);
 
-  // Inside sphere → positive after complement
-  REQUIRE(comp->value(Vec3T<T>(0, 0, 0)) > T(0.0));
+  // A byte copy is a complete copy: it evaluates exactly like the original.
+  const AllShapes<T> shapes;
+  AllShapes<T>       bytes;
+  std::memcpy(static_cast<void*>(&bytes), static_cast<const void*>(&shapes), sizeof(AllShapes<T>));
 
-  // Outside sphere → negative after complement
-  REQUIRE(comp->value(Vec3T<T>(5, 0, 0)) < T(0.0));
+  for (const auto& p : shapeSamplePoints<T>()) {
+    REQUIRE(sumOfShapes(bytes, p) == sumOfShapes(shapes, p));
+  }
 }
 
-TEMPLATE_TEST_CASE("CSG Intersection of two overlapping spheres", "[CSG][Intersection]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("RoundedBoxSDF: distances, and copies no longer share the rounding sphere",
+                   "[RoundedBoxSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T  = TestType;
-  using IF = ImplicitFunction<T>;
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
 
-  // Two unit spheres 1 unit apart — they overlap in the middle
-  auto s1 = std::make_shared<SphereSDF<T>>(Vec3T<T>(-0.5, 0, 0), T(1.0));
-  auto s2 = std::make_shared<SphereSDF<T>>(Vec3T<T>(0.5, 0, 0), T(1.0));
+  // Inner half-extents 1, rounding radius 0.5: the surface is at 1.5 along each axis.
+  const RoundedBoxSDF<T> roundedBox(Vec3(T(2), T(2), T(2)), T(0.5));
 
-  auto inter = Intersection<T>(std::vector<std::shared_ptr<IF>>{s1, s2});
+  REQUIRE_THAT(roundedBox.signedDistance(Vec3(T(3), T(0), T(0))), WithinRel(T(1.5)));
+  REQUIRE_THAT(roundedBox.signedDistance(Vec3(T(0), T(0), T(1.5))), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(roundedBox.signedDistance(Vec3::zeros()), WithinRel(T(-0.5)));
 
-  // Origin is inside both spheres → inside the intersection
-  REQUIRE(inter->value(Vec3T<T>(0, 0, 0)) < T(0.0));
+  // Before this class held its sphere by value, a copy shared it through a shared_ptr. A copy is now
+  // an independent object, and a default-constructed box is unaffected by another box's radius.
+  const RoundedBoxSDF<T> copy = roundedBox;
+  const RoundedBoxSDF<T> other(Vec3(T(2), T(2), T(2)), T(0.25));
 
-  // Far left: inside s1, outside s2 → outside intersection
-  REQUIRE(inter->value(Vec3T<T>(-2, 0, 0)) > T(0.0));
+  REQUIRE(copy.signedDistance(Vec3(T(3), T(0), T(0))) == roundedBox.signedDistance(Vec3(T(3), T(0), T(0))));
+  REQUIRE_THAT(other.signedDistance(Vec3(T(3), T(0), T(0))), WithinRel(T(1.75)));
+  REQUIRE_THAT(RoundedBoxSDF<T>().signedDistance(Vec3(T(1), T(0), T(0))), WithinRel(T(0.4)));
 }
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+
+namespace {
+
+// Evaluates every shape at a_point on the device. The shapes arrive by value as a kernel argument,
+// which is exactly what being trivially copyable is for.
+template <class T>
+EBGEOMETRY_GLOBAL
+void
+shapesDeviceKernel(const AllShapes<T> a_shapes, const Vec3T<T> a_point, T* a_out)
+{
+  a_out[0] = sumOfShapes(a_shapes, a_point);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Analytic shapes: device signedDistance matches the host",
+                   "[AnalyticSDF][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const AllShapes<T> shapes;
+
+  for (const auto& p : shapeSamplePoints<T>()) {
+    DeviceBuffer<T> deviceOut;
+
+    shapesDeviceKernel<T><<<1, 1>>>(shapes, p, deviceOut.get());
+    (void)GPU::deviceSynchronize();
+
+    REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(sumOfShapes(shapes, p), gpuTol<T>()));
+  }
+}
+
+#endif

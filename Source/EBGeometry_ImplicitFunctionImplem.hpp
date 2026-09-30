@@ -18,6 +18,8 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 // Our includes
@@ -47,13 +49,90 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
                                                      const unsigned int a_maxTreeDepth,
                                                      const T&           a_safetyFactor) const
 {
+  // Qualified, so that lookup finds the free function rather than this member.
+  return EBGeometry::approximateBoundingVolumeOctree<BV>(
+    *this, a_initialLowCorner, a_initialHighCorner, a_maxTreeDepth, a_safetyFactor);
+}
+
+namespace ImplicitFunctionDetail {
+
+/**
+ * @brief Detects whether F has a signedDistance(const Vec3T<T>&) member.
+ */
+template <class F, class T, class = void>
+struct HasSignedDistance : std::false_type
+{
+};
+
+/**
+ * @brief Detects whether F has a signedDistance(const Vec3T<T>&) member (positive case).
+ */
+template <class F, class T>
+struct HasSignedDistance<
+  F,
+  T,
+  std::void_t<decltype(std::declval<const F&>().signedDistance(std::declval<const Vec3T<T>&>()))>> : std::true_type
+{
+};
+
+/**
+ * @brief Detects whether F has a value(const Vec3T<T>&) member.
+ */
+template <class F, class T, class = void>
+struct HasValue : std::false_type
+{
+};
+
+/**
+ * @brief Detects whether F has a value(const Vec3T<T>&) member (positive case).
+ */
+template <class F, class T>
+struct HasValue<F, T, std::void_t<decltype(std::declval<const F&>().value(std::declval<const Vec3T<T>&>()))>>
+  : std::true_type
+{
+};
+
+/**
+ * @brief Evaluate a_function at a_point through signedDistance(), value() or operator(), in that order
+ * of preference.
+ * @tparam T Floating-point precision.
+ * @tparam F Function type.
+ * @param[in] a_function Function to evaluate.
+ * @param[in] a_point    Evaluation point.
+ * @return Function value at a_point.
+ */
+template <class T, class F>
+T
+evaluate(const F& a_function, const Vec3T<T>& a_point) noexcept
+{
+  if constexpr (HasSignedDistance<F, T>::value) {
+    return static_cast<T>(a_function.signedDistance(a_point));
+  }
+  else if constexpr (HasValue<F, T>::value) {
+    return static_cast<T>(a_function.value(a_point));
+  }
+  else {
+    return static_cast<T>(a_function(a_point));
+  }
+}
+
+} // namespace ImplicitFunctionDetail
+
+template <class BV, class F, class T>
+BV
+approximateBoundingVolumeOctree(const F&           a_function,
+                                const Vec3T<T>&    a_initialLowCorner,
+                                const Vec3T<T>&    a_initialHighCorner,
+                                const unsigned int a_maxTreeDepth,
+                                const T&           a_safety)
+{
   EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[2]));
   EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[2]));
-  EBGEOMETRY_EXPECT(a_safetyFactor >= T(0));
+  EBGEOMETRY_EXPECT(a_safety >= T(0));
 
   using namespace Octree;
 
@@ -83,9 +162,9 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
 
   // Update meta-information for the leaf node. This updates the two corners of the node, the node level, and
   // computes whether or not this particular node intersects the geometry.
-  auto metaBuild = [this, a_safetyFactor](const OctantIndex& a_index, const MetaData& a_parentMeta) -> MetaData {
+  auto metaBuild = [&a_function, a_safety](const OctantIndex& a_index, const MetaData& a_parentMeta) -> MetaData {
     if (!(std::get<3>(a_parentMeta))) {
-      std::cerr << "ImplicitFunction<T>::computeAABB -- logic bust, parent did not have an intersection\n";
+      std::cerr << "approximateBoundingVolumeOctree -- logic bust, parent did not have an intersection\n";
     }
 
     // The two physical corners of the parent node.
@@ -108,7 +187,8 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
     const Vec3 center = 0.5 * (loCorner + hiCorner);
     const Vec3 dx     = 0.5 * (hiCorner - loCorner);
 
-    intersection = std::abs(this->value(center)) <= (T(1.0) + a_safetyFactor) * dx.length();
+    intersection =
+      std::abs(ImplicitFunctionDetail::evaluate<T>(a_function, center)) <= (T(1.0) + a_safety) * dx.length();
 
     return meta;
   };
@@ -127,12 +207,13 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   std::get<0>(metaRoot) = a_initialLowCorner;
   std::get<1>(metaRoot) = a_initialHighCorner;
   std::get<2>(metaRoot) = 0;
-  std::get<3>(metaRoot) = std::abs(this->value(initialCenter)) <= (T(1.0) + a_safetyFactor) * initialDx.length();
+  std::get<3>(metaRoot) = std::abs(ImplicitFunctionDetail::evaluate<T>(a_function, initialCenter)) <=
+                          (T(1.0) + a_safety) * initialDx.length();
 
   std::vector<Vec3> vertices;
 
   // Handle potential errors.
-  const std::string baseError = "ImplicitFunction<T>::approximateBoundingVolumeOctree error: ";
+  const std::string baseError = "approximateBoundingVolumeOctree error: ";
   if (a_initialLowCorner >= a_initialHighCorner) {
     std::cerr << baseError + "'a_initialLowCorner >= a_initialHighCorner'\n";
 

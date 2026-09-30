@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <algorithm>
 #include <iostream>
 
 #include <EBGeometry.hpp>
@@ -20,28 +21,37 @@ using BV   = BoundingVolumes::AABBT<T>;
 int
 main()
 {
-  // Build a unit sphere at the origin, then chain a few transforms onto it so its exact
-  // extent is no longer obvious just from the sphere's own formula:
-  std::shared_ptr<ImplicitFunction<T>> func;
+  // Numerically approximate a tight bounding box around a shape: start from a deliberately loose
+  // box, then recursively subdivide into octree cells (each cell splits into 8 children) and
+  // discard the ones that don't touch the shape, down to a maximum of 8 levels of refinement. The
+  // last argument (0.0) is a safety margin on the intersection test: 0 means exact, larger values
+  // pad the result to guard against a coarse initial box missing part of the shape.
+  const Vec3         initLo   = -10 * Vec3::ones();
+  const Vec3         initHi   = +10 * Vec3::ones();
+  const unsigned int maxDepth = 8;
 
-  func = std::make_shared<SphereSDF<T>>(Vec3::zeros(), T(1.0)); // Unit sphere at the origin.
-  func = Translate(func, Vec3::ones());                         // Shift by (1, 1, 1).
-  func = Scale(func, T(2.0));                                   // Scale (radius) by 2x.
-  func = Mollify(func, T(0.25));                                // Slightly blur/round the surface.
-  func = Rotate(func, T(45.0), 0);                              // Rotate 45 degrees about the x-axis.
+  // Any shape can be passed directly: here a finite cone with its tip at the origin, height 2 and a
+  // 60 degree opening angle.
+  const ConeSDF<T> cone(Vec3::zeros(), T(2.0), T(60.0));
 
-  // Numerically approximate a tight bounding box around the transformed shape: start from a
-  // deliberately loose box, then recursively subdivide into octree cells (each cell splits
-  // into 8 children) and discard the ones that don't touch the shape, down to a maximum of
-  // 8 levels of refinement. The last argument (0.0) is a safety margin on the intersection
-  // test: 0 means exact, larger values pad the result to guard against a coarse initial box
-  // missing part of the shape.
-  const Vec3 initLo = -10 * Vec3::ones();
-  const Vec3 initHi = +10 * Vec3::ones();
+  const auto coneBV = approximateBoundingVolumeOctree<BV>(cone, initLo, initHi, maxDepth, T(0.0));
 
-  const auto boundingVolume = func->approximateBoundingVolumeOctree<BV>(initLo, initHi, 8, 0.0);
+  std::cout << "Approximate bounding volume of the cone = " << coneBV << '\n';
 
-  std::cout << "Approximate bounding volume = " << boundingVolume << '\n';
+  // So can anything else that returns a distance for a point, such as a lambda. This one takes the
+  // union (the pointwise minimum) of a sphere, a torus around it and a capsule poking out of it,
+  // whose combined extent is no longer obvious from any one formula.
+  const SphereSDF<T>  sphere(Vec3::zeros(), T(1.0));
+  const TorusSDF<T>   torus(Vec3::zeros(), T(2.0), T(0.25));
+  const CapsuleSDF<T> capsule(Vec3::zeros(), Vec3(T(1.0), T(2.0), T(3.0)), T(0.25));
+
+  const auto shapeUnion = [&](const Vec3& a_point) -> T {
+    return std::min({sphere.signedDistance(a_point), torus.signedDistance(a_point), capsule.signedDistance(a_point)});
+  };
+
+  const auto unionBV = approximateBoundingVolumeOctree<BV>(shapeUnion, initLo, initHi, maxDepth, T(0.0));
+
+  std::cout << "Approximate bounding volume of the union = " << unionBV << '\n';
 
   return 0;
 }

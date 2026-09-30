@@ -17,7 +17,8 @@ main()
 
   // Various analytic shapes. Call ::signedDistance(Vec3) on any of them to evaluate the
   // signed distance at a point (see the class declarations in EBGeometry_AnalyticDistanceFunctions.hpp
-  // for the full parameter documentation).
+  // for the full parameter documentation). Each shape is a plain value type, so it can also be
+  // copied into a GPU kernel and evaluated there.
 
   // A plane through the origin, oriented by its normal vector.
   const EBGeometry::PlaneSDF<T> plane(Vec3::zeros(), Vec3::ones());
@@ -57,4 +58,7 @@ main()
   // A box with rounded edges and corners: full side lengths along each axis (before
   // rounding), corner/edge rounding radius.
   const EBGeometry::RoundedBoxSDF<T> roundBox(Vec3::ones(), 0.1);
+
+  // A cylinder along the z-axis with rounded edges: radius, edge rounding radius, height.
+  const EBGeometry::RoundedCylinderSDF<T> roundCylinder(1.0, 0.1, 1.0);
 }

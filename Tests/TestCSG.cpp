@@ -8,6 +8,7 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestShapeIF.hpp"
 
 #include <cmath>
 #include <type_traits>
@@ -20,7 +21,7 @@ using namespace EBGeometry;
 namespace {
 
 template <class T>
-using Sphere = SphereSDF<T>;
+using Sphere = TestUtils::SphereIF<T>;
 
 template <class T>
 using IF = ImplicitFunction<T>;

@@ -12,9 +12,11 @@ ImplicitFunction
 -----------------
 
 ``ImplicitFunction<T>`` (:file:`Source/EBGeometry_ImplicitFunction.hpp`) is the root of
-EBGeometry's polymorphic geometry hierarchy. Every concrete piece of geometry the library can
-represent -- analytic shapes, DCEL/triangle-mesh distance fields, and CSG combinations of either
--- ultimately derives from it. It declares a single pure virtual member function,
+EBGeometry's polymorphic geometry hierarchy: the transformations and CSG combinators below derive
+from it, and so do any implicit functions users write themselves. The analytic shapes (see
+:ref:`Sec:AnalyticShapes`) and the mesh distance fields (see :ref:`Chap:MeshSDFClasses`) do *not*:
+they are plain value types that can be evaluated on a GPU, and the virtual interface would prevent
+that. It declares a single pure virtual member function,
 
 .. math::
 
@@ -28,19 +30,23 @@ ordinary virtual dispatch without ever needing to know which concrete class it a
 to -- this is what lets the transform and CSG machinery below wrap or combine *any* implicit
 function interchangeably.
 
-``ImplicitFunction<T>`` also provides one concrete (non-virtual) member function,
-``approximateBoundingVolumeOctree``, for shapes that have no closed-form bounding volume. It
-refines an octree over a caller-supplied initial box, marking a cell as intersecting the surface
-once the implicit function's value at the cell center falls within a safety-scaled margin of the
-cell's half-width, then builds a bounding volume of the caller-chosen type ``BV`` from the
-corners of the intersected leaf cells. This is the same octree-refinement idea described
-conceptually in :ref:`Chap:Octree`; see that page for how the subdivision itself works. The
-result is only meaningful when ``value()`` is reasonably close to a true signed distance, since
-the safety margin is interpreted in units of distance.
+For shapes that have no closed-form bounding volume, the free function
+``approximateBoundingVolumeOctree<BV>(function, lo, hi, depth, safety)`` refines an octree over a
+caller-supplied initial box, marking a cell as intersecting the surface once the function's value
+at the cell center falls within a safety-scaled margin of the cell's half-width, then builds a
+bounding volume of the caller-chosen type ``BV`` from the corners of the intersected leaf cells.
+The function can be anything that gives a value at a point: an analytic shape or mesh distance
+field (through its ``signedDistance()``), an ``ImplicitFunction<T>`` (through its ``value()``), or
+a callable such as a lambda. ``ImplicitFunction<T>`` also keeps a member function of the same name
+that calls the free function with the object itself. This is the same octree-refinement idea
+described conceptually in :ref:`Chap:Octree`; see that page for how the subdivision itself works.
+The result is only meaningful when the function is reasonably close to a true signed distance,
+since the safety margin is interpreted in units of distance.
 
-For the full API (including the exact parameters and defaults of
-``approximateBoundingVolumeOctree``), see the Doxygen page for
-`ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction.html>`__.
+For the full API, see the Doxygen pages for
+`ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction.html>`__ and for the free
+function
+`approximateBoundingVolumeOctree <doxygen/html/namespaceEBGeometry.html#a46762e5f90be15376df33dd626853704>`__.
 
 SignedDistanceFunction
 -----------------------
@@ -53,10 +59,13 @@ distinction is one of guarantee rather than signature -- an arbitrary ``Implicit
 only promises that the sign of its output indicates inside/outside, whereas a
 ``SignedDistanceFunction<T>`` additionally promises that the *magnitude* of its output is the
 true Euclidean distance to the surface (the Eikonal property, :math:`|\nabla S| = 1`; see
-:ref:`Chap:GeometryRepresentations` for why this property matters). Every analytic shape shipped
-with EBGeometry is a ``SignedDistanceFunction<T>``. The mesh distance fields (``FlatMeshSDF``,
-``MeshSDF``, ``TriMeshSDF``) are not: they are plain device-callable value types that provide
-``signedDistance()`` without the virtual interface, see :ref:`Chap:MeshSDFClasses`.
+:ref:`Chap:GeometryRepresentations` for why this property matters). None of the distance fields
+shipped with EBGeometry derives from it any more: the analytic shapes (:ref:`Sec:AnalyticShapes`)
+and the mesh distance fields (``FlatMeshSDF``, ``MeshSDF``, ``TriMeshSDF``, see
+:ref:`Chap:MeshSDFClasses`) are plain device-callable value types that provide
+``signedDistance()`` without the virtual interface. ``SignedDistanceFunction<T>`` remains for
+distance functions written by users, which can then be passed to the transformations and CSG
+combinators below.
 
 Because the true distance is available, ``SignedDistanceFunction<T>`` also provides a concrete
 ``normal(point, delta)`` member function that estimates the outward unit normal from central
@@ -66,20 +75,56 @@ done reliably from an arbitrary implicit function's value alone.
 For the full API, see the Doxygen page for
 `SignedDistanceFunction <doxygen/html/classEBGeometry_1_1SignedDistanceFunction.html>`__.
 
-.. tip::
+.. _Sec:AnalyticShapes:
 
-   Various ready-to-use implementations of both interfaces are declared in
-   :file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` (spheres, boxes, planes, cylinders,
-   tori, and other closed-form primitives). The mesh-backed ``FlatMeshSDF``, ``MeshSDF`` and
-   ``TriMeshSDF`` in :file:`Source/EBGeometry_MeshDistanceFunctions.hpp` (see
-   :ref:`Chap:MeshSDFClasses`) are plain device-callable value types and implement neither
-   interface.
+Analytic shapes
+----------------
+
+:file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` declares twelve closed-form shapes:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Class
+     - Shape
+   * - ``PlaneSDF``
+     - A plane through a point, with a normal
+   * - ``SphereSDF``
+     - A sphere
+   * - ``BoxSDF``
+     - An axis-aligned box
+   * - ``TorusSDF``
+     - A torus in the xy-plane
+   * - ``CylinderSDF``, ``InfiniteCylinderSDF``
+     - A capped cylinder between two points; an infinite cylinder along a coordinate axis
+   * - ``CapsuleSDF``
+     - A cylinder with hemispherical end caps
+   * - ``ConeSDF``, ``InfiniteConeSDF``
+     - A finite and an infinite cone
+   * - ``RoundedBoxSDF``, ``RoundedCylinderSDF``
+     - A box and a cylinder with rounded edges
+   * - ``PerlinSDF``
+     - Perlin noise (not a true distance function; see the class documentation)
+
+Each is a plain, trivially copyable value type with no base class and no virtual functions, in
+the same way as the mesh distance fields. Its ``signedDistance()`` and accessors are callable on
+the host and on a GPU, so a shape can be passed to a kernel by value and evaluated there; the
+constructors run on the host. The :ref:`Chap:ExampleShapes` example constructs every one of them.
+
+Because the shapes are not ``ImplicitFunction<T>`` objects, they cannot be passed to the
+transformations and CSG combinators below. Composing them returns with the redesign of the CSG
+layer that replaces virtual dispatch with a linear-SSA tape. Until then, user code can combine
+shapes directly, as in the lambda passed to ``approximateBoundingVolumeOctree`` in the
+:ref:`Chap:ExampleOctreeBoundingVolume` example.
 
 Transformations
 ----------------
 
 EBGeometry implements every transformation as a small wrapper class that stores a
-``shared_ptr<ImplicitFunction<T>>`` to the wrapped function together with the transformation's
+``shared_ptr<ImplicitFunction<T>>`` to the wrapped function (so the wrapped function is an
+``ImplicitFunction<T>``, not one of the analytic shapes or mesh distance fields; see
+:ref:`Sec:AnalyticShapes`) together with the transformation's
 own parameters, and implements ``value()`` by applying the (typically inverse) transformation to
 the query point before evaluating the wrapped function. Since every such wrapper is itself an
 ``ImplicitFunction<T>``, transformations compose freely -- wrapping a wrapper is just as valid as

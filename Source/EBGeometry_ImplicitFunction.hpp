@@ -22,6 +22,36 @@
 namespace EBGeometry {
 
 /**
+ * @brief Compute an approximation to the bounding volume of a function's zero level set using octree
+ * subdivision.
+ * @details Recursively subdivides the initial box and marks each child cell as intersected when
+ * `|f(center)| <= (1+a_safety)*half_width`. The bounding volume is built from the corners of all
+ * intersected leaf cells. Relies on the function being reasonably close to a signed distance
+ * function; if octree subdivision fails entirely, returns the maximally representable bounding volume.
+ *
+ * The function can be anything that is evaluated at a point: an object with a
+ * `signedDistance(const Vec3T<T>&)` member (an analytic shape or a mesh SDF), an object with a
+ * `value(const Vec3T<T>&)` member (an ImplicitFunction), or a callable taking a `const Vec3T<T>&`,
+ * tried in that order. This runs on the host.
+ * @tparam BV Bounding volume type; must be constructible from `std::vector<Vec3T<T>>`.
+ * @tparam F  Function type.
+ * @tparam T  Floating-point precision.
+ * @param[in] a_function          Function whose zero level set is bounded.
+ * @param[in] a_initialLowCorner  Low corner of the initial search box.
+ * @param[in] a_initialHighCorner High corner of the initial search box.
+ * @param[in] a_maxTreeDepth      Maximum permitted octree depth.
+ * @param[in] a_safety            Safety factor for intersection test; 0 = exact, 1 = 1x cell-width margin.
+ * @return Bounding volume enclosing the approximate zero-isosurface region.
+ */
+template <class BV, class F, class T>
+[[nodiscard]] BV
+approximateBoundingVolumeOctree(const F&           a_function,
+                                const Vec3T<T>&    a_initialLowCorner,
+                                const Vec3T<T>&    a_initialHighCorner,
+                                const unsigned int a_maxTreeDepth,
+                                const T&           a_safety = T(0));
+
+/**
  * @brief Abstract representation of an implicit function (not necessarily a signed distance function).
  * @details The value function must be implemented by subclasses.  Points with value < 0 are considered
  * inside the object; points with value > 0 are outside.
@@ -61,7 +91,8 @@ public:
 
   /**
    * @brief Compute an approximation to the bounding volume for the implicit surface using octree subdivision.
-   * @details Recursively subdivides the initial box and marks each child cell as intersected when
+   * @details Equivalent to the free function EBGeometry::approximateBoundingVolumeOctree() called with
+   * this object. Recursively subdivides the initial box and marks each child cell as intersected when
    * `|value(center)| <= (1+a_safety)*half_width`. The bounding volume is built from the corners of all
    * intersected leaf cells. Relies on the implicit function being reasonably close to a signed distance
    * function; if octree subdivision fails entirely, returns the maximally representable bounding volume.

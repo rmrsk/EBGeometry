@@ -70,9 +70,12 @@ input functions to ``traverse`` are as follows:
 Estimating a bounding volume for an implicit function
 --------------------------------------------------------
 
-The octree machinery above is used directly by
-`ImplicitFunction::approximateBoundingVolumeOctree <doxygen/html/classEBGeometry_1_1ImplicitFunction.html#a193199c514d6c35fd8553cef9affb767>`__,
-which estimates a bounding volume of type ``BV`` for an implicit function :math:`I` that has no
+The octree machinery above is used directly by the free function
+`approximateBoundingVolumeOctree <doxygen/html/namespaceEBGeometry.html#a46762e5f90be15376df33dd626853704>`__
+(and by the member function of the same name on
+`ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction.html#a193199c514d6c35fd8553cef9affb767>`__,
+which calls it), which estimates a bounding volume of type ``BV`` for a function :math:`I` -- an
+analytic shape, a mesh distance field, an ``ImplicitFunction``, or a lambda -- that has no
 closed-form bound -- for example, one built up from several nested CSG operations (see
 :ref:`Chap:ConstructiveSolidGeometry`), where no simple formula for a bounding box or sphere is
 available.
