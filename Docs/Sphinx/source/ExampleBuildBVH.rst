@@ -3,15 +3,14 @@
 BuildBVH
 ========
 
-Benchmarks EBGeometry's BVH construction strategies. For every ``BVH::Strategy`` -- ``SAH``,
-``Centroid``, ``Midpoint``, ``ClusterSAH``, and ``SpaceFillingCurve`` along each of the Morton,
-Nested, and Hilbert curves -- it builds a BVH over the same random point cloud and times three
-things: ``BVH::buildTopology()`` alone (the tree's shape, before any primitive is stored), the full
-``PackedBVH`` construction (the shape plus the primitives copied into leaf order), and a fixed
-closest-point query workload on the result, run through ``PackedBVH::pruneTraverse()``. The first two
-measure what each strategy costs to build; the third, what the tree it produces is worth to a query,
-which is the other half of the trade-off (see :ref:`Chap:BVHConstruction`). It also reports each
-tree's depth and node count, and checks that every strategy finds the same closest points.
+Benchmarks EBGeometry's BVH construction strategies. It builds a BVH over a random point cloud with
+each available strategy -- top-down (centroid, SAH, and midpoint partitioners), bottom-up along the
+Morton, Nested, and Hilbert space-filling curves, and ClusterSAH -- and reports the build time for
+each (see :ref:`Chap:BVHConstruction`). For most strategies it times two ways of reaching a
+queryable ``PackedBVH``: the traditional ``TreeBVH``-then-``pack()`` path, and ``PackedBVH``'s direct
+constructor, which packs the primitives straight into the flat, queryable layout without building a
+``TreeBVH`` first (see :ref:`Chap:DirectSFCBuild`). It times *build* only, not query performance or
+tree quality.
 
 The source for this example is at :file:`Examples/BuildBVH/main.cpp`. See :ref:`Chap:Building`
 for how to compile it with CMake, GNU Make, or a direct compiler invocation.

@@ -40,7 +40,7 @@ namespace EBGeometry {
 namespace CSGDetail {
 
 /**
- * @brief Build the packed BVH of a BVH union.
+ * @brief Build the packed BVH of a BVH union using the requested strategy.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @tparam P Primitive type.
@@ -48,7 +48,7 @@ namespace CSGDetail {
  * @param[in,out] a_pool            Pool to reserve the BVH from.
  * @param[in]     a_primitives      Primitives (must be non-empty).
  * @param[in]     a_boundingVolumes Bounding box of each primitive.
- * @param[in]     a_spec            How to build the BVH.
+ * @param[in]     a_build           BVH construction strategy.
  * @return The packed BVH.
  */
 template <class T, class P, size_t K>
@@ -57,7 +57,7 @@ inline BVH::PackedBVH<T, P, K>
 buildBVH(Pool&                                         a_pool,
          const std::vector<P>&                         a_primitives,
          const std::vector<BoundingVolumes::AABBT<T>>& a_boundingVolumes,
-         const BVH::BuildSpec&                         a_spec)
+         const BVH::Build                              a_build)
 {
   using BV   = BoundingVolumes::AABBT<T>;
   using Root = BVH::PackedBVH<T, P, K>;
@@ -92,7 +92,24 @@ buildBVH(Pool&                                         a_pool,
     primsAndBVs.emplace_back(a_primitives[i], a_boundingVolumes[i]);
   }
 
-  return Root(a_pool, std::move(primsAndBVs), a_spec);
+  switch (a_build) {
+  case BVH::Build::TopDown: {
+    return Root(a_pool, std::move(primsAndBVs));
+  }
+  case BVH::Build::Morton: {
+    return Root(a_pool, std::move(primsAndBVs), K, SFC::Morton{});
+  }
+  case BVH::Build::Nested: {
+    return Root(a_pool, std::move(primsAndBVs), K, SFC::Nested{});
+  }
+  case BVH::Build::SAH:
+  default: {
+    EBGEOMETRY_REQUIRE(
+      a_build == BVH::Build::SAH, "BVHUnionIF: unknown BVH::Build strategy (%d)", static_cast<int>(a_build));
+
+    return Root(a_pool, std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, BV, K>);
+  }
+  }
 }
 
 /**
@@ -497,8 +514,8 @@ EBGEOMETRY_HOST
 BVHUnionIF<T, P, K>::BVHUnionIF(Pool&                  a_pool,
                                 const std::vector<P>&  a_primitives,
                                 const std::vector<BV>& a_boundingVolumes,
-                                const BVH::BuildSpec&  a_spec)
-  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_spec))
+                                const BVH::Build       a_build)
+  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_build))
 {}
 
 template <class T, class P, size_t K>
@@ -597,8 +614,8 @@ BVHSmoothUnionIF<T, P, K, Blend>::BVHSmoothUnionIF(Pool&                  a_pool
                                                    const std::vector<BV>& a_boundingVolumes,
                                                    const T                a_smoothLen,
                                                    const Blend            a_blend,
-                                                   const BVH::BuildSpec&  a_spec)
-  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_spec)),
+                                                   const BVH::Build       a_build)
+  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_build)),
     m_smoothLen(Math::max(a_smoothLen, Math::Limits<T>::min())),
     m_blend(a_blend)
 {

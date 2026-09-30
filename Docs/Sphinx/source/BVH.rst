@@ -33,7 +33,7 @@ For example, analytic signed distance functions can also be embedded in BVHs, pr
 .. important::
 
    EBGeometry is not limited to binary trees, but supports :math:`k`-ary trees, where each
-   regular node has up to :math:`k` child nodes.
+   regular node has :math:`k` child nodes.
 
 Construction
 -------------
@@ -56,48 +56,36 @@ In this case, the BVH construction of a :math:`k`-ary tree can be represented th
    \textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right),
 
 where :math:`\vec{O}` is the input list of objects/primitives, which is *partitioned* into :math:`k` new lists of primitives.
-Note that the lists :math:`\vec{O}_i` do not contain duplicates; there is a unique set of primitives associated with each new child node.
+Note that the lists :math:`\vec{O}_i` do not contain duplicates; there is a unique set of primitives associated with each new leaf node.
 Top-down construction can thus be illustrated as a recursive procedure:
 
 .. code-block:: text
 
-   construct(objects):
-      if size(objects) <= maxLeafSize:
-         return leaf(objects)
+   topDownConstruction(Objects):
+      partitionedObjects = Partition(Objects)
 
-      node = interiorNode()
+      forall p in partitionedObjects:
+         child = insertChildNode(newObjects)
 
-      forall part in Partition(objects):
-         node.addChild(construct(part))
+         if(enoughPrimitives(child)):
+            child.topDownConstruction(child.objects)
 
-      return node
-
-In practice, the above procedure is supplemented by routines for creating the bounding volumes
-around the newly inserted nodes, and by safeguards that keep the tree shallow when many primitives
-coincide. EBGeometry builds every tree from the primitives' bounding boxes alone, using the centre
-of each box in place of its primitive, and bounds the size of every leaf by one caller-chosen
-maximum number of primitives, whichever partitioning rule is used. Several rules are provided: splitting the
-primitives into equal counts along the longest axis, splitting at the spatial midpoint of that axis
-(the cheapest), and choosing the split by the Surface Area Heuristic, which estimates the expected
-cost of a query through each candidate split and typically yields the best query performance, at a
-higher construction cost. The Surface Area Heuristic can also be applied to small, spatially tight
-clusters of primitives instead of the primitives themselves, which gives nearly as good a tree much
-faster.
+In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.
+EBGeometry implements top-down construction using a user-supplied partitioning rule (the
+:math:`\mathrm{Partition}` above) and a termination criterion. Several ready-made partitioning
+strategies are provided, splitting on bounding-volume centroids (the default) or on primitive
+centroids; a more expensive strategy based on the Surface Area Heuristic typically yields the
+best query performance, at a higher construction cost.
 
 Bottom-up construction is also possible, in which case one constructs the leaf nodes first, and then merges the nodes upward until one reaches a root node.
 In EBGeometry, bottom-up construction is done by means of space-filling curves -- Morton codes,
-Hilbert curves, or nested indices: the primitives are sorted along the curve, consecutive runs of
-them become leaves, and consecutive runs of :math:`k` nodes are merged into a parent, level by
-level. The Hilbert curve has better spatial locality than Morton (its consecutive codes are always
-spatially adjacent), so it tends to produce tighter leaf groupings.
+Hilbert curves, or nested indices. The Hilbert curve has better spatial locality than Morton (its
+consecutive codes are always spatially adjacent), so it tends to produce tighter leaf groupings.
 
 .. important::
 
    BVHs do not need to be stored with pointer referencing between nodes; it is quite possible to pack nodes tightly in memory on a linear array with direct indexing. This is useful when
    applying SIMD instructions for querying multiple bounding volumes simultaneously.
-   EBGeometry builds its trees directly in such a flat form, with no pointer-based stage: each node
-   stores the bounding volumes of all its children side by side, so that one node visit tests every
-   child at once, and a leaf is simply a child entry naming a contiguous range of primitives.
 
 .. _Fig:CompactBVH:
 .. figure:: /_static/CompactBVH.png
@@ -125,8 +113,8 @@ The trade-off is quality rather than correctness: a refitted tree always *enclos
 (so traversal stays correct), but because the partitioning is frozen, a geometry that deforms enough
 for primitives to drift into what used to be a neighbour's region produces increasingly loose,
 overlapping bounding volumes and slower queries. A periodic rebuild restores tight volumes once the
-deformation has grown large. See :ref:`Chap:ImplemBVH` for the concrete ``refit()`` member
-function.
+deformation has grown large. See :ref:`Chap:ImplemBVH` for the concrete ``refit()`` member functions
+on both BVH representations.
 
 Tree traversal
 ---------------

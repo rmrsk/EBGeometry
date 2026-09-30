@@ -97,24 +97,20 @@ template argument.
 SIMD-accelerated bounding-box pruning: ``BVH::PackedBVH<T, P, K>``
 -----------------------------------------------------------------------
 
-:file:`Source/EBGeometry_BVH.hpp` / :file:`EBGeometry_BVHImplem.hpp`, with the node layout in
-:file:`Source/EBGeometry_BVHBuild.hpp`
+:file:`Source/EBGeometry_BVH.hpp` / :file:`EBGeometry_BVHImplem.hpp`
 
 See :ref:`Chap:BVH` for the conceptual picture of bounding volume hierarchies and tree pruning.
 
-**What it stores:** every node is a ``BVH::WideNode<T, K>`` with :math:`K` child slots, whose
-bounding boxes are laid out as a *structure of arrays* inside the node itself: one
-``alignas``-aligned row per axis for the low corners and one for the high corners, each holding that
-coordinate for all :math:`K` slots, next to each slot's child index or leaf range. See
-:ref:`Sec:WideNode` for the node layout and :ref:`Chap:PackedBVH` for the rest of the packed
-representation.
+**What it stores:** each interior node's :math:`K` children's bounding boxes, laid out as a
+*structure of arrays* (``ChildAABBSoA``: flat, ``alignas``-aligned low/high-corner coordinate
+arrays across all :math:`K` children), alongside the usual index-offset node data. See
+:ref:`Chap:PackedBVH` for the rest of the packed representation.
 
 **What is vectorised:** the point-to-bounding-box squared-distance test used to decide which
-slots to descend into (or prune) during traversal, in ``PackedBVH::pruneTraverse()``. All
-:math:`K` slots of a node are tested against the query point in a single SIMD batch --
-one ``_mm(|256|512)_load_p[sd]`` per box row, then vectorised subtract/max/multiply/add
-to get all :math:`K` squared distances at once -- rather than a scalar loop over slots (see
-:ref:`Sec:SIMDDistanceKernel` for which ``(T, K)`` pairs have which path).
+children to descend into (or prune) during traversal, in ``PackedBVH::pruneTraverse()``. All
+:math:`K` children of a node are tested against the query point in a single SIMD batch --
+one ``_mm(256\|512)_load_p[sd]`` per coordinate array, then vectorised subtract/max/multiply/add
+to get all :math:`K` squared distances at once -- rather than a scalar loop over children.
 ``PackedBVH`` has no ``signedDistance()`` of its own; ``MeshSDF``/``TriMeshSDF::signedDistance()``
 each build a thin wrapper around ``pruneTraverse()``, supplying a signed-distance leaf-eval and
 pruning rule. Any caller can invoke ``pruneTraverse()`` directly with its own leaf-eval/pruning-
@@ -123,7 +119,7 @@ over a primitive type with no ``signedDistance()`` at all). See :ref:`Chap:Prune
 full callback contract and traversal algorithm.
 
 When ``(K, T)`` matches no compiled ISA path, this one step -- and only this step -- falls back to
-a scalar loop over the :math:`K` slots; the surrounding traversal is the same code either way,
+a scalar loop over the :math:`K` children; the surrounding traversal is the same code either way,
 and the two produce bit-identical results.
 
 **What this means in practice:** the cost of deciding which subtree(s) to visit next no longer

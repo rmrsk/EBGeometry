@@ -580,124 +580,6 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
   }
 }
 
-namespace {
-
-// Stands in for CUDA/HIP managed memory without a GPU: memory both the host and a device can address,
-// so a rebasedView() onto a mirror in it is a device view and is checked against the device depth.
-class FakeManagedResource final : public MemoryResource
-{
-public:
-  void*
-  allocate(size_t a_bytes, size_t a_alignment) override
-  {
-    return hostMemoryResource().allocate(a_bytes, a_alignment);
-  }
-
-  void
-  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
-  {
-    hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
-  }
-
-  bool
-  isHostAccessible() const noexcept override
-  {
-    return true;
-  }
-
-  bool
-  isDeviceAccessible() const noexcept override
-  {
-    return true;
-  }
-};
-
-} // namespace
-
-TEMPLATE_TEST_CASE("PointCloudBVH: many coincident points build a tree a device can traverse, and queries stay exact",
-                   "[PointCloudBVH]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T     = TestType;
-  using Cloud = PointCloudBVH<T, std::size_t>;
-  using Hit   = typename Cloud::Hit;
-
-  // Two stacks of coincident points (no split can separate a stack) and a handful of outliers.
-  std::vector<Vec3T<T>> pos(3000, Vec3T<T>(T(0.5), T(0.5), T(0.5)));
-
-  pos.insert(pos.end(), 1000, Vec3T<T>(T(0.25), T(0.75), T(0.5)));
-
-  const std::vector<Vec3T<T>> outliers = makeCloud<T>(12, 4242u);
-
-  pos.insert(pos.end(), outliers.begin(), outliers.end());
-
-  const std::size_t              n = pos.size();
-  const std::vector<std::size_t> meta(n, 0);
-  const std::vector<Vec3T<T>>    queries = makeCloud<T>(200, 99u);
-
-  constexpr std::size_t k = 3;
-
-  for (const std::size_t leafSize : {std::size_t(1), std::size_t(3), std::size_t(64)}) {
-    INFO("targetLeafSize = " << leafSize);
-
-    Pool pool(hostMemoryResource());
-
-    const Cloud cloud(pool, pos, meta, leafSize);
-
-    const auto nodes = cloud.getBVH().getNodes();
-
-    REQUIRE(nodes.size() > 0);
-    REQUIRE(BVH::treeDepth(nodes.begin(), nodes.size()) <= BVH::DeviceTraversalDepth);
-
-    // Arbitrary query points: the closest point and the k closest, against brute force.
-    for (const auto& q : queries) {
-      const auto truth = bruteForce<T>(pos, q, k, n);
-
-      REQUIRE_THAT(cloud.closestPoint(q).distanceSquared, withinAbsT<T>(truth[0], tightMargin<T>()));
-
-      Hit out[k];
-
-      REQUIRE(cloud.closestPoints(q, k, out) == k);
-
-      for (std::size_t j = 0; j < k; j++) {
-        REQUIRE_THAT(out[j].distanceSquared, withinAbsT<T>(truth[j], tightMargin<T>()));
-      }
-    }
-
-    // Self queries on the outliers and on a sample of the stacked points, against brute force.
-    for (std::size_t i = 0; i < n; i += (i < 4000 ? 97 : 1)) {
-      const auto truth = bruteForce<T>(pos, pos[i], k, i);
-
-      REQUIRE_THAT(cloud.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tightMargin<T>()));
-
-      Hit out[k];
-
-      REQUIRE(cloud.nearestNeighbors(i, k, out) == k);
-
-      for (std::size_t j = 0; j < k; j++) {
-        REQUIRE(out[j].index != i);
-        REQUIRE_THAT(out[j].distanceSquared, withinAbsT<T>(truth[j], tightMargin<T>()));
-      }
-    }
-
-    // A view onto a device-accessible mirror is checked against the device traversal depth; it must
-    // be accepted, and answer as the host tree does.
-    pool.freeze();
-
-    FakeManagedResource managed;
-    const Pool          mirror = Pool::mirror(pool, managed);
-    const Cloud         view   = cloud.rebasedView(mirror);
-
-    for (const auto& q : queries) {
-      const Hit lhs = cloud.closestPoint(q);
-      const Hit rhs = view.closestPoint(q);
-
-      REQUIRE(rhs.index == lhs.index);
-      REQUIRE(rhs.distanceSquared == lhs.distanceSquared);
-    }
-  }
-}
-
 TEMPLATE_TEST_CASE("PointCloudBVH: rebasedView and deepCopy stay PointCloudBVHs and answer identically",
                    "[PointCloudBVH][Pool][rebase]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -952,7 +834,7 @@ TEST_CASE("PointCloudBVH: rejects a zero leaf size, and a rebase onto a pool too
       Pool                                pool(hostMemoryResource());
       const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta, 0);
     },
-    "PointCloudBVH: the target leaf size must be at least 1 and fit in 32 bits (0)"));
+    "PointCloudBVH: the target leaf size must be at least 1 (0)"));
 
   REQUIRE(abortsWith(
     [&pos, &meta] {

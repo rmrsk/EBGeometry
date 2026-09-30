@@ -26,8 +26,8 @@ namespace EBGeometry {
  * @details A space-filling curve maps a 3D grid index (Index, three unsigned integers each in
  * [0, ValidSpan]) to a single 64-bit code (Code) and back, such that cells that are close together
  * in space tend to also be close together in code order. This is used to build spatially coherent
- * orderings of primitives (e.g. a BVH::Strategy::SpaceFillingCurve build, which sorts primitives by
- * the curve's encode() of their binned cell index before merging them into a tree).
+ * orderings of primitives (e.g. TreeBVH::bottomUpSortAndPartition<S>(), which sorts primitives by
+ * S::encode(...) of their binned cell index before partitioning into a tree).
  *
  * Every SFC in this namespace (e.g. Morton, Nested, Hilbert) implements exactly two static member
  * functions:
@@ -38,8 +38,8 @@ namespace EBGeometry {
  * decode(encode(p)) must reproduce p for every p with components in [0, ValidSpan]; encode() need
  * not be injective outside that range (out-of-range components are a precondition violation, not a
  * defined-but-lossy encoding). Any new SFC struct added to this namespace, or supplied by a caller
- * as the template argument to code that is templated on an SFC (such as SFC::order()), must
- * implement both functions with these exact
+ * as the template argument to code that is templated on an SFC (such as
+ * TreeBVH::bottomUpSortAndPartition<S>()), must implement both functions with these exact
  * signatures to be usable as a drop-in replacement.
  */
 namespace SFC {
@@ -156,11 +156,10 @@ struct Hilbert
  * @details Converts real-valued points into SFC::Index values suitable for SFC::Morton::encode() or
  * SFC::Nested::encode(). The binning itself is curve-independent -- every curve grids the same way;
  * only the subsequent encode() differs -- so this takes no curve type (see order() for the
- * curve-parameterized ordering built on top of it). The grid cells are cubes, sized so that the
- * longest extent of the points spans the whole grid; a flat cloud therefore occupies only a thin
- * slab of bins along its short axis, and the curve keeps following distance. If the points coincide,
- * or their extent is too small for a cell size that is a normal floating-point number, every point
- * gets bin 0 on every axis.
+ * curve-parameterized ordering built on top of it). If every point coincides on some axis (a planar
+ * cloud or duplicate points), that axis's normalization divisor would be zero; it is clamped to 1
+ * (the numerator is also exactly zero there for every point, so any nonzero divisor yields the same,
+ * correct bin index of 0), avoiding a divide-by-zero.
  * @tparam T Floating-point precision.
  * @param[in] a_points Points to bin (e.g. bounding-volume centroids, or a raw point cloud). Every
  * coordinate must be finite; this is checked in every build.

@@ -253,14 +253,13 @@ readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool);
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the underlying DCEL mesh's storage from. The
  * returned MeshSDF holds the mesh and its BVH in a_pool, so a_pool must outlive it.
- * @param[in]     a_spec     How to build the BVH. The default, binned SAH with at most four faces
- * per leaf, is the recommended choice.
+ * @param[in]     a_build    BVH build strategy. SAH is the default and recommended choice.
  * @return The MeshSDF enclosing the mesh, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static MeshSDF<T, Meta, K>
-readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::BuildSpec& a_spec = BVH::BuildSpec{});
+readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::Build a_build = BVH::Build::SAH);
 
 /**
  * @brief Read multiple files and return each enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
@@ -270,15 +269,13 @@ readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::BuildSp
  * @param[in]     a_files List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool  Pool to reserve every underlying DCEL mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously. Must outlive the returned MeshSDF objects.
- * @param[in]     a_spec  How to build each BVH (see the single-file overload).
+ * @param[in]     a_build BVH build strategy. SAH is the default and recommended choice.
  * @return Vector of MeshSDF objects, one per file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static std::vector<MeshSDF<T, Meta, K>>
-readIntoPackedBVH(const std::vector<std::string>& a_files,
-                  Pool&                           a_pool,
-                  const BVH::BuildSpec&           a_spec = BVH::BuildSpec{});
+readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const BVH::Build a_build = BVH::Build::SAH);
 
 /**
  * @brief Read a file and return the mesh enclosed in a SIMD-optimised triangle BVH.
@@ -295,9 +292,10 @@ readIntoPackedBVH(const std::vector<std::string>& a_files,
  * @param[in,out] a_pool          Pool the returned TriMeshSDF's BVH is reserved from; must outlive
  * it. The intermediate DCEL mesh lives in a Pool private to this call (see readIntoTriangles), so
  * it takes no space in a_pool and is not mirrored along with it.
- * @param[in]     a_spec          How to build the BVH; a_spec.maxLeafSize counts triangles (see
- * TriMeshSDF's mesh-based constructor). The default, binned SAH with at most 4 * W triangles, that
- * is four full SoA groups, per leaf, is the recommended choice.
+ * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
+ * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W (see TriMeshSDF's mesh-based
+ * constructor for the tree-quality/SIMD-occupancy trade-off). Defaults to 4.
+ * @param[in]     a_build         BVH build strategy. SAH is the default and recommended choice.
  * @return The TriMeshSDF enclosing the mesh, by value.
  */
 template <typename T,
@@ -305,10 +303,10 @@ template <typename T,
           size_t K      = BVH::DefaultBranchingRatio<T>(),
           size_t W      = TriangleSoA::DefaultWidth<T>()>
 [[nodiscard]] inline static TriMeshSDF<T, Meta, K, W>
-readIntoTriangleBVH(const std::string     a_filename,
-                    Pool&                 a_pool,
-                    const BVH::BuildSpec& a_spec = BVH::BuildSpec{
-                      BVH::Strategy::SAH, BVH::Curve::Morton, uint32_t(4 * W)});
+readIntoTriangleBVH(const std::string a_filename,
+                    Pool&             a_pool,
+                    const size_t      a_maxLeafGroups = 4,
+                    const BVH::Build  a_build         = BVH::Build::SAH);
 
 /**
  * @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
@@ -319,7 +317,9 @@ readIntoTriangleBVH(const std::string     a_filename,
  * @param[in]     a_files         List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool          Pool every returned TriMeshSDF's BVH is reserved from (see the
  * single-file overload).
- * @param[in]     a_spec          How to build each BVH (see the single-file overload).
+ * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
+ * the single-file overload for details). Defaults to 4.
+ * @param[in]     a_build         BVH build strategy. SAH is the default and recommended choice.
  * @return Vector of TriMeshSDF objects, one per file.
  */
 template <typename T,
@@ -329,8 +329,8 @@ template <typename T,
 [[nodiscard]] inline static std::vector<TriMeshSDF<T, Meta, K, W>>
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
                     Pool&                           a_pool,
-                    const BVH::BuildSpec&           a_spec = BVH::BuildSpec{
-                      BVH::Strategy::SAH, BVH::Curve::Morton, uint32_t(4 * W)});
+                    const size_t                    a_maxLeafGroups = 4,
+                    const BVH::Build                a_build         = BVH::Build::SAH);
 
 /**
  * @brief Read a file and return all faces as a flat list of Triangle objects.

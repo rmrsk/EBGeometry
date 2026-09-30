@@ -172,25 +172,23 @@ combination with the other ``readInto*`` functions.
 DCEL mesh SDF with PackedBVH
 _____________________________
 
-``readIntoPackedBVH<T, Meta, K>(filename, pool, spec)`` wraps a DCEL mesh in a ``PackedBVH``
-(a flat array of wide nodes) with SIMD traversal, returning a ``MeshSDF<T, Meta, K>`` by value (or
-a ``std::vector`` of them). It supports any polygon, not just triangles; the BVH branching factor
-``K`` defaults to 4, and the ``BVH::BuildSpec`` ``spec`` defaults to ``BVH::BuildSpec{}``, a binned
-SAH build with at most four faces per leaf (see :ref:`Chap:BVHConstruction`). The returned
+``readIntoPackedBVH<T, Meta, K>(filename, pool, build)`` wraps a DCEL mesh in a ``PackedBVH``
+(depth-first flat layout) with SIMD traversal, returning a ``MeshSDF<T, Meta, K>`` by value (or a
+``std::vector`` of them). It supports any polygon, not just triangles; the BVH branching factor
+``K`` defaults to 4 and the build strategy ``a_build`` defaults to ``BVH::Build::SAH``. The returned
 ``MeshSDF`` holds the mesh and its BVH in ``pool``, so ``pool`` must outlive it and every copy of
 it. For maximum throughput on triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
 
 Triangle meshes with PackedBVH
 ________________________________
 
-``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, spec)``
-converts all DCEL polygons to triangles, builds a ``PackedBVH`` over them, and packs each leaf's
-triangles into SoA groups of ``W``, returning a ``TriMeshSDF<T, Meta, K, W>`` by value (or a
-``std::vector`` of them). SIMD intrinsics evaluate ``W`` triangles per group. ``K`` and ``W``
-default to 4 (``BVH::DefaultBranchingRatio<T>()`` and ``TriangleSoA::DefaultWidth<T>()``,
-independent of compiler flags; see :ref:`Sec:DefaultKW`). The ``BVH::BuildSpec`` ``spec`` defaults
-to a binned SAH build whose ``maxLeafSize`` is ``4 * W``: ``maxLeafSize`` counts triangles, so a
-leaf holds at most four full SoA groups. Faces with more than three vertices
+``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, maxLeafGroups, build)``
+converts all DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a
+``PackedBVH``, returning a ``TriMeshSDF<T, Meta, K, W>`` by value (or a ``std::vector`` of them).
+SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to 4
+(``BVH::DefaultBranchingRatio<T>()`` and ``TriangleSoA::DefaultWidth<T>()``, independent of compiler
+flags; see :ref:`Sec:DefaultKW`); ``maxLeafGroups`` (default 4)
+bounds the number of full ``W``-sized SoA groups per BVH leaf. Faces with more than three vertices
 are fan-triangulated, which is exact for the planar convex faces the DCEL mesh requires. Unlike
 ``readIntoMesh``/``readIntoPackedBVH``, the returned ``TriMeshSDF`` extracts flat ``Triangle``
 values from the intermediate DCEL mesh and does not retain it; its BVH is reserved from

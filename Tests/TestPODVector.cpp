@@ -234,59 +234,6 @@ TEST_CASE("PODVector: assign past capacity aborts", "[PODVector][death]")
     "PODVector::assign: the element count must not exceed the reserved capacity (3 > 2)"));
 }
 
-TEMPLATE_TEST_CASE("PODVector: setSize exposes elements written in place, within the capacity",
-                   "[PODVector][setSize]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  Pool pool(hostMemoryResource());
-
-  PODVector<T> vec;
-  vec.reserveFrom(pool, 8);
-
-  pool.freeze();
-
-  // Write through the raw storage, as a device kernel would, without the descriptor seeing it.
-  T* raw = vec.data(pool.base());
-
-  for (uint32_t i = 0; i < 5; i++) {
-    raw[i] = T(i) + T(0.25);
-  }
-
-  REQUIRE(vec.size() == 0);
-
-  vec.setSize(5);
-
-  REQUIRE(vec.size() == 5);
-
-  for (uint32_t i = 0; i < 5; i++) {
-    REQUIRE(vec.at(pool.base(), i) == T(i) + T(0.25));
-  }
-
-  // The full capacity, and back down to empty, are both allowed.
-  vec.setSize(8);
-  REQUIRE(vec.size() == 8);
-
-  vec.setSize(0);
-  REQUIRE(vec.size() == 0);
-  REQUIRE(vec.empty());
-}
-
-TEST_CASE("PODVector: setSize past capacity aborts", "[PODVector][setSize][death]")
-{
-  REQUIRE(abortsWith(
-    [] {
-      Pool pool(hostMemoryResource());
-
-      PODVector<double> vec;
-      vec.reserveFrom(pool, 2);
-
-      vec.setSize(3); // capacity is 2 -- must abort
-    },
-    "PODVector::setSize: the element count must not exceed the reserved capacity (3 > 2)"));
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // No-realloc / bounds invariants (assert-death, assertions build only)
 // ─────────────────────────────────────────────────────────────────────────────

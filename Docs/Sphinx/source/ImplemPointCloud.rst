@@ -35,16 +35,14 @@ PointCloudBVH
 -------------
 
 ``PointCloudBVH`` is built on the :ref:`Chap:ImplemBVH` machinery: it holds a ``BVH::PackedBVH``
-over ``PointAoSoA`` leaf groups as a member, and adds **turnkey query methods** that hide
-``pruneTraverse()`` entirely, including a seeded self-query the general interface does not offer.
-It is built by the library's one BVH builder, ``BVH::buildTopology()``, over one degenerate box per
-point with ``BVH::Strategy::Midpoint`` -- a longest-axis midpoint split, falling back to a split by
-count where the midpoint cannot separate the points, as with coincident points, so the tree stays
-shallow -- which is several times faster to build than a full Surface-Area-Heuristic tree and, for
-near-uniform clouds, just as tight to query. The constructor's target leaf size (``16 * W`` by
-default) is the ``BuildSpec::maxLeafSize``: a leaf holds at most that many points, which are then
-packed into ``PointAoSoA`` groups of ``W`` as the tree is stored. ``getBVH()`` exposes the held
-``PackedBVH`` for anything that needs the general BVH interface.
+over ``PointAoSoA`` leaf groups as a member, and adds two things the general path does not offer --
+a much cheaper **index-based build**, and **turnkey query methods** that hide ``pruneTraverse()``
+entirely. It is built by partitioning an index permutation in place with a longest-axis midpoint
+split (falling back to a split by count where the midpoint cannot separate the points, as with
+coincident points, so the tree stays shallow) and packing the ``PointAoSoA`` leaves inline (no intermediate primitive list, no
+``shared_ptr``, no separate packing pass), which is several times faster to build than a full
+Surface-Area-Heuristic tree and, for near-uniform clouds, just as tight to query. ``getBVH()`` exposes
+the held ``PackedBVH`` for anything that needs the general BVH interface.
 
 The held BVH and every cloud array (positions, user metadata, the per-point seeding tables, the leaf
 order) are reserved from the one ``Pool`` passed to the constructor, so a ``PointCloudBVH`` is

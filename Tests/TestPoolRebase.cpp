@@ -187,7 +187,7 @@ TEMPLATE_TEST_CASE("PoolLocation: a view onto a managed mirror answers queries o
 
   Pool       host(hostMemoryResource());
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
-  const auto sdf  = TestSDF<T>(mesh, host, BVH::BuildSpec{});
+  const auto sdf  = TestSDF<T>(mesh, host, BVH::Build::SAH);
 
   host.freeze();
 
@@ -216,7 +216,7 @@ TEMPLATE_TEST_CASE("PoolLocation: an object built directly in managed memory can
   Pool                pool(managed);
 
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), pool);
-  const auto sdf  = TestSDF<T>(mesh, pool, BVH::BuildSpec{});
+  const auto sdf  = TestSDF<T>(mesh, pool, BVH::Build::SAH);
 
   pool.freeze();
 
@@ -238,7 +238,7 @@ TEMPLATE_TEST_CASE("PoolLocation: a view rebased onto a staging mirror can be re
 
   Pool       host(hostMemoryResource());
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
-  const auto sdf  = TestSDF<T>(mesh, host, BVH::BuildSpec{});
+  const auto sdf  = TestSDF<T>(mesh, host, BVH::Build::SAH);
 
   host.freeze();
 
@@ -271,7 +271,7 @@ TEST_CASE("PoolLocation: rebasing onto an unfrozen device-accessible pool aborts
       Pool                pool(managed);
 
       const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), pool);
-      const auto sdf  = TestSDF<T>(mesh, pool, BVH::BuildSpec{});
+      const auto sdf  = TestSDF<T>(mesh, pool, BVH::Build::SAH);
 
       // Not frozen: the pool could still grow and move, so a snapshot of its base would go stale.
       [[maybe_unused]] const auto view = sdf.rebasedView(pool);
@@ -329,7 +329,7 @@ TEST_CASE("PoolLocation: a view of device-only memory used on the host fails an 
     [] {
       Pool       host(hostMemoryResource());
       const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
-      const auto sdf  = TestSDF<T>(mesh, host, BVH::BuildSpec{});
+      const auto sdf  = TestSDF<T>(mesh, host, BVH::Build::SAH);
 
       host.freeze();
 

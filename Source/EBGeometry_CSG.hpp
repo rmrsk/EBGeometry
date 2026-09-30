@@ -563,13 +563,13 @@ public:
    * in it too. Must outlive this object and every copy of it.
    * @param[in]     a_primitives      Primitives (must be non-empty).
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
-   * @param[in]     a_spec            How to build the BVH.
+   * @param[in]     a_build           BVH construction strategy.
    */
   EBGEOMETRY_HOST
   BVHUnionIF(Pool&                  a_pool,
              const std::vector<P>&  a_primitives,
              const std::vector<BV>& a_boundingVolumes,
-             const BVH::BuildSpec&  a_spec = BVH::BuildSpec{});
+             BVH::Build             a_build = BVH::Build::SAH);
 
   /**
    * @brief Evaluate the union at a point.
@@ -699,7 +699,7 @@ public:
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
    * @param[in]     a_smoothLen       Smoothing length (must be > 0).
    * @param[in]     a_blend           Smooth-minimum operator.
-   * @param[in]     a_spec            How to build the BVH.
+   * @param[in]     a_build           BVH construction strategy.
    */
   EBGEOMETRY_HOST
   BVHSmoothUnionIF(Pool&                  a_pool,
@@ -707,7 +707,7 @@ public:
                    const std::vector<BV>& a_boundingVolumes,
                    T                      a_smoothLen,
                    Blend                  a_blend = Blend{},
-                   const BVH::BuildSpec&  a_spec  = BVH::BuildSpec{});
+                   BVH::Build             a_build = BVH::Build::SAH);
 
   /**
    * @brief Evaluate the smooth union at a point.

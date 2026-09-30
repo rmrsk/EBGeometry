@@ -42,12 +42,11 @@ public:
     auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename, *m_pool);
 
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
-    for (uint32_t i = 0; i < mesh.numFaces(); i++) {
-      mesh.getFace(i).getMetaData() = 1.0 * i;
+    for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+      mesh->getFace(i).getMetaData() = 1.0 * i;
     }
 
-    // The default build specification: binned SAH, at most four faces per leaf.
-    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, *m_pool, EBGeometry::BVH::BuildSpec{});
+    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, *m_pool, EBGeometry::BVH::Build::SAH);
   }
 
   /*!
@@ -66,7 +65,7 @@ public:
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return m_sdf->signedDistance(EBGeometry::Vec3T<T>(x, y, z));
+    return m_sdf->value(EBGeometry::Vec3T<T>(x, y, z));
   };
 
   /*!
@@ -97,7 +96,7 @@ public:
   inline const Face&
   getFace(const uint32_t a_index) const noexcept
   {
-    return m_sdf->getRoot().getPrimitives()[a_index];
+    return m_sdf->getRoot()->getPrimitives()[a_index];
   }
 
 protected:

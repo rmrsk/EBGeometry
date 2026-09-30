@@ -4,8 +4,8 @@
 
 /**
  * @file    EBGeometry_PointCloudBVH.hpp
- * @brief   A point-cloud BVH built on PackedBVH, with high-level nearest-neighbor and closest-point
- *          queries.
+ * @brief   A point-cloud BVH built on PackedBVH: fast index-based build and high-level
+ *          nearest-neighbor / closest-point queries.
  * @author  Robert Marskar
  */
 
@@ -32,11 +32,14 @@
 namespace EBGeometry {
 
 /**
- * @brief A BVH over a point cloud, with turnkey queries.
+ * @brief A BVH over a point cloud, with a fast build and turnkey queries.
  * @details Holds a PackedBVH over SoA point groups (rather than deriving from one) together with
- * the cloud data the queries need. It is built directly from a raw point cloud -- positions plus a
- * parallel array of user metadata -- by BVH::buildTopology() with BVH::Strategy::Midpoint, the
- * cheapest build for points, and each leaf's points are packed into PointAoSoA<T, size_t, W> groups.
+ * the cloud data the queries need. Unlike the general PackedBVH constructors (which take a list of pre-made primitives and
+ * partition it via SAH/Midpoint/SFC), PointCloudBVH is built directly from a raw point cloud --
+ * positions plus a parallel array of user metadata. It uses an index-based, copy-free top-down
+ * build (partition an index permutation in place by longest-axis midpoint, pack leaves into
+ * PointAoSoA<T, size_t, W> groups inline), which is far cheaper than the general path and produces
+ * a tree just as tight for near-uniform clouds.
  *
  * Every leaf carries the point's **cloud index** (its position in the input arrays) as metadata,
  * so queries return that index; the user's own metadata is stored alongside and reachable via
@@ -61,8 +64,8 @@ namespace EBGeometry {
  * @tparam Meta User metadata type stored per point and returned via metadata(). Must be trivially
  *              copyable, since it is stored in pool memory. Defaults to the cloud index itself
  *              (std::size_t).
- * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (4).
- * @tparam W    Points per SoA leaf lane group. Defaults to PointSoA::DefaultWidth<T>() (4).
+ * @tparam K    BVH branching factor. Defaults to the SIMD-optimal value for T.
+ * @tparam W    Points per SoA leaf lane group. Defaults to the SIMD-optimal width for T.
  */
 template <class T,
           class Meta = std::size_t,
@@ -130,9 +133,7 @@ public:
    * @param[in,out] a_pool       Pool the packed BVH's arrays are reserved from; must outlive this object.
    * @param[in] a_positions      Point positions.
    * @param[in] a_metadata       Per-point user metadata (same length/order as a_positions).
-   * @param[in] a_targetLeafSize Maximum points per leaf. The tree is built by BVH::buildTopology()
-   * with BVH::Strategy::Midpoint, the fastest build for points, and each leaf's points are packed
-   * into SoA groups of W.
+   * @param[in] a_targetLeafSize Target points per leaf (the build stops splitting at or below it).
    */
   EBGEOMETRY_HOST
   inline PointCloudBVH(Pool&                        a_pool,
@@ -351,29 +352,32 @@ public:
 
 private:
   /**
-   * @brief Per-point tables the build produces alongside the BVH, stored by the constructor.
+   * @brief The arrays produced by the index-based build, copied into pool storage by the delegated
+   * constructor.
    */
-  struct BuildTables
+  struct BuildResult
   {
-    std::vector<std::uint32_t> leafOff; ///< Per-point own-leaf group offset (for seeding).
-    std::vector<std::uint32_t> leafCnt; ///< Per-point own-leaf group count (for seeding).
-    std::vector<std::uint32_t> order;   ///< Point indices in leaf (build) order -- spatially coherent.
+    std::vector<Node>          nodes;      ///< Flat BVH nodes in depth-first layout.
+    std::vector<PointGroup>    primitives; ///< Packed SoA leaf groups referenced by the leaf nodes.
+    std::vector<std::uint32_t> leafOff;    ///< Per-point own-leaf group offset (for seeding).
+    std::vector<std::uint32_t> leafCnt;    ///< Per-point own-leaf group count (for seeding).
+    std::vector<std::uint32_t> order;      ///< Point indices in leaf (build) order -- spatially coherent.
   };
 
   /**
-   * @brief Delegated-to constructor: build the BVH, filling @p a_tables, then store the cloud.
-   * @param[in,out] a_pool           Pool every array is reserved from; must outlive this object.
-   * @param[in]     a_positions      Point positions (indexed by cloud index).
-   * @param[in]     a_metadata       Per-point user metadata (same length/order as a_positions).
-   * @param[in]     a_targetLeafSize Maximum points per leaf.
-   * @param[in]     a_tables         Scratch tables, filled by the build and then stored.
+   * @brief Delegated-to constructor: adopt a completed build result and retain the cloud data.
+   * @details Hands the BVH arrays of a_build to the held PackedBVH, then copies the point cloud
+   * (positions, metadata) and per-point seeding tables into the same pool.
+   * @param[in,out] a_pool      Pool every array is reserved from; must outlive this object.
+   * @param[in]     a_build     Completed index-based build result.
+   * @param[in]     a_positions Point positions (indexed by cloud index).
+   * @param[in]     a_metadata  Per-point user metadata (same length/order as a_positions).
    */
   EBGEOMETRY_HOST
   inline PointCloudBVH(Pool&                        a_pool,
+                       const BuildResult&           a_build,
                        const std::vector<Vec3T<T>>& a_positions,
-                       const std::vector<Meta>&     a_metadata,
-                       std::size_t                  a_targetLeafSize,
-                       BuildTables&&                a_tables);
+                       const std::vector<Meta>&     a_metadata);
 
   /**
    * @brief Reserve the cloud arrays from @p a_pool and copy the given host arrays into them.
@@ -408,18 +412,17 @@ private:
   toHost(const PODVector<U>& a_array, const void* a_base);
 
   /**
-   * @brief Build the BVH over a point cloud and fill the per-point tables.
-   * @details Static so it can run in the member initializer list. The tree comes from
-   * BVH::buildTopology(), and each leaf's points are packed into PointGroup SoA groups.
-   * @param[in,out] a_pool      Pool to reserve the BVH from.
-   * @param[in]     a_positions Point positions to build over.
-   * @param[in]     a_leafSize  Maximum points per leaf.
-   * @param[out]    a_tables    Per-point seeding tables and the leaf order.
-   * @return The packed BVH.
+   * @brief Run the index-based, copy-free top-down midpoint build over a point cloud.
+   * @details Static so it can run before base construction (its result is forwarded to the delegated
+   * constructor above). Partitions an index permutation in place by longest-axis midpoint and packs
+   * the resulting leaves into PointGroup SoA groups inline.
+   * @param[in] a_positions Point positions to build over.
+   * @param[in] a_leafSize  Target points per leaf; the build stops splitting at or below it.
+   * @return The completed build result (nodes, packed leaves, and per-point seeding tables).
    */
   EBGEOMETRY_HOST
-  static inline Packed
-  buildBVH(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, std::size_t a_leafSize, BuildTables& a_tables);
+  static inline BuildResult
+  buildTree(const std::vector<Vec3T<T>>& a_positions, std::size_t a_leafSize);
 
   /**
    * @brief The shared query core: fill the a_k nearest to a_query into a_out.

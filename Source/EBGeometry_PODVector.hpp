@@ -283,24 +283,6 @@ struct PODVector
   }
 
   /**
-   * @brief Set the element count of an array filled by other means than assign() or push_back().
-   * @details For an array reserved on the host and written in place, for example by a device kernel:
-   *          the descriptor lives on the host and does not see those writes. A host operation.
-   * @param[in] a_count New element count (must be <= @c m_capacity; aborts otherwise, in every build).
-   */
-  EBGEOMETRY_HOST
-  void
-  setSize(uint32_t a_count)
-  {
-    EBGEOMETRY_REQUIRE(a_count <= m_capacity,
-                       "PODVector::setSize: the element count must not exceed the reserved capacity (%u > %u)",
-                       unsigned(a_count),
-                       unsigned(m_capacity));
-
-    m_size = a_count;
-  }
-
-  /**
    * @brief Bind a mutable raw-pointer view for a hot loop.
    * @details The span must not outlive the next reserve on the pool; see @ref PODSpan.
    * @param[in] a_base Current base address of the pool holding this array.

@@ -2124,19 +2124,25 @@ Parser::readIntoTriangles(const std::vector<std::string>& a_files)
 
 template <typename T, typename Meta, size_t K, size_t W>
 [[nodiscard]] inline TriMeshSDF<T, Meta, K, W>
-Parser::readIntoTriangleBVH(const std::string a_filename, Pool& a_pool, const BVH::BuildSpec& a_spec)
+Parser::readIntoTriangleBVH(const std::string a_filename,
+                            Pool&             a_pool,
+                            const size_t      a_maxLeafGroups,
+                            const BVH::Build  a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
-  return TriMeshSDF<T, Meta, K, W>(triangles, a_pool, a_spec);
+  return TriMeshSDF<T, Meta, K, W>(triangles, a_pool, a_build, a_maxLeafGroups);
 }
 
 template <typename T, typename Meta, size_t K, size_t W>
 [[nodiscard]] inline std::vector<TriMeshSDF<T, Meta, K, W>>
-Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files, Pool& a_pool, const BVH::BuildSpec& a_spec)
+Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
+                            Pool&                           a_pool,
+                            const size_t                    a_maxLeafGroups,
+                            const BVH::Build                a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
@@ -2145,7 +2151,7 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files, Pool& a_poo
 
   implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_pool, a_spec));
+    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_pool, a_maxLeafGroups, a_build));
   }
 
   return implicitFunctions;
@@ -2153,18 +2159,18 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files, Pool& a_poo
 
 template <typename T, typename Meta, size_t K>
 [[nodiscard]] inline MeshSDF<T, Meta, K>
-Parser::readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::BuildSpec& a_spec)
+Parser::readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::Build a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
 
-  return MeshSDF<T, Meta, K>(mesh, a_pool, a_spec);
+  return MeshSDF<T, Meta, K>(mesh, a_pool, a_build);
 }
 
 template <typename T, typename Meta, size_t K>
 [[nodiscard]] inline std::vector<MeshSDF<T, Meta, K>>
-Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const BVH::BuildSpec& a_spec)
+Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const BVH::Build a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
@@ -2174,7 +2180,7 @@ Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool,
   implicitFunctions.reserve(a_files.size());
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, a_pool, a_spec));
+    implicitFunctions.emplace_back(EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, a_pool, a_build));
   }
 
   return implicitFunctions;

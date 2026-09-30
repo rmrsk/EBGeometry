@@ -131,7 +131,7 @@ kernel and compares against the host:
 | Bounding volumes | `EBGeometry_BoundingVolumes.hpp` (`AABBT`, `SphereT`) | #132, #133 |
 | SoA/AoSoA leaves | `PointSoA`, `PointAoSoA`, `TriangleSoA`, `TriangleAoSoA` | #134 |
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
-| BVH traversal + storage | `PackedBVH` (`WideNode`, `pruneTraverse`; the builder `buildTopology` stays host-side) | this branch |
+| BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
 | Point-cloud BVH queries | `PointCloudBVH` (holds a `PackedBVH`; the build stays host-side) | roadmap step 0b |
 | Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF` (plain value types; no longer `SignedDistanceFunction`s; `MeshSDF::getClosestFaces` stays host-only) | roadmap step 4a |
 | Analytic shapes | The twelve classes in `EBGeometry_AnalyticDistanceFunctions.hpp` (plain value types; no longer `SignedDistanceFunction`s; constructors stay host-only) | roadmap step 4b, first PR |
@@ -141,7 +141,7 @@ kernel and compares against the host:
 
 | Component | Blocker |
 |---|---|
-| `BVH::buildTopology` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. A device-side builder can hand its arrays to `PackedBVH`'s pool-resident adopting constructor. |
+| `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
 | `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform` | Still the original virtual-`value()` design, now fed by user-written implicit functions only; this is where the tape returns. `approximateBoundingVolumeOctree` is a host-only free function taking any shape, mesh SDF, implicit function or callable |
@@ -231,9 +231,6 @@ mechanism is to be built in the meantime, since it would be a second tape.
    three arrays moved onto `Pool`/`PODVector`; the class is `static_assert`-ed trivially copyable and
    has `rebasedView()`/`deepCopy()`; stack depth differs by entry point (256 host, 64 device).
    `TreeBVH` stays host-only — it is the builder, and static geometry builds on the host.
-   *(Since superseded: `TreeBVH` and the partitioners were replaced by one host-side builder,
-   `BVH::buildTopology`, and one node layout, `BVH::WideNode`; the stack now holds (K−1)·depth+1
-   8-byte entries, for 64 node levels on the host and 32 on a device.)*
 
    The `shared_ptr`-based primitive array is gone, since a `shared_ptr` cannot be byte-copied into a
    device address space. PR #145 replaced it with a `StoragePolicy` template parameter offering
@@ -248,11 +245,11 @@ mechanism is to be built in the meantime, since it would be a second tape.
    "What is not" table and step 4.
 
    **The device traversal is correctness-first, and is not a tuned GPU kernel.** It is the textbook
-   formulation: one query point per thread, each with a private fixed-size stack, every lane descending
+   formulation: one query point per thread, each with a private 64-entry stack, every lane descending
    its own path. That is divergence-bound by construction — the warp executes the union of 32
    different descents and retires with the slowest lane — and the private stack is local memory
-   (776 B/thread at `K = 4`, whatever the precision), touched on every push and pop. `WideNode`'s SoA
-   box rows are also laid out for the wrong axis here: it exists so one *thread* can load K children into one SIMD
+   (1 KB/thread at `double`, 512 B at `float`), touched on every push and pop. `ChildAABBSoA` is also
+   laid out for the wrong axis here: it exists so one *thread* can load K children into one SIMD
    register, which is a CPU idea and buys nothing when a lane reads all K serially.
 
    None of that is measured — see step 0a; the kernel has never been compiled. It is recorded so the
@@ -278,8 +275,8 @@ mechanism is to be built in the meantime, since it would be a second tape.
 
    **The BVH side of this is already in place.** Under the tape a union's primitive is a clause id,
    so the union's BVH is a `PackedBVH<T, uint32_t, K>`: four bytes per primitive, no indirection, and
-   it already builds through every `PackedBVH` constructor and every `BuildSpec`, and is trivially
-   copyable.
+   it already builds through all four construction paths — the SFC, partitioner/SAH and `ClusterSpec`
+   constructors and `TreeBVH::pack()` — and is trivially copyable, verified against the tree.
    `PLAN.md`'s "PR D" section carries the evidence, including why the `IndexStorage` policy that once
    wrapped this pattern bought nothing over it.
 

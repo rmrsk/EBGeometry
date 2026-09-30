@@ -6,8 +6,7 @@ BVH-accelerated union whose primitives are themselves BVH-backed mesh signed dis
 
 The mesh's triangles are read once, and a translated copy is made for each of several positions.
 Each copy is built into its own `TriMeshSDF`, which stores the triangles in its own inner
-`PackedBVH` (built as the `BVH::BuildSpec` in `main.cpp` says: binned SAH, at most four full SIMD
-groups of triangles per leaf), and the placements are combined with `BVHUnion`, which builds an *outer* `PackedBVH`
+`PackedBVH`, and the placements are combined with `BVHUnion`, which builds an *outer* `PackedBVH`
 over them. A single distance query therefore descends two levels of BVH: first the outer union
 hierarchy, to find which placement (or placements) is near the query point, then that mesh's own
 inner hierarchy, to find the nearest triangle. The union's value is the minimum signed distance

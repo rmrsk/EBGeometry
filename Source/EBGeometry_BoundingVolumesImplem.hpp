@@ -335,21 +335,6 @@ AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept
 }
 
 template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline AABBT<T>
-AABBT<T>::merged(const AABBT<T>& a_other) const noexcept
-{
-  // Set the corners directly rather than through the corner constructor, which rejects an inverted
-  // box: the union of two default (inverted) boxes is itself inverted.
-  AABBT<T> box;
-
-  box.m_loCorner = min(m_loCorner, a_other.m_loCorner);
-  box.m_hiCorner = max(m_hiCorner, a_other.m_hiCorner);
-
-  return box;
-}
-
-template <class T>
 EBGEOMETRY_HOST
 AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others) noexcept
 {

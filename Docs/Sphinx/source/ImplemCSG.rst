@@ -348,9 +348,8 @@ fields, whose ``signedDistance()`` can be called on the host or inside a GPU ker
   that replaces virtual dispatch with a linear-SSA tape.
 * **Built in a** ``Pool``. The constructor takes the ``Pool`` to reserve the BVH from, the
   primitives, and one bounding box per primitive, which the BVH needs up front, plus an optional
-  ``BVH::BuildSpec`` (``BVH::BuildSpec{}``, binned SAH with at most four primitives per leaf, by
-  default; see :ref:`Chap:BVHConstruction`). The free functions ``BVHUnion``/``BVHSmoothUnion``
-  construct the same objects with the default ``BuildSpec``.
+  ``BVH::Build`` strategy (SAH by default). The free functions ``BVHUnion``/``BVHSmoothUnion``
+  construct the same objects.
 * **Mirrored to a GPU like any pool-backed type.** Freeze the pool, mirror it, and pass
   ``rebasedView(devicePool)`` to a kernel; ``deepCopy(pool)`` duplicates the storage.
 * **Primitives that live in a pool.** A mesh distance field, or a nested union, stored as a

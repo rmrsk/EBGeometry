@@ -73,11 +73,6 @@ try {
     Vec3(2, 2, 4),
   };
 
-  // How each inner BVH is built: binned SAH, with at most 4 * W triangles (four full SIMD groups) per
-  // leaf -- the library's default for a TriMeshSDF.
-  const BVH::BuildSpec spec{
-    BVH::Strategy::SAH, BVH::Curve::Morton, uint32_t(4 * EBGeometry::TriangleSoA::DefaultWidth<T>())};
-
   std::vector<Mesh> primitives;
   std::vector<BV>   boundingVolumes;
 
@@ -97,7 +92,7 @@ try {
       triangle.setVertexPositions(vertices);
     }
 
-    primitives.emplace_back(shifted, pool, spec);
+    primitives.emplace_back(shifted, pool, EBGeometry::BVH::Build::SAH, 4);
     boundingVolumes.push_back(primitives.back().computeBoundingVolume());
   }
 

@@ -12,7 +12,6 @@
 #include "TestGPU.hpp"
 #include "TestShapeIF.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -457,31 +456,6 @@ bruteTwoNearest(const std::vector<SphereSDF<T>>& a_spheres, const Vec3T<T>& a_po
   return a_blend(a, b, a_smoothLen);
 }
 
-// Every way to build a BVH: the five strategies, with all three curves for the space-filling-curve
-// build, each at the default leaf size.
-std::vector<BVH::BuildSpec>
-allBuildSpecs()
-{
-  return {BVH::BuildSpec{BVH::Strategy::SAH},
-          BVH::BuildSpec{BVH::Strategy::Centroid},
-          BVH::BuildSpec{BVH::Strategy::Midpoint},
-          BVH::BuildSpec{BVH::Strategy::ClusterSAH},
-          BVH::BuildSpec{BVH::Strategy::SpaceFillingCurve, BVH::Curve::Morton},
-          BVH::BuildSpec{BVH::Strategy::SpaceFillingCurve, BVH::Curve::Nested},
-          BVH::BuildSpec{BVH::Strategy::SpaceFillingCurve, BVH::Curve::Hilbert}};
-}
-
-// A readable label for a build specification, for INFO().
-std::string
-specName(const BVH::BuildSpec& a_spec)
-{
-  const char* strategies[] = {"SAH", "Centroid", "Midpoint", "ClusterSAH", "SpaceFillingCurve"};
-  const char* curves[]     = {"Morton", "Nested", "Hilbert"};
-
-  return std::string(strategies[static_cast<int>(a_spec.strategy)]) + "/" + curves[static_cast<int>(a_spec.curve)] +
-         "/maxLeafSize=" + std::to_string(a_spec.maxLeafSize);
-}
-
 using TestMeta = DCEL::DefaultMetaData;
 
 template <class T>
@@ -514,7 +488,7 @@ dodecahedronGrid(Pool& a_pool)
         triangle.setVertexPositions(vertices);
       }
 
-      meshes.emplace_back(shifted, a_pool, BVH::BuildSpec{BVH::Strategy::SAH, BVH::Curve::Morton, 1 * 4});
+      meshes.emplace_back(shifted, a_pool, BVH::Build::SAH, 1);
     }
   }
 
@@ -595,10 +569,8 @@ TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy, and the free function, giv
 
   const auto freeFunc = BVHUnion<T, SphereSDF<T>, K>(pool, spheres, bvs);
 
-  for (const auto& spec : allBuildSpecs()) {
-    INFO(specName(spec));
-
-    const BVHUnionIF<T, SphereSDF<T>, K> bvhUnion(pool, spheres, bvs, spec);
+  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH, BVH::Build::Morton, BVH::Build::Nested}) {
+    const BVHUnionIF<T, SphereSDF<T>, K> bvhUnion(pool, spheres, bvs, build);
 
     for (const auto& p : lineQueryPoints<T>()) {
       REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(freeFunc.signedDistance(p), exactMargin<T>()));
@@ -692,84 +664,12 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: every build strategy matches brute force w
 
   Pool pool(hostMemoryResource());
 
-  for (const auto& spec : allBuildSpecs()) {
-    INFO(specName(spec));
-
-    const BVHSmoothUnionIF<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, spec);
+  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH, BVH::Build::Morton, BVH::Build::Nested}) {
+    const BVHSmoothUnionIF<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
 
     for (const auto& p : queries) {
       REQUIRE_THAT(smooth.signedDistance(p),
                    withinAbsT(bruteTwoNearest(spheres, p, smoothLen, SmoothMinOp<T>{}), formulaMargin<T>()));
-    }
-  }
-}
-
-TEMPLATE_TEST_CASE("BVHUnionIF and BVHSmoothUnionIF: every build strategy and leaf size match brute force over "
-                   "random spheres",
-                   "[CSG][BVHUnion][BVHSmoothUnion]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  constexpr size_t K = 4;
-
-  // Overlapping spheres of different sizes, so that leaves and slot boxes overlap and the pruning
-  // bound is exercised, and query points both inside and well outside the cloud.
-  std::mt19937                      rng(7);
-  std::uniform_real_distribution<T> coord(T(0), T(10));
-  std::uniform_real_distribution<T> radius(T(0.1), T(1.2));
-  std::uniform_real_distribution<T> query(T(-3), T(13));
-
-  std::vector<SphereSDF<T>>           spheres;
-  std::vector<BV<T>>                  bvs;
-  std::vector<std::shared_ptr<IF<T>>> sphereIFs;
-
-  for (int i = 0; i < 300; i++) {
-    const Vec3T<T> center(coord(rng), coord(rng), coord(rng));
-    const T        r = radius(rng);
-
-    spheres.emplace_back(center, r);
-    bvs.push_back(sphereBV<T>(center, r));
-    sphereIFs.push_back(std::make_shared<Sphere<T>>(center, r));
-  }
-
-  const UnionIF<T> virtualUnion(sphereIFs);
-  const T          smoothLen = T(0.4);
-
-  std::vector<Vec3T<T>> queries;
-  std::vector<T>        bruteMin;
-  std::vector<T>        bruteSmooth;
-
-  for (int i = 0; i < 1000; i++) {
-    const Vec3T<T> p(query(rng), query(rng), query(rng));
-
-    T d = std::numeric_limits<T>::infinity();
-
-    for (const auto& sphere : spheres) {
-      d = std::min(d, sphere.signedDistance(p));
-    }
-
-    queries.push_back(p);
-    bruteMin.push_back(d);
-    bruteSmooth.push_back(bruteTwoNearest(spheres, p, smoothLen, SmoothMinOp<T>{}));
-  }
-
-  Pool pool(hostMemoryResource());
-
-  for (const uint32_t leafSize : {1U, 4U, 9U}) {
-    for (auto spec : allBuildSpecs()) {
-      spec.maxLeafSize = leafSize;
-
-      INFO(specName(spec));
-
-      const BVHUnionIF<T, SphereSDF<T>, K>       sharp(pool, spheres, bvs, spec);
-      const BVHSmoothUnionIF<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, spec);
-
-      for (size_t i = 0; i < queries.size(); i++) {
-        REQUIRE(sharp.signedDistance(queries[i]) == bruteMin[i]);
-        REQUIRE_THAT(sharp.signedDistance(queries[i]), withinAbsT(virtualUnion.value(queries[i]), formulaMargin<T>()));
-        REQUIRE_THAT(smooth.signedDistance(queries[i]), withinAbsT(bruteSmooth[i], formulaMargin<T>()));
-      }
     }
   }
 }
@@ -789,10 +689,8 @@ TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy handles many coincident pri
 
   Pool pool(hostMemoryResource());
 
-  for (const auto& spec : allBuildSpecs()) {
-    INFO(specName(spec));
-
-    const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, bvs, spec);
+  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH, BVH::Build::Morton, BVH::Build::Nested}) {
+    const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, bvs, build);
 
     REQUIRE_THAT(bvhUnion.signedDistance(Vec3T<T>::zeros()), withinAbsT(std::sqrt(T(3)) - T(0.5), formulaMargin<T>()));
     REQUIRE_THAT(bvhUnion.signedDistance(T(5) * Vec3T<T>::ones()), withinAbsT(T(-0.5), formulaMargin<T>()));
@@ -1421,44 +1319,17 @@ TEST_CASE("SmoothUnionIF and SmoothUnion: reject a non-positive smoothing length
                      "SmoothUnion: the first implicit function must not be null"));
 }
 
-TEST_CASE("BVHUnionIF and BVHSmoothUnionIF: reject an unknown build strategy or curve, a zero leaf size and a "
-          "non-positive smoothing length",
+TEST_CASE("BVHUnionIF and BVHSmoothUnionIF: reject an unknown build strategy and a non-positive smoothing length",
           "[CSG][BVHUnion][BVHSmoothUnion]")
 {
   REQUIRE(abortsWith(
     [] {
       Pool pool(hostMemoryResource());
 
-      BVH::BuildSpec spec;
-      spec.strategy = static_cast<BVH::Strategy>(42);
-
-      (void)BVHUnionIF<double, SphereSDF<double>, 4>(pool, sphereRow<double>(), sphereRowBVs<double>(), spec);
+      (void)BVHUnionIF<double, SphereSDF<double>, 4>(
+        pool, sphereRow<double>(), sphereRowBVs<double>(), static_cast<BVH::Build>(42));
     },
-    "BVH::BuildSpec: unknown strategy (42)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      Pool pool(hostMemoryResource());
-
-      BVH::BuildSpec spec;
-      spec.strategy = BVH::Strategy::SpaceFillingCurve;
-      spec.curve    = static_cast<BVH::Curve>(7);
-
-      (void)BVHUnionIF<double, SphereSDF<double>, 4>(pool, sphereRow<double>(), sphereRowBVs<double>(), spec);
-    },
-    "BVH::BuildSpec: unknown curve (7)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      Pool pool(hostMemoryResource());
-
-      BVH::BuildSpec spec;
-      spec.maxLeafSize = 0;
-
-      (void)BVHSmoothUnionIF<double, SphereSDF<double>, 4>(
-        pool, sphereRow<double>(), sphereRowBVs<double>(), 0.5, SmoothMinOp<double>{}, spec);
-    },
-    "BVH::BuildSpec: the maximum leaf size must be positive"));
+    "BVHUnionIF: unknown BVH::Build strategy (42)"));
 
   REQUIRE(abortsWith(
     [] {
