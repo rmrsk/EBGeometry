@@ -431,10 +431,10 @@ Status as of 30 September 2026, on `claude/pre-tape-audit`:
 | 4. Transform and shape formulas (CSG-1/2/3/4/8/9/10/11/15, QA-6) | Done | `c92d13d` |
 | 5. Point clouds (PC-2/9/13) | Done; the `uint32` index type (PC-7) moves to the `Hit` unification in Phase 2 | `581a47b` |
 | 6. Device build safety (MESH-5, PC-3, MEM-3/4/6) | Done | `fab7299` |
-| 7. Small fixes | Open | |
-| 8. Oracle tests | Open (the shape property test landed with item 4) | |
-| 9. Docs corrections | Open | |
-| 10. CI and hook hygiene | Open | |
+| 7. Small fixes (PC-15, MEM-10/13, MESH-10) | Done | `262d211` |
+| 8. Oracle tests (QA-7) | Done; the shape property test landed with item 4 | `e18a785` |
+| 9. Docs corrections (QA-10/12/23, MEM-9, BVH-9, MESH-18, PC-19) | Done | `4b68cfc`, `7aefdcd`, `b566783` |
+| 10. CI and hook hygiene (QA-20/22, D15) | Done; GPU-CUDA stays advisory | `926969c` |
 
 Corrections found while fixing:
 
@@ -448,8 +448,14 @@ Corrections found while fixing:
 - **MESH-3.** Running every reader over corrupted copies of the fixtures under ASan found crashes in
   all four formats, beyond the ones listed, and a precision bug: binary PLY indices were converted
   through `T`, so with `T = float` any index above 2^24 rounded to a neighbouring vertex.
+- **QA-7.** On the L-shaped fixture, a concave edge is 90 degrees, and there either wall's normal
+  alone still gives the right sign, so that fixture cannot catch a broken edge pseudonormal. A second
+  fixture with a narrow notch does. Neither fixture has a vertex that is the only closest feature to
+  some point, so vertex-normal weighting stays covered by the existing BVH tests only.
+- **QA-20.** Sphinx in CI now runs with `-W`. Locally the only warnings are the eight figures that
+  CI renders before building.
 
-Remaining Phase 0 items:
+Phase 0 is complete. Items 7–10 were:
 
 7. **Small fixes**: `Random` argument evaluation order (PC-15); replace Vec3T's non-ordering
    `operator<` family with named predicates (MEM-10); `MeshT::deepCopy` of an empty mesh (MEM-13);
