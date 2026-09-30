@@ -137,7 +137,7 @@ CMake options
        32-byte-aligned slots while still emitting 64-byte-aligned AVX-512 spills, which faults on an
        AVX-512 host in correct code. Clang keeps the use-after-return check.
    * - ``EBGEOMETRY_SIMD``
-     - ``avx``
+     - ``avx`` (``none`` when another project includes EBGeometry)
      - ``avx512`` enables ``-mavx512f -mavx2 -mavx -mfma -msse4.1``; ``avx``
        enables ``-mavx -mfma -msse4.1``; ``sse41`` enables ``-msse4.1``;
        ``none`` uses the scalar fallback.

@@ -266,6 +266,18 @@ jobs:
       - name: Run examples
         run: ctest --preset examples
 
+  CMake-consumer:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: CMake consumer (add_subdirectory, find_package)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build a project that uses EBGeometry, both ways
+        # Checks that the EBGeometry target works for a consuming project through add_subdirectory
+        # and through install + find_package, and imposes no SIMD flags on it (D12).
+        run: Scripts/check-cmake-consumer.sh "${{ runner.temp }}/consumer"
+
   Build-documentation:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Build-documentation
@@ -509,7 +521,7 @@ jobs:
     # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
     # deliberately not listed.
     if: always()
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
     runs-on: ubuntu-latest
     steps:
       - name: Require every dependency to have succeeded
