@@ -25,30 +25,27 @@ constexpr size_t K = BVH::DefaultBranchingRatio<T>();
 
 using Vec3 = EBGeometry::Vec3T<T>;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-using IF   = EBGeometry::ImplicitFunction<T>;
+using Mesh = EBGeometry::TriMeshSDF<T, Meta, K, EBGeometry::TriangleSoA::DefaultWidth<T>()>;
 
 int
 main(int argc, char* argv[])
 {
-#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
-  // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated CSG union
+  // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated union
   // (BVHUnionIF) whose primitives are themselves BVH-backed mesh signed distance functions
   // (TriMeshSDF). Each TriMeshSDF owns an inner PackedBVH over its SoA triangle groups, so a single
   // distance query descends the outer union BVH to locate the nearby mesh(es), then descends each of
   // those meshes' own inner BVH -- two levels of BVH traversal for one query.
   //
-  // The outer union stores its primitives as std::shared_ptr<const ImplicitFunction<T>>: it shares
-  // each mesh SDF by pointer rather than copying it. This is the recommended way to nest BVHs -- and
-  // nesting can recurse to any depth (a BVH of BVHs of BVHs...). See the "Polymorphic primitives"
-  // section in the user documentation of the BVH implementation for why the outer level cannot be a
-  // PackedBVH here: PackedBVH stores its primitives by value, and ImplicitFunction<T> is polymorphic
-  // so it cannot be stored by value at all.
+  // The outer union stores its primitives by value, in the same Pool as the meshes' own BVHs, and is
+  // itself a plain value type: the whole two-level hierarchy can be mirrored to a GPU in one piece
+  // and evaluated there. Nesting can recurse -- a union of such unions works the same way.
 
   // Mesh to place at several positions. Pass a path on the command line, or fall back to the
   // dodecahedron fixture shipped in the repository (Tests/data), so this example needs no
   // submodule. The path is relative to this example's own folder, which is the working directory
   // when the example is run.
   std::string file = "../../Tests/data/dodecahedron.stl";
+
   if (argc >= 2) {
     file = std::string(argv[1]);
   }
@@ -57,20 +54,14 @@ main(int argc, char* argv[])
               << "Usage: ./NestedBVH.ex <mesh-file>  (STL/PLY/VTK/OBJ, triangles only)\n";
   }
 
-  // Read the mesh directly into a BVH-backed TriMeshSDF using the library's default parameters
-  // (SIMD-optimal branching factor and SoA width, SAH build). Build it *once*, then
-  // instance it at several positions below: because every placement is the same mesh, they all
-  // share this single TriMeshSDF -- its (value-stored) inner packed BVH is built and stored exactly
-  // once, and each placement is just an EBGeometry::Translate wrapper holding a shared_ptr to that
-  // same object, shared by pointer and never rebuilt or copied per placement. This is the idiomatic
-  // way to replicate one mesh across a scene. (To place genuinely different meshes instead, read one
-  // TriMeshSDF per mesh file and translate each.)
-  // TriMeshSDF extracts flat Triangle objects from the parsed DCEL mesh and does not retain the
-  // mesh itself, so this Pool only needs to outlive the readIntoTriangleBVH call.
+  // Every mesh, and the outer union, is reserved from this one Pool, which must outlive them all.
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const auto tri   = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool);
-  const BV   triBV = tri->computeBoundingVolume();
+  // Read the mesh's triangles once. Each placement below gets its own translated copy, from which a
+  // TriMeshSDF (with its own inner BVH) is built using the library's default parameters. A union
+  // holds primitives of a single type, so placing genuinely different meshes works the same way, as
+  // long as they are all TriMeshSDF<T, Meta, K, W> with the same parameters.
+  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(file, pool);
 
   const std::vector<Vec3> shifts = {
     Vec3(0, 0, 0),
@@ -80,41 +71,39 @@ main(int argc, char* argv[])
     Vec3(2, 2, 4),
   };
 
-  std::vector<std::shared_ptr<IF>> primitives;
-  std::vector<BV>                  boundingVolumes;
+  std::vector<Mesh> primitives;
+  std::vector<BV>   boundingVolumes;
+
   primitives.reserve(shifts.size());
   boundingVolumes.reserve(shifts.size());
 
-  // Each placement shares the one inner mesh BVH; only its translation -- and its bounding volume
-  // for the outer union (the mesh's own AABB shifted by the same offset) -- differs.
   for (const Vec3& shift : shifts) {
-    primitives.emplace_back(EBGeometry::Translate<T>(tri, shift));
-    boundingVolumes.emplace_back(triBV.getLowCorner() + shift, triBV.getHighCorner() + shift);
+    auto shifted = triangles;
+
+    for (auto& triangle : shifted) {
+      auto vertices = triangle.getVertexPositions();
+
+      for (auto& v : vertices) {
+        v = v + shift;
+      }
+
+      triangle.setVertexPositions(vertices);
+    }
+
+    primitives.emplace_back(shifted, pool, EBGeometry::BVH::Build::SAH, 4);
+    boundingVolumes.push_back(primitives.back().computeBoundingVolume());
   }
 
   // Outer BVH: a BVH-accelerated union over the placements. This is the nested (two-level) BVH.
-  const auto nestedUnion = EBGeometry::BVHUnion<T, IF, BV, K>(primitives, boundingVolumes);
+  const auto nestedUnion = EBGeometry::BVHUnion<T, Mesh, K>(pool, primitives, boundingVolumes);
 
   std::cout << "Built a BVH union over " << primitives.size()
-            << " placements of one BVH-backed mesh SDF (a nested, two-level BVH).\n";
+            << " placements of a BVH-backed mesh SDF (a nested, two-level BVH).\n";
 
   // Evaluate at a few points: on a placement, between placements, and far outside everything.
   for (const Vec3& p : {Vec3(0, 0, 0), Vec3(2, 2, 0), Vec3(20, 20, 20)}) {
-    std::cout << "value(" << p << ") = " << nestedUnion->value(p) << "\n";
+    std::cout << "value(" << p << ") = " << nestedUnion.signedDistance(p) << "\n";
   }
 
   return 0;
-#else
-  // BVH-accelerated CSG unions are compiled out while the implicit-function layer awaits its
-  // index-based redesign; see the EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
-  (void)argc;
-  (void)argv;
-
-  std::cout << "This example is temporarily disabled: it is built on EBGeometry's BVH-accelerated\n"
-               "CSG union (BVHUnion/BVHUnionIF), which is compiled out during the GPU port while\n"
-               "the implicit-function and CSG layer is moved to an index-based design.\n"
-               "See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.\n";
-
-  return 0;
-#endif
 }

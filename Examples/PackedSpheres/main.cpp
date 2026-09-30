@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <random>
 #include <string>
-#include <thread>
 #include <type_traits>
+#include <vector>
 
 #include <EBGeometry.hpp>
 
@@ -23,21 +25,17 @@ using T = EBGEOMETRY_PRECISION;
 // Aliases for cutting down on typing.
 using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3   = EBGeometry::Vec3T<T>;
-using SDF    = EBGeometry::SignedDistanceFunction<T>;
 using Sphere = EBGeometry::SphereSDF<T>;
-
-using namespace std::chrono_literals;
 
 int
 main()
 {
-#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
   // Tree branching factor
-  constexpr int K = 4;
+  constexpr size_t K = 4;
 
-  // Make a sphere array consisting of about M^3 spheres.
-  std::vector<std::shared_ptr<Sphere>> spheres;
-  std::vector<AABB>                    boundingVolumes;
+  // Make a sphere array consisting of M^3 spheres.
+  std::vector<Sphere> spheres;
+  std::vector<AABB>   boundingVolumes;
 
   constexpr T   radius = 1.0;
   constexpr int M      = 80;
@@ -56,42 +54,45 @@ main()
         const Vec3 lo = center - radius * Vec3::ones();
         const Vec3 hi = center + radius * Vec3::ones();
 
-        spheres.emplace_back(std::make_shared<Sphere>(center, radius));
+        spheres.emplace_back(center, radius);
         boundingVolumes.emplace_back(lo, hi);
       }
     }
   }
 
-  // Make a standard union of these spheres. This is the union object which
-  // iterates through each and every object in the scene.
-  auto slowUnion = EBGeometry::Union<T, Sphere>(spheres);
+  // The naive union iterates through each and every sphere in the scene and keeps the smallest
+  // distance.
+  const auto slowUnion = [&spheres](const Vec3& a_point) -> T {
+    T minDist = std::numeric_limits<T>::infinity();
 
-  // Make a fast (BVH-accelerated) union from the same spheres and their precomputed
-  // bounding volumes above: the BVH lets a query skip most of the spheres whose bounding
-  // box is nowhere near the query point.
+    for (const auto& sphere : spheres) {
+      minDist = std::min(minDist, sphere.signedDistance(a_point));
+    }
+
+    return minDist;
+  };
+
+  // Make a fast (BVH-accelerated) union from the same spheres and their precomputed bounding
+  // volumes: the BVH lets a query skip most of the spheres whose bounding box is nowhere near the
+  // query point. The union stores the spheres by value in the pool, and is itself a plain value
+  // type that could be copied to a GPU and evaluated there.
   std::cout << "Partitioning " << spheres.size() << " spheres\n" << '\n';
-  const EBGeometry::BVHUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
 
-  // A third representation: rather than storing all M^3 spheres explicitly, tile a single
-  // sphere periodically. A query point is folded into its nearest tile before evaluating the
-  // sphere, so this needs neither a list of spheres nor a search structure -- just the tile
-  // period (center-to-center spacing) and how many tiles to repeat along the increasing
-  // direction of each axis (0 in the decreasing direction, since the packed lattice above
-  // only extends in the positive octant).
-  auto sph         = std::make_shared<Sphere>(Vec3::zeros(), radius);
-  auto sphereArray = EBGeometry::FiniteRepetition<T, Sphere>(
-    sph, (delta + 2 * radius) * Vec3::ones(), Vec3::zeros(), 80.0 * Vec3::ones());
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+  const EBGeometry::BVHUnionIF<T, Sphere, K> fastUnion(pool, spheres, boundingVolumes);
 
   // Create some samples in the bounding box of the BVH
   std::cout << "Sampling distance fields... \n" << '\n';
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
   std::uniform_real_distribution<T> dist(0.0, 1.0);
 
-  const AABB& bv = fastUnion.getBoundingVolume();
+  const AABB  bv = fastUnion.computeBoundingVolume();
   const Vec3& lo = bv.getLowCorner();
   const Vec3& hi = bv.getHighCorner();
 
   std::vector<Vec3> randomPositions;
+
   for (size_t i = 0; i < Nsamp; i++) {
     const T x = lo[0] + dist(rng) * (hi[0] - lo[0]);
     const T y = lo[1] + dist(rng) * (hi[1] - lo[1]);
@@ -100,42 +101,37 @@ main()
     randomPositions.emplace_back(x, y, z);
   }
 
-  // Time the results, using the standard union, the optimized union, and the finite repetition.
+  // Time the results, using the naive union and the BVH-accelerated union.
   std::chrono::duration<T, std::micro> slowTime(0.0);
   std::chrono::duration<T, std::micro> fastTime(0.0);
-  std::chrono::duration<T, std::micro> arrayTime(0.0);
 
-  T sumSlow  = 0.0;
-  T sumFast  = 0.0;
-  T sumArray = 0.0;
+  T sumSlow = 0.0;
+  T sumFast = 0.0;
 
   const auto t1 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : randomPositions) {
-    sumSlow += slowUnion->value(x);
-  }
-  const auto t2 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : randomPositions) {
-    sumFast += fastUnion.value(x);
-  }
-  const auto t3 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : randomPositions) {
-    sumArray += sphereArray->value(x);
-  }
-  const auto t4 = std::chrono::high_resolution_clock::now();
 
-  // Summing Nsamp values in a different order (naive scan vs. BVH traversal vs. finite-repetition
-  // folding) is not bit-for-bit reproducible -- floating-point addition isn't associative -- so
-  // compare the sums with a relative tolerance rather than requiring exact agreement. float needs
-  // a looser tolerance than double: accumulating Nsamp terms in a different order can land right
-  // at float's own ~1.19e-7 epsilon, which a flat 1e-7 tolerance intermittently flags as a
-  // mismatch (observed in CI).
+  for (const auto& x : randomPositions) {
+    sumSlow += slowUnion(x);
+  }
+
+  const auto t2 = std::chrono::high_resolution_clock::now();
+
+  for (const auto& x : randomPositions) {
+    sumFast += fastUnion.signedDistance(x);
+  }
+
+  const auto t3 = std::chrono::high_resolution_clock::now();
+
+  // Summing Nsamp values in a different order (naive scan vs. BVH traversal) is not bit-for-bit
+  // reproducible -- floating-point addition isn't associative -- so compare the sums with a
+  // relative tolerance rather than requiring exact agreement. float needs a looser tolerance than
+  // double: accumulating Nsamp terms in a different order can land right at float's own ~1.19e-7
+  // epsilon, which a flat 1e-7 tolerance intermittently flags as a mismatch (observed in CI).
   constexpr T relativeTolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-7);
 
-  const T fastScale  = std::max(std::abs(sumSlow), std::abs(sumFast));
-  const T arrayScale = std::max(std::abs(sumSlow), std::abs(sumArray));
+  const T fastScale = std::max(std::abs(sumSlow), std::abs(sumFast));
 
-  if (std::abs(sumSlow - sumFast) > relativeTolerance * std::max(fastScale, T(1.0)) ||
-      std::abs(sumSlow - sumArray) > relativeTolerance * std::max(arrayScale, T(1.0))) {
+  if (std::abs(sumSlow - sumFast) > relativeTolerance * std::max(fastScale, T(1.0))) {
     std::cerr << "Got wrong distance!" << '\n';
 
     return 2;
@@ -143,23 +139,10 @@ main()
 
   slowTime += (t2 - t1);
   fastTime += (t3 - t2);
-  arrayTime += (t4 - t3);
 
   std::cout << "Time using slow union (us)   = " << slowTime.count() / Nsamp << "\n";
-  std::cout << "Time using fast union (us)   = " << fastTime.count() / Nsamp << "\n";
-  std::cout << "Time using sphere array (us) = " << arrayTime.count() / Nsamp << "\n\n";
+  std::cout << "Time using fast union (us)   = " << fastTime.count() / Nsamp << "\n\n";
   std::cout << "BVH speedup over naive       = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
-  std::cout << "BVH penalty over optimal     = " << (1.0 * fastTime.count()) / (1.0 * arrayTime.count()) << "\n";
 
   return 0;
-#else
-  // BVH-accelerated CSG unions are compiled out while the implicit-function layer awaits its
-  // index-based redesign; see the EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
-  std::cout << "This example is temporarily disabled: it is built on EBGeometry's BVH-accelerated\n"
-               "CSG union (BVHUnion/BVHUnionIF), which is compiled out during the GPU port while\n"
-               "the implicit-function and CSG layer is moved to an index-based design.\n"
-               "See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.\n";
-
-  return 0;
-#endif
 }

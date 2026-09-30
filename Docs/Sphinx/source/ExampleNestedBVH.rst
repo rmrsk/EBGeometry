@@ -3,29 +3,18 @@
 NestedBVH
 =========
 
-.. warning::
+Builds a *nested* bounding volume hierarchy: an outer, BVH-accelerated union whose primitives are
+themselves BVH-backed mesh signed distance functions. The triangles of one mesh are read once, a
+translated copy is built into a ``TriMeshSDF`` (which owns an inner ``PackedBVH`` over its triangle
+groups) for each of several positions, and the placements are combined with ``BVHUnion``, which
+builds the outer ``PackedBVH`` over them. A single distance query therefore descends two levels of
+BVH -- the outer union hierarchy to locate the nearby placement, then that mesh's own inner
+hierarchy to find the nearest triangle (see :ref:`Chap:BVH` and :ref:`Sec:BVHUnions`).
 
-   **Temporarily disabled.** The BVH-accelerated CSG unions (``BVHUnionIF``, ``BVHSmoothUnionIF``
-   and their ``BVHUnion``/``BVHSmoothUnion`` factories) are compiled out during the GPU port, behind
-   ``EBGEOMETRY_ENABLE_BVH_CSG_UNION`` in :file:`Source/EBGeometry_CSG.hpp`. They stored their
-   primitives as ``std::shared_ptr<const ImplicitFunction<T>>``, which ``PackedBVH`` no longer
-   supports -- it stores its primitives by value (see :ref:`Sec:PolymorphicPrimitives`). They return
-   with the index-based redesign of the implicit-function and CSG layer. Until then this program
-   builds, but prints a notice and exits without doing any work.
-
-Builds a *nested* bounding volume hierarchy: an outer, BVH-accelerated CSG union whose primitives
-are themselves BVH-backed mesh signed distance functions. One triangle mesh is loaded once into a
-``TriMeshSDF`` (which owns an inner ``PackedBVH`` over its triangle groups) and then instanced at
-several positions -- each placement a ``Translate`` wrapper sharing a pointer to that same
-``TriMeshSDF`` -- and the placements are combined with ``BVHUnion``, which builds the outer
-``PackedBVH`` over them. A single distance query therefore descends two levels of BVH — the outer
-union hierarchy to locate the nearby placement, then the mesh's own inner hierarchy to find the
-nearest triangle (see :ref:`Chap:BVH` and :ref:`Chap:ImplemCSG`).
-
-The outer union shared each placement by pointer rather than copying it, so the one inner mesh BVH
-was built and stored just once. That sharing is exactly what ``PackedBVH``'s removed
-``shared_ptr``-based primitive array provided; see :ref:`Sec:PolymorphicPrimitives` for why storing
-primitives by value cannot stand in for it, and what replaces the pattern.
+The outer union stores the ``TriMeshSDF``\ s by value, in the same ``Pool`` as their inner BVHs, so
+the whole hierarchy is one plain value that can be mirrored to a GPU and evaluated there. Each
+placement has its own copy of the triangles; sharing one mesh between translated placements is a
+composition that returns with the tape.
 
 The source for this example is at :file:`Examples/NestedBVH/main.cpp`. See :ref:`Chap:Building`
 for how to compile it with CMake, GNU Make, or a direct compiler invocation. Unlike the mesh-reading

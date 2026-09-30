@@ -51,6 +51,12 @@ using Meta = short;
   template class DifferenceIF<PREC>;                                         \
   template class SmoothDifferenceIF<PREC>;                                   \
   template class FiniteRepetitionIF<PREC>;                                   \
+  template struct SmoothMinOp<PREC>;                                         \
+  template struct SmoothMaxOp<PREC>;                                         \
+  template struct ExpMinOp<PREC>;                                            \
+  template class BVHUnionIF<PREC, SphereSDF<PREC>, 4>;                       \
+  template class BVHSmoothUnionIF<PREC, SphereSDF<PREC>, 4>;                 \
+  template class BVHSmoothUnionIF<PREC, BoxSDF<PREC>, 4, ExpMinOp<PREC>>;    \
                                                                                \
   /* -- Transformation implicit functions ----------------------------------*/\
   template class ComplementIF<PREC>;                                         \

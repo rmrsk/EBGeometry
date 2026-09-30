@@ -306,6 +306,18 @@ FlatMeshSDF<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
+inline FlatMeshSDF<T, Meta>
+FlatMeshSDF<T, Meta>::relocatedTo(const PoolLocation& a_location) const noexcept
+{
+  FlatMeshSDF view = *this;
+
+  view.m_mesh = m_mesh.relocatedTo(a_location);
+
+  return view;
+}
+
+template <class T, class Meta>
 EBGEOMETRY_HOST
 inline FlatMeshSDF<T, Meta>
 FlatMeshSDF<T, Meta>::deepCopy(Pool& a_dstPool) const
@@ -463,6 +475,19 @@ MeshSDF<T, Meta, K>::rebasedView(const Pool& a_pool) const noexcept
 
   view.m_mesh = m_mesh.rebasedView(a_pool);
   view.m_bvh  = m_bvh.rebasedView(a_pool);
+
+  return view;
+}
+
+template <class T, class Meta, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline MeshSDF<T, Meta, K>
+MeshSDF<T, Meta, K>::relocatedTo(const PoolLocation& a_location) const noexcept
+{
+  MeshSDF view = *this;
+
+  view.m_mesh = m_mesh.relocatedTo(a_location);
+  view.m_bvh  = m_bvh.relocatedTo(a_location);
 
   return view;
 }
@@ -650,6 +675,18 @@ TriMeshSDF<T, Meta, K, W>::rebasedView(const Pool& a_pool) const noexcept
   TriMeshSDF view = *this;
 
   view.m_bvh = m_bvh.rebasedView(a_pool);
+
+  return view;
+}
+
+template <class T, class Meta, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
+inline TriMeshSDF<T, Meta, K, W>
+TriMeshSDF<T, Meta, K, W>::relocatedTo(const PoolLocation& a_location) const noexcept
+{
+  TriMeshSDF view = *this;
+
+  view.m_bvh = m_bvh.relocatedTo(a_location);
 
   return view;
 }

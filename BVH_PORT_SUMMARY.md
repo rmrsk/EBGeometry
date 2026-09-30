@@ -79,6 +79,12 @@ trivially copyable and therefore mirrorable, but it inverts what the old copy co
 
 ## What is disabled
 
+> **Since restored** (`PORTING.md` roadmap step 4b, second PR), restricted to one primitive type:
+> `BVHUnionIF`/`BVHSmoothUnionIF` are now plain value types over a `PackedBVH<T, P, K>`, the guard is
+> gone, and `TestCSG`, `TestBVH`, `PackedSpheres`, `RandomCity` and `NestedBVH` are back. Only
+> `CSGUnion`, a union of two different types, still waits for the tape. The rest of this section
+> records the state at the end of the BVH port.
+
 The BVH-accelerated CSG unions are **compiled out**, not deleted, behind one
 `EBGEOMETRY_ENABLE_BVH_CSG_UNION` guard in `EBGeometry_CSG.hpp`. Restoring is a one-line change plus
 a primitive representation that can hold a polymorphic hierarchy — which is the index-based

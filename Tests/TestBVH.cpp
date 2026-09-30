@@ -2565,10 +2565,6 @@ TEMPLATE_TEST_CASE("BVH::MidpointPartitioner: handles degenerate-axis primitive 
   }
 }
 
-// The nested-BVH case exercises BVHUnion, which is compiled out while the BVH-accelerated CSG
-// unions await the index-based redesign of the implicit-function layer. See the
-// EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
-#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
 TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests each mesh's inner "
                    "PackedBVH inside the outer union PackedBVH and matches a brute-force min",
                    "[BVH][CSG][BVHUnion][Nested]",
@@ -2577,61 +2573,66 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
   using T    = TestType;
   using Vec3 = Vec3T<T>;
   using BV   = BoundingVolumes::AABBT<T>;
-  using IF   = ImplicitFunction<T>;
 
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
+  using Tri = TriMeshSDF<T, Meta, K, W>;
+
   // Two distinct triangle meshes read from the in-repo fixtures. Each TriMeshSDF owns an inner
   // PackedBVH over SoA triangle groups -- these are the inner BVHs that the outer union BVH nests
-  // over.
+  // over. Both are the same C++ type, which is all a BVHUnion needs.
   Pool       pool(hostMemoryResource());
-  const auto dodec = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
-  const auto tetra = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
+  const auto dodec = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.stl"), pool);
+  const auto tetra = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
 
   // Spread several translated mesh SDFs out so the outer union BVH has real structure to partition
-  // and prune, rather than collapsing to a single leaf.
-  const std::vector<std::pair<DCEL::MeshT<T, Meta>, Vec3>> placements = {
+  // and prune, rather than collapsing to a single leaf. Each copy is translated before its
+  // TriMeshSDF is built.
+  const std::vector<std::pair<std::vector<Triangle<T, Meta>>, Vec3>> placements = {
     {dodec, Vec3(0, 0, 0)},
     {dodec, Vec3(4, 0, 0)},
     {tetra, Vec3(0, 4, 0)},
     {tetra, Vec3(-4, -4, 2)},
   };
 
-  std::vector<std::shared_ptr<IF>> primitives;
-  std::vector<BV>                  boundingVolumes;
-  primitives.reserve(placements.size());
-  boundingVolumes.reserve(placements.size());
+  std::vector<Tri> primitives;
+  std::vector<BV>  boundingVolumes;
 
-  for (const auto& [mesh, shift] : placements) {
-    // Inner BVH: a TriMeshSDF holds its own PackedBVH over the mesh's SoA triangle groups.
-    const auto tri = std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, pool, BVH::Build::SAH, 2);
-    const BV   bv  = tri->computeBoundingVolume();
+  for (const auto& [triangles, shift] : placements) {
+    auto shifted = triangles;
 
-    // Store each mesh SDF as the common base type, translated into place. Its bounding volume for
-    // the outer union is the mesh's own AABB shifted by the same amount.
-    primitives.emplace_back(Translate<T>(tri, shift));
-    boundingVolumes.emplace_back(bv.getLowCorner() + shift, bv.getHighCorner() + shift);
+    for (auto& triangle : shifted) {
+      auto vertices = triangle.getVertexPositions();
+
+      for (auto& v : vertices) {
+        v = v + shift;
+      }
+
+      triangle.setVertexPositions(vertices);
+    }
+
+    primitives.emplace_back(shifted, pool, BVH::Build::SAH, 2);
+    boundingVolumes.push_back(primitives.back().computeBoundingVolume());
   }
 
-  // Outer BVH: a PackedBVH over std::shared_ptr<const ImplicitFunction<T>>, each element pointing
-  // at a TriMeshSDF that owns an inner PackedBVH -- a genuine two-level BVH hierarchy.
-  const auto nestedUnion = BVHUnion<T, IF, BV, K>(primitives, boundingVolumes);
-  REQUIRE(nestedUnion != nullptr);
+  // Outer BVH: a PackedBVH over the TriMeshSDFs by value, each owning an inner PackedBVH in the same
+  // pool -- a genuine two-level BVH hierarchy.
+  const auto nestedUnion = BVHUnion<T, Tri, K>(pool, primitives, boundingVolumes);
 
   // The union value is the minimum over all primitives; BVH pruning can never discard the actual
   // nearest one, so the nested traversal must agree exactly with a brute-force min over the same
   // translated primitives.
   for (const auto& p : queryPoints<T>()) {
     T bruteMin = std::numeric_limits<T>::infinity();
+
     for (const auto& prim : primitives) {
-      bruteMin = std::min(bruteMin, prim->value(p));
+      bruteMin = std::min(bruteMin, prim.signedDistance(p));
     }
 
-    REQUIRE_THAT(nestedUnion->value(p), withinAbsT(bruteMin, traversalMargin<T>()));
+    REQUIRE_THAT(nestedUnion.signedDistance(p), withinAbsT(bruteMin, traversalMargin<T>()));
   }
 }
-#endif // EBGEOMETRY_ENABLE_BVH_CSG_UNION
 
 TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shared primitives, "
                    "identical queries; the copies partition independently",

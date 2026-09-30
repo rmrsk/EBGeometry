@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <random>
 #include <string>
-#include <thread>
 #include <type_traits>
+#include <vector>
 
 #include <EBGeometry.hpp>
 
@@ -23,16 +25,11 @@ using T = EBGEOMETRY_PRECISION;
 // Aliases for cutting down on typing.
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
-using SDF  = EBGeometry::SignedDistanceFunction<T>;
 using Box  = EBGeometry::BoxSDF<T>;
-
-using namespace std::chrono_literals;
 
 int
 main()
 {
-#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
-
   // TLDR: This program places some random boxes on a lattice; the boxes represent buildings in a "random city". The buildings are placed on a
   //       an MxM sized lattice where the building width, length, and height are drawn from a uniform distribution with user-specified parameters.
 
@@ -41,29 +38,28 @@ main()
   // K         : BVH tree branching factor
   // N         : Number of random points to sample.
   // M         : Number of building *lots* per coordinate direction, indexed 0..M inclusive,
-  //             so the lattice actually places (M+1) x (M+1) buildings -- the "Partitioning
-  //             ... buildings" message below undercounts this slightly (M^2, not (M+1)^2).
+  //             so the lattice actually places (M+1) x (M+1) buildings.
   // dx        : Minimum separation between the buildings.
   // Wmin, Wmax: Minimum and maximum building width
   // Lmin, Lmax: Minimum and maximum building length
   // Hmin, Hmax: Minimum and maximum building height
 
-  constexpr int N    = 500;
-  constexpr int K    = 4;
-  constexpr int M    = 234;
-  constexpr T   dx   = 0.1;
-  constexpr T   Wmin = 1;
-  constexpr T   Wmax = 3;
-  constexpr T   Lmin = 1;
-  constexpr T   Lmax = 3;
-  constexpr T   Hmin = 1;
-  constexpr T   Hmax = 20;
+  constexpr int    N    = 500;
+  constexpr size_t K    = 4;
+  constexpr int    M    = 234;
+  constexpr T      dx   = 0.1;
+  constexpr T      Wmin = 1;
+  constexpr T      Wmax = 3;
+  constexpr T      Lmin = 1;
+  constexpr T      Lmax = 3;
+  constexpr T      Hmin = 1;
+  constexpr T      Hmax = 20;
 
   std::cout << "Domain is (0,0,0) to " << Vec3(M * (Wmax + dx), M * (Lmax + dx), M * (Hmax + dx)) << "\n";
 
   // Generate some random buildings on a lattice -- none of these should overlap.
-  std::vector<std::shared_ptr<Box>> buildings;
-  std::vector<AABB>                 boundingVolumes;
+  std::vector<Box>  buildings;
+  std::vector<AABB> boundingVolumes;
 
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
   std::uniform_real_distribution<T> udist(0, 1.0);
@@ -83,27 +79,40 @@ main()
       const Vec3 lo(xLo, yLo, 0.0);
       const Vec3 hi(xHi, yHi, H);
 
-      buildings.emplace_back(std::make_shared<Box>(lo, hi));
+      buildings.emplace_back(lo, hi);
       boundingVolumes.emplace_back(lo, hi);
     }
   }
 
-  // Create a standard and an optimized CSG union.
-  // (std::pow(M, 2) undercounts slightly -- see the M comment above; buildings.size() has the
-  // exact count.)
-  std::cout << "Partitioning " << std::pow(M, 2) << " buildings" << '\n';
-  auto slowUnion = EBGeometry::Union<T, Box>(buildings);
-  auto fastUnion = EBGeometry::BVHUnion<T, Box, AABB, K>(buildings, boundingVolumes);
+  // Create a standard and an optimized union. The standard union scans every building; the optimized
+  // one stores the buildings by value in a pool, behind a BVH over their bounding boxes.
+  std::cout << "Partitioning " << buildings.size() << " buildings" << '\n';
+
+  const auto slowUnion = [&buildings](const Vec3& a_point) -> T {
+    T minDist = std::numeric_limits<T>::infinity();
+
+    for (const auto& building : buildings) {
+      minDist = std::min(minDist, building.signedDistance(a_point));
+    }
+
+    return minDist;
+  };
+
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+  const auto fastUnion = EBGeometry::BVHUnion<T, Box, K>(pool, buildings, boundingVolumes);
 
   // Sample some random points in the bounding box of the BVH.
   Vec3 lo = Vec3::infinity();
   Vec3 hi = -Vec3::infinity();
+
   for (const auto& b : buildings) {
-    lo = min(lo, b->getLowCorner());
-    hi = max(hi, b->getHighCorner());
+    lo = min(lo, b.getLowCorner());
+    hi = max(hi, b.getHighCorner());
   }
 
   std::vector<Vec3> randomPositions;
+
   for (int i = 0; i < N; i++) {
     const T x = lo[0] + udist(rng) * (hi[0] - lo[0]);
     const T y = lo[1] + udist(rng) * (hi[1] - lo[1]);
@@ -121,13 +130,17 @@ main()
   T sumFast = 0.0;
 
   const auto t1 = std::chrono::high_resolution_clock::now();
+
   for (const auto& x : randomPositions) {
-    sumSlow += slowUnion->value(x);
+    sumSlow += slowUnion(x);
   }
+
   const auto t2 = std::chrono::high_resolution_clock::now();
+
   for (const auto& x : randomPositions) {
-    sumFast += fastUnion->value(x);
+    sumFast += fastUnion.signedDistance(x);
   }
+
   const auto t3 = std::chrono::high_resolution_clock::now();
 
   // Summing N values in a different order (naive scan vs. BVH traversal) is not bit-for-bit
@@ -153,14 +166,4 @@ main()
   std::cout << "Average speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
 
   return 0;
-#else
-  // BVH-accelerated CSG unions are compiled out while the implicit-function layer awaits its
-  // index-based redesign; see the EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
-  std::cout << "This example is temporarily disabled: it is built on EBGeometry's BVH-accelerated\n"
-               "CSG union (BVHUnion/BVHUnionIF), which is compiled out during the GPU port while\n"
-               "the implicit-function and CSG layer is moved to an index-based design.\n"
-               "See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.\n";
-
-  return 0;
-#endif
 }

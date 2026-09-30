@@ -1,33 +1,23 @@
 Examples/NestedBVH
 ------------------
 
-> **Temporarily disabled.** This example is built on EBGeometry's BVH-accelerated CSG union
-> (`BVHUnion`/`BVHUnionIF`/`BVHSmoothUnion`), which is compiled out during the GPU port while the
-> implicit-function and CSG layer is moved to an index-based design -- see
-> `EBGEOMETRY_ENABLE_BVH_CSG_UNION` in `Source/EBGeometry_CSG.hpp`. The program still builds, but
-> prints a notice and exits without doing any work.
-
 This folder shows how to build a *nested* bounding volume hierarchy (BVH): an outer,
-BVH-accelerated CSG union whose primitives are themselves BVH-backed mesh signed distance
-functions.
+BVH-accelerated union whose primitives are themselves BVH-backed mesh signed distance functions.
 
-The mesh is loaded once into a `TriMeshSDF`, which stores the mesh triangles in its own inner
-`PackedBVH`. That single mesh SDF is then instanced at several positions -- each placement is a
-`Translate` wrapper holding a shared pointer to the *same* `TriMeshSDF` -- and the placements are
-combined with `BVHUnion`, which builds an *outer* `PackedBVH` over them. A single distance query
-therefore descends two levels of BVH: first the outer union hierarchy, to find which placement (or
-placements) is near the query point, then the mesh's own inner hierarchy, to find the nearest
-triangle. The union's value is the minimum signed distance over all placements -- negative inside
-any of them, positive outside all of them.
+The mesh's triangles are read once, and a translated copy is made for each of several positions.
+Each copy is built into its own `TriMeshSDF`, which stores the triangles in its own inner
+`PackedBVH`, and the placements are combined with `BVHUnion`, which builds an *outer* `PackedBVH`
+over them. A single distance query therefore descends two levels of BVH: first the outer union
+hierarchy, to find which placement (or placements) is near the query point, then that mesh's own
+inner hierarchy, to find the nearest triangle. The union's value is the minimum signed distance
+over all placements -- negative inside any of them, positive outside all of them.
 
-The outer union stores its primitives as `std::shared_ptr<const ImplicitFunction<T>>`, so it
-*shares* each placement by pointer rather than copying it -- and because the placements all point at
-one `TriMeshSDF`, the inner packed BVH is built and stored just once. That sharing came from the
-`PackedBVH`'s ability to store primitives as `shared_ptr`, which has been removed: a `shared_ptr` is
-not trivially copyable and so can never be mirrored into a device address space. A packed BVH now
-stores plain values, which cannot hold a polymorphic primitive like `ImplicitFunction<T>` -- an
-abstract type has no size to store. See the "Polymorphic primitives" section
-of the [BVH implementation](https://rmrsk.github.io/EBGeometry/ImplemBVH.html) documentation.
+The outer union stores the `TriMeshSDF`s by value, in the same `Pool` as their inner BVHs, and is
+itself a plain value type, so the whole two-level hierarchy can be mirrored to a GPU in one piece
+and evaluated there. A union holds primitives of a single C++ type, so every placement is a
+`TriMeshSDF` with the same parameters; placing different meshes works the same way. Each placement
+has its own copy of the triangles: sharing one mesh between translated placements is a composition
+(a translation applied to a shared mesh) that returns with the tape.
 
 By default the example uses the small `dodecahedron.stl` fixture shipped in the repository
 (`Tests/data/`), so it needs no submodule. Pass a different triangle mesh (STL/PLY/VTK/OBJ) on the

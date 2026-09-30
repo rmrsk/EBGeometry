@@ -135,6 +135,7 @@ kernel and compares against the host:
 | Point-cloud BVH queries | `PointCloudBVH` (holds a `PackedBVH`; the build stays host-side) | roadmap step 0b |
 | Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF` (plain value types; no longer `SignedDistanceFunction`s; `MeshSDF::getClosestFaces` stays host-only) | roadmap step 4a |
 | Analytic shapes | The twelve classes in `EBGeometry_AnalyticDistanceFunctions.hpp` (plain value types; no longer `SignedDistanceFunction`s; constructors stay host-only) | roadmap step 4b, first PR |
+| BVH unions | `BVHUnionIF`, `BVHSmoothUnionIF` over one primitive type (plain value types; no longer `ImplicitFunction`s); `SmoothMinOp`/`SmoothMaxOp`/`ExpMinOp`; `PoolLocation` relocation of pool-resident primitives | roadmap step 4b, second PR |
 
 ## What is not
 
@@ -144,7 +145,7 @@ kernel and compares against the host:
 | `Triangle<T, Meta>` (AoS), `Octree` | Not started |
 | `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform` | Still the original virtual-`value()` design, now fed by user-written implicit functions only; this is where the tape returns. `approximateBoundingVolumeOctree` is a host-only free function taking any shape, mesh SDF, implicit function or callable |
-| `BVHUnionIF` / `BVHSmoothUnionIF` | **Compiled out** behind `EBGEOMETRY_ENABLE_BVH_CSG_UNION`. They stored polymorphic primitives as `shared_ptr`, which a trivially-copyable primitive array cannot hold; they return with the index-based CSG redesign in step 4 |
+| Unions of different primitive types | Need runtime dispatch, which is the tape. The `CSGUnion` example (a mesh plus a sphere) stays disabled until then |
 | Parsers (`OBJ`/`PLY`/`STL`/`VTK`/`Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended |
 
 ## Roadmap
@@ -159,18 +160,27 @@ kernel and compares against the host:
 started.** Actual sequence:
 
 > step 2 (done) → **0b** (done) → step 4 restricted to the mesh SDFs (done) → step 4 proper (analytic
-> shapes (done), then the homogeneous BVH unions) → step 3 (point clouds) → the loose ends (`Triangle`, `Octree`, `SFC`) → step 1
-> (DCEL reconcile) → step 6 (GPU examples, AMReX integration) → **step 5 (the tape), last**.
+> shapes and single-type BVH unions, done) → step 3 (point clouds) → the loose ends (`Triangle`,
+> `Octree`, `SFC`) → step 1 (DCEL reconcile) → step 6 (GPU examples, AMReX integration) →
+> **the pre-tape audit** → **step 5 (the tape), last**.
+>
+> **The pre-tape audit.** The state reached once every existing class is ported is a checkpoint.
+> Before the tape is started, the whole codebase is audited -- every header, test, example,
+> integration and document, not only what the port touched -- and whatever it finds is fixed
+> before step 5 begins. Items already noted for it: the `IF` suffix on `BVHUnionIF` and
+> `BVHSmoothUnionIF`, which are no longer `ImplicitFunction`s; the `Integrations/` examples still
+> written against the virtual CSG interface; the `CSGUnion` example's disabled code; and
+> `SignedDistanceFunction<T>`, which no built-in class implements any more.
 >
 > **0a** (a CUDA/HIP toolkit on the development machine) is not a sequence step: it is still open
 > and should be closed as early as possible, since every step after it adds device code.
 
-One consequence of porting step 4 before the tape: `BVHUnionIF`/`BVHSmoothUnionIF` come back on the
-host in step 4, but a union over primitives of *different* concrete types has no way to pick each
-primitive's formula on a device without some form of runtime dispatch -- which is what the tape is.
-Until step 5, such unions are host-only; homogeneous ones (every primitive the same concrete type)
-need no dispatch and can run on a device. No interim dispatch mechanism is to be built in the
-meantime, since it would be a second tape.
+One consequence of porting step 4 before the tape: `BVHUnionIF`/`BVHSmoothUnionIF` came back in
+step 4 restricted to one primitive type. A union over primitives of *different* concrete types has
+no way to pick each primitive's formula on a device without some form of runtime dispatch -- which
+is what the tape is -- so until step 5 there is no such union at all; homogeneous ones (every
+primitive the same concrete type) need no dispatch and run on a device. No interim dispatch
+mechanism is to be built in the meantime, since it would be a second tape.
 
 0a. **Prerequisite: a CUDA/HIP toolkit on the development machine.** There is none at present (a GPU
    is present; `nvcc` is not installed), so neither the `cuda` nor the `hip` preset configures and no
@@ -287,13 +297,20 @@ meantime, since it would be a second tape.
    test-only helper (`Tests/TestShapeIF.hpp`), and `approximateBoundingVolumeOctree` became a free
    function taking anything with a `signedDistance()`, a `value()` or a call operator.
 
-   **Next: the BVH unions, restricted to one primitive type (step 4b, second PR).** A
-   `PackedBVH<T, uint32_t, K>` plus a pool-backed array of value-type primitives (`SphereSDF`,
-   `BoxSDF`, `TriMeshSDF`, ...), trivially copyable and device-callable; the smooth-min/max blends
-   become copyable types instead of `std::function`s; `EBGEOMETRY_ENABLE_BVH_CSG_UNION` goes away.
-   This revises the acceptance test above: `RandomCity`, `PackedSpheres` and `NestedBVH` (with the
-   mesh translated before building rather than through `Translate`) come back, but `CSGUnion` -- a
-   union of a mesh and a sphere, i.e. of different types -- stays disabled until the tape.
+   **The BVH unions, restricted to one primitive type (step 4b, second PR, done).** A
+   `BVHUnionIF<T, P, K>` is a `PackedBVH<T, P, K>` over value-type primitives of one type (`SphereSDF`,
+   `BoxSDF`, `TriMeshSDF`, another union, ...), trivially copyable and device-callable, with no
+   `ImplicitFunction` base. The smooth-min/max blends became copyable function objects
+   (`SmoothMinOp` and friends; `SmoothMin<T>` is now an instance of one), and
+   `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is gone. The one new mechanism is `PoolLocation`: a
+   pool-resident primitive (a mesh SDF, or a nested union) is stored byte for byte in the union's
+   pool, host control block included, so the union applies its own location to a copy of each such
+   primitive as it evaluates it (`relocatedTo()`, on `PackedBVH`, `MeshT` and the mesh SDFs). A test
+   evaluates mirror and deep copies of a mesh union after destroying the source pool, which fails
+   under ASan without the relocation. This revised the acceptance test above: `RandomCity`,
+   `PackedSpheres` and `NestedBVH` (with the mesh translated before building rather than through
+   `Translate`) are back, but `CSGUnion` -- a union of a mesh and a sphere, i.e. of different
+   types -- stays disabled until the tape.
 
    **The tag/opcode registry is deferred to the tape.** It was to be defined in the first pass so the
    mesh SDFs and the analytic layer shared one scheme, but only the tape consumes it, and the tape is

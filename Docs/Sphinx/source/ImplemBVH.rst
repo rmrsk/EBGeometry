@@ -398,15 +398,18 @@ removed, because a ``shared_ptr`` is not trivially copyable and so can never cro
 address space.
 
 One part of the library depended on exactly that: the BVH-accelerated CSG unions
-(:ref:`Chap:ImplemCSG`), whose primitive is ``ImplicitFunction<T>`` and whose leaf evaluator calls a
-virtual ``value()`` through a base pointer. ``BVHUnionIF``, ``BVHSmoothUnionIF`` and their
-``BVHUnion``/``BVHSmoothUnion`` factories are therefore **compiled out** at present, behind
-``EBGEOMETRY_ENABLE_BVH_CSG_UNION`` in :file:`Source/EBGeometry_CSG.hpp`, along with the examples
-and tests that exercise them.
+(:ref:`Chap:ImplemCSG`), whose primitive was ``ImplicitFunction<T>`` and whose leaf evaluator called
+a virtual ``value()`` through a base pointer. They have returned restricted to a single primitive
+type: ``BVHUnionIF<T, P, K>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one type
+``P`` -- analytic shapes, mesh distance fields, or other unions -- and is itself trivially copyable
+(:ref:`Sec:BVHUnions`). A union of primitives of *different* types still needs runtime dispatch,
+which returns with the redesign of the implicit-function and CSG layer that replaces virtual
+dispatch with a linear-SSA tape.
 
-The resolution is the index-based redesign of the implicit-function and CSG layer as a whole, which
-replaces virtual dispatch with a linear-SSA tape. Nesting a BVH inside a BVH — the common
-realisation of which was a ``BVHUnion`` over several mesh SDFs — returns with it.
+Nesting a BVH inside a BVH -- a ``BVHUnion`` over several ``TriMeshSDF`` objects, say -- works
+today. The inner BVHs live in the same ``Pool`` as the outer one, and the outer union relocates each
+inner descriptor to its own pool location as it evaluates it, so the nested hierarchy mirrors to a
+device as one piece.
 
 Nesting itself is not the expensive part, incidentally. A ``PackedBVH`` is three ``PODVector``
 descriptors plus two address fields — 64 bytes, whatever the size of the BVH it describes — so a

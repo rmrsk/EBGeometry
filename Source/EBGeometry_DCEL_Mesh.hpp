@@ -517,6 +517,28 @@ public:
   inline Mesh
   rebasedView(const Pool& a_pool) const noexcept;
 
+  /**
+   * @brief The pool location this mesh resolves against.
+   * @return This mesh's control block (host) or base address (device view).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PoolLocation
+  location() const noexcept;
+
+  /**
+   * @brief A copy of this mesh resolving against @p a_location instead of its own location.
+   * @details For a descriptor stored inside another object's pool (see PoolLocation): the outer
+   * object applies its own location to a local copy of this descriptor, on the host and on a
+   * device alike. Unlike rebasedView() it checks nothing, since a device has no pool to check
+   * against: @p a_location must belong to the pool this mesh was reserved from, or to a mirror
+   * of it.
+   * @param[in] a_location Location to resolve against.
+   * @return A copy of this mesh resolving against @p a_location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Mesh
+  relocatedTo(const PoolLocation& a_location) const noexcept;
+
 protected:
   /**
    * @brief Control block of the Pool this mesh was reserved from; null if, and only if, this is a

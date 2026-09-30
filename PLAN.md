@@ -119,6 +119,8 @@ no second, permanently host-only backend.
 
 ### What the purge cost: BVH-accelerated CSG unions are compiled out
 
+> **Since restored**, restricted to one primitive type; see the correction under section 2 below.
+
 `BVHUnionIF`/`BVHSmoothUnionIF` keep their primitives alive through the primitive array of the
 `PackedBVH` they own, storing them as `shared_ptr<const P>` where `P` is the **abstract** base
 `ImplicitFunction<T>` in every real use (`Examples/CSGUnion`, `Examples/NestedBVH`,
@@ -435,9 +437,17 @@ pass/fail rather than a judgement call, and it repays the debt PR B took on.
 for the same reason it failed for the mesh SDFs -- a class with a vtable is never trivially
 copyable. The analytic shapes therefore became plain value types with no base class (done), and
 dropped out of the transforms and CSG, which keep their virtual interface for user-written implicit
-functions until the tape; no adapter. The BVH unions come back next restricted to one primitive
-type, which needs no dispatch; that brings back `RandomCity`, `PackedSpheres` and `NestedBVH`, while
+functions until the tape; no adapter. The BVH unions then came back restricted to one primitive
+type, which needs no dispatch (done): `BVHUnionIF<T, P, K>` is a `PackedBVH<T, P, K>` over value-type
+primitives, with pool-resident primitives such as `TriMeshSDF` relocated to the union's pool location
+as they are evaluated. That brought back `RandomCity`, `PackedSpheres` and `NestedBVH`, while
 `CSGUnion` (a mesh plus a sphere) waits for the tape. `PORTING.md`'s step 4 has the details.
+
+### Pre-tape audit
+
+Before the tape is started, the whole codebase is audited as a checkpoint -- every header, test,
+example, integration and document, not only what the port touched -- and the findings are fixed
+first. `PORTING.md`'s roadmap lists the items already noted for it.
 
 ### 3. The tape
 

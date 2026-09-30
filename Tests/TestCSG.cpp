@@ -7,11 +7,18 @@
 // fixtures so every expected value is hand-computable.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 #include "TestShapeIF.hpp"
 
 #include <cmath>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -324,10 +331,6 @@ TEMPLATE_TEST_CASE("SmoothUnion: free function matches SmoothUnionIF for both th
   }
 }
 
-// The whole BVH-accelerated union section is compiled out together with the classes it exercises,
-// which await the index-based redesign of the implicit-function layer. See the
-// EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
-#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
 // ─────────────────────────────────────────────────────────────────────────────
 // BVHUnionIF / BVHUnion() and BVHSmoothUnionIF / BVHSmoothUnion()
 // ─────────────────────────────────────────────────────────────────────────────
@@ -339,14 +342,41 @@ namespace {
 constexpr int NumRowSpheres = 12;
 
 template <class T>
-std::vector<std::shared_ptr<Sphere<T>>>
+Vec3T<T>
+rowCenter(const int a_i)
+{
+  return Vec3T<T>(T(3.0) * T(a_i), T(0), T(0));
+}
+
+// The row as plain value-type spheres, which is what the BVH unions store.
+template <class T>
+std::vector<SphereSDF<T>>
 sphereRow()
 {
-  std::vector<std::shared_ptr<Sphere<T>>> spheres;
+  std::vector<SphereSDF<T>> spheres;
+
   spheres.reserve(NumRowSpheres);
+
   for (int i = 0; i < NumRowSpheres; i++) {
-    spheres.push_back(std::make_shared<Sphere<T>>(Vec3T<T>(3.0 * i, 0, 0), T(1)));
+    spheres.emplace_back(rowCenter<T>(i), T(1));
   }
+
+  return spheres;
+}
+
+// The same row as ImplicitFunction objects, for the virtual UnionIF/SmoothUnionIF references.
+template <class T>
+std::vector<std::shared_ptr<IF<T>>>
+sphereRowIF()
+{
+  std::vector<std::shared_ptr<IF<T>>> spheres;
+
+  spheres.reserve(NumRowSpheres);
+
+  for (int i = 0; i < NumRowSpheres; i++) {
+    spheres.push_back(std::make_shared<Sphere<T>>(rowCenter<T>(i), T(1)));
+  }
+
   return spheres;
 }
 
@@ -355,10 +385,13 @@ std::vector<BV<T>>
 sphereRowBVs()
 {
   std::vector<BV<T>> bvs;
+
   bvs.reserve(NumRowSpheres);
+
   for (int i = 0; i < NumRowSpheres; i++) {
-    bvs.push_back(sphereBV<T>(Vec3T<T>(3.0 * i, 0, 0), T(1)));
+    bvs.push_back(sphereBV<T>(rowCenter<T>(i), T(1)));
   }
+
   return bvs;
 }
 
@@ -367,13 +400,119 @@ std::vector<Vec3T<T>>
 lineQueryPoints()
 {
   std::vector<Vec3T<T>> pts;
+
   for (const T x : sweepValues<T>(T(-2.0), T(35.0), 28)) {
-    pts.emplace_back(x, 0, 0);
+    pts.emplace_back(x, T(0.25), T(-0.5));
   }
+
+  return pts;
+}
+
+// Brute-force smooth union: blend the two smallest sphere values found by a full linear scan instead
+// of the pruned BVH traversal.
+template <class T, class Blend>
+T
+bruteTwoNearest(const std::vector<SphereSDF<T>>& a_spheres, const Vec3T<T>& a_point, const T a_smoothLen, Blend a_blend)
+{
+  T a = std::numeric_limits<T>::infinity();
+  T b = std::numeric_limits<T>::infinity();
+
+  for (const auto& sphere : a_spheres) {
+    const T d = sphere.signedDistance(a_point);
+
+    if (d < a) {
+      b = a;
+      a = d;
+    }
+    else if (d < b) {
+      b = d;
+    }
+  }
+
+  return a_blend(a, b, a_smoothLen);
+}
+
+using TestMeta = DCEL::DefaultMetaData;
+
+template <class T>
+using TestTriMesh = TriMeshSDF<T, TestMeta, 4, 4>;
+
+// A 3x2 grid of dodecahedra (circumradius ~1.4), each translated before its TriMeshSDF is built, all
+// in a_pool. This is how a union of several copies of one mesh is built without a Translate wrapper.
+template <class T>
+std::vector<TestTriMesh<T>>
+dodecahedronGrid(Pool& a_pool)
+{
+  const auto triangles =
+    Parser::readIntoTriangles<T, TestMeta>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.obj", a_pool);
+
+  std::vector<TestTriMesh<T>> meshes;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 2; j++) {
+      const Vec3T<T> shift(T(4) * T(i), T(4) * T(j), T(0));
+
+      auto shifted = triangles;
+
+      for (auto& triangle : shifted) {
+        auto vertices = triangle.getVertexPositions();
+
+        for (auto& v : vertices) {
+          v = v + shift;
+        }
+
+        triangle.setVertexPositions(vertices);
+      }
+
+      meshes.emplace_back(shifted, a_pool, BVH::Build::SAH, 1);
+    }
+  }
+
+  return meshes;
+}
+
+template <class T>
+std::vector<BV<T>>
+boundingVolumes(const std::vector<TestTriMesh<T>>& a_meshes)
+{
+  std::vector<BV<T>> bvs;
+
+  for (const auto& mesh : a_meshes) {
+    bvs.push_back(mesh.computeBoundingVolume());
+  }
+
+  return bvs;
+}
+
+template <class T>
+std::vector<Vec3T<T>>
+gridQueryPoints()
+{
+  std::vector<Vec3T<T>> pts;
+
+  for (const T x : sweepValues<T>(T(-2.0), T(10.0), 13)) {
+    pts.emplace_back(x, T(1.5), T(0.3));
+    pts.emplace_back(x, T(4.2), T(-1.0));
+  }
+
   return pts;
 }
 
 } // namespace
+
+TEMPLATE_TEST_CASE("BVHUnionIF: a plain, trivially copyable value type", "[CSG][BVHUnion]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnionIF<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnionIF<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnionIF<T, SphereSDF<T>, 4, ExpMinOp<T>>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnionIF<T, TestTriMesh<T>, 4>>);
+  STATIC_REQUIRE_FALSE(std::is_polymorphic_v<BVHUnionIF<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<SmoothMinOp<T>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<SmoothMaxOp<T>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<ExpMinOp<T>>);
+}
 
 TEMPLATE_TEST_CASE("BVHUnionIF: agrees with the sharp UnionIF over a row of spheres",
                    "[CSG][BVHUnion]",
@@ -381,23 +520,17 @@ TEMPLATE_TEST_CASE("BVHUnionIF: agrees with the sharp UnionIF over a row of sphe
 {
   using T = TestType;
 
-  constexpr size_t K = 4;
+  Pool pool(hostMemoryResource());
 
-  const auto spheres = sphereRow<T>();
-
-  const std::vector<BV<T>> bvs = sphereRowBVs<T>();
-
-  const BVHUnionIF<T, Sphere<T>, BV<T>, K> bvhUnion(spheres, bvs);
-
-  std::vector<std::shared_ptr<IF<T>>> asIF(spheres.begin(), spheres.end());
-  const UnionIF<T>                    sharpUnion(asIF);
+  const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
+  const UnionIF<T>                     sharpUnion(sphereRowIF<T>());
 
   for (const auto& p : lineQueryPoints<T>()) {
-    REQUIRE_THAT(bvhUnion.value(p), withinAbsT(sharpUnion.value(p), formulaMargin<T>()));
+    REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(sharpUnion.value(p), formulaMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("BVHUnion: free function matches BVHUnionIF and the (primsAndBVs) constructor overload",
+TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy, and the free function, give the same union",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -405,22 +538,19 @@ TEMPLATE_TEST_CASE("BVHUnion: free function matches BVHUnionIF and the (primsAnd
 
   constexpr size_t K = 4;
 
+  Pool pool(hostMemoryResource());
+
   const auto spheres = sphereRow<T>();
   const auto bvs     = sphereRowBVs<T>();
 
-  std::vector<std::pair<std::shared_ptr<const Sphere<T>>, BV<T>>> primsAndBVs;
-  primsAndBVs.reserve(bvs.size());
-  for (size_t i = 0; i < bvs.size(); i++) {
-    primsAndBVs.emplace_back(spheres[i], bvs[i]);
-  }
+  const auto freeFunc = BVHUnion<T, SphereSDF<T>, K>(pool, spheres, bvs);
 
-  const auto                               freeFunc = BVHUnion<T, Sphere<T>, BV<T>, K>(spheres, bvs);
-  const BVHUnionIF<T, Sphere<T>, BV<T>, K> fromPairs(primsAndBVs);
-  const BVHUnionIF<T, Sphere<T>, BV<T>, K> fromLists(spheres, bvs);
+  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH, BVH::Build::Morton, BVH::Build::Nested}) {
+    const BVHUnionIF<T, SphereSDF<T>, K> bvhUnion(pool, spheres, bvs, build);
 
-  for (const auto& p : lineQueryPoints<T>()) {
-    REQUIRE_THAT(freeFunc->value(p), withinAbsT(fromPairs.value(p), exactMargin<T>()));
-    REQUIRE_THAT(fromLists.value(p), withinAbsT(fromPairs.value(p), exactMargin<T>()));
+    for (const auto& p : lineQueryPoints<T>()) {
+      REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(freeFunc.signedDistance(p), exactMargin<T>()));
+    }
   }
 }
 
@@ -428,114 +558,255 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: agrees with SmoothUnionIF far from any ble
                    "[CSG][BVHSmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
-  using T    = TestType;
-  using Vec3 = Vec3T<T>;
+  using T = TestType;
 
-  constexpr size_t K         = 4;
-  const T          smoothLen = T(0.05); // Small relative to the 1-unit gap between spheres.
+  const T smoothLen = T(0.05); // Small relative to the 1-unit gap between spheres.
 
-  const auto spheres = sphereRow<T>();
+  Pool pool(hostMemoryResource());
 
-  const std::vector<BV<T>> bvs = sphereRowBVs<T>();
-
-  const BVHSmoothUnionIF<T, Sphere<T>, BV<T>, K> bvhSmooth(spheres, bvs, smoothLen);
-
-  std::vector<std::shared_ptr<IF<T>>> asIF(spheres.begin(), spheres.end());
-  const SmoothUnionIF<T>              sharpSmooth(asIF, smoothLen);
+  const BVHSmoothUnionIF<T, SphereSDF<T>, 4> bvhSmooth(pool, sphereRow<T>(), sphereRowBVs<T>(), smoothLen);
+  const SmoothUnionIF<T>                     sharpSmooth(sphereRowIF<T>(), smoothLen);
 
   // Deep inside any one sphere, far from every other sphere's surface.
-  for (int i = 0; i < 12; i++) {
-    const Vec3 deepInside(3.0 * i, 0, 0);
-    REQUIRE_THAT(bvhSmooth.value(deepInside), withinAbsT(sharpSmooth.value(deepInside), asymptoticMargin<T>()));
+  for (int i = 0; i < NumRowSpheres; i++) {
+    const Vec3T<T> deepInside = rowCenter<T>(i);
+
+    REQUIRE_THAT(bvhSmooth.signedDistance(deepInside),
+                 withinAbsT(sharpSmooth.value(deepInside), asymptoticMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("BVHSmoothUnionIF: matches a brute-force two-nearest smooth-min inside the blend region",
-                   "[CSG][BVHSmoothUnion]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T    = TestType;
-  using Vec3 = Vec3T<T>;
-
-  constexpr size_t K         = 4;
-  const T          smoothLen = T(0.6); // Large enough to actively blend across the 1-unit surface gaps.
-
-  const auto spheres = sphereRow<T>();
-
-  const std::vector<BV<T>> bvs = sphereRowBVs<T>();
-
-  const BVHSmoothUnionIF<T, Sphere<T>, BV<T>, K> bvhSmooth(spheres, bvs, smoothLen);
-
-  // Brute-force reference: the smooth-minimum of the two smallest sphere values, found by a full
-  // linear scan instead of the pruned BVH traversal. This is exactly what BVHSmoothUnionIF computes,
-  // so it validates that the (squared, b-based) pruning bound retains *both* blend inputs even in the
-  // overlap region where the two nearest surfaces interpenetrate -- the migration's key invariant.
-  const auto bruteTwoNearest = [&spheres, &smoothLen](const Vec3& a_point) -> T {
-    T a = std::numeric_limits<T>::infinity();
-    T b = std::numeric_limits<T>::infinity();
-
-    for (const auto& sphere : spheres) {
-      const T d = sphere->value(a_point);
-
-      if (d < a) {
-        b = a;
-        a = d;
-      }
-      else if (d < b) {
-        b = d;
-      }
-    }
-
-    return SmoothMin<T>(a, b, smoothLen);
-  };
-
-  for (const auto& p : lineQueryPoints<T>()) {
-    REQUIRE_THAT(bvhSmooth.value(p), withinAbsT(bruteTwoNearest(p), exactMargin<T>()));
-  }
-}
-
-TEMPLATE_TEST_CASE("BVHSmoothUnion: free function matches BVHSmoothUnionIF",
+TEMPLATE_TEST_CASE("BVHSmoothUnionIF: matches a brute-force two-nearest blend inside the blend region",
                    "[CSG][BVHSmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  constexpr size_t K         = 4;
-  const T          smoothLen = T(0.2);
+  const T smoothLen = T(0.6); // Large enough to actively blend across the 1-unit surface gaps.
+
+  Pool pool(hostMemoryResource());
 
   const auto spheres = sphereRow<T>();
+  const auto bvs     = sphereRowBVs<T>();
 
-  const std::vector<BV<T>> bvs = sphereRowBVs<T>();
-
-  const auto freeFunc = BVHSmoothUnion<T, Sphere<T>, BV<T>, K>(spheres, bvs, smoothLen);
-  const BVHSmoothUnionIF<T, Sphere<T>, BV<T>, K> direct(spheres, bvs, smoothLen);
+  // The pruning bound must retain *both* blend inputs even in the overlap region where the two
+  // nearest surfaces interpenetrate. Checked for both the default and the exponential blend.
+  const BVHSmoothUnionIF<T, SphereSDF<T>, 4>              polySmooth(pool, spheres, bvs, smoothLen);
+  const BVHSmoothUnionIF<T, SphereSDF<T>, 4, ExpMinOp<T>> expSmooth(pool, spheres, bvs, smoothLen);
+  const auto freeFunc = BVHSmoothUnion<T, SphereSDF<T>, 4>(pool, spheres, bvs, smoothLen);
 
   for (const auto& p : lineQueryPoints<T>()) {
-    REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
+    REQUIRE_THAT(polySmooth.signedDistance(p),
+                 withinAbsT(bruteTwoNearest(spheres, p, smoothLen, SmoothMinOp<T>{}), exactMargin<T>()));
+    REQUIRE_THAT(expSmooth.signedDistance(p),
+                 withinAbsT(bruteTwoNearest(spheres, p, smoothLen, ExpMinOp<T>{}), formulaMargin<T>()));
+    REQUIRE_THAT(freeFunc.signedDistance(p), withinAbsT(polySmooth.signedDistance(p), exactMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF::getBoundingVolume encloses every input sphere",
+TEMPLATE_TEST_CASE("BVHUnionIF::computeBoundingVolume encloses every input sphere",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  constexpr size_t K = 4;
+  Pool pool(hostMemoryResource());
 
-  const auto spheres = sphereRow<T>();
+  const auto bvs = sphereRowBVs<T>();
 
-  const std::vector<BV<T>> bvs = sphereRowBVs<T>();
-
-  const BVHUnionIF<T, Sphere<T>, BV<T>, K> bvhUnion(spheres, bvs);
-  const auto&                              rootBV = bvhUnion.getBoundingVolume();
+  const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, sphereRow<T>(), bvs);
+  const BV<T>                          rootBV = bvhUnion.computeBoundingVolume();
 
   for (const auto& bv : bvs) {
-    REQUIRE(rootBV.getLowCorner()[0] <= bv.getLowCorner()[0] + T(exactMargin<T>()));
-    REQUIRE(rootBV.getHighCorner()[0] >= bv.getHighCorner()[0] - T(exactMargin<T>()));
+    for (size_t dir = 0; dir < 3; dir++) {
+      REQUIRE(rootBV.getLowCorner()[dir] <= bv.getLowCorner()[dir] + T(exactMargin<T>()));
+      REQUIRE(rootBV.getHighCorner()[dir] >= bv.getHighCorner()[dir] - T(exactMargin<T>()));
+    }
   }
 }
-#endif // EBGEOMETRY_ENABLE_BVH_CSG_UNION
+
+TEMPLATE_TEST_CASE("BVHUnionIF: a union of translated TriMeshSDFs, and a union of that union, match brute force",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T      = TestType;
+  using Union  = BVHUnionIF<T, TestTriMesh<T>, 4>;
+  using Nested = BVHUnionIF<T, Union, 4>;
+
+  Pool pool(hostMemoryResource());
+
+  const auto meshes = dodecahedronGrid<T>(pool);
+
+  const Union  meshUnion(pool, meshes, boundingVolumes(meshes));
+  const Nested nested(pool, {meshUnion}, {meshUnion.computeBoundingVolume()});
+
+  for (const auto& p : gridQueryPoints<T>()) {
+    T brute = std::numeric_limits<T>::infinity();
+
+    for (const auto& mesh : meshes) {
+      brute = std::min(brute, mesh.signedDistance(p));
+    }
+
+    REQUIRE_THAT(meshUnion.signedDistance(p), withinAbsT(brute, exactMargin<T>()));
+    REQUIRE_THAT(nested.signedDistance(p), withinAbsT(brute, exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHUnionIF: host-mirror and deep copies of a TriMeshSDF union outlive the source pool",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T      = TestType;
+  using Union  = BVHUnionIF<T, TestTriMesh<T>, 4>;
+  using Nested = BVHUnionIF<T, Union, 4>;
+
+  const auto queries = gridQueryPoints<T>();
+
+  std::vector<T> expected;
+
+  Pool mirror(hostMemoryResource());
+  Pool copyPool(hostMemoryResource());
+
+  std::optional<Union>  mirrorView;
+  std::optional<Nested> nestedMirrorView;
+  std::optional<Union>  deepCopied;
+
+  {
+    Pool pool(hostMemoryResource());
+
+    const auto   meshes = dodecahedronGrid<T>(pool);
+    const Union  meshUnion(pool, meshes, boundingVolumes(meshes));
+    const Nested nested(pool, {meshUnion}, {meshUnion.computeBoundingVolume()});
+
+    for (const auto& p : queries) {
+      expected.push_back(meshUnion.signedDistance(p));
+    }
+
+    deepCopied.emplace(meshUnion.deepCopy(copyPool));
+
+    pool.freeze();
+    mirror = Pool::mirror(pool, hostMemoryResource());
+
+    mirrorView.emplace(meshUnion.rebasedView(mirror));
+    nestedMirrorView.emplace(nested.rebasedView(mirror));
+  }
+
+  // The source pool is gone. The meshes stored inside the union were copied byte for byte, host
+  // control block included, so each view resolves them against its own pool only because the union
+  // relocates them as it evaluates them; without that, these reads would be use-after-free.
+  REQUIRE(deepCopied->isAttachedTo(copyPool));
+
+  for (size_t i = 0; i < queries.size(); i++) {
+    REQUIRE(mirrorView->signedDistance(queries[i]) == expected[i]);
+    REQUIRE(nestedMirrorView->signedDistance(queries[i]) == expected[i]);
+    REQUIRE(deepCopied->signedDistance(queries[i]) == expected[i]);
+  }
+}
+
+#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+TEMPLATE_TEST_CASE("BVHUnionIF: rejects a mesh from another pool and a missing bounding volume",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T     = TestType;
+  using Union = BVHUnionIF<T, TestTriMesh<T>, 4>;
+
+  // Both checks are always on, not EBGEOMETRY_EXPECTs; the helper only runs where assertions are
+  // enabled, which is where this suite's death tests live.
+  REQUIRE_FALSE(abortsUnderAssertions([] {
+    Pool        pool(hostMemoryResource());
+    const auto  meshes = dodecahedronGrid<T>(pool);
+    const Union meshUnion(pool, meshes, boundingVolumes(meshes));
+
+    (void)meshUnion;
+  }));
+
+  REQUIRE(abortsUnderAssertions([] {
+    Pool        meshPool(hostMemoryResource());
+    Pool        unionPool(hostMemoryResource());
+    const auto  meshes = dodecahedronGrid<T>(meshPool);
+    const Union meshUnion(unionPool, meshes, boundingVolumes(meshes));
+
+    (void)meshUnion;
+  }));
+
+  REQUIRE(abortsUnderAssertions([] {
+    Pool       pool(hostMemoryResource());
+    const auto spheres = sphereRow<T>();
+    auto       bvs     = sphereRowBVs<T>();
+
+    bvs.pop_back();
+
+    const BVHUnionIF<T, SphereSDF<T>, 4> sphereUnion(pool, spheres, bvs);
+
+    (void)sphereUnion;
+  }));
+}
+#endif
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+
+using Catch::Matchers::WithinRel;
+
+namespace {
+
+// Evaluates a sphere union, a smooth sphere union and a TriMeshSDF union on the device. Each arrives
+// by value as a kernel argument.
+template <class T>
+EBGEOMETRY_GLOBAL
+void
+unionsDeviceKernel(const BVHUnionIF<T, SphereSDF<T>, 4>       a_sphereUnion,
+                   const BVHSmoothUnionIF<T, SphereSDF<T>, 4> a_smoothUnion,
+                   const BVHUnionIF<T, TestTriMesh<T>, 4>     a_meshUnion,
+                   const Vec3T<T>                             a_point,
+                   T*                                         a_out)
+{
+  a_out[0] = a_sphereUnion.signedDistance(a_point) + T(2) * a_smoothUnion.signedDistance(a_point) +
+             T(3) * a_meshUnion.signedDistance(a_point);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][gpu]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const auto meshes = dodecahedronGrid<T>(pool);
+
+  const BVHUnionIF<T, SphereSDF<T>, 4>       sphereUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
+  const BVHSmoothUnionIF<T, SphereSDF<T>, 4> smoothUnion(pool, sphereRow<T>(), sphereRowBVs<T>(), T(0.6));
+  const BVHUnionIF<T, TestTriMesh<T>, 4>     meshUnion(pool, meshes, boundingVolumes(meshes));
+
+  pool.freeze();
+
+  Pool devicePool = Pool::mirror(pool, deviceMemoryResource());
+
+  const auto sphereView = sphereUnion.rebasedView(devicePool);
+  const auto smoothView = smoothUnion.rebasedView(devicePool);
+  const auto meshView   = meshUnion.rebasedView(devicePool);
+
+  for (const auto& p : gridQueryPoints<T>()) {
+    const T hostVal =
+      sphereUnion.signedDistance(p) + T(2) * smoothUnion.signedDistance(p) + T(3) * meshUnion.signedDistance(p);
+
+    DeviceBuffer<T> deviceOut;
+
+    unionsDeviceKernel<T><<<1, 1>>>(sphereView, smoothView, meshView, p, deviceOut.get());
+    (void)GPU::deviceSynchronize();
+
+    REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
+  }
+}
+
+#endif
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IntersectionIF / Intersection()

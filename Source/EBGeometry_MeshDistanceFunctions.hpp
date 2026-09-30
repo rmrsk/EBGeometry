@@ -118,6 +118,18 @@ public:
   rebasedView(const Pool& a_pool) const noexcept;
 
   /**
+   * @brief A copy of this object resolving against @p a_location instead of its own pool location.
+   * @details For an object stored inside another object's pool, such as a primitive of a
+   * BVHUnionIF; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
+   * to the pool this object was reserved from, or to a mirror of it.
+   * @param[in] a_location Location to resolve against.
+   * @return A FlatMeshSDF resolving against @p a_location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline FlatMeshSDF
+  relocatedTo(const PoolLocation& a_location) const noexcept;
+
+  /**
    * @brief Duplicate the mesh's storage into @p a_dstPool.
    * @details The copy constructor copies descriptors only, leaving both objects resolving against
    * the same pool memory. This is the operation that gives genuinely independent storage.
@@ -310,6 +322,18 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline MeshSDF
   rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief A copy of this object resolving against @p a_location instead of its own pool location.
+   * @details For an object stored inside another object's pool, such as a primitive of a
+   * BVHUnionIF; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
+   * to the pool this object was reserved from, or to a mirror of it.
+   * @param[in] a_location Location to resolve against.
+   * @return A MeshSDF resolving against @p a_location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline MeshSDF
+  relocatedTo(const PoolLocation& a_location) const noexcept;
 
   /**
    * @brief Duplicate the mesh's and the BVH's storage into @p a_dstPool.
@@ -534,6 +558,18 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline TriMeshSDF
   rebasedView(const Pool& a_pool) const noexcept;
+
+  /**
+   * @brief A copy of this object resolving against @p a_location instead of its own pool location.
+   * @details For an object stored inside another object's pool, such as a primitive of a
+   * BVHUnionIF; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
+   * to the pool this object was reserved from, or to a mirror of it.
+   * @param[in] a_location Location to resolve against.
+   * @return A TriMeshSDF resolving against @p a_location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline TriMeshSDF
+  relocatedTo(const PoolLocation& a_location) const noexcept;
 
   /**
    * @brief Duplicate the BVH's storage into @p a_dstPool.

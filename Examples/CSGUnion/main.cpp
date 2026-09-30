@@ -30,7 +30,11 @@ using MeshSDF = EBGeometry::FlatMeshSDF<T, Meta>;
 int
 main(int argc, char* argv[])
 {
-#if EBGEOMETRY_ENABLE_BVH_CSG_UNION
+// Disabled until the tape: the code below predates the GPU port and unions two objects of different
+// types through the virtual ImplicitFunction interface, which neither the mesh SDF nor the sphere
+// implements any more. BVHUnionIF now holds primitives of a single type; a union of different types
+// needs the runtime dispatch the tape provides. Kept for reference until then.
+#if 0
   // This example shows how to merge two objects of *different* kinds into a single implicit function
   // using a BVH-accelerated CSG union (BVHUnionIF): a triangulated surface read from a mesh file, and
   // an analytic sphere. Because the two objects have different C++ types, they are combined through
@@ -82,15 +86,13 @@ main(int argc, char* argv[])
 
   return 0;
 #else
-  // BVH-accelerated CSG unions are compiled out while the implicit-function layer awaits its
-  // index-based redesign; see the EBGEOMETRY_ENABLE_BVH_CSG_UNION block in EBGeometry_CSG.hpp.
   (void)argc;
   (void)argv;
 
-  std::cout << "This example is temporarily disabled: it is built on EBGeometry's BVH-accelerated\n"
-               "CSG union (BVHUnion/BVHUnionIF), which is compiled out during the GPU port while\n"
-               "the implicit-function and CSG layer is moved to an index-based design.\n"
-               "See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.\n";
+  std::cout << "This example is temporarily disabled: it unions two objects of different types (a\n"
+               "mesh SDF and an analytic sphere). EBGeometry's BVH-accelerated union (BVHUnionIF)\n"
+               "holds primitives of a single type, and a union of different types needs the runtime\n"
+               "dispatch of the tape, which is still to come in the GPU port.\n";
 
   return 0;
 #endif

@@ -100,6 +100,27 @@ MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
 }
 
 template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
+inline PoolLocation
+MeshT<T, Meta>::location() const noexcept
+{
+  return PoolLocation{m_control, m_base};
+}
+
+template <class T, class Meta>
+EBGEOMETRY_HOST_DEVICE
+inline MeshT<T, Meta>
+MeshT<T, Meta>::relocatedTo(const PoolLocation& a_location) const noexcept
+{
+  MeshT<T, Meta> view = *this;
+
+  view.m_control = a_location.m_control;
+  view.m_base    = a_location.m_base;
+
+  return view;
+}
+
+template <class T, class Meta>
 EBGEOMETRY_HOST
 inline MeshT<T, Meta>
 MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
