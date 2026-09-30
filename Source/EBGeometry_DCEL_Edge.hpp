@@ -147,8 +147,8 @@ public:
   operator=(Edge&& a_otherEdge) = default;
 
   /**
-   * @brief Get size (in bytes) of this object.
-   * @return Size in bytes of this edge object.
+   * @brief Get the number of vertices spanned by a half-edge.
+   * @return Always 2 (the starting and ending vertex); not the object's size in bytes.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline size_t

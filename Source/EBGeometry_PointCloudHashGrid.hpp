@@ -43,8 +43,9 @@ namespace EBGeometry {
  * @note **Density matters.** The cell size is global, so PointCloudHashGrid is fastest on near-uniform
  * clouds. On strongly clustered / multi-scale clouds a single cell size is simultaneously too coarse
  * in dense regions and too fine in sparse ones; PointCloudBVH adapts to local density and is the
- * better choice there. The grid also serves only point queries -- unlike PointCloudBVH it is not a
- * BVH and cannot be composed as a primitive inside an outer BVH/CSG.
+ * better choice there. Like PointCloudBVH, the grid serves only point queries: neither exposes a
+ * signed distance or bounding volume, so neither can be composed as a primitive inside an outer
+ * BVH/CSG.
  *
  * @tparam T    Floating-point precision.
  * @tparam Meta User metadata type stored per point and returned via metadata(). Defaults to the

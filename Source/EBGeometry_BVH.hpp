@@ -53,7 +53,8 @@ enum class Build
   Nested,  ///< Bottom-up construction along a Nested space-filling curve.
   SAH      ///< Recursive top-down with binned Surface Area Heuristic splitting. This is the recommended
            ///< default: generally produces better-balanced trees and lower traversal cost than TopDown.
-           ///< Use with BinnedSAHPartitioner. See BinnedSAHPartitioner for recommended K values per ISA.
+           ///< Builders taking a Build select BinnedSAHPartitioner for this value; see it for
+           ///< recommended K values per ISA.
 };
 
 /**
@@ -65,11 +66,12 @@ enum class Build
  * single-threaded build cost, robust across uniform, surface, and clustered primitive distributions
  * (unlike a fixed Cartesian grid, which overcrowds on non-uniform data). @c maxClusterSize trades
  * build time (larger -> fewer, cheaper SAH units, faster build) against query quality (larger ->
- * coarser leaves).
+ * coarser leaves). It bounds the cluster, not the leaf: SAH stops splitting once a node holds fewer
+ * than K clusters, so a leaf may hold up to (K-1) * maxClusterSize primitives.
  */
 struct ClusterSpec
 {
-  size_t maxClusterSize = 8; ///< Maximum primitives per cluster (the leaf/bucket granularity). Must be > 0.
+  size_t maxClusterSize = 8; ///< Maximum primitives per cluster (bucket); a leaf holds 1 to K-1 clusters. Must be > 0.
 };
 
 /**
@@ -798,9 +800,10 @@ auto DefaultLeafPredicate =
  * pack() to obtain a cache-friendly PackedBVH for traversal.
  *
  * @tparam T  Floating-point precision.
- * @tparam P  Primitive type. Must provide getCentroid() -- construction/partitioning never
- * calls any other method on it. PackedBVH itself imposes no interface requirement on P either;
- * any further requirement comes entirely from whatever leaf-eval a caller passes to
+ * @tparam P  Primitive type. Construction imposes no interface requirement on P itself, except
+ * that PrimitiveCentroidPartitioner calls P::getCentroid(); the other partitioners and the
+ * bottom-up build work from the bounding volumes alone. PackedBVH imposes no interface requirement
+ * on P either; any further requirement comes entirely from whatever leaf-eval a caller passes to
  * PackedBVH::pruneTraverse() or PackedBVH::traverse() (see PackedBVH below).
  * @tparam BV Bounding volume type.
  * @tparam K  Tree branching factor (must be >= 2).
@@ -918,7 +921,8 @@ public:
    * @brief Recursively partition this node bottom-up along a space-filling curve.
    * @details S must provide encode() and decode() functions returning SFC indices.
    * Primitives are sorted by their bounding-volume centroid projected onto the curve,
-   * then grouped into leaves of size K and merged upwards to the root.
+   * then split evenly into K^d leaves (d = floor(log_K(N)), so at most K primitives each) and
+   * merged upwards in groups of K to the root.
    * @tparam S Space-filling curve type (e.g. Morton, Nested).
    */
   template <typename S>
@@ -1148,12 +1152,14 @@ protected:
  * PackedBVH member; callers build their own thin wrapper around pruneTraverse(), supplying
  * whatever primitive interface their own query needs.
  *
- * SIMD paths are selected at compile time via if constexpr, in pruneTraverse():
- * - K==4, T==float  → SSE4.1 (__m128)
- * - K==4, T==double → AVX    (__m256d)
- * - K==8, T==float  → AVX    (__m256)
- * - K==8, T==double → AVX    (two __m256d passes)
- * All other combinations fall back to scalar traversal.
+ * SIMD paths for pruneTraverse()'s child-box test are selected at compile time via if constexpr,
+ * in computeChildDistances2():
+ * - K==4,  T==float  → SSE4.1  (__m128)
+ * - K==4,  T==double → AVX     (__m256d)
+ * - K==8,  T==float  → AVX     (__m256)
+ * - K==8,  T==double → AVX-512F (__m512d), or AVX (two __m256d passes) without AVX-512F
+ * - K==16, T==float  → AVX-512F (__m512)
+ * All other combinations, and device compilation, use a scalar loop.
  *
  * Primitives are stored by value, inline in the flat array: no per-primitive heap allocation and
  * no pointer chase on a leaf visit. P must therefore be a self-contained, trivially copyable value
@@ -1322,9 +1328,10 @@ public:
 
     /**
      * @brief Get the squared distance from a_point to this node's bounding volume.
-     * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. pruneTraverse()'s
-     * scalar-fallback branch-and-bound compares against a squared pruning bound, so it uses this
-     * directly rather than taking a square root only to square it again.
+     * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. For a caller-written
+     * scalar branch-and-bound that compares against a squared pruning bound (e.g. PointCloudBVH's
+     * seeded single-nearest search), rather than taking a square root only to square it again.
+     * pruneTraverse() itself does not use it; it tests all K children at once through the SoA cache.
      * @param[in] a_point Query point.
      * @return Squared distance to the bounding-box surface, or zero if inside.
      */
@@ -1367,12 +1374,10 @@ public:
    * a_converter(leafPrims, offset, count) → std::vector<P>
    * @endcode
    *
-   * where @p leafPrims is the leaf's @c PrimitiveList<Q>, @p offset is the index of
-   * the first primitive in the global list, and @p count is the number of primitives in
-   * the leaf.  All returned vectors are stored contiguously in one buffer, which this
-   * PackedBVH's storage policy then materialises into its own primitive array -- via aliased
-   * this PackedBVH's storage policy then materialises into its own primitive array, taking
-   * ownership of the buffer directly.
+   * where @p leafPrims is the leaf's @c PrimitiveList<Q>, @p offset is the index of the leaf's first
+   * primitive within @p leafPrims (always 0U, since the whole leaf list is passed), and @p count is
+   * the number of primitives in the leaf. All returned vectors are appended to one contiguous
+   * buffer, which is then copied into this PackedBVH's pool-backed primitive array.
    *
    * The source tree must have been built with BV == AABBT<T>; bounding volumes are reused
    * without conversion.
@@ -1508,11 +1513,10 @@ public:
 
   /**
    * @brief Copy constructor.
-   * @details Explicitly defaulted for documentation purposes: unlike TreeBVH, PackedBVH's
-   * members (m_linearNodes, m_primitives, m_childAabbSoA) are all owned value containers with no
-   * shared mutable substructure, so the implicitly-generated deep copy is correct and safe. The
-   * primitives themselves are copied, which is sound for every primitive the library packs --
-   * DCEL::FaceT included, whose members are all plain values.
+   * @details Copies the descriptor only: m_linearNodes, m_primitives and m_childAabbSoA are
+   * PODVector handles into pool memory, so the copy resolves against the same pool storage as the
+   * original rather than owning its own. Nothing is duplicated, and a refit() through either object
+   * is seen by both. Use deepCopy() for genuinely independent storage.
    * @param[in] a_other Other instance to copy.
    */
   PackedBVH(const PackedBVH& a_other) = default;
@@ -1685,8 +1689,8 @@ public:
 
   /**
    * @brief Compute and return the bounding volume of this BVH.
-   * @details Identical to getBoundingVolume() but presents a getCentroid()-compatible
-   * interface, enabling PackedBVH to serve as a primitive in an outer TreeBVH hierarchy.
+   * @details Identical to getBoundingVolume(), but returns by value under the
+   * computeBoundingVolume() name other bounded objects use (BVHUnionIF forwards to it).
    * @return Root node bounding volume.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1743,8 +1747,9 @@ public:
    * @brief Generic SIMD-accelerated, distance-pruned traversal.
    * @details Same box-pruning strategy as @c traverse() above (skip subtrees already farther than
    * the current best; visit the closest-looking child first), but the box-vs-point distance test
-   * is vectorised across all @c K children at once (@c if @c constexpr dispatch on @c (K, T);
-   * falls back to the generic @c traverse() above when no compiled ISA path matches), and the
+   * is vectorised across all @c K children at once (@c if @c constexpr dispatch on @c (K, T) in
+   * computeChildDistances2(); a scalar loop over the same SoA cache when no compiled ISA path
+   * matches), and the
    * search itself is expressed through three caller-supplied pieces instead of four fixed
    * callbacks. @c State is whatever the search remembers between leaf visits. @c LeafEvaluator is
    * called only at leaves and is the sole place @c State may change. @c PruneDistSquared turns the

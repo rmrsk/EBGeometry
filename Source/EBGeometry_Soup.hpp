@@ -113,7 +113,8 @@ removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
 /**
  * @brief Convert a polygon soup into a DCEL half-edge mesh.
  * @details Builds vertices, half-edges, and faces from the input arrays, reconciles
- * pair edges, and runs a mesh sanity check. a_mesh is attached to a_pool by the first reserve here
+ * pair edges, runs a mesh sanity check, and computes the mesh normals (angle-weighted vertex
+ * normals). a_mesh is attached to a_pool by the first reserve here
  * and is queryable from that point on, including across the reserves that follow -- a_pool need not
  * be frozen, and may stay open for further meshes.
  * @tparam T    Floating-point precision type for vertex coordinates.
@@ -134,10 +135,11 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
 
 /**
  * @brief Reconcile pair edges: link each half-edge with its reverse.
- * @details For every half-edge (u→v) the function finds the corresponding reverse
- * half-edge (v→u) by circulating the half-edges around u (via pair/next edges of
- * whichever edges already have their pair set, falling back to a scan of u's
- * outgoing edges discovered so far) and sets the pair-edge index on both.
+ * @details First builds a transient vertex-to-outgoing-half-edges table in one pass over the edges
+ * (not stored on the mesh). Then, for every half-edge (u→v), it scans the half-edges starting at v
+ * for one whose next edge starts at u -- the reverse half-edge (v→u) -- and sets the pair-edge index
+ * on both. O(V + E) for bounded vertex valence; no circulation, so it needs no pair edges already
+ * set.
  * @tparam T    Floating-point precision type.
  * @tparam Meta Metadata type attached to DCEL edges.
  * @param[in,out] a_mesh Mesh whose half-edges are reconciled in place. Must already be attached to

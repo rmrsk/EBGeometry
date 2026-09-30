@@ -87,8 +87,8 @@ DefaultWidth() noexcept
  * that a pure position-only distance traversal never has metadata bytes anywhere near its hot data
  * -- not merely unused, but physically absent from this type.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
- * usage (PackedBVH storing groups inside a std::vector<PointSoAT>) is safe: C++17 mandates that
- * std::allocator respect over-alignment. If you allocate a PointSoAT yourself outside of that path
+ * usage (PackedBVH storing groups in a Pool-backed PODVector, reserved at the group's alignof
+ * inside a PoolBaseAlign-aligned block) is safe. If you allocate a PointSoAT yourself outside of that path
  * -- a raw `new`, a container with a custom/pre-C++17-style allocator, placement-new into
  * externally-owned storage, or a `malloc`'d buffer -- you are responsible for ensuring the memory
  * is aligned to `alignof(PointSoAT<T, W>)`; nothing in this class enforces or checks that.

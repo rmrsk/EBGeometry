@@ -91,7 +91,7 @@ inline void
 VertexT<T, Meta>::setEdge(const uint32_t a_edgeIndex) noexcept
 {
   // a_edgeIndex == UINT32_MAX is valid here; callers that resolve m_outgoingEdge are responsible
-  // for checking it first (see e.g. computeVertexNormalAngleWeighted).
+  // for checking it first (getOutgoingEdge() EXPECTs it set).
   m_outgoingEdge = a_edgeIndex;
 }
 

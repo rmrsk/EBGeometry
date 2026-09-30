@@ -359,9 +359,9 @@ public:
 protected:
   /**
    * @brief Index of an outgoing edge from this vertex.
-   * @details Index into the owning DCEL::MeshT's edge array, or UINT32_MAX if unset. This is also
-   * the seed half-edge for circulating the faces touching this vertex (see
-   * computeVertexNormalAverage()/computeVertexNormalAngleWeighted()).
+   * @details Index into the owning DCEL::MeshT's edge array, or UINT32_MAX if unset. Not read by
+   * computeVertexNormalAverage()/computeVertexNormalAngleWeighted(), which take the touching faces
+   * as an explicit list; see the class notes.
    */
   uint32_t m_outgoingEdge = UINT32_MAX;
 

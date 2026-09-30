@@ -4,19 +4,24 @@
 
 /**
  * @file   EBGeometry_Pool.hpp
- * @brief  Build-time-grow-then-freeze arena for the GPU memory foundation.
+ * @brief  Growable bump arena for the GPU memory foundation.
  * @details A @ref EBGeometry::Pool is a single contiguous byte block obtained from a
- * @ref EBGeometry::MemoryResource, into which many sub-regions are bump-reserved during a build
- * phase and from which nothing is individually freed. It has exactly two phases:
+ * @ref EBGeometry::MemoryResource, into which many sub-regions are bump-reserved and from which
+ * nothing is individually freed.
  *
- * - @b Build: @ref EBGeometry::Pool::reserve hands out byte offsets and may grow (reallocate) the
- *   block. Because every @ref EBGeometry::PODVector stores a byte @e offset rather than a pointer,
- *   a grow that moves the block invalidates no @ref EBGeometry::PODVector -- offsets are relative
- *   to @ref EBGeometry::Pool::base, which callers re-read.
- * - @b Query: after @ref EBGeometry::Pool::freeze the block is immutable, @ref EBGeometry::Pool::base
- *   is stable, and @ref EBGeometry::Pool::mirror can copy the whole block (one @c memcpy) into
- *   another resource -- the host-to-device upload. The same offsets resolve against the new base
- *   with zero pointer patching.
+ * Building and querying are not separate phases. @ref EBGeometry::Pool::reserve hands out byte
+ * offsets and may grow (reallocate and move) the block at any time. Because every
+ * @ref EBGeometry::PODVector stores a byte @e offset rather than a pointer, and pool-resident
+ * objects re-read the base through the pool's @ref EBGeometry::PoolControl on every access, a grow
+ * invalidates no @ref EBGeometry::PODVector and no such object: an object is queryable as soon as it
+ * is built, while the same pool keeps being built into. What a grow does invalidate is any address
+ * already resolved against the old base (a pointer, reference or @ref EBGeometry::PODSpan), hence
+ * the rule @b resolve, @b use, @b discard -- see @ref EBGeometry::Pool::reserve.
+ *
+ * @ref EBGeometry::Pool::freeze seals the pool (a further reserve is an EBGEOMETRY_EXPECT failure)
+ * and is the precondition for @ref EBGeometry::Pool::mirror, which copies the whole block (one
+ * @c memcpy) into another resource -- the host-to-device upload. The same offsets resolve against
+ * the new base with zero pointer patching. Freezing is not required to query anything.
  *
  * The @ref EBGeometry::Pool is the one owning, move-only, RAII (hence non-trivial) type of the
  * foundation; everything stored inside it is trivially copyable POD.
@@ -88,9 +93,9 @@ struct PoolLocation
 };
 
 /**
- * @brief Build-time-grow-then-freeze arena over a @ref MemoryResource.
- * @details Move-only, single-owner RAII. See the file-level documentation for the two-phase
- * (build / query) contract.
+ * @brief Growable bump arena over a @ref MemoryResource.
+ * @details Move-only, single-owner RAII. See the file-level documentation for how growth, freezing
+ * and mirroring interact, and @ref reserve for the resolve-use-discard rule.
  *
  * @note This is one of the two deliberately non-trivial types of the memory foundation (it owns a
  * block and a resource pointer with RAII semantics); everything stored @e inside it is trivially
@@ -181,8 +186,9 @@ public:
 
   /**
    * @brief Freeze the block: forbid further @ref reserve, stabilize @ref base, enable @ref mirror.
-   * @details Idempotent. This is the single synchronization point between the mutating build phase
-   *          and the read-only query phase.
+   * @details Idempotent and irreversible. The only precondition it establishes is the one
+   *          @ref mirror needs (a block that can no longer be reallocated); a reserve after it is an
+   *          EBGEOMETRY_EXPECT failure. Freezing is not required to query anything built in the pool.
    */
   EBGEOMETRY_HOST
   void

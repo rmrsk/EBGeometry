@@ -411,8 +411,8 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
     }
   }
 
-  // Reconcile the pair edges and run a sanity check. The mesh is queryable from its first reserve
-  // onwards, so these need no base of their own and a_pool need not be frozen.
+  // Reconcile the pair edges, run a sanity check, and compute the normals. The mesh is queryable
+  // from its first reserve onwards, so these need no base of their own and a_pool need not be frozen.
   Soup::reconcilePairEdgesDCEL(a_mesh);
 
   a_mesh.sanityCheck(a_id);

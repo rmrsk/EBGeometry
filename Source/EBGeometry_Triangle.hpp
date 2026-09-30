@@ -29,9 +29,9 @@ namespace EBGeometry {
  * This class assumes that the vertices are organized with the right-hand rule. I.e., edges are enumerated
  * as follows:
  *
+ * Edge 0 points from vertex 0 to vertex 1
  * Edge 1 points from vertex 1 to vertex 2
- * Edge 2 points from vertex 2 to vertex 3
- * Edge 3 points from vertex 3 to vertex 0
+ * Edge 2 points from vertex 2 to vertex 0
  *
  * This class can compute its own normal vector from the vertex positions, and the triangle orientation
  * is then implicitly given by the vertex order.

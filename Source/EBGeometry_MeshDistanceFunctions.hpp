@@ -269,7 +269,12 @@ public:
 
   /**
    * @brief Get the PackedBVH enclosing the mesh.
-   * @details Mutable, so that a caller who moves the mesh's vertices can refit() the BVH in place.
+   * @details Mutable, so that PackedBVH::refit() can be called on it. That alone does not make
+   * moving the mesh's vertices safe: refit() recomputes only the node bounding boxes, while each
+   * packed face is a by-value copy whose cached normal, centroid, area and projection axes were
+   * taken at build time, and nothing refreshes them -- signedDistance() would mix live vertex data
+   * from the mesh with stale face data. After moving vertices, reconcile the mesh and build a new
+   * MeshSDF.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE

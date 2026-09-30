@@ -154,7 +154,8 @@ public:
   /**
    * @brief Copy constructor.
    * @details Defaulted memberwise copy. Every member is a plain value (three PODVectors, the
-   * search-algorithm enum, and a resolved base pointer), so this is a cheap, always-safe descriptor
+   * search-algorithm enum, the Pool's control-block pointer, and the device-view base pointer, which
+   * is null outside a rebasedView() device view), so this is a cheap, always-safe descriptor
    * copy -- it does NOT duplicate the underlying vertex/edge/face data, which stays shared between
    * the original and the copy (both still resolve against the same Pool/base). Use deepCopy() when
    * independent, separately-owned storage is required (e.g. in a different Pool).

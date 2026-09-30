@@ -359,8 +359,9 @@ inline Vec3T<T>
 FaceT<T, Meta>::getSmallestCoordinate(const Mesh& a_mesh) const noexcept
 {
   // Seeded with the most-positive vector and reduced in place, rather than seeding from a
-  // materialized coordinate list -- the loop always runs at least once (EdgeIterator's constructor
-  // EBGEOMETRY_EXPECTs a valid half-edge), so the seed is never observable in the return value.
+  // materialized coordinate list. The loop runs at least once for any face whose half-edge index is
+  // set, so the seed is then never observable in the return value. EdgeIterator does not check this:
+  // a face with an unset half-edge (UINT32_MAX) makes ok() false at once, and the seed is returned.
   Vec3 minCoord = Vec3::max();
 
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {

@@ -84,9 +84,9 @@ DefaultWidth() noexcept
  * AVX-512F (float, W=16; double, W=8) — evaluating all W triangles simultaneously. Any other
  * (T,W) falls back to a scalar loop over m_validCount triangles.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
- * usage (PackedBVH storing groups inside a std::vector<TriangleSoAT>) is safe: C++17 mandates that
- * std::allocator respect over-alignment, which has been verified empirically for every (T,W)
- * combination this class supports. If you allocate a TriangleSoAT yourself outside of that path —
+ * usage is safe: PackedBVH stores groups in a Pool-backed PODVector<TriangleSoAT>, which reserves
+ * each array at alignof(TriangleSoAT) inside a block aligned to PoolBaseAlign (256 bytes), and the
+ * build-time std::vector staging relies on C++17's std::allocator respecting over-alignment. If you allocate a TriangleSoAT yourself outside of that path —
  * a raw `new`, a container with a custom/pre-C++17-style allocator, placement-new into
  * externally-owned storage, or a `malloc`'d buffer — you are responsible for ensuring the memory is
  * aligned to `alignof(TriangleSoAT<T, W>)`; nothing in this class enforces or checks that, and a
@@ -120,7 +120,8 @@ public:
    * @brief Evaluate signed distance from a_point to the closest triangle in this group.
    * @details Returns the signed distance with minimum absolute value among m_validCount triangles.
    * Dispatches to an SSE4.1 packed-float path for (T=float, W=4), to AVX packed-float for
-   * (T=float, W=8), to AVX packed-double for (T=double, W=4 or W=8), or to a scalar fallback.
+   * (T=float, W=8), to AVX packed-double for (T=double, W=4 or W=8), to AVX-512F for (T=float,
+   * W=16) and (T=double, W=8, preferred over AVX when available), or to a scalar fallback.
    * Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
    * @return Signed distance from a_point to the closest valid triangle, with sign determined by

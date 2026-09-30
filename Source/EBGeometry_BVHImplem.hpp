@@ -240,8 +240,8 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
   std::sort(std::begin(sortedPrimitives), std::end(sortedPrimitives), sortCrit);
 
   // Go through the SFC and merge leaves that are nearby. We are trying to build a _balanced_
-  // tree where all the leaves exist on the same level, so the numb
-  // a root node in the end.
+  // tree where all the leaves exist on the same level, so the number of leaves is a power of K and
+  // merging in groups of K ends in a single root node.
   const size_t numPrimitives = sortedPrimitives.size();
   const size_t treeDepth     = std::floor(std::log(numPrimitives) / std::log(K));
   const size_t numLeaves     = std::pow(K, treeDepth);
