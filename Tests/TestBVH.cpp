@@ -3386,3 +3386,29 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate on d
   REQUIRE_THAT(readScalar(triOut.get()), WithinRel(triHost, gpuTol<T>()));
 }
 #endif
+
+TEST_CASE("Default K and W are 4 whatever the compiler flags; host-tuned values follow the SIMD flags", "[BVH]")
+{
+  // The defaults must never depend on ISA macros: a type spelled with them has to be the same type in
+  // every translation unit and in both passes of a GPU compile.
+  static_assert(BVH::DefaultBranchingRatio<float>() == 4 && BVH::DefaultBranchingRatio<double>() == 4);
+  static_assert(TriangleSoA::DefaultWidth<float>() == 4 && TriangleSoA::DefaultWidth<double>() == 4);
+  static_assert(PointSoA::DefaultWidth<float>() == 4 && PointSoA::DefaultWidth<double>() == 4);
+
+#if defined(__AVX512F__)
+  constexpr size_t hostFloat  = 16;
+  constexpr size_t hostDouble = 8;
+#elif defined(__AVX__)
+  constexpr size_t hostFloat  = 8;
+  constexpr size_t hostDouble = 4;
+#else
+  constexpr size_t hostFloat  = 4;
+  constexpr size_t hostDouble = 4;
+#endif
+
+  static_assert(BVH::HostBranchingRatio<float>() == hostFloat && BVH::HostBranchingRatio<double>() == hostDouble);
+  static_assert(TriangleSoA::HostWidth<float>() == hostFloat && TriangleSoA::HostWidth<double>() == hostDouble);
+  static_assert(PointSoA::HostWidth<float>() == hostFloat && PointSoA::HostWidth<double>() == hostDouble);
+
+  SUCCEED();
+}

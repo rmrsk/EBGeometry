@@ -136,7 +136,7 @@ jobs:
     strategy:
       matrix:
         comp: [g++-11, g++-12]
-        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+        directory: [Examples/CSGUnion, Examples/HostTuning, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
       - uses: actions/checkout@v7
@@ -170,7 +170,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        directory: [Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+        directory: [Examples/HostTuning, Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
       - uses: actions/checkout@v7
@@ -208,7 +208,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+        directory: [Examples/CSGUnion, Examples/HostTuning, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
     steps:
       - uses: actions/checkout@v7
         with:

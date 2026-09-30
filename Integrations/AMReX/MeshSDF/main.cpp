@@ -22,13 +22,13 @@ using namespace amrex;
 #error "This example supports CPU, CUDA and HIP builds of AMReX; EBGeometry has no SYCL memory resource yet."
 #endif
 
-// EBGeometry precision, BVH branching factor and SoA width. K and W are spelled out rather than left
-// to their defaults, which follow the host's SIMD ISA: a CUDA/HIP build compiles this file twice (a
-// host pass and a device pass), and the TriMeshSDF type must be identical in both.
+// EBGeometry precision, BVH branching factor and SoA width. K and W are the library's defaults, which
+// never depend on compiler flags: a CUDA/HIP build compiles this file twice (a host pass and a device
+// pass), and the TriMeshSDF type must be identical in both.
 using T            = amrex::Real;
 using Meta         = EBGeometry::DCEL::DefaultMetaData;
-constexpr size_t K = 4;
-constexpr size_t W = 4;
+constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
+constexpr size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
 using SDF          = EBGeometry::TriMeshSDF<T, Meta, K, W>;
 
 /*!

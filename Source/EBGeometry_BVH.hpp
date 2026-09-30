@@ -75,9 +75,30 @@ struct ClusterSpec
 };
 
 /**
- * @brief Returns the SIMD-optimal BVH branching factor for type T on the current target ISA.
- * @details Maps the floating-point type and the compile-time ISA to the K that fills one
- * SIMD register exactly:
+ * @brief The default branching factor K: 4, for both float and double, in every translation unit.
+ * @details This is the value the library's class templates default to. It never depends on
+ * compiler flags, so a type spelled with it has the same layout in a host-only file, in a file
+ * compiled with AVX, and in both passes of a CUDA or HIP compile -- which is what lets an object be
+ * built on the host and used on a device. On the benchmarks in the Sphinx page on configuration
+ * options, it is also as fast on the host as the ISA-tuned value.
+ *
+ * For host-only code, HostBranchingRatio<T>() gives the value tuned to the compiler's SIMD flags instead.
+ * Usage: `size_t K = BVH::DefaultBranchingRatio<T>()` as a template-parameter default.
+ * @tparam T Floating-point precision type (float or double).
+ * @return 4.
+ */
+template <typename T>
+[[nodiscard]] constexpr size_t
+DefaultBranchingRatio() noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "BVH::DefaultBranchingRatio requires a floating-point T");
+
+  return 4;
+}
+
+/**
+ * @brief The branching factor K that fills one SIMD register for type T under the compiler's SIMD flags.
+ * @details Opt-in, for host-only code:
  *
  * | ISA       | T=float | T=double |
  * |-----------|---------|----------|
@@ -86,15 +107,18 @@ struct ClusterSpec
  * | SSE4.1    |    4    |    4     |
  * | fallback  |    4    |    4     |
  *
- * Usage: `size_t K = BVH::DefaultBranchingRatio<T>()` as a template-parameter default.
+ * The value depends on the flags each translation unit is compiled with, so a type spelled with it
+ * can mean different types in different files, and different layouts in the host and device passes
+ * of one CUDA or HIP compile. Never use it for a type that is shared with device code or with another
+ * translation unit built with different flags; use DefaultBranchingRatio<T>() there.
  * @tparam T Floating-point precision type (float or double).
- * @return Optimal K for the current ISA and T.
+ * @return K for T under the current ISA.
  */
 template <typename T>
 [[nodiscard]] constexpr size_t
-DefaultBranchingRatio() noexcept
+HostBranchingRatio() noexcept
 {
-  static_assert(std::is_floating_point_v<T>, "BVH::DefaultBranchingRatio requires a floating-point T");
+  static_assert(std::is_floating_point_v<T>, "BVH::HostBranchingRatio requires a floating-point T");
 #if defined(__AVX512F__)
   if constexpr (std::is_same_v<T, double>) {
     return 8;

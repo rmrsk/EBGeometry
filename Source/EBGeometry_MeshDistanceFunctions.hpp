@@ -396,8 +396,8 @@ private:
  * (TriangleAoSoA<T,Meta,W>), enabling SIMD evaluation of up to W signed distances simultaneously.
  *
  * No default arguments: this is a low-level constructor, and callers who excavate down to it
- * must consciously choose K and W. Use Parser::readIntoTriangleBVH for sensible ISA-tuned
- * defaults (BVH::DefaultBranchingRatio<T>() for K, TriangleSoA::DefaultWidth<T>() for W).
+ * must consciously choose K and W. BVH::DefaultBranchingRatio<T>() and TriangleSoA::DefaultWidth<T>()
+ * (both 4) are the portable choice, and Parser::readIntoTriangleBVH's defaults.
  *
  * Each leaf primitive is a TriangleAoSoA<T, Meta, W>: an SoA triangle block for SIMD signed-distance
  * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path

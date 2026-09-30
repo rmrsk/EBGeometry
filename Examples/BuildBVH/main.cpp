@@ -21,8 +21,7 @@ using T = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
-// Fixed (not BVH::DefaultBranchingRatio<T>()) so build times are comparable across machines/ISAs
-// rather than varying with whatever K the compiling machine's SIMD tier happens to prefer.
+// The library's default branching factor (BVH::DefaultBranchingRatio<T>() is 4 on every machine).
 constexpr size_t K = 4;
 
 // A minimal point primitive -- deliberately example-local, not a library type. This example only

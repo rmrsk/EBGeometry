@@ -54,12 +54,12 @@ same number of instructions as evaluating a *single* triangle scalar, but produc
 for :math:`W` of them. This is the leaf-level cost inside every ``TriMeshSDF::signedDistance()``
 BVH leaf visit.
 
-**Choosing and tuning** :math:`W`: the width is chosen from ISA auto-detection at compile time
-(the compiler-predefined macros described in :ref:`Chap:SIMDAcceleration`), via
-``EBGeometry::TriangleSoA::DefaultWidth<T>()``, and ``TriMeshSDF``/
-``Parser::readIntoTriangleBVH`` default to the ISA-appropriate :math:`W` for whichever precision
-``T`` is in use. See :ref:`Chap:MeshSDFClasses` for the full ISA/precision-to-default table, how
-to override :math:`W` explicitly, and the data-alignment requirements it relies on.
+**Choosing and tuning** :math:`W`: the default, ``EBGeometry::TriangleSoA::DefaultWidth<T>()``, is
+4 for both precisions and never depends on compiler flags, so the type is the same in every file
+and on a GPU. ``EBGeometry::TriangleSoA::HostWidth<T>()`` is the width that fills one SIMD register
+under the compiler's flags (the macros described in :ref:`Chap:SIMDAcceleration`), for host-only
+code. See :ref:`Sec:DefaultKW` for when to use which, and :ref:`Chap:MeshSDFClasses` for the
+ISA/precision table, how to pass :math:`W` explicitly, and the data-alignment requirements.
 
 Per-point distance evaluation: ``PointSoAT<T, W>`` / ``PointAoSoA<T, Meta, W>``
 --------------------------------------------------------------------------------
@@ -89,10 +89,10 @@ the leaf-level cost of a point-cloud ``PackedBVH`` search -- see ``Examples/Clos
 point) and ``Examples/NearestNeighborBVH`` (k nearest neighbors), both built on the ``PointCloudBVH``
 class.
 
-**Choosing and tuning** :math:`W`: the width is chosen from ISA auto-detection at compile time via
-``EBGeometry::PointSoA::DefaultWidth<T>()`` -- the width that fills one SIMD register exactly for
-``T``, on the same ISA/precision table as ``TriangleSoA``'s. Pass a different ``W`` explicitly as the
-final template argument to override it.
+**Choosing and tuning** :math:`W`: as for ``TriangleSoA``, the default
+``EBGeometry::PointSoA::DefaultWidth<T>()`` is 4, and ``EBGeometry::PointSoA::HostWidth<T>()`` is the
+host-tuned width (see :ref:`Sec:DefaultKW`). Pass either, or any other width, explicitly as the final
+template argument.
 
 SIMD-accelerated bounding-box pruning: ``BVH::PackedBVH<T, P, K>``
 -----------------------------------------------------------------------
@@ -125,11 +125,9 @@ and the two produce bit-identical results.
 **What this means in practice:** the cost of deciding which subtree(s) to visit next no longer
 scales with :math:`K` the way a scalar loop would; a wider branching factor (larger :math:`K`)
 is close to "free" for this step as long as it still fits in one SIMD batch for the target ISA,
-which is exactly why :math:`K` is chosen per-ISA (see below).
+which is why :math:`K` can be tuned per ISA (see below).
 
-**Choosing and tuning** :math:`K`: the branching factor is likewise chosen from ISA
-auto-detection at compile time, via ``BVH::DefaultBranchingRatio<T>()`` -- a separate function
-from ``TriangleSoA``'s, but driven by the same underlying ISA macros, so ``TriMeshSDF``/
-``Parser::readIntoTriangleBVH`` still end up with a matching :math:`(K, W)` pair for whichever
-precision ``T`` is in use. See :ref:`Chap:MeshSDFClasses` for the full ISA/precision-to-default
-table and how to override :math:`K` explicitly.
+**Choosing and tuning** :math:`K`: likewise, the default ``BVH::DefaultBranchingRatio<T>()`` is 4,
+and ``BVH::HostBranchingRatio<T>()`` is the host-tuned value, driven by the same ISA macros as
+``TriangleSoA::HostWidth<T>()`` so the two give a matching :math:`(K, W)` pair. See
+:ref:`Sec:DefaultKW` and :ref:`Chap:MeshSDFClasses`.

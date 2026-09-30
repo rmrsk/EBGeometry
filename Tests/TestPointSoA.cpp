@@ -296,10 +296,7 @@ TEMPLATE_TEST_CASE("PointSoAT (W=8): getMinimumDistance/getMinimumDistance2 unaf
   }
 }
 
-// Leaving W unspecified must pick up PointSoA::DefaultWidth<T>() -- and, per that function's own
-// table, float and double do not, in general, share a default width on the same ISA (e.g. AVX:
-// float->8, double->4), so this is checked per-precision rather than assumed to match TestType's
-// sibling.
+// Leaving W unspecified must pick up PointSoA::DefaultWidth<T>(), checked per precision.
 TEMPLATE_TEST_CASE("PointSoAT: omitting W defaults to PointSoA::DefaultWidth<T>(), and is usable "
                    "end-to-end at that width",
                    "[PointSoA]",

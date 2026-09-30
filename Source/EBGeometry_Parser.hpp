@@ -283,11 +283,11 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const B
  * At query time the BVH uses SIMD intrinsics to evaluate W triangles per leaf visit.
  * @tparam T    Floating-point precision for signed-distance evaluation.
  * @tparam Meta Per-face metadata type.
- * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for
- * T on the current ISA (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double
- * on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
- * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>()
- * (8/float or 4/double on AVX; 4 otherwise).
+ * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (4, independent of
+ * compiler flags); BVH::HostBranchingRatio<T>() is the value tuned to the host's SIMD flags, for
+ * host-only code.
+ * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>() (4);
+ * TriangleSoA::HostWidth<T>() is the host-tuned value.
  * @param[in]     a_filename      File name (STL, PLY, VTK or OBJ).
  * @param[in,out] a_pool          Pool the returned TriMeshSDF's BVH is reserved from; must outlive
  * it. The intermediate DCEL mesh lives in a Pool private to this call (see readIntoTriangles), so

@@ -32,11 +32,30 @@ namespace EBGeometry {
 namespace PointSoA {
 
 /**
- * @brief Returns the SIMD-optimal SoA width (points per PointSoAT group) for type T on the
- * current target ISA.
- * @details Same mapping as TriangleSoA::DefaultWidth<T>() -- the width that fills one SIMD
- * register exactly. Not a member of PointSoAT itself: that class is templated on W, so a member
- * couldn't be used to compute W's own default.
+ * @brief The default SoA width W (points per PointSoAT group): 4, for both float and double, in every translation unit.
+ * @details This is the value the library's class templates default to. It never depends on
+ * compiler flags, so a type spelled with it has the same layout in a host-only file, in a file
+ * compiled with AVX, and in both passes of a CUDA or HIP compile -- which is what lets an object be
+ * built on the host and used on a device. On the benchmarks in the Sphinx page on configuration
+ * options, it is also as fast on the host as the ISA-tuned value.
+ *
+ * For host-only code, HostWidth<T>() gives the value tuned to the compiler's SIMD flags instead.
+ * Usage: `size_t W = PointSoA::DefaultWidth<T>()` as a template-parameter default.
+ * @tparam T Floating-point precision type (float or double).
+ * @return 4.
+ */
+template <typename T>
+[[nodiscard]] constexpr size_t
+DefaultWidth() noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::PointSoA::DefaultWidth requires a floating-point T");
+
+  return 4;
+}
+
+/**
+ * @brief The SoA width W (points per PointSoAT group) that fills one SIMD register for type T under the compiler's SIMD flags.
+ * @details Opt-in, for host-only code:
  *
  * | ISA       | T=float | T=double |
  * |-----------|---------|----------|
@@ -44,15 +63,18 @@ namespace PointSoA {
  * | AVX       |    8    |    4     |
  * | otherwise |    4    |    4     |
  *
- * Usage: `size_t W = EBGeometry::PointSoA::DefaultWidth<T>()` as a template-parameter default.
+ * The value depends on the flags each translation unit is compiled with, so a type spelled with it
+ * can mean different types in different files, and different layouts in the host and device passes
+ * of one CUDA or HIP compile. Never use it for a type that is shared with device code or with another
+ * translation unit built with different flags; use DefaultWidth<T>() there.
  * @tparam T Floating-point precision type (float or double).
- * @return Optimal W for the current ISA and T.
+ * @return W for T under the current ISA.
  */
 template <typename T>
 [[nodiscard]] constexpr size_t
-DefaultWidth() noexcept
+HostWidth() noexcept
 {
-  static_assert(std::is_floating_point_v<T>, "EBGeometry::PointSoA::DefaultWidth requires a floating-point T");
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::PointSoA::HostWidth requires a floating-point T");
 #if defined(__AVX512F__)
   if constexpr (std::is_same_v<T, double>) {
     return 8;

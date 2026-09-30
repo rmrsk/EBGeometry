@@ -47,6 +47,79 @@ See :ref:`Chap:SIMDAcceleration` for a conceptual overview of SIMD acceleration 
 :ref:`Chap:SIMDClasses` for exactly which classes it applies to and what it means for each, and
 :ref:`Chap:Building` for the compiler/CMake/Makefile flags that enable it for each build method.
 
+.. _Sec:DefaultKW:
+
+Branching factor and SIMD width
+----------------------------------
+
+The BVH-backed classes take two size parameters: the branching factor ``K`` (children per BVH node)
+and, for the triangle and point groups, the SIMD width ``W`` (triangles or points evaluated together
+in one leaf group). There are two ways to choose them.
+
+**The defaults** -- ``BVH::DefaultBranchingRatio<T>()``, ``TriangleSoA::DefaultWidth<T>()`` and
+``PointSoA::DefaultWidth<T>()`` -- are 4 for ``float`` and ``double``, on every machine and with
+every compiler flag. The class templates that have defaults (``PointCloudBVH``, the SoA groups,
+``Parser::readIntoTriangleBVH``) use them. Because they never change, a type spelled with them is the
+same type in every file: in one compiled with ``-mavx`` and in one compiled without, and in both
+passes of a CUDA or HIP compile. That is what lets an object be built on the host and used on a GPU.
+
+**The host-tuned values** -- ``BVH::HostBranchingRatio<T>()``, ``TriangleSoA::HostWidth<T>()`` and
+``PointSoA::HostWidth<T>()`` -- fill one SIMD register under the compiler's flags: 16 for ``float``
+and 8 for ``double`` with AVX-512F, 8 and 4 with AVX, and 4 otherwise. They are opt-in:
+
+.. code-block:: cpp
+
+   constexpr size_t K = EBGeometry::BVH::HostBranchingRatio<T>();
+   constexpr size_t W = EBGeometry::TriangleSoA::HostWidth<T>();
+
+   auto sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K, W>("bunny.ply", pool);
+
+The rule is to use the defaults for any type that device code also uses, or that is passed between
+translation units compiled with different flags. With the host-tuned values, the same spelled type
+is a different type in two such files -- and within one CUDA or HIP compile, the host and device
+passes can disagree on its layout, which corrupts a kernel's arguments without any error.
+
+The host-tuned values are not necessarily faster. On one 4-core machine with AVX-512, the defaults
+were as fast or faster in every case measured (seconds; lower is better):
+
+.. list-table:: Query time with the default K = W = 4 and with the host-tuned values
+   :widths: 40 15 15 15 15
+   :header-rows: 1
+
+   * - Queries
+     - Build flags
+     - Precision
+     - Default
+     - Host-tuned
+   * - 400,000 signed distances, 100k-triangle mesh
+     - AVX
+     - ``float``
+     - 2.71
+     - 2.74 (K = W = 8)
+   * - 400,000 signed distances, 100k-triangle mesh
+     - AVX-512F
+     - ``float``
+     - 2.74
+     - 2.76 (K = W = 16)
+   * - 400,000 signed distances, 100k-triangle mesh
+     - AVX-512F
+     - ``double``
+     - 3.78
+     - 4.10 (K = W = 8)
+   * - 1,000,000 closest points, 1M-point cloud
+     - AVX-512F
+     - ``float``
+     - 1.90
+     - 2.77 (K = W = 16)
+   * - 1,000,000 closest points, 1M-point cloud
+     - AVX-512F
+     - ``double``
+     - 2.43
+     - 2.60 (K = W = 8)
+
+To measure on your own machine and mesh, run the :ref:`Chap:ExampleHostTuning` example, which
+builds a point cloud and a mesh both ways and times them.
+
 Compile-time assertions (``static_assert``)
 ----------------------------------------------
 

@@ -704,22 +704,24 @@ a BVH union (:ref:`Sec:BVHUnions`). Placing one mesh at several different positi
 currently possible, however: the ``Translate``/``Rotate``/``Scale`` wrappers take an
 ``ImplicitFunction``, which the mesh distance fields are not (see :ref:`Chap:ImplemCSG`).
 
-SIMD-optimal K and W by ISA
+Default and host-tuned K and W
 ______________________________
 
-The helper ``BVH::DefaultBranchingRatio<T>()`` returns the SIMD-optimal branching factor for
-the current compilation target.  ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` gives the
-matching SoA width. Both are used as template defaults for ``TriMeshSDF`` and
-``Parser::readIntoTriangleBVH``.
+``BVH::DefaultBranchingRatio<T>()`` and ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` are the
+template defaults for ``Parser::readIntoTriangleBVH`` (``TriMeshSDF`` itself has no defaults). Both
+are 4 for ``float`` and ``double``, whatever the compiler flags, so a type spelled with them is the
+same type in every file and in both passes of a GPU compile. ``BVH::HostBranchingRatio<T>()`` and
+``TriangleSoA::HostWidth<T>()`` give the values that fill one SIMD register under the compiler's
+flags, for host-only code; see :ref:`Sec:DefaultKW` for when to use which, and a measurement.
 
-.. list-table:: Default K and W by ISA and precision
+.. list-table:: ``HostBranchingRatio<T>()`` and ``TriangleSoA::HostWidth<T>()`` by ISA and precision
    :widths: 25 25 25 25
    :header-rows: 1
 
    * - ISA
      - Precision
-     - ``DefaultBranchingRatio<T>()``
-     - ``TriangleSoA::DefaultWidth<T>()``
+     - ``HostBranchingRatio<T>()``
+     - ``TriangleSoA::HostWidth<T>()``
    * - AVX-512F
      - ``float``
      - 16
@@ -757,17 +759,16 @@ Choosing W and K explicitly
 ______________________________
 
 ``W`` and the BVH branching factor ``K`` are explicit template parameters on ``TriMeshSDF`` and
-``Parser::readIntoTriangleBVH`` -- both default to ``BVH::DefaultBranchingRatio<T>()`` and
-``TriangleSoA::DefaultWidth<T>()`` respectively, but either can be overridden by supplying them
-explicitly (e.g. requesting an 8-wide SoA packing together with a 4-ary BVH, regardless of what
-the current compilation target would otherwise default to). See `the doxygen page for
+``Parser::readIntoTriangleBVH`` -- the latter defaults to ``BVH::DefaultBranchingRatio<T>()`` and
+``TriangleSoA::DefaultWidth<T>()``, but either can be supplied explicitly (e.g. an 8-wide SoA
+packing together with a 4-ary BVH). See `the doxygen page for
 Parser::readIntoTriangleBVH <doxygen/html/namespaceEBGeometry_1_1Parser.html>`__ for the exact
 signature.
 
 Rules of thumb:
 
 * Keep ``W`` equal to ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` unless you
-  have a specific reason to deviate.  The library is tuned for this default.
+  have a specific reason to deviate, and never deviate for a type that device code also uses.
 * ``a_maxLeafGroups`` (the maximum number of full ``W``-sized SoA groups per BVH
   leaf, so at most ``a_maxLeafGroups * W`` raw triangles before SoA packing)
   defaults to ``4`` in ``Parser::readIntoTriangleBVH`` (the ``TriMeshSDF``
@@ -776,4 +777,6 @@ Rules of thumb:
   leaf smaller than ``W`` simply pads its SoA block's unused lanes.
 * ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
   available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
-  a single SIMD batch, and the wider fan-out reduces tree depth.
+  a single SIMD batch, and the wider fan-out reduces tree depth — but measure: on the
+  benchmark in :ref:`Sec:DefaultKW` it was no faster. A tree with ``K = 16`` also fits the
+  device traversal stack only up to a depth of 5.

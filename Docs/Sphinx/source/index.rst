@@ -124,6 +124,7 @@ Examples
    ExampleMeshSDF.rst
    ExampleCSGUnion.rst
    ExampleNestedBVH.rst
+   ExampleHostTuning.rst
    ExamplePackedSpheres.rst
    ExampleRandomCity.rst
    ExampleOctreeBoundingVolume.rst
