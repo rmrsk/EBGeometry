@@ -483,7 +483,8 @@ signedDistance(const P& a_primitive, const Vec3T<T>& a_point, [[maybe_unused]] c
  * `signedDistance(const Vec3T<T>&)`: an analytic shape, a mesh distance function, or another BVH
  * union. A pool-resident primitive (a mesh distance function or a union) must have been built in
  * the same Pool as this union, and is relocated to the union's location as it is evaluated (see
- * PoolLocation).
+ * PoolLocation). The constructor checks this, and that there is one bounding volume per primitive,
+ * in every build, and aborts with a message if either fails.
  * @tparam T Floating-point precision.
  * @tparam P Primitive type.
  * @tparam K BVH branching factor.

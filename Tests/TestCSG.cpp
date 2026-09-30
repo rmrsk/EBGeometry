@@ -7,6 +7,7 @@
 // fixtures so every expected value is hand-computable.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 #include "TestShapeIF.hpp"
@@ -701,6 +702,47 @@ TEMPLATE_TEST_CASE("BVHUnionIF: host-mirror and deep copies of a TriMeshSDF unio
     REQUIRE(deepCopied->signedDistance(queries[i]) == expected[i]);
   }
 }
+
+#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+TEMPLATE_TEST_CASE("BVHUnionIF: rejects a mesh from another pool and a missing bounding volume",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T     = TestType;
+  using Union = BVHUnionIF<T, TestTriMesh<T>, 4>;
+
+  // Both checks are always on, not EBGEOMETRY_EXPECTs; the helper only runs where assertions are
+  // enabled, which is where this suite's death tests live.
+  REQUIRE_FALSE(abortsUnderAssertions([] {
+    Pool        pool(hostMemoryResource());
+    const auto  meshes = dodecahedronGrid<T>(pool);
+    const Union meshUnion(pool, meshes, boundingVolumes(meshes));
+
+    (void)meshUnion;
+  }));
+
+  REQUIRE(abortsUnderAssertions([] {
+    Pool        meshPool(hostMemoryResource());
+    Pool        unionPool(hostMemoryResource());
+    const auto  meshes = dodecahedronGrid<T>(meshPool);
+    const Union meshUnion(unionPool, meshes, boundingVolumes(meshes));
+
+    (void)meshUnion;
+  }));
+
+  REQUIRE(abortsUnderAssertions([] {
+    Pool       pool(hostMemoryResource());
+    const auto spheres = sphereRow<T>();
+    auto       bvs     = sphereRowBVs<T>();
+
+    bvs.pop_back();
+
+    const BVHUnionIF<T, SphereSDF<T>, 4> sphereUnion(pool, spheres, bvs);
+
+    (void)sphereUnion;
+  }));
+}
+#endif
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 

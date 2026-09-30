@@ -345,7 +345,8 @@ fields, whose ``signedDistance()`` can be called on the host or inside a GPU ker
 * **Mirrored to a GPU like any pool-backed type.** Freeze the pool, mirror it, and pass
   ``rebasedView(devicePool)`` to a kernel; ``deepCopy(pool)`` duplicates the storage.
 * **Primitives that live in a pool.** A mesh distance field, or a nested union, stored as a
-  primitive must have been built in the same ``Pool`` as the union. Mirroring the pool copies such a
+  primitive must have been built in the same ``Pool`` as the union; the constructor checks this in
+  every build, not only when assertions are enabled. Mirroring the pool copies such a
   primitive's bytes verbatim, including the host bookkeeping that locates its own arrays, so
   rebasing the union cannot rewrite it in place. Instead the union applies its own pool location to
   each such primitive as it evaluates it (``relocatedTo()``, see
