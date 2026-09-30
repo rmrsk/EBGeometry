@@ -89,6 +89,9 @@ On failure the program prints what went wrong, the failed condition, the file an
 The message argument is a ``printf`` format string literal, starting with the class or function
 that checks, followed by its arguments, so the compiler checks the format against the arguments.
 
+A mesh file that cannot be read is not a programming error, so the file readers throw
+``EBGeometry::Parser::ParseError`` instead of aborting; see :ref:`Chap:Parsers`.
+
 .. _Sec:Assertions:
 
 Runtime assertions (``EBGEOMETRY_EXPECT``)

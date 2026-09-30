@@ -82,14 +82,29 @@ DCEL construction at all.
    ignored; some exporters store a colour there.
 
 A file that cannot be read in full is rejected rather than read in part: a partial mesh has holes,
-and a mesh with holes gives wrong signs without any other symptom. If a file is missing, empty,
-truncated (it ends before the vertex and face counts in its header say it should, or an ASCII STL
-has no ``endsolid``), or corrupted (a face refers to a vertex that does not exist, or a coordinate
-is not a finite number), the reader prints the reason to ``std::cerr`` and returns an empty data
-structure, and ``readIntoDCEL`` returns a mesh with no faces. Building a :cpp:class:`MeshSDF` or
-:cpp:class:`TriMeshSDF` from a mesh with no faces stops the program with a message, in Release
-builds as well. OBJ files state neither counts nor an end marker, so a truncated OBJ file cannot
-be detected; it reads as whatever faces it still contains.
+and a mesh with holes gives wrong signs without any other symptom. If a file is missing, has an
+unsupported extension, is truncated (it ends before the vertex and face counts in its header say
+it should, or an ASCII STL has no ``endsolid``), or is corrupted (a line or header count that
+cannot be parsed, a face that refers to a vertex that does not exist, a coordinate that is not a
+finite number, faces that cannot be joined into a half-edge mesh or that fold back onto each other),
+the reader throws ``EBGeometry::Parser::ParseError``. The ``readInto*`` functions
+also throw for a file that contains no faces. A
+`ParseError <doxygen/html/classEBGeometry_1_1Parser_1_1ParseError.html>`__ is a
+``std::runtime_error`` that also reports the file, the line where the problem was found (0 for a
+binary file, or when there is no meaningful line), and the reason:
+
+.. code-block:: cpp
+
+   try {
+     const auto sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>("part.stl", pool);
+     // ...
+   }
+   catch (const EBGeometry::Parser::ParseError& e) {
+     std::cerr << e.what() << '\n'; // part.stl:12: malformed vertex line 'vertex 1 zero 0'
+   }
+
+OBJ files state neither counts nor an end marker, so a truncated OBJ file cannot be detected; it
+reads as whatever faces it still contains. A vertex that no face uses is ignored.
 
 For the raw readers' exact signatures, see the Doxygen entries for
 `readPLY <doxygen/html/namespaceEBGeometry_1_1Parser.html#ac78a6a540855effb6af095bb6c5c2982>`__,
@@ -222,8 +237,9 @@ A triangle soup is represented as
 
 Here, ``vertices`` contains the :math:`x,y,z` coordinates of each vertex, while each entry ``faces`` contains a list of vertices for the face.
 
-Turning a soup into a DCEL mesh is a three- (optionally four-) step process, using the functions
-in namespace ``EBGeometry::Soup``. The file readers run the three required steps themselves.
+Turning a soup into a DCEL mesh is a three-step process, with optional checks before and between the
+steps, using the functions in namespace ``EBGeometry::Soup``. The file readers run the three steps
+and the two checks after compression themselves.
 
 * ``containsDegeneratePolygons(vertices, facets)`` is an optional up-front check: it returns
   ``true`` if any face has fewer than three vertices, two or more coincident vertices, or zero
@@ -245,6 +261,14 @@ in namespace ``EBGeometry::Soup``. The file readers run the three required steps
   itself, sized from ``vertices``/``facets``. ``mesh`` is attached to ``pool`` by that first reserve
   and is queryable as soon as ``soupToDCEL`` returns, whether or not ``pool`` is shared with further
   meshes -- see :ref:`Chap:MemoryModel` and :ref:`Sec:DCELMemoryModel`.
+* ``findTopologyDefect(facets)``, run between the two steps above, reports a face that visits a
+  vertex twice, or an edge that two faces run along in the same direction -- which is what happens
+  when neighbouring faces are oriented inconsistently, or when three or more faces share one edge.
+  Such faces cannot be joined into a half-edge mesh. An edge used by only one face (a hole) is not
+  reported.
+* ``findFoldedFeature(mesh)``, run on the finished mesh, reports an edge or vertex whose
+  pseudonormal is zero because the faces around it fold back onto each other; the sign of the
+  distance near it would be undefined.
 
 .. note::
 
@@ -257,6 +281,9 @@ in namespace ``EBGeometry::Soup``. The file readers run the three required steps
 .. warning::
 
    ``soupToDCEL`` will issue plenty of warnings if the polygon soup is not watertight and orientable.
+   The format classes' ``convertToDCEL`` functions, which the readers use, go further: they throw
+   ``ParseError`` if ``findTopologyDefect`` or ``findFoldedFeature`` reports anything. A mesh with
+   holes is still read.
 
 .. _Chap:ThirdPartyParser:
 

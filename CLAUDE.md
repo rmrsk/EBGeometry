@@ -291,6 +291,13 @@ does not follow this template, edit the PR body to conform to it.
   read `EBGEOMETRY_PRECISION` as a preprocessor define to pick `T` via `using T =
   EBGEOMETRY_PRECISION`. `float` support is real but was, until recently, completely untested —
   `Tests/InstantiateAll.cpp` and the `Examples-FloatPrecision` CI job now cover it.
+- **Two runtime checks, one per job.** `EBGEOMETRY_REQUIRE(cond, "Class: format", args...)` is always
+  on and guards what a caller controls, once per object built (constructor arguments, sizes, memory
+  resources); `EBGEOMETRY_EXPECT(cond)` guards internal invariants and hot paths and is opt-in (below).
+  The file readers never abort on a bad file: they throw `Parser::ParseError` (file, line, reason),
+  including for meshes that cannot form a half-edge surface or that fold back onto themselves
+  (`Soup::findTopologyDefect`/`findFoldedFeature`); holes are still allowed. Death tests for
+  `REQUIRE` checks use `abortsWith()` from `Tests/TestDeath.hpp` and run in every build.
 - **`EBGEOMETRY_EXPECT()` assertions are opt-in** (`EBGEOMETRY_ENABLE_ASSERTIONS`, ON in `debug`/
   `debug-san`, OFF in `release`/`release-test`) and are the primary way internal invariant
   violations (e.g. a dangling half-edge, a malformed mesh) surface during development; they compile

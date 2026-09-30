@@ -120,9 +120,9 @@ EBGEOMETRY_HOST_DEVICE
 inline void
 VertexT<T, Meta>::normalizeNormalVector() noexcept
 {
+  // Zero only when the faces around the vertex cancel out, which folded input causes. The file readers
+  // reject that (Soup::findFoldedFeature); a mesh built by hand keeps a zero normal rather than a NaN.
   const T len = m_normal.length();
-
-  EBGEOMETRY_EXPECT(len > std::numeric_limits<T>::epsilon());
 
   if (len > std::numeric_limits<T>::epsilon()) {
     m_normal = m_normal / len;

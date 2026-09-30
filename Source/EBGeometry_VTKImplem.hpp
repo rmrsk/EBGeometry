@@ -21,6 +21,7 @@
 
 // Our includes
 #include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_ParseError.hpp"
 #include "EBGeometry_Soup.hpp"
 #include "EBGeometry_VTK.hpp"
 
@@ -119,7 +120,7 @@ VTK<T>::setCellDataScalars(const std::string a_name, std::vector<T> a_data)
 template <typename T>
 template <typename Meta>
 std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-VTK<T>::convertToDCEL(Pool& a_pool) const noexcept
+VTK<T>::convertToDCEL(Pool& a_pool) const
 {
   // Do a deep copy of the vertices and facets since they might need to be compressed.
   std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
@@ -130,10 +131,7 @@ VTK<T>::convertToDCEL(Pool& a_pool) const noexcept
   std::string reason;
 
   if (!Soup::isValid(vertices, facets, reason)) {
-    std::cerr << "VTK::convertToDCEL - '" << m_id << "' cannot describe a mesh (" << reason
-              << "); returning an empty mesh\n";
-
-    return mesh;
+    throw Parser::ParseError(m_id, 0, reason);
   }
 
   Soup::compress(vertices, facets);
@@ -144,7 +142,22 @@ VTK<T>::convertToDCEL(Pool& a_pool) const noexcept
     std::cerr << "VTK::convertToDCEL - removed " << numRemoved << " degenerate (zero-area) faces from '" << m_id
               << "', merging T-junction fillers into their neighbours\n";
   }
+
+  // A defect here would corrupt the half-edge structure: face loops that visit a vertex twice, or
+  // pair edges that cannot be matched, give wrong signs or out-of-bounds reads later on.
+  reason = Soup::findTopologyDefect(facets);
+
+  if (!reason.empty()) {
+    throw Parser::ParseError(m_id, 0, reason);
+  }
+
   Soup::soupToDCEL(*mesh, a_pool, vertices, facets, m_id);
+
+  reason = Soup::findFoldedFeature(*mesh);
+
+  if (!reason.empty()) {
+    throw Parser::ParseError(m_id, 0, reason);
+  }
 
   return mesh;
 }

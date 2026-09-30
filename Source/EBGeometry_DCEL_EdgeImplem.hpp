@@ -176,9 +176,10 @@ EdgeT<T, Meta>::computeNormal(const Mesh& a_mesh) const noexcept
     }
   }
 
+  // Zero only when the two faces fold back onto each other. That is a defect of the input, not an
+  // internal error: the file readers reject it (Soup::findFoldedFeature), and a mesh built by hand
+  // keeps a zero normal here rather than a NaN.
   const T len = normal.length();
-
-  EBGEOMETRY_EXPECT(len > T(0));
 
   return (len > std::numeric_limits<T>::epsilon()) ? normal / len : Vec3T<T>::zeros();
 }

@@ -60,6 +60,8 @@ deviceAssertionFailed(const char* a_cond, const char* a_file, const int a_line)
  *   continue into a wrong answer or undefined behaviour. Its cost is a few comparisons per object
  *   built.
  *
+ * The file readers do not abort on a bad file: they throw EBGeometry::Parser::ParseError.
+ *
  * The message is a @c printf format string literal, starting with the class or function that
  * checks, followed by its arguments:
  * @code{.cpp}

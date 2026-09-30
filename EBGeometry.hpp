@@ -29,6 +29,7 @@
 #include "Source/EBGeometry_Octree.hpp"
 #include "Source/EBGeometry_PLY.hpp"
 #include "Source/EBGeometry_PODVector.hpp"
+#include "Source/EBGeometry_ParseError.hpp"
 #include "Source/EBGeometry_Parser.hpp"
 #include "Source/EBGeometry_PointAoSoA.hpp"
 #include "Source/EBGeometry_PointCloudBVH.hpp"

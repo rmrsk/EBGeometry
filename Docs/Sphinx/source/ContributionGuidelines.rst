@@ -35,6 +35,8 @@ the same split:
   ``EBGEOMETRY_ENABLE_ASSERTIONS`` is defined. Do **not** guard invariants that the surrounding code
   already enforces -- this adds noise without safety benefit.
 
+The file readers do not abort on a bad file; they throw, as described in :ref:`Chap:Parsers`.
+
 See :ref:`Chap:ConfigurationOptions`'s "Compile-time assertions (``static_assert``)",
 :ref:`Sec:AlwaysOnChecks` and :ref:`Sec:Assertions` subsections for the full detail on how each
 mechanism behaves, including with and without ``EBGEOMETRY_ENABLE_ASSERTIONS``.

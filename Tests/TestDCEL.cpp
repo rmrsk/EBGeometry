@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace EBGeometry;
@@ -1317,15 +1318,26 @@ TEMPLATE_TEST_CASE("DCEL: tetrahedron loads without error", "[DCEL]", EBGEOMETRY
   REQUIRE(mesh != nullptr);
 }
 
-TEMPLATE_TEST_CASE("Parser::readIntoDCEL returns a valid, empty mesh for an "
-                   "unrecognized file extension",
+TEMPLATE_TEST_CASE("Parser::readIntoDCEL throws for an unrecognized file extension",
                    "[DCEL][Parser]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  Pool pool(hostMemoryResource());
-  auto mesh = Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.unsupported-extension", pool);
+  Pool              pool(hostMemoryResource());
+  const std::string file = g_dataDir + "/tetrahedron.unsupported-extension";
+
+  REQUIRE_THROWS_MATCHES(Parser::readIntoDCEL<T>(file, pool),
+                         Parser::ParseError,
+                         Catch::Matchers::Message(file + ": unsupported file type; the extension must be .stl, "
+                                                         ".ply, .vtk or .obj"));
+}
+
+TEMPLATE_TEST_CASE("DCEL: an empty mesh reports infinite distances", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const DCEL::MeshT<T> mesh;
 
   REQUIRE(mesh.numVertices() == 0);
   REQUIRE(mesh.numEdges() == 0);

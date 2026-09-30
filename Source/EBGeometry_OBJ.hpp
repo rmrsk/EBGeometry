@@ -128,10 +128,14 @@ public:
    * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
    * @param[in,out] a_pool Pool to reserve the constructed mesh's vertex/edge/face storage from.
    * @return Shared pointer to the constructed DCEL mesh.
+   * @throws Parser::ParseError if the data cannot describe a mesh: a vertex index out of range, a
+   * non-finite coordinate, a face that visits a vertex twice, or faces that cannot be joined into a
+   * half-edge mesh (see Soup::findTopologyDefect), or faces that fold back onto each other (see
+   * Soup::findFoldedFeature).
    */
   template <typename Meta>
   [[nodiscard]] std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-  convertToDCEL(Pool& a_pool) const noexcept;
+  convertToDCEL(Pool& a_pool) const;
 
 protected:
   /**

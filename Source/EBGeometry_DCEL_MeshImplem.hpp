@@ -484,6 +484,14 @@ MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexc
     auto&       v           = this->getVertex(vertexIndex);
     const auto& faceIndices = facesTouchingVertex[vertexIndex];
 
+    // A vertex no face uses (an OBJ file may list one) is never the closest feature of any face, so
+    // its normal is never read; it gets a zero normal instead of one computed from nothing.
+    if (faceIndices.empty()) {
+      v.setNormal(Vec3T<T>::zeros());
+
+      continue;
+    }
+
     switch (a_weight) {
     case DCEL::VertexNormalWeight::None: {
       v.computeVertexNormalAverage(faceIndices, *this);

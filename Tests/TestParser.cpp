@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Cross-format parser behaviour: binary fixtures against their ASCII counterparts, and malformed or
-// truncated input, which must read as an empty mesh with a message rather than crash or yield a
-// partial mesh.
+// truncated input, which must throw Parser::ParseError rather than crash or yield a partial mesh.
 
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
@@ -18,6 +17,7 @@
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 using namespace EBGeometry;
 
@@ -116,7 +116,7 @@ TEMPLATE_TEST_CASE("Parser: an ASCII STL with blank lines inside facets reads no
   REQUIRE(mesh.numVertices() == 4);
 }
 
-TEMPLATE_TEST_CASE("Parser: missing, empty, truncated and corrupted files read as empty meshes",
+TEMPLATE_TEST_CASE("Parser: missing, empty, truncated and corrupted files throw ParseError",
                    "[Parser]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -162,12 +162,158 @@ TEMPLATE_TEST_CASE("Parser: missing, empty, truncated and corrupted files read a
                                "# vtk DataFile Version 3.0\nbad\nASCII\nDATASET POLYDATA\nPOINTS 3 float\n"
                                "0 0 0 1 0 0 0 1 0\nPOLYGONS 1 4\n1000000000 0 1 2\n"));
 
+  // A header count that is not a number, and counts so large that reserving them outright would fail.
+  paths.push_back(writeScratch("bad_header_count.ply",
+                               "ply\nformat ascii 1.0\nelement vertex three\nproperty float x\nproperty float y\n"
+                               "property float z\nend_header\n"));
+  paths.push_back(writeScratch("huge_header_count.ply",
+                               "ply\nformat ascii 1.0\nelement vertex 999999999999999\nproperty float x\n"
+                               "property float y\nproperty float z\nend_header\n0 0 0\n"));
+  paths.push_back(writeScratch("huge_count.vtk",
+                               "# vtk DataFile Version 3.0\nbad\nASCII\nDATASET POLYDATA\n"
+                               "POINTS 999999999999999 float\n0 0 0\n"));
+
   for (const auto& path : paths) {
     INFO("file: " << path);
 
-    const auto mesh = Parser::readIntoDCEL<T, Meta>(path, pool);
+    REQUIRE_THROWS_AS((Parser::readIntoDCEL<T, Meta>(path, pool)), Parser::ParseError);
+  }
 
-    REQUIRE(mesh.numFaces() == 0);
+  // The readers that build a distance function throw before building anything.
+  REQUIRE_THROWS_AS((Parser::readIntoTriangleBVH<T, Meta, 4, 4>(dataPath("does_not_exist.stl"), pool)),
+                    Parser::ParseError);
+  REQUIRE_THROWS_AS((Parser::readIntoPackedBVH<T, Meta, 4>(dataPath("does_not_exist.stl"), pool)), Parser::ParseError);
+}
+
+TEMPLATE_TEST_CASE("Parser: ParseError names the file, the line and the reason", "[Parser]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  const auto check = [&pool](const std::string& a_path, const std::size_t a_line, const std::string& a_reason) {
+    INFO("file: " << a_path);
+
+    try {
+      [[maybe_unused]] const auto mesh = Parser::readIntoDCEL<T, Meta>(a_path, pool);
+
+      FAIL("no ParseError was thrown");
+    } catch (const Parser::ParseError& e) {
+      REQUIRE(e.file() == a_path);
+      REQUIRE(e.line() == a_line);
+      REQUIRE(e.reason() == a_reason);
+
+      const std::string where = a_line > 0 ? a_path + ":" + std::to_string(a_line) : a_path;
+
+      REQUIRE(std::string(e.what()) == where + ": " + a_reason);
+    }
+  };
+
+  check(dataPath("does_not_exist.obj"), 0, "cannot open the file");
+  check(dataPath("does_not_exist.stl"), 0, "cannot open the file");
+
+  check(writeScratch("bad_vertex.stl",
+                     "solid s\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 1 zero 0\nvertex 0 1 0\n"
+                     "endloop\nendfacet\nendsolid s\n"),
+        5,
+        "malformed vertex line 'vertex 1 zero 0'");
+
+  check(writeScratch("no_endsolid.stl",
+                     "solid s\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\n"
+                     "endloop\nendfacet\n"),
+        8,
+        "the file ends without 'endsolid'; it is probably truncated");
+
+  check(writeScratch("bad_vertex.obj", "v 0 0 0\nv 1 0\nv 0 1 0\nf 1 2 3\n"), 2, "malformed vertex line 'v 1 0'");
+  check(writeScratch("bad_face.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 two 3\n"), 4, "malformed face index 'two'");
+  check(writeScratch("zero_index.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 0 1 2\n"), 4, "malformed face index '0'");
+
+  check(writeScratch("bad_header_count.ply",
+                     "ply\nformat ascii 1.0\nelement vertex three\nproperty float x\nproperty float y\n"
+                     "property float z\nend_header\n"),
+        3,
+        "the vertex count 'three' is not a number");
+
+  check(writeScratch("no_faces.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\n"), 0, "the file contains no faces");
+}
+
+TEMPLATE_TEST_CASE("Parser: faces that cannot form a half-edge mesh throw ParseError",
+                   "[Parser]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  const std::string verts = "v 0 0 0\nv 1 0 0\nv 0 1 0\nv 0 0 1\n";
+
+  const auto throwsWith = [&pool](const std::string& a_path, const std::string& a_reason) {
+    INFO("file: " << a_path);
+
+    REQUIRE_THROWS_WITH((Parser::readIntoDCEL<T, Meta>(a_path, pool)), Catch::Matchers::ContainsSubstring(a_reason));
+  };
+
+  // A damaged 'endfacet' line, after which the next facet's vertices are read into this one.
+  throwsWith(writeScratch("merged_facets.stl",
+                          "solid s\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 0 1 0\nvertex 1 0 0\n"
+                          "endloop\nendfacet\"facet normal 0 0 1\nouter loop\nvertex 1 0 0\nvertex 0 1 0\n"
+                          "vertex 0 0 1\nendloop\nendfacet\nendsolid s\n"),
+             "merged_facets.stl:14: the facet ending here has 6 vertices; an STL facet has exactly 3");
+
+  // One face of the tetrahedron wound the wrong way round.
+  throwsWith(writeScratch("flipped.obj", verts + "f 1 2 3\nf 1 2 4\nf 1 4 3\nf 2 3 4\n"),
+             "they are oriented inconsistently, or more than two faces share that edge");
+
+  // A flat, double-sided triangle: two copies with opposite windings. Every edge is shared correctly,
+  // but the two faces on either side of it fold back onto each other.
+  throwsWith(writeScratch("folded.obj", verts + "f 1 2 3\nf 1 3 2\n"), "fold back onto each other");
+}
+
+TEST_CASE("Soup::findTopologyDefect reports faces that cannot be joined into a half-edge mesh", "[Parser]")
+{
+  // A closed tetrahedron has no defect.
+  const std::vector<std::vector<size_t>> tet = {{0, 2, 1}, {0, 1, 3}, {0, 3, 2}, {1, 2, 3}};
+
+  REQUIRE(Soup::findTopologyDefect(tet).empty());
+
+  // An open surface (one face missing) has none either: a hole is not a topology defect.
+  REQUIRE(Soup::findTopologyDefect({{0, 2, 1}, {0, 1, 3}, {0, 3, 2}}).empty());
+
+  REQUIRE(Soup::findTopologyDefect({{0, 1, 2, 3, 1}}) == "face 0 visits the same vertex twice");
+
+  REQUIRE(Soup::findTopologyDefect({{0, 1, 2}, {0, 1, 3}}) ==
+          "faces 0 and 1 both run from vertex 0 to vertex 1: they are oriented inconsistently, or more than two "
+          "faces share that edge");
+
+  // Three faces on one edge: whatever their orientation, one direction is used twice.
+  REQUIRE_FALSE(Soup::findTopologyDefect({{0, 1, 2}, {1, 0, 3}, {1, 0, 4}}).empty());
+}
+
+TEMPLATE_TEST_CASE("Parser: OBJ vertices that no face uses, and comments after a face, are ignored",
+                   "[Parser]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A tetrahedron, as is, with an extra vertex that no face refers to, and with a comment after its
+  // first face. OBJ allows the first; some exporters write the second.
+  const std::string verts = "v 0 0 0\nv 1 0 0\nv 0 1 0\nv 0 0 1\n";
+  const std::string first = "f 1 3 2";
+  const std::string rest  = "f 1 2 4\nf 1 4 3\nf 2 3 4\n";
+
+  Pool       pool(hostMemoryResource());
+  const auto plain = Parser::readIntoDCEL<T, Meta>(writeScratch("tet.obj", verts + first + "\n" + rest), pool);
+  const auto unused =
+    Parser::readIntoDCEL<T, Meta>(writeScratch("tet_unused.obj", verts + "v 5 5 5\n" + first + "\n" + rest), pool);
+  const auto noted =
+    Parser::readIntoDCEL<T, Meta>(writeScratch("tet_comment.obj", verts + first + " # the base\n" + rest), pool);
+
+  REQUIRE(unused.numFaces() == 4);
+  REQUIRE(noted.numFaces() == 4);
+
+  for (const auto& p : probePoints<T>()) {
+    REQUIRE(unused.signedDistance(p) == plain.signedDistance(p));
+    REQUIRE(noted.signedDistance(p) == plain.signedDistance(p));
   }
 }
 
@@ -214,14 +360,6 @@ TEST_CASE("Mesh distance functions and BVH unions refuse to build from nothing",
       const MeshSDF<T, Meta, 4>  sdf(empty, pool, BVH::Build::SAH);
     },
     "MeshSDF: the mesh has no faces"));
-
-  REQUIRE(abortsWith(
-    [] {
-      Pool                        pool(hostMemoryResource());
-      [[maybe_unused]] const auto sdf =
-        Parser::readIntoTriangleBVH<T, Meta, 4, 4>(dataPath("does_not_exist.stl"), pool);
-    },
-    "TriMeshSDF: the mesh has no faces"));
 
   REQUIRE(abortsWith(
     [] {

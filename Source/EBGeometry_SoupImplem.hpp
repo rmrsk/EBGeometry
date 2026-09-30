@@ -338,6 +338,63 @@ Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertic
   return numRemoved;
 }
 
+inline std::string
+Soup::findTopologyDefect(const std::vector<std::vector<size_t>>& a_facets)
+{
+  // Which polygon first traversed each directed edge.
+  std::map<std::pair<size_t, size_t>, size_t> directedEdges;
+
+  for (size_t f = 0; f < a_facets.size(); f++) {
+    const std::vector<size_t>& facet = a_facets[f];
+
+    std::vector<size_t> sorted = facet;
+
+    std::sort(sorted.begin(), sorted.end());
+
+    if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
+      return "face " + std::to_string(f) + " visits the same vertex twice";
+    }
+
+    for (size_t i = 0; i < facet.size(); i++) {
+      const std::pair<size_t, size_t> edge(facet[i], facet[(i + 1) % facet.size()]);
+
+      const auto inserted = directedEdges.emplace(edge, f);
+
+      if (!inserted.second) {
+        return "faces " + std::to_string(inserted.first->second) + " and " + std::to_string(f) +
+               " both run from vertex " + std::to_string(edge.first) + " to vertex " + std::to_string(edge.second) +
+               ": they are oriented inconsistently, or more than two faces share that edge";
+      }
+    }
+  }
+
+  return std::string();
+}
+
+template <typename T, typename Meta>
+inline std::string
+Soup::findFoldedFeature(const EBGeometry::DCEL::MeshT<T, Meta>& a_mesh)
+{
+  for (uint32_t e = 0; e < a_mesh.numEdges(); e++) {
+    const auto& edge = a_mesh.getEdge(e);
+
+    if (edge.getNormal().length2() == T(0)) {
+      return "the faces on either side of the edge from vertex " + std::to_string(edge.getVertexIndex()) +
+             " to vertex " + std::to_string(edge.getNextEdge(a_mesh).getVertexIndex()) + " fold back onto each other";
+    }
+  }
+
+  for (uint32_t v = 0; v < a_mesh.numVertices(); v++) {
+    const auto& vertex = a_mesh.getVertex(v);
+
+    if (vertex.getOutgoingEdgeIndex() != UINT32_MAX && vertex.getNormal().length2() == T(0)) {
+      return "the faces around vertex " + std::to_string(v) + " fold back onto each other";
+    }
+  }
+
+  return std::string();
+}
+
 template <typename T, typename Meta>
 inline void
 Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,

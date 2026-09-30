@@ -111,6 +111,35 @@ removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                          std::vector<std::vector<size_t>>&        a_facets) noexcept;
 
 /**
+ * @brief Find a defect that stops a compressed, cleaned polygon soup from forming a half-edge mesh.
+ * @details Run after compress() and removeDegeneratePolygons(). Reports the first of:
+ *
+ * - a polygon that visits a vertex twice;
+ * - an edge traversed in the same direction by two polygons. That happens when two neighbouring
+ *   polygons have opposite orientations, and whenever three or more polygons share an edge.
+ *
+ * An edge used by only one polygon (a hole in the surface) is not a defect here.
+ * @param[in] a_facets Index lists.
+ * @return A description of the defect, or an empty string if there is none.
+ */
+[[nodiscard]] inline static std::string
+findTopologyDefect(const std::vector<std::vector<size_t>>& a_facets);
+
+/**
+ * @brief Find an edge or vertex of a half-edge mesh whose pseudonormal is zero.
+ * @details Run after soupToDCEL(). An edge's pseudonormal is zero when the faces on either side of
+ * it fold back onto each other, and a vertex's when the faces around it cancel out. The sign of the
+ * distance near such a feature is undefined. A vertex that no face uses is not reported.
+ * @tparam T    Floating-point precision type for vertex coordinates.
+ * @tparam Meta Metadata type.
+ * @param[in] a_mesh Mesh to check.
+ * @return A description of the first such feature, or an empty string if there is none.
+ */
+template <typename T, typename Meta>
+[[nodiscard]] inline static std::string
+findFoldedFeature(const EBGeometry::DCEL::MeshT<T, Meta>& a_mesh);
+
+/**
  * @brief Convert a polygon soup into a DCEL half-edge mesh.
  * @details Builds vertices, half-edges, and faces from the input arrays, reconciles
  * pair edges, runs a mesh sanity check, and computes the mesh normals (angle-weighted vertex

@@ -27,9 +27,11 @@ using Vec3 = EBGeometry::Vec3T<T>;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Mesh = EBGeometry::TriMeshSDF<T, Meta, K, EBGeometry::TriangleSoA::DefaultWidth<T>()>;
 
+// The function-try-block reports a mesh file that cannot be read, rather than letting the exception
+// terminate the program.
 int
 main(int argc, char* argv[])
-{
+try {
   // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated union
   // (BVHUnionIF) whose primitives are themselves BVH-backed mesh signed distance functions
   // (TriMeshSDF). Each TriMeshSDF owns an inner PackedBVH over its SoA triangle groups, so a single
@@ -106,4 +108,8 @@ main(int argc, char* argv[])
   }
 
   return 0;
+} catch (const EBGeometry::Parser::ParseError& e) {
+  std::cerr << "Cannot read the mesh: " << e.what() << '\n';
+
+  return 1;
 }
