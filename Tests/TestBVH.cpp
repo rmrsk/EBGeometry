@@ -13,6 +13,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <array>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -411,6 +412,133 @@ TEMPLATE_TEST_CASE("Mesh SDFs: a zero-area sliver face leaves the signed distanc
         REQUIRE_THAT(flat.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
         REQUIRE_THAT(packed.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
         REQUIRE_THAT(tri.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: signs around concave edges and vertices match an independent inside test",
+                   "[BVH][Concave]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // lblock.stl is the L-shaped prism ([0,2]x[0,1] U [0,1]x[0,2]) x [0,1]. Its edge along x = y = 1 is
+  // concave, which the convex fixtures never exercise. FlatMeshSDF shares the pseudonormal code with the
+  // BVH-accelerated SDFs, so the reference here is analytic: inside is the union of two boxes, and
+  // outside, the distance is the smaller of the two boxes' distances.
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("lblock.stl"), pool);
+
+  REQUIRE(mesh.numFaces() == 20);
+
+  const BoxSDF<T> boxA(Vec3(T(0), T(0), T(0)), Vec3(T(2), T(1), T(1)));
+  const BoxSDF<T> boxB(Vec3(T(0), T(0), T(0)), Vec3(T(1), T(2), T(1)));
+
+  const auto inside = [](const Vec3& p) {
+    const bool inZ = p[2] > T(0) && p[2] < T(1);
+    const bool inA = p[0] > T(0) && p[0] < T(2) && p[1] > T(0) && p[1] < T(1);
+    const bool inB = p[0] > T(0) && p[0] < T(1) && p[1] > T(0) && p[1] < T(2);
+
+    return inZ && (inA || inB);
+  };
+
+  const FlatMeshSDF<T, Meta>      flat(mesh, pool);
+  const MeshSDF<T, Meta, K>       packed(mesh, pool, BVH::Build::SAH);
+  const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, BVH::Build::SAH, 2);
+
+  // A grid centred on the concave edge's end point (1, 1, 1), where the concave edge, the concave
+  // vertex and the faces around them all compete for the closest feature. The grid spacing avoids
+  // landing exactly on a face.
+  for (const T x : sweepValues<T>(T(0.3), T(1.7), 14)) {
+    for (const T y : sweepValues<T>(T(0.3), T(1.7), 14)) {
+      for (const T z : sweepValues<T>(T(0.45), T(1.55), 11)) {
+        const Vec3 p(x + T(0.013), y + T(0.007), z + T(0.011));
+
+        const bool in       = inside(p);
+        const T    outside  = std::min(boxA.signedDistance(p), boxB.signedDistance(p));
+        const T    distance = in ? T(-1) : outside;
+
+        INFO("p = " << p);
+
+        for (const T value : {flat.signedDistance(p), packed.signedDistance(p), tri.signedDistance(p)}) {
+          REQUIRE((value < T(0)) == in);
+
+          if (!in) {
+            REQUIRE_THAT(value, withinAbsT(distance, looseMargin<T>()));
+          }
+        }
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: signs behind a sharp concave edge match an independent inside test",
+                   "[BVH][Concave]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec2 = std::array<T, 2>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // notch.stl is a prism over the polygon below, z in [0,1]: a box with a narrow V-shaped notch cut
+  // into its top side. The notch's walls meet at the tip (1, 0.4) in a concave edge along z. Behind
+  // that edge, inside the solid, the edge is the closest feature, and only the sum of both walls'
+  // normals gives the right sign there: either wall's normal alone points outward for part of that
+  // region, because the notch is much narrower than 90 degrees.
+  const std::array<Vec2, 7> polygon{
+    {{T(0), T(0)}, {T(2), T(0)}, {T(2), T(1)}, {T(1.2), T(1)}, {T(1), T(0.4)}, {T(0.8), T(1)}, {T(0), T(1)}}};
+
+  const auto inside = [&polygon](const Vec3& p) {
+    if (!(p[2] > T(0) && p[2] < T(1))) {
+      return false;
+    }
+
+    // Crossing-number point-in-polygon test.
+    bool in = false;
+
+    for (size_t i = 0, j = polygon.size() - 1; i < polygon.size(); j = i++) {
+      const Vec2& a = polygon[i];
+      const Vec2& b = polygon[j];
+
+      if ((a[1] > p[1]) != (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) {
+        in = !in;
+      }
+    }
+
+    return in;
+  };
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("notch.stl"), pool);
+
+  REQUIRE(mesh.numFaces() == 24);
+
+  const FlatMeshSDF<T, Meta>      flat(mesh, pool);
+  const MeshSDF<T, Meta, K>       packed(mesh, pool, BVH::Build::SAH);
+  const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, BVH::Build::SAH, 2);
+
+  // A grid around the notch's tip, including the region just behind it. The offsets keep the points
+  // off the faces.
+  for (const T x : sweepValues<T>(T(0.6), T(1.4), 17)) {
+    for (const T y : sweepValues<T>(T(-0.1), T(1.1), 25)) {
+      for (const T z : sweepValues<T>(T(-0.2), T(1.2), 8)) {
+        const Vec3 p(x + T(0.0013), y + T(0.0007), z + T(0.011));
+
+        const bool in = inside(p);
+
+        INFO("p = " << p);
+
+        for (const T value : {flat.signedDistance(p), packed.signedDistance(p), tri.signedDistance(p)}) {
+          REQUIRE((value < T(0)) == in);
+        }
       }
     }
   }
