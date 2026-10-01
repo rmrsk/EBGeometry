@@ -1,0 +1,47 @@
+name: Install apt packages (cached)
+description: >
+  apt-get install with the downloaded .deb files cached between runs, so a slow Ubuntu mirror only
+  costs time on the first run of a month. The packages are still installed normally (maintainer
+  scripts run), only the download is skipped. The cache key holds the runner image, the package
+  list and the month: a new image or list starts a fresh cache, and the monthly refresh keeps the
+  cached versions close to the mirror's (anything newer is simply downloaded).
+
+inputs:
+  packages:
+    description: Space-separated list of packages to install.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Compute the cache key
+      id: key
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        list=$(echo "$PACKAGES" | tr -s ' \n' '\n' | sort | tr '\n' ' ' | sha256sum | cut -c1-16)
+        echo "key=apt-${ImageOS:-unknown}-${list}-$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+    - name: Restore cached packages
+      uses: actions/cache@v6
+      with:
+        path: ~/apt-archives
+        key: ${{ steps.key.outputs.key }}
+
+    - name: Install packages
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        mkdir -p ~/apt-archives/partial
+        sudo apt-get update
+        # shellcheck disable=SC2086 # the list is meant to split into words
+        sudo apt-get install -y \
+          -o Dir::Cache::Archives="$HOME/apt-archives" \
+          -o APT::Keep-Downloaded-Packages=true \
+          $PACKAGES
+        # apt leaves a root-only lock file and root-owned archives; the cache's post-job save runs
+        # as the runner user.
+        sudo rm -f ~/apt-archives/lock
+        sudo chown -R "$(id -u):$(id -g)" ~/apt-archives

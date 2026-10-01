@@ -79,9 +79,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install doxygen
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
+        uses: ./.github/actions/apt-install
+        with:
+          packages: doxygen graphviz
       # See the comment in the Codespell job above -- same reason for inlining pre-commit/action.
       - name: Install pre-commit
         run: python -m pip install pre-commit
@@ -112,9 +112,9 @@ jobs:
         with:
           submodules: recursive
       - name: Install clang-tidy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-tidy-18 clang-14
+        uses: ./.github/actions/apt-install
+        with:
+          packages: clang-tidy-18 clang-14
       - name: Cache Catch2 build
         uses: actions/cache@v6
         with:
@@ -143,9 +143,9 @@ jobs:
         with:
           submodules: recursive
       - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install ${{ matrix.comp }}
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ matrix.comp }}
 
       - name: Compile examples
         working-directory: ${{ matrix.directory }}
@@ -282,7 +282,7 @@ jobs:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Build-documentation
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Cache pip packages
@@ -290,16 +290,12 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-sphinx-${{ hashFiles('.github/workflows/CI.yml') }}
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt install doxygen
-          sudo apt install graphviz
-          sudo apt install texlive
-          sudo apt install texlive-latex-extra
-          sudo apt install latexmk
-          sudo apt install poppler-utils
-          python3 -m pip install sphinx==5.3.0 sphinx_rtd_theme sphinxcontrib-bibtex
+      - name: Install packages
+        uses: ./.github/actions/apt-install
+        with:
+          packages: doxygen graphviz texlive texlive-latex-extra latexmk poppler-utils
+      - name: Install Sphinx
+        run: python3 -m pip install sphinx==5.3.0 sphinx_rtd_theme sphinxcontrib-bibtex
 
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs
@@ -351,13 +347,9 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install compiler
-        run: |
-          sudo apt-get update
-          if [[ "${{ matrix.compiler }}" == g++* ]]; then
-            sudo apt-get install -y ${{ matrix.compiler }}
-          else
-            sudo apt-get install -y clang-14
-          fi
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ startsWith(matrix.compiler, 'g++') && matrix.compiler || 'clang-14' }}
 
       - name: Cache Catch2 build
         uses: actions/cache@v6
@@ -414,7 +406,7 @@ jobs:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Sanitizers (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -423,13 +415,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install compiler
-        run: |
-          sudo apt-get update
-          if [[ "${{ matrix.compiler }}" == g++* ]]; then
-            sudo apt-get install -y ${{ matrix.compiler }}
-          else
-            sudo apt-get install -y clang-14
-          fi
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ startsWith(matrix.compiler, 'g++') && matrix.compiler || 'clang-14' }}
       - name: Cache Catch2 build
         uses: actions/cache@v6
         with:
@@ -490,9 +478,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install HIP toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y hipcc clang-17 libamdhip64-dev rocm-device-libs-17
+        uses: ./.github/actions/apt-install
+        with:
+          packages: hipcc clang-17 libamdhip64-dev rocm-device-libs-17
       - name: Configure
         # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
         # Both precisions so the float instantiations of the device kernels are compiled too.

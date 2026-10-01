@@ -179,6 +179,21 @@ Dependency graph
 ``Formatting``, ``Codespell``, ``Reuse``, and ``Doxygen-check`` themselves have no
 dependencies and run first, in parallel; every other job depends on all four of them.
 
+Package installs and time limits
+----------------------------------
+
+Every job that installs Ubuntu packages does so through ``.github/actions/apt-install``, a small
+composite action that caches the downloaded ``.deb`` files between runs (``actions/cache``) and
+installs from them, so maintainer scripts still run and only the download is skipped. Ubuntu's
+mirrors are sometimes slow enough to eat a job's whole time limit on the download alone; with the
+cache, that costs time only on the first run of a month. The cache key holds the runner image, the
+package list and the month, so a new image or a changed list starts a fresh cache. The
+documentation deploy workflow (``docs.yml``) uses the same action. ``Linux-Intel`` installs Intel's
+compiler from Intel's own repository and is not cached.
+
+``Build-documentation`` and ``Sanitizers`` have 30-minute limits, which leaves room for a first,
+uncached run on a slow mirror.
+
 Running CI checks locally with ``pre-commit``
 ------------------------------------------------
 
