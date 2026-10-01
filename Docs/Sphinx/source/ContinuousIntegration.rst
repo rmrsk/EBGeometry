@@ -183,13 +183,16 @@ Package installs and time limits
 ----------------------------------
 
 Every job that installs Ubuntu packages does so through ``.github/actions/apt-install``, a small
-composite action that caches the downloaded ``.deb`` files between runs (``actions/cache``) and
-installs from them, so maintainer scripts still run and only the download is skipped. Ubuntu's
-mirrors are sometimes slow enough to eat a job's whole time limit on the download alone; with the
-cache, that costs time only on the first run of a month. The cache key holds the runner image, the
-package list and the month, so a new image or a changed list starts a fresh cache. The
-documentation deploy workflow (``docs.yml``) uses the same action. ``Linux-Intel`` installs Intel's
-compiler from Intel's own repository and is not cached.
+composite action that caches the package index and the downloaded ``.deb`` files between runs
+(``actions/cache``). On a cache hit it installs with no network access at all, from the cached
+index and packages, so maintainer scripts still run but neither the index refresh nor the download
+touches a mirror. Ubuntu's mirrors are sometimes slow, or stop answering, for long enough to eat a
+job's whole time limit; with the cache, that can only happen on the first run of a month. If the
+offline install fails (the runner image has moved on, say), the action refreshes the index and
+downloads, with timeouts and retries so a dead mirror cannot hang the job. The cache key holds the
+runner image, the package list and the month, so a new image or a changed list starts a fresh
+cache. The documentation deploy workflow (``docs.yml``) uses the same action. ``Linux-Intel``
+installs Intel's compiler from Intel's own repository and is not cached.
 
 ``Build-documentation`` and ``Sanitizers`` have 30-minute limits, which leaves room for a first,
 uncached run on a slow mirror.

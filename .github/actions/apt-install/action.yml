@@ -1,10 +1,12 @@
 name: Install apt packages (cached)
 description: >
-  apt-get install with the downloaded .deb files cached between runs, so a slow Ubuntu mirror only
-  costs time on the first run of a month. The packages are still installed normally (maintainer
-  scripts run), only the download is skipped. The cache key holds the runner image, the package
-  list and the month: a new image or list starts a fresh cache, and the monthly refresh keeps the
-  cached versions close to the mirror's (anything newer is simply downloaded).
+  apt-get install with the package index and the downloaded .deb files cached between runs, so a
+  slow or unreachable Ubuntu mirror only costs time on the first run of a month. On a cache hit the
+  install needs no network at all: it reads the cached index and installs the cached packages
+  (maintainer scripts still run). If that fails, for instance because the runner image has moved
+  on, it falls back to refreshing the index and downloading. The cache key holds the runner image,
+  the package list and the month: a new image or list starts a fresh cache, and the monthly refresh
+  keeps the cached versions close to the mirror's.
 
 inputs:
   packages:
@@ -21,12 +23,12 @@ runs:
         PACKAGES: ${{ inputs.packages }}
       run: |
         list=$(echo "$PACKAGES" | tr -s ' \n' '\n' | sort | tr '\n' ' ' | sha256sum | cut -c1-16)
-        echo "key=apt-${ImageOS:-unknown}-${list}-$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+        echo "key=apt2-${ImageOS:-unknown}-${list}-$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
 
-    - name: Restore cached packages
+    - name: Restore cached index and packages
       uses: actions/cache@v6
       with:
-        path: ~/apt-archives
+        path: ~/apt-cache
         key: ${{ steps.key.outputs.key }}
 
     - name: Install packages
@@ -34,14 +36,34 @@ runs:
       env:
         PACKAGES: ${{ inputs.packages }}
       run: |
-        mkdir -p ~/apt-archives/partial
-        sudo apt-get update
-        # shellcheck disable=SC2086 # the list is meant to split into words
-        sudo apt-get install -y \
-          -o Dir::Cache::Archives="$HOME/apt-archives" \
-          -o APT::Keep-Downloaded-Packages=true \
-          $PACKAGES
-        # apt leaves a root-only lock file and root-owned archives; the cache's post-job save runs
-        # as the runner user.
-        sudo rm -f ~/apt-archives/lock
-        sudo chown -R "$(id -u):$(id -g)" ~/apt-archives
+        cache="$HOME/apt-cache"
+        mkdir -p "$cache/archives/partial" "$cache/lists/partial"
+
+        apt_opts=(-o Dir::Cache::Archives="$cache/archives" -o Dir::State::Lists="$cache/lists"
+                  -o APT::Keep-Downloaded-Packages=true)
+
+        # A mirror that stops answering would otherwise hang the job until its time limit.
+        net_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+
+        installed=false
+
+        # Cache hit: the index and every package it needs are already here, so try offline first.
+        if compgen -G "$cache/lists/*_InRelease" > /dev/null; then
+          # shellcheck disable=SC2086 # the list is meant to split into words
+          if sudo apt-get install -y --no-download "${apt_opts[@]}" $PACKAGES; then
+            installed=true
+          else
+            echo "Offline install from the cache failed; refreshing the index and downloading."
+          fi
+        fi
+
+        if [ "$installed" != true ]; then
+          sudo apt-get update "${apt_opts[@]}" "${net_opts[@]}"
+          # shellcheck disable=SC2086
+          sudo apt-get install -y "${apt_opts[@]}" "${net_opts[@]}" $PACKAGES
+        fi
+
+        # apt leaves root-only lock files and root-owned files; the cache's post-job save runs as
+        # the runner user.
+        sudo rm -f "$cache/archives/lock" "$cache/lists/lock"
+        sudo chown -R "$(id -u):$(id -g)" "$cache"
