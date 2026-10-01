@@ -92,7 +92,7 @@ try {
       triangle.setVertexPositions(vertices);
     }
 
-    primitives.emplace_back(shifted, pool, EBGeometry::BVH::Build::SAH, 4);
+    primitives.emplace_back(shifted, pool, EBGeometry::BVH::Construction::SAH, 4);
     boundingVolumes.push_back(primitives.back().computeBoundingVolume());
   }
 

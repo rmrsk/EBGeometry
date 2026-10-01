@@ -48,7 +48,7 @@ namespace CSGDetail {
  * @param[in,out] a_pool            Pool to reserve the BVH from.
  * @param[in]     a_primitives      Primitives (must be non-empty).
  * @param[in]     a_boundingVolumes Bounding box of each primitive.
- * @param[in]     a_build           Preset construction method; every BVH::Build value is supported.
+ * @param[in]     a_construction           Preset construction method; every BVH::Construction value is supported.
  * @return The packed BVH.
  */
 template <class T, class P, size_t K>
@@ -57,7 +57,7 @@ inline BVH::PackedBVH<T, P, K>
 buildBVH(Pool&                                         a_pool,
          const std::vector<P>&                         a_primitives,
          const std::vector<BoundingVolumes::AABBT<T>>& a_boundingVolumes,
-         const BVH::Build                              a_build)
+         const BVH::Construction                       a_construction)
 {
   using BV   = BoundingVolumes::AABBT<T>;
   using Root = BVH::PackedBVH<T, P, K>;
@@ -92,29 +92,30 @@ buildBVH(Pool&                                         a_pool,
     primsAndBVs.emplace_back(a_primitives[i], a_boundingVolumes[i]);
   }
 
-  switch (a_build) {
-  case BVH::Build::CentroidSplit: {
+  switch (a_construction) {
+  case BVH::Construction::CentroidSplit: {
     return Root(a_pool, std::move(primsAndBVs), BVH::BVCentroidPartitioner<T, P, BV, K>);
   }
-  case BVH::Build::MidpointSplit: {
+  case BVH::Construction::MidpointSplit: {
     return Root(a_pool, std::move(primsAndBVs), BVH::MidpointPartitioner<T, P, BV, K>);
   }
-  case BVH::Build::ClusterSAH: {
+  case BVH::Construction::ClusterSAH: {
     return Root(a_pool, std::move(primsAndBVs), BVH::ClusterSpec{});
   }
-  case BVH::Build::Morton: {
+  case BVH::Construction::Morton: {
     return Root(a_pool, std::move(primsAndBVs), K, SFC::Morton{});
   }
-  case BVH::Build::Nested: {
+  case BVH::Construction::Nested: {
     return Root(a_pool, std::move(primsAndBVs), K, SFC::Nested{});
   }
-  case BVH::Build::Hilbert: {
+  case BVH::Construction::Hilbert: {
     return Root(a_pool, std::move(primsAndBVs), K, SFC::Hilbert{});
   }
-  case BVH::Build::SAH:
+  case BVH::Construction::SAH:
   default: {
-    EBGEOMETRY_REQUIRE(
-      a_build == BVH::Build::SAH, "BVHUnionIF: unknown BVH::Build value (%d)", static_cast<int>(a_build));
+    EBGEOMETRY_REQUIRE(a_construction == BVH::Construction::SAH,
+                       "BVHUnionIF: unknown BVH::Construction value (%d)",
+                       static_cast<int>(a_construction));
 
     return Root(a_pool, std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, BV, K>);
   }
@@ -520,11 +521,11 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
 template <class T, class P, size_t K>
 EBGEOMETRY_HOST
-BVHUnionIF<T, P, K>::BVHUnionIF(Pool&                  a_pool,
-                                const std::vector<P>&  a_primitives,
-                                const std::vector<BV>& a_boundingVolumes,
-                                const BVH::Build       a_build)
-  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_build))
+BVHUnionIF<T, P, K>::BVHUnionIF(Pool&                   a_pool,
+                                const std::vector<P>&   a_primitives,
+                                const std::vector<BV>&  a_boundingVolumes,
+                                const BVH::Construction a_construction)
+  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_construction))
 {}
 
 template <class T, class P, size_t K>
@@ -618,13 +619,13 @@ BVHUnionIF<T, P, K>::isAttachedTo(const Pool& a_pool) const noexcept
 
 template <class T, class P, size_t K, class Blend>
 EBGEOMETRY_HOST
-BVHSmoothUnionIF<T, P, K, Blend>::BVHSmoothUnionIF(Pool&                  a_pool,
-                                                   const std::vector<P>&  a_primitives,
-                                                   const std::vector<BV>& a_boundingVolumes,
-                                                   const T                a_smoothLen,
-                                                   const Blend            a_blend,
-                                                   const BVH::Build       a_build)
-  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_build)),
+BVHSmoothUnionIF<T, P, K, Blend>::BVHSmoothUnionIF(Pool&                   a_pool,
+                                                   const std::vector<P>&   a_primitives,
+                                                   const std::vector<BV>&  a_boundingVolumes,
+                                                   const T                 a_smoothLen,
+                                                   const Blend             a_blend,
+                                                   const BVH::Construction a_construction)
+  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_construction)),
     m_smoothLen(Math::max(a_smoothLen, Math::Limits<T>::min())),
     m_blend(a_blend)
 {

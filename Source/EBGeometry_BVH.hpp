@@ -55,7 +55,7 @@ namespace BVH {
  * accept every value. Each of them aborts, in every build, on a value outside this list. A custom
  * partitioner or leaf predicate is not a preset: build a TreeBVH with it and pack() it instead.
  */
-enum class Build
+enum class Construction
 {
   CentroidSplit, ///< Top-down: split at the median bounding-volume centroid along the longest axis
                  ///< (BVCentroidPartitioner).

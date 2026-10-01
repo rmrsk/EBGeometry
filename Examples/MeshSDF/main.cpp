@@ -65,7 +65,7 @@ try {
 
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file, pool);
   const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, pool);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool, 4, BVH::Build::SAH);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool, 4, BVH::Construction::SAH);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 1000;

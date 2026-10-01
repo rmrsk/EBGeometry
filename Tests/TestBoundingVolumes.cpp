@@ -67,6 +67,41 @@ TEMPLATE_TEST_CASE("AABBT: pointer constructor matches the std::vector construct
   REQUIRE(fromPointer.getHighCorner() == fromVector.getHighCorner());
 }
 
+TEST_CASE("SphereT: the point-list constructor and define() reject an empty list and an unknown algorithm",
+          "[SphereT][death]")
+{
+  using T = double;
+
+  const std::vector<Vec3T<T>> pts     = {Vec3T<T>(-2, 0, 0), Vec3T<T>(2, 0, 0)};
+  const auto                  unknown = static_cast<SphereT<T>::BuildAlgorithm>(7);
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build. Both used to leave the sphere unset: an
+  // unknown algorithm only printed a message, and an empty list was checked only with assertions on.
+  REQUIRE(abortsWith(
+    [] {
+      const SphereT<T> sphere(std::vector<Vec3T<T>>{});
+
+      (void)sphere;
+    },
+    "SphereT: cannot enclose an empty list of points"));
+
+  REQUIRE(abortsWith(
+    [&pts, unknown] {
+      const SphereT<T> sphere(pts, unknown);
+
+      (void)sphere;
+    },
+    "SphereT: unknown BuildAlgorithm value (7)"));
+
+  REQUIRE(abortsWith(
+    [&pts, unknown] {
+      SphereT<T> sphere;
+
+      sphere.define(pts, unknown);
+    },
+    "SphereT: unknown BuildAlgorithm value (7)"));
+}
+
 TEST_CASE("AABBT: the list constructors reject an empty list", "[AABBT][death]")
 {
   using T = double;

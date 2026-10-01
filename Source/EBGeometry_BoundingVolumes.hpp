@@ -99,8 +99,9 @@ public:
    * @brief Construct a bounding sphere enclosing a set of 3D points.
    * @details Mixed floating-point precision is allowed: @p P may differ from @p T.
    * @tparam P Floating-point precision of the input points.
-   * @param[in] a_points Set of 3D points.
-   * @param[in] a_alg    Algorithm to use (default: Ritter).
+   * @param[in] a_points Set of 3D points. Must be non-empty; an empty set aborts in every build.
+   * @param[in] a_alg    Algorithm to use (default: Ritter). A value outside BuildAlgorithm aborts in
+   * every build.
    */
   template <class P>
   EBGEOMETRY_HOST
@@ -149,8 +150,8 @@ public:
    * @brief Fit this sphere to a set of 3D points using the specified algorithm.
    * @details Mixed floating-point precision is allowed: @p P may differ from @p T.
    * @tparam P Floating-point precision of the input points.
-   * @param[in] a_points Set of 3D points.
-   * @param[in] a_alg    Algorithm to use.
+   * @param[in] a_points Set of 3D points. Must be non-empty; an empty set aborts in every build.
+   * @param[in] a_alg    Algorithm to use. A value outside BuildAlgorithm aborts in every build.
    */
   template <class P>
   EBGEOMETRY_HOST

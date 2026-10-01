@@ -7,7 +7,7 @@
 // fixtures so every expected value is hand-computable.
 
 #include "EBGeometry.hpp"
-#include "TestBuildMethods.hpp"
+#include "TestConstructions.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
@@ -489,7 +489,7 @@ dodecahedronGrid(Pool& a_pool)
         triangle.setVertexPositions(vertices);
       }
 
-      meshes.emplace_back(shifted, a_pool, BVH::Build::SAH, 1);
+      meshes.emplace_back(shifted, a_pool, BVH::Construction::SAH, 1);
     }
   }
 
@@ -570,7 +570,7 @@ TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy, and the free function, giv
 
   const auto freeFunc = BVHUnion<T, SphereSDF<T>, K>(pool, spheres, bvs);
 
-  for (const auto build : allBuildMethods) {
+  for (const auto build : allConstructions) {
     const BVHUnionIF<T, SphereSDF<T>, K> bvhUnion(pool, spheres, bvs, build);
 
     for (const auto& p : lineQueryPoints<T>()) {
@@ -665,7 +665,7 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: every build strategy matches brute force w
 
   Pool pool(hostMemoryResource());
 
-  for (const auto build : allBuildMethods) {
+  for (const auto build : allConstructions) {
     const BVHSmoothUnionIF<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
 
     for (const auto& p : queries) {
@@ -690,7 +690,7 @@ TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy handles many coincident pri
 
   Pool pool(hostMemoryResource());
 
-  for (const auto build : allBuildMethods) {
+  for (const auto build : allConstructions) {
     const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, bvs, build);
 
     REQUIRE_THAT(bvhUnion.signedDistance(Vec3T<T>::zeros()), withinAbsT(std::sqrt(T(3)) - T(0.5), formulaMargin<T>()));
@@ -1328,9 +1328,9 @@ TEST_CASE("BVHUnionIF and BVHSmoothUnionIF: reject an unknown build strategy and
       Pool pool(hostMemoryResource());
 
       (void)BVHUnionIF<double, SphereSDF<double>, 4>(
-        pool, sphereRow<double>(), sphereRowBVs<double>(), static_cast<BVH::Build>(42));
+        pool, sphereRow<double>(), sphereRowBVs<double>(), static_cast<BVH::Construction>(42));
     },
-    "BVHUnionIF: unknown BVH::Build value (42)"));
+    "BVHUnionIF: unknown BVH::Construction value (42)"));
 
   REQUIRE(abortsWith(
     [] {

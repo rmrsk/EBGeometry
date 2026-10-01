@@ -255,7 +255,7 @@ Test coverage
        partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
        :cpp:class:`MeshSDF`
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
-       :cpp:class:`BVH::Build` strategy; signs on two concave meshes (an L-shaped prism and a box with a
+       :cpp:class:`BVH::Construction` strategy; signs on two concave meshes (an L-shaped prism and a box with a
        narrow notch, whose concave edges need both adjacent faces' normals) against an analytic
        inside test; :cpp:func:`MeshSDF::getClosestFaces` ordering; and
        :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes

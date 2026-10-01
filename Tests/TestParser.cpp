@@ -333,7 +333,7 @@ TEMPLATE_TEST_CASE("Parser: readIntoTriangleBVH keeps the intermediate DCEL mesh
   const auto mesh      = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), viaMesh);
   const auto meshBytes = viaMesh.usedBytes();
 
-  const TriMeshSDF<T, Meta, 4, 4> fromMesh(mesh, viaMesh, BVH::Build::SAH, 4);
+  const TriMeshSDF<T, Meta, 4, 4> fromMesh(mesh, viaMesh, BVH::Construction::SAH, 4);
 
   REQUIRE(meshBytes > 0);
   REQUIRE(direct.usedBytes() + meshBytes <= viaMesh.usedBytes() + PoolBaseAlign);
@@ -349,7 +349,7 @@ TEST_CASE("Mesh distance functions and BVH unions refuse to build from nothing",
     [] {
       Pool                            pool(hostMemoryResource());
       const DCEL::MeshT<T, Meta>      empty;
-      const TriMeshSDF<T, Meta, 4, 4> sdf(empty, pool, BVH::Build::SAH, 2);
+      const TriMeshSDF<T, Meta, 4, 4> sdf(empty, pool, BVH::Construction::SAH, 2);
     },
     "TriMeshSDF: the mesh has no faces"));
 
@@ -357,7 +357,7 @@ TEST_CASE("Mesh distance functions and BVH unions refuse to build from nothing",
     [] {
       Pool                       pool(hostMemoryResource());
       const DCEL::MeshT<T, Meta> empty;
-      const MeshSDF<T, Meta, 4>  sdf(empty, pool, BVH::Build::SAH);
+      const MeshSDF<T, Meta, 4>  sdf(empty, pool, BVH::Construction::SAH);
     },
     "MeshSDF: the mesh has no faces"));
 

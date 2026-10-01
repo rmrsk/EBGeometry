@@ -14,7 +14,6 @@
 // Std includes
 #include <cmath>
 #include <cstddef>
-#include <iostream>
 #include <vector>
 
 // Our includes
@@ -68,8 +67,6 @@ template <class P>
 EBGEOMETRY_HOST
 SphereT<T>::SphereT(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
-
   this->define(a_points, a_algorithm);
 }
 
@@ -90,16 +87,20 @@ EBGEOMETRY_HOST
 inline void
 SphereT<T>::define(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
+  // Both are caller mistakes that would otherwise leave the sphere unset, or read past an empty
+  // array, with no sign of it, so they abort in every build.
+  EBGEOMETRY_REQUIRE(!a_points.empty(), "SphereT: cannot enclose an empty list of points");
 
   switch (a_algorithm) {
-  case BuildAlgorithm::Ritter: {
+  case BuildAlgorithm::Ritter:
+  default: {
+    EBGEOMETRY_REQUIRE(a_algorithm == BuildAlgorithm::Ritter,
+                       "SphereT: unknown BuildAlgorithm value (%d)",
+                       static_cast<int>(a_algorithm));
+
     this->buildRitter(a_points);
 
     break;
-  }
-  default: {
-    std::cerr << "SphereT::define - unsupported algorithm requested\n";
   }
   }
 }

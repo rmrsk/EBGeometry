@@ -563,14 +563,14 @@ public:
    * in it too. Must outlive this object and every copy of it.
    * @param[in]     a_primitives      Primitives (must be non-empty).
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
-   * @param[in]     a_build           Preset construction method; every BVH::Build value is supported.
+   * @param[in]     a_construction           Preset construction method; every BVH::Construction value is supported.
    * ClusterSAH uses the default ClusterSpec.
    */
   EBGEOMETRY_HOST
   BVHUnionIF(Pool&                  a_pool,
              const std::vector<P>&  a_primitives,
              const std::vector<BV>& a_boundingVolumes,
-             BVH::Build             a_build = BVH::Build::SAH);
+             BVH::Construction      a_construction = BVH::Construction::SAH);
 
   /**
    * @brief Evaluate the union at a point.
@@ -700,7 +700,7 @@ public:
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
    * @param[in]     a_smoothLen       Smoothing length (must be > 0).
    * @param[in]     a_blend           Smooth-minimum operator.
-   * @param[in]     a_build           Preset construction method; every BVH::Build value is supported.
+   * @param[in]     a_construction           Preset construction method; every BVH::Construction value is supported.
    * ClusterSAH uses the default ClusterSpec.
    */
   EBGEOMETRY_HOST
@@ -708,8 +708,8 @@ public:
                    const std::vector<P>&  a_primitives,
                    const std::vector<BV>& a_boundingVolumes,
                    T                      a_smoothLen,
-                   Blend                  a_blend = Blend{},
-                   BVH::Build             a_build = BVH::Build::SAH);
+                   Blend                  a_blend        = Blend{},
+                   BVH::Construction      a_construction = BVH::Construction::SAH);
 
   /**
    * @brief Evaluate the smooth union at a point.

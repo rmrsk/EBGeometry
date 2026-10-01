@@ -229,17 +229,17 @@ public:
   /**
    * @brief Full constructor. Copies the mesh descriptor and builds the BVH over its faces.
    * @details No default arguments: this is a low-level constructor, and callers working at this
-   * level must consciously choose a build strategy. Use Parser::readIntoPackedBVH for sensible
+   * level must consciously choose a construction method. Use Parser::readIntoPackedBVH for sensible
    * defaults. The BVH is reserved from a_pool, which must be the pool a_mesh was built in, so that
    * one rebasedView() rebases both. a_pool must outlive this object and every copy of it.
    * @param[in]     a_mesh   Input mesh, built against a_pool.
    * @param[in,out] a_pool   Pool a_mesh's storage was reserved from; the BVH is reserved here too.
-   * @param[in]     a_build  Preset construction method; every BVH::Build value is supported. SAH
+   * @param[in]     a_construction  Preset construction method; every BVH::Construction value is supported. SAH
    * (binned Surface Area Heuristic) is recommended. The top-down methods stop at fewer than K faces
    * per leaf; ClusterSAH uses the default ClusterSpec, so a leaf holds up to (K-1) clusters of faces.
    */
   EBGEOMETRY_HOST
-  inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
+  inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Construction a_construction);
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
@@ -371,12 +371,12 @@ private:
    * @brief Build and pack the BVH over a mesh's faces.
    * @param[in]     a_mesh  Mesh whose faces to index.
    * @param[in,out] a_pool  Pool to reserve the packed BVH from.
-   * @param[in]     a_build BVH build strategy.
+   * @param[in]     a_construction Preset BVH construction method.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
+  buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Construction a_construction);
 
   /**
    * @brief Source DCEL mesh descriptor.
@@ -469,7 +469,7 @@ public:
    * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups.
    * @param[in]     a_mesh          DCEL mesh. Faces with more than three vertices are fan-triangulated.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
-   * @param[in]     a_build         Preset construction method; every BVH::Build value is supported.
+   * @param[in]     a_construction         Preset construction method; every BVH::Construction value is supported.
    * SAH (binned Surface Area Heuristic) produces near-optimal traversal cost; CentroidSplit and
    * MidpointSplit are faster to build but yield deeper trees. The top-down methods honour
    * a_maxLeafGroups, ClusterSAH sizes its clusters so its leaves do too, and the space-filling-curve
@@ -485,20 +485,23 @@ public:
    * be > 0.
    */
   EBGEOMETRY_HOST
-  inline TriMeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
+  inline TriMeshSDF(const Mesh&             a_mesh,
+                    Pool&                   a_pool,
+                    const BVH::Construction a_construction,
+                    const size_t            a_maxLeafGroups);
 
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
    * @param[in]     a_triangles     Input triangle soup; copied into the BVH's SoA groups.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
-   * @param[in]     a_build         BVH build strategy (see the mesh-based constructor for details).
+   * @param[in]     a_construction         Preset BVH construction method (see the mesh-based constructor for details).
    * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
    * the mesh-based constructor for the tree-quality/SIMD-occupancy trade-off). Must be > 0.
    */
   EBGEOMETRY_HOST
   inline TriMeshSDF(const std::vector<Tri>& a_triangles,
                     Pool&                   a_pool,
-                    const BVH::Build        a_build,
+                    const BVH::Construction a_construction,
                     const size_t            a_maxLeafGroups);
 
   /**
@@ -617,13 +620,16 @@ private:
    * @brief Build and pack the BVH over a triangle soup.
    * @param[in]     a_triangles     Triangles to index.
    * @param[in,out] a_pool          Pool to reserve the packed BVH from.
-   * @param[in]     a_build         BVH build strategy.
+   * @param[in]     a_construction         Preset BVH construction method.
    * @param[in]     a_maxLeafGroups Maximum number of W-sized groups per leaf.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildBVH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
+  buildBVH(const std::vector<Tri>& a_triangles,
+           Pool&                   a_pool,
+           const BVH::Construction a_construction,
+           const size_t            a_maxLeafGroups);
 
   /**
    * @brief Build the BVH with ClusterSAH, which has no TreeBVH form.

@@ -175,7 +175,7 @@ _____________________________
 ``readIntoPackedBVH<T, Meta, K>(filename, pool, build)`` wraps a DCEL mesh in a ``PackedBVH``
 (depth-first flat layout) with SIMD traversal, returning a ``MeshSDF<T, Meta, K>`` by value (or a
 ``std::vector`` of them). It supports any polygon, not just triangles; the BVH branching factor
-``K`` defaults to 4 and the build strategy ``a_build`` defaults to ``BVH::Build::SAH``. The returned
+``K`` defaults to 4 and the construction method ``a_construction`` defaults to ``BVH::Construction::SAH``. The returned
 ``MeshSDF`` holds the mesh and its BVH in ``pool``, so ``pool`` must outlive it and every copy of
 it. For maximum throughput on triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
 

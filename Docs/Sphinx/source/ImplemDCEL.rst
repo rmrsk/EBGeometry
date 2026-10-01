@@ -160,7 +160,7 @@ and handing the resulting list to a ``TreeBVH``. Concretely,
    each vertex index against the owning mesh).
 #. Constructing a ``TreeBVH<T, FaceT<T, Meta>, BV, K>`` from the resulting
    ``(face, bounding volume)`` pairs.
-#. Partitioning that tree according to the requested ``BVH::Build`` value (see
+#. Partitioning that tree according to the requested ``BVH::Construction`` value (see
    :ref:`Sec:BuildPresets`), where the top-down partitioners consult ``FaceT::getCentroid()`` (see
    above) when deciding how to split a set of faces. ``ClusterSAH`` has no ``TreeBVH`` form and is
    built directly as a ``PackedBVH`` instead.

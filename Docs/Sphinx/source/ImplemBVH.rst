@@ -86,7 +86,7 @@ lists whenever a leaf is subdivided. Four ready-made partitioners are provided:
 ``BVCentroidPartitioner`` (splits on bounding-volume centroids along the longest axis -- the
 default), ``PrimitiveCentroidPartitioner`` (the same idea, but splits on primitive centroids
 instead), ``BinnedSAHPartitioner`` (a Surface-Area-Heuristic partitioner, used automatically
-when building via ``BVH::Build::SAH`` -- see below -- and typically producing the
+when building via ``BVH::Construction::SAH`` -- see below -- and typically producing the
 best-performing trees at a higher construction cost), and ``MidpointPartitioner`` (splits on the
 midpoint of the bounding-volume centroids' extent along the longest axis, with a single
 ``std::partition`` pass -- no sorting and no per-plane cost evaluation, making it the fastest of
@@ -211,14 +211,14 @@ Preset construction methods
 
 The library's own BVH users -- ``MeshSDF``, ``TriMeshSDF``, ``BVHUnionIF``, ``BVHSmoothUnionIF``
 and the parser functions that build them (see :ref:`Chap:Parsers`) -- don't ask for a partitioner
-and a leaf predicate. They take one ``BVH::Build`` value, which names the algorithm that groups the
+and a leaf predicate. They take one ``BVH::Construction`` value, which names the algorithm that groups the
 primitives:
 
 .. list-table::
    :header-rows: 1
    :widths: 20 15 65
 
-   * - ``BVH::Build``
+   * - ``BVH::Construction``
      - Direction
      - Method
    * - ``CentroidSplit``
