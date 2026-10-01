@@ -72,7 +72,7 @@ Use the CMake presets (CMake ≥ 3.22 required; each preset gets its own isolate
 cmake --preset debug            # Debug, assertions ON, no SIMD -- use this for development
 cmake --build --preset debug --parallel $(nproc)
 
-ctest --preset debug            # unit tests only, ~10 s
+ctest --preset debug            # unit tests only, ~15 s
 ctest --preset examples         # run every example via ctest, several minutes in Debug mode
 ```
 
@@ -89,7 +89,7 @@ cache variables if you need a combination not covered by a preset.
 ## Testing
 
 ```bash
-ctest --preset debug                 # ~350 unit tests (Catch2), ~10 s
+ctest --preset debug                 # ~430 unit tests (Catch2), ~15 s
 ctest --preset debug-san             # same, under AddressSanitizer + UBSan
 ctest --preset examples              # every Examples/* program, run to completion
 ctest --preset release-test          # unit tests + examples, optimised build
@@ -206,7 +206,7 @@ changed `Source/*.hpp` file:
    whether it deserves a mention on the relevant `Docs/Sphinx/source/Implem*.rst` implementation
    page (concrete API, Doxygen-linked) and/or its `Docs/Sphinx/source/*.rst` Concepts-section
    counterpart (conceptual picture, no implementation classes named) and/or a row in a
-   `Tests/TestingLocally.rst`-style coverage table, matching how existing sibling classes are
+   `Docs/Sphinx/source/TestingLocally.rst`-style coverage table, matching how existing sibling classes are
    documented.
 4. **If you changed a function's signature** (added/removed/renamed a parameter, changed a return
    type), update its Doxygen `@param`/`@tparam`/`@return` comment in the same header -- `doxygen
@@ -232,11 +232,13 @@ Scripts/run-all-checks.sh
 ```
 
 Runs every pre-commit hook (default and manual stage — formatting, REUSE/license headers,
-codespell, Doxygen, the `check-docs` literalinclude ban, clang-tidy, a debug-preset compile check,
-the documentation figures, Sphinx HTML/PDF) followed by all four CMake presets' test suites. This is
-the same check set `.github/workflows/CI.yml` runs, just local and in one command; expect it to
-take several minutes. `pre-commit install` is only needed if you want the default-stage hooks
-(formatting, license, codespell, Doxygen, check-docs) to run automatically on `git commit`; the
+codespell, Doxygen, the `check-docs` literalinclude ban, the `check-device-math` device toolchain
+contract, clang-tidy, a debug-preset compile check, the documentation figures, Sphinx HTML/PDF)
+followed by all four CMake presets' test suites. This is nearly the check set
+`.github/workflows/CI.yml` runs, just local and in one command; CI's `CMake-consumer` job is not
+included (run `Scripts/check-cmake-consumer.sh` for that). Expect it to take several
+minutes. `pre-commit install` is only needed if you want the default-stage hooks
+(formatting, license, codespell, Doxygen, check-docs, check-device-math) to run automatically on `git commit`; the
 manual-stage hooks (clang-tidy, the debug build, the documentation figures, Sphinx) only run via
 this script or explicit `pre-commit run --hook-stage manual`. The Doxygen hook runs whenever a
 header, `EBGeometry.hpp`, `Docs/mainpage.md` or `Docs/doxygen.conf` changes; codespell covers
