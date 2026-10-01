@@ -110,14 +110,14 @@ For both edges and vertices we use the pseudonormals from :cite:`1407857`:
 
 .. math::
 
-   \mathbf{n}_{e} = \frac{1}{2}\left(\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right).
+   \mathbf{n}_{e} = \frac{\mathbf{n}_{f} + \mathbf{n}_{f^\prime}}{\left|\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right|},
 
 where :math:`f` and :math:`f^\prime` are the two faces connecting the edge.
 The vertex pseudonormal is given by
 
 .. math::
 
-  \mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\right|},
+  \mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\mathbf{n}_{f_i}\right|},
 
 where the sum runs over all faces which share :math:`v` as a vertex, and where :math:`\alpha_i` is the subtended angle of the face :math:`f_i`, see :numref:`Fig:Pseudonormal`.
 

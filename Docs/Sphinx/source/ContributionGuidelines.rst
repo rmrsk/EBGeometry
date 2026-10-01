@@ -10,7 +10,7 @@ Contribution guidelines
 Code style
 ------------
 
-* Format all C++ files with ``clang-format`` version 18 before committing.
+* Format all C++ files with ``clang-format`` version 21 before committing.
   The repository's ``.clang-format`` file defines the style; running
   ``clang-format -i <file>`` will apply it in-place.
 * Follow the naming conventions already present in the codebase (``UpperCamel``

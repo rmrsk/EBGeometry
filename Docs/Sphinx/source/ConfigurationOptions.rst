@@ -58,8 +58,8 @@ in one leaf group). There are two ways to choose them.
 
 **The defaults** -- ``BVH::DefaultBranchingRatio<T>()``, ``TriangleSoA::DefaultWidth<T>()`` and
 ``PointSoA::DefaultWidth<T>()`` -- are 4 for ``float`` and ``double``, on every machine and with
-every compiler flag. The class templates that have defaults (``PointCloudBVH``, the SoA groups,
-``Parser::readIntoTriangleBVH``) use them. Because they never change, a type spelled with them is the
+every compiler flag. The class templates that have defaults (``PointCloudBVH``, ``PointSoAT``, ``PointAoSoA``,
+``TriangleAoSoA``, ``Parser::readIntoTriangleBVH``) use them. Because they never change, a type spelled with them is the
 same type in every file: in one compiled with ``-mavx`` and in one compiled without, and in both
 passes of a CUDA or HIP compile. That is what lets an object be built on the host and used on a GPU.
 
@@ -191,12 +191,12 @@ When ``EBGEOMETRY_ENABLE_ASSERTIONS`` **is** defined:
 
 .. code-block:: cpp
 
-   EBGEOMETRY_EXPECT(a_normal.length() > T(0));
+   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
    // On failure:
-   // EBGeometry assertion failed: (a_normal.length() > T(0))
+   // EBGeometry assertion failed: (std::isfinite(a_point[0]))
    //   file: EBGeometry_AnalyticDistanceFunctions.hpp
-   //   line: 98
-   //   function: PlaneSDF
+   //   line: 118
+   //   function: signedDistance
 
 The program prints the failing expression, file, line, and enclosing function name
 to ``stderr``, then calls ``std::abort()``.  This produces a core dump (on POSIX

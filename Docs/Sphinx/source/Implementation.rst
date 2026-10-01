@@ -66,6 +66,7 @@ The remaining pages in this section cover each component in more detail:
 * :ref:`Chap:ImplemBVH` -- bounding volume hierarchy construction, traversal, and the packed
   mesh/CSG signed distance function classes built on top of it.
 * :ref:`Chap:ImplemOctree` -- the octree implementation.
+* :ref:`Chap:ImplemPointCloud` -- point-cloud BVHs and hash grids for nearest-neighbour queries.
 * :ref:`Chap:Parsers` -- reading surface meshes from STL/PLY/OBJ/VTK files.
 * :ref:`Chap:SIMDClasses` -- the three SIMD-accelerated classes, and exactly what is vectorised in
   each.

@@ -34,8 +34,9 @@ using T = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 
 // The turnkey point-cloud BVH. The branching factor K and SoA leaf width W are template parameters
-// that default to the SIMD-optimal values for T, so we do not name them here -- the whole point of
-// this class is that the build and the traversal tuning are handled internally.
+// that default to the library's values (4, the same on every machine and on a GPU), so we do not
+// name them here -- the whole point of this class is that the build and the traversal tuning are
+// handled internally.
 using PointCloud = EBGeometry::PointCloudBVH<T, std::size_t>;
 
 // Run configuration.

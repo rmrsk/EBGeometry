@@ -78,6 +78,7 @@ With no argument the example loads `cow.obj` from the
 sized and centered automatically from the mesh's bounding box, so any watertight, triangulated
 STL/PLY/OBJ/VTK file works.
 
-The program prints the chosen sphere radius and the mesh's bounding box, then evaluates the
-combined (unioned) shape at two points: the mesh's center, which should read negative (inside
-the combined shape), and a point far outside both objects, which should read positive.
+While the example is disabled, it ignores its arguments and only prints the notice above. Once
+re-enabled, it prints the chosen sphere radius and the mesh's bounding box, then evaluates the
+combined (unioned) shape at two points: the mesh's center, which should read negative (inside the
+combined shape), and a point far outside both objects, which should read positive.

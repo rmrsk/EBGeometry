@@ -33,8 +33,9 @@ and const overloads), not as public named fields. Its main features are:
   in-place counterparts, plus a scalar-left multiplication/division as free functions.
 * ``cross`` and ``dot`` products, mirrored by free-function equivalents, plus free-function
   component-wise ``min``, ``max``, and ``clamp``.
-* Full comparison support: ``==``, ``!=``, componentwise ``<``/``>``/``<=``/``>=``, and a
-  lexicographic ``lessLX`` for use in ordered containers.
+* Equality ``==``/``!=``, and a lexicographic ``lessLX`` for use in ordered containers. The ordering
+  operators ``<``, ``>``, ``<=`` and ``>=`` are deleted: a component-wise comparison is not a strict
+  weak ordering.
 * ``minDir``/``maxDir`` to find the index of the smallest/largest component (optionally by
   magnitude), and ``length``/``length2``.
 * A stream insertion operator (``operator<<``) for printing.

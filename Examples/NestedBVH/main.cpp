@@ -19,8 +19,8 @@ using namespace EBGeometry;
 using T    = EBGEOMETRY_PRECISION;
 using Meta = short;
 
-// Branching factor for the outer union BVH. Defaults to the SIMD-optimal value for T on the
-// compiled ISA -- the same default readIntoTriangleBVH uses for the inner mesh BVHs.
+// Branching factor for the outer union BVH: the library default (4 on every machine and on a GPU),
+// the same default readIntoTriangleBVH uses for the inner mesh BVHs.
 constexpr size_t K = BVH::DefaultBranchingRatio<T>();
 
 using Vec3 = EBGeometry::Vec3T<T>;

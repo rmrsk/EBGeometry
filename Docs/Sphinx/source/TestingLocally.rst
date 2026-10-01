@@ -35,15 +35,15 @@ debugger output), and turns on both the test suite and the examples.
 
 A successful unit-test run looks like::
 
-   100% tests passed, 0 tests failed out of 351
+   100% tests passed, 0 tests failed out of 431
    Label Time Summary:
-   unit    =   8.38 sec*proc (351 tests)
+   unit    =   8.38 sec*proc (431 tests)
 
 Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
 ``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
 matching whatever the CMake preset otherwise builds) -- the count above is double-only. CI
 additionally configures with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite
-under both precisions (422 tests). To do the same locally:
+under both precisions (765 tests). To do the same locally:
 
 .. code-block:: bash
 
@@ -190,6 +190,19 @@ Test coverage
      - ``Math::min``/``max``/``clamp`` and ``Math::Limits`` against their ``std`` counterparts
        (including NaN arguments and constant evaluation), and ``Array<T, N>``: aggregate
        initialization, trivial copyability, iteration, sorting, ``fill``, comparison.
+   * - ``TestMemoryResource``
+     - ``HostMemoryResource``: aligned, writeable allocations, round-trip deallocation, the
+       accessibility flags, rejection of a non-power-of-two alignment, and the process-wide
+       ``hostMemoryResource()`` instance.
+   * - ``TestPool``
+     - ``Pool``: growth preserving earlier contents and every type's alignment, ``freeze`` and the
+       reservations it then rejects, moves (including the control block surviving a vector
+       reallocation), mirroring onto a non-host resource, pool identities, and a mirrored
+       ``PODVector`` read back on the device.
+   * - ``TestPODVector``
+     - ``PODVector``/``PODSpan``: the 16-byte trivially copyable layout, ``reserveFrom``/
+       ``push_back``/``assign``/``bind`` round trips, element alignment, and the aborts on writing
+       past capacity or reading out of range.
    * - ``TestPoolRebase``
      - ``Pool::mirror`` and ``PoolLocation``: offsets resolving identically against a mirrored block;
        a view onto a managed (host- and device-accessible) mirror answering queries on the host; an
@@ -300,6 +313,24 @@ Test coverage
        ``W`` triangles are packed), per-lane ``signedDistances`` consistency, and bounding-volume
        construction from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle metadata
        retrieval (``signedDistance(point, Meta&)``) and per-lane ``getMetaData`` with padding.
+   * - ``TestPointSoA``
+     - :cpp:class:`PointSoAT`: minimum and maximum distances and per-lane distances against the
+       closest and farthest packed point, unaffected by padding, for ``W`` = 4 and 8; the bounding
+       volume of the packed points; the default width; and rejection of a bad count or a null array.
+   * - ``TestPointAoSoA``
+     - :cpp:class:`PointAoSoA`: distances agreeing exactly with a plain ``PointSoAT``, per-lane
+       metadata with padding, the bounding volume, the default width, rejection of bad input, and
+       the device query surface against the host.
+   * - ``TestPointCloudBVH``
+     - :cpp:class:`PointCloudBVH`: nearest-neighbour, k-nearest-neighbour, all-points and
+       closest-point queries against brute force, edge cases, ``rebasedView``/``deepCopy``, device queries against the host, and
+       rejection of a cloud it cannot index, a zero leaf size, or a rebase onto too small a pool.
+   * - ``TestPointCloudHashGrid``
+     - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases, and
+       rejection of a non-positive target occupancy.
+   * - ``TestRandom``
+     - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
+       an empty result for a zero count.
    * - ``TestSimpleTimer``
      - ``SimpleTimer``: near-zero elapsed time on construction, measured duration against a
        requested sleep, restart-on-``start()`` semantics, and relative ordering of two

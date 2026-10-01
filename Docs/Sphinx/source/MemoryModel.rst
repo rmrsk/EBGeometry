@@ -276,17 +276,17 @@ memory model asks of a caller:
    the contract.
 
 Eight classes adopt this model today. Two of them hold pool addresses directly, ``DCEL::MeshT`` and
-``BVH::PackedBVH``: both hold the same two address fields (a ``PoolControl*`` for host resolution, a
-raw base for a device view), and both resolve every array through a ``base()`` with the same pair
-of assertions. The other six are built from those two, holding a mesh, a packed BVH, or both by
+``BVH::PackedBVH``: each holds one ``PoolLocation`` (a ``PoolControl*`` for host resolution, a raw
+base for a device view, and whether that base is host-accessible) and delegates attaching,
+resolving and rebasing to it. The other six are built from those two, holding a mesh, a packed BVH, or both by
 value and delegating to them: the mesh distance fields ``FlatMeshSDF``, ``MeshSDF`` and
 ``TriMeshSDF``, ``PointCloudBVH``, and the BVH unions ``BVHUnionIF`` and ``BVHSmoothUnionIF``. All
 eight offer ``rebasedView()`` as their single crossing point and ``deepCopy()`` for genuinely
-independent storage. The convention is deliberately duplicated rather than factored into a base
-class: it is about fifteen lines, and a base class would complicate the trivial-copyability
-``static_assert`` that the whole model rests on.
+independent storage. Only the short forwarding methods are repeated per class; the logic lives in
+``PoolLocation``, held as a member rather than a base class, so it does not complicate the
+trivial-copyability ``static_assert`` that the whole model rests on.
 
-The pair itself has a name,
+The location is
 `PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__, which ``MeshT`` and
 ``PackedBVH`` read with ``location()``, and which every one of the eight classes except
 ``PointCloudBVH`` applies to a copy of itself with ``relocatedTo()``. That exists for one case

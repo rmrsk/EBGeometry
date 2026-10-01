@@ -11,7 +11,7 @@ The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`.
 
 .. important::
 
-   EBGeometry is currently limited to reading STL, PLY, OBJ, and VTK (legacy or XML polydata)
+   EBGeometry is currently limited to reading STL, PLY, OBJ, and legacy VTK polydata (``.vtk``)
    files, and then reconstructing DCEL grids from those.
    PLY and VTK files can contain associated data on the nodes and faces, but this is not
    automatically populated when constructing the DCEL grids.
@@ -172,7 +172,7 @@ combination with the other ``readInto*`` functions.
 DCEL mesh SDF with PackedBVH
 _____________________________
 
-``readIntoPackedBVH<T, Meta, K>(filename, pool, build)`` wraps a DCEL mesh in a ``PackedBVH``
+``readIntoPackedBVH<T, Meta, K>(filename, pool, construction)`` wraps a DCEL mesh in a ``PackedBVH``
 (depth-first flat layout) with SIMD traversal, returning a ``MeshSDF<T, Meta, K>`` by value (or a
 ``std::vector`` of them). It supports any polygon, not just triangles; the BVH branching factor
 ``K`` defaults to 4 and the construction method ``a_construction`` defaults to ``BVH::Construction::SAH``. The returned
@@ -182,7 +182,7 @@ it. For maximum throughput on triangle-only meshes, prefer ``readIntoTriangleBVH
 Triangle meshes with PackedBVH
 ________________________________
 
-``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, maxLeafGroups, build)``
+``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, maxLeafGroups, construction)``
 converts all DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a
 ``PackedBVH``, returning a ``TriMeshSDF<T, Meta, K, W>`` by value (or a ``std::vector`` of them).
 SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to 4
@@ -238,9 +238,11 @@ A triangle soup is represented as
 Here, ``vertices`` contains the :math:`x,y,z` coordinates of each vertex, while each entry ``faces`` contains a list of vertices for the face.
 
 Turning a soup into a DCEL mesh is a three-step process, with optional checks before and between the
-steps, using the functions in namespace ``EBGeometry::Soup``. The file readers run the three steps
-and the two checks after compression themselves.
+steps, using the functions in namespace ``EBGeometry::Soup``. The file readers run the three steps,
+the validity check before them and the two checks after compression themselves.
 
+* ``isValid(vertices, facets, reason)`` checks that every vertex coordinate is finite and every face
+  index is in range, and says why not in ``reason``. The readers run it first, before compressing.
 * ``containsDegeneratePolygons(vertices, facets)`` is an optional up-front check: it returns
   ``true`` if any face has fewer than three vertices, two or more coincident vertices, or zero
   area (collinear vertices). Useful for validating a soup produced by an external tool.

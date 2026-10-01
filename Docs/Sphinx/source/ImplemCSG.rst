@@ -310,7 +310,7 @@ intersection of ``A`` with the complement of ``B``, which is why it defaults to 
 as intersection rather than to ``SmoothMin``); ``ExpMin`` and ``ExpMax`` are more expensive
 exponential alternatives, evaluated in a form that cannot overflow however far the inputs are from
 zero. The smooth combinators take the operator as a
-``std::function<T(const T&, const T&, const T&)>``, to which any of the three -- or a
+``std::function<T(const T&, const T&, const T&)>``, to which any of the four -- or a
 user-supplied functor of the same signature -- converts.
 
 ``FiniteRepetitionIF``/``FiniteRepetition`` tiles a single base implicit function

@@ -247,7 +247,7 @@ Enabling SIMD acceleration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 EBGeometry detects the available SIMD instruction set at compile time using the
-standard pre-defined macros ``__AVX512F__``, ``__AVX__``, ``__SSE4_1__``, and ``__FMA__``.
+standard pre-defined macros ``__AVX512F__``, ``__AVX__`` and ``__SSE4_1__``.
 Pass the corresponding flags to expose the widest register set supported by your CPU:
 
 .. list-table::

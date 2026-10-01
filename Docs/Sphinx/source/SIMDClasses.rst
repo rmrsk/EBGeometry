@@ -110,7 +110,7 @@ node data. See
 **What is vectorised:** the point-to-bounding-box squared-distance test used to decide which
 children to descend into (or prune) during traversal, in ``PackedBVH::pruneTraverse()``. All
 :math:`K` children of a node are tested against the query point in a single SIMD batch --
-one ``_mm(256\|512)_load_p[sd]`` per coordinate array, then vectorised subtract/max/multiply/add
+one ``_mm(128\|256\|512)_load_p[sd]`` per coordinate array, then vectorised subtract/max/multiply/add
 to get all :math:`K` squared distances at once -- rather than a scalar loop over children.
 ``PackedBVH`` has no ``signedDistance()`` of its own; ``MeshSDF``/``TriMeshSDF::signedDistance()``
 each build a thin wrapper around ``pruneTraverse()``, supplying a signed-distance leaf-eval and

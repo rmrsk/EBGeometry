@@ -8,8 +8,9 @@ merged result is checked too), triggers the CI pipeline defined in ``.github/wor
 GitHub-hosted ``ubuntu-latest`` runners. Together, the jobs check: code formatting
 (``clang-format``) and static analysis (``clang-tidy``, advisory); code correctness and assurance
 (the Catch2 unit-test suite, under multiple compilers, SIMD levels, and both ``float`` and
-``double`` precision; every bundled example, built and run via CMake, GNU Make, and direct compiler
-invocation, under GCC, Clang, and Intel's ``icpx``; AddressSanitizer and UndefinedBehaviorSanitizer
+``double`` precision; every bundled example built and run via CMake, and a subset also via GNU Make
+and direct compiler invocation, under GCC, Clang, and Intel's ``icpx``; a small consuming project
+that uses EBGeometry through ``add_subdirectory`` and ``find_package``; AddressSanitizer and UndefinedBehaviorSanitizer
 runs of the same test suite; device compiles of the GPU-callable code with HIP and, advisory, CUDA);
 spelling (``codespell``); license and copyright compliance (REUSE); and the project's documentation
 (a warnings-as-errors Doxygen build, the ``check-docs`` rule, and HTML/PDF Sphinx builds, the
@@ -52,7 +53,8 @@ Doxygen-check
 ~~~~~~~~~~~~~
 
 Runs the ``doxygen-check`` pre-commit hook, which builds the Doxygen API reference from
-``Docs/doxygen.conf`` with warnings treated as errors, and the ``check-docs`` hook (see
+``Docs/doxygen.conf`` with warnings treated as errors, and the ``check-docs`` and
+``check-device-math`` hooks (see
 `Running CI checks locally with pre-commit`_ below).
 
 Static-analysis
@@ -66,20 +68,22 @@ advisory and does not gate ``CI-passed``.
 Linux-GNU
 ~~~~~~~~~
 
-Compiles and runs every example under ``Examples/`` directly with ``g++`` (matrix over
-``{g++-11, g++-12}`` × the six example directories), using ``-std=c++17 -pedantic -Wall -Wextra``
+Compiles and runs seven of the examples directly with ``g++`` (matrix over
+``{g++-11, g++-12}`` × the seven example directories ``CSGUnion``, ``HostTuning``, ``MeshSDF``,
+``OctreeBoundingVolume``, ``PackedSpheres``, ``RandomCity`` and ``Shapes``), using ``-std=c++17 -pedantic -Wall -Wextra``
 plus a large set of additional diagnostic flags.
 
 Linux-Intel
 ~~~~~~~~~~~
 
-Compiles and runs a subset of examples (``MeshSDF``, ``PackedSpheres``, ``RandomCity``, ``Shapes``)
+Compiles and runs a subset of examples (``HostTuning``, ``MeshSDF``, ``PackedSpheres``, ``RandomCity``, ``Shapes``)
 with Intel's ``icpx`` compiler, ``-std=c++17 -Wall -Werror`` plus additional diagnostic flags.
 
 Examples-GNUMake
 ~~~~~~~~~~~~~~~~
 
-Builds and runs every example (matrix over the six example directories) via its own ``GNUmakefile``
+Builds and runs seven of the examples (the same seven directories as ``Linux-GNU``) via each one's
+own ``GNUmakefile``
 (``make run``).
 
 Examples-CMake
@@ -95,6 +99,13 @@ Examples-FloatPrecision
 
 The same as ``Examples-CMake``, but configured with ``-DEBGEOMETRY_PRECISION=float`` (a cache
 variable shared by every example's own ``CMakeLists.txt``).
+
+CMake-consumer
+~~~~~~~~~~~~~~
+
+Builds a small project that uses EBGeometry, once through ``add_subdirectory`` and once through
+``cmake --install`` and ``find_package(EBGeometry)``, and checks that the ``EBGeometry::EBGeometry``
+target imposes no SIMD flags on it (``Scripts/check-cmake-consumer.sh``).
 
 Build-documentation
 ~~~~~~~~~~~~~~~~~~~
@@ -174,6 +185,7 @@ Dependency graph
     +-- Sanitizers
     +-- GPU-CUDA                 (advisory; not required by CI-passed)
     +-- GPU-HIP
+    +-- CMake-consumer
          (all of the above except Static-analysis and GPU-CUDA) --> CI-passed
 
 ``Formatting``, ``Codespell``, ``Reuse``, and ``Doxygen-check`` themselves have no
@@ -233,6 +245,9 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
   A clean run only guarantees the banned directive is absent, not that the
   surrounding prose still accurately describes the code -- that still needs a
   manual read-through.
+* **check-device-math** — enforces the device toolchain contract (no ``std::min``/``max``/
+  ``clamp``/``numeric_limits``/``array`` in ``Source/``; see ``Scripts/CheckDeviceMath.py``). Default
+  stage; runs when a ``Source/*.hpp``, a ``Tests/*.[ch]pp`` or the script itself changes.
 * **build-doc-figures** — renders the documentation figures from their
   LaTeX/TikZ sources under ``Docs/Sphinx/source/_static/`` (``stages: [manual]``;
   requires ``pdflatex`` and ``pdftoppm`` on ``PATH``, see :ref:`Chap:Contributing`).

@@ -79,4 +79,5 @@ the path to any watertight, triangulated STL/PLY/OBJ/VTK file instead.
 The program prints the mesh's bounding box, then the summed signed distance to 1000 random
 points and the average time per query, once for each of the three representations, followed by
 the relative speedup of the two accelerated representations over the brute-force one. All three
-sums should agree to within floating-point round-off; the program prints a warning if they don't.
+sums should agree to within floating-point round-off; if they don't, the program prints an error
+and exits with status 1 before printing the results.

@@ -23,7 +23,9 @@ The template parameters shared by both are:
 
 *  ``T`` Floating-point precision.
 *  ``P`` Primitive type. Neither representation imposes an interface requirement of its own:
-   ``TreeBVH`` construction/partitioning only ever calls ``getCentroid()`` on it, and
+   ``TreeBVH`` construction needs nothing from it except that ``PrimitiveCentroidPartitioner``
+   calls ``getCentroid()`` (every other partitioner and the bottom-up build work from the bounding
+   volumes alone), and
    ``PackedBVH`` holds primitives opaquely, handing them back only to whatever leaf-visit
    callback a caller supplies to ``traverse()`` or ``pruneTraverse()`` (see below). Whether
    ``P`` needs a ``signedDistance(Vec3T<T>)`` member (or anything else) is entirely up to that

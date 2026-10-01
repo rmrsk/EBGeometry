@@ -57,7 +57,7 @@ enum class FileType
 {
   STL,        ///< Stereolithography format (.stl)
   PLY,        ///< Polygon File Format (.ply)
-  VTK,        ///< VTK legacy or XML polydata format (.vtk)
+  VTK,        ///< Legacy VTK polydata format (.vtk)
   OBJ,        ///< Wavefront OBJ format (.obj)
   Unsupported ///< File type is not recognised
 };
