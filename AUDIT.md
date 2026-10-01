@@ -480,6 +480,7 @@ Phase 0 is complete. Items 7–10 were:
 | 15. Location, step one (D1, MEM-2, MEM-8) | Done; the layout/handle split remains the first tape step | `3145b5a` |
 | 16. GPU test harness (QA-5/13) | Done; the tests also run in every host build, emulated. No lane runs a real kernel yet (no GPU runner) | `2e4f700` |
 | 17. Stack, empty leaves, SIMD rows, builder fixes (BVH-5/8/11/12/13) | Done, narrowly: a first, wider version (`6c58ae0`: one builder, a wide-node layout, `TreeBVH` retired) was reverted in `9481022`, since code outside EBGeometry relies on `TreeBVH`'s custom partitioners. BVH-2 (one build rule) and a template custom traversal are open | `051f53c` |
+| 17c. Preset construction methods (BVH-2, in part) | Done: `Build` names each algorithm (`CentroidSplit`, `MidpointSplit`, `SAH`, `ClusterSAH`, `Morton`, `Nested`, `Hilbert`; `TopDown` removed), every library user accepts every value, and an unknown value aborts (MeshSDF/TriMeshSDF printed to `std::cerr` and packed an unpartitioned tree). The type's own name is still to be decided. Leaf-size rules still differ per user | `8df456b` |
 
 Findings from item 11:
 
