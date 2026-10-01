@@ -69,6 +69,7 @@ using Meta = short;
   template class AnnularIF<PREC>;                                           \
   template class BlurIF<PREC>;                                              \
   template class MollifyIF<PREC>;                                           \
+  template class TransformDetail::BumpMollifierIF<PREC>;                    \
   template class ElongateIF<PREC>;                                          \
   template class ReflectIF<PREC>;                                           \
                                                                                \
