@@ -234,7 +234,9 @@ public:
    * one rebasedView() rebases both. a_pool must outlive this object and every copy of it.
    * @param[in]     a_mesh   Input mesh, built against a_pool.
    * @param[in,out] a_pool   Pool a_mesh's storage was reserved from; the BVH is reserved here too.
-   * @param[in]     a_build  BVH build strategy. SAH (binned Surface Area Heuristic) is recommended.
+   * @param[in]     a_build  Preset construction method; every BVH::Build value is supported. SAH
+   * (binned Surface Area Heuristic) is recommended. The top-down methods stop at fewer than K faces
+   * per leaf; ClusterSAH uses the default ClusterSpec, so a leaf holds up to (K-1) clusters of faces.
    */
   EBGEOMETRY_HOST
   inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
@@ -467,14 +469,17 @@ public:
    * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups.
    * @param[in]     a_mesh          DCEL mesh. Faces with more than three vertices are fan-triangulated.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
-   * @param[in]     a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
-   * near-optimal traversal cost; TopDown (centroid median) is faster to build but yields deeper trees.
+   * @param[in]     a_build         Preset construction method; every BVH::Build value is supported.
+   * SAH (binned Surface Area Heuristic) produces near-optimal traversal cost; CentroidSplit and
+   * MidpointSplit are faster to build but yield deeper trees. The top-down methods honour
+   * a_maxLeafGroups, ClusterSAH sizes its clusters so its leaves do too, and the space-filling-curve
+   * methods ignore it (at most K triangles per leaf).
    * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
    * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W. This bounds the pre-packing
    * tree's leaf size, not the packed representation directly: each leaf's triangles become their
    * own TriangleSoA group(s) during packing, with no batching across leaves, so a leaf smaller
    * than W wastes some of its group's SIMD lanes on padding. It is an upper bound, not a target —
-   * the SAH/TopDown partitioner still splits down to tighter, more selective leaves wherever the
+   * the top-down partitioner still splits down to tighter, more selective leaves wherever the
    * geometry warrants it. Expressing this as a count of W-sized groups (rather than a raw triangle
    * count) makes it impossible to accidentally pick a leaf size that isn't a multiple of W. Must
    * be > 0.
@@ -619,6 +624,33 @@ private:
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
   buildBVH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
+
+  /**
+   * @brief Build the BVH with ClusterSAH, which has no TreeBVH form.
+   * @details Builds a ClusterSAH PackedBVH over the triangle indices in a scratch pool, then copies
+   * it node for node with each leaf's triangles regrouped into W-wide SoA groups.
+   * @param[in]     a_triangles   Triangles to index.
+   * @param[in,out] a_pool        Pool to reserve the packed BVH from.
+   * @param[in]     a_maxLeafSize Maximum number of triangles per leaf. The cluster size is chosen so
+   * that a leaf, which holds at most K-1 clusters, stays within it; a cluster holds at least one
+   * triangle, so a bound below K-1 still allows K-1.
+   * @return The packed BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline Root
+  buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& a_pool, const size_t a_maxLeafSize);
+
+  /**
+   * @brief Pack a run of triangles into W-wide SoA groups; the last group may be partly filled.
+   * @tparam GetTriangle Callable taking an index in [0, a_count) and returning a const Tri&.
+   * @param[in] a_getTriangle Accessor for the run's triangles.
+   * @param[in] a_count       Number of triangles in the run.
+   * @return ceil(a_count / W) groups, in run order.
+   */
+  template <class GetTriangle>
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline std::vector<TriAoSoA>
+  groupTriangles(const GetTriangle& a_getTriangle, uint32_t a_count);
 
   /**
    * @brief Leaf-conversion callback for TreeBVH::packWith: groups a BVH leaf's triangles

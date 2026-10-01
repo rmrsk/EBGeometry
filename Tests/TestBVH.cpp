@@ -9,10 +9,12 @@
 // enough primitives to meaningfully exercise BVH partitioning and traversal.
 
 #include "EBGeometry.hpp"
+#include "TestBuildMethods.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <functional>
@@ -338,7 +340,7 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
 
   const FlatMeshSDF<T, Meta> flat(mesh, pool);
 
-  for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
+  for (const auto build : allBuildMethods) {
     const MeshSDF<T, Meta, K> packed(mesh, pool, build);
 
     for (const auto& p : queryPoints<T>()) {
@@ -362,7 +364,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshS
   const FlatMeshSDF<T, Meta> flat(mesh, pool);
   const MeshSDF<T, Meta, K>  packed(mesh, pool, BVH::Build::SAH);
 
-  for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
+  for (const auto build : allBuildMethods) {
     const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, build, 2);
 
     for (const auto& p : queryPoints<T>()) {
@@ -637,7 +639,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle'
     tris.emplace_back(tri);
   }
 
-  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH}) {
+  for (const auto build : allBuildMethods) {
     const TriMeshSDF<T, Meta, K, W> tri(tris, pool, build, 2);
 
     for (int i = 0; i < N; i++) {
@@ -649,6 +651,110 @@ TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle'
       REQUIRE_THAT(closest.signedDistance, withinAbsT(tri.signedDistance(q), traversalMargin<T>()));
     }
   }
+}
+
+TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Build value finds the nearest triangle, and the top-down "
+                   "methods keep each leaf within maxLeafGroups",
+                   "[BVH][TriMesh][Build]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // A soup of 512 small, differently oriented triangles on a jittered grid: enough for many levels,
+  // and no two triangles at the same distance from a query.
+  std::mt19937                      rng(17);
+  std::uniform_real_distribution<T> jitter(T(-0.2), T(0.2));
+
+  std::vector<Triangle<T, Meta>> tris;
+
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      for (int k = 0; k < 8; k++) {
+        const Vec3 base(T(i) + jitter(rng), T(j) + jitter(rng), T(k) + jitter(rng));
+        const Vec3 a = base + Vec3(T(0.3), jitter(rng), jitter(rng));
+        const Vec3 b = base + Vec3(jitter(rng), T(0.3), jitter(rng));
+        const Vec3 n = (a - base).cross(b - base) / (a - base).cross(b - base).length();
+
+        Triangle<T, Meta> tri;
+        tri.setVertexPositions({base, a, b});
+        tri.setNormal(n);
+        tri.setVertexNormals({n, n, n});
+        tri.setEdgeNormals({n, n, n});
+
+        tris.emplace_back(tri);
+      }
+    }
+  }
+
+  std::vector<Vec3> queries;
+
+  for (int q = 0; q < 200; q++) {
+    queries.emplace_back(T(9) * (jitter(rng) + T(0.5)) - T(0.5),
+                         T(9) * (jitter(rng) + T(0.5)) - T(0.5),
+                         T(9) * (jitter(rng) + T(0.5)) - T(0.5));
+  }
+
+  Pool pool(hostMemoryResource());
+
+  for (const size_t maxLeafGroups : {size_t(1), size_t(2), size_t(3)}) {
+    for (const auto build : allBuildMethods) {
+      const TriMeshSDF<T, Meta, K, W> sdf(tris, pool, build, maxLeafGroups);
+
+      const auto nodes = sdf.getRoot().getNodes();
+
+      const bool boundsLeaves = build == BVH::Build::CentroidSplit || build == BVH::Build::MidpointSplit ||
+                                build == BVH::Build::SAH || build == BVH::Build::ClusterSAH;
+
+      for (uint32_t i = 0; i < nodes.size(); i++) {
+        if (boundsLeaves && nodes[i].isLeaf()) {
+          REQUIRE(nodes[i].getNumPrimitives() <= maxLeafGroups);
+        }
+      }
+
+      for (const auto& q : queries) {
+        T nearest = std::numeric_limits<T>::max();
+
+        for (const auto& tri : tris) {
+          nearest = std::min(nearest, std::abs(tri.signedDistance(q)));
+        }
+
+        REQUIRE_THAT(std::abs(sdf.signedDistance(q)), withinAbsT(nearest, traversalMargin<T>()));
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: a value outside BVH::Build aborts", "[BVH][Build]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // An EBGEOMETRY_REQUIRE, so it aborts in every build rather than packing an unpartitioned tree.
+  REQUIRE(abortsWith(
+    [] {
+      Pool                      pool(hostMemoryResource());
+      const auto                mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+      const MeshSDF<T, Meta, K> sdf(mesh, pool, invalidBuildMethod);
+
+      (void)sdf;
+    },
+    "MeshSDF: unknown BVH::Build value (99)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                            pool(hostMemoryResource());
+      const auto                      mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+      const TriMeshSDF<T, Meta, K, W> sdf(mesh, pool, invalidBuildMethod, 2);
+
+      (void)sdf;
+    },
+    "TriMeshSDF: unknown BVH::Build value (99)"));
 }
 
 namespace {

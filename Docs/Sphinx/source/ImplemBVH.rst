@@ -204,12 +204,55 @@ data). ``BVH::ClusterSpec::maxClusterSize`` trades build time (larger → fewer,
 against query quality (larger → coarser leaves); ``Examples/BuildBVH`` benchmarks its build time
 against the other strategies.
 
-.. tip::
+.. _Sec:BuildPresets:
 
-   Higher-level entry points such as ``Parser::readIntoPackedBVH`` don't require you to
-   call ``topDownSortAndPartition``/``bottomUpSortAndPartition`` directly — they take a single
-   ``BVH::Build`` enum value (``TopDown``, ``Morton``, ``Nested``, or ``SAH``) and dispatch to the
-   corresponding construction method internally. See :ref:`Chap:Parsers`.
+Preset construction methods
+---------------------------
+
+The library's own BVH users -- ``MeshSDF``, ``TriMeshSDF``, ``BVHUnionIF``, ``BVHSmoothUnionIF``
+and the parser functions that build them (see :ref:`Chap:Parsers`) -- don't ask for a partitioner
+and a leaf predicate. They take one ``BVH::Build`` value, which names the algorithm that groups the
+primitives:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - ``BVH::Build``
+     - Direction
+     - Method
+   * - ``CentroidSplit``
+     - top-down
+     - Split at the median bounding-volume centroid along the longest axis
+       (``BVCentroidPartitioner``).
+   * - ``MidpointSplit``
+     - top-down
+     - Split at the spatial midpoint of the centroids' longest axis, with no sorting
+       (``MidpointPartitioner``). The fastest top-down build; does not adapt to clustered input.
+   * - ``SAH``
+     - top-down
+     - Binned surface area heuristic (``BinnedSAHPartitioner``). The recommended default.
+   * - ``ClusterSAH``
+     - top-down
+     - Binned SAH over small spatial clusters (see above). Builds several times faster than
+       ``SAH``; a leaf holds up to ``K-1`` clusters.
+   * - ``Morton``
+     - bottom-up
+     - Leaves of consecutive primitives along a Morton curve, merged ``K`` at a time.
+   * - ``Nested``
+     - bottom-up
+     - The same, along a Nested curve.
+   * - ``Hilbert``
+     - bottom-up
+     - The same, along a Hilbert curve.
+
+Every one of these users accepts every value, and aborts, in every build, on a value outside the
+enum. ``MeshSDF`` and ``TriMeshSDF`` build the tree methods through a ``TreeBVH`` and ``ClusterSAH``
+through the direct ``ClusterSpec`` constructor; ``TriMeshSDF`` then regroups each ``ClusterSAH``
+leaf into SIMD triangle groups, with clusters sized so a leaf stays within its ``a_maxLeafGroups``
+bound. ``MeshSDF`` and the BVH unions use the default ``ClusterSpec``. A custom partitioner or leaf
+predicate is not a preset: build a ``TreeBVH`` with it and ``pack()`` it, or use the direct top-down
+constructor.
 
 .. _Chap:BVHRefit:
 
@@ -818,7 +861,7 @@ Rules of thumb:
 * ``a_maxLeafGroups`` (the maximum number of full ``W``-sized SoA groups per BVH
   leaf, so at most ``a_maxLeafGroups * W`` raw triangles before SoA packing)
   defaults to ``4`` in ``Parser::readIntoTriangleBVH`` (the ``TriMeshSDF``
-  constructors have no default), while the SAH/TopDown partitioner is still free
+  constructors have no default), while the top-down partitioners are still free
   to split down to smaller, tighter leaves wherever the geometry calls for it. A
   leaf smaller than ``W`` simply pads its SoA block's unused lanes.
 * ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F

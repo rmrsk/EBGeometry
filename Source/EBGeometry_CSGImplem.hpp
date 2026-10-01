@@ -48,7 +48,7 @@ namespace CSGDetail {
  * @param[in,out] a_pool            Pool to reserve the BVH from.
  * @param[in]     a_primitives      Primitives (must be non-empty).
  * @param[in]     a_boundingVolumes Bounding box of each primitive.
- * @param[in]     a_build           BVH construction strategy.
+ * @param[in]     a_build           Preset construction method; every BVH::Build value is supported.
  * @return The packed BVH.
  */
 template <class T, class P, size_t K>
@@ -93,8 +93,14 @@ buildBVH(Pool&                                         a_pool,
   }
 
   switch (a_build) {
-  case BVH::Build::TopDown: {
-    return Root(a_pool, std::move(primsAndBVs));
+  case BVH::Build::CentroidSplit: {
+    return Root(a_pool, std::move(primsAndBVs), BVH::BVCentroidPartitioner<T, P, BV, K>);
+  }
+  case BVH::Build::MidpointSplit: {
+    return Root(a_pool, std::move(primsAndBVs), BVH::MidpointPartitioner<T, P, BV, K>);
+  }
+  case BVH::Build::ClusterSAH: {
+    return Root(a_pool, std::move(primsAndBVs), BVH::ClusterSpec{});
   }
   case BVH::Build::Morton: {
     return Root(a_pool, std::move(primsAndBVs), K, SFC::Morton{});
@@ -102,10 +108,13 @@ buildBVH(Pool&                                         a_pool,
   case BVH::Build::Nested: {
     return Root(a_pool, std::move(primsAndBVs), K, SFC::Nested{});
   }
+  case BVH::Build::Hilbert: {
+    return Root(a_pool, std::move(primsAndBVs), K, SFC::Hilbert{});
+  }
   case BVH::Build::SAH:
   default: {
     EBGEOMETRY_REQUIRE(
-      a_build == BVH::Build::SAH, "BVHUnionIF: unknown BVH::Build strategy (%d)", static_cast<int>(a_build));
+      a_build == BVH::Build::SAH, "BVHUnionIF: unknown BVH::Build value (%d)", static_cast<int>(a_build));
 
     return Root(a_pool, std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, BV, K>);
   }

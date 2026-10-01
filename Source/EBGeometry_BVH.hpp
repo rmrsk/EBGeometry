@@ -45,17 +45,31 @@ namespace EBGeometry {
 namespace BVH {
 
 /**
- * @brief Enum for specifying the BVH construction strategy.
+ * @brief The preset BVH construction methods that the library's own BVH users accept.
+ * @details Each value names the algorithm that groups the primitives; its comment says in which
+ * direction the tree is built. Top-down methods split the root's primitives recursively until a
+ * leaf predicate stops them; bottom-up methods sort the primitives along a space-filling curve, cut
+ * the sorted list into leaves, and merge K neighbours at a time up to the root.
+ *
+ * MeshSDF, TriMeshSDF, BVHUnionIF and BVHSmoothUnionIF (and the parser functions that build them)
+ * accept every value. Each of them aborts, in every build, on a value outside this list. A custom
+ * partitioner or leaf predicate is not a preset: build a TreeBVH with it and pack() it instead.
  */
 enum class Build
 {
-  TopDown, ///< Recursive top-down partitioning.
-  Morton,  ///< Bottom-up construction along a Morton space-filling curve.
-  Nested,  ///< Bottom-up construction along a Nested space-filling curve.
-  SAH      ///< Recursive top-down with binned Surface Area Heuristic splitting. This is the recommended
-           ///< default: generally produces better-balanced trees and lower traversal cost than TopDown.
-           ///< Builders taking a Build select BinnedSAHPartitioner for this value; see it for
-           ///< recommended K values per ISA.
+  CentroidSplit, ///< Top-down: split at the median bounding-volume centroid along the longest axis
+                 ///< (BVCentroidPartitioner).
+  MidpointSplit, ///< Top-down: split at the spatial midpoint of the centroids' longest axis, with no
+                 ///< sorting (MidpointPartitioner). The fastest top-down build; does not adapt to
+                 ///< clustered input.
+  SAH,           ///< Top-down: binned surface area heuristic (BinnedSAHPartitioner). The recommended
+                 ///< default: generally the lowest traversal cost.
+  ClusterSAH,    ///< Top-down: group the primitives into small spatial clusters, then run binned SAH
+                 ///< over the clusters (see ClusterSpec). Builds several times faster than SAH, at
+                 ///< the cost of leaves of up to (K-1) clusters.
+  Morton,        ///< Bottom-up: leaves of consecutive primitives along a Morton (Z-order) curve.
+  Nested,        ///< Bottom-up: leaves of consecutive primitives along a Nested (row-major) curve.
+  Hilbert        ///< Bottom-up: leaves of consecutive primitives along a Hilbert curve.
 };
 
 /**
