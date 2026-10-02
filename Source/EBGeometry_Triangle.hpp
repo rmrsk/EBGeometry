@@ -123,14 +123,16 @@ public:
 
   /**
    * @brief Set the triangle vertex normals
-   * @param[in] a_vertexNormals Vertex normals. Each must be finite and unit length.
+   * @param[in] a_vertexNormals Vertex normals. Each must be finite and unit length, or zero for a vertex
+   * on a fold (a mesh loaded with Parser::OnDefect::Warn can have one).
    */
   void
   setVertexNormals(const Array<Vec3, 3>& a_vertexNormals) noexcept;
 
   /**
    * @brief Set the triangle edge normals
-   * @param[in] a_edgeNormals Edge normals. Each must be finite and unit length.
+   * @param[in] a_edgeNormals Edge normals. Each must be finite and unit length, or zero for an edge on
+   * a fold (a mesh loaded with Parser::OnDefect::Warn can have one).
    */
   void
   setEdgeNormals(const Array<Vec3, 3>& a_edgeNormals) noexcept;

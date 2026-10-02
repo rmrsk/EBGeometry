@@ -2000,7 +2000,7 @@ Parser::readOBJ(const std::vector<std::string>& a_filenames)
 
 template <typename T, typename Meta>
 [[nodiscard]] inline EBGeometry::DCEL::MeshT<T, Meta>
-Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool)
+Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool, const OnDefect a_onDefect)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoDCEL requires T to be a floating-point type");
 
@@ -2013,28 +2013,28 @@ Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool)
   case Parser::FileType::STL: {
     const STL<T> stl = readSTL<T>(a_filename);
 
-    mesh = *stl.template convertToDCEL<Meta>(a_pool);
+    mesh = *stl.template convertToDCEL<Meta>(a_pool, a_onDefect);
 
     break;
   }
   case Parser::FileType::PLY: {
     const PLY<T> ply = readPLY<T>(a_filename);
 
-    mesh = *ply.template convertToDCEL<Meta>(a_pool);
+    mesh = *ply.template convertToDCEL<Meta>(a_pool, a_onDefect);
 
     break;
   }
   case Parser::FileType::VTK: {
     const VTK<T> vtk = readVTK<T>(a_filename);
 
-    mesh = *vtk.template convertToDCEL<Meta>(a_pool);
+    mesh = *vtk.template convertToDCEL<Meta>(a_pool, a_onDefect);
 
     break;
   }
   case Parser::FileType::OBJ: {
     const OBJ<T> obj = readOBJ<T>(a_filename);
 
-    mesh = *obj.template convertToDCEL<Meta>(a_pool);
+    mesh = *obj.template convertToDCEL<Meta>(a_pool, a_onDefect);
 
     break;
   }
@@ -2054,13 +2054,13 @@ Parser::readIntoDCEL(const std::string a_filename, Pool& a_pool)
 
 template <typename T, typename Meta>
 [[nodiscard]] inline std::vector<EBGeometry::DCEL::MeshT<T, Meta>>
-Parser::readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool)
+Parser::readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefect a_onDefect)
 {
   std::vector<EBGeometry::DCEL::MeshT<T, Meta>> objects;
 
   objects.reserve(a_files.size());
   for (const auto& file : a_files) {
-    objects.emplace_back(Parser::readIntoDCEL<T, Meta>(file, a_pool));
+    objects.emplace_back(Parser::readIntoDCEL<T, Meta>(file, a_pool, a_onDefect));
   }
 
   return objects;
@@ -2068,23 +2068,23 @@ Parser::readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool)
 
 template <typename T, typename Meta>
 [[nodiscard]] inline FlatMeshSDF<T, Meta>
-Parser::readIntoMesh(const std::string a_filename, Pool& a_pool)
+Parser::readIntoMesh(const std::string a_filename, Pool& a_pool, const OnDefect a_onDefect)
 {
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, a_pool, a_onDefect);
 
   return FlatMeshSDF<T, Meta>(mesh, a_pool);
 }
 
 template <typename T, typename Meta>
 [[nodiscard]] inline std::vector<FlatMeshSDF<T, Meta>>
-Parser::readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool)
+Parser::readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefect a_onDefect)
 {
   std::vector<FlatMeshSDF<T, Meta>> sdfs;
 
   sdfs.reserve(a_files.size());
 
   for (const auto& file : a_files) {
-    sdfs.emplace_back(Parser::readIntoMesh<T, Meta>(file, a_pool));
+    sdfs.emplace_back(Parser::readIntoMesh<T, Meta>(file, a_pool, a_onDefect));
   }
 
   return sdfs;
@@ -2092,14 +2092,14 @@ Parser::readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool)
 
 template <typename T, typename Meta>
 [[nodiscard]] std::vector<Triangle<T, Meta>>
-Parser::readIntoTriangles(const std::string a_filename)
+Parser::readIntoTriangles(const std::string a_filename, const OnDefect a_onDefect)
 {
   // The DCEL mesh is only a step on the way to the triangles, which are plain values. Keeping it in a
   // Pool private to this call frees it on return; in the caller's Pool it would stay reserved (a
   // Pool never frees individual reservations) and be mirrored to the device with everything else.
   Pool scratch(hostMemoryResource());
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, scratch);
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename, scratch, a_onDefect);
 
   // The same extraction TriMeshSDF's mesh constructor uses: real half-edge normals and the face
   // metadata, so readIntoTriangleBVH and TriMeshSDF(mesh, ...) build identical triangles.
@@ -2110,13 +2110,13 @@ Parser::readIntoTriangles(const std::string a_filename)
 
 template <typename T, typename Meta>
 [[nodiscard]] std::vector<std::vector<Triangle<T, Meta>>>
-Parser::readIntoTriangles(const std::vector<std::string>& a_files)
+Parser::readIntoTriangles(const std::vector<std::string>& a_files, const OnDefect a_onDefect)
 {
   std::vector<std::vector<Triangle<T, Meta>>> triangles;
 
   triangles.reserve(a_files.size());
   for (const auto& file : a_files) {
-    triangles.emplace_back(Parser::readIntoTriangles<T, Meta>(file));
+    triangles.emplace_back(Parser::readIntoTriangles<T, Meta>(file, a_onDefect));
   }
 
   return triangles;
@@ -2127,12 +2127,13 @@ template <typename T, typename Meta, size_t K, size_t W>
 Parser::readIntoTriangleBVH(const std::string       a_filename,
                             Pool&                   a_pool,
                             const size_t            a_maxLeafGroups,
-                            const BVH::Construction a_construction)
+                            const BVH::Construction a_construction,
+                            const OnDefect          a_onDefect)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
-  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
+  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename, a_onDefect);
 
   return TriMeshSDF<T, Meta, K, W>(triangles, a_pool, a_construction, a_maxLeafGroups);
 }
@@ -2142,7 +2143,8 @@ template <typename T, typename Meta, size_t K, size_t W>
 Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
                             Pool&                           a_pool,
                             const size_t                    a_maxLeafGroups,
-                            const BVH::Construction         a_construction)
+                            const BVH::Construction         a_construction,
+                            const OnDefect                  a_onDefect)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
@@ -2152,7 +2154,7 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
   implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
     implicitFunctions.emplace_back(
-      Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_pool, a_maxLeafGroups, a_construction));
+      Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_pool, a_maxLeafGroups, a_construction, a_onDefect));
   }
 
   return implicitFunctions;
@@ -2160,18 +2162,24 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
 
 template <typename T, typename Meta, size_t K>
 [[nodiscard]] inline MeshSDF<T, Meta, K>
-Parser::readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::Construction a_construction)
+Parser::readIntoPackedBVH(const std::string       a_filename,
+                          Pool&                   a_pool,
+                          const BVH::Construction a_construction,
+                          const OnDefect          a_onDefect)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename, a_pool);
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename, a_pool, a_onDefect);
 
   return MeshSDF<T, Meta, K>(mesh, a_pool, a_construction);
 }
 
 template <typename T, typename Meta, size_t K>
 [[nodiscard]] inline std::vector<MeshSDF<T, Meta, K>>
-Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const BVH::Construction a_construction)
+Parser::readIntoPackedBVH(const std::vector<std::string>& a_files,
+                          Pool&                           a_pool,
+                          const BVH::Construction         a_construction,
+                          const OnDefect                  a_onDefect)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
@@ -2181,7 +2189,8 @@ Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool,
   implicitFunctions.reserve(a_files.size());
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, a_pool, a_construction));
+    implicitFunctions.emplace_back(
+      EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, a_pool, a_construction, a_onDefect));
   }
 
   return implicitFunctions;

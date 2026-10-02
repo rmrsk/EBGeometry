@@ -259,7 +259,9 @@ Test coverage
      - Cross-format parser behaviour: binary STL (with per-facet colour attributes), PLY and VTK
        fixtures reading the same mesh as their ASCII counterparts; missing, empty, truncated and
        corrupted files throwing ``ParseError`` with the file, line and reason; unused vertices being
-       ignored; and mesh distance functions and BVH unions refusing to build from no faces.
+       ignored; ``OnDefect::Warn`` loading inconsistently oriented and folded meshes with a warning
+       (distances keep their magnitude), while a face that visits a vertex twice still throws; and
+       mesh distance functions and BVH unions refusing to build from no faces.
    * - ``TestBVH``
      - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
        supported formats, used to verify: identical topology/geometry across formats;

@@ -163,7 +163,9 @@ The message argument is a ``printf`` format string literal, starting with the cl
 that checks, followed by its arguments, so the compiler checks the format against the arguments.
 
 A mesh file that cannot be read is not a programming error, so the file readers throw
-``EBGeometry::Parser::ParseError`` instead of aborting; see :ref:`Chap:Parsers`.
+``EBGeometry::Parser::ParseError`` instead of aborting; see :ref:`Chap:Parsers`. A mesh whose
+faces are oriented inconsistently or fold back onto each other can be loaded with a warning
+instead, with ``Parser::OnDefect::Warn``; see :ref:`Sec:OnDefect`.
 
 .. _Sec:Assertions:
 

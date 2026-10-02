@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -339,21 +340,35 @@ Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertic
 }
 
 inline std::string
-Soup::findTopologyDefect(const std::vector<std::vector<size_t>>& a_facets)
+Soup::findRepeatedVertex(const std::vector<std::vector<size_t>>& a_facets)
 {
-  // Which polygon first traversed each directed edge.
-  std::map<std::pair<size_t, size_t>, size_t> directedEdges;
-
   for (size_t f = 0; f < a_facets.size(); f++) {
-    const std::vector<size_t>& facet = a_facets[f];
-
-    std::vector<size_t> sorted = facet;
+    std::vector<size_t> sorted = a_facets[f];
 
     std::sort(sorted.begin(), sorted.end());
 
     if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
       return "face " + std::to_string(f) + " visits the same vertex twice";
     }
+  }
+
+  return std::string();
+}
+
+inline std::string
+Soup::findTopologyDefect(const std::vector<std::vector<size_t>>& a_facets)
+{
+  const std::string repeated = Soup::findRepeatedVertex(a_facets);
+
+  if (!repeated.empty()) {
+    return repeated;
+  }
+
+  // Which polygon first traversed each directed edge.
+  std::map<std::pair<size_t, size_t>, size_t> directedEdges;
+
+  for (size_t f = 0; f < a_facets.size(); f++) {
+    const std::vector<size_t>& facet = a_facets[f];
 
     for (size_t i = 0; i < facet.size(); i++) {
       const std::pair<size_t, size_t> edge(facet[i], facet[(i + 1) % facet.size()]);
@@ -475,6 +490,68 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   a_mesh.sanityCheck(a_id);
 
   a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
+}
+
+template <typename T, typename Meta>
+inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+Soup::readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
+                       std::vector<std::vector<size_t>>  a_facets,
+                       Pool&                             a_pool,
+                       const std::string&                a_id,
+                       const char*                       a_format,
+                       const Parser::OnDefect            a_onDefect)
+{
+  // A defect the mesh survives: thrown, or reported and loaded anyway.
+  const auto onDefect = [&a_id, a_format, a_onDefect](const std::string& a_reason) {
+    if (a_onDefect == Parser::OnDefect::Throw) {
+      throw Parser::ParseError(a_id, 0, a_reason);
+    }
+
+    std::cerr << a_format << "::convertToDCEL - warning: '" << a_id << "': " << a_reason
+              << "; loading it anyway, so the sign of the distance near it is unreliable\n";
+  };
+
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+
+  std::string reason;
+
+  if (!Soup::isValid(a_vertices, a_facets, reason)) {
+    throw Parser::ParseError(a_id, 0, reason);
+  }
+
+  Soup::compress(a_vertices, a_facets);
+
+  const size_t numRemoved = Soup::removeDegeneratePolygons(a_vertices, a_facets);
+
+  if (numRemoved > 0) {
+    std::cerr << a_format << "::convertToDCEL - removed " << numRemoved << " degenerate (zero-area) faces from '"
+              << a_id << "', merging T-junction fillers into their neighbours\n";
+  }
+
+  // A face that visits a vertex twice corrupts the half-edge mesh built from it: never loaded.
+  reason = Soup::findRepeatedVertex(a_facets);
+
+  if (!reason.empty()) {
+    throw Parser::ParseError(a_id, 0, reason);
+  }
+
+  // Faces oriented inconsistently, or three or more on one edge, leave edges unpaired or paired
+  // one-sidedly; the mesh still builds, but the signs near them are unreliable.
+  reason = Soup::findTopologyDefect(a_facets);
+
+  if (!reason.empty()) {
+    onDefect(reason);
+  }
+
+  Soup::soupToDCEL(*mesh, a_pool, a_vertices, a_facets, a_id);
+
+  reason = Soup::findFoldedFeature(*mesh);
+
+  if (!reason.empty()) {
+    onDefect(reason);
+  }
+
+  return mesh;
 }
 
 template <typename T, typename Meta>
