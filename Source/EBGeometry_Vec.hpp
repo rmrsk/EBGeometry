@@ -15,7 +15,6 @@
 // Std includes
 #include <algorithm>
 #include <cstddef>
-#include <ostream>
 #include <type_traits>
 
 // Our includes
@@ -245,20 +244,6 @@ class Vec3T
 {
 public:
   static_assert(std::is_floating_point_v<T>, "Vec3T<T>: T must be a floating-point type");
-
-  /**
-   * @brief Stream insertion operator.
-   * @param[in,out] os  Output stream.
-   * @param[in]     vec Vector to print.
-   * @return Reference to the output stream after insertion.
-   */
-  friend std::ostream&
-  operator<<(std::ostream& os, const Vec3T<T>& vec)
-  {
-    os << '(' << vec[0] << ',' << vec[1] << ',' << vec[2] << ')';
-
-    return os;
-  }
 
   /**
    * @brief Default constructor. Sets the vector to the zero vector.

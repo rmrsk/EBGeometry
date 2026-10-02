@@ -38,7 +38,9 @@ and const overloads), not as public named fields. Its main features are:
   weak ordering.
 * ``minDir``/``maxDir`` to find the index of the smallest/largest component (optionally by
   magnitude), and ``length``/``length2``.
-* A stream insertion operator (``operator<<``) for printing.
+* A stream insertion operator (``operator<<``) for printing, in :file:`Source/EBGeometry_StreamOperators.hpp`
+  (with those for the bounding volumes), so that :file:`EBGeometry_Vec.hpp` does not include
+  ``<ostream>``. ``EBGeometry.hpp`` includes it.
 
 For the full API -- every constructor, operator, and free function -- see the Doxygen reference
 for `Vec2T <doxygen/html/classEBGeometry_1_1Vec2T.html>`__ and
