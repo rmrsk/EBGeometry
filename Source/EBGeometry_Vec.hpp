@@ -14,15 +14,15 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cstddef>
-#include <limits>
 #include <ostream>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -93,7 +93,7 @@ public:
 
   /**
    * @brief Return the most-negative representable vector.
-   * @return Vector with each component equal to -std::numeric_limits<T>::max().
+   * @return Vector with each component equal to -Math::Limits<T>::max().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec2T<T>
@@ -101,7 +101,7 @@ public:
 
   /**
    * @brief Return the most-positive representable vector.
-   * @return Vector with each component equal to std::numeric_limits<T>::max().
+   * @return Vector with each component equal to Math::Limits<T>::max().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec2T<T>
@@ -109,7 +109,7 @@ public:
 
   /**
    * @brief Return a vector with infinite components.
-   * @return Vector with each component equal to std::numeric_limits<T>::infinity().
+   * @return Vector with each component equal to Math::Limits<T>::infinity().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec2T<T>
@@ -315,7 +315,7 @@ public:
 
   /**
    * @brief Return the most-negative representable vector.
-   * @return Vector with each component equal to -std::numeric_limits<T>::max().
+   * @return Vector with each component equal to -Math::Limits<T>::max().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec3T<T>
@@ -323,7 +323,7 @@ public:
 
   /**
    * @brief Return the most-positive representable vector.
-   * @return Vector with each component equal to std::numeric_limits<T>::max().
+   * @return Vector with each component equal to Math::Limits<T>::max().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec3T<T>
@@ -331,7 +331,7 @@ public:
 
   /**
    * @brief Return a vector with infinite components.
-   * @return Vector with each component equal to std::numeric_limits<T>::infinity().
+   * @return Vector with each component equal to Math::Limits<T>::infinity().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec3T<T>
@@ -386,51 +386,23 @@ public:
   operator!=(const Vec3T<T>& u) const noexcept;
 
   /**
-   * @brief "Smaller than" operator.
-   * @details Returns true if this->x < u.x AND this->y < u.y AND this->z < u.z
-   * and false otherwise
-   * @param[in] u Other vector
-   * @return True if all three components of *this are strictly less than the
-   * corresponding components of u, false otherwise.
+   * @name Deleted ordering operators
+   * @brief Vec3T has no ordering operators.
+   * @details These once meant "every component less (greater, ...) than", which is not a strict weak
+   * ordering: two different vectors can each fail to be less than the other, so std::set, std::map and
+   * std::sort built on them silently merge or misorder distinct vectors. Compare components
+   * explicitly, or use lessLX() for a lexicographic ordering.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr bool
-  operator<(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Greater than" operator.
-   * @details Returns true if this->x > u.x AND this->y > u.y AND this->z > u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are strictly greater than the
-   * corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr bool
-  operator>(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Smaller or equal to" operator.
-   * @details Returns true if this->x <= u.x AND this->y <= u.y AND this->z <=
-   * u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are less than or equal to the
-   * corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr bool
-  operator<=(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Greater or equal to" operator.
-   * @details Returns true if this->x >= u.x AND this->y >= u.y AND this->z >=
-   * u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are greater than or equal to
-   * the corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr bool
-  operator>=(const Vec3T<T>& u) const noexcept;
+  ///@{
+  bool
+  operator<(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator>(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator<=(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator>=(const Vec3T<T>& u) const noexcept = delete;
+  ///@}
 
   /**
    * @brief Assignment operator.
@@ -610,7 +582,7 @@ protected:
   /**
    * @brief Vector components
    */
-  std::array<T, 3> m_X;
+  Array<T, 3> m_X;
 };
 
 /**

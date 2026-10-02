@@ -17,9 +17,12 @@ Main features:
 * Supports both pointer-based tree BVHs, and flattened SIMD-accelerated packed BVHs.
 * A library of analytic signed distance functions and implicit functions (spheres, boxes, and
   more).
-* Composable with transforms (translation, rotation, scaling, rounding, blending).
-* BVH-accelerated constructive solid geometry (CSG): unions, intersections, differences, and
-  smooth blends, of both meshes and analytic shapes.
+* Transforms (translation, rotation, scaling, rounding, blending) of implicit functions. These
+  currently wrap user-written ``ImplicitFunction``\ s only: the built-in analytic shapes and mesh
+  SDFs are plain, GPU-callable value types that the transforms do not accept.
+* Constructive solid geometry (CSG): unions, intersections, differences, and smooth blends of
+  implicit functions, and BVH-accelerated (smooth) unions of many analytic shapes or meshes that
+  also run on a GPU.
 * Readers for triangulated surface meshes in STL, PLY, OBJ, and VTK format.
 * Drop-in precision-templated for flexible usage.
 * No external dependencies -- drop ``EBGeometry.hpp`` into any C++17 project and include it.
@@ -121,6 +124,7 @@ Examples
    ExampleMeshSDF.rst
    ExampleCSGUnion.rst
    ExampleNestedBVH.rst
+   ExampleHostTuning.rst
    ExamplePackedSpheres.rst
    ExampleRandomCity.rst
    ExampleOctreeBoundingVolume.rst

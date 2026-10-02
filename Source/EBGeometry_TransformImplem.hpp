@@ -27,7 +27,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Complement: the implicit function must not be null");
 
   return std::make_shared<ComplementIF<T>>(a_implicitFunction);
 }
@@ -36,7 +36,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Translate: the implicit function must not be null");
 
   return std::make_shared<TranslateIF<T>>(a_implicitFunction, a_shift);
 }
@@ -45,7 +45,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Rotate: the implicit function must not be null");
 
   return std::make_shared<RotateIF<T>>(a_implicitFunction, a_angle, a_axis);
 }
@@ -54,7 +54,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Scale: the implicit function must not be null");
 
   return std::make_shared<ScaleIF<T>>(a_implicitFunction, a_scale);
 }
@@ -63,7 +63,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Offset: the implicit function must not be null");
 
   return std::make_shared<OffsetIF<T>>(a_implicitFunction, a_offset);
 }
@@ -72,7 +72,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Annular: the implicit function must not be null");
 
   return std::make_shared<AnnularIF<T>>(a_implicitFunction, a_delta);
 }
@@ -81,7 +81,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Blur: the implicit function must not be null");
 
   return std::make_shared<BlurIF<T>>(a_implicitFunction, a_blur);
 }
@@ -90,9 +90,9 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist, const size_t a_mollifierSamples)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Mollify: the implicit function must not be null");
 
-  auto mollifier = std::make_shared<TransformDetail::SphereMollifierIF<T>>(std::abs(a_dist));
+  auto mollifier = std::make_shared<TransformDetail::BumpMollifierIF<T>>(std::abs(a_dist));
 
   return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), a_mollifierSamples);
 }
@@ -101,7 +101,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Elongate: the implicit function must not be null");
 
   return std::make_shared<ElongateIF<T>>(a_implicitFunction, a_elongation);
 }
@@ -110,7 +110,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane)
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "Reflect: the implicit function must not be null");
 
   return std::make_shared<ReflectIF<T>>(a_implicitFunction, a_reflectPlane);
 }
@@ -118,7 +118,7 @@ Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const si
 template <class T>
 ComplementIF<T>::ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "ComplementIF: the implicit function must not be null");
 
   m_implicitFunction = a_implicitFunction;
 }
@@ -139,10 +139,13 @@ template <class T>
 TranslateIF<T>::TranslateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
                             const Vec3T<T>&                             a_translation) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_translation[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_translation[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_translation[2]));
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "TranslateIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(std::isfinite(a_translation[0]) && std::isfinite(a_translation[1]) &&
+                       std::isfinite(a_translation[2]),
+                     "TranslateIF: the translation must be finite (%g, %g, %g)",
+                     double(a_translation[0]),
+                     double(a_translation[1]),
+                     double(a_translation[2]));
 
   m_implicitFunction = a_implicitFunction;
   m_shift            = a_translation;
@@ -165,9 +168,9 @@ RotateIF<T>::RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
                       const T                                     a_angle,
                       const size_t                                a_axis) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_angle));
-  EBGEOMETRY_EXPECT(a_axis <= 2U);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "RotateIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(std::isfinite(a_angle), "RotateIF: the rotation angle must be finite (%g)", double(a_angle));
+  EBGEOMETRY_REQUIRE(a_axis <= 2U, "RotateIF: the rotation axis must be 0, 1 or 2 (%zu)", a_axis);
 
   m_implicitFunction = a_implicitFunction;
   m_angle            = a_angle;
@@ -226,8 +229,8 @@ RotateIF<T>::value(const Vec3T<T>& a_point) const noexcept
 template <class T>
 OffsetIF<T>::OffsetIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_offset));
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "OffsetIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(std::isfinite(a_offset), "OffsetIF: the offset must be finite (%g)", double(a_offset));
 
   m_implicitFunction = a_implicitFunction;
   m_offset           = a_offset;
@@ -248,9 +251,10 @@ OffsetIF<T>::value(const Vec3T<T>& a_point) const noexcept
 template <class T>
 ScaleIF<T>::ScaleIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_scale));
-  EBGEOMETRY_EXPECT(a_scale != T(0));
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "ScaleIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(std::isfinite(a_scale) && a_scale != T(0),
+                     "ScaleIF: the scale factor must be finite and non-zero (%g)",
+                     double(a_scale));
 
   m_implicitFunction = a_implicitFunction;
   m_scale            = a_scale;
@@ -265,14 +269,16 @@ ScaleIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return (m_implicitFunction->value(a_point / m_scale)) * m_scale;
+  // |s|, not s: a negative factor reflects the point through the origin, and multiplying the value by
+  // a negative number would also swap inside and outside.
+  return (m_implicitFunction->value(a_point / m_scale)) * std::abs(m_scale);
 }
 
 template <class T>
 AnnularIF<T>::AnnularIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_delta));
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "AnnularIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(std::isfinite(a_delta), "AnnularIF: the shell thickness must be finite (%g)", double(a_delta));
 
   m_implicitFunction = a_implicitFunction;
   m_delta            = a_delta;
@@ -295,11 +301,12 @@ BlurIF<T>::BlurIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction
                   const T                                     a_blurDistance,
                   const T                                     a_alpha) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_blurDistance));
-  EBGEOMETRY_EXPECT(a_blurDistance >= T(0));
-  EBGEOMETRY_EXPECT(std::isfinite(a_alpha));
-  EBGEOMETRY_EXPECT(a_alpha >= T(0) && a_alpha <= T(1));
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "BlurIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(std::isfinite(a_blurDistance) && a_blurDistance >= T(0),
+                     "BlurIF: the blur distance must be finite and non-negative (%g)",
+                     double(a_blurDistance));
+  EBGEOMETRY_REQUIRE(
+    a_alpha >= T(0) && a_alpha <= T(1), "BlurIF: the blending weight alpha must lie in [0, 1] (%g)", double(a_alpha));
 
   m_implicitFunction = a_implicitFunction;
   m_blurDistance     = a_blurDistance;
@@ -346,9 +353,10 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
                         const T                                     a_maxValue,
                         const size_t                                a_numPoints) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(a_mollifier != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_maxValue));
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "MollifyIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(a_mollifier != nullptr, "MollifyIF: the mollifier must not be null");
+  EBGEOMETRY_REQUIRE(
+    std::isfinite(a_maxValue), "MollifyIF: the sampling half-width must be finite (%g)", double(a_maxValue));
 
   m_implicitFunction = a_implicitFunction;
   m_mollifier        = a_mollifier;
@@ -375,7 +383,9 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
       mollifierSum += mol.second;
     }
 
-    EBGEOMETRY_EXPECT(mollifierSum != T(0));
+    EBGEOMETRY_REQUIRE(mollifierSum != T(0),
+                       "MollifyIF: the sampled mollifier weights must not sum to zero (%zu samples per axis)",
+                       a_numPoints);
 
     for (auto& w : m_sampledMollifier) {
       w.second /= mollifierSum;
@@ -409,13 +419,14 @@ template <class T>
 ElongateIF<T>::ElongateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
                           const Vec3T<T>&                             a_elongation) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_elongation[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_elongation[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_elongation[2]));
-  EBGEOMETRY_EXPECT(a_elongation[0] >= T(0));
-  EBGEOMETRY_EXPECT(a_elongation[1] >= T(0));
-  EBGEOMETRY_EXPECT(a_elongation[2] >= T(0));
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "ElongateIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(std::isfinite(a_elongation[0]) && std::isfinite(a_elongation[1]) &&
+                       std::isfinite(a_elongation[2]) && a_elongation[0] >= T(0) && a_elongation[1] >= T(0) &&
+                       a_elongation[2] >= T(0),
+                     "ElongateIF: the elongation must be finite and non-negative (%g, %g, %g)",
+                     double(a_elongation[0]),
+                     double(a_elongation[1]),
+                     double(a_elongation[2]));
 
   m_implicitFunction = a_implicitFunction;
   m_elongation       = a_elongation;
@@ -437,15 +448,13 @@ template <class T>
 ReflectIF<T>::ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
                         const size_t&                               a_reflectPlane) noexcept
 {
-  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
-  EBGEOMETRY_EXPECT(a_reflectPlane <= 2U);
+  EBGEOMETRY_REQUIRE(a_implicitFunction != nullptr, "ReflectIF: the implicit function must not be null");
+  EBGEOMETRY_REQUIRE(a_reflectPlane <= 2U, "ReflectIF: the reflection plane must be 0, 1 or 2 (%zu)", a_reflectPlane);
 
   m_implicitFunction = a_implicitFunction;
   m_reflectParams    = Vec3T<T>::ones();
 
-  if (a_reflectPlane <= 2) {
-    m_reflectParams[a_reflectPlane] = -1;
-  }
+  m_reflectParams[a_reflectPlane] = -1;
 }
 
 template <class T>

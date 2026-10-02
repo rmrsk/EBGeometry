@@ -13,12 +13,11 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iterator>
-#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -29,8 +28,10 @@
 #endif
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_SFC.hpp"
@@ -44,16 +45,31 @@ namespace EBGeometry {
 namespace BVH {
 
 /**
- * @brief Enum for specifying the BVH construction strategy.
+ * @brief The preset BVH construction methods that the library's own BVH users accept.
+ * @details Each value names the algorithm that groups the primitives; its comment says in which
+ * direction the tree is built. Top-down methods split the root's primitives recursively until a
+ * leaf predicate stops them; bottom-up methods sort the primitives along a space-filling curve, cut
+ * the sorted list into leaves, and merge K neighbours at a time up to the root.
+ *
+ * MeshSDF, TriMeshSDF, BVHUnionIF and BVHSmoothUnionIF (and the parser functions that build them)
+ * accept every value. Each of them aborts, in every build, on a value outside this list. A custom
+ * partitioner or leaf predicate is not a preset: build a TreeBVH with it and pack() it instead.
  */
-enum class Build
+enum class Construction
 {
-  TopDown, ///< Recursive top-down partitioning.
-  Morton,  ///< Bottom-up construction along a Morton space-filling curve.
-  Nested,  ///< Bottom-up construction along a Nested space-filling curve.
-  SAH      ///< Recursive top-down with binned Surface Area Heuristic splitting. This is the recommended
-           ///< default: generally produces better-balanced trees and lower traversal cost than TopDown.
-           ///< Use with BinnedSAHPartitioner. See BinnedSAHPartitioner for recommended K values per ISA.
+  CentroidSplit, ///< Top-down: split at the median bounding-volume centroid along the longest axis
+                 ///< (BVCentroidPartitioner).
+  MidpointSplit, ///< Top-down: split at the spatial midpoint of the centroids' longest axis, with no
+                 ///< sorting (MidpointPartitioner). The fastest top-down build; does not adapt to
+                 ///< clustered input.
+  SAH,           ///< Top-down: binned surface area heuristic (BinnedSAHPartitioner). The recommended
+                 ///< default: generally the lowest traversal cost.
+  ClusterSAH,    ///< Top-down: group the primitives into small spatial clusters, then run binned SAH
+                 ///< over the clusters (see ClusterSpec). Builds several times faster than SAH, at
+                 ///< the cost of leaves of up to (K-1) clusters.
+  Morton,        ///< Bottom-up: leaves of consecutive primitives along a Morton (Z-order) curve.
+  Nested,        ///< Bottom-up: leaves of consecutive primitives along a Nested (row-major) curve.
+  Hilbert        ///< Bottom-up: leaves of consecutive primitives along a Hilbert curve.
 };
 
 /**
@@ -65,17 +81,57 @@ enum class Build
  * single-threaded build cost, robust across uniform, surface, and clustered primitive distributions
  * (unlike a fixed Cartesian grid, which overcrowds on non-uniform data). @c maxClusterSize trades
  * build time (larger -> fewer, cheaper SAH units, faster build) against query quality (larger ->
- * coarser leaves).
+ * coarser leaves). It bounds the cluster, not the leaf: SAH stops splitting once a node holds fewer
+ * than K clusters, so a leaf may hold up to (K-1) * maxClusterSize primitives.
  */
 struct ClusterSpec
 {
-  size_t maxClusterSize = 8; ///< Maximum primitives per cluster (the leaf/bucket granularity). Must be > 0.
+  size_t maxClusterSize = 8; ///< Maximum primitives per cluster (bucket); a leaf holds 1 to K-1 clusters. Must be > 0.
 };
 
 /**
- * @brief Returns the SIMD-optimal BVH branching factor for type T on the current target ISA.
- * @details Maps the floating-point type and the compile-time ISA to the K that fills one
- * SIMD register exactly:
+ * @brief Deepest tree, in node levels (the root alone is one level), that a host traversal handles.
+ * @details PackedBVH::pruneTraverse() keeps a fixed stack sized from this and the branching factor,
+ * so the limit is the same for every K. Every PackedBVH is checked against it when it is built. At
+ * no K is it lower than the limit the earlier fixed 256-entry stack gave (256 levels at K = 2, 86
+ * at K = 4), and the stack takes (K - 1) * 255 + 1 entries of 8 bytes: about 6 KB at K = 4.
+ */
+inline constexpr size_t HostTraversalDepth = 256;
+
+/**
+ * @brief Deepest tree, in node levels, that a device traversal handles.
+ * @details Smaller than the host value, since device stack memory is per thread: (K - 1) * 31 + 1
+ * entries of 8 bytes, 752 bytes at K = 4. The earlier fixed 64-entry stack allowed 22 levels at K = 4
+ * and only 5 at K = 16; it allowed more only at K = 2 (64 levels). PackedBVH::rebasedView() checks
+ * every device view against it.
+ */
+inline constexpr size_t DeviceTraversalDepth = 32;
+
+/**
+ * @brief The default branching factor K: 4, for both float and double, in every translation unit.
+ * @details This is the value the library's class templates default to. It never depends on
+ * compiler flags, so a type spelled with it has the same layout in a host-only file, in a file
+ * compiled with AVX, and in both passes of a CUDA or HIP compile -- which is what lets an object be
+ * built on the host and used on a device. On the benchmarks in the Sphinx page on configuration
+ * options, it is also as fast on the host as the ISA-tuned value.
+ *
+ * For host-only code, HostBranchingRatio<T>() gives the value tuned to the compiler's SIMD flags instead.
+ * Usage: `size_t K = BVH::DefaultBranchingRatio<T>()` as a template-parameter default.
+ * @tparam T Floating-point precision type (float or double).
+ * @return 4.
+ */
+template <typename T>
+[[nodiscard]] constexpr size_t
+DefaultBranchingRatio() noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "BVH::DefaultBranchingRatio requires a floating-point T");
+
+  return 4;
+}
+
+/**
+ * @brief The branching factor K that fills one SIMD register for type T under the compiler's SIMD flags.
+ * @details Opt-in, for host-only code:
  *
  * | ISA       | T=float | T=double |
  * |-----------|---------|----------|
@@ -84,15 +140,18 @@ struct ClusterSpec
  * | SSE4.1    |    4    |    4     |
  * | fallback  |    4    |    4     |
  *
- * Usage: `size_t K = BVH::DefaultBranchingRatio<T>()` as a template-parameter default.
+ * The value depends on the flags each translation unit is compiled with, so a type spelled with it
+ * can mean different types in different files, and different layouts in the host and device passes
+ * of one CUDA or HIP compile. Never use it for a type that is shared with device code or with another
+ * translation unit built with different flags; use DefaultBranchingRatio<T>() there.
  * @tparam T Floating-point precision type (float or double).
- * @return Optimal K for the current ISA and T.
+ * @return K for T under the current ISA.
  */
 template <typename T>
 [[nodiscard]] constexpr size_t
-DefaultBranchingRatio() noexcept
+HostBranchingRatio() noexcept
 {
-  static_assert(std::is_floating_point_v<T>, "BVH::DefaultBranchingRatio requires a floating-point T");
+  static_assert(std::is_floating_point_v<T>, "BVH::HostBranchingRatio requires a floating-point T");
 #if defined(__AVX512F__)
   if constexpr (std::is_same_v<T, double>) {
     return 8;
@@ -153,6 +212,35 @@ appendTreeLeaf(std::vector<P>& a_dst, const PrimitiveList<P>& a_leafPrims)
   // Plain push_back grows the buffer geometrically and keeps construction linear.
   for (const auto& p : a_leafPrims) {
     a_dst.push_back(*p);
+  }
+}
+
+/**
+ * @brief Abort unless every partition a partitioner returned holds at least one primitive.
+ * @details An empty partition would become a leaf with no primitives, which the packed layout
+ * cannot represent: a node with no primitives reads as an interior node. The built-in partitioners
+ * never return one; a caller-supplied partitioner might, and this catches it at build time, in
+ * every build, where it is cheap and the message can say which call produced it.
+ * @tparam List Partition type (a list of primitives with their bounding volumes).
+ * @tparam K    Number of partitions.
+ * @param[in] a_partitions Partitions returned by the partitioner.
+ * @param[in] a_numInput   Number of primitives the partitioner was given.
+ * @param[in] a_who        Name of the calling builder, for the message.
+ */
+template <class List, size_t K>
+EBGEOMETRY_HOST
+inline void
+requireNonEmptyPartitions(const Array<List, K>& a_partitions, const size_t a_numInput, const char* a_who)
+{
+  for (size_t k = 0; k < K; k++) {
+    EBGEOMETRY_REQUIRE(!a_partitions[k].empty(),
+                       "%s: the partitioner returned an empty partition (%zu of %zu, from %zu primitives). A leaf "
+                       "must hold at least one primitive; a partitioner must return %zu non-empty partitions.",
+                       a_who,
+                       k,
+                       K,
+                       a_numInput,
+                       K);
   }
 }
 
@@ -219,7 +307,7 @@ using PrimAndBVList = std::vector<PrimAndBV<P, BV>>;
  * @return K-element array of sub-lists.
  */
 template <class P, class BV, size_t K>
-using Partitioner = std::function<std::array<PrimAndBVList<P, BV>, K>(PrimAndBVList<P, BV> a_primsAndBVs)>;
+using Partitioner = std::function<Array<PrimAndBVList<P, BV>, K>(PrimAndBVList<P, BV> a_primsAndBVs)>;
 
 /**
  * @brief Predicate for deciding when a TreeBVH node should become a leaf (i.e., no further splitting).
@@ -278,8 +366,7 @@ using PrunePredicate = std::function<bool(const NodeType& a_node, const NodeKey&
  * @param[in,out] a_children K child nodes together with their node keys.
  */
 template <class NodeType, class NodeKey, size_t K>
-using ChildOrderer =
-  std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, NodeKey>, K>& a_children)>;
+using ChildOrderer = std::function<void(Array<std::pair<std::shared_ptr<const NodeType>, NodeKey>, K>& a_children)>;
 
 /**
  * @brief Child-ordering callback for PackedBVH traversal.
@@ -290,7 +377,7 @@ using ChildOrderer =
  * @param[in,out] a_children K (node-index, key) pairs to sort.
  */
 template <class NodeKey, size_t K>
-using PackedChildOrderer = std::function<void(std::array<std::pair<uint32_t, NodeKey>, K>& a_children)>;
+using PackedChildOrderer = std::function<void(Array<std::pair<uint32_t, NodeKey>, K>& a_children)>;
 
 /**
  * @brief Node-key factory called once per node during BVH traversal.
@@ -312,7 +399,7 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * @return Array of K sub-vectors whose sizes differ by at most 1.
  */
 template <class X, size_t K>
-auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> std::array<std::vector<X>, K> {
+auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> Array<std::vector<X>, K> {
   static_assert(K >= 2, "EqualCounts<X, K>: branching factor K must be at least 2");
 
   EBGEOMETRY_EXPECT(!a_primitives.empty());
@@ -323,7 +410,7 @@ auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> std::array<std::v
   int begin = 0;
   int end   = 0;
 
-  std::array<std::vector<X>, K> chunks;
+  Array<std::vector<X>, K> chunks;
 
   for (size_t k = 0; k < K; k++) {
     end += (remain > 0) ? length + 1 : length;
@@ -350,8 +437,7 @@ auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> std::array<std::v
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto PrimitiveCentroidPartitioner =
-  [](PrimAndBVList<P, BV> a_primsAndBVs) noexcept -> std::array<PrimAndBVList<P, BV>, K> {
+auto PrimitiveCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) noexcept -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -384,7 +470,7 @@ auto PrimitiveCentroidPartitioner =
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto BVCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto BVCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -451,7 +537,7 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
     chi = max(chi, c);
   }
 
-  T   bestCost  = std::numeric_limits<T>::max();
+  T   bestCost  = Math::Limits<T>::max();
   T   bestPlane = T(0);
   int bestAxis  = -1;
 
@@ -471,11 +557,12 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
     const T hi  = chi[axis];
     const T ext = hi - lo;
 
-    if (ext <= T(0)) {
+    // An extent so small that BINS / ext overflows cannot be binned; leave that axis out.
+    const T scale = T(BINS) / ext;
+
+    if (!(ext > T(0)) || !std::isfinite(scale)) {
       continue;
     }
-
-    const T scale = T(BINS) / ext;
 
     for (int b = 0; b < BINS; b++) {
       binLo[b]  = Vec3T<T>::max();
@@ -484,7 +571,9 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
     }
 
     for (size_t i = a_begin; i < a_end; i++) {
-      const int b = std::min(BINS - 1, (int)((a_list[i].second.getCentroid()[axis] - lo) * scale));
+      // Clamped in floating point before the conversion, which is undefined past int's range.
+      const T   x = (a_list[i].second.getCentroid()[axis] - lo) * scale;
+      const int b = (x > T(0)) ? ((x < T(BINS - 1)) ? static_cast<int>(x) : BINS - 1) : 0;
       binLo[b]    = min(binLo[b], a_list[i].second.getLowCorner());
       binHi[b]    = max(binHi[b], a_list[i].second.getHighCorner());
       binCnt[b]   = binCnt[b] + 1;
@@ -587,7 +676,7 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
   // AABBT(vector::front()) when the vector is empty.
   // The clamp is valid whenever a_end - a_begin >= a_K = K1 + K2.
   const size_t rawMid = SAH2WaySplit<T, P, BV>(a_list, a_begin, a_end, a_longestAxisOnly);
-  const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
+  const size_t mid    = Math::max(a_begin + K1, Math::min(a_end - K2, rawMid));
 
   SAHKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups, a_longestAxisOnly);
   SAHKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups, a_longestAxisOnly);
@@ -620,7 +709,7 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K, bool LongestAxisOnly = false>
-auto BinnedSAHPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto BinnedSAHPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   // The input is taken by value; partition it in place (no working copy). SAHKWaySplit reorders it
@@ -630,7 +719,7 @@ auto BinnedSAHPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array
 
   SAHKWaySplit<T, P, BV>(a_primsAndBVs, 0, a_primsAndBVs.size(), K, groups, LongestAxisOnly);
 
-  std::array<PrimAndBVList<P, BV>, K> result;
+  Array<PrimAndBVList<P, BV>, K> result;
   for (size_t k = 0; k < K; k++) {
     const auto [b, e] = groups[k];
     result[k]         = PrimAndBVList<P, BV>(std::make_move_iterator(a_primsAndBVs.begin() + b),
@@ -725,7 +814,7 @@ MidpointKWaySplit(PrimAndBVList<P, BV>&                   a_list,
   // recursive call receives an under-populated range (see SAHKWaySplit's identical clamp for why:
   // an empty sub-list reaching the TreeBVH constructor crashes on AABBT(vector::front())).
   const size_t rawMid = Midpoint2WaySplit<T, P, BV>(a_list, a_begin, a_end);
-  const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
+  const size_t mid    = Math::max(a_begin + K1, Math::min(a_end - K2, rawMid));
 
   MidpointKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups);
   MidpointKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups);
@@ -753,7 +842,7 @@ MidpointKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   // The input is taken by value; partition it in place (no working copy). MidpointKWaySplit reorders
@@ -765,7 +854,7 @@ auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<
 
   MidpointKWaySplit<T, P, BV>(a_primsAndBVs, 0, a_primsAndBVs.size(), K, groups);
 
-  std::array<PrimAndBVList<P, BV>, K> result;
+  Array<PrimAndBVList<P, BV>, K> result;
   for (size_t k = 0; k < K; k++) {
     const auto [b, e] = groups[k];
     result[k]         = PrimAndBVList<P, BV>(std::make_move_iterator(a_primsAndBVs.begin() + b),
@@ -798,9 +887,10 @@ auto DefaultLeafPredicate =
  * pack() to obtain a cache-friendly PackedBVH for traversal.
  *
  * @tparam T  Floating-point precision.
- * @tparam P  Primitive type. Must provide getCentroid() -- construction/partitioning never
- * calls any other method on it. PackedBVH itself imposes no interface requirement on P either;
- * any further requirement comes entirely from whatever leaf-eval a caller passes to
+ * @tparam P  Primitive type. Construction imposes no interface requirement on P itself, except
+ * that PrimitiveCentroidPartitioner calls P::getCentroid(); the other partitioners and the
+ * bottom-up build work from the bounding volumes alone. PackedBVH imposes no interface requirement
+ * on P either; any further requirement comes entirely from whatever leaf-eval a caller passes to
  * PackedBVH::pruneTraverse() or PackedBVH::traverse() (see PackedBVH below).
  * @tparam BV Bounding volume type.
  * @tparam K  Tree branching factor (must be >= 2).
@@ -906,8 +996,10 @@ public:
 
   /**
    * @brief Recursively partition this node top-down.
-   * @details The stop criterion and partitioner determine the tree shape.
-   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K sub-lists.
+   * @details The stop criterion and partitioner determine the tree shape. Every one of the K
+   * sub-lists the partitioner returns must hold at least one primitive: an empty one would become a
+   * leaf with no primitives, which aborts, in every build, with a message naming the partition.
+   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K non-empty sub-lists.
    * @param[in] a_stopCrit    Stop function. Returns true when a node should become a leaf.
    */
   inline void
@@ -918,7 +1010,8 @@ public:
    * @brief Recursively partition this node bottom-up along a space-filling curve.
    * @details S must provide encode() and decode() functions returning SFC indices.
    * Primitives are sorted by their bounding-volume centroid projected onto the curve,
-   * then grouped into leaves of size K and merged upwards to the root.
+   * then split evenly into K^d leaves (d = floor(log_K(N)), so at most K primitives each) and
+   * merged upwards in groups of K to the root.
    * @tparam S Space-filling curve type (e.g. Morton, Nested).
    */
   template <typename S>
@@ -976,7 +1069,7 @@ public:
    * @details All K children are non-null for interior nodes; the array is unused for leaf nodes.
    * @return Reference to m_children.
    */
-  [[nodiscard]] inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
+  [[nodiscard]] inline const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
   getChildren() const noexcept;
 
   /**
@@ -1109,7 +1202,7 @@ protected:
   /**
    * @brief K child nodes. Non-null for interior nodes only.
    */
-  std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> m_children;
+  Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> m_children;
 
   /**
    * @brief Non-const accessor for the primitive list (used during construction).
@@ -1130,7 +1223,7 @@ protected:
    * @param[in] a_children New child nodes.
    */
   inline void
-  setChildren(const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept;
+  setChildren(const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept;
 };
 
 /**
@@ -1148,12 +1241,14 @@ protected:
  * PackedBVH member; callers build their own thin wrapper around pruneTraverse(), supplying
  * whatever primitive interface their own query needs.
  *
- * SIMD paths are selected at compile time via if constexpr, in pruneTraverse():
- * - K==4, T==float  → SSE4.1 (__m128)
- * - K==4, T==double → AVX    (__m256d)
- * - K==8, T==float  → AVX    (__m256)
- * - K==8, T==double → AVX    (two __m256d passes)
- * All other combinations fall back to scalar traversal.
+ * SIMD paths for pruneTraverse()'s child-box test are selected at compile time via if constexpr,
+ * in computeChildDistances2():
+ * - K==4,  T==float  → SSE4.1  (__m128)
+ * - K==4,  T==double → AVX     (__m256d)
+ * - K==8,  T==float  → AVX     (__m256)
+ * - K==8,  T==double → AVX-512F (__m512d), or AVX (two __m256d passes) without AVX-512F
+ * - K==16, T==float  → AVX-512F (__m512)
+ * All other combinations, and device compilation, use a scalar loop.
  *
  * Primitives are stored by value, inline in the flat array: no per-primitive heap allocation and
  * no pointer chase on a leaf visit. P must therefore be a self-contained, trivially copyable value
@@ -1205,7 +1300,15 @@ public:
     /**
      * @brief Depth-first indices of the K child nodes (interior nodes only).
      */
-    std::array<uint32_t, K> m_childOff{};
+    Array<uint32_t, K> m_childOff{};
+
+    /**
+     * @brief Row of this interior node's children's boxes in PackedBVH's SIMD box array.
+     * @details Owned by PackedBVH, which assigns it when the BVH is built or adopted, overwriting
+     * whatever the node array held; leaves have no row. Only interior nodes get a row, so the box
+     * array has one row per interior node rather than one per node.
+     */
+    uint32_t m_childBoxRow{};
 
     /**
      * @brief Set the bounding volume for this node.
@@ -1291,10 +1394,21 @@ public:
      * @return Reference to the K-element child-offset array.
      */
     [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-    inline const std::array<uint32_t, K>&
+    inline const Array<uint32_t, K>&
     getChildOffsets() const noexcept
     {
       return m_childOff;
+    }
+
+    /**
+     * @brief Get the row of this interior node's children's boxes in the SIMD box array.
+     * @return Row index; meaningless for a leaf.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline uint32_t
+    getChildBoxRow() const noexcept
+    {
+      return m_childBoxRow;
     }
 
     /**
@@ -1322,9 +1436,10 @@ public:
 
     /**
      * @brief Get the squared distance from a_point to this node's bounding volume.
-     * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. pruneTraverse()'s
-     * scalar-fallback branch-and-bound compares against a squared pruning bound, so it uses this
-     * directly rather than taking a square root only to square it again.
+     * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. For a caller-written
+     * scalar branch-and-bound that compares against a squared pruning bound (e.g. PointCloudBVH's
+     * seeded single-nearest search), rather than taking a square root only to square it again.
+     * pruneTraverse() itself does not use it; it tests all K children at once through the SoA cache.
      * @param[in] a_point Query point.
      * @return Squared distance to the bounding-box surface, or zero if inside.
      */
@@ -1367,12 +1482,10 @@ public:
    * a_converter(leafPrims, offset, count) → std::vector<P>
    * @endcode
    *
-   * where @p leafPrims is the leaf's @c PrimitiveList<Q>, @p offset is the index of
-   * the first primitive in the global list, and @p count is the number of primitives in
-   * the leaf.  All returned vectors are stored contiguously in one buffer, which this
-   * PackedBVH's storage policy then materialises into its own primitive array -- via aliased
-   * this PackedBVH's storage policy then materialises into its own primitive array, taking
-   * ownership of the buffer directly.
+   * where @p leafPrims is the leaf's @c PrimitiveList<Q>, @p offset is the index of the leaf's first
+   * primitive within @p leafPrims (always 0U, since the whole leaf list is passed), and @p count is
+   * the number of primitives in the leaf. All returned vectors are appended to one contiguous
+   * buffer, which is then copied into this PackedBVH's pool-backed primitive array.
    *
    * The source tree must have been built with BV == AABBT<T>; bounding volumes are reused
    * without conversion.
@@ -1391,18 +1504,17 @@ public:
    * @brief Construct directly from a flat primitive list, without ever building a TreeBVH.
    * @details Bypasses TreeBVH entirely: no per-node shared_ptr<TreeBVH> allocation, and no
    * per-primitive shared_ptr allocation either. Primitives are sorted along the space-filling
-   * curve @p S (same normalization as
-   * TreeBVH::bottomUpSortAndPartition(), via SFC::computeBins()), then cut into leaves by one
-   * linear left-to-right scan at @p a_targetLeafSize -- unlike
-   * TreeBVH::bottomUpSortAndPartition(), which derives a leaf count of K^floor(log_K(N)) purely
-   * from N and K, this lets the caller control leaf size directly.
+   * curve @p S (same normalization as TreeBVH::bottomUpSortAndPartition(), via
+   * SFC::computeBins()), then split into consecutive leaves and merged bottom-up into a K-ary tree.
    *
-   * Because the resulting leaf count generally isn't a power of K, the K-ary merge pads up to the
-   * next power of K by re-using the last real leaf's index in place of a missing child -- so every
-   * interior node still has exactly K children (no change to Node's shape or to traverse()/
-   * pruneTraverse(), which assume this), at the cost of that one leaf's primitives potentially
-   * being visited more than once by a query in the (bounded, rare) case where the real leaf count
-   * isn't already a power of K. This never duplicates primitive data, only (cheap) Node entries.
+   * Every interior node has exactly K children, and such a tree has a leaf count L with
+   * L = 1 (mod K - 1). The constructor takes the smallest such L that keeps every leaf at or below
+   * @p a_targetLeafSize primitives, and splits the primitives as evenly as possible, so leaf sizes
+   * differ by at most one. When that L would exceed the number of primitives, it takes the largest
+   * such L below it instead, and leaves may then hold slightly more than the target (for example,
+   * five primitives with K = 4 and a target of one give four leaves). When a level of the merge has
+   * a node count that is not a multiple of K, the remainder is carried up to the next level. Every
+   * node has exactly one parent, so a traversal reaches each primitive exactly once.
    *
    * @tparam S Space-filling curve type (e.g. SFC::Morton, SFC::Nested). Defaults to SFC::Morton;
    * a constructor template's own parameters cannot be explicitly specified the way a named
@@ -1412,7 +1524,8 @@ public:
    * @param[in] a_primsAndBVs   Primitives and their bounding volumes, taken by value (a sink
    * parameter the caller can std::move in) -- never requires shared_ptr-wrapping.
    * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
-   * @param[in] a_targetLeafSize Target number of primitives per leaf. Must be > 0.
+   * @param[in] a_targetLeafSize Target (maximum, where the leaf-count rule above allows it) number
+   * of primitives per leaf. Must be > 0.
    * @param[in] a_sfc Unused tag value; see @p S.
    */
   template <class S = SFC::Morton>
@@ -1442,8 +1555,9 @@ public:
    * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink
    * parameter the caller can std::move in) -- never requires shared_ptr-wrapping by the caller.
    * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
-   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K
-   * sub-lists. Defaults to BVCentroidPartitioner; pass BinnedSAHPartitioner for an SAH build.
+   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K non-empty
+   * sub-lists (an empty one aborts; see TreeBVH::topDownSortAndPartition()). Defaults to
+   * BVCentroidPartitioner; pass BinnedSAHPartitioner for an SAH build.
    * @param[in] a_stopCrit Stop function. Returns true when a node should become a leaf. Defaults
    * to DefaultLeafPredicate.
    */
@@ -1484,9 +1598,9 @@ public:
    * The node array must be a depth-first pre-order flattening with the root at index 0: every
    * interior node's K children lie strictly after it and inside the array, and every leaf's
    * primitive range lies inside @p a_primitives. refit() and the traversal-depth bound both rely on
-   * that shape. It is checked here, always on rather than as an EBGEOMETRY_EXPECT, because a
-   * malformed array would otherwise surface as an out-of-bounds read in Release; an empty node array
-   * (an empty BVH) is accepted only with an empty primitive array.
+   * that shape. It is checked by requireWellFormed(), always on rather than as an EBGEOMETRY_EXPECT,
+   * because a malformed array would otherwise surface as an out-of-bounds read in Release; an empty
+   * node array (an empty BVH) is accepted only with an empty primitive array.
    * @param[in,out] a_pool        Pool the three arrays are reserved from; must outlive this object.
    * @param[in]     a_linearNodes Flattened node array (copied into the pool).
    * @param[in]     a_primitives  Global primitive list in leaf-traversal order (copied into the pool).
@@ -1494,8 +1608,6 @@ public:
   EBGEOMETRY_HOST
   inline PackedBVH(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives)
   {
-    PackedBVH::requireWellFormed(a_linearNodes, a_primitives.size());
-
     this->finalize(a_pool, a_linearNodes, a_primitives);
   }
 
@@ -1508,11 +1620,10 @@ public:
 
   /**
    * @brief Copy constructor.
-   * @details Explicitly defaulted for documentation purposes: unlike TreeBVH, PackedBVH's
-   * members (m_linearNodes, m_primitives, m_childAabbSoA) are all owned value containers with no
-   * shared mutable substructure, so the implicitly-generated deep copy is correct and safe. The
-   * primitives themselves are copied, which is sound for every primitive the library packs --
-   * DCEL::FaceT included, whose members are all plain values.
+   * @details Copies the descriptor only: m_linearNodes, m_primitives and m_childAabbSoA are
+   * PODVector handles into pool memory, so the copy resolves against the same pool storage as the
+   * original rather than owning its own. Nothing is duplicated, and a refit() through either object
+   * is seen by both. Use deepCopy() for genuinely independent storage.
    * @param[in] a_other Other instance to copy.
    */
   PackedBVH(const PackedBVH& a_other) = default;
@@ -1584,11 +1695,11 @@ public:
 
   /**
    * @brief Traversal stack size, in entries, for the current compilation pass.
-   * @details The same bound pruneTraverse() sizes its own stack by: the host value in a host pass,
-   * the (smaller) device value in a device pass. Every BVH is checked against it when it is built,
-   * and again when rebasedView() produces a device view, so a caller's own traversal that pushes at
-   * most K entries per node expanded -- as pruneTraverse() does -- cannot overflow a stack of this
-   * many entries.
+   * @details The same bound pruneTraverse() sizes its own stack by: enough entries for a tree
+   * HostTraversalDepth levels deep in a host pass, and DeviceTraversalDepth levels in a device pass.
+   * Every BVH is checked against the host depth when it is built, and against the device depth when
+   * rebasedView() produces a device view, so a caller's own traversal that pushes at most K entries
+   * per node expanded -- as pruneTraverse() does -- cannot overflow a stack of this many entries.
    * @return Number of stack entries.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1596,9 +1707,9 @@ public:
   traversalStackDepth() noexcept
   {
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
-    return s_deviceStackDepth;
+    return PackedBVH::stackEntriesFor(DeviceTraversalDepth);
 #else
-    return s_hostStackDepth;
+    return PackedBVH::stackEntriesFor(HostTraversalDepth);
 #endif
   }
 
@@ -1625,8 +1736,8 @@ public:
    * @endcode
    *
    * A host-to-host mirror is supported too and follows the target's control block instead of
-   * snapshotting its base, so a null control block keeps meaning "device view" and nothing else.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this BVH's own pool.
+   * snapshotting its base. The rules are DCEL::MeshT::rebasedView()'s (see PoolLocation::rebasedOnto()).
+   * @param[in] a_pool Pool to rebase onto: this BVH's own pool or one in its mirror chain.
    * @return A copy of this BVH resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -1677,6 +1788,8 @@ public:
 
   /**
    * @brief Get the bounding volume of the root node.
+   * @details An empty BVH has no root, so this must not be called on one (an EBGEOMETRY_EXPECT
+   * checks it); computeBoundingVolume() handles that case.
    * @return Reference to the root node's bounding volume.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1685,8 +1798,9 @@ public:
 
   /**
    * @brief Compute and return the bounding volume of this BVH.
-   * @details Identical to getBoundingVolume() but presents a getCentroid()-compatible
-   * interface, enabling PackedBVH to serve as a primitive in an outer TreeBVH hierarchy.
+   * @details Identical to getBoundingVolume(), but returns by value under the
+   * computeBoundingVolume() name other bounded objects use (BVHUnionIF forwards to it), and
+   * returns the empty (inverted) box for an empty BVH instead of reading a root that does not exist.
    * @return Root node bounding volume.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1743,8 +1857,9 @@ public:
    * @brief Generic SIMD-accelerated, distance-pruned traversal.
    * @details Same box-pruning strategy as @c traverse() above (skip subtrees already farther than
    * the current best; visit the closest-looking child first), but the box-vs-point distance test
-   * is vectorised across all @c K children at once (@c if @c constexpr dispatch on @c (K, T);
-   * falls back to the generic @c traverse() above when no compiled ISA path matches), and the
+   * is vectorised across all @c K children at once (@c if @c constexpr dispatch on @c (K, T) in
+   * computeChildDistances2(); a scalar loop over the same SoA cache when no compiled ISA path
+   * matches), and the
    * search itself is expressed through three caller-supplied pieces instead of four fixed
    * callbacks. @c State is whatever the search remembers between leaf visits. @c LeafEvaluator is
    * called only at leaves and is the sole place @c State may change. @c PruneDistSquared turns the
@@ -1831,19 +1946,11 @@ private:
   attachTo(Pool& a_pool) noexcept;
 
   /**
-   * @brief Control block of the Pool this BVH was reserved from. Null in, and only in, a device view.
-   * @details Host-only bookkeeping: it is never mirrored, so it has no device counterpart. Reading
-   * the base through it rather than caching the base is what makes a host-resident BVH immune to a
-   * Pool::reserve that grows and moves the block.
+   * @brief Where the BVH's arrays live: the Pool it follows, or a snapshot made by rebasedView().
+   * @details Host bookkeeping for a BVH in a host pool, which re-reads the base through the pool's
+   * control block on every access and so is immune to a Pool::reserve that grows and moves the block.
    */
-  const PoolControl* m_control = nullptr;
-
-  /**
-   * @brief Base address for a device view, set by rebasedView() and unused otherwise.
-   * @details Write-only on the host: nothing reads it until the descriptor has been byte-copied into
-   * a device address space, which makes it look dead to a host-only reader.
-   */
-  void* m_base = nullptr;
+  PoolLocation m_location;
 
   /**
    * @brief Flat depth-first node array.
@@ -1889,49 +1996,56 @@ private:
   };
 
   /**
-   * @brief Per-node SoA AABB cache used by the SIMD traversal in pruneTraverse().
+   * @brief SoA child-box rows used by the SIMD traversal in pruneTraverse(): one per interior node,
+   * found through Node::m_childBoxRow.
    */
   PODVector<ChildAABBSoA> m_childAabbSoA;
 
   /**
-   * @brief One entry on pruneTraverse()'s explicit traversal stack.
-   * @details Holds a node index plus the squared distance from the query point to that node's
-   * bounding volume, recorded when the entry was pushed. Keeping the distance on the stack lets a
-   * popped entry be re-tested against a pruning bound that may have tightened since the push, which
-   * is what makes deferred (pop-time) pruning possible in addition to the push-time filter.
+   * @brief One entry on pruneTraverse()'s explicit traversal stack: 8 bytes in either precision.
+   * @details Holds a node index plus a lower bound on the squared distance from the query point to
+   * that node's bounding volume, recorded when the entry was pushed. Keeping the distance on the
+   * stack lets a popped entry be re-tested against a pruning bound that may have tightened since the
+   * push. The distance is rounded down to float, never up, so the re-test can only keep an entry
+   * that an exact comparison would have dropped, never drop one it would have kept.
    */
   struct StackEntry
   {
     /// @brief Index into m_linearNodes.
     uint32_t m_idx;
 
-    /// @brief Squared distance from the query point to that node's bounding volume at push time.
-    T m_dist2;
+    /// @brief Lower bound on the squared distance from the query point to the node's bounding volume.
+    float m_dist2;
   };
 
   /**
-   * @brief Traversal stack depth used by pruneTraverse() on the host.
-   * @details A branch-and-bound descent pushes at most K entries per level, so this bounds the
-   * tree depth times K. 256 is the value this traversal has always used; it is a compile-time
-   * constant rather than a literal so the device entry point can select a smaller stack (device
-   * local memory is per-thread, and StackEntry is 16 B at double, so 256 would be 4 KB/thread).
+   * @brief @p a_dist2 rounded down to float.
+   * @param[in] a_dist2 Non-negative squared distance.
+   * @return A float no larger than @p a_dist2.
    */
-  static constexpr size_t s_hostStackDepth = 256;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline float
+  lowerBound(T a_dist2) noexcept;
 
   /**
-   * @brief Traversal stack depth used by pruneTraverse() in device code.
-   * @details Device local memory is per-thread, and StackEntry is 16 B at double, so the host's 256
-   * entries would be 4 KB/thread. A branch-and-bound descent pushes at most K entries per level, and
-   * log_K(N)*K says 64 covers a million primitives at K = 4.
+   * @brief Stack entries needed to traverse a tree @p a_depth levels deep.
+   * @details pruneTraverse pops one entry and pushes up to K per interior node expanded, so a
+   * root-to-leaf path through @p a_depth nodes peaks at 1 + (K - 1) * (depth - 1) entries.
+   * @param[in] a_depth Tree depth in node levels (at least 1).
+   * @return Number of stack entries.
    */
-  static constexpr size_t s_deviceStackDepth = 64;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static constexpr size_t
+  stackEntriesFor(const size_t a_depth) noexcept
+  {
+    return 1 + (K - 1) * (a_depth - 1);
+  }
 
   /**
    * @brief Maximum root-to-leaf depth of the finalized node array (root counts as depth 1).
    * @details One O(number of child slots) walk of the pre-order array, used only by the build-time
    * traversal-stack bound below. Host-only: it is a build/mirror step, never a query step, so it
-   * may use std::vector for its own working stack. Safe against the SFC build's leaf padding, which
-   * repeats a *leaf* index -- leaves have no children, so the walk cannot cycle.
+   * may use std::vector for its own working stack.
    * @param[in] a_base Base address the node array resolves against.
    * @return Depth of the deepest leaf, or 0 for an empty BVH.
    */
@@ -1940,42 +2054,27 @@ private:
   maxNodeDepth(const void* a_base) const;
 
   /**
-   * @brief Largest tree depth whose traversal is guaranteed to fit a stack of @p a_stackDepth.
-   * @details pruneTraverse pops one entry and pushes up to K per interior node expanded, so a
-   * root-to-leaf path of depth D peaks at 1 + (K-1)*(D-1) entries. Inverting that gives the deepest
-   * tree the fixed stack can hold. Used to reject, at build time, a tree that would overflow the
-   * traversal stack -- which in Release is silent memory corruption, since the stack's own
-   * EBGEOMETRY_EXPECT compiles to nothing.
-   * @param[in] a_stackDepth Number of StackEntry slots available.
-   * @return Maximum safe tree depth.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  static constexpr size_t
-  maxSafeDepth(const size_t a_stackDepth) noexcept
-  {
-    return (K > 1) ? (1 + (a_stackDepth - 1) / (K - 1)) : a_stackDepth;
-  }
-
-  /**
-   * @brief Abort if the finalized tree is too deep for a traversal stack of @p a_stackDepth.
+   * @brief Abort if the finalized tree is deeper than @p a_maxDepth levels.
    * @details Always on, not EBGEOMETRY_EXPECT: the failure it prevents is an out-of-bounds write
    * into pruneTraverse's fixed stack, which Release builds would otherwise perform silently. Same
    * reasoning, and the same shape, as Pool::reserve's moved-from check.
-   * @param[in] a_base       Base address the node array resolves against.
-   * @param[in] a_stackDepth Traversal stack size to validate against.
-   * @param[in] a_context    Short label naming the caller, for the diagnostic.
+   * @param[in] a_base     Base address the node array resolves against.
+   * @param[in] a_maxDepth Deepest allowed tree, in node levels: HostTraversalDepth or DeviceTraversalDepth.
+   * @param[in] a_context  Short label naming the caller, for the diagnostic.
    */
   EBGEOMETRY_HOST
   inline void
-  requireDepthFits(const void* a_base, const size_t a_stackDepth, const char* a_context) const;
+  requireDepthFits(const void* a_base, const size_t a_maxDepth, const char* a_context) const;
 
   /**
-   * @brief Abort unless a caller-supplied node array is a well-formed pre-order flattening.
-   * @details Guards the public adopt constructor, the one entry point whose arrays the library did
-   * not build itself. Always on, for the same reason as requireDepthFits(). Checks that every
-   * interior node's children lie strictly after it and inside the array (which also rules out
-   * cycles), that every leaf's primitive range lies inside the primitive array, and that an empty
-   * node array comes with an empty primitive array.
+   * @brief Abort unless a node array is a well-formed pre-order flattening.
+   * @details Run on every build, by finalize(), so it guards the library's own builders as well as
+   * the public adopt constructor. Always on, for the same reason as requireDepthFits(). Checks that
+   * every interior node's children lie strictly after it and inside the array (which also rules out
+   * cycles), that every node but the root has exactly one parent, that every leaf's primitive range
+   * lies inside the primitive array, and that an empty node array comes with an empty primitive
+   * array. A leaf with no primitives reads as an interior node whose children are all node 0, so the
+   * first check rejects it.
    * @param[in] a_linearNodes   Node array to validate.
    * @param[in] a_numPrimitives Size of the primitive array it indexes into.
    */
@@ -2002,8 +2101,9 @@ private:
   computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, T (&a_dist2)[K]) noexcept;
 
   /**
-   * @brief Populate m_childAabbSoA from the completed m_linearNodes array.
-   * @details Called from finalize() once m_linearNodes is fully built, and again by refit().
+   * @brief Populate m_childAabbSoA from the completed m_linearNodes array, one row per interior node.
+   * @details Called from finalize() once m_linearNodes is fully built, and again by refit(). Assigns
+   * each interior node's Node::m_childBoxRow.
    * @param[in,out] a_pool Pool to reserve the cache from, or nullptr to refill a cache that already
    * exists (refit's case, where the node count cannot have changed).
    */

@@ -72,7 +72,7 @@ Use the CMake presets (CMake ≥ 3.22 required; each preset gets its own isolate
 cmake --preset debug            # Debug, assertions ON, no SIMD -- use this for development
 cmake --build --preset debug --parallel $(nproc)
 
-ctest --preset debug            # unit tests only, ~0.3 s
+ctest --preset debug            # unit tests only, ~15 s
 ctest --preset examples         # run every example via ctest, several minutes in Debug mode
 ```
 
@@ -89,7 +89,7 @@ cache variables if you need a combination not covered by a preset.
 ## Testing
 
 ```bash
-ctest --preset debug                 # 130+ unit tests (Catch2), sub-second
+ctest --preset debug                 # ~430 unit tests (Catch2), ~15 s
 ctest --preset debug-san             # same, under AddressSanitizer + UBSan
 ctest --preset examples              # every Examples/* program, run to completion
 ctest --preset release-test          # unit tests + examples, optimised build
@@ -206,7 +206,7 @@ changed `Source/*.hpp` file:
    whether it deserves a mention on the relevant `Docs/Sphinx/source/Implem*.rst` implementation
    page (concrete API, Doxygen-linked) and/or its `Docs/Sphinx/source/*.rst` Concepts-section
    counterpart (conceptual picture, no implementation classes named) and/or a row in a
-   `Tests/TestingLocally.rst`-style coverage table, matching how existing sibling classes are
+   `Docs/Sphinx/source/TestingLocally.rst`-style coverage table, matching how existing sibling classes are
    documented.
 4. **If you changed a function's signature** (added/removed/renamed a parameter, changed a return
    type), update its Doxygen `@param`/`@tparam`/`@return` comment in the same header -- `doxygen
@@ -214,11 +214,13 @@ changed `Source/*.hpp` file:
    new parameter, but won't catch a stale description that no longer matches what the parameter
    does, or a `Docs/Sphinx/source/*.rst` page that still describes the old signature.
 5. **Rebuild the Sphinx HTML docs** (see below) and check for build warnings -- a broken internal
-   cross-reference (`:ref:`/`:numref:`/`:eq:`) will not stop the build, but usually surfaces as a
-   warning.
+   cross-reference (`:ref:`/`:numref:`/`:eq:`) will not stop a plain `make html`, but usually
+   surfaces as a warning, and CI's Sphinx build (like the `sphinx-build-html` hook) runs with `-W`,
+   so any warning fails it.
 
-The `check-docs` pre-commit hook (`Scripts/CheckDocs.py`, manual stage) enforces the ban
-mechanically: it fails if any `.. literalinclude::` directive exists anywhere under
+The `check-docs` pre-commit hook (`Scripts/CheckDocs.py`, default stage: it runs on every commit
+that changes a `Docs/Sphinx/source/*.rst` file, and CI's Doxygen-check job runs it too) enforces the
+ban mechanically: it fails if any `.. literalinclude::` directive exists anywhere under
 `Docs/Sphinx/source/`. Treat it as a floor, not a replacement for the steps above -- it only
 catches the banned directive itself, never "this page no longer describes what the code does,"
 which needs the manual read-through above.
@@ -230,18 +232,26 @@ Scripts/run-all-checks.sh
 ```
 
 Runs every pre-commit hook (default and manual stage — formatting, REUSE/license headers,
-codespell, Doxygen, clang-tidy, a debug-preset compile check, the advisory doc/source
-cross-reference check, Sphinx HTML/PDF) followed by all four CMake presets' test suites. This is
-the same check set `.github/workflows/CI.yml` runs, just local and in one command; expect it to
-take several minutes. `pre-commit install` is only needed if you want the default-stage hooks
-(formatting, license, codespell, Doxygen) to run automatically on `git commit`; the manual-stage
-hooks (clang-tidy, the debug build, Sphinx) only run via this script or explicit
-`pre-commit run --hook-stage manual`.
+codespell, Doxygen, the `check-docs` literalinclude ban, the `check-device-math` device toolchain
+contract, clang-tidy, a debug-preset compile check, the documentation figures, Sphinx HTML/PDF)
+followed by all four CMake presets' test suites. This is nearly the check set
+`.github/workflows/CI.yml` runs, just local and in one command; CI's `CMake-consumer` job is not
+included (run `Scripts/check-cmake-consumer.sh` for that). Expect it to take several
+minutes. `pre-commit install` is only needed if you want the default-stage hooks
+(formatting, license, codespell, Doxygen, check-docs, check-device-math) to run automatically on `git commit`; the
+manual-stage hooks (clang-tidy, the debug build, the documentation figures, Sphinx) only run via
+this script or explicit `pre-commit run --hook-stage manual`. The Doxygen hook runs whenever a
+header, `EBGeometry.hpp`, `Docs/mainpage.md` or `Docs/doxygen.conf` changes; codespell covers
+`Source/`, `Docs/`, `Examples/`, `Tests/` (except `Tests/data/`), `Integrations/`, `Scripts/`,
+`.github/` and the top-level text files.
 
 `.clang-tidy` and `.pre-commit-config.yaml` define the static-analysis/formatting rules; CI
 (`.github/workflows/CI.yml`) runs the same hooks plus a much larger build/test matrix (multiple
 compilers, SIMD levels, precisions, sanitizers, both Debug and Release) that isn't practical to
-reproduce byte-for-byte locally.
+reproduce byte-for-byte locally. CI runs on pull requests and on pushes to `main` and `dev`. Its
+`CI-passed` job, the one to require for merging, fails whenever any job it depends on fails, is
+cancelled or is skipped; `GPU-HIP` (a device compile) is one of those required jobs, while
+`GPU-CUDA` and `Static-analysis` are advisory (`continue-on-error`).
 
 ## Whitespace conventions clang-format does not enforce
 
@@ -283,6 +293,25 @@ does not follow this template, edit the PR body to conform to it.
   read `EBGEOMETRY_PRECISION` as a preprocessor define to pick `T` via `using T =
   EBGEOMETRY_PRECISION`. `float` support is real but was, until recently, completely untested —
   `Tests/InstantiateAll.cpp` and the `Examples-FloatPrecision` CI job now cover it.
+- **Two runtime checks, one per job.** `EBGEOMETRY_REQUIRE(cond, "Class: format", args...)` is always
+  on and guards what a caller controls, once per object built (constructor arguments, sizes, memory
+  resources); `EBGEOMETRY_EXPECT(cond)` guards internal invariants and hot paths and is opt-in (below).
+  The file readers never abort on a bad file: they throw `Parser::ParseError` (file, line, reason),
+  including for meshes that cannot form a half-edge surface or that fold back onto themselves
+  (`Soup::findTopologyDefect`/`findFoldedFeature`); holes are still allowed. Death tests for
+  `REQUIRE` checks use `abortsWith()` from `Tests/TestDeath.hpp` and run in every build.
+- **Device code needs no special compiler flags, and must stay that way.** Under `Source/`, never use
+  `std::min`/`std::max`/`std::clamp`/`std::numeric_limits`/`std::array`; use `Math::min`/`max`/`clamp`/
+  `Limits<T>` (`EBGeometry_Math.hpp`) and `Array<T, N>` (`EBGeometry_Array.hpp`). Inside an
+  `EBGEOMETRY_HOST_DEVICE` function, call no `std::` function except device math (`std::sqrt`,
+  `std::abs`, `std::isfinite`, ...). nvcc rejects the others without `--expt-relaxed-constexpr`, which
+  users are not required to pass, and HIP accepts them, so only `Scripts/CheckDeviceMath.py` (a
+  pre-commit hook and CI step) and the advisory CUDA lane catch a violation.
+- **Default K and W are fixed at 4.** `BVH::DefaultBranchingRatio<T>()`, `TriangleSoA::DefaultWidth<T>()`
+  and `PointSoA::DefaultWidth<T>()` never read ISA macros, so a type spelled with them is identical in
+  every translation unit and GPU compile pass. The ISA-tuned values are opt-in (`BVH::HostBranchingRatio`,
+  `TriangleSoA::HostWidth`, `PointSoA::HostWidth`) and must never be used for a type device code also
+  sees. See "Branching factor and SIMD width" in `ConfigurationOptions.rst` and `Examples/HostTuning`.
 - **`EBGEOMETRY_EXPECT()` assertions are opt-in** (`EBGEOMETRY_ENABLE_ASSERTIONS`, ON in `debug`/
   `debug-san`, OFF in `release`/`release-test`) and are the primary way internal invariant
   violations (e.g. a dangling half-edge, a malformed mesh) surface during development; they compile
@@ -298,15 +327,24 @@ does not follow this template, edit the PR body to conform to it.
   field should follow the same pattern (an index member, resolved via an explicit mesh parameter),
   not a cached pointer, which would only be valid in the address space it was set in and would
   need re-patching after every host-to-device mirror.
-- **`MeshSDF` retains its source `DCEL::MeshT`, not just the packed BVH.** If you write a similar
-  wrapper around a DCEL mesh, remember that a `PackedBVH` of faces holds `shared_ptr<const
-  DCEL::FaceT>`s whose half-edge index is only meaningful together with the mesh it was resolved
-  against — nothing keeps the mesh itself alive unless something holds an explicit
-  `shared_ptr<DCEL::MeshT>`.
+- **`MeshSDF` holds its source `DCEL::MeshT` descriptor as well as the packed BVH, and owns no
+  memory; the `Pool` is what must stay alive.** `MeshSDF` is a trivially copyable value type: its
+  `MeshT` and its `PackedBVH` (of *copies* of the DCEL faces, stored by value) are both descriptors
+  resolving against the one `Pool` passed to the constructor. A packed face's half-edge index is
+  only meaningful together with the mesh, which is why `MeshSDF` keeps the mesh descriptor and passes
+  it to every face query. Copying a `MeshSDF` copies descriptors, not data (use `deepCopy(Pool&)`
+  for independent storage), and nothing is reference-counted, so the caller must keep the `Pool`
+  alive for as long as the `MeshSDF` or any copy or `rebasedView()` of it is used (and, on a device,
+  the mirrored pool too). The same holds for `FlatMeshSDF` (mesh only), `TriMeshSDF` (BVH only; its
+  `TriangleAoSoA` leaves are self-contained), `PointCloudBVH` and the BVH unions. A similar wrapper
+  should follow the same pattern: hold descriptors by value, offer `rebasedView()`/`deepCopy()`
+  (and `relocatedTo()` if it may be a BVH-union primitive), and document that its pool must outlive
+  it.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s
   `binaryDir`) specifically so switching presets can't silently reuse a stale `CMakeCache.txt` from
   a different configuration.
-- **`TriMeshSDF` requires an all-triangular mesh**; `MeshSDF`/`FlatMeshSDF` accept arbitrary
-  (planar, convex) polygon faces. The `Tests/data/dodecahedron.*` fixture (20 vertices, 36
-  triangulated faces, exercised by `Tests/TestBVH.cpp`) works for both, since its pentagonal faces
-  were pre-triangulated when generated.
+- **`TriMeshSDF` fan-triangulates polygon faces**; `MeshSDF`/`FlatMeshSDF` use the (planar, convex)
+  polygon faces directly. Fan triangulation of a planar convex face gives the same signed distance.
+  The file readers remove zero-area faces and repair the T-junctions they fill
+  (`Soup::removeDegeneratePolygons`); `Tests/data/tetrahedron_sliver.stl` and `cube_quads.obj` cover
+  both.

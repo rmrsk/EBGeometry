@@ -183,7 +183,7 @@ TEST_CASE("Octree::Node::traverse: a custom childOrderer changes the visitation 
   };
   const LevelNode::PrunePredicate visitAll = [](const LevelNode&) -> bool { return true; };
   const LevelNode::ChildOrderer   reverseChildren =
-    [](std::array<std::shared_ptr<const LevelNode>, 8>& a_children) -> void {
+    [](EBGeometry::Array<std::shared_ptr<const LevelNode>, 8>& a_children) -> void {
     std::reverse(a_children.begin(), a_children.end());
   };
 
@@ -258,6 +258,13 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: an inverted initial box (lo
   // search box.
   REQUIRE(bv.getLowCorner()[0] < T(-1.0e10));
   REQUIRE(bv.getHighCorner()[0] > T(1.0e10));
+
+  // Inverted along one axis only. The check used to require every component to be inverted.
+  const auto partly =
+    approximateBoundingVolumeOctree<BV>(sphere, Vec3(T(-2), T(2), T(-2)), Vec3(T(2), T(-2), T(2)), 4U, T(0.0));
+
+  REQUIRE(partly.getLowCorner()[0] < T(-1.0e10));
+  REQUIRE(partly.getHighCorner()[0] > T(1.0e10));
 }
 
 TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: an initial box that never touches the "

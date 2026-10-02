@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -29,6 +28,7 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -39,20 +39,7 @@ EBGEOMETRY_HOST_DEVICE
 inline void*
 MeshT<T, Meta>::base() const noexcept
 {
-#if defined(EBGEOMETRY_DEVICE_COMPILE)
-  // A non-null control block here means a host descriptor was copied into a kernel directly,
-  // instead of going through rebasedView(). The pointer it holds is a host address.
-  EBGEOMETRY_EXPECT(m_control == nullptr);
-
-  return m_base;
-#else
-  // Null here means either a device view being dereferenced on the host, or a mesh nobody ever
-  // reserved into. rebasedView() is the only producer of a null control block, and only for a
-  // device-accessible target, so this test is exact rather than heuristic.
-  EBGEOMETRY_EXPECT(m_control != nullptr);
-
-  return m_control->m_base;
-#endif
+  return m_location.base();
 }
 
 template <class T, class Meta>
@@ -60,10 +47,7 @@ EBGEOMETRY_HOST
 inline void
 MeshT<T, Meta>::attachTo(const Pool& a_pool) noexcept
 {
-  // A mesh's three arrays must all live in the same Pool: they are resolved against a single base.
-  EBGEOMETRY_EXPECT(m_control == nullptr || m_control == a_pool.control());
-
-  m_control = a_pool.control();
+  m_location.attach(a_pool, "DCEL::MeshT::attachTo");
 }
 
 template <class T, class Meta>
@@ -71,30 +55,11 @@ EBGEOMETRY_HOST
 inline MeshT<T, Meta>
 MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
 {
-  EBGEOMETRY_EXPECT(m_control != nullptr);                       // not already a view
-  EBGEOMETRY_EXPECT(a_pool.mirrorOf() == m_control->m_id);       // a mirror of *our* pool
-  EBGEOMETRY_EXPECT(m_vertices.endByte() <= a_pool.usedBytes()); // our arrays fit inside it
-  EBGEOMETRY_EXPECT(m_edges.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_faces.endByte() <= a_pool.usedBytes());
+  const uint64_t endByte = Math::max(m_vertices.endByte(), Math::max(m_edges.endByte(), m_faces.endByte()));
 
   Mesh view = *this;
 
-  if (a_pool.resource().isDeviceAccessible()) {
-    // A kernel cannot follow a host control block, so the base has to be captured by value. That is
-    // safe precisely here: a device-accessible pool can only come from Pool::mirror, which freezes
-    // it, and Pool::grow refuses a non-host-accessible resource outright -- the base cannot move.
-    EBGEOMETRY_EXPECT(a_pool.isFrozen());
-
-    view.m_control = nullptr;
-    view.m_base    = a_pool.base();
-  }
-  else {
-    // Host target: follow the destination's control block instead of snapshotting its base, so the
-    // rebased view is growth-immune exactly like the original mesh -- and so that a null control
-    // block keeps meaning "device view" and nothing else.
-    view.m_control = a_pool.control();
-    view.m_base    = nullptr;
-  }
+  view.m_location = m_location.rebasedOnto(a_pool, endByte, "DCEL::MeshT");
 
   return view;
 }
@@ -104,7 +69,7 @@ EBGEOMETRY_HOST_DEVICE
 inline PoolLocation
 MeshT<T, Meta>::location() const noexcept
 {
-  return PoolLocation{m_control, m_base};
+  return m_location;
 }
 
 template <class T, class Meta>
@@ -114,8 +79,7 @@ MeshT<T, Meta>::relocatedTo(const PoolLocation& a_location) const noexcept
 {
   MeshT<T, Meta> view = *this;
 
-  view.m_control = a_location.m_control;
-  view.m_base    = a_location.m_base;
+  view.m_location = a_location;
 
   return view;
 }
@@ -125,8 +89,8 @@ EBGEOMETRY_HOST
 inline MeshT<T, Meta>
 MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
 {
-  EBGEOMETRY_EXPECT(this->numVertices() > 0 || this->numEdges() > 0 || this->numFaces() > 0);
-
+  // An empty mesh (as a parser returns for an unreadable file) copies to an empty mesh.
+  //
   // Every VertexT/EdgeT/FaceT cross-reference is an index into the owning mesh's arrays, not a
   // pointer, so copying each element by value into freshly-reserved storage is already an
   // independent, correctly-linked mesh -- no relinking pass is needed.
@@ -414,7 +378,7 @@ EBGEOMETRY_HOST
 inline bool
 MeshT<T, Meta>::isAttachedTo(const Pool& a_pool) const noexcept
 {
-  return m_control != nullptr && m_control == a_pool.control();
+  return m_location.isAttachedTo(a_pool);
 }
 
 template <class T, class Meta>
@@ -474,7 +438,11 @@ MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexc
 
   for (uint32_t faceIndex = 0; faceIndex < this->numFaces(); faceIndex++) {
     for (const uint32_t vertexIndex : this->getFace(faceIndex).gatherVertexIndices(*this)) {
-      EBGEOMETRY_EXPECT(vertexIndex < facesTouchingVertex.size());
+      EBGEOMETRY_REQUIRE(vertexIndex < facesTouchingVertex.size(),
+                         "DCEL::MeshT::reconcileVertices: face %u references vertex %u, but the mesh has %zu vertices",
+                         unsigned(faceIndex),
+                         unsigned(vertexIndex),
+                         facesTouchingVertex.size());
 
       facesTouchingVertex[vertexIndex].push_back(faceIndex);
     }
@@ -483,6 +451,14 @@ MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexc
   for (uint32_t vertexIndex = 0; vertexIndex < this->numVertices(); vertexIndex++) {
     auto&       v           = this->getVertex(vertexIndex);
     const auto& faceIndices = facesTouchingVertex[vertexIndex];
+
+    // A vertex no face uses (an OBJ file may list one) is never the closest feature of any face, so
+    // its normal is never read; it gets a zero normal instead of one computed from nothing.
+    if (faceIndices.empty()) {
+      v.setNormal(Vec3T<T>::zeros());
+
+      continue;
+    }
 
     switch (a_weight) {
     case DCEL::VertexNormalWeight::None: {
@@ -496,11 +472,9 @@ MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexc
       break;
     }
     default: {
-      std::cerr << "In file 'EBGeometry_DCEL_MeshImplem.hpp' function "
-                   "DCEL::MeshT<T, Meta>::reconcileVertices(VertexNormalWeighting) - a_weight does "
-                   "not match any of the known VertexNormalWeight enumerators; this indicates a "
-                   "corrupted or out-of-range enum value rather than a normal runtime condition.\n";
-      EBGEOMETRY_EXPECT(false);
+      EBGEOMETRY_REQUIRE(false,
+                         "DCEL::MeshT::reconcileVertices: unknown VertexNormalWeight enumerator (%d)",
+                         static_cast<int>(a_weight));
 
       break;
     }
@@ -575,15 +549,15 @@ MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
   if (this->numFaces() == 0) {
-    return std::numeric_limits<T>::infinity();
+    return Math::Limits<T>::infinity();
   }
 
-  T minDist2 = std::numeric_limits<T>::max();
+  T minDist2 = Math::Limits<T>::max();
 
   for (uint32_t i = 0; i < this->numFaces(); i++) {
     const T curDist2 = this->getFace(i).unsignedDistance2(a_point, *this);
 
-    minDist2 = std::min(minDist2, curDist2);
+    minDist2 = Math::min(minDist2, curDist2);
   }
 
   return minDist2;
@@ -598,7 +572,7 @@ MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm)
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T minDist = std::numeric_limits<T>::max();
+  T minDist = Math::Limits<T>::max();
 
   switch (a_algorithm) {
   case SearchAlgorithm::Direct: {
@@ -635,7 +609,7 @@ MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
   if (this->numFaces() == 0) {
-    return std::numeric_limits<T>::infinity();
+    return Math::Limits<T>::infinity();
   }
 
   T minDist  = this->getFace(0).signedDistance(a_point, *this);
@@ -664,7 +638,7 @@ MeshT<T, Meta>::DirectSignedDistance2(const Vec3& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
   if (this->numFaces() == 0) {
-    return std::numeric_limits<T>::infinity();
+    return Math::Limits<T>::infinity();
   }
 
   uint32_t closestIndex = 0;

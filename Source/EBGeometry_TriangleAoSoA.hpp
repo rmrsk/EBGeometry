@@ -12,12 +12,12 @@
 #define EBGEOMETRY_TRIANGLEAOSOA_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -28,7 +28,7 @@ namespace EBGeometry {
  * @brief Metadata-carrying wrapper around a single TriangleSoAT<T, W>.
  * @details Structurally this is an AoSoA (Array of Structures of Arrays): TriangleSoAT<T, W> itself
  * is true SoA (one flat array per coordinate, no per-triangle structure at all), and TriangleAoSoA
- * adds exactly one more member -- a std::array<Meta, W> -- alongside it. The two are never merged or
+ * adds exactly one more member -- a Array<Meta, W> -- alongside it. The two are never merged or
  * interleaved: the hot signedDistance(const Vec3T<T>&) query is delegated straight through to the
  * embedded TriangleSoAT and never reads m_metaData at all, so a pure signed-distance traversal over
  * TriangleAoSoA-packed leaves touches exactly the same bytes it would touch over bare
@@ -37,8 +37,8 @@ namespace EBGeometry {
  * signedDistance(point, Meta&) overload -- so a caller can recover which triangle (and its metadata)
  * is closest at no cost to the throughput signedDistance() path.
  * @warning Inherits the embedded TriangleSoAT's over-alignment (up to 64 bytes, for AVX-512F). The
- * library's own usage (PackedBVH storing groups inside a std::vector<TriangleAoSoA>) is safe: C++17
- * mandates that std::allocator respect over-alignment. If you allocate a TriangleAoSoA yourself
+ * library's own usage (PackedBVH storing groups in a Pool-backed PODVector<TriangleAoSoA>, reserved
+ * at alignof(TriangleAoSoA) inside a PoolBaseAlign-aligned block) is safe. If you allocate a TriangleAoSoA yourself
  * outside of that path -- a raw `new`, a container with a custom/pre-C++17-style allocator,
  * placement-new into externally-owned storage, or a `malloc`'d buffer -- you are responsible for
  * ensuring the memory is aligned to `alignof(TriangleAoSoA<T, Meta, W>)`.
@@ -129,7 +129,7 @@ protected:
    * @brief Per-lane metadata, physically separate from m_triangles. m_metaData[j] = metadata of
    * triangle j. Never read by signedDistance(const Vec3T<T>&).
    */
-  std::array<Meta, W> m_metaData;
+  Array<Meta, W> m_metaData;
 
   /**
    * @brief Number of valid (non-padded) triangles in this group (1..W).

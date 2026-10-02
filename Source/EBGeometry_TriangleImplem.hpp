@@ -12,19 +12,19 @@
 #define EBGEOMETRY_TRIANGLEIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cmath>
-#include <limits>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Triangle.hpp"
 
 namespace EBGeometry {
 
 template <class T, class Meta>
-Triangle<T, Meta>::Triangle(const std::array<Vec3T<T>, 3>& a_vertexPositions) noexcept
+Triangle<T, Meta>::Triangle(const Array<Vec3T<T>, 3>& a_vertexPositions) noexcept
 {
   this->setVertexPositions(a_vertexPositions);
 }
@@ -36,14 +36,14 @@ Triangle<T, Meta>::setNormal(const Vec3T<T>& a_normal) noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[2]));
-  EBGEOMETRY_EXPECT(std::abs(a_normal.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+  EBGEOMETRY_EXPECT(std::abs(a_normal.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
 
   this->m_triangleNormal = a_normal;
 }
 
 template <class T, class Meta>
 void
-Triangle<T, Meta>::setVertexPositions(const std::array<Vec3T<T>, 3>& a_vertexPositions) noexcept
+Triangle<T, Meta>::setVertexPositions(const Array<Vec3T<T>, 3>& a_vertexPositions) noexcept
 {
   for ([[maybe_unused]] const auto& v : a_vertexPositions) {
     EBGEOMETRY_EXPECT(std::isfinite(v[0]));
@@ -58,13 +58,13 @@ Triangle<T, Meta>::setVertexPositions(const std::array<Vec3T<T>, 3>& a_vertexPos
 
 template <class T, class Meta>
 void
-Triangle<T, Meta>::setVertexNormals(const std::array<Vec3T<T>, 3>& a_vertexNormals) noexcept
+Triangle<T, Meta>::setVertexNormals(const Array<Vec3T<T>, 3>& a_vertexNormals) noexcept
 {
   for ([[maybe_unused]] const auto& n : a_vertexNormals) {
     EBGEOMETRY_EXPECT(std::isfinite(n[0]));
     EBGEOMETRY_EXPECT(std::isfinite(n[1]));
     EBGEOMETRY_EXPECT(std::isfinite(n[2]));
-    EBGEOMETRY_EXPECT(std::abs(n.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(std::abs(n.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
   }
 
   m_vertexNormals = a_vertexNormals;
@@ -72,13 +72,13 @@ Triangle<T, Meta>::setVertexNormals(const std::array<Vec3T<T>, 3>& a_vertexNorma
 
 template <class T, class Meta>
 void
-Triangle<T, Meta>::setEdgeNormals(const std::array<Vec3T<T>, 3>& a_edgeNormals) noexcept
+Triangle<T, Meta>::setEdgeNormals(const Array<Vec3T<T>, 3>& a_edgeNormals) noexcept
 {
   for ([[maybe_unused]] const auto& n : a_edgeNormals) {
     EBGEOMETRY_EXPECT(std::isfinite(n[0]));
     EBGEOMETRY_EXPECT(std::isfinite(n[1]));
     EBGEOMETRY_EXPECT(std::isfinite(n[2]));
-    EBGEOMETRY_EXPECT(std::abs(n.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(std::abs(n.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
   }
 
   m_edgeNormals = a_edgeNormals;
@@ -100,9 +100,13 @@ Triangle<T, Meta>::computeNormal() noexcept
 
   m_triangleNormal = cross(x2x0, x2x1);
 
-  EBGEOMETRY_EXPECT(m_triangleNormal.length() > T(0));
+  // Collinear or coincident vertices leave a zero normal rather than NaN. Such a triangle has no
+  // interior; mesh extraction never produces one (see MeshDistanceFunctionsDetail::extractTriangles).
+  const T length = m_triangleNormal.length();
 
-  m_triangleNormal = m_triangleNormal / m_triangleNormal.length();
+  if (length > T(0)) {
+    m_triangleNormal = m_triangleNormal / length;
+  }
 }
 
 template <class T, class Meta>
@@ -113,21 +117,21 @@ Triangle<T, Meta>::getNormal() const noexcept
 }
 
 template <class T, class Meta>
-const std::array<Vec3T<T>, 3>&
+const Array<Vec3T<T>, 3>&
 Triangle<T, Meta>::getVertexPositions() const noexcept
 {
   return this->m_vertexPositions;
 }
 
 template <class T, class Meta>
-const std::array<Vec3T<T>, 3>&
+const Array<Vec3T<T>, 3>&
 Triangle<T, Meta>::getVertexNormals() const noexcept
 {
   return this->m_vertexNormals;
 }
 
 template <class T, class Meta>
-const std::array<Vec3T<T>, 3>&
+const Array<Vec3T<T>, 3>&
 Triangle<T, Meta>::getEdgeNormals() const noexcept
 {
   return this->m_edgeNormals;
@@ -148,7 +152,7 @@ Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T ret = std::numeric_limits<T>::max();
+  T ret = Math::Limits<T>::max();
 
   auto sgn = [](const T x) -> int { return (x > T(0.0)) ? 1 : -1; };
 

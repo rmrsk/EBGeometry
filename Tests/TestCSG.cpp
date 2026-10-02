@@ -7,6 +7,7 @@
 // fixtures so every expected value is hand-computable.
 
 #include "EBGeometry.hpp"
+#include "TestConstructions.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
@@ -16,6 +17,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <random>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -205,6 +207,29 @@ TEMPLATE_TEST_CASE("ExpMin: equal inputs blend to a - s*ln(2)", "[CSG][ExpMin]",
   const T s = T(0.4);
 
   REQUIRE_THAT(ExpMin<T>(a, a, s), withinAbsT(a - s * std::log(T(2.0)), formulaMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("ExpMin and ExpMax: finite and close to the sharp min/max far from the blend region",
+                   "[CSG][ExpMin]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // exp(-a/s) under- or overflows once |a|/s passes ~100 (float) or ~700 (double); the blend must
+  // not, since a BVHSmoothUnionIF evaluates it at arbitrary distances from the surface.
+  const T s = T(1);
+
+  for (const T a : {T(200), T(-100), T(1000), T(-800)}) {
+    const T b = a + T(5);
+
+    INFO("a = " << a);
+    REQUIRE(std::isfinite(ExpMin<T>(a, b, s)));
+    REQUIRE(std::isfinite(ExpMax<T>(a, b, s)));
+    REQUIRE_THAT(ExpMin<T>(a, b, s), withinAbsT(a - s * std::log1p(std::exp(-T(5))), formulaMargin<T>()));
+    REQUIRE_THAT(ExpMax<T>(a, b, s), withinAbsT(b + s * std::log1p(std::exp(-T(5))), formulaMargin<T>()));
+  }
+
+  REQUIRE_THAT(ExpMax<T>(T(2), T(2), s), withinAbsT(T(2) + s * std::log(T(2)), formulaMargin<T>()));
 }
 
 TEMPLATE_TEST_CASE("ExpMin: never exceeds the sharp minimum", "[CSG][ExpMin]", EBGEOMETRY_TEST_PRECISIONS)
@@ -444,7 +469,7 @@ std::vector<TestTriMesh<T>>
 dodecahedronGrid(Pool& a_pool)
 {
   const auto triangles =
-    Parser::readIntoTriangles<T, TestMeta>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.obj", a_pool);
+    Parser::readIntoTriangles<T, TestMeta>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.obj");
 
   std::vector<TestTriMesh<T>> meshes;
 
@@ -464,7 +489,7 @@ dodecahedronGrid(Pool& a_pool)
         triangle.setVertexPositions(vertices);
       }
 
-      meshes.emplace_back(shifted, a_pool, BVH::Build::SAH, 1);
+      meshes.emplace_back(shifted, a_pool, BVH::Construction::SAH, 1);
     }
   }
 
@@ -545,7 +570,7 @@ TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy, and the free function, giv
 
   const auto freeFunc = BVHUnion<T, SphereSDF<T>, K>(pool, spheres, bvs);
 
-  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH, BVH::Build::Morton, BVH::Build::Nested}) {
+  for (const auto build : allConstructions) {
     const BVHUnionIF<T, SphereSDF<T>, K> bvhUnion(pool, spheres, bvs, build);
 
     for (const auto& p : lineQueryPoints<T>()) {
@@ -601,6 +626,75 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: matches a brute-force two-nearest blend in
     REQUIRE_THAT(expSmooth.signedDistance(p),
                  withinAbsT(bruteTwoNearest(spheres, p, smoothLen, ExpMinOp<T>{}), formulaMargin<T>()));
     REQUIRE_THAT(freeFunc.signedDistance(p), withinAbsT(polySmooth.signedDistance(p), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHSmoothUnionIF: every build strategy matches brute force when the leaf count is not a "
+                   "power of K",
+                   "[CSG][BVHSmoothUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+
+  // 68 spheres give 17 leaves of K = 4 under the space-filling-curve builds. A builder that pads the
+  // leaf count up to a power of K by repeating a leaf visits some spheres twice, and the smooth
+  // union then blends a sphere with itself.
+  std::mt19937                      rng(1);
+  std::uniform_real_distribution<T> coord(T(0), T(10));
+
+  std::vector<SphereSDF<T>> spheres;
+  std::vector<BV<T>>        bvs;
+
+  for (int i = 0; i < 68; i++) {
+    const Vec3T<T> center(coord(rng), coord(rng), coord(rng));
+    const T        radius = T(0.3);
+
+    spheres.emplace_back(center, radius);
+    bvs.emplace_back(center - radius * Vec3T<T>::ones(), center + radius * Vec3T<T>::ones());
+  }
+
+  std::vector<Vec3T<T>> queries;
+
+  for (int i = 0; i < 2000; i++) {
+    queries.emplace_back(coord(rng), coord(rng), coord(rng));
+  }
+
+  const T smoothLen = T(0.5);
+
+  Pool pool(hostMemoryResource());
+
+  for (const auto build : allConstructions) {
+    const BVHSmoothUnionIF<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
+
+    for (const auto& p : queries) {
+      REQUIRE_THAT(smooth.signedDistance(p),
+                   withinAbsT(bruteTwoNearest(spheres, p, smoothLen, SmoothMinOp<T>{}), formulaMargin<T>()));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy handles many coincident primitives",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Identical bounding volumes give every splitting rule a zero extent to work with.
+  std::vector<SphereSDF<T>> spheres(2000, SphereSDF<T>(Vec3T<T>::ones(), T(0.5)));
+  std::vector<BV<T>>        bvs(2000, BV<T>(T(0.5) * Vec3T<T>::ones(), T(1.5) * Vec3T<T>::ones()));
+
+  spheres.emplace_back(T(5) * Vec3T<T>::ones(), T(0.5));
+  bvs.emplace_back(T(4.5) * Vec3T<T>::ones(), T(5.5) * Vec3T<T>::ones());
+
+  Pool pool(hostMemoryResource());
+
+  for (const auto build : allConstructions) {
+    const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, bvs, build);
+
+    REQUIRE_THAT(bvhUnion.signedDistance(Vec3T<T>::zeros()), withinAbsT(std::sqrt(T(3)) - T(0.5), formulaMargin<T>()));
+    REQUIRE_THAT(bvhUnion.signedDistance(T(5) * Vec3T<T>::ones()), withinAbsT(T(-0.5), formulaMargin<T>()));
   }
 }
 
@@ -703,7 +797,6 @@ TEMPLATE_TEST_CASE("BVHUnionIF: host-mirror and deep copies of a TriMeshSDF unio
   }
 }
 
-#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
 TEMPLATE_TEST_CASE("BVHUnionIF: rejects a mesh from another pool and a missing bounding volume",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -711,9 +804,8 @@ TEMPLATE_TEST_CASE("BVHUnionIF: rejects a mesh from another pool and a missing b
   using T     = TestType;
   using Union = BVHUnionIF<T, TestTriMesh<T>, 4>;
 
-  // Both checks are always on, not EBGEOMETRY_EXPECTs; the helper only runs where assertions are
-  // enabled, which is where this suite's death tests live.
-  REQUIRE_FALSE(abortsUnderAssertions([] {
+  // Both checks are EBGEOMETRY_REQUIREs, so they abort in every build.
+  REQUIRE_FALSE(aborts([] {
     Pool        pool(hostMemoryResource());
     const auto  meshes = dodecahedronGrid<T>(pool);
     const Union meshUnion(pool, meshes, boundingVolumes(meshes));
@@ -721,49 +813,47 @@ TEMPLATE_TEST_CASE("BVHUnionIF: rejects a mesh from another pool and a missing b
     (void)meshUnion;
   }));
 
-  REQUIRE(abortsUnderAssertions([] {
-    Pool        meshPool(hostMemoryResource());
-    Pool        unionPool(hostMemoryResource());
-    const auto  meshes = dodecahedronGrid<T>(meshPool);
-    const Union meshUnion(unionPool, meshes, boundingVolumes(meshes));
+  REQUIRE(abortsWith(
+    [] {
+      Pool        meshPool(hostMemoryResource());
+      Pool        unionPool(hostMemoryResource());
+      const auto  meshes = dodecahedronGrid<T>(meshPool);
+      const Union meshUnion(unionPool, meshes, boundingVolumes(meshes));
 
-    (void)meshUnion;
-  }));
+      (void)meshUnion;
+    },
+    "lives in another Pool"));
 
-  REQUIRE(abortsUnderAssertions([] {
-    Pool       pool(hostMemoryResource());
-    const auto spheres = sphereRow<T>();
-    auto       bvs     = sphereRowBVs<T>();
+  REQUIRE(abortsWith(
+    [] {
+      Pool       pool(hostMemoryResource());
+      const auto spheres = sphereRow<T>();
+      auto       bvs     = sphereRowBVs<T>();
 
-    bvs.pop_back();
+      bvs.pop_back();
 
-    const BVHUnionIF<T, SphereSDF<T>, 4> sphereUnion(pool, spheres, bvs);
+      const BVHUnionIF<T, SphereSDF<T>, 4> sphereUnion(pool, spheres, bvs);
 
-    (void)sphereUnion;
-  }));
+      (void)sphereUnion;
+    },
+    "need one bounding volume per primitive"));
 }
-#endif
-
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-
-using Catch::Matchers::WithinRel;
 
 namespace {
 
-// Evaluates a sphere union, a smooth sphere union and a TriMeshSDF union on the device. Each arrives
-// by value as a kernel argument.
-template <class T>
-EBGEOMETRY_GLOBAL
-void
-unionsDeviceKernel(const BVHUnionIF<T, SphereSDF<T>, 4>       a_sphereUnion,
-                   const BVHSmoothUnionIF<T, SphereSDF<T>, 4> a_smoothUnion,
-                   const BVHUnionIF<T, TestTriMesh<T>, 4>     a_meshUnion,
-                   const Vec3T<T>                             a_point,
-                   T*                                         a_out)
+// One signed distance per query point, for any of the BVH unions, held by value as a kernel receives it.
+template <class T, class Union>
+struct UnionDistanceQuery
 {
-  a_out[0] = a_sphereUnion.signedDistance(a_point) + T(2) * a_smoothUnion.signedDistance(a_point) +
-             T(3) * a_meshUnion.signedDistance(a_point);
-}
+  Union m_union;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_union.signedDistance(a_point);
+  }
+};
 
 } // namespace
 
@@ -787,26 +877,28 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
 
   pool.freeze();
 
-  Pool devicePool = Pool::mirror(pool, deviceMemoryResource());
+  Pool devicePool = Pool::mirror(pool, deviceTestResource());
 
-  const auto sphereView = sphereUnion.rebasedView(devicePool);
-  const auto smoothView = smoothUnion.rebasedView(devicePool);
-  const auto meshView   = meshUnion.rebasedView(devicePool);
+  // The unit spheres sit at x = 0, 3, ..., 33 on the x-axis, and the dodecahedra (vertices within 1.62
+  // of their centres) at x = 0, 4, 8 and y = 0, 4. Each grid covers points inside, outside, near the
+  // surfaces and between the primitives of its union.
+  const T    rowEnd       = T(3) * T(NumRowSpheres - 1) + T(2);
+  const auto spherePoints = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-2)), Vec3T<T>(rowEnd, T(2), T(2)), 16);
+  const auto meshPoints   = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-2)), Vec3T<T>(T(10), T(6), T(2)), 16);
 
-  for (const auto& p : gridQueryPoints<T>()) {
-    const T hostVal =
-      sphereUnion.signedDistance(p) + T(2) * smoothUnion.signedDistance(p) + T(3) * meshUnion.signedDistance(p);
+  const auto check = [&](const auto& a_union, const std::vector<Vec3T<T>>& a_points) {
+    using Union = std::decay_t<decltype(a_union)>;
 
-    DeviceBuffer<T> deviceOut;
+    const Union view = a_union.rebasedView(devicePool);
 
-    unionsDeviceKernel<T><<<1, 1>>>(sphereView, smoothView, meshView, p, deviceOut.get());
-    (void)GPU::deviceSynchronize();
+    requireSameResults(evaluateOnDevice<T>(UnionDistanceQuery<T, Union>{view}, a_points),
+                       evaluateOnHost<T>(UnionDistanceQuery<T, Union>{a_union}, a_points));
+  };
 
-    REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
-  }
+  check(sphereUnion, spherePoints);
+  check(smoothUnion, spherePoints);
+  check(meshUnion, meshPoints);
 }
-
-#endif
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IntersectionIF / Intersection()
@@ -1142,6 +1234,32 @@ TEMPLATE_TEST_CASE("FiniteRepetitionIF: clamps to the boundary tile beyond the r
   REQUIRE_THAT(tiled.value(farBelow), withinAbsT(base->signedDistance(expectedLocalNeg), formulaMargin<T>()));
 }
 
+TEMPLATE_TEST_CASE("FiniteRepetitionIF: fractional repetition counts round to whole tiles",
+                   "[CSG][FiniteRepetition]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto base = std::make_shared<Sphere<T>>(Vec3::zeros(), T(0.25));
+
+  const FiniteRepetitionIF<T> roundsDown(base, Vec3::ones(), Vec3(T(0.4), T(0), T(0)), Vec3(T(2.4), T(0), T(0)));
+  const FiniteRepetitionIF<T> roundsUp(base, Vec3::ones(), Vec3(T(0.6), T(0), T(0)), Vec3(T(2.6), T(0), T(0)));
+  const FiniteRepetitionIF<T> two(base, Vec3::ones(), Vec3(T(0), T(0), T(0)), Vec3(T(2), T(0), T(0)));
+  const FiniteRepetitionIF<T> three(base, Vec3::ones(), Vec3(T(1), T(0), T(0)), Vec3(T(3), T(0), T(0)));
+
+  for (const T x : {T(-2), T(-1), T(0), T(1), T(2), T(2.6), T(3), T(4)}) {
+    const Vec3 p(x, T(0.1), T(0));
+
+    INFO("x = " << x);
+    REQUIRE_THAT(roundsDown.value(p), withinAbsT(two.value(p), exactMargin<T>()));
+    REQUIRE_THAT(roundsUp.value(p), withinAbsT(three.value(p), exactMargin<T>()));
+  }
+
+  REQUIRE(two.value(Vec3(T(3), T(0), T(0))) > T(0));
+  REQUIRE(three.value(Vec3(T(3), T(0), T(0))) < T(0));
+}
+
 TEMPLATE_TEST_CASE("FiniteRepetition: free function matches FiniteRepetitionIF",
                    "[CSG][FiniteRepetition]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1161,4 +1279,118 @@ TEMPLATE_TEST_CASE("FiniteRepetition: free function matches FiniteRepetitionIF",
   for (const Vec3 p : {Vec3::zeros(), Vec3(7.3, -2.1, 0.4), Vec3(-12.0, 0, 0)}) {
     REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), formulaMargin<T>()));
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Argument checks: EBGEOMETRY_REQUIREs, so these abort in every build.
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+using IFList = std::vector<std::shared_ptr<ImplicitFunction<double>>>;
+
+// A null implicit function to hand to the constructors and free functions.
+std::shared_ptr<ImplicitFunction<double>>
+nullIF()
+{
+  return nullptr;
+}
+
+} // namespace
+
+TEST_CASE("UnionIF and Union: reject an empty list, a null entry and a null argument", "[CSG][Union]")
+{
+  REQUIRE(
+    abortsWith([] { (void)UnionIF<double>(IFList{}); }, "UnionIF: the list of implicit functions must not be empty"));
+  REQUIRE(abortsWith([] { (void)UnionIF<double>(IFList{sphereA<double>(), nullIF()}); },
+                     "UnionIF: the list of implicit functions must not contain a null entry"));
+  REQUIRE(abortsWith([] { (void)Union<double>(IFList{}); }, "Union: the list of implicit functions must not be empty"));
+  REQUIRE(abortsWith([] { (void)Union<double>(sphereA<double>(), nullIF()); },
+                     "Union: the second implicit function must not be null"));
+}
+
+TEST_CASE("SmoothUnionIF and SmoothUnion: reject a non-positive smoothing length and a null argument",
+          "[CSG][SmoothUnion]")
+{
+  REQUIRE(abortsWith([] { (void)SmoothUnionIF<double>(IFList{sphereA<double>(), sphereB<double>()}, 0.0); },
+                     "SmoothUnionIF: the smoothing length must be positive (0)"));
+  REQUIRE(abortsWith([] { (void)SmoothUnion<double>(IFList{sphereA<double>()}, -1.0); },
+                     "SmoothUnion: the smoothing length must be positive (-1)"));
+  REQUIRE(abortsWith([] { (void)SmoothUnion<double>(nullIF(), sphereB<double>(), 0.1); },
+                     "SmoothUnion: the first implicit function must not be null"));
+}
+
+TEST_CASE("BVHUnionIF and BVHSmoothUnionIF: reject an unknown build strategy and a non-positive smoothing length",
+          "[CSG][BVHUnion][BVHSmoothUnion]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)BVHUnionIF<double, SphereSDF<double>, 4>(
+        pool, sphereRow<double>(), sphereRowBVs<double>(), static_cast<BVH::Construction>(42));
+    },
+    "BVHUnionIF: unknown BVH::Construction value (42)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)BVHSmoothUnionIF<double, SphereSDF<double>, 4>(pool, sphereRow<double>(), sphereRowBVs<double>(), 0.0);
+    },
+    "BVHSmoothUnionIF: the smoothing length must be positive (0)"));
+}
+
+TEST_CASE("IntersectionIF and Intersection: reject an empty list, a null entry and a null argument",
+          "[CSG][Intersection]")
+{
+  REQUIRE(abortsWith([] { (void)IntersectionIF<double>(IFList{nullIF()}); },
+                     "IntersectionIF: the list of implicit functions must not contain a null entry"));
+  REQUIRE(abortsWith([] { (void)Intersection<double>(IFList{}); },
+                     "Intersection: the list of implicit functions must not be empty"));
+  REQUIRE(abortsWith([] { (void)Intersection<double>(nullIF(), sphereB<double>()); },
+                     "Intersection: the first implicit function must not be null"));
+}
+
+TEST_CASE("SmoothIntersectionIF and SmoothIntersection: reject a non-positive smoothing length and a null argument",
+          "[CSG][SmoothIntersection]")
+{
+  REQUIRE(abortsWith([] { (void)SmoothIntersectionIF<double>(sphereC<double>(), nullIF(), 0.1); },
+                     "SmoothIntersectionIF: implicit function B must not be null"));
+  REQUIRE(abortsWith([] { (void)SmoothIntersectionIF<double>(IFList{sphereC<double>(), sphereD<double>()}, 0.0); },
+                     "SmoothIntersectionIF: the smoothing length must be positive (0)"));
+  REQUIRE(abortsWith([] { (void)SmoothIntersection<double>(sphereC<double>(), sphereD<double>(), -0.5); },
+                     "SmoothIntersection: the smoothing length must be positive (-0.5)"));
+}
+
+TEST_CASE("DifferenceIF and Difference: reject a null argument and an empty subtrahend list", "[CSG][Difference]")
+{
+  REQUIRE(abortsWith([] { (void)DifferenceIF<double>(sphereC<double>(), IFList{}); },
+                     "DifferenceIF: the list of subtracted implicit functions must not be empty"));
+  REQUIRE(abortsWith([] { (void)Difference<double>(sphereC<double>(), nullIF()); },
+                     "Difference: implicit function B must not be null"));
+}
+
+TEST_CASE("SmoothDifferenceIF and SmoothDifference: reject a null subtrahend and a non-positive smoothing length",
+          "[CSG][SmoothDifference]")
+{
+  REQUIRE(abortsWith([] { (void)SmoothDifferenceIF<double>(sphereC<double>(), IFList{nullIF()}, 0.1); },
+                     "SmoothDifferenceIF: the list of subtracted implicit functions must not contain a null entry"));
+  REQUIRE(abortsWith([] { (void)SmoothDifference<double>(sphereC<double>(), sphereD<double>(), 0.0); },
+                     "SmoothDifference: the smoothing length must be positive (0)"));
+}
+
+TEST_CASE("FiniteRepetitionIF and FiniteRepetition: reject a non-positive period and a negative repetition count",
+          "[CSG][FiniteRepetition]")
+{
+  using Vec3 = Vec3T<double>;
+
+  REQUIRE(
+    abortsWith([] { (void)FiniteRepetitionIF<double>(sphereA<double>(), Vec3(1, 0, 1), Vec3::ones(), Vec3::ones()); },
+               "FiniteRepetitionIF: the period must be positive in every direction (1, 0, 1)"));
+  REQUIRE(
+    abortsWith([] { (void)FiniteRepetitionIF<double>(sphereA<double>(), Vec3::ones(), Vec3(0, -1, 0), Vec3::ones()); },
+               "FiniteRepetitionIF: the low repetition counts must not be negative (0, -1, 0)"));
+  REQUIRE(abortsWith([] { (void)FiniteRepetition<double>(nullIF(), Vec3::ones(), Vec3::ones(), Vec3::ones()); },
+                     "FiniteRepetition: the implicit function must not be null"));
 }

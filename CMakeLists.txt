@@ -5,13 +5,24 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Whether EBGeometry is the project being configured, rather than one pulled in by another project
+# through add_subdirectory or FetchContent. (PROJECT_IS_TOP_LEVEL needs CMake 3.21.)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  set(EBGEOMETRY_IS_TOP_LEVEL ON)
+else()
+  set(EBGEOMETRY_IS_TOP_LEVEL OFF)
+endif()
+
 # ── Interface / header-only library target ────────────────────────────────────
+include(GNUInstallDirs)
+
 add_library(EBGeometry INTERFACE)
 add_library(EBGeometry::EBGeometry ALIAS EBGeometry)
 target_include_directories(EBGeometry INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/EBGeometry>
 )
+target_compile_features(EBGeometry INTERFACE cxx_std_17)
 
 # ── Options ───────────────────────────────────────────────────────────────────
 option(EBGEOMETRY_BUILD_TESTS
@@ -42,13 +53,25 @@ option(EBGEOMETRY_ENABLE_CUDA
 option(EBGEOMETRY_ENABLE_HIP
   "Compile the HIP device-portability smoke test (requires a ROCm/HIP toolchain)" OFF)
 
-set(EBGEOMETRY_SIMD "avx" CACHE STRING
+# SIMD flags are only a default when EBGeometry is the project being built (its tests, examples and
+# benchmarks). A project that pulls EBGeometry in gets none unless it asks for them: -mavx and
+# friends produce binaries that crash on older CPUs, which is the consuming project's call to make.
+if(EBGEOMETRY_IS_TOP_LEVEL)
+  set(_ebgeometry_default_simd "avx")
+else()
+  set(_ebgeometry_default_simd "none")
+endif()
+
+set(EBGEOMETRY_SIMD "${_ebgeometry_default_simd}" CACHE STRING
   "SIMD level to compile against: avx512 | avx | sse41 | none")
 set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx512 avx sse41 none)
 
-# ── Propagate options to all consumers via the interface target ───────────────
+# ── Propagate options to consumers in this build via the interface target ─────
+# Both are BUILD_INTERFACE only: they apply to targets in the same build (add_subdirectory,
+# FetchContent), but an installed EBGeometry carries neither, so the settings chosen when installing
+# are not imposed on every project that later calls find_package(EBGeometry).
 if(EBGEOMETRY_ENABLE_ASSERTIONS)
-  target_compile_definitions(EBGeometry INTERFACE EBGEOMETRY_ENABLE_ASSERTIONS)
+  target_compile_definitions(EBGeometry INTERFACE $<BUILD_INTERFACE:EBGEOMETRY_ENABLE_ASSERTIONS>)
 endif()
 
 # SIMD flags are x86 host-compiler flags, so scope them to C++ compilation only ($<COMPILE_LANGUAGE:CXX>).
@@ -63,7 +86,30 @@ elseif(EBGEOMETRY_SIMD STREQUAL "sse41")
 endif()
 
 if(EBGEOMETRY_SIMD_FLAGS)
-  target_compile_options(EBGeometry INTERFACE "$<$<COMPILE_LANGUAGE:CXX>:${EBGEOMETRY_SIMD_FLAGS}>")
+  target_compile_options(EBGeometry INTERFACE "$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:CXX>:${EBGEOMETRY_SIMD_FLAGS}>>")
+endif()
+
+# ── Installation: headers plus a CMake package for find_package(EBGeometry) ───
+option(EBGEOMETRY_INSTALL "Generate the install target" ${EBGEOMETRY_IS_TOP_LEVEL})
+
+if(EBGEOMETRY_INSTALL)
+  include(CMakePackageConfigHelpers)
+
+  set(EBGEOMETRY_INSTALL_CMAKEDIR "${CMAKE_INSTALL_DATADIR}/cmake/EBGeometry")
+
+  install(TARGETS EBGeometry EXPORT EBGeometryTargets)
+  install(FILES EBGeometry.hpp DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/EBGeometry")
+  install(DIRECTORY Source DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/EBGeometry" FILES_MATCHING PATTERN "*.hpp")
+  install(EXPORT EBGeometryTargets NAMESPACE EBGeometry:: DESTINATION "${EBGEOMETRY_INSTALL_CMAKEDIR}")
+
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/EBGeometryConfig.cmake"
+    "include(\"\${CMAKE_CURRENT_LIST_DIR}/EBGeometryTargets.cmake\")\n")
+  write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/EBGeometryConfigVersion.cmake"
+    COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT)
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/EBGeometryConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/EBGeometryConfigVersion.cmake"
+    DESTINATION "${EBGEOMETRY_INSTALL_CMAKEDIR}")
 endif()
 
 # ── Optional GPU device-portability checks (CUDA or HIP) ──────────────────────

@@ -13,14 +13,16 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <numeric>
 #include <utility>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PointCloudBVH.hpp"
+#include "EBGeometry_PointCloudDetail.hpp"
 
 namespace EBGeometry {
 
@@ -36,8 +38,7 @@ inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(Pool&                        
   static_assert(K >= 2, "PointCloudBVH requires a branching factor K >= 2");
   static_assert(W >= 1, "PointCloudBVH requires a SIMD width W >= 1");
 
-  EBGEOMETRY_EXPECT(a_positions.size() == a_metadata.size());
-  EBGEOMETRY_EXPECT(a_targetLeafSize >= 1);
+  // a_targetLeafSize is checked by buildTree(), before the build uses it.
 }
 
 template <class T, class Meta, size_t K, size_t W>
@@ -63,8 +64,9 @@ PointCloudBVH<T, Meta, K, W>::storeCloud(Pool&                             a_poo
 {
   // Every array must come from the pool the BVH was built in: they all resolve against its base.
   EBGEOMETRY_EXPECT(m_bvh.isAttachedTo(a_pool));
-  EBGEOMETRY_EXPECT(a_positions.size() <= std::numeric_limits<std::uint32_t>::max());
-  EBGEOMETRY_EXPECT(a_metadata.size() == a_positions.size());
+
+  PointCloudDetail::requireValidCloud("PointCloudBVH", a_positions, a_metadata.size());
+
   EBGEOMETRY_EXPECT(a_leafOff.size() == a_positions.size());
   EBGEOMETRY_EXPECT(a_leafCnt.size() == a_positions.size());
   EBGEOMETRY_EXPECT(a_order.size() == a_positions.size());
@@ -106,11 +108,14 @@ inline PointCloudBVH<T, Meta, K, W>
 PointCloudBVH<T, Meta, K, W>::rebasedView(const Pool& a_pool) const noexcept
 {
   // The held BVH checks its own arrays; these are the cloud's, which live in the same pool.
-  EBGEOMETRY_EXPECT(m_positions.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_metadata.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_leafOff.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_leafCnt.endByte() <= a_pool.usedBytes());
-  EBGEOMETRY_EXPECT(m_order.endByte() <= a_pool.usedBytes());
+  const size_t poolBytes = a_pool.usedBytes();
+
+  EBGEOMETRY_REQUIRE(m_positions.endByte() <= poolBytes && m_metadata.endByte() <= poolBytes &&
+                       m_leafOff.endByte() <= poolBytes && m_leafCnt.endByte() <= poolBytes &&
+                       m_order.endByte() <= poolBytes,
+                     "PointCloudBVH::rebasedView: the cloud's arrays must fit inside the pool (the pool holds %zu "
+                     "bytes)",
+                     poolBytes);
 
   // The cloud descriptors are pool-relative offsets, identical in any mirror of the pool, so only
   // the held BVH's attachment changes.
@@ -153,13 +158,18 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
   static_assert(K >= 2, "PointCloudBVH::buildTree requires a branching factor K >= 2");
   static_assert(W >= 1, "PointCloudBVH::buildTree requires a SIMD width W >= 1");
 
+  // Before anything is sized from it: the build stores uint32 indices.
+  PointCloudDetail::requireValidCloud("PointCloudBVH", a_positions, a_positions.size());
+
+  EBGEOMETRY_REQUIRE(a_leafSize >= 1, "PointCloudBVH: the target leaf size must be at least 1 (%zu)", a_leafSize);
+
   const std::size_t numPoints = a_positions.size();
 
   BuildResult result;
 
   result.leafOff.assign(numPoints, 0);
   result.leafCnt.assign(numPoints, 0);
-  result.nodes.reserve(numPoints > 0 ? 2 * numPoints / std::max<std::size_t>(a_leafSize, 1) + 4 : 4);
+  result.nodes.reserve(numPoints > 0 ? 2 * numPoints / Math::max<std::size_t>(a_leafSize, 1) + 4 : 4);
   result.primitives.reserve(numPoints / W + 4);
 
   std::vector<std::uint32_t> indices(numPoints);
@@ -218,8 +228,27 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
       const int leftParts  = a_numParts / 2;
       const int rightParts = a_numParts - leftParts;
 
+      // The midpoint can leave one side with fewer points than its share of leaves: points that
+      // coincide along the axis never separate, and a tight cluster beside a few outliers puts
+      // nearly everything on one side. Clamping alone would then peel off only a few points per
+      // level, and the tree depth would grow linearly with the cluster size. Split by count instead
+      // (an object median along the same axis), which keeps the depth logarithmic.
+      if (splitIndex < a_lo + leftParts || splitIndex > a_hi - rightParts) {
+        const std::uint64_t count = a_hi - a_lo;
+
+        splitIndex = a_lo + static_cast<std::uint32_t>(count * static_cast<std::uint64_t>(leftParts) /
+                                                       static_cast<std::uint64_t>(a_numParts));
+
+        std::nth_element(indices.begin() + a_lo,
+                         indices.begin() + splitIndex,
+                         indices.begin() + a_hi,
+                         [this, axis](std::uint32_t a_lhs, std::uint32_t a_rhs) noexcept {
+                           return positions[a_lhs][axis] < positions[a_rhs][axis];
+                         });
+      }
+
       // Keep each half populated enough to yield its share of non-empty leaves.
-      splitIndex = std::max<std::uint32_t>(a_lo + leftParts, std::min<std::uint32_t>(a_hi - rightParts, splitIndex));
+      splitIndex = Math::max<std::uint32_t>(a_lo + leftParts, Math::min<std::uint32_t>(a_hi - rightParts, splitIndex));
 
       EBGEOMETRY_EXPECT(splitIndex >= a_lo && splitIndex <= a_hi);
 
@@ -240,19 +269,19 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
       // than K points, since partition() cannot produce K non-empty children from it (an empty child
       // would become a malformed 0-primitive leaf with an inverted bounding volume). With the default
       // leaf size (16*W >> K) this never binds; it only matters for very small targetLeafSize.
-      if (a_hi - a_lo <= std::max<std::size_t>(leafSize, K)) {
+      if (a_hi - a_lo <= Math::max<std::size_t>(leafSize, K)) {
         const std::uint32_t firstGroup = static_cast<std::uint32_t>(result.primitives.size());
 
         Vec3T<T> boxLo = +Vec3T<T>::max();
         Vec3T<T> boxHi = -Vec3T<T>::max();
 
         for (std::uint32_t groupStart = a_lo; groupStart < a_hi; groupStart += static_cast<std::uint32_t>(W)) {
-          const std::uint32_t count = std::min<std::uint32_t>(static_cast<std::uint32_t>(W), a_hi - groupStart);
+          const std::uint32_t count = Math::min<std::uint32_t>(static_cast<std::uint32_t>(W), a_hi - groupStart);
 
           EBGEOMETRY_EXPECT(count >= 1 && count <= W);
 
-          std::array<Vec3T<T>, W>    groupPositions;
-          std::array<std::size_t, W> groupMeta;
+          Array<Vec3T<T>, W>    groupPositions;
+          Array<std::size_t, W> groupMeta;
 
           for (std::uint32_t j = 0; j < count; j++) {
             groupPositions[j] = positions[indices[groupStart + j]];
@@ -287,9 +316,9 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
 
       EBGEOMETRY_EXPECT(ranges.size() == K);
 
-      Vec3T<T>                     boxLo = +Vec3T<T>::max();
-      Vec3T<T>                     boxHi = -Vec3T<T>::max();
-      std::array<std::uint32_t, K> children;
+      Vec3T<T>                boxLo = +Vec3T<T>::max();
+      Vec3T<T>                boxHi = -Vec3T<T>::max();
+      Array<std::uint32_t, K> children;
 
       for (std::size_t k = 0; k < K; k++) {
         children[k]          = this->build(ranges[k].first, ranges[k].second);
@@ -310,7 +339,7 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
   };
 
   if (numPoints > 0) {
-    Builder builder{a_positions, indices, result, std::max<std::size_t>(a_leafSize, 1)};
+    Builder builder{a_positions, indices, result, Math::max<std::size_t>(a_leafSize, 1)};
     builder.build(0, static_cast<std::uint32_t>(numPoints));
   }
 
@@ -358,7 +387,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
   if (a_k == 1) {
     struct Best
     {
-      T           distanceSquared = std::numeric_limits<T>::max();
+      T           distanceSquared = Math::Limits<T>::max();
       std::size_t index           = s_none;
     };
 
@@ -367,8 +396,8 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
     const auto scanLeafBest =
       [&groups, &a_query, a_exclude](Best& a_best, std::size_t a_off, std::size_t a_cnt) noexcept {
         for (std::size_t g = 0; g < a_cnt; g++) {
-          const PointGroup&      group     = groups[static_cast<std::uint32_t>(a_off + g)];
-          const std::array<T, W> distances = group.getDistances2(a_query);
+          const PointGroup& group     = groups[static_cast<std::uint32_t>(a_off + g)];
+          const Array<T, W> distances = group.getDistances2(a_query);
 
           for (std::size_t lane = 0; lane < W; lane++) {
             const std::size_t cloudIndex = group.getMetaData(lane);
@@ -461,7 +490,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
     std::size_t k;
     std::size_t exclude;
     std::size_t found = 0;
-    T           bound = std::numeric_limits<T>::max();
+    T           bound = Math::Limits<T>::max();
 
     EBGEOMETRY_HOST_DEVICE
     inline void
@@ -491,7 +520,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
         slot--;
       }
 
-      bound = (found < k) ? std::numeric_limits<T>::max() : out[k - 1].distanceSquared;
+      bound = (found < k) ? Math::Limits<T>::max() : out[k - 1].distanceSquared;
     }
   };
 
@@ -499,8 +528,8 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
 
   const auto processLeaf = [&groups, &a_query](QState& a_state, std::size_t a_off, std::size_t a_cnt) noexcept {
     for (std::size_t g = 0; g < a_cnt; g++) {
-      const PointGroup&      group     = groups[static_cast<std::uint32_t>(a_off + g)];
-      const std::array<T, W> distances = group.getDistances2(a_query);
+      const PointGroup& group     = groups[static_cast<std::uint32_t>(a_off + g)];
+      const Array<T, W> distances = group.getDistances2(a_query);
 
       for (std::size_t lane = 0; lane < W; lane++) {
         a_state.insert(distances[lane], group.getMetaData(lane));
@@ -689,7 +718,7 @@ PointCloudBVH<T, Meta, K, W>::bruteForceK(const Vec3T<T>& a_query,
     all.push_back(Hit{i, (positions[static_cast<std::uint32_t>(i)] - a_query).length2()});
   }
 
-  const std::size_t k = std::min(a_k, all.size());
+  const std::size_t k = Math::min(a_k, all.size());
 
   std::partial_sort(
     all.begin(),

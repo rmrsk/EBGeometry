@@ -12,10 +12,10 @@
 #define EBGEOMETRY_POINTAOSOAIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_PointAoSoA.hpp"
 
@@ -26,10 +26,12 @@ EBGEOMETRY_HOST
 void
 PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* a_positions, const Meta* a_metaData, uint32_t a_count) noexcept
 {
-  EBGEOMETRY_EXPECT(a_positions != nullptr);
-  EBGEOMETRY_EXPECT(a_metaData != nullptr);
-  EBGEOMETRY_EXPECT(a_count >= 1U);
-  EBGEOMETRY_EXPECT(a_count <= W);
+  EBGEOMETRY_REQUIRE(a_positions != nullptr && a_metaData != nullptr,
+                     "PointAoSoA::pack: the position and metadata arrays must not be null");
+  EBGEOMETRY_REQUIRE(a_count >= 1U && a_count <= W,
+                     "PointAoSoA::pack: the point count must be between 1 and %zu (%u)",
+                     W,
+                     unsigned(a_count));
 
   m_validCount = a_count;
 
@@ -45,7 +47,7 @@ PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* a_positions, const Meta* a_metaData
 
 template <class T, class Meta, size_t W>
 EBGEOMETRY_HOST_DEVICE
-std::array<T, W>
+Array<T, W>
 PointAoSoA<T, Meta, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 {
   return m_positions.getDistances2(a_point);
@@ -53,7 +55,7 @@ PointAoSoA<T, Meta, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 
 template <class T, class Meta, size_t W>
 EBGEOMETRY_HOST_DEVICE
-std::array<T, W>
+Array<T, W>
 PointAoSoA<T, Meta, W>::getDistances(const Vec3T<T>& a_point) const noexcept
 {
   return m_positions.getDistances(a_point);

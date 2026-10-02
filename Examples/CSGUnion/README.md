@@ -33,9 +33,9 @@ Building
 This example is standalone and can be built in three ways. Each needs the path
 to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
 is two levels up from this folder (`../..`) when building in place. See
-[Direct compilation](https://rmrsk.github.io/EBGeometry/BuildingDirectCompile.html),
-[Building with GNU Make](https://rmrsk.github.io/EBGeometry/BuildingGNUMake.html), and
-[Building with CMake](https://rmrsk.github.io/EBGeometry/BuildingCMake.html) in the user
+[Direct compilation](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingdirectcompile),
+[Building with GNU Make](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildinggnumake), and
+[Building with CMake](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingcmake) in the user
 documentation for more detail on each approach.
 
 **CMake**
@@ -74,10 +74,11 @@ Run from this directory so the default mesh path resolves:
 With no argument the example loads `cow.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out
 (`git submodule update --init`; see
-[Introduction](https://rmrsk.github.io/EBGeometry/Introduction.html) for details). The sphere is
+[Obtaining EBGeometry](https://rmrsk.github.io/EBGeometry/ObtainingEBGeometry.html) for details). The sphere is
 sized and centered automatically from the mesh's bounding box, so any watertight, triangulated
 STL/PLY/OBJ/VTK file works.
 
-The program prints the chosen sphere radius and the mesh's bounding box, then evaluates the
-combined (unioned) shape at two points: the mesh's center, which should read negative (inside
-the combined shape), and a point far outside both objects, which should read positive.
+While the example is disabled, it ignores its arguments and only prints the notice above. Once
+re-enabled, it prints the chosen sphere radius and the mesh's bounding box, then evaluates the
+combined (unioned) shape at two points: the mesh's center, which should read negative (inside the
+combined shape), and a point far outside both objects, which should read positive.

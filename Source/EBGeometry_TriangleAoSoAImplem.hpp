@@ -12,13 +12,12 @@
 #define EBGEOMETRY_TRIANGLEAOSOAIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_TriangleAoSoA.hpp"
 
@@ -29,9 +28,11 @@ EBGEOMETRY_HOST
 void
 TriangleAoSoA<T, Meta, W>::pack(const Triangle<T, Meta>* a_triangles, uint32_t a_count) noexcept
 {
-  EBGEOMETRY_EXPECT(a_triangles != nullptr);
-  EBGEOMETRY_EXPECT(a_count >= 1U);
-  EBGEOMETRY_EXPECT(a_count <= W);
+  EBGEOMETRY_REQUIRE(a_triangles != nullptr, "TriangleAoSoA::pack: the triangle array must not be null");
+  EBGEOMETRY_REQUIRE(a_count >= 1U && a_count <= W,
+                     "TriangleAoSoA::pack: the triangle count must be between 1 and %zu (%u)",
+                     W,
+                     unsigned(a_count));
 
   m_validCount = a_count;
 
@@ -41,8 +42,8 @@ TriangleAoSoA<T, Meta, W>::pack(const Triangle<T, Meta>* a_triangles, uint32_t a
   // The last real metadata is carried forward in a local rather than re-read via a_triangles[a_count
   // - 1]: the outer loop is bounded by the compile-time W and every a_triangles read is guarded by
   // j < a_count, so no index can run past the source array -- which also keeps GCC's -Warray-bounds
-  // value analysis from mistaking the (assertion-guarded, hence Release-invisible) a_count >= 1
-  // precondition for a possible a_count - 1 unsigned underflow.
+  // value analysis from mistaking the a_count >= 1 precondition for a possible a_count - 1 unsigned
+  // underflow.
   Meta lastMeta{};
 
   for (uint32_t j = 0; j < W; j++) {
@@ -70,7 +71,7 @@ TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point, Meta& a_close
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-  const std::array<T, W> distances = m_triangles.signedDistances(a_point);
+  const Array<T, W> distances = m_triangles.signedDistances(a_point);
 
   T        best     = distances[0];
   T        bestAbs  = std::abs(distances[0]);

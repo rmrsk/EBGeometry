@@ -18,18 +18,18 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
-#include <limits>
 #include <random>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Constants.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -62,13 +62,21 @@ public:
    */
   PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_normal[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_normal[2]));
-    EBGEOMETRY_EXPECT(a_normal.length() > T(0));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_point[0]) && std::isfinite(a_point[1]) && std::isfinite(a_point[2]),
+                       "PlaneSDF: the point must be finite (%g, %g, %g)",
+                       double(a_point[0]),
+                       double(a_point[1]),
+                       double(a_point[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_normal[0]) && std::isfinite(a_normal[1]) && std::isfinite(a_normal[2]),
+                       "PlaneSDF: the normal must be finite (%g, %g, %g)",
+                       double(a_normal[0]),
+                       double(a_normal[1]),
+                       double(a_normal[2]));
+    EBGEOMETRY_REQUIRE(a_normal.length() > T(0),
+                       "PlaneSDF: the normal must be nonzero (%g, %g, %g)",
+                       double(a_normal[0]),
+                       double(a_normal[1]),
+                       double(a_normal[2]));
 
     m_point  = a_point;
     m_normal = a_normal / a_normal.length();
@@ -110,7 +118,7 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(m_normal.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(std::abs(m_normal.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
 
     return dot((a_point - m_point), m_normal);
   }
@@ -152,11 +160,14 @@ public:
    */
   SphereSDF(const Vec3T<T>& a_center, const T& a_radius) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
-    EBGEOMETRY_EXPECT(a_radius > T(0));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
+                       "SphereSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
+                       "SphereSDF: the radius must be finite and positive (%g)",
+                       double(a_radius));
 
     m_center = a_center;
     m_radius = a_radius;
@@ -285,15 +296,25 @@ public:
    */
   BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[2]));
-    EBGEOMETRY_EXPECT(a_loCorner[0] < a_hiCorner[0]);
-    EBGEOMETRY_EXPECT(a_loCorner[1] < a_hiCorner[1]);
-    EBGEOMETRY_EXPECT(a_loCorner[2] < a_hiCorner[2]);
+    EBGEOMETRY_REQUIRE(std::isfinite(a_loCorner[0]) && std::isfinite(a_loCorner[1]) && std::isfinite(a_loCorner[2]),
+                       "BoxSDF: the low corner must be finite (%g, %g, %g)",
+                       double(a_loCorner[0]),
+                       double(a_loCorner[1]),
+                       double(a_loCorner[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_hiCorner[0]) && std::isfinite(a_hiCorner[1]) && std::isfinite(a_hiCorner[2]),
+                       "BoxSDF: the high corner must be finite (%g, %g, %g)",
+                       double(a_hiCorner[0]),
+                       double(a_hiCorner[1]),
+                       double(a_hiCorner[2]));
+    EBGEOMETRY_REQUIRE(
+      a_loCorner[0] < a_hiCorner[0] && a_loCorner[1] < a_hiCorner[1] && a_loCorner[2] < a_hiCorner[2],
+      "BoxSDF: the low corner (%g, %g, %g) must be below the high corner (%g, %g, %g) in every direction",
+      double(a_loCorner[0]),
+      double(a_loCorner[1]),
+      double(a_loCorner[2]),
+      double(a_hiCorner[0]),
+      double(a_hiCorner[1]),
+      double(a_hiCorner[2]));
 
     m_loCorner = a_loCorner;
     m_hiCorner = a_hiCorner;
@@ -384,16 +405,16 @@ public:
     // between xLo and xHi. In this case delta[dir] will be the signed distance
     // to the closest box face in the dir-direction. Otherwise, if a_point[dir]
     // is outside the corner we have delta[dir] > 0.
-    const Vec3T<T> delta(std::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
-                         std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
-                         std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
+    const Vec3T<T> delta(Math::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
+                         Math::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
+                         Math::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
 
     // Note: max is max(Vec3T<T>, Vec3T<T>) and not std::max. It returns a
     // vector with coordinate-wise largest components. Note that the first part
-    // std::min(...) is the signed distance on the inside of the box (delta will
+    // Math::min(...) is the signed distance on the inside of the box (delta will
     // have negative components). The other part max(Vec3T<T>::zeros(), ...) is
     // for outside the box.
-    const T d = std::min(T(0.0), delta[delta.maxDir(false)]) + max(Vec3T<T>::zeros(), delta).length();
+    const T d = Math::min(T(0.0), delta[delta.maxDir(false)]) + max(Vec3T<T>::zeros(), delta).length();
 
     return d;
   }
@@ -440,14 +461,21 @@ public:
    */
   TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_majorRadius));
-    EBGEOMETRY_EXPECT(std::isfinite(a_minorRadius));
-    EBGEOMETRY_EXPECT(a_majorRadius > T(0));
-    EBGEOMETRY_EXPECT(a_minorRadius > T(0));
-    EBGEOMETRY_EXPECT(a_minorRadius < a_majorRadius);
+    EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
+                       "TorusSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_majorRadius) && a_majorRadius > T(0),
+                       "TorusSDF: the major radius must be finite and positive (%g)",
+                       double(a_majorRadius));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_minorRadius) && a_minorRadius > T(0),
+                       "TorusSDF: the minor radius must be finite and positive (%g)",
+                       double(a_minorRadius));
+    EBGEOMETRY_REQUIRE(a_minorRadius < a_majorRadius,
+                       "TorusSDF: the minor radius (%g) must be less than the major radius (%g)",
+                       double(a_minorRadius),
+                       double(a_majorRadius));
 
     m_center      = a_center;
     m_majorRadius = a_majorRadius;
@@ -609,15 +637,24 @@ public:
    */
   CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_center1[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center1[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center1[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center2[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center2[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center2[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
-    EBGEOMETRY_EXPECT(a_radius > T(0));
-    EBGEOMETRY_EXPECT((a_center2 - a_center1).length() > T(0));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_center1[0]) && std::isfinite(a_center1[1]) && std::isfinite(a_center1[2]),
+                       "CylinderSDF: the first center must be finite (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_center2[0]) && std::isfinite(a_center2[1]) && std::isfinite(a_center2[2]),
+                       "CylinderSDF: the second center must be finite (%g, %g, %g)",
+                       double(a_center2[0]),
+                       double(a_center2[1]),
+                       double(a_center2[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
+                       "CylinderSDF: the radius must be finite and positive (%g)",
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE((a_center2 - a_center1).length() > T(0),
+                       "CylinderSDF: the two centers must differ (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
 
     m_center1 = a_center1;
     m_center2 = a_center2;
@@ -698,10 +735,10 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    T d = std::numeric_limits<T>::infinity();
+    T d = Math::Limits<T>::infinity();
 
     if (m_length > T(0.0) && m_radius > T(0.0)) {
-      EBGEOMETRY_EXPECT(std::abs(m_axis.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+      EBGEOMETRY_EXPECT(std::abs(m_axis.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
 
       const Vec3T<T> point = a_point - m_center;
       const T        para  = dot(point, m_axis);
@@ -795,12 +832,15 @@ public:
    */
   InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
-    EBGEOMETRY_EXPECT(a_radius > T(0));
-    EBGEOMETRY_EXPECT(a_axis < 3U);
+    EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
+                       "InfiniteCylinderSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
+                       "InfiniteCylinderSDF: the radius must be finite and positive (%g)",
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE(a_axis < 3U, "InfiniteCylinderSDF: the axis must be 0, 1 or 2 (%zu)", a_axis);
 
     m_center = a_center;
     m_radius = a_radius;
@@ -904,23 +944,31 @@ public:
    * @details The hemisphere centres stored internally are derived from the tips:
    * `m_center1 = a_tip1 + a_radius * axis` and `m_center2 = a_tip2 - a_radius * axis`,
    * where `axis = (a_tip2 - a_tip1) / distance(a_tip1, a_tip2)`.
-   * The cylindrical body length is `distance(a_tip1, a_tip2) - 2 * a_radius`; for a valid
-   * non-degenerate shape this must be positive, i.e. `distance(a_tip1, a_tip2) > 2 * a_radius`.
+   * The cylindrical body length is `distance(a_tip1, a_tip2) - 2 * a_radius`, which must not be
+   * negative: `distance(a_tip1, a_tip2) >= 2 * a_radius`. At equality the capsule is a sphere.
    * @param[in] a_tip1   Outer tip of one hemispherical cap (outermost point in that direction).
    * @param[in] a_tip2   Outer tip of the other hemispherical cap.
    * @param[in] a_radius Capsule radius (applied to both the tube and the hemispherical caps).
    */
   CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, const T& a_radius) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip1[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip1[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip1[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip2[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip2[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip2[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
-    EBGEOMETRY_EXPECT(a_radius > T(0));
-    EBGEOMETRY_EXPECT((a_tip2 - a_tip1).length() > T(0));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_tip1[0]) && std::isfinite(a_tip1[1]) && std::isfinite(a_tip1[2]),
+                       "CapsuleSDF: the first tip must be finite (%g, %g, %g)",
+                       double(a_tip1[0]),
+                       double(a_tip1[1]),
+                       double(a_tip1[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_tip2[0]) && std::isfinite(a_tip2[1]) && std::isfinite(a_tip2[2]),
+                       "CapsuleSDF: the second tip must be finite (%g, %g, %g)",
+                       double(a_tip2[0]),
+                       double(a_tip2[1]),
+                       double(a_tip2[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
+                       "CapsuleSDF: the radius must be finite and positive (%g)",
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE((a_tip2 - a_tip1).length() >= T(2) * a_radius,
+                       "CapsuleSDF: the tips must be at least two radii apart (distance %g, radius %g)",
+                       double((a_tip2 - a_tip1).length()),
+                       double(a_radius));
 
     const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
 
@@ -965,14 +1013,15 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT((m_center2 - m_center1).length() > T(0));
 
     const Vec3T<T> v1 = a_point - m_center1;
     const Vec3T<T> v2 = m_center2 - m_center1;
 
-    // std::min/std::max rather than std::clamp: libstdc++ 14's std::clamp asserts lo <= hi through a
-    // host-only function, which a device compile rejects.
-    const T h = std::min(std::max(dot(v1, v2) / dot(v2, v2), T(0.0)), T(1.0));
+    // Tips exactly two radii apart put both hemisphere centres at the same point: a sphere. Guard the
+    // projection, which would otherwise divide zero by zero.
+    const T len2 = dot(v2, v2);
+
+    const T h = (len2 > T(0)) ? Math::clamp(dot(v1, v2) / len2, T(0.0), T(1.0)) : T(0.0);
     const T d = length(v1 - h * v2) - m_radius;
 
     return d;
@@ -1030,12 +1079,14 @@ public:
    */
   InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_angle));
-    EBGEOMETRY_EXPECT(a_angle > T(0));
-    EBGEOMETRY_EXPECT(a_angle < T(180));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_tip[0]) && std::isfinite(a_tip[1]) && std::isfinite(a_tip[2]),
+                       "InfiniteConeSDF: the tip must be finite (%g, %g, %g)",
+                       double(a_tip[0]),
+                       double(a_tip[1]),
+                       double(a_tip[2]));
+    EBGEOMETRY_REQUIRE(a_angle > T(0) && a_angle < T(180),
+                       "InfiniteConeSDF: the angle must be in (0, 180) degrees (%g)",
+                       double(a_angle));
 
     m_tip = a_tip;
     m_c.x = std::sin(T(0.5) * a_angle * pi<T> / T(180));
@@ -1078,12 +1129,12 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
 
     const Vec3T<T> delta = a_point - m_tip;
     const Vec2T<T> q(std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
 
-    const T d1 = length(q - m_c * std::max(dot(q, m_c), T(0.0)));
+    const T d1 = length(q - m_c * Math::max(dot(q, m_c), T(0.0)));
     const T d2 = d1 * ((q.x * m_c.y - q.y * m_c.x < T(0.0)) ? T(-1.0) : T(1.0));
 
     return d2;
@@ -1133,14 +1184,16 @@ public:
    */
   ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_height));
-    EBGEOMETRY_EXPECT(std::isfinite(a_angle));
-    EBGEOMETRY_EXPECT(a_height > T(0));
-    EBGEOMETRY_EXPECT(a_angle > T(0));
-    EBGEOMETRY_EXPECT(a_angle < T(180));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_tip[0]) && std::isfinite(a_tip[1]) && std::isfinite(a_tip[2]),
+                       "ConeSDF: the tip must be finite (%g, %g, %g)",
+                       double(a_tip[0]),
+                       double(a_tip[1]),
+                       double(a_tip[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_height) && a_height > T(0),
+                       "ConeSDF: the height must be finite and positive (%g)",
+                       double(a_height));
+    EBGEOMETRY_REQUIRE(
+      a_angle > T(0) && a_angle < T(180), "ConeSDF: the angle must be in (0, 180) degrees (%g)", double(a_angle));
 
     m_tip    = a_tip;
     m_height = a_height;
@@ -1184,7 +1237,7 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
     EBGEOMETRY_EXPECT(m_c.y > T(0));
 
     const Vec3T<T> delta = a_point - m_tip;
@@ -1196,16 +1249,14 @@ public:
 
     const Vec2T<T> q = m_height * Vec2T<T>(m_c.x / m_c.y, -1.0);
     const Vec2T<T> w = Vec2T<T>(dr, dz);
-    // std::min/std::max rather than std::clamp, which is not device-callable with libstdc++ 14 (see
-    // CapsuleSDF::signedDistance).
-    const Vec2T<T> a = w - std::min(std::max(dot(w, q) / dot(q, q), zero), one) * q;
-    const Vec2T<T> b = w - Vec2T<T>(q.x * std::min(std::max(w.x / q.x, zero), one), q.y);
+    const Vec2T<T> a = w - Math::clamp(dot(w, q) / dot(q, q), zero, one) * q;
+    const Vec2T<T> b = w - Vec2T<T>(q.x * Math::clamp(w.x / q.x, zero, one), q.y);
 
     auto sign = [](const T& x) -> int { return (x > zero) - (x < zero); };
 
     const T k = sign(q.y);
-    const T d = std::min(dot(a, a), dot(b, b));
-    const T s = std::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
+    const T d = Math::min(dot(a, a), dot(b, b));
+    const T s = Math::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
 
     return std::sqrt(d) * sign(s);
   }
@@ -1258,17 +1309,19 @@ public:
    */
   RoundedBoxSDF(const Vec3T<T>& a_dimensions, const T a_curvature) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_curvature));
-    EBGEOMETRY_EXPECT(a_dimensions[0] > T(0));
-    EBGEOMETRY_EXPECT(a_dimensions[1] > T(0));
-    EBGEOMETRY_EXPECT(a_dimensions[2] > T(0));
-    EBGEOMETRY_EXPECT(a_curvature > T(0));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_dimensions[0]) && std::isfinite(a_dimensions[1]) &&
+                         std::isfinite(a_dimensions[2]) && a_dimensions[0] > T(0) && a_dimensions[1] > T(0) &&
+                         a_dimensions[2] > T(0),
+                       "RoundedBoxSDF: the dimensions must be finite and positive (%g, %g, %g)",
+                       double(a_dimensions[0]),
+                       double(a_dimensions[1]),
+                       double(a_dimensions[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_curvature) && a_curvature > T(0),
+                       "RoundedBoxSDF: the curvature must be finite and positive (%g)",
+                       double(a_curvature));
 
     m_dimensions = T(0.5) * a_dimensions;
-    m_sphere     = SphereSDF<T>(Vec3T<T>::zeros(), a_curvature);
+    m_curvature  = a_curvature;
   }
 
   /**
@@ -1308,14 +1361,24 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    return m_sphere.signedDistance(a_point - clamp(a_point, -m_dimensions, m_dimensions));
+    // q is the point's per-axis distance beyond the inner box (negative inside it). Outside, the
+    // distance to the inner box is the length of q's positive part; inside, it is the distance to
+    // the nearest face, max(q) <= 0. Either way the rounding moves the surface out by m_curvature.
+    const Vec3T<T> q(std::abs(a_point[0]) - m_dimensions[0],
+                     std::abs(a_point[1]) - m_dimensions[1],
+                     std::abs(a_point[2]) - m_dimensions[2]);
+
+    const T outside = length(max(q, Vec3T<T>::zeros()));
+    const T inside  = Math::min(Math::max(q[0], Math::max(q[1], q[2])), T(0));
+
+    return outside + inside - m_curvature;
   }
 
 protected:
   /**
-   * @brief Sphere of radius = curvature used to round the corners.
+   * @brief Corner rounding radius.
    */
-  SphereSDF<T> m_sphere = SphereSDF<T>(Vec3T<T>::zeros(), T(0.1));
+  T m_curvature = T(0.1);
 
   /**
    * @brief Half-extents of the inner box (= 0.5 * the user-supplied dimensions).
@@ -1335,9 +1398,6 @@ protected:
  * (controlled by `m_noisePersistence` dividing the frequency) and attenuates the amplitude by
  * `m_noisePersistence`.
  *
- * @note The default constructor leaves the permutation table all-zeros, producing constant-zero
- * noise. Use the full constructor (which initialises the table from Ken Perlin's reference
- * permutation and then shuffles it) or call `shuffle()` explicitly before use.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -1348,15 +1408,17 @@ class PerlinSDF
 public:
   /**
    * @brief Default constructor. Constructs a single-octave Perlin noise field with unit amplitude,
-   * unit frequency along all axes, and persistence 0.5.
+   * unit frequency along all axes, and persistence 0.5: the full constructor with those values.
    */
-  PerlinSDF() = default;
+  PerlinSDF() noexcept : PerlinSDF(T(1), Vec3T<T>::ones(), T(0.5), 1U)
+  {}
 
   /**
    * @brief Full constructor.
    * @param[in] a_noiseAmplitude   Noise amplitude (output scale).
    * @param[in] a_noiseFrequency   Spatial frequency along each Cartesian axis.
-   * @param[in] a_noisePersistence Per-octave amplitude decay factor. Clamped to [0, 1].
+   * @param[in] a_noisePersistence Per-octave amplitude decay factor, at most 1. A value of zero or
+   * less keeps only the first octave, since every later one would have zero amplitude.
    * @param[in] a_noiseOctaves     Number of noise octaves. Clamped to >= 1.
    */
   PerlinSDF(const T            a_noiseAmplitude,
@@ -1364,16 +1426,29 @@ public:
             const T            a_noisePersistence,
             const unsigned int a_noiseOctaves) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_noiseAmplitude));
-    EBGEOMETRY_EXPECT(std::isfinite(a_noiseFrequency[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_noiseFrequency[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_noiseFrequency[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_noisePersistence));
+    EBGEOMETRY_REQUIRE(
+      std::isfinite(a_noiseAmplitude), "PerlinSDF: the noise amplitude must be finite (%g)", double(a_noiseAmplitude));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_noiseFrequency[0]) && std::isfinite(a_noiseFrequency[1]) &&
+                         std::isfinite(a_noiseFrequency[2]),
+                       "PerlinSDF: the noise frequency must be finite (%g, %g, %g)",
+                       double(a_noiseFrequency[0]),
+                       double(a_noiseFrequency[1]),
+                       double(a_noiseFrequency[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_noisePersistence),
+                       "PerlinSDF: the noise persistence must be finite (%g)",
+                       double(a_noisePersistence));
 
     m_noiseAmplitude   = a_noiseAmplitude;
     m_noiseFrequency   = a_noiseFrequency;
-    m_noisePersistence = std::min(T(1), a_noisePersistence);
-    m_noiseOctaves     = std::max(1U, a_noiseOctaves);
+    m_noisePersistence = Math::min(T(1), a_noisePersistence);
+    m_noiseOctaves     = Math::max(1U, a_noiseOctaves);
+
+    // Each octave divides the frequency by the persistence, so zero would give an infinite frequency
+    // (and NaN noise) for an octave that contributes nothing anyway.
+    if (!(m_noisePersistence > T(0))) {
+      m_noisePersistence = T(1);
+      m_noiseOctaves     = 1U;
+    }
 
     for (int i = 0; i < 256; i++) {
       m_permutationTable[i]       = s_perlinPermutationTable[i];
@@ -1468,7 +1543,7 @@ public:
    * @brief Get the internal permutation table
    * @return m_permutationTable.
    */
-  std::array<int, 512>&
+  Array<int, 512>&
   getPermutationTable() noexcept
   {
     return m_permutationTable;
@@ -1481,7 +1556,7 @@ protected:
    * static constexpr member so it is available to subclasses without polluting the enclosing
    * namespace.
    */
-  static constexpr std::array<int, 256> s_perlinPermutationTable = {
+  static constexpr Array<int, 256> s_perlinPermutationTable = {
     151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225, 140, 36,  103, 30,  69,  142,
     8,   99,  37,  240, 21,  10,  23,  190, 6,   148, 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203,
     117, 35,  11,  32,  57,  177, 33,  88,  237, 149, 56,  87,  174, 20,  125, 136, 171, 168, 68,  175, 74,  165,
@@ -1515,7 +1590,7 @@ protected:
    * @details Default-constructed with all zeros (degenerate, constant-zero noise).
    * Use the full constructor or shuffle() to populate with a real permutation.
    */
-  std::array<int, 512> m_permutationTable = {};
+  Array<int, 512> m_permutationTable = {};
 
   /**
    * @brief Number of noise octaves.
@@ -1655,14 +1730,23 @@ public:
    */
   RoundedCylinderSDF(const T a_radius, const T a_curvature, const T a_height) noexcept
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
-    EBGEOMETRY_EXPECT(std::isfinite(a_curvature));
-    EBGEOMETRY_EXPECT(std::isfinite(a_height));
-    EBGEOMETRY_EXPECT(a_radius > T(0));
-    EBGEOMETRY_EXPECT(a_curvature > T(0));
-    EBGEOMETRY_EXPECT(a_height > T(0));
-    EBGEOMETRY_EXPECT(a_curvature < a_radius);
-    EBGEOMETRY_EXPECT(T(2) * a_curvature < a_height);
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
+                       "RoundedCylinderSDF: the radius must be finite and positive (%g)",
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_curvature) && a_curvature > T(0),
+                       "RoundedCylinderSDF: the curvature must be finite and positive (%g)",
+                       double(a_curvature));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_height) && a_height > T(0),
+                       "RoundedCylinderSDF: the height must be finite and positive (%g)",
+                       double(a_height));
+    EBGEOMETRY_REQUIRE(a_curvature < a_radius,
+                       "RoundedCylinderSDF: the curvature (%g) must be less than the radius (%g)",
+                       double(a_curvature),
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE(T(2) * a_curvature < a_height,
+                       "RoundedCylinderSDF: twice the curvature (%g) must be less than the height (%g)",
+                       double(a_curvature),
+                       double(a_height));
 
     m_majorRadius = a_radius - a_curvature;
     m_minorRadius = a_curvature;
@@ -1708,9 +1792,9 @@ public:
 
     const T    xz = std::sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
     const auto d1 = Vec2T<T>(xz - m_majorRadius, std::abs(a_point[1]) - m_height);
-    const auto d2 = Vec2T<T>(std::max(d1.x, T(0)), std::max(d1.y, T(0)));
+    const auto d2 = Vec2T<T>(Math::max(d1.x, T(0)), Math::max(d1.y, T(0)));
 
-    return std::min(std::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
+    return Math::min(Math::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
   }
 
 protected:

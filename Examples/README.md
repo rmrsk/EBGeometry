@@ -1,9 +1,10 @@
 This folder contains examples of using EBGeometry on its own (header-only, C++17, no
 third-party dependencies):
 
-* `BuildBVH` For comparing BVH build strategies (TreeBVH top-down/SAH/Morton/Nested/Hilbert, and PackedBVH's direct constructor) by build time.
+* `BuildBVH` For comparing BVH construction methods by build time: CentroidSplit, MidpointSplit, SAH, Morton, Nested and Hilbert through TreeBVH and through PackedBVH's direct constructors, plus the direct-only ClusterSAH.
 * `ClosestPointBVH` For closest-point search over a point cloud using the turnkey `PointCloudBVH` class: build once from positions, then `closestPoint()` / `closestPoints()` for arbitrary query points, checked against brute force.
-* `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union.
+* `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union. Temporarily disabled: it builds, but only prints a notice.
+* `HostTuning` For choosing the BVH branching factor and SIMD width: the portable defaults against the values tuned to the host's SIMD flags, with timings.
 * `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
 * `NearestNeighborBVH` For the k nearest neighbors of every point in a cloud (the k-NN graph) using `PointCloudBVH::allNearestNeighbors()`, checked against brute force.
 * `NearestNeighborHashGrid` For the k-NN graph using the uniform-grid `PointCloudHashGrid` class (same interface as `PointCloudBVH`); faster on near-uniform clouds, checked against brute force.

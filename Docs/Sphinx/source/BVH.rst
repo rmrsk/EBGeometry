@@ -73,9 +73,9 @@ Top-down construction can thus be illustrated as a recursive procedure:
 In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.
 EBGeometry implements top-down construction using a user-supplied partitioning rule (the
 :math:`\mathrm{Partition}` above) and a termination criterion. Several ready-made partitioning
-strategies are provided, splitting on bounding-volume centroids (the default) or on primitive
-centroids; a more expensive strategy based on the Surface Area Heuristic typically yields the
-best query performance, at a higher construction cost.
+strategies are provided, splitting at the median bounding-volume centroid, at the spatial midpoint,
+or on primitive centroids; a more expensive strategy based on the Surface Area Heuristic typically
+yields the best query performance, at a higher construction cost, and is the recommended default.
 
 Bottom-up construction is also possible, in which case one constructs the leaf nodes first, and then merges the nodes upward until one reaches a root node.
 In EBGeometry, bottom-up construction is done by means of space-filling curves -- Morton codes,

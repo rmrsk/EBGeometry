@@ -6,6 +6,8 @@
 #include "TestGPU.hpp"
 
 #include <cstdint>
+#include <cstring>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -159,53 +161,161 @@ TEST_CASE("Pool: freeze stabilises base and is idempotent", "[Pool]")
   REQUIRE(pool.base() == beforeFreeze);
 }
 
-#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+// The checks below are EBGEOMETRY_REQUIREs, so they abort in every build: a release build would
+// otherwise silently grow a frozen (possibly already mirrored) block, mask with a bad alignment, or
+// mirror a block that can still change.
 
 TEST_CASE("Pool: reserve after freeze aborts", "[Pool][death]")
 {
-  REQUIRE(abortsUnderAssertions([] {
-    Pool pool(hostMemoryResource());
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
 
-    pool.freeze();
+      pool.freeze();
 
-    (void)pool.reserve(1, sizeof(double), alignof(double)); // must abort
-  }));
+      (void)pool.reserve(1, sizeof(double), alignof(double)); // must abort
+    },
+    "Pool::reserve: cannot reserve from a frozen pool"));
+}
+
+TEST_CASE("Pool: reserve with an invalid alignment aborts", "[Pool][death]")
+{
+  const char* const message = "Pool::reserve: the alignment must be a power of two no larger than 256";
+
+  // Zero (would underflow the alignment mask).
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(1, sizeof(double), 0);
+    },
+    message));
+
+  // Not a power of two.
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(1, sizeof(double), 24);
+    },
+    std::string(message) + " (24)"));
+
+  // Larger than the base alignment, which the block cannot honour.
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(1, sizeof(double), 2 * PoolBaseAlign);
+    },
+    std::string(message) + " (512)"));
 }
 
 TEST_CASE("Pool: mirror of a non-frozen pool aborts", "[Pool][death]")
 {
-  REQUIRE(abortsUnderAssertions([] {
-    Pool pool(hostMemoryResource());
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
 
-    PODVector<double> vec;
-    vec.reserveFrom(pool, 4);
+      PODVector<double> vec;
+      vec.reserveFrom(pool, 4);
 
-    // Not frozen -- mirror must abort.
-    Pool mirror = Pool::mirror(pool, hostMemoryResource());
+      // Not frozen -- mirror must abort.
+      Pool mirror = Pool::mirror(pool, hostMemoryResource());
 
-    (void)mirror.base();
-  }));
+      (void)mirror.base();
+    },
+    "Pool::mirror: the source pool must be frozen before it is mirrored"));
 }
 
 TEST_CASE("Pool: reserving from a moved-from pool aborts", "[Pool][death]")
 {
-  // A moved-from pool owns no control block, so there is nowhere to publish a base. This abort is
-  // always-on rather than an EBGEOMETRY_EXPECT (a release build would otherwise dereference null),
-  // but the death-test helper itself only exists under assertions.
-  REQUIRE(abortsUnderAssertions([] {
-    Pool source(hostMemoryResource(), 128);
-    Pool moved(std::move(source));
+  // A moved-from pool owns no control block, so there is nowhere to publish a base. The check is an
+  // EBGEOMETRY_REQUIRE, so it aborts in every build (a release build would otherwise dereference
+  // null).
+  REQUIRE(abortsWith(
+    [] {
+      Pool source(hostMemoryResource(), 128);
+      Pool moved(std::move(source));
 
-    PODVector<double> vec;
-    vec.reserveFrom(source, 4); // must abort
-  }));
+      PODVector<double> vec;
+      vec.reserveFrom(source, 4); // must abort
+    },
+    "Pool::reserve: cannot reserve from a moved-from pool"));
 }
-
-#endif // EBGEOMETRY_ENABLE_ASSERTIONS
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Move semantics
 // ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// A stand-in for a device resource: host memory that reports itself as device-only, and counts the
+// copies routed through it. Lets a host-only build check that Pool::mirror hands the copy to the
+// non-host resource, as it must for a real device resource.
+class FakeDeviceResource final : public MemoryResource
+{
+public:
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override
+  {
+    return hostMemoryResource().allocate(a_bytes, a_alignment);
+  }
+
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
+  {
+    hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+  }
+
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return false;
+  }
+
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  void
+  copy(void* a_dst, const MemoryResource&, const void* a_src, const MemoryResource&, size_t a_bytes)
+    const noexcept override
+  {
+    std::memcpy(a_dst, a_src, a_bytes);
+
+    m_copies++;
+  }
+
+  mutable int m_copies = 0;
+};
+
+} // namespace
+
+TEST_CASE("Pool: mirror hands the copy to the non-host resource", "[Pool]")
+{
+  Pool host(hostMemoryResource());
+
+  const size_t offset = host.reserve(1, sizeof(int), alignof(int));
+
+  *static_cast<int*>(static_cast<void*>(static_cast<char*>(host.base()) + offset)) = 42;
+
+  host.freeze();
+
+  FakeDeviceResource device;
+
+  const Pool mirror = Pool::mirror(host, device);
+
+  REQUIRE(device.m_copies == 1);
+  REQUIRE(*static_cast<const int*>(static_cast<const void*>(static_cast<const char*>(mirror.base()) + offset)) == 42);
+
+  // Host to host goes through the base implementation, not the fake.
+  const Pool hostMirror = Pool::mirror(host, hostMemoryResource());
+
+  REQUIRE(device.m_copies == 1);
+  REQUIRE(hostMirror.usedBytes() == host.usedBytes());
+}
 
 TEST_CASE("Pool: move construction transfers ownership and empties the source", "[Pool]")
 {
@@ -358,7 +468,6 @@ TEST_CASE("Pool: identities are unique and mirrorOf names the root of a chain", 
   }
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: a PODVector built into a host Pool, mirrored to the device, reads back
 // correctly through base + offset with no pointer patching
@@ -374,20 +483,35 @@ struct PoolSmokeElement
 static_assert(std::is_trivially_copyable_v<PoolSmokeElement>, "PoolSmokeElement must be trivially copyable");
 } // namespace
 
-EBGEOMETRY_GLOBAL
-void
-poolDeviceKernel(PODVector<PoolSmokeElement> a_vec, void* a_base, double* a_out)
+// Element i of a PODVector read through a pool base: field m_a if m_second is false, else m_b.
+struct PODVectorElementQuery
 {
-  double sum = 0.0;
+  PODVector<PoolSmokeElement> m_vec;
+  const void*                 m_base;
+  bool                        m_second;
 
-  for (uint32_t i = 0; i < a_vec.size(); i++) {
-    const PoolSmokeElement element = a_vec.at(a_base, i);
+  EBGEOMETRY_HOST_DEVICE
+  double
+  operator()(const int& a_i) const noexcept
+  {
+    const PoolSmokeElement& element = m_vec.at(m_base, static_cast<uint32_t>(a_i));
 
-    sum += element.m_a + element.m_b;
+    return m_second ? element.m_b : element.m_a;
   }
+};
 
-  a_out[0] = sum;
-}
+// The PODVector's size, read from the descriptor (the same for every query).
+struct PODVectorSizeQuery
+{
+  PODVector<PoolSmokeElement> m_vec;
+
+  EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  operator()(const int& /*a_i*/) const noexcept
+  {
+    return m_vec.size();
+  }
+};
 
 TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Pool][PODVector][gpu]")
 {
@@ -397,31 +521,43 @@ TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Poo
     SKIP("no GPU device available");
   }
 
+  constexpr uint32_t n = 1000;
+
   Pool hostPool(hostMemoryResource());
 
   PODVector<PoolSmokeElement> vec;
-  vec.reserveFrom(hostPool, 8);
+  vec.reserveFrom(hostPool, n);
 
-  double hostSum = 0.0;
+  std::vector<int> indices;
 
-  for (uint32_t i = 0; i < 8; i++) {
-    const PoolSmokeElement element{double(i), double(2 * i)};
-
-    vec.push_back(hostPool.base(), element);
-    hostSum += element.m_a + element.m_b;
+  for (uint32_t i = 0; i < n; i++) {
+    vec.push_back(hostPool.base(), PoolSmokeElement{0.5 * double(i) + 1.0, -3.0 * double(i)});
+    indices.push_back(static_cast<int>(i));
   }
 
   hostPool.freeze();
 
-  Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+  Pool devicePool = Pool::mirror(hostPool, deviceTestResource());
 
-  DeviceBuffer<double> deviceOut;
+  // The device reads the mirrored bytes and the host its own, so every value must match exactly --
+  // and equal the value pushed.
+  for (const bool second : {false, true}) {
+    const auto device = evaluateOnDevice<double>(PODVectorElementQuery{vec, devicePool.base(), second}, indices);
+    const auto host   = evaluateOnHost<double>(PODVectorElementQuery{vec, hostPool.base(), second}, indices);
 
-  poolDeviceKernel<<<1, 1>>>(vec, devicePool.base(), deviceOut.get());
-  (void)GPU::deviceSynchronize();
+    REQUIRE(device.size() == host.size());
 
-  // The reduction sums small integer-valued doubles in the same order on host and device, so the
-  // result is bit-exact -- no floating-point matcher (or its header) is needed here.
-  REQUIRE(readScalar(deviceOut.get()) == hostSum);
+    for (size_t i = 0; i < host.size(); i++) {
+      INFO("element " << i << (second ? ", m_b" : ", m_a"));
+      REQUIRE(host[i] == (second ? -3.0 * double(i) : 0.5 * double(i) + 1.0));
+      REQUIRE(device[i] == host[i]);
+    }
+  }
+
+  const auto sizes = evaluateOnDevice<uint32_t>(PODVectorSizeQuery{vec}, indices);
+
+  for (size_t i = 0; i < sizes.size(); i++) {
+    INFO("query " << i);
+    REQUIRE(sizes[i] == n);
+  }
 }
-#endif

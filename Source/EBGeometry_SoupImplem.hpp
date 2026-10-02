@@ -13,6 +13,7 @@
 
 // Std includes
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
@@ -28,6 +29,7 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Soup.hpp"
 
 namespace EBGeometry {
@@ -64,6 +66,10 @@ Soup::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vert
           return true;
         }
       }
+
+      if (Soup::isZeroArea(a_vertices, facet)) {
+        return true;
+      }
     }
     else {
       return true;
@@ -71,6 +77,38 @@ Soup::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vert
   }
 
   return false;
+}
+
+template <typename T>
+inline bool
+Soup::isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+              const std::vector<std::vector<size_t>>&  a_facets,
+              std::string&                             a_reason) noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "Soup::isValid requires a floating-point T");
+
+  for (size_t v = 0; v < a_vertices.size(); v++) {
+    const EBGeometry::Vec3T<T>& x = a_vertices[v];
+
+    if (!(std::isfinite(x[0]) && std::isfinite(x[1]) && std::isfinite(x[2]))) {
+      a_reason = "vertex " + std::to_string(v) + " has a non-finite coordinate";
+
+      return false;
+    }
+  }
+
+  for (size_t f = 0; f < a_facets.size(); f++) {
+    for (const size_t v : a_facets[f]) {
+      if (v >= a_vertices.size()) {
+        a_reason = "face " + std::to_string(f) + " refers to vertex " + std::to_string(v) + ", but there are only " +
+                   std::to_string(a_vertices.size()) + " vertices";
+
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 template <typename T>
@@ -142,6 +180,219 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
       ivert = it->second;
     }
   }
+}
+
+template <typename T>
+inline bool
+Soup::isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vector<size_t>& a_facet) noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "Soup::isZeroArea requires a floating-point T");
+
+  using Vec3 = EBGeometry::Vec3T<T>;
+
+  const size_t N = a_facet.size();
+
+  if (N < 3) {
+    return true;
+  }
+
+  // Newell's method: the sum of x_i cross x_(i+1) around the polygon is twice its (vector) area.
+  Vec3 normal       = Vec3::zeros();
+  T    longestEdge2 = T(0);
+
+  for (size_t i = 0; i < N; i++) {
+    EBGEOMETRY_EXPECT(a_facet[i] < a_vertices.size());
+    EBGEOMETRY_EXPECT(a_facet[(i + 1) % N] < a_vertices.size());
+
+    const Vec3& x0 = a_vertices[a_facet[i]];
+    const Vec3& x1 = a_vertices[a_facet[(i + 1) % N]];
+
+    normal += x0.cross(x1);
+    longestEdge2 = Math::max(longestEdge2, (x1 - x0).length2());
+  }
+
+  return normal.length() <= T(64) * Math::Limits<T>::epsilon() * longestEdge2;
+}
+
+template <typename T>
+inline size_t
+Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                               std::vector<std::vector<size_t>>&        a_facets) noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "Soup::removeDegeneratePolygons requires a floating-point T");
+
+  using Edge = std::pair<size_t, size_t>;
+
+  const size_t numFacets = a_facets.size();
+
+  std::vector<bool> removed(numFacets, false);
+
+  // Merge repeated consecutive vertices (compress() gives coincident vertices one index).
+  for (size_t f = 0; f < numFacets; f++) {
+    std::vector<size_t>& facet = a_facets[f];
+
+    std::vector<size_t> merged;
+    merged.reserve(facet.size());
+
+    for (size_t i = 0; i < facet.size(); i++) {
+      if (facet[i] != facet[(i + 1) % facet.size()]) {
+        merged.push_back(facet[i]);
+      }
+    }
+
+    facet = std::move(merged);
+
+    if (facet.size() < 3) {
+      removed[f] = true;
+    }
+  }
+
+  // Directed edge (u, v) -> the facet that contains it. Used to find the facet across a
+  // T-junction filler's longest edge, which contains that edge reversed.
+  std::map<Edge, size_t> facetOfEdge;
+
+  for (size_t f = 0; f < numFacets; f++) {
+    if (!removed[f]) {
+      const std::vector<size_t>& facet = a_facets[f];
+
+      for (size_t i = 0; i < facet.size(); i++) {
+        facetOfEdge[Edge(facet[i], facet[(i + 1) % facet.size()])] = f;
+      }
+    }
+  }
+
+  for (size_t f = 0; f < numFacets; f++) {
+    if (removed[f] || !Soup::isZeroArea(a_vertices, a_facets[f])) {
+      continue;
+    }
+
+    const std::vector<size_t> facet = a_facets[f];
+
+    removed[f] = true;
+
+    for (size_t i = 0; i < facet.size(); i++) {
+      const auto it = facetOfEdge.find(Edge(facet[i], facet[(i + 1) % facet.size()]));
+
+      if (it != facetOfEdge.end() && it->second == f) {
+        facetOfEdge.erase(it);
+      }
+    }
+
+    if (facet.size() != 3) {
+      continue;
+    }
+
+    // The middle vertex of three collinear ones is the one opposite the longest edge.
+    size_t longest       = 0;
+    T      longestLength = T(-1);
+
+    for (size_t i = 0; i < 3; i++) {
+      const T length2 = (a_vertices[facet[(i + 1) % 3]] - a_vertices[facet[i]]).length2();
+
+      if (length2 > longestLength) {
+        longest       = i;
+        longestLength = length2;
+      }
+    }
+
+    const size_t p = facet[longest];
+    const size_t q = facet[(longest + 1) % 3];
+    const size_t m = facet[(longest + 2) % 3];
+
+    // The facet across the longest edge contains it as q -> p. Insert m between them.
+    const auto across = facetOfEdge.find(Edge(q, p));
+
+    if (across == facetOfEdge.end()) {
+      continue;
+    }
+
+    const size_t         g        = across->second;
+    std::vector<size_t>& neighbor = a_facets[g];
+
+    for (size_t i = 0; i < neighbor.size(); i++) {
+      if (neighbor[i] == q && neighbor[(i + 1) % neighbor.size()] == p) {
+        neighbor.insert(neighbor.begin() + static_cast<std::ptrdiff_t>(i + 1), m);
+
+        break;
+      }
+    }
+
+    facetOfEdge.erase(across);
+    facetOfEdge[Edge(q, m)] = g;
+    facetOfEdge[Edge(m, p)] = g;
+  }
+
+  std::vector<std::vector<size_t>> kept;
+  kept.reserve(numFacets);
+
+  for (size_t f = 0; f < numFacets; f++) {
+    if (!removed[f]) {
+      kept.emplace_back(std::move(a_facets[f]));
+    }
+  }
+
+  const size_t numRemoved = numFacets - kept.size();
+
+  a_facets = std::move(kept);
+
+  return numRemoved;
+}
+
+inline std::string
+Soup::findTopologyDefect(const std::vector<std::vector<size_t>>& a_facets)
+{
+  // Which polygon first traversed each directed edge.
+  std::map<std::pair<size_t, size_t>, size_t> directedEdges;
+
+  for (size_t f = 0; f < a_facets.size(); f++) {
+    const std::vector<size_t>& facet = a_facets[f];
+
+    std::vector<size_t> sorted = facet;
+
+    std::sort(sorted.begin(), sorted.end());
+
+    if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
+      return "face " + std::to_string(f) + " visits the same vertex twice";
+    }
+
+    for (size_t i = 0; i < facet.size(); i++) {
+      const std::pair<size_t, size_t> edge(facet[i], facet[(i + 1) % facet.size()]);
+
+      const auto inserted = directedEdges.emplace(edge, f);
+
+      if (!inserted.second) {
+        return "faces " + std::to_string(inserted.first->second) + " and " + std::to_string(f) +
+               " both run from vertex " + std::to_string(edge.first) + " to vertex " + std::to_string(edge.second) +
+               ": they are oriented inconsistently, or more than two faces share that edge";
+      }
+    }
+  }
+
+  return std::string();
+}
+
+template <typename T, typename Meta>
+inline std::string
+Soup::findFoldedFeature(const EBGeometry::DCEL::MeshT<T, Meta>& a_mesh)
+{
+  for (uint32_t e = 0; e < a_mesh.numEdges(); e++) {
+    const auto& edge = a_mesh.getEdge(e);
+
+    if (edge.getNormal().length2() == T(0)) {
+      return "the faces on either side of the edge from vertex " + std::to_string(edge.getVertexIndex()) +
+             " to vertex " + std::to_string(edge.getNextEdge(a_mesh).getVertexIndex()) + " fold back onto each other";
+    }
+  }
+
+  for (uint32_t v = 0; v < a_mesh.numVertices(); v++) {
+    const auto& vertex = a_mesh.getVertex(v);
+
+    if (vertex.getOutgoingEdgeIndex() != UINT32_MAX && vertex.getNormal().length2() == T(0)) {
+      return "the faces around vertex " + std::to_string(v) + " fold back onto each other";
+    }
+  }
+
+  return std::string();
 }
 
 template <typename T, typename Meta>
@@ -217,8 +468,8 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
     }
   }
 
-  // Reconcile the pair edges and run a sanity check. The mesh is queryable from its first reserve
-  // onwards, so these need no base of their own and a_pool need not be frozen.
+  // Reconcile the pair edges, run a sanity check, and compute the normals. The mesh is queryable
+  // from its first reserve onwards, so these need no base of their own and a_pool need not be frozen.
   Soup::reconcilePairEdgesDCEL(a_mesh);
 
   a_mesh.sanityCheck(a_id);

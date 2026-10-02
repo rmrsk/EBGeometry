@@ -172,6 +172,10 @@ started.** Actual sequence:
 > written against the virtual CSG interface; the `CSGUnion` example's disabled code; and
 > `SignedDistanceFunction<T>`, which no built-in class implements any more.
 >
+> The audit was run early, after step 4, rather than after steps 3, 1 and 6: its findings reshape
+> those steps, including several items to retire rather than port. The findings, the design review
+> and the fix plan are in [AUDIT.md](AUDIT.md).
+>
 > **0a** (a CUDA/HIP toolkit on the development machine) is not a sequence step: it is still open
 > and should be closed as early as possible, since every step after it adds device code.
 
@@ -225,7 +229,9 @@ mechanism is to be built in the meantime, since it would be a second tape.
 2. **BVH.** *(Done, PR #145, with a follow-up scrub.)* `pruneTraverse` factored into one loop with
    a real scalar implementation (fixed stack, hand-rolled sort over the ≤K children); `PackedBVH`'s
    three arrays moved onto `Pool`/`PODVector`; the class is `static_assert`-ed trivially copyable and
-   has `rebasedView()`/`deepCopy()`; stack depth differs by entry point (256 host, 64 device).
+   has `rebasedView()`/`deepCopy()`; stack depth differs by entry point. (Since then: the stack holds
+   256 levels on the host and 32 on a device at every K, in 8-byte entries, and only interior nodes
+   get a SIMD child-box row.)
    `TreeBVH` stays host-only — it is the builder, and static geometry builds on the host.
 
    The `shared_ptr`-based primitive array is gone, since a `shared_ptr` cannot be byte-copied into a
@@ -241,10 +247,10 @@ mechanism is to be built in the meantime, since it would be a second tape.
    "What is not" table and step 4.
 
    **The device traversal is correctness-first, and is not a tuned GPU kernel.** It is the textbook
-   formulation: one query point per thread, each with a private 64-entry stack, every lane descending
+   formulation: one query point per thread, each with a private stack, every lane descending
    its own path. That is divergence-bound by construction — the warp executes the union of 32
    different descents and retires with the slowest lane — and the private stack is local memory
-   (1 KB/thread at `double`, 512 B at `float`), touched on every push and pop. `ChildAABBSoA` is also
+   (752 B/thread at K = 4), touched on every push and pop. `ChildAABBSoA` is also
    laid out for the wrong axis here: it exists so one *thread* can load K children into one SIMD
    register, which is a CPU idea and buys nothing when a lane reads all K serially.
 
@@ -367,23 +373,28 @@ mechanism is to be built in the meantime, since it would be a second tape.
 3. Annotate: `EBGEOMETRY_HOST_DEVICE` for anything that resolves purely through values, indices and
    other device-callable calls; `EBGEOMETRY_HOST` for anything touching a `Pool` (including
    `rebasedView`, which reads one), `std::vector`,
-   `std::string`, `std::cerr` or `std::map`. Watch for standard-library helpers that look innocent —
-   `std::clamp` pulls in a host-only assert handler under libstdc++ hardened mode and must be
-   hand-rolled.
+   `std::string`, `std::cerr` or `std::map`. Use `Math::min`/`max`/`clamp`/`Limits` and
+   `Array<T, N>` instead of their `std` counterparts, and call no other `std::` function in device
+   code except the math functions (`Scripts/CheckDeviceMath.py` checks both; see "Writing device
+   code" in the contribution guidelines).
 4. `static_assert(std::is_trivially_copyable_v<…>)` on the class, and on any `Meta` template
    parameter it stores.
 5. If a container-returning method (`std::vector`) is genuinely useful on device, add a *streaming*
    sibling rather than trying to annotate it — see
    `FaceT::getSmallestCoordinate`/`getHighestCoordinate`.
-6. Add the class to `Tests/InstantiateAll.cpp`, add a `[gpu]`-tagged test case that launches a
-   kernel and compares against the host, and add the test binary to `EBGEOMETRY_GPU_TESTS` in
+6. Add the class to `Tests/InstantiateAll.cpp`, add a `[gpu]`-tagged test case that evaluates it on
+   many queries with the `Tests/TestGPU.hpp` harness and compares element by element against the
+   host (see "Adding tests" in the contribution guidelines), and add the test binary to `EBGEOMETRY_GPU_TESTS` in
    `Tests/CMakeLists.txt`.
 7. Update the Sphinx page that documents the class, per the rules in `CLAUDE.md`.
 
 ## Verifying locally
 
 The `cuda` and `hip` presets compile the device-bearing tests. Compilation needs only a toolkit; the
-`[gpu]` cases additionally need a visible device and `SKIP()` cleanly without one.
+`[gpu]` cases additionally need a visible device and `SKIP()` cleanly without one. Every host build
+also runs the `[gpu]` cases, in emulation (host memory that reports itself device-accessible, and a
+host loop in place of the kernel), so a device test that fails for a reason other than the device
+compile or the launch already fails in the ordinary test suite.
 
 ```bash
 cmake --preset cuda -DCMAKE_CUDA_ARCHITECTURES=<arch>   # match the local GPU; preset default is 70

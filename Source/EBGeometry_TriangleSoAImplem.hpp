@@ -12,14 +12,14 @@
 #define EBGEOMETRY_TRIANGLESOAIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <type_traits>
 
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 
 namespace EBGeometry {
@@ -30,9 +30,11 @@ EBGEOMETRY_HOST
 void
 TriangleSoAT<T, W>::pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept
 {
-  EBGEOMETRY_EXPECT(tris != nullptr);
-  EBGEOMETRY_EXPECT(count >= 1U);
-  EBGEOMETRY_EXPECT(count <= W);
+  EBGEOMETRY_REQUIRE(tris != nullptr, "TriangleSoAT::pack: the triangle array must not be null");
+  EBGEOMETRY_REQUIRE(count >= 1U && count <= W,
+                     "TriangleSoAT::pack: the triangle count must be between 1 and %zu (%u)",
+                     W,
+                     unsigned(count));
 
   m_validCount = count;
 
@@ -98,7 +100,10 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-#if defined(__AVX512F__)
+  // Every SIMD block is guarded on the compilation pass as well as on the ISA: clang's HIP (and
+  // nvcc's) device pass sees the host's ISA macros, but the intrinsics are host-only. Device code
+  // takes the scalar path below. See PackedBVH::computeChildDistances2().
+#if defined(__AVX512F__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 16 && std::is_same_v<T, float>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
                   "TriangleSoAT alignment mismatch: _mm512_load_ps requires 64-byte alignment");
@@ -250,8 +255,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(64) float d16[16];
     _mm512_store_ps(d16, best_d);
 
-    float best = std::numeric_limits<float>::max();
-    float babs = std::numeric_limits<float>::max();
+    float best = Math::Limits<float>::max();
+    float babs = Math::Limits<float>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d16[i]);
       if (ad < babs) {
@@ -413,8 +418,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(64) double d8[8];
     _mm512_store_pd(d8, best_d);
 
-    double best = std::numeric_limits<double>::max();
-    double babs = std::numeric_limits<double>::max();
+    double best = Math::Limits<double>::max();
+    double babs = Math::Limits<double>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d8[i]);
       if (ad < babs) {
@@ -425,7 +430,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     return static_cast<T>(best);
   }
 #endif
-#if defined(__SSE4_1__)
+#if defined(__SSE4_1__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 4 && std::is_same_v<T, float>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
                   "TriangleSoAT alignment mismatch: _mm_load_ps requires 16-byte alignment");
@@ -613,8 +618,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(16) float d4[4];
     _mm_store_ps(d4, best_d);
 
-    float best = std::numeric_limits<float>::max();
-    float babs = std::numeric_limits<float>::max();
+    float best = Math::Limits<float>::max();
+    float babs = Math::Limits<float>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d4[i]);
       if (ad < babs) {
@@ -625,7 +630,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     return best;
   }
 #endif
-#if defined(__AVX__)
+#if defined(__AVX__) && !defined(EBGEOMETRY_DEVICE_COMPILE)
   if constexpr (W == 8 && std::is_same_v<T, float>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
                   "TriangleSoAT alignment mismatch: _mm256_load_ps requires 32-byte alignment");
@@ -766,8 +771,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(32) float d8[8];
     _mm256_store_ps(d8, best_d);
 
-    float best = std::numeric_limits<float>::max();
-    float babs = std::numeric_limits<float>::max();
+    float best = Math::Limits<float>::max();
+    float babs = Math::Limits<float>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d8[i]);
       if (ad < babs) {
@@ -1015,8 +1020,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     _mm256_store_pd(d8, best_d_lo);
     _mm256_store_pd(d8 + 4, best_d_hi);
 
-    double best = std::numeric_limits<double>::max();
-    double babs = std::numeric_limits<double>::max();
+    double best = Math::Limits<double>::max();
+    double babs = Math::Limits<double>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d8[i]);
       if (ad < babs) {
@@ -1168,8 +1173,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     alignas(32) double d4[4];
     _mm256_store_pd(d4, best_d);
 
-    double best = std::numeric_limits<double>::max();
-    double babs = std::numeric_limits<double>::max();
+    double best = Math::Limits<double>::max();
+    double babs = Math::Limits<double>::max();
     for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d4[i]);
       if (ad < babs) {
@@ -1181,8 +1186,8 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   }
 #endif
 
-  T best     = std::numeric_limits<T>::max();
-  T best_abs = std::numeric_limits<T>::max();
+  T best     = Math::Limits<T>::max();
+  T best_abs = Math::Limits<T>::max();
 
   for (uint32_t i = 0; i < m_validCount; i++) {
     const T d  = this->signedDistanceLane(i, a_p);
@@ -1296,7 +1301,7 @@ TriangleSoAT<T, W>::signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point)
 
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
-std::array<T, W>
+Array<T, W>
 TriangleSoAT<T, W>::signedDistances(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -1305,7 +1310,7 @@ TriangleSoAT<T, W>::signedDistances(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-  std::array<T, W> distances;
+  Array<T, W> distances;
 
   // Real lanes computed directly; padded lanes (m_validCount..W-1) repeat the last real lane's
   // distance, matching pack()'s padding convention so a lane-iterating caller sees no fresh values.

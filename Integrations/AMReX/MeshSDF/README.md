@@ -2,7 +2,7 @@ Integrations/AMReX/MeshSDF
 --------------------------
 
 This example uses the embedded boundary grid generation from AMReX, with the implicit function given by
-an EBGeometry `TriMeshSDF`: a triangle surface mesh (STL, PLY, VTK or OBJ; every face must be a triangle)
+an EBGeometry `TriMeshSDF`: a surface mesh (STL, PLY, VTK or OBJ; polygon faces are triangulated)
 accelerated by a packed bounding volume hierarchy. The same code runs on CPUs and, in a CUDA or HIP build
 of AMReX, on GPUs.
 To compile this application, first install AMReX somewhere and point the AMREX_HOME environment variable to it.

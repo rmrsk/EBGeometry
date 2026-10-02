@@ -12,7 +12,6 @@
 #define EBGEOMETRY_OCTREEIMPLEM_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -20,6 +19,7 @@
 #include <stack>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Octree.hpp"
 
@@ -28,14 +28,14 @@ namespace EBGeometry {
 namespace Octree {
 
 template <typename Meta, typename Data>
-inline const std::array<std::shared_ptr<Node<Meta, Data>>, 8>&
+inline const Array<std::shared_ptr<Node<Meta, Data>>, 8>&
 Node<Meta, Data>::getChildren() const noexcept
 {
   return m_children;
 }
 
 template <typename Meta, typename Data>
-inline std::array<std::shared_ptr<Node<Meta, Data>>, 8>&
+inline Array<std::shared_ptr<Node<Meta, Data>>, 8>&
 Node<Meta, Data>::getChildren() noexcept
 {
   return m_children;
@@ -176,8 +176,8 @@ Node<Meta, Data>::traverse(const LeafEvaluator&  a_leafEvaluator,
   EBGEOMETRY_EXPECT(a_childOrderer);
   EBGEOMETRY_EXPECT(!this->weak_from_this().expired());
 
-  std::array<std::shared_ptr<const Node<Meta, Data>>, 8> children;
-  std::stack<std::shared_ptr<const Node<Meta, Data>>>    q;
+  Array<std::shared_ptr<const Node<Meta, Data>>, 8>   children;
+  std::stack<std::shared_ptr<const Node<Meta, Data>>> q;
 
   q.emplace(this->shared_from_this());
 

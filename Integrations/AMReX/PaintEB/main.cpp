@@ -46,7 +46,7 @@ public:
       mesh->getFace(i).getMetaData() = 1.0 * i;
     }
 
-    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, *m_pool, EBGeometry::BVH::Build::SAH);
+    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, *m_pool, EBGeometry::BVH::Construction::SAH);
   }
 
   /*!

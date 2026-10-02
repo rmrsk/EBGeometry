@@ -21,7 +21,9 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_SFC.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -129,7 +131,7 @@ Hilbert::encode(const Index& a_point) noexcept
 
   // Skilling's AxesToTranspose: transform the coordinates in place into the Hilbert transpose
   // representation.
-  std::array<uint32_t, nDims> X = {a_point[0], a_point[1], a_point[2]};
+  Array<uint32_t, nDims> X = {a_point[0], a_point[1], a_point[2]};
 
   const uint32_t highBit = uint32_t(1) << (nBits - 1);
 
@@ -185,7 +187,7 @@ Hilbert::decode(const uint64_t& a_code) noexcept
 
   // De-interleave the linear distance back into the transpose representation (exact inverse of the
   // interleave loop in encode()).
-  std::array<uint32_t, nDims> X = {0, 0, 0};
+  Array<uint32_t, nDims> X = {0, 0, 0};
 
   for (unsigned int k = 0; k < totalBits; k++) {
     const uint32_t     bitVal = static_cast<uint32_t>((a_code >> (totalBits - 1 - k)) & uint64_t(1));
@@ -236,24 +238,33 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
   Vec3T<T> minCoord = +Vec3T<T>::infinity();
   Vec3T<T> maxCoord = -Vec3T<T>::infinity();
 
-  for (const auto& p : a_points) {
-    EBGEOMETRY_EXPECT(std::isfinite(p[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(p[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(p[2]));
+  for (size_t i = 0; i < a_points.size(); i++) {
+    const Vec3T<T>& p = a_points[i];
+
+    EBGEOMETRY_REQUIRE(std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]),
+                       "SFC::computeBins: point %zu of %zu has a non-finite coordinate (%g, %g, %g)",
+                       i,
+                       a_points.size(),
+                       double(p[0]),
+                       double(p[1]),
+                       double(p[2]));
 
     minCoord = min(minCoord, p);
     maxCoord = max(maxCoord, p);
   }
 
-  Vec3T<T> delta = (maxCoord - minCoord) / ValidSpan;
+  // One cell size for all three axes, set by the longest extent, so the grid cells are cubes: scaling
+  // each axis to the full span on its own would stretch a flat cloud's thin axis into as many cells
+  // as its long ones, and the curve would no longer follow distance. When the extent is zero (every
+  // point coincides) or too small for its span-th part to be a normal number, every point takes bin
+  // 0 on every axis, which is exact for the first case and harmless for the second.
+  const Vec3T<T> extent  = maxCoord - minCoord;
+  const T        longest = Math::max(extent[0], Math::max(extent[1], extent[2]));
 
-  // A zero delta component means every point coincides on that axis (a planar cloud or duplicate
-  // points). The numerator below is then also exactly zero there for every point, so any nonzero
-  // divisor yields the same, correct bin index of 0; clamp to 1 only to avoid the divide-by-zero.
-  for (size_t axis = 0; axis < 3; axis++) {
-    if (delta[axis] == T(0)) {
-      delta[axis] = T(1);
-    }
+  T cellSize = longest / T(ValidSpan);
+
+  if (!(cellSize >= Math::Limits<T>::min())) {
+    cellSize = T(1);
   }
 
   std::vector<Index> bins;
@@ -264,11 +275,11 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
   // negative, which would wrap on the unsigned cast); the clamp defends both.
   const auto toBin = [](T a_v) noexcept -> unsigned int {
     const T f = std::floor(a_v);
-    return static_cast<unsigned int>(f < T(0) ? T(0) : (f > T(ValidSpan) ? T(ValidSpan) : f));
+    return static_cast<unsigned int>(!(f > T(0)) ? T(0) : (f > T(ValidSpan) ? T(ValidSpan) : f));
   };
 
   for (const auto& p : a_points) {
-    const Vec3T<T> curBin = (p - minCoord) / delta;
+    const Vec3T<T> curBin = (p - minCoord) / cellSize;
 
     bins.emplace_back(Index{toBin(curBin[0]), toBin(curBin[1]), toBin(curBin[2])});
   }

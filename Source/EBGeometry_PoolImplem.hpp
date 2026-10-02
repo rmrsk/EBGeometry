@@ -32,14 +32,10 @@ inline Pool::Pool(MemoryResource& a_resource, size_t a_initialBytes) : m_resourc
 {
   // A build pool must be host-accessible: reserve()/push_back()/grow() write through base() with the
   // host CPU. Device-resident pools are produced only by mirror() (via the private MirrorTag
-  // constructor). This guard is always-on, NOT EBGEOMETRY_EXPECT, because a host store into device
-  // memory in a release build is silent undefined behaviour, not a recoverable precondition slip.
-  if (!a_resource.isHostAccessible()) {
-    std::fprintf(stderr,
-                 "EBGeometry::Pool: a build pool requires a host-accessible MemoryResource; a "
-                 "device-resident pool is produced only by Pool::mirror\n");
-    std::abort();
-  }
+  // constructor). A host store into device memory would be silent undefined behaviour.
+  EBGEOMETRY_REQUIRE(a_resource.isHostAccessible(),
+                     "Pool: a build pool requires a host-accessible MemoryResource; a device-resident pool is "
+                     "produced only by Pool::mirror");
 
   if (a_initialBytes > 0) {
     const size_t rounded = (a_initialBytes + (PoolBaseAlign - 1)) & ~(PoolBaseAlign - 1);
@@ -100,18 +96,20 @@ Pool::operator=(Pool&& a_other) noexcept
 inline uint64_t
 Pool::reserve(size_t a_count, size_t a_elemSize, size_t a_alignment)
 {
-  // Always-on, NOT EBGEOMETRY_EXPECT: a moved-from pool owns no control block, so every path below
-  // (and every base resolution by an object reserved here) would dereference null. Failing hard
-  // beats a release build wandering into undefined behaviour.
-  if (m_control == nullptr) {
-    std::fprintf(stderr, "EBGeometry::Pool::reserve: cannot reserve from a moved-from pool\n");
-    std::abort();
-  }
+  // A moved-from pool owns no control block, so every path below (and every base resolution by an
+  // object reserved here) would dereference null.
+  EBGEOMETRY_REQUIRE(m_control != nullptr, "Pool::reserve: cannot reserve from a moved-from pool");
 
-  EBGEOMETRY_EXPECT(!m_frozen);                              // no reserve after freeze
-  EBGEOMETRY_EXPECT(a_alignment > 0);                        // 0 would underflow the mask below
-  EBGEOMETRY_EXPECT(a_alignment <= PoolBaseAlign);           // base is 256-aligned; larger unsupported
-  EBGEOMETRY_EXPECT((a_alignment & (a_alignment - 1)) == 0); // power of two
+  // A frozen block may already have been mirrored, and growing it would silently diverge from the
+  // mirror (and invalidate a captured base).
+  EBGEOMETRY_REQUIRE(!m_frozen, "Pool::reserve: cannot reserve from a frozen pool");
+
+  // Zero would underflow the mask below; the base is only PoolBaseAlign-aligned, so a larger
+  // alignment cannot be honoured.
+  EBGEOMETRY_REQUIRE(a_alignment > 0 && (a_alignment & (a_alignment - 1)) == 0 && a_alignment <= PoolBaseAlign,
+                     "Pool::reserve: the alignment must be a power of two no larger than %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
 
   const size_t bytes   = a_count * a_elemSize;
   const size_t aligned = (m_size + (a_alignment - 1)) & ~(a_alignment - 1);
@@ -162,7 +160,8 @@ Pool::freeze() noexcept
 inline Pool
 Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
 {
-  EBGEOMETRY_EXPECT(a_src.isFrozen());
+  // An unfrozen source could still grow after the copy, leaving the mirror stale.
+  EBGEOMETRY_REQUIRE(a_src.isFrozen(), "Pool::mirror: the source pool must be frozen before it is mirrored");
 
   // MirrorTag: the destination may be device-resident (not host-accessible), so it must NOT go
   // through the public constructor's host-accessibility guard. mirror allocates its exact block
@@ -175,35 +174,15 @@ Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
 
     dst.m_control->m_base = dstBase;
 
-    const bool srcHost = a_src.m_resource->isHostAccessible();
-    const bool dstHost = a_dstResource.isHostAccessible();
+    // The copy itself belongs to the resources: only a device resource (defined only in translation
+    // units compiled with a GPU backend) knows how to reach device memory. Backend #ifs here would
+    // give this non-template inline function different definitions in host and device translation
+    // units, and the linker would keep just one of them.
+    const MemoryResource& copier = !a_dstResource.isHostAccessible()       ? a_dstResource
+                                   : !a_src.m_resource->isHostAccessible() ? *a_src.m_resource
+                                                                           : a_dstResource;
 
-    if (srcHost && dstHost) {
-      std::memcpy(dstBase, srcBase, a_src.m_size);
-    }
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-    else if (srcHost && !dstHost) {
-      EBGEOMETRY_GPU_CHECK(GPU::memcpy(dstBase, srcBase, a_src.m_size, GPU::MemcpyHostToDevice));
-    }
-    else if (!srcHost && dstHost) {
-      EBGEOMETRY_GPU_CHECK(GPU::memcpy(dstBase, srcBase, a_src.m_size, GPU::MemcpyDeviceToHost));
-    }
-    else {
-      // Device-to-device is out of scope for the mirror (the foundation only builds on host and
-      // uploads once); the alias layer exposes no device-to-device direction. Always-on abort, NOT
-      // EBGEOMETRY_EXPECT, so a release build fails hard here instead of returning a frozen pool
-      // whose block was allocated but never copied (silent garbage).
-      std::fprintf(stderr, "EBGeometry::Pool::mirror: device-to-device mirroring is not supported\n");
-      std::abort();
-    }
-#else
-    else {
-      // With no offload backend active there is no device placement, so a non-host source or
-      // destination is impossible here. Always-on abort for the same reason as above.
-      std::fprintf(stderr, "EBGeometry::Pool::mirror: non-host memory requires a GPU backend\n");
-      std::abort();
-    }
-#endif
+    copier.copy(dstBase, a_dstResource, srcBase, *a_src.m_resource, a_src.m_size);
   }
 
   dst.m_capacity = a_src.m_size;
@@ -213,9 +192,70 @@ Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
   // Record the *root* of the mirror chain, not the immediate source: mirroring host -> pinned
   // staging -> device must leave the device pool naming the original host pool, so that an object
   // built in that host pool can still validate a rebase onto the device pool.
-  dst.m_mirrorOf = (a_src.m_mirrorOf != 0) ? a_src.m_mirrorOf : a_src.id();
+  dst.m_mirrorOf          = (a_src.m_mirrorOf != 0) ? a_src.m_mirrorOf : a_src.id();
+  dst.m_control->m_rootId = a_src.m_control->m_rootId;
 
   return dst;
+}
+
+inline bool
+PoolLocation::isAttachedTo(const Pool& a_pool) const noexcept
+{
+  return m_control != nullptr && m_control == a_pool.control();
+}
+
+inline void
+PoolLocation::attach(const Pool& a_pool, const char* a_who) noexcept
+{
+  EBGEOMETRY_REQUIRE(m_control == nullptr || m_control == a_pool.control(),
+                     "%s: all of its arrays must be reserved from the same Pool",
+                     a_who);
+
+  m_control        = a_pool.control();
+  m_base           = nullptr;
+  m_hostAccessible = false;
+}
+
+inline PoolLocation
+PoolLocation::rebasedOnto(const Pool& a_pool, const uint64_t a_endByte, const char* a_who) const noexcept
+{
+  EBGEOMETRY_REQUIRE(m_control != nullptr,
+                     "%s::rebasedView: rebase the original, not a view onto a device-accessible pool or an object "
+                     "that was never built",
+                     a_who);
+  EBGEOMETRY_REQUIRE(a_pool.rootId() == m_control->m_rootId,
+                     "%s::rebasedView: the pool must be the object's own pool or a mirror of it (its mirror chain "
+                     "starts at pool %llu, the object's at pool %llu)",
+                     a_who,
+                     static_cast<unsigned long long>(a_pool.rootId()),
+                     static_cast<unsigned long long>(m_control->m_rootId));
+
+  // A mirror taken before the object's last reserve is too small to hold its arrays.
+  EBGEOMETRY_REQUIRE(a_endByte <= a_pool.usedBytes(),
+                     "%s::rebasedView: the object's arrays must fit inside the pool (they end at byte %llu, the pool "
+                     "holds %zu)",
+                     a_who,
+                     static_cast<unsigned long long>(a_endByte),
+                     a_pool.usedBytes());
+
+  PoolLocation location;
+
+  if (a_pool.resource().isDeviceAccessible()) {
+    // A kernel cannot follow a host control block, so the base is captured by value. That is safe only
+    // for a frozen pool, whose base cannot move: a mirror is frozen when it is made, and a pool built
+    // directly in managed memory must be frozen first.
+    EBGEOMETRY_REQUIRE(a_pool.isFrozen(), "%s::rebasedView: a device-accessible pool must be frozen", a_who);
+
+    location.m_base           = a_pool.base();
+    location.m_hostAccessible = a_pool.resource().isHostAccessible();
+  }
+  else {
+    // Host pool: follow its control block rather than snapshot its base, so the view is immune to
+    // growth exactly like the original.
+    location.m_control = a_pool.control();
+  }
+
+  return location;
 }
 
 } // namespace EBGeometry

@@ -8,6 +8,7 @@
 // precisions.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 
 #include <algorithm>
@@ -15,6 +16,7 @@
 #include <cstddef>
 #include <limits>
 #include <random>
+#include <type_traits>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -245,6 +247,44 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid edge cases", "[PointCloudHashGrid]", EBGE
 
     // nearestNeighbor excludes self, so with only one point there is no neighbor.
     CHECK(grid.nearestNeighbor(0).distanceSquared == notFound);
+    CHECK_FALSE(grid.nearestNeighbor(0).valid());
+    CHECK(hit.valid());
+
+    // Rows of allNearestNeighbors that cannot be filled hold "no match" results.
+    const auto all = grid.allNearestNeighbors(3);
+    REQUIRE(all.size() == 3);
+    CHECK_FALSE(all[0].valid());
+    CHECK_FALSE(all[2].valid());
+  }
+
+  SECTION("queries far beyond the grid, past the int range of cell coordinates, find the nearest point")
+  {
+    // A cell coordinate (x - lo)/h beyond 2^31 used to overflow its int conversion, clamp to the
+    // wrong side of the grid, and end the search after one shell with a far point.
+    const std::vector<Vec3T<T>>              pos = makeCloud<T>(1000, 77u);
+    const std::vector<std::size_t>           meta(pos.size(), 0);
+    const PointCloudHashGrid<T, std::size_t> grid(pos, meta);
+
+    for (const T x : {T(1e8), T(-1e9), T(3e9)}) {
+      const Vec3T<T> q(x, T(0.5), T(0.5));
+      const auto     hit = grid.closestPoint(q);
+
+      INFO("x = " << x);
+      REQUIRE(hit.valid());
+      REQUIRE(std::isfinite(hit.distanceSquared));
+
+      // At this distance only double can tell the candidates apart: the nearest point is the one
+      // with the largest (or smallest) x coordinate.
+      if constexpr (std::is_same_v<T, double>) {
+        std::size_t best = 0;
+
+        for (std::size_t i = 1; i < pos.size(); i++) {
+          best = (x > T(0)) == (pos[i][0] > pos[best][0]) ? i : best;
+        }
+
+        CHECK(hit.index == best);
+      }
+    }
   }
 
   SECTION("coincident points all land in one cell and still resolve")
@@ -329,4 +369,18 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid edge cases", "[PointCloudHashGrid]", EBGE
       CHECK_THAT(grid.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tol));
     }
   }
+}
+
+TEST_CASE("PointCloudHashGrid: rejects a non-positive target occupancy", "[PointCloudHashGrid][death]")
+{
+  using T = double;
+
+  // An EBGEOMETRY_REQUIRE, so it aborts in every build.
+  REQUIRE(abortsWith(
+    [] {
+      const std::vector<Vec3T<T>>              pos  = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(1), T(0), T(0))};
+      const std::vector<std::size_t>           meta = {0, 1};
+      const PointCloudHashGrid<T, std::size_t> grid(pos, meta, T(0));
+    },
+    "PointCloudHashGrid: the target points per cell must be positive (0)"));
 }

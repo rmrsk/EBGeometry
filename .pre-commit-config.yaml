@@ -18,7 +18,8 @@ repos:
     rev: v2.2.6
     hooks:
       - id: codespell
-        files: ^(Source|Docs|Exec)/
+        files: ^(Source|Docs|Examples|Tests|Integrations|Scripts|\.github)/|^[^/]+\.(md|txt|hpp)$
+        exclude: ^Tests/data/
         args:
           - "--ignore-words=.codespellignore"
           - "--skip=*.bib,*.js,*.log,Docs/Sphinx/build,Docs/doxygen"
@@ -34,7 +35,8 @@ repos:
         entry: bash -c "cd Docs && doxygen doxygen.conf"
         language: system
         pass_filenames: false
-        files: \.(H|cpp)$
+        # Everything doxygen.conf reads: the headers, the main page, and the configuration itself.
+        files: ^(Source/.*\.hpp|EBGeometry\.hpp|Docs/mainpage\.md|Docs/doxygen\.conf)$
 
       - id: clang-tidy
         name: Static analysis (clang-tidy)
@@ -52,12 +54,19 @@ repos:
         files: \.(hpp|cpp)$
         stages: [manual]
 
+      - id: check-device-math
+        name: Device toolchain contract (no std::min/max/clamp/numeric_limits/array in Source/)
+        entry: python3 Scripts/CheckDeviceMath.py
+        language: system
+        pass_filenames: false
+        files: ^(Source/.*\.hpp|Tests/.*\.[ch]pp|Scripts/CheckDeviceMath\.py)$
+
       - id: check-docs
         name: Ban literalinclude in Sphinx docs
         entry: python3 Scripts/CheckDocs.py
         language: system
         pass_filenames: false
-        stages: [manual]
+        files: ^Docs/Sphinx/source/.*\.rst$
 
       - id: build-doc-figures
         name: Render documentation figures from LaTeX/TikZ sources

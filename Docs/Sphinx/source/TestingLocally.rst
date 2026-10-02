@@ -27,7 +27,7 @@ debugger output), and turns on both the test suite and the examples.
    # 2. Build
    cmake --build --preset debug --parallel $(nproc)
 
-   # 3a. Run unit tests only  (< 1 s)
+   # 3a. Run unit tests only  (about 10 s)
    ctest --preset debug
 
    # 3b. Run example programs (allow several minutes in Debug mode)
@@ -35,15 +35,15 @@ debugger output), and turns on both the test suite and the examples.
 
 A successful unit-test run looks like::
 
-   100% tests passed, 0 tests failed out of 220
+   100% tests passed, 0 tests failed out of 431
    Label Time Summary:
-   unit    =   1.43 sec*proc (220 tests)
+   unit    =   8.38 sec*proc (431 tests)
 
 Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
 ``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
 matching whatever the CMake preset otherwise builds) -- the count above is double-only. CI
 additionally configures with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite
-under both precisions (422 tests). To do the same locally:
+under both precisions (765 tests). To do the same locally:
 
 .. code-block:: bash
 
@@ -137,7 +137,7 @@ CMake options
        32-byte-aligned slots while still emitting 64-byte-aligned AVX-512 spills, which faults on an
        AVX-512 host in correct code. Clang keeps the use-after-return check.
    * - ``EBGEOMETRY_SIMD``
-     - ``avx``
+     - ``avx`` (``none`` when another project includes EBGeometry)
      - ``avx512`` enables ``-mavx512f -mavx2 -mavx -mfma -msse4.1``; ``avx``
        enables ``-mavx -mfma -msse4.1``; ``sse41`` enables ``-msse4.1``;
        ``none`` uses the scalar fallback.
@@ -161,6 +161,18 @@ Catch2 test cases are registered with CTest so you can filter by name or tag:
    ./Tests/TestVec --list-tests
    ./Tests/TestAnalyticSDF "[SphereSDF]"
 
+   # Run only the device tests
+   ./Tests/TestBVH "[gpu]"
+
+Device tests
+---------------
+
+Every class that is callable on a GPU has a test case tagged ``[gpu]`` that evaluates its queries as
+a kernel would, over many query points, and compares each result with the host. In an ordinary host
+build these tests run in emulation, on host memory that reports itself device-accessible, so they
+run in every preset. Under a GPU backend the same tests launch real kernels, and they skip when no
+GPU is visible. See :ref:`Chap:ContributionGuidelines` for how to write one.
+
 Test coverage
 ---------------
 
@@ -174,15 +186,43 @@ Test coverage
      - :cpp:class:`Vec2T` and :cpp:class:`Vec3T`: construction, arithmetic,
        dot/cross products, length, component-wise min/max, ``minDir``/``maxDir``,
        lexicographic ordering, scalar-over-vector ``operator/``.
+   * - ``TestMath``
+     - ``Math::min``/``max``/``clamp`` and ``Math::Limits`` against their ``std`` counterparts
+       (including NaN arguments and constant evaluation), and ``Array<T, N>``: aggregate
+       initialization, trivial copyability, iteration, sorting, ``fill``, comparison.
+   * - ``TestMemoryResource``
+     - ``HostMemoryResource``: aligned, writeable allocations, round-trip deallocation, the
+       accessibility flags, rejection of a non-power-of-two alignment, and the process-wide
+       ``hostMemoryResource()`` instance.
+   * - ``TestPool``
+     - ``Pool``: growth preserving earlier contents and every type's alignment, ``freeze`` and the
+       reservations it then rejects, moves (including the control block surviving a vector
+       reallocation), mirroring onto a non-host resource, pool identities, and a mirrored
+       ``PODVector`` read back on the device.
+   * - ``TestPODVector``
+     - ``PODVector``/``PODSpan``: the 16-byte trivially copyable layout, ``reserveFrom``/
+       ``push_back``/``assign``/``bind`` round trips, element alignment, and the aborts on writing
+       past capacity or reading out of range.
+   * - ``TestPoolRebase``
+     - ``Pool::mirror`` and ``PoolLocation``: offsets resolving identically against a mirrored block;
+       a view onto a managed (host- and device-accessible) mirror answering queries on the host; an
+       object built directly in managed memory rebased onto its own frozen pool; a view of a staging
+       mirror rebased again onto that mirror's mirror; and the rejected cases (an unfrozen
+       device-accessible pool, a device-only view used on the host), with a fake memory resource in
+       place of a GPU.
    * - ``TestBoundingVolumes``
      - :cpp:class:`AABBT` and :cpp:class:`SphereT`: construction from
        corners and point clouds, volume, surface area, point distance,
-       intersection predicate, overlapping volume.
+       intersection predicate, overlapping volume; ``AABBT::merged``, the allocation-free union,
+       with the default (empty) box as its identity.
    * - ``TestAnalyticSDF``
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
-       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances;
-       every analytic shape is a trivially copyable, non-polymorphic value type; on a GPU build,
-       device ``signedDistance()`` of all twelve shapes matches the host.
+       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances; every
+       exact shape (all but :cpp:class:`PerlinSDF`) checked as a true signed distance function at
+       random points (unit gradient, a step back along the gradient lands on the surface,
+       1-Lipschitz); the capsule's sphere limit and Perlin's defaults; every analytic shape is a
+       trivially copyable, non-polymorphic value type; the device
+       ``signedDistance()`` of all twelve shapes matches the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
@@ -193,7 +233,9 @@ Test coverage
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,
        monotonicity along one axis, injectivity, ``ValidSpan`` boundary
-       regression, and (for Hilbert) the consecutive-code adjacency property.
+       regression, and (for Hilbert) the consecutive-code adjacency property; ``computeBins``
+       binning into cubic cells (a flat cloud keeps a thin slab of bins), and coincident points or a
+       vanishing extent giving bin 0.
    * - ``TestTriangle``
      - :cpp:class:`Triangle`: face normal from vertex ordering, and
        signed-distance correctness for points closest to the face interior,
@@ -213,6 +255,11 @@ Test coverage
      - :cpp:class:`VTK`: construction, copy/move semantics; named
        point-data/cell-data scalar array storage and retrieval (including the
        out-of-range-name error path); round-trip through ``convertToDCEL``.
+   * - ``TestParser``
+     - Cross-format parser behaviour: binary STL (with per-facet colour attributes), PLY and VTK
+       fixtures reading the same mesh as their ASCII counterparts; missing, empty, truncated and
+       corrupted files throwing ``ParseError`` with the file, line and reason; unused vertices being
+       ignored; and mesh distance functions and BVH unions refusing to build from no faces.
    * - ``TestBVH``
      - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
        supported formats, used to verify: identical topology/geometry across formats;
@@ -221,19 +268,27 @@ Test coverage
        partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
        :cpp:class:`MeshSDF`
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
-       :cpp:class:`BVH::Build` strategy; :cpp:func:`MeshSDF::getClosestFaces` ordering; and
+       :cpp:class:`BVH::Construction` strategy; signs on two concave meshes (an L-shaped prism and a box with a
+       narrow notch, whose concave edges need both adjacent faces' normals) against an analytic
+       inside test; :cpp:func:`MeshSDF::getClosestFaces` ordering; and
        :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
        correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
-       brute-force scan after displacement).
+       brute-force scan after displacement). Also the build-time checks: a tree too deep for the
+       host or device traversal stack at ``K`` = 2, 4 and 16, every kind of malformed node array (a
+       leaf with no primitives among them), and a partitioner that returns an empty partition, all
+       rejected; the stack's float distance bound never pruning a closer primitive; only interior
+       nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
+       extent; the bottom-up build at exact powers of ``K``; and an empty BVH.
    * - ``TestCSG``
-     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin` blending primitives;
+     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
+       primitives, including far from the blend region;
        sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`;
        :cpp:class:`FiniteRepetitionIF` tiling and boundary clamping. The BVH-accelerated
        :cpp:class:`BVHUnionIF`/:cpp:class:`BVHSmoothUnionIF` over spheres (against the virtual
        unions and a brute-force scan, for every build strategy and blend) and over translated
        ``TriMeshSDF`` objects, including a union of unions; host-mirror and deep copies of a mesh
-       union evaluated after the source pool is destroyed; on a GPU build, device results of all
-       three unions against the host. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp`
+       union evaluated after the source pool is destroyed; device results of all three unions
+       against the host. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp`
        to present analytic spheres as ``ImplicitFunction`` objects.
    * - ``TestTransform``
      - :cpp:class:`ComplementIF`, :cpp:class:`TranslateIF`, :cpp:class:`RotateIF`,
@@ -258,6 +313,24 @@ Test coverage
        ``W`` triangles are packed), per-lane ``signedDistances`` consistency, and bounding-volume
        construction from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle metadata
        retrieval (``signedDistance(point, Meta&)``) and per-lane ``getMetaData`` with padding.
+   * - ``TestPointSoA``
+     - :cpp:class:`PointSoAT`: minimum and maximum distances and per-lane distances against the
+       closest and farthest packed point, unaffected by padding, for ``W`` = 4 and 8; the bounding
+       volume of the packed points; the default width; and rejection of a bad count or a null array.
+   * - ``TestPointAoSoA``
+     - :cpp:class:`PointAoSoA`: distances agreeing exactly with a plain ``PointSoAT``, per-lane
+       metadata with padding, the bounding volume, the default width, rejection of bad input, and
+       the device query surface against the host.
+   * - ``TestPointCloudBVH``
+     - :cpp:class:`PointCloudBVH`: nearest-neighbour, k-nearest-neighbour, all-points and
+       closest-point queries against brute force, edge cases, ``rebasedView``/``deepCopy``, device queries against the host, and
+       rejection of a cloud it cannot index, a zero leaf size, or a rebase onto too small a pool.
+   * - ``TestPointCloudHashGrid``
+     - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases, and
+       rejection of a non-positive target occupancy.
+   * - ``TestRandom``
+     - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
+       an empty result for a zero count.
    * - ``TestSimpleTimer``
      - ``SimpleTimer``: near-zero elapsed time on construction, measured duration against a
        requested sleep, restart-on-``start()`` semantics, and relative ordering of two

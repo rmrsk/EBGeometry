@@ -89,6 +89,14 @@ ever stores in a pool, including SIMD-width SoA blocks.
 
 .. note::
 
+   An object built directly in a ``Managed`` or ``Mapped`` pool resolves through the pool's host
+   control block (see below), which a kernel cannot follow. To hand it to a kernel without a mirror,
+   freeze the pool and call ``rebasedView()`` onto the pool itself: the view holds the pool's base
+   address, which both sides can use. A view rebased onto a ``Managed`` or ``Mapped`` mirror can
+   likewise be used on the host; a view of a ``Device`` pool cannot.
+
+.. note::
+
    A ``MemoryResource`` is non-copyable: its identity is meaningful (two ``Pool``\ s built over the
    *same* resource share a placement), and copying an allocator has no meaning. Pass it by
    reference, and it must outlive every ``Pool`` built over it.
@@ -133,8 +141,8 @@ it.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 `freeze() <doxygen/html/classEBGeometry_1_1Pool.html#a7c5696404d11babfad42fc7d99b37ebd>`__ seals a
-pool: ``reserve()`` is forbidden afterwards (an ``EBGEOMETRY_EXPECT``-checked precondition, see
-:ref:`Sec:Assertions`) and ``base()`` can no longer move. It exists for exactly one reason -- it is
+pool: ``reserve()`` is forbidden afterwards (it aborts in every build, see :ref:`Sec:AlwaysOnChecks`)
+and ``base()`` can no longer move. It exists for exactly one reason -- it is
 the precondition for
 `mirror() <doxygen/html/classEBGeometry_1_1Pool.html#aa141bf4919e1aeb78aaee9667da8ebc3>`__, since
 you cannot take a byte-for-byte copy of a block that might still be reallocated. Freezing is *not*
@@ -166,8 +174,8 @@ points into:
 
 .. code-block:: c++
 
-   auto& e = mesh->getEdge(3);      // a raw address, resolved right now
-   mesh->reserveFaces(pool, n);     // may grow -- the old block is freed
+   auto& e = mesh.getEdge(3);       // a raw address, resolved right now
+   mesh.reserveFaces(pool, n);      // may grow -- the old block is freed
    e.setFace(7);                    // undefined behaviour: write into freed memory
 
 The hazard is intermittent (a grow only happens when a request exceeds the current capacity) and its
@@ -182,10 +190,10 @@ abandoned copy and is silently lost, while the object itself now reads from the 
 
    .. code-block:: c++
 
-      Edge e = mesh->getEdge(3);      // snapshot, independent of any base
-      mesh->reserveFaces(pool, n);    // may grow
+      Edge e = mesh.getEdge(3);       // snapshot, independent of any base
+      mesh.reserveFaces(pool, n);     // may grow
       e.setFace(7);
-      mesh->getEdge(3) = e;           // fresh resolution against the current base
+      mesh.getEdge(3) = e;            // fresh resolution against the current base
 
    Everything that returns *by value* -- ``signedDistance()``, ``getAllVertexCoordinates()``, and so
    on -- is unaffected, which is the overwhelming majority of the query surface.
@@ -267,12 +275,30 @@ memory model asks of a caller:
    on every class described here, is cheap insurance that a later change does not silently break
    the contract.
 
-Two classes adopt this model today, ``DCEL::MeshT`` and ``BVH::PackedBVH``. Both hold the same two
-address fields (a ``PoolControl*`` for host resolution, a raw base for a device view), both resolve
-every array through a ``base()`` with the same pair of assertions, and both offer ``rebasedView()``
-as their single crossing point and ``deepCopy()`` for genuinely independent storage. The convention
-is deliberately duplicated rather than factored into a base class: it is about fifteen lines, and a
-base class would complicate the trivial-copyability ``static_assert`` that the whole model rests on.
+Eight classes adopt this model today. Two of them hold pool addresses directly, ``DCEL::MeshT`` and
+``BVH::PackedBVH``: each holds one ``PoolLocation`` (a ``PoolControl*`` for host resolution, a raw
+base for a device view, and whether that base is host-accessible) and delegates attaching,
+resolving and rebasing to it. The other six are built from those two, holding a mesh, a packed BVH, or both by
+value and delegating to them: the mesh distance fields ``FlatMeshSDF``, ``MeshSDF`` and
+``TriMeshSDF``, ``PointCloudBVH``, and the BVH unions ``BVHUnionIF`` and ``BVHSmoothUnionIF``. All
+eight offer ``rebasedView()`` as their single crossing point and ``deepCopy()`` for genuinely
+independent storage. Only the short forwarding methods are repeated per class; the logic lives in
+``PoolLocation``, held as a member rather than a base class, so it does not complicate the
+trivial-copyability ``static_assert`` that the whole model rests on.
+
+The location is
+`PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__, which ``MeshT`` and
+``PackedBVH`` read with ``location()``, and which every one of the eight classes except
+``PointCloudBVH`` applies to a copy of itself with ``relocatedTo()``. That exists for one case
+``rebasedView()`` cannot handle: a pool-resident descriptor stored *inside* another object's pool,
+such as a ``TriMeshSDF`` held in the primitive array of a BVH union (:ref:`Sec:BVHUnions`).
+Mirroring the pool copies the inner descriptor's bytes verbatim, host control block included, and
+rebasing the outer object cannot rewrite them in place -- on a device mirror they are not even
+host-writable. The outer object therefore reads its own location and applies it to a local copy of
+each inner descriptor as it evaluates it. That is sound because both were reserved from the same
+pool, which the BVH unions check when they are built. Unlike ``rebasedView()``, ``relocatedTo()``
+checks nothing and is callable on a device, so it is for this composition only, never a substitute
+for ``rebasedView()``.
 
 One consequence worth stating plainly, because it changes what familiar code means: **copying a
 pool-resident object copies descriptors, not data.** The copy resolves against the same pool memory

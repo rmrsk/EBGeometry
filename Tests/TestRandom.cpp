@@ -9,6 +9,7 @@
 #include <catch2/catch_template_test_macros.hpp>
 
 #include <cstddef>
+#include <random>
 #include <vector>
 
 using namespace EBGeometry;
@@ -46,6 +47,29 @@ TEMPLATE_TEST_CASE("Random::samplePoints: count, unit-cube range, and reproducib
     differs = (other[i][0] != points[i][0]) || (other[i][1] != points[i][1]) || (other[i][2] != points[i][2]);
   }
   REQUIRE(differs);
+}
+
+TEMPLATE_TEST_CASE("Random::samplePoints: coordinates are drawn in x, y, z order",
+                   "[Random]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Drawing all three as arguments to one call left the order to the compiler, and gcc and clang
+  // produced different points from the same seed.
+  std::mt19937_64                   rng(7);
+  std::uniform_real_distribution<T> dist(T(0.0), T(1.0));
+
+  const T x = dist(rng);
+  const T y = dist(rng);
+  const T z = dist(rng);
+
+  const auto points = Random::samplePoints<T>(1, 7);
+
+  REQUIRE(points.size() == 1);
+  REQUIRE(points[0][0] == x);
+  REQUIRE(points[0][1] == y);
+  REQUIRE(points[0][2] == z);
 }
 
 TEST_CASE("Random::samplePoints: zero count yields an empty vector", "[Random]")

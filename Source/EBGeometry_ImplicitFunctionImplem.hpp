@@ -214,8 +214,10 @@ approximateBoundingVolumeOctree(const F&           a_function,
 
   // Handle potential errors.
   const std::string baseError = "approximateBoundingVolumeOctree error: ";
-  if (a_initialLowCorner >= a_initialHighCorner) {
-    std::cerr << baseError + "'a_initialLowCorner >= a_initialHighCorner'\n";
+  // Invalid if the box is empty or inverted along any axis, not only along all three.
+  if (!(a_initialLowCorner[0] < a_initialHighCorner[0] && a_initialLowCorner[1] < a_initialHighCorner[1] &&
+        a_initialLowCorner[2] < a_initialHighCorner[2])) {
+    std::cerr << baseError + "'a_initialLowCorner' must be below 'a_initialHighCorner' in every component\n";
 
     vertices.emplace_back(-Vec3::max());
     vertices.emplace_back(+Vec3::max());

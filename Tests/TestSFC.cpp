@@ -2,11 +2,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
+#include "TestFloatingPointUtils.hpp"
 
+#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdlib>
+#include <limits>
+#include <random>
 #include <vector>
 
 using namespace EBGeometry;
@@ -178,7 +184,7 @@ TEST_CASE("Hilbert SFC: encode(0,0,0) == 0", "[SFC][Hilbert]")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// computeBins / order (double is enough; the binning/ordering is precision-agnostic)
+// computeBins / order
 // ─────────────────────────────────────────────────────────────────────────────
 
 TEST_CASE("SFC::computeBins: points map into the valid integer grid", "[SFC][bins]")
@@ -206,6 +212,126 @@ TEST_CASE("SFC::computeBins: coincident points collapse to bin 0 (no divide-by-z
 
   for (const auto& b : SFC::computeBins<double>(points)) {
     REQUIRE(b == SFC::Index{0, 0, 0});
+  }
+}
+
+TEMPLATE_TEST_CASE("SFC::computeBins: the grid cells are cubes, so a flat cloud's thin axis spans few bins",
+                   "[SFC][bins]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A 10 x 10 x 0.001 slab, with two opposite corners pinned so the extents are exact.
+  std::mt19937                      rng(11);
+  std::uniform_real_distribution<T> unit(T(0), T(1));
+
+  std::vector<Vec3> points = {Vec3(T(0), T(0), T(0)), Vec3(T(10), T(10), T(0.001))};
+
+  for (int i = 0; i < 500; i++) {
+    points.emplace_back(T(10) * unit(rng), T(10) * unit(rng), T(0.001) * unit(rng));
+  }
+
+  const auto bins = SFC::computeBins<T>(points);
+
+  REQUIRE(bins.size() == points.size());
+
+  unsigned int maxBin[3] = {0, 0, 0};
+
+  for (const auto& b : bins) {
+    for (int dir = 0; dir < 3; dir++) {
+      REQUIRE(b[dir] <= kMaxCoord);
+
+      maxBin[dir] = std::max(maxBin[dir], b[dir]);
+    }
+  }
+
+  // The long axes span the whole grid, give or take the rounding of the cell size.
+  REQUIRE(maxBin[0] + 1 >= kMaxCoord);
+  REQUIRE(maxBin[1] + 1 >= kMaxCoord);
+
+  // The thin axis spans about a ten-thousandth of it (0.001 / 10 of ValidSpan, ~210 cells), not the
+  // whole grid as it would with a separate scale per axis -- but more than one cell.
+  REQUIRE(maxBin[2] > 0);
+  REQUIRE(maxBin[2] <= kMaxCoord / 10000 + 1);
+}
+
+TEMPLATE_TEST_CASE("SFC::computeBins: coincident points all take bin 0, in either precision",
+                   "[SFC][bins]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const std::vector<Vec3> points(25, Vec3(T(-3.5), T(1e6), T(0.125)));
+
+  for (const auto& b : SFC::computeBins<T>(points)) {
+    REQUIRE(b == SFC::Index{0, 0, 0});
+  }
+}
+
+TEMPLATE_TEST_CASE("SFC::computeBins: an extent too small to divide into cells gives bin 0, not garbage",
+                   "[SFC][bins]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Below Limits<T>::min() * ValidSpan the cell size would not be a normal number (and could be
+  // zero), so every point takes bin 0 on every axis. Checked for an extent just below that cutoff,
+  // for the smallest subnormal separation, and away from the origin.
+  const T belowCutoff = std::numeric_limits<T>::min() * T(1000);
+  const T subnormal   = std::numeric_limits<T>::denorm_min();
+
+  for (const T offset : {T(0), T(1e-30), -std::numeric_limits<T>::min()}) {
+    for (const T gap : {belowCutoff, subnormal}) {
+      const std::vector<Vec3> points = {Vec3(offset, offset, offset),
+                                        Vec3(offset + gap, offset, offset),
+                                        Vec3(offset, offset + gap, offset + gap),
+                                        Vec3(offset + gap, offset + gap, offset + gap)};
+
+      for (const auto& b : SFC::computeBins<T>(points)) {
+        REQUIRE(b == SFC::Index{0, 0, 0});
+      }
+    }
+  }
+}
+
+TEST_CASE("SFC::computeBins: a tiny but representable extent still bins into the valid grid", "[SFC][bins]")
+{
+  using Vec3 = Vec3T<double>;
+
+  // 1e-300 is tiny, but its ValidSpan-th part is still a normal double, so the points are binned
+  // normally: the low point at the origin, the high one at the far corner of the grid.
+  const std::vector<Vec3> points = {Vec3(0, 0, 0), Vec3(0.5e-300, 0.25e-300, 0), Vec3(1e-300, 1e-300, 1e-300)};
+
+  const auto bins = SFC::computeBins<double>(points);
+
+  REQUIRE(bins[0] == SFC::Index{0, 0, 0});
+
+  for (const auto& b : bins) {
+    for (int dir = 0; dir < 3; dir++) {
+      REQUIRE(b[dir] <= kMaxCoord);
+    }
+  }
+
+  REQUIRE(bins[2][0] + 1 >= kMaxCoord);
+  REQUIRE(bins[1][0] > bins[1][1]);
+  REQUIRE(bins[1][1] > 0);
+}
+
+TEST_CASE("SFC::computeBins: an extent that overflows to infinity still gives in-range bins", "[SFC][bins]")
+{
+  using Vec3 = Vec3T<double>;
+
+  const double big = std::numeric_limits<double>::max();
+
+  const std::vector<Vec3> points = {Vec3(-big, 0, 0), Vec3(big, 1, 2), Vec3(0, -big, big)};
+
+  for (const auto& b : SFC::computeBins<double>(points)) {
+    for (int dir = 0; dir < 3; dir++) {
+      REQUIRE(b[dir] <= kMaxCoord);
+    }
   }
 }
 
@@ -253,4 +379,19 @@ TEST_CASE("SFC::order: is a permutation ordering points by non-decreasing SFC co
   for (size_t i = 1; i < orderHilbert.size(); i++) {
     REQUIRE(SFC::Hilbert::encode(bins[orderHilbert[i - 1]]) <= SFC::Hilbert::encode(bins[orderHilbert[i]]));
   }
+}
+
+TEST_CASE("SFC::computeBins: rejects a non-finite point", "[SFC][bins][death]")
+{
+  // An EBGEOMETRY_REQUIRE, so it aborts in every build.
+  REQUIRE(abortsWith(
+    [] {
+      const std::vector<Vec3T<double>> points = {Vec3T<double>(0.0, 0.0, 0.0),
+                                                 Vec3T<double>(std::numeric_limits<double>::infinity(), 0.0, 0.0)};
+
+      const auto bins = SFC::computeBins<double>(points);
+
+      (void)bins;
+    },
+    "SFC::computeBins: point 1 of 2 has a non-finite coordinate"));
 }

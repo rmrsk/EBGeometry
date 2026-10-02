@@ -11,7 +11,7 @@ The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`.
 
 .. important::
 
-   EBGeometry is currently limited to reading STL, PLY, OBJ, and VTK (legacy or XML polydata)
+   EBGeometry is currently limited to reading STL, PLY, OBJ, and legacy VTK polydata (``.vtk``)
    files, and then reconstructing DCEL grids from those.
    PLY and VTK files can contain associated data on the nodes and faces, but this is not
    automatically populated when constructing the DCEL grids.
@@ -57,7 +57,7 @@ further details.
 
       const auto distanceFields = EBGeometry::Parser::readIntoTriangleBVH<float>(files, pool);
 
-   This version will convert all DCEL polygons to triangles, pack them into SIMD-width groups,
+   This version fan-triangulates every DCEL polygon, packs the triangles into SIMD-width groups,
    and usually provides a nice code speedup over ``readIntoPackedBVH``.
 
 Reading raw file data
@@ -78,7 +78,33 @@ DCEL construction at all.
 .. note::
 
    If an STL file contains multiple solids (uncommon, but technically valid STL), ``readSTL``
-   only reads the first one.
+   only reads the first one. In a binary STL, the two "attribute" bytes after each triangle are
+   ignored; some exporters store a colour there.
+
+A file that cannot be read in full is rejected rather than read in part: a partial mesh has holes,
+and a mesh with holes gives wrong signs without any other symptom. If a file is missing, has an
+unsupported extension, is truncated (it ends before the vertex and face counts in its header say
+it should, or an ASCII STL has no ``endsolid``), or is corrupted (a line or header count that
+cannot be parsed, a face that refers to a vertex that does not exist, a coordinate that is not a
+finite number, faces that cannot be joined into a half-edge mesh or that fold back onto each other),
+the reader throws ``EBGeometry::Parser::ParseError``. The ``readInto*`` functions
+also throw for a file that contains no faces. A
+`ParseError <doxygen/html/classEBGeometry_1_1Parser_1_1ParseError.html>`__ is a
+``std::runtime_error`` that also reports the file, the line where the problem was found (0 for a
+binary file, or when there is no meaningful line), and the reason:
+
+.. code-block:: cpp
+
+   try {
+     const auto sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>("part.stl", pool);
+     // ...
+   }
+   catch (const EBGeometry::Parser::ParseError& e) {
+     std::cerr << e.what() << '\n'; // part.stl:12: malformed vertex line 'vertex 1 zero 0'
+   }
+
+OBJ files state neither counts nor an end marker, so a truncated OBJ file cannot be detected; it
+reads as whatever faces it still contains. A vertex that no face uses is ignored.
 
 For the raw readers' exact signatures, see the Doxygen entries for
 `readPLY <doxygen/html/namespaceEBGeometry_1_1Parser.html#ac78a6a540855effb6af095bb6c5c2982>`__,
@@ -146,41 +172,43 @@ combination with the other ``readInto*`` functions.
 DCEL mesh SDF with PackedBVH
 _____________________________
 
-``readIntoPackedBVH<T, Meta, K>(filename, pool, build)`` wraps a DCEL mesh in a ``PackedBVH``
+``readIntoPackedBVH<T, Meta, K>(filename, pool, construction)`` wraps a DCEL mesh in a ``PackedBVH``
 (depth-first flat layout) with SIMD traversal, returning a ``MeshSDF<T, Meta, K>`` by value (or a
 ``std::vector`` of them). It supports any polygon, not just triangles; the BVH branching factor
-``K`` defaults to 4 and the build strategy ``a_build`` defaults to ``BVH::Build::SAH``. The returned
+``K`` defaults to 4 and the construction method ``a_construction`` defaults to ``BVH::Construction::SAH``. The returned
 ``MeshSDF`` holds the mesh and its BVH in ``pool``, so ``pool`` must outlive it and every copy of
 it. For maximum throughput on triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
 
 Triangle meshes with PackedBVH
 ________________________________
 
-``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, maxLeafGroups, build)``
+``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, maxLeafGroups, construction)``
 converts all DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a
 ``PackedBVH``, returning a ``TriMeshSDF<T, Meta, K, W>`` by value (or a ``std::vector`` of them).
-SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to
-the SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRatio<T>()`` and
-``TriangleSoA::DefaultWidth<T>()``, see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 4)
-bounds the number of full ``W``-sized SoA groups per BVH leaf. The code will raise an error if any
-face is not a triangle. Unlike
+SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to 4
+(``BVH::DefaultBranchingRatio<T>()`` and ``TriangleSoA::DefaultWidth<T>()``, independent of compiler
+flags; see :ref:`Sec:DefaultKW`); ``maxLeafGroups`` (default 4)
+bounds the number of full ``W``-sized SoA groups per BVH leaf. Faces with more than three vertices
+are fan-triangulated, which is exact for the planar convex faces the DCEL mesh requires. Unlike
 ``readIntoMesh``/``readIntoPackedBVH``, the returned ``TriMeshSDF`` extracts flat ``Triangle``
-values from the intermediate DCEL mesh and does not retain it; its BVH is still reserved from
-``pool``, though, so ``pool`` must outlive it. Since a ``Pool`` never individually frees what it
-reserves (see `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), the intermediate mesh's storage
-also stays reserved in ``pool``.
+values from the intermediate DCEL mesh and does not retain it; its BVH is reserved from
+``pool``, so ``pool`` must outlive it. The intermediate mesh itself lives in a ``Pool`` private to
+the call and is freed on return. A ``Pool`` never frees individual reservations (see
+`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), so building the mesh in ``pool`` would leave
+it reserved there, and mirrored to the device along with the BVH.
 
 Flat triangle list
 ____________________
 
-``readIntoTriangles<T, Meta>(filename, pool)`` returns a flat ``std::vector<Triangle<T, Meta>>``
+``readIntoTriangles<T, Meta>(filename)`` returns a flat ``std::vector<Triangle<T, Meta>>``
 (or, for the multi-file overload, one such vector per file) -- every face of the parsed mesh as an
 independent, self-contained ``Triangle`` value, with no DCEL/half-edge topology connecting them. Each
 triangle carries its face's normal and metadata, and its vertices' and half-edges' normals -- the
 same extraction ``TriMeshSDF``'s mesh constructor performs, so ``readIntoTriangleBVH`` and
 ``TriMeshSDF(mesh, ...)`` build identical triangles.
-The triangles are plain values that do not refer back to ``pool``, so ``pool`` only needs to outlive
-this call. Use this
+The triangles are plain values, and the intermediate DCEL mesh lives in a ``Pool`` private to the
+call, so no ``Pool`` of yours is involved. ``readIntoTriangleBVH`` works the same way: only the
+returned ``TriMeshSDF``'s BVH is reserved from the ``pool`` you pass. Use this
 when some other part of your code wants raw triangle values (for example, to build a custom
 acceleration structure) rather than any of EBGeometry's own SDF wrappers.
 
@@ -209,15 +237,23 @@ A triangle soup is represented as
 
 Here, ``vertices`` contains the :math:`x,y,z` coordinates of each vertex, while each entry ``faces`` contains a list of vertices for the face.
 
-Turning a soup into a DCEL mesh is a two- (optionally three-) step process, using the functions
-in namespace ``EBGeometry::Soup``:
+Turning a soup into a DCEL mesh is a three-step process, with optional checks before and between the
+steps, using the functions in namespace ``EBGeometry::Soup``. The file readers run the three steps,
+the validity check before them and the two checks after compression themselves.
 
+* ``isValid(vertices, facets, reason)`` checks that every vertex coordinate is finite and every face
+  index is in range, and says why not in ``reason``. The readers run it first, before compressing.
 * ``containsDegeneratePolygons(vertices, facets)`` is an optional up-front check: it returns
-  ``true`` if any face has fewer than three vertices, or two or more vertices that coincide
-  after lexicographic sorting. Useful for validating a soup produced by an external tool before
-  spending time compressing/converting it.
+  ``true`` if any face has fewer than three vertices, two or more coincident vertices, or zero
+  area (collinear vertices). Useful for validating a soup produced by an external tool.
 * ``compress(vertices, facets)`` discards duplicate vertices from the soup in place, updating
   ``facets`` to reference the compressed vertex list.
+* ``removeDegeneratePolygons(vertices, facets)`` removes faces that have no area, and returns how
+  many it removed. A zero-area triangle whose three vertices are collinear is usually a
+  *T-junction filler*, written by CAD exporters to close the gap where one edge meets the middle of
+  another. It is removed, and its middle vertex is inserted into the face across its longest edge,
+  so the mesh stays closed. This matters for the sign of the distance: a zero-area face has no
+  normal, and left in place it would corrupt the edge and vertex pseudonormals next to it.
 * ``soupToDCEL(mesh, pool, vertices, facets, id)`` builds the vertices, half-edges, and faces of
   the (already-compressed) soup into the output DCEL mesh, reconciles pair edges (internally, via
   ``reconcilePairEdgesDCEL``, which links each half-edge :math:`u \to v` to its reverse
@@ -227,6 +263,14 @@ in namespace ``EBGeometry::Soup``:
   itself, sized from ``vertices``/``facets``. ``mesh`` is attached to ``pool`` by that first reserve
   and is queryable as soon as ``soupToDCEL`` returns, whether or not ``pool`` is shared with further
   meshes -- see :ref:`Chap:MemoryModel` and :ref:`Sec:DCELMemoryModel`.
+* ``findTopologyDefect(facets)``, run between the two steps above, reports a face that visits a
+  vertex twice, or an edge that two faces run along in the same direction -- which is what happens
+  when neighbouring faces are oriented inconsistently, or when three or more faces share one edge.
+  Such faces cannot be joined into a half-edge mesh. An edge used by only one face (a hole) is not
+  reported.
+* ``findFoldedFeature(mesh)``, run on the finished mesh, reports an edge or vertex whose
+  pseudonormal is zero because the faces around it fold back onto each other; the sign of the
+  distance near it would be undefined.
 
 .. note::
 
@@ -239,6 +283,9 @@ in namespace ``EBGeometry::Soup``:
 .. warning::
 
    ``soupToDCEL`` will issue plenty of warnings if the polygon soup is not watertight and orientable.
+   The format classes' ``convertToDCEL`` functions, which the readers use, go further: they throw
+   ``ParseError`` if ``findTopologyDefect`` or ``findFoldedFeature`` reports anything. A mesh with
+   holes is still read.
 
 .. _Chap:ThirdPartyParser:
 

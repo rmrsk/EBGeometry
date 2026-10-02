@@ -24,6 +24,7 @@ using Meta = short;
   /* -- Vectors ---------------------------------------------------------- */ \
   template class Vec2T<PREC>;                                                \
   template class Vec3T<PREC>;                                                \
+  template struct Array<PREC, 3>;                                            \
                                                                                \
   /* -- Abstract bases --------------------------------------------------- */ \
   template class ImplicitFunction<PREC>;                                     \
@@ -54,6 +55,7 @@ using Meta = short;
   template struct SmoothMinOp<PREC>;                                         \
   template struct SmoothMaxOp<PREC>;                                         \
   template struct ExpMinOp<PREC>;                                            \
+  template struct ExpMaxOp<PREC>;                                            \
   template class BVHUnionIF<PREC, SphereSDF<PREC>, 4>;                       \
   template class BVHSmoothUnionIF<PREC, SphereSDF<PREC>, 4>;                 \
   template class BVHSmoothUnionIF<PREC, BoxSDF<PREC>, 4, ExpMinOp<PREC>>;    \
@@ -67,6 +69,7 @@ using Meta = short;
   template class AnnularIF<PREC>;                                           \
   template class BlurIF<PREC>;                                              \
   template class MollifyIF<PREC>;                                           \
+  template class TransformDetail::BumpMollifierIF<PREC>;                    \
   template class ElongateIF<PREC>;                                          \
   template class ReflectIF<PREC>;                                           \
                                                                                \
@@ -180,8 +183,8 @@ instantiateFunctionTemplates()
   (void)Parser::readIntoMesh<T, Meta>(files, meshPool);
   (void)Parser::readIntoPackedBVH<T, Meta>(file, meshPool);
   (void)Parser::readIntoPackedBVH<T, Meta>(files, meshPool);
-  (void)Parser::readIntoTriangles<T, Meta>(file, meshPool);
-  (void)Parser::readIntoTriangles<T, Meta>(files, meshPool);
+  (void)Parser::readIntoTriangles<T, Meta>(file);
+  (void)Parser::readIntoTriangles<T, Meta>(files);
   (void)Parser::readIntoTriangleBVH<T, Meta>(file, meshPool);
   (void)Parser::readIntoTriangleBVH<T, Meta>(files, meshPool);
 

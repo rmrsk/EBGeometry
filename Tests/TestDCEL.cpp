@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
@@ -12,6 +13,7 @@
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace EBGeometry;
@@ -907,6 +909,19 @@ TEMPLATE_TEST_CASE("FaceT: getSmallestCoordinate/getHighestCoordinate bound the 
   }
 }
 
+TEMPLATE_TEST_CASE("MeshT: deepCopy of an empty mesh is an empty mesh", "[DCEL][Mesh]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool                            pool(hostMemoryResource());
+  const MeshT<T, DefaultMetaData> empty;
+  const auto                      copy = empty.deepCopy(pool);
+
+  REQUIRE(copy.numVertices() == 0);
+  REQUIRE(copy.numEdges() == 0);
+  REQUIRE(copy.numFaces() == 0);
+}
+
 TEMPLATE_TEST_CASE("MeshT: deepCopy produces an independent mesh with the same geometry",
                    "[DCEL][Mesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1118,6 +1133,126 @@ TEMPLATE_TEST_CASE("MeshT: rebasedView onto a host-to-host mirror answers identi
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Caller-controlled setup and topology checks (EBGEOMETRY_REQUIRE: abort in every build)
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("MeshT: rebasedView onto a pool that is not a mirror of the mesh's own pool aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+      Pool otherPool(hostMemoryResource());
+
+      auto mesh = buildTetrahedron<T>(pool);
+
+      (void)buildTetrahedron<T>(otherPool);
+
+      pool.freeze();
+      otherPool.freeze();
+
+      // A byte-identical block, but mirrored from the wrong pool: the mesh's offsets mean nothing there.
+      const Pool wrongMirror = Pool::mirror(otherPool, hostMemoryResource());
+
+      (void)mesh->rebasedView(wrongMirror); // must abort
+    },
+    "DCEL::MeshT::rebasedView: the pool must be the object's own pool or a mirror of it"));
+}
+
+TEST_CASE("MeshT: reserving a mesh's arrays from two different pools aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool poolA(hostMemoryResource());
+      Pool poolB(hostMemoryResource());
+
+      TestMesh<T> mesh;
+
+      mesh.reserveVertices(poolA, 3);
+      mesh.reserveEdges(poolB, 3); // must abort
+    },
+    "DCEL::MeshT::attachTo: all of its arrays must be reserved from the same Pool"));
+}
+
+TEST_CASE("MeshT: reconciling a hand-built face with fewer than 3 vertices aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      mesh.reserveVertices(pool, 2);
+      mesh.reserveEdges(pool, 2);
+      mesh.reserveFaces(pool, 1);
+
+      (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(0, 0, 0)));
+      (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(1, 0, 0)));
+
+      // A two-edge loop 0 -> 1 -> 0: a "face" that cannot span a plane.
+      for (uint32_t e = 0; e < 2; e++) {
+        TestEdge<T> edge(e);
+
+        edge.setNextEdge((e + 1) % 2);
+        edge.setFace(0);
+
+        (void)mesh.addEdge(pool, edge);
+      }
+
+      (void)mesh.addFace(pool, TestFace<T>(0u));
+
+      mesh.reconcile(); // must abort
+    },
+    "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (2)"));
+}
+
+TEST_CASE("MeshT: reconciling a hand-built face that visits a vertex twice aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  // The file readers reject such a face (Soup::containsDegeneratePolygons), so it can only be built
+  // by hand. The angle-weighted vertex normal needs exactly one incoming and one outgoing half-edge
+  // per face at the vertex; before this was an always-on check, a release build read past the end of
+  // the two-element neighbour list.
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      // Boundary loop 0 -> 1 -> 2 -> 0 -> 3 -> (back to 0): vertex 0 is visited twice. Its Newell
+      // normal is +z, so the face is not skipped as zero-area.
+      const std::vector<Vec3T<T>> positions = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, -1, 0}};
+      const std::vector<uint32_t> loop      = {0, 1, 2, 0, 3};
+
+      mesh.reserveVertices(pool, static_cast<uint32_t>(positions.size()));
+      mesh.reserveEdges(pool, static_cast<uint32_t>(loop.size()));
+      mesh.reserveFaces(pool, 1);
+
+      for (const auto& x : positions) {
+        (void)mesh.addVertex(pool, TestVertex<T>(x));
+      }
+
+      for (uint32_t e = 0; e < loop.size(); e++) {
+        TestEdge<T> edge(loop[e]);
+
+        edge.setNextEdge((e + 1) % static_cast<uint32_t>(loop.size()));
+        edge.setFace(0);
+
+        (void)mesh.addEdge(pool, edge);
+      }
+
+      (void)mesh.addFace(pool, TestFace<T>(0u));
+
+      mesh.reconcile(VertexNormalWeight::Angle); // must abort
+    },
+    "DCEL::VertexT::computeVertexNormalAngleWeighted: face 0 must visit vertex 0 exactly once (found 4"));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Soup tests
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1153,6 +1288,75 @@ TEMPLATE_TEST_CASE("Soup::containsDegeneratePolygons detects a facet with a repe
   const std::vector<std::vector<size_t>> facets = {{0, 1, 1}};
 
   REQUIRE(Soup::containsDegeneratePolygons(verts, facets));
+}
+
+TEMPLATE_TEST_CASE("Soup::containsDegeneratePolygons detects a zero-area facet with distinct, collinear vertices",
+                   "[Soup]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T                                       = TestType;
+  const std::vector<Vec3T<T>>            verts  = {{0, 0, 0}, {1, 0, 0}, {T(0.5), 0, 0}};
+  const std::vector<std::vector<size_t>> facets = {{0, 1, 2}};
+
+  REQUIRE(Soup::isZeroArea(verts, facets[0]));
+  REQUIRE(Soup::containsDegeneratePolygons(verts, facets));
+}
+
+TEMPLATE_TEST_CASE("Soup::removeDegeneratePolygons repairs a T-junction filler and drops collapsed facets",
+                   "[Soup]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A square split into two triangles along its diagonal 0-2, where one side of the diagonal has
+  // been split at its midpoint 4 and the T-junction closed by the zero-area triangle {2, 0, 4}.
+  // Facet {0, 4, 4} collapses to a segment once its repeated vertex is merged.
+  const std::vector<Vec3T<T>> verts = {{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}, {T(0.5), T(0.5), 0}};
+
+  std::vector<std::vector<size_t>> facets = {{0, 1, 4}, {1, 2, 4}, {2, 0, 4}, {0, 2, 3}, {0, 4, 4}};
+
+  REQUIRE(Soup::removeDegeneratePolygons(verts, facets) == 2);
+  REQUIRE(facets.size() == 3);
+  REQUIRE_FALSE(Soup::containsDegeneratePolygons(verts, facets));
+
+  // The facet across the filler's longest edge (0 -> 2 reversed, in {0, 2, 3}) gained its middle
+  // vertex, so every directed edge now has its reverse and the mesh is closed around vertex 4.
+  REQUIRE(facets[2] == std::vector<size_t>{0, 4, 2, 3});
+}
+
+TEMPLATE_TEST_CASE("DCEL: a zero-area face built without the soup repair gets a zero normal, never NaN",
+                   "[DCEL][Face]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  // soupToDCEL directly, bypassing Soup::removeDegeneratePolygons: face 2 is a zero-area filler.
+  const std::vector<Vec3T<T>> verts = {{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}, {T(0.5), T(0.5), 0}};
+
+  const std::vector<std::vector<size_t>> facets = {{0, 1, 4}, {1, 2, 4}, {2, 0, 4}, {0, 2, 3}};
+
+  MeshT<T, DefaultMetaData> mesh;
+  Soup::soupToDCEL(mesh, pool, verts, facets, "t-junction");
+
+  REQUIRE(mesh.getFace(2).getNormal() == Vec3T<T>::zeros());
+
+  for (uint32_t v = 0; v < mesh.numVertices(); v++) {
+    const Vec3T<T>& n = mesh.getVertex(v).getNormal();
+
+    REQUIRE(std::isfinite(n[0]));
+    REQUIRE(std::isfinite(n[1]));
+    REQUIRE(std::isfinite(n[2]));
+  }
+
+  for (uint32_t e = 0; e < mesh.numEdges(); e++) {
+    const Vec3T<T>& n = mesh.getEdge(e).getNormal();
+
+    REQUIRE(std::isfinite(n[0]));
+    REQUIRE(std::isfinite(n[1]));
+    REQUIRE(std::isfinite(n[2]));
+  }
 }
 
 TEMPLATE_TEST_CASE("Soup::compress removes duplicate vertices and reindexes facets consistently",
@@ -1235,15 +1439,26 @@ TEMPLATE_TEST_CASE("DCEL: tetrahedron loads without error", "[DCEL]", EBGEOMETRY
   REQUIRE(mesh != nullptr);
 }
 
-TEMPLATE_TEST_CASE("Parser::readIntoDCEL returns a valid, empty mesh for an "
-                   "unrecognized file extension",
+TEMPLATE_TEST_CASE("Parser::readIntoDCEL throws for an unrecognized file extension",
                    "[DCEL][Parser]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  Pool pool(hostMemoryResource());
-  auto mesh = Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.unsupported-extension", pool);
+  Pool              pool(hostMemoryResource());
+  const std::string file = g_dataDir + "/tetrahedron.unsupported-extension";
+
+  REQUIRE_THROWS_MATCHES(Parser::readIntoDCEL<T>(file, pool),
+                         Parser::ParseError,
+                         Catch::Matchers::Message(file + ": unsupported file type; the extension must be .stl, "
+                                                         ".ply, .vtk or .obj"));
+}
+
+TEMPLATE_TEST_CASE("DCEL: an empty mesh reports infinite distances", "[DCEL]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const DCEL::MeshT<T> mesh;
 
   REQUIRE(mesh.numVertices() == 0);
   REQUIRE(mesh.numEdges() == 0);
@@ -1337,7 +1552,7 @@ TEMPLATE_TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]", E
   auto mesh = loadTetrahedron<T>(pool);
   REQUIRE(mesh != nullptr);
 
-  TestMeshSDF<T> sdf(*mesh, pool, BVH::Build::SAH);
+  TestMeshSDF<T> sdf(*mesh, pool, BVH::Construction::SAH);
 
   SECTION("centroid is inside (SDF < 0)")
   {
@@ -1371,7 +1586,7 @@ TEMPLATE_TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DC
 
   Pool           pool(hostMemoryResource());
   auto           mesh = buildTetrahedron<T>(pool);
-  TestMeshSDF<T> sdf(*mesh, pool, BVH::Build::SAH);
+  TestMeshSDF<T> sdf(*mesh, pool, BVH::Construction::SAH);
 
   // Far outside: must be positive.
   REQUIRE(sdf.signedDistance(Vec3T<T>(2.0, 2.0, 2.0)) > T(0.0));
@@ -1387,7 +1602,7 @@ TEMPLATE_TEST_CASE("DCEL sign convention: interior point has negative SDF", "[DC
 
   Pool           pool(hostMemoryResource());
   auto           mesh = buildTetrahedron<T>(pool);
-  TestMeshSDF<T> sdf(*mesh, pool, BVH::Build::SAH);
+  TestMeshSDF<T> sdf(*mesh, pool, BVH::Construction::SAH);
 
   // Centroid of the tetrahedron is clearly inside.
   REQUIRE(sdf.signedDistance(Vec3T<T>(0.25, 0.25, 0.25)) < T(0.0));
@@ -1427,59 +1642,175 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
   REQUIRE_THAT(dEdgeFast, withinAbsT(dEdgeBrute, traversalMargin<T>()));
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: the DCEL query surface (MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT) is
 // callable from a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Face m_face's signed distance to each query point (FaceT::signedDistance, which runs the face's
+// current inside/outside algorithm).
 template <class T>
-EBGEOMETRY_GLOBAL
-void
-dcelDeviceKernel(TestMesh<T> a_mesh, Vec3T<T> a_point, T* a_out)
+struct FaceSignedDistanceQuery
 {
-  const TestFace<T>& face = a_mesh.getFace(0);
+  TestMesh<T> m_mesh;
+  uint32_t    m_face;
 
-  uint32_t edgeCount = 0;
-
-  for (TestEdgeIterator<T> it(a_mesh, face); it.ok(); ++it) {
-    ++edgeCount;
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_mesh.getFace(m_face).signedDistance(a_point, m_mesh);
   }
+};
 
-  const T vertexTerm = a_mesh.getVertex(1).getPosition().length();
+// The mesh's own signed distance to each query point: MeshT's algorithm-dispatching entry point
+// (Direct2 by default), which used to be EBGEOMETRY_HOST-only because of a std::cerr call in its
+// switch's defensive default case (see the class-level note in EBGeometry_DCEL_Mesh.hpp).
+template <class T>
+struct MeshSignedDistanceQuery
+{
+  TestMesh<T> m_mesh;
 
-  // getSmallestCoordinate/getHighestCoordinate reduce componentwise over the half-edge loop
-  // without materializing a std::vector, which is what keeps them callable from here.
-  const T bboxTerm = (face.getHighestCoordinate(a_mesh) - face.getSmallestCoordinate(a_mesh)).length();
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_mesh.signedDistance(a_point);
+  }
+};
 
-  const T baseTerms =
-    face.signedDistance(a_point, a_mesh) + a_mesh.unsignedDistance2(a_point) + T(edgeCount) + vertexTerm + bboxTerm;
+// The mesh's squared unsigned distance to each query point.
+template <class T>
+struct MeshUnsignedDistance2Query
+{
+  TestMesh<T> m_mesh;
 
-  // MeshT's own public, device-callable signedDistance() (the algorithm-dispatching entry point --
-  // Direct2 by default -- that used to be EBGEOMETRY_HOST-only because of a std::cerr call in its
-  // switch's defensive default case; see the class-level note in EBGeometry_DCEL_Mesh.hpp).
-  const T meshSignedDist = a_mesh.signedDistance(a_point);
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_mesh.unsignedDistance2(a_point);
+  }
+};
 
-  // setInsideOutsideAlgorithm() plus the WindingNumber/SubtendedAngle branches of
-  // FaceT::isPointInsideFace (buildTetrahedron leaves every face at the default CrossingNumber,
-  // already exercised by the calls above).
-  a_mesh.setInsideOutsideAlgorithm(InsideOutsideAlgorithm::WindingNumber);
-  const T windingDist = face.signedDistance(a_point, a_mesh);
+// The number of half-edges EdgeIteratorT visits around each queried face.
+template <class T>
+struct EdgeLoopLengthQuery
+{
+  TestMesh<T> m_mesh;
 
-  a_mesh.setInsideOutsideAlgorithm(InsideOutsideAlgorithm::SubtendedAngle);
-  const T subtendedDist = face.signedDistance(a_point, a_mesh);
+  EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  operator()(const uint32_t& a_face) const noexcept
+  {
+    uint32_t count = 0;
 
-  // flip(): negating every normal must exactly negate signedDistance for the same point (the
-  // inside/outside classification itself is magnitude-based, so it is unaffected by which
-  // InsideOutsideAlgorithm is currently selected) -- self-verifying, no separate host expectation
-  // needed for this term beyond "it sums to zero".
-  const T preFlipDist = face.signedDistance(a_point, a_mesh);
-  a_mesh.flip();
-  const T postFlipDist    = face.signedDistance(a_point, a_mesh);
-  const T flipConsistency = preFlipDist + postFlipDist;
+    for (TestEdgeIterator<T> it(m_mesh, m_mesh.getFace(a_face)); it.ok(); ++it) {
+      ++count;
+    }
 
-  a_out[0] = baseTerms + meshSignedDist + windingDist + subtendedDist + flipConsistency;
-}
+    return count;
+  }
+};
+
+// The m_rank-th half-edge EdgeIteratorT visits around each queried face (UINT32_MAX past the end).
+template <class T>
+struct EdgeLoopEdgeQuery
+{
+  TestMesh<T> m_mesh;
+  uint32_t    m_rank;
+
+  EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  operator()(const uint32_t& a_face) const noexcept
+  {
+    uint32_t rank = 0;
+
+    for (TestEdgeIterator<T> it(m_mesh, m_mesh.getFace(a_face)); it.ok(); ++it) {
+      if (rank == m_rank) {
+        return it();
+      }
+
+      ++rank;
+    }
+
+    return UINT32_MAX;
+  }
+};
+
+// Component m_axis of each queried face's highest (m_high) or smallest vertex coordinate. These
+// reduce componentwise over the half-edge loop without materializing a std::vector, which is what
+// keeps them callable from a kernel.
+template <class T>
+struct FaceExtentQuery
+{
+  TestMesh<T> m_mesh;
+  size_t      m_axis;
+  bool        m_high;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const uint32_t& a_face) const noexcept
+  {
+    const TestFace<T>& face = m_mesh.getFace(a_face);
+
+    return m_high ? face.getHighestCoordinate(m_mesh)[m_axis] : face.getSmallestCoordinate(m_mesh)[m_axis];
+  }
+};
+
+// Component m_axis of each queried vertex's position.
+template <class T>
+struct VertexPositionQuery
+{
+  TestMesh<T> m_mesh;
+  size_t      m_axis;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const uint32_t& a_vertex) const noexcept
+  {
+    return m_mesh.getVertex(a_vertex).getPosition()[m_axis];
+  }
+};
+
+// Selects m_algorithm on every face, then returns face 0's signed distance to the query point. It
+// writes pool-resident face data that every thread would share, so it is run on a single query.
+template <class T>
+struct SetInsideOutsideAlgorithmQuery
+{
+  TestMesh<T>            m_mesh;
+  InsideOutsideAlgorithm m_algorithm;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    TestMesh<T> mesh = m_mesh;
+
+    mesh.setInsideOutsideAlgorithm(m_algorithm);
+
+    return mesh.getFace(0).signedDistance(a_point, mesh);
+  }
+};
+
+// Flips every normal, then returns face 0's signed distance to the query point. Like the one above,
+// it writes shared pool-resident data, so it is run on a single query.
+template <class T>
+struct FlipQuery
+{
+  TestMesh<T> m_mesh;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    TestMesh<T> mesh = m_mesh;
+
+    mesh.flip();
+
+    return mesh.getFace(0).signedDistance(a_point, mesh);
+  }
+};
 
 TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surface matches the host",
                    "[DCEL][gpu]",
@@ -1496,45 +1827,110 @@ TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surfac
   Pool hostPool(hostMemoryResource());
   auto mesh = buildTetrahedron<T>(hostPool);
 
-  const Vec3T<T> point(2.0, 2.0, 2.0);
+  hostPool.freeze();
 
-  const TestFace<T>& face      = mesh->getFace(0);
-  const uint32_t     edgeCount = 3; // every face built by buildTetrahedron is a triangle
-  const T            bboxTerm  = (face.getHighestCoordinate(*mesh) - face.getSmallestCoordinate(*mesh)).length();
-  const T            baseTerms = face.signedDistance(point, *mesh) + mesh->unsignedDistance2(point) + T(edgeCount) +
-                      mesh->getVertex(1).getPosition().length() + bboxTerm;
+  Pool              devicePool = Pool::mirror(hostPool, deviceTestResource());
+  const TestMesh<T> device     = mesh->rebasedView(devicePool);
+  const TestMesh<T> host       = *mesh;
 
-  const T meshSignedDist = mesh->signedDistance(point);
+  // The tetrahedron spans [0, 1] on each axis, so this grid covers points inside, outside, and near
+  // every face.
+  const auto points = queryGrid<T>(Vec3T<T>(T(-0.5), T(-0.5), T(-0.5)), Vec3T<T>(T(1.5), T(1.5), T(1.5)), 10);
 
-  // Mirror now, while hostPool is still in its pristine (CrossingNumber, unflipped) state: the
-  // device kernel runs the exact same WindingNumber/SubtendedAngle/flip() progression below,
-  // starting from this same snapshot, so mutating hostPool afterward (to compute the matching host
-  // expectation) does not need to -- and must not -- touch the already-mirrored device copy.
-  Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
+  // The mutating functors run on this one point only.
+  const std::vector<Vec3T<T>> mutationPoint = {Vec3T<T>(T(2), T(2), T(2))};
 
-  mesh->setInsideOutsideAlgorithm(InsideOutsideAlgorithm::WindingNumber);
-  const T windingDist = mesh->getFace(0).signedDistance(point, *mesh);
+  std::vector<uint32_t> faces;
+  std::vector<uint32_t> vertices;
 
-  mesh->setInsideOutsideAlgorithm(InsideOutsideAlgorithm::SubtendedAngle);
-  const T subtendedDist = mesh->getFace(0).signedDistance(point, *mesh);
+  for (uint32_t i = 0; i < mesh->numFaces(); i++) {
+    faces.push_back(i);
+  }
 
-  // Mirrors the kernel's own flip() self-consistency check: this term is mathematically ~0
-  // regardless of host/device, so it is included in hostVal purely so a broken flip() (device-side
-  // or, in principle, host-side) shows up as a real mismatch rather than being masked by summation.
-  const T preFlipDist = mesh->getFace(0).signedDistance(point, *mesh);
-  mesh->flip();
-  const T postFlipDist    = mesh->getFace(0).signedDistance(point, *mesh);
-  const T flipConsistency = preFlipDist + postFlipDist;
+  for (uint32_t i = 0; i < mesh->numVertices(); i++) {
+    vertices.push_back(i);
+  }
 
-  const T hostVal = baseTerms + meshSignedDist + windingDist + subtendedDist + flipConsistency;
+  // Integer results must match exactly.
+  const auto requireSameIndices = [](const std::vector<uint32_t>& a_device, const std::vector<uint32_t>& a_host) {
+    REQUIRE(a_device.size() == a_host.size());
 
-  const TestMesh<T> deviceView = mesh->rebasedView(devicePool);
+    for (size_t i = 0; i < a_host.size(); i++) {
+      INFO("query " << i);
+      REQUIRE(a_device[i] == a_host[i]);
+    }
+  };
 
-  DeviceBuffer<T> deviceOut;
+  // Every face's signed distance, and the mesh's own. Rerun after each mutation below, since the
+  // mutations change what these return.
+  const auto requireSameDistances = [&]() {
+    for (const uint32_t f : faces) {
+      INFO("face " << f);
+      requireSameResults(evaluateOnDevice<T>(FaceSignedDistanceQuery<T>{device, f}, points),
+                         evaluateOnHost<T>(FaceSignedDistanceQuery<T>{host, f}, points));
+    }
 
-  dcelDeviceKernel<T><<<1, 1>>>(deviceView, point, deviceOut.get());
-  (void)GPU::deviceSynchronize();
+    requireSameResults(evaluateOnDevice<T>(MeshSignedDistanceQuery<T>{device}, points),
+                       evaluateOnHost<T>(MeshSignedDistanceQuery<T>{host}, points));
+  };
 
-  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
+  // The unmutated mesh: buildTetrahedron leaves every face at the default CrossingNumber.
+  requireSameDistances();
+  requireSameResults(evaluateOnDevice<T>(MeshUnsignedDistance2Query<T>{device}, points),
+                     evaluateOnHost<T>(MeshUnsignedDistance2Query<T>{host}, points));
+
+  // The half-edge loops, walked with EdgeIteratorT (one past the triangle's three edges too, which
+  // must come back as UINT32_MAX on both sides).
+  requireSameIndices(evaluateOnDevice<uint32_t>(EdgeLoopLengthQuery<T>{device}, faces),
+                     evaluateOnHost<uint32_t>(EdgeLoopLengthQuery<T>{host}, faces));
+
+  for (uint32_t rank = 0; rank < 4; rank++) {
+    INFO("rank " << rank);
+    requireSameIndices(evaluateOnDevice<uint32_t>(EdgeLoopEdgeQuery<T>{device, rank}, faces),
+                       evaluateOnHost<uint32_t>(EdgeLoopEdgeQuery<T>{host, rank}, faces));
+  }
+
+  for (size_t axis = 0; axis < 3; axis++) {
+    INFO("axis " << axis);
+    requireSameResults(evaluateOnDevice<T>(FaceExtentQuery<T>{device, axis, true}, faces),
+                       evaluateOnHost<T>(FaceExtentQuery<T>{host, axis, true}, faces));
+    requireSameResults(evaluateOnDevice<T>(FaceExtentQuery<T>{device, axis, false}, faces),
+                       evaluateOnHost<T>(FaceExtentQuery<T>{host, axis, false}, faces));
+    requireSameResults(evaluateOnDevice<T>(VertexPositionQuery<T>{device, axis}, vertices),
+                       evaluateOnHost<T>(VertexPositionQuery<T>{host, axis}, vertices));
+  }
+
+  // setInsideOutsideAlgorithm() and the WindingNumber/SubtendedAngle branches of
+  // FaceT::isPointInsideFace, applied on the device to the device pool and on the host to the host
+  // pool by the same functor.
+  for (const auto algorithm : {InsideOutsideAlgorithm::WindingNumber, InsideOutsideAlgorithm::SubtendedAngle}) {
+    INFO("algorithm " << static_cast<int>(algorithm));
+    requireSameResults(evaluateOnDevice<T>(SetInsideOutsideAlgorithmQuery<T>{device, algorithm}, mutationPoint),
+                       evaluateOnHost<T>(SetInsideOutsideAlgorithmQuery<T>{host, algorithm}, mutationPoint));
+    requireSameDistances();
+  }
+
+  // flip(): negating every normal must negate every face's signed distance, on the device as on the
+  // host.
+  std::vector<T> flipped;
+
+  for (const uint32_t f : faces) {
+    for (const T d : evaluateOnDevice<T>(FaceSignedDistanceQuery<T>{device, f}, points)) {
+      flipped.push_back(-d);
+    }
+  }
+
+  requireSameResults(evaluateOnDevice<T>(FlipQuery<T>{device}, mutationPoint),
+                     evaluateOnHost<T>(FlipQuery<T>{host}, mutationPoint));
+  requireSameDistances();
+
+  std::vector<T> afterFlip;
+
+  for (const uint32_t f : faces) {
+    for (const T d : evaluateOnDevice<T>(FaceSignedDistanceQuery<T>{device, f}, points)) {
+      afterFlip.push_back(d);
+    }
+  }
+
+  requireSameResults(afterFlip, flipped);
 }
-#endif

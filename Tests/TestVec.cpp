@@ -5,6 +5,9 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <type_traits>
+#include <utility>
+
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -14,6 +17,35 @@ using Catch::Matchers::WithinRel;
 // ─────────────────────────────────────────────────────────────────────────────
 // Vec3T
 // ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+template <class V, class = void>
+struct HasLess : std::false_type
+{
+};
+
+template <class V>
+struct HasLess<V, std::void_t<decltype(std::declval<const V&>() < std::declval<const V&>())>> : std::true_type
+{
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Vec3T: has no ordering operators, so it cannot silently break std::set or std::sort",
+                   "[Vec3T]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // "Every component less" is not a strict weak ordering: (1, 0, 0) and (0, 1, 0) are each not less
+  // than the other, so a std::set would treat them as equal.
+  STATIC_REQUIRE_FALSE(HasLess<Vec3T<T>>::value);
+
+  // lessLX is the lexicographic ordering to use instead.
+  REQUIRE(Vec3T<T>(T(0), T(1), T(0)).lessLX(Vec3T<T>(T(1), T(0), T(0))));
+  REQUIRE_FALSE(Vec3T<T>(T(1), T(0), T(0)).lessLX(Vec3T<T>(T(0), T(1), T(0))));
+}
 
 TEMPLATE_TEST_CASE("Vec3T: default construction is zero", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -260,23 +292,84 @@ TEMPLATE_TEST_CASE("Vec2T: dot product", "[Vec2T]", EBGEOMETRY_TEST_PRECISIONS)
   REQUIRE(dot(a, a) == T(1.0));
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: the Vec3T query surface is callable from a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
-template <class T>
-EBGEOMETRY_GLOBAL
-void
-vecDeviceKernel(Vec3T<T> a_a, Vec3T<T> a_b, T* a_out)
+// The Vec3T operations checked on the device: those before VecDot are vector-valued, the rest scalar.
+enum VecOp : int
 {
-  const Vec3T<T> c  = a_a + a_b - a_b * T(2.0) + a_a / T(2.0);
-  const Vec3T<T> mn = min(a_a, a_b);
-  const Vec3T<T> mx = max(a_a, a_b);
-  const Vec3T<T> cl = clamp(c, mn, mx);
+  VecSum,
+  VecDifference,
+  VecScaled,
+  VecDivided,
+  VecMin,
+  VecMax,
+  VecClamp,
+  VecCross,
+  VecDot,
+  VecMemberDot,
+  VecLength,
+  VecLength2,
+  NumVecOps
+};
 
-  a_out[0] = dot(a_a, a_b) + cross(a_a, a_b).length() + c.length2() + cl.dot(mx);
-}
+// One Vec3T operation between the query point a and a fixed vector b; vector results return
+// component m_component.
+template <class T>
+struct VecQuery
+{
+  Vec3T<T> m_b;
+  int      m_op;
+  int      m_component;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_a) const noexcept
+  {
+    const Vec3T<T>& b = m_b;
+    const Vec3T<T>  c = a_a + b - b * T(2.0) + a_a / T(2.0);
+
+    Vec3T<T> v = Vec3T<T>::zeros();
+
+    switch (m_op) {
+    case VecSum:
+      v = a_a + b;
+      break;
+    case VecDifference:
+      v = a_a - b;
+      break;
+    case VecScaled:
+      v = a_a * T(2.0);
+      break;
+    case VecDivided:
+      v = a_a / T(2.0);
+      break;
+    case VecMin:
+      v = min(a_a, b);
+      break;
+    case VecMax:
+      v = max(a_a, b);
+      break;
+    case VecClamp:
+      v = clamp(c, min(a_a, b), max(a_a, b));
+      break;
+    case VecCross:
+      v = cross(a_a, b);
+      break;
+    case VecDot:
+      return dot(a_a, b);
+    case VecMemberDot:
+      return clamp(c, min(a_a, b), max(a_a, b)).dot(max(a_a, b));
+    case VecLength:
+      return cross(a_a, b).length();
+    default:
+      return c.length2();
+    }
+
+    return v[static_cast<size_t>(m_component)];
+  }
+};
 
 TEMPLATE_TEST_CASE("Vec3T: device query surface matches the host", "[Vec3T][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -288,19 +381,18 @@ TEMPLATE_TEST_CASE("Vec3T: device query surface matches the host", "[Vec3T][gpu]
     SKIP("no GPU device available");
   }
 
-  const Vec3T<T> a(T(1.0), T(2.0), T(3.0));
-  const Vec3T<T> b = Vec3T<T>::ones();
+  // Points on both sides of b in every component, so min/max/clamp take either argument.
+  const Vec3T<T> b(T(0.5), T(-1.25), T(2.0));
+  const auto     points = queryGrid<T>(Vec3T<T>(T(-3), T(-3), T(-3)), Vec3T<T>(T(3), T(3), T(3)), 10);
 
-  const Vec3T<T> c    = a + b - b * T(2.0) + a / T(2.0);
-  const Vec3T<T> mn   = min(a, b);
-  const Vec3T<T> mx   = max(a, b);
-  const T        host = dot(a, b) + cross(a, b).length() + c.length2() + clamp(c, mn, mx).dot(mx);
+  for (int op = 0; op < NumVecOps; op++) {
+    const int components = (op < VecDot) ? 3 : 1;
 
-  DeviceBuffer<T> deviceOut;
+    for (int component = 0; component < components; component++) {
+      const VecQuery<T> query{b, op, component};
 
-  vecDeviceKernel<T><<<1, 1>>>(a, b, deviceOut.get());
-  (void)GPU::deviceSynchronize();
-
-  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(host, gpuTol<T>()));
+      INFO("operation " << op << ", component " << component);
+      requireSameResults(evaluateOnDevice<T>(query, points), evaluateOnHost<T>(query, points));
+    }
+  }
 }
-#endif

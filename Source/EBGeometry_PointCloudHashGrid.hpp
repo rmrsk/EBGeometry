@@ -15,10 +15,10 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -43,8 +43,9 @@ namespace EBGeometry {
  * @note **Density matters.** The cell size is global, so PointCloudHashGrid is fastest on near-uniform
  * clouds. On strongly clustered / multi-scale clouds a single cell size is simultaneously too coarse
  * in dense regions and too fine in sparse ones; PointCloudBVH adapts to local density and is the
- * better choice there. The grid also serves only point queries -- unlike PointCloudBVH it is not a
- * BVH and cannot be composed as a primitive inside an outer BVH/CSG.
+ * better choice there. Like PointCloudBVH, the grid serves only point queries: neither exposes a
+ * signed distance or bounding volume, so neither can be composed as a primitive inside an outer
+ * BVH/CSG.
  *
  * @tparam T    Floating-point precision.
  * @tparam Meta User metadata type stored per point and returned via metadata(). Defaults to the
@@ -58,15 +59,25 @@ public:
    * @brief One query result: the cloud index of a matched point and its squared distance.
    * @details Identical in shape to PointCloudBVH::Hit. @c index is the point's position in the input
    * @c positions / @c metadata arrays; @c distanceSquared avoids a sqrt on the hot path.
-   * @note A "no match" result (an empty cloud, or a self-query on a cloud with no other point) is
-   * signalled by @c distanceSquared == std::numeric_limits<T>::max(); test that rather than @c index,
-   * since the default @c index of 0 is indistinguishable from a genuine match on point 0. The
-   * multi-result queries instead report the count found via their return value.
+   * @note A "no match" result (an empty cloud, or a self-query on a cloud with no other point) has
+   * @c index == Math::Limits<std::size_t>::max() and @c distanceSquared ==
+   * Math::Limits<T>::max(); valid() tests for it. Slots a multi-result query could not fill
+   * hold the same value, and those queries also report the count found via their return value.
    */
   struct Hit
   {
-    std::size_t index           = 0;                             ///< Cloud index of the matched point.
-    T           distanceSquared = std::numeric_limits<T>::max(); ///< Squared distance from the query to it.
+    std::size_t index           = Math::Limits<std::size_t>::max(); ///< Cloud index of the matched point.
+    T           distanceSquared = Math::Limits<T>::max();           ///< Squared distance from the query to it.
+
+    /**
+     * @brief Whether this is a match rather than a "no match" result.
+     * @return True if @c index refers to a point.
+     */
+    [[nodiscard]] bool
+    valid() const noexcept
+    {
+      return index != Math::Limits<std::size_t>::max();
+    }
   };
 
   /**
@@ -272,7 +283,7 @@ private:
   /**
    * @brief Sentinel meaning "exclude no point".
    */
-  static constexpr std::size_t s_none = std::numeric_limits<std::size_t>::max();
+  static constexpr std::size_t s_none = Math::Limits<std::size_t>::max();
 
   /**
    * @brief Point positions, indexed by cloud index.

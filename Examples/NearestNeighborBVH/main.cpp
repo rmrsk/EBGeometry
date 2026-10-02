@@ -34,8 +34,9 @@ using T = EBGEOMETRY_PRECISION;
 
 using Vec3 = EBGeometry::Vec3T<T>;
 
-// The turnkey point-cloud BVH. K (branching) and W (SoA leaf width) default to the SIMD-optimal
-// values for T, so they are not named here.
+// The turnkey point-cloud BVH. K (branching) and W (SoA leaf width) default to
+// BVH::DefaultBranchingRatio<T>() and PointSoA::DefaultWidth<T>() (4, the same on every machine and
+// on a GPU), so they are not named here.
 using PointCloud = EBGeometry::PointCloudBVH<T, std::size_t>;
 
 // Run configuration. kNN is the number of nearest neighbors computed for every point.

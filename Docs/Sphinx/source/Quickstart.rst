@@ -16,8 +16,13 @@ examples directly:
 
 .. code-block:: bash
 
-   cd Examples/Shapes
+   cd Examples/PackedSpheres
    g++ -O3 -std=c++17 -I../.. main.cpp && ./a.out
+
+This builds a BVH-accelerated union of about half a million spheres and prints the average time
+per query of a brute-force union and of the BVH union, and the speedup between them (see
+:ref:`Chap:ExamplePackedSpheres`). It needs no mesh files, so it runs without the submodule
+described below.
 
 Every folder under :file:`Examples/<something>` is a pure EBGeometry example: it
 has no third-party dependencies and can be compiled with the one-liner above (see

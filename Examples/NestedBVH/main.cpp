@@ -19,17 +19,19 @@ using namespace EBGeometry;
 using T    = EBGEOMETRY_PRECISION;
 using Meta = short;
 
-// Branching factor for the outer union BVH. Defaults to the SIMD-optimal value for T on the
-// compiled ISA -- the same default readIntoTriangleBVH uses for the inner mesh BVHs.
+// Branching factor for the outer union BVH: the library default (4 on every machine and on a GPU),
+// the same default readIntoTriangleBVH uses for the inner mesh BVHs.
 constexpr size_t K = BVH::DefaultBranchingRatio<T>();
 
 using Vec3 = EBGeometry::Vec3T<T>;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Mesh = EBGeometry::TriMeshSDF<T, Meta, K, EBGeometry::TriangleSoA::DefaultWidth<T>()>;
 
+// The function-try-block reports a mesh file that cannot be read, rather than letting the exception
+// terminate the program.
 int
 main(int argc, char* argv[])
-{
+try {
   // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated union
   // (BVHUnionIF) whose primitives are themselves BVH-backed mesh signed distance functions
   // (TriMeshSDF). Each TriMeshSDF owns an inner PackedBVH over its SoA triangle groups, so a single
@@ -61,7 +63,7 @@ main(int argc, char* argv[])
   // TriMeshSDF (with its own inner BVH) is built using the library's default parameters. A union
   // holds primitives of a single type, so placing genuinely different meshes works the same way, as
   // long as they are all TriMeshSDF<T, Meta, K, W> with the same parameters.
-  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(file, pool);
+  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(file);
 
   const std::vector<Vec3> shifts = {
     Vec3(0, 0, 0),
@@ -90,7 +92,7 @@ main(int argc, char* argv[])
       triangle.setVertexPositions(vertices);
     }
 
-    primitives.emplace_back(shifted, pool, EBGeometry::BVH::Build::SAH, 4);
+    primitives.emplace_back(shifted, pool, EBGeometry::BVH::Construction::SAH, 4);
     boundingVolumes.push_back(primitives.back().computeBoundingVolume());
   }
 
@@ -106,4 +108,8 @@ main(int argc, char* argv[])
   }
 
   return 0;
+} catch (const EBGeometry::Parser::ParseError& e) {
+  std::cerr << "Cannot read the mesh: " << e.what() << '\n';
+
+  return 1;
 }

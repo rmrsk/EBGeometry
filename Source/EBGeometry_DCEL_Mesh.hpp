@@ -92,8 +92,8 @@ namespace DCEL {
  * host container (getAllVertexCoordinates), logs diagnostics to std::cerr (sanityCheck and its
  * incrementWarning/printWarnings helpers), or delegates to a VertexT/EdgeT/FaceT method that itself
  * allocates a std::vector or can log a diagnostic the same way (reconcileFaces calls FaceT::reconcile;
- * reconcileVertices builds a transient per-vertex face list and can warn on a corrupted
- * VertexNormalWeight) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
+ * reconcileVertices builds a transient per-vertex face list and aborts with a message on a
+ * corrupted VertexNormalWeight) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -154,7 +154,8 @@ public:
   /**
    * @brief Copy constructor.
    * @details Defaulted memberwise copy. Every member is a plain value (three PODVectors, the
-   * search-algorithm enum, and a resolved base pointer), so this is a cheap, always-safe descriptor
+   * search-algorithm enum, the Pool's control-block pointer, and the device-view base pointer, which
+   * is null outside a rebasedView() device view), so this is a cheap, always-safe descriptor
    * copy -- it does NOT duplicate the underlying vertex/edge/face data, which stays shared between
    * the original and the copy (both still resolve against the same Pool/base). Use deepCopy() when
    * independent, separately-owned storage is required (e.g. in a different Pool).
@@ -253,7 +254,10 @@ public:
    * VertexNormalWeight::None for unweighted vertex normals or
    * VertexNormalWeight::Angle for the pseudonormal
    * @details This will reconcile faces, edges, and vertices, e.g. computing the
-   * area and normal vector for faces.
+   * area and normal vector for faces. A malformed topology that would otherwise read out of bounds
+   * (a face with fewer than 3 vertices, a vertex index past the end of the vertex array, or, with
+   * VertexNormalWeight::Angle, a face visiting a vertex more than once) aborts with a message in
+   * every build.
    */
   EBGEOMETRY_HOST
   inline void
@@ -499,18 +503,19 @@ public:
    * myKernel<<<blocks, threads>>>(deviceMesh, ...);          // ... then copy by value
    * @endcode
    *
-   * How the returned view resolves depends on a_pool, not on a separate choice by the caller:
-   * - a device-accessible target (Device, Managed, Mapped) yields a view holding a plain base
-   *   address, since a kernel cannot follow a host control block. Such a view must not be
-   *   dereferenced on the host, which base() asserts.
+   * How the returned view resolves depends on a_pool, not on a separate choice by the caller (see
+   * PoolLocation::rebasedOnto()):
+   * - a device-accessible target (Device, Managed, Mapped), which must be frozen, yields a view
+   *   holding a plain base address, since a kernel cannot follow a host control block. The host can
+   *   use the view too if the memory is host-accessible (Managed, Mapped), but not for a Device pool.
    * - a host-only target (Host, Pinned) yields a view holding that Pool's control block, so it is
    *   growth-immune exactly like the original mesh.
-   * @note a_pool must be a mirror of the Pool this mesh was built in -- directly, or through any
-   * number of intermediate mirrors, since Pool::mirrorOf() names the root of the chain (so
-   * host -> pinned staging -> device works). It must also be large enough to contain this mesh's
-   * arrays, which catches a Pool mirrored before the mesh's last reserve. Both are
-   * EBGEOMETRY_EXPECT-checked.
-   * @param[in] a_pool Pool to rebase onto; a mirror of this mesh's own Pool.
+   * @note a_pool must be the Pool this mesh was built in or belong to its mirror chain -- a mirror of
+   * it, or a mirror of a mirror (so host -> pinned staging -> device works, including rebasing a view
+   * of the staging pool onto the device pool). It must also be large enough to contain this mesh's
+   * arrays, which catches a Pool mirrored before the mesh's last reserve. Each is checked in every
+   * build; a violation aborts with a message.
+   * @param[in] a_pool Pool to rebase onto: this mesh's own Pool or one in its mirror chain.
    * @return A mesh descriptor resolving against a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -541,20 +546,11 @@ public:
 
 protected:
   /**
-   * @brief Control block of the Pool this mesh was reserved from; null if, and only if, this is a
-   * device view produced by rebasedView().
-   * @details Host bookkeeping. Never mirrored, never dereferenced from device code. Re-reading the
-   * base through it on every access is what makes a mesh immune to a Pool::reserve that grows and
-   * moves the block.
+   * @brief Where the mesh's arrays live: the Pool it follows, or a snapshot made by rebasedView().
+   * @details Host bookkeeping for a mesh in a host pool, which re-reads the base through the pool's
+   * control block on every access and so is immune to a Pool::reserve that grows and moves the block.
    */
-  const PoolControl* m_control = nullptr;
-
-  /**
-   * @brief Base address for a device view, set by rebasedView() and unused otherwise.
-   * @note Write-only on the host: nothing reads this until the descriptor has been byte-copied into
-   * a device address space, so it will look dead to a host-only reader.
-   */
-  void* m_base = nullptr;
+  PoolLocation m_location;
 
   /**
    * @brief Search algorithm. Only used in signed distance functions.
@@ -589,7 +585,8 @@ protected:
 
   /**
    * @brief Attach this mesh to a_pool, or check that it is already attached to it.
-   * @details Called by every reserveX(); a mesh's storage must come from exactly one Pool.
+   * @details Called by every reserveX(); a mesh's storage must come from exactly one Pool, and
+   * reserving from a second one aborts, in every build.
    * @param[in] a_pool Pool being reserved from.
    */
   EBGEOMETRY_HOST

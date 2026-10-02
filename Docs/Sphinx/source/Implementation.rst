@@ -39,18 +39,26 @@ components). A handful of design choices recur throughout the implementation:
   See :ref:`Chap:ImplemDCEL` and :ref:`Chap:ImplemBVH`.
 
 * **SIMD as an opt-in, compile-time-detected layer.** SIMD acceleration is implemented with
-  hand-written compiler intrinsics in exactly two places, selected at compile time from the
-  standard compiler-predefined ISA macros -- never a runtime dispatch. See
+  hand-written compiler intrinsics in three places (the SoA triangle and point blocks, and
+  ``PackedBVH``'s child-bounding-box pruning), selected at compile time from the standard
+  compiler-predefined ISA macros -- never a runtime dispatch. See
   :ref:`Chap:SIMDClasses`.
 
-* **Two complementary assertion mechanisms.** ``static_assert`` guards template-parameter
-  invariants decidable at compile time; the opt-in ``EBGEOMETRY_EXPECT`` macro guards runtime
-  preconditions on actual argument values. See :ref:`Chap:ConfigurationOptions`.
+* **Device-callable basics.** Scalar helpers and numeric limits (``Math::min``, ``Math::max``,
+  ``Math::clamp``, ``Math::Limits``) and the fixed-size ``Array<T, N>`` replace their ``std``
+  counterparts throughout the library, so its device code needs no special compiler flags. See
+  :ref:`Sec:WritingDeviceCode`.
+
+* **Three checking mechanisms.** ``static_assert`` guards template-parameter invariants decidable
+  at compile time; the always-on ``EBGEOMETRY_REQUIRE`` macro checks what a caller controls, once,
+  when an object is built; the opt-in ``EBGEOMETRY_EXPECT`` macro guards internal invariants,
+  including on hot paths. See :ref:`Chap:ConfigurationOptions`.
 
 The remaining pages in this section cover each component in more detail:
 
 * :ref:`Chap:MemoryModel` -- the placement-independent ``Pool``/``PODVector`` storage foundation
-  that ``DCEL::MeshT`` (and, going forward, other GPU-mirrored structures) is built on.
+  that ``DCEL::MeshT``, ``BVH::PackedBVH`` and the mesh SDFs, point clouds and BVH unions built
+  from them rest on.
 * :ref:`Chap:Vector` -- the ``Vec2T``/``Vec3T`` vector types used throughout the library.
 * :ref:`Chap:ImplemCSG` -- the ``ImplicitFunction``/``SignedDistanceFunction`` interface, the
   analytic shapes, transforms, and CSG combinators.
@@ -58,6 +66,7 @@ The remaining pages in this section cover each component in more detail:
 * :ref:`Chap:ImplemBVH` -- bounding volume hierarchy construction, traversal, and the packed
   mesh/CSG signed distance function classes built on top of it.
 * :ref:`Chap:ImplemOctree` -- the octree implementation.
+* :ref:`Chap:ImplemPointCloud` -- point-cloud BVHs and hash grids for nearest-neighbour queries.
 * :ref:`Chap:Parsers` -- reading surface meshes from STL/PLY/OBJ/VTK files.
-* :ref:`Chap:SIMDClasses` -- the two SIMD-accelerated classes, and exactly what is vectorised in
+* :ref:`Chap:SIMDClasses` -- the three SIMD-accelerated classes, and exactly what is vectorised in
   each.

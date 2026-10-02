@@ -12,7 +12,6 @@
 #define EBGEOMETRY_TRIANGLESOA_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -22,6 +21,7 @@
 #endif
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -33,13 +33,30 @@ namespace EBGeometry {
 namespace TriangleSoA {
 
 /**
- * @brief Returns the SIMD-optimal SoA width (triangles per TriangleSoAT group) for type T on the
- * current target ISA.
- * @details Maps the floating-point type and the compile-time ISA to the W that fills one SIMD
- * register exactly, matching the paths TriangleSoAT::signedDistance() actually implements. Not a
- * member of TriangleSoAT itself: that class is templated on W, so a member couldn't be used to
- * compute W's own default (the same reason BVH::DefaultBranchingRatio<T>() is a free function in
- * namespace BVH rather than a member of TreeBVH).
+ * @brief The default SoA width W (triangles per TriangleSoAT group): 4, for both float and double, in every translation unit.
+ * @details This is the value the library's class templates default to. It never depends on
+ * compiler flags, so a type spelled with it has the same layout in a host-only file, in a file
+ * compiled with AVX, and in both passes of a CUDA or HIP compile -- which is what lets an object be
+ * built on the host and used on a device. On the benchmarks in the Sphinx page on configuration
+ * options, it is also as fast on the host as the ISA-tuned value.
+ *
+ * For host-only code, HostWidth<T>() gives the value tuned to the compiler's SIMD flags instead.
+ * Usage: `size_t W = TriangleSoA::DefaultWidth<T>()` as a template-parameter default.
+ * @tparam T Floating-point precision type (float or double).
+ * @return 4.
+ */
+template <typename T>
+[[nodiscard]] constexpr size_t
+DefaultWidth() noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::TriangleSoA::DefaultWidth requires a floating-point T");
+
+  return 4;
+}
+
+/**
+ * @brief The SoA width W (triangles per TriangleSoAT group) that fills one SIMD register for type T under the compiler's SIMD flags.
+ * @details Opt-in, for host-only code:
  *
  * | ISA       | T=float | T=double |
  * |-----------|---------|----------|
@@ -47,15 +64,18 @@ namespace TriangleSoA {
  * | AVX       |    8    |    4     |
  * | otherwise |    4    |    4     |
  *
- * Usage: `size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>()` as a template-parameter default.
+ * The value depends on the flags each translation unit is compiled with, so a type spelled with it
+ * can mean different types in different files, and different layouts in the host and device passes
+ * of one CUDA or HIP compile. Never use it for a type that is shared with device code or with another
+ * translation unit built with different flags; use DefaultWidth<T>() there.
  * @tparam T Floating-point precision type (float or double).
- * @return Optimal W for the current ISA and T.
+ * @return W for T under the current ISA.
  */
 template <typename T>
 [[nodiscard]] constexpr size_t
-DefaultWidth() noexcept
+HostWidth() noexcept
 {
-  static_assert(std::is_floating_point_v<T>, "EBGeometry::TriangleSoA::DefaultWidth requires a floating-point T");
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::TriangleSoA::HostWidth requires a floating-point T");
 #if defined(__AVX512F__)
   if constexpr (std::is_same_v<T, double>) {
     return 8;
@@ -84,9 +104,9 @@ DefaultWidth() noexcept
  * AVX-512F (float, W=16; double, W=8) — evaluating all W triangles simultaneously. Any other
  * (T,W) falls back to a scalar loop over m_validCount triangles.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
- * usage (PackedBVH storing groups inside a std::vector<TriangleSoAT>) is safe: C++17 mandates that
- * std::allocator respect over-alignment, which has been verified empirically for every (T,W)
- * combination this class supports. If you allocate a TriangleSoAT yourself outside of that path —
+ * usage is safe: PackedBVH stores groups in a Pool-backed PODVector<TriangleSoAT>, which reserves
+ * each array at alignof(TriangleSoAT) inside a block aligned to PoolBaseAlign (256 bytes), and the
+ * build-time std::vector staging relies on C++17's std::allocator respecting over-alignment. If you allocate a TriangleSoAT yourself outside of that path —
  * a raw `new`, a container with a custom/pre-C++17-style allocator, placement-new into
  * externally-owned storage, or a `malloc`'d buffer — you are responsible for ensuring the memory is
  * aligned to `alignof(TriangleSoAT<T, W>)`; nothing in this class enforces or checks that, and a
@@ -120,7 +140,8 @@ public:
    * @brief Evaluate signed distance from a_point to the closest triangle in this group.
    * @details Returns the signed distance with minimum absolute value among m_validCount triangles.
    * Dispatches to an SSE4.1 packed-float path for (T=float, W=4), to AVX packed-float for
-   * (T=float, W=8), to AVX packed-double for (T=double, W=4 or W=8), or to a scalar fallback.
+   * (T=float, W=8), to AVX packed-double for (T=double, W=4 or W=8), to AVX-512F for (T=float,
+   * W=16) and (T=double, W=8, preferred over AVX when available), or to a scalar fallback.
    * Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
    * @return Signed distance from a_point to the closest valid triangle, with sign determined by
@@ -144,7 +165,7 @@ public:
    * @return Per-lane signed distances, one per W lanes.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  std::array<T, W>
+  Array<T, W>
   signedDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**

@@ -4,7 +4,10 @@ name: Continuous integration
 on:
   pull_request:
     branches: [main, dev]
-    types: [push, opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
+  # Also after a merge, so the merged result (not just each PR head) is checked.
+  push:
+    branches: [main, dev]
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-code-format
@@ -70,15 +73,15 @@ jobs:
         run: pre-commit run --show-diff-on-failure --color=always reuse --all-files
 
   Doxygen-check:
-    name: Doxygen (warnings as errors)
+    name: Doxygen (warnings as errors), docs rules and device contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - name: Install doxygen
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
+        uses: ./.github/actions/apt-install
+        with:
+          packages: doxygen graphviz
       # See the comment in the Codespell job above -- same reason for inlining pre-commit/action.
       - name: Install pre-commit
         run: python -m pip install pre-commit
@@ -90,6 +93,10 @@ jobs:
           key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Run doxygen-check (pre-commit hook)
         run: pre-commit run --show-diff-on-failure --color=always doxygen-check --all-files
+      - name: Run check-docs (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always check-docs --all-files
+      - name: Run check-device-math (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always check-device-math --all-files
 
   Static-analysis:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -105,9 +112,9 @@ jobs:
         with:
           submodules: recursive
       - name: Install clang-tidy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-tidy-18 clang-14
+        uses: ./.github/actions/apt-install
+        with:
+          packages: clang-tidy-18 clang-14
       - name: Cache Catch2 build
         uses: actions/cache@v6
         with:
@@ -129,16 +136,16 @@ jobs:
     strategy:
       matrix:
         comp: [g++-11, g++-12]
-        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+        directory: [Examples/CSGUnion, Examples/HostTuning, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install ${{ matrix.comp }}
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ matrix.comp }}
 
       - name: Compile examples
         working-directory: ${{ matrix.directory }}
@@ -163,7 +170,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        directory: [Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+        directory: [Examples/HostTuning, Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
       - uses: actions/checkout@v7
@@ -201,7 +208,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+        directory: [Examples/CSGUnion, Examples/HostTuning, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -259,11 +266,23 @@ jobs:
       - name: Run examples
         run: ctest --preset examples
 
+  CMake-consumer:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: CMake consumer (add_subdirectory, find_package)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build a project that uses EBGeometry, both ways
+        # Checks that the EBGeometry target works for a consuming project through add_subdirectory
+        # and through install + find_package, and imposes no SIMD flags on it (D12).
+        run: Scripts/check-cmake-consumer.sh "${{ runner.temp }}/consumer"
+
   Build-documentation:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Build-documentation
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Cache pip packages
@@ -271,16 +290,12 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-sphinx-${{ hashFiles('.github/workflows/CI.yml') }}
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt install doxygen
-          sudo apt install graphviz
-          sudo apt install texlive
-          sudo apt install texlive-latex-extra
-          sudo apt install latexmk
-          sudo apt install poppler-utils
-          python3 -m pip install sphinx==5.3.0 sphinx_rtd_theme sphinxcontrib-bibtex
+      - name: Install packages
+        uses: ./.github/actions/apt-install
+        with:
+          packages: doxygen graphviz texlive texlive-latex-extra latexmk poppler-utils
+      - name: Install Sphinx
+        run: python3 -m pip install sphinx==5.3.0 sphinx_rtd_theme sphinxcontrib-bibtex
 
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs
@@ -294,8 +309,9 @@ jobs:
 
       - name: Build HTML documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx
+        # Warnings are errors: a broken :ref:/:numref: or a missing figure only ever shows up as one.
         run: |
-          make html
+          make html SPHINXOPTS="-W --keep-going"
 
       - name: Build PDF documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx
@@ -331,13 +347,9 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install compiler
-        run: |
-          sudo apt-get update
-          if [[ "${{ matrix.compiler }}" == g++* ]]; then
-            sudo apt-get install -y ${{ matrix.compiler }}
-          else
-            sudo apt-get install -y clang-14
-          fi
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ startsWith(matrix.compiler, 'g++') && matrix.compiler || 'clang-14' }}
 
       - name: Cache Catch2 build
         uses: actions/cache@v6
@@ -394,7 +406,7 @@ jobs:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Sanitizers (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -403,13 +415,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install compiler
-        run: |
-          sudo apt-get update
-          if [[ "${{ matrix.compiler }}" == g++* ]]; then
-            sudo apt-get install -y ${{ matrix.compiler }}
-          else
-            sudo apt-get install -y clang-14
-          fi
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ startsWith(matrix.compiler, 'g++') && matrix.compiler || 'clang-14' }}
       - name: Cache Catch2 build
         uses: actions/cache@v6
         with:
@@ -435,6 +443,8 @@ jobs:
     name: GPU CUDA compile
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Advisory: the toolkit install is a third-party action that downloads several GB and is the
+    # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
@@ -449,16 +459,15 @@ jobs:
         run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
-        # with nvcc, exercising the device-callable surface. The device-test list lives in
-        # Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them. No GPU is needed to build.
+        # with nvcc, so the device-callable surface must compile for the device. The device-test list
+        # lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them. No GPU is needed.
         run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests --parallel 2
       - name: Run device-tagged tests
-        # This runner has no physical GPU, so deviceAvailable() is false and every one of these
-        # SKIP()s (see TestGPU.hpp) rather than actually exercising device execution -- but running
-        # them still verifies the host-side setup around each kernel launch and the SKIP() path
-        # itself execute cleanly, not just that they compile. "gpu-device" is the CTest label
-        # Tests/CMakeLists.txt attaches to exactly the [gpu]-tagged Catch2 cases in the GPU test
-        # binaries, so this doesn't need its own copy of the device-test list.
+        # This runner has no GPU. Every [gpu] test case SKIP()s at its first statement when
+        # deviceAvailable() is false (see TestGPU.hpp), so no kernel is launched and no device code
+        # runs here. What this step does check: the binaries link and start, the runtime's device
+        # query returns without crashing, and every [gpu] case is registered. "gpu-device" is the
+        # CTest label Tests/CMakeLists.txt attaches to exactly those cases.
         run: ctest --test-dir build/cuda -L gpu-device --output-on-failure
 
   GPU-HIP:
@@ -466,31 +475,47 @@ jobs:
     name: GPU HIP compile
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - name: Install HIP toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y hipcc clang-17 libamdhip64-dev rocm-device-libs-17
+        uses: ./.github/actions/apt-install
+        with:
+          packages: hipcc clang-17 libamdhip64-dev rocm-device-libs-17
       - name: Configure
         # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
         # Both precisions so the float instantiations of the device kernels are compiled too.
         run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP)
-        # with hipcc/clang, exercising the device-callable surface. The device-test list lives in
-        # Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them. No GPU is needed to build.
+        # with clang's HIP mode, so the device-callable surface must compile for the device. The
+        # device-test list lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them.
+        # No GPU is needed.
         run: cmake --build build/hip --target EBGeometry_GPUDeviceTests --parallel 2
+      - name: Configure and build with host SIMD flags
+        # A HIP translation unit compiled with -mavx: clang's device pass then sees __AVX__ as well,
+        # so any SIMD block in a __host__ __device__ function that is not also guarded on
+        # EBGEOMETRY_DEVICE_COMPILE fails to compile for the device.
+        run: |
+          cmake -S . -B build/hip-avx -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_SIMD=avx "-DCMAKE_HIP_FLAGS=-mavx -mfma -msse4.1"
+          cmake --build build/hip-avx --target EBGeometry_GPUDeviceTests --parallel 2
       - name: Run device-tagged tests
-        # See the matching step in the GPU-CUDA job above: this runner has no physical GPU, so these
-        # SKIP() cleanly (TestGPU.hpp's deviceAvailable()) rather than exercising real device
-        # execution, but still verify the host-side setup and the SKIP() path itself run cleanly.
+        # See the matching step in the GPU-CUDA job above: no GPU, so every case SKIP()s before
+        # launching a kernel. This checks that the binaries start and the device query is safe.
         run: ctest --test-dir build/hip -L gpu-device --output-on-failure
 
   CI-passed:
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
+    # The single required status check. It runs even when a dependency fails or is cancelled (a
+    # plain `needs` would skip this job, and a skipped required check does not block a merge), and
+    # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
+    # deliberately not listed.
+    if: always()
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
     runs-on: ubuntu-latest
     steps:
-      - name: Do nothing
+      - name: Require every dependency to have succeeded
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
         run: |
+          echo "One or more required jobs did not succeed."
+          exit 1
+      - name: All required jobs succeeded
+        run: echo "All required jobs succeeded."

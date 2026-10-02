@@ -36,7 +36,8 @@ instance:
 *  ``FaceT<T, Meta>`` represents a polygon face. Besides the index of its half-edge, it also
    stores the face normal vector, a 2D embedding of the polygon, and its centroid position: the
    normal and 2D embedding exist because the signed distance computation needs them, and the
-   centroid exists because BVH partitioners use it when partitioning the surface mesh. For the
+   centroid is available to partitioners that split on primitive centroids
+   (``PrimitiveCentroidPartitioner``); the preset methods split on bounding-volume centroids. For the
    full API, see the Doxygen reference for
    `FaceT <doxygen/html/classEBGeometry_1_1DCEL_1_1FaceT.html>`__.
 
@@ -84,7 +85,7 @@ step of any sort. A mesh is queryable as soon as it has data, including while th
 being built into -- which is what lets ``Soup``/``Parser`` (:ref:`Chap:Parsers`) reconcile and sanity
 -check a mesh mid-build, and lets several meshes share one pool without coordinating.
 
-Build-phase mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
+The mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
 ``addVertex()``/``addEdge()``/``addFace()``) still take the ``Pool&`` explicitly, since they reserve
 from it. ``isAttachedTo(pool)`` reports whether a mesh's storage came from a given pool, which is how
 a caller holding both can confirm they belong together.
@@ -122,7 +123,7 @@ contains -- and since every cross-reference is a byte offset, nothing needs patc
    hostPool.freeze();
 
    EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
-   const auto       deviceMesh = mesh->rebasedView(devicePool);   // rebase on the host ...
+   const auto       deviceMesh = mesh.rebasedView(devicePool);    // rebase on the host ...
 
    myKernel<<<blocks, threads>>>(deviceMesh, ...);                // ... then copy by value
 
@@ -136,7 +137,7 @@ a host-to-host mirror usable, and testable without a GPU.
 ``rebasedView`` checks that the pool it is handed really is a mirror of the mesh's own pool
 (directly, or through any number of intermediate mirrors) and that the mesh's arrays fit inside it,
 which catches the realistic mistakes: the wrong pool, or a pool mirrored before the mesh's last
-``reserve``. See :ref:`Sec:Assertions` for when those checks are compiled in.
+``reserve``. These checks are ``EBGEOMETRY_REQUIRE``\s, so they run in every build.
 
 .. _Chap:BVHIntegration:
 
@@ -152,22 +153,23 @@ primitives in the first place.
 Embedding a mesh in a BVH is a matter of pairing each ``FaceT<T, Meta>`` with a bounding volume
 and handing the resulting list to a ``TreeBVH``. Concretely,
 ``MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, BV, K>`` (in
-:file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp`, the shared helper behind both
-``MeshSDF`` and ``TriMeshSDF``'s construction) does this by:
+:file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp`, the helper behind ``MeshSDF``'s
+construction) does this by:
 
 #. Building each face's bounding volume ``BV`` directly from its vertex coordinates
    (``FaceT::getAllVertexCoordinates(mesh)``, which walks the face's half-edge loop and resolves
    each vertex index against the owning mesh).
 #. Constructing a ``TreeBVH<T, FaceT<T, Meta>, BV, K>`` from the resulting
    ``(face, bounding volume)`` pairs.
-#. Partitioning that tree according to the requested ``BVH::Build`` strategy (``TopDown``,
-   ``Morton``, ``Nested``, or ``SAH`` -- see :ref:`Chap:BVHConstruction`), where the
-   ``BVCentroidPartitioner``/``BinnedSAHPartitioner`` used by the default and SAH strategies
-   consult ``FaceT::getCentroid()`` (see above) when deciding how to split a set of faces.
+#. Partitioning that tree according to the requested ``BVH::Construction`` value (see
+   :ref:`Sec:BuildPresets`), where the top-down partitioners split on each face's bounding-volume
+   centroid. ``ClusterSAH`` has no ``TreeBVH`` form and is
+   built directly as a ``PackedBVH`` instead.
 
-``MeshSDF`` then packs this ``TreeBVH`` into a ``PackedBVH`` of faces directly (``pack()``), while
-``TriMeshSDF`` additionally converts each face into a triangle and groups triangles into
-SIMD-width ``TriangleSoAT`` blocks while packing (``packWith()``) -- see :ref:`Chap:MeshSDFClasses`
+``MeshSDF`` then packs this ``TreeBVH`` into a ``PackedBVH`` of faces directly (``pack()``).
+``TriMeshSDF`` does not use this tree: it first extracts each face as fan-triangulated ``Triangle``
+values, builds a separate ``TreeBVH`` of triangles, and packs it into SIMD-width ``TriangleAoSoA``
+leaves with ``packWith()`` -- see :ref:`Chap:MeshSDFClasses`
 for how the two differ, and :ref:`Chap:Parsers` for the file-reading entry points that produce a
 ``MeshSDF``/``TriMeshSDF`` from a mesh file directly, without driving any of the steps above by
 hand.

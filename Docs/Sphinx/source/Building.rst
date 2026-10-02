@@ -17,9 +17,11 @@ described in :ref:`Chap:ConfigurationOptions`.
 CMake
 ------
 
-EBGeometry can be consumed in two ways from CMake: by cloning the repository
-(or installing it) and using ``add_subdirectory``, or by letting CMake fetch it
-automatically at configure time with ``FetchContent``.
+EBGeometry can be consumed in three ways from CMake: by letting CMake fetch it at configure time
+with ``FetchContent``, by adding a local clone with ``add_subdirectory``, or by installing it and
+using ``find_package``. All three give you the ``INTERFACE`` target ``EBGeometry::EBGeometry``, which
+adds EBGeometry's include directory and requires C++17 of the targets that link against it. It adds
+no SIMD or other architecture flags unless you ask for them (:ref:`Sec:BuildingCMakeSIMD`).
 
 FetchContent (recommended for quick integration)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,29 +49,55 @@ Add the following to your ``CMakeLists.txt``:
    # Link against the interface target — this adds the include path automatically
    target_link_libraries(my_program PRIVATE EBGeometry::EBGeometry)
 
-After cloning, CMake configures EBGeometry as an ``INTERFACE`` library target named
-``EBGeometry::EBGeometry``.  Linking against it propagates the include directory to
-your target automatically.
-
-Local installation
-~~~~~~~~~~~~~~~~~~~~
-
-If you have a local clone, point CMake at it with ``-DCMAKE_PREFIX_PATH`` or by
-adding a call to ``add_subdirectory``:
+A local clone
+~~~~~~~~~~~~~
 
 .. code-block:: cmake
 
-   # Option A — add_subdirectory
    add_subdirectory(/path/to/EBGeometry EBGeometry_build)
    target_link_libraries(my_program PRIVATE EBGeometry::EBGeometry)
 
-   # Option B — manually set the include path
-   target_include_directories(my_program PRIVATE /path/to/EBGeometry)
+Installing, and ``find_package``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installing copies the headers to ``<prefix>/include/EBGeometry`` and a CMake package to
+``<prefix>/share/cmake/EBGeometry``:
+
+.. code-block:: bash
+
+   cmake -S /path/to/EBGeometry -B build-ebgeometry -DCMAKE_INSTALL_PREFIX=/opt/ebgeometry
+   cmake --install build-ebgeometry
+
+A project then finds it with ``find_package``, passing ``-DCMAKE_PREFIX_PATH=/opt/ebgeometry`` when
+it configures:
+
+.. code-block:: cmake
+
+   find_package(EBGeometry 1.0 REQUIRED)
+   target_link_libraries(my_program PRIVATE EBGeometry::EBGeometry)
+
+The installed package carries neither SIMD flags nor ``EBGEOMETRY_ENABLE_ASSERTIONS``, whatever
+they were set to when installing: those are for the project that uses it to choose.
+
+.. _Sec:BuildingCMakeSIMD:
 
 Enabling SIMD in CMake
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pass architecture flags via ``target_compile_options``:
+The ``EBGEOMETRY_SIMD`` cache variable (``avx512``, ``avx``, ``sse41`` or ``none``) makes the
+``EBGeometry::EBGeometry`` target add the matching flags to every target in the same build that links
+against it. Its default is ``none`` when another project pulls EBGeometry in, since SIMD flags
+produce binaries that fail on processors without those instructions, and ``avx`` when EBGeometry
+itself is the project being built (its tests, examples and benchmarks). To opt in from a project
+that uses ``FetchContent`` or ``add_subdirectory``, set it first:
+
+.. code-block:: cmake
+
+   set(EBGEOMETRY_SIMD "avx" CACHE STRING "")
+   FetchContent_MakeAvailable(EBGeometry)
+
+or pass ``-DEBGEOMETRY_SIMD=avx`` when configuring. With an installed EBGeometry, or to choose flags
+per target, pass architecture flags via ``target_compile_options``:
 
 .. code-block:: cmake
 
@@ -82,43 +110,18 @@ Pass architecture flags via ``target_compile_options``:
    # Or for maximum portability, auto-detect via march=native:
    # target_compile_options(my_program PRIVATE -march=native)
 
-To expose the SIMD level as a CMake option:
-
-.. code-block:: cmake
-
-   set(EBGEOMETRY_SIMD "avx" CACHE STRING "SIMD level: avx512 | avx | sse41 | none")
-   set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx512 avx sse41 none)
-
-   if(EBGEOMETRY_SIMD STREQUAL "avx512")
-     target_compile_options(my_program PRIVATE -mavx512f -mavx2 -mavx -mfma -msse4.1)
-   elseif(EBGEOMETRY_SIMD STREQUAL "avx")
-     target_compile_options(my_program PRIVATE -mavx -mfma -msse4.1)
-   elseif(EBGEOMETRY_SIMD STREQUAL "sse41")
-     target_compile_options(my_program PRIVATE -msse4.1)
-   endif()
-
-This is exactly what EBGeometry's own top-level ``CMakeLists.txt`` does for the
-``EBGeometry::EBGeometry`` interface target; passing ``-DEBGEOMETRY_SIMD=...`` when
-configuring the top-level project (or a project that pulls it in via
-``add_subdirectory``) controls it directly. Configure and build:
-
-.. code-block:: bash
-
-   cmake -B build -DEBGEOMETRY_SIMD=avx512
-   cmake --build build -j$(nproc)
-
 See :ref:`Chap:ConfigurationOptions` for what SIMD acceleration means for EBGeometry.
 
 Enabling assertions in CMake
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+With ``FetchContent`` or ``add_subdirectory``, the ``EBGEOMETRY_ENABLE_ASSERTIONS`` option makes the
+``EBGeometry::EBGeometry`` target define ``EBGEOMETRY_ENABLE_ASSERTIONS`` for every target that links
+against it. With an installed EBGeometry, define it yourself:
+
 .. code-block:: cmake
 
-   option(EBGEOMETRY_ENABLE_ASSERTIONS "Enable EBGeometry runtime assertions" OFF)
-
-   if(EBGEOMETRY_ENABLE_ASSERTIONS)
-     target_compile_definitions(my_program PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
-   endif()
+   target_compile_definitions(my_program PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
 
 Then at configure time:
 
@@ -244,7 +247,7 @@ Enabling SIMD acceleration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 EBGeometry detects the available SIMD instruction set at compile time using the
-standard pre-defined macros ``__AVX512F__``, ``__AVX__``, ``__SSE4_1__``, and ``__FMA__``.
+standard pre-defined macros ``__AVX512F__``, ``__AVX__`` and ``__SSE4_1__``.
 Pass the corresponding flags to expose the widest register set supported by your CPU:
 
 .. list-table::
@@ -302,5 +305,40 @@ default.  To activate it:
        -I/path/to/EBGeometry \
        main.cpp -o my_program_debug
 
+Checks on what a caller controls (``EBGEOMETRY_REQUIRE``) are on in every build and need no flag.
 See :ref:`Chap:ConfigurationOptions` for assertion semantics, the diagnostic message format, and
 the recommended build-type/assertion matrix.
+
+.. _Sec:BuildingGPU:
+
+GPU builds (CUDA and HIP)
+-------------------------
+
+A translation unit compiled by nvcc (CUDA) or by hipcc or clang in HIP mode sees EBGeometry's
+``EBGEOMETRY_HOST_DEVICE`` functions as ``__host__ __device__``, so the analytic shapes, the mesh
+signed distance functions, the BVH unions and ``PointCloudBVH``'s queries can be called from a kernel.
+The backend is detected from the compiler (``__CUDACC__`` or ``__HIPCC__``); there is nothing to
+define. The only requirement is C++17. No other flag is needed -- in particular not nvcc's
+``--expt-relaxed-constexpr``, which the library's device code is written to avoid (see
+:ref:`Sec:WritingDeviceCode`).
+
+.. code-block:: bash
+
+   nvcc  -std=c++17 -O3 -I/path/to/EBGeometry my_kernels.cu  -o my_program
+   hipcc -std=c++17 -O3 -I/path/to/EBGeometry my_kernels.hip -o my_program
+
+In CMake, enable the language and compile the sources that launch kernels as CUDA or HIP:
+
+.. code-block:: cmake
+
+   enable_language(CUDA)   # or HIP
+   add_executable(my_program my_kernels.cu main.cpp)
+   target_link_libraries(my_program PRIVATE EBGeometry::EBGeometry)
+
+The SIMD flags from :ref:`Sec:BuildingCMakeSIMD` apply to C++ sources only, never to a CUDA or HIP
+compile. A HIP compile that is given host SIMD flags anyway (``-mavx`` in ``CMAKE_HIP_FLAGS``) is
+fine: the SIMD code paths are compiled for the host pass only.
+
+Objects are built on the host and reach the device by mirroring their ``Pool`` into device memory
+and taking a ``rebasedView()`` onto the mirror, which a kernel receives by value; see
+:ref:`Chap:MemoryModel`.

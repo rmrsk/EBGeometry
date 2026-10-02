@@ -16,12 +16,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 
 // Our includes
 #include "EBGeometry_Constants.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Iterator.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -89,9 +89,12 @@ EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::normalizeNormalVector() noexcept
 {
-  EBGEOMETRY_EXPECT(m_normal.length() > std::numeric_limits<T>::epsilon());
+  // A zero-area face keeps its zero normal; see computeNormal().
+  const T length = m_normal.length();
 
-  m_normal = m_normal / m_normal.length();
+  if (length > T(0)) {
+    m_normal = m_normal / length;
+  }
 }
 
 template <class T, class Meta>
@@ -111,7 +114,7 @@ FaceT<T, Meta>::computeCentroid(const Mesh& a_mesh)
 
   const auto vertexIndices = this->gatherVertexIndices(a_mesh);
 
-  EBGEOMETRY_EXPECT(!vertexIndices.empty());
+  EBGEOMETRY_REQUIRE(!vertexIndices.empty(), "DCEL::FaceT::computeCentroid: the face has no vertices");
 
   for (const uint32_t v : vertexIndices) {
     m_centroid += a_mesh.getVertex(v).getPosition();
@@ -130,25 +133,29 @@ FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
   const size_t N = vertexIndices.size();
 
   // A polygon face needs at least 3 vertices to span a plane.
-  EBGEOMETRY_EXPECT(N >= 3);
+  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (%zu)", N);
 
-  // To compute the normal vector we find three vertices in this polygon face.
-  // They span a plane, and we just compute the normal vector of that plane.
+  // Newell's method: the sum of x_i cross x_(i+1) around the polygon is twice its vector area. It
+  // uses every vertex, so it is robust for polygons with near-collinear consecutive vertices.
+  m_normal = Vec3::zeros();
+
+  T longestEdge2 = T(0);
+
   for (size_t i = 0; i < N; i++) {
     const auto& x0 = a_mesh.getVertex(vertexIndices[i]).getPosition();
     const auto& x1 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
-    const auto& x2 = a_mesh.getVertex(vertexIndices[(i + 2) % N]).getPosition();
 
-    m_normal = (x2 - x0).cross(x2 - x1);
-
-    if (m_normal.length() > T(0.0)) {
-      break; // Found one.
-    }
+    m_normal += x0.cross(x1);
+    longestEdge2 = Math::max(longestEdge2, (x1 - x0).length2());
   }
 
-  // If every vertex triple was degenerate (collinear/coincident points), m_normal is still zero
-  // here and normalizeNormalVector() below would divide by zero.
-  EBGEOMETRY_EXPECT(m_normal.length() > std::numeric_limits<T>::epsilon());
+  // A zero-area face (collinear or coincident vertices) has no normal. It gets a zero one instead of
+  // the NaN a normalization would give: a zero normal contributes nothing to the angle-weighted
+  // vertex and edge pseudonormals around it. The parsers remove such faces before they get here
+  // (Soup::removeDegeneratePolygons); this covers meshes built by hand.
+  if (m_normal.length() <= T(64) * Math::Limits<T>::epsilon() * longestEdge2) {
+    m_normal = Vec3::zeros();
+  }
 
   this->normalizeNormalVector();
 }
@@ -158,8 +165,9 @@ EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T, Meta>::computeProjectionDirections() noexcept
 {
-  EBGEOMETRY_EXPECT(m_normal.length() > std::numeric_limits<T>::epsilon());
-
+  // A zero-area face has a zero normal and gets the x- and y-axes; they are never used, since
+  // isPointInsideFace() reports no interior for it.
+  //
   // Drop the coordinate of the largest normal component (projecting along it maximizes the projected
   // area), keeping the other two as the 2D x- and y-axes with m_xDir < m_yDir.
   uint32_t ignoreDir = 0;
@@ -175,8 +183,8 @@ FaceT<T, Meta>::computeProjectionDirections() noexcept
 
   for (uint32_t dir = 0; dir < 3; dir++) {
     if (dir != ignoreDir) {
-      m_xDir = std::min(m_xDir, dir);
-      m_yDir = std::max(m_yDir, dir);
+      m_xDir = Math::min(m_xDir, dir);
+      m_yDir = Math::max(m_yDir, dir);
     }
   }
 
@@ -196,7 +204,7 @@ FaceT<T, Meta>::computeArea(const Mesh& a_mesh)
   const auto   vertexIndices = this->gatherVertexIndices(a_mesh);
   const size_t N             = vertexIndices.size();
 
-  EBGEOMETRY_EXPECT(N >= 3);
+  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeArea: a face needs at least 3 vertices (%zu)", N);
 
   // Sum over ALL N edges, including the wraparound edge from vertices[N-1] back to vertices[0] --
   // this is the standard cross-product/shoelace formula for a planar polygon's area relative to
@@ -351,8 +359,9 @@ inline Vec3T<T>
 FaceT<T, Meta>::getSmallestCoordinate(const Mesh& a_mesh) const noexcept
 {
   // Seeded with the most-positive vector and reduced in place, rather than seeding from a
-  // materialized coordinate list -- the loop always runs at least once (EdgeIterator's constructor
-  // EBGEOMETRY_EXPECTs a valid half-edge), so the seed is never observable in the return value.
+  // materialized coordinate list. The loop runs at least once for any face whose half-edge index is
+  // set, so the seed is then never observable in the return value. EdgeIterator does not check this:
+  // a face with an unset half-edge (UINT32_MAX) makes ok() false at once, and the seed is returned.
   Vec3 minCoord = Vec3::max();
 
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
@@ -508,6 +517,11 @@ FaceT<T, Meta>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noe
   EBGEOMETRY_EXPECT(m_xDir < 3);
   EBGEOMETRY_EXPECT(m_yDir < 3);
 
+  // A zero-area face has no interior and no plane to project onto; only its edges count.
+  if (m_normal.length2() == T(0)) {
+    return false;
+  }
+
   const Vec3     pInPlane = this->projectPointIntoFacePlane(a_p);
   const Vec2T<T> p2D      = this->projectPoint(pInPlane);
 
@@ -540,7 +554,7 @@ FaceT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexc
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
   EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
 
-  T retval = std::numeric_limits<T>::infinity();
+  T retval = Math::Limits<T>::infinity();
 
   const bool inside = this->isPointInsideFace(a_x0, a_mesh);
 
@@ -570,7 +584,7 @@ FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const no
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
   EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
 
-  T retval = std::numeric_limits<T>::infinity();
+  T retval = Math::Limits<T>::infinity();
 
   const bool inside = this->isPointInsideFace(a_x0, a_mesh);
 

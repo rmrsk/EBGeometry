@@ -9,14 +9,19 @@
 // enough primitives to meaningfully exercise BVH partitioning and traversal.
 
 #include "EBGeometry.hpp"
+#include "TestConstructions.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <random>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -35,6 +40,21 @@ std::string
 dataPath(const std::string& a_filename)
 {
   return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/" + a_filename;
+}
+
+// a_count + 1 evenly spaced values from a_lo to a_hi inclusive, for sweeping a query grid.
+template <class T>
+std::vector<T>
+sweepValues(const T a_lo, const T a_hi, const int a_count)
+{
+  std::vector<T> values;
+  values.reserve(static_cast<size_t>(a_count) + 1);
+
+  for (int i = 0; i <= a_count; i++) {
+    values.push_back(a_lo + (a_hi - a_lo) * T(i) / T(a_count));
+  }
+
+  return values;
 }
 
 // A handful of query points spanning inside, outside, and near-surface -- enough to catch a BVH
@@ -191,7 +211,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const FlatMeshSDF<T, Meta> flat(mesh, pool);
   const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
-  // Every value of BVH::Build is exercised through one BVH::TreeBVH built the same way MeshSDF
+  // Every value of BVH::Construction is exercised through one BVH::TreeBVH built the same way MeshSDF
   // builds one internally (see MeshDistanceFunctionsDetail::buildDCELTreeBVH), so this covers the
   // partitioning strategies directly rather than only through the higher-level SDF wrapper.
   auto buildAndCheck = [&](const char* a_label, auto&& a_partitionFunction) {
@@ -307,7 +327,7 @@ TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: every compiled SIMD child-distance
   requireAgreesWithReference("K=16", nearestDist2PerQueryPoint<T, 16>(mesh, primsAndBVs));
 }
 
-TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BVH::Build strategy",
+TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BVH::Construction strategy",
                    "[BVH][Dodecahedron]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -320,7 +340,7 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
 
   const FlatMeshSDF<T, Meta> flat(mesh, pool);
 
-  for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
+  for (const auto build : allConstructions) {
     const MeshSDF<T, Meta, K> packed(mesh, pool, build);
 
     for (const auto& p : queryPoints<T>()) {
@@ -329,9 +349,10 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
   }
 }
 
-TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshSDF for every BVH::Build strategy",
-                   "[BVH][Dodecahedron][TriMesh]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE(
+  "TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshSDF for every BVH::Construction strategy",
+  "[BVH][Dodecahedron][TriMesh]",
+  EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -342,14 +363,220 @@ TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshS
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"), pool);
 
   const FlatMeshSDF<T, Meta> flat(mesh, pool);
-  const MeshSDF<T, Meta, K>  packed(mesh, pool, BVH::Build::SAH);
+  const MeshSDF<T, Meta, K>  packed(mesh, pool, BVH::Construction::SAH);
 
-  for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
+  for (const auto build : allConstructions) {
     const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, build, 2);
 
     for (const auto& p : queryPoints<T>()) {
       REQUIRE_THAT(tri.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
       REQUIRE_THAT(tri.signedDistance(p), withinAbsT(packed.signedDistance(p), traversalMargin<T>()));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: a zero-area sliver face leaves the signed distance unchanged",
+                   "[BVH][Tetrahedron][Degenerate]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // tetrahedron_sliver.stl is tetrahedron.stl with its bottom face split at the hypotenuse midpoint
+  // and the resulting T-junction closed by a zero-area triangle lying along the hypotenuse -- the
+  // kind of filler CAD exporters write. The sliver has no normal of its own, and it sits exactly on
+  // the sharp edge between the bottom and the slanted face, so every pseudonormal near that edge
+  // depends on how it is handled.
+  Pool       pool(hostMemoryResource());
+  const auto clean  = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
+  const auto sliver = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron_sliver.stl"), pool);
+
+  for (uint32_t f = 0; f < sliver.numFaces(); f++) {
+    const Vec3T<T>& n = sliver.getFace(f).getNormal();
+
+    REQUIRE(std::isfinite(n[0]));
+    REQUIRE(std::isfinite(n[1]));
+    REQUIRE(std::isfinite(n[2]));
+    REQUIRE_THAT(n.length(), withinAbsT(T(1), looseMargin<T>()));
+  }
+
+  const FlatMeshSDF<T, Meta>      reference(clean, pool);
+  const FlatMeshSDF<T, Meta>      flat(sliver, pool);
+  const MeshSDF<T, Meta, K>       packed(sliver, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, Meta, K, W> tri(sliver, pool, BVH::Construction::SAH, 2);
+
+  for (const T x : sweepValues<T>(T(-0.5), T(1.0), 16)) {
+    for (const T y : sweepValues<T>(T(-0.5), T(1.0), 16)) {
+      for (const T z : sweepValues<T>(T(-0.5), T(1.0), 16)) {
+        const Vec3T<T> p(x, y, z);
+        const T        expected = reference.signedDistance(p);
+
+        INFO("p = " << p);
+        REQUIRE_THAT(flat.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
+        REQUIRE_THAT(packed.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
+        REQUIRE_THAT(tri.signedDistance(p), withinAbsT(expected, looseMargin<T>()));
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: signs around concave edges and vertices match an independent inside test",
+                   "[BVH][Concave]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // lblock.stl is the L-shaped prism ([0,2]x[0,1] U [0,1]x[0,2]) x [0,1]. Its edge along x = y = 1 is
+  // concave, which the convex fixtures never exercise. FlatMeshSDF shares the pseudonormal code with the
+  // BVH-accelerated SDFs, so the reference here is analytic: inside is the union of two boxes, and
+  // outside, the distance is the smaller of the two boxes' distances.
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("lblock.stl"), pool);
+
+  REQUIRE(mesh.numFaces() == 20);
+
+  const BoxSDF<T> boxA(Vec3(T(0), T(0), T(0)), Vec3(T(2), T(1), T(1)));
+  const BoxSDF<T> boxB(Vec3(T(0), T(0), T(0)), Vec3(T(1), T(2), T(1)));
+
+  const auto inside = [](const Vec3& p) {
+    const bool inZ = p[2] > T(0) && p[2] < T(1);
+    const bool inA = p[0] > T(0) && p[0] < T(2) && p[1] > T(0) && p[1] < T(1);
+    const bool inB = p[0] > T(0) && p[0] < T(1) && p[1] > T(0) && p[1] < T(2);
+
+    return inZ && (inA || inB);
+  };
+
+  const FlatMeshSDF<T, Meta>      flat(mesh, pool);
+  const MeshSDF<T, Meta, K>       packed(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, BVH::Construction::SAH, 2);
+
+  // A grid centred on the concave edge's end point (1, 1, 1), where the concave edge, the concave
+  // vertex and the faces around them all compete for the closest feature. The grid spacing avoids
+  // landing exactly on a face.
+  for (const T x : sweepValues<T>(T(0.3), T(1.7), 14)) {
+    for (const T y : sweepValues<T>(T(0.3), T(1.7), 14)) {
+      for (const T z : sweepValues<T>(T(0.45), T(1.55), 11)) {
+        const Vec3 p(x + T(0.013), y + T(0.007), z + T(0.011));
+
+        const bool in       = inside(p);
+        const T    outside  = std::min(boxA.signedDistance(p), boxB.signedDistance(p));
+        const T    distance = in ? T(-1) : outside;
+
+        INFO("p = " << p);
+
+        for (const T value : {flat.signedDistance(p), packed.signedDistance(p), tri.signedDistance(p)}) {
+          REQUIRE((value < T(0)) == in);
+
+          if (!in) {
+            REQUIRE_THAT(value, withinAbsT(distance, looseMargin<T>()));
+          }
+        }
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: signs behind a sharp concave edge match an independent inside test",
+                   "[BVH][Concave]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec2 = std::array<T, 2>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // notch.stl is a prism over the polygon below, z in [0,1]: a box with a narrow V-shaped notch cut
+  // into its top side. The notch's walls meet at the tip (1, 0.4) in a concave edge along z. Behind
+  // that edge, inside the solid, the edge is the closest feature, and only the sum of both walls'
+  // normals gives the right sign there: either wall's normal alone points outward for part of that
+  // region, because the notch is much narrower than 90 degrees.
+  const std::array<Vec2, 7> polygon{
+    {{T(0), T(0)}, {T(2), T(0)}, {T(2), T(1)}, {T(1.2), T(1)}, {T(1), T(0.4)}, {T(0.8), T(1)}, {T(0), T(1)}}};
+
+  const auto inside = [&polygon](const Vec3& p) {
+    if (!(p[2] > T(0) && p[2] < T(1))) {
+      return false;
+    }
+
+    // Crossing-number point-in-polygon test.
+    bool in = false;
+
+    for (size_t i = 0, j = polygon.size() - 1; i < polygon.size(); j = i++) {
+      const Vec2& a = polygon[i];
+      const Vec2& b = polygon[j];
+
+      if ((a[1] > p[1]) != (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) {
+        in = !in;
+      }
+    }
+
+    return in;
+  };
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("notch.stl"), pool);
+
+  REQUIRE(mesh.numFaces() == 24);
+
+  const FlatMeshSDF<T, Meta>      flat(mesh, pool);
+  const MeshSDF<T, Meta, K>       packed(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, BVH::Construction::SAH, 2);
+
+  // A grid around the notch's tip, including the region just behind it. The offsets keep the points
+  // off the faces.
+  for (const T x : sweepValues<T>(T(0.6), T(1.4), 17)) {
+    for (const T y : sweepValues<T>(T(-0.1), T(1.1), 25)) {
+      for (const T z : sweepValues<T>(T(-0.2), T(1.2), 8)) {
+        const Vec3 p(x + T(0.0013), y + T(0.0007), z + T(0.011));
+
+        const bool in = inside(p);
+
+        INFO("p = " << p);
+
+        for (const T value : {flat.signedDistance(p), packed.signedDistance(p), tri.signedDistance(p)}) {
+          REQUIRE((value < T(0)) == in);
+        }
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("TriMeshSDF: polygon faces are fan-triangulated, not truncated to their first three vertices",
+                   "[BVH][Degenerate]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  Pool       pool(hostMemoryResource());
+  const auto cube = Parser::readIntoDCEL<T, Meta>(dataPath("cube_quads.obj"), pool);
+
+  REQUIRE(cube.numFaces() == 6);
+
+  const BoxSDF<T>                 box(Vec3T<T>::zeros(), Vec3T<T>::ones());
+  const TriMeshSDF<T, Meta, K, W> tri(cube, pool, BVH::Construction::SAH, 2);
+  const auto                      triangles = Parser::readIntoTriangles<T, Meta>(dataPath("cube_quads.obj"));
+
+  REQUIRE(triangles.size() == 12);
+
+  for (const T x : sweepValues<T>(T(-0.5), T(1.5), 12)) {
+    for (const T y : sweepValues<T>(T(-0.5), T(1.5), 12)) {
+      for (const T z : sweepValues<T>(T(-0.5), T(1.5), 12)) {
+        const Vec3T<T> p(x, y, z);
+
+        INFO("p = " << p);
+        REQUIRE_THAT(tri.signedDistance(p), withinAbsT(box.signedDistance(p), looseMargin<T>()));
+      }
     }
   }
 }
@@ -365,7 +592,7 @@ TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candi
   Pool       pool(hostMemoryResource());
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"), pool);
 
-  const MeshSDF<T, Meta, K> packed(mesh, pool, BVH::Build::SAH);
+  const MeshSDF<T, Meta, K> packed(mesh, pool, BVH::Construction::SAH);
 
   const Vec3T<T> p(0.5, 0.5, 0.5);
 
@@ -413,7 +640,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle'
     tris.emplace_back(tri);
   }
 
-  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH}) {
+  for (const auto build : allConstructions) {
     const TriMeshSDF<T, Meta, K, W> tri(tris, pool, build, 2);
 
     for (int i = 0; i < N; i++) {
@@ -425,6 +652,113 @@ TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle'
       REQUIRE_THAT(closest.signedDistance, withinAbsT(tri.signedDistance(q), traversalMargin<T>()));
     }
   }
+}
+
+TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest triangle, and the top-down "
+                   "methods keep each leaf within maxLeafGroups",
+                   "[BVH][TriMesh][Construction]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // A soup of 512 small, differently oriented triangles on a jittered grid: enough for many levels,
+  // and no two triangles at the same distance from a query.
+  std::mt19937                      rng(17);
+  std::uniform_real_distribution<T> jitter(T(-0.2), T(0.2));
+
+  std::vector<Triangle<T, Meta>> tris;
+
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      for (int k = 0; k < 8; k++) {
+        const Vec3 base(T(i) + jitter(rng), T(j) + jitter(rng), T(k) + jitter(rng));
+        const Vec3 a = base + Vec3(T(0.3), jitter(rng), jitter(rng));
+        const Vec3 b = base + Vec3(jitter(rng), T(0.3), jitter(rng));
+        const Vec3 n = (a - base).cross(b - base) / (a - base).cross(b - base).length();
+
+        Triangle<T, Meta> tri;
+        tri.setVertexPositions({base, a, b});
+        tri.setNormal(n);
+        tri.setVertexNormals({n, n, n});
+        tri.setEdgeNormals({n, n, n});
+
+        tris.emplace_back(tri);
+      }
+    }
+  }
+
+  std::vector<Vec3> queries;
+
+  for (int q = 0; q < 200; q++) {
+    queries.emplace_back(T(9) * (jitter(rng) + T(0.5)) - T(0.5),
+                         T(9) * (jitter(rng) + T(0.5)) - T(0.5),
+                         T(9) * (jitter(rng) + T(0.5)) - T(0.5));
+  }
+
+  Pool pool(hostMemoryResource());
+
+  for (const size_t maxLeafGroups : {size_t(1), size_t(2), size_t(3)}) {
+    for (const auto build : allConstructions) {
+      const TriMeshSDF<T, Meta, K, W> sdf(tris, pool, build, maxLeafGroups);
+
+      const auto nodes = sdf.getRoot().getNodes();
+
+      const bool boundsLeaves = build == BVH::Construction::CentroidSplit ||
+                                build == BVH::Construction::MidpointSplit || build == BVH::Construction::SAH ||
+                                build == BVH::Construction::ClusterSAH;
+
+      for (uint32_t i = 0; i < nodes.size(); i++) {
+        if (boundsLeaves && nodes[i].isLeaf()) {
+          REQUIRE(nodes[i].getNumPrimitives() <= maxLeafGroups);
+        }
+      }
+
+      for (const auto& q : queries) {
+        T nearest = std::numeric_limits<T>::max();
+
+        for (const auto& tri : tris) {
+          nearest = std::min(nearest, std::abs(tri.signedDistance(q)));
+        }
+
+        REQUIRE_THAT(std::abs(sdf.signedDistance(q)), withinAbsT(nearest, traversalMargin<T>()));
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: a value outside BVH::Construction aborts",
+                   "[BVH][Construction]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // An EBGEOMETRY_REQUIRE, so it aborts in every build rather than packing an unpartitioned tree.
+  REQUIRE(abortsWith(
+    [] {
+      Pool                      pool(hostMemoryResource());
+      const auto                mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+      const MeshSDF<T, Meta, K> sdf(mesh, pool, invalidConstruction);
+
+      (void)sdf;
+    },
+    "MeshSDF: unknown BVH::Construction value (99)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                            pool(hostMemoryResource());
+      const auto                      mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+      const TriMeshSDF<T, Meta, K, W> sdf(mesh, pool, invalidConstruction, 2);
+
+      (void)sdf;
+    },
+    "TriMeshSDF: unknown BVH::Construction value (99)"));
 }
 
 namespace {
@@ -782,7 +1116,7 @@ TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly fro
   Pool       pool(hostMemoryResource());
   const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
 
-  const MeshSDF<T, Meta, K> expected(direct, pool, BVH::Build::SAH);
+  const MeshSDF<T, Meta, K> expected(direct, pool, BVH::Construction::SAH);
   const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"), pool);
 
   for (const auto& p : queryPoints<T>()) {
@@ -1187,10 +1521,11 @@ struct IdentityPruneDist2
 };
 
 /**
- * @brief The entire body of the device kernel further below, factored out so the host suite
- * compiles and runs the exact code the kernel runs -- not merely the same functors.
+ * @brief The entire body of the device query functor further below (PackedBvhTraversalQuery),
+ * factored out so the host suite compiles and runs the exact code the device runs -- not merely the
+ * same functors.
  *
- * The BVH is taken by value and const, matching the kernel exactly. Both halves matter: by value
+ * The BVH is taken by value and const, matching the device side exactly. Both halves matter: by value
  * because that is how a descriptor reaches a kernel, and const because a non-const PackedBVH
  * selects getPrimitives()'s mutable overload, whose PODSpan<P> does not convert to the functors'
  * PODSpan<const P>. A test that reaches pruneTraverse() only through a const reference exercises a
@@ -1201,7 +1536,7 @@ EBGEOMETRY_HOST_DEVICE
 T
 packedBvhTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh, const Vec3T<T> a_query) noexcept
 {
-  T state = std::numeric_limits<T>::max();
+  T state = EBGeometry::Math::Limits<T>::max();
 
   const NearestLeafEval<T>    evalLeaf{a_bvh.getPrimitives(), a_query};
   const IdentityPruneDist2<T> pruneDist2{};
@@ -1264,8 +1599,8 @@ TEMPLATE_TEST_CASE("PackedBVH: a host-to-host rebasedView answers every query id
   REQUIRE(rebased.getPrimitives().begin() != bvh.getPrimitives().begin());
 
   // Deliberately packedBvhTraversalProbe() rather than a lambda written to look like it: the probe
-  // *is* the device kernel's body, so running it here compiles and checks that path -- functors,
-  // by-value const descriptor and all -- on every build, GPU or not.
+  // *is* what the device test evaluates per query point, so running it here compiles and checks that
+  // path -- functors, by-value const descriptor and all -- on every build, GPU or not.
   for (const auto& q : queryPoints<T>()) {
     REQUIRE(packedBvhTraversalProbe<T, K>(rebased, q) == packedBvhTraversalProbe<T, K>(bvh, q));
   }
@@ -1308,7 +1643,7 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangles and TriMeshSDF's mesh constructor 
 
   Pool       pool(hostMemoryResource());
   const auto mesh      = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
-  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.obj"));
 
   REQUIRE(triangles.size() == mesh.numFaces());
 
@@ -1327,8 +1662,8 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangles and TriMeshSDF's mesh constructor 
   }
 
   // Built from identical triangles with the same strategy, the two constructors give identical trees.
-  const TriMeshSDF<T, Meta, K, W> fromMesh(mesh, pool, BVH::Build::SAH, 2);
-  const TriMeshSDF<T, Meta, K, W> fromSoup(triangles, pool, BVH::Build::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W> fromMesh(mesh, pool, BVH::Construction::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W> fromSoup(triangles, pool, BVH::Construction::SAH, 2);
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE(fromSoup.signedDistance(p) == fromMesh.signedDistance(p));
@@ -1349,7 +1684,7 @@ TEMPLATE_TEST_CASE("FlatMeshSDF::computeBoundingVolume is the vertex AABB, as Me
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
 
   const FlatMeshSDF<T, Meta> flat(mesh, pool);
-  const MeshSDF<T, Meta, K>  meshSDF(mesh, pool, BVH::Build::SAH);
+  const MeshSDF<T, Meta, K>  meshSDF(mesh, pool, BVH::Construction::SAH);
 
   const AABB fromFlat     = flat.computeBoundingVolume();
   const AABB fromVertices = AABB(mesh.getAllVertexCoordinates());
@@ -1391,8 +1726,8 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebasedView and deepCopy ans
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
 
   const Flat flat(mesh, pool);
-  const Mesh meshSDF(mesh, pool, BVH::Build::SAH);
-  const Tri  triSDF(mesh, pool, BVH::Build::SAH, 2);
+  const Mesh meshSDF(mesh, pool, BVH::Construction::SAH);
+  const Tri  triSDF(mesh, pool, BVH::Construction::SAH, 2);
 
   REQUIRE(flat.isAttachedTo(pool));
   REQUIRE(meshSDF.isAttachedTo(pool));
@@ -1762,43 +2097,180 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- a uint32_t-index 
   }
 }
 
-#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+namespace {
 
-TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack is rejected at build time", "[BVH][death]")
+// Host memory that reports itself device-accessible, like managed memory: a view rebased onto a
+// mirror in it is a device view, checked against DeviceTraversalDepth, and still readable here.
+class DeviceAccessibleHostResource final : public MemoryResource
 {
-  using T    = double;
+public:
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override
+  {
+    return hostMemoryResource().allocate(a_bytes, a_alignment);
+  }
+
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
+  {
+    hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+  }
+
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack is rejected at build time, at every "
+                   "branching factor",
+                   "[BVH][death]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
   using AABB = BoundingVolumes::AABBT<T>;
   using Vec3 = Vec3T<T>;
   using Pnt  = BareTestPoint<T>;
 
-  // pruneTraverse peaks at 1 + (K-1)*(depth-1) stack entries, so the 256-entry host stack holds a
-  // tree of depth 1 + 255/(K-1). For the branching factors anyone actually uses that bound is far
-  // out of reach -- at K = 4 it is depth 86, or 4^85 leaves -- which is why this test needs an
-  // absurd K = 256 to reach it at all: there the limit is depth 2, and any tree with more than one
-  // interior level exceeds it. That the bound is unreachable in practice is the point; what is
-  // being tested is that exceeding it fails loudly rather than overflowing the stack, which in
-  // Release would be a silent out-of-bounds write.
-  constexpr size_t K = 256;
+  // The stack is sized for HostTraversalDepth levels at every K, so a K = 16 tree may be as deep as a
+  // K = 4 one. No builder gets near that depth, so the tree is written by hand and handed to the
+  // node-array constructor: a chain of interior nodes, each with its first child the next node in the
+  // chain and its other children leaves of its own. What is being tested is that exceeding the bound
+  // fails loudly, rather than overflowing the stack, which in Release would be a silent
+  // out-of-bounds write.
+  const std::vector<Pnt> prims = {Pnt{Vec3(T(0), T(0), T(0))}};
+  const AABB             box(Vec3(T(0), T(0), T(0)), Vec3(T(1), T(1), T(1)));
 
-  REQUIRE(abortsUnderAssertions([] {
-    Pool pool(hostMemoryResource());
+  const auto check = [&](auto a_k) {
+    constexpr size_t K = decltype(a_k)::value;
 
-    std::vector<std::pair<Pnt, AABB>> prims;
+    using Packed = BVH::PackedBVH<T, Pnt, K>;
+    using Node   = typename Packed::Node;
 
-    prims.reserve(2000);
+    INFO("K = " << K);
 
-    for (int i = 0; i < 2000; i++) {
-      const T    t = T(i) * T(0.01);
-      const Vec3 p(std::sin(t) * t, std::cos(t) * t, T(0.3) * t);
+    // a_interior interior nodes, then a final leaf: a tree a_interior + 1 levels deep.
+    const auto chain = [&box](const size_t a_interior) {
+      std::vector<Node> nodes(a_interior);
 
-      prims.emplace_back(Pnt{p}, AABB(p, p));
-    }
+      const auto addLeaf = [&nodes, &box]() {
+        Node leaf{};
 
-    // 2000 leaves under K = 256 is depth 3 -- one level past what the stack can hold.
-    const BVH::PackedBVH<T, Pnt, K> tooDeep(pool, prims, size_t(1));
+        leaf.setBoundingVolume(box);
+        leaf.setPrimitivesOffset(0);
+        leaf.setNumPrimitives(1);
 
-    (void)tooDeep;
-  }));
+        nodes.push_back(leaf);
+
+        return static_cast<uint32_t>(nodes.size() - 1);
+      };
+
+      for (size_t i = 0; i < a_interior; i++) {
+        nodes[i].setBoundingVolume(box);
+
+        const uint32_t next = (i + 1 < a_interior) ? static_cast<uint32_t>(i + 1) : addLeaf();
+
+        nodes[i].setChildOffset(next, 0);
+
+        for (size_t k = 1; k < K; k++) {
+          const uint32_t leaf = addLeaf();
+
+          nodes[i].setChildOffset(leaf, k);
+        }
+      }
+
+      return nodes;
+    };
+
+    const size_t limit = BVH::HostTraversalDepth;
+
+    REQUIRE_FALSE(aborts([&] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, chain(limit - 1), prims);
+
+      (void)bvh;
+    }));
+
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, chain(limit), prims);
+
+        (void)bvh;
+      },
+      "host build -- the tree is " + std::to_string(limit + 1) + " levels deep, more than the " +
+        std::to_string(limit) + " levels a traversal stack holds"));
+
+    // A tree at the host limit traverses without overflowing the stack sized for it, and visits
+    // every leaf.
+    Pool         pool(hostMemoryResource());
+    const Packed bvh(pool, chain(limit - 1), prims);
+
+    size_t visits = 0;
+    T      state  = T(0);
+
+    bvh.pruneTraverse(
+      Vec3(T(0.5), T(0.5), T(0.5)),
+      state,
+      [&visits](T&, size_t, size_t a_count) noexcept { visits += a_count; },
+      [](const T&) noexcept -> T { return std::numeric_limits<T>::infinity(); });
+
+    REQUIRE(visits == 1 + (limit - 1) * (K - 1));
+
+    // A device view is checked against the shallower device limit when it is made.
+    const size_t deviceLimit = BVH::DeviceTraversalDepth;
+
+    const auto deviceView = [&](const size_t a_interior) {
+      return [&, a_interior] {
+        Pool         hostPool(hostMemoryResource());
+        const Packed tree(hostPool, chain(a_interior), prims);
+
+        hostPool.freeze();
+
+        DeviceAccessibleHostResource managed;
+
+        const Pool   mirror = Pool::mirror(hostPool, managed);
+        const Packed view   = tree.rebasedView(mirror);
+
+        (void)view;
+      };
+    };
+
+    REQUIRE_FALSE(aborts(deviceView(deviceLimit - 1)));
+    REQUIRE(abortsWith(deviceView(deviceLimit),
+                       "device view -- the tree is " + std::to_string(deviceLimit + 1) +
+                         " levels deep, more than the " + std::to_string(deviceLimit) +
+                         " levels a traversal stack holds"));
+  };
+
+  check(std::integral_constant<size_t, 2>{});
+  check(std::integral_constant<size_t, 4>{});
+  check(std::integral_constant<size_t, 16>{});
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: the traversal stack holds HostTraversalDepth levels at every branching factor",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Checked at run time, not with static_assert: in a GPU build this file is also compiled for the
+  // device, where the same function returns the device stack size.
+  REQUIRE(BVH::PackedBVH<T, Vec3T<T>, 2>::traversalStackDepth() == 1 + 1 * (BVH::HostTraversalDepth - 1));
+  REQUIRE(BVH::PackedBVH<T, Vec3T<T>, 4>::traversalStackDepth() == 1 + 3 * (BVH::HostTraversalDepth - 1));
+  REQUIRE(BVH::PackedBVH<T, Vec3T<T>, 16>::traversalStackDepth() == 1 + 15 * (BVH::HostTraversalDepth - 1));
+
+  static_assert(BVH::HostTraversalDepth == 256);
+  static_assert(BVH::DeviceTraversalDepth == 32);
 }
 
 TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[BVH][death]")
@@ -1829,7 +2301,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     good[k + 1].setNumPrimitives(2);
   }
 
-  REQUIRE_FALSE(abortsUnderAssertions([&] {
+  REQUIRE_FALSE(aborts([&] {
     Pool         pool(hostMemoryResource());
     const Packed bvh(pool, good, prims);
 
@@ -1842,12 +2314,14 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
 
     bad[K].setNumPrimitives(3);
 
-    REQUIRE(abortsUnderAssertions([&] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, bad, prims);
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
 
-      (void)bvh;
-    }));
+        (void)bvh;
+      },
+      "leaf 4's primitive range ends at 3, past the primitive array's 2 primitives"));
   }
 
   SECTION("a child offset pointing back at its own parent")
@@ -1856,12 +2330,14 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
 
     bad[0].setChildOffset(0, K - 1);
 
-    REQUIRE(abortsUnderAssertions([&] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, bad, prims);
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
 
-      (void)bvh;
-    }));
+        (void)bvh;
+      },
+      "node 0 has child offset 0, which is not strictly after its parent"));
   }
 
   SECTION("a child offset past the end of the node array")
@@ -1870,26 +2346,553 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
 
     bad[0].setChildOffset(static_cast<uint32_t>(K + 1), 0);
 
-    REQUIRE(abortsUnderAssertions([&] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, bad, prims);
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
 
-      (void)bvh;
-    }));
+        (void)bvh;
+      },
+      "node 0 has child offset 5, which is not strictly after its parent"));
   }
 
   SECTION("an empty node array paired with a non-empty primitive array")
   {
-    REQUIRE(abortsUnderAssertions([&] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, std::vector<Node>{}, prims);
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, std::vector<Node>{}, prims);
 
-      (void)bvh;
-    }));
+        (void)bvh;
+      },
+      "it is empty, but the primitive array holds 2 primitives"));
+  }
+
+  SECTION("a leaf with no primitives, which reads as an interior node whose children are all node 0")
+  {
+    std::vector<Node> bad = good;
+
+    bad[K].setNumPrimitives(0);
+
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
+
+        (void)bvh;
+      },
+      "node 4 has child offset 0, which is not strictly after its parent"));
+  }
+
+  SECTION("a node that is the child of two slots")
+  {
+    std::vector<Node> bad = good;
+
+    bad[0].setChildOffset(1, K - 1);
+
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
+
+        (void)bvh;
+      },
+      "node 0 names child 1, which already has another parent"));
+  }
+
+  SECTION("a node no slot names")
+  {
+    std::vector<Node> bad = good;
+
+    bad.push_back(good[1]);
+
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         pool(hostMemoryResource());
+        const Packed bvh(pool, bad, prims);
+
+        (void)bvh;
+      },
+      "node 5 has no parent"));
   }
 }
 
-#endif // EBGEOMETRY_ENABLE_ASSERTIONS
+TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: a partitioner that returns an empty partition aborts the build",
+                   "[BVH][death]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+
+  using Tree = BVH::TreeBVH<T, Vec3, AABB, K>;
+
+  // An empty partition would become a leaf with no primitives, which the packed layout cannot
+  // represent. The built-in partitioners never return one; this one puts everything in the first.
+  const BVH::Partitioner<Vec3, AABB, K> lopsided = [](BVH::PrimAndBVList<Vec3, AABB> a_list) {
+    Array<BVH::PrimAndBVList<Vec3, AABB>, K> parts;
+
+    parts[0] = std::move(a_list);
+
+    return parts;
+  };
+
+  std::vector<std::pair<Vec3, AABB>> primsAndBVs;
+
+  for (int i = 0; i < 10; i++) {
+    const Vec3 x(T(i), T(0), T(0));
+
+    primsAndBVs.emplace_back(x, AABB(x, x));
+  }
+
+  REQUIRE(abortsWith(
+    [&] {
+      BVH::PrimAndBVList<Vec3, AABB> list;
+
+      for (const auto& pb : primsAndBVs) {
+        list.emplace_back(std::make_shared<const Vec3>(pb.first), pb.second);
+      }
+
+      Tree tree(list);
+
+      tree.topDownSortAndPartition(lopsided);
+    },
+    "BVH::TreeBVH::topDownSortAndPartition: the partitioner returned an empty partition (1 of 4, from 10 "
+    "primitives)"));
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool                             pool(hostMemoryResource());
+      const BVH::PackedBVH<T, Vec3, K> bvh(pool, primsAndBVs, lopsided);
+
+      (void)bvh;
+    },
+    "BVH::PackedBVH: the partitioner returned an empty partition (1 of 4, from 10 primitives)"));
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: the stack's float distance bound never prunes a closer primitive",
+                   "[BVH][pruneTraverse]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+
+  // Points on a sphere of radius 1e6 around the query, whose squared distances (about 1e12) differ in
+  // bits that float cannot hold. A bound rounded up instead of down would prune the closest one.
+  const Vec3 query(T(1), T(2), T(3));
+
+  std::vector<std::pair<Vec3, AABB>> primsAndBVs;
+
+  std::mt19937                      rng(42);
+  std::uniform_real_distribution<T> angle(T(0), T(6.283185307179586));
+  std::uniform_real_distribution<T> jitter(T(-1e-3), T(1e-3));
+
+  for (int i = 0; i < 400; i++) {
+    const T    theta = angle(rng);
+    const T    phi   = angle(rng) / T(2);
+    const T    r     = T(1e6) + jitter(rng);
+    const Vec3 x = query + r * Vec3(std::sin(phi) * std::cos(theta), std::sin(phi) * std::sin(theta), std::cos(phi));
+
+    primsAndBVs.emplace_back(x, AABB(x, x));
+  }
+
+  T brute = std::numeric_limits<T>::infinity();
+
+  for (const auto& pb : primsAndBVs) {
+    brute = std::min(brute, (pb.first - query).length2());
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const BVH::PackedBVH<T, Vec3, K> sah(pool, primsAndBVs, BVH::BinnedSAHPartitioner<T, Vec3, AABB, K>);
+  const BVH::PackedBVH<T, Vec3, K> sfc(pool, primsAndBVs, K);
+
+  for (const auto* bvh : {&sah, &sfc}) {
+    const auto prims = bvh->getPrimitives();
+
+    T best = std::numeric_limits<T>::infinity();
+
+    bvh->pruneTraverse(
+      query,
+      best,
+      [&prims, &query](T& a_best, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = a_offset; i < a_offset + a_count; i++) {
+          a_best = std::min(a_best, (prims[static_cast<uint32_t>(i)] - query).length2());
+        }
+      },
+      [](const T& a_best) noexcept { return a_best; });
+
+    REQUIRE(best == brute);
+  }
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: only interior nodes get a child-box row, numbered in node order",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+
+  std::vector<std::pair<Vec3, AABB>> primsAndBVs;
+
+  for (int i = 0; i < 300; i++) {
+    const Vec3 x(T(i % 7), T((i * 13) % 11), T((i * 29) % 17));
+
+    primsAndBVs.emplace_back(x, AABB(x, x));
+  }
+
+  Pool                             pool(hostMemoryResource());
+  const BVH::PackedBVH<T, Vec3, K> bvh(pool, primsAndBVs, BVH::BinnedSAHPartitioner<T, Vec3, AABB, K>);
+
+  uint32_t expectedRow = 0;
+  size_t   numLeaves   = 0;
+
+  for (const auto& node : bvh.getNodes()) {
+    if (node.isLeaf()) {
+      numLeaves++;
+    }
+    else {
+      REQUIRE(node.getChildBoxRow() == expectedRow);
+
+      expectedRow++;
+    }
+  }
+
+  REQUIRE(numLeaves > expectedRow);
+}
+
+TEMPLATE_TEST_CASE("BVH builders: a cluster of points whose extent is subnormal builds and queries exactly",
+                   "[BVH][pruneTraverse]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+
+  // A random cloud plus a cluster of points spaced by a subnormal step at the origin. When the SAH
+  // builders reach the cluster, its extent is so small that the bin scale 32 / extent overflows to
+  // infinity; that axis must be skipped, not binned (converting an infinite bin index to int indexed
+  // the bins out of bounds, and crashed).
+  const T step = std::numeric_limits<T>::denorm_min() * T(8);
+
+  std::vector<std::pair<Vec3, AABB>> primsAndBVs;
+
+  std::mt19937                      rng(7);
+  std::uniform_real_distribution<T> unit(T(1), T(2));
+
+  for (int i = 0; i < 300; i++) {
+    const Vec3 x(unit(rng), unit(rng), unit(rng));
+
+    primsAndBVs.emplace_back(x, AABB(x, x));
+  }
+
+  for (int j = 0; j < 64; j++) {
+    const Vec3 x(T(j) * step, T(0), T(0));
+
+    primsAndBVs.emplace_back(x, AABB(x, x));
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const std::vector<BVH::PackedBVH<T, Vec3, K>> bvhs = {
+    BVH::PackedBVH<T, Vec3, K>(pool, primsAndBVs, BVH::BinnedSAHPartitioner<T, Vec3, AABB, K>),
+    BVH::PackedBVH<T, Vec3, K>(pool, primsAndBVs, BVH::BinnedSAHPartitioner<T, Vec3, AABB, K, true>),
+    BVH::PackedBVH<T, Vec3, K>(pool, primsAndBVs, BVH::ClusterSpec{2}),
+    BVH::PackedBVH<T, Vec3, K>(pool, primsAndBVs, BVH::MidpointPartitioner<T, Vec3, AABB, K>),
+    BVH::PackedBVH<T, Vec3, K>(pool, primsAndBVs, K)};
+
+  const std::vector<Vec3> queries = {
+    Vec3(T(0), T(0), T(0)), Vec3(T(1.5), T(1.5), T(1.5)), Vec3(T(-1), T(0.5), T(0)), Vec3(T(3), T(-1), T(0.5))};
+
+  for (const auto& bvh : bvhs) {
+    const auto prims = bvh.getPrimitives();
+
+    for (const auto& q : queries) {
+      T brute = std::numeric_limits<T>::infinity();
+
+      for (const auto& pb : primsAndBVs) {
+        brute = std::min(brute, (pb.first - q).length2());
+      }
+
+      T best = std::numeric_limits<T>::infinity();
+
+      bvh.pruneTraverse(
+        q,
+        best,
+        [&prims, &q](T& a_best, size_t a_offset, size_t a_count) noexcept {
+          for (size_t i = a_offset; i < a_offset + a_count; i++) {
+            a_best = std::min(a_best, (prims[static_cast<uint32_t>(i)] - q).length2());
+          }
+        },
+        [](const T& a_best) noexcept { return a_best; });
+
+      REQUIRE(best == brute);
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition: exact powers of K fill every leaf level",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  // K = 3, since floor(log(N) / log(K)) in floating point comes out one short at N = 3^5 = 243
+  // (and at 10^3, 3^10, ...), though at no power of 4.
+  constexpr size_t K = 3;
+
+  using Tree = BVH::TreeBVH<T, Vec3, AABB, K>;
+
+  // Depth of the tree and the size of its biggest leaf.
+  std::function<std::pair<size_t, size_t>(const Tree&)> shape = [&](const Tree& a_node) {
+    if (a_node.isLeaf()) {
+      return std::make_pair(size_t(1), a_node.getPrimitives().size());
+    }
+
+    std::pair<size_t, size_t> deepest{0, 0};
+
+    for (const auto& child : a_node.getChildren()) {
+      const auto sub = shape(*child);
+
+      deepest.first  = std::max(deepest.first, sub.first);
+      deepest.second = std::max(deepest.second, sub.second);
+    }
+
+    return std::make_pair(deepest.first + 1, deepest.second);
+  };
+
+  // With K^d primitives the tree has K^d leaves of one primitive each, d + 1 levels deep. The
+  // floating-point depth gave K^(d-1) leaves of K primitives instead.
+  for (const size_t depth : {size_t(1), size_t(2), size_t(3), size_t(5), size_t(6)}) {
+    size_t n = 1;
+
+    for (size_t d = 0; d < depth; d++) {
+      n *= K;
+    }
+
+    BVH::PrimAndBVList<Vec3, AABB> list;
+
+    for (size_t i = 0; i < n; i++) {
+      const Vec3 x(T(i % 17), T((i / 17) % 19), T(i / 323));
+
+      list.emplace_back(std::make_shared<const Vec3>(x), AABB(x, x));
+    }
+
+    auto tree = std::make_shared<Tree>(list);
+
+    tree->template bottomUpSortAndPartition<SFC::Morton>();
+
+    INFO("N = " << n);
+    REQUIRE(shape(*tree) == std::make_pair(depth + 1, size_t(1)));
+  }
+}
+
+TEMPLATE_TEST_CASE("TreeBVH::traverse visits every primitive once with a permissive pruning predicate",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+
+  using Tree = BVH::TreeBVH<T, Vec3, AABB, K>;
+
+  // traverse() used to keep a reference to the stack's top entry after popping it, so under
+  // AddressSanitizer this read freed memory on the first interior node.
+  BVH::PrimAndBVList<Vec3, AABB> list;
+
+  for (int i = 0; i < 200; i++) {
+    const Vec3 x(T(i % 9), T((i * 7) % 13), T((i * 3) % 5));
+
+    list.emplace_back(std::make_shared<const Vec3>(x), AABB(x, x));
+  }
+
+  auto tree = std::make_shared<Tree>(list);
+
+  tree->topDownSortAndPartition();
+
+  size_t visits = 0;
+
+  tree->template traverse<T>([&visits](const BVH::PrimitiveList<Vec3>& a_prims) noexcept { visits += a_prims.size(); },
+                             [](const Tree&, const T&) noexcept { return true; },
+                             [](Array<std::pair<std::shared_ptr<const Tree>, T>, K>&) noexcept {},
+                             [](const Tree&) noexcept { return T(0); });
+
+  REQUIRE(visits == list.size());
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: an empty BVH has the empty bounding box and visits nothing",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Vec3, K>;
+
+  Pool         pool(hostMemoryResource());
+  const Packed bvh(pool, std::vector<typename Packed::Node>{}, std::vector<Vec3>{});
+
+  const auto box = bvh.computeBoundingVolume();
+
+  REQUIRE(box.getLowCorner()[0] > box.getHighCorner()[0]);
+
+  size_t visits = 0;
+  T      state  = T(0);
+
+  bvh.pruneTraverse(
+    Vec3(T(0), T(0), T(0)),
+    state,
+    [&visits](T&, size_t, size_t a_count) noexcept { visits += a_count; },
+    [](const T&) noexcept { return std::numeric_limits<T>::infinity(); });
+
+  REQUIRE(visits == 0);
+}
+
+TEST_CASE("PackedBVH: the direct builders reject an empty primitive list and a zero leaf or cluster size",
+          "[BVH][death]")
+{
+  using T    = double;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+  using List   = std::vector<std::pair<Pnt, AABB>>;
+
+  List prims;
+
+  for (int i = 0; i < 8; i++) {
+    const Vec3 pos(T(i), T(0), T(0));
+
+    prims.emplace_back(Pnt{pos}, AABB(pos, pos));
+  }
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
+  REQUIRE(abortsWith(
+    [] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, List{}, size_t(4));
+    },
+    "PackedBVH: the SFC build needs at least one primitive"));
+
+  REQUIRE(abortsWith(
+    [&prims] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, prims, size_t(0));
+    },
+    "PackedBVH: the SFC build's target leaf size must be positive (0)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, List{});
+    },
+    "PackedBVH: the top-down build needs at least one primitive"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, List{}, BVH::ClusterSpec{});
+    },
+    "PackedBVH: the ClusterSAH build needs at least one primitive"));
+
+  REQUIRE(abortsWith(
+    [&prims] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, prims, BVH::ClusterSpec{0});
+    },
+    "PackedBVH: ClusterSpec::maxClusterSize must be positive (0)"));
+}
+
+TEST_CASE("PackedBVH: rebasedView rejects a pool that is not a mirror of its own", "[BVH][rebase][death]")
+{
+  using T    = double;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+      Pool unrelated(hostMemoryResource());
+
+      std::vector<std::pair<Pnt, AABB>> prims;
+
+      for (int i = 0; i < 8; i++) {
+        const Vec3 pos(T(i), T(0), T(0));
+
+        prims.emplace_back(Pnt{pos}, AABB(pos, pos));
+      }
+
+      const Packed bvh(pool, prims, size_t(2));
+      const Packed view = bvh.rebasedView(unrelated);
+
+      (void)view;
+    },
+    "BVH::PackedBVH::rebasedView: the pool must be the object's own pool or a mirror of it"));
+}
+
+TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: the constructors reject a mismatched pool or a zero leaf size",
+          "[BVH][FlatMeshSDF][MeshSDF][TriMeshSDF][death]")
+{
+  using T = double;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
+  REQUIRE(abortsWith(
+    [] {
+      Pool       pool(hostMemoryResource());
+      Pool       other(hostMemoryResource());
+      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+
+      const FlatMeshSDF<T, Meta> sdf(mesh, other);
+    },
+    "FlatMeshSDF: the mesh must live in the pool passed in"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool       pool(hostMemoryResource());
+      Pool       other(hostMemoryResource());
+      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+
+      const MeshSDF<T, Meta, K> sdf(mesh, other, BVH::Construction::SAH);
+    },
+    "MeshSDF: the mesh must live in the pool passed in"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool       pool(hostMemoryResource());
+      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+
+      const TriMeshSDF<T, Meta, K, W> sdf(mesh, pool, BVH::Construction::SAH, 0);
+    },
+    "TriMeshSDF: the maximum number of leaf groups must be positive (0)"));
+}
 
 TEMPLATE_TEST_CASE("PackedBVH: the adopt constructor rebuilds an identical BVH from getNodes() and "
                    "getPrimitives()",
@@ -2086,6 +3089,92 @@ TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor accepts an explicit 
   }
 }
 
+TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor puts every primitive in exactly one leaf, "
+                   "for any leaf count",
+                   "[BVH][DirectSFCBuild]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  // An exhaustive traversal (the prune bound never rejects anything) must reach every primitive
+  // exactly once, whatever the leaf count: a union that keeps the two smallest values, or any
+  // other non-idempotent reduction, depends on it.
+  const auto check = [](auto a_branching, size_t a_numPrims, size_t a_targetLeafSize) {
+    constexpr size_t K = decltype(a_branching)::value;
+
+    Pool pool(hostMemoryResource());
+
+    std::vector<std::pair<uint32_t, AABB>> primsAndBVs;
+
+    for (uint32_t i = 0; i < a_numPrims; i++) {
+      const Vec3 p(T(i % 7), T((i / 7) % 5), T(i / 35));
+
+      primsAndBVs.emplace_back(i, AABB(p, p));
+    }
+
+    const BVH::PackedBVH<T, uint32_t, K> packed(pool, std::move(primsAndBVs), a_targetLeafSize);
+
+    const auto&           prims = packed.getPrimitives();
+    std::vector<unsigned> visits(a_numPrims, 0U);
+
+    const auto evalLeaf = [&prims, &visits](int&, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        visits[prims[a_offset + i]]++;
+      }
+    };
+    const auto noPrune = [](const int&) noexcept -> T { return std::numeric_limits<T>::max(); };
+
+    int state = 0;
+    packed.pruneTraverse(Vec3::zeros(), state, evalLeaf, noPrune);
+
+    for (size_t i = 0; i < a_numPrims; i++) {
+      INFO("K = " << K << ", N = " << a_numPrims << ", leaf size = " << a_targetLeafSize << ", primitive " << i);
+      REQUIRE(visits[i] == 1U);
+    }
+
+    // Every node is referenced once: a full K-ary tree with L leaves has L + (L - 1)/(K - 1) nodes.
+    const auto& nodes    = packed.getNodes();
+    size_t      leaves   = 0;
+    size_t      smallest = a_numPrims;
+    size_t      largest  = 0;
+
+    for (size_t i = 0; i < nodes.size(); i++) {
+      if (nodes[i].isLeaf()) {
+        leaves++;
+        smallest = std::min(smallest, size_t(nodes[i].getNumPrimitives()));
+        largest  = std::max(largest, size_t(nodes[i].getNumPrimitives()));
+      }
+    }
+
+    INFO("K = " << K << ", N = " << a_numPrims << ", leaf size = " << a_targetLeafSize);
+    REQUIRE(nodes.size() == leaves + (leaves - 1) / (K - 1));
+    REQUIRE(largest - smallest <= 1U);
+
+    // A full K-ary tree needs a leaf count L = 1 (mod K - 1). When such an L lies between
+    // ceil(N / target) and N, no leaf exceeds the target size.
+    const size_t minLeaves  = (a_numPrims + a_targetLeafSize - 1) / a_targetLeafSize;
+    bool         targetable = false;
+
+    for (size_t l = minLeaves; l <= a_numPrims; l++) {
+      targetable = targetable || ((l - 1) % (K - 1) == 0);
+    }
+
+    if (targetable) {
+      REQUIRE(largest <= a_targetLeafSize);
+    }
+  };
+
+  for (const size_t n : {1, 2, 3, 4, 5, 7, 16, 17, 64, 65, 68, 100, 257}) {
+    for (const size_t leafSize : {1, 2, 3, 4, 8}) {
+      check(std::integral_constant<size_t, 2>{}, n, leafSize);
+      check(std::integral_constant<size_t, 4>{}, n, leafSize);
+      check(std::integral_constant<size_t, 8>{}, n, leafSize);
+    }
+  }
+}
+
 TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-force mesh scan, for "
                    "every build method including PackedBVH's direct SFC-build (cheap fixture: "
                    "tetrahedron)",
@@ -2102,7 +3191,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(mesh.numFaces() == 4);
 
-  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
+  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"));
   REQUIRE(triangles.size() == 4);
 
   const FlatMeshSDF<T, Meta> flat(mesh, pool);
@@ -2583,8 +3672,8 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
   // PackedBVH over SoA triangle groups -- these are the inner BVHs that the outer union BVH nests
   // over. Both are the same C++ type, which is all a BVHUnion needs.
   Pool       pool(hostMemoryResource());
-  const auto dodec = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.stl"), pool);
-  const auto tetra = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"), pool);
+  const auto dodec = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.stl"));
+  const auto tetra = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"));
 
   // Spread several translated mesh SDFs out so the outer union BVH has real structure to partition
   // and prune, rather than collapsing to a single leaf. Each copy is translated before its
@@ -2612,7 +3701,7 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
       triangle.setVertexPositions(vertices);
     }
 
-    primitives.emplace_back(shifted, pool, BVH::Build::SAH, 2);
+    primitives.emplace_back(shifted, pool, BVH::Construction::SAH, 2);
     boundingVolumes.push_back(primitives.back().computeBoundingVolume());
   }
 
@@ -2743,18 +3832,24 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
   }
 }
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: a rebased PackedBVH traverses in a kernel and agrees with the host
 // ─────────────────────────────────────────────────────────────────────────────
 
+// One traversal per query point: the probe the host suite also runs, so the device executes exactly
+// the code the host checks, with the BVH held by value as a kernel receives it.
 template <class T, size_t K>
-EBGEOMETRY_GLOBAL
-void
-packedBvhDeviceKernel(EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh, Vec3T<T> a_query, T* a_out)
+struct PackedBvhTraversalQuery
 {
-  a_out[0] = packedBvhTraversalProbe<T, K>(a_bvh, a_query);
-}
+  EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> m_bvh;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return packedBvhTraversalProbe<T, K>(m_bvh, a_point);
+  }
+};
 
 TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches the host",
                    "[BVH][gpu]",
@@ -2797,90 +3892,54 @@ TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches th
 
   const Packed bvh(pool, flat, size_t(4));
 
-  const Vec3 query(T(3.5), T(-2.25), T(1.75));
-
-  // Host expectation, computed through the same traversal the kernel runs.
-  T          hostState = std::numeric_limits<T>::max();
-  const auto prims     = bvh.getPrimitives();
-
-  const auto evalLeaf = [&prims, &query](T& a_state, size_t a_offset, size_t a_count) noexcept {
-    for (size_t i = 0; i < a_count; i++) {
-      const T d2 = (prims[a_offset + i].m_pos - query).length2();
-
-      if (d2 < a_state) {
-        a_state = d2;
-      }
-    }
-  };
-
-  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
-
-  bvh.pruneTraverse(query, hostState, evalLeaf, pruneDist2);
-
-  const T hostVal = hostState + T(bvh.getPrimitives().size()) + bvh.getBoundingVolume().getLowCorner().length();
-
   pool.freeze();
 
-  Pool         devicePool = Pool::mirror(pool, deviceMemoryResource());
+  Pool         devicePool = Pool::mirror(pool, deviceTestResource());
   const Packed deviceView = bvh.rebasedView(devicePool);
 
-  DeviceBuffer<T> deviceOut;
+  // The points spiral out to a radius of 63 in the xy-plane and rise to z = 12.6, so this grid
+  // covers query points among them as well as well outside the cloud.
+  const auto points = queryGrid<T>(Vec3(T(-70), T(-70), T(-5)), Vec3(T(70), T(70), T(18)), 10);
 
-  packedBvhDeviceKernel<T, K><<<1, 1>>>(deviceView, query, deviceOut.get());
-  (void)GPU::deviceSynchronize();
-
-  REQUIRE_THAT(readScalar(deviceOut.get()), WithinRel(hostVal, gpuTol<T>()));
+  requireSameResults(evaluateOnDevice<T>(PackedBvhTraversalQuery<T, K>{deviceView}, points),
+                     evaluateOnHost<T>(PackedBvhTraversalQuery<T, K>{bvh}, points));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: rebased FlatMeshSDF/MeshSDF/TriMeshSDF evaluate in a kernel and agree with the host
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Deterministic probe points shared by host and kernel: a 5x5x5 lattice over [-2, 2]^3. The
-// dodecahedron fixture is centred at the origin with vertices within 1.62 of it on each axis, so the
-// lattice covers points inside, outside, and near its surface.
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-Vec3T<T>
-flatMeshProbePoint(uint32_t a_i) noexcept
-{
-  const T x = T(-2) + T(a_i % 5U);
-  const T y = T(-2) + T((a_i / 5U) % 5U);
-  const T z = T(-2) + T(a_i / 25U);
-
-  return Vec3T<T>(x, y, z);
-}
-
-constexpr uint32_t s_numFlatMeshProbes = 125;
-
-// Sums |signed distance| rather than signed distance, so that errors at inside and outside points
-// cannot cancel. Any of FlatMeshSDF, MeshSDF, TriMeshSDF, taken by value as a kernel receives it.
+// One signed distance per query point. Any of FlatMeshSDF, MeshSDF, TriMeshSDF, held by value as a
+// kernel receives it.
 template <class T, class SDF>
-EBGEOMETRY_HOST_DEVICE
-T
-meshSDFProbeSum(const SDF& a_sdf) noexcept
+struct SignedDistanceQuery
 {
-  T sum = T(0);
+  SDF m_sdf;
 
-  for (uint32_t i = 0; i < s_numFlatMeshProbes; i++) {
-    const T d = a_sdf.signedDistance(flatMeshProbePoint<T>(i));
-
-    sum += d < T(0) ? -d : d;
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_sdf.signedDistance(a_point);
   }
+};
 
-  // Also exercise the device-callable bounding box every mesh SDF provides.
-  const auto box = a_sdf.computeBoundingVolume();
-
-  return sum + box.getHighCorner().length() + box.getLowCorner().length();
-}
-
+// The device-callable bounding box every mesh SDF provides: query i < 3 returns the upper corner's
+// component i, and query i >= 3 the lower corner's component i - 3.
 template <class T, class SDF>
-EBGEOMETRY_GLOBAL
-void
-meshSDFDeviceKernel(const SDF a_sdf, T* a_out)
+struct BoundingBoxQuery
 {
-  a_out[0] = meshSDFProbeSum<T>(a_sdf);
-}
+  SDF m_sdf;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const int& a_i) const noexcept
+  {
+    const auto box = m_sdf.computeBoundingVolume();
+
+    return (a_i < 3) ? box.getHighCorner()[static_cast<size_t>(a_i)] : box.getLowCorner()[static_cast<size_t>(a_i - 3)];
+  }
+};
 
 TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate on device and match the host",
                    "[BVH][FlatMeshSDF][MeshSDF][TriMeshSDF][gpu]",
@@ -2901,27 +3960,56 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate on d
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
 
   const FlatMeshSDF<T, Meta>      flat(mesh, pool);
-  const MeshSDF<T, Meta, K>       meshSDF(mesh, pool, BVH::Build::SAH);
-  const TriMeshSDF<T, Meta, K, W> triSDF(mesh, pool, BVH::Build::SAH, 2);
-  const T                         flatHost = meshSDFProbeSum<T>(flat);
-  const T                         meshHost = meshSDFProbeSum<T>(meshSDF);
-  const T                         triHost  = meshSDFProbeSum<T>(triSDF);
+  const MeshSDF<T, Meta, K>       meshSDF(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, Meta, K, W> triSDF(mesh, pool, BVH::Construction::SAH, 2);
 
   pool.freeze();
 
-  Pool devicePool = Pool::mirror(pool, deviceMemoryResource());
+  Pool devicePool = Pool::mirror(pool, deviceTestResource());
 
-  DeviceBuffer<T> flatOut;
-  DeviceBuffer<T> meshOut;
-  DeviceBuffer<T> triOut;
+  // The dodecahedron is centred at the origin with vertices within 1.62 of it on each axis, so this
+  // grid covers points inside, outside, and near the surface.
+  const auto points  = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-2)), Vec3T<T>(T(2), T(2), T(2)), 12);
+  const auto corners = std::vector<int>{0, 1, 2, 3, 4, 5};
 
-  meshSDFDeviceKernel<T><<<1, 1>>>(flat.rebasedView(devicePool), flatOut.get());
-  meshSDFDeviceKernel<T><<<1, 1>>>(meshSDF.rebasedView(devicePool), meshOut.get());
-  meshSDFDeviceKernel<T><<<1, 1>>>(triSDF.rebasedView(devicePool), triOut.get());
-  (void)GPU::deviceSynchronize();
+  const auto check = [&](const auto& a_sdf) {
+    using SDF = std::decay_t<decltype(a_sdf)>;
 
-  REQUIRE_THAT(readScalar(flatOut.get()), WithinRel(flatHost, gpuTol<T>()));
-  REQUIRE_THAT(readScalar(meshOut.get()), WithinRel(meshHost, gpuTol<T>()));
-  REQUIRE_THAT(readScalar(triOut.get()), WithinRel(triHost, gpuTol<T>()));
+    const SDF view = a_sdf.rebasedView(devicePool);
+
+    requireSameResults(evaluateOnDevice<T>(SignedDistanceQuery<T, SDF>{view}, points),
+                       evaluateOnHost<T>(SignedDistanceQuery<T, SDF>{a_sdf}, points));
+    requireSameResults(evaluateOnDevice<T>(BoundingBoxQuery<T, SDF>{view}, corners),
+                       evaluateOnHost<T>(BoundingBoxQuery<T, SDF>{a_sdf}, corners));
+  };
+
+  check(flat);
+  check(meshSDF);
+  check(triSDF);
 }
+
+TEST_CASE("Default K and W are 4 whatever the compiler flags; host-tuned values follow the SIMD flags", "[BVH]")
+{
+  // The defaults must never depend on ISA macros: a type spelled with them has to be the same type in
+  // every translation unit and in both passes of a GPU compile.
+  static_assert(BVH::DefaultBranchingRatio<float>() == 4 && BVH::DefaultBranchingRatio<double>() == 4);
+  static_assert(TriangleSoA::DefaultWidth<float>() == 4 && TriangleSoA::DefaultWidth<double>() == 4);
+  static_assert(PointSoA::DefaultWidth<float>() == 4 && PointSoA::DefaultWidth<double>() == 4);
+
+#if defined(__AVX512F__)
+  constexpr size_t hostFloat  = 16;
+  constexpr size_t hostDouble = 8;
+#elif defined(__AVX__)
+  constexpr size_t hostFloat  = 8;
+  constexpr size_t hostDouble = 4;
+#else
+  constexpr size_t hostFloat  = 4;
+  constexpr size_t hostDouble = 4;
 #endif
+
+  static_assert(BVH::HostBranchingRatio<float>() == hostFloat && BVH::HostBranchingRatio<double>() == hostDouble);
+  static_assert(TriangleSoA::HostWidth<float>() == hostFloat && TriangleSoA::HostWidth<double>() == hostDouble);
+  static_assert(PointSoA::HostWidth<float>() == hostFloat && PointSoA::HostWidth<double>() == hostDouble);
+
+  SUCCEED();
+}

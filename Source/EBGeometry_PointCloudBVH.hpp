@@ -15,7 +15,6 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <type_traits>
 #include <vector>
 
@@ -23,6 +22,7 @@
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PointAoSoA.hpp"
 #include "EBGeometry_PointSoA.hpp"
@@ -101,15 +101,26 @@ public:
    * @brief One query result: the cloud index of a matched point and its squared distance.
    * @details @c index is the point's position in the input @c positions / @c metadata arrays; use
    * position()/metadata() to recover its data. @c distanceSquared avoids a sqrt on the hot path.
-   * @note A "no match" result (an empty cloud, or a self-query on a cloud with no other point) is
-   * signalled by @c distanceSquared == std::numeric_limits<T>::max(); test that rather than @c index,
-   * since the default @c index of 0 is indistinguishable from a genuine match on point 0. The
-   * multi-result queries instead report the count found via their return value.
+   * @note A "no match" result (an empty cloud, or a self-query on a cloud with no other point) has
+   * @c index == Math::Limits<std::size_t>::max() and @c distanceSquared ==
+   * Math::Limits<T>::max(); valid() tests for it. Slots a multi-result query could not fill
+   * hold the same value, and those queries also report the count found via their return value.
    */
   struct Hit
   {
-    std::size_t index           = 0;                             ///< Cloud index of the matched point.
-    T           distanceSquared = std::numeric_limits<T>::max(); ///< Squared distance from the query to it.
+    std::size_t index           = Math::Limits<std::size_t>::max(); ///< Cloud index of the matched point.
+    T           distanceSquared = Math::Limits<T>::max();           ///< Squared distance from the query to it.
+
+    /**
+     * @brief Whether this is a match rather than a "no match" result.
+     * @return True if @c index refers to a point.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    bool
+    valid() const noexcept
+    {
+      return index != Math::Limits<std::size_t>::max();
+    }
   };
 
   /**
@@ -309,7 +320,7 @@ public:
    * const auto deviceCloud = cloud.rebasedView(devicePool);
    * myKernel<<<blocks, threads>>>(deviceCloud, ...);
    * @endcode
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this object's own pool.
+   * @param[in] a_pool Pool to rebase onto: the object's own pool or one in its mirror chain.
    * @return A copy of this object resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -461,7 +472,7 @@ private:
   /**
    * @brief Sentinel meaning "exclude no point".
    */
-  static constexpr std::size_t s_none = std::numeric_limits<std::size_t>::max();
+  static constexpr std::size_t s_none = Math::Limits<std::size_t>::max();
 
   /**
    * @brief The packed BVH over the point groups. Owns the pool attachment every array below shares.

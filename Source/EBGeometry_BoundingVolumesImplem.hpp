@@ -14,7 +14,6 @@
 // Std includes
 #include <cmath>
 #include <cstddef>
-#include <iostream>
 #include <vector>
 
 // Our includes
@@ -68,8 +67,6 @@ template <class P>
 EBGEOMETRY_HOST
 SphereT<T>::SphereT(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
-
   this->define(a_points, a_algorithm);
 }
 
@@ -90,16 +87,20 @@ EBGEOMETRY_HOST
 inline void
 SphereT<T>::define(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
+  // Both are caller mistakes that would otherwise leave the sphere unset, or read past an empty
+  // array, with no sign of it, so they abort in every build.
+  EBGEOMETRY_REQUIRE(!a_points.empty(), "SphereT: cannot enclose an empty list of points");
 
   switch (a_algorithm) {
-  case BuildAlgorithm::Ritter: {
+  case BuildAlgorithm::Ritter:
+  default: {
+    EBGEOMETRY_REQUIRE(a_algorithm == BuildAlgorithm::Ritter,
+                       "SphereT: unknown BuildAlgorithm value (%d)",
+                       static_cast<int>(a_algorithm));
+
     this->buildRitter(a_points);
 
     break;
-  }
-  default: {
-    std::cerr << "SphereT::define - unsupported algorithm requested\n";
   }
   }
 }
@@ -335,10 +336,25 @@ AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline AABBT<T>
+AABBT<T>::merged(const AABBT<T>& a_other) const noexcept
+{
+  // Set the corners directly rather than through the corner constructor, which rejects an inverted
+  // box: the union of two default (inverted) boxes is itself inverted.
+  AABBT<T> box;
+
+  box.m_loCorner = min(m_loCorner, a_other.m_loCorner);
+  box.m_hiCorner = max(m_hiCorner, a_other.m_hiCorner);
+
+  return box;
+}
+
+template <class T>
 EBGEOMETRY_HOST
 AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_others.empty());
+  EBGEOMETRY_REQUIRE(!a_others.empty(), "AABBT: cannot enclose an empty list of bounding boxes");
 
   m_loCorner = a_others.front().getLowCorner();
   m_hiCorner = a_others.front().getHighCorner();
@@ -358,7 +374,7 @@ template <class P>
 EBGEOMETRY_HOST
 AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
+  EBGEOMETRY_REQUIRE(!a_points.empty(), "AABBT: cannot enclose an empty list of points");
 
   this->define(a_points);
 }
@@ -380,7 +396,7 @@ EBGEOMETRY_HOST
 inline void
 AABBT<T>::define(const std::vector<Vec3T<P>>& a_points) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
+  EBGEOMETRY_REQUIRE(!a_points.empty(), "AABBT::define: cannot enclose an empty list of points");
 
   this->define(a_points.data(), a_points.size());
 }

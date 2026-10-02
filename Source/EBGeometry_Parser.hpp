@@ -24,6 +24,7 @@
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_OBJ.hpp"
 #include "EBGeometry_PLY.hpp"
+#include "EBGeometry_ParseError.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_STL.hpp"
 #include "EBGeometry_Triangle.hpp"
@@ -56,7 +57,7 @@ enum class FileType
 {
   STL,        ///< Stereolithography format (.stl)
   PLY,        ///< Polygon File Format (.ply)
-  VTK,        ///< VTK legacy or XML polydata format (.vtk)
+  VTK,        ///< Legacy VTK polydata format (.vtk)
   OBJ,        ///< Wavefront OBJ format (.obj)
   Unsupported ///< File type is not recognised
 };
@@ -78,10 +79,28 @@ getFileType(const std::string& a_filename) noexcept;
 getFileEncoding(const std::string& a_filename) noexcept;
 
 /**
+ * @brief Throw unless a polygon soup read from a file can describe a mesh.
+ * @details Every reader runs this last. A soup that fails Soup::isValid (a vertex index out of
+ * range, or a non-finite coordinate, as corrupted files produce) is rejected rather than read as
+ * garbage.
+ * @tparam T Floating-point precision type for vertex coordinates.
+ * @param[in] a_vertices Vertex coordinate list.
+ * @param[in] a_facets   Index lists.
+ * @param[in] a_filename File the soup was read from, for the message.
+ * @throws ParseError if the soup is invalid.
+ */
+template <typename T>
+inline static void
+requireValidSoup(const std::vector<Vec3T<T>>&            a_vertices,
+                 const std::vector<std::vector<size_t>>& a_facets,
+                 const std::string&                      a_filename);
+
+/**
  * @brief Read a single PLY file into a raw PLY data structure.
  * @tparam T Floating-point precision used for vertex coordinates.
  * @param[in] a_filename PLY file name.
  * @return Populated PLY<T> object containing vertex coordinates and face indices.
+ * @throws ParseError if the file cannot be read or is malformed.
  */
 template <typename T>
 [[nodiscard]] PLY<T>
@@ -92,6 +111,7 @@ readPLY(const std::string& a_filename);
  * @tparam T Floating-point precision used for vertex coordinates.
  * @param[in] a_filenames List of PLY file names.
  * @return Vector of populated PLY<T> objects, one per file.
+ * @throws ParseError if any of the files cannot be read or is malformed.
  */
 template <typename T>
 [[nodiscard]] std::vector<PLY<T>>
@@ -104,6 +124,7 @@ readPLY(const std::vector<std::string>& a_filenames);
  * @return Populated STL<T> object containing vertex coordinates and face indices.
  * @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
  * will only read the first one.
+ * @throws ParseError if the file cannot be read or is malformed.
  */
 template <typename T>
 [[nodiscard]] STL<T>
@@ -116,6 +137,7 @@ readSTL(const std::string& a_filename);
  * @return Vector of populated STL<T> objects, one per file.
  * @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
  * will only read the first one.
+ * @throws ParseError if any of the files cannot be read or is malformed.
  */
 template <typename T>
 [[nodiscard]] std::vector<STL<T>>
@@ -126,6 +148,7 @@ readSTL(const std::vector<std::string>& a_filenames);
  * @tparam T Floating-point precision used for vertex coordinates.
  * @param[in] a_filename OBJ file name.
  * @return Populated OBJ<T> object containing vertex coordinates and face indices.
+ * @throws ParseError if the file cannot be read or is malformed.
  */
 template <typename T>
 [[nodiscard]] OBJ<T>
@@ -136,6 +159,7 @@ readOBJ(const std::string& a_filename);
  * @tparam T Floating-point precision used for vertex coordinates.
  * @param[in] a_filenames List of OBJ file names.
  * @return Vector of populated OBJ<T> objects, one per file.
+ * @throws ParseError if any of the files cannot be read or is malformed.
  */
 template <typename T>
 [[nodiscard]] std::vector<OBJ<T>>
@@ -146,6 +170,7 @@ readOBJ(const std::vector<std::string>& a_filenames);
  * @tparam T Floating-point precision used for vertex coordinates.
  * @param[in] a_filename VTK file name.
  * @return Populated VTK<T> object containing vertex coordinates and face indices.
+ * @throws ParseError if the file cannot be read or is malformed.
  */
 template <typename T>
 [[nodiscard]] VTK<T>
@@ -156,6 +181,7 @@ readVTK(const std::string& a_filename);
  * @tparam T Floating-point precision used for vertex coordinates.
  * @param[in] a_filenames List of VTK file names.
  * @return Vector of populated VTK<T> objects, one per file.
+ * @throws ParseError if any of the files cannot be read or is malformed.
  */
 template <typename T>
 [[nodiscard]] std::vector<VTK<T>>
@@ -168,9 +194,8 @@ readVTK(const std::vector<std::string>& a_filenames);
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
  * The returned mesh resolves its storage through a_pool, so a_pool must outlive it.
- * @return The constructed DCEL mesh, by value. If the file extension is not recognized, this logs to
- * std::cerr and returns a valid but empty mesh (0 faces; its signedDistance()/unsignedDistance2()
- * correctly report +infinity).
+ * @return The constructed DCEL mesh, by value.
+ * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static EBGeometry::DCEL::MeshT<T, Meta>
@@ -184,6 +209,7 @@ readIntoDCEL(const std::string a_filename, Pool& a_pool);
  * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously.
  * @return Vector of the constructed DCEL meshes, one per file.
+ * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::vector<EBGeometry::DCEL::MeshT<T, Meta>>
@@ -197,6 +223,7 @@ readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool);
  * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
  * The returned FlatMeshSDF resolves its mesh through a_pool, so a_pool must outlive it.
  * @return The FlatMeshSDF over the parsed DCEL mesh, by value.
+ * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static FlatMeshSDF<T, Meta>
@@ -210,6 +237,7 @@ readIntoMesh(const std::string a_filename, Pool& a_pool);
  * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously.
  * @return Vector of FlatMeshSDF objects, one per file.
+ * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::vector<FlatMeshSDF<T, Meta>>
@@ -225,12 +253,15 @@ readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool);
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the underlying DCEL mesh's storage from. The
  * returned MeshSDF holds the mesh and its BVH in a_pool, so a_pool must outlive it.
- * @param[in]     a_build    BVH build strategy. SAH is the default and recommended choice.
+ * @param[in]     a_construction    Preset BVH construction method. SAH is the default and recommended choice.
  * @return The MeshSDF enclosing the mesh, by value.
+ * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static MeshSDF<T, Meta, K>
-readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::Build a_build = BVH::Build::SAH);
+readIntoPackedBVH(const std::string       a_filename,
+                  Pool&                   a_pool,
+                  const BVH::Construction a_construction = BVH::Construction::SAH);
 
 /**
  * @brief Read multiple files and return each enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
@@ -240,12 +271,15 @@ readIntoPackedBVH(const std::string a_filename, Pool& a_pool, const BVH::Build a
  * @param[in]     a_files List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool  Pool to reserve every underlying DCEL mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously. Must outlive the returned MeshSDF objects.
- * @param[in]     a_build BVH build strategy. SAH is the default and recommended choice.
+ * @param[in]     a_construction Preset BVH construction method. SAH is the default and recommended choice.
  * @return Vector of MeshSDF objects, one per file.
+ * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static std::vector<MeshSDF<T, Meta, K>>
-readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const BVH::Build a_build = BVH::Build::SAH);
+readIntoPackedBVH(const std::vector<std::string>& a_files,
+                  Pool&                           a_pool,
+                  const BVH::Construction         a_construction = BVH::Construction::SAH);
 
 /**
  * @brief Read a file and return the mesh enclosed in a SIMD-optimised triangle BVH.
@@ -253,21 +287,19 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, Pool& a_pool, const B
  * At query time the BVH uses SIMD intrinsics to evaluate W triangles per leaf visit.
  * @tparam T    Floating-point precision for signed-distance evaluation.
  * @tparam Meta Per-face metadata type.
- * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for
- * T on the current ISA (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double
- * on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
- * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>()
- * (8/float or 4/double on AVX; 4 otherwise).
- * @param[in]     a_filename      File name (STL, PLY, or VTK).
- * @param[in,out] a_pool          Pool to reserve the intermediate DCEL mesh's storage from. The
- * mesh is only used transiently to extract triangles into the returned TriMeshSDF, which does not
- * retain it, but the Pool itself is a pure bump allocator (see EBGeometry_Pool.hpp) -- the space
- * reserved here is not reclaimed until a_pool itself is destroyed. The returned TriMeshSDF's BVH is
- * also reserved from a_pool, so a_pool must outlive it.
+ * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (4, independent of
+ * compiler flags); BVH::HostBranchingRatio<T>() is the value tuned to the host's SIMD flags, for
+ * host-only code.
+ * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>() (4);
+ * TriangleSoA::HostWidth<T>() is the host-tuned value.
+ * @param[in]     a_filename      File name (STL, PLY, VTK or OBJ).
+ * @param[in,out] a_pool          Pool the returned TriMeshSDF's BVH is reserved from; must outlive
+ * it. The intermediate DCEL mesh lives in a Pool private to this call (see readIntoTriangles), so
+ * it takes no space in a_pool and is not mirrored along with it.
  * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
  * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W (see TriMeshSDF's mesh-based
  * constructor for the tree-quality/SIMD-occupancy trade-off). Defaults to 4.
- * @param[in]     a_build         BVH build strategy. SAH is the default and recommended choice.
+ * @param[in]     a_construction         Preset BVH construction method. SAH is the default and recommended choice.
  * @return The TriMeshSDF enclosing the mesh, by value.
  */
 template <typename T,
@@ -275,10 +307,10 @@ template <typename T,
           size_t K      = BVH::DefaultBranchingRatio<T>(),
           size_t W      = TriangleSoA::DefaultWidth<T>()>
 [[nodiscard]] inline static TriMeshSDF<T, Meta, K, W>
-readIntoTriangleBVH(const std::string a_filename,
-                    Pool&             a_pool,
-                    const size_t      a_maxLeafGroups = 4,
-                    const BVH::Build  a_build         = BVH::Build::SAH);
+readIntoTriangleBVH(const std::string       a_filename,
+                    Pool&                   a_pool,
+                    const size_t            a_maxLeafGroups = 4,
+                    const BVH::Construction a_construction  = BVH::Construction::SAH);
 
 /**
  * @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
@@ -287,11 +319,11 @@ readIntoTriangleBVH(const std::string a_filename,
  * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (see single-file overload).
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>().
  * @param[in]     a_files         List of file names (STL, PLY, or VTK).
- * @param[in,out] a_pool          Pool to reserve every intermediate DCEL mesh's storage from (see
- * the single-file overload for details) -- all meshes share this one Pool, laid out contiguously.
+ * @param[in,out] a_pool          Pool every returned TriMeshSDF's BVH is reserved from (see the
+ * single-file overload).
  * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
  * the single-file overload for details). Defaults to 4.
- * @param[in]     a_build         BVH build strategy. SAH is the default and recommended choice.
+ * @param[in]     a_construction         Preset BVH construction method. SAH is the default and recommended choice.
  * @return Vector of TriMeshSDF objects, one per file.
  */
 template <typename T,
@@ -302,7 +334,7 @@ template <typename T,
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
                     Pool&                           a_pool,
                     const size_t                    a_maxLeafGroups = 4,
-                    const BVH::Build                a_build         = BVH::Build::SAH);
+                    const BVH::Construction         a_construction  = BVH::Construction::SAH);
 
 /**
  * @brief Read a file and return all faces as a flat list of Triangle objects.
@@ -310,29 +342,27 @@ readIntoTriangleBVH(const std::vector<std::string>& a_files,
  * independent Triangle with precomputed vertex positions, normals, and edge normals.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
  * @tparam Meta Per-face metadata type.
- * @param[in]     a_filename File name (STL, PLY, or VTK).
- * @param[in,out] a_pool     Pool to reserve the intermediate DCEL mesh's storage from. The mesh is
- * only used transiently to extract triangles and is not retained by the returned list, but the
- * Pool itself is a pure bump allocator (see EBGeometry_Pool.hpp) -- the space reserved here is not
- * reclaimed until a_pool itself is destroyed.
+ * The intermediate DCEL mesh lives in a Pool private to this call and is freed on return, so it
+ * never occupies (or gets mirrored along with) any Pool of the caller's.
+ * @param[in] a_filename File name (STL, PLY, VTK or OBJ).
  * @return Flat vector of Triangle objects, by value.
+ * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<Triangle<T, Meta>>
-readIntoTriangles(const std::string a_filename, Pool& a_pool);
+readIntoTriangles(const std::string a_filename);
 
 /**
  * @brief Read multiple files and return all faces from each as flat lists of Triangle objects.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
  * @tparam Meta Per-face metadata type.
- * @param[in]     a_files List of file names (STL, PLY, or VTK).
- * @param[in,out] a_pool  Pool to reserve every intermediate DCEL mesh's storage from -- all meshes
- * share this one Pool, laid out contiguously (see the single-file overload for details).
+ * @param[in] a_files List of file names (STL, PLY, VTK or OBJ).
  * @return Outer vector indexed by file; each inner vector is the flat triangle list for that file.
+ * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<std::vector<Triangle<T, Meta>>>
-readIntoTriangles(const std::vector<std::string>& a_files, Pool& a_pool);
+readIntoTriangles(const std::vector<std::string>& a_files);
 } // namespace Parser
 
 } // namespace EBGeometry

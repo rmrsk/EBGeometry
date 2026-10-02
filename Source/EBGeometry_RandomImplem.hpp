@@ -36,8 +36,14 @@ samplePoints(size_t a_count, uint64_t a_seed)
 
   points.reserve(a_count);
 
+  // Draw x, y and z in named statements: as three arguments to one call they would be evaluated in an
+  // unspecified order, and different compilers swap the coordinates.
   for (size_t i = 0; i < a_count; i++) {
-    points.emplace_back(dist(rng), dist(rng), dist(rng));
+    const T x = dist(rng);
+    const T y = dist(rng);
+    const T z = dist(rng);
+
+    points.emplace_back(x, y, z);
   }
 
   return points;

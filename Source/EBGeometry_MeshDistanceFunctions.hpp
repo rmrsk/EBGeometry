@@ -14,7 +14,6 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -25,6 +24,7 @@
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleAoSoA.hpp"
@@ -77,7 +77,7 @@ public:
    * @brief Full constructor.
    * @details Copies the mesh descriptor. Nothing is frozen or bound: the mesh resolves its storage
    * through a_pool's control block on every access, so this object is queryable at once and stays
-   * queryable across a Pool::reserve that grows and moves the block. a_pool is taken to assert that
+   * queryable across a Pool::reserve that grows and moves the block. a_pool is taken to check that
    * a_mesh really was reserved from it, and to make visible at the call site that it must outlive
    * this object and every copy of it.
    * @param[in]     a_mesh Input mesh, built against a_pool.
@@ -110,7 +110,7 @@ public:
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Rebases the mesh descriptor; see DCEL::MeshT::rebasedView() for the contract. This is
    * the one sanctioned crossing to a device.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of the mesh's own pool.
+   * @param[in] a_pool Pool to rebase onto: the object's own pool or one in its mirror chain.
    * @return A FlatMeshSDF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -229,15 +229,17 @@ public:
   /**
    * @brief Full constructor. Copies the mesh descriptor and builds the BVH over its faces.
    * @details No default arguments: this is a low-level constructor, and callers working at this
-   * level must consciously choose a build strategy. Use Parser::readIntoPackedBVH for sensible
+   * level must consciously choose a construction method. Use Parser::readIntoPackedBVH for sensible
    * defaults. The BVH is reserved from a_pool, which must be the pool a_mesh was built in, so that
    * one rebasedView() rebases both. a_pool must outlive this object and every copy of it.
    * @param[in]     a_mesh   Input mesh, built against a_pool.
    * @param[in,out] a_pool   Pool a_mesh's storage was reserved from; the BVH is reserved here too.
-   * @param[in]     a_build  BVH build strategy. SAH (binned Surface Area Heuristic) is recommended.
+   * @param[in]     a_construction  Preset construction method; every BVH::Construction value is supported. SAH
+   * (binned Surface Area Heuristic) is recommended. The top-down methods stop at fewer than K faces
+   * per leaf; ClusterSAH uses the default ClusterSpec, so a leaf holds up to (K-1) clusters of faces.
    */
   EBGEOMETRY_HOST
-  inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
+  inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Construction a_construction);
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
@@ -269,7 +271,12 @@ public:
 
   /**
    * @brief Get the PackedBVH enclosing the mesh.
-   * @details Mutable, so that a caller who moves the mesh's vertices can refit() the BVH in place.
+   * @details Mutable, so that PackedBVH::refit() can be called on it. That alone does not make
+   * moving the mesh's vertices safe: refit() recomputes only the node bounding boxes, while each
+   * packed face is a by-value copy whose cached normal, centroid, area and projection axes were
+   * taken at build time, and nothing refreshes them -- signedDistance() would mix live vertex data
+   * from the mesh with stale face data. After moving vertices, reconcile the mesh and build a new
+   * MeshSDF.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -316,7 +323,7 @@ public:
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Rebases the mesh descriptor and the BVH together; see DCEL::MeshT::rebasedView() and
    * BVH::PackedBVH::rebasedView() for the contract. This is the one sanctioned crossing to a device.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this object's own pool.
+   * @param[in] a_pool Pool to rebase onto: the object's own pool or one in its mirror chain.
    * @return A MeshSDF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -364,12 +371,12 @@ private:
    * @brief Build and pack the BVH over a mesh's faces.
    * @param[in]     a_mesh  Mesh whose faces to index.
    * @param[in,out] a_pool  Pool to reserve the packed BVH from.
-   * @param[in]     a_build BVH build strategy.
+   * @param[in]     a_construction Preset BVH construction method.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build);
+  buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Construction a_construction);
 
   /**
    * @brief Source DCEL mesh descriptor.
@@ -391,8 +398,8 @@ private:
  * (TriangleAoSoA<T,Meta,W>), enabling SIMD evaluation of up to W signed distances simultaneously.
  *
  * No default arguments: this is a low-level constructor, and callers who excavate down to it
- * must consciously choose K and W. Use Parser::readIntoTriangleBVH for sensible ISA-tuned
- * defaults (BVH::DefaultBranchingRatio<T>() for K, TriangleSoA::DefaultWidth<T>() for W).
+ * must consciously choose K and W. BVH::DefaultBranchingRatio<T>() and TriangleSoA::DefaultWidth<T>()
+ * (both 4) are the portable choice, and Parser::readIntoTriangleBVH's defaults.
  *
  * Each leaf primitive is a TriangleAoSoA<T, Meta, W>: an SoA triangle block for SIMD signed-distance
  * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
@@ -446,8 +453,8 @@ public:
    */
   struct ClosestTriangle
   {
-    T    signedDistance = std::numeric_limits<T>::max(); ///< Signed distance to the closest triangle.
-    Meta metaData{};                                     ///< Metadata of the closest triangle.
+    T    signedDistance = Math::Limits<T>::max(); ///< Signed distance to the closest triangle.
+    Meta metaData{};                              ///< Metadata of the closest triangle.
   };
 
   /**
@@ -460,35 +467,41 @@ public:
    * @details No default arguments: this is a low-level constructor, and callers who excavate down
    * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
    * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups.
-   * @param[in]     a_mesh          DCEL mesh; every face must be a triangle.
+   * @param[in]     a_mesh          DCEL mesh. Faces with more than three vertices are fan-triangulated.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
-   * @param[in]     a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
-   * near-optimal traversal cost; TopDown (centroid median) is faster to build but yields deeper trees.
+   * @param[in]     a_construction         Preset construction method; every BVH::Construction value is supported.
+   * SAH (binned Surface Area Heuristic) produces near-optimal traversal cost; CentroidSplit and
+   * MidpointSplit are faster to build but yield deeper trees. The top-down methods honour
+   * a_maxLeafGroups, ClusterSAH sizes its clusters so its leaves do too, and the space-filling-curve
+   * methods ignore it (at most K triangles per leaf).
    * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
    * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W. This bounds the pre-packing
    * tree's leaf size, not the packed representation directly: each leaf's triangles become their
    * own TriangleSoA group(s) during packing, with no batching across leaves, so a leaf smaller
    * than W wastes some of its group's SIMD lanes on padding. It is an upper bound, not a target —
-   * the SAH/TopDown partitioner still splits down to tighter, more selective leaves wherever the
+   * the top-down partitioner still splits down to tighter, more selective leaves wherever the
    * geometry warrants it. Expressing this as a count of W-sized groups (rather than a raw triangle
    * count) makes it impossible to accidentally pick a leaf size that isn't a multiple of W. Must
    * be > 0.
    */
   EBGEOMETRY_HOST
-  inline TriMeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
+  inline TriMeshSDF(const Mesh&             a_mesh,
+                    Pool&                   a_pool,
+                    const BVH::Construction a_construction,
+                    const size_t            a_maxLeafGroups);
 
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
    * @param[in]     a_triangles     Input triangle soup; copied into the BVH's SoA groups.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
-   * @param[in]     a_build         BVH build strategy (see the mesh-based constructor for details).
+   * @param[in]     a_construction         Preset BVH construction method (see the mesh-based constructor for details).
    * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
    * the mesh-based constructor for the tree-quality/SIMD-occupancy trade-off). Must be > 0.
    */
   EBGEOMETRY_HOST
   inline TriMeshSDF(const std::vector<Tri>& a_triangles,
                     Pool&                   a_pool,
-                    const BVH::Build        a_build,
+                    const BVH::Construction a_construction,
                     const size_t            a_maxLeafGroups);
 
   /**
@@ -552,7 +565,7 @@ public:
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Rebases the BVH; see BVH::PackedBVH::rebasedView() for the contract. This is the one
    * sanctioned crossing to a device.
-   * @param[in] a_pool Pool to rebase onto; must be a mirror of this object's own pool.
+   * @param[in] a_pool Pool to rebase onto: the object's own pool or one in its mirror chain.
    * @return A TriMeshSDF resolving against @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -595,9 +608,9 @@ public:
 
 private:
   /**
-   * @brief Extract every face of a triangulated DCEL mesh as a flat Triangle.
-   * @param[in] a_mesh DCEL mesh; every face must be a triangle.
-   * @return One Triangle per face, in face order.
+   * @brief Extract every face of a DCEL mesh as flat Triangles, fan-triangulating polygons.
+   * @param[in] a_mesh DCEL mesh.
+   * @return The triangles of every face, in face order.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline std::vector<Tri>
@@ -607,13 +620,43 @@ private:
    * @brief Build and pack the BVH over a triangle soup.
    * @param[in]     a_triangles     Triangles to index.
    * @param[in,out] a_pool          Pool to reserve the packed BVH from.
-   * @param[in]     a_build         BVH build strategy.
+   * @param[in]     a_construction         Preset BVH construction method.
    * @param[in]     a_maxLeafGroups Maximum number of W-sized groups per leaf.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildBVH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::Build a_build, const size_t a_maxLeafGroups);
+  buildBVH(const std::vector<Tri>& a_triangles,
+           Pool&                   a_pool,
+           const BVH::Construction a_construction,
+           const size_t            a_maxLeafGroups);
+
+  /**
+   * @brief Build the BVH with ClusterSAH, which has no TreeBVH form.
+   * @details Builds a ClusterSAH PackedBVH over the triangle indices in a scratch pool, then copies
+   * it node for node with each leaf's triangles regrouped into W-wide SoA groups.
+   * @param[in]     a_triangles   Triangles to index.
+   * @param[in,out] a_pool        Pool to reserve the packed BVH from.
+   * @param[in]     a_maxLeafSize Maximum number of triangles per leaf. The cluster size is chosen so
+   * that a leaf, which holds at most K-1 clusters, stays within it; a cluster holds at least one
+   * triangle, so a bound below K-1 still allows K-1.
+   * @return The packed BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline Root
+  buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& a_pool, const size_t a_maxLeafSize);
+
+  /**
+   * @brief Pack a run of triangles into W-wide SoA groups; the last group may be partly filled.
+   * @tparam GetTriangle Callable taking an index in [0, a_count) and returning a const Tri&.
+   * @param[in] a_getTriangle Accessor for the run's triangles.
+   * @param[in] a_count       Number of triangles in the run.
+   * @return ceil(a_count / W) groups, in run order.
+   */
+  template <class GetTriangle>
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline std::vector<TriAoSoA>
+  groupTriangles(const GetTriangle& a_getTriangle, uint32_t a_count);
 
   /**
    * @brief Leaf-conversion callback for TreeBVH::packWith: groups a BVH leaf's triangles

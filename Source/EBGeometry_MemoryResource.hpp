@@ -11,8 +11,11 @@
  * memory, or page-locked host memory) without the caller knowing which. Allocation is a cold,
  * once-per-build operation, so the virtual dispatch cost is irrelevant and the runtime-swappable
  * placement is the whole point: the same POD scene structure (see @ref EBGeometry::Pool and
- * @ref EBGeometry::PODVector) can be built into a host resource for a CPU query, mirrored into a
- * device resource for a kernel, or built directly into managed memory for both.
+ * @ref EBGeometry::PODVector) can be built into a host resource for a CPU query, or mirrored into a
+ * device resource for a kernel. Managed and mapped blocks are reachable from both sides: an object
+ * built directly in a managed pool reaches a kernel through @c rebasedView() onto that same pool once
+ * it is frozen, and a view of a managed or mapped pool also answers queries on the host (see
+ * @ref EBGeometry::PoolLocation).
  *
  * @ref EBGeometry::HostMemoryResource is always compiled (plain aligned host allocation). The
  * device-backed resources -- @ref EBGeometry::DeviceMemoryResource,
@@ -124,6 +127,27 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   virtual bool
   isDeviceAccessible() const noexcept = 0;
+
+  /**
+   * @brief Copy a block between memory from two resources, one of which is this one.
+   * @details Pool::mirror calls this on whichever of its two resources is not host-accessible (or on
+   * the destination's, if both are). This implementation copies between host-accessible blocks and
+   * aborts for any other pair. The device resources override it with the GPU runtime's copy. That
+   * keeps every backend-specific call inside classes that exist only in translation units compiled
+   * with a GPU backend, so Pool::mirror compiles to the same code in every translation unit.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
+  EBGEOMETRY_HOST
+  virtual void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept;
 };
 
 /**
@@ -265,6 +289,13 @@ public:
   {
     return true;
   }
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
 };
 
 /**
@@ -330,6 +361,13 @@ public:
   {
     return true;
   }
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
 };
 
 /**
@@ -395,6 +433,13 @@ public:
   {
     return false;
   }
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
 };
 
 /**
@@ -464,6 +509,13 @@ public:
   {
     return true;
   }
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
 };
 
 /**

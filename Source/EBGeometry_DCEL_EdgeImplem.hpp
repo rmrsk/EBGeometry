@@ -14,13 +14,13 @@
 // Std includes
 #include <cmath>
 #include <cstddef>
-#include <limits>
 
 // Our includes
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
@@ -176,11 +176,12 @@ EdgeT<T, Meta>::computeNormal(const Mesh& a_mesh) const noexcept
     }
   }
 
+  // Zero only when the two faces fold back onto each other. That is a defect of the input, not an
+  // internal error: the file readers reject it (Soup::findFoldedFeature), and a mesh built by hand
+  // keeps a zero normal here rather than a NaN.
   const T len = normal.length();
 
-  EBGEOMETRY_EXPECT(len > T(0));
-
-  return (len > std::numeric_limits<T>::epsilon()) ? normal / len : Vec3T<T>::zeros();
+  return (len > Math::Limits<T>::epsilon()) ? normal / len : Vec3T<T>::zeros();
 }
 
 template <class T, class Meta>
@@ -356,7 +357,7 @@ EdgeT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexc
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
   EBGEOMETRY_EXPECT(m_vertex != UINT32_MAX);
 
-  T retval = std::numeric_limits<T>::max();
+  T retval = Math::Limits<T>::max();
 
   // Project point to edge.
   const T t = this->projectPointToEdge(a_x0, a_mesh);
@@ -397,12 +398,8 @@ EdgeT<T, Meta>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const no
   constexpr T zero = 0.0;
   constexpr T one  = 1.0;
 
-  // Project point to edge and restrict to edge length. Hand-rolled rather than std::clamp: under
-  // libstdc++'s hardened mode, std::clamp expands to an assertion that calls a __host__-only
-  // function, which HIP's device compiler (unlike nvcc) rejects from a __host__ __device__
-  // function -- see Vec3T's own clamp() for the same reasoning.
-  const T tRaw = this->projectPointToEdge(a_x0, a_mesh);
-  const T t    = (tRaw < zero) ? zero : (tRaw > one ? one : tRaw);
+  // Project point to edge and restrict to edge length.
+  const T t = Math::clamp(this->projectPointToEdge(a_x0, a_mesh), zero, one);
 
   // Compute distance to this edge.
   const Vec3T<T> x2x1      = this->getX2X1(a_mesh);

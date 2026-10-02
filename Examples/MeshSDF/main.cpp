@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <chrono>
+#include <iostream>
 #include <random>
 #include <string>
 #include <type_traits>
@@ -27,9 +28,11 @@ using Meta = short;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
 
+// The function-try-block reports a mesh file that cannot be read, rather than letting the exception
+// terminate the program.
 int
 main(int argc, char* argv[])
-{
+try {
   // Path to a surface mesh (STL/PLY/VTK/OBJ). Pass one on the command line, e.g.
   //   ./a.out ../../common-3d-test-models/data/cow.obj
   // Paths are resolved relative to the run directory (this example's source folder when run via ctest).
@@ -62,7 +65,7 @@ main(int argc, char* argv[])
 
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file, pool);
   const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, pool);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool, 4, BVH::Build::SAH);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool, 4, BVH::Construction::SAH);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 1000;
@@ -141,4 +144,8 @@ main(int argc, char* argv[])
   // clang-format on
 
   return 0;
+} catch (const EBGeometry::Parser::ParseError& e) {
+  std::cerr << "Cannot read the mesh: " << e.what() << '\n';
+
+  return 1;
 }

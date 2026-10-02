@@ -24,5 +24,4 @@ for how to compile it with CMake, GNU Make, or a direct compiler invocation.
 .. code-block:: bash
 
    cd Examples/CSGUnion
-   ./CSGUnion.ex                                           # defaults to cow.obj
-   ./CSGUnion.ex ../../common-3d-test-models/data/cow.obj
+   ./CSGUnion.ex     # while disabled, prints the notice above and ignores any arguments

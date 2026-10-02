@@ -246,6 +246,9 @@ public:
    * @note This computes the normal vector using the pseudnormal algorithm from
    * Baerentzen and Aanes in "Signed distance computation using the angle
    * weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49).
+   * @note Every face in a_faceIndices with a non-zero normal must visit this vertex exactly once,
+   * and the vertex and its two neighbours on that face must have distinct positions. A violation
+   * aborts with a message in every build, rather than reading out of bounds or dividing by zero.
    */
   EBGEOMETRY_HOST
   inline void
@@ -359,9 +362,9 @@ public:
 protected:
   /**
    * @brief Index of an outgoing edge from this vertex.
-   * @details Index into the owning DCEL::MeshT's edge array, or UINT32_MAX if unset. This is also
-   * the seed half-edge for circulating the faces touching this vertex (see
-   * computeVertexNormalAverage()/computeVertexNormalAngleWeighted()).
+   * @details Index into the owning DCEL::MeshT's edge array, or UINT32_MAX if unset. Not read by
+   * computeVertexNormalAverage()/computeVertexNormalAngleWeighted(), which take the touching faces
+   * as an explicit list; see the class notes.
    */
   uint32_t m_outgoingEdge = UINT32_MAX;
 

@@ -8,7 +8,7 @@ A signed distance function returns, for any point in space, the distance to the 
 the mesh's surface, signed by whether the query point is inside or outside the surface. This only
 makes sense if the mesh is *watertight* (it has no holes or gaps) and *consistently oriented* (its
 triangles all wind the same way, so "inside" is unambiguous everywhere) -- see
-[Geometry representations](https://rmrsk.github.io/EBGeometry/Concepts.html) for the underlying
+[Geometry representations](https://rmrsk.github.io/EBGeometry/GeometryRepresentations.html) for the underlying
 theory.
 
 Computing that distance exactly requires checking every triangle in the mesh, which becomes slow
@@ -32,9 +32,9 @@ Building
 This example is standalone and can be built in three ways. Each needs the path
 to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
 is two levels up from this folder (`../..`) when building in place. See
-[Direct compilation](https://rmrsk.github.io/EBGeometry/BuildingDirectCompile.html),
-[Building with GNU Make](https://rmrsk.github.io/EBGeometry/BuildingGNUMake.html), and
-[Building with CMake](https://rmrsk.github.io/EBGeometry/BuildingCMake.html) in the user
+[Direct compilation](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingdirectcompile),
+[Building with GNU Make](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildinggnumake), and
+[Building with CMake](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingcmake) in the user
 documentation for more detail on each approach.
 
 **CMake**
@@ -73,10 +73,11 @@ Run from this directory so the default mesh path resolves:
 With no argument the example loads `armadillo.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out
 (`git submodule update --init`; see
-[Introduction](https://rmrsk.github.io/EBGeometry/Introduction.html) for details). You can pass
+[Obtaining EBGeometry](https://rmrsk.github.io/EBGeometry/ObtainingEBGeometry.html) for details). You can pass
 the path to any watertight, triangulated STL/PLY/OBJ/VTK file instead.
 
 The program prints the mesh's bounding box, then the summed signed distance to 1000 random
 points and the average time per query, once for each of the three representations, followed by
 the relative speedup of the two accelerated representations over the brute-force one. All three
-sums should agree to within floating-point round-off; the program prints a warning if they don't.
+sums should agree to within floating-point round-off; if they don't, the program prints an error
+and exits with status 1 before printing the results.

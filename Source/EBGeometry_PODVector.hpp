@@ -14,11 +14,13 @@
  *
  * Two access styles are provided:
  * - @ref EBGeometry::PODVector::at / @ref EBGeometry::PODVector::data resolve @c base + @c offset on
- *   every call. Always correct, host and device, during build and after freeze. This is the default.
+ *   every call. Always correct, host and device, while the pool is still being built into and
+ *   after freeze. This is the default.
  * - @ref EBGeometry::PODVector::bind returns a @ref EBGeometry::PODSpan<T> -- a raw pointer + size
- *   for a genuinely hot inner loop. A span captures a raw pointer, so it must only be taken against
- *   a @b frozen pool (whose base can no longer move); the @ref EBGeometry::Pool freeze state machine
- *   makes a live span across a base move structurally impossible.
+ *   for a genuinely hot inner loop. A span captures a raw pointer, so it follows the pool's
+ *   @b resolve, @b use, @b discard rule (see @ref EBGeometry::Pool::reserve): it must not outlive
+ *   the next reserve on that pool, which may grow and move the block. Nothing enforces this; taking
+ *   the span against a frozen (or mirrored) pool is the one case where no reserve can follow.
  * @author Robert Marskar
  */
 
@@ -39,15 +41,16 @@
 namespace EBGeometry {
 
 /**
- * @brief Raw pointer + size view into a frozen @ref Pool block, for hot inner loops.
- * @details Obtained from @ref PODVector::bind. Because it captures a raw pointer, it is only valid
- * for the lifetime of a frozen (or mirrored) pool, whose base cannot move.
+ * @brief Raw pointer + size view into a @ref Pool block, for hot inner loops.
+ * @details Obtained from @ref PODVector::bind. Because it captures a raw pointer, it is valid only
+ * until the next @ref Pool::reserve on that pool (which may move the block) or the pool's
+ * destruction: resolve, use, discard. Against a frozen (or mirrored) pool no reserve can follow.
  * @tparam T Element type.
  */
 template <class T>
 struct PODSpan
 {
-  /// @brief Raw pointer to element 0 inside a frozen pool's block.
+  /// @brief Raw pointer to element 0 inside the pool's block, as resolved when the span was bound.
   T* m_ptr = nullptr;
 
   /// @brief Number of elements.
@@ -115,6 +118,8 @@ template <class T>
 struct PODVector
 {
   static_assert(std::is_trivially_copyable_v<T>, "PODVector<T>: T must be trivially copyable (device-visible storage)");
+  static_assert(alignof(T) <= PoolBaseAlign,
+                "PODVector<T>: T's alignment exceeds the Pool's base alignment, so no reservation can align it");
 
   /// @brief Byte offset of element 0 from @ref Pool::base.
   uint64_t m_offset = 0;
@@ -255,13 +260,17 @@ struct PODVector
    *          operation (the finalize path).
    * @param[in] a_base  Base address of the pool holding this array.
    * @param[in] a_src   Source array of at least @p a_count elements.
-   * @param[in] a_count Number of elements to copy (must be <= @c m_capacity).
+   * @param[in] a_count Number of elements to copy (must be <= @c m_capacity; aborts otherwise, in
+   *                    every build).
    */
   EBGEOMETRY_HOST
   void
   assign(void* a_base, const T* a_src, uint32_t a_count)
   {
-    EBGEOMETRY_EXPECT(a_count <= m_capacity);
+    EBGEOMETRY_REQUIRE(a_count <= m_capacity,
+                       "PODVector::assign: the element count must not exceed the reserved capacity (%u > %u)",
+                       unsigned(a_count),
+                       unsigned(m_capacity));
 
     // Guard the zero-element case: an empty build reserves nothing, so both this->data(a_base) and
     // a_src are null, and memcpy's parameters are declared nonnull -- UBSan's nonnull check flags
@@ -275,8 +284,8 @@ struct PODVector
 
   /**
    * @brief Bind a mutable raw-pointer view for a hot loop.
-   * @details Call only against a frozen pool; see the class documentation.
-   * @param[in] a_base Base address of the (frozen) pool holding this array.
+   * @details The span must not outlive the next reserve on the pool; see @ref PODSpan.
+   * @param[in] a_base Current base address of the pool holding this array.
    * @return A @ref PODSpan over the array.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -288,8 +297,8 @@ struct PODVector
 
   /**
    * @brief Bind a const raw-pointer view for a hot loop.
-   * @details Call only against a frozen pool; see the class documentation.
-   * @param[in] a_base Base address of the (frozen) pool holding this array.
+   * @details The span must not outlive the next reserve on the pool; see @ref PODSpan.
+   * @param[in] a_base Current base address of the pool holding this array.
    * @return A @ref PODSpan of const elements over the array.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE

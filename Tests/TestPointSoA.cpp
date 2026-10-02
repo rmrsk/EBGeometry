@@ -6,6 +6,7 @@
 // TestPointAoSoA.cpp.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -189,8 +190,8 @@ TEMPLATE_TEST_CASE("PointSoAT: getDistances2/getDistances return every lane's di
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
   for (const auto& q : queryPoints<T>()) {
-    const std::array<T, W> d2 = group.getDistances2(q);
-    const std::array<T, W> d  = group.getDistances(q);
+    const Array<T, W> d2 = group.getDistances2(q);
+    const Array<T, W> d  = group.getDistances(q);
 
     for (size_t lane = 0; lane < W; lane++) {
       const size_t src      = (lane < positions.size()) ? lane : (positions.size() - 1); // padding source
@@ -295,10 +296,7 @@ TEMPLATE_TEST_CASE("PointSoAT (W=8): getMinimumDistance/getMinimumDistance2 unaf
   }
 }
 
-// Leaving W unspecified must pick up PointSoA::DefaultWidth<T>() -- and, per that function's own
-// table, float and double do not, in general, share a default width on the same ISA (e.g. AVX:
-// float->8, double->4), so this is checked per-precision rather than assumed to match TestType's
-// sibling.
+// Leaving W unspecified must pick up PointSoA::DefaultWidth<T>(), checked per precision.
 TEMPLATE_TEST_CASE("PointSoAT: omitting W defaults to PointSoA::DefaultWidth<T>(), and is usable "
                    "end-to-end at that width",
                    "[PointSoA]",
@@ -327,4 +325,25 @@ TEMPLATE_TEST_CASE("PointSoAT: omitting W defaults to PointSoA::DefaultWidth<T>(
     REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
     REQUIRE_THAT(group.getMinimumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
   }
+}
+
+TEST_CASE("PointSoAT::pack rejects a count outside [1, W] and a null array", "[PointSoA][death]")
+{
+  using T = double;
+
+  const std::array<Vec3T<T>, 1> points = {Vec3T<T>(T(0), T(0), T(0))};
+
+  REQUIRE(abortsWith(
+    [&points] {
+      PointSoAT<T, 4> group;
+      group.pack(points.data(), 0U);
+    },
+    "PointSoAT::pack: the point count must be between 1 and 4 (0)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      PointSoAT<T, 4> group;
+      group.pack(nullptr, 1U);
+    },
+    "PointSoAT::pack: the position array must not be null"));
 }

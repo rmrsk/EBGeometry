@@ -21,8 +21,7 @@ using T = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
-// Fixed (not BVH::DefaultBranchingRatio<T>()) so build times are comparable across machines/ISAs
-// rather than varying with whatever K the compiling machine's SIMD tier happens to prefer.
+// The library's default branching factor (BVH::DefaultBranchingRatio<T>() is 4 on every machine).
 constexpr size_t K = 4;
 
 // A minimal point primitive -- deliberately example-local, not a library type. This example only
@@ -81,7 +80,7 @@ struct StrategyResult
   double directBuildTime;
 };
 
-// Times one "partitioner family" strategy (TopDown/SAH/Midpoint): both the TreeBVH path (build +
+// Times one "partitioner family" strategy (CentroidSplit/SAH/MidpointSplit): both the TreeBVH path (build +
 // a_partitionFn, then pack()) and PackedBVH's direct top-down constructor with the same
 // a_partitioner/a_stopCrit.
 template <class PartitionFn, class Partitioner, class LeafPred>
@@ -227,12 +226,12 @@ main()
     // ClusterSAH is direct-only: cluster to <= maxClusterSize primitives, then SAH over the clusters.
     const auto clusterSah = runClusterSAH(positions, /*maxClusterSize=*/8);
 
-    std::cout << std::left << std::setw(12) << "Strategy" << std::right << std::setw(16) << "TreeBVH (s)"
+    std::cout << std::left << std::setw(15) << "Strategy" << std::right << std::setw(16) << "TreeBVH (s)"
               << std::setw(16) << "+ pack() (s)" << std::setw(16) << "Total (s)" << std::setw(18) << "Direct build (s)"
               << "\n";
 
     auto printRow = [](const char* a_label, const StrategyResult& a_result) {
-      std::cout << std::left << std::setw(12) << a_label << std::right;
+      std::cout << std::left << std::setw(15) << a_label << std::right;
 
       if (a_result.treeBuildTime < 0.0) { // direct-only strategy: no TreeBVH path
         std::cout << std::setw(16) << "--" << std::setw(16) << "--" << std::setw(16) << "--";
@@ -245,9 +244,9 @@ main()
       std::cout << std::setw(18) << a_result.directBuildTime << "\n";
     };
 
-    printRow("TopDown", topDown);
+    printRow("CentroidSplit", topDown);
     printRow("SAH", sah);
-    printRow("Midpoint", midpoint);
+    printRow("MidpointSplit", midpoint);
     printRow("Morton", morton);
     printRow("Nested", nested);
     printRow("Hilbert", hilbert);
