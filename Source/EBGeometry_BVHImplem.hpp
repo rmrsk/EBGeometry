@@ -1289,46 +1289,63 @@ PackedBVH<T, P, K>::computeBoundingVolume() const noexcept
 }
 
 template <class T, class P, size_t K>
-template <class NodeKey>
+template <class NodeKey, class LeafEvaluator, class PrunePredicate, class ChildOrderer, class NodeKeyFactory>
+EBGEOMETRY_HOST_DEVICE
 inline void
-PackedBVH<T, P, K>::traverse(const BVH::PackedLeafEvaluator<P>&         a_leafEvaluator,
-                             const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
-                             const BVH::PackedChildOrderer<NodeKey, K>& a_childOrderer,
-                             const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept
+PackedBVH<T, P, K>::traverse(LeafEvaluator&&  a_leafEvaluator,
+                             PrunePredicate&& a_prunePredicate,
+                             ChildOrderer&&   a_childOrderer,
+                             NodeKeyFactory&& a_nodeKeyFactory) const noexcept
 {
+  // The key type: as given, or what the node-key factory returns.
+  using Key = std::
+    conditional_t<std::is_void_v<NodeKey>, std::decay_t<std::invoke_result_t<NodeKeyFactory&, const Node&>>, NodeKey>;
+  using Entry = BVH::NodeAndKey<Key>;
+
+  // An empty BVH has no root to descend from.
+  if (m_linearNodes.size() == 0) {
+    return;
+  }
+
+  // One resolution for the whole traversal. Safe because a query performs no reservation, so the
+  // base cannot move underneath it.
   const void* poolBase = this->base();
 
-  Array<std::pair<uint32_t, NodeKey>, K> children;
+  // Every child of an expanded node is pushed, so a tree of depth D needs at most 1 + (K-1)(D-1)
+  // entries -- the bound traversalStackDepth() gives, and that every build checked the tree against.
+  constexpr size_t stackDepth = PackedBVH::traversalStackDepth();
 
-  // Vector-backed stack avoids deque chunk allocations; reserve avoids reallocs.
-  std::vector<std::pair<uint32_t, NodeKey>> q;
+  Entry  stack[stackDepth];
+  size_t top = 0;
 
-  q.reserve(64);
-  q.emplace_back(static_cast<uint32_t>(0), a_nodeKeyFactory(m_linearNodes.at(poolBase, 0)));
+  stack[top++] = Entry{0U, static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, 0)))};
 
-  while (!q.empty()) {
-    const uint32_t nodeIdx = q.back().first;
-    const NodeKey  nodeKey = q.back().second;
-    q.pop_back();
+  Array<Entry, K> children;
 
-    const Node& node = m_linearNodes.at(poolBase, nodeIdx);
+  while (top > 0) {
+    const Entry entry = stack[--top];
+    const Node& node  = m_linearNodes.at(poolBase, entry.first);
 
-    if (a_prunePredicate(node, nodeKey)) {
-      if (node.isLeaf()) {
-        a_leafEvaluator(m_primitives.bind(poolBase), node.getPrimitivesOffset(), node.getNumPrimitives());
+    if (!a_prunePredicate(node, entry.second)) {
+      continue;
+    }
+
+    if (node.isLeaf()) {
+      a_leafEvaluator(m_primitives.bind(poolBase), size_t(node.getPrimitivesOffset()), size_t(node.getNumPrimitives()));
+    }
+    else {
+      for (size_t k = 0; k < K; k++) {
+        const uint32_t childIdx = node.getChildOffsets()[k];
+
+        children[k] = Entry{childIdx, static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, childIdx)))};
       }
-      else {
-        for (size_t k = 0; k < K; k++) {
-          const uint32_t childIdx = node.getChildOffsets()[k];
-          children[k].first       = childIdx;
-          children[k].second      = a_nodeKeyFactory(m_linearNodes.at(poolBase, childIdx));
-        }
 
-        a_childOrderer(children);
+      a_childOrderer(children);
 
-        for (const auto& child : children) {
-          q.push_back(child);
-        }
+      for (size_t k = 0; k < K; k++) {
+        EBGEOMETRY_EXPECT(top < stackDepth);
+
+        stack[top++] = children[k];
       }
     }
   }

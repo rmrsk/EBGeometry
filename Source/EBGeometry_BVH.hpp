@@ -331,10 +331,11 @@ template <class P>
 using LeafEvaluator = std::function<void(const PrimitiveList<P>& a_primitives)>;
 
 /**
- * @brief Leaf-evaluation callback for PackedBVH::traverse.
+ * @brief Leaf-evaluation callback for PackedBVH::traverse, as a std::function for host code.
  * @details Receives a view into the global primitive array (offset + count) rather than a
  * temporary sub-list, avoiding a heap allocation per leaf visit. PackedBVH stores its primitives
- * by value, so the array's element type is P itself.
+ * by value, so the array's element type is P itself. PackedBVH::traverse() takes any callable with
+ * this signature; device code passes a lambda or functor instead, since std::function is host-only.
  * @tparam P Primitive type.
  * @param[in] a_primitives Global primitive array.
  * @param[in] a_offset     Index of the first primitive belonging to this leaf.
@@ -369,15 +370,31 @@ template <class NodeType, class NodeKey, size_t K>
 using ChildOrderer = std::function<void(Array<std::pair<std::shared_ptr<const NodeType>, NodeKey>, K>& a_children)>;
 
 /**
- * @brief Child-ordering callback for PackedBVH traversal.
+ * @brief A child node of a PackedBVH together with its traversal key.
+ * @details What PackedBVH::traverse() hands its child orderer, one per child. The members are named
+ * like std::pair's, so an orderer written against the earlier std::pair form keeps working; it is
+ * a plain struct because std::pair's assignment is not callable in device code.
+ * @tparam NodeKey Per-node key attached to each stack entry.
+ */
+template <class NodeKey>
+struct NodeAndKey
+{
+  uint32_t first;  ///< Index of the child node in the node array.
+  NodeKey  second; ///< The child's key, from the node-key factory.
+};
+
+/**
+ * @brief Child-ordering callback for PackedBVH traversal, as a std::function for host code.
  * @details Same role as ChildOrderer but uses 32-bit node indices instead of shared_ptrs,
- * halving the stack-entry size.
+ * halving the stack-entry size. PackedBVH::traverse() takes any callable with this signature;
+ * device code passes a lambda or functor, which must not call std::sort (an insertion sort over the
+ * K children does).
  * @tparam NodeKey Per-node key attached to each stack entry.
  * @tparam K    Tree branching factor.
  * @param[in,out] a_children K (node-index, key) pairs to sort.
  */
 template <class NodeKey, size_t K>
-using PackedChildOrderer = std::function<void(Array<std::pair<uint32_t, NodeKey>, K>& a_children)>;
+using PackedChildOrderer = std::function<void(Array<NodeAndKey<NodeKey>, K>& a_children)>;
 
 /**
  * @brief Node-key factory called once per node during BVH traversal.
@@ -1808,50 +1825,48 @@ public:
   computeBoundingVolume() const noexcept;
 
   /**
-   * @brief Recursion-free BVH traversal using a vector-backed LIFO stack (depth-first order).
-   * @details The traversal mirrors TreeBVH::traverse() in structure but works directly on the
-   * flat node array, using 32-bit indices instead of shared_ptr<const Node>. This halves the
-   * stack-entry size and avoids reference-count traffic on every push and pop.
+   * @brief Depth-first traversal with caller-supplied pruning, child order and per-node keys.
+   * @details The general traversal, for searches that pruneTraverse() cannot express (its pruning
+   * bound is always the squared distance from one point to a child's box). Callable from host and
+   * device code: the four callbacks are template parameters, so a device caller passes lambdas or
+   * functors, while host code may still pass the std::function aliases BVH::PackedLeafEvaluator,
+   * BVH::PrunePredicate, BVH::PackedChildOrderer and BVH::NodeKeyFactory.
    *
-   * The stack is a std::vector used as a LIFO queue via push_back/pop_back, pre-reserved to
-   * 64 entries to avoid reallocation for typical tree depths. It is seeded with node index 0
-   * (the root) paired with @p a_nodeKeyFactory applied to the root node. On each iteration:
+   * The stack is a fixed array of BVH::NodeAndKey entries, sized like pruneTraverse()'s from
+   * traversalStackDepth(); every build has checked that the tree fits it. It is seeded with the
+   * root and its key from @p a_nodeKeyFactory. On each iteration:
    *
-   * 1. Pop the back entry to obtain a (nodeIdx, nodeKey) pair.
-   * 2. Look up the node at m_linearNodes[nodeIdx].
-   * 3. Call @p a_prunePredicate(node, nodeKey). If it returns false the entire subtree rooted at
-   * that node is skipped (pruned) and the loop continues.
-   * 4. If the node is a leaf, call @p a_leafEvaluator with the global primitive list
-   * m_primitives, the leaf's primitive offset, and its primitive count. The leafEvaluator
-   * receives a view into the shared list rather than a freshly allocated sub-list,
-   * avoiding a heap allocation per leaf visit.
-   * 5. If the node is an interior node:
-   * a. Collect the K child indices from node.getChildOffsets(), look each child up in
-   * m_linearNodes, and call @p a_nodeKeyFactory on each to produce a NodeKey value.
-   * b. Bundle the K (childIdx, NodeKey) pairs into a local array and pass it to
-   * @p a_childOrderer, which reorders the array in-place.
-   * c. Push all K pairs onto the back of the stack in sorted order.
+   * 1. Pop the top (node index, key) entry.
+   * 2. Call @p a_prunePredicate(node, key). If it returns false, the node's subtree is skipped.
+   * 3. If the node is a leaf, call @p a_leafEvaluator with the global primitive array, the leaf's
+   * primitive offset and its primitive count.
+   * 4. Otherwise give each of the K children its key from @p a_nodeKeyFactory, let
+   * @p a_childOrderer reorder the K entries in place, and push them in that order.
    *
-   * Because the stack is LIFO, the child pushed last is visited first. @p a_childOrderer
-   * should therefore place the most promising child last in the array. For a
-   * nearest-distance query this means sorting children in descending order of
-   * distance — farthest child first, nearest child last — so the nearest child
-   * sits at the back of the vector and is expanded next.
+   * The pruning test runs when an entry is popped, not when it is pushed, so a leaf visited in
+   * between can tighten it. The stack is LIFO, so the child pushed last is visited first: for a
+   * nearest-distance search, order the children farthest first. An empty BVH visits nothing.
    *
-   * @tparam NodeKey Auxiliary data type carried on the traversal stack (e.g. a running minimum distance).
-   * @param[in] a_leafEvaluator     Called at each leaf with the global primitive list, offset, and count.
-   * @param[in] a_prunePredicate     Called at each node; return true to descend, false to prune.
-   * @param[in] a_childOrderer      Reorders the K (childIdx, NodeKey) pairs in-place before they are
-   * pushed; the last element after sorting is visited first.
-   * @param[in] a_nodeKeyFactory Produces a NodeKey value for a node; called once for the root
-   * and once per child of every interior node that is visited.
+   * @tparam NodeKey        Per-node key type. Deduced from @p a_nodeKeyFactory's return type when
+   * not given explicitly.
+   * @tparam LeafEvaluator  Callable as (PODSpan<const P> primitives, size_t offset, size_t count).
+   * @tparam PrunePredicate Callable as (const Node&, const NodeKey&) -> bool; true descends.
+   * @tparam ChildOrderer   Callable as (Array<BVH::NodeAndKey<NodeKey>, K>&); reorders in place.
+   * @tparam NodeKeyFactory Callable as (const Node&) -> NodeKey.
+   * @param[in] a_leafEvaluator  Called at each leaf that is not pruned.
+   * @param[in] a_prunePredicate Called at each node as it is popped; return false to prune it.
+   * @param[in] a_childOrderer   Reorders the K children of a node before they are pushed; the last
+   * element after reordering is visited first.
+   * @param[in] a_nodeKeyFactory Produces a node's key; called for the root and for every child of
+   * every interior node that is expanded.
    */
-  template <class NodeKey>
+  template <class NodeKey = void, class LeafEvaluator, class PrunePredicate, class ChildOrderer, class NodeKeyFactory>
+  EBGEOMETRY_HOST_DEVICE
   inline void
-  traverse(const BVH::PackedLeafEvaluator<P>&         a_leafEvaluator,
-           const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
-           const BVH::PackedChildOrderer<NodeKey, K>& a_childOrderer,
-           const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept;
+  traverse(LeafEvaluator&&  a_leafEvaluator,
+           PrunePredicate&& a_prunePredicate,
+           ChildOrderer&&   a_childOrderer,
+           NodeKeyFactory&& a_nodeKeyFactory) const noexcept;
 
   /**
    * @brief Generic SIMD-accelerated, distance-pruned traversal.
