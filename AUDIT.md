@@ -479,8 +479,11 @@ Phase 0 is complete. Items 7–10 were:
 | 14. Fixed K and W (D7) | Done; defaults are 4, host-tuned values opt-in, `Examples/HostTuning` | `92aae41` |
 | 15. Location, step one (D1, MEM-2, MEM-8) | Done; the layout/handle split remains the first tape step | `3145b5a` |
 | 16. GPU test harness (QA-5/13) | Done; the tests also run in every host build, emulated. No lane runs a real kernel yet (no GPU runner) | `2e4f700` |
-| 17. Stack, empty leaves, SIMD rows, builder fixes (BVH-5/8/11/12/13) | Done, narrowly: a first, wider version (`6c58ae0`: one builder, a wide-node layout, `TreeBVH` retired) was reverted in `9481022`, since code outside EBGeometry relies on `TreeBVH`'s custom partitioners. BVH-2 (one build rule) and a template custom traversal are open | `051f53c` |
+| 17. Stack, empty leaves, SIMD rows, builder fixes (BVH-5/8/11/12/13) | Done, narrowly: a first, wider version (`6c58ae0`: one builder, a wide-node layout, `TreeBVH` retired) was reverted in `9481022`, since code outside EBGeometry relies on `TreeBVH`'s custom partitioners. BVH-2 (one build rule) is open; the template custom traversal is 17d | `051f53c` |
 | 17c. Preset construction methods (BVH-2, in part) | Done: the enum, renamed `BVH::Build` → `BVH::Construction`, names each algorithm (`CentroidSplit`, `MidpointSplit`, `SAH`, `ClusterSAH`, `Morton`, `Nested`, `Hilbert`; `TopDown` removed), every library user accepts every value, and an unknown value aborts (MeshSDF/TriMeshSDF printed to `std::cerr` and packed an unpartitioned tree). `SphereT::define` aborts on an unknown algorithm or an empty list too. Leaf-size rules still differ per user | `8df456b` |
+| 17d. Template custom traversal (D2 amended) | Done: `PackedBVH::traverse()` takes its four callbacks as template parameters and a fixed stack sized from the tree depth, so device code can call it; host code passing the `std::function` aliases still compiles. Children reach the orderer as `BVH::NodeAndKey` instead of `std::pair`. An empty BVH visits nothing | `64a205e` |
+| 18. Header splits (§2.8, BVH-14, CSG-17, MEM-21) | Done: `EBGeometry_PackedBVH.hpp` (no SFC, no `TreeBVH`) and `EBGeometry_BVHBuild.hpp`; `EBGeometry_Blend.hpp` and `EBGeometry_BVHUnion.hpp` (neither pulls in `ImplicitFunction` or the transforms) beside the legacy `EBGeometry_CSG.hpp`; `operator<<` for `Vec3T`/`AABBT`/`SphereT` in `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp` and `EBGeometry_CSG.hpp` include the new headers, so existing includes still work. Other headers still include `<iostream>` for `std::cerr` | `9d4de69`, `68e975e` |
+| 18b. Loading defective meshes (item 11 finding) | Done: `Parser::OnDefect::Warn` loads a mesh with inconsistent orientation, an over-shared edge or a fold, with a warning; `Throw` stays the default, and a face that visits a vertex twice always throws. The three rejected test models load, MeshSDF and TriMeshSDF agreeing. Also fixed: TestParser's scratch files raced between the parallel float and double runs | `cb25109`, `4f9afa3` |
 
 Findings from item 11:
 
@@ -495,7 +498,7 @@ Findings from item 11:
 - **Real meshes now rejected.** Three of the submodule's 24 OBJ models throw: `beetle.obj` and
   `xyzrgb_dragon.obj` (inconsistent orientation or non-manifold edges) and `ogre.obj` (a fold). They
   already aborted in Debug; Release loaded them with undefined signs near the defect. Holes are still
-  accepted. An opt-out that loads such meshes with a warning is possible if wanted.
+  accepted. They now load with `Parser::OnDefect::Warn` (item 18b).
 
 Findings from item 17:
 
