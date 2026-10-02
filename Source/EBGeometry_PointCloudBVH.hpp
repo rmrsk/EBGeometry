@@ -19,11 +19,11 @@
 #include <vector>
 
 // Our includes
-#include "EBGeometry_BVH.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
+#include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_PointAoSoA.hpp"
 #include "EBGeometry_PointSoA.hpp"
 #include "EBGeometry_Pool.hpp"
