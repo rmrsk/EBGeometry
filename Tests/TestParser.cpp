@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include <unistd.h>
+
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -41,11 +43,13 @@ readBytes(const std::string& a_path)
   return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
-// Writes a_content to a scratch file with the given name and returns its path.
+// Writes a_content to a scratch file with the given name and returns its path. The directory is
+// private to this process: ctest runs the float and double copies of a test in parallel, and with a
+// shared directory one could rewrite a file while the other was reading it.
 std::string
 writeScratch(const std::string& a_name, const std::string& a_content)
 {
-  const auto dir = std::filesystem::temp_directory_path() / "ebgeometry_test_parser";
+  const auto dir = std::filesystem::temp_directory_path() / ("ebgeometry_test_parser_" + std::to_string(::getpid()));
 
   std::filesystem::create_directories(dir);
 
