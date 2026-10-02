@@ -13,11 +13,13 @@
 
 // Std includes
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
+#include "EBGeometry_ParseError.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -111,6 +113,17 @@ removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                          std::vector<std::vector<size_t>>&        a_facets) noexcept;
 
 /**
+ * @brief Find a polygon that visits a vertex twice.
+ * @details Such a polygon corrupts the half-edge mesh built from it, so the file readers reject it
+ * even when told to load other defects with a warning (Parser::OnDefect::Warn). findTopologyDefect()
+ * reports it too.
+ * @param[in] a_facets Index lists.
+ * @return A description of the first such polygon, or an empty string if there is none.
+ */
+[[nodiscard]] inline static std::string
+findRepeatedVertex(const std::vector<std::vector<size_t>>& a_facets);
+
+/**
  * @brief Find a defect that stops a compressed, cleaned polygon soup from forming a half-edge mesh.
  * @details Run after compress() and removeDegeneratePolygons(). Reports the first of:
  *
@@ -161,6 +174,32 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
            const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
            const std::vector<std::vector<size_t>>&  a_facets,
            const std::string&                       a_id) noexcept;
+
+/**
+ * @brief Turn a polygon soup read from a file into a DCEL mesh, with the checks the file readers run.
+ * @details The shared body of the format classes' convertToDCEL(). In order: isValid() (throws on
+ * failure), compress(), removeDegeneratePolygons() (prints how many it removed),
+ * findRepeatedVertex() (throws), findTopologyDefect(), soupToDCEL() and findFoldedFeature(). The last
+ * two checks throw a Parser::ParseError, or with Parser::OnDefect::Warn print a warning and go on.
+ * @tparam T    Floating-point precision type for vertex coordinates.
+ * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
+ * @param[in]     a_vertices Vertex coordinates, as read (taken by value: compressed here).
+ * @param[in]     a_facets   Index lists, as read (taken by value: cleaned here).
+ * @param[in,out] a_pool     Pool to reserve the mesh's storage from.
+ * @param[in]     a_id       File name, for messages and the ParseError.
+ * @param[in]     a_format   Name of the calling format class (e.g. "STL"), for messages.
+ * @param[in]     a_onDefect Whether a topology defect or a fold throws or only warns.
+ * @return The mesh.
+ * @throws Parser::ParseError as described above.
+ */
+template <typename T, typename Meta>
+[[nodiscard]] inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
+                 std::vector<std::vector<size_t>>  a_facets,
+                 Pool&                             a_pool,
+                 const std::string&                a_id,
+                 const char*                       a_format,
+                 const Parser::OnDefect            a_onDefect);
 
 /**
  * @brief Reconcile pair edges: link each half-edge with its reverse.

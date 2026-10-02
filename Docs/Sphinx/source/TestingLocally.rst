@@ -35,15 +35,15 @@ debugger output), and turns on both the test suite and the examples.
 
 A successful unit-test run looks like::
 
-   100% tests passed, 0 tests failed out of 431
+   100% tests passed, 0 tests failed out of 437
    Label Time Summary:
-   unit    =   8.38 sec*proc (431 tests)
+   unit    =   8.38 sec*proc (437 tests)
 
 Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
 ``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
 matching whatever the CMake preset otherwise builds) -- the count above is double-only. CI
 additionally configures with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite
-under both precisions (765 tests). To do the same locally:
+under both precisions (776 tests). To do the same locally:
 
 .. code-block:: bash
 
@@ -259,7 +259,9 @@ Test coverage
      - Cross-format parser behaviour: binary STL (with per-facet colour attributes), PLY and VTK
        fixtures reading the same mesh as their ASCII counterparts; missing, empty, truncated and
        corrupted files throwing ``ParseError`` with the file, line and reason; unused vertices being
-       ignored; and mesh distance functions and BVH unions refusing to build from no faces.
+       ignored; ``OnDefect::Warn`` loading inconsistently oriented and folded meshes with a warning
+       (distances keep their magnitude), while a face that visits a vertex twice still throws; and
+       mesh distance functions and BVH unions refusing to build from no faces.
    * - ``TestBVH``
      - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
        supported formats, used to verify: identical topology/geometry across formats;
@@ -270,7 +272,10 @@ Test coverage
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
        :cpp:class:`BVH::Construction` strategy; signs on two concave meshes (an L-shaped prism and a box with a
        narrow notch, whose concave edges need both adjacent faces' normals) against an analytic
-       inside test; :cpp:func:`MeshSDF::getClosestFaces` ordering; and
+       inside test; :cpp:func:`MeshSDF::getClosestFaces` ordering; the template
+       :cpp:func:`BVH::PackedBVH::traverse` (a nearest-point search against brute force at K = 2, 4
+       and 8, ``std::function`` callers, an explicit key type, visit-once, an empty BVH, and the
+       same search on a device against the host); and
        :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
        correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
        brute-force scan after displacement). Also the build-time checks: a tree too deep for the

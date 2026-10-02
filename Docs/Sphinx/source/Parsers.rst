@@ -106,6 +106,28 @@ binary file, or when there is no meaningful line), and the reason:
 OBJ files state neither counts nor an end marker, so a truncated OBJ file cannot be detected; it
 reads as whatever faces it still contains. A vertex that no face uses is ignored.
 
+.. _Sec:OnDefect:
+
+Loading meshes with surface defects
+___________________________________
+
+Some meshes in the wild are not clean, closed surfaces: neighbouring faces wound in opposite
+directions, an edge shared by three or more faces, or faces that fold back onto each other. Such a
+mesh still gives correct *distances*, but the *sign* of the distance near the defect is unreliable,
+so by default the readers reject it. Every ``readInto*`` function, and every format class's
+``convertToDCEL``, takes a last argument of type ``Parser::OnDefect`` that changes this:
+
+.. code-block:: cpp
+
+   // Load anyway: print a warning to std::cerr naming the defect, and build the mesh.
+   const auto sdf = EBGeometry::Parser::readIntoPackedBVH<T, Meta>(
+     "scan.obj", pool, EBGeometry::BVH::Construction::SAH, EBGeometry::Parser::OnDefect::Warn);
+
+``OnDefect::Throw`` is the default. ``OnDefect::Warn`` only covers defects the mesh survives: a
+corrupted file, an index out of range, a non-finite coordinate, or a face that visits the same
+vertex twice (which corrupts the half-edge mesh built from it) still throws. Holes are never a
+defect.
+
 For the raw readers' exact signatures, see the Doxygen entries for
 `readPLY <doxygen/html/namespaceEBGeometry_1_1Parser.html#ac78a6a540855effb6af095bb6c5c2982>`__,
 `readSTL <doxygen/html/namespaceEBGeometry_1_1Parser.html#a24946a908c8fd9026f9262dab9574ef4>`__,
@@ -263,6 +285,8 @@ the validity check before them and the two checks after compression themselves.
   itself, sized from ``vertices``/``facets``. ``mesh`` is attached to ``pool`` by that first reserve
   and is queryable as soon as ``soupToDCEL`` returns, whether or not ``pool`` is shared with further
   meshes -- see :ref:`Chap:MemoryModel` and :ref:`Sec:DCELMemoryModel`.
+* ``findRepeatedVertex(facets)`` reports a face that visits a vertex twice. Such a face corrupts the
+  half-edge mesh, so the readers reject it whatever ``OnDefect`` says.
 * ``findTopologyDefect(facets)``, run between the two steps above, reports a face that visits a
   vertex twice, or an edge that two faces run along in the same direction -- which is what happens
   when neighbouring faces are oriented inconsistently, or when three or more faces share one edge.
@@ -283,9 +307,11 @@ the validity check before them and the two checks after compression themselves.
 .. warning::
 
    ``soupToDCEL`` will issue plenty of warnings if the polygon soup is not watertight and orientable.
-   The format classes' ``convertToDCEL`` functions, which the readers use, go further: they throw
-   ``ParseError`` if ``findTopologyDefect`` or ``findFoldedFeature`` reports anything. A mesh with
-   holes is still read.
+   The format classes' ``convertToDCEL`` functions, which the readers use, go further. They share
+   one function, ``Soup::readSoupIntoDCEL``, which runs the steps and checks above in order and
+   throws ``ParseError`` if ``findRepeatedVertex``, ``findTopologyDefect`` or ``findFoldedFeature``
+   reports anything; with ``OnDefect::Warn`` (see :ref:`Sec:OnDefect`) the last two only print a
+   warning. A mesh with holes is still read.
 
 .. _Chap:ThirdPartyParser:
 

@@ -97,7 +97,7 @@ template argument.
 SIMD-accelerated bounding-box pruning: ``BVH::PackedBVH<T, P, K>``
 -----------------------------------------------------------------------
 
-:file:`Source/EBGeometry_BVH.hpp` / :file:`EBGeometry_BVHImplem.hpp`
+:file:`Source/EBGeometry_PackedBVH.hpp` / :file:`EBGeometry_PackedBVHImplem.hpp`
 
 See :ref:`Chap:BVH` for the conceptual picture of bounding volume hierarchies and tree pruning.
 

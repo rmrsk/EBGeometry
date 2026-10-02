@@ -1547,7 +1547,227 @@ packedBvhTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K>
   return state + T(a_bvh.getPrimitives().size()) + a_bvh.getBoundingVolume().getLowCorner().length();
 }
 
+// Functors for a nearest-point search over PackedBVH::traverse(), written as structs so the same
+// code runs on host and device. The key of a node is the squared distance from the query to its box.
+template <class T>
+struct TraverseNearestLeaf
+{
+  Vec3T<T> m_query;
+  T*       m_best;
+
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(EBGeometry::PODSpan<const BareTestPoint<T>> a_prims, size_t a_offset, size_t a_count) const noexcept
+  {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      const T d2 = (a_prims[static_cast<uint32_t>(i)].m_pos - m_query).length2();
+
+      if (d2 < *m_best) {
+        *m_best = d2;
+      }
+    }
+  }
+};
+
+template <class T>
+struct TraversePruneFarther
+{
+  const T* m_best;
+
+  template <class Node>
+  EBGEOMETRY_HOST_DEVICE
+  bool
+  operator()(const Node&, const T& a_key) const noexcept
+  {
+    return a_key <= *m_best;
+  }
+};
+
+// Farthest child first, by insertion sort: std::sort is not callable in device code.
+template <class T, size_t K>
+struct TraverseFarthestFirst
+{
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(EBGeometry::Array<EBGeometry::BVH::NodeAndKey<T>, K>& a_children) const noexcept
+  {
+    for (size_t i = 1; i < K; i++) {
+      const EBGeometry::BVH::NodeAndKey<T> entry = a_children[i];
+
+      size_t j = i;
+
+      while (j > 0 && a_children[j - 1].second < entry.second) {
+        a_children[j] = a_children[j - 1];
+        j--;
+      }
+
+      a_children[j] = entry;
+    }
+  }
+};
+
+template <class T>
+struct TraverseBoxDistance2
+{
+  Vec3T<T> m_query;
+
+  template <class Node>
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Node& a_node) const noexcept
+  {
+    return a_node.getDistanceToBoundingVolume2(m_query);
+  }
+};
+
+/**
+ * @brief Squared distance from a_query to the nearest point, found with PackedBVH::traverse().
+ * @details The body of the device query functor CustomTraversalQuery, factored out so the host suite
+ * runs exactly the code the device runs. The BVH is taken by value and const, as a kernel receives it.
+ */
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE
+T
+customTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh, const Vec3T<T> a_query) noexcept
+{
+  T best = EBGeometry::Math::Limits<T>::max();
+
+  a_bvh.traverse(TraverseNearestLeaf<T>{a_query, &best},
+                 TraversePruneFarther<T>{&best},
+                 TraverseFarthestFirst<T, K>{},
+                 TraverseBoxDistance2<T>{a_query});
+
+  return best;
+}
+
 } // namespace
+
+TEMPLATE_TEST_CASE("PackedBVH::traverse: a nearest-point search over template callbacks matches a brute-force scan",
+                   "[BVH][traverse]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  std::mt19937                      rng(5);
+  std::uniform_real_distribution<T> coord(T(-1), T(1));
+
+  std::vector<std::pair<Pnt, AABB>> flat;
+
+  for (int i = 0; i < 500; i++) {
+    const Vec3 pos(coord(rng), coord(rng), coord(rng));
+
+    flat.emplace_back(Pnt{pos}, AABB(pos, pos));
+  }
+
+  std::vector<Vec3> queries;
+
+  for (int i = 0; i < 100; i++) {
+    queries.emplace_back(T(2) * coord(rng), T(2) * coord(rng), T(2) * coord(rng));
+  }
+
+  const auto check = [&](const auto& a_bvh) {
+    for (const auto& q : queries) {
+      T nearest = std::numeric_limits<T>::max();
+
+      for (const auto& pb : flat) {
+        nearest = std::min(nearest, (pb.first.m_pos - q).length2());
+      }
+
+      REQUIRE(customTraversalProbe(a_bvh, q) == nearest);
+    }
+  };
+
+  Pool pool(hostMemoryResource());
+
+  SECTION("K = 2")
+  {
+    check(BVH::PackedBVH<T, Pnt, 2>(pool, flat, BVH::BinnedSAHPartitioner<T, Pnt, AABB, 2>));
+  }
+
+  SECTION("K = 4")
+  {
+    check(BVH::PackedBVH<T, Pnt, 4>(pool, flat, BVH::BinnedSAHPartitioner<T, Pnt, AABB, 4>));
+  }
+
+  SECTION("K = 8")
+  {
+    check(BVH::PackedBVH<T, Pnt, 8>(pool, flat, size_t(8), SFC::Morton{}));
+  }
+}
+
+TEMPLATE_TEST_CASE("PackedBVH::traverse: std::function callbacks still work, an explicit key type is accepted, "
+                   "every primitive is visited once, and an empty BVH visits nothing",
+                   "[BVH][traverse]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+  using Node   = typename Packed::Node;
+
+  std::vector<std::pair<Pnt, AABB>> flat;
+
+  for (int i = 0; i < 300; i++) {
+    const Vec3 pos(T(i % 7), T(i % 11), T(i % 13));
+
+    flat.emplace_back(Pnt{pos}, AABB(pos, pos));
+  }
+
+  Pool         pool(hostMemoryResource());
+  const Packed bvh(pool, flat);
+
+  // The std::function aliases host code used before traverse() became a template.
+  std::vector<int> visits(flat.size(), 0);
+
+  const BVH::PackedLeafEvaluator<Pnt> countVisits = [&visits](PODSpan<const Pnt>, size_t a_offset, size_t a_count) {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      visits[i]++;
+    }
+  };
+
+  const BVH::PrunePredicate<Node, int>  visitAll  = [](const Node&, const int&) { return true; };
+  const BVH::PackedChildOrderer<int, K> keepOrder = [](Array<BVH::NodeAndKey<int>, K>&) {};
+  const BVH::NodeKeyFactory<Node, int>  zeroKey   = [](const Node&) { return 0; };
+
+  bvh.traverse(countVisits, visitAll, keepOrder, zeroKey);
+
+  for (size_t i = 0; i < visits.size(); i++) {
+    REQUIRE(visits[i] == 1);
+  }
+
+  // An explicit key type converts the factory's result: here a double key from an int-returning factory.
+  size_t leaves = 0;
+
+  bvh.template traverse<double>([&leaves](PODSpan<const Pnt>, size_t, size_t) { leaves++; },
+                                [](const Node&, const double& a_key) { return a_key == 0.0; },
+                                [](Array<BVH::NodeAndKey<double>, K>&) {},
+                                [](const Node&) { return 0; });
+
+  REQUIRE(leaves > 0);
+
+  // An empty BVH has no root: nothing is visited, and nothing is read.
+  const Packed empty(pool, std::vector<Node>{}, std::vector<Pnt>{});
+
+  bool called = false;
+
+  empty.traverse([&called](PODSpan<const Pnt>, size_t, size_t) { called = true; },
+                 [&called](const Node&, const int&) { return called = true; },
+                 [&called](Array<BVH::NodeAndKey<int>, K>&) { called = true; },
+                 [&called](const Node&) {
+                   called = true;
+                   return 0;
+                 });
+
+  REQUIRE_FALSE(called);
+}
 
 TEMPLATE_TEST_CASE("PackedBVH: a host-to-host rebasedView answers every query identically",
                    "[BVH][Pool][rebase]",
@@ -3903,6 +4123,63 @@ TEMPLATE_TEST_CASE("PackedBVH: a rebased view traverses on device and matches th
 
   requireSameResults(evaluateOnDevice<T>(PackedBvhTraversalQuery<T, K>{deviceView}, points),
                      evaluateOnHost<T>(PackedBvhTraversalQuery<T, K>{bvh}, points));
+}
+
+// One custom traversal per query point, through the template PackedBVH::traverse().
+template <class T, size_t K>
+struct CustomTraversalQuery
+{
+  EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> m_bvh;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return customTraversalProbe<T, K>(m_bvh, a_point);
+  }
+};
+
+TEMPLATE_TEST_CASE("PackedBVH: the template traverse() runs on device and matches the host",
+                   "[BVH][traverse][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+
+  Pool pool(hostMemoryResource());
+
+  std::vector<std::pair<Pnt, AABB>> flat;
+
+  for (int i = 0; i < 64; i++) {
+    const T    t = T(i);
+    const Vec3 pos(std::sin(t) * t, std::cos(t) * t, T(0.2) * t);
+
+    flat.emplace_back(Pnt{pos}, AABB(pos, pos));
+  }
+
+  const Packed bvh(pool, flat, BVH::BinnedSAHPartitioner<T, Pnt, AABB, K>);
+
+  pool.freeze();
+
+  Pool         devicePool = Pool::mirror(pool, deviceTestResource());
+  const Packed deviceView = bvh.rebasedView(devicePool);
+
+  const auto points = queryGrid<T>(Vec3(T(-70), T(-70), T(-5)), Vec3(T(70), T(70), T(18)), 10);
+
+  requireSameResults(evaluateOnDevice<T>(CustomTraversalQuery<T, K>{deviceView}, points),
+                     evaluateOnHost<T>(CustomTraversalQuery<T, K>{bvh}, points));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

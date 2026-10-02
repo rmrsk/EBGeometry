@@ -6,8 +6,16 @@ BVH
 See :ref:`Chap:BVH` for the conceptual picture of bounding volume hierarchies (node types,
 partitioning, tree pruning during traversal) before reading the concrete API below.
 
-The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``
-(:file:`Source/EBGeometry_BVH.hpp` / :file:`EBGeometry_BVHImplem.hpp`).
+The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``, in two headers:
+
+* :file:`Source/EBGeometry_PackedBVH.hpp` holds ``PackedBVH``, its node layout and traversals, and
+  the types shared with the builders. It is all that code querying a BVH needs, device code in
+  particular.
+* :file:`Source/EBGeometry_BVHBuild.hpp` holds the host-side builders: ``TreeBVH``, the
+  partitioners, and the ``PackedBVH`` constructors that partition a primitive list. It includes
+  the first.
+
+:file:`Source/EBGeometry_BVH.hpp` includes both, as does ``EBGeometry.hpp``.
 For the full API, see `the doxygen API <doxygen/html/namespaceEBGeometry_1_1BVH.html>`__.
 There are two representations of a BVH:
 
@@ -489,6 +497,12 @@ callback roles below are documented on `the BVH namespace's doxygen page
 <doxygen/html/namespaceEBGeometry_1_1BVH.html>`__ (look for ``PrunePredicate``, ``ChildOrderer``/
 ``PackedChildOrderer``, ``LeafEvaluator``/``PackedLeafEvaluator``, and ``NodeKeyFactory``).
 
+``PackedBVH::traverse()`` is callable from device code as well as from the host. Its callbacks are
+template parameters: host code may pass the ``std::function`` aliases above, while device code
+passes lambdas or functors (``std::function`` is host-only). The key type is deduced from the
+node-key factory's return type, or can be given explicitly (``bvh.template traverse<double>(...)``).
+``TreeBVH::traverse()`` is host-only.
+
 Node visit
 __________
 
@@ -505,7 +519,9 @@ If a subtree is visited in the traversal, there is a question of which of the ch
 The *child-orderer* callback determines this order by letting the user sort the ``K`` children (each
 paired with its node key) in-place based on order of importance -- for ``PackedBVH`` the
 children are identified by their node index rather than a pointer, halving the per-entry stack
-size relative to ``TreeBVH``. Note that a correct visitation pattern can yield large performance
+size relative to ``TreeBVH``, and each child arrives as a ``BVH::NodeAndKey`` whose ``first`` is
+the node index and ``second`` its key. In device code the orderer must not call ``std::sort``; an
+insertion sort over the ``K`` children does the job. Note that a correct visitation pattern can yield large performance
 benefits. Ordering the child nodes is completely optional; the user can leave this function empty
 if it does not matter which subtrees are visited first.
 
@@ -536,9 +552,11 @@ determine a preferred child visit pattern when descending along subtrees.
 Traversal algorithm
 ___________________
 
-``PackedBVH::traverse()`` implements this with a non-recursive, vector-backed stack rather than
+``PackedBVH::traverse()`` implements this with a non-recursive, fixed-size stack rather than
 recursion. Each stack entry holds a node index together with that node's already-computed
-node key. The root is pushed first; then, until the stack is empty, the traversal pops an entry,
+node key, and the stack is sized from the tree depth exactly as ``pruneTraverse()``'s is (see
+:ref:`Sec:TraversalStack`), so a key of ``n`` bytes costs roughly ``n + 4`` bytes per entry. An empty
+``PackedBVH`` visits nothing. The root is pushed first; then, until the stack is empty, the traversal pops an entry,
 asks the prune-predicate whether to visit it, and if so either runs the leaf-evaluator (if it is a leaf) or
 computes the node-key-factory for each of its ``K`` children, lets the child-orderer reorder them, and
 pushes them all onto the stack. For the full API, see the Doxygen reference for

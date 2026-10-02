@@ -64,7 +64,9 @@ Triangle<T, Meta>::setVertexNormals(const Array<Vec3T<T>, 3>& a_vertexNormals) n
     EBGEOMETRY_EXPECT(std::isfinite(n[0]));
     EBGEOMETRY_EXPECT(std::isfinite(n[1]));
     EBGEOMETRY_EXPECT(std::isfinite(n[2]));
-    EBGEOMETRY_EXPECT(std::abs(n.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
+    // Unit length, or zero: a mesh gives an edge or vertex on a fold a zero normal (see
+    // Soup::findFoldedFeature), which the sign test treats as negative.
+    EBGEOMETRY_EXPECT(n.length2() == T(0) || std::abs(n.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
   }
 
   m_vertexNormals = a_vertexNormals;
@@ -78,7 +80,9 @@ Triangle<T, Meta>::setEdgeNormals(const Array<Vec3T<T>, 3>& a_edgeNormals) noexc
     EBGEOMETRY_EXPECT(std::isfinite(n[0]));
     EBGEOMETRY_EXPECT(std::isfinite(n[1]));
     EBGEOMETRY_EXPECT(std::isfinite(n[2]));
-    EBGEOMETRY_EXPECT(std::abs(n.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
+    // Unit length, or zero: a mesh gives an edge or vertex on a fold a zero normal (see
+    // Soup::findFoldedFeature), which the sign test treats as negative.
+    EBGEOMETRY_EXPECT(n.length2() == T(0) || std::abs(n.length() - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
   }
 
   m_edgeNormals = a_edgeNormals;
