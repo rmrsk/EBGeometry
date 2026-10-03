@@ -6,9 +6,9 @@
  * @file   EBGeometry_PackedBVH.hpp
  * @brief  The flattened, device-callable bounding volume hierarchy: PackedBVH, its node layout,
  * traversals and the types shared with the builders.
- * @details Device code needs only this header. The host-side builders (TreeBVH, the partitioners,
- * and the PackedBVH constructors that partition a primitive list) are in EBGeometry_BVHBuild.hpp,
- * which includes this one.
+ * @details Device code needs only this header. The host-side builders are TreeBVH and its
+ * partitioners (EBGeometry_TreeBVH.hpp) and the PackedBVH constructors that build from a TreeBVH
+ * or partition a primitive list (EBGeometry_BVHBuild.hpp). Both include this one.
  * @author Robert Marskar
  */
 
@@ -177,7 +177,7 @@ HostBranchingRatio() noexcept
 }
 
 /**
- * @brief Forward declaration of the tree-structured BVH, defined in EBGeometry_BVHBuild.hpp. Needed
+ * @brief Forward declaration of the tree-structured BVH, defined in EBGeometry_TreeBVH.hpp. Needed
  * by LeafPredicate and by PackedBVH's constructor from a TreeBVH.
  */
 template <class T, class P, class BV, size_t K>
@@ -672,7 +672,7 @@ public:
    * @brief Construct directly from a primitive list, top-down, with DefaultLeafPredicate.
    * @details Same as the four-argument constructor with @c a_stopCrit = DefaultLeafPredicate. These
    * overloads stand in for default arguments, which would make this header depend on the
-   * partitioners in EBGeometry_BVHBuild.hpp.
+   * partitioners in EBGeometry_TreeBVH.hpp.
    * @param[in,out] a_pool        Pool the packed arrays are reserved from; must outlive this object.
    * @param[in]     a_primsAndBVs Primitives and their bounding volumes.
    * @param[in]     a_partitioner Partitioning function.

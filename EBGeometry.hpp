@@ -50,6 +50,7 @@
 #include "Source/EBGeometry_Soup.hpp"
 #include "Source/EBGeometry_StreamOperators.hpp"
 #include "Source/EBGeometry_Transform.hpp"
+#include "Source/EBGeometry_TreeBVH.hpp"
 #include "Source/EBGeometry_Triangle.hpp"
 #include "Source/EBGeometry_TriangleAoSoA.hpp"
 #include "Source/EBGeometry_TriangleSoA.hpp"

@@ -6,16 +6,20 @@ BVH
 See :ref:`Chap:BVH` for the conceptual picture of bounding volume hierarchies (node types,
 partitioning, tree pruning during traversal) before reading the concrete API below.
 
-The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``, in two headers:
+The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``, in three headers:
 
 * :file:`Source/EBGeometry_PackedBVH.hpp` holds ``PackedBVH``, its node layout and traversals, and
   the types shared with the builders. It is all that code querying a BVH needs, device code in
   particular.
-* :file:`Source/EBGeometry_BVHBuild.hpp` holds the host-side builders: ``TreeBVH``, the
-  partitioners, and the ``PackedBVH`` constructors that partition a primitive list. It includes
-  the first.
+* :file:`Source/EBGeometry_TreeBVH.hpp` holds ``TreeBVH``, the partitioners, the default leaf
+  predicate, and ``pack()``/``packWith()``. It is host-only.
+* :file:`Source/EBGeometry_BVHBuild.hpp` holds the ``PackedBVH`` constructors that build from a
+  ``TreeBVH`` or partition a primitive list directly (top-down, along a space-filling curve, or
+  ClusterSAH). It is host-only.
 
-:file:`Source/EBGeometry_BVH.hpp` includes both, as does ``EBGeometry.hpp``.
+The last two include each other and :file:`Source/EBGeometry_PackedBVH.hpp`, so either one gives
+the whole builder API. :file:`Source/EBGeometry_BVH.hpp` includes all three, as does
+``EBGeometry.hpp``.
 For the full API, see `the doxygen API <doxygen/html/namespaceEBGeometry_1_1BVH.html>`__.
 There are two representations of a BVH:
 
