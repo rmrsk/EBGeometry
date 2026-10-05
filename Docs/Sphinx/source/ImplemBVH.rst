@@ -287,12 +287,12 @@ for that trade-off. For the exact signatures, see the Doxygen references for `Tr
 <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ and `PackedBVH
 <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
-Refitting recomputes bounding volumes only, never the primitives themselves. That matters for
-``MeshSDF`` (:ref:`Chap:MeshSDFClasses`), whose packed faces are by-value copies with a normal,
-centroid and projection axes cached at build time: refitting its BVH (through ``getRoot()``) after
-moving the mesh's vertices leaves those cached values stale, so ``signedDistance()`` would mix live
-vertex positions with stale face data. After moving vertices, reconcile the mesh and build a new
-``MeshSDF``.
+Refitting recomputes bounding volumes only, never the primitives themselves. A primitive that
+caches data derived from the geometry has to be brought up to date some other way. ``MeshSDF``
+(:ref:`Chap:MeshSDFClasses`) stores face ids, not faces, so after moving the mesh's vertices,
+``mesh.reconcile()`` recomputes the faces' cached normals, centroids and projection axes in the
+mesh itself, and refitting its BVH (through ``getRoot()``) then updates the boxes. ``TriMeshSDF``'s
+triangles are copies taken at build time, so after moving vertices it has to be rebuilt.
 
 .. _Chap:PackedBVH:
 
