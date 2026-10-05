@@ -601,26 +601,27 @@ TEMPLATE_TEST_CASE("Mesh SDFs: getClosestFace names a closest mesh face and matc
     // The reported face must be one of the closest: its own distance equals the smallest over all
     // faces (several faces tie at points nearest a shared edge or vertex, so the id itself is not
     // unique).
-    const auto requireClosest = [&mesh](const ClosestFace<T>& a_closest, const Vec3T<T>& a_point, const T a_margin) {
-      REQUIRE(a_closest.faceId < mesh.numFaces());
+    const auto requireClosest =
+      [&mesh](const ClosestFace<T>& a_closest, const Vec3T<T>& a_point, const double a_margin) {
+        REQUIRE(a_closest.faceId < mesh.numFaces());
 
-      T smallest = std::numeric_limits<T>::max();
+        T smallest = std::numeric_limits<T>::max();
 
-      for (uint32_t f = 0; f < mesh.numFaces(); f++) {
-        smallest = std::min(smallest, std::abs(mesh.getFace(f).signedDistance(a_point, mesh)));
-      }
+        for (uint32_t f = 0; f < mesh.numFaces(); f++) {
+          smallest = std::min(smallest, std::abs(mesh.getFace(f).signedDistance(a_point, mesh)));
+        }
 
-      const T own = mesh.getFace(a_closest.faceId).signedDistance(a_point, mesh);
+        const T own = mesh.getFace(a_closest.faceId).signedDistance(a_point, mesh);
 
-      REQUIRE_THAT(std::abs(own), withinAbsT(smallest, a_margin));
-      REQUIRE_THAT(std::abs(a_closest.signedDistance), withinAbsT(smallest, a_margin));
-    };
+        REQUIRE_THAT(std::abs(own), withinAbsT(smallest, a_margin));
+        REQUIRE_THAT(std::abs(a_closest.signedDistance), withinAbsT(smallest, a_margin));
+      };
 
     for (const auto& p : queryPoints<T>()) {
       const auto closest = flat.getClosestFace(p);
 
       REQUIRE(closest.signedDistance == flat.signedDistance(p));
-      requireClosest(closest, p, T(0));
+      requireClosest(closest, p, 0.0);
     }
 
     for (const auto build : allConstructions) {
