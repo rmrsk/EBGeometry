@@ -25,7 +25,29 @@ using namespace amrex;
 // EBGeometry precision, BVH branching factor and SoA width. K and W are the library's defaults, which
 // never depend on compiler flags: a CUDA/HIP build compiles this file twice (a host pass and a device
 // pass), and the TriMeshSDF type must be identical in both.
-using T            = amrex::Real;
+//
+// T is EBGeometry's precision and is deliberately NOT amrex::Real. EBGeometry is templated on its
+// floating-point type, so the geometry can be carried in float while AMReX runs in whatever precision
+// it was configured for; EBGeometryIF::operator() converts at the boundary (AMReX hands in Real
+// coordinates, EBGeometry answers in T, the result widens back to Real). float is the right choice
+// here for two reasons:
+//
+//   * AMReX only consumes the *sign* of the implicit function plus the positions where it crosses
+//     grid edges -- EB2::build_faces/build_cells test levelset(i,j,k) < 0 and take all sub-cell
+//     geometry from the edge intercepts -- so float's ~7 digits is far more than the cut-cell
+//     representation can carry. Measured against an otherwise identical double build on the
+//     armadillo at n_cell=128: identical cell types, and volume fractions differing by at most
+//     4.4e-4 (fcompare, max norm).
+//   * Consumer GPUs run FP64 at a small fraction of FP32 (1/64 on Ampere GeForce), and the signed
+//     distance query is the entire cost of EB generation here. Measured query throughput on one
+//     RTX 3080 Ti over a 2.1M-node grid: 2.07 M queries/s in double against 32.25 M queries/s in
+//     float, a 15.6x difference that carries straight through to EB2::Build (4.24 s -> 0.29 s).
+//     On a host build the two precisions are within a few percent of each other, so this costs
+//     nothing there.
+//
+// Use amrex::Real instead if you need the level set itself to be a double-precision distance field
+// (EB2::Level::fillLevelSet) rather than only the EB geometry derived from it.
+using T            = float;
 constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 constexpr size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
 using SDF          = EBGeometry::TriMeshSDF<T, K, W>;
@@ -60,7 +82,8 @@ public:
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    const EBGeometry::Vec3T<T> point(x, y, z);
+    // Narrow to EBGeometry's precision T here; the returned T widens back to amrex::Real on return.
+    const EBGeometry::Vec3T<T> point(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
 
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
     return m_deviceSDF.signedDistance(point);
@@ -144,6 +167,38 @@ main(int argc, char* argv[])
 
       const EBGeometryIF sdf(hostSDF, deviceSDF);
 
+      // Two ways to get a triangle mesh into AMReX's EB machinery. They are not equivalent, and the
+      // difference is in what each one asks of the geometry rather than in how fast it goes.
+      //
+      // 1. This example: an EBGeometry TriMeshSDF wrapped as an implicit function for
+      //    EB2::GeometryShop. GeometryShop sees a black-box scalar field, so everything it needs is
+      //    derived from evaluating that field:
+      //      * the nodal level set is filled by evaluating the signed distance at every node, which
+      //        is a nearest-primitive search over the BVH (on the armadillo at K = W = 4 that is
+      //        ~23 leaf visits and ~214 triangle tests per node);
+      //      * GeometryShop::getBoxType classifies a box by evaluating every node in it and reducing
+      //        the sign counts. Its CPU path returns as soon as it has seen both signs; its GPU path
+      //        is a sum reduction and cannot exit early, so it always pays the full sweep;
+      //      * edge intercepts come from BrentRootFinder bracketing the implicit function along each
+      //        cut edge, which costs tens of evaluations per edge.
+      //    In exchange you get a true signed distance field, every input format EBGeometry reads
+      //    (STL, PLY, VTK, OBJ), and CSG unions and transforms over multiple objects.
+      //
+      // 2. AMReX's own STL path (eb2.geom_type=stl, eb2.stl_file=...), which never computes a
+      //    distance at all. It decides which side of the surface a node is on by casting a segment to
+      //    a reference point and counting triangle crossings, writes +/-1 into the level set, and
+      //    intersects each cut edge with the triangles directly in closed form. That is much less
+      //    work per node -- a one-dimensional query with no nearest-ness and no shrinking search
+      //    radius -- but it requires a watertight mesh (parity is ill-defined otherwise, and a
+      //    segment grazing an edge or vertex can flip it), reads only STL, and leaves behind a level
+      //    set that is a sign rather than a distance.
+      //
+      // Measured on one RTX 3080 Ti at n_cell=128 over the same 99,976-triangle mesh, EB2::Build:
+      // in a single-precision AMReX build ~0.23 s for this path against ~0.14 s for the STL path; in
+      // a double-precision AMReX build ~0.29 s for this path against ~1.02 s for the STL path, since
+      // STLtools is forced to amrex::Real while T above stays float either way. Mesh ingest --
+      // parsing plus the BVH build, ~0.48 s here and independent of grid size -- is a separate fixed
+      // cost paid before any of this; see EBGeometry issue #157.
       auto gshop = EB2::makeShop(sdf);
 
       EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);
