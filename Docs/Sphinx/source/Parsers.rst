@@ -213,7 +213,8 @@ SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` d
 (``BVH::DefaultBranchingRatio<T>()`` and ``TriangleSoA::DefaultWidth<T>()``; in a host-only build
 that defines ``EBGEOMETRY_HOST_TUNED_DEFAULTS``, ``W`` defaults to the host-tuned width instead, see
 :ref:`Sec:DefaultKW`); ``maxLeafGroups`` (default 4)
-bounds the number of full ``W``-sized SoA groups per BVH leaf. Faces with more than three vertices
+bounds the number of full ``W``-sized SoA groups per BVH leaf (to set each construction method's
+leaf size separately, build ``TriMeshSDF`` directly, see :ref:`Sec:LeafSizes`). Faces with more than three vertices
 are fan-triangulated, which is exact for the planar convex faces the DCEL mesh requires. Unlike
 ``readIntoMesh``/``readIntoPackedBVH``, the returned ``TriMeshSDF`` extracts flat ``Triangle``
 values from the intermediate DCEL mesh and does not retain it; its BVH is reserved from

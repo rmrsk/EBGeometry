@@ -121,7 +121,9 @@ ________________________
 The bottom-up construction uses a space-filling curve (e.g., a Morton curve) for first building the leaf nodes.
 This construction is done such that each leaf node contains approximately the number of primitives, and all leaf nodes exist on the same level.
 To use bottom-up construction, one may use the member function template
-``bottomUpSortAndPartition<S>()`` (no arguments).
+``bottomUpSortAndPartition<S>(targetLeafSize = 1)``. It takes the fewest leaves, a power of ``K``,
+that hold at most ``targetLeafSize`` primitives each, but never more leaves than primitives. The
+default target of one gives the deepest such tree, with at most ``K`` primitives per leaf.
 The template argument is the space-filling curve that the user wants to apply, from namespace
 ``EBGeometry::SFC`` (:file:`Source/EBGeometry_SFC.hpp`, see `the doxygen API
 <doxygen/html/namespaceEBGeometry_1_1SFC.html>`__).
@@ -262,11 +264,82 @@ primitives:
 
 Every one of these users accepts every value, and aborts, in every build, on a value outside the
 enum. ``MeshSDF`` and ``TriMeshSDF`` build the tree methods through a ``TreeBVH`` and ``ClusterSAH``
-through the direct ``ClusterSpec`` constructor; ``TriMeshSDF`` then regroups each ``ClusterSAH``
-leaf into SIMD triangle groups, with clusters sized so a leaf stays within its ``a_maxLeafGroups``
-bound. ``MeshSDF`` and the BVH unions use the default ``ClusterSpec``. A custom partitioner or leaf
+through the direct ``ClusterSpec`` constructor; ``TriMeshSDF`` then regroups each leaf into SIMD
+triangle groups. The BVH unions use the direct constructors throughout. A custom partitioner or leaf
 predicate is not a preset: build a ``TreeBVH`` with it and ``pack()`` it, or use the direct top-down
 constructor.
+
+.. _Sec:LeafSizes:
+
+Leaf sizes
+__________
+
+Leaf size is a tuning parameter, and its natural form differs per method, so each method has its
+own setting. They are collected in one ``BVH::ConstructionOptions`` (`doxygen
+<doxygen/html/structEBGeometry_1_1BVH_1_1ConstructionOptions.html>`__), and a method reads only its
+own field:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 20 50
+
+   * - Methods
+     - Field
+     - Meaning
+   * - ``SAH``, ``CentroidSplit``, ``MidpointSplit``
+     - ``maxLeafSize``
+     - A node with at most this many primitives becomes a leaf. A split makes ``K`` non-empty
+       children, so a node with fewer than ``K`` is a leaf too.
+   * - ``Morton``, ``Nested``, ``Hilbert``
+     - ``targetLeafSize``
+     - The fewest leaves holding at most this many primitives each, among the leaf counts the
+       builder can make (powers of ``K`` through a ``TreeBVH``; :math:`L \equiv 1 \pmod{K-1}` in
+       the direct constructor). There are never more leaves than primitives, so a target below ``K``
+       may be exceeded.
+   * - ``ClusterSAH``
+     - ``cluster``
+     - The ``ClusterSpec``; a leaf holds 1 to ``K-1`` clusters.
+
+``MeshSDF``, ``TriMeshSDF``, ``BVHUnionIF`` and ``BVHSmoothUnionIF`` each have a constructor that
+takes the options after the ``BVH::Construction`` value, counted in that class's primitives (faces,
+triangles or union members). Each also has a static ``defaultConstructionOptions()`` returning what
+its constructor without options uses, so a change to one method's setting starts from it:
+
+.. code-block:: cpp
+
+   using SDF = TriMeshSDF<T, K, W>;
+
+   auto options = SDF::defaultConstructionOptions(4); // 4 groups of W triangles per leaf
+
+   options.targetLeafSize = 32;
+
+   const SDF sdf(mesh, pool, BVH::Construction::Hilbert, options);
+
+A field left at zero is rejected, in every build, when the chosen method reads it. The defaults are:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 25 25
+
+   * - Class
+     - ``maxLeafSize``
+     - ``targetLeafSize``
+     - ``cluster``
+   * - ``MeshSDF``
+     - ``K-1``
+     - 1 (the deepest tree)
+     - ``ClusterSpec{}``
+   * - ``TriMeshSDF`` (``maxLeafGroups`` :math:`g`)
+     - :math:`gW`
+     - :math:`gW`
+     - :math:`\max(1, \lfloor gW/(K-1) \rfloor)`, so a leaf stays within :math:`gW`
+   * - ``BVHUnionIF``, ``BVHSmoothUnionIF``
+     - ``K-1``
+     - ``K``
+     - ``ClusterSpec{}``
+
+The file readers (:ref:`Chap:Parsers`) build with these defaults; to set a leaf size, build the
+class with its own constructor.
 
 .. _Chap:BVHRefit:
 
@@ -900,8 +973,10 @@ Rules of thumb:
   leaf, so at most ``a_maxLeafGroups * W`` raw triangles before SoA packing)
   defaults to ``4`` in ``Parser::readIntoTriangleBVH`` (the ``TriMeshSDF``
   constructors have no default), while the top-down partitioners are still free
-  to split down to smaller, tighter leaves wherever the geometry calls for it. A
-  leaf smaller than ``W`` simply pads its SoA block's unused lanes.
+  to split down to smaller, tighter leaves wherever the geometry calls for it. The
+  space-filling curves take ``a_maxLeafGroups * W`` as their target leaf size. A
+  leaf smaller than ``W`` simply pads its SoA block's unused lanes. To set each
+  method's leaf size separately, see :ref:`Sec:LeafSizes`.
 * ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
   available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
   a single SIMD batch, and the wider fan-out reduces tree depth — but measure: on the

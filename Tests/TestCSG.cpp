@@ -672,6 +672,152 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: every build strategy matches brute force w
   }
 }
 
+TEMPLATE_TEST_CASE("BVHUnionIF/BVHSmoothUnionIF: ConstructionOptions set each construction method's leaf size",
+                   "[CSG][BVHUnion][BVHSmoothUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+
+  using Union  = BVHUnionIF<T, SphereSDF<T>, K>;
+  using Smooth = BVHSmoothUnionIF<T, SphereSDF<T>, K>;
+
+  std::mt19937                      rng(5);
+  std::uniform_real_distribution<T> coord(T(0), T(10));
+
+  std::vector<SphereSDF<T>> spheres;
+  std::vector<BV<T>>        bvs;
+
+  for (int i = 0; i < 300; i++) {
+    const Vec3T<T> center(coord(rng), coord(rng), coord(rng));
+    const T        radius = T(0.2);
+
+    spheres.emplace_back(center, radius);
+    bvs.emplace_back(center - radius * Vec3T<T>::ones(), center + radius * Vec3T<T>::ones());
+  }
+
+  std::vector<Vec3T<T>> queries;
+
+  for (int i = 0; i < 500; i++) {
+    queries.emplace_back(coord(rng), coord(rng), coord(rng));
+  }
+
+  const T smoothLen = T(0.5);
+
+  // The largest leaf of a union's BVH, in primitives.
+  const auto largestLeaf = [](const auto& a_bvh) {
+    const auto nodes   = a_bvh.getNodes();
+    uint32_t   largest = 0;
+
+    for (uint32_t i = 0; i < nodes.size(); i++) {
+      if (nodes[i].isLeaf()) {
+        largest = std::max(largest, nodes[i].getNumPrimitives());
+      }
+    }
+
+    return largest;
+  };
+
+  Pool pool(hostMemoryResource());
+
+  // Each method reads only its own field; the other two stay 0 to show they are unread. Targets of
+  // 2 and up are always reachable for 300 primitives (one primitive per leaf is not, since a K-ary
+  // tree with every interior node full has L = 1 (mod K - 1) leaves).
+  for (const size_t setting : {size_t(2), size_t(7), size_t(40), spheres.size()}) {
+    for (const auto build : allConstructions) {
+      const bool topDown = build == BVH::Construction::CentroidSplit || build == BVH::Construction::MidpointSplit ||
+                           build == BVH::Construction::SAH;
+      const bool curve =
+        build == BVH::Construction::Morton || build == BVH::Construction::Nested || build == BVH::Construction::Hilbert;
+
+      BVH::ConstructionOptions options;
+
+      if (topDown) {
+        options.maxLeafSize = setting;
+      }
+      else if (curve) {
+        options.targetLeafSize = setting;
+      }
+      else {
+        options.cluster.maxClusterSize = setting;
+      }
+
+      const Union  sharp(pool, spheres, bvs, build, options);
+      const Smooth smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build, options);
+
+      INFO("setting = " << setting);
+
+      // A top-down split makes K non-empty children, so a node of fewer than K is a leaf anyway.
+      const size_t bound = topDown ? std::max(setting, K - 1) : curve ? setting : (K - 1) * setting;
+
+      REQUIRE(largestLeaf(sharp.getBVH()) <= bound);
+      REQUIRE(largestLeaf(smooth.getBVH()) <= bound);
+
+      if ((topDown || curve) && setting == spheres.size()) {
+        REQUIRE(sharp.getBVH().getNodes().size() == 1);
+      }
+
+      for (const auto& p : queries) {
+        T nearest = std::numeric_limits<T>::infinity();
+
+        for (const auto& sphere : spheres) {
+          nearest = std::min(nearest, sphere.signedDistance(p));
+        }
+
+        REQUIRE_THAT(sharp.signedDistance(p), withinAbsT(nearest, exactMargin<T>()));
+        REQUIRE_THAT(smooth.signedDistance(p),
+                     withinAbsT(bruteTwoNearest(spheres, p, smoothLen, SmoothMinOp<T>{}), formulaMargin<T>()));
+      }
+    }
+  }
+
+  // The constructors without options build the trees of defaultConstructionOptions().
+  for (const auto build : allConstructions) {
+    const Union  implicitSharp(pool, spheres, bvs, build);
+    const Union  explicitSharp(pool, spheres, bvs, build, Union::defaultConstructionOptions());
+    const Smooth implicitSmooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
+    const Smooth explicitSmooth(
+      pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build, Smooth::defaultConstructionOptions());
+
+    const auto lhs = implicitSharp.getBVH().getNodes();
+    const auto rhs = explicitSharp.getBVH().getNodes();
+
+    REQUIRE(lhs.size() == rhs.size());
+    REQUIRE(implicitSmooth.getBVH().getNodes().size() == explicitSmooth.getBVH().getNodes().size());
+
+    for (uint32_t i = 0; i < lhs.size(); i++) {
+      REQUIRE(lhs[i].getPrimitivesOffset() == rhs[i].getPrimitivesOffset());
+      REQUIRE(lhs[i].getNumPrimitives() == rhs[i].getNumPrimitives());
+    }
+  }
+
+  // A zero setting is rejected when the method reads it, in every build.
+  REQUIRE(abortsWith(
+    [&] {
+      Pool        local(hostMemoryResource());
+      const Union bad(local, spheres, bvs, BVH::Construction::SAH, BVH::ConstructionOptions{0, 1, {}});
+
+      (void)bad;
+    },
+    "BVHUnionIF: ConstructionOptions::maxLeafSize must be positive"));
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool         local(hostMemoryResource());
+      const Smooth bad(local,
+                       spheres,
+                       bvs,
+                       smoothLen,
+                       SmoothMinOp<T>{},
+                       BVH::Construction::Morton,
+                       BVH::ConstructionOptions{1, 0, {}});
+
+      (void)bad;
+    },
+    "ConstructionOptions::targetLeafSize must be positive"));
+}
+
 TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy handles many coincident primitives",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)

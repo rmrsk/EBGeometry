@@ -65,46 +65,56 @@ requireNonEmpty(const char* a_who, const size_t a_count) noexcept
  * @tparam P  Primitive type.
  * @tparam BV Bounding-volume type.
  * @tparam K  BVH branching factor.
- * @param[in,out] a_tree     Root of the tree to partition.
- * @param[in]     a_construction    Preset construction method.
- * @param[in]     a_stopCrit Leaf predicate for the top-down methods. The bottom-up methods ignore it.
- * @param[in]     a_who      Class being built, for the message.
+ * @param[in,out] a_tree         Root of the tree to partition.
+ * @param[in]     a_construction Preset construction method.
+ * @param[in]     a_options      Leaf-size settings: the top-down methods stop at a_options.maxLeafSize
+ * primitives per leaf, and the space-filling-curve methods aim for a_options.targetLeafSize.
+ * @param[in]     a_who          Class being built, for the message.
  */
 template <class T, class P, class BV, size_t K>
 inline void
-partitionTree(BVH::TreeBVH<T, P, BV, K>&                               a_tree,
-              const BVH::Construction                                  a_construction,
-              const typename BVH::TreeBVH<T, P, BV, K>::LeafPredicate& a_stopCrit,
-              const char*                                              a_who)
+partitionTree(BVH::TreeBVH<T, P, BV, K>&      a_tree,
+              const BVH::Construction         a_construction,
+              const BVH::ConstructionOptions& a_options,
+              const char*                     a_who)
 {
+  BVH::detail::requireLeafSetting(a_who, a_construction, a_options);
+
+  const size_t maxLeafSize = a_options.maxLeafSize;
+
+  const typename BVH::TreeBVH<T, P, BV, K>::LeafPredicate stopCrit =
+    [maxLeafSize](const BVH::TreeBVH<T, P, BV, K>& a_node) noexcept -> bool {
+    return a_node.getPrimitives().size() <= maxLeafSize;
+  };
+
   switch (a_construction) {
   case BVH::Construction::CentroidSplit: {
-    a_tree.topDownSortAndPartition(BVH::BVCentroidPartitioner<T, P, BV, K>, a_stopCrit);
+    a_tree.topDownSortAndPartition(BVH::BVCentroidPartitioner<T, P, BV, K>, stopCrit);
 
     return;
   }
   case BVH::Construction::MidpointSplit: {
-    a_tree.topDownSortAndPartition(BVH::MidpointPartitioner<T, P, BV, K>, a_stopCrit);
+    a_tree.topDownSortAndPartition(BVH::MidpointPartitioner<T, P, BV, K>, stopCrit);
 
     return;
   }
   case BVH::Construction::SAH: {
-    a_tree.topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, P, BV, K>, a_stopCrit);
+    a_tree.topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, P, BV, K>, stopCrit);
 
     return;
   }
   case BVH::Construction::Morton: {
-    a_tree.template bottomUpSortAndPartition<SFC::Morton>();
+    a_tree.template bottomUpSortAndPartition<SFC::Morton>(a_options.targetLeafSize);
 
     return;
   }
   case BVH::Construction::Nested: {
-    a_tree.template bottomUpSortAndPartition<SFC::Nested>();
+    a_tree.template bottomUpSortAndPartition<SFC::Nested>(a_options.targetLeafSize);
 
     return;
   }
   case BVH::Construction::Hilbert: {
-    a_tree.template bottomUpSortAndPartition<SFC::Hilbert>();
+    a_tree.template bottomUpSortAndPartition<SFC::Hilbert>(a_options.targetLeafSize);
 
     return;
   }
@@ -149,13 +159,15 @@ faceIdsAndBVs(const EBGeometry::DCEL::MeshT<T>& a_mesh)
  * @tparam BV Bounding-volume type (e.g. AABBT<T>).
  * @tparam K  BVH branching factor (number of children per node).
  * @param[in] a_dcelMesh      Input DCEL mesh.
- * @param[in] a_construction  Preset construction method, any but ClusterSAH. SAH is the default.
+ * @param[in] a_construction  Preset construction method, any but ClusterSAH.
+ * @param[in] a_options       Leaf-size settings; see partitionTree().
  * @return Shared pointer to the root of the resulting tree BVH.
  */
 template <class T, class BV, size_t K>
 [[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, uint32_t, BV, K>>
 buildDCELTreeBVH(const EBGeometry::DCEL::MeshT<T>& a_dcelMesh,
-                 const BVH::Construction           a_construction = BVH::Construction::SAH)
+                 const BVH::Construction           a_construction,
+                 const BVH::ConstructionOptions&   a_options)
 {
   static_assert(std::is_floating_point_v<T>,
                 "MeshDistanceFunctionsDetail::buildDCELTreeBVH requires a floating-point type T");
@@ -179,12 +191,7 @@ buildDCELTreeBVH(const EBGeometry::DCEL::MeshT<T>& a_dcelMesh,
 
   auto bvh = std::make_shared<Tree>(primsAndBVs);
 
-  // A top-down leaf holds fewer than K faces.
-  const typename Tree::LeafPredicate stopCrit = [](const Tree& a_node) noexcept -> bool {
-    return a_node.getPrimitives().size() < K;
-  };
-
-  partitionTree<T, Prim, BV, K>(*bvh, a_construction, stopCrit, "MeshSDF");
+  partitionTree<T, Prim, BV, K>(*bvh, a_construction, a_options, "MeshSDF");
 
   return bvh;
 }
@@ -290,22 +297,20 @@ extractTriangles(const DCEL::MeshT<T>& a_mesh)
 /**
  * @brief Build a tree BVH from a flat triangle soup.
  * @details Internal helper; not part of the public API. Creates one BV per triangle from its
- * vertex positions, then builds a K-ary tree BVH according to a_construction. The top-down methods
- * partition until each leaf holds at most a_maxLeafSize triangles.
+ * vertex positions, then builds a K-ary tree BVH according to a_construction and a_options.
  * @tparam T    Floating-point precision type.
  * @tparam BV   Bounding-volume type (e.g. AABBT<T>).
  * @tparam K    BVH branching factor (number of children per internal node).
  * @param[in] a_triangles   Triangle soup to build the BVH over.
  * @param[in] a_construction       Preset construction method, any but ClusterSAH.
- * @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf node (ignored by the
- * space-filling-curve methods).
+ * @param[in] a_options       Leaf-size settings, in triangles; see partitionTree().
  * @return Shared pointer to the root of the resulting tree BVH.
  */
 template <class T, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::TreeBVH<T, Triangle<T>, BV, K>>
 buildTriTreeBVH(const std::vector<EBGeometry::Triangle<T>>& a_triangles,
                 const BVH::Construction                     a_construction,
-                const size_t                                a_maxLeafSize)
+                const BVH::ConstructionOptions&             a_options)
 {
   static_assert(std::is_floating_point_v<T>,
                 "MeshDistanceFunctionsDetail::buildTriTreeBVH requires a floating-point type T");
@@ -334,11 +339,7 @@ buildTriTreeBVH(const std::vector<EBGeometry::Triangle<T>>& a_triangles,
 
   auto bvh = std::make_shared<Tree>(primsAndBVs);
 
-  const typename Tree::LeafPredicate stopCrit = [a_maxLeafSize](const Tree& a_node) noexcept -> bool {
-    return a_node.getPrimitives().size() <= a_maxLeafSize;
-  };
-
-  partitionTree<T, Prim, BV, K>(*bvh, a_construction, stopCrit, "TriMeshSDF");
+  partitionTree<T, Prim, BV, K>(*bvh, a_construction, a_options, "TriMeshSDF");
 
   return bvh;
 }
@@ -457,8 +458,25 @@ FlatMeshSDF<T>::computeBoundingVolume() const noexcept
 
 template <class T, size_t K>
 EBGEOMETRY_HOST
+inline BVH::ConstructionOptions
+MeshSDF<T, K>::defaultConstructionOptions() noexcept
+{
+  return BVH::ConstructionOptions{K - 1, 1, BVH::ClusterSpec{}};
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST
 inline MeshSDF<T, K>::MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Construction a_construction)
-  : m_mesh(a_mesh), m_bvh(MeshSDF::buildBVH(a_mesh, a_pool, a_construction))
+  : MeshSDF(a_mesh, a_pool, a_construction, MeshSDF::defaultConstructionOptions())
+{}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST
+inline MeshSDF<T, K>::MeshSDF(const Mesh&                     a_mesh,
+                              Pool&                           a_pool,
+                              const BVH::Construction         a_construction,
+                              const BVH::ConstructionOptions& a_options)
+  : m_mesh(a_mesh), m_bvh(MeshSDF::buildBVH(a_mesh, a_pool, a_construction, a_options))
 {
   // The mesh and the BVH must share one pool: rebasedView() rebases both onto the same mirror, and
   // the BVH's faces index the mesh's arrays. a_pool must outlive this object and every copy of it.
@@ -469,7 +487,10 @@ inline MeshSDF<T, K>::MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Const
 template <class T, size_t K>
 EBGEOMETRY_HOST
 inline typename MeshSDF<T, K>::Root
-MeshSDF<T, K>::buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Construction a_construction)
+MeshSDF<T, K>::buildBVH(const Mesh&                     a_mesh,
+                        Pool&                           a_pool,
+                        const BVH::Construction         a_construction,
+                        const BVH::ConstructionOptions& a_options)
 {
   using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
@@ -477,12 +498,13 @@ MeshSDF<T, K>::buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Constructio
   if (a_construction == BVH::Construction::ClusterSAH) {
     MeshDistanceFunctionsDetail::requireNonEmpty("MeshSDF", a_mesh.numFaces());
 
-    return Root(a_pool, MeshDistanceFunctionsDetail::faceIdsAndBVs<T, AABB>(a_mesh), BVH::ClusterSpec{});
+    return Root(a_pool, MeshDistanceFunctionsDetail::faceIdsAndBVs<T, AABB>(a_mesh), a_options.cluster);
   }
 
   // pack() still returns a shared_ptr; the PackedBVH it points to is a descriptor into a_pool, so
   // copying it out is all that is needed.
-  return *EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, AABB, K>(a_mesh, a_construction)->pack(a_pool);
+  return *EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, AABB, K>(a_mesh, a_construction, a_options)
+            ->pack(a_pool);
 }
 
 template <class T, size_t K>
@@ -652,41 +674,33 @@ TriMeshSDF<T, K, W>::extractTriangles(const Mesh& a_mesh)
 template <class T, size_t K, size_t W>
 EBGEOMETRY_HOST
 inline typename TriMeshSDF<T, K, W>::Root
-TriMeshSDF<T, K, W>::buildBVH(const std::vector<Tri>& a_triangles,
-                              Pool&                   a_pool,
-                              const BVH::Construction a_construction,
-                              const size_t            a_maxLeafGroups)
+TriMeshSDF<T, K, W>::buildBVH(const std::vector<Tri>&         a_triangles,
+                              Pool&                           a_pool,
+                              const BVH::Construction         a_construction,
+                              const BVH::ConstructionOptions& a_options)
 {
   MeshDistanceFunctionsDetail::requireNonEmpty("TriMeshSDF", a_triangles.size());
-  EBGEOMETRY_REQUIRE(
-    a_maxLeafGroups > 0, "TriMeshSDF: the maximum number of leaf groups must be positive (%zu)", a_maxLeafGroups);
 
   using AABB      = EBGeometry::BoundingVolumes::AABBT<T>;
   using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);
 
-  const size_t maxLeafSize = a_maxLeafGroups * W;
-
   if (a_construction == BVH::Construction::ClusterSAH) {
-    return TriMeshSDF::buildClusterSAH(a_triangles, a_pool, maxLeafSize);
+    return TriMeshSDF::buildClusterSAH(a_triangles, a_pool, a_options.cluster);
   }
 
   // packWith() still returns a shared_ptr; the PackedBVH it points to is a descriptor into a_pool,
   // so copying it out is all that is needed.
-  return *EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, AABB, K>(a_triangles, a_construction, maxLeafSize)
+  return *EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, AABB, K>(a_triangles, a_construction, a_options)
             ->template packWith<TriAoSoA, Converter>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, size_t K, size_t W>
 EBGEOMETRY_HOST
 inline typename TriMeshSDF<T, K, W>::Root
-TriMeshSDF<T, K, W>::buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& a_pool, const size_t a_maxLeafSize)
+TriMeshSDF<T, K, W>::buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::ClusterSpec& a_spec)
 {
   using AABB    = EBGeometry::BoundingVolumes::AABBT<T>;
   using ByIndex = EBGeometry::BVH::PackedBVH<T, uint32_t, K>;
-
-  // A ClusterSAH leaf holds at most K-1 clusters, so this cluster size keeps a leaf within
-  // a_maxLeafSize triangles, as the other methods do (or within K-1, if a_maxLeafSize is smaller).
-  const size_t clusterSize = Math::max(size_t(1), a_maxLeafSize / (K - 1));
 
   std::vector<std::pair<uint32_t, AABB>> indicesAndBVs;
 
@@ -701,7 +715,7 @@ TriMeshSDF<T, K, W>::buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& 
   // The tree is built over triangle indices in a scratch pool, then copied node for node with each
   // leaf's triangles regrouped into SIMD groups. Only the leaf ranges change.
   Pool          scratch(hostMemoryResource());
-  const ByIndex byIndex(scratch, std::move(indicesAndBVs), BVH::ClusterSpec{clusterSize});
+  const ByIndex byIndex(scratch, std::move(indicesAndBVs), a_spec);
 
   const auto indexNodes = byIndex.getNodes();
   const auto order      = byIndex.getPrimitives();
@@ -741,11 +755,28 @@ TriMeshSDF<T, K, W>::buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& 
 
 template <class T, size_t K, size_t W>
 EBGEOMETRY_HOST
+inline BVH::ConstructionOptions
+TriMeshSDF<T, K, W>::defaultConstructionOptions(const size_t a_maxLeafGroups) noexcept
+{
+  EBGEOMETRY_REQUIRE(
+    a_maxLeafGroups > 0, "TriMeshSDF: the maximum number of leaf groups must be positive (%zu)", a_maxLeafGroups);
+
+  const size_t maxLeafSize = a_maxLeafGroups * W;
+
+  // A ClusterSAH leaf holds at most K-1 clusters, so this cluster size keeps a leaf within
+  // maxLeafSize triangles, as the top-down methods do (or within K-1, if maxLeafSize is smaller).
+  const size_t clusterSize = Math::max(size_t(1), maxLeafSize / (K - 1));
+
+  return BVH::ConstructionOptions{maxLeafSize, maxLeafSize, BVH::ClusterSpec{clusterSize}};
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST
 inline TriMeshSDF<T, K, W>::TriMeshSDF(const Mesh&             a_mesh,
                                        Pool&                   a_pool,
                                        const BVH::Construction a_construction,
                                        const size_t            a_maxLeafGroups)
-  : TriMeshSDF(TriMeshSDF::extractTriangles(a_mesh), a_pool, a_construction, a_maxLeafGroups)
+  : TriMeshSDF(a_mesh, a_pool, a_construction, TriMeshSDF::defaultConstructionOptions(a_maxLeafGroups))
 {}
 
 template <class T, size_t K, size_t W>
@@ -754,7 +785,25 @@ inline TriMeshSDF<T, K, W>::TriMeshSDF(const std::vector<Tri>& a_triangles,
                                        Pool&                   a_pool,
                                        const BVH::Construction a_construction,
                                        const size_t            a_maxLeafGroups)
-  : m_bvh(TriMeshSDF::buildBVH(a_triangles, a_pool, a_construction, a_maxLeafGroups))
+  : TriMeshSDF(a_triangles, a_pool, a_construction, TriMeshSDF::defaultConstructionOptions(a_maxLeafGroups))
+{}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST
+inline TriMeshSDF<T, K, W>::TriMeshSDF(const Mesh&                     a_mesh,
+                                       Pool&                           a_pool,
+                                       const BVH::Construction         a_construction,
+                                       const BVH::ConstructionOptions& a_options)
+  : TriMeshSDF(TriMeshSDF::extractTriangles(a_mesh), a_pool, a_construction, a_options)
+{}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST
+inline TriMeshSDF<T, K, W>::TriMeshSDF(const std::vector<Tri>&         a_triangles,
+                                       Pool&                           a_pool,
+                                       const BVH::Construction         a_construction,
+                                       const BVH::ConstructionOptions& a_options)
+  : m_bvh(TriMeshSDF::buildBVH(a_triangles, a_pool, a_construction, a_options))
 {}
 
 template <class T, size_t K, size_t W>

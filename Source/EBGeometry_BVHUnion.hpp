@@ -84,6 +84,22 @@ signedDistance(const P& a_primitive, const Vec3T<T>& a_point, [[maybe_unused]] c
   }
 }
 
+/**
+ * @brief The leaf-size settings BVHUnionIF and BVHSmoothUnionIF use without options.
+ * @details Internal helper. Reproduces the trees the unions built before the settings existed: K-1
+ * primitives per leaf for the top-down methods (a node with fewer than K becomes a leaf), a target
+ * of K for the space-filling curves, and the default ClusterSpec.
+ * @tparam K BVH branching factor.
+ * @return The default settings.
+ */
+template <size_t K>
+[[nodiscard]] EBGEOMETRY_HOST
+inline BVH::ConstructionOptions
+defaultUnionOptions() noexcept
+{
+  return BVH::ConstructionOptions{K - 1, K, BVH::ClusterSpec{}};
+}
+
 } // namespace CSGDetail
 
 /**
@@ -132,19 +148,50 @@ public:
   BVHUnionIF() = delete;
 
   /**
+   * @brief The leaf-size settings the constructor without options uses.
+   * @details K-1 primitives per leaf for the top-down methods (a node with fewer than K primitives is
+   * a leaf), a target of K for the space-filling curves, and the default ClusterSpec for ClusterSAH.
+   * Start from these to change one method's setting; see BVH::ConstructionOptions.
+   * @return The default settings.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static BVH::ConstructionOptions
+  defaultConstructionOptions() noexcept
+  {
+    return CSGDetail::defaultUnionOptions<K>();
+  }
+
+  /**
    * @brief Build the union.
    * @param[in,out] a_pool            Pool the BVH is reserved from; pool-resident primitives must live
    * in it too. Must outlive this object and every copy of it.
    * @param[in]     a_primitives      Primitives (must be non-empty).
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
    * @param[in]     a_construction           Preset construction method; every BVH::Construction value is supported.
-   * ClusterSAH uses the default ClusterSpec.
+   * The leaf sizes are defaultConstructionOptions().
    */
   EBGEOMETRY_HOST
   BVHUnionIF(Pool&                  a_pool,
              const std::vector<P>&  a_primitives,
              const std::vector<BV>& a_boundingVolumes,
              BVH::Construction      a_construction = BVH::Construction::SAH);
+
+  /**
+   * @brief Build the union with leaf-size settings.
+   * @details As the constructor without options, which uses defaultConstructionOptions(). The chosen
+   * method reads only its own field of @p a_options; see BVH::ConstructionOptions.
+   * @param[in,out] a_pool            Pool the BVH is reserved from; see the constructor without options.
+   * @param[in]     a_primitives      Primitives (must be non-empty).
+   * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
+   * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
+   * @param[in]     a_options         Leaf-size settings, in primitives.
+   */
+  EBGEOMETRY_HOST
+  BVHUnionIF(Pool&                           a_pool,
+             const std::vector<P>&           a_primitives,
+             const std::vector<BV>&          a_boundingVolumes,
+             BVH::Construction               a_construction,
+             const BVH::ConstructionOptions& a_options);
 
   /**
    * @brief Evaluate the union at a point.
@@ -268,6 +315,17 @@ public:
   BVHSmoothUnionIF() = delete;
 
   /**
+   * @brief The leaf-size settings the constructor without options uses; the same as BVHUnionIF's.
+   * @return The default settings.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static BVH::ConstructionOptions
+  defaultConstructionOptions() noexcept
+  {
+    return CSGDetail::defaultUnionOptions<K>();
+  }
+
+  /**
    * @brief Build the smooth union.
    * @param[in,out] a_pool            Pool the BVH is reserved from; see BVHUnionIF.
    * @param[in]     a_primitives      Primitives (must be non-empty).
@@ -275,7 +333,7 @@ public:
    * @param[in]     a_smoothLen       Smoothing length (must be > 0).
    * @param[in]     a_blend           Smooth-minimum operator.
    * @param[in]     a_construction           Preset construction method; every BVH::Construction value is supported.
-   * ClusterSAH uses the default ClusterSpec.
+   * The leaf sizes are defaultConstructionOptions().
    */
   EBGEOMETRY_HOST
   BVHSmoothUnionIF(Pool&                  a_pool,
@@ -284,6 +342,27 @@ public:
                    T                      a_smoothLen,
                    Blend                  a_blend        = Blend{},
                    BVH::Construction      a_construction = BVH::Construction::SAH);
+
+  /**
+   * @brief Build the smooth union with leaf-size settings.
+   * @details As the constructor without options, which uses defaultConstructionOptions(). The chosen
+   * method reads only its own field of @p a_options; see BVH::ConstructionOptions.
+   * @param[in,out] a_pool            Pool the BVH is reserved from; see BVHUnionIF.
+   * @param[in]     a_primitives      Primitives (must be non-empty).
+   * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
+   * @param[in]     a_smoothLen       Smoothing length (must be > 0).
+   * @param[in]     a_blend           Smooth-minimum operator.
+   * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
+   * @param[in]     a_options         Leaf-size settings, in primitives.
+   */
+  EBGEOMETRY_HOST
+  BVHSmoothUnionIF(Pool&                           a_pool,
+                   const std::vector<P>&           a_primitives,
+                   const std::vector<BV>&          a_boundingVolumes,
+                   T                               a_smoothLen,
+                   Blend                           a_blend,
+                   BVH::Construction               a_construction,
+                   const BVH::ConstructionOptions& a_options);
 
   /**
    * @brief Evaluate the smooth union at a point.

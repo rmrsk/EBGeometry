@@ -95,6 +95,29 @@ struct ClusterSpec
 };
 
 /**
+ * @brief Leaf-size settings for the preset construction methods, one per family of methods.
+ * @details The methods have different natural settings, so each BVH::Construction value reads only
+ * its own field and ignores the others:
+ *
+ * | Construction                        | Field            | Meaning                                                      |
+ * |-------------------------------------|------------------|--------------------------------------------------------------|
+ * | SAH, CentroidSplit, MidpointSplit   | maxLeafSize      | A node with at most this many primitives becomes a leaf. A split makes K non-empty children, so a node with fewer than K is a leaf too: the leaves hold at most max(maxLeafSize, K-1). |
+ * | Morton, Nested, Hilbert             | targetLeafSize   | The fewest leaves holding at most this many primitives each, of the leaf counts the builder allows; it never makes more leaves than primitives, so a small target can be exceeded. |
+ * | ClusterSAH                          | cluster          | The cluster size; a leaf holds 1 to K-1 clusters (ClusterSpec). |
+ *
+ * Every class that takes a BVH::Construction (MeshSDF, TriMeshSDF, BVHUnionIF, BVHSmoothUnionIF) has
+ * a static defaultConstructionOptions() that reproduces the trees it builds without options. Start
+ * from those and change the field of the method in use. A field left at 0 is rejected when its
+ * method reads it.
+ */
+struct ConstructionOptions
+{
+  size_t      maxLeafSize    = 0; ///< SAH, CentroidSplit, MidpointSplit: most primitives in a leaf. Must be > 0.
+  size_t      targetLeafSize = 0; ///< Morton, Nested, Hilbert: target primitives per leaf. Must be > 0.
+  ClusterSpec cluster{};          ///< ClusterSAH: the cluster size.
+};
+
+/**
  * @brief Deepest tree, in node levels (the root alone is one level), that a host traversal handles.
  * @details PackedBVH::pruneTraverse() keeps a fixed stack sized from this and the branching factor,
  * so the limit is the same for every K. Every PackedBVH is checked against it when it is built. At

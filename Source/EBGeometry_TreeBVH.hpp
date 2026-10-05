@@ -124,6 +124,45 @@ appendAliased(std::vector<P>& a_dst, const std::shared_ptr<std::vector<P>>& a_bl
   }
 }
 
+/**
+ * @brief Abort unless the leaf-size setting that @p a_construction reads is positive.
+ * @details Each preset construction method reads one field of ConstructionOptions; this checks that
+ * one, in every build. ClusterSAH's ClusterSpec is checked by the ClusterSAH constructor itself, and
+ * a value outside Construction is left to the caller's own check.
+ * @param[in] a_who          Class being built, for the message.
+ * @param[in] a_construction Preset construction method.
+ * @param[in] a_options      Leaf-size settings.
+ */
+inline void
+requireLeafSetting(const char* a_who, const Construction a_construction, const ConstructionOptions& a_options) noexcept
+{
+  switch (a_construction) {
+  case Construction::SAH:
+  case Construction::CentroidSplit:
+  case Construction::MidpointSplit: {
+    EBGEOMETRY_REQUIRE(a_options.maxLeafSize > 0,
+                       "%s: ConstructionOptions::maxLeafSize must be positive for a top-down construction",
+                       a_who);
+
+    return;
+  }
+  case Construction::Morton:
+  case Construction::Nested:
+  case Construction::Hilbert: {
+    EBGEOMETRY_REQUIRE(
+      a_options.targetLeafSize > 0,
+      "%s: ConstructionOptions::targetLeafSize must be positive for a space-filling-curve construction",
+      a_who);
+
+    return;
+  }
+  case Construction::ClusterSAH:
+  default: {
+    return;
+  }
+  }
+}
+
 } // namespace detail
 
 /**
@@ -744,14 +783,18 @@ public:
   /**
    * @brief Recursively partition this node bottom-up along a space-filling curve.
    * @details S must provide encode() and decode() functions returning SFC indices.
-   * Primitives are sorted by their bounding-volume centroid projected onto the curve,
-   * then split evenly into K^d leaves (d = floor(log_K(N)), so at most K primitives each) and
-   * merged upwards in groups of K to the root.
+   * Primitives are sorted by their bounding-volume centroid projected onto the curve, then split
+   * evenly into K^d leaves and merged upwards in groups of K to the root, so every leaf is on the same
+   * level. d is the smallest depth at which the leaves hold at most @p a_targetLeafSize primitives,
+   * but never so deep that there are more leaves than primitives (K^d <= N). The leaf count can only
+   * be a power of K, so the leaves may hold well under the target. The default target, 1, gives the
+   * deepest such tree: d = floor(log_K(N)), at most K primitives per leaf.
    * @tparam S Space-filling curve type (e.g. Morton, Nested).
+   * @param[in] a_targetLeafSize Target primitives per leaf. Must be > 0.
    */
   template <typename S>
   inline void
-  bottomUpSortAndPartition();
+  bottomUpSortAndPartition(size_t a_targetLeafSize = 1);
 
   /**
    * @brief Return true if this is a leaf node (no children, non-empty primitive list).
