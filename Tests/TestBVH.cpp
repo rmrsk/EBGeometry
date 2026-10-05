@@ -20,6 +20,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <string>
 #include <type_traits>
@@ -747,20 +748,16 @@ TEMPLATE_TEST_CASE("TriMeshSDF::getClosestFace reports the closest triangle's fa
   }
 }
 
-TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest triangle, and the top-down "
-                   "methods keep each leaf within maxLeafGroups",
-                   "[BVH][TriMesh][Construction]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+namespace {
+
+// A soup of 512 small, differently oriented triangles on a jittered grid: enough for many levels,
+// and no two triangles at the same distance from a query.
+template <class T>
+std::vector<Triangle<T>>
+jitteredTriangleSoup(std::mt19937& a_rng)
 {
-  using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  constexpr size_t K = 4;
-  constexpr size_t W = 4;
-
-  // A soup of 512 small, differently oriented triangles on a jittered grid: enough for many levels,
-  // and no two triangles at the same distance from a query.
-  std::mt19937                      rng(17);
   std::uniform_real_distribution<T> jitter(T(-0.2), T(0.2));
 
   std::vector<Triangle<T>> tris;
@@ -768,9 +765,9 @@ TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest 
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
       for (int k = 0; k < 8; k++) {
-        const Vec3 base(T(i) + jitter(rng), T(j) + jitter(rng), T(k) + jitter(rng));
-        const Vec3 a = base + Vec3(T(0.3), jitter(rng), jitter(rng));
-        const Vec3 b = base + Vec3(jitter(rng), T(0.3), jitter(rng));
+        const Vec3 base(T(i) + jitter(a_rng), T(j) + jitter(a_rng), T(k) + jitter(a_rng));
+        const Vec3 a = base + Vec3(T(0.3), jitter(a_rng), jitter(a_rng));
+        const Vec3 b = base + Vec3(jitter(a_rng), T(0.3), jitter(a_rng));
         const Vec3 n = (a - base).cross(b - base) / (a - base).cross(b - base).length();
 
         Triangle<T> tri;
@@ -784,42 +781,272 @@ TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest 
     }
   }
 
-  std::vector<Vec3> queries;
+  return tris;
+}
+
+// 200 query points inside the soup's grid.
+template <class T>
+std::vector<Vec3T<T>>
+jitteredSoupQueries(std::mt19937& a_rng)
+{
+  std::uniform_real_distribution<T> jitter(T(-0.2), T(0.2));
+
+  std::vector<Vec3T<T>> queries;
 
   for (int q = 0; q < 200; q++) {
-    queries.emplace_back(T(9) * (jitter(rng) + T(0.5)) - T(0.5),
-                         T(9) * (jitter(rng) + T(0.5)) - T(0.5),
-                         T(9) * (jitter(rng) + T(0.5)) - T(0.5));
+    queries.emplace_back(T(9) * (jitter(a_rng) + T(0.5)) - T(0.5),
+                         T(9) * (jitter(a_rng) + T(0.5)) - T(0.5),
+                         T(9) * (jitter(a_rng) + T(0.5)) - T(0.5));
   }
+
+  return queries;
+}
+
+// The distance from a_point to the nearest triangle of a_tris, by brute force.
+template <class T>
+T
+bruteNearestTriangle(const std::vector<Triangle<T>>& a_tris, const Vec3T<T>& a_point)
+{
+  T nearest = std::numeric_limits<T>::max();
+
+  for (const auto& tri : a_tris) {
+    nearest = std::min(nearest, std::abs(tri.signedDistance(a_point)));
+  }
+
+  return nearest;
+}
+
+bool
+isTopDown(const BVH::Construction a_construction)
+{
+  return a_construction == BVH::Construction::CentroidSplit || a_construction == BVH::Construction::MidpointSplit ||
+         a_construction == BVH::Construction::SAH;
+}
+
+bool
+isSpaceFillingCurve(const BVH::Construction a_construction)
+{
+  return a_construction == BVH::Construction::Morton || a_construction == BVH::Construction::Nested ||
+         a_construction == BVH::Construction::Hilbert;
+}
+
+// The largest leaf of a packed BVH, in its own primitives.
+template <class Root>
+uint32_t
+largestLeaf(const Root& a_root)
+{
+  const auto nodes = a_root.getNodes();
+
+  uint32_t largest = 0;
+
+  for (uint32_t i = 0; i < nodes.size(); i++) {
+    if (nodes[i].isLeaf()) {
+      largest = std::max(largest, nodes[i].getNumPrimitives());
+    }
+  }
+
+  return largest;
+}
+
+// True if two packed BVHs have the same nodes: the same bounding volumes and primitive ranges.
+template <class Root>
+bool
+sameNodes(const Root& a_lhs, const Root& a_rhs)
+{
+  const auto lhs = a_lhs.getNodes();
+  const auto rhs = a_rhs.getNodes();
+
+  if (lhs.size() != rhs.size()) {
+    return false;
+  }
+
+  for (uint32_t i = 0; i < lhs.size(); i++) {
+    const auto& l = lhs[i];
+    const auto& r = rhs[i];
+
+    if (l.getBoundingVolume().getLowCorner() != r.getBoundingVolume().getLowCorner() ||
+        l.getBoundingVolume().getHighCorner() != r.getBoundingVolume().getHighCorner() ||
+        l.getPrimitivesOffset() != r.getPrimitivesOffset() || l.getNumPrimitives() != r.getNumPrimitives()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest triangle and keeps each leaf "
+                   "within maxLeafGroups",
+                   "[BVH][TriMesh][Construction]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  std::mt19937 rng(17);
+
+  const auto tris    = jitteredTriangleSoup<T>(rng);
+  const auto queries = jitteredSoupQueries<T>(rng);
 
   Pool pool(hostMemoryResource());
 
+  // The space-filling curves honour maxLeafGroups too: on 512 triangles their target, maxLeafGroups
+  // * W, is always within reach of a power-of-K leaf count.
   for (const size_t maxLeafGroups : {size_t(1), size_t(2), size_t(3)}) {
     for (const auto build : allConstructions) {
       const TriMeshSDF<T, K, W> sdf(tris, pool, build, maxLeafGroups);
 
-      const auto nodes = sdf.getRoot().getNodes();
+      REQUIRE(largestLeaf(sdf.getRoot()) <= maxLeafGroups);
 
-      const bool boundsLeaves = build == BVH::Construction::CentroidSplit ||
-                                build == BVH::Construction::MidpointSplit || build == BVH::Construction::SAH ||
-                                build == BVH::Construction::ClusterSAH;
+      for (const auto& q : queries) {
+        REQUIRE_THAT(std::abs(sdf.signedDistance(q)), withinAbsT(bruteNearestTriangle(tris, q), traversalMargin<T>()));
+      }
+    }
+  }
+}
 
-      for (uint32_t i = 0; i < nodes.size(); i++) {
-        if (boundsLeaves && nodes[i].isLeaf()) {
-          REQUIRE(nodes[i].getNumPrimitives() <= maxLeafGroups);
-        }
+TEMPLATE_TEST_CASE("TriMeshSDF: ConstructionOptions set each construction method's leaf size",
+                   "[BVH][TriMesh][Construction]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  using SDF = TriMeshSDF<T, K, W>;
+
+  std::mt19937 rng(23);
+
+  const auto tris    = jitteredTriangleSoup<T>(rng);
+  const auto queries = jitteredSoupQueries<T>(rng);
+  const auto groups  = [](const size_t a_triangles) { return (a_triangles + W - 1) / W; };
+
+  Pool pool(hostMemoryResource());
+
+  // Each method reads only its own field, so the other two are left at 0 to show they are unread.
+  // The settings are counted in triangles; a leaf of n triangles packs into ceil(n / W) groups.
+  for (const size_t setting : {size_t(1), size_t(5), size_t(16), size_t(33), tris.size()}) {
+    for (const auto build : allConstructions) {
+      BVH::ConstructionOptions options;
+
+      if (isTopDown(build)) {
+        options.maxLeafSize = setting;
+      }
+      else if (isSpaceFillingCurve(build)) {
+        options.targetLeafSize = setting;
+      }
+      else {
+        options.cluster.maxClusterSize = setting;
+      }
+
+      const SDF sdf(tris, pool, build, options);
+
+      INFO("setting = " << setting);
+
+      if (isTopDown(build)) {
+        // A split makes K non-empty children, so a node of fewer than K triangles is a leaf anyway.
+        REQUIRE(largestLeaf(sdf.getRoot()) <= groups(std::max(setting, K - 1)));
+      }
+      else if (isSpaceFillingCurve(build) && setting >= K) {
+        REQUIRE(largestLeaf(sdf.getRoot()) <= groups(setting));
+      }
+      else if (isSpaceFillingCurve(build)) {
+        // Below K, a power-of-K leaf count can fall short of the target; the leaves hold at most K.
+        REQUIRE(largestLeaf(sdf.getRoot()) <= groups(K));
+      }
+      else {
+        REQUIRE(largestLeaf(sdf.getRoot()) <= groups((K - 1) * setting));
+      }
+
+      // A bound or target of every triangle makes the root a leaf.
+      if ((isTopDown(build) || isSpaceFillingCurve(build)) && setting == tris.size()) {
+        REQUIRE(sdf.getRoot().getNodes().size() == 1);
       }
 
       for (const auto& q : queries) {
-        T nearest = std::numeric_limits<T>::max();
-
-        for (const auto& tri : tris) {
-          nearest = std::min(nearest, std::abs(tri.signedDistance(q)));
-        }
-
-        REQUIRE_THAT(std::abs(sdf.signedDistance(q)), withinAbsT(nearest, traversalMargin<T>()));
+        REQUIRE_THAT(std::abs(sdf.signedDistance(q)), withinAbsT(bruteNearestTriangle(tris, q), traversalMargin<T>()));
       }
     }
+  }
+
+  // Both constructors taking a_maxLeafGroups build the trees of defaultConstructionOptions().
+  for (const auto build : allConstructions) {
+    for (const size_t maxLeafGroups : {size_t(1), size_t(4)}) {
+      const SDF implicit(tris, pool, build, maxLeafGroups);
+      const SDF explicitOptions(tris, pool, build, SDF::defaultConstructionOptions(maxLeafGroups));
+
+      REQUIRE(sameNodes(implicit.getRoot(), explicitOptions.getRoot()));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("MeshSDF: ConstructionOptions set each construction method's leaf size",
+                   "[BVH][Construction]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+
+  using SDF = MeshSDF<T, K>;
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh     = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
+  const auto numFaces = size_t(mesh.numFaces());
+
+  const FlatMeshSDF<T> flat(mesh, pool);
+
+  for (const size_t setting : {size_t(1), size_t(2), size_t(5), size_t(9), numFaces}) {
+    for (const auto build : allConstructions) {
+      BVH::ConstructionOptions options;
+
+      if (isTopDown(build)) {
+        options.maxLeafSize = setting;
+      }
+      else if (isSpaceFillingCurve(build)) {
+        options.targetLeafSize = setting;
+      }
+      else {
+        options.cluster.maxClusterSize = setting;
+      }
+
+      const SDF sdf(mesh, pool, build, options);
+
+      INFO("setting = " << setting);
+
+      if (isTopDown(build)) {
+        REQUIRE(largestLeaf(sdf.getRoot()) <= std::max(setting, K - 1));
+      }
+      else if (isSpaceFillingCurve(build) && setting >= K) {
+        REQUIRE(largestLeaf(sdf.getRoot()) <= setting);
+      }
+      else if (isSpaceFillingCurve(build)) {
+        REQUIRE(largestLeaf(sdf.getRoot()) <= K);
+      }
+      else {
+        REQUIRE(largestLeaf(sdf.getRoot()) <= (K - 1) * setting);
+      }
+
+      if ((isTopDown(build) || isSpaceFillingCurve(build)) && setting == numFaces) {
+        REQUIRE(sdf.getRoot().getNodes().size() == 1);
+      }
+
+      for (const auto& p : queryPoints<T>()) {
+        REQUIRE_THAT(sdf.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
+      }
+    }
+  }
+
+  // The constructor without options builds the trees of defaultConstructionOptions().
+  for (const auto build : allConstructions) {
+    const SDF implicit(mesh, pool, build);
+    const SDF explicitOptions(mesh, pool, build, SDF::defaultConstructionOptions());
+
+    REQUIRE(sameNodes(implicit.getRoot(), explicitOptions.getRoot()));
   }
 }
 
@@ -852,6 +1079,57 @@ TEMPLATE_TEST_CASE("Mesh SDFs: a value outside BVH::Construction aborts",
       (void)sdf;
     },
     "TriMeshSDF: unknown BVH::Construction value (99)"));
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: a zero leaf-size setting aborts when the construction method reads it",
+                   "[BVH][Construction]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build.
+  REQUIRE(abortsWith(
+    [] {
+      Pool                pool(hostMemoryResource());
+      const auto          mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
+      const MeshSDF<T, K> sdf(mesh, pool, BVH::Construction::SAH, BVH::ConstructionOptions{0, 1, {}});
+
+      (void)sdf;
+    },
+    "MeshSDF: ConstructionOptions::maxLeafSize must be positive"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                      pool(hostMemoryResource());
+      const auto                mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
+      const TriMeshSDF<T, K, W> sdf(mesh, pool, BVH::Construction::Hilbert, BVH::ConstructionOptions{1, 0, {}});
+
+      (void)sdf;
+    },
+    "TriMeshSDF: ConstructionOptions::targetLeafSize must be positive"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                pool(hostMemoryResource());
+      const auto          mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
+      const MeshSDF<T, K> sdf(mesh, pool, BVH::Construction::ClusterSAH, BVH::ConstructionOptions{1, 1, {0}});
+
+      (void)sdf;
+    },
+    "ClusterSpec::maxClusterSize must be positive"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                      pool(hostMemoryResource());
+      const auto                mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
+      const TriMeshSDF<T, K, W> sdf(mesh, pool, BVH::Construction::SAH, 0);
+
+      (void)sdf;
+    },
+    "TriMeshSDF: the maximum number of leaf groups must be positive (0)"));
 }
 
 namespace {
@@ -3009,6 +3287,108 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition: exact powers of K fill ev
     INFO("N = " << n);
     REQUIRE(shape(*tree) == std::make_pair(depth + 1, size_t(1)));
   }
+}
+
+TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition: the target leaf size picks the fewest power-of-K leaves",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t N = 1000;
+
+  using Tree = BVH::TreeBVH<T, Vec3, AABB, K>;
+
+  BVH::PrimAndBVList<Vec3, AABB> list;
+
+  for (size_t i = 0; i < N; i++) {
+    const Vec3 x(T(i % 11), T((i / 11) % 13), T(i / 143));
+
+    list.emplace_back(std::make_shared<const Vec3>(x), AABB(x, x));
+  }
+
+  // The leaf sizes of a tree, and the depth of each leaf.
+  std::function<void(const Tree&, size_t, std::vector<size_t>&, std::vector<size_t>&)> leaves =
+    [&](const Tree& a_node, const size_t a_depth, std::vector<size_t>& a_sizes, std::vector<size_t>& a_depths) {
+      if (a_node.isLeaf()) {
+        a_sizes.push_back(a_node.getPrimitives().size());
+        a_depths.push_back(a_depth);
+
+        return;
+      }
+
+      for (const auto& child : a_node.getChildren()) {
+        leaves(*child, a_depth + 1, a_sizes, a_depths);
+      }
+    };
+
+  // The deepest tree allowed has K^4 = 256 <= N leaves.
+  constexpr size_t maxLeaves = K * K * K * K;
+
+  for (const size_t target : {size_t(1),
+                              size_t(3),
+                              size_t(4),
+                              size_t(5),
+                              size_t(15),
+                              size_t(16),
+                              size_t(62),
+                              size_t(63),
+                              size_t(64),
+                              size_t(250),
+                              size_t(999),
+                              size_t(1000),
+                              size_t(5000)}) {
+    auto tree = std::make_shared<Tree>(list);
+
+    tree->template bottomUpSortAndPartition<SFC::Morton>(target);
+
+    std::vector<size_t> sizes;
+    std::vector<size_t> depths;
+
+    leaves(*tree, 0, sizes, depths);
+
+    const size_t numLeaves = sizes.size();
+    const size_t largest   = *std::max_element(sizes.begin(), sizes.end());
+
+    INFO("target = " << target << ", leaves = " << numLeaves << ", largest = " << largest);
+
+    // Every leaf is on one level, so the leaf count is a power of K, and no deeper than N allows.
+    REQUIRE(std::all_of(depths.begin(), depths.end(), [&](const size_t d) { return d == depths.front(); }));
+    REQUIRE(numLeaves <= maxLeaves);
+    REQUIRE(std::accumulate(sizes.begin(), sizes.end(), size_t(0)) == N);
+
+    // The leaves meet the target unless the tree is as deep as it may go ...
+    REQUIRE((largest <= target || numLeaves == maxLeaves));
+
+    // ... and one level fewer would not have met it.
+    if (numLeaves > 1) {
+      REQUIRE((N + numLeaves / K - 1) / (numLeaves / K) > target);
+    }
+  }
+
+  // The default target, 1, is the deepest tree.
+  auto deepest = std::make_shared<Tree>(list);
+
+  deepest->template bottomUpSortAndPartition<SFC::Morton>();
+
+  std::vector<size_t> sizes;
+  std::vector<size_t> depths;
+
+  leaves(*deepest, 0, sizes, depths);
+
+  REQUIRE(sizes.size() == maxLeaves);
+
+  // A zero target is a caller error, rejected in every build.
+  REQUIRE(abortsWith(
+    [&] {
+      auto tree = std::make_shared<Tree>(list);
+
+      tree->template bottomUpSortAndPartition<SFC::Morton>(0);
+    },
+    "TreeBVH::bottomUpSortAndPartition: the target leaf size must be positive"));
 }
 
 TEMPLATE_TEST_CASE("TreeBVH::traverse visits every primitive once with a permissive pruning predicate",

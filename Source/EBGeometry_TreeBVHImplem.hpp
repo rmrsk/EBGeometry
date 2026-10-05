@@ -211,8 +211,10 @@ TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, 
 template <class T, class P, class BV, size_t K>
 template <typename S>
 inline void
-TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
+TreeBVH<T, P, BV, K>::bottomUpSortAndPartition(const size_t a_targetLeafSize)
 {
+  EBGEOMETRY_REQUIRE(a_targetLeafSize > 0, "TreeBVH::bottomUpSortAndPartition: the target leaf size must be positive");
+
   std::vector<Vec3> centroids;
 
   centroids.reserve(m_boundingVolumes.size());
@@ -245,14 +247,15 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
   // tree where all the leaves exist on the same level, so the number of leaves is a power of K and
   // merging in groups of K ends in a single root node.
   //
-  // The depth is the largest d with K^d <= N, counted in integers: floor(log(N) / log(K)) in floating
-  // point comes out one short at exact powers of K, and is undefined for N = 0.
+  // The depth is the smallest d whose leaves hold at most a_targetLeafSize primitives, capped at the
+  // largest d with K^d <= N, counted in integers: floor(log(N) / log(K)) in floating point comes out
+  // one short at exact powers of K, and is undefined for N = 0. A target of 1 always reaches the cap.
   const size_t numPrimitives = sortedPrimitives.size();
 
   size_t treeDepth = 0;
   size_t numLeaves = 1;
 
-  while (numLeaves <= numPrimitives / K) {
+  while (numLeaves <= numPrimitives / K && (numPrimitives + numLeaves - 1) / numLeaves > a_targetLeafSize) {
     numLeaves *= K;
     treeDepth++;
   }

@@ -253,6 +253,18 @@ public:
   MeshSDF() = delete;
 
   /**
+   * @brief The leaf-size settings the constructor without options uses.
+   * @details K-1 faces per leaf for the top-down methods (a node with fewer than K faces is a leaf),
+   * a target of 1 for the space-filling curves (the deepest balanced tree, at most K faces per
+   * leaf), and the default ClusterSpec for ClusterSAH. Start from these to change one method's
+   * setting; see BVH::ConstructionOptions.
+   * @return The default settings.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline BVH::ConstructionOptions
+  defaultConstructionOptions() noexcept;
+
+  /**
    * @brief Full constructor. Copies the mesh descriptor and builds the BVH over its faces.
    * @details No default arguments: this is a low-level constructor, and callers working at this
    * level must consciously choose a construction method. Use Parser::readIntoPackedBVH for sensible
@@ -261,11 +273,27 @@ public:
    * @param[in]     a_mesh   Input mesh, built against a_pool.
    * @param[in,out] a_pool   Pool a_mesh's storage was reserved from; the BVH is reserved here too.
    * @param[in]     a_construction  Preset construction method; every BVH::Construction value is supported. SAH
-   * (binned Surface Area Heuristic) is recommended. The top-down methods stop at fewer than K faces
-   * per leaf; ClusterSAH uses the default ClusterSpec, so a leaf holds up to (K-1) clusters of faces.
+   * (binned Surface Area Heuristic) is recommended. The leaf sizes are defaultConstructionOptions():
+   * the top-down methods stop at fewer than K faces per leaf, and ClusterSAH uses the default
+   * ClusterSpec, so a leaf holds up to (K-1) clusters of faces.
    */
   EBGEOMETRY_HOST
   inline MeshSDF(const Mesh& a_mesh, Pool& a_pool, const BVH::Construction a_construction);
+
+  /**
+   * @brief Full constructor with leaf-size settings.
+   * @details As the constructor without options, which uses defaultConstructionOptions(). The
+   * chosen method reads only its own field of @p a_options; see BVH::ConstructionOptions.
+   * @param[in]     a_mesh         Input mesh, built against a_pool.
+   * @param[in,out] a_pool         Pool a_mesh's storage was reserved from; the BVH is reserved here too.
+   * @param[in]     a_construction Preset construction method; every BVH::Construction value is supported.
+   * @param[in]     a_options      Leaf-size settings, in faces.
+   */
+  EBGEOMETRY_HOST
+  inline MeshSDF(const Mesh&                     a_mesh,
+                 Pool&                           a_pool,
+                 const BVH::Construction         a_construction,
+                 const BVH::ConstructionOptions& a_options);
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
@@ -395,11 +423,15 @@ private:
    * @param[in]     a_mesh  Mesh whose faces to index.
    * @param[in,out] a_pool  Pool to reserve the packed BVH from.
    * @param[in]     a_construction Preset BVH construction method.
+   * @param[in]     a_options      Leaf-size settings.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildBVH(const Mesh& a_mesh, Pool& a_pool, const BVH::Construction a_construction);
+  buildBVH(const Mesh&                     a_mesh,
+           Pool&                           a_pool,
+           const BVH::Construction         a_construction,
+           const BVH::ConstructionOptions& a_options);
 
   /**
    * @brief Source DCEL mesh descriptor.
@@ -473,6 +505,20 @@ public:
   TriMeshSDF() = delete;
 
   /**
+   * @brief The leaf-size settings the constructors taking a_maxLeafGroups use.
+   * @details At most a_maxLeafGroups * W triangles per leaf for the top-down methods, the same as the
+   * target for the space-filling curves, and for ClusterSAH a cluster size that keeps a leaf of K-1
+   * clusters within that bound (or within K-1 triangles, if the bound is smaller, since a cluster
+   * holds at least one). Start from these to change one method's setting; see
+   * BVH::ConstructionOptions.
+   * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per leaf. Must be > 0.
+   * @return The settings, in triangles.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline BVH::ConstructionOptions
+  defaultConstructionOptions(const size_t a_maxLeafGroups) noexcept;
+
+  /**
    * @brief Full constructor. Extracts flat triangles from a DCEL mesh, then builds the BVH.
    * @details No default arguments: this is a low-level constructor, and callers who excavate down
    * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
@@ -482,9 +528,9 @@ public:
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
    * @param[in]     a_construction         Preset construction method; every BVH::Construction value is supported.
    * SAH (binned Surface Area Heuristic) produces near-optimal traversal cost; CentroidSplit and
-   * MidpointSplit are faster to build but yield deeper trees. The top-down methods honour
-   * a_maxLeafGroups, ClusterSAH sizes its clusters so its leaves do too, and the space-filling-curve
-   * methods ignore it (at most K triangles per leaf).
+   * MidpointSplit are faster to build but yield deeper trees. Every method honours a_maxLeafGroups
+   * through defaultConstructionOptions(): the top-down methods as a bound, the space-filling curves as
+   * a target, and ClusterSAH through its cluster size.
    * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
    * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W. This bounds the pre-packing
    * tree's leaf size, not the packed representation directly: each leaf's triangles become their
@@ -515,6 +561,36 @@ public:
                     Pool&                   a_pool,
                     const BVH::Construction a_construction,
                     const size_t            a_maxLeafGroups);
+
+  /**
+   * @brief Full constructor from a DCEL mesh, with leaf-size settings.
+   * @details As the constructor taking a_maxLeafGroups, which uses
+   * defaultConstructionOptions(a_maxLeafGroups). The chosen method reads only its own field of
+   * @p a_options, counted in triangles; see BVH::ConstructionOptions. A leaf's triangles are packed
+   * into ceil(n / W) groups.
+   * @param[in]     a_mesh         DCEL mesh. Faces with more than three vertices are fan-triangulated.
+   * @param[in,out] a_pool         Pool the packed BVH is reserved from; must outlive this object.
+   * @param[in]     a_construction Preset construction method; every BVH::Construction value is supported.
+   * @param[in]     a_options      Leaf-size settings, in triangles.
+   */
+  EBGEOMETRY_HOST
+  inline TriMeshSDF(const Mesh&                     a_mesh,
+                    Pool&                           a_pool,
+                    const BVH::Construction         a_construction,
+                    const BVH::ConstructionOptions& a_options);
+
+  /**
+   * @brief Full constructor from a triangle soup, with leaf-size settings.
+   * @param[in]     a_triangles    Input triangle soup; copied into the BVH's SoA groups.
+   * @param[in,out] a_pool         Pool the packed BVH is reserved from; must outlive this object.
+   * @param[in]     a_construction Preset construction method; every BVH::Construction value is supported.
+   * @param[in]     a_options      Leaf-size settings, in triangles; see the mesh-based constructor.
+   */
+  EBGEOMETRY_HOST
+  inline TriMeshSDF(const std::vector<Tri>&         a_triangles,
+                    Pool&                           a_pool,
+                    const BVH::Construction         a_construction,
+                    const BVH::ConstructionOptions& a_options);
 
   /**
    * @brief Compute the signed distance from a_point to the triangle mesh.
@@ -631,16 +707,16 @@ private:
    * @brief Build and pack the BVH over a triangle soup.
    * @param[in]     a_triangles     Triangles to index.
    * @param[in,out] a_pool          Pool to reserve the packed BVH from.
-   * @param[in]     a_construction         Preset BVH construction method.
-   * @param[in]     a_maxLeafGroups Maximum number of W-sized groups per leaf.
+   * @param[in]     a_construction  Preset BVH construction method.
+   * @param[in]     a_options       Leaf-size settings, in triangles.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildBVH(const std::vector<Tri>& a_triangles,
-           Pool&                   a_pool,
-           const BVH::Construction a_construction,
-           const size_t            a_maxLeafGroups);
+  buildBVH(const std::vector<Tri>&         a_triangles,
+           Pool&                           a_pool,
+           const BVH::Construction         a_construction,
+           const BVH::ConstructionOptions& a_options);
 
   /**
    * @brief Build the BVH with ClusterSAH, which has no TreeBVH form.
@@ -648,14 +724,12 @@ private:
    * it node for node with each leaf's triangles regrouped into W-wide SoA groups.
    * @param[in]     a_triangles   Triangles to index.
    * @param[in,out] a_pool        Pool to reserve the packed BVH from.
-   * @param[in]     a_maxLeafSize Maximum number of triangles per leaf. The cluster size is chosen so
-   * that a leaf, which holds at most K-1 clusters, stays within it; a cluster holds at least one
-   * triangle, so a bound below K-1 still allows K-1.
+   * @param[in]     a_spec        Cluster size; a leaf holds 1 to K-1 clusters.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Root
-  buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& a_pool, const size_t a_maxLeafSize);
+  buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& a_pool, const BVH::ClusterSpec& a_spec);
 
   /**
    * @brief Pack a run of triangles into W-wide SoA groups; the last group may be partly filled.

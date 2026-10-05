@@ -275,7 +275,9 @@ Test coverage
        partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
        :cpp:class:`MeshSDF`
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
-       :cpp:class:`BVH::Construction` strategy; signs on two concave meshes (an L-shaped prism and a box with a
+       :cpp:class:`BVH::Construction` strategy; each method's :cpp:class:`BVH::ConstructionOptions`
+       leaf-size setting honoured by both mesh SDFs (the defaults reproducing the constructors
+       without options, and a zero setting rejected); signs on two concave meshes (an L-shaped prism and a box with a
        narrow notch, whose concave edges need both adjacent faces' normals) against an analytic
        inside test; ``getClosestFace`` on all three mesh SDFs naming a closest face (also on
        polygon faces, and on a device against the host); a :cpp:class:`MeshSDF` seeing its mesh
@@ -290,14 +292,16 @@ Test coverage
        leaf with no primitives among them), and a partitioner that returns an empty partition, all
        rejected; the stack's float distance bound never pruning a closer primitive; only interior
        nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
-       extent; the bottom-up build at exact powers of ``K``; and an empty BVH.
+       extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
+       fewest power-of-``K`` leaves; and an empty BVH.
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
        primitives, including far from the blend region;
        sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`;
        :cpp:class:`FiniteRepetitionIF` tiling and boundary clamping. The BVH-accelerated
        :cpp:class:`BVHUnionIF`/:cpp:class:`BVHSmoothUnionIF` over spheres (against the virtual
-       unions and a brute-force scan, for every build strategy and blend) and over translated
+       unions and a brute-force scan, for every build strategy and blend, and with each method's
+       leaf-size setting) and over translated
        ``TriMeshSDF`` objects, including a union of unions; host-mirror and deep copies of a mesh
        union evaluated after the source pool is destroyed; device results of all three unions
        against the host. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp`

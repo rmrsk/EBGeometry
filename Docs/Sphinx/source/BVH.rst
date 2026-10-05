@@ -82,6 +82,11 @@ In EBGeometry, bottom-up construction is done by means of space-filling curves -
 Hilbert curves, or nested indices. The Hilbert curve has better spatial locality than Morton (its
 consecutive codes are always spatially adjacent), so it tends to produce tighter leaf groupings.
 
+How many primitives a leaf holds is a tuning choice that trades the cost of visiting more nodes
+against the cost of testing more primitives per leaf. Its natural form depends on the construction:
+a top-down build stops splitting at a maximum leaf size, while a bottom-up build picks the number of
+leaves from a target leaf size.
+
 .. important::
 
    BVHs do not need to be stored with pointer referencing between nodes; it is quite possible to pack nodes tightly in memory on a linear array with direct indexing. This is useful when
