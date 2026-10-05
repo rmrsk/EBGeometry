@@ -22,6 +22,7 @@
 // Our includes
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
+#include "EBGeometry_PointCloud.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -33,30 +34,23 @@ namespace PointCloudDetail {
 
 /**
  * @brief Abort with a message unless a point cloud can be indexed.
- * @details Checks, once per construction, that there is one metadata entry per point, that the
- * number of points fits the uint32 indices the structures store, and that every coordinate is
- * finite. Always on rather than an EBGEOMETRY_EXPECT: each would otherwise be an out-of-bounds read,
- * a silently truncated cloud, or a poisoned build in a Release build.
+ * @details Checks, once per construction, that the number of points fits the uint32 cloud indices
+ * the structures store and report (with PointCloud::InvalidIndex left over as the "no point"
+ * sentinel), and that every coordinate is finite. Always on rather than an EBGEOMETRY_EXPECT: each
+ * would otherwise be a silently truncated cloud or a poisoned build in a Release build.
  * @tparam T Floating-point precision.
- * @param[in] a_who          Class being built, for the message.
- * @param[in] a_positions    Point positions.
- * @param[in] a_numMetadata  Number of metadata entries supplied.
+ * @param[in] a_who       Class being built, for the message.
+ * @param[in] a_positions Point positions.
  */
 template <class T>
 inline void
-requireValidCloud(const char* a_who, const std::vector<Vec3T<T>>& a_positions, const std::size_t a_numMetadata) noexcept
+requireValidCloud(const char* a_who, const std::vector<Vec3T<T>>& a_positions) noexcept
 {
-  EBGEOMETRY_REQUIRE(a_numMetadata == a_positions.size(),
-                     "%s: need one metadata entry per point (%zu metadata entries, %zu points)",
-                     a_who,
-                     a_numMetadata,
-                     a_positions.size());
-
-  EBGEOMETRY_REQUIRE(a_positions.size() <= std::size_t(Math::Limits<std::uint32_t>::max()),
+  EBGEOMETRY_REQUIRE(a_positions.size() < std::size_t(PointCloud::InvalidIndex),
                      "%s: too many points for 32-bit indices (%zu points, limit %zu)",
                      a_who,
                      a_positions.size(),
-                     std::size_t(Math::Limits<std::uint32_t>::max()));
+                     std::size_t(PointCloud::InvalidIndex) - 1);
 
   for (std::size_t i = 0; i < a_positions.size(); i++) {
     const Vec3T<T>& p = a_positions[i];

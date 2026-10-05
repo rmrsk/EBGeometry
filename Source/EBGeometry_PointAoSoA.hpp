@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_PointAoSoA.hpp
- * @brief  Declaration of a metadata-carrying wrapper around PointSoAT.
+ * @brief  Declaration of a PointSoAT group that carries point ids.
  * @author Robert Marskar
  */
 
@@ -24,49 +24,47 @@
 namespace EBGeometry {
 
 /**
- * @brief Metadata-carrying wrapper around a single PointSoAT<T, W>.
+ * @brief A PointSoAT<T, W> group that also carries each point's cloud index.
  * @details Structurally this is an AoSoA (Array of Structures of Arrays): PointSoAT<T, W> itself
  * is true SoA (one flat array per coordinate, no per-point structure at all), and PointAoSoA adds
- * exactly one more member -- a Array<Meta, W> -- alongside it. The two are never merged or
- * interleaved: the distance queries (getMinimumDistance2(), getMaximumDistance2(), getDistances2(),
- * and their sqrt forms -- all delegated straight through to the embedded PointSoAT) never read
- * m_metaData at all, so a pure position-only distance traversal over PointAoSoA-packed leaves
- * touches exactly the same bytes it would touch over bare PointSoAT-packed leaves -- metadata is
- * only ever read afterward, once a query already knows which lane (and therefore which point) it
- * cares about, via getMetaData().
- * @tparam T    Floating-point precision.
- * @tparam Meta User-defined metadata type stored with each point.
- * @tparam W    SIMD width; see PointSoAT. Defaults to PointSoA::DefaultWidth<T>(), matching
+ * exactly one more member -- an Array<uint32_t, W> of point ids -- alongside it. The two are never
+ * merged or interleaved: the distance queries (getMinimumDistance2(), getMaximumDistance2(),
+ * getDistances2(), and their sqrt forms -- all delegated straight through to the embedded
+ * PointSoAT) never read the ids at all, so a pure position-only distance traversal over
+ * PointAoSoA-packed leaves touches exactly the same bytes it would touch over bare PointSoAT-packed
+ * leaves -- an id is only ever read afterward, once a query already knows which lane (and therefore
+ * which point) it cares about, via getPointId(). This is the point counterpart of TriangleAoSoA,
+ * which carries face ids the same way.
+ * @tparam T Floating-point precision.
+ * @tparam W SIMD width; see PointSoAT. Defaults to PointSoA::DefaultWidth<T>(), matching
  * PointSoAT's own default.
  */
-template <class T, class Meta, size_t W = PointSoA::DefaultWidth<T>()>
+template <class T, size_t W = PointSoA::DefaultWidth<T>()>
 struct PointAoSoA
 {
   static_assert(W > 0, "W must be positive");
   static_assert(std::is_floating_point_v<T>, "PointAoSoA requires a floating-point type T");
-  static_assert(std::is_trivially_copyable_v<Meta>,
-                "PointAoSoA requires a trivially copyable Meta (device-visible storage)");
 
 public:
   /**
-   * @brief Pack a_count (position, metadata) pairs into this group.
-   * @details Pads lanes a_count..W-1 by repeating the last real position and metadata, matching
-   * PointSoAT::pack()'s own padding convention, so all W lanes hold valid data.
+   * @brief Pack a_count (position, point id) pairs into this group.
+   * @details Pads lanes a_count..W-1 by repeating the last real position and id, matching
+   * PointSoAT::pack()'s own padding convention, so all W lanes hold valid data. Scans that must see
+   * each point once stop at numValid().
    * @param[in] a_positions Source position array with at least a_count elements. Must not be null.
-   * @param[in] a_metaData  Source metadata array with at least a_count elements, same order and
-   * length as a_positions. Must not be null.
-   * @param[in] a_count     Number of valid (position, metadata) pairs to pack. Must satisfy
+   * @param[in] a_pointIds  Source id array (typically cloud indices) with at least a_count elements,
+   * same order and length as a_positions. Must not be null.
+   * @param[in] a_count     Number of valid (position, id) pairs to pack. Must satisfy
    * 1 <= a_count <= W.
    */
   EBGEOMETRY_HOST
   void
-  pack(const Vec3T<T>* a_positions, const Meta* a_metaData, uint32_t a_count) noexcept;
+  pack(const Vec3T<T>* a_positions, const uint32_t* a_pointIds, uint32_t a_count) noexcept;
 
   /**
    * @brief Squared unsigned distances from a_point to every one of the W lane points.
-   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches m_metaData. Padded
-   * lanes repeat the last real point's value -- pair each lane with getMetaData() to identify (and
-   * de-duplicate) it, e.g. for a k-nearest-neighbor scan. See PointSoAT::getDistances2().
+   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches the ids. Padded
+   * lanes repeat the last real point's value; see PointSoAT::getDistances2().
    * @param[in] a_point Query point. Must be finite.
    * @return Per-lane squared distances, one per W lanes.
    */
@@ -86,7 +84,7 @@ public:
 
   /**
    * @brief Shortest squared unsigned distance from a_point to the closest point in this group.
-   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches m_metaData. Avoids
+   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches the ids. Avoids
    * the sqrt that getMinimumDistance() pays -- prefer it whenever the caller only needs the distance
    * for comparison, not its actual magnitude.
    * @param[in] a_point Query point. Must be finite.
@@ -108,7 +106,7 @@ public:
 
   /**
    * @brief Largest squared unsigned distance from a_point to the farthest point in this group.
-   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches m_metaData.
+   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches the ids.
    * @param[in] a_point Query point. Must be finite.
    * @return Squared distance from a_point to the farthest valid point in this group.
    */
@@ -127,15 +125,26 @@ public:
   getMaximumDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Get the metadata for one lane of this group.
-   * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
+   * @brief Get the id of the point in one lane of this group.
+   * @details Requires the group to have already been packed via pack().
    * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W (padded lanes return the last real
-   * point's metadata -- see pack()).
-   * @return Metadata for the point at a_lane.
+   * point's id -- see pack()).
+   * @return The id of the point at a_lane.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  const Meta&
-  getMetaData(size_t a_lane) const noexcept;
+  uint32_t
+  getPointId(size_t a_lane) const noexcept;
+
+  /**
+   * @brief Number of real (non-padded) points in this group.
+   * @return The count passed to pack(), 1..W (0 before pack()).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  numValid() const noexcept
+  {
+    return m_positions.numValid();
+  }
 
   /**
    * @brief Compute the bounding volume enclosing all valid points in this group.
@@ -151,31 +160,20 @@ public:
 
 protected:
   /**
-   * @brief The wrapped, position-only SoA block. SIMD-hot: this is all getDistance()/
-   * getDistance2() ever touch.
+   * @brief The wrapped, position-only SoA block. SIMD-hot: this is all the distance queries ever
+   * touch. It also holds the valid-point count.
    */
   PointSoAT<T, W> m_positions;
 
   /**
-   * @brief Per-lane metadata, physically separate from m_positions. m_metaData[j] = metadata of
-   * point j. Never read by getDistance()/getDistance2().
+   * @brief Per-lane point ids, physically separate from m_positions. m_pointIds[j] = id of point j.
+   * Never read by the distance queries.
    */
-  Array<Meta, W> m_metaData;
-
-  /**
-   * @brief Number of valid (non-padded) points in this group (1..W).
-   * @details Zero-initialized so that a default-constructed (not-yet-packed) group reliably fails
-   * the EBGEOMETRY_EXPECT(m_validCount >= 1) precondition in getMetaData(), rather than reading
-   * whatever indeterminate value happened to be there. (getDistance()/getDistance2() get the same
-   * protection for free from the embedded PointSoAT's own m_validCount.)
-   */
-  uint32_t m_validCount = 0;
+  Array<uint32_t, W> m_pointIds;
 };
 
-static_assert(std::is_trivially_copyable_v<PointAoSoA<float, uint32_t>>,
-              "PointAoSoA<float, uint32_t> must be trivially copyable");
-static_assert(std::is_trivially_copyable_v<PointAoSoA<double, uint32_t>>,
-              "PointAoSoA<double, uint32_t> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PointAoSoA<float>>, "PointAoSoA<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PointAoSoA<double>>, "PointAoSoA<double> must be trivially copyable");
 
 } // namespace EBGeometry
 

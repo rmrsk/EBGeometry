@@ -9,7 +9,9 @@ into SIMD-friendly leaves, building the ``PackedBVH``, and running the pruned tr
 single constructor and a couple of query methods (``closestPoint()`` for the nearest point,
 ``closestPoints()`` for the ``k`` nearest, ascending by distance). This is the *external* query form:
 the query points are arbitrary, not members of the cloud, unlike its neighbor-graph counterpart
-:ref:`Chap:ExampleNearestNeighborBVH`.
+:ref:`Chap:ExampleNearestNeighborBVH`. A query reports each point's cloud index, and the example keeps
+its own per-point data (each point's octant of the unit cube) in an array indexed by it. Every result
+is checked against the library's brute-force reference, ``PointCloud::closestPointBruteForce()``.
 
 The source for this example is at :file:`Examples/ClosestPointBVH/main.cpp`. See :ref:`Chap:Building`
 for how to compile it with CMake, GNU Make, or a direct compiler invocation.

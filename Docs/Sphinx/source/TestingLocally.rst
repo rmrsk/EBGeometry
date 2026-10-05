@@ -335,15 +335,24 @@ Test coverage
        volume of the packed points; the default width; and rejection of a bad count or a null array.
    * - ``TestPointAoSoA``
      - :cpp:class:`PointAoSoA`: distances agreeing exactly with a plain ``PointSoAT``, per-lane
-       metadata with padding, the bounding volume, the default width, rejection of bad input, and
-       the device query surface against the host.
+       point ids with padding and the valid-point count, the bounding volume, the default width,
+       rejection of bad input, and the device query surface against the host.
+   * - ``TestPointCloud``
+     - ``PointCloud::Hit`` (a default one is a miss, unlike cloud index 0), ``PointCloud::KBest``
+       (order, ties, the excluded point, the pruning bound), and the brute-force references against
+       an independent scan, including self-queries, fewer points than requested, and an empty cloud.
    * - ``TestPointCloudBVH``
      - :cpp:class:`PointCloudBVH`: nearest-neighbour, k-nearest-neighbour, all-points and
-       closest-point queries against brute force, edge cases, ``rebasedView``/``deepCopy``, device queries against the host, and
+       closest-point queries against brute force, edge cases (padded lanes reported once even when
+       ``k`` exceeds the cloud), ``rebasedView``/``deepCopy``, device queries against the host, and
        rejection of a cloud it cannot index, a zero leaf size, or a rebase onto too small a pool.
+       The query functors it shares with ``TestPointCloudHashGrid`` are in
+       :file:`Tests/TestPointCloudQueries.hpp`.
    * - ``TestPointCloudHashGrid``
-     - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases, and
-       rejection of a non-positive target occupancy.
+     - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases (far
+       queries, a lattice where many points tie on cell faces, extreme cell sizes),
+       ``rebasedView``/``deepCopy``, device queries against the host, and rejection of a cloud it
+       cannot index, a non-positive target occupancy, or a rebase onto an unrelated pool.
    * - ``TestRandom``
      - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
        an empty result for a zero count.

@@ -61,18 +61,21 @@ under the compiler's flags (the macros described in :ref:`Chap:SIMDAcceleration`
 code. See :ref:`Sec:DefaultKW` for when to use which, and :ref:`Chap:MeshSDFClasses` for the
 ISA/precision table, how to pass :math:`W` explicitly, and the data-alignment requirements.
 
-Per-point distance evaluation: ``PointSoAT<T, W>`` / ``PointAoSoA<T, Meta, W>``
---------------------------------------------------------------------------------
+Per-point distance evaluation: ``PointSoAT<T, W>`` / ``PointAoSoA<T, W>``
+--------------------------------------------------------------------------
 
 :file:`Source/EBGeometry_PointSoA.hpp` / :file:`EBGeometry_PointSoAImplem.hpp` (and the
-metadata-carrying wrapper :file:`EBGeometry_PointAoSoA.hpp` / :file:`EBGeometry_PointAoSoAImplem.hpp`)
+id-carrying wrapper :file:`EBGeometry_PointAoSoA.hpp` / :file:`EBGeometry_PointAoSoAImplem.hpp`)
 
 **What it stores:** the positions of :math:`W` points, laid out as a *structure of arrays* (one
 flat, ``alignas``-aligned array per coordinate, rather than :math:`W` separate point objects).
-``PointSoAT`` is position-only; ``PointAoSoA<T, Meta, W>`` adds a physically separate
-``Array<Meta, W>`` of per-point metadata alongside it, never interleaved with the positions, so
-the distance kernel touches exactly the same bytes either way -- metadata is read only afterward, via
-``getMetaData(lane)``.
+``PointSoAT`` is position-only; ``PointAoSoA<T, W>`` adds a physically separate
+``Array<uint32_t, W>`` of point ids (in a point cloud, each point's cloud index) alongside it, never
+interleaved with the positions, so the distance kernel touches exactly the same bytes either way --
+an id is read only afterward, via ``getPointId(lane)``. Groups of fewer than :math:`W` points pad
+their last lanes with the last point; ``numValid()`` gives the real count, so a scan that must see
+each point once stops there. ``PointAoSoA`` is the point counterpart of ``TriangleAoSoA``, which
+carries face ids the same way.
 
 **What is vectorised:** the squared distance from a query point to all :math:`W` lane positions,
 computed in one SIMD batch -- one ``_mm(128\|256\|512)_load_p[sd]`` per coordinate array, then

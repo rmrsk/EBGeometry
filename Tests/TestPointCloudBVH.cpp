@@ -4,18 +4,19 @@
 // Test suite for PointCloudBVH: the index-based build and the high-level closest-point / nearest-
 // neighbor query API. Every query is checked against a brute-force O(N^2) scan on a small random
 // cloud, so both the tree and the seed-from-own-leaf query path get real coverage in both precisions.
+// The query functors shared with the PointCloudHashGrid tests are in TestPointCloudQueries.hpp.
 
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
+#include "TestPointCloudQueries.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <random>
+#include <set>
 #include <type_traits>
 #include <vector>
 
@@ -23,328 +24,12 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace EBGeometry;
+using namespace EBGeometryTestPointCloud;
 
 namespace {
 
-// A fixed, reproducible random cloud of n points in the unit cube.
 template <class T>
-std::vector<Vec3T<T>>
-makeCloud(std::size_t a_n, unsigned a_seed)
-{
-  std::mt19937                      rng(a_seed);
-  std::uniform_real_distribution<T> dist(T(0), T(1));
-  std::vector<Vec3T<T>>             pos(a_n);
-  for (std::size_t i = 0; i < a_n; i++) {
-    pos[i] = Vec3T<T>(dist(rng), dist(rng), dist(rng));
-  }
-  return pos;
-}
-
-// Brute-force k nearest (squared) distances to a_query, optionally excluding one index. Sorted.
-template <class T>
-std::vector<T>
-bruteForce(const std::vector<Vec3T<T>>& a_pos, const Vec3T<T>& a_query, std::size_t a_k, std::size_t a_exclude)
-{
-  std::vector<T> d2;
-  d2.reserve(a_pos.size());
-  for (std::size_t i = 0; i < a_pos.size(); i++) {
-    if (i == a_exclude) {
-      continue;
-    }
-    d2.push_back((a_pos[i] - a_query).length2());
-  }
-  std::sort(d2.begin(), d2.end());
-  d2.resize(std::min(a_k, d2.size()));
-  return d2;
-}
-
-// Non-default user metadata, to check it round-trips through pool storage field by field.
-struct TagMeta
-{
-  std::int32_t m_id;
-  float        m_weight;
-};
-
-template <class T>
-using TestCloud = PointCloudBVH<T, std::size_t>;
-
-template <class T>
-using TestHit = typename TestCloud<T>::Hit;
-
-// The PointCloudBVH queries the functors below run. The first three take an arbitrary query point, the
-// last three a cloud point's own index.
-enum class CloudQuery
-{
-  ClosestPoint,
-  ClosestPointBruteForce,
-  ClosestPoints,
-  NearestNeighbor,
-  NearestNeighborBruteForce,
-  NearestNeighbors
-};
-
-// k for the k-nearest queries (closestPoints/nearestNeighbors).
-constexpr std::size_t g_cloudK = 3;
-
-/**
- * @brief One hit of a query at an arbitrary point: the nearest, or the a_rank-th nearest (0 = nearest)
- * for ClosestPoints. A self query, or a rank past the hits found, gives an invalid Hit.
- */
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-TestHit<T>
-cloudHit(const TestCloud<T>& a_cloud,
-         const CloudQuery    a_query,
-         const std::size_t   a_rank,
-         const Vec3T<T>&     a_point) noexcept
-{
-  TestHit<T> out[g_cloudK];
-
-  switch (a_query) {
-  case CloudQuery::ClosestPoint:
-    return a_cloud.closestPoint(a_point);
-  case CloudQuery::ClosestPointBruteForce:
-    return a_cloud.closestPointBruteForce(a_point);
-  case CloudQuery::ClosestPoints:
-    return (a_rank < a_cloud.closestPoints(a_point, g_cloudK, out)) ? out[a_rank] : TestHit<T>{};
-  default:
-    return TestHit<T>{};
-  }
-}
-
-/**
- * @brief One hit of a query about cloud point a_point: its nearest other point, or the a_rank-th nearest
- * (0 = nearest) for NearestNeighbors. A point query, or a rank past the hits found, gives an invalid Hit.
- */
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-TestHit<T>
-cloudHit(const TestCloud<T>& a_cloud,
-         const CloudQuery    a_query,
-         const std::size_t   a_rank,
-         const std::size_t&  a_point) noexcept
-{
-  TestHit<T> out[g_cloudK];
-
-  switch (a_query) {
-  case CloudQuery::NearestNeighbor:
-    return a_cloud.nearestNeighbor(a_point);
-  case CloudQuery::NearestNeighborBruteForce:
-    return a_cloud.nearestNeighborBruteForce(a_point);
-  case CloudQuery::NearestNeighbors:
-    return (a_rank < a_cloud.nearestNeighbors(a_point, g_cloudK, out)) ? out[a_rank] : TestHit<T>{};
-  default:
-    return TestHit<T>{};
-  }
-}
-
-// The functors below are what the device test evaluates, one query (a point, or a cloud index) per
-// thread. They live outside the device-only guard so the host suite runs exactly the same code. Each
-// holds the cloud by value, as a kernel receives it.
-
-// The matched point's index for each query (Q = Vec3T<T> for the point queries, std::size_t for the
-// self queries).
-template <class T, class Q>
-struct CloudHitIndexQuery
-{
-  TestCloud<T> m_cloud;
-  CloudQuery   m_query;
-  std::size_t  m_rank;
-
-  EBGEOMETRY_HOST_DEVICE
-  std::size_t
-  operator()(const Q& a_q) const noexcept
-  {
-    return cloudHit<T>(m_cloud, m_query, m_rank, a_q).index;
-  }
-};
-
-// The squared distance to the matched point for each query.
-template <class T, class Q>
-struct CloudHitDistanceQuery
-{
-  TestCloud<T> m_cloud;
-  CloudQuery   m_query;
-  std::size_t  m_rank;
-
-  EBGEOMETRY_HOST_DEVICE
-  T
-  operator()(const Q& a_q) const noexcept
-  {
-    return cloudHit<T>(m_cloud, m_query, m_rank, a_q).distanceSquared;
-  }
-};
-
-// The number of hits closestPoints() returns for each query point.
-template <class T>
-struct ClosestPointsFoundQuery
-{
-  TestCloud<T> m_cloud;
-
-  EBGEOMETRY_HOST_DEVICE
-  std::size_t
-  operator()(const Vec3T<T>& a_point) const noexcept
-  {
-    TestHit<T> out[g_cloudK];
-
-    return m_cloud.closestPoints(a_point, g_cloudK, out);
-  }
-};
-
-// The number of hits nearestNeighbors() returns for each cloud point.
-template <class T>
-struct NearestNeighborsFoundQuery
-{
-  TestCloud<T> m_cloud;
-
-  EBGEOMETRY_HOST_DEVICE
-  std::size_t
-  operator()(const std::size_t& a_point) const noexcept
-  {
-    TestHit<T> out[g_cloudK];
-
-    return m_cloud.nearestNeighbors(a_point, g_cloudK, out);
-  }
-};
-
-// Component m_axis of each cloud point's stored position.
-template <class T>
-struct CloudPositionQuery
-{
-  TestCloud<T> m_cloud;
-  std::size_t  m_axis;
-
-  EBGEOMETRY_HOST_DEVICE
-  T
-  operator()(const std::size_t& a_point) const noexcept
-  {
-    return m_cloud.position(a_point)[m_axis];
-  }
-};
-
-// Each cloud point's stored metadata.
-template <class T>
-struct CloudMetadataQuery
-{
-  TestCloud<T> m_cloud;
-
-  EBGEOMETRY_HOST_DEVICE
-  std::size_t
-  operator()(const std::size_t& a_point) const noexcept
-  {
-    return m_cloud.metadata(a_point);
-  }
-};
-
-// The cloud's size, whatever the query.
-template <class T>
-struct CloudSizeQuery
-{
-  TestCloud<T> m_cloud;
-
-  EBGEOMETRY_HOST_DEVICE
-  std::size_t
-  operator()(const std::size_t& /*a_point*/) const noexcept
-  {
-    return m_cloud.numPoints();
-  }
-};
-
-/**
- * @brief Compare two clouds through every functor above.
- * @details For each functor, calls a_sameIndices(fFirst, fSecond, queries) for an integer result and
- * a_sameValues(fFirst, fSecond, queries) for a floating-point one, where fFirst holds a_first and
- * fSecond holds a_second. The callables decide where each runs and how closely the results must agree.
- */
-template <class T, class SameIndices, class SameValues>
-void
-compareCloudQueries(const TestCloud<T>&             a_first,
-                    const TestCloud<T>&             a_second,
-                    const std::vector<Vec3T<T>>&    a_points,
-                    const std::vector<std::size_t>& a_indices,
-                    const SameIndices&              a_sameIndices,
-                    const SameValues&               a_sameValues)
-{
-  using Vec3 = Vec3T<T>;
-
-  const auto rankCount = [](const CloudQuery a_query) {
-    return (a_query == CloudQuery::ClosestPoints || a_query == CloudQuery::NearestNeighbors) ? g_cloudK : 1;
-  };
-
-  for (const auto query : {CloudQuery::ClosestPoint, CloudQuery::ClosestPointBruteForce, CloudQuery::ClosestPoints}) {
-    for (std::size_t rank = 0; rank < rankCount(query); rank++) {
-      INFO("point query " << static_cast<int>(query) << ", rank " << rank);
-      a_sameIndices(CloudHitIndexQuery<T, Vec3>{a_first, query, rank},
-                    CloudHitIndexQuery<T, Vec3>{a_second, query, rank},
-                    a_points);
-      a_sameValues(CloudHitDistanceQuery<T, Vec3>{a_first, query, rank},
-                   CloudHitDistanceQuery<T, Vec3>{a_second, query, rank},
-                   a_points);
-    }
-  }
-
-  for (const auto query :
-       {CloudQuery::NearestNeighbor, CloudQuery::NearestNeighborBruteForce, CloudQuery::NearestNeighbors}) {
-    for (std::size_t rank = 0; rank < rankCount(query); rank++) {
-      INFO("self query " << static_cast<int>(query) << ", rank " << rank);
-      a_sameIndices(CloudHitIndexQuery<T, std::size_t>{a_first, query, rank},
-                    CloudHitIndexQuery<T, std::size_t>{a_second, query, rank},
-                    a_indices);
-      a_sameValues(CloudHitDistanceQuery<T, std::size_t>{a_first, query, rank},
-                   CloudHitDistanceQuery<T, std::size_t>{a_second, query, rank},
-                   a_indices);
-    }
-  }
-
-  a_sameIndices(ClosestPointsFoundQuery<T>{a_first}, ClosestPointsFoundQuery<T>{a_second}, a_points);
-  a_sameIndices(NearestNeighborsFoundQuery<T>{a_first}, NearestNeighborsFoundQuery<T>{a_second}, a_indices);
-
-  for (std::size_t axis = 0; axis < 3; axis++) {
-    INFO("axis " << axis);
-    a_sameValues(CloudPositionQuery<T>{a_first, axis}, CloudPositionQuery<T>{a_second, axis}, a_indices);
-  }
-
-  a_sameIndices(CloudMetadataQuery<T>{a_first}, CloudMetadataQuery<T>{a_second}, a_indices);
-  a_sameIndices(CloudSizeQuery<T>{a_first}, CloudSizeQuery<T>{a_second}, a_indices);
-}
-
-// The cloud the query-functor tests below share: 500 points in the unit cube, with metadata.
-template <class T>
-TestCloud<T>
-makeFunctorTestCloud(Pool& a_pool)
-{
-  constexpr std::size_t n = 500;
-
-  const std::vector<Vec3T<T>> pos = makeCloud<T>(n, 4321u);
-  std::vector<std::size_t>    meta(n);
-
-  for (std::size_t i = 0; i < n; i++) {
-    meta[i] = i % 17;
-  }
-
-  return TestCloud<T>(a_pool, pos, meta, 8);
-}
-
-// Query points around and inside the unit-cube cloud.
-template <class T>
-std::vector<Vec3T<T>>
-functorTestPoints()
-{
-  std::vector<Vec3T<T>> points;
-
-  // A grid over [-0.25, 1.25]^3, offset so that no point lies on a grid-aligned plane.
-  for (int i = 0; i < 10; i++) {
-    for (int j = 0; j < 10; j++) {
-      for (int k = 0; k < 10; k++) {
-        points.emplace_back(T(-0.25) + T(0.15) * (T(i) + T(0.37)),
-                            T(-0.25) + T(0.15) * (T(j) + T(0.53)),
-                            T(-0.25) + T(0.15) * (T(k) + T(0.61)));
-      }
-    }
-  }
-
-  return points;
-}
+using TestCloud = PointCloudBVH<T>;
 
 } // namespace
 
@@ -357,12 +42,8 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
   Pool pool(hostMemoryResource());
 
   const std::vector<Vec3T<T>> pos = makeCloud<T>(n, 20260708u);
-  std::vector<std::size_t>    meta(n);
-  for (std::size_t i = 0; i < n; i++) {
-    meta[i] = 7 * i + 3; // arbitrary user metadata, distinct from the cloud index
-  }
 
-  const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta);
+  const PointCloudBVH<T> bvh(pool, pos);
 
   REQUIRE(bvh.numPoints() == n);
 
@@ -384,7 +65,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
 
   SECTION("querying at a cloud point returns that point at distance 0")
   {
-    for (std::size_t i = 0; i < n; i += 137) {
+    for (uint32_t i = 0; i < n; i += 137) {
       const auto hit = bvh.closestPoint(pos[i]);
       CHECK(hit.index == i);
       CHECK_THAT(hit.distanceSquared, withinAbsT<T>(T(0), tol));
@@ -393,7 +74,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
 
   SECTION("nearestNeighbor (self query, excludes self) matches brute force")
   {
-    for (std::size_t i = 0; i < n; i += 41) {
+    for (uint32_t i = 0; i < n; i += 41) {
       const auto hit   = bvh.nearestNeighbor(i);
       const auto truth = bruteForce<T>(pos, pos[i], 1, i);
 
@@ -407,9 +88,9 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
   {
     constexpr std::size_t k = 5;
 
-    typename PointCloudBVH<T, std::size_t>::Hit out[k];
+    typename PointCloudBVH<T>::Hit out[k];
 
-    for (std::size_t i = 0; i < n; i += 53) {
+    for (uint32_t i = 0; i < n; i += 53) {
       // Self k-NN (excludes self).
       const std::size_t found = bvh.nearestNeighbors(i, k, out);
       const auto        truth = bruteForce<T>(pos, pos[i], k, i);
@@ -435,7 +116,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
   {
     const auto all = bvh.allNearestNeighbors(1);
     REQUIRE(all.size() == n);
-    for (std::size_t i = 0; i < n; i += 29) {
+    for (uint32_t i = 0; i < n; i += 29) {
       const auto single = bvh.nearestNeighbor(i);
       CHECK_THAT(all[i].distanceSquared, withinAbsT<T>(single.distanceSquared, tol));
     }
@@ -443,54 +124,8 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
 
   SECTION("accessors return the stored cloud data")
   {
-    for (std::size_t i = 0; i < n; i += 313) {
-      CHECK(bvh.metadata(i) == meta[i]);
+    for (uint32_t i = 0; i < n; i += 313) {
       CHECK_THAT((bvh.position(i) - pos[i]).length2(), withinAbsT<T>(T(0), tol));
-    }
-  }
-
-  SECTION("brute-force reference methods match an independent scan (and the accelerated queries)")
-  {
-    constexpr std::size_t k = 4;
-
-    // External: closestPoint(s)BruteForce vs the independent oracle, and vs the accelerated query.
-    const std::vector<Vec3T<T>>                 queries = makeCloud<T>(120, 4242u);
-    typename PointCloudBVH<T, std::size_t>::Hit refOut[k];
-    for (const auto& q : queries) {
-      const auto ref   = bvh.closestPointBruteForce(q);
-      const auto truth = bruteForce<T>(pos, q, 1, n);
-      REQUIRE(ref.index < n);
-      CHECK_THAT(ref.distanceSquared, withinAbsT<T>(truth[0], tol));
-      // The accelerated query must agree with the brute-force reference.
-      CHECK_THAT(bvh.closestPoint(q).distanceSquared, withinAbsT<T>(ref.distanceSquared, tol));
-
-      const std::size_t found  = bvh.closestPointsBruteForce(q, k, refOut);
-      const auto        truthK = bruteForce<T>(pos, q, k, n);
-      REQUIRE(found == k);
-      for (std::size_t j = 0; j < k; j++) {
-        if (j > 0) {
-          CHECK(refOut[j - 1].distanceSquared <= refOut[j].distanceSquared); // ascending
-        }
-        CHECK_THAT(refOut[j].distanceSquared, withinAbsT<T>(truthK[j], tol));
-      }
-    }
-
-    // Self (excludes the query particle itself).
-    for (std::size_t i = 0; i < n; i += 47) {
-      const auto ref   = bvh.nearestNeighborBruteForce(i);
-      const auto truth = bruteForce<T>(pos, pos[i], 1, i);
-      REQUIRE(ref.index < n);
-      CHECK(ref.index != i);
-      CHECK_THAT(ref.distanceSquared, withinAbsT<T>(truth[0], tol));
-      CHECK_THAT(bvh.nearestNeighbor(i).distanceSquared, withinAbsT<T>(ref.distanceSquared, tol));
-
-      const std::size_t found  = bvh.nearestNeighborsBruteForce(i, k, refOut);
-      const auto        truthK = bruteForce<T>(pos, pos[i], k, i);
-      REQUIRE(found == k);
-      for (std::size_t j = 0; j < k; j++) {
-        CHECK(refOut[j].index != i);
-        CHECK_THAT(refOut[j].distanceSquared, withinAbsT<T>(truthK[j], tol));
-      }
     }
   }
 }
@@ -498,7 +133,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
 TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T   = TestType;
-  using Hit = typename PointCloudBVH<T, std::size_t>::Hit;
+  using Hit = typename PointCloudBVH<T>::Hit;
 
   Pool pool(hostMemoryResource());
 
@@ -506,9 +141,8 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
 
   SECTION("empty cloud: no out-of-bounds access, queries report nothing")
   {
-    const std::vector<Vec3T<T>>         pos;
-    const std::vector<std::size_t>      meta;
-    const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta);
+    const std::vector<Vec3T<T>> pos;
+    const PointCloudBVH<T>      bvh(pool, pos);
 
     CHECK(bvh.numPoints() == 0);
     // Must not read m_linearNodes[0]; a miss is signalled by the sentinel distance.
@@ -521,9 +155,8 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
 
   SECTION("single particle: external query finds it, self query finds nothing")
   {
-    const std::vector<Vec3T<T>>         pos  = {Vec3T<T>(T(0.25), T(0.5), T(0.75))};
-    const std::vector<std::size_t>      meta = {42};
-    const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta);
+    const std::vector<Vec3T<T>> pos = {Vec3T<T>(T(0.25), T(0.5), T(0.75))};
+    const PointCloudBVH<T>      bvh(pool, pos);
 
     const auto hit = bvh.closestPoint(pos[0]);
     CHECK(hit.index == 0);
@@ -545,12 +178,11 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
   {
     // A small target leaf size forces many BVH levels, exercising the seeded fast-path DFS (and its
     // stack) far more than the default. Every self query is checked against brute force.
-    constexpr std::size_t               n   = 3000;
-    const std::vector<Vec3T<T>>         pos = makeCloud<T>(n, 555u);
-    std::vector<std::size_t>            meta(n, 0);
-    const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta, /* targetLeafSize */ 2);
+    constexpr std::size_t       n   = 3000;
+    const std::vector<Vec3T<T>> pos = makeCloud<T>(n, 555u);
+    const PointCloudBVH<T>      bvh(pool, pos, /* targetLeafSize */ 2);
 
-    for (std::size_t i = 0; i < n; i += 23) {
+    for (uint32_t i = 0; i < n; i += 23) {
       const auto truth = bruteForce<T>(pos, pos[i], 1, i);
       CHECK_THAT(bvh.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tightMargin<T>()));
     }
@@ -567,8 +199,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
       pos.emplace_back(T(0), T(0), T(0));
       pos.emplace_back(T(1), T(0.25), T(0));
 
-      const std::vector<std::size_t>      meta(pos.size(), 0);
-      const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta, leafSize);
+      const PointCloudBVH<T> bvh(pool, pos, leafSize);
 
       const auto nearOrigin = bvh.nearestNeighbor(5000);
       CHECK(nearOrigin.index < 5000);
@@ -578,6 +209,40 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
       CHECK_THAT(duplicate.distanceSquared, withinAbsT<T>(T(0), tightMargin<T>()));
     }
   }
+
+  SECTION("padded lanes never report a point twice, even when k exceeds the cloud")
+  {
+    // Five points in groups of W = 4 leave three padded lanes that repeat the last point. The leaf
+    // scan stops at each group's real points, so k larger than the cloud returns every point once.
+    const std::vector<Vec3T<T>>  pos = makeCloud<T>(5, 31u);
+    const PointCloudBVH<T, 4, 4> bvh(pool, pos);
+
+    Hit out[10];
+
+    const std::size_t found = bvh.closestPoints(Vec3T<T>(T(0.5), T(0.5), T(0.5)), 10, out);
+
+    REQUIRE(found == 5);
+
+    std::set<uint32_t> seen;
+
+    for (std::size_t j = 0; j < found; j++) {
+      seen.insert(out[j].index);
+    }
+
+    CHECK(seen.size() == 5);
+    CHECK_FALSE(out[5].valid());
+
+    REQUIRE(bvh.nearestNeighbors(0, 10, out) == 4);
+
+    seen.clear();
+
+    for (std::size_t j = 0; j < 4; j++) {
+      seen.insert(out[j].index);
+    }
+
+    CHECK(seen.size() == 4);
+    CHECK(seen.count(0) == 0);
+  }
 }
 
 TEMPLATE_TEST_CASE("PointCloudBVH: rebasedView and deepCopy stay PointCloudBVHs and answer identically",
@@ -585,7 +250,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH: rebasedView and deepCopy stay PointCloudBVHs 
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T     = TestType;
-  using Cloud = PointCloudBVH<T, TagMeta>;
+  using Cloud = PointCloudBVH<T>;
   using Hit   = typename Cloud::Hit;
 
   // Both used to compile and return a sliced PackedBVH, silently dropping every point-cloud query.
@@ -597,11 +262,6 @@ TEMPLATE_TEST_CASE("PointCloudBVH: rebasedView and deepCopy stay PointCloudBVHs 
   constexpr std::size_t k = 4;
 
   const std::vector<Vec3T<T>> pos = makeCloud<T>(n, 777u);
-  std::vector<TagMeta>        meta(n);
-
-  for (std::size_t i = 0; i < n; i++) {
-    meta[i] = TagMeta{static_cast<std::int32_t>(3 * i + 1), float(i) * 0.5F};
-  }
 
   const std::vector<Vec3T<T>> queries = makeCloud<T>(40, 31u);
 
@@ -609,10 +269,8 @@ TEMPLATE_TEST_CASE("PointCloudBVH: rebasedView and deepCopy stay PointCloudBVHs 
   const auto requireSameAnswers = [&](const Cloud& a_cloud, const Cloud& a_other) {
     REQUIRE(a_other.numPoints() == a_cloud.numPoints());
 
-    for (std::size_t i = 0; i < n; i += 11) {
+    for (uint32_t i = 0; i < n; i += 11) {
       REQUIRE(a_other.position(i) == a_cloud.position(i));
-      REQUIRE(a_other.metadata(i).m_id == a_cloud.metadata(i).m_id);
-      REQUIRE(a_other.metadata(i).m_weight == a_cloud.metadata(i).m_weight);
 
       const Hit lhs = a_cloud.nearestNeighbor(i);
       const Hit rhs = a_other.nearestNeighbor(i);
@@ -645,14 +303,14 @@ TEMPLATE_TEST_CASE("PointCloudBVH: rebasedView and deepCopy stay PointCloudBVHs 
 
   Pool pool(hostMemoryResource());
 
-  const Cloud cloud(pool, pos, meta);
+  const Cloud cloud(pool, pos);
 
   REQUIRE(cloud.isAttachedTo(pool));
   REQUIRE(cloud.getBVH().isAttachedTo(pool));
 
   // Every one of the cloud's own answers is still checked against brute force, so the comparisons
   // below are against a known-good reference rather than merely self-consistent.
-  for (std::size_t i = 0; i < n; i += 37) {
+  for (uint32_t i = 0; i < n; i += 37) {
     const auto truth = bruteForce<T>(pos, pos[i], 1, i);
 
     REQUIRE_THAT(cloud.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tightMargin<T>()));
@@ -701,19 +359,15 @@ TEMPLATE_TEST_CASE("PointCloudBVH: the device query functors agree across a host
 
   Pool pool(hostMemoryResource());
 
-  const TestCloud<T> cloud = makeFunctorTestCloud<T>(pool);
+  const TestCloud<T> cloud(pool, functorTestCloud<T>(), 8);
 
   pool.freeze();
 
   Pool               mirror = Pool::mirror(pool, hostMemoryResource());
   const TestCloud<T> view   = cloud.rebasedView(mirror);
 
-  const std::vector<Vec3T<T>> points = functorTestPoints<T>();
-  std::vector<std::size_t>    indices(cloud.numPoints());
-
-  for (std::size_t i = 0; i < indices.size(); i++) {
-    indices[i] = i;
-  }
+  const std::vector<Vec3T<T>> points  = functorTestPoints<T>();
+  const std::vector<uint32_t> indices = allIndices(cloud.numPoints());
 
   // Runs the device test's functors on the host, against a rebased descriptor passed by value -- the
   // host-side analogue of what the kernel receives -- so they are compiled and checked on every build,
@@ -725,12 +379,14 @@ TEMPLATE_TEST_CASE("PointCloudBVH: the device query functors agree across a host
     }
   };
 
-  compareCloudQueries<T>(view, cloud, points, indices, same, same);
+  compareCloudQueries<TestCloud<T>, T>(view, cloud, points, indices, same, same);
 
   // The queries find real points, so the comparison above is not between two invalid hits.
-  REQUIRE(CloudHitIndexQuery<T, Vec3T<T>>{cloud, CloudQuery::ClosestPoint, 0}(points[0]) < cloud.numPoints());
-  REQUIRE(CloudHitIndexQuery<T, std::size_t>{cloud, CloudQuery::NearestNeighbors, g_cloudK - 1}(std::size_t(0)) <
-          cloud.numPoints());
+  using PointQuery = CloudHitIndexQuery<TestCloud<T>, T, Vec3T<T>>;
+  using SelfQuery  = CloudHitIndexQuery<TestCloud<T>, T, uint32_t>;
+
+  REQUIRE(PointQuery{cloud, CloudQuery::ClosestPoint, 0}(points[0]) < cloud.numPoints());
+  REQUIRE(SelfQuery{cloud, CloudQuery::NearestNeighbors, g_cloudK - 1}(uint32_t(0)) < cloud.numPoints());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -751,7 +407,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH: a rebased view answers queries on device and 
 
   Pool pool(hostMemoryResource());
 
-  const TestCloud<T> cloud = makeFunctorTestCloud<T>(pool);
+  const TestCloud<T> cloud(pool, functorTestCloud<T>(), 8);
 
   pool.freeze();
 
@@ -761,14 +417,10 @@ TEMPLATE_TEST_CASE("PointCloudBVH: a rebased view answers queries on device and 
   // 1000 points over [-0.25, 1.25]^3, around and inside the unit-cube cloud, and every cloud index.
   const std::vector<Vec3T<T>> points =
     queryGrid<T>(Vec3T<T>(T(-0.25), T(-0.25), T(-0.25)), Vec3T<T>(T(1.25), T(1.25), T(1.25)), 10);
-  std::vector<std::size_t> indices(cloud.numPoints());
+  const std::vector<uint32_t> indices = allIndices(cloud.numPoints());
 
-  for (std::size_t i = 0; i < indices.size(); i++) {
-    indices[i] = i;
-  }
-
-  // Indices, counts and metadata must match exactly; distances and positions to requireSameResults'
-  // tolerance, since the device may contract or reorder the arithmetic.
+  // Indices and counts must match exactly; distances and positions to requireSameResults' tolerance,
+  // since the device may contract or reorder the arithmetic.
   const auto sameIndices = [](const auto& a_device, const auto& a_host, const auto& a_queries) {
     const std::vector<std::size_t> device = evaluateOnDevice<std::size_t>(a_device, a_queries);
     const std::vector<std::size_t> host   = evaluateOnHost<std::size_t>(a_host, a_queries);
@@ -785,7 +437,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH: a rebased view answers queries on device and 
     requireSameResults(evaluateOnDevice<T>(a_device, a_queries), evaluateOnHost<T>(a_host, a_queries));
   };
 
-  compareCloudQueries<T>(deviceView, cloud, points, indices, sameIndices, sameValues);
+  compareCloudQueries<TestCloud<T>, T>(deviceView, cloud, points, indices, sameIndices, sameValues);
 }
 
 TEST_CASE("PointCloudBVH and PointCloudHashGrid reject a cloud they cannot index", "[PointCloudBVH][death]")
@@ -793,31 +445,22 @@ TEST_CASE("PointCloudBVH and PointCloudHashGrid reject a cloud they cannot index
   using T = double;
 
   // EBGEOMETRY_REQUIREs, so they abort in every build.
-  const std::vector<Vec3T<T>> pos = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(1), T(0), T(0))};
+  const std::vector<Vec3T<T>> bad = {Vec3T<T>(T(0), T(0), T(0)),
+                                     Vec3T<T>(T(1), std::numeric_limits<T>::quiet_NaN(), T(0))};
 
   REQUIRE(abortsWith(
-    [&pos] {
-      Pool                                pool(hostMemoryResource());
-      const std::vector<std::size_t>      tooShort = {0};
-      const PointCloudBVH<T, std::size_t> bvh(pool, pos, tooShort);
+    [&bad] {
+      Pool                   pool(hostMemoryResource());
+      const PointCloudBVH<T> bvh(pool, bad);
     },
-    "PointCloudBVH: need one metadata entry per point (1 metadata entries, 2 points)"));
+    "PointCloudBVH: point 1 of 2 has a non-finite coordinate"));
 
   REQUIRE(abortsWith(
-    [&pos] {
-      const std::vector<std::size_t>           tooShort = {0};
-      const PointCloudHashGrid<T, std::size_t> grid(pos, tooShort);
+    [&bad] {
+      Pool                        pool(hostMemoryResource());
+      const PointCloudHashGrid<T> grid(pool, bad);
     },
-    "PointCloudHashGrid: need one metadata entry per point"));
-
-  REQUIRE(abortsWith(
-    [] {
-      Pool                                pool(hostMemoryResource());
-      const std::vector<Vec3T<T>>         bad  = {Vec3T<T>(T(0), std::numeric_limits<T>::quiet_NaN(), T(0))};
-      const std::vector<std::size_t>      meta = {0};
-      const PointCloudBVH<T, std::size_t> bvh(pool, bad, meta);
-    },
-    "PointCloudBVH: point 0 of 1 has a non-finite coordinate"));
+    "PointCloudHashGrid: point 1 of 2 has a non-finite coordinate"));
 }
 
 TEST_CASE("PointCloudBVH: rejects a zero leaf size, and a rebase onto a pool too small to hold it",
@@ -826,22 +469,21 @@ TEST_CASE("PointCloudBVH: rejects a zero leaf size, and a rebase onto a pool too
   using T = double;
 
   // EBGEOMETRY_REQUIREs, so they abort in every build.
-  const std::vector<Vec3T<T>>    pos  = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(1), T(0), T(0))};
-  const std::vector<std::size_t> meta = {0, 1};
+  const std::vector<Vec3T<T>> pos = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(1), T(0), T(0))};
 
   REQUIRE(abortsWith(
-    [&pos, &meta] {
-      Pool                                pool(hostMemoryResource());
-      const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta, 0);
+    [&pos] {
+      Pool                   pool(hostMemoryResource());
+      const PointCloudBVH<T> bvh(pool, pos, 0);
     },
     "PointCloudBVH: the target leaf size must be at least 1 (0)"));
 
   REQUIRE(abortsWith(
-    [&pos, &meta] {
-      Pool                                pool(hostMemoryResource());
-      Pool                                unrelated(hostMemoryResource());
-      const PointCloudBVH<T, std::size_t> bvh(pool, pos, meta);
-      const PointCloudBVH<T, std::size_t> view = bvh.rebasedView(unrelated);
+    [&pos] {
+      Pool                   pool(hostMemoryResource());
+      Pool                   unrelated(hostMemoryResource());
+      const PointCloudBVH<T> bvh(pool, pos);
+      const PointCloudBVH<T> view = bvh.rebasedView(unrelated);
 
       (void)view;
     },

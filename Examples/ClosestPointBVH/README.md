@@ -9,9 +9,13 @@ class.
 `PointAoSoA` leaves, building the `PackedBVH`, and running the pruned traversal -- behind a single
 constructor and a couple of query methods:
 
-    PointCloudBVH<T> bvh(pool, positions, metadata);   // build once
-    bvh.closestPoint(q);                               // nearest point to an arbitrary point q
-    bvh.closestPoints(q, k, out);                      // the k nearest, ascending by distance
+    PointCloudBVH<T> bvh(pool, positions);   // build once
+    bvh.closestPoint(q);                     // nearest point to an arbitrary point q
+    bvh.closestPoints(q, k, out);            // the k nearest, ascending by distance
+
+A query reports each point's cloud index, its position in `positions`. Per-point user data lives in
+the caller's own array, indexed by it; the example labels each point with its octant of the unit
+cube that way.
 
 This is the **external** query form: the query points are arbitrary, not members of the cloud. Its
 counterpart, [`Examples/NearestNeighborBVH`](../NearestNeighborBVH/README.md), queries with points
@@ -60,4 +64,6 @@ Running
     ./ClosestPointBVH.ex
 
 Takes no arguments. It prints the build and query times and one worked `closestPoints()` result.
-Queries are checked against a brute-force scan when built with `-DEBGEOMETRY_ENABLE_ASSERTIONS`.
+Every query is checked against the library's brute-force reference
+(`PointCloud::closestPointBruteForce()`); the program prints the number of mismatches and exits with
+a nonzero status if there are any.

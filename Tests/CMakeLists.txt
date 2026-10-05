@@ -84,6 +84,7 @@ ebgeometry_add_test(TestPolygon2D)
 ebgeometry_add_test(TestTriangleSoA)
 ebgeometry_add_test(TestPointSoA)
 ebgeometry_add_test(TestPointAoSoA)
+ebgeometry_add_test(TestPointCloud)
 ebgeometry_add_test(TestPointCloudBVH)
 ebgeometry_add_test(TestPointCloudHashGrid)
 ebgeometry_add_test(TestSimpleTimer)
@@ -99,7 +100,7 @@ ebgeometry_add_test(TestPoolRebase)
 # device-accessible, and the kernel is a host loop. When a GPU backend is enabled we compile just
 # those files with the backend compiler (per-file LANGUAGE) so the checks run as real kernels.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
-  set(EBGEOMETRY_GPU_TESTS TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVH TestPointCloudBVH TestAnalyticSDF TestCSG)
+  set(EBGEOMETRY_GPU_TESTS TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVH TestPointCloudBVH TestPointCloudHashGrid TestAnalyticSDF TestCSG)
 
   foreach(_ebgeometry_gpu_test ${EBGEOMETRY_GPU_TESTS})
     if(EBGEOMETRY_ENABLE_CUDA)

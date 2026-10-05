@@ -17,8 +17,6 @@
 
 namespace EBGeometry {
 
-using Meta = short;
-
 // clang-format off
 #define EBGEOMETRY_INSTANTIATE_ALL(PREC)                                     \
   /* -- Vectors ---------------------------------------------------------- */ \
@@ -90,9 +88,11 @@ using Meta = short;
                                                                                \
   /* -- Point clouds --------------------------------------------------------*/\
   template struct PointSoAT<PREC>;                                           \
-  template struct PointAoSoA<PREC, Meta>;                                    \
-  template class PointCloudBVH<PREC, Meta>;                                  \
-  template class PointCloudHashGrid<PREC, Meta>;                             \
+  template struct PointAoSoA<PREC>;                                          \
+  template struct PointCloud::Hit<PREC>;                                     \
+  template class PointCloud::KBest<PREC>;                                    \
+  template class PointCloudBVH<PREC>;                                        \
+  template class PointCloudHashGrid<PREC>;                                   \
                                                                                \
   namespace BoundingVolumes {                                                \
   template class AABBT<PREC>;                                                \

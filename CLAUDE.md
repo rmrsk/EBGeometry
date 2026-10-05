@@ -343,16 +343,19 @@ does not follow this template, edit the PR body to conform to it.
   for independent storage), and nothing is reference-counted, so the caller must keep the `Pool`
   alive for as long as the `MeshSDF` or any copy or `rebasedView()` of it is used (and, on a device,
   the mirrored pool too). The same holds for `FlatMeshSDF` (mesh only), `TriMeshSDF` (BVH only; its
-  `TriangleAoSoA` leaves are self-contained), `PointCloudBVH` and the BVH unions. A similar wrapper
+  `TriangleAoSoA` leaves are self-contained), `PointCloudBVH`, `PointCloudHashGrid` and the BVH
+  unions. A similar wrapper
   should follow the same pattern: hold descriptors by value, offer `rebasedView()`/`deepCopy()`
   (and `relocatedTo()` if it may be a BVH-union primitive), and document that its pool must outlive
   it.
-- **Mesh elements carry no user metadata; a face's id is its index in the mesh.** The DCEL classes,
-  `Triangle`, the mesh SDFs and the parsers have no `Meta` template parameter. The readers number
-  faces in file order (minus removed zero-area faces); `getClosestFace()` on all three mesh SDFs
-  returns that id (device-callable), and `Triangle`/`TriangleAoSoA` carry the id of the face a
-  triangle was cut from. Per-face user data lives in the caller's own array. (The point clouds still
-  have a `Meta` parameter; Phase 2 item 20 of `AUDIT.md` replaces it.)
+- **Mesh elements and points carry no user metadata; an element's id is its index.** The DCEL
+  classes, `Triangle`, the mesh SDFs, the parsers, `PointAoSoA` and the point clouds have no `Meta`
+  template parameter. The readers number faces in file order (minus removed zero-area faces);
+  `getClosestFace()` on all three mesh SDFs returns that id (device-callable), and
+  `Triangle`/`TriangleAoSoA` carry the id of the face a triangle was cut from. A point's cloud index
+  is its position in the positions array; `PointCloudBVH` and `PointCloudHashGrid` report it in one
+  `PointCloud::Hit` (`EBGeometry_PointCloud.hpp`, with the shared `KBest` set and the brute-force
+  references). Per-element user data lives in the caller's own array.
 - **Header layout.** `EBGeometry_PackedBVH.hpp` is the only BVH header device code needs;
   `EBGeometry_TreeBVH.hpp` (`TreeBVH`, partitioners, `pack()`) and `EBGeometry_BVHBuild.hpp`
   (`PackedBVH`'s builder constructors) are host-only and include each other. The blend operators and

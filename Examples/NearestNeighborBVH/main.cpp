@@ -8,9 +8,9 @@
 // search from the point's own leaf (a strictly cheaper traversal). The whole pipeline is again
 // hidden behind the constructor and one call:
 //
-//   PointCloudBVH<T> bvh(pool, positions, metadata);       // build once
-//   bvh.nearestNeighbor(i);                                // nearest OTHER point to point i
-//   auto graph = bvh.allNearestNeighbors(kNN);             // kNN nearest of EVERY point, batched
+//   PointCloudBVH<T> bvh(pool, positions);       // build once
+//   bvh.nearestNeighbor(i);                      // nearest OTHER point to point i
+//   auto graph = bvh.allNearestNeighbors(kNN);   // kNN nearest of EVERY point, batched
 //
 // A sample of the batch result is checked against a brute-force scan. See README.md.
 
@@ -37,7 +37,7 @@ using Vec3 = EBGeometry::Vec3T<T>;
 // The turnkey point-cloud BVH. K (branching) and W (SoA leaf width) default to
 // BVH::DefaultBranchingRatio<T>() and PointSoA::DefaultWidth<T>() (4, the same on every machine and
 // on a GPU), so they are not named here.
-using PointCloud = EBGeometry::PointCloudBVH<T, std::size_t>;
+using Cloud = EBGeometry::PointCloudBVH<T>;
 
 // Run configuration. kNN is the number of nearest neighbors computed for every point.
 constexpr std::size_t   numPoints  = 500000;
@@ -56,45 +56,52 @@ main()
 
   const std::vector<Vec3> positions = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
 
-  // Per-point user metadata; see Examples/ClosestPointBVH. Tag each point with its own index.
-  std::vector<std::size_t> metadata(numPoints);
+  // Per-point user data stays in the caller's own array, indexed by the cloud index a query reports;
+  // see Examples/ClosestPointBVH. Here each point gets a label: which eighth of the unit cube it lies in.
+  std::vector<int> octant(numPoints);
 
   for (std::size_t i = 0; i < numPoints; i++) {
-    metadata[i] = i;
+    octant[i] =
+      (positions[i][0] > T(0.5) ? 1 : 0) + (positions[i][1] > T(0.5) ? 2 : 0) + (positions[i][2] > T(0.5) ? 4 : 0);
   }
 
   // Build once.
   EBGeometry::SimpleTimer timer;
   timer.start();
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-  const PointCloud bvh(pool, positions, metadata);
+  const Cloud      bvh(pool, positions);
   timer.stop();
   const double buildSeconds = timer.seconds();
 
   // The whole kNN graph in one batched, Hilbert-ordered call.
   timer.start();
-  const std::vector<PointCloud::Hit> graph = bvh.allNearestNeighbors(kNN);
+  const std::vector<Cloud::Hit> graph = bvh.allNearestNeighbors(kNN);
   timer.stop();
   const double graphSeconds = timer.seconds();
 
-  // Verify a spread sample against the class's own O(N) brute-force reference (no hand-rolled scan),
+  // Verify a spread sample against the library's O(N) brute-force reference (no hand-rolled scan),
   // and time that sample to extrapolate a fair per-point baseline (a full N^2 all-pairs scan is
-  // infeasible at this size).
+  // infeasible at this size). Results must match to rounding: the SIMD distance kernel may round
+  // differently from the scalar scan.
   constexpr T tolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
 
-  std::vector<PointCloud::Hit> truth(kNN);
-  const std::size_t            stride = numPoints / sampleSize;
+  std::vector<Cloud::Hit> truth(kNN);
+  const std::size_t       stride     = numPoints / sampleSize;
+  std::size_t             mismatches = 0;
   timer.start();
 
   for (std::size_t s = 0; s < sampleSize; s++) {
-    const std::size_t i = s * stride;
-    bvh.nearestNeighborsBruteForce(i, kNN, truth.data());
+    const auto i = static_cast<std::uint32_t>(s * stride);
+
+    EBGeometry::PointCloud::closestPointsBruteForce(
+      positions.data(), static_cast<std::uint32_t>(numPoints), positions[i], kNN, truth.data(), i);
 
     for (std::size_t j = 0; j < kNN; j++) {
       const T got = graph[i * kNN + j].distanceSquared;
-      EBGEOMETRY_EXPECT(std::abs(got - truth[j].distanceSquared) <=
-                        tolerance * std::max(truth[j].distanceSquared, T(1.0)));
-      (void)got;
+
+      if (std::abs(got - truth[j].distanceSquared) > tolerance * std::max(truth[j].distanceSquared, T(1.0))) {
+        mismatches++;
+      }
     }
   }
 
@@ -107,12 +114,13 @@ main()
   std::cout << "  Build         : " << std::setprecision(1) << 1.0e3 * buildSeconds << " ms\n";
   std::cout << "  Brute force   : " << std::setprecision(3) << 1.0e6 * bruteSecondsPerPoint << " us/point\n";
   std::cout << "  PointCloudBVH : " << std::setprecision(3) << 1.0e6 * graphSecondsPerPoint << " us/point"
-            << "   (" << std::setprecision(1) << bruteSecondsPerPoint / graphSecondsPerPoint << "x faster)\n\n";
+            << "   (" << std::setprecision(1) << bruteSecondsPerPoint / graphSecondsPerPoint << "x faster)\n";
+  std::cout << "  Mismatches    : " << mismatches << " of " << sampleSize * kNN << " sampled\n\n";
 
   // The single-point form: the nearest OTHER point to one point in the cloud.
-  const PointCloud::Hit nn = bvh.nearestNeighbor(0);
+  const Cloud::Hit nn = bvh.nearestNeighbor(0);
   std::cout << "  nearestNeighbor(0): cloud index " << nn.index << " at distance " << std::setprecision(5)
-            << std::sqrt(nn.distanceSquared) << "   (metadata " << bvh.metadata(nn.index) << ")\n";
+            << std::sqrt(nn.distanceSquared) << "   (octant " << octant[nn.index] << ")\n";
 
-  return 0;
+  return mismatches == 0 ? 0 : 1;
 }

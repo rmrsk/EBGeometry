@@ -20,39 +20,36 @@
 // Our includes
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
+#include "EBGeometry_PointCloud.hpp"
 #include "EBGeometry_PointCloudDetail.hpp"
 #include "EBGeometry_PointCloudHashGrid.hpp"
 
 namespace EBGeometry {
 
-template <class T, class Meta>
-inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T>>& a_positions,
-                                                       const std::vector<Meta>&     a_metadata,
-                                                       T                            a_targetPerCell)
-  : m_positions(a_positions), m_metadata(a_metadata)
+template <class T>
+EBGEOMETRY_HOST
+inline PointCloudHashGrid<T>::PointCloudHashGrid(Pool&                        a_pool,
+                                                 const std::vector<Vec3T<T>>& a_positions,
+                                                 T                            a_targetPerCell)
 {
   static_assert(std::is_floating_point_v<T>, "PointCloudHashGrid requires a floating-point type T");
 
   // Cloud indices are stored as uint32_t in the CSR arrays (m_cellStart / m_cellPoints), so the cloud
   // must fit that width; every coordinate must also be finite, or the cell computations below break.
-  PointCloudDetail::requireValidCloud("PointCloudHashGrid", a_positions, a_metadata.size());
+  PointCloudDetail::requireValidCloud("PointCloudHashGrid", a_positions);
 
   EBGEOMETRY_REQUIRE(a_targetPerCell > T(0),
                      "PointCloudHashGrid: the target points per cell must be positive (%g)",
                      double(a_targetPerCell));
 
-  const std::size_t numPoints = m_positions.size();
+  const std::size_t numPoints = a_positions.size();
 
-  // Bounding box of the cloud. Non-finite input would poison the min/max reductions (and every cell
-  // computation downstream), so catch it here as a precondition.
+  // Bounding box of the cloud. requireValidCloud() has already rejected non-finite input, which would
+  // poison the min/max reductions and every cell computation downstream.
   m_lo        = +Vec3T<T>::max();
   Vec3T<T> hi = -Vec3T<T>::max();
 
-  for (const auto& p : m_positions) {
-    EBGEOMETRY_EXPECT(std::isfinite(p[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(p[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(p[2]));
-
+  for (const auto& p : a_positions) {
     m_lo = min(m_lo, p);
     hi   = max(hi, p);
   }
@@ -131,31 +128,105 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
   EBGEOMETRY_EXPECT(nCells <= maxCells);
 
   // Counting sort: histogram -> prefix sum (cellStart) -> scatter cloud indices into cell order.
-  m_cellStart.assign(nCells + 1, 0);
+  std::vector<std::uint32_t> cellStart(nCells + 1, 0);
 
   for (std::size_t i = 0; i < numPoints; i++) {
-    m_cellStart[cellIndexOf(m_positions[i]) + 1]++;
+    cellStart[cellIndexOf(a_positions[i]) + 1]++;
   }
 
   for (std::size_t cell = 0; cell < nCells; cell++) {
-    m_cellStart[cell + 1] += m_cellStart[cell];
+    cellStart[cell + 1] += cellStart[cell];
   }
 
-  // Prefix sum leaves m_cellStart[nCells] holding the total; it must equal the point count if every
+  // Prefix sum leaves cellStart[nCells] holding the total; it must equal the point count if every
   // point was bucketed into exactly one (in-range) cell.
-  EBGEOMETRY_EXPECT(std::size_t(m_cellStart[nCells]) == numPoints);
+  EBGEOMETRY_EXPECT(std::size_t(cellStart[nCells]) == numPoints);
 
-  m_cellPoints.resize(numPoints);
-  std::vector<std::uint32_t> cursor(m_cellStart.begin(), m_cellStart.end() - 1);
+  std::vector<std::uint32_t> cellPoints(numPoints);
+  std::vector<std::uint32_t> cursor(cellStart.begin(), cellStart.end() - 1);
 
   for (std::size_t i = 0; i < numPoints; i++) {
-    m_cellPoints[cursor[cellIndexOf(m_positions[i])]++] = std::uint32_t(i);
+    cellPoints[cursor[cellIndexOf(a_positions[i])]++] = std::uint32_t(i);
   }
+
+  this->storeArrays(a_pool, a_positions, cellStart, cellPoints);
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST
+inline void
+PointCloudHashGrid<T>::storeArrays(Pool&                             a_pool,
+                                   const std::vector<Vec3T<T>>&      a_positions,
+                                   const std::vector<std::uint32_t>& a_cellStart,
+                                   const std::vector<std::uint32_t>& a_cellPoints)
+{
+  m_location.attach(a_pool, "PointCloudHashGrid");
+
+  const auto numPoints = static_cast<std::uint32_t>(a_positions.size());
+  const auto numStarts = static_cast<std::uint32_t>(a_cellStart.size());
+
+  EBGEOMETRY_EXPECT(a_cellPoints.size() == a_positions.size());
+
+  m_positions.reserveFrom(a_pool, numPoints);
+  m_cellStart.reserveFrom(a_pool, numStarts);
+  m_cellPoints.reserveFrom(a_pool, numPoints);
+
+  // Resolve the base only after every reservation above: a reserve can grow the pool, which moves
+  // the block and invalidates any address taken before it.
+  void* poolBase = m_location.base();
+
+  m_positions.assign(poolBase, a_positions.data(), numPoints);
+  m_cellStart.assign(poolBase, a_cellStart.data(), numStarts);
+  m_cellPoints.assign(poolBase, a_cellPoints.data(), numPoints);
+}
+
+template <class T>
+EBGEOMETRY_HOST
+inline PointCloudHashGrid<T>
+PointCloudHashGrid<T>::rebasedView(const Pool& a_pool) const noexcept
+{
+  const uint64_t endByte = Math::max(m_positions.endByte(), Math::max(m_cellStart.endByte(), m_cellPoints.endByte()));
+
+  PointCloudHashGrid view = *this;
+
+  view.m_location = m_location.rebasedOnto(a_pool, endByte, "PointCloudHashGrid");
+
+  return view;
+}
+
+template <class T>
+EBGEOMETRY_HOST
+inline PointCloudHashGrid<T>
+PointCloudHashGrid<T>::deepCopy(Pool& a_dstPool) const
+{
+  // Read everything out before reserving anything: a_dstPool may be this object's own pool, and a
+  // reserve there can move the block under any address taken from it.
+  const void* srcBase = this->base();
+
+  const PODSpan<const Vec3T<T>>      positions  = m_positions.bind(srcBase);
+  const PODSpan<const std::uint32_t> cellStart  = m_cellStart.bind(srcBase);
+  const PODSpan<const std::uint32_t> cellPoints = m_cellPoints.bind(srcBase);
+
+  const std::vector<Vec3T<T>>      hostPositions(positions.begin(), positions.end());
+  const std::vector<std::uint32_t> hostCellStart(cellStart.begin(), cellStart.end());
+  const std::vector<std::uint32_t> hostCellPoints(cellPoints.begin(), cellPoints.end());
+
+  PointCloudHashGrid copy = *this;
+
+  copy.m_location   = PoolLocation{};
+  copy.m_positions  = PODVector<Vec3T<T>>{};
+  copy.m_cellStart  = PODVector<std::uint32_t>{};
+  copy.m_cellPoints = PODVector<std::uint32_t>{};
+
+  copy.storeArrays(a_dstPool, hostPositions, hostCellStart, hostCellPoints);
+
+  return copy;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline int
-PointCloudHashGrid<T, Meta>::cellCoord(T a_x, T a_lo, int a_n) const noexcept
+PointCloudHashGrid<T>::cellCoord(T a_x, T a_lo, int a_n) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x));
   EBGEOMETRY_EXPECT(a_n >= 1);
@@ -172,9 +243,10 @@ PointCloudHashGrid<T, Meta>::cellCoord(T a_x, T a_lo, int a_n) const noexcept
   return (t >= T(a_n - 1)) ? a_n - 1 : int(t);
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline std::size_t
-PointCloudHashGrid<T, Meta>::cellIndex(int a_ix, int a_iy, int a_iz) const noexcept
+PointCloudHashGrid<T>::cellIndex(int a_ix, int a_iy, int a_iz) const noexcept
 {
   EBGEOMETRY_EXPECT(a_ix >= 0 && a_ix < m_nx);
   EBGEOMETRY_EXPECT(a_iy >= 0 && a_iy < m_ny);
@@ -183,56 +255,52 @@ PointCloudHashGrid<T, Meta>::cellIndex(int a_ix, int a_iy, int a_iz) const noexc
   return std::size_t(a_ix) + std::size_t(m_nx) * (std::size_t(a_iy) + std::size_t(m_ny) * std::size_t(a_iz));
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline std::size_t
-PointCloudHashGrid<T, Meta>::cellIndexOf(const Vec3T<T>& a_p) const noexcept
+PointCloudHashGrid<T>::cellIndexOf(const Vec3T<T>& a_p) const noexcept
 {
   return cellIndex(
     cellCoord(a_p[0], m_lo[0], m_nx), cellCoord(a_p[1], m_lo[1], m_ny), cellCoord(a_p[2], m_lo[2], m_nz));
 }
 
-template <class T, class Meta>
-inline void
-PointCloudHashGrid<T, Meta>::query(
-  const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out, std::size_t& a_found, std::size_t a_exclude) const noexcept
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline std::size_t
+PointCloudHashGrid<T>::query(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out, uint32_t a_exclude) const noexcept
 {
+  EBGEOMETRY_EXPECT(a_k >= 1);
   EBGEOMETRY_EXPECT(a_out != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_query[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_query[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_query[2]));
-  EBGEOMETRY_EXPECT(a_exclude == s_none || a_exclude < m_positions.size());
+  EBGEOMETRY_EXPECT(a_exclude == PointCloud::InvalidIndex || a_exclude < m_positions.size());
 
-  a_found = 0;
+  // Each point lives in exactly one cell and each cell is visited in exactly one shell, so every
+  // point is offered once and the set needs no de-duplication.
+  PointCloud::KBest<T> best(a_out, a_k, a_exclude);
 
-  if (a_k == 0 || m_positions.empty()) {
-    return;
+  if (m_positions.empty()) {
+    return 0;
   }
+
+  // Resolved once per query: a query reserves nothing, so the pool block cannot move under them.
+  const void*                        poolBase   = this->base();
+  const PODSpan<const Vec3T<T>>      positions  = m_positions.bind(poolBase);
+  const PODSpan<const std::uint32_t> cellStart  = m_cellStart.bind(poolBase);
+  const PODSpan<const std::uint32_t> cellPoints = m_cellPoints.bind(poolBase);
 
   const int cx = cellCoord(a_query[0], m_lo[0], m_nx);
   const int cy = cellCoord(a_query[1], m_lo[1], m_ny);
   const int cz = cellCoord(a_query[2], m_lo[2], m_nz);
 
-  // Sorted insert into a_out (kept ascending, capacity a_k). Each point lives in exactly one cell and
-  // each cell is visited in exactly one shell, so no de-duplication is needed.
-  const auto insert = [&](std::uint32_t a_idx, T a_d2) noexcept {
-    if (a_found == a_k) {
-      if (a_d2 >= a_out[a_k - 1].distanceSquared) {
-        return;
-      }
-    }
-
-    std::size_t i = (a_found < a_k) ? a_found++ : (a_k - 1);
-
-    for (; i > 0 && a_out[i - 1].distanceSquared > a_d2; i--) {
-      a_out[i] = a_out[i - 1];
-    }
-
-    a_out[i] = Hit{std::size_t(a_idx), a_d2};
-  };
-
   // Largest shell radius that still adds cells (beyond it the whole grid is searched).
   const int rMax =
     Math::max(Math::max(cx, m_nx - 1 - cx), Math::max(Math::max(cy, m_ny - 1 - cy), Math::max(cz, m_nz - 1 - cz)));
+
+  // Rounding slack for the stopping rule below: enough ulps of the largest magnitude involved in
+  // locating a cell face to cover the rounding in cellCoord() and in the face itself.
+  const T eps = Math::Limits<T>::epsilon();
 
   for (int r = 0; r <= rMax; r++) {
     // Visit only the new shell at Chebyshev radius r (cells with max(|dx|,|dy|,|dz|) == r).
@@ -256,240 +324,132 @@ PointCloudHashGrid<T, Meta>::query(
           }
 
           const std::size_t   cid   = cellIndex(ix, iy, iz);
-          const std::uint32_t begin = m_cellStart[cid];
-          const std::uint32_t end   = m_cellStart[cid + 1];
+          const std::uint32_t begin = cellStart[static_cast<std::uint32_t>(cid)];
+          const std::uint32_t end   = cellStart[static_cast<std::uint32_t>(cid + 1)];
 
           for (std::uint32_t s = begin; s < end; s++) {
-            const std::uint32_t p = m_cellPoints[s];
+            const std::uint32_t p = cellPoints[s];
 
-            if (std::size_t(p) == a_exclude) {
-              continue;
-            }
-
-            const T d2 = (m_positions[p] - a_query).length2();
-
-            insert(p, d2);
+            best.insert((positions[p] - a_query).length2(), p);
           }
         }
       }
     }
 
-    // Exact stopping rule. After searching the cell box [cx-r, cx+r] x ... (clamped), the world region
-    // guaranteed fully searched is [loCov, hiCov] per axis, with the box extending to +/-infinity on
-    // any axis whose clamped side reached the grid edge (no points exist beyond the grid). Any
-    // unvisited point is outside that world box, so its distance to the query is at least the distance
-    // from the query to the nearest covered face. Stop once we hold a_k and that bound is not closer
-    // than our current worst.
+    // Exact stopping rule. After searching the cell box [cx-r, cx+r] x ... (clamped), every point
+    // still unvisited lies in a cell outside it, so along some axis it is beyond one of the box's
+    // faces on a side where cells remain (a side whose clamped extent reached the grid edge has none:
+    // no points are bucketed beyond the grid). Its distance to the query is therefore at least the
+    // distance from the query to the nearest such face. Stop once k points are held and that bound
+    // is not closer than the k-th.
     //
-    // Robustness: cell membership is decided with m_invH (see cellCoord()) while a covered face is
-    // reconstructed here with m_h, and m_invH is only a rounded reciprocal of m_h -- so a face
-    // reconstructed exactly at the searched box boundary could be off by a fraction of a cell and make
-    // the bound marginally optimistic. To stay exact we pull each guaranteed-covered face *one whole
-    // cell inside* the searched box: that full cell of slack dwarfs the sub-ULP reconstruction error
-    // for any realistic grid, at the cost of at most one extra shell. The inward face needs the query
-    // cell to lie strictly inside the searched box, so the bound is only evaluated for r >= 1.
-    if (a_found == a_k && r >= 1) {
+    // The faces are the true cell boundaries. Cell membership is decided in cellCoord() by rounding
+    // (x - lo) * (1/h), so a point can sit a few ulps on the wrong side of a reconstructed face; the
+    // slack subtracted below covers that, and the final comparison leaves room for the rounding in
+    // the squared distances. Both are far below a cell for any realistic grid, so the search stops
+    // at the first shell whose faces clear the k-th distance -- often r = 0.
+    if (best.found() == a_k) {
       const T inf   = Math::Limits<T>::max();
       T       bound = inf;
 
       for (int axis = 0; axis < 3; axis++) {
         const int c     = (axis == 0) ? cx : (axis == 1) ? cy : cz;
         const int nAxis = (axis == 0) ? m_nx : (axis == 1) ? m_ny : m_nz;
+        const T   lo    = m_lo[axis];
+        const T   q     = a_query[axis];
+        const T   slack = T(8) * eps * (std::abs(lo) + std::abs(q) + T(nAxis) * m_h);
 
-        // Left: uncovered cells exist iff c-r > 0; guaranteed-covered lower face pulled in to cell
-        // (c-r+1).
+        // Lower side: unvisited cells exist iff c-r > 0; the searched box starts at cell c-r.
         if (c - r > 0) {
-          bound = Math::min(bound, a_query[axis] - (m_lo[axis] + T(c - r + 1) * m_h));
+          bound = Math::min(bound, q - (lo + T(c - r) * m_h) - slack);
         }
-        // Right: uncovered cells exist iff c+r < nAxis-1; guaranteed-covered upper face pulled in to
-        // the top of cell (c+r-1), i.e. m_lo + (c+r)*m_h.
+
+        // Upper side: unvisited cells exist iff c+r < nAxis-1; the searched box ends at the top of
+        // cell c+r.
         if (c + r < nAxis - 1) {
-          bound = Math::min(bound, (m_lo[axis] + T(c + r) * m_h) - a_query[axis]);
+          bound = Math::min(bound, (lo + T(c + r + 1) * m_h) - q - slack);
         }
       }
 
-      if (bound == inf || a_out[a_k - 1].distanceSquared <= bound * bound) {
+      if (bound == inf || (bound > T(0) && best.bound() <= bound * bound * (T(1) - T(16) * eps))) {
         break;
       }
     }
   }
+
+  return best.found();
 }
 
-template <class T, class Meta>
-inline typename PointCloudHashGrid<T, Meta>::Hit
-PointCloudHashGrid<T, Meta>::closestPoint(const Vec3T<T>& a_query) const noexcept
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline typename PointCloudHashGrid<T>::Hit
+PointCloudHashGrid<T>::closestPoint(const Vec3T<T>& a_query) const noexcept
 {
-  Hit         hit;
-  std::size_t found = 0;
+  Hit hit;
 
-  this->query(a_query, 1, &hit, found, s_none);
+  this->query(a_query, 1, &hit, PointCloud::InvalidIndex);
 
   return hit;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline std::size_t
-PointCloudHashGrid<T, Meta>::closestPoints(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const noexcept
+PointCloudHashGrid<T>::closestPoints(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const noexcept
 {
   EBGEOMETRY_EXPECT(a_k >= 1);
   EBGEOMETRY_EXPECT(a_out != nullptr);
 
-  std::size_t found = 0;
-
-  this->query(a_query, a_k, a_out, found, s_none);
-
-  return found;
+  return this->query(a_query, a_k, a_out, PointCloud::InvalidIndex);
 }
 
-template <class T, class Meta>
-inline typename PointCloudHashGrid<T, Meta>::Hit
-PointCloudHashGrid<T, Meta>::nearestNeighbor(std::size_t a_point) const noexcept
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline typename PointCloudHashGrid<T>::Hit
+PointCloudHashGrid<T>::nearestNeighbor(uint32_t a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(a_point < m_positions.size());
 
-  Hit         hit;
-  std::size_t found = 0;
+  Hit hit;
 
-  this->query(m_positions[a_point], 1, &hit, found, a_point);
+  this->query(this->position(a_point), 1, &hit, a_point);
 
   return hit;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline std::size_t
-PointCloudHashGrid<T, Meta>::nearestNeighbors(std::size_t a_point, std::size_t a_k, Hit* a_out) const noexcept
+PointCloudHashGrid<T>::nearestNeighbors(uint32_t a_point, std::size_t a_k, Hit* a_out) const noexcept
 {
   EBGEOMETRY_EXPECT(a_point < m_positions.size());
   EBGEOMETRY_EXPECT(a_k >= 1);
   EBGEOMETRY_EXPECT(a_out != nullptr);
 
-  std::size_t found = 0;
-
-  this->query(m_positions[a_point], a_k, a_out, found, a_point);
-
-  return found;
+  return this->query(this->position(a_point), a_k, a_out, a_point);
 }
 
-template <class T, class Meta>
-inline std::vector<typename PointCloudHashGrid<T, Meta>::Hit>
-PointCloudHashGrid<T, Meta>::allNearestNeighbors(std::size_t a_k) const
+template <class T>
+EBGEOMETRY_HOST
+inline std::vector<typename PointCloudHashGrid<T>::Hit>
+PointCloudHashGrid<T>::allNearestNeighbors(std::size_t a_k) const
 {
   EBGEOMETRY_EXPECT(a_k >= 1);
 
   const std::size_t numPoints = m_positions.size();
+  const void*       poolBase  = this->base();
 
   std::vector<Hit> result(numPoints * a_k);
 
   // Process points in cell (spatial) order -- consecutive queries touch nearby cells, staying hot in
   // cache. m_cellPoints already holds the cloud indices in cell order.
-  for (const std::uint32_t p : m_cellPoints) {
+  for (const std::uint32_t p : m_cellPoints.bind(poolBase)) {
     EBGEOMETRY_EXPECT(std::size_t(p) < numPoints);
 
-    std::size_t found = 0;
-
-    this->query(m_positions[p], a_k, &result[std::size_t(p) * a_k], found, std::size_t(p));
+    this->query(m_positions.at(poolBase, p), a_k, &result[std::size_t(p) * a_k], p);
   }
 
   return result;
-}
-
-template <class T, class Meta>
-inline typename PointCloudHashGrid<T, Meta>::Hit
-PointCloudHashGrid<T, Meta>::bruteForceOne(const Vec3T<T>& a_query, std::size_t a_exclude) const noexcept
-{
-  EBGEOMETRY_EXPECT(std::isfinite(a_query[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_query[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_query[2]));
-  EBGEOMETRY_EXPECT(a_exclude == s_none || a_exclude < m_positions.size());
-
-  Hit best;
-
-  for (std::size_t i = 0; i < m_positions.size(); i++) {
-    if (i == a_exclude) {
-      continue;
-    }
-
-    const T distanceSquared = (m_positions[i] - a_query).length2();
-
-    if (distanceSquared < best.distanceSquared) {
-      best.distanceSquared = distanceSquared;
-      best.index           = i;
-    }
-  }
-
-  return best;
-}
-
-template <class T, class Meta>
-inline std::size_t
-PointCloudHashGrid<T, Meta>::bruteForceK(const Vec3T<T>& a_query,
-                                         std::size_t     a_k,
-                                         Hit*            a_out,
-                                         std::size_t     a_exclude) const
-{
-  EBGEOMETRY_EXPECT(a_k >= 1);
-  EBGEOMETRY_EXPECT(a_out != nullptr);
-  EBGEOMETRY_EXPECT(std::isfinite(a_query[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_query[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_query[2]));
-  EBGEOMETRY_EXPECT(a_exclude == s_none || a_exclude < m_positions.size());
-
-  std::vector<Hit> all;
-  all.reserve(m_positions.size());
-
-  for (std::size_t i = 0; i < m_positions.size(); i++) {
-    if (i == a_exclude) {
-      continue;
-    }
-
-    all.push_back(Hit{i, (m_positions[i] - a_query).length2()});
-  }
-
-  const std::size_t k = Math::min(a_k, all.size());
-
-  std::partial_sort(
-    all.begin(),
-    all.begin() + static_cast<std::ptrdiff_t>(k),
-    all.end(),
-    [](const Hit& a_lhs, const Hit& a_rhs) noexcept { return a_lhs.distanceSquared < a_rhs.distanceSquared; });
-
-  for (std::size_t j = 0; j < k; j++) {
-    a_out[j] = all[j];
-  }
-
-  return k;
-}
-
-template <class T, class Meta>
-inline typename PointCloudHashGrid<T, Meta>::Hit
-PointCloudHashGrid<T, Meta>::closestPointBruteForce(const Vec3T<T>& a_query) const noexcept
-{
-  return this->bruteForceOne(a_query, s_none);
-}
-
-template <class T, class Meta>
-inline std::size_t
-PointCloudHashGrid<T, Meta>::closestPointsBruteForce(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const
-{
-  return this->bruteForceK(a_query, a_k, a_out, s_none);
-}
-
-template <class T, class Meta>
-inline typename PointCloudHashGrid<T, Meta>::Hit
-PointCloudHashGrid<T, Meta>::nearestNeighborBruteForce(std::size_t a_point) const noexcept
-{
-  EBGEOMETRY_EXPECT(a_point < m_positions.size());
-
-  return this->bruteForceOne(m_positions[a_point], a_point);
-}
-
-template <class T, class Meta>
-inline std::size_t
-PointCloudHashGrid<T, Meta>::nearestNeighborsBruteForce(std::size_t a_point, std::size_t a_k, Hit* a_out) const
-{
-  EBGEOMETRY_EXPECT(a_point < m_positions.size());
-
-  return this->bruteForceK(m_positions[a_point], a_k, a_out, a_point);
 }
 
 } // namespace EBGeometry
