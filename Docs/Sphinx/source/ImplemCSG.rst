@@ -299,7 +299,7 @@ and one taking exactly two -- both constructing the same underlying wrapper clas
 
 The "smooth" combinators blend the transition between objects instead of leaving a sharp crease,
 using a caller-replaceable blending functor rather than a plain ``min``/``max``. Four are provided
-in :file:`Source/EBGeometry_CSG.hpp`, each a small, trivially copyable function object that can
+in :file:`Source/EBGeometry_Blend.hpp`, each a small, trivially copyable function object that can
 also be called on a GPU -- ``SmoothMinOp<T>``, ``SmoothMaxOp<T>``, ``ExpMinOp<T>`` and
 ``ExpMaxOp<T>`` -- together with ready-made instances of them, ``SmoothMin<T>``, ``SmoothMax<T>``,
 ``ExpMin<T>`` and ``ExpMax<T>``, called as
@@ -385,5 +385,9 @@ of mesh distance fields.
      - `class <doxygen/html/classEBGeometry_1_1BVHSmoothUnionIF.html>`__ /
        `function <doxygen/html/namespaceEBGeometry.html#aab346be4b1350a6dfe4e5dd535f7dfab>`__
 
-For the complete, single-page API listing of every class and free function on this page, see the
-Doxygen page for `EBGeometry_CSG.hpp <doxygen/html/EBGeometry__CSG_8hpp.html>`__.
+For a single-page API listing, see the Doxygen pages for the three headers this page covers:
+`EBGeometry_CSG.hpp <doxygen/html/EBGeometry__CSG_8hpp.html>`__ (the ``shared_ptr`` combinators),
+`EBGeometry_Blend.hpp <doxygen/html/EBGeometry__Blend_8hpp.html>`__ (the blend operators) and
+`EBGeometry_BVHUnion.hpp <doxygen/html/EBGeometry__BVHUnion_8hpp.html>`__ (the BVH unions). The
+blend operators and the BVH unions do not depend on the ``shared_ptr`` layer, so device code can
+include their headers without it; ``EBGeometry_CSG.hpp`` includes both.

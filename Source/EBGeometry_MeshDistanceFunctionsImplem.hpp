@@ -495,33 +495,31 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   // them by value, so nothing records where a given face came from in the mesh.
   std::vector<FaceAndDist> candidateFaces;
 
-  // Declaration of the BVH metadata attached to each node - this will be the distance to the node itself.
-  using BVHNodeKey = T;
+  // Each node's key is the distance from the query point to its bounding box.
+  using NodeKey = EBGeometry::BVH::NodeAndKey<T>;
 
   // Shortest distance so far.
-  BVHNodeKey shortestDistanceSoFar = Math::Limits<T>::max();
+  T shortestDistanceSoFar = Math::Limits<T>::max();
 
-  const EBGeometry::BVH::PrunePredicate<Node, T> prunePredicate =
-    [&shortestDistanceSoFar](const Node&, const BVHNodeKey& a_bvDist) noexcept -> bool {
+  const auto prunePredicate = [&shortestDistanceSoFar](const Node&, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= T(0.0) || a_bvDist <= shortestDistanceSoFar;
   };
 
-  const EBGeometry::BVH::PackedChildOrderer<T, K> childOrderer =
-    [](Array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-        return n1.second > n2.second;
-      });
+  // Farthest child first, so the nearest is popped next.
+  const auto childOrderer = [](Array<NodeKey, K>& a_children) noexcept -> void {
+    std::sort(a_children.begin(), a_children.end(), [](const NodeKey& n1, const NodeKey& n2) noexcept -> bool {
+      return n1.second > n2.second;
+    });
   };
 
-  const EBGeometry::BVH::NodeKeyFactory<Node, BVHNodeKey> nodeKeyFactory =
-    [&a_point](const Node& a_node) noexcept -> BVHNodeKey { return a_node.getDistanceToBoundingVolume(a_point); };
+  const auto nodeKeyFactory = [&a_point](const Node& a_node) noexcept -> T {
+    return a_node.getDistanceToBoundingVolume(a_point);
+  };
 
-  const EBGeometry::BVH::PackedLeafEvaluator<Face> leafEvaluator =
-    [&shortestDistanceSoFar, &a_point, &candidateFaces, &mesh](
-      PODSpan<const Face> a_faces, size_t offset, size_t count) noexcept -> void {
+  const auto leafEvaluator = [&shortestDistanceSoFar, &a_point, &candidateFaces, &mesh](
+                               PODSpan<const Face> a_faces, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
-      const T distToFace = std::sqrt(a_faces[i].unsignedDistance2(a_point, mesh));
+      const T distToFace = std::sqrt(a_faces[static_cast<uint32_t>(i)].unsignedDistance2(a_point, mesh));
 
       EBGEOMETRY_EXPECT(!std::isnan(distToFace));
 

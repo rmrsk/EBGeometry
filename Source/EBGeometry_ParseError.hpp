@@ -77,6 +77,20 @@ private:
   std::string m_reason;
 };
 
+/**
+ * @brief What a file reader does with a mesh whose faces do not form a clean, closed surface.
+ * @details Covers the defects a reader can survive: neighbouring faces oriented inconsistently, an
+ * edge shared by three or more faces, and faces that fold back onto each other. Such a mesh loads
+ * and gives correct distances, but the sign of the distance near the defect is unreliable. Faults
+ * that would corrupt the half-edge mesh itself (an index out of range, a non-finite coordinate, a
+ * face that visits a vertex twice) always throw. Holes are never a defect.
+ */
+enum class OnDefect
+{
+  Throw, ///< Throw a ParseError naming the defect. The default.
+  Warn   ///< Print a warning to std::cerr and load the mesh anyway.
+};
+
 } // namespace Parser
 } // namespace EBGeometry
 

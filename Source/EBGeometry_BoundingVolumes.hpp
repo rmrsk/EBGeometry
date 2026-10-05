@@ -13,7 +13,6 @@
 
 // Std includes
 #include <cstddef>
-#include <ostream>
 #include <type_traits>
 #include <vector>
 
@@ -39,20 +38,6 @@ class SphereT
   static_assert(std::is_floating_point_v<T>, "SphereT<T>: T must be a floating-point type.");
 
 public:
-  /**
-   * @brief Output a bounding sphere to a stream in the form "(centroid, radius)".
-   * @param[in,out] os     Output stream.
-   * @param[in]     sphere Bounding sphere to print.
-   * @return Reference to @p os to allow chaining.
-   */
-  friend std::ostream&
-  operator<<(std::ostream& os, const SphereT<T>& sphere)
-  {
-    os << '(' << sphere.getCentroid() << ", " << sphere.getRadius() << ')';
-
-    return os;
-  }
-
   /**
    * @brief Algorithm used to compute a bounding sphere for a set of 3D points.
    */
@@ -289,20 +274,6 @@ class AABBT
   static_assert(std::is_floating_point_v<T>, "AABBT<T>: T must be a floating-point type.");
 
 public:
-  /**
-   * @brief Output an AABB to a stream in the form "(lo, hi)".
-   * @param[in,out] os   Output stream.
-   * @param[in]     aabb Bounding box to print.
-   * @return Reference to @p os to allow chaining.
-   */
-  friend std::ostream&
-  operator<<(std::ostream& os, const AABBT<T>& aabb)
-  {
-    os << '(' << aabb.getLowCorner() << ", " << aabb.getHighCorner() << ')';
-
-    return os;
-  }
-
   /**
    * @brief Alias to cut down on typing.
    */

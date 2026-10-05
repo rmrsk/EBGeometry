@@ -156,14 +156,16 @@ On failure the program prints what went wrong, the failed condition, the file an
 
    EBGeometry::BVHUnionIF: need one bounding volume per primitive (4 primitives, 3 bounding volumes)
      check: (a_primitives.size() == a_boundingVolumes.size())
-     file: Source/EBGeometry_CSGImplem.hpp
-     line: 70
+     file: Source/EBGeometry_BVHUnionImplem.hpp
+     line: 63
 
 The message argument is a ``printf`` format string literal, starting with the class or function
 that checks, followed by its arguments, so the compiler checks the format against the arguments.
 
 A mesh file that cannot be read is not a programming error, so the file readers throw
-``EBGeometry::Parser::ParseError`` instead of aborting; see :ref:`Chap:Parsers`.
+``EBGeometry::Parser::ParseError`` instead of aborting; see :ref:`Chap:Parsers`. A mesh whose
+faces are oriented inconsistently or fold back onto each other can be loaded with a warning
+instead, with ``Parser::OnDefect::Warn``; see :ref:`Sec:OnDefect`.
 
 .. _Sec:Assertions:
 

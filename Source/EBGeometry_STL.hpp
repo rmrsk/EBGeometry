@@ -20,6 +20,7 @@
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
+#include "EBGeometry_ParseError.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -126,16 +127,19 @@ public:
    * @brief Turn the STL mesh into a DCEL mesh.
    * @details This call does not populate any meta-data in the DCEL mesh structures.
    * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
-   * @param[in,out] a_pool Pool to reserve the constructed mesh's vertex/edge/face storage from.
+   * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
+   * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+   * faces, or faces that fold back onto each other throw (the default) or only print a warning.
    * @return Shared pointer to the constructed DCEL mesh.
    * @throws Parser::ParseError if the data cannot describe a mesh: a vertex index out of range, a
    * non-finite coordinate, a face that visits a vertex twice, or faces that cannot be joined into a
    * half-edge mesh (see Soup::findTopologyDefect), or faces that fold back onto each other (see
-   * Soup::findFoldedFeature).
+   * Soup::findFoldedFeature). With Parser::OnDefect::Warn the last two only print a warning; a face
+   * that visits a vertex twice still throws.
    */
   template <typename Meta>
   [[nodiscard]] std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-  convertToDCEL(Pool& a_pool) const;
+  convertToDCEL(Pool& a_pool, Parser::OnDefect a_onDefect = Parser::OnDefect::Throw) const;
 
 protected:
   /**

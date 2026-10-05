@@ -11,9 +11,13 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <iterator>
+#include <sstream>
 #include <string>
 #include <vector>
+
+#include <unistd.h>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -39,11 +43,13 @@ readBytes(const std::string& a_path)
   return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
-// Writes a_content to a scratch file with the given name and returns its path.
+// Writes a_content to a scratch file with the given name and returns its path. The directory is
+// private to this process: ctest runs the float and double copies of a test in parallel, and with a
+// shared directory one could rewrite a file while the other was reading it.
 std::string
 writeScratch(const std::string& a_name, const std::string& a_content)
 {
-  const auto dir = std::filesystem::temp_directory_path() / "ebgeometry_test_parser";
+  const auto dir = std::filesystem::temp_directory_path() / ("ebgeometry_test_parser_" + std::to_string(::getpid()));
 
   std::filesystem::create_directories(dir);
 
@@ -267,6 +273,103 @@ TEMPLATE_TEST_CASE("Parser: faces that cannot form a half-edge mesh throw ParseE
   // A flat, double-sided triangle: two copies with opposite windings. Every edge is shared correctly,
   // but the two faces on either side of it fold back onto each other.
   throwsWith(writeScratch("folded.obj", verts + "f 1 2 3\nf 1 3 2\n"), "fold back onto each other");
+}
+
+TEMPLATE_TEST_CASE("Parser: with OnDefect::Warn, inconsistent orientation and folds load with a warning",
+                   "[Parser][OnDefect]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const std::string verts   = "v 0 0 0\nv 1 0 0\nv 0 1 0\nv 0 0 1\n";
+  const std::string flipped = writeScratch("warn_flipped.obj", verts + "f 1 2 3\nf 1 2 4\nf 1 4 3\nf 2 3 4\n");
+  const std::string folded  = writeScratch("warn_folded.obj", verts + "f 1 2 3\nf 1 3 2\n");
+
+  Pool pool(hostMemoryResource());
+
+  // The default still throws.
+  REQUIRE_THROWS_AS((Parser::readIntoDCEL<T, Meta>(flipped, pool)), Parser::ParseError);
+
+  for (const auto& file : {flipped, folded}) {
+    INFO("file: " << file);
+
+    // The warning goes to std::cerr; capture it.
+    std::ostringstream captured;
+    std::streambuf*    old = std::cerr.rdbuf(captured.rdbuf());
+
+    DCEL::MeshT<T, Meta> mesh;
+
+    REQUIRE_NOTHROW(mesh = Parser::readIntoDCEL<T, Meta>(file, pool, Parser::OnDefect::Warn));
+
+    std::cerr.rdbuf(old);
+
+    REQUIRE(mesh.numFaces() > 0);
+    REQUIRE_THAT(captured.str(), Catch::Matchers::ContainsSubstring("loading it anyway"));
+
+    // The mesh answers queries, and the BVH agrees with the brute-force scan.
+    const FlatMeshSDF<T, Meta> flat(mesh, pool);
+    const MeshSDF<T, Meta, 4>  packed(mesh, pool, BVH::Construction::SAH);
+
+    for (const auto& q : {Vec3T<T>(T(0.2), T(0.2), T(0.2)), Vec3T<T>(T(2), T(-1), T(0.5))}) {
+      REQUIRE(std::isfinite(flat.signedDistance(q)));
+      REQUIRE(packed.signedDistance(q) == flat.signedDistance(q));
+    }
+  }
+
+  // Every reader that builds a mesh accepts the option.
+  std::ostringstream captured;
+  std::streambuf*    old = std::cerr.rdbuf(captured.rdbuf());
+
+  REQUIRE_NOTHROW(Parser::readIntoMesh<T, Meta>(flipped, pool, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(Parser::readIntoPackedBVH<T, Meta>(flipped, pool, BVH::Construction::SAH, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(
+    Parser::readIntoTriangleBVH<T, Meta>(flipped, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(
+    Parser::readIntoTriangleBVH<T, Meta>(folded, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(Parser::readIntoTriangles<T, Meta>(flipped, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(
+    Parser::readIntoDCEL<T, Meta>(std::vector<std::string>{flipped, folded}, pool, Parser::OnDefect::Warn));
+
+  // Near a fold only the sign is unreliable: the double-sided triangle lies in z = 0, so a point
+  // 0.5 above its interior is 0.5 away, whatever sign each mesh SDF gives it.
+  const Vec3T<T> above(T(0.2), T(0.2), T(0.5));
+
+  const auto foldMesh =
+    Parser::readIntoPackedBVH<T, Meta>(folded, pool, BVH::Construction::SAH, Parser::OnDefect::Warn);
+  const auto foldTris =
+    Parser::readIntoTriangleBVH<T, Meta>(folded, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn);
+
+  std::cerr.rdbuf(old);
+
+  REQUIRE_THAT(std::abs(foldMesh.signedDistance(above)), withinAbsT(T(0.5), looseMargin<T>()));
+  REQUIRE_THAT(std::abs(foldTris.signedDistance(above)), withinAbsT(T(0.5), looseMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("Parser: a face that visits a vertex twice throws even with OnDefect::Warn",
+                   "[Parser][OnDefect]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A cube of quads with one side written as a pentagon that returns to its first vertex. The
+  // half-edge mesh built from such a face is corrupt, so it is never loaded.
+  const std::string cube = "v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\nv 0 0 1\nv 1 0 1\nv 1 1 1\nv 0 1 1\n"
+                           "f 1 4 3 2\nf 5 6 7 8\nf 1 2 6 5\nf 2 3 7 6\nf 3 4 8 7\nf 4 1 5 8 1\n";
+
+  Pool pool(hostMemoryResource());
+
+  REQUIRE_THROWS_WITH(
+    (Parser::readIntoDCEL<T, Meta>(writeScratch("repeated_vertex.obj", cube), pool, Parser::OnDefect::Warn)),
+    Catch::Matchers::ContainsSubstring("visits the same vertex twice"));
+}
+
+TEST_CASE("Soup::findRepeatedVertex reports only a face that visits a vertex twice", "[Parser]")
+{
+  REQUIRE(Soup::findRepeatedVertex({{0, 2, 1}, {0, 1, 3}}).empty());
+  REQUIRE(Soup::findRepeatedVertex({{0, 1, 2}, {0, 1, 2, 3, 1}}) == "face 1 visits the same vertex twice");
+
+  // An edge used twice in one direction is findTopologyDefect's business, not this one's.
+  REQUIRE(Soup::findRepeatedVertex({{0, 1, 2}, {0, 1, 3}}).empty());
 }
 
 TEST_CASE("Soup::findTopologyDefect reports faces that cannot be joined into a half-edge mesh", "[Parser]")

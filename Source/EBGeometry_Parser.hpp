@@ -194,12 +194,15 @@ readVTK(const std::vector<std::string>& a_filenames);
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
  * The returned mesh resolves its storage through a_pool, so a_pool must outlive it.
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return The constructed DCEL mesh, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static EBGeometry::DCEL::MeshT<T, Meta>
-readIntoDCEL(const std::string a_filename, Pool& a_pool);
+readIntoDCEL(const std::string a_filename, Pool& a_pool, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read multiple files containing single watertight objects and return them as DCEL meshes.
@@ -208,12 +211,15 @@ readIntoDCEL(const std::string a_filename, Pool& a_pool);
  * @param[in]     a_files List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously.
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return Vector of the constructed DCEL meshes, one per file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::vector<EBGeometry::DCEL::MeshT<T, Meta>>
-readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool);
+readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read a file and return it as a bare DCEL signed-distance function (O(N) scan, no BVH).
@@ -222,12 +228,15 @@ readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool);
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
  * The returned FlatMeshSDF resolves its mesh through a_pool, so a_pool must outlive it.
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return The FlatMeshSDF over the parsed DCEL mesh, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static FlatMeshSDF<T, Meta>
-readIntoMesh(const std::string a_filename, Pool& a_pool);
+readIntoMesh(const std::string a_filename, Pool& a_pool, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read multiple files and return each as a bare DCEL signed-distance function.
@@ -236,12 +245,15 @@ readIntoMesh(const std::string a_filename, Pool& a_pool);
  * @param[in]     a_files List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously.
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return Vector of FlatMeshSDF objects, one per file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::vector<FlatMeshSDF<T, Meta>>
-readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool);
+readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read a file and return it enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
@@ -254,6 +266,9 @@ readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool);
  * @param[in,out] a_pool     Pool to reserve the underlying DCEL mesh's storage from. The
  * returned MeshSDF holds the mesh and its BVH in a_pool, so a_pool must outlive it.
  * @param[in]     a_construction    Preset BVH construction method. SAH is the default and recommended choice.
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return The MeshSDF enclosing the mesh, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
@@ -261,7 +276,8 @@ template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static MeshSDF<T, Meta, K>
 readIntoPackedBVH(const std::string       a_filename,
                   Pool&                   a_pool,
-                  const BVH::Construction a_construction = BVH::Construction::SAH);
+                  const BVH::Construction a_construction = BVH::Construction::SAH,
+                  const OnDefect          a_onDefect     = OnDefect::Throw);
 
 /**
  * @brief Read multiple files and return each enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
@@ -272,6 +288,9 @@ readIntoPackedBVH(const std::string       a_filename,
  * @param[in,out] a_pool  Pool to reserve every underlying DCEL mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously. Must outlive the returned MeshSDF objects.
  * @param[in]     a_construction Preset BVH construction method. SAH is the default and recommended choice.
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return Vector of MeshSDF objects, one per file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
@@ -279,7 +298,8 @@ template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static std::vector<MeshSDF<T, Meta, K>>
 readIntoPackedBVH(const std::vector<std::string>& a_files,
                   Pool&                           a_pool,
-                  const BVH::Construction         a_construction = BVH::Construction::SAH);
+                  const BVH::Construction         a_construction = BVH::Construction::SAH,
+                  const OnDefect                  a_onDefect     = OnDefect::Throw);
 
 /**
  * @brief Read a file and return the mesh enclosed in a SIMD-optimised triangle BVH.
@@ -300,6 +320,9 @@ readIntoPackedBVH(const std::vector<std::string>& a_files,
  * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W (see TriMeshSDF's mesh-based
  * constructor for the tree-quality/SIMD-occupancy trade-off). Defaults to 4.
  * @param[in]     a_construction         Preset BVH construction method. SAH is the default and recommended choice.
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return The TriMeshSDF enclosing the mesh, by value.
  */
 template <typename T,
@@ -310,7 +333,8 @@ template <typename T,
 readIntoTriangleBVH(const std::string       a_filename,
                     Pool&                   a_pool,
                     const size_t            a_maxLeafGroups = 4,
-                    const BVH::Construction a_construction  = BVH::Construction::SAH);
+                    const BVH::Construction a_construction  = BVH::Construction::SAH,
+                    const OnDefect          a_onDefect      = OnDefect::Throw);
 
 /**
  * @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
@@ -324,6 +348,9 @@ readIntoTriangleBVH(const std::string       a_filename,
  * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
  * the single-file overload for details). Defaults to 4.
  * @param[in]     a_construction         Preset BVH construction method. SAH is the default and recommended choice.
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return Vector of TriMeshSDF objects, one per file.
  */
 template <typename T,
@@ -334,7 +361,8 @@ template <typename T,
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
                     Pool&                           a_pool,
                     const size_t                    a_maxLeafGroups = 4,
-                    const BVH::Construction         a_construction  = BVH::Construction::SAH);
+                    const BVH::Construction         a_construction  = BVH::Construction::SAH,
+                    const OnDefect                  a_onDefect      = OnDefect::Throw);
 
 /**
  * @brief Read a file and return all faces as a flat list of Triangle objects.
@@ -345,24 +373,30 @@ readIntoTriangleBVH(const std::vector<std::string>& a_files,
  * The intermediate DCEL mesh lives in a Pool private to this call and is freed on return, so it
  * never occupies (or gets mirrored along with) any Pool of the caller's.
  * @param[in] a_filename File name (STL, PLY, VTK or OBJ).
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return Flat vector of Triangle objects, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<Triangle<T, Meta>>
-readIntoTriangles(const std::string a_filename);
+readIntoTriangles(const std::string a_filename, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read multiple files and return all faces from each as flat lists of Triangle objects.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
  * @tparam Meta Per-face metadata type.
  * @param[in] a_files List of file names (STL, PLY, VTK or OBJ).
+ * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
+ * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
+ * warning (OnDefect::Warn); see OnDefect.
  * @return Outer vector indexed by file; each inner vector is the flat triangle list for that file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<std::vector<Triangle<T, Meta>>>
-readIntoTriangles(const std::vector<std::string>& a_files);
+readIntoTriangles(const std::vector<std::string>& a_files, const OnDefect a_onDefect = OnDefect::Throw);
 } // namespace Parser
 
 } // namespace EBGeometry
