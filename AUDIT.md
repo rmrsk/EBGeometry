@@ -127,7 +127,8 @@ behaviour and hold it as a member, which removes the duplication but keeps the r
 - `Build::Morton` means `TreeBVH::bottomUpSortAndPartition` in `MeshSDF` and `TriMeshSDF`, and the
   padded `PackedBVH` SFC constructor in `BVHUnionIF`.
 - Leaf-size rules differ: `< K` in `DefaultLeafPredicate`, `≤ maxLeafGroups·W` in `TriMeshSDF`,
-  and `ClusterSpec` leaves hold up to (K−1)·`maxClusterSize`.
+  and `ClusterSpec` leaves hold up to (K−1)·`maxClusterSize`. (Reassessed later as a tuning and API
+  gap, not an inconsistency to unify; see BVH-2 in section 6.)
 - `ClusterSAH`, `Midpoint` and `Hilbert` can't be reached through `Build`.
 - Partitioners are `std::function`s over `shared_ptr` lists that allocate per node. `LeafPredicate`
   takes a `TreeBVH&`, so even the "direct" top-down constructor builds probe `TreeBVH`s.
@@ -143,7 +144,8 @@ behaviour and hold it as a member, which removes the duplication but keeps the r
   `PrimAndBV`/`PrimitiveList`, and both `traverse()` functions with their seven `std::function`
   aliases. `MeshSDF::getClosestFaces`, the only `traverse()` caller, becomes a `pruneTraverse` use.
 - **One build-spec value type** (strategy, curve, max leaf size) interpreted identically by every
-  consumer, replacing the `Build` enum.
+  consumer, replacing the `Build` enum. *Not adopted:* `BVH::Construction` stays the method
+  selector (17c), and leaf size is set per method rather than with one universal bound (BVH-2).
 - **Empty child slots** (sentinel child, inverted box ⇒ +inf distance ⇒ pruned at push) instead of
   duplicate-leaf padding. This is the BVH-1 fix and costs no traversal change.
 - **A wide-node layout**: child SoA boxes, child indices and per-child leaf ranges, no per-node
@@ -359,8 +361,10 @@ starts.
 - [ ] **Visit-once BVHs.** Union opcodes (min, two-smallest, sums) require each primitive to be
       visited exactly once (BVH-1).
 - [ ] **Layouts, not self-locating descriptors**, for everything the tape will embed (§2.1).
-- [ ] **One BVH build path** with one leaf-size meaning, and an adopt-pool-resident constructor
-      (§2.2).
+- [ ] **An adopt-pool-resident `PackedBVH` constructor** (§2.2), so the tape can produce BVHs
+      without a host round trip. The single build path was dropped in item 17 (D2 amended), and a
+      single leaf-size meaning is not needed: the tape's builder chooses its leaf setting
+      explicitly, like any other consumer (BVH-2).
 - [ ] **A K policy**: one K per precision for tape BVHs, or a K-generic opcode, plus a device stack
       budget that accounts for nesting (a union of `TriMeshSDF`s runs a traversal inside a traversal).
 - [ ] **One mesh primitive** with a `uint32` element id and ISA-independent K/W (§2.3).
@@ -479,7 +483,7 @@ Phase 0 is complete. Items 7–10 were:
 | 14. Fixed K and W (D7) | Done; defaults are 4, host-tuned values opt-in, `Examples/HostTuning` | `92aae41` |
 | 15. Location, step one (D1, MEM-2, MEM-8) | Done; the layout/handle split remains the first tape step | `3145b5a` |
 | 16. GPU test harness (QA-5/13) | Done; the tests also run in every host build, emulated. No lane runs a real kernel yet (no GPU runner) | `2e4f700` |
-| 17. Stack, empty leaves, SIMD rows, builder fixes (BVH-5/8/11/12/13) | Done, narrowly: a first, wider version (`6c58ae0`: one builder, a wide-node layout, `TreeBVH` retired) was reverted in `9481022`, since code outside EBGeometry relies on `TreeBVH`'s custom partitioners. BVH-2 (one build rule) is open; the template custom traversal is 17d | `051f53c` |
+| 17. Stack, empty leaves, SIMD rows, builder fixes (BVH-5/8/11/12/13) | Done, narrowly: a first, wider version (`6c58ae0`: one builder, a wide-node layout, `TreeBVH` retired) was reverted in `9481022`, since code outside EBGeometry relies on `TreeBVH`'s custom partitioners. BVH-2 is reframed as leaf-size settings per construction method (section 6); the template custom traversal is 17d | `051f53c` |
 | 17c. Preset construction methods (BVH-2, in part) | Done: the enum, renamed `BVH::Build` → `BVH::Construction`, names each algorithm (`CentroidSplit`, `MidpointSplit`, `SAH`, `ClusterSAH`, `Morton`, `Nested`, `Hilbert`; `TopDown` removed), every library user accepts every value, and an unknown value aborts (MeshSDF/TriMeshSDF printed to `std::cerr` and packed an unpartitioned tree). `SphereT::define` aborts on an unknown algorithm or an empty list too. Leaf-size rules still differ per user | `8df456b` |
 | 17d. Template custom traversal (D2 amended) | Done: `PackedBVH::traverse()` takes its four callbacks as template parameters and a fixed stack sized from the tree depth, so device code can call it; host code passing the `std::function` aliases still compiles. Children reach the orderer as `BVH::NodeAndKey` instead of `std::pair`. An empty BVH visits nothing | `64a205e` |
 | 18. Header splits (§2.8, BVH-14, CSG-17, MEM-21) | Done: `EBGeometry_PackedBVH.hpp` (no SFC, no `TreeBVH`), `EBGeometry_TreeBVH.hpp` (`TreeBVH`, the partitioners, `pack()`/`packWith()`) and `EBGeometry_BVHBuild.hpp` (`PackedBVH`'s builder constructors); `EBGeometry_Blend.hpp` and `EBGeometry_BVHUnion.hpp` (neither pulls in `ImplicitFunction` or the transforms) beside the legacy `EBGeometry_CSG.hpp`; `operator<<` for `Vec3T`/`AABBT`/`SphereT` in `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp` and `EBGeometry_CSG.hpp` include the new headers, so existing includes still work. Other headers still include `<iostream>` for `std::cerr` | `9d4de69`, `68e975e`, `0773239` |
@@ -517,7 +521,8 @@ Findings from item 17:
 - **Deep trees on adversarial input.** SAH and midpoint splits give trees whose depth grows linearly
   on a geometric sequence of points (352 levels for 1100 points). The host limit is 256 levels, so
   such a build aborts with a message rather than overflowing the stack; an equal-count fallback
-  would keep them shallow, and is part of the open BVH-2 question.
+  would keep them shallow. It is independent of leaf size, but touches the same partitioners, so
+  it fits the BVH-2 change.
 - **Four integrations do not compile, independently of this item.** `Integrations/AMReX` and
   `Integrations/Chombo` `PackedSpheres`/`RandomCity` still call the BVH unions in a form older
   than the Pool; they are not built by CI. Item 22 (D13) ports them.
@@ -545,6 +550,7 @@ Findings from item 17:
 |------|--------|--------|
 | 19a. Face ids for the mesh side (D3, MESH-4/6/7/17) | Done: no `Meta` template parameter on the DCEL classes, `Triangle`, `TriangleAoSoA`, the mesh SDFs or the parsers; a face's id is its index in the mesh (the readers keep file order, minus removed zero-area faces), and triangles carry the id of the face they were cut from. `MeshSDF`'s BVH stores face ids and reads the faces from the mesh, so a flip or a reconcile-and-refit after the build is seen (MESH-4); its primitive array is 4 bytes per face instead of 88 (MESH-17), and queries on the armadillo mesh are about 15% slower from the indirection. `getClosestFace()`, on all three mesh SDFs and device-callable, returns the closest face's id and signed distance, replacing `MeshSDF::getClosestFaces` and `TriMeshSDF::getClosestTriangle` (MESH-7). The point clouds keep `Meta` until item 20 | `f7f07ce` |
 | 19b. Parser renames (MESH-12), one polygon-soup container (MESH-11) | Open | |
+| BVH-2. Leaf-size settings per construction method | Open: every consumer (`MeshSDF`, `TriMeshSDF`, `BVHUnionIF`, `BVHSmoothUnionIF`, the `readInto*` functions) accepts optional settings, and each `Construction` method reads its own: a maximum leaf size for the top-down methods, a target leaf size for the space-filling curves, a `ClusterSpec` for ClusterSAH. Defaults stay as today, per consumer, and are documented where the method is chosen. Optionally the equal-count fallback for deep trees (item 17 finding) | |
 
 19. **Mesh SDFs** (D3): `uint32` face id replaces `Meta`; `MeshSDF` leaves store face indices;
     `getClosestFace` on `pruneTraverse`; parser renames (MESH-12); one polygon-soup container (MESH-11).
@@ -608,7 +614,7 @@ report), or no (judgement).
 | ID | Sev | Cat | Finding | Where | Verified |
 |----|-----|-----|---------|-------|----------|
 | BVH-1 | BLOCKER | correctness | SFC constructor pads leaves by duplicating the last one: wrong smooth unions under Morton/Nested, >N primitive evaluations near that leaf, ~2× nodes | BVHImplem 814-844 | **R** |
-| BVH-2 | MAJOR | api | `Build` and leaf size mean different things in each consumer; ClusterSAH/Midpoint/Hilbert unreachable | MeshDistanceFunctionsImplem 55-265, CSGImplem 103-118 | yes |
+| BVH-2 | MINOR | api | `Build` and leaf size mean different things in each consumer; ClusterSAH/Midpoint/Hilbert unreachable. *Reassessed:* the enum half was fixed in 17c (`BVH::Construction`, every value reachable everywhere). The leaf-size half is a tuning gap, not a correctness problem: `MeshSDF` and `BVHUnionIF` expose no leaf size, `TriMeshSDF`'s `maxLeafGroups` is ignored by the space-filling-curve methods, and the defaults are not documented per method. A universal "at most n per leaf" was rejected: the methods have different natural settings (a maximum for top-down splits, an even-split target for the curves, a cluster size for ClusterSAH), so leaf size is set per method. Not a tape prerequisite | MeshDistanceFunctionsImplem 55-265, CSGImplem 103-118 | yes |
 | BVH-3 | MAJOR | design | `TreeBVH` no longer justified; build logic duplicated ~7 ways | BVH 808-1134, BVHImplem | yes |
 | BVH-4 | MAJOR | design | `std::function`/`shared_ptr` partitioners and a `TreeBVH&` leaf predicate couple `PackedBVH` to `TreeBVH` | BVH 221-234, BVHImplem 914-940 | yes |
 | BVH-5 | MAJOR | gpu | 64-entry device stack: depth ≤ 5 at K=16, ≤ 10 at K=8; realistic trees abort in `rebasedView` | BVH 1912-1957 | yes |
