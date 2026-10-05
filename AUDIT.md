@@ -541,12 +541,18 @@ Findings from item 17:
 
 ### Phase 2 — consolidation and retirement
 
+| Item | Status | Commit |
+|------|--------|--------|
+| 19a. Face ids for the mesh side (D3, MESH-4/6/7/17) | Done: no `Meta` template parameter on the DCEL classes, `Triangle`, `TriangleAoSoA`, the mesh SDFs or the parsers; a face's id is its index in the mesh (the readers keep file order, minus removed zero-area faces), and triangles carry the id of the face they were cut from. `MeshSDF`'s BVH stores face ids and reads the faces from the mesh, so a flip or a reconcile-and-refit after the build is seen (MESH-4); its primitive array is 4 bytes per face instead of 88 (MESH-17), and queries on the armadillo mesh are about 15% slower from the indirection. `getClosestFace()`, on all three mesh SDFs and device-callable, returns the closest face's id and signed distance, replacing `MeshSDF::getClosestFaces` and `TriMeshSDF::getClosestTriangle` (MESH-7). The point clouds keep `Meta` until item 20 | 19a |
+| 19b. Parser renames (MESH-12), one polygon-soup container (MESH-11) | Open | |
+
 19. **Mesh SDFs** (D3): `uint32` face id replaces `Meta`; `MeshSDF` leaves store face indices;
     `getClosestFace` on `pruneTraverse`; parser renames (MESH-12); one polygon-soup container (MESH-11).
 20. **Point clouds** (D9): one `Hit` type with a `uint32` index, a shared k-best helper, the hash grid
     on Pool/`PODVector` (PC-4/7/8/10/12/14).
 21. **Retirements** (D2) and **union names** (D11). `TreeBVH`, `pack`/`packWith` and the
-    partitioners stay (D2 amended); `PackedBVH::traverse()` waits on the custom-traversal design.
+    partitioners stay (D2 amended); `PackedBVH::traverse()` became the template custom traversal
+    (17d) instead of being retired.
 22. **Integrations and examples** (D13, QA-1/17/18/19).
 23. **Planning documents** (D14).
 

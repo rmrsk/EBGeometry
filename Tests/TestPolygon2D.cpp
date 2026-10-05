@@ -31,22 +31,20 @@ allAlgorithms()
 
 // Test-only subclass that exposes FaceT's protected point-in-face test (used internally by
 // signedDistance()) so the containment algorithms can be exercised directly. MeshT stores plain
-// FaceT<T,Meta> by value (no polymorphism), so this can't be the type actually stored in a mesh's
+// FaceT<T> by value (no polymorphism), so this can't be the type actually stored in a mesh's
 // face array; instead, castIsPointInsideFace() below reinterprets a real mesh-owned FaceT as this
 // subclass to call the promoted method. That's safe here because AccessibleFace adds no data
 // members and no virtual functions -- the `using` declaration only changes name visibility, so the
 // call resolves to the exact same non-virtual FaceT method on the exact same object.
 template <class T>
-struct AccessibleFace : public DCEL::FaceT<T, DCEL::DefaultMetaData>
+struct AccessibleFace : public DCEL::FaceT<T>
 {
-  using DCEL::FaceT<T, DCEL::DefaultMetaData>::isPointInsideFace;
+  using DCEL::FaceT<T>::isPointInsideFace;
 };
 
 template <class T>
 [[nodiscard]] bool
-castIsPointInsideFace(DCEL::FaceT<T, DCEL::DefaultMetaData>&       a_face,
-                      const Vec3T<T>&                              a_point,
-                      const DCEL::MeshT<T, DCEL::DefaultMetaData>& a_mesh)
+castIsPointInsideFace(DCEL::FaceT<T>& a_face, const Vec3T<T>& a_point, const DCEL::MeshT<T>& a_mesh)
 {
   return static_cast<AccessibleFace<T>&>(a_face).isPointInsideFace(a_point, a_mesh);
 }
@@ -58,11 +56,10 @@ castIsPointInsideFace(DCEL::FaceT<T, DCEL::DefaultMetaData>&       a_face,
 template <class T>
 struct BuiltFace
 {
-  using Meta   = DCEL::DefaultMetaData;
-  using Mesh   = DCEL::MeshT<T, Meta>;
-  using Vertex = DCEL::VertexT<T, Meta>;
-  using Edge   = DCEL::EdgeT<T, Meta>;
-  using Face   = DCEL::FaceT<T, Meta>;
+  using Mesh   = DCEL::MeshT<T>;
+  using Vertex = DCEL::VertexT<T>;
+  using Edge   = DCEL::EdgeT<T>;
+  using Face   = DCEL::FaceT<T>;
 
   // m_mesh's vertex/edge/face storage is reserved from m_pool, and m_mesh is bound to it (see the
   // constructor) -- both members must stay together at a fixed address, so BuiltFace is not safe

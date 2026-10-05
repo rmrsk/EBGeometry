@@ -23,15 +23,15 @@
 
 namespace EBGeometry {
 
-template <class T, class Meta>
-Triangle<T, Meta>::Triangle(const Array<Vec3T<T>, 3>& a_vertexPositions) noexcept
+template <class T>
+Triangle<T>::Triangle(const Array<Vec3T<T>, 3>& a_vertexPositions) noexcept
 {
   this->setVertexPositions(a_vertexPositions);
 }
 
-template <class T, class Meta>
+template <class T>
 void
-Triangle<T, Meta>::setNormal(const Vec3T<T>& a_normal) noexcept
+Triangle<T>::setNormal(const Vec3T<T>& a_normal) noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
@@ -41,9 +41,9 @@ Triangle<T, Meta>::setNormal(const Vec3T<T>& a_normal) noexcept
   this->m_triangleNormal = a_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 void
-Triangle<T, Meta>::setVertexPositions(const Array<Vec3T<T>, 3>& a_vertexPositions) noexcept
+Triangle<T>::setVertexPositions(const Array<Vec3T<T>, 3>& a_vertexPositions) noexcept
 {
   for ([[maybe_unused]] const auto& v : a_vertexPositions) {
     EBGEOMETRY_EXPECT(std::isfinite(v[0]));
@@ -56,9 +56,9 @@ Triangle<T, Meta>::setVertexPositions(const Array<Vec3T<T>, 3>& a_vertexPosition
   this->computeNormal();
 }
 
-template <class T, class Meta>
+template <class T>
 void
-Triangle<T, Meta>::setVertexNormals(const Array<Vec3T<T>, 3>& a_vertexNormals) noexcept
+Triangle<T>::setVertexNormals(const Array<Vec3T<T>, 3>& a_vertexNormals) noexcept
 {
   for ([[maybe_unused]] const auto& n : a_vertexNormals) {
     EBGEOMETRY_EXPECT(std::isfinite(n[0]));
@@ -72,9 +72,9 @@ Triangle<T, Meta>::setVertexNormals(const Array<Vec3T<T>, 3>& a_vertexNormals) n
   m_vertexNormals = a_vertexNormals;
 }
 
-template <class T, class Meta>
+template <class T>
 void
-Triangle<T, Meta>::setEdgeNormals(const Array<Vec3T<T>, 3>& a_edgeNormals) noexcept
+Triangle<T>::setEdgeNormals(const Array<Vec3T<T>, 3>& a_edgeNormals) noexcept
 {
   for ([[maybe_unused]] const auto& n : a_edgeNormals) {
     EBGEOMETRY_EXPECT(std::isfinite(n[0]));
@@ -88,16 +88,16 @@ Triangle<T, Meta>::setEdgeNormals(const Array<Vec3T<T>, 3>& a_edgeNormals) noexc
   m_edgeNormals = a_edgeNormals;
 }
 
-template <class T, class Meta>
+template <class T>
 void
-Triangle<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
+Triangle<T>::setFaceId(const uint32_t a_faceId) noexcept
 {
-  this->m_metaData = a_metaData;
+  this->m_faceId = a_faceId;
 }
 
-template <class T, class Meta>
+template <class T>
 void
-Triangle<T, Meta>::computeNormal() noexcept
+Triangle<T>::computeNormal() noexcept
 {
   const Vec3T<T> x2x0 = m_vertexPositions[2] - m_vertexPositions[0];
   const Vec3T<T> x2x1 = m_vertexPositions[2] - m_vertexPositions[1];
@@ -113,44 +113,44 @@ Triangle<T, Meta>::computeNormal() noexcept
   }
 }
 
-template <class T, class Meta>
+template <class T>
 const Vec3T<T>&
-Triangle<T, Meta>::getNormal() const noexcept
+Triangle<T>::getNormal() const noexcept
 {
   return this->m_triangleNormal;
 }
 
-template <class T, class Meta>
+template <class T>
 const Array<Vec3T<T>, 3>&
-Triangle<T, Meta>::getVertexPositions() const noexcept
+Triangle<T>::getVertexPositions() const noexcept
 {
   return this->m_vertexPositions;
 }
 
-template <class T, class Meta>
+template <class T>
 const Array<Vec3T<T>, 3>&
-Triangle<T, Meta>::getVertexNormals() const noexcept
+Triangle<T>::getVertexNormals() const noexcept
 {
   return this->m_vertexNormals;
 }
 
-template <class T, class Meta>
+template <class T>
 const Array<Vec3T<T>, 3>&
-Triangle<T, Meta>::getEdgeNormals() const noexcept
+Triangle<T>::getEdgeNormals() const noexcept
 {
   return this->m_edgeNormals;
 }
 
-template <class T, class Meta>
-const Meta&
-Triangle<T, Meta>::getMetaData() const noexcept
+template <class T>
+uint32_t
+Triangle<T>::getFaceId() const noexcept
 {
-  return this->m_metaData;
+  return this->m_faceId;
 }
 
-template <class T, class Meta>
+template <class T>
 T
-Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
+Triangle<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));

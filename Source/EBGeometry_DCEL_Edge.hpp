@@ -54,14 +54,11 @@ namespace DCEL {
  * explicitly-supplied Mesh&, so the entire public and protected interface is
  * annotated EBGEOMETRY_HOST_DEVICE.
  * @tparam T    Floating-point precision.
- * @tparam Meta Meta-data type stored per edge.
  */
-template <class T, class Meta>
+template <class T>
 class EdgeT
 {
-  static_assert(std::is_floating_point_v<T>, "EdgeT<T,Meta>: T must be a floating-point type");
-  static_assert(std::is_trivially_copyable_v<Meta>,
-                "EdgeT<T,Meta> requires a trivially copyable Meta (device-visible storage)");
+  static_assert(std::is_floating_point_v<T>, "EdgeT<T>: T must be a floating-point type");
 
 public:
   /**
@@ -72,22 +69,22 @@ public:
   /**
    * @brief Alias for vertex type
    */
-  using Vertex = VertexT<T, Meta>;
+  using Vertex = VertexT<T>;
 
   /**
    * @brief Alias for edge type
    */
-  using Edge = EdgeT<T, Meta>;
+  using Edge = EdgeT<T>;
 
   /**
    * @brief Alias for face type
    */
-  using Face = FaceT<T, Meta>;
+  using Face = FaceT<T>;
 
   /**
    * @brief Alias for mesh type
    */
-  using Mesh = MeshT<T, Meta>;
+  using Mesh = MeshT<T>;
 
   /**
    * @brief Default constructor. Sets all topology indices to the unset sentinel and vectors to
@@ -97,8 +94,8 @@ public:
 
   /**
    * @brief Copy constructor.
-   * @details Defaulted memberwise copy of every member -- the normal vector, all four topology
-   * indices (vertex, pair edge, next edge, face), and meta-data. This is what lets EdgeT be
+   * @details Defaulted memberwise copy of every member -- the normal vector, and all four topology
+   * indices (vertex, pair edge, next edge, face). This is what lets EdgeT be
    * trivially copyable: `std::is_trivially_copyable` requires the copy constructor to be the
    * implicit/defaulted one, so a user-provided body -- even one that does nothing but a plain
    * memberwise copy -- would disqualify it. operator=(const Edge&) has identical semantics.
@@ -216,14 +213,6 @@ public:
   EBGEOMETRY_HOST_DEVICE
   inline void
   setFace(const uint32_t a_faceIndex) noexcept;
-
-  /**
-   * @brief Set the meta-data.
-   * @param[in] a_metaData Meta-data.
-   */
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  setMetaData(const Meta& a_metaData) noexcept;
 
   /**
    * @brief Get the index of the starting vertex.
@@ -375,22 +364,6 @@ public:
   getFace(const Mesh& a_mesh) const noexcept;
 
   /**
-   * @brief Get meta-data
-   * @return m_metaData
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Meta&
-  getMetaData() noexcept;
-
-  /**
-   * @brief Get meta-data
-   * @return m_metaData
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Meta&
-  getMetaData() const noexcept;
-
-  /**
    * @brief Get the signed distance from a_x0 to this half-edge.
    * @details Checks whether a_x0 projects onto the edge segment or past one of
    * the end vertices. If it projects to a vertex, the signed distance to that
@@ -445,14 +418,6 @@ protected:
   uint32_t m_face = UINT32_MAX;
 
   /**
-   * @brief Meta-data attached to this edge
-   * @details Value-initialized so that every constructor leaves it in a defined state: for a
-   * fundamental Meta type (e.g. short, int), a member with no initializer and no explicit mention
-   * in a constructor's member-initializer list is left indeterminate, not zero.
-   */
-  Meta m_metaData{};
-
-  /**
    * @brief Returns the parametric projection of a_x0 onto this edge.
    * @details Parametrizes the edge as x(t) = x1 + (x2-x1)*t and computes t
    * such that x(t) is the closest point to a_x0. Returns t in (-inf, +inf);
@@ -476,10 +441,8 @@ protected:
   getX2X1(const Mesh& a_mesh) const noexcept;
 };
 
-static_assert(std::is_trivially_copyable_v<EdgeT<float, DefaultMetaData>>,
-              "EdgeT<float,DefaultMetaData> must be trivially copyable");
-static_assert(std::is_trivially_copyable_v<EdgeT<double, DefaultMetaData>>,
-              "EdgeT<double,DefaultMetaData> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<EdgeT<float>>, "EdgeT<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<EdgeT<double>>, "EdgeT<double> must be trivially copyable");
 
 } // namespace DCEL
 

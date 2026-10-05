@@ -39,8 +39,8 @@ namespace DCEL {
  * resolved by passing that mesh to the accessors below (see EdgeT for why
  * indices rather than pointers are used). It is the sole topology this class
  * stores: which faces touch this vertex is not cached here. Every member is a
- * plain value (Vec3, uint32_t, Meta), so as long as Meta and T are trivially
- * copyable, VertexT itself is trivially copyable.
+ * plain value (Vec3, uint32_t), so VertexT itself is trivially copyable. A vertex's
+ * id is its index in the mesh's vertex array.
  * computeVertexNormalAverage()/computeVertexNormalAngleWeighted() take the
  * touching-faces list as an explicit parameter instead: MeshT::reconcileVertices()
  * builds it transiently by walking every face's own boundary loop (no pair edges
@@ -50,20 +50,16 @@ namespace DCEL {
  * callers who want O(1) access to some edge leaving this vertex.
  * @note Every method that resolves purely through plain-value members and an
  * explicitly-supplied Mesh& (getPosition/getNormal/getOutgoingEdgeIndex/
- * getOutgoingEdge, define, setPosition/setNormal/setEdge/setMetaData,
- * normalizeNormalVector, flipNormal, signedDistance, unsignedDistance2,
- * getMetaData) is annotated EBGEOMETRY_HOST_DEVICE. computeVertexNormalAverage()
+ * getOutgoingEdge, define, setPosition/setNormal/setEdge,
+ * normalizeNormalVector, flipNormal, signedDistance, unsignedDistance2) is annotated EBGEOMETRY_HOST_DEVICE. computeVertexNormalAverage()
  * and computeVertexNormalAngleWeighted() take a std::vector<uint32_t>& and (in
  * the angle-weighted case) use std::cerr, so both remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision.
- * @tparam Meta Meta-data type stored per vertex.
  */
-template <class T, class Meta>
+template <class T>
 class VertexT
 {
-  static_assert(std::is_floating_point_v<T>, "VertexT<T,Meta>: T must be a floating-point type");
-  static_assert(std::is_trivially_copyable_v<Meta>,
-                "VertexT<T,Meta> requires a trivially copyable Meta (device-visible storage)");
+  static_assert(std::is_floating_point_v<T>, "VertexT<T>: T must be a floating-point type");
 
 public:
   /**
@@ -74,34 +70,32 @@ public:
   /**
    * @brief Alias for vertex type
    */
-  using Vertex = VertexT<T, Meta>;
+  using Vertex = VertexT<T>;
 
   /**
    * @brief Alias for edge type
    */
-  using Edge = EdgeT<T, Meta>;
+  using Edge = EdgeT<T>;
 
   /**
    * @brief Alias for face type
    */
-  using Face = FaceT<T, Meta>;
+  using Face = FaceT<T>;
 
   /**
    * @brief Alias for mesh type
    */
-  using Mesh = MeshT<T, Meta>;
+  using Mesh = MeshT<T>;
 
   /**
    * @brief Alias for edge iterator
    */
-  using EdgeIterator = EdgeIteratorT<T, Meta>;
+  using EdgeIterator = EdgeIteratorT<T>;
 
   /**
    * @brief Default constructor.
    * @details Defaulted: the position and normal vectors zero-initialize via Vec3T's own default
-   * constructor, the outgoing edge index defaults to the unset sentinel (see m_outgoingEdge), and
-   * the meta-data value-initializes (see m_metaData). Not marked noexcept since Meta is an
-   * unconstrained template parameter whose default constructor is not guaranteed to be noexcept.
+   * constructor, and the outgoing edge index defaults to the unset sentinel (see m_outgoingEdge).
    */
   VertexT() = default;
 
@@ -127,8 +121,8 @@ public:
   /**
    * @brief Copy constructor.
    * @param[in] a_otherVertex Other vertex.
-   * @details Defaulted memberwise copy of every member -- position, normal vector, outgoing edge
-   * index, and meta-data. This is what lets VertexT be trivially copyable:
+   * @details Defaulted memberwise copy of every member -- position, normal vector and outgoing edge
+   * index. This is what lets VertexT be trivially copyable:
    * `std::is_trivially_copyable` requires the copy constructor to be the implicit/defaulted one, so
    * a user-provided body -- even one that does nothing but a plain memberwise copy -- would
    * disqualify it. operator=(const Vertex&) has identical semantics.
@@ -203,14 +197,6 @@ public:
   EBGEOMETRY_HOST_DEVICE
   inline void
   setEdge(const uint32_t a_edgeIndex) noexcept;
-
-  /**
-   * @brief Set the meta-data.
-   * @param[in] a_metaData Meta-data.
-   */
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  setMetaData(const Meta& a_metaData) noexcept;
 
   /**
    * @brief Normalize the normal vector, ensuring its length is 1
@@ -343,22 +329,6 @@ public:
   inline T
   unsignedDistance2(const Vec3& a_x0) const noexcept;
 
-  /**
-   * @brief Get meta-data
-   * @return m_metaData
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Meta&
-  getMetaData() noexcept;
-
-  /**
-   * @brief Get meta-data
-   * @return m_metaData
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Meta&
-  getMetaData() const noexcept;
-
 protected:
   /**
    * @brief Index of an outgoing edge from this vertex.
@@ -377,20 +347,10 @@ protected:
    * @brief Vertex normal vector
    */
   Vec3 m_normal;
-
-  /**
-   * @brief Meta-data for this vertex
-   * @details Value-initialized so that every constructor leaves it in a defined state: for a
-   * fundamental Meta type (e.g. short, int), a member with no initializer and no explicit
-   * mention in a constructor's member-initializer list is left indeterminate, not zero.
-   */
-  Meta m_metaData{};
 };
 
-static_assert(std::is_trivially_copyable_v<VertexT<float, DefaultMetaData>>,
-              "VertexT<float,DefaultMetaData> must be trivially copyable");
-static_assert(std::is_trivially_copyable_v<VertexT<double, DefaultMetaData>>,
-              "VertexT<double,DefaultMetaData> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<VertexT<float>>, "VertexT<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<VertexT<double>>, "VertexT<double> must be trivially copyable");
 
 } // namespace DCEL
 

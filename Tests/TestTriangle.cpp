@@ -14,7 +14,7 @@ using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
 template <class T>
-using Tri = Triangle<T, short>;
+using Tri = Triangle<T>;
 
 // Shared test geometry: a right triangle in the z = 0 plane with vertices
 //   V0 = (0,0,0), V1 = (4,0,0), V2 = (0,4,0)

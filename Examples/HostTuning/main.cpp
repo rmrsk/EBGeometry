@@ -129,8 +129,8 @@ try {
 
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const auto portable = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool);
-    const auto tuned    = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, HostK, HostW>(file, pool);
+    const auto portable = EBGeometry::Parser::readIntoTriangleBVH<T>(file, pool);
+    const auto tuned    = EBGeometry::Parser::readIntoTriangleBVH<T, HostK, HostW>(file, pool);
 
     const auto box  = portable.computeBoundingVolume();
     const T    size = (box.getHighCorner() - box.getLowCorner()).length();

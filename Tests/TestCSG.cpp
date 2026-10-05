@@ -457,10 +457,8 @@ bruteTwoNearest(const std::vector<SphereSDF<T>>& a_spheres, const Vec3T<T>& a_po
   return a_blend(a, b, a_smoothLen);
 }
 
-using TestMeta = DCEL::DefaultMetaData;
-
 template <class T>
-using TestTriMesh = TriMeshSDF<T, TestMeta, 4, 4>;
+using TestTriMesh = TriMeshSDF<T, 4, 4>;
 
 // A 3x2 grid of dodecahedra (circumradius ~1.4), each translated before its TriMeshSDF is built, all
 // in a_pool. This is how a union of several copies of one mesh is built without a Translate wrapper.
@@ -468,8 +466,7 @@ template <class T>
 std::vector<TestTriMesh<T>>
 dodecahedronGrid(Pool& a_pool)
 {
-  const auto triangles =
-    Parser::readIntoTriangles<T, TestMeta>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.obj");
+  const auto triangles = Parser::readIntoTriangles<T>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.obj");
 
   std::vector<TestTriMesh<T>> meshes;
 

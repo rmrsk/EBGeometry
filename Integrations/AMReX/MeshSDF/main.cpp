@@ -26,10 +26,9 @@ using namespace amrex;
 // never depend on compiler flags: a CUDA/HIP build compiles this file twice (a host pass and a device
 // pass), and the TriMeshSDF type must be identical in both.
 using T            = amrex::Real;
-using Meta         = EBGeometry::DCEL::DefaultMetaData;
 constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 constexpr size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
-using SDF          = EBGeometry::TriMeshSDF<T, Meta, K, W>;
+using SDF          = EBGeometry::TriMeshSDF<T, K, W>;
 
 /*!
   @brief AMReX implicit function wrapping an EBGeometry TriMeshSDF.
@@ -119,7 +118,7 @@ main(int argc, char* argv[])
     // before, and so destroyed after, everything that evaluates the SDF.
     EBGeometry::Pool hostPool(EBGeometry::hostMemoryResource());
 
-    const SDF hostSDF = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K, W>(filename, hostPool);
+    const SDF hostSDF = EBGeometry::Parser::readIntoTriangleBVH<T, K, W>(filename, hostPool);
 
 #if defined(AMREX_USE_GPU)
     // Copy the finished pool to the device in one piece, then rebase the SDF onto the copy.

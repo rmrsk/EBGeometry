@@ -158,7 +158,7 @@ TEMPLATE_TEST_CASE("VTK: convertToDCEL builds a mesh with the correct compressed
   REQUIRE(vtk.getFacets().size() == 4);
 
   Pool pool(hostMemoryResource());
-  auto mesh = vtk.template convertToDCEL<DCEL::DefaultMetaData>(pool);
+  auto mesh = vtk.convertToDCEL(pool);
 
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->numVertices() == 4); // Compressed down to the 4 unique corners.

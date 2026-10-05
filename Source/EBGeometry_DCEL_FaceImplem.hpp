@@ -27,17 +27,17 @@ namespace EBGeometry {
 
 namespace DCEL {
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline FaceT<T, Meta>::FaceT(const uint32_t a_edgeIndex)
+inline FaceT<T>::FaceT(const uint32_t a_edgeIndex)
 {
   m_halfEdge = a_edgeIndex;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::define(const Vec3& a_normal, const uint32_t a_edgeIndex) noexcept
+FaceT<T>::define(const Vec3& a_normal, const uint32_t a_edgeIndex) noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
@@ -48,10 +48,10 @@ FaceT<T, Meta>::define(const Vec3& a_normal, const uint32_t a_edgeIndex) noexcep
   m_halfEdge = a_edgeIndex;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-FaceT<T, Meta>::reconcile(const Mesh& a_mesh)
+FaceT<T>::reconcile(const Mesh& a_mesh)
 {
   this->computeNormal(a_mesh);
   this->normalizeNormalVector();
@@ -60,34 +60,26 @@ FaceT<T, Meta>::reconcile(const Mesh& a_mesh)
   this->computeProjectionDirections();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::flipNormal() noexcept
+FaceT<T>::flipNormal() noexcept
 {
   m_normal = -m_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::setHalfEdge(const uint32_t a_halfEdgeIndex) noexcept
+FaceT<T>::setHalfEdge(const uint32_t a_halfEdgeIndex) noexcept
 {
   m_halfEdge = a_halfEdgeIndex;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
-{
-  m_metaData = a_metaData;
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline void
-FaceT<T, Meta>::normalizeNormalVector() noexcept
+FaceT<T>::normalizeNormalVector() noexcept
 {
   // A zero-area face keeps its zero normal; see computeNormal().
   const T length = m_normal.length();
@@ -97,18 +89,18 @@ FaceT<T, Meta>::normalizeNormalVector() noexcept
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
+FaceT<T>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 {
   m_insideOutsideAlgorithm = a_algorithm;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-FaceT<T, Meta>::computeCentroid(const Mesh& a_mesh)
+FaceT<T>::computeCentroid(const Mesh& a_mesh)
 {
   m_centroid = Vec3::zeros();
 
@@ -123,10 +115,10 @@ FaceT<T, Meta>::computeCentroid(const Mesh& a_mesh)
   m_centroid = m_centroid / vertexIndices.size();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
+FaceT<T>::computeNormal(const Mesh& a_mesh)
 {
   const auto vertexIndices = this->gatherVertexIndices(a_mesh);
 
@@ -160,10 +152,10 @@ FaceT<T, Meta>::computeNormal(const Mesh& a_mesh)
   this->normalizeNormalVector();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::computeProjectionDirections() noexcept
+FaceT<T>::computeProjectionDirections() noexcept
 {
   // A zero-area face has a zero normal and gets the x- and y-axes; they are never used, since
   // isPointInsideFace() reports no interior for it.
@@ -193,10 +185,10 @@ FaceT<T, Meta>::computeProjectionDirections() noexcept
   EBGEOMETRY_EXPECT(m_xDir != m_yDir);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-FaceT<T, Meta>::computeArea(const Mesh& a_mesh)
+FaceT<T>::computeArea(const Mesh& a_mesh)
 {
   T area = 0.0;
 
@@ -220,98 +212,82 @@ FaceT<T, Meta>::computeArea(const Mesh& a_mesh)
   m_area = T(0.5) * std::abs(area);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T&
-FaceT<T, Meta>::getArea() noexcept
+FaceT<T>::getArea() noexcept
 {
   return m_area;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline const T&
-FaceT<T, Meta>::getArea() const noexcept
+FaceT<T>::getArea() const noexcept
 {
   return m_area;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T&
-FaceT<T, Meta>::getCentroid(const size_t a_dir) noexcept
+FaceT<T>::getCentroid(const size_t a_dir) noexcept
 {
   return m_centroid[a_dir];
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline const T&
-FaceT<T, Meta>::getCentroid(const size_t a_dir) const noexcept
+FaceT<T>::getCentroid(const size_t a_dir) const noexcept
 {
   return m_centroid[a_dir];
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
-FaceT<T, Meta>::getCentroid() noexcept
+FaceT<T>::getCentroid() noexcept
 {
   return m_centroid;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
-FaceT<T, Meta>::getCentroid() const noexcept
+FaceT<T>::getCentroid() const noexcept
 {
   return m_centroid;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
-FaceT<T, Meta>::getNormal() noexcept
+FaceT<T>::getNormal() noexcept
 {
   return m_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
-FaceT<T, Meta>::getNormal() const noexcept
+FaceT<T>::getNormal() const noexcept
 {
   return m_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-FaceT<T, Meta>::getHalfEdgeIndex() const noexcept
+FaceT<T>::getHalfEdgeIndex() const noexcept
 {
   return m_halfEdge;
 }
 
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline Meta&
-FaceT<T, Meta>::getMetaData() noexcept
-{
-  return m_metaData;
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline const Meta&
-FaceT<T, Meta>::getMetaData() const noexcept
-{
-  return m_metaData;
-}
-
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline std::vector<uint32_t>
-FaceT<T, Meta>::gatherVertexIndices(const Mesh& a_mesh) const
+FaceT<T>::gatherVertexIndices(const Mesh& a_mesh) const
 {
   std::vector<uint32_t> vertexIndices;
   vertexIndices.reserve(3);
@@ -323,10 +299,10 @@ FaceT<T, Meta>::gatherVertexIndices(const Mesh& a_mesh) const
   return vertexIndices;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline std::vector<uint32_t>
-FaceT<T, Meta>::gatherEdgeIndices(const Mesh& a_mesh) const
+FaceT<T>::gatherEdgeIndices(const Mesh& a_mesh) const
 {
   std::vector<uint32_t> edgeIndices;
   edgeIndices.reserve(3);
@@ -338,10 +314,10 @@ FaceT<T, Meta>::gatherEdgeIndices(const Mesh& a_mesh) const
   return edgeIndices;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline std::vector<Vec3T<T>>
-FaceT<T, Meta>::getAllVertexCoordinates(const Mesh& a_mesh) const
+FaceT<T>::getAllVertexCoordinates(const Mesh& a_mesh) const
 {
   std::vector<Vec3> ret;
   ret.reserve(3);
@@ -353,10 +329,10 @@ FaceT<T, Meta>::getAllVertexCoordinates(const Mesh& a_mesh) const
   return ret;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::getSmallestCoordinate(const Mesh& a_mesh) const noexcept
+FaceT<T>::getSmallestCoordinate(const Mesh& a_mesh) const noexcept
 {
   // Seeded with the most-positive vector and reduced in place, rather than seeding from a
   // materialized coordinate list. The loop runs at least once for any face whose half-edge index is
@@ -371,10 +347,10 @@ FaceT<T, Meta>::getSmallestCoordinate(const Mesh& a_mesh) const noexcept
   return minCoord;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::getHighestCoordinate(const Mesh& a_mesh) const noexcept
+FaceT<T>::getHighestCoordinate(const Mesh& a_mesh) const noexcept
 {
   Vec3 maxCoord = Vec3::min();
 
@@ -385,10 +361,10 @@ FaceT<T, Meta>::getHighestCoordinate(const Mesh& a_mesh) const noexcept
   return maxCoord;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::projectPointIntoFacePlane(const Vec3& a_p) const noexcept
+FaceT<T>::projectPointIntoFacePlane(const Vec3& a_p) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_p[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_p[1]));
@@ -397,10 +373,10 @@ FaceT<T, Meta>::projectPointIntoFacePlane(const Vec3& a_p) const noexcept
   return a_p - m_normal * (m_normal.dot(a_p - m_centroid));
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec2T<T>
-FaceT<T, Meta>::projectPoint(const Vec3& a_point) const noexcept
+FaceT<T>::projectPoint(const Vec3& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_xDir < 3);
   EBGEOMETRY_EXPECT(m_yDir < 3);
@@ -408,10 +384,10 @@ FaceT<T, Meta>::projectPoint(const Vec3& a_point) const noexcept
   return Vec2T<T>(a_point[m_xDir], a_point[m_yDir]);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline int
-FaceT<T, Meta>::computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
+FaceT<T>::computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
 {
   int wn = 0;
 
@@ -444,10 +420,10 @@ FaceT<T, Meta>::computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh
   return wn;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline size_t
-FaceT<T, Meta>::computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
+FaceT<T>::computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
 {
   size_t cn = 0;
 
@@ -476,10 +452,10 @@ FaceT<T, Meta>::computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mes
   return cn;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-FaceT<T, Meta>::computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
+FaceT<T>::computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
 {
   constexpr T pi = EBGeometry::pi<T>;
 
@@ -509,10 +485,10 @@ FaceT<T, Meta>::computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mes
   return sumTheta;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline bool
-FaceT<T, Meta>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noexcept
+FaceT<T>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(m_xDir < 3);
   EBGEOMETRY_EXPECT(m_yDir < 3);
@@ -544,10 +520,10 @@ FaceT<T, Meta>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noe
   return false;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-FaceT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
+FaceT<T>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
@@ -574,10 +550,10 @@ FaceT<T, Meta>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexc
   return retval;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
+FaceT<T>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));

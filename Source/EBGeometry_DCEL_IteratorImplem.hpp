@@ -22,45 +22,45 @@ namespace EBGeometry {
 
 namespace DCEL {
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Mesh& a_mesh, const Face& a_face) noexcept
+inline EdgeIteratorT<T>::EdgeIteratorT(const Mesh& a_mesh, const Face& a_face) noexcept
 {
   m_mesh      = &a_mesh;
   m_startEdge = a_face.getHalfEdgeIndex();
   m_curEdge   = m_startEdge;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Mesh& a_mesh, const uint32_t a_startEdgeIndex) noexcept
+inline EdgeIteratorT<T>::EdgeIteratorT(const Mesh& a_mesh, const uint32_t a_startEdgeIndex) noexcept
 {
   m_mesh      = &a_mesh;
   m_startEdge = a_startEdgeIndex;
   m_curEdge   = m_startEdge;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-EdgeIteratorT<T, Meta>::operator()() const noexcept
+EdgeIteratorT<T>::operator()() const noexcept
 {
   return m_curEdge;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-EdgeIteratorT<T, Meta>::reset() noexcept
+EdgeIteratorT<T>::reset() noexcept
 {
   m_curEdge  = m_startEdge;
   m_fullLoop = false;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-EdgeIteratorT<T, Meta>::operator++() noexcept
+EdgeIteratorT<T>::operator++() noexcept
 {
   EBGEOMETRY_EXPECT(m_curEdge != UINT32_MAX);
   EBGEOMETRY_EXPECT(m_mesh != nullptr);
@@ -69,10 +69,10 @@ EdgeIteratorT<T, Meta>::operator++() noexcept
   m_fullLoop = (m_curEdge == m_startEdge);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline bool
-EdgeIteratorT<T, Meta>::ok() const noexcept
+EdgeIteratorT<T>::ok() const noexcept
 {
   return !m_fullLoop && m_curEdge != UINT32_MAX;
 }

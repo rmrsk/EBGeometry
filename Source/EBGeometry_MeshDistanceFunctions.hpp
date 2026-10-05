@@ -34,6 +34,20 @@
 namespace EBGeometry {
 
 /**
+ * @brief The face of a mesh closest to a query point, as the mesh SDFs' getClosestFace() returns it.
+ * @details A plain, trivially copyable value, so getClosestFace() is callable on a device. When
+ * several faces are equally close (a point nearest an edge or vertex they share), the first one found
+ * is reported.
+ * @tparam T Floating-point precision type.
+ */
+template <class T>
+struct ClosestFace
+{
+  T        signedDistance = Math::Limits<T>::max(); ///< Signed distance to the closest face; negative inside.
+  uint32_t faceId         = UINT32_MAX;             ///< Id of the closest face; UINT32_MAX for an empty mesh.
+};
+
+/**
  * @brief Signed distance function for a DCEL mesh. Does not use BVHs.
  * @details Iterates over every face of the mesh on every query -- O(N) per call. Suitable only for
  * very small meshes, debugging, and as a brute-force reference for the BVH-accelerated mesh SDFs.
@@ -55,9 +69,8 @@ namespace EBGeometry {
  * myKernel<<<blocks, threads>>>(deviceSDF, ...);
  * @endcode
  * @tparam T    Floating-point precision type (float or double).
- * @tparam Meta Triangle metadata type stored on each DCEL face.
  */
-template <class T, class Meta = DCEL::DefaultMetaData>
+template <class T>
 class FlatMeshSDF
 {
   static_assert(std::is_floating_point_v<T>, "FlatMeshSDF requires a floating-point T");
@@ -66,7 +79,7 @@ public:
   /**
    * @brief Alias for DCEL mesh type
    */
-  using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
+  using Mesh = EBGeometry::DCEL::MeshT<T>;
 
   /**
    * @brief Disallowed constructor
@@ -94,6 +107,19 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Find the face closest to a_point, and the signed distance to it.
+   * @details Scans every face with the rule of DCEL::MeshT::SearchAlgorithm::Direct2, the mesh's
+   * default: the face with the smallest unsigned distance wins.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The closest face's id (its index in the mesh) and signed distance. The signed distance
+   * equals what signedDistance() returns for the same point, unless the mesh's search algorithm was
+   * changed (DCEL::MeshT::setSearchAlgorithm()).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline ClosestFace<T>
+  getClosestFace(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Get the underlying DCEL mesh descriptor.
@@ -179,10 +205,11 @@ static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>>, "FlatMeshSDF<do
 /**
  * @brief Signed distance function for a DCEL mesh, accelerated by a PackedBVH over its faces.
  * Accepts any polygon, not just triangles.
- * @details The mesh faces are packed into a flat-array PackedBVH; SIMD node pruning is used when T
- * and K match an available ISA path. Each packed face is a copy of the corresponding DCEL face,
- * whose half-edge is an index into the mesh's own edge array, so MeshSDF holds the mesh as well and
- * passes it to every face query that resolves topology.
+ * @details The BVH's primitives are face ids: indices into the mesh's face array, four bytes each.
+ * Every query resolves a face through the mesh, which MeshSDF holds as well, so the mesh is the only
+ * copy of the geometry: flipping the mesh (DCEL::MeshT::flip()) after building flips every distance,
+ * and after moving vertices, reconciling the mesh and refitting the BVH (see getRoot()) is enough.
+ * SIMD node pruning is used when T and K match an available ISA path.
  *
  * A plain value type, like FlatMeshSDF: it holds the mesh descriptor and the BVH by value, both
  * resolving against the one Pool passed to the constructor, so it is trivially copyable and
@@ -191,10 +218,9 @@ static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>>, "FlatMeshSDF<do
  * share the pool memory, and the pool must outlive all of them. To evaluate on a device, freeze and
  * mirror the pool and pass rebasedView() into a kernel.
  * @tparam T    Floating-point precision type (float or double).
- * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).
  */
-template <class T, class Meta, size_t K>
+template <class T, size_t K>
 class MeshSDF
 {
   static_assert(std::is_floating_point_v<T>, "MeshSDF requires a floating-point T");
@@ -204,17 +230,17 @@ public:
   /**
    * @brief Alias for DCEL face type
    */
-  using Face = typename EBGeometry::DCEL::FaceT<T, Meta>;
+  using Face = typename EBGeometry::DCEL::FaceT<T>;
 
   /**
    * @brief Alias for DCEL mesh type
    */
-  using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
+  using Mesh = typename EBGeometry::DCEL::MeshT<T>;
 
   /**
-   * @brief Alias for the linearized BVH root
+   * @brief Alias for the linearized BVH root. Its primitives are face ids.
    */
-  using Root = EBGeometry::BVH::PackedBVH<T, Face, K>;
+  using Root = EBGeometry::BVH::PackedBVH<T, uint32_t, K>;
 
   /**
    * @brief Alias for a single linearized node
@@ -251,32 +277,29 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Return faces within BVH-pruned candidate distance of a_point.
-   * @details Traverses the PackedBVH and collects candidate faces, pairing each with its unsigned
-   * distance to @p a_point. Host-only: it runs on PackedBVH::traverse(), whose callbacks are
-   * std::functions, and returns a std::vector.
-   *
-   * Faces are named by their index into this object's own BVH primitive array -- the array
-   * getRoot().getPrimitives() returns -- and *not* by an index into the source mesh's face array.
-   * Packing reorders primitives into leaf order and stores them by value, so nothing records which
-   * mesh face a packed face came from. Resolve an index with getRoot().getPrimitives()[index].
-   * @param[in] a_point  Query point.
-   * @param[in] a_sorted If true, the returned vector is sorted by ascending
-   * unsigned distance (closest face first).
-   * @return Vector of (BVH primitive index, unsigned_distance) pairs, optionally sorted.
+   * @brief Find the face closest to a_point, and the signed distance to it.
+   * @details The same BVH traversal as signedDistance() (PackedBVH::pruneTraverse), keeping the
+   * winning face's id as well, so it is callable on a device too.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The closest face's id (its index in the mesh) and signed distance. The signed distance
+   * equals what signedDistance() returns for the same point.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline std::vector<std::pair<uint32_t, T>>
-  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline ClosestFace<T>
+  getClosestFace(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Get the PackedBVH enclosing the mesh.
-   * @details Mutable, so that PackedBVH::refit() can be called on it. That alone does not make
-   * moving the mesh's vertices safe: refit() recomputes only the node bounding boxes, while each
-   * packed face is a by-value copy whose cached normal, centroid, area and projection axes were
-   * taken at build time, and nothing refreshes them -- signedDistance() would mix live vertex data
-   * from the mesh with stale face data. After moving vertices, reconcile the mesh and build a new
-   * MeshSDF.
+   * @details Mutable, so that PackedBVH::refit() can be called on it. After moving the mesh's
+   * vertices, reconcile the mesh (DCEL::MeshT::reconcile()), which recomputes its normals, then
+   * refit with each face's new bounding box:
+   * @code
+   * sdf.getRoot().refit([&mesh](uint32_t a_face) {
+   *   return BoundingVolumes::AABBT<T>(mesh.getFace(a_face).getAllVertexCoordinates(mesh));
+   * });
+   * @endcode
+   * This is enough because the BVH stores face ids and reads the faces from the mesh. A deformation
+   * large enough to degrade the tree still calls for a rebuild.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -345,8 +368,8 @@ public:
   /**
    * @brief Duplicate the mesh's and the BVH's storage into @p a_dstPool.
    * @details The copy constructor copies descriptors only. This gives genuinely independent storage.
-   * The copied faces still index the copied mesh correctly, since a mesh deep copy preserves every
-   * element's index.
+   * The copied face ids still name the right faces of the copied mesh, since a mesh deep copy
+   * preserves every element's index.
    * @param[in,out] a_dstPool Pool to reserve the copy from; may be this object's own pool.
    * @return A MeshSDF over independent copies of the mesh and BVH, attached to @p a_dstPool.
    */
@@ -380,13 +403,12 @@ private:
 
   /**
    * @brief Source DCEL mesh descriptor.
-   * @details Held because the faces in m_bvh store their half-edge as an index into this mesh's
-   * edge array, meaningful only together with it.
+   * @details The BVH's primitives are face ids into this mesh, meaningful only together with it.
    */
   Mesh m_mesh;
 
   /**
-   * @brief Linearized BVH over copies of the mesh's faces.
+   * @brief Linearized BVH over the mesh's face ids.
    */
   Root m_bvh;
 };
@@ -394,18 +416,19 @@ private:
 /**
  * @brief Signed distance function for a pure triangle mesh using SoA-grouped primitives
  * in a compact (linearized) BVH.
- * @details Triangles are packed into metadata-carrying SoA groups of W triangles each
- * (TriangleAoSoA<T,Meta,W>), enabling SIMD evaluation of up to W signed distances simultaneously.
+ * @details Triangles are packed into SoA groups of W triangles each (TriangleAoSoA<T,W>), enabling
+ * SIMD evaluation of up to W signed distances simultaneously.
  *
  * No default arguments: this is a low-level constructor, and callers who excavate down to it
  * must consciously choose K and W. BVH::DefaultBranchingRatio<T>() and TriangleSoA::DefaultWidth<T>()
  * (both 4) are the portable choice, and Parser::readIntoTriangleBVH's defaults.
  *
- * Each leaf primitive is a TriangleAoSoA<T, Meta, W>: an SoA triangle block for SIMD signed-distance
- * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
- * never reads the metadata; getClosestTriangle() does, returning the closest triangle's signed
- * distance together with its Meta (see issue #105). The groups are self-contained -- no reference
- * back to a mesh -- so the packed BVH is the only thing this class holds.
+ * Each leaf primitive is a TriangleAoSoA<T, W>: an SoA triangle block for SIMD signed-distance
+ * evaluation, plus a physically separate per-lane array of face ids, the index of the mesh face each
+ * triangle was cut from. The hot signedDistance() path never reads the ids; getClosestFace() does,
+ * returning the closest triangle's signed distance together with its face id (see issue #105). The
+ * groups are self-contained -- no reference back to a mesh -- so the packed BVH is the only thing
+ * this class holds, and a mesh changed after the build is not seen.
  *
  * A plain value type, like FlatMeshSDF and MeshSDF: the BVH is held by value in the Pool passed to
  * the constructor, so the class is trivially copyable and every query is callable on the host and
@@ -413,14 +436,13 @@ private:
  * the pool must outlive all of them. To evaluate on a device, freeze and mirror the pool and pass
  * rebasedView() into a kernel.
  * @tparam T    Floating-point precision type (float or double).
- * @tparam Meta Triangle metadata type.
  * @tparam K    BVH branching factor (number of children per internal node). Must be >= 2.
  * @tparam W    SoA width: number of triangles per SIMD group. Must be > 0.
  */
-template <class T, class Meta, size_t K, size_t W>
+template <class T, size_t K, size_t W>
 class TriMeshSDF
 {
-  static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
+  static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,K,W> requires a floating-point T");
   static_assert(K >= 2, "TriMeshSDF requires branching factor K >= 2");
   static_assert(W > 0, "TriMeshSDF requires SoA width W > 0");
 
@@ -428,34 +450,22 @@ public:
   /**
    * @brief Alias for DCEL mesh type
    */
-  using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
+  using Mesh = EBGeometry::DCEL::MeshT<T>;
 
   /**
    * @brief Alias for the flat triangle type the BVH is built from.
    */
-  using Tri = typename EBGeometry::Triangle<T, Meta>;
+  using Tri = typename EBGeometry::Triangle<T>;
 
   /**
-   * @brief Alias for the metadata-carrying SoA triangle group type (the BVH leaf primitive).
+   * @brief Alias for the face-id-carrying SoA triangle group type (the BVH leaf primitive).
    */
-  using TriAoSoA = TriangleAoSoA<T, Meta, W>;
+  using TriAoSoA = TriangleAoSoA<T, W>;
 
   /**
    * @brief Alias for which BVH root node
    */
   using Root = typename EBGeometry::BVH::PackedBVH<T, TriAoSoA, K>;
-
-  /**
-   * @brief Result of getClosestTriangle(): the signed distance to the closest triangle and that
-   * triangle's metadata.
-   * @details Recovers per-triangle metadata for the single nearest triangle through the SIMD SoA
-   * path. @c signedDistance equals what signedDistance() returns for the same point.
-   */
-  struct ClosestTriangle
-  {
-    T    signedDistance = Math::Limits<T>::max(); ///< Signed distance to the closest triangle.
-    Meta metaData{};                              ///< Metadata of the closest triangle.
-  };
 
   /**
    * @brief Default disallowed constructor
@@ -466,7 +476,8 @@ public:
    * @brief Full constructor. Extracts flat triangles from a DCEL mesh, then builds the BVH.
    * @details No default arguments: this is a low-level constructor, and callers who excavate down
    * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
-   * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups.
+   * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups, each
+   * carrying the id of the face it was cut from.
    * @param[in]     a_mesh          DCEL mesh. Faces with more than three vertices are fan-triangulated.
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
    * @param[in]     a_construction         Preset construction method; every BVH::Construction value is supported.
@@ -493,6 +504,7 @@ public:
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
    * @param[in]     a_triangles     Input triangle soup; copied into the BVH's SoA groups.
+   * getClosestFace() reports the face id each triangle carries (Triangle::getFaceId()).
    * @param[in,out] a_pool          Pool the packed BVH is reserved from; must outlive this object.
    * @param[in]     a_construction         Preset BVH construction method (see the mesh-based constructor for details).
    * @param[in]     a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
@@ -514,19 +526,18 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Signed distance to the closest triangle, together with that triangle's metadata.
-   * @details The metadata-retrieving companion to signedDistance(): it drives the same SIMD-pruned
+   * @brief Find the face closest to a_point, and the signed distance to it.
+   * @details The face-id-retrieving companion to signedDistance(): it drives the same SIMD-pruned
    * BVH traversal (PackedBVH::pruneTraverse), but each visited leaf group reports the winning
-   * triangle's metadata via TriangleAoSoA::signedDistance(point, Meta&), so the result carries both
-   * the signed distance and the Meta of the nearest triangle -- the supported path for callers who
-   * need both maximum SIMD throughput and per-triangle metadata retrieval (see issue #105). The
-   * result's @c signedDistance equals what signedDistance() would return for the same point.
+   * triangle's face id via TriangleAoSoA::signedDistance(point, uint32_t&) (see issue #105).
    * @param[in] a_point Query point. Must be finite.
-   * @return The closest triangle's signed distance and metadata.
+   * @return The face id of the closest triangle and the signed distance to it. The signed distance
+   * agrees with what signedDistance() returns for the same point up to rounding: signedDistance()
+   * reduces each leaf group with SIMD instructions, this function lane by lane.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline ClosestTriangle
-  getClosestTriangle(const Vec3T<T>& a_point) const noexcept;
+  inline ClosestFace<T>
+  getClosestFace(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Get the PackedBVH storing SoA triangle groups.
@@ -683,14 +694,12 @@ private:
  * @brief MeshSDF and TriMeshSDF must be trivially copyable: that is what lets a rebasedView() be
  * byte-copied into a device address space with no pointer patching.
  */
-static_assert(std::is_trivially_copyable_v<MeshSDF<float, DCEL::DefaultMetaData, 4>>,
-              "MeshSDF<float, ...> must be trivially copyable");
-static_assert(std::is_trivially_copyable_v<MeshSDF<double, DCEL::DefaultMetaData, 4>>,
-              "MeshSDF<double, ...> must be trivially copyable");
-static_assert(std::is_trivially_copyable_v<TriMeshSDF<float, DCEL::DefaultMetaData, 4, 4>>,
-              "TriMeshSDF<float, ...> must be trivially copyable");
-static_assert(std::is_trivially_copyable_v<TriMeshSDF<double, DCEL::DefaultMetaData, 4, 4>>,
-              "TriMeshSDF<double, ...> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<MeshSDF<float, 4>>, "MeshSDF<float, 4> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<MeshSDF<double, 4>>, "MeshSDF<double, 4> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TriMeshSDF<float, 4, 4>>,
+              "TriMeshSDF<float, 4, 4> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TriMeshSDF<double, 4, 4>>,
+              "TriMeshSDF<double, 4, 4> must be trivially copyable");
 
 } // namespace EBGeometry
 

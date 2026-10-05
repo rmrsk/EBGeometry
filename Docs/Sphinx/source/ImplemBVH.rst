@@ -332,8 +332,8 @@ via one of two ``TreeBVH`` member functions:
 *  ``packWith<Q, Converter>()`` additionally *converts* the primitive type while flattening: the
    source tree holds primitives of type ``P``, and a user-supplied ``Converter`` is called once
    per leaf to produce the ``Q`` values that the resulting ``PackedBVH<T, Q, K>`` will store.
-   This is how ``TriMeshSDF`` turns a tree of individual ``Triangle<T, Meta>`` primitives into a
-   ``PackedBVH`` whose leaves hold SIMD-width ``TriangleAoSoA<T, Meta, W>`` groups instead — see
+   This is how ``TriMeshSDF`` turns a tree of individual ``Triangle<T>`` primitives into a
+   ``PackedBVH`` whose leaves hold SIMD-width ``TriangleAoSoA<T, W>`` groups instead — see
    :ref:`Chap:MeshSDFClasses`.
 
 See `the doxygen page for TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ for
@@ -721,28 +721,29 @@ BVH type, and supported geometry:
      - BVH type
      - Traversal
      - Notes
-   * - ``FlatMeshSDF<T, Meta>``
+   * - ``FlatMeshSDF<T>``
      - DCEL mesh
      - None
      - O(N) scan
      - Debug / tiny meshes only; no build cost
-   * - ``MeshSDF<T, Meta, K>``
+   * - ``MeshSDF<T, K>``
      - DCEL mesh
-     - ``PackedBVH`` over ``DCEL::FaceT``
+     - ``PackedBVH`` over face ids
      - ``pruneTraverse()`` (SIMD when ``(K, T)`` matches a compiled ISA path)
      - Any polygon mesh; not restricted to triangles
-   * - ``TriMeshSDF<T, Meta, K, W>``
+   * - ``TriMeshSDF<T, K, W>``
      - DCEL mesh or triangle soup
      - ``PackedBVH`` over ``TriangleAoSoA`` groups
      - ``pruneTraverse()`` over SoA-packed leaves
-     - Triangle meshes only; highest throughput; metadata via ``getClosestTriangle()``
+     - Triangle meshes only; highest throughput
 
 ``FlatMeshSDF`` is useful for correctness checks and tiny meshes. See `its doxygen page
 <doxygen/html/classEBGeometry_1_1FlatMeshSDF.html>`__.
 
 ``FlatMeshSDF`` is a plain value type that can be evaluated on a GPU. It holds the DCEL mesh
-descriptor by value and nothing else, so it is trivially copyable, and ``signedDistance()`` and
-``computeBoundingVolume()`` (the vertex AABB) are callable on both host and device. It deliberately
+descriptor by value and nothing else, so it is trivially copyable, and ``signedDistance()``,
+``getClosestFace()`` and ``computeBoundingVolume()`` (the vertex AABB) are callable on both host
+and device. It deliberately
 does not derive from ``SignedDistanceFunction``: a class with virtual functions carries a pointer to
 a host-side function table and can never be passed to a kernel. As a consequence it cannot currently
 be used where an ``ImplicitFunction`` is expected, such as the CSG and transform factories. As for
@@ -755,22 +756,31 @@ was when it was constructed. ``MeshSDF`` and ``TriMeshSDF`` follow the same patt
 criteria shown above (a leaf-eval and a pruning rule, not the full four-callback ``traverse()``
 shape) and drives them through ``PackedBVH::pruneTraverse()``, picking up SIMD node pruning
 whenever ``(K, T)`` matches a compiled ISA path and testing the children with a scalar loop
-otherwise. See `its doxygen page <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
+otherwise. Its BVH stores face ids, four bytes each, and every leaf test reads the face from the
+mesh; see "Primitive storage" below. See `its doxygen page
+<doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
 
 ``MeshSDF`` and ``TriMeshSDF`` are plain value types exactly like ``FlatMeshSDF``: ``MeshSDF``
 holds the mesh descriptor and its ``PackedBVH`` by value, ``TriMeshSDF`` just its ``PackedBVH``,
 all reserved from the one ``Pool`` passed to the constructor. Both are trivially copyable,
 constructed without ``shared_ptr``\ s, and neither derives from ``SignedDistanceFunction``.
-``signedDistance()``, ``TriMeshSDF::getClosestTriangle()``, ``getRoot()`` and
-``computeBoundingVolume()`` are callable on host and device; ``rebasedView(pool)`` and
-``deepCopy(pool)`` return the class itself, so a rebased copy is what a kernel receives.
-``MeshSDF::getClosestFaces()`` stays host-only, since it runs on the ``std::function``-based
-``traverse()``. As for ``FlatMeshSDF``, none of the three can currently be used as an
-``ImplicitFunction`` (in the CSG or transform factories).
+``signedDistance()``, ``getClosestFace()``, ``getRoot()`` and ``computeBoundingVolume()`` are
+callable on host and device; ``rebasedView(pool)`` and ``deepCopy(pool)`` return the class itself,
+so a rebased copy is what a kernel receives. As for ``FlatMeshSDF``, none of the three can currently
+be used as an ``ImplicitFunction`` (in the CSG or transform factories).
+
+All three report the face closest to a point with ``getClosestFace(point)``, which returns a
+`ClosestFace <doxygen/html/structEBGeometry_1_1ClosestFace.html>`__: the signed distance, equal to
+what ``signedDistance()`` returns (up to rounding for ``TriMeshSDF``, whose ``signedDistance()``
+reduces each leaf group with SIMD instructions), and the face id, the face's index in the mesh (see :ref:`Sec:FaceIds`). ``MeshSDF`` and ``TriMeshSDF`` run the same
+pruned traversal as ``signedDistance()``, keeping the winning face's id as they go. Where several
+faces are equally close, at a point nearest an edge or vertex they share, the first one found is
+reported. The returned id indexes whatever per-face data the caller keeps, such as a material or
+boundary condition.
 
 ``TriMeshSDF`` is the recommended default for triangle meshes: it packs triangles into
 Structure-of-Arrays groups of width ``W`` (via ``TreeBVH::packWith()``, see above) and builds the
-same kind of thin ``pruneTraverse()`` wrapper as ``MeshSDF``, over ``TriangleAoSoA<T, Meta, W>``
+same kind of thin ``pruneTraverse()`` wrapper as ``MeshSDF``, over ``TriangleAoSoA<T, W>``
 leaves instead of individual faces, so that on a matching ``(K, T)`` combination each BVH leaf
 evaluates ``W`` triangles with a single SIMD register operation, and even the AABB-vs-running-best
 comparisons during descent are done on squared distances (no square root) until the very last
@@ -778,36 +788,37 @@ step. See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__
 page for TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage
 itself.
 
-Just as ``MeshSDF::getClosestFaces()`` recovers the nearest face (and its ``Meta``) for a DCEL mesh,
-``TriMeshSDF::getClosestTriangle()`` recovers the nearest triangle's signed distance *and* its
-metadata through the SIMD SoA path -- the supported route when you need both maximum SIMD throughput
-and per-triangle metadata retrieval. Each leaf group is a ``TriangleAoSoA<T, Meta, W>``: a
-geometry-only ``TriangleSoAT<T, W>`` plus a physically-separate per-lane ``Array<Meta, W>`` (the
-same metadata-carrying wrapper relationship ``PointAoSoA`` has with ``PointSoAT``). The hot
-``signedDistance()`` path never reads the metadata array; only ``getClosestTriangle()`` does, taking a
-scalar per-lane step to recover the winning lane. See `the doxygen page for TriangleAoSoA
+``TriMeshSDF::getClosestFace()`` recovers the nearest triangle's face id through the SIMD SoA path.
+Each leaf group is a ``TriangleAoSoA<T, W>``: a geometry-only ``TriangleSoAT<T, W>`` plus a
+physically separate per-lane ``Array<uint32_t, W>`` of face ids, the index of the mesh face each
+triangle was cut from (the same wrapper relationship ``PointAoSoA`` has with ``PointSoAT``). The hot
+``signedDistance()`` path never reads the id array; only ``getClosestFace()`` does, taking a scalar
+per-lane step to recover the winning lane. A ``TriMeshSDF`` built from a triangle soup reports the
+id each ``Triangle`` carries (``Triangle::setFaceId()``). See `the doxygen page for TriangleAoSoA
 <doxygen/html/structEBGeometry_1_1TriangleAoSoA.html>`__.
 
 What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
 :ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
 
-Primitive storage: Facets or triangles
-______________________________________
+Primitive storage: Face ids or triangles
+________________________________________
 
-Both classes store their primitives inline, by value, but what that copy *means* differs:
+The two classes store very different primitives:
 
-*  ``MeshSDF``'s primitive is a ``DCEL::FaceT<T, Meta>``: a plain, trivially-copyable value -- every
-   member is a scalar, a ``Vec3``, or a ``uint32_t`` index -- so copying one into the packed array
-   is cheap and free of aliasing. What a copied face is *not* is self-contained: it stores its
-   half-edge as an index into its owning mesh's edge array rather than a self-resolving reference,
-   so it is only meaningful together with that mesh. ``MeshSDF`` therefore retains the source mesh
-   and passes it to every face query that has to resolve topology (point-in-face tests, signed
-   distance).
-*  ``TriMeshSDF``'s primitive is a ``TriangleAoSoA<T, Meta, W>`` group, which, unlike
-   ``DCEL::FaceT``, is fully self-contained -- a plain aggregate of coordinate arrays plus a
-   per-lane metadata array, with no index into anything else, built fresh by
-   ``groupTrianglesIntoSoA()`` during packing. Nothing outside the BVH owns those groups, so there
-   is no array for an index to refer to even in principle.
+*  ``MeshSDF``'s primitive is a face id, a ``uint32_t`` index into the mesh's face array. A face
+   is only meaningful together with its mesh anyway -- it stores its half-edge as an index into the
+   mesh's edge array -- so ``MeshSDF`` holds the mesh and reads every face it tests from it. The
+   mesh is the only copy of the geometry: flipping the mesh after the build (``MeshT::flip()``)
+   flips every distance, and after moving vertices, ``mesh.reconcile()`` followed by
+   ``getRoot().refit()`` with each face's new bounding box brings the BVH up to date (see `the
+   doxygen page for MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__). The primitive
+   array takes 4 bytes per face rather than the 88 of a face copy. The price is an indirection:
+   the faces are read in mesh order rather than leaf order, which made queries on the armadillo
+   mesh (100k faces) about 15% slower than with copies, near the surface and away from it alike.
+*  ``TriMeshSDF``'s primitive is a ``TriangleAoSoA<T, W>`` group, which is fully self-contained --
+   a plain aggregate of coordinate arrays plus a per-lane face-id array, with no index into
+   anything else, built fresh by ``groupTrianglesIntoSoA()`` during packing. ``TriMeshSDF`` does
+   not keep the mesh, so a change to the mesh after the build is not seen.
 
 Neither is affected by copying the distance field itself: a copy of a ``MeshSDF``/``TriMeshSDF``
 is a copy of its descriptors, which resolve against the same pool memory, so the packed data exists

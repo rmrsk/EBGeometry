@@ -34,8 +34,6 @@ using Catch::Matchers::WithinRel;
 
 namespace {
 
-using Meta = DCEL::DefaultMetaData;
-
 std::string
 dataPath(const std::string& a_filename)
 {
@@ -110,10 +108,10 @@ traversalMargin()
 // order versus another.
 template <class T, size_t K>
 std::vector<T>
-nearestDist2PerQueryPoint(const DCEL::MeshT<T, Meta>&                                                a_mesh,
-                          const BVH::PrimAndBVList<DCEL::FaceT<T, Meta>, BoundingVolumes::AABBT<T>>& a_primsAndBVs)
+nearestDist2PerQueryPoint(const DCEL::MeshT<T>&                                                a_mesh,
+                          const BVH::PrimAndBVList<DCEL::FaceT<T>, BoundingVolumes::AABBT<T>>& a_primsAndBVs)
 {
-  using Face = DCEL::FaceT<T, Meta>;
+  using Face = DCEL::FaceT<T>;
   using AABB = BoundingVolumes::AABBT<T>;
 
   Pool pool(hostMemoryResource());
@@ -159,10 +157,10 @@ TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical,
 
   Pool pool(hostMemoryResource());
 
-  const auto meshSTL = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
-  const auto meshPLY = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"), pool);
-  const auto meshOBJ = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
-  const auto meshVTK = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"), pool);
+  const auto meshSTL = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
+  const auto meshPLY = Parser::readIntoDCEL<T>(dataPath("dodecahedron.ply"), pool);
+  const auto meshOBJ = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
+  const auto meshVTK = Parser::readIntoDCEL<T>(dataPath("dodecahedron.vtk"), pool);
 
   // Every mesh below is queried directly through its own accessors; each attaches to pool on its
   // first reserve inside readIntoDCEL, so nothing has to be frozen or bound first.
@@ -197,9 +195,9 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   constexpr size_t K = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
 
-  using Face = DCEL::FaceT<T, Meta>;
+  using Face = DCEL::FaceT<T>;
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
   for (uint32_t i = 0; i < mesh.numFaces(); i++) {
@@ -208,8 +206,8 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   }
   REQUIRE(primsAndBVs.size() == 36);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
-  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
+  const FlatMeshSDF<T> flat(mesh, pool);
+  const auto           brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   // Every value of BVH::Construction is exercised through one BVH::TreeBVH built the same way MeshSDF
   // builds one internally (see MeshDistanceFunctionsDetail::buildDCELTreeBVH), so this covers the
@@ -278,10 +276,10 @@ TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: every compiled SIMD child-distance
 {
   using T    = TestType;
   using AABB = BoundingVolumes::AABBT<T>;
-  using Face = DCEL::FaceT<T, Meta>;
+  using Face = DCEL::FaceT<T>;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
 
@@ -336,12 +334,12 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
   constexpr size_t K = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
+  const FlatMeshSDF<T> flat(mesh, pool);
 
   for (const auto build : allConstructions) {
-    const MeshSDF<T, Meta, K> packed(mesh, pool, build);
+    const MeshSDF<T, K> packed(mesh, pool, build);
 
     for (const auto& p : queryPoints<T>()) {
       REQUIRE_THAT(packed.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
@@ -360,13 +358,13 @@ TEMPLATE_TEST_CASE(
   constexpr size_t W = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.ply"), pool);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
-  const MeshSDF<T, Meta, K>  packed(mesh, pool, BVH::Construction::SAH);
+  const FlatMeshSDF<T> flat(mesh, pool);
+  const MeshSDF<T, K>  packed(mesh, pool, BVH::Construction::SAH);
 
   for (const auto build : allConstructions) {
-    const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, build, 2);
+    const TriMeshSDF<T, K, W> tri(mesh, pool, build, 2);
 
     for (const auto& p : queryPoints<T>()) {
       REQUIRE_THAT(tri.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
@@ -390,8 +388,8 @@ TEMPLATE_TEST_CASE("Mesh SDFs: a zero-area sliver face leaves the signed distanc
   // the sharp edge between the bottom and the slanted face, so every pseudonormal near that edge
   // depends on how it is handled.
   Pool       pool(hostMemoryResource());
-  const auto clean  = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
-  const auto sliver = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron_sliver.stl"), pool);
+  const auto clean  = Parser::readIntoDCEL<T>(dataPath("tetrahedron.stl"), pool);
+  const auto sliver = Parser::readIntoDCEL<T>(dataPath("tetrahedron_sliver.stl"), pool);
 
   for (uint32_t f = 0; f < sliver.numFaces(); f++) {
     const Vec3T<T>& n = sliver.getFace(f).getNormal();
@@ -402,10 +400,10 @@ TEMPLATE_TEST_CASE("Mesh SDFs: a zero-area sliver face leaves the signed distanc
     REQUIRE_THAT(n.length(), withinAbsT(T(1), looseMargin<T>()));
   }
 
-  const FlatMeshSDF<T, Meta>      reference(clean, pool);
-  const FlatMeshSDF<T, Meta>      flat(sliver, pool);
-  const MeshSDF<T, Meta, K>       packed(sliver, pool, BVH::Construction::SAH);
-  const TriMeshSDF<T, Meta, K, W> tri(sliver, pool, BVH::Construction::SAH, 2);
+  const FlatMeshSDF<T>      reference(clean, pool);
+  const FlatMeshSDF<T>      flat(sliver, pool);
+  const MeshSDF<T, K>       packed(sliver, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, K, W> tri(sliver, pool, BVH::Construction::SAH, 2);
 
   for (const T x : sweepValues<T>(T(-0.5), T(1.0), 16)) {
     for (const T y : sweepValues<T>(T(-0.5), T(1.0), 16)) {
@@ -437,7 +435,7 @@ TEMPLATE_TEST_CASE("Mesh SDFs: signs around concave edges and vertices match an 
   // BVH-accelerated SDFs, so the reference here is analytic: inside is the union of two boxes, and
   // outside, the distance is the smaller of the two boxes' distances.
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("lblock.stl"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("lblock.stl"), pool);
 
   REQUIRE(mesh.numFaces() == 20);
 
@@ -452,9 +450,9 @@ TEMPLATE_TEST_CASE("Mesh SDFs: signs around concave edges and vertices match an 
     return inZ && (inA || inB);
   };
 
-  const FlatMeshSDF<T, Meta>      flat(mesh, pool);
-  const MeshSDF<T, Meta, K>       packed(mesh, pool, BVH::Construction::SAH);
-  const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, BVH::Construction::SAH, 2);
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, K>       packed(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, K, W> tri(mesh, pool, BVH::Construction::SAH, 2);
 
   // A grid centred on the concave edge's end point (1, 1, 1), where the concave edge, the concave
   // vertex and the faces around them all compete for the closest feature. The grid spacing avoids
@@ -522,13 +520,13 @@ TEMPLATE_TEST_CASE("Mesh SDFs: signs behind a sharp concave edge match an indepe
   };
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("notch.stl"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("notch.stl"), pool);
 
   REQUIRE(mesh.numFaces() == 24);
 
-  const FlatMeshSDF<T, Meta>      flat(mesh, pool);
-  const MeshSDF<T, Meta, K>       packed(mesh, pool, BVH::Construction::SAH);
-  const TriMeshSDF<T, Meta, K, W> tri(mesh, pool, BVH::Construction::SAH, 2);
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, K>       packed(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, K, W> tri(mesh, pool, BVH::Construction::SAH, 2);
 
   // A grid around the notch's tip, including the region just behind it. The offsets keep the points
   // off the faces.
@@ -559,13 +557,13 @@ TEMPLATE_TEST_CASE("TriMeshSDF: polygon faces are fan-triangulated, not truncate
   constexpr size_t W = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto cube = Parser::readIntoDCEL<T, Meta>(dataPath("cube_quads.obj"), pool);
+  const auto cube = Parser::readIntoDCEL<T>(dataPath("cube_quads.obj"), pool);
 
   REQUIRE(cube.numFaces() == 6);
 
-  const BoxSDF<T>                 box(Vec3T<T>::zeros(), Vec3T<T>::ones());
-  const TriMeshSDF<T, Meta, K, W> tri(cube, pool, BVH::Construction::SAH, 2);
-  const auto                      triangles = Parser::readIntoTriangles<T, Meta>(dataPath("cube_quads.obj"));
+  const BoxSDF<T>           box(Vec3T<T>::zeros(), Vec3T<T>::ones());
+  const TriMeshSDF<T, K, W> tri(cube, pool, BVH::Construction::SAH, 2);
+  const auto                triangles = Parser::readIntoTriangles<T>(dataPath("cube_quads.obj"));
 
   REQUIRE(triangles.size() == 12);
 
@@ -581,36 +579,130 @@ TEMPLATE_TEST_CASE("TriMeshSDF: polygon faces are fan-triangulated, not truncate
   }
 }
 
-TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candidate faces, sorted on request",
-                   "[BVH][Dodecahedron]",
+TEMPLATE_TEST_CASE("Mesh SDFs: getClosestFace names a closest mesh face and matches signedDistance()",
+                   "[BVH][MeshSDF][TriMeshSDF][FlatMeshSDF]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   constexpr size_t K = 4;
+  constexpr size_t W = 4;
 
-  Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"), pool);
+  // The dodecahedron is pre-triangulated; the cube has quad faces, which TriMeshSDF fan-triangulates,
+  // so there its triangles must report the id of the quad they were cut from.
+  for (const char* file : {"dodecahedron.obj", "cube_quads.obj"}) {
+    INFO(file);
 
-  const MeshSDF<T, Meta, K> packed(mesh, pool, BVH::Construction::SAH);
+    Pool       pool(hostMemoryResource());
+    const auto mesh = Parser::readIntoDCEL<T>(dataPath(file), pool);
 
-  const Vec3T<T> p(0.5, 0.5, 0.5);
+    const FlatMeshSDF<T> flat(mesh, pool);
 
-  const auto sorted = packed.getClosestFaces(p, true);
-  REQUIRE(!sorted.empty());
+    // The reported face must be one of the closest: its own distance equals the smallest over all
+    // faces (several faces tie at points nearest a shared edge or vertex, so the id itself is not
+    // unique).
+    const auto requireClosest = [&mesh](const ClosestFace<T>& a_closest, const Vec3T<T>& a_point, const T a_margin) {
+      REQUIRE(a_closest.faceId < mesh.numFaces());
 
-  for (size_t i = 1; i < sorted.size(); i++) {
-    REQUIRE(sorted[i - 1].second <= sorted[i].second);
+      T smallest = std::numeric_limits<T>::max();
+
+      for (uint32_t f = 0; f < mesh.numFaces(); f++) {
+        smallest = std::min(smallest, std::abs(mesh.getFace(f).signedDistance(a_point, mesh)));
+      }
+
+      const T own = mesh.getFace(a_closest.faceId).signedDistance(a_point, mesh);
+
+      REQUIRE_THAT(std::abs(own), withinAbsT(smallest, a_margin));
+      REQUIRE_THAT(std::abs(a_closest.signedDistance), withinAbsT(smallest, a_margin));
+    };
+
+    for (const auto& p : queryPoints<T>()) {
+      const auto closest = flat.getClosestFace(p);
+
+      REQUIRE(closest.signedDistance == flat.signedDistance(p));
+      requireClosest(closest, p, T(0));
+    }
+
+    for (const auto build : allConstructions) {
+      INFO("construction " << static_cast<int>(build));
+
+      const MeshSDF<T, K>       meshSDF(mesh, pool, build);
+      const TriMeshSDF<T, K, W> triSDF(mesh, pool, build, 2);
+
+      for (const auto& p : queryPoints<T>()) {
+        const auto fromMesh = meshSDF.getClosestFace(p);
+        const auto fromTri  = triSDF.getClosestFace(p);
+
+        // TriMeshSDF's signedDistance() reduces each leaf group with SIMD, getClosestFace() lane by
+        // lane, so the two can differ in the last bits.
+        REQUIRE(fromMesh.signedDistance == meshSDF.signedDistance(p));
+        REQUIRE_THAT(fromTri.signedDistance, withinAbsT(triSDF.signedDistance(p), traversalMargin<T>()));
+
+        requireClosest(fromMesh, p, traversalMargin<T>());
+        requireClosest(fromTri, p, traversalMargin<T>());
+      }
+    }
   }
-
-  // The closest face reported must be consistent with the scalar signed-distance query.
-  const T closestUnsignedDist = sorted.front().second;
-  REQUIRE_THAT(closestUnsignedDist, withinAbsT(std::abs(packed.signedDistance(p)), traversalMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle's metadata and a "
+TEMPLATE_TEST_CASE("MeshSDF reads its faces from the mesh: flipping or moving the mesh after the build is seen",
+                   "[BVH][MeshSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+
+  constexpr size_t K = 4;
+
+  Pool pool(hostMemoryResource());
+  auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
+
+  MeshSDF<T, K> sdf(mesh, pool, BVH::Construction::SAH);
+
+  std::vector<T> before;
+
+  for (const auto& p : queryPoints<T>()) {
+    before.push_back(sdf.signedDistance(p));
+  }
+
+  SECTION("flip")
+  {
+    // The BVH holds face ids, not copies of the faces, so the flipped normals are what it reads.
+    mesh.flip();
+
+    size_t i = 0;
+
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE(sdf.signedDistance(p) == -before[i]);
+      REQUIRE(sdf.getClosestFace(p).signedDistance == -before[i]);
+
+      i++;
+    }
+  }
+
+  SECTION("move the vertices, reconcile and refit")
+  {
+    // Scale the mesh by two about the origin, which moves every face and changes every normal's
+    // cached derived data (centroid, area).
+    for (uint32_t v = 0; v < mesh.numVertices(); v++) {
+      mesh.getVertex(v).setPosition(T(2) * mesh.getVertex(v).getPosition());
+    }
+
+    mesh.reconcile();
+
+    sdf.getRoot().refit([&mesh](uint32_t a_face) { return AABB(mesh.getFace(a_face).getAllVertexCoordinates(mesh)); });
+
+    const FlatMeshSDF<T> reference(mesh, pool);
+
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE_THAT(sdf.signedDistance(p), withinAbsT(reference.signedDistance(p), traversalMargin<T>()));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("TriMeshSDF::getClosestFace reports the closest triangle's face id and a "
                    "distance matching signedDistance()",
-                   "[BVH][TriMesh][Meta]",
+                   "[BVH][TriMesh]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -621,34 +713,34 @@ TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle'
 
   Pool pool(hostMemoryResource());
 
-  // A soup of well-separated triangles (3 apart along x), each tagged with a distinct metadata value
-  // so the closest-triangle query's returned metadata is unambiguous. Enough triangles to force
+  // A soup of well-separated triangles (3 apart along x), each tagged with a distinct face id so the
+  // closest-triangle query's returned id is unambiguous. Enough triangles to force
   // several BVH leaves/levels.
   constexpr int N = 12;
 
-  std::vector<Triangle<T, Meta>> tris;
+  std::vector<Triangle<T>> tris;
   for (int i = 0; i < N; i++) {
     const Vec3 base(T(3 * i), T(0), T(0));
 
-    Triangle<T, Meta> tri;
+    Triangle<T> tri;
     tri.setVertexPositions({base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
     tri.setNormal(Vec3(0, 0, 1));
     tri.setVertexNormals({Vec3(0, 0, 1), Vec3(0, 0, 1), Vec3(0, 0, 1)});
     tri.setEdgeNormals({Vec3(0, 0, 1), Vec3(0, 0, 1), Vec3(0, 0, 1)});
-    tri.setMetaData(static_cast<Meta>(100 + i));
+    tri.setFaceId(static_cast<uint32_t>(100 + i));
 
     tris.emplace_back(tri);
   }
 
   for (const auto build : allConstructions) {
-    const TriMeshSDF<T, Meta, K, W> tri(tris, pool, build, 2);
+    const TriMeshSDF<T, K, W> tri(tris, pool, build, 2);
 
     for (int i = 0; i < N; i++) {
       const Vec3 q(T(3 * i) + T(0.25), T(0.25), T(0.2)); // unambiguously nearest to triangle i
 
-      const auto closest = tri.getClosestTriangle(q);
+      const auto closest = tri.getClosestFace(q);
 
-      REQUIRE(closest.metaData == static_cast<Meta>(100 + i));
+      REQUIRE(closest.faceId == static_cast<uint32_t>(100 + i));
       REQUIRE_THAT(closest.signedDistance, withinAbsT(tri.signedDistance(q), traversalMargin<T>()));
     }
   }
@@ -670,7 +762,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest 
   std::mt19937                      rng(17);
   std::uniform_real_distribution<T> jitter(T(-0.2), T(0.2));
 
-  std::vector<Triangle<T, Meta>> tris;
+  std::vector<Triangle<T>> tris;
 
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
@@ -680,7 +772,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest 
         const Vec3 b = base + Vec3(jitter(rng), T(0.3), jitter(rng));
         const Vec3 n = (a - base).cross(b - base) / (a - base).cross(b - base).length();
 
-        Triangle<T, Meta> tri;
+        Triangle<T> tri;
         tri.setVertexPositions({base, a, b});
         tri.setNormal(n);
         tri.setVertexNormals({n, n, n});
@@ -703,7 +795,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest 
 
   for (const size_t maxLeafGroups : {size_t(1), size_t(2), size_t(3)}) {
     for (const auto build : allConstructions) {
-      const TriMeshSDF<T, Meta, K, W> sdf(tris, pool, build, maxLeafGroups);
+      const TriMeshSDF<T, K, W> sdf(tris, pool, build, maxLeafGroups);
 
       const auto nodes = sdf.getRoot().getNodes();
 
@@ -742,9 +834,9 @@ TEMPLATE_TEST_CASE("Mesh SDFs: a value outside BVH::Construction aborts",
   // An EBGEOMETRY_REQUIRE, so it aborts in every build rather than packing an unpartitioned tree.
   REQUIRE(abortsWith(
     [] {
-      Pool                      pool(hostMemoryResource());
-      const auto                mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
-      const MeshSDF<T, Meta, K> sdf(mesh, pool, invalidConstruction);
+      Pool                pool(hostMemoryResource());
+      const auto          mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
+      const MeshSDF<T, K> sdf(mesh, pool, invalidConstruction);
 
       (void)sdf;
     },
@@ -752,9 +844,9 @@ TEMPLATE_TEST_CASE("Mesh SDFs: a value outside BVH::Construction aborts",
 
   REQUIRE(abortsWith(
     [] {
-      Pool                            pool(hostMemoryResource());
-      const auto                      mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
-      const TriMeshSDF<T, Meta, K, W> sdf(mesh, pool, invalidConstruction, 2);
+      Pool                      pool(hostMemoryResource());
+      const auto                mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
+      const TriMeshSDF<T, K, W> sdf(mesh, pool, invalidConstruction, 2);
 
       (void)sdf;
     },
@@ -1114,10 +1206,10 @@ TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly fro
   // One pool for both: the direct MeshSDF below and readIntoPackedBVH's own independent build
   // share it, which is only sound because building one mesh no longer closes the pool to the next.
   Pool       pool(hostMemoryResource());
-  const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+  const auto direct = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
 
-  const MeshSDF<T, Meta, K> expected(direct, pool, BVH::Construction::SAH);
-  const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"), pool);
+  const MeshSDF<T, K> expected(direct, pool, BVH::Construction::SAH);
+  const auto          fromFile = Parser::readIntoPackedBVH<T, K>(dataPath("dodecahedron.stl"), pool);
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(fromFile.signedDistance(p), withinAbsT(expected.signedDistance(p), formatMargin<T>()));
@@ -1142,13 +1234,13 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
 
   SECTION("readIntoDCEL")
   {
-    const auto meshes = Parser::readIntoDCEL<T, Meta>(files, pool);
+    const auto meshes = Parser::readIntoDCEL<T>(files, pool);
     REQUIRE(meshes.size() == 2);
 
-    std::vector<DCEL::MeshT<T, Meta>> singles;
+    std::vector<DCEL::MeshT<T>> singles;
     singles.reserve(files.size());
     for (const auto& file : files) {
-      singles.push_back(Parser::readIntoDCEL<T, Meta>(file, pool));
+      singles.push_back(Parser::readIntoDCEL<T>(file, pool));
     }
 
     for (size_t i = 0; i < files.size(); i++) {
@@ -1163,11 +1255,11 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
 
   SECTION("readIntoMesh")
   {
-    const auto flatSDFs = Parser::readIntoMesh<T, Meta>(files, pool);
+    const auto flatSDFs = Parser::readIntoMesh<T>(files, pool);
     REQUIRE(flatSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoMesh<T, Meta>(files[i], pool);
+      const auto single = Parser::readIntoMesh<T>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(flatSDFs[i].signedDistance(p), withinAbsT(single.signedDistance(p), formatMargin<T>()));
       }
@@ -1176,11 +1268,11 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
 
   SECTION("readIntoPackedBVH")
   {
-    const auto packedSDFs = Parser::readIntoPackedBVH<T, Meta, K>(files, pool);
+    const auto packedSDFs = Parser::readIntoPackedBVH<T, K>(files, pool);
     REQUIRE(packedSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i], pool);
+      const auto single = Parser::readIntoPackedBVH<T, K>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(packedSDFs[i].signedDistance(p), withinAbsT(single.signedDistance(p), formatMargin<T>()));
       }
@@ -1189,11 +1281,11 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
 
   SECTION("readIntoTriangleBVH")
   {
-    const auto triSDFs = Parser::readIntoTriangleBVH<T, Meta>(files, pool);
+    const auto triSDFs = Parser::readIntoTriangleBVH<T>(files, pool);
     REQUIRE(triSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoTriangleBVH<T, Meta>(files[i], pool);
+      const auto single = Parser::readIntoTriangleBVH<T>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(triSDFs[i].signedDistance(p), withinAbsT(single.signedDistance(p), formatMargin<T>()));
       }
@@ -1363,17 +1455,13 @@ TEMPLATE_TEST_CASE("MeshSDF/TriMeshSDF: both pack their primitives by value",
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  using Face     = DCEL::FaceT<T, Meta>;
-  using TriAoSoA = TriangleAoSoA<T, Meta, W>;
+  using TriAoSoA = TriangleAoSoA<T, W>;
 
-  // MeshSDF stores each packed face inline, by value. A DCEL::FaceT is a plain trivially-copyable
-  // value, so the copy is cheap; what it is not is self-contained -- its point-in-face test walks
-  // the face's half-edge loop into the mesh's edges and vertices -- which is why MeshSDF retains the
-  // source mesh and hands it to every face query. TriMeshSDF's SoA groups are self-contained
-  // (freshly built by packing, shared with nothing), so they need no such companion.
-  // See ImplemBVH.rst's "Primitive storage" section for the full rationale.
-  static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root, BVH::PackedBVH<T, Face, K>>);
-  static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root, BVH::PackedBVH<T, TriAoSoA, K>>);
+  // MeshSDF's BVH stores face ids, and every query reads the face from the mesh MeshSDF holds.
+  // TriMeshSDF's SoA groups are self-contained (freshly built by packing, shared with nothing), so
+  // they need no such companion. See ImplemBVH.rst's "Primitive storage" section.
+  static_assert(std::is_same_v<typename MeshSDF<T, K>::Root, BVH::PackedBVH<T, uint32_t, K>>);
+  static_assert(std::is_same_v<typename TriMeshSDF<T, K, W>::Root, BVH::PackedBVH<T, TriAoSoA, K>>);
 }
 
 TEMPLATE_TEST_CASE("TreeBVH: copy is disallowed (would alias mutable child subtrees); move is allowed",
@@ -1836,20 +1924,20 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment 
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  static_assert(std::is_copy_constructible_v<FlatMeshSDF<T, Meta>>);
-  static_assert(std::is_copy_assignable_v<FlatMeshSDF<T, Meta>>);
-  static_assert(std::is_move_constructible_v<FlatMeshSDF<T, Meta>>);
-  static_assert(std::is_move_assignable_v<FlatMeshSDF<T, Meta>>);
+  static_assert(std::is_copy_constructible_v<FlatMeshSDF<T>>);
+  static_assert(std::is_copy_assignable_v<FlatMeshSDF<T>>);
+  static_assert(std::is_move_constructible_v<FlatMeshSDF<T>>);
+  static_assert(std::is_move_assignable_v<FlatMeshSDF<T>>);
 
-  static_assert(std::is_copy_constructible_v<MeshSDF<T, Meta, K>>);
-  static_assert(std::is_copy_assignable_v<MeshSDF<T, Meta, K>>);
-  static_assert(std::is_move_constructible_v<MeshSDF<T, Meta, K>>);
-  static_assert(std::is_move_assignable_v<MeshSDF<T, Meta, K>>);
+  static_assert(std::is_copy_constructible_v<MeshSDF<T, K>>);
+  static_assert(std::is_copy_assignable_v<MeshSDF<T, K>>);
+  static_assert(std::is_move_constructible_v<MeshSDF<T, K>>);
+  static_assert(std::is_move_assignable_v<MeshSDF<T, K>>);
 
-  static_assert(std::is_copy_constructible_v<TriMeshSDF<T, Meta, K, W>>);
-  static_assert(std::is_copy_assignable_v<TriMeshSDF<T, Meta, K, W>>);
-  static_assert(std::is_move_constructible_v<TriMeshSDF<T, Meta, K, W>>);
-  static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
+  static_assert(std::is_copy_constructible_v<TriMeshSDF<T, K, W>>);
+  static_assert(std::is_copy_assignable_v<TriMeshSDF<T, K, W>>);
+  static_assert(std::is_move_constructible_v<TriMeshSDF<T, K, W>>);
+  static_assert(std::is_move_assignable_v<TriMeshSDF<T, K, W>>);
 }
 
 TEMPLATE_TEST_CASE("Parser::readIntoTriangles and TriMeshSDF's mesh constructor extract identical triangles",
@@ -1862,19 +1950,19 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangles and TriMeshSDF's mesh constructor 
   constexpr size_t W = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh      = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
-  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.obj"));
+  const auto mesh      = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
+  const auto triangles = Parser::readIntoTriangles<T>(dataPath("dodecahedron.obj"));
 
   REQUIRE(triangles.size() == mesh.numFaces());
 
-  // Each triangle carries its face's metadata and its three half-edges' normals -- not the vertex
-  // normals, which readIntoTriangles used to substitute for them.
+  // Each triangle carries its face's id and its three half-edges' normals -- not the vertex normals,
+  // which readIntoTriangles used to substitute for them.
   for (uint32_t i = 0; i < mesh.numFaces(); i++) {
     const auto& face        = mesh.getFace(i);
     const auto  edgeIndices = face.gatherEdgeIndices(mesh);
 
     REQUIRE(edgeIndices.size() == 3);
-    REQUIRE(triangles[i].getMetaData() == face.getMetaData());
+    REQUIRE(triangles[i].getFaceId() == i);
 
     for (size_t e = 0; e < 3; e++) {
       REQUIRE(triangles[i].getEdgeNormals()[e] == mesh.getEdge(edgeIndices[e]).getNormal());
@@ -1882,12 +1970,12 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangles and TriMeshSDF's mesh constructor 
   }
 
   // Built from identical triangles with the same strategy, the two constructors give identical trees.
-  const TriMeshSDF<T, Meta, K, W> fromMesh(mesh, pool, BVH::Construction::SAH, 2);
-  const TriMeshSDF<T, Meta, K, W> fromSoup(triangles, pool, BVH::Construction::SAH, 2);
+  const TriMeshSDF<T, K, W> fromMesh(mesh, pool, BVH::Construction::SAH, 2);
+  const TriMeshSDF<T, K, W> fromSoup(triangles, pool, BVH::Construction::SAH, 2);
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE(fromSoup.signedDistance(p) == fromMesh.signedDistance(p));
-    REQUIRE(fromSoup.getClosestTriangle(p).metaData == fromMesh.getClosestTriangle(p).metaData);
+    REQUIRE(fromSoup.getClosestFace(p).faceId == fromMesh.getClosestFace(p).faceId);
   }
 }
 
@@ -1901,10 +1989,10 @@ TEMPLATE_TEST_CASE("FlatMeshSDF::computeBoundingVolume is the vertex AABB, as Me
   constexpr size_t K = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
-  const MeshSDF<T, Meta, K>  meshSDF(mesh, pool, BVH::Construction::SAH);
+  const FlatMeshSDF<T> flat(mesh, pool);
+  const MeshSDF<T, K>  meshSDF(mesh, pool, BVH::Construction::SAH);
 
   const AABB fromFlat     = flat.computeBoundingVolume();
   const AABB fromVertices = AABB(mesh.getAllVertexCoordinates());
@@ -1925,9 +2013,9 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebasedView and deepCopy ans
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  using Flat = FlatMeshSDF<T, Meta>;
-  using Mesh = MeshSDF<T, Meta, K>;
-  using Tri  = TriMeshSDF<T, Meta, K, W>;
+  using Flat = FlatMeshSDF<T>;
+  using Mesh = MeshSDF<T, K>;
+  using Tri  = TriMeshSDF<T, K, W>;
 
   // Each class is itself what crosses to a device, so it must stay trivially copyable, and both
   // crossings must return the class itself rather than some narrower type.
@@ -1943,7 +2031,7 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebasedView and deepCopy ans
 
   // The dodecahedron fixture is pre-triangulated, so TriMeshSDF accepts it too.
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
 
   const Flat flat(mesh, pool);
   const Mesh meshSDF(mesh, pool, BVH::Construction::SAH);
@@ -1957,19 +2045,22 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebasedView and deepCopy ans
     REQUIRE(flat.signedDistance(p) == mesh.signedDistance(p));
   }
 
-  // Same tree, same data: every answer must match the original's exactly, including the metadata
-  // TriMeshSDF::getClosestTriangle() reports.
+  // Same tree, same data: every answer must match the original's exactly, including the face each
+  // getClosestFace() reports.
   const auto requireSame = [&flat, &meshSDF, &triSDF](const Flat& a_flat, const Mesh& a_mesh, const Tri& a_tri) {
     for (const auto& p : queryPoints<T>()) {
       REQUIRE(a_flat.signedDistance(p) == flat.signedDistance(p));
       REQUIRE(a_mesh.signedDistance(p) == meshSDF.signedDistance(p));
       REQUIRE(a_tri.signedDistance(p) == triSDF.signedDistance(p));
 
-      const auto closest  = a_tri.getClosestTriangle(p);
-      const auto expected = triSDF.getClosestTriangle(p);
+      REQUIRE(a_flat.getClosestFace(p).faceId == flat.getClosestFace(p).faceId);
+      REQUIRE(a_mesh.getClosestFace(p).faceId == meshSDF.getClosestFace(p).faceId);
+
+      const auto closest  = a_tri.getClosestFace(p);
+      const auto expected = triSDF.getClosestFace(p);
 
       REQUIRE(closest.signedDistance == expected.signedDistance);
-      REQUIRE(closest.metaData == expected.metaData);
+      REQUIRE(closest.faceId == expected.faceId);
     }
   };
 
@@ -3088,9 +3179,9 @@ TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: the constructors reject a mismatched 
     [] {
       Pool       pool(hostMemoryResource());
       Pool       other(hostMemoryResource());
-      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+      const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
 
-      const FlatMeshSDF<T, Meta> sdf(mesh, other);
+      const FlatMeshSDF<T> sdf(mesh, other);
     },
     "FlatMeshSDF: the mesh must live in the pool passed in"));
 
@@ -3098,18 +3189,18 @@ TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: the constructors reject a mismatched 
     [] {
       Pool       pool(hostMemoryResource());
       Pool       other(hostMemoryResource());
-      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+      const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
 
-      const MeshSDF<T, Meta, K> sdf(mesh, other, BVH::Construction::SAH);
+      const MeshSDF<T, K> sdf(mesh, other, BVH::Construction::SAH);
     },
     "MeshSDF: the mesh must live in the pool passed in"));
 
   REQUIRE(abortsWith(
     [] {
       Pool       pool(hostMemoryResource());
-      const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+      const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
 
-      const TriMeshSDF<T, Meta, K, W> sdf(mesh, pool, BVH::Construction::SAH, 0);
+      const TriMeshSDF<T, K, W> sdf(mesh, pool, BVH::Construction::SAH, 0);
     },
     "TriMeshSDF: the maximum number of leaf groups must be positive (0)"));
 }
@@ -3403,19 +3494,19 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 {
   using T    = TestType;
   using AABB = BoundingVolumes::AABBT<T>;
-  using Tri  = Triangle<T, Meta>;
+  using Tri  = Triangle<T>;
 
   constexpr size_t K = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("tetrahedron.stl"), pool);
   REQUIRE(mesh.numFaces() == 4);
 
-  const auto triangles = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"));
+  const auto triangles = Parser::readIntoTriangles<T>(dataPath("tetrahedron.stl"));
   REQUIRE(triangles.size() == 4);
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
-  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
+  const FlatMeshSDF<T> flat(mesh, pool);
+  const auto           brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   BVH::PrimAndBVList<Tri, AABB> primsAndBVs;
   for (const auto& tri : triangles) {
@@ -3470,8 +3561,8 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 
   buildAndCheckTree("BottomUp (Nested)", [](auto& a_tree) { a_tree.template bottomUpSortAndPartition<SFC::Nested>(); });
 
-  // Remaining build methods go straight to PackedBVH, bypassing TreeBVH entirely -- Triangle<T,
-  // Meta> (unlike DCEL::FaceT) has a genuine memberwise copy constructor -- see its class
+  // Remaining build methods go straight to PackedBVH, bypassing TreeBVH entirely -- Triangle<T>
+  // (unlike DCEL::FaceT) has a genuine memberwise copy constructor -- see its class
   // declaration -- so it is safe to use with constructors that take primitives by value; see
   // MeshSDF's own class doc for why DCEL::FaceT is not.
   auto checkDirect = [&](const char* a_label, const BVH::PackedBVH<T, Tri, K>& a_packed) {
@@ -3886,19 +3977,19 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  using Tri = TriMeshSDF<T, Meta, K, W>;
+  using Tri = TriMeshSDF<T, K, W>;
 
   // Two distinct triangle meshes read from the in-repo fixtures. Each TriMeshSDF owns an inner
   // PackedBVH over SoA triangle groups -- these are the inner BVHs that the outer union BVH nests
   // over. Both are the same C++ type, which is all a BVHUnion needs.
   Pool       pool(hostMemoryResource());
-  const auto dodec = Parser::readIntoTriangles<T, Meta>(dataPath("dodecahedron.stl"));
-  const auto tetra = Parser::readIntoTriangles<T, Meta>(dataPath("tetrahedron.stl"));
+  const auto dodec = Parser::readIntoTriangles<T>(dataPath("dodecahedron.stl"));
+  const auto tetra = Parser::readIntoTriangles<T>(dataPath("tetrahedron.stl"));
 
   // Spread several translated mesh SDFs out so the outer union BVH has real structure to partition
   // and prune, rather than collapsing to a single leaf. Each copy is translated before its
   // TriMeshSDF is built.
-  const std::vector<std::pair<std::vector<Triangle<T, Meta>>, Vec3>> placements = {
+  const std::vector<std::pair<std::vector<Triangle<T>>, Vec3>> placements = {
     {dodec, Vec3(0, 0, 0)},
     {dodec, Vec3(4, 0, 0)},
     {tetra, Vec3(0, 4, 0)},
@@ -3950,12 +4041,12 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 {
   using T    = TestType;
   using AABB = BoundingVolumes::AABBT<T>;
-  using Face = DCEL::FaceT<T, Meta>;
+  using Face = DCEL::FaceT<T>;
 
   constexpr size_t K = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
 
   BVH::PrimAndBVList<Face, AABB> primsAndBVs;
   for (uint32_t i = 0; i < mesh.numFaces(); i++) {
@@ -3963,8 +4054,8 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
     primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(mesh)));
   }
 
-  const FlatMeshSDF<T, Meta> flat(mesh, pool);
-  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
+  const FlatMeshSDF<T> flat(mesh, pool);
+  const auto           brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
 
   // Pack a (partitioned) tree and query it the way MeshSDF does, comparing to the brute-force scan.
   const auto packAndCheck = [&](const auto& a_tree) {
@@ -4201,6 +4292,21 @@ struct SignedDistanceQuery
   }
 };
 
+// The id of the face closest to each query point, from getClosestFace(), which every mesh SDF
+// provides on the device.
+template <class T, class SDF>
+struct ClosestFaceQuery
+{
+  SDF m_sdf;
+
+  EBGEOMETRY_HOST_DEVICE
+  int
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return static_cast<int>(m_sdf.getClosestFace(a_point).faceId);
+  }
+};
+
 // The device-callable bounding box every mesh SDF provides: query i < 3 returns the upper corner's
 // component i, and query i >= 3 the lower corner's component i - 3.
 template <class T, class SDF>
@@ -4218,7 +4324,8 @@ struct BoundingBoxQuery
   }
 };
 
-TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate on device and match the host",
+TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate and find the closest face on device, "
+                   "matching the host",
                    "[BVH][FlatMeshSDF][MeshSDF][TriMeshSDF][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -4234,11 +4341,11 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate on d
   constexpr size_t W = 4;
 
   Pool       pool(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
 
-  const FlatMeshSDF<T, Meta>      flat(mesh, pool);
-  const MeshSDF<T, Meta, K>       meshSDF(mesh, pool, BVH::Construction::SAH);
-  const TriMeshSDF<T, Meta, K, W> triSDF(mesh, pool, BVH::Construction::SAH, 2);
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, K>       meshSDF(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, K, W> triSDF(mesh, pool, BVH::Construction::SAH, 2);
 
   pool.freeze();
 
@@ -4258,6 +4365,11 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate on d
                        evaluateOnHost<T>(SignedDistanceQuery<T, SDF>{a_sdf}, points));
     requireSameResults(evaluateOnDevice<T>(BoundingBoxQuery<T, SDF>{view}, corners),
                        evaluateOnHost<T>(BoundingBoxQuery<T, SDF>{a_sdf}, corners));
+
+    const auto deviceFaces = evaluateOnDevice<int>(ClosestFaceQuery<T, SDF>{view}, points);
+    const auto hostFaces   = evaluateOnHost<int>(ClosestFaceQuery<T, SDF>{a_sdf}, points);
+
+    REQUIRE(deviceFaces == hostFaces);
   };
 
   check(flat);

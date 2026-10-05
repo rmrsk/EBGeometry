@@ -75,11 +75,10 @@ OBJ<T>::getFacets() const noexcept
 }
 
 template <typename T>
-template <typename Meta>
-std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 OBJ<T>::convertToDCEL(Pool& a_pool, const Parser::OnDefect a_onDefect) const
 {
-  return Soup::readSoupIntoDCEL<T, Meta>(m_vertexCoordinates, m_facets, a_pool, m_id, "OBJ", a_onDefect);
+  return Soup::readSoupIntoDCEL<T>(m_vertexCoordinates, m_facets, a_pool, m_id, "OBJ", a_onDefect);
 }
 
 } // namespace EBGeometry

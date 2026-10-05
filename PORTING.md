@@ -133,7 +133,7 @@ kernel and compares against the host:
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
 | BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
 | Point-cloud BVH queries | `PointCloudBVH` (holds a `PackedBVH`; the build stays host-side) | roadmap step 0b |
-| Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF` (plain value types; no longer `SignedDistanceFunction`s; `MeshSDF::getClosestFaces` stays host-only) | roadmap step 4a |
+| Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF` (plain value types; no longer `SignedDistanceFunction`s; `getClosestFace` is device-callable and returns a face id) | roadmap step 4a |
 | Analytic shapes | The twelve classes in `EBGeometry_AnalyticDistanceFunctions.hpp` (plain value types; no longer `SignedDistanceFunction`s; constructors stay host-only) | roadmap step 4b, first PR |
 | BVH unions | `BVHUnionIF`, `BVHSmoothUnionIF` over one primitive type (plain value types; no longer `ImplicitFunction`s); `SmoothMinOp`/`SmoothMaxOp`/`ExpMinOp`; `PoolLocation` relocation of pool-resident primitives | roadmap step 4b, second PR |
 

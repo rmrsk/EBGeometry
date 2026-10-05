@@ -272,7 +272,9 @@ Test coverage
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
        :cpp:class:`BVH::Construction` strategy; signs on two concave meshes (an L-shaped prism and a box with a
        narrow notch, whose concave edges need both adjacent faces' normals) against an analytic
-       inside test; :cpp:func:`MeshSDF::getClosestFaces` ordering; the template
+       inside test; ``getClosestFace`` on all three mesh SDFs naming a closest face (also on
+       polygon faces, and on a device against the host); a :cpp:class:`MeshSDF` seeing its mesh
+       flipped, or moved and refitted, after the build; the template
        :cpp:func:`BVH::PackedBVH::traverse` (a nearest-point search against brute force at K = 2, 4
        and 8, ``std::function`` callers, an explicit key type, visit-once, an empty BVH, and the
        same search on a device against the host); and
@@ -316,8 +318,8 @@ Test coverage
      - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the
        individual packed :cpp:class:`Triangle` instances (including padding when fewer than
        ``W`` triangles are packed), per-lane ``signedDistances`` consistency, and bounding-volume
-       construction from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle metadata
-       retrieval (``signedDistance(point, Meta&)``) and per-lane ``getMetaData`` with padding.
+       construction from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle face-id
+       retrieval (``signedDistance(point, uint32_t&)``) and per-lane ``getFaceId`` with padding.
    * - ``TestPointSoA``
      - :cpp:class:`PointSoAT`: minimum and maximum distances and per-lane distances against the
        closest and farthest packed point, unaffected by padding, for ``W`` = 4 and 8; the bounding

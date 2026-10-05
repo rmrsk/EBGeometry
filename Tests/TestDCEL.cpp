@@ -20,10 +20,10 @@ using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
 using Catch::Matchers::WithinRel;
 
-// MeshSDF<T, Meta, K> under test, with the mesh's own metadata type and the SIMD-optimal
+// MeshSDF<T, K> under test, with the mesh's own metadata type and the SIMD-optimal
 // branching factor for the precision in use.
 template <class T>
-using TestMeshSDF = MeshSDF<T, DefaultMetaData, BVH::DefaultBranchingRatio<T>()>;
+using TestMeshSDF = MeshSDF<T, BVH::DefaultBranchingRatio<T>()>;
 
 // Path to test data injected by CMake.
 static const std::string g_dataDir = EBGEOMETRY_TEST_DATA_DIR;
@@ -33,14 +33,14 @@ static const std::string g_dataDir = EBGEOMETRY_TEST_DATA_DIR;
 // ─────────────────────────────────────────────────────────────────────────────
 
 template <class T>
-static std::shared_ptr<MeshT<T, DefaultMetaData>>
+static std::shared_ptr<MeshT<T>>
 loadTetrahedron(Pool& a_pool)
 {
   // The mesh is attached to a_pool by its first reserve inside readIntoDCEL and is queryable from
   // that point on: no freeze, no bind. Each call site below uses its own fresh, single-use Pool.
   // readIntoDCEL returns the mesh descriptor by value; it is wrapped here only so that the many
   // call sites below can share one handle.
-  return std::make_shared<MeshT<T, DefaultMetaData>>(Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.stl", a_pool));
+  return std::make_shared<MeshT<T>>(Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.stl", a_pool));
 }
 
 // Build a tetrahedron DCEL mesh entirely from hard-coded data (no file I/O).
@@ -49,7 +49,7 @@ loadTetrahedron(Pool& a_pool)
 // yields outward normals — standard SDF convention: negative inside, positive
 // outside.
 template <class T>
-static std::shared_ptr<MeshT<T, DefaultMetaData>>
+static std::shared_ptr<MeshT<T>>
 buildTetrahedron(Pool& a_pool)
 {
   std::vector<Vec3T<T>> verts = {
@@ -69,7 +69,7 @@ buildTetrahedron(Pool& a_pool)
 
   Soup::compress(verts, facets);
 
-  auto mesh = std::make_shared<MeshT<T, DefaultMetaData>>();
+  auto mesh = std::make_shared<MeshT<T>>();
   Soup::soupToDCEL(*mesh, a_pool, verts, facets, "tetrahedron-hard"); // reconciles internally
 
   return mesh;
@@ -107,16 +107,16 @@ traversalMargin()
 // ─────────────────────────────────────────────────────────────────────────────
 
 template <class T>
-using TestVertex = VertexT<T, DefaultMetaData>;
+using TestVertex = VertexT<T>;
 
 template <class T>
-using TestFace = FaceT<T, DefaultMetaData>;
+using TestFace = FaceT<T>;
 
 template <class T>
-using TestEdge = EdgeT<T, DefaultMetaData>;
+using TestEdge = EdgeT<T>;
 
 template <class T>
-using TestMesh = MeshT<T, DefaultMetaData>;
+using TestMesh = MeshT<T>;
 
 TEMPLATE_TEST_CASE("VertexT: default construction leaves defined, zeroed state",
                    "[DCEL][Vertex]",
@@ -128,7 +128,6 @@ TEMPLATE_TEST_CASE("VertexT: default construction leaves defined, zeroed state",
   REQUIRE(v.getPosition() == Vec3T<T>::zeros());
   REQUIRE(v.getNormal() == Vec3T<T>::zeros());
   REQUIRE(v.getOutgoingEdgeIndex() == UINT32_MAX);
-  REQUIRE(v.getMetaData() == 0);
 }
 
 TEMPLATE_TEST_CASE("VertexT: position-only and position+normal constructors",
@@ -208,35 +207,18 @@ TEMPLATE_TEST_CASE("VertexT: signedDistance and unsignedDistance2", "[DCEL][Vert
   REQUIRE_THAT(v.unsignedDistance2(Vec3T<T>(3, 0, 0)), WithinRel(T(9.0)));
 }
 
-TEMPLATE_TEST_CASE("VertexT: getMetaData reads and writes", "[DCEL][Vertex]", EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-  TestVertex<T> v;
-  REQUIRE(v.getMetaData() == 0);
-
-  v.getMetaData() = 5;
-  REQUIRE(v.getMetaData() == 5);
-
-  v.setMetaData(9);
-  REQUIRE(v.getMetaData() == 9);
-}
-
-TEMPLATE_TEST_CASE("VertexT: copy construction copies every member, including meta-data",
-                   "[DCEL][Vertex]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("VertexT: copy construction copies every member", "[DCEL][Vertex]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   TestVertex<T> src(Vec3T<T>(1, 2, 3), Vec3T<T>(0, 0, 1));
   src.setEdge(7);
-  src.getMetaData() = 42;
 
   TestVertex<T> copy(src);
 
   REQUIRE(copy.getPosition() == src.getPosition());
   REQUIRE(copy.getNormal() == src.getNormal());
   REQUIRE(copy.getOutgoingEdgeIndex() == 7);
-  REQUIRE(copy.getMetaData() == 42);
 }
 
 TEMPLATE_TEST_CASE("VertexT: copy assignment has the same semantics as copy construction",
@@ -247,7 +229,6 @@ TEMPLATE_TEST_CASE("VertexT: copy assignment has the same semantics as copy cons
 
   TestVertex<T> src(Vec3T<T>(1, 2, 3), Vec3T<T>(0, 0, 1));
   src.setEdge(7);
-  src.getMetaData() = 42;
 
   TestVertex<T> dst;
   dst = src;
@@ -255,7 +236,6 @@ TEMPLATE_TEST_CASE("VertexT: copy assignment has the same semantics as copy cons
   REQUIRE(dst.getPosition() == src.getPosition());
   REQUIRE(dst.getNormal() == src.getNormal());
   REQUIRE(dst.getOutgoingEdgeIndex() == 7);
-  REQUIRE(dst.getMetaData() == 42);
 }
 
 TEMPLATE_TEST_CASE("VertexT: move construction and move assignment transfer the entire state",
@@ -266,22 +246,18 @@ TEMPLATE_TEST_CASE("VertexT: move construction and move assignment transfer the 
 
   TestVertex<T> moveCtorSrc(Vec3T<T>(1, 2, 3), Vec3T<T>(0, 0, 1));
   moveCtorSrc.setEdge(7);
-  moveCtorSrc.getMetaData() = 42;
 
   TestVertex<T> moved(std::move(moveCtorSrc));
   REQUIRE(moved.getPosition() == Vec3T<T>(1, 2, 3));
   REQUIRE(moved.getOutgoingEdgeIndex() == 7);
-  REQUIRE(moved.getMetaData() == 42);
 
   TestVertex<T> moveAssignSrc(Vec3T<T>(4, 5, 6), Vec3T<T>(1, 0, 0));
   moveAssignSrc.setEdge(7);
-  moveAssignSrc.getMetaData() = 7;
 
   TestVertex<T> moveAssignDst;
   moveAssignDst = std::move(moveAssignSrc);
   REQUIRE(moveAssignDst.getPosition() == Vec3T<T>(4, 5, 6));
   REQUIRE(moveAssignDst.getOutgoingEdgeIndex() == 7);
-  REQUIRE(moveAssignDst.getMetaData() == 7);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -300,7 +276,6 @@ TEMPLATE_TEST_CASE("EdgeT: default construction leaves defined, zeroed state",
   REQUIRE(e.getPairEdgeIndex() == UINT32_MAX);
   REQUIRE(e.getNextEdgeIndex() == UINT32_MAX);
   REQUIRE(e.getFaceIndex() == UINT32_MAX);
-  REQUIRE(e.getMetaData() == 0);
   REQUIRE(e.size() == 2);
 }
 
@@ -318,7 +293,7 @@ TEMPLATE_TEST_CASE("EdgeT: partial (vertex) constructor sets only the starting v
   REQUIRE(e.getNormal() == Vec3T<T>::zeros());
 }
 
-TEMPLATE_TEST_CASE("EdgeT: define, setVertex, setPairEdge, setNextEdge, setFace, setMetaData",
+TEMPLATE_TEST_CASE("EdgeT: define, setVertex, setPairEdge, setNextEdge, setFace",
                    "[DCEL][Edge]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -332,9 +307,6 @@ TEMPLATE_TEST_CASE("EdgeT: define, setVertex, setPairEdge, setNextEdge, setFace,
 
   e.setFace(4);
   REQUIRE(e.getFaceIndex() == 4);
-
-  e.setMetaData(9);
-  REQUIRE(e.getMetaData() == 9);
 
   // Setting indices to UINT32_MAX is explicitly valid.
   e.setVertex(UINT32_MAX);
@@ -491,23 +463,19 @@ TEMPLATE_TEST_CASE("EdgeT: signedDistance and unsignedDistance2 on a simple segm
   REQUIRE_THAT(mesh.getEdge(0).unsignedDistance2(Vec3T<T>(0.5, 3, 0), mesh), WithinRel(T(9.0)));
 }
 
-TEMPLATE_TEST_CASE("EdgeT: copy construction copies every member, including meta-data",
-                   "[DCEL][Edge]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("EdgeT: copy construction copies every member", "[DCEL][Edge]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   TestEdge<T> src;
   src.define(1, 2, 3);
   src.setFace(4);
-  src.setMetaData(42);
 
   TestEdge<T> copy(src);
   REQUIRE(copy.getVertexIndex() == 1);
   REQUIRE(copy.getPairEdgeIndex() == 2);
   REQUIRE(copy.getNextEdgeIndex() == 3);
   REQUIRE(copy.getFaceIndex() == 4);
-  REQUIRE(copy.getMetaData() == 42);
 }
 
 TEMPLATE_TEST_CASE("EdgeT: copy assignment has the same semantics as copy construction",
@@ -519,7 +487,6 @@ TEMPLATE_TEST_CASE("EdgeT: copy assignment has the same semantics as copy constr
   TestEdge<T> src;
   src.define(1, 2, 3);
   src.setFace(4);
-  src.setMetaData(42);
 
   TestEdge<T> dst;
   dst = src;
@@ -528,7 +495,6 @@ TEMPLATE_TEST_CASE("EdgeT: copy assignment has the same semantics as copy constr
   REQUIRE(dst.getPairEdgeIndex() == 2);
   REQUIRE(dst.getNextEdgeIndex() == 3);
   REQUIRE(dst.getFaceIndex() == 4);
-  REQUIRE(dst.getMetaData() == 42);
 }
 
 TEMPLATE_TEST_CASE("EdgeT: move construction and move assignment transfer the entire state",
@@ -540,19 +506,16 @@ TEMPLATE_TEST_CASE("EdgeT: move construction and move assignment transfer the en
   TestEdge<T> moveCtorSrc;
   moveCtorSrc.define(1, 2, 3);
   moveCtorSrc.setFace(4);
-  moveCtorSrc.setMetaData(42);
 
   TestEdge<T> moved(std::move(moveCtorSrc));
   REQUIRE(moved.getVertexIndex() == 1);
   REQUIRE(moved.getPairEdgeIndex() == 2);
   REQUIRE(moved.getNextEdgeIndex() == 3);
   REQUIRE(moved.getFaceIndex() == 4);
-  REQUIRE(moved.getMetaData() == 42);
 
   TestEdge<T> moveAssignSrc;
   moveAssignSrc.define(1, 2, 3);
   moveAssignSrc.setFace(4);
-  moveAssignSrc.setMetaData(7);
 
   TestEdge<T> moveAssignDst;
   moveAssignDst = std::move(moveAssignSrc);
@@ -560,7 +523,6 @@ TEMPLATE_TEST_CASE("EdgeT: move construction and move assignment transfer the en
   REQUIRE(moveAssignDst.getPairEdgeIndex() == 2);
   REQUIRE(moveAssignDst.getNextEdgeIndex() == 3);
   REQUIRE(moveAssignDst.getFaceIndex() == 4);
-  REQUIRE(moveAssignDst.getMetaData() == 7);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -568,7 +530,7 @@ TEMPLATE_TEST_CASE("EdgeT: move construction and move assignment transfer the en
 // ─────────────────────────────────────────────────────────────────────────────
 
 template <class T>
-using TestEdgeIterator = EdgeIteratorT<T, DefaultMetaData>;
+using TestEdgeIterator = EdgeIteratorT<T>;
 
 TEMPLATE_TEST_CASE("EdgeIteratorT: iterating a face visits exactly its own half-edges and loops back",
                    "[DCEL][Iterator]",
@@ -826,8 +788,8 @@ TEMPLATE_TEST_CASE("MeshT: signedDistance agrees between Direct and Direct2 sear
   const std::vector<Vec3T<T>> queryPoints = {{0.1, 0.1, 0.1}, {2.0, 2.0, 2.0}, {-1.0, -1.0, -1.0}, {0.25, 0.25, 0.0}};
 
   for (const auto& p : queryPoints) {
-    const T distDirect  = mesh->signedDistance(p, MeshT<T, DefaultMetaData>::SearchAlgorithm::Direct);
-    const T distDirect2 = mesh->signedDistance(p, MeshT<T, DefaultMetaData>::SearchAlgorithm::Direct2);
+    const T distDirect  = mesh->signedDistance(p, MeshT<T>::SearchAlgorithm::Direct);
+    const T distDirect2 = mesh->signedDistance(p, MeshT<T>::SearchAlgorithm::Direct2);
 
     REQUIRE_THAT(distDirect, withinAbsT(distDirect2, formulaMargin<T>()));
   }
@@ -844,10 +806,10 @@ TEMPLATE_TEST_CASE("MeshT: setSearchAlgorithm changes the algorithm used by the 
 
   const Vec3T<T> p(0.1, 0.1, 0.1);
 
-  mesh->setSearchAlgorithm(MeshT<T, DefaultMetaData>::SearchAlgorithm::Direct);
+  mesh->setSearchAlgorithm(MeshT<T>::SearchAlgorithm::Direct);
   const T distDirect = mesh->signedDistance(p);
 
-  mesh->setSearchAlgorithm(MeshT<T, DefaultMetaData>::SearchAlgorithm::Direct2);
+  mesh->setSearchAlgorithm(MeshT<T>::SearchAlgorithm::Direct2);
   const T distDirect2 = mesh->signedDistance(p);
 
   REQUIRE_THAT(distDirect, withinAbsT(distDirect2, formulaMargin<T>()));
@@ -913,9 +875,9 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy of an empty mesh is an empty mesh", "[DCEL][
 {
   using T = TestType;
 
-  Pool                            pool(hostMemoryResource());
-  const MeshT<T, DefaultMetaData> empty;
-  const auto                      copy = empty.deepCopy(pool);
+  Pool           pool(hostMemoryResource());
+  const MeshT<T> empty;
+  const auto     copy = empty.deepCopy(pool);
 
   REQUIRE(copy.numVertices() == 0);
   REQUIRE(copy.numEdges() == 0);
@@ -1024,7 +986,7 @@ TEMPLATE_TEST_CASE("MeshT: an element survives a growing reserve when carried by
 
   auto mesh = buildTetrahedron<T>(pool);
 
-  VertexT<T, DefaultMetaData> vertex = mesh->getVertex(0); // by value, deliberately not by reference
+  VertexT<T> vertex = mesh->getVertex(0); // by value, deliberately not by reference
 
   auto other = buildTetrahedron<T>(pool); // may grow, moving the block
 
@@ -1337,7 +1299,7 @@ TEMPLATE_TEST_CASE("DCEL: a zero-area face built without the soup repair gets a 
 
   const std::vector<std::vector<size_t>> facets = {{0, 1, 4}, {1, 2, 4}, {2, 0, 4}, {0, 2, 3}};
 
-  MeshT<T, DefaultMetaData> mesh;
+  MeshT<T> mesh;
   Soup::soupToDCEL(mesh, pool, verts, facets, "t-junction");
 
   REQUIRE(mesh.getFace(2).getNormal() == Vec3T<T>::zeros());

@@ -24,7 +24,6 @@ using namespace EBGeometry::DCEL;
 constexpr int K = 4;
 
 using T    = EBGEOMETRY_PRECISION;
-using Meta = short;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
 
@@ -63,9 +62,9 @@ try {
   // main()'s scope satisfies that.
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file, pool);
-  const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file, pool);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, pool, 4, BVH::Construction::SAH);
+  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T>(file, pool);
+  const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, K>(file, pool);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T>(file, pool, 4, BVH::Construction::SAH);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 1000;

@@ -80,12 +80,13 @@ using Meta = short;
   template class OBJ<PREC>;                                                  \
                                                                                \
   /* -- Triangles -----------------------------------------------------------*/\
-  template class Triangle<PREC, Meta>;                                      \
+  template class Triangle<PREC>;                                            \
   template struct TriangleSoAT<PREC, 4>;                                     \
-  template struct TriangleAoSoA<PREC, Meta, 4>;                              \
+  template struct TriangleAoSoA<PREC, 4>;                                    \
                                                                                \
   /* -- Mesh distance functions --------------------------------------------*/\
-  template class FlatMeshSDF<PREC, Meta>;                                    \
+  template class FlatMeshSDF<PREC>;                                          \
+  template struct ClosestFace<PREC>;                                         \
                                                                                \
   /* -- Point clouds --------------------------------------------------------*/\
   template struct PointSoAT<PREC>;                                           \
@@ -99,10 +100,10 @@ using Meta = short;
   }                                                                          \
                                                                                \
   namespace DCEL {                                                           \
-  template class MeshT<PREC, Meta>;                                         \
-  template class FaceT<PREC, Meta>;                                         \
-  template class EdgeT<PREC, Meta>;                                         \
-  template class VertexT<PREC, Meta>;                                       \
+  template class MeshT<PREC>;                                               \
+  template class FaceT<PREC>;                                               \
+  template class EdgeT<PREC>;                                               \
+  template class VertexT<PREC>;                                             \
   }                                                                          \
                                                                                \
   /* -- BVH ---------------------------------------------------------------- */\
@@ -177,21 +178,21 @@ instantiateFunctionTemplates()
   // frozen by this point, and MeshT reservations are forbidden against a frozen Pool).
   Pool meshPool(hostMemoryResource());
 
-  (void)Parser::readIntoDCEL<T, Meta>(file, meshPool);
-  (void)Parser::readIntoDCEL<T, Meta>(files, meshPool);
-  (void)Parser::readIntoMesh<T, Meta>(file, meshPool);
-  (void)Parser::readIntoMesh<T, Meta>(files, meshPool);
-  (void)Parser::readIntoPackedBVH<T, Meta>(file, meshPool);
-  (void)Parser::readIntoPackedBVH<T, Meta>(files, meshPool);
-  (void)Parser::readIntoTriangles<T, Meta>(file);
-  (void)Parser::readIntoTriangles<T, Meta>(files);
-  (void)Parser::readIntoTriangleBVH<T, Meta>(file, meshPool);
-  (void)Parser::readIntoTriangleBVH<T, Meta>(files, meshPool);
+  (void)Parser::readIntoDCEL<T>(file, meshPool);
+  (void)Parser::readIntoDCEL<T>(files, meshPool);
+  (void)Parser::readIntoMesh<T>(file, meshPool);
+  (void)Parser::readIntoMesh<T>(files, meshPool);
+  (void)Parser::readIntoPackedBVH<T>(file, meshPool);
+  (void)Parser::readIntoPackedBVH<T>(files, meshPool);
+  (void)Parser::readIntoTriangles<T>(file);
+  (void)Parser::readIntoTriangles<T>(files);
+  (void)Parser::readIntoTriangleBVH<T>(file, meshPool);
+  (void)Parser::readIntoTriangleBVH<T>(files, meshPool);
 
-  (void)STL<T>().template convertToDCEL<Meta>(meshPool);
-  (void)PLY<T>().template convertToDCEL<Meta>(meshPool);
-  (void)VTK<T>().template convertToDCEL<Meta>(meshPool);
-  (void)OBJ<T>().template convertToDCEL<Meta>(meshPool);
+  (void)STL<T>().convertToDCEL(meshPool);
+  (void)PLY<T>().convertToDCEL(meshPool);
+  (void)VTK<T>().convertToDCEL(meshPool);
+  (void)OBJ<T>().convertToDCEL(meshPool);
 }
 
 template void

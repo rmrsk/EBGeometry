@@ -25,10 +25,9 @@
 namespace EBGeometry {
 
 template <class T, size_t W>
-template <class Meta>
 EBGEOMETRY_HOST
 void
-TriangleSoAT<T, W>::pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept
+TriangleSoAT<T, W>::pack(const Triangle<T>* tris, uint32_t count) noexcept
 {
   EBGEOMETRY_REQUIRE(tris != nullptr, "TriangleSoAT::pack: the triangle array must not be null");
   EBGEOMETRY_REQUIRE(count >= 1U && count <= W,
