@@ -34,26 +34,26 @@ namespace EBGeometry {
 
 namespace DCEL {
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void*
-MeshT<T, Meta>::base() const noexcept
+MeshT<T>::base() const noexcept
 {
   return m_location.base();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::attachTo(const Pool& a_pool) noexcept
+MeshT<T>::attachTo(const Pool& a_pool) noexcept
 {
   m_location.attach(a_pool, "DCEL::MeshT::attachTo");
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
-inline MeshT<T, Meta>
-MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
+inline MeshT<T>
+MeshT<T>::rebasedView(const Pool& a_pool) const noexcept
 {
   const uint64_t endByte = Math::max(m_vertices.endByte(), Math::max(m_edges.endByte(), m_faces.endByte()));
 
@@ -64,30 +64,30 @@ MeshT<T, Meta>::rebasedView(const Pool& a_pool) const noexcept
   return view;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline PoolLocation
-MeshT<T, Meta>::location() const noexcept
+MeshT<T>::location() const noexcept
 {
   return m_location;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline MeshT<T, Meta>
-MeshT<T, Meta>::relocatedTo(const PoolLocation& a_location) const noexcept
+inline MeshT<T>
+MeshT<T>::relocatedTo(const PoolLocation& a_location) const noexcept
 {
-  MeshT<T, Meta> view = *this;
+  MeshT<T> view = *this;
 
   view.m_location = a_location;
 
   return view;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
-inline MeshT<T, Meta>
-MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
+inline MeshT<T>
+MeshT<T>::deepCopy(Pool& a_dstPool) const
 {
   // An empty mesh (as a parser returns for an unreadable file) copies to an empty mesh.
   //
@@ -120,20 +120,20 @@ MeshT<T, Meta>::deepCopy(Pool& a_dstPool) const
   return newMesh;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const
+MeshT<T>::incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const
 {
   a_warnings[a_warn] += 1;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string& a_id) const
+MeshT<T>::printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string& a_id) const
 {
-  std::string baseError = "MeshT<T, Meta>::sanityCheck(...)";
+  std::string baseError = "MeshT<T>::sanityCheck(...)";
 
   if (a_id != "") {
     baseError += " for '" + a_id + "'";
@@ -148,10 +148,10 @@ MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings, c
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::sanityCheck(const std::string a_id) const
+MeshT<T>::sanityCheck(const std::string a_id) const
 {
   const std::string f_noEdge     = "face with no edge";
   const std::string f_degenerate = "degenerate face";
@@ -221,78 +221,78 @@ MeshT<T, Meta>::sanityCheck(const std::string a_id) const
   this->printWarnings(warnings, a_id);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept
+MeshT<T>::setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept
 {
   m_algorithm = a_algorithm;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
+MeshT<T>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 {
   for (uint32_t i = 0; i < this->numFaces(); i++) {
     this->getFace(i).setInsideOutsideAlgorithm(a_algorithm);
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::reconcile(const DCEL::VertexNormalWeight a_weight) noexcept
+MeshT<T>::reconcile(const DCEL::VertexNormalWeight a_weight) noexcept
 {
   this->reconcileFaces();
   this->reconcileEdges();
   this->reconcileVertices(a_weight);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::flip() noexcept
+MeshT<T>::flip() noexcept
 {
   this->flipFaceNormals();
   this->flipEdgeNormals();
   this->flipVertexNormals();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::reserveVertices(Pool& a_pool, uint32_t a_capacity)
+MeshT<T>::reserveVertices(Pool& a_pool, uint32_t a_capacity)
 {
   this->attachTo(a_pool);
 
   m_vertices.reserveFrom(a_pool, a_capacity);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::reserveEdges(Pool& a_pool, uint32_t a_capacity)
+MeshT<T>::reserveEdges(Pool& a_pool, uint32_t a_capacity)
 {
   this->attachTo(a_pool);
 
   m_edges.reserveFrom(a_pool, a_capacity);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::reserveFaces(Pool& a_pool, uint32_t a_capacity)
+MeshT<T>::reserveFaces(Pool& a_pool, uint32_t a_capacity)
 {
   this->attachTo(a_pool);
 
   m_faces.reserveFrom(a_pool, a_capacity);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline uint32_t
-MeshT<T, Meta>::addVertex(Pool& a_pool, const Vertex& a_vertex)
+MeshT<T>::addVertex(Pool& a_pool, const Vertex& a_vertex)
 {
   const uint32_t index = m_vertices.size();
 
@@ -301,10 +301,10 @@ MeshT<T, Meta>::addVertex(Pool& a_pool, const Vertex& a_vertex)
   return index;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline uint32_t
-MeshT<T, Meta>::addEdge(Pool& a_pool, const Edge& a_edge)
+MeshT<T>::addEdge(Pool& a_pool, const Edge& a_edge)
 {
   const uint32_t index = m_edges.size();
 
@@ -313,10 +313,10 @@ MeshT<T, Meta>::addEdge(Pool& a_pool, const Edge& a_edge)
   return index;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline uint32_t
-MeshT<T, Meta>::addFace(Pool& a_pool, const Face& a_face)
+MeshT<T>::addFace(Pool& a_pool, const Face& a_face)
 {
   const uint32_t index = m_faces.size();
 
@@ -325,110 +325,110 @@ MeshT<T, Meta>::addFace(Pool& a_pool, const Face& a_face)
   return index;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline VertexT<T, Meta>&
-MeshT<T, Meta>::getVertex(uint32_t a_index) noexcept
+inline VertexT<T>&
+MeshT<T>::getVertex(uint32_t a_index) noexcept
 {
   return m_vertices.at(this->base(), a_index);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline const VertexT<T, Meta>&
-MeshT<T, Meta>::getVertex(uint32_t a_index) const noexcept
+inline const VertexT<T>&
+MeshT<T>::getVertex(uint32_t a_index) const noexcept
 {
   return m_vertices.at(this->base(), a_index);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline EdgeT<T, Meta>&
-MeshT<T, Meta>::getEdge(uint32_t a_index) noexcept
+inline EdgeT<T>&
+MeshT<T>::getEdge(uint32_t a_index) noexcept
 {
   return m_edges.at(this->base(), a_index);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline const EdgeT<T, Meta>&
-MeshT<T, Meta>::getEdge(uint32_t a_index) const noexcept
+inline const EdgeT<T>&
+MeshT<T>::getEdge(uint32_t a_index) const noexcept
 {
   return m_edges.at(this->base(), a_index);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline FaceT<T, Meta>&
-MeshT<T, Meta>::getFace(uint32_t a_index) noexcept
+inline FaceT<T>&
+MeshT<T>::getFace(uint32_t a_index) noexcept
 {
   return m_faces.at(this->base(), a_index);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline const FaceT<T, Meta>&
-MeshT<T, Meta>::getFace(uint32_t a_index) const noexcept
+inline const FaceT<T>&
+MeshT<T>::getFace(uint32_t a_index) const noexcept
 {
   return m_faces.at(this->base(), a_index);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline bool
-MeshT<T, Meta>::isAttachedTo(const Pool& a_pool) const noexcept
+MeshT<T>::isAttachedTo(const Pool& a_pool) const noexcept
 {
   return m_location.isAttachedTo(a_pool);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-MeshT<T, Meta>::numVertices() const noexcept
+MeshT<T>::numVertices() const noexcept
 {
   return m_vertices.size();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-MeshT<T, Meta>::numEdges() const noexcept
+MeshT<T>::numEdges() const noexcept
 {
   return m_edges.size();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-MeshT<T, Meta>::numFaces() const noexcept
+MeshT<T>::numFaces() const noexcept
 {
   return m_faces.size();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::reconcileFaces() noexcept
+MeshT<T>::reconcileFaces() noexcept
 {
   for (uint32_t i = 0; i < this->numFaces(); i++) {
     this->getFace(i).reconcile(*this);
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::reconcileEdges() noexcept
+MeshT<T>::reconcileEdges() noexcept
 {
   for (uint32_t i = 0; i < this->numEdges(); i++) {
     this->getEdge(i).reconcile(*this);
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept
+MeshT<T>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept
 {
   // Transient (not stored) adjacency: for each vertex, every face touching it, found by walking
   // each face's own boundary loop (nextEdge only -- no pair edge needed, so this works even on a
@@ -482,40 +482,40 @@ MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexc
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::flipFaceNormals() noexcept
+MeshT<T>::flipFaceNormals() noexcept
 {
   for (uint32_t i = 0; i < this->numFaces(); i++) {
     this->getFace(i).flipNormal();
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::flipEdgeNormals() noexcept
+MeshT<T>::flipEdgeNormals() noexcept
 {
   for (uint32_t i = 0; i < this->numEdges(); i++) {
     this->getEdge(i).flipNormal();
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-MeshT<T, Meta>::flipVertexNormals() noexcept
+MeshT<T>::flipVertexNormals() noexcept
 {
   for (uint32_t i = 0; i < this->numVertices(); i++) {
     this->getVertex(i).flipNormal();
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline std::vector<Vec3T<T>>
-MeshT<T, Meta>::getAllVertexCoordinates() const noexcept
+MeshT<T>::getAllVertexCoordinates() const noexcept
 {
   std::vector<Vec3> vertexCoordinates;
   vertexCoordinates.reserve(this->numVertices());
@@ -527,10 +527,10 @@ MeshT<T, Meta>::getAllVertexCoordinates() const noexcept
   return vertexCoordinates;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::signedDistance(const Vec3& a_point) const noexcept
+MeshT<T>::signedDistance(const Vec3& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -539,10 +539,10 @@ MeshT<T, Meta>::signedDistance(const Vec3& a_point) const noexcept
   return this->signedDistance(a_point, m_algorithm);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
+MeshT<T>::unsignedDistance2(const Vec3& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -563,10 +563,10 @@ MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
   return minDist2;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
+MeshT<T>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -599,10 +599,10 @@ MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm)
   return minDist;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
+MeshT<T>::DirectSignedDistance(const Vec3& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -628,10 +628,10 @@ MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
   return minDist;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-MeshT<T, Meta>::DirectSignedDistance2(const Vec3& a_point) const noexcept
+MeshT<T>::DirectSignedDistance2(const Vec3& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));

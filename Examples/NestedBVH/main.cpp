@@ -16,8 +16,7 @@
 
 using namespace EBGeometry;
 
-using T    = EBGEOMETRY_PRECISION;
-using Meta = short;
+using T = EBGEOMETRY_PRECISION;
 
 // Branching factor for the outer union BVH: the library default (4 on every machine and on a GPU),
 // the same default readIntoTriangleBVH uses for the inner mesh BVHs.
@@ -25,7 +24,7 @@ constexpr size_t K = BVH::DefaultBranchingRatio<T>();
 
 using Vec3 = EBGeometry::Vec3T<T>;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-using Mesh = EBGeometry::TriMeshSDF<T, Meta, K, EBGeometry::TriangleSoA::DefaultWidth<T>()>;
+using Mesh = EBGeometry::TriMeshSDF<T, K, EBGeometry::TriangleSoA::DefaultWidth<T>()>;
 
 // The function-try-block reports a mesh file that cannot be read, rather than letting the exception
 // terminate the program.
@@ -62,8 +61,8 @@ try {
   // Read the mesh's triangles once. Each placement below gets its own translated copy, from which a
   // TriMeshSDF (with its own inner BVH) is built using the library's default parameters. A union
   // holds primitives of a single type, so placing genuinely different meshes works the same way, as
-  // long as they are all TriMeshSDF<T, Meta, K, W> with the same parameters.
-  const auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(file);
+  // long as they are all TriMeshSDF<T, K, W> with the same parameters.
+  const auto triangles = EBGeometry::Parser::readIntoTriangles<T>(file);
 
   const std::vector<Vec3> shifts = {
     Vec3(0, 0, 0),

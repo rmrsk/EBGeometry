@@ -132,7 +132,7 @@ TEMPLATE_TEST_CASE("STL: convertToDCEL builds a mesh with the correct compressed
   REQUIRE(stl.getFacets().size() == 4);
 
   Pool pool(hostMemoryResource());
-  auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>(pool);
+  auto mesh = stl.convertToDCEL(pool);
 
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->numVertices() == 4); // Compressed down to the 4 unique corners.
@@ -168,7 +168,7 @@ TEMPLATE_TEST_CASE("Parser::readSTL + convertToDCEL round-trips into a valid, wa
   auto stl = Parser::readSTL<T>(g_dataDir + "/tetrahedron.stl");
 
   Pool pool(hostMemoryResource());
-  auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>(pool);
+  auto mesh = stl.convertToDCEL(pool);
 
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->numVertices() == 4);

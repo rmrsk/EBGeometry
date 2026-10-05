@@ -29,9 +29,9 @@ namespace EBGeometry {
 
 namespace DCEL {
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline VertexT<T, Meta>::VertexT(const Vec3& a_position) : VertexT()
+inline VertexT<T>::VertexT(const Vec3& a_position) : VertexT()
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_position[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_position[1]));
@@ -40,9 +40,9 @@ inline VertexT<T, Meta>::VertexT(const Vec3& a_position) : VertexT()
   m_position = a_position;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline VertexT<T, Meta>::VertexT(const Vec3& a_position, const Vec3& a_normal) : VertexT()
+inline VertexT<T>::VertexT(const Vec3& a_position, const Vec3& a_normal) : VertexT()
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_position[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_position[1]));
@@ -55,10 +55,10 @@ inline VertexT<T, Meta>::VertexT(const Vec3& a_position, const Vec3& a_normal) :
   m_normal   = a_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-VertexT<T, Meta>::define(const Vec3& a_position, const uint32_t a_edgeIndex, const Vec3& a_normal) noexcept
+VertexT<T>::define(const Vec3& a_position, const uint32_t a_edgeIndex, const Vec3& a_normal) noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_position[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_position[1]));
@@ -73,10 +73,10 @@ VertexT<T, Meta>::define(const Vec3& a_position, const uint32_t a_edgeIndex, con
   m_normal       = a_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-VertexT<T, Meta>::setPosition(const Vec3& a_position) noexcept
+VertexT<T>::setPosition(const Vec3& a_position) noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_position[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_position[1]));
@@ -85,28 +85,20 @@ VertexT<T, Meta>::setPosition(const Vec3& a_position) noexcept
   m_position = a_position;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-VertexT<T, Meta>::setEdge(const uint32_t a_edgeIndex) noexcept
+VertexT<T>::setEdge(const uint32_t a_edgeIndex) noexcept
 {
   // a_edgeIndex == UINT32_MAX is valid here; callers that resolve m_outgoingEdge are responsible
   // for checking it first (getOutgoingEdge() EXPECTs it set).
   m_outgoingEdge = a_edgeIndex;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-VertexT<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
-{
-  m_metaData = a_metaData;
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline void
-VertexT<T, Meta>::setNormal(const Vec3& a_normal) noexcept
+VertexT<T>::setNormal(const Vec3& a_normal) noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
@@ -115,10 +107,10 @@ VertexT<T, Meta>::setNormal(const Vec3& a_normal) noexcept
   m_normal = a_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-VertexT<T, Meta>::normalizeNormalVector() noexcept
+VertexT<T>::normalizeNormalVector() noexcept
 {
   // Zero only when the faces around the vertex cancel out, which folded input causes. The file readers
   // reject that (Soup::findFoldedFeature); a mesh built by hand keeps a zero normal rather than a NaN.
@@ -129,10 +121,10 @@ VertexT<T, Meta>::normalizeNormalVector() noexcept
   }
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-VertexT<T, Meta>::computeVertexNormalAverage(const std::vector<uint32_t>& a_faceIndices, const Mesh& a_mesh) noexcept
+VertexT<T>::computeVertexNormalAverage(const std::vector<uint32_t>& a_faceIndices, const Mesh& a_mesh) noexcept
 {
   EBGEOMETRY_EXPECT(!a_faceIndices.empty());
 
@@ -149,12 +141,12 @@ VertexT<T, Meta>::computeVertexNormalAverage(const std::vector<uint32_t>& a_face
   this->normalizeNormalVector();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST
 inline void
-VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               a_thisVertexIndex,
-                                                   const std::vector<uint32_t>& a_faceIndices,
-                                                   const Mesh&                  a_mesh)
+VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_thisVertexIndex,
+                                             const std::vector<uint32_t>& a_faceIndices,
+                                             const Mesh&                  a_mesh)
 {
   // This routine computes the pseudonormal from pseudnormal algorithm from
   // Baerentzen and Aanes in "Signed distance computation using the angle
@@ -210,7 +202,7 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               
           inoutVertices.emplace_back(v1);
         }
         else {
-          std::cerr << "VertexT<T, Meta>::computeVertexNormalAngleWeighted(): unreachable branch "
+          std::cerr << "VertexT<T>::computeVertexNormalAngleWeighted(): unreachable branch "
                        "hit -- a half-edge of face f was found to have originVertexIndex as one of "
                        "its two endpoints, but neither v1 nor v2 compares equal to it. This points "
                        "to a corrupted or inconsistent half-edge/vertex topology (e.g. a stale "
@@ -258,78 +250,78 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const uint32_t               
   this->normalizeNormalVector();
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-VertexT<T, Meta>::flipNormal() noexcept
+VertexT<T>::flipNormal() noexcept
 {
   m_normal = -m_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
-VertexT<T, Meta>::getPosition() noexcept
+VertexT<T>::getPosition() noexcept
 {
   return m_position;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
-VertexT<T, Meta>::getPosition() const noexcept
+VertexT<T>::getPosition() const noexcept
 {
   return m_position;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
-VertexT<T, Meta>::getNormal() noexcept
+VertexT<T>::getNormal() noexcept
 {
   return m_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
-VertexT<T, Meta>::getNormal() const noexcept
+VertexT<T>::getNormal() const noexcept
 {
   return m_normal;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-VertexT<T, Meta>::getOutgoingEdgeIndex() const noexcept
+VertexT<T>::getOutgoingEdgeIndex() const noexcept
 {
   return m_outgoingEdge;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline EdgeT<T, Meta>&
-VertexT<T, Meta>::getOutgoingEdge(Mesh& a_mesh) noexcept
+inline EdgeT<T>&
+VertexT<T>::getOutgoingEdge(Mesh& a_mesh) noexcept
 {
   EBGEOMETRY_EXPECT(m_outgoingEdge != UINT32_MAX);
 
   return a_mesh.getEdge(m_outgoingEdge);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline const EdgeT<T, Meta>&
-VertexT<T, Meta>::getOutgoingEdge(const Mesh& a_mesh) const noexcept
+inline const EdgeT<T>&
+VertexT<T>::getOutgoingEdge(const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(m_outgoingEdge != UINT32_MAX);
 
   return a_mesh.getEdge(m_outgoingEdge);
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-VertexT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
+VertexT<T>::signedDistance(const Vec3& a_x0) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
@@ -343,10 +335,10 @@ VertexT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
   return dist * sign;
 }
 
-template <class T, class Meta>
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-VertexT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
+VertexT<T>::unsignedDistance2(const Vec3& a_x0) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
@@ -355,22 +347,6 @@ VertexT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
   const auto d = a_x0 - m_position;
 
   return d.dot(d);
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline Meta&
-VertexT<T, Meta>::getMetaData() noexcept
-{
-  return m_metaData;
-}
-
-template <class T, class Meta>
-EBGEOMETRY_HOST_DEVICE
-inline const Meta&
-VertexT<T, Meta>::getMetaData() const noexcept
-{
-  return m_metaData;
 }
 } // namespace DCEL
 

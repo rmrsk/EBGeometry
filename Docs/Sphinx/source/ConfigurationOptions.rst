@@ -72,7 +72,7 @@ and 8 for ``double`` with AVX-512F, 8 and 4 with AVX, and 4 otherwise. They are 
    constexpr size_t K = EBGeometry::BVH::HostBranchingRatio<T>();
    constexpr size_t W = EBGeometry::TriangleSoA::HostWidth<T>();
 
-   auto sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K, W>("bunny.ply", pool);
+   auto sdf = EBGeometry::Parser::readIntoTriangleBVH<T, K, W>("bunny.ply", pool);
 
 The rule is to use the defaults for any type that device code also uses, or that is passed between
 translation units compiled with different flags. With the host-tuned values, the same spelled type

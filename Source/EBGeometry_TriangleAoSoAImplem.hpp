@@ -23,10 +23,10 @@
 
 namespace EBGeometry {
 
-template <class T, class Meta, size_t W>
+template <class T, size_t W>
 EBGEOMETRY_HOST
 void
-TriangleAoSoA<T, Meta, W>::pack(const Triangle<T, Meta>* a_triangles, uint32_t a_count) noexcept
+TriangleAoSoA<T, W>::pack(const Triangle<T>* a_triangles, uint32_t a_count) noexcept
 {
   EBGEOMETRY_REQUIRE(a_triangles != nullptr, "TriangleAoSoA::pack: the triangle array must not be null");
   EBGEOMETRY_REQUIRE(a_count >= 1U && a_count <= W,
@@ -39,34 +39,34 @@ TriangleAoSoA<T, Meta, W>::pack(const Triangle<T, Meta>* a_triangles, uint32_t a
   m_triangles.pack(a_triangles, a_count);
 
   // Same padding convention as TriangleSoAT::pack(): lanes a_count..W-1 repeat the last real entry.
-  // The last real metadata is carried forward in a local rather than re-read via a_triangles[a_count
+  // The last real face id is carried forward in a local rather than re-read via a_triangles[a_count
   // - 1]: the outer loop is bounded by the compile-time W and every a_triangles read is guarded by
   // j < a_count, so no index can run past the source array -- which also keeps GCC's -Warray-bounds
   // value analysis from mistaking the a_count >= 1 precondition for a possible a_count - 1 unsigned
   // underflow.
-  Meta lastMeta{};
+  uint32_t lastFaceId = UINT32_MAX;
 
   for (uint32_t j = 0; j < W; j++) {
     if (j < a_count) {
-      lastMeta = a_triangles[j].getMetaData();
+      lastFaceId = a_triangles[j].getFaceId();
     }
 
-    m_metaData[j] = lastMeta;
+    m_faceIds[j] = lastFaceId;
   }
 }
 
-template <class T, class Meta, size_t W>
+template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
 T
-TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
+TriangleAoSoA<T, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   return m_triangles.signedDistance(a_point);
 }
 
-template <class T, class Meta, size_t W>
+template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
 T
-TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point, Meta& a_closestMeta) const noexcept
+TriangleAoSoA<T, W>::signedDistance(const Vec3T<T>& a_point, uint32_t& a_closestFaceId) const noexcept
 {
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
@@ -87,27 +87,27 @@ TriangleAoSoA<T, Meta, W>::signedDistance(const Vec3T<T>& a_point, Meta& a_close
     }
   }
 
-  a_closestMeta = m_metaData[bestLane];
+  a_closestFaceId = m_faceIds[bestLane];
 
   return best;
 }
 
-template <class T, class Meta, size_t W>
+template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
-const Meta&
-TriangleAoSoA<T, Meta, W>::getMetaData(size_t a_lane) const noexcept
+uint32_t
+TriangleAoSoA<T, W>::getFaceId(size_t a_lane) const noexcept
 {
   EBGEOMETRY_EXPECT(a_lane < W);
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
 
-  return m_metaData[a_lane];
+  return m_faceIds[a_lane];
 }
 
-template <class T, class Meta, size_t W>
+template <class T, size_t W>
 template <class BV>
 EBGEOMETRY_HOST_DEVICE
 BV
-TriangleAoSoA<T, Meta, W>::computeBoundingVolume() const noexcept
+TriangleAoSoA<T, W>::computeBoundingVolume() const noexcept
 {
   return m_triangles.template computeBoundingVolume<BV>();
 }

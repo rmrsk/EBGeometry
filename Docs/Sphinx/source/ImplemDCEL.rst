@@ -13,27 +13,29 @@ The DCEL functionality exists under the namespace ``EBGeometry::DCEL`` and conta
 
 .. important::
 
-   The DCEL functionality is *not* restricted to triangles, but supports N-sided polygons, including *meta-data* attached to the vertices, edges, and facets. The latter is particularly useful in case one wants to associate e.g. boundary conditions to specific triangles.
+   The DCEL functionality is *not* restricted to triangles, but supports N-sided polygons. Every
+   face has an id, its index in the mesh, which the mesh distance functions report for the face
+   closest to a point. Data attached to specific faces, such as boundary conditions, lives in the
+   caller's own array indexed by that id; see :ref:`Sec:FaceIds`.
 
 Main types
 ----------
 
-The main DCEL functionality (vertices, edges, faces) is provided by classes templated on both a
-floating-point precision ``T`` and a user-defined meta-data type ``Meta`` attached to each
-instance:
+The main DCEL functionality (vertices, edges, faces) is provided by classes templated on a
+floating-point precision ``T``:
 
-*  ``VertexT<T, Meta>`` stores the vertex position, its (outward) normal vector, and the index of
+*  ``VertexT<T>`` stores the vertex position, its (outward) normal vector, and the index of
    an outgoing half-edge from the vertex (into the owning ``MeshT``'s edge array). It also has
    member functions for computing the vertex pseudonormal, see :ref:`Chap:NormalDCEL`. For the
    full API, see the Doxygen reference for
    `VertexT <doxygen/html/classEBGeometry_1_1DCEL_1_1VertexT.html>`__.
 
-*  ``EdgeT<T, Meta>`` represents a half-edge: it stores the indices of its owning face, the next
+*  ``EdgeT<T>`` represents a half-edge: it stores the indices of its owning face, the next
    edge, its pair edge, and its starting vertex -- each an index into the owning ``MeshT``'s
    corresponding array, not a pointer. For the full API, see the Doxygen reference for
    `EdgeT <doxygen/html/classEBGeometry_1_1DCEL_1_1EdgeT.html>`__.
 
-*  ``FaceT<T, Meta>`` represents a polygon face. Besides the index of its half-edge, it also
+*  ``FaceT<T>`` represents a polygon face. Besides the index of its half-edge, it also
    stores the face normal vector, a 2D embedding of the polygon, and its centroid position: the
    normal and 2D embedding exist because the signed distance computation needs them, and the
    centroid is available to partitioners that split on primitive centroids
@@ -48,25 +50,36 @@ instance:
    needs to resolve one of these indices back into an actual vertex/edge/face (``signedDistance()``,
    ``reconcile()``, the point-in-face test, ...) therefore takes that owning ``MeshT`` as an
    explicit argument. Since every member is consequently a plain value (``Vec3T<T>``, ``T``,
-   ``uint32_t``, an enum, or ``Meta``), all three classes are trivially copyable whenever ``T`` and
-   ``Meta`` are -- they can be ``memcpy``'d or mirrored to a different address space with no pointer
-   patching, as long as they are interpreted against the same mesh's arrays on the other side.
+   ``uint32_t``, or an enum), all three classes are trivially copyable -- they can be ``memcpy``'d
+   or mirrored to a different address space with no pointer patching, as long as they are
+   interpreted against the same mesh's arrays on the other side.
 
-*  ``MeshT<T, Meta>`` stores an entire DCEL mesh -- all of its vertices, half-edges, and faces --
+*  ``MeshT<T>`` stores an entire DCEL mesh -- all of its vertices, half-edges, and faces --
    and provides brute-force (:math:`\mathcal{O}(N)`) distance queries, ``signedDistance()`` and
    ``unsignedDistance2()``, that scan every face directly. It is not itself a
    ``SignedDistanceFunction<T>``: for anything beyond small meshes, one instead wraps a
-   ``MeshT<T, Meta>`` in one of the BVH-accelerated classes described in
-   :ref:`Chap:MeshSDFClasses`, which hold the ``MeshT<T, Meta>`` descriptor by value and pass it to
-   every packed face's ``signedDistance()``/``unsignedDistance2()`` call, since a face's half-edge
-   index is only meaningful together with the mesh it was built from. A mesh is typically never
+   ``MeshT<T>`` in one of the BVH-accelerated classes described in
+   :ref:`Chap:MeshSDFClasses`. ``MeshSDF`` holds the ``MeshT<T>`` descriptor by value and reads
+   every face it tests from it, since a face's half-edge index is only meaningful together with
+   the mesh it was built from. A mesh is typically never
    constructed by hand -- it is built by a file parser reading vertices and faces from disk, see
    :ref:`Chap:Parsers`. Its vertex/edge/face arrays are reserved from a caller-supplied, non-owning
    `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__ -- see :ref:`Sec:DCELMemoryModel` below for
    how this works. For the full API, see the Doxygen reference for
    `MeshT <doxygen/html/classEBGeometry_1_1DCEL_1_1MeshT.html>`__.
 
-Meta-data can be attached to the DCEL primitives by selecting an appropriate type for ``Meta`` above.
+.. _Sec:FaceIds:
+
+Face ids
+--------
+
+A face's id is its index in the mesh's face array, ``mesh.getFace(id)``. The file readers number
+faces in file order, leaving out zero-area faces, which they remove (see :ref:`Chap:Parsers`). The
+mesh distance functions report the id of the face closest to a point from ``getClosestFace()``,
+on the host and on a device alike, and ``TriMeshSDF`` reports the id of the polygon face a
+triangle was cut from. The DCEL classes carry no user data of their own: anything attached to a
+face, such as a boundary condition or a material, is kept in an array of the caller's, indexed by
+face id. Vertices and half-edges are likewise identified by their indices.
 
 .. _Sec:DCELMemoryModel:
 
@@ -77,7 +90,7 @@ See :ref:`Chap:MemoryModel` first for the generic ``Pool``/``PODVector``/``Memor
 foundation (the control block, mirroring, the ``at()``-vs-``bind()`` access-style choice) --
 this section covers only how ``MeshT`` specifically is built on top of it.
 
-``MeshT<T, Meta>``'s vertex/edge/face arrays are three ``PODVector``\ s. The mesh attaches itself to
+``MeshT<T>``'s vertex/edge/face arrays are three ``PODVector``\ s. The mesh attaches itself to
 a ``Pool`` on its first ``reserveVertices()``/``reserveEdges()``/``reserveFaces()`` call and resolves
 every access through that pool's control block from then on, so there is exactly one accessor of
 each kind (``getVertex(i)``, ``signedDistance(p)``, ...) and no binding, freezing, or base-passing
@@ -144,29 +157,29 @@ which catches the realistic mistakes: the wrong pool, or a pool mirrored before 
 BVH integration
 ---------------
 
-A ``MeshT<T, Meta>`` is never queried directly for anything beyond tiny meshes -- see
+A ``MeshT<T>`` is never queried directly for anything beyond tiny meshes -- see
 :ref:`Chap:BVH` for why an :math:`\mathcal{O}(N)` scan over faces doesn't scale, and
 :ref:`Chap:ImplemBVH` for how ``TreeBVH``/``PackedBVH`` are actually built and traversed. This
 section covers only the DCEL-specific half of that integration: how a mesh's faces become BVH
 primitives in the first place.
 
-Embedding a mesh in a BVH is a matter of pairing each ``FaceT<T, Meta>`` with a bounding volume
+Embedding a mesh in a BVH is a matter of pairing each face id with the face's bounding volume
 and handing the resulting list to a ``TreeBVH``. Concretely,
-``MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, BV, K>`` (in
+``MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, BV, K>`` (in
 :file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp`, the helper behind ``MeshSDF``'s
 construction) does this by:
 
 #. Building each face's bounding volume ``BV`` directly from its vertex coordinates
    (``FaceT::getAllVertexCoordinates(mesh)``, which walks the face's half-edge loop and resolves
    each vertex index against the owning mesh).
-#. Constructing a ``TreeBVH<T, FaceT<T, Meta>, BV, K>`` from the resulting
-   ``(face, bounding volume)`` pairs.
+#. Constructing a ``TreeBVH<T, uint32_t, BV, K>`` from the resulting
+   ``(face id, bounding volume)`` pairs.
 #. Partitioning that tree according to the requested ``BVH::Construction`` value (see
    :ref:`Sec:BuildPresets`), where the top-down partitioners split on each face's bounding-volume
    centroid. ``ClusterSAH`` has no ``TreeBVH`` form and is
    built directly as a ``PackedBVH`` instead.
 
-``MeshSDF`` then packs this ``TreeBVH`` into a ``PackedBVH`` of faces directly (``pack()``).
+``MeshSDF`` then packs this ``TreeBVH`` into a ``PackedBVH`` of face ids directly (``pack()``).
 ``TriMeshSDF`` does not use this tree: it first extracts each face as fan-triangulated ``Triangle``
 values, builds a separate ``TreeBVH`` of triangles, and packs it into SIMD-width ``TriangleAoSoA``
 leaves with ``packWith()`` -- see :ref:`Chap:MeshSDFClasses`

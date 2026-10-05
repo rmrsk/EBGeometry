@@ -128,7 +128,7 @@ TEMPLATE_TEST_CASE("OBJ: convertToDCEL builds a mesh with the correct compressed
   REQUIRE(obj.getFacets().size() == 4);
 
   Pool pool(hostMemoryResource());
-  auto mesh = obj.template convertToDCEL<DCEL::DefaultMetaData>(pool);
+  auto mesh = obj.convertToDCEL(pool);
 
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->numVertices() == 4); // Compressed down to the 4 unique corners.

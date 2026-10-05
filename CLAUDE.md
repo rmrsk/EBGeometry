@@ -298,7 +298,9 @@ does not follow this template, edit the PR body to conform to it.
   resources); `EBGEOMETRY_EXPECT(cond)` guards internal invariants and hot paths and is opt-in (below).
   The file readers never abort on a bad file: they throw `Parser::ParseError` (file, line, reason),
   including for meshes that cannot form a half-edge surface or that fold back onto themselves
-  (`Soup::findTopologyDefect`/`findFoldedFeature`); holes are still allowed. Death tests for
+  (`Soup::findTopologyDefect`/`findFoldedFeature`); holes are still allowed. A trailing
+  `Parser::OnDefect::Warn` argument on every `readInto*`/`convertToDCEL` loads such a mesh with a
+  warning instead (a face that visits a vertex twice still throws). Death tests for
   `REQUIRE` checks use `abortsWith()` from `Tests/TestDeath.hpp` and run in every build.
 - **Device code needs no special compiler flags, and must stay that way.** Under `Source/`, never use
   `std::min`/`std::max`/`std::clamp`/`std::numeric_limits`/`std::array`; use `Math::min`/`max`/`clamp`/
@@ -329,10 +331,9 @@ does not follow this template, edit the PR body to conform to it.
   need re-patching after every host-to-device mirror.
 - **`MeshSDF` holds its source `DCEL::MeshT` descriptor as well as the packed BVH, and owns no
   memory; the `Pool` is what must stay alive.** `MeshSDF` is a trivially copyable value type: its
-  `MeshT` and its `PackedBVH` (of *copies* of the DCEL faces, stored by value) are both descriptors
-  resolving against the one `Pool` passed to the constructor. A packed face's half-edge index is
-  only meaningful together with the mesh, which is why `MeshSDF` keeps the mesh descriptor and passes
-  it to every face query. Copying a `MeshSDF` copies descriptors, not data (use `deepCopy(Pool&)`
+  `MeshT` and its `PackedBVH` (of `uint32_t` face ids) are both descriptors resolving against the
+  one `Pool` passed to the constructor. Every leaf test reads the face from the mesh, so the mesh is
+  the only copy of the geometry (a flip or a reconcile-and-refit after the build is seen). Copying a `MeshSDF` copies descriptors, not data (use `deepCopy(Pool&)`
   for independent storage), and nothing is reference-counted, so the caller must keep the `Pool`
   alive for as long as the `MeshSDF` or any copy or `rebasedView()` of it is used (and, on a device,
   the mirrored pool too). The same holds for `FlatMeshSDF` (mesh only), `TriMeshSDF` (BVH only; its
@@ -340,6 +341,19 @@ does not follow this template, edit the PR body to conform to it.
   should follow the same pattern: hold descriptors by value, offer `rebasedView()`/`deepCopy()`
   (and `relocatedTo()` if it may be a BVH-union primitive), and document that its pool must outlive
   it.
+- **Mesh elements carry no user metadata; a face's id is its index in the mesh.** The DCEL classes,
+  `Triangle`, the mesh SDFs and the parsers have no `Meta` template parameter. The readers number
+  faces in file order (minus removed zero-area faces); `getClosestFace()` on all three mesh SDFs
+  returns that id (device-callable), and `Triangle`/`TriangleAoSoA` carry the id of the face a
+  triangle was cut from. Per-face user data lives in the caller's own array. (The point clouds still
+  have a `Meta` parameter; Phase 2 item 20 of `AUDIT.md` replaces it.)
+- **Header layout.** `EBGeometry_PackedBVH.hpp` is the only BVH header device code needs;
+  `EBGeometry_TreeBVH.hpp` (`TreeBVH`, partitioners, `pack()`) and `EBGeometry_BVHBuild.hpp`
+  (`PackedBVH`'s builder constructors) are host-only and include each other. The blend operators and
+  BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp` (no `ImplicitFunction`), the
+  `shared_ptr` CSG layer in `EBGeometry_CSG.hpp`, and `operator<<` for `Vec3T`/`AABBT`/`SphereT` in
+  `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
+  include the split headers, so older includes keep working.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s
   `binaryDir`) specifically so switching presets can't silently reuse a stale `CMakeCache.txt` from
   a different configuration.

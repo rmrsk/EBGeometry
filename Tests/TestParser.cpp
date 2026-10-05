@@ -27,8 +27,6 @@ using namespace EBGeometry;
 
 namespace {
 
-using Meta = DCEL::DefaultMetaData;
-
 std::string
 dataPath(const std::string& a_filename)
 {
@@ -86,14 +84,14 @@ TEMPLATE_TEST_CASE("Parser: binary STL, PLY and VTK fixtures read the same mesh 
   for (const std::string ext : {"stl", "ply", "vtk"}) {
     INFO("format: " << ext);
 
-    const auto ascii  = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron." + ext), pool);
-    const auto binary = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron_binary." + ext), pool);
+    const auto ascii  = Parser::readIntoDCEL<T>(dataPath("dodecahedron." + ext), pool);
+    const auto binary = Parser::readIntoDCEL<T>(dataPath("dodecahedron_binary." + ext), pool);
 
     REQUIRE(binary.numFaces() == 36);
     REQUIRE(binary.numVertices() == ascii.numVertices());
 
-    const FlatMeshSDF<T, Meta> asciiSDF(ascii, pool);
-    const FlatMeshSDF<T, Meta> binarySDF(binary, pool);
+    const FlatMeshSDF<T> asciiSDF(ascii, pool);
+    const FlatMeshSDF<T> binarySDF(binary, pool);
 
     // Binary STL stores float32 coordinates, so compare at float precision.
     for (const auto& p : probePoints<T>()) {
@@ -116,7 +114,7 @@ TEMPLATE_TEST_CASE("Parser: an ASCII STL with blank lines inside facets reads no
     content.insert(content.find('\n', pos) + 1, "\n\n");
   }
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(writeScratch("blank_lines.stl", content), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(writeScratch("blank_lines.stl", content), pool);
 
   REQUIRE(mesh.numFaces() == 4);
   REQUIRE(mesh.numVertices() == 4);
@@ -182,13 +180,12 @@ TEMPLATE_TEST_CASE("Parser: missing, empty, truncated and corrupted files throw 
   for (const auto& path : paths) {
     INFO("file: " << path);
 
-    REQUIRE_THROWS_AS((Parser::readIntoDCEL<T, Meta>(path, pool)), Parser::ParseError);
+    REQUIRE_THROWS_AS((Parser::readIntoDCEL<T>(path, pool)), Parser::ParseError);
   }
 
   // The readers that build a distance function throw before building anything.
-  REQUIRE_THROWS_AS((Parser::readIntoTriangleBVH<T, Meta, 4, 4>(dataPath("does_not_exist.stl"), pool)),
-                    Parser::ParseError);
-  REQUIRE_THROWS_AS((Parser::readIntoPackedBVH<T, Meta, 4>(dataPath("does_not_exist.stl"), pool)), Parser::ParseError);
+  REQUIRE_THROWS_AS((Parser::readIntoTriangleBVH<T, 4, 4>(dataPath("does_not_exist.stl"), pool)), Parser::ParseError);
+  REQUIRE_THROWS_AS((Parser::readIntoPackedBVH<T, 4>(dataPath("does_not_exist.stl"), pool)), Parser::ParseError);
 }
 
 TEMPLATE_TEST_CASE("Parser: ParseError names the file, the line and the reason", "[Parser]", EBGEOMETRY_TEST_PRECISIONS)
@@ -201,7 +198,7 @@ TEMPLATE_TEST_CASE("Parser: ParseError names the file, the line and the reason",
     INFO("file: " << a_path);
 
     try {
-      [[maybe_unused]] const auto mesh = Parser::readIntoDCEL<T, Meta>(a_path, pool);
+      [[maybe_unused]] const auto mesh = Parser::readIntoDCEL<T>(a_path, pool);
 
       FAIL("no ParseError was thrown");
     } catch (const Parser::ParseError& e) {
@@ -256,7 +253,7 @@ TEMPLATE_TEST_CASE("Parser: faces that cannot form a half-edge mesh throw ParseE
   const auto throwsWith = [&pool](const std::string& a_path, const std::string& a_reason) {
     INFO("file: " << a_path);
 
-    REQUIRE_THROWS_WITH((Parser::readIntoDCEL<T, Meta>(a_path, pool)), Catch::Matchers::ContainsSubstring(a_reason));
+    REQUIRE_THROWS_WITH((Parser::readIntoDCEL<T>(a_path, pool)), Catch::Matchers::ContainsSubstring(a_reason));
   };
 
   // A damaged 'endfacet' line, after which the next facet's vertices are read into this one.
@@ -288,7 +285,7 @@ TEMPLATE_TEST_CASE("Parser: with OnDefect::Warn, inconsistent orientation and fo
   Pool pool(hostMemoryResource());
 
   // The default still throws.
-  REQUIRE_THROWS_AS((Parser::readIntoDCEL<T, Meta>(flipped, pool)), Parser::ParseError);
+  REQUIRE_THROWS_AS((Parser::readIntoDCEL<T>(flipped, pool)), Parser::ParseError);
 
   for (const auto& file : {flipped, folded}) {
     INFO("file: " << file);
@@ -297,9 +294,9 @@ TEMPLATE_TEST_CASE("Parser: with OnDefect::Warn, inconsistent orientation and fo
     std::ostringstream captured;
     std::streambuf*    old = std::cerr.rdbuf(captured.rdbuf());
 
-    DCEL::MeshT<T, Meta> mesh;
+    DCEL::MeshT<T> mesh;
 
-    REQUIRE_NOTHROW(mesh = Parser::readIntoDCEL<T, Meta>(file, pool, Parser::OnDefect::Warn));
+    REQUIRE_NOTHROW(mesh = Parser::readIntoDCEL<T>(file, pool, Parser::OnDefect::Warn));
 
     std::cerr.rdbuf(old);
 
@@ -307,8 +304,8 @@ TEMPLATE_TEST_CASE("Parser: with OnDefect::Warn, inconsistent orientation and fo
     REQUIRE_THAT(captured.str(), Catch::Matchers::ContainsSubstring("loading it anyway"));
 
     // The mesh answers queries, and the BVH agrees with the brute-force scan.
-    const FlatMeshSDF<T, Meta> flat(mesh, pool);
-    const MeshSDF<T, Meta, 4>  packed(mesh, pool, BVH::Construction::SAH);
+    const FlatMeshSDF<T> flat(mesh, pool);
+    const MeshSDF<T, 4>  packed(mesh, pool, BVH::Construction::SAH);
 
     for (const auto& q : {Vec3T<T>(T(0.2), T(0.2), T(0.2)), Vec3T<T>(T(2), T(-1), T(0.5))}) {
       REQUIRE(std::isfinite(flat.signedDistance(q)));
@@ -320,24 +317,19 @@ TEMPLATE_TEST_CASE("Parser: with OnDefect::Warn, inconsistent orientation and fo
   std::ostringstream captured;
   std::streambuf*    old = std::cerr.rdbuf(captured.rdbuf());
 
-  REQUIRE_NOTHROW(Parser::readIntoMesh<T, Meta>(flipped, pool, Parser::OnDefect::Warn));
-  REQUIRE_NOTHROW(Parser::readIntoPackedBVH<T, Meta>(flipped, pool, BVH::Construction::SAH, Parser::OnDefect::Warn));
-  REQUIRE_NOTHROW(
-    Parser::readIntoTriangleBVH<T, Meta>(flipped, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn));
-  REQUIRE_NOTHROW(
-    Parser::readIntoTriangleBVH<T, Meta>(folded, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn));
-  REQUIRE_NOTHROW(Parser::readIntoTriangles<T, Meta>(flipped, Parser::OnDefect::Warn));
-  REQUIRE_NOTHROW(
-    Parser::readIntoDCEL<T, Meta>(std::vector<std::string>{flipped, folded}, pool, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(Parser::readIntoMesh<T>(flipped, pool, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(Parser::readIntoPackedBVH<T>(flipped, pool, BVH::Construction::SAH, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(Parser::readIntoTriangleBVH<T>(flipped, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(Parser::readIntoTriangleBVH<T>(folded, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(Parser::readIntoTriangles<T>(flipped, Parser::OnDefect::Warn));
+  REQUIRE_NOTHROW(Parser::readIntoDCEL<T>(std::vector<std::string>{flipped, folded}, pool, Parser::OnDefect::Warn));
 
   // Near a fold only the sign is unreliable: the double-sided triangle lies in z = 0, so a point
   // 0.5 above its interior is 0.5 away, whatever sign each mesh SDF gives it.
   const Vec3T<T> above(T(0.2), T(0.2), T(0.5));
 
-  const auto foldMesh =
-    Parser::readIntoPackedBVH<T, Meta>(folded, pool, BVH::Construction::SAH, Parser::OnDefect::Warn);
-  const auto foldTris =
-    Parser::readIntoTriangleBVH<T, Meta>(folded, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn);
+  const auto foldMesh = Parser::readIntoPackedBVH<T>(folded, pool, BVH::Construction::SAH, Parser::OnDefect::Warn);
+  const auto foldTris = Parser::readIntoTriangleBVH<T>(folded, pool, 4, BVH::Construction::SAH, Parser::OnDefect::Warn);
 
   std::cerr.rdbuf(old);
 
@@ -359,7 +351,7 @@ TEMPLATE_TEST_CASE("Parser: a face that visits a vertex twice throws even with O
   Pool pool(hostMemoryResource());
 
   REQUIRE_THROWS_WITH(
-    (Parser::readIntoDCEL<T, Meta>(writeScratch("repeated_vertex.obj", cube), pool, Parser::OnDefect::Warn)),
+    (Parser::readIntoDCEL<T>(writeScratch("repeated_vertex.obj", cube), pool, Parser::OnDefect::Warn)),
     Catch::Matchers::ContainsSubstring("visits the same vertex twice"));
 }
 
@@ -405,11 +397,11 @@ TEMPLATE_TEST_CASE("Parser: OBJ vertices that no face uses, and comments after a
   const std::string rest  = "f 1 2 4\nf 1 4 3\nf 2 3 4\n";
 
   Pool       pool(hostMemoryResource());
-  const auto plain = Parser::readIntoDCEL<T, Meta>(writeScratch("tet.obj", verts + first + "\n" + rest), pool);
+  const auto plain = Parser::readIntoDCEL<T>(writeScratch("tet.obj", verts + first + "\n" + rest), pool);
   const auto unused =
-    Parser::readIntoDCEL<T, Meta>(writeScratch("tet_unused.obj", verts + "v 5 5 5\n" + first + "\n" + rest), pool);
+    Parser::readIntoDCEL<T>(writeScratch("tet_unused.obj", verts + "v 5 5 5\n" + first + "\n" + rest), pool);
   const auto noted =
-    Parser::readIntoDCEL<T, Meta>(writeScratch("tet_comment.obj", verts + first + " # the base\n" + rest), pool);
+    Parser::readIntoDCEL<T>(writeScratch("tet_comment.obj", verts + first + " # the base\n" + rest), pool);
 
   REQUIRE(unused.numFaces() == 4);
   REQUIRE(noted.numFaces() == 4);
@@ -430,13 +422,13 @@ TEMPLATE_TEST_CASE("Parser: readIntoTriangleBVH keeps the intermediate DCEL mesh
   // and be mirrored to the device with the BVH.
   Pool direct(hostMemoryResource());
 
-  const auto sdf = Parser::readIntoTriangleBVH<T, Meta, 4, 4>(dataPath("dodecahedron.stl"), direct);
+  const auto sdf = Parser::readIntoTriangleBVH<T, 4, 4>(dataPath("dodecahedron.stl"), direct);
 
   Pool       viaMesh(hostMemoryResource());
-  const auto mesh      = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"), viaMesh);
+  const auto mesh      = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), viaMesh);
   const auto meshBytes = viaMesh.usedBytes();
 
-  const TriMeshSDF<T, Meta, 4, 4> fromMesh(mesh, viaMesh, BVH::Construction::SAH, 4);
+  const TriMeshSDF<T, 4, 4> fromMesh(mesh, viaMesh, BVH::Construction::SAH, 4);
 
   REQUIRE(meshBytes > 0);
   REQUIRE(direct.usedBytes() + meshBytes <= viaMesh.usedBytes() + PoolBaseAlign);
@@ -450,17 +442,17 @@ TEST_CASE("Mesh distance functions and BVH unions refuse to build from nothing",
   // EBGEOMETRY_REQUIREs, so they abort in every build.
   REQUIRE(abortsWith(
     [] {
-      Pool                            pool(hostMemoryResource());
-      const DCEL::MeshT<T, Meta>      empty;
-      const TriMeshSDF<T, Meta, 4, 4> sdf(empty, pool, BVH::Construction::SAH, 2);
+      Pool                      pool(hostMemoryResource());
+      const DCEL::MeshT<T>      empty;
+      const TriMeshSDF<T, 4, 4> sdf(empty, pool, BVH::Construction::SAH, 2);
     },
     "TriMeshSDF: the mesh has no faces"));
 
   REQUIRE(abortsWith(
     [] {
-      Pool                       pool(hostMemoryResource());
-      const DCEL::MeshT<T, Meta> empty;
-      const MeshSDF<T, Meta, 4>  sdf(empty, pool, BVH::Construction::SAH);
+      Pool                 pool(hostMemoryResource());
+      const DCEL::MeshT<T> empty;
+      const MeshSDF<T, 4>  sdf(empty, pool, BVH::Construction::SAH);
     },
     "MeshSDF: the mesh has no faces"));
 

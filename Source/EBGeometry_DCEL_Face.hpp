@@ -47,13 +47,14 @@ namespace DCEL {
  * @note m_halfEdge is an index into the owning DCEL::MeshT's own edge array,
  * resolved by passing that mesh to the accessors below (see EdgeT for why
  * indices rather than pointers are used). Every other member is a plain value
- * (Vec3, T, uint32_t, an enum, and Meta), so as long as Meta and T are
- * trivially copyable, FaceT itself is trivially copyable -- it can be memcpy'd
+ * (Vec3, T, uint32_t, an enum), so FaceT itself is trivially copyable -- it can be memcpy'd
  * or mirrored to a different address space with no pointer patching, as long
  * as it is interpreted against the same mesh's arrays on the other side.
+ * @note A face's id is its index in the owning mesh's face array; the mesh SDFs report it from
+ * getClosestFace(). Per-face data such as a material lives in the caller's own array, indexed by it.
  * @note Methods that stream through the half-edge loop via EdgeIterator with no allocation
  * (define, reconcile's helpers other than computeCentroid/computeNormal/computeArea,
- * computeProjectionDirections, flipNormal, setHalfEdge/setMetaData/setInsideOutsideAlgorithm,
+ * computeProjectionDirections, flipNormal, setHalfEdge/setInsideOutsideAlgorithm,
  * normalizeNormalVector, the getters, projectPointIntoFacePlane/projectPoint,
  * computeWindingNumber/computeCrossingNumber/computeSubtendedAngle, isPointInsideFace,
  * signedDistance, unsignedDistance2, getSmallestCoordinate/getHighestCoordinate) are annotated
@@ -61,14 +62,11 @@ namespace DCEL {
  * which calls all three) and gatherVertexIndices/gatherEdgeIndices/getAllVertexCoordinates all
  * materialize a std::vector, so they remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta>
+template <class T>
 class FaceT
 {
   static_assert(std::is_floating_point_v<T>, "FaceT requires a floating-point T");
-  static_assert(std::is_trivially_copyable_v<Meta>,
-                "FaceT requires a trivially copyable Meta (device-visible storage)");
 
 public:
   /**
@@ -79,27 +77,27 @@ public:
   /**
    * @brief Alias for vertex type
    */
-  using Vertex = VertexT<T, Meta>;
+  using Vertex = VertexT<T>;
 
   /**
    * @brief Alias for edge type
    */
-  using Edge = EdgeT<T, Meta>;
+  using Edge = EdgeT<T>;
 
   /**
    * @brief Alias for face type
    */
-  using Face = FaceT<T, Meta>;
+  using Face = FaceT<T>;
 
   /**
    * @brief Alias for mesh type
    */
-  using Mesh = MeshT<T, Meta>;
+  using Mesh = MeshT<T>;
 
   /**
    * @brief Alias for edge iterator
    */
-  using EdgeIterator = EdgeIteratorT<T, Meta>;
+  using EdgeIterator = EdgeIteratorT<T>;
 
   /**
    * @brief Default constructor. Sets the half-edge index to the unset sentinel and the
@@ -119,7 +117,7 @@ public:
    * @brief Copy constructor.
    * @details Defaulted memberwise copy: every member is a plain value (see the class-level note),
    * so the copy is immediately usable for a point-in-face test against the same mesh the source
-   * face belonged to, and carries the same meta-data as the source face.
+   * face belonged to.
    * @param[in] a_otherFace Other face to copy from.
    */
   FaceT(const Face& a_otherFace) = default;
@@ -205,14 +203,6 @@ public:
   setHalfEdge(const uint32_t a_halfEdgeIndex) noexcept;
 
   /**
-   * @brief Set the meta-data.
-   * @param[in] a_metaData Meta-data.
-   */
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  setMetaData(const Meta& a_metaData) noexcept;
-
-  /**
    * @brief Set the inside/outside algorithm when determining if a point projects
    * to the inside or outside of the polygon.
    * @param[in] a_algorithm Desired algorithm
@@ -294,22 +284,6 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline const T&
   getArea() const noexcept;
-
-  /**
-   * @brief Get meta-data
-   * @return Reference to the metadata.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Meta&
-  getMetaData() noexcept;
-
-  /**
-   * @brief Get meta-data (const overload)
-   * @return Const reference to the metadata.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Meta&
-  getMetaData() const noexcept;
 
   /**
    * @brief Compute the signed distance to a point.
@@ -409,14 +383,6 @@ protected:
    * @brief Polygon face centroid position
    */
   Vec3 m_centroid = Vec3::zeros();
-
-  /**
-   * @brief Meta-data attached to this face
-   * @details Value-initialized so that every constructor leaves it in a defined state: for a
-   * fundamental Meta type (e.g. short, int), a member with no initializer and no explicit mention
-   * in a constructor's member-initializer list is left indeterminate, not zero.
-   */
-  Meta m_metaData{};
 
   /**
    * @brief Cached polygon face area (stored by reconcile()).
@@ -539,10 +505,8 @@ protected:
   computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept;
 };
 
-static_assert(std::is_trivially_copyable_v<FaceT<float, DefaultMetaData>>,
-              "FaceT<float,DefaultMetaData> must be trivially copyable");
-static_assert(std::is_trivially_copyable_v<FaceT<double, DefaultMetaData>>,
-              "FaceT<double,DefaultMetaData> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<FaceT<float>>, "FaceT<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<FaceT<double>>, "FaceT<double> must be trivially copyable");
 
 } // namespace DCEL
 

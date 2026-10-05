@@ -18,7 +18,7 @@ using namespace EBGeometry;
 namespace {
 
 template <class T>
-using Tri = Triangle<T, short>;
+using Tri = Triangle<T>;
 
 constexpr size_t W = 4;
 
@@ -26,7 +26,7 @@ template <class T>
 using SoA = TriangleSoAT<T, W>;
 
 template <class T>
-using AoSoA = TriangleAoSoA<T, short, W>;
+using AoSoA = TriangleAoSoA<T, W>;
 
 // Four disjoint, well-separated triangles, spread out along x so each one is unambiguously the
 // closest for a query point placed near it.
@@ -44,15 +44,15 @@ fourTriangles()
   return tris;
 }
 
-// The same four triangles, each tagged with a distinct metadata value (10, 11, 12, 13) so a
-// closest-triangle query's returned metadata can be checked against the known closest triangle.
+// The same four triangles, each tagged with a distinct face id (10, 11, 12, 13) so a
+// closest-triangle query's returned id can be checked against the known closest triangle.
 template <class T>
 std::vector<Tri<T>>
-fourTrianglesWithMeta()
+fourTrianglesWithFaceIds()
 {
   auto tris = fourTriangles<T>();
   for (size_t i = 0; i < tris.size(); i++) {
-    tris[i].setMetaData(static_cast<short>(10 + i));
+    tris[i].setFaceId(static_cast<uint32_t>(10 + i));
   }
 
   return tris;
@@ -100,7 +100,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance matches the minimum-|distance| 
   REQUIRE(tris.size() == W);
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(minAbsSignedDistance<T>(tris, p), looseMargin<T>()));
@@ -117,7 +117,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance is unaffected by padding when c
   tris.resize(2); // Pack only the first 2 of the 4 disjoint triangles; lanes 2 and 3 get padded.
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(minAbsSignedDistance<T>(tris, p), looseMargin<T>()));
@@ -134,7 +134,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance handles a single packed triangl
   tris.resize(1);
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), 1);
+  group.pack(tris.data(), 1);
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(tris.front().signedDistance(p), looseMargin<T>()));
@@ -153,7 +153,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::computeBoundingVolume matches an AABB built di
   const auto tris = fourTriangles<T>();
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   const auto bv = group.template computeBoundingVolume<AABB>();
 
@@ -181,7 +181,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistances returns per-lane distances who
   const auto tris = fourTriangles<T>();
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
     const Array<T, W> perLane = group.signedDistances(p);
@@ -201,87 +201,87 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistances returns per-lane distances who
   }
 }
 
-TEMPLATE_TEST_CASE("TriangleAoSoA::signedDistance(point, meta) reports the closest triangle's "
-                   "metadata and matches the plain overload",
+TEMPLATE_TEST_CASE("TriangleAoSoA::signedDistance(point, faceId) reports the closest triangle's "
+                   "face id and matches the plain overload",
                    "[TriangleSoA][TriangleAoSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  const auto tris = fourTrianglesWithMeta<T>();
+  const auto tris = fourTrianglesWithFaceIds<T>();
   REQUIRE(tris.size() == W);
 
   AoSoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
-    // Brute-force the closest triangle (by |signed distance|) and its metadata.
-    T     best         = std::numeric_limits<T>::max();
-    short expectedMeta = -1;
+    // Brute-force the closest triangle (by |signed distance|) and its face id.
+    T        best           = std::numeric_limits<T>::max();
+    uint32_t expectedFaceId = UINT32_MAX;
     for (const auto& tri : tris) {
       const T d = tri.signedDistance(p);
 
       if (std::abs(d) < std::abs(best)) {
-        best         = d;
-        expectedMeta = tri.getMetaData();
+        best           = d;
+        expectedFaceId = tri.getFaceId();
       }
     }
 
-    short   meta = -1;
-    const T d    = group.signedDistance(p, meta);
+    uint32_t faceId = UINT32_MAX;
+    const T  d      = group.signedDistance(p, faceId);
 
     REQUIRE_THAT(d, withinAbsT(best, looseMargin<T>()));
-    REQUIRE(meta == expectedMeta);
+    REQUIRE(faceId == expectedFaceId);
 
-    // The plain overload (hot path) must agree with the metadata-reporting one.
+    // The plain overload (hot path) must agree with the id-reporting one.
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(best, looseMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("TriangleAoSoA::getMetaData returns each lane's metadata and pads with the last "
+TEMPLATE_TEST_CASE("TriangleAoSoA::getFaceId returns each lane's face id and pads with the last "
                    "real triangle",
                    "[TriangleSoA][TriangleAoSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  auto tris = fourTrianglesWithMeta<T>();
+  auto tris = fourTrianglesWithFaceIds<T>();
   tris.resize(2); // Pack only the first 2; lanes 2 and 3 are padded with the last real triangle.
 
   AoSoA<T> group;
   group.pack(tris.data(), 2);
 
-  REQUIRE(group.getMetaData(0) == short(10));
-  REQUIRE(group.getMetaData(1) == short(11));
-  REQUIRE(group.getMetaData(2) == short(11)); // padded -> last real triangle's metadata
-  REQUIRE(group.getMetaData(3) == short(11)); // padded -> last real triangle's metadata
+  REQUIRE(group.getFaceId(0) == 10U);
+  REQUIRE(group.getFaceId(1) == 11U);
+  REQUIRE(group.getFaceId(2) == 11U); // padded -> last real triangle's face id
+  REQUIRE(group.getFaceId(3) == 11U); // padded -> last real triangle's face id
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: a host-packed TriangleAoSoA is queried in a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
-// The signed distance from a query point to the group, which is held by value. With m_withMeta, it
-// comes from the overload that also reports the closest triangle's metadata.
+// The signed distance from a query point to the group, which is held by value. With m_withFaceId,
+// it comes from the overload that also reports the closest triangle's face id.
 template <class T>
 struct TriangleAoSoADistanceQuery
 {
   AoSoA<T> m_group;
-  bool     m_withMeta;
+  bool     m_withFaceId;
 
   EBGEOMETRY_HOST_DEVICE
   T
   operator()(const Vec3T<T>& a_point) const noexcept
   {
-    short closestMeta = 0;
+    uint32_t closestFaceId = 0;
 
-    return m_withMeta ? m_group.signedDistance(a_point, closestMeta) : m_group.signedDistance(a_point);
+    return m_withFaceId ? m_group.signedDistance(a_point, closestFaceId) : m_group.signedDistance(a_point);
   }
 };
 
-// The closest triangle's metadata, as reported by signedDistance(point, meta).
+// The closest triangle's face id, as reported by signedDistance(point, faceId).
 template <class T>
-struct TriangleAoSoAClosestMetaQuery
+struct TriangleAoSoAClosestFaceIdQuery
 {
   AoSoA<T> m_group;
 
@@ -289,17 +289,17 @@ struct TriangleAoSoAClosestMetaQuery
   int
   operator()(const Vec3T<T>& a_point) const noexcept
   {
-    short closestMeta = 0;
+    uint32_t closestFaceId = 0;
 
-    (void)m_group.signedDistance(a_point, closestMeta);
+    (void)m_group.signedDistance(a_point, closestFaceId);
 
-    return static_cast<int>(closestMeta);
+    return static_cast<int>(closestFaceId);
   }
 };
 
-// The metadata of lane i % W.
+// The face id of lane i % W.
 template <class T>
-struct TriangleAoSoAMetaDataQuery
+struct TriangleAoSoAFaceIdQuery
 {
   AoSoA<T> m_group;
 
@@ -307,7 +307,7 @@ struct TriangleAoSoAMetaDataQuery
   int
   operator()(const int& a_i) const noexcept
   {
-    return static_cast<int>(m_group.getMetaData(static_cast<size_t>(a_i) % W));
+    return static_cast<int>(m_group.getFaceId(static_cast<size_t>(a_i) % W));
   }
 };
 
@@ -335,7 +335,7 @@ TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
     SKIP("no GPU device available");
   }
 
-  const auto tris = fourTrianglesWithMeta<T>();
+  const auto tris = fourTrianglesWithFaceIds<T>();
 
   AoSoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
@@ -344,14 +344,14 @@ TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
   // sides of the plane, so each one is the closest for some queries and both signs occur.
   const auto points = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-1.5)), Vec3T<T>(T(12), T(3), T(1.5)), 10);
 
-  for (const bool withMeta : {false, true}) {
-    INFO("with metadata: " << withMeta);
-    requireSameResults(evaluateOnDevice<T>(TriangleAoSoADistanceQuery<T>{group, withMeta}, points),
-                       evaluateOnHost<T>(TriangleAoSoADistanceQuery<T>{group, withMeta}, points));
+  for (const bool withFaceId : {false, true}) {
+    INFO("with face id: " << withFaceId);
+    requireSameResults(evaluateOnDevice<T>(TriangleAoSoADistanceQuery<T>{group, withFaceId}, points),
+                       evaluateOnHost<T>(TriangleAoSoADistanceQuery<T>{group, withFaceId}, points));
   }
 
-  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAClosestMetaQuery<T>{group}, points),
-                      evaluateOnHost<int>(TriangleAoSoAClosestMetaQuery<T>{group}, points));
+  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAClosestFaceIdQuery<T>{group}, points),
+                      evaluateOnHost<int>(TriangleAoSoAClosestFaceIdQuery<T>{group}, points));
 
   std::vector<int> lanes;
 
@@ -359,8 +359,8 @@ TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
     lanes.push_back(i);
   }
 
-  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAMetaDataQuery<T>{group}, lanes),
-                      evaluateOnHost<int>(TriangleAoSoAMetaDataQuery<T>{group}, lanes));
+  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAFaceIdQuery<T>{group}, lanes),
+                      evaluateOnHost<int>(TriangleAoSoAFaceIdQuery<T>{group}, lanes));
 }
 
 TEST_CASE("TriangleSoAT/TriangleAoSoA::pack: reject a count outside [1, W] and a null array",

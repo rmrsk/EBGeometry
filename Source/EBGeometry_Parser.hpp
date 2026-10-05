@@ -189,8 +189,10 @@ readVTK(const std::vector<std::string>& a_filenames);
 
 /**
  * @brief Read a file containing a single watertight object and return it as a DCEL mesh.
+ * @details Face i of the mesh is the file's i-th face, not counting zero-area faces, which are
+ * removed (see Soup::removeDegeneratePolygons). That index is the face id the mesh SDFs report from
+ * getClosestFace().
  * @tparam T    Floating-point precision for vertex coordinates.
- * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
  * The returned mesh resolves its storage through a_pool, so a_pool must outlive it.
@@ -200,14 +202,13 @@ readVTK(const std::vector<std::string>& a_filenames);
  * @return The constructed DCEL mesh, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
-template <typename T, typename Meta = DCEL::DefaultMetaData>
-[[nodiscard]] inline static EBGeometry::DCEL::MeshT<T, Meta>
+template <typename T>
+[[nodiscard]] inline static EBGeometry::DCEL::MeshT<T>
 readIntoDCEL(const std::string a_filename, Pool& a_pool, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read multiple files containing single watertight objects and return them as DCEL meshes.
  * @tparam T    Floating-point precision for vertex coordinates.
- * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @param[in]     a_files List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously.
@@ -217,14 +218,13 @@ readIntoDCEL(const std::string a_filename, Pool& a_pool, const OnDefect a_onDefe
  * @return Vector of the constructed DCEL meshes, one per file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
-template <typename T, typename Meta = DCEL::DefaultMetaData>
-[[nodiscard]] inline static std::vector<EBGeometry::DCEL::MeshT<T, Meta>>
+template <typename T>
+[[nodiscard]] inline static std::vector<EBGeometry::DCEL::MeshT<T>>
 readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read a file and return it as a bare DCEL signed-distance function (O(N) scan, no BVH).
  * @tparam T    Floating-point precision for signed-distance evaluation.
- * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
  * The returned FlatMeshSDF resolves its mesh through a_pool, so a_pool must outlive it.
@@ -234,14 +234,13 @@ readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefe
  * @return The FlatMeshSDF over the parsed DCEL mesh, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
-template <typename T, typename Meta = DCEL::DefaultMetaData>
-[[nodiscard]] inline static FlatMeshSDF<T, Meta>
+template <typename T>
+[[nodiscard]] inline static FlatMeshSDF<T>
 readIntoMesh(const std::string a_filename, Pool& a_pool, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read multiple files and return each as a bare DCEL signed-distance function.
  * @tparam T    Floating-point precision for signed-distance evaluation.
- * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @param[in]     a_files List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool  Pool to reserve every constructed mesh's storage from -- all meshes
  * share this one Pool, laid out contiguously.
@@ -251,8 +250,8 @@ readIntoMesh(const std::string a_filename, Pool& a_pool, const OnDefect a_onDefe
  * @return Vector of FlatMeshSDF objects, one per file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
-template <typename T, typename Meta = DCEL::DefaultMetaData>
-[[nodiscard]] inline static std::vector<FlatMeshSDF<T, Meta>>
+template <typename T>
+[[nodiscard]] inline static std::vector<FlatMeshSDF<T>>
 readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
@@ -260,7 +259,6 @@ readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefe
  * @details Supports any polygon mesh, not just triangles. For triangle-only meshes with
  * maximum throughput, prefer readIntoTriangleBVH which uses SoA leaf grouping.
  * @tparam T    Floating-point precision for signed-distance evaluation.
- * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @tparam K    BVH branching factor (number of children per internal node).
  * @param[in]     a_filename File name (STL, PLY, or VTK).
  * @param[in,out] a_pool     Pool to reserve the underlying DCEL mesh's storage from. The
@@ -272,8 +270,8 @@ readIntoMesh(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefe
  * @return The MeshSDF enclosing the mesh, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
-template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
-[[nodiscard]] inline static MeshSDF<T, Meta, K>
+template <typename T, size_t K = 4>
+[[nodiscard]] inline static MeshSDF<T, K>
 readIntoPackedBVH(const std::string       a_filename,
                   Pool&                   a_pool,
                   const BVH::Construction a_construction = BVH::Construction::SAH,
@@ -282,7 +280,6 @@ readIntoPackedBVH(const std::string       a_filename,
 /**
  * @brief Read multiple files and return each enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
  * @tparam T    Floating-point precision for signed-distance evaluation.
- * @tparam Meta Per-face metadata type stored in the DCEL mesh.
  * @tparam K    BVH branching factor (number of children per internal node).
  * @param[in]     a_files List of file names (STL, PLY, or VTK).
  * @param[in,out] a_pool  Pool to reserve every underlying DCEL mesh's storage from -- all meshes
@@ -294,8 +291,8 @@ readIntoPackedBVH(const std::string       a_filename,
  * @return Vector of MeshSDF objects, one per file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
-template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
-[[nodiscard]] inline static std::vector<MeshSDF<T, Meta, K>>
+template <typename T, size_t K = 4>
+[[nodiscard]] inline static std::vector<MeshSDF<T, K>>
 readIntoPackedBVH(const std::vector<std::string>& a_files,
                   Pool&                           a_pool,
                   const BVH::Construction         a_construction = BVH::Construction::SAH,
@@ -306,7 +303,6 @@ readIntoPackedBVH(const std::vector<std::string>& a_files,
  * @details Triangles are grouped into SoA bundles of W and packed into a linearised K-ary BVH.
  * At query time the BVH uses SIMD intrinsics to evaluate W triangles per leaf visit.
  * @tparam T    Floating-point precision for signed-distance evaluation.
- * @tparam Meta Per-face metadata type.
  * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (4, independent of
  * compiler flags); BVH::HostBranchingRatio<T>() is the value tuned to the host's SIMD flags, for
  * host-only code.
@@ -325,11 +321,8 @@ readIntoPackedBVH(const std::vector<std::string>& a_files,
  * warning (OnDefect::Warn); see OnDefect.
  * @return The TriMeshSDF enclosing the mesh, by value.
  */
-template <typename T,
-          typename Meta = DCEL::DefaultMetaData,
-          size_t K      = BVH::DefaultBranchingRatio<T>(),
-          size_t W      = TriangleSoA::DefaultWidth<T>()>
-[[nodiscard]] inline static TriMeshSDF<T, Meta, K, W>
+template <typename T, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = TriangleSoA::DefaultWidth<T>()>
+[[nodiscard]] inline static TriMeshSDF<T, K, W>
 readIntoTriangleBVH(const std::string       a_filename,
                     Pool&                   a_pool,
                     const size_t            a_maxLeafGroups = 4,
@@ -339,7 +332,6 @@ readIntoTriangleBVH(const std::string       a_filename,
 /**
  * @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
  * @tparam T    Floating-point precision for signed-distance evaluation.
- * @tparam Meta Per-face metadata type.
  * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (see single-file overload).
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>().
  * @param[in]     a_files         List of file names (STL, PLY, or VTK).
@@ -353,11 +345,8 @@ readIntoTriangleBVH(const std::string       a_filename,
  * warning (OnDefect::Warn); see OnDefect.
  * @return Vector of TriMeshSDF objects, one per file.
  */
-template <typename T,
-          typename Meta = DCEL::DefaultMetaData,
-          size_t K      = BVH::DefaultBranchingRatio<T>(),
-          size_t W      = TriangleSoA::DefaultWidth<T>()>
-[[nodiscard]] inline static std::vector<TriMeshSDF<T, Meta, K, W>>
+template <typename T, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = TriangleSoA::DefaultWidth<T>()>
+[[nodiscard]] inline static std::vector<TriMeshSDF<T, K, W>>
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
                     Pool&                           a_pool,
                     const size_t                    a_maxLeafGroups = 4,
@@ -367,11 +356,11 @@ readIntoTriangleBVH(const std::vector<std::string>& a_files,
 /**
  * @brief Read a file and return all faces as a flat list of Triangle objects.
  * @details The mesh is first parsed into a DCEL, then each face is extracted into an
- * independent Triangle with precomputed vertex positions, normals, and edge normals.
+ * independent Triangle with precomputed vertex positions, normals, and edge normals; a polygon face
+ * is fan-triangulated. Each triangle's face id is the index of the mesh face it was cut from, as
+ * readIntoDCEL() numbers them. The intermediate DCEL mesh lives in a Pool private to this call and is
+ * freed on return, so it never occupies (or gets mirrored along with) any Pool of the caller's.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
- * @tparam Meta Per-face metadata type.
- * The intermediate DCEL mesh lives in a Pool private to this call and is freed on return, so it
- * never occupies (or gets mirrored along with) any Pool of the caller's.
  * @param[in] a_filename File name (STL, PLY, VTK or OBJ).
  * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
  * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
@@ -379,14 +368,13 @@ readIntoTriangleBVH(const std::vector<std::string>& a_files,
  * @return Flat vector of Triangle objects, by value.
  * @throws ParseError if the file cannot be read, is malformed, or has no faces.
  */
-template <typename T, typename Meta>
-[[nodiscard]] inline static std::vector<Triangle<T, Meta>>
+template <typename T>
+[[nodiscard]] inline static std::vector<Triangle<T>>
 readIntoTriangles(const std::string a_filename, const OnDefect a_onDefect = OnDefect::Throw);
 
 /**
  * @brief Read multiple files and return all faces from each as flat lists of Triangle objects.
  * @tparam T    Floating-point precision for vertex coordinates and normals.
- * @tparam Meta Per-face metadata type.
  * @param[in] a_files List of file names (STL, PLY, VTK or OBJ).
  * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
  * faces, or faces that fold back onto each other throw (OnDefect::Throw, the default) or load with a
@@ -394,8 +382,8 @@ readIntoTriangles(const std::string a_filename, const OnDefect a_onDefect = OnDe
  * @return Outer vector indexed by file; each inner vector is the flat triangle list for that file.
  * @throws ParseError if any of the files cannot be read, is malformed, or has no faces.
  */
-template <typename T, typename Meta>
-[[nodiscard]] inline static std::vector<std::vector<Triangle<T, Meta>>>
+template <typename T>
+[[nodiscard]] inline static std::vector<std::vector<Triangle<T>>>
 readIntoTriangles(const std::vector<std::string>& a_files, const OnDefect a_onDefect = OnDefect::Throw);
 } // namespace Parser
 

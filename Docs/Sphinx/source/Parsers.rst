@@ -96,7 +96,7 @@ binary file, or when there is no meaningful line), and the reason:
 .. code-block:: cpp
 
    try {
-     const auto sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>("part.stl", pool);
+     const auto sdf = EBGeometry::Parser::readIntoTriangleBVH<T>("part.stl", pool);
      // ...
    }
    catch (const EBGeometry::Parser::ParseError& e) {
@@ -120,7 +120,7 @@ so by default the readers reject it. Every ``readInto*`` function, and every for
 .. code-block:: cpp
 
    // Load anyway: print a warning to std::cerr naming the defect, and build the mesh.
-   const auto sdf = EBGeometry::Parser::readIntoPackedBVH<T, Meta>(
+   const auto sdf = EBGeometry::Parser::readIntoPackedBVH<T>(
      "scan.obj", pool, EBGeometry::BVH::Construction::SAH, EBGeometry::Parser::OnDefect::Warn);
 
 ``OnDefect::Throw`` is the default. ``OnDefect::Warn`` only covers defects the mesh survives: a
@@ -167,10 +167,12 @@ DCEL representation
 ___________________
 
 To read one or multiple files and turn it into DCEL meshes, use
-``readIntoDCEL<T, Meta>(filename, pool)`` (or the ``std::vector<std::string>`` overload for
+``readIntoDCEL<T>(filename, pool)`` (or the ``std::vector<std::string>`` overload for
 multiple files at once, which reserves every mesh's storage from the same ``pool``), returning a
-``DCEL::MeshT<T, Meta>`` by value (or a ``std::vector`` of them). The mesh resolves its storage
-through ``pool``, so ``pool`` must outlive it and every copy of it.
+``DCEL::MeshT<T>`` by value (or a ``std::vector`` of them). The mesh resolves its storage
+through ``pool``, so ``pool`` must outlive it and every copy of it. Face ``i`` of the mesh is the
+file's ``i``-th face, not counting zero-area faces, which the readers remove (see below); that
+index is the face id the mesh SDFs report from ``getClosestFace()`` (see :ref:`Sec:FaceIds`).
 Note that this will only expose the DCEL mesh, but not include any signed distance functionality.
 
 .. note::
@@ -183,8 +185,8 @@ DCEL mesh SDF
 _____________
 
 To read one or multiple files and also turn it into a bare (BVH-free) signed distance
-representation, use ``readIntoMesh<T, Meta>(filename, pool)``, returning a
-``FlatMeshSDF<T, Meta>`` by value (or a ``std::vector`` of them for the multi-file overload). The
+representation, use ``readIntoMesh<T>(filename, pool)``, returning a
+``FlatMeshSDF<T>`` by value (or a ``std::vector`` of them for the multi-file overload). The
 returned ``FlatMeshSDF`` resolves its mesh through ``pool`` (see :ref:`Chap:MeshSDFClasses`), so
 ``pool`` must outlive it and every copy of it. Repeated calls can share one ``pool`` freely, in any
 combination with the other ``readInto*`` functions.
@@ -194,8 +196,8 @@ combination with the other ``readInto*`` functions.
 DCEL mesh SDF with PackedBVH
 _____________________________
 
-``readIntoPackedBVH<T, Meta, K>(filename, pool, construction)`` wraps a DCEL mesh in a ``PackedBVH``
-(depth-first flat layout) with SIMD traversal, returning a ``MeshSDF<T, Meta, K>`` by value (or a
+``readIntoPackedBVH<T, K>(filename, pool, construction)`` wraps a DCEL mesh in a ``PackedBVH``
+(depth-first flat layout) with SIMD traversal, returning a ``MeshSDF<T, K>`` by value (or a
 ``std::vector`` of them). It supports any polygon, not just triangles; the BVH branching factor
 ``K`` defaults to 4 and the construction method ``a_construction`` defaults to ``BVH::Construction::SAH``. The returned
 ``MeshSDF`` holds the mesh and its BVH in ``pool``, so ``pool`` must outlive it and every copy of
@@ -204,9 +206,9 @@ it. For maximum throughput on triangle-only meshes, prefer ``readIntoTriangleBVH
 Triangle meshes with PackedBVH
 ________________________________
 
-``readIntoTriangleBVH<T, Meta, K, W>(filename, pool, maxLeafGroups, construction)``
+``readIntoTriangleBVH<T, K, W>(filename, pool, maxLeafGroups, construction)``
 converts all DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a
-``PackedBVH``, returning a ``TriMeshSDF<T, Meta, K, W>`` by value (or a ``std::vector`` of them).
+``PackedBVH``, returning a ``TriMeshSDF<T, K, W>`` by value (or a ``std::vector`` of them).
 SIMD intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to 4
 (``BVH::DefaultBranchingRatio<T>()`` and ``TriangleSoA::DefaultWidth<T>()``, independent of compiler
 flags; see :ref:`Sec:DefaultKW`); ``maxLeafGroups`` (default 4)
@@ -222,10 +224,11 @@ it reserved there, and mirrored to the device along with the BVH.
 Flat triangle list
 ____________________
 
-``readIntoTriangles<T, Meta>(filename)`` returns a flat ``std::vector<Triangle<T, Meta>>``
+``readIntoTriangles<T>(filename)`` returns a flat ``std::vector<Triangle<T>>``
 (or, for the multi-file overload, one such vector per file) -- every face of the parsed mesh as an
 independent, self-contained ``Triangle`` value, with no DCEL/half-edge topology connecting them. Each
-triangle carries its face's normal and metadata, and its vertices' and half-edges' normals -- the
+triangle carries its face's normal and id (``Triangle::getFaceId()``, the face's index in the mesh;
+a polygon face gives several triangles with the same id), and its vertices' and half-edges' normals -- the
 same extraction ``TriMeshSDF``'s mesh constructor performs, so ``readIntoTriangleBVH`` and
 ``TriMeshSDF(mesh, ...)`` build identical triangles.
 The triangles are plain values, and the intermediate DCEL mesh lives in a ``Pool`` private to the
@@ -280,7 +283,7 @@ the validity check before them and the two checks after compression themselves.
   the (already-compressed) soup into the output DCEL mesh, reconciles pair edges (internally, via
   ``reconcilePairEdgesDCEL``, which links each half-edge :math:`u \to v` to its reverse
   :math:`v \to u`), and runs a mesh sanity check. This also computes the vertex and edge normal
-  vectors. ``mesh`` can be freshly default-constructed (``DCEL::MeshT<T, Meta> mesh;``, no ``Pool``
+  vectors. ``mesh`` can be freshly default-constructed (``DCEL::MeshT<T> mesh;``, no ``Pool``
   needed at construction); ``soupToDCEL`` reserves its vertex/edge/half-edge storage from ``pool``
   itself, sized from ``vertices``/``facets``. ``mesh`` is attached to ``pool`` by that first reserve
   and is queryable as soon as ``soupToDCEL`` returns, whether or not ``pool`` is shared with further

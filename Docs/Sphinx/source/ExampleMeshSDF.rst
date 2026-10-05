@@ -7,7 +7,7 @@ Reads a surface mesh and evaluates its signed distance field using all three mes
 representations described in :ref:`Chap:MeshSDFClasses`:
 
 * A naive :math:`O(N)` scan over all facets (``FlatMeshSDF``).
-* A ``PackedBVH`` with pointer-free, index-offset nodes storing copies of the DCEL faces by value (``MeshSDF``).
+* A ``PackedBVH`` with pointer-free, index-offset nodes storing face ids, each test reading its face from the mesh (``MeshSDF``).
 * A SIMD-accelerated, SoA-packed triangle BVH (``TriMeshSDF``).
 
 .. tip::

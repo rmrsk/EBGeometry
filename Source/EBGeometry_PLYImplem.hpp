@@ -118,11 +118,10 @@ PLY<T>::setFaceProperties(const std::string a_property, std::vector<T> a_data)
 }
 
 template <typename T>
-template <typename Meta>
-std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 PLY<T>::convertToDCEL(Pool& a_pool, const Parser::OnDefect a_onDefect) const
 {
-  return Soup::readSoupIntoDCEL<T, Meta>(m_vertexCoordinates, m_facets, a_pool, m_id, "PLY", a_onDefect);
+  return Soup::readSoupIntoDCEL<T>(m_vertexCoordinates, m_facets, a_pool, m_id, "PLY", a_onDefect);
 }
 
 } // namespace EBGeometry

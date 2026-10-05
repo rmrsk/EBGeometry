@@ -95,9 +95,8 @@ namespace DCEL {
  * reconcileVertices builds a transient per-vertex face list and aborts with a message on a
  * corrupted VertexNormalWeight) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta>
+template <class T>
 class MeshT
 {
   static_assert(std::is_floating_point_v<T>, "MeshT requires a floating-point T");
@@ -123,22 +122,22 @@ public:
   /**
    * @brief Alias for vertex type
    */
-  using Vertex = VertexT<T, Meta>;
+  using Vertex = VertexT<T>;
 
   /**
    * @brief Alias for edge type
    */
-  using Edge = EdgeT<T, Meta>;
+  using Edge = EdgeT<T>;
 
   /**
    * @brief Alias for face type
    */
-  using Face = FaceT<T, Meta>;
+  using Face = FaceT<T>;
 
   /**
    * @brief Alias for mesh type
    */
-  using Mesh = MeshT<T, Meta>;
+  using Mesh = MeshT<T>;
 
   /**
    * @brief Default constructor. Leaves the mesh empty (no vertices, edges, faces) and attached to
@@ -200,7 +199,7 @@ public:
    * @details Reserves fresh storage in a_dstPool and copies every vertex/edge/face by value; since
    * every cross-reference is an index rather than a pointer, the copy is already fully independent
    * and correctly linked -- no relinking pass is needed. Every field is preserved exactly (position,
-   * normal vector, centroid, area, meta-data, search algorithm) rather than recomputed, so a mesh
+   * normal vector, centroid, area, search algorithm) rather than recomputed, so a mesh
    * that has had flipNormal()/flip() called on it and not yet been re-reconciled is copied
    * faithfully rather than silently "un-flipped". Unlike the copy/move constructors, this creates
    * genuinely separate storage rather than sharing the source's, and the returned mesh is attached
@@ -449,7 +448,7 @@ public:
    * @param[in] a_x0 3D point in space.
    * @details This function will iterate through ALL faces in the mesh and return
    * the value with the smallest magnitude. This is horrendously slow, which is
-   * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
+   * why this function is almost never called. Rather, MeshT<T> can be embedded
    * in a bounding volume hierarchy for faster access.
    * @note This will call the other version with the object's search algorithm.
    * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
@@ -466,7 +465,7 @@ public:
    * @param[in] a_algorithm Search algorithm
    * @details This function will iterate through ALL faces in the mesh and return
    * the value with the smallest magnitude. This is horrendously slow, which is
-   * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
+   * why this function is almost never called. Rather, MeshT<T> can be embedded
    * in a bounding volume hierarchy for faster access.
    * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
    * the mesh has no faces.
@@ -480,7 +479,7 @@ public:
    * @param[in] a_x0 3D point in space.
    * @details This function will iterate through ALL faces in the mesh and return
    * the value with the smallest magnitude. This is horrendously slow, which is
-   * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
+   * why this function is almost never called. Rather, MeshT<T> can be embedded
    * in a bounding volume hierarchy for faster access.
    * @return Squared unsigned distance to the nearest face, or +infinity if the mesh has no faces.
    */
@@ -595,7 +594,7 @@ protected:
 
   /**
    * @brief Function which computes internal things for the polygon faces.
-   * @note This calls DCEL::FaceT<T, Meta>::reconcile()
+   * @note This calls DCEL::FaceT<T>::reconcile()
    */
   EBGEOMETRY_HOST
   inline void
@@ -603,7 +602,7 @@ protected:
 
   /**
    * @brief Function which computes internal things for the half-edges
-   * @note This calls DCEL::EdgeT<T, Meta>::reconcile()
+   * @note This calls DCEL::EdgeT<T>::reconcile()
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
@@ -612,8 +611,8 @@ protected:
   /**
    * @brief Function which computes internal things for the vertices
    * @param[in] a_weight Vertex angle weighting
-   * @note This calls DCEL::VertexT<T, Meta>::computeVertexNormalAverage() or
-   * DCEL::VertexT<T, Meta>::computeVertexNormalAngleWeighted()
+   * @note This calls DCEL::VertexT<T>::computeVertexNormalAverage() or
+   * DCEL::VertexT<T>::computeVertexNormalAngleWeighted()
    */
   EBGEOMETRY_HOST
   inline void

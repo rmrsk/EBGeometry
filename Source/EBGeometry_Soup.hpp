@@ -144,13 +144,12 @@ findTopologyDefect(const std::vector<std::vector<size_t>>& a_facets);
  * it fold back onto each other, and a vertex's when the faces around it cancel out. The sign of the
  * distance near such a feature is undefined. A vertex that no face uses is not reported.
  * @tparam T    Floating-point precision type for vertex coordinates.
- * @tparam Meta Metadata type.
  * @param[in] a_mesh Mesh to check.
  * @return A description of the first such feature, or an empty string if there is none.
  */
-template <typename T, typename Meta>
+template <typename T>
 [[nodiscard]] inline static std::string
-findFoldedFeature(const EBGeometry::DCEL::MeshT<T, Meta>& a_mesh);
+findFoldedFeature(const EBGeometry::DCEL::MeshT<T>& a_mesh);
 
 /**
  * @brief Convert a polygon soup into a DCEL half-edge mesh.
@@ -160,16 +159,15 @@ findFoldedFeature(const EBGeometry::DCEL::MeshT<T, Meta>& a_mesh);
  * and is queryable from that point on, including across the reserves that follow -- a_pool need not
  * be frozen, and may stay open for further meshes.
  * @tparam T    Floating-point precision type for vertex coordinates.
- * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
  * @param[out]    a_mesh     Output DCEL mesh populated by this call.
  * @param[in,out] a_pool     Pool to reserve a_mesh's vertex/edge/face storage from.
  * @param[in]     a_vertices Compressed vertex coordinate list.
  * @param[in]     a_facets   Index lists defining each polygon face.
  * @param[in]     a_id       Identifier string used in diagnostic messages.
  */
-template <typename T, typename Meta>
+template <typename T>
 inline static void
-soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
+soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
            Pool&                                    a_pool,
            const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
            const std::vector<std::vector<size_t>>&  a_facets,
@@ -182,7 +180,6 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
  * findRepeatedVertex() (throws), findTopologyDefect(), soupToDCEL() and findFoldedFeature(). The last
  * two checks throw a Parser::ParseError, or with Parser::OnDefect::Warn print a warning and go on.
  * @tparam T    Floating-point precision type for vertex coordinates.
- * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
  * @param[in]     a_vertices Vertex coordinates, as read (taken by value: compressed here).
  * @param[in]     a_facets   Index lists, as read (taken by value: cleaned here).
  * @param[in,out] a_pool     Pool to reserve the mesh's storage from.
@@ -192,8 +189,8 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
  * @return The mesh.
  * @throws Parser::ParseError as described above.
  */
-template <typename T, typename Meta>
-[[nodiscard]] inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+template <typename T>
+[[nodiscard]] inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
                  std::vector<std::vector<size_t>>  a_facets,
                  Pool&                             a_pool,
@@ -209,13 +206,12 @@ readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
  * on both. O(V + E) for bounded vertex valence; no circulation, so it needs no pair edges already
  * set.
  * @tparam T    Floating-point precision type.
- * @tparam Meta Metadata type attached to DCEL edges.
  * @param[in,out] a_mesh Mesh whose half-edges are reconciled in place. Must already be attached to
  * the Pool its storage was reserved from, which its first reserveX() call does.
  */
-template <typename T, typename Meta>
+template <typename T>
 inline static void
-reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept;
+reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh) noexcept;
 
 } // namespace Soup
 

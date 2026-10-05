@@ -12,6 +12,7 @@
 #define EBGEOMETRY_TRIANGLE_HPP
 
 // Std includes
+#include <cstdint>
 #include <type_traits>
 
 // Our includes
@@ -40,10 +41,13 @@ namespace EBGeometry {
  * "inside" or "outside" of the triangle. If the query point projects to the inside of the triangle, the
  * distance is simply the projected distance onto the triangle plane. If it projects to the outside of
  * the triangle, we check the distance against the triangle edges and vertices.
+ *
+ * A triangle also carries a face id: the index of the mesh face it was cut from (see
+ * Parser::readIntoTriangles and TriMeshSDF), or any id the caller assigns. It plays no part in the
+ * distance computation; TriMeshSDF::getClosestFace() reports it.
  * @tparam T    Floating-point precision.
- * @tparam Meta User-defined metadata type stored with the triangle.
  */
-template <class T, class Meta>
+template <class T>
 class Triangle
 {
   static_assert(std::is_floating_point_v<T>, "T must be a floating-point type");
@@ -138,11 +142,11 @@ public:
   setEdgeNormals(const Array<Vec3, 3>& a_edgeNormals) noexcept;
 
   /**
-   * @brief Set the triangle meta-data
-   * @param[in] a_metaData Triangle metadata.
+   * @brief Set the face id.
+   * @param[in] a_faceId Id of the face this triangle belongs to.
    */
   void
-  setMetaData(const Meta& a_metaData) noexcept;
+  setFaceId(const uint32_t a_faceId) noexcept;
 
   /**
    * @brief Compute the triangle normal vector.
@@ -188,12 +192,11 @@ public:
   getEdgeNormals() const noexcept;
 
   /**
-   * @brief Get the triangle meta-data
-   * @details Const-only; use setMetaData to update.
-   * @return m_metaData
+   * @brief Get the face id.
+   * @return m_faceId
    */
-  [[nodiscard]] const Meta&
-  getMetaData() const noexcept;
+  [[nodiscard]] uint32_t
+  getFaceId() const noexcept;
 
   /**
    * @brief Compute the signed distance from the input point x to the triangle.
@@ -227,9 +230,9 @@ protected:
   Array<Vec3, 3> m_edgeNormals{Vec3::max(), Vec3::max(), Vec3::max()};
 
   /**
-   * @brief Triangle meta-data normals
+   * @brief Id of the face this triangle belongs to, UINT32_MAX if unset.
    */
-  Meta m_metaData;
+  uint32_t m_faceId = UINT32_MAX;
 };
 } // namespace EBGeometry
 

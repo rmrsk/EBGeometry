@@ -159,10 +159,8 @@ public:
   }
 };
 
-using Meta = DCEL::DefaultMetaData;
-
 template <class T>
-using TestSDF = MeshSDF<T, Meta, 4>;
+using TestSDF = MeshSDF<T, 4>;
 
 std::string
 dodecahedron()
@@ -186,7 +184,7 @@ TEMPLATE_TEST_CASE("PoolLocation: a view onto a managed mirror answers queries o
   using T = TestType;
 
   Pool       host(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
+  const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), host);
   const auto sdf  = TestSDF<T>(mesh, host, BVH::Construction::SAH);
 
   host.freeze();
@@ -215,7 +213,7 @@ TEMPLATE_TEST_CASE("PoolLocation: an object built directly in managed memory can
   FakeManagedResource managed;
   Pool                pool(managed);
 
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), pool);
+  const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), pool);
   const auto sdf  = TestSDF<T>(mesh, pool, BVH::Construction::SAH);
 
   pool.freeze();
@@ -237,7 +235,7 @@ TEMPLATE_TEST_CASE("PoolLocation: a view rebased onto a staging mirror can be re
   using T = TestType;
 
   Pool       host(hostMemoryResource());
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
+  const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), host);
   const auto sdf  = TestSDF<T>(mesh, host, BVH::Construction::SAH);
 
   host.freeze();
@@ -270,7 +268,7 @@ TEST_CASE("PoolLocation: rebasing onto an unfrozen device-accessible pool aborts
       FakeManagedResource managed;
       Pool                pool(managed);
 
-      const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), pool);
+      const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), pool);
       const auto sdf  = TestSDF<T>(mesh, pool, BVH::Construction::SAH);
 
       // Not frozen: the pool could still grow and move, so a snapshot of its base would go stale.
@@ -328,7 +326,7 @@ TEST_CASE("PoolLocation: a view of device-only memory used on the host fails an 
   REQUIRE(abortsWith(
     [] {
       Pool       host(hostMemoryResource());
-      const auto mesh = Parser::readIntoDCEL<T, Meta>(dodecahedron(), host);
+      const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), host);
       const auto sdf  = TestSDF<T>(mesh, host, BVH::Construction::SAH);
 
       host.freeze();

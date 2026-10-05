@@ -127,14 +127,12 @@ public:
    * @brief Pack count triangles from tris[0..count-1] into this SoA group.
    * @details Pads lanes count..W-1 by repeating the last real triangle so that all W
    * lanes hold valid data and SIMD loads never read uninitialised memory.
-   * @tparam Meta Triangle meta-data type (forwarded from Triangle<T,Meta>).
    * @param[in] tris  Source triangle array with at least count elements. Must not be null.
    * @param[in] count Number of valid triangles to pack. Must satisfy 1 <= count <= W.
    */
-  template <class Meta>
   EBGEOMETRY_HOST
   void
-  pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept;
+  pack(const Triangle<T>* tris, uint32_t count) noexcept;
 
   /**
    * @brief Evaluate signed distance from a_point to the closest triangle in this group.
@@ -156,7 +154,7 @@ public:
    * @details The per-lane analogue of signedDistance(): signedDistance() horizontally reduces the W
    * per-triangle distances to the single minimum-|value| entry, whereas this returns all W of them so
    * a caller can recover *which* lane won -- the piece the SIMD reduction discards. Computed with a
-   * scalar per-lane loop rather than the SIMD kernel, since it is used only by the metadata-retrieving
+   * scalar per-lane loop rather than the SIMD kernel, since it is used only by the face-id-retrieving
    * (non-throughput) path. All W lanes are filled: padded lanes (m_validCount..W-1) repeat the last
    * real triangle's distance, matching pack()'s padding, so a caller iterating lanes should stop at
    * m_validCount (or de-duplicate). Requires the group to have already been packed via pack()

@@ -179,7 +179,6 @@ public:
    * @brief Turn the PLY mesh into a DCEL mesh.
    * @details This call does not populate any meta-data in the DCEL mesh structures. If you need to also populate
    * the meta-data on vertices and faces, you should not use this function but supply your own constructor.
-   * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
    * @param[in,out] a_pool     Pool to reserve the constructed mesh's vertex/edge/face storage from.
    * @param[in]     a_onDefect Whether faces oriented inconsistently, an edge shared by three or more
    * faces, or faces that fold back onto each other throw (the default) or only print a warning.
@@ -190,8 +189,7 @@ public:
    * Soup::findFoldedFeature). With Parser::OnDefect::Warn the last two only print a warning; a face
    * that visits a vertex twice still throws.
    */
-  template <typename Meta>
-  [[nodiscard]] std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+  [[nodiscard]] std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
   convertToDCEL(Pool& a_pool, Parser::OnDefect a_onDefect = Parser::OnDefect::Throw) const;
 
 protected:

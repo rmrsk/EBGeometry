@@ -23,48 +23,38 @@ namespace EBGeometry {
 namespace DCEL {
 
 /**
- * @brief Default meta-data type for the DCEL primitives.
- */
-using DefaultMetaData = short;
-
-/**
  * @brief Vertex class for navigating a DCEL mesh.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta = DefaultMetaData>
+template <class T>
 class VertexT;
 
 /**
  * @brief Half-edge class for navigating a DCEL mesh.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta = DefaultMetaData>
+template <class T>
 class EdgeT;
 
 /**
  * @brief Face class for navigating a DCEL mesh.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta = DefaultMetaData>
+template <class T>
 class FaceT;
 
 /**
  * @brief DCEL mesh class - stores a doubly-connected edge mesh.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta = DefaultMetaData>
+template <class T>
 class MeshT;
 
 /**
  * @brief Half-edge iterator class for navigating the half edge mesh.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta = DefaultMetaData>
+template <class T>
 class EdgeIteratorT;
 
 /**

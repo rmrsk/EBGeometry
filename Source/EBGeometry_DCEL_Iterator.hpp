@@ -45,9 +45,8 @@ namespace DCEL {
  * std::is_trivially_copyable -- see the copy constructor's doc comment -- which is what stops it
  * from being accepted into a PODVector in the first place.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta>
+template <class T>
 class EdgeIteratorT
 {
   static_assert(std::is_floating_point_v<T>, "T must be a floating-point type");
@@ -56,22 +55,22 @@ public:
   /**
    * @brief Alias for DCEL vertex type
    */
-  using Vertex = VertexT<T, Meta>;
+  using Vertex = VertexT<T>;
 
   /**
    * @brief Alias for DCEL edge type
    */
-  using Edge = EdgeT<T, Meta>;
+  using Edge = EdgeT<T>;
 
   /**
    * @brief Alias for DCEL face type
    */
-  using Face = FaceT<T, Meta>;
+  using Face = FaceT<T>;
 
   /**
    * @brief Alias for DCEL mesh type
    */
-  using Mesh = MeshT<T, Meta>;
+  using Mesh = MeshT<T>;
 
   /**
    * @brief Default construction is not allowed. Use one of the full constructors
@@ -106,7 +105,7 @@ public:
    * EdgeIteratorT holds a raw m_mesh pointer that is only ever meaningful within the address space
    * it was constructed in (see the class-level note), so it must never be storable in a PODVector or
    * mirrored to a device. A non-trivial copy constructor makes std::is_trivially_copyable_v false for
-   * this type, so PODVector<EdgeIteratorT<T,Meta>> (which asserts trivial copyability) fails to
+   * this type, so PODVector<EdgeIteratorT<T>> (which asserts trivial copyability) fails to
    * compile instead of silently carrying a dangling pointer across address spaces. This constructor
    * is otherwise a plain memberwise copy and costs nothing extra once optimized.
    */
@@ -198,11 +197,11 @@ protected:
   uint32_t m_curEdge = UINT32_MAX;
 };
 
-static_assert(!std::is_trivially_copyable_v<EdgeIteratorT<float, DefaultMetaData>>,
-              "EdgeIteratorT<float,DefaultMetaData> must NOT be trivially copyable -- see its copy "
+static_assert(!std::is_trivially_copyable_v<EdgeIteratorT<float>>,
+              "EdgeIteratorT<float> must NOT be trivially copyable -- see its copy "
               "constructor's doc comment");
-static_assert(!std::is_trivially_copyable_v<EdgeIteratorT<double, DefaultMetaData>>,
-              "EdgeIteratorT<double,DefaultMetaData> must NOT be trivially copyable -- see its copy "
+static_assert(!std::is_trivially_copyable_v<EdgeIteratorT<double>>,
+              "EdgeIteratorT<double> must NOT be trivially copyable -- see its copy "
               "constructor's doc comment");
 
 } // namespace DCEL

@@ -386,9 +386,9 @@ Soup::findTopologyDefect(const std::vector<std::vector<size_t>>& a_facets)
   return std::string();
 }
 
-template <typename T, typename Meta>
+template <typename T>
 inline std::string
-Soup::findFoldedFeature(const EBGeometry::DCEL::MeshT<T, Meta>& a_mesh)
+Soup::findFoldedFeature(const EBGeometry::DCEL::MeshT<T>& a_mesh)
 {
   for (uint32_t e = 0; e < a_mesh.numEdges(); e++) {
     const auto& edge = a_mesh.getEdge(e);
@@ -410,9 +410,9 @@ Soup::findFoldedFeature(const EBGeometry::DCEL::MeshT<T, Meta>& a_mesh)
   return std::string();
 }
 
-template <typename T, typename Meta>
+template <typename T>
 inline void
-Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
+Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
                  Pool&                                    a_pool,
                  const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                  const std::vector<std::vector<size_t>>&  a_facets,
@@ -421,9 +421,9 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   static_assert(std::is_floating_point_v<T>, "Soup::soupToDCEL requires a floating-point T");
 
   using Vec3   = EBGeometry::Vec3T<T>;
-  using Vertex = EBGeometry::DCEL::VertexT<T, Meta>;
-  using Edge   = EBGeometry::DCEL::EdgeT<T, Meta>;
-  using Face   = EBGeometry::DCEL::FaceT<T, Meta>;
+  using Vertex = EBGeometry::DCEL::VertexT<T>;
+  using Edge   = EBGeometry::DCEL::EdgeT<T>;
+  using Face   = EBGeometry::DCEL::FaceT<T>;
 
   // Upper bound on the half-edge count: every facet contributes one half-edge per vertex, even
   // ones later skipped below for having fewer than 3 vertices. PODVector capacity need not be
@@ -492,8 +492,8 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
 }
 
-template <typename T, typename Meta>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+template <typename T>
+inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 Soup::readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
                        std::vector<std::vector<size_t>>  a_facets,
                        Pool&                             a_pool,
@@ -511,7 +511,7 @@ Soup::readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
               << "; loading it anyway, so the sign of the distance near it is unreliable\n";
   };
 
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T>>();
 
   std::string reason;
 
@@ -554,13 +554,13 @@ Soup::readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
   return mesh;
 }
 
-template <typename T, typename Meta>
+template <typename T>
 inline void
-Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T, Meta>& a_mesh) noexcept
+Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh) noexcept
 {
   static_assert(std::is_floating_point_v<T>, "Soup::reconcilePairEdgesDCEL requires a floating-point T");
 
-  using Edge = EBGeometry::DCEL::EdgeT<T, Meta>;
+  using Edge = EBGeometry::DCEL::EdgeT<T>;
 
   const uint32_t numEdges    = a_mesh.numEdges();
   const uint32_t numVertices = a_mesh.numVertices();

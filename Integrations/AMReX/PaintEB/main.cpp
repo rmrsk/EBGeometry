@@ -17,17 +17,12 @@ using namespace amrex;
 /*!
   @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It
   is templated as T, BV, K which indicate the EBGeometry precision, bounding volume,
-  tree degree, and meta-data type for the triangles (defaults to an integer)
+  and tree degree.
 */
-template <class T, class BV, size_t K, class Meta = double>
+template <class T, class BV, size_t K>
 class AMReXSDF
 {
 public:
-  /*!
-    @brief Shortcut for DCEL face type
-  */
-  using Face = EBGeometry::DCEL::FaceT<T, Meta>;
-
   /*!
     @brief Full constructor.
     @param[in] a_filename File name. Must be an STL file.
@@ -39,14 +34,9 @@ public:
     // shared_ptr member kept alive alongside m_sdf for exactly as long as this object needs it.
     m_pool = std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource());
 
-    auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename, *m_pool);
+    auto mesh = EBGeometry::Parser::readIntoDCEL<T>(a_filename, *m_pool);
 
-    // Set the meta-data for all facets to their "index", i.e. position in the list of facets
-    for (uint32_t i = 0; i < mesh->numFaces(); i++) {
-      mesh->getFace(i).getMetaData() = 1.0 * i;
-    }
-
-    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, *m_pool, EBGeometry::BVH::Construction::SAH);
+    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, K>>(mesh, *m_pool, EBGeometry::BVH::Construction::SAH);
   }
 
   /*!
@@ -78,32 +68,20 @@ public:
   }
 
   /*!
-    @brief Get the face(s) that are closest to the input point, as (index, distance) pairs sorted
-    closest-first. The index names a primitive in the SDF's own packed BVH, not a face of the source
-    mesh -- packing reorders faces into leaf order and stores them by value. Resolve one with
-    getFace() below.
+    @brief Get the id of the face closest to the input point: its index in the mesh, which is the
+    file's face order.
   */
-  inline std::vector<std::pair<uint32_t, T>>
-  getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  inline uint32_t
+  getClosestFace(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return m_sdf->getClosestFaces(EBGeometry::Vec3T<T>(x, y, z), true);
-  }
-
-  /*!
-    @brief Resolve an index returned by getClosestFaces() into the packed face itself.
-    @param[in] a_index Index into the SDF's packed-BVH primitive array.
-  */
-  inline const Face&
-  getFace(const uint32_t a_index) const noexcept
-  {
-    return m_sdf->getRoot()->getPrimitives()[a_index];
+    return m_sdf->getClosestFace(EBGeometry::Vec3T<T>(x, y, z)).faceId;
   }
 
 protected:
   /*!
     @brief DCEL mesh represented as a BVH of its facets, exposed as an implicit function.
   */
-  std::shared_ptr<EBGeometry::MeshSDF<T, Meta, K>> m_sdf;
+  std::shared_ptr<EBGeometry::MeshSDF<T, K>> m_sdf;
 
   /*!
     @brief Pool backing m_sdf's retained mesh's vertex/edge/face storage.
@@ -190,11 +168,7 @@ main(int argc, char* argv[])
         amrex::Real y = rb.lo()[1] + (j + 0.5) * dx[1];
         amrex::Real z = rb.lo()[2] + (k + 0.5) * dx[2];
 
-        const auto& candidateFaces = sdf.getClosestFaces(x, y, z);
-
-        // getClosestFaces() names a BVH primitive, not a mesh face, so resolve it before reading
-        // the metadata the constructor stamped with each facet's mesh index.
-        mf_array(i, j, k) = 1.0 * sdf.getFace(candidateFaces.front().first).getMetaData();
+        mf_array(i, j, k) = 1.0 * sdf.getClosestFace(x, y, z);
       });
     }
   }
