@@ -25,11 +25,13 @@ using Meta = short;
 // Two choices of the BVH branching factor K and the SIMD width W (the number of triangles or points
 // evaluated together in one leaf group).
 //
-// The defaults are 4 for both float and double, on every machine and with every compiler flag. A
-// type spelled with them is therefore the same type everywhere: in a file built with -mavx and in
-// one built without, and in both passes of a CUDA or HIP compile. That is what lets an object built
-// on the host be copied to a GPU and used there. Use them for anything that device code also uses,
-// or that is passed between files built with different flags.
+// The defaults are 4 for both float and double, whatever the compiler flags. A type spelled with them
+// is therefore the same type everywhere: in a file built with -mavx and in one built without, and in
+// both passes of a CUDA or HIP compile. That is what lets an object built on the host be copied to a
+// GPU and used there. Use them for anything that device code also uses, or that is passed between
+// files built with different flags. The one exception: a host-only build that defines
+// EBGEOMETRY_HOST_TUNED_DEFAULTS (EBGeometry's own CMake build does) makes the default triangle width
+// the host-tuned one, so there the two mesh columns below differ in K only.
 constexpr std::size_t DefaultK = EBGeometry::BVH::DefaultBranchingRatio<T>();
 constexpr std::size_t DefaultW = EBGeometry::TriangleSoA::DefaultWidth<T>();
 
@@ -67,8 +69,13 @@ int
 main(int argc, char* argv[])
 try {
   std::cout << "Precision: " << (sizeof(T) == 4 ? "float" : "double") << "\n"
-            << "Default  K = " << DefaultK << ", W = " << DefaultW << " (the same on every machine)\n"
-            << "Host     K = " << HostK << ", W = " << HostW << " (tuned to this build's SIMD flags)\n\n";
+            << "Default  K = " << DefaultK << ", W = " << DefaultW << "\n"
+            << "Host     K = " << HostK << ", W = " << HostW << " (tuned to this build's SIMD flags)\n";
+#if defined(EBGEOMETRY_HOST_TUNED_DEFAULTS)
+  std::cout << "This build defines EBGEOMETRY_HOST_TUNED_DEFAULTS, so the default triangle width is the host-tuned\n"
+            << "one. Build this example on its own (make, or a direct compile) to compare with the portable 4.\n";
+#endif
+  std::cout << "\n";
 
   std::mt19937                           rng(42);
   std::uniform_real_distribution<double> unit(0.0, 1.0);

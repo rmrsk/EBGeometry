@@ -96,8 +96,11 @@ that uses ``FetchContent`` or ``add_subdirectory``, set it first:
    set(EBGEOMETRY_SIMD "avx" CACHE STRING "")
    FetchContent_MakeAvailable(EBGeometry)
 
-or pass ``-DEBGEOMETRY_SIMD=avx`` when configuring. With an installed EBGeometry, or to choose flags
-per target, pass architecture flags via ``target_compile_options``:
+or pass ``-DEBGEOMETRY_SIMD=avx`` when configuring. The ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` option,
+which widens the default triangle groups to these flags' register width, follows the same rule: on
+when EBGeometry is the project being built without a GPU backend, off when another project pulls it
+in (see :ref:`Sec:DefaultKW`). With an installed EBGeometry, or to choose flags per target, pass
+architecture flags via ``target_compile_options``:
 
 .. code-block:: cmake
 

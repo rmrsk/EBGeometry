@@ -89,6 +89,34 @@ if(EBGEOMETRY_SIMD_FLAGS)
   target_compile_options(EBGeometry INTERFACE "$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:CXX>:${EBGEOMETRY_SIMD_FLAGS}>>")
 endif()
 
+# Host-tuned defaults: TriangleSoA::DefaultWidth returns TriangleSoA::HostWidth, which follows the SIMD
+# flags above (8 for float under AVX), so TriMeshSDF evaluates a full register of triangles at once.
+# The branching factor and the point-group width stay 4: widening them measured no faster. A type
+# then has one layout for the whole build, as long as every translation unit sees the same flags,
+# which this build guarantees.
+# On by default only where that holds and nothing is mirrored to a device: when EBGeometry is the
+# top-level project (its tests, examples and benchmarks) and no GPU backend is enabled. A GPU build
+# compiles host and device passes with different ISA macros, so the headers reject the macro there.
+# BUILD_INTERFACE only, like the options above: a consuming project opts in itself.
+if(EBGEOMETRY_IS_TOP_LEVEL AND NOT EBGEOMETRY_ENABLE_CUDA AND NOT EBGEOMETRY_ENABLE_HIP)
+  set(_ebgeometry_default_host_tuned ON)
+else()
+  set(_ebgeometry_default_host_tuned OFF)
+endif()
+
+option(EBGEOMETRY_HOST_TUNED_DEFAULTS
+  "Default triangle-group width follows the SIMD flags (host-only builds)" ${_ebgeometry_default_host_tuned})
+
+if(EBGEOMETRY_HOST_TUNED_DEFAULTS AND (EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP))
+  message(FATAL_ERROR
+    "EBGEOMETRY_HOST_TUNED_DEFAULTS cannot be combined with a GPU backend: the host and device passes "
+    "of a CUDA or HIP compile see different SIMD macros. Set EBGEOMETRY_HOST_TUNED_DEFAULTS=OFF.")
+endif()
+
+if(EBGEOMETRY_HOST_TUNED_DEFAULTS)
+  target_compile_definitions(EBGeometry INTERFACE $<BUILD_INTERFACE:EBGEOMETRY_HOST_TUNED_DEFAULTS>)
+endif()
+
 # ── Installation: headers plus a CMake package for find_package(EBGeometry) ───
 option(EBGEOMETRY_INSTALL "Generate the install target" ${EBGEOMETRY_IS_TOP_LEVEL})
 

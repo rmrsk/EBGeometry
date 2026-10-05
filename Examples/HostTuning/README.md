@@ -5,9 +5,12 @@ This folder shows the two ways of choosing the BVH branching factor `K` and the 
 number of triangles or points a leaf evaluates together), and when to use which.
 
 * The defaults, `BVH::DefaultBranchingRatio<T>()` and `TriangleSoA::DefaultWidth<T>()` /
-  `PointSoA::DefaultWidth<T>()`, are 4 on every machine and with every compiler flag. A type spelled
-  with them is the same type in every file and in both passes of a CUDA or HIP compile, so an object
-  built on the host can be copied to a GPU and used there. Leaving `K` and `W` out gives these.
+  `PointSoA::DefaultWidth<T>()`, are 4 whatever the compiler flags. A type spelled with them is the
+  same type in every file and in both passes of a CUDA or HIP compile, so an object built on the host
+  can be copied to a GPU and used there. Leaving `K` and `W` out gives these. The one exception is a
+  host-only build that defines `EBGEOMETRY_HOST_TUNED_DEFAULTS`, which makes the default triangle
+  width the host-tuned one; EBGeometry's own CMake build does, so build this example on its own
+  (any of the three ways below) to compare with the portable width.
 * The host-tuned values, `BVH::HostBranchingRatio<T>()` and `TriangleSoA::HostWidth<T>()` /
   `PointSoA::HostWidth<T>()`, fill one SIMD register under the flags the file is compiled with
   (this example is built with `-march=native`). Use them only in code that runs on the host alone

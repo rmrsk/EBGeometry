@@ -40,6 +40,8 @@ namespace PointSoA {
  * options, it is also as fast on the host as the ISA-tuned value.
  *
  * For host-only code, HostWidth<T>() gives the value tuned to the compiler's SIMD flags instead.
+ * EBGEOMETRY_HOST_TUNED_DEFAULTS does not change this value: it only widens the triangle groups
+ * (TriangleSoA::DefaultWidth), since wider point groups measured no faster.
  * Usage: `size_t W = PointSoA::DefaultWidth<T>()` as a template-parameter default.
  * @tparam T Floating-point precision type (float or double).
  * @return 4.

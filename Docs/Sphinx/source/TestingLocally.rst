@@ -141,6 +141,11 @@ CMake options
      - ``avx512`` enables ``-mavx512f -mavx2 -mavx -mfma -msse4.1``; ``avx``
        enables ``-mavx -mfma -msse4.1``; ``sse41`` enables ``-msse4.1``;
        ``none`` uses the scalar fallback.
+   * - ``EBGEOMETRY_HOST_TUNED_DEFAULTS``
+     - ``ON`` (``OFF`` with a GPU backend, or when another project includes EBGeometry)
+     - The default triangle-group width ``TriangleSoA::DefaultWidth<T>()`` becomes the host-tuned
+       width for these SIMD flags (8 for ``float`` with ``avx``). Cannot be combined with
+       ``EBGEOMETRY_ENABLE_CUDA`` or ``EBGEOMETRY_ENABLE_HIP``. See :ref:`Sec:DefaultKW`.
 
 Selecting individual tests
 -----------------------------
