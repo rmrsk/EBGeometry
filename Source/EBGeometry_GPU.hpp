@@ -50,6 +50,18 @@
 #define EBGEOMETRY_OPENACC
 #endif
 
+// ── Host-tuned defaults are for host-only builds ──────────────────────────────
+// EBGEOMETRY_HOST_TUNED_DEFAULTS makes BVH::DefaultBranchingRatio, TriangleSoA::DefaultWidth and
+// PointSoA::DefaultWidth follow the SIMD flags. The host and device passes of one CUDA or HIP
+// compile see different ISA macros, so the same type would get two layouts within one translation
+// unit. The test keys on EBGEOMETRY_CUDA/EBGEOMETRY_HIP (from __CUDACC__/__HIPCC__), which both
+// passes define, and deliberately not on EBGEOMETRY_DEVICE_COMPILE, which only the device pass does:
+// that would let the host pass through and reintroduce the split this guard exists to prevent.
+#if defined(EBGEOMETRY_HOST_TUNED_DEFAULTS) && (defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP))
+#error \
+  "EBGEOMETRY_HOST_TUNED_DEFAULTS is for host-only builds; it must not be defined in a CUDA or HIP translation unit"
+#endif
+
 // ── Function decoration ───────────────────────────────────────────────────────
 // CUDA and HIP require an explicit prefix on any function that may be called from device code.
 // SYCL and OpenACC do not use a prefix (SYCL: none needed; OpenACC: see EBGEOMETRY_ROUTINE), so on

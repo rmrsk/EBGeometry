@@ -4378,13 +4378,25 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate and 
   check(triSDF);
 }
 
-TEST_CASE("Default K and W are 4 whatever the compiler flags; host-tuned values follow the SIMD flags", "[BVH]")
+TEST_CASE("Default K and W are 4, or the host-tuned values under EBGEOMETRY_HOST_TUNED_DEFAULTS; host-tuned "
+          "values follow the SIMD flags",
+          "[BVH]")
 {
-  // The defaults must never depend on ISA macros: a type spelled with them has to be the same type in
-  // every translation unit and in both passes of a GPU compile.
+#if defined(EBGEOMETRY_HOST_TUNED_DEFAULTS)
+  // A host-only build that opted in: the defaults are the host-tuned values.
+  static_assert(BVH::DefaultBranchingRatio<float>() == BVH::HostBranchingRatio<float>());
+  static_assert(BVH::DefaultBranchingRatio<double>() == BVH::HostBranchingRatio<double>());
+  static_assert(TriangleSoA::DefaultWidth<float>() == TriangleSoA::HostWidth<float>());
+  static_assert(TriangleSoA::DefaultWidth<double>() == TriangleSoA::HostWidth<double>());
+  static_assert(PointSoA::DefaultWidth<float>() == PointSoA::HostWidth<float>());
+  static_assert(PointSoA::DefaultWidth<double>() == PointSoA::HostWidth<double>());
+#else
+  // Otherwise the defaults never depend on ISA macros: a type spelled with them has to be the same
+  // type in every translation unit and in both passes of a GPU compile.
   static_assert(BVH::DefaultBranchingRatio<float>() == 4 && BVH::DefaultBranchingRatio<double>() == 4);
   static_assert(TriangleSoA::DefaultWidth<float>() == 4 && TriangleSoA::DefaultWidth<double>() == 4);
   static_assert(PointSoA::DefaultWidth<float>() == 4 && PointSoA::DefaultWidth<double>() == 4);
+#endif
 
 #if defined(__AVX512F__)
   constexpr size_t hostFloat  = 16;
