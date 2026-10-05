@@ -508,7 +508,8 @@ public:
    * @brief The leaf-size settings the constructors taking a_maxLeafGroups use.
    * @details At most a_maxLeafGroups * W triangles per leaf for the top-down methods, the same as the
    * target for the space-filling curves, and for ClusterSAH a cluster size that keeps a leaf of K-1
-   * clusters within that bound. Start from these to change one method's setting; see
+   * clusters within that bound (or within K-1 triangles, if the bound is smaller, since a cluster
+   * holds at least one). Start from these to change one method's setting; see
    * BVH::ConstructionOptions.
    * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per leaf. Must be > 0.
    * @return The settings, in triangles.

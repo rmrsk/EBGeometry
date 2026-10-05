@@ -165,8 +165,8 @@ Internally, this constructor:
    a constructor template's own parameters can't be explicitly named the way a regular function
    template's can, so this is a stateless tag value purely to let the curve type be deduced).
 #. Splits the sorted primitives into consecutive leaves of a caller-chosen **target leaf size**,
-   rather than deriving a leaf count purely from primitive count and ``K`` the way
-   ``bottomUpSortAndPartition()`` does, giving direct control over leaf occupancy. Every interior
+   as ``bottomUpSortAndPartition()`` does, but from a finer set of leaf counts than its powers of
+   ``K``, so the leaves can sit closer to the target. Every interior
    node has exactly ``K`` children, and a tree like that has a leaf count ``L`` with
    ``L = 1 (mod K - 1)``, so the constructor picks the smallest such ``L`` that keeps leaves within
    the target (or, when that would leave a leaf empty, the largest one below it) and splits the
@@ -332,7 +332,8 @@ A field left at zero is rejected, in every build, when the chosen method reads i
    * - ``TriMeshSDF`` (``maxLeafGroups`` :math:`g`)
      - :math:`gW`
      - :math:`gW`
-     - :math:`\max(1, \lfloor gW/(K-1) \rfloor)`, so a leaf stays within :math:`gW`
+     - :math:`\max(1, \lfloor gW/(K-1) \rfloor)`, so a leaf of up to ``K-1`` clusters stays
+       within :math:`\max(gW, K-1)`
    * - ``BVHUnionIF``, ``BVHSmoothUnionIF``
      - ``K-1``
      - ``K``
