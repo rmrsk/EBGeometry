@@ -41,9 +41,10 @@ for each of the three build methods.
 Under the hood
 ----------------
 
-The ISA macros select which SIMD code paths are compiled in. They do not change the defaults: the
-BVH branching factor ``K`` and the SIMD width ``W`` of the leaf primitives' SoA layout default to 4
-on every machine, so a type spelled with them is the same in every translation unit and on a GPU.
-The ISA-tuned values (``BVH::HostBranchingRatio<T>()``, ``TriangleSoA::HostWidth<T>()``,
-``PointSoA::HostWidth<T>()``) are opt-in; see :ref:`Sec:DefaultKW`. How to pass ``K`` and ``W``
+The ISA macros select which SIMD code paths are compiled in. On their own they do not change the
+defaults: the BVH branching factor ``K`` and the SIMD width ``W`` of the leaf primitives' SoA layout
+default to 4 on every machine, so a type spelled with them is the same in every translation unit and
+on a GPU. The ISA-tuned values (``BVH::HostBranchingRatio<T>()``, ``TriangleSoA::HostWidth<T>()``,
+``PointSoA::HostWidth<T>()``) are opt-in, either spelled into a type or, for the triangle-group
+width, through the ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` build switch; see :ref:`Sec:DefaultKW`. How to pass ``K`` and ``W``
 explicitly is documented alongside the SIMD-supported classes in :ref:`Chap:SIMDClasses`.

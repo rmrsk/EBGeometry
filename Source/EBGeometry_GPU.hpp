@@ -51,10 +51,9 @@
 #endif
 
 // ── Host-tuned defaults are for host-only builds ──────────────────────────────
-// EBGEOMETRY_HOST_TUNED_DEFAULTS makes BVH::DefaultBranchingRatio, TriangleSoA::DefaultWidth and
-// PointSoA::DefaultWidth follow the SIMD flags. The host and device passes of one CUDA or HIP
-// compile see different ISA macros, so the same type would get two layouts within one translation
-// unit. The test keys on EBGEOMETRY_CUDA/EBGEOMETRY_HIP (from __CUDACC__/__HIPCC__), which both
+// EBGEOMETRY_HOST_TUNED_DEFAULTS makes TriangleSoA::DefaultWidth follow the SIMD flags. The host
+// and device passes of one CUDA or HIP compile see different ISA macros, so the same type would get
+// two layouts within one translation unit. The test keys on EBGEOMETRY_CUDA/EBGEOMETRY_HIP (from __CUDACC__/__HIPCC__), which both
 // passes define, and deliberately not on EBGEOMETRY_DEVICE_COMPILE, which only the device pass does:
 // that would let the host pass through and reintroduce the split this guard exists to prevent.
 #if defined(EBGEOMETRY_HOST_TUNED_DEFAULTS) && (defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP))

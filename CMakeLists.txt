@@ -89,9 +89,11 @@ if(EBGEOMETRY_SIMD_FLAGS)
   target_compile_options(EBGeometry INTERFACE "$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:CXX>:${EBGEOMETRY_SIMD_FLAGS}>>")
 endif()
 
-# Host-tuned defaults: BVH::DefaultBranchingRatio, TriangleSoA::DefaultWidth and PointSoA::DefaultWidth
-# return their Host* values, which follow the SIMD flags above. A type then has one layout for the
-# whole build, as long as every translation unit sees the same flags, which this build guarantees.
+# Host-tuned defaults: TriangleSoA::DefaultWidth returns TriangleSoA::HostWidth, which follows the SIMD
+# flags above (8 for float under AVX), so TriMeshSDF evaluates a full register of triangles at once.
+# The branching factor and the point-group width stay 4: widening them measured no faster. A type
+# then has one layout for the whole build, as long as every translation unit sees the same flags,
+# which this build guarantees.
 # On by default only where that holds and nothing is mirrored to a device: when EBGeometry is the
 # top-level project (its tests, examples and benchmarks) and no GPU backend is enabled. A GPU build
 # compiles host and device passes with different ISA macros, so the headers reject the macro there.
@@ -103,7 +105,7 @@ else()
 endif()
 
 option(EBGEOMETRY_HOST_TUNED_DEFAULTS
-  "Default K and W follow the SIMD flags (host-only builds)" ${_ebgeometry_default_host_tuned})
+  "Default triangle-group width follows the SIMD flags (host-only builds)" ${_ebgeometry_default_host_tuned})
 
 if(EBGEOMETRY_HOST_TUNED_DEFAULTS AND (EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP))
   message(FATAL_ERROR

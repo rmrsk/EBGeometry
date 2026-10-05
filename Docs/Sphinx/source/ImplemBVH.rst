@@ -832,10 +832,13 @@ ______________________________
 
 ``BVH::DefaultBranchingRatio<T>()`` and ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` are the
 template defaults for ``Parser::readIntoTriangleBVH`` (``TriMeshSDF`` itself has no defaults). Both
-are 4 for ``float`` and ``double``, whatever the compiler flags, so a type spelled with them is the
-same type in every file and in both passes of a GPU compile. ``BVH::HostBranchingRatio<T>()`` and
-``TriangleSoA::HostWidth<T>()`` give the values that fill one SIMD register under the compiler's
-flags, for host-only code; see :ref:`Sec:DefaultKW` for when to use which, and a measurement.
+are 4 for ``float`` and ``double``, so a type spelled with them is the same type in every file and
+in both passes of a GPU compile. The one exception is a host-only build that defines
+``EBGEOMETRY_HOST_TUNED_DEFAULTS``, as EBGeometry's own CMake build does when it is the top-level
+project without a GPU backend: there ``TriangleSoA::DefaultWidth<T>()`` is the host-tuned width.
+``BVH::HostBranchingRatio<T>()`` and ``TriangleSoA::HostWidth<T>()`` give the values that fill one
+SIMD register under the compiler's flags, for host-only code; see :ref:`Sec:DefaultKW` for when to
+use which, the build switch, and measurements.
 
 .. list-table:: ``HostBranchingRatio<T>()`` and ``TriangleSoA::HostWidth<T>()`` by ISA and precision
    :widths: 25 25 25 25
@@ -902,5 +905,5 @@ Rules of thumb:
 * ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
   available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
   a single SIMD batch, and the wider fan-out reduces tree depth — but measure: on the
-  benchmark in :ref:`Sec:DefaultKW` it was no faster. A wider tree also takes a larger traversal
+  benchmarks in :ref:`Sec:DefaultKW` it was slower, roughly doubling the query time. A wider tree also takes a larger traversal
   stack for the same depth (see :ref:`Sec:TraversalStack`).

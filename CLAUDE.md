@@ -309,11 +309,17 @@ does not follow this template, edit the PR body to conform to it.
   `std::abs`, `std::isfinite`, ...). nvcc rejects the others without `--expt-relaxed-constexpr`, which
   users are not required to pass, and HIP accepts them, so only `Scripts/CheckDeviceMath.py` (a
   pre-commit hook and CI step) and the advisory CUDA lane catch a violation.
-- **Default K and W are fixed at 4.** `BVH::DefaultBranchingRatio<T>()`, `TriangleSoA::DefaultWidth<T>()`
-  and `PointSoA::DefaultWidth<T>()` never read ISA macros, so a type spelled with them is identical in
-  every translation unit and GPU compile pass. The ISA-tuned values are opt-in (`BVH::HostBranchingRatio`,
-  `TriangleSoA::HostWidth`, `PointSoA::HostWidth`) and must never be used for a type device code also
-  sees. See "Branching factor and SIMD width" in `ConfigurationOptions.rst` and `Examples/HostTuning`.
+- **Default K and W are 4, with one build-level exception.** `BVH::DefaultBranchingRatio<T>()`,
+  `TriangleSoA::DefaultWidth<T>()` and `PointSoA::DefaultWidth<T>()` never read ISA macros, so a type
+  spelled with them is identical in every translation unit and GPU compile pass. The exception is
+  `EBGEOMETRY_HOST_TUNED_DEFAULTS`: in a host-only build that defines it for every translation unit,
+  `TriangleSoA::DefaultWidth` returns `TriangleSoA::HostWidth` (K and the point width stay 4; widening
+  them measured no faster). The headers `#error` on it in a CUDA/HIP translation unit (keyed on
+  `EBGEOMETRY_CUDA`/`EBGEOMETRY_HIP`, never `EBGEOMETRY_DEVICE_COMPILE`), and the CMake option of the
+  same name is ON for a top-level non-GPU build, so the `release`/`release-test` presets test with
+  W = 8 for `float`. The ISA-tuned values (`BVH::HostBranchingRatio`, `TriangleSoA::HostWidth`,
+  `PointSoA::HostWidth`) must never be used for a type device code also sees. See "Branching factor
+  and SIMD width" in `ConfigurationOptions.rst` and `Examples/HostTuning`.
 - **`EBGEOMETRY_EXPECT()` assertions are opt-in** (`EBGEOMETRY_ENABLE_ASSERTIONS`, ON in `debug`/
   `debug-san`, OFF in `release`/`release-test`) and are the primary way internal invariant
   violations (e.g. a dangling half-edge, a malformed mesh) surface during development; they compile

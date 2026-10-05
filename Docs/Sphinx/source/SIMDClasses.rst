@@ -54,8 +54,9 @@ for :math:`W` of them. This is the leaf-level cost inside every ``TriMeshSDF::si
 BVH leaf visit.
 
 **Choosing and tuning** :math:`W`: the default, ``EBGeometry::TriangleSoA::DefaultWidth<T>()``, is
-4 for both precisions and never depends on compiler flags, so the type is the same in every file
-and on a GPU. ``EBGeometry::TriangleSoA::HostWidth<T>()`` is the width that fills one SIMD register
+4 for both precisions and does not depend on compiler flags, so the type is the same in every file
+and on a GPU -- unless a host-only build defines ``EBGEOMETRY_HOST_TUNED_DEFAULTS``, which makes it
+the host-tuned width (see :ref:`Sec:DefaultKW`). ``EBGeometry::TriangleSoA::HostWidth<T>()`` is the width that fills one SIMD register
 under the compiler's flags (the macros described in :ref:`Chap:SIMDAcceleration`), for host-only
 code. See :ref:`Sec:DefaultKW` for when to use which, and :ref:`Chap:MeshSDFClasses` for the
 ISA/precision table, how to pass :math:`W` explicitly, and the data-alignment requirements.
@@ -91,7 +92,8 @@ class.
 **Choosing and tuning** :math:`W`: as for ``TriangleSoA``, the default
 ``EBGeometry::PointSoA::DefaultWidth<T>()`` is 4, and ``EBGeometry::PointSoA::HostWidth<T>()`` is the
 host-tuned width (see :ref:`Sec:DefaultKW`). Pass either, or any other width, explicitly as the final
-template argument.
+template argument. The ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` switch does not change this default:
+wider point groups measured no faster.
 
 SIMD-accelerated bounding-box pruning: ``BVH::PackedBVH<T, P, K>``
 -----------------------------------------------------------------------
@@ -129,5 +131,7 @@ which is why :math:`K` can be tuned per ISA (see below).
 
 **Choosing and tuning** :math:`K`: likewise, the default ``BVH::DefaultBranchingRatio<T>()`` is 4,
 and ``BVH::HostBranchingRatio<T>()`` is the host-tuned value, driven by the same ISA macros as
-``TriangleSoA::HostWidth<T>()`` so the two give a matching :math:`(K, W)` pair. See
-:ref:`Sec:DefaultKW` and :ref:`Chap:MeshSDFClasses`.
+``TriangleSoA::HostWidth<T>()`` so the two give a matching :math:`(K, W)` pair. The
+``EBGEOMETRY_HOST_TUNED_DEFAULTS`` switch does not change this default: a wider :math:`K` measured
+no faster, and :math:`K = 16` was markedly slower. See :ref:`Sec:DefaultKW` and
+:ref:`Chap:MeshSDFClasses`.

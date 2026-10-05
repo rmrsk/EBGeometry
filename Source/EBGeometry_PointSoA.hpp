@@ -32,6 +32,30 @@ namespace EBGeometry {
 namespace PointSoA {
 
 /**
+ * @brief The default SoA width W (points per PointSoAT group): 4, for both float and double, in every translation unit.
+ * @details This is the value the library's class templates default to. It never depends on
+ * compiler flags, so a type spelled with it has the same layout in a host-only file, in a file
+ * compiled with AVX, and in both passes of a CUDA or HIP compile -- which is what lets an object be
+ * built on the host and used on a device. On the benchmarks in the Sphinx page on configuration
+ * options, it is also as fast on the host as the ISA-tuned value.
+ *
+ * For host-only code, HostWidth<T>() gives the value tuned to the compiler's SIMD flags instead.
+ * EBGEOMETRY_HOST_TUNED_DEFAULTS does not change this value: it only widens the triangle groups
+ * (TriangleSoA::DefaultWidth), since wider point groups measured no faster.
+ * Usage: `size_t W = PointSoA::DefaultWidth<T>()` as a template-parameter default.
+ * @tparam T Floating-point precision type (float or double).
+ * @return 4.
+ */
+template <typename T>
+[[nodiscard]] constexpr size_t
+DefaultWidth() noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::PointSoA::DefaultWidth requires a floating-point T");
+
+  return 4;
+}
+
+/**
  * @brief The SoA width W (points per PointSoAT group) that fills one SIMD register for type T under the compiler's SIMD flags.
  * @details Opt-in, for host-only code:
  *
@@ -67,39 +91,6 @@ HostWidth() noexcept
   else {
     return 8;
   }
-#else
-  return 4;
-#endif
-}
-
-/**
- * @brief The default SoA width W (points per PointSoAT group): 4, or HostWidth<T>() in a build that defines EBGEOMETRY_HOST_TUNED_DEFAULTS.
- * @details This is the value the library's class templates default to.
- *
- * By default it is 4 for both float and double and never depends on compiler flags, so a type
- * spelled with it has the same layout in a host-only file, in a file compiled with AVX, and in both
- * passes of a CUDA or HIP compile -- which is what lets an object be built on the host and used on a
- * device.
- *
- * A host-only build can define EBGEOMETRY_HOST_TUNED_DEFAULTS to make it return HostWidth<T>()
- * instead, the value that fills one SIMD register under the compiler's flags (8 for float under AVX,
- * for example). The macro must then be defined for every translation unit of the build, all compiled
- * with the same SIMD flags, or the same spelled type has different layouts in different files. It
- * is a compile error in a CUDA or HIP translation unit. EBGeometry's own CMake build defines it when
- * EBGeometry is the top-level project and no GPU backend is enabled.
- *
- * Usage: `size_t W = PointSoA::DefaultWidth<T>()` as a template-parameter default.
- * @tparam T Floating-point precision type (float or double).
- * @return 4, or HostWidth<T>() under EBGEOMETRY_HOST_TUNED_DEFAULTS.
- */
-template <typename T>
-[[nodiscard]] constexpr size_t
-DefaultWidth() noexcept
-{
-  static_assert(std::is_floating_point_v<T>, "EBGeometry::PointSoA::DefaultWidth requires a floating-point T");
-
-#if defined(EBGEOMETRY_HOST_TUNED_DEFAULTS)
-  return HostWidth<T>();
 #else
   return 4;
 #endif
