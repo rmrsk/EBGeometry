@@ -299,6 +299,60 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid edge cases", "[PointCloudHashGrid]", EBGE
     }
   }
 
+  SECTION("a cloud far from the origin matches brute force for every k (the stopping rule's rounding slack)")
+  {
+    // The stopping rule subtracts a few ulps of |lo| + |q| + extent from each face distance. Far from
+    // the origin, |lo| dominates that slack and the cell size can approach the coordinates' own
+    // rounding (in float, 1e6 is resolved to 0.0625), so a slack too small would miss neighbours here.
+    // Half the points sit exactly on a lattice, where they tie and lie on cell faces.
+    for (const double offset : {1.0e3, 1.0e5, 1.0e6}) {
+      for (const double spacing : {1.0e-2, 1.0}) {
+        std::vector<Vec3T<T>> pos;
+
+        for (int i = 0; i < 1500; i++) {
+          const double jitter = (i % 2 == 0) ? 0.0 : 0.3 * double((i * 7919) % 1000) / 1000.0;
+
+          pos.emplace_back(T(offset + spacing * (i % 12 + jitter)),
+                           T(-offset + spacing * ((i / 12) % 12 + jitter)),
+                           T(offset + spacing * (i / 144 + jitter)));
+        }
+
+        for (const T target : {T(0.3), T(1), T(4)}) {
+          const PointCloudHashGrid<T> grid(pool, pos, target);
+
+          Hit out[17];
+          Hit ref[17];
+
+          for (uint32_t i = 0; i < pos.size(); i += 29) {
+            for (const std::size_t k : {std::size_t(1), std::size_t(5), std::size_t(17)}) {
+              INFO("offset " << offset << ", spacing " << spacing << ", target " << target << ", point " << i << ", k "
+                             << k);
+
+              const auto numPos = static_cast<uint32_t>(pos.size());
+              const auto found  = grid.nearestNeighbors(i, k, out);
+
+              REQUIRE(found == PointCloud::closestPointsBruteForce(pos.data(), numPos, pos[i], k, ref, i));
+
+              for (std::size_t j = 0; j < found; j++) {
+                CHECK(out[j].distanceSquared == ref[j].distanceSquared);
+              }
+
+              // An external query between lattice points.
+              const Vec3T<T> q = pos[i] + Vec3T<T>(T(0.5 * spacing), T(0.5 * spacing), T(0.25 * spacing));
+              const auto     n = grid.closestPoints(q, k, out);
+
+              REQUIRE(n == PointCloud::closestPointsBruteForce(pos.data(), numPos, q, k, ref));
+
+              for (std::size_t j = 0; j < n; j++) {
+                CHECK(out[j].distanceSquared == ref[j].distanceSquared);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   SECTION("clustered cloud with a distant outlier stays bounded and correct")
   {
     // A tight cluster plus one far outlier makes the bounding box highly anisotropic (a huge x-extent

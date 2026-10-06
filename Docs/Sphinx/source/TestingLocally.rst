@@ -350,7 +350,8 @@ Test coverage
        :file:`Tests/TestPointCloudQueries.hpp`.
    * - ``TestPointCloudHashGrid``
      - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases (far
-       queries, a lattice where many points tie on cell faces, extreme cell sizes),
+       queries, a lattice where many points tie on cell faces, a cloud far from the origin where the
+       stopping rule's rounding slack is tightest, extreme cell sizes),
        ``rebasedView``/``deepCopy``, device queries against the host, and rejection of a cloud it
        cannot index, a non-positive target occupancy, or a rebase onto an unrelated pool.
    * - ``TestRandom``
