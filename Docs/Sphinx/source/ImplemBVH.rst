@@ -905,7 +905,7 @@ Default and host-tuned K and W
 ______________________________
 
 ``BVH::DefaultBranchingRatio<T>()`` and ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` are the
-template defaults for ``Parser::readIntoTriangleBVH`` (``TriMeshSDF`` itself has no defaults). Both
+template defaults for ``Parser::readIntoTriMeshSDF`` (``TriMeshSDF`` itself has no defaults). Both
 are 4 for ``float`` and ``double``, so a type spelled with them is the same type in every file and
 in both passes of a GPU compile. The one exception is a host-only build that defines
 ``EBGEOMETRY_HOST_TUNED_DEFAULTS``, as EBGeometry's own CMake build does when it is the top-level
@@ -960,11 +960,11 @@ Choosing W and K explicitly
 ______________________________
 
 ``W`` and the BVH branching factor ``K`` are explicit template parameters on ``TriMeshSDF`` and
-``Parser::readIntoTriangleBVH`` -- the latter defaults to ``BVH::DefaultBranchingRatio<T>()`` and
+``Parser::readIntoTriMeshSDF`` -- the latter defaults to ``BVH::DefaultBranchingRatio<T>()`` and
 ``TriangleSoA::DefaultWidth<T>()``, but either can be supplied explicitly (e.g. an 8-wide SoA
-packing together with a 4-ary BVH). See `the doxygen page for
-Parser::readIntoTriangleBVH <doxygen/html/namespaceEBGeometry_1_1Parser.html>`__ for the exact
-signature.
+packing together with a 4-ary BVH). ``readIntoTriMeshSDF`` is declared ``inline static``, so it has
+no entry of its own in the Doxygen reference; its exact signature is documented in
+:file:`Source/EBGeometry_Parser.hpp` (see :ref:`Chap:Parsers`).
 
 Rules of thumb:
 
@@ -972,8 +972,9 @@ Rules of thumb:
   have a specific reason to deviate, and never deviate for a type that device code also uses.
 * ``a_maxLeafGroups`` (the maximum number of full ``W``-sized SoA groups per BVH
   leaf, so at most ``a_maxLeafGroups * W`` raw triangles before SoA packing)
-  defaults to ``4`` in ``Parser::readIntoTriangleBVH`` (the ``TriMeshSDF``
-  constructors have no default), while the top-down partitioners are still free
+  is ``4`` in ``Parser::readIntoTriMeshSDF``, which builds with
+  ``TriMeshSDF::defaultConstructionOptions(4)`` unless given options of its own (the
+  ``TriMeshSDF`` constructors have no default), while the top-down partitioners are still free
   to split down to smaller, tighter leaves wherever the geometry calls for it. The
   space-filling curves take ``a_maxLeafGroups * W`` as their target leaf size. A
   leaf smaller than ``W`` simply pads its SoA block's unused lanes. To set each

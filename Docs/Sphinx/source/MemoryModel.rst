@@ -124,10 +124,10 @@ new base there, so a block move is invisible to every object resolving through i
 
    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-   auto first  = EBGeometry::Parser::readIntoMesh<T>("a.stl", pool);
+   auto first  = EBGeometry::Parser::readIntoFlatMeshSDF<T>("a.stl", pool);
    const T d   = first.signedDistance(x);       // queryable immediately
 
-   auto second = EBGeometry::Parser::readIntoMesh<T>("b.stl", pool);   // may grow and move the block
+   auto second = EBGeometry::Parser::readIntoFlatMeshSDF<T>("b.stl", pool);   // may grow and move the block
 
    const T same = first.signedDistance(x);      // ... which changes nothing here
 

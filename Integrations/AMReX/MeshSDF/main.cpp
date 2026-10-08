@@ -131,7 +131,7 @@ main(int argc, char* argv[])
     // before, and so destroyed after, everything that evaluates the SDF.
     EBGeometry::Pool hostPool(EBGeometry::hostMemoryResource());
 
-    const SDF hostSDF = EBGeometry::Parser::readIntoTriangleBVH<T, K, W>(filename, hostPool);
+    const SDF hostSDF = EBGeometry::Parser::readIntoTriMeshSDF<T, K, W>(filename, hostPool);
 
 #if defined(AMREX_USE_GPU)
     // Copy the finished pool to the device in one piece, then rebase the SDF onto the copy.

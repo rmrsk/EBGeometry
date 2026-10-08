@@ -72,10 +72,7 @@ namespace EBGeometry {
   template class ReflectIF<PREC>;                                           \
                                                                                \
   /* -- File readers ------------------------------------------------------*/ \
-  template class STL<PREC>;                                                  \
-  template class PLY<PREC>;                                                  \
-  template class VTK<PREC>;                                                  \
-  template class OBJ<PREC>;                                                  \
+  template class PolygonSoup<PREC>;                                          \
                                                                                \
   /* -- Triangles -----------------------------------------------------------*/\
   template class Triangle<PREC>;                                            \
@@ -180,19 +177,30 @@ instantiateFunctionTemplates()
 
   (void)Parser::readIntoDCEL<T>(file, meshPool);
   (void)Parser::readIntoDCEL<T>(files, meshPool);
-  (void)Parser::readIntoMesh<T>(file, meshPool);
-  (void)Parser::readIntoMesh<T>(files, meshPool);
-  (void)Parser::readIntoPackedBVH<T>(file, meshPool);
-  (void)Parser::readIntoPackedBVH<T>(files, meshPool);
+  (void)Parser::readIntoFlatMeshSDF<T>(file, meshPool);
+  (void)Parser::readIntoFlatMeshSDF<T>(files, meshPool);
+  using DefaultMeshSDF    = MeshSDF<T, BVH::DefaultBranchingRatio<T>()>;
+  using DefaultTriMeshSDF = TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>;
+
+  (void)Parser::readIntoPolygonSoup<T>(file);
+  (void)Parser::readIntoPolygonSoup<T>(files);
+  (void)Parser::readIntoMeshSDF<T>(file, meshPool);
+  (void)Parser::readIntoMeshSDF<T>(files, meshPool);
+  (void)Parser::readIntoMeshSDF<T>(
+    file, meshPool, BVH::Construction::SAH, DefaultMeshSDF::defaultConstructionOptions());
+  (void)Parser::readIntoMeshSDF<T>(
+    files, meshPool, BVH::Construction::SAH, DefaultMeshSDF::defaultConstructionOptions());
   (void)Parser::readIntoTriangles<T>(file);
   (void)Parser::readIntoTriangles<T>(files);
-  (void)Parser::readIntoTriangleBVH<T>(file, meshPool);
-  (void)Parser::readIntoTriangleBVH<T>(files, meshPool);
+  (void)Parser::readIntoTriMeshSDF<T>(file, meshPool);
+  (void)Parser::readIntoTriMeshSDF<T>(files, meshPool);
+  (void)Parser::readIntoTriMeshSDF<T>(
+    file, meshPool, BVH::Construction::SAH, DefaultTriMeshSDF::defaultConstructionOptions(4));
+  (void)Parser::readIntoTriMeshSDF<T>(
+    files, meshPool, BVH::Construction::SAH, DefaultTriMeshSDF::defaultConstructionOptions(4));
 
-  (void)STL<T>().convertToDCEL(meshPool);
-  (void)PLY<T>().convertToDCEL(meshPool);
-  (void)VTK<T>().convertToDCEL(meshPool);
-  (void)OBJ<T>().convertToDCEL(meshPool);
+  (void)PolygonSoup<T>().convertToDCEL(meshPool);
+  (void)PolygonSoup<T>().convertToTriangles();
 }
 
 template void

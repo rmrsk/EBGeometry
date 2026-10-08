@@ -31,7 +31,7 @@ public:
     // member (rather than a local) so the copy constructor below has something to copy.
     m_pool = std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource());
 
-    m_implicitFunction = EBGeometry::Parser::readIntoTriangleBVH<T, K>(a_filename, *m_pool);
+    m_implicitFunction = EBGeometry::Parser::readIntoTriMeshSDF<T, K>(a_filename, *m_pool);
     m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 

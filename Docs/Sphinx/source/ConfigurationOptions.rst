@@ -24,8 +24,8 @@ when instantiating a class or calling a function template:
    EBGeometry::Pool poolDouble(EBGeometry::hostMemoryResource());
    EBGeometry::Pool poolFloat(EBGeometry::hostMemoryResource());
 
-   auto sdfDouble = EBGeometry::Parser::readIntoTriangleBVH<double>("bunny.ply", poolDouble);
-   auto sdfFloat  = EBGeometry::Parser::readIntoTriangleBVH<float>("bunny.ply", poolFloat);
+   auto sdfDouble = EBGeometry::Parser::readIntoTriMeshSDF<double>("bunny.ply", poolDouble);
+   auto sdfFloat  = EBGeometry::Parser::readIntoTriMeshSDF<float>("bunny.ply", poolFloat);
 
 Consuming code (including every example under :file:`Examples/`) typically reads precision from
 a preprocessor define so it can be overridden from the build system without editing source:
@@ -59,7 +59,7 @@ in one leaf group). There are two ways to choose them.
 **The defaults** -- ``BVH::DefaultBranchingRatio<T>()``, ``TriangleSoA::DefaultWidth<T>()`` and
 ``PointSoA::DefaultWidth<T>()`` -- are 4 for ``float`` and ``double``. The class templates that have
 defaults (``PointCloudBVH``, ``PointSoAT``, ``PointAoSoA``, ``TriangleAoSoA``,
-``Parser::readIntoTriangleBVH``) use them. Unless the build defines ``EBGEOMETRY_HOST_TUNED_DEFAULTS``
+``Parser::readIntoTriMeshSDF``) use them. Unless the build defines ``EBGEOMETRY_HOST_TUNED_DEFAULTS``
 (below), they never change, so a type spelled with them is the same type in every file: in one
 compiled with ``-mavx`` and in one compiled without, and in both passes of a CUDA or HIP compile.
 That is what lets an object be built on the host and used on a GPU.
@@ -74,7 +74,7 @@ type explicitly:
    constexpr size_t K = EBGeometry::BVH::HostBranchingRatio<T>();
    constexpr size_t W = EBGeometry::TriangleSoA::HostWidth<T>();
 
-   auto sdf = EBGeometry::Parser::readIntoTriangleBVH<T, K, W>("bunny.ply", pool);
+   auto sdf = EBGeometry::Parser::readIntoTriMeshSDF<T, K, W>("bunny.ply", pool);
 
 The rule is to use the defaults for any type that device code also uses, or that is passed between
 translation units compiled with different flags. With the host-tuned values, the same spelled type
@@ -83,7 +83,7 @@ passes can disagree on its layout, which corrupts a kernel's arguments without a
 
 **The build switch.** Defining ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` for a whole build makes
 ``TriangleSoA::DefaultWidth<T>()`` return ``TriangleSoA::HostWidth<T>()``, so every ``TriMeshSDF``
-and ``readIntoTriangleBVH`` that uses the default width evaluates a full register of triangles at
+and ``readIntoTriMeshSDF`` that uses the default width evaluates a full register of triangles at
 once, without spelling the width into each type. It changes the triangle-group width only: the
 branching factor and the point-group width stay 4, since widening them measured no faster (table
 below). Two conditions come with it:

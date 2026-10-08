@@ -41,7 +41,7 @@ integration, the underlying geometric concepts), see the
 | `EBGeometry::Soup` | Polygon-soup compression and soup-to-DCEL conversion |
 | `EBGeometry::TriangleSoA` | Structure-of-arrays triangle groups used as SIMD-friendly `PackedBVH` leaves |
 | `EBGeometry::PointSoA` | True structure-of-arrays point-position groups (`PointSoAT`), for nearest-neighbor-style `PackedBVH` leaves over point clouds |
-| `EBGeometry::Parser` | File readers (STL, PLY, OBJ, VTK) that build DCEL meshes, mesh SDFs, or triangle BVHs |
+| `EBGeometry::Parser` | File readers (STL, PLY, OBJ, VTK) that build polygon soups (`PolygonSoup`, with the files' vertex and face data), DCEL meshes, mesh SDFs, or triangle BVHs |
 
 ### Elsewhere
 

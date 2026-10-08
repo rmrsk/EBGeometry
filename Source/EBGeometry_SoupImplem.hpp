@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
-#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -113,7 +112,7 @@ Soup::isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
 }
 
 template <typename T>
-inline void
+inline std::vector<size_t>
 Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept
 {
   static_assert(std::is_floating_point_v<T>, "Soup::compress requires a floating-point T");
@@ -125,12 +124,14 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
   //       those duplicates and also update a_facets such that each facet references the compressed
   //       vertex vector.
 
-  [[maybe_unused]] const size_t originalVertexCount = a_vertices.size();
+  const size_t originalVertexCount = a_vertices.size();
 
   // Create a "map" of the vertices, storing their original indices. Then sort
   // the map lexicographically.
   std::vector<std::pair<Vec3, size_t>> vertexMap;
-  for (size_t i = 0; i < a_vertices.size(); i++) {
+  vertexMap.reserve(originalVertexCount);
+
+  for (size_t i = 0; i < originalVertexCount; i++) {
     vertexMap.emplace_back(a_vertices[i], i);
   }
 
@@ -144,43 +145,32 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
   // Compress the vertex vector. While doing so we should build up the old-to-new index map
   a_vertices.clear();
 
-  if (vertexMap.empty()) {
-    a_facets.clear();
-    return;
-  }
+  std::vector<size_t> indexMap(originalVertexCount);
 
-  std::map<size_t, size_t> indexMap;
-
-  a_vertices.emplace_back(vertexMap.front().first);
-  indexMap.emplace(vertexMap.front().second, 0);
-
-  for (size_t i = 1; i < vertexMap.size(); i++) {
-    const size_t oldIndex = vertexMap[i].second;
-
-    const auto& cur  = vertexMap[i].first;
-    const auto& prev = vertexMap[i - 1].first;
-
-    if (cur != prev) {
-      a_vertices.emplace_back(cur);
+  for (size_t i = 0; i < vertexMap.size(); i++) {
+    if (i == 0 || vertexMap[i].first != vertexMap[i - 1].first) {
+      a_vertices.emplace_back(vertexMap[i].first);
     }
 
-    indexMap.emplace(oldIndex, a_vertices.size() - 1);
+    indexMap[vertexMap[i].second] = a_vertices.size() - 1;
   }
 
-  // Fix facet indicing. Use find() rather than at() so that a malformed facet (referencing a
-  // vertex index that was never in the original a_vertices) triggers a diagnosable
-  // EBGEOMETRY_EXPECT rather than an uncontrolled std::terminate() from throwing inside this
-  // noexcept function.
+  // With no vertices, no facet can be valid.
+  if (originalVertexCount == 0) {
+    a_facets.clear();
+  }
+
+  // Fix facet indicing. A malformed facet (referencing a vertex index that was never in the original
+  // a_vertices) triggers a diagnosable EBGEOMETRY_EXPECT; isValid() rules it out for the file readers.
   for (auto& facet : a_facets) {
     for (size_t& ivert : facet) {
       EBGEOMETRY_EXPECT(ivert < originalVertexCount);
 
-      const auto it = indexMap.find(ivert);
-      EBGEOMETRY_EXPECT(it != indexMap.end());
-
-      ivert = it->second;
+      ivert = indexMap[ivert];
     }
   }
+
+  return indexMap;
 }
 
 template <typename T>
@@ -216,7 +206,7 @@ Soup::isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std:
 }
 
 template <typename T>
-inline size_t
+inline std::vector<size_t>
 Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                                std::vector<std::vector<size_t>>&        a_facets) noexcept
 {
@@ -324,19 +314,21 @@ Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertic
   }
 
   std::vector<std::vector<size_t>> kept;
+  std::vector<size_t>              originalIndex;
+
   kept.reserve(numFacets);
+  originalIndex.reserve(numFacets);
 
   for (size_t f = 0; f < numFacets; f++) {
     if (!removed[f]) {
       kept.emplace_back(std::move(a_facets[f]));
+      originalIndex.push_back(f);
     }
   }
 
-  const size_t numRemoved = numFacets - kept.size();
-
   a_facets = std::move(kept);
 
-  return numRemoved;
+  return originalIndex;
 }
 
 inline std::string
@@ -490,68 +482,6 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
   a_mesh.sanityCheck(a_id);
 
   a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
-}
-
-template <typename T>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Soup::readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
-                       std::vector<std::vector<size_t>>  a_facets,
-                       Pool&                             a_pool,
-                       const std::string&                a_id,
-                       const char*                       a_format,
-                       const Parser::OnDefect            a_onDefect)
-{
-  // A defect the mesh survives: thrown, or reported and loaded anyway.
-  const auto onDefect = [&a_id, a_format, a_onDefect](const std::string& a_reason) {
-    if (a_onDefect == Parser::OnDefect::Throw) {
-      throw Parser::ParseError(a_id, 0, a_reason);
-    }
-
-    std::cerr << a_format << "::convertToDCEL - warning: '" << a_id << "': " << a_reason
-              << "; loading it anyway, so the sign of the distance near it is unreliable\n";
-  };
-
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T>>();
-
-  std::string reason;
-
-  if (!Soup::isValid(a_vertices, a_facets, reason)) {
-    throw Parser::ParseError(a_id, 0, reason);
-  }
-
-  Soup::compress(a_vertices, a_facets);
-
-  const size_t numRemoved = Soup::removeDegeneratePolygons(a_vertices, a_facets);
-
-  if (numRemoved > 0) {
-    std::cerr << a_format << "::convertToDCEL - removed " << numRemoved << " degenerate (zero-area) faces from '"
-              << a_id << "', merging T-junction fillers into their neighbours\n";
-  }
-
-  // A face that visits a vertex twice corrupts the half-edge mesh built from it: never loaded.
-  reason = Soup::findRepeatedVertex(a_facets);
-
-  if (!reason.empty()) {
-    throw Parser::ParseError(a_id, 0, reason);
-  }
-
-  // Faces oriented inconsistently, or three or more on one edge, leave edges unpaired or paired
-  // one-sidedly; the mesh still builds, but the signs near them are unreliable.
-  reason = Soup::findTopologyDefect(a_facets);
-
-  if (!reason.empty()) {
-    onDefect(reason);
-  }
-
-  Soup::soupToDCEL(*mesh, a_pool, a_vertices, a_facets, a_id);
-
-  reason = Soup::findFoldedFeature(*mesh);
-
-  if (!reason.empty()) {
-    onDefect(reason);
-  }
-
-  return mesh;
 }
 
 template <typename T>

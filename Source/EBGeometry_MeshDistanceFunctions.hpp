@@ -267,7 +267,7 @@ public:
   /**
    * @brief Full constructor. Copies the mesh descriptor and builds the BVH over its faces.
    * @details No default arguments: this is a low-level constructor, and callers working at this
-   * level must consciously choose a construction method. Use Parser::readIntoPackedBVH for sensible
+   * level must consciously choose a construction method. Use Parser::readIntoMeshSDF for sensible
    * defaults. The BVH is reserved from a_pool, which must be the pool a_mesh was built in, so that
    * one rebasedView() rebases both. a_pool must outlive this object and every copy of it.
    * @param[in]     a_mesh   Input mesh, built against a_pool.
@@ -453,7 +453,7 @@ private:
  *
  * No default arguments: this is a low-level constructor, and callers who excavate down to it
  * must consciously choose K and W. BVH::DefaultBranchingRatio<T>() and TriangleSoA::DefaultWidth<T>()
- * (both 4) are the portable choice, and Parser::readIntoTriangleBVH's defaults.
+ * (both 4) are the portable choice, and Parser::readIntoTriMeshSDF's defaults.
  *
  * Each leaf primitive is a TriangleAoSoA<T, W>: an SoA triangle block for SIMD signed-distance
  * evaluation, plus a physically separate per-lane array of face ids, the index of the mesh face each
@@ -521,7 +521,7 @@ public:
   /**
    * @brief Full constructor. Extracts flat triangles from a DCEL mesh, then builds the BVH.
    * @details No default arguments: this is a low-level constructor, and callers who excavate down
-   * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
+   * to it must consciously choose every parameter. Use Parser::readIntoTriMeshSDF for sensible
    * defaults. The mesh is not retained: its triangles are copied into the BVH's SoA groups, each
    * carrying the id of the face it was cut from.
    * @param[in]     a_mesh          DCEL mesh. Faces with more than three vertices are fan-triangulated.

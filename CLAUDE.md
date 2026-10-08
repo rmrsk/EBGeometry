@@ -96,7 +96,7 @@ ctest --preset release-test          # unit tests + examples, optimised build
 ```
 
 Test sources live in `Tests/Test*.cpp` (one file per component: `TestVec`, `TestBoundingVolumes`,
-`TestDCEL`, `TestBVH`, `TestSTL`/`TestPLY`/`TestOBJ`/`TestVTK`, ...); fixture files are in
+`TestDCEL`, `TestBVH`, `TestPolygonSoup`, `TestParser`, ...); fixture files are in
 `Tests/data/`. `Tests/InstantiateAll.cpp` is a compile-only target (never run) that explicitly
 instantiates every public class template for both `float` and `double` — it exists purely so
 clang-tidy and `-Wdouble-promotion`/friends analyse both precisions; add new public classes there
@@ -299,7 +299,8 @@ does not follow this template, edit the PR body to conform to it.
   The file readers never abort on a bad file: they throw `Parser::ParseError` (file, line, reason),
   including for meshes that cannot form a half-edge surface or that fold back onto themselves
   (`Soup::findTopologyDefect`/`findFoldedFeature`); holes are still allowed. A trailing
-  `Parser::OnDefect::Warn` argument on every `readInto*`/`convertToDCEL` loads such a mesh with a
+  `Parser::OnDefect::Warn` argument on every mesh-building `readInto*` and on
+  `PolygonSoup::convertToDCEL`/`convertToTriangles` loads such a mesh with a
   warning instead (a face that visits a vertex twice still throws). Death tests for
   `REQUIRE` checks use `abortsWith()` from `Tests/TestDeath.hpp` and run in every build.
 - **Device code needs no special compiler flags, and must stay that way.** Under `Source/`, never use
@@ -350,8 +351,10 @@ does not follow this template, edit the PR body to conform to it.
   it.
 - **Mesh elements and points carry no user metadata; an element's id is its index.** The DCEL
   classes, `Triangle`, the mesh SDFs, the parsers, `PointAoSoA` and the point clouds have no `Meta`
-  template parameter. The readers number faces in file order (minus removed zero-area faces);
-  `getClosestFace()` on all three mesh SDFs returns that id (device-callable), and
+  template parameter. The readers number faces in file order (minus removed degenerate faces):
+  `readSTL`/`readPLY`/`readOBJ`/`readVTK`/`readIntoPolygonSoup` return one cleaned `PolygonSoup`
+  whose face i and vertex i are face i and vertex i of the mesh, with PLY/VTK properties remapped to
+  match. `getClosestFace()` on all three mesh SDFs returns that id (device-callable), and
   `Triangle`/`TriangleAoSoA` carry the id of the face a triangle was cut from. A point's cloud index
   is its position in the positions array; `PointCloudBVH` and `PointCloudHashGrid` report it in one
   `PointCloud::Hit` (`EBGeometry_PointCloud.hpp`, with the shared `KBest` set and the brute-force
