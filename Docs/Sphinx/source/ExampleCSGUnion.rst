@@ -7,7 +7,7 @@ CSGUnion
 
    **Temporarily disabled.** This example unions two objects of *different* types, a mesh distance
    field and an analytic sphere. Neither is an ``ImplicitFunction<T>`` any more (see
-   :ref:`Sec:AnalyticShapes` and :ref:`Chap:MeshSDFClasses`), and ``BVHUnionIF`` holds primitives of
+   :ref:`Sec:AnalyticShapes` and :ref:`Chap:MeshSDFClasses`), and ``BVHUnion`` holds primitives of
    a single type (see :ref:`Sec:BVHUnions`). A union of different types needs the runtime dispatch
    of the tape, which is still to come. Until then this program builds, but prints a notice and
    exits without doing any work.

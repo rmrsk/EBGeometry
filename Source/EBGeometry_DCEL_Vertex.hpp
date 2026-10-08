@@ -41,19 +41,19 @@ namespace DCEL {
  * stores: which faces touch this vertex is not cached here. Every member is a
  * plain value (Vec3, uint32_t), so VertexT itself is trivially copyable. A vertex's
  * id is its index in the mesh's vertex array.
- * computeVertexNormalAverage()/computeVertexNormalAngleWeighted() take the
- * touching-faces list as an explicit parameter instead: MeshT::reconcileVertices()
+ * computeVertexNormalAngleWeighted() takes the touching-faces list as an explicit
+ * parameter instead: MeshT::reconcileVertices()
  * builds it transiently by walking every face's own boundary loop (no pair edges
  * needed, so this works even on a non-watertight/"dirty" mesh), and discards it
  * once normals are computed. m_outgoingEdge itself is unrelated to this -- it is
- * not read by either normal computation -- and remains purely a convenience for
+ * not read by the normal computation -- and remains purely a convenience for
  * callers who want O(1) access to some edge leaving this vertex.
  * @note Every method that resolves purely through plain-value members and an
  * explicitly-supplied Mesh& (getPosition/getNormal/getOutgoingEdgeIndex/
  * getOutgoingEdge, define, setPosition/setNormal/setEdge,
- * normalizeNormalVector, flipNormal, signedDistance, unsignedDistance2) is annotated EBGEOMETRY_HOST_DEVICE. computeVertexNormalAverage()
- * and computeVertexNormalAngleWeighted() take a std::vector<uint32_t>& and (in
- * the angle-weighted case) use std::cerr, so both remain EBGEOMETRY_HOST.
+ * normalizeNormalVector, flipNormal, signedDistance, unsignedDistance2) is annotated EBGEOMETRY_HOST_DEVICE. computeVertexNormalAngleWeighted()
+ * takes a std::vector<uint32_t>& and aborts with a message on a malformed face, so it remains
+ * EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision.
  */
 template <class T>
@@ -208,26 +208,14 @@ public:
   normalizeNormalVector() noexcept;
 
   /**
-   * @brief Compute the vertex normal, as an unweighted average of the normal vectors of the faces
-   * touching this vertex.
-   * @param[in] a_faceIndices Indices, into the owning mesh's face array, of every face touching
-   * this vertex. Not cached anywhere -- callers (see MeshT::reconcileVertices()) discover this by
-   * walking each candidate face's own boundary loop, which needs no pair edges and so works
-   * regardless of whether the mesh is watertight.
-   * @param[in] a_mesh Owning mesh, used to resolve a_faceIndices to actual faces.
-   * @note This computes the vertex normal as n = sum(normal(face))/num(faces).
-   */
-  EBGEOMETRY_HOST
-  inline void
-  computeVertexNormalAverage(const std::vector<uint32_t>& a_faceIndices, const Mesh& a_mesh) noexcept;
-
-  /**
    * @brief Compute the vertex normal, using the pseudonormal algorithm which
    * weights the normal with the subtended angle to each connected face.
    * @param[in] a_thisVertexIndex This vertex's own index in the owning mesh's vertex array, used to
    * identify which of a face's vertices is "this" one while walking that face's boundary.
    * @param[in] a_faceIndices Indices, into the owning mesh's face array, of every face touching
-   * this vertex (see computeVertexNormalAverage() for how these are found).
+   * this vertex. Not cached anywhere -- callers (see MeshT::reconcileVertices()) discover this by
+   * walking each candidate face's own boundary loop, which needs no pair edges and so works
+   * regardless of whether the mesh is watertight.
    * @param[in] a_mesh Owning mesh, used to resolve a_faceIndices and a_thisVertexIndex.
    * @note This computes the normal vector using the pseudnormal algorithm from
    * Baerentzen and Aanes in "Signed distance computation using the angle
@@ -333,7 +321,7 @@ protected:
   /**
    * @brief Index of an outgoing edge from this vertex.
    * @details Index into the owning DCEL::MeshT's edge array, or UINT32_MAX if unset. Not read by
-   * computeVertexNormalAverage()/computeVertexNormalAngleWeighted(), which take the touching faces
+   * computeVertexNormalAngleWeighted(), which takes the touching faces
    * as an explicit list; see the class notes.
    */
   uint32_t m_outgoingEdge = UINT32_MAX;

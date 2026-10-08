@@ -14,9 +14,9 @@ integration, the underlying geometric concepts), see the
 ### Where to start reading
 
 * EBGeometry::ImplicitFunction — the abstract base class the transformations and CSG combinators
-  implement, and EBGeometry::SignedDistanceFunction, its refinement for user-written distance
-  functions. The analytic shapes (e.g. EBGeometry::SphereSDF) and the mesh distance fields (e.g.
-  EBGeometry::TriMeshSDF) are plain, GPU-callable value types that implement neither.
+  implement, and user-written implicit functions derive from. The analytic shapes (e.g.
+  EBGeometry::SphereSDF) and the mesh distance fields (e.g. EBGeometry::TriMeshSDF) are plain,
+  GPU-callable value types that do not.
 * EBGeometry::DCEL::MeshT — the half-edge (doubly-connected edge list) surface mesh
   representation, together with EBGeometry::DCEL::VertexT, EBGeometry::DCEL::EdgeT, and
   EBGeometry::DCEL::FaceT.
@@ -31,12 +31,11 @@ integration, the underlying geometric concepts), see the
 
 | Namespace | Contents |
 |---|---|
-| `EBGeometry` | Vectors (`Vec2T`, `Vec3T`), implicit functions, signed distance functions, analytic shapes, CSG operators, transformations, the SDF/BVH wrapper classes (`MeshSDF`, `TriMeshSDF`, `FlatMeshSDF`) |
+| `EBGeometry` | Vectors (`Vec2T`, `Vec3T`), implicit functions, analytic shapes, CSG operators, transformations, the SDF/BVH wrapper classes (`MeshSDF`, `TriMeshSDF`, `FlatMeshSDF`), the BVH unions (`BVHUnion`, `BVHSmoothUnion`), and the queries on any function of a point (`approximateBoundingVolumeOctree`, `normal`) |
 | `EBGeometry::DCEL` | The half-edge surface mesh: `VertexT`, `EdgeT`, `FaceT`, `MeshT`, and mesh iterators |
 | `EBGeometry::BVH` | `TreeBVH`, `PackedBVH`, partitioners, traversal callback types (`LeafEvaluator`, `PrunePredicate`, `ChildOrderer`, `NodeKeyFactory`) |
-| `EBGeometry::BoundingVolumes` | `AABBT` (axis-aligned box) and `SphereT` (bounding sphere) |
-| `EBGeometry::Octree` | Pointer-based octree used internally for bounding-volume estimation of arbitrary implicit functions |
-| `EBGeometry::Random` | Centralized random sampling utilities |
+| `EBGeometry::BoundingVolumes` | `AABBT` (axis-aligned box) |
+| `EBGeometry::Random` | Random sampling utilities for the examples; not included by `EBGeometry.hpp` (include `Source/EBGeometry_Random.hpp`) |
 | `EBGeometry::SFC` | Space-filling curves (`Morton`, `Nested`, `Hilbert`), point-to-grid binning (`computeBins`), and curve ordering of points (`order`), used for bottom-up BVH construction and spatial sorting |
 | `EBGeometry::Soup` | Polygon-soup compression and soup-to-DCEL conversion |
 | `EBGeometry::TriangleSoA` | Structure-of-arrays triangle groups used as SIMD-friendly `PackedBVH` leaves |

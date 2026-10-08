@@ -10,7 +10,7 @@ at a query point:
 * A plain union that checks the distance to *every* sphere in the scene and keeps the smallest
   (the same pointwise-minimum idea used to merge any two signed distance functions), which scales
   linearly with the number of spheres -- doubling the sphere count roughly doubles the query cost.
-* A union accelerated with a bounding volume hierarchy (`BVHUnionIF`), which organizes the
+* A union accelerated with a bounding volume hierarchy (`BVHUnion`), which organizes the
   spheres' bounding boxes into a tree so a query only has to check the spheres near it, not all of
   them. The union stores the spheres by value and is itself a plain value type, so the same object
   could be copied to a GPU and evaluated there.

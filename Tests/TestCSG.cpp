@@ -216,7 +216,7 @@ TEMPLATE_TEST_CASE("ExpMin and ExpMax: finite and close to the sharp min/max far
   using T = TestType;
 
   // exp(-a/s) under- or overflows once |a|/s passes ~100 (float) or ~700 (double); the blend must
-  // not, since a BVHSmoothUnionIF evaluates it at arbitrary distances from the surface.
+  // not, since a BVHSmoothUnion evaluates it at arbitrary distances from the surface.
   const T s = T(1);
 
   for (const T a : {T(200), T(-100), T(1000), T(-800)}) {
@@ -357,7 +357,7 @@ TEMPLATE_TEST_CASE("SmoothUnion: free function matches SmoothUnionIF for both th
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BVHUnionIF / BVHUnion() and BVHSmoothUnionIF / BVHSmoothUnion()
+// BVHUnion / BVHUnion() and BVHSmoothUnion / BVHSmoothUnion()
 // ─────────────────────────────────────────────────────────────────────────────
 
 namespace {
@@ -522,21 +522,21 @@ gridQueryPoints()
 
 } // namespace
 
-TEMPLATE_TEST_CASE("BVHUnionIF: a plain, trivially copyable value type", "[CSG][BVHUnion]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("BVHUnion: a plain, trivially copyable value type", "[CSG][BVHUnion]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnionIF<T, SphereSDF<T>, 4>>);
-  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnionIF<T, SphereSDF<T>, 4>>);
-  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnionIF<T, SphereSDF<T>, 4, ExpMinOp<T>>>);
-  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnionIF<T, TestTriMesh<T>, 4>>);
-  STATIC_REQUIRE_FALSE(std::is_polymorphic_v<BVHUnionIF<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnion<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnion<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnion<T, SphereSDF<T>, 4, ExpMinOp<T>>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnion<T, TestTriMesh<T>, 4>>);
+  STATIC_REQUIRE_FALSE(std::is_polymorphic_v<BVHUnion<T, SphereSDF<T>, 4>>);
   STATIC_REQUIRE(std::is_trivially_copyable_v<SmoothMinOp<T>>);
   STATIC_REQUIRE(std::is_trivially_copyable_v<SmoothMaxOp<T>>);
   STATIC_REQUIRE(std::is_trivially_copyable_v<ExpMinOp<T>>);
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF: agrees with the sharp UnionIF over a row of spheres",
+TEMPLATE_TEST_CASE("BVHUnion: agrees with the sharp UnionIF over a row of spheres",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -544,15 +544,15 @@ TEMPLATE_TEST_CASE("BVHUnionIF: agrees with the sharp UnionIF over a row of sphe
 
   Pool pool(hostMemoryResource());
 
-  const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
-  const UnionIF<T>                     sharpUnion(sphereRowIF<T>());
+  const BVHUnion<T, SphereSDF<T>, 4> bvhUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
+  const UnionIF<T>                   sharpUnion(sphereRowIF<T>());
 
   for (const auto& p : lineQueryPoints<T>()) {
     REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(sharpUnion.value(p), formulaMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy, and the free function, give the same union",
+TEMPLATE_TEST_CASE("BVHUnion: every build strategy gives the same union as the default one",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -565,18 +565,18 @@ TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy, and the free function, giv
   const auto spheres = sphereRow<T>();
   const auto bvs     = sphereRowBVs<T>();
 
-  const auto freeFunc = BVHUnion<T, SphereSDF<T>, K>(pool, spheres, bvs);
+  const BVHUnion<T, SphereSDF<T>, K> reference(pool, spheres, bvs);
 
   for (const auto build : allConstructions) {
-    const BVHUnionIF<T, SphereSDF<T>, K> bvhUnion(pool, spheres, bvs, build);
+    const BVHUnion<T, SphereSDF<T>, K> bvhUnion(pool, spheres, bvs, build);
 
     for (const auto& p : lineQueryPoints<T>()) {
-      REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(freeFunc.signedDistance(p), exactMargin<T>()));
+      REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(reference.signedDistance(p), exactMargin<T>()));
     }
   }
 }
 
-TEMPLATE_TEST_CASE("BVHSmoothUnionIF: agrees with SmoothUnionIF far from any blend region",
+TEMPLATE_TEST_CASE("BVHSmoothUnion: agrees with SmoothUnionIF far from any blend region",
                    "[CSG][BVHSmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -586,8 +586,8 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: agrees with SmoothUnionIF far from any ble
 
   Pool pool(hostMemoryResource());
 
-  const BVHSmoothUnionIF<T, SphereSDF<T>, 4> bvhSmooth(pool, sphereRow<T>(), sphereRowBVs<T>(), smoothLen);
-  const SmoothUnionIF<T>                     sharpSmooth(sphereRowIF<T>(), smoothLen);
+  const BVHSmoothUnion<T, SphereSDF<T>, 4> bvhSmooth(pool, sphereRow<T>(), sphereRowBVs<T>(), smoothLen);
+  const SmoothUnionIF<T>                   sharpSmooth(sphereRowIF<T>(), smoothLen);
 
   // Deep inside any one sphere, far from every other sphere's surface.
   for (int i = 0; i < NumRowSpheres; i++) {
@@ -598,7 +598,7 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: agrees with SmoothUnionIF far from any ble
   }
 }
 
-TEMPLATE_TEST_CASE("BVHSmoothUnionIF: matches a brute-force two-nearest blend inside the blend region",
+TEMPLATE_TEST_CASE("BVHSmoothUnion: matches a brute-force two-nearest blend inside the blend region",
                    "[CSG][BVHSmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -613,20 +613,18 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: matches a brute-force two-nearest blend in
 
   // The pruning bound must retain *both* blend inputs even in the overlap region where the two
   // nearest surfaces interpenetrate. Checked for both the default and the exponential blend.
-  const BVHSmoothUnionIF<T, SphereSDF<T>, 4>              polySmooth(pool, spheres, bvs, smoothLen);
-  const BVHSmoothUnionIF<T, SphereSDF<T>, 4, ExpMinOp<T>> expSmooth(pool, spheres, bvs, smoothLen);
-  const auto freeFunc = BVHSmoothUnion<T, SphereSDF<T>, 4>(pool, spheres, bvs, smoothLen);
+  const BVHSmoothUnion<T, SphereSDF<T>, 4>              polySmooth(pool, spheres, bvs, smoothLen);
+  const BVHSmoothUnion<T, SphereSDF<T>, 4, ExpMinOp<T>> expSmooth(pool, spheres, bvs, smoothLen);
 
   for (const auto& p : lineQueryPoints<T>()) {
     REQUIRE_THAT(polySmooth.signedDistance(p),
                  withinAbsT(bruteTwoNearest(spheres, p, smoothLen, SmoothMinOp<T>{}), exactMargin<T>()));
     REQUIRE_THAT(expSmooth.signedDistance(p),
                  withinAbsT(bruteTwoNearest(spheres, p, smoothLen, ExpMinOp<T>{}), formulaMargin<T>()));
-    REQUIRE_THAT(freeFunc.signedDistance(p), withinAbsT(polySmooth.signedDistance(p), exactMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("BVHSmoothUnionIF: every build strategy matches brute force when the leaf count is not a "
+TEMPLATE_TEST_CASE("BVHSmoothUnion: every build strategy matches brute force when the leaf count is not a "
                    "power of K",
                    "[CSG][BVHSmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -663,7 +661,7 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: every build strategy matches brute force w
   Pool pool(hostMemoryResource());
 
   for (const auto build : allConstructions) {
-    const BVHSmoothUnionIF<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
+    const BVHSmoothUnion<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
 
     for (const auto& p : queries) {
       REQUIRE_THAT(smooth.signedDistance(p),
@@ -672,7 +670,7 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: every build strategy matches brute force w
   }
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF/BVHSmoothUnionIF: ConstructionOptions set each construction method's leaf size",
+TEMPLATE_TEST_CASE("BVHUnion/BVHSmoothUnion: ConstructionOptions set each construction method's leaf size",
                    "[CSG][BVHUnion][BVHSmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -680,8 +678,8 @@ TEMPLATE_TEST_CASE("BVHUnionIF/BVHSmoothUnionIF: ConstructionOptions set each co
 
   constexpr size_t K = 4;
 
-  using Union  = BVHUnionIF<T, SphereSDF<T>, K>;
-  using Smooth = BVHSmoothUnionIF<T, SphereSDF<T>, K>;
+  using Union  = BVHUnion<T, SphereSDF<T>, K>;
+  using Smooth = BVHSmoothUnion<T, SphereSDF<T>, K>;
 
   std::mt19937                      rng(5);
   std::uniform_real_distribution<T> coord(T(0), T(10));
@@ -800,7 +798,7 @@ TEMPLATE_TEST_CASE("BVHUnionIF/BVHSmoothUnionIF: ConstructionOptions set each co
 
       (void)bad;
     },
-    "BVHUnionIF: ConstructionOptions::maxLeafSize must be positive"));
+    "BVHUnion: ConstructionOptions::maxLeafSize must be positive"));
 
   REQUIRE(abortsWith(
     [&] {
@@ -818,7 +816,7 @@ TEMPLATE_TEST_CASE("BVHUnionIF/BVHSmoothUnionIF: ConstructionOptions set each co
     "ConstructionOptions::targetLeafSize must be positive"));
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy handles many coincident primitives",
+TEMPLATE_TEST_CASE("BVHUnion: every build strategy handles many coincident primitives",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -834,14 +832,14 @@ TEMPLATE_TEST_CASE("BVHUnionIF: every build strategy handles many coincident pri
   Pool pool(hostMemoryResource());
 
   for (const auto build : allConstructions) {
-    const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, bvs, build);
+    const BVHUnion<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, bvs, build);
 
     REQUIRE_THAT(bvhUnion.signedDistance(Vec3T<T>::zeros()), withinAbsT(std::sqrt(T(3)) - T(0.5), formulaMargin<T>()));
     REQUIRE_THAT(bvhUnion.signedDistance(T(5) * Vec3T<T>::ones()), withinAbsT(T(-0.5), formulaMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF::computeBoundingVolume encloses every input sphere",
+TEMPLATE_TEST_CASE("BVHUnion::computeBoundingVolume encloses every input sphere",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -851,8 +849,8 @@ TEMPLATE_TEST_CASE("BVHUnionIF::computeBoundingVolume encloses every input spher
 
   const auto bvs = sphereRowBVs<T>();
 
-  const BVHUnionIF<T, SphereSDF<T>, 4> bvhUnion(pool, sphereRow<T>(), bvs);
-  const BV<T>                          rootBV = bvhUnion.computeBoundingVolume();
+  const BVHUnion<T, SphereSDF<T>, 4> bvhUnion(pool, sphereRow<T>(), bvs);
+  const BV<T>                        rootBV = bvhUnion.computeBoundingVolume();
 
   for (const auto& bv : bvs) {
     for (size_t dir = 0; dir < 3; dir++) {
@@ -862,13 +860,13 @@ TEMPLATE_TEST_CASE("BVHUnionIF::computeBoundingVolume encloses every input spher
   }
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF: a union of translated TriMeshSDFs, and a union of that union, match brute force",
+TEMPLATE_TEST_CASE("BVHUnion: a union of translated TriMeshSDFs, and a union of that union, match brute force",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T      = TestType;
-  using Union  = BVHUnionIF<T, TestTriMesh<T>, 4>;
-  using Nested = BVHUnionIF<T, Union, 4>;
+  using Union  = BVHUnion<T, TestTriMesh<T>, 4>;
+  using Nested = BVHUnion<T, Union, 4>;
 
   Pool pool(hostMemoryResource());
 
@@ -889,13 +887,13 @@ TEMPLATE_TEST_CASE("BVHUnionIF: a union of translated TriMeshSDFs, and a union o
   }
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF: host-mirror and deep copies of a TriMeshSDF union outlive the source pool",
+TEMPLATE_TEST_CASE("BVHUnion: host-mirror and deep copies of a TriMeshSDF union outlive the source pool",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T      = TestType;
-  using Union  = BVHUnionIF<T, TestTriMesh<T>, 4>;
-  using Nested = BVHUnionIF<T, Union, 4>;
+  using Union  = BVHUnion<T, TestTriMesh<T>, 4>;
+  using Nested = BVHUnion<T, Union, 4>;
 
   const auto queries = gridQueryPoints<T>();
 
@@ -940,12 +938,12 @@ TEMPLATE_TEST_CASE("BVHUnionIF: host-mirror and deep copies of a TriMeshSDF unio
   }
 }
 
-TEMPLATE_TEST_CASE("BVHUnionIF: rejects a mesh from another pool and a missing bounding volume",
+TEMPLATE_TEST_CASE("BVHUnion: rejects a mesh from another pool and a missing bounding volume",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T     = TestType;
-  using Union = BVHUnionIF<T, TestTriMesh<T>, 4>;
+  using Union = BVHUnion<T, TestTriMesh<T>, 4>;
 
   // Both checks are EBGEOMETRY_REQUIREs, so they abort in every build.
   REQUIRE_FALSE(aborts([] {
@@ -975,7 +973,7 @@ TEMPLATE_TEST_CASE("BVHUnionIF: rejects a mesh from another pool and a missing b
 
       bvs.pop_back();
 
-      const BVHUnionIF<T, SphereSDF<T>, 4> sphereUnion(pool, spheres, bvs);
+      const BVHUnion<T, SphereSDF<T>, 4> sphereUnion(pool, spheres, bvs);
 
       (void)sphereUnion;
     },
@@ -1014,9 +1012,9 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
 
   const auto meshes = dodecahedronGrid<T>(pool);
 
-  const BVHUnionIF<T, SphereSDF<T>, 4>       sphereUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
-  const BVHSmoothUnionIF<T, SphereSDF<T>, 4> smoothUnion(pool, sphereRow<T>(), sphereRowBVs<T>(), T(0.6));
-  const BVHUnionIF<T, TestTriMesh<T>, 4>     meshUnion(pool, meshes, boundingVolumes(meshes));
+  const BVHUnion<T, SphereSDF<T>, 4>       sphereUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
+  const BVHSmoothUnion<T, SphereSDF<T>, 4> smoothUnion(pool, sphereRow<T>(), sphereRowBVs<T>(), T(0.6));
+  const BVHUnion<T, TestTriMesh<T>, 4>     meshUnion(pool, meshes, boundingVolumes(meshes));
 
   pool.freeze();
 
@@ -1463,25 +1461,25 @@ TEST_CASE("SmoothUnionIF and SmoothUnion: reject a non-positive smoothing length
                      "SmoothUnion: the first implicit function must not be null"));
 }
 
-TEST_CASE("BVHUnionIF and BVHSmoothUnionIF: reject an unknown build strategy and a non-positive smoothing length",
+TEST_CASE("BVHUnion and BVHSmoothUnion: reject an unknown build strategy and a non-positive smoothing length",
           "[CSG][BVHUnion][BVHSmoothUnion]")
 {
   REQUIRE(abortsWith(
     [] {
       Pool pool(hostMemoryResource());
 
-      (void)BVHUnionIF<double, SphereSDF<double>, 4>(
+      (void)BVHUnion<double, SphereSDF<double>, 4>(
         pool, sphereRow<double>(), sphereRowBVs<double>(), static_cast<BVH::Construction>(42));
     },
-    "BVHUnionIF: unknown BVH::Construction value (42)"));
+    "BVHUnion: unknown BVH::Construction value (42)"));
 
   REQUIRE(abortsWith(
     [] {
       Pool pool(hostMemoryResource());
 
-      (void)BVHSmoothUnionIF<double, SphereSDF<double>, 4>(pool, sphereRow<double>(), sphereRowBVs<double>(), 0.0);
+      (void)BVHSmoothUnion<double, SphereSDF<double>, 4>(pool, sphereRow<double>(), sphereRowBVs<double>(), 0.0);
     },
-    "BVHSmoothUnionIF: the smoothing length must be positive (0)"));
+    "BVHSmoothUnion: the smoothing length must be positive (0)"));
 }
 
 TEST_CASE("IntersectionIF and Intersection: reject an empty list, a null entry and a null argument",

@@ -32,7 +32,7 @@ int
 main(int argc, char* argv[])
 try {
   // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated union
-  // (BVHUnionIF) whose primitives are themselves BVH-backed mesh signed distance functions
+  // (BVHUnion) whose primitives are themselves BVH-backed mesh signed distance functions
   // (TriMeshSDF). Each TriMeshSDF owns an inner PackedBVH over its SoA triangle groups, so a single
   // distance query descends the outer union BVH to locate the nearby mesh(es), then descends each of
   // those meshes' own inner BVH -- two levels of BVH traversal for one query.

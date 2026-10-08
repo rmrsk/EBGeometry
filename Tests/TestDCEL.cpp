@@ -1209,7 +1209,7 @@ TEST_CASE("MeshT: reconciling a hand-built face that visits a vertex twice abort
 
       (void)mesh.addFace(pool, TestFace<T>(0u));
 
-      mesh.reconcile(VertexNormalWeight::Angle); // must abort
+      mesh.reconcile(); // must abort
     },
     "DCEL::VertexT::computeVertexNormalAngleWeighted: face 0 must visit vertex 0 exactly once (found 4"));
 }

@@ -26,7 +26,6 @@ namespace EBGeometry {
                                                                                \
   /* -- Abstract bases --------------------------------------------------- */ \
   template class ImplicitFunction<PREC>;                                     \
-  template class SignedDistanceFunction<PREC>;                                \
                                                                                \
   /* -- Analytic signed distance functions --------------------------------*/ \
   template class PlaneSDF<PREC>;                                             \
@@ -54,9 +53,9 @@ namespace EBGeometry {
   template struct SmoothMaxOp<PREC>;                                         \
   template struct ExpMinOp<PREC>;                                            \
   template struct ExpMaxOp<PREC>;                                            \
-  template class BVHUnionIF<PREC, SphereSDF<PREC>, 4>;                       \
-  template class BVHSmoothUnionIF<PREC, SphereSDF<PREC>, 4>;                 \
-  template class BVHSmoothUnionIF<PREC, BoxSDF<PREC>, 4, ExpMinOp<PREC>>;    \
+  template class BVHUnion<PREC, SphereSDF<PREC>, 4>;                       \
+  template class BVHSmoothUnion<PREC, SphereSDF<PREC>, 4>;                 \
+  template class BVHSmoothUnion<PREC, BoxSDF<PREC>, 4, ExpMinOp<PREC>>;    \
                                                                                \
   /* -- Transformation implicit functions ----------------------------------*/\
   template class ComplementIF<PREC>;                                         \
@@ -93,7 +92,6 @@ namespace EBGeometry {
                                                                                \
   namespace BoundingVolumes {                                                \
   template class AABBT<PREC>;                                                \
-  template class SphereT<PREC>;                                              \
   }                                                                          \
                                                                                \
   namespace DCEL {                                                           \
@@ -198,6 +196,14 @@ instantiateFunctionTemplates()
     file, meshPool, BVH::Construction::SAH, DefaultTriMeshSDF::defaultConstructionOptions(4));
   (void)Parser::readIntoTriMeshSDF<T>(
     files, meshPool, BVH::Construction::SAH, DefaultTriMeshSDF::defaultConstructionOptions(4));
+
+  // Queries on any function of a point.
+  {
+    const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+
+    (void)approximateBoundingVolumeOctree(sphere, -Vec3T<T>::ones(), Vec3T<T>::ones(), 2U, T(0));
+    (void)normal(sphere, Vec3T<T>::ones(), T(1.0e-3));
+  }
 
   (void)PolygonSoup<T>().convertToDCEL(meshPool);
   (void)PolygonSoup<T>().convertToTriangles();

@@ -16,7 +16,6 @@ using namespace EBGeometry;
 
 using T    = EBGEOMETRY_PRECISION;
 using Vec3 = Vec3T<T>;
-using BV   = BoundingVolumes::AABBT<T>;
 
 int
 main()
@@ -34,7 +33,7 @@ main()
   // 60 degree opening angle.
   const ConeSDF<T> cone(Vec3::zeros(), T(2.0), T(60.0));
 
-  const auto coneBV = approximateBoundingVolumeOctree<BV>(cone, initLo, initHi, maxDepth, T(0.0));
+  const auto coneBV = approximateBoundingVolumeOctree(cone, initLo, initHi, maxDepth, T(0.0));
 
   std::cout << "Approximate bounding volume of the cone = " << coneBV << '\n';
 
@@ -49,7 +48,7 @@ main()
     return std::min({sphere.signedDistance(a_point), torus.signedDistance(a_point), capsule.signedDistance(a_point)});
   };
 
-  const auto unionBV = approximateBoundingVolumeOctree<BV>(shapeUnion, initLo, initHi, maxDepth, T(0.0));
+  const auto unionBV = approximateBoundingVolumeOctree(shapeUnion, initLo, initHi, maxDepth, T(0.0));
 
   std::cout << "Approximate bounding volume of the union = " << unionBV << '\n';
 

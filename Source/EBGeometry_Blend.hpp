@@ -29,7 +29,7 @@ namespace EBGeometry {
  * weighting; the blend region width scales with s. Useful when a differentiable interface is
  * required. Approaches min(a, b) as s → 0. Computed as `min(a, b) - s log1p(exp(-|a - b| / s))`,
  * which equals the formula above but cannot overflow or underflow however far a and b are from zero.
- * A trivially copyable function object, so it can be stored in a BVHSmoothUnionIF and evaluated on
+ * A trivially copyable function object, so it can be stored in a BVHSmoothUnion and evaluated on
  * a device.
  * @tparam T Floating-point precision.
  */
@@ -89,7 +89,7 @@ struct ExpMaxOp
  * @brief Quadratic polynomial smooth minimum for blending two signed-distance values.
  * @details Approximates min(a, b) within the overlap region |a - b| < s; coincides exactly with
  * min(a, b) outside that region. Cheaper to evaluate than ExpMinOp and the default choice for CSG
- * unions. A trivially copyable function object, so it can be stored in a BVHSmoothUnionIF and
+ * unions. A trivially copyable function object, so it can be stored in a BVHSmoothUnion and
  * evaluated on a device.
  * @tparam T Floating-point precision.
  */

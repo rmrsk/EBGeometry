@@ -56,8 +56,8 @@ floating-point precision ``T``:
 
 *  ``MeshT<T>`` stores an entire DCEL mesh -- all of its vertices, half-edges, and faces --
    and provides brute-force (:math:`\mathcal{O}(N)`) distance queries, ``signedDistance()`` and
-   ``unsignedDistance2()``, that scan every face directly. It is not itself a
-   ``SignedDistanceFunction<T>``: for anything beyond small meshes, one instead wraps a
+   ``unsignedDistance2()``, that scan every face directly. It is not itself an
+   ``ImplicitFunction<T>``: for anything beyond small meshes, one instead wraps a
    ``MeshT<T>`` in one of the BVH-accelerated classes described in
    :ref:`Chap:MeshSDFClasses`. ``MeshSDF`` holds the ``MeshT<T>`` descriptor by value and reads
    every face it tests from it, since a face's half-edge index is only meaningful together with

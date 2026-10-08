@@ -7,6 +7,7 @@
 // start()/stop()/seconds() mechanics rather than just compiling them.
 
 #include "EBGeometry.hpp"
+#include "Source/EBGeometry_SimpleTimer.hpp"
 
 #include <thread>
 

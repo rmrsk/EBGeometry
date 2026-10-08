@@ -80,7 +80,7 @@ main()
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const EBGeometry::BVHUnionIF<T, Sphere, K> fastUnion(pool, spheres, boundingVolumes);
+  const EBGeometry::BVHUnion<T, Sphere, K> fastUnion(pool, spheres, boundingVolumes);
 
   // Create some samples in the bounding box of the BVH
   std::cout << "Sampling distance fields... \n" << '\n';

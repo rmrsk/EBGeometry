@@ -201,7 +201,7 @@ On failure the program prints what went wrong, the failed condition, the file an
 
 .. code-block:: text
 
-   EBGeometry::BVHUnionIF: need one bounding volume per primitive (4 primitives, 3 bounding volumes)
+   EBGeometry::BVHUnion: need one bounding volume per primitive (4 primitives, 3 bounding volumes)
      check: (a_primitives.size() == a_boundingVolumes.size())
      file: Source/EBGeometry_BVHUnionImplem.hpp
      line: 63

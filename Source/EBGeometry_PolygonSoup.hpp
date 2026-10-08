@@ -255,6 +255,8 @@ protected:
 
   /**
    * @brief Whether clean() has run.
+   * @details The geometry is set only by the constructors, so nothing can make a clean soup unclean
+   * again. A member function that changes the vertices or faces must reset this flag.
    */
   bool m_isClean = false;
 };
