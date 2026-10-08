@@ -62,9 +62,9 @@ try {
   // main()'s scope satisfies that.
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T>(file, pool);
-  const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, K>(file, pool);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T>(file, pool, 4, BVH::Construction::SAH);
+  const auto dcelSDF = EBGeometry::Parser::readIntoFlatMeshSDF<T>(file, pool);
+  const auto meshSDF = EBGeometry::Parser::readIntoMeshSDF<T, K>(file, pool);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool, BVH::Construction::SAH);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 1000;

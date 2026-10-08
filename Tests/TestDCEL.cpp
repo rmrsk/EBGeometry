@@ -1277,7 +1277,8 @@ TEMPLATE_TEST_CASE("Soup::removeDegeneratePolygons repairs a T-junction filler a
 
   std::vector<std::vector<size_t>> facets = {{0, 1, 4}, {1, 2, 4}, {2, 0, 4}, {0, 2, 3}, {0, 4, 4}};
 
-  REQUIRE(Soup::removeDegeneratePolygons(verts, facets) == 2);
+  // The kept facets are the original 0, 1 and 3, in order.
+  REQUIRE(Soup::removeDegeneratePolygons(verts, facets) == std::vector<size_t>{0, 1, 3});
   REQUIRE(facets.size() == 3);
   REQUIRE_FALSE(Soup::containsDegeneratePolygons(verts, facets));
 
@@ -1339,12 +1340,31 @@ TEMPLATE_TEST_CASE("Soup::compress removes duplicate vertices and reindexes face
   };
   std::vector<std::vector<size_t>> facets = {{0, 1, 2}, {3, 4, 5}};
 
-  Soup::compress(verts, facets);
+  const std::vector<Vec3T<T>> original = verts;
+
+  const std::vector<size_t> newIndex = Soup::compress(verts, facets);
 
   REQUIRE(verts.size() == 4); // A, B, C, D -- each unique position appears once.
   REQUIRE(facets.size() == 2);
   REQUIRE(facets[0][0] == facets[1][1]); // Both facets' A-reference now points at the same index.
   REQUIRE(facets[0][1] == facets[1][0]); // Both facets' B-reference now points at the same index.
+
+  // The returned map sends every original vertex to the compressed vertex at its position.
+  REQUIRE(newIndex.size() == original.size());
+
+  for (size_t v = 0; v < original.size(); v++) {
+    REQUIRE(verts[newIndex[v]] == original[v]);
+  }
+
+  // Compressing again changes nothing.
+  const std::vector<Vec3T<T>>            compressed       = verts;
+  const std::vector<std::vector<size_t>> compressedFacets = facets;
+
+  const std::vector<size_t> identity = Soup::compress(verts, facets);
+
+  REQUIRE(verts == compressed);
+  REQUIRE(facets == compressedFacets);
+  REQUIRE(identity == std::vector<size_t>{0, 1, 2, 3});
 }
 
 TEMPLATE_TEST_CASE("Soup::compress on empty input clears the facet list", "[Soup]", EBGEOMETRY_TEST_PRECISIONS)
@@ -1582,8 +1602,8 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
   const std::string path = g_dataDir + "/tetrahedron.stl";
 
   Pool pool(hostMemoryResource());
-  auto fast = Parser::readIntoTriangleBVH<T>(path, pool);
-  auto mesh = Parser::readIntoMesh<T>(path, pool);
+  auto fast = Parser::readIntoTriMeshSDF<T>(path, pool);
+  auto mesh = Parser::readIntoFlatMeshSDF<T>(path, pool);
 
   // Compare a handful of query points.  Near-zero values use WithinAbs.
   const std::vector<Vec3T<T>> queries = {

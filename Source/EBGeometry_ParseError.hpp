@@ -19,7 +19,7 @@ namespace EBGeometry {
 namespace Parser {
 
 /**
- * @brief Thrown by the file readers, and by the file data classes' convertToDCEL(), when a file cannot
+ * @brief Thrown by the file readers, and by PolygonSoup::clean() and convertToDCEL(), when a file cannot
  * be read into a mesh.
  * @details Reports the file, the line where the problem was found (0 when there is no meaningful
  * line, as in a binary file or a file that could not be opened), and the reason. what() combines

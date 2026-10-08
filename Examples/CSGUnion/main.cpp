@@ -57,7 +57,7 @@ main(int argc, char* argv[])
   // vertex/edge/face storage is reserved from this Pool; meshSDF retains the mesh (see MeshSDF's
   // docs), so the Pool must outlive it -- keeping both in main()'s scope satisfies that.
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-  const auto       meshSDF = EBGeometry::Parser::readIntoMesh<T>(file, pool);
+  const auto       meshSDF = EBGeometry::Parser::readIntoFlatMeshSDF<T>(file, pool);
   const BV         meshBV(meshSDF->getMesh()->getAllVertexCoordinates());
 
   // Analytic sphere centred on the mesh, with radius equal to the shortest axis (half-extent) of the

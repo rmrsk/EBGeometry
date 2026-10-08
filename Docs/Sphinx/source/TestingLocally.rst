@@ -245,28 +245,26 @@ Test coverage
      - :cpp:class:`Triangle`: face normal from vertex ordering, and
        signed-distance correctness for points closest to the face interior,
        an edge, and a vertex.
-   * - ``TestSTL``
-     - :cpp:class:`STL`: construction, copy/move semantics; ``Parser::readSTL``
-       reading raw vertex/facet data from a test file; round-trip through
-       ``convertToDCEL`` into a valid, watertight mesh.
-   * - ``TestPLY``
-     - :cpp:class:`PLY`: construction, copy/move semantics; named
-       vertex/face property storage and retrieval (including the
-       out-of-range-name error path); round-trip through ``convertToDCEL``.
-   * - ``TestOBJ``
-     - :cpp:class:`OBJ`: construction, copy/move semantics; round-trip
-       through ``convertToDCEL`` into a valid, watertight mesh.
-   * - ``TestVTK``
-     - :cpp:class:`VTK`: construction, copy/move semantics; named
-       point-data/cell-data scalar array storage and retrieval (including the
-       out-of-range-name error path); round-trip through ``convertToDCEL``.
+   * - ``TestPolygonSoup``
+     - :cpp:class:`PolygonSoup`: named vertex and face properties (an unknown name throwing, a
+       property of the wrong size rejected); ``clean()`` merging duplicate vertices, removing
+       degenerate faces and repairing a T-junction, carrying the properties along (a merged vertex
+       keeping the first one's values), and changing nothing when run again; an index out of range or
+       a non-finite coordinate throwing ``ParseError``; face ``i`` and vertex ``i`` of a clean soup
+       being face ``i`` and vertex ``i`` of its DCEL mesh; ``convertToDCEL`` of an unclean soup
+       leaving the soup as it was; and ``convertToTriangles`` tagging each triangle with its face.
    * - ``TestParser``
      - Cross-format parser behaviour: binary STL (with per-facet colour attributes), PLY and VTK
        fixtures reading the same mesh as their ASCII counterparts; missing, empty, truncated and
        corrupted files throwing ``ParseError`` with the file, line and reason; unused vertices being
        ignored; ``OnDefect::Warn`` loading inconsistently oriented and folded meshes with a warning
-       (distances keep their magnitude), while a face that visits a vertex twice still throws; and
-       mesh distance functions and BVH unions refusing to build from no faces.
+       (distances keep their magnitude), while a face that visits a vertex twice still throws; every
+       reader returning a clean soup, and ``readIntoPolygonSoup`` choosing the reader by extension;
+       PLY and VTK properties staying aligned with the face ids all three mesh SDFs report after a
+       degenerate face and a duplicate vertex are removed, and a VTK array that cannot be aligned
+       being dropped with a warning; the readers taking :cpp:class:`BVH::ConstructionOptions`
+       building what the constructors build; and mesh distance functions and BVH unions refusing to
+       build from no faces.
    * - ``TestBVH``
      - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
        supported formats, used to verify: identical topology/geometry across formats;

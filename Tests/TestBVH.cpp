@@ -1474,7 +1474,7 @@ TEMPLATE_TEST_CASE("BVH refit: TreeBVH::refit and PackedBVH::refit update boundi
   }
 }
 
-TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly from the same mesh",
+TEMPLATE_TEST_CASE("Parser::readIntoMeshSDF matches MeshSDF built directly from the same mesh",
                    "[BVH][Parser]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1482,13 +1482,13 @@ TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly fro
 
   constexpr size_t K = 4;
 
-  // One pool for both: the direct MeshSDF below and readIntoPackedBVH's own independent build
+  // One pool for both: the direct MeshSDF below and readIntoMeshSDF's own independent build
   // share it, which is only sound because building one mesh no longer closes the pool to the next.
   Pool       pool(hostMemoryResource());
   const auto direct = Parser::readIntoDCEL<T>(dataPath("dodecahedron.stl"), pool);
 
   const MeshSDF<T, K> expected(direct, pool, BVH::Construction::SAH);
-  const auto          fromFile = Parser::readIntoPackedBVH<T, K>(dataPath("dodecahedron.stl"), pool);
+  const auto          fromFile = Parser::readIntoMeshSDF<T, K>(dataPath("dodecahedron.stl"), pool);
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(fromFile.signedDistance(p), withinAbsT(expected.signedDistance(p), formatMargin<T>()));
@@ -1532,39 +1532,39 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     }
   }
 
-  SECTION("readIntoMesh")
+  SECTION("readIntoFlatMeshSDF")
   {
-    const auto flatSDFs = Parser::readIntoMesh<T>(files, pool);
+    const auto flatSDFs = Parser::readIntoFlatMeshSDF<T>(files, pool);
     REQUIRE(flatSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoMesh<T>(files[i], pool);
+      const auto single = Parser::readIntoFlatMeshSDF<T>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(flatSDFs[i].signedDistance(p), withinAbsT(single.signedDistance(p), formatMargin<T>()));
       }
     }
   }
 
-  SECTION("readIntoPackedBVH")
+  SECTION("readIntoMeshSDF")
   {
-    const auto packedSDFs = Parser::readIntoPackedBVH<T, K>(files, pool);
+    const auto packedSDFs = Parser::readIntoMeshSDF<T, K>(files, pool);
     REQUIRE(packedSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoPackedBVH<T, K>(files[i], pool);
+      const auto single = Parser::readIntoMeshSDF<T, K>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(packedSDFs[i].signedDistance(p), withinAbsT(single.signedDistance(p), formatMargin<T>()));
       }
     }
   }
 
-  SECTION("readIntoTriangleBVH")
+  SECTION("readIntoTriMeshSDF")
   {
-    const auto triSDFs = Parser::readIntoTriangleBVH<T>(files, pool);
+    const auto triSDFs = Parser::readIntoTriMeshSDF<T>(files, pool);
     REQUIRE(triSDFs.size() == 2);
 
     for (size_t i = 0; i < files.size(); i++) {
-      const auto single = Parser::readIntoTriangleBVH<T>(files[i], pool);
+      const auto single = Parser::readIntoTriMeshSDF<T>(files[i], pool);
       for (const auto& p : queryPoints<T>()) {
         REQUIRE_THAT(triSDFs[i].signedDistance(p), withinAbsT(single.signedDistance(p), formatMargin<T>()));
       }

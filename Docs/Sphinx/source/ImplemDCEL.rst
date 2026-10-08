@@ -74,12 +74,14 @@ Face ids
 --------
 
 A face's id is its index in the mesh's face array, ``mesh.getFace(id)``. The file readers number
-faces in file order, leaving out zero-area faces, which they remove (see :ref:`Chap:Parsers`). The
+faces in file order, leaving out degenerate faces, which they remove (see :ref:`Sec:PolygonSoup`). The
 mesh distance functions report the id of the face closest to a point from ``getClosestFace()``,
 on the host and on a device alike, and ``TriMeshSDF`` reports the id of the polygon face a
 triangle was cut from. The DCEL classes carry no user data of their own: anything attached to a
 face, such as a boundary condition or a material, is kept in an array of the caller's, indexed by
-face id. Vertices and half-edges are likewise identified by their indices.
+face id. The data a PLY or VTK file attaches to its faces and vertices is read that way: the
+``PolygonSoup`` a reader returns holds it in arrays indexed by the same face and vertex ids (see
+:ref:`Sec:PolygonSoup`). Vertices and half-edges are likewise identified by their indices.
 
 .. _Sec:DCELMemoryModel:
 

@@ -215,7 +215,7 @@ mechanism is to be built in the meantime, since it would be a second tape.
    same BVH-plus-payload rebase that `MeshSDF` needs, on a smaller subject.
 
 1. **DCEL reconcile chain.** *(Deferred deliberately.)* Not a prerequisite for anything else.
-   `MeshT::reconcile()`'s only production call site is `Soup::readIntoDCEL` (`SoupImplem.hpp`), and
+   `MeshT::reconcile()`'s only production call site is `Soup::soupToDCEL` (`SoupImplem.hpp`), and
    `Soup` is host-only by design — so a device `reconcile()` would today have no device caller. Its
    hard part (device-resident CSR vertex→face adjacency) is the same parallel-build problem as step 3
    and is better done once, with a real consumer driving the design.

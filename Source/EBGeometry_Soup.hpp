@@ -13,13 +13,11 @@
 
 // Std includes
 #include <cstddef>
-#include <memory>
 #include <string>
 #include <vector>
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
-#include "EBGeometry_ParseError.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -62,14 +60,16 @@ isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
 
 /**
  * @brief Compress a polygon soup by removing duplicate vertices.
- * @details After this call, `a_vertices` contains only unique vertex positions and
- * `a_facets` has been updated to reference the new indices.
+ * @details After this call, `a_vertices` contains only unique vertex positions, sorted
+ * lexicographically, and `a_facets` has been updated to reference the new indices. Compressing a
+ * compressed soup changes nothing.
  * @tparam T Floating-point precision type for vertex coordinates.
  * @param[in,out] a_vertices Vertex coordinate list; duplicates are removed in place.
  * @param[in,out] a_facets   Index lists; updated to reference the compressed vertex list.
+ * @return For each original vertex, its index in the compressed list.
  */
 template <typename T>
-inline static void
+inline static std::vector<size_t>
 compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept;
 
 /**
@@ -105,10 +105,10 @@ isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vecto
  * @param[in]     a_vertices Compressed vertex coordinate list.
  * @param[in,out] a_facets   Index lists; degenerate facets are removed, and neighbours of repaired
  * T-junctions gain a vertex.
- * @return Number of facets removed.
+ * @return For each facet kept, its index in the original a_facets. Its size is the number kept.
  */
 template <typename T>
-inline static size_t
+inline static std::vector<size_t>
 removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                          std::vector<std::vector<size_t>>&        a_facets) noexcept;
 
@@ -172,31 +172,6 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
            const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
            const std::vector<std::vector<size_t>>&  a_facets,
            const std::string&                       a_id) noexcept;
-
-/**
- * @brief Turn a polygon soup read from a file into a DCEL mesh, with the checks the file readers run.
- * @details The shared body of the format classes' convertToDCEL(). In order: isValid() (throws on
- * failure), compress(), removeDegeneratePolygons() (prints how many it removed),
- * findRepeatedVertex() (throws), findTopologyDefect(), soupToDCEL() and findFoldedFeature(). The last
- * two checks throw a Parser::ParseError, or with Parser::OnDefect::Warn print a warning and go on.
- * @tparam T    Floating-point precision type for vertex coordinates.
- * @param[in]     a_vertices Vertex coordinates, as read (taken by value: compressed here).
- * @param[in]     a_facets   Index lists, as read (taken by value: cleaned here).
- * @param[in,out] a_pool     Pool to reserve the mesh's storage from.
- * @param[in]     a_id       File name, for messages and the ParseError.
- * @param[in]     a_format   Name of the calling format class (e.g. "STL"), for messages.
- * @param[in]     a_onDefect Whether a topology defect or a fold throws or only warns.
- * @return The mesh.
- * @throws Parser::ParseError as described above.
- */
-template <typename T>
-[[nodiscard]] inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-readSoupIntoDCEL(std::vector<EBGeometry::Vec3T<T>> a_vertices,
-                 std::vector<std::vector<size_t>>  a_facets,
-                 Pool&                             a_pool,
-                 const std::string&                a_id,
-                 const char*                       a_format,
-                 const Parser::OnDefect            a_onDefect);
 
 /**
  * @brief Reconcile pair edges: link each half-edge with its reverse.
