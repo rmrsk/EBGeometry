@@ -20,7 +20,6 @@
 
 using T    = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
-using Meta = short;
 
 // Two choices of the BVH branching factor K and the SIMD width W (the number of triangles or points
 // evaluated together in one leaf group).
@@ -43,8 +42,8 @@ constexpr std::size_t HostW      = EBGeometry::TriangleSoA::HostWidth<T>();
 constexpr std::size_t HostPointW = EBGeometry::PointSoA::HostWidth<T>();
 
 // Leaving K and W out gives the defaults.
-static_assert(std::is_same_v<EBGeometry::PointCloudBVH<T, Meta>,
-                             EBGeometry::PointCloudBVH<T, Meta, DefaultK, EBGeometry::PointSoA::DefaultWidth<T>()>>);
+static_assert(std::is_same_v<EBGeometry::PointCloudBVH<T>,
+                             EBGeometry::PointCloudBVH<T, DefaultK, EBGeometry::PointSoA::DefaultWidth<T>()>>);
 
 // Runs a_query over every point and returns the elapsed time in seconds; a_sum accumulates the
 // results so that two structures can be compared.
@@ -92,7 +91,6 @@ try {
     constexpr std::size_t numPoints = 200000;
 
     std::vector<Vec3> points;
-    std::vector<Meta> metaData(numPoints, Meta(0));
 
     points.reserve(numPoints);
 
@@ -110,8 +108,8 @@ try {
 
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const EBGeometry::PointCloudBVH<T, Meta>                    portable(pool, points, metaData);
-    const EBGeometry::PointCloudBVH<T, Meta, HostK, HostPointW> tuned(pool, points, metaData);
+    const EBGeometry::PointCloudBVH<T>                    portable(pool, points);
+    const EBGeometry::PointCloudBVH<T, HostK, HostPointW> tuned(pool, points);
 
     double portableSum = 0.0;
     double tunedSum    = 0.0;

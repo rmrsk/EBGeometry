@@ -101,15 +101,15 @@ HostWidth() noexcept
 /**
  * @brief True SoA (Structure of Arrays) layout for W point positions, enabling SIMD distance
  * evaluation against the whole group at once.
- * @details Deliberately carries positions only -- no metadata, no orientation. A point has no
+ * @details Deliberately carries positions only -- no ids, no orientation. A point has no
  * inside/outside notion, so there is no signedDistance() here, only unsigned distance queries. The
  * one SIMD kernel computes the squared distance from the query point to all W lane positions
  * simultaneously; everything the class exposes is a thin wrapper over it -- getDistances2()/
  * getDistances() return the whole W-lane array, and getMinimumDistance2()/getMaximumDistance2() (and
- * their sqrt counterparts) horizontally reduce it. Metadata, when needed, is carried by the separate
- * PointAoSoA<T, Meta, W> wrapper (see EBGeometry_PointAoSoA.hpp) rather than as a member here, so
- * that a pure position-only distance traversal never has metadata bytes anywhere near its hot data
- * -- not merely unused, but physically absent from this type.
+ * their sqrt counterparts) horizontally reduce it. Point ids, when needed, are carried by the separate
+ * PointAoSoA<T, W> wrapper (see EBGeometry_PointAoSoA.hpp) rather than as a member here, so that a
+ * pure position-only distance traversal never has id bytes anywhere near its hot data -- not merely
+ * unused, but physically absent from this type.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
  * usage (PackedBVH storing groups in a Pool-backed PODVector, reserved at the group's alignof
  * inside a PoolBaseAlign-aligned block) is safe. If you allocate a PointSoAT yourself outside of that path
@@ -148,7 +148,7 @@ public:
    * caller only needs distances for comparison, not their actual magnitude. All W lanes are returned:
    * padded lanes (indices m_validCount..W-1) repeat the last real position's squared distance,
    * matching pack()'s padding, so a caller iterating lanes should stop at the real count (or, if it
-   * lacks that count, de-duplicate -- e.g. PointAoSoA pairs each lane with getMetaData()).
+   * lacks that count, use numValid()).
    * Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
    * @return Per-lane squared distances, one per W lanes.
@@ -221,6 +221,19 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   BV
   computeBoundingVolume() const noexcept;
+
+  /**
+   * @brief Number of real (non-padded) positions in this group.
+   * @details Lanes 0..numValid()-1 hold the packed positions; the rest repeat the last one. A scan
+   * that must see each point once stops here.
+   * @return The count passed to pack(), 1..W (0 before pack()).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  numValid() const noexcept
+  {
+    return m_validCount;
+  }
 
 protected:
   /**

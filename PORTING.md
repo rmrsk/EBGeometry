@@ -132,7 +132,7 @@ kernel and compares against the host:
 | SoA/AoSoA leaves | `PointSoA`, `PointAoSoA`, `TriangleSoA`, `TriangleAoSoA` | #134 |
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
 | BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
-| Point-cloud BVH queries | `PointCloudBVH` (holds a `PackedBVH`; the build stays host-side) | roadmap step 0b |
+| Point-cloud queries | `PointCloudBVH` (holds a `PackedBVH`) and `PointCloudHashGrid` (pool-backed CSR grid); both builds stay host-side. One `PointCloud::Hit` with a `uint32` cloud index, a shared `PointCloud::KBest`, device-callable brute-force references | roadmap step 0b; item 20 |
 | Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF` (plain value types; no longer `SignedDistanceFunction`s; `getClosestFace` is device-callable and returns a face id) | roadmap step 4a |
 | Analytic shapes | The twelve classes in `EBGeometry_AnalyticDistanceFunctions.hpp` (plain value types; no longer `SignedDistanceFunction`s; constructors stay host-only) | roadmap step 4b, first PR |
 | BVH unions | `BVHUnionIF`, `BVHSmoothUnionIF` over one primitive type (plain value types; no longer `ImplicitFunction`s); `SmoothMinOp`/`SmoothMaxOp`/`ExpMinOp`; `PoolLocation` relocation of pool-resident primitives | roadmap step 4b, second PR |
@@ -142,8 +142,8 @@ kernel and compares against the host:
 | Component | Blocker |
 |---|---|
 | `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
-| `Triangle<T, Meta>` (AoS), `Octree` | Not started |
-| `PointCloudHashGrid`, `SFC` | Not started; the point-cloud BVH additionally has to *build* on device |
+| `Triangle<T>` (AoS), `Octree` | Not started |
+| `SFC`, point-cloud builds | Not started; the point-cloud BVH and hash grid additionally have to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform` | Still the original virtual-`value()` design, now fed by user-written implicit functions only; this is where the tape returns. `approximateBoundingVolumeOctree` is a host-only free function taking any shape, mesh SDF, implicit function or callable |
 | Unions of different primitive types | Need runtime dispatch, which is the tape. The `CSGUnion` example (a mesh plus a sphere) stays disabled until then |
 | Parsers (`OBJ`/`PLY`/`STL`/`VTK`/`Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended |
@@ -263,7 +263,7 @@ mechanism is to be built in the meantime, since it would be a second tape.
    spatially coherent queries before choosing**: the real consumers generate query points cell-by-cell
    over a grid, which is far more coherent than the random-point worst case this analysis assumed.
 3. **Point clouds.** Device-side `PointCloudBVH` build (Morton codes + radix sort) and a
-   `PointCloudHashGrid` counterpart. Independent of 1–2.
+   `PointCloudHashGrid` counterpart (both already query on device). Independent of 1–2.
 4. **Standalone, tag-nameable types: the mesh SDFs first, then the analytic SDFs / transforms /
    combiners.** Each type's formula moves into a trait as a `static EBGEOMETRY_HOST_DEVICE eval()`,
    with the existing virtual `value()` becoming a thin delegate — no API break, and a kernel can call
@@ -377,8 +377,8 @@ mechanism is to be built in the meantime, since it would be a second tape.
    `Array<T, N>` instead of their `std` counterparts, and call no other `std::` function in device
    code except the math functions (`Scripts/CheckDeviceMath.py` checks both; see "Writing device
    code" in the contribution guidelines).
-4. `static_assert(std::is_trivially_copyable_v<…>)` on the class, and on any `Meta` template
-   parameter it stores.
+4. `static_assert(std::is_trivially_copyable_v<…>)` on the class, and on any user type parameter
+   it stores in pool memory.
 5. If a container-returning method (`std::vector`) is genuinely useful on device, add a *streaming*
    sibling rather than trying to annotate it — see
    `FaceT::getSmallestCoordinate`/`getHighestCoordinate`.

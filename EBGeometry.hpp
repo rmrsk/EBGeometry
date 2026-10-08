@@ -38,6 +38,7 @@
 #include "Source/EBGeometry_ParseError.hpp"
 #include "Source/EBGeometry_Parser.hpp"
 #include "Source/EBGeometry_PointAoSoA.hpp"
+#include "Source/EBGeometry_PointCloud.hpp"
 #include "Source/EBGeometry_PointCloudBVH.hpp"
 #include "Source/EBGeometry_PointCloudHashGrid.hpp"
 #include "Source/EBGeometry_PointSoA.hpp"

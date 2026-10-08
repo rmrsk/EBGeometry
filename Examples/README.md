@@ -7,7 +7,7 @@ third-party dependencies):
 * `HostTuning` For choosing the BVH branching factor and SIMD width: the portable defaults against the values tuned to the host's SIMD flags, with timings.
 * `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
 * `NearestNeighborBVH` For the k nearest neighbors of every point in a cloud (the k-NN graph) using `PointCloudBVH::allNearestNeighbors()`, checked against brute force.
-* `NearestNeighborHashGrid` For the k-NN graph using the uniform-grid `PointCloudHashGrid` class (same interface as `PointCloudBVH`); faster on near-uniform clouds, checked against brute force.
+* `NearestNeighborHashGrid` For the k-NN graph using the uniform-grid `PointCloudHashGrid` class (same interface as `PointCloudBVH`); faster to build on near-uniform clouds, checked against brute force.
 * `NestedBVH` For a nested BVH: a BVH-accelerated union over several BVH-backed mesh SDFs.
 * `OctreeBoundingVolume` For using the octree bounding-volume functionality.
 * `PackedSpheres` For a scene composed of many analytic spheres.

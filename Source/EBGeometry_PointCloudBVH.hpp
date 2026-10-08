@@ -25,6 +25,7 @@
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_PointAoSoA.hpp"
+#include "EBGeometry_PointCloud.hpp"
 #include "EBGeometry_PointSoA.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -35,16 +36,16 @@ namespace EBGeometry {
  * @brief A BVH over a point cloud, with a fast build and turnkey queries.
  * @details Holds a PackedBVH over SoA point groups (rather than deriving from one) together with
  * the cloud data the queries need. Unlike the general PackedBVH constructors (which take a list of pre-made primitives and
- * partition it via SAH/Midpoint/SFC), PointCloudBVH is built directly from a raw point cloud --
- * positions plus a parallel array of user metadata. It uses an index-based, copy-free top-down
- * build (partition an index permutation in place by longest-axis midpoint, pack leaves into
- * PointAoSoA<T, size_t, W> groups inline), which is far cheaper than the general path and produces
- * a tree just as tight for near-uniform clouds.
+ * partition it via SAH/Midpoint/SFC), PointCloudBVH is built directly from a raw point cloud. It
+ * uses an index-based, copy-free top-down build (partition an index permutation in place by
+ * longest-axis midpoint, pack leaves into PointAoSoA<T, W> groups inline), which is far cheaper than
+ * the general path and produces a tree just as tight for near-uniform clouds.
  *
- * Every leaf carries the point's **cloud index** (its position in the input arrays) as metadata,
- * so queries return that index; the user's own metadata is stored alongside and reachable via
- * metadata(). The class hides all of pruneTraverse()/the SoA leaf kernel/the seed-from-own-leaf
- * optimization behind a few high-level query methods.
+ * Every leaf lane carries its point's **cloud index** (its position in the input positions array),
+ * and queries return that index in a PointCloud::Hit. Per-point user data lives in the caller's own
+ * array, indexed by it. PointCloudHashGrid answers the same queries with the same Hit type. The
+ * class hides all of pruneTraverse()/the SoA leaf kernel/the seed-from-own-leaf optimization behind
+ * a few high-level query methods.
  *
  * @note Queries come in two flavours. *External* queries (closestPoint / closestPoints) take an
  * arbitrary point and traverse top-down. *Self* queries (nearestNeighbor / nearestNeighbors), and
@@ -52,35 +53,25 @@ namespace EBGeometry {
  * search bound from the leaf that point lives in** (skipping that leaf during traversal) -- a
  * strictly cheaper search that an external point cannot use.
  *
- * @note Device portability. The held PackedBVH and every cloud array (positions, metadata, the
- * seeding tables, the leaf order) are reserved from the same Pool, and the class stores only
- * offsets into it, so a PointCloudBVH is trivially copyable. Mirror the pool, call rebasedView(), and
- * pass the returned value into a kernel; every query that answers through a caller-supplied buffer
- * (closestPoint(s), nearestNeighbor(s), closestPointBruteForce(), nearestNeighborBruteForce()) is
- * device-callable. allNearestNeighbors() and the k-result brute-force references return or allocate
- * std::vectors and stay host-only.
+ * @note Device portability. The held PackedBVH and every cloud array (positions, the seeding
+ * tables, the leaf order) are reserved from the same Pool, and the class stores only offsets into
+ * it, so a PointCloudBVH is trivially copyable. Mirror the pool, call rebasedView(), and pass the
+ * returned value into a kernel; every query that answers through a caller-supplied buffer
+ * (closestPoint(s), nearestNeighbor(s)) is device-callable. allNearestNeighbors() returns a
+ * std::vector and stays host-only.
  *
- * @tparam T    Floating-point precision.
- * @tparam Meta User metadata type stored per point and returned via metadata(). Must be trivially
- *              copyable, since it is stored in pool memory. Defaults to the cloud index itself
- *              (std::size_t).
- * @tparam K    BVH branching factor. Defaults to the SIMD-optimal value for T.
- * @tparam W    Points per SoA leaf lane group. Defaults to the SIMD-optimal width for T.
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>().
+ * @tparam W Points per SoA leaf lane group. Defaults to PointSoA::DefaultWidth<T>().
  */
-template <class T,
-          class Meta = std::size_t,
-          size_t K   = BVH::DefaultBranchingRatio<T>(),
-          size_t W   = PointSoA::DefaultWidth<T>()>
+template <class T, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = PointSoA::DefaultWidth<T>()>
 class PointCloudBVH
 {
-  static_assert(std::is_trivially_copyable_v<Meta>,
-                "PointCloudBVH: Meta must be trivially copyable (it is stored in pool memory)");
-
 public:
   /**
    * @brief The SoA leaf primitive: a group of up to W points carrying their cloud indices.
    */
-  using PointGroup = PointAoSoA<T, std::size_t, W>;
+  using PointGroup = PointAoSoA<T, W>;
 
   /**
    * @brief The packed BVH this class holds over its point groups.
@@ -99,29 +90,10 @@ public:
 
   /**
    * @brief One query result: the cloud index of a matched point and its squared distance.
-   * @details @c index is the point's position in the input @c positions / @c metadata arrays; use
-   * position()/metadata() to recover its data. @c distanceSquared avoids a sqrt on the hot path.
-   * @note A "no match" result (an empty cloud, or a self-query on a cloud with no other point) has
-   * @c index == Math::Limits<std::size_t>::max() and @c distanceSquared ==
-   * Math::Limits<T>::max(); valid() tests for it. Slots a multi-result query could not fill
-   * hold the same value, and those queries also report the count found via their return value.
+   * @details Shared with PointCloudHashGrid. A miss, and every result slot a multi-result query could
+   * not fill, has Hit::valid() false; those queries also return the count found.
    */
-  struct Hit
-  {
-    std::size_t index           = Math::Limits<std::size_t>::max(); ///< Cloud index of the matched point.
-    T           distanceSquared = Math::Limits<T>::max();           ///< Squared distance from the query to it.
-
-    /**
-     * @brief Whether this is a match rather than a "no match" result.
-     * @return True if @c index refers to a point.
-     */
-    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-    bool
-    valid() const noexcept
-    {
-      return index != Math::Limits<std::size_t>::max();
-    }
-  };
+  using Hit = PointCloud::Hit<T>;
 
   /**
    * @brief No default construction -- a point cloud is required.
@@ -130,16 +102,13 @@ public:
 
   /**
    * @brief Build a BVH over a point cloud.
+   * @details A point's cloud index, which the queries report, is its position in @p a_positions.
    * @param[in,out] a_pool       Pool the packed BVH's arrays are reserved from; must outlive this object.
-   * @param[in] a_positions      Point positions.
-   * @param[in] a_metadata       Per-point user metadata (same length/order as a_positions).
+   * @param[in] a_positions      Point positions. Fewer than PointCloud::InvalidIndex, all finite.
    * @param[in] a_targetLeafSize Target points per leaf (the build stops splitting at or below it).
    */
   EBGEOMETRY_HOST
-  inline PointCloudBVH(Pool&                        a_pool,
-                       const std::vector<Vec3T<T>>& a_positions,
-                       const std::vector<Meta>&     a_metadata,
-                       std::size_t                  a_targetLeafSize = 16 * W);
+  inline PointCloudBVH(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, std::size_t a_targetLeafSize = 16 * W);
 
   /**
    * @brief Closest cloud point to an arbitrary query point.
@@ -168,7 +137,7 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Hit
-  nearestNeighbor(std::size_t a_point) const noexcept;
+  nearestNeighbor(uint32_t a_point) const noexcept;
 
   /**
    * @brief The a_k nearest *other* points to a point already in the cloud, nearest first.
@@ -179,7 +148,7 @@ public:
    */
   EBGEOMETRY_HOST_DEVICE
   inline std::size_t
-  nearestNeighbors(std::size_t a_point, std::size_t a_k, Hit* a_out) const noexcept;
+  nearestNeighbors(uint32_t a_point, std::size_t a_k, Hit* a_out) const noexcept;
 
   /**
    * @brief For every point, its a_k nearest *other* points (the k-nearest-neighbor graph).
@@ -194,56 +163,6 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline std::vector<Hit>
   allNearestNeighbors(std::size_t a_k = 1) const;
-
-  /**
-   * @brief Brute-force closest point to an arbitrary query point (O(N) reference for closestPoint()).
-   * @details Full linear scan. Same result contract as closestPoint().
-   * @param[in] a_query Query point (need not be in the cloud).
-   * @return The nearest point and its squared distance.
-   * @warning For debugging and testing only -- an O(N) reference implementation, never a hot path.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Hit
-  closestPointBruteForce(const Vec3T<T>& a_query) const noexcept;
-
-  /**
-   * @brief Brute-force a_k closest points to an arbitrary query point (O(N) reference for
-   * closestPoints()).
-   * @details Full linear scan. Same result contract as closestPoints().
-   * @param[in]  a_query Query point (need not be in the cloud).
-   * @param[in]  a_k     Number of neighbors requested.
-   * @param[out] a_out   Buffer of at least a_k Hits; filled [0, returned count), ascending by distance.
-   * @return The number of neighbors found (min(a_k, cloud size)).
-   * @warning For debugging and testing only -- an O(N*k) reference implementation, never a hot path.
-   */
-  EBGEOMETRY_HOST
-  inline std::size_t
-  closestPointsBruteForce(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const;
-
-  /**
-   * @brief Brute-force nearest *other* point to a cloud point (O(N) reference for nearestNeighbor()).
-   * @details Full linear scan excluding the point itself. Same result contract as nearestNeighbor().
-   * @param[in] a_point Cloud index of the query point; excluded from its own result.
-   * @return The nearest other point and its squared distance.
-   * @warning For debugging and testing only -- an O(N) reference implementation, never a hot path.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Hit
-  nearestNeighborBruteForce(std::size_t a_point) const noexcept;
-
-  /**
-   * @brief Brute-force a_k nearest *other* points to a cloud point (O(N) reference for
-   * nearestNeighbors()).
-   * @details Full linear scan excluding the point itself. Same result contract as nearestNeighbors().
-   * @param[in]  a_point Cloud index of the query point; excluded from its own result.
-   * @param[in]  a_k     Number of neighbors requested.
-   * @param[out] a_out   Buffer of at least a_k Hits; filled [0, returned count), ascending.
-   * @return The number of neighbors found (min(a_k, cloud size - 1)).
-   * @warning For debugging and testing only -- an O(N*k) reference implementation, never a hot path.
-   */
-  EBGEOMETRY_HOST
-  inline std::size_t
-  nearestNeighborsBruteForce(std::size_t a_point, std::size_t a_k, Hit* a_out) const;
 
   /**
    * @brief Number of points in the cloud.
@@ -263,25 +182,11 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline const Vec3T<T>&
-  position(std::size_t a_index) const noexcept
+  position(uint32_t a_index) const noexcept
   {
     EBGEOMETRY_EXPECT(a_index < m_positions.size());
 
-    return m_positions.at(this->base(), static_cast<std::uint32_t>(a_index));
-  }
-
-  /**
-   * @brief User metadata of the point with the given cloud index.
-   * @param[in] a_index Cloud index.
-   * @return The point's user metadata.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Meta&
-  metadata(std::size_t a_index) const noexcept
-  {
-    EBGEOMETRY_EXPECT(a_index < m_metadata.size());
-
-    return m_metadata.at(this->base(), static_cast<std::uint32_t>(a_index));
+    return m_positions.at(this->base(), a_index);
   }
 
   /**
@@ -366,18 +271,14 @@ private:
 
   /**
    * @brief Delegated-to constructor: adopt a completed build result and retain the cloud data.
-   * @details Hands the BVH arrays of a_build to the held PackedBVH, then copies the point cloud
-   * (positions, metadata) and per-point seeding tables into the same pool.
+   * @details Hands the BVH arrays of a_build to the held PackedBVH, then copies the point positions
+   * and per-point seeding tables into the same pool.
    * @param[in,out] a_pool      Pool every array is reserved from; must outlive this object.
    * @param[in]     a_build     Completed index-based build result.
    * @param[in]     a_positions Point positions (indexed by cloud index).
-   * @param[in]     a_metadata  Per-point user metadata (same length/order as a_positions).
    */
   EBGEOMETRY_HOST
-  inline PointCloudBVH(Pool&                        a_pool,
-                       const BuildResult&           a_build,
-                       const std::vector<Vec3T<T>>& a_positions,
-                       const std::vector<Meta>&     a_metadata);
+  inline PointCloudBVH(Pool& a_pool, const BuildResult& a_build, const std::vector<Vec3T<T>>& a_positions);
 
   /**
    * @brief Reserve the cloud arrays from @p a_pool and copy the given host arrays into them.
@@ -385,7 +286,6 @@ private:
    * and move the block. The sources must therefore be host arrays outside @p a_pool.
    * @param[in,out] a_pool      Pool to reserve from; must be the pool the held BVH was built in.
    * @param[in]     a_positions Point positions (indexed by cloud index).
-   * @param[in]     a_metadata  Per-point user metadata.
    * @param[in]     a_leafOff   Per-point own-leaf group offset.
    * @param[in]     a_leafCnt   Per-point own-leaf group count.
    * @param[in]     a_order     Point indices in leaf (build) order.
@@ -394,7 +294,6 @@ private:
   inline void
   storeCloud(Pool&                             a_pool,
              const std::vector<Vec3T<T>>&      a_positions,
-             const std::vector<Meta>&          a_metadata,
              const std::vector<std::uint32_t>& a_leafOff,
              const std::vector<std::uint32_t>& a_leafCnt,
              const std::vector<std::uint32_t>& a_order);
@@ -429,50 +328,21 @@ private:
    * @param[in]  a_query   Query point.
    * @param[in]  a_k       Neighbors requested.
    * @param[out] a_out     Buffer of at least a_k Hits.
-   * @param[out] a_found   Number of neighbors found.
-   * @param[in]  a_exclude Cloud index to exclude (self-queries); s_none to exclude nothing.
+   * @param[in]  a_exclude Cloud index to exclude (self-queries); PointCloud::InvalidIndex to exclude
+   *                       nothing.
    * @param[in]  a_seedOff Group offset of the own leaf to seed from (self-queries; ignored if
    *                       a_seedCnt == 0).
    * @param[in]  a_seedCnt Group count of the own leaf; 0 means "no seed" (external queries).
+   * @return The number of neighbors found.
    */
   EBGEOMETRY_HOST_DEVICE
-  inline void
+  inline std::size_t
   query(const Vec3T<T>& a_query,
         std::size_t     a_k,
         Hit*            a_out,
-        std::size_t&    a_found,
-        std::size_t     a_exclude,
+        uint32_t        a_exclude,
         std::uint32_t   a_seedOff,
         std::uint32_t   a_seedCnt) const noexcept;
-
-  /**
-   * @brief Brute-force single nearest by full scan (shared by closestPointBruteForce /
-   * nearestNeighborBruteForce).
-   * @param[in] a_query   Query point.
-   * @param[in] a_exclude Cloud index to exclude, or s_none to exclude nothing.
-   * @return The nearest (non-excluded) point and its squared distance; a default Hit if none.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Hit
-  bruteForceOne(const Vec3T<T>& a_query, std::size_t a_exclude) const noexcept;
-
-  /**
-   * @brief Brute-force a_k nearest by full scan (shared by closestPointsBruteForce /
-   * nearestNeighborsBruteForce).
-   * @param[in]  a_query   Query point.
-   * @param[in]  a_k       Neighbors requested.
-   * @param[out] a_out     Buffer of at least a_k Hits; filled ascending by distance.
-   * @param[in]  a_exclude Cloud index to exclude, or s_none to exclude nothing.
-   * @return The number of neighbors found.
-   */
-  EBGEOMETRY_HOST
-  inline std::size_t
-  bruteForceK(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out, std::size_t a_exclude) const;
-
-  /**
-   * @brief Sentinel meaning "exclude no point".
-   */
-  static constexpr std::size_t s_none = Math::Limits<std::size_t>::max();
 
   /**
    * @brief The packed BVH over the point groups. Owns the pool attachment every array below shares.
@@ -483,11 +353,6 @@ private:
    * @brief Point positions, indexed by cloud index. Kept for self-query points and spatial ordering.
    */
   PODVector<Vec3T<T>> m_positions;
-
-  /**
-   * @brief User metadata, indexed by cloud index.
-   */
-  PODVector<Meta> m_metadata;
 
   /**
    * @brief Per-point own-leaf group offset (for seeding).

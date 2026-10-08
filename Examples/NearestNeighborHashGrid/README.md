@@ -55,5 +55,6 @@ Running
     ./NearestNeighborHashGrid.ex
 
 Takes no arguments. It prints the build and per-point query times and one worked `nearestNeighbor()`
-result. The neighbor graph is checked against a brute-force scan when built with
-`-DEBGEOMETRY_ENABLE_ASSERTIONS`.
+result. A sample of the neighbor graph is checked against the library's brute-force reference
+(`PointCloud::closestPointsBruteForce()`); the program prints the number of mismatches and exits with
+a nonzero status if there are any.

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Test suite for EBGeometry_PointAoSoA.hpp (PointAoSoA): the metadata-carrying wrapper around
-// PointSoAT. Checks both that distance queries agree with a plain PointSoAT built from the same
-// positions (i.e. metadata genuinely doesn't affect the distance path) and that metadata is
+// Test suite for EBGeometry_PointAoSoA.hpp (PointAoSoA): the PointSoAT group that carries point ids.
+// Checks both that distance queries agree with a plain PointSoAT built from the same positions (i.e.
+// the ids genuinely don't affect the distance path) and that ids and the valid-point count are
 // retrieved correctly per lane, including for padded lanes.
 
 #include "EBGeometry.hpp"
@@ -23,7 +23,7 @@ namespace {
 constexpr size_t W = 4;
 
 template <class T>
-using AoSoA = PointAoSoA<T, short, W>;
+using AoSoA = PointAoSoA<T, W>;
 
 template <class T>
 using SoA = PointSoAT<T, W>;
@@ -43,8 +43,8 @@ fourPositions()
 }
 
 template <class T>
-std::vector<short>
-fourMetaData()
+std::vector<uint32_t>
+fourPointIds()
 {
   return {10, 11, 12, 13};
 }
@@ -74,47 +74,48 @@ TEMPLATE_TEST_CASE("PointAoSoA: getMinimumDistance/getMinimumDistance2 agree exa
   using T = TestType;
 
   const auto positions = fourPositions<T>();
-  const auto metaData  = fourMetaData<T>();
+  const auto pointIds  = fourPointIds<T>();
   REQUIRE(positions.size() == W);
-  REQUIRE(metaData.size() == W);
+  REQUIRE(pointIds.size() == W);
 
-  AoSoA<T> withMeta;
-  withMeta.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
+  AoSoA<T> withIds;
+  withIds.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
 
   SoA<T> positionOnly;
   positionOnly.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
   for (const auto& q : queryPoints<T>()) {
-    // Bit-for-bit: both walk the identical scalar loop over the identical positions, so metadata
+    // Bit-for-bit: both walk the identical scalar loop over the identical positions, so the ids
     // truly never enters the distance computation. Every distance query delegates straight through.
-    REQUIRE(withMeta.getMinimumDistance2(q) == positionOnly.getMinimumDistance2(q));
-    REQUIRE(withMeta.getMinimumDistance(q) == positionOnly.getMinimumDistance(q));
-    REQUIRE(withMeta.getMaximumDistance2(q) == positionOnly.getMaximumDistance2(q));
-    REQUIRE(withMeta.getMaximumDistance(q) == positionOnly.getMaximumDistance(q));
-    REQUIRE(withMeta.getDistances2(q) == positionOnly.getDistances2(q));
-    REQUIRE(withMeta.getDistances(q) == positionOnly.getDistances(q));
+    REQUIRE(withIds.getMinimumDistance2(q) == positionOnly.getMinimumDistance2(q));
+    REQUIRE(withIds.getMinimumDistance(q) == positionOnly.getMinimumDistance(q));
+    REQUIRE(withIds.getMaximumDistance2(q) == positionOnly.getMaximumDistance2(q));
+    REQUIRE(withIds.getMaximumDistance(q) == positionOnly.getMaximumDistance(q));
+    REQUIRE(withIds.getDistances2(q) == positionOnly.getDistances2(q));
+    REQUIRE(withIds.getDistances(q) == positionOnly.getDistances(q));
   }
 }
 
-TEMPLATE_TEST_CASE("PointAoSoA: getMetaData returns each lane's own metadata, and the padded "
-                   "point's metadata for padding lanes",
+TEMPLATE_TEST_CASE("PointAoSoA: getPointId returns each lane's own id, the padded point's id for padding "
+                   "lanes, and numValid() the real count",
                    "[PointAoSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   auto positions = fourPositions<T>();
-  auto metaData  = fourMetaData<T>();
+  auto pointIds  = fourPointIds<T>();
   positions.resize(2); // Pack only the first 2; lanes 2 and 3 get padded.
-  metaData.resize(2);
+  pointIds.resize(2);
 
   AoSoA<T> group;
-  group.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
+  group.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
 
-  REQUIRE(group.getMetaData(0) == short(10));
-  REQUIRE(group.getMetaData(1) == short(11));
-  REQUIRE(group.getMetaData(2) == short(11)); // Padded: repeats the last real point's metadata.
-  REQUIRE(group.getMetaData(3) == short(11));
+  REQUIRE(group.getPointId(0) == 10U);
+  REQUIRE(group.getPointId(1) == 11U);
+  REQUIRE(group.getPointId(2) == 11U); // Padded: repeats the last real point's id.
+  REQUIRE(group.getPointId(3) == 11U);
+  REQUIRE(group.numValid() == 2U);
 }
 
 TEMPLATE_TEST_CASE("PointAoSoA: getMinimumDistance/getMinimumDistance2 unaffected by padding when count < W",
@@ -124,12 +125,12 @@ TEMPLATE_TEST_CASE("PointAoSoA: getMinimumDistance/getMinimumDistance2 unaffecte
   using T = TestType;
 
   auto positions = fourPositions<T>();
-  auto metaData  = fourMetaData<T>();
+  auto pointIds  = fourPointIds<T>();
   positions.resize(2);
-  metaData.resize(2);
+  pointIds.resize(2);
 
   AoSoA<T> group;
-  group.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
+  group.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
 
   for (const auto& q : queryPoints<T>()) {
     T best2 = std::numeric_limits<T>::max();
@@ -150,10 +151,10 @@ TEMPLATE_TEST_CASE("PointAoSoA::computeBoundingVolume matches an AABB built dire
   using AABB = BoundingVolumes::AABBT<T>;
 
   const auto positions = fourPositions<T>();
-  const auto metaData  = fourMetaData<T>();
+  const auto pointIds  = fourPointIds<T>();
 
   AoSoA<T> group;
-  group.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
+  group.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
 
   const auto bv = group.template computeBoundingVolume<AABB>();
 
@@ -171,24 +172,24 @@ TEMPLATE_TEST_CASE("PointAoSoA: omitting W defaults to PointSoA::DefaultWidth<T>
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T                 = TestType;
-  using DefaultWidthAoSoA = PointAoSoA<T, short>;
+  using DefaultWidthAoSoA = PointAoSoA<T>;
 
-  static_assert(std::is_same_v<DefaultWidthAoSoA, PointAoSoA<T, short, PointSoA::DefaultWidth<T>()>>,
-                "PointAoSoA<T, Meta> (W omitted) must equal PointAoSoA<T, Meta, PointSoA::DefaultWidth<T>()>");
+  static_assert(std::is_same_v<DefaultWidthAoSoA, PointAoSoA<T, PointSoA::DefaultWidth<T>()>>,
+                "PointAoSoA<T> (W omitted) must equal PointAoSoA<T, PointSoA::DefaultWidth<T>()>");
 
   const size_t defaultWidth = PointSoA::DefaultWidth<T>();
 
   std::vector<Vec3T<T>> positions;
-  std::vector<short>    metaData;
+  std::vector<uint32_t> pointIds;
   positions.reserve(defaultWidth);
-  metaData.reserve(defaultWidth);
+  pointIds.reserve(defaultWidth);
   for (size_t i = 0; i < defaultWidth; i++) {
     positions.emplace_back(T(3.0) * T(i), T(0), T(0));
-    metaData.emplace_back(static_cast<short>(10 + i));
+    pointIds.emplace_back(static_cast<uint32_t>(10 + i));
   }
 
   DefaultWidthAoSoA group;
-  group.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
+  group.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
 
   for (const auto& q : queryPoints<T>()) {
     T best2 = std::numeric_limits<T>::max();
@@ -200,7 +201,7 @@ TEMPLATE_TEST_CASE("PointAoSoA: omitting W defaults to PointSoA::DefaultWidth<T>
   }
 
   for (size_t i = 0; i < defaultWidth; i++) {
-    REQUIRE(group.getMetaData(i) == static_cast<short>(10 + i));
+    REQUIRE(group.getPointId(i) == static_cast<uint32_t>(10 + i));
   }
 }
 
@@ -209,19 +210,19 @@ TEST_CASE("PointAoSoA::pack rejects a null array and a count outside [1, W]", "[
   using T = double;
 
   const Vec3T<T> point(T(0), T(0), T(0));
-  const short    meta = 0;
+  const uint32_t id = 0;
 
   REQUIRE(abortsWith(
     [&point] {
-      PointAoSoA<T, short, 4> group;
+      PointAoSoA<T, 4> group;
       group.pack(&point, nullptr, 1U);
     },
-    "PointAoSoA::pack: the position and metadata arrays must not be null"));
+    "PointAoSoA::pack: the position and point id arrays must not be null"));
 
   REQUIRE(abortsWith(
-    [&point, &meta] {
-      PointAoSoA<T, short, 4> group;
-      group.pack(&point, &meta, 5U);
+    [&point, &id] {
+      PointAoSoA<T, 4> group;
+      group.pack(&point, &id, 5U);
     },
     "PointAoSoA::pack: the point count must be between 1 and 4 (5)"));
 }
@@ -244,9 +245,9 @@ struct PointAoSoADistanceQuery
   }
 };
 
-// The metadata of lane i % W.
+// The point id of lane i % W.
 template <class T>
-struct PointAoSoAMetaDataQuery
+struct PointAoSoAPointIdQuery
 {
   AoSoA<T> m_group;
 
@@ -254,7 +255,7 @@ struct PointAoSoAMetaDataQuery
   int
   operator()(const int& a_i) const noexcept
   {
-    return static_cast<int>(m_group.getMetaData(static_cast<size_t>(a_i) % W));
+    return static_cast<int>(m_group.getPointId(static_cast<size_t>(a_i) % W));
   }
 };
 
@@ -269,10 +270,10 @@ TEMPLATE_TEST_CASE("PointAoSoA: device query surface matches the host", "[PointA
   }
 
   const auto positions = fourPositions<T>();
-  const auto metaData  = fourMetaData<T>();
+  const auto pointIds  = fourPointIds<T>();
 
   AoSoA<T> group;
-  group.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
+  group.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
 
   // The points lie at x = 0, 3, 6, 9 on the x-axis; the grid surrounds all of them, so each is the
   // closest one for some queries.
@@ -287,14 +288,14 @@ TEMPLATE_TEST_CASE("PointAoSoA: device query surface matches the host", "[PointA
     lanes.push_back(i);
   }
 
-  const auto deviceMeta = evaluateOnDevice<int>(PointAoSoAMetaDataQuery<T>{group}, lanes);
-  const auto hostMeta   = evaluateOnHost<int>(PointAoSoAMetaDataQuery<T>{group}, lanes);
+  const auto deviceIds = evaluateOnDevice<int>(PointAoSoAPointIdQuery<T>{group}, lanes);
+  const auto hostIds   = evaluateOnHost<int>(PointAoSoAPointIdQuery<T>{group}, lanes);
 
-  REQUIRE(deviceMeta.size() == hostMeta.size());
+  REQUIRE(deviceIds.size() == hostIds.size());
 
-  for (size_t i = 0; i < hostMeta.size(); i++) {
+  for (size_t i = 0; i < hostIds.size(); i++) {
     INFO("query " << i);
-    REQUIRE(hostMeta[i] == int(metaData[i % W]));
-    REQUIRE(deviceMeta[i] == hostMeta[i]);
+    REQUIRE(hostIds[i] == int(pointIds[i % W]));
+    REQUIRE(deviceIds[i] == hostIds[i]);
   }
 }
