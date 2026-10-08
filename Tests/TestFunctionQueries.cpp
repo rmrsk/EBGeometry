@@ -299,7 +299,7 @@ TEMPLATE_TEST_CASE("normal: the finite-difference normal of a sphere points away
 
   // Central differences are off by O(delta^2) from the curvature, about 1e-7 here, and in float the
   // cancellation in (hi - lo) / (2 delta) costs about eps / delta.
-  const T tolerance = std::is_same_v<T, float> ? T(1.0e-3) : T(1.0e-5);
+  const double tolerance = std::is_same_v<T, float> ? 1.0e-3 : 1.0e-5;
 
   for (const Vec3& x : {Vec3(T(1.5), T(0.2), T(-0.3)), Vec3(T(-0.4), T(-1.9), T(0.6)), Vec3(T(0.3), T(-0.4), T(2.0))}) {
     const Vec3 expected = (x - center) / (x - center).length();
