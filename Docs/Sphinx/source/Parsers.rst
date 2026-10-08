@@ -21,8 +21,9 @@ The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`.
 Quickstart
 ----------
 
-Every ``readInto*`` function in ``EBGeometry::Parser`` takes an explicit
-`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__, in addition to a single file name or a
+Every ``readInto*`` function in ``EBGeometry::Parser`` that builds a mesh or a distance function
+takes an explicit `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__, in addition to a single
+file name or a
 ``std::vector<std::string>`` of file names (with a vector-per-file result for the latter): every
 DCEL mesh it builds reserves its vertex/edge/face storage from that Pool. The Pool is
 caller-owned and caller-managed -- EBGeometry never constructs one for you -- so it must outlive
@@ -61,8 +62,9 @@ further details.
    and usually provides a nice code speedup over ``readIntoMeshSDF``.
 
 Each ``readInto*`` function is named after what it returns, and they all take their arguments in
-the same order: the file name (or names), the ``Pool``, the BVH construction method and leaf-size
-settings where there is a BVH, and last the defect policy (see :ref:`Sec:OnDefect`).
+the same order: the file name (or names), the ``Pool`` where something is built in one, the BVH
+construction method and leaf-size settings where there is a BVH, and last the defect policy where a
+mesh is built (see :ref:`Sec:OnDefect`).
 
 .. _Sec:PolygonSoup:
 
@@ -123,10 +125,10 @@ and a mesh with holes gives wrong signs without any other symptom. If a file is 
 unsupported extension, is truncated (it ends before the vertex and face counts in its header say
 it should, or an ASCII STL has no ``endsolid``), or is corrupted (a line or header count that
 cannot be parsed, a face that refers to a vertex that does not exist, a coordinate that is not a
-finite number, faces that cannot be joined into a half-edge mesh or that fold back onto each other),
-the reader throws ``EBGeometry::Parser::ParseError``. Building a mesh (every ``readInto*``
-function that returns one, and ``PolygonSoup::convertToDCEL``) also throws for a file that contains
-no faces. A
+finite number), the reader throws ``EBGeometry::Parser::ParseError``. Building a mesh (every
+``readInto*`` function that builds one, and ``PolygonSoup::convertToDCEL`` and
+``convertToTriangles``) also throws for a file that contains no faces, or whose faces cannot be
+joined into a half-edge mesh or fold back onto each other (see :ref:`Sec:OnDefect`). A
 `ParseError <doxygen/html/classEBGeometry_1_1Parser_1_1ParseError.html>`__ is a
 ``std::runtime_error`` that also reports the file, the line where the problem was found (0 for a
 binary file, or when there is no meaningful line), and the reason:
@@ -204,7 +206,8 @@ To read one or multiple files and turn it into DCEL meshes, use
 multiple files at once, which reserves every mesh's storage from the same ``pool``), returning a
 ``DCEL::MeshT<T>`` by value (or a ``std::vector`` of them). The mesh resolves its storage
 through ``pool``, so ``pool`` must outlive it and every copy of it. Face ``i`` of the mesh is the
-file's ``i``-th face, not counting zero-area faces, which the readers remove (see below); that
+file's ``i``-th face, not counting degenerate faces, which the readers remove (see
+:ref:`Sec:PolygonSoup`); that
 index is the face id the mesh SDFs report from ``getClosestFace()`` (see :ref:`Sec:FaceIds`), and
 the index of the face's properties in the soup ``readIntoPolygonSoup`` returns for the same file.
 Note that this will only expose the DCEL mesh, but not include any signed distance functionality.
@@ -277,7 +280,8 @@ The triangles are plain values, and the intermediate DCEL mesh lives in a ``Pool
 call, so no ``Pool`` of yours is involved. ``readIntoTriMeshSDF`` works the same way: only the
 returned ``TriMeshSDF``'s BVH is reserved from the ``pool`` you pass. Use this
 when some other part of your code wants raw triangle values (for example, to build a custom
-acceleration structure) rather than any of EBGeometry's own SDF wrappers.
+acceleration structure) rather than any of EBGeometry's own SDF wrappers. For a soup already in
+hand, ``soup.convertToTriangles()`` does the same.
 
 .. note::
 
