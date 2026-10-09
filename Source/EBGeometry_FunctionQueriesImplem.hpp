@@ -116,7 +116,7 @@ approximateBoundingVolumeOctree(const F&           a_function,
                      "approximateBoundingVolumeOctree: the depth %u exceeds MaxOctreeDepth (%u)",
                      a_maxTreeDepth,
                      MaxOctreeDepth);
-  EBGEOMETRY_EXPECT(a_safety >= T(0));
+  EBGEOMETRY_REQUIRE(a_safety >= T(0), "approximateBoundingVolumeOctree: the safety factor must be non-negative");
 
   const Vec3 size = a_initialHighCorner - a_initialLowCorner;
 
@@ -152,8 +152,9 @@ approximateBoundingVolumeOctree(const F&           a_function,
     return BoundingVolumes::AABBT<T>(-Vec3::max(), Vec3::max());
   }
 
-  // Depth-first: each pop pushes at most eight children, so the stack never holds more than seven
-  // cells per level below the one being expanded, plus that one.
+  // Depth-first: when a cell at level k is expanded, each level from 1 to k has left at most seven
+  // siblings waiting on the stack, and the expansion pushes at most eight children. Only cells above
+  // the deepest level are expanded, so the peak is 7 (D - 1) + 8 = 7 D + 1 for D = MaxOctreeDepth.
   constexpr unsigned int StackSize = 7 * MaxOctreeDepth + 1;
 
   Cell         stack[StackSize];

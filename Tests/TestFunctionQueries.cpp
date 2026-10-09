@@ -272,7 +272,8 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: a shape, an ImplicitFunctio
   }
 }
 
-TEST_CASE("approximateBoundingVolumeOctree: a depth beyond MaxOctreeDepth is rejected", "[FunctionQueries][death]")
+TEST_CASE("approximateBoundingVolumeOctree: a depth beyond MaxOctreeDepth, or a negative safety factor, is rejected",
+          "[FunctionQueries][death]")
 {
   using T = double;
 
@@ -283,6 +284,14 @@ TEST_CASE("approximateBoundingVolumeOctree: a depth beyond MaxOctreeDepth is rej
       (void)approximateBoundingVolumeOctree(sphere, -Vec3T<T>::ones(), Vec3T<T>::ones(), MaxOctreeDepth + 1, T(0));
     },
     "approximateBoundingVolumeOctree: the depth 25 exceeds MaxOctreeDepth (24)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+
+      (void)approximateBoundingVolumeOctree(sphere, -Vec3T<T>::ones(), Vec3T<T>::ones(), 2U, T(-0.5));
+    },
+    "approximateBoundingVolumeOctree: the safety factor must be non-negative"));
 }
 
 TEMPLATE_TEST_CASE("normal: the finite-difference normal of a sphere points away from its center",
