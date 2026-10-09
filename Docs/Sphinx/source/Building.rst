@@ -319,9 +319,11 @@ GPU builds (CUDA and HIP)
 
 A translation unit compiled by nvcc (CUDA) or by hipcc or clang in HIP mode sees EBGeometry's
 ``EBGEOMETRY_HOST_DEVICE`` functions as ``__host__ __device__``, so the analytic shapes, the mesh
-signed distance functions, the BVH unions and ``PointCloudBVH``'s queries can be called from a kernel.
-The backend is detected from the compiler (``__CUDACC__`` or ``__HIPCC__``); there is nothing to
-define. The only requirement is C++17. No other flag is needed -- in particular not nvcc's
+signed distance functions, the BVH unions, the queries of ``PointCloudBVH`` and
+``PointCloudHashGrid``, and ``approximateBoundingVolumeOctree`` and ``normal`` (given a
+device-callable function) can be called from a kernel. The backend is detected from the compiler
+(``__CUDACC__`` or ``__HIPCC__``); there is nothing to define. Any other compiler, a SYCL or OpenACC
+one included, sees host code only. The only requirement is C++17. No other flag is needed -- in particular not nvcc's
 ``--expt-relaxed-constexpr``, which the library's device code is written to avoid (see
 :ref:`Sec:WritingDeviceCode`).
 
