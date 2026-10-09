@@ -573,7 +573,30 @@ Findings from item 17:
     host evaluator; `ImplicitFunction` and the virtual transform/CSG layer retired in the same change,
     with their test expectations carried over; a shape trait checked with `static_assert`.
 26. Close the checkpoint in PORTING.md and move the tape design inputs (Appendix A) into the tape
-    design document. This file is then deleted.
+    design document, and item 27 below into PORTING.md. This file is then deleted.
+
+### After the tape — further device backends
+
+27. **More device backends**, decided while item 21 removed the fictional SYCL and OpenACC
+    branches. Each is a real backend or none: a memory resource, device-pass detection, the GPU test
+    harness running on it, and a CI lane, as CUDA and HIP have now. Deferred until the tape exists,
+    since its interpreter becomes the main device code; the tape keeps to the subset that makes them
+    possible (Appendix A, "Backend-neutral device code").
+    - **SYCL, first.** AMReX's third backend (Intel GPUs). Device code needs no decoration, so the
+      macros stay empty. Work: a `sycl::queue`-backed memory resource (`malloc_device`/
+      `malloc_shared`, `queue.memcpy` for `Pool::mirror`); device-pass detection through
+      `__SYCL_DEVICE_ONLY__` for the device assertion path; the test harness launching through
+      `parallel_for`; a CI lane with oneAPI DPC++, whose CPU device runs the kernels without a GPU.
+    - **OpenMP offload, if a user needs it.** `begin/end declare target` around the device-callable
+      code (OpenMP 5.x also marks functions used in target regions implicitly); a memory resource on
+      `omp_target_alloc`/`omp_target_memcpy`; device-pass detection, which OpenMP does not
+      standardise (compiler macros or `declare variant`); the harness as `target teams distribute
+      parallel for`; a CI lane with an offload-capable compiler. No current user (AMReX uses CUDA,
+      HIP and SYCL), and compiler support is uneven.
+    - **OpenACC, declined.** Every device function and template instantiation needs an `acc routine`
+      directive, C++ templates and classes are where compiler support is weakest (nvc++ is the only
+      solid one), and its users are mostly Fortran and C codes. An nvc++ OpenACC application can
+      already call the CUDA path.
 
 The MINOR and NIT items not named above are folded into whichever PR touches the same file; they
 are listed per area in section 6.
@@ -798,6 +821,12 @@ depth, or use one framed stack per thread.
 
 Note that n-ary smooth operations keep the "two extreme values" semantics, which differs from a fold
 of binary smooth-min.
+
+**Backend-neutral device code.** The interpreter, and everything it calls, stays within what SYCL
+(and OpenMP offload) accept in device code, as the rest of the device code already does: no
+recursion (explicit stacks, as BVH traversal and the octree walk use), no function pointers or
+virtual calls, no exceptions, and only trivially copyable state passed to a kernel. Then adding a
+backend after the tape (item 27) needs no change to the interpreter.
 
 **Point clouds as a leaf.** A union of N equal spheres, or unsigned distance to a sample set, is
 `sqrt(closestPoint(q).distanceSquared) − r`, much cheaper than a BVH union over sphere primitives.
