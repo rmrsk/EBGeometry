@@ -242,11 +242,11 @@ MeshT<T>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T>::reconcile(const DCEL::VertexNormalWeight a_weight) noexcept
+MeshT<T>::reconcile() noexcept
 {
   this->reconcileFaces();
   this->reconcileEdges();
-  this->reconcileVertices(a_weight);
+  this->reconcileVertices();
 }
 
 template <class T>
@@ -428,7 +428,7 @@ MeshT<T>::reconcileEdges() noexcept
 template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept
+MeshT<T>::reconcileVertices() noexcept
 {
   // Transient (not stored) adjacency: for each vertex, every face touching it, found by walking
   // each face's own boundary loop (nextEdge only -- no pair edge needed, so this works even on a
@@ -460,25 +460,7 @@ MeshT<T>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept
       continue;
     }
 
-    switch (a_weight) {
-    case DCEL::VertexNormalWeight::None: {
-      v.computeVertexNormalAverage(faceIndices, *this);
-
-      break;
-    }
-    case DCEL::VertexNormalWeight::Angle: {
-      v.computeVertexNormalAngleWeighted(vertexIndex, faceIndices, *this);
-
-      break;
-    }
-    default: {
-      EBGEOMETRY_REQUIRE(false,
-                         "DCEL::MeshT::reconcileVertices: unknown VertexNormalWeight enumerator (%d)",
-                         static_cast<int>(a_weight));
-
-      break;
-    }
-    }
+    v.computeVertexNormalAngleWeighted(vertexIndex, faceIndices, *this);
   }
 }
 

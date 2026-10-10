@@ -128,25 +128,26 @@ kernel and compares against the host:
 |---|---|---|
 | Memory foundation | `MemoryResource`, `Pool`, `PODVector` | #130 |
 | Vectors | `EBGeometry_Vec.hpp` | #131 |
-| Bounding volumes | `EBGeometry_BoundingVolumes.hpp` (`AABBT`, `SphereT`) | #132, #133 |
+| Bounding volumes | `EBGeometry_BoundingVolumes.hpp` (`AABBT`; `SphereT` retired in item 21) | #132, #133 |
 | SoA/AoSoA leaves | `PointSoA`, `PointAoSoA`, `TriangleSoA`, `TriangleAoSoA` | #134 |
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
 | BVH traversal + storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`) | this branch |
 | Point-cloud queries | `PointCloudBVH` (holds a `PackedBVH`) and `PointCloudHashGrid` (pool-backed CSR grid); both builds stay host-side. One `PointCloud::Hit` with a `uint32` cloud index, a shared `PointCloud::KBest`, device-callable brute-force references | roadmap step 0b; item 20 |
 | Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF` (plain value types; no longer `SignedDistanceFunction`s; `getClosestFace` is device-callable and returns a face id) | roadmap step 4a |
 | Analytic shapes | The twelve classes in `EBGeometry_AnalyticDistanceFunctions.hpp` (plain value types; no longer `SignedDistanceFunction`s; constructors stay host-only) | roadmap step 4b, first PR |
-| BVH unions | `BVHUnionIF`, `BVHSmoothUnionIF` over one primitive type (plain value types; no longer `ImplicitFunction`s); `SmoothMinOp`/`SmoothMaxOp`/`ExpMinOp`; `PoolLocation` relocation of pool-resident primitives | roadmap step 4b, second PR |
+| BVH unions | `BVHUnion`, `BVHSmoothUnion` over one primitive type (plain value types; no longer `ImplicitFunction`s; the `IF` suffix and the factory functions dropped in item 21); `SmoothMinOp`/`SmoothMaxOp`/`ExpMinOp`; `PoolLocation` relocation of pool-resident primitives | roadmap step 4b, second PR |
+| Function queries | `approximateBoundingVolumeOctree` (an explicit-stack subdivision with no stored tree, replacing `Octree::Node`) and `normal` (replacing `SignedDistanceFunction::normal`), in `EBGeometry_FunctionQueries.hpp`; device-callable when the function is | item 21 |
 
 ## What is not
 
 | Component | Blocker |
 |---|---|
 | `TreeBVH` | Host-only **by design** — it is the builder, and static geometry builds on the host. Not a gap. |
-| `Triangle<T>` (AoS), `Octree` | Not started |
+| `Triangle<T>` (AoS) | Not started |
 | `SFC`, point-cloud builds | Not started; the point-cloud BVH and hash grid additionally have to *build* on device |
-| `ImplicitFunction`, `CSG`, `Transform` | Still the original virtual-`value()` design, now fed by user-written implicit functions only; this is where the tape returns. `approximateBoundingVolumeOctree` is a host-only free function taking any shape, mesh SDF, implicit function or callable |
+| `ImplicitFunction`, `CSG`, `Transform` | Still the original virtual-`value()` design, now fed by user-written implicit functions only; this is where the tape returns |
 | Unions of different primitive types | Need runtime dispatch, which is the tape. The `CSGUnion` example (a mesh plus a sphere) stays disabled until then |
-| Parsers (`OBJ`/`PLY`/`STL`/`VTK`/`Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended |
+| Parsers (`PolygonSoup`, `Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended. `Random` and `SimpleTimer` serve the examples and are not included by `EBGeometry.hpp` |
 
 ## Roadmap
 
@@ -167,8 +168,8 @@ started.** Actual sequence:
 > **The pre-tape audit.** The state reached once every existing class is ported is a checkpoint.
 > Before the tape is started, the whole codebase is audited -- every header, test, example,
 > integration and document, not only what the port touched -- and whatever it finds is fixed
-> before step 5 begins. Items already noted for it: the `IF` suffix on `BVHUnionIF` and
-> `BVHSmoothUnionIF`, which are no longer `ImplicitFunction`s; the `Integrations/` examples still
+> before step 5 begins. Items already noted for it: the `IF` suffix on `BVHUnion` and
+> `BVHSmoothUnion`, which are no longer `ImplicitFunction`s; the `Integrations/` examples still
 > written against the virtual CSG interface; the `CSGUnion` example's disabled code; and
 > `SignedDistanceFunction<T>`, which no built-in class implements any more.
 >
@@ -179,7 +180,7 @@ started.** Actual sequence:
 > **0a** (a CUDA/HIP toolkit on the development machine) is not a sequence step: it is still open
 > and should be closed as early as possible, since every step after it adds device code.
 
-One consequence of porting step 4 before the tape: `BVHUnionIF`/`BVHSmoothUnionIF` came back in
+One consequence of porting step 4 before the tape: `BVHUnion`/`BVHSmoothUnion` came back in
 step 4 restricted to one primitive type. A union over primitives of *different* concrete types has
 no way to pick each primitive's formula on a device without some form of runtime dispatch -- which
 is what the tape is -- so until step 5 there is no such union at all; homogeneous ones (every
@@ -242,7 +243,7 @@ mechanism is to be built in the meantime, since it would be a second tape.
    value, full stop, and an indexed BVH is just one whose primitive type is `uint32_t`.
 
    Two things did **not** land with it. The mesh SDF wrappers are step 4 below rather than part of
-   this step. And `BVHUnionIF`/`BVHSmoothUnionIF` had to be compiled out, because they store
+   this step. And `BVHUnion`/`BVHSmoothUnion` had to be compiled out, because they store
    polymorphic primitives as `shared_ptr`, which a by-value primitive array cannot hold — see the
    "What is not" table and step 4.
 
@@ -272,7 +273,7 @@ mechanism is to be built in the meantime, since it would be a second tape.
    **Do this in two passes.** First the mesh distance functions (`FlatMeshSDF`, then `TriMeshSDF`,
    then `MeshSDF` — ascending by number of moving parts), because their primitives and BVH are
    already ported and `FlatMeshSDF` yields a device-side brute-force oracle to validate the rest
-   against. Then the analytic layer proper, which is where `BVHUnionIF`/`BVHSmoothUnionIF` come back
+   against. Then the analytic layer proper, which is where `BVHUnion`/`BVHSmoothUnion` come back
    and where re-enabling `EBGEOMETRY_ENABLE_BVH_CSG_UNION` is the acceptance test.
 
    **The BVH side of this is already in place.** Under the tape a union's primitive is a clause id,
@@ -304,7 +305,7 @@ mechanism is to be built in the meantime, since it would be a second tape.
    function taking anything with a `signedDistance()`, a `value()` or a call operator.
 
    **The BVH unions, restricted to one primitive type (step 4b, second PR, done).** A
-   `BVHUnionIF<T, P, K>` is a `PackedBVH<T, P, K>` over value-type primitives of one type (`SphereSDF`,
+   `BVHUnion<T, P, K>` is a `PackedBVH<T, P, K>` over value-type primitives of one type (`SphereSDF`,
    `BoxSDF`, `TriMeshSDF`, another union, ...), trivially copyable and device-callable, with no
    `ImplicitFunction` base. The smooth-min/max blends became copyable function objects
    (`SmoothMinOp` and friends; `SmoothMin<T>` is now an instance of one), and
@@ -322,11 +323,12 @@ mechanism is to be built in the meantime, since it would be a second tape.
    mesh SDFs and the analytic layer shared one scheme, but only the tape consumes it, and the tape is
    now the last step; defining it there avoids designing it before its one consumer exists.
 
-   **`SignedDistanceFunction<T>` stays**, as does `ImplicitFunction<T>`: they are the interface the
-   transforms and CSG combinators (and user-written implicit functions) still use. The first attempt deleted `SignedDistanceFunction<T>` outright
-   and collapsed everything onto `ImplicitFunction<T, Op>` + `bool m_sdf`, which was a user-visible
-   API break with no GPU motivation of its own. Revisit that as a deliberate change on its own terms,
-   not as a side effect of this step.
+   **`ImplicitFunction<T>` stays**: it is the interface the transforms and CSG combinators (and
+   user-written implicit functions) still use. The first attempt deleted `SignedDistanceFunction<T>`
+   outright and collapsed everything onto `ImplicitFunction<T, Op>` + `bool m_sdf`, which was a
+   user-visible API break with no GPU motivation of its own. It was revisited as a deliberate change
+   on its own terms: the audit's D2 retired `SignedDistanceFunction<T>` (no built-in class
+   implemented it), done in item 21, with its `normal()` replaced by a free `normal()`.
 5. **The tape.** The linear-SSA clause list and interpreter that replaces virtual dispatch, built on
    `Pool`/`PODVector` from the start rather than on `std::vector` with an upload path bolted on. It
    depends on step 4 for its opcodes and on step 2 for the BVH-union opcodes, which reference the

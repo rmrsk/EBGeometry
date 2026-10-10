@@ -15,7 +15,6 @@
 
 using namespace EBGeometry;
 using BoundingVolumes::AABBT;
-using BoundingVolumes::SphereT;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
@@ -65,41 +64,6 @@ TEMPLATE_TEST_CASE("AABBT: pointer constructor matches the std::vector construct
 
   REQUIRE(fromPointer.getLowCorner() == fromVector.getLowCorner());
   REQUIRE(fromPointer.getHighCorner() == fromVector.getHighCorner());
-}
-
-TEST_CASE("SphereT: the point-list constructor and define() reject an empty list and an unknown algorithm",
-          "[SphereT][death]")
-{
-  using T = double;
-
-  const std::vector<Vec3T<T>> pts     = {Vec3T<T>(-2, 0, 0), Vec3T<T>(2, 0, 0)};
-  const auto                  unknown = static_cast<SphereT<T>::BuildAlgorithm>(7);
-
-  // EBGEOMETRY_REQUIREs, so they abort in every build. Both used to leave the sphere unset: an
-  // unknown algorithm only printed a message, and an empty list was checked only with assertions on.
-  REQUIRE(abortsWith(
-    [] {
-      const SphereT<T> sphere(std::vector<Vec3T<T>>{});
-
-      (void)sphere;
-    },
-    "SphereT: cannot enclose an empty list of points"));
-
-  REQUIRE(abortsWith(
-    [&pts, unknown] {
-      const SphereT<T> sphere(pts, unknown);
-
-      (void)sphere;
-    },
-    "SphereT: unknown BuildAlgorithm value (7)"));
-
-  REQUIRE(abortsWith(
-    [&pts, unknown] {
-      SphereT<T> sphere;
-
-      sphere.define(pts, unknown);
-    },
-    "SphereT: unknown BuildAlgorithm value (7)"));
 }
 
 TEST_CASE("AABBT: the list constructors reject an empty list", "[AABBT][death]")
@@ -314,115 +278,11 @@ TEMPLATE_TEST_CASE("AABBT::merged: folding a list matches the list constructor f
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SphereT
+// Device: the AABBT surface is callable from a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("SphereT: construction", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  const Vec3T<T> c(1, 2, 3);
-  SphereT<T>     s(c, T(5.0));
-
-  REQUIRE(s.getRadius() == T(5.0));
-  REQUIRE(s.getCentroid()[0] == T(1.0));
-  REQUIRE(s.getCentroid()[1] == T(2.0));
-  REQUIRE(s.getCentroid()[2] == T(3.0));
-}
-
-TEMPLATE_TEST_CASE("SphereT: getDistance/getDistance2 (zero inside, radial outside)",
-                   "[SphereT]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  const SphereT<T> s(Vec3T<T>(0, 0, 0), T(2.0));
-
-  // Interior and surface points: unsigned distance is zero.
-  REQUIRE_THAT(s.getDistance(Vec3T<T>(0, 0, 0)), WithinAbs(0.0, tightMargin<T>()));
-  REQUIRE_THAT(s.getDistance2(Vec3T<T>(1, 0, 0)), WithinAbs(0.0, tightMargin<T>()));
-  REQUIRE_THAT(s.getDistance(Vec3T<T>(2, 0, 0)), WithinAbs(0.0, tightMargin<T>()));
-
-  // Exterior points: distance is |x - center| - radius, and getDistance2 == getDistance()^2.
-  for (const auto& p : {Vec3T<T>(5, 0, 0), Vec3T<T>(0, -4, 0), Vec3T<T>(3, 4, 0)}) {
-    const T d = s.getDistance(p);
-    REQUIRE_THAT(d, WithinRel((p - s.getCentroid()).length() - T(2.0)));
-    REQUIRE_THAT(s.getDistance2(p), withinAbsT(d * d, looseMargin<T>()));
-  }
-}
-
-TEMPLATE_TEST_CASE("SphereT: construction from point cloud (Ritter)", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  const std::vector<Vec3T<T>> pts = {Vec3T<T>(-2, 0, 0), Vec3T<T>(2, 0, 0), Vec3T<T>(0, 2, 0), Vec3T<T>(0, -2, 0)};
-  SphereT<T>                  s(pts); // uses Ritter algorithm by default
-  // Ritter's algorithm is not guaranteed tight, but must enclose all points
-  const T relativeMargin = T(1000) * std::numeric_limits<T>::epsilon();
-  for (const auto& p : pts) {
-    const T dist = (p - s.getCentroid()).length();
-    REQUIRE(dist <= s.getRadius() + relativeMargin * s.getRadius());
-  }
-}
-
-TEMPLATE_TEST_CASE("SphereT: pointer constructor matches the std::vector constructor",
-                   "[SphereT]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  const std::vector<Vec3T<T>> pts = {Vec3T<T>(-2, 0, 0), Vec3T<T>(2, 0, 0), Vec3T<T>(0, 2, 0), Vec3T<T>(0, -2, 0)};
-  const SphereT<T>            fromVector(pts);
-  const SphereT<T>            fromPointer(pts.data(), pts.size());
-
-  REQUIRE(fromPointer.getCentroid() == fromVector.getCentroid());
-  REQUIRE(fromPointer.getRadius() == fromVector.getRadius());
-}
-
-TEMPLATE_TEST_CASE("SphereT: intersects", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  const SphereT<T> a(Vec3T<T>(0, 0, 0), T(1.0));
-  const SphereT<T> b(Vec3T<T>(1.5, 0, 0), T(1.0)); // overlap
-  const SphereT<T> c(Vec3T<T>(5, 0, 0), T(1.0));   // no overlap
-
-  REQUIRE(a.intersects(b));
-  REQUIRE(!a.intersects(c));
-}
-
-TEMPLATE_TEST_CASE("SphereT: overlapping volume (concentric)", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  // Identical spheres: overlap = full volume = 4/3 π r³
-  const SphereT<T> a(Vec3T<T>(0, 0, 0), T(1.0));
-  constexpr T      pi    = T(3.14159265358979323846);
-  const T          exact = (T(4.0) / T(3.0)) * pi;
-  REQUIRE_THAT(a.getOverlappingVolume(a), WithinRel(exact, T(1.0e-4)));
-
-  // Non-overlapping: volume = 0
-  const SphereT<T> b(Vec3T<T>(10, 0, 0), T(1.0));
-  REQUIRE_THAT(a.getOverlappingVolume(b), WithinAbs(0.0, tightMargin<T>()));
-}
-
-TEMPLATE_TEST_CASE("SphereT: volume and area", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  constexpr T      pi = T(3.14159265358979323846);
-  const SphereT<T> s(Vec3T<T>(0, 0, 0), T(2.0));
-
-  REQUIRE_THAT(s.getVolume(), WithinRel((T(4.0) / T(3.0)) * pi * T(8.0), T(1.0e-4)));
-  REQUIRE_THAT(s.getArea(), WithinRel(T(4.0) * pi * T(4.0), T(1.0e-4)));
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Device: the AABBT / SphereT surface is callable from a kernel and matches the host
-// ─────────────────────────────────────────────────────────────────────────────
-
-// The AABBT/SphereT operations checked on the device. Each is evaluated for a query point p against
-// a fixed box and sphere, or on a box/sphere built around p.
+// The AABBT operations checked on the device. Each is evaluated for a query point p against a fixed
+// box, or on a box built around p.
 enum BoundingVolumeOp : int
 {
   BoxDistance,
@@ -431,29 +291,24 @@ enum BoundingVolumeOp : int
   BoxVolume,
   BoxArea,
   BoxCentroid,
-  SphereDistance,
-  SphereVolume,
-  SphereRadius,
   NumBoundingVolumeOps
 };
 
-// One AABBT/SphereT operation for the query point p.
+// One AABBT operation for the query point p.
 template <class T>
 struct BoundingVolumeQuery
 {
-  AABBT<T>   m_box;
-  SphereT<T> m_sphere;
-  int        m_op;
+  AABBT<T> m_box;
+  int      m_op;
 
   EBGEOMETRY_HOST_DEVICE
   T
   operator()(const Vec3T<T>& a_p) const noexcept
   {
     // A box from p - 0.4 to p + 0.8 (so its centroid is not p), overlapping m_box for some queries
-    // and not for others, and a sphere around p whose radius varies with p.
-    const Vec3T<T>   offset(T(0.4), T(0.4), T(0.4));
-    const AABBT<T>   other(a_p - offset, a_p + offset * T(2.0));
-    const SphereT<T> sphere(a_p, T(0.1) + a_p.length());
+    // and not for others.
+    const Vec3T<T> offset(T(0.4), T(0.4), T(0.4));
+    const AABBT<T> other(a_p - offset, a_p + offset * T(2.0));
 
     switch (m_op) {
     case BoxDistance:
@@ -466,21 +321,13 @@ struct BoundingVolumeQuery
       return other.getVolume();
     case BoxArea:
       return other.getArea();
-    case BoxCentroid:
-      return other.getCentroid().length();
-    case SphereDistance:
-      return m_sphere.getDistance(a_p);
-    case SphereVolume:
-      return sphere.getVolume();
     default:
-      return sphere.getRadius();
+      return other.getCentroid().length();
     }
   }
 };
 
-TEMPLATE_TEST_CASE("AABBT/SphereT: device query surface matches the host",
-                   "[AABBT][SphereT][gpu]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("AABBT: device query surface matches the host", "[AABBT][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -490,14 +337,13 @@ TEMPLATE_TEST_CASE("AABBT/SphereT: device query surface matches the host",
     SKIP("no GPU device available");
   }
 
-  const AABBT<T>   box(Vec3T<T>(T(0.0), T(0.0), T(0.0)), Vec3T<T>(T(1.0), T(1.0), T(1.0)));
-  const SphereT<T> sphere(Vec3T<T>(T(0.5), T(0.5), T(0.5)), T(0.5));
+  const AABBT<T> box(Vec3T<T>(T(0.0), T(0.0), T(0.0)), Vec3T<T>(T(1.0), T(1.0), T(1.0)));
 
-  // Points inside, outside, and near both volumes.
+  // Points inside, outside, and near the box.
   const auto points = queryGrid<T>(Vec3T<T>(T(-1), T(-1), T(-1)), Vec3T<T>(T(2), T(2), T(2)), 10);
 
   for (int op = 0; op < NumBoundingVolumeOps; op++) {
-    const BoundingVolumeQuery<T> query{box, sphere, op};
+    const BoundingVolumeQuery<T> query{box, op};
 
     INFO("operation " << op);
     requireSameResults(evaluateOnDevice<T>(query, points), evaluateOnHost<T>(query, points));

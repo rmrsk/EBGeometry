@@ -216,10 +216,9 @@ Test coverage
        device-accessible pool, a device-only view used on the host), with a fake memory resource in
        place of a GPU.
    * - ``TestBoundingVolumes``
-     - :cpp:class:`AABBT` and :cpp:class:`SphereT`: construction from
-       corners and point clouds, volume, surface area, point distance,
-       intersection predicate, overlapping volume; ``AABBT::merged``, the allocation-free union,
-       with the default (empty) box as its identity.
+     - :cpp:class:`AABBT`: construction from corners and point clouds, volume, surface area, point
+       distance, intersection predicate, overlapping volume; ``AABBT::merged``, the allocation-free
+       union, with the default (empty) box as its identity; and the same queries on a device.
    * - ``TestAnalyticSDF``
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
        :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances; every
@@ -297,7 +296,7 @@ Test coverage
        primitives, including far from the blend region;
        sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`;
        :cpp:class:`FiniteRepetitionIF` tiling and boundary clamping. The BVH-accelerated
-       :cpp:class:`BVHUnionIF`/:cpp:class:`BVHSmoothUnionIF` over spheres (against the virtual
+       :cpp:class:`BVHUnion`/:cpp:class:`BVHSmoothUnion` over spheres (against the virtual
        unions and a brute-force scan, for every build strategy and blend, and with each method's
        leaf-size setting) and over translated
        ``TriMeshSDF`` objects, including a union of unions; host-mirror and deep copies of a mesh
@@ -312,11 +311,12 @@ Test coverage
        expected value. The wrapped functions are analytic shapes presented as
        ``ImplicitFunction`` objects by the test-only helper :file:`Tests/TestShapeIF.hpp`, since the
        shapes themselves are not ``ImplicitFunction`` objects.
-   * - ``TestOctree``
-     - :cpp:class:`Octree::Node`: depth-first/breadth-first construction, traversal pruning and
-       custom sort order; :cpp:func:`approximateBoundingVolumeOctree` correctness (tightening
-       bound with depth, degenerate/non-intersecting input fallback), and agreement between the
-       free function called with a shape or a lambda and the ``ImplicitFunction`` member.
+   * - ``TestFunctionQueries``
+     - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
+       a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
+       empty, inverted or missed initial box, a depth beyond ``MaxOctreeDepth`` rejected, and the
+       same box from a shape, an ``ImplicitFunction`` (free function and member) and a lambda;
+       :cpp:func:`normal` against a sphere's exact normal; and both on a device.
    * - ``TestPolygon2D``
      - :cpp:class:`DCEL::FaceT` point-in-face containment: winding-number/crossing-number/subtended-angle
        algorithms, agreement between them on convex and concave (notched) polygons, and on a

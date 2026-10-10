@@ -15,8 +15,8 @@ components). A handful of design choices recur throughout the implementation:
 * **Plain value types for distance fields, a common interface for composition.** The analytic
   shapes and the surface-mesh distance fields are plain, trivially copyable value types with no
   virtual functions, so they can be copied to a GPU and evaluated there. The transformations and
-  CSG combinators instead derive from a small polymorphic interface, ``ImplicitFunction<T>`` (with
-  ``SignedDistanceFunction<T>`` as a refinement of it), and wrap or combine any object that
+  CSG combinators instead derive from a small polymorphic interface, ``ImplicitFunction<T>``, and
+  wrap or combine any object that
   implements it through ordinary virtual dispatch. That interface currently accepts user-written
   implicit functions only. The built-in distance fields can be combined through the BVH-accelerated
   unions, which are plain value types too and take many objects of one type; other compositions of
@@ -60,12 +60,13 @@ The remaining pages in this section cover each component in more detail:
   that ``DCEL::MeshT``, ``BVH::PackedBVH`` and the mesh SDFs, point clouds and BVH unions built
   from them rest on.
 * :ref:`Chap:Vector` -- the ``Vec2T``/``Vec3T`` vector types used throughout the library.
-* :ref:`Chap:ImplemCSG` -- the ``ImplicitFunction``/``SignedDistanceFunction`` interface, the
+* :ref:`Chap:ImplemCSG` -- the ``ImplicitFunction`` interface, the
   analytic shapes, transforms, and CSG combinators.
 * :ref:`Chap:ImplemDCEL` -- the half-edge (DCEL) surface mesh representation.
 * :ref:`Chap:ImplemBVH` -- bounding volume hierarchy construction, traversal, and the packed
   mesh/CSG signed distance function classes built on top of it.
-* :ref:`Chap:ImplemOctree` -- the octree implementation.
+* :ref:`Chap:ImplemOctree` -- octree subdivision for bounding-box estimates, and normals of any
+  function.
 * :ref:`Chap:ImplemPointCloud` -- point-cloud BVHs and hash grids for nearest-neighbour queries.
 * :ref:`Chap:Parsers` -- reading surface meshes from STL/PLY/OBJ/VTK files.
 * :ref:`Chap:SIMDClasses` -- the three SIMD-accelerated classes, and exactly what is vectorised in

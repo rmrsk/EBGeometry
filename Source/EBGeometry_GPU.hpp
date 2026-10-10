@@ -13,7 +13,6 @@
  *
  * @par Decoration macros
  * - @ref EBGEOMETRY_HOST_DEVICE — callable from host and device (value types, the tape interpreter).
- * - @ref EBGEOMETRY_DEVICE — device-only.
  * - @ref EBGEOMETRY_HOST — host-only. Unannotated functions are already implicitly host-only under
  *   CUDA/HIP; this macro is applied to host-only public API (file parsers, mesh readers, host-side
  *   builders) to make that intent explicit and to let the device compiler reject accidental
@@ -23,11 +22,9 @@
  * @par Supported backends
  * - CUDA  (@c __CUDACC__): decorations expand to @c __host__ / @c __device__ / @c __global__.
  * - HIP   (@c __HIPCC__):  same expansions as CUDA (HIP uses the identical attributes).
- * - SYCL  (@c SYCL_LANGUAGE_VERSION): no decoration is required — a function is callable inside a
- *   kernel as long as it is defined and calls nothing host-only — so the decoration macros expand
- *   to nothing, exactly as on a plain host compiler.
- * - OpenACC (@c _OPENACC): device callability is expressed with @c "acc routine" directives rather
- *   than a function prefix; @ref EBGEOMETRY_ROUTINE carries that directive.
+ *
+ * Any other compiler, including a SYCL or OpenACC compiler, sees host code: the macros expand to
+ * nothing, and nothing in EBGeometry is callable inside a SYCL kernel or an OpenACC compute region.
  *
  * @author Robert Marskar
  */
@@ -44,10 +41,6 @@
 #define EBGEOMETRY_HIP
 #elif defined(__CUDACC__)
 #define EBGEOMETRY_CUDA
-#elif defined(SYCL_LANGUAGE_VERSION) || defined(__SYCL_DEVICE_ONLY__)
-#define EBGEOMETRY_SYCL
-#elif defined(_OPENACC)
-#define EBGEOMETRY_OPENACC
 #endif
 
 // ── Host-tuned defaults are for host-only builds ──────────────────────────────
@@ -63,16 +56,12 @@
 #endif
 
 // ── Function decoration ───────────────────────────────────────────────────────
-// CUDA and HIP require an explicit prefix on any function that may be called from device code.
-// SYCL and OpenACC do not use a prefix (SYCL: none needed; OpenACC: see EBGEOMETRY_ROUTINE), so on
-// those backends — and on a plain host compiler — the decoration macros expand to nothing.
+// CUDA and HIP require an explicit prefix on any function that may be called from device code. On
+// every other compiler the decoration macros expand to nothing.
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 
 /** @brief Mark a function as callable from both host and device code (CUDA/HIP). */
 #define EBGEOMETRY_HOST_DEVICE __host__ __device__
-
-/** @brief Mark a function as callable from device code only (CUDA/HIP). */
-#define EBGEOMETRY_DEVICE __device__
 
 /** @brief Mark a function as callable from host code only (CUDA/HIP). */
 #define EBGEOMETRY_HOST __host__
@@ -85,44 +74,11 @@
 /** @brief Mark a function as callable from both host and device code (no-op on host compilers). */
 #define EBGEOMETRY_HOST_DEVICE
 
-/** @brief Mark a function as callable from device code only (no-op on host compilers). */
-#define EBGEOMETRY_DEVICE
-
 /** @brief Mark a function as callable from host code only (no-op on host compilers). */
 #define EBGEOMETRY_HOST
 
 /** @brief Mark a function as a device kernel entry point (no-op on host compilers). */
 #define EBGEOMETRY_GLOBAL
-
-#endif
-
-// ── OpenACC routine directive ─────────────────────────────────────────────────
-// OpenACC expresses device callability with a "#pragma acc routine seq" preceding the function,
-// which _Pragma() lets us emit from a macro. On every other backend it expands to nothing.
-#if defined(EBGEOMETRY_OPENACC)
-
-/** @brief Emit an OpenACC "acc routine seq" directive (no-op on non-OpenACC backends). */
-#define EBGEOMETRY_ROUTINE _Pragma("acc routine seq")
-
-#else
-
-/** @brief Emit an OpenACC "acc routine seq" directive (no-op on non-OpenACC backends). */
-#define EBGEOMETRY_ROUTINE
-
-#endif
-
-// ── Inlining ──────────────────────────────────────────────────────────────────
-// A single spelling for "inline, and force-inline on backends that honour it". CUDA/HIP accept
-// __forceinline__; elsewhere plain inline is used.
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-
-/** @brief Inline hint, force-inlined on CUDA/HIP device compiles. */
-#define EBGEOMETRY_INLINE __forceinline__ inline
-
-#else
-
-/** @brief Inline hint (plain @c inline on host compilers). */
-#define EBGEOMETRY_INLINE inline
 
 #endif
 

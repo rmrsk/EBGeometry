@@ -124,26 +124,6 @@ VertexT<T>::normalizeNormalVector() noexcept
 template <class T>
 EBGEOMETRY_HOST
 inline void
-VertexT<T>::computeVertexNormalAverage(const std::vector<uint32_t>& a_faceIndices, const Mesh& a_mesh) noexcept
-{
-  EBGEOMETRY_EXPECT(!a_faceIndices.empty());
-
-  m_normal = Vec3::zeros();
-
-  // TLDR: We simply compute the sum of the normal vectors for each face in
-  // a_faceIndices and then normalize. This
-  //       will yield an "average" of the normal vectors of the faces
-  //       circulating this vertex.
-  for (const uint32_t faceIndex : a_faceIndices) {
-    m_normal += a_mesh.getFace(faceIndex).getNormal();
-  }
-
-  this->normalizeNormalVector();
-}
-
-template <class T>
-EBGEOMETRY_HOST
-inline void
 VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_thisVertexIndex,
                                              const std::vector<uint32_t>& a_faceIndices,
                                              const Mesh&                  a_mesh)

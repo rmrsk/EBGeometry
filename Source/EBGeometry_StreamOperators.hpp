@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_StreamOperators.hpp
- * @brief  Stream insertion (operator<<) for Vec3T, AABBT and SphereT.
+ * @brief  Stream insertion (operator<<) for Vec3T and AABBT.
  * @details Kept out of the vector and bounding-volume headers so that code including those, device
  * code in particular, does not pull in the standard stream header. EBGeometry.hpp includes this
  * header.
@@ -40,22 +40,6 @@ operator<<(std::ostream& a_os, const Vec3T<T>& a_vec)
 }
 
 namespace BoundingVolumes {
-
-/**
- * @brief Print a bounding sphere as (center, radius).
- * @tparam T Floating-point precision.
- * @param[in,out] a_os     Output stream.
- * @param[in]     a_sphere Bounding sphere to print.
- * @return Reference to the output stream after insertion.
- */
-template <class T>
-inline std::ostream&
-operator<<(std::ostream& a_os, const SphereT<T>& a_sphere)
-{
-  a_os << '(' << a_sphere.getCentroid() << ", " << a_sphere.getRadius() << ')';
-
-  return a_os;
-}
 
 /**
  * @brief Print a bounding box as (low corner, high corner).

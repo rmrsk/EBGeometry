@@ -280,7 +280,7 @@ Eight classes adopt this model today. Two of them hold pool addresses directly, 
 base for a device view, and whether that base is host-accessible) and delegates attaching,
 resolving and rebasing to it. The other six are built from those two, holding a mesh, a packed BVH, or both by
 value and delegating to them: the mesh distance fields ``FlatMeshSDF``, ``MeshSDF`` and
-``TriMeshSDF``, ``PointCloudBVH``, and the BVH unions ``BVHUnionIF`` and ``BVHSmoothUnionIF``. All
+``TriMeshSDF``, ``PointCloudBVH``, and the BVH unions ``BVHUnion`` and ``BVHSmoothUnion``. All
 eight offer ``rebasedView()`` as their single crossing point and ``deepCopy()`` for genuinely
 independent storage. Only the short forwarding methods are repeated per class; the logic lives in
 ``PoolLocation``, held as a member rather than a base class, so it does not complicate the

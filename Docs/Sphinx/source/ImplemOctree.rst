@@ -1,117 +1,62 @@
 .. _Chap:ImplemOctree:
 
-Octree
-======
+Octree subdivision
+==================
 
-The octree functionality is encapsulated in the namespace ``EBGeometry::Octree``; see
-:ref:`Chap:Octree` for the conceptual picture (space partitioning, adaptivity) before reading the
-concrete API below. For the full API, see
-`the doxygen API <doxygen/html/namespaceEBGeometry_1_1Octree.html>`__. Currently, only full
-octrees are supported (a pointer-based representation, not a linear/pointerless one).
+EBGeometry uses octree subdivision (see :ref:`Chap:Octree` for the conceptual picture) for one
+job: estimating a bounding box for a function that has no closed-form bound. It keeps no tree. The
+free function
+`approximateBoundingVolumeOctree <doxygen/html/namespaceEBGeometry.html#a2c8abb547ef889198ea25deedd70ea5e>`__
+(:file:`Source/EBGeometry_FunctionQueries.hpp`) walks the subdivision depth-first with a fixed
+stack, keeping only a running minimum and maximum, so it allocates nothing and is callable on a
+device whenever the function it is given is. The same header holds
+`normal <doxygen/html/namespaceEBGeometry.html#af196161d66e46c5834e178aad6605b50>`__, the finite-difference normal of
+any function.
 
-Octrees are encapsulated by a class template ``Octree::Node<Meta, Data>``, where the template
-parameters are:
-
-* ``Meta`` -- meta-information stored in every node (e.g. the node's physical corners).
-* ``Data`` -- payload data stored at leaf nodes.
-
-``Node`` describes both regular and leaf nodes in the octree; a node with no children is a leaf.
-
-.. warning::
-
-   ``Octree::Node<Meta, Data>`` should only be used as ``std::shared_ptr<Octree::Node<Meta, Data>>``.
-
-See the Doxygen reference for
-`Node <doxygen/html/classEBGeometry_1_1Octree_1_1Node.html>`__ for the full member list.
-
-.. _Chap:OctreeConstruction:
-
-Construction
-------------
-
-An octree is built by first default-constructing a (leaf) root node, and then calling either
-``buildDepthFirst`` or ``buildBreadthFirst`` on it, which refines the tree in depth-first or
-breadth-first order respectively. Both take the same three user-supplied callables:
-
-#. ``SplitFunction`` -- a predicate ``bool(const Node&)`` called on each leaf node; returning
-   ``true`` subdivides that leaf into eight children, ``false`` leaves it as-is.
-#. ``MetaConstructor`` -- constructs a child's ``Meta`` from its parent's ``Meta`` and its octant
-   index. This is typically where the child's physical corners are computed from the parent's,
-   but nothing requires that -- ``Meta`` can hold whatever the refinement criterion needs to
-   decide whether to split further.
-#. ``DataConstructor`` -- constructs a child's ``Data`` from its parent's ``Data`` and its octant
-   index (e.g. partitioning the parent's data set among the eight children).
-
-Refinement proceeds top-down: starting from the root, every leaf for which ``SplitFunction``
-returns ``true`` is subdivided into eight children (using ``MetaConstructor``/``DataConstructor``
-to populate them), and the process repeats on the new leaves. There is no separate "maximum
-depth" parameter built into ``Node`` itself -- if a bounded depth is wanted, ``SplitFunction``
-must encode that itself (e.g. by having ``Meta`` carry the current level and refusing to split
-past some level), exactly as :ref:`the bounding-volume estimator below <Sec:OctreeBoundingVolume>`
-does.
-
-Tree traversal
----------------
-
-Tree traversal is done through the member function ``traverse``, which visits nodes top-down using
-a prune-order-evaluate pattern analogous to the BVH traversal described in :ref:`Chap:ImplemBVH`. The
-input functions to ``traverse`` are as follows:
-
-#. ``PrunePredicate`` -- a predicate ``bool(const Node&)`` called on every node (interior or leaf);
-   returning ``false`` prunes that entire subtree from the traversal.
-#. ``ChildOrderer`` -- reorders a node's (up to) eight children in-place before they are visited, so the
-   traversal can, e.g., visit the closest child first. By default, no sorting is done and children
-   are visited in lexicographical octant order.
-#. ``LeafEvaluator`` -- called on every *leaf* node that ``PrunePredicate`` did not prune; this is where the
-   caller actually consumes the leaf (e.g. to accumulate a result).
+Both take the function as anything that is evaluated at a point: an analytic shape or a mesh
+distance field (through its ``signedDistance()``), an ``ImplicitFunction<T>`` (through its
+``value()``), or a callable such as a lambda, tried in that order.
 
 .. _Sec:OctreeBoundingVolume:
 
-Estimating a bounding volume for an implicit function
---------------------------------------------------------
+Estimating a bounding box for an implicit function
+--------------------------------------------------
 
-The octree machinery above is used directly by the free function
-`approximateBoundingVolumeOctree <doxygen/html/namespaceEBGeometry.html#a46762e5f90be15376df33dd626853704>`__
-(and by the member function of the same name on
-`ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction.html#a193199c514d6c35fd8553cef9affb767>`__,
-which calls it), which estimates a bounding volume of type ``BV`` for a function :math:`I` -- an
-analytic shape, a mesh distance field, an ``ImplicitFunction``, or a lambda -- that has no
-closed-form bound -- for example, one built up from several nested CSG operations (see
-:ref:`Chap:ConstructiveSolidGeometry`), where no simple formula for a bounding box or sphere is
-available.
+``approximateBoundingVolumeOctree(function, lo, hi, depth, safety)`` estimates an
+``AABBT<T>`` for a function :math:`I` that has no closed-form bound -- for example, one built up
+from several nested CSG operations (see :ref:`Chap:ConstructiveSolidGeometry`). Given an initial
+box and a depth, the algorithm is:
 
-Given an initial search box and a maximum tree depth, the algorithm is:
-
-#. Each node's meta-data records its two physical corners, its depth, and a boolean flag for
-   whether it might contain the implicit surface.
-#. A node is flagged as possibly containing the surface if
+#. A cell is kept if the surface may pass through it, that is, if
 
    .. math::
 
       \left|I\left(\mathbf{x}_c\right)\right| \leq (1 + \sigma)\left|\Delta\mathbf{x}\right|,
 
-   where :math:`\mathbf{x}_c` is the node's center, :math:`\Delta\mathbf{x}` is its half-diagonal,
-   and :math:`\sigma \geq 0` is a user-supplied safety factor. This is a direct consequence of the
-   Eikonal property (see :ref:`Chap:GeometryRepresentations`): since :math:`I` changes by at most
-   the distance moved, evaluating it at a single point bounds how far away the surface can be from
-   that point, so a node whose center is farther from the surface than the node itself extends
+   where :math:`\mathbf{x}_c` is the cell's center, :math:`\Delta\mathbf{x}` is its half-diagonal,
+   and :math:`\sigma \geq 0` is a safety factor. This is a direct consequence of the Eikonal
+   property (see :ref:`Chap:GeometryRepresentations`): since :math:`I` changes by at most the
+   distance moved, evaluating it at a single point bounds how far away the surface can be from
+   that point, so a cell whose center is farther from the surface than the cell itself extends
    cannot contain it.
-#. ``SplitFunction`` subdivides exactly the flagged nodes, and only up to the given maximum depth
-   -- this is the "bounded refinement" mentioned above, implemented entirely inside the
-   ``SplitFunction``/``MetaConstructor`` pair rather than by any feature of ``Node`` itself. The
-   tree is built with ``buildBreadthFirst``.
-#. The tree is then traversed (``PrunePredicate`` keeps only flagged nodes, ``LeafEvaluator`` collects each
-   surviving leaf's eight corner points), and the final bounding volume is constructed directly
-   from that point set: ``BV`` need only be constructible from a ``std::vector<Vec3T<T>>``.
+#. Starting from the initial box, each kept cell is split into its eight octants and each octant is
+   tested in turn, depth-first, down to the given depth. A cell is described by its level and its
+   integer position among the cells of that level, so its corners are computed directly from the
+   initial box rather than accumulated level by level.
+#. The box around the kept cells at the deepest level is the result.
 
-If the initial box doesn't intersect the surface at all (or is degenerate), the routine falls back
-to returning the maximally representable bounding volume instead, signalling that the initial box
-needs to be chosen more generously.
+The depth is at most ``MaxOctreeDepth`` (24, which bounds the traversal stack), and a deeper one is
+rejected. If the initial box is empty or inverted along any axis, does not contain the surface, or
+no cell survives to the deepest level, the function returns the maximal box, from
+``-Vec3T<T>::max()`` to ``Vec3T<T>::max()``, signalling that the initial box needs to be chosen
+more generously or that the function is far from a signed distance.
+``ImplicitFunction<T>`` keeps a member function of the same name that calls the free function with
+the object itself.
 
 .. tip::
 
-   A deeper maximum tree depth gives a tighter bounding volume, at the cost of more evaluations of
-   :math:`I` (one per candidate node, at every level).
+   A deeper subdivision gives a tighter box, at the cost of more evaluations of :math:`I` (one per
+   candidate cell, at every level).
 
 .. warning::
 
@@ -119,3 +64,14 @@ needs to be chosen more generously.
    actually reached, and an implicit function whose rate of change meaningfully exceeds unity
    (violating the Eikonal property) can, in principle, still have surface features that fall
    outside the estimate unless :math:`\sigma` is chosen generously enough to compensate.
+
+See the :ref:`Chap:ExampleOctreeBoundingVolume` example for both a single shape and a lambda.
+
+Normals of any function
+-----------------------
+
+``normal(function, point, delta)`` approximates the gradient of the function at ``point`` by
+central differences with step ``delta`` along each axis, and normalizes it. For a signed distance
+this is the outward unit normal of the level set through ``point``. The error is of order
+``delta`` squared, plus rounding of order machine epsilon divided by ``delta``, and the result is
+undefined where the gradient vanishes (at a local extremum of the function).

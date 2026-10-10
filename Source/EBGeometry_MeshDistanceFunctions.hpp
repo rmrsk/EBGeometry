@@ -54,8 +54,8 @@ struct ClosestFace
  *
  * A plain value type: it holds the mesh descriptor by value (offsets into a Pool plus the pool's
  * control block or base address) and nothing else, so it is trivially copyable and every query is
- * callable on the host and on a device. It does not derive from SignedDistanceFunction -- a class
- * with virtual functions can never be passed to a kernel.
+ * callable on the host and on a device. It has no virtual functions: a class with them can never be
+ * passed to a kernel.
  *
  * Copying a FlatMeshSDF copies descriptors only: every copy resolves against the same pool memory,
  * and the pool must outlive all of them. A FlatMeshSDF sees the mesh as it was when it was
@@ -146,7 +146,7 @@ public:
   /**
    * @brief A copy of this object resolving against @p a_location instead of its own pool location.
    * @details For an object stored inside another object's pool, such as a primitive of a
-   * BVHUnionIF; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
+   * BVHUnion; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
    * to the pool this object was reserved from, or to a mirror of it.
    * @param[in] a_location Location to resolve against.
    * @return A FlatMeshSDF resolving against @p a_location.
@@ -213,8 +213,8 @@ static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>>, "FlatMeshSDF<do
  *
  * A plain value type, like FlatMeshSDF: it holds the mesh descriptor and the BVH by value, both
  * resolving against the one Pool passed to the constructor, so it is trivially copyable and
- * signedDistance() is callable on the host and on a device. It does not derive from
- * SignedDistanceFunction -- a class with virtual functions can never be passed to a kernel. Copies
+ * signedDistance() is callable on the host and on a device. It has no virtual functions: a class
+ * with them can never be passed to a kernel. Copies
  * share the pool memory, and the pool must outlive all of them. To evaluate on a device, freeze and
  * mirror the pool and pass rebasedView() into a kernel.
  * @tparam T    Floating-point precision type (float or double).
@@ -384,7 +384,7 @@ public:
   /**
    * @brief A copy of this object resolving against @p a_location instead of its own pool location.
    * @details For an object stored inside another object's pool, such as a primitive of a
-   * BVHUnionIF; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
+   * BVHUnion; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
    * to the pool this object was reserved from, or to a mirror of it.
    * @param[in] a_location Location to resolve against.
    * @return A MeshSDF resolving against @p a_location.
@@ -464,7 +464,7 @@ private:
  *
  * A plain value type, like FlatMeshSDF and MeshSDF: the BVH is held by value in the Pool passed to
  * the constructor, so the class is trivially copyable and every query is callable on the host and
- * on a device. It does not derive from SignedDistanceFunction. Copies share the pool memory, and
+ * on a device. It has no virtual functions. Copies share the pool memory, and
  * the pool must outlive all of them. To evaluate on a device, freeze and mirror the pool and pass
  * rebasedView() into a kernel.
  * @tparam T    Floating-point precision type (float or double).
@@ -662,7 +662,7 @@ public:
   /**
    * @brief A copy of this object resolving against @p a_location instead of its own pool location.
    * @details For an object stored inside another object's pool, such as a primitive of a
-   * BVHUnionIF; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
+   * BVHUnion; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
    * to the pool this object was reserved from, or to a mirror of it.
    * @param[in] a_location Location to resolve against.
    * @return A TriMeshSDF resolving against @p a_location.

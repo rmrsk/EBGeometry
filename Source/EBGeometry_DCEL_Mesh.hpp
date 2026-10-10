@@ -92,8 +92,8 @@ namespace DCEL {
  * host container (getAllVertexCoordinates), logs diagnostics to std::cerr (sanityCheck and its
  * incrementWarning/printWarnings helpers), or delegates to a VertexT/EdgeT/FaceT method that itself
  * allocates a std::vector or can log a diagnostic the same way (reconcileFaces calls FaceT::reconcile;
- * reconcileVertices builds a transient per-vertex face list and aborts with a message on a
- * corrupted VertexNormalWeight) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
+ * reconcileVertices builds a transient per-vertex face list and aborts with a message on a face
+ * that visits a vertex twice) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
  */
 template <class T>
@@ -249,18 +249,15 @@ public:
   /**
    * @brief Reconcile function which computes the internal parameters in vertices, edges, and faces
    * for use with signed distance functionality.
-   * @param[in] a_weight Vertex angle weighting function. Either
-   * VertexNormalWeight::None for unweighted vertex normals or
-   * VertexNormalWeight::Angle for the pseudonormal
-   * @details This will reconcile faces, edges, and vertices, e.g. computing the
-   * area and normal vector for faces. A malformed topology that would otherwise read out of bounds
-   * (a face with fewer than 3 vertices, a vertex index past the end of the vertex array, or, with
-   * VertexNormalWeight::Angle, a face visiting a vertex more than once) aborts with a message in
-   * every build.
+   * @details This will reconcile faces, edges, and vertices, e.g. computing the area and normal
+   * vector for faces, and the angle-weighted pseudonormal of each vertex (Baerentzen and Aanes, DOI:
+   * 10.1109/TVCG.2005.49). A malformed topology that would otherwise read out of bounds (a face with
+   * fewer than 3 vertices, a vertex index past the end of the vertex array, or a face visiting a
+   * vertex more than once) aborts with a message in every build.
    */
   EBGEOMETRY_HOST
   inline void
-  reconcile(const DCEL::VertexNormalWeight a_weight = DCEL::VertexNormalWeight::Angle) noexcept;
+  reconcile() noexcept;
 
   /**
    * @brief Flip the mesh, making all the normals change direction.
@@ -609,14 +606,12 @@ protected:
   reconcileEdges() noexcept;
 
   /**
-   * @brief Function which computes internal things for the vertices
-   * @param[in] a_weight Vertex angle weighting
-   * @note This calls DCEL::VertexT<T>::computeVertexNormalAverage() or
-   * DCEL::VertexT<T>::computeVertexNormalAngleWeighted()
+   * @brief Compute each vertex's angle-weighted pseudonormal.
+   * @note This calls DCEL::VertexT<T>::computeVertexNormalAngleWeighted().
    */
   EBGEOMETRY_HOST
   inline void
-  reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept;
+  reconcileVertices() noexcept;
 
   /**
    * @brief Flip all face normals

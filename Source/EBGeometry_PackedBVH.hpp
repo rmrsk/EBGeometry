@@ -56,7 +56,7 @@ namespace BVH {
  * leaf predicate stops them; bottom-up methods sort the primitives along a space-filling curve, cut
  * the sorted list into leaves, and merge K neighbours at a time up to the root.
  *
- * MeshSDF, TriMeshSDF, BVHUnionIF and BVHSmoothUnionIF (and the parser functions that build them)
+ * MeshSDF, TriMeshSDF, BVHUnion and BVHSmoothUnion (and the parser functions that build them)
  * accept every value. Each of them aborts, in every build, on a value outside this list. A custom
  * partitioner or leaf predicate is not a preset: build a TreeBVH with it and pack() it instead.
  */
@@ -105,7 +105,7 @@ struct ClusterSpec
  * | Morton, Nested, Hilbert             | targetLeafSize   | The fewest leaves holding at most this many primitives each, of the leaf counts the builder allows; it never makes more leaves than primitives, so a small target can be exceeded. |
  * | ClusterSAH                          | cluster          | The cluster size; a leaf holds 1 to K-1 clusters (ClusterSpec). |
  *
- * Every class that takes a BVH::Construction (MeshSDF, TriMeshSDF, BVHUnionIF, BVHSmoothUnionIF) has
+ * Every class that takes a BVH::Construction (MeshSDF, TriMeshSDF, BVHUnion, BVHSmoothUnion) has
  * a static defaultConstructionOptions() that reproduces the trees it builds without options. Start
  * from those and change the field of the method in use. A field left at 0 is rejected when its
  * method reads it.
@@ -381,7 +381,7 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * type -- a prerequisite for mirroring the whole BVH into a device address space with a byte copy.
  * That rules out a polymorphic primitive: a BVH over primitives of different types (a CSG union of
  * a mesh and a sphere, say) needs the runtime dispatch of the tape. A primitive that itself lives in
- * a Pool, such as a TriMeshSDF inside a BVHUnionIF, is fine; see PoolLocation.
+ * a Pool, such as a TriMeshSDF inside a BVHUnion, is fine; see PoolLocation.
  * TreeBVH is unaffected by any of this -- it always stores primitives as shared_ptr.
  *
  * @tparam T Floating-point precision.
@@ -948,7 +948,7 @@ public:
   /**
    * @brief Compute and return the bounding volume of this BVH.
    * @details Identical to getBoundingVolume(), but returns by value under the
-   * computeBoundingVolume() name other bounded objects use (BVHUnionIF forwards to it), and
+   * computeBoundingVolume() name other bounded objects use (BVHUnion forwards to it), and
    * returns the empty (inverted) box for an empty BVH instead of reading a root that does not exist.
    * @return Root node bounding volume.
    */

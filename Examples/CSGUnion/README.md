@@ -2,7 +2,7 @@ Examples/CSGUnion
 -----------------
 
 > **Temporarily disabled.** This example unions two objects of *different* types, a mesh SDF and an
-> analytic sphere. EBGeometry's BVH-accelerated union (`BVHUnionIF`) holds primitives of a single
+> analytic sphere. EBGeometry's BVH-accelerated union (`BVHUnion`) holds primitives of a single
 > type, and a union of different types needs the runtime dispatch of the tape, which is still to
 > come in the GPU port. The program still builds, but prints a notice and exits without doing any
 > work.

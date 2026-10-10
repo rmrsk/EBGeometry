@@ -31,49 +31,29 @@ to -- this is what lets the transform and CSG machinery below wrap or combine *a
 function interchangeably.
 
 For shapes that have no closed-form bounding volume, the free function
-``approximateBoundingVolumeOctree<BV>(function, lo, hi, depth, safety)`` refines an octree over a
-caller-supplied initial box, marking a cell as intersecting the surface once the function's value
-at the cell center falls within a safety-scaled margin of the cell's half-width, then builds a
-bounding volume of the caller-chosen type ``BV`` from the corners of the intersected leaf cells.
-The function can be anything that gives a value at a point: an analytic shape or mesh distance
-field (through its ``signedDistance()``), an ``ImplicitFunction<T>`` (through its ``value()``), or
-a callable such as a lambda. ``ImplicitFunction<T>`` also keeps a member function of the same name
-that calls the free function with the object itself. This is the same octree-refinement idea
-described conceptually in :ref:`Chap:Octree`; see that page for how the subdivision itself works.
-The result is only meaningful when the function is reasonably close to a true signed distance,
-since the safety margin is interpreted in units of distance.
+``approximateBoundingVolumeOctree(function, lo, hi, depth, safety)`` estimates a bounding box by
+octree subdivision of a caller-supplied initial box, and ``normal(function, point, delta)`` gives
+the finite-difference normal of a function. Both take anything that gives a value at a point: an
+analytic shape or mesh distance field (through its ``signedDistance()``), an
+``ImplicitFunction<T>`` (through its ``value()``), or a callable such as a lambda.
+``ImplicitFunction<T>`` also keeps a member function ``approximateBoundingVolumeOctree`` that calls
+the free function with the object itself. See :ref:`Chap:ImplemOctree` for both. The results are
+only meaningful when the function is reasonably close to a true signed distance, since the safety
+margin and the normal are interpreted in units of distance.
 
-For the full API, see the Doxygen pages for
-`ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction.html>`__ and for the free
-function
-`approximateBoundingVolumeOctree <doxygen/html/namespaceEBGeometry.html#a46762e5f90be15376df33dd626853704>`__.
-
-SignedDistanceFunction
------------------------
-
-``SignedDistanceFunction<T>`` (:file:`Source/EBGeometry_SignedDistanceFunction.hpp`) inherits
-from ``ImplicitFunction<T>`` and refines its contract, without adding to the public ``value()``
-interface itself: it implements ``value()`` (marked ``final``) to delegate to a new pure virtual
-member function, ``signedDistance(point)``, which subclasses must implement instead. The
-distinction is one of guarantee rather than signature -- an arbitrary ``ImplicitFunction<T>``
-only promises that the sign of its output indicates inside/outside, whereas a
-``SignedDistanceFunction<T>`` additionally promises that the *magnitude* of its output is the
-true Euclidean distance to the surface (the Eikonal property, :math:`|\nabla S| = 1`; see
-:ref:`Chap:GeometryRepresentations` for why this property matters). None of the distance fields
-shipped with EBGeometry derives from it any more: the analytic shapes (:ref:`Sec:AnalyticShapes`)
-and the mesh distance fields (``FlatMeshSDF``, ``MeshSDF``, ``TriMeshSDF``, see
-:ref:`Chap:MeshSDFClasses`) are plain device-callable value types that provide
-``signedDistance()`` without the virtual interface. ``SignedDistanceFunction<T>`` remains for
-distance functions written by users, which can then be passed to the transformations and CSG
-combinators below.
-
-Because the true distance is available, ``SignedDistanceFunction<T>`` also provides a concrete
-``normal(point, delta)`` member function that estimates the outward unit normal from central
-finite differences of ``signedDistance`` with step size ``delta`` -- something that cannot be
-done reliably from an arbitrary implicit function's value alone.
+An ``ImplicitFunction<T>`` only promises that the sign of its value indicates inside or outside.
+A signed distance additionally promises that the *magnitude* of its output is the true Euclidean
+distance to the surface (the Eikonal property, :math:`|\nabla S| = 1`; see
+:ref:`Chap:GeometryRepresentations` for why this property matters). The distance fields shipped
+with EBGeometry -- the analytic shapes (:ref:`Sec:AnalyticShapes`) and the mesh distance fields
+(``FlatMeshSDF``, ``MeshSDF``, ``TriMeshSDF``, see :ref:`Chap:MeshSDFClasses`) -- are plain
+device-callable value types that provide ``signedDistance()`` without a virtual interface, and are
+not ``ImplicitFunction``\ s. A user-written signed distance that should be passed to the
+transformations and CSG combinators below derives from ``ImplicitFunction<T>`` and returns the
+distance from ``value()``.
 
 For the full API, see the Doxygen page for
-`SignedDistanceFunction <doxygen/html/classEBGeometry_1_1SignedDistanceFunction.html>`__.
+`ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction.html>`__.
 
 .. _Sec:AnalyticShapes:
 
@@ -330,18 +310,18 @@ BVH-accelerated unions
 ______________________
 
 Because a plain CSG union is evaluated as :math:`\min(I_1, \ldots, I_N)`, querying it costs
-:math:`\mathcal{O}(N)` per point for :math:`N` objects. ``BVHUnionIF`` and ``BVHSmoothUnionIF``
+:math:`\mathcal{O}(N)` per point for :math:`N` objects. ``BVHUnion`` and ``BVHSmoothUnion``
 accelerate this by placing the objects' bounding boxes in a ``PackedBVH`` and reducing a
 closest-object query to an :math:`\mathcal{O}(\log N)` tree traversal instead of a linear scan --
 see :ref:`Chap:ImplemBVH` for how the BVH itself is built and traversed; this section only concerns
-how the unions use it. ``BVHSmoothUnionIF`` blends the two nearest objects with a smooth-minimum
+how the unions use it. ``BVHSmoothUnion`` blends the two nearest objects with a smooth-minimum
 functor, ``SmoothMinOp<T>`` by default.
 
 Unlike the combinators above, the BVH unions are not ``ImplicitFunction<T>`` objects. Each is a
 plain, trivially copyable value type, in the same way as the analytic shapes and the mesh distance
 fields, whose ``signedDistance()`` can be called on the host or inside a GPU kernel:
 
-* **One primitive type per union.** ``BVHUnionIF<T, P, K>`` holds its primitives by value in the
+* **One primitive type per union.** ``BVHUnion<T, P, K>`` holds its primitives by value in the
   ``PackedBVH``, so every primitive has the same type ``P``: an analytic shape, a mesh distance
   field, or another BVH union. No runtime dispatch is needed to evaluate them. A union of objects
   of *different* types needs exactly that dispatch, and returns with the redesign of the CSG layer
@@ -350,7 +330,6 @@ fields, whose ``signedDistance()`` can be called on the host or inside a GPU ker
   primitives, and one bounding box per primitive, which the BVH needs up front, plus an optional
   ``BVH::Construction`` strategy (SAH by default). A further constructor also takes the
   ``BVH::ConstructionOptions`` that set the chosen method's leaf size (see :ref:`Sec:LeafSizes`).
-  The free functions ``BVHUnion``/``BVHSmoothUnion`` construct the same objects.
 * **Mirrored to a GPU like any pool-backed type.** Freeze the pool, mirror it, and pass
   ``rebasedView(devicePool)`` to a kernel; ``deepCopy(pool)`` duplicates the storage.
 * **Primitives that live in a pool.** A mesh distance field, or a nested union, stored as a
@@ -369,22 +348,17 @@ of mesh distance fields.
 
 .. list-table::
    :header-rows: 1
-   :widths: 20 20 20 40
+   :widths: 30 30 40
 
    * - Combinator
      - Class
-     - Free function
      - Doxygen
    * - BVH-accelerated union
-     - ``BVHUnionIF``
      - ``BVHUnion``
-     - `class <doxygen/html/classEBGeometry_1_1BVHUnionIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#ac994e9e8414acc49b7db50d2d9982883>`__
+     - `class <doxygen/html/classEBGeometry_1_1BVHUnion.html>`__
    * - BVH-accelerated smooth union
-     - ``BVHSmoothUnionIF``
      - ``BVHSmoothUnion``
-     - `class <doxygen/html/classEBGeometry_1_1BVHSmoothUnionIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#aab346be4b1350a6dfe4e5dd535f7dfab>`__
+     - `class <doxygen/html/classEBGeometry_1_1BVHSmoothUnion.html>`__
 
 For a single-page API listing, see the Doxygen pages for the three headers this page covers:
 `EBGeometry_CSG.hpp <doxygen/html/EBGeometry__CSG_8hpp.html>`__ (the ``shared_ptr`` combinators),

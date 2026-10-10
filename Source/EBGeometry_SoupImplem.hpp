@@ -481,7 +481,7 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
 
   a_mesh.sanityCheck(a_id);
 
-  a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
+  a_mesh.reconcile();
 }
 
 template <typename T>

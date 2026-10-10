@@ -58,18 +58,14 @@ higher-level object that still refers to them by pointer (e.g. a ``DCEL::FaceT``
 Bounding volumes
 ----------------
 
-EBGeometry supports the following bounding volumes, which are defined in :file:`Source/EBGeometry_BoundingVolumes.hpp`:
-
-*  **Bounding sphere**, templated as ``EBGeometry::BoundingVolumes::SphereT<T>``.
-   Various constructors are available. See `the doxygen page for SphereT
-   <doxygen/html/classEBGeometry_1_1BoundingVolumes_1_1SphereT.html>`__.
+EBGeometry supports the following bounding volume, which is defined in :file:`Source/EBGeometry_BoundingVolumes.hpp`:
 
 *  **Axis-aligned bounding box**, which is templated as ``EBGeometry::BoundingVolumes::AABBT<T>``.
    See `the doxygen page for AABBT
    <doxygen/html/classEBGeometry_1_1BoundingVolumes_1_1AABBT.html>`__.
 
 For full API details, see `the doxygen API <doxygen/html/namespaceEBGeometry_1_1BoundingVolumes.html>`_.
-Other types of bounding volumes can in principle be added, with the only requirement being that they conform to the same interface as the ``AABBT`` and ``SphereT`` volumes. Note that
+Other types of bounding volumes can in principle be added, with the only requirement being that they conform to the same interface as ``AABBT``. Note that
 ``PackedBVH`` hard-codes ``AABBT<T>`` as its bounding volume (see above), so a custom bounding
 volume can only be used with ``TreeBVH`` while building, and must still be convertible to an AABB
 before the tree is packed.
@@ -225,7 +221,7 @@ against the other strategies.
 Preset construction methods
 ---------------------------
 
-The library's own BVH users -- ``MeshSDF``, ``TriMeshSDF``, ``BVHUnionIF``, ``BVHSmoothUnionIF``
+The library's own BVH users -- ``MeshSDF``, ``TriMeshSDF``, ``BVHUnion``, ``BVHSmoothUnion``
 and the parser functions that build them (see :ref:`Chap:Parsers`) -- don't ask for a partitioner
 and a leaf predicate. They take one ``BVH::Construction`` value, which names the algorithm that groups the
 primitives:
@@ -300,7 +296,7 @@ own field:
      - ``cluster``
      - The ``ClusterSpec``; a leaf holds 1 to ``K-1`` clusters.
 
-``MeshSDF``, ``TriMeshSDF``, ``BVHUnionIF`` and ``BVHSmoothUnionIF`` each have a constructor that
+``MeshSDF``, ``TriMeshSDF``, ``BVHUnion`` and ``BVHSmoothUnion`` each have a constructor that
 takes the options after the ``BVH::Construction`` value, counted in that class's primitives (faces,
 triangles or union members). Each also has a static ``defaultConstructionOptions()`` returning what
 its constructor without options uses, so a change to one method's setting starts from it:
@@ -334,7 +330,7 @@ A field left at zero is rejected, in every build, when the chosen method reads i
      - :math:`gW`
      - :math:`\max(1, \lfloor gW/(K-1) \rfloor)`, so a leaf of up to ``K-1`` clusters stays
        within :math:`\max(gW, K-1)`
-   * - ``BVHUnionIF``, ``BVHSmoothUnionIF``
+   * - ``BVHUnion``, ``BVHSmoothUnion``
      - ``K-1``
      - ``K``
      - ``ClusterSpec{}``
@@ -547,7 +543,7 @@ address space.
 One part of the library depended on exactly that: the BVH-accelerated CSG unions
 (:ref:`Chap:ImplemCSG`), whose primitive was ``ImplicitFunction<T>`` and whose leaf evaluator called
 a virtual ``value()`` through a base pointer. They have returned restricted to a single primitive
-type: ``BVHUnionIF<T, P, K>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one type
+type: ``BVHUnion<T, P, K>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one type
 ``P`` -- analytic shapes, mesh distance fields, or other unions -- and is itself trivially copyable
 (:ref:`Sec:BVHUnions`). A union of primitives of *different* types still needs runtime dispatch,
 which returns with the redesign of the implicit-function and CSG layer that replaces virtual
@@ -765,17 +761,17 @@ CSG Union
 Combinations of implicit functions in EBGeometry into aggregate objects can be done by means of CSG unions.
 One such union is known as the *smooth union*, in which the transition between two objects is gradual rather than abrupt.
 
-``BVHSmoothUnionIF::signedDistance()`` drives the SIMD-accelerated ``pruneTraverse()`` (see
+``BVHSmoothUnion::signedDistance()`` drives the SIMD-accelerated ``pruneTraverse()`` (see
 :ref:`Chap:PruneTraverse`) with a ``State`` holding the two smallest values seen so far, ``a`` and
 ``b`` (``a`` the closest, ``b`` the second-closest): the leaf-evaluator updates both as leaves are
 scanned, and the pruning rule returns ``max(0, b)`` squared -- pruning against the *second*-smallest
 value rather than the nearest, so a primitive that is not the single closest but still contributes to
 the blend is never pruned away. Once traversal completes, the two values are blended with the stored
-smooth-minimum operator. ``BVHUnionIF::signedDistance()`` is the same pattern with a single running minimum
+smooth-minimum operator. ``BVHUnion::signedDistance()`` is the same pattern with a single running minimum
 and a ``max(0, minDist)``-squared pruning bound. See :ref:`Chap:ImplemCSG` for the CSG combinators
 themselves, and the Doxygen reference for
-`BVHSmoothUnionIF <doxygen/html/classEBGeometry_1_1BVHSmoothUnionIF.html>`__ /
-`BVHUnionIF <doxygen/html/classEBGeometry_1_1BVHUnionIF.html>`__ for the exact API.
+`BVHSmoothUnion <doxygen/html/classEBGeometry_1_1BVHSmoothUnion.html>`__ /
+`BVHUnion <doxygen/html/classEBGeometry_1_1BVHUnion.html>`__ for the exact API.
 
 .. _Chap:MeshSDFClasses:
 
@@ -818,7 +814,7 @@ BVH type, and supported geometry:
 descriptor by value and nothing else, so it is trivially copyable, and ``signedDistance()``,
 ``getClosestFace()`` and ``computeBoundingVolume()`` (the vertex AABB) are callable on both host
 and device. It deliberately
-does not derive from ``SignedDistanceFunction``: a class with virtual functions carries a pointer to
+has no virtual functions: a class with them carries a pointer to
 a host-side function table and can never be passed to a kernel. As a consequence it cannot currently
 be used where an ``ImplicitFunction`` is expected, such as the CSG and transform factories. As for
 ``PackedBVH`` (see :ref:`Chap:MemoryModel`), freeze and mirror the pool, call
@@ -837,7 +833,7 @@ mesh; see "Primitive storage" below. See `its doxygen page
 ``MeshSDF`` and ``TriMeshSDF`` are plain value types exactly like ``FlatMeshSDF``: ``MeshSDF``
 holds the mesh descriptor and its ``PackedBVH`` by value, ``TriMeshSDF`` just its ``PackedBVH``,
 all reserved from the one ``Pool`` passed to the constructor. Both are trivially copyable,
-constructed without ``shared_ptr``\ s, and neither derives from ``SignedDistanceFunction``.
+constructed without ``shared_ptr``\ s, and neither has virtual functions.
 ``signedDistance()``, ``getClosestFace()``, ``getRoot()`` and ``computeBoundingVolume()`` are
 callable on host and device; ``rebasedView(pool)`` and ``deepCopy(pool)`` return the class itself,
 so a rebased copy is what a kernel receives. As for ``FlatMeshSDF``, none of the three can currently

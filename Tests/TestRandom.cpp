@@ -4,6 +4,7 @@
 // Test suite for EBGeometry_Random.hpp (Random::samplePoints).
 
 #include "EBGeometry.hpp"
+#include "Source/EBGeometry_Random.hpp"
 #include "TestFloatingPointUtils.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>

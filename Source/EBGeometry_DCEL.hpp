@@ -58,15 +58,6 @@ template <class T>
 class EdgeIteratorT;
 
 /**
- * @brief Various supported vertex normal vector calculation methods.
- */
-enum class VertexNormalWeight
-{
-  None,  ///< Unweighted average of the normals of the faces incident to the vertex.
-  Angle, ///< Angle-weighted pseudonormal (Baerentzen and Aanes, DOI: 10.1109/TVCG.2005.49).
-};
-
-/**
  * @brief Supported algorithms for testing whether a point projects to the inside of a polygon face.
  * @details A 3D point projected onto a face's plane lies inside or outside the polygon; the test
  * reduces to 2D by dropping the coordinate of the largest normal component (see FaceT). These are

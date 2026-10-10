@@ -363,7 +363,7 @@ does not follow this template, edit the PR body to conform to it.
   `EBGeometry_TreeBVH.hpp` (`TreeBVH`, partitioners, `pack()`) and `EBGeometry_BVHBuild.hpp`
   (`PackedBVH`'s builder constructors) are host-only and include each other. The blend operators and
   BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp` (no `ImplicitFunction`), the
-  `shared_ptr` CSG layer in `EBGeometry_CSG.hpp`, and `operator<<` for `Vec3T`/`AABBT`/`SphereT` in
+  `shared_ptr` CSG layer in `EBGeometry_CSG.hpp`, and `operator<<` for `Vec3T`/`AABBT` in
   `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
   include the split headers, so older includes keep working.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s

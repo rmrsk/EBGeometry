@@ -553,6 +553,7 @@ Findings from item 17:
 | #155. Host-tuned triangle width as a build switch (D7 amended) | Done: `EBGEOMETRY_HOST_TUNED_DEFAULTS` makes `TriangleSoA::DefaultWidth` return `TriangleSoA::HostWidth`; the headers reject it in CUDA/HIP translation units and CMake rejects it with a GPU backend; the CMake option is on for a top-level, non-GPU build. Measured about 18% faster `float` `TriMeshSDF` queries on AVX2; widening K or the point groups was no faster, and K = 16 roughly doubled query times under AVX-512, so they stay 4 | |
 | BVH-2. Leaf-size settings per construction method | Done: `BVH::ConstructionOptions` holds one setting per family of methods (`maxLeafSize` for the top-down splits, `targetLeafSize` for the space-filling curves, `cluster` for ClusterSAH), and a method reads only its own. `MeshSDF`, `TriMeshSDF`, `BVHUnionIF` and `BVHSmoothUnionIF` gain a constructor taking it, and a static `defaultConstructionOptions()` that reproduces their trees without it (checked node for node against `dev` on the cow mesh and on 3000 spheres, for all seven methods). `TreeBVH::bottomUpSortAndPartition` takes the target (default 1, the old tree). One default changes: `TriMeshSDF`'s space-filling curves now honour `maxLeafGroups` as a target of `maxLeafGroups·W` instead of ignoring it, giving 4× fewer nodes and, on the armadillo mesh, 20–34% faster Morton and Hilbert queries; Nested, already ~50× slower than SAH, got 17–52% slower. The `readInto*` functions get the setting in 19b, with their options argument. The equal-count fallback for deep trees (item 17 finding) is not part of it | |
 | 20. Point clouds (D9, PC-4/7/8/10/12/14) | Done: `PointCloudBVH` and `PointCloudHashGrid` return one `PointCloud::Hit<T>` (a `uint32` cloud index, `PointCloud::InvalidIndex` for a miss) and share one host-device `PointCloud::KBest` set (PC-4, PC-7). `PointAoSoA`, `PointCloudBVH` and `PointCloudHashGrid` lose `Meta`: `PointAoSoA<T, W>` carries `uint32` point ids like `TriangleAoSoA`, and per-point user data lives in the caller's array. Leaf scans stop at `numValid()` instead of de-duplicating every insert (PC-8). The grid is built in a `Pool`, trivially copyable, with `rebasedView()`/`deepCopy()` and device-callable queries (D9), and its stopping rule uses the true cell faces less a few ulps instead of a one-cell slack (PC-10). The eight brute-force member methods are two free functions, `PointCloud::closestPoint(s)BruteForce()`, callable on a device (PC-12). On 200k points: k = 8 BVH queries 20–25% faster, grid queries 2.5–4× faster and level with the BVH on a uniform cloud; on a clustered cloud the grid is 2–3× faster but still far behind the BVH (PC-11 stays open). PC-14: `PointAoSoA`/`TriangleAoSoA` now carry ids the same way; the two `DefaultWidth` helpers stay separate, since #155 made them differ | |
+| 21. Retirements (D2) and union names (D11) | Done: `Octree::Node` is gone. `approximateBoundingVolumeOctree` walks the subdivision depth-first with a fixed stack of integer-addressed cells and a running min/max, allocates nothing, is device-callable when the function is, returns an `AABBT` (no `BV` parameter) and rejects a depth above `MaxOctreeDepth` (24) (PC-5, PC-17, CSG-12, CSG-13). `SignedDistanceFunction` is gone; a free `normal(f, p, delta)` replaces its `normal()` (CSG-14). Both live in the new `EBGeometry_FunctionQueries.hpp`. `SphereT` is gone (BVH-6). `VertexNormalWeight` is gone with its `None` value; `MeshT::reconcile()` always computes the angle-weighted pseudonormal (MESH-16). The SYCL/OpenACC branches and `EBGEOMETRY_DEVICE`/`INLINE`/`ROUTINE` are gone; `EBGEOMETRY_GLOBAL` stays, used by the device-test harness (MEM-11). No `#error` for other compilers: a SYCL or OpenACC program may still include EBGeometry for host use. `Random` and `SimpleTimer` stay in `Source/` but leave the umbrella header; the examples include them directly, which keeps each example folder buildable on its own (PC-16). The union factory functions are deleted and `BVHUnionIF`/`BVHSmoothUnionIF` are renamed `BVHUnion`/`BVHSmoothUnion` (CSG-16). `TreeBVH`, its partitioners, `pack`/`packWith` and the `std::function` aliases stay (D2 amended). | |
 
 19. **Mesh SDFs** (D3): `uint32` face id replaces `Meta`; `MeshSDF` leaves store face indices;
     `getClosestFace` on `pruneTraverse`; parser renames (MESH-12); one polygon-soup container (MESH-11).
@@ -572,7 +573,30 @@ Findings from item 17:
     host evaluator; `ImplicitFunction` and the virtual transform/CSG layer retired in the same change,
     with their test expectations carried over; a shape trait checked with `static_assert`.
 26. Close the checkpoint in PORTING.md and move the tape design inputs (Appendix A) into the tape
-    design document. This file is then deleted.
+    design document, and item 27 below into PORTING.md. This file is then deleted.
+
+### After the tape — further device backends
+
+27. **More device backends**, decided while item 21 removed the fictional SYCL and OpenACC
+    branches. Each is a real backend or none: a memory resource, device-pass detection, the GPU test
+    harness running on it, and a CI lane, as CUDA and HIP have now. Deferred until the tape exists,
+    since its interpreter becomes the main device code; the tape keeps to the subset that makes them
+    possible (Appendix A, "Backend-neutral device code").
+    - **SYCL, first.** AMReX's third backend (Intel GPUs). Device code needs no decoration, so the
+      macros stay empty. Work: a `sycl::queue`-backed memory resource (`malloc_device`/
+      `malloc_shared`, `queue.memcpy` for `Pool::mirror`); device-pass detection through
+      `__SYCL_DEVICE_ONLY__` for the device assertion path; the test harness launching through
+      `parallel_for`; a CI lane with oneAPI DPC++, whose CPU device runs the kernels without a GPU.
+    - **OpenMP offload, if a user needs it.** `begin/end declare target` around the device-callable
+      code (OpenMP 5.x also marks functions used in target regions implicitly); a memory resource on
+      `omp_target_alloc`/`omp_target_memcpy`; device-pass detection, which OpenMP does not
+      standardise (compiler macros or `declare variant`); the harness as `target teams distribute
+      parallel for`; a CI lane with an offload-capable compiler. No current user (AMReX uses CUDA,
+      HIP and SYCL), and compiler support is uneven.
+    - **OpenACC, declined.** Every device function and template instantiation needs an `acc routine`
+      directive, C++ templates and classes are where compiler support is weakest (nvc++ is the only
+      solid one), and its users are mostly Fortran and C codes. An nvc++ OpenACC application can
+      already call the CUDA path.
 
 The MINOR and NIT items not named above are folded into whichever PR touches the same file; they
 are listed per area in section 6.
@@ -797,6 +821,12 @@ depth, or use one framed stack per thread.
 
 Note that n-ary smooth operations keep the "two extreme values" semantics, which differs from a fold
 of binary smooth-min.
+
+**Backend-neutral device code.** The interpreter, and everything it calls, stays within what SYCL
+(and OpenMP offload) accept in device code, as the rest of the device code already does: no
+recursion (explicit stacks, as BVH traversal and the octree walk use), no function pointers or
+virtual calls, no exceptions, and only trivially copyable state passed to a kernel. Then adding a
+backend after the tape (item 27) needs no change to the interpreter.
 
 **Point clouds as a leaf.** A union of N equal spheres, or unsigned distance to a sample set, is
 `sqrt(closestPoint(q).distanceSquared) − r`, much cheaper than a BVH union over sphere primitives.

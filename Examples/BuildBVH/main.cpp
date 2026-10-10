@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <EBGeometry.hpp>
+#include <Source/EBGeometry_SimpleTimer.hpp>
 
 // Floating-point precision. Overridable from CMake (-DEBGEOMETRY_PRECISION=float).
 #ifndef EBGEOMETRY_PRECISION
