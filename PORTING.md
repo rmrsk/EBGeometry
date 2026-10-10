@@ -13,9 +13,9 @@ Until the tape starts, [AUDIT.md](AUDIT.md) carries the remaining sequence (its 
 inputs to the tape's design (its Appendix A). Audit item 26 moves what is still live from it into
 this file and the tape design document, and deletes it.
 
-Status as of 2026-10-10: every class meant to run on a device is ported, and the pre-tape audit's
-Phases 0–2 are done (`dev` at #165, audit item 22). What remains before the tape is the shape API
-(audit item 24).
+Status, through audit item 23: every class meant to run on a device is ported, and the pre-tape
+audit's Phases 0–2 are done. Two things remain before the tape: the shape conventions (audit item
+24), and a machine that can run kernels (see "Before the tape").
 
 ## The one rule
 
