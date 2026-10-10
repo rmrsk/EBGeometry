@@ -147,13 +147,13 @@ main(int argc, char* argv[])
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 30.0);
+    impFunc = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 1.0, 0.0), 30.0);
   }
   else if (whichGeom == 9) { // Finite cone.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 2.0, 30);
+    impFunc = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 1.0, 0.0), 2.0, 30);
   }
   if (whichGeom == 10) { // Spherical shell.
     loCorner = -RealVect::Unit;

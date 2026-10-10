@@ -66,7 +66,12 @@ Running
 
     ./Shapes.ex
 
-This program only *constructs* each shape -- it does not evaluate or print anything, so running
-it produces no visible output and it exits immediately. Its purpose is to show the construction
-syntax for each shape; read `main.cpp` alongside this description to see how each one is built,
-and adapt the parameters (center, radius, dimensions, angles, ...) to your own geometry.
+The program constructs each shape, checks its signed distance at a few points against values
+worked out by hand, checks a few shapes' bounding boxes (`computeBoundingVolume()`), and prints
+how many checks failed; it exits with a nonzero status if any did. Read `main.cpp` alongside this
+description to see how each shape is built, and adapt the parameters (center, radius, size,
+angles, ...) to your own geometry.
+
+The shapes share a few conventions: the constructor takes the shape's position before its sizes; a
+shape with a built-in axis (the torus, both cones, the rounded cylinder) has it along y; and a size
+is that of the finished shape, so a rounded box with outer size 1.2 fits a box of side 1.2 exactly.

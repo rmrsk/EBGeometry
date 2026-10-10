@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iostream>
 #include <type_traits>
+#include <vector>
 
 #include <EBGeometry.hpp>
 
@@ -74,16 +75,17 @@ main()
     return good;
   };
 
-  // The cone opens along -z from its tip, and its base radius is height * tan(half the angle).
-  const T    coneRadius = T(2.0) * std::tan(T(30.0) * pi<T> / T(180));
-  const bool coneGood   = encloses(coneBV, Vec3(-coneRadius, -coneRadius, T(-2)), Vec3(coneRadius, coneRadius, T(0)));
+  // The analytic shapes know their exact boxes. The cone opens along -y from its tip, with base
+  // radius height * tan(half the angle); the union's box is the box around the three shapes' boxes.
+  const auto exactCone  = cone.computeBoundingVolume();
+  const auto exactUnion = BoundingVolumes::AABBT<T>(std::vector<BoundingVolumes::AABBT<T>>{
+    sphere.computeBoundingVolume(), torus.computeBoundingVolume(), capsule.computeBoundingVolume()});
 
-  // The torus sets x and y, the sphere the bottom and the capsule the top. The capsule's tips are its
-  // outermost points along its axis, so its top is the upper hemisphere's center plus its radius.
-  const Vec3 axis       = Vec3(T(1.0), T(2.0), T(3.0)) / Vec3(T(1.0), T(2.0), T(3.0)).length();
-  const T    capsuleTop = T(3.0) - T(0.25) * axis[2] + T(0.25);
-  const bool unionGood  = encloses(unionBV, Vec3(T(-2.25), T(-2.25), T(-1)), Vec3(T(2.25), T(2.25), capsuleTop));
+  const bool coneGood  = encloses(coneBV, exactCone.getLowCorner(), exactCone.getHighCorner());
+  const bool unionGood = encloses(unionBV, exactUnion.getLowCorner(), exactUnion.getHighCorner());
 
+  std::cout << "Exact bounding volume of the cone = " << exactCone << '\n';
+  std::cout << "Exact bounding volume of the union = " << exactUnion << '\n';
   std::cout << "Both boxes hold the exact ones, within one leaf cell: " << ((coneGood && unionGood) ? "yes" : "NO")
             << '\n';
 

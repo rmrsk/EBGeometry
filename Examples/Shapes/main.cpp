@@ -34,8 +34,8 @@ main()
   // An axis-aligned box: low corner, high corner.
   const EBGeometry::BoxSDF<T> box(Vec3::zeros(), Vec3::ones());
 
-  // A torus lying in the xy-plane: center, major radius (center of the tube to the torus'
-  // own center), minor radius (radius of the tube itself).
+  // A torus whose ring lies in the xz-plane, around the y axis: center, major radius (center of the
+  // tube to the torus' own center), minor radius (radius of the tube itself).
   const EBGeometry::TorusSDF<T> torus(Vec3::zeros(), 1.0, 0.1);
 
   // A finite (capped) cylinder: center of one end cap, center of the other end cap, radius.
@@ -49,10 +49,11 @@ main()
   // outer tip of the other, radius.
   const EBGeometry::CapsuleSDF<T> capsule(Vec3::zeros(), Vec3::ones(), 0.1);
 
-  // An infinite (single-nap) cone: apex position, full opening angle in degrees.
+  // An infinite (single-nap) cone opening along -y: apex position, full opening angle in degrees.
   const EBGeometry::InfiniteConeSDF<T> infiniteCone(Vec3::zeros(), 45.0);
 
-  // A finite cone: apex position, height (apex to base), full opening angle in degrees.
+  // A finite cone opening along -y: apex position, height (apex to base), full opening angle in
+  // degrees.
   const EBGeometry::ConeSDF<T> cone(Vec3::zeros(), 1.0, 45.0);
 
   // A fractal Perlin noise field (not a distance function to a specific shape -- see this
@@ -60,12 +61,12 @@ main()
   // ("persistence"), and number of octaves summed together.
   const EBGeometry::PerlinSDF<T> perlin(1.0, Vec3::ones(), 0.5, 10);
 
-  // A box with rounded edges and corners: full side lengths along each axis (before
-  // rounding), corner/edge rounding radius.
-  const EBGeometry::RoundedBoxSDF<T> roundBox(Vec3::ones(), 0.1);
+  // A box with rounded edges and corners: center, outer side lengths (rounding included),
+  // edge/corner rounding radius.
+  const EBGeometry::RoundedBoxSDF<T> roundBox(Vec3::zeros(), T(1.2) * Vec3::ones(), 0.1);
 
-  // A cylinder along the z-axis with rounded edges: radius, edge rounding radius, height.
-  const EBGeometry::RoundedCylinderSDF<T> roundCylinder(1.0, 0.1, 1.0);
+  // A cylinder along the y-axis with rounded edges: center, radius, edge rounding radius, height.
+  const EBGeometry::RoundedCylinderSDF<T> roundCylinder(Vec3::zeros(), 1.0, 0.1, 1.0);
 
   // Check each shape against its distance at a few points, worked out by hand from the description
   // above. Positive is outside, negative inside, zero on the surface.
@@ -94,9 +95,10 @@ main()
   check("box, at its center", box.signedDistance(T(0.5) * Vec3::ones()), T(-0.5));
   check("box, outside a face", box.signedDistance(Vec3(2, 0.5, 0.5)), T(1));
 
-  // The tube's centre-line is the unit circle in the xy-plane.
-  check("torus, on its centre-line", torus.signedDistance(Vec3(1, 0, 0)), T(-0.1));
+  // The tube's centre-line is the unit circle in the xz-plane.
+  check("torus, on its centre-line", torus.signedDistance(Vec3(0, 0, 1)), T(-0.1));
   check("torus, at its center", torus.signedDistance(Vec3::zeros()), T(0.9));
+  check("torus, above its centre-line", torus.signedDistance(Vec3(1, 0.5, 0)), T(0.4));
 
   check("cylinder, on its axis", finiteCylinder.signedDistance(T(0.5) * Vec3::ones()), T(-0.1));
   check("cylinder, beyond a cap", finiteCylinder.signedDistance(T(2) * Vec3::ones()), sqrt3);
@@ -109,25 +111,42 @@ main()
   check("capsule, on its axis", capsule.signedDistance(T(0.5) * Vec3::ones()), T(-0.1));
   check("capsule, beyond a tip", capsule.signedDistance(T(2) * Vec3::ones()), sqrt3);
 
-  // The cones open along -z from their tips at the origin.
+  // The cones open along -y from their tips at the origin.
   check("infinite cone, at the tip", infiniteCone.signedDistance(Vec3::zeros()), T(0));
-  check("infinite cone, above the tip", infiniteCone.signedDistance(Vec3(0, 0, 1)), T(1));
-  check("infinite cone, on its axis", infiniteCone.signedDistance(Vec3(0, 0, -1)), -sinHalfAngle);
+  check("infinite cone, above the tip", infiniteCone.signedDistance(Vec3(0, 1, 0)), T(1));
+  check("infinite cone, on its axis", infiniteCone.signedDistance(Vec3(0, -1, 0)), -sinHalfAngle);
 
-  check("cone, above the tip", cone.signedDistance(Vec3(0, 0, 1)), T(1));
-  check("cone, on its axis", cone.signedDistance(Vec3(0, 0, -0.5)), T(-0.5) * sinHalfAngle);
-  check("cone, below its base", cone.signedDistance(Vec3(0, 0, -3)), T(2));
+  check("cone, above the tip", cone.signedDistance(Vec3(0, 1, 0)), T(1));
+  check("cone, on its axis", cone.signedDistance(Vec3(0, -0.5, 0)), T(-0.5) * sinHalfAngle);
+  check("cone, below its base", cone.signedDistance(Vec3(0, -3, 0)), T(2));
 
   // Noise is not a distance, but it is defined everywhere.
   check("Perlin noise, finite", std::isfinite(perlin.signedDistance(Vec3(0.3, 0.6, 0.9))) ? T(1) : T(0), T(1));
 
-  // The rounded box is centred at the origin, its half-sides 0.5 grown by the rounding 0.1.
+  // The rounded box is centred at the origin with outer half-sides 0.6.
   check("rounded box, at its center", roundBox.signedDistance(Vec3::zeros()), T(-0.6));
   check("rounded box, outside a face", roundBox.signedDistance(Vec3(1.6, 0, 0)), T(1));
 
   // The rounded cylinder is centred at the origin with its axis along y, and half as high as wide.
   check("rounded cylinder, at its center", roundCylinder.signedDistance(Vec3::zeros()), T(-0.5));
   check("rounded cylinder, above a cap", roundCylinder.signedDistance(Vec3(0, 1.5, 0)), T(1));
+
+  // Every shape also gives its axis-aligned bounding box, extending to the largest representable
+  // value along any direction in which the shape is unbounded.
+  const auto torusBox = torus.computeBoundingVolume();
+  const auto coneBox  = cone.computeBoundingVolume();
+
+  check("torus box, top", torusBox.getHighCorner()[1], T(0.1));
+  check("torus box, side", torusBox.getHighCorner()[2], T(1.1));
+  check("cone box, base", coneBox.getLowCorner()[1], T(-1));
+  check("cone box, base radius", coneBox.getHighCorner()[0], std::tan(T(22.5) * EBGeometry::pi<T> / T(180)));
+  check("infinite cylinder box, along its axis",
+        infiniteCylinder.computeBoundingVolume().getHighCorner()[2],
+        EBGeometry::Math::Limits<T>::max());
+
+  // And how far its value can be trusted as a distance: every shape here is exact, except the noise.
+  static_assert(EBGeometry::TorusSDF<T>::distanceQuality == EBGeometry::DistanceQuality::Exact);
+  static_assert(EBGeometry::PerlinSDF<T>::distanceQuality == EBGeometry::DistanceQuality::NotADistance);
 
   std::cout << "Shapes checked against hand-worked distances; " << failures << " failed\n";
 

@@ -59,6 +59,8 @@ Running
     ./OctreeBoundingVolume.ex
 
 This example takes no arguments. It prints the resulting approximate bounding boxes (their low
-and high corners) for the cone and for the union. The search starts from a fixed, deliberately loose
+and high corners) for the cone and for the union, next to the exact boxes the analytic shapes give
+from `computeBoundingVolume()`, and checks that each estimate holds the exact box to within one
+octree cell. The search starts from a fixed, deliberately loose
 box of $\pm 10$ in each direction and refines for 8 octree levels; increasing the level count in
 `main.cpp` tightens the result further, at the cost of more subdivision work.

@@ -30,7 +30,8 @@ ordinary virtual dispatch without ever needing to know which concrete class it a
 to -- this is what lets the transform and CSG machinery below wrap or combine *any* implicit
 function interchangeably.
 
-For shapes that have no closed-form bounding volume, the free function
+The analytic shapes give their exact bounding box from ``computeBoundingVolume()``
+(:ref:`Sec:AnalyticShapes`). For functions that have no closed-form bounding volume, the free function
 ``approximateBoundingVolumeOctree(function, lo, hi, depth, safety)`` estimates a bounding box by
 octree subdivision of a caller-supplied initial box, and ``normal(function, point, delta)`` gives
 the finite-difference normal of a function. Both take anything that gives a value at a point: an
@@ -75,22 +76,46 @@ Analytic shapes
    * - ``BoxSDF``
      - An axis-aligned box
    * - ``TorusSDF``
-     - A torus in the xy-plane
+     - A torus whose ring lies in the xz-plane, around the y axis
    * - ``CylinderSDF``, ``InfiniteCylinderSDF``
      - A capped cylinder between two points; an infinite cylinder along a coordinate axis
    * - ``CapsuleSDF``
      - A cylinder with hemispherical end caps
    * - ``ConeSDF``, ``InfiniteConeSDF``
-     - A finite and an infinite cone
+     - A finite and an infinite cone, opening along -y from the tip
    * - ``RoundedBoxSDF``, ``RoundedCylinderSDF``
-     - A box and a cylinder with rounded edges
+     - An axis-aligned box and a cylinder along y, with rounded edges
    * - ``PerlinSDF``
-     - Perlin noise (not a true distance function; see the class documentation)
+     - Perlin noise (not a distance function, only its sign means anything)
 
 Each is a plain, trivially copyable value type with no base class and no virtual functions, in
 the same way as the mesh distance fields. Its ``signedDistance()`` and accessors are callable on
 the host and on a GPU, so a shape can be passed to a kernel by value and evaluated there; the
 constructors run on the host. The :ref:`Chap:ExampleShapes` example constructs every one of them.
+
+The shapes share a few conventions:
+
+* **Placement first.** Each constructor takes where the shape is (a center, a corner, a tip or a
+  point on it) before its sizes.
+* **One axis.** A shape with a built-in axis has it along y: the torus, both cones and the rounded
+  cylinder, and also the default-constructed cylinder, infinite cylinder, capsule and plane.
+  ``CylinderSDF`` and ``CapsuleSDF`` take two end points and ``InfiniteCylinderSDF`` an axis index,
+  so they can point anywhere.
+* **Outer sizes.** A size is the size of the finished shape, rounding included: ``RoundedBoxSDF``
+  takes the box it fits exactly, and its rounding radius must be less than half of every side.
+* **A bounding box.** ``computeBoundingVolume()`` returns the shape's axis-aligned bounding box, on
+  the host and on a GPU, ready to pass to a BVH union. Along a direction in which a shape is
+  unbounded, the box extends to plus or minus the largest finite value of ``T`` (not infinity, so
+  that box arithmetic such as a center stays finite): the infinite cylinder along its axis, the
+  infinite cone everywhere but above its tip, and the plane and the noise in every direction.
+* **A distance quality.** A static member ``distanceQuality`` says how far ``signedDistance()``
+  can be trusted as a distance, as one of three
+  `DistanceQuality <doxygen/html/namespaceEBGeometry.html#aba480dba46b4ac1b2393b5f2872cdad5>`__ levels:
+  ``Exact`` (the magnitude is the Euclidean distance to the surface), ``Bound`` (the magnitude
+  never exceeds it) or ``NotADistance`` (only the sign means anything). Every shape is ``Exact``
+  except ``PerlinSDF``, which is ``NotADistance``. The mesh distance fields are ``Exact``. A BVH
+  union is ``Bound``, or ``NotADistance`` if its primitives are. ``distanceQualityOf<P>`` reads the
+  member, and treats a type without one as ``Bound``.
 
 Because the shapes are not ``ImplicitFunction<T>`` objects, they cannot be passed to the
 transformations and to most of the CSG combinators below. The exception is the BVH-accelerated
@@ -326,8 +351,24 @@ fields, whose ``signedDistance()`` can be called on the host or inside a GPU ker
   field, or another BVH union. No runtime dispatch is needed to evaluate them. A union of objects
   of *different* types needs exactly that dispatch, and returns with the redesign of the CSG layer
   that replaces virtual dispatch with a linear-SSA tape.
+* **Bounding boxes that enclose their primitives.** The traversal skips a primitive whose bounding
+  box is further away than the best value found so far. If every box encloses its primitive's
+  object (where the primitive's value is not positive), a skipped primitive is positive at the query
+  point, so skipping it never changes the union's sign, whatever the primitives' values are. The
+  value is then as good a distance as the primitives': with ``Exact`` primitives it equals the plain
+  minimum, with ``Bound`` primitives it is still a bound, and with ``NotADistance`` primitives only
+  its sign means anything, which the union's ``distanceQuality`` reports.
+* **Primitives with unbounded boxes.** A primitive whose box reaches plus or minus the largest
+  finite value of ``T`` in some direction, such as an infinite cylinder, would make the box of
+  every BVH node above it unbounded and give the build heuristics nothing to work with. The union
+  keeps such primitives out of the BVH and evaluates them at every query, before the traversal, so
+  that their values can prune it: a union of many bounded primitives and a few unbounded ones costs
+  the BVH query plus one evaluation per unbounded primitive. ``getBVH()`` holds the bounded
+  primitives and ``getUnboundedPrimitives()`` the others, and ``computeBoundingVolume()`` covers
+  both.
 * **Built in a** ``Pool``. The constructor takes the ``Pool`` to reserve the BVH from, the
-  primitives, and one bounding box per primitive, which the BVH needs up front, plus an optional
+  primitives, and one bounding box per primitive, which the BVH needs up front (an analytic shape's
+  ``computeBoundingVolume()``, for example), plus an optional
   ``BVH::Construction`` strategy (SAH by default). A further constructor also takes the
   ``BVH::ConstructionOptions`` that set the chosen method's leaf size (see :ref:`Sec:LeafSizes`).
 * **Mirrored to a GPU like any pool-backed type.** Freeze the pool, mirror it, and pass

@@ -147,11 +147,16 @@ TEMPLATE_TEST_CASE("TorusSDF: point on surface", "[TorusSDF]", EBGEOMETRY_TEST_P
 {
   using T = TestType;
 
-  // Torus centred at origin in xy-plane: major radius 2, minor radius 0.5
+  // Torus centred at origin, its ring in the xz-plane around the y axis: major radius 2, minor radius 0.5
   const TorusSDF<T> torus(Vec3T<T>(0, 0, 0), T(2.0), T(0.5));
 
-  // Point on surface: along +x from tube centre (major_radius + minor_radius, 0, 0)
+  // Points on surface: along +x and +z from the tube centre, and above the tube centre in y
   REQUIRE_THAT(torus.signedDistance(Vec3T<T>(2.5, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(torus.signedDistance(Vec3T<T>(0, 0, -2.5)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(torus.signedDistance(Vec3T<T>(0, 0.5, 2)), WithinAbs(0.0, looseMargin<T>()));
+
+  // Along the axis, the nearest point is on the inner equator: sqrt(2^2 + 1^2) - 0.5
+  REQUIRE_THAT(torus.signedDistance(Vec3T<T>(0, 1, 0)), WithinRel(std::sqrt(T(5)) - T(0.5)));
 
   // Point inside the tube
   REQUIRE(torus.signedDistance(Vec3T<T>(2.0, 0, 0)) < T(0.0));
@@ -180,9 +185,9 @@ struct AllShapes
   CapsuleSDF<T>          capsule{Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.1)};
   InfiniteConeSDF<T>     infiniteCone{Vec3T<T>::zeros(), T(45)};
   ConeSDF<T>             cone{Vec3T<T>::zeros(), T(1), T(45)};
-  RoundedBoxSDF<T>       roundedBox{Vec3T<T>::ones(), T(0.1)};
+  RoundedBoxSDF<T>       roundedBox{Vec3T<T>::zeros(), T(1.2) * Vec3T<T>::ones(), T(0.1)};
   PerlinSDF<T>           perlin{T(1), Vec3T<T>::ones(), T(0.5), 4U};
-  RoundedCylinderSDF<T>  roundedCylinder{T(1), T(0.1), T(1)};
+  RoundedCylinderSDF<T>  roundedCylinder{Vec3T<T>::zeros(), T(1), T(0.1), T(1)};
 };
 
 // Sum of every shape's signed distance at a_point, so one number checks all twelve formulas.
@@ -243,8 +248,8 @@ TEMPLATE_TEST_CASE("RoundedBoxSDF: distances, and copies no longer share the rou
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  // Inner half-extents 1, rounding radius 0.5: the surface is at 1.5 along each axis.
-  const RoundedBoxSDF<T> roundedBox(Vec3(T(2), T(2), T(2)), T(0.5));
+  // Outer size 3, rounding radius 0.5: the surface is at 1.5 along each axis.
+  const RoundedBoxSDF<T> roundedBox(Vec3::zeros(), Vec3(T(3), T(3), T(3)), T(0.5));
 
   REQUIRE_THAT(roundedBox.signedDistance(Vec3(T(3), T(0), T(0))), WithinRel(T(1.5)));
   REQUIRE_THAT(roundedBox.signedDistance(Vec3(T(0), T(0), T(1.5))), WithinAbs(0.0, looseMargin<T>()));
@@ -256,11 +261,69 @@ TEMPLATE_TEST_CASE("RoundedBoxSDF: distances, and copies no longer share the rou
   // Before this class held its sphere by value, a copy shared it through a shared_ptr. A copy is now
   // an independent object, and a default-constructed box is unaffected by another box's radius.
   const RoundedBoxSDF<T> copy = roundedBox;
-  const RoundedBoxSDF<T> other(Vec3(T(2), T(2), T(2)), T(0.25));
+  const RoundedBoxSDF<T> other(Vec3::zeros(), Vec3(T(2.5), T(2.5), T(2.5)), T(0.25));
 
   REQUIRE(copy.signedDistance(Vec3(T(3), T(0), T(0))) == roundedBox.signedDistance(Vec3(T(3), T(0), T(0))));
   REQUIRE_THAT(other.signedDistance(Vec3(T(3), T(0), T(0))), WithinRel(T(1.75)));
-  REQUIRE_THAT(RoundedBoxSDF<T>().signedDistance(Vec3(T(1), T(0), T(0))), WithinRel(T(0.4)));
+
+  // The default is the unit cube [-0.5, 0.5]^3, rounded.
+  REQUIRE_THAT(RoundedBoxSDF<T>().signedDistance(Vec3(T(1), T(0), T(0))), WithinRel(T(0.5)));
+
+  // The outer size is the box the rounded box fits exactly: the face centres touch it, the corners
+  // are pulled in by the rounding.
+  const Vec3             center(T(1), T(-2), T(3));
+  const Vec3             size(T(2), T(1), T(0.6));
+  const RoundedBoxSDF<T> placed(center, size, T(0.2));
+
+  for (size_t d = 0; d < 3; d++) {
+    const Vec3 faceCentre = center + T(0.5) * size[d] * Vec3::unit(d);
+
+    REQUIRE_THAT(placed.signedDistance(faceCentre), WithinAbs(0.0, looseMargin<T>()));
+  }
+
+  REQUIRE(placed.signedDistance(center + T(0.5) * size) > T(0));
+  REQUIRE_THAT(placed.signedDistance(center), WithinRel(T(-0.3)));
+}
+
+TEMPLATE_TEST_CASE("RoundedCylinderSDF: placed at its center, axis along y",
+                   "[RoundedCylinderSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Vec3                  center(T(1), T(2), T(-1));
+  const RoundedCylinderSDF<T> cylinder(center, T(0.5), T(0.1), T(2));
+
+  REQUIRE_THAT(cylinder.signedDistance(center), WithinRel(T(-0.5)));
+  REQUIRE_THAT(cylinder.signedDistance(center + Vec3(T(0), T(1), T(0))), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(cylinder.signedDistance(center + Vec3(T(0.5), T(0), T(0))), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(cylinder.signedDistance(center + Vec3(T(0), T(0), T(-1.5))), WithinRel(T(1)));
+}
+
+TEMPLATE_TEST_CASE("InfiniteConeSDF and ConeSDF: open along -y from the tip", "[ConeSDF]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A 90-degree cone: its surface leaves the tip at 45 degrees, so (r, -r) is on it for any r.
+  const Vec3               tip(T(0.5), T(1), T(-0.5));
+  const InfiniteConeSDF<T> infiniteCone(tip, T(90));
+  const ConeSDF<T>         cone(tip, T(2), T(90));
+
+  for (const auto& p : {tip + Vec3(T(1), T(-1), T(0)), tip + Vec3(T(0), T(-0.5), T(0.5))}) {
+    REQUIRE_THAT(infiniteCone.signedDistance(p), WithinAbs(0.0, looseMargin<T>()));
+    REQUIRE_THAT(cone.signedDistance(p), WithinAbs(0.0, looseMargin<T>()));
+  }
+
+  // Below the tip on the axis is inside; above it, and along x or z, is outside.
+  REQUIRE(infiniteCone.signedDistance(tip - Vec3::unit(1)) < T(0));
+  REQUIRE(cone.signedDistance(tip - Vec3::unit(1)) < T(0));
+  REQUIRE_THAT(cone.signedDistance(tip + Vec3::unit(1)), WithinRel(T(1)));
+  REQUIRE(cone.signedDistance(tip - Vec3::unit(2)) > T(0));
+
+  // The finite cone's base disc is a height below the tip.
+  REQUIRE_THAT(cone.signedDistance(tip - T(3) * Vec3::unit(1)), WithinRel(T(1)));
 }
 
 namespace {
@@ -364,20 +427,211 @@ TEMPLATE_TEST_CASE("Analytic shapes: every exact shape is a true signed distance
   }
   SECTION("ConeSDF")
   {
-    requireExactSDF<T>(ConeSDF<T>(Vec3(T(0), T(0), T(0.8)), T(1.5), T(60)), T(2));
+    requireExactSDF<T>(ConeSDF<T>(Vec3(T(0), T(0.8), T(0)), T(1.5), T(60)), T(2));
   }
   SECTION("InfiniteConeSDF")
   {
-    requireExactSDF<T>(InfiniteConeSDF<T>(Vec3(T(0), T(0), T(0.5)), T(50)), T(2));
+    requireExactSDF<T>(InfiniteConeSDF<T>(Vec3(T(0), T(0.5), T(0)), T(50)), T(2));
   }
   SECTION("RoundedBoxSDF")
   {
-    requireExactSDF<T>(RoundedBoxSDF<T>(Vec3(T(1), T(0.6), T(0.4)), T(0.1)), T(1));
+    requireExactSDF<T>(RoundedBoxSDF<T>(Vec3(T(0.1), T(-0.1), T(0.2)), Vec3(T(1.2), T(0.8), T(0.6)), T(0.1)), T(1));
   }
   SECTION("RoundedCylinderSDF")
   {
-    requireExactSDF<T>(RoundedCylinderSDF<T>(T(0.8), T(0.2), T(1.6)), T(1.5));
+    requireExactSDF<T>(RoundedCylinderSDF<T>(Vec3(T(-0.1), T(0.2), T(0.1)), T(0.8), T(0.2), T(1.6)), T(1.5));
   }
+}
+
+namespace {
+
+// Requires a_box to have the given corners.
+template <class T>
+void
+requireBox(const BoundingVolumes::AABBT<T>& a_box, const Vec3T<T>& a_lo, const Vec3T<T>& a_hi)
+{
+  INFO("box [" << a_box.getLowCorner() << ", " << a_box.getHighCorner() << "], expected [" << a_lo << ", " << a_hi
+               << "]");
+
+  for (size_t d = 0; d < 3; d++) {
+    REQUIRE_THAT(a_box.getLowCorner()[d], WithinRel(a_lo[d], T(10) * std::numeric_limits<T>::epsilon()));
+    REQUIRE_THAT(a_box.getHighCorner()[d], WithinRel(a_hi[d], T(10) * std::numeric_limits<T>::epsilon()));
+  }
+}
+
+// Requires a_shape's surface to lie inside its bounding box: at random points outside the box, the
+// signed distance is at least the distance to the box.
+template <class T, class Shape>
+void
+requireSurfaceInsideBox(const Shape& a_shape, const T a_extent)
+{
+  using Vec3 = Vec3T<T>;
+
+  const auto box = a_shape.computeBoundingVolume();
+  const T    tol = std::is_same_v<T, float> ? T(1e-5) : T(1e-12);
+
+  std::mt19937                      rng(54321);
+  std::uniform_real_distribution<T> coord(-a_extent, a_extent);
+
+  int outside = 0;
+
+  for (int i = 0; i < 2000; i++) {
+    const Vec3 p(coord(rng), coord(rng), coord(rng));
+    const T    boxDistance = box.getDistance(p);
+
+    if (boxDistance > T(0)) {
+      INFO("p = " << p);
+      REQUIRE(a_shape.signedDistance(p) >= boxDistance - tol * (T(1) + boxDistance));
+
+      outside++;
+    }
+  }
+
+  // A box that missed most of the sampled cube would make the check above vacuous.
+  REQUIRE(outside > 100);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Analytic shapes: computeBoundingVolume is the shape's bounding box",
+                   "[AnalyticSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const T big = Math::Limits<T>::max();
+  const T r30 = T(1.5) * std::tan(pi<T> / T(6));
+
+  SECTION("SphereSDF")
+  {
+    const SphereSDF<T> shape(Vec3(T(0.1), T(-0.2), T(0.3)), T(0.8));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.7), T(-1), T(-0.5)), Vec3(T(0.9), T(0.6), T(1.1)));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("BoxSDF")
+  {
+    const BoxSDF<T> shape(Vec3(T(-0.5), T(-0.3), T(-0.8)), Vec3(T(0.7), T(0.4), T(0.2)));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.5), T(-0.3), T(-0.8)), Vec3(T(0.7), T(0.4), T(0.2)));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("TorusSDF")
+  {
+    const TorusSDF<T> shape(Vec3(T(0.1), T(0), T(-0.1)), T(1), T(0.3));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-1.2), T(-0.3), T(-1.4)), Vec3(T(1.4), T(0.3), T(1.2)));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("CylinderSDF")
+  {
+    const CylinderSDF<T> straight(Vec3(T(0), T(0), T(-1)), Vec3(T(0), T(0), T(1)), T(0.5));
+
+    requireBox<T>(straight.computeBoundingVolume(), Vec3(T(-0.5), T(-0.5), T(-1)), Vec3(T(0.5), T(0.5), T(1)));
+
+    // Tilted 45 degrees in the xy-plane, each cap disc reaches r sqrt(1/2) beyond its center in x and y.
+    const CylinderSDF<T> tilted(Vec3::zeros(), Vec3(T(1), T(1), T(0)), T(0.5));
+    const T              reach = T(0.5) * std::sqrt(T(0.5));
+
+    requireBox<T>(tilted.computeBoundingVolume(), Vec3(-reach, -reach, T(-0.5)), Vec3(1 + reach, 1 + reach, T(0.5)));
+    requireSurfaceInsideBox<T>(tilted, T(2));
+    requireSurfaceInsideBox<T>(CylinderSDF<T>(Vec3(T(-0.2), T(-0.5), T(0.1)), Vec3(T(0.3), T(0.6), T(-0.2)), T(0.4)),
+                               T(2));
+  }
+  SECTION("InfiniteCylinderSDF")
+  {
+    const InfiniteCylinderSDF<T> shape(Vec3(T(0.1), T(0.2), T(0)), T(0.5), 1);
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.4), -big, T(-0.5)), Vec3(T(0.6), big, T(0.5)));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("CapsuleSDF")
+  {
+    const CapsuleSDF<T> shape(Vec3(T(0), T(0), T(-1)), Vec3(T(0), T(0), T(1)), T(0.4));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.4), T(-0.4), T(-1)), Vec3(T(0.4), T(0.4), T(1)));
+    requireSurfaceInsideBox<T>(CapsuleSDF<T>(Vec3(T(0), T(0), T(-1)), Vec3(T(0.2), T(0.1), T(1.5)), T(0.4)), T(2));
+  }
+  SECTION("InfiniteConeSDF")
+  {
+    const InfiniteConeSDF<T> shape(Vec3(T(0), T(0.5), T(0)), T(50));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(-big, -big, -big), Vec3(big, T(0.5), big));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("ConeSDF")
+  {
+    const ConeSDF<T> shape(Vec3(T(0), T(0.8), T(0)), T(1.5), T(60));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(-r30, T(-0.7), -r30), Vec3(r30, T(0.8), r30));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("RoundedBoxSDF")
+  {
+    const RoundedBoxSDF<T> shape(Vec3(T(0.1), T(-0.1), T(0.2)), Vec3(T(1.2), T(0.8), T(0.6)), T(0.1));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.5), T(-0.5), T(-0.1)), Vec3(T(0.7), T(0.3), T(0.5)));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("RoundedCylinderSDF")
+  {
+    const RoundedCylinderSDF<T> shape(Vec3(T(-0.1), T(0.2), T(0.1)), T(0.8), T(0.2), T(1.6));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.9), T(-0.6), T(-0.7)), Vec3(T(0.7), T(1), T(0.9)));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("PlaneSDF and PerlinSDF fill all of space")
+  {
+    requireBox<T>(PlaneSDF<T>().computeBoundingVolume(), Vec3(-big, -big, -big), Vec3(big, big, big));
+    requireBox<T>(PerlinSDF<T>().computeBoundingVolume(), Vec3(-big, -big, -big), Vec3(big, big, big));
+  }
+}
+
+namespace {
+
+// A type without a distanceQuality member.
+struct NoQualityDeclared
+{
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Analytic shapes: distance quality", "[AnalyticSDF]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr auto Exact = DistanceQuality::Exact;
+
+  // Every shape but the noise passes the exactness oracle above.
+  STATIC_REQUIRE(PlaneSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(SphereSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(BoxSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(TorusSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(CylinderSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(InfiniteCylinderSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(CapsuleSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(InfiniteConeSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(ConeSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(RoundedBoxSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(RoundedCylinderSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(PerlinSDF<T>::distanceQuality == DistanceQuality::NotADistance);
+
+  STATIC_REQUIRE(FlatMeshSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(MeshSDF<T, 4>::distanceQuality == Exact);
+  STATIC_REQUIRE(TriMeshSDF<T, 4, 4>::distanceQuality == Exact);
+
+  // A union is exact outside its primitives but only a bound inside where they overlap, and only a
+  // sign if its primitives are.
+  STATIC_REQUIRE(BVHUnion<T, SphereSDF<T>, 4>::distanceQuality == DistanceQuality::Bound);
+  STATIC_REQUIRE(BVHSmoothUnion<T, SphereSDF<T>, 4>::distanceQuality == DistanceQuality::Bound);
+  STATIC_REQUIRE(BVHUnion<T, PerlinSDF<T>, 4>::distanceQuality == DistanceQuality::NotADistance);
+  STATIC_REQUIRE(BVHSmoothUnion<T, PerlinSDF<T>, 4>::distanceQuality == DistanceQuality::NotADistance);
+
+  // The trait reads the member, and takes a type without one to be a bound.
+  STATIC_REQUIRE(distanceQualityOf<SphereSDF<T>> == Exact);
+  STATIC_REQUIRE(distanceQualityOf<PerlinSDF<T>> == DistanceQuality::NotADistance);
+  STATIC_REQUIRE(distanceQualityOf<NoQualityDeclared> == DistanceQuality::Bound);
 }
 
 TEMPLATE_TEST_CASE("CapsuleSDF: tips exactly two radii apart give a sphere, not NaN",
@@ -501,11 +755,11 @@ TEST_CASE("Analytic shapes: invalid constructor arguments abort with a message",
 
   REQUIRE(abortsWith(
     [] {
-      const RoundedBoxSDF<T> box(Vec3(1, 0, 1), T(0.1));
+      const RoundedBoxSDF<T> box(Vec3(0, 0, 0), Vec3(1, 0.2, 1), T(0.1));
 
       (void)box;
     },
-    "RoundedBoxSDF: the dimensions must be finite and positive (1, 0, 1)"));
+    "RoundedBoxSDF: the size (1, 0.2, 1) must be finite and exceed twice the curvature (0.1)"));
 
   REQUIRE(abortsWith(
     [] {
@@ -517,7 +771,7 @@ TEST_CASE("Analytic shapes: invalid constructor arguments abort with a message",
 
   REQUIRE(abortsWith(
     [] {
-      const RoundedCylinderSDF<T> cylinder(T(1), T(0.5), T(1));
+      const RoundedCylinderSDF<T> cylinder(Vec3(0, 0, 0), T(1), T(0.5), T(1));
 
       (void)cylinder;
     },
@@ -568,6 +822,63 @@ TEMPLATE_TEST_CASE("Analytic shapes: device signedDistance matches the host",
     INFO(a_name);
     requireSameResults(evaluateOnDevice<T>(ShapeDistanceQuery<T, Shape>{a_shape}, points),
                        evaluateOnHost<T>(ShapeDistanceQuery<T, Shape>{a_shape}, points));
+  };
+
+  check(shapes.plane, "PlaneSDF");
+  check(shapes.sphere, "SphereSDF");
+  check(shapes.box, "BoxSDF");
+  check(shapes.torus, "TorusSDF");
+  check(shapes.cylinder, "CylinderSDF");
+  check(shapes.infiniteCylinder, "InfiniteCylinderSDF");
+  check(shapes.capsule, "CapsuleSDF");
+  check(shapes.infiniteCone, "InfiniteConeSDF");
+  check(shapes.cone, "ConeSDF");
+  check(shapes.roundedBox, "RoundedBoxSDF");
+  check(shapes.perlin, "PerlinSDF");
+  check(shapes.roundedCylinder, "RoundedCylinderSDF");
+}
+
+namespace {
+
+// One bounding-box coordinate per query: 0-2 are the low corner, 3-5 the high corner.
+template <class T, class Shape>
+struct ShapeBoxQuery
+{
+  Shape m_shape;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const int& a_coordinate) const noexcept
+  {
+    const BoundingVolumes::AABBT<T> box = m_shape.computeBoundingVolume();
+
+    return a_coordinate < 3 ? box.getLowCorner()[size_t(a_coordinate)] : box.getHighCorner()[size_t(a_coordinate - 3)];
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Analytic shapes: device computeBoundingVolume matches the host",
+                   "[AnalyticSDF][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const AllShapes<T>     shapes;
+  const std::vector<int> coordinates{0, 1, 2, 3, 4, 5};
+
+  const auto check = [&](const auto& a_shape, const char* a_name) {
+    using Shape = std::decay_t<decltype(a_shape)>;
+
+    INFO(a_name);
+    requireSameResults(evaluateOnDevice<T>(ShapeBoxQuery<T, Shape>{a_shape}, coordinates),
+                       evaluateOnHost<T>(ShapeBoxQuery<T, Shape>{a_shape}, coordinates));
   };
 
   check(shapes.plane, "PlaneSDF");

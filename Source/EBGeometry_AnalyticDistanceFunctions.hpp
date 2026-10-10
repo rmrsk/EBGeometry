@@ -10,6 +10,18 @@
  * a shape can be copied into a kernel by value and evaluated there. Constructors run on the host.
  * The shapes are not ImplicitFunction objects, so they cannot be passed to the CSG operations or
  * the transforms; composing them returns with the tape.
+ *
+ * Conventions shared by every shape:
+ * - Placement first: each constructor takes the shape's position (a center, corner, tip or point)
+ *   before its sizes. PerlinSDF, which fills all of space, has none.
+ * - One axis: a shape with a fixed axis has it along y (Torus, InfiniteCone, Cone,
+ *   RoundedCylinder, and the defaults of Cylinder, InfiniteCylinder, Capsule and Plane). Cylinder
+ *   and Capsule take two end points, and InfiniteCylinder an axis index, so they can point anywhere.
+ * - Outer sizes: a size is that of the finished shape, rounding included.
+ * - computeBoundingVolume() returns the shape's axis-aligned bounding box. Along a direction in
+ *   which the shape is unbounded, the box extends to plus or minus Math::Limits<T>::max().
+ * - distanceQuality says how far signedDistance() can be trusted as a distance (DistanceQuality).
+ *   Every shape is Exact except PerlinSDF, which is NotADistance.
  * @author Robert Marskar
  */
 
@@ -27,6 +39,7 @@
 #include "EBGeometry_Array.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Constants.hpp"
+#include "EBGeometry_DistanceQuality.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
@@ -48,6 +61,11 @@ class PlaneSDF
   static_assert(std::is_floating_point_v<T>, "PlaneSDF<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Default constructor. Constructs the y = 0 plane with outward normal (0, 1, 0).
    * @details The default plane passes through the origin and separates y < 0 (negative SDF) from
@@ -123,6 +141,18 @@ public:
     return dot((a_point - m_point), m_normal);
   }
 
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details A plane is unbounded in every direction a box can describe, so the box is the whole space.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(Vec3T<T>::min(), Vec3T<T>::max());
+  }
+
 protected:
   /**
    * @brief Point on plane.
@@ -148,6 +178,11 @@ class SphereSDF
   static_assert(std::is_floating_point_v<T>, "SphereSDF<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Default constructor. Constructs a unit sphere centered at the origin.
    */
@@ -257,6 +292,18 @@ public:
     return (a_point - m_center).length() - m_radius;
   }
 
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The center plus and minus the radius along each axis.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(m_center - m_radius * Vec3T<T>::ones(), m_center + m_radius * Vec3T<T>::ones());
+  }
+
 protected:
   /**
    * @brief Sphere center.
@@ -283,6 +330,11 @@ class BoxSDF
   static_assert(std::is_floating_point_v<T>, "BoxSDF<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Default constructor. Constructs a unit cube centered at the origin: [-0.5, 0.5]^3.
    */
@@ -419,6 +471,18 @@ public:
     return d;
   }
 
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The box itself.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(m_loCorner, m_hiCorner);
+  }
+
 protected:
   /**
    * @brief Low box corner.
@@ -433,10 +497,10 @@ protected:
 
 /**
  * @brief Signed distance field for a torus.
- * @details The torus ring lies in the xy-plane and is centred at `m_center`. The major radius
- * `m_majorRadius` is the distance from the torus centre to the centre-line of the tube; the minor
- * radius `m_minorRadius` is the tube radius. The bounding box spans
- * `[center ± (majorRadius + minorRadius)]` in x and y, and `[center ± minorRadius]` in z.
+ * @details The torus ring lies in the xz-plane, around an axis along y, and is centred at
+ * `m_center`. The major radius `m_majorRadius` is the distance from the torus centre to the
+ * centre-line of the tube; the minor radius `m_minorRadius` is the tube radius. The bounding box
+ * spans `[center ± (majorRadius + minorRadius)]` in x and z, and `[center ± minorRadius]` in y.
  * The SDF is negative inside the tube and positive outside. The minor radius must be strictly
  * less than the major radius; otherwise the tube would self-intersect at the torus centre.
  * By default the torus is centred at the origin with major radius 1 and minor radius 0.5.
@@ -448,6 +512,11 @@ class TorusSDF
   static_assert(std::is_floating_point_v<T>, "TorusSDF<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Default constructor. Constructs a torus centered at the origin with major radius 1 and minor radius 0.5.
    */
@@ -585,10 +654,25 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
     const Vec3T<T> p   = a_point - m_center;
-    const T        rho = std::sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
-    const T        d   = std::sqrt(rho * rho + p[2] * p[2]) - m_minorRadius;
+    const T        rho = std::sqrt(p[0] * p[0] + p[2] * p[2]) - m_majorRadius;
+    const T        d   = std::sqrt(rho * rho + p[1] * p[1]) - m_minorRadius;
 
     return d;
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The ring plus the tube radius in x and z, the tube radius alone in y.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T        outer = m_majorRadius + m_minorRadius;
+    const Vec3T<T> half(outer, m_minorRadius, outer);
+
+    return BoundingVolumes::AABBT<T>(m_center - half, m_center + half);
   }
 
 protected:
@@ -623,6 +707,11 @@ class CylinderSDF
   static_assert(std::is_floating_point_v<T>, "CylinderSDF<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centred at the
    * origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
@@ -771,6 +860,25 @@ public:
     return d;
   }
 
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The box around the two cap discs: along axis i, each disc reaches the radius times
+   * sqrt(1 - axis_i^2) beyond its center.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    Vec3T<T> reach;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      reach[dir] = m_radius * std::sqrt(Math::max(T(0), T(1) - m_axis[dir] * m_axis[dir]));
+    }
+
+    return BoundingVolumes::AABBT<T>(min(m_center1, m_center2) - reach, max(m_center1, m_center2) + reach);
+  }
+
 protected:
   /**
    * @brief One endpoint (cap center).
@@ -818,6 +926,11 @@ class InfiniteCylinderSDF
   static_assert(std::is_floating_point_v<T>, "InfiniteCylinderSDF<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Default constructor. Constructs an infinite cylinder of radius 1 centred at the origin
    * with its axis along y (axis index 1).
@@ -892,6 +1005,24 @@ public:
     return d;
   }
 
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The center plus and minus the radius across the axis, and unbounded along it.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    Vec3T<T> lo = m_center - m_radius * Vec3T<T>::ones();
+    Vec3T<T> hi = m_center + m_radius * Vec3T<T>::ones();
+
+    lo[m_axis] = -Math::Limits<T>::max();
+    hi[m_axis] = Math::Limits<T>::max();
+
+    return BoundingVolumes::AABBT<T>(lo, hi);
+  }
+
 protected:
   /**
    * @brief Center point on the cylinder axis.
@@ -932,6 +1063,11 @@ class CapsuleSDF
   static_assert(std::is_floating_point_v<T>, "CapsuleSDF<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Default constructor. Constructs a capsule with tips at (0,-1,0) and (0,1,0), radius 0.5.
    * @details Total height = 2, cylindrical body length = 1, aligned along y, centred at origin.
@@ -1027,6 +1163,19 @@ public:
     return d;
   }
 
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The two hemisphere centres plus and minus the radius along each axis.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(min(m_center1, m_center2) - m_radius * Vec3T<T>::ones(),
+                                     max(m_center1, m_center2) + m_radius * Vec3T<T>::ones());
+  }
+
 protected:
   /**
    * @brief Center of one hemispherical cap.
@@ -1046,8 +1195,8 @@ protected:
 
 /**
  * @brief Signed distance field for an infinite cone.
- * @details The cone tip is at `m_tip`. The cone body opens in the **-z** direction from the tip
- * (the interior, where SDF < 0, is the solid region extending downward along -z within the
+ * @details The cone tip is at `m_tip`. The cone body opens in the **-y** direction from the tip
+ * (the interior, where SDF < 0, is the solid region extending downward along -y within the
  * cone surface). The full opening angle `a_angle` (tip-to-tip across the cone) is halved
  * internally; the half-angle is stored as `m_c = (std::sin(half_angle), std::cos(half_angle))`.
  *
@@ -1056,7 +1205,7 @@ protected:
  * `d * std::tan(half_angle)`.
  *
  * The cone is infinite: it has no base plane. By default the tip is at the origin and the full
- * opening angle is 45°, with the body extending along -z.
+ * opening angle is 45°, with the body extending along -y.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -1066,8 +1215,13 @@ class InfiniteConeSDF
 
 public:
   /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
    * @brief Default constructor. Constructs an infinite cone with tip at the origin, 45° full
-   * opening angle, and body extending in the -z direction.
+   * opening angle, and body extending in the -y direction.
    */
   InfiniteConeSDF() = default;
 
@@ -1132,12 +1286,28 @@ public:
     EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
 
     const Vec3T<T> delta = a_point - m_tip;
-    const Vec2T<T> q(std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
+    const Vec2T<T> q(std::sqrt(delta[0] * delta[0] + delta[2] * delta[2]), -delta[1]);
 
     const T d1 = length(q - m_c * Math::max(dot(q, m_c), T(0.0)));
     const T d2 = d1 * ((q.x * m_c.y - q.y * m_c.x < T(0.0)) ? T(-1.0) : T(1.0));
 
     return d2;
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details Bounded above by the tip in y, and unbounded below it and in x and z.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    Vec3T<T> hi = Vec3T<T>::max();
+
+    hi[1] = m_tip[1];
+
+    return BoundingVolumes::AABBT<T>(Vec3T<T>::min(), hi);
   }
 
 protected:
@@ -1154,8 +1324,8 @@ protected:
 
 /**
  * @brief Signed distance field for a finite cone.
- * @details The cone tip is at `m_tip` and the body opens in the **-z** direction, so the base
- * disc lies at `m_tip + (0, 0, -m_height)`. The full opening angle `a_angle` is the tip-to-tip
+ * @details The cone tip is at `m_tip` and the body opens in the **-y** direction, so the base
+ * disc lies at `m_tip + (0, -m_height, 0)`. The full opening angle `a_angle` is the tip-to-tip
  * apex angle; internally the half-angle is encoded as `m_c = (std::sin(half_angle), std::cos(half_angle))`.
  * The base radius equals `m_height * std::tan(half_angle) = m_height * m_c.x / m_c.y`.
  *
@@ -1171,8 +1341,13 @@ class ConeSDF
 
 public:
   /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
    * @brief Default constructor. Constructs a finite cone with its tip at the origin, height 1,
-   * and a 45-degree opening angle, body extending in the -z direction.
+   * and a 45-degree opening angle, body extending in the -y direction.
    */
   ConeSDF() = default;
 
@@ -1241,8 +1416,8 @@ public:
     EBGEOMETRY_EXPECT(m_c.y > T(0));
 
     const Vec3T<T> delta = a_point - m_tip;
-    const T        dr    = std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
-    const T        dz    = delta[2];
+    const T        dr    = std::sqrt(delta[0] * delta[0] + delta[2] * delta[2]);
+    const T        dz    = delta[1];
 
     constexpr T zero = T(0.0);
     constexpr T one  = T(1.0);
@@ -1259,6 +1434,22 @@ public:
     const T s = Math::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
 
     return std::sqrt(d) * sign(s);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details In y, from the base disc a height below the tip up to the tip; in x and z, the base
+   * radius (the height times the tangent of the half-angle) either side of the axis.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T baseRadius = m_height * m_c.x / m_c.y;
+
+    return BoundingVolumes::AABBT<T>(m_tip - Vec3T<T>(baseRadius, m_height, baseRadius),
+                                     m_tip + Vec3T<T>(baseRadius, T(0), baseRadius));
   }
 
 protected:
@@ -1279,13 +1470,11 @@ protected:
 };
 
 /**
- * @brief Signed distance field for an axis-aligned box with rounded corners.
- * @details The box is centred at the origin. The constructor takes the full side lengths along
- * each axis and a corner curvature radius. Internally, half-extents `m_dimensions = 0.5 *
- * a_dimensions` are stored. The actual bounding half-extent in each direction is
- * `m_dimensions[i] + curvature`, so the total bounding box has full side lengths
- * `a_dimensions[i] + 2 * curvature`. The corners are rounded by spheres of radius `curvature`.
- * The SDF is negative inside and positive outside.
+ * @brief Signed distance field for an axis-aligned box with rounded edges and corners.
+ * @details The constructor takes the box's center, its outer size (the full side lengths of the
+ * finished, rounded box, which is also its bounding box) and the rounding radius. The rounding is
+ * a sphere of that radius swept over an inner box whose half-extents, `m_dimensions = 0.5 * size -
+ * curvature`, are stored. The SDF is negative inside and positive outside.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -1295,32 +1484,44 @@ class RoundedBoxSDF
 
 public:
   /**
-   * @brief Default constructor. Constructs a rounded unit cube centered at the origin
-   * ([-0.5, 0.5]^3 before rounding) with corner curvature 0.1.
-   * @details Total half-extent in each direction is 0.5 + 0.1 = 0.6.
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a rounded unit cube, [-0.5, 0.5]^3, centered at the
+   * origin, with rounding radius 0.1.
    */
   RoundedBoxSDF() = default;
 
   /**
    * @brief Full constructor.
-   * @details The total half-extent in direction @p i is @c 0.5*a_dimensions[i] + a_curvature.
-   * @param[in] a_dimensions Box dimensions (full side lengths before rounding).
-   * @param[in] a_curvature  Corner sphere radius. Must be > 0.
+   * @param[in] a_center    Box center.
+   * @param[in] a_size      Outer size: the full side lengths of the rounded box. Each must exceed
+   * twice the rounding radius.
+   * @param[in] a_curvature Rounding radius of the edges and corners. Must be > 0.
    */
-  RoundedBoxSDF(const Vec3T<T>& a_dimensions, const T a_curvature) noexcept
+  RoundedBoxSDF(const Vec3T<T>& a_center, const Vec3T<T>& a_size, const T a_curvature) noexcept
   {
-    EBGEOMETRY_REQUIRE(std::isfinite(a_dimensions[0]) && std::isfinite(a_dimensions[1]) &&
-                         std::isfinite(a_dimensions[2]) && a_dimensions[0] > T(0) && a_dimensions[1] > T(0) &&
-                         a_dimensions[2] > T(0),
-                       "RoundedBoxSDF: the dimensions must be finite and positive (%g, %g, %g)",
-                       double(a_dimensions[0]),
-                       double(a_dimensions[1]),
-                       double(a_dimensions[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
+                       "RoundedBoxSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
     EBGEOMETRY_REQUIRE(std::isfinite(a_curvature) && a_curvature > T(0),
                        "RoundedBoxSDF: the curvature must be finite and positive (%g)",
                        double(a_curvature));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_size[0]) && std::isfinite(a_size[1]) && std::isfinite(a_size[2]) &&
+                         a_size[0] > T(2) * a_curvature && a_size[1] > T(2) * a_curvature &&
+                         a_size[2] > T(2) * a_curvature,
+                       "RoundedBoxSDF: the size (%g, %g, %g) must be finite and exceed twice the curvature (%g)",
+                       double(a_size[0]),
+                       double(a_size[1]),
+                       double(a_size[2]),
+                       double(a_curvature));
 
-    m_dimensions = T(0.5) * a_dimensions;
+    m_center     = a_center;
+    m_dimensions = T(0.5) * a_size - a_curvature * Vec3T<T>::ones();
     m_curvature  = a_curvature;
   }
 
@@ -1364,14 +1565,28 @@ public:
     // q is the point's per-axis distance beyond the inner box (negative inside it). Outside, the
     // distance to the inner box is the length of q's positive part; inside, it is the distance to
     // the nearest face, max(q) <= 0. Either way the rounding moves the surface out by m_curvature.
-    const Vec3T<T> q(std::abs(a_point[0]) - m_dimensions[0],
-                     std::abs(a_point[1]) - m_dimensions[1],
-                     std::abs(a_point[2]) - m_dimensions[2]);
+    const Vec3T<T> p = a_point - m_center;
+    const Vec3T<T> q(
+      std::abs(p[0]) - m_dimensions[0], std::abs(p[1]) - m_dimensions[1], std::abs(p[2]) - m_dimensions[2]);
 
     const T outside = length(max(q, Vec3T<T>::zeros()));
     const T inside  = Math::min(Math::max(q[0], Math::max(q[1], q[2])), T(0));
 
     return outside + inside - m_curvature;
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The center plus and minus half the outer size.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const Vec3T<T> half = m_dimensions + m_curvature * Vec3T<T>::ones();
+
+    return BoundingVolumes::AABBT<T>(m_center - half, m_center + half);
   }
 
 protected:
@@ -1381,9 +1596,14 @@ protected:
   T m_curvature = T(0.1);
 
   /**
-   * @brief Half-extents of the inner box (= 0.5 * the user-supplied dimensions).
+   * @brief Box center.
    */
-  Vec3T<T> m_dimensions = Vec3T<T>(T(0.5), T(0.5), T(0.5));
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
+  /**
+   * @brief Half-extents of the inner box (= 0.5 * outer size - curvature).
+   */
+  Vec3T<T> m_dimensions = Vec3T<T>(T(0.4), T(0.4), T(0.4));
 };
 
 /**
@@ -1406,6 +1626,12 @@ class PerlinSDF
   static_assert(std::is_floating_point_v<T>, "PerlinSDF<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: not at all. The value is noise, so
+   * only its sign means anything.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::NotADistance;
+
   /**
    * @brief Default constructor. Constructs a single-octave Perlin noise field with unit amplitude,
    * unit frequency along all axes, and persistence 0.5: the full constructor with those values.
@@ -1549,6 +1775,18 @@ public:
     return m_permutationTable;
   }
 
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details Noise fills all of space, so the box is the whole space.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(Vec3T<T>::min(), Vec3T<T>::max());
+  }
+
 protected:
   /**
    * @brief Ken Perlin's original 256-entry permutation table.
@@ -1689,8 +1927,8 @@ protected:
 
 /**
  * @brief Signed distance field for a cylinder with rounded (toroidal) edges.
- * @details The cylinder is centred at the origin with its axis along **y**. The constructor
- * takes the outer radius, the total height, and an edge curvature radius. The curvature rounds
+ * @details The cylinder is centred at `m_center` with its axis along **y**. The constructor
+ * takes the center, the outer radius, the edge curvature radius and the total height. The curvature rounds
  * the sharp edges where the flat caps meet the cylindrical wall; the resulting shape is sometimes
  * called a "stadium of revolution" or a "pill cylinder".
  *
@@ -1716,6 +1954,11 @@ class RoundedCylinderSDF
 
 public:
   /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
    * @brief Default constructor. Constructs a rounded cylinder centred at the origin, axis along y,
    * with outer radius 1, total height 1, and edge curvature 0.1.
    */
@@ -1723,13 +1966,19 @@ public:
 
   /**
    * @brief Full constructor.
+   * @param[in] a_center    Cylinder center.
    * @param[in] a_radius    Outer cylinder radius. Must be > 0 and > a_curvature.
    * @param[in] a_curvature Edge rounding radius. Must be > 0 and satisfy
    * a_curvature < a_radius and 2 * a_curvature < a_height.
    * @param[in] a_height    Total cylinder height. Must be > 0 and > 2 * a_curvature.
    */
-  RoundedCylinderSDF(const T a_radius, const T a_curvature, const T a_height) noexcept
+  RoundedCylinderSDF(const Vec3T<T>& a_center, const T a_radius, const T a_curvature, const T a_height) noexcept
   {
+    EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
+                       "RoundedCylinderSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
     EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
                        "RoundedCylinderSDF: the radius must be finite and positive (%g)",
                        double(a_radius));
@@ -1748,6 +1997,7 @@ public:
                        double(a_curvature),
                        double(a_height));
 
+    m_center      = a_center;
     m_majorRadius = a_radius - a_curvature;
     m_minorRadius = a_curvature;
     m_height      = T(0.5) * a_height - a_curvature;
@@ -1790,14 +2040,35 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    const T    xz = std::sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
-    const auto d1 = Vec2T<T>(xz - m_majorRadius, std::abs(a_point[1]) - m_height);
-    const auto d2 = Vec2T<T>(Math::max(d1.x, T(0)), Math::max(d1.y, T(0)));
+    const Vec3T<T> p  = a_point - m_center;
+    const T        xz = std::sqrt(p[2] * p[2] + p[0] * p[0]);
+    const auto     d1 = Vec2T<T>(xz - m_majorRadius, std::abs(p[1]) - m_height);
+    const auto     d2 = Vec2T<T>(Math::max(d1.x, T(0)), Math::max(d1.y, T(0)));
 
     return Math::min(Math::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
   }
 
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The outer radius either side of the axis in x and z, and half the height in y.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T        radius = m_majorRadius + m_minorRadius;
+    const Vec3T<T> half(radius, m_height + m_minorRadius, radius);
+
+    return BoundingVolumes::AABBT<T>(m_center - half, m_center + half);
+  }
+
 protected:
+  /**
+   * @brief Cylinder center.
+   */
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
   /**
    * @brief Inner cylinder radius (= outer radius - curvature).
    */
