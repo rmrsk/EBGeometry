@@ -85,6 +85,28 @@ signedDistance(const P& a_primitive, const Vec3T<T>& a_point, [[maybe_unused]] c
 }
 
 /**
+ * @brief What a BVH union is built into: a BVH over the primitives whose bounding box is bounded,
+ * and a single leaf (or nothing) holding those whose box is unbounded in some direction.
+ * @details Internal helper; not part of the public API. Both live in the same Pool.
+ * @tparam T Floating-point precision.
+ * @tparam P Primitive type.
+ * @tparam K BVH branching factor.
+ */
+template <class T, class P, size_t K>
+struct UnionParts
+{
+  /**
+   * @brief BVH over the primitives with bounded boxes.
+   */
+  BVH::PackedBVH<T, P, K> bvh;
+
+  /**
+   * @brief The primitives with unbounded boxes, as one leaf; empty if there are none.
+   */
+  BVH::PackedBVH<T, P, K> unbounded;
+};
+
+/**
  * @brief The leaf-size settings BVHUnion and BVHSmoothUnion use without options.
  * @details Internal helper. Reproduces the trees the unions built before the settings existed: K-1
  * primitives per leaf for the top-down methods (a node with fewer than K becomes a leaf), a target
@@ -120,7 +142,16 @@ defaultUnionOptions() noexcept
  * primitive's value is not positive): a primitive skipped because its box is further away than the
  * best value so far is positive at the query point, so skipping it never changes the union's sign.
  * Its value is a distance bound if the primitives' values are, and only a sign if they are
- * DistanceQuality::NotADistance (see distanceQuality). A pool-resident primitive (a mesh distance function or a union) must have been built in
+ * DistanceQuality::NotADistance (see distanceQuality).
+ *
+ * A primitive whose bounding box is unbounded in some direction (it reaches plus or minus
+ * Math::Limits<T>::max(), as an InfiniteCylinderSDF's does along its axis) is kept out of the BVH:
+ * such boxes would make every ancestor's box unbounded and the build heuristics meaningless. Those
+ * primitives are evaluated at every query instead, before the traversal, so their values can prune
+ * it. A union of many bounded primitives and a few unbounded ones costs the BVH query plus one
+ * evaluation per unbounded primitive.
+ *
+ * A pool-resident primitive (a mesh distance function or a union) must have been built in
  * the same Pool as this union, and is relocated to the union's location as it is evaluated (see
  * PoolLocation). The constructor checks this, and that there is one bounding volume per primitive,
  * in every build, and aborts with a message if either fails.
@@ -218,19 +249,30 @@ public:
 
   /**
    * @brief The axis-aligned bounding box enclosing all primitives.
-   * @return The root bounding volume of the BVH.
+   * @return The BVH's root box merged with the boxes of the unbounded primitives.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BV
   computeBoundingVolume() const noexcept;
 
   /**
-   * @brief Get the packed BVH over the primitives.
+   * @brief Get the packed BVH over the primitives whose bounding box is bounded.
+   * @details The primitives with unbounded boxes are not in it; see getUnboundedPrimitives().
    * @return The BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline const Root&
   getBVH() const noexcept;
+
+  /**
+   * @brief Get the primitives whose bounding box is unbounded, which every query evaluates.
+   * @details The span is a resolved address into pool memory; the lifetime caveat of
+   * BVH::PackedBVH::getPrimitives() applies.
+   * @return Span over those primitives; empty if there are none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PODSpan<const P>
+  getUnboundedPrimitives() const noexcept;
 
   /**
    * @brief Produce a copy of this union that resolves against @p a_pool.
@@ -276,17 +318,33 @@ public:
 
 private:
   /**
-   * @brief Adopt an already built BVH; used by rebasedView(), deepCopy() and relocatedTo().
-   * @param[in] a_bvh The BVH.
+   * @brief Adopt the built parts; used by the constructors.
+   * @param[in] a_parts The BVH and the unbounded primitives.
    */
-  EBGEOMETRY_HOST_DEVICE
-  explicit BVHUnion(const Root& a_bvh) noexcept : m_bvh(a_bvh)
+  EBGEOMETRY_HOST
+  explicit BVHUnion(const CSGDetail::UnionParts<T, P, K>& a_parts) noexcept
+    : m_bvh(a_parts.bvh), m_unbounded(a_parts.unbounded)
   {}
 
   /**
-   * @brief Packed BVH over all primitives, held by value.
+   * @brief Adopt an already built BVH and unbounded leaf; used by rebasedView(), deepCopy() and
+   * relocatedTo().
+   * @param[in] a_bvh       The BVH.
+   * @param[in] a_unbounded The unbounded primitives.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  BVHUnion(const Root& a_bvh, const Root& a_unbounded) noexcept : m_bvh(a_bvh), m_unbounded(a_unbounded)
+  {}
+
+  /**
+   * @brief Packed BVH over the primitives with bounded boxes, held by value.
    */
   Root m_bvh;
+
+  /**
+   * @brief The primitives with unbounded boxes, as a single leaf (or empty), held by value.
+   */
+  Root m_unbounded;
 };
 
 /**
@@ -397,19 +455,30 @@ public:
 
   /**
    * @brief The axis-aligned bounding box enclosing all primitives.
-   * @return The root bounding volume of the BVH.
+   * @return The BVH's root box merged with the boxes of the unbounded primitives.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BV
   computeBoundingVolume() const noexcept;
 
   /**
-   * @brief Get the packed BVH over the primitives.
+   * @brief Get the packed BVH over the primitives whose bounding box is bounded.
+   * @details The primitives with unbounded boxes are not in it; see getUnboundedPrimitives().
    * @return The BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline const Root&
   getBVH() const noexcept;
+
+  /**
+   * @brief Get the primitives whose bounding box is unbounded, which every query evaluates.
+   * @details The span is a resolved address into pool memory; the lifetime caveat of
+   * BVH::PackedBVH::getPrimitives() applies.
+   * @return Span over those primitives; empty if there are none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PODSpan<const P>
+  getUnboundedPrimitives() const noexcept;
 
   /**
    * @brief Produce a copy of this smooth union that resolves against @p a_pool; see
@@ -450,20 +519,42 @@ public:
 
 private:
   /**
-   * @brief Adopt an already built BVH; used by rebasedView(), deepCopy() and relocatedTo().
+   * @brief Adopt the built parts; used by the constructors.
+   * @param[in] a_parts     The BVH and the unbounded primitives.
+   * @param[in] a_smoothLen Smoothing length; a nonpositive one is replaced by the smallest positive
+   * value, and the public constructors reject it.
+   * @param[in] a_blend     Smooth-minimum operator.
+   */
+  EBGEOMETRY_HOST
+  BVHSmoothUnion(const CSGDetail::UnionParts<T, P, K>& a_parts, T a_smoothLen, Blend a_blend) noexcept
+    : m_bvh(a_parts.bvh),
+      m_unbounded(a_parts.unbounded),
+      m_smoothLen(Math::max(a_smoothLen, Math::Limits<T>::min())),
+      m_blend(a_blend)
+  {}
+
+  /**
+   * @brief Adopt an already built BVH and unbounded leaf; used by rebasedView(), deepCopy() and
+   * relocatedTo().
    * @param[in] a_bvh       The BVH.
+   * @param[in] a_unbounded The unbounded primitives.
    * @param[in] a_smoothLen Smoothing length.
    * @param[in] a_blend     Smooth-minimum operator.
    */
   EBGEOMETRY_HOST_DEVICE
-  BVHSmoothUnion(const Root& a_bvh, T a_smoothLen, Blend a_blend) noexcept
-    : m_bvh(a_bvh), m_smoothLen(a_smoothLen), m_blend(a_blend)
+  BVHSmoothUnion(const Root& a_bvh, const Root& a_unbounded, T a_smoothLen, Blend a_blend) noexcept
+    : m_bvh(a_bvh), m_unbounded(a_unbounded), m_smoothLen(a_smoothLen), m_blend(a_blend)
   {}
 
   /**
-   * @brief Packed BVH over all primitives, held by value.
+   * @brief Packed BVH over the primitives with bounded boxes, held by value.
    */
   Root m_bvh;
+
+  /**
+   * @brief The primitives with unbounded boxes, as a single leaf (or empty), held by value.
+   */
+  Root m_unbounded;
 
   /**
    * @brief Smoothing length.

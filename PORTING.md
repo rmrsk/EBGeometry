@@ -194,7 +194,9 @@ so the shape API was settled first:
   directions, which a heterogeneous union in the tape needs (CSG-7);
 * a static `distanceQuality` (`Exact`, `Bound` or `NotADistance`) on every shape, mesh SDF and
   union, read by `distanceQualityOf<P>`; a BVH union derives its own from its primitive's. The
-  tape's shape trait can check the same member.
+  tape's shape trait can check the same member;
+* a BVH union keeps primitives with unbounded boxes out of its BVH and scans them every query,
+  which a heterogeneous union in the tape (a ground plane among meshes, say) will need as well.
 
 **A toolkit that can run kernels.** There is still no CUDA or ROCm runtime on the development
 machine, so no `[gpu]` case has ever run on a real device. What exists instead covers most of it:

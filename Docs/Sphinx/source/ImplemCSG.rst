@@ -358,6 +358,14 @@ fields, whose ``signedDistance()`` can be called on the host or inside a GPU ker
   value is then as good a distance as the primitives': with ``Exact`` primitives it equals the plain
   minimum, with ``Bound`` primitives it is still a bound, and with ``NotADistance`` primitives only
   its sign means anything, which the union's ``distanceQuality`` reports.
+* **Primitives with unbounded boxes.** A primitive whose box reaches plus or minus the largest
+  finite value of ``T`` in some direction, such as an infinite cylinder, would make the box of
+  every BVH node above it unbounded and give the build heuristics nothing to work with. The union
+  keeps such primitives out of the BVH and evaluates them at every query, before the traversal, so
+  that their values can prune it: a union of many bounded primitives and a few unbounded ones costs
+  the BVH query plus one evaluation per unbounded primitive. ``getBVH()`` holds the bounded
+  primitives and ``getUnboundedPrimitives()`` the others, and ``computeBoundingVolume()`` covers
+  both.
 * **Built in a** ``Pool``. The constructor takes the ``Pool`` to reserve the BVH from, the
   primitives, and one bounding box per primitive, which the BVH needs up front (an analytic shape's
   ``computeBoundingVolume()``, for example), plus an optional

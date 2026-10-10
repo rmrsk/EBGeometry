@@ -433,17 +433,17 @@ lineQueryPoints()
   return pts;
 }
 
-// Brute-force smooth union: blend the two smallest sphere values found by a full linear scan instead
-// of the pruned BVH traversal.
-template <class T, class Blend>
+// Brute-force smooth union: blend the two smallest primitive values found by a full linear scan
+// instead of the pruned BVH traversal.
+template <class T, class Primitive, class Blend>
 T
-bruteTwoNearest(const std::vector<SphereSDF<T>>& a_spheres, const Vec3T<T>& a_point, const T a_smoothLen, Blend a_blend)
+bruteTwoNearest(const std::vector<Primitive>& a_primitives, const Vec3T<T>& a_point, const T a_smoothLen, Blend a_blend)
 {
   T a = std::numeric_limits<T>::infinity();
   T b = std::numeric_limits<T>::infinity();
 
-  for (const auto& sphere : a_spheres) {
-    const T d = sphere.signedDistance(a_point);
+  for (const auto& primitive : a_primitives) {
+    const T d = primitive.signedDistance(a_point);
 
     if (d < a) {
       b = a;
@@ -938,6 +938,10 @@ TEMPLATE_TEST_CASE("BVHUnion: primitives with unbounded boxes match brute force"
     for (const auto build : allConstructions) {
       const BVHUnion<T, P, 4> bvhUnion(pool, a_primitives, bvs, build);
 
+      // Every box is unbounded, so the BVH is empty and every primitive is scanned.
+      REQUIRE(bvhUnion.getBVH().getPrimitives().size() == 0);
+      REQUIRE(bvhUnion.getUnboundedPrimitives().size() == a_primitives.size());
+
       for (int i = 0; i < 500; i++) {
         const Vec3 p(T(2) * coord(rng), T(2) * coord(rng), T(2) * coord(rng));
 
@@ -954,6 +958,193 @@ TEMPLATE_TEST_CASE("BVHUnion: primitives with unbounded boxes match brute force"
 
   check(cylinders);
   check(cones);
+}
+
+namespace {
+
+// Either a sphere or an infinite cylinder: one primitive type with bounded and unbounded members.
+template <class T>
+struct SphereOrCylinder
+{
+  SphereSDF<T>           m_sphere;
+  InfiniteCylinderSDF<T> m_cylinder;
+  bool                   m_isCylinder = false;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_isCylinder ? m_cylinder.signedDistance(a_point) : m_sphere.signedDistance(a_point);
+  }
+
+  BV<T>
+  computeBoundingVolume() const noexcept
+  {
+    return m_isCylinder ? m_cylinder.computeBoundingVolume() : m_sphere.computeBoundingVolume();
+  }
+};
+
+// 300 small spheres scattered in [-6, 6]^3 and four thin infinite cylinders, one along x, two along
+// y and one along z.
+template <class T>
+std::vector<SphereOrCylinder<T>>
+spheresAndCylinders()
+{
+  std::mt19937                      rng(97531);
+  std::uniform_real_distribution<T> coord(T(-6), T(6));
+
+  std::vector<SphereOrCylinder<T>> primitives;
+
+  for (int i = 0; i < 300; i++) {
+    primitives.push_back({SphereSDF<T>(Vec3T<T>(coord(rng), coord(rng), coord(rng)), T(0.3)), {}, false});
+  }
+
+  for (const size_t axis : {size_t(0), size_t(1), size_t(2), size_t(1)}) {
+    primitives.push_back(
+      {{}, InfiniteCylinderSDF<T>(Vec3T<T>(coord(rng), coord(rng), coord(rng)), T(0.2), axis), true});
+  }
+
+  return primitives;
+}
+
+template <class T, class Primitive>
+std::vector<BV<T>>
+boxesOf(const std::vector<Primitive>& a_primitives)
+{
+  std::vector<BV<T>> bvs;
+
+  bvs.reserve(a_primitives.size());
+
+  for (const auto& primitive : a_primitives) {
+    bvs.push_back(primitive.computeBoundingVolume());
+  }
+
+  return bvs;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("BVH unions: primitives with unbounded boxes are kept out of the BVH and still evaluated",
+                   "[CSG][BVHUnion][BVHSmoothUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Prim = SphereOrCylinder<T>;
+
+  const auto primitives = spheresAndCylinders<T>();
+  const auto bvs        = boxesOf<T>(primitives);
+  const T    smoothLen  = T(0.5);
+
+  std::mt19937                      rng(8642);
+  std::uniform_real_distribution<T> coord(T(-8), T(8));
+
+  std::vector<Vec3> points;
+
+  for (int i = 0; i < 400; i++) {
+    points.emplace_back(coord(rng), coord(rng), coord(rng));
+  }
+
+  Pool pool(hostMemoryResource());
+
+  for (const auto build : allConstructions) {
+    const BVHUnion<T, Prim, 4>       sharp(pool, primitives, bvs, build);
+    const BVHSmoothUnion<T, Prim, 4> smooth(pool, primitives, bvs, smoothLen, SmoothMinOp<T>{}, build);
+
+    REQUIRE(sharp.getBVH().getPrimitives().size() == 300);
+    REQUIRE(sharp.getUnboundedPrimitives().size() == 4);
+    REQUIRE(smooth.getUnboundedPrimitives().size() == 4);
+
+    for (const auto& p : points) {
+      T bruteForce = Math::Limits<T>::max();
+
+      for (const auto& primitive : primitives) {
+        bruteForce = Math::min(bruteForce, primitive.signedDistance(p));
+      }
+
+      REQUIRE_THAT(sharp.signedDistance(p), withinAbsT(bruteForce, exactMargin<T>()));
+      REQUIRE_THAT(smooth.signedDistance(p),
+                   withinAbsT(bruteTwoNearest(primitives, p, smoothLen, SmoothMinOp<T>{}), exactMargin<T>()));
+    }
+
+    // The union's box takes in the cylinders' boxes: unbounded along x, y and z.
+    const BV<T> box = sharp.computeBoundingVolume();
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      REQUIRE(box.getLowCorner()[dir] == -Math::Limits<T>::max());
+      REQUIRE(box.getHighCorner()[dir] == Math::Limits<T>::max());
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHUnion: host-mirror, deep and nested copies keep the unbounded primitives",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T      = TestType;
+  using Union  = BVHUnion<T, SphereOrCylinder<T>, 4>;
+  using Smooth = BVHSmoothUnion<T, SphereOrCylinder<T>, 4>;
+  using Nested = BVHUnion<T, Union, 4>;
+
+  const auto queries = EBGeometryTestGPU::queryGrid<T>(Vec3T<T>(T(-8), T(-8), T(-8)), Vec3T<T>(T(8), T(8), T(8)), 12);
+
+  std::vector<T> expected;
+  std::vector<T> expectedSmooth;
+
+  Pool mirror(hostMemoryResource());
+  Pool copyPool(hostMemoryResource());
+
+  std::optional<Union>  mirrorView;
+  std::optional<Smooth> smoothMirrorView;
+  std::optional<Nested> nestedMirrorView;
+  std::optional<Union>  deepCopied;
+  std::optional<Smooth> smoothDeepCopied;
+  std::optional<Nested> nestedDeepCopied;
+
+  {
+    Pool pool(hostMemoryResource());
+
+    const auto   primitives = spheresAndCylinders<T>();
+    const auto   bvs        = boxesOf<T>(primitives);
+    const Union  sharp(pool, primitives, bvs);
+    const Smooth smooth(pool, primitives, bvs, T(0.5));
+
+    // The inner union's box is unbounded, so the outer union holds it -- a pool-resident primitive --
+    // in its own unbounded leaf.
+    const Nested nested(pool, {sharp}, {sharp.computeBoundingVolume()});
+
+    REQUIRE(nested.getUnboundedPrimitives().size() == 1);
+
+    for (const auto& p : queries) {
+      expected.push_back(sharp.signedDistance(p));
+      expectedSmooth.push_back(smooth.signedDistance(p));
+    }
+
+    deepCopied.emplace(sharp.deepCopy(copyPool));
+    smoothDeepCopied.emplace(smooth.deepCopy(copyPool));
+    nestedDeepCopied.emplace(nested.deepCopy(copyPool));
+
+    pool.freeze();
+    mirror = Pool::mirror(pool, hostMemoryResource());
+
+    mirrorView.emplace(sharp.rebasedView(mirror));
+    smoothMirrorView.emplace(smooth.rebasedView(mirror));
+    nestedMirrorView.emplace(nested.rebasedView(mirror));
+  }
+
+  // The source pool is gone; every copy resolves both its BVH and its unbounded primitives against
+  // its own pool.
+  REQUIRE(deepCopied->isAttachedTo(copyPool));
+  REQUIRE(nestedDeepCopied->isAttachedTo(copyPool));
+
+  for (size_t i = 0; i < queries.size(); i++) {
+    REQUIRE(mirrorView->signedDistance(queries[i]) == expected[i]);
+    REQUIRE(nestedMirrorView->signedDistance(queries[i]) == expected[i]);
+    REQUIRE(deepCopied->signedDistance(queries[i]) == expected[i]);
+    REQUIRE(nestedDeepCopied->signedDistance(queries[i]) == expected[i]);
+    REQUIRE(smoothMirrorView->signedDistance(queries[i]) == expectedSmooth[i]);
+    REQUIRE(smoothDeepCopied->signedDistance(queries[i]) == expectedSmooth[i]);
+  }
 }
 
 TEMPLATE_TEST_CASE("BVHUnion::computeBoundingVolume encloses every input sphere",
@@ -1133,6 +1324,11 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
   const BVHSmoothUnion<T, SphereSDF<T>, 4> smoothUnion(pool, sphereRow<T>(), sphereRowBVs<T>(), T(0.6));
   const BVHUnion<T, TestTriMesh<T>, 4>     meshUnion(pool, meshes, boundingVolumes(meshes));
 
+  // Spheres and infinite cylinders: the unbounded leaf is scanned on the device too.
+  const auto                                      mixed = spheresAndCylinders<T>();
+  const BVHUnion<T, SphereOrCylinder<T>, 4>       mixedUnion(pool, mixed, boxesOf<T>(mixed));
+  const BVHSmoothUnion<T, SphereOrCylinder<T>, 4> mixedSmooth(pool, mixed, boxesOf<T>(mixed), T(0.5));
+
   pool.freeze();
 
   Pool devicePool = Pool::mirror(pool, deviceTestResource());
@@ -1156,6 +1352,11 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
   check(sphereUnion, spherePoints);
   check(smoothUnion, spherePoints);
   check(meshUnion, meshPoints);
+
+  const auto mixedPoints = queryGrid<T>(Vec3T<T>(T(-8), T(-8), T(-8)), Vec3T<T>(T(8), T(8), T(8)), 16);
+
+  check(mixedUnion, mixedPoints);
+  check(mixedSmooth, mixedPoints);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

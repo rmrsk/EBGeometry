@@ -34,7 +34,90 @@ namespace EBGeometry {
 namespace CSGDetail {
 
 /**
- * @brief Build the packed BVH of a BVH union using the requested strategy.
+ * @brief Build the BVH over a BVH union's bounded primitives using the requested strategy.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam P Primitive type.
+ * @tparam K BVH branching factor.
+ * @param[in,out] a_pool         Pool to reserve the BVH from.
+ * @param[in]     a_primsAndBVs  Primitives and their bounded boxes (must be non-empty).
+ * @param[in]     a_construction Preset construction method; every BVH::Construction value is supported.
+ * @param[in]     a_options      Leaf-size settings; the chosen method reads only its own field.
+ * @return The packed BVH.
+ */
+template <class T, class P, size_t K>
+[[nodiscard]] EBGEOMETRY_HOST
+inline BVH::PackedBVH<T, P, K>
+buildBoundedBVH(Pool&                                                  a_pool,
+                std::vector<std::pair<P, BoundingVolumes::AABBT<T>>>&& a_primsAndBVs,
+                const BVH::Construction                                a_construction,
+                const BVH::ConstructionOptions&                        a_options)
+{
+  using BV   = BoundingVolumes::AABBT<T>;
+  using Root = BVH::PackedBVH<T, P, K>;
+
+  const size_t maxLeafSize = a_options.maxLeafSize;
+
+  const BVH::LeafPredicate<T, P, BV, K> stopCrit = [maxLeafSize](const BVH::TreeBVH<T, P, BV, K>& a_node) noexcept {
+    return a_node.getPrimitives().size() <= maxLeafSize;
+  };
+
+  switch (a_construction) {
+  case BVH::Construction::CentroidSplit: {
+    return Root(a_pool, std::move(a_primsAndBVs), BVH::BVCentroidPartitioner<T, P, BV, K>, stopCrit);
+  }
+  case BVH::Construction::MidpointSplit: {
+    return Root(a_pool, std::move(a_primsAndBVs), BVH::MidpointPartitioner<T, P, BV, K>, stopCrit);
+  }
+  case BVH::Construction::ClusterSAH: {
+    return Root(a_pool, std::move(a_primsAndBVs), a_options.cluster);
+  }
+  case BVH::Construction::Morton: {
+    return Root(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize, SFC::Morton{});
+  }
+  case BVH::Construction::Nested: {
+    return Root(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize, SFC::Nested{});
+  }
+  case BVH::Construction::Hilbert: {
+    return Root(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize, SFC::Hilbert{});
+  }
+  case BVH::Construction::SAH:
+  default: {
+    EBGEOMETRY_REQUIRE(a_construction == BVH::Construction::SAH,
+                       "BVHUnion: unknown BVH::Construction value (%d)",
+                       static_cast<int>(a_construction));
+
+    return Root(a_pool, std::move(a_primsAndBVs), BVH::BinnedSAHPartitioner<T, P, BV, K>, stopCrit);
+  }
+  }
+}
+
+/**
+ * @brief Whether a bounding box is unbounded in some direction.
+ * @details Internal helper; not part of the public API. A box is unbounded where a corner reaches
+ * plus or minus Math::Limits<T>::max() (or infinity), or is NaN.
+ * @tparam T Floating-point precision.
+ * @param[in] a_bv Bounding box.
+ * @return True if the box is unbounded in at least one direction.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST
+inline bool
+isUnbounded(const BoundingVolumes::AABBT<T>& a_bv) noexcept
+{
+  for (size_t dir = 0; dir < 3; dir++) {
+    if (!(a_bv.getLowCorner()[dir] > -Math::Limits<T>::max()) ||
+        !(a_bv.getHighCorner()[dir] < Math::Limits<T>::max())) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * @brief Build the parts of a BVH union using the requested strategy: a BVH over the primitives
+ * with bounded boxes, and a single leaf holding those with unbounded ones.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @tparam P Primitive type.
@@ -44,19 +127,20 @@ namespace CSGDetail {
  * @param[in]     a_boundingVolumes Bounding box of each primitive.
  * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
  * @param[in]     a_options         Leaf-size settings; the chosen method reads only its own field.
- * @return The packed BVH.
+ * @return The BVH and the unbounded leaf.
  */
 template <class T, class P, size_t K>
 [[nodiscard]] EBGEOMETRY_HOST
-inline BVH::PackedBVH<T, P, K>
-buildBVH(Pool&                                         a_pool,
-         const std::vector<P>&                         a_primitives,
-         const std::vector<BoundingVolumes::AABBT<T>>& a_boundingVolumes,
-         const BVH::Construction                       a_construction,
-         const BVH::ConstructionOptions&               a_options)
+inline UnionParts<T, P, K>
+buildUnionParts(Pool&                                         a_pool,
+                const std::vector<P>&                         a_primitives,
+                const std::vector<BoundingVolumes::AABBT<T>>& a_boundingVolumes,
+                const BVH::Construction                       a_construction,
+                const BVH::ConstructionOptions&               a_options)
 {
   using BV   = BoundingVolumes::AABBT<T>;
   using Root = BVH::PackedBVH<T, P, K>;
+  using Node = typename Root::Node;
 
   // Each check guards against a mistake that a Release build would otherwise turn into a silent wrong
   // answer or an out-of-bounds read, and runs once at build time, costing nothing per evaluation.
@@ -80,50 +164,47 @@ buildBVH(Pool&                                         a_pool,
     }
   }
 
+  BVH::detail::requireLeafSetting("BVHUnion", a_construction, a_options);
+
+  // A primitive with an unbounded box goes into one leaf that every query scans, so that its box
+  // neither makes every ancestor's box unbounded nor reaches the build heuristics.
   std::vector<std::pair<P, BV>> primsAndBVs;
+  std::vector<P>                unboundedPrims;
+  BV                            unboundedBox;
 
   primsAndBVs.reserve(a_primitives.size());
 
   for (size_t i = 0; i < a_primitives.size(); i++) {
-    primsAndBVs.emplace_back(a_primitives[i], a_boundingVolumes[i]);
+    if (isUnbounded(a_boundingVolumes[i])) {
+      unboundedPrims.push_back(a_primitives[i]);
+
+      unboundedBox = unboundedBox.merged(a_boundingVolumes[i]);
+    }
+    else {
+      primsAndBVs.emplace_back(a_primitives[i], a_boundingVolumes[i]);
+    }
   }
 
-  BVH::detail::requireLeafSetting("BVHUnion", a_construction, a_options);
+  std::vector<Node> unboundedNodes;
 
-  const size_t maxLeafSize = a_options.maxLeafSize;
+  if (!unboundedPrims.empty()) {
+    Node leaf;
 
-  const BVH::LeafPredicate<T, P, BV, K> stopCrit = [maxLeafSize](const BVH::TreeBVH<T, P, BV, K>& a_node) noexcept {
-    return a_node.getPrimitives().size() <= maxLeafSize;
-  };
+    leaf.setBoundingVolume(unboundedBox);
+    leaf.setPrimitivesOffset(0U);
+    leaf.setNumPrimitives(static_cast<uint32_t>(unboundedPrims.size()));
 
-  switch (a_construction) {
-  case BVH::Construction::CentroidSplit: {
-    return Root(a_pool, std::move(primsAndBVs), BVH::BVCentroidPartitioner<T, P, BV, K>, stopCrit);
+    unboundedNodes.push_back(leaf);
   }
-  case BVH::Construction::MidpointSplit: {
-    return Root(a_pool, std::move(primsAndBVs), BVH::MidpointPartitioner<T, P, BV, K>, stopCrit);
-  }
-  case BVH::Construction::ClusterSAH: {
-    return Root(a_pool, std::move(primsAndBVs), a_options.cluster);
-  }
-  case BVH::Construction::Morton: {
-    return Root(a_pool, std::move(primsAndBVs), a_options.targetLeafSize, SFC::Morton{});
-  }
-  case BVH::Construction::Nested: {
-    return Root(a_pool, std::move(primsAndBVs), a_options.targetLeafSize, SFC::Nested{});
-  }
-  case BVH::Construction::Hilbert: {
-    return Root(a_pool, std::move(primsAndBVs), a_options.targetLeafSize, SFC::Hilbert{});
-  }
-  case BVH::Construction::SAH:
-  default: {
-    EBGEOMETRY_REQUIRE(a_construction == BVH::Construction::SAH,
-                       "BVHUnion: unknown BVH::Construction value (%d)",
-                       static_cast<int>(a_construction));
 
-    return Root(a_pool, std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, BV, K>, stopCrit);
+  Root unbounded(a_pool, unboundedNodes, unboundedPrims);
+
+  if (primsAndBVs.empty()) {
+    return UnionParts<T, P, K>{Root(a_pool, std::vector<Node>{}, std::vector<P>{}), unbounded};
   }
-  }
+
+  return UnionParts<T, P, K>{buildBoundedBVH<T, P, K>(a_pool, std::move(primsAndBVs), a_construction, a_options),
+                             unbounded};
 }
 
 /**
@@ -215,7 +296,7 @@ BVHUnion<T, P, K>::BVHUnion(Pool&                           a_pool,
                             const std::vector<BV>&          a_boundingVolumes,
                             const BVH::Construction         a_construction,
                             const BVH::ConstructionOptions& a_options)
-  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_construction, a_options))
+  : BVHUnion(CSGDetail::buildUnionParts<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_construction, a_options))
 {}
 
 template <class T, class P, size_t K>
@@ -228,6 +309,14 @@ BVHUnion<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
   T minDist = Math::Limits<T>::infinity();
+
+  // The unbounded primitives first, so that their values can prune the traversal.
+  const auto         unbounded         = m_unbounded.getPrimitives();
+  const PoolLocation unboundedLocation = m_unbounded.location();
+
+  for (uint32_t i = 0; i < unbounded.size(); i++) {
+    minDist = Math::min(minDist, CSGDetail::signedDistance<T>(unbounded[i], a_point, unboundedLocation));
+  }
 
   const auto         primitives = m_bvh.getPrimitives();
   const PoolLocation location   = m_bvh.location();
@@ -262,7 +351,7 @@ EBGEOMETRY_HOST_DEVICE
 inline typename BVHUnion<T, P, K>::BV
 BVHUnion<T, P, K>::computeBoundingVolume() const noexcept
 {
-  return m_bvh.computeBoundingVolume();
+  return m_bvh.computeBoundingVolume().merged(m_unbounded.computeBoundingVolume());
 }
 
 template <class T, class P, size_t K>
@@ -274,13 +363,22 @@ BVHUnion<T, P, K>::getBVH() const noexcept
 }
 
 template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline PODSpan<const P>
+BVHUnion<T, P, K>::getUnboundedPrimitives() const noexcept
+{
+  return m_unbounded.getPrimitives();
+}
+
+template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline BVHUnion<T, P, K>
 BVHUnion<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
 {
   CSGDetail::checkPrimitivesRebase(m_bvh, a_pool);
+  CSGDetail::checkPrimitivesRebase(m_unbounded, a_pool);
 
-  return BVHUnion(m_bvh.rebasedView(a_pool));
+  return BVHUnion(m_bvh.rebasedView(a_pool), m_unbounded.rebasedView(a_pool));
 }
 
 template <class T, class P, size_t K>
@@ -288,7 +386,11 @@ EBGEOMETRY_HOST
 inline BVHUnion<T, P, K>
 BVHUnion<T, P, K>::deepCopy(Pool& a_dstPool) const
 {
-  return BVHUnion(CSGDetail::deepCopyBVH(m_bvh, a_dstPool));
+  // Both parts go into a_dstPool, so the copy resolves them against one pool, as the original does.
+  const Root bvh       = CSGDetail::deepCopyBVH(m_bvh, a_dstPool);
+  const Root unbounded = CSGDetail::deepCopyBVH(m_unbounded, a_dstPool);
+
+  return BVHUnion(bvh, unbounded);
 }
 
 template <class T, class P, size_t K>
@@ -296,7 +398,7 @@ EBGEOMETRY_HOST_DEVICE
 inline BVHUnion<T, P, K>
 BVHUnion<T, P, K>::relocatedTo(const PoolLocation& a_location) const noexcept
 {
-  return BVHUnion(m_bvh.relocatedTo(a_location));
+  return BVHUnion(m_bvh.relocatedTo(a_location), m_unbounded.relocatedTo(a_location));
 }
 
 template <class T, class P, size_t K>
@@ -333,9 +435,10 @@ BVHSmoothUnion<T, P, K, Blend>::BVHSmoothUnion(Pool&                           a
                                                const Blend                     a_blend,
                                                const BVH::Construction         a_construction,
                                                const BVH::ConstructionOptions& a_options)
-  : m_bvh(CSGDetail::buildBVH<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_construction, a_options)),
-    m_smoothLen(Math::max(a_smoothLen, Math::Limits<T>::min())),
-    m_blend(a_blend)
+  : BVHSmoothUnion(
+      CSGDetail::buildUnionParts<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_construction, a_options),
+      a_smoothLen,
+      a_blend)
 {
   EBGEOMETRY_REQUIRE(
     a_smoothLen > T(0), "BVHSmoothUnion: the smoothing length must be positive (%g)", double(a_smoothLen));
@@ -360,23 +463,33 @@ BVHSmoothUnion<T, P, K, Blend>::signedDistance(const Vec3T<T>& a_point) const no
 
   Closest closest;
 
+  const auto insert = [](Closest& a_closest, const T a_value) noexcept {
+    EBGEOMETRY_EXPECT(!std::isnan(a_value));
+
+    if (a_value < a_closest.a) {
+      a_closest.b = a_closest.a;
+      a_closest.a = a_value;
+    }
+    else if (a_value < a_closest.b) {
+      a_closest.b = a_value;
+    }
+  };
+
+  // The unbounded primitives first, so that their values can prune the traversal.
+  const auto         unbounded         = m_unbounded.getPrimitives();
+  const PoolLocation unboundedLocation = m_unbounded.location();
+
+  for (uint32_t i = 0; i < unbounded.size(); i++) {
+    insert(closest, CSGDetail::signedDistance<T>(unbounded[i], a_point, unboundedLocation));
+  }
+
   const auto         primitives = m_bvh.getPrimitives();
   const PoolLocation location   = m_bvh.location();
 
   const auto evalLeaf =
-    [&primitives, &a_point, &location](Closest& a_closest, size_t a_offset, size_t a_count) noexcept {
+    [&primitives, &a_point, &location, &insert](Closest& a_closest, size_t a_offset, size_t a_count) noexcept {
       for (size_t i = a_offset; i < a_offset + a_count; i++) {
-        const T d = CSGDetail::signedDistance<T>(primitives[static_cast<uint32_t>(i)], a_point, location);
-
-        EBGEOMETRY_EXPECT(!std::isnan(d));
-
-        if (d < a_closest.a) {
-          a_closest.b = a_closest.a;
-          a_closest.a = d;
-        }
-        else if (d < a_closest.b) {
-          a_closest.b = d;
-        }
+        insert(a_closest, CSGDetail::signedDistance<T>(primitives[static_cast<uint32_t>(i)], a_point, location));
       }
     };
 
@@ -400,7 +513,7 @@ EBGEOMETRY_HOST_DEVICE
 inline typename BVHSmoothUnion<T, P, K, Blend>::BV
 BVHSmoothUnion<T, P, K, Blend>::computeBoundingVolume() const noexcept
 {
-  return m_bvh.computeBoundingVolume();
+  return m_bvh.computeBoundingVolume().merged(m_unbounded.computeBoundingVolume());
 }
 
 template <class T, class P, size_t K, class Blend>
@@ -412,13 +525,22 @@ BVHSmoothUnion<T, P, K, Blend>::getBVH() const noexcept
 }
 
 template <class T, class P, size_t K, class Blend>
+EBGEOMETRY_HOST_DEVICE
+inline PODSpan<const P>
+BVHSmoothUnion<T, P, K, Blend>::getUnboundedPrimitives() const noexcept
+{
+  return m_unbounded.getPrimitives();
+}
+
+template <class T, class P, size_t K, class Blend>
 EBGEOMETRY_HOST
 inline BVHSmoothUnion<T, P, K, Blend>
 BVHSmoothUnion<T, P, K, Blend>::rebasedView(const Pool& a_pool) const noexcept
 {
   CSGDetail::checkPrimitivesRebase(m_bvh, a_pool);
+  CSGDetail::checkPrimitivesRebase(m_unbounded, a_pool);
 
-  return BVHSmoothUnion(m_bvh.rebasedView(a_pool), m_smoothLen, m_blend);
+  return BVHSmoothUnion(m_bvh.rebasedView(a_pool), m_unbounded.rebasedView(a_pool), m_smoothLen, m_blend);
 }
 
 template <class T, class P, size_t K, class Blend>
@@ -426,7 +548,11 @@ EBGEOMETRY_HOST
 inline BVHSmoothUnion<T, P, K, Blend>
 BVHSmoothUnion<T, P, K, Blend>::deepCopy(Pool& a_dstPool) const
 {
-  return BVHSmoothUnion(CSGDetail::deepCopyBVH(m_bvh, a_dstPool), m_smoothLen, m_blend);
+  // Both parts go into a_dstPool, so the copy resolves them against one pool, as the original does.
+  const Root bvh       = CSGDetail::deepCopyBVH(m_bvh, a_dstPool);
+  const Root unbounded = CSGDetail::deepCopyBVH(m_unbounded, a_dstPool);
+
+  return BVHSmoothUnion(bvh, unbounded, m_smoothLen, m_blend);
 }
 
 template <class T, class P, size_t K, class Blend>
@@ -434,7 +560,7 @@ EBGEOMETRY_HOST_DEVICE
 inline BVHSmoothUnion<T, P, K, Blend>
 BVHSmoothUnion<T, P, K, Blend>::relocatedTo(const PoolLocation& a_location) const noexcept
 {
-  return BVHSmoothUnion(m_bvh.relocatedTo(a_location), m_smoothLen, m_blend);
+  return BVHSmoothUnion(m_bvh.relocatedTo(a_location), m_unbounded.relocatedTo(a_location), m_smoothLen, m_blend);
 }
 
 template <class T, class P, size_t K, class Blend>

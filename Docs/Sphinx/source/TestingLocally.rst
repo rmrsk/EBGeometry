@@ -303,8 +303,11 @@ Test coverage
        :cpp:class:`BVHUnion`/:cpp:class:`BVHSmoothUnion` over spheres (against the virtual
        unions and a brute-force scan, for every build strategy and blend, and with each method's
        leaf-size setting) and over translated
-       ``TriMeshSDF`` objects, including a union of unions; host-mirror and deep copies of a mesh
-       union evaluated after the source pool is destroyed; device results of all three unions
+       ``TriMeshSDF`` objects, including a union of unions; primitives whose values are not
+       distances keeping the union's sign; primitives with unbounded boxes (infinite cylinders and
+       cones, alone and mixed with spheres) kept out of the BVH and matching brute force for every
+       build strategy, through host-mirror, deep and nested copies; host-mirror and deep copies of a
+       mesh union evaluated after the source pool is destroyed; device results of the unions
        against the host. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp`
        to present analytic spheres as ``ImplicitFunction`` objects.
    * - ``TestTransform``
