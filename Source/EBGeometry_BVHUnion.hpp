@@ -22,6 +22,7 @@
 // Our includes
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_Blend.hpp"
+#include "EBGeometry_DistanceQuality.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
@@ -115,7 +116,9 @@ defaultUnionOptions() noexcept
  *
  * P can be any trivially copyable type with an EBGEOMETRY_HOST_DEVICE
  * `signedDistance(const Vec3T<T>&)`: an analytic shape, a mesh distance function, or another BVH
- * union. A pool-resident primitive (a mesh distance function or a union) must have been built in
+ * union. Pruning assumes the primitive's value never overestimates the distance, so a primitive
+ * whose distanceQualityOf is DistanceQuality::NotADistance (such as PerlinSDF) is rejected at
+ * compile time. A pool-resident primitive (a mesh distance function or a union) must have been built in
  * the same Pool as this union, and is relocated to the union's location as it is evaluated (see
  * PoolLocation). The constructor checks this, and that there is one bounding volume per primitive,
  * in every build, and aborts with a message if either fails.
@@ -130,6 +133,14 @@ public:
   static_assert(std::is_floating_point_v<T>, "BVHUnion requires a floating-point type T");
   static_assert(std::is_trivially_copyable_v<P>, "BVHUnion requires a trivially copyable primitive type");
   static_assert(K > 1, "BVHUnion BVH branching factor K must be at least 2");
+  static_assert(distanceQualityOf<P> != DistanceQuality::NotADistance,
+                "BVHUnion prunes by distance, so its primitive's value must be a distance or a bound on one");
+
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: a bound. Outside, the minimum of
+   * exact distances is exact, but inside overlapping primitives it underestimates.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Bound;
 
   /**
    * @brief Alias for the packed BVH type.
@@ -297,6 +308,14 @@ public:
   static_assert(std::is_trivially_copyable_v<P>, "BVHSmoothUnion requires a trivially copyable primitive type");
   static_assert(std::is_trivially_copyable_v<Blend>, "BVHSmoothUnion requires a trivially copyable blend operator");
   static_assert(K > 1, "BVHSmoothUnion BVH branching factor K must be at least 2");
+  static_assert(distanceQualityOf<P> != DistanceQuality::NotADistance,
+                "BVHSmoothUnion prunes by distance, so its primitive's value must be a distance or a bound on one");
+
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: a bound. SmoothMinOp and ExpMinOp
+   * weight the two primitives' gradients by weights that sum to one, so the blend stays 1-Lipschitz.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Bound;
 
   /**
    * @brief Alias for the packed BVH type.

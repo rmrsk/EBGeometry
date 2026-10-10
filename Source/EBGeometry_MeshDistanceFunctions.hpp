@@ -23,6 +23,7 @@
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_DistanceQuality.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_Pool.hpp"
@@ -76,6 +77,12 @@ class FlatMeshSDF
   static_assert(std::is_floating_point_v<T>, "FlatMeshSDF requires a floating-point T");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to a
+   * watertight mesh.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Alias for DCEL mesh type
    */
@@ -227,6 +234,12 @@ class MeshSDF
   static_assert(K >= 2, "MeshSDF requires branching factor K >= 2");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to a
+   * watertight mesh.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Alias for DCEL face type
    */
@@ -479,6 +492,12 @@ class TriMeshSDF
   static_assert(W > 0, "TriMeshSDF requires SoA width W > 0");
 
 public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to a
+   * watertight mesh.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
   /**
    * @brief Alias for DCEL mesh type
    */

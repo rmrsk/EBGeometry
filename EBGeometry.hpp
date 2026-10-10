@@ -23,6 +23,7 @@
 #include "Source/EBGeometry_DCEL_Iterator.hpp"
 #include "Source/EBGeometry_DCEL_Mesh.hpp"
 #include "Source/EBGeometry_DCEL_Vertex.hpp"
+#include "Source/EBGeometry_DistanceQuality.hpp"
 #include "Source/EBGeometry_FunctionQueries.hpp"
 #include "Source/EBGeometry_GPU.hpp"
 #include "Source/EBGeometry_GPURuntime.hpp"

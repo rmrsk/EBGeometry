@@ -221,12 +221,16 @@ Test coverage
        union, with the default (empty) box as its identity; and the same queries on a device.
    * - ``TestAnalyticSDF``
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
-       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF` distances; every
-       exact shape (all but :cpp:class:`PerlinSDF`) checked as a true signed distance function at
-       random points (unit gradient, a step back along the gradient lands on the surface,
-       1-Lipschitz); the capsule's sphere limit and Perlin's defaults; every analytic shape is a
-       trivially copyable, non-polymorphic value type; the device
-       ``signedDistance()`` of all twelve shapes matches the host.
+       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF`,
+       :cpp:class:`RoundedCylinderSDF` distances; the y-axis orientation of the torus and both
+       cones, and the rounded box fitting its outer size; every exact shape (all but
+       :cpp:class:`PerlinSDF`) checked as a true signed distance function at random points (unit
+       gradient, a step back along the gradient lands on the surface, 1-Lipschitz); every shape's
+       ``computeBoundingVolume()`` against its worked-out box, and its surface inside that box at
+       random points; the ``distanceQuality`` of every shape, mesh distance field and BVH union;
+       the capsule's sphere limit and Perlin's defaults; every analytic shape is a trivially
+       copyable, non-polymorphic value type; the device ``signedDistance()`` and
+       ``computeBoundingVolume()`` of all twelve shapes match the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance

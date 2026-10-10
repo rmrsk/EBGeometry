@@ -146,12 +146,12 @@ main(int argc, char* argv[])
   else if (whichGeom == 8) { // Infinite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 30.0);
+    func = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 1.0, 0.0), 30.0);
   }
   else if (whichGeom == 9) { // Finite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 2.0, 30);
+    func = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 1.0, 0.0), 2.0, 30);
   }
   else if (whichGeom == 10) { // Spherical shell.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
@@ -170,7 +170,7 @@ main(int argc, char* argv[])
   else if (whichGeom == 12) { // Rounded box
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::RoundedBoxSDF<T>>(1.0 * Vec3::ones(), 0.1);
+    func = std::make_shared<EBGeometry::RoundedBoxSDF<T>>(Vec3::zeros(), 1.2 * Vec3::ones(), 0.1);
   }
   else if (whichGeom == 13) { // Perlin Random noise function
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
@@ -180,7 +180,7 @@ main(int argc, char* argv[])
   else if (whichGeom == 14) { // Rounded cylinder
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::RoundedCylinderSDF<T>>(0.5, 0.1, 1.0);
+    func = std::make_shared<EBGeometry::RoundedCylinderSDF<T>>(Vec3::zeros(), 0.5, 0.1, 1.0);
   }
 
   // AMReX uses the opposite sign.

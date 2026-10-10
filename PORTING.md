@@ -13,9 +13,9 @@ Until the tape starts, [AUDIT.md](AUDIT.md) carries the remaining sequence (its 
 inputs to the tape's design (its Appendix A). Audit item 26 moves what is still live from it into
 this file and the tape design document, and deletes it.
 
-Status, through audit item 23: every class meant to run on a device is ported, and the pre-tape
-audit's Phases 0–2 are done. Two things remain before the tape: the shape conventions (audit item
-24), and a machine that can run kernels (see "Before the tape").
+Status, through audit item 24: every class meant to run on a device is ported, the pre-tape audit's
+Phases 0–2 are done, and the shape conventions (audit item 24) are settled. One thing remains before
+the tape: a machine that can run kernels (see "Before the tape").
 
 ## The one rule
 
@@ -183,10 +183,18 @@ second tape.
 
 ### Before the tape
 
-**Shape conventions (audit item 24, D10).** One placement convention and one axis convention for
-every shape, a `computeBoundingVolume()` on each (CSG-7), and the distance quality of each shape
-documented (exact distance or a bound). The tape freezes each opcode's parameter layout, so the
-shape API is settled first.
+**Shape conventions (audit item 24, D10): done.** The tape freezes each opcode's parameter layout,
+so the shape API was settled first:
+
+* every constructor takes the shape's position before its sizes, so `RoundedBoxSDF` and
+  `RoundedCylinderSDF` gained a center;
+* a built-in axis is along y, so the torus ring lies in the xz-plane and the cones open along −y;
+* a size is the finished shape's, so `RoundedBoxSDF` takes the box it fits;
+* every shape has a host-device `computeBoundingVolume()`, unbounded only along unbounded
+  directions, which a heterogeneous union in the tape needs (CSG-7);
+* a static `distanceQuality` (`Exact`, `Bound` or `NotADistance`) on every shape, mesh SDF and
+  union, read by `distanceQualityOf<P>`, which the BVH unions `static_assert` on. The tape's shape
+  trait can check the same member.
 
 **A toolkit that can run kernels.** There is still no CUDA or ROCm runtime on the development
 machine, so no `[gpu]` case has ever run on a real device. What exists instead covers most of it:
