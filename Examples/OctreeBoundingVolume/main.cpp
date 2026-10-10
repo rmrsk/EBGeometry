@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
+#include <type_traits>
 
 #include <EBGeometry.hpp>
 
@@ -52,5 +54,38 @@ main()
 
   std::cout << "Approximate bounding volume of the union = " << unionBV << '\n';
 
-  return 0;
+  // Check both against the exact boxes, worked out from the shapes. Every leaf cell the surface
+  // passes through is kept, so the estimate holds the exact box, and it can overshoot it by at most
+  // one leaf cell's diagonal on each side.
+  const T cellDiagonal = std::sqrt(T(3)) * (initHi[0] - initLo[0]) / T(1U << maxDepth);
+  const T tolerance    = std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-12);
+
+  const auto encloses = [&](const BoundingVolumes::AABBT<T>& a_estimate, const Vec3& a_lo, const Vec3& a_hi) {
+    bool good = true;
+
+    for (int dir = 0; dir < 3; dir++) {
+      const T loGap = a_lo[dir] - a_estimate.getLowCorner()[dir];
+      const T hiGap = a_estimate.getHighCorner()[dir] - a_hi[dir];
+
+      good = good && (loGap >= -tolerance) && (loGap <= cellDiagonal);
+      good = good && (hiGap >= -tolerance) && (hiGap <= cellDiagonal);
+    }
+
+    return good;
+  };
+
+  // The cone opens along -z from its tip, and its base radius is height * tan(half the angle).
+  const T    coneRadius = T(2.0) * std::tan(T(30.0) * pi<T> / T(180));
+  const bool coneGood   = encloses(coneBV, Vec3(-coneRadius, -coneRadius, T(-2)), Vec3(coneRadius, coneRadius, T(0)));
+
+  // The torus sets x and y, the sphere the bottom and the capsule the top. The capsule's tips are its
+  // outermost points along its axis, so its top is the upper hemisphere's center plus its radius.
+  const Vec3 axis       = Vec3(T(1.0), T(2.0), T(3.0)) / Vec3(T(1.0), T(2.0), T(3.0)).length();
+  const T    capsuleTop = T(3.0) - T(0.25) * axis[2] + T(0.25);
+  const bool unionGood  = encloses(unionBV, Vec3(T(-2.25), T(-2.25), T(-1)), Vec3(T(2.25), T(2.25), capsuleTop));
+
+  std::cout << "Both boxes hold the exact ones, within one leaf cell: " << ((coneGood && unionGood) ? "yes" : "NO")
+            << '\n';
+
+  return (coneGood && unionGood) ? 0 : 1;
 }

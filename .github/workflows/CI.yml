@@ -128,15 +128,16 @@ jobs:
       - name: Run clang-tidy over the library headers
         run: run-clang-tidy-18 -p build/debug -quiet '(Tests/|Examples/).*\.cpp'
 
+  # The example lanes loop over every folder under Examples/ with a main.cpp, as Examples/CMakeLists.txt
+  # does: the folders are the only list of examples.
   Linux-GNU:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Linux-GNU
+    name: Linux-GNU (${{ matrix.comp }}, every example)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       matrix:
         comp: [g++-11, g++-12]
-        directory: [Examples/CSGUnion, Examples/HostTuning, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
       - uses: actions/checkout@v7
@@ -147,30 +148,31 @@ jobs:
         with:
           packages: ${{ matrix.comp }}
 
-      - name: Compile examples
-        working-directory: ${{ matrix.directory }}
+      # Warnings are errors, except -Wsign-conversion, which the library does not pass yet.
+      - name: Compile and run every example, warnings as errors
         run: |
-          ${{ matrix.comp }} -std=c++17 -I../.. \
-          -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
-          -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
-          -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
-          -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
-          main.cpp
-
-      - name: Run examples
-        working-directory: ${{ matrix.directory }}
-        run: |
-          ./a.out
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+          set -euo pipefail
+          for main in Examples/*/main.cpp; do
+            dir=$(dirname "$main")
+            echo "::group::$dir"
+            (
+              cd "$dir"
+              ${{ matrix.comp }} -std=c++17 -I../.. -Werror -Wno-error=sign-conversion \
+              -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
+              -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+              -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
+              -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
+              main.cpp -o a.out
+              ./a.out
+            )
+            echo "::endgroup::"
+          done
 
   Linux-Intel:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Linux-Intel
+    name: Linux-Intel (every example)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      matrix:
-        directory: [Examples/HostTuning, Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v7
@@ -184,39 +186,47 @@ jobs:
           sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
           sudo apt-get -y install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
 
-      - name: Compile examples
-        working-directory: ${{ matrix.directory }}
+      - name: Compile and run every example, warnings as errors
         run: |
+          set -eo pipefail
           source /opt/intel/oneapi/setvars.sh
-          icpx -std=c++17 -O0 -fp-model=precise -I../.. \
-          -Wall -Warray-bounds -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
-          -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
-          -Wunused-variable -Wwrite-strings -Werror \
-          main.cpp -lstdc++fs
-
-      - name: Run examples
-        working-directory: ${{ matrix.directory }}
-        run: |
-          ./a.out
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+          set -u
+          for main in Examples/*/main.cpp; do
+            dir=$(dirname "$main")
+            echo "::group::$dir"
+            (
+              cd "$dir"
+              icpx -std=c++17 -O0 -fp-model=precise -I../.. \
+              -Wall -Warray-bounds -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
+              -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
+              -Wunused-variable -Wwrite-strings -Werror \
+              main.cpp -o a.out
+              ./a.out
+            )
+            echo "::endgroup::"
+          done
 
   Examples-GNUMake:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Examples (GNUmakefile, ${{ matrix.directory }})
+    name: Examples (GNUmakefile, every example)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        directory: [Examples/CSGUnion, Examples/HostTuning, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - name: Build and run with GNU make
-        working-directory: ${{ matrix.directory }}
-        run: make run
+      - name: Build and run every example with GNU make
+        run: |
+          set -euo pipefail
+          for main in Examples/*/main.cpp; do
+            dir=$(dirname "$main")
+            echo "::group::$dir"
+            make -C "$dir" run
+            echo "::endgroup::"
+          done
 
+  # The CMake example lanes build the examples alone (no unit tests, no Catch2), with warnings as
+  # errors.
   Examples-CMake:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Examples (CMake, debug preset, assertions on)
@@ -226,13 +236,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - name: Cache Catch2 build
-        uses: actions/cache@v6
-        with:
-          path: build/debug/_deps
-          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
-      - name: Configure (debug preset)
-        run: cmake --preset debug
+      - name: Configure (debug preset, examples only)
+        run: cmake --preset debug -DEBGEOMETRY_BUILD_TESTS=OFF -DCMAKE_CXX_FLAGS=-Werror
       - name: Build
         run: cmake --build --preset debug --parallel 2
       # Exercises the CMake-driven example build+run path with assertions enabled --
@@ -252,15 +257,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - name: Cache Catch2 build
-        uses: actions/cache@v6
-        with:
-          path: build/debug/_deps
-          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
       # EBGEOMETRY_PRECISION is a CACHE variable shared by every example's own
       # CMakeLists.txt, so setting it once here applies to all of them.
-      - name: Configure (debug preset, float precision)
-        run: cmake --preset debug -DEBGEOMETRY_PRECISION=float
+      - name: Configure (debug preset, float precision, examples only)
+        run: cmake --preset debug -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_BUILD_TESTS=OFF -DCMAKE_CXX_FLAGS=-Werror
       - name: Build
         run: cmake --build --preset debug --parallel 2
       - name: Run examples

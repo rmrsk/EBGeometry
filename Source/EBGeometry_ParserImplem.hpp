@@ -1198,9 +1198,9 @@ Parser::readVTK(const std::string& a_filename)
             bool foundConnectivity = false;
             while (std::getline(filestream, line)) {
               std::stringstream ss(line);
-              std::string       keyword;
-              ss >> keyword;
-              if (keyword == "CONNECTIVITY") {
+              std::string       token;
+              ss >> token;
+              if (token == "CONNECTIVITY") {
                 foundConnectivity = true;
                 break;
               }

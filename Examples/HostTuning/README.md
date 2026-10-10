@@ -13,8 +13,8 @@ number of triangles or points a leaf evaluates together), and when to use which.
   (any of the three ways below) to compare with the portable width.
 * The host-tuned values, `BVH::HostBranchingRatio<T>()` and `TriangleSoA::HostWidth<T>()` /
   `PointSoA::HostWidth<T>()`, fill one SIMD register under the flags the file is compiled with
-  (this example is built with `-march=native`). Use them only in code that runs on the host alone
-  and is compiled with one set of flags.
+  (built on its own, this example uses `-march=native`). Use them only in code that runs on the host
+  alone and is compiled with one set of flags.
 
 The example builds a point cloud and a triangle mesh both ways, checks that the two give the same
 answers, and times their queries so you can see whether host tuning pays off on your machine.

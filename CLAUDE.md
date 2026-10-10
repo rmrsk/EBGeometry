@@ -32,10 +32,9 @@ git clone --recurse-submodules git@github.com:rmrsk/EBGeometry.git
 ```
 
 The `common-3d-test-models` submodule provides mesh files (`armadillo.obj`, `cow.obj`, ...) used
-by the `MeshSDF`/`CSGUnion` examples. If cloned without
+by the `MeshSDF` example and the mesh integrations. If cloned without
 `--recurse-submodules`, run `git submodule update --init` afterward. It is **not** needed to build
-or test the library itself — only to run those two examples with their default (no-argument)
-input.
+or test the library itself — only to run those with their default (no-argument) input.
 
 ## Compiling
 

@@ -2,6 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// TAPE ACCEPTANCE TEST: a union of a mesh and a sphere, two objects of different types. This file
+// does not compile against the current API, and nothing builds it.
+//
+// It was the CSGUnion example. It unions the two through the virtual ImplicitFunction interface,
+// which neither the mesh SDFs nor the analytic shapes implement any more, and BVHUnion now holds
+// primitives of a single type. A union of different types needs the runtime dispatch of the tape
+// (AUDIT.md decisions D4, D5 and D13). When the tape lands, this program is ported to it and returns
+// to Examples/, and the union must equal the smaller of the two distances everywhere.
+
 #include <algorithm>
 #include <iostream>
 #include <memory>
@@ -29,11 +38,6 @@ using MeshSDF = EBGeometry::FlatMeshSDF<T>;
 int
 main(int argc, char* argv[])
 {
-// Disabled until the tape: the code below predates the GPU port and unions two objects of different
-// types through the virtual ImplicitFunction interface, which neither the mesh SDF nor the sphere
-// implements any more. BVHUnion now holds primitives of a single type; a union of different types
-// needs the runtime dispatch the tape provides. Kept for reference until then.
-#if 0
   // This example shows how to merge two objects of *different* kinds into a single implicit function
   // using a BVH-accelerated CSG union (BVHUnion): a triangulated surface read from a mesh file, and
   // an analytic sphere. Because the two objects have different C++ types, they are combined through
@@ -84,15 +88,4 @@ main(int argc, char* argv[])
   std::cout << "value(far)    = " << csgUnion->value(hi + extent) << "\n";
 
   return 0;
-#else
-  (void)argc;
-  (void)argv;
-
-  std::cout << "This example is temporarily disabled: it unions two objects of different types (a\n"
-               "mesh SDF and an analytic sphere). EBGeometry's BVH-accelerated union (BVHUnion)\n"
-               "holds primitives of a single type, and a union of different types needs the runtime\n"
-               "dispatch of the tape, which is still to come in the GPU port.\n";
-
-  return 0;
-#endif
 }

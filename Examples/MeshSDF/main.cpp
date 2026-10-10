@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <chrono>
+#include <cmath>
 #include <iostream>
 #include <random>
 #include <string>
@@ -66,8 +67,9 @@ try {
   const auto meshSDF = EBGeometry::Parser::readIntoMeshSDF<T, K>(file, pool);
   const auto triSDF  = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool, BVH::Construction::SAH);
 
-  // Sample some random points around the object.
-  constexpr size_t Nsamp = 1000;
+  // Sample some random points around the object. FlatMeshSDF visits every face for every point, so
+  // a few hundred points already take minutes in an unoptimised build on a large mesh.
+  constexpr size_t Nsamp = 100;
 
   Vec3 lo = Vec3::infinity();
   Vec3 hi = -Vec3::infinity();
@@ -76,71 +78,79 @@ try {
     lo = min(lo, v);
     hi = max(hi, v);
   }
+
   const Vec3 delta = hi - lo;
 
-  std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
-
+  // The sample points fill a box three times the size of the mesh's bounding box, with the mesh at its
+  // center, so most lie outside the mesh and some inside. A fixed seed gives the same points on every
+  // run.
+  std::mt19937_64                   rng(12345);
   std::uniform_real_distribution<T> dist(0.0, 1.0);
   std::vector<Vec3>                 ranPoints;
 
   for (size_t i = 0; i < Nsamp; i++) {
-    ranPoints.emplace_back(3 * (lo + delta * Vec3(dist(rng), dist(rng), dist(rng))));
+    ranPoints.emplace_back(lo - delta + T(3) * delta * Vec3(dist(rng), dist(rng), dist(rng)));
   }
 
-  // Compute sum of distances to the random points and time each representation.
-  T dcelSum = 0.0;
-  T meshSum = 0.0;
-  T triSum  = 0.0;
+  // Evaluate each representation at every point, timing each.
+  std::vector<T> dcelDist(Nsamp);
+  std::vector<T> meshDist(Nsamp);
+  std::vector<T> triDist(Nsamp);
 
   const auto t0 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
-    dcelSum += dcelSDF.signedDistance(x);
+
+  for (size_t i = 0; i < Nsamp; i++) {
+    dcelDist[i] = dcelSDF.signedDistance(ranPoints[i]);
   }
+
   const auto t1 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
-    meshSum += meshSDF.signedDistance(x);
+
+  for (size_t i = 0; i < Nsamp; i++) {
+    meshDist[i] = meshSDF.signedDistance(ranPoints[i]);
   }
+
   const auto t2 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
-    triSum += triSDF.signedDistance(x);
+
+  for (size_t i = 0; i < Nsamp; i++) {
+    triDist[i] = triSDF.signedDistance(ranPoints[i]);
   }
+
   const auto t3 = std::chrono::high_resolution_clock::now();
 
   const std::chrono::duration<T, std::micro> dcelTime = t1 - t0;
   const std::chrono::duration<T, std::micro> meshTime = t2 - t1;
   const std::chrono::duration<T, std::micro> triTime  = t3 - t2;
 
-  // Summing Nsamp signed distances in a different order (brute-force scan vs. BVH traversal)
-  // is not bit-for-bit reproducible -- floating-point addition isn't associative -- so compare
-  // the two sums with a relative tolerance rather than requiring exact agreement. float needs a
-  // looser tolerance than double: accumulating Nsamp terms in a different order can land right
-  // at float's own ~1.19e-7 epsilon (observed relative diff ~1.2e-7 on the armadillo mesh, which
-  // a flat 1e-7 tolerance flagged as a mismatch).
-  constexpr T relativeTolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-7);
+  // The three must agree at every point, up to rounding: the BVHs only skip faces that cannot be the
+  // closest, and TriMeshSDF's fan triangulation of a planar convex face gives the same distance. The
+  // rounding scales with the size of the mesh, so the tolerance does too. A mesh with holes can
+  // still disagree on the sign near a hole, since its inside is not well defined there.
+  const T tolerance = (std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-10)) * delta.length();
 
-  bool    mismatch  = false;
-  const T meshScale = std::max(std::abs(dcelSum), std::abs(meshSum));
-  if (std::abs(meshSum - dcelSum) > relativeTolerance * std::max(meshScale, T(1.0))) {
-    std::cerr << "MeshSDF did not give same distance as FlatMeshSDF! Diff = " << meshSum - dcelSum << "\n";
-    mismatch = true;
-  }
-  const T triScale = std::max(std::abs(dcelSum), std::abs(triSum));
-  if (std::abs(triSum - dcelSum) > relativeTolerance * std::max(triScale, T(1.0))) {
-    std::cerr << "TriMeshSDF did not give same distance as FlatMeshSDF! Diff = " << triSum - dcelSum << "\n";
-    mismatch = true;
-  }
-  if (mismatch) {
-    return 1;
+  size_t meshMismatches = 0;
+  size_t triMismatches  = 0;
+
+  for (size_t i = 0; i < Nsamp; i++) {
+    meshMismatches += (std::abs(meshDist[i] - dcelDist[i]) > tolerance) ? 1 : 0;
+    triMismatches += (std::abs(triDist[i] - dcelDist[i]) > tolerance) ? 1 : 0;
   }
 
   // clang-format off
   std::cout << "Bounding box = " << lo << "\t" << hi << "\n";
-  std::cout << "Accumulated distance and time using FlatMeshSDF           = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using MeshSDF (PackedBVH)   = " << meshSum << ", which took " << meshTime.count() / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using TriMeshSDF (PackedBVH)= " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";
-  std::cout << "Relative speedup MeshSDF vs FlatMeshSDF                   = " << dcelTime.count() / meshTime.count() << "\n";
-  std::cout << "Relative speedup TriMeshSDF vs FlatMeshSDF                = " << dcelTime.count() / triTime.count()  << "\n";
+  std::cout << "Time per query using FlatMeshSDF            = " << dcelTime.count() / Nsamp << " us\n";
+  std::cout << "Time per query using MeshSDF (PackedBVH)    = " << meshTime.count() / Nsamp << " us\n";
+  std::cout << "Time per query using TriMeshSDF (PackedBVH) = " << triTime.count()  / Nsamp << " us\n";
+  std::cout << "Relative speedup MeshSDF vs FlatMeshSDF     = " << dcelTime.count() / meshTime.count() << "\n";
+  std::cout << "Relative speedup TriMeshSDF vs FlatMeshSDF  = " << dcelTime.count() / triTime.count()  << "\n";
+  std::cout << "Points where MeshSDF differs from FlatMeshSDF    = " << meshMismatches << " of " << Nsamp << "\n";
+  std::cout << "Points where TriMeshSDF differs from FlatMeshSDF = " << triMismatches << " of " << Nsamp << "\n";
   // clang-format on
+
+  if (meshMismatches > 0 || triMismatches > 0) {
+    std::cerr << "The mesh SDFs disagree by more than " << tolerance << " (is the mesh watertight?)\n";
+
+    return 1;
+  }
 
   return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {

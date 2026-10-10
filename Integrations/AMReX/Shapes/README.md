@@ -1,6 +1,14 @@
 Integrations/AMReX/Shapes
 -------------------------
 
+> [!IMPORTANT]
+> **Parked until the tape.** This example does not compile against the current EBGeometry API. It
+> composes the analytic shapes through the virtual transform and CSG layer (`Offset`, `Elongate`,
+> `Annular`, `SmoothDifference`, `Complement`), which the shapes no longer derive from now that they are
+> plain value types. Composing them returns with the tape, EBGeometry's value-type expression builder;
+> this example is kept as one of its acceptance tests and will be ported to it. The other AMReX
+> integrations compile against the current API.
+
 This example uses the embedded boundary grid generation from AMReX, using analytic SDFs from EBGeometry. 
 To compile this application, first install AMReX somewhere and point the AMREX_HOME environment variable to it.
 

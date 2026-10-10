@@ -2,6 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <type_traits>
+
 #include <EBGeometry.hpp>
 
 // Floating-point precision. Overridable from CMake (-DEBGEOMETRY_PRECISION=float).
@@ -61,4 +66,70 @@ main()
 
   // A cylinder along the z-axis with rounded edges: radius, edge rounding radius, height.
   const EBGeometry::RoundedCylinderSDF<T> roundCylinder(1.0, 0.1, 1.0);
+
+  // Check each shape against its distance at a few points, worked out by hand from the description
+  // above. Positive is outside, negative inside, zero on the surface.
+  const T tolerance = std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-12);
+
+  const T sqrt3        = std::sqrt(T(3));
+  const T sinHalfAngle = std::sin(T(22.5) * EBGeometry::pi<T> / T(180)); // Half of the cones' 45 degrees.
+
+  int failures = 0;
+
+  const auto check = [&](const std::string& a_name, const T a_value, const T a_expected) {
+    if (std::abs(a_value - a_expected) > tolerance * (T(1) + std::abs(a_expected))) {
+      std::cerr << a_name << ": expected " << a_expected << ", got " << a_value << "\n";
+
+      failures++;
+    }
+  };
+
+  // The plane's normal is normalized, so the distance is along the unit diagonal.
+  check("plane, along the normal", plane.signedDistance(Vec3::ones()), sqrt3);
+  check("plane, against the normal", plane.signedDistance(-Vec3::ones()), -sqrt3);
+
+  check("sphere, at its center", sphere.signedDistance(Vec3::zeros()), T(-1));
+  check("sphere, outside", sphere.signedDistance(Vec3(2, 0, 0)), T(1));
+
+  check("box, at its center", box.signedDistance(T(0.5) * Vec3::ones()), T(-0.5));
+  check("box, outside a face", box.signedDistance(Vec3(2, 0.5, 0.5)), T(1));
+
+  // The tube's centre-line is the unit circle in the xy-plane.
+  check("torus, on its centre-line", torus.signedDistance(Vec3(1, 0, 0)), T(-0.1));
+  check("torus, at its center", torus.signedDistance(Vec3::zeros()), T(0.9));
+
+  check("cylinder, on its axis", finiteCylinder.signedDistance(T(0.5) * Vec3::ones()), T(-0.1));
+  check("cylinder, beyond a cap", finiteCylinder.signedDistance(T(2) * Vec3::ones()), sqrt3);
+
+  check("infinite cylinder, on its axis", infiniteCylinder.signedDistance(Vec3(0, 0, -3)), T(-0.1));
+  check("infinite cylinder, outside", infiniteCylinder.signedDistance(Vec3(1, 0, 7)), T(0.9));
+
+  // The capsule's tips are on its surface.
+  check("capsule, at a tip", capsule.signedDistance(Vec3::zeros()), T(0));
+  check("capsule, on its axis", capsule.signedDistance(T(0.5) * Vec3::ones()), T(-0.1));
+  check("capsule, beyond a tip", capsule.signedDistance(T(2) * Vec3::ones()), sqrt3);
+
+  // The cones open along -z from their tips at the origin.
+  check("infinite cone, at the tip", infiniteCone.signedDistance(Vec3::zeros()), T(0));
+  check("infinite cone, above the tip", infiniteCone.signedDistance(Vec3(0, 0, 1)), T(1));
+  check("infinite cone, on its axis", infiniteCone.signedDistance(Vec3(0, 0, -1)), -sinHalfAngle);
+
+  check("cone, above the tip", cone.signedDistance(Vec3(0, 0, 1)), T(1));
+  check("cone, on its axis", cone.signedDistance(Vec3(0, 0, -0.5)), T(-0.5) * sinHalfAngle);
+  check("cone, below its base", cone.signedDistance(Vec3(0, 0, -3)), T(2));
+
+  // Noise is not a distance, but it is defined everywhere.
+  check("Perlin noise, finite", std::isfinite(perlin.signedDistance(Vec3(0.3, 0.6, 0.9))) ? T(1) : T(0), T(1));
+
+  // The rounded box is centred at the origin, its half-sides 0.5 grown by the rounding 0.1.
+  check("rounded box, at its center", roundBox.signedDistance(Vec3::zeros()), T(-0.6));
+  check("rounded box, outside a face", roundBox.signedDistance(Vec3(1.6, 0, 0)), T(1));
+
+  // The rounded cylinder is centred at the origin with its axis along y, and half as high as wide.
+  check("rounded cylinder, at its center", roundCylinder.signedDistance(Vec3::zeros()), T(-0.5));
+  check("rounded cylinder, above a cap", roundCylinder.signedDistance(Vec3(0, 1.5, 0)), T(1));
+
+  std::cout << "Shapes checked against hand-worked distances; " << failures << " failed\n";
+
+  return failures == 0 ? 0 : 1;
 }

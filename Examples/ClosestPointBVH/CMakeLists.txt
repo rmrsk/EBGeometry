@@ -8,6 +8,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(ClosestPointBVH CXX)
 
+# Built on its own, the example defaults to an optimised build. Inside the EBGeometry project it
+# follows that project's build type, and its SIMD flags come from the EBGeometry target
+# (EBGEOMETRY_SIMD). Add e.g. -DCMAKE_CXX_FLAGS=-march=native to tune for this machine.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 # Locate the header-only library. EBGEOMETRY_HOME is the directory that contains
 # EBGeometry.hpp (the repository root); it defaults to the in-tree location two
 # levels up. When built from the top-level EBGeometry project the
@@ -33,10 +40,6 @@ set_target_properties(ClosestPointBVH PROPERTIES
 target_link_libraries(ClosestPointBVH PRIVATE EBGeometry::EBGeometry)
 target_compile_options(ClosestPointBVH PRIVATE -Wall -Wextra -Wno-unused-parameter)
 
-# Examples are meant to be fast to run, not to match the enclosing project's build
-# type (which may be an unoptimised Debug build, e.g. under the top-level project's
-# debug preset). Always build optimized for the local machine's ISA.
-target_compile_options(ClosestPointBVH PRIVATE -O3 -march=native)
 
 # ---------------------------------------------------------------------------
 # Floating-point precision for this example.

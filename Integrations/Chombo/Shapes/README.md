@@ -1,6 +1,14 @@
 Integrations/Chombo/Shapes
 --------------------------
 
+> [!IMPORTANT]
+> **Parked until the tape.** This example does not compile against the current EBGeometry API. It
+> composes the analytic shapes through the virtual transform layer (`Offset`, `Annular`, `Complement`),
+> which the shapes no longer derive from now that they are plain value types. Composing them returns
+> with the tape, EBGeometry's value-type expression builder; this example is kept as one of its
+> acceptance tests and will be ported to it. The other Chombo integrations compile against the current
+> API.
+
 This example uses the embedded boundary grid generation from Chombo3, and shows how to use basic SDFs from EBGeometry. 
 To compile this application, first install Chombo somewhere and point the CHOMBO_HOME environment variable to it.
 

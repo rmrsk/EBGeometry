@@ -2,6 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// PARKED: a tape acceptance test. This file does not compile against the current API, and nothing
+// builds it.
+//
+// It wraps the analytic shapes in shared_ptr<ImplicitFunction<T>> and composes them with the virtual
+// transforms (Offset, Annular, Complement). The shapes are now plain value types without that base
+// class, and composing them returns with the tape: the value-type expression builder that replaces the
+// virtual layer (AUDIT.md decisions D4, D5 and D13).
+// When the tape lands, this integration is ported to it and must produce the same geometries.
+
 // Chombo includes
 #include "BRMeshRefine.H"
 #include "BaseIF.H"

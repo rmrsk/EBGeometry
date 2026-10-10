@@ -43,5 +43,13 @@ tree itself lives:
    g++ -std=c++17 -O3 -march=native -DEBGEOMETRY_PRECISION=float -I../.. main.cpp -o <Example>.ex
    ./<Example>.ex
 
+Built on its own with CMake, an example defaults to an optimised (``Release``) build; add
+``-DCMAKE_CXX_FLAGS=-march=native`` to tune it for the local machine. Built as part of the
+EBGeometry project (see :ref:`Chap:Building`), the examples follow the project's build type and
+take their SIMD flags from ``EBGEOMETRY_SIMD``.
+
+Every example checks its own results, against a brute-force scan or against distances worked out
+by hand, and exits with a nonzero status if they disagree.
+
 Run every example from inside its own folder — several resolve a default input mesh relative to
 the run directory. See :ref:`Chap:Building` for the full detail on each build method.
