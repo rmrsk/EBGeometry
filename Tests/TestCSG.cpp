@@ -839,6 +839,123 @@ TEMPLATE_TEST_CASE("BVHUnion: every build strategy handles many coincident primi
   }
 }
 
+namespace {
+
+// A sphere whose value is ten times its distance: the right sign, but it overestimates the distance
+// outside, so it is not a distance bound.
+template <class T>
+struct SteepSphere
+{
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::NotADistance;
+
+  SphereSDF<T> m_sphere;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    return T(10) * m_sphere.signedDistance(a_point);
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("BVHUnion: primitives that are not distances keep the union's sign",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Pruning only needs each box to enclose its primitive's object: a primitive skipped for a box
+  // further away than the best value so far is positive there, whatever its value.
+  std::mt19937                      rng(2468);
+  std::uniform_real_distribution<T> coord(T(-4), T(4));
+
+  std::vector<SteepSphere<T>> spheres;
+  std::vector<BV<T>>          bvs;
+
+  for (int i = 0; i < 200; i++) {
+    const SphereSDF<T> sphere(Vec3(coord(rng), coord(rng), coord(rng)), T(0.3));
+
+    spheres.push_back(SteepSphere<T>{sphere});
+    bvs.push_back(sphere.computeBoundingVolume());
+  }
+
+  STATIC_REQUIRE(BVHUnion<T, SteepSphere<T>, 4>::distanceQuality == DistanceQuality::NotADistance);
+
+  Pool pool(hostMemoryResource());
+
+  for (const auto build : allConstructions) {
+    const BVHUnion<T, SteepSphere<T>, 4> bvhUnion(pool, spheres, bvs, build);
+
+    for (int i = 0; i < 2000; i++) {
+      const Vec3 p(coord(rng), coord(rng), coord(rng));
+
+      T bruteForce = Math::Limits<T>::max();
+
+      for (const auto& sphere : spheres) {
+        bruteForce = Math::min(bruteForce, sphere.signedDistance(p));
+      }
+
+      INFO("p = " << p << ", brute force " << bruteForce);
+      REQUIRE((bvhUnion.signedDistance(p) < T(0)) == (bruteForce < T(0)));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHUnion: primitives with unbounded boxes match brute force",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Infinite cylinders are unbounded along their axis and infinite cones everywhere but above the
+  // tip; their boxes reach the largest finite value there.
+  std::mt19937                      rng(1357);
+  std::uniform_real_distribution<T> coord(T(-5), T(5));
+
+  std::vector<InfiniteCylinderSDF<T>> cylinders;
+  std::vector<InfiniteConeSDF<T>>     cones;
+
+  for (size_t i = 0; i < 30; i++) {
+    cylinders.emplace_back(Vec3(coord(rng), coord(rng), coord(rng)), T(0.3), i % 3);
+    cones.emplace_back(Vec3(coord(rng), coord(rng), coord(rng)), T(40));
+  }
+
+  const auto check = [&](const auto& a_primitives) {
+    using P = typename std::decay_t<decltype(a_primitives)>::value_type;
+
+    std::vector<BV<T>> bvs;
+
+    for (const auto& primitive : a_primitives) {
+      bvs.push_back(primitive.computeBoundingVolume());
+    }
+
+    Pool pool(hostMemoryResource());
+
+    for (const auto build : allConstructions) {
+      const BVHUnion<T, P, 4> bvhUnion(pool, a_primitives, bvs, build);
+
+      for (int i = 0; i < 500; i++) {
+        const Vec3 p(T(2) * coord(rng), T(2) * coord(rng), T(2) * coord(rng));
+
+        T bruteForce = Math::Limits<T>::max();
+
+        for (const auto& primitive : a_primitives) {
+          bruteForce = Math::min(bruteForce, primitive.signedDistance(p));
+        }
+
+        REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(bruteForce, formulaMargin<T>()));
+      }
+    }
+  };
+
+  check(cylinders);
+  check(cones);
+}
+
 TEMPLATE_TEST_CASE("BVHUnion::computeBoundingVolume encloses every input sphere",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)

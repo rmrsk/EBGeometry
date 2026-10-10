@@ -1628,7 +1628,7 @@ class PerlinSDF
 public:
   /**
    * @brief How far signedDistance() can be trusted as a distance: not at all. The value is noise, so
-   * only its sign means anything, and a PerlinSDF cannot be a BVH union's primitive.
+   * only its sign means anything.
    */
   static constexpr DistanceQuality distanceQuality = DistanceQuality::NotADistance;
 

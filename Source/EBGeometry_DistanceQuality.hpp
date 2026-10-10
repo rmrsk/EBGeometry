@@ -29,14 +29,14 @@ enum class DistanceQuality
   Exact,
 
   /**
-   * @brief The value's magnitude never exceeds the distance to the surface: the function is
-   * 1-Lipschitz, so it may underestimate but never overestimates. Exact implies Bound.
+   * @brief The value's magnitude never exceeds the distance to the surface: it may underestimate,
+   * but never overestimates. Exact implies Bound.
    */
   Bound,
 
   /**
    * @brief Only the sign is meaningful, so the function describes a surface (its zero level set) but
-   * says nothing about how far away it is. A BVH union cannot prune such a function.
+   * says nothing about how far away it is. A BVH union of such functions is again only a sign.
    */
   NotADistance
 };
@@ -44,9 +44,9 @@ enum class DistanceQuality
 /**
  * @brief The distance quality of a type: its static `distanceQuality` member if it has one, and
  * DistanceQuality::Bound otherwise.
- * @details A type without the member is taken at its word that it is a distance bound, since that is
- * what the BVH unions need of their primitives. A user type whose value is not a distance should
- * declare `static constexpr DistanceQuality distanceQuality = DistanceQuality::NotADistance;`.
+ * @details A type without the member is taken to be a distance bound. A user type whose value is not
+ * a distance should declare `static constexpr DistanceQuality distanceQuality =
+ * DistanceQuality::NotADistance;`, so that a BVH union of it reports the same.
  * @tparam P Type to inspect.
  */
 template <class P, class = void>

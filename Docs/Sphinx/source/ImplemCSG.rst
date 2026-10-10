@@ -113,9 +113,9 @@ The shapes share a few conventions:
   `DistanceQuality <doxygen/html/namespaceEBGeometry.html#aba480dba46b4ac1b2393b5f2872cdad5>`__ levels:
   ``Exact`` (the magnitude is the Euclidean distance to the surface), ``Bound`` (the magnitude
   never exceeds it) or ``NotADistance`` (only the sign means anything). Every shape is ``Exact``
-  except ``PerlinSDF``, which is ``NotADistance``. The mesh distance fields are ``Exact`` and the
-  BVH unions are ``Bound``. ``distanceQualityOf<P>`` reads the member, and treats a type without
-  one as ``Bound``.
+  except ``PerlinSDF``, which is ``NotADistance``. The mesh distance fields are ``Exact``. A BVH
+  union is ``Bound``, or ``NotADistance`` if its primitives are. ``distanceQualityOf<P>`` reads the
+  member, and treats a type without one as ``Bound``.
 
 Because the shapes are not ``ImplicitFunction<T>`` objects, they cannot be passed to the
 transformations and to most of the CSG combinators below. The exception is the BVH-accelerated
@@ -351,11 +351,13 @@ fields, whose ``signedDistance()`` can be called on the host or inside a GPU ker
   field, or another BVH union. No runtime dispatch is needed to evaluate them. A union of objects
   of *different* types needs exactly that dispatch, and returns with the redesign of the CSG layer
   that replaces virtual dispatch with a linear-SSA tape.
-* **Primitives whose value is a distance.** The traversal skips a primitive whose bounding box is
-  further away than the best value found so far, which is only correct if no primitive's value
-  overestimates its distance. A primitive whose ``distanceQuality`` is ``NotADistance``, such as
-  ``PerlinSDF``, is rejected at compile time. With ``Exact`` primitives, the union equals the plain
-  minimum.
+* **Bounding boxes that enclose their primitives.** The traversal skips a primitive whose bounding
+  box is further away than the best value found so far. If every box encloses its primitive's
+  object (where the primitive's value is not positive), a skipped primitive is positive at the query
+  point, so skipping it never changes the union's sign, whatever the primitives' values are. The
+  value is then as good a distance as the primitives': with ``Exact`` primitives it equals the plain
+  minimum, with ``Bound`` primitives it is still a bound, and with ``NotADistance`` primitives only
+  its sign means anything, which the union's ``distanceQuality`` reports.
 * **Built in a** ``Pool``. The constructor takes the ``Pool`` to reserve the BVH from, the
   primitives, and one bounding box per primitive, which the BVH needs up front (an analytic shape's
   ``computeBoundingVolume()``, for example), plus an optional
