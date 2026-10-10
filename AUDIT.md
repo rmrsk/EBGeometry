@@ -563,7 +563,9 @@ Findings from item 17:
 21. **Retirements** (D2) and **union names** (D11). `TreeBVH`, `pack`/`packWith` and the
     partitioners stay (D2 amended); `PackedBVH::traverse()` became the template custom traversal
     (17d) instead of being retired.
-22. **Integrations and examples** (D13, QA-1/17/18/19).
+22. **Integrations and examples** (D13, QA-1/17/18/19). Follow-up: the library's roughly 250
+    `-Wsign-conversion` warnings; once they are fixed, drop `-Wno-error=sign-conversion` from the
+    `Linux-GNU` lane.
 23. **Planning documents** (D14).
 
 ### Phase 3 — shape API, then the tape

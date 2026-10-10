@@ -51,7 +51,6 @@ if(HOSTTUNING_STANDALONE)
   target_compile_options(HostTuning PRIVATE -march=native)
 endif()
 
-
 # ---------------------------------------------------------------------------
 # Floating-point precision for this example.
 #

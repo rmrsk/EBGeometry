@@ -31,7 +31,8 @@ endfunction()
 
 # Every folder here with a main.cpp is an example; the folders are the only list. CI loops over the
 # same folders (.github/workflows/CI.yml), so adding an example needs no edit here or there.
-file(GLOB example_mains RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*/main.cpp)
+# CONFIGURE_DEPENDS makes an existing build tree pick up a new example folder on the next build.
+file(GLOB example_mains CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*/main.cpp)
 list(SORT example_mains)
 
 foreach(example_main IN LISTS example_mains)
