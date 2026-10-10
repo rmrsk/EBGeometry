@@ -10,6 +10,10 @@ representations described in :ref:`Chap:MeshSDFClasses`:
 * A ``PackedBVH`` with pointer-free, index-offset nodes storing face ids, each test reading its face from the mesh (``MeshSDF``).
 * A SIMD-accelerated, SoA-packed triangle BVH (``TriMeshSDF``).
 
+It times each at the same random points around the mesh, and checks that the three agree at every
+point, to a tolerance scaled by the mesh's size. On a mesh with holes they can disagree on the sign
+near a hole, where the inside is not well defined.
+
 .. tip::
 
    SDF query complexity depends on both the geometry and the query point. A tessellated sphere

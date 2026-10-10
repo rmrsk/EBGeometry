@@ -146,7 +146,7 @@ kernel and compares against the host:
 | `Triangle<T>` (AoS) | Not started |
 | `SFC`, point-cloud builds | Not started; the point-cloud BVH and hash grid additionally have to *build* on device |
 | `ImplicitFunction`, `CSG`, `Transform` | Still the original virtual-`value()` design, now fed by user-written implicit functions only; this is where the tape returns |
-| Unions of different primitive types | Need runtime dispatch, which is the tape. The `CSGUnion` example (a mesh plus a sphere) stays disabled until then |
+| Unions of different primitive types | Need runtime dispatch, which is the tape. The old `CSGUnion` example (a mesh plus a sphere) is a tape acceptance test until then, in `Tests/TapeAcceptance/` with the two `Shapes` integrations (D13) |
 | Parsers (`PolygonSoup`, `Soup`), `Random`, `SimpleTimer` | Host-only by design — no port intended. `Random` and `SimpleTimer` serve the examples and are not included by `EBGeometry.hpp` |
 
 ## Roadmap
@@ -364,6 +364,15 @@ mechanism is to be built in the meantime, since it would be a second tape.
 6. **Examples and integrations.** A GPU section in `Examples/MeshSDF` (mirror to managed memory,
    evaluate the same points in a kernel), and an AMReX integration exercising device evaluation
    end to end.
+
+   **Integrations, done (audit item 22, D13).** The AMReX `MeshSDF`, `PaintEB`, `PackedSpheres` and
+   `RandomCity` implicit functions are `amrex::GPUable` and hold a host and a device descriptor of
+   the same geometry (the pool is frozen and mirrored in a GPU build); they were compiled and run on
+   CPUs against AMReX's development branch, and compiled for HIP, but not run on a device. The
+   Chombo `MeshSDF`, `PackedSpheres` and `RandomCity` hold their geometry by value and the pool by
+   `shared_ptr`, and were compiled and run against Chombo 3.2. Both `Shapes` integrations compose
+   shapes through the virtual layer and are parked as tape acceptance tests. The `Examples/MeshSDF`
+   GPU section is still open.
 
 ## Porting a class
 

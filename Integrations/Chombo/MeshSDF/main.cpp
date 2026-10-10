@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// Std includes
+#include <memory>
+#include <string>
+
 // Chombo includes
 #include "BRMeshRefine.H"
 #include "BaseIF.H"
@@ -17,174 +21,145 @@
 // Our includes
 #include "EBGeometry.hpp"
 
-// Binding for exposing EBGeometry's signed distance functions to Chombo
-template <class T, int K>
+// EBGeometry precision, BVH branching factor and SoA width. float is enough for the EB geometry,
+// which needs only the sign of the implicit function and where it crosses the grid edges.
+using T            = float;
+constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
+constexpr size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
+using SDF          = EBGeometry::TriMeshSDF<T, K, W>;
+
+/*!
+  @brief Chombo implicit function wrapping an EBGeometry TriMeshSDF.
+  @details Holds the TriMeshSDF by value and the Pool its storage lives in by shared_ptr: Chombo copies
+  implicit functions through newImplicitFunction(), and every copy shares the one pool, which lives as
+  long as the last of them.
+*/
 class ChomboSDF : public BaseIF
 {
 public:
   ChomboSDF() = delete;
 
-  ChomboSDF(const std::string a_filename)
-  {
-    // TriMeshSDF extracts flat Triangle objects from the parsed DCEL mesh and does not retain the
-    // mesh itself, so m_pool only needs to outlive this constructor -- but it is still kept as a
-    // member (rather than a local) so the copy constructor below has something to copy.
-    m_pool = std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource());
+  /*!
+    @brief Read a mesh into a TriMeshSDF.
+    @param[in] a_filename Mesh file (STL, PLY, VTK or OBJ).
+  */
+  explicit ChomboSDF(const std::string& a_filename)
+    : m_pool(std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource())),
+      m_sdf(EBGeometry::Parser::readIntoTriMeshSDF<T, K, W>(a_filename, *m_pool))
+  {}
 
-    m_implicitFunction = EBGeometry::Parser::readIntoTriMeshSDF<T, K>(a_filename, *m_pool);
-    m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
-  }
-
-  ChomboSDF(const ChomboSDF& a_other)
-  {
-    m_implicitFunction = a_other.m_implicitFunction;
-    m_pool             = a_other.m_pool;
-  }
-
+  /*!
+    @brief Chombo's implicit function definition.
+    @details EBGeometry's signed distance is negative inside the mesh. The sign is flipped so that the
+    fluid is outside the mesh.
+  */
   Real
   value(const RealVect& a_point) const override final
   {
     using Vec3 = EBGeometry::Vec3T<T>;
 
 #if CH_SPACEDIM == 2
-    Vec3 p(a_point[0], a_point[1], 0.0);
+    const Vec3 p(static_cast<T>(a_point[0]), static_cast<T>(a_point[1]), T(0));
 #else
-    Vec3 p(a_point[0], a_point[1], a_point[2]);
+    const Vec3 p(static_cast<T>(a_point[0]), static_cast<T>(a_point[1]), static_cast<T>(a_point[2]));
 #endif
 
-    return Real(m_implicitFunction->value(p));
+    return -Real(m_sdf.signedDistance(p));
   }
 
   BaseIF*
-  newImplicitFunction() const
+  newImplicitFunction() const override
   {
-    return (BaseIF*)(new ChomboSDF(*this));
+    return new ChomboSDF(*this);
   }
 
-protected:
-  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_implicitFunction;
-
+private:
   /*!
-    @brief Pool backing the DCEL mesh's vertex/edge/face storage.
+    @brief Pool holding the mesh's triangles and BVH, shared by every copy of this object.
   */
   std::shared_ptr<EBGeometry::Pool> m_pool;
+
+  /*!
+    @brief The signed distance function, resolving against m_pool.
+  */
+  SDF m_sdf;
 };
 
 int
 main(int argc, char* argv[])
 {
-  constexpr int K = 4;
-
-  using T = float;
-
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
 #endif
 
-  // Parse input file
-  char*     inFile = argv[1];
-  ParmParse pp(argc - 2, argv + 2, NULL, inFile);
+  {
+    // Parse input file
+    char*     inFile = argv[1];
+    ParmParse pp(argc - 2, argv + 2, NULL, inFile);
 
-  int nCells    = 128;
-  int whichGeom = 0;
-  int gridSize  = 16;
-  pp.query("which_geom", whichGeom);
-  pp.query("ncells", nCells);
-  pp.query("grid_size", gridSize);
+    int nCells   = 128;
+    int gridSize = 16;
 
-  RealVect    loCorner;
-  RealVect    hiCorner;
-  std::string filename;
+    // Mesh file and the cube that holds it. The default is the armadillo from the common-3d-test-models
+    // submodule (see the "Building and using" docs for how to fetch it); the path is relative to this
+    // example's folder, where the executable is run.
+    std::string filename = "../../../common-3d-test-models/data/armadillo.obj";
+    Real        domainLo = -125;
+    Real        domainHi = 125;
 
-  if (whichGeom == 0) { // Airfoil
-    loCorner = -50 * RealVect::Unit;
-    hiCorner = 250 * RealVect::Unit;
+    pp.query("n_cells", nCells);
+    pp.query("grid_size", gridSize);
+    pp.query("filename", filename);
+    pp.query("domain_lo", domainLo);
+    pp.query("domain_hi", domainHi);
 
-    filename = "../Resources/airfoil_binary.stl";
-  }
-  else if (whichGeom == 1) { // Sphere
-    loCorner = -400 * RealVect::Unit;
-    hiCorner = 400 * RealVect::Unit;
+    const RealVect loCorner = domainLo * RealVect::Unit;
+    const RealVect hiCorner = domainHi * RealVect::Unit;
 
-    filename = "../Resources/sphere_binary.stl";
-  }
-  else if (whichGeom == 2) { // Dodecahedron
-    loCorner = -2 * RealVect::Unit;
-    hiCorner = 2 * RealVect::Unit;
+    const ChomboSDF impFunc(filename);
 
-    filename = "../Resources/dodecahedron_binary.stl";
-  }
-  else if (whichGeom == 3) { // Horse
-    loCorner = -0.12 * RealVect::Unit;
-    hiCorner = 0.12 * RealVect::Unit;
+    // Set up the Chombo EB geometry.
+    ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
+    const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
 
-    filename = "../Resources/horse_binary.stl";
-  }
-  else if (whichGeom == 4) { // Porsche
-    loCorner = -10 * RealVect::Unit;
-    hiCorner = 10 * RealVect::Unit;
+    GeometryShop  workshop(impFunc, -1, dx * RealVect::Zero);
+    EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
+    ebisPtr->define(domain, loCorner, dx, workshop, gridSize, -1);
 
-    filename = "../Resources/porsche_binary.stl";
-  }
-  else if (whichGeom == 5) { // Orion
-    loCorner = -10 * RealVect::Unit;
-    hiCorner = 10 * RealVect::Unit;
+    // Set up the grids
+    Vector<int> procs;
+    Vector<Box> boxes;
+    domainSplit(domain, boxes, gridSize, gridSize);
+    mortonOrdering(boxes);
+    LoadBalance(procs, boxes);
+    DisjointBoxLayout dbl(boxes, procs);
 
-    filename = "../Resources/orion_binary.stl";
-  }
-  else if (whichGeom == 6) { // Armadillo
-    loCorner = -125 * RealVect::Unit;
-    hiCorner = 125 * RealVect::Unit;
+    // Fill the EBIS layout
+    EBISLayout ebisl;
+    ebisPtr->fillEBISLayout(ebisl, dbl, domain, 1);
 
-    filename = "../Resources/armadillo_binary.stl";
-  }
-  else if (whichGeom == 7) { // Adirondacks
-    loCorner = RealVect::Zero;
-    hiCorner = 250 * RealVect::Unit;
-    filename = "../Resources/adirondack_binary.stl";
-  }
+    // Allocate some data that we can output
+    LevelData<EBCellFAB> data(dbl, 1, IntVect::Zero, EBCellFactory(ebisl));
 
-  auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, K>(filename));
+    for (DataIterator dit(dbl); dit.ok(); ++dit) {
+      EBCellFAB& fab = data[dit()];
+      fab.setVal(0.0);
 
-  // Set up the Chombo EB geometry.
-  ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
-  const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
+      const Box region = fab.getRegion();
 
-  GeometryShop  workshop(*impFunc, -1, dx * RealVect::Zero);
-  EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-  ebisPtr->define(domain, loCorner, dx, workshop, gridSize, -1);
+      for (BoxIterator bit(region); bit.ok(); ++bit) {
+        const IntVect iv = bit();
 
-  // Set up the grids
-  Vector<int> procs;
-  Vector<Box> boxes;
-  domainSplit(domain, boxes, gridSize, gridSize);
-  mortonOrdering(boxes);
-  LoadBalance(procs, boxes);
-  DisjointBoxLayout dbl(boxes, procs);
-
-  // Fill the EBIS layout
-  EBISLayout ebisl;
-  ebisPtr->fillEBISLayout(ebisl, dbl, domain, 1);
-
-  // Allocate some data that we can output
-  LevelData<EBCellFAB> data(dbl, 1, IntVect::Zero, EBCellFactory(ebisl));
-  for (DataIterator dit(dbl); dit.ok(); ++dit) {
-    EBCellFAB& fab = data[dit()];
-    fab.setVal(0.0);
-
-    const Box region = fab.getRegion();
-    for (BoxIterator bit(region); bit.ok(); ++bit) {
-      const IntVect iv = bit();
-
-      const RealVect pos        = loCorner + (iv + 0.5 * RealVect::Unit) * dx;
-      fab.getFArrayBox()(iv, 0) = impFunc->value(pos);
+        const RealVect pos        = loCorner + (iv + 0.5 * RealVect::Unit) * dx;
+        fab.getFArrayBox()(iv, 0) = impFunc.value(pos);
+      }
     }
-  }
 
-  // Write to HDF5
-  Vector<LevelData<EBCellFAB>*> amrData;
-  amrData.push_back(&data);
-  writeEBAMRname(&amrData, "example.hdf5");
+    // Write to HDF5
+    Vector<LevelData<EBCellFAB>*> amrData;
+    amrData.push_back(&data);
+    writeEBAMRname(&amrData, "example.hdf5");
+  }
 
 #ifdef CH_MPI
   MPI_Finalize();

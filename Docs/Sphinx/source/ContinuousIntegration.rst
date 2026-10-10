@@ -65,34 +65,40 @@ translation unit, using a compile-command database exported from the ``debug`` p
 ``clang++-14``. Marked ``continue-on-error: true`` (there is a known review backlog), so it is
 advisory and does not gate ``CI-passed``.
 
+The example lanes below run every example: every folder under :file:`Examples/` with a
+``main.cpp``. The folders are the only list of examples, which ``Examples/CMakeLists.txt`` globs the
+same way, so a new example needs no edit to CI. Each lane builds every example with warnings as
+errors, and each example exits nonzero when its results disagree with a reference (a brute-force
+scan, or distances worked out by hand).
+
 Linux-GNU
 ~~~~~~~~~
 
-Compiles and runs seven of the examples directly with ``g++`` (matrix over
-``{g++-11, g++-12}`` × the seven example directories ``CSGUnion``, ``HostTuning``, ``MeshSDF``,
-``OctreeBoundingVolume``, ``PackedSpheres``, ``RandomCity`` and ``Shapes``), using ``-std=c++17 -pedantic -Wall -Wextra``
-plus a large set of additional diagnostic flags.
+Compiles and runs every example directly with ``g++`` (one job each for ``g++-11`` and
+``g++-12``), using ``-std=c++17 -pedantic -Wall -Wextra -Werror`` plus a large set of additional
+diagnostic flags. ``-Wsign-conversion`` stays a warning (``-Wno-error=sign-conversion``), since the
+library does not pass it yet.
 
 Linux-Intel
 ~~~~~~~~~~~
 
-Compiles and runs a subset of examples (``HostTuning``, ``MeshSDF``, ``PackedSpheres``, ``RandomCity``, ``Shapes``)
-with Intel's ``icpx`` compiler, ``-std=c++17 -Wall -Werror`` plus additional diagnostic flags.
+Compiles and runs every example with Intel's ``icpx`` compiler, ``-std=c++17 -O0
+-fp-model=precise -Wall -Werror`` plus additional diagnostic flags.
 
 Examples-GNUMake
 ~~~~~~~~~~~~~~~~
 
-Builds and runs seven of the examples (the same seven directories as ``Linux-GNU``) via each one's
-own ``GNUmakefile``
-(``make run``).
+Builds and runs every example via its own ``GNUmakefile`` (``make run``), with the makefile's
+default flags.
 
 Examples-CMake
 ~~~~~~~~~~~~~~
 
-Configures and builds the top-level project with the ``debug`` preset (assertions on, ``double``
-precision) and runs every example via ``ctest --preset examples``. This is the path that exercises
-the CMake-driven build with assertions enabled, unlike ``Linux-GNU``/``Linux-Intel`` (raw compiler
-invocation, no assertions) or ``Unit-Tests``/``Sanitizers`` (examples disabled).
+Configures the top-level project with the ``debug`` preset (assertions on, ``double`` precision),
+the unit tests switched off and ``-Werror``, and runs every example via ``ctest --preset examples``.
+The examples follow the project's build type, so they run unoptimised here. This is the path that
+exercises the CMake-driven build with assertions enabled, unlike ``Linux-GNU``/``Linux-Intel`` (raw
+compiler invocation, no assertions) or ``Unit-Tests``/``Sanitizers`` (examples disabled).
 
 Examples-FloatPrecision
 ~~~~~~~~~~~~~~~~~~~~~~~~~

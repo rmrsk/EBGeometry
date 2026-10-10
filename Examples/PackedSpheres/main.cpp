@@ -84,7 +84,8 @@ main()
 
   // Create some samples in the bounding box of the BVH
   std::cout << "Sampling distance fields... \n" << '\n';
-  std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
+  // A fixed seed gives the same result on every run.
+  std::mt19937_64                   rng(12345);
   std::uniform_real_distribution<T> dist(0.0, 1.0);
 
   const AABB  bv = fastUnion.computeBoundingVolume();
@@ -101,48 +102,49 @@ main()
     randomPositions.emplace_back(x, y, z);
   }
 
-  // Time the results, using the naive union and the BVH-accelerated union.
-  std::chrono::duration<T, std::micro> slowTime(0.0);
-  std::chrono::duration<T, std::micro> fastTime(0.0);
-
-  T sumSlow = 0.0;
-  T sumFast = 0.0;
+  // Evaluate both unions at every point, timing each.
+  std::vector<T> slowDist(randomPositions.size());
+  std::vector<T> fastDist(randomPositions.size());
 
   const auto t1 = std::chrono::high_resolution_clock::now();
 
-  for (const auto& x : randomPositions) {
-    sumSlow += slowUnion(x);
+  for (size_t i = 0; i < randomPositions.size(); i++) {
+    slowDist[i] = slowUnion(randomPositions[i]);
   }
 
   const auto t2 = std::chrono::high_resolution_clock::now();
 
-  for (const auto& x : randomPositions) {
-    sumFast += fastUnion.signedDistance(x);
+  for (size_t i = 0; i < randomPositions.size(); i++) {
+    fastDist[i] = fastUnion.signedDistance(randomPositions[i]);
   }
 
   const auto t3 = std::chrono::high_resolution_clock::now();
 
-  // Summing Nsamp values in a different order (naive scan vs. BVH traversal) is not bit-for-bit
-  // reproducible -- floating-point addition isn't associative -- so compare the sums with a
-  // relative tolerance rather than requiring exact agreement. float needs a looser tolerance than
-  // double: accumulating Nsamp terms in a different order can land right at float's own ~1.19e-7
-  // epsilon, which a flat 1e-7 tolerance intermittently flags as a mismatch (observed in CI).
-  constexpr T relativeTolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-7);
+  // Both take the minimum over the same per-sphere values, and the BVH only skips spheres that
+  // cannot hold it, so the two agree at every point, up to rounding: the compiler may evaluate the
+  // same formula with different rounding in the two loops (contracting a multiply and an add into one
+  // fused operation, for instance). The rounding scales with the size of the scene.
+  const T tolerance = (std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-12)) * (hi - lo).length();
 
-  const T fastScale = std::max(std::abs(sumSlow), std::abs(sumFast));
+  size_t mismatches = 0;
 
-  if (std::abs(sumSlow - sumFast) > relativeTolerance * std::max(fastScale, T(1.0))) {
-    std::cerr << "Got wrong distance!" << '\n';
-
-    return 2;
+  for (size_t i = 0; i < randomPositions.size(); i++) {
+    mismatches += (std::abs(slowDist[i] - fastDist[i]) > tolerance) ? 1 : 0;
   }
 
-  slowTime += (t2 - t1);
-  fastTime += (t3 - t2);
+  const std::chrono::duration<T, std::micro> slowTime = t2 - t1;
+  const std::chrono::duration<T, std::micro> fastTime = t3 - t2;
 
   std::cout << "Time using slow union (us)   = " << slowTime.count() / Nsamp << "\n";
   std::cout << "Time using fast union (us)   = " << fastTime.count() / Nsamp << "\n\n";
   std::cout << "BVH speedup over naive       = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
+  std::cout << "Points where the two differ  = " << mismatches << " of " << randomPositions.size() << "\n";
+
+  if (mismatches > 0) {
+    std::cerr << "Got wrong distance!" << '\n';
+
+    return 1;
+  }
 
   return 0;
 }

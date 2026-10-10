@@ -515,6 +515,9 @@ FaceT<T>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noexcept
 
     return std::abs(sumTheta - T(1)) < T(0.5);
   }
+  default: {
+    break;
+  }
   }
 
   return false;

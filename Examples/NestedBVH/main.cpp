@@ -2,9 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <algorithm>
+#include <cmath>
 #include <iostream>
+#include <limits>
 #include <memory>
+#include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <EBGeometry.hpp>
@@ -106,7 +111,37 @@ try {
     std::cout << "value(" << p << ") = " << nestedUnion.signedDistance(p) << "\n";
   }
 
-  return 0;
+  // Check the nested union against the smallest distance over every placement, at random points in
+  // a box twice the size of the union's bounding box. The outer BVH only skips placements that cannot
+  // be the closest, so the two agree up to rounding, which scales with the size of the scene. A fixed
+  // seed gives the same points on every run.
+  const BV   box       = nestedUnion.computeBoundingVolume();
+  const Vec3 extent    = box.getHighCorner() - box.getLowCorner();
+  const T    tolerance = (std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-12)) * extent.length();
+
+  std::mt19937_64                   rng(12345);
+  std::uniform_real_distribution<T> unit(T(0), T(1));
+
+  constexpr int numSamples = 1000;
+
+  int mismatches = 0;
+
+  for (int i = 0; i < numSamples; i++) {
+    const Vec3 p = box.getLowCorner() - T(0.5) * extent + T(2) * extent * Vec3(unit(rng), unit(rng), unit(rng));
+
+    T closest = std::numeric_limits<T>::infinity();
+
+    for (const Mesh& mesh : primitives) {
+      closest = std::min(closest, mesh.signedDistance(p));
+    }
+
+    mismatches += (std::abs(nestedUnion.signedDistance(p) - closest) > tolerance) ? 1 : 0;
+  }
+
+  std::cout << "Points where the nested union differs from a scan over the placements = " << mismatches << " of "
+            << numSamples << "\n";
+
+  return mismatches == 0 ? 0 : 1;
 } catch (const EBGeometry::Parser::ParseError& e) {
   std::cerr << "Cannot read the mesh: " << e.what() << '\n';
 

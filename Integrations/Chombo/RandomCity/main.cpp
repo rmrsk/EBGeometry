@@ -2,19 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// NOTE: This integration example does not currently compile.
-//
-// It is built on EBGeometry's BVH-accelerated CSG union (BVHUnion / BVHSmoothUnion), which is
-// compiled out during the GPU port while the implicit-function and CSG layer is moved to an
-// index-based design. See EBGEOMETRY_ENABLE_BVH_CSG_UNION in Source/EBGeometry_CSG.hpp.
-//
-// The integration examples are illustrative and are not built or tested by CI, so this file is left
-// as-is rather than stubbed out: it shows the intended usage and will compile again unchanged once
-// the union classes return.
-
 // Std includes
-#include <chrono>
+#include <algorithm>
+#include <cmath>
+#include <memory>
 #include <random>
+#include <utility>
+#include <vector>
 
 // Chombo includes
 #include "BRMeshRefine.H"
@@ -31,13 +25,16 @@
 // Our includes
 #include "EBGeometry.hpp"
 
-using T    = Real;
-using Vec3 = EBGeometry::Vec3T<T>;
-using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-using SDF  = EBGeometry::SignedDistanceFunction<T>;
-using Prim = EBGeometry::BoxSDF<T>;
+// EBGeometry precision and BVH branching factor.
+using T            = Real;
+constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 
-constexpr int K    = 4;
+using Vec3     = EBGeometry::Vec3T<T>;
+using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
+using Building = EBGeometry::BoxSDF<T>;
+using Union    = EBGeometry::BVHUnion<T, Building, K>;
+
+// The buildings sit on an M x M lattice of lots, each Wmax + dx by Lmax + dx, so none overlap.
 constexpr int M    = 10;
 constexpr T   dx   = 0.25;
 constexpr T   Wmin = 1;
@@ -47,23 +44,80 @@ constexpr T   Lmax = 2;
 constexpr T   Hmin = 1;
 constexpr T   Hmax = 2;
 
+/*!
+  @brief Chombo implicit function for a union of many buildings (boxes).
+  @details Holds the union by value and the Pool its storage lives in by shared_ptr: Chombo copies
+  implicit functions through newImplicitFunction(), and every copy shares the one pool, which lives as
+  long as the last of them.
+
+  With m_useBVH false, value() visits every building instead of letting the BVH skip the distant
+  ones. The two give the same field; only the cost differs.
+*/
 class RandomCity : public BaseIF
 {
 public:
   RandomCity() = delete;
 
-  RandomCity(const bool use_bvh)
+  /*!
+    @brief Build the buildings and the union over them.
+    @param[in] a_useBVH Use the BVH, or visit every building.
+  */
+  explicit RandomCity(const bool a_useBVH) : RandomCity(a_useBVH, makeBuildings())
+  {}
+
+  /*!
+    @brief Chombo's implicit function definition.
+    @details EBGeometry's signed distance is negative inside the buildings. The sign is flipped so
+    that the fluid is the space around the buildings.
+  */
+  Real
+  value(const RealVect& a_point) const override final
   {
-    m_useBVH = use_bvh;
+#if CH_SPACEDIM == 2
+    const Vec3 p(a_point[0], a_point[1], 0.0);
+#else
+    const Vec3 p(a_point[0], a_point[1], a_point[2]);
+#endif
 
-    // Generate some random buildings on a lattice -- none of these should overlap.
-    std::vector<std::shared_ptr<Prim>> buildings;
-    std::vector<BV>                    boundingVolumes;
+    return m_useBVH ? -m_union.signedDistance(p) : -visitAll(p);
+  }
 
-    // Use a fixed seed = 0 so that every MPI rank agrees on how to randomize the buildings.
+  BaseIF*
+  newImplicitFunction() const override
+  {
+    return new RandomCity(*this);
+  }
+
+private:
+  /*!
+    @brief The buildings and their bounding boxes.
+  */
+  using Buildings = std::pair<std::vector<Building>, std::vector<AABB>>;
+
+  /*!
+    @brief Build the union over a_buildings in a new pool.
+    @param[in] a_useBVH    Use the BVH, or visit every building.
+    @param[in] a_buildings The buildings and their bounding boxes.
+  */
+  RandomCity(const bool a_useBVH, const Buildings& a_buildings)
+    : m_pool(std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource())),
+      m_union(*m_pool, a_buildings.first, a_buildings.second),
+      m_useBVH(a_useBVH)
+  {}
+
+  /*!
+    @brief Generate random buildings on the lattice. A fixed seed makes every MPI rank build the same
+    city.
+    @return The buildings and their bounding boxes.
+  */
+  static Buildings
+  makeBuildings()
+  {
+    Buildings buildings;
+
     std::mt19937_64                   rng(0);
     std::uniform_real_distribution<T> udist(0, 1.0);
-    std::normal_distribution<T>       ndist(0.5 * (Hmin + Hmax), sqrt(0.5 * (Hmin + Hmax)));
+    std::normal_distribution<T>       ndist(0.5 * (Hmin + Hmax), std::sqrt(0.5 * (Hmin + Hmax)));
 
     for (int i = 0; i < M; i++) {
       for (int j = 0; j < M; j++) {
@@ -83,126 +137,115 @@ public:
         const Vec3 lo(xLo + xs, yLo + ys, 0.0);
         const Vec3 hi(xHi + xs, yHi + ys, H);
 
-        buildings.emplace_back(std::make_shared<Prim>(lo, hi));
-        boundingVolumes.emplace_back(BV(lo, hi));
+        buildings.first.emplace_back(lo, hi);
+        buildings.second.emplace_back(lo, hi);
       }
     }
 
-    m_slowUnion = EBGeometry::Union<T, Prim>(buildings);
-    m_fastUnion = EBGeometry::BVHUnion<T, Prim, BV, K>(buildings, boundingVolumes);
-
-    // AMReX uses the opposite sign for the value functions.
-    m_slowUnion = EBGeometry::Complement<T>(m_slowUnion);
-    m_fastUnion = EBGeometry::Complement<T>(m_fastUnion);
+    return buildings;
   }
 
-  RandomCity(const RandomCity& a_other)
+  /*!
+    @brief The union without the BVH: the smallest value over every building.
+    @param[in] a_point Query point.
+    @return The same value as m_union.signedDistance(a_point).
+  */
+  T
+  visitAll(const Vec3& a_point) const noexcept
   {
-    this->m_useBVH    = a_other.m_useBVH;
-    this->m_slowUnion = a_other.m_slowUnion;
-    this->m_fastUnion = a_other.m_fastUnion;
-  }
+    T d = EBGeometry::Math::Limits<T>::infinity();
 
-  Real
-  value(const RealVect& a_point) const override final
-  {
-    using Vec3 = EBGeometry::Vec3T<T>;
-
-#if CH_SPACEDIM == 2
-    Vec3 p(a_point[0], a_point[1], 0.0);
-#else
-    Vec3 p(a_point[0], a_point[1], a_point[2]);
-#endif
-
-    if (m_useBVH) {
-      return Real(m_fastUnion->value(p));
+    for (const Building& building : m_union.getBVH().getPrimitives()) {
+      d = EBGeometry::Math::min(d, building.signedDistance(a_point));
     }
-    else {
-      return Real(m_slowUnion->value(p));
-    }
+
+    return d;
   }
 
-  BaseIF*
-  newImplicitFunction() const
-  {
-    return (BaseIF*)(new RandomCity(*this));
-  }
+  /*!
+    @brief Pool holding the union's BVH and buildings, shared by every copy of this object.
+  */
+  std::shared_ptr<EBGeometry::Pool> m_pool;
 
-protected:
-  bool                                             m_useBVH;
-  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_slowUnion;
-  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_fastUnion;
+  /*!
+    @brief BVH-accelerated union of the buildings, resolving against m_pool.
+  */
+  Union m_union;
+
+  /*!
+    @brief Use the BVH, or visit every building.
+  */
+  bool m_useBVH;
 };
 
 int
 main(int argc, char* argv[])
 {
-  constexpr int K = 4;
-
-  using T  = float;
-  using BV = EBGeometry::BoundingVolumes::AABBT<T>;
-
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
 #endif
 
-  // Parse input file
-  char*     inFile = argv[1];
-  ParmParse pp(argc - 2, argv + 2, NULL, inFile);
+  {
+    // Parse input file
+    char*     inFile = argv[1];
+    ParmParse pp(argc - 2, argv + 2, NULL, inFile);
 
-  bool useBVH   = true;
-  int  nCells   = 128;
-  int  gridSize = 16;
+    bool useBVH   = true;
+    int  nCells   = 128;
+    int  gridSize = 16;
 
-  pp.query("use_bvh", useBVH);
-  pp.query("n_cells", nCells);
-  pp.query("grid_size", gridSize);
+    pp.query("bvh", useBVH);
+    pp.query("n_cells", nCells);
+    pp.query("grid_size", gridSize);
 
-  RealVect loCorner = -std::max(Wmax, Lmax) * RealVect::Unit;
-  RealVect hiCorner = M * std::max(Wmax + dx, std::max(Lmax + dx, Hmax + dx)) * RealVect::Unit;
-  loCorner[2]       = 0.0;
+    RealVect loCorner = -std::max(Wmax, Lmax) * RealVect::Unit;
+    RealVect hiCorner = M * std::max(Wmax + dx, std::max(Lmax + dx, Hmax + dx)) * RealVect::Unit;
+    loCorner[2]       = 0.0;
 
-  BaseIF* impFunc = static_cast<BaseIF*>(new RandomCity(useBVH));
+    const RandomCity impFunc(useBVH);
 
-  // Set up the Chombo EB geometry.
-  ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
-  const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
+    // Set up the Chombo EB geometry.
+    ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
+    const Real    cellSize = (hiCorner[0] - loCorner[0]) / nCells;
 
-  GeometryShop  workshop(*impFunc, -1, dx * RealVect::Zero);
-  EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-  ebisPtr->define(domain, loCorner, dx, workshop, gridSize, -1);
+    GeometryShop  workshop(impFunc, -1, cellSize * RealVect::Zero);
+    EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
+    ebisPtr->define(domain, loCorner, cellSize, workshop, gridSize, -1);
 
-  // Set up the grids
-  Vector<int> procs;
-  Vector<Box> boxes;
-  domainSplit(domain, boxes, gridSize, gridSize);
-  mortonOrdering(boxes);
-  LoadBalance(procs, boxes);
-  DisjointBoxLayout dbl(boxes, procs);
+    // Set up the grids
+    Vector<int> procs;
+    Vector<Box> boxes;
+    domainSplit(domain, boxes, gridSize, gridSize);
+    mortonOrdering(boxes);
+    LoadBalance(procs, boxes);
+    DisjointBoxLayout dbl(boxes, procs);
 
-  // Fill the EBIS layout
-  EBISLayout ebisl;
-  ebisPtr->fillEBISLayout(ebisl, dbl, domain, 1);
+    // Fill the EBIS layout
+    EBISLayout ebisl;
+    ebisPtr->fillEBISLayout(ebisl, dbl, domain, 1);
 
-  // Allocate some data that we can output
-  LevelData<EBCellFAB> data(dbl, 1, IntVect::Zero, EBCellFactory(ebisl));
-  for (DataIterator dit(dbl); dit.ok(); ++dit) {
-    EBCellFAB& fab = data[dit()];
-    fab.setVal(0.0);
+    // Allocate some data that we can output
+    LevelData<EBCellFAB> data(dbl, 1, IntVect::Zero, EBCellFactory(ebisl));
 
-    const Box region = fab.getRegion();
-    for (BoxIterator bit(region); bit.ok(); ++bit) {
-      const IntVect iv = bit();
+    for (DataIterator dit(dbl); dit.ok(); ++dit) {
+      EBCellFAB& fab = data[dit()];
+      fab.setVal(0.0);
 
-      const RealVect pos        = loCorner + (iv + 0.5 * RealVect::Unit) * dx;
-      fab.getFArrayBox()(iv, 0) = impFunc->value(pos);
+      const Box region = fab.getRegion();
+
+      for (BoxIterator bit(region); bit.ok(); ++bit) {
+        const IntVect iv = bit();
+
+        const RealVect pos        = loCorner + (iv + 0.5 * RealVect::Unit) * cellSize;
+        fab.getFArrayBox()(iv, 0) = impFunc.value(pos);
+      }
     }
-  }
 
-  // Write to HDF5
-  Vector<LevelData<EBCellFAB>*> amrData;
-  amrData.push_back(&data);
-  writeEBAMRname(&amrData, "example.hdf5");
+    // Write to HDF5
+    Vector<LevelData<EBCellFAB>*> amrData;
+    amrData.push_back(&data);
+    writeEBAMRname(&amrData, "example.hdf5");
+  }
 
 #ifdef CH_MPI
   MPI_Finalize();

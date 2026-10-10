@@ -45,18 +45,18 @@ constexpr std::size_t HostPointW = EBGeometry::PointSoA::HostWidth<T>();
 static_assert(std::is_same_v<EBGeometry::PointCloudBVH<T>,
                              EBGeometry::PointCloudBVH<T, DefaultK, EBGeometry::PointSoA::DefaultWidth<T>()>>);
 
-// Runs a_query over every point and returns the elapsed time in seconds; a_sum accumulates the
-// results so that two structures can be compared.
+// Runs a_query over every point and returns the elapsed time in seconds; a_results receives the
+// result for each point, so that two structures can be compared point by point.
 template <class F>
 double
-timeQueries(const std::vector<Vec3>& a_points, F&& a_query, double& a_sum)
+timeQueries(const std::vector<Vec3>& a_points, F&& a_query, std::vector<T>& a_results)
 {
+  a_results.resize(a_points.size());
+
   const auto start = std::chrono::steady_clock::now();
 
-  a_sum = 0.0;
-
-  for (const Vec3& p : a_points) {
-    a_sum += double(a_query(p));
+  for (std::size_t i = 0; i < a_points.size(); i++) {
+    a_results[i] = a_query(a_points[i]);
   }
 
   return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
@@ -111,19 +111,20 @@ try {
     const EBGeometry::PointCloudBVH<T>                    portable(pool, points);
     const EBGeometry::PointCloudBVH<T, HostK, HostPointW> tuned(pool, points);
 
-    double portableSum = 0.0;
-    double tunedSum    = 0.0;
+    std::vector<T> portableResults;
+    std::vector<T> tunedResults;
 
     const double portableTime =
-      timeQueries(queries, [&](const Vec3& p) { return portable.closestPoint(p).distanceSquared; }, portableSum);
+      timeQueries(queries, [&](const Vec3& p) { return portable.closestPoint(p).distanceSquared; }, portableResults);
     const double tunedTime =
-      timeQueries(queries, [&](const Vec3& p) { return tuned.closestPoint(p).distanceSquared; }, tunedSum);
+      timeQueries(queries, [&](const Vec3& p) { return tuned.closestPoint(p).distanceSquared; }, tunedResults);
 
     std::cout << "PointCloudBVH, " << numPoints << " points and queries\n"
               << "  default K/W: " << portableTime << " s\n"
               << "  host K/W:    " << tunedTime << " s\n";
 
-    agree = agree && (portableSum == tunedSum);
+    // Both find the closest point, and compute its distance the same way, so they agree exactly.
+    agree = agree && (portableResults == tunedResults);
   }
 
   // ── A triangle mesh: signed distance queries ─────────────────────────────────
@@ -150,19 +151,24 @@ try {
       queries.emplace_back(box.getLowCorner() + u * (box.getHighCorner() - box.getLowCorner()));
     }
 
-    double portableSum = 0.0;
-    double tunedSum    = 0.0;
+    std::vector<T> portableResults;
+    std::vector<T> tunedResults;
 
     const double portableTime =
-      timeQueries(queries, [&](const Vec3& p) { return portable.signedDistance(p); }, portableSum);
-    const double tunedTime = timeQueries(queries, [&](const Vec3& p) { return tuned.signedDistance(p); }, tunedSum);
+      timeQueries(queries, [&](const Vec3& p) { return portable.signedDistance(p); }, portableResults);
+    const double tunedTime = timeQueries(queries, [&](const Vec3& p) { return tuned.signedDistance(p); }, tunedResults);
 
     std::cout << "TriMeshSDF, " << file << ", " << queries.size() << " queries\n"
               << "  default K/W: " << portableTime << " s\n"
               << "  host K/W:    " << tunedTime << " s\n";
 
-    // The two differ only in how the BVH groups the triangles, so the distances agree to rounding.
-    agree = agree && std::abs(portableSum - tunedSum) <= 1e-4 * size * double(queries.size());
+    // The two differ only in how the BVH groups the triangles, so the distances agree to rounding,
+    // which scales with the size of the mesh.
+    const T tolerance = (std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-10)) * size;
+
+    for (std::size_t i = 0; i < queries.size(); i++) {
+      agree = agree && (std::abs(portableResults[i] - tunedResults[i]) <= tolerance);
+    }
   }
 
   std::cout << "\nBoth choices give the same answers: " << (agree ? "yes" : "NO") << "\n";

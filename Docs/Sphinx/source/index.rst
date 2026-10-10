@@ -122,7 +122,6 @@ Examples
    Examples.rst
    ExampleShapes.rst
    ExampleMeshSDF.rst
-   ExampleCSGUnion.rst
    ExampleNestedBVH.rst
    ExampleHostTuning.rst
    ExamplePackedSpheres.rst
