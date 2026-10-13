@@ -278,6 +278,9 @@ public:
 
   /**
    * @brief The object's arrays as offsets into its pool, with no location (see PoolHandle).
+   * @details Both parts were reserved from the one pool the handle's location follows (the
+   * constructor requires the mesh to live in it and builds the BVH there), so one location resolves
+   * both.
    */
   struct Layout
   {

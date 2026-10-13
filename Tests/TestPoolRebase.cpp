@@ -248,6 +248,15 @@ TEMPLATE_TEST_CASE("PoolHandle: every pool-resident class is a handle, and its l
   STATIC_REQUIRE(isPoolHandle<BVHSmoothUnion<T, SphereSDF<T>, 4>>);
   STATIC_REQUIRE_FALSE(isPoolHandle<SphereSDF<T>>);
 
+  // The base's copy operations are protected, so a handle cannot be sliced into a bare PoolHandle,
+  // and every handle is still trivially copyable.
+  STATIC_REQUIRE_FALSE(std::is_copy_constructible_v<PoolHandle>);
+  STATIC_REQUIRE_FALSE(std::is_copy_assignable_v<PoolHandle>);
+  STATIC_REQUIRE_FALSE(std::is_constructible_v<PoolHandle, const TestSDF<T>&>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<TestSDF<T>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<Tri>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnion<T, Tri, 4>>);
+
   // A layout is what nested storage holds: trivially copyable, with no location to go stale in a
   // mirror.
   STATIC_REQUIRE_FALSE(isPoolHandle<typename Bvh::Layout>);

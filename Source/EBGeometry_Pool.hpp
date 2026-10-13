@@ -524,6 +524,37 @@ protected:
   {}
 
   /**
+   * @brief Copy a handle, as a derived handle's copy does.
+   * @details Protected, with the other copy and move operations, so that a derived handle cannot be
+   * sliced into a bare PoolHandle. Defaulted, so every derived handle stays trivially copyable.
+   */
+  PoolHandle(const PoolHandle&) noexcept = default;
+
+  /**
+   * @brief Move a handle; the same as a copy.
+   */
+  PoolHandle(PoolHandle&&) noexcept = default;
+
+  /**
+   * @brief Copy-assign a handle, as a derived handle's assignment does.
+   * @return This handle.
+   */
+  PoolHandle&
+  operator=(const PoolHandle&) noexcept = default;
+
+  /**
+   * @brief Move-assign a handle; the same as a copy.
+   * @return This handle.
+   */
+  PoolHandle&
+  operator=(PoolHandle&&) noexcept = default;
+
+  /**
+   * @brief Destructor; protected, since a PoolHandle exists only as the base of a handle.
+   */
+  ~PoolHandle() noexcept = default;
+
+  /**
    * @brief The base address this handle's offsets resolve against; see PoolLocation::base().
    * @return The base address.
    */

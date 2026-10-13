@@ -580,7 +580,8 @@ MeshSDF<T, K>::rebasedView(const Pool& a_pool) const noexcept
   const Root bvh  = this->getRoot().rebasedView(a_pool);
 
   EBGEOMETRY_EXPECT(mesh.location().m_control == bvh.location().m_control &&
-                    mesh.location().m_base == bvh.location().m_base);
+                    mesh.location().m_base == bvh.location().m_base &&
+                    mesh.location().m_hostAccessible == bvh.location().m_hostAccessible);
 
   MeshSDF view = *this;
 

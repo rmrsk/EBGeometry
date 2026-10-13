@@ -80,6 +80,10 @@ namespace EBGeometry {
                                                                                \
   /* -- Mesh distance functions --------------------------------------------*/\
   template class FlatMeshSDF<PREC>;                                          \
+  template class MeshSDF<PREC, 4>;                                           \
+  template class TriMeshSDF<PREC, 4, 4>;                                     \
+  template class BVHUnion<PREC, TriMeshSDF<PREC, 4, 4>, 4>;                  \
+  template class BVHSmoothUnion<PREC, MeshSDF<PREC, 4>, 4>;                  \
   template struct ClosestFace<PREC>;                                         \
                                                                                \
   /* -- Point clouds --------------------------------------------------------*/\
