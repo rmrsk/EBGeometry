@@ -344,10 +344,12 @@ does not follow this template, edit the PR body to conform to it.
   alive for as long as the `MeshSDF` or any copy or `rebasedView()` of it is used (and, on a device,
   the mirrored pool too). The same holds for `FlatMeshSDF` (mesh only), `TriMeshSDF` (BVH only; its
   `TriangleAoSoA` leaves are self-contained), `PointCloudBVH`, `PointCloudHashGrid` and the BVH
-  unions. A similar wrapper
-  should follow the same pattern: hold descriptors by value, offer `rebasedView()`/`deepCopy()`
-  (and `relocatedTo()` if it may be a BVH-union primitive), and document that its pool must outlive
-  it.
+  unions. Each of these is a handle: it derives from `PoolHandle` (the one `PoolLocation`), and
+  its `Layout` (offsets only) is what nested storage holds, so a union stores a `TriMeshSDF` as
+  `TriMeshSDF::Layout` and rebuilds it with its own location as it evaluates it. A similar wrapper
+  should follow the same pattern: derive from `PoolHandle`, hold the layouts of its parts (never a
+  second handle, which would carry a second location), offer `rebasedView()`/`deepCopy()`,
+  `layout()` and a `(Layout, PoolLocation)` constructor, and document that its pool must outlive it.
 - **Mesh elements and points carry no user metadata; an element's id is its index.** The DCEL
   classes, `Triangle`, the mesh SDFs, the parsers, `PointAoSoA` and the point clouds have no `Meta`
   template parameter. The readers number faces in file order (minus removed degenerate faces):

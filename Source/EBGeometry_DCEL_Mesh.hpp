@@ -97,7 +97,7 @@ namespace DCEL {
  * @tparam T    Floating-point precision type.
  */
 template <class T>
-class MeshT
+class MeshT : public PoolHandle
 {
   static_assert(std::is_floating_point_v<T>, "MeshT requires a floating-point T");
 
@@ -151,10 +151,65 @@ public:
   MeshT() noexcept = default;
 
   /**
+   * @brief The mesh's arrays as offsets into its pool, with no location: what another pool-resident
+   * object stores when it holds this mesh (see PoolHandle).
+   */
+  struct Layout
+  {
+    /**
+     * @brief Search algorithm used by signed distance queries.
+     */
+    SearchAlgorithm m_algorithm = SearchAlgorithm::Direct2;
+
+    /**
+     * @brief Vertices.
+     */
+    PODVector<Vertex> m_vertices;
+
+    /**
+     * @brief Half-edges.
+     */
+    PODVector<Edge> m_edges;
+
+    /**
+     * @brief Faces.
+     */
+    PODVector<Face> m_faces;
+  };
+
+  /**
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
+   * @details How an outer pool-resident object evaluates a mesh it stores as a layout: it pairs the
+   * layout with its own location. @p a_location must belong to the pool the layout was reserved from,
+   * or to a mirror of it; nothing is checked, since a device has no pool to check against.
+   * @param[in] a_layout   The mesh's arrays.
+   * @param[in] a_location Where they live.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  MeshT(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location),
+      m_algorithm(a_layout.m_algorithm),
+      m_vertices(a_layout.m_vertices),
+      m_edges(a_layout.m_edges),
+      m_faces(a_layout.m_faces)
+  {}
+
+  /**
+   * @brief The mesh's arrays without its location, for storing it inside another pool-resident object.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Layout
+  layout() const noexcept
+  {
+    return Layout{m_algorithm, m_vertices, m_edges, m_faces};
+  }
+
+  /**
    * @brief Copy constructor.
    * @details Defaulted memberwise copy. Every member is a plain value (three PODVectors, the
-   * search-algorithm enum, the Pool's control-block pointer, and the device-view base pointer, which
-   * is null outside a rebasedView() device view), so this is a cheap, always-safe descriptor
+   * search-algorithm enum, and the PoolLocation held by the PoolHandle base), so this is a cheap,
+   * always-safe descriptor
    * copy -- it does NOT duplicate the underlying vertex/edge/face data, which stays shared between
    * the original and the copy (both still resolve against the same Pool/base). Use deepCopy() when
    * independent, separately-owned storage is required (e.g. in a different Pool).
@@ -397,18 +452,6 @@ public:
   getFace(uint32_t a_index) const noexcept;
 
   /**
-   * @brief Whether this mesh's storage was reserved from a_pool.
-   * @details A mesh attaches to a Pool on its first reserveVertices/Edges/Faces() call and resolves
-   * everything through that Pool thereafter, so the Pool must outlive the mesh. This is the check a
-   * caller that holds both can make to confirm they belong together.
-   * @param[in] a_pool Pool to test against.
-   * @return True if this mesh resolves through a_pool.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept;
-
-  /**
    * @brief Number of vertices in this mesh.
    * @return Vertex count.
    */
@@ -518,36 +561,7 @@ public:
   inline Mesh
   rebasedView(const Pool& a_pool) const noexcept;
 
-  /**
-   * @brief The pool location this mesh resolves against.
-   * @return This mesh's control block (host) or base address (device view).
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PoolLocation
-  location() const noexcept;
-
-  /**
-   * @brief A copy of this mesh resolving against @p a_location instead of its own location.
-   * @details For a descriptor stored inside another object's pool (see PoolLocation): the outer
-   * object applies its own location to a local copy of this descriptor, on the host and on a
-   * device alike. Unlike rebasedView() it checks nothing, since a device has no pool to check
-   * against: @p a_location must belong to the pool this mesh was reserved from, or to a mirror
-   * of it.
-   * @param[in] a_location Location to resolve against.
-   * @return A copy of this mesh resolving against @p a_location.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Mesh
-  relocatedTo(const PoolLocation& a_location) const noexcept;
-
 protected:
-  /**
-   * @brief Where the mesh's arrays live: the Pool it follows, or a snapshot made by rebasedView().
-   * @details Host bookkeeping for a mesh in a host pool, which re-reads the base through the pool's
-   * control block on every access and so is immune to a Pool::reserve that grows and moves the block.
-   */
-  PoolLocation m_location;
-
   /**
    * @brief Search algorithm. Only used in signed distance functions.
    */
@@ -567,17 +581,6 @@ protected:
    * @brief Mesh faces
    */
   PODVector<Face> m_faces;
-
-  /**
-   * @brief Resolve this mesh's current base address.
-   * @details Reads through m_control on the host (so a Pool::reserve that moves the block is
-   * invisible) and through m_base on device. Exactly one of the two is set; which one is asserted,
-   * since a mismatch means a descriptor crossed an address-space boundary the wrong way.
-   * @return Base address to resolve this mesh's PODVector offsets against.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline void*
-  base() const noexcept;
 
   /**
    * @brief Attach this mesh to a_pool, or check that it is already attached to it.

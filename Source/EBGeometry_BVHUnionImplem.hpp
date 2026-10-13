@@ -139,8 +139,12 @@ buildUnionParts(Pool&                                         a_pool,
                 const BVH::ConstructionOptions&               a_options)
 {
   using BV   = BoundingVolumes::AABBT<T>;
-  using Root = BVH::PackedBVH<T, P, K>;
+  using S    = Stored<P>;
+  using Root = BVH::PackedBVH<T, S, K>;
   using Node = typename Root::Node;
+
+  static_assert(std::is_trivially_copyable_v<S> && !isPoolHandle<S>,
+                "BVHUnion: a primitive is stored as a trivially copyable value holding no pool location");
 
   // Each check guards against a mistake that a Release build would otherwise turn into a silent wrong
   // answer or an out-of-bounds read, and runs once at build time, costing nothing per evaluation.
@@ -151,10 +155,10 @@ buildUnionParts(Pool&                                         a_pool,
                      a_primitives.size(),
                      a_boundingVolumes.size());
 
-  // A pool-resident primitive is evaluated against the union's own pool location, so it must have
-  // been reserved from the same pool; a primitive from another pool would be read from the wrong
-  // memory.
-  if constexpr (IsPoolResident<P>::value) {
+  // A pool-resident primitive is stored as a layout and evaluated against the union's own pool location,
+  // so it must have been reserved from the same pool; a primitive from another pool would be read from
+  // the wrong memory.
+  if constexpr (isPoolHandle<P>) {
     for (size_t i = 0; i < a_primitives.size(); i++) {
       EBGEOMETRY_REQUIRE(a_primitives[i].isAttachedTo(a_pool),
                          "BVHUnion: primitive %zu of %zu lives in another Pool; a pool-resident primitive must "
@@ -168,20 +172,20 @@ buildUnionParts(Pool&                                         a_pool,
 
   // A primitive with an unbounded box goes into one leaf that every query scans, so that its box
   // neither makes every ancestor's box unbounded nor reaches the build heuristics.
-  std::vector<std::pair<P, BV>> primsAndBVs;
-  std::vector<P>                unboundedPrims;
+  std::vector<std::pair<S, BV>> primsAndBVs;
+  std::vector<S>                unboundedPrims;
   BV                            unboundedBox;
 
   primsAndBVs.reserve(a_primitives.size());
 
   for (size_t i = 0; i < a_primitives.size(); i++) {
     if (isUnbounded(a_boundingVolumes[i])) {
-      unboundedPrims.push_back(a_primitives[i]);
+      unboundedPrims.push_back(toStored(a_primitives[i]));
 
       unboundedBox = unboundedBox.merged(a_boundingVolumes[i]);
     }
     else {
-      primsAndBVs.emplace_back(a_primitives[i], a_boundingVolumes[i]);
+      primsAndBVs.emplace_back(toStored(a_primitives[i]), a_boundingVolumes[i]);
     }
   }
 
@@ -200,10 +204,10 @@ buildUnionParts(Pool&                                         a_pool,
   Root unbounded(a_pool, unboundedNodes, unboundedPrims);
 
   if (primsAndBVs.empty()) {
-    return UnionParts<T, P, K>{Root(a_pool, std::vector<Node>{}, std::vector<P>{}), unbounded};
+    return UnionParts<T, P, K>{Root(a_pool, std::vector<Node>{}, std::vector<S>{}), unbounded};
   }
 
-  return UnionParts<T, P, K>{buildBoundedBVH<T, P, K>(a_pool, std::move(primsAndBVs), a_construction, a_options),
+  return UnionParts<T, P, K>{buildBoundedBVH<T, S, K>(a_pool, std::move(primsAndBVs), a_construction, a_options),
                              unbounded};
 }
 
@@ -211,8 +215,8 @@ buildUnionParts(Pool&                                         a_pool,
  * @brief Duplicate a BVH union's packed BVH into another pool, deep-copying pool-resident
  * primitives too.
  * @details Internal helper; not part of the public API. PackedBVH::deepCopy() copies primitives
- * byte for byte, which is exact for a self-contained primitive but would leave a pool-resident one
- * pointing at the source pool.
+ * byte for byte, which is exact for a self-contained primitive but would leave a pool-resident one's
+ * layout pointing at arrays in the source pool.
  * @tparam T Floating-point precision.
  * @tparam P Primitive type.
  * @tparam K BVH branching factor.
@@ -222,29 +226,29 @@ buildUnionParts(Pool&                                         a_pool,
  */
 template <class T, class P, size_t K>
 [[nodiscard]] EBGEOMETRY_HOST
-inline BVH::PackedBVH<T, P, K>
-deepCopyBVH(const BVH::PackedBVH<T, P, K>& a_bvh, Pool& a_dstPool)
+inline BVH::PackedBVH<T, Stored<P>, K>
+deepCopyBVH(const BVH::PackedBVH<T, Stored<P>, K>& a_bvh, Pool& a_dstPool)
 {
-  using Root = BVH::PackedBVH<T, P, K>;
+  using Root = BVH::PackedBVH<T, Stored<P>, K>;
   using Node = typename Root::Node;
 
-  if constexpr (IsPoolResident<P>::value) {
+  if constexpr (isPoolHandle<P>) {
     // Copy both arrays out before reserving anything: if a_dstPool is also the source pool, a
     // reserve can move its block and invalidate the spans.
     const auto nodeSpan = a_bvh.getNodes();
     const auto primSpan = a_bvh.getPrimitives();
 
-    const std::vector<Node> nodes(nodeSpan.begin(), nodeSpan.end());
-    const std::vector<P>    sourcePrims(primSpan.begin(), primSpan.end());
+    const std::vector<Node>      nodes(nodeSpan.begin(), nodeSpan.end());
+    const std::vector<Stored<P>> sourcePrims(primSpan.begin(), primSpan.end());
 
     const PoolLocation location = a_bvh.location();
 
-    std::vector<P> prims;
+    std::vector<Stored<P>> prims;
 
     prims.reserve(sourcePrims.size());
 
-    for (const P& primitive : sourcePrims) {
-      prims.emplace_back(primitive.relocatedTo(location).deepCopy(a_dstPool));
+    for (const Stored<P>& primitive : sourcePrims) {
+      prims.emplace_back(fromStored<P>(primitive, location).deepCopy(a_dstPool).layout());
     }
 
     return Root(a_dstPool, nodes, prims);
@@ -257,7 +261,7 @@ deepCopyBVH(const BVH::PackedBVH<T, P, K>& a_bvh, Pool& a_dstPool)
 /**
  * @brief Run rebasedView()'s checks on every pool-resident primitive of a BVH union.
  * @details Internal helper; not part of the public API. The rebased primitives are discarded: a
- * pool-resident primitive follows the union's location at evaluation time instead.
+ * pool-resident primitive is stored as a layout and resolves against the union's location instead.
  * @tparam T Floating-point precision.
  * @tparam P Primitive type.
  * @tparam K BVH branching factor.
@@ -267,13 +271,14 @@ deepCopyBVH(const BVH::PackedBVH<T, P, K>& a_bvh, Pool& a_dstPool)
 template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline void
-checkPrimitivesRebase([[maybe_unused]] const BVH::PackedBVH<T, P, K>& a_bvh, [[maybe_unused]] const Pool& a_pool)
+checkPrimitivesRebase([[maybe_unused]] const BVH::PackedBVH<T, Stored<P>, K>& a_bvh,
+                      [[maybe_unused]] const Pool&                            a_pool)
 {
-  if constexpr (IsPoolResident<P>::value) {
+  if constexpr (isPoolHandle<P>) {
     const PoolLocation location = a_bvh.location();
 
-    for (const P& primitive : a_bvh.getPrimitives()) {
-      [[maybe_unused]] const P view = primitive.relocatedTo(location).rebasedView(a_pool);
+    for (const Stored<P>& primitive : a_bvh.getPrimitives()) {
+      [[maybe_unused]] const P view = fromStored<P>(primitive, location).rebasedView(a_pool);
     }
   }
 }
@@ -311,19 +316,20 @@ BVHUnion<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   T minDist = Math::Limits<T>::infinity();
 
   // The unbounded primitives first, so that their values can prune the traversal.
-  const auto         unbounded         = m_unbounded.getPrimitives();
-  const PoolLocation unboundedLocation = m_unbounded.location();
+  const PoolLocation location = this->location();
+  const Root         bvh      = this->getBVH();
+  const Root         unboundedRoot(m_unbounded, location);
+  const auto         unbounded = unboundedRoot.getPrimitives();
 
   for (uint32_t i = 0; i < unbounded.size(); i++) {
-    minDist = Math::min(minDist, CSGDetail::signedDistance<T>(unbounded[i], a_point, unboundedLocation));
+    minDist = Math::min(minDist, CSGDetail::fromStored<P>(unbounded[i], location).signedDistance(a_point));
   }
 
-  const auto         primitives = m_bvh.getPrimitives();
-  const PoolLocation location   = m_bvh.location();
+  const auto primitives = bvh.getPrimitives();
 
   const auto evalLeaf = [&primitives, &a_point, &location](T& a_minDist, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      const T v = CSGDetail::signedDistance<T>(primitives[static_cast<uint32_t>(i)], a_point, location);
+      const T v = CSGDetail::fromStored<P>(primitives[static_cast<uint32_t>(i)], location).signedDistance(a_point);
 
       EBGEOMETRY_EXPECT(!std::isnan(v));
 
@@ -341,7 +347,7 @@ BVHUnion<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
     return bound * bound;
   };
 
-  m_bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
+  bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -351,23 +357,25 @@ EBGEOMETRY_HOST_DEVICE
 inline typename BVHUnion<T, P, K>::BV
 BVHUnion<T, P, K>::computeBoundingVolume() const noexcept
 {
-  return m_bvh.computeBoundingVolume().merged(m_unbounded.computeBoundingVolume());
+  return this->getBVH().computeBoundingVolume().merged(Root(m_unbounded, this->location()).computeBoundingVolume());
 }
 
 template <class T, class P, size_t K>
 EBGEOMETRY_HOST_DEVICE
-inline const typename BVHUnion<T, P, K>::Root&
+inline typename BVHUnion<T, P, K>::Root
 BVHUnion<T, P, K>::getBVH() const noexcept
 {
-  return m_bvh;
+  return Root(m_bvh, this->location());
 }
 
 template <class T, class P, size_t K>
 EBGEOMETRY_HOST_DEVICE
-inline PODSpan<const P>
+inline PODSpan<const CSGDetail::Stored<P>>
 BVHUnion<T, P, K>::getUnboundedPrimitives() const noexcept
 {
-  return m_unbounded.getPrimitives();
+  const Root unbounded(m_unbounded, this->location());
+
+  return unbounded.getPrimitives();
 }
 
 template <class T, class P, size_t K>
@@ -375,10 +383,19 @@ EBGEOMETRY_HOST
 inline BVHUnion<T, P, K>
 BVHUnion<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
 {
-  CSGDetail::checkPrimitivesRebase(m_bvh, a_pool);
-  CSGDetail::checkPrimitivesRebase(m_unbounded, a_pool);
+  const Root bvh       = this->getBVH();
+  const Root unbounded = Root(m_unbounded, this->location());
 
-  return BVHUnion(m_bvh.rebasedView(a_pool), m_unbounded.rebasedView(a_pool));
+  CSGDetail::checkPrimitivesRebase<T, P, K>(bvh, a_pool);
+  CSGDetail::checkPrimitivesRebase<T, P, K>(unbounded, a_pool);
+
+  // Both parts live in one pool, so they rebase to one location. Rebasing each checks its arrays,
+  // and the BVH its depth.
+  const PoolLocation location = bvh.rebasedView(a_pool).location();
+
+  [[maybe_unused]] const Root unboundedView = unbounded.rebasedView(a_pool);
+
+  return BVHUnion(Layout{m_bvh, m_unbounded}, location);
 }
 
 template <class T, class P, size_t K>
@@ -387,26 +404,10 @@ inline BVHUnion<T, P, K>
 BVHUnion<T, P, K>::deepCopy(Pool& a_dstPool) const
 {
   // Both parts go into a_dstPool, so the copy resolves them against one pool, as the original does.
-  const Root bvh       = CSGDetail::deepCopyBVH(m_bvh, a_dstPool);
-  const Root unbounded = CSGDetail::deepCopyBVH(m_unbounded, a_dstPool);
+  const Root bvh       = CSGDetail::deepCopyBVH<T, P, K>(this->getBVH(), a_dstPool);
+  const Root unbounded = CSGDetail::deepCopyBVH<T, P, K>(Root(m_unbounded, this->location()), a_dstPool);
 
-  return BVHUnion(bvh, unbounded);
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline BVHUnion<T, P, K>
-BVHUnion<T, P, K>::relocatedTo(const PoolLocation& a_location) const noexcept
-{
-  return BVHUnion(m_bvh.relocatedTo(a_location), m_unbounded.relocatedTo(a_location));
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST
-inline bool
-BVHUnion<T, P, K>::isAttachedTo(const Pool& a_pool) const noexcept
-{
-  return m_bvh.isAttachedTo(a_pool);
+  return BVHUnion(Layout{bvh.layout(), unbounded.layout()}, bvh.location());
 }
 
 template <class T, class P, size_t K, class Blend>
@@ -476,20 +477,22 @@ BVHSmoothUnion<T, P, K, Blend>::signedDistance(const Vec3T<T>& a_point) const no
   };
 
   // The unbounded primitives first, so that their values can prune the traversal.
-  const auto         unbounded         = m_unbounded.getPrimitives();
-  const PoolLocation unboundedLocation = m_unbounded.location();
+  const PoolLocation location = this->location();
+  const Root         bvh      = this->getBVH();
+  const Root         unboundedRoot(m_unbounded, location);
+  const auto         unbounded = unboundedRoot.getPrimitives();
 
   for (uint32_t i = 0; i < unbounded.size(); i++) {
-    insert(closest, CSGDetail::signedDistance<T>(unbounded[i], a_point, unboundedLocation));
+    insert(closest, CSGDetail::fromStored<P>(unbounded[i], location).signedDistance(a_point));
   }
 
-  const auto         primitives = m_bvh.getPrimitives();
-  const PoolLocation location   = m_bvh.location();
+  const auto primitives = bvh.getPrimitives();
 
   const auto evalLeaf =
     [&primitives, &a_point, &location, &insert](Closest& a_closest, size_t a_offset, size_t a_count) noexcept {
       for (size_t i = a_offset; i < a_offset + a_count; i++) {
-        insert(a_closest, CSGDetail::signedDistance<T>(primitives[static_cast<uint32_t>(i)], a_point, location));
+        insert(a_closest,
+               CSGDetail::fromStored<P>(primitives[static_cast<uint32_t>(i)], location).signedDistance(a_point));
       }
     };
 
@@ -503,7 +506,7 @@ BVHSmoothUnion<T, P, K, Blend>::signedDistance(const Vec3T<T>& a_point) const no
     return bound * bound;
   };
 
-  m_bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+  bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
 
   return m_blend(closest.a, closest.b, m_smoothLen);
 }
@@ -513,23 +516,25 @@ EBGEOMETRY_HOST_DEVICE
 inline typename BVHSmoothUnion<T, P, K, Blend>::BV
 BVHSmoothUnion<T, P, K, Blend>::computeBoundingVolume() const noexcept
 {
-  return m_bvh.computeBoundingVolume().merged(m_unbounded.computeBoundingVolume());
+  return this->getBVH().computeBoundingVolume().merged(Root(m_unbounded, this->location()).computeBoundingVolume());
 }
 
 template <class T, class P, size_t K, class Blend>
 EBGEOMETRY_HOST_DEVICE
-inline const typename BVHSmoothUnion<T, P, K, Blend>::Root&
+inline typename BVHSmoothUnion<T, P, K, Blend>::Root
 BVHSmoothUnion<T, P, K, Blend>::getBVH() const noexcept
 {
-  return m_bvh;
+  return Root(m_bvh, this->location());
 }
 
 template <class T, class P, size_t K, class Blend>
 EBGEOMETRY_HOST_DEVICE
-inline PODSpan<const P>
+inline PODSpan<const CSGDetail::Stored<P>>
 BVHSmoothUnion<T, P, K, Blend>::getUnboundedPrimitives() const noexcept
 {
-  return m_unbounded.getPrimitives();
+  const Root unbounded(m_unbounded, this->location());
+
+  return unbounded.getPrimitives();
 }
 
 template <class T, class P, size_t K, class Blend>
@@ -537,10 +542,19 @@ EBGEOMETRY_HOST
 inline BVHSmoothUnion<T, P, K, Blend>
 BVHSmoothUnion<T, P, K, Blend>::rebasedView(const Pool& a_pool) const noexcept
 {
-  CSGDetail::checkPrimitivesRebase(m_bvh, a_pool);
-  CSGDetail::checkPrimitivesRebase(m_unbounded, a_pool);
+  const Root bvh       = this->getBVH();
+  const Root unbounded = Root(m_unbounded, this->location());
 
-  return BVHSmoothUnion(m_bvh.rebasedView(a_pool), m_unbounded.rebasedView(a_pool), m_smoothLen, m_blend);
+  CSGDetail::checkPrimitivesRebase<T, P, K>(bvh, a_pool);
+  CSGDetail::checkPrimitivesRebase<T, P, K>(unbounded, a_pool);
+
+  // Both parts live in one pool, so they rebase to one location. Rebasing each checks its arrays,
+  // and the BVH its depth.
+  const PoolLocation location = bvh.rebasedView(a_pool).location();
+
+  [[maybe_unused]] const Root unboundedView = unbounded.rebasedView(a_pool);
+
+  return BVHSmoothUnion(Layout{m_bvh, m_unbounded, m_smoothLen, m_blend}, location);
 }
 
 template <class T, class P, size_t K, class Blend>
@@ -549,26 +563,10 @@ inline BVHSmoothUnion<T, P, K, Blend>
 BVHSmoothUnion<T, P, K, Blend>::deepCopy(Pool& a_dstPool) const
 {
   // Both parts go into a_dstPool, so the copy resolves them against one pool, as the original does.
-  const Root bvh       = CSGDetail::deepCopyBVH(m_bvh, a_dstPool);
-  const Root unbounded = CSGDetail::deepCopyBVH(m_unbounded, a_dstPool);
+  const Root bvh       = CSGDetail::deepCopyBVH<T, P, K>(this->getBVH(), a_dstPool);
+  const Root unbounded = CSGDetail::deepCopyBVH<T, P, K>(Root(m_unbounded, this->location()), a_dstPool);
 
-  return BVHSmoothUnion(bvh, unbounded, m_smoothLen, m_blend);
-}
-
-template <class T, class P, size_t K, class Blend>
-EBGEOMETRY_HOST_DEVICE
-inline BVHSmoothUnion<T, P, K, Blend>
-BVHSmoothUnion<T, P, K, Blend>::relocatedTo(const PoolLocation& a_location) const noexcept
-{
-  return BVHSmoothUnion(m_bvh.relocatedTo(a_location), m_unbounded.relocatedTo(a_location), m_smoothLen, m_blend);
-}
-
-template <class T, class P, size_t K, class Blend>
-EBGEOMETRY_HOST
-inline bool
-BVHSmoothUnion<T, P, K, Blend>::isAttachedTo(const Pool& a_pool) const noexcept
-{
-  return m_bvh.isAttachedTo(a_pool);
+  return BVHSmoothUnion(Layout{bvh.layout(), unbounded.layout(), m_smoothLen, m_blend}, bvh.location());
 }
 
 } // namespace EBGeometry

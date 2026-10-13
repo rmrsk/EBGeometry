@@ -65,7 +65,7 @@ namespace EBGeometry {
  * @tparam W Points per SoA leaf lane group. Defaults to PointSoA::DefaultWidth<T>().
  */
 template <class T, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = PointSoA::DefaultWidth<T>()>
-class PointCloudBVH
+class PointCloudBVH : public PoolHandle
 {
 public:
   /**
@@ -196,29 +196,29 @@ public:
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Packed&
+  inline Packed
   getBVH() const noexcept
   {
-    return m_bvh;
+    return Packed(m_bvhLayout, this->location());
   }
 
   /**
    * @brief Resolve the base address every array of this object is an offset from.
-   * @details The held BVH and the cloud arrays share one pool, so this is the BVH's own base().
+   * @details The BVH and the cloud arrays share one pool, and so one location.
    * @return Base address of the pool block holding this object.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline const void*
   base() const noexcept
   {
-    return m_bvh.base();
+    return PoolHandle::base();
   }
 
   /**
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Same contract as PackedBVH::rebasedView(): mirror the pool first, then rebase, then
-   * copy the returned value into a kernel. The cloud arrays are offsets into the same pool as the
-   * BVH, so rebasing the held BVH rebases everything.
+   * copy the returned value into a kernel. The BVH and the cloud arrays are offsets into one pool,
+   * so rebasing the one location rebases everything.
    *
    * @code
    * Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
@@ -242,18 +242,6 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline PointCloudBVH
   deepCopy(Pool& a_dstPool) const;
-
-  /**
-   * @brief Check whether this object's arrays were reserved from @p a_pool.
-   * @param[in] a_pool Pool to test against.
-   * @return True if this object is attached to @p a_pool.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept
-  {
-    return m_bvh.isAttachedTo(a_pool);
-  }
 
 private:
   /**
@@ -345,9 +333,9 @@ private:
         std::uint32_t   a_seedCnt) const noexcept;
 
   /**
-   * @brief The packed BVH over the point groups. Owns the pool attachment every array below shares.
+   * @brief The packed BVH over the point groups, as a layout: it shares this object's location.
    */
-  Packed m_bvh;
+  typename Packed::Layout m_bvhLayout;
 
   /**
    * @brief Point positions, indexed by cloud index. Kept for self-query points and spatial ordering.

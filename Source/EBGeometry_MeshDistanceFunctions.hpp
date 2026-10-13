@@ -72,7 +72,7 @@ struct ClosestFace
  * @tparam T    Floating-point precision type (float or double).
  */
 template <class T>
-class FlatMeshSDF
+class FlatMeshSDF : public PoolHandle
 {
   static_assert(std::is_floating_point_v<T>, "FlatMeshSDF requires a floating-point T");
 
@@ -92,6 +92,41 @@ public:
    * @brief Disallowed constructor
    */
   FlatMeshSDF() = delete;
+
+  /**
+   * @brief The object's arrays as offsets into its pool, with no location (see PoolHandle).
+   */
+  struct Layout
+  {
+    /**
+     * @brief The mesh.
+     */
+    typename Mesh::Layout m_mesh;
+  };
+
+  /**
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
+   * @details How an outer pool-resident object, such as a BVHUnion, evaluates a FlatMeshSDF it stores as
+   * a layout. @p a_location must belong to the pool the layout was reserved from, or to a mirror of it;
+   * nothing is checked, since a device has no pool to check against.
+   * @param[in] a_layout   The arrays.
+   * @param[in] a_location Where they live.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  FlatMeshSDF(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location), m_meshLayout(a_layout.m_mesh)
+  {}
+
+  /**
+   * @brief The object's arrays without its location, for storing it inside another pool-resident object.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Layout
+  layout() const noexcept
+  {
+    return Layout{m_meshLayout};
+  }
 
   /**
    * @brief Full constructor.
@@ -133,10 +168,10 @@ public:
    * @return The mesh.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Mesh&
+  inline Mesh
   getMesh() const noexcept
   {
-    return m_mesh;
+    return Mesh(m_meshLayout, this->location());
   }
 
   /**
@@ -151,18 +186,6 @@ public:
   rebasedView(const Pool& a_pool) const noexcept;
 
   /**
-   * @brief A copy of this object resolving against @p a_location instead of its own pool location.
-   * @details For an object stored inside another object's pool, such as a primitive of a
-   * BVHUnion; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
-   * to the pool this object was reserved from, or to a mirror of it.
-   * @param[in] a_location Location to resolve against.
-   * @return A FlatMeshSDF resolving against @p a_location.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline FlatMeshSDF
-  relocatedTo(const PoolLocation& a_location) const noexcept;
-
-  /**
    * @brief Duplicate the mesh's storage into @p a_dstPool.
    * @details The copy constructor copies descriptors only, leaving both objects resolving against
    * the same pool memory. This is the operation that gives genuinely independent storage.
@@ -172,18 +195,6 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline FlatMeshSDF
   deepCopy(Pool& a_dstPool) const;
-
-  /**
-   * @brief Check whether the mesh was reserved from @p a_pool.
-   * @param[in] a_pool Pool to test against.
-   * @return True if the mesh is attached to @p a_pool.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept
-  {
-    return m_mesh.isAttachedTo(a_pool);
-  }
 
   /**
    * @brief Compute the AABB enclosing the entire mesh.
@@ -197,9 +208,9 @@ public:
 
 private:
   /**
-   * @brief The mesh descriptor, held by value.
+   * @brief The mesh, as a layout resolving against this object's location.
    */
-  Mesh m_mesh;
+  typename Mesh::Layout m_meshLayout;
 };
 
 /**
@@ -228,7 +239,7 @@ static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>>, "FlatMeshSDF<do
  * @tparam K    BVH branching factor (number of children per internal node).
  */
 template <class T, size_t K>
-class MeshSDF
+class MeshSDF : public PoolHandle
 {
   static_assert(std::is_floating_point_v<T>, "MeshSDF requires a floating-point T");
   static_assert(K >= 2, "MeshSDF requires branching factor K >= 2");
@@ -264,6 +275,46 @@ public:
    * @brief Default disallowed constructor
    */
   MeshSDF() = delete;
+
+  /**
+   * @brief The object's arrays as offsets into its pool, with no location (see PoolHandle).
+   */
+  struct Layout
+  {
+    /**
+     * @brief The mesh.
+     */
+    typename Mesh::Layout m_mesh;
+
+    /**
+     * @brief The BVH over the mesh's face ids.
+     */
+    typename Root::Layout m_bvh;
+  };
+
+  /**
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
+   * @details How an outer pool-resident object, such as a BVHUnion, evaluates a MeshSDF it stores as
+   * a layout. @p a_location must belong to the pool the layout was reserved from, or to a mirror of it;
+   * nothing is checked, since a device has no pool to check against.
+   * @param[in] a_layout   The arrays.
+   * @param[in] a_location Where they live.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  MeshSDF(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location), m_meshLayout(a_layout.m_mesh), m_bvhLayout(a_layout.m_bvh)
+  {}
+
+  /**
+   * @brief The object's arrays without its location, for storing it inside another pool-resident object.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Layout
+  layout() const noexcept
+  {
+    return Layout{m_meshLayout, m_bvhLayout};
+  }
 
   /**
    * @brief The leaf-size settings the constructor without options uses.
@@ -344,21 +395,10 @@ public:
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Root&
-  getRoot() noexcept
-  {
-    return m_bvh;
-  }
-
-  /**
-   * @brief Get the PackedBVH enclosing the mesh (const overload).
-   * @return The packed BVH.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Root&
+  inline Root
   getRoot() const noexcept
   {
-    return m_bvh;
+    return Root(m_bvhLayout, this->location());
   }
 
   /**
@@ -366,10 +406,10 @@ public:
    * @return The mesh.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Mesh&
+  inline Mesh
   getMesh() const noexcept
   {
-    return m_mesh;
+    return Mesh(m_meshLayout, this->location());
   }
 
   /**
@@ -380,7 +420,7 @@ public:
   inline EBGeometry::BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept
   {
-    return m_bvh.getBoundingVolume();
+    return this->getRoot().getBoundingVolume();
   }
 
   /**
@@ -395,18 +435,6 @@ public:
   rebasedView(const Pool& a_pool) const noexcept;
 
   /**
-   * @brief A copy of this object resolving against @p a_location instead of its own pool location.
-   * @details For an object stored inside another object's pool, such as a primitive of a
-   * BVHUnion; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
-   * to the pool this object was reserved from, or to a mirror of it.
-   * @param[in] a_location Location to resolve against.
-   * @return A MeshSDF resolving against @p a_location.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline MeshSDF
-  relocatedTo(const PoolLocation& a_location) const noexcept;
-
-  /**
    * @brief Duplicate the mesh's and the BVH's storage into @p a_dstPool.
    * @details The copy constructor copies descriptors only. This gives genuinely independent storage.
    * The copied face ids still name the right faces of the copied mesh, since a mesh deep copy
@@ -417,18 +445,6 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline MeshSDF
   deepCopy(Pool& a_dstPool) const;
-
-  /**
-   * @brief Check whether the mesh and the BVH were both reserved from @p a_pool.
-   * @param[in] a_pool Pool to test against.
-   * @return True if both are attached to @p a_pool.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept
-  {
-    return m_mesh.isAttachedTo(a_pool) && m_bvh.isAttachedTo(a_pool);
-  }
 
 private:
   /**
@@ -447,15 +463,15 @@ private:
            const BVH::ConstructionOptions& a_options);
 
   /**
-   * @brief Source DCEL mesh descriptor.
+   * @brief Source DCEL mesh, as a layout resolving against this object's location.
    * @details The BVH's primitives are face ids into this mesh, meaningful only together with it.
    */
-  Mesh m_mesh;
+  typename Mesh::Layout m_meshLayout;
 
   /**
-   * @brief Linearized BVH over the mesh's face ids.
+   * @brief Linearized BVH over the mesh's face ids, as a layout in the same pool.
    */
-  Root m_bvh;
+  typename Root::Layout m_bvhLayout;
 };
 
 /**
@@ -485,7 +501,7 @@ private:
  * @tparam W    SoA width: number of triangles per SIMD group. Must be > 0.
  */
 template <class T, size_t K, size_t W>
-class TriMeshSDF
+class TriMeshSDF : public PoolHandle
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,K,W> requires a floating-point T");
   static_assert(K >= 2, "TriMeshSDF requires branching factor K >= 2");
@@ -522,6 +538,41 @@ public:
    * @brief Default disallowed constructor
    */
   TriMeshSDF() = delete;
+
+  /**
+   * @brief The object's arrays as offsets into its pool, with no location (see PoolHandle).
+   */
+  struct Layout
+  {
+    /**
+     * @brief The BVH over SoA triangle groups.
+     */
+    typename Root::Layout m_bvh;
+  };
+
+  /**
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
+   * @details How an outer pool-resident object, such as a BVHUnion, evaluates a TriMeshSDF it stores as
+   * a layout. @p a_location must belong to the pool the layout was reserved from, or to a mirror of it;
+   * nothing is checked, since a device has no pool to check against.
+   * @param[in] a_layout   The arrays.
+   * @param[in] a_location Where they live.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  TriMeshSDF(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location), m_bvhLayout(a_layout.m_bvh)
+  {}
+
+  /**
+   * @brief The object's arrays without its location, for storing it inside another pool-resident object.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Layout
+  layout() const noexcept
+  {
+    return Layout{m_bvhLayout};
+  }
 
   /**
    * @brief The leaf-size settings the constructors taking a_maxLeafGroups use.
@@ -639,21 +690,10 @@ public:
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Root&
-  getRoot() noexcept
-  {
-    return m_bvh;
-  }
-
-  /**
-   * @brief Get the PackedBVH storing SoA triangle groups (const overload).
-   * @return The packed BVH.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Root&
+  inline Root
   getRoot() const noexcept
   {
-    return m_bvh;
+    return Root(m_bvhLayout, this->location());
   }
 
   /**
@@ -664,7 +704,7 @@ public:
   inline EBGeometry::BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept
   {
-    return m_bvh.getBoundingVolume();
+    return this->getRoot().getBoundingVolume();
   }
 
   /**
@@ -679,18 +719,6 @@ public:
   rebasedView(const Pool& a_pool) const noexcept;
 
   /**
-   * @brief A copy of this object resolving against @p a_location instead of its own pool location.
-   * @details For an object stored inside another object's pool, such as a primitive of a
-   * BVHUnion; see PoolLocation. Unlike rebasedView() it checks nothing: @p a_location must belong
-   * to the pool this object was reserved from, or to a mirror of it.
-   * @param[in] a_location Location to resolve against.
-   * @return A TriMeshSDF resolving against @p a_location.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline TriMeshSDF
-  relocatedTo(const PoolLocation& a_location) const noexcept;
-
-  /**
    * @brief Duplicate the BVH's storage into @p a_dstPool.
    * @details The copy constructor copies descriptors only. This gives genuinely independent storage.
    * @param[in,out] a_dstPool Pool to reserve the copy from; may be this object's own pool.
@@ -699,18 +727,6 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline TriMeshSDF
   deepCopy(Pool& a_dstPool) const;
-
-  /**
-   * @brief Check whether the BVH was reserved from @p a_pool.
-   * @param[in] a_pool Pool to test against.
-   * @return True if the BVH is attached to @p a_pool.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept
-  {
-    return m_bvh.isAttachedTo(a_pool);
-  }
 
 private:
   /**
@@ -778,9 +794,18 @@ private:
                         uint32_t                                       a_count);
 
   /**
-   * @brief Bounding volume hierarchy storing SoA triangle groups.
+   * @brief Adopt a built BVH: its layout, and its location as this object's.
+   * @param[in] a_bvh The BVH.
    */
-  Root m_bvh;
+  EBGEOMETRY_HOST
+  explicit TriMeshSDF(const Root& a_bvh) noexcept : PoolHandle(a_bvh.location()), m_bvhLayout(a_bvh.layout())
+  {}
+
+  /**
+   * @brief Bounding volume hierarchy storing SoA triangle groups, as a layout resolving against this
+   * object's location.
+   */
+  typename Root::Layout m_bvhLayout;
 };
 
 /**

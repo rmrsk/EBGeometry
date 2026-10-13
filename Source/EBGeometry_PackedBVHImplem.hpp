@@ -36,13 +36,20 @@ namespace EBGeometry {
 namespace BVH {
 
 template <class T, class P, size_t K>
-EBGEOMETRY_HOST
-inline void
-PackedBVH<T, P, K>::attachTo(Pool& a_pool) noexcept
+EBGEOMETRY_HOST_DEVICE
+inline PackedBVH<T, P, K>::PackedBVH(const Layout& a_layout, const PoolLocation& a_location) noexcept
+  : PoolHandle(a_location),
+    m_linearNodes(a_layout.m_linearNodes),
+    m_primitives(a_layout.m_primitives),
+    m_childAabbSoA(a_layout.m_childAabbSoA)
+{}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline typename PackedBVH<T, P, K>::Layout
+PackedBVH<T, P, K>::layout() const noexcept
 {
-  // Every array of one BVH must come from the same pool -- offsets from two different blocks cannot
-  // both resolve against one base.
-  m_location.attach(a_pool, "BVH::PackedBVH");
+  return Layout{m_linearNodes, m_primitives, m_childAabbSoA};
 }
 
 template <class T, class P, size_t K>
@@ -50,15 +57,7 @@ EBGEOMETRY_HOST_DEVICE
 inline const void*
 PackedBVH<T, P, K>::base() const noexcept
 {
-  return m_location.base();
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST
-inline bool
-PackedBVH<T, P, K>::isAttachedTo(const Pool& a_pool) const noexcept
-{
-  return m_location.isAttachedTo(a_pool);
+  return PoolHandle::base();
 }
 
 template <class T, class P, size_t K>
@@ -71,34 +70,14 @@ PackedBVH<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
 
   PackedBVH view = *this;
 
-  view.m_location = m_location.rebasedOnto(a_pool, endByte, "BVH::PackedBVH");
+  view.setLocation(this->rebasedLocation(a_pool, endByte, "BVH::PackedBVH"));
 
-  if (view.m_location.m_control == nullptr) {
+  if (view.location().m_control == nullptr) {
     // A snapshot is what a kernel receives. The device traversal stack is smaller than the host's, so
     // a tree that finalize() accepted can still be too deep to traverse on device. This is the moment
     // the caller commits to that, and the last one that still runs on the host where it can say so.
     this->requireDepthFits(this->base(), DeviceTraversalDepth, "device view");
   }
-
-  return view;
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline PoolLocation
-PackedBVH<T, P, K>::location() const noexcept
-{
-  return m_location;
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline PackedBVH<T, P, K>
-PackedBVH<T, P, K>::relocatedTo(const PoolLocation& a_location) const noexcept
-{
-  PackedBVH<T, P, K> view = *this;
-
-  view.m_location = a_location;
 
   return view;
 }
@@ -121,12 +100,7 @@ PackedBVH<T, P, K>::deepCopy(Pool& a_dstPool) const
     prims[i] = m_primitives.at(srcBase, i);
   }
 
-  PackedBVH copy = *this;
-
-  copy.m_location     = PoolLocation{};
-  copy.m_linearNodes  = PODVector<Node>{};
-  copy.m_primitives   = PODVector<P>{};
-  copy.m_childAabbSoA = PODVector<ChildAABBSoA>{};
+  PackedBVH copy(Layout{}, PoolLocation{});
 
   copy.finalize(a_dstPool, nodes, prims);
 
@@ -143,7 +117,9 @@ PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNode
   // surface as an out-of-bounds read in Release.
   PackedBVH::requireWellFormed(a_linearNodes, a_primitives.size());
 
-  this->attachTo(a_pool);
+  // Every array of one BVH must come from the same pool -- offsets from two different blocks cannot
+  // both resolve against one base.
+  this->attach(a_pool, "BVH::PackedBVH");
 
   m_linearNodes.reserveFrom(a_pool, static_cast<uint32_t>(a_linearNodes.size()));
   m_primitives.reserveFrom(a_pool, static_cast<uint32_t>(a_primitives.size()));

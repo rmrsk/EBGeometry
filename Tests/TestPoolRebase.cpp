@@ -228,6 +228,81 @@ TEMPLATE_TEST_CASE("PoolLocation: an object built directly in managed memory can
   }
 }
 
+TEMPLATE_TEST_CASE("PoolHandle: every pool-resident class is a handle, and its layout holds no location",
+                   "[PoolRebase][PoolHandle]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Tri  = TriMeshSDF<T, 4, 4>;
+  using Bvh  = BVH::PackedBVH<T, uint32_t, 4>;
+  using Mesh = DCEL::MeshT<T>;
+
+  STATIC_REQUIRE(isPoolHandle<Bvh>);
+  STATIC_REQUIRE(isPoolHandle<Mesh>);
+  STATIC_REQUIRE(isPoolHandle<FlatMeshSDF<T>>);
+  STATIC_REQUIRE(isPoolHandle<TestSDF<T>>);
+  STATIC_REQUIRE(isPoolHandle<Tri>);
+  STATIC_REQUIRE(isPoolHandle<PointCloudBVH<T, 4, 4>>);
+  STATIC_REQUIRE(isPoolHandle<PointCloudHashGrid<T>>);
+  STATIC_REQUIRE(isPoolHandle<BVHUnion<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE(isPoolHandle<BVHSmoothUnion<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE_FALSE(isPoolHandle<SphereSDF<T>>);
+
+  // A layout is what nested storage holds: trivially copyable, with no location to go stale in a
+  // mirror.
+  STATIC_REQUIRE_FALSE(isPoolHandle<typename Bvh::Layout>);
+  STATIC_REQUIRE_FALSE(isPoolHandle<typename Mesh::Layout>);
+  STATIC_REQUIRE_FALSE(isPoolHandle<typename TestSDF<T>::Layout>);
+  STATIC_REQUIRE_FALSE(isPoolHandle<typename Tri::Layout>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<typename TestSDF<T>::Layout>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<typename Tri::Layout>);
+
+  // A union stores a pool-resident primitive as its layout, and anything else as is.
+  STATIC_REQUIRE(std::is_same_v<CSGDetail::Stored<Tri>, typename Tri::Layout>);
+  STATIC_REQUIRE(std::is_same_v<CSGDetail::Stored<SphereSDF<T>>, SphereSDF<T>>);
+  STATIC_REQUIRE(sizeof(typename Tri::Layout) < sizeof(Tri));
+
+  // A composite handle holds one location: MeshSDF's mesh and BVH used to carry one each.
+  STATIC_REQUIRE(sizeof(TestSDF<T>) == sizeof(typename TestSDF<T>::Layout) + sizeof(PoolLocation));
+}
+
+TEMPLATE_TEST_CASE("PoolHandle: a handle rebuilt from its layout and location answers like the original",
+                   "[PoolRebase][PoolHandle]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool host(hostMemoryResource());
+
+  const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), host);
+  const auto sdf  = TestSDF<T>(mesh, host, BVH::Construction::SAH);
+  const auto tri  = TriMeshSDF<T, 4, 4>(mesh, host, BVH::Construction::SAH, 4);
+  const auto flat = FlatMeshSDF<T>(mesh, host);
+
+  const TestSDF<T>          sdfAgain(sdf.layout(), sdf.location());
+  const TriMeshSDF<T, 4, 4> triAgain(tri.layout(), tri.location());
+  const FlatMeshSDF<T>      flatAgain(flat.layout(), flat.location());
+
+  for (const auto& p : probes<T>()) {
+    REQUIRE(sdfAgain.signedDistance(p) == sdf.signedDistance(p));
+    REQUIRE(triAgain.signedDistance(p) == tri.signedDistance(p));
+    REQUIRE(flatAgain.signedDistance(p) == flat.signedDistance(p));
+  }
+
+  // A layout paired with a mirror's location resolves against the mirror: what a union does with
+  // its primitives after rebasedView().
+  host.freeze();
+
+  FakeManagedResource managed;
+  const Pool          mirror = Pool::mirror(host, managed);
+  const PoolLocation  where  = sdf.rebasedView(mirror).location();
+  const TestSDF<T>    onMirror(sdf.layout(), where);
+
+  for (const auto& p : probes<T>()) {
+    REQUIRE(onMirror.signedDistance(p) == sdf.signedDistance(p));
+  }
+}
+
 TEMPLATE_TEST_CASE("PoolLocation: a view rebased onto a staging mirror can be rebased again onto its mirror",
                    "[PoolRebase][PoolLocation]",
                    EBGEOMETRY_TEST_PRECISIONS)

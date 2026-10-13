@@ -375,13 +375,12 @@ fields, whose ``signedDistance()`` can be called on the host or inside a GPU ker
   ``rebasedView(devicePool)`` to a kernel; ``deepCopy(pool)`` duplicates the storage.
 * **Primitives that live in a pool.** A mesh distance field, or a nested union, stored as a
   primitive must have been built in the same ``Pool`` as the union; the constructor checks this in
-  every build, not only when assertions are enabled. Mirroring the pool copies such a
-  primitive's bytes verbatim, including the host bookkeeping that locates its own arrays, so
-  rebasing the union cannot rewrite it in place. Instead the union applies its own pool location to
-  each such primitive as it evaluates it (``relocatedTo()``, see
-  `PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__). That is what makes a union
-  of ``TriMeshSDF`` objects -- a BVH whose primitives are themselves BVHs -- evaluable on a mirrored
-  pool and on a GPU.
+  every build, not only when assertions are enabled. The union stores such a primitive as its
+  layout, which holds offsets but no location, and rebuilds it with the union's own location as it
+  evaluates it (see :ref:`Chap:MemoryModel` and
+  `PoolHandle <doxygen/html/classEBGeometry_1_1PoolHandle.html>`__). That is what makes a union of
+  ``TriMeshSDF`` objects -- a BVH whose primitives are themselves BVHs -- evaluable on a mirrored pool
+  and on a GPU. ``getBVH().getPrimitives()`` therefore returns the layouts of such primitives.
 
 The :ref:`Chap:ExamplePackedSpheres` and :ref:`Chap:ExampleRandomCity` examples compare a BVH union
 of spheres and of boxes against a brute-force scan, and :ref:`Chap:ExampleNestedBVH` builds a union

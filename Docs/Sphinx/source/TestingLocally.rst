@@ -214,7 +214,10 @@ Test coverage
        object built directly in managed memory rebased onto its own frozen pool; a view of a staging
        mirror rebased again onto that mirror's mirror; and the rejected cases (an unfrozen
        device-accessible pool, a device-only view used on the host), with a fake memory resource in
-       place of a GPU.
+       place of a GPU. ``PoolHandle``: every pool-resident class is a handle and its layout holds no
+       location, a BVH union stores a mesh distance field as its layout, a composite handle carries
+       one location, and a handle rebuilt from its layout and a location (its own, or a mirror's)
+       answers exactly like the original.
    * - ``TestBoundingVolumes``
      - :cpp:class:`AABBT`: construction from corners and point clouds, volume, surface area, point
        distance, intersection predicate, overlapping volume; ``AABBT::merged``, the allocation-free

@@ -550,9 +550,9 @@ which returns with the redesign of the implicit-function and CSG layer that repl
 dispatch with a linear-SSA tape.
 
 Nesting a BVH inside a BVH -- a ``BVHUnion`` over several ``TriMeshSDF`` objects, say -- works
-today. The inner BVHs live in the same ``Pool`` as the outer one, and the outer union relocates each
-inner descriptor to its own pool location as it evaluates it, so the nested hierarchy mirrors to a
-device as one piece.
+today. The inner BVHs live in the same ``Pool`` as the outer one, and the outer union stores each
+inner object as its layout and pairs it with its own pool location as it evaluates it (see
+:ref:`Chap:MemoryModel`), so the nested hierarchy mirrors to a device as one piece.
 
 Nesting itself is not the expensive part, incidentally. A ``PackedBVH`` is three ``PODVector``
 descriptors plus two address fields — 64 bytes, whatever the size of the BVH it describes — so a

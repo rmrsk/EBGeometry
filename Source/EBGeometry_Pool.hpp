@@ -36,6 +36,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <type_traits>
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
@@ -76,9 +77,9 @@ class Pool;
 
 /**
  * @brief Where a pool-resident descriptor resolves its offsets, and the rules for moving it.
- * @details Every pool-resident descriptor (@ref EBGeometry::DCEL::MeshT, @ref EBGeometry::BVH::PackedBVH,
- * and the classes built on them) holds one PoolLocation, and delegates attaching, resolving and
- * rebasing to it. It is in one of three states, decided by its value:
+ * @details Every pool-resident handle (@ref EBGeometry::DCEL::MeshT, @ref EBGeometry::BVH::PackedBVH,
+ * and the classes built on them) holds one PoolLocation through its PoolHandle base, and delegates
+ * attaching, resolving and rebasing to it. It is in one of three states, decided by its value:
  *
  * - @b Unset: nothing has been reserved yet.
  * - @b Following a pool: @c m_control is set. base() reads the pool's current base through the
@@ -89,13 +90,10 @@ class Pool;
  *   host-accessible (managed or mapped memory), @c m_hostAccessible is set and host code may use the
  *   snapshot too.
  *
- * A descriptor normally changes location only through @c rebasedView(), which calls rebasedOnto().
- * The exception is a descriptor stored @e inside another object's pool -- a @c TriMeshSDF held in the
- * primitive array of a @ref EBGeometry::BVHUnion, for instance. Mirroring that pool copies the inner
- * descriptor's bytes verbatim, host control block included, and rebasing the outer object cannot
- * rewrite them in place. The outer object therefore reads its own location and applies it to a local
- * copy of each inner descriptor as it evaluates it (@c relocatedTo()), which is sound because both were
- * reserved from the same pool.
+ * A descriptor changes location only through @c rebasedView(), which calls rebasedOnto(). Only
+ * handles hold a location (see PoolHandle): a descriptor stored @e inside another object's pool -- a
+ * @c TriMeshSDF held in the primitive array of a @ref EBGeometry::BVHUnion, for instance -- is stored
+ * as its layout, and the outer handle pairs it with its own location.
  */
 struct PoolLocation
 {
@@ -471,6 +469,122 @@ private:
   void
   grow(size_t a_need);
 };
+
+/**
+ * @brief Base of every pool-resident handle: the one PoolLocation its arrays resolve against.
+ * @details A pool-resident class splits into a @e layout -- its PODVectors and plain values, which are
+ * offsets and sizes only -- and a @e handle, which is that layout plus where the pool is. The handle
+ * derives from this class, which owns the location and the operations on it; nothing else in the
+ * library holds a PoolLocation.
+ *
+ * Only top-level objects are handles. A pool-resident object stored @e inside another object's pool
+ * (a TriMeshSDF held by a BVHUnion, a mesh inside a tape) is stored as its layout, and the outer
+ * handle rebuilds a temporary inner handle from that layout and its own location when it evaluates
+ * it. Mirroring the pool copies the layout's bytes verbatim, which is exact, since a layout holds no
+ * address. isPoolHandle lets a container reject a handle where a layout belongs, at compile time.
+ */
+class PoolHandle
+{
+public:
+  /**
+   * @brief Where this handle's arrays live.
+   * @return The location: the pool it follows, or a snapshot made by rebasedView().
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PoolLocation
+  location() const noexcept
+  {
+    return m_location;
+  }
+
+  /**
+   * @brief Check whether this handle's arrays were reserved from @p a_pool.
+   * @param[in] a_pool Pool to test against.
+   * @return True if this handle follows @p a_pool.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline bool
+  isAttachedTo(const Pool& a_pool) const noexcept
+  {
+    return m_location.isAttachedTo(a_pool);
+  }
+
+protected:
+  /**
+   * @brief An unset location; the first reservation attaches it.
+   */
+  PoolHandle() noexcept = default;
+
+  /**
+   * @brief Adopt a location, as a handle rebuilt from a stored layout does.
+   * @param[in] a_location Location to resolve against.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  explicit PoolHandle(const PoolLocation& a_location) noexcept : m_location(a_location)
+  {}
+
+  /**
+   * @brief The base address this handle's offsets resolve against; see PoolLocation::base().
+   * @return The base address.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline void*
+  base() const noexcept
+  {
+    return m_location.base();
+  }
+
+  /**
+   * @brief Follow @p a_pool, as the first reservation does; see PoolLocation::attach().
+   * @param[in] a_pool Pool to follow.
+   * @param[in] a_who  Name of the handle class, for the message.
+   */
+  EBGEOMETRY_HOST
+  inline void
+  attach(const Pool& a_pool, const char* a_who) noexcept
+  {
+    m_location.attach(a_pool, a_who);
+  }
+
+  /**
+   * @brief The location of this handle's arrays in another pool of its mirror chain; see
+   * PoolLocation::rebasedOnto().
+   * @param[in] a_pool    Pool to resolve against.
+   * @param[in] a_endByte First byte past the handle's last array.
+   * @param[in] a_who     Name of the handle class, for the messages.
+   * @return The new location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline PoolLocation
+  rebasedLocation(const Pool& a_pool, uint64_t a_endByte, const char* a_who) const noexcept
+  {
+    return m_location.rebasedOnto(a_pool, a_endByte, a_who);
+  }
+
+  /**
+   * @brief Replace the location, for a view or a copy made by a derived handle.
+   * @param[in] a_location New location.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  setLocation(const PoolLocation& a_location) noexcept
+  {
+    m_location = a_location;
+  }
+
+private:
+  /**
+   * @brief Where the handle's arrays live.
+   */
+  PoolLocation m_location;
+};
+
+/**
+ * @brief Whether @p P is a pool-resident handle (derives from PoolHandle).
+ * @tparam P Type to inspect.
+ */
+template <class P>
+inline constexpr bool isPoolHandle = std::is_base_of_v<PoolHandle, P>;
 
 } // namespace EBGeometry
 

@@ -381,7 +381,8 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * type -- a prerequisite for mirroring the whole BVH into a device address space with a byte copy.
  * That rules out a polymorphic primitive: a BVH over primitives of different types (a CSG union of
  * a mesh and a sphere, say) needs the runtime dispatch of the tape. A primitive that itself lives in
- * a Pool, such as a TriMeshSDF inside a BVHUnion, is fine; see PoolLocation.
+ * a Pool, such as a TriMeshSDF inside a BVHUnion, is stored as its layout and paired with this BVH's
+ * location() when it is evaluated; storing the handle itself is a compile error (see PoolHandle).
  * TreeBVH is unaffected by any of this -- it always stores primitives as shared_ptr.
  *
  * @tparam T Floating-point precision.
@@ -389,10 +390,13 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * @tparam K BVH branching factor.
  */
 template <class T, class P, size_t K>
-class PackedBVH final
+class PackedBVH final : public PoolHandle
 {
   static_assert(std::is_floating_point_v<T>, "PackedBVH: T must be a floating-point type");
   static_assert(K >= 2, "PackedBVH: branching factor K must be at least 2");
+  static_assert(!isPoolHandle<P>,
+                "PackedBVH: a primitive stored in a pool must hold no location; store the handle's Layout "
+                "and pair it with this BVH's location() (see PoolHandle)");
 
 public:
   /**
@@ -581,6 +585,31 @@ public:
    * @brief Deleted default constructor. Use TreeBVH::pack() or TreeBVH::packWith() to construct.
    */
   PackedBVH() = delete;
+
+  /**
+   * @brief The BVH's arrays as offsets into its pool, with no location: what another pool-resident
+   * object stores when it holds this BVH (see PoolHandle). Defined below.
+   */
+  struct Layout;
+
+  /**
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
+   * @details How an outer pool-resident object evaluates a BVH it stores as a layout: it pairs the
+   * layout with its own location. @p a_location must belong to the pool the layout was reserved from,
+   * or to a mirror of it; nothing is checked, since a device has no pool to check against.
+   * @param[in] a_layout   The BVH's arrays.
+   * @param[in] a_location Where they live.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline PackedBVH(const Layout& a_layout, const PoolLocation& a_location) noexcept;
+
+  /**
+   * @brief The BVH's arrays without its location, for storing it inside another pool-resident object.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Layout
+  layout() const noexcept;
 
   /**
    * @brief Construct by packing a TreeBVH (identity primitive type).
@@ -894,28 +923,6 @@ public:
   rebasedView(const Pool& a_pool) const noexcept;
 
   /**
-   * @brief The pool location this BVH resolves against.
-   * @return This BVH's control block (host) or base address (device view).
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PoolLocation
-  location() const noexcept;
-
-  /**
-   * @brief A copy of this BVH resolving against @p a_location instead of its own location.
-   * @details For a descriptor stored inside another object's pool (see PoolLocation): the outer
-   * object applies its own location to a local copy of this descriptor, on the host and on a
-   * device alike. Unlike rebasedView() it checks nothing, since a device has no pool to check
-   * against: @p a_location must belong to the pool this BVH was reserved from, or to a mirror
-   * of it.
-   * @param[in] a_location Location to resolve against.
-   * @return A copy of this BVH resolving against @p a_location.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PackedBVH
-  relocatedTo(const PoolLocation& a_location) const noexcept;
-
-  /**
    * @brief Duplicate this BVH's storage into @p a_dstPool.
    * @details The copy constructor copies descriptors only, leaving both objects resolving against
    * the same pool memory. This is the operation that gives genuinely independent storage.
@@ -925,15 +932,6 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline PackedBVH
   deepCopy(Pool& a_dstPool) const;
-
-  /**
-   * @brief Check whether this BVH's arrays were reserved from @p a_pool.
-   * @param[in] a_pool Pool to test against.
-   * @return True if this BVH is attached to @p a_pool.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept;
 
   /**
    * @brief Get the bounding volume of the root node.
@@ -1085,21 +1083,6 @@ private:
   finalize(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives);
 
   /**
-   * @brief Attach to @p a_pool on the first reservation, and check every later one uses it too.
-   * @param[in,out] a_pool Pool this BVH's arrays live in.
-   */
-  EBGEOMETRY_HOST
-  inline void
-  attachTo(Pool& a_pool) noexcept;
-
-  /**
-   * @brief Where the BVH's arrays live: the Pool it follows, or a snapshot made by rebasedView().
-   * @details Host bookkeeping for a BVH in a host pool, which re-reads the base through the pool's
-   * control block on every access and so is immune to a Pool::reserve that grows and moves the block.
-   */
-  PoolLocation m_location;
-
-  /**
    * @brief Flat depth-first node array.
    */
   PODVector<Node> m_linearNodes;
@@ -1148,6 +1131,29 @@ private:
    */
   PODVector<ChildAABBSoA> m_childAabbSoA;
 
+public:
+  /**
+   * @brief The BVH's arrays as offsets into its pool: a PackedBVH minus its location.
+   */
+  struct Layout
+  {
+    /**
+     * @brief Flat depth-first node array.
+     */
+    PODVector<Node> m_linearNodes;
+
+    /**
+     * @brief Global primitive list in leaf-traversal order.
+     */
+    PODVector<P> m_primitives;
+
+    /**
+     * @brief SoA child-box rows, one per interior node.
+     */
+    PODVector<ChildAABBSoA> m_childAabbSoA;
+  };
+
+private:
   /**
    * @brief One entry on pruneTraverse()'s explicit traversal stack: 8 bytes in either precision.
    * @details Holds a node index plus a lower bound on the squared distance from the query point to

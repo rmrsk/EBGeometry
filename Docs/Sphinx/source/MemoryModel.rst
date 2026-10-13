@@ -275,30 +275,35 @@ memory model asks of a caller:
    on every class described here, is cheap insurance that a later change does not silently break
    the contract.
 
-Eight classes adopt this model today. Two of them hold pool addresses directly, ``DCEL::MeshT`` and
-``BVH::PackedBVH``: each holds one ``PoolLocation`` (a ``PoolControl*`` for host resolution, a raw
-base for a device view, and whether that base is host-accessible) and delegates attaching,
-resolving and rebasing to it. The other six are built from those two, holding a mesh, a packed BVH, or both by
-value and delegating to them: the mesh distance fields ``FlatMeshSDF``, ``MeshSDF`` and
-``TriMeshSDF``, ``PointCloudBVH``, and the BVH unions ``BVHUnion`` and ``BVHSmoothUnion``. All
-eight offer ``rebasedView()`` as their single crossing point and ``deepCopy()`` for genuinely
-independent storage. Only the short forwarding methods are repeated per class; the logic lives in
-``PoolLocation``, held as a member rather than a base class, so it does not complicate the
-trivial-copyability ``static_assert`` that the whole model rests on.
+Nine classes adopt this model today: ``DCEL::MeshT``, ``BVH::PackedBVH``, the mesh distance fields
+``FlatMeshSDF``, ``MeshSDF`` and ``TriMeshSDF``, ``PointCloudBVH``, ``PointCloudHashGrid``, and the
+BVH unions ``BVHUnion`` and ``BVHSmoothUnion``. Each is split into two parts:
 
-The location is
-`PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__, which ``MeshT`` and
-``PackedBVH`` read with ``location()``, and which every one of the eight classes except
-``PointCloudBVH`` applies to a copy of itself with ``relocatedTo()``. That exists for one case
-``rebasedView()`` cannot handle: a pool-resident descriptor stored *inside* another object's pool,
-such as a ``TriMeshSDF`` held in the primitive array of a BVH union (:ref:`Sec:BVHUnions`).
-Mirroring the pool copies the inner descriptor's bytes verbatim, host control block included, and
-rebasing the outer object cannot rewrite them in place -- on a device mirror they are not even
-host-writable. The outer object therefore reads its own location and applies it to a local copy of
-each inner descriptor as it evaluates it. That is sound because both were reserved from the same
-pool, which the BVH unions check when they are built. Unlike ``rebasedView()``, ``relocatedTo()``
-checks nothing and is callable on a device, so it is for this composition only, never a substitute
-for ``rebasedView()``.
+* a **layout**: its ``PODVector`` descriptors and plain values, that is offsets and sizes only, as
+  the nested type ``Layout``;
+* a **handle**: that layout plus one location, which says where the pool is. Every one of the nine
+  classes is a handle: it derives from
+  `PoolHandle <doxygen/html/classEBGeometry_1_1PoolHandle.html>`__, which owns the single
+  `PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__ (a ``PoolControl*`` for host
+  resolution, a raw base for a device view, and whether that base is host-accessible) and the
+  operations on it. Nothing else in the library holds a location.
+
+All nine offer ``rebasedView()`` as their single crossing point, ``deepCopy()`` for genuinely
+independent storage, ``layout()``, and a constructor taking a layout and a location. A composite
+handle holds the layouts of its parts and one location for all of them: ``MeshSDF`` holds a mesh
+layout and a BVH layout, a BVH union holds the layouts of its two BVHs, and each rebuilds a
+temporary inner handle when it needs one.
+
+The split exists for one case ``rebasedView()`` cannot handle by itself: a pool-resident object stored
+*inside* another object's pool, such as a ``TriMeshSDF`` held in the primitive array of a BVH union
+(:ref:`Sec:BVHUnions`). Mirroring the pool copies whatever is stored there byte for byte, and a
+stored location would be wrong in the mirror -- on a device mirror it could not even be rewritten.
+So nested storage holds the **layout**, never the handle: a BVH union of ``TriMeshSDF`` stores
+``TriMeshSDF::Layout``, and as it evaluates each primitive it rebuilds a ``TriMeshSDF`` from the
+stored layout and the union's own location. That is sound because both were reserved from the same
+pool, which the union checks when it is built, and it holds in every mirror, since a layout contains
+no address. A container can tell the two apart at compile time with ``isPoolHandle<P>``, so a
+handle stored where a layout belongs is a compile error rather than a wrong answer on a device.
 
 One consequence worth stating plainly, because it changes what familiar code means: **copying a
 pool-resident object copies descriptors, not data.** The copy resolves against the same pool memory

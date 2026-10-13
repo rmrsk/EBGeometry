@@ -37,50 +37,80 @@ namespace EBGeometry {
 namespace CSGDetail {
 
 /**
- * @brief Detects a primitive that lives in a Pool and must be relocated before it is evaluated.
- * @details True for any P with a `relocatedTo(const PoolLocation&)` member -- the mesh distance
- * functions and the BVH unions themselves -- and false for a self-contained value type such as an
- * analytic shape. See PoolLocation for why such a primitive cannot be rebased in place.
+ * @brief How a BVH union stores a primitive of type P: as is, or, for a pool-resident handle, as the
+ * handle's layout.
+ * @details A handle's location would be copied verbatim into the union's pool and be wrong in any
+ * mirror of it; its layout holds only offsets, which are right in every mirror. See PoolHandle.
  * @tparam P Primitive type.
  */
-template <class P, class = void>
-struct IsPoolResident : std::false_type
+template <class P, bool = isPoolHandle<P>>
+struct StoredAs
 {
+  /**
+   * @brief The stored type: P itself.
+   */
+  using type = P;
 };
 
 /**
- * @brief Detects a primitive that lives in a Pool (positive case).
+ * @brief How a BVH union stores a pool-resident handle: as its layout.
  * @tparam P Primitive type.
  */
 template <class P>
-struct IsPoolResident<P,
-                      std::void_t<decltype(std::declval<const P&>().relocatedTo(std::declval<const PoolLocation&>()))>>
-  : std::true_type
+struct StoredAs<P, true>
 {
+  /**
+   * @brief The stored type: P's layout.
+   */
+  using type = typename P::Layout;
 };
 
 /**
- * @brief Evaluate one primitive of a BVH union at a point.
- * @details A pool-resident primitive is first relocated to the union's own location, so it resolves
- * against the same pool the union does -- the host pool, a host mirror, or a device mirror. Any
- * other primitive is evaluated as stored.
- * @tparam T Floating-point precision.
+ * @brief Shorthand for the type a BVH union stores for a primitive of type P.
  * @tparam P Primitive type.
- * @param[in] a_primitive Primitive as stored in the union's BVH.
- * @param[in] a_point     Query point.
- * @param[in] a_location  The union's pool location.
- * @return Signed distance from a_point to the primitive.
  */
-template <class T, class P>
-[[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline T
-signedDistance(const P& a_primitive, const Vec3T<T>& a_point, [[maybe_unused]] const PoolLocation& a_location) noexcept
+template <class P>
+using Stored = typename StoredAs<P>::type;
+
+/**
+ * @brief Convert a primitive to the form a BVH union stores.
+ * @tparam P Primitive type.
+ * @param[in] a_primitive Primitive.
+ * @return The primitive, or its layout if it is a pool-resident handle.
+ */
+template <class P>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Stored<P>
+toStored(const P& a_primitive) noexcept
 {
-  if constexpr (IsPoolResident<P>::value) {
-    return a_primitive.relocatedTo(a_location).signedDistance(a_point);
+  if constexpr (isPoolHandle<P>) {
+    return a_primitive.layout();
   }
   else {
-    return a_primitive.signedDistance(a_point);
+    return a_primitive;
+  }
+}
+
+/**
+ * @brief The primitive a stored entry stands for, resolving against @p a_location.
+ * @details A pool-resident primitive is rebuilt from its layout and the union's own location, so it
+ * resolves against the same pool the union does: the host pool, a host mirror or a device mirror.
+ * Any other primitive is returned as stored.
+ * @tparam P Primitive type.
+ * @param[in] a_stored   Primitive as stored in the union's BVH.
+ * @param[in] a_location The union's pool location.
+ * @return The primitive.
+ */
+template <class P>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline P
+fromStored(const Stored<P>& a_stored, [[maybe_unused]] const PoolLocation& a_location) noexcept
+{
+  if constexpr (isPoolHandle<P>) {
+    return P(a_stored, a_location);
+  }
+  else {
+    return a_stored;
   }
 }
 
@@ -98,12 +128,12 @@ struct UnionParts
   /**
    * @brief BVH over the primitives with bounded boxes.
    */
-  BVH::PackedBVH<T, P, K> bvh;
+  BVH::PackedBVH<T, Stored<P>, K> bvh;
 
   /**
    * @brief The primitives with unbounded boxes, as one leaf; empty if there are none.
    */
-  BVH::PackedBVH<T, P, K> unbounded;
+  BVH::PackedBVH<T, Stored<P>, K> unbounded;
 };
 
 /**
@@ -151,16 +181,16 @@ defaultUnionOptions() noexcept
  * it. A union of many bounded primitives and a few unbounded ones costs the BVH query plus one
  * evaluation per unbounded primitive.
  *
- * A pool-resident primitive (a mesh distance function or a union) must have been built in
- * the same Pool as this union, and is relocated to the union's location as it is evaluated (see
- * PoolLocation). The constructor checks this, and that there is one bounding volume per primitive,
- * in every build, and aborts with a message if either fails.
+ * A pool-resident primitive (a mesh distance function or a union; see PoolHandle) must have been
+ * built in the same Pool as this union. The union stores its layout, and rebuilds it with the union's
+ * own location as it evaluates it. The constructor checks the pool, and that there is one bounding
+ * volume per primitive, in every build, and aborts with a message if either fails.
  * @tparam T Floating-point precision.
  * @tparam P Primitive type.
  * @tparam K BVH branching factor.
  */
 template <class T, class P, size_t K>
-class BVHUnion
+class BVHUnion : public PoolHandle
 {
 public:
   static_assert(std::is_floating_point_v<T>, "BVHUnion requires a floating-point type T");
@@ -176,9 +206,9 @@ public:
     distanceQualityOf<P> == DistanceQuality::NotADistance ? DistanceQuality::NotADistance : DistanceQuality::Bound;
 
   /**
-   * @brief Alias for the packed BVH type.
+   * @brief Alias for the packed BVH type. Its primitives are P, or P's layout for a pool-resident P.
    */
-  using Root = BVH::PackedBVH<T, P, K>;
+  using Root = BVH::PackedBVH<T, CSGDetail::Stored<P>, K>;
 
   /**
    * @brief Alias for the bounding volume type.
@@ -261,7 +291,7 @@ public:
    * @return The BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Root&
+  inline Root
   getBVH() const noexcept;
 
   /**
@@ -271,16 +301,16 @@ public:
    * @return Span over those primitives; empty if there are none.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PODSpan<const P>
+  inline PODSpan<const CSGDetail::Stored<P>>
   getUnboundedPrimitives() const noexcept;
 
   /**
    * @brief Produce a copy of this union that resolves against @p a_pool.
    * @details Rebases the BVH; see BVH::PackedBVH::rebasedView() for the contract. Pool-resident
-   * primitives follow the union at evaluation time; each is still rebased once here, and the result
-   * discarded, purely so that the checks rebasedView() makes (a mirror of the right pool, a BVH
-   * shallow enough for the device traversal stack) run for them too. This is the one sanctioned
-   * crossing to a device.
+   * primitives are stored as layouts and resolve against the union's location; each is still rebased
+   * once here, and the result discarded, purely so that the checks rebasedView() makes (a mirror of
+   * the right pool, a BVH shallow enough for the device traversal stack) run for them too. This is
+   * the one sanctioned crossing to a device.
    * @param[in] a_pool Pool to rebase onto: the union's own pool or one in its mirror chain.
    * @return A BVHUnion resolving against @p a_pool.
    */
@@ -298,53 +328,64 @@ public:
   deepCopy(Pool& a_dstPool) const;
 
   /**
-   * @brief A copy of this union resolving against @p a_location, so that a union can itself be the
-   * primitive of an outer union. See PoolLocation.
-   * @param[in] a_location Location to resolve against.
-   * @return A BVHUnion resolving against @p a_location.
+   * @brief The union's arrays as offsets into its pool, with no location: what an outer union
+   * stores when this union is its primitive (see PoolHandle).
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline BVHUnion
-  relocatedTo(const PoolLocation& a_location) const noexcept;
+  struct Layout
+  {
+    /**
+     * @brief BVH over the primitives with bounded boxes.
+     */
+    typename Root::Layout m_bvh;
+
+    /**
+     * @brief The primitives with unbounded boxes, as one leaf.
+     */
+    typename Root::Layout m_unbounded;
+  };
 
   /**
-   * @brief Check whether this union's storage was reserved from @p a_pool.
-   * @param[in] a_pool Pool to test against.
-   * @return True if this union is attached to @p a_pool.
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
+   * @details @p a_location must belong to the pool the layout was reserved from, or to a mirror of
+   * it; nothing is checked, since a device has no pool to check against.
+   * @param[in] a_layout   The union's arrays.
+   * @param[in] a_location Where they live.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept;
+  EBGEOMETRY_HOST_DEVICE
+  BVHUnion(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location), m_bvh(a_layout.m_bvh), m_unbounded(a_layout.m_unbounded)
+  {}
+
+  /**
+   * @brief The union's arrays without its location, for storing it inside an outer union.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Layout
+  layout() const noexcept
+  {
+    return Layout{m_bvh, m_unbounded};
+  }
 
 private:
   /**
-   * @brief Adopt the built parts; used by the constructors.
+   * @brief Adopt the built parts, which share one pool; used by the constructors.
    * @param[in] a_parts The BVH and the unbounded primitives.
    */
   EBGEOMETRY_HOST
   explicit BVHUnion(const CSGDetail::UnionParts<T, P, K>& a_parts) noexcept
-    : m_bvh(a_parts.bvh), m_unbounded(a_parts.unbounded)
+    : PoolHandle(a_parts.bvh.location()), m_bvh(a_parts.bvh.layout()), m_unbounded(a_parts.unbounded.layout())
   {}
 
   /**
-   * @brief Adopt an already built BVH and unbounded leaf; used by rebasedView(), deepCopy() and
-   * relocatedTo().
-   * @param[in] a_bvh       The BVH.
-   * @param[in] a_unbounded The unbounded primitives.
+   * @brief Packed BVH over the primitives with bounded boxes, as a layout.
    */
-  EBGEOMETRY_HOST_DEVICE
-  BVHUnion(const Root& a_bvh, const Root& a_unbounded) noexcept : m_bvh(a_bvh), m_unbounded(a_unbounded)
-  {}
+  typename Root::Layout m_bvh;
 
   /**
-   * @brief Packed BVH over the primitives with bounded boxes, held by value.
+   * @brief The primitives with unbounded boxes, as a single leaf (or empty), as a layout.
    */
-  Root m_bvh;
-
-  /**
-   * @brief The primitives with unbounded boxes, as a single leaf (or empty), held by value.
-   */
-  Root m_unbounded;
+  typename Root::Layout m_unbounded;
 };
 
 /**
@@ -361,7 +402,7 @@ private:
  * SmoothMinOp (the default) or ExpMinOp.
  */
 template <class T, class P, size_t K, class Blend = SmoothMinOp<T>>
-class BVHSmoothUnion
+class BVHSmoothUnion : public PoolHandle
 {
 public:
   static_assert(std::is_floating_point_v<T>, "BVHSmoothUnion requires a floating-point type T");
@@ -378,9 +419,9 @@ public:
     distanceQualityOf<P> == DistanceQuality::NotADistance ? DistanceQuality::NotADistance : DistanceQuality::Bound;
 
   /**
-   * @brief Alias for the packed BVH type.
+   * @brief Alias for the packed BVH type. Its primitives are P, or P's layout for a pool-resident P.
    */
-  using Root = BVH::PackedBVH<T, P, K>;
+  using Root = BVH::PackedBVH<T, CSGDetail::Stored<P>, K>;
 
   /**
    * @brief Alias for the bounding volume type.
@@ -467,7 +508,7 @@ public:
    * @return The BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const Root&
+  inline Root
   getBVH() const noexcept;
 
   /**
@@ -477,7 +518,7 @@ public:
    * @return Span over those primitives; empty if there are none.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PODSpan<const P>
+  inline PODSpan<const CSGDetail::Stored<P>>
   getUnboundedPrimitives() const noexcept;
 
   /**
@@ -500,22 +541,58 @@ public:
   deepCopy(Pool& a_dstPool) const;
 
   /**
-   * @brief A copy of this smooth union resolving against @p a_location; see BVHUnion::relocatedTo().
-   * @param[in] a_location Location to resolve against.
-   * @return A BVHSmoothUnion resolving against @p a_location.
+   * @brief The smooth union's arrays and parameters, with no location: what an outer union stores
+   * when this one is its primitive (see PoolHandle).
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline BVHSmoothUnion
-  relocatedTo(const PoolLocation& a_location) const noexcept;
+  struct Layout
+  {
+    /**
+     * @brief BVH over the primitives with bounded boxes.
+     */
+    typename Root::Layout m_bvh;
+
+    /**
+     * @brief The primitives with unbounded boxes, as one leaf.
+     */
+    typename Root::Layout m_unbounded;
+
+    /**
+     * @brief Smoothing length.
+     */
+    T m_smoothLen;
+
+    /**
+     * @brief Smooth-minimum operator.
+     */
+    Blend m_blend;
+  };
 
   /**
-   * @brief Check whether this smooth union's storage was reserved from @p a_pool.
-   * @param[in] a_pool Pool to test against.
-   * @return True if this union is attached to @p a_pool.
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it; see
+   * BVHUnion.
+   * @param[in] a_layout   The union's arrays and parameters.
+   * @param[in] a_location Where they live.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept;
+  EBGEOMETRY_HOST_DEVICE
+  BVHSmoothUnion(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location),
+      m_bvh(a_layout.m_bvh),
+      m_unbounded(a_layout.m_unbounded),
+      m_smoothLen(a_layout.m_smoothLen),
+      m_blend(a_layout.m_blend)
+  {}
+
+  /**
+   * @brief The union's arrays and parameters without its location, for storing it inside an outer
+   * union.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Layout
+  layout() const noexcept
+  {
+    return Layout{m_bvh, m_unbounded, m_smoothLen, m_blend};
+  }
 
 private:
   /**
@@ -527,34 +604,22 @@ private:
    */
   EBGEOMETRY_HOST
   BVHSmoothUnion(const CSGDetail::UnionParts<T, P, K>& a_parts, T a_smoothLen, Blend a_blend) noexcept
-    : m_bvh(a_parts.bvh),
-      m_unbounded(a_parts.unbounded),
+    : PoolHandle(a_parts.bvh.location()),
+      m_bvh(a_parts.bvh.layout()),
+      m_unbounded(a_parts.unbounded.layout()),
       m_smoothLen(Math::max(a_smoothLen, Math::Limits<T>::min())),
       m_blend(a_blend)
   {}
 
   /**
-   * @brief Adopt an already built BVH and unbounded leaf; used by rebasedView(), deepCopy() and
-   * relocatedTo().
-   * @param[in] a_bvh       The BVH.
-   * @param[in] a_unbounded The unbounded primitives.
-   * @param[in] a_smoothLen Smoothing length.
-   * @param[in] a_blend     Smooth-minimum operator.
+   * @brief Packed BVH over the primitives with bounded boxes, as a layout.
    */
-  EBGEOMETRY_HOST_DEVICE
-  BVHSmoothUnion(const Root& a_bvh, const Root& a_unbounded, T a_smoothLen, Blend a_blend) noexcept
-    : m_bvh(a_bvh), m_unbounded(a_unbounded), m_smoothLen(a_smoothLen), m_blend(a_blend)
-  {}
+  typename Root::Layout m_bvh;
 
   /**
-   * @brief Packed BVH over the primitives with bounded boxes, held by value.
+   * @brief The primitives with unbounded boxes, as a single leaf (or empty), as a layout.
    */
-  Root m_bvh;
-
-  /**
-   * @brief The primitives with unbounded boxes, as a single leaf (or empty), held by value.
-   */
-  Root m_unbounded;
+  typename Root::Layout m_unbounded;
 
   /**
    * @brief Smoothing length.
