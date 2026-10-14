@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // This integration composes the analytic shapes, and a few transforms and CSG operations (Offset,
-// Elongate, Annular, SmoothDifference, Complement), with EBGeometry's expression builder, compiles the
+// Elongate, Annular, SmoothDifference), with EBGeometry's expression builder, compiles the
 // result into a Tape, and hands it to AMReX's EB2 grid generation as an implicit function.
 
 // AMReX includes
@@ -49,8 +49,9 @@ public:
   {}
 
   /*!
-    @brief AMReX's implicit function definition, callable on host and device. EBGeometry's sign is
-    opposite to AMReX's.
+    @brief AMReX's implicit function definition, callable on host and device.
+    @details EBGeometry's value is negative inside the shape, and AMReX reads negative values as fluid.
+    The sign is flipped here, not in the expression, so that the fluid is the space around the shape.
   */
   AMREX_GPU_HOST_DEVICE
   Real
@@ -194,9 +195,6 @@ main(int argc, char* argv[])
   if (!func) {
     amrex::Abort("which_geom must be between 0 and 14");
   }
-
-  // AMReX uses the opposite sign.
-  func = EBGeometry::Complement(*func);
 
   Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
   Geometry::Setup(&rb, 0, is_periodic.data());

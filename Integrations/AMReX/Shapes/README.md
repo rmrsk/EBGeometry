@@ -2,7 +2,7 @@ Integrations/AMReX/Shapes
 -------------------------
 
 This example uses the embedded boundary grid generation from AMReX, using analytic SDFs from EBGeometry. Some
-geometries are transformed or combined (`Offset`, `Elongate`, `Annular`, `SmoothDifference`, `Complement`) with
+geometries are transformed or combined (`Offset`, `Elongate`, `Annular`, `SmoothDifference`) with
 EBGeometry's expression builder, and the result is compiled into a `Tape`, which the AMReX implicit function holds by
 value. In a CUDA or HIP build of AMReX, the tape's pool is mirrored to the device and AMReX evaluates the tape in its
 kernels, as the RandomCity integration does with its BVH union.

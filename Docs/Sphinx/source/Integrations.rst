@@ -18,6 +18,12 @@ embedded-boundary grid generation, which uses it to cut cells at the implicit su
 geometry lives in an EBGeometry ``Pool`` (see :ref:`Chap:MemoryModel`) that must outlive every
 evaluation, and the implicit function holds the geometry's descriptors by value.
 
+Everything in EBGeometry is negative inside an object and positive outside it. A platform that
+reads the sign the other way flips it in its own implicit function, at the boundary between the two
+codes, and never by complementing the EBGeometry object. AMReX and Chombo both read negative values
+as fluid, so an integration whose fluid surrounds the object returns the negated value, and one
+whose fluid fills the object (the AMReX ``MeshSDF`` and ``PaintEB`` folders) returns it unchanged.
+
 AMReX
 ------
 

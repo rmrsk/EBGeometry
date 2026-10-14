@@ -384,6 +384,10 @@ does not follow this template, edit the PR body to conform to it.
   them out of line, and mark any new function called that way the same. A new operation needs an
   `ExprDetail::Kind`, its box and distance-quality rule in the builder,
   clauses in `TapeDetail::Op` and a case in `Tape::evaluate`.
+- **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
+  SDF, union and tape keeps it. Code that needs the opposite sign (AMReX and Chombo read negative as
+  fluid) flips it itself, in its own adapter (`return -tape.signedDistance(p);`); never put a
+  `Complement` into an EBGeometry expression to suit the consumer.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s
   `binaryDir`) specifically so switching presets can't silently reuse a stale `CMakeCache.txt` from
   a different configuration.
