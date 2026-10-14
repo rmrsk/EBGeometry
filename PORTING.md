@@ -257,6 +257,29 @@ against a BVH over the primitives themselves. "No storage policy" below has the 
 
 ### After the tape
 
+**A per-level traversal stack (next).** Both traversal loops push one stack entry per child, so the
+device stack holds `1 + (K - 1) * 31` entries (94 at K = 4, 752 bytes), and `traverse()` stores the
+caller's node key in every entry, so a `double` key doubles it (1,584 bytes measured). The follow-up
+pushes one entry per level instead, as Ylitie, Karras and Laine's compressed wide BVHs do (HPG 2017):
+the parent's index, its children's order (2 bits each at K = 4) and how many are left. That bounds
+the stack by the depth, 32 entries at any K (256 bytes at K = 4), and independently of the key type.
+Children are sorted nearest first, so one comparison against the next child's distance discards the
+rest of a level, and a resume computes that next distance from the parent's box row, just read.
+`traverse()` keeps the order its child orderer produced and calls the key factory again on resume
+instead of storing keys, so a key factory must have no side effects. In a tape, every call level
+saves about 0.5 KB. The builders could then guarantee the depth bound (a median split once it is
+reached) rather than `rebasedView()` rejecting a deeper tree. What it costs, a box distance per resume
+and a busier pop, needs a GPU to weigh against the scratch traffic it saves; the stack and register
+use can be checked from the compiler's resource remarks before that.
+
+Two alternatives were ruled out. Stackless traversal (parent or skip links) fixes the child order or
+re-sorts on every ascent, and nearest-first order is what makes distance queries prune. A short stack
+with restart on overflow (Laine's restart trail, HPG 2010; Vaidyanathan, Woop and Benthin, HPG 2019)
+exists to fit a stack in registers, which ours is not in: a dynamically indexed stack lives in scratch
+either way. A plain restart revisits leaves, which is wrong for the smooth unions (they keep the two
+smallest values) and `KBest`, and unknowable for a caller's leaf evaluator; a restart trail assumes a
+child order that is the same on every descent, which a caller's stateful child orderer need not give.
+
 **A batched traversal path.** The device traversal is correctness-first, and is not a tuned GPU
 kernel. It is the textbook formulation: one query point per thread, each with a private stack,
 every lane descending its own path. That is divergence-bound by construction — the warp executes
