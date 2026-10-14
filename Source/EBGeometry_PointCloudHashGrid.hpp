@@ -61,7 +61,7 @@ namespace EBGeometry {
  * @tparam T Floating-point precision.
  */
 template <class T>
-class PointCloudHashGrid
+class PointCloudHashGrid : public PoolHandle
 {
 public:
   /**
@@ -174,7 +174,7 @@ public:
   inline const void*
   base() const noexcept
   {
-    return m_location.base();
+    return PoolHandle::base();
   }
 
   /**
@@ -198,18 +198,6 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline PointCloudHashGrid
   deepCopy(Pool& a_dstPool) const;
-
-  /**
-   * @brief Check whether this object's arrays were reserved from @p a_pool.
-   * @param[in] a_pool Pool to test against.
-   * @return True if this object is attached to @p a_pool.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  inline bool
-  isAttachedTo(const Pool& a_pool) const noexcept
-  {
-    return m_location.isAttachedTo(a_pool);
-  }
 
 private:
   /**
@@ -271,11 +259,6 @@ private:
   EBGEOMETRY_HOST_DEVICE
   inline std::size_t
   query(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out, uint32_t a_exclude) const noexcept;
-
-  /**
-   * @brief Pool the arrays below are offsets into.
-   */
-  PoolLocation m_location;
 
   /**
    * @brief Point positions, indexed by cloud index.

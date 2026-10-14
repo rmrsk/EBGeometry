@@ -35,19 +35,11 @@ namespace EBGeometry {
 namespace DCEL {
 
 template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline void*
-MeshT<T>::base() const noexcept
-{
-  return m_location.base();
-}
-
-template <class T>
 EBGEOMETRY_HOST
 inline void
 MeshT<T>::attachTo(const Pool& a_pool) noexcept
 {
-  m_location.attach(a_pool, "DCEL::MeshT::attachTo");
+  this->attach(a_pool, "DCEL::MeshT::attachTo");
 }
 
 template <class T>
@@ -59,27 +51,7 @@ MeshT<T>::rebasedView(const Pool& a_pool) const noexcept
 
   Mesh view = *this;
 
-  view.m_location = m_location.rebasedOnto(a_pool, endByte, "DCEL::MeshT");
-
-  return view;
-}
-
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline PoolLocation
-MeshT<T>::location() const noexcept
-{
-  return m_location;
-}
-
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline MeshT<T>
-MeshT<T>::relocatedTo(const PoolLocation& a_location) const noexcept
-{
-  MeshT<T> view = *this;
-
-  view.m_location = a_location;
+  view.setLocation(this->rebasedLocation(a_pool, endByte, "DCEL::MeshT"));
 
   return view;
 }
@@ -371,14 +343,6 @@ inline const FaceT<T>&
 MeshT<T>::getFace(uint32_t a_index) const noexcept
 {
   return m_faces.at(this->base(), a_index);
-}
-
-template <class T>
-EBGEOMETRY_HOST
-inline bool
-MeshT<T>::isAttachedTo(const Pool& a_pool) const noexcept
-{
-  return m_location.isAttachedTo(a_pool);
 }
 
 template <class T>

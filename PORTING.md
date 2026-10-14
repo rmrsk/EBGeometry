@@ -120,9 +120,11 @@ Classes built on this expose **one** accessor per operation. They attach to a `P
 `reserve` and resolve through its control block from then on, so there is no bound/unbound
 distinction, no freeze-before-query rule, and no base parameter threaded through the API.
 `PoolLocation` owns the location logic (attach, lineage checks, rebasing), and `rebasedView(pool)`
-is the single crossing point. A pool-resident object stored inside another one's pool (a mesh SDF as
-a BVH-union primitive) is evaluated through `relocatedTo()`, which applies the outer object's
-location to a copy of it.
+is the single crossing point. Every pool-resident class is a **handle**: a **layout** (its
+`PODVector`s and plain values, offsets only) plus one `PoolLocation`, held by the `PoolHandle` base
+class. A pool-resident object stored inside another one's pool (a mesh SDF as a BVH-union primitive,
+a mesh in a tape) is stored as its layout, and the outer handle rebuilds it with its own location as
+it evaluates it (audit item 25a, D1 step two).
 
 Two rules follow from this and must be documented on anything that adopts it: a resolved address
 (a reference, a `PODSpan`) must not outlive the next `reserve()` on its pool, and the pool must

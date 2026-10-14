@@ -348,7 +348,8 @@ buildTriTreeBVH(const std::vector<EBGeometry::Triangle<T>>& a_triangles,
 
 template <class T>
 EBGEOMETRY_HOST
-inline FlatMeshSDF<T>::FlatMeshSDF(const Mesh& a_mesh, Pool& a_pool) noexcept : m_mesh(a_mesh)
+inline FlatMeshSDF<T>::FlatMeshSDF(const Mesh& a_mesh, Pool& a_pool) noexcept
+  : PoolHandle(a_mesh.location()), m_meshLayout(a_mesh.layout())
 {
   EBGEOMETRY_REQUIRE(a_mesh.isAttachedTo(a_pool), "FlatMeshSDF: the mesh must live in the pool passed in");
 
@@ -367,7 +368,7 @@ FlatMeshSDF<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return m_mesh.signedDistance(a_point);
+  return this->getMesh().signedDistance(a_point);
 }
 
 template <class T>
@@ -375,6 +376,8 @@ EBGEOMETRY_HOST_DEVICE
 inline ClosestFace<T>
 FlatMeshSDF<T>::getClosestFace(const Vec3T<T>& a_point) const noexcept
 {
+  const Mesh mesh = this->getMesh();
+
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
@@ -386,8 +389,8 @@ FlatMeshSDF<T>::getClosestFace(const Vec3T<T>& a_point) const noexcept
 
   T minDist2 = Math::Limits<T>::max();
 
-  for (uint32_t i = 0; i < m_mesh.numFaces(); i++) {
-    const T curDist2 = m_mesh.getFace(i).unsignedDistance2(a_point, m_mesh);
+  for (uint32_t i = 0; i < mesh.numFaces(); i++) {
+    const T curDist2 = mesh.getFace(i).unsignedDistance2(a_point, mesh);
 
     if (curDist2 < minDist2 || closest.faceId == UINT32_MAX) {
       minDist2       = curDist2;
@@ -396,7 +399,7 @@ FlatMeshSDF<T>::getClosestFace(const Vec3T<T>& a_point) const noexcept
   }
 
   if (closest.faceId != UINT32_MAX) {
-    closest.signedDistance = m_mesh.getFace(closest.faceId).signedDistance(a_point, m_mesh);
+    closest.signedDistance = mesh.getFace(closest.faceId).signedDistance(a_point, mesh);
   }
 
   return closest;
@@ -409,19 +412,7 @@ FlatMeshSDF<T>::rebasedView(const Pool& a_pool) const noexcept
 {
   FlatMeshSDF view = *this;
 
-  view.m_mesh = m_mesh.rebasedView(a_pool);
-
-  return view;
-}
-
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline FlatMeshSDF<T>
-FlatMeshSDF<T>::relocatedTo(const PoolLocation& a_location) const noexcept
-{
-  FlatMeshSDF view = *this;
-
-  view.m_mesh = m_mesh.relocatedTo(a_location);
+  view.setLocation(this->getMesh().rebasedView(a_pool).location());
 
   return view;
 }
@@ -431,11 +422,7 @@ EBGEOMETRY_HOST
 inline FlatMeshSDF<T>
 FlatMeshSDF<T>::deepCopy(Pool& a_dstPool) const
 {
-  FlatMeshSDF copy = *this;
-
-  copy.m_mesh = m_mesh.deepCopy(a_dstPool);
-
-  return copy;
+  return FlatMeshSDF(this->getMesh().deepCopy(a_dstPool), a_dstPool);
 }
 
 template <class T>
@@ -443,11 +430,13 @@ EBGEOMETRY_HOST_DEVICE
 inline EBGeometry::BoundingVolumes::AABBT<T>
 FlatMeshSDF<T>::computeBoundingVolume() const noexcept
 {
+  const Mesh mesh = this->getMesh();
+
   Vec3T<T> lo = +Vec3T<T>::max();
   Vec3T<T> hi = -Vec3T<T>::max();
 
-  for (uint32_t i = 0; i < m_mesh.numVertices(); i++) {
-    const Vec3T<T>& x = m_mesh.getVertex(i).getPosition();
+  for (uint32_t i = 0; i < mesh.numVertices(); i++) {
+    const Vec3T<T>& x = mesh.getVertex(i).getPosition();
 
     lo = min(lo, x);
     hi = max(hi, x);
@@ -476,12 +465,14 @@ inline MeshSDF<T, K>::MeshSDF(const Mesh&                     a_mesh,
                               Pool&                           a_pool,
                               const BVH::Construction         a_construction,
                               const BVH::ConstructionOptions& a_options)
-  : m_mesh(a_mesh), m_bvh(MeshSDF::buildBVH(a_mesh, a_pool, a_construction, a_options))
+  : PoolHandle(a_mesh.location()),
+    m_meshLayout(a_mesh.layout()),
+    m_bvhLayout(MeshSDF::buildBVH(a_mesh, a_pool, a_construction, a_options).layout())
 {
   // The mesh and the BVH must share one pool: rebasedView() rebases both onto the same mirror, and
   // the BVH's faces index the mesh's arrays. a_pool must outlive this object and every copy of it.
   EBGEOMETRY_REQUIRE(a_mesh.isAttachedTo(a_pool), "MeshSDF: the mesh must live in the pool passed in");
-  EBGEOMETRY_EXPECT(m_bvh.isAttachedTo(a_pool));
+  EBGEOMETRY_EXPECT(this->getRoot().isAttachedTo(a_pool));
 }
 
 template <class T, size_t K>
@@ -516,9 +507,10 @@ MeshSDF<T, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T           minDist = Math::Limits<T>::max();
-  const auto  faceIds = m_bvh.getPrimitives();
-  const auto& mesh    = m_mesh;
+  T          minDist = Math::Limits<T>::max();
+  const Root bvh     = this->getRoot();
+  const Mesh mesh    = this->getMesh();
+  const auto faceIds = bvh.getPrimitives();
 
   const auto evalLeaf = [&faceIds, &a_point, &mesh](T& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
@@ -532,7 +524,7 @@ MeshSDF<T, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
   const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
 
-  m_bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
+  bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -550,8 +542,9 @@ MeshSDF<T, K>::getClosestFace(const Vec3T<T>& a_point) const noexcept
   // the pruning bound is still the squared running distance.
   ClosestFace<T> closest;
 
-  const auto  faceIds = m_bvh.getPrimitives();
-  const auto& mesh    = m_mesh;
+  const Root bvh     = this->getRoot();
+  const Mesh mesh    = this->getMesh();
+  const auto faceIds = bvh.getPrimitives();
 
   const auto evalLeaf = [&faceIds, &a_point, &mesh](ClosestFace<T>& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
@@ -571,7 +564,7 @@ MeshSDF<T, K>::getClosestFace(const Vec3T<T>& a_point) const noexcept
     return a_state.signedDistance * a_state.signedDistance;
   };
 
-  m_bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+  bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
 
   return closest;
 }
@@ -581,23 +574,18 @@ EBGEOMETRY_HOST
 inline MeshSDF<T, K>
 MeshSDF<T, K>::rebasedView(const Pool& a_pool) const noexcept
 {
+  // The mesh and the BVH share one location. Rebasing each checks its own arrays (and the BVH its
+  // depth); the location they agree on is the view's.
+  const Mesh mesh = this->getMesh().rebasedView(a_pool);
+  const Root bvh  = this->getRoot().rebasedView(a_pool);
+
+  EBGEOMETRY_EXPECT(mesh.location().m_control == bvh.location().m_control &&
+                    mesh.location().m_base == bvh.location().m_base &&
+                    mesh.location().m_hostAccessible == bvh.location().m_hostAccessible);
+
   MeshSDF view = *this;
 
-  view.m_mesh = m_mesh.rebasedView(a_pool);
-  view.m_bvh  = m_bvh.rebasedView(a_pool);
-
-  return view;
-}
-
-template <class T, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline MeshSDF<T, K>
-MeshSDF<T, K>::relocatedTo(const PoolLocation& a_location) const noexcept
-{
-  MeshSDF view = *this;
-
-  view.m_mesh = m_mesh.relocatedTo(a_location);
-  view.m_bvh  = m_bvh.relocatedTo(a_location);
+  view.setLocation(bvh.location());
 
   return view;
 }
@@ -607,12 +595,10 @@ EBGEOMETRY_HOST
 inline MeshSDF<T, K>
 MeshSDF<T, K>::deepCopy(Pool& a_dstPool) const
 {
-  MeshSDF copy = *this;
+  const Mesh mesh = this->getMesh().deepCopy(a_dstPool);
+  const Root bvh  = this->getRoot().deepCopy(a_dstPool);
 
-  copy.m_mesh = m_mesh.deepCopy(a_dstPool);
-  copy.m_bvh  = m_bvh.deepCopy(a_dstPool);
-
-  return copy;
+  return MeshSDF(Layout{mesh.layout(), bvh.layout()}, mesh.location());
 }
 
 template <class T, size_t K, size_t W>
@@ -803,7 +789,7 @@ inline TriMeshSDF<T, K, W>::TriMeshSDF(const std::vector<Tri>&         a_triangl
                                        Pool&                           a_pool,
                                        const BVH::Construction         a_construction,
                                        const BVH::ConstructionOptions& a_options)
-  : m_bvh(TriMeshSDF::buildBVH(a_triangles, a_pool, a_construction, a_options))
+  : TriMeshSDF(TriMeshSDF::buildBVH(a_triangles, a_pool, a_construction, a_options))
 {}
 
 template <class T, size_t K, size_t W>
@@ -816,7 +802,8 @@ TriMeshSDF<T, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
   T          minDist = Math::Limits<T>::max();
-  const auto groups  = m_bvh.getPrimitives();
+  const Root bvh     = this->getRoot();
+  const auto groups  = bvh.getPrimitives();
 
   const auto evalLeaf = [&groups, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
@@ -832,7 +819,7 @@ TriMeshSDF<T, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
   const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
 
-  m_bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
+  bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -852,7 +839,8 @@ TriMeshSDF<T, K, W>::getClosestFace(const Vec3T<T>& a_point) const noexcept
   // squared running distance, so node pruning is identical to signedDistance()'s.
   ClosestFace<T> closest;
 
-  const auto groups = m_bvh.getPrimitives();
+  const Root bvh    = this->getRoot();
+  const auto groups = bvh.getPrimitives();
 
   const auto evalLeaf = [&groups, &a_point](ClosestFace<T>& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
@@ -872,7 +860,7 @@ TriMeshSDF<T, K, W>::getClosestFace(const Vec3T<T>& a_point) const noexcept
     return a_state.signedDistance * a_state.signedDistance;
   };
 
-  m_bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+  bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
 
   return closest;
 }
@@ -882,23 +870,7 @@ EBGEOMETRY_HOST
 inline TriMeshSDF<T, K, W>
 TriMeshSDF<T, K, W>::rebasedView(const Pool& a_pool) const noexcept
 {
-  TriMeshSDF view = *this;
-
-  view.m_bvh = m_bvh.rebasedView(a_pool);
-
-  return view;
-}
-
-template <class T, size_t K, size_t W>
-EBGEOMETRY_HOST_DEVICE
-inline TriMeshSDF<T, K, W>
-TriMeshSDF<T, K, W>::relocatedTo(const PoolLocation& a_location) const noexcept
-{
-  TriMeshSDF view = *this;
-
-  view.m_bvh = m_bvh.relocatedTo(a_location);
-
-  return view;
+  return TriMeshSDF(this->getRoot().rebasedView(a_pool));
 }
 
 template <class T, size_t K, size_t W>
@@ -906,11 +878,7 @@ EBGEOMETRY_HOST
 inline TriMeshSDF<T, K, W>
 TriMeshSDF<T, K, W>::deepCopy(Pool& a_dstPool) const
 {
-  TriMeshSDF copy = *this;
-
-  copy.m_bvh = m_bvh.deepCopy(a_dstPool);
-
-  return copy;
+  return TriMeshSDF(this->getRoot().deepCopy(a_dstPool));
 }
 
 } // namespace EBGeometry

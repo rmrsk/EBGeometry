@@ -45,8 +45,13 @@ EBGEOMETRY_HOST
 inline PointCloudBVH<T, K, W>::PointCloudBVH(Pool&                        a_pool,
                                              const BuildResult&           a_build,
                                              const std::vector<Vec3T<T>>& a_positions)
-  : m_bvh(a_pool, a_build.nodes, a_build.primitives)
 {
+  const Packed bvh(a_pool, a_build.nodes, a_build.primitives);
+
+  this->setLocation(bvh.location());
+
+  m_bvhLayout = bvh.layout();
+
   this->storeCloud(a_pool, a_positions, a_build.leafOff, a_build.leafCnt, a_build.order);
 }
 
@@ -60,7 +65,7 @@ PointCloudBVH<T, K, W>::storeCloud(Pool&                             a_pool,
                                    const std::vector<std::uint32_t>& a_order)
 {
   // Every array must come from the pool the BVH was built in: they all resolve against its base.
-  EBGEOMETRY_EXPECT(m_bvh.isAttachedTo(a_pool));
+  EBGEOMETRY_EXPECT(this->isAttachedTo(a_pool));
 
   PointCloudDetail::requireValidCloud("PointCloudBVH", a_positions);
 
@@ -101,7 +106,7 @@ EBGEOMETRY_HOST
 inline PointCloudBVH<T, K, W>
 PointCloudBVH<T, K, W>::rebasedView(const Pool& a_pool) const noexcept
 {
-  // The held BVH checks its own arrays; these are the cloud's, which live in the same pool.
+  // The BVH checks its own arrays; these are the cloud's, which live in the same pool.
   const size_t poolBytes = a_pool.usedBytes();
 
   EBGEOMETRY_REQUIRE(m_positions.endByte() <= poolBytes && m_leafOff.endByte() <= poolBytes &&
@@ -110,11 +115,11 @@ PointCloudBVH<T, K, W>::rebasedView(const Pool& a_pool) const noexcept
                      "bytes)",
                      poolBytes);
 
-  // The cloud descriptors are pool-relative offsets, identical in any mirror of the pool, so only
-  // the held BVH's attachment changes.
+  // Every array is a pool-relative offset, identical in any mirror of the pool, so only the location
+  // changes. Rebasing the BVH computes it, and checks the BVH's arrays and depth on the way.
   PointCloudBVH view = *this;
 
-  view.m_bvh = m_bvh.rebasedView(a_pool);
+  view.setLocation(this->getBVH().rebasedView(a_pool).location());
 
   return view;
 }
@@ -133,9 +138,14 @@ PointCloudBVH<T, K, W>::deepCopy(Pool& a_dstPool) const
   const std::vector<std::uint32_t> leafCnt   = toHost(m_leafCnt, srcBase);
   const std::vector<std::uint32_t> order     = toHost(m_order, srcBase);
 
+  const Packed bvh = this->getBVH().deepCopy(a_dstPool);
+
   PointCloudBVH copy = *this;
 
-  copy.m_bvh = m_bvh.deepCopy(a_dstPool);
+  copy.setLocation(bvh.location());
+
+  copy.m_bvhLayout = bvh.layout();
+
   copy.storeCloud(a_dstPool, positions, leafOff, leafCnt, order);
 
   return copy;
@@ -360,8 +370,9 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
   EBGEOMETRY_EXPECT(a_exclude == PointCloud::InvalidIndex || a_exclude < m_positions.size());
 
   // Resolved once per query: a query reserves nothing, so the pool block cannot move under them.
-  const PODSpan<const Node>       nodes  = m_bvh.getNodes();
-  const PODSpan<const PointGroup> groups = m_bvh.getPrimitives();
+  const Packed                    bvh    = this->getBVH();
+  const PODSpan<const Node>       nodes  = bvh.getNodes();
+  const PODSpan<const PointGroup> groups = bvh.getPrimitives();
 
   EBGEOMETRY_EXPECT(a_seedCnt == 0 || (a_seedOff + a_seedCnt) <= groups.size());
 
@@ -458,7 +469,7 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
     scanLeaf(a_best, a_off, a_cnt);
   };
 
-  m_bvh.pruneTraverse(a_query, best, evalLeaf, pruneDist2);
+  bvh.pruneTraverse(a_query, best, evalLeaf, pruneDist2);
 
   return best.found();
 }

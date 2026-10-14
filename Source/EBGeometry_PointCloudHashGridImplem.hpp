@@ -160,7 +160,7 @@ PointCloudHashGrid<T>::storeArrays(Pool&                             a_pool,
                                    const std::vector<std::uint32_t>& a_cellStart,
                                    const std::vector<std::uint32_t>& a_cellPoints)
 {
-  m_location.attach(a_pool, "PointCloudHashGrid");
+  this->attach(a_pool, "PointCloudHashGrid");
 
   const auto numPoints = static_cast<std::uint32_t>(a_positions.size());
   const auto numStarts = static_cast<std::uint32_t>(a_cellStart.size());
@@ -173,7 +173,7 @@ PointCloudHashGrid<T>::storeArrays(Pool&                             a_pool,
 
   // Resolve the base only after every reservation above: a reserve can grow the pool, which moves
   // the block and invalidates any address taken before it.
-  void* poolBase = m_location.base();
+  void* poolBase = PoolHandle::base();
 
   m_positions.assign(poolBase, a_positions.data(), numPoints);
   m_cellStart.assign(poolBase, a_cellStart.data(), numStarts);
@@ -189,7 +189,7 @@ PointCloudHashGrid<T>::rebasedView(const Pool& a_pool) const noexcept
 
   PointCloudHashGrid view = *this;
 
-  view.m_location = m_location.rebasedOnto(a_pool, endByte, "PointCloudHashGrid");
+  view.setLocation(this->rebasedLocation(a_pool, endByte, "PointCloudHashGrid"));
 
   return view;
 }
@@ -213,7 +213,8 @@ PointCloudHashGrid<T>::deepCopy(Pool& a_dstPool) const
 
   PointCloudHashGrid copy = *this;
 
-  copy.m_location   = PoolLocation{};
+  copy.setLocation(PoolLocation{});
+
   copy.m_positions  = PODVector<Vec3T<T>>{};
   copy.m_cellStart  = PODVector<std::uint32_t>{};
   copy.m_cellPoints = PODVector<std::uint32_t>{};

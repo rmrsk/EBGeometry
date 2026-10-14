@@ -1234,9 +1234,8 @@ TEMPLATE_TEST_CASE("BVHUnion: host-mirror and deep copies of a TriMeshSDF union 
     nestedMirrorView.emplace(nested.rebasedView(mirror));
   }
 
-  // The source pool is gone. The meshes stored inside the union were copied byte for byte, host
-  // control block included, so each view resolves them against its own pool only because the union
-  // relocates them as it evaluates them; without that, these reads would be use-after-free.
+  // The source pool is gone. The meshes stored inside the union are layouts, with no location of their
+  // own, so each view resolves them against its own pool by pairing them with the union's location.
   REQUIRE(deepCopied->isAttachedTo(copyPool));
 
   for (size_t i = 0; i < queries.size(); i++) {
