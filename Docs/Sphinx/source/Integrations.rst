@@ -32,10 +32,20 @@ The :file:`Integrations/AMReX/<something>` folders couple EBGeometry to
 installed separately, with the ``AMREX_HOME`` environment variable pointing to it.
 
 The implicit functions derive from ``amrex::GPUable``, so the same code runs on CPUs and, in a
-CUDA or HIP build of AMReX, on GPUs: in a GPU build the pool is frozen and mirrored to the device
-in one piece, and the implicit function holds a host descriptor and a device descriptor of the
-same geometry (see :ref:`Sec:BuildingGPU`). A SYCL build of AMReX is rejected at compile time,
-since EBGeometry has no SYCL memory resource yet.
+CUDA or HIP build of AMReX, on GPUs. Two ways of getting the geometry to the device are shown (see
+:ref:`Sec:BuildingGPU`):
+
+* **A mirror in device memory** (``MeshSDF``, ``PaintEB``, ``PackedSpheres``, ``RandomCity``): the
+  pool is built on the host, frozen and mirrored to the device in one piece, and the implicit
+  function holds a host descriptor and a device descriptor of the same geometry, each compilation
+  pass using its own. Use this for large geometry: the device reads its own copy at full speed.
+* **Managed memory** (``Shapes``): the pool is built directly in managed memory, frozen, and the
+  geometry rebased onto it, which gives one descriptor that both the host and the device can use, so
+  there is no copy and the implicit function holds a single tape. The driver migrates pages between
+  host and device as they are touched, which costs nothing for a tape of a few KB but can for a large
+  mesh; on AMD MI200-class GPUs it migrates only with XNACK enabled.
+
+A SYCL build of AMReX is rejected at compile time, since EBGeometry has no SYCL memory resource yet.
 
 .. list-table::
    :header-rows: 1
@@ -60,7 +70,7 @@ since EBGeometry has no SYCL memory resource yet.
      - Works
    * - :file:`Shapes`
      - The analytic shapes, some of them transformed or combined with the expression builder and
-       compiled into a ``Tape``, which a GPU build evaluates on the device like the others.
+       compiled into a ``Tape``; in a GPU build the tape lives in managed memory.
      - Works
 
 Chombo

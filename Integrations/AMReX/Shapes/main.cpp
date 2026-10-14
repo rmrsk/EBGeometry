@@ -30,22 +30,20 @@ using Vec3 = EBGeometry::Vec3T<T>;
 /*!
   @brief An EBGeometry tape exposed as an AMReX implicit function.
   @details Deriving from amrex::GPUable tells AMReX's EB2::GeometryShop that it may evaluate this
-  functor inside device kernels. AMReX can still call it on the host as well, so it holds two handles
-  to the same tape: one resolving against host memory and one against a device mirror of its pool,
-  and each compilation pass uses its own. In a CPU build both are the same host tape. The class is
-  trivially copyable, which is what lets AMReX capture it by value in a kernel; the pools the tapes
-  resolve against are owned by main() and must outlive every evaluation.
+  functor inside device kernels, and AMReX can call it on the host as well. In a GPU build the tape
+  lives in managed memory, which both sides can read, so one handle serves both; in a CPU build it is
+  an ordinary host tape. The class is trivially copyable, which is what lets AMReX capture it by value
+  in a kernel; the pool the tape resolves against is owned by main() and must outlive every
+  evaluation.
 */
 class EBGeometryIF : public amrex::GPUable
 {
 public:
   /*!
     @brief Full constructor.
-    @param[in] a_hostTape   Tape resolving against host memory.
-    @param[in] a_deviceTape The same tape rebased onto a device mirror (a_hostTape in a CPU build).
+    @param[in] a_tape Compiled object, readable wherever AMReX evaluates it.
   */
-  EBGeometryIF(const EBGeometry::Tape<T>& a_hostTape, const EBGeometry::Tape<T>& a_deviceTape) noexcept
-    : m_hostTape(a_hostTape), m_deviceTape(a_deviceTape)
+  explicit EBGeometryIF(const EBGeometry::Tape<T>& a_tape) noexcept : m_tape(a_tape)
   {}
 
   /*!
@@ -57,11 +55,7 @@ public:
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-#if defined(EBGEOMETRY_DEVICE_COMPILE)
-    return -m_deviceTape.signedDistance(Vec3(x, y, z));
-#else
-    return -m_hostTape.signedDistance(Vec3(x, y, z));
-#endif
+    return -m_tape.signedDistance(Vec3(x, y, z));
   }
 
   /*!
@@ -75,14 +69,9 @@ public:
 
 private:
   /*!
-    @brief The compiled object, resolving against host memory.
+    @brief The compiled object.
   */
-  EBGeometry::Tape<T> m_hostTape;
-
-  /*!
-    @brief The same tape, resolving against the device mirror.
-  */
-  EBGeometry::Tape<T> m_deviceTape;
+  EBGeometry::Tape<T> m_tape;
 };
 
 int
@@ -201,22 +190,25 @@ main(int argc, char* argv[])
   Box domain(IntVect(0), IntVect(n_cell - 1));
   geom.define(domain);
 
-  // The tape is compiled into this Pool, which must outlive the EB generation below.
-  EBGeometry::Pool          hostPool(EBGeometry::hostMemoryResource());
-  const EBGeometry::Tape<T> hostTape(hostPool, *func);
-
+  // The tape is compiled into this Pool, which must outlive the EB generation below. In a GPU build the
+  // pool is in managed memory, which host and device can both read, so the geometry needs no device
+  // copy. That suits a tape of a few KB; for large geometry (a mesh), mirror the pool to device memory
+  // instead, as the RandomCity and MeshSDF integrations do, rather than leave the driver to migrate it.
 #if defined(AMREX_USE_GPU)
-  // Copy the finished pool to the device in one piece, then rebase the tape onto the copy.
-  hostPool.freeze();
-
-  EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
-
-  const EBGeometry::Tape<T> deviceTape = hostTape.rebasedView(devicePool);
+  EBGeometry::MemoryResource& resource = EBGeometry::managedMemoryResource();
 #else
-  const EBGeometry::Tape<T>& deviceTape = hostTape;
+  EBGeometry::MemoryResource& resource = EBGeometry::hostMemoryResource();
 #endif
 
-  const EBGeometryIF sdf(hostTape, deviceTape);
+  EBGeometry::Pool          pool(resource);
+  const EBGeometry::Tape<T> tape(pool, *func);
+
+  // Freezing fixes the pool's base, and the view onto the pool's own memory holds that base by value,
+  // which a kernel can use as well as the host. (The handle the constructor returns finds the pool
+  // through a host-side control block, which a kernel cannot read.)
+  pool.freeze();
+
+  const EBGeometryIF sdf(tape.rebasedView(pool));
 
   auto gshop = EB2::makeShop(sdf);
   EB2::Build(gshop, geom, 0, 0, true, true, num_coarsen_opt);
