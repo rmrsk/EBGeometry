@@ -229,8 +229,12 @@ built.
   ``TapeOptions::m_bvhUnionThreshold`` operands (8 by default) is evaluated with a BVH over the
   operands' boxes, exactly as ``BVHUnion`` and ``BVHSmoothUnion`` evaluate their primitives
   (:ref:`Sec:BVHUnions`), including keeping operands with unbounded boxes out of the tree. The
-  operands can be of any type and composed in any way, such as several translations of one mesh. A
-  union with an operand that is ``NotADistance`` cannot be pruned and is evaluated operand by operand.
+  operands can be of any type and composed in any way, such as several translations of one mesh. With
+  ``Exact`` operands the value is the same as an operand-by-operand minimum. A ``Bound`` operand (a
+  blur, an elongation, a shrinking offset) can have a value below its box's distance, so the BVH may
+  skip an operand whose value would have been smaller: the result can then be larger than the plain
+  minimum, but it keeps the sign and is still a bound on the distance. A union with an operand that is
+  ``NotADistance`` cannot be pruned and is evaluated operand by operand.
   `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ also chooses the BVH
   construction method.
 * **Sub-programs and limits.** Blur, Mollify and the operands of a BVH union are compiled into

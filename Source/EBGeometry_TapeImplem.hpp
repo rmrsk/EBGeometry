@@ -617,6 +617,11 @@ private:
 
       break;
     }
+    default: {
+      EBGEOMETRY_EXPECT(false && "Tape: unknown expression kind");
+
+      break;
+    }
     }
   }
 };
@@ -1009,6 +1014,11 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
 
         values[nv++] = T(0);
       }
+
+      break;
+    }
+    default: {
+      EBGEOMETRY_EXPECT(false && "Tape: unknown clause");
 
       break;
     }

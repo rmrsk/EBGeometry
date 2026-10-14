@@ -12,6 +12,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestTapeUtils.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <type_traits>
@@ -384,6 +385,68 @@ TEMPLATE_TEST_CASE("Tape: an intersection of disjoint objects is empty, and a BV
     CHECK(Tape<T>(pool, empty).signedDistance(p) == Math::max(left.signedDistance(p), right.signedDistance(p)));
     CHECK(withBVH.signedDistance(p) == linear.signedDistance(p));
   }
+}
+
+TEMPLATE_TEST_CASE("Tape: a BVH union of Bound operands keeps the sign and never undercuts the plain minimum",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // Elongated spheres are only bounds: inside the elongated core the value underestimates the depth, and
+  // a shrinking offset makes every value smaller than the distance outside.
+  std::vector<Expr<T>> objects;
+
+  objects.reserve(12);
+
+  for (int i = 0; i < 12; i++) {
+    objects.emplace_back(
+      Offset(Elongate(SphereSDF<T>(Vec3(T(1.5) * T(i), T(0), T(0)), T(0.5)), Vec3(T(0.3), T(0), T(0))), T(-0.2)));
+  }
+
+  TapeOptions linearOptions;
+
+  linearOptions.m_bvhUnionThreshold = 1000;
+
+  const Tape<T> withBVH(pool, Union(objects));
+  const Tape<T> linear(pool, Union(objects), linearOptions);
+
+  CHECK(withBVH.getNumBVHUnions() == 1U);
+  CHECK(withBVH.getDistanceQuality() == DistanceQuality::Bound);
+
+  for (const auto& p : probes<T>()) {
+    const T bvh   = withBVH.signedDistance(p);
+    const T plain = linear.signedDistance(p);
+
+    // The BVH evaluates a subset of the operands: never below the plain minimum, and of the same sign.
+    CHECK(bvh >= plain);
+    CHECK((bvh < T(0)) == (plain < T(0)));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: calls may nest exactly MaxCallDepth deep", "[Tape]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  Expr<T> expr = sphere;
+
+  for (unsigned i = 0; i < Tape<T>::MaxCallDepth; i++) {
+    expr = Blur(expr, T(0.01));
+  }
+
+  const Tape<T> tape(pool, expr);
+
+  CHECK(tape.getCallDepth() == Tape<T>::MaxCallDepth);
+  CHECK(tape.getNumPrograms() == Tape<T>::MaxCallDepth + 1U);
+  CHECK(std::isfinite(tape.signedDistance(Vec3(T(2), T(0), T(0)))));
 }
 
 TEST_CASE("Tape: rejects an unknown primitive type, a mesh from another pool and an expression that nests too deeply",

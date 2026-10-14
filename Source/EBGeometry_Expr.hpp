@@ -445,7 +445,8 @@ Union(const A& a_first, const B& a_second);
 /**
  * @brief Union of any number of objects: the minimum of their values.
  * @details A Tape evaluates a union of many objects with a BVH over their boxes (see TapeOptions), unless
- * one of them is not a distance.
+ * one of them is not a distance. With exact distances the value is the plain minimum; with operands that
+ * are only bounds it can be larger, but keeps the sign and is still a bound.
  * @tparam A Shape or Expr type.
  * @param[in] a_operands Objects (must not be empty).
  * @return The union.
