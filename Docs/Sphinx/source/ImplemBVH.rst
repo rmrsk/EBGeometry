@@ -541,13 +541,13 @@ removed, because a ``shared_ptr`` is not trivially copyable and so can never cro
 address space.
 
 One part of the library depended on exactly that: the BVH-accelerated CSG unions
-(:ref:`Chap:ImplemCSG`), whose primitive was ``ImplicitFunction<T>`` and whose leaf evaluator called
-a virtual ``value()`` through a base pointer. They have returned restricted to a single primitive
-type: ``BVHUnion<T, P, K>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one type
-``P`` -- analytic shapes, mesh distance fields, or other unions -- and is itself trivially copyable
-(:ref:`Sec:BVHUnions`). A union of primitives of *different* types still needs runtime dispatch,
-which returns with the redesign of the implicit-function and CSG layer that replaces virtual
-dispatch with a linear-SSA tape.
+(:ref:`Chap:ImplemCSG`), whose primitive was once a polymorphic implicit function whose leaf
+evaluator called a virtual ``value()`` through a base pointer. They returned restricted to a single
+primitive type: ``BVHUnion<T, P, K>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one
+type ``P`` -- analytic shapes, mesh distance fields, or other unions -- and is itself trivially
+copyable (:ref:`Sec:BVHUnions`). A union of primitives of *different* types is compiled into a tape
+(:ref:`Sec:Tape`), whose BVH holds sub-program indices and whose clauses dispatch on a primitive
+type index instead of a virtual call.
 
 Nesting a BVH inside a BVH -- a ``BVHUnion`` over several ``TriMeshSDF`` objects, say -- works
 today. The inner BVHs live in the same ``Pool`` as the outer one, and the outer union stores each
@@ -815,8 +815,8 @@ descriptor by value and nothing else, so it is trivially copyable, and ``signedD
 ``getClosestFace()`` and ``computeBoundingVolume()`` (the vertex AABB) are callable on both host
 and device. It deliberately
 has no virtual functions: a class with them carries a pointer to
-a host-side function table and can never be passed to a kernel. As a consequence it cannot currently
-be used where an ``ImplicitFunction`` is expected, such as the CSG and transform factories. As for
+a host-side function table and can never be passed to a kernel. It is composed with other objects
+through the expression builder and a tape instead (:ref:`Sec:Tape`). As for
 ``PackedBVH`` (see :ref:`Chap:MemoryModel`), freeze and mirror the pool, call
 ``rebasedView(devicePool)``, and pass the returned ``FlatMeshSDF`` to a kernel; ``deepCopy(pool)``
 gives independent storage. Copies share the pool memory, and a ``FlatMeshSDF`` sees the mesh as it
@@ -836,8 +836,8 @@ all reserved from the one ``Pool`` passed to the constructor. Both are trivially
 constructed without ``shared_ptr``\ s, and neither has virtual functions.
 ``signedDistance()``, ``getClosestFace()``, ``getRoot()`` and ``computeBoundingVolume()`` are
 callable on host and device; ``rebasedView(pool)`` and ``deepCopy(pool)`` return the class itself,
-so a rebased copy is what a kernel receives. As for ``FlatMeshSDF``, none of the three can currently
-be used as an ``ImplicitFunction`` (in the CSG or transform factories).
+so a rebased copy is what a kernel receives. All three are shapes, so the expression builder
+composes them with other objects (:ref:`Sec:Tape`).
 
 All three report the face closest to a point with ``getClosestFace(point)``, which returns a
 `ClosestFace <doxygen/html/structEBGeometry_1_1ClosestFace.html>`__: the signed distance, equal to
@@ -893,9 +893,9 @@ The two classes store very different primitives:
 Neither is affected by copying the distance field itself: a copy of a ``MeshSDF``/``TriMeshSDF``
 is a copy of its descriptors, which resolve against the same pool memory, so the packed data exists
 exactly once no matter how many copies refer to it -- including copies stored as the primitives of
-a BVH union (:ref:`Sec:BVHUnions`). Placing one mesh at several different positions is not
-currently possible, however: the ``Translate``/``Rotate``/``Scale`` wrappers take an
-``ImplicitFunction``, which the mesh distance fields are not (see :ref:`Chap:ImplemCSG`).
+a BVH union (:ref:`Sec:BVHUnions`). Placing one mesh at several different positions shares it too:
+``Translate(mesh, shift)`` for each placement, compiled into a tape (see :ref:`Sec:Tape` and
+:ref:`Chap:ExampleCSGUnion`).
 
 Default and host-tuned K and W
 ______________________________

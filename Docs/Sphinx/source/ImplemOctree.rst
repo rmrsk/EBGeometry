@@ -14,8 +14,8 @@ device whenever the function it is given is. The same header holds
 any function.
 
 Both take the function as anything that is evaluated at a point: an analytic shape or a mesh
-distance field (through its ``signedDistance()``), an ``ImplicitFunction<T>`` (through its
-``value()``), or a callable such as a lambda, tried in that order.
+distance field or a tape (through its ``signedDistance()``), an object with a ``value()`` member,
+or a callable such as a lambda, tried in that order.
 
 .. _Sec:OctreeBoundingVolume:
 
@@ -50,8 +50,6 @@ rejected. If the initial box is empty or inverted along any axis, does not conta
 no cell survives to the deepest level, the function returns the maximal box, from
 ``-Vec3T<T>::max()`` to ``Vec3T<T>::max()``, signalling that the initial box needs to be chosen
 more generously or that the function is far from a signed distance.
-``ImplicitFunction<T>`` keeps a member function of the same name that calls the free function with
-the object itself.
 
 .. tip::
 

@@ -24,9 +24,6 @@ namespace EBGeometry {
   template class Vec3T<PREC>;                                                \
   template struct Array<PREC, 3>;                                            \
                                                                                \
-  /* -- Abstract bases --------------------------------------------------- */ \
-  template class ImplicitFunction<PREC>;                                     \
-                                                                               \
   /* -- Analytic signed distance functions --------------------------------*/ \
   template class PlaneSDF<PREC>;                                             \
   template class SphereSDF<PREC>;                                            \
@@ -41,14 +38,7 @@ namespace EBGeometry {
   template class RoundedCylinderSDF<PREC>;                                   \
   template class PerlinSDF<PREC>;                                            \
                                                                                \
-  /* -- CSG implicit functions --------------------------------------------*/ \
-  template class UnionIF<PREC>;                                              \
-  template class SmoothUnionIF<PREC>;                                        \
-  template class IntersectionIF<PREC>;                                       \
-  template class SmoothIntersectionIF<PREC>;                                 \
-  template class DifferenceIF<PREC>;                                         \
-  template class SmoothDifferenceIF<PREC>;                                   \
-  template class FiniteRepetitionIF<PREC>;                                   \
+  /* -- CSG: blends, BVH unions, expressions and tapes ----------------------*/ \
   template struct SmoothMinOp<PREC>;                                         \
   template struct SmoothMaxOp<PREC>;                                         \
   template struct ExpMinOp<PREC>;                                            \
@@ -56,19 +46,10 @@ namespace EBGeometry {
   template class BVHUnion<PREC, SphereSDF<PREC>, 4>;                       \
   template class BVHSmoothUnion<PREC, SphereSDF<PREC>, 4>;                 \
   template class BVHSmoothUnion<PREC, BoxSDF<PREC>, 4, ExpMinOp<PREC>>;    \
-                                                                               \
-  /* -- Transformation implicit functions ----------------------------------*/\
-  template class ComplementIF<PREC>;                                         \
-  template class TranslateIF<PREC>;                                         \
-  template class RotateIF<PREC>;                                            \
-  template class OffsetIF<PREC>;                                            \
-  template class ScaleIF<PREC>;                                             \
-  template class AnnularIF<PREC>;                                           \
-  template class BlurIF<PREC>;                                              \
-  template class MollifyIF<PREC>;                                           \
-  template class TransformDetail::BumpMollifierIF<PREC>;                    \
-  template class ElongateIF<PREC>;                                          \
-  template class ReflectIF<PREC>;                                           \
+  template struct Affine3T<PREC>;                                            \
+  template class Expr<PREC>;                                                 \
+  template class Tape<PREC>;                                                 \
+  template class Tape<PREC, BVHUnion<PREC, SphereSDF<PREC>, 4>, MeshSDF<PREC, 8>>; \
                                                                                \
   /* -- File readers ------------------------------------------------------*/ \
   template class PolygonSoup<PREC>;                                          \
@@ -207,6 +188,57 @@ instantiateFunctionTemplates()
 
     (void)approximateBoundingVolumeOctree(sphere, -Vec3T<T>::ones(), Vec3T<T>::ones(), 2U, T(0));
     (void)normal(sphere, Vec3T<T>::ones(), T(1.0e-3));
+  }
+
+  // Every builder function, compiled into a tape.
+  {
+    const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+    const BoxSDF<T>    box(-Vec3T<T>::ones(), Vec3T<T>::ones());
+
+    const std::vector<SphereSDF<T>> spheres(2, sphere);
+    const std::vector<Expr<T>>      exprs = {sphere, box};
+
+    const Expr<T> expr =
+      Union(std::vector<Expr<T>>{Union(sphere, box),
+                                 Union(spheres),
+                                 SmoothUnion(sphere, box, T(0.1)),
+                                 SmoothUnion(exprs, T(0.1), BlendKind::Exponential),
+                                 Intersection(sphere, box),
+                                 Intersection(exprs),
+                                 SmoothIntersection(sphere, box, T(0.1)),
+                                 SmoothIntersection(exprs, T(0.1)),
+                                 Difference(sphere, box),
+                                 Difference(sphere, spheres),
+                                 SmoothDifference(sphere, box, T(0.1)),
+                                 SmoothDifference(sphere, spheres, T(0.1)),
+                                 FiniteRepetition(sphere, Vec3T<T>::ones(), Vec3T<T>::ones(), Vec3T<T>::ones()),
+                                 Complement(sphere),
+                                 Translate(sphere, Vec3T<T>::ones()),
+                                 Rotate(sphere, T(30), size_t(1)),
+                                 Rotate(sphere, T(30), Vec3T<T>::ones()),
+                                 Scale(sphere, T(2)),
+                                 Reflect(sphere, size_t(0)),
+                                 Offset(sphere, T(0.1)),
+                                 Annular(sphere, T(0.1)),
+                                 Elongate(sphere, Vec3T<T>::ones()),
+                                 Blur(sphere, T(0.1)),
+                                 Mollify(sphere, T(0.1), size_t(3))});
+
+    const Tape<T> tape(meshPool, expr);
+
+    (void)tape.signedDistance(Vec3T<T>::zeros());
+    (void)tape.computeBoundingVolume();
+    (void)tape.getDistanceQuality();
+    (void)expr.computeBoundingVolume();
+    (void)expr.getDistanceQuality();
+    (void)tape.getNumPrograms();
+    (void)tape.getNumClauses();
+    (void)tape.getNumBVHUnions();
+    (void)tape.getCallDepth();
+    (void)Tape<T>(tape.layout(), tape.location()).signedDistance(Vec3T<T>::zeros());
+    (void)tape.rebasedView(meshPool);
+    (void)tape.deepCopy(meshPool);
+    (void)normal(tape, Vec3T<T>::ones(), T(1.0e-3));
   }
 
   (void)PolygonSoup<T>().convertToDCEL(meshPool);

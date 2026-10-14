@@ -301,31 +301,40 @@ Test coverage
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
        primitives, including far from the blend region;
-       sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`;
-       :cpp:class:`FiniteRepetitionIF` tiling and boundary clamping. The BVH-accelerated
-       :cpp:class:`BVHUnion`/:cpp:class:`BVHSmoothUnion` over spheres (against the virtual
-       unions and a brute-force scan, for every build strategy and blend, and with each method's
-       leaf-size setting) and over translated
+       sharp and smooth ``Union``/``Intersection``/``Difference`` expressions compiled into a tape,
+       against the formulas computed by hand, with both blend kinds; the boxes and distance qualities
+       of combined expressions; a union of many objects with and without the tape's BVH, with an
+       operand that is not a distance, and with unbounded operands; ``FiniteRepetition`` tiling and
+       boundary clamping. The BVH-accelerated
+       :cpp:class:`BVHUnion`/:cpp:class:`BVHSmoothUnion` over spheres (against a brute-force scan,
+       for every build strategy and blend, and with each method's leaf-size setting) and over
+       translated
        ``TriMeshSDF`` objects, including a union of unions; primitives whose values are not
        distances keeping the union's sign; primitives with unbounded boxes (infinite cylinders and
        cones, alone and mixed with spheres) kept out of the BVH and matching brute force for every
        build strategy, through host-mirror, deep and nested copies; host-mirror and deep copies of a
        mesh union evaluated after the source pool is destroyed; device results of the unions
-       against the host. Like ``TestTransform``, it uses :file:`Tests/TestShapeIF.hpp`
-       to present analytic spheres as ``ImplicitFunction`` objects.
+       against the host.
    * - ``TestTransform``
-     - :cpp:class:`ComplementIF`, :cpp:class:`TranslateIF`, :cpp:class:`RotateIF`,
-       :cpp:class:`ScaleIF`, :cpp:class:`OffsetIF`, :cpp:class:`AnnularIF`, :cpp:class:`BlurIF`,
-       :cpp:class:`MollifyIF`, :cpp:class:`ElongateIF`, :cpp:class:`ReflectIF`: each transform's
-       free-function/class-constructor equivalence, and correctness against a hand-computable
-       expected value. The wrapped functions are analytic shapes presented as
-       ``ImplicitFunction`` objects by the test-only helper :file:`Tests/TestShapeIF.hpp`, since the
-       shapes themselves are not ``ImplicitFunction`` objects.
+     - The point-map and value transforms of the expression builder (``Complement``, ``Translate``,
+       ``Rotate`` about a coordinate axis and about any direction, ``Scale``, ``Offset``,
+       ``Annular``, ``Blur``, ``Mollify``, ``Elongate``, ``Reflect``), compiled into a tape: each
+       against its formula applied by hand and against an equivalent shape built directly; chains of
+       maps folded into one; transformed boxes; and every rejected argument.
+   * - ``TestTape``
+     - :cpp:class:`Tape` itself: a trivially copyable pool handle and a shape; every analytic shape
+       evaluating exactly as the shape; a mesh distance field (all three kinds) unioned with a sphere
+       equal to the smaller distance everywhere; a union of many objects of different types matching
+       brute force with and without a BVH; user primitive types, including a BVH union and a tape
+       inside a tape; a handle rebuilt from its layout, a view on a mirror and a deep copy; the
+       recorded box and distance quality; an empty intersection inside a BVH union; and the
+       constructor rejecting an unknown primitive type, a mesh from another pool, and expressions
+       that nest too deeply.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
        empty, inverted or missed initial box, a depth beyond ``MaxOctreeDepth`` rejected, and the
-       same box from a shape, an ``ImplicitFunction`` (free function and member) and a lambda;
+       same box from a shape, a tape, an object with a ``value()`` member and a lambda;
        :cpp:func:`normal` against a sphere's exact normal; and both on a device.
    * - ``TestPolygon2D``
      - :cpp:class:`DCEL::FaceT` point-in-face containment: winding-number/crossing-number/subtended-angle

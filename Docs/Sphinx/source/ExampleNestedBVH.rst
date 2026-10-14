@@ -13,8 +13,9 @@ hierarchy to find the nearest triangle (see :ref:`Chap:BVH` and :ref:`Sec:BVHUni
 
 The outer union stores the ``TriMeshSDF``\ s by value, in the same ``Pool`` as their inner BVHs, so
 the whole hierarchy is one plain value that can be mirrored to a GPU and evaluated there. Each
-placement has its own copy of the triangles; sharing one mesh between translated placements is a
-composition that returns with the tape. The program checks the nested union against the smallest
+placement has its own copy of the triangles; to share one mesh between translated placements
+instead, compose ``Translate(mesh, shift)`` and compile the union into a ``Tape``, as
+:ref:`Chap:ExampleCSGUnion` does. The program checks the nested union against the smallest
 distance over every placement at random points, which must agree up to rounding.
 
 The source for this example is at :file:`Examples/NestedBVH/main.cpp`. See :ref:`Chap:Building`

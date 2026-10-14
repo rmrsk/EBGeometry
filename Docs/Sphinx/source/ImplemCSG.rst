@@ -8,53 +8,34 @@ This page covers the concrete classes behind two Concepts pages: :ref:`Chap:Geom
 (transformations and CSG combinators) -- read those first for the conceptual picture, and use this
 page for the class/function-level detail and Doxygen links.
 
-ImplicitFunction
------------------
+Shapes
+------
 
-``ImplicitFunction<T>`` (:file:`Source/EBGeometry_ImplicitFunction.hpp`) is the root of
-EBGeometry's polymorphic geometry hierarchy: the transformations and CSG combinators below derive
-from it, and so do any implicit functions users write themselves. The analytic shapes (see
-:ref:`Sec:AnalyticShapes`) and the mesh distance fields (see :ref:`Chap:MeshSDFClasses`) do *not*:
-they are plain value types that can be evaluated on a GPU, and the virtual interface would prevent
-that. It declares a single pure virtual member function,
+A *shape* is anything EBGeometry can evaluate and compose: a trivially copyable type with a const
+``signedDistance(const Vec3T<T>&)`` returning ``T`` -- negative inside the object, positive outside
+-- and a const ``computeBoundingVolume()`` returning the ``AABBT<T>`` that encloses the object. The
+compile-time trait ``isShape<S>`` checks exactly this, and ``ShapePrecision<S>`` reads ``T`` from the
+box type (see `EBGeometry_Expr.hpp <doxygen/html/EBGeometry__Expr_8hpp.html>`__). The analytic shapes
+(:ref:`Sec:AnalyticShapes`), the mesh distance fields (:ref:`Chap:MeshSDFClasses`), the BVH unions
+(:ref:`Sec:BVHUnions`) and a compiled ``Tape`` (:ref:`Sec:Tape`) are all shapes, and so is any type
+of your own with those two members. None of them has a base class or a virtual function, so each can
+be passed to a GPU kernel by value.
 
-.. math::
-
-   \texttt{value}(\mathbf{x}) : \mathbb{R}^3 \rightarrow \mathbb{R},
-
-returning a value that is negative for points inside the object and positive for points outside
-it, plus a call operator (``operator()``) that simply forwards to ``value()``. Because every
-concrete geometry type honors exactly this same contract, code elsewhere in the library (and in
-user code) can hold a ``shared_ptr<ImplicitFunction<T>>`` and call ``value()`` on it through
-ordinary virtual dispatch without ever needing to know which concrete class it actually points
-to -- this is what lets the transform and CSG machinery below wrap or combine *any* implicit
-function interchangeably.
-
-The analytic shapes give their exact bounding box from ``computeBoundingVolume()``
-(:ref:`Sec:AnalyticShapes`). For functions that have no closed-form bounding volume, the free function
-``approximateBoundingVolumeOctree(function, lo, hi, depth, safety)`` estimates a bounding box by
-octree subdivision of a caller-supplied initial box, and ``normal(function, point, delta)`` gives
-the finite-difference normal of a function. Both take anything that gives a value at a point: an
-analytic shape or mesh distance field (through its ``signedDistance()``), an
-``ImplicitFunction<T>`` (through its ``value()``), or a callable such as a lambda.
-``ImplicitFunction<T>`` also keeps a member function ``approximateBoundingVolumeOctree`` that calls
-the free function with the object itself. See :ref:`Chap:ImplemOctree` for both. The results are
-only meaningful when the function is reasonably close to a true signed distance, since the safety
-margin and the normal are interpreted in units of distance.
-
-An ``ImplicitFunction<T>`` only promises that the sign of its value indicates inside or outside.
-A signed distance additionally promises that the *magnitude* of its output is the true Euclidean
+A shape may also carry a static member ``distanceQuality`` that says how far its value can be trusted
+as a distance (see :ref:`Sec:AnalyticShapes`); a shape without one counts as ``Bound``. The
+difference matters because a signed distance promises more than the sign: its *magnitude* is the
 distance to the surface (the Eikonal property, :math:`|\nabla S| = 1`; see
-:ref:`Chap:GeometryRepresentations` for why this property matters). The distance fields shipped
-with EBGeometry -- the analytic shapes (:ref:`Sec:AnalyticShapes`) and the mesh distance fields
-(``FlatMeshSDF``, ``MeshSDF``, ``TriMeshSDF``, see :ref:`Chap:MeshSDFClasses`) -- are plain
-device-callable value types that provide ``signedDistance()`` without a virtual interface, and are
-not ``ImplicitFunction``\ s. A user-written signed distance that should be passed to the
-transformations and CSG combinators below derives from ``ImplicitFunction<T>`` and returns the
-distance from ``value()``.
+:ref:`Chap:GeometryRepresentations`), which BVH pruning, sphere tracing and the octree bounding-volume
+search rely on.
 
-For the full API, see the Doxygen page for
-`ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction.html>`__.
+For a function with no closed-form bounding volume, the free function
+``approximateBoundingVolumeOctree(function, lo, hi, depth, safety)`` estimates a bounding box by
+octree subdivision of a caller-supplied initial box, and ``normal(function, point, delta)`` gives the
+finite-difference normal of a function. Both take anything that gives a value at a point: a shape
+(through its ``signedDistance()``), an object with a ``value()`` member, or a callable such as a
+lambda. See :ref:`Chap:ImplemOctree` for both. The results are only meaningful when the function is
+reasonably close to a true signed distance, since the safety margin and the normal are interpreted in
+units of distance.
 
 .. _Sec:AnalyticShapes:
 
@@ -117,217 +98,163 @@ The shapes share a few conventions:
   union is ``Bound``, or ``NotADistance`` if its primitives are. ``distanceQualityOf<P>`` reads the
   member, and treats a type without one as ``Bound``.
 
-Because the shapes are not ``ImplicitFunction<T>`` objects, they cannot be passed to the
-transformations and to most of the CSG combinators below. The exception is the BVH-accelerated
-unions (:ref:`Sec:BVHUnions`), which take many shapes of one type directly and run on a GPU too.
-Other compositions return with the redesign of the CSG layer that replaces virtual dispatch with a
-linear-SSA tape. Until then, user code can combine shapes directly, as in the lambda passed to
-``approximateBoundingVolumeOctree`` in the :ref:`Chap:ExampleOctreeBoundingVolume` example.
+Every shape can be composed with the expression builder and evaluated through a ``Tape``
+(:ref:`Sec:Tape`); many shapes of one type can also be joined directly by a BVH union
+(:ref:`Sec:BVHUnions`).
 
-Transformations
-----------------
+Composing objects
+-----------------
 
-EBGeometry implements every transformation as a small wrapper class that stores a
-``shared_ptr<ImplicitFunction<T>>`` to the wrapped function (so the wrapped function is an
-``ImplicitFunction<T>``, not one of the analytic shapes or mesh distance fields; see
-:ref:`Sec:AnalyticShapes`) together with the transformation's
-own parameters, and implements ``value()`` by applying the (typically inverse) transformation to
-the query point before evaluating the wrapped function. Since every such wrapper is itself an
-``ImplicitFunction<T>``, transformations compose freely -- wrapping a wrapper is just as valid as
-wrapping a leaf shape. Each wrapper class has a same-named free function that constructs it and
-returns it already cast to ``shared_ptr<ImplicitFunction<T>>``, ready to be passed into further
-transformations or CSG combinators without the caller ever naming the concrete wrapper type.
-Both are declared in :file:`Source/EBGeometry_Transform.hpp`.
+Objects are composed with the expression builder in
+`EBGeometry_Expr.hpp <doxygen/html/EBGeometry__Expr_8hpp.html>`__. Every shape converts to an
+`Expr <doxygen/html/classEBGeometry_1_1Expr.html>`__, an immutable tree of shapes and operations, and
+the free functions take shapes or ``Expr``\ s and return an ``Expr``:
 
-The five simplest transformations -- translation, rotation, scaling, the complement, and
-reflection -- are described mathematically in :ref:`Chap:ConstructiveSolidGeometry`; the table
-below just maps each to its wrapper class, free function, and Doxygen entry:
+.. code-block:: c++
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 20 20 40
+   const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+   const BoxSDF<T>    box(-Vec3::ones(), Vec3::ones());
 
-   * - Transformation
-     - Wrapper class
-     - Free function
-     - Doxygen
-   * - Translation
-     - ``TranslateIF``
-     - ``Translate``
-     - `class <doxygen/html/classEBGeometry_1_1TranslateIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#a82e34c99a4fd50db47df9115d394e6c5>`__
-   * - Rotation
-     - ``RotateIF``
-     - ``Rotate``
-     - `class <doxygen/html/classEBGeometry_1_1RotateIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#a124737f03c27db761acf090d374ef2d6>`__
-   * - Scaling
-     - ``ScaleIF``
-     - ``Scale``
-     - `class <doxygen/html/classEBGeometry_1_1ScaleIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#aa9ef2cbd810f91168aa99734b939ee13>`__
-   * - Complement
-     - ``ComplementIF``
-     - ``Complement``
-     - `class <doxygen/html/classEBGeometry_1_1ComplementIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#a98227d701f3c9dd00d061fa23ecb5182>`__
-   * - Reflection
-     - ``ReflectIF``
-     - ``Reflect``
-     - `class <doxygen/html/classEBGeometry_1_1ReflectIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#acc585f06f08ab2331f93cc1a38f53241>`__
+   const auto shape = SmoothDifference(Union(Translate(sphere, Vec3(T(2), T(0), T(0))), box), mesh, T(0.1));
 
-EBGeometry implements several further transformations that have no closed-form counterpart in
-:ref:`Chap:ConstructiveSolidGeometry` and are only described here:
+An ``Expr`` is cheap to copy (copies share the tree) and is never evaluated itself: it is a
+description, which a ``Tape`` compiles (:ref:`Sec:Tape`). The precision is deduced from the operands.
+A pool-resident shape, such as a mesh distance field, is held by its descriptor, so its pool must be
+the one the tape is compiled into and must outlive the tape.
 
-* **Offset** (``OffsetIF``/``Offset``) subtracts a constant from the wrapped function's value,
-  growing the object if the offset is positive and shrinking it if negative. For a true signed
-  distance function this simply moves the isosurface outward or inward by the offset distance.
-* **Annular** (``AnnularIF``/``Annular``) turns a solid into a hollow shell of total thickness
-  :math:`2\delta` by evaluating :math:`|I(\mathbf{x})| - \delta`: the two new zero-isosurfaces sit
-  where :math:`I(\mathbf{x}) = \pm\delta`, i.e. the original surface offset inward and outward by
-  :math:`\delta` each, hollowing out everything in between.
-* **Blur** (``BlurIF``/``Blur``) smooths sharp features by passing the wrapped function through a
-  3D box filter sampled at the face centers, edge centers, and corners of a cube of half-width
-  equal to the blur distance, with per-sample weights controlled by a blend factor ``alpha``
-  (``1`` = no blur, ``0`` = maximal blur).
-* **Mollify** (``MollifyIF``/``Mollify``) is a more general smoothing operation: it convolves the
-  wrapped function with a kernel sampled on a uniform grid of offsets, normalizing the sample
-  weights to sum to one. The kernel returns a non-negative weight for each offset. ``Mollify`` uses
-  a smooth bump that is largest at the centre; ``MollifyIF`` takes any kernel.
-* **Elongate** (``ElongateIF``/``Elongate``) stretches a shape along one or more axes without
-  changing its cross-section: the query point is clamped component-wise to
-  :math:`[-\mathbf{e}, \mathbf{e}]` for a per-axis elongation vector :math:`\mathbf{e}`, and the
-  clamped offset is subtracted from the point before evaluating the wrapped function. For a signed
-  distance function the result is exact outside; inside the elongated core it is constant, so it
-  underestimates the depth there.
+The operations, described mathematically in :ref:`Chap:ConstructiveSolidGeometry`:
 
 .. list-table::
    :header-rows: 1
-   :widths: 20 20 20 40
+   :widths: 30 70
 
-   * - Transformation
-     - Wrapper class
-     - Free function
-     - Doxygen
-   * - Offset
-     - ``OffsetIF``
-     - ``Offset``
-     - `class <doxygen/html/classEBGeometry_1_1OffsetIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#a5a1c84b1c3726185ba5bfe6e581e18cd>`__
-   * - Annular (shell)
-     - ``AnnularIF``
-     - ``Annular``
-     - `class <doxygen/html/classEBGeometry_1_1AnnularIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#ac373d3e0b9907711909806b81be6f470>`__
-   * - Blur
-     - ``BlurIF``
-     - ``Blur``
-     - `class <doxygen/html/classEBGeometry_1_1BlurIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#a950895e40eb371d83a71208cdeb78656>`__
-   * - Mollification
-     - ``MollifyIF``
-     - ``Mollify``
-     - `class <doxygen/html/classEBGeometry_1_1MollifyIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#adbce6c11cdd79925132a445ba3c3012e>`__
-   * - Elongation
-     - ``ElongateIF``
-     - ``Elongate``
-     - `class <doxygen/html/classEBGeometry_1_1ElongateIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#abce875ee58575ba10c2605ab54c795ff>`__
+   * - Function
+     - Value of the result at :math:`\mathbf{x}`
+   * - ``Translate(a, t)``
+     - :math:`a(\mathbf{x} - \mathbf{t})`
+   * - ``Rotate(a, degrees, axis)``
+     - :math:`a(R^{-1}\mathbf{x})`, about a coordinate axis (0, 1, 2) or about any axis direction
+   * - ``Scale(a, s)``
+     - :math:`|s|\,a(\mathbf{x}/s)`, uniform; a negative factor also reflects through the origin
+   * - ``Reflect(a, axis)``
+     - :math:`a` at :math:`\mathbf{x}` with one coordinate negated
+   * - ``Complement(a)``
+     - :math:`-a(\mathbf{x})`
+   * - ``Offset(a, r)``
+     - :math:`a(\mathbf{x}) - r`: grows the object by :math:`r`, or shrinks it if :math:`r < 0`
+   * - ``Annular(a, delta)``
+     - :math:`|a(\mathbf{x})| - \delta`: a shell of thickness :math:`2\delta` around the surface
+   * - ``Elongate(a, h)``
+     - :math:`a(\mathbf{x} - \mathrm{clamp}(\mathbf{x}, -\mathbf{h}, \mathbf{h}))`: inserts a box of
+       half-lengths :math:`\mathbf{h}` at the origin
+   * - ``Blur(a, d, alpha)``
+     - A weighted average of :math:`a` at the 27 points :math:`\mathbf{x} + d(i, j, k)`,
+       :math:`i, j, k \in \{-1, 0, 1\}`, with weights :math:`\alpha^{3-m}((1-\alpha)/2)^m` for a
+       point :math:`m` steps from the centre (``alpha = 1`` is no blur)
+   * - ``Mollify(a, r, n)``
+     - :math:`\sum_k w_k\,a(\mathbf{x} - \mathbf{o}_k)` over an :math:`n^3` grid of offsets spanning
+       :math:`[-r, r]^3`, with the weights of a smooth bump kernel, normalized to sum to one
+   * - ``FiniteRepetition(a, c, lo, hi)``
+     - :math:`a` at :math:`\mathbf{x}` folded into its tile: :math:`x_i - c_i\,\mathrm{round}(\mathrm{clamp}(x_i/c_i, -lo_i, hi_i))`
+   * - ``Union(a, b)``, ``Union(list)``
+     - :math:`\min_i a_i(\mathbf{x})`
+   * - ``Intersection(a, b)``, ``Intersection(list)``
+     - :math:`\max_i a_i(\mathbf{x})`
+   * - ``Difference(a, b)``, ``Difference(a, list)``
+     - :math:`\max(a, -\min_i b_i)`
+   * - ``SmoothUnion``, ``SmoothIntersection``, ``SmoothDifference``
+     - A smooth minimum or maximum of the two extreme values, with smoothing length :math:`s` and a
+       ``BlendKind`` (``Polynomial`` or ``Exponential``); a smooth difference is the smooth
+       intersection of :math:`a` with the complement of each :math:`b_i`
+
+The n-ary smooth operations blend only the two extreme values, which differs from folding a binary
+smooth minimum over the list. ``Polynomial`` uses ``SmoothMinOp``/``SmoothMaxOp`` and
+``Exponential`` uses ``ExpMinOp``/``ExpMaxOp``, the blend operators in
+`EBGeometry_Blend.hpp <doxygen/html/EBGeometry__Blend_8hpp.html>`__: small, trivially copyable
+function objects, callable on a GPU, with ready-made instances ``SmoothMin<T>``, ``SmoothMax<T>``,
+``ExpMin<T>`` and ``ExpMax<T>``. ``ExpMin`` and ``ExpMax`` are evaluated in a form that cannot
+overflow however far the inputs are from zero.
+
+Each ``Expr`` knows a box that encloses its object (``computeBoundingVolume()``) and its distance
+quality (``getDistanceQuality()``), worked out from its operands' when it is made:
+
+* **Boxes.** A point map sends the operand's box through its inverse (exactly for translations,
+  scalings, reflections and quarter turns; through the eight corners for other rotations). Offset,
+  Annular, Elongate, Blur (by :math:`\sqrt{3}d`) and Mollify (by :math:`\sqrt{3}r`) grow it; a
+  repetition sweeps it over the tiles; a union merges the boxes (a smooth union grows the result by
+  :math:`s/4`, or :math:`s\ln 2` for the exponential blend), an intersection intersects them, and a
+  difference keeps the first operand's. A complement covers all of space.
+* **Distance quality.** Point maps and Complement keep the operand's quality, as do Annular and a
+  growing Offset; a shrinking Offset, Elongate, Blur, Mollify and every union, intersection and
+  difference give at best ``Bound``. A repetition is ``Bound`` only if the operand fits inside its
+  own tile, and ``NotADistance`` otherwise. Anything containing a ``NotADistance`` operand is
+  ``NotADistance``.
 
 .. warning::
 
-   Not every transformation preserves the signed distance property. Rotation, translation, and
-   the complement always do; scaling does provided the value is rescaled alongside the query
-   point (which ``ScaleIF`` does); offset, annular, blur, mollification, and elongation generally
-   do not produce an exact signed distance even when the input is one.
+   Not every operation preserves the signed distance property; ``getDistanceQuality()`` says what is
+   left of it. Rotation, translation, reflection, scaling and the complement keep an exact distance
+   exact; the other operations generally do not produce an exact signed distance even when their
+   input is one.
 
-Every wrapper class and free function above is declared in
-:file:`Source/EBGeometry_Transform.hpp`; see the Doxygen page for the file itself,
-`EBGeometry_Transform.hpp <doxygen/html/EBGeometry__Transform_8hpp.html>`__, for the complete,
-single-page API listing.
+.. _Sec:Tape:
 
-CSG
-----
+The tape
+--------
 
-The Boolean combinators for combining multiple implicit functions into one -- union,
-intersection, difference, and their smooth-blended variants -- are described conceptually in
-:ref:`Chap:ConstructiveSolidGeometry`. EBGeometry implements each with the same wrapper-class
-pattern as the transformations above: a class stores the combined implicit functions and
-implements ``value()`` as the appropriate combination over them, with a matching free function
-returning it as a ``shared_ptr<ImplicitFunction<T>>``. All of the following are declared in
-:file:`Source/EBGeometry_CSG.hpp`:
+A `Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ compiles an ``Expr`` into a ``Pool`` and
+evaluates it:
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 20 20 40
+.. code-block:: c++
 
-   * - Combinator
-     - Wrapper class
-     - Free function
-     - Doxygen
-   * - Union
-     - ``UnionIF``
-     - ``Union``
-     - `class <doxygen/html/classEBGeometry_1_1UnionIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#a463dfaffacab670e9683a134a9ba9eb0>`__
-   * - Smooth union
-     - ``SmoothUnionIF``
-     - ``SmoothUnion``
-     - `class <doxygen/html/classEBGeometry_1_1SmoothUnionIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#ae4e6d40d6390b0943d7268c559716927>`__
-   * - Intersection
-     - ``IntersectionIF``
-     - ``Intersection``
-     - `class <doxygen/html/classEBGeometry_1_1IntersectionIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#adc49cd0dbae6acda769be1b7597ac9a8>`__
-   * - Smooth intersection
-     - ``SmoothIntersectionIF``
-     - ``SmoothIntersection``
-     - `class <doxygen/html/classEBGeometry_1_1SmoothIntersectionIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#ac254cf222340955631cee59cfbadf5e5>`__
-   * - Difference
-     - ``DifferenceIF``
-     - ``Difference``
-     - `class <doxygen/html/classEBGeometry_1_1DifferenceIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#a34b51394d513d569ae3f1372a3475f17>`__
-   * - Smooth difference
-     - ``SmoothDifferenceIF``
-     - ``SmoothDifference``
-     - `class <doxygen/html/classEBGeometry_1_1SmoothDifferenceIF.html>`__ /
-       `function <doxygen/html/namespaceEBGeometry.html#ab81c36234354c386be1d9d9a0f618ec9>`__
+   Pool          pool(hostMemoryResource());
+   const Tape<T> tape(pool, shape);           // shape is an Expr<T>, or any shape
+   const T       d = tape.signedDistance(p);
 
-``Union``, ``SmoothUnion``, ``Intersection``, and ``SmoothIntersection`` each have two overloads
-in the Doxygen listing above -- one taking a ``std::vector`` of any number of implicit functions,
-and one taking exactly two -- both constructing the same underlying wrapper class.
+It stores its primitives in one pool array per primitive type and its operations as a list of
+clauses that refer to them by type and index, so evaluating it calls no virtual function and follows
+no pointer. A clause list runs on a small stack of values and a stack of points: a point map pushes
+the transformed point before its operand is evaluated, and a value operation combines the values its
+operands leave. A chain of ``Translate``, ``Rotate``, ``Reflect`` and ``Scale`` is folded into one
+affine map (`Affine3T <doxygen/html/structEBGeometry_1_1Affine3T.html>`__) when the ``Expr`` is
+built.
 
-The "smooth" combinators blend the transition between objects instead of leaving a sharp crease,
-using a caller-replaceable blending functor rather than a plain ``min``/``max``. Four are provided
-in :file:`Source/EBGeometry_Blend.hpp`, each a small, trivially copyable function object that can
-also be called on a GPU -- ``SmoothMinOp<T>``, ``SmoothMaxOp<T>``, ``ExpMinOp<T>`` and
-``ExpMaxOp<T>`` -- together with ready-made instances of them, ``SmoothMin<T>``, ``SmoothMax<T>``,
-``ExpMin<T>`` and ``ExpMax<T>``, called as
-``SmoothMin<T>(a, b, s)``. ``SmoothMin`` is a cheap polynomial smooth-minimum and the default for
-``SmoothUnion``; ``SmoothMax`` is its symmetric counterpart and the default for both
-``SmoothIntersection`` and ``SmoothDifference`` (difference is implemented internally as the
-intersection of ``A`` with the complement of ``B``, which is why it defaults to the same operator
-as intersection rather than to ``SmoothMin``); ``ExpMin`` and ``ExpMax`` are more expensive
-exponential alternatives, evaluated in a form that cannot overflow however far the inputs are from
-zero. The smooth combinators take the operator as a
-``std::function<T(const T&, const T&, const T&)>``, to which any of the four -- or a
-user-supplied functor of the same signature -- converts.
+* **Primitive types.** The twelve analytic shapes and the three mesh distance fields
+  (``FlatMeshSDF``, and ``MeshSDF`` and ``TriMeshSDF`` with the default branching factor and SIMD
+  width) are built in. Any other shape type -- a BVH union, a mesh distance field with another
+  branching factor, another tape, or a type of your own -- is listed after ``T``:
+  ``Tape<T, BVHUnion<T, SphereSDF<T>, 4>, MyShape>``. The constructor rejects a shape whose type is
+  not listed, and a pool-resident shape that lives in another pool.
+* **Unions of many objects.** A union or smooth union of at least
+  ``TapeOptions::m_bvhUnionThreshold`` operands (8 by default) is evaluated with a BVH over the
+  operands' boxes, exactly as ``BVHUnion`` and ``BVHSmoothUnion`` evaluate their primitives
+  (:ref:`Sec:BVHUnions`), including keeping operands with unbounded boxes out of the tree. The
+  operands can be of any type and composed in any way, such as several translations of one mesh. With
+  ``Exact`` operands the value is the same as an operand-by-operand minimum. A ``Bound`` operand (a
+  blur, an elongation, a shrinking offset) can have a value below its box's distance, so the BVH may
+  skip an operand whose value would have been smaller: the result can then be larger than the plain
+  minimum, but it keeps the sign and is still a bound on the distance. A union with an operand that is
+  ``NotADistance`` cannot be pruned and is evaluated operand by operand.
+  `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ also chooses the BVH
+  construction method.
+* **Sub-programs and limits.** Blur, Mollify and the operands of a BVH union are compiled into
+  sub-programs that their clause evaluates several times. The evaluator has no recursion: a call
+  depth is a template parameter, so calls nest at most ``Tape::MaxCallDepth`` (4) deep, and a
+  sub-program holds at most ``ValueStackSize`` values and ``PointStackSize`` points at once. The
+  constructor rejects an expression that needs more, with a message saying which limit it reached.
+* **Metadata.** ``computeBoundingVolume()`` and ``getDistanceQuality()`` return the expression's
+  box and quality. The quality is a runtime value, so a tape used as another object's primitive
+  counts as ``Bound`` there. ``getNumPrograms()``, ``getNumClauses()``, ``getNumBVHUnions()`` and
+  ``getCallDepth()`` describe what was compiled.
+* **A pool handle.** A tape is trivially copyable and holds offsets into its pool and one location
+  (see :ref:`Chap:MemoryModel`): ``rebasedView(mirror)`` evaluates it against a mirror of its pool,
+  and ``deepCopy(pool)`` copies it, with every pool-resident primitive and BVH it holds, into another
+  pool. The pool must outlive the tape and every copy and view of it. The evaluator keeps to the
+  subset of C++ that device code allows; evaluating a tape inside a GPU kernel, and testing it there,
+  is the next step of the tape's development.
 
-``FiniteRepetitionIF``/``FiniteRepetition`` tiles a single base implicit function
-periodically over a finite number of repetitions per axis, by mapping the query point into the
-nearest tile before evaluating the wrapped function -- effectively a cheap way to instance the
-same shape many times without constructing a separate ``ImplicitFunction<T>`` (or a CSG union) per
-copy. The repetition counts are whole numbers of tiles, rounded if fractional. The result is a
-distance bound only if the base shape fits inside its own cell (half a period either side of the
-origin on each axis); a shape reaching into a neighbouring cell is cut off where the cells meet.
-See its Doxygen entries for
-`FiniteRepetitionIF <doxygen/html/classEBGeometry_1_1FiniteRepetitionIF.html>`__ and
-`FiniteRepetition <doxygen/html/namespaceEBGeometry.html#a46761e494f4b02faadb31fce9ebb8d80>`__.
+The :ref:`Chap:ExampleCSGUnion` example unions several placements of one mesh with spheres through a
+tape, and checks it against a scan over the objects.
 
 .. _Sec:BVHUnions:
 
@@ -340,17 +267,16 @@ accelerate this by placing the objects' bounding boxes in a ``PackedBVH`` and re
 closest-object query to an :math:`\mathcal{O}(\log N)` tree traversal instead of a linear scan --
 see :ref:`Chap:ImplemBVH` for how the BVH itself is built and traversed; this section only concerns
 how the unions use it. ``BVHSmoothUnion`` blends the two nearest objects with a smooth-minimum
-functor, ``SmoothMinOp<T>`` by default.
-
-Unlike the combinators above, the BVH unions are not ``ImplicitFunction<T>`` objects. Each is a
-plain, trivially copyable value type, in the same way as the analytic shapes and the mesh distance
-fields, whose ``signedDistance()`` can be called on the host or inside a GPU kernel:
+functor, ``SmoothMinOp<T>`` by default. A tape evaluates a union of many operands the same way
+(:ref:`Sec:Tape`); the classes here are for many primitives of one type, without compiling an
+expression. Each is a plain, trivially copyable value type, in the same way as the analytic shapes
+and the mesh distance fields, whose ``signedDistance()`` can be called on the host or inside a GPU
+kernel:
 
 * **One primitive type per union.** ``BVHUnion<T, P, K>`` holds its primitives by value in the
   ``PackedBVH``, so every primitive has the same type ``P``: an analytic shape, a mesh distance
-  field, or another BVH union. No runtime dispatch is needed to evaluate them. A union of objects
-  of *different* types needs exactly that dispatch, and returns with the redesign of the CSG layer
-  that replaces virtual dispatch with a linear-SSA tape.
+  field, or another BVH union. No runtime dispatch is needed to evaluate them. For a union of objects
+  of *different* types, compose them with ``Union`` and compile the result into a tape.
 * **Bounding boxes that enclose their primitives.** The traversal skips a primitive whose bounding
   box is further away than the best value found so far. If every box encloses its primitive's
   object (where the primitive's value is not positive), a skipped primitive is positive at the query
@@ -400,9 +326,10 @@ of mesh distance fields.
      - ``BVHSmoothUnion``
      - `class <doxygen/html/classEBGeometry_1_1BVHSmoothUnion.html>`__
 
-For a single-page API listing, see the Doxygen pages for the three headers this page covers:
-`EBGeometry_CSG.hpp <doxygen/html/EBGeometry__CSG_8hpp.html>`__ (the ``shared_ptr`` combinators),
+For a single-page API listing, see the Doxygen pages for the headers this page covers:
+`EBGeometry_Expr.hpp <doxygen/html/EBGeometry__Expr_8hpp.html>`__ (the expression builder),
+`EBGeometry_Tape.hpp <doxygen/html/EBGeometry__Tape_8hpp.html>`__ (the tape),
+`EBGeometry_Affine.hpp <doxygen/html/EBGeometry__Affine_8hpp.html>`__ (the affine maps),
 `EBGeometry_Blend.hpp <doxygen/html/EBGeometry__Blend_8hpp.html>`__ (the blend operators) and
-`EBGeometry_BVHUnion.hpp <doxygen/html/EBGeometry__BVHUnion_8hpp.html>`__ (the BVH unions). The
-blend operators and the BVH unions do not depend on the ``shared_ptr`` layer, so device code can
-include their headers without it; ``EBGeometry_CSG.hpp`` includes both.
+`EBGeometry_BVHUnion.hpp <doxygen/html/EBGeometry__BVHUnion_8hpp.html>`__ (the BVH unions).
+`EBGeometry_CSG.hpp <doxygen/html/EBGeometry__CSG_8hpp.html>`__ includes all of them.

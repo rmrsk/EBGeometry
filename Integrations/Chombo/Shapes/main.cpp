@@ -2,14 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// PARKED: a tape acceptance test. This file does not compile against the current API, and nothing
-// builds it.
-//
-// It wraps the analytic shapes in shared_ptr<ImplicitFunction<T>> and composes them with the virtual
-// transforms (Offset, Annular, Complement). The shapes are now plain value types without that base
-// class, and composing them returns with the tape: the value-type expression builder that replaces the
-// virtual layer (AUDIT.md decisions D4, D5 and D13).
-// When the tape lands, this integration is ported to it and must produce the same geometries.
+// This integration composes the analytic shapes, and a few transforms (Offset, Annular, Complement),
+// with EBGeometry's expression builder, compiles the result into a Tape, and hands it to Chombo's
+// GeometryShop as an implicit function.
 
 // Chombo includes
 #include "BRMeshRefine.H"
@@ -26,25 +21,23 @@
 // Our includes
 #include "EBGeometry.hpp"
 
-using T       = Real;
-using ImpFunc = EBGeometry::ImplicitFunction<T>;
-using Vec3    = EBGeometry::Vec3T<T>;
+#include <optional>
 
-// Binding for exposing EBGeometry's signed distance functions to Chombo
+using T    = Real;
+using Vec3 = EBGeometry::Vec3T<T>;
+
+// Binding for exposing a compiled EBGeometry object to Chombo. The tape is a trivially copyable handle
+// into the Pool it was compiled into, which must outlive this object and every copy of it.
 class EBGeometryIF : public BaseIF
 {
 public:
   EBGeometryIF() = delete;
 
-  EBGeometryIF(std::shared_ptr<ImpFunc>& a_implicitFunction)
-  {
-    m_implicitFunction = a_implicitFunction;
-  }
+  explicit EBGeometryIF(const EBGeometry::Tape<T>& a_tape) : m_tape(a_tape)
+  {}
 
-  EBGeometryIF(const EBGeometryIF& a_other)
-  {
-    m_implicitFunction = a_other.m_implicitFunction;
-  }
+  EBGeometryIF(const EBGeometryIF& a_other) : m_tape(a_other.m_tape)
+  {}
 
   Real
   value(const RealVect& a_point) const override final
@@ -56,7 +49,7 @@ public:
 
 #endif
 
-    return Real(m_implicitFunction->value(p));
+    return Real(m_tape.signedDistance(p));
   }
 
   BaseIF*
@@ -66,7 +59,7 @@ public:
   }
 
 protected:
-  std::shared_ptr<ImpFunc> m_implicitFunction;
+  EBGeometry::Tape<T> m_tape;
 };
 
 int
@@ -93,83 +86,91 @@ main(int argc, char* argv[])
   RealVect loCorner;
   RealVect hiCorner;
 
-  std::shared_ptr<ImpFunc> impFunc = nullptr;
+  std::optional<EBGeometry::Expr<T>> impFunc;
   if (whichGeom == 0) { // Sphere at origin.
     loCorner = -RealVect::Unit;
     hiCorner = RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
+    impFunc = EBGeometry::SphereSDF<T>(Vec3::zeros(), T(0.5));
   }
   else if (whichGeom == 1) { // Plane.
     loCorner = -RealVect::Unit;
     hiCorner = RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zero(), Vec3::one());
+    impFunc = EBGeometry::PlaneSDF<T>(Vec3::zeros(), Vec3::ones());
   }
   else if (whichGeom == 2) { // Infinite cylinder.
     loCorner = -RealVect::Unit;
     hiCorner = RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zero(), T(0.1), 2);
+    impFunc = EBGeometry::InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.1), 2);
   }
   else if (whichGeom == 3) { // Finite cylinder.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::one(), Vec3::one(), 0.25);
+    impFunc = EBGeometry::CylinderSDF<T>(-Vec3::ones(), Vec3::ones(), 0.25);
   }
   else if (whichGeom == 4) { // Capsule.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::one(), Vec3::one(), 0.25);
+    impFunc = EBGeometry::CapsuleSDF<T>(-Vec3::ones(), Vec3::ones(), 0.25);
   }
   else if (whichGeom == 5) { // Box.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one());
+    impFunc = EBGeometry::BoxSDF<T>(-Vec3::ones(), Vec3::ones());
   }
   else if (whichGeom == 6) { // Rounded box.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one());
-    impFunc = EBGeometry::Offset(impFunc, 0.25);
+    impFunc = EBGeometry::BoxSDF<T>(-Vec3::ones(), Vec3::ones());
+    impFunc = EBGeometry::Offset(*impFunc, 0.25);
   }
   else if (whichGeom == 7) { // Torus.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25);
+    impFunc = EBGeometry::TorusSDF<T>(Vec3::zeros(), 1.0, 0.25);
   }
   else if (whichGeom == 8) { // Infinite cone.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 1.0, 0.0), 30.0);
+    impFunc = EBGeometry::InfiniteConeSDF<T>(Vec3(0.0, 1.0, 0.0), 30.0);
   }
   else if (whichGeom == 9) { // Finite cone.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 1.0, 0.0), 2.0, 30);
+    impFunc = EBGeometry::ConeSDF<T>(Vec3(0.0, 1.0, 0.0), 2.0, 30);
   }
   if (whichGeom == 10) { // Spherical shell.
     loCorner = -RealVect::Unit;
     hiCorner = RealVect::Unit;
 
-    impFunc = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
-    impFunc = EBGeometry::Annular(impFunc, 0.1);
+    impFunc = EBGeometry::SphereSDF<T>(Vec3::zeros(), T(0.5));
+    impFunc = EBGeometry::Annular(*impFunc, 0.1);
   }
 
-  impFunc = EBGeometry::Complement(impFunc);
+  if (!impFunc) {
+    MayDay::Error("which_geom must be between 0 and 10");
+  }
+
+  impFunc = EBGeometry::Complement(*impFunc);
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
   const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
 
-  auto          baseIF = (BaseIF*)(new EBGeometryIF(impFunc));
+  // The tape is compiled into this Pool, which must outlive the EB generation below.
+  EBGeometry::Pool          pool(EBGeometry::hostMemoryResource());
+  const EBGeometry::Tape<T> tape(pool, *impFunc);
+
+  auto          baseIF = (BaseIF*)(new EBGeometryIF(tape));
   GeometryShop  workshop(*baseIF, -1, dx * RealVect::Zero);
   EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
   ebisPtr->define(domain, loCorner, dx, workshop, gridSize, -1);

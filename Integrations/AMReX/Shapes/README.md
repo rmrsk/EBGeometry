@@ -1,16 +1,10 @@
 Integrations/AMReX/Shapes
 -------------------------
 
-> [!IMPORTANT]
-> **Parked until the tape.** This example does not compile against the current EBGeometry API. It
-> composes the analytic shapes through the virtual transform and CSG layer (`Offset`, `Elongate`,
-> `Annular`, `SmoothDifference`, `Complement`), which the shapes no longer derive from now that they are
-> plain value types. Composing them returns with the tape, EBGeometry's value-type expression builder;
-> this example is kept as one of its acceptance tests and will be ported to it. The other AMReX
-> integrations compile against the current API.
-
-This example uses the embedded boundary grid generation from AMReX, using analytic SDFs from EBGeometry. 
-To compile this application, first install AMReX somewhere and point the AMREX_HOME environment variable to it.
+This example uses the embedded boundary grid generation from AMReX, using analytic SDFs from EBGeometry. Some
+geometries are transformed or combined (`Offset`, `Elongate`, `Annular`, `SmoothDifference`, `Complement`) with
+EBGeometry's expression builder, and the result is compiled into a `Tape`, which the AMReX implicit function holds by
+value. The tape is evaluated on the CPU; it runs on a GPU once the tape has a device evaluator.
 
 Compiling
 ---------

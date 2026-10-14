@@ -16,8 +16,9 @@ The outer union stores the `TriMeshSDF`s by value, in the same `Pool` as their i
 itself a plain value type, so the whole two-level hierarchy can be mirrored to a GPU in one piece
 and evaluated there. A union holds primitives of a single C++ type, so every placement is a
 `TriMeshSDF` with the same parameters; placing different meshes works the same way. Each placement
-has its own copy of the triangles: sharing one mesh between translated placements is a composition
-(a translation applied to a shared mesh) that returns with the tape.
+has its own copy of the triangles. To share one mesh between translated placements instead, compose
+`Translate(mesh, shift)` with the expression builder and compile the union into a `Tape`, as the
+`CSGUnion` example does.
 
 By default the example uses the small `dodecahedron.stl` fixture shipped in the repository
 (`Tests/data/`), so it needs no submodule. Pass a different triangle mesh (STL/PLY/VTK/OBJ) on the

@@ -363,10 +363,23 @@ does not follow this template, edit the PR body to conform to it.
 - **Header layout.** `EBGeometry_PackedBVH.hpp` is the only BVH header device code needs;
   `EBGeometry_TreeBVH.hpp` (`TreeBVH`, partitioners, `pack()`) and `EBGeometry_BVHBuild.hpp`
   (`PackedBVH`'s builder constructors) are host-only and include each other. The blend operators and
-  BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp` (no `ImplicitFunction`), the
-  `shared_ptr` CSG layer in `EBGeometry_CSG.hpp`, and `operator<<` for `Vec3T`/`AABBT` in
+  BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp`, the host-only expression builder
+  (`Expr`, `Union`, `Translate`, ...) in `EBGeometry_Expr.hpp`, the `Tape` that compiles and evaluates
+  an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`),
+  `EBGeometry_CSG.hpp` including all of them, and `operator<<` for `Vec3T`/`AABBT` in
   `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
   include the split headers, so older includes keep working.
+- **Composition goes through the tape, and its evaluator must stay device-safe.** There is no
+  `ImplicitFunction` or virtual CSG layer: shapes (`isShape<S>`: trivially copyable, with
+  `signedDistance()` and `computeBoundingVolume()`) are composed into an `Expr` and compiled into a
+  `Tape<T, UserPrimitives...>`, which stores one pool array per primitive type and dispatches on a
+  type index. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
+  another tape, a user type) must be listed in `UserPrimitives`. The evaluator has no recursion: a
+  sub-program call (Blur, Mollify, BVH union operands) goes through the `evaluate<D>` call-depth
+  template, bounded by `Tape::MaxCallDepth`, and the value/point stacks are fixed arrays; keep it
+  that way (no recursion, function pointers or virtual calls), since the device evaluator builds on
+  it. A new operation needs an `ExprDetail::Kind`, its box and distance-quality rule in the builder,
+  clauses in `TapeDetail::Op` and a case in `Tape::evaluate`.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s
   `binaryDir`) specifically so switching presets can't silently reuse a stale `CMakeCache.txt` from
   a different configuration.

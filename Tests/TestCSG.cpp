@@ -1,21 +1,24 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Test suite for EBGeometry_CSG.hpp: the sharp and smoothly-blended CSG combinators (union,
-// intersection, difference), their BVH-accelerated counterparts, finite periodic repetition, and
-// the SmoothMin/SmoothMax/ExpMin blending primitives they're built on. Uses analytic spheres as
-// fixtures so every expected value is hand-computable.
+// Test suite for the CSG combinators: the SmoothMin/SmoothMax/ExpMin/ExpMax blending primitives; the
+// sharp and smoothly-blended union, intersection and difference and finite periodic repetition, built
+// as an Expr (EBGeometry_Expr.hpp) and evaluated through a compiled Tape (EBGeometry_Tape.hpp),
+// including the Tape's BVH evaluation of unions of many objects and the bounding volumes and distance
+// qualities the Expr works out; and the value-type BVHUnion/BVHSmoothUnion classes
+// (EBGeometry_BVHUnion.hpp). Uses analytic spheres as fixtures so every expected value is
+// hand-computable.
 
 #include "EBGeometry.hpp"
 #include "TestConstructions.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
-#include "TestShapeIF.hpp"
+#include "TestTapeUtils.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
-#include <memory>
 #include <optional>
 #include <random>
 #include <string>
@@ -30,10 +33,10 @@ using namespace EBGeometry;
 namespace {
 
 template <class T>
-using Sphere = TestUtils::SphereIF<T>;
+using Sphere = SphereSDF<T>;
 
 template <class T>
-using IF = ImplicitFunction<T>;
+using Compiled = TestUtils::Compiled<T>;
 
 template <class T>
 using BV = BoundingVolumes::AABBT<T>;
@@ -49,33 +52,41 @@ sphereBV(const Vec3T<T>& a_center, const T a_radius)
 // there's a gap of 1 between them. Every sharp-CSG expected value below is hand-computable from
 // these two spheres' own signedDistance().
 template <class T>
-std::shared_ptr<Sphere<T>>
+Sphere<T>
 sphereA()
 {
-  return std::make_shared<Sphere<T>>(Vec3T<T>::zeros(), T(1));
+  return Sphere<T>(Vec3T<T>::zeros(), T(1));
 }
 
 template <class T>
-std::shared_ptr<Sphere<T>>
+Sphere<T>
 sphereB()
 {
-  return std::make_shared<Sphere<T>>(Vec3T<T>(3, 0, 0), T(1));
+  return Sphere<T>(Vec3T<T>(3, 0, 0), T(1));
 }
 
 // Two substantially overlapping spheres, used where a non-trivial (both-negative) intersection
 // region is needed.
 template <class T>
-std::shared_ptr<Sphere<T>>
+Sphere<T>
 sphereC()
 {
-  return std::make_shared<Sphere<T>>(Vec3T<T>::zeros(), T(2));
+  return Sphere<T>(Vec3T<T>::zeros(), T(2));
 }
 
 template <class T>
-std::shared_ptr<Sphere<T>>
+Sphere<T>
 sphereD()
 {
-  return std::make_shared<Sphere<T>>(Vec3T<T>(1, 0, 0), T(2));
+  return Sphere<T>(Vec3T<T>(1, 0, 0), T(2));
+}
+
+// A small sphere carved out of A, and a third operand for the n-ary overloads.
+template <class T>
+Sphere<T>
+sphereE()
+{
+  return Sphere<T>(Vec3T<T>(0.5, 0, 0), T(0.3));
 }
 
 // Evenly-spaced sweep of `a_count` values in [a_lo, a_hi], inclusive of both endpoints. Used
@@ -87,14 +98,38 @@ sweepValues(const T a_lo, const T a_hi, const int a_count)
 {
   std::vector<T> values;
   values.reserve(static_cast<size_t>(a_count) + 1);
+
   for (int i = 0; i <= a_count; i++) {
     values.push_back(a_lo + (a_hi - a_lo) * T(i) / T(a_count));
   }
+
   return values;
 }
 
-// Two independent code paths computing literally the same closed-form expression (a free
-// function vs. its *IF class, a pairwise vs. vector-of-functions constructor, ...) should agree
+// Blend the two smallest of a list of values (or the two largest, for a smooth maximum), the way an
+// n-ary smooth union (intersection) does.
+template <class T, class Blend>
+T
+blendTwoSmallest(std::vector<T> a_values, const T a_smoothLen, Blend a_blend)
+{
+  std::sort(a_values.begin(), a_values.end());
+
+  return a_blend(a_values[0], a_values[1], a_smoothLen);
+}
+
+template <class T, class Blend>
+T
+blendTwoLargest(std::vector<T> a_values, const T a_smoothLen, Blend a_blend)
+{
+  std::sort(a_values.begin(), a_values.end());
+
+  const size_t n = a_values.size();
+
+  return a_blend(a_values[n - 2], a_values[n - 1], a_smoothLen);
+}
+
+// Two independent code paths computing literally the same closed-form expression (a tape vs. the
+// formula computed by hand from the shapes, a pairwise vs. a vector overload, ...) should agree
 // up to floating-point reordering only -- no genuine approximation involved.
 template <class T>
 double
@@ -244,10 +279,10 @@ TEMPLATE_TEST_CASE("ExpMin: never exceeds the sharp minimum", "[CSG][ExpMin]", E
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// UnionIF / Union()
+// Union()
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("UnionIF: value is the pointwise minimum of two disjoint spheres",
+TEMPLATE_TEST_CASE("Union: value is the pointwise minimum of two disjoint spheres",
                    "[CSG][Union]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -257,23 +292,22 @@ TEMPLATE_TEST_CASE("UnionIF: value is the pointwise minimum of two disjoint sphe
   const auto a = sphereA<T>();
   const auto b = sphereB<T>();
 
-  const UnionIF<T> u({a, b});
+  const Compiled<T> u(Union(a, b));
 
   const Vec3 center = Vec3::zeros();
   const Vec3 far(10, 10, 10);
 
-  REQUIRE_THAT(u.value(center),
-               withinAbsT(std::min(a->signedDistance(center), b->signedDistance(center)), exactMargin<T>()));
-  REQUIRE_THAT(u.value(far), withinAbsT(std::min(a->signedDistance(far), b->signedDistance(far)), exactMargin<T>()));
+  REQUIRE_THAT(u(center), withinAbsT(std::min(a.signedDistance(center), b.signedDistance(center)), exactMargin<T>()));
+  REQUIRE_THAT(u(far), withinAbsT(std::min(a.signedDistance(far), b.signedDistance(far)), exactMargin<T>()));
 
   // A point strictly inside A only.
-  REQUIRE(u.value(center) < T(0.0));
+  REQUIRE(u(center) < T(0.0));
 
   // The gap between the two spheres (x = 1.5) is outside both.
-  REQUIRE(u.value(Vec3(1.5, 0, 0)) > T(0.0));
+  REQUIRE(u(Vec3(1.5, 0, 0)) > T(0.0));
 }
 
-TEMPLATE_TEST_CASE("Union: two-argument free function matches the vector overload and UnionIF directly",
+TEMPLATE_TEST_CASE("Union: the pairwise and vector overloads agree with the hand-computed minimum",
                    "[CSG][Union]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -282,22 +316,29 @@ TEMPLATE_TEST_CASE("Union: two-argument free function matches the vector overloa
 
   const auto a = sphereA<T>();
   const auto b = sphereB<T>();
+  const auto e = sphereE<T>();
 
-  const auto       twoArg    = Union<T>(a, b);
-  const auto       vectorArg = Union<T, Sphere<T>>(std::vector<std::shared_ptr<Sphere<T>>>{a, b});
-  const UnionIF<T> direct({a, b});
+  const Compiled<T> pairwise(Union(a, b));
+  const Compiled<T> vectorArg(Union(std::vector<Sphere<T>>{a, b}));
+  const Compiled<T> three(Union(std::vector<Sphere<T>>{a, b, e}));
+  const Compiled<T> nested(Union(Union(a, b), e));
 
-  for (const Vec3 p : {Vec3::zeros(), Vec3(3, 0, 0), Vec3(1.5, 0, 0), Vec3(-10, 4, 2)}) {
-    REQUIRE_THAT(twoArg->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
-    REQUIRE_THAT(vectorArg->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
+  for (const Vec3 p : {Vec3::zeros(), Vec3(3, 0, 0), Vec3(1.5, 0, 0), Vec3(0.6, 0.1, 0), Vec3(-10, 4, 2)}) {
+    const T minAB  = std::min(a.signedDistance(p), b.signedDistance(p));
+    const T minABE = std::min(minAB, e.signedDistance(p));
+
+    REQUIRE_THAT(pairwise(p), withinAbsT(minAB, exactMargin<T>()));
+    REQUIRE_THAT(vectorArg(p), withinAbsT(pairwise(p), exactMargin<T>()));
+    REQUIRE_THAT(three(p), withinAbsT(minABE, exactMargin<T>()));
+    REQUIRE_THAT(nested(p), withinAbsT(three(p), exactMargin<T>()));
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SmoothUnionIF / SmoothUnion()
+// SmoothUnion()
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("SmoothUnionIF: converges to the sharp union far from the blend region",
+TEMPLATE_TEST_CASE("SmoothUnion: converges to the sharp union far from the blend region",
                    "[CSG][SmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -307,16 +348,16 @@ TEMPLATE_TEST_CASE("SmoothUnionIF: converges to the sharp union far from the ble
   const auto a = sphereA<T>();
   const auto b = sphereB<T>();
 
-  const T                smoothLen = T(0.1);
-  const SmoothUnionIF<T> su({a, b}, smoothLen);
-  const UnionIF<T>       sharp({a, b});
+  const T           smoothLen = T(0.1);
+  const Compiled<T> su(SmoothUnion(a, b, smoothLen));
+  const Compiled<T> sharp(Union(a, b));
 
   // Deep inside A, far from B: |signedDistance(A) - signedDistance(B)| >> smoothLen.
   const Vec3 deepInA(0, 0, 0);
-  REQUIRE_THAT(su.value(deepInA), withinAbsT(sharp.value(deepInA), asymptoticMargin<T>()));
+  REQUIRE_THAT(su(deepInA), withinAbsT(sharp(deepInA), asymptoticMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("SmoothUnionIF: at least as deep (never shallower) than the sharp union everywhere",
+TEMPLATE_TEST_CASE("SmoothUnion: at least as deep (never shallower) than the sharp union everywhere",
                    "[CSG][SmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -326,16 +367,18 @@ TEMPLATE_TEST_CASE("SmoothUnionIF: at least as deep (never shallower) than the s
   const auto a = sphereA<T>();
   const auto b = sphereB<T>();
 
-  const SmoothUnionIF<T> su({a, b}, T(0.75));
-  const UnionIF<T>       sharp({a, b});
+  for (const BlendKind kind : {BlendKind::Polynomial, BlendKind::Exponential}) {
+    const Compiled<T> su(SmoothUnion(a, b, T(0.75), kind));
+    const Compiled<T> sharp(Union(a, b));
 
-  for (const T x : sweepValues<T>(T(-2.0), T(5.0), 28)) {
-    const Vec3 p(x, 0, 0);
-    REQUIRE(su.value(p) <= sharp.value(p) + T(exactMargin<T>()));
+    for (const T x : sweepValues<T>(T(-2.0), T(5.0), 28)) {
+      const Vec3 p(x, 0, 0);
+      REQUIRE(su(p) <= sharp(p) + T(exactMargin<T>()));
+    }
   }
 }
 
-TEMPLATE_TEST_CASE("SmoothUnion: free function matches SmoothUnionIF for both the pairwise and vector overloads",
+TEMPLATE_TEST_CASE("SmoothUnion: the pairwise and vector overloads agree with the hand-computed blend",
                    "[CSG][SmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -344,15 +387,50 @@ TEMPLATE_TEST_CASE("SmoothUnion: free function matches SmoothUnionIF for both th
 
   const auto a = sphereA<T>();
   const auto b = sphereB<T>();
+  const auto e = sphereE<T>();
 
-  const T    smoothLen = T(0.5);
-  const auto pairwise  = SmoothUnion<T>(a, b, smoothLen);
-  const auto vectorArg = SmoothUnion<T, Sphere<T>>(std::vector<std::shared_ptr<Sphere<T>>>{a, b}, smoothLen);
-  const SmoothUnionIF<T> direct({a, b}, smoothLen);
+  const T           smoothLen = T(0.5);
+  const Compiled<T> pairwise(SmoothUnion(a, b, smoothLen));
+  const Compiled<T> vectorArg(SmoothUnion(std::vector<Sphere<T>>{a, b}, smoothLen));
+  const Compiled<T> three(SmoothUnion(std::vector<Sphere<T>>{a, b, e}, smoothLen));
 
-  for (const Vec3 p : {Vec3::zeros(), Vec3(1.5, 0, 0), Vec3(3, 0, 0)}) {
-    REQUIRE_THAT(pairwise->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
-    REQUIRE_THAT(vectorArg->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
+  for (const Vec3 p : {Vec3::zeros(), Vec3(1.5, 0, 0), Vec3(3, 0, 0), Vec3(0.6, 0.1, 0), Vec3(1, 0.5, 0)}) {
+    const T da = a.signedDistance(p);
+    const T db = b.signedDistance(p);
+    const T de = e.signedDistance(p);
+
+    REQUIRE_THAT(pairwise(p), withinAbsT(SmoothMinOp<T>{}(da, db, smoothLen), exactMargin<T>()));
+    REQUIRE_THAT(vectorArg(p), withinAbsT(pairwise(p), exactMargin<T>()));
+
+    // Only the two smallest values are blended.
+    REQUIRE_THAT(three(p),
+                 withinAbsT(blendTwoSmallest<T>({da, db, de}, smoothLen, SmoothMinOp<T>{}), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("SmoothUnion: BlendKind::Exponential blends the two smallest values with ExpMinOp",
+                   "[CSG][SmoothUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto a = sphereA<T>();
+  const auto b = sphereB<T>();
+  const auto e = sphereE<T>();
+
+  const T smoothLen = T(0.4);
+
+  const Compiled<T> pairwise(SmoothUnion(a, b, smoothLen, BlendKind::Exponential));
+  const Compiled<T> three(SmoothUnion(std::vector<Sphere<T>>{a, b, e}, smoothLen, BlendKind::Exponential));
+
+  for (const Vec3 p : {Vec3::zeros(), Vec3(1.5, 0, 0), Vec3(3, 0, 0), Vec3(0.6, 0.1, 0), Vec3(-4, 2, 1)}) {
+    const T da = a.signedDistance(p);
+    const T db = b.signedDistance(p);
+    const T de = e.signedDistance(p);
+
+    REQUIRE_THAT(pairwise(p), withinAbsT(ExpMinOp<T>{}(da, db, smoothLen), formulaMargin<T>()));
+    REQUIRE_THAT(three(p), withinAbsT(blendTwoSmallest<T>({da, db, de}, smoothLen, ExpMinOp<T>{}), formulaMargin<T>()));
   }
 }
 
@@ -389,22 +467,6 @@ sphereRow()
   return spheres;
 }
 
-// The same row as ImplicitFunction objects, for the virtual UnionIF/SmoothUnionIF references.
-template <class T>
-std::vector<std::shared_ptr<IF<T>>>
-sphereRowIF()
-{
-  std::vector<std::shared_ptr<IF<T>>> spheres;
-
-  spheres.reserve(NumRowSpheres);
-
-  for (int i = 0; i < NumRowSpheres; i++) {
-    spheres.push_back(std::make_shared<Sphere<T>>(rowCenter<T>(i), T(1)));
-  }
-
-  return spheres;
-}
-
 template <class T>
 std::vector<BV<T>>
 sphereRowBVs()
@@ -431,6 +493,20 @@ lineQueryPoints()
   }
 
   return pts;
+}
+
+// Brute-force sharp union: the smallest primitive value found by a full linear scan.
+template <class T, class Primitive>
+T
+bruteMin(const std::vector<Primitive>& a_primitives, const Vec3T<T>& a_point)
+{
+  T nearest = std::numeric_limits<T>::infinity();
+
+  for (const auto& primitive : a_primitives) {
+    nearest = std::min(nearest, primitive.signedDistance(a_point));
+  }
+
+  return nearest;
 }
 
 // Brute-force smooth union: blend the two smallest primitive values found by a full linear scan
@@ -536,7 +612,7 @@ TEMPLATE_TEST_CASE("BVHUnion: a plain, trivially copyable value type", "[CSG][BV
   STATIC_REQUIRE(std::is_trivially_copyable_v<ExpMinOp<T>>);
 }
 
-TEMPLATE_TEST_CASE("BVHUnion: agrees with the sharp UnionIF over a row of spheres",
+TEMPLATE_TEST_CASE("BVHUnion: agrees with a brute-force minimum over a row of spheres",
                    "[CSG][BVHUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -544,11 +620,12 @@ TEMPLATE_TEST_CASE("BVHUnion: agrees with the sharp UnionIF over a row of sphere
 
   Pool pool(hostMemoryResource());
 
-  const BVHUnion<T, SphereSDF<T>, 4> bvhUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
-  const UnionIF<T>                   sharpUnion(sphereRowIF<T>());
+  const auto spheres = sphereRow<T>();
+
+  const BVHUnion<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, sphereRowBVs<T>());
 
   for (const auto& p : lineQueryPoints<T>()) {
-    REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(sharpUnion.value(p), formulaMargin<T>()));
+    REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(bruteMin(spheres, p), formulaMargin<T>()));
   }
 }
 
@@ -576,7 +653,7 @@ TEMPLATE_TEST_CASE("BVHUnion: every build strategy gives the same union as the d
   }
 }
 
-TEMPLATE_TEST_CASE("BVHSmoothUnion: agrees with SmoothUnionIF far from any blend region",
+TEMPLATE_TEST_CASE("BVHSmoothUnion: agrees with the sharp union far from any blend region",
                    "[CSG][BVHSmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -586,15 +663,16 @@ TEMPLATE_TEST_CASE("BVHSmoothUnion: agrees with SmoothUnionIF far from any blend
 
   Pool pool(hostMemoryResource());
 
-  const BVHSmoothUnion<T, SphereSDF<T>, 4> bvhSmooth(pool, sphereRow<T>(), sphereRowBVs<T>(), smoothLen);
-  const SmoothUnionIF<T>                   sharpSmooth(sphereRowIF<T>(), smoothLen);
+  const auto spheres = sphereRow<T>();
+
+  const BVHSmoothUnion<T, SphereSDF<T>, 4> bvhSmooth(pool, spheres, sphereRowBVs<T>(), smoothLen);
 
   // Deep inside any one sphere, far from every other sphere's surface.
   for (int i = 0; i < NumRowSpheres; i++) {
     const Vec3T<T> deepInside = rowCenter<T>(i);
 
     REQUIRE_THAT(bvhSmooth.signedDistance(deepInside),
-                 withinAbsT(sharpSmooth.value(deepInside), asymptoticMargin<T>()));
+                 withinAbsT(bruteMin(spheres, deepInside), asymptoticMargin<T>()));
   }
 }
 
@@ -1359,10 +1437,290 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IntersectionIF / Intersection()
+// Unions of many objects in a Tape: BVH evaluation and its fallbacks
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("IntersectionIF: value is the pointwise maximum, giving a non-trivial overlap region",
+namespace {
+
+// 50 spheres of radius 0.4 scattered in [-5, 5]^3: enough operands for the tape to build a BVH over
+// them with the default TapeOptions, and close enough for some to overlap.
+template <class T>
+std::vector<Sphere<T>>
+scatteredSpheres()
+{
+  std::mt19937                      rng(4242);
+  std::uniform_real_distribution<T> coord(T(-5), T(5));
+
+  std::vector<Sphere<T>> spheres;
+
+  for (int i = 0; i < 50; i++) {
+    spheres.emplace_back(Vec3T<T>(coord(rng), coord(rng), coord(rng)), T(0.4));
+  }
+
+  return spheres;
+}
+
+template <class T>
+std::vector<Vec3T<T>>
+scatteredQueries(const int a_count, const unsigned a_seed)
+{
+  std::mt19937                      rng(a_seed);
+  std::uniform_real_distribution<T> coord(T(-7), T(7));
+
+  std::vector<Vec3T<T>> points;
+
+  for (int i = 0; i < a_count; i++) {
+    points.emplace_back(coord(rng), coord(rng), coord(rng));
+  }
+
+  return points;
+}
+
+// TapeOptions under which no union is evaluated with a BVH.
+inline TapeOptions
+linearScanOptions()
+{
+  TapeOptions options;
+
+  options.m_bvhUnionThreshold = 1000;
+
+  return options;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Union: a union and a smooth union of many spheres give the same values with and without a BVH",
+                   "[CSG][Union][SmoothUnion][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto spheres   = scatteredSpheres<T>();
+  const T    smoothLen = T(0.5);
+
+  const Compiled<T> bvhUnion(Union(spheres));
+  const Compiled<T> linearUnion(Union(spheres), linearScanOptions());
+  const Compiled<T> bvhSmooth(SmoothUnion(spheres, smoothLen));
+  const Compiled<T> linearSmooth(SmoothUnion(spheres, smoothLen), linearScanOptions());
+
+  REQUIRE(bvhUnion.tape().getNumBVHUnions() == 1);
+  REQUIRE(linearUnion.tape().getNumBVHUnions() == 0);
+  REQUIRE(bvhSmooth.tape().getNumBVHUnions() == 1);
+  REQUIRE(linearSmooth.tape().getNumBVHUnions() == 0);
+
+  for (const auto& p : scatteredQueries<T>(1000, 11)) {
+    INFO("p = " << p);
+
+    REQUIRE_THAT(bvhUnion(p), withinAbsT(linearUnion(p), exactMargin<T>()));
+    REQUIRE_THAT(bvhUnion(p), withinAbsT(bruteMin(spheres, p), exactMargin<T>()));
+
+    REQUIRE_THAT(bvhSmooth(p), withinAbsT(linearSmooth(p), exactMargin<T>()));
+    REQUIRE_THAT(bvhSmooth(p), withinAbsT(bruteTwoNearest(spheres, p, smoothLen, SmoothMinOp<T>{}), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Union: a union with an operand that is not a distance is scanned operand by operand",
+                   "[CSG][Union][SmoothUnion][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T        = TestType;
+  using Constant = TestUtils::ConstantSDF<T>;
+
+  const auto     spheres = scatteredSpheres<T>();
+  const Constant constant{T(0.25)};
+  const T        smoothLen = T(0.5);
+
+  // The constant shape, like a Perlin noise field, is NotADistance: a BVH could not prune by its box.
+  std::vector<Expr<T>> operands(spheres.begin(), spheres.end());
+
+  operands.insert(operands.begin() + 20, Expr<T>(constant));
+
+  const TestUtils::Compiled<T, Constant> sharp(Union(operands));
+  const TestUtils::Compiled<T, Constant> smooth(SmoothUnion(operands, smoothLen));
+
+  REQUIRE(sharp.tape().getNumBVHUnions() == 0);
+  REQUIRE(smooth.tape().getNumBVHUnions() == 0);
+  REQUIRE(sharp.tape().getDistanceQuality() == DistanceQuality::NotADistance);
+
+  for (const auto& p : scatteredQueries<T>(1000, 12)) {
+    std::vector<T> values;
+
+    for (const auto& sphere : spheres) {
+      values.push_back(sphere.signedDistance(p));
+    }
+
+    values.push_back(constant.signedDistance(p));
+
+    INFO("p = " << p);
+    REQUIRE_THAT(sharp(p), withinAbsT(std::min(bruteMin(spheres, p), constant.m_value), exactMargin<T>()));
+    REQUIRE_THAT(smooth(p), withinAbsT(blendTwoSmallest(values, smoothLen, SmoothMinOp<T>{}), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Union: unbounded operands inside a BVH union match brute force",
+                   "[CSG][Union][SmoothUnion][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto spheres   = scatteredSpheres<T>();
+  const T    smoothLen = T(0.5);
+
+  // A tilted plane (everything below it is inside) and three thin infinite cylinders, one per axis.
+  const PlaneSDF<T>                         plane(Vec3(0, 0, -6), Vec3(T(0.1), T(-0.2), T(1)));
+  const std::vector<InfiniteCylinderSDF<T>> cylinders{InfiniteCylinderSDF<T>(Vec3(1, 2, 3), T(0.2), 0),
+                                                      InfiniteCylinderSDF<T>(Vec3(-2, 0, 1), T(0.3), 1),
+                                                      InfiniteCylinderSDF<T>(Vec3(3, -3, 0), T(0.25), 2)};
+
+  std::vector<Expr<T>> operands(spheres.begin(), spheres.end());
+
+  operands.insert(operands.begin() + 7, Expr<T>(plane));
+  operands.insert(operands.end(), cylinders.begin(), cylinders.end());
+
+  const Compiled<T> sharp(Union(operands));
+  const Compiled<T> smooth(SmoothUnion(operands, smoothLen));
+
+  REQUIRE(sharp.tape().getNumBVHUnions() == 1);
+  REQUIRE(smooth.tape().getNumBVHUnions() == 1);
+
+  for (const auto& p : scatteredQueries<T>(1000, 13)) {
+    std::vector<T> values;
+
+    for (const auto& sphere : spheres) {
+      values.push_back(sphere.signedDistance(p));
+    }
+
+    for (const auto& cylinder : cylinders) {
+      values.push_back(cylinder.signedDistance(p));
+    }
+
+    values.push_back(plane.signedDistance(p));
+
+    INFO("p = " << p);
+    REQUIRE_THAT(sharp(p), withinAbsT(*std::min_element(values.begin(), values.end()), exactMargin<T>()));
+    REQUIRE_THAT(smooth(p), withinAbsT(blendTwoSmallest(values, smoothLen, SmoothMinOp<T>{}), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("SmoothUnion: an exponential smooth union of many spheres matches ExpMinOp on the two smallest",
+                   "[CSG][SmoothUnion][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto spheres   = scatteredSpheres<T>();
+  const T    smoothLen = T(0.3);
+
+  const Compiled<T> bvhSmooth(SmoothUnion(spheres, smoothLen, BlendKind::Exponential));
+  const Compiled<T> linearSmooth(SmoothUnion(spheres, smoothLen, BlendKind::Exponential), linearScanOptions());
+
+  REQUIRE(bvhSmooth.tape().getNumBVHUnions() == 1);
+  REQUIRE(linearSmooth.tape().getNumBVHUnions() == 0);
+
+  for (const auto& p : scatteredQueries<T>(1000, 14)) {
+    const T expected = bruteTwoNearest(spheres, p, smoothLen, ExpMinOp<T>{});
+
+    INFO("p = " << p);
+    REQUIRE_THAT(bvhSmooth(p), withinAbsT(expected, formulaMargin<T>()));
+    REQUIRE_THAT(linearSmooth(p), withinAbsT(expected, formulaMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Expr: the bounding volume of a union, intersection and difference",
+                   "[CSG][Union][Intersection][Difference]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto a = sphereA<T>(); // Box [-1, 1]^3.
+  const auto b = sphereB<T>(); // Box [2, 4] x [-1, 1]^2.
+  const auto c = sphereC<T>(); // Box [-2, 2]^3.
+  const auto d = sphereD<T>(); // Box [-1, 3] x [-2, 2]^2.
+
+  const auto requireBox = [](const BV<T>& a_box, const Vec3& a_lo, const Vec3& a_hi) {
+    for (size_t dir = 0; dir < 3; dir++) {
+      REQUIRE_THAT(a_box.getLowCorner()[dir], withinAbsT(a_lo[dir], exactMargin<T>()));
+      REQUIRE_THAT(a_box.getHighCorner()[dir], withinAbsT(a_hi[dir], exactMargin<T>()));
+    }
+  };
+
+  // A union's box is the merge of its operands' boxes.
+  requireBox(Union(a, b).computeBoundingVolume(), Vec3(-1, -1, -1), Vec3(4, 1, 1));
+  requireBox(Union(std::vector<Sphere<T>>{a, b, c}).computeBoundingVolume(), Vec3(-2, -2, -2), Vec3(4, 2, 2));
+
+  // A smooth union moves the surface out by at most s/4 (polynomial) or s ln 2 (exponential).
+  const T s = T(0.4);
+  const T g = s * std::log(T(2));
+
+  requireBox(SmoothUnion(a, b, s).computeBoundingVolume(), Vec3(-1.1, -1.1, -1.1), Vec3(4.1, 1.1, 1.1));
+  requireBox(SmoothUnion(a, b, s, BlendKind::Exponential).computeBoundingVolume(),
+             Vec3(-1 - g, -1 - g, -1 - g),
+             Vec3(4 + g, 1 + g, 1 + g));
+
+  // An intersection's box is the overlap of its operands' boxes.
+  requireBox(Intersection(c, d).computeBoundingVolume(), Vec3(-1, -2, -2), Vec3(2, 2, 2));
+  requireBox(SmoothIntersection(c, d, s).computeBoundingVolume(), Vec3(-1, -2, -2), Vec3(2, 2, 2));
+
+  // A difference lies inside the object subtracted from.
+  requireBox(Difference(c, d).computeBoundingVolume(), Vec3(-2, -2, -2), Vec3(2, 2, 2));
+  requireBox(Difference(c, std::vector<Sphere<T>>{a, d}).computeBoundingVolume(), Vec3(-2, -2, -2), Vec3(2, 2, 2));
+  requireBox(SmoothDifference(c, d, s).computeBoundingVolume(), Vec3(-2, -2, -2), Vec3(2, 2, 2));
+
+  // The compiled tape reports the expression's box.
+  const auto        diff = Difference(Union(a, b), c);
+  const Compiled<T> tape(diff);
+
+  requireBox(tape.tape().computeBoundingVolume(),
+             diff.computeBoundingVolume().getLowCorner(),
+             diff.computeBoundingVolume().getHighCorner());
+  requireBox(diff.computeBoundingVolume(), Vec3(-1, -1, -1), Vec3(4, 1, 1));
+}
+
+TEMPLATE_TEST_CASE("Expr: distance quality of a union of exact shapes and of a finite repetition",
+                   "[CSG][Union][FiniteRepetition]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto a = sphereA<T>();
+  const auto b = sphereB<T>();
+
+  STATIC_REQUIRE(Sphere<T>::distanceQuality == DistanceQuality::Exact);
+
+  // A union of exact distances is a distance bound: exact outside, an underestimate inside where the
+  // operands overlap.
+  const auto u = Union(a, b);
+
+  REQUIRE(Expr<T>(a).getDistanceQuality() == DistanceQuality::Exact);
+  REQUIRE(u.getDistanceQuality() == DistanceQuality::Bound);
+  REQUIRE(Intersection(sphereC<T>(), sphereD<T>()).getDistanceQuality() == DistanceQuality::Bound);
+  REQUIRE(Difference(a, b).getDistanceQuality() == DistanceQuality::Bound);
+
+  const Compiled<T> compiled(u);
+
+  REQUIRE(compiled.tape().getDistanceQuality() == DistanceQuality::Bound);
+
+  // A unit sphere fits a tile of period 2.5 but not one of period 1.5, where a neighbouring copy can be
+  // closer than the folded value says.
+  const auto fits     = FiniteRepetition(a, Vec3(2.5, 2.5, 2.5), Vec3::ones(), Vec3::ones());
+  const auto overlaps = FiniteRepetition(a, Vec3(1.5, 2.5, 2.5), Vec3::ones(), Vec3::ones());
+
+  REQUIRE(fits.getDistanceQuality() == DistanceQuality::Bound);
+  REQUIRE(overlaps.getDistanceQuality() == DistanceQuality::NotADistance);
+
+  const Compiled<T> compiledOverlaps(overlaps);
+
+  REQUIRE(compiledOverlaps.tape().getDistanceQuality() == DistanceQuality::NotADistance);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Intersection()
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("Intersection: value is the pointwise maximum, giving a non-trivial overlap region",
                    "[CSG][Intersection]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1372,22 +1730,22 @@ TEMPLATE_TEST_CASE("IntersectionIF: value is the pointwise maximum, giving a non
   const auto c = sphereC<T>();
   const auto d = sphereD<T>();
 
-  const IntersectionIF<T> inter({c, d});
+  const Compiled<T> inter(Intersection(c, d));
 
   // Inside both spheres.
   const Vec3 insideBoth(0.5, 0, 0);
-  REQUIRE_THAT(inter.value(insideBoth),
-               withinAbsT(std::max(c->signedDistance(insideBoth), d->signedDistance(insideBoth)), exactMargin<T>()));
-  REQUIRE(inter.value(insideBoth) < T(0.0));
+  REQUIRE_THAT(inter(insideBoth),
+               withinAbsT(std::max(c.signedDistance(insideBoth), d.signedDistance(insideBoth)), exactMargin<T>()));
+  REQUIRE(inter(insideBoth) < T(0.0));
 
   // Inside D only (outside C): must not be in the intersection.
   const Vec3 insideDOnly(2.5, 0, 0);
-  REQUIRE(c->signedDistance(insideDOnly) > T(0.0));
-  REQUIRE(d->signedDistance(insideDOnly) < T(0.0));
-  REQUIRE(inter.value(insideDOnly) > T(0.0));
+  REQUIRE(c.signedDistance(insideDOnly) > T(0.0));
+  REQUIRE(d.signedDistance(insideDOnly) < T(0.0));
+  REQUIRE(inter(insideDOnly) > T(0.0));
 }
 
-TEMPLATE_TEST_CASE("Intersection: two-argument free function matches the vector overload and IntersectionIF",
+TEMPLATE_TEST_CASE("Intersection: the pairwise and vector overloads agree with the hand-computed maximum",
                    "[CSG][Intersection]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1396,22 +1754,26 @@ TEMPLATE_TEST_CASE("Intersection: two-argument free function matches the vector 
 
   const auto c = sphereC<T>();
   const auto d = sphereD<T>();
+  const auto e = sphereE<T>();
 
-  const auto              twoArg    = Intersection<T>(c, d);
-  const auto              vectorArg = Intersection<T, Sphere<T>>(std::vector<std::shared_ptr<Sphere<T>>>{c, d});
-  const IntersectionIF<T> direct({c, d});
+  const Compiled<T> twoArg(Intersection(c, d));
+  const Compiled<T> vectorArg(Intersection(std::vector<Sphere<T>>{c, d}));
+  const Compiled<T> three(Intersection(std::vector<Sphere<T>>{c, d, e}));
 
-  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(2.5, 0, 0), Vec3(-5, 3, 1)}) {
-    REQUIRE_THAT(twoArg->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
-    REQUIRE_THAT(vectorArg->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
+  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(2.5, 0, 0), Vec3(0.6, 0.1, 0), Vec3(-5, 3, 1)}) {
+    const T maxCD = std::max(c.signedDistance(p), d.signedDistance(p));
+
+    REQUIRE_THAT(twoArg(p), withinAbsT(maxCD, exactMargin<T>()));
+    REQUIRE_THAT(vectorArg(p), withinAbsT(twoArg(p), exactMargin<T>()));
+    REQUIRE_THAT(three(p), withinAbsT(std::max(maxCD, e.signedDistance(p)), exactMargin<T>()));
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SmoothIntersectionIF / SmoothIntersection()
+// SmoothIntersection()
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("SmoothIntersectionIF: converges to the sharp intersection far from the blend region",
+TEMPLATE_TEST_CASE("SmoothIntersection: converges to the sharp intersection far from the blend region",
                    "[CSG][SmoothIntersection]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1421,16 +1783,16 @@ TEMPLATE_TEST_CASE("SmoothIntersectionIF: converges to the sharp intersection fa
   const auto c = sphereC<T>();
   const auto d = sphereD<T>();
 
-  const T                       smoothLen = T(0.05);
-  const SmoothIntersectionIF<T> smooth(c, d, smoothLen);
-  const IntersectionIF<T>       sharp({c, d});
+  const T           smoothLen = T(0.05);
+  const Compiled<T> smooth(SmoothIntersection(c, d, smoothLen));
+  const Compiled<T> sharp(Intersection(c, d));
 
   // Deep inside D only, far from C's surface (|C - D| there is >> smoothLen).
   const Vec3 deepOutsideC(4.5, 0, 0);
-  REQUIRE_THAT(smooth.value(deepOutsideC), withinAbsT(sharp.value(deepOutsideC), asymptoticMargin<T>()));
+  REQUIRE_THAT(smooth(deepOutsideC), withinAbsT(sharp(deepOutsideC), asymptoticMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("SmoothIntersectionIF: never shallower (never below) the sharp intersection",
+TEMPLATE_TEST_CASE("SmoothIntersection: never shallower (never below) the sharp intersection",
                    "[CSG][SmoothIntersection]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1440,16 +1802,18 @@ TEMPLATE_TEST_CASE("SmoothIntersectionIF: never shallower (never below) the shar
   const auto c = sphereC<T>();
   const auto d = sphereD<T>();
 
-  const SmoothIntersectionIF<T> smooth(c, d, T(0.75));
-  const IntersectionIF<T>       sharp({c, d});
+  for (const BlendKind kind : {BlendKind::Polynomial, BlendKind::Exponential}) {
+    const Compiled<T> smooth(SmoothIntersection(c, d, T(0.75), kind));
+    const Compiled<T> sharp(Intersection(c, d));
 
-  for (const T x : sweepValues<T>(T(-3.0), T(4.0), 28)) {
-    const Vec3 p(x, 0, 0);
-    REQUIRE(smooth.value(p) >= sharp.value(p) - T(exactMargin<T>()));
+    for (const T x : sweepValues<T>(T(-3.0), T(4.0), 28)) {
+      const Vec3 p(x, 0, 0);
+      REQUIRE(smooth(p) >= sharp(p) - T(exactMargin<T>()));
+    }
   }
 }
 
-TEMPLATE_TEST_CASE("SmoothIntersectionIF: vector-of-functions constructor matches the pairwise constructor",
+TEMPLATE_TEST_CASE("SmoothIntersection: the pairwise and vector overloads agree with the hand-computed blend",
                    "[CSG][SmoothIntersection]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1458,41 +1822,34 @@ TEMPLATE_TEST_CASE("SmoothIntersectionIF: vector-of-functions constructor matche
 
   const auto c = sphereC<T>();
   const auto d = sphereD<T>();
+  const auto e = sphereE<T>();
 
   const T smoothLen = T(0.4);
 
-  const SmoothIntersectionIF<T> pairwise(c, d, smoothLen);
-  const SmoothIntersectionIF<T> vectorCtor(std::vector<std::shared_ptr<IF<T>>>{c, d}, smoothLen);
+  const Compiled<T> pairwise(SmoothIntersection(c, d, smoothLen));
+  const Compiled<T> vectorArg(SmoothIntersection(std::vector<Sphere<T>>{c, d}, smoothLen));
+  const Compiled<T> three(SmoothIntersection(std::vector<Sphere<T>>{c, d, e}, smoothLen));
+  const Compiled<T> exponential(SmoothIntersection(c, d, smoothLen, BlendKind::Exponential));
 
-  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(2.5, 0, 0), Vec3(-5, 3, 1)}) {
-    REQUIRE_THAT(vectorCtor.value(p), withinAbsT(pairwise.value(p), exactMargin<T>()));
-  }
-}
+  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(2.5, 0, 0), Vec3(0.6, 0.1, 0), Vec3(-1.9, 0.2, 0), Vec3(-5, 3, 1)}) {
+    const T dc = c.signedDistance(p);
+    const T dd = d.signedDistance(p);
+    const T de = e.signedDistance(p);
 
-TEMPLATE_TEST_CASE("SmoothIntersection: free function matches SmoothIntersectionIF",
-                   "[CSG][SmoothIntersection]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T    = TestType;
-  using Vec3 = Vec3T<T>;
+    REQUIRE_THAT(pairwise(p), withinAbsT(SmoothMaxOp<T>{}(dc, dd, smoothLen), exactMargin<T>()));
+    REQUIRE_THAT(vectorArg(p), withinAbsT(pairwise(p), exactMargin<T>()));
+    REQUIRE_THAT(exponential(p), withinAbsT(ExpMaxOp<T>{}(dc, dd, smoothLen), formulaMargin<T>()));
 
-  const auto c = sphereC<T>();
-  const auto d = sphereD<T>();
-
-  const T                       smoothLen = T(0.4);
-  const auto                    pairwise  = SmoothIntersection<T>(c, d, smoothLen);
-  const SmoothIntersectionIF<T> direct(c, d, smoothLen);
-
-  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(2.5, 0, 0)}) {
-    REQUIRE_THAT(pairwise->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
+    // Only the two largest values are blended.
+    REQUIRE_THAT(three(p), withinAbsT(blendTwoLargest<T>({dc, dd, de}, smoothLen, SmoothMaxOp<T>{}), exactMargin<T>()));
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DifferenceIF / Difference()
+// Difference()
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("DifferenceIF: A \\ B is max(A, -B), inside A and outside B only",
+TEMPLATE_TEST_CASE("Difference: A \\ B is max(A, -B), inside A and outside B only",
                    "[CSG][Difference]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1502,22 +1859,22 @@ TEMPLATE_TEST_CASE("DifferenceIF: A \\ B is max(A, -B), inside A and outside B o
   const auto c = sphereC<T>();
   const auto d = sphereD<T>();
 
-  const DifferenceIF<T> diff(c, d);
+  const Compiled<T> diff(Difference(c, d));
 
   // Inside C, but also inside D -- must be excluded from C \ D.
   const Vec3 insideBoth(0.5, 0, 0);
-  REQUIRE(diff.value(insideBoth) > T(0.0));
-  REQUIRE_THAT(diff.value(insideBoth),
-               withinAbsT(std::max(c->signedDistance(insideBoth), -d->signedDistance(insideBoth)), exactMargin<T>()));
+  REQUIRE(diff(insideBoth) > T(0.0));
+  REQUIRE_THAT(diff(insideBoth),
+               withinAbsT(std::max(c.signedDistance(insideBoth), -d.signedDistance(insideBoth)), exactMargin<T>()));
 
   // Inside C, outside D.
   const Vec3 insideCOnly(-1.5, 0, 0);
-  REQUIRE(c->signedDistance(insideCOnly) < T(0.0));
-  REQUIRE(d->signedDistance(insideCOnly) > T(0.0));
-  REQUIRE(diff.value(insideCOnly) < T(0.0));
+  REQUIRE(c.signedDistance(insideCOnly) < T(0.0));
+  REQUIRE(d.signedDistance(insideCOnly) > T(0.0));
+  REQUIRE(diff(insideCOnly) < T(0.0));
 }
 
-TEMPLATE_TEST_CASE("DifferenceIF: A minus a list of subtrahends excludes the union of all of them",
+TEMPLATE_TEST_CASE("Difference: A minus a list of subtrahends excludes the union of all of them",
                    "[CSG][Difference]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1526,36 +1883,46 @@ TEMPLATE_TEST_CASE("DifferenceIF: A minus a list of subtrahends excludes the uni
 
   const auto a = sphereA<T>(); // Center (0,0,0), radius 1: fully contains the origin.
   const auto b = sphereB<T>(); // Center (3,0,0), radius 1: doesn't overlap A at all.
-  const auto e = std::make_shared<Sphere<T>>(Vec3(0.5, 0, 0), T(0.3)); // A small sphere carved out of A.
+  const auto e = sphereE<T>(); // A small sphere carved out of A.
 
-  const DifferenceIF<T> diff(a, std::vector<std::shared_ptr<IF<T>>>{b, e});
+  const Compiled<T> diff(Difference(a, std::vector<Sphere<T>>{b, e}));
 
-  REQUIRE(diff.value(Vec3::zeros()) < T(0.0));   // Inside A, outside both B and E.
-  REQUIRE(diff.value(Vec3(0.5, 0, 0)) > T(0.0)); // Inside A and inside E: excluded.
-  REQUIRE(diff.value(Vec3(3, 0, 0)) > T(0.0));   // Not inside A at all.
+  REQUIRE(diff(Vec3::zeros()) < T(0.0));   // Inside A, outside both B and E.
+  REQUIRE(diff(Vec3(0.5, 0, 0)) > T(0.0)); // Inside A and inside E: excluded.
+  REQUIRE(diff(Vec3(3, 0, 0)) > T(0.0));   // Not inside A at all.
 }
 
-TEMPLATE_TEST_CASE("Difference: free function matches DifferenceIF", "[CSG][Difference]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Difference: the pairwise and vector overloads agree with max(A, -min B)",
+                   "[CSG][Difference]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
+  const auto a = sphereA<T>();
+  const auto b = sphereB<T>();
   const auto c = sphereC<T>();
   const auto d = sphereD<T>();
+  const auto e = sphereE<T>();
 
-  const auto            freeFunc = Difference<T>(c, d);
-  const DifferenceIF<T> direct(c, d);
+  const Compiled<T> pairwise(Difference(c, d));
+  const Compiled<T> vectorArg(Difference(c, std::vector<Sphere<T>>{d}));
+  const Compiled<T> twoSubtrahends(Difference(a, std::vector<Sphere<T>>{b, e}));
 
-  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(-1.5, 0, 0), Vec3(3, 0, 0)}) {
-    REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
+  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(-1.5, 0, 0), Vec3(3, 0, 0), Vec3(0.1, 0.2, 0), Vec3(-4, 1, 2)}) {
+    const T minBE = std::min(b.signedDistance(p), e.signedDistance(p));
+
+    REQUIRE_THAT(pairwise(p), withinAbsT(std::max(c.signedDistance(p), -d.signedDistance(p)), exactMargin<T>()));
+    REQUIRE_THAT(vectorArg(p), withinAbsT(pairwise(p), exactMargin<T>()));
+    REQUIRE_THAT(twoSubtrahends(p), withinAbsT(std::max(a.signedDistance(p), -minBE), exactMargin<T>()));
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SmoothDifferenceIF / SmoothDifference()
+// SmoothDifference()
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("SmoothDifferenceIF: converges to the sharp difference far from the blend region",
+TEMPLATE_TEST_CASE("SmoothDifference: converges to the sharp difference far from the blend region",
                    "[CSG][SmoothDifference]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1568,174 +1935,184 @@ TEMPLATE_TEST_CASE("SmoothDifferenceIF: converges to the sharp difference far fr
   const auto a = sphereA<T>();
   const auto b = sphereB<T>();
 
-  const T                     smoothLen = T(0.05);
-  const SmoothDifferenceIF<T> smooth(a, b, smoothLen);
-  const DifferenceIF<T>       sharp(a, b);
+  const T           smoothLen = T(0.05);
+  const Compiled<T> smooth(SmoothDifference(a, b, smoothLen));
+  const Compiled<T> sharp(Difference(a, b));
 
   const Vec3 insideAOnly = Vec3::zeros();
-  REQUIRE_THAT(smooth.value(insideAOnly), withinAbsT(sharp.value(insideAOnly), asymptoticMargin<T>()));
+  REQUIRE_THAT(smooth(insideAOnly), withinAbsT(sharp(insideAOnly), asymptoticMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("SmoothDifferenceIF: list-of-subtrahends constructor matches the pairwise constructor "
-                   "when there is only one subtrahend",
+TEMPLATE_TEST_CASE("SmoothDifference: the pairwise and vector overloads agree with the hand-computed blend",
                    "[CSG][SmoothDifference]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
+  const auto a = sphereA<T>();
+  const auto b = sphereB<T>();
   const auto c = sphereC<T>();
   const auto d = sphereD<T>();
+  const auto e = sphereE<T>();
 
   const T smoothLen = T(0.4);
 
-  const SmoothDifferenceIF<T> pairwise(c, d, smoothLen);
-  const SmoothDifferenceIF<T> vectorCtor(c, std::vector<std::shared_ptr<IF<T>>>{d}, smoothLen);
+  const Compiled<T> pairwise(SmoothDifference(c, d, smoothLen));
+  const Compiled<T> vectorArg(SmoothDifference(c, std::vector<Sphere<T>>{d}, smoothLen));
+  const Compiled<T> twoSubtrahends(SmoothDifference(a, std::vector<Sphere<T>>{b, e}, smoothLen));
+  const Compiled<T> exponential(SmoothDifference(c, d, smoothLen, BlendKind::Exponential));
 
-  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(-1.5, 0, 0), Vec3(3, 0, 0)}) {
-    REQUIRE_THAT(vectorCtor.value(p), withinAbsT(pairwise.value(p), exactMargin<T>()));
-  }
-}
+  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(-1.5, 0, 0), Vec3(3, 0, 0), Vec3(0.1, 0.2, 0), Vec3(0.75, 0, 0)}) {
+    const T da = a.signedDistance(p);
+    const T db = b.signedDistance(p);
+    const T dc = c.signedDistance(p);
+    const T dd = d.signedDistance(p);
+    const T de = e.signedDistance(p);
 
-TEMPLATE_TEST_CASE("SmoothDifference: free function matches SmoothDifferenceIF",
-                   "[CSG][SmoothDifference]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T    = TestType;
-  using Vec3 = Vec3T<T>;
-
-  const auto c = sphereC<T>();
-  const auto d = sphereD<T>();
-
-  const T                     smoothLen = T(0.3);
-  const auto                  freeFunc  = SmoothDifference<T>(c, d, smoothLen);
-  const SmoothDifferenceIF<T> direct(c, d, smoothLen);
-
-  for (const Vec3 p : {Vec3(0.5, 0, 0), Vec3(-1.5, 0, 0)}) {
-    REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
+    // The smooth intersection of A and the complement of each subtrahend.
+    REQUIRE_THAT(pairwise(p), withinAbsT(SmoothMaxOp<T>{}(dc, -dd, smoothLen), exactMargin<T>()));
+    REQUIRE_THAT(vectorArg(p), withinAbsT(pairwise(p), exactMargin<T>()));
+    REQUIRE_THAT(exponential(p), withinAbsT(ExpMaxOp<T>{}(dc, -dd, smoothLen), formulaMargin<T>()));
+    REQUIRE_THAT(twoSubtrahends(p),
+                 withinAbsT(blendTwoLargest<T>({da, -db, -de}, smoothLen, SmoothMaxOp<T>{}), exactMargin<T>()));
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FiniteRepetitionIF / FiniteRepetition()
+// FiniteRepetition()
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("FiniteRepetitionIF: matches the base function directly within the home tile",
+TEMPLATE_TEST_CASE("FiniteRepetition: matches the base function directly within the home tile",
                    "[CSG][FiniteRepetition]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const auto base = std::make_shared<Sphere<T>>(Vec3::zeros(), T(1));
+  const Sphere<T> base(Vec3::zeros(), T(1));
 
   const Vec3 period(10, 10, 10);
   const Vec3 repeatLo(2, 2, 2);
   const Vec3 repeatHi(2, 2, 2);
 
-  const FiniteRepetitionIF<T> tiled(base, period, repeatLo, repeatHi);
+  const Compiled<T> tiled(FiniteRepetition(base, period, repeatLo, repeatHi));
 
   for (const Vec3 p : {Vec3::zeros(), Vec3(0.5, 0, 0), Vec3(4.9, 0, 0), Vec3(-4.9, 0, 0)}) {
-    REQUIRE_THAT(tiled.value(p), withinAbsT(base->signedDistance(p), formulaMargin<T>()));
+    REQUIRE_THAT(tiled(p), withinAbsT(base.signedDistance(p), formulaMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("FiniteRepetitionIF: is periodic within the repetition range",
+TEMPLATE_TEST_CASE("FiniteRepetition: is periodic within the repetition range",
                    "[CSG][FiniteRepetition]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const auto base = std::make_shared<Sphere<T>>(Vec3::zeros(), T(1));
+  const Sphere<T> base(Vec3::zeros(), T(1));
 
   const Vec3 period(5, 5, 5);
   const Vec3 repeatLo(3, 0, 0);
   const Vec3 repeatHi(3, 0, 0);
 
-  const FiniteRepetitionIF<T> tiled(base, period, repeatLo, repeatHi);
+  const Compiled<T> tiled(FiniteRepetition(base, period, repeatLo, repeatHi));
 
   // A point near the origin and the same point shifted by exactly N whole periods (N within the
   // repetition range) must evaluate to the same value.
   for (int n = -3; n <= 3; n++) {
     const Vec3 p(0.3, 0, 0);
     const Vec3 shifted = p + Vec3(5.0 * n, 0, 0);
-    REQUIRE_THAT(tiled.value(shifted), withinAbsT(tiled.value(p), formulaMargin<T>()));
-    REQUIRE_THAT(tiled.value(shifted), withinAbsT(base->signedDistance(p), formulaMargin<T>()));
+    REQUIRE_THAT(tiled(shifted), withinAbsT(tiled(p), formulaMargin<T>()));
+    REQUIRE_THAT(tiled(shifted), withinAbsT(base.signedDistance(p), formulaMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("FiniteRepetitionIF: clamps to the boundary tile beyond the repetition range",
+TEMPLATE_TEST_CASE("FiniteRepetition: clamps to the boundary tile beyond the repetition range",
                    "[CSG][FiniteRepetition]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const auto base = std::make_shared<Sphere<T>>(Vec3::zeros(), T(1));
+  const Sphere<T> base(Vec3::zeros(), T(1));
 
   const Vec3 period(5, 5, 5);
   const Vec3 repeatLo(1, 0, 0);
   const Vec3 repeatHi(1, 0, 0);
 
-  const FiniteRepetitionIF<T> tiled(base, period, repeatLo, repeatHi);
+  const Compiled<T> tiled(FiniteRepetition(base, period, repeatLo, repeatHi));
 
   // Well beyond the +1 tile: folds relative to the tile-1 anchor (x - 1*period), not back toward
   // tile 0 and not extrapolated as if more tiles existed.
   const Vec3 farBeyond(23.0, 0, 0);
   const Vec3 expectedLocal = farBeyond - Vec3(5.0, 0, 0);
-  REQUIRE_THAT(tiled.value(farBeyond), withinAbsT(base->signedDistance(expectedLocal), formulaMargin<T>()));
+  REQUIRE_THAT(tiled(farBeyond), withinAbsT(base.signedDistance(expectedLocal), formulaMargin<T>()));
 
   // Symmetric check on the negative side.
   const Vec3 farBelow(-23.0, 0, 0);
   const Vec3 expectedLocalNeg = farBelow + Vec3(5.0, 0, 0);
-  REQUIRE_THAT(tiled.value(farBelow), withinAbsT(base->signedDistance(expectedLocalNeg), formulaMargin<T>()));
+  REQUIRE_THAT(tiled(farBelow), withinAbsT(base.signedDistance(expectedLocalNeg), formulaMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("FiniteRepetitionIF: fractional repetition counts round to whole tiles",
+TEMPLATE_TEST_CASE("FiniteRepetition: fractional repetition counts round to whole tiles",
                    "[CSG][FiniteRepetition]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const auto base = std::make_shared<Sphere<T>>(Vec3::zeros(), T(0.25));
+  const Sphere<T> base(Vec3::zeros(), T(0.25));
 
-  const FiniteRepetitionIF<T> roundsDown(base, Vec3::ones(), Vec3(T(0.4), T(0), T(0)), Vec3(T(2.4), T(0), T(0)));
-  const FiniteRepetitionIF<T> roundsUp(base, Vec3::ones(), Vec3(T(0.6), T(0), T(0)), Vec3(T(2.6), T(0), T(0)));
-  const FiniteRepetitionIF<T> two(base, Vec3::ones(), Vec3(T(0), T(0), T(0)), Vec3(T(2), T(0), T(0)));
-  const FiniteRepetitionIF<T> three(base, Vec3::ones(), Vec3(T(1), T(0), T(0)), Vec3(T(3), T(0), T(0)));
+  const Compiled<T> roundsDown(
+    FiniteRepetition(base, Vec3::ones(), Vec3(T(0.4), T(0), T(0)), Vec3(T(2.4), T(0), T(0))));
+  const Compiled<T> roundsUp(FiniteRepetition(base, Vec3::ones(), Vec3(T(0.6), T(0), T(0)), Vec3(T(2.6), T(0), T(0))));
+  const Compiled<T> two(FiniteRepetition(base, Vec3::ones(), Vec3(T(0), T(0), T(0)), Vec3(T(2), T(0), T(0))));
+  const Compiled<T> three(FiniteRepetition(base, Vec3::ones(), Vec3(T(1), T(0), T(0)), Vec3(T(3), T(0), T(0))));
 
   for (const T x : {T(-2), T(-1), T(0), T(1), T(2), T(2.6), T(3), T(4)}) {
     const Vec3 p(x, T(0.1), T(0));
 
     INFO("x = " << x);
-    REQUIRE_THAT(roundsDown.value(p), withinAbsT(two.value(p), exactMargin<T>()));
-    REQUIRE_THAT(roundsUp.value(p), withinAbsT(three.value(p), exactMargin<T>()));
+    REQUIRE_THAT(roundsDown(p), withinAbsT(two(p), exactMargin<T>()));
+    REQUIRE_THAT(roundsUp(p), withinAbsT(three(p), exactMargin<T>()));
   }
 
-  REQUIRE(two.value(Vec3(T(3), T(0), T(0))) > T(0));
-  REQUIRE(three.value(Vec3(T(3), T(0), T(0))) < T(0));
+  REQUIRE(two(Vec3(T(3), T(0), T(0))) > T(0));
+  REQUIRE(three(Vec3(T(3), T(0), T(0))) < T(0));
 }
 
-TEMPLATE_TEST_CASE("FiniteRepetition: free function matches FiniteRepetitionIF",
+TEMPLATE_TEST_CASE("FiniteRepetition: matches the base function at the hand-folded point",
                    "[CSG][FiniteRepetition]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const auto base = std::make_shared<Sphere<T>>(Vec3::zeros(), T(1));
+  const Sphere<T> base(Vec3(T(0.2), T(-0.1), T(0)), T(1));
 
-  const Vec3 period(5, 5, 5);
-  const Vec3 repeatLo(2, 2, 2);
-  const Vec3 repeatHi(2, 2, 2);
+  const Vec3 period(5, 4, 3);
+  const Vec3 repeatLo(2, 1, 0);
+  const Vec3 repeatHi(1, 2, 3);
 
-  const auto                  freeFunc = FiniteRepetition<T>(base, period, repeatLo, repeatHi);
-  const FiniteRepetitionIF<T> direct(base, period, repeatLo, repeatHi);
+  const Compiled<T> tiled(FiniteRepetition(base, period, repeatLo, repeatHi));
 
-  for (const Vec3 p : {Vec3::zeros(), Vec3(7.3, -2.1, 0.4), Vec3(-12.0, 0, 0)}) {
-    REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), formulaMargin<T>()));
+  // p_i - c_i round(clamp(p_i / c_i, -lo_i, hi_i)).
+  const auto fold = [&](const Vec3& a_point) {
+    Vec3 local;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      const T tile = std::round(std::clamp(a_point[dir] / period[dir], -repeatLo[dir], repeatHi[dir]));
+
+      local[dir] = a_point[dir] - period[dir] * tile;
+    }
+
+    return local;
+  };
+
+  for (const Vec3 p : {Vec3::zeros(), Vec3(7.3, -2.1, 0.4), Vec3(-12.0, 0, 0), Vec3(4.1, 9.5, -2.2), Vec3(1, 1, 8.9)}) {
+    INFO("p = " << p);
+    REQUIRE_THAT(tiled(p), withinAbsT(base.signedDistance(fold(p)), formulaMargin<T>()));
   }
 }
 
@@ -1745,37 +2122,26 @@ TEMPLATE_TEST_CASE("FiniteRepetition: free function matches FiniteRepetitionIF",
 
 namespace {
 
-using IFList = std::vector<std::shared_ptr<ImplicitFunction<double>>>;
-
-// A null implicit function to hand to the constructors and free functions.
-std::shared_ptr<ImplicitFunction<double>>
-nullIF()
-{
-  return nullptr;
-}
+using SphereList = std::vector<SphereSDF<double>>;
 
 } // namespace
 
-TEST_CASE("UnionIF and Union: reject an empty list, a null entry and a null argument", "[CSG][Union]")
+TEST_CASE("Union: rejects an empty list", "[CSG][Union]")
 {
-  REQUIRE(
-    abortsWith([] { (void)UnionIF<double>(IFList{}); }, "UnionIF: the list of implicit functions must not be empty"));
-  REQUIRE(abortsWith([] { (void)UnionIF<double>(IFList{sphereA<double>(), nullIF()}); },
-                     "UnionIF: the list of implicit functions must not contain a null entry"));
-  REQUIRE(abortsWith([] { (void)Union<double>(IFList{}); }, "Union: the list of implicit functions must not be empty"));
-  REQUIRE(abortsWith([] { (void)Union<double>(sphereA<double>(), nullIF()); },
-                     "Union: the second implicit function must not be null"));
+  REQUIRE(abortsWith([] { (void)Union(SphereList{}); }, "Union: the list of operands must not be empty"));
 }
 
-TEST_CASE("SmoothUnionIF and SmoothUnion: reject a non-positive smoothing length and a null argument",
-          "[CSG][SmoothUnion]")
+TEST_CASE("SmoothUnion: rejects an empty list and a non-positive or non-finite smoothing length", "[CSG][SmoothUnion]")
 {
-  REQUIRE(abortsWith([] { (void)SmoothUnionIF<double>(IFList{sphereA<double>(), sphereB<double>()}, 0.0); },
-                     "SmoothUnionIF: the smoothing length must be positive (0)"));
-  REQUIRE(abortsWith([] { (void)SmoothUnion<double>(IFList{sphereA<double>()}, -1.0); },
-                     "SmoothUnion: the smoothing length must be positive (-1)"));
-  REQUIRE(abortsWith([] { (void)SmoothUnion<double>(nullIF(), sphereB<double>(), 0.1); },
-                     "SmoothUnion: the first implicit function must not be null"));
+  REQUIRE(
+    abortsWith([] { (void)SmoothUnion(SphereList{}, 0.1); }, "SmoothUnion: the list of operands must not be empty"));
+  REQUIRE(abortsWith([] { (void)SmoothUnion(sphereA<double>(), sphereB<double>(), 0.0); },
+                     "SmoothUnion: the smoothing length must be positive and finite (0)"));
+  REQUIRE(abortsWith([] { (void)SmoothUnion(SphereList{sphereA<double>()}, -1.0); },
+                     "SmoothUnion: the smoothing length must be positive and finite (-1)"));
+  REQUIRE(
+    abortsWith([] { (void)SmoothUnion(sphereA<double>(), sphereB<double>(), std::numeric_limits<double>::infinity()); },
+               "SmoothUnion: the smoothing length must be positive and finite (inf)"));
 }
 
 TEST_CASE("BVHUnion and BVHSmoothUnion: reject an unknown build strategy and a non-positive smoothing length",
@@ -1799,56 +2165,46 @@ TEST_CASE("BVHUnion and BVHSmoothUnion: reject an unknown build strategy and a n
     "BVHSmoothUnion: the smoothing length must be positive (0)"));
 }
 
-TEST_CASE("IntersectionIF and Intersection: reject an empty list, a null entry and a null argument",
-          "[CSG][Intersection]")
+TEST_CASE("Intersection: rejects an empty list", "[CSG][Intersection]")
 {
-  REQUIRE(abortsWith([] { (void)IntersectionIF<double>(IFList{nullIF()}); },
-                     "IntersectionIF: the list of implicit functions must not contain a null entry"));
-  REQUIRE(abortsWith([] { (void)Intersection<double>(IFList{}); },
-                     "Intersection: the list of implicit functions must not be empty"));
-  REQUIRE(abortsWith([] { (void)Intersection<double>(nullIF(), sphereB<double>()); },
-                     "Intersection: the first implicit function must not be null"));
+  REQUIRE(abortsWith([] { (void)Intersection(SphereList{}); }, "Intersection: the list of operands must not be empty"));
 }
 
-TEST_CASE("SmoothIntersectionIF and SmoothIntersection: reject a non-positive smoothing length and a null argument",
-          "[CSG][SmoothIntersection]")
+TEST_CASE("SmoothIntersection: rejects an empty list and a non-positive smoothing length", "[CSG][SmoothIntersection]")
 {
-  REQUIRE(abortsWith([] { (void)SmoothIntersectionIF<double>(sphereC<double>(), nullIF(), 0.1); },
-                     "SmoothIntersectionIF: implicit function B must not be null"));
-  REQUIRE(abortsWith([] { (void)SmoothIntersectionIF<double>(IFList{sphereC<double>(), sphereD<double>()}, 0.0); },
-                     "SmoothIntersectionIF: the smoothing length must be positive (0)"));
-  REQUIRE(abortsWith([] { (void)SmoothIntersection<double>(sphereC<double>(), sphereD<double>(), -0.5); },
-                     "SmoothIntersection: the smoothing length must be positive (-0.5)"));
+  REQUIRE(abortsWith([] { (void)SmoothIntersection(SphereList{}, 0.1); },
+                     "SmoothIntersection: the list of operands must not be empty"));
+  REQUIRE(abortsWith([] { (void)SmoothIntersection(SphereList{sphereC<double>(), sphereD<double>()}, 0.0); },
+                     "SmoothIntersection: the smoothing length must be positive and finite (0)"));
+  REQUIRE(abortsWith([] { (void)SmoothIntersection(sphereC<double>(), sphereD<double>(), -0.5); },
+                     "SmoothIntersection: the smoothing length must be positive and finite (-0.5)"));
 }
 
-TEST_CASE("DifferenceIF and Difference: reject a null argument and an empty subtrahend list", "[CSG][Difference]")
+TEST_CASE("Difference: rejects an empty subtrahend list", "[CSG][Difference]")
 {
-  REQUIRE(abortsWith([] { (void)DifferenceIF<double>(sphereC<double>(), IFList{}); },
-                     "DifferenceIF: the list of subtracted implicit functions must not be empty"));
-  REQUIRE(abortsWith([] { (void)Difference<double>(sphereC<double>(), nullIF()); },
-                     "Difference: implicit function B must not be null"));
+  REQUIRE(abortsWith([] { (void)Difference(sphereC<double>(), SphereList{}); },
+                     "Difference: the list of objects to subtract must not be empty"));
 }
 
-TEST_CASE("SmoothDifferenceIF and SmoothDifference: reject a null subtrahend and a non-positive smoothing length",
+TEST_CASE("SmoothDifference: rejects an empty subtrahend list and a non-positive smoothing length",
           "[CSG][SmoothDifference]")
 {
-  REQUIRE(abortsWith([] { (void)SmoothDifferenceIF<double>(sphereC<double>(), IFList{nullIF()}, 0.1); },
-                     "SmoothDifferenceIF: the list of subtracted implicit functions must not contain a null entry"));
-  REQUIRE(abortsWith([] { (void)SmoothDifference<double>(sphereC<double>(), sphereD<double>(), 0.0); },
-                     "SmoothDifference: the smoothing length must be positive (0)"));
+  REQUIRE(abortsWith([] { (void)SmoothDifference(sphereC<double>(), SphereList{}, 0.1); },
+                     "SmoothDifference: the list of objects to subtract must not be empty"));
+  REQUIRE(abortsWith([] { (void)SmoothDifference(sphereC<double>(), sphereD<double>(), 0.0); },
+                     "SmoothDifference: the smoothing length must be positive and finite (0)"));
+  REQUIRE(abortsWith([] { (void)SmoothDifference(sphereC<double>(), SphereList{sphereD<double>()}, -2.0); },
+                     "SmoothDifference: the smoothing length must be positive and finite (-2)"));
 }
 
-TEST_CASE("FiniteRepetitionIF and FiniteRepetition: reject a non-positive period and a negative repetition count",
-          "[CSG][FiniteRepetition]")
+TEST_CASE("FiniteRepetition: rejects a non-positive period and negative repetition counts", "[CSG][FiniteRepetition]")
 {
   using Vec3 = Vec3T<double>;
 
-  REQUIRE(
-    abortsWith([] { (void)FiniteRepetitionIF<double>(sphereA<double>(), Vec3(1, 0, 1), Vec3::ones(), Vec3::ones()); },
-               "FiniteRepetitionIF: the period must be positive in every direction (1, 0, 1)"));
-  REQUIRE(
-    abortsWith([] { (void)FiniteRepetitionIF<double>(sphereA<double>(), Vec3::ones(), Vec3(0, -1, 0), Vec3::ones()); },
-               "FiniteRepetitionIF: the low repetition counts must not be negative (0, -1, 0)"));
-  REQUIRE(abortsWith([] { (void)FiniteRepetition<double>(nullIF(), Vec3::ones(), Vec3::ones(), Vec3::ones()); },
-                     "FiniteRepetition: the implicit function must not be null"));
+  REQUIRE(abortsWith([] { (void)FiniteRepetition(sphereA<double>(), Vec3(1, 0, 1), Vec3::ones(), Vec3::ones()); },
+                     "FiniteRepetition: the period must be positive and finite in every direction (1, 0, 1)"));
+  REQUIRE(abortsWith([] { (void)FiniteRepetition(sphereA<double>(), Vec3::ones(), Vec3(0, -1, 0), Vec3::ones()); },
+                     "FiniteRepetition: the low repetition counts must be finite and not negative (0, -1, 0)"));
+  REQUIRE(abortsWith([] { (void)FiniteRepetition(sphereA<double>(), Vec3::ones(), Vec3::ones(), Vec3(-2, 0, 0)); },
+                     "FiniteRepetition: the high repetition counts must be finite and not negative (-2, 0, 0)"));
 }

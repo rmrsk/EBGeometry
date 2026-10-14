@@ -8,8 +8,8 @@
  * @details Every shape here is a plain, trivially copyable value type with no base class and no
  * virtual functions. Its signedDistance() and accessors are callable on the host and on a device, so
  * a shape can be copied into a kernel by value and evaluated there. Constructors run on the host.
- * The shapes are not ImplicitFunction objects, so they cannot be passed to the CSG operations or
- * the transforms; composing them returns with the tape.
+ * Every shape is a shape in the sense of isShape, so it can be composed with the expression builder
+ * (Union, Translate, ...; see EBGeometry_Expr.hpp) and compiled into a Tape.
  *
  * Conventions shared by every shape:
  * - Placement first: each constructor takes the shape's position (a center, corner, tip or point)

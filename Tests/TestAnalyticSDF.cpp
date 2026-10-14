@@ -218,7 +218,7 @@ shapeSamplePoints()
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Analytic shapes: plain, trivially copyable value types with no ImplicitFunction base",
+TEMPLATE_TEST_CASE("Analytic shapes: plain, trivially copyable value types and shapes in the sense of isShape",
                    "[AnalyticSDF]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -228,8 +228,10 @@ TEMPLATE_TEST_CASE("Analytic shapes: plain, trivially copyable value types with 
   STATIC_REQUIRE_FALSE(std::is_polymorphic_v<SphereSDF<T>>);
   STATIC_REQUIRE_FALSE(std::is_polymorphic_v<PerlinSDF<T>>);
   STATIC_REQUIRE_FALSE(std::is_polymorphic_v<RoundedBoxSDF<T>>);
-  STATIC_REQUIRE_FALSE(std::is_base_of_v<ImplicitFunction<T>, SphereSDF<T>>);
-  STATIC_REQUIRE_FALSE(std::is_base_of_v<ImplicitFunction<T>, BoxSDF<T>>);
+  STATIC_REQUIRE(isShape<SphereSDF<T>>);
+  STATIC_REQUIRE(isShape<BoxSDF<T>>);
+  STATIC_REQUIRE(isShape<PerlinSDF<T>>);
+  STATIC_REQUIRE(std::is_same_v<ShapePrecision<SphereSDF<T>>, T>);
 
   // A byte copy is a complete copy: it evaluates exactly like the original.
   const AllShapes<T> shapes;

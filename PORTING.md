@@ -9,13 +9,15 @@ original design discussion and is worth reading for the *rationale* behind indiv
 but its tier checklist describes the abandoned first attempt and is **stale**. Where the two
 disagree, this file wins.
 
-Until the tape starts, [AUDIT.md](AUDIT.md) carries the remaining sequence (its Phase 3) and the
+Until the tape is finished, [AUDIT.md](AUDIT.md) carries the remaining sequence (its Phase 3) and the
 inputs to the tape's design (its Appendix A). Audit item 26 moves what is still live from it into
 this file and the tape design document, and deletes it.
 
-Status, through audit item 24: every class meant to run on a device is ported, the pre-tape audit's
-Phases 0–2 are done, and the shape conventions (audit item 24) are settled. One thing remains before
-the tape: a machine that can run kernels (see "Before the tape").
+Status, through audit item 25b: every class meant to run on a device is ported, the pre-tape audit's
+Phases 0–2 are done, the shape conventions (audit item 24) are settled, and the tape's first steps
+are in: the layout/handle split (25a) and the expression builder, the tape and its host evaluator,
+with `ImplicitFunction` and the virtual transform/CSG layer retired (25b). The device evaluator (25c)
+is next; it needs a machine that can run kernels (see "Before the tape").
 
 ## The one rule
 
@@ -160,8 +162,7 @@ The AMReX integrations evaluate the mesh SDFs and the BVH unions inside AMReX's 
 | Parsers (`PolygonSoup`, `Soup`), `Random`, `SimpleTimer` | Host-only by design. `Random` and `SimpleTimer` serve the examples and are not included by `EBGeometry.hpp` |
 | `Triangle<T>` (AoS) | Host-side build input for `TriangleAoSoA`; not ported, and nothing on a device needs it |
 | `SFC`, point-cloud builds, `MeshT::reconcile()` | Host-only. A device build (Morton codes and a radix sort) would be needed only to rebuild on a device; see "After the tape" |
-| `ImplicitFunction`, `CSG`, `Transform` | The original virtual-`value()` design, now fed by user-written implicit functions only. The tape replaces it (audit decisions D4 and D5) |
-| Unions of different primitive types | Need runtime dispatch, which is the tape. The old `CSGUnion` example (a mesh plus a sphere) and the two `Shapes` integrations are tape acceptance tests until then, in `Tests/TapeAcceptance/` (D13) |
+| `Tape` evaluation on a device | The evaluator keeps to the device subset (no recursion, no virtual calls, fixed stacks), but no kernel evaluates a tape yet and the GPU harness does not test one; that is audit item 25c |
 
 ## Roadmap
 
@@ -177,11 +178,9 @@ integrations: its findings reshaped those steps, including several classes to re
 port (`Octree::Node`, `SignedDistanceFunction`, `SphereT`, the SYCL and OpenACC branches; D2).
 
 One consequence of porting the unions before the tape: `BVHUnion`/`BVHSmoothUnion` came back
-restricted to one primitive type. A union over primitives of *different* concrete types has no way
-to pick each primitive's formula on a device without some form of runtime dispatch -- which is what
-the tape is -- so until then there is no such union at all; homogeneous ones need no dispatch and run
-on a device. No interim dispatch mechanism is to be built in the meantime, since it would be a
-second tape.
+restricted to one primitive type. A union over primitives of *different* concrete types needs
+runtime dispatch, which is what the tape is: since 25b, `Union(...)` compiled into a `Tape` is that
+union, with a BVH over its operands. Homogeneous unions need no dispatch and stay as they are.
 
 ### Before the tape
 
@@ -222,8 +221,21 @@ The linear-SSA clause list and interpreter that replaces virtual dispatch, built
 first steps, as the audit fixed them: the layout/handle split (D1 step two), a value-type
 expression builder with a host evaluator (D4), and the retirement of `ImplicitFunction` and the
 virtual transform/CSG layer **in the same change**, with their test expectations carried over to the
-builder so there is no gap (D5). The tape acceptance tests in `Tests/TapeAcceptance/` must then
-compile against it and produce the geometry their README describes.
+builder so there is no gap (D5).
+
+**25b is done.** `Expr` (host-only, `EBGeometry_Expr.hpp`) describes a composed object; the existing
+free-function names (`Union`, `Translate`, ...) build it from shapes or other `Expr`s, and every node
+records its box and distance quality. `Tape<T, UserPrimitives...>` (`EBGeometry_Tape.hpp`) compiles it
+into a pool: one `PODVector` per primitive type (the twelve analytic shapes and three mesh SDFs built
+in, others listed by the user), 16-byte clauses on a value stack and a point stack, chains of point
+maps folded into one `Affine3T`, and sub-programs for Blur, Mollify and BVH-union operands, called
+through an `evaluate<D>` call-depth template instead of recursion (at most 4 deep). A union or smooth
+union of 8 or more distance operands gets a `PackedBVH<T, uint32_t, K>` over sub-program ids, built by
+the same helper as `BVHUnion`, unbounded operands kept out of the tree. The tape is a `PoolHandle`
+(`layout()`, `rebasedView()`, `deepCopy()`). The old `CSGUnion` example is back in `Examples/` on the
+tape, and the two `Shapes` integrations are ported and were compiled and run against AMReX and
+Chombo. **25c** is the device evaluator: kernels in the GPU harness evaluating tapes on a mirrored
+pool, against the host.
 
 **The tag/opcode registry is defined with the tape.** It was once to be defined while porting the
 mesh SDFs, so they and the analytic layer shared one scheme, but only the tape consumes it;

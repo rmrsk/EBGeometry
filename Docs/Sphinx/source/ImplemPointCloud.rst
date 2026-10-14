@@ -96,8 +96,8 @@ For a near-uniform cloud the grid builds faster than the BVH and queries about a
 strongly clustered or multi-scale cloud a single global cell size is a poor fit -- a query in an
 empty region visits many empty cells -- and ``PointCloudBVH`` is the better choice. The grid is also bounded-domain (dense cells sized to the bounding box, ``O(N)``
 memory for a compact cloud) and serves only point queries. Neither it nor ``PointCloudBVH`` can be
-composed as a primitive inside an outer BVH union or CSG: neither provides a ``signedDistance()``,
-and neither is an ``ImplicitFunction``.
+composed as a primitive inside an outer BVH union or a tape: neither provides a
+``signedDistance()``.
 
 See the `PointCloudHashGrid doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudHashGrid.html>`__ for the full interface, and
