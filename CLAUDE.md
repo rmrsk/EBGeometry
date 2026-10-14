@@ -56,6 +56,11 @@ cd Examples/Shapes
 cmake -S . -B build && cmake --build build
 ```
 
+The two `Device*` examples also take a GPU switch (`make GPU=HIP|CUDA`, CMake
+`-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's `EBGEOMETRY_ENABLE_HIP`/`CUDA`): the same source
+then runs its query functors in a kernel instead of a host loop. In a GPU build of the project they
+are collected in `EBGeometry_GPUDeviceExamples` and labeled `device-example` (they need a GPU to run).
+
 All three accept an `EBGEOMETRY_PRECISION`/`PRECISION` override (`float` or `double`, default
 `double`), an `EBGEOMETRY_HOME` override (default `../..`, the path to the directory containing
 `EBGeometry.hpp`), and an `EBGEOMETRY_ENABLE_ASSERTIONS`/`ASSERTIONS` toggle (`ON`/`OFF`, default

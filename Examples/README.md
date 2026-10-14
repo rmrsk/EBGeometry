@@ -3,6 +3,8 @@ third-party dependencies):
 
 * `BuildBVH` For comparing BVH construction methods by build time: CentroidSplit, MidpointSplit, SAH, Morton, Nested and Hilbert through TreeBVH and through PackedBVH's direct constructors, plus the direct-only ClusterSAH.
 * `CSGUnion` For composing objects of different types (a mesh placed several times, and spheres) with the expression builder and evaluating the result through a `Tape`.
+* `DevicePointCloud` For running k-nearest queries on a `PointCloudBVH` in a GPU kernel, with the cloud mirrored to device memory; the same source runs them in a host loop as plain C++. Checked against brute force.
+* `DeviceShape` For writing your own shape type, composing it into a `Tape` in managed memory and evaluating it in a GPU kernel; the same source runs it in a host loop as plain C++. Checked against known values.
 * `ClosestPointBVH` For closest-point search over a point cloud using the turnkey `PointCloudBVH` class: build once from positions, then `closestPoint()` / `closestPoints()` for arbitrary query points, checked against brute force.
 * `HostTuning` For choosing the BVH branching factor and SIMD width: the portable defaults against the values tuned to the host's SIMD flags, with timings.
 * `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
@@ -13,6 +15,9 @@ third-party dependencies):
 * `PackedSpheres` For a scene composed of many analytic spheres.
 * `RandomCity` For procedurally building a scene of many objects.
 * `Shapes` For using the analytic signed distance functions.
+
+The two `Device*` examples build as plain C++ by default. `make GPU=HIP` (or `CUDA`), or CMake with
+`-DEBGEOMETRY_EXAMPLE_GPU=HIP` (or `CUDA`), compiles the same source for a GPU.
 
 Examples that couple EBGeometry to a third-party application code (AMReX, Chombo) live under
 [`Integrations/`](../Integrations/README.md) at the repository root instead.

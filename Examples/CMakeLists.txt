@@ -23,11 +23,29 @@ function(ebgeometry_add_example name)
   # Examples load large mesh files and run in unoptimised debug builds; allow
   # up to 5 minutes each, and tag them so they can be run separately from the
   # fast unit-test suite (ctest -L example).
+  set(labels "example")
+
+  # In a GPU build the Device* examples are compiled for the device (their own CMakeLists.txt follows
+  # EBGEOMETRY_ENABLE_HIP/CUDA) and need a GPU to run, so they are labeled device-example instead and
+  # collected in one target that the GPU CI lanes build.
+  if(EBGEOMETRY_GPU_EXAMPLES AND name MATCHES "^Device")
+    set(labels "device-example")
+    add_dependencies(EBGeometry_GPUDeviceExamples ${name})
+  endif()
+
   set_tests_properties(${name} PROPERTIES
     TIMEOUT 300
-    LABELS  "example"
+    LABELS  "${labels}"
   )
 endfunction()
+
+# The examples whose name starts with Device run their queries in a GPU kernel when compiled as CUDA
+# or HIP, and in a host loop otherwise. In a GPU build they are compiled for the device and built by
+# this target, without being run.
+if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
+  set(EBGEOMETRY_GPU_EXAMPLES ON)
+  add_custom_target(EBGeometry_GPUDeviceExamples)
+endif()
 
 # Every folder here with a main.cpp is an example; the folders are the only list. CI loops over the
 # same folders (.github/workflows/CI.yml), so adding an example needs no edit here or there.

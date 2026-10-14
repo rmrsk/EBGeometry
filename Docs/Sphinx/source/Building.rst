@@ -345,5 +345,7 @@ compile. A HIP compile that is given host SIMD flags anyway (``-mavx`` in ``CMAK
 fine: the SIMD code paths are compiled for the host pass only.
 
 Objects are built on the host and reach the device by mirroring their ``Pool`` into device memory
-and taking a ``rebasedView()`` onto the mirror, which a kernel receives by value; see
-:ref:`Chap:MemoryModel`.
+and taking a ``rebasedView()`` onto the mirror, which a kernel receives by value, or by being built
+in managed memory and rebased onto their own pool; see :ref:`Chap:MemoryModel`. The examples
+:ref:`Chap:ExampleDeviceShape` and :ref:`Chap:ExampleDevicePointCloud` show both, each in a complete
+program that runs its queries in a kernel (see :ref:`Sec:ExamplesGPU`).

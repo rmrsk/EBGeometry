@@ -151,7 +151,8 @@ GPU-HIP
 
 Installs a HIP toolchain (``hipcc``, ``clang-17``) and compiles the unit-test files that carry a
 device block in clang's HIP mode, with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, so the
-GPU-callable code must compile for the device. It builds a second time, optimised (Release) and with
+GPU-callable code must compile for the device. It also compiles the ``Device*`` examples for the
+device (``EBGeometry_GPUDeviceExamples``, see :ref:`Sec:ExamplesGPU`), without running them. It builds a second time, optimised (Release) and with
 host SIMD flags (``-mavx -mfma -msse4.1``), which catches a SIMD block that is not excluded from
 device compilation, and device code whose compile grows out of hand once HIP inlines every device
 function, which only an optimised build shows. The runner has no GPU, so the device-tagged tests it then runs skip before launching a
@@ -161,7 +162,8 @@ code gives correct results. This job is required by ``CI-passed``.
 GPU-CUDA
 ~~~~~~~~
 
-The same device compile with ``nvcc`` (CUDA 12.5), without the second SIMD-flags build. Marked
+The same device compile with ``nvcc`` (CUDA 12.5), device examples included, without the second
+SIMD-flags build. Marked
 ``continue-on-error: true``, because its toolkit install is the least reliable step in the
 workflow, so it is advisory and does not gate ``CI-passed``.
 

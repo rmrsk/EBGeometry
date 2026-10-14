@@ -53,3 +53,39 @@ by hand, and exits with a nonzero status if they disagree.
 
 Run every example from inside its own folder — several resolve a default input mesh relative to
 the run directory. See :ref:`Chap:Building` for the full detail on each build method.
+
+.. _Sec:ExamplesGPU:
+
+Running on a GPU
+----------------
+
+Two examples, :ref:`Chap:ExampleDeviceShape` and :ref:`Chap:ExampleDevicePointCloud`, show how to
+run EBGeometry's queries on a GPU. Each query is a small trivially copyable functor whose call
+operator is ``EBGEOMETRY_HOST_DEVICE``. Built as plain C++ (the default), they run the queries in a
+host loop. Compiled as HIP or CUDA, the same source runs them in a kernel, written out in a few lines
+in each example. Each shows one way of getting the geometry to the device: managed memory in
+``DeviceShape``, a mirror in device memory in ``DevicePointCloud``.
+
+All three build methods take a GPU switch:
+
+.. code-block:: bash
+
+   # CMake (CMAKE_HIP_ARCHITECTURES / CMAKE_CUDA_ARCHITECTURES pick the target)
+   cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP     # or CUDA
+   cmake --build build
+
+   # GNU Make (HIP_ARCH / CUDA_ARCH pick the target; make clean when switching)
+   make GPU=HIP                                         # or GPU=CUDA
+
+   # Direct compilation
+   hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o <Example>.ex
+   nvcc  -std=c++17 -O3 -x cu -arch=sm_80 -I../.. main.cpp -o <Example>.ex
+
+Built as part of the EBGeometry project with ``EBGEOMETRY_ENABLE_HIP`` or ``EBGEOMETRY_ENABLE_CUDA``,
+the two are compiled for the device and collected in the ``EBGeometry_GPUDeviceExamples`` target.
+Their tests are then labeled ``device-example`` rather than ``example``, since they need a GPU to run.
+A GPU build exits with an error when no GPU is visible.
+
+Continuous integration runs both as plain C++, like every other example, and compiles them for the
+device in the HIP and CUDA jobs. Those runners have no GPU, so the kernel path is compiled but not
+run there.

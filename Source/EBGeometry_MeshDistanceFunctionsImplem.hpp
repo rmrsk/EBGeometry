@@ -576,8 +576,8 @@ MeshSDF<T, K>::rebasedView(const Pool& a_pool) const noexcept
 {
   // The mesh and the BVH share one location. Rebasing each checks its own arrays (and the BVH its
   // depth); the location they agree on is the view's.
-  const Mesh mesh = this->getMesh().rebasedView(a_pool);
-  const Root bvh  = this->getRoot().rebasedView(a_pool);
+  [[maybe_unused]] const Mesh mesh = this->getMesh().rebasedView(a_pool);
+  const Root                  bvh  = this->getRoot().rebasedView(a_pool);
 
   EBGEOMETRY_EXPECT(mesh.location().m_control == bvh.location().m_control &&
                     mesh.location().m_base == bvh.location().m_base &&
