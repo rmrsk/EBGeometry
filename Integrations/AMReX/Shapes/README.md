@@ -2,9 +2,15 @@ Integrations/AMReX/Shapes
 -------------------------
 
 This example uses the embedded boundary grid generation from AMReX, using analytic SDFs from EBGeometry. Some
-geometries are transformed or combined (`Offset`, `Elongate`, `Annular`, `SmoothDifference`, `Complement`) with
+geometries are transformed or combined (`Offset`, `Elongate`, `Annular`, `SmoothDifference`) with
 EBGeometry's expression builder, and the result is compiled into a `Tape`, which the AMReX implicit function holds by
-value. The tape is evaluated on the CPU; it runs on a GPU once the tape has a device evaluator.
+value. In a CUDA or HIP build of AMReX, the tape is compiled into managed memory, which the host and the device can both
+read, so one handle serves both and AMReX evaluates the tape in its kernels without a device copy of the geometry.
+
+Managed memory suits small geometry like this tape, a few KB. For large geometry, mirror the pool to device memory instead,
+as the RandomCity and MeshSDF integrations do, rather than have the driver migrate pages between host and device. On AMD
+MI200-class GPUs, managed memory also migrates only with XNACK enabled (`HSA_XNACK=1`); without it, the device reads it
+from host memory, which is correct but slow for large data.
 
 Compiling
 ---------

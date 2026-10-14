@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// This integration composes the analytic shapes, and a few transforms (Offset, Annular, Complement),
+// This integration composes the analytic shapes, and a few transforms (Offset, Annular),
 // with EBGeometry's expression builder, compiles the result into a Tape, and hands it to Chombo's
 // GeometryShop as an implicit function.
 
@@ -49,7 +49,9 @@ public:
 
 #endif
 
-    return Real(m_tape.signedDistance(p));
+    // EBGeometry's value is negative inside the shape. The sign is flipped here, not in the
+    // expression, so that the fluid is the space around the shape.
+    return -Real(m_tape.signedDistance(p));
   }
 
   BaseIF*
@@ -159,8 +161,6 @@ main(int argc, char* argv[])
   if (!impFunc) {
     MayDay::Error("which_geom must be between 0 and 10");
   }
-
-  impFunc = EBGeometry::Complement(*impFunc);
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);

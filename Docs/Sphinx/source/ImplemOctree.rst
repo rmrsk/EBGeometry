@@ -13,9 +13,8 @@ device whenever the function it is given is. The same header holds
 `normal <doxygen/html/namespaceEBGeometry.html#af196161d66e46c5834e178aad6605b50>`__, the finite-difference normal of
 any function.
 
-Both take the function as anything that is evaluated at a point: an analytic shape or a mesh
-distance field or a tape (through its ``signedDistance()``), an object with a ``value()`` member,
-or a callable such as a lambda, tried in that order.
+Both take the function as anything that is evaluated at a point: an analytic shape, a mesh
+distance field or a tape (through its ``signedDistance()``), or else a callable such as a lambda.
 
 .. _Sec:OctreeBoundingVolume:
 

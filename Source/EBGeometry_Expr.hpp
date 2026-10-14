@@ -140,6 +140,11 @@ struct ShapeInfo<
  * @details The analytic shapes, the mesh SDFs, the BVH unions and Tape are shapes. A shape may also have
  * a static constexpr `distanceQuality` member (see DistanceQuality); without one it counts as
  * DistanceQuality::Bound.
+ *
+ * Every shape's value goes by the one name `signedDistance`, whatever its distance quality, and the
+ * two together say what the value means. The sign is the contract every shape keeps: negative inside,
+ * positive outside, zero on the surface. The magnitude is what the distance quality says: the distance
+ * to the surface (Exact), at most that distance (Bound), or nothing (NotADistance).
  * @tparam S Candidate type.
  */
 template <class S>

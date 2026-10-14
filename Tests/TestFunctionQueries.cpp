@@ -3,7 +3,7 @@
 
 // Test suite for EBGeometry_FunctionQueries.hpp: approximateBoundingVolumeOctree, against an
 // independent recursive subdivision and on its failure cases, and the finite-difference normal(). Both
-// take any function of a point: a shape, a Tape, an object with a value() member or a lambda.
+// take any function of a point: a shape, a Tape or a lambda.
 
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
@@ -22,19 +22,6 @@
 using namespace EBGeometry;
 
 namespace {
-
-// A function with only a value() member, for the queries' value() path.
-template <class F, class T>
-struct ValueOnly
-{
-  F m_function;
-
-  [[nodiscard]] T
-  value(const Vec3T<T>& a_point) const noexcept
-  {
-    return m_function.signedDistance(a_point);
-  }
-};
 
 // A recursive subdivision written independently of the library's: a cell whose center value is
 // within the safety-scaled half-diagonal is subdivided, and kept at the last level. Corners are
@@ -258,28 +245,26 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: an empty or inverted box, o
   CHECK(isMaximal(approximateBoundingVolumeOctree(sphere, Vec3(100, 100, 100), Vec3(101, 101, 101), 4U, T(0.0))));
 }
 
-TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: a shape, a Tape, a value() object and a lambda give the same box",
+TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree: a shape, a Tape and a lambda give the same box",
                    "[FunctionQueries]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const SphereSDF<T>               sphere(Vec3(T(0.25), T(-0.5), T(0.125)), T(1));
-  const TestUtils::Compiled<T>     tape(sphere);
-  const ValueOnly<SphereSDF<T>, T> valueOnly{sphere};
+  const SphereSDF<T>           sphere(Vec3(T(0.25), T(-0.5), T(0.125)), T(1));
+  const TestUtils::Compiled<T> tape(sphere);
 
   const Vec3 initLo = -2 * Vec3::ones();
   const Vec3 initHi = +2 * Vec3::ones();
 
   const auto fromShape  = approximateBoundingVolumeOctree(sphere, initLo, initHi, 6U, T(0.25));
   const auto fromTape   = approximateBoundingVolumeOctree(tape.tape(), initLo, initHi, 6U, T(0.25));
-  const auto fromValue  = approximateBoundingVolumeOctree(valueOnly, initLo, initHi, 6U, T(0.25));
   const auto fromLambda = approximateBoundingVolumeOctree(
     [&sphere](const Vec3& a_point) { return sphere.signedDistance(a_point); }, initLo, initHi, 6U, T(0.25));
 
-  // All four evaluate the same formula at the same points.
-  for (const auto& bv : {fromTape, fromValue, fromLambda}) {
+  // All three evaluate the same formula at the same points.
+  for (const auto& bv : {fromTape, fromLambda}) {
     CHECK(bv.getLowCorner() == fromShape.getLowCorner());
     CHECK(bv.getHighCorner() == fromShape.getHighCorner());
   }
@@ -314,11 +299,10 @@ TEMPLATE_TEST_CASE("normal: the finite-difference normal of a sphere points away
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const Vec3                       center(T(0.25), T(-0.5), T(0.125));
-  const SphereSDF<T>               sphere(center, T(1));
-  const TestUtils::Compiled<T>     tape(sphere);
-  const ValueOnly<SphereSDF<T>, T> valueOnly{sphere};
-  const T                          delta = T(1.0e-3);
+  const Vec3                   center(T(0.25), T(-0.5), T(0.125));
+  const SphereSDF<T>           sphere(center, T(1));
+  const TestUtils::Compiled<T> tape(sphere);
+  const T                      delta = T(1.0e-3);
 
   // Central differences are off by O(delta^2) from the curvature, about 1e-7 here, and in float the
   // cancellation in (hi - lo) / (2 delta) costs about eps / delta.
@@ -334,9 +318,8 @@ TEMPLATE_TEST_CASE("normal: the finite-difference normal of a sphere points away
 
     CHECK_THAT(n.length(), withinAbsT(T(1), tightMargin<T>()));
 
-    // Through a tape, value() and a callable: the same evaluations, so the same result.
+    // Through a tape and a callable: the same evaluations, so the same result.
     CHECK(normal(tape.tape(), x, delta) == n);
-    CHECK(normal(valueOnly, x, delta) == n);
     CHECK(normal([&sphere](const Vec3& a_point) { return sphere.signedDistance(a_point); }, x, delta) == n);
   }
 }

@@ -2,7 +2,7 @@ Integrations/Chombo/Shapes
 --------------------------
 
 This example uses the embedded boundary grid generation from Chombo3, and shows how to use basic SDFs from EBGeometry.
-Some geometries are transformed (`Offset`, `Annular`, `Complement`) with EBGeometry's expression builder, and the
+Some geometries are transformed (`Offset`, `Annular`) with EBGeometry's expression builder, and the
 result is compiled into a `Tape`, which the Chombo implicit function holds by value.
 
 Compiling
