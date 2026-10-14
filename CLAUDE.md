@@ -56,10 +56,12 @@ cd Examples/Shapes
 cmake -S . -B build && cmake --build build
 ```
 
-The two `Device*` examples also take a GPU switch (`make GPU=HIP|CUDA`, CMake
+Every example except `BuildBVH` and `HostTuning` also takes a GPU switch (`make GPU=HIP|CUDA`, CMake
 `-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's `EBGEOMETRY_ENABLE_HIP`/`CUDA`): the same source
-then runs its query functors in a kernel instead of a host loop. In a GPU build of the project they
-are collected in `EBGeometry_GPUDeviceExamples` and labeled `device-example` (they need a GPU to run).
+then also runs its query functor on the device through `GPU::transform()` and compares the results with
+the host's. A GPU build with no visible GPU skips the device part and exits 0. In a GPU build of the
+project these examples are collected in `EBGeometry_GPUDeviceExamples` (CI compiles it, without
+running it); their tests keep the `example` label.
 
 All three accept an `EBGEOMETRY_PRECISION`/`PRECISION` override (`float` or `double`, default
 `double`), an `EBGEOMETRY_HOME` override (default `../..`, the path to the directory containing

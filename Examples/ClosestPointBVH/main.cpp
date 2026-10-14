@@ -14,6 +14,10 @@
 // in the caller's own array, indexed by it. Every query is checked against a brute-force scan. See
 // README.md. The self-query counterpart (nearest neighbors of points already in the cloud) is
 // Examples/NearestNeighborBVH.
+//
+// Compiled for a GPU (GPU=HIP or GPU=CUDA), the same run also answers the queries in a kernel: the
+// cloud's pool is copied to device memory, the cloud is rebased onto the copy, and
+// EBGeometry::GPU::transform() runs a query functor holding it once per point.
 
 #include <algorithm>
 #include <cmath>
@@ -48,6 +52,25 @@ constexpr std::size_t   numPoints  = 500000;
 constexpr std::size_t   numQueries = 500;
 constexpr std::uint64_t pointSeed  = 123456789ULL;
 constexpr std::uint64_t querySeed  = 987654321ULL;
+
+namespace {
+
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. It holds the cloud by value; on a device, that is the
+// cloud rebased onto device memory.
+struct ClosestPoint
+{
+  Cloud cloud;
+
+  EBGEOMETRY_HOST_DEVICE
+  Cloud::Hit
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return cloud.closestPoint(a_point);
+  }
+};
+
+} // namespace
 
 int
 main()
@@ -91,11 +114,12 @@ main()
   const double bruteSeconds = timer.seconds();
 
   // Query every point via the BVH, timing the batch.
+  const ClosestPoint      closestPoint{bvh};
   std::vector<Cloud::Hit> hits(numQueries);
   timer.start();
 
   for (std::size_t q = 0; q < numQueries; q++) {
-    hits[q] = bvh.closestPoint(queryPoints[q]);
+    hits[q] = closestPoint(queryPoints[q]);
   }
 
   timer.stop();
@@ -119,7 +143,48 @@ main()
             << " us/query\n";
   std::cout << "  PointCloudBVH : " << std::setprecision(3) << 1.0e6 * querySeconds / double(numQueries) << " us/query"
             << "   (" << std::setprecision(1) << bruteSeconds / querySeconds << "x faster)\n";
-  std::cout << "  Mismatches    : " << mismatches << " of " << numQueries << "\n\n";
+  std::cout << "  Mismatches    : " << mismatches << " of " << numQueries << "\n";
+
+  // ── The same queries on a GPU ──────────────────────────────────────────────────────────────────────
+  //
+  // The cloud is built on the host. Its pool is frozen and copied to device memory in one piece, and
+  // the cloud is rebased onto the copy; the rebased cloud is what the kernel receives, inside the query.
+  // This is the pattern for large geometry: the device reads its own copy at full speed. The device
+  // results agree with the host's to rounding, since a device compiler may fuse a multiply and an add
+  // where the host compiler does not. The time includes copying the queries and results.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "  On the device : skipped, no GPU is visible\n";
+  }
+  else {
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const ClosestPoint     onDevice{bvh.rebasedView(devicePool)};
+
+    timer.start();
+    const std::vector<Cloud::Hit> deviceHits = EBGeometry::GPU::transform(onDevice, queryPoints);
+    timer.stop();
+
+    std::size_t differ = 0;
+
+    for (std::size_t q = 0; q < numQueries; q++) {
+      if (std::abs(deviceHits[q].distanceSquared - hits[q].distanceSquared) >
+          tolerance * std::max(hits[q].distanceSquared, T(1.0))) {
+        differ++;
+      }
+    }
+
+    std::cout << "  On the device : " << std::setprecision(3) << 1.0e6 * timer.seconds() / double(numQueries)
+              << " us/query (" << EBGeometry::GPU::backendName << "), " << differ << " differ from the host\n";
+
+    mismatches += differ;
+  }
+#else
+  std::cout << "  On the device : not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
+#endif
+
+  std::cout << '\n';
 
   // The k-nearest form: the k closest points to one external point, nearest first.
   constexpr std::size_t k = 5;

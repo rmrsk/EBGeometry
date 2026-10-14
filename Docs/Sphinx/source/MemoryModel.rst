@@ -93,8 +93,8 @@ ever stores in a pool, including SIMD-width SoA blocks.
    control block (see below), which a kernel cannot follow. To hand it to a kernel without a mirror,
    freeze the pool and call ``rebasedView()`` onto the pool itself: the view holds the pool's base
    address, which both sides can use. A view rebased onto a ``Managed`` or ``Mapped`` mirror can
-   likewise be used on the host; a view of a ``Device`` pool cannot. :ref:`Chap:ExampleDeviceShape`
-   builds a tape this way, and :ref:`Chap:ExampleDevicePointCloud` mirrors a point cloud to device
+   likewise be used on the host; a view of a ``Device`` pool cannot. :ref:`Chap:ExampleCustomShape`
+   builds a tape this way, and :ref:`Chap:ExampleClosestPointBVH` mirrors a point cloud to device
    memory instead.
 
 .. note::

@@ -18,6 +18,9 @@ instead, compose ``Translate(mesh, shift)`` and compile the union into a ``Tape`
 :ref:`Chap:ExampleCSGUnion` does. The program checks the nested union against the smallest
 distance over every placement at random points, which must agree up to rounding.
 
+Compiled for a GPU, the same run also evaluates the nested union in a kernel and compares the
+results with the host's; see :ref:`Sec:ExamplesGPU`.
+
 The source for this example is at :file:`Examples/NestedBVH/main.cpp`. See :ref:`Chap:Building`
 for how to compile it with CMake, GNU Make, or a direct compiler invocation. Unlike the mesh-reading
 examples above, it defaults to the ``dodecahedron.stl`` fixture shipped in the repository, so it

@@ -1,9 +1,10 @@
-Examples/DeviceShape
+Examples/CustomShape
 --------------------
 
 A shape of your own, composed with built-in shapes into a
-[`Tape`](https://rmrsk.github.io/EBGeometry/doxygen/html/classEBGeometry_1_1Tape.html) and evaluated in
-a GPU kernel, or in a host loop in a plain C++ build.
+[`Tape`](https://rmrsk.github.io/EBGeometry/doxygen/html/classEBGeometry_1_1Tape.html), evaluated on the
+host and, in a GPU build, in a GPU kernel too. The kernel is written out in `main.cpp`, to show what
+`EBGeometry::GPU::transform()`, which the other examples call, does.
 
 The shape is an octahedron, written in `main.cpp` as an ordinary struct. It is trivially copyable,
 with an `EBGEOMETRY_HOST_DEVICE` `signedDistance()` and `computeBoundingVolume()` and a static
@@ -15,9 +16,9 @@ boxes.
 In a GPU build the tape is compiled straight into managed memory (`managedMemoryResource()`), which the
 host and the device can both read. Its pool is frozen and the tape rebased onto it, which gives one handle
 for both, and the kernel receives it by value. That suits a small object like this one, a few KB. For
-large geometry, mirror the pool to device memory instead, as
-[`Examples/DevicePointCloud`](../DevicePointCloud/README.md) does: managed memory migrates between host
-and device as it is touched, and on AMD MI200-class GPUs it migrates only with XNACK enabled.
+large geometry, mirror the pool to device memory instead, as the other examples do (see
+[`Examples/ClosestPointBVH`](../ClosestPointBVH/README.md)): managed memory migrates between host and
+device as it is touched, and on AMD MI200-class GPUs it migrates only with XNACK enabled.
 
 Building
 --------
@@ -31,15 +32,16 @@ is two levels up from this folder (`../..`) when building in place. See
 [GPU builds](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildinggpu) in the user documentation
 for more detail on each approach.
 
-By default each method builds plain C++, and the queries run in a host loop. Asked for a GPU build, the
-same source is compiled as HIP or CUDA, and the queries run in a kernel. Nothing else changes.
+By default each method builds plain C++, which runs the example on the host. Asked for a GPU build, the
+same source is compiled as HIP or CUDA, and the same run also does its queries in a kernel and compares
+them with the host's.
 
 **CMake**
 
     cmake -S . -B build
     cmake --build build
 
-The binary is `DeviceShape.ex`, in this same directory (same as the other two methods below). Build for a GPU,
+The binary is `CustomShape.ex`, in this same directory (same as the other two methods below). Build for a GPU,
 in single precision, against a library in a different location, or with `EBGEOMETRY_EXPECT()` runtime
 assertions enabled, with cache variables:
 
@@ -51,7 +53,7 @@ assertions enabled, with cache variables:
 
     make
 
-This produces `./DeviceShape.ex`. Override the defaults on the command line (`make clean` first when switching
+This produces `./CustomShape.ex`. Override the defaults on the command line (`make clean` first when switching
 between a host and a GPU build):
 
     make GPU=HIP HIP_ARCH=gfx90a
@@ -60,9 +62,9 @@ between a host and a GPU build):
 
 **Directly with a compiler**
 
-    g++   -std=c++17 -O3 -march=native -I../.. main.cpp -o DeviceShape.ex
-    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o DeviceShape.ex
-    nvcc  -std=c++17 -O3 -x cu -arch=sm_80 -I../.. main.cpp -o DeviceShape.ex
+    g++   -std=c++17 -O3 -march=native -I../.. main.cpp -o CustomShape.ex
+    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o CustomShape.ex
+    nvcc  -std=c++17 -O3 -x cu -arch=sm_80 -I../.. main.cpp -o CustomShape.ex
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
@@ -70,10 +72,10 @@ Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE
 Running
 -------
 
-    ./DeviceShape.ex
+    ./CustomShape.ex
 
 Takes no arguments. It evaluates the scene at points where the value is known: the centers of the
 sphere and of each octahedron, a point beyond a vertex and a point beyond a face. It also evaluates a
 grid of 64,000 points. In a GPU build every grid value is also compared with the host's. The program
-prints the number of mismatches and exits with a nonzero status if there are any. A GPU build exits
-with an error if no GPU is visible.
+prints the number of mismatches and exits with a nonzero status if there are any. A GPU build without a
+visible GPU skips the device part.

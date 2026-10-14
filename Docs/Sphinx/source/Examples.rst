@@ -59,12 +59,31 @@ the run directory. See :ref:`Chap:Building` for the full detail on each build me
 Running on a GPU
 ----------------
 
-Two examples, :ref:`Chap:ExampleDeviceShape` and :ref:`Chap:ExampleDevicePointCloud`, show how to
-run EBGeometry's queries on a GPU. Each query is a small trivially copyable functor whose call
-operator is ``EBGEOMETRY_HOST_DEVICE``. Built as plain C++ (the default), they run the queries in a
-host loop. Compiled as HIP or CUDA, the same source runs them in a kernel, written out in a few lines
-in each example. Each shows one way of getting the geometry to the device: managed memory in
-``DeviceShape``, a mirror in device memory in ``DevicePointCloud``.
+Every example whose queries can run on a device builds from the same source as plain C++ (the
+default) or as CUDA or HIP. Compiled for a GPU, the same run does its usual work on the host and then
+repeats its queries on the device, comparing every device result with the host's. They agree to
+rounding rather than bit for bit, since a device compiler may fuse a multiply and an add where the
+host compiler does not. Without a visible GPU the device part is skipped with a message, and the
+program still checks its host results and exits normally. ``BuildBVH`` and ``HostTuning`` stay
+host-only: they are about the BVH builders and the host-tuned types, neither of which a device uses.
+
+Each query is a small trivially copyable functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
+holding what it evaluates by value. ``EBGeometry::GPU::transform(query, inputs)`` (see
+:ref:`Sec:BuildingGPU`) runs it once per input in a kernel, and in a plain C++ build in a host loop.
+:ref:`Chap:ExampleCustomShape` writes that kernel out instead, to show what ``GPU::transform`` does.
+
+The examples show three ways of getting the geometry to the device:
+
+* **Nothing to copy.** Analytic shapes are plain values, so a query holds them and goes straight to
+  the kernel (:ref:`Chap:ExampleShapes`, :ref:`Chap:ExampleOctreeBoundingVolume`).
+* **A mirror in device memory.** The pool is built on the host, frozen and copied to device memory in
+  one piece, and the object is rebased onto the copy. This is the pattern for large geometry: mesh
+  SDFs, BVH unions, tapes and point clouds (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleNestedBVH`,
+  :ref:`Chap:ExampleCSGUnion`, :ref:`Chap:ExamplePackedSpheres`, :ref:`Chap:ExampleRandomCity`,
+  :ref:`Chap:ExampleClosestPointBVH`, :ref:`Chap:ExampleNearestNeighborBVH`,
+  :ref:`Chap:ExampleNearestNeighborHashGrid`).
+* **Managed memory.** The pool is built in managed memory, frozen, and the object rebased onto it:
+  one handle for host and device, with no copy (:ref:`Chap:ExampleCustomShape`).
 
 All three build methods take a GPU switch:
 
@@ -82,10 +101,6 @@ All three build methods take a GPU switch:
    nvcc  -std=c++17 -O3 -x cu -arch=sm_80 -I../.. main.cpp -o <Example>.ex
 
 Built as part of the EBGeometry project with ``EBGEOMETRY_ENABLE_HIP`` or ``EBGEOMETRY_ENABLE_CUDA``,
-the two are compiled for the device and collected in the ``EBGeometry_GPUDeviceExamples`` target.
-Their tests are then labeled ``device-example`` rather than ``example``, since they need a GPU to run.
-A GPU build exits with an error when no GPU is visible.
-
-Continuous integration runs both as plain C++, like every other example, and compiles them for the
-device in the HIP and CUDA jobs. Those runners have no GPU, so the kernel path is compiled but not
-run there.
+these examples are compiled for the device and collected in the ``EBGeometry_GPUDeviceExamples``
+target. Continuous integration runs every example as plain C++ and compiles them for the device in
+the HIP and CUDA jobs. Those runners have no GPU, so the device part is compiled but not run there.

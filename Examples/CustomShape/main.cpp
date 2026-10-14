@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// A shape of your own, composed with built-in shapes into a Tape and evaluated in a GPU kernel. The
-// same source builds as plain C++ (the default), where the queries run in a host loop instead, or as
-// CUDA or HIP, where they run on the device.
+// A shape of your own, composed with built-in shapes into a Tape, evaluated on the host and, in a CUDA
+// or HIP build, in a GPU kernel too. The same source builds as plain C++ (the default) or for a GPU.
 //
 // The shape is an octahedron, written below as an ordinary struct: trivially copyable, with an
 // EBGEOMETRY_HOST_DEVICE signedDistance() and computeBoundingVolume(). Twelve rotated copies on a ring
@@ -19,7 +18,8 @@
 //
 // The program checks the values at points where they are known (the centers of the octahedra and of
 // the sphere, and points beyond an octahedron's vertex and face) and, in a GPU build, that the device
-// and the host agree on a grid of points. See README.md.
+// and the host agree on a grid of points. The kernel is written out below, to show what
+// EBGeometry::GPU::transform() (which the other examples call) does. See README.md.
 
 #include <cmath>
 #include <cstddef>
@@ -120,11 +120,12 @@ constexpr T   sphereRadius  = T(0.75);
 constexpr int gridPerAxis   = 40;
 constexpr T   gridHalfWidth = T(2);
 
-// ── Running a query over many inputs: a kernel on a GPU, a loop on the host ─────────────────────────
+// ── Running a query in a GPU kernel ─────────────────────────────────────────────────────────────────
 //
 // A query is a trivially copyable functor whose call operator is EBGEOMETRY_HOST_DEVICE. It holds what
-// it evaluates by value (here a tape that resolves against memory the query can read), is passed to the
-// kernel by value, and maps one input to one result.
+// it evaluates by value (here a tape that resolves against memory the device can read), is passed to
+// the kernel by value, and maps one input to one result. This is what EBGeometry::GPU::transform()
+// does, written out; the other examples call it instead.
 namespace {
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
@@ -152,12 +153,10 @@ check(const EBGeometry::GPU::Error a_error, const char* a_what)
   }
 }
 
-constexpr const char* runsOn = "a GPU kernel";
-
 // Copy the inputs to the device, run the kernel, and copy the results back.
 template <class Out, class In, class Query>
 std::vector<Out>
-runQuery(const Query& a_query, const std::vector<In>& a_inputs)
+runOnDevice(const Query& a_query, const std::vector<In>& a_inputs)
 {
   static_assert(std::is_trivially_copyable_v<Query>, "a query is passed to the kernel by value");
 
@@ -182,26 +181,6 @@ runQuery(const Query& a_query, const std::vector<In>& a_inputs)
   check(EBGeometry::GPU::memcpy(results.data(), out, sizeof(Out) * n, EBGeometry::GPU::MemcpyDeviceToHost), "memcpy");
   check(EBGeometry::GPU::memFree(in), "memFree");
   check(EBGeometry::GPU::memFree(out), "memFree");
-
-  return results;
-}
-
-#else
-
-constexpr const char* runsOn = "a host loop (plain C++ build)";
-
-// The same query, run in a loop on the host.
-template <class Out, class In, class Query>
-std::vector<Out>
-runQuery(const Query& a_query, const std::vector<In>& a_inputs)
-{
-  std::vector<Out> results;
-
-  results.reserve(a_inputs.size());
-
-  for (const In& input : a_inputs) {
-    results.push_back(a_query(input));
-  }
 
   return results;
 }
@@ -243,19 +222,8 @@ ringCenter(const int a_index)
 int
 main()
 {
-  std::cout << "DeviceShape: a user-written octahedron in a tape, evaluated from " << runsOn << "\n";
+  std::cout << "CustomShape: a user-written octahedron in a tape\n";
   std::cout << "  Precision T = " << (std::is_same_v<T, float> ? "float" : "double") << "\n\n";
-
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  int devices = 0;
-
-  if (EBGeometry::GPU::getDeviceCount(&devices) != EBGeometry::GPU::Success || devices == 0) {
-    std::cerr
-      << "This is a GPU build, but no GPU is visible. Rebuild it as plain C++ to run the queries on the host.\n";
-
-    return EXIT_FAILURE;
-  }
-#endif
 
   // Twelve octahedra on a ring around a sphere, each turned about its own vertical axis before it is
   // moved into place. A union of eight or more operands is evaluated with a BVH over their boxes.
@@ -275,10 +243,13 @@ main()
 
   // In a GPU build the tape goes in managed memory, which the host and the device can both read; that
   // suits a small object like this one (a few KB). For large geometry, build in host memory and mirror
-  // the pool to device memory instead, as Examples/DevicePointCloud does. The pool must outlive every
+  // the pool to device memory instead, as the other examples do. The pool must outlive every
   // evaluation.
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  EBGeometry::MemoryResource& resource = EBGeometry::managedMemoryResource();
+  // Managed memory needs a device; without one, the host part still runs from host memory.
+  EBGeometry::MemoryResource& resource =
+    EBGeometry::GPU::deviceAvailable() ? static_cast<EBGeometry::MemoryResource&>(EBGeometry::managedMemoryResource())
+                                       : EBGeometry::hostMemoryResource();
 #else
   EBGeometry::MemoryResource& resource = EBGeometry::hostMemoryResource();
 #endif
@@ -344,7 +315,16 @@ main()
     }
   }
 
-  const std::vector<T> values = runQuery<T>(DistanceQuery{view}, points);
+  // On the host: the same query, called in a loop.
+  const DistanceQuery query{view};
+
+  std::vector<T> values;
+
+  values.reserve(points.size());
+
+  for (const Vec3& p : points) {
+    values.push_back(query(p));
+  }
 
   std::size_t failures = 0;
 
@@ -357,24 +337,45 @@ main()
     }
   }
 
-  // The device and the host evaluate the same code, but a device compiler may contract a * b + c into
-  // one fused operation where the host does not, so they agree to rounding rather than bit for bit.
-  const T rounding = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
-
   std::size_t inside = 0;
 
   for (std::size_t i = known.size(); i < points.size(); i++) {
-    if (!matches(values[i], view.signedDistance(points[i]), rounding)) {
-      failures++;
-    }
-
     if (values[i] < T(0)) {
       inside++;
     }
   }
 
   std::cout << "  Grid points : " << points.size() - known.size() << " (" << inside << " inside)\n";
-  std::cout << "  Mismatches  : " << failures << "\n";
+  std::cout << "  Mismatches  : " << failures << " at the known points\n";
+
+  // On the device, in a CUDA or HIP build: the same query in the kernel above, compared with the host.
+  // They agree to rounding rather than bit for bit, since a device compiler may fuse a multiply and an
+  // add where the host compiler does not.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "  On the device: skipped, no GPU is visible\n";
+  }
+  else {
+    const std::vector<T> onDevice = runOnDevice<T>(query, points);
+
+    const T rounding = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
+
+    std::size_t differ = 0;
+
+    for (std::size_t i = 0; i < points.size(); i++) {
+      if (!matches(onDevice[i], values[i], rounding)) {
+        differ++;
+      }
+    }
+
+    std::cout << "  On the device (" << EBGeometry::GPU::backendName << "): " << points.size() << " points, " << differ
+              << " differ from the host\n";
+
+    failures += differ;
+  }
+#else
+  std::cout << "  On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
+#endif
 
   return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

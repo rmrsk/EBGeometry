@@ -14,6 +14,9 @@ only the objects near it.
 The program prints the size of the compiled tape and checks it against the smallest distance over
 every object, evaluated directly, at random points; the two must agree up to rounding.
 
+Compiled for a GPU, the same run also evaluates the tape in a kernel and compares the results with
+the host's; see :ref:`Sec:ExamplesGPU`.
+
 The source for this example is at :file:`Examples/CSGUnion/main.cpp`. See :ref:`Chap:Building`
 for how to compile it with CMake, GNU Make, or a direct compiler invocation. Like
 :ref:`Chap:ExampleNestedBVH`, it defaults to the ``dodecahedron.stl`` fixture shipped in the

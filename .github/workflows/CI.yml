@@ -461,7 +461,7 @@ jobs:
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
         # with nvcc, so the device-callable surface must compile for the device. The device-test list
         # lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them, and
-        # EBGeometry_GPUDeviceExamples the Device* examples. No GPU is needed.
+        # EBGeometry_GPUDeviceExamples the examples compiled for the device. No GPU is needed.
         run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples --parallel 2
       - name: Run device-tagged tests
         # This runner has no GPU. Every [gpu] test case SKIP()s at its first statement when
@@ -490,8 +490,8 @@ jobs:
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP)
         # with clang's HIP mode, so the device-callable surface must compile for the device. The
         # device-test list lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them.
-        # No GPU is needed. EBGeometry_GPUDeviceExamples compiles the Device* examples for the device
-        # in the same way.
+        # No GPU is needed. EBGeometry_GPUDeviceExamples compiles the examples for the device in the
+        # same way.
         run: cmake --build build/hip --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples --parallel 2
       - name: Configure and build optimised, with host SIMD flags
         # A HIP translation unit compiled with -mavx: clang's device pass then sees __AVX__ as well,

@@ -3,11 +3,11 @@
 # EBGEOMETRY_HOME must point at the directory that contains EBGeometry.hpp (the
 # EBGeometry repository root); it defaults to the in-tree location two levels up.
 # PRECISION selects the floating-point type (float or double). ASSERTIONS
-# (ON/OFF) toggles EBGEOMETRY_EXPECT() runtime assertion checks. GPU selects where
-# the queries run: OFF (the default) builds plain C++ and runs them in a host loop,
-# and HIP or CUDA compiles for a GPU with hipcc or nvcc and runs them in a kernel
-# (HIP_ARCH and CUDA_ARCH pick the target; run `make clean` after switching).
-# Override any of these on the command line, e.g.:
+# (ON/OFF) toggles EBGEOMETRY_EXPECT() runtime assertion checks. GPU (OFF, HIP or
+# CUDA) compiles the example for a GPU with hipcc or nvcc, so that the same run
+# also does its queries on the device (HIP_ARCH and CUDA_ARCH pick the target;
+# run `make clean` after switching). Override any of these on the command line,
+# e.g.:
 #
 #   make PRECISION=float ASSERTIONS=ON EBGEOMETRY_HOME=/path/to/EBGeometry
 #   make GPU=HIP HIP_ARCH=gfx942
@@ -36,7 +36,7 @@ ifeq ($(ASSERTIONS),ON)
   CXXFLAGS += -DEBGEOMETRY_ENABLE_ASSERTIONS
 endif
 
-TARGET := DeviceShape.ex
+TARGET := CustomShape.ex
 
 $(TARGET): main.cpp
 	$(CXX) $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@

@@ -20,6 +20,9 @@ near a hole, where the inside is not well defined.
    has a "blind spot" at its center where even a BVH must visit most, if not all, primitives —
    this example is a good way to see that effect in practice.
 
+Compiled for a GPU, the same run also evaluates the MeshSDF and TriMeshSDF queries in a kernel and
+compares the results with the host's; see :ref:`Sec:ExamplesGPU`.
+
 The source for this example is at :file:`Examples/MeshSDF/main.cpp`. See :ref:`Chap:Building`
 for how to compile it with CMake, GNU Make, or a direct compiler invocation.
 

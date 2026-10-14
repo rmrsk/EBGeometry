@@ -27,12 +27,33 @@ using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3   = EBGeometry::Vec3T<T>;
 using Sphere = EBGeometry::SphereSDF<T>;
 
+// Tree branching factor
+constexpr size_t K = 4;
+
+using Union = EBGeometry::BVHUnion<T, Sphere, K>;
+
+namespace {
+
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. It holds the union by value; on a device, that is the
+// union rebased onto device memory.
+struct UnionDistance
+{
+  Union spheres;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return spheres.signedDistance(a_point);
+  }
+};
+
+} // namespace
+
 int
 main()
 {
-  // Tree branching factor
-  constexpr size_t K = 4;
-
   // Make a sphere array consisting of M^3 spheres.
   std::vector<Sphere> spheres;
   std::vector<AABB>   boundingVolumes;
@@ -80,7 +101,7 @@ main()
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const EBGeometry::BVHUnion<T, Sphere, K> fastUnion(pool, spheres, boundingVolumes);
+  const Union fastUnion(pool, spheres, boundingVolumes);
 
   // Create some samples in the bounding box of the BVH
   std::cout << "Sampling distance fields... \n" << '\n';
@@ -139,6 +160,46 @@ main()
   std::cout << "Time using fast union (us)   = " << fastTime.count() / Nsamp << "\n\n";
   std::cout << "BVH speedup over naive       = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
   std::cout << "Points where the two differ  = " << mismatches << " of " << randomPositions.size() << "\n";
+
+  // ── The same queries on a GPU ──────────────────────────────────────────────────────────────────────
+  //
+  // Compiled for a GPU (GPU=HIP or GPU=CUDA), the pool holding the union is frozen and copied to device
+  // memory in one piece, the union is rebased onto the copy, and EBGeometry::GPU::transform()
+  // evaluates it once per point in a kernel. The device agrees with the host to rounding, for the same
+  // reason the two host loops do. The time includes copying the points and results.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "On the device: skipped, no GPU is visible\n";
+  }
+  else {
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const UnionDistance    onDevice{fastUnion.rebasedView(devicePool)};
+
+    const auto t4 = std::chrono::high_resolution_clock::now();
+
+    const std::vector<T> deviceDist = EBGeometry::GPU::transform(onDevice, randomPositions);
+
+    const auto t5 = std::chrono::high_resolution_clock::now();
+
+    size_t differ = 0;
+
+    for (size_t i = 0; i < randomPositions.size(); i++) {
+      differ += (std::abs(deviceDist[i] - fastDist[i]) > tolerance) ? 1 : 0;
+    }
+
+    const std::chrono::duration<T, std::micro> deviceTime = t5 - t4;
+
+    std::cout << "Time on the device (us)      = " << deviceTime.count() / Nsamp << " (" << EBGeometry::GPU::backendName
+              << ")\n";
+    std::cout << "Points where it differs      = " << differ << " of " << randomPositions.size() << "\n";
+
+    mismatches += differ;
+  }
+#else
+  std::cout << "On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
+#endif
 
   if (mismatches > 0) {
     std::cerr << "Got wrong distance!" << '\n';

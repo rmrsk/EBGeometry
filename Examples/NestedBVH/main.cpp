@@ -31,6 +31,25 @@ using Vec3 = EBGeometry::Vec3T<T>;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Mesh = EBGeometry::TriMeshSDF<T, K, EBGeometry::TriangleSoA::DefaultWidth<T>()>;
 
+namespace {
+
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. It holds the nested union by value; on a device, that is
+// the union rebased onto device memory, meshes and all.
+struct UnionDistance
+{
+  EBGeometry::BVHUnion<T, Mesh, K> scene;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return scene.signedDistance(a_point);
+  }
+};
+
+} // namespace
+
 // The function-try-block reports a mesh file that cannot be read, rather than letting the exception
 // terminate the program.
 int
@@ -124,6 +143,11 @@ try {
 
   constexpr int numSamples = 1000;
 
+  const UnionDistance onHost{nestedUnion};
+
+  std::vector<Vec3> points;
+  std::vector<T>    values;
+
   int mismatches = 0;
 
   for (int i = 0; i < numSamples; i++) {
@@ -135,11 +159,48 @@ try {
       closest = std::min(closest, mesh.signedDistance(p));
     }
 
-    mismatches += (std::abs(nestedUnion.signedDistance(p) - closest) > tolerance) ? 1 : 0;
+    points.push_back(p);
+    values.push_back(onHost(p));
+
+    mismatches += (std::abs(values.back() - closest) > tolerance) ? 1 : 0;
   }
 
   std::cout << "Points where the nested union differs from a scan over the placements = " << mismatches << " of "
             << numSamples << "\n";
+
+  // ── The same queries on a GPU ──────────────────────────────────────────────────────────────────────
+  //
+  // Compiled for a GPU (GPU=HIP or GPU=CUDA), the pool holding the union and every mesh is frozen and
+  // copied to device memory in one piece, the union is rebased onto the copy, and
+  // EBGeometry::GPU::transform() evaluates it once per point in a kernel: both levels of BVH traversal
+  // run on the device. The device agrees with the host to rounding, since a device compiler may fuse a
+  // multiply and an add where the host compiler does not.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "On the device: skipped, no GPU is visible\n";
+  }
+  else {
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const UnionDistance    onDevice{nestedUnion.rebasedView(devicePool)};
+
+    const std::vector<T> deviceValues = EBGeometry::GPU::transform(onDevice, points);
+
+    int differ = 0;
+
+    for (int i = 0; i < numSamples; i++) {
+      differ += (std::abs(deviceValues[i] - values[i]) > tolerance) ? 1 : 0;
+    }
+
+    std::cout << "On the device (" << EBGeometry::GPU::backendName << "): " << numSamples << " points, " << differ
+              << " differ from the host\n";
+
+    mismatches += differ;
+  }
+#else
+  std::cout << "On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
+#endif
 
   return mismatches == 0 ? 0 : 1;
 } catch (const EBGeometry::Parser::ParseError& e) {

@@ -27,6 +27,30 @@ using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
 using Box  = EBGeometry::BoxSDF<T>;
 
+// BVH tree branching factor.
+constexpr size_t K = 4;
+
+using City = EBGeometry::BVHUnion<T, Box, K>;
+
+namespace {
+
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. It holds the union by value; on a device, that is the
+// union rebased onto device memory.
+struct CityDistance
+{
+  City city;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return city.signedDistance(a_point);
+  }
+};
+
+} // namespace
+
 int
 main()
 {
@@ -35,7 +59,6 @@ main()
 
   // Building parameters:
   //
-  // K         : BVH tree branching factor
   // N         : Number of random points to sample.
   // M         : Number of building *lots* per coordinate direction, indexed 0..M inclusive,
   //             so the lattice actually places (M+1) x (M+1) buildings.
@@ -44,16 +67,15 @@ main()
   // Lmin, Lmax: Minimum and maximum building length
   // Hmin, Hmax: Minimum and maximum building height
 
-  constexpr int    N    = 500;
-  constexpr size_t K    = 4;
-  constexpr int    M    = 234;
-  constexpr T      dx   = 0.1;
-  constexpr T      Wmin = 1;
-  constexpr T      Wmax = 3;
-  constexpr T      Lmin = 1;
-  constexpr T      Lmax = 3;
-  constexpr T      Hmin = 1;
-  constexpr T      Hmax = 20;
+  constexpr int N    = 500;
+  constexpr int M    = 234;
+  constexpr T   dx   = 0.1;
+  constexpr T   Wmin = 1;
+  constexpr T   Wmax = 3;
+  constexpr T   Lmin = 1;
+  constexpr T   Lmax = 3;
+  constexpr T   Hmin = 1;
+  constexpr T   Hmax = 20;
 
   std::cout << "Domain is (0,0,0) to " << Vec3(M * (Wmax + dx), M * (Lmax + dx), M * (Hmax + dx)) << "\n";
 
@@ -101,7 +123,7 @@ main()
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const auto fastUnion = EBGeometry::BVHUnion<T, Box, K>(pool, buildings, boundingVolumes);
+  const City fastUnion(pool, buildings, boundingVolumes);
 
   // Sample some random points in the bounding box of the BVH.
   Vec3 lo = Vec3::infinity();
@@ -159,6 +181,46 @@ main()
   std::cout << "Time using fast union (us) = " << fastTime.count() / N << "\n";
   std::cout << "Average speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
   std::cout << "Points where the two differ = " << mismatches << " of " << randomPositions.size() << "\n";
+
+  // ── The same queries on a GPU ──────────────────────────────────────────────────────────────────────
+  //
+  // Compiled for a GPU (GPU=HIP or GPU=CUDA), the pool holding the union is frozen and copied to device
+  // memory in one piece, the union is rebased onto the copy, and EBGeometry::GPU::transform()
+  // evaluates it once per point in a kernel. The device agrees with the host to rounding, for the same
+  // reason the two host loops do. The time includes copying the points and results.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "On the device: skipped, no GPU is visible\n";
+  }
+  else {
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const CityDistance     onDevice{fastUnion.rebasedView(devicePool)};
+
+    const auto t4 = std::chrono::high_resolution_clock::now();
+
+    const std::vector<T> deviceDist = EBGeometry::GPU::transform(onDevice, randomPositions);
+
+    const auto t5 = std::chrono::high_resolution_clock::now();
+
+    size_t differ = 0;
+
+    for (size_t i = 0; i < randomPositions.size(); i++) {
+      differ += (std::abs(deviceDist[i] - fastDist[i]) > tolerance) ? 1 : 0;
+    }
+
+    const std::chrono::duration<T, std::micro> deviceTime = t5 - t4;
+
+    std::cout << "Time on the device (us) = " << deviceTime.count() / N << " (" << EBGeometry::GPU::backendName
+              << ")\n";
+    std::cout << "Points where it differs = " << differ << " of " << randomPositions.size() << "\n";
+
+    mismatches += differ;
+  }
+#else
+  std::cout << "On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
+#endif
 
   if (mismatches > 0) {
     std::cerr << "Got wrong distance!" << '\n';

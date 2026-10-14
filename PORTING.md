@@ -280,16 +280,20 @@ either way. A plain restart revisits leaves, which is wrong for the smooth union
 smallest values) and `KBest`, and unknowable for a caller's leaf evaluator; a restart trail assumes a
 child order that is the same on every descent, which a caller's stateful child orderer need not give.
 
-**Examples that run on the host and on a device: done.** `Examples/DeviceShape` (a user-written
-octahedron in a `Tape<T, Octahedron<T>>`, in managed memory) and `Examples/DevicePointCloud` (a
-`PointCloudBVH` mirrored to device memory, answering 4-nearest queries) build as plain C++ by default,
-running each query functor in a host loop, and as HIP or CUDA (`make GPU=HIP|CUDA`,
-`-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's `EBGEOMETRY_ENABLE_HIP`/`CUDA`), running it in a
-kernel written out in each example rather than through a library launch API. Each checks known values
-(and, `DevicePointCloud`, a brute-force scan). The example jobs run them as plain C++; the GPU-HIP and
-GPU-CUDA jobs compile them for the device (`EBGeometry_GPUDeviceExamples`), label `device-example`,
-without running them. A device path in the `MeshSDF` example was left out: the two cover both memory
-patterns and both kinds of query, and a mesh adds file I/O without a new device concept.
+**Examples that run on the host and on a device: done.** Every example except `BuildBVH` and
+`HostTuning` (host-only by design) is one source that builds as plain C++ by default and as HIP or CUDA
+(`make GPU=HIP|CUDA`, `-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's
+`EBGEOMETRY_ENABLE_HIP`/`CUDA`). Each writes its query as a trivially copyable functor, runs it on the
+host, and in a GPU build also runs it on the device through the new `GPU::transform(query, inputs)`
+(`EBGeometry_GPUTransform.hpp`: a checked allocate, copy, launch and copy back, or a host loop in a host
+build) and compares the two at a rounding tolerance (a device compiler may contract a multiply and add).
+A GPU build with no visible GPU runs the host part, skips the device part and exits 0. The analytic
+shapes need no copy, most examples mirror their pool to device memory, and `CustomShape` (a
+user-written octahedron in a `Tape<T, Octahedron<T>>`) uses managed memory and writes its kernel out,
+to show what `GPU::transform` does. The first draft's separate `DeviceShape` and `DevicePointCloud`
+became `CustomShape` and the device part of `ClosestPointBVH`. The `TestGPU.hpp` harness is built on
+`GPU::transform` too. The example jobs run them as plain C++; the GPU-HIP and GPU-CUDA jobs compile
+them for the device (`EBGeometry_GPUDeviceExamples`) without running them.
 
 **A batched traversal path.** The device traversal is correctness-first, and is not a tuned GPU
 kernel. It is the textbook formulation: one query point per thread, each with a private stack,

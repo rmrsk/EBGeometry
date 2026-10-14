@@ -28,6 +28,33 @@ using T    = EBGEOMETRY_PRECISION;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
 
+namespace {
+
+// Both BVH-backed distances at one point.
+struct Distances
+{
+  T mesh;
+  T tri;
+};
+
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. It holds the two mesh SDFs by value; on a device, those
+// are the SDFs rebased onto device memory.
+struct BothDistances
+{
+  MeshSDF<T, K>                                                                  meshSDF;
+  TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()> triSDF;
+
+  EBGEOMETRY_HOST_DEVICE
+  Distances
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return {meshSDF.signedDistance(a_point), triSDF.signedDistance(a_point)};
+  }
+};
+
+} // namespace
+
 // The function-try-block reports a mesh file that cannot be read, rather than letting the exception
 // terminate the program.
 int
@@ -145,6 +172,41 @@ try {
   std::cout << "Points where MeshSDF differs from FlatMeshSDF    = " << meshMismatches << " of " << Nsamp << "\n";
   std::cout << "Points where TriMeshSDF differs from FlatMeshSDF = " << triMismatches << " of " << Nsamp << "\n";
   // clang-format on
+
+  // ── The same queries on a GPU ──────────────────────────────────────────────────────────────────────
+  //
+  // Compiled for a GPU (GPU=HIP or GPU=CUDA), the pool holding both meshes and their BVHs is frozen and
+  // copied to device memory in one piece, the SDFs are rebased onto the copy, and
+  // EBGeometry::GPU::transform() evaluates them once per point in a kernel. The device agrees with the
+  // host to rounding, since a device compiler may fuse a multiply and an add where the host compiler
+  // does not.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "On the device: skipped, no GPU is visible\n";
+  }
+  else {
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const BothDistances    onDevice{meshSDF.rebasedView(devicePool), triSDF.rebasedView(devicePool)};
+
+    const std::vector<Distances> deviceDist = EBGeometry::GPU::transform(onDevice, ranPoints);
+
+    size_t differ = 0;
+
+    for (size_t i = 0; i < Nsamp; i++) {
+      differ += (std::abs(deviceDist[i].mesh - meshDist[i]) > tolerance) ? 1 : 0;
+      differ += (std::abs(deviceDist[i].tri - triDist[i]) > tolerance) ? 1 : 0;
+    }
+
+    std::cout << "On the device (" << EBGeometry::GPU::backendName << "): MeshSDF and TriMeshSDF at " << Nsamp
+              << " points, " << differ << " values differ from the host\n";
+
+    meshMismatches += differ;
+  }
+#else
+  std::cout << "On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
+#endif
 
   if (meshMismatches > 0 || triMismatches > 0) {
     std::cerr << "The mesh SDFs disagree by more than " << tolerance << " (is the mesh watertight?)\n";

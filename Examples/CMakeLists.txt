@@ -15,6 +15,15 @@ function(ebgeometry_add_example name)
     target_link_options(${name} PRIVATE -fsanitize=address,undefined)
   endif()
 
+  # An example that its own CMakeLists.txt compiled for a GPU (following EBGEOMETRY_ENABLE_HIP/CUDA) is
+  # collected in one target that the GPU CI lanes build. It still runs anywhere: without a visible GPU
+  # it skips its device part.
+  get_property(gpu_examples GLOBAL PROPERTY EBGEOMETRY_GPU_EXAMPLES)
+
+  if(name IN_LIST gpu_examples)
+    add_dependencies(EBGeometry_GPUDeviceExamples ${name})
+  endif()
+
   add_test(
     NAME    ${name}
     COMMAND $<TARGET_FILE:${name}>
@@ -23,27 +32,16 @@ function(ebgeometry_add_example name)
   # Examples load large mesh files and run in unoptimised debug builds; allow
   # up to 5 minutes each, and tag them so they can be run separately from the
   # fast unit-test suite (ctest -L example).
-  set(labels "example")
-
-  # In a GPU build the Device* examples are compiled for the device (their own CMakeLists.txt follows
-  # EBGEOMETRY_ENABLE_HIP/CUDA) and need a GPU to run, so they are labeled device-example instead and
-  # collected in one target that the GPU CI lanes build.
-  if(EBGEOMETRY_GPU_EXAMPLES AND name MATCHES "^Device")
-    set(labels "device-example")
-    add_dependencies(EBGeometry_GPUDeviceExamples ${name})
-  endif()
-
   set_tests_properties(${name} PROPERTIES
     TIMEOUT 300
-    LABELS  "${labels}"
+    LABELS  "example"
   )
 endfunction()
 
-# The examples whose name starts with Device run their queries in a GPU kernel when compiled as CUDA
-# or HIP, and in a host loop otherwise. In a GPU build they are compiled for the device and built by
-# this target, without being run.
+# In a GPU build, the examples that can run their queries on a device are compiled as CUDA or HIP and
+# collected in this target. BuildBVH and HostTuning stay host-only: they are about the builders and the
+# host-tuned types, neither of which a device uses.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
-  set(EBGEOMETRY_GPU_EXAMPLES ON)
   add_custom_target(EBGeometry_GPUDeviceExamples)
 endif()
 

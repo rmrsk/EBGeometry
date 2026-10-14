@@ -132,8 +132,7 @@ Examples
    ExampleClosestPointBVH.rst
    ExampleNearestNeighborBVH.rst
    ExampleNearestNeighborHashGrid.rst
-   ExampleDeviceShape.rst
-   ExampleDevicePointCloud.rst
+   ExampleCustomShape.rst
    Integrations.rst
 
 Contributing and testing

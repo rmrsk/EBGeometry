@@ -24,6 +24,25 @@ using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 // tape's built-in primitive types.
 using Mesh = EBGeometry::MeshSDF<T, EBGeometry::BVH::DefaultBranchingRatio<T>()>;
 
+namespace {
+
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. It holds the tape by value; on a device, that is the tape
+// rebased onto device memory, with the mesh and its BVH.
+struct TapeDistance
+{
+  EBGeometry::Tape<T> tape;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return tape.signedDistance(a_point);
+  }
+};
+
+} // namespace
+
 // The function-try-block reports a mesh file that cannot be read, rather than letting the exception
 // terminate the program.
 int
@@ -105,6 +124,11 @@ try {
 
   constexpr int numSamples = 1000;
 
+  const TapeDistance onHost{tape};
+
+  std::vector<Vec3> points;
+  std::vector<T>    values;
+
   int mismatches = 0;
 
   for (int i = 0; i < numSamples; i++) {
@@ -118,11 +142,48 @@ try {
       closest = EBGeometry::Math::min(closest, spheres[j].signedDistance(p));
     }
 
-    mismatches += (std::abs(tape.signedDistance(p) - closest) > tolerance) ? 1 : 0;
+    points.push_back(p);
+    values.push_back(onHost(p));
+
+    mismatches += (std::abs(values.back() - closest) > tolerance) ? 1 : 0;
   }
 
   std::cout << "Points where the tape differs from a scan over the objects = " << mismatches << " of " << numSamples
             << "\n";
+
+  // ── The same queries on a GPU ──────────────────────────────────────────────────────────────────────
+  //
+  // Compiled for a GPU (GPU=HIP or GPU=CUDA), the pool holding the mesh, its BVH and the tape is frozen
+  // and copied to device memory in one piece, the tape is rebased onto the copy, and
+  // EBGeometry::GPU::transform() evaluates it once per point in a kernel. The device agrees with the
+  // host to rounding, since a device compiler may fuse a multiply and an add where the host compiler
+  // does not.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "On the device: skipped, no GPU is visible\n";
+  }
+  else {
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const TapeDistance     onDevice{tape.rebasedView(devicePool)};
+
+    const std::vector<T> deviceValues = EBGeometry::GPU::transform(onDevice, points);
+
+    int differ = 0;
+
+    for (int i = 0; i < numSamples; i++) {
+      differ += (std::abs(deviceValues[i] - values[i]) > tolerance) ? 1 : 0;
+    }
+
+    std::cout << "On the device (" << EBGeometry::GPU::backendName << "): " << numSamples << " points, " << differ
+              << " differ from the host\n";
+
+    mismatches += differ;
+  }
+#else
+  std::cout << "On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
+#endif
 
   return mismatches == 0 ? 0 : 1;
 } catch (const EBGeometry::Parser::ParseError& e) {

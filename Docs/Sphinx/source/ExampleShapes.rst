@@ -11,6 +11,9 @@ definition, and a few shapes' bounding boxes from ``computeBoundingVolume()``, a
 nonzero status if any disagrees. It also shows each shape's ``distanceQuality``: every shape is an
 exact distance except the Perlin noise.
 
+Compiled for a GPU, the same run also evaluates every shape on a grid in a kernel and compares the
+results with the host's; see :ref:`Sec:ExamplesGPU`.
+
 The source for this example is at :file:`Examples/Shapes/main.cpp`. See :ref:`Chap:Building`
 for how to compile it with CMake, GNU Make, or a direct compiler invocation.
 

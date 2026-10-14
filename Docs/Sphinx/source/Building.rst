@@ -347,5 +347,27 @@ fine: the SIMD code paths are compiled for the host pass only.
 Objects are built on the host and reach the device by mirroring their ``Pool`` into device memory
 and taking a ``rebasedView()`` onto the mirror, which a kernel receives by value, or by being built
 in managed memory and rebased onto their own pool; see :ref:`Chap:MemoryModel`. The examples
-:ref:`Chap:ExampleDeviceShape` and :ref:`Chap:ExampleDevicePointCloud` show both, each in a complete
-program that runs its queries in a kernel (see :ref:`Sec:ExamplesGPU`).
+:ref:`Chap:ExampleCustomShape` shows the second, and :ref:`Chap:ExampleClosestPointBVH` and most
+other examples the first (see :ref:`Sec:ExamplesGPU`).
+
+To run a query on many inputs, write it as a trivially copyable functor with an
+``EBGEOMETRY_HOST_DEVICE`` call operator that holds what it evaluates by value, and call
+`GPU::transform(query, inputs) <doxygen/html/EBGeometry__GPUTransform_8hpp.html>`__
+(``EBGeometry_GPUTransform.hpp``, included by ``EBGeometry.hpp``). In a CUDA or HIP translation unit
+it copies the inputs to the device, runs the query once per input in a kernel, and copies the results
+back, checking every runtime call. In a plain C++ build it runs the same query in a host loop, so
+one source serves both. ``GPU::enabled`` says which of the two a translation unit gets,
+``GPU::backendName`` names it, and ``GPU::deviceAvailable()`` says whether a device is visible.
+The query and its result must be trivially copyable, which is checked at compile time in both builds.
+
+.. code-block:: c++
+
+   struct Distance
+   {
+     PointCloudBVH<T> cloud;   // rebased onto device memory
+
+     EBGEOMETRY_HOST_DEVICE PointCloud::Hit<T>
+     operator()(const Vec3T<T>& a_point) const noexcept { return cloud.closestPoint(a_point); }
+   };
+
+   const auto hits = GPU::transform(Distance{deviceCloud}, points);   // std::vector of results
