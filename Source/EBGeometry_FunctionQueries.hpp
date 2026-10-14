@@ -41,8 +41,8 @@ constexpr unsigned int MaxOctreeDepth = 24;
  * maximum, so the function allocates nothing and is callable on a device if the function is.
  *
  * The function can be anything that is evaluated at a point: an object with a
- * `signedDistance(const Vec3T<T>&)` member (an analytic shape or a mesh SDF), an object with a
- * `value(const Vec3T<T>&)` member (an ImplicitFunction), or a callable taking a `const Vec3T<T>&`,
+ * `signedDistance(const Vec3T<T>&)` member (an analytic shape, a mesh SDF or a Tape), an object with a
+ * `value(const Vec3T<T>&)` member, or a callable taking a `const Vec3T<T>&`,
  * tried in that order.
  *
  * If the initial box is empty or inverted along any axis, or the function's value at its center

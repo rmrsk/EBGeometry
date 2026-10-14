@@ -158,13 +158,13 @@ defaultUnionOptions() noexcept
  * @brief BVH-accelerated union of many primitives of one type.
  * @details A PackedBVH over the primitives, stored by value in a Pool. At query time the BVH culls
  * primitives whose bounding volume lies further than the current best distance, giving sub-linear
- * cost on large scenes. Interior semantics are those of UnionIF: the value is the minimum over all
- * primitives, negative inside the union.
+ * cost on large scenes. The value is the minimum over all primitives, negative inside the union.
  *
- * This is a plain, trivially copyable value type with no virtual functions, so it is not an
- * ImplicitFunction. signedDistance() is callable on the host and on a device: mirror the pool, call
- * rebasedView(), and pass the result to a kernel. Because every primitive has the same type P, no
- * runtime dispatch is needed; a union of primitives of different types waits for the tape.
+ * This is a plain, trivially copyable value type with no virtual functions. signedDistance() is
+ * callable on the host and on a device: mirror the pool, call rebasedView(), and pass the result to a
+ * kernel. Because every primitive has the same type P, no runtime dispatch is needed. For primitives of
+ * different types, compose them with Union() and compile the result into a Tape, which evaluates a
+ * union of many operands with a BVH too.
  *
  * P can be any trivially copyable type with an EBGEOMETRY_HOST_DEVICE
  * `signedDistance(const Vec3T<T>&)`: an analytic shape, a mesh distance function, or another BVH

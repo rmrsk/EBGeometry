@@ -12,16 +12,12 @@ components). A handful of design choices recur throughout the implementation:
   ``T`` (almost always ``float`` or ``double``). Precision is a compile-time choice: the library
   has no notion of a "current" precision at runtime, and nothing dispatches on it dynamically.
 
-* **Plain value types for distance fields, a common interface for composition.** The analytic
-  shapes and the surface-mesh distance fields are plain, trivially copyable value types with no
-  virtual functions, so they can be copied to a GPU and evaluated there. The transformations and
-  CSG combinators instead derive from a small polymorphic interface, ``ImplicitFunction<T>``, and
-  wrap or combine any object that
-  implements it through ordinary virtual dispatch. That interface currently accepts user-written
-  implicit functions only. The built-in distance fields can be combined through the BVH-accelerated
-  unions, which are plain value types too and take many objects of one type; other compositions of
-  them return with the redesign of the CSG layer that replaces virtual dispatch with a linear-SSA
-  tape. See :ref:`Chap:ImplemCSG`.
+* **Plain value types everywhere, and a compiled tape for composition.** The analytic shapes, the
+  surface-mesh distance fields and the BVH unions are plain, trivially copyable value types with no
+  virtual functions, so they can be copied to a GPU and evaluated there. Transformations and CSG
+  combinations are described with a value-type expression builder and compiled into a ``Tape``: one
+  array per primitive type and a list of clauses that refer to the primitives by type and index, so
+  that evaluating a composed object needs no virtual dispatch either. See :ref:`Chap:ImplemCSG`.
 
 * **The same acceleration structure for two different problems.** Finding the closest facet in
   a surface mesh, and finding the closest object in a CSG union of many objects, are both,
@@ -60,8 +56,8 @@ The remaining pages in this section cover each component in more detail:
   that ``DCEL::MeshT``, ``BVH::PackedBVH`` and the mesh SDFs, point clouds and BVH unions built
   from them rest on.
 * :ref:`Chap:Vector` -- the ``Vec2T``/``Vec3T`` vector types used throughout the library.
-* :ref:`Chap:ImplemCSG` -- the ``ImplicitFunction`` interface, the
-  analytic shapes, transforms, and CSG combinators.
+* :ref:`Chap:ImplemCSG` -- shapes, the analytic shapes, the expression builder for transforms and
+  CSG combinations, the tape that evaluates them, and the BVH unions.
 * :ref:`Chap:ImplemDCEL` -- the half-edge (DCEL) surface mesh representation.
 * :ref:`Chap:ImplemBVH` -- bounding volume hierarchy construction, traversal, and the packed
   mesh/CSG signed distance function classes built on top of it.

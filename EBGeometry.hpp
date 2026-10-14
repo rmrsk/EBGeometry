@@ -8,6 +8,7 @@
  * @author Robert Marskar
  */
 
+#include "Source/EBGeometry_Affine.hpp"
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "Source/EBGeometry_Array.hpp"
 #include "Source/EBGeometry_BVH.hpp"
@@ -24,10 +25,10 @@
 #include "Source/EBGeometry_DCEL_Mesh.hpp"
 #include "Source/EBGeometry_DCEL_Vertex.hpp"
 #include "Source/EBGeometry_DistanceQuality.hpp"
+#include "Source/EBGeometry_Expr.hpp"
 #include "Source/EBGeometry_FunctionQueries.hpp"
 #include "Source/EBGeometry_GPU.hpp"
 #include "Source/EBGeometry_GPURuntime.hpp"
-#include "Source/EBGeometry_ImplicitFunction.hpp"
 #include "Source/EBGeometry_Macros.hpp"
 #include "Source/EBGeometry_Math.hpp"
 #include "Source/EBGeometry_MemoryResource.hpp"
@@ -46,7 +47,7 @@
 #include "Source/EBGeometry_SFC.hpp"
 #include "Source/EBGeometry_Soup.hpp"
 #include "Source/EBGeometry_StreamOperators.hpp"
-#include "Source/EBGeometry_Transform.hpp"
+#include "Source/EBGeometry_Tape.hpp"
 #include "Source/EBGeometry_TreeBVH.hpp"
 #include "Source/EBGeometry_Triangle.hpp"
 #include "Source/EBGeometry_TriangleAoSoA.hpp"

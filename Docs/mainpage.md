@@ -13,10 +13,10 @@ integration, the underlying geometric concepts), see the
 
 ### Where to start reading
 
-* EBGeometry::ImplicitFunction — the abstract base class the transformations and CSG combinators
-  implement, and user-written implicit functions derive from. The analytic shapes (e.g.
-  EBGeometry::SphereSDF) and the mesh distance fields (e.g. EBGeometry::TriMeshSDF) are plain,
-  GPU-callable value types that do not.
+* EBGeometry::Expr and EBGeometry::Tape — the expression builder that composes shapes (the analytic
+  shapes such as EBGeometry::SphereSDF, the mesh distance fields such as EBGeometry::TriMeshSDF, or
+  your own) with transforms and CSG operations, and the compiled, trivially copyable form that
+  evaluates the result without virtual dispatch.
 * EBGeometry::DCEL::MeshT — the half-edge (doubly-connected edge list) surface mesh
   representation, together with EBGeometry::DCEL::VertexT, EBGeometry::DCEL::EdgeT, and
   EBGeometry::DCEL::FaceT.

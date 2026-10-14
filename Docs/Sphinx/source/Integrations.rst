@@ -10,7 +10,7 @@ Integrations
    :ref:`Chap:Examples`, which is compiled and run on every pull request, a change to a
    third-party platform (or to EBGeometry itself) can break them without anyone noticing. The
    ones marked *works* below were last compiled and run against AMReX's development branch
-   (September 2026) and Chombo 3.2, on CPUs. Treat them as a starting point for your own
+   and Chombo 3.2, on CPUs (the Shapes folders in October 2026, the others in September 2026). Treat them as a starting point for your own
    integration.
 
 Each integration hands an EBGeometry signed distance function to the platform's
@@ -53,8 +53,9 @@ since EBGeometry has no SYCL memory resource yet.
      - 2500 boxes joined by a ``BVHUnion``; ``bvh = false`` as above.
      - Works
    * - :file:`Shapes`
-     - The analytic shapes, some of them transformed or combined.
-     - Parked until the tape
+     - The analytic shapes, some of them transformed or combined with the expression builder and
+       compiled into a ``Tape`` (CPU only until the tape has a device evaluator).
+     - Works
 
 Chombo
 -------
@@ -83,16 +84,8 @@ geometry by value and the pool by ``shared_ptr``: every copy shares the one pool
      - 100 boxes joined by a ``BVHUnion``.
      - Works
    * - :file:`Shapes`
-     - The analytic shapes, some of them transformed.
-     - Parked until the tape
+     - The analytic shapes, some of them transformed with the expression builder and compiled into a
+       ``Tape``.
+     - Works
 
 See the README in each folder for exact build and run instructions.
-
-The two Shapes integrations
----------------------------
-
-The Shapes integrations compose the analytic shapes through the virtual transform and CSG layer
-(``Offset``, ``Annular``, ``Complement``, ...), which the shapes no longer derive from now that they
-are plain value types that can run on a device (see :ref:`Sec:AnalyticShapes`). They do not compile
-against the current API. Composing value-type shapes returns with the tape, EBGeometry's
-value-type expression builder; the two are kept as its acceptance tests, and will be ported to it.

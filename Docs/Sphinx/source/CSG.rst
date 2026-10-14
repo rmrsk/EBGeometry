@@ -93,4 +93,19 @@ sharp crease where the objects meet.
 Fast CSG operations are also supported by EBGeometry, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s).
 This functionality is motivated by the fact that a CSG union is normally implemented as :math:`\min\left(I_1, I_2, I_3, \ldots,I_N\right)`, which has :math:`\mathcal{O}\left(N\right)` complexity when there are :math:`N` objects.
 BVH trees can reduce this to :math:`\mathcal{O}\left(\log N\right)` complexity, using the same
-BVH traversal-and-pruning machinery described in :ref:`Chap:BVH` for mesh signed distances.
+BVH traversal-and-pruning machinery described in :ref:`Chap:BVH` for mesh signed distances. Pruning
+skips objects whose bounding boxes are farther away than the best value found so far, which is only
+sound when the objects' values are distances or bounds on them, not when only their signs mean
+anything.
+
+Describing and evaluating a composed object
+--------------------------------------------
+
+A composed object is first *described*: an expression tree whose leaves are the objects and whose
+nodes are the transformations and combinations above. The description is then *compiled* into a
+flat program -- a tape -- that stores the objects in one array per kind of object and the operations
+as a list of instructions referring to them. Evaluating the tape is a single loop over its
+instructions, with no virtual dispatch and no pointers, which is what lets the same composed object
+be evaluated on a CPU and, copied as a block of memory, on a GPU. While compiling, each node's
+bounding box and how far its value can be trusted as a distance are worked out from its children's,
+and a union of many objects gets a BVH over their boxes.
