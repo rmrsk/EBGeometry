@@ -46,25 +46,8 @@ struct HasSignedDistance<
 };
 
 /**
- * @brief Detects whether F has a value(const Vec3T<T>&) member.
- */
-template <class F, class T, class = void>
-struct HasValue : std::false_type
-{
-};
-
-/**
- * @brief Detects whether F has a value(const Vec3T<T>&) member (positive case).
- */
-template <class F, class T>
-struct HasValue<F, T, std::void_t<decltype(std::declval<const F&>().value(std::declval<const Vec3T<T>&>()))>>
-  : std::true_type
-{
-};
-
-/**
- * @brief Evaluate a_function at a_point through signedDistance(), value() or operator(), in that order
- * of preference.
+ * @brief Evaluate a_function at a_point through its signedDistance() member if it has one, and as a
+ * callable otherwise.
  * @tparam T Floating-point precision.
  * @tparam F Function type.
  * @param[in] a_function Function to evaluate.
@@ -78,9 +61,6 @@ evaluate(const F& a_function, const Vec3T<T>& a_point) noexcept
 {
   if constexpr (HasSignedDistance<F, T>::value) {
     return static_cast<T>(a_function.signedDistance(a_point));
-  }
-  else if constexpr (HasValue<F, T>::value) {
-    return static_cast<T>(a_function.value(a_point));
   }
   else {
     return static_cast<T>(a_function(a_point));

@@ -13,11 +13,12 @@ Until the tape is finished, [AUDIT.md](AUDIT.md) carries the remaining sequence 
 inputs to the tape's design (its Appendix A). Audit item 26 moves what is still live from it into
 this file and the tape design document, and deletes it.
 
-Status, through audit item 25b: every class meant to run on a device is ported, the pre-tape audit's
+Status, through audit item 25c: every class meant to run on a device is ported, the pre-tape audit's
 Phases 0–2 are done, the shape conventions (audit item 24) are settled, and the tape's first steps
-are in: the layout/handle split (25a) and the expression builder, the tape and its host evaluator,
-with `ImplicitFunction` and the virtual transform/CSG layer retired (25b). The device evaluator (25c)
-is next; it needs a machine that can run kernels (see "Before the tape").
+are in: the layout/handle split (25a), the expression builder, the tape and its host evaluator, with
+`ImplicitFunction` and the virtual transform/CSG layer retired (25b), and the device evaluator, tested
+in the GPU harness and compiled optimised for an AMD target (25c). Like every `[gpu]` case, the
+tape's has not yet run on a real GPU (see "Before the tape").
 
 ## The one rule
 
@@ -162,7 +163,6 @@ The AMReX integrations evaluate the mesh SDFs and the BVH unions inside AMReX's 
 | Parsers (`PolygonSoup`, `Soup`), `Random`, `SimpleTimer` | Host-only by design. `Random` and `SimpleTimer` serve the examples and are not included by `EBGeometry.hpp` |
 | `Triangle<T>` (AoS) | Host-side build input for `TriangleAoSoA`; not ported, and nothing on a device needs it |
 | `SFC`, point-cloud builds, `MeshT::reconcile()` | Host-only. A device build (Morton codes and a radix sort) would be needed only to rebuild on a device; see "After the tape" |
-| `Tape` evaluation on a device | The evaluator keeps to the device subset (no recursion, no virtual calls, fixed stacks), but no kernel evaluates a tape yet and the GPU harness does not test one; that is audit item 25c |
 
 ## Roadmap
 
@@ -234,8 +234,18 @@ union of 8 or more distance operands gets a `PackedBVH<T, uint32_t, K>` over sub
 the same helper as `BVHUnion`, unbounded operands kept out of the tree. The tape is a `PoolHandle`
 (`layout()`, `rebasedView()`, `deepCopy()`). The old `CSGUnion` example is back in `Examples/` on the
 tape, and the two `Shapes` integrations are ported and were compiled and run against AMReX and
-Chombo. **25c** is the device evaluator: kernels in the GPU harness evaluating tapes on a mirrored
-pool, against the host.
+Chombo.
+
+**25c is done.** A `[gpu]` case in `TestTape` evaluates tapes on a mirrored pool through the GPU
+harness and compares them with the host: every primitive type, every operation, BVH unions with and
+without unbounded operands, calls nested `MaxCallDepth` deep, full value and point stacks, user
+primitive types and a tape inside a tape. Compiling it for a device found one real problem: HIP
+inlines every device function, and `evaluate<D>` called `evaluate<D-1>` from about 32 places (27 Blur
+taps, Mollify, four in the unions), so an optimised compile grew as 32 to the power of the depth and
+was stopped after ten minutes and 2.5 GB. `evaluate<D>` and the primitive dispatch are now out of
+line in the device pass (`EBGEOMETRY_DEVICE_NOINLINE`), the plain and smooth BVH unions share one
+traversal, and the compile takes half a minute. CI's second HIP build is now optimised, so it would
+catch such a blow-up. See "Device stack depth" for what a tape kernel needs per thread.
 
 **The tag/opcode registry is defined with the tape.** It was once to be defined while porting the
 mesh SDFs, so they and the analytic layer shared one scheme, but only the tape consumes it;
@@ -414,6 +424,17 @@ findings generalise, the specific numbers do not.
 The traversal stack is fixed-size, so its depth is a budget: 256 levels on the host and 32 on a
 device, at every K, in 8-byte entries (#153). A build deeper than the budget is rejected when the
 BVH is built or rebased, rather than overflowing during a query.
+
+Measured for gfx90a with clang 17 at `-O3`, a kernel evaluating one mesh SDF or BVH union needs
+768 bytes of stack per thread: the traversal stack. A tape kernel needs about 8 KB in double precision
+and 6 KB in single, whatever the tape holds, because the call depth is a template parameter and every
+level from `MaxCallDepth` down to 0 is a frame on the deepest path: about 1.6 KB per level in double
+(the value and point stacks, a BVH union's traversal stack and saved registers), plus the primitive
+dispatch at the bottom (900 bytes with a mesh SDF's traversal). A tape listed as another tape's
+primitive adds its own levels: 16 KB in double. If that ever matters, the largest single piece is
+the union traversal stack at every level, sized for 32 levels although a tape's union BVHs are shallow
+(a union of a thousand operands is about five levels deep at K = 4); a smaller budget for them would
+take most of it.
 
 ## Porting a class
 

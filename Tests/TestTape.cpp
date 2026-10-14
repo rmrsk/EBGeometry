@@ -10,12 +10,14 @@
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 #include "TestTapeUtils.hpp"
 
 #include <cmath>
 #include <cstdint>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -64,6 +66,20 @@ struct OtherSphere
   computeBoundingVolume() const noexcept
   {
     return m_sphere.computeBoundingVolume();
+  }
+};
+
+// Device functor: a tape's value at one point.
+template <class T, class TapeType>
+struct TapeQuery
+{
+  TapeType m_tape;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_tape.signedDistance(a_point);
   }
 };
 
@@ -528,4 +544,185 @@ TEST_CASE("Tape: rejects an unknown primitive type, a mesh from another pool and
       const Tape<T> tape(pool, SphereSDF<T>(Vec3::zeros(), T(1)), options);
     },
     "Tape: the BVH union threshold must be at least 2 (1)"));
+}
+
+TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation",
+                   "[Tape][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T      = TestType;
+  using Vec3   = Vec3T<T>;
+  using Union4 = BVHUnion<T, SphereSDF<T>, 4>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  constexpr size_t K = BVH::DefaultBranchingRatio<T>();
+  constexpr size_t W = TriangleSoA::DefaultWidth<T>();
+
+  Pool pool(hostMemoryResource());
+
+  // Every built-in primitive type: the twelve analytic shapes and the three mesh SDFs.
+  const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), pool);
+
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, K>       bvhMesh(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, K, W> triMesh(mesh, pool, BVH::Construction::SAH, 4);
+
+  const PlaneSDF<T>            plane(Vec3(T(0.1), T(0.2), T(0.3)), Vec3(T(1), T(2), T(-1)));
+  const SphereSDF<T>           sphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8));
+  const BoxSDF<T>              box(Vec3(T(-1), T(-0.5), T(-0.25)), Vec3(T(0.5), T(1), T(0.75)));
+  const TorusSDF<T>            torus(Vec3(T(0.1), T(0), T(-0.2)), T(1), T(0.25));
+  const CylinderSDF<T>         cylinder(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.4));
+  const InfiniteCylinderSDF<T> infiniteCylinder(Vec3(T(0.1), T(0.2), T(0.3)), T(0.5), 2);
+  const CapsuleSDF<T>          capsule(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.4));
+  const InfiniteConeSDF<T>     infiniteCone(Vec3(T(0), T(1), T(0)), T(30));
+  const ConeSDF<T>             cone(Vec3(T(0), T(1), T(0)), T(2), T(30));
+  const RoundedBoxSDF<T>       roundedBox(Vec3(T(0.1), T(0), T(0)), Vec3(T(1.2), T(1), T(0.8)), T(0.1));
+  const RoundedCylinderSDF<T>  roundedCylinder(Vec3(T(0), T(0.1), T(0)), T(0.5), T(0.1), T(1));
+  const PerlinSDF<T>           perlin(T(0.5), T(2) * Vec3::ones(), T(0.5), 4);
+
+  std::vector<Expr<T>> primitives{plane,
+                                  sphere,
+                                  box,
+                                  torus,
+                                  cylinder,
+                                  infiniteCylinder,
+                                  capsule,
+                                  infiniteCone,
+                                  cone,
+                                  roundedBox,
+                                  roundedCylinder,
+                                  Translate(flat, Vec3(T(3), T(0), T(0))),
+                                  Translate(bvhMesh, Vec3(T(-3), T(0), T(0))),
+                                  Translate(triMesh, Vec3(T(0), T(3), T(0)))};
+
+  // One tape per operation, so a failure names it, and one per primitive.
+  std::vector<std::pair<std::string, Expr<T>>> exprs;
+
+  for (size_t i = 0; i < primitives.size(); i++) {
+    exprs.emplace_back("primitive " + std::to_string(i), primitives[i]);
+  }
+
+  exprs.emplace_back("perlin", Offset(perlin, T(0.45)));
+
+  TapeOptions linear;
+
+  linear.m_bvhUnionThreshold = 1000;
+
+  exprs.emplace_back("union", Union(primitives));
+
+  const size_t unionIndex = exprs.size() - 1;
+
+  exprs.emplace_back("smooth union", SmoothUnion(primitives, T(0.3)));
+  exprs.emplace_back("exponential smooth union", SmoothUnion(sphere, box, T(0.3), BlendKind::Exponential));
+  exprs.emplace_back("intersection", Intersection(sphere, box));
+  exprs.emplace_back("smooth intersection", SmoothIntersection(sphere, torus, T(0.2)));
+  exprs.emplace_back("exponential smooth intersection",
+                     SmoothIntersection(sphere, torus, T(0.2), BlendKind::Exponential));
+  exprs.emplace_back("difference", Difference(box, sphere));
+  exprs.emplace_back("smooth difference", SmoothDifference(box, std::vector<Expr<T>>{sphere, capsule}, T(0.2)));
+  exprs.emplace_back("complement", Complement(cone));
+  exprs.emplace_back("affine chain",
+                     Translate(Rotate(Scale(Reflect(roundedBox, 0), T(1.5)), T(30), Vec3(T(1), T(1), T(0))),
+                               Vec3(T(0.2), T(0.1), T(0))));
+  exprs.emplace_back("offset and annular", Annular(Offset(capsule, T(0.1)), T(0.05)));
+  exprs.emplace_back("elongate", Elongate(torus, Vec3(T(0.5), T(0), T(0.25))));
+  exprs.emplace_back(
+    "finite repetition",
+    FiniteRepetition(
+      SphereSDF<T>(Vec3::zeros(), T(0.3)), Vec3(T(1), T(1), T(1)), Vec3(T(2), T(1), T(0)), Vec3(T(2), T(1), T(0))));
+  exprs.emplace_back("blur", Blur(Difference(box, sphere), T(0.1)));
+  exprs.emplace_back("mollify", Mollify(Intersection(box, sphere), T(0.1), 3));
+
+  // Calls nested to the limit: each union of 8 operands is a BVH union whose first operand is the
+  // next one in.
+  Expr<T> nestedUnions = sphere;
+
+  for (unsigned level = 0; level < Tape<T>::MaxCallDepth; level++) {
+    std::vector<Expr<T>> operands{nestedUnions};
+
+    for (int i = 1; i < 8; i++) {
+      operands.emplace_back(SphereSDF<T>(Vec3(T(i), T(level), T(0)), T(0.3)));
+    }
+
+    nestedUnions = Union(operands);
+  }
+
+  const size_t nestedUnionsIndex = exprs.size();
+
+  exprs.emplace_back("unions nested MaxCallDepth deep", nestedUnions);
+
+  // The full value and point stacks.
+  Expr<T> deepValues = sphere;
+  Expr<T> deepMaps   = torus;
+
+  for (unsigned i = 0; i + 1 < Tape<T>::ValueStackSize; i++) {
+    deepValues = Intersection(SphereSDF<T>(T(0.01) * T(i) * Vec3::ones(), T(1)), deepValues);
+  }
+
+  for (unsigned i = 0; i + 1 < Tape<T>::PointStackSize; i++) {
+    deepMaps = Elongate(deepMaps, T(0.02) * Vec3::ones());
+  }
+
+  exprs.emplace_back("full value stack", deepValues);
+  exprs.emplace_back("full point stack", deepMaps);
+
+  std::vector<std::pair<std::string, Tape<T>>> tapes;
+
+  tapes.reserve(exprs.size() + 1);
+
+  for (const auto& [name, expr] : exprs) {
+    tapes.emplace_back(name, Tape<T>(pool, expr));
+  }
+
+  tapes.emplace_back("union without a BVH", Tape<T>(pool, Union(primitives), linear));
+
+  // User primitive types: a BVH union, another shape type, and a tape inside a tape.
+  std::vector<SphereSDF<T>>              rowSpheres;
+  std::vector<BoundingVolumes::AABBT<T>> rowBoxes;
+
+  for (int i = 0; i < 20; i++) {
+    rowSpheres.emplace_back(Vec3(T(0.5) * T(i) - T(5), T(0), T(0)), T(0.3));
+    rowBoxes.push_back(rowSpheres.back().computeBoundingVolume());
+  }
+
+  const Union4         row(pool, rowSpheres, rowBoxes);
+  const OtherSphere<T> other{SphereSDF<T>(Vec3(T(0), T(1.5), T(0)), T(0.5))};
+
+  const Tape<T, Union4, OtherSphere<T>> user(pool, SmoothUnion(row, Offset(other, T(0.1)), T(0.2)));
+  const Tape<T>                         inner(pool, Difference(box, sphere));
+  const Tape<T, Tape<T>>                nested(pool, Rotate(Translate(inner, Vec3::ones()), T(45), 1));
+
+  CHECK(tapes[0].second.getNumClauses() == 1U);
+  CHECK(tapes[unionIndex].second.getNumBVHUnions() == 1U);
+  CHECK(tapes[exprs.size()].second.getNumBVHUnions() == 0U);
+  CHECK(tapes[nestedUnionsIndex].second.getCallDepth() == Tape<T>::MaxCallDepth);
+
+  pool.freeze();
+
+  const Pool devicePool = Pool::mirror(pool, deviceTestResource());
+
+  const auto points = queryGrid<T>(Vec3(T(-4), T(-4), T(-4)), Vec3(T(4), T(4), T(4)), 12);
+
+  const auto check = [&points, &devicePool](const auto& a_tape) {
+    using TapeType = std::decay_t<decltype(a_tape)>;
+
+    const TapeType view = a_tape.rebasedView(devicePool);
+
+    requireSameResults(evaluateOnDevice<T>(TapeQuery<T, TapeType>{view}, points),
+                       evaluateOnHost<T>(TapeQuery<T, TapeType>{a_tape}, points));
+  };
+
+  for (const auto& [name, tape] : tapes) {
+    INFO(name);
+
+    check(tape);
+  }
+
+  check(user);
+  check(nested);
 }

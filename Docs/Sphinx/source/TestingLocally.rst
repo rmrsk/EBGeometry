@@ -327,14 +327,16 @@ Test coverage
        equal to the smaller distance everywhere; a union of many objects of different types matching
        brute force with and without a BVH; user primitive types, including a BVH union and a tape
        inside a tape; a handle rebuilt from its layout, a view on a mirror and a deep copy; the
-       recorded box and distance quality; an empty intersection inside a BVH union; and the
+       recorded box and distance quality; an empty intersection inside a BVH union; the
        constructor rejecting an unknown primitive type, a mesh from another pool, and expressions
-       that nest too deeply.
+       that nest too deeply; and on a device, every primitive type and every operation, BVH unions
+       with and without unbounded operands, calls nested to the limit, full value and point stacks,
+       user primitive types and a tape inside a tape, each against the host.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
        empty, inverted or missed initial box, a depth beyond ``MaxOctreeDepth`` rejected, and the
-       same box from a shape, a tape, an object with a ``value()`` member and a lambda;
+       same box from a shape, a tape and a lambda;
        :cpp:func:`normal` against a sphere's exact normal; and both on a device.
    * - ``TestPolygon2D``
      - :cpp:class:`DCEL::FaceT` point-in-face containment: winding-number/crossing-number/subtended-angle

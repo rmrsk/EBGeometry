@@ -28,12 +28,24 @@ distance to the surface (the Eikonal property, :math:`|\nabla S| = 1`; see
 :ref:`Chap:GeometryRepresentations`), which BVH pruning, sphere tracing and the octree bounding-volume
 search rely on.
 
+Every shape's value goes by the one name ``signedDistance``, whatever its distance quality, so the
+name alone does not say how much the value promises; the name and the quality together do. The sign
+is what every shape promises: negative inside, positive outside, zero on the surface. The magnitude is
+what the distance quality says:
+
+* ``Exact``: the distance to the surface;
+* ``Bound``: at most the distance to the surface, so it may underestimate but never overestimates;
+* ``NotADistance``: nothing; only the sign is meaningful.
+
+A composed object's quality is worked out when it is built (``Expr::getDistanceQuality()``,
+``Tape::getDistanceQuality()``): a smooth union is a bound, for instance, and anything built from
+``PerlinSDF`` is not a distance.
+
 For a function with no closed-form bounding volume, the free function
 ``approximateBoundingVolumeOctree(function, lo, hi, depth, safety)`` estimates a bounding box by
 octree subdivision of a caller-supplied initial box, and ``normal(function, point, delta)`` gives the
 finite-difference normal of a function. Both take anything that gives a value at a point: a shape
-(through its ``signedDistance()``), an object with a ``value()`` member, or a callable such as a
-lambda. See :ref:`Chap:ImplemOctree` for both. The results are only meaningful when the function is
+(through its ``signedDistance()``) or a callable such as a lambda. See :ref:`Chap:ImplemOctree` for both. The results are only meaningful when the function is
 reasonably close to a true signed distance, since the safety margin and the normal are interpreted in
 units of distance.
 
@@ -249,9 +261,17 @@ built.
 * **A pool handle.** A tape is trivially copyable and holds offsets into its pool and one location
   (see :ref:`Chap:MemoryModel`): ``rebasedView(mirror)`` evaluates it against a mirror of its pool,
   and ``deepCopy(pool)`` copies it, with every pool-resident primitive and BVH it holds, into another
-  pool. The pool must outlive the tape and every copy and view of it. The evaluator keeps to the
-  subset of C++ that device code allows; evaluating a tape inside a GPU kernel, and testing it there,
-  is the next step of the tape's development.
+  pool. The pool must outlive the tape and every copy and view of it.
+* **On a GPU.** A tape is evaluated in a kernel like any pool-backed type: freeze its pool, mirror
+  it into device memory, and pass ``rebasedView(devicePool)`` to the kernel by value. Every
+  operation, primitive type and BVH union runs there; the test suite checks each against the host.
+  Each call level of the evaluator is a separate function in a device compile, kept out of line so
+  that the compile stays small (HIP otherwise inlines every device function, and the copies multiply
+  with every level). Because the call depth is a template parameter, a kernel reserves stack for all
+  ``MaxCallDepth`` + 1 levels whatever the tape needs: about 8 KB per thread in double precision and
+  6 KB in single precision, measured for an AMD GPU, of which each level takes about 1.6 KB in
+  double precision (its value and point stacks, a BVH union's traversal stack and saved registers).
+  A tape listed as another tape's primitive adds its own levels on top.
 
 The :ref:`Chap:ExampleCSGUnion` example unions several placements of one mesh with spheres through a
 tape, and checks it against a scan over the objects.

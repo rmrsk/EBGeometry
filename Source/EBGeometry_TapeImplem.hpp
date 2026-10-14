@@ -783,6 +783,7 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point) const noexce
 template <class T, class... UserPrimitives>
 template <unsigned D>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
                                      const Vec3T<T>&     a_point,
@@ -808,7 +809,7 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
 
     switch (c.m_op) {
     case Op::Primitive: {
-      values[nv++] = this->template evaluatePrimitive<0>(c.m_type, c.m_a, points[np - 1], a_base, a_location);
+      values[nv++] = this->evaluatePrimitive(c.m_type, c.m_a, points[np - 1], a_base, a_location);
 
       EBGEOMETRY_EXPECT(!std::isnan(values[nv - 1]));
 
@@ -1031,10 +1032,23 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
 }
 
 template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::evaluatePrimitive(const uint32_t      a_type,
+                                              const uint32_t      a_index,
+                                              const Vec3T<T>&     a_point,
+                                              const void*         a_base,
+                                              const PoolLocation& a_location) const noexcept
+{
+  return this->template dispatchPrimitive<0>(a_type, a_index, a_point, a_base, a_location);
+}
+
+template <class T, class... UserPrimitives>
 template <size_t I>
 EBGEOMETRY_HOST_DEVICE
 inline T
-Tape<T, UserPrimitives...>::evaluatePrimitive(const uint32_t      a_type,
+Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
                                               const uint32_t      a_index,
                                               const Vec3T<T>&     a_point,
                                               const void*         a_base,
@@ -1055,7 +1069,7 @@ Tape<T, UserPrimitives...>::evaluatePrimitive(const uint32_t      a_type,
       }
     }
 
-    return this->template evaluatePrimitive<I + 1>(a_type, a_index, a_point, a_base, a_location);
+    return this->template dispatchPrimitive<I + 1>(a_type, a_index, a_point, a_base, a_location);
   }
   else {
     EBGEOMETRY_EXPECT(false);
@@ -1084,36 +1098,12 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
   const auto unboundedPrograms = unbounded.getPrimitives();
   const auto programs          = bvh.getPrimitives();
 
-  if (a_clause.m_op == TapeDetail::Op::UnionBVH) {
-    // As BVHUnion: the unbounded operands first, so that their values can prune the traversal; a node is
-    // kept iff its box is within max(0, minDist) of the point.
-    T minDist = Math::Limits<T>::infinity();
+  // One traversal for both kinds, so that a device frame holds one traversal stack. It tracks the two
+  // smallest values (a <= b), the unbounded operands first so that their values can prune it. A node is
+  // kept iff its box is within max(0, a) of the point for a union, as in BVHUnion, and within max(0, b)
+  // for a smooth union, as in BVHSmoothUnion.
+  const bool smooth = (a_clause.m_op == TapeDetail::Op::SmoothUnionBVH);
 
-    for (uint32_t i = 0; i < unboundedPrograms.size(); i++) {
-      minDist = Math::min(minDist, this->template evaluate<D - 1>(unboundedPrograms[i], a_point, a_base, a_location));
-    }
-
-    const auto evalLeaf = [this, &programs, &a_point, a_base, &a_location](
-                            T& a_minDist, const size_t a_offset, const size_t a_count) noexcept {
-      for (size_t i = a_offset; i < a_offset + a_count; i++) {
-        const T v = this->template evaluate<D - 1>(programs[static_cast<uint32_t>(i)], a_point, a_base, a_location);
-
-        a_minDist = Math::min(a_minDist, v);
-      }
-    };
-
-    const auto pruneDist2 = [](const T& a_minDist) noexcept -> T {
-      const T bound = Math::max(T(0), a_minDist);
-
-      return bound * bound;
-    };
-
-    bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
-
-    return minDist;
-  }
-
-  // As BVHSmoothUnion: track the two smallest values (a <= b) and prune against b.
   struct Closest
   {
     T a = Math::Limits<T>::infinity();
@@ -1146,13 +1136,17 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
     }
   };
 
-  const auto pruneDist2 = [](const Closest& a_closest) noexcept -> T {
-    const T bound = Math::max(T(0), a_closest.b);
+  const auto pruneDist2 = [smooth](const Closest& a_closest) noexcept -> T {
+    const T bound = Math::max(T(0), smooth ? a_closest.b : a_closest.a);
 
     return bound * bound;
   };
 
   bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+
+  if (!smooth) {
+    return closest.a;
+  }
 
   const T s = a_params[a_clause.m_b];
 

@@ -481,8 +481,11 @@ public:
   {}
 
   /**
-   * @brief The object's value at a point: its signed distance, or an implicit function value if
-   * getDistanceQuality() is NotADistance. Negative inside.
+   * @brief The object's value at a point: negative inside, positive outside, zero on the surface.
+   * @details The sign is always meaningful. The magnitude is what getDistanceQuality() says: the
+   * distance to the surface (Exact), at most that distance (Bound), or nothing (NotADistance). The
+   * name is the same for every shape whatever its quality; see isShape. Callable on a device through a
+   * view onto a mirrored pool (rebasedView()).
    * @param[in] a_point Query point.
    * @return The value.
    */
@@ -585,6 +588,7 @@ private:
    */
   template <unsigned D>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   evaluate(const uint32_t      a_program,
            const Vec3T<T>&     a_point,
@@ -603,6 +607,26 @@ private:
    */
   template <size_t I>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  dispatchPrimitive(const uint32_t      a_type,
+                    const uint32_t      a_index,
+                    const Vec3T<T>&     a_point,
+                    const void*         a_base,
+                    const PoolLocation& a_location) const noexcept;
+
+  /**
+   * @brief Evaluate a primitive.
+   * @details Out of line in a device pass, so that the stack a primitive needs (a mesh SDF's traversal
+   * stack, say) is taken once below the deepest call rather than in every call level's frame.
+   * @param[in] a_type     Type index.
+   * @param[in] a_index    Index within the type's array.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   evaluatePrimitive(const uint32_t      a_type,
                     const uint32_t      a_index,

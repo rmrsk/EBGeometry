@@ -66,6 +66,15 @@ the HIP CI build cannot catch them. The library therefore keeps to two rules, wh
 The CUDA test build deliberately omits ``--expt-relaxed-constexpr``, so that it also checks these
 rules.
 
+HIP inlines every device function by default, so a device function is copied into every place it is
+called from. That is harmless until a function calls the next one in a chain from several places: the
+tape's evaluator calls the level below it from each Blur tap, each Mollify tap and each kind of BVH
+union, and fully inlined, the copies multiply at every level: an optimised device compile of its test
+file was stopped after ten minutes and 2.5 GB, and takes half a minute with the function out of line. Mark such a function ``EBGEOMETRY_DEVICE_NOINLINE`` (``EBGeometry_GPU.hpp``),
+which keeps it out of line in the device pass and changes nothing on the host. The second HIP build in
+CI is optimised, since an unoptimised build compiles such code quickly and so cannot show the
+problem.
+
 Adding tests
 --------------
 
