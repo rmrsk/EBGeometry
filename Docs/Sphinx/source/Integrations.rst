@@ -54,7 +54,7 @@ since EBGeometry has no SYCL memory resource yet.
      - Works
    * - :file:`Shapes`
      - The analytic shapes, some of them transformed or combined with the expression builder and
-       compiled into a ``Tape`` (CPU only until the tape has a device evaluator).
+       compiled into a ``Tape``, which a GPU build evaluates on the device like the others.
      - Works
 
 Chombo

@@ -20,47 +20,68 @@
 
 using namespace amrex;
 
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
+#error "This example supports CPU, CUDA and HIP builds of AMReX; EBGeometry has no SYCL memory resource yet."
+#endif
+
 using T    = Real;
 using Vec3 = EBGeometry::Vec3T<T>;
 
 /*!
   @brief An EBGeometry tape exposed as an AMReX implicit function.
-  @details The tape is a trivially copyable handle into the Pool it was compiled into, which must outlive
-  this object and every copy of it.
+  @details Deriving from amrex::GPUable tells AMReX's EB2::GeometryShop that it may evaluate this
+  functor inside device kernels. AMReX can still call it on the host as well, so it holds two handles
+  to the same tape: one resolving against host memory and one against a device mirror of its pool,
+  and each compilation pass uses its own. In a CPU build both are the same host tape. The class is
+  trivially copyable, which is what lets AMReX capture it by value in a kernel; the pools the tapes
+  resolve against are owned by main() and must outlive every evaluation.
 */
-class EBGeometryIF
+class EBGeometryIF : public amrex::GPUable
 {
 public:
   /*!
     @brief Full constructor.
-    @param[in] a_tape Compiled object.
+    @param[in] a_hostTape   Tape resolving against host memory.
+    @param[in] a_deviceTape The same tape rebased onto a device mirror (a_hostTape in a CPU build).
   */
-  explicit EBGeometryIF(const EBGeometry::Tape<T>& a_tape) : m_tape(a_tape)
+  EBGeometryIF(const EBGeometry::Tape<T>& a_hostTape, const EBGeometry::Tape<T>& a_deviceTape) noexcept
+    : m_hostTape(a_hostTape), m_deviceTape(a_deviceTape)
   {}
 
   /*!
-    @brief AMReX's implicit function definition. EBGeometry sign is opposite to AMReX'
+    @brief AMReX's implicit function definition, callable on host and device. EBGeometry's sign is
+    opposite to AMReX's.
   */
+  AMREX_GPU_HOST_DEVICE
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return -m_tape.signedDistance(Vec3(x, y, z));
-  };
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+    return -m_deviceTape.signedDistance(Vec3(x, y, z));
+#else
+    return -m_hostTape.signedDistance(Vec3(x, y, z));
+#endif
+  }
 
   /*!
-    @brief Also an AMReX implicit function implementation
+    @brief The same implicit function for AMReX's host-only code paths.
   */
-  inline Real
+  Real
   operator()(const RealArray& p) const noexcept
   {
     return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
   }
 
-protected:
+private:
   /*!
-    @brief The compiled object.
+    @brief The compiled object, resolving against host memory.
   */
-  EBGeometry::Tape<T> m_tape;
+  EBGeometry::Tape<T> m_hostTape;
+
+  /*!
+    @brief The same tape, resolving against the device mirror.
+  */
+  EBGeometry::Tape<T> m_deviceTape;
 };
 
 int
@@ -183,10 +204,21 @@ main(int argc, char* argv[])
   geom.define(domain);
 
   // The tape is compiled into this Pool, which must outlive the EB generation below.
-  EBGeometry::Pool          pool(EBGeometry::hostMemoryResource());
-  const EBGeometry::Tape<T> tape(pool, *func);
+  EBGeometry::Pool          hostPool(EBGeometry::hostMemoryResource());
+  const EBGeometry::Tape<T> hostTape(hostPool, *func);
 
-  EBGeometryIF sdf(tape);
+#if defined(AMREX_USE_GPU)
+  // Copy the finished pool to the device in one piece, then rebase the tape onto the copy.
+  hostPool.freeze();
+
+  EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
+
+  const EBGeometry::Tape<T> deviceTape = hostTape.rebasedView(devicePool);
+#else
+  const EBGeometry::Tape<T>& deviceTape = hostTape;
+#endif
+
+  const EBGeometryIF sdf(hostTape, deviceTape);
 
   auto gshop = EB2::makeShop(sdf);
   EB2::Build(gshop, geom, 0, 0, true, true, num_coarsen_opt);
