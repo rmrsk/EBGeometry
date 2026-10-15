@@ -61,7 +61,8 @@ Running on a GPU
 
 Every example whose queries can run on a device builds from the same source as plain C++ (the
 default) or as CUDA or HIP. Compiled for a GPU, the same run does its usual work on the host and then
-repeats its queries on the device, comparing every device result with the host's. They agree to
+runs its queries on the device as well, comparing every device result with the host's for the same
+input. They agree to
 rounding rather than bit for bit, since a device compiler may fuse a multiply and an add where the
 host compiler does not. Without a visible GPU the device part is skipped with a message, and the
 program still checks its host results and exits normally. ``BuildBVH`` and ``HostTuning`` stay
