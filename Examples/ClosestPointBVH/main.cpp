@@ -166,6 +166,7 @@ main()
     const std::vector<Cloud::Hit> deviceHits = EBGeometry::GPU::transform(onDevice, queryPoints);
     timer.stop();
 
+    // Distances, not cloud indices: points at equal distance can tie either way under other rounding.
     std::size_t differ = 0;
 
     for (std::size_t q = 0; q < numQueries; q++) {

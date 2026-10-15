@@ -74,14 +74,17 @@ using TransformResult = std::decay_t<std::invoke_result_t<const Query&, const In
  * @brief Run a query on every input: result i is a_query(a_inputs[i]).
  * @details In a CUDA or HIP build, the inputs are copied to device memory, a kernel runs the query
  * once per input (one thread each, in blocks of 128) on the current device, and the results are
- * copied back. Every runtime call is checked with EBGEOMETRY_GPU_CHECK, which aborts with the failing
- * call on an error, and a visible device is required (see deviceAvailable()). The query reaches the
+ * copied back. The call is synchronous: the kernel runs on the default stream, and transform()
+ * returns once it has finished. Every runtime call is checked with EBGEOMETRY_GPU_CHECK, which aborts
+ * with the failing call on an error, and a visible device is required (see deviceAvailable()). The query reaches the
  * kernel by value, so anything pool-resident it holds must have been rebased onto memory the device
  * can read.
  *
  * In a host build the query is copied once, as a kernel launch would copy it, and run in a loop.
- * Either way the query and its result must be trivially copyable, which is checked at compile time in
- * both builds, so a query that could not reach a kernel fails to compile on the host too.
+ * Either way the query, its inputs and its result must be trivially copyable, and neither the input
+ * nor the result may be bool (std::vector<bool> has no contiguous storage to copy). Both are checked
+ * at compile time in both builds, so a query that could not reach a kernel fails to compile on the
+ * host too.
  * @tparam Query Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
  * const In&.
  * @tparam In    Trivially copyable input type.

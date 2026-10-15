@@ -71,6 +71,8 @@ transform(const Query& a_query, const std::vector<In>& a_inputs)
   static_assert(std::is_trivially_copyable_v<Query>, "GPU::transform: a query must be trivially copyable");
   static_assert(std::is_trivially_copyable_v<In>, "GPU::transform: an input must be trivially copyable");
   static_assert(std::is_trivially_copyable_v<Out>, "GPU::transform: a result must be trivially copyable");
+  static_assert(!std::is_same_v<In, bool> && !std::is_same_v<Out, bool>,
+                "GPU::transform: std::vector<bool> has no contiguous storage; use char or a struct instead");
 
   const std::size_t n = a_inputs.size();
 
@@ -81,6 +83,7 @@ transform(const Query& a_query, const std::vector<In>& a_inputs)
   }
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  // EBGEOMETRY_GPU_CHECK aborts on an error, so no path leaves this block with in or out allocated.
   In*  in  = nullptr;
   Out* out = nullptr;
 
