@@ -119,19 +119,17 @@ struct ConstructionOptions
 
 /**
  * @brief Deepest tree, in node levels (the root alone is one level), that a host traversal handles.
- * @details PackedBVH::pruneTraverse() keeps a fixed stack sized from this and the branching factor,
- * so the limit is the same for every K. Every PackedBVH is checked against it when it is built. At
- * no K is it lower than the limit the earlier fixed 256-entry stack gave (256 levels at K = 2, 86
- * at K = 4), and the stack takes (K - 1) * 255 + 1 entries of 8 bytes: about 6 KB at K = 4.
+ * @details The traversals keep a fixed stack with one entry per level below the root, so the limit is
+ * the same for every K. Every PackedBVH is checked against it when it is built. The stack takes 255
+ * entries of 4 + K bytes rounded up to a multiple of 4: 2 KB at K = 4.
  */
 inline constexpr size_t HostTraversalDepth = 256;
 
 /**
  * @brief Deepest tree, in node levels, that a device traversal handles.
- * @details Smaller than the host value, since device stack memory is per thread: (K - 1) * 31 + 1
- * entries of 8 bytes, 752 bytes at K = 4. The earlier fixed 64-entry stack allowed 22 levels at K = 4
- * and only 5 at K = 16; it allowed more only at K = 2 (64 levels). PackedBVH::rebasedView() checks
- * every device view against it.
+ * @details Smaller than the host value, since device stack memory is per thread: 31 entries of 4 + K
+ * bytes rounded up to a multiple of 4, 248 bytes at K = 4. PackedBVH::rebasedView() checks every
+ * device view against it.
  */
 inline constexpr size_t DeviceTraversalDepth = 32;
 
@@ -394,6 +392,7 @@ class PackedBVH final : public PoolHandle
 {
   static_assert(std::is_floating_point_v<T>, "PackedBVH: T must be a floating-point type");
   static_assert(K >= 2, "PackedBVH: branching factor K must be at least 2");
+  static_assert(K <= 256, "PackedBVH: branching factor K must be at most 256, so a child slot fits in a byte");
   static_assert(!isPoolHandle<P>,
                 "PackedBVH: a primitive stored in a pool must hold no location; store the handle's Layout "
                 "and pair it with this BVH's location() (see PoolHandle)");
@@ -873,11 +872,12 @@ public:
 
   /**
    * @brief Traversal stack size, in entries, for the current compilation pass.
-   * @details The same bound pruneTraverse() sizes its own stack by: enough entries for a tree
-   * HostTraversalDepth levels deep in a host pass, and DeviceTraversalDepth levels in a device pass.
-   * Every BVH is checked against the host depth when it is built, and against the device depth when
-   * rebasedView() produces a device view, so a caller's own traversal that pushes at most K entries
-   * per node expanded -- as pruneTraverse() does -- cannot overflow a stack of this many entries.
+   * @details The bound traverse() and pruneTraverse() size their stacks by: one entry per level below
+   * the root of a tree HostTraversalDepth levels deep in a host pass, and DeviceTraversalDepth levels
+   * in a device pass. Every BVH is checked against the host depth when it is built, and against the
+   * device depth when rebasedView() produces a device view, so a caller's own traversal that keeps one
+   * entry per interior node on the path from the root to the node it visits -- the siblings still to
+   * visit at that level -- cannot overflow a stack of this many entries.
    * @return Number of stack entries.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -962,20 +962,26 @@ public:
    * functors, while host code may still pass the std::function aliases BVH::PackedLeafEvaluator,
    * BVH::PrunePredicate, BVH::PackedChildOrderer and BVH::NodeKeyFactory.
    *
-   * The stack is a fixed array of BVH::NodeAndKey entries, sized like pruneTraverse()'s from
-   * traversalStackDepth(); every build has checked that the tree fits it. It is seeded with the
-   * root and its key from @p a_nodeKeyFactory. On each iteration:
+   * The visit is depth first, starting at the root with its key from @p a_nodeKeyFactory. At each
+   * node:
    *
-   * 1. Pop the top (node index, key) entry.
-   * 2. Call @p a_prunePredicate(node, key). If it returns false, the node's subtree is skipped.
-   * 3. If the node is a leaf, call @p a_leafEvaluator with the global primitive array, the leaf's
+   * 1. Call @p a_prunePredicate(node, key). If it returns false, the node's subtree is skipped.
+   * 2. If the node is a leaf, call @p a_leafEvaluator with the global primitive array, the leaf's
    * primitive offset and its primitive count.
-   * 4. Otherwise give each of the K children its key from @p a_nodeKeyFactory, let
-   * @p a_childOrderer reorder the K entries in place, and push them in that order.
+   * 3. Otherwise give each of the K children its key from @p a_nodeKeyFactory, and let
+   * @p a_childOrderer reorder the K entries in place. The children are then visited from the last
+   * entry to the first, each subtree finished before the next child is visited.
    *
-   * The pruning test runs when an entry is popped, not when it is pushed, so a leaf visited in
-   * between can tighten it. The stack is LIFO, so the child pushed last is visited first: for a
-   * nearest-distance search, order the children farthest first. An empty BVH visits nothing.
+   * The pruning test runs when a child is visited, not when its parent is expanded, so a leaf visited
+   * in between can tighten it. For a nearest-distance search, order the children farthest first.
+   * An empty BVH visits nothing.
+   *
+   * The stack keeps one entry per level, not per child: the parent's index and the order of the
+   * children still to visit, sized from traversalStackDepth(), which every build has checked the tree
+   * against. It does not keep the keys. A child visited after its first sibling gets its key from
+   * @p a_nodeKeyFactory again, so the factory must give the same key for the same node and have no
+   * side effects, and @p a_childOrderer must only reorder the entries: a key it changes is seen only
+   * by the child visited first.
    *
    * @tparam NodeKey        Per-node key type. Deduced from @p a_nodeKeyFactory's return type when
    * not given explicitly.
@@ -985,10 +991,10 @@ public:
    * @tparam NodeKeyFactory Callable as (const Node&) -> NodeKey.
    * @param[in] a_leafEvaluator  Called at each leaf that is not pruned.
    * @param[in] a_prunePredicate Called at each node as it is popped; return false to prune it.
-   * @param[in] a_childOrderer   Reorders the K children of a node before they are pushed; the last
+   * @param[in] a_childOrderer   Reorders the K children of a node before they are visited; the last
    * element after reordering is visited first.
-   * @param[in] a_nodeKeyFactory Produces a node's key; called for the root and for every child of
-   * every interior node that is expanded.
+   * @param[in] a_nodeKeyFactory Produces a node's key; called for the root, for every child of every
+   * interior node that is expanded, and again for each child visited after its first sibling.
    */
   template <class NodeKey = void, class LeafEvaluator, class PrunePredicate, class ChildOrderer, class NodeKeyFactory>
   EBGEOMETRY_HOST_DEVICE
@@ -1009,13 +1015,19 @@ public:
    * callbacks. @c State is whatever the search remembers between leaf visits. @c LeafEvaluator is
    * called only at leaves and is the sole place @c State may change. @c PruneDistSquared turns the
    * *current* @c State into a squared-distance pruning bound; it is re-read fresh at every node
-   * visited (never cached), so a leaf visited anywhere earlier on the stack immediately tightens
-   * the pruning applied to nodes visited afterwards, regardless of which subtree it came from.
+   * visited (never cached), so a leaf visited anywhere earlier immediately tightens the pruning
+   * applied to nodes visited afterwards, regardless of which subtree it came from.
    * Splitting the bound from the leaf scan like this is what lets a primitive with no notion of
    * "signed distance" reuse the same SIMD box test -- e.g. a nearest-neighbor search can track a
    * plain running squared distance in @c State (no @c abs(), no sqrt anywhere in the hot path),
    * while MeshSDF::signedDistance() and TriMeshSDF::signedDistance() track a signed value and
    * square its magnitude for the bound. Both are ordinary instantiations of this one method.
+   *
+   * The children of an expanded node within the bound are sorted nearest first, and the nearest is
+   * visited at once. The stack keeps one entry per level for the rest: the parent's index and the
+   * order of the children still to visit. When the traversal returns to that level, it computes the
+   * next child's distance again from the parent's row of child boxes and compares it with the current
+   * bound; if it is out of bound, so is every child after it, and the level is dropped.
    *
    * @note Only the pruning *bound* (@c PruneDistSquared) is customisable; the per-child quantity it is
    * compared against -- Euclidean squared distance to a child's AABB -- is not, since that is the
@@ -1155,43 +1167,39 @@ public:
 
 private:
   /**
-   * @brief One entry on pruneTraverse()'s explicit traversal stack: 8 bytes in either precision.
-   * @details Holds a node index plus a lower bound on the squared distance from the query point to
-   * that node's bounding volume, recorded when the entry was pushed. Keeping the distance on the
-   * stack lets a popped entry be re-tested against a pruning bound that may have tightened since the
-   * push. The distance is rounded down to float, never up, so the re-test can only keep an entry
-   * that an exact comparison would have dropped, never drop one it would have kept.
+   * @brief One level on the traversal stack of traverse() and pruneTraverse(): 8 bytes at K = 4.
+   * @details An interior node whose first child is being visited, and the child slots still to visit
+   * after it, in visit order from the back: m_slots[m_count - 1] is next. A traversal returning to
+   * this level reads the next child's offset (and, in pruneTraverse(), its box) from the node, so the
+   * entry holds neither, and no key or distance either: those are computed again when the child is
+   * visited.
    */
   struct StackEntry
   {
-    /// @brief Index into m_linearNodes.
-    uint32_t m_idx;
+    /// @brief Index into m_linearNodes of the interior node.
+    uint32_t m_node;
 
-    /// @brief Lower bound on the squared distance from the query point to the node's bounding volume.
-    float m_dist2;
+    /// @brief Child slots still to visit; the last of the first m_count is next.
+    uint8_t m_slots[K - 1];
+
+    /// @brief Number of slots in m_slots still to visit, at least 1 while the entry is on the stack.
+    uint8_t m_count;
   };
 
-  /**
-   * @brief @p a_dist2 rounded down to float.
-   * @param[in] a_dist2 Non-negative squared distance.
-   * @return A float no larger than @p a_dist2.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  static inline float
-  lowerBound(T a_dist2) noexcept;
+  static_assert(K != 4 || sizeof(StackEntry) == 8, "PackedBVH: a stack entry is 8 bytes at K = 4");
 
   /**
    * @brief Stack entries needed to traverse a tree @p a_depth levels deep.
-   * @details pruneTraverse pops one entry and pushes up to K per interior node expanded, so a
-   * root-to-leaf path through @p a_depth nodes peaks at 1 + (K - 1) * (depth - 1) entries.
-   * @param[in] a_depth Tree depth in node levels (at least 1).
+   * @details One entry per interior node on the path from the root to the node being visited, so a
+   * tree of @p a_depth levels needs a_depth - 1 entries.
+   * @param[in] a_depth Tree depth in node levels (at least 2).
    * @return Number of stack entries.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   static constexpr size_t
   stackEntriesFor(const size_t a_depth) noexcept
   {
-    return 1 + (K - 1) * (a_depth - 1);
+    return a_depth - 1;
   }
 
   /**
@@ -1252,6 +1260,32 @@ private:
   EBGEOMETRY_HOST_DEVICE
   static inline void
   computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, T (&a_dist2)[K]) noexcept;
+
+  /**
+   * @brief The squared distance from a query point to one child's box, bit for bit the value
+   * computeChildDistances2() gives that child.
+   * @details What pruneTraverse() compares with the bound when it returns to a level, so that the
+   * comparison sees exactly the distances the level was sorted by. A device pass has only the scalar
+   * path and computes the one child; a host pass recomputes the row through the path that sorted it.
+   * @param[in] a_soa   SoA child bounding boxes of the node.
+   * @param[in] a_point Query point.
+   * @param[in] a_slot  Child slot, below K.
+   * @return Squared distance from @p a_point to child @p a_slot's box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline T
+  childDistance2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, size_t a_slot) noexcept;
+
+  /**
+   * @brief The scalar path of computeChildDistances2(), for one child.
+   * @param[in] a_soa   SoA child bounding boxes of the node.
+   * @param[in] a_point Query point.
+   * @param[in] a_slot  Child slot, below K.
+   * @return Squared distance from @p a_point to child @p a_slot's box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline T
+  scalarChildDistance2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, size_t a_slot) noexcept;
 
   /**
    * @brief Populate m_childAabbSoA from the completed m_linearNodes array, one row per interior node.

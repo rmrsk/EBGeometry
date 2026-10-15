@@ -268,8 +268,8 @@ built.
   Each call level of the evaluator is a separate function in a device compile, kept out of line so
   that the compile stays small (HIP otherwise inlines every device function, and the copies multiply
   with every level). Because the call depth is a template parameter, a kernel reserves stack for all
-  ``MaxCallDepth`` + 1 levels whatever the tape needs: about 8 KB per thread in double precision and
-  6 KB in single precision, measured for an AMD GPU, of which each level takes about 1.6 KB in
+  ``MaxCallDepth`` + 1 levels whatever the tape needs: about 5.6 KB per thread in double precision
+  and 3.6 KB in single precision, measured for an AMD GPU, of which each level takes about 1.1 KB in
   double precision (its value and point stacks, a BVH union's traversal stack and saved registers).
   A tape listed as another tape's primitive adds its own levels on top.
 

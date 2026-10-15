@@ -266,43 +266,82 @@ PackedBVH<T, P, K>::traverse(LeafEvaluator&&  a_leafEvaluator,
   // base cannot move underneath it.
   const void* poolBase = this->base();
 
-  // Every child of an expanded node is pushed, so a tree of depth D needs at most 1 + (K-1)(D-1)
+  // One entry per interior node on the path from the root, so a tree of depth D needs at most D - 1
   // entries -- the bound traversalStackDepth() gives, and that every build checked the tree against.
   constexpr size_t stackDepth = PackedBVH::traversalStackDepth();
 
-  Entry  stack[stackDepth];
-  size_t top = 0;
-
-  stack[top++] = Entry{0U, static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, 0)))};
+  StackEntry stack[stackDepth];
+  size_t     top = 0;
 
   Array<Entry, K> children;
 
-  while (top > 0) {
-    const Entry entry = stack[--top];
-    const Node& node  = m_linearNodes.at(poolBase, entry.first);
+  uint32_t nodeIdx = 0U;
+  Key      key     = static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, 0)));
 
-    if (!a_prunePredicate(node, entry.second)) {
-      continue;
-    }
+  while (true) {
+    // Visit nodeIdx, and keep descending into the first child in visit order.
+    while (true) {
+      const Node& node = m_linearNodes.at(poolBase, nodeIdx);
 
-    if (node.isLeaf()) {
-      a_leafEvaluator(m_primitives.bind(poolBase), size_t(node.getPrimitivesOffset()), size_t(node.getNumPrimitives()));
-    }
-    else {
+      if (!a_prunePredicate(node, key)) {
+        break;
+      }
+
+      if (node.isLeaf()) {
+        a_leafEvaluator(
+          m_primitives.bind(poolBase), size_t(node.getPrimitivesOffset()), size_t(node.getNumPrimitives()));
+
+        break;
+      }
+
+      const auto& offsets = node.getChildOffsets();
+
       for (size_t k = 0; k < K; k++) {
-        const uint32_t childIdx = node.getChildOffsets()[k];
-
-        children[k] = Entry{childIdx, static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, childIdx)))};
+        children[k] = Entry{offsets[k], static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, offsets[k])))};
       }
 
       a_childOrderer(children);
 
-      for (size_t k = 0; k < K; k++) {
-        EBGEOMETRY_EXPECT(top < stackDepth);
+      // children[K - 1] is visited now and children[0] last. The others wait on the stack as slots,
+      // in the same order; their keys are computed again when they are visited.
+      EBGEOMETRY_EXPECT(top < stackDepth);
 
-        stack[top++] = children[k];
+      StackEntry& entry = stack[top++];
+
+      entry.m_node  = nodeIdx;
+      entry.m_count = static_cast<uint8_t>(K - 1);
+
+      for (size_t i = 0; i < K - 1; i++) {
+        size_t slot = 0;
+
+        while (slot < K && offsets[slot] != children[i].first) {
+          slot++;
+        }
+
+        EBGEOMETRY_EXPECT(slot < K);
+
+        entry.m_slots[i] = static_cast<uint8_t>(slot);
       }
+
+      nodeIdx = children[K - 1].first;
+      key     = children[K - 1].second;
     }
+
+    // Return to the deepest level with a child still to visit.
+    if (top == 0) {
+      return;
+    }
+
+    StackEntry& entry = stack[top - 1];
+
+    const uint8_t slot = entry.m_slots[--entry.m_count];
+
+    if (entry.m_count == 0) {
+      top--;
+    }
+
+    nodeIdx = m_linearNodes.at(poolBase, entry.m_node).getChildOffsets()[slot];
+    key     = static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, nodeIdx)));
   }
 }
 
@@ -361,31 +400,6 @@ PackedBVH<T, P, K>::requireDepthFits(const void* a_base, const size_t a_maxDepth
                      a_context,
                      depth,
                      a_maxDepth);
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline float
-PackedBVH<T, P, K>::lowerBound(const T a_dist2) noexcept
-{
-  if constexpr (std::is_same_v<T, float>) {
-    return a_dist2;
-  }
-  else {
-    // A double narrows to the nearest float, which may be above it. Shrinking the value by 2^-22
-    // first keeps the rounded float below the original, since rounding moves it by at most 2^-24
-    // relative -- except for results that would be float subnormals, which go to zero, and values
-    // past the float range, which go to the largest float.
-    if (!(a_dist2 >= T(Math::Limits<float>::min()))) {
-      return 0.0F;
-    }
-
-    if (a_dist2 >= T(Math::Limits<float>::max())) {
-      return Math::Limits<float>::max();
-    }
-
-    return static_cast<float>(a_dist2 * (T(1) - T(1.0 / 4194304.0)));
-  }
 }
 
 template <class T, class P, size_t K>
@@ -670,20 +684,48 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
   // they match the SIMD paths exactly, and every path produces bit-identical results.
 
   for (size_t k = 0; k < K; k++) {
-    T delta[3];
-
-    for (size_t dir = 0; dir < 3; dir++) {
-      const T p     = a_point[dir];
-      const T lower = a_soa.m_lo[dir][k] - p;
-      const T upper = p - a_soa.m_hi[dir][k];
-
-      const T d = (upper > lower) ? upper : lower;
-
-      delta[dir] = (d > T(0.0)) ? d : T(0.0);
-    }
-
-    a_dist2[k] = delta[0] * delta[0] + (delta[1] * delta[1] + delta[2] * delta[2]);
+    a_dist2[k] = PackedBVH::scalarChildDistance2(a_soa, a_point, k);
   }
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline T
+PackedBVH<T, P, K>::scalarChildDistance2(const ChildAABBSoA& a_soa,
+                                         const Vec3T<T>&     a_point,
+                                         const size_t        a_slot) noexcept
+{
+  T delta[3];
+
+  for (size_t dir = 0; dir < 3; dir++) {
+    const T p     = a_point[dir];
+    const T lower = a_soa.m_lo[dir][a_slot] - p;
+    const T upper = p - a_soa.m_hi[dir][a_slot];
+
+    const T d = (upper > lower) ? upper : lower;
+
+    delta[dir] = (d > T(0.0)) ? d : T(0.0);
+  }
+
+  return delta[0] * delta[0] + (delta[1] * delta[1] + delta[2] * delta[2]);
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline T
+PackedBVH<T, P, K>::childDistance2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, const size_t a_slot) noexcept
+{
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+  return PackedBVH::scalarChildDistance2(a_soa, a_point, a_slot);
+#else
+  // The SIMD paths compute the same quantity, but a compiler may contract the scalar expression into
+  // fused multiply-adds where the intrinsics do not, so the row goes through the path that sorted it.
+  T dist2[K];
+
+  PackedBVH::computeChildDistances2(a_soa, a_point, dist2);
+
+  return dist2[a_slot];
+#endif
 }
 
 template <class T, class P, size_t K>
@@ -709,55 +751,54 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
   // base cannot move underneath it.
   const void* poolBase = this->base();
 
+  // One entry per interior node on the path from the root, so a tree of depth D needs at most D - 1
+  // entries -- the bound traversalStackDepth() gives, and that every build checked the tree against.
   constexpr size_t stackDepth = PackedBVH::traversalStackDepth();
 
   StackEntry stack[stackDepth];
+  size_t     top = 0;
 
-  int top = 0;
+  // The root's box contains everything, so its distance is taken as zero.
+  if (T(0) > a_pruneDist2(a_state)) {
+    return;
+  }
 
-  stack[top++] = StackEntry{0U, 0.0F};
+  uint32_t nodeIdx = 0U;
 
-  while (top > 0) {
-    const StackEntry entry = stack[--top];
+  while (true) {
+    // Visit nodeIdx, and keep descending into the nearest child within the bound.
+    while (true) {
+      const Node& node = m_linearNodes.at(poolBase, nodeIdx);
 
-    // Read the pruning bound once per node visit. A leaf visited anywhere earlier -- in any subtree,
-    // not just this one -- may have tightened it since this entry was pushed, so an entry that
-    // looked promising at push time can be discarded here without descending. The stored distance
-    // never exceeds the true one, so this never discards an entry that could hold the answer.
-    const T pruneDist2 = a_pruneDist2(a_state);
+      if (node.isLeaf()) {
+        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
 
-    if (T(entry.m_dist2) > pruneDist2) {
-      continue;
-    }
+        break;
+      }
 
-    const Node& node = m_linearNodes.at(poolBase, entry.m_idx);
+      // Read the pruning bound once per node expanded. A leaf visited anywhere earlier -- in any
+      // subtree, not just this one -- may have tightened it.
+      const T pruneDist2 = a_pruneDist2(a_state);
 
-    if (node.isLeaf()) {
-      a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
-    }
-    else {
       T dist2[K];
 
       PackedBVH::computeChildDistances2(m_childAabbSoA.at(poolBase, node.getChildBoxRow()), a_point, dist2);
 
       const auto& offsets = node.getChildOffsets();
 
-      // The children within the bound, sorted into descending distance order. The stack is LIFO, so
-      // the nearest child ends up on top and is expanded first -- which is what makes the bound
-      // tighten quickly. Filtering here as well as at pop time keeps hopeless children off the stack
-      // entirely; nothing between the read above and here can have changed a_state (a_evalLeaf runs
-      // only on the leaf branch), so the bound is the same value.
+      // The children within the bound, sorted into descending distance order, so the nearest is last.
+      // It is visited now and the others wait on the stack in the same order, which is what makes the
+      // bound tighten quickly. Children out of bound never reach the stack.
       //
       // Insertion sort, not std::sort: K is a handful of elements, where insertion sort is simply
       // faster than an introsort's setup, and std::sort is not callable from device code. It is also
       // stable, so children whose boxes are exactly equidistant keep their child-slot order rather
-      // than an unspecified one, which keeps traversal order deterministic. It sorts on the exact
-      // distances; only the stored copies are rounded.
-      size_t slots[K];
-      size_t numSlots = 0;
+      // than an unspecified one, which keeps traversal order deterministic.
+      uint8_t slots[K];
+      size_t  numSlots = 0;
 
       for (size_t k = 0; k < K; k++) {
-        EBGEOMETRY_EXPECT(offsets[k] > entry.m_idx);
+        EBGEOMETRY_EXPECT(offsets[k] > nodeIdx);
 
         if (dist2[k] <= pruneDist2) {
           size_t j = numSlots++;
@@ -767,15 +808,59 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
             j--;
           }
 
-          slots[j] = k;
+          slots[j] = static_cast<uint8_t>(k);
         }
       }
 
-      for (size_t i = 0; i < numSlots; i++) {
-        EBGEOMETRY_EXPECT(top < static_cast<int>(stackDepth));
-
-        stack[top++] = StackEntry{offsets[slots[i]], PackedBVH::lowerBound(dist2[slots[i]])};
+      if (numSlots == 0) {
+        break;
       }
+
+      if (numSlots > 1) {
+        EBGEOMETRY_EXPECT(top < stackDepth);
+
+        StackEntry& entry = stack[top++];
+
+        entry.m_node  = nodeIdx;
+        entry.m_count = static_cast<uint8_t>(numSlots - 1);
+
+        for (size_t i = 0; i + 1 < numSlots; i++) {
+          entry.m_slots[i] = slots[i];
+        }
+      }
+
+      nodeIdx = offsets[slots[numSlots - 1]];
+    }
+
+    // Return to the deepest level with a child still within the bound. The bound may have tightened
+    // since the level was sorted; its children wait nearest last, so the first one out of bound
+    // drops the rest of the level with it.
+    bool resumed = false;
+
+    while (top > 0 && !resumed) {
+      StackEntry&   entry  = stack[top - 1];
+      const Node&   parent = m_linearNodes.at(poolBase, entry.m_node);
+      const uint8_t slot   = entry.m_slots[entry.m_count - 1];
+
+      const T dist2 =
+        PackedBVH::childDistance2(m_childAabbSoA.at(poolBase, parent.getChildBoxRow()), a_point, size_t(slot));
+
+      if (dist2 > a_pruneDist2(a_state)) {
+        top--;
+
+        continue;
+      }
+
+      if (--entry.m_count == 0) {
+        top--;
+      }
+
+      nodeIdx = parent.getChildOffsets()[slot];
+      resumed = true;
+    }
+
+    if (!resumed) {
+      return;
     }
   }
 }
