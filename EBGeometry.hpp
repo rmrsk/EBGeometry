@@ -8,6 +8,9 @@
  * @author Robert Marskar
  */
 
+#ifndef EBGEOMETRY_HPP
+#define EBGEOMETRY_HPP
+
 #include "Source/EBGeometry_Affine.hpp"
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "Source/EBGeometry_Array.hpp"
@@ -62,3 +65,5 @@
  *          EBGeometry.hpp exposes every public class and free function through this namespace.
  */
 namespace EBGeometry {}
+
+#endif

@@ -451,7 +451,7 @@ TEMPLATE_TEST_CASE("Offset: matches the wrapped value minus the offset",
 // Annular()
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("Annular: hollows out a shell of the requested thickness",
+TEMPLATE_TEST_CASE("Annular: hollows out a shell reaching the half-thickness on each side of the surface",
                    "[Transform][Annular]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -475,7 +475,7 @@ TEMPLATE_TEST_CASE("Annular: hollows out a shell of the requested thickness",
   REQUIRE_THAT(shell(Vec3(2 - delta, 0, 0)), withinAbsT(T(0.0), formulaMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("Annular: matches the absolute wrapped value minus the thickness",
+TEMPLATE_TEST_CASE("Annular: matches the absolute wrapped value minus the half-thickness",
                    "[Transform][Annular]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1031,11 +1031,11 @@ TEST_CASE("Offset: rejects a non-finite offset", "[Transform][Offset]")
   REQUIRE(abortsWith([nan] { (void)Offset(unitSphere(), nan); }, "Offset: the offset must be finite"));
 }
 
-TEST_CASE("Annular: rejects a non-finite thickness", "[Transform][Annular]")
+TEST_CASE("Annular: rejects a non-finite half-thickness", "[Transform][Annular]")
 {
   const double inf = std::numeric_limits<double>::infinity();
 
-  REQUIRE(abortsWith([inf] { (void)Annular(unitSphere(), inf); }, "Annular: the shell thickness must be finite"));
+  REQUIRE(abortsWith([inf] { (void)Annular(unitSphere(), inf); }, "Annular: the half-thickness must be finite"));
 }
 
 TEST_CASE("Blur: rejects a negative distance and alpha outside [0, 1]", "[Transform][Blur]")

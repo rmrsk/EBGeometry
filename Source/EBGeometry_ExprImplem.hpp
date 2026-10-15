@@ -735,7 +735,7 @@ Annular(const A& a_operand, const ExprPrecision<A> a_delta)
 {
   using T = ExprPrecision<A>;
 
-  EBGEOMETRY_REQUIRE(std::isfinite(a_delta), "Annular: the shell thickness must be finite (%g)", double(a_delta));
+  EBGEOMETRY_REQUIRE(std::isfinite(a_delta), "Annular: the half-thickness must be finite (%g)", double(a_delta));
 
   const Expr<T> child = toExpr(a_operand);
 

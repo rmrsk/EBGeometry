@@ -89,6 +89,7 @@ namespace EBGeometry {
   /* -- BVH ---------------------------------------------------------------- */\
   template class BVH::TreeBVH<PREC, Vec3T<PREC>, BoundingVolumes::AABBT<PREC>, 4>; \
   template class BVH::PackedBVH<PREC, Vec3T<PREC>, 4>;                       \
+  template class BVH::PackedBVH<PREC, uint32_t, 4>;                          \
                                                                                \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
   template struct PODVector<PREC>;                                           \

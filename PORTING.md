@@ -9,16 +9,17 @@ original design discussion and is worth reading for the *rationale* behind indiv
 but its tier checklist describes the abandoned first attempt and is **stale**. Where the two
 disagree, this file wins.
 
-Until the tape is finished, [AUDIT.md](AUDIT.md) carries the remaining sequence (its Phase 3) and the
-inputs to the tape's design (its Appendix A). Audit item 26 moves what is still live from it into
-this file and the tape design document, and deletes it.
+The pre-tape audit (`AUDIT.md`) is closed: its last item (26) moved what was still live from it into
+this file and deleted it. "The pre-tape audit" below links to its final version and keeps its
+decisions (D1–D15), which this file cites, and the findings it left open.
 
-Status, through audit item 25c: every class meant to run on a device is ported, the pre-tape audit's
-Phases 0–2 are done, the shape conventions (audit item 24) are settled, and the tape's first steps
-are in: the layout/handle split (25a), the expression builder, the tape and its host evaluator, with
-`ImplicitFunction` and the virtual transform/CSG layer retired (25b), and the device evaluator, tested
-in the GPU harness and compiled optimised for an AMD target (25c). Like every `[gpu]` case, the
-tape's has not yet run on a real GPU (see "Before the tape").
+Status: every class meant to run on a device is ported, the pre-tape audit is done (Phases 0–3), the
+shape conventions are settled (audit item 24), and the tape is in: the layout/handle split (25a), the
+expression builder, the tape and its host evaluator, with `ImplicitFunction` and the virtual
+transform/CSG layer retired (25b), and the device evaluator, tested in the GPU harness and compiled
+optimised for an AMD target (25c). Since then every example runs on the host and, in a GPU build, on
+a device (#172), and the BVH traversals keep one stack entry per level (#173). Like every `[gpu]`
+case, none of this has yet run on a real GPU (see "Before the tape").
 
 ## The one rule
 
@@ -97,8 +98,8 @@ The *evaluation* design also stands and is expected to return with the tape: a l
 the MPR/libfive style, one trait per primitive as the single source of truth for its formula, a
 generated opcode registry, smooth-blend operators as data rather than `std::function`, and a fixed
 `uint32` winning-primitive index as the only thing transported per SSA slot. Those decisions and
-their reasoning are recorded in the comments on issue #115 and summarised in `AUDIT.md`'s
-Appendix A; they do not need re-deriving.
+their reasoning are recorded in the comments on issue #115 and were summarised in the pre-tape
+audit's Appendix A; they do not need re-deriving. The tape (25b) is built on them.
 
 ## The current foundation
 
@@ -170,8 +171,9 @@ The governing rule was that **every existing class is ported before the tape is 
 rule is now met. The order the work was done in:
 
 > BVH (#145, #146) → point-cloud composition (#147) → mesh SDFs (#148, #149) → analytic shapes
-> (#151) → single-type BVH unions (#152) → **the pre-tape audit** (`AUDIT.md`, Phases 0–2, #153–#165)
-> → shape conventions (audit item 24) → **the tape** (audit item 25).
+> (#151) → single-type BVH unions (#152) → **the pre-tape audit** (Phases 0–2, #153–#165)
+> → shape conventions (audit item 24) → **the tape** (audit item 25) → host-and-device examples
+> (#172) and the per-level traversal stack (#173).
 
 The audit was run after the BVH unions rather than after the point clouds, the loose ends and the
 integrations: its findings reshaped those steps, including several classes to retire rather than
@@ -360,9 +362,39 @@ angle-weighted vertex pseudonormal. All three parts or none: the pseudonormal is
 correct, so a device `reconcile()` covering only faces would leave signs silently wrong near
 vertices and edges.
 
-**More device backends (audit item 27).** SYCL first; OpenMP offload only if a user needs it;
-OpenACC declined. Each is a real backend or none: a memory resource, device-pass detection, the GPU
-test harness running on it, and a CI lane.
+**More device backends (audit item 27).** Decided while audit item 21 removed the fictional SYCL and
+OpenACC branches. Each is a real backend or none: a memory resource, device-pass detection, the GPU
+test harness running on it, and a CI lane, as CUDA and HIP have now. The tape's interpreter, the
+largest piece of device code, already keeps to the subset that makes them possible: no recursion
+(explicit stacks, as the BVH traversals and the octree walk use), no function pointers or virtual
+calls, no exceptions, and only trivially copyable state passed to a kernel. Keep it that way, and a
+new backend needs no change to the interpreter.
+
+* **SYCL, first.** AMReX's third backend (Intel GPUs). Device code needs no decoration, so the
+  macros stay empty. Work: a `sycl::queue`-backed memory resource (`malloc_device`/`malloc_shared`,
+  `queue.memcpy` for `Pool::mirror`); device-pass detection through `__SYCL_DEVICE_ONLY__` for the
+  device assertion path; the test harness and `GPU::transform` launching through `parallel_for`; a CI
+  lane with oneAPI DPC++, whose CPU device runs the kernels without a GPU.
+* **OpenMP offload, if a user needs it.** `begin/end declare target` around the device-callable code
+  (OpenMP 5.x also marks functions used in target regions implicitly); a memory resource on
+  `omp_target_alloc`/`omp_target_memcpy`; device-pass detection, which OpenMP does not standardise
+  (compiler macros or `declare variant`); the harness as `target teams distribute parallel for`; a CI
+  lane with an offload-capable compiler. No current user (AMReX uses CUDA, HIP and SYCL), and compiler
+  support is uneven.
+* **OpenACC, declined.** Every device function and template instantiation needs an `acc routine`
+  directive, C++ templates and classes are where compiler support is weakest (nvc++ is the only solid
+  one), and its users are mostly Fortran and C codes. An nvc++ OpenACC application can already call
+  the CUDA path.
+
+**Tape operations still open.** From the tape's design inputs (the audit's Appendix A), three were
+not built:
+
+* **Add / displace**, `v = v1 + v2`: not a distance, but what noise displacement needs.
+* **A point cloud as a leaf**: a union of N equal spheres, or unsigned distance to a sample set, is
+  `sqrt(closestPoint(q).distanceSquared) - r`, much cheaper than a BVH union over sphere primitives.
+  `PointCloudBVH` would need a `signedDistance`-shaped entry to be a tape primitive.
+* **Gradients**: whether the tape offers normals by forward-mode dual numbers over clauses (one
+  evaluation) or by finite differences (six) is undecided.
 
 ### Examples and integrations
 
@@ -371,8 +403,8 @@ The AMReX `MeshSDF`, `PaintEB`, `PackedSpheres` and `RandomCity` implicit functi
 and mirrored in a GPU build. They were compiled and run on CPUs against AMReX's development branch
 and compiled for HIP, but have not run on a device. The Chombo `MeshSDF`, `PackedSpheres` and
 `RandomCity` hold their geometry by value and the pool by `shared_ptr`, and were compiled and run
-against Chombo 3.2 (audit item 22). Still open: a GPU section in `Examples/MeshSDF` (mirror to
-managed memory, evaluate the same points in a kernel, compare against the host).
+against Chombo 3.2 (audit item 22). Every example in `Examples/` except `BuildBVH` and `HostTuning`
+also runs its queries on a device in a GPU build (#172).
 
 ## Decisions and their evidence
 
@@ -487,6 +519,78 @@ frame on the deepest path: about 1.1 KB per level in double (the value and point
 union's traversal stack and saved registers), plus the primitive dispatch at the bottom. A tape
 listed as another tape's primitive adds its own levels. If that ever matters, the largest single
 pieces are now the value and point stacks at every level.
+
+## The pre-tape audit
+
+A review of the whole codebase at the pre-tape checkpoint (`dev` at 63739a0, after #150–#152),
+covering code quality and design: six area reviews (`MEM` memory model, `BVH`, `MESH`, `CSG`, `PC`
+point clouds, `QA` tests and tooling), 125 findings, fifteen decisions and a fix plan in four phases
+(#153–#171). Its final version, with every finding, the cross-cutting design review and the fix plan
+item by item, is [`AUDIT.md` at 8c8f504](https://github.com/rmrsk/EBGeometry/blob/8c8f504a8f3da271c40468344f9f6f5b133e0ab0/AUDIT.md).
+
+### Decisions
+
+Taken by the maintainer on 30 September 2026, and cited by number in this file.
+
+| # | Decision |
+|---|----------|
+| D1 | A pool object's location: `PoolLocation` first, then the layout/handle split (`PoolHandle`, 25a). |
+| D2 | Retire `Octree::Node`, `SphereT`, `SignedDistanceFunction`, the SYCL/OpenACC branches and dead macros, and `Random`/`SimpleTimer` from the umbrella header. Amended: `TreeBVH`, its partitioners and `pack()`/`packWith()` stay; `PackedBVH::traverse()` became a template, device-callable traversal. |
+| D3 | Keep all three mesh SDFs; a `uint32_t` face id replaces `Meta`. |
+| D4 | The tape's front end is a value-type expression builder (`Expr`). |
+| D5 | No host-only shape adapter: `ImplicitFunction` and the virtual transform/CSG layer were retired in the change that introduced the builder and its host evaluator. |
+| D6 | An own host-device math header (`Math::min`/`max`/`clamp`, `Limits`, `Array`). |
+| D7 | Fixed K and W defaults (4) for device-visible types, ISA-tuned values opt-in. Amended: a host-only build may define `EBGEOMETRY_HOST_TUNED_DEFAULTS` to widen the default triangle groups. |
+| D8 | Bad input: always-on checks (`EBGEOMETRY_REQUIRE`), and the parsers throw. |
+| D9 | Keep the point-cloud hash grid, fixed and on the pool. |
+| D10 | Shapes: placement first, one axis convention (y). |
+| D11 | BVH unions: factories deleted, classes renamed `BVHUnion`/`BVHSmoothUnion`. |
+| D12 | No SIMD flags for consumers of the CMake target; `avx` only for a top-level build. |
+| D13 | Port six integrations; the `Shapes` integrations and `CSGUnion` became tape acceptance tests. |
+| D14 | Fold the planning documents into this file. |
+| D15 | HIP compile required in CI, CUDA advisory; `CI-passed` fails, not skips, when a job fails. |
+
+### Findings still open
+
+When the audit closed, every BLOCKER was fixed, and every MAJOR finding was fixed, retired with its
+code, or kept deliberately by a decision, except the parts of BVH-7, BVH-8, MESH-8 and PC-6 below.
+The MINOR and NIT findings were folded into whichever change touched the
+same file; each was checked against `dev` at 8c8f504, and the last few small ones (a missing include
+guard, an include, a blank line, stale wording) were fixed in the change that closed the audit.
+These remain, by audit id:
+
+* **Kept or deferred by design.** PC-6: no `PackedBVH` builds on a device ("Device builds" above).
+  MESH-8: the triangle distance kernel has six SIMD copies and three scalar paths (D3 kept the three
+  mesh SDFs; the kernels were not consolidated). BVH-8: every child box is stored twice, in its node
+  and in the parent's SIMD row. BVH-10: `pack()`/`packWith()` return a `shared_ptr`, and some
+  `PackedBVH` constructors are chosen by tag types (the API D2 kept). BVH-11: `TreeBVH::setChildren`
+  and `refit` build a `std::vector` for every box union, and `PackedBVH::refit` is host-only. BVH-18:
+  `computeChildDistances2()`'s inline SIMD bodies differ between translation units compiled with
+  different ISA flags, which nothing checks.
+* **Robustness.** BVH-7: `TreeBVH::traverse` calls `shared_from_this()` in a `noexcept` function, so a
+  root not owned by a `shared_ptr` terminates. BVH-13: `PackedBVH::getBoundingVolume()` on an empty
+  BVH is caught only by an `EBGEOMETRY_EXPECT`, and `finalize()` narrows sizes to `uint32_t`
+  unchecked. BVH-16: some allocating functions are `noexcept` (`SFC::computeBins`, `TreeBVH::traverse`
+  and `setChildren`, two partitioner lambdas). MESH-15: `EdgeIteratorT` has no step bound, so a broken
+  half-edge chain loops forever, and the soup-to-DCEL index checks are `EBGEOMETRY_EXPECT` only.
+  MEM-15: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for overflow. MEM-22:
+  the device memory resources are function-local static objects whose frees abort on any error, including a
+  runtime that has already unloaded at exit.
+* **Numerics.** MESH-19: a triangle distance of exactly zero gets sign +1 on the SIMD paths and -1 on
+  the scalar path. BVH-17: the SIMD and scalar child distances can differ for a NaN coordinate (the
+  docs now say "for finite inputs"). MEM-20: `Vec` division multiplies by the reciprocal, and the
+  free `min`/`max` propagate NaN depending on argument order.
+* **API.** MEM-12: five `const_cast<void*>(this->base())`, because `base()` returns `const void*` in
+  some classes and `void*` in others. MEM-17: `Vec3T`'s scalar-left `operator*` and `operator/` are
+  unconstrained, `2.0 * Vec2T<float>` does not compile, and a free `operator*(Vec3T, Vec3T)` looks
+  dead. MEM-18: `Vec2T` has public `x`/`y` where `Vec3T` has `m_X` and `operator[]`, and their
+  `constexpr length()` calls `std::sqrt`. MEM-19: `Vec3T` is not trivially default-constructible,
+  which a `__shared__` array needs.
+* **Tests and tooling.** MEM-14: `Vec3T::clamp` has no host test with expected values. QA-16:
+  `TestPolygon2D` casts a `FaceT` to a test subclass (undefined behaviour), `looseMargin<float>()` is
+  about 0.012, and `exactMargin()` is defined in three test files. QA-24: the example GNUmakefiles set
+  `CXX ?=` (a no-op, since make predefines it) and `CXXFLAGS ?=` (an environment `CXXFLAGS` drops
+  `-std=c++17`), and Doxygen shows `EBGEOMETRY_HOST_DEVICE` in return types.
 
 ## Porting a class
 
