@@ -125,7 +125,7 @@ full callback contract and traversal algorithm.
 
 When ``(K, T)`` matches no compiled ISA path, this one step -- and only this step -- falls back to
 a scalar loop over the :math:`K` children; the surrounding traversal is the same code either way,
-and the two produce bit-identical results.
+and for finite inputs the two produce bit-identical results.
 
 **What this means in practice:** the cost of deciding which subtree(s) to visit next no longer
 scales with :math:`K` the way a scalar loop would; a wider branching factor (larger :math:`K`)

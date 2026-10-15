@@ -1251,7 +1251,7 @@ private:
    * (double, K=8) as two 4-wide passes, SSE4.1 for (float, K=4), and a scalar loop for every other
    * combination and for device compilation. Every path computes the same quantity in the same
    * association order -- max(0, max(lo-p, p-hi)) per axis, then dx*dx + (dy*dy + dz*dz) -- so all of
-   * them agree bit-for-bit.
+   * them agree bit-for-bit for finite inputs (a NaN coordinate can propagate differently).
    * @param[in]  a_soa   SoA child bounding boxes for the node being expanded.
    * @param[in]  a_point Query point.
    * @param[out] a_dist2 Receives one squared distance per child. Needs no particular alignment --

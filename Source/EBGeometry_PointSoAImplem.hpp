@@ -244,6 +244,7 @@ Array<T, W>
 PointSoAT<T, W>::getDistances(const Vec3T<T>& a_point) const noexcept
 {
   Array<T, W> distances = this->getDistances2(a_point);
+
   for (size_t j = 0; j < W; j++) {
     distances[j] = std::sqrt(distances[j]);
   }

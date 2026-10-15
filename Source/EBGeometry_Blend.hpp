@@ -150,7 +150,7 @@ struct SmoothMaxOp
 
 /**
  * @brief The exponential smooth minimum, as a ready-made function object: `ExpMin<T>(a, b, s)`.
- * @details Converts implicitly to the `std::function` the smooth CSG combinators take.
+ * @details Callable from host and device code, for instance as a BVHSmoothUnion's Blend.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -158,7 +158,7 @@ inline constexpr ExpMinOp<T> ExpMin{};
 
 /**
  * @brief The exponential smooth maximum, as a ready-made function object: `ExpMax<T>(a, b, s)`.
- * @details Converts implicitly to the `std::function` the smooth CSG combinators take.
+ * @details Callable from host and device code, for instance as a BVHSmoothUnion's Blend.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -166,7 +166,7 @@ inline constexpr ExpMaxOp<T> ExpMax{};
 
 /**
  * @brief The polynomial smooth minimum, as a ready-made function object: `SmoothMin<T>(a, b, s)`.
- * @details Converts implicitly to the `std::function` the smooth CSG combinators take.
+ * @details Callable from host and device code, for instance as a BVHSmoothUnion's Blend.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -174,7 +174,7 @@ inline constexpr SmoothMinOp<T> SmoothMin{};
 
 /**
  * @brief The polynomial smooth maximum, as a ready-made function object: `SmoothMax<T>(a, b, s)`.
- * @details Converts implicitly to the `std::function` the smooth CSG combinators take.
+ * @details Callable from host and device code, for instance as a BVHSmoothUnion's Blend.
  * @tparam T Floating-point precision.
  */
 template <class T>

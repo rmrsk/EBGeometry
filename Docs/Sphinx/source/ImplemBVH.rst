@@ -677,7 +677,7 @@ There is exactly **one** such loop, and it runs whether or not the ``(K, T)`` pa
 compiled SIMD path. Only the per-child squared-distance computation differs: a vector batch when
 one of the ISA paths matches, and an ordinary scalar loop over the ``K`` children otherwise (which
 is also what device code runs). Both compute the same quantity in the same association order, so
-they agree bit-for-bit -- a query answered on a build with no SIMD returns exactly what the same
+for finite inputs they agree bit-for-bit -- a query answered on a build with no SIMD returns exactly what the same
 query returns on an AVX-512 build, and the unit tests pin this by sweeping ``K`` across values
 that do and do not have a vector path and requiring exact equality. Stack handling, pruning,
 child ordering and leaf dispatch are shared code in every configuration. Because the bound is re-read from the current ``State`` at every node visited --
