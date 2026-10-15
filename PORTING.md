@@ -553,7 +553,8 @@ Taken by the maintainer on 30 September 2026, and cited by number in this file.
 ### Findings still open
 
 When the audit closed, every BLOCKER was fixed, and every MAJOR finding was fixed, retired with its
-code, or kept deliberately by a decision, except the parts of BVH-7, BVH-8, MESH-8 and PC-6 below.
+code, or kept deliberately by a decision, except parts of BVH-7 (fixed since), BVH-8, MESH-8 and
+PC-6.
 The MINOR and NIT findings were folded into whichever change touched the
 same file; each was checked against `dev` at 8c8f504, and the last few small ones (a missing include
 guard, an include, a blank line, stale wording) were fixed in the change that closed the audit.
@@ -585,8 +586,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **BVH-7** [MAJOR]: `TreeBVH::traverse` calls `shared_from_this()` in a `noexcept` function, so a
-  root not owned by a `shared_ptr` terminates the program.
 * **MESH-15** [MINOR]: `EdgeIteratorT` has no step bound, so a broken half-edge chain loops forever
   in a build without assertions, and the soup-to-DCEL index checks are `EBGEOMETRY_EXPECT` only.
   The readers reject such meshes, so only a mesh assembled by hand reaches it.

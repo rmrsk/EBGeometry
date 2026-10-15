@@ -313,14 +313,14 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition(const size_t a_targetLeafSize)
           children[child] = nodes[static_cast<size_t>(lvl) + 1][inode * K + child];
         }
 
+        // The root is this node, which need not be owned by a shared_ptr.
         if (lvl > 0) {
           nodes[static_cast<size_t>(lvl)].emplace_back(std::make_shared<TreeBVH<T, P, BV, K>>());
+          nodes[static_cast<size_t>(lvl)].back()->setChildren(children);
         }
         else {
-          nodes[static_cast<size_t>(lvl)].emplace_back(this->shared_from_this());
+          this->setChildren(children);
         }
-
-        nodes[static_cast<size_t>(lvl)].back()->setChildren(children);
       }
     }
   }
@@ -364,7 +364,9 @@ TreeBVH<T, P, BV, K>::traverse(const BVH::LeafEvaluator<P>&               a_leaf
   Array<std::pair<std::shared_ptr<const Node>, NodeKey>, K>   children;
   std::stack<std::pair<std::shared_ptr<const Node>, NodeKey>> q;
 
-  q.emplace(this->shared_from_this(), a_nodeKeyFactory(*this));
+  // The root is held without ownership, so a root that no shared_ptr owns (on the stack, say) works.
+  // It outlives the traversal, and so do its children, which it owns.
+  q.emplace(std::shared_ptr<const Node>(std::shared_ptr<const Node>(), this), a_nodeKeyFactory(*this));
 
   while (!(q.empty())) {
     // Copied, not referenced: pop() destroys the entry, and with it a reference's target.
