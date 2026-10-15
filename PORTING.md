@@ -557,40 +557,71 @@ code, or kept deliberately by a decision, except the parts of BVH-7, BVH-8, MESH
 The MINOR and NIT findings were folded into whichever change touched the
 same file; each was checked against `dev` at 8c8f504, and the last few small ones (a missing include
 guard, an include, a blank line, stale wording) were fixed in the change that closed the audit.
-These remain, by audit id:
+Those still open are sorted below into new features, restructuring and hardening. The bracket gives
+the severity the audit gave each one.
 
-* **Kept or deferred by design.** PC-6: no `PackedBVH` builds on a device ("Device builds" above).
-  MESH-8: the triangle distance kernel has six SIMD copies and three scalar paths (D3 kept the three
-  mesh SDFs; the kernels were not consolidated). BVH-8: every child box is stored twice, in its node
-  and in the parent's SIMD row. BVH-10: `pack()`/`packWith()` return a `shared_ptr`, and some
-  `PackedBVH` constructors are chosen by tag types (the API D2 kept). BVH-11: `TreeBVH::setChildren`
-  and `refit` build a `std::vector` for every box union, and `PackedBVH::refit` is host-only. BVH-18:
-  `computeChildDistances2()`'s inline SIMD bodies differ between translation units compiled with
-  different ISA flags, which nothing checks.
-* **Robustness.** BVH-7: `TreeBVH::traverse` calls `shared_from_this()` in a `noexcept` function, so a
-  root not owned by a `shared_ptr` terminates. BVH-13: `PackedBVH::getBoundingVolume()` on an empty
-  BVH is caught only by an `EBGEOMETRY_EXPECT`, and `finalize()` narrows sizes to `uint32_t`
-  unchecked. BVH-16: some allocating functions are `noexcept` (`SFC::computeBins`, `TreeBVH::traverse`
-  and `setChildren`, two partitioner lambdas). MESH-15: `EdgeIteratorT` has no step bound, so a broken
-  half-edge chain loops forever, and the soup-to-DCEL index checks are `EBGEOMETRY_EXPECT` only.
-  MEM-15: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for overflow. MEM-22:
-  the device memory resources are function-local static objects whose frees abort on any error, including a
-  runtime that has already unloaded at exit.
-* **Numerics.** MESH-19: a triangle distance of exactly zero gets sign +1 on the SIMD paths and -1 on
-  the scalar path. BVH-17: the SIMD and scalar child distances can differ for a NaN coordinate (the
-  docs now say "for finite inputs"). MEM-20: `Vec` division multiplies by the reciprocal, and the
-  free `min`/`max` propagate NaN depending on argument order.
-* **API.** MEM-12: five `const_cast<void*>(this->base())`, because `base()` returns `const void*` in
-  some classes and `void*` in others. MEM-17: `Vec3T`'s scalar-left `operator*` and `operator/` are
-  unconstrained, `2.0 * Vec2T<float>` does not compile, and a free `operator*(Vec3T, Vec3T)` looks
-  dead. MEM-18: `Vec2T` has public `x`/`y` where `Vec3T` has `m_X` and `operator[]`, and their
-  `constexpr length()` calls `std::sqrt`. MEM-19: `Vec3T` is not trivially default-constructible,
-  which a `__shared__` array needs.
-* **Tests and tooling.** MEM-14: `Vec3T::clamp` has no host test with expected values. QA-16:
-  `TestPolygon2D` casts a `FaceT` to a test subclass (undefined behaviour), `looseMargin<float>()` is
-  about 0.012, and `exactMargin()` is defined in three test files. QA-24: the example GNUmakefiles set
-  `CXX ?=` (a no-op, since make predefines it) and `CXXFLAGS ?=` (an environment `CXXFLAGS` drops
-  `-std=c++17`), and Doxygen shows `EBGEOMETRY_HOST_DEVICE` in return types.
+#### New features
+
+These extend what the library can do rather than repair what it does.
+
+* **PC-6** [MAJOR]: no `PackedBVH` is built on a device ("Device builds" above).
+* **BVH-11, device part** [MINOR]: `PackedBVH::refit` runs on the host only.
+
+#### Restructuring
+
+Design and performance work that was deferred on purpose. None of it is a defect.
+
+* **MESH-8** [MAJOR]: the triangle distance kernel has six SIMD copies and three scalar paths. D3
+  kept the three mesh SDFs; the kernels were not consolidated. Doing so would also settle MESH-19
+  and BVH-17 below.
+* **BVH-8** [MAJOR]: every child box is stored twice, in its node and in the parent's SIMD row.
+* **BVH-11, host part** [MINOR]: `TreeBVH::setChildren` and `refit` build a `std::vector` for every
+  box union.
+* **BVH-10** [MINOR]: `pack()`/`packWith()` return a `shared_ptr`, and some `PackedBVH`
+  constructors are chosen by tag types. This is the API D2 kept.
+
+#### Hardening
+
+Listed most severe first. Each is fixed in its own pull request, which also removes it from this
+list.
+
+* **BVH-7** [MAJOR]: `TreeBVH::traverse` calls `shared_from_this()` in a `noexcept` function, so a
+  root not owned by a `shared_ptr` terminates the program.
+* **MESH-15** [MINOR]: `EdgeIteratorT` has no step bound, so a broken half-edge chain loops forever
+  in a build without assertions, and the soup-to-DCEL index checks are `EBGEOMETRY_EXPECT` only.
+  The readers reject such meshes, so only a mesh assembled by hand reaches it.
+* **MEM-22** [NIT]: the device memory resources are function-local static objects whose frees
+  abort on any error, including a runtime that has already unloaded at exit.
+* **BVH-18** [NIT]: `computeChildDistances2()`'s inline SIMD bodies differ between translation
+  units compiled with different ISA flags. The linker keeps one, so a program mixing such units can
+  run instructions the CPU lacks or give different results. Nothing checks it.
+* **BVH-13** [MINOR]: `PackedBVH::getBoundingVolume()` on an empty BVH is caught only by an
+  `EBGEOMETRY_EXPECT`, and `finalize()` narrows sizes to `uint32_t` unchecked.
+* **MEM-15** [NIT]: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for
+  overflow, so a huge request can wrap and reserve too little.
+* **BVH-16** [NIT]: some allocating functions are `noexcept` (`SFC::computeBins`,
+  `TreeBVH::traverse` and `setChildren`, two partitioner lambdas), so running out of memory there
+  terminates instead of throwing.
+* **MESH-19** [NIT]: a triangle distance of exactly zero gets sign +1 on the SIMD paths and -1 on
+  the scalar path.
+* **BVH-17** [NIT]: the SIMD and scalar child distances can differ for a NaN coordinate (the docs
+  say "for finite inputs").
+* **MEM-20** [NIT]: `Vec` division multiplies by the reciprocal, and the free `min`/`max`
+  propagate NaN depending on argument order.
+* **MEM-19** [NIT]: `Vec3T` is not trivially default-constructible, which a `__shared__` array
+  needs.
+* **MEM-17** [NIT]: `Vec3T`'s scalar-left `operator*` and `operator/` are unconstrained,
+  `2.0 * Vec2T<float>` does not compile, and a free `operator*(Vec3T, Vec3T)` looks dead.
+* **MEM-18** [NIT]: `Vec2T` has public `x`/`y` where `Vec3T` has `m_X` and `operator[]`, and their
+  `constexpr length()` calls `std::sqrt`.
+* **MEM-12** [MINOR]: five `const_cast<void*>(this->base())`, because `base()` returns
+  `const void*` in some classes and `void*` in others.
+* **QA-16** [MINOR]: `TestPolygon2D` casts a `FaceT` to a test subclass (undefined behaviour),
+  `looseMargin<float>()` is about 0.012, and `exactMargin()` is defined in three test files.
+* **MEM-14** [MINOR]: `Vec3T::clamp` has no host test with expected values.
+* **QA-24** [NIT]: the example GNUmakefiles set `CXX ?=` (a no-op, since make predefines it) and
+  `CXXFLAGS ?=` (an environment `CXXFLAGS` drops `-std=c++17`), and Doxygen shows
+  `EBGEOMETRY_HOST_DEVICE` in return types.
 
 ## Porting a class
 
