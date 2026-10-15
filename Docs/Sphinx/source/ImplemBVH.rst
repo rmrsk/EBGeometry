@@ -78,7 +78,9 @@ Construction
 Building a ``TreeBVH`` always starts from a list of ``(primitive, bounding volume)`` pairs; at
 that point the tree is a single, unpartitioned leaf holding every primitive. Partitioning it into
 an actual hierarchy is then a separate step, done by calling one of the partitioning member
-functions described below -- this recursively subdivides the tree in place.
+functions described below -- this recursively subdivides the tree in place. The root is an ordinary
+object: it may live on the stack, in a container or behind a ``shared_ptr``, and only the nodes below
+it are held by ``shared_ptr``.
 
 .. tip::
 

@@ -3720,6 +3720,61 @@ TEMPLATE_TEST_CASE("TreeBVH::traverse visits every primitive once with a permiss
   REQUIRE(visits == list.size());
 }
 
+TEMPLATE_TEST_CASE("TreeBVH: a root that no shared_ptr owns builds both ways and traverses",
+                   "[BVH][regression]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+
+  using Tree = BVH::TreeBVH<T, Vec3, AABB, K>;
+
+  // traverse() and bottomUpSortAndPartition() used to call shared_from_this() on the root, which
+  // terminated the program (traverse() is noexcept) for a root on the stack.
+  BVH::PrimAndBVList<Vec3, AABB> list;
+
+  for (int i = 0; i < 200; i++) {
+    const Vec3 x(T(i % 9), T((i * 7) % 13), T((i * 3) % 5));
+
+    list.emplace_back(std::make_shared<const Vec3>(x), AABB(x, x));
+  }
+
+  const auto countVisits = [&list](Tree& a_tree) {
+    size_t visits = 0;
+
+    a_tree.template traverse<T>(
+      [&visits](const BVH::PrimitiveList<Vec3>& a_prims) noexcept { visits += a_prims.size(); },
+      [](const Tree&, const T&) noexcept { return true; },
+      [](Array<std::pair<std::shared_ptr<const Tree>, T>, K>&) noexcept {},
+      [](const Tree&) noexcept { return T(0); });
+
+    REQUIRE(a_tree.isPartitioned());
+    REQUIRE_FALSE(a_tree.isLeaf());
+    REQUIRE(visits == list.size());
+  };
+
+  SECTION("Top-down")
+  {
+    Tree tree(list);
+
+    tree.topDownSortAndPartition();
+
+    countVisits(tree);
+  }
+
+  SECTION("Bottom-up")
+  {
+    Tree tree(list);
+
+    tree.template bottomUpSortAndPartition<SFC::Morton>();
+
+    countVisits(tree);
+  }
+}
+
 TEMPLATE_TEST_CASE("PackedBVH: an empty BVH has the empty bounding box and visits nothing",
                    "[BVH]",
                    EBGEOMETRY_TEST_PRECISIONS)

@@ -658,7 +658,8 @@ auto DefaultLeafPredicate =
  *
  * Build the tree by constructing a root node from a set of (primitive, BV) pairs and
  * then calling topDownSortAndPartition() or bottomUpSortAndPartition(). Once built, call
- * pack() to obtain a cache-friendly PackedBVH for traversal.
+ * pack() to obtain a cache-friendly PackedBVH for traversal. The root may live anywhere (on the
+ * stack, in a container, behind a shared_ptr); only the nodes below it are held by shared_ptr.
  *
  * @tparam T  Floating-point precision.
  * @tparam P  Primitive type. Construction imposes no interface requirement on P itself, except
@@ -670,7 +671,7 @@ auto DefaultLeafPredicate =
  * @tparam K  Tree branching factor (must be >= 2).
  */
 template <class T, class P, class BV, size_t K>
-class TreeBVH : public std::enable_shared_from_this<TreeBVH<T, P, BV, K>>
+class TreeBVH
 {
   static_assert(std::is_floating_point_v<T>, "TreeBVH: T must be a floating-point type");
   static_assert(K >= 2, "TreeBVH: branching factor K must be at least 2");
