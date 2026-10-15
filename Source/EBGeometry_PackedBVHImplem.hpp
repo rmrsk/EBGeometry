@@ -681,7 +681,8 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
   // Scalar path: every (T, K) with no compiled ISA path above, and all device code.
   //
   // The per-axis clamp and the dx*dx + (dy*dy + dz*dz) association below are written out so that
-  // they match the SIMD paths exactly, and every path produces bit-identical results for finite inputs.
+  // they match the SIMD paths exactly, and every path produces bit-identical results for finite inputs,
+  // unless the compiler contracts the multiply and add below into a fused multiply-add.
 
   for (size_t k = 0; k < K; k++) {
     a_dist2[k] = PackedBVH::scalarChildDistance2(a_soa, a_point, k);
