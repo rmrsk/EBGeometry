@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <cmath>
+#include <cstddef>
 #include <iostream>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include <EBGeometry.hpp>
 
@@ -14,11 +16,59 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
+using T    = EBGEOMETRY_PRECISION;
+using Vec3 = EBGeometry::Vec3T<T>;
+
+namespace {
+
+// The values of every shape at one point.
+struct ShapeValues
+{
+  T value[12];
+};
+
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. The shapes are plain values, so the query holds them by
+// value and reaches a kernel with no memory to manage.
+struct AllShapes
+{
+  EBGeometry::PlaneSDF<T>            plane;
+  EBGeometry::SphereSDF<T>           sphere;
+  EBGeometry::BoxSDF<T>              box;
+  EBGeometry::TorusSDF<T>            torus;
+  EBGeometry::CylinderSDF<T>         finiteCylinder;
+  EBGeometry::InfiniteCylinderSDF<T> infiniteCylinder;
+  EBGeometry::CapsuleSDF<T>          capsule;
+  EBGeometry::InfiniteConeSDF<T>     infiniteCone;
+  EBGeometry::ConeSDF<T>             cone;
+  EBGeometry::PerlinSDF<T>           perlin;
+  EBGeometry::RoundedBoxSDF<T>       roundBox;
+  EBGeometry::RoundedCylinderSDF<T>  roundCylinder;
+
+  EBGEOMETRY_HOST_DEVICE
+  ShapeValues
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return {{plane.signedDistance(a_point),
+             sphere.signedDistance(a_point),
+             box.signedDistance(a_point),
+             torus.signedDistance(a_point),
+             finiteCylinder.signedDistance(a_point),
+             infiniteCylinder.signedDistance(a_point),
+             capsule.signedDistance(a_point),
+             infiniteCone.signedDistance(a_point),
+             cone.signedDistance(a_point),
+             perlin.signedDistance(a_point),
+             roundBox.signedDistance(a_point),
+             roundCylinder.signedDistance(a_point)}};
+  }
+};
+
+} // namespace
+
 int
 main()
 {
-  using T    = EBGEOMETRY_PRECISION;
-  using Vec3 = EBGeometry::Vec3T<T>;
 
   // Various analytic shapes. Call ::signedDistance(Vec3) on any of them to evaluate the
   // signed distance at a point (see the class declarations in EBGeometry_AnalyticDistanceFunctions.hpp
@@ -149,6 +199,67 @@ main()
   static_assert(EBGeometry::PerlinSDF<T>::distanceQuality == EBGeometry::DistanceQuality::NotADistance);
 
   std::cout << "Shapes checked against hand-worked distances; " << failures << " failed\n";
+
+  // ── The same shapes on a GPU ───────────────────────────────────────────────────────────────────────
+  //
+  // Compiled as CUDA or HIP (GPU=HIP or GPU=CUDA), EBGeometry::GPU::transform() runs a query in a
+  // kernel, one thread per input; in a plain C++ build it runs a host loop, so the same line compiles in
+  // both. Here every shape is evaluated on a grid on the device and compared with the host's values.
+  // They agree to rounding rather than bit for bit, since a device compiler may fuse a multiply and an
+  // add where the host compiler does not.
+  if (!EBGeometry::GPU::enabled) {
+    std::cout << "On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
+  }
+  else if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "On the device: skipped, no GPU is visible\n";
+  }
+  else {
+    const AllShapes shapes{plane,
+                           sphere,
+                           box,
+                           torus,
+                           finiteCylinder,
+                           infiniteCylinder,
+                           capsule,
+                           infiniteCone,
+                           cone,
+                           perlin,
+                           roundBox,
+                           roundCylinder};
+
+    std::vector<Vec3> points;
+
+    constexpr int n = 20;
+
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        for (int k = 0; k < n; k++) {
+          points.emplace_back(T(0.2) * (T(i) - T(9.63)), T(0.2) * (T(j) - T(9.47)), T(0.2) * (T(k) - T(9.39)));
+        }
+      }
+    }
+
+    const std::vector<ShapeValues> onDevice = EBGeometry::GPU::transform(shapes, points);
+
+    const T rounding = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
+
+    int mismatches = 0;
+
+    for (std::size_t i = 0; i < points.size(); i++) {
+      const ShapeValues onHost = shapes(points[i]);
+
+      for (int s = 0; s < 12; s++) {
+        if (std::abs(onDevice[i].value[s] - onHost.value[s]) > rounding * (T(1) + std::abs(onHost.value[s]))) {
+          mismatches++;
+        }
+      }
+    }
+
+    std::cout << "On the device (" << EBGeometry::GPU::backendName << "): 12 shapes at " << points.size() << " points, "
+              << mismatches << " differ from the host\n";
+
+    failures += mismatches;
+  }
 
   return failures == 0 ? 0 : 1;
 }

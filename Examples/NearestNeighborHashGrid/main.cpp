@@ -47,6 +47,36 @@ constexpr std::size_t   kNN        = 1;
 constexpr std::size_t   sampleSize = 500; // how many points to verify against brute force
 constexpr std::uint64_t pointSeed  = 123456789ULL;
 
+namespace {
+
+// The kNN nearest other points of one point, nearest first.
+struct Neighbors
+{
+  Cloud::Hit hit[kNN];
+};
+
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one input (here a point's cloud index) to one result. It holds the cloud by value;
+// on a device, that is the cloud rebased onto device memory. allNearestNeighbors() is a host-only
+// batch, so on a device the same graph is computed one point per thread.
+struct NearestOthers
+{
+  Cloud cloud;
+
+  EBGEOMETRY_HOST_DEVICE
+  Neighbors
+  operator()(const std::uint32_t a_point) const noexcept
+  {
+    Neighbors result;
+
+    cloud.nearestNeighbors(a_point, kNN, result.hit);
+
+    return result;
+  }
+};
+
+} // namespace
+
 int
 main()
 {
@@ -116,7 +146,56 @@ main()
   std::cout << "  Brute force       : " << std::setprecision(3) << 1.0e6 * bruteSecondsPerPoint << " us/point\n";
   std::cout << "  PointCloudHashGrid: " << std::setprecision(3) << 1.0e6 * graphSecondsPerPoint << " us/point"
             << "   (" << std::setprecision(1) << bruteSecondsPerPoint / graphSecondsPerPoint << "x faster)\n";
-  std::cout << "  Mismatches        : " << mismatches << " of " << sampleSize * kNN << " sampled\n\n";
+  std::cout << "  Mismatches        : " << mismatches << " of " << sampleSize * kNN << " sampled\n";
+
+  // ── The same graph on a GPU ────────────────────────────────────────────────────────────────────────
+  //
+  // Compiled for a GPU (GPU=HIP or GPU=CUDA), the cloud's pool is frozen and copied to device memory in
+  // one piece, the cloud is rebased onto the copy, and EBGeometry::GPU::transform() computes every
+  // point's neighbors in a kernel, one point per thread. Each must match the batched host graph to
+  // rounding. The time includes copying the indices and results.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (!EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "  On the device     : skipped, no GPU is visible\n\n";
+  }
+  else {
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const NearestOthers    onDevice{grid.rebasedView(devicePool)};
+
+    std::vector<std::uint32_t> indices(numPoints);
+
+    for (std::size_t i = 0; i < numPoints; i++) {
+      indices[i] = static_cast<std::uint32_t>(i);
+    }
+
+    timer.start();
+    const std::vector<Neighbors> deviceGraph = EBGeometry::GPU::transform(onDevice, indices);
+    timer.stop();
+
+    // Distances, not cloud indices: points at equal distance can tie either way under other rounding.
+    std::size_t differ = 0;
+
+    for (std::size_t i = 0; i < numPoints; i++) {
+      for (std::size_t j = 0; j < kNN; j++) {
+        const T host = graph[i * kNN + j].distanceSquared;
+
+        if (std::abs(deviceGraph[i].hit[j].distanceSquared - host) > tolerance * std::max(host, T(1.0))) {
+          differ++;
+        }
+      }
+    }
+
+    std::cout << "  On the device     : " << std::setprecision(3) << 1.0e6 * timer.seconds() / double(numPoints)
+              << " us/point (" << EBGeometry::GPU::backendName << "), " << differ << " of " << numPoints * kNN
+              << " differ from the host\n\n";
+
+    mismatches += differ;
+  }
+#else
+  std::cout << "  On the device     : not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n\n";
+#endif
 
   // The single-point form: the nearest OTHER point to one point in the cloud.
   const Cloud::Hit nn = grid.nearestNeighbor(0);

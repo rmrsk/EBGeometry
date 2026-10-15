@@ -11,6 +11,9 @@ self query excludes the point itself, so the neighbors returned are the nearest 
 grid suits *near-uniform* clouds; for clustered or multi-scale clouds the density-adaptive
 ``PointCloudBVH`` is the better choice.
 
+Compiled for a GPU, the same run also evaluates the neighbor graph in a kernel, one point per
+thread, and compares the results with the host's; see :ref:`Sec:ExamplesGPU`.
+
 The source for this example is at :file:`Examples/NearestNeighborHashGrid/main.cpp`. See
 :ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a direct compiler invocation.
 

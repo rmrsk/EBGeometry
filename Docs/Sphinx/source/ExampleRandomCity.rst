@@ -7,6 +7,9 @@ Creates a scene of randomly placed boxes ("buildings") and, like ``PackedSpheres
 compares a standard union against a BVH-accelerated union for closest-object queries, checking that
 the two give the same distance at every sample point, up to rounding.
 
+Compiled for a GPU, the same run also evaluates the BVH union in a kernel and compares the results
+with the host's; see :ref:`Sec:ExamplesGPU`.
+
 The source for this example is at :file:`Examples/RandomCity/main.cpp`. See :ref:`Chap:Building`
 for how to compile it with CMake, GNU Make, or a direct compiler invocation.
 

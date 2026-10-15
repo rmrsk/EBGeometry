@@ -190,6 +190,23 @@ instantiateFunctionTemplates()
     (void)normal(sphere, Vec3T<T>::ones(), T(1.0e-3));
   }
 
+  // GPU::transform, through a query functor (a host loop in this host-only translation unit).
+  {
+    struct SphereQuery
+    {
+      SphereSDF<T> sphere;
+
+      T
+      operator()(const Vec3T<T>& a_point) const noexcept
+      {
+        return sphere.signedDistance(a_point);
+      }
+    };
+
+    (void)GPU::transform(SphereQuery{SphereSDF<T>(Vec3T<T>::zeros(), T(1))}, std::vector<Vec3T<T>>{Vec3T<T>::ones()});
+    (void)GPU::deviceAvailable();
+  }
+
   // Every builder function, compiled into a tape.
   {
     const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));

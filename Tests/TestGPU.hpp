@@ -16,14 +16,15 @@
 //   3. Compare the two element by element with requireSameResults(), so a wrong sign or a wrong
 //      element cannot hide in a sum.
 //
-// Under a GPU backend (EBGEOMETRY_CUDA/EBGEOMETRY_HIP) the functor runs in a real kernel over memory
-// from deviceMemoryResource(). Every runtime call is checked, including the kernel launch and its
-// completion, and a failure is a test failure that names the call. The tests skip when no device is
-// visible.
+// evaluateOnDevice() is the library's EBGeometry::GPU::transform(), so the tests run the same launch
+// code that users call. Under a GPU backend (EBGEOMETRY_CUDA/EBGEOMETRY_HIP) the functor runs in a real
+// kernel over memory from deviceMemoryResource(). Every runtime call is checked, including the kernel
+// launch and its completion, and a failure aborts with the call that failed. The tests skip when no
+// device is visible.
 //
 // In a host build the same tests run in emulation: deviceTestResource() is host memory that reports
 // itself device-accessible, so a rebasedView() onto it takes the device-view path (a snapshot of the
-// location, no control block), and evaluateOnDevice() passes the functor by value to a host loop. That
+// location, no control block), and GPU::transform() passes the functor by value to a host loop. That
 // runs the device-view code and the functors in every ordinary build and under the sanitizers; only
 // the device compiler, the address-space split and the kernel launch itself need a GPU lane.
 
@@ -44,8 +45,6 @@ namespace EBGeometryTestGPU {
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 
-namespace GPU = EBGeometry::GPU;
-
 /*!
   @brief Whether at least one GPU device is visible to the runtime.
   @return True if the device count is nonzero.
@@ -53,145 +52,7 @@ namespace GPU = EBGeometry::GPU;
 inline bool
 deviceAvailable() noexcept
 {
-  int count = 0;
-
-  (void)GPU::getDeviceCount(&count);
-
-  return count > 0;
-}
-
-/*!
-  @brief Fail the current test unless a runtime call succeeded.
-  @param[in] a_error Result of the call.
-  @param[in] a_what  What the call did, for the message.
-*/
-inline void
-requireSuccess(const GPU::Error a_error, const char* a_what)
-{
-  INFO(a_what << ": " << GPU::getErrorString(a_error));
-  REQUIRE(a_error == GPU::Success);
-}
-
-/*!
-  @brief RAII owner of an n-element device array.
-  @tparam T Trivially copyable element type.
-*/
-template <class T>
-class DeviceArray
-{
-public:
-  static_assert(std::is_trivially_copyable_v<T>, "DeviceArray requires a trivially copyable type");
-
-  /*!
-    @brief Allocate a device array and copy the host elements into it.
-    @param[in] a_host Elements to copy.
-  */
-  explicit DeviceArray(const std::vector<T>& a_host) : m_size(a_host.size())
-  {
-    requireSuccess(GPU::memAlloc(reinterpret_cast<void**>(&m_data), sizeof(T) * m_size), "device allocation");
-    requireSuccess(GPU::memcpy(m_data, a_host.data(), sizeof(T) * m_size, GPU::MemcpyHostToDevice),
-                   "copy to the device");
-  }
-
-  /*!
-    @brief Allocate an uninitialized device array.
-    @param[in] a_size Number of elements.
-  */
-  explicit DeviceArray(const std::size_t a_size) : m_size(a_size)
-  {
-    requireSuccess(GPU::memAlloc(reinterpret_cast<void**>(&m_data), sizeof(T) * m_size), "device allocation");
-  }
-
-  DeviceArray(const DeviceArray&) = delete;
-  DeviceArray&
-  operator=(const DeviceArray&) = delete;
-
-  /*!
-    @brief Free the device allocation.
-  */
-  ~DeviceArray() noexcept
-  {
-    if (m_data != nullptr) {
-      (void)GPU::memFree(m_data);
-    }
-  }
-
-  /*!
-    @brief The device pointer, for passing to a kernel.
-    @return Device pointer to the first element.
-  */
-  T*
-  get() const noexcept
-  {
-    return m_data;
-  }
-
-  /*!
-    @brief Copy the elements back to the host.
-    @return The elements.
-  */
-  std::vector<T>
-  download() const
-  {
-    std::vector<T> host(m_size);
-
-    requireSuccess(GPU::memcpy(host.data(), m_data, sizeof(T) * m_size, GPU::MemcpyDeviceToHost),
-                   "copy back from the device");
-
-    return host;
-  }
-
-private:
-  T*          m_data = nullptr;
-  std::size_t m_size = 0;
-};
-
-/*!
-  @brief Kernel: out[i] = f(in[i]) for every i < n, one thread per element.
-*/
-template <class F, class Q, class R>
-EBGEOMETRY_GLOBAL
-void
-evaluateKernel(const F a_f, const Q* a_in, R* a_out, const unsigned int a_n)
-{
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  if (i < a_n) {
-    a_out[i] = a_f(a_in[i]);
-  }
-}
-
-/*!
-  @brief Evaluate a functor over a list of queries on the device, one thread per query.
-  @details The functor is passed to the kernel by value, so it must be trivially copyable and hold
-  device views (rebasedView()) of anything pool-resident. The launch uses many blocks of 128 threads,
-  so a result that depends on the thread or block index shows up. Launch and execution errors fail
-  the test.
-  @tparam R Result type.
-  @param[in] a_f       Functor with an EBGEOMETRY_HOST_DEVICE R operator()(const Q&).
-  @param[in] a_queries Queries.
-  @return One result per query.
-*/
-template <class R, class Q, class F>
-std::vector<R>
-evaluateOnDevice(const F& a_f, const std::vector<Q>& a_queries)
-{
-  static_assert(std::is_trivially_copyable_v<F>, "a device functor must be trivially copyable");
-
-  const auto n = static_cast<unsigned int>(a_queries.size());
-
-  DeviceArray<Q> in(a_queries);
-  DeviceArray<R> out(a_queries.size());
-
-  constexpr unsigned int threads = 128;
-  const unsigned int     blocks  = (n + threads - 1) / threads;
-
-  evaluateKernel<F, Q, R><<<blocks, threads>>>(a_f, in.get(), out.get(), n);
-
-  requireSuccess(GPU::getLastError(), "kernel launch");
-  requireSuccess(GPU::deviceSynchronize(), "kernel execution");
-
-  return out.download();
+  return EBGeometry::GPU::deviceAvailable();
 }
 
 /*!
@@ -262,10 +123,15 @@ deviceTestResource() noexcept
   return s_resource;
 }
 
+#endif
+
 /*!
-  @brief Evaluate a functor over a list of queries as a kernel would, on the host.
-  @details The functor is copied first, as a kernel launch copies its arguments, so it must be
-  trivially copyable.
+  @brief Evaluate a functor over a list of queries on the device, one thread per query.
+  @details EBGeometry::GPU::transform(), the library's own: under a GPU backend a kernel over many
+  blocks of 128 threads, so a result that depends on the thread or block index shows up, with every
+  runtime call checked (a failure aborts and names the call). In a host build the functor is copied
+  once, as a launch copies it, and run in a loop. The functor must be trivially copyable and hold
+  device views (rebasedView() onto a mirror in deviceTestResource()) of anything pool-resident.
   @tparam R Result type.
   @param[in] a_f       Functor with an EBGEOMETRY_HOST_DEVICE R operator()(const Q&).
   @param[in] a_queries Queries.
@@ -275,19 +141,10 @@ template <class R, class Q, class F>
 std::vector<R>
 evaluateOnDevice(const F& a_f, const std::vector<Q>& a_queries)
 {
-  static_assert(std::is_trivially_copyable_v<F>, "a device functor must be trivially copyable");
+  const auto results = EBGeometry::GPU::transform(a_f, a_queries);
 
-  const F        f = a_f;
-  std::vector<R> results(a_queries.size());
-
-  for (std::size_t i = 0; i < a_queries.size(); i++) {
-    results[i] = f(a_queries[i]);
-  }
-
-  return results;
+  return std::vector<R>(results.begin(), results.end());
 }
-
-#endif
 
 /*!
   @brief Relative tolerance for comparing a device reduction against its host counterpart.

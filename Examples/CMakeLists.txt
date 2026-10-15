@@ -15,6 +15,15 @@ function(ebgeometry_add_example name)
     target_link_options(${name} PRIVATE -fsanitize=address,undefined)
   endif()
 
+  # An example that its own CMakeLists.txt compiled for a GPU (following EBGEOMETRY_ENABLE_HIP/CUDA) is
+  # collected in one target that the GPU CI lanes build. It still runs anywhere: without a visible GPU
+  # it skips its device part.
+  get_property(gpu_examples GLOBAL PROPERTY EBGEOMETRY_GPU_EXAMPLES)
+
+  if(name IN_LIST gpu_examples)
+    add_dependencies(EBGeometry_GPUDeviceExamples ${name})
+  endif()
+
   add_test(
     NAME    ${name}
     COMMAND $<TARGET_FILE:${name}>
@@ -28,6 +37,13 @@ function(ebgeometry_add_example name)
     LABELS  "example"
   )
 endfunction()
+
+# In a GPU build, the examples that can run their queries on a device are compiled as CUDA or HIP and
+# collected in this target. BuildBVH and HostTuning stay host-only: they are about the builders and the
+# host-tuned types, neither of which a device uses.
+if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
+  add_custom_target(EBGeometry_GPUDeviceExamples)
+endif()
 
 # Every folder here with a main.cpp is an example; the folders are the only list. CI loops over the
 # same folders (.github/workflows/CI.yml), so adding an example needs no edit here or there.

@@ -62,6 +62,17 @@ This produces `./MeshSDF.ex`. Override the defaults on the command line:
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
 
+**For a GPU**
+
+The same source also builds for a GPU, and the same run then repeats its queries in a kernel and
+compares them with the host's (a GPU build without a visible GPU skips that part):
+
+    make GPU=HIP HIP_ARCH=gfx90a                                  # or GPU=CUDA CUDA_ARCH=sm_80
+    cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA
+    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o MeshSDF.ex
+
+See [GPU builds](https://rmrsk.github.io/EBGeometry/Examples.html#sec-examplesgpu) in the user documentation.
+
 Running
 -------
 
