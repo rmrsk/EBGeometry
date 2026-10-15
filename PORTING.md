@@ -557,8 +557,8 @@ code, or kept deliberately by a decision, except the parts of BVH-7, BVH-8, MESH
 The MINOR and NIT findings were folded into whichever change touched the
 same file; each was checked against `dev` at 8c8f504, and the last few small ones (a missing include
 guard, an include, a blank line, stale wording) were fixed in the change that closed the audit.
-The 22 that remain are sorted below into new features, restructuring and hardening. The bracket
-gives the severity the audit gave each one.
+Those still open are sorted below into new features, restructuring and hardening. The bracket gives
+the severity the audit gave each one.
 
 #### New features
 
@@ -580,47 +580,48 @@ Design and performance work that was deferred on purpose. None of it is a defect
 * **BVH-10** [MINOR]: `pack()`/`packWith()` return a `shared_ptr`, and some `PackedBVH`
   constructors are chosen by tag types. This is the API D2 kept.
 
-#### Hardening, most severe first
+#### Hardening
 
-Each is fixed in its own pull request, which also removes it from this list.
+Listed most severe first. Each is fixed in its own pull request, which also removes it from this
+list.
 
-1. **BVH-7** [MAJOR]: `TreeBVH::traverse` calls `shared_from_this()` in a `noexcept` function, so a
-   root not owned by a `shared_ptr` terminates the program.
-2. **MESH-15** [MINOR]: `EdgeIteratorT` has no step bound, so a broken half-edge chain loops forever
-   in a build without assertions, and the soup-to-DCEL index checks are `EBGEOMETRY_EXPECT` only.
-   The readers reject such meshes, so only a mesh assembled by hand reaches it.
-3. **MEM-22** [NIT]: the device memory resources are function-local static objects whose frees
-   abort on any error, including a runtime that has already unloaded at exit.
-4. **BVH-18** [NIT]: `computeChildDistances2()`'s inline SIMD bodies differ between translation
-   units compiled with different ISA flags. The linker keeps one, so a program mixing such units can
-   run instructions the CPU lacks or give different results. Nothing checks it.
-5. **BVH-13** [MINOR]: `PackedBVH::getBoundingVolume()` on an empty BVH is caught only by an
-   `EBGEOMETRY_EXPECT`, and `finalize()` narrows sizes to `uint32_t` unchecked.
-6. **MEM-15** [NIT]: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for
-   overflow, so a huge request can wrap and reserve too little.
-7. **BVH-16** [NIT]: some allocating functions are `noexcept` (`SFC::computeBins`,
-   `TreeBVH::traverse` and `setChildren`, two partitioner lambdas), so running out of memory there
-   terminates instead of throwing.
-8. **MESH-19** [NIT]: a triangle distance of exactly zero gets sign +1 on the SIMD paths and -1 on
-   the scalar path.
-9. **BVH-17** [NIT]: the SIMD and scalar child distances can differ for a NaN coordinate (the docs
-   say "for finite inputs").
-10. **MEM-20** [NIT]: `Vec` division multiplies by the reciprocal, and the free `min`/`max`
-    propagate NaN depending on argument order.
-11. **MEM-19** [NIT]: `Vec3T` is not trivially default-constructible, which a `__shared__` array
-    needs.
-12. **MEM-17** [NIT]: `Vec3T`'s scalar-left `operator*` and `operator/` are unconstrained,
-    `2.0 * Vec2T<float>` does not compile, and a free `operator*(Vec3T, Vec3T)` looks dead.
-13. **MEM-18** [NIT]: `Vec2T` has public `x`/`y` where `Vec3T` has `m_X` and `operator[]`, and their
-    `constexpr length()` calls `std::sqrt`.
-14. **MEM-12** [MINOR]: five `const_cast<void*>(this->base())`, because `base()` returns
-    `const void*` in some classes and `void*` in others.
-15. **QA-16** [MINOR]: `TestPolygon2D` casts a `FaceT` to a test subclass (undefined behaviour),
-    `looseMargin<float>()` is about 0.012, and `exactMargin()` is defined in three test files.
-16. **MEM-14** [MINOR]: `Vec3T::clamp` has no host test with expected values.
-17. **QA-24** [NIT]: the example GNUmakefiles set `CXX ?=` (a no-op, since make predefines it) and
-    `CXXFLAGS ?=` (an environment `CXXFLAGS` drops `-std=c++17`), and Doxygen shows
-    `EBGEOMETRY_HOST_DEVICE` in return types.
+* **BVH-7** [MAJOR]: `TreeBVH::traverse` calls `shared_from_this()` in a `noexcept` function, so a
+  root not owned by a `shared_ptr` terminates the program.
+* **MESH-15** [MINOR]: `EdgeIteratorT` has no step bound, so a broken half-edge chain loops forever
+  in a build without assertions, and the soup-to-DCEL index checks are `EBGEOMETRY_EXPECT` only.
+  The readers reject such meshes, so only a mesh assembled by hand reaches it.
+* **MEM-22** [NIT]: the device memory resources are function-local static objects whose frees
+  abort on any error, including a runtime that has already unloaded at exit.
+* **BVH-18** [NIT]: `computeChildDistances2()`'s inline SIMD bodies differ between translation
+  units compiled with different ISA flags. The linker keeps one, so a program mixing such units can
+  run instructions the CPU lacks or give different results. Nothing checks it.
+* **BVH-13** [MINOR]: `PackedBVH::getBoundingVolume()` on an empty BVH is caught only by an
+  `EBGEOMETRY_EXPECT`, and `finalize()` narrows sizes to `uint32_t` unchecked.
+* **MEM-15** [NIT]: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for
+  overflow, so a huge request can wrap and reserve too little.
+* **BVH-16** [NIT]: some allocating functions are `noexcept` (`SFC::computeBins`,
+  `TreeBVH::traverse` and `setChildren`, two partitioner lambdas), so running out of memory there
+  terminates instead of throwing.
+* **MESH-19** [NIT]: a triangle distance of exactly zero gets sign +1 on the SIMD paths and -1 on
+  the scalar path.
+* **BVH-17** [NIT]: the SIMD and scalar child distances can differ for a NaN coordinate (the docs
+  say "for finite inputs").
+* **MEM-20** [NIT]: `Vec` division multiplies by the reciprocal, and the free `min`/`max`
+  propagate NaN depending on argument order.
+* **MEM-19** [NIT]: `Vec3T` is not trivially default-constructible, which a `__shared__` array
+  needs.
+* **MEM-17** [NIT]: `Vec3T`'s scalar-left `operator*` and `operator/` are unconstrained,
+  `2.0 * Vec2T<float>` does not compile, and a free `operator*(Vec3T, Vec3T)` looks dead.
+* **MEM-18** [NIT]: `Vec2T` has public `x`/`y` where `Vec3T` has `m_X` and `operator[]`, and their
+  `constexpr length()` calls `std::sqrt`.
+* **MEM-12** [MINOR]: five `const_cast<void*>(this->base())`, because `base()` returns
+  `const void*` in some classes and `void*` in others.
+* **QA-16** [MINOR]: `TestPolygon2D` casts a `FaceT` to a test subclass (undefined behaviour),
+  `looseMargin<float>()` is about 0.012, and `exactMargin()` is defined in three test files.
+* **MEM-14** [MINOR]: `Vec3T::clamp` has no host test with expected values.
+* **QA-24** [NIT]: the example GNUmakefiles set `CXX ?=` (a no-op, since make predefines it) and
+  `CXXFLAGS ?=` (an environment `CXXFLAGS` drops `-std=c++17`), and Doxygen shows
+  `EBGEOMETRY_HOST_DEVICE` in return types.
 
 ## Porting a class
 
