@@ -294,7 +294,10 @@ Test coverage
        brute-force scan after displacement). Also the build-time checks: a tree too deep for the
        host or device traversal stack at ``K`` = 2, 4 and 16, every kind of malformed node array (a
        leaf with no primitives among them), and a partitioner that returns an empty partition, all
-       rejected; the stack's float distance bound never pruning a closer primitive; only interior
+       rejected; a tree at the host depth limit, visited deepest first, filling the traversal stack
+       to its last entry; ``traverse()`` and ``pruneTraverse()`` visiting leaves in the order of a
+       recursive depth-first search; a level resumed with exact distances never pruning a closer
+       primitive; only interior
        nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
        extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
        fewest power-of-``K`` leaves; and an empty BVH.

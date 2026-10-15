@@ -494,8 +494,8 @@ children are all node 0, which the first check rejects. ``getNodes()`` returns t
 as a read-only ``PODSpan``, for a class that walks the tree with a traversal of its own. And
 ``traversalStackDepth()`` gives the fixed traversal-stack size for the current compilation pass
 (host or device; see :ref:`Sec:TraversalStack`), which the build and ``rebasedView()`` validate the
-tree's depth against -- a custom traversal that pushes at most ``K`` children per visited node, as
-``pruneTraverse()`` does, can size its own stack with it and inherit the same guarantee.
+tree's depth against -- a custom traversal that keeps one entry per level, as ``traverse()`` and
+``pruneTraverse()`` do, can size its own stack with it and inherit the same guarantee.
 
 Copy and move semantics
 ________________________
@@ -591,11 +591,11 @@ ______________
 
 If a subtree is visited in the traversal, there is a question of which of the child nodes to visit first.
 The *child-orderer* callback determines this order by letting the user sort the ``K`` children (each
-paired with its node key) in-place based on order of importance -- for ``PackedBVH`` the
-children are identified by their node index rather than a pointer, halving the per-entry stack
-size relative to ``TreeBVH``, and each child arrives as a ``BVH::NodeAndKey`` whose ``first`` is
-the node index and ``second`` its key. In device code the orderer must not call ``std::sort``; an
-insertion sort over the ``K`` children does the job. Note that a correct visitation pattern can yield large performance
+paired with its node key) in-place based on order of importance -- for ``PackedBVH`` each child
+arrives as a ``BVH::NodeAndKey`` whose ``first`` is the node index rather than a pointer, and
+``second`` its key. The orderer only reorders the entries; the children are visited from the last
+entry to the first. In device code the orderer must not call ``std::sort``; an insertion sort over
+the ``K`` children does the job. Note that a correct visitation pattern can yield large performance
 benefits. Ordering the child nodes is completely optional; the user can leave this function empty
 if it does not matter which subtrees are visited first.
 
@@ -617,7 +617,10 @@ During the traversal, it might be necessary to compute a per-node key that is he
 This key is usually, but not necessarily, equal to the distance to the nodes' bounding volumes.
 The *node-key-factory* callback produces this key for a node's children, given the node itself.
 The biggest difference between the leaf-evaluator and the node-key-factory is that the leaf-evaluator is *only*
-called on leaf nodes whereas the node-key-factory is also called for internal nodes. One typical
+called on leaf nodes whereas the node-key-factory is also called for internal nodes. ``PackedBVH``
+calls it again for a child visited after its first sibling, instead of keeping every child's key
+on its stack, so the node-key-factory must give the same key for the same node and have no side
+effects. One typical
 example for DCEL meshes is that the leaf-evaluator computes the distance from an input point to the
 triangles in a leaf node, whereas the node-key-factory computes the distance from the input point to
 the bounding volumes of a child node. This information is then used by the child-orderer in order to
@@ -626,14 +629,14 @@ determine a preferred child visit pattern when descending along subtrees.
 Traversal algorithm
 ___________________
 
-``PackedBVH::traverse()`` implements this with a non-recursive, fixed-size stack rather than
-recursion. Each stack entry holds a node index together with that node's already-computed
-node key, and the stack is sized from the tree depth exactly as ``pruneTraverse()``'s is (see
-:ref:`Sec:TraversalStack`), so a key of ``n`` bytes costs roughly ``n + 4`` bytes per entry. An empty
-``PackedBVH`` visits nothing. The root is pushed first; then, until the stack is empty, the traversal pops an entry,
-asks the prune-predicate whether to visit it, and if so either runs the leaf-evaluator (if it is a leaf) or
-computes the node-key-factory for each of its ``K`` children, lets the child-orderer reorder them, and
-pushes them all onto the stack. For the full API, see the Doxygen reference for
+``PackedBVH::traverse()`` implements this depth first with a non-recursive, fixed-size stack rather
+than recursion, sized exactly as ``pruneTraverse()``'s is (see :ref:`Sec:TraversalStack`). An empty
+``PackedBVH`` visits nothing. Starting at the root, the traversal asks the prune-predicate whether to
+visit a node, and if so either runs the leaf-evaluator (if it is a leaf) or computes the
+node-key-factory for each of its ``K`` children, lets the child-orderer reorder them, and visits
+the last of them at once. The others wait on the stack in one entry for the whole level: the
+node's index and the order of the children still to visit. The stack holds no keys, so its size
+does not depend on the key type. For the full API, see the Doxygen reference for
 `PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
 .. _Chap:PruneTraverse:
@@ -661,13 +664,14 @@ caller:
   node farther than this (in squared distance) is skipped without being visited. It never touches
   primitives directly, only whatever ``Leaf-eval`` has already written into ``State``.
 
-Precisely, the traversal seeds a stack with the root node (at distance zero, so it is never
-pruned), then repeatedly pops the top entry and: skips it outright if its already-known squared
-distance to the query point exceeds the pruning rule's *current* bound; otherwise, if it is a
-leaf, calls leaf-eval once for the whole leaf; otherwise (an interior node), computes all ``K``
-children's squared distances to the query point in a single SIMD batch, sorts them so the
-closest child is visited next, and pushes every child still within the (freshly re-evaluated)
-pruning bound.
+Precisely, the traversal starts at the root (at distance zero, so it is never pruned). At a leaf it
+calls leaf-eval once for the whole leaf. At an interior node it computes all ``K`` children's
+squared distances to the query point in a single SIMD batch, keeps the children within the
+(freshly re-evaluated) pruning bound, sorts them nearest first, and descends into the nearest at
+once. The others wait on the stack, one entry for the level (see below). When the traversal returns
+to that level, it computes the next child's distance again from the parent's row of child boxes
+and compares it with the pruning rule's *current* bound: if it is now out of bound, so is every
+child after it, which are no nearer, and the whole level is dropped.
 
 There is exactly **one** such loop, and it runs whether or not the ``(K, T)`` pair in use has a
 compiled SIMD path. Only the per-child squared-distance computation differs: a vector batch when
@@ -687,15 +691,16 @@ The traversal stack
 ___________________
 
 The stack is a fixed-size array, so the traversal allocates nothing and runs unchanged on a device.
-Each entry is 8 bytes in either precision: a ``uint32_t`` node index and the node's squared distance
-from the query point, stored as a ``float`` rounded *down*. The pop-time test compares that stored
-bound with the current pruning bound, and since it never exceeds the true distance, it can only keep
-an entry an exact comparison would have dropped, never drop one it would have kept. The push-time
-test and the child ordering use the exact distances.
+It keeps one entry per level, not per child, as compressed wide BVH traversals do (Ylitie, Karras
+and Laine, HPG 2017): the index of an interior node whose children are being visited, and the
+child slots still to visit after the current one, in visit order, one byte each. That is
+:math:`4 + K` bytes rounded up to a multiple of 4: 8 bytes at ``K = 4``, in either precision and for
+any ``traverse()`` key type. No distance or key is stored; a resumed child's distance (or key) is
+computed again when it is reached, and the distance is computed exactly as it was when the level
+was sorted, so the comparison with the bound sees the same values the sort did.
 
-The traversal pops one entry and pushes up to ``K`` per interior node it expands, so a tree ``D``
-levels deep needs at most :math:`1 + (K - 1)(D - 1)` entries. The stack is sized for a depth, the
-same for every ``K``:
+A level is on the stack only while one of its children is being visited and another is still to
+come, so a tree ``D`` levels deep needs at most :math:`D - 1` entries, at every ``K``:
 
 .. list-table::
    :header-rows: 1
@@ -703,22 +708,24 @@ same for every ``K``:
 
    * - Pass
      - Depth (levels)
-     - Entries at K = 4
-     - Entries at K = 16
+     - Stack at K = 4
+     - Stack at K = 16
    * - Host (``BVH::HostTraversalDepth``)
      - 256
-     - 766 (6 KB)
-     - 3826 (30 KB)
+     - 255 entries (2 KB)
+     - 255 entries (5 KB)
    * - Device (``BVH::DeviceTraversalDepth``)
      - 32
-     - 94 (752 B)
-     - 466 (3.7 KB)
+     - 31 entries (248 B)
+     - 31 entries (620 B)
+
+Measured for an AMD GPU (gfx90a, clang 17, ``-O3``), a kernel evaluating one mesh SDF, BVH union or
+point-cloud query needs 272 bytes of stack per thread, down from 768 bytes with one entry per child.
 
 Every ``PackedBVH`` is checked against the host depth when it is built, and every device view
 against the device depth when ``rebasedView()`` makes it, in every build: a tree too deep aborts with
 a message giving its depth, rather than overflowing the stack, which in Release would be a silent
-out-of-bounds write. (The stack used to be a fixed 256 entries on the host and 64 on a device, of 16
-bytes at ``double``, which held 22 levels on a device at ``K = 4`` and only 5 at ``K = 16``.)
+out-of-bounds write.
 
 Splitting the pruning rule apart from the leaf-eval like this is what lets a primitive with no
 notion of "signed distance" reuse the same SIMD box test: a nearest-neighbor search over a point
@@ -978,5 +985,5 @@ Rules of thumb:
 * ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
   available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
   a single SIMD batch, and the wider fan-out reduces tree depth — but measure: on the
-  benchmarks in :ref:`Sec:DefaultKW` it was slower, roughly doubling the query time. A wider tree also takes a larger traversal
-  stack for the same depth (see :ref:`Sec:TraversalStack`).
+  benchmarks in :ref:`Sec:DefaultKW` it was slower, roughly doubling the query time. The traversal
+  stack hardly depends on ``K``: one entry per level, of 4 + ``K`` bytes (see :ref:`Sec:TraversalStack`).

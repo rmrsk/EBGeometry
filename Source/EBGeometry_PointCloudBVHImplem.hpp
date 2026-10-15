@@ -417,43 +417,109 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
     // faster. (This holds ONLY because of the seed: an unseeded search starts from an infinite bound,
     // where the near-first order is decisive.)
     //
-    // Prune-before-push: a child is pushed only when its bounding volume is closer than the current
-    // best, so the working set stays bounded to nodes that can still improve the result. It pushes
-    // at most K children per visited node, exactly as pruneTraverse does, so the stack depth
-    // PackedBVH already validated the tree against for this compilation pass (host, or the smaller
-    // device budget at rebasedView()) bounds it too; the guard catches a pathological overrun in
-    // debug builds.
+    // One stack entry per level, as in PackedBVH's own traversals: the interior node and a mask of its
+    // children whose boxes were closer than the best when it was expanded. Children are visited from
+    // the highest slot down, each tested again when the traversal reaches it, so a bound tightened by
+    // a leaf visited in between applies. The tree was validated against the stack depth PackedBVH
+    // gives for this compilation pass (host, or the smaller device budget at rebasedView()); the guard
+    // catches a pathological overrun in debug builds.
+    using Mask = std::conditional_t<(K <= 32), std::uint32_t, std::uint64_t>;
+
+    static_assert(K <= 64, "PointCloudBVH: a level's child mask holds at most 64 children");
+
+    struct Level
+    {
+      std::uint32_t m_node;
+      Mask          m_children;
+    };
+
     constexpr std::size_t maxStack = Packed::traversalStackDepth();
 
-    std::uint32_t stack[maxStack];
-    std::size_t   stackTop = 0;
+    Level       stack[maxStack];
+    std::size_t stackTop = 0;
 
-    stack[stackTop++] = 0U;
+    // The highest slot set in a non-empty mask.
+    const auto highest = [](const Mask a_mask) noexcept -> std::size_t {
+      std::size_t k = K - 1;
 
-    while (stackTop > 0) {
-      const Node& node = nodes[stack[--stackTop]];
-
-      if (node.getDistanceToBoundingVolume2(a_query) >= best.bound()) {
-        continue; // stale: best tightened since this node was pushed
+      while (((a_mask >> k) & Mask(1)) == 0) {
+        k--;
       }
 
-      if (node.isLeaf()) {
-        const std::uint32_t primOffset = node.getPrimitivesOffset();
+      return k;
+    };
 
-        if (primOffset != a_seedOff) {
-          scanLeaf(best, primOffset, node.getNumPrimitives());
+    if (!(nodes[0].getDistanceToBoundingVolume2(a_query) < best.bound())) {
+      return best.found();
+    }
+
+    std::uint32_t nodeIdx = 0U;
+
+    while (true) {
+      // Visit nodeIdx, and keep descending into its highest child within the bound.
+      while (true) {
+        const Node& node = nodes[nodeIdx];
+
+        if (node.isLeaf()) {
+          const std::uint32_t primOffset = node.getPrimitivesOffset();
+
+          if (primOffset != a_seedOff) {
+            scanLeaf(best, primOffset, node.getNumPrimitives());
+          }
+
+          break;
         }
-      }
-      else {
+
         const auto& childOffsets = node.getChildOffsets();
+
+        Mask children = 0;
 
         for (std::size_t k = 0; k < K; k++) {
           if (nodes[childOffsets[k]].getDistanceToBoundingVolume2(a_query) < best.bound()) {
-            EBGEOMETRY_EXPECT(stackTop < maxStack);
-
-            stack[stackTop++] = childOffsets[k];
+            children |= Mask(1) << k;
           }
         }
+
+        if (children == 0) {
+          break;
+        }
+
+        const std::size_t k = highest(children);
+
+        children &= ~(Mask(1) << k);
+
+        if (children != 0) {
+          EBGEOMETRY_EXPECT(stackTop < maxStack);
+
+          stack[stackTop++] = Level{nodeIdx, children};
+        }
+
+        nodeIdx = childOffsets[k];
+      }
+
+      // Return to the deepest level with a child still within the bound.
+      bool resumed = false;
+
+      while (stackTop > 0 && !resumed) {
+        Level&            level = stack[stackTop - 1];
+        const std::size_t k     = highest(level.m_children);
+
+        level.m_children &= ~(Mask(1) << k);
+
+        if (level.m_children == 0) {
+          stackTop--;
+        }
+
+        const std::uint32_t child = nodes[level.m_node].getChildOffsets()[k];
+
+        if (nodes[child].getDistanceToBoundingVolume2(a_query) < best.bound()) {
+          nodeIdx = child;
+          resumed = true;
+        }
+      }
+
+      if (!resumed) {
+        break;
       }
     }
 

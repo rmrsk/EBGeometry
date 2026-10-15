@@ -257,20 +257,36 @@ against a BVH over the primitives themselves. "No storage policy" below has the 
 
 ### After the tape
 
-**A per-level traversal stack (next).** Both traversal loops push one stack entry per child, so the
-device stack holds `1 + (K - 1) * 31` entries (94 at K = 4, 752 bytes), and `traverse()` stores the
-caller's node key in every entry, so a `double` key doubles it (1,584 bytes measured). The follow-up
-pushes one entry per level instead, as Ylitie, Karras and Laine's compressed wide BVHs do (HPG 2017):
-the parent's index, its children's order (2 bits each at K = 4) and how many are left. That bounds
-the stack by the depth, 32 entries at any K (256 bytes at K = 4), and independently of the key type.
-Children are sorted nearest first, so one comparison against the next child's distance discards the
-rest of a level, and a resume computes that next distance from the parent's box row, just read.
-`traverse()` keeps the order its child orderer produced and calls the key factory again on resume
-instead of storing keys, so a key factory must have no side effects. In a tape, every call level
-saves about 0.5 KB. The builders could then guarantee the depth bound (a median split once it is
-reached) rather than `rebasedView()` rejecting a deeper tree. What it costs, a box distance per resume
-and a busier pop, needs a GPU to weigh against the scratch traffic it saves; the stack and register
-use can be checked from the compiler's resource remarks before that.
+**A per-level traversal stack: done.** The traversal loops pushed one stack entry per child, so the
+device stack held `1 + (K - 1) * 31` entries (94 at K = 4, 752 bytes), and `traverse()` stored the
+caller's node key in every entry. They now keep one entry per level, as Ylitie, Karras and Laine's
+compressed wide BVHs do (HPG 2017): the parent's index, the slots of its children still to visit in
+visit order (a byte each) and how many are left, 4 + K bytes rounded up to 4 (8 at K = 4). The stack
+is bounded by the depth, `D - 1` entries at any K and for any key type (31 entries, 248 bytes, on a
+device at K = 4). `pruneTraverse()` sorts a node's children nearest first, descends into the
+nearest at once and, when it returns to a level, computes the next child's distance again from the
+parent's box row, through the same path that sorted it, so one comparison with the current bound
+drops the rest of the level. `traverse()` keeps the order its child orderer produced and calls the
+key factory again for each child visited after its first sibling, so a key factory must have no
+side effects and an orderer must only reorder. PointCloudBVH's seeded single-nearest search, which
+does not sort, keeps one entry per level too: the node and a bitmask of the children within the
+bound when it was expanded, each tested again when it is reached. (Testing each child only when it
+is reached, with a slot counter instead of the mask, did fewer box tests but measured 10% slower.) All three visit leaves in the same order as before; new tests check the order
+against a recursive search, and a tree at the host depth limit visited deepest first fills the
+stack to its last entry.
+
+Measured for gfx90a with clang 17 at `-O3`, from the compiler's resource remarks: a mesh SDF,
+triangle SDF, BVH union or closest-point kernel takes 272 bytes of stack per thread, down from 768;
+a seeded nearest-neighbour kernel 304 bytes (800 before), an 8-nearest one 400 (896), and a tape
+kernel 5,648 bytes in double precision and 3,584 in single (8,048 and 6,160), about 0.5 KB less per
+call level. What the extra box distance per resume costs on a GPU still needs a GPU to measure. On
+the host (g++ 13, `-O3 -march=native`, best of five, armadillo mesh and a million-point cloud) no
+query got slower by more than 4% (the triangle SDF in double), within run-to-run noise, and several
+got faster: a BVH union of
+spheres by 15-18%, 8-nearest point queries by 19-22%, and the float mesh SDFs by 6-9%; every query
+returned bit-identical results. The builders could still guarantee the depth bound
+(a median split once it is reached) rather than the build rejecting a deeper tree; that stays open,
+since no builder has come near 256 levels.
 
 Two alternatives were ruled out. Stackless traversal (parent or skip links) fixes the child order or
 re-sorts on every ascent, and nearest-first order is what makes distance queries prune. A short stack
@@ -464,15 +480,13 @@ device, at every K, in 8-byte entries (#153). A build deeper than the budget is 
 BVH is built or rebased, rather than overflowing during a query.
 
 Measured for gfx90a with clang 17 at `-O3`, a kernel evaluating one mesh SDF or BVH union needs
-768 bytes of stack per thread: the traversal stack. A tape kernel needs about 8 KB in double precision
-and 6 KB in single, whatever the tape holds, because the call depth is a template parameter and every
-level from `MaxCallDepth` down to 0 is a frame on the deepest path: about 1.6 KB per level in double
-(the value and point stacks, a BVH union's traversal stack and saved registers), plus the primitive
-dispatch at the bottom (900 bytes with a mesh SDF's traversal). A tape listed as another tape's
-primitive adds its own levels: 16 KB in double. If that ever matters, the largest single piece is
-the union traversal stack at every level, sized for 32 levels although a tape's union BVHs are shallow
-(a union of a thousand operands is about five levels deep at K = 4); a smaller budget for them would
-take most of it.
+272 bytes of stack per thread, most of it the traversal stack (768 bytes before the per-level stack).
+A tape kernel needs about 5.6 KB in double precision and 3.6 KB in single, whatever the tape holds,
+because the call depth is a template parameter and every level from `MaxCallDepth` down to 0 is a
+frame on the deepest path: about 1.1 KB per level in double (the value and point stacks, a BVH
+union's traversal stack and saved registers), plus the primitive dispatch at the bottom. A tape
+listed as another tape's primitive adds its own levels. If that ever matters, the largest single
+pieces are now the value and point stacks at every level.
 
 ## Porting a class
 
