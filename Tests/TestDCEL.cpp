@@ -642,6 +642,84 @@ TEMPLATE_TEST_CASE("EdgeIteratorT: copy and move both preserve iteration state",
   REQUIRE(moveAssigned.ok());
 }
 
+// A hand-built mesh of three vertices and one face whose half-edges link as a_next says: edge i
+// starts at vertex i and its next edge is a_next[i]. Nothing here checks the links, so a_next can
+// describe a broken loop that the file readers would never produce.
+template <class T>
+static void
+buildLinkedEdges(TestMesh<T>& a_mesh, Pool& a_pool, const std::vector<uint32_t>& a_next)
+{
+  const auto numEdges = static_cast<uint32_t>(a_next.size());
+
+  a_mesh.reserveVertices(a_pool, 3);
+  a_mesh.reserveEdges(a_pool, numEdges);
+  a_mesh.reserveFaces(a_pool, 1);
+
+  (void)a_mesh.addVertex(a_pool, TestVertex<T>(Vec3T<T>(0, 0, 0)));
+  (void)a_mesh.addVertex(a_pool, TestVertex<T>(Vec3T<T>(1, 0, 0)));
+  (void)a_mesh.addVertex(a_pool, TestVertex<T>(Vec3T<T>(0, 1, 0)));
+
+  for (uint32_t e = 0; e < numEdges; e++) {
+    TestEdge<T> edge(e % 3);
+
+    edge.setNextEdge(a_next[e]);
+    edge.setFace(0);
+
+    (void)a_mesh.addEdge(a_pool, edge);
+  }
+
+  (void)a_mesh.addFace(a_pool, TestFace<T>(0u));
+}
+
+TEMPLATE_TEST_CASE("MeshT::sanityCheck finishes on a face whose half-edge loop does not close",
+                   "[DCEL][Mesh][regression]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Gathering such a face's vertices never finished before the check skipped it.
+  for (const auto& next : {std::vector<uint32_t>{1, 2, 1}, std::vector<uint32_t>{1, 7, 0}}) {
+    Pool        pool(hostMemoryResource());
+    TestMesh<T> mesh;
+
+    buildLinkedEdges(mesh, pool, next);
+
+    mesh.sanityCheck("broken loop");
+  }
+
+  SUCCEED();
+}
+
+TEST_CASE("MeshT: reconciling a hand-built face whose half-edge loop does not close aborts", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  // Edge 0 -> 1 -> 2 -> 1 -> 2 -> ...: a cycle that never returns to edge 0, so iterating the face
+  // never ends. reconcile() rejects it before anything iterates it.
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      buildLinkedEdges(mesh, pool, {1, 2, 1});
+
+      mesh.reconcile(); // must abort
+    },
+    "DCEL::MeshT::reconcile: the half-edge loop of face 0 does not close (it reaches edge 1 after 3 steps"));
+
+  // A next index outside the edge array is caught by the same check.
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      buildLinkedEdges(mesh, pool, {1, 7, 0});
+
+      mesh.reconcile(); // must abort
+    },
+    "DCEL::MeshT::reconcile: the half-edge loop of face 0 does not close (it reaches edge 7 after 2 steps"));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MeshT tests
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1217,6 +1295,49 @@ TEST_CASE("MeshT: reconciling a hand-built face that visits a vertex twice abort
 // ─────────────────────────────────────────────────────────────────────────────
 // Soup tests
 // ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("Soup::soupToDCEL: a face with fewer than 3 vertices or an out-of-range vertex index aborts", "[Soup][death]")
+{
+  using T = double;
+
+  const std::vector<Vec3T<T>> verts = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}};
+
+  // Both used to be EBGEOMETRY_EXPECT only: without assertions, a short face was skipped with a
+  // warning and an out-of-range index wrote past the vertex array.
+  REQUIRE(abortsWith(
+    [&verts] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      Soup::soupToDCEL(mesh, pool, verts, {{0, 1, 2}, {0, 1}}, "short");
+    },
+    "Soup::soupToDCEL: face 1 of 'short' has 2 vertices, but a face needs at least 3"));
+
+  REQUIRE(abortsWith(
+    [&verts] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      Soup::soupToDCEL(mesh, pool, verts, {{0, 1, 5}}, "outside");
+    },
+    "Soup::soupToDCEL: face 0 of 'outside' names vertex 5, but there are only 3 vertices"));
+}
+
+TEST_CASE("Soup::reconcilePairEdgesDCEL: a half-edge with an out-of-range next edge aborts", "[Soup][death]")
+{
+  using T = double;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      buildLinkedEdges(mesh, pool, {1, 7, 0});
+
+      Soup::reconcilePairEdgesDCEL(mesh);
+    },
+    "Soup::reconcilePairEdgesDCEL: half-edge 1 has next edge 7, but there are only 3 half-edges"));
+}
 
 TEMPLATE_TEST_CASE("Soup::containsDegeneratePolygons returns false for a valid triangle soup",
                    "[Soup]",

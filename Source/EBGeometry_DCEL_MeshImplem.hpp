@@ -134,9 +134,12 @@ MeshT<T>::sanityCheck(const std::string a_id) const
   const std::string e_noOrigVert = "no origin vertex found for half edge (badly linked dcel)";
   const std::string e_noFace     = "no face found for half edge (badly linked dcel)";
 
+  const std::string f_openLoop = "face whose half-edge loop does not close (badly linked dcel)";
+
   const std::string v_noEdge = "no referenced edge for vertex (unreferenced vertex)";
 
   std::map<std::string, size_t> warnings = {{f_noEdge, 0},
+                                            {f_openLoop, 0},
                                             {f_degenerate, 0},
                                             {e_degenerate, 0},
                                             {e_noPairEdge, 0},
@@ -153,6 +156,15 @@ MeshT<T>::sanityCheck(const std::string a_id) const
       continue;
     }
 
+    // Gathering the vertices below iterates the loop, which would never finish if it does not close.
+    uint32_t lastEdge = 0;
+    uint32_t steps    = 0;
+
+    if (!this->faceLoopCloses(i, lastEdge, steps)) {
+      this->incrementWarning(warnings, f_openLoop);
+      continue;
+    }
+
     auto vertices = f.gatherVertexIndices(*this);
     std::sort(vertices.begin(), vertices.end());
     auto       it           = std::unique(vertices.begin(), vertices.end());
@@ -165,17 +177,20 @@ MeshT<T>::sanityCheck(const std::string a_id) const
   for (uint32_t i = 0; i < this->numEdges(); i++) {
     const auto& e = this->getEdge(i);
 
-    if (e.getVertexIndex() == UINT32_MAX) {
+    // An index past the end of its array counts as unset: following it would read out of bounds.
+    const bool hasNextEdge = e.getNextEdgeIndex() < this->numEdges();
+
+    if (e.getVertexIndex() >= this->numVertices()) {
       this->incrementWarning(warnings, e_noOrigVert);
     }
-    else if (e.getNextEdgeIndex() != UINT32_MAX && e.getVertexIndex() == e.getNextEdge(*this).getVertexIndex()) {
+    else if (hasNextEdge && e.getVertexIndex() == e.getNextEdge(*this).getVertexIndex()) {
       this->incrementWarning(warnings, e_degenerate);
     }
 
     if (e.getPairEdgeIndex() == UINT32_MAX) {
       this->incrementWarning(warnings, e_noPairEdge);
     }
-    if (e.getNextEdgeIndex() == UINT32_MAX) {
+    if (!hasNextEdge) {
       this->incrementWarning(warnings, e_noNextEdge);
     }
     if (e.getFaceIndex() == UINT32_MAX) {
@@ -191,6 +206,32 @@ MeshT<T>::sanityCheck(const std::string a_id) const
   }
 
   this->printWarnings(warnings, a_id);
+}
+
+template <class T>
+EBGEOMETRY_HOST
+inline bool
+MeshT<T>::faceLoopCloses(const uint32_t a_faceIndex, uint32_t& a_lastEdge, uint32_t& a_steps) const noexcept
+{
+  // A loop that closes visits each of its edges once, so it is back at its start within numEdges()
+  // steps; one still going after that has entered a cycle that skips the start.
+  const uint32_t numEdges = this->numEdges();
+  const uint32_t start    = this->getFace(a_faceIndex).getHalfEdgeIndex();
+
+  a_lastEdge = start;
+  a_steps    = 0;
+
+  do {
+    if (a_lastEdge >= numEdges || a_steps >= numEdges) {
+      return false;
+    }
+
+    a_lastEdge = this->getEdge(a_lastEdge).getNextEdgeIndex();
+
+    a_steps++;
+  } while (a_lastEdge != start);
+
+  return true;
 }
 
 template <class T>
@@ -216,6 +257,21 @@ EBGEOMETRY_HOST
 inline void
 MeshT<T>::reconcile() noexcept
 {
+  // Everything below walks the faces' half-edge loops with EdgeIteratorT, which never finishes on a
+  // loop that does not close; checked here once rather than on every step of every query.
+  for (uint32_t faceIndex = 0; faceIndex < this->numFaces(); faceIndex++) {
+    uint32_t lastEdge = 0;
+    uint32_t steps    = 0;
+
+    EBGEOMETRY_REQUIRE(this->faceLoopCloses(faceIndex, lastEdge, steps),
+                       "DCEL::MeshT::reconcile: the half-edge loop of face %u does not close (it reaches "
+                       "edge %u after %u steps, and the mesh has %u half-edges)",
+                       unsigned(faceIndex),
+                       unsigned(lastEdge),
+                       unsigned(steps),
+                       unsigned(this->numEdges()));
+  }
+
   this->reconcileFaces();
   this->reconcileEdges();
   this->reconcileVertices();

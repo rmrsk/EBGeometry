@@ -426,6 +426,15 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
     numEdgesUpperBound += curFacet.size();
   }
 
+  // The mesh numbers its vertices, half-edges and faces with uint32_t, and UINT32_MAX means "unset".
+  EBGEOMETRY_REQUIRE(a_vertices.size() < UINT32_MAX && numEdgesUpperBound < UINT32_MAX && a_facets.size() < UINT32_MAX,
+                     "Soup::soupToDCEL: '%s' has too many vertices (%zu), half-edges (%zu) or faces (%zu) for "
+                     "32-bit indices",
+                     a_id.c_str(),
+                     a_vertices.size(),
+                     numEdgesUpperBound,
+                     a_facets.size());
+
   a_mesh.reserveVertices(a_pool, static_cast<uint32_t>(a_vertices.size()));
   a_mesh.reserveEdges(a_pool, static_cast<uint32_t>(numEdgesUpperBound));
   a_mesh.reserveFaces(a_pool, static_cast<uint32_t>(a_facets.size()));
@@ -440,24 +449,29 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
   // arrays and wiring them by index rather than by pointer. The mesh re-resolves its base through
   // a_pool's control block on every access, so a grow that moves the block mid-loop is invisible
   // here -- but a reference obtained from getVertex/getEdge must still not be held across one.
-  for (const auto& curFacet : a_facets) {
-    if (curFacet.size() < 3) {
-      std::cerr << "Parser::soupToDCEL -- not enough vertices in face, skipping it\n";
+  for (size_t ifacet = 0; ifacet < a_facets.size(); ifacet++) {
+    const auto& curFacet = a_facets[ifacet];
 
-      // The cerr above only warns; falling through here would reach getEdge(firstEdgeIndex) below
-      // on a 0-vertex facet, which is a bounds violation.
-      EBGEOMETRY_EXPECT(curFacet.size() >= 3);
-
-      continue;
-    }
+    // The file readers remove such faces (Soup::removeDegeneratePolygons) before they get here.
+    EBGEOMETRY_REQUIRE(curFacet.size() >= 3,
+                       "Soup::soupToDCEL: face %zu of '%s' has %zu vertices, but a face needs at least 3",
+                       ifacet,
+                       a_id.c_str(),
+                       curFacet.size());
 
     const uint32_t firstEdgeIndex = a_mesh.numEdges();
     const uint32_t numFaceEdges   = static_cast<uint32_t>(curFacet.size());
 
     // Build the half-edges for this polygon: one per vertex, appended contiguously.
     for (uint32_t i = 0; i < numFaceEdges; i++) {
+      EBGEOMETRY_REQUIRE(curFacet[i] < a_vertices.size(),
+                         "Soup::soupToDCEL: face %zu of '%s' names vertex %zu, but there are only %zu vertices",
+                         ifacet,
+                         a_id.c_str(),
+                         curFacet[i],
+                         a_vertices.size());
+
       const uint32_t vertexIndex = static_cast<uint32_t>(curFacet[i]);
-      EBGEOMETRY_EXPECT(vertexIndex < a_mesh.numVertices());
 
       a_mesh.addEdge(a_pool, Edge(vertexIndex));
       a_mesh.getVertex(vertexIndex).setEdge(firstEdgeIndex + i);
@@ -497,12 +511,24 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh) noexcept
 
   // Local, transient bookkeeping (NOT stored on VertexT, which keeps only a single outgoing-edge
   // index -- see its class-level note): which half-edges start at each vertex, so the search below
-  // stays O(V + E) instead of an O(E^2) scan over every edge pair.
+  // stays O(V + E) instead of an O(E^2) scan over every edge pair. Each edge's origin vertex and next
+  // edge are checked in every build, since both loops index with them; soupToDCEL never breaks
+  // either, a mesh assembled by hand can.
   std::vector<std::vector<uint32_t>> edgesStartingAtVertex(numVertices);
   for (uint32_t i = 0; i < numEdges; i++) {
-    const uint32_t v = a_mesh.getEdge(i).getVertexIndex();
+    const uint32_t v    = a_mesh.getEdge(i).getVertexIndex();
+    const uint32_t next = a_mesh.getEdge(i).getNextEdgeIndex();
 
-    EBGEOMETRY_EXPECT(v < numVertices);
+    EBGEOMETRY_REQUIRE(v < numVertices,
+                       "Soup::reconcilePairEdgesDCEL: half-edge %u starts at vertex %u, but there are only %u vertices",
+                       unsigned(i),
+                       unsigned(v),
+                       unsigned(numVertices));
+    EBGEOMETRY_REQUIRE(next < numEdges,
+                       "Soup::reconcilePairEdgesDCEL: half-edge %u has next edge %u, but there are only %u half-edges",
+                       unsigned(i),
+                       unsigned(next),
+                       unsigned(numEdges));
 
     edgesStartingAtVertex[v].push_back(i);
   }
@@ -511,7 +537,6 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh) noexcept
     Edge& curEdge = a_mesh.getEdge(curIndex);
 
     const uint32_t nextIndex = curEdge.getNextEdgeIndex();
-    EBGEOMETRY_EXPECT(nextIndex != UINT32_MAX);
 
     const uint32_t vertexStart = curEdge.getVertexIndex();
     const uint32_t vertexEnd   = a_mesh.getEdge(nextIndex).getVertexIndex();
@@ -520,8 +545,6 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh) noexcept
     for (const uint32_t candIndex : edgesStartingAtVertex[vertexEnd]) {
       Edge&          candEdge      = a_mesh.getEdge(candIndex);
       const uint32_t candNextIndex = candEdge.getNextEdgeIndex();
-
-      EBGEOMETRY_EXPECT(candNextIndex != UINT32_MAX);
 
       if (a_mesh.getEdge(candNextIndex).getVertexIndex() == vertexStart) { // Found the pair edge
         curEdge.setPairEdge(candIndex);
