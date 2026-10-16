@@ -170,21 +170,23 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance treats a zero normal as negativ
   using Vec3 = Vec3T<T>;
 
   // A triangle on a fold has zero vertex and edge normals (Soup::findFoldedFeature), and a zero normal
-  // is documented to count as negative. Its dot product with an offset is a signed zero, +0 for the
-  // offsets below. The SIMD kernels used to copy that sign bit and return +|d|, while the scalar
-  // paths return -|d|.
+  // is documented to count as negative. Its dot product with an offset is a signed zero: -0 when every
+  // component of the offset is negative, +0 otherwise. The SIMD kernels used to copy that sign bit,
+  // returning +|d| for a +0, while the scalar paths return -|d| for both.
   Tri<T> tri(Array<Vec3, 3>{Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0)});
 
   tri.setVertexNormals(Array<Vec3, 3>{Vec3::zeros(), Vec3::zeros(), Vec3::zeros()});
   tri.setEdgeNormals(Array<Vec3, 3>{Vec3::zeros(), Vec3::zeros(), Vec3::zeros()});
 
-  // Closest to vertex 0, at distance 1.5.
-  const Vec3 nearVertex(T(-1), T(-1), T(0.5));
-  // Closest to the edge from vertex 0 to vertex 1, at distance sqrt(1.25).
+  // Closest to vertex 0, at distance 1.5, above and below the plane: a +0 and a -0 dot product.
+  const Vec3 aboveVertex(T(-1), T(-1), T(0.5));
+  const Vec3 belowVertex(T(-1), T(-1), T(-0.5));
+  // Closest to the edge from vertex 0 to vertex 1, at distance sqrt(1.25): a +0 dot product.
   const Vec3 nearEdge(T(0.5), T(-1), T(0.5));
 
-  for (const auto& [point, expected] :
-       {std::pair<Vec3, T>{nearVertex, T(-1.5)}, std::pair<Vec3, T>{nearEdge, -std::sqrt(T(1.25))}}) {
+  for (const auto& [point, expected] : {std::pair<Vec3, T>{aboveVertex, T(-1.5)},
+                                        std::pair<Vec3, T>{belowVertex, T(-1.5)},
+                                        std::pair<Vec3, T>{nearEdge, -std::sqrt(T(1.25))}}) {
     checkZeroNormalSigns<T, 4>(tri, point, expected);
     checkZeroNormalSigns<T, 8>(tri, point, expected);
     checkZeroNormalSigns<T, 16>(tri, point, expected);
