@@ -350,9 +350,16 @@ TEMPLATE_TEST_CASE("approximateBoundingVolumeOctree and normal: device results m
 
   const auto points = queryGrid<T>(Vec3T<T>(T(-1.5), T(-1.5), T(-1.5)), Vec3T<T>(T(1.5), T(1.5), T(1.5)), 7);
 
+  // A central difference divides a cancellation by 2 delta, so a rounding difference between the two
+  // sides (fused multiply-adds on one and not the other) grows by about 1 / delta: in float that is
+  // eps / delta, about 1e-4 at delta = 1e-3, above gpuTol. The host normal test above uses the same
+  // float margin for the same reason.
+  const T normalTolerance = std::is_same_v<T, float> ? T(1.0e-3) : gpuTol<T>();
+
   for (std::size_t axis = 0; axis < 3; axis++) {
     INFO("axis " << axis);
     requireSameResults(evaluateOnDevice<T>(NormalQuery<T>{sphere, axis}, points),
-                       evaluateOnHost<T>(NormalQuery<T>{sphere, axis}, points));
+                       evaluateOnHost<T>(NormalQuery<T>{sphere, axis}, points),
+                       normalTolerance);
   }
 }
