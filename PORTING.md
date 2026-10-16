@@ -589,8 +589,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **MEM-20** [NIT]: `Vec` division multiplies by the reciprocal, and the free `min`/`max`
-  propagate NaN depending on argument order.
 * **MEM-19** [NIT]: `Vec3T` is not trivially default-constructible, which a `__shared__` array
   needs.
 * **MEM-17** [NIT]: `Vec3T`'s scalar-left `operator*` and `operator/` are unconstrained,

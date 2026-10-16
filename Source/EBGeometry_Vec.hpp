@@ -500,10 +500,9 @@ public:
   operator*=(const T& s) noexcept;
 
   /**
-   * @brief Vector division operator.
+   * @brief In-place scalar division operator.
    * @param[in] s Scalar to divide by
-   * @return Returns (*this) with multiplied components, e.g. this->X[0] =
-   * this->X[0] / s
+   * @return Returns (*this) with divided components, e.g. this->X[0] = this->X[0] / s
    */
   EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
@@ -597,6 +596,8 @@ operator/(const T& s, const Vec2T<T>& a_other) noexcept;
 
 /**
  * @brief Component-wise minimum of two vectors.
+ * @details Each component is Math::min of the two: the first vector's component when they compare
+ * equal or either is NaN, like std::min.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
@@ -609,6 +610,8 @@ min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
 /**
  * @brief Component-wise maximum of two vectors.
+ * @details Each component is Math::max of the two: the first vector's component when they compare
+ * equal or either is NaN, like std::max.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
@@ -683,6 +686,8 @@ operator/(const R& s, const Vec3T<T>& u) noexcept;
 
 /**
  * @brief Component-wise minimum of two 3D vectors.
+ * @details Each component is Math::min of the two: the first vector's component when they compare
+ * equal or either is NaN, like std::min.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
@@ -695,6 +700,8 @@ min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /**
  * @brief Component-wise maximum of two 3D vectors.
+ * @details Each component is Math::max of the two: the first vector's component when they compare
+ * equal or either is NaN, like std::max.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.

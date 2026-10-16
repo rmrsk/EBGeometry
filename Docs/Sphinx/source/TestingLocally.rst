@@ -188,8 +188,9 @@ Test coverage
    * - Test binary
      - What is covered
    * - ``TestVec``
-     - :cpp:class:`Vec2T` and :cpp:class:`Vec3T`: construction, arithmetic,
-       dot/cross products, length, component-wise min/max, ``minDir``/``maxDir``,
+     - :cpp:class:`Vec2T` and :cpp:class:`Vec3T`: construction, arithmetic, division by a scalar
+       matching each component's own quotient, dot/cross products, length, component-wise min/max
+       (a NaN component handled as ``Math::min``/``max`` handle it), ``minDir``/``maxDir``,
        lexicographic ordering, scalar-over-vector ``operator/``.
    * - ``TestMath``
      - ``Math::min``/``max``/``clamp`` and ``Math::Limits`` against their ``std`` counterparts
