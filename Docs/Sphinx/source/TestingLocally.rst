@@ -312,7 +312,8 @@ Test coverage
        rejected; a tree at the host depth limit, visited deepest first, filling the traversal stack
        to its last entry; ``traverse()`` and ``pruneTraverse()`` visiting leaves in the order of a
        recursive depth-first search; a level resumed with exact distances never pruning a closer
-       primitive; only interior
+       primitive; a NaN query coordinate reaching every primitive in an unbounded search at every
+       ``K``, SIMD path or scalar; only interior
        nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
        extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
        fewest power-of-``K`` leaves; a :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns,

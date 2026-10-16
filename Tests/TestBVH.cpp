@@ -149,6 +149,32 @@ nearestDist2PerQueryPoint(const DCEL::MeshT<T>&                                 
   return result;
 }
 
+// The number of primitives an unbounded pruneTraverse() reaches from a_point, through a PackedBVH with
+// branching factor K over a_primsAndBVs.
+template <class T, size_t K>
+size_t
+primitivesReachedUnbounded(const BVH::PrimAndBVList<DCEL::FaceT<T>, BoundingVolumes::AABBT<T>>& a_primsAndBVs,
+                           const Vec3T<T>&                                                      a_point)
+{
+  using Face = DCEL::FaceT<T>;
+  using AABB = BoundingVolumes::AABBT<T>;
+
+  Pool pool(hostMemoryResource());
+
+  auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(a_primsAndBVs);
+  tree->topDownSortAndPartition();
+
+  const auto packed = tree->pack(pool);
+
+  size_t     reached    = 0;
+  const auto evalLeaf   = [](size_t& a_reached, size_t, size_t a_count) noexcept { a_reached += a_count; };
+  const auto pruneDist2 = [](const size_t&) noexcept -> T { return std::numeric_limits<T>::max(); };
+
+  packed->pruneTraverse(a_point, reached, evalLeaf, pruneDist2);
+
+  return reached;
+}
+
 } // namespace
 
 TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical, watertight DCEL mesh",
@@ -325,6 +351,43 @@ TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: every compiled SIMD child-distance
   requireAgreesWithReference("K=7", nearestDist2PerQueryPoint<T, 7>(mesh, primsAndBVs));
   requireAgreesWithReference("K=8", nearestDist2PerQueryPoint<T, 8>(mesh, primsAndBVs));
   requireAgreesWithReference("K=16", nearestDist2PerQueryPoint<T, 16>(mesh, primsAndBVs));
+}
+
+TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: a NaN query coordinate gives the same child distances on "
+                   "every path",
+                   "[BVH][Dodecahedron][regression]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Face = DCEL::FaceT<T>;
+  using Vec3 = Vec3T<T>;
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
+
+  BVH::PrimAndBVList<Face, AABB> primsAndBVs;
+
+  for (uint32_t i = 0; i < mesh.numFaces(); i++) {
+    const auto& f = mesh.getFace(i);
+
+    primsAndBVs.emplace_back(std::make_shared<const Face>(f), AABB(f.getAllVertexCoordinates(mesh)));
+  }
+
+  // The scalar path clamps a NaN axis to zero, so the child stays within any bound. The SIMD paths
+  // used to take x86 max's operands the other way round, which returns the NaN instead, so every
+  // child failed "dist2 <= bound" and an unbounded search reached nothing. K = 3 has no SIMD path in
+  // any build; the other widths run whichever SIMD paths this binary compiled (see the test above).
+  const T    nan      = std::numeric_limits<T>::quiet_NaN();
+  const Vec3 points[] = {
+    Vec3(nan, T(0.1), T(0.2)), Vec3(T(0.1), nan, T(0.2)), Vec3(T(0.1), T(0.2), nan), Vec3(nan, nan, nan)};
+
+  for (const auto& p : points) {
+    CHECK(primitivesReachedUnbounded<T, 3>(primsAndBVs, p) == primsAndBVs.size());
+    CHECK(primitivesReachedUnbounded<T, 4>(primsAndBVs, p) == primsAndBVs.size());
+    CHECK(primitivesReachedUnbounded<T, 8>(primsAndBVs, p) == primsAndBVs.size());
+    CHECK(primitivesReachedUnbounded<T, 16>(primsAndBVs, p) == primsAndBVs.size());
+  }
 }
 
 TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BVH::Construction strategy",

@@ -499,6 +499,10 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
   // their output buffer; on an aligned address storeu costs the same as store on every CPU that has
   // AVX-512 at all.
   //
+  // Every path computes max(max(p - hi, lo - p), 0) per axis. An x86 max(a, b) is (a > b) ? a : b, so
+  // with a NaN it returns b: with the operands in this order, each max is exactly the scalar path's
+  // comparison below, and a NaN coordinate gives 0 for that axis on every path.
+  //
   // Recommended configurations on AVX-512 hardware:
   //   float  -> K=16, W=16  (one _mm512_load_ps covers all children and one leaf group)
   //   double -> K=8,  W=8   (one _mm512_load_pd covers all children; AVX-512F replaces
@@ -521,9 +525,9 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
     const __m512d hi_y = _mm512_load_pd(a_soa.m_hi[1]);
     const __m512d hi_z = _mm512_load_pd(a_soa.m_hi[2]);
 
-    const __m512d dx = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_x, px), _mm512_sub_pd(px, hi_x)));
-    const __m512d dy = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_y, py), _mm512_sub_pd(py, hi_y)));
-    const __m512d dz = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_z, pz), _mm512_sub_pd(pz, hi_z)));
+    const __m512d dx = _mm512_max_pd(_mm512_max_pd(_mm512_sub_pd(px, hi_x), _mm512_sub_pd(lo_x, px)), zero);
+    const __m512d dy = _mm512_max_pd(_mm512_max_pd(_mm512_sub_pd(py, hi_y), _mm512_sub_pd(lo_y, py)), zero);
+    const __m512d dz = _mm512_max_pd(_mm512_max_pd(_mm512_sub_pd(pz, hi_z), _mm512_sub_pd(lo_z, pz)), zero);
     const __m512d d2 =
       _mm512_add_pd(_mm512_mul_pd(dx, dx), _mm512_add_pd(_mm512_mul_pd(dy, dy), _mm512_mul_pd(dz, dz)));
 
@@ -548,9 +552,9 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
     const __m512 hi_y = _mm512_load_ps(a_soa.m_hi[1]);
     const __m512 hi_z = _mm512_load_ps(a_soa.m_hi[2]);
 
-    const __m512 dx = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_x, px), _mm512_sub_ps(px, hi_x)));
-    const __m512 dy = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_y, py), _mm512_sub_ps(py, hi_y)));
-    const __m512 dz = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_z, pz), _mm512_sub_ps(pz, hi_z)));
+    const __m512 dx = _mm512_max_ps(_mm512_max_ps(_mm512_sub_ps(px, hi_x), _mm512_sub_ps(lo_x, px)), zero);
+    const __m512 dy = _mm512_max_ps(_mm512_max_ps(_mm512_sub_ps(py, hi_y), _mm512_sub_ps(lo_y, py)), zero);
+    const __m512 dz = _mm512_max_ps(_mm512_max_ps(_mm512_sub_ps(pz, hi_z), _mm512_sub_ps(lo_z, pz)), zero);
     const __m512 d2 = _mm512_add_ps(_mm512_mul_ps(dx, dx), _mm512_add_ps(_mm512_mul_ps(dy, dy), _mm512_mul_ps(dz, dz)));
 
     _mm512_storeu_ps(a_dist2, d2);
@@ -580,9 +584,9 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
     const __m256d hi_y = _mm256_load_pd(a_soa.m_hi[1]);
     const __m256d hi_z = _mm256_load_pd(a_soa.m_hi[2]);
 
-    const __m256d dx = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x, px), _mm256_sub_pd(px, hi_x)));
-    const __m256d dy = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y, py), _mm256_sub_pd(py, hi_y)));
-    const __m256d dz = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z, pz), _mm256_sub_pd(pz, hi_z)));
+    const __m256d dx = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(px, hi_x), _mm256_sub_pd(lo_x, px)), zero);
+    const __m256d dy = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(py, hi_y), _mm256_sub_pd(lo_y, py)), zero);
+    const __m256d dz = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(pz, hi_z), _mm256_sub_pd(lo_z, pz)), zero);
     const __m256d d2 =
       _mm256_add_pd(_mm256_mul_pd(dx, dx), _mm256_add_pd(_mm256_mul_pd(dy, dy), _mm256_mul_pd(dz, dz)));
 
@@ -607,9 +611,9 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
     const __m256 hi_y = _mm256_load_ps(a_soa.m_hi[1]);
     const __m256 hi_z = _mm256_load_ps(a_soa.m_hi[2]);
 
-    const __m256 dx = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_x, px), _mm256_sub_ps(px, hi_x)));
-    const __m256 dy = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_y, py), _mm256_sub_ps(py, hi_y)));
-    const __m256 dz = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_z, pz), _mm256_sub_ps(pz, hi_z)));
+    const __m256 dx = _mm256_max_ps(_mm256_max_ps(_mm256_sub_ps(px, hi_x), _mm256_sub_ps(lo_x, px)), zero);
+    const __m256 dy = _mm256_max_ps(_mm256_max_ps(_mm256_sub_ps(py, hi_y), _mm256_sub_ps(lo_y, py)), zero);
+    const __m256 dz = _mm256_max_ps(_mm256_max_ps(_mm256_sub_ps(pz, hi_z), _mm256_sub_ps(lo_z, pz)), zero);
     const __m256 d2 = _mm256_add_ps(_mm256_mul_ps(dx, dx), _mm256_add_ps(_mm256_mul_ps(dy, dy), _mm256_mul_ps(dz, dz)));
 
     _mm256_storeu_ps(a_dist2, d2);
@@ -633,9 +637,9 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
     const __m256d hi_y0 = _mm256_load_pd(a_soa.m_hi[1]);
     const __m256d hi_z0 = _mm256_load_pd(a_soa.m_hi[2]);
 
-    const __m256d dx0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x0, px), _mm256_sub_pd(px, hi_x0)));
-    const __m256d dy0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y0, py), _mm256_sub_pd(py, hi_y0)));
-    const __m256d dz0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z0, pz), _mm256_sub_pd(pz, hi_z0)));
+    const __m256d dx0 = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(px, hi_x0), _mm256_sub_pd(lo_x0, px)), zero);
+    const __m256d dy0 = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(py, hi_y0), _mm256_sub_pd(lo_y0, py)), zero);
+    const __m256d dz0 = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(pz, hi_z0), _mm256_sub_pd(lo_z0, pz)), zero);
     const __m256d d2_0 =
       _mm256_add_pd(_mm256_mul_pd(dx0, dx0), _mm256_add_pd(_mm256_mul_pd(dy0, dy0), _mm256_mul_pd(dz0, dz0)));
 
@@ -646,9 +650,9 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
     const __m256d hi_y1 = _mm256_load_pd(a_soa.m_hi[1] + 4);
     const __m256d hi_z1 = _mm256_load_pd(a_soa.m_hi[2] + 4);
 
-    const __m256d dx1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x1, px), _mm256_sub_pd(px, hi_x1)));
-    const __m256d dy1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y1, py), _mm256_sub_pd(py, hi_y1)));
-    const __m256d dz1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z1, pz), _mm256_sub_pd(pz, hi_z1)));
+    const __m256d dx1 = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(px, hi_x1), _mm256_sub_pd(lo_x1, px)), zero);
+    const __m256d dy1 = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(py, hi_y1), _mm256_sub_pd(lo_y1, py)), zero);
+    const __m256d dz1 = _mm256_max_pd(_mm256_max_pd(_mm256_sub_pd(pz, hi_z1), _mm256_sub_pd(lo_z1, pz)), zero);
     const __m256d d2_1 =
       _mm256_add_pd(_mm256_mul_pd(dx1, dx1), _mm256_add_pd(_mm256_mul_pd(dy1, dy1), _mm256_mul_pd(dz1, dz1)));
 
@@ -676,9 +680,9 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
     const __m128 hi_y = _mm_load_ps(a_soa.m_hi[1]);
     const __m128 hi_z = _mm_load_ps(a_soa.m_hi[2]);
 
-    const __m128 dx = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_x, px), _mm_sub_ps(px, hi_x)));
-    const __m128 dy = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_y, py), _mm_sub_ps(py, hi_y)));
-    const __m128 dz = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_z, pz), _mm_sub_ps(pz, hi_z)));
+    const __m128 dx = _mm_max_ps(_mm_max_ps(_mm_sub_ps(px, hi_x), _mm_sub_ps(lo_x, px)), zero);
+    const __m128 dy = _mm_max_ps(_mm_max_ps(_mm_sub_ps(py, hi_y), _mm_sub_ps(lo_y, py)), zero);
+    const __m128 dz = _mm_max_ps(_mm_max_ps(_mm_sub_ps(pz, hi_z), _mm_sub_ps(lo_z, pz)), zero);
     const __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx), _mm_add_ps(_mm_mul_ps(dy, dy), _mm_mul_ps(dz, dz)));
 
     _mm_storeu_ps(a_dist2, d2);
@@ -692,8 +696,8 @@ PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3
   // Scalar path: every (T, K) with no compiled ISA path above, and all device code.
   //
   // The per-axis clamp and the dx*dx + (dy*dy + dz*dz) association below are written out so that
-  // they match the SIMD paths exactly, and every path produces bit-identical results for finite inputs,
-  // unless the compiler contracts the multiply and add below into a fused multiply-add.
+  // they match the SIMD paths exactly, and every path produces bit-identical results, a NaN coordinate
+  // included, unless the compiler contracts the multiply and add below into a fused multiply-add.
 
   for (size_t k = 0; k < K; k++) {
     a_dist2[k] = PackedBVH::scalarChildDistance2(a_soa, a_point, k);
