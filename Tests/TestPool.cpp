@@ -226,7 +226,8 @@ TEST_CASE("Pool: a reservation larger than a block can hold aborts", "[Pool][dea
     },
     std::string("elements of 8 bytes ") + tooMany));
 
-  // Added to the 16 bytes already reserved, the end wraps to 7.
+  // More than a block can hold on its own. Before the checks, its end, after the 16 bytes already
+  // reserved, wrapped round to 7.
   CHECK(abortsWith(
     [] {
       Pool pool(hostMemoryResource());

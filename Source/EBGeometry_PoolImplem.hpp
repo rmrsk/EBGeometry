@@ -150,7 +150,8 @@ Pool::grow(size_t a_need)
 
   EBGEOMETRY_EXPECT(a_need <= s_maxBytes); // reserve() checked it
 
-  // Doubling only while it stays within s_maxBytes, so neither it nor the rounding below can wrap.
+  // Doubling only while it stays within s_maxBytes; nearer the limit the block grows to exactly
+  // a_need instead. Neither can make the rounding below wrap.
   size_t newCap = PoolBaseAlign;
 
   if (m_capacity > 0 && m_capacity <= s_maxBytes / 2) {
