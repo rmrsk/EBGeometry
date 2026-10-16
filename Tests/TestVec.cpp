@@ -49,14 +49,28 @@ TEMPLATE_TEST_CASE("Vec3T: has no ordering operators, so it cannot silently brea
   REQUIRE_FALSE(Vec3T<T>(T(1), T(0), T(0)).lessLX(Vec3T<T>(T(0), T(1), T(0))));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: default construction is zero", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Vec2T and Vec3T: trivially default constructible, and value initialization is zero",
+                   "[Vec2T][Vec3T]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  Vec3T<T> v;
+  // A trivial default constructor is what lets a vector be the element type of a CUDA/HIP __shared__
+  // array, which may not have an initializer.
+  STATIC_REQUIRE(std::is_trivially_default_constructible_v<Vec2T<T>>);
+  STATIC_REQUIRE(std::is_trivially_default_constructible_v<Vec3T<T>>);
+
+  const Vec2T<T> u{};
+  REQUIRE(u.x == T(0.0));
+  REQUIRE(u.y == T(0.0));
+
+  const Vec3T<T> v{};
   REQUIRE(v[0] == T(0.0));
   REQUIRE(v[1] == T(0.0));
   REQUIRE(v[2] == T(0.0));
+
+  const Vec3T<T> w = Vec3T<T>();
+  REQUIRE(w == Vec3T<T>::zeros());
 }
 
 TEMPLATE_TEST_CASE("Vec3T: component construction fills correctly", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)

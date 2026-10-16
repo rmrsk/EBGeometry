@@ -38,10 +38,13 @@ class Vec2T
 public:
   static_assert(std::is_floating_point_v<T>, "Vec2T<T>: T must be a floating-point type");
   /**
-   * @brief Default constructor. Sets the vector to the zero vector.
+   * @brief Default constructor. Leaves the components uninitialized.
+   * @details Defaulted, so that Vec2T is trivially default constructible and can be the element type of
+   * a CUDA/HIP `__shared__` array, which may not have an initializer. As with a plain T, `Vec2T<T> v;`
+   * leaves v uninitialized, while value initialization (`Vec2T<T> v{};`, `Vec2T<T>()`) zeroes it, as does
+   * zeros().
    */
-  EBGEOMETRY_HOST_DEVICE
-  constexpr Vec2T() noexcept;
+  Vec2T() noexcept = default;
 
   /**
    * @brief Copy constructor
@@ -246,10 +249,13 @@ public:
   static_assert(std::is_floating_point_v<T>, "Vec3T<T>: T must be a floating-point type");
 
   /**
-   * @brief Default constructor. Sets the vector to the zero vector.
+   * @brief Default constructor. Leaves the components uninitialized.
+   * @details Defaulted, so that Vec3T is trivially default constructible and can be the element type of
+   * a CUDA/HIP `__shared__` array, which may not have an initializer. As with a plain T, `Vec3T<T> v;`
+   * leaves v uninitialized, while value initialization (`Vec3T<T> v{};`, `Vec3T<T>()`) zeroes it, as does
+   * zeros().
    */
-  EBGEOMETRY_HOST_DEVICE
-  constexpr Vec3T() noexcept;
+  Vec3T() noexcept = default;
 
   /**
    * @brief Copy constructor
@@ -764,6 +770,14 @@ static_assert(std::is_trivially_copyable_v<Vec2T<float>>, "Vec2T<float> must be 
 static_assert(std::is_trivially_copyable_v<Vec2T<double>>, "Vec2T<double> must be trivially copyable");
 static_assert(std::is_trivially_copyable_v<Vec3T<float>>, "Vec3T<float> must be trivially copyable");
 static_assert(std::is_trivially_copyable_v<Vec3T<double>>, "Vec3T<double> must be trivially copyable");
+static_assert(std::is_trivially_default_constructible_v<Vec2T<float>>,
+              "Vec2T<float> must be trivially default constructible");
+static_assert(std::is_trivially_default_constructible_v<Vec2T<double>>,
+              "Vec2T<double> must be trivially default constructible");
+static_assert(std::is_trivially_default_constructible_v<Vec3T<float>>,
+              "Vec3T<float> must be trivially default constructible");
+static_assert(std::is_trivially_default_constructible_v<Vec3T<double>>,
+              "Vec3T<double> must be trivially default constructible");
 
 } // namespace EBGeometry
 

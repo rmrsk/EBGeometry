@@ -94,8 +94,8 @@ public:
 
   /**
    * @brief Default constructor.
-   * @details Defaulted: the position and normal vectors zero-initialize via Vec3T's own default
-   * constructor, and the outgoing edge index defaults to the unset sentinel (see m_outgoingEdge).
+   * @details Defaulted: the position and normal vectors are zero and the outgoing edge index is the
+   * unset sentinel, from their member initializers (see m_outgoingEdge).
    */
   VertexT() = default;
 
@@ -329,12 +329,12 @@ protected:
   /**
    * @brief Vertex position
    */
-  Vec3 m_position;
+  Vec3 m_position = Vec3::zeros();
 
   /**
    * @brief Vertex normal vector
    */
-  Vec3 m_normal;
+  Vec3 m_normal = Vec3::zeros();
 };
 
 static_assert(std::is_trivially_copyable_v<VertexT<float>>, "VertexT<float> must be trivially copyable");

@@ -42,6 +42,11 @@ and const overloads), not as public named fields. Its main features are:
   (with those for the bounding volumes), so that :file:`EBGeometry_Vec.hpp` does not include
   ``<ostream>``. ``EBGeometry.hpp`` includes it.
 
+Both types are trivially default constructible, like a plain ``T``: ``Vec3T<T> v;`` leaves the
+components uninitialized, while ``Vec3T<T> v{};``, ``Vec3T<T>()`` and ``Vec3T<T>::zeros()`` give the
+zero vector (and the same for ``Vec2T``). A defaulted constructor is what lets either type be the
+element type of a CUDA/HIP ``__shared__`` array, which may not have an initializer.
+
 For the full API -- every constructor, operator, and free function -- see the Doxygen reference
 for `Vec2T <doxygen/html/classEBGeometry_1_1Vec2T.html>`__ and
 `Vec3T <doxygen/html/classEBGeometry_1_1Vec3T.html>`__.
