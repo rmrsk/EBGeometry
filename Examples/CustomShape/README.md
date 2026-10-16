@@ -2,9 +2,11 @@ Examples/CustomShape
 --------------------
 
 A shape of your own, composed with built-in shapes into a
-[`Tape`](https://rmrsk.github.io/EBGeometry/doxygen/html/classEBGeometry_1_1Tape.html), evaluated on the
-host and, in a GPU build, in a GPU kernel too. The kernel is written out in `main.cpp`, to show what
-`EBGeometry::GPU::transform()`, which the other examples call, does.
+[`Tape`](https://rmrsk.github.io/EBGeometry/doxygen/html/classEBGeometry_1_1Tape.html), and called from a
+GPU kernel written out by hand. The other examples run their queries through
+`EBGeometry::GPU::transform()`, which launches that kernel for them; a kernel of your own is how an
+application calls EBGeometry from inside its own device loops (an AMReX `ParallelFor`, a Kokkos
+`parallel_for`, a CUDA kernel that does other work too).
 
 The shape is an octahedron, written in `main.cpp` as an ordinary struct. It is trivially copyable,
 with an `EBGEOMETRY_HOST_DEVICE` `signedDistance()` and `computeBoundingVolume()` and a static
@@ -15,10 +17,12 @@ boxes.
 
 In a GPU build the tape is compiled straight into managed memory (`managedMemoryResource()`), which the
 host and the device can both read. Its pool is frozen and the tape rebased onto it, which gives one handle
-for both, and the kernel receives it by value. That suits a small object like this one, a few KB. For
-large geometry, mirror the pool to device memory instead, as the other examples do (see
-[`Examples/ClosestPointBVH`](../ClosestPointBVH/README.md)): managed memory migrates between host and
-device as it is touched, and on AMD MI200-class GPUs it migrates only with XNACK enabled.
+for both, and the kernel receives it by value. The query points and the results live in managed memory
+too, so the kernel reads and writes them in place. In a plain C++ build the same lines use
+`emulatedDeviceMemoryResource()`, host memory that stands in for a device, and a host loop does what each
+thread would. Managed memory suits a small object like this one, a few KB. For large geometry, mirror the
+pool to device memory instead, as [`Examples/MeshSDF`](../MeshSDF/README.md) does: managed memory migrates
+between host and device as it is touched, and on AMD MI200-class GPUs it migrates only with XNACK enabled.
 
 Building
 --------
@@ -33,8 +37,7 @@ is two levels up from this folder (`../..`) when building in place. See
 for more detail on each approach.
 
 By default each method builds plain C++, which runs the example on the host. Asked for a GPU build, the
-same source is compiled as HIP or CUDA, and the same run also does its queries in a kernel and compares
-them with the host's.
+same source is compiled as HIP or CUDA, and the grid of queries runs in the example's own kernel.
 
 **CMake**
 
@@ -74,8 +77,8 @@ Running
 
     ./CustomShape.ex
 
-Takes no arguments. It evaluates the scene at points where the value is known: the centers of the
-sphere and of each octahedron, a point beyond a vertex and a point beyond a face. It also evaluates a
-grid of 64,000 points. In a GPU build every grid value is also compared with the host's. The program
-prints the number of mismatches and exits with a nonzero status if there are any. A GPU build without a
-visible GPU skips the device part.
+Takes no arguments. It prints the size of the compiled tape (objects, BVH unions, clauses) and its
+value at a few points on the host: the centers of the sphere and of an octahedron, a point above an
+octahedron's tip and one between two octahedra. It then evaluates a grid of 64,000 points, in its own
+kernel in a GPU build and in a host loop otherwise, and prints how many lie inside the scene. A GPU
+build without a visible GPU skips the grid.

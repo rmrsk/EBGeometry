@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Standalone build file for the PackedSpheres example. It can be built on its own
+# Standalone build file for the CSG example. It can be built on its own
 # (e.g. copied out as a template for a new project) or as part of the top-level
 # EBGeometry build.
 cmake_minimum_required(VERSION 3.16)
-project(PackedSpheres CXX)
+project(CSG CXX)
 
 # Built on its own, the example defaults to an optimised build. Inside the EBGeometry project it
 # follows that project's build type, and its SIMD flags come from the EBGeometry target
@@ -68,28 +68,28 @@ elseif(NOT _example_gpu STREQUAL "OFF")
   message(FATAL_ERROR "EBGEOMETRY_EXAMPLE_GPU must be OFF, CUDA or HIP (got '${_example_gpu}')")
 endif()
 
-add_executable(PackedSpheres main.cpp)
+add_executable(CSG main.cpp)
 
 if(_example_gpu STREQUAL "HIP" OR _example_gpu STREQUAL "CUDA")
   set_source_files_properties(main.cpp PROPERTIES LANGUAGE ${_example_gpu})
-  set_target_properties(PackedSpheres PROPERTIES
+  set_target_properties(CSG PROPERTIES
     ${_example_gpu}_STANDARD 17
     ${_example_gpu}_STANDARD_REQUIRED ON)
 
   # Lets the EBGeometry project collect the examples it compiled for a GPU.
-  set_property(GLOBAL APPEND PROPERTY EBGEOMETRY_GPU_EXAMPLES PackedSpheres)
+  set_property(GLOBAL APPEND PROPERTY EBGEOMETRY_GPU_EXAMPLES CSG)
 endif()
 
 # Give the binary a .ex extension so it's covered by the repo-wide *.ex .gitignore rule,
 # without needing a per-example ignore entry. Always place it directly in this
 # source directory (not wherever -B/--preset pointed the build tree), so all three
 # documented build methods (direct compile, GNU make, CMake) produce the binary in
-# the same place: ./PackedSpheres.ex.
-set_target_properties(PackedSpheres PROPERTIES
+# the same place: ./CSG.ex.
+set_target_properties(CSG PROPERTIES
   SUFFIX ".ex"
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(PackedSpheres PRIVATE EBGeometry::EBGeometry)
-target_compile_options(PackedSpheres PRIVATE $<$<COMPILE_LANGUAGE:CXX,HIP>:-Wall -Wextra -Wno-unused-parameter>)
+target_link_libraries(CSG PRIVATE EBGeometry::EBGeometry)
+target_compile_options(CSG PRIVATE $<$<COMPILE_LANGUAGE:CXX,HIP>:-Wall -Wextra -Wno-unused-parameter>)
 
 # ---------------------------------------------------------------------------
 # Floating-point precision for this example.
@@ -100,7 +100,7 @@ target_compile_options(PackedSpheres PRIVATE $<$<COMPILE_LANGUAGE:CXX,HIP>:-Wall
 # ---------------------------------------------------------------------------
 set(EBGEOMETRY_PRECISION double CACHE STRING "Floating-point precision (float or double)")
 set_property(CACHE EBGEOMETRY_PRECISION PROPERTY STRINGS float double)
-target_compile_definitions(PackedSpheres PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
+target_compile_definitions(CSG PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
 
 # ---------------------------------------------------------------------------
 # EBGEOMETRY_EXPECT() runtime assertions for this example.
@@ -111,5 +111,5 @@ target_compile_definitions(PackedSpheres PRIVATE EBGEOMETRY_PRECISION=${EBGEOMET
 # ---------------------------------------------------------------------------
 option(EBGEOMETRY_ENABLE_ASSERTIONS "Enable EBGEOMETRY_EXPECT() runtime assertion checks" OFF)
 if(EBGEOMETRY_ENABLE_ASSERTIONS)
-  target_compile_definitions(PackedSpheres PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
+  target_compile_definitions(CSG PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
 endif()

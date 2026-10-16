@@ -71,6 +71,27 @@ hostMemoryResource() noexcept
   return *s_resource;
 }
 
+inline void*
+EmulatedDeviceMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+{
+  return hostMemoryResource().allocate(a_bytes, a_alignment);
+}
+
+inline void
+EmulatedDeviceMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept
+{
+  hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+}
+
+inline EmulatedDeviceMemoryResource&
+emulatedDeviceMemoryResource() noexcept
+{
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static EmulatedDeviceMemoryResource* const s_resource = new EmulatedDeviceMemoryResource();
+
+  return *s_resource;
+}
+
 inline void
 MemoryResource::copy(void*                 a_dst,
                      const MemoryResource& a_dstResource,

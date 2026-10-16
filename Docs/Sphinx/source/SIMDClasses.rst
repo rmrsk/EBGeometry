@@ -93,9 +93,8 @@ scan wants.
 
 **What this means in practice:** evaluating the distance to a whole :math:`W`-point block costs
 roughly the same as one scalar point distance, but produces the answer for :math:`W` of them. This is
-the leaf-level cost of a point-cloud ``PackedBVH`` search -- see ``Examples/ClosestPointBVH`` (closest
-point) and ``Examples/NearestNeighborBVH`` (k nearest neighbors), both built on the ``PointCloudBVH``
-class.
+the leaf-level cost of a point-cloud ``PackedBVH`` search -- see :ref:`Chap:ExamplePointClouds` (closest
+points and k nearest neighbors), built on the ``PointCloudBVH`` class.
 
 **Choosing and tuning** :math:`W`: as for ``TriangleSoA``, the default
 ``EBGeometry::PointSoA::DefaultWidth<T>()`` is 4, and ``EBGeometry::PointSoA::HostWidth<T>()`` is the

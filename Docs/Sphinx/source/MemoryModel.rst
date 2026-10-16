@@ -99,7 +99,7 @@ down; the error the runtime then returns is ignored, since the memory went with 
    freeze the pool and call ``rebasedView()`` onto the pool itself: the view holds the pool's base
    address, which both sides can use. A view rebased onto a ``Managed`` or ``Mapped`` mirror can
    likewise be used on the host; a view of a ``Device`` pool cannot. :ref:`Chap:ExampleCustomShape`
-   builds a tape this way, and :ref:`Chap:ExampleClosestPointBVH` mirrors a point cloud to device
+   builds a tape this way, and :ref:`Chap:ExamplePointClouds` mirrors a point cloud to device
    memory instead.
 
 .. note::

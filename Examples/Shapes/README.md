@@ -63,8 +63,8 @@ Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE
 
 **For a GPU**
 
-The same source also builds for a GPU, and the same run then repeats its queries in a kernel and
-compares them with the host's (a GPU build without a visible GPU skips that part):
+The same source also builds for a GPU, and its last section then runs in a kernel (a GPU build
+without a visible GPU skips that part):
 
     make GPU=HIP HIP_ARCH=gfx90a                                  # or GPU=CUDA CUDA_ARCH=sm_80
     cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA
@@ -77,11 +77,12 @@ Running
 
     ./Shapes.ex
 
-The program constructs each shape, checks its signed distance at a few points against values
-worked out by hand, checks a few shapes' bounding boxes (`computeBoundingVolume()`), and prints
-how many checks failed; it exits with a nonzero status if any did. Read `main.cpp` alongside this
-description to see how each shape is built, and adapt the parameters (center, radius, size,
-angles, ...) to your own geometry.
+The program constructs each shape and prints one row per shape: its signed distance at three
+points, its bounding box along x (`computeBoundingVolume()`, infinite where the shape is unbounded),
+and its `distanceQuality` (exact for every shape except the noise). Its last section evaluates the
+torus along the x axis through `EBGeometry::GPU::transform`: in a kernel in a GPU build, in a host
+loop otherwise. Read `main.cpp` alongside this description to see how each shape is built, and adapt
+the parameters (center, radius, size, angles, ...) to your own geometry.
 
 The shapes share a few conventions: the constructor takes the shape's position before its sizes; a
 shape with a built-in axis (the torus, both cones, the rounded cylinder) has it along y; and a size

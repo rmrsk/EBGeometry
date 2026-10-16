@@ -13,9 +13,10 @@ target resolution. The result is a box that hugs the shape closely, without ever
 its extent algebraically.
 
 `approximateBoundingVolumeOctree` accepts anything that returns a distance for a point. The
-example uses it twice: once on a single shape (a cone) passed in directly, and once on a lambda
-that takes the union -- the pointwise minimum -- of a sphere, a torus around it and a capsule
-poking out of it.
+example uses it twice: once on a single shape (a cone) passed in directly, and once on a small
+functor that takes the union -- the pointwise minimum -- of a sphere, a torus around it and a
+capsule poking out of it. The functor is a struct rather than a lambda, so that the same object can
+also be handed to a GPU kernel.
 
 Building
 --------
@@ -55,8 +56,8 @@ Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE
 
 **For a GPU**
 
-The same source also builds for a GPU, and the same run then repeats its queries in a kernel and
-compares them with the host's (a GPU build without a visible GPU skips that part):
+The same source also builds for a GPU, and its last section then runs in a kernel instead of a host
+loop (a GPU build without a visible GPU skips that part):
 
     make GPU=HIP HIP_ARCH=gfx90a                                  # or GPU=CUDA CUDA_ARCH=sm_80
     cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA
@@ -69,9 +70,10 @@ Running
 
     ./OctreeBoundingVolume.ex
 
-This example takes no arguments. It prints the resulting approximate bounding boxes (their low
-and high corners) for the cone and for the union, next to the exact boxes the analytic shapes give
-from `computeBoundingVolume()`, and checks that each estimate holds the exact box to within one
-octree cell. The search starts from a fixed, deliberately loose
-box of $\pm 10$ in each direction and refines for 8 octree levels; increasing the level count in
-`main.cpp` tightens the result further, at the cost of more subdivision work.
+This example takes no arguments. It prints the estimated bounding box of the cone and of the union
+next to the exact boxes the analytic shapes give from `computeBoundingVolume()`: each estimate holds
+the shape and overshoots it by at most one leaf cell. The search starts from a fixed, deliberately
+loose box of $\pm 10$ in each direction and refines for 8 octree levels; more levels tighten the
+result, at the cost of more subdivision work. The last section estimates the union's box at every
+depth from 1 to 8 through `GPU::transform()` (in a kernel in a GPU build, in a host loop otherwise),
+which shows the box tightening as the depth grows.

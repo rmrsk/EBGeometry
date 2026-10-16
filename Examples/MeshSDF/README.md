@@ -64,8 +64,8 @@ Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE
 
 **For a GPU**
 
-The same source also builds for a GPU, and the same run then repeats its queries in a kernel and
-compares them with the host's (a GPU build without a visible GPU skips that part):
+The same source also builds for a GPU, and its last section then runs in a kernel (a GPU build
+without a visible GPU skips that part):
 
     make GPU=HIP HIP_ARCH=gfx90a                                  # or GPU=CUDA CUDA_ARCH=sm_80
     cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA
@@ -87,8 +87,8 @@ With no argument the example loads `armadillo.obj` from the
 [Obtaining EBGeometry](https://rmrsk.github.io/EBGeometry/ObtainingEBGeometry.html) for details). You can pass
 the path to any watertight, triangulated STL/PLY/OBJ/VTK file instead.
 
-The program prints the mesh's bounding box, then the summed signed distance to 1000 random
-points and the average time per query, once for each of the three representations, followed by
-the relative speedup of the two accelerated representations over the brute-force one. All three
-sums should agree to within floating-point round-off; if they don't, the program prints an error
-and exits with status 1 before printing the results.
+The program prints the mesh's face count and bounding box, then the time per query of each of the
+three representations over the same random points, with the speedup of the two BVH-backed ones over
+the flat scan, the values at the first few points (the same in all three), and which face is nearest
+the first point. Its last section evaluates the `TriMeshSDF` at those points through
+`EBGeometry::GPU::transform`: in a kernel in a GPU build, in a host loop otherwise.

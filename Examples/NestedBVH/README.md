@@ -1,28 +1,27 @@
 Examples/NestedBVH
 ------------------
 
-This folder shows how to build a *nested* bounding volume hierarchy (BVH): an outer,
-BVH-accelerated union whose primitives are themselves BVH-backed mesh signed distance functions.
+This folder shows how to place one surface mesh many times, in the two ways EBGeometry offers.
 
-The mesh's triangles are read once, and a translated copy is made for each of several positions.
-Each copy is built into its own `TriMeshSDF`, which stores the triangles in its own inner
-`PackedBVH`, and the placements are combined with `BVHUnion`, which builds an *outer* `PackedBVH`
-over them. A single distance query therefore descends two levels of BVH: first the outer union
-hierarchy, to find which placement (or placements) is near the query point, then that mesh's own
-inner hierarchy, to find the nearest triangle. The union's value is the minimum signed distance
-over all placements -- negative inside any of them, positive outside all of them.
+**Shared, in a `Tape`.** The mesh is read once into a `TriMeshSDF`. The expression builder places it
+with `Translate(mesh, shift)`, which refers to the mesh rather than copying it, and combines the
+placements with analytic spheres in a `Union`. A `Tape` compiles the expression into the pool. With
+eight or more operands, the tape evaluates the union through a BVH over their bounding boxes, so a
+query only evaluates the objects near it. This is the way to mix a mesh with shapes of other types.
 
-The outer union stores the `TriMeshSDF`s by value, in the same `Pool` as their inner BVHs, and is
-itself a plain value type, so the whole two-level hierarchy can be mirrored to a GPU in one piece
-and evaluated there. A union holds primitives of a single C++ type, so every placement is a
-`TriMeshSDF` with the same parameters; placing different meshes works the same way. Each placement
-has its own copy of the triangles. To share one mesh between translated placements instead, compose
-`Translate(mesh, shift)` with the expression builder and compile the union into a `Tape`, as the
-`CSGUnion` example does.
+**Copied, under a nested BVH.** The mesh's triangles are read once, and each placement gets its own
+translated copy, built into its own `TriMeshSDF` with its own *inner* BVH over its triangles.
+`BVHUnion` builds an *outer* BVH over the placements. One distance query descends two levels: the
+outer hierarchy finds the placements near the point, and each of those meshes' own hierarchy finds
+the nearest triangle. A union holds primitives of one C++ type, so every placement is a `TriMeshSDF`
+with the same parameters; placing genuinely different meshes works the same way.
 
-By default the example uses the small `dodecahedron.stl` fixture shipped in the repository
-(`Tests/data/`), so it needs no submodule. Pass a different triangle mesh (STL/PLY/VTK/OBJ) on the
-command line to place copies of your own geometry instead.
+Both are shapes: negative inside any placement, positive outside all of them. Both are also plain
+values describing what they built in one `Pool`, so the whole scene, meshes included, is mirrored to
+a GPU in one piece and evaluated there.
+
+By default the example uses the small `dodecahedron.stl` in `Examples/data/`, so it needs no
+submodule. Pass a different mesh (STL/PLY/VTK/OBJ) on the command line to place your own geometry.
 
 Building
 --------
@@ -75,8 +74,11 @@ See [GPU builds](https://rmrsk.github.io/EBGeometry/Examples.html#sec-examplesgp
 Running
 -------
 
-    ./NestedBVH.ex                       # uses ../../Tests/data/dodecahedron.stl
-    ./NestedBVH.ex path/to/mesh.stl      # uses your own triangle mesh
+    ./NestedBVH.ex                       # uses ../data/dodecahedron.stl
+    ./NestedBVH.ex path/to/mesh.stl      # uses your own mesh
 
-The program prints the number of mesh copies combined and evaluates the nested union's signed
-distance at a few sample points (inside a copy, between copies, and far outside everything).
+The program prints what it built (the tape's clause count and BVH union, and the number of copies
+under the nested union), then the signed distance of both scenes at points along the first row of
+placements: through the center of a placement, then halfway to the next, and so on. The last
+section evaluates the same points through `GPU::transform()`: in a kernel in a CUDA or HIP build,
+and in a host loop otherwise.

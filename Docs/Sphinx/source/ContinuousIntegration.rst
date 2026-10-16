@@ -40,7 +40,7 @@ Codespell
 ~~~~~~~~~
 
 Runs the ``codespell`` pre-commit hook over the files it is configured for: ``Source/``,
-``Docs/``, ``Examples/``, ``Tests/`` (except the fixture files in ``Tests/data/``),
+``Docs/``, ``Examples/``, ``Tests/`` (except the mesh files in ``Examples/data/`` and ``Tests/data/``),
 ``Integrations/``, ``Scripts/``, ``.github/``, and the top-level text files.
 
 Reuse
@@ -235,8 +235,8 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
 * **clang-format** — formats ``Source/`` and ``Examples/`` C/C++ files (default stage; runs on
   every ``git commit`` once ``pre-commit install`` has been run).
 * **reuse** — REUSE license/copyright header compliance (default stage).
-* **codespell** — typo detection across ``Source/``, ``Docs/``, ``Examples/``, ``Tests/``
-  (except ``Tests/data/``), ``Integrations/``, ``Scripts/``, ``.github/``, and the top-level text
+* **codespell** — typo detection across ``Source/``, ``Docs/``, ``Examples/`` (except
+  ``Examples/data/``), ``Tests/`` (except ``Tests/data/``), ``Integrations/``, ``Scripts/``, ``.github/``, and the top-level text
   files (default stage).
 * **doxygen-check** — builds Doxygen from ``Docs/doxygen.conf`` (warnings as
   errors; default stage). It runs whenever a header, ``EBGeometry.hpp``, ``Docs/mainpage.md`` or

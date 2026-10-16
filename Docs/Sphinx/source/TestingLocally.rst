@@ -200,6 +200,11 @@ Test coverage
        accessibility flags, rejection of a non-power-of-two alignment, the process-wide
        ``hostMemoryResource()`` instance, and a ``Pool`` with static storage freeing its block at
        program exit.
+   * - ``TestGPUTransform``
+     - ``GPU::parallelFor`` and ``GPU::transform``: every index run exactly once at several block
+       sizes and counts (including a partial last block), the span overload over inputs and results
+       in a mirrored pool, the vector overload at different block sizes, the abort on mismatched
+       span sizes, and ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
    * - ``TestPool``
      - ``Pool``: growth preserving earlier contents and every type's alignment, ``freeze`` and the
        reservations it then rejects, moves (including the control block surviving a vector
@@ -340,7 +345,9 @@ Test coverage
        constructor rejecting an unknown primitive type, a mesh from another pool, and expressions
        that nest too deeply; and on a device, every primitive type and every operation, BVH unions
        with and without unbounded operands, calls nested to the limit, full value and point stacks,
-       user primitive types and a tape inside a tape, each against the host.
+       user primitive types and a tape inside a tape, each against the host; a user octahedron's
+       exact values kept through rotation, translation and a BVH union; and a tape built directly in
+       managed memory evaluated on the device through its own pool.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an

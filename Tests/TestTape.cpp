@@ -726,3 +726,161 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
   check(user);
   check(nested);
 }
+
+namespace {
+
+// A user shape that is not a renamed built-in: a regular octahedron |x| + |y| + |z| <= s, with an exact
+// distance (after Inigo Quilez's formula).
+template <class T>
+struct Octahedron
+{
+  T m_size = T(1);
+
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    const T x = std::abs(a_point[0]);
+    const T y = std::abs(a_point[1]);
+    const T z = std::abs(a_point[2]);
+    const T m = x + y + z - m_size;
+
+    T q0;
+    T q1;
+    T q2;
+
+    if (T(3) * x < m) {
+      q0 = x;
+      q1 = y;
+      q2 = z;
+    }
+    else if (T(3) * y < m) {
+      q0 = y;
+      q1 = z;
+      q2 = x;
+    }
+    else if (T(3) * z < m) {
+      q0 = z;
+      q1 = x;
+      q2 = y;
+    }
+    else {
+      return m / std::sqrt(T(3));
+    }
+
+    const T k  = Math::clamp(T(0.5) * (q2 - q1 + m_size), T(0), m_size);
+    const T d1 = q1 - m_size + k;
+    const T d2 = q2 - k;
+
+    return std::sqrt(q0 * q0 + d1 * d1 + d2 * d2);
+  }
+
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(-m_size * Vec3T<T>::ones(), m_size * Vec3T<T>::ones());
+  }
+
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+};
+
+// Center of octahedron i of n on a ring of radius r in the xz-plane.
+template <class T>
+Vec3T<T>
+ringCenter(const int a_index, const int a_count, const T a_radius)
+{
+  const T angle = T(2) * pi<T> * T(a_index) / T(a_count);
+
+  return Vec3T<T>(a_radius * std::cos(angle), T(0), a_radius * std::sin(angle));
+}
+
+// Twelve octahedra, each turned about its own vertical axis, on a ring around a sphere: thirteen
+// operands, so the union is evaluated through a BVH.
+template <class T>
+Expr<T>
+octahedronRing(const T a_size, const T a_sphereRadius)
+{
+  std::vector<Expr<T>> objects;
+
+  objects.reserve(13);
+
+  for (int i = 0; i < 12; i++) {
+    objects.push_back(Translate(Rotate(Octahedron<T>{a_size}, T(30) * T(i), 1), ringCenter(i, 12, T(1.5))));
+  }
+
+  objects.emplace_back(SphereSDF<T>(Vec3T<T>::zeros(), a_sphereRadius));
+
+  return Union(objects);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: a user shape keeps its exact values through rotation, translation and a BVH union",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  static_assert(isShape<Octahedron<T>>);
+
+  const T size   = T(0.25);
+  const T radius = T(0.75);
+  const T sqrt3  = std::sqrt(T(3));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T, Octahedron<T>> tape(pool, octahedronRing(size, radius));
+
+  CHECK(tape.getNumBVHUnions() == 1U);
+
+  // The sphere's center, and every octahedron's center (a distance s / sqrt(3) from each face).
+  CHECK_THAT(tape.signedDistance(Vec3::zeros()), withinAbsT(-radius, tightMargin<T>()));
+
+  for (int i = 0; i < 12; i++) {
+    CHECK_THAT(tape.signedDistance(ringCenter(i, 12, T(1.5))), withinAbsT(-size / sqrt3, looseMargin<T>()));
+  }
+
+  // Octahedron 0 is not rotated: 2s straight above its center is s beyond its top vertex, and along
+  // (1, 1, 1) the direction meets a face head on.
+  const Vec3 center0 = ringCenter(0, 12, T(1.5));
+  const T    t       = T(0.2);
+
+  CHECK_THAT(tape.signedDistance(center0 + Vec3(T(0), T(2) * size, T(0))), withinAbsT(size, looseMargin<T>()));
+  CHECK_THAT(tape.signedDistance(center0 + t * Vec3::ones()), withinAbsT((T(3) * t - size) / sqrt3, looseMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("Tape: a tape built directly in managed memory evaluates on the device through its own pool",
+                   "[Tape][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  // Managed memory in a GPU build; in a host build, host memory that reports itself device-accessible,
+  // which takes the same path: the pool is built in place, frozen, and the tape rebased onto it.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  MemoryResource& resource = managedMemoryResource();
+#else
+  MemoryResource& resource = emulatedDeviceMemoryResource();
+#endif
+
+  Pool pool(resource);
+
+  const Tape<T, Octahedron<T>> tape(pool, octahedronRing(T(0.25), T(0.75)));
+
+  pool.freeze();
+
+  const Tape<T, Octahedron<T>> view = tape.rebasedView(pool);
+
+  const auto points = queryGrid<T>(Vec3T<T>(T(-2), T(-0.5), T(-2)), Vec3T<T>(T(2), T(0.5), T(2)), 17);
+
+  requireSameResults(evaluateOnDevice<T>(TapeQuery<T, Tape<T, Octahedron<T>>>{view}, points),
+                     evaluateOnHost<T>(TapeQuery<T, Tape<T, Octahedron<T>>>{tape}, points));
+}

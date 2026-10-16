@@ -2,8 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// Choosing the BVH branching factor K and the SIMD width W: the portable defaults, which any code can
+// use, against the values tuned to the SIMD flags of this build, which only host-only code should. The
+// timings show whether host tuning pays off on this machine. Host-only by design: device code always
+// uses the defaults. See README.md.
+
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <random>
@@ -46,7 +50,7 @@ static_assert(std::is_same_v<EBGeometry::PointCloudBVH<T>,
                              EBGeometry::PointCloudBVH<T, DefaultK, EBGeometry::PointSoA::DefaultWidth<T>()>>);
 
 // Runs a_query over every point and returns the elapsed time in seconds; a_results receives the
-// result for each point, so that two structures can be compared point by point.
+// result for each point.
 template <class F>
 double
 timeQueries(const std::vector<Vec3>& a_points, F&& a_query, std::vector<T>& a_results)
@@ -76,17 +80,14 @@ try {
 #endif
   std::cout << "\n";
 
-  std::mt19937                           rng(42);
-  std::uniform_real_distribution<double> unit(0.0, 1.0);
+  std::mt19937                      rng(42);
+  std::uniform_real_distribution<T> unit(T(0), T(1));
 
   const auto randomPoint = [&](const T a_lo, const T a_hi) {
-    return Vec3(
-      T(a_lo + (a_hi - a_lo) * unit(rng)), T(a_lo + (a_hi - a_lo) * unit(rng)), T(a_lo + (a_hi - a_lo) * unit(rng)));
+    return Vec3(a_lo + (a_hi - a_lo) * unit(rng), a_lo + (a_hi - a_lo) * unit(rng), a_lo + (a_hi - a_lo) * unit(rng));
   };
 
-  bool agree = true;
-
-  // ── A point cloud: closest-point queries ─────────────────────────────────────
+  // ── A point cloud: closest-point queries, built both ways ─────────────────────────────────────────
   {
     constexpr std::size_t numPoints = 200000;
 
@@ -121,25 +122,23 @@ try {
 
     std::cout << "PointCloudBVH, " << numPoints << " points and queries\n"
               << "  default K/W: " << portableTime << " s\n"
-              << "  host K/W:    " << tunedTime << " s\n";
-
-    // Both find the closest point, and compute its distance the same way, so they agree exactly.
-    agree = agree && (portableResults == tunedResults);
+              << "  host K/W:    " << tunedTime << " s\n"
+              << "  squared distance to the closest point from the first query: " << portableResults[0] << " and "
+              << tunedResults[0] << "\n\n";
   }
 
-  // ── A triangle mesh: signed distance queries ─────────────────────────────────
+  // ── A triangle mesh: signed distance queries, built both ways ─────────────────────────────────────
   {
-    // Pass a mesh on the command line, or use the dodecahedron fixture shipped in the repository. The
-    // path is relative to this example's folder, which is the working directory when it is run.
-    const std::string file = (argc >= 2) ? std::string(argv[1]) : std::string("../../Tests/data/dodecahedron.stl");
+    // Pass a mesh on the command line, or use the small dodecahedron in Examples/data. The path is
+    // relative to this example's folder, which is the working directory when it is run.
+    const std::string file = (argc >= 2) ? std::string(argv[1]) : std::string("../data/dodecahedron.stl");
 
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
     const auto portable = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool);
     const auto tuned    = EBGeometry::Parser::readIntoTriMeshSDF<T, HostK, HostW>(file, pool);
 
-    const auto box  = portable.computeBoundingVolume();
-    const T    size = (box.getHighCorner() - box.getLowCorner()).length();
+    const auto box = portable.computeBoundingVolume();
 
     std::vector<Vec3> queries;
 
@@ -151,6 +150,8 @@ try {
       queries.emplace_back(box.getLowCorner() + u * (box.getHighCorner() - box.getLowCorner()));
     }
 
+    // The two differ only in how the BVH groups the triangles, so they give the same distances, to
+    // rounding; only the time differs.
     std::vector<T> portableResults;
     std::vector<T> tunedResults;
 
@@ -160,20 +161,11 @@ try {
 
     std::cout << "TriMeshSDF, " << file << ", " << queries.size() << " queries\n"
               << "  default K/W: " << portableTime << " s\n"
-              << "  host K/W:    " << tunedTime << " s\n";
-
-    // The two differ only in how the BVH groups the triangles, so the distances agree to rounding,
-    // which scales with the size of the mesh.
-    const T tolerance = (std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-10)) * size;
-
-    for (std::size_t i = 0; i < queries.size(); i++) {
-      agree = agree && (std::abs(portableResults[i] - tunedResults[i]) <= tolerance);
-    }
+              << "  host K/W:    " << tunedTime << " s\n"
+              << "  signed distance at the first query: " << portableResults[0] << " and " << tunedResults[0] << "\n";
   }
 
-  std::cout << "\nBoth choices give the same answers: " << (agree ? "yes" : "NO") << "\n";
-
-  return agree ? 0 : 1;
+  return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {
   std::cerr << "Cannot read the mesh: " << e.what() << '\n';
 

@@ -204,8 +204,15 @@ instantiateFunctionTemplates()
       }
     };
 
-    (void)GPU::transform(SphereQuery{SphereSDF<T>(Vec3T<T>::zeros(), T(1))}, std::vector<Vec3T<T>>{Vec3T<T>::ones()});
+    const SphereQuery           query{SphereSDF<T>(Vec3T<T>::zeros(), T(1))};
+    const std::vector<Vec3T<T>> points{Vec3T<T>::ones()};
+    std::vector<T>              results(1);
+
+    (void)GPU::transform(query, points);
+    (void)GPU::transform<256>(query, points);
+    GPU::transform(query, PODSpan<const Vec3T<T>>{points.data(), 1}, PODSpan<T>{results.data(), 1});
     (void)GPU::deviceAvailable();
+    (void)GPU::memoryResource();
   }
 
   // Every builder function, compiled into a tape.

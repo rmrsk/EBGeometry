@@ -910,7 +910,7 @@ is a copy of its descriptors, which resolve against the same pool memory, so the
 exactly once no matter how many copies refer to it -- including copies stored as the primitives of
 a BVH union (:ref:`Sec:BVHUnions`). Placing one mesh at several different positions shares it too:
 ``Translate(mesh, shift)`` for each placement, compiled into a tape (see :ref:`Sec:Tape` and
-:ref:`Chap:ExampleCSGUnion`).
+:ref:`Chap:ExampleNestedBVH`).
 
 Default and host-tuned K and W
 ______________________________
