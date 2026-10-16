@@ -589,8 +589,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **MEM-18** [NIT]: `Vec2T` has public `x`/`y` where `Vec3T` has `m_X` and `operator[]`, and their
-  `constexpr length()` calls `std::sqrt`.
 * **MEM-12** [MINOR]: five `const_cast<void*>(this->base())`, because `base()` returns
   `const void*` in some classes and `void*` in others.
 * **QA-16** [MINOR]: `TestPolygon2D` casts a `FaceT` to a test subclass (undefined behaviour),

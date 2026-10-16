@@ -27,8 +27,7 @@ namespace EBGeometry {
 
 /**
  * @brief Two-dimensional vector class with arithmetic operators.
- * @details The class has a public-only interface. To change it's components one
- * can call the member functions, or set components directly, e.g. vec.x = 5.0
+ * @details Like Vec3T, the components are reached through operator[] (index 0 or 1).
  * @note Vec2T is a templated class primarily used with DCEL grids.
  * @tparam T Floating-point precision (float or double).
  */
@@ -57,7 +56,7 @@ public:
    * @brief Full constructor
    * @param[in] a_x First vector component
    * @param[in] a_y Second vector component
-   * @details Sets this->x = a_x and this->y = a_y
+   * @details Sets X[0] = a_x and X[1] = a_y.
    */
   EBGEOMETRY_HOST_DEVICE
   constexpr Vec2T(const T& a_x, const T& a_y) noexcept;
@@ -68,14 +67,22 @@ public:
   ~Vec2T() = default;
 
   /**
-   * @brief First component in the vector
+   * @brief Mutable element access.
+   * @param[in] i Component index (0 = x, 1 = y). Must be < 2.
+   * @return Reference to the i-th component.
    */
-  T x;
+  EBGEOMETRY_HOST_DEVICE
+  inline constexpr T&
+  operator[](size_t i) noexcept;
 
   /**
-   * @brief Second component in the vector
+   * @brief Const element access.
+   * @param[in] i Component index (0 = x, 1 = y). Must be < 2.
+   * @return Const reference to the i-th component.
    */
-  T y;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr const T&
+  operator[](size_t i) const noexcept;
 
   /**
    * @brief Return av vector with x = y = 0.
@@ -128,7 +135,7 @@ public:
   /**
    * @brief Addition operator.
    * @param[in] a_other Other vector.
-   * @return New vector with x = this->x + a_other.x, y = this->y + a_other.y.
+   * @return New vector with x = X[0] + a_other[0], y = X[1] + a_other[1].
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec2T<T>
@@ -137,7 +144,7 @@ public:
   /**
    * @brief Subtraction operator.
    * @param[in] a_other Other vector.
-   * @return New vector with x = this->x - a_other.x, y = this->y - a_other.y.
+   * @return New vector with x = X[0] - a_other[0], y = X[1] - a_other[1].
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec2T<T>
@@ -154,7 +161,7 @@ public:
   /**
    * @brief Scalar multiplication operator.
    * @param[in] s Scalar.
-   * @return New vector with x = s*this->x, y = s*this->y.
+   * @return New vector with x = s*X[0], y = s*X[1].
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec2T<T>
@@ -163,7 +170,7 @@ public:
   /**
    * @brief Scalar division operator.
    * @param[in] s Scalar divisor.
-   * @return New vector with x = this->x/s, y = this->y/s.
+   * @return New vector with x = X[0]/s, y = X[1]/s.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec2T<T>
@@ -208,7 +215,7 @@ public:
   /**
    * @brief Dot product.
    * @param[in] a_other Other vector.
-   * @return Scalar dot product: this->x*a_other.x + this->y*a_other.y.
+   * @return Scalar dot product: X[0]*a_other[0] + X[1]*a_other[1].
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline constexpr T
@@ -216,27 +223,32 @@ public:
 
   /**
    * @brief Compute length of vector
-   * @return Returns length of vector, i.e. sqrt[(this->x)*(this->x) +
-   * (this->y)*(this->y)]
+   * @details Not constexpr, since std::sqrt is not.
+   * @return Euclidean length: std::sqrt(X[0]*X[0] + X[1]*X[1]).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr T
+  inline T
   length() const noexcept;
 
   /**
    * @brief Compute square of vector
-   * @return Returns length of vector, i.e. (this->x)*(this->x) +
-   * (this->y)*(this->y)
+   * @return Returns length of vector, i.e. X[0]*X[0] +
+   * X[1]*X[1]
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline constexpr T
   length2() const noexcept;
+
+protected:
+  /**
+   * @brief Vector components
+   */
+  Array<T, 2> m_X;
 };
 
 /**
  * @brief Three-dimensional vector class with arithmetic operators.
- * @details The class has a public-only interface. To change it's components one
- * can call the member functions, or set components directly, e.g. vec.x = 5.0
+ * @details The components are reached through operator[] (index 0, 1 or 2).
  * @note Vec3T is a templated class primarily used with DCEL grids. It is always
  * 3D, i.e. independent of Chombo configuration settings. This lets one use DCEL
  * functionality even though the simulation might only be 2D.
@@ -554,10 +566,11 @@ public:
 
   /**
    * @brief Compute vector length.
+   * @details Not constexpr, since std::sqrt is not.
    * @return Euclidean length: std::sqrt(X[0]*X[0] + X[1]*X[1] + X[2]*X[2]).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline constexpr T
+  inline T
   length() const noexcept;
 
   /**
@@ -581,7 +594,7 @@ protected:
  * @tparam T Floating-point precision of the vector.
  * @param[in] s       Scalar multiplier.
  * @param[in] a_other Vector.
- * @return New vector with x = T(s)*a_other.x, y = T(s)*a_other.y.
+ * @return New vector with x = T(s)*a_other[0], y = T(s)*a_other[1].
  */
 template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -595,7 +608,7 @@ operator*(const R& s, const Vec2T<T>& a_other) noexcept;
  * @tparam T Floating-point precision of the vector.
  * @param[in] s       Scalar numerator.
  * @param[in] a_other Vector whose components are the denominators.
- * @return New vector with x = T(s)/a_other.x, y = T(s)/a_other.y.
+ * @return New vector with x = T(s)/a_other[0], y = T(s)/a_other[1].
  */
 template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -609,7 +622,7 @@ operator/(const R& s, const Vec2T<T>& a_other) noexcept;
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
- * @return New vector with x = min(u.x, v.x), y = min(u.y, v.y).
+ * @return New vector with x = min(u[0], v[0]), y = min(u[1], v[1]).
  */
 template <typename T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -623,7 +636,7 @@ min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
- * @return New vector with x = max(u.x, v.x), y = max(u.y, v.y).
+ * @return New vector with x = max(u[0], v[0]), y = max(u[1], v[1]).
  */
 template <typename T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -646,7 +659,7 @@ dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
  * @brief Euclidean length of a 2D vector.
  * @tparam T Floating-point precision.
  * @param[in] v Vector.
- * @return std::sqrt(v.x*v.x + v.y*v.y).
+ * @return std::sqrt(v[0]*v[0] + v[1]*v[1]).
  */
 template <typename T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -753,7 +766,7 @@ cross(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
  */
 template <typename T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline constexpr T
+inline T
 length(const Vec3T<T>& v) noexcept;
 
 static_assert(std::is_trivially_copyable_v<Vec2T<float>>, "Vec2T<float> must be trivially copyable");

@@ -45,6 +45,16 @@ struct HasScalarLeftOps<S,
 {
 };
 
+template <class V, class = void>
+struct HasPublicX : std::false_type
+{
+};
+
+template <class V>
+struct HasPublicX<V, std::void_t<decltype(std::declval<V&>().x)>> : std::true_type
+{
+};
+
 // A type that is not a scalar, for checking that the scalar-left operators reject it.
 struct NotAScalar
 {
@@ -79,8 +89,8 @@ TEMPLATE_TEST_CASE("Vec2T and Vec3T: trivially default constructible, and value 
   STATIC_REQUIRE(std::is_trivially_default_constructible_v<Vec3T<T>>);
 
   const Vec2T<T> u{};
-  REQUIRE(u.x == T(0.0));
-  REQUIRE(u.y == T(0.0));
+  REQUIRE(u[0] == T(0.0));
+  REQUIRE(u[1] == T(0.0));
 
   const Vec3T<T> v{};
   REQUIRE(v[0] == T(0.0));
@@ -306,14 +316,41 @@ TEMPLATE_TEST_CASE("Vec2T: construction and operators", "[Vec2T]", EBGEOMETRY_TE
 
   const Vec2T<T> b(1, 2);
   auto           c = a + b;
-  REQUIRE(c.x == T(4.0));
-  REQUIRE(c.y == T(6.0));
+  REQUIRE(c[0] == T(4.0));
+  REQUIRE(c[1] == T(6.0));
 
   // scalar / vec — should give (s/x, s/y)
   const Vec2T<T> v(T(2.0), T(4.0));
   auto           r = T(8.0) / v;
-  REQUIRE(r.x == T(4.0));
-  REQUIRE(r.y == T(2.0));
+  REQUIRE(r[0] == T(4.0));
+  REQUIRE(r[1] == T(2.0));
+}
+
+TEMPLATE_TEST_CASE("Vec2T: components are reached through operator[], as in Vec3T",
+                   "[Vec2T]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Neither type has public named components.
+  STATIC_REQUIRE_FALSE(HasPublicX<Vec2T<T>>::value);
+  STATIC_REQUIRE_FALSE(HasPublicX<Vec3T<T>>::value);
+
+  Vec2T<T> u(T(1), T(2));
+  CHECK(u[0] == T(1));
+  CHECK(u[1] == T(2));
+
+  u[0] = T(5);
+  u[1] -= T(4);
+  CHECK(u[0] == T(5));
+  CHECK(u[1] == T(-2));
+
+  const Vec2T<T>& c = u;
+  CHECK(c[0] == T(5));
+  CHECK(c[1] == T(-2));
+
+  // The storage is the same two components a Vec2T<T>(x, y) was built from, in order.
+  STATIC_REQUIRE(sizeof(Vec2T<T>) == 2 * sizeof(T));
 }
 
 TEMPLATE_TEST_CASE("Vec2T: dot product", "[Vec2T]", EBGEOMETRY_TEST_PRECISIONS)
@@ -430,10 +467,10 @@ TEMPLATE_TEST_CASE("Vec2T/Vec3T: dividing by a scalar divides each component",
 
   b /= s;
 
-  CHECK((a / s).x == a.x / s);
-  CHECK((a / s).y == a.y / s);
-  CHECK(b.x == a.x / s);
-  CHECK(b.y == a.y / s);
+  CHECK((a / s)[0] == a[0] / s);
+  CHECK((a / s)[1] == a[1] / s);
+  CHECK(b[0] == a[0] / s);
+  CHECK(b[1] == a[1] / s);
 }
 
 TEMPLATE_TEST_CASE("Vec2T/Vec3T: a scalar of any arithmetic type multiplies and divides from the left",
@@ -447,7 +484,7 @@ TEMPLATE_TEST_CASE("Vec2T/Vec3T: a scalar of any arithmetic type multiplies and 
 
   // A double, a float and an int scalar, whatever T is: each is converted to T first. Vec2T has no
   // operator==, so its components are compared.
-  const auto equals2 = [](const Vec2T<T>& a, const T x, const T y) { return a.x == x && a.y == y; };
+  const auto equals2 = [](const Vec2T<T>& a, const T x, const T y) { return a[0] == x && a[1] == y; };
 
   CHECK(equals2(2.0 * u, T(2), T(8)));
   CHECK(equals2(2.0F * u, T(2), T(8)));
@@ -491,12 +528,12 @@ TEMPLATE_TEST_CASE("Vec2T/Vec3T: min and max keep the first vector's component f
   const Vec2T<T> a(nan, T(1));
   const Vec2T<T> b(T(0), T(2));
 
-  CHECK(std::isnan(min(a, b).x));
-  CHECK(std::isnan(max(a, b).x));
-  CHECK(min(b, a).x == T(0));
-  CHECK(max(b, a).x == T(0));
-  CHECK(min(a, b).y == T(1));
-  CHECK(max(a, b).y == T(2));
+  CHECK(std::isnan(min(a, b)[0]));
+  CHECK(std::isnan(max(a, b)[0]));
+  CHECK(min(b, a)[0] == T(0));
+  CHECK(max(b, a)[0] == T(0));
+  CHECK(min(a, b)[1] == T(1));
+  CHECK(max(a, b)[1] == T(2));
 }
 
 TEMPLATE_TEST_CASE("Vec3T: device query surface matches the host", "[Vec3T][gpu]", EBGEOMETRY_TEST_PRECISIONS)

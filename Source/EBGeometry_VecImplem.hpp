@@ -24,8 +24,26 @@ namespace EBGeometry {
 
 template <typename T>
 EBGEOMETRY_HOST_DEVICE
-inline constexpr Vec2T<T>::Vec2T(const T& a_x, const T& a_y) noexcept : x(a_x), y(a_y)
+inline constexpr Vec2T<T>::Vec2T(const T& a_x, const T& a_y) noexcept : m_X{a_x, a_y}
 {}
+
+template <typename T>
+EBGEOMETRY_HOST_DEVICE
+inline constexpr T&
+Vec2T<T>::operator[](size_t i) noexcept
+{
+  EBGEOMETRY_EXPECT(i < 2U);
+  return m_X[i];
+}
+
+template <typename T>
+EBGEOMETRY_HOST_DEVICE
+inline constexpr const T&
+Vec2T<T>::operator[](size_t i) const noexcept
+{
+  EBGEOMETRY_EXPECT(i < 2U);
+  return m_X[i];
+}
 
 template <typename T>
 EBGEOMETRY_HOST_DEVICE
@@ -72,7 +90,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
 Vec2T<T>::operator+(const Vec2T<T>& u) const noexcept
 {
-  return Vec2T<T>(x + u.x, y + u.y);
+  return Vec2T<T>(m_X[0] + u[0], m_X[1] + u[1]);
 }
 
 template <typename T>
@@ -80,7 +98,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
 Vec2T<T>::operator-(const Vec2T<T>& u) const noexcept
 {
-  return Vec2T<T>(x - u.x, y - u.y);
+  return Vec2T<T>(m_X[0] - u[0], m_X[1] - u[1]);
 }
 
 template <typename T>
@@ -88,7 +106,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
 Vec2T<T>::operator-() const noexcept
 {
-  return Vec2T<T>(-x, -y);
+  return Vec2T<T>(-m_X[0], -m_X[1]);
 }
 
 template <typename T>
@@ -96,7 +114,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
 Vec2T<T>::operator*(const T& s) const noexcept
 {
-  return Vec2T<T>(x * s, y * s);
+  return Vec2T<T>(m_X[0] * s, m_X[1] * s);
 }
 
 template <typename T>
@@ -106,7 +124,7 @@ Vec2T<T>::operator/(const T& s) const noexcept
 {
   EBGEOMETRY_EXPECT(s != T(0));
 
-  return Vec2T<T>(x / s, y / s);
+  return Vec2T<T>(m_X[0] / s, m_X[1] / s);
 }
 
 template <typename T>
@@ -114,8 +132,8 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>&
 Vec2T<T>::operator+=(const Vec2T<T>& u) noexcept
 {
-  x += u.x;
-  y += u.y;
+  m_X[0] += u[0];
+  m_X[1] += u[1];
 
   return (*this);
 }
@@ -125,8 +143,8 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>&
 Vec2T<T>::operator-=(const Vec2T<T>& u) noexcept
 {
-  x -= u.x;
-  y -= u.y;
+  m_X[0] -= u[0];
+  m_X[1] -= u[1];
 
   return (*this);
 }
@@ -136,8 +154,8 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>&
 Vec2T<T>::operator*=(const T& s) noexcept
 {
-  x *= s;
-  y *= s;
+  m_X[0] *= s;
+  m_X[1] *= s;
 
   return (*this);
 }
@@ -149,8 +167,8 @@ Vec2T<T>::operator/=(const T& s) noexcept
 {
   EBGEOMETRY_EXPECT(s != T(0));
 
-  x /= s;
-  y /= s;
+  m_X[0] /= s;
+  m_X[1] /= s;
 
   return (*this);
 }
@@ -160,15 +178,15 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr T
 Vec2T<T>::dot(const Vec2T<T>& u) const noexcept
 {
-  return x * u.x + y * u.y;
+  return m_X[0] * u[0] + m_X[1] * u[1];
 }
 
 template <typename T>
 EBGEOMETRY_HOST_DEVICE
-inline constexpr T
+inline T
 Vec2T<T>::length() const noexcept
 {
-  return std::sqrt(x * x + y * y);
+  return std::sqrt(m_X[0] * m_X[0] + m_X[1] * m_X[1]);
 }
 
 template <typename T>
@@ -176,7 +194,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr T
 Vec2T<T>::length2() const noexcept
 {
-  return x * x + y * y;
+  return m_X[0] * m_X[0] + m_X[1] * m_X[1];
 }
 
 template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int>>
@@ -192,10 +210,10 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
 operator/(const R& s, const Vec2T<T>& a_other) noexcept
 {
-  EBGEOMETRY_EXPECT(a_other.x != T(0));
-  EBGEOMETRY_EXPECT(a_other.y != T(0));
+  EBGEOMETRY_EXPECT(a_other[0] != T(0));
+  EBGEOMETRY_EXPECT(a_other[1] != T(0));
 
-  return Vec2T<T>(T(s) / a_other.x, T(s) / a_other.y);
+  return Vec2T<T>(T(s) / a_other[0], T(s) / a_other[1]);
 }
 
 template <typename T>
@@ -492,7 +510,7 @@ Vec3T<T>::dot(const Vec3T<T>& u) const noexcept
 
 template <typename T>
 EBGEOMETRY_HOST_DEVICE
-inline constexpr T
+inline T
 Vec3T<T>::length() const noexcept
 {
   return std::sqrt(m_X[0] * m_X[0] + m_X[1] * m_X[1] + m_X[2] * m_X[2]);
@@ -511,7 +529,7 @@ EBGEOMETRY_HOST_DEVICE
 inline Vec2T<T>
 min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept
 {
-  return Vec2T<T>(Math::min(u.x, v.x), Math::min(u.y, v.y));
+  return Vec2T<T>(Math::min(u[0], v[0]), Math::min(u[1], v[1]));
 }
 
 template <typename T>
@@ -519,7 +537,7 @@ EBGEOMETRY_HOST_DEVICE
 inline Vec2T<T>
 max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept
 {
-  return Vec2T<T>(Math::max(u.x, v.x), Math::max(u.y, v.y));
+  return Vec2T<T>(Math::max(u[0], v[0]), Math::max(u[1], v[1]));
 }
 
 template <typename T>
@@ -602,7 +620,7 @@ cross(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
 
 template <typename T>
 EBGEOMETRY_HOST_DEVICE
-inline constexpr T
+inline T
 length(const Vec3T<T>& v) noexcept
 {
   return v.length();

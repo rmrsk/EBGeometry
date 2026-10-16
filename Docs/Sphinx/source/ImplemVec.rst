@@ -13,7 +13,7 @@ three-dimensional code, but ``Vec2T`` is needed for DCEL functionality when dete
 point projects onto the interior or exterior of a planar polygon, see :ref:`Chap:DCEL`. Its main
 features are:
 
-* Public ``x``/``y`` components, settable either directly or through a two-argument constructor.
+* Element access through ``operator[]`` (indices 0, 1), plus a two-argument constructor.
 * Named static factories for common vectors: ``zeros()``, ``ones()``, ``min()``, ``max()``, and
   ``infinity()``.
 * The usual arithmetic operators (``+``, ``-``, unary ``-``, scalar ``*``/``/``, and their
@@ -21,9 +21,10 @@ features are:
   division as free functions, which take a scalar of any arithmetic type (``2.0 * u`` with a
   ``Vec2T<float>`` ``u``) and convert it to ``T`` first.
 * ``dot``, ``length``, and ``length2`` member functions, mirrored by free-function equivalents
-  (``dot``, ``length``) and free-function component-wise ``min``/``max``.
+  (``dot``, ``length``) and free-function component-wise ``min``/``max``. ``length`` is not
+  ``constexpr``, since it calls ``std::sqrt``.
 
-``Vec3T`` is a three-dimensional Cartesian vector, likewise templated on precision ``T``. Unlike
+``Vec3T`` is a three-dimensional Cartesian vector, likewise templated on precision ``T``. As in
 ``Vec2T``, its components are stored internally and reached only through ``operator[]`` (mutable
 and const overloads), not as public named fields. Its main features are:
 

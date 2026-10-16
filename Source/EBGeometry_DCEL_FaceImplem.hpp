@@ -399,17 +399,17 @@ FaceT<T>::computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) cons
     // Cross product sign of (P2-P1) x (a_point-P1), i.e. whether a_point lies to the left of the
     // directed edge P1->P2. Inlined (rather than a local lambda) so this function stays callable
     // from device code without requiring nvcc's --extended-lambda.
-    const T res = (P2.x - P1.x) * (a_point.y - P1.y) - (a_point.x - P1.x) * (P2.y - P1.y);
+    const T res = (P2[0] - P1[0]) * (a_point[1] - P1[1]) - (a_point[0] - P1[0]) * (P2[1] - P1[1]);
 
-    if (P1.y <= a_point.y) {
-      if (P2.y > a_point.y) {
+    if (P1[1] <= a_point[1]) {
+      if (P2[1] > a_point[1]) {
         if (res > T(0.)) {
           ++wn;
         }
       }
     }
     else {
-      if (P2.y <= a_point.y) {
+      if (P2[1] <= a_point[1]) {
         if (res < T(0.)) {
           --wn;
         }
@@ -433,17 +433,17 @@ FaceT<T>::computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) con
     const Vec2T<T> P2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition());
 
     // clang-format off
-    const bool upwardCrossing   = (P1.y <= a_point.y) && (P2.y >  a_point.y);
-    const bool downwardCrossing = (P1.y >  a_point.y) && (P2.y <= a_point.y);
+    const bool upwardCrossing   = (P1[1] <= a_point[1]) && (P2[1] >  a_point[1]);
+    const bool downwardCrossing = (P1[1] >  a_point[1]) && (P2[1] <= a_point[1]);
     // clang-format on
 
     if (upwardCrossing || downwardCrossing) {
       // Guaranteed non-zero by construction, as in the winding/crossing convention above.
-      EBGEOMETRY_EXPECT(P2.y != P1.y);
+      EBGEOMETRY_EXPECT(P2[1] != P1[1]);
 
-      const T t = (a_point.y - P1.y) / (P2.y - P1.y);
+      const T t = (a_point[1] - P1[1]) / (P2[1] - P1[1]);
 
-      if (a_point.x < P1.x + t * (P2.x - P1.x)) {
+      if (a_point[0] < P1[0] + t * (P2[0] - P1[0])) {
         cn += 1;
       }
     }
@@ -466,8 +466,8 @@ FaceT<T>::computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mesh) con
     const Vec2T<T> p1   = this->projectPoint(edge.getVertex(a_mesh).getPosition()) - a_point;
     const Vec2T<T> p2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition()) - a_point;
 
-    const T theta1 = std::atan2(p1.y, p1.x);
-    const T theta2 = std::atan2(p2.y, p2.x);
+    const T theta1 = std::atan2(p1[1], p1[0]);
+    const T theta2 = std::atan2(p2[1], p2[0]);
 
     T dTheta = theta2 - theta1;
 
