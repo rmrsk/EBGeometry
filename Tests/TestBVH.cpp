@@ -3805,6 +3805,26 @@ TEMPLATE_TEST_CASE("PackedBVH: an empty BVH has the empty bounding box and visit
   REQUIRE(visits == 0);
 }
 
+TEST_CASE("PackedBVH: getBoundingVolume on an empty BVH aborts", "[BVH][death]")
+{
+  using T    = double;
+  using Vec3 = Vec3T<T>;
+
+  using Packed = BVH::PackedBVH<T, Vec3, 4>;
+
+  // It used to read node 0 of an empty node array in a build without assertions.
+  REQUIRE(abortsWith(
+    [] {
+      Pool         pool(hostMemoryResource());
+      const Packed bvh(pool, std::vector<typename Packed::Node>{}, std::vector<Vec3>{});
+
+      volatile T sink = bvh.getBoundingVolume().getLowCorner()[0];
+
+      (void)sink;
+    },
+    "BVH::PackedBVH::getBoundingVolume: the BVH is empty; computeBoundingVolume() handles that"));
+}
+
 TEST_CASE("PackedBVH: the direct builders reject an empty primitive list and a zero leaf or cluster size",
           "[BVH][death]")
 {
