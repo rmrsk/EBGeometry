@@ -273,8 +273,8 @@ built.
   double precision (its value and point stacks, a BVH union's traversal stack and saved registers).
   A tape listed as another tape's primitive adds its own levels on top.
 
-The :ref:`Chap:ExampleCSGUnion` example unions several placements of one mesh with spheres through a
-tape, and checks it against a scan over the objects.
+The :ref:`Chap:ExampleCSG` example composes analytic shapes through a tape, and
+:ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.
 
 .. _Sec:BVHUnions:
 
@@ -328,9 +328,8 @@ kernel:
   ``TriMeshSDF`` objects -- a BVH whose primitives are themselves BVHs -- evaluable on a mirrored pool
   and on a GPU. ``getBVH().getPrimitives()`` therefore returns the layouts of such primitives.
 
-The :ref:`Chap:ExamplePackedSpheres` and :ref:`Chap:ExampleRandomCity` examples compare a BVH union
-of spheres and of boxes against a brute-force scan, and :ref:`Chap:ExampleNestedBVH` builds a union
-of mesh distance fields.
+The :ref:`Chap:ExampleManyObjects` example times a BVH union of spheres and of boxes against a plain
+loop over every object, and :ref:`Chap:ExampleNestedBVH` builds a union of mesh distance fields.
 
 .. list-table::
    :header-rows: 1

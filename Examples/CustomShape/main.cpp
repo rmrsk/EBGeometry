@@ -2,29 +2,21 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// A shape of your own, composed with built-in shapes into a Tape, evaluated on the host and, in a CUDA
-// or HIP build, in a GPU kernel too. The same source builds as plain C++ (the default) or for a GPU.
+// A shape of your own, composed with built-in shapes into a Tape, and called from a GPU kernel written
+// out by hand. The same source builds as plain C++ (the default) or for a GPU.
 //
 // The shape is an octahedron, written below as an ordinary struct: trivially copyable, with an
 // EBGEOMETRY_HOST_DEVICE signedDistance() and computeBoundingVolume(). Twelve rotated copies on a ring
 // around a sphere are compiled into a Tape<T, Octahedron<T>> (the octahedron is listed because it is
-// not a built-in type). In a GPU build the tape lives in managed memory, so one handle serves the host
-// and the device and nothing is copied:
+// not a built-in type). The tape is built directly in memory that the host and the device can both
+// read, so one handle serves both and nothing is copied.
 //
-//   Pool pool(managedMemoryResource());                   // hostMemoryResource() in a CPU build
-//   const Tape<T, Octahedron<T>> tape(pool, expression);
-//   pool.freeze();
-//   const auto view = tape.rebasedView(pool);             // pass this to a kernel by value
-//
-// The program checks the values at points where they are known (the centers of the octahedra and of
-// the sphere, and points beyond an octahedron's vertex and face) and, in a GPU build, that the device
-// and the host agree on a grid of points. The kernel is written out below, to show what
-// EBGeometry::GPU::transform() (which the other examples call) does. See README.md.
+// The other examples run their queries through EBGeometry::GPU::transform(), which launches a kernel
+// for them. This one writes that kernel out, because a kernel of your own is how an application calls
+// EBGeometry from inside its own device loops (an AMReX ParallelFor, a Kokkos parallel_for, a CUDA
+// kernel that does other work too). See README.md.
 
-#include <cmath>
 #include <cstddef>
-#include <cstdint>
-#include <cstdlib>
 #include <iostream>
 #include <type_traits>
 #include <vector>
@@ -120,76 +112,12 @@ constexpr T   sphereRadius  = T(0.75);
 constexpr int gridPerAxis   = 40;
 constexpr T   gridHalfWidth = T(2);
 
-// ── Running a query in a GPU kernel ─────────────────────────────────────────────────────────────────
-//
-// A query is a trivially copyable functor whose call operator is EBGEOMETRY_HOST_DEVICE. It holds what
-// it evaluates by value (here a tape that resolves against memory the device can read), is passed to
-// the kernel by value, and maps one input to one result. This is what EBGeometry::GPU::transform()
-// does, written out; the other examples call it instead.
 namespace {
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-
-// Kernel: a_out[i] = a_query(a_in[i]), one thread per input.
-template <class Query, class In, class Out>
-EBGEOMETRY_GLOBAL
-void
-queryKernel(const Query a_query, const In* a_in, Out* a_out, const unsigned int a_n)
-{
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  if (i < a_n) {
-    a_out[i] = a_query(a_in[i]);
-  }
-}
-
-// Stop with a message if a GPU runtime call failed.
-void
-check(const EBGeometry::GPU::Error a_error, const char* a_what)
-{
-  if (a_error != EBGeometry::GPU::Success) {
-    std::cerr << "GPU error in " << a_what << ": " << EBGeometry::GPU::getErrorString(a_error) << '\n';
-    std::exit(EXIT_FAILURE);
-  }
-}
-
-// Copy the inputs to the device, run the kernel, and copy the results back.
-template <class Out, class In, class Query>
-std::vector<Out>
-runOnDevice(const Query& a_query, const std::vector<In>& a_inputs)
-{
-  static_assert(std::is_trivially_copyable_v<Query>, "a query is passed to the kernel by value");
-
-  const auto n = static_cast<unsigned int>(a_inputs.size());
-
-  In*  in  = nullptr;
-  Out* out = nullptr;
-
-  check(EBGeometry::GPU::memAlloc(reinterpret_cast<void**>(&in), sizeof(In) * n), "memAlloc");
-  check(EBGeometry::GPU::memAlloc(reinterpret_cast<void**>(&out), sizeof(Out) * n), "memAlloc");
-  check(EBGeometry::GPU::memcpy(in, a_inputs.data(), sizeof(In) * n, EBGeometry::GPU::MemcpyHostToDevice), "memcpy");
-
-  constexpr unsigned int threads = 128;
-
-  queryKernel<<<(n + threads - 1) / threads, threads>>>(a_query, in, out, n);
-
-  check(EBGeometry::GPU::getLastError(), "kernel launch");
-  check(EBGeometry::GPU::deviceSynchronize(), "kernel execution");
-
-  std::vector<Out> results(n);
-
-  check(EBGeometry::GPU::memcpy(results.data(), out, sizeof(Out) * n, EBGeometry::GPU::MemcpyDeviceToHost), "memcpy");
-  check(EBGeometry::GPU::memFree(in), "memFree");
-  check(EBGeometry::GPU::memFree(out), "memFree");
-
-  return results;
-}
-
-#endif
-
-// ── The query ────────────────────────────────────────────────────────────────────────────────────────
-
-// The composed object's value at one point.
+// ── The code that runs on either side ────────────────────────────────────────────────────────────────
+//
+// The composed object's value at one point. A query is a trivially copyable functor whose call
+// operator is EBGEOMETRY_HOST_DEVICE; it holds the tape by value, and a kernel receives it by value.
 struct DistanceQuery
 {
   Shapes m_shapes;
@@ -202,17 +130,52 @@ struct DistanceQuery
   }
 };
 
-bool
-matches(const T a_value, const T a_expected, const T a_tolerance)
+// ── A kernel of your own ─────────────────────────────────────────────────────────────────────────────
+//
+// One thread per point: a_out[i] = a_query(a_in[i]). This is the kernel GPU::parallelFor() and
+// GPU::transform() launch for the other examples. A kernel exists only when the file is compiled as
+// CUDA or HIP; in a plain C++ build, runQuery() below does what each thread would do, in a loop.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+template <class Query, class In, class Out>
+EBGEOMETRY_GLOBAL
+void
+queryKernel(const Query a_query, const In* a_in, Out* a_out, const unsigned int a_n)
 {
-  return std::abs(a_value - a_expected) <= a_tolerance * (T(1) + std::abs(a_expected));
+  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (i < a_n) {
+    a_out[i] = a_query(a_in[i]);
+  }
+}
+#endif
+
+// Run the query on every point. The points and results are in managed memory, which the kernel reads
+// and writes directly; EBGEOMETRY_GPU_CHECK aborts with the failing call on a runtime error.
+template <class Query>
+void
+runQuery(const Query& a_query, const Vec3* a_points, T* a_results, const unsigned int a_n)
+{
+  static_assert(std::is_trivially_copyable_v<Query>, "a query is passed to the kernel by value");
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  constexpr unsigned int threads = 128;
+
+  queryKernel<<<(a_n + threads - 1) / threads, threads>>>(a_query, a_points, a_results, a_n);
+
+  EBGEOMETRY_GPU_CHECK(EBGeometry::GPU::getLastError());
+  EBGEOMETRY_GPU_CHECK(EBGeometry::GPU::deviceSynchronize());
+#else
+  for (unsigned int i = 0; i < a_n; i++) {
+    a_results[i] = a_query(a_points[i]);
+  }
+#endif
 }
 
 // Center of octahedron i on the ring, in the xz-plane.
 Vec3
 ringCenter(const int a_index)
 {
-  const T angle = T(2) * std::acos(T(-1)) * T(a_index) / T(numOctahedra);
+  const T angle = T(2) * EBGeometry::pi<T> * T(a_index) / T(numOctahedra);
 
   return {ringRadius * std::cos(angle), T(0), ringRadius * std::sin(angle)};
 }
@@ -222,9 +185,10 @@ ringCenter(const int a_index)
 int
 main()
 {
-  std::cout << "CustomShape: a user-written octahedron in a tape\n";
-  std::cout << "  Precision T = " << (std::is_same_v<T, float> ? "float" : "double") << "\n\n";
+  std::cout << "CustomShape: a user-written octahedron in a tape\n\n";
 
+  // ── Build the scene ────────────────────────────────────────────────────────────────────────────────
+  //
   // Twelve octahedra on a ring around a sphere, each turned about its own vertical axis before it is
   // moved into place. A union of eight or more operands is evaluated with a BVH over their boxes.
   const Octahedron<T> octahedron{octahedronR};
@@ -241,17 +205,18 @@ main()
 
   const EBGeometry::Expr<T> scene = EBGeometry::Union(objects);
 
-  // In a GPU build the tape goes in managed memory, which the host and the device can both read; that
-  // suits a small object like this one (a few KB). For large geometry, build in host memory and mirror
-  // the pool to device memory instead, as the other examples do. The pool must outlive every
-  // evaluation.
+  // The tape is compiled straight into memory the device can read. In a GPU build that is managed
+  // memory, which migrates between host and device as it is touched and suits a small object like this
+  // one (a few KB); for large geometry, build in host memory and mirror the pool to device memory, as
+  // the other examples do. In a plain C++ build, or a GPU build that finds no device, it is host memory
+  // that stands in for a device, and the same lines run. The pool must outlive every evaluation.
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  // Managed memory needs a device; without one, the host part still runs from host memory.
   EBGeometry::MemoryResource& resource =
-    EBGeometry::GPU::deviceAvailable() ? static_cast<EBGeometry::MemoryResource&>(EBGeometry::managedMemoryResource())
-                                       : EBGeometry::hostMemoryResource();
+    EBGeometry::GPU::deviceAvailable()
+      ? static_cast<EBGeometry::MemoryResource&>(EBGeometry::managedMemoryResource())
+      : static_cast<EBGeometry::MemoryResource&>(EBGeometry::emulatedDeviceMemoryResource());
 #else
-  EBGeometry::MemoryResource& resource = EBGeometry::hostMemoryResource();
+  EBGeometry::MemoryResource& resource = EBGeometry::emulatedDeviceMemoryResource();
 #endif
 
   EBGeometry::Pool pool(resource);
@@ -264,118 +229,65 @@ main()
 
   const Shapes view = tape.rebasedView(pool);
 
-  std::cout << "  Objects     : " << objects.size() << " (" << numOctahedra << " octahedra and a sphere)\n";
-  std::cout << "  BVH unions  : " << view.getNumBVHUnions() << "\n";
-  std::cout << "  Clauses     : " << view.getNumClauses() << "\n";
+  std::cout << "Objects    : " << objects.size() << " (" << numOctahedra << " octahedra and a sphere)\n";
+  std::cout << "BVH unions : " << view.getNumBVHUnions() << "\n";
+  std::cout << "Clauses    : " << view.getNumClauses() << "\n\n";
 
-  // Points where the value is known, then a grid over the whole scene.
-  struct Known
-  {
-    Vec3        point;
-    T           value;
-    const char* where;
-  };
-
-  const T sqrt3 = std::sqrt(T(3));
-
-  std::vector<Known> known;
-
-  known.push_back({Vec3::zeros(), -sphereRadius, "the center of the sphere"});
-
-  for (int i = 0; i < numOctahedra; i++) {
-    known.push_back({ringCenter(i), -octahedronR / sqrt3, "the center of an octahedron"});
-  }
-
-  // Straight above octahedron 0 (along its unrotated y axis): beyond its top vertex.
-  known.push_back({ringCenter(0) + Vec3(T(0), T(2) * octahedronR, T(0)), octahedronR, "above a vertex"});
-
-  // Octahedron 0 is not rotated, so the direction (1, 1, 1) from its center meets a face head on.
-  const T t = T(0.2);
-
-  known.push_back({ringCenter(0) + t * Vec3::ones(), (T(3) * t - octahedronR) / sqrt3, "beyond a face"});
-
-  std::vector<Vec3> points;
-
-  points.reserve(known.size() + static_cast<std::size_t>(gridPerAxis * gridPerAxis * gridPerAxis));
-
-  for (const Known& k : known) {
-    points.push_back(k.point);
-  }
-
-  const T step = T(2) * gridHalfWidth / T(gridPerAxis);
-
-  for (int i = 0; i < gridPerAxis; i++) {
-    for (int j = 0; j < gridPerAxis; j++) {
-      for (int k = 0; k < gridPerAxis; k++) {
-        // Offsets that are not round numbers keep grid points off the octahedra's faces.
-        points.emplace_back(-gridHalfWidth + (T(i) + T(0.37)) * step,
-                            -gridHalfWidth + (T(j) + T(0.53)) * step,
-                            -gridHalfWidth + (T(k) + T(0.61)) * step);
-      }
-    }
-  }
-
-  // On the host: the same query, called in a loop.
+  // ── Use it on the host ─────────────────────────────────────────────────────────────────────────────
+  //
+  // The view is an ordinary shape on the host: negative inside, positive outside.
   const DistanceQuery query{view};
 
-  std::vector<T> values;
+  std::cout << "On the host:\n";
+  std::cout << "  center of the sphere       : " << query(Vec3::zeros()) << '\n';
+  std::cout << "  center of an octahedron    : " << query(ringCenter(0)) << '\n';
+  std::cout << "  above an octahedron's tip  : " << query(ringCenter(0) + Vec3(T(0), T(2) * octahedronR, T(0))) << '\n';
+  std::cout << "  between two octahedra      : " << query(T(0.5) * (ringCenter(0) + ringCenter(1))) << "\n\n";
 
-  values.reserve(points.size());
-
-  for (const Vec3& p : points) {
-    values.push_back(query(p));
-  }
-
-  std::size_t failures = 0;
-
-  const T tight = std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-12);
-
-  for (std::size_t i = 0; i < known.size(); i++) {
-    if (!matches(values[i], known[i].value, tight)) {
-      std::cout << "  at " << known[i].where << ": " << values[i] << ", expected " << known[i].value << '\n';
-      failures++;
-    }
-  }
-
-  std::size_t inside = 0;
-
-  for (std::size_t i = known.size(); i < points.size(); i++) {
-    if (values[i] < T(0)) {
-      inside++;
-    }
-  }
-
-  std::cout << "  Grid points : " << points.size() - known.size() << " (" << inside << " inside)\n";
-  std::cout << "  Mismatches  : " << failures << " at the known points\n";
-
-  // On the device, in a CUDA or HIP build: the same query in the kernel above, compared with the host.
-  // They agree to rounding rather than bit for bit, since a device compiler may fuse a multiply and an
-  // add where the host compiler does not.
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  if (!EBGeometry::GPU::deviceAvailable()) {
-    std::cout << "  On the device: skipped, no GPU is visible\n";
+  // ── The same query in your own kernel ──────────────────────────────────────────────────────────────
+  //
+  // The points and the results are in managed memory too, so the kernel reads and writes them in place.
+  if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "On the device: skipped, no GPU is visible\n";
   }
   else {
-    const std::vector<T> onDevice = runOnDevice<T>(query, points);
+    const unsigned int n = gridPerAxis * gridPerAxis * gridPerAxis;
 
-    const T rounding = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
+    EBGeometry::Pool            queryPool(resource);
+    EBGeometry::PODVector<Vec3> points;
+    EBGeometry::PODVector<T>    results;
 
-    std::size_t differ = 0;
+    points.reserveFrom(queryPool, n);
+    results.reserveFrom(queryPool, n);
 
-    for (std::size_t i = 0; i < points.size(); i++) {
-      if (!matches(onDevice[i], values[i], rounding)) {
-        differ++;
+    const T step = T(2) * gridHalfWidth / T(gridPerAxis);
+
+    // Offsets that are not round numbers keep grid points off the octahedra's faces.
+    for (int i = 0; i < gridPerAxis; i++) {
+      for (int j = 0; j < gridPerAxis; j++) {
+        for (int k = 0; k < gridPerAxis; k++) {
+          points.push_back(queryPool.base(),
+                           Vec3(-gridHalfWidth + (T(i) + T(0.37)) * step,
+                                -gridHalfWidth + (T(j) + T(0.53)) * step,
+                                -gridHalfWidth + (T(k) + T(0.61)) * step));
+          results.push_back(queryPool.base(), T(0));
+        }
       }
     }
 
-    std::cout << "  On the device (" << EBGeometry::GPU::backendName << "): " << points.size() << " points, " << differ
-              << " differ from the host\n";
+    queryPool.freeze();
 
-    failures += differ;
+    runQuery(query, points.data(queryPool.base()), results.data(queryPool.base()), n);
+
+    std::size_t inside = 0;
+
+    for (unsigned int i = 0; i < n; i++) {
+      inside += results.at(queryPool.base(), i) < T(0) ? 1 : 0;
+    }
+
+    std::cout << (EBGeometry::GPU::enabled ? "In our own kernel" : "In a host loop (plain C++ build)") << ": " << n
+              << " grid points, " << inside << " inside the scene\n";
   }
-#else
-  std::cout << "  On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
-#endif
 
-  return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  return 0;
 }

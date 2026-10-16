@@ -3,48 +3,91 @@
 CustomShape
 ===========
 
-A shape of your own, composed with built-in shapes into a tape (see :ref:`Sec:Tape`), evaluated on
-the host and, in a GPU build, in a GPU kernel too.
+A shape of your own, composed with built-in shapes into a tape (see :ref:`Sec:Tape`), and called
+from a GPU kernel written out by hand. The other examples run their queries through
+``GPU::transform()``, which launches a kernel for them (see :ref:`Sec:ExamplesGPU`). A kernel of
+your own is how an application calls EBGeometry from inside its own device loops: an AMReX
+``ParallelFor``, a Kokkos ``parallel_for``, or a CUDA kernel that does other work too.
 
-The shape is an octahedron, written in the example as an ordinary struct. It is trivially copyable,
-with an ``EBGEOMETRY_HOST_DEVICE`` ``signedDistance()`` and ``computeBoundingVolume()``, and a static
+The source is at :file:`Examples/CustomShape/main.cpp`. It reads from top to bottom in the
+following sections.
+
+A shape of your own
+-------------------
+
+The octahedron is an ordinary struct holding its size. It is trivially copyable, with an
+``EBGEOMETRY_HOST_DEVICE`` ``signedDistance()`` and ``computeBoundingVolume()`` and a static
 ``distanceQuality`` that says its value is an exact distance. That is all a shape needs, and
-``isShape`` checks it at compile time (see :ref:`Chap:ImplemCSG`). Inside device code it uses
-``EBGeometry::Math::clamp`` rather than ``std::clamp`` (see :ref:`Sec:WritingDeviceCode`).
-
-Twelve rotated copies of it sit on a ring around a sphere, and their union is compiled into a
-``Tape<T, Octahedron<T>>``. The octahedron is listed after ``T`` because it is not a built-in type.
-A union of thirteen objects is evaluated with a BVH over their boxes.
-
-**Memory.** In a GPU build the tape is compiled straight into managed memory
-(``managedMemoryResource()``), which the host and the device can both read:
+``isShape`` checks it at compile time (see :ref:`Chap:ImplemCSG`):
 
 .. code-block:: c++
 
-   Pool pool(managedMemoryResource());           // hostMemoryResource() in a plain C++ build
+   static_assert(EBGeometry::isShape<Octahedron<T>>);
+
+Inside device code it uses ``EBGeometry::Math::clamp`` rather than ``std::clamp`` (see
+:ref:`Sec:WritingDeviceCode`).
+
+The code that runs on either side
+---------------------------------
+
+``DistanceQuery`` is a trivially copyable functor whose ``EBGEOMETRY_HOST_DEVICE`` call operator
+returns the scene's value at one point. It holds the compiled
+`Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ by value, and the kernel receives it by value.
+
+A kernel of your own
+--------------------
+
+``queryKernel`` runs the query once per point, one thread each, and ``runQuery`` launches it and
+checks the launch and its completion with ``EBGEOMETRY_GPU_CHECK``. This is the kernel that
+`GPU::parallelFor() and GPU::transform() <doxygen/html/EBGeometry__GPUTransform_8hpp.html>`__
+launch for the other examples. A kernel exists only when the file is compiled as CUDA or HIP; in a
+plain C++ build ``runQuery`` does what each thread would, in a loop.
+
+Building the scene
+------------------
+
+Twelve rotated copies of the octahedron sit on a ring around a sphere, and their union is compiled
+into a ``Tape<T, Octahedron<T>>``. The octahedron is listed after ``T`` because it is not a built-in
+type. A union of thirteen objects is evaluated with a BVH over their boxes.
+
+The tape is compiled straight into memory the device can read: managed memory
+(``managedMemoryResource()``) in a GPU build, which the host and the device can both read, and
+``emulatedDeviceMemoryResource()``, host memory that stands in for a device, otherwise (see
+`the memory resources <doxygen/html/EBGeometry__MemoryResource_8hpp.html>`__):
+
+.. code-block:: c++
+
+   Pool pool(resource);                          // managed memory in a GPU build
    const Tape<T, Octahedron<T>> tape(pool, scene);
    pool.freeze();
    const auto view = tape.rebasedView(pool);     // one handle for the host and the device
 
-The view goes to the kernel by value, and nothing is copied (see :ref:`Chap:MemoryModel`). That suits
-a small object like this one, a few KB. Large geometry is better mirrored to device memory, as the
-other examples do: managed memory migrates between host and device as it is touched, and on AMD
-MI200-class GPUs it migrates only with XNACK enabled. Managed memory needs a device, so a GPU build
-that finds none builds the tape in host memory and runs only the host part.
+Freezing fixes the pool's base, and a view onto the pool's own memory holds that base by value, so a
+kernel can use it as well as the host (see :ref:`Chap:MemoryModel`). That suits a small object like
+this one, a few KB. Large geometry is better mirrored to device memory, as :ref:`Chap:ExampleMeshSDF`
+does: managed memory migrates between host and device as it is touched, and on AMD MI200-class GPUs
+it migrates only with XNACK enabled.
 
-**The kernel.** A query is a trivially copyable functor whose call operator is
-``EBGEOMETRY_HOST_DEVICE``. This example writes out the kernel that runs it, a few lines on the
-``EBGeometry::GPU`` runtime wrappers, to show what ``EBGeometry::GPU::transform()`` does; the other
-examples call ``GPU::transform()`` instead (see :ref:`Sec:ExamplesGPU`).
+Using it on the host
+--------------------
 
-The program checks the values at points where they are known: the centers of the sphere and of each
-octahedron, a point beyond a vertex and a point beyond a face. It also evaluates a grid of 64,000
-points, and in a GPU build compares each device value with the host's, to rounding. It exits with a
-nonzero status if any value is wrong.
+The view is an ordinary shape on the host. The program prints its value at a few points: the centers
+of the sphere and of an octahedron, a point above an octahedron's tip and one between two
+octahedra.
 
-The source for this example is at :file:`Examples/CustomShape/main.cpp`. See :ref:`Chap:Building`
-for how to compile it with CMake, GNU Make, or a direct compiler invocation, and
-:ref:`Sec:ExamplesGPU` for the GPU builds.
+The same query in your own kernel
+---------------------------------
+
+The grid of 64,000 query points and the results are reserved as
+`PODVector <doxygen/html/structEBGeometry_1_1PODVector.html>`__\ s in a second pool in the same
+memory, so the kernel reads and writes them in place with no copies. The program prints how many grid
+points lie inside the scene. A GPU build that finds no device skips this part.
+
+Building and running
+--------------------
+
+See :ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a direct compiler
+invocation, and :ref:`Sec:ExamplesGPU` for the GPU builds.
 
 .. code-block:: bash
 

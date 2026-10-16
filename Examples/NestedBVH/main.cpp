@@ -2,14 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <algorithm>
-#include <cmath>
+// A mesh placed many times, two ways: shared between translated placements in a Tape alongside
+// analytic shapes, and as separate copies under a BVHUnion, which nests one BVH (over the placements)
+// above another (over each mesh's triangles). Both are evaluated on the host and, through the same
+// query, on a GPU. See README.md.
+
+#include <cstddef>
 #include <iostream>
-#include <limits>
-#include <memory>
-#include <random>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #include <EBGeometry.hpp>
@@ -19,32 +19,43 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-using namespace EBGeometry;
-
-using T = EBGEOMETRY_PRECISION;
-
-// Branching factor for the outer union BVH: the library default (4 on every machine and on a GPU),
-// the same default readIntoTriMeshSDF uses for the inner mesh BVHs.
-constexpr size_t K = BVH::DefaultBranchingRatio<T>();
-
+using T    = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-using Mesh = EBGeometry::TriMeshSDF<T, K, EBGeometry::TriangleSoA::DefaultWidth<T>()>;
+
+// The BVH branching factor (K) and triangle-group width (W) that the readers use by default. A
+// TriMeshSDF with these is a built-in primitive of Tape<T>; any other must be listed as a user type.
+constexpr std::size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
+constexpr std::size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
+
+using Mesh     = EBGeometry::TriMeshSDF<T, K, W>;
+using Nested   = EBGeometry::BVHUnion<T, Mesh, K>;
+using Composed = EBGeometry::Tape<T>;
 
 namespace {
 
+// ── The code that runs on either side ────────────────────────────────────────────────────────────────
+//
 // A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
-// call operator maps one point to one result. It holds the nested union by value; on a device, that is
-// the union rebased onto device memory, meshes and all.
-struct UnionDistance
+// call operator maps one point to one result. It holds the tape and the nested union by value. Both
+// are descriptors of what they built in a Pool, so a kernel can receive them once they describe a
+// pool the device can read (see the last section of main()).
+struct Values
 {
-  EBGeometry::BVHUnion<T, Mesh, K> scene;
+  T composed;
+  T nested;
+};
+
+struct BothScenes
+{
+  Composed m_composed;
+  Nested   m_nested;
 
   EBGEOMETRY_HOST_DEVICE
-  T
+  Values
   operator()(const Vec3& a_point) const noexcept
   {
-    return scene.signedDistance(a_point);
+    return {m_composed.signedDistance(a_point), m_nested.signedDistance(a_point)};
   }
 };
 
@@ -55,154 +66,130 @@ struct UnionDistance
 int
 main(int argc, char* argv[])
 try {
-  // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated union
-  // (BVHUnion) whose primitives are themselves BVH-backed mesh signed distance functions
-  // (TriMeshSDF). Each TriMeshSDF owns an inner PackedBVH over its SoA triangle groups, so a single
-  // distance query descends the outer union BVH to locate the nearby mesh(es), then descends each of
-  // those meshes' own inner BVH -- two levels of BVH traversal for one query.
+  // ── Read the mesh ──────────────────────────────────────────────────────────────────────────────────
   //
-  // The outer union stores its primitives by value, in the same Pool as the meshes' own BVHs, and is
-  // itself a plain value type: the whole two-level hierarchy can be mirrored to a GPU in one piece
-  // and evaluated there. Nesting can recurse -- a union of such unions works the same way.
+  // Any watertight, orientable surface mesh in STL, PLY, VTK or OBJ. The default is a small
+  // dodecahedron in Examples/data; pass another on the command line.
+  const std::string file = argc >= 2 ? std::string(argv[1]) : "../data/dodecahedron.stl";
 
-  // Mesh to place at several positions. Pass a path on the command line, or fall back to the
-  // dodecahedron fixture shipped in the repository (Tests/data), so this example needs no
-  // submodule. The path is relative to this example's own folder, which is the working directory
-  // when the example is run.
-  std::string file = "../../Tests/data/dodecahedron.stl";
+  std::cout << "Reading '" << file << "'\n";
 
-  if (argc >= 2) {
-    file = std::string(argv[1]);
-  }
-  else {
-    std::cout << "No mesh file given; defaulting to the in-repo dodecahedron.stl fixture.\n"
-              << "Usage: ./NestedBVH.ex <mesh-file>  (STL/PLY/VTK/OBJ, triangles only)\n";
-  }
-
-  // Every mesh, and the outer union, is reserved from this one Pool, which must outlive them all.
+  // The meshes, their BVHs, the tape and the union are all reserved from this one Pool, which must
+  // outlive them and every copy of them.
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  // Read the mesh's triangles once. Each placement below gets its own translated copy, from which a
-  // TriMeshSDF (with its own inner BVH) is built using the library's default parameters. A union
-  // holds primitives of a single type, so placing genuinely different meshes works the same way, as
-  // long as they are all TriMeshSDF<T, K, W> with the same parameters.
+  const Mesh mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool);
+
+  // The mesh's size sets the spacing of the placements.
+  const BV   meshBox = mesh.computeBoundingVolume();
+  const Vec3 center  = T(0.5) * (meshBox.getLowCorner() + meshBox.getHighCorner());
+  const T    size    = (meshBox.getHighCorner() - meshBox.getLowCorner()).length();
+
+  // ── One mesh, shared: a Tape ───────────────────────────────────────────────────────────────────────
+  //
+  // The expression builder describes the object: Translate(mesh, shift) places the mesh without
+  // copying it, and Union combines objects of any type, here the placed mesh and spheres. The Tape
+  // compiles the description into the pool. A union of eight or more operands is evaluated through a
+  // BVH over their bounding boxes, so a query only evaluates the objects near it.
+  std::vector<EBGeometry::Expr<T>> objects;
+
+  for (int i = 0; i < 6; i++) {
+    const Vec3 shift(T(1.5) * size * T(i), T(0), T(0));
+
+    objects.emplace_back(EBGeometry::Translate(mesh, shift));
+    objects.emplace_back(EBGeometry::SphereSDF<T>(center + shift + Vec3(T(0), T(0.75) * size, T(0)), T(0.25) * size));
+  }
+
+  const Composed composed(pool, EBGeometry::Union(objects));
+
+  std::cout << "  Tape   : 6 placements of the mesh and 6 spheres, " << composed.getNumClauses() << " clauses, "
+            << composed.getNumBVHUnions() << " BVH union\n";
+
+  // ── Many copies: a nested BVH ──────────────────────────────────────────────────────────────────────
+  //
+  // A BVHUnion holds primitives of one type by value and builds a BVH over their bounding boxes. Its
+  // primitives here are TriMeshSDFs, each with a BVH of its own over its triangles, so one query
+  // descends two levels: the outer BVH finds the placements near the point, and each of those meshes'
+  // own BVH finds the nearest triangle. Each placement is a separate mesh with its own (translated)
+  // triangles, so genuinely different meshes of the same type could be placed the same way. The first
+  // row of the 4 x 4 grid coincides with the tape's placements.
   const auto triangles = EBGeometry::Parser::readIntoTriangles<T>(file);
 
-  const std::vector<Vec3> shifts = {
-    Vec3(0, 0, 0),
-    Vec3(4, 0, 0),
-    Vec3(0, 4, 0),
-    Vec3(4, 4, 0),
-    Vec3(2, 2, 4),
-  };
+  std::vector<Mesh> copies;
+  std::vector<BV>   boxes;
 
-  std::vector<Mesh> primitives;
-  std::vector<BV>   boundingVolumes;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      const Vec3 shift(T(1.5) * size * T(i), T(0), T(1.5) * size * T(j));
 
-  primitives.reserve(shifts.size());
-  boundingVolumes.reserve(shifts.size());
+      auto shifted = triangles;
 
-  for (const Vec3& shift : shifts) {
-    auto shifted = triangles;
+      for (auto& triangle : shifted) {
+        auto vertices = triangle.getVertexPositions();
 
-    for (auto& triangle : shifted) {
-      auto vertices = triangle.getVertexPositions();
+        for (auto& v : vertices) {
+          v = v + shift;
+        }
 
-      for (auto& v : vertices) {
-        v = v + shift;
+        triangle.setVertexPositions(vertices);
       }
 
-      triangle.setVertexPositions(vertices);
+      copies.emplace_back(shifted, pool, EBGeometry::BVH::Construction::SAH, 4);
+      boxes.push_back(copies.back().computeBoundingVolume());
     }
-
-    primitives.emplace_back(shifted, pool, EBGeometry::BVH::Construction::SAH, 4);
-    boundingVolumes.push_back(primitives.back().computeBoundingVolume());
   }
 
-  // Outer BVH: a BVH-accelerated union over the placements. This is the nested (two-level) BVH.
-  const auto nestedUnion = EBGeometry::BVHUnion<T, Mesh, K>(pool, primitives, boundingVolumes);
+  const Nested nested(pool, copies, boxes);
 
-  std::cout << "Built a BVH union over " << primitives.size()
-            << " placements of a BVH-backed mesh SDF (a nested, two-level BVH).\n";
+  std::cout << "  Nested : a BVH union of " << copies.size() << " copies of the mesh, each with its own BVH\n\n";
 
-  // Evaluate at a few points: on a placement, between placements, and far outside everything.
-  for (const Vec3& p : {Vec3(0, 0, 0), Vec3(2, 2, 0), Vec3(20, 20, 20)}) {
-    std::cout << "value(" << p << ") = " << nestedUnion.signedDistance(p) << "\n";
-  }
-
-  // Check the nested union against the smallest distance over every placement, at random points in
-  // a box twice the size of the union's bounding box. The outer BVH only skips placements that cannot
-  // be the closest, so the two agree up to rounding, which scales with the size of the scene. A fixed
-  // seed gives the same points on every run.
-  const BV   box       = nestedUnion.computeBoundingVolume();
-  const Vec3 extent    = box.getHighCorner() - box.getLowCorner();
-  const T    tolerance = (std::is_same_v<T, float> ? T(1.0e-5) : T(1.0e-12)) * extent.length();
-
-  std::mt19937_64                   rng(12345);
-  std::uniform_real_distribution<T> unit(T(0), T(1));
-
-  constexpr int numSamples = 1000;
-
-  const UnionDistance onHost{nestedUnion};
-
-  std::vector<Vec3> points;
-  std::vector<T>    values;
-
-  int mismatches = 0;
-
-  for (int i = 0; i < numSamples; i++) {
-    const Vec3 p = box.getLowCorner() - T(0.5) * extent + T(2) * extent * Vec3(unit(rng), unit(rng), unit(rng));
-
-    T closest = std::numeric_limits<T>::infinity();
-
-    for (const Mesh& mesh : primitives) {
-      closest = std::min(closest, mesh.signedDistance(p));
-    }
-
-    points.push_back(p);
-    values.push_back(onHost(p));
-
-    mismatches += (std::abs(values.back() - closest) > tolerance) ? 1 : 0;
-  }
-
-  std::cout << "Points where the nested union differs from a scan over the placements = " << mismatches << " of "
-            << numSamples << "\n";
-
-  // ── The same queries on a GPU ──────────────────────────────────────────────────────────────────────
+  // ── Use them on the host ───────────────────────────────────────────────────────────────────────────
   //
-  // Compiled for a GPU (GPU=HIP or GPU=CUDA), the pool holding the union and every mesh is frozen and
-  // copied to device memory in one piece, the union is rebased onto the copy, and
-  // EBGeometry::GPU::transform() evaluates it once per point in a kernel: both levels of BVH traversal
-  // run on the device. The device agrees with the host to rounding, since a device compiler may fuse a
-  // multiply and an add where the host compiler does not.
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  if (!EBGeometry::GPU::deviceAvailable()) {
-    std::cout << "On the device: skipped, no GPU is visible\n";
+  // Both are shapes: signedDistance(point) is negative inside any placement and positive outside all of
+  // them, and computeBoundingVolume() encloses every placement.
+  // The points run along the first row of placements, which both scenes share: through the center of
+  // a placement, then halfway to the next one, and so on.
+  std::vector<Vec3> points;
+
+  for (int i = 0; i <= 8; i++) {
+    points.push_back(center + Vec3(T(0.75) * size * T(i), T(0), T(0)));
+  }
+
+  std::cout << "Along the first row of placements:\n";
+
+  for (const Vec3& p : points) {
+    std::cout << "  " << p << "   tape " << composed.signedDistance(p) << "   nested " << nested.signedDistance(p)
+              << '\n';
+  }
+
+  // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
+  //
+  // The pool is frozen, mirrored in one piece into GPU::memoryResource() (device memory in a CUDA or
+  // HIP build), and the tape and the union are rebased onto the copy, every mesh with them.
+  // GPU::transform() then runs the query once per point in a kernel, both levels of BVH traversal
+  // included. In a plain C++ build the same lines run on the host. The values agree with the host's to
+  // rounding, since a device compiler may fuse a multiply and an add where the host compiler does not.
+  if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "\nOn the device: skipped, no GPU is visible\n";
   }
   else {
     pool.freeze();
 
-    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
-    const UnionDistance    onDevice{nestedUnion.rebasedView(devicePool)};
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource());
 
-    const std::vector<T> deviceValues = EBGeometry::GPU::transform(onDevice, points);
+    const BothScenes query{composed.rebasedView(devicePool), nested.rebasedView(devicePool)};
 
-    int differ = 0;
+    const std::vector<Values> onDevice = EBGeometry::GPU::transform(query, points);
 
-    for (int i = 0; i < numSamples; i++) {
-      differ += (std::abs(deviceValues[i] - values[i]) > tolerance) ? 1 : 0;
+    std::cout << "\nThrough GPU::transform (backend: " << EBGeometry::GPU::backendName << "):\n";
+
+    for (std::size_t i = 0; i < points.size(); i++) {
+      std::cout << "  " << points[i] << "   tape " << onDevice[i].composed << "   nested " << onDevice[i].nested
+                << '\n';
     }
-
-    std::cout << "On the device (" << EBGeometry::GPU::backendName << "): " << numSamples << " points, " << differ
-              << " differ from the host\n";
-
-    mismatches += differ;
   }
-#else
-  std::cout << "On the device: not built (plain C++); compile with GPU=HIP or GPU=CUDA to run it\n";
-#endif
 
-  return mismatches == 0 ? 0 : 1;
+  return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {
   std::cerr << "Cannot read the mesh: " << e.what() << '\n';
 

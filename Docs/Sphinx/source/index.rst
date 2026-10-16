@@ -102,6 +102,7 @@ Implementation
 
    Implementation.rst
    MemoryModel.rst
+   RunningOnGPU.rst
    ImplemVec.rst
    ImplemCSG.rst
    ImplemDCEL.rst
@@ -121,18 +122,15 @@ Examples
 
    Examples.rst
    ExampleShapes.rst
+   ExampleCSG.rst
    ExampleMeshSDF.rst
    ExampleNestedBVH.rst
-   ExampleCSGUnion.rst
-   ExampleHostTuning.rst
-   ExamplePackedSpheres.rst
-   ExampleRandomCity.rst
+   ExampleManyObjects.rst
+   ExamplePointClouds.rst
    ExampleOctreeBoundingVolume.rst
-   ExampleBuildBVH.rst
-   ExampleClosestPointBVH.rst
-   ExampleNearestNeighborBVH.rst
-   ExampleNearestNeighborHashGrid.rst
    ExampleCustomShape.rst
+   ExampleHostTuning.rst
+   ExampleBuildBVH.rst
    Integrations.rst
 
 Contributing and testing

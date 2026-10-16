@@ -13,9 +13,41 @@ generation (`AMReX <https://amrex-codes.github.io/amrex/>`_, `Chombo
 <https://commons.lbl.gov/display/chombo/>`_) live separately under :file:`Integrations/` instead,
 and additionally require that platform to be installed — see :ref:`Chap:Integrations`.
 
-None of the EBGeometry examples produce output for visualization; they print timing
-and/or correctness information to the terminal.  Each example folder also ships its own
-``README.md`` with the exact build/run commands reproduced on its page.
+The examples teach; the unit tests verify. An example shows the calls a user would write, in the
+order they would write them, and prints results a reader can interpret: a few distances, the
+closest point to a query, the time a BVH saves where that time is the lesson. It does not check its
+own answers against hand-worked values or brute force -- the unit tests under :file:`Tests/` do that --
+so its source is only the code you would adapt. None of the examples produce output for
+visualization. Each example folder also ships its own ``README.md`` with the exact build/run
+commands reproduced on its page.
+
+Reading order
+-------------
+
+The examples build on each other. A new user can read them in this order:
+
+#. :ref:`Chap:ExampleShapes`: the analytic shapes, their signed distance, bounding box and distance
+   quality.
+#. :ref:`Chap:ExampleCSG`: composing shapes with unions, intersections, differences, transforms and
+   smooth blends, compiled into a ``Tape``.
+#. :ref:`Chap:ExampleMeshSDF`: reading a surface mesh into a signed distance function, and the
+   three representations to choose from.
+#. :ref:`Chap:ExampleNestedBVH`: a mesh placed many times, in a tape and in a BVH union of meshes.
+#. :ref:`Chap:ExampleManyObjects`: a BVH union over many primitives, and how much it saves over a
+   plain loop.
+#. :ref:`Chap:ExamplePointClouds`: closest points and nearest neighbors in a point cloud, with a
+   BVH or a hash grid.
+#. :ref:`Chap:ExampleOctreeBoundingVolume`: estimating a bounding box for a function with no
+   closed-form one.
+#. :ref:`Chap:ExampleCustomShape`: a shape type of your own, and calling EBGeometry from your own
+   kernel.
+#. :ref:`Chap:ExampleHostTuning`: the branching factor and SIMD width tuned to the host.
+#. :ref:`Chap:ExampleBuildBVH`: comparing the BVH construction methods by build time.
+
+Every example that runs on a device has the same four parts, in this order: the query functor
+("the code that runs on either side"), the construction of the geometry, its use on the host
+through plain calls, and, last, the same query on a GPU. A reader interested only in the host can
+stop before the last part.
 
 Building and running any of them
 ----------------------------------
@@ -48,8 +80,8 @@ Built on its own with CMake, an example defaults to an optimised (``Release``) b
 EBGeometry project (see :ref:`Chap:Building`), the examples follow the project's build type and
 take their SIMD flags from ``EBGEOMETRY_SIMD``.
 
-Every example checks its own results, against a brute-force scan or against distances worked out
-by hand, and exits with a nonzero status if they disagree.
+``ctest`` runs every example (label ``example``) as a smoke test: it fails if the program throws
+or, in a build with assertions, if an ``EBGEOMETRY_EXPECT()`` check fires.
 
 Run every example from inside its own folder — several resolve a default input mesh relative to
 the run directory. See :ref:`Chap:Building` for the full detail on each build method.
@@ -59,19 +91,19 @@ the run directory. See :ref:`Chap:Building` for the full detail on each build me
 Running on a GPU
 ----------------
 
-Every example whose queries can run on a device builds from the same source as plain C++ (the
-default) or as CUDA or HIP. Compiled for a GPU, the same run does its usual work on the host and then
-runs its queries on the device as well, comparing every device result with the host's for the same
-input. They agree to
-rounding rather than bit for bit, since a device compiler may fuse a multiply and an add where the
-host compiler does not. Without a visible GPU the device part is skipped with a message, and the
-program still checks its host results and exits normally. ``BuildBVH`` and ``HostTuning`` stay
-host-only: they are about the BVH builders and the host-tuned types, neither of which a device uses.
+Every example except ``BuildBVH`` and ``HostTuning`` builds from the same source as plain C++ (the
+default) or as CUDA or HIP. Its last section runs its query through ``GPU::transform`` (see
+:ref:`Chap:RunningOnGPU`): in a kernel in a GPU build, and in a host loop otherwise, so that section
+runs in every build. Pool-resident geometry is mirrored into ``GPU::memoryResource()``, which is
+device memory in a GPU build and host memory standing in for it otherwise. Only a GPU build with no
+visible GPU skips the section, with a message. Device results agree with the host's to rounding
+rather than bit for bit, since a device compiler may fuse a multiply and an add where the host
+compiler does not. ``BuildBVH`` and ``HostTuning`` stay host-only: they are about the BVH builders
+and the host-tuned types, neither of which a device uses.
 
-Each query is a small trivially copyable functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
-holding what it evaluates by value. ``EBGeometry::GPU::transform(query, inputs)`` (see
-:ref:`Sec:BuildingGPU`) runs it once per input in a kernel, and in a plain C++ build in a host loop.
-:ref:`Chap:ExampleCustomShape` writes that kernel out instead, to show what ``GPU::transform`` does.
+Each query is a small trivially copyable struct whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
+holding what it evaluates by value. :ref:`Chap:ExampleCustomShape` writes the kernel out instead, to
+show how an application calls EBGeometry from its own kernels.
 
 The examples show three ways of getting the geometry to the device:
 
@@ -79,10 +111,10 @@ The examples show three ways of getting the geometry to the device:
   the kernel (:ref:`Chap:ExampleShapes`, :ref:`Chap:ExampleOctreeBoundingVolume`).
 * **A mirror in device memory.** The pool is built on the host, frozen and copied to device memory in
   one piece, and the object is rebased onto the copy. This is the pattern for large geometry: mesh
-  SDFs, BVH unions, tapes and point clouds (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleNestedBVH`,
-  :ref:`Chap:ExampleCSGUnion`, :ref:`Chap:ExamplePackedSpheres`, :ref:`Chap:ExampleRandomCity`,
-  :ref:`Chap:ExampleClosestPointBVH`, :ref:`Chap:ExampleNearestNeighborBVH`,
-  :ref:`Chap:ExampleNearestNeighborHashGrid`).
+  SDFs, BVH unions, tapes and point clouds (:ref:`Chap:ExampleCSG`, :ref:`Chap:ExampleMeshSDF`,
+  :ref:`Chap:ExampleNestedBVH`, :ref:`Chap:ExampleManyObjects`, :ref:`Chap:ExamplePointClouds`).
+  :ref:`Chap:ExampleManyObjects` also keeps its query points on the device, so that its device
+  timing measures the kernel and not the copies.
 * **Managed memory.** The pool is built in managed memory, frozen, and the object rebased onto it:
   one handle for host and device, with no copy (:ref:`Chap:ExampleCustomShape`).
 

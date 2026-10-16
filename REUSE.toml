@@ -43,11 +43,12 @@ SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
 # Example build files and per-example documentation
-# (deliberately excludes Examples/Resources/ data and main.cpp, which are handled elsewhere)
+# (main.cpp carries its own inline header)
 [[annotations]]
 path = [
   "Examples/CMakeLists.txt",
   "Examples/README.md",
+  "Examples/data/**",
   "Examples/**/GNUmakefile",
   "Examples/**/Make.package",
   "Examples/**/*.inputs",

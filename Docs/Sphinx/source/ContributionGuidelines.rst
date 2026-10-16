@@ -102,6 +102,7 @@ per query) and ``evaluateOnHost``, and compare the two element by element with
 the examples use: under a GPU backend the functor runs in a real kernel, every runtime call
 (including the launch and its completion) is checked and aborts the test on an error, and the test
 skips when no GPU is present. In a host build the same test runs in emulation:
-``deviceTestResource()`` is host memory that reports itself device-accessible, so the view takes the
+``deviceTestResource()`` is the library's ``emulatedDeviceMemoryResource()``, host memory that reports
+itself device-accessible, so the view takes the
 device-view path, and ``GPU::transform`` copies the functor and runs it in a host loop. Every ordinary build, including the sanitizer build,
 therefore runs the device tests; only the device compile and the kernel launch need a GPU lane.

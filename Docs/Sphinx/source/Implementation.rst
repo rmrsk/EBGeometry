@@ -43,8 +43,9 @@ components). A handful of design choices recur throughout the implementation:
 * **Device-callable basics.** Scalar helpers and numeric limits (``Math::min``, ``Math::max``,
   ``Math::clamp``, ``Math::Limits``) and the fixed-size ``Array<T, N>`` replace their ``std``
   counterparts throughout the library, so its device code needs no special compiler flags. See
-  :ref:`Sec:WritingDeviceCode`. ``GPU::transform`` runs a query on many inputs, in a kernel in a CUDA
-  or HIP build and in a host loop otherwise; see :ref:`Sec:BuildingGPU`.
+  :ref:`Sec:WritingDeviceCode`. ``GPU::parallelFor`` and ``GPU::transform`` run a functor over many
+  indices or inputs, in a kernel in a CUDA or HIP build and in a host loop otherwise; see
+  :ref:`Chap:RunningOnGPU`.
 
 * **Three checking mechanisms.** ``static_assert`` guards template-parameter invariants decidable
   at compile time; the always-on ``EBGEOMETRY_REQUIRE`` macro checks what a caller controls, once,

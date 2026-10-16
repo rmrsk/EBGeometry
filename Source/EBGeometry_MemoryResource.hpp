@@ -223,6 +223,83 @@ public:
 HostMemoryResource&
 hostMemoryResource() noexcept;
 
+/**
+ * @brief Host memory that stands in for device memory: host RAM that reports itself device-accessible.
+ * @details Always compiled, on every backend. A pool mirrored into it is a host copy, but a
+ * rebasedView() onto that copy takes the device-view path (a snapshot of the location, no control
+ * block), exactly as it would onto a mirror in device memory. Code that mirrors, rebases and runs a
+ * query through GPU::transform() therefore runs unchanged in a plain C++ build, where GPU::transform()
+ * is a host loop. Use it through GPU::memoryResource(), which picks device memory in a CUDA or HIP
+ * build and this resource otherwise. Never hand memory from it to a real kernel: it is host memory.
+ */
+class EmulatedDeviceMemoryResource final : public MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  EBGEOMETRY_HOST
+  EmulatedDeviceMemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  EBGEOMETRY_HOST
+  ~EmulatedDeviceMemoryResource() override = default;
+
+  /**
+   * @brief Allocate an aligned block of host memory.
+   * @param[in] a_bytes     Number of bytes to allocate.
+   * @param[in] a_alignment Required alignment in bytes (power of two).
+   * @return Pointer to the allocated host block (never null on success).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override;
+
+  /**
+   * @brief Free a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Pointer to free (null is a no-op).
+   * @param[in] a_bytes     Size passed to @ref allocate.
+   * @param[in] a_alignment Alignment passed to @ref allocate.
+   */
+  EBGEOMETRY_HOST
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
+
+  /**
+   * @brief The blocks are host memory.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief The blocks report themselves device-accessible, which is what makes them stand in for
+   * device memory.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+};
+
+/**
+ * @brief Process-wide emulated device memory resource.
+ * @details Created on first use and never destroyed, for the reason given in hostMemoryResource().
+ * @return Reference to the shared emulated device resource.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+EmulatedDeviceMemoryResource&
+emulatedDeviceMemoryResource() noexcept;
+
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) || defined(EBGEOMETRY_DOXYGEN)
 
 /**

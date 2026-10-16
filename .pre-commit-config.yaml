@@ -19,7 +19,7 @@ repos:
     hooks:
       - id: codespell
         files: ^(Source|Docs|Examples|Tests|Integrations|Scripts|\.github)/|^[^/]+\.(md|txt|hpp)$
-        exclude: ^Tests/data/
+        exclude: ^(Tests|Examples)/data/
         args:
           - "--ignore-words=.codespellignore"
           - "--skip=*.bib,*.js,*.log,Docs/Sphinx/build,Docs/doxygen"

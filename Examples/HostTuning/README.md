@@ -16,8 +16,9 @@ number of triangles or points a leaf evaluates together), and when to use which.
   (built on its own, this example uses `-march=native`). Use them only in code that runs on the host
   alone and is compiled with one set of flags.
 
-The example builds a point cloud and a triangle mesh both ways, checks that the two give the same
-answers, and times their queries so you can see whether host tuning pays off on your machine.
+The example builds a point cloud and a triangle mesh both ways and times their queries, so you can see
+whether host tuning pays off on your machine. The two give the same answers; only the time differs.
+It is host-only: device code always uses the defaults, so there is no GPU build of it.
 
 Building
 --------
@@ -62,6 +63,7 @@ Running
 
 It prints the default and host-tuned `K` and `W` for this build, then the time for 200,000
 closest-point queries on a 200,000-point cloud and for 200,000 signed-distance queries on the
-mesh, each with both choices. Without an argument the mesh is the dodecahedron fixture in
-`Tests/data`, which is too small for the timing to mean much; pass a larger mesh, for example
+mesh, each with both choices, and the first query's result from each so you can see they agree.
+Without an argument the mesh is the small dodecahedron in `Examples/data`, which is too small for the
+timing to mean much; pass a larger mesh, for example
 `../../common-3d-test-models/data/armadillo.obj` from the submodule, to compare.
