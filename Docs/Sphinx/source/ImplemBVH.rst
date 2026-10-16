@@ -684,17 +684,19 @@ of the ISA paths matches, and an ordinary scalar loop over the ``K`` children ot
 also what device code runs). Both compute the same quantity in the same association order, and each
 vector maximum takes its operands in the order of the scalar path's comparison, so they agree
 bit-for-bit, a NaN coordinate included (it counts as inside the box along that axis, so it never
-prunes a child) -- a query answered on a build with no SIMD returns exactly what the same query
-returns on an AVX-512 build, and the unit tests pin this by sweeping ``K`` across values that do and
-do not have a vector path and requiring exact equality. The one exception is a compiler that
-contracts the scalar path's multiply and add into a fused multiply-add, which the intrinsics never
-do. By default Clang does so within an expression, and GCC in its GNU language modes
-(``-std=gnu++17``; EBGeometry's own CMake build uses ``-std=c++17``), whenever FMA is enabled (with
-``-march=native`` on most current CPUs, say), and the two paths can then differ in the last bit.
-Stack handling, pruning, child ordering and leaf dispatch are shared code in every configuration.
-Because the bound is re-read from the current ``State`` at every node visited -- never cached from
-the start of the traversal -- a leaf visited anywhere earlier on the stack immediately tightens the
-pruning applied to every node visited afterwards, regardless of which subtree it came from.
+prunes a child; a build with ``-ffast-math`` lets the compiler assume there are no NaNs, and then
+neither path promises anything for one) -- a query answered on a build with no SIMD returns exactly
+what the same query returns on an AVX-512 build, and the unit tests pin this by sweeping ``K``
+across values that do and do not have a vector path and requiring exact equality. The one exception
+is a compiler that contracts the scalar path's multiply and add into a fused multiply-add, which the
+intrinsics never do. By default Clang does so within an expression, and GCC in its GNU language
+modes (``-std=gnu++17``; EBGeometry's own CMake build uses ``-std=c++17``), whenever FMA is enabled
+(with ``-march=native`` on most current CPUs, say), and the two paths can then differ in the last
+bit. Stack handling, pruning, child ordering and leaf dispatch are shared code in every
+configuration. Because the bound is re-read from the current ``State`` at every node visited --
+never cached from the start of the traversal -- a leaf visited anywhere earlier on the stack
+immediately tightens the pruning applied to every node visited afterwards, regardless of which
+subtree it came from.
 
 .. _Sec:TraversalStack:
 
