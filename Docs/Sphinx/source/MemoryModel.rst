@@ -119,9 +119,9 @@ bump-allocates a sub-region and returns its byte offset from
 ever individually freed. If the block is too small, ``reserve`` transparently grows it: it allocates
 a new, larger block (geometric doubling), ``memcpy``\ s every byte currently in use into it, and
 **frees the old block** -- so ``base()`` can change on any ``reserve()`` call. A block holds at most
-the largest multiple of the 256-byte base alignment that a ``size_t`` holds; a request that, with the
-bytes already reserved, would need more aborts in every build rather than wrapping round to a
-smaller size.
+the largest multiple of the 256-byte base alignment that a ``size_t`` holds. An initial size passed
+to the constructor, or a request that with the bytes already reserved would need more, aborts in
+every build (see :ref:`Sec:AlwaysOnChecks`) rather than wrapping round to a smaller size.
 
 Building and querying are not separate phases. A pool-resident object is usable from the moment its
 storage is reserved, including while the same pool keeps being built into, because it does not
