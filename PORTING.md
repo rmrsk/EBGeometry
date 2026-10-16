@@ -590,8 +590,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **MEM-15** [NIT]: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for
-  overflow, so a huge request can wrap and reserve too little.
 * **BVH-16** [NIT]: some allocating functions are `noexcept` (`SFC::computeBins`,
   `TreeBVH::traverse` and `setChildren`, two partitioner lambdas), so running out of memory there
   terminates instead of throwing.

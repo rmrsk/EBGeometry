@@ -210,6 +210,62 @@ TEST_CASE("Pool: reserve with an invalid alignment aborts", "[Pool][death]")
     std::string(message) + " (512)"));
 }
 
+TEST_CASE("Pool: a reservation larger than a block can hold aborts", "[Pool][death]")
+{
+  // A block holds at most the largest multiple of PoolBaseAlign a size_t holds. The first three
+  // requests used to wrap round silently: the element count to a small byte count, the cursor back
+  // over bytes already reserved, and the initial block to zero bytes.
+  const char* const tooMany = "are more than a pool block can hold";
+
+  // 2^61 + 1 elements of 8 bytes on a 64-bit size_t: the product wraps to 8 bytes.
+  CHECK(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(SIZE_MAX / 8 + 2, 8, 8);
+    },
+    std::string("elements of 8 bytes ") + tooMany));
+
+  // Added to the 16 bytes already reserved, the end wraps to 7.
+  CHECK(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(16, 1, 1);
+      (void)pool.reserve(SIZE_MAX - 8, 1, 1);
+    },
+    std::string("elements of 1 bytes ") + tooMany));
+
+  CHECK(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource(), SIZE_MAX);
+
+      (void)pool.base();
+    },
+    std::string("an initial block of ") + std::to_string(SIZE_MAX) + " bytes is more than a pool block can hold"));
+
+  // A request that fits a block on its own, but not after the 16 bytes already reserved.
+  CHECK(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      (void)pool.reserve(16, 1, 1);
+      (void)pool.reserve(SIZE_MAX - PoolBaseAlign - 8, 1, 1);
+    },
+    std::string("more bytes after the 16 already reserved ") + tooMany));
+}
+
+TEST_CASE("Pool: a reservation of zero-byte elements reserves nothing, however many", "[Pool]")
+{
+  Pool pool(hostMemoryResource());
+
+  (void)pool.reserve(3, 1, 1);
+
+  // Only the alignment can move the cursor; a zero product never overflows.
+  REQUIRE(pool.reserve(SIZE_MAX, 0, 8) == 8);
+  REQUIRE(pool.usedBytes() == 8);
+}
+
 TEST_CASE("Pool: mirror of a non-frozen pool aborts", "[Pool][death]")
 {
   REQUIRE(abortsWith(

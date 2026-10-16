@@ -201,10 +201,10 @@ Test coverage
        ``hostMemoryResource()`` instance, and a ``Pool`` with static storage freeing its block at
        program exit.
    * - ``TestPool``
-     - ``Pool``: growth preserving earlier contents and every type's alignment, ``freeze`` and the
-       reservations it then rejects, moves (including the control block surviving a vector
-       reallocation), mirroring onto a non-host resource, pool identities, and a mirrored
-       ``PODVector`` read back on the device.
+     - ``Pool``: growth preserving earlier contents and every type's alignment, the requests too
+       large for a block, which abort, ``freeze`` and the reservations it then rejects, moves
+       (including the control block surviving a vector reallocation), mirroring onto a non-host
+       resource, pool identities, and a mirrored ``PODVector`` read back on the device.
    * - ``TestPODVector``
      - ``PODVector``/``PODSpan``: the 16-byte trivially copyable layout, ``reserveFrom``/
        ``push_back``/``assign``/``bind`` round trips, element alignment, and the aborts on writing
