@@ -306,7 +306,7 @@ Test coverage
        nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
        extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
        fewest power-of-``K`` leaves; a :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns,
-       built both ways and traversed; and an empty BVH.
+       built both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
        primitives, including far from the blend region;

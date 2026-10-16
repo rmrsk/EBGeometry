@@ -590,8 +590,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **BVH-13** [MINOR]: `PackedBVH::getBoundingVolume()` on an empty BVH is caught only by an
-  `EBGEOMETRY_EXPECT`, and `finalize()` narrows sizes to `uint32_t` unchecked.
 * **MEM-15** [NIT]: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for
   overflow, so a huge request can wrap and reserve too little.
 * **BVH-16** [NIT]: some allocating functions are `noexcept` (`SFC::computeBins`,

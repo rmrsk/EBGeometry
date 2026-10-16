@@ -935,8 +935,8 @@ public:
 
   /**
    * @brief Get the bounding volume of the root node.
-   * @details An empty BVH has no root, so this must not be called on one (an EBGEOMETRY_EXPECT
-   * checks it); computeBoundingVolume() handles that case.
+   * @details An empty BVH has no root, so calling this on one aborts, in every build;
+   * computeBoundingVolume() handles that case.
    * @return Reference to the root node's bounding volume.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1085,7 +1085,8 @@ private:
    * and primitive arrays in ordinary std::vectors first -- a host-only build step, where growth is
    * natural and the final sizes are not always known up front -- and then hands them here to be
    * reserved and copied into the pool in one shot. Nothing that crosses to a device is ever built
-   * incrementally.
+   * incrementally. Aborts, in every build, if either array has more elements than 32-bit indices can
+   * number, or if the node array is malformed.
    * @param[in,out] a_pool        Pool to reserve from.
    * @param[in]     a_linearNodes Completed flat node array.
    * @param[in]     a_primitives  Completed primitive array.
