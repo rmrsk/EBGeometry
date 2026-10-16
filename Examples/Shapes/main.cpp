@@ -156,8 +156,9 @@ main()
 
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
   //
-  // GPU::transform(query, points) runs the query once per point: in a kernel when this file is compiled
-  // as CUDA or HIP (make GPU=CUDA, or -DEBGEOMETRY_EXAMPLE_GPU=CUDA), and in a host loop otherwise, so
+  // GPU::transform(query, points, results) runs the query once per point, writing into results (which
+  // the caller sizes): in a kernel when this file is compiled as CUDA or HIP (make GPU=CUDA, or
+  // -DEBGEOMETRY_EXAMPLE_GPU=CUDA), and in a host loop otherwise, so
   // the same lines compile and run in both builds. It copies the points to the device and the results
   // back. A shape needs no copying of its own: it reaches the kernel inside the query.
   if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
@@ -170,7 +171,9 @@ main()
       points.emplace_back(T(0.25) * T(i), T(0), T(0));
     }
 
-    const std::vector<T> distances = EBGeometry::GPU::transform(Distance<EBGeometry::TorusSDF<T>>{torus}, points);
+    std::vector<T> distances(points.size());
+
+    EBGeometry::GPU::transform(Distance<EBGeometry::TorusSDF<T>>{torus}, points, distances);
 
     std::cout << "\nThe torus along the x axis, through GPU::transform (backend: " << EBGeometry::GPU::backendName
               << "):\n";

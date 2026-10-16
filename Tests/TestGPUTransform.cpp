@@ -6,6 +6,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -170,7 +171,55 @@ struct SphereDistance
 
 } // namespace
 
-TEMPLATE_TEST_CASE("GPU::transform over spans: inputs and results stay in a mirrored pool",
+namespace {
+
+// The points and zeroed room for the results in one pool, mirrored into device memory in one piece.
+// The query runs through the span overload or the pool overload, and the results come back to the
+// host; the inputs must come back unchanged.
+template <class T>
+std::vector<T>
+runInMirroredPool(const SphereDistance<T>& a_query, const std::vector<Vec3T<T>>& a_points, const bool a_poolOverload)
+{
+  const auto n = static_cast<uint32_t>(a_points.size());
+
+  Pool                 hostPool(hostMemoryResource());
+  PODVector<Vec3T<T>>  in;
+  PODVector<T>         out;
+  const std::vector<T> zeros(n, T(0));
+
+  in.reserveFrom(hostPool, n);
+  out.reserveFrom(hostPool, n);
+  in.assign(hostPool.base(), a_points.data(), n);
+  out.assign(hostPool.base(), zeros.data(), n);
+  hostPool.freeze();
+
+  const Pool devicePool = Pool::mirror(hostPool, EBGeometryTestGPU::deviceTestResource());
+
+  if (a_poolOverload) {
+    GPU::transform(a_query, devicePool, in, out);
+  }
+  else {
+    const void* const deviceBase = devicePool.base();
+
+    GPU::transform(a_query, in.bind(deviceBase), out.bind(devicePool.base()));
+  }
+
+  const Pool back = Pool::mirror(devicePool, hostMemoryResource());
+
+  std::vector<T> results(n);
+
+  for (uint32_t i = 0; i < n; i++) {
+    REQUIRE(in.at(back.base(), i) == a_points[i]);
+
+    results[i] = out.at(back.base(), i);
+  }
+
+  return results;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("GPU::transform over spans and over a pool: inputs and results stay in a mirrored pool",
                    "[GPU][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -185,44 +234,13 @@ TEMPLATE_TEST_CASE("GPU::transform over spans: inputs and results stay in a mirr
   const SphereDistance<T> query{SphereSDF<T>(Vec3T<T>(T(0.1), T(-0.2), T(0.3)), T(0.7))};
 
   const std::vector<Vec3T<T>> points = queryGrid<T>(Vec3T<T>(T(-1), T(-1), T(-1)), Vec3T<T>(T(1), T(1), T(1)), 13);
-  const auto                  n      = static_cast<uint32_t>(points.size());
+  const std::vector<T>        onHost = evaluateOnHost<T>(query, points);
 
-  // The points and room for the results in one pool, mirrored into device memory in one piece.
-  Pool                 hostPool(hostMemoryResource());
-  PODVector<Vec3T<T>>  in;
-  PODVector<T>         out;
-  const std::vector<T> zeros(n, T(0));
-
-  in.reserveFrom(hostPool, n);
-  out.reserveFrom(hostPool, n);
-  in.assign(hostPool.base(), points.data(), n);
-  out.assign(hostPool.base(), zeros.data(), n);
-  hostPool.freeze();
-
-  const Pool devicePool = Pool::mirror(hostPool, deviceTestResource());
-
-  const void* const deviceBase = devicePool.base();
-
-  GPU::transform(query, in.bind(deviceBase), out.bind(devicePool.base()));
-
-  // Bring the results back and compare with the host, element by element.
-  const Pool back = Pool::mirror(devicePool, hostMemoryResource());
-
-  std::vector<T> onDevice(n);
-
-  for (uint32_t i = 0; i < n; i++) {
-    onDevice[i] = out.at(back.base(), i);
-  }
-
-  requireSameResults(onDevice, evaluateOnHost<T>(query, points));
-
-  // The inputs are still there: the call wrote only the results.
-  for (uint32_t i = 0; i < n; i++) {
-    REQUIRE(in.at(back.base(), i) == points[i]);
-  }
+  requireSameResults(runInMirroredPool(query, points, false), onHost);
+  requireSameResults(runInMirroredPool(query, points, true), onHost);
 }
 
-TEMPLATE_TEST_CASE("GPU::transform over vectors: the same results at any block size",
+TEMPLATE_TEST_CASE("GPU::transform over vectors: the same results at any block size, into a reused output",
                    "[GPU][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -237,14 +255,28 @@ TEMPLATE_TEST_CASE("GPU::transform over vectors: the same results at any block s
   const SphereDistance<T> query{SphereSDF<T>(Vec3T<T>::zeros(), T(1))};
 
   const std::vector<Vec3T<T>> points = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-2)), Vec3T<T>(T(2), T(2), T(2)), 11);
+  const std::vector<T>        onHost = evaluateOnHost<T>(query, points);
 
-  const std::vector<T> onHost = evaluateOnHost<T>(query, points);
+  // One output, written over by every call.
+  std::vector<T> results(points.size(), T(0));
 
-  requireSameResults(GPU::transform(query, points), onHost);
-  requireSameResults(GPU::transform<64>(query, points), onHost);
-  requireSameResults(GPU::transform<512>(query, points), onHost);
+  GPU::transform(query, points, results);
+  requireSameResults(results, onHost);
 
-  CHECK(GPU::transform(query, std::vector<Vec3T<T>>{}).empty());
+  std::fill(results.begin(), results.end(), T(0));
+  GPU::transform<64>(query, points, results);
+  requireSameResults(results, onHost);
+
+  std::fill(results.begin(), results.end(), T(0));
+  GPU::transform<512>(query, points, results);
+  requireSameResults(results, onHost);
+
+  const std::vector<Vec3T<T>> none;
+  std::vector<T>              noResults;
+
+  GPU::transform(query, none, noResults);
+
+  CHECK(noResults.empty());
 }
 
 TEST_CASE("GPU::transform over spans: as many results as inputs, or abort", "[GPU][death]")
@@ -273,4 +305,164 @@ TEST_CASE("GPU::parallelFor: more indices than a grid can hold abort", "[GPU][de
       GPU::parallelFor<64>(tooMany, WriteIndex{PODSpan<uint32_t>{nullptr, 0}}); // must abort
     },
     "GPU::parallelFor: at most (2^31 - 1) * 64 indices at this block size"));
+}
+
+TEST_CASE("GPU::transform over vectors: as many results as inputs, or abort", "[GPU][death]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      const SphereDistance<double> query{SphereSDF<double>(Vec3T<double>::zeros(), 1.0)};
+
+      const std::vector<Vec3T<double>> points(4, Vec3T<double>::ones());
+      std::vector<double>              results; // not resized for you
+
+      GPU::transform(query, points, results); // must abort
+    },
+    "GPU::transform: there must be as many results as inputs (4 inputs, 0 results)"));
+}
+
+TEST_CASE("GPU::transform over a pool: the pool must be frozen and device-accessible, or abort", "[GPU][death]")
+{
+  const SphereDistance<double> query{SphereSDF<double>(Vec3T<double>::zeros(), 1.0)};
+
+  // Stages two points and two results in a pool over a_resource, frozen or not, and runs the query.
+  const auto run = [query](MemoryResource& a_resource, const bool a_freeze) {
+    Pool                     pool(a_resource);
+    PODVector<Vec3T<double>> in;
+    PODVector<double>        out;
+    const Vec3T<double>      points[2] = {Vec3T<double>::ones(), Vec3T<double>::zeros()};
+    const double             zeros[2]  = {0.0, 0.0};
+
+    in.reserveFrom(pool, 2);
+    out.reserveFrom(pool, 2);
+    in.assign(pool.base(), points, 2);
+    out.assign(pool.base(), zeros, 2);
+
+    if (a_freeze) {
+      pool.freeze();
+    }
+
+    GPU::transform(query, pool, in, out);
+  };
+
+  // A host pool is rejected in every build, including a host build where the emulated device memory
+  // would be accepted.
+  REQUIRE(abortsWith([&run] { run(hostMemoryResource(), true); },
+                     "GPU::transform: the pool must be in device-accessible memory"));
+
+  // Built directly in (emulated) device-accessible memory but never frozen.
+  REQUIRE(
+    abortsWith([&run] { run(emulatedDeviceMemoryResource(), false); }, "GPU::transform: the pool must be frozen"));
+}
+
+namespace {
+
+// A query whose input and result types are the same, so that the results can overwrite the inputs.
+template <class T>
+struct Twice
+{
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const T& a_value) const noexcept
+  {
+    return T(2) * a_value;
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("GPU::transform over a pool: a pool built in place, and results written over the inputs",
+                   "[GPU][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  // Managed memory in a GPU build; in a host build, emulated device memory, which takes the same path:
+  // the arrays are written in place, the pool is frozen, and nothing is mirrored.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  MemoryResource& resource = managedMemoryResource();
+#else
+  MemoryResource& resource = emulatedDeviceMemoryResource();
+#endif
+
+  const SphereDistance<T>     query{SphereSDF<T>(Vec3T<T>(T(0.2), T(0), T(-0.1)), T(0.5))};
+  const std::vector<Vec3T<T>> points = queryGrid<T>(Vec3T<T>(T(-1), T(-1), T(-1)), Vec3T<T>(T(1), T(1), T(1)), 9);
+  const auto                  n      = static_cast<uint32_t>(points.size());
+  const std::vector<T>        zeros(n, T(0));
+
+  std::vector<T> values(n);
+
+  for (uint32_t i = 0; i < n; i++) {
+    values[i] = T(i) / T(7);
+  }
+
+  Pool                pool(resource);
+  PODVector<Vec3T<T>> in;
+  PODVector<T>        out;
+  PODVector<T>        inPlace;
+
+  in.reserveFrom(pool, n);
+  out.reserveFrom(pool, n);
+  inPlace.reserveFrom(pool, n);
+  in.assign(pool.base(), points.data(), n);
+  out.assign(pool.base(), zeros.data(), n);
+  inPlace.assign(pool.base(), values.data(), n);
+  pool.freeze();
+
+  GPU::transform(query, pool, in, out);
+  GPU::transform(Twice<T>{}, pool, inPlace, inPlace);
+
+  // Managed and emulated memory are both readable from the host once the call has returned.
+  std::vector<T> onDevice(n);
+
+  for (uint32_t i = 0; i < n; i++) {
+    onDevice[i] = out.at(pool.base(), i);
+
+    REQUIRE(inPlace.at(pool.base(), i) == T(2) * values[i]);
+  }
+
+  requireSameResults(onDevice, evaluateOnHost<T>(query, points));
+}
+
+TEST_CASE("GPU::transform over a pool: arrays that end past the pool abort", "[GPU][death]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      const SphereDistance<double> query{SphereSDF<double>(Vec3T<double>::zeros(), 1.0)};
+
+      // Two small arrays in a frozen pool, and a third reserved from another pool further along, so that
+      // its offset runs past the first pool.
+      Pool                     pool(emulatedDeviceMemoryResource());
+      Pool                     other(emulatedDeviceMemoryResource());
+      PODVector<Vec3T<double>> in;
+      PODVector<double>        out;
+      PODVector<double>        stray;
+
+      in.reserveFrom(pool, 2);
+      out.reserveFrom(pool, 2);
+      (void)other.reserve(4096, 1, 1);
+      stray.reserveFrom(other, 2);
+      pool.freeze();
+
+      GPU::transform(query, pool, in, stray); // must abort
+    },
+    "GPU::transform: the arrays must fit inside the pool"));
+}
+
+TEST_CASE("GPU::transform over spans: inputs and results that partly overlap abort", "[GPU][death]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      std::vector<double> values(8, 1.0);
+
+      // The results start one element into the inputs.
+      GPU::transform(Twice<double>{}, PODSpan<const double>{values.data(), 4}, PODSpan<double>{values.data() + 1, 4});
+    },
+    "GPU::transform: the inputs and the results must be the same array or not overlap"));
 }

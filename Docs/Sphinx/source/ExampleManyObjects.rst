@@ -65,8 +65,8 @@ CUDA or HIP build) and each union rebased onto the copy with ``rebasedView()``, 
 :ref:`Chap:ExampleMeshSDF`.
 
 The one-call
-`GPU::transform(query, points) <doxygen/html/EBGeometry__GPUTransform_8hpp.html>`__ takes the points
-in a host ``std::vector`` and returns the results in another. In a GPU build, every call allocates
+`GPU::transform(query, points, results) <doxygen/html/EBGeometry__GPUTransform_8hpp.html>`__ takes
+the points in a host ``std::vector`` and writes the results into another. In a GPU build, every call allocates
 device memory, copies the points in, runs the kernel, copies the results out and frees the memory, so
 timing it times all of that. To time the queries alone, the example puts the points, and room for the
 results, on the device first. Both are
@@ -83,13 +83,14 @@ once:
 
    const Pool devicePool = Pool::mirror(hostPool, GPU::memoryResource());
 
-   GPU::transform(query, in.bind(devicePool.base()), out.bind(devicePool.base()));
+   GPU::transform(query, devicePool, in, out);
 
-``bind()`` turns a ``PODVector`` (an offset and a size) into a
-`PODSpan <doxygen/html/structEBGeometry_1_1PODSpan.html>`__ (a pointer and a size) into the copy it is
-given. The span overload of ``GPU::transform`` reads and writes where the spans point, with no
-allocation and no copies. Mirroring ``devicePool`` back to host memory then makes the results
-readable.
+A ``PODVector`` is an offset and a size, so the pool overload of ``GPU::transform`` takes the pool
+both arrays live in. It checks that the pool is frozen and in memory the device can reach, then
+reads and writes the arrays where they are, with no allocation and no copies. Mirroring
+``devicePool`` back to host memory then makes the results readable. (The span overload, over
+`PODSpan <doxygen/html/structEBGeometry_1_1PODSpan.html>`__\ s from ``in.bind(devicePool.base())``,
+does the same without the check.)
 
 The program prints both times per point. On a GPU the gap between them is the copying. In a plain
 C++ build the section runs on the host, where ``GPU::memoryResource()`` is host memory standing in

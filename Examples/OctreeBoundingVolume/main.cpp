@@ -103,9 +103,9 @@ main()
 
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
   //
-  // GPU::transform(query, depths) runs one estimate per depth: in a kernel when this file is compiled as
-  // CUDA or HIP, and in a host loop otherwise. The shapes are plain values inside the query, so nothing
-  // needs copying to the device first. Deeper estimates are tighter.
+  // GPU::transform(query, depths, boxes) runs one estimate per depth, writing into boxes: in a kernel
+  // when this file is compiled as CUDA or HIP, and in a host loop otherwise. The shapes are plain values
+  // inside the query, so nothing needs copying to the device first. Deeper estimates are tighter.
   if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
     std::cout << "\nOn the device: skipped, no GPU is visible\n";
   }
@@ -116,7 +116,9 @@ main()
       depths.push_back(depth);
     }
 
-    const std::vector<AABB> boxes = EBGeometry::GPU::transform(EstimateBox{shapes, initLo, initHi}, depths);
+    std::vector<AABB> boxes(depths.size());
+
+    EBGeometry::GPU::transform(EstimateBox{shapes, initLo, initHi}, depths, boxes);
 
     std::cout << "\nThe union's estimate by depth, through GPU::transform (backend: " << EBGeometry::GPU::backendName
               << "):\n";

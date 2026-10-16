@@ -155,8 +155,8 @@ try {
   //   2. Pool::mirror() copies the whole block, every mesh and BVH in it, in one piece into
   //      GPU::memoryResource() (device memory in a CUDA or HIP build);
   //   3. rebasedView() gives a descriptor of the same SDF that resolves against the copy.
-  // GPU::transform() then runs the query once per point in a kernel and returns the results to the
-  // host. In a plain C++ build, memoryResource() is host memory standing in for a device and transform()
+  // GPU::transform() then runs the query once per point in a kernel and writes the results into a host
+  // vector. In a plain C++ build, memoryResource() is host memory standing in for a device and transform()
   // is a host loop, so these lines also run there. The values agree with the host's to rounding, since
   // a device compiler may fuse a multiply and an add where the host compiler does not.
   if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
@@ -169,7 +169,9 @@ try {
 
     const Distance query{triSDF.rebasedView(devicePool)};
 
-    const std::vector<T> onDevice = EBGeometry::GPU::transform(query, points);
+    std::vector<T> onDevice(points.size());
+
+    EBGeometry::GPU::transform(query, points, onDevice);
 
     std::cout << "\nTriMeshSDF through GPU::transform (backend: " << EBGeometry::GPU::backendName << "):\n";
 
