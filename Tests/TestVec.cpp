@@ -5,6 +5,8 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <cmath>
+#include <limits>
 #include <type_traits>
 #include <utility>
 
@@ -370,6 +372,68 @@ struct VecQuery
     return v[static_cast<size_t>(m_component)];
   }
 };
+
+TEMPLATE_TEST_CASE("Vec2T/Vec3T: dividing by a scalar divides each component",
+                   "[Vec2T][Vec3T]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // x * (1/3) differs from x / 3 in the last bit for x = 5, 7 and 10, in float and in double. Division
+  // used to multiply by the reciprocal.
+  const T s = T(3);
+
+  const Vec3T<T> u(T(5), T(7), T(10));
+  Vec3T<T>       w = u;
+
+  w /= s;
+
+  for (int i = 0; i < 3; i++) {
+    CHECK((u / s)[i] == u[i] / s);
+    CHECK(w[i] == u[i] / s);
+  }
+
+  const Vec2T<T> a(T(5), T(7));
+  Vec2T<T>       b = a;
+
+  b /= s;
+
+  CHECK((a / s).x == a.x / s);
+  CHECK((a / s).y == a.y / s);
+  CHECK(b.x == a.x / s);
+  CHECK(b.y == a.y / s);
+}
+
+TEMPLATE_TEST_CASE("Vec2T/Vec3T: min and max keep the first vector's component for a NaN, like Math::min/max",
+                   "[Vec2T][Vec3T]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // They used to return the second vector's component, so the result depended on the argument order.
+  const T nan = std::numeric_limits<T>::quiet_NaN();
+
+  const Vec3T<T> withNaN(nan, T(1), T(2));
+  const Vec3T<T> finite(T(0), T(0), T(3));
+
+  CHECK(std::isnan(min(withNaN, finite)[0]));
+  CHECK(std::isnan(max(withNaN, finite)[0]));
+  CHECK(min(finite, withNaN)[0] == T(0));
+  CHECK(max(finite, withNaN)[0] == T(0));
+
+  CHECK(min(withNaN, finite)[1] == T(0));
+  CHECK(max(withNaN, finite)[2] == T(3));
+
+  const Vec2T<T> a(nan, T(1));
+  const Vec2T<T> b(T(0), T(2));
+
+  CHECK(std::isnan(min(a, b).x));
+  CHECK(std::isnan(max(a, b).x));
+  CHECK(min(b, a).x == T(0));
+  CHECK(max(b, a).x == T(0));
+  CHECK(min(a, b).y == T(1));
+  CHECK(max(a, b).y == T(2));
+}
 
 TEMPLATE_TEST_CASE("Vec3T: device query surface matches the host", "[Vec3T][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {

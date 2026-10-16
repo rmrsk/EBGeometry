@@ -111,9 +111,7 @@ Vec2T<T>::operator/(const T& s) const noexcept
 {
   EBGEOMETRY_EXPECT(s != T(0));
 
-  const T is = T(1) / s;
-
-  return Vec2T<T>(x * is, y * is);
+  return Vec2T<T>(x / s, y / s);
 }
 
 template <typename T>
@@ -156,10 +154,8 @@ Vec2T<T>::operator/=(const T& s) noexcept
 {
   EBGEOMETRY_EXPECT(s != T(0));
 
-  const T is = T(1) / s;
-
-  x *= is;
-  y *= is;
+  x /= s;
+  y /= s;
 
   return (*this);
 }
@@ -339,8 +335,7 @@ Vec3T<T>::operator/(const T& s) const noexcept
 {
   EBGEOMETRY_EXPECT(s != T(0));
 
-  const T is = T(1) / s;
-  return Vec3T<T>(is * m_X[0], is * m_X[1], is * m_X[2]);
+  return Vec3T<T>(m_X[0] / s, m_X[1] / s, m_X[2] / s);
 }
 
 template <typename T>
@@ -398,11 +393,9 @@ Vec3T<T>::operator/=(const T& s) noexcept
 {
   EBGEOMETRY_EXPECT(s != T(0));
 
-  const T is = T(1) / s;
-
-  m_X[0] *= is;
-  m_X[1] *= is;
-  m_X[2] *= is;
+  m_X[0] /= s;
+  m_X[1] /= s;
+  m_X[2] /= s;
 
   return (*this);
 }
@@ -528,7 +521,7 @@ EBGEOMETRY_HOST_DEVICE
 inline Vec2T<T>
 min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept
 {
-  return Vec2T<T>((u.x < v.x ? u.x : v.x), (u.y < v.y ? u.y : v.y));
+  return Vec2T<T>(Math::min(u.x, v.x), Math::min(u.y, v.y));
 }
 
 template <typename T>
@@ -536,7 +529,7 @@ EBGEOMETRY_HOST_DEVICE
 inline Vec2T<T>
 max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept
 {
-  return Vec2T<T>((u.x > v.x ? u.x : v.x), (u.y > v.y ? u.y : v.y));
+  return Vec2T<T>(Math::max(u.x, v.x), Math::max(u.y, v.y));
 }
 
 template <typename T>
@@ -588,7 +581,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
 {
-  return Vec3T<T>((u[0] < v[0] ? u[0] : v[0]), (u[1] < v[1] ? u[1] : v[1]), (u[2] < v[2] ? u[2] : v[2]));
+  return Vec3T<T>(Math::min(u[0], v[0]), Math::min(u[1], v[1]), Math::min(u[2], v[2]));
 }
 
 template <typename T>
@@ -596,7 +589,7 @@ EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
 {
-  return Vec3T<T>((u[0] > v[0] ? u[0] : v[0]), (u[1] > v[1] ? u[1] : v[1]), (u[2] > v[2] ? u[2] : v[2]));
+  return Vec3T<T>(Math::max(u[0], v[0]), Math::max(u[1], v[1]), Math::max(u[2], v[2]));
 }
 
 template <typename T>
