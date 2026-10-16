@@ -204,8 +204,10 @@ Test coverage
      - ``GPU::parallelFor`` and ``GPU::transform``: every index run exactly once at several block
        sizes and counts (including a partial last block) and the abort beyond a grid's capacity; the
        span and pool overloads over inputs and results in a mirrored pool; the vector overload at
-       different block sizes into a reused output; the aborts on mismatched sizes and on a pool that
-       is not frozen or not device-accessible; and
+       different block sizes into a reused output; a pool built in place in managed memory, with
+       results written over the inputs; the aborts on mismatched sizes, on partly overlapping inputs
+       and results, and on a pool that is not frozen, not device-accessible, or that the arrays do
+       not fit in; and
        ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
    * - ``TestPool``
      - ``Pool``: growth preserving earlier contents and every type's alignment, the requests too

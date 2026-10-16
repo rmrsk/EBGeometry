@@ -168,6 +168,19 @@ transform(const Query& a_query, const PODSpan<In> a_in, const PODSpan<Out> a_out
                      a_in.size(),
                      a_out.size());
 
+  // A thread reads its input before it writes its result, so the results may overwrite the inputs in
+  // place, element for element. A partial overlap would have one thread read what another writes.
+  const auto inBegin  = reinterpret_cast<std::uintptr_t>(a_in.m_ptr);
+  const auto outBegin = reinterpret_cast<std::uintptr_t>(a_out.m_ptr);
+  const auto inEnd    = inBegin + std::uintptr_t(a_in.size()) * sizeof(In);
+  const auto outEnd   = outBegin + std::uintptr_t(a_out.size()) * sizeof(Out);
+
+  const bool inPlace  = std::is_same_v<std::remove_const_t<In>, Out> && inBegin == outBegin;
+  const bool disjoint = inEnd <= outBegin || outEnd <= inBegin;
+
+  EBGEOMETRY_REQUIRE(a_in.size() == 0 || inPlace || disjoint,
+                     "GPU::transform: the inputs and the results must be the same array or not overlap");
+
   parallelFor<BlockSize>(a_in.size(), TransformDetail::Apply<Query, In, Out>{a_query, a_in.m_ptr, a_out.m_ptr});
 }
 
@@ -179,6 +192,15 @@ transform(const Query& a_query, const Pool& a_pool, const PODVector<In>& a_in, c
   EBGEOMETRY_REQUIRE(a_pool.resource().isDeviceAccessible(),
                      "GPU::transform: the pool must be in device-accessible memory (a mirror into "
                      "GPU::memoryResource(), or managed memory)");
+
+  // A PODVector holds an offset, not its pool, so this is as far as membership can be checked: an array
+  // reserved after the pool was mirrored, or from a larger pool, ends past it.
+  EBGEOMETRY_REQUIRE(a_in.endByte() <= a_pool.usedBytes() && a_out.endByte() <= a_pool.usedBytes(),
+                     "GPU::transform: the arrays must fit inside the pool (they end at bytes %llu and %llu, the "
+                     "pool holds %zu)",
+                     static_cast<unsigned long long>(a_in.endByte()),
+                     static_cast<unsigned long long>(a_out.endByte()),
+                     a_pool.usedBytes());
 
   // The inputs are bound against a const base, so the query sees them read-only.
   const void* const inBase = a_pool.base();
@@ -194,6 +216,8 @@ transform(const Query& a_query, const std::vector<In>& a_in, std::vector<Out>& a
   static_assert(std::is_trivially_copyable_v<Out>, "GPU::transform: a result must be trivially copyable");
   static_assert(!std::is_same_v<In, bool> && !std::is_same_v<Out, bool>,
                 "GPU::transform: std::vector<bool> has no contiguous storage; use char or a struct instead");
+  static_assert(std::is_same_v<Out, TransformResult<Query, In>>,
+                "GPU::transform: the results must have the query's result type");
 
   const std::size_t n = a_in.size();
 

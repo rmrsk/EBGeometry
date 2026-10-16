@@ -145,7 +145,9 @@ parallelFor(std::size_t a_n, const F& a_f);
  * same points. A span is a pointer and a count: bind a PODVector against the base of a pool mirrored
  * into memoryResource() (inputs) or of a pool reserved there (results), or wrap managed memory or a
  * buffer the application already owns on the device. In a host build the spans are host memory. The
- * query runs through parallelFor(), with its requirements.
+ * results may overwrite the inputs in place (the same array, when In and Out are the same type), but
+ * the two must otherwise not overlap, which aborts with a message. The query runs through
+ * parallelFor(), with its requirements.
  * @tparam BlockSize Threads per block; see parallelFor().
  * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
  * const In&.
@@ -168,9 +170,13 @@ transform(const Query& a_query, PODSpan<In> a_in, PODSpan<Out> a_out);
  * message, in every build, unless the pool is frozen (as rebasedView() requires of a device-accessible
  * pool) and its resource is device-accessible: a mirror into memoryResource(), or a pool built in
  * managed memory. A pool in hostMemoryResource() is therefore rejected in a host build too, where
- * memoryResource() is the emulated device resource. Freezing forbids reservations, not writes, so the
- * results can be written into a frozen pool. Arrays in two different pools, or not in a pool at all,
- * go through the span overload.
+ * memoryResource() is the emulated device resource. A PODVector holds an offset, not its pool, so
+ * membership can be checked only as far as both arrays ending inside the pool's used bytes, which
+ * also aborts otherwise; that an array really belongs to this pool (or a mirror of its pool) is the
+ * caller's responsibility. The inputs are bound read-only. Freezing forbids reservations, not writes,
+ * so the results can be written into a frozen pool, in place over the inputs or into a disjoint array
+ * as for the span overload. Arrays in two different pools, or not in a pool at all, go through the
+ * span overload.
  * @tparam BlockSize Threads per block; see parallelFor().
  * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
  * const In&.

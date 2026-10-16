@@ -59,7 +59,9 @@ device:
 Every call below is synchronous: it returns once the kernel has finished. Like ``std::transform`` and
 ``thrust::transform``, every ``transform`` writes into an output the caller provides: it requires as
 many results as inputs, and results of exactly the query's result type, and it never resizes or
-allocates the output. Every runtime call
+allocates the output. The results may overwrite the inputs in place (the same array, when the input
+and result types are the same), but otherwise must not overlap them; a partial overlap aborts with a
+message. Every runtime call
 they make is checked, and an error aborts with the call that failed. Their functors must be
 trivially copyable, which is checked at compile time in both builds, so a functor that could not
 reach a kernel fails to compile on the host too. Write a functor as a struct with an
@@ -134,7 +136,10 @@ measured, and the one to use for repeated queries over the same points.
 
 A ``PODVector`` is an offset into a pool, so the call takes the pool too. Before it launches, it
 checks that the pool is frozen (as ``rebasedView()`` requires of a device-accessible pool) and that
-its memory is device-accessible, and aborts with a message otherwise. A pool left in
+its memory is device-accessible, and that both arrays end inside it, and aborts with a message
+otherwise. (A ``PODVector`` is an offset, not a reference to its pool, so that an array really
+belongs to *this* pool or a mirror of it remains the caller's responsibility.) The inputs are bound
+read-only. A pool left in
 ``hostMemoryResource()`` is therefore caught in every build, before any kernel runs. Put the points
 and room for the results in a pool, freeze it, and mirror it into ``GPU::memoryResource()``:
 
