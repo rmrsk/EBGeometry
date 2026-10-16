@@ -154,7 +154,9 @@ ___________________________________
 Some meshes in the wild are not clean, closed surfaces: neighbouring faces wound in opposite
 directions, an edge shared by three or more faces, or faces that fold back onto each other. Such a
 mesh still gives correct *distances*, but the *sign* of the distance near the defect is unreliable,
-so by default the readers reject it. Every ``readInto*`` function that builds a mesh, and
+so by default the readers reject it. An edge or vertex on a fold, for instance, gets a zero normal,
+and a point closest to it gets a negative distance whichever side of the fold it is on, in all three
+mesh SDFs. Every ``readInto*`` function that builds a mesh, and
 ``PolygonSoup::convertToDCEL`` and ``convertToTriangles``, takes a last argument of type
 ``Parser::OnDefect`` that changes this:
 

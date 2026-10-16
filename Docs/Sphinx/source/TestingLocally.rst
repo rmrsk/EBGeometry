@@ -364,11 +364,12 @@ Test coverage
        algorithms, agreement between them on convex and concave (notched) polygons, and on a
        non-axis-aligned embedding plane.
    * - ``TestTriangleSoA``
-     - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the
-       individual packed :cpp:class:`Triangle` instances (including padding when fewer than
-       ``W`` triangles are packed), per-lane ``signedDistances`` consistency, and bounding-volume
-       construction from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle face-id
-       retrieval (``signedDistance(point, uint32_t&)``) and per-lane ``getFaceId`` with padding.
+     - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the individual
+       packed :cpp:class:`Triangle` instances (including padding when fewer than ``W`` triangles are
+       packed), per-lane ``signedDistances`` consistency, a zero normal giving a negative distance
+       on the SIMD and scalar paths alike at ``W`` = 4, 8 and 16, and bounding-volume construction
+       from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle face-id retrieval
+       (``signedDistance(point, uint32_t&)``) and per-lane ``getFaceId`` with padding.
    * - ``TestPointSoA``
      - :cpp:class:`PointSoAT`: minimum and maximum distances and per-lane distances against the
        closest and farthest packed point, unaffected by padding, for ``W`` = 4 and 8; the bounding
