@@ -179,23 +179,23 @@ Vec2T<T>::length2() const noexcept
   return x * x + y * y;
 }
 
-template <typename T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int>>
 EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
-operator*(const T& s, const Vec2T<T>& a_other) noexcept
+operator*(const R& s, const Vec2T<T>& a_other) noexcept
 {
-  return a_other * s;
+  return a_other * T(s);
 }
 
-template <typename T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int>>
 EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
-operator/(const T& s, const Vec2T<T>& a_other) noexcept
+operator/(const R& s, const Vec2T<T>& a_other) noexcept
 {
   EBGEOMETRY_EXPECT(a_other.x != T(0));
   EBGEOMETRY_EXPECT(a_other.y != T(0));
 
-  return Vec2T<T>(s / a_other.x, s / a_other.y);
+  return Vec2T<T>(T(s) / a_other.x, T(s) / a_other.y);
 }
 
 template <typename T>
@@ -538,23 +538,15 @@ length(const Vec2T<T>& v) noexcept
   return v.length();
 }
 
-template <class R, typename T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int>>
 EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 operator*(const R& s, const Vec3T<T>& a_other) noexcept
 {
-  return a_other * s;
+  return a_other * T(s);
 }
 
-template <typename T>
-EBGEOMETRY_HOST_DEVICE
-inline constexpr Vec3T<T>
-operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
-{
-  return u * v;
-}
-
-template <class R, typename T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int>>
 EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 operator/(const R& s, const Vec3T<T>& a_other) noexcept

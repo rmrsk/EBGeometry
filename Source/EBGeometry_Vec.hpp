@@ -577,28 +577,30 @@ protected:
 
 /**
  * @brief Scalar-left multiplication: s * vec.
- * @tparam T Floating-point precision.
+ * @tparam R Arithmetic type of the scalar (e.g. 2.0 * Vec2T<float>); it is converted to T first.
+ * @tparam T Floating-point precision of the vector.
  * @param[in] s       Scalar multiplier.
  * @param[in] a_other Vector.
- * @return New vector with x = s*a_other.x, y = s*a_other.y.
+ * @return New vector with x = T(s)*a_other.x, y = T(s)*a_other.y.
  */
-template <typename T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
-operator*(const T& s, const Vec2T<T>& a_other) noexcept;
+operator*(const R& s, const Vec2T<T>& a_other) noexcept;
 
 /**
  * @brief Component-wise scalar-left division: s / vec.
- * @details Returns a new vector where each component i is s / a_other[i].
- * @tparam T Floating-point precision.
+ * @details Returns a new vector where each component i is T(s) / a_other[i].
+ * @tparam R Arithmetic type of the scalar numerator; it is converted to T first.
+ * @tparam T Floating-point precision of the vector.
  * @param[in] s       Scalar numerator.
  * @param[in] a_other Vector whose components are the denominators.
- * @return New vector with x = s/a_other.x, y = s/a_other.y.
+ * @return New vector with x = T(s)/a_other.x, y = T(s)/a_other.y.
  */
-template <typename T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>
-operator/(const T& s, const Vec2T<T>& a_other) noexcept;
+operator/(const R& s, const Vec2T<T>& a_other) noexcept;
 
 /**
  * @brief Component-wise minimum of two vectors.
@@ -653,39 +655,27 @@ length(const Vec2T<T>& v) noexcept;
 
 /**
  * @brief Scalar-left multiplication: s * vec.
- * @tparam R Type of scalar (may differ from T, e.g. int * Vec3T<double>).
+ * @tparam R Arithmetic type of the scalar (e.g. 2 * Vec3T<double>); it is converted to T first.
  * @tparam T Floating-point precision of the vector.
  * @param[in] s Scalar multiplier.
  * @param[in] u Vector.
- * @return New vector with X[i] = s * u[i].
+ * @return New vector with X[i] = T(s) * u[i].
  */
-template <class R, typename T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 operator*(const R& s, const Vec3T<T>& u) noexcept;
 
 /**
- * @brief Component-wise multiplication of two vectors.
- * @tparam T Floating-point precision.
- * @param[in] u First vector.
- * @param[in] v Second vector.
- * @return New vector with X[i] = u[i] * v[i].
- */
-template <typename T>
-[[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline constexpr Vec3T<T>
-operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
-
-/**
  * @brief Component-wise scalar-left division: s / vec.
- * @details Returns a new vector where each component i is s / u[i].
- * @tparam R Type of scalar numerator.
+ * @details Returns a new vector where each component i is T(s) / u[i].
+ * @tparam R Arithmetic type of the scalar numerator; it is converted to T first.
  * @tparam T Floating-point precision of the vector.
  * @param[in] s Scalar numerator.
  * @param[in] u Vector whose components are the denominators.
- * @return New vector with X[i] = s / u[i].
+ * @return New vector with X[i] = T(s) / u[i].
  */
-template <class R, typename T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec3T<T>
 operator/(const R& s, const Vec3T<T>& u) noexcept;

@@ -32,6 +32,24 @@ struct HasLess<V, std::void_t<decltype(std::declval<const V&>() < std::declval<c
 {
 };
 
+template <class S, class V, class = void>
+struct HasScalarLeftOps : std::false_type
+{
+};
+
+template <class S, class V>
+struct HasScalarLeftOps<S,
+                        V,
+                        std::void_t<decltype(std::declval<const S&>() * std::declval<const V&>()),
+                                    decltype(std::declval<const S&>() / std::declval<const V&>())>> : std::true_type
+{
+};
+
+// A type that is not a scalar, for checking that the scalar-left operators reject it.
+struct NotAScalar
+{
+};
+
 } // namespace
 
 TEMPLATE_TEST_CASE("Vec3T: has no ordering operators, so it cannot silently break std::set or std::sort",
@@ -416,6 +434,38 @@ TEMPLATE_TEST_CASE("Vec2T/Vec3T: dividing by a scalar divides each component",
   CHECK((a / s).y == a.y / s);
   CHECK(b.x == a.x / s);
   CHECK(b.y == a.y / s);
+}
+
+TEMPLATE_TEST_CASE("Vec2T/Vec3T: a scalar of any arithmetic type multiplies and divides from the left",
+                   "[Vec2T][Vec3T]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const Vec2T<T> u(T(1), T(4));
+  const Vec3T<T> v(T(1), T(2), T(4));
+
+  // A double, a float and an int scalar, whatever T is: each is converted to T first. Vec2T has no
+  // operator==, so its components are compared.
+  const auto equals2 = [](const Vec2T<T>& a, const T x, const T y) { return a.x == x && a.y == y; };
+
+  CHECK(equals2(2.0 * u, T(2), T(8)));
+  CHECK(equals2(2.0F * u, T(2), T(8)));
+  CHECK(equals2(2 * u, T(2), T(8)));
+  CHECK(equals2(8.0 / u, T(8), T(2)));
+  CHECK(equals2(8 / u, T(8), T(2)));
+
+  CHECK(2.0 * v == Vec3T<T>(T(2), T(4), T(8)));
+  CHECK(2.0F * v == Vec3T<T>(T(2), T(4), T(8)));
+  CHECK(2 * v == Vec3T<T>(T(2), T(4), T(8)));
+  CHECK(8.0 / v == Vec3T<T>(T(8), T(4), T(2)));
+  CHECK(8 / v == Vec3T<T>(T(8), T(4), T(2)));
+
+  // A non-arithmetic left operand is not a scalar: no overload takes it.
+  STATIC_REQUIRE(HasScalarLeftOps<double, Vec2T<T>>::value);
+  STATIC_REQUIRE(HasScalarLeftOps<int, Vec3T<T>>::value);
+  STATIC_REQUIRE_FALSE(HasScalarLeftOps<NotAScalar, Vec2T<T>>::value);
+  STATIC_REQUIRE_FALSE(HasScalarLeftOps<NotAScalar, Vec3T<T>>::value);
 }
 
 TEMPLATE_TEST_CASE("Vec2T/Vec3T: min and max keep the first vector's component for a NaN, like Math::min/max",
