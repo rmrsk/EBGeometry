@@ -239,7 +239,10 @@ Test coverage
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
        correctness for :cpp:class:`FlatMeshSDF`; agreement between
        :cpp:class:`FlatMeshSDF` (brute-force) and :cpp:class:`TriMeshSDF`
-       (SIMD BVH).
+       (SIMD BVH); hand-built meshes whose half-edge loop does not close (a cycle that skips the
+       first edge, an index past the end) rejected by ``reconcile()`` and reported by
+       ``sanityCheck``; ``soupToDCEL`` rejecting a face with fewer than three vertices or an
+       out-of-range vertex index, and ``reconcilePairEdgesDCEL`` an out-of-range next edge.
    * - ``TestSFC``
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,

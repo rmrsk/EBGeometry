@@ -43,6 +43,16 @@ floating-point precision ``T``:
    full API, see the Doxygen reference for
    `FaceT <doxygen/html/classEBGeometry_1_1DCEL_1_1FaceT.html>`__.
 
+*  ``EdgeIteratorT<T>`` walks the half-edge loop around a face by following each edge's next-edge
+   index until it is back at the face's first edge. It does not check the loop on every step,
+   which would slow every distance query: a loop that never returns to its first edge would never
+   end, and an edge index past the end of the mesh's edges would be read out of bounds. Instead
+   ``MeshT::reconcile()`` checks every face's loop once and aborts, in every build, on one that does
+   not close, and ``MeshT::sanityCheck()`` reports it. A mesh read from a file never has a broken
+   loop; one assembled by hand can, and must be reconciled before it is queried. For the full API,
+   see the Doxygen reference for
+   `EdgeIteratorT <doxygen/html/classEBGeometry_1_1DCEL_1_1EdgeIteratorT.html>`__.
+
 .. note::
 
    ``VertexT``, ``EdgeT``, and ``FaceT`` cross-reference each other exclusively by index into the

@@ -157,7 +157,9 @@ findFoldedFeature(const EBGeometry::DCEL::MeshT<T>& a_mesh);
  * pair edges, runs a mesh sanity check, and computes the mesh normals (angle-weighted vertex
  * normals). a_mesh is attached to a_pool by the first reserve here
  * and is queryable from that point on, including across the reserves that follow -- a_pool need not
- * be frozen, and may stay open for further meshes.
+ * be frozen, and may stay open for further meshes. Aborts, in every build, on a face with fewer
+ * than 3 vertices, a vertex index outside a_vertices, or more vertices, half-edges or faces than
+ * 32-bit indices can number; the file readers never pass any of these.
  * @tparam T    Floating-point precision type for vertex coordinates.
  * @param[out]    a_mesh     Output DCEL mesh populated by this call.
  * @param[in,out] a_pool     Pool to reserve a_mesh's vertex/edge/face storage from.
@@ -179,7 +181,8 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
  * (not stored on the mesh). Then, for every half-edge (u→v), it scans the half-edges starting at v
  * for one whose next edge starts at u -- the reverse half-edge (v→u) -- and sets the pair-edge index
  * on both. O(V + E) for bounded vertex valence; no circulation, so it needs no pair edges already
- * set.
+ * set. Aborts, in every build, if a half-edge's origin vertex or next edge is not a valid index
+ * (possible only in a mesh assembled by hand).
  * @tparam T    Floating-point precision type.
  * @param[in,out] a_mesh Mesh whose half-edges are reconciled in place. Must already be attached to
  * the Pool its storage was reserved from, which its first reserveX() call does.

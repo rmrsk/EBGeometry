@@ -336,7 +336,9 @@ construct a ``PolygonSoup<T>(id, vertices, faces)`` and call ``convertToDCEL``.
   needed at construction); ``soupToDCEL`` reserves its vertex/edge/half-edge storage from ``pool``
   itself, sized from ``vertices``/``facets``. ``mesh`` is attached to ``pool`` by that first reserve
   and is queryable as soon as ``soupToDCEL`` returns, whether or not ``pool`` is shared with further
-  meshes -- see :ref:`Chap:MemoryModel` and :ref:`Sec:DCELMemoryModel`.
+  meshes -- see :ref:`Chap:MemoryModel` and :ref:`Sec:DCELMemoryModel`. It aborts, in every build,
+  on a face with fewer than three vertices or a vertex index outside ``vertices``; the readers
+  never pass either.
 * ``findRepeatedVertex(facets)`` reports a face that visits a vertex twice. Such a face corrupts the
   half-edge mesh, so the readers reject it whatever ``OnDefect`` says.
 * ``findTopologyDefect(facets)``, run between the two steps above, reports a face that visits a

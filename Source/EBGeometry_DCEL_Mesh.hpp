@@ -274,7 +274,8 @@ public:
    * @details This will provide error messages if vertices are badly linked,
    * faces have no half-edge, and so on. These messages are logged by calling
    * incrementWarning() which identifies types of errors that can occur, and how
-   * many of those errors have occurred.
+   * many of those errors have occurred. A face whose half-edge loop does not close is reported
+   * and skipped, so the check finishes on any mesh, reconciled or not.
    * @param[in] a_id Identifier when printing error messages (can be empty string).
    */
   EBGEOMETRY_HOST
@@ -306,9 +307,11 @@ public:
    * for use with signed distance functionality.
    * @details This will reconcile faces, edges, and vertices, e.g. computing the area and normal
    * vector for faces, and the angle-weighted pseudonormal of each vertex (Baerentzen and Aanes, DOI:
-   * 10.1109/TVCG.2005.49). A malformed topology that would otherwise read out of bounds (a face with
-   * fewer than 3 vertices, a vertex index past the end of the vertex array, or a face visiting a
-   * vertex more than once) aborts with a message in every build.
+   * 10.1109/TVCG.2005.49). A malformed topology that would otherwise read out of bounds or never
+   * finish (a face whose half-edge loop does not return to its first edge, a face with fewer than 3
+   * vertices, a vertex index past the end of the vertex array, or a face visiting a vertex more than
+   * once) aborts with a message in every build. A mesh assembled by hand must be reconciled before
+   * it is queried.
    */
   EBGEOMETRY_HOST
   inline void
@@ -678,6 +681,22 @@ protected:
   EBGEOMETRY_HOST
   inline void
   printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string& a_id) const;
+
+  /**
+   * @brief Walk a face's half-edge loop, bounded by the number of half-edges.
+   * @details EdgeIteratorT does not count its steps, so it would never finish on a loop that
+   * cycles without returning to its first edge, and it reads out of bounds at an edge index past
+   * the end of the edge array. This walk stops on both. reconcile() aborts on such a loop and
+   * sanityCheck() reports it.
+   * @param[in]  a_faceIndex Face whose loop to walk.
+   * @param[out] a_lastEdge  The edge index the walk stopped at (the face's first edge if the loop
+   * closes).
+   * @param[out] a_steps     The number of steps taken.
+   * @return True if the loop returns to the face's first edge.
+   */
+  EBGEOMETRY_HOST
+  inline bool
+  faceLoopCloses(uint32_t a_faceIndex, uint32_t& a_lastEdge, uint32_t& a_steps) const noexcept;
 };
 } // namespace DCEL
 
