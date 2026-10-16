@@ -88,7 +88,7 @@ such inline function is then defined differently in different files, and the lin
 file's version for every caller. The types keep one layout, so objects can still be passed between
 the files, but the program can run instructions that only the other file was compiled for (an
 illegal-instruction crash on a CPU without them), or get the other file's results (the SIMD and
-scalar paths agree for finite inputs, except for the sign of an exactly zero triangle distance).
+scalar paths agree for finite inputs).
 Nothing checks this. Compile every file that uses EBGeometry with the same SIMD flags, unless the
 program only ever runs on CPUs that have the widest instruction set any of its files uses.
 

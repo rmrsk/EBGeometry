@@ -149,22 +149,17 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m512 s1d = crossdot(v32x, v32y, v32z, fnx, fny, fnz, p2x, p2y, p2z);
     const __m512 s2d = crossdot(v13x, v13y, v13z, fnx, fny, fnz, p3x, p3y, p3z);
 
-    // Bitwise and/or/andnot on __m512 float vectors need AVX512DQ, not just AVX512F. Route
-    // through the integer domain (guaranteed by base AVX512F) instead.
-    auto and_ps = [](const __m512 a, const __m512 b) -> __m512 {
-      return _mm512_castsi512_ps(_mm512_and_si512(_mm512_castps_si512(a), _mm512_castps_si512(b)));
-    };
-    auto or_ps = [](const __m512 a, const __m512 b) -> __m512 {
-      return _mm512_castsi512_ps(_mm512_or_si512(_mm512_castps_si512(a), _mm512_castps_si512(b)));
-    };
+    // Bitwise andnot on __m512 float vectors needs AVX512DQ, not just AVX512F. Route through the
+    // integer domain (guaranteed by base AVX512F) instead.
     auto andnot_ps = [](const __m512 a, const __m512 b) -> __m512 {
       return _mm512_castsi512_ps(_mm512_andnot_si512(_mm512_castps_si512(a), _mm512_castps_si512(b)));
     };
 
     const __m512    pos_mask = _mm512_set1_ps(-0.f);
-    const __m512    s0       = or_ps(andnot_ps(pos_mask, one), and_ps(pos_mask, s0d));
-    const __m512    s1       = or_ps(andnot_ps(pos_mask, one), and_ps(pos_mask, s1d));
-    const __m512    s2       = or_ps(andnot_ps(pos_mask, one), and_ps(pos_mask, s2d));
+    const __m512    neg_one  = _mm512_set1_ps(-1.f);
+    const __m512    s0       = _mm512_mask_blend_ps(_mm512_cmp_ps_mask(s0d, zer, _CMP_GT_OQ), neg_one, one);
+    const __m512    s1       = _mm512_mask_blend_ps(_mm512_cmp_ps_mask(s1d, zer, _CMP_GT_OQ), neg_one, one);
+    const __m512    s2       = _mm512_mask_blend_ps(_mm512_cmp_ps_mask(s2d, zer, _CMP_GT_OQ), neg_one, one);
     const __m512    ssum     = _mm512_add_ps(_mm512_add_ps(s0, s1), s2);
     const __mmask16 in_tri   = _mm512_cmp_ps_mask(andnot_ps(pos_mask, ssum), _mm512_set1_ps(2.f), _CMP_GE_OQ);
     const __m512    face_d   = dot3(fnx, fny, fnz, p1x, p1y, p1z);
@@ -204,12 +199,13 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m512 y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
     const __m512 y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
 
-    // Extract sign bits only — sqrt is deferred to a single call after the blend chain.
+    // Signs only: +1 if > 0, else -1, as in the scalar path.
+    // The sqrt is deferred to a single call after the blend chain.
     auto sgn_of =
       [&](const __m512 ax, const __m512 ay, const __m512 az, const __m512 bx, const __m512 by, const __m512 bz)
       -> __m512 {
       const __m512 d = dot3(ax, ay, az, bx, by, bz);
-      return or_ps(andnot_ps(pos_mask, one), and_ps(pos_mask, d));
+      return _mm512_mask_blend_ps(_mm512_cmp_ps_mask(d, zer, _CMP_GT_OQ), neg_one, one);
     };
 
     const __m512 vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);
@@ -312,22 +308,17 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m512d s1d = crossdot(v32x, v32y, v32z, fnx, fny, fnz, p2x, p2y, p2z);
     const __m512d s2d = crossdot(v13x, v13y, v13z, fnx, fny, fnz, p3x, p3y, p3z);
 
-    // Bitwise and/or/andnot on __m512d vectors need AVX512DQ, not just AVX512F. Route through
-    // the integer domain (guaranteed by base AVX512F) instead.
-    auto and_pd = [](const __m512d a, const __m512d b) -> __m512d {
-      return _mm512_castsi512_pd(_mm512_and_si512(_mm512_castpd_si512(a), _mm512_castpd_si512(b)));
-    };
-    auto or_pd = [](const __m512d a, const __m512d b) -> __m512d {
-      return _mm512_castsi512_pd(_mm512_or_si512(_mm512_castpd_si512(a), _mm512_castpd_si512(b)));
-    };
+    // Bitwise andnot on __m512d vectors needs AVX512DQ, not just AVX512F. Route through the
+    // integer domain (guaranteed by base AVX512F) instead.
     auto andnot_pd = [](const __m512d a, const __m512d b) -> __m512d {
       return _mm512_castsi512_pd(_mm512_andnot_si512(_mm512_castpd_si512(a), _mm512_castpd_si512(b)));
     };
 
     const __m512d  pos_mask = _mm512_set1_pd(-0.0);
-    const __m512d  s0       = or_pd(andnot_pd(pos_mask, one), and_pd(pos_mask, s0d));
-    const __m512d  s1       = or_pd(andnot_pd(pos_mask, one), and_pd(pos_mask, s1d));
-    const __m512d  s2       = or_pd(andnot_pd(pos_mask, one), and_pd(pos_mask, s2d));
+    const __m512d  neg_one  = _mm512_set1_pd(-1.0);
+    const __m512d  s0       = _mm512_mask_blend_pd(_mm512_cmp_pd_mask(s0d, zer, _CMP_GT_OQ), neg_one, one);
+    const __m512d  s1       = _mm512_mask_blend_pd(_mm512_cmp_pd_mask(s1d, zer, _CMP_GT_OQ), neg_one, one);
+    const __m512d  s2       = _mm512_mask_blend_pd(_mm512_cmp_pd_mask(s2d, zer, _CMP_GT_OQ), neg_one, one);
     const __m512d  ssum     = _mm512_add_pd(_mm512_add_pd(s0, s1), s2);
     const __mmask8 in_tri   = _mm512_cmp_pd_mask(andnot_pd(pos_mask, ssum), _mm512_set1_pd(2.0), _CMP_GE_OQ);
     const __m512d  face_d   = dot3(fnx, fny, fnz, p1x, p1y, p1z);
@@ -367,12 +358,13 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m512d y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
     const __m512d y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
 
-    // Extract sign bits only — sqrt deferred until after blend chain.
+    // Signs only: +1 if > 0, else -1, as in the scalar path.
+    // The sqrt is deferred until after the blend chain.
     auto sgn_of =
       [&](const __m512d ax, const __m512d ay, const __m512d az, const __m512d bx, const __m512d by, const __m512d bz)
       -> __m512d {
       const __m512d d = dot3(ax, ay, az, bx, by, bz);
-      return or_pd(andnot_pd(pos_mask, one), and_pd(pos_mask, d));
+      return _mm512_mask_blend_pd(_mm512_cmp_pd_mask(d, zer, _CMP_GT_OQ), neg_one, one);
     };
 
     const __m512d vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);
@@ -500,11 +492,12 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m128 s1d = crossdot(v32x, v32y, v32z, fnx, fny, fnz, p2x, p2y, p2z);
     const __m128 s2d = crossdot(v13x, v13y, v13z, fnx, fny, fnz, p3x, p3y, p3z);
 
-    // sgn: +1 if > 0, else -1
+    // sgn: +1 if > 0, else -1 (zero and NaN included), as in the scalar path.
     const __m128 pos_mask = _mm_set1_ps(-0.f); // sign bit mask
-    const __m128 s0       = _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, s0d));
-    const __m128 s1       = _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, s1d));
-    const __m128 s2       = _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, s2d));
+    const __m128 neg_one  = _mm_set1_ps(-1.f);
+    const __m128 s0       = _mm_xor_ps(neg_one, _mm_and_ps(_mm_cmpgt_ps(s0d, zer), pos_mask));
+    const __m128 s1       = _mm_xor_ps(neg_one, _mm_and_ps(_mm_cmpgt_ps(s1d, zer), pos_mask));
+    const __m128 s2       = _mm_xor_ps(neg_one, _mm_and_ps(_mm_cmpgt_ps(s2d, zer), pos_mask));
 
     // Point-in-triangle test: std::abs(s0+s1+s2) >= 2 (works for both inward and outward normals)
     const __m128 ssum   = _mm_add_ps(_mm_add_ps(s0, s1), s2);
@@ -565,12 +558,13 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m128 y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
     const __m128 y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
 
-    // Extract sign bits only — sqrt is deferred to a single call after the blendv chain.
+    // Signs only: +1 if > 0, else -1, as in the scalar path.
+    // The sqrt is deferred to a single call after the blendv chain.
     auto sgn_of =
       [&](const __m128 ax, const __m128 ay, const __m128 az, const __m128 bx, const __m128 by, const __m128 bz)
       -> __m128 {
       const __m128 d = dot3(ax, ay, az, bx, by, bz);
-      return _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, d));
+      return _mm_xor_ps(neg_one, _mm_and_ps(_mm_cmpgt_ps(d, zer), pos_mask));
     };
 
     const __m128 vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);
@@ -677,9 +671,10 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256 s2d = crossdot(v13x, v13y, v13z, fnx, fny, fnz, p3x, p3y, p3z);
 
     const __m256 pos_mask = _mm256_set1_ps(-0.f);
-    const __m256 s0       = _mm256_or_ps(_mm256_andnot_ps(pos_mask, one), _mm256_and_ps(pos_mask, s0d));
-    const __m256 s1       = _mm256_or_ps(_mm256_andnot_ps(pos_mask, one), _mm256_and_ps(pos_mask, s1d));
-    const __m256 s2       = _mm256_or_ps(_mm256_andnot_ps(pos_mask, one), _mm256_and_ps(pos_mask, s2d));
+    const __m256 neg_one  = _mm256_set1_ps(-1.f);
+    const __m256 s0       = _mm256_xor_ps(neg_one, _mm256_and_ps(_mm256_cmp_ps(s0d, zer, _CMP_GT_OQ), pos_mask));
+    const __m256 s1       = _mm256_xor_ps(neg_one, _mm256_and_ps(_mm256_cmp_ps(s1d, zer, _CMP_GT_OQ), pos_mask));
+    const __m256 s2       = _mm256_xor_ps(neg_one, _mm256_and_ps(_mm256_cmp_ps(s2d, zer, _CMP_GT_OQ), pos_mask));
 
     const __m256 ssum   = _mm256_add_ps(_mm256_add_ps(s0, s1), s2);
     const __m256 in_tri = _mm256_cmp_ps(_mm256_andnot_ps(pos_mask, ssum), _mm256_set1_ps(2.f), _CMP_GE_OQ);
@@ -720,12 +715,13 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256 y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
     const __m256 y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
 
-    // Extract sign bits only — sqrt is deferred to a single call after the blendv chain.
+    // Signs only: +1 if > 0, else -1, as in the scalar path.
+    // The sqrt is deferred to a single call after the blendv chain.
     auto sgn_of =
       [&](const __m256 ax, const __m256 ay, const __m256 az, const __m256 bx, const __m256 by, const __m256 bz)
       -> __m256 {
       const __m256 d = dot3(ax, ay, az, bx, by, bz);
-      return _mm256_or_ps(_mm256_andnot_ps(pos_mask, one), _mm256_and_ps(pos_mask, d));
+      return _mm256_xor_ps(neg_one, _mm256_and_ps(_mm256_cmp_ps(d, zer, _CMP_GT_OQ), pos_mask));
     };
 
     const __m256 vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);
@@ -856,12 +852,13 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d s2d_hi = crossdot(v13x_hi, v13y_hi, v13z_hi, fnx_hi, fny_hi, fnz_hi, p3x_hi, p3y_hi, p3z_hi);
 
     const __m256d pos_mask = _mm256_set1_pd(-0.0);
-    const __m256d s0_lo    = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s0d_lo));
-    const __m256d s0_hi    = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s0d_hi));
-    const __m256d s1_lo    = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s1d_lo));
-    const __m256d s1_hi    = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s1d_hi));
-    const __m256d s2_lo    = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s2d_lo));
-    const __m256d s2_hi    = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s2d_hi));
+    const __m256d neg_one  = _mm256_set1_pd(-1.0);
+    const __m256d s0_lo    = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s0d_lo, zer, _CMP_GT_OQ), pos_mask));
+    const __m256d s0_hi    = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s0d_hi, zer, _CMP_GT_OQ), pos_mask));
+    const __m256d s1_lo    = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s1d_lo, zer, _CMP_GT_OQ), pos_mask));
+    const __m256d s1_hi    = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s1d_hi, zer, _CMP_GT_OQ), pos_mask));
+    const __m256d s2_lo    = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s2d_lo, zer, _CMP_GT_OQ), pos_mask));
+    const __m256d s2_hi    = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s2d_hi, zer, _CMP_GT_OQ), pos_mask));
 
     const __m256d two       = _mm256_set1_pd(2.0);
     const __m256d ssum_lo   = _mm256_add_pd(_mm256_add_pd(s0_lo, s1_lo), s2_lo);
@@ -942,12 +939,13 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d y3d2_lo = dot3(y3x_lo, y3y_lo, y3z_lo, y3x_lo, y3y_lo, y3z_lo);
     const __m256d y3d2_hi = dot3(y3x_hi, y3y_hi, y3z_hi, y3x_hi, y3y_hi, y3z_hi);
 
-    // Extract sign bits only — sqrt deferred until after blendv chains.
+    // Signs only: +1 if > 0, else -1, as in the scalar path.
+    // The sqrt is deferred until after the blendv chains.
     auto sgn_of =
       [&](const __m256d ax, const __m256d ay, const __m256d az, const __m256d bx, const __m256d by, const __m256d bz)
       -> __m256d {
       const __m256d d = dot3(ax, ay, az, bx, by, bz);
-      return _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, d));
+      return _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(d, zer, _CMP_GT_OQ), pos_mask));
     };
 
     const __m256d vs0_lo = sgn_of(vn0x_lo, vn0y_lo, vn0z_lo, p1x_lo, p1y_lo, p1z_lo);
@@ -1079,9 +1077,10 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d s2d = crossdot(v13x, v13y, v13z, fnx, fny, fnz, p3x, p3y, p3z);
 
     const __m256d pos_mask = _mm256_set1_pd(-0.0);
-    const __m256d s0       = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s0d));
-    const __m256d s1       = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s1d));
-    const __m256d s2       = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s2d));
+    const __m256d neg_one  = _mm256_set1_pd(-1.0);
+    const __m256d s0       = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s0d, zer, _CMP_GT_OQ), pos_mask));
+    const __m256d s1       = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s1d, zer, _CMP_GT_OQ), pos_mask));
+    const __m256d s2       = _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(s2d, zer, _CMP_GT_OQ), pos_mask));
 
     const __m256d ssum   = _mm256_add_pd(_mm256_add_pd(s0, s1), s2);
     const __m256d in_tri = _mm256_cmp_pd(_mm256_andnot_pd(pos_mask, ssum), _mm256_set1_pd(2.0), _CMP_GE_OQ);
@@ -1122,12 +1121,13 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
     const __m256d y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
 
-    // Extract sign bits only — sqrt is deferred to a single call after the blendv chain.
+    // Signs only: +1 if > 0, else -1, as in the scalar path.
+    // The sqrt is deferred to a single call after the blendv chain.
     auto sgn_of =
       [&](const __m256d ax, const __m256d ay, const __m256d az, const __m256d bx, const __m256d by, const __m256d bz)
       -> __m256d {
       const __m256d d = dot3(ax, ay, az, bx, by, bz);
-      return _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, d));
+      return _mm256_xor_pd(neg_one, _mm256_and_pd(_mm256_cmp_pd(d, zer, _CMP_GT_OQ), pos_mask));
     };
 
     const __m256d vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);

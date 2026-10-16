@@ -572,8 +572,8 @@ These extend what the library can do rather than repair what it does.
 Design and performance work that was deferred on purpose. None of it is a defect.
 
 * **MESH-8** [MAJOR]: the triangle distance kernel has six SIMD copies and three scalar paths. D3
-  kept the three mesh SDFs; the kernels were not consolidated. Doing so would also settle MESH-19
-  and BVH-17 below.
+  kept the three mesh SDFs; the kernels were not consolidated. Doing so would also settle BVH-17
+  below.
 * **BVH-8** [MAJOR]: every child box is stored twice, in its node and in the parent's SIMD row.
 * **BVH-11, host part** [MINOR]: `TreeBVH::setChildren` and `refit` build a `std::vector` for every
   box union.
@@ -590,8 +590,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **MESH-19** [NIT]: a triangle distance of exactly zero gets sign +1 on the SIMD paths and -1 on
-  the scalar path.
 * **BVH-17** [NIT]: the SIMD and scalar child distances can differ for a NaN coordinate (the docs
   say "for finite inputs").
 * **MEM-20** [NIT]: `Vec` division multiplies by the reciprocal, and the free `min`/`max`

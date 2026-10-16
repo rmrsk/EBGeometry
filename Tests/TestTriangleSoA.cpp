@@ -10,6 +10,9 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <cmath>
+#include <utility>
+
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -138,6 +141,53 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance handles a single packed triangl
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(tris.front().signedDistance(p), looseMargin<T>()));
+  }
+}
+
+namespace {
+
+// One triangle at width Width: the SIMD signedDistance() against the scalar Triangle and the group's
+// per-lane signedDistances(), which runs the scalar lane code.
+template <class T, size_t Width>
+void
+checkZeroNormalSigns(const Tri<T>& a_tri, const Vec3T<T>& a_point, const T a_expected)
+{
+  TriangleSoAT<T, Width> group;
+  group.pack(&a_tri, 1U);
+
+  CHECK_THAT(a_tri.signedDistance(a_point), withinAbsT(a_expected, looseMargin<T>()));
+  CHECK_THAT(group.signedDistances(a_point)[0], withinAbsT(a_expected, looseMargin<T>()));
+  CHECK_THAT(group.signedDistance(a_point), withinAbsT(a_expected, looseMargin<T>()));
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance treats a zero normal as negative on every path",
+                   "[TriangleSoA][regression]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A triangle on a fold has zero vertex and edge normals (Soup::findFoldedFeature), and a zero normal
+  // is documented to count as negative. Its dot product with an offset is a signed zero, +0 for the
+  // offsets below. The SIMD kernels used to copy that sign bit and return +|d|, while the scalar
+  // paths return -|d|.
+  Tri<T> tri(Array<Vec3, 3>{Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0)});
+
+  tri.setVertexNormals(Array<Vec3, 3>{Vec3::zeros(), Vec3::zeros(), Vec3::zeros()});
+  tri.setEdgeNormals(Array<Vec3, 3>{Vec3::zeros(), Vec3::zeros(), Vec3::zeros()});
+
+  // Closest to vertex 0, at distance 1.5.
+  const Vec3 nearVertex(T(-1), T(-1), T(0.5));
+  // Closest to the edge from vertex 0 to vertex 1, at distance sqrt(1.25).
+  const Vec3 nearEdge(T(0.5), T(-1), T(0.5));
+
+  for (const auto& [point, expected] :
+       {std::pair<Vec3, T>{nearVertex, T(-1.5)}, std::pair<Vec3, T>{nearEdge, -std::sqrt(T(1.25))}}) {
+    checkZeroNormalSigns<T, 4>(tri, point, expected);
+    checkZeroNormalSigns<T, 8>(tri, point, expected);
+    checkZeroNormalSigns<T, 16>(tri, point, expected);
   }
 }
 
