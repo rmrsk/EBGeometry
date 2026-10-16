@@ -577,13 +577,13 @@ Design and performance work that was deferred on purpose. None of it is a defect
 * **BVH-8** [MAJOR]: every child box is stored twice, in its node and in the parent's SIMD row.
 * **BVH-11, host part** [MINOR]: `TreeBVH::setChildren` and `refit` build a `std::vector` for every
   box union.
+* **BVH-10** [MINOR]: `pack()`/`packWith()` return a `shared_ptr`, and some `PackedBVH`
+  constructors are chosen by tag types. This is the API D2 kept.
 * **BVH-18** [NIT]: `computeChildDistances2()`, `TriangleSoA` and `PointSoA` choose their inline SIMD
   bodies by the ISA macros, so translation units compiled with different flags define them two ways
   and the linker keeps one. Documented under "Mixing SIMD flags in one program" in
   `ConfigurationOptions.rst`, and unchecked: the types keep one layout, and the paths agree for
   finite inputs. Runtime dispatch (one body that picks the SIMD path from the CPU) would remove it.
-* **BVH-10** [MINOR]: `pack()`/`packWith()` return a `shared_ptr`, and some `PackedBVH`
-  constructors are chosen by tag types. This is the API D2 kept.
 
 #### Hardening
 

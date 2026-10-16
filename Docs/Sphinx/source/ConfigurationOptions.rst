@@ -84,13 +84,13 @@ passes can disagree on its layout, which corrupts a kernel's arguments without a
 **Mixing SIMD flags in one program.** Even with the defaults, files compiled with different SIMD
 flags compile the inline SIMD code differently: the child-box distances of ``PackedBVH`` and the
 triangle and point groups each have an AVX-512, an AVX and an SSE4.1 version, and a scalar one. Each
-such inline function is then defined two ways, and the linker keeps one file's version for every
-caller. The types keep one layout, so objects can still be passed between the files, but the program
-can run instructions that only the other file was compiled for (an illegal-instruction crash on a
-CPU without them), or get the other file's results (the SIMD and scalar paths agree for finite
-inputs, except for the sign of an exactly zero triangle distance). Nothing checks this. Compile every file that uses EBGeometry with the same SIMD flags,
-unless the program only ever runs on CPUs that have the widest instruction set any of its files
-uses.
+such inline function is then defined differently in different files, and the linker keeps one
+file's version for every caller. The types keep one layout, so objects can still be passed between
+the files, but the program can run instructions that only the other file was compiled for (an
+illegal-instruction crash on a CPU without them), or get the other file's results (the SIMD and
+scalar paths agree for finite inputs, except for the sign of an exactly zero triangle distance).
+Nothing checks this. Compile every file that uses EBGeometry with the same SIMD flags, unless the
+program only ever runs on CPUs that have the widest instruction set any of its files uses.
 
 **The build switch.** Defining ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` for a whole build makes
 ``TriangleSoA::DefaultWidth<T>()`` return ``TriangleSoA::HostWidth<T>()``, so every ``TriMeshSDF``
