@@ -37,6 +37,11 @@ inline Pool::Pool(MemoryResource& a_resource, size_t a_initialBytes) : m_resourc
                      "Pool: a build pool requires a host-accessible MemoryResource; a device-resident pool is "
                      "produced only by Pool::mirror");
 
+  // Rounding a larger request up to the base alignment would wrap to a tiny block.
+  EBGEOMETRY_REQUIRE(a_initialBytes <= s_maxBytes,
+                     "Pool: an initial block of %zu bytes is more than a pool block can hold",
+                     a_initialBytes);
+
   if (a_initialBytes > 0) {
     const size_t rounded = (a_initialBytes + (PoolBaseAlign - 1)) & ~(PoolBaseAlign - 1);
 
@@ -111,9 +116,23 @@ Pool::reserve(size_t a_count, size_t a_elemSize, size_t a_alignment)
                      PoolBaseAlign,
                      a_alignment);
 
+  // Each size is checked before it is computed, so a huge request aborts instead of wrapping round
+  // to a small one, which would reserve too little or move the cursor back over reserved bytes.
+  // m_size <= s_maxBytes, which is PoolBaseAlign-aligned, so aligning m_size cannot pass s_maxBytes.
+  EBGEOMETRY_REQUIRE(a_elemSize == 0 || a_count <= s_maxBytes / a_elemSize,
+                     "Pool::reserve: %zu elements of %zu bytes are more than a pool block can hold",
+                     a_count,
+                     a_elemSize);
+
   const size_t bytes   = a_count * a_elemSize;
   const size_t aligned = (m_size + (a_alignment - 1)) & ~(a_alignment - 1);
-  const size_t need    = aligned + bytes;
+
+  EBGEOMETRY_REQUIRE(bytes <= s_maxBytes - aligned,
+                     "Pool::reserve: %zu more bytes after the %zu already reserved are more than a pool block can hold",
+                     bytes,
+                     m_size);
+
+  const size_t need = aligned + bytes;
 
   if (need > m_capacity) {
     this->grow(need);
@@ -129,7 +148,15 @@ Pool::grow(size_t a_need)
 {
   EBGEOMETRY_EXPECT(m_resource->isHostAccessible()); // device blocks are never grown
 
-  size_t newCap = (m_capacity > 0) ? (2 * m_capacity) : PoolBaseAlign;
+  EBGEOMETRY_EXPECT(a_need <= s_maxBytes); // reserve() checked it
+
+  // Doubling only while it stays within s_maxBytes; nearer the limit the block grows to exactly
+  // a_need instead. Neither can make the rounding below wrap.
+  size_t newCap = PoolBaseAlign;
+
+  if (m_capacity > 0 && m_capacity <= s_maxBytes / 2) {
+    newCap = 2 * m_capacity;
+  }
 
   if (a_need > newCap) {
     newCap = a_need;

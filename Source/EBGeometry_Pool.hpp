@@ -184,6 +184,9 @@ class Pool
 public:
   /**
    * @brief Construct an empty pool over @p a_resource, optionally pre-reserving a block.
+   * @details Aborts, in every build, if @p a_resource is not host-accessible or if
+   *          @p a_initialBytes is more than a block can hold (the largest multiple of
+   *          @ref PoolBaseAlign a @c size_t holds).
    * @param[in] a_resource     Memory resource that backs every allocation of this pool. Must
    *                           outlive the pool.
    * @param[in] a_initialBytes If non-zero, the initial block byte capacity to reserve up front
@@ -229,7 +232,9 @@ public:
    * @brief Bump-reserve @p a_count * @p a_elemSize bytes aligned to @p a_alignment.
    * @details Returns the byte offset of the reserved sub-region from @ref base. May grow the
    *          block (on a host-accessible resource only). Forbidden after freeze(): a reserve
-   *          on a frozen pool, or an invalid @p a_alignment, aborts with a message in every build.
+   *          on a frozen pool, an invalid @p a_alignment, or a request that, added to the bytes
+   *          already reserved, is more than a block can hold (the largest multiple of
+   *          @ref PoolBaseAlign a @c size_t holds), aborts with a message in every build.
    *
    * @warning A grow does @b not extend the block in place: it allocates a new block, copies the
    * live bytes into it, and @e deallocates the old one. Every address that was already resolved
@@ -404,6 +409,10 @@ public:
   mirror(const Pool& a_src, MemoryResource& a_dstResource);
 
 private:
+  /// @brief Largest block, in bytes: the largest multiple of @ref PoolBaseAlign a @c size_t holds, so
+  /// rounding a size no larger than it up to that alignment cannot wrap.
+  static constexpr size_t s_maxBytes = SIZE_MAX & ~(PoolBaseAlign - 1);
+
   /// @brief Tag type selecting the private constructor used by @ref mirror for a destination pool,
   /// which may be device-resident (and therefore not host-accessible) and is never reserved into.
   struct MirrorTag
