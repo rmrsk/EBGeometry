@@ -197,8 +197,9 @@ Test coverage
        initialization, trivial copyability, iteration, sorting, ``fill``, comparison.
    * - ``TestMemoryResource``
      - ``HostMemoryResource``: aligned, writeable allocations, round-trip deallocation, the
-       accessibility flags, rejection of a non-power-of-two alignment, and the process-wide
-       ``hostMemoryResource()`` instance.
+       accessibility flags, rejection of a non-power-of-two alignment, the process-wide
+       ``hostMemoryResource()`` instance, and a ``Pool`` with static storage freeing its block at
+       program exit.
    * - ``TestPool``
      - ``Pool``: growth preserving earlier contents and every type's alignment, ``freeze`` and the
        reservations it then rejects, moves (including the control block surviving a vector
@@ -241,8 +242,9 @@ Test coverage
        :cpp:class:`FlatMeshSDF` (brute-force) and :cpp:class:`TriMeshSDF`
        (SIMD BVH); hand-built meshes whose half-edge loop does not close (a cycle that skips the
        first edge, an index past the end) rejected by ``reconcile()`` and reported by
-       ``sanityCheck``; ``soupToDCEL`` rejecting a face with fewer than three vertices or an
-       out-of-range vertex index, and ``reconcilePairEdgesDCEL`` an out-of-range next edge.
+       ``sanityCheck``, and a face with no half-edge rejected by ``reconcile()``; ``soupToDCEL``
+       rejecting a face with fewer than three vertices or an out-of-range vertex index, and
+       ``reconcilePairEdgesDCEL`` an out-of-range next edge.
    * - ``TestSFC``
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,

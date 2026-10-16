@@ -585,8 +585,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **MEM-22** [NIT]: the device memory resources are function-local static objects whose frees
-  abort on any error, including a runtime that has already unloaded at exit.
 * **BVH-18** [NIT]: `computeChildDistances2()`'s inline SIMD bodies differ between translation
   units compiled with different ISA flags. The linker keeps one, so a program mixing such units can
   run instructions the CPU lacks or give different results. Nothing checks it.

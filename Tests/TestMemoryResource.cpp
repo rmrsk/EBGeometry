@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <optional>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -84,4 +85,20 @@ TEST_CASE("HostMemoryResource: accessibility flags", "[MemoryResource]")
 TEST_CASE("hostMemoryResource: returns the same process-wide instance", "[MemoryResource]")
 {
   REQUIRE(&hostMemoryResource() == &hostMemoryResource());
+}
+
+// Constant-initialized, so its destructor is registered at static initialization, before any test
+// first calls hostMemoryResource(). Static destructors run in reverse order of registration, so at
+// exit this Pool is destroyed after the resource's own function-local static would be.
+static std::optional<Pool> s_staticPool;
+
+TEST_CASE("hostMemoryResource: a Pool with static storage frees its block at exit", "[MemoryResource][regression]")
+{
+  // The resource used to be a function-local static, destroyed at exit before this Pool, whose
+  // destructor then called deallocate() on the destroyed resource ("pure virtual method called").
+  REQUIRE(exitsCleanly([] {
+    s_staticPool.emplace(hostMemoryResource());
+
+    (void)s_staticPool->reserve(1000, 8, 8);
+  }));
 }

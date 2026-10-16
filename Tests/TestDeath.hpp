@@ -13,6 +13,7 @@
 
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
 #include <optional>
 #include <string>
 #include <utility>
@@ -87,6 +88,32 @@ abortsWith(F&& a_fn, const std::string& a_expected)
   const auto message = abortMessage(std::forward<F>(a_fn));
 
   return message.has_value() && message->find(a_expected) != std::string::npos;
+}
+
+// True iff a_fn, run in a forked child that then exits through std::exit (running the static
+// destructors), ends with exit status 0. For checking what happens at program exit, where any failure
+// (an abort, a crash, or a nonzero status) counts.
+template <class F>
+static bool
+exitsCleanly(F&& a_fn)
+{
+  const pid_t pid = fork();
+
+  if (pid == 0) {
+    if (std::freopen("/dev/null", "w", stdout) == nullptr || std::freopen("/dev/null", "w", stderr) == nullptr) {
+      _exit(1);
+    }
+
+    a_fn();
+
+    std::exit(0);
+  }
+
+  int status = 0;
+
+  (void)waitpid(pid, &status, 0);
+
+  return (WIFEXITED(status) != 0) && (WEXITSTATUS(status) == 0);
 }
 
 // The name the EBGEOMETRY_EXPECT death tests use.

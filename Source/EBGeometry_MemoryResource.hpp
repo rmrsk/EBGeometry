@@ -215,8 +215,8 @@ public:
 
 /**
  * @brief Process-wide default host memory resource.
- * @details Returns a reference to a function-local static @ref HostMemoryResource, so it is
- * constructed on first use and lives for the remainder of the program.
+ * @details Returns a reference to a @ref HostMemoryResource created on first use and never
+ * destroyed, so a Pool with static storage can still free its block at program exit.
  * @return Reference to the shared host resource.
  */
 [[nodiscard]] EBGEOMETRY_HOST
@@ -520,7 +520,9 @@ public:
 
 /**
  * @brief Process-wide default device memory resource.
- * @details Returns a reference to a function-local static @ref DeviceMemoryResource.
+ * @details Returns a reference to a @ref DeviceMemoryResource created on first use and never destroyed,
+ * so a Pool with static storage can still free its block at program exit. A free that fails because
+ * the GPU runtime has already shut down (GPU::isShutdownError()) is not an error.
  * @return Reference to the shared device resource.
  */
 [[nodiscard]] EBGEOMETRY_HOST
@@ -529,7 +531,9 @@ deviceMemoryResource() noexcept;
 
 /**
  * @brief Process-wide default managed (unified) memory resource.
- * @details Returns a reference to a function-local static @ref ManagedMemoryResource.
+ * @details Returns a reference to a @ref ManagedMemoryResource created on first use and never destroyed,
+ * so a Pool with static storage can still free its block at program exit. A free that fails because
+ * the GPU runtime has already shut down (GPU::isShutdownError()) is not an error.
  * @return Reference to the shared managed resource.
  */
 [[nodiscard]] EBGEOMETRY_HOST
@@ -538,7 +542,9 @@ managedMemoryResource() noexcept;
 
 /**
  * @brief Process-wide default pinned (page-locked) host memory resource.
- * @details Returns a reference to a function-local static @ref PinnedMemoryResource.
+ * @details Returns a reference to a @ref PinnedMemoryResource created on first use and never destroyed,
+ * so a Pool with static storage can still free its block at program exit. A free that fails because
+ * the GPU runtime has already shut down (GPU::isShutdownError()) is not an error.
  * @return Reference to the shared pinned resource.
  */
 [[nodiscard]] EBGEOMETRY_HOST
@@ -547,7 +553,9 @@ pinnedMemoryResource() noexcept;
 
 /**
  * @brief Process-wide default mapped (zero-copy) pinned host memory resource.
- * @details Returns a reference to a function-local static @ref MappedMemoryResource.
+ * @details Returns a reference to a @ref MappedMemoryResource created on first use and never destroyed,
+ * so a Pool with static storage can still free its block at program exit. A free that fails because
+ * the GPU runtime has already shut down (GPU::isShutdownError()) is not an error.
  * @return Reference to the shared mapped resource.
  */
 [[nodiscard]] EBGEOMETRY_HOST

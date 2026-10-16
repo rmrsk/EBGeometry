@@ -180,6 +180,16 @@ deviceSynchronize() noexcept;
 [[nodiscard]] inline const char*
 getErrorString(Error a_error) noexcept;
 
+/**
+ * @brief True for the errors a runtime call returns once the runtime has shut down at program exit
+ * (@c cudaErrorCudartUnloading or @c cudaErrorContextIsDestroyed under CUDA, @c hipErrorDeinitialized
+ * or @c hipErrorContextIsDestroyed under HIP).
+ * @param[in] a_error Backend error code.
+ * @return True if @p a_error is one of those errors.
+ */
+[[nodiscard]] inline bool
+isShutdownError(Error a_error) noexcept;
+
 #elif defined(EBGEOMETRY_HIP)
 
 using Error      = hipError_t;
@@ -255,6 +265,12 @@ getErrorString(Error a_error) noexcept
   return hipGetErrorString(a_error);
 }
 
+[[nodiscard]] inline bool
+isShutdownError(Error a_error) noexcept
+{
+  return a_error == hipErrorDeinitialized || a_error == hipErrorContextIsDestroyed;
+}
+
 #elif defined(EBGEOMETRY_CUDA)
 
 using Error      = cudaError_t;
@@ -328,6 +344,12 @@ deviceSynchronize() noexcept
 getErrorString(Error a_error) noexcept
 {
   return cudaGetErrorString(a_error);
+}
+
+[[nodiscard]] inline bool
+isShutdownError(Error a_error) noexcept
+{
+  return a_error == cudaErrorCudartUnloading || a_error == cudaErrorContextIsDestroyed;
 }
 
 #endif

@@ -263,6 +263,9 @@ MeshT<T>::reconcile() noexcept
     uint32_t lastEdge = 0;
     uint32_t steps    = 0;
 
+    EBGEOMETRY_REQUIRE(this->getFace(faceIndex).getHalfEdgeIndex() != UINT32_MAX,
+                       "DCEL::MeshT::reconcile: face %u has no half-edge",
+                       unsigned(faceIndex));
     EBGEOMETRY_REQUIRE(this->faceLoopCloses(faceIndex, lastEdge, steps),
                        "DCEL::MeshT::reconcile: the half-edge loop of face %u does not close (it reaches "
                        "edge %u after %u steps, and the mesh has %u half-edges)",

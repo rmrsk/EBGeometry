@@ -61,9 +61,14 @@ HostMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) 
 inline HostMemoryResource&
 hostMemoryResource() noexcept
 {
-  static HostMemoryResource s_resource;
+  // Created once and never destroyed. A Pool with static storage can be destroyed at exit after a
+  // function-local static resource would be (static destructors run in reverse order of
+  // construction, and the resource is often first used after the Pool was constructed); its
+  // destructor would then call deallocate() on a destroyed object. The resource holds no state, so
+  // the one object leaked at exit costs nothing.
+  static HostMemoryResource* const s_resource = new HostMemoryResource();
 
-  return s_resource;
+  return *s_resource;
 }
 
 inline void
@@ -117,6 +122,31 @@ gpuCopy(void*                 a_dst,
   else {
     EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyDeviceToHost));
   }
+}
+
+/**
+ * @brief Check the result of a GPU free, accepting the errors of a runtime that has shut down.
+ * @details A Pool with static storage is destroyed at program exit, possibly after the GPU runtime
+ * has already torn itself down (CUDA's own exit handler can run first). Its free then fails with
+ * GPU::isShutdownError(), and the memory went with the runtime, so that is not an error. Any other
+ * failure aborts, as EBGEOMETRY_GPU_CHECK does.
+ * @param[in] a_error Result of the free.
+ * @param[in] a_call  The call, for the message.
+ */
+inline void
+checkFree(const GPU::Error a_error, const char* a_call) noexcept
+{
+  if (a_error == GPU::Success || GPU::isShutdownError(a_error)) {
+    return;
+  }
+
+  std::fprintf(stderr,
+               "EBGeometry GPU error: %s\n  call: %s\n  file: %s\n  line: %d\n",
+               GPU::getErrorString(a_error),
+               a_call,
+               __FILE__,
+               __LINE__);
+  std::abort();
 }
 
 } // namespace MemoryResourceDetail
@@ -185,7 +215,7 @@ DeviceMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
   (void)a_alignment;
 
   if (a_ptr != nullptr) {
-    EBGEOMETRY_GPU_CHECK(GPU::memFree(a_ptr));
+    MemoryResourceDetail::checkFree(GPU::memFree(a_ptr), "GPU::memFree(a_ptr)");
   }
 }
 
@@ -211,7 +241,7 @@ ManagedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignmen
   (void)a_alignment;
 
   if (a_ptr != nullptr) {
-    EBGEOMETRY_GPU_CHECK(GPU::memFree(a_ptr));
+    MemoryResourceDetail::checkFree(GPU::memFree(a_ptr), "GPU::memFree(a_ptr)");
   }
 }
 
@@ -237,7 +267,7 @@ PinnedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
   (void)a_alignment;
 
   if (a_ptr != nullptr) {
-    EBGEOMETRY_GPU_CHECK(GPU::memFreeHost(a_ptr));
+    MemoryResourceDetail::checkFree(GPU::memFreeHost(a_ptr), "GPU::memFreeHost(a_ptr)");
   }
 }
 
@@ -263,40 +293,44 @@ MappedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment
   (void)a_alignment;
 
   if (a_ptr != nullptr) {
-    EBGEOMETRY_GPU_CHECK(GPU::memFreeHost(a_ptr));
+    MemoryResourceDetail::checkFree(GPU::memFreeHost(a_ptr), "GPU::memFreeHost(a_ptr)");
   }
 }
 
 inline DeviceMemoryResource&
 deviceMemoryResource() noexcept
 {
-  static DeviceMemoryResource s_resource;
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static DeviceMemoryResource* const s_resource = new DeviceMemoryResource();
 
-  return s_resource;
+  return *s_resource;
 }
 
 inline ManagedMemoryResource&
 managedMemoryResource() noexcept
 {
-  static ManagedMemoryResource s_resource;
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static ManagedMemoryResource* const s_resource = new ManagedMemoryResource();
 
-  return s_resource;
+  return *s_resource;
 }
 
 inline PinnedMemoryResource&
 pinnedMemoryResource() noexcept
 {
-  static PinnedMemoryResource s_resource;
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static PinnedMemoryResource* const s_resource = new PinnedMemoryResource();
 
-  return s_resource;
+  return *s_resource;
 }
 
 inline MappedMemoryResource&
 mappedMemoryResource() noexcept
 {
-  static MappedMemoryResource s_resource;
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static MappedMemoryResource* const s_resource = new MappedMemoryResource();
 
-  return s_resource;
+  return *s_resource;
 }
 
 #endif // EBGEOMETRY_CUDA || EBGEOMETRY_HIP || EBGEOMETRY_DOXYGEN
