@@ -281,7 +281,7 @@ public:
    * @param[in] a_x First vector component
    * @param[in] a_y Second vector component
    * @param[in] a_z Third vector component
-   * @details Sets this->x = a_x, this->y = a_y, and this->z = a_z
+   * @details Sets X[0] = a_x, X[1] = a_y and X[2] = a_z.
    */
   EBGEOMETRY_HOST_DEVICE
   constexpr Vec3T(const T& a_x, const T& a_y, const T& a_z) noexcept;
@@ -426,7 +426,7 @@ public:
 
   /**
    * @brief Subtraction operator. Returns a new vector with subtracted components
-   * @return Returns a new vector with x = this->x - u.x and so on.
+   * @return New vector with X[i] = this->X[i] - u[i] for each component.
    * @param[in] u Other vector
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -490,8 +490,7 @@ public:
   /**
    * @brief Vector addition operator.
    * @param[in] u Vector to add
-   * @return Returns (*this) with incremented components, e.g. this->X[0] =
-   * this->X[0] + u.X[0]
+   * @return (*this), with X[i] += u[i] for each component.
    */
   EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
@@ -500,8 +499,7 @@ public:
   /**
    * @brief Vector subtraction operator.
    * @param[in] u Vector to subtraction
-   * @return Returns (*this) with subtracted components, e.g. this->X[0] =
-   * this->X[0] - u.X[0]
+   * @return (*this), with X[i] -= u[i] for each component.
    */
   EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
@@ -510,8 +508,7 @@ public:
   /**
    * @brief Vector multiplication operator.
    * @param[in] s Scalar to multiply by
-   * @return Returns (*this) with multiplied components, e.g. this->X[0] =
-   * this->X[0] * s
+   * @return (*this), with X[i] *= s for each component.
    */
   EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
@@ -520,7 +517,7 @@ public:
   /**
    * @brief In-place scalar division operator.
    * @param[in] s Scalar to divide by
-   * @return Returns (*this) with divided components, e.g. this->X[0] = this->X[0] / s
+   * @return (*this), with X[i] /= s for each component.
    */
   EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
