@@ -115,7 +115,8 @@ PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNode
   // Nodes and primitives are numbered with uint32_t, and the builders store their offsets that way.
   // The final counts bound every offset a builder stored, so checking them here, first, catches an
   // offset that wrapped before the checks below misread it.
-  EBGEOMETRY_REQUIRE(a_linearNodes.size() <= UINT32_MAX && a_primitives.size() <= UINT32_MAX,
+  // Compared as uint64_t, so a 32-bit size_t does not make the check a tautology the compiler warns on.
+  EBGEOMETRY_REQUIRE(uint64_t(a_linearNodes.size()) <= UINT32_MAX && uint64_t(a_primitives.size()) <= UINT32_MAX,
                      "BVH::PackedBVH: %zu nodes and %zu primitives do not fit the 32-bit indices",
                      a_linearNodes.size(),
                      a_primitives.size());

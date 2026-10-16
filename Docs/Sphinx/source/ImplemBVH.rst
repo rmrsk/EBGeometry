@@ -634,13 +634,13 @@ ___________________
 ``PackedBVH::traverse()`` implements this depth first with a non-recursive, fixed-size stack rather
 than recursion, sized exactly as ``pruneTraverse()``'s is (see :ref:`Sec:TraversalStack`). An empty
 ``PackedBVH`` visits nothing; it has no root, so its ``computeBoundingVolume()`` returns the empty
-box and ``getBoundingVolume()``, which returns the root's box by reference, aborts. Starting at the root, the traversal asks the prune-predicate whether to
-visit a node, and if so either runs the leaf-evaluator (if it is a leaf) or computes the
-node-key-factory for each of its ``K`` children, lets the child-orderer reorder them, and visits
-the last of them at once. The others wait on the stack in one entry for the whole level: the
-node's index and the order of the children still to visit. The stack holds no keys, so its size
-does not depend on the key type. For the full API, see the Doxygen reference for
-`PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
+box and ``getBoundingVolume()``, which returns the root's box by reference, aborts. Starting at the
+root, the traversal asks the prune-predicate whether to visit a node, and if so either runs the
+leaf-evaluator (if it is a leaf) or computes the node-key-factory for each of its ``K`` children,
+lets the child-orderer reorder them, and visits the last of them at once. The others wait on the
+stack in one entry for the whole level: the node's index and the order of the children still to
+visit. The stack holds no keys, so its size does not depend on the key type. For the full API, see
+the Doxygen reference for `PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
 .. _Chap:PruneTraverse:
 
