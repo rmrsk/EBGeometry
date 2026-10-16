@@ -579,15 +579,17 @@ Design and performance work that was deferred on purpose. None of it is a defect
   box union.
 * **BVH-10** [MINOR]: `pack()`/`packWith()` return a `shared_ptr`, and some `PackedBVH`
   constructors are chosen by tag types. This is the API D2 kept.
+* **BVH-18** [NIT]: `computeChildDistances2()`, `TriangleSoA` and `PointSoA` choose their inline SIMD
+  bodies by the ISA macros, so translation units compiled with different flags define them two ways
+  and the linker keeps one. Documented under "Mixing SIMD flags in one program" in
+  `ConfigurationOptions.rst`, and unchecked: the types keep one layout, and the paths agree for
+  finite inputs. Runtime dispatch (one body that picks the SIMD path from the CPU) would remove it.
 
 #### Hardening
 
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **BVH-18** [NIT]: `computeChildDistances2()`'s inline SIMD bodies differ between translation
-  units compiled with different ISA flags. The linker keeps one, so a program mixing such units can
-  run instructions the CPU lacks or give different results. Nothing checks it.
 * **BVH-13** [MINOR]: `PackedBVH::getBoundingVolume()` on an empty BVH is caught only by an
   `EBGEOMETRY_EXPECT`, and `finalize()` narrows sizes to `uint32_t` unchecked.
 * **MEM-15** [NIT]: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for

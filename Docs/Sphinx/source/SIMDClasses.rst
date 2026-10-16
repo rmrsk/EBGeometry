@@ -11,6 +11,11 @@ implementation, not an architectural ceiling -- further classes may become SIMD-
 the same style in the future. This page lists the SIMD-accelerated classes as they exist today,
 and explains precisely what gets vectorised in each.
 
+Which version of this code a file uses is fixed when it is compiled, by the compiler's SIMD flags
+(``__SSE4_1__``, ``__AVX__``, ``__AVX512F__``). Compile every file of a program that uses EBGeometry
+with the same flags; see "Mixing SIMD flags in one program" under
+:ref:`branching factor and SIMD width <Sec:DefaultKW>` for what happens otherwise.
+
 .. contents:: On this page
    :local:
    :depth: 1
