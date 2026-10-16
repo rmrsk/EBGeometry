@@ -18,7 +18,8 @@ features are:
   ``infinity()``.
 * The usual arithmetic operators (``+``, ``-``, unary ``-``, scalar ``*``/``/``, and their
   in-place ``+=``/``-=``/``*=``/``/=`` counterparts), plus a scalar-left multiplication and
-  division as free functions.
+  division as free functions, which take a scalar of any arithmetic type (``2.0 * u`` with a
+  ``Vec2T<float>`` ``u``) and convert it to ``T`` first.
 * ``dot``, ``length``, and ``length2`` member functions, mirrored by free-function equivalents
   (``dot``, ``length``) and free-function component-wise ``min``/``max``.
 
@@ -30,7 +31,8 @@ and const overloads), not as public named fields. Its main features are:
 * Named static factories: ``zeros()``, ``ones()``, ``unit(dir)`` (a basis vector along a given
   axis), ``min()``, ``max()``, and ``infinity()``.
 * The usual arithmetic operators, including both scalar and component-wise ``*``/``/``, and their
-  in-place counterparts, plus a scalar-left multiplication/division as free functions.
+  in-place counterparts, plus a scalar-left multiplication/division as free functions that take
+  any arithmetic scalar, as for ``Vec2T``.
 * ``cross`` and ``dot`` products, mirrored by free-function equivalents, plus free-function
   component-wise ``min``, ``max``, and ``clamp``.
 * Equality ``==``/``!=``, and a lexicographic ``lessLX`` for use in ordered containers. The ordering

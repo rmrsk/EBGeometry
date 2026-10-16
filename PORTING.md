@@ -589,8 +589,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **MEM-17** [NIT]: `Vec3T`'s scalar-left `operator*` and `operator/` are unconstrained,
-  `2.0 * Vec2T<float>` does not compile, and a free `operator*(Vec3T, Vec3T)` looks dead.
 * **MEM-18** [NIT]: `Vec2T` has public `x`/`y` where `Vec3T` has `m_X` and `operator[]`, and their
   `constexpr length()` calls `std::sqrt`.
 * **MEM-12** [MINOR]: five `const_cast<void*>(this->base())`, because `base()` returns
