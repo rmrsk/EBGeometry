@@ -168,7 +168,7 @@ struct Hilbert
  */
 template <class T>
 [[nodiscard]] inline std::vector<Index>
-computeBins(const std::vector<Vec3T<T>>& a_points) noexcept;
+computeBins(const std::vector<Vec3T<T>>& a_points);
 
 /**
  * @brief Return the index permutation that orders a_points along a space-filling curve.
@@ -185,7 +185,7 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept;
  */
 template <class Curve = Morton, class T>
 [[nodiscard]] inline std::vector<uint32_t>
-order(const std::vector<Vec3T<T>>& a_points) noexcept;
+order(const std::vector<Vec3T<T>>& a_points);
 
 } // namespace SFC
 

@@ -35,7 +35,7 @@
 namespace EBGeometry {
 
 inline Parser::FileType
-Parser::getFileType(const std::string& a_filename) noexcept
+Parser::getFileType(const std::string& a_filename)
 {
   auto ft = Parser::FileType::Unsupported;
 
@@ -58,7 +58,7 @@ Parser::getFileType(const std::string& a_filename) noexcept
 }
 
 inline static Parser::Encoding
-Parser::getFileEncoding(const std::string& a_filename) noexcept
+Parser::getFileEncoding(const std::string& a_filename)
 {
   Parser::Encoding encoding = Parser::Encoding::Unknown;
 

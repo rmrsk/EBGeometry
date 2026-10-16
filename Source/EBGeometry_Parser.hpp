@@ -64,7 +64,7 @@ enum class FileType
  * @return Detected FileType (STL, PLY, VTK, OBJ, or Unsupported).
  */
 [[nodiscard]] inline static Parser::FileType
-getFileType(const std::string& a_filename) noexcept;
+getFileType(const std::string& a_filename);
 
 /**
  * @brief Determine file encoding (ASCII or binary) by inspecting the file header.
@@ -72,7 +72,7 @@ getFileType(const std::string& a_filename) noexcept;
  * @return Detected Encoding (ASCII, Binary, or Unknown).
  */
 [[nodiscard]] inline static Parser::Encoding
-getFileEncoding(const std::string& a_filename) noexcept;
+getFileEncoding(const std::string& a_filename);
 
 /**
  * @brief Read a Stanford PLY file, ASCII or binary.

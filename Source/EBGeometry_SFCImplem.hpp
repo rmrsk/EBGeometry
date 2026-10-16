@@ -229,7 +229,7 @@ Hilbert::decode(const uint64_t& a_code) noexcept
 
 template <class T>
 inline std::vector<Index>
-computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
+computeBins(const std::vector<Vec3T<T>>& a_points)
 {
   static_assert(std::is_floating_point_v<T>, "EBGeometry::SFC::computeBins requires a floating-point type T");
 
@@ -289,7 +289,7 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
 
 template <class Curve, class T>
 inline std::vector<uint32_t>
-order(const std::vector<Vec3T<T>>& a_points) noexcept
+order(const std::vector<Vec3T<T>>& a_points)
 {
   static_assert(std::is_floating_point_v<T>, "EBGeometry::SFC::order requires a floating-point type T");
 

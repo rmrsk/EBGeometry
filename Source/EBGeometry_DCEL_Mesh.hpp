@@ -315,7 +315,7 @@ public:
    */
   EBGEOMETRY_HOST
   inline void
-  reconcile() noexcept;
+  reconcile();
 
   /**
    * @brief Flip the mesh, making all the normals change direction.
@@ -484,7 +484,7 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST
   inline std::vector<Vec3T<T>>
-  getAllVertexCoordinates() const noexcept;
+  getAllVertexCoordinates() const;
 
   /**
    * @brief Compute the signed distance from a point to this mesh.
@@ -617,7 +617,7 @@ protected:
    */
   EBGEOMETRY_HOST
   inline void
-  reconcileVertices() noexcept;
+  reconcileVertices();
 
   /**
    * @brief Flip all face normals

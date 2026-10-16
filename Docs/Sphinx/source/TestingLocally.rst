@@ -298,7 +298,8 @@ Test coverage
        flipped, or moved and refitted, after the build; the template
        :cpp:func:`BVH::PackedBVH::traverse` (a nearest-point search against brute force at K = 2, 4
        and 8, ``std::function`` callers, an explicit key type, visit-once, an empty BVH, and the
-       same search on a device against the host); and
+       same search on a device against the host); :cpp:func:`BVH::TreeBVH::traverse` passing an
+       exception from a callback on to the caller; and
        :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
        correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
        brute-force scan after displacement). Also the build-time checks: a tree too deep for the

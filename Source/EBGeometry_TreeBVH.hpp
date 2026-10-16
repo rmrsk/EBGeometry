@@ -173,7 +173,7 @@ requireLeafSetting(const char* a_who, const Construction a_construction, const C
  * @return Array of K sub-vectors whose sizes differ by at most 1.
  */
 template <class X, size_t K>
-auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> Array<std::vector<X>, K> {
+auto EqualCounts = [](std::vector<X> a_primitives) -> Array<std::vector<X>, K> {
   static_assert(K >= 2, "EqualCounts<X, K>: branching factor K must be at least 2");
 
   EBGEOMETRY_EXPECT(!a_primitives.empty());
@@ -211,7 +211,7 @@ auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> Array<std::vector
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto PrimitiveCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) noexcept -> Array<PrimAndBVList<P, BV>, K> {
+auto PrimitiveCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -431,7 +431,7 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
              const size_t                            a_end,
              const size_t                            a_K,
              std::vector<std::pair<size_t, size_t>>& a_groups,
-             const bool                              a_longestAxisOnly = false) noexcept
+             const bool                              a_longestAxisOnly = false)
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "SAHKWaySplit requires BV == AABBT<T>");
 
@@ -573,7 +573,7 @@ MidpointKWaySplit(PrimAndBVList<P, BV>&                   a_list,
                   const size_t                            a_begin,
                   const size_t                            a_end,
                   const size_t                            a_K,
-                  std::vector<std::pair<size_t, size_t>>& a_groups) noexcept
+                  std::vector<std::pair<size_t, size_t>>& a_groups)
 {
   if (a_K <= 1 || a_begin >= a_end) {
     a_groups.emplace_back(a_begin, a_end);
@@ -710,7 +710,7 @@ public:
   /**
    * @brief Default constructor. Creates an empty interior node.
    */
-  TreeBVH() noexcept;
+  TreeBVH();
 
   /**
    * @brief Construct a leaf node from a set of (primitive, BV) pairs.
@@ -901,7 +901,7 @@ public:
   traverse(const BVH::LeafEvaluator<P>&               a_leafEvaluator,
            const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
            const BVH::ChildOrderer<Node, NodeKey, K>& a_childOrderer,
-           const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept;
+           const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const;
 
   /**
    * @brief Refit this subtree's bounding volumes in place after its primitives have moved.
@@ -1002,7 +1002,7 @@ protected:
    * @param[in] a_children New child nodes.
    */
   inline void
-  setChildren(const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept;
+  setChildren(const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children);
 };
 
 } // namespace BVH
