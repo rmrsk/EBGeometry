@@ -349,7 +349,7 @@ TEMPLATE_TEST_CASE("Vec2T: components are reached through operator[], as in Vec3
   CHECK(c[0] == T(5));
   CHECK(c[1] == T(-2));
 
-  // The storage is the same two components a Vec2T<T>(x, y) was built from, in order.
+  // A Vec2T is its two components and nothing else.
   STATIC_REQUIRE(sizeof(Vec2T<T>) == 2 * sizeof(T));
 }
 
