@@ -1252,8 +1252,9 @@ private:
    * ISA: AVX-512F for (double, K=8) and (float, K=16), AVX for (double, K=4), (float, K=8) and
    * (double, K=8) as two 4-wide passes, SSE4.1 for (float, K=4), and a scalar loop for every other
    * combination and for device compilation. Every path computes the same quantity in the same
-   * association order -- max(0, max(lo-p, p-hi)) per axis, then dx*dx + (dy*dy + dz*dz) -- so all of
-   * them agree bit-for-bit for finite inputs (a NaN coordinate can propagate differently), unless the
+   * association order -- max(max(p-hi, lo-p), 0) per axis, each max taking its operands in the order
+   * of the scalar path's comparison, then dx*dx + (dy*dy + dz*dz) -- so all of them agree bit-for-bit,
+   * a NaN coordinate included (it counts as inside the box along that axis), unless the
    * compiler contracts the scalar path's multiply and add into a fused multiply-add, which the
    * intrinsics do not (by default Clang does within an expression, and GCC in its GNU language modes,
    * whenever FMA is enabled, e.g. with -march=native).
