@@ -24,11 +24,6 @@ namespace EBGeometry {
 
 template <typename T>
 EBGEOMETRY_HOST_DEVICE
-inline constexpr Vec2T<T>::Vec2T() noexcept : x(T(0)), y(T(0))
-{}
-
-template <typename T>
-EBGEOMETRY_HOST_DEVICE
 inline constexpr Vec2T<T>::Vec2T(const T& a_x, const T& a_y) noexcept : x(a_x), y(a_y)
 {}
 
@@ -202,11 +197,6 @@ operator/(const T& s, const Vec2T<T>& a_other) noexcept
 
   return Vec2T<T>(s / a_other.x, s / a_other.y);
 }
-
-template <typename T>
-EBGEOMETRY_HOST_DEVICE
-inline constexpr Vec3T<T>::Vec3T() noexcept : m_X{T(0), T(0), T(0)}
-{}
 
 template <typename T>
 EBGEOMETRY_HOST_DEVICE

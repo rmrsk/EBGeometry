@@ -1331,7 +1331,9 @@ TriangleSoAT<T, W>::computeBoundingVolume() const noexcept
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-  Vec3T<T> pts[3 * W];
+  // Zeroed, since only the first 3 * m_validCount entries are set, and the compiler cannot see that
+  // BV reads no others.
+  Vec3T<T> pts[3 * W]{};
 
   for (uint32_t j = 0; j < m_validCount; j++) {
     pts[3 * j + 0] = Vec3T<T>(m_vx[0][j], m_vy[0][j], m_vz[0][j]);

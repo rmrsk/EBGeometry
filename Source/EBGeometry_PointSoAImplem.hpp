@@ -309,7 +309,9 @@ PointSoAT<T, W>::computeBoundingVolume() const noexcept
   EBGEOMETRY_EXPECT(m_validCount >= 1U);
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
-  Vec3T<T> positions[W];
+  // Zeroed, since only the first m_validCount entries are set, and the compiler cannot see that BV
+  // reads no others.
+  Vec3T<T> positions[W]{};
 
   for (uint32_t j = 0; j < m_validCount; j++) {
     positions[j] = Vec3T<T>(m_x[j], m_y[j], m_z[j]);
