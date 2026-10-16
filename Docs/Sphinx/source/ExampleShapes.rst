@@ -51,7 +51,8 @@ The same query on a GPU
 -----------------------
 
 The last section evaluates the torus at points along the :math:`x` axis with
-``GPU::transform(Distance{torus}, points)``. Compiled as CUDA or HIP, that runs a kernel; compiled as
+``GPU::transform(Distance{torus}, points, distances)``, which writes into a vector the caller has
+sized. Compiled as CUDA or HIP, that runs a kernel; compiled as
 plain C++, a host loop, so the section runs in both builds. A shape owns no memory, so nothing but
 the points has to reach the device. See :ref:`Chap:RunningOnGPU`.
 

@@ -83,7 +83,9 @@ template <class R, class Q, class F>
 std::vector<R>
 evaluateOnDevice(const F& a_f, const std::vector<Q>& a_queries)
 {
-  const auto results = EBGeometry::GPU::transform(a_f, a_queries);
+  std::vector<EBGeometry::GPU::TransformResult<F, Q>> results(a_queries.size());
+
+  EBGeometry::GPU::transform(a_f, a_queries, results);
 
   return std::vector<R>(results.begin(), results.end());
 }

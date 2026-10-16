@@ -59,7 +59,9 @@ A kernel cannot read host memory, so the pool goes to the device first:
    const Pool devicePool = Pool::mirror(pool, GPU::memoryResource());   // one copy of everything
    const Distance query{triSDF.rebasedView(devicePool)};                // resolves against the copy
 
-   const std::vector<T> onDevice = GPU::transform(query, points);
+   std::vector<T> onDevice(points.size());
+
+   GPU::transform(query, points, onDevice);
 
 ``GPU::memoryResource()`` is device memory in a CUDA or HIP build, and host memory standing in for
 it otherwise, so these lines run in both builds. See :ref:`Chap:MemoryModel` and

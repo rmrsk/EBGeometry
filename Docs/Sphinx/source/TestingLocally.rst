@@ -202,9 +202,11 @@ Test coverage
        program exit.
    * - ``TestGPUTransform``
      - ``GPU::parallelFor`` and ``GPU::transform``: every index run exactly once at several block
-       sizes and counts (including a partial last block), the span overload over inputs and results
-       in a mirrored pool, the vector overload at different block sizes, the abort on mismatched
-       span sizes, and ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
+       sizes and counts (including a partial last block) and the abort beyond a grid's capacity; the
+       span and pool overloads over inputs and results in a mirrored pool; the vector overload at
+       different block sizes into a reused output; the aborts on mismatched sizes and on a pool that
+       is not frozen or not device-accessible; and
+       ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
    * - ``TestPool``
      - ``Pool``: growth preserving earlier contents and every type's alignment, the requests too
        large for a block, which abort, ``freeze`` and the reservations it then rejects, moves

@@ -116,7 +116,9 @@ main()
       depths.push_back(depth);
     }
 
-    const std::vector<AABB> boxes = EBGeometry::GPU::transform(EstimateBox{shapes, initLo, initHi}, depths);
+    std::vector<AABB> boxes(depths.size());
+
+    EBGeometry::GPU::transform(EstimateBox{shapes, initLo, initHi}, depths, boxes);
 
     std::cout << "\nThe union's estimate by depth, through GPU::transform (backend: " << EBGeometry::GPU::backendName
               << "):\n";

@@ -47,7 +47,7 @@ levels. The program prints each estimate next to the exact box the analytic shap
 The same query on a GPU
 -----------------------
 
-`GPU::transform(query, depths) <doxygen/html/EBGeometry__GPUTransform_8hpp.html>`__ runs one estimate
+`GPU::transform(query, depths, boxes) <doxygen/html/EBGeometry__GPUTransform_8hpp.html>`__ runs one estimate
 per depth from 1 to 8: in a kernel when the file is compiled as CUDA or HIP, and in a host loop
 otherwise (see :ref:`Sec:ExamplesGPU`). The shapes are plain values inside the query, so nothing needs
 copying to the device first. The printed boxes tighten as the depth grows.
