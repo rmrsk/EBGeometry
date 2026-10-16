@@ -590,9 +590,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **BVH-16** [NIT]: some allocating functions are `noexcept` (`SFC::computeBins`,
-  `TreeBVH::traverse` and `setChildren`, two partitioner lambdas), so running out of memory there
-  terminates instead of throwing.
 * **MESH-19** [NIT]: a triangle distance of exactly zero gets sign +1 on the SIMD paths and -1 on
   the scalar path.
 * **BVH-17** [NIT]: the SIMD and scalar child distances can differ for a NaN coordinate (the docs

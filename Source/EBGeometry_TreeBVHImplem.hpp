@@ -37,7 +37,7 @@ namespace EBGeometry {
 namespace BVH {
 
 template <class T, class P, class BV, size_t K>
-inline TreeBVH<T, P, BV, K>::TreeBVH() noexcept
+inline TreeBVH<T, P, BV, K>::TreeBVH()
 {
   for (auto& c : m_children) {
     c = nullptr;
@@ -330,7 +330,7 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition(const size_t a_targetLeafSize)
 
 template <class T, class P, class BV, size_t K>
 inline void
-TreeBVH<T, P, BV, K>::setChildren(const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept
+TreeBVH<T, P, BV, K>::setChildren(const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children)
 {
   std::vector<BV> boundingVolumes;
   boundingVolumes.reserve(a_children.size());
@@ -359,7 +359,7 @@ inline void
 TreeBVH<T, P, BV, K>::traverse(const BVH::LeafEvaluator<P>&               a_leafEvaluator,
                                const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
                                const BVH::ChildOrderer<Node, NodeKey, K>& a_childOrderer,
-                               const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept
+                               const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const
 {
   Array<std::pair<std::shared_ptr<const Node>, NodeKey>, K>   children;
   std::stack<std::pair<std::shared_ptr<const Node>, NodeKey>> q;

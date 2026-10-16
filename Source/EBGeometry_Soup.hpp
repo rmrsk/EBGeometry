@@ -39,7 +39,7 @@ namespace Soup {
 template <typename T>
 [[nodiscard]] inline static bool
 containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                           const std::vector<std::vector<size_t>>&  a_facets) noexcept;
+                           const std::vector<std::vector<size_t>>&  a_facets);
 
 /**
  * @brief Check that a polygon soup can describe a mesh at all.
@@ -56,7 +56,7 @@ template <typename T>
 [[nodiscard]] inline static bool
 isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
         const std::vector<std::vector<size_t>>&  a_facets,
-        std::string&                             a_reason) noexcept;
+        std::string&                             a_reason);
 
 /**
  * @brief Compress a polygon soup by removing duplicate vertices.
@@ -70,7 +70,7 @@ isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
  */
 template <typename T>
 inline static std::vector<size_t>
-compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept;
+compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets);
 
 /**
  * @brief Whether a polygon has zero area to within rounding.
@@ -110,7 +110,7 @@ isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vecto
 template <typename T>
 inline static std::vector<size_t>
 removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                         std::vector<std::vector<size_t>>&        a_facets) noexcept;
+                         std::vector<std::vector<size_t>>&        a_facets);
 
 /**
  * @brief Find a polygon that visits a vertex twice.
@@ -173,7 +173,7 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
            Pool&                                    a_pool,
            const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
            const std::vector<std::vector<size_t>>&  a_facets,
-           const std::string&                       a_id) noexcept;
+           const std::string&                       a_id);
 
 /**
  * @brief Reconcile pair edges: link each half-edge with its reverse.
@@ -189,7 +189,7 @@ soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
  */
 template <typename T>
 inline static void
-reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh) noexcept;
+reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh);
 
 } // namespace Soup
 

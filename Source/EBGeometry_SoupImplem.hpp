@@ -37,7 +37,7 @@ namespace EBGeometry {
 template <typename T>
 inline bool
 Soup::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                                 const std::vector<std::vector<size_t>>&  a_facets) noexcept
+                                 const std::vector<std::vector<size_t>>&  a_facets)
 {
   static_assert(std::is_floating_point_v<T>, "Soup::containsDegeneratePolygons requires a floating-point T");
 
@@ -83,7 +83,7 @@ template <typename T>
 inline bool
 Soup::isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
               const std::vector<std::vector<size_t>>&  a_facets,
-              std::string&                             a_reason) noexcept
+              std::string&                             a_reason)
 {
   static_assert(std::is_floating_point_v<T>, "Soup::isValid requires a floating-point T");
 
@@ -113,7 +113,7 @@ Soup::isValid(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
 
 template <typename T>
 inline std::vector<size_t>
-Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept
+Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets)
 {
   static_assert(std::is_floating_point_v<T>, "Soup::compress requires a floating-point T");
 
@@ -208,7 +208,7 @@ Soup::isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std:
 template <typename T>
 inline std::vector<size_t>
 Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                               std::vector<std::vector<size_t>>&        a_facets) noexcept
+                               std::vector<std::vector<size_t>>&        a_facets)
 {
   static_assert(std::is_floating_point_v<T>, "Soup::removeDegeneratePolygons requires a floating-point T");
 
@@ -408,7 +408,7 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
                  Pool&                                    a_pool,
                  const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                  const std::vector<std::vector<size_t>>&  a_facets,
-                 const std::string&                       a_id) noexcept
+                 const std::string&                       a_id)
 {
   static_assert(std::is_floating_point_v<T>, "Soup::soupToDCEL requires a floating-point T");
 
@@ -500,7 +500,7 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
 
 template <typename T>
 inline void
-Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh) noexcept
+Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh)
 {
   static_assert(std::is_floating_point_v<T>, "Soup::reconcilePairEdgesDCEL requires a floating-point T");
 

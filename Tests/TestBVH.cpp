@@ -22,6 +22,7 @@
 #include <memory>
 #include <numeric>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -3733,7 +3734,7 @@ TEMPLATE_TEST_CASE("TreeBVH: a root that no shared_ptr owns builds both ways and
   using Tree = BVH::TreeBVH<T, Vec3, AABB, K>;
 
   // traverse() and bottomUpSortAndPartition() used to call shared_from_this() on the root, which
-  // terminated the program (traverse() is noexcept) for a root on the stack.
+  // terminated the program (traverse() was noexcept) for a root on the stack.
   BVH::PrimAndBVList<Vec3, AABB> list;
 
   for (int i = 0; i < 200; i++) {
@@ -3773,6 +3774,39 @@ TEMPLATE_TEST_CASE("TreeBVH: a root that no shared_ptr owns builds both ways and
 
     countVisits(tree);
   }
+}
+
+TEMPLATE_TEST_CASE("TreeBVH::traverse passes an exception from a callback on to the caller",
+                   "[BVH][regression]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+
+  using Tree = BVH::TreeBVH<T, Vec3, AABB, K>;
+
+  // traverse() used to be noexcept, so a throwing callback (or running out of memory for its stack)
+  // terminated the program instead.
+  BVH::PrimAndBVList<Vec3, AABB> list;
+
+  for (int i = 0; i < 64; i++) {
+    const Vec3 x(T(i % 4), T((i / 4) % 4), T(i / 16));
+
+    list.emplace_back(std::make_shared<const Vec3>(x), AABB(x, x));
+  }
+
+  Tree tree(list);
+
+  tree.topDownSortAndPartition();
+
+  REQUIRE_THROWS_AS(tree.template traverse<T>([](const BVH::PrimitiveList<Vec3>&) { throw std::runtime_error("leaf"); },
+                                              [](const Tree&, const T&) { return true; },
+                                              [](Array<std::pair<std::shared_ptr<const Tree>, T>, K>&) {},
+                                              [](const Tree&) { return T(0); }),
+                    std::runtime_error);
 }
 
 TEMPLATE_TEST_CASE("PackedBVH: an empty BVH has the empty bounding box and visits nothing",

@@ -255,7 +255,7 @@ MeshT<T>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T>::reconcile() noexcept
+MeshT<T>::reconcile()
 {
   // Everything below walks the faces' half-edge loops with EdgeIteratorT, which never finishes on a
   // loop that does not close; checked here once rather than on every step of every query.
@@ -451,7 +451,7 @@ MeshT<T>::reconcileEdges() noexcept
 template <class T>
 EBGEOMETRY_HOST
 inline void
-MeshT<T>::reconcileVertices() noexcept
+MeshT<T>::reconcileVertices()
 {
   // Transient (not stored) adjacency: for each vertex, every face touching it, found by walking
   // each face's own boundary loop (nextEdge only -- no pair edge needed, so this works even on a
@@ -520,7 +520,7 @@ MeshT<T>::flipVertexNormals() noexcept
 template <class T>
 EBGEOMETRY_HOST
 inline std::vector<Vec3T<T>>
-MeshT<T>::getAllVertexCoordinates() const noexcept
+MeshT<T>::getAllVertexCoordinates() const
 {
   std::vector<Vec3> vertexCoordinates;
   vertexCoordinates.reserve(this->numVertices());

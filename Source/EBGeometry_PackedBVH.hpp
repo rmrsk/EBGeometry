@@ -960,7 +960,8 @@ public:
    * bound is always the squared distance from one point to a child's box). Callable from host and
    * device code: the four callbacks are template parameters, so a device caller passes lambdas or
    * functors, while host code may still pass the std::function aliases BVH::PackedLeafEvaluator,
-   * BVH::PrunePredicate, BVH::PackedChildOrderer and BVH::NodeKeyFactory.
+   * BVH::PrunePredicate, BVH::PackedChildOrderer and BVH::NodeKeyFactory. The callbacks must not
+   * throw: traverse() is noexcept, so an exception from one ends the program.
    *
    * The visit is depth first, starting at the root with its key from @p a_nodeKeyFactory. At each
    * node:
