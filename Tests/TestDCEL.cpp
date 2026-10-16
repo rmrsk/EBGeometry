@@ -718,6 +718,22 @@ TEST_CASE("MeshT: reconciling a hand-built face whose half-edge loop does not cl
       mesh.reconcile(); // must abort
     },
     "DCEL::MeshT::reconcile: the half-edge loop of face 0 does not close (it reaches edge 7 after 2 steps"));
+
+  // A face whose half-edge was never set.
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      mesh.reserveVertices(pool, 0);
+      mesh.reserveEdges(pool, 0);
+      mesh.reserveFaces(pool, 1);
+
+      (void)mesh.addFace(pool, TestFace<T>(UINT32_MAX));
+
+      mesh.reconcile(); // must abort
+    },
+    "DCEL::MeshT::reconcile: face 0 has no half-edge"));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

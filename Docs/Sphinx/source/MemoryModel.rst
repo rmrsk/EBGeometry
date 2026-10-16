@@ -87,6 +87,11 @@ code, even for a device-resident resource), and every allocated block is aligned
 ``EBGeometry::PoolBaseAlign`` (256 bytes), which is at least as strict as everything the library
 ever stores in a pool, including SIMD-width SoA blocks.
 
+The process-wide resources (``hostMemoryResource()``, ``deviceMemoryResource()`` and the others)
+are created on first use and never destroyed, so a ``Pool`` with static storage can still free its
+block when the program exits. On a GPU build that free may come after the GPU runtime has shut
+down; the error the runtime then returns is ignored, since the memory went with it.
+
 .. note::
 
    An object built directly in a ``Managed`` or ``Mapped`` pool resolves through the pool's host
