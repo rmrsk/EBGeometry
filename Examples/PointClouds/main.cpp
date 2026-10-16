@@ -160,7 +160,9 @@ run(const char*              a_name,
   const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource());
   const Cloud            onDevice   = cloud.rebasedView(devicePool);
 
-  const std::vector<Hit> closest = EBGeometry::GPU::transform(ClosestPoint<Cloud>{onDevice}, a_queries);
+  std::vector<Hit> closest(a_queries.size());
+
+  EBGeometry::GPU::transform(ClosestPoint<Cloud>{onDevice}, a_queries, closest);
 
   std::vector<std::uint32_t> indices(a_positions.size());
 
@@ -168,7 +170,9 @@ run(const char*              a_name,
     indices[i] = static_cast<std::uint32_t>(i);
   }
 
-  const std::vector<Neighbors> neighbors = EBGeometry::GPU::transform(NearestNeighbors<Cloud>{onDevice}, indices);
+  std::vector<Neighbors> neighbors(indices.size());
+
+  EBGeometry::GPU::transform(NearestNeighbors<Cloud>{onDevice}, indices, neighbors);
 
   std::cout << "Through GPU::transform (backend: " << EBGeometry::GPU::backendName << "):\n";
 

@@ -168,28 +168,67 @@ transform(const Query& a_query, const PODSpan<In> a_in, const PODSpan<Out> a_out
                      a_in.size(),
                      a_out.size());
 
+  // A thread reads its input before it writes its result, so the results may overwrite the inputs in
+  // place, element for element. A partial overlap would have one thread read what another writes.
+  const auto inBegin  = reinterpret_cast<std::uintptr_t>(a_in.m_ptr);
+  const auto outBegin = reinterpret_cast<std::uintptr_t>(a_out.m_ptr);
+  const auto inEnd    = inBegin + std::uintptr_t(a_in.size()) * sizeof(In);
+  const auto outEnd   = outBegin + std::uintptr_t(a_out.size()) * sizeof(Out);
+
+  const bool inPlace  = std::is_same_v<std::remove_const_t<In>, Out> && inBegin == outBegin;
+  const bool disjoint = inEnd <= outBegin || outEnd <= inBegin;
+
+  EBGEOMETRY_REQUIRE(a_in.size() == 0 || inPlace || disjoint,
+                     "GPU::transform: the inputs and the results must be the same array or not overlap");
+
   parallelFor<BlockSize>(a_in.size(), TransformDetail::Apply<Query, In, Out>{a_query, a_in.m_ptr, a_out.m_ptr});
 }
 
-template <unsigned int BlockSize, class Query, class In>
-inline std::vector<TransformResult<Query, In>>
-transform(const Query& a_query, const std::vector<In>& a_inputs)
+template <unsigned int BlockSize, class Query, class In, class Out>
+inline void
+transform(const Query& a_query, const Pool& a_pool, const PODVector<In>& a_in, const PODVector<Out>& a_out)
 {
-  using Out = TransformResult<Query, In>;
+  EBGEOMETRY_REQUIRE(a_pool.isFrozen(), "GPU::transform: the pool must be frozen");
+  EBGEOMETRY_REQUIRE(a_pool.resource().isDeviceAccessible(),
+                     "GPU::transform: the pool must be in device-accessible memory (a mirror into "
+                     "GPU::memoryResource(), or managed memory)");
 
+  // A PODVector holds an offset, not its pool, so this is as far as membership can be checked: an array
+  // reserved after the pool was mirrored, or from a larger pool, ends past it.
+  EBGEOMETRY_REQUIRE(a_in.endByte() <= a_pool.usedBytes() && a_out.endByte() <= a_pool.usedBytes(),
+                     "GPU::transform: the arrays must fit inside the pool (they end at bytes %llu and %llu, the "
+                     "pool holds %zu)",
+                     static_cast<unsigned long long>(a_in.endByte()),
+                     static_cast<unsigned long long>(a_out.endByte()),
+                     a_pool.usedBytes());
+
+  // The inputs are bound against a const base, so the query sees them read-only.
+  const void* const inBase = a_pool.base();
+
+  transform<BlockSize>(a_query, a_in.bind(inBase), a_out.bind(a_pool.base()));
+}
+
+template <unsigned int BlockSize, class Query, class In, class Out>
+inline void
+transform(const Query& a_query, const std::vector<In>& a_in, std::vector<Out>& a_out)
+{
   static_assert(std::is_trivially_copyable_v<In>, "GPU::transform: an input must be trivially copyable");
   static_assert(std::is_trivially_copyable_v<Out>, "GPU::transform: a result must be trivially copyable");
   static_assert(!std::is_same_v<In, bool> && !std::is_same_v<Out, bool>,
                 "GPU::transform: std::vector<bool> has no contiguous storage; use char or a struct instead");
+  static_assert(std::is_same_v<Out, TransformResult<Query, In>>,
+                "GPU::transform: the results must have the query's result type");
 
-  const std::size_t n = a_inputs.size();
+  const std::size_t n = a_in.size();
 
+  EBGEOMETRY_REQUIRE(a_out.size() == n,
+                     "GPU::transform: there must be as many results as inputs (%zu inputs, %zu results)",
+                     n,
+                     a_out.size());
   EBGEOMETRY_REQUIRE(n <= std::size_t(UINT32_MAX), "GPU::transform: at most 2^32 - 1 inputs (%zu)", n);
 
-  std::vector<Out> results(n);
-
   if (n == 0) {
-    return results;
+    return;
   }
 
   const auto count = static_cast<uint32_t>(n);
@@ -201,18 +240,16 @@ transform(const Query& a_query, const std::vector<In>& a_inputs)
 
   EBGEOMETRY_GPU_CHECK(memAlloc(reinterpret_cast<void**>(&in), sizeof(In) * n));
   EBGEOMETRY_GPU_CHECK(memAlloc(reinterpret_cast<void**>(&out), sizeof(Out) * n));
-  EBGEOMETRY_GPU_CHECK(memcpy(in, a_inputs.data(), sizeof(In) * n, MemcpyHostToDevice));
+  EBGEOMETRY_GPU_CHECK(memcpy(in, a_in.data(), sizeof(In) * n, MemcpyHostToDevice));
 
   transform<BlockSize>(a_query, PODSpan<const In>{in, count}, PODSpan<Out>{out, count});
 
-  EBGEOMETRY_GPU_CHECK(memcpy(results.data(), out, sizeof(Out) * n, MemcpyDeviceToHost));
+  EBGEOMETRY_GPU_CHECK(memcpy(a_out.data(), out, sizeof(Out) * n, MemcpyDeviceToHost));
   EBGEOMETRY_GPU_CHECK(memFree(in));
   EBGEOMETRY_GPU_CHECK(memFree(out));
 #else
-  transform<BlockSize>(a_query, PODSpan<const In>{a_inputs.data(), count}, PODSpan<Out>{results.data(), count});
+  transform<BlockSize>(a_query, PODSpan<const In>{a_in.data(), count}, PODSpan<Out>{a_out.data(), count});
 #endif
-
-  return results;
 }
 
 } // namespace GPU

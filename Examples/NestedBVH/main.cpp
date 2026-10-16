@@ -179,7 +179,9 @@ try {
 
     const BothScenes query{composed.rebasedView(devicePool), nested.rebasedView(devicePool)};
 
-    const std::vector<Values> onDevice = EBGeometry::GPU::transform(query, points);
+    std::vector<Values> onDevice(points.size());
+
+    EBGeometry::GPU::transform(query, points, onDevice);
 
     std::cout << "\nThrough GPU::transform (backend: " << EBGeometry::GPU::backendName << "):\n";
 

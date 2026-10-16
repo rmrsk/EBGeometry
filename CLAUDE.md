@@ -58,8 +58,9 @@ cmake -S . -B build && cmake --build build
 
 Every example except `BuildBVH` and `HostTuning` also takes a GPU switch (`make GPU=HIP|CUDA`, CMake
 `-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's `EBGEOMETRY_ENABLE_HIP`/`CUDA`): the same source
-then also runs its query functor on the device through `GPU::transform()` and compares the results with
-the host's. A GPU build with no visible GPU skips the device part and exits 0. In a GPU build of the
+then runs its last section's query functor on the device through `GPU::transform()` (in a plain C++
+build, the same section runs as a host loop). A GPU build with no visible GPU skips the device part
+and exits 0. Examples check nothing themselves; device correctness is the `[gpu]` unit tests' job. In a GPU build of the
 project these examples are collected in `EBGeometry_GPUDeviceExamples` (CI compiles it, without
 running it); their tests keep the `example` label.
 

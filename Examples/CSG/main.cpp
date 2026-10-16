@@ -145,8 +145,8 @@ main()
   //   2. Pool::mirror() copies the whole block, every tape in it, in one piece into
   //      GPU::memoryResource() (device memory in a CUDA or HIP build);
   //   3. rebasedView() gives a descriptor of the same tape that resolves against the copy.
-  // GPU::transform() then runs the query once per point in a kernel and returns the results to the
-  // host. In a plain C++ build, memoryResource() is host memory standing in for a device and transform()
+  // GPU::transform() then runs the query once per point in a kernel and writes the results into a host
+  // vector. In a plain C++ build, memoryResource() is host memory standing in for a device and transform()
   // is a host loop, so these lines also run there.
   if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
     std::cout << "\nOn the device: skipped, no GPU is visible\n";
@@ -164,7 +164,9 @@ main()
       points.emplace_back(T(1.5) + T(0.125) * T(i), T(0.3), T(0));
     }
 
-    const std::vector<T> onDevice = EBGeometry::GPU::transform(query, points);
+    std::vector<T> onDevice(points.size());
+
+    EBGeometry::GPU::transform(query, points, onDevice);
 
     std::cout << "\nThe ring along a line at height y = 0.3, through GPU::transform (backend: "
               << EBGeometry::GPU::backendName << "):\n";

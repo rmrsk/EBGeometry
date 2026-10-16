@@ -83,7 +83,9 @@ template <class R, class Q, class F>
 std::vector<R>
 evaluateOnDevice(const F& a_f, const std::vector<Q>& a_queries)
 {
-  const auto results = EBGeometry::GPU::transform(a_f, a_queries);
+  std::vector<EBGeometry::GPU::TransformResult<F, Q>> results(a_queries.size());
+
+  EBGeometry::GPU::transform(a_f, a_queries, results);
 
   return std::vector<R>(results.begin(), results.end());
 }
@@ -128,13 +130,16 @@ evaluateOnHost(const F& a_f, const std::vector<Q>& a_queries)
   @brief Require each device result to match the host result, element by element.
   @details The host and device evaluate the same arithmetic, differing only by fused-multiply-add
   contraction and reassociation, so each pair must agree to gpuTol<T>() relative to the larger
-  magnitude (or absolutely, near zero). Signs are compared as they are.
-  @param[in] a_device Device results.
-  @param[in] a_host   Host results.
+  magnitude (or absolutely, near zero). Signs are compared as they are. A result that amplifies
+  rounding (a finite difference, which divides a cancellation by a small step) passes its own,
+  looser tolerance.
+  @param[in] a_device    Device results.
+  @param[in] a_host      Host results.
+  @param[in] a_tolerance Relative tolerance; gpuTol<T>() unless given.
 */
 template <class T>
 void
-requireSameResults(const std::vector<T>& a_device, const std::vector<T>& a_host)
+requireSameResults(const std::vector<T>& a_device, const std::vector<T>& a_host, const T a_tolerance = gpuTol<T>())
 {
   static_assert(std::is_floating_point_v<T>, "requireSameResults compares floating-point results");
 
@@ -144,7 +149,7 @@ requireSameResults(const std::vector<T>& a_device, const std::vector<T>& a_host)
     const T scale = std::max(T(1), std::max(std::abs(a_device[i]), std::abs(a_host[i])));
 
     INFO("query " << i << ": device " << a_device[i] << ", host " << a_host[i]);
-    REQUIRE(std::abs(a_device[i] - a_host[i]) <= gpuTol<T>() * scale);
+    REQUIRE(std::abs(a_device[i] - a_host[i]) <= a_tolerance * scale);
   }
 }
 

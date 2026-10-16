@@ -208,9 +208,21 @@ instantiateFunctionTemplates()
     const std::vector<Vec3T<T>> points{Vec3T<T>::ones()};
     std::vector<T>              results(1);
 
-    (void)GPU::transform(query, points);
-    (void)GPU::transform<256>(query, points);
+    GPU::transform(query, points, results);
+    GPU::transform<256>(query, points, results);
     GPU::transform(query, PODSpan<const Vec3T<T>>{points.data(), 1}, PODSpan<T>{results.data(), 1});
+
+    Pool                pool(emulatedDeviceMemoryResource());
+    PODVector<Vec3T<T>> in;
+    PODVector<T>        out;
+
+    in.reserveFrom(pool, 1);
+    out.reserveFrom(pool, 1);
+    in.assign(pool.base(), points.data(), 1);
+    out.assign(pool.base(), results.data(), 1);
+    pool.freeze();
+
+    GPU::transform(query, pool, in, out);
     (void)GPU::deviceAvailable();
     (void)GPU::memoryResource();
   }

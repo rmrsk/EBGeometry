@@ -74,7 +74,9 @@ point and returns the values to the host:
 
    const Pool devicePool = Pool::mirror(pool, GPU::memoryResource());
 
-   const auto values = GPU::transform(Distance{ringTape.rebasedView(devicePool)}, points);
+   std::vector<T> values(points.size());
+
+   GPU::transform(Distance{ringTape.rebasedView(devicePool)}, points, values);
 
 In a plain C++ build the same lines run on the host: ``memoryResource()`` is host memory standing in
 for a device and ``transform()`` is a loop. The program evaluates the ring along a line through the

@@ -17,9 +17,9 @@ different types in one object, compose them with the expression builder instead 
 
 The last section runs both unions on a GPU and shows how to time the queries there without timing the
 memory traffic around them: the query points and the results stay on the device, in a pool mirrored
-there once, and `GPU::transform` is called on spans over them. The same section also times the
-one-call `GPU::transform(query, std::vector)`, which allocates device memory and copies the points
-in and the results out on every call.
+there once, and `GPU::transform(query, pool, in, out)` is called on them. The same section also
+times `GPU::transform(query, points, results)` over host vectors, which allocates device memory and
+copies the points in and the results out on every call.
 
 Building
 --------
@@ -75,7 +75,7 @@ Running
 
 The program prints, for each scene, the time per query point of the naive union and of the
 `BVHUnion`, the speedup, and both values at one point. In the last section it prints the time per
-point through `GPU::transform` over spans (the queries alone) and over vectors (in a GPU build,
+point through `GPU::transform` in the pool (the queries alone) and over vectors (in a GPU build,
 including allocation and copies). In a plain C++ build that section runs on the host, so its two
 times are about the same.
 

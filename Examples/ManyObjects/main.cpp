@@ -141,8 +141,8 @@ void
 runOnDevice(const std::string& a_name, const Union& a_onDevice, const std::vector<Vec3>& a_points)
 {
   // The points and room for the results, in a pool of their own, mirrored into the device's memory
-  // once. PODVector<T> is an array in a pool: an offset and a size, which bind() turns into a pointer
-  // against whichever copy of the pool it is given.
+  // once. PODVector<T> is an array in a pool: an offset and a size, which resolve against whichever
+  // copy of the pool they are given.
   const auto n = static_cast<uint32_t>(a_points.size());
 
   EBGeometry::Pool            hostPool(EBGeometry::hostMemoryResource());
@@ -160,22 +160,25 @@ runOnDevice(const std::string& a_name, const Union& a_onDevice, const std::vecto
 
   const Distance<Union> query{a_onDevice};
 
-  // The span overload reads the points and writes the results where they already are: the time is the
-  // kernel's alone. The first launch in a program also pays for loading the kernel onto the device, so
-  // one untimed call comes first.
-  EBGeometry::GPU::transform(query, in.bind(devicePool.base()), out.bind(devicePool.base()));
+  // Given the pool both arrays live in, transform() checks that the pool is frozen and in memory the
+  // device can reach, then reads the points and writes the results where they already are: the time is
+  // the kernel's alone. The first launch in a program also pays for loading the kernel onto the device,
+  // so one untimed call comes first.
+  EBGeometry::GPU::transform(query, devicePool, in, out);
 
-  const auto spanStart = std::chrono::steady_clock::now();
+  const auto poolStart = std::chrono::steady_clock::now();
 
-  EBGeometry::GPU::transform(query, in.bind(devicePool.base()), out.bind(devicePool.base()));
+  EBGeometry::GPU::transform(query, devicePool, in, out);
 
-  const T spanTime = microsecondsSince(spanStart);
+  const T poolTime = microsecondsSince(poolStart);
 
   // The vector overload is one call from host vector to host vector, which also allocates device memory
   // and copies the points in and the results out. Its time includes all of that.
+  std::vector<T> viaVectors(a_points.size());
+
   const auto vectorStart = std::chrono::steady_clock::now();
 
-  const std::vector<T> viaVectors = EBGeometry::GPU::transform(query, a_points);
+  EBGeometry::GPU::transform(query, a_points, viaVectors);
 
   const T vectorTime = microsecondsSince(vectorStart);
 
@@ -184,10 +187,10 @@ runOnDevice(const std::string& a_name, const Union& a_onDevice, const std::vecto
 
   std::cout << a_name << " through GPU::transform (backend: " << EBGeometry::GPU::backendName << "), " << n
             << " points:\n";
-  std::cout << "  Over spans   : " << T(1000) * spanTime / T(n) << " ns per point (the queries alone)\n";
+  std::cout << "  In the pool  : " << T(1000) * poolTime / T(n) << " ns per point (the queries alone)\n";
   std::cout << "  Over vectors : " << T(1000) * vectorTime / T(n)
             << " ns per point (in a GPU build, with allocation and copies)\n";
-  std::cout << "  At " << a_points[0] << ": " << out.at(back.base(), 0) << " (spans), " << viaVectors[0]
+  std::cout << "  At " << a_points[0] << ": " << out.at(back.base(), 0) << " (pool), " << viaVectors[0]
             << " (vectors)\n\n";
 }
 
