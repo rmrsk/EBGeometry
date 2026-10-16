@@ -577,8 +577,9 @@ callback roles below are documented on `the BVH namespace's doxygen page
 template parameters: host code may pass the ``std::function`` aliases above, while device code
 passes lambdas or functors (``std::function`` is host-only). The key type is deduced from the
 node-key factory's return type, or can be given explicitly (``bvh.template traverse<double>(...)``).
-``PackedBVH::traverse()`` is ``noexcept``, so an exception from one of its callbacks ends the program.
-``TreeBVH::traverse()`` is host-only, and an exception from one of its callbacks reaches the caller.
+``PackedBVH::traverse()`` is ``noexcept``, so an exception from one of its callbacks ends the
+program. ``TreeBVH::traverse()`` is host-only, and an exception from one of its callbacks reaches the
+caller.
 
 Node visit
 __________
