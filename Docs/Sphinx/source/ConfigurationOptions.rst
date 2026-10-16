@@ -81,6 +81,14 @@ translation units compiled with different flags. With the host-tuned values, the
 is a different type in two such files -- and within one CUDA or HIP compile, the host and device
 passes can disagree on its layout, which corrupts a kernel's arguments without any error.
 
+Even with the defaults, files compiled with different SIMD flags compile the inline SIMD code
+differently (the child-box distances, the triangle and point groups), and the linker keeps one
+file's version for both. The program can then run instructions that only the other file was
+compiled for, or get the other file's results (the SIMD and scalar paths agree for finite inputs).
+Every translation unit that includes these headers records its SIMD flags when the program starts,
+and the first time two differ it prints one warning naming both files. Define
+``EBGEOMETRY_ALLOW_MIXED_SIMD`` in a translation unit to keep it out of that warning.
+
 **The build switch.** Defining ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` for a whole build makes
 ``TriangleSoA::DefaultWidth<T>()`` return ``TriangleSoA::HostWidth<T>()``, so every ``TriMeshSDF``
 and ``readIntoTriMeshSDF`` that uses the default width evaluates a full register of triangles at
@@ -89,8 +97,9 @@ branching factor and the point-group width stay 4, since widening them measured 
 below). Two conditions come with it:
 
 * **One set of flags for the whole build.** Every translation unit must define the macro and be
-  compiled with the same SIMD flags; otherwise one spelled type has two layouts. Nothing checks this
-  across translation units.
+  compiled with the same SIMD flags, since the width then follows them; otherwise one spelled type
+  has two layouts. A program whose translation units disagree on either aborts when it starts,
+  naming two of them; ``EBGEOMETRY_ALLOW_MIXED_SIMD`` does not change that.
 * **Host-only.** The headers refuse the macro in a CUDA or HIP translation unit (a compile error),
   since the host and device passes of such a compile see different SIMD flags.
 

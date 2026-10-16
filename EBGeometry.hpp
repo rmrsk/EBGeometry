@@ -49,6 +49,7 @@
 #include "Source/EBGeometry_PolygonSoup.hpp"
 #include "Source/EBGeometry_Pool.hpp"
 #include "Source/EBGeometry_SFC.hpp"
+#include "Source/EBGeometry_SIMDCheck.hpp"
 #include "Source/EBGeometry_Soup.hpp"
 #include "Source/EBGeometry_StreamOperators.hpp"
 #include "Source/EBGeometry_Tape.hpp"

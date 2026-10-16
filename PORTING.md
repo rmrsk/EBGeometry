@@ -585,9 +585,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 Listed most severe first. Each is fixed in its own pull request, which also removes it from this
 list.
 
-* **BVH-18** [NIT]: `computeChildDistances2()`'s inline SIMD bodies differ between translation
-  units compiled with different ISA flags. The linker keeps one, so a program mixing such units can
-  run instructions the CPU lacks or give different results. Nothing checks it.
 * **BVH-13** [MINOR]: `PackedBVH::getBoundingVolume()` on an empty BVH is caught only by an
   `EBGEOMETRY_EXPECT`, and `finalize()` narrows sizes to `uint32_t` unchecked.
 * **MEM-15** [NIT]: `Pool::reserve` and `Pool::grow` do not check their size arithmetic for
