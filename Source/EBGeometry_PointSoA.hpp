@@ -22,7 +22,6 @@
 
 // Our includes
 #include "EBGeometry_Array.hpp"
-#include "EBGeometry_SIMDCheck.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {

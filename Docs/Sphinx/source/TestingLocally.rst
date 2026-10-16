@@ -389,12 +389,6 @@ Test coverage
      - ``SimpleTimer``: near-zero elapsed time on construction, measured duration against a
        requested sleep, restart-on-``start()`` semantics, and relative ordering of two
        different sleep durations.
-   * - ``TestSIMDCheckMixed``, ``TestSIMDCheckAllowed``, ``TestSIMDCheckLayout``,
-       ``TestSIMDCheckLayoutFlags``
-     - The startup check of the SIMD settings, on programs of two translation units (x86, host-only
-       builds): different SIMD flags print one warning and the program runs; with
-       ``EBGEOMETRY_ALLOW_MIXED_SIMD`` they print nothing; ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` in
-       only one of them, or in both with different SIMD flags, aborts before ``main()``.
 
 ``Tests/InstantiateAll.cpp`` is not itself a test binary and does not appear in the table
 above: it is a compile-only target (built by ``cmake --build``, but never run by ``ctest``)

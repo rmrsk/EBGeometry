@@ -36,7 +36,6 @@
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_Pool.hpp"
-#include "EBGeometry_SIMDCheck.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {

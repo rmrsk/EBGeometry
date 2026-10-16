@@ -81,13 +81,16 @@ translation units compiled with different flags. With the host-tuned values, the
 is a different type in two such files -- and within one CUDA or HIP compile, the host and device
 passes can disagree on its layout, which corrupts a kernel's arguments without any error.
 
-Even with the defaults, files compiled with different SIMD flags compile the inline SIMD code
-differently (the child-box distances, the triangle and point groups), and the linker keeps one
-file's version for both. The program can then run instructions that only the other file was
-compiled for, or get the other file's results (the SIMD and scalar paths agree for finite inputs).
-Every translation unit that includes these headers records its SIMD flags when the program starts,
-and the first time two differ it prints one warning naming both files. Define
-``EBGEOMETRY_ALLOW_MIXED_SIMD`` in a translation unit to keep it out of that warning.
+**Mixing SIMD flags in one program.** Even with the defaults, files compiled with different SIMD
+flags compile the inline SIMD code differently: the child-box distances of ``PackedBVH`` and the
+triangle and point groups each have an AVX-512, an AVX and an SSE4.1 version, and a scalar one. Each
+such inline function is then defined two ways, and the linker keeps one file's version for every
+caller. The types keep one layout, so objects can still be passed between the files, but the program
+can run instructions that only the other file was compiled for (an illegal-instruction crash on a
+CPU without them), or get the other file's results (the SIMD and scalar paths agree for finite
+inputs, except for the sign of an exactly zero triangle distance). Nothing checks this. Compile every file that uses EBGeometry with the same SIMD flags,
+unless the program only ever runs on CPUs that have the widest instruction set any of its files
+uses.
 
 **The build switch.** Defining ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` for a whole build makes
 ``TriangleSoA::DefaultWidth<T>()`` return ``TriangleSoA::HostWidth<T>()``, so every ``TriMeshSDF``
@@ -98,8 +101,8 @@ below). Two conditions come with it:
 
 * **One set of flags for the whole build.** Every translation unit must define the macro and be
   compiled with the same SIMD flags, since the width then follows them; otherwise one spelled type
-  has two layouts. A program whose translation units disagree on either aborts when it starts,
-  naming two of them; ``EBGEOMETRY_ALLOW_MIXED_SIMD`` does not change that.
+  has two layouts, and an object built in one file is read wrongly in another. Nothing checks this
+  across translation units, so set both for the whole build, as EBGeometry's CMake option does.
 * **Host-only.** The headers refuse the macro in a CUDA or HIP translation unit (a compile error),
   since the host and device passes of such a compile see different SIMD flags.
 

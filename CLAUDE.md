@@ -326,11 +326,7 @@ does not follow this template, edit the PR body to conform to it.
   same name is ON for a top-level non-GPU build, so the `release`/`release-test` presets test with
   W = 8 for `float`. The ISA-tuned values (`BVH::HostBranchingRatio`, `TriangleSoA::HostWidth`,
   `PointSoA::HostWidth`) must never be used for a type device code also sees. See "Branching factor
-  and SIMD width" in `ConfigurationOptions.rst` and `Examples/HostTuning`. `EBGeometry_SIMDCheck.hpp`
-  checks the settings across translation units when a program starts: units that disagree on
-  `EBGEOMETRY_HOST_TUNED_DEFAULTS`, or define it and differ in SIMD flags, abort; otherwise units
-  with different SIMD flags print one warning (`EBGEOMETRY_ALLOW_MIXED_SIMD` silences it). A new header with ISA-dependent inline code must
-  include it.
+  and SIMD width" in `ConfigurationOptions.rst` and `Examples/HostTuning`.
 - **`EBGEOMETRY_EXPECT()` assertions are opt-in** (`EBGEOMETRY_ENABLE_ASSERTIONS`, ON in `debug`/
   `debug-san`, OFF in `release`/`release-test`) and are the primary way internal invariant
   violations (e.g. a dangling half-edge, a malformed mesh) surface during development; they compile
