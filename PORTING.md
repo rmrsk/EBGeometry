@@ -598,6 +598,11 @@ list.
 * **QA-16** [MINOR]: `TestPolygon2D` casts a `FaceT` to a test subclass (undefined behaviour),
   `looseMargin<float>()` is about 0.012, and `exactMargin()` is defined in three test files.
 * **MEM-14** [MINOR]: `Vec3T::clamp` has no host test with expected values.
+* **MESH-20** [MINOR]: the binary PLY readers in `Parser::readPLY` (`readBinaryValue`,
+  `readBinarySizeT`) convert from a union that a short read at the end of a truncated file leaves
+  partly unset, so they read an indeterminate value (valgrind reports it in `TestParser`). The
+  stream check after the read rejects the file, so the result is right; zero the union or check
+  `gcount()`.
 * **QA-24** [NIT]: the example GNUmakefiles set `CXX ?=` (a no-op, since make predefines it) and
   `CXXFLAGS ?=` (an environment `CXXFLAGS` drops `-std=c++17`), and Doxygen shows
   `EBGEOMETRY_HOST_DEVICE` in return types.
