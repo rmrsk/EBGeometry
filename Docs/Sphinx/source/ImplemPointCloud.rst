@@ -25,7 +25,7 @@ hold the same value, and those queries also return the count found. A cloud may 
 ``PointCloud::InvalidIndex`` points, all with finite coordinates; the constructors check both.
 
 The classes store no per-point user data. Keep it in your own array and index it with
-``Hit::index``, as ``Examples/ClosestPointBVH`` does (see :ref:`Chap:ExampleClosestPointBVH`).
+``Hit::index``, as :ref:`Chap:ExamplePointClouds` does.
 
 ``closestPoint`` / ``closestPoints`` answer an arbitrary external query point, while
 ``nearestNeighbor`` / ``nearestNeighbors`` (and the batch ``allNearestNeighbors``) answer a point
@@ -74,7 +74,7 @@ callable; ``allNearestNeighbors()`` returns a ``std::vector`` and stays host-onl
 
 See the `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and
-``Examples/ClosestPointBVH`` / ``Examples/NearestNeighborBVH`` for worked usage.
+:ref:`Chap:ExamplePointClouds` for worked usage.
 
 PointCloudHashGrid
 ------------------
@@ -101,4 +101,4 @@ composed as a primitive inside an outer BVH union or a tape: neither provides a
 
 See the `PointCloudHashGrid doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudHashGrid.html>`__ for the full interface, and
-``Examples/NearestNeighborHashGrid`` for a worked comparison against the BVH example.
+:ref:`Chap:ExamplePointClouds`, which runs the same queries through both classes.

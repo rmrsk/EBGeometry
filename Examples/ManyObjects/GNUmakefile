@@ -36,7 +36,7 @@ ifeq ($(ASSERTIONS),ON)
   CXXFLAGS += -DEBGEOMETRY_ENABLE_ASSERTIONS
 endif
 
-TARGET := NearestNeighborBVH.ex
+TARGET := ManyObjects.ex
 
 $(TARGET): main.cpp
 	$(CXX) $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@

@@ -3,34 +3,75 @@
 MeshSDF
 ========
 
-Reads a surface mesh and evaluates its signed distance field using all three mesh-SDF
-representations described in :ref:`Chap:MeshSDFClasses`:
+Reads a surface mesh into a signed distance function in each of the three representations described
+in :ref:`Chap:MeshSDFClasses`, times them, and evaluates one on a GPU. The source is at
+:file:`Examples/MeshSDF/main.cpp`.
 
-* A naive :math:`O(N)` scan over all facets (``FlatMeshSDF``).
-* A ``PackedBVH`` with pointer-free, index-offset nodes storing face ids, each test reading its face from the mesh (``MeshSDF``).
-* A SIMD-accelerated, SoA-packed triangle BVH (``TriMeshSDF``).
+The code that runs on either side
+---------------------------------
 
-It times each at the same random points around the mesh, and checks that the three agree at every
-point, to a tolerance scaled by the mesh's size. On a mesh with holes they can disagree on the sign
-near a hole, where the inside is not well defined.
+The query handed to ``GPU::transform`` holds a
+`TriMeshSDF <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__ by value. A mesh SDF owns no memory:
+it is a descriptor of a mesh and a BVH that live in a
+`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__, so copying it into a kernel is cheap, once it
+describes a pool the device can read.
+
+Read the mesh
+-------------
+
+The mesh comes from the command line or, by default, ``armadillo.obj`` from the
+``common-3d-test-models`` submodule (see :ref:`Sec:Cloning`). Any watertight, orientable mesh in STL,
+PLY, VTK or OBJ works. Each of the three readers in
+`EBGeometry_Parser.hpp <doxygen/html/EBGeometry__Parser_8hpp.html>`__ parses the file into one pool:
+
+* ``readIntoFlatMeshSDF``: a `FlatMeshSDF <doxygen/html/classEBGeometry_1_1FlatMeshSDF.html>`__,
+  the half-edge mesh with no acceleration. Every query visits every face.
+* ``readIntoMeshSDF``: a `MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__, the
+  half-edge mesh under a BVH, for any planar convex polygon faces.
+* ``readIntoTriMeshSDF``: a ``TriMeshSDF``, triangles grouped for SIMD under a BVH. Usually the
+  fastest, and the one to pick unless you need the polygon faces themselves.
+
+An application would pick one. The pool must outlive every SDF built into it, and every copy of one.
+
+Use it on the host
+------------------
+
+The program evaluates all three at the same random points around the mesh and prints the time per
+query. The values are the same; only the number of faces visited differs, which on the 100 000-face
+armadillo makes the BVH-backed representations hundreds of times faster than the flat scan.
+``getClosestFace(point)`` (`ClosestFace <doxygen/html/structEBGeometry_1_1ClosestFace.html>`__) also
+returns which face is nearest, as its index in the file, which is how to look up per-face data of
+your own.
 
 .. tip::
 
-   SDF query complexity depends on both the geometry and the query point. A tessellated sphere
-   has a "blind spot" at its center where even a BVH must visit most, if not all, primitives —
-   this example is a good way to see that effect in practice.
+   SDF query cost depends on both the geometry and the query point. A tessellated sphere has a
+   "blind spot" at its center where even a BVH must visit most faces.
 
-Compiled for a GPU, the same run also evaluates the MeshSDF and TriMeshSDF queries in a kernel and
-compares the results with the host's; see :ref:`Sec:ExamplesGPU`.
+The same query on a GPU
+-----------------------
 
-The source for this example is at :file:`Examples/MeshSDF/main.cpp`. See :ref:`Chap:Building`
-for how to compile it with CMake, GNU Make, or a direct compiler invocation.
+A kernel cannot read host memory, so the pool goes to the device first:
+
+.. code-block:: c++
+
+   pool.freeze();                                                       // nothing more is added
+   const Pool devicePool = Pool::mirror(pool, GPU::memoryResource());   // one copy of everything
+   const Distance query{triSDF.rebasedView(devicePool)};                // resolves against the copy
+
+   const std::vector<T> onDevice = GPU::transform(query, points);
+
+``GPU::memoryResource()`` is device memory in a CUDA or HIP build, and host memory standing in for
+it otherwise, so these lines run in both builds. See :ref:`Chap:MemoryModel` and
+:ref:`Chap:RunningOnGPU`.
+
+Building and running
+--------------------
+
+See :ref:`Chap:Building` for how to compile it, and :ref:`Sec:ExamplesGPU` for a GPU build.
 
 .. code-block:: bash
 
    cd Examples/MeshSDF
    ./MeshSDF.ex                                            # defaults to armadillo.obj
    ./MeshSDF.ex ../../common-3d-test-models/data/cow.obj   # or pick another mesh
-
-With no argument the example loads ``armadillo.obj`` from the ``common-3d-test-models``
-submodule, so make sure it is checked out first (see :ref:`Sec:Cloning`).

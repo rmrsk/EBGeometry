@@ -234,8 +234,8 @@ maps folded into one `Affine3T`, and sub-programs for Blur, Mollify and BVH-unio
 through an `evaluate<D>` call-depth template instead of recursion (at most 4 deep). A union or smooth
 union of 8 or more distance operands gets a `PackedBVH<T, uint32_t, K>` over sub-program ids, built by
 the same helper as `BVHUnion`, unbounded operands kept out of the tree. The tape is a `PoolHandle`
-(`layout()`, `rebasedView()`, `deepCopy()`). The old `CSGUnion` example is back in `Examples/` on the
-tape, and the two `Shapes` integrations are ported and were compiled and run against AMReX and
+(`layout()`, `rebasedView()`, `deepCopy()`). The old `CSGUnion` example came back in `Examples/` on the
+tape (since #182 split into `CSG` and `NestedBVH`), and the two `Shapes` integrations are ported and were compiled and run against AMReX and
 Chombo.
 
 **25c is done.** A `[gpu]` case in `TestTape` evaluates tapes on a mirrored pool through the GPU
@@ -309,7 +309,7 @@ A GPU build with no visible GPU runs the host part, skips the device part and ex
 shapes need no copy, most examples mirror their pool to device memory, and `CustomShape` (a
 user-written octahedron in a `Tape<T, Octahedron<T>>`) uses managed memory and writes its kernel out,
 to show what `GPU::transform` does. The first draft's separate `DeviceShape` and `DevicePointCloud`
-became `CustomShape` and the device part of `ClosestPointBVH`. The `TestGPU.hpp` harness is built on
+became `CustomShape` and the device part of `ClosestPointBVH` (since #182, `PointClouds`). The `TestGPU.hpp` harness is built on
 `GPU::transform` too. The example jobs run them as plain C++; the GPU-HIP and GPU-CUDA jobs compile
 them for the device (`EBGeometry_GPUDeviceExamples`) without running them.
 

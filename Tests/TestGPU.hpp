@@ -22,9 +22,10 @@
 // launch and its completion, and a failure aborts with the call that failed. The tests skip when no
 // device is visible.
 //
-// In a host build the same tests run in emulation: deviceTestResource() is host memory that reports
-// itself device-accessible, so a rebasedView() onto it takes the device-view path (a snapshot of the
-// location, no control block), and GPU::transform() passes the functor by value to a host loop. That
+// In a host build the same tests run in emulation: deviceTestResource() is the library's
+// emulatedDeviceMemoryResource(), host memory that reports itself device-accessible, so a
+// rebasedView() onto it takes the device-view path (a snapshot of the location, no control block), and
+// GPU::transform() passes the functor by value to a host loop. That
 // runs the device-view code and the functors in every ordinary build and under the sanitizers; only
 // the device compiler, the address-space split and the kernel launch itself need a GPU lane.
 
@@ -43,87 +44,28 @@
 
 namespace EBGeometryTestGPU {
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-
 /*!
-  @brief Whether at least one GPU device is visible to the runtime.
-  @return True if the device count is nonzero.
+  @brief Whether the device tests can run: a GPU is visible in a CUDA or HIP build, and always in a
+  host build, where they run in emulation.
+  @return True if the device tests can run.
 */
 inline bool
 deviceAvailable() noexcept
 {
-  return EBGeometry::GPU::deviceAvailable();
+  return !EBGeometry::GPU::enabled || EBGeometry::GPU::deviceAvailable();
 }
 
 /*!
-  @brief The memory resource a device test mirrors its pools into.
-  @return The device memory resource.
+  @brief The memory resource a device test mirrors its pools into: EBGeometry::GPU::memoryResource(),
+  which is device memory in a CUDA or HIP build and emulated device memory (host memory that reports
+  itself device-accessible) otherwise.
+  @return The memory resource.
 */
 inline EBGeometry::MemoryResource&
 deviceTestResource() noexcept
 {
-  return EBGeometry::deviceMemoryResource();
+  return EBGeometry::GPU::memoryResource();
 }
-
-#else
-
-/*!
-  @brief Host memory that reports itself device-accessible, standing in for device memory in a host
-  build.
-  @details A view rebased onto a pool in this resource takes the same path as a device view: its
-  location is a snapshot with no control block.
-*/
-class EmulatedDeviceResource final : public EBGeometry::MemoryResource
-{
-public:
-  void*
-  allocate(size_t a_bytes, size_t a_alignment) override
-  {
-    return EBGeometry::hostMemoryResource().allocate(a_bytes, a_alignment);
-  }
-
-  void
-  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
-  {
-    EBGeometry::hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
-  }
-
-  bool
-  isHostAccessible() const noexcept override
-  {
-    return true;
-  }
-
-  bool
-  isDeviceAccessible() const noexcept override
-  {
-    return true;
-  }
-};
-
-/*!
-  @brief In emulation there is always a "device".
-  @return True.
-*/
-inline bool
-deviceAvailable() noexcept
-{
-  return true;
-}
-
-/*!
-  @brief The memory resource a device test mirrors its pools into.
-  @return The emulated device resource.
-*/
-inline EBGeometry::MemoryResource&
-deviceTestResource() noexcept
-{
-  static EmulatedDeviceResource s_resource;
-
-  return s_resource;
-}
-
-#endif
 
 /*!
   @brief Evaluate a functor over a list of queries on the device, one thread per query.

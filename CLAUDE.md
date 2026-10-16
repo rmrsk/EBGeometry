@@ -248,7 +248,7 @@ minutes. `pre-commit install` is only needed if you want the default-stage hooks
 manual-stage hooks (clang-tidy, the debug build, the documentation figures, Sphinx) only run via
 this script or explicit `pre-commit run --hook-stage manual`. The Doxygen hook runs whenever a
 header, `EBGeometry.hpp`, `Docs/mainpage.md` or `Docs/doxygen.conf` changes; codespell covers
-`Source/`, `Docs/`, `Examples/`, `Tests/` (except `Tests/data/`), `Integrations/`, `Scripts/`,
+`Source/`, `Docs/`, `Examples/` (except `Examples/data/`), `Tests/` (except `Tests/data/`), `Integrations/`, `Scripts/`,
 `.github/` and the top-level text files.
 
 `.clang-tidy` and `.pre-commit-config.yaml` define the static-analysis/formatting rules; CI
