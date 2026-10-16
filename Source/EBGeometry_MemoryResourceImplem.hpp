@@ -125,7 +125,8 @@ gpuCopy(void*                 a_dst,
 }
 
 /**
- * @brief Check the result of a GPU free, accepting the errors of a runtime that has shut down.
+ * @brief Check the result of a GPU free (device, managed, pinned or mapped memory), accepting the
+ * errors of a runtime that has shut down.
  * @details A Pool with static storage is destroyed at program exit, possibly after the GPU runtime
  * has already torn itself down (CUDA's own exit handler can run first). Its free then fails with
  * GPU::isShutdownError(), and the memory went with the runtime, so that is not an error. Any other

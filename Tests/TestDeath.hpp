@@ -35,6 +35,9 @@ abortMessage(F&& a_fn)
     return std::nullopt;
   }
 
+  // Flushed first, or the child would write the parent's buffered output a second time.
+  (void)std::fflush(nullptr);
+
   const pid_t pid = fork();
 
   if (pid == 0) {
@@ -97,6 +100,9 @@ template <class F>
 static bool
 exitsCleanly(F&& a_fn)
 {
+  // Flushed first, or the child would write the parent's buffered output a second time.
+  (void)std::fflush(nullptr);
+
   const pid_t pid = fork();
 
   if (pid == 0) {
