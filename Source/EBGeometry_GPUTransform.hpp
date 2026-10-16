@@ -117,7 +117,9 @@ using TransformResult = std::decay_t<std::invoke_result_t<const Query&, const In
  * so anything it reads or writes must be memory the device can access.
  *
  * In a host build the functor is copied once, as a kernel launch would copy it, and run in a loop.
- * The functor must be trivially copyable in both builds, which is checked at compile time.
+ * The functor must be trivially copyable in both builds, which is checked at compile time. A grid holds
+ * at most 2^31 - 1 blocks, so a_n may not exceed (2^31 - 1) * BlockSize; a larger count aborts with a
+ * message, in both builds.
  * @tparam BlockSize Threads per block: a multiple of 64 (an AMD wavefront, and two NVIDIA warps), at
  * most 1024. The kernel carries it as launch bounds, so the compiler can give each thread the
  * registers that block size allows.

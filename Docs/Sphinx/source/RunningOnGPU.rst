@@ -125,13 +125,18 @@ against the mirror's base:
 
 Freezing forbids new reservations, not writes, so the kernel can write the results into the
 mirror. A span may equally point at managed memory, or at a buffer an application already owns on
-the device. :ref:`Chap:ExampleManyObjects` times its device queries this way.
+the device. Since a span is only a pointer and a count, ``transform`` cannot tell where its memory
+lives: spans over ordinary host memory (a ``std::vector``'s data, a pool in ``hostMemoryResource()``)
+compile and run in a host build but fault in a kernel. Bind them against a pool in
+``GPU::memoryResource()`` or in managed memory. :ref:`Chap:ExampleManyObjects` times its device queries this way.
 
 GPU::parallelFor
 ----------------
 
 ``GPU::parallelFor(n, f)`` runs ``f(i)`` for every ``i < n``, one thread per index, in no particular
-order. It is the primitive that both ``transform`` overloads are built on. Use it directly for work
+order. It is the primitive that both ``transform`` overloads are built on. A grid holds at most
+:math:`2^{31} - 1` blocks, so ``n`` may not exceed that many times the block size; a larger count
+aborts with a message, in every build. Use it directly for work
 indexed by an integer rather than by an input value, for example a query on each point of a cloud by
 its index. The functor writes its own results, through a span it holds.
 

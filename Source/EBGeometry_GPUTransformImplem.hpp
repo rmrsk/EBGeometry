@@ -123,6 +123,15 @@ parallelFor(const std::size_t a_n, const F& a_f)
 
   static_assert(std::is_trivially_copyable_v<F>, "GPU::parallelFor: a functor must be trivially copyable");
 
+  // A grid holds at most 2^31 - 1 blocks along x in CUDA and HIP. Checked in every build, so that a
+  // count a kernel could not cover fails the same way on the host.
+  constexpr std::size_t maxBlocks = (std::size_t(1) << 31) - 1;
+
+  EBGEOMETRY_REQUIRE(a_n <= maxBlocks * BlockSize,
+                     "GPU::parallelFor: at most (2^31 - 1) * %u indices at this block size (%zu)",
+                     BlockSize,
+                     a_n);
+
   if (a_n == 0) {
     return;
   }

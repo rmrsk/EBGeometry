@@ -261,3 +261,16 @@ TEST_CASE("GPU::transform over spans: as many results as inputs, or abort", "[GP
     },
     "GPU::transform: there must be as many results as inputs"));
 }
+
+TEST_CASE("GPU::parallelFor: more indices than a grid can hold abort", "[GPU][death]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      // One past what 2^31 - 1 blocks of 64 threads cover. The functor's span is empty, so the check
+      // must fire before anything runs.
+      const std::size_t tooMany = ((std::size_t(1) << 31) - 1) * 64 + 1;
+
+      GPU::parallelFor<64>(tooMany, WriteIndex{PODSpan<uint32_t>{nullptr, 0}}); // must abort
+    },
+    "GPU::parallelFor: at most (2^31 - 1) * 64 indices at this block size"));
+}
