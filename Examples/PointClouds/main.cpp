@@ -31,11 +31,11 @@ using Vec3 = EBGeometry::Vec3T<T>;
 using Hit = EBGeometry::PointCloud::Hit<T>;
 
 // The cloud, the query points, and how many neighbors to find.
-constexpr std::size_t   numPoints  = 20000;
-constexpr std::size_t   numQueries = 4;
-constexpr std::size_t   k          = 3;
-constexpr std::uint64_t pointSeed  = 123456789ULL;
-constexpr std::uint64_t querySeed  = 987654321ULL;
+constexpr std::size_t   numPoints    = 20000;
+constexpr std::size_t   numQueries   = 4;
+constexpr std::size_t   numNeighbors = 3;
+constexpr std::uint64_t pointSeed    = 123456789ULL;
+constexpr std::uint64_t querySeed    = 987654321ULL;
 
 namespace {
 
@@ -60,10 +60,10 @@ struct ClosestPoint
   }
 };
 
-// The k nearest other points of a point in the cloud, nearest first.
+// The k = numNeighbors nearest other points of a point in the cloud, nearest first.
 struct Neighbors
 {
-  Hit hit[k];
+  Hit hit[numNeighbors];
 };
 
 template <class Cloud>
@@ -77,7 +77,7 @@ struct NearestNeighbors
   {
     Neighbors result;
 
-    m_cloud.nearestNeighbors(a_point, k, result.hit);
+    m_cloud.nearestNeighbors(a_point, numNeighbors, result.hit);
 
     return result;
   }
@@ -118,8 +118,8 @@ run(const char*              a_name,
   print(cloud.closestPoint(a_queries[0]), a_octant);
   std::cout << '\n';
 
-  Hit               nearest[k];
-  const std::size_t found = cloud.closestPoints(a_queries[0], k, nearest);
+  Hit               nearest[numNeighbors];
+  const std::size_t found = cloud.closestPoints(a_queries[0], numNeighbors, nearest);
 
   for (std::size_t j = 0; j < found; j++) {
     std::cout << "  #" << j << "     : ";
@@ -130,15 +130,15 @@ run(const char*              a_name,
   // nearestNeighbor(i) is the nearest OTHER point to point i of the cloud, and allNearestNeighbors(k)
   // is the whole k-nearest-neighbor graph in one batched call: entry i * k + j is point i's j-th
   // nearest neighbor.
-  const std::vector<Hit> graph = cloud.allNearestNeighbors(k);
+  const std::vector<Hit> graph = cloud.allNearestNeighbors(numNeighbors);
 
   std::cout << "nearestNeighbor(0)    : ";
   print(cloud.nearestNeighbor(0), a_octant);
-  std::cout << "\nallNearestNeighbors(" << k << "): " << graph.size() << " entries; point 1's are\n";
+  std::cout << "\nallNearestNeighbors(" << numNeighbors << "): " << graph.size() << " entries; point 1's are\n";
 
-  for (std::size_t j = 0; j < k; j++) {
+  for (std::size_t j = 0; j < numNeighbors; j++) {
     std::cout << "  #" << j << "     : ";
-    print(graph[k + j], a_octant);
+    print(graph[numNeighbors + j], a_octant);
     std::cout << '\n';
   }
 
