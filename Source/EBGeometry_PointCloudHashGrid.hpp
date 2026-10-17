@@ -90,6 +90,27 @@ public:
   inline PointCloudHashGrid(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, T a_targetPerCell = T(1));
 
   /**
+   * @brief Build the same grid with GPU::parallelFor(), on a device in a CUDA or HIP translation unit
+   * and in host loops otherwise.
+   * @details The grid and its arrays are the constructor's, element for element: the cloud's box comes
+   * from an exact reduction, the cell size from the same rule, and the points are put in cell order by
+   * a bitonic sort of (cell, cloud index) keys rather than by a counting sort, which orders each cell's
+   * points by cloud index just as the counting sort does. Each cell then finds where its points start
+   * with a binary search over the sorted keys. Nothing uses atomics, so the result does not depend on
+   * thread scheduling. In a CUDA or HIP translation unit the pool must be both host- and
+   * device-accessible (managed memory), and a host pool otherwise; the scratch arrays (a copy of the
+   * positions and 8 bytes per point, rounded up to a power of two, for the keys) come from a second pool
+   * on the same memory resource and are released on return.
+   * @param[in,out] a_pool          Pool the grid's arrays are reserved from; must outlive the result.
+   * @param[in]     a_positions     Point positions. At most 2^31, all finite.
+   * @param[in]     a_targetPerCell Target average points per cell (sets the cell size). Must be > 0.
+   * @return The grid.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PointCloudHashGrid
+  buildParallel(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, T a_targetPerCell = T(1));
+
+  /**
    * @brief Closest cloud point to an arbitrary query point.
    * @param[in] a_query Query point (need not be in the cloud).
    * @return The nearest point and its squared distance.
@@ -212,6 +233,63 @@ private:
               const std::vector<std::uint32_t>& a_cellPoints);
 
   /**
+   * @brief buildParallel(): the sort key of every point, (cell << 32) | cloud index, and padding keys
+   * that sort last. Defined in EBGeometry_PointCloudHashGridParallelImplem.hpp.
+   */
+  struct CellKeys;
+
+  /**
+   * @brief buildParallel(): where each cell's points start in the sorted keys.
+   */
+  struct CellStarts;
+
+  /**
+   * @brief buildParallel(): the cloud indices in cell order, from the sorted keys.
+   */
+  struct CellPoints;
+
+  /**
+   * @brief An empty grid shaped for a cloud with box [a_lo, a_hi]: what buildParallel() fills in.
+   * @param[in] a_lo            Lower corner of the cloud's box.
+   * @param[in] a_hi            Upper corner of the cloud's box.
+   * @param[in] a_numPoints     Number of points.
+   * @param[in] a_targetPerCell Target average points per cell (> 0).
+   */
+  EBGEOMETRY_HOST
+  inline PointCloudHashGrid(const Vec3T<T>& a_lo,
+                            const Vec3T<T>& a_hi,
+                            std::size_t     a_numPoints,
+                            T               a_targetPerCell) noexcept
+  {
+    this->setShape(a_lo, a_hi, a_numPoints, a_targetPerCell);
+  }
+
+  /**
+   * @brief Set the grid's corner, cell size and dimensions for a cloud with box [a_lo, a_hi].
+   * @details The one cell-size rule of both builds: cells sized so that each holds about
+   * @p a_targetPerCell points at the cloud's average density, coarsened until the cell count stays
+   * within a budget proportional to the point count.
+   * @param[in] a_lo            Lower corner of the cloud's box.
+   * @param[in] a_hi            Upper corner of the cloud's box.
+   * @param[in] a_numPoints     Number of points.
+   * @param[in] a_targetPerCell Target average points per cell (> 0).
+   */
+  EBGEOMETRY_HOST
+  inline void
+  setShape(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi, std::size_t a_numPoints, T a_targetPerCell) noexcept;
+
+  /**
+   * @brief Number of cells.
+   * @return m_nx m_ny m_nz.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline std::size_t
+  numCells() const noexcept
+  {
+    return std::size_t(m_nx) * std::size_t(m_ny) * std::size_t(m_nz);
+  }
+
+  /**
    * @brief Integer cell coordinate of a coordinate value along one axis, clamped into [0, a_n).
    * @param[in] a_x  Coordinate value (one component of a point).
    * @param[in] a_lo Grid lower corner on this axis.
@@ -303,5 +381,6 @@ static_assert(std::is_trivially_copyable_v<PointCloudHashGrid<double>>,
 } // namespace EBGeometry
 
 #include "EBGeometry_PointCloudHashGridImplem.hpp"
+#include "EBGeometry_PointCloudHashGridParallelImplem.hpp"
 
 #endif
