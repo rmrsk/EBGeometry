@@ -707,13 +707,14 @@ TriMeshSDF<T, K, W>::buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& 
   const auto order      = byIndex.getPrimitives();
 
   std::vector<typename Root::Node> nodes(indexNodes.size());
+  std::vector<typename Root::BV>   boxes(indexNodes.size());
   std::vector<TriAoSoA>            groups;
 
   for (uint32_t i = 0; i < indexNodes.size(); i++) {
     const auto& src = indexNodes[i];
     auto&       dst = nodes[i];
 
-    dst.setBoundingVolume(src.getBoundingVolume());
+    boxes[i] = byIndex.getBoundingVolume(src);
 
     if (src.isLeaf()) {
       const uint32_t first = src.getPrimitivesOffset();
@@ -736,7 +737,7 @@ TriMeshSDF<T, K, W>::buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& 
     }
   }
 
-  return Root(a_pool, nodes, groups);
+  return Root(a_pool, nodes, boxes, groups);
 }
 
 template <class T, size_t K, size_t W>

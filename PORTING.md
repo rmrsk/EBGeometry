@@ -505,6 +505,34 @@ Measured on the same torus, through the SFC constructor:
 These are one mesh, one K and one query pattern, and a torus flatters the SFC build; the structural
 findings generalise, the specific numbers do not.
 
+### Each box stored once
+
+Until BVH-8 every box but the root's was stored twice: in its own node, and in its parent's SIMD row
+of child boxes, the copy `pruneTraverse()` reads. A node no longer holds a box. It keeps a 4-byte box
+slot (its parent's row times K, plus its position among the parent's children), and the root's box is
+a one-element array in the same pool, so a `refit()` through any copy of the BVH is seen by all. Any
+node's box is one lookup away through the BVH (`getBoundingVolume(node)`,
+`getDistanceToBoundingVolume2(node, point)`), so `traverse()` callbacks keep their signatures. A node
+is 32 bytes at K = 4, from 52 (`float`) and 80 (`double`).
+
+Measured with the public API only: the same program on `dev` and on the change, run alternately,
+each timing the best of five repetitions, and the table giving the median of five such runs
+(Release, `-march=native`, one core of a 2.1 GHz Xeon; the run-to-run spread is about ±5%, so the
+`float` mesh rows are within noise):
+
+| workload | pool, `float` | pool, `double` | time per query, `float` | time per query, `double` |
+|---|---|---|---|---|
+| `TriMeshSDF`, armadillo (100k faces), random / grid points | 17.2 → 16.8 MB | 33.0 → 32.1 MB | +4% / −2% | −6% / −3% |
+| `MeshSDF`, armadillo, random points | 21.0 → 19.3 MB | 34.0 → 30.0 MB | −4% | −11% |
+| `BVHUnion` of 100k spheres, random points | 8.1 → 6.4 MB | 14.2 → 10.0 MB | −5% | −11% |
+| `PointCloudBVH`, 1M points, nearest / 8 nearest | 48.2 → 47.3 MB | 83.3 → 81.3 MB | −11% / −8% | −16% / −15% |
+
+The memory saving is largest where the BVH is a large part of the pool (a union of small primitives)
+and small where the primitives dominate (triangles, points). Speed gains come from the smaller node
+(two per 64-byte cache line, where a 52- or 80-byte node fitted fewer than two), most visibly in
+`double` and in the point clouds, whose seeded search reads a node's box through the SIMD row it now
+shares with its siblings. Every query returned bit-identical results.
+
 ### Device stack depth
 
 The traversal stack is fixed-size, so its depth is a budget: 256 levels on the host and 32 on a
@@ -553,7 +581,8 @@ Taken by the maintainer on 30 September 2026, and cited by number in this file.
 ### Findings still open
 
 When the audit closed, every BLOCKER was fixed, and every MAJOR finding was fixed, retired with its
-code, or kept deliberately by a decision, except parts of BVH-8, MESH-8 and PC-6.
+code, or kept deliberately by a decision, except parts of MESH-8 and PC-6. BVH-8 was fixed after the
+audit closed (see "Each box stored once" under the decisions).
 The MINOR and NIT findings were folded into whichever change touched the
 same file; each was checked against `dev` at 8c8f504, and the last few small ones (a missing include
 guard, an include, a blank line, stale wording) were fixed in the change that closed the audit.
@@ -573,7 +602,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 
 * **MESH-8** [MAJOR]: the triangle distance kernel has six SIMD copies and three scalar paths. D3
   kept the three mesh SDFs; the kernels were not consolidated.
-* **BVH-8** [MAJOR]: every child box is stored twice, in its node and in the parent's SIMD row.
 * **BVH-11, host part** [MINOR]: `TreeBVH::setChildren` and `refit` build a `std::vector` for every
   box union.
 * **BVH-10** [MINOR]: `pack()`/`packWith()` return a `shared_ptr`, and some `PackedBVH`
