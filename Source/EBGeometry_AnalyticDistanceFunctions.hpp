@@ -1242,9 +1242,9 @@ public:
                        "InfiniteConeSDF: the angle must be in (0, 180) degrees (%g)",
                        double(a_angle));
 
-    m_tip = a_tip;
-    m_c.x = std::sin(T(0.5) * a_angle * pi<T> / T(180));
-    m_c.y = std::cos(T(0.5) * a_angle * pi<T> / T(180));
+    m_tip  = a_tip;
+    m_c[0] = std::sin(T(0.5) * a_angle * pi<T> / T(180));
+    m_c[1] = std::cos(T(0.5) * a_angle * pi<T> / T(180));
   }
 
   /**
@@ -1289,7 +1289,7 @@ public:
     const Vec2T<T> q(std::sqrt(delta[0] * delta[0] + delta[2] * delta[2]), -delta[1]);
 
     const T d1 = length(q - m_c * Math::max(dot(q, m_c), T(0.0)));
-    const T d2 = d1 * ((q.x * m_c.y - q.y * m_c.x < T(0.0)) ? T(-1.0) : T(1.0));
+    const T d2 = d1 * ((q[0] * m_c[1] - q[1] * m_c[0] < T(0.0)) ? T(-1.0) : T(1.0));
 
     return d2;
   }
@@ -1327,7 +1327,7 @@ protected:
  * @details The cone tip is at `m_tip` and the body opens in the **-y** direction, so the base
  * disc lies at `m_tip + (0, -m_height, 0)`. The full opening angle `a_angle` is the tip-to-tip
  * apex angle; internally the half-angle is encoded as `m_c = (std::sin(half_angle), std::cos(half_angle))`.
- * The base radius equals `m_height * std::tan(half_angle) = m_height * m_c.x / m_c.y`.
+ * The base radius equals `m_height * std::tan(half_angle) = m_height * m_c[0] / m_c[1]`.
  *
  * The SDF is negative inside the solid cone (including the base disc) and positive outside.
  * By default the tip is at the origin, the height is 1, and the full opening angle is 45°,
@@ -1372,8 +1372,8 @@ public:
 
     m_tip    = a_tip;
     m_height = a_height;
-    m_c.x    = std::sin(T(0.5) * a_angle * pi<T> / T(180));
-    m_c.y    = std::cos(T(0.5) * a_angle * pi<T> / T(180));
+    m_c[0]   = std::sin(T(0.5) * a_angle * pi<T> / T(180));
+    m_c[1]   = std::cos(T(0.5) * a_angle * pi<T> / T(180));
   }
 
   /**
@@ -1413,7 +1413,7 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
     EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(Math::Limits<T>::epsilon()));
-    EBGEOMETRY_EXPECT(m_c.y > T(0));
+    EBGEOMETRY_EXPECT(m_c[1] > T(0));
 
     const Vec3T<T> delta = a_point - m_tip;
     const T        dr    = std::sqrt(delta[0] * delta[0] + delta[2] * delta[2]);
@@ -1422,16 +1422,16 @@ public:
     constexpr T zero = T(0.0);
     constexpr T one  = T(1.0);
 
-    const Vec2T<T> q = m_height * Vec2T<T>(m_c.x / m_c.y, -1.0);
+    const Vec2T<T> q = m_height * Vec2T<T>(m_c[0] / m_c[1], -1.0);
     const Vec2T<T> w = Vec2T<T>(dr, dz);
     const Vec2T<T> a = w - Math::clamp(dot(w, q) / dot(q, q), zero, one) * q;
-    const Vec2T<T> b = w - Vec2T<T>(q.x * Math::clamp(w.x / q.x, zero, one), q.y);
+    const Vec2T<T> b = w - Vec2T<T>(q[0] * Math::clamp(w[0] / q[0], zero, one), q[1]);
 
     auto sign = [](const T& x) -> int { return (x > zero) - (x < zero); };
 
-    const T k = sign(q.y);
+    const T k = sign(q[1]);
     const T d = Math::min(dot(a, a), dot(b, b));
-    const T s = Math::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
+    const T s = Math::max(k * (w[0] * q[1] - w[1] * q[0]), k * (w[1] - q[1]));
 
     return std::sqrt(d) * sign(s);
   }
@@ -1446,7 +1446,7 @@ public:
   BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept
   {
-    const T baseRadius = m_height * m_c.x / m_c.y;
+    const T baseRadius = m_height * m_c[0] / m_c[1];
 
     return BoundingVolumes::AABBT<T>(m_tip - Vec3T<T>(baseRadius, m_height, baseRadius),
                                      m_tip + Vec3T<T>(baseRadius, T(0), baseRadius));
@@ -2043,9 +2043,9 @@ public:
     const Vec3T<T> p  = a_point - m_center;
     const T        xz = std::sqrt(p[2] * p[2] + p[0] * p[0]);
     const auto     d1 = Vec2T<T>(xz - m_majorRadius, std::abs(p[1]) - m_height);
-    const auto     d2 = Vec2T<T>(Math::max(d1.x, T(0)), Math::max(d1.y, T(0)));
+    const auto     d2 = Vec2T<T>(Math::max(d1[0], T(0)), Math::max(d1[1], T(0)));
 
-    return Math::min(Math::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
+    return Math::min(Math::max(d1[0], d1[1]), T(0)) + std::sqrt(d2[0] * d2[0] + d2[1] * d2[1]) - m_minorRadius;
   }
 
   /**
