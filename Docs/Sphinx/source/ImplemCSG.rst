@@ -201,7 +201,9 @@ quality (``getDistanceQuality()``), worked out from its operands' when it is mad
   repetition sweeps it over the tiles; a union merges the boxes (a smooth union grows the result by
   :math:`s/4`, or :math:`s\ln 2` for the exponential blend), an intersection intersects them, and a
   difference keeps the first operand's. A complement covers all of space, and so does ``Add``;
-  ``Displace`` grows the first operand's box by the amplitude.
+  ``Displace`` grows the first operand's box by the amplitude, unless that operand is
+  ``NotADistance`` (another displacement, say), whose value can be small far from its object, and
+  then covers all of space too.
 * **Distance quality.** Point maps and Complement keep the operand's quality, as do Annular and a
   growing Offset; a shrinking Offset, Elongate, Blur, Mollify and every union, intersection and
   difference give at best ``Bound``. A repetition is ``Bound`` only if the operand fits inside its

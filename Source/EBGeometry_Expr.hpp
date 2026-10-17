@@ -743,8 +743,9 @@ Add(const A& a_first, const B& a_second);
 /**
  * @brief Displace an object's surface by a field, v + d: noise or texture on a surface.
  * @details @p a_amplitude bounds |d| everywhere, which nothing checks; the box is the object's grown by
- * it. The result is not a distance, even for an exact object: a displacement that varies by L per
- * unit length makes it a (1 + L)-Lipschitz function.
+ * it, or all of space if the object's value is not a distance (another displacement, say), since such
+ * a value can be small far from its object. The result is not a distance, even for an exact object: a
+ * displacement that varies by L per unit length makes it a (1 + L)-Lipschitz function.
  * @tparam A Shape or Expr type.
  * @tparam B Shape or Expr type of the same precision: the displacement field.
  * @param[in] a_operand      Object.

@@ -39,7 +39,8 @@ namespace EBGeometry {
  *
  * The value is the distance to the union outside it and at most that distance inside it, where two
  * balls overlap, so the distance quality is Bound, as for any union. An empty cloud is empty space:
- * the value is Math::Limits<T>::max() everywhere.
+ * the value is Math::Limits<T>::max() everywhere, which a union or intersection passes through, and
+ * which a sum (Add, Displace, Offset by a negative amount) may round to infinity.
  *
  * Like the cloud, this is a handle into the cloud's pool, which must outlive it and every copy and view
  * of it. Mirror the pool and pass rebasedView() into a kernel; signedDistance() is device-callable.
@@ -184,7 +185,7 @@ public:
   PointCloudSDF
   rebasedView(const Pool& a_pool) const noexcept
   {
-    return PointCloudSDF(Layout{m_cloud, m_radius}, this->getCloud().rebasedView(a_pool).location());
+    return PointCloudSDF(this->layout(), this->getCloud().rebasedView(a_pool).location());
   }
 
   /**

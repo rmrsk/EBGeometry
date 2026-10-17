@@ -590,6 +590,7 @@ private:
       break;
     }
     case Kind::Add: {
+      // Any number of operands, though the builders make two.
       this->emit(a_state, a_node.m_children.front().node());
 
       for (size_t i = 1; i < a_node.m_children.size(); i++) {

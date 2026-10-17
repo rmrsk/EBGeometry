@@ -761,8 +761,12 @@ Displace(const A& a_operand, const B& a_displacement, const ExprPrecision<A> a_a
 
   auto node = ExprDetail::makeNode<T>(ExprDetail::Kind::Add, {child, toExpr(a_displacement)});
 
-  // Where |d| <= a, the zero set of v + d lies where |v| <= a: within a of the object, as for Offset.
-  node->m_boundingVolume = ExprDetail::grown(child.computeBoundingVolume(), a_amplitude);
+  // Where |d| <= a, the zero set of v + d lies where |v| <= a: within a of the object, as for Offset,
+  // if v is distance-like. A value that is not a distance can be small far from its object (a nested
+  // displacement is one), so then nothing bounds the surface.
+  node->m_boundingVolume = (child.getDistanceQuality() == DistanceQuality::NotADistance)
+                             ? ExprDetail::everywhere<T>()
+                             : ExprDetail::grown(child.computeBoundingVolume(), a_amplitude);
   node->m_quality        = DistanceQuality::NotADistance;
 
   return Expr<T>(std::move(node));

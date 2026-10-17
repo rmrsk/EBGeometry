@@ -588,6 +588,12 @@ TEMPLATE_TEST_CASE("Tape: Add and Displace sum their operands' values, with the 
     CHECK_THAT(grownBox.getHighCorner()[dir], withinAbsT(sphereBox.getHighCorner()[dir] + T(0.25), tightMargin<T>()));
   }
 
+  // Displacing what is not a distance bounds nothing: its value can be small far from its object.
+  const Expr<T> twice = Displace(displaced, perlin, T(0.25));
+
+  CHECK(twice.computeBoundingVolume().getLowCorner() == -Vec3::max());
+  CHECK(twice.computeBoundingVolume().getHighCorner() == Vec3::max());
+
   // Not a distance, so a union of displaced objects is evaluated without a BVH.
   std::vector<Expr<T>> bumpy;
 
