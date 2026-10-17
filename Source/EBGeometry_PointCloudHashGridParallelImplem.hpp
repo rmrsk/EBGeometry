@@ -170,6 +170,8 @@ PointCloudHashGrid<T>::buildParallel(Pool& a_pool, const std::vector<Vec3T<T>>& 
 
   PointCloudHashGrid grid(box.getLowCorner(), box.getHighCorner(), numPoints, a_targetPerCell);
 
+  // setShape() caps the cell count at Limits<int>::max(), so it fits 32 bits with one to spare for
+  // the end offset.
   const auto numCells = static_cast<uint32_t>(grid.numCells());
 
   // The grid's arrays, all reserved before the pool's base is resolved.

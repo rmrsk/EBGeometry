@@ -111,6 +111,25 @@ public:
   buildParallel(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, T a_targetPerCell = T(1));
 
   /**
+   * @brief buildParallel(): the sort key of every point, (cell << 32) | cloud index, and padding keys
+   * that sort last. Defined in EBGeometry_PointCloudHashGridParallelImplem.hpp.
+   * @details Internal; not part of the public API. The three functors are public only because nvcc
+   * rejects a private nested type as the template argument of a kernel; as nested types they can still
+   * use the grid's private cell arithmetic.
+   */
+  struct CellKeys;
+
+  /**
+   * @brief buildParallel(): where each cell's points start in the sorted keys.
+   */
+  struct CellStarts;
+
+  /**
+   * @brief buildParallel(): the cloud indices in cell order, from the sorted keys.
+   */
+  struct CellPoints;
+
+  /**
    * @brief Closest cloud point to an arbitrary query point.
    * @param[in] a_query Query point (need not be in the cloud).
    * @return The nearest point and its squared distance.
@@ -231,22 +250,6 @@ private:
               const std::vector<Vec3T<T>>&      a_positions,
               const std::vector<std::uint32_t>& a_cellStart,
               const std::vector<std::uint32_t>& a_cellPoints);
-
-  /**
-   * @brief buildParallel(): the sort key of every point, (cell << 32) | cloud index, and padding keys
-   * that sort last. Defined in EBGeometry_PointCloudHashGridParallelImplem.hpp.
-   */
-  struct CellKeys;
-
-  /**
-   * @brief buildParallel(): where each cell's points start in the sorted keys.
-   */
-  struct CellStarts;
-
-  /**
-   * @brief buildParallel(): the cloud indices in cell order, from the sorted keys.
-   */
-  struct CellPoints;
 
   /**
    * @brief An empty grid shaped for a cloud with box [a_lo, a_hi]: what buildParallel() fills in.
