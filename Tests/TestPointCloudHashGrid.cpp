@@ -529,6 +529,158 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid: a rebased view answers queries on device
   compareCloudQueries<Grid, T>(deviceView, grid, points, indices, sameIndices, sameValues);
 }
 
+namespace {
+
+// The memory buildParallel() builds in: managed memory in a CUDA or HIP build, where its steps run as
+// kernels, and host memory otherwise.
+MemoryResource&
+parallelBuildResource() noexcept
+{
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  return managedMemoryResource();
+#else
+  return hostMemoryResource();
+#endif
+}
+
+// The parallel build is the constructor's grid, so every query answers identically, ties included.
+template <class T>
+void
+checkSameGrid(const std::vector<Vec3T<T>>& a_pos, const T a_targetPerCell)
+{
+  INFO("points " << a_pos.size() << ", target per cell " << a_targetPerCell);
+
+  Pool hostPool(hostMemoryResource());
+  Pool pool(parallelBuildResource());
+
+  const PointCloudHashGrid<T> reference(hostPool, a_pos, a_targetPerCell);
+  const PointCloudHashGrid<T> grid = PointCloudHashGrid<T>::buildParallel(pool, a_pos, a_targetPerCell);
+
+  REQUIRE(grid.numPoints() == reference.numPoints());
+
+  constexpr std::size_t k = 4;
+
+  typename PointCloudHashGrid<T>::Hit lhs[k];
+  typename PointCloudHashGrid<T>::Hit rhs[k];
+
+  for (const auto& q : makeCloud<T>(100, 5u)) {
+    REQUIRE(grid.closestPoints(q, k, lhs) == reference.closestPoints(q, k, rhs));
+
+    for (std::size_t j = 0; j < k; j++) {
+      CHECK(lhs[j].index == rhs[j].index);
+      CHECK(lhs[j].distanceSquared == rhs[j].distanceSquared);
+    }
+  }
+
+  for (uint32_t i = 0; i < a_pos.size(); i++) {
+    const auto a = grid.nearestNeighbor(i);
+    const auto b = reference.nearestNeighbor(i);
+
+    CHECK(a.index == b.index);
+    CHECK(a.distanceSquared == b.distanceSquared);
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("PointCloudHashGrid::buildParallel builds the constructor's grid",
+                   "[PointCloudHashGrid]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // In a CUDA or HIP build the build's steps are kernels.
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const std::vector<Vec3T<T>> uniform = makeCloud<T>(2000, 20261018u);
+
+  for (const T target : {T(0.25), T(1), T(8)}) {
+    checkSameGrid<T>(uniform, target);
+  }
+
+  // A tight cluster beside two outliers (the cell cap coarsens the grid), a flat cloud, coincident
+  // points, and clouds of zero to three points.
+  std::vector<Vec3T<T>> clustered = makeCloud<T>(500, 9u);
+
+  for (auto& p : clustered) {
+    p = Vec3T<T>(T(0.5), T(0.5), T(0.5)) + T(1e-3) * p;
+  }
+
+  clustered.emplace_back(T(10), T(0), T(0));
+  clustered.emplace_back(T(-10), T(5), T(0));
+
+  std::vector<Vec3T<T>> flat = uniform;
+
+  for (auto& p : flat) {
+    p[2] = T(0.5);
+  }
+
+  checkSameGrid<T>(clustered, T(1));
+  checkSameGrid<T>(flat, T(1));
+  checkSameGrid<T>(std::vector<Vec3T<T>>(37, Vec3T<T>(T(1), T(2), T(3))), T(1));
+
+  for (const std::size_t n : {0, 1, 2, 3}) {
+    checkSameGrid<T>(makeCloud<T>(n, 21u), T(1));
+  }
+}
+
+TEMPLATE_TEST_CASE("PointCloudHashGrid::buildParallel: a build in device-accessible memory answers on device "
+                   "like the constructor's grid",
+                   "[PointCloudHashGrid][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Grid = PointCloudHashGrid<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  // Managed memory in a GPU build, where the build's kernels write the arrays in place; in a host build,
+  // emulated device memory, and the build's steps run as host loops.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  MemoryResource& resource = managedMemoryResource();
+#else
+  MemoryResource& resource = emulatedDeviceMemoryResource();
+#endif
+
+  Pool hostPool(hostMemoryResource());
+  Pool pool(resource);
+
+  const Grid reference(hostPool, functorTestCloud<T>());
+  const Grid grid = Grid::buildParallel(pool, functorTestCloud<T>());
+
+  pool.freeze();
+
+  const Grid deviceView = grid.rebasedView(pool);
+
+  const std::vector<Vec3T<T>> points =
+    queryGrid<T>(Vec3T<T>(T(-0.25), T(-0.25), T(-0.25)), Vec3T<T>(T(1.25), T(1.25), T(1.25)), 10);
+  const std::vector<uint32_t> indices = allIndices(grid.numPoints());
+
+  const auto sameIndices = [](const auto& a_device, const auto& a_host, const auto& a_queries) {
+    const std::vector<std::size_t> device = evaluateOnDevice<std::size_t>(a_device, a_queries);
+    const std::vector<std::size_t> host   = evaluateOnHost<std::size_t>(a_host, a_queries);
+
+    REQUIRE(device.size() == host.size());
+
+    for (std::size_t i = 0; i < host.size(); i++) {
+      INFO("query " << i);
+      REQUIRE(device[i] == host[i]);
+    }
+  };
+
+  const auto sameValues = [](const auto& a_device, const auto& a_host, const auto& a_queries) {
+    requireSameResults(evaluateOnDevice<T>(a_device, a_queries), evaluateOnHost<T>(a_host, a_queries));
+  };
+
+  compareCloudQueries<Grid, T>(deviceView, reference, points, indices, sameIndices, sameValues);
+}
+
 TEST_CASE("PointCloudHashGrid: rejects a non-positive target occupancy, and a rebase onto a pool too small "
           "to hold it",
           "[PointCloudHashGrid][death]")
@@ -544,6 +696,15 @@ TEST_CASE("PointCloudHashGrid: rejects a non-positive target occupancy, and a re
       const PointCloudHashGrid<T> grid(pool, pos, T(0));
     },
     "PointCloudHashGrid: the target points per cell must be positive (0)"));
+
+  REQUIRE(abortsWith(
+    [&pos] {
+      Pool                        pool(hostMemoryResource());
+      const PointCloudHashGrid<T> grid = PointCloudHashGrid<T>::buildParallel(pool, pos, T(0));
+
+      (void)grid;
+    },
+    "PointCloudHashGrid::buildParallel: the target points per cell must be positive (0)"));
 
   REQUIRE(abortsWith(
     [&pos] {

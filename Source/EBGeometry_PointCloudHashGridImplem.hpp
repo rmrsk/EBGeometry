@@ -46,13 +46,55 @@ inline PointCloudHashGrid<T>::PointCloudHashGrid(Pool&                        a_
 
   // Bounding box of the cloud. requireValidCloud() has already rejected non-finite input, which would
   // poison the min/max reductions and every cell computation downstream.
-  m_lo        = +Vec3T<T>::max();
+  Vec3T<T> lo = +Vec3T<T>::max();
   Vec3T<T> hi = -Vec3T<T>::max();
 
   for (const auto& p : a_positions) {
-    m_lo = min(m_lo, p);
-    hi   = max(hi, p);
+    lo = min(lo, p);
+    hi = max(hi, p);
   }
+
+  this->setShape(lo, hi, numPoints, a_targetPerCell);
+
+  const std::size_t nCells = this->numCells();
+
+  // Counting sort: histogram -> prefix sum (cellStart) -> scatter cloud indices into cell order.
+  std::vector<std::uint32_t> cellStart(nCells + 1, 0);
+
+  for (std::size_t i = 0; i < numPoints; i++) {
+    cellStart[cellIndexOf(a_positions[i]) + 1]++;
+  }
+
+  for (std::size_t cell = 0; cell < nCells; cell++) {
+    cellStart[cell + 1] += cellStart[cell];
+  }
+
+  // Prefix sum leaves cellStart[nCells] holding the total; it must equal the point count if every
+  // point was bucketed into exactly one (in-range) cell.
+  EBGEOMETRY_EXPECT(std::size_t(cellStart[nCells]) == numPoints);
+
+  std::vector<std::uint32_t> cellPoints(numPoints);
+  std::vector<std::uint32_t> cursor(cellStart.begin(), cellStart.end() - 1);
+
+  for (std::size_t i = 0; i < numPoints; i++) {
+    cellPoints[cursor[cellIndexOf(a_positions[i])]++] = std::uint32_t(i);
+  }
+
+  this->storeArrays(a_pool, a_positions, cellStart, cellPoints);
+}
+
+template <class T>
+EBGEOMETRY_HOST
+inline void
+PointCloudHashGrid<T>::setShape(const Vec3T<T>&   a_lo,
+                                const Vec3T<T>&   a_hi,
+                                const std::size_t a_numPoints,
+                                const T           a_targetPerCell) noexcept
+{
+  const std::size_t numPoints = a_numPoints;
+
+  m_lo        = a_lo;
+  Vec3T<T> hi = a_hi;
 
   if (numPoints == 0) {
     m_lo = Vec3T<T>::zeros();
@@ -121,35 +163,7 @@ inline PointCloudHashGrid<T>::PointCloudHashGrid(Pool&                        a_
   m_nz = Math::max(1, int(std::floor(double(hi[2] - m_lo[2]) * double(m_invH)) + 1.0));
 
   EBGEOMETRY_EXPECT(m_nx >= 1 && m_ny >= 1 && m_nz >= 1);
-
-  const std::size_t nCells = std::size_t(m_nx) * std::size_t(m_ny) * std::size_t(m_nz);
-
-  EBGEOMETRY_EXPECT(nCells >= 1);
-  EBGEOMETRY_EXPECT(nCells <= maxCells);
-
-  // Counting sort: histogram -> prefix sum (cellStart) -> scatter cloud indices into cell order.
-  std::vector<std::uint32_t> cellStart(nCells + 1, 0);
-
-  for (std::size_t i = 0; i < numPoints; i++) {
-    cellStart[cellIndexOf(a_positions[i]) + 1]++;
-  }
-
-  for (std::size_t cell = 0; cell < nCells; cell++) {
-    cellStart[cell + 1] += cellStart[cell];
-  }
-
-  // Prefix sum leaves cellStart[nCells] holding the total; it must equal the point count if every
-  // point was bucketed into exactly one (in-range) cell.
-  EBGEOMETRY_EXPECT(std::size_t(cellStart[nCells]) == numPoints);
-
-  std::vector<std::uint32_t> cellPoints(numPoints);
-  std::vector<std::uint32_t> cursor(cellStart.begin(), cellStart.end() - 1);
-
-  for (std::size_t i = 0; i < numPoints; i++) {
-    cellPoints[cursor[cellIndexOf(a_positions[i])]++] = std::uint32_t(i);
-  }
-
-  this->storeArrays(a_pool, a_positions, cellStart, cellPoints);
+  EBGEOMETRY_EXPECT(this->numCells() <= maxCells);
 }
 
 template <class T>
