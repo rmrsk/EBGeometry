@@ -296,33 +296,35 @@ Test coverage
        :cpp:class:`BVH::TreeBVH`/:cpp:class:`BVH::PackedBVH` ``signedDistance`` agreement with a
        brute-force scan across every partitioning strategy (top-down with the default and SAH
        partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
-       :cpp:class:`MeshSDF`
-       and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
-       :cpp:class:`BVH::Construction` strategy; each method's :cpp:class:`BVH::ConstructionOptions`
-       leaf-size setting honoured by both mesh SDFs (the defaults reproducing the constructors
-       without options, and a zero setting rejected); signs on two concave meshes (an L-shaped prism and a box with a
-       narrow notch, whose concave edges need both adjacent faces' normals) against an analytic
-       inside test; ``getClosestFace`` on all three mesh SDFs naming a closest face (also on
-       polygon faces, and on a device against the host); a :cpp:class:`MeshSDF` seeing its mesh
-       flipped, or moved and refitted, after the build; the template
-       :cpp:func:`BVH::PackedBVH::traverse` (a nearest-point search against brute force at K = 2, 4
-       and 8, ``std::function`` callers, an explicit key type, visit-once, an empty BVH, and the
-       same search on a device against the host); :cpp:func:`BVH::TreeBVH::traverse` passing an
-       exception from a callback on to the caller; and
-       :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
-       correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
-       brute-force scan after displacement). Also the build-time checks: a tree too deep for the
-       host or device traversal stack at ``K`` = 2, 4 and 16, every kind of malformed node array (a
-       leaf with no primitives among them), and a partitioner that returns an empty partition, all
-       rejected; a tree at the host depth limit, visited deepest first, filling the traversal stack
-       to its last entry; ``traverse()`` and ``pruneTraverse()`` visiting leaves in the order of a
-       recursive depth-first search; a level resumed with exact distances never pruning a closer
-       primitive; a NaN query coordinate reaching every primitive in an unbounded search at every
-       ``K``, SIMD path or scalar; only interior
-       nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
-       extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
-       fewest power-of-``K`` leaves; a :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns,
-       built both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
+       :cpp:class:`MeshSDF` and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for
+       every :cpp:class:`BVH::Construction` strategy; each method's
+       :cpp:class:`BVH::ConstructionOptions` leaf-size setting honoured by both mesh SDFs (the
+       defaults reproducing the constructors without options, and a zero setting rejected); signs on
+       two concave meshes (an L-shaped prism and a box with a narrow notch, whose concave edges need
+       both adjacent faces' normals) against an analytic inside test; ``getClosestFace`` on all three
+       mesh SDFs naming a closest face (also on polygon faces, and on a device against the host); a
+       :cpp:class:`MeshSDF` seeing its mesh flipped, or moved and refitted, after the build; the
+       template :cpp:func:`BVH::PackedBVH::traverse` (a nearest-point search against brute force at K
+       = 2, 4 and 8, ``std::function`` callers, an explicit key type, visit-once, an empty BVH, and
+       the same search on a device against the host); :cpp:func:`BVH::TreeBVH::traverse` passing an
+       exception from a callback on to the caller; and every :cpp:class:`BVH::PackedBVH` box stored
+       once (a 32-byte node at K = 4; any node's box, found through its box slot, equal to the union
+       of its primitives or children; a refit through a copy seen by the original; deep and adopted
+       copies keeping every box; the adopting constructor rejecting a box count that does not match
+       the nodes); :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding
+       volumes correct after a moving geometry (idempotent on an unchanged cloud, queries still
+       matching a brute-force scan after displacement). Also the build-time checks: a tree too deep
+       for the host or device traversal stack at ``K`` = 2, 4 and 16, every kind of malformed node
+       array (a leaf with no primitives among them), and a partitioner that returns an empty
+       partition, all rejected; a tree at the host depth limit, visited deepest first, filling the
+       traversal stack to its last entry; ``traverse()`` and ``pruneTraverse()`` visiting leaves in
+       the order of a recursive depth-first search; a level resumed with exact distances never
+       pruning a closer primitive; a NaN query coordinate reaching every primitive in an unbounded
+       search at every ``K``, SIMD path or scalar; only interior nodes getting a SIMD child-box row;
+       every builder on a cluster of points with a subnormal extent; the bottom-up build at exact
+       powers of ``K``, and its target leaf size choosing the fewest power-of-``K`` leaves; a
+       :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns, built both ways and traversed; and
+       an empty BVH, whose ``getBoundingVolume()`` aborts.
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
        primitives, including far from the blend region;

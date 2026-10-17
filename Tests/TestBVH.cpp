@@ -928,8 +928,10 @@ sameNodes(const Root& a_lhs, const Root& a_rhs)
     const auto& l = lhs[i];
     const auto& r = rhs[i];
 
-    if (l.getBoundingVolume().getLowCorner() != r.getBoundingVolume().getLowCorner() ||
-        l.getBoundingVolume().getHighCorner() != r.getBoundingVolume().getHighCorner() ||
+    const auto lb = a_lhs.getBoundingVolume(l);
+    const auto rb = a_rhs.getBoundingVolume(r);
+
+    if (lb.getLowCorner() != rb.getLowCorner() || lb.getHighCorner() != rb.getHighCorner() ||
         l.getPrimitivesOffset() != r.getPrimitivesOffset() || l.getNumPrimitives() != r.getNumPrimitives()) {
       return false;
     }
@@ -1538,6 +1540,128 @@ TEMPLATE_TEST_CASE("BVH refit: TreeBVH::refit and PackedBVH::refit update boundi
   }
 }
 
+TEMPLATE_TEST_CASE("PackedBVH: every box is stored once, and any node's box is found through the node",
+                   "[BVH][PackedBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T      = TestType;
+  using AABB   = BoundingVolumes::AABBT<T>;
+  using Vec3   = Vec3T<T>;
+  using Pnt    = BareTestPoint<T>;
+  using Packed = BVH::PackedBVH<T, Pnt, 4>;
+  using Node   = typename Packed::Node;
+
+  // A node holds its leaf range, its child offsets, its box row and its box slot, and no box.
+  STATIC_REQUIRE(sizeof(Node) == 32);
+
+  std::vector<std::pair<Pnt, AABB>> flat;
+
+  for (int i = 0; i < 300; i++) {
+    const T    t = T(i) * T(0.07);
+    const Vec3 p(std::sin(t) * t, std::cos(t) * t, T(0.2) * t);
+
+    flat.emplace_back(Pnt{p}, AABB(p, p));
+  }
+
+  Pool         pool(hostMemoryResource());
+  const Packed bvh(pool, flat, size_t(4));
+
+  const auto sameBox = [](const AABB& a_lhs, const AABB& a_rhs) {
+    return a_lhs.getLowCorner() == a_rhs.getLowCorner() && a_lhs.getHighCorner() == a_rhs.getHighCorner();
+  };
+
+  // Each node's box is the union of its primitives' (a leaf) or of its children's boxes (an interior
+  // node), so the box found through the slot is the node's own; the root's is the BVH's.
+  const auto checkBoxes = [&sameBox](const Packed& a_bvh) {
+    const auto nodes = a_bvh.getNodes();
+    const auto prims = a_bvh.getPrimitives();
+
+    REQUIRE(nodes[0].getBoxSlot() == Packed::RootBoxSlot);
+    REQUIRE(sameBox(a_bvh.getBoundingVolume(nodes[0]), a_bvh.getBoundingVolume()));
+
+    for (uint32_t i = 0; i < nodes.size(); i++) {
+      const Node& node = nodes[i];
+      AABB        expected;
+
+      if (node.isLeaf()) {
+        for (uint32_t p = 0; p < node.getNumPrimitives(); p++) {
+          const Vec3& x = prims[node.getPrimitivesOffset() + p].m_pos;
+
+          expected = expected.merged(AABB(x, x));
+        }
+      }
+      else {
+        for (const uint32_t child : node.getChildOffsets()) {
+          expected = expected.merged(a_bvh.getBoundingVolume(nodes[child]));
+        }
+      }
+
+      const AABB box = a_bvh.getBoundingVolume(node);
+
+      REQUIRE(sameBox(box, expected));
+
+      const Vec3 q(T(3), T(-2), T(1));
+
+      // The same box, without assembling it: equal up to the order of the operations.
+      REQUIRE_THAT(a_bvh.getDistanceToBoundingVolume2(node, q), Catch::Matchers::WithinRel(box.getDistance2(q)));
+    }
+  };
+
+  checkBoxes(bvh);
+
+  SECTION("a refit through a copy is seen by the original, since every box is in the pool")
+  {
+    Packed copy = bvh;
+
+    for (auto& p : copy.getPrimitives()) {
+      p.m_pos += Vec3(T(1), T(0), T(0));
+    }
+
+    const AABB before = bvh.getBoundingVolume();
+
+    copy.refit([](const Pnt& a_p) noexcept { return AABB(a_p.m_pos, a_p.m_pos); });
+
+    REQUIRE(bvh.getBoundingVolume().getLowCorner()[0] == before.getLowCorner()[0] + T(1));
+    REQUIRE(bvh.getBoundingVolume().getHighCorner()[0] == before.getHighCorner()[0] + T(1));
+
+    checkBoxes(bvh);
+  }
+
+  SECTION("a deep copy and an adopted copy keep every node's box")
+  {
+    const Packed deep = bvh.deepCopy(pool);
+
+    checkBoxes(deep);
+
+    const auto        nodeSpan = bvh.getNodes();
+    std::vector<Node> nodes(nodeSpan.begin(), nodeSpan.end());
+    std::vector<AABB> boxes;
+
+    for (const Node& node : nodes) {
+      boxes.push_back(bvh.getBoundingVolume(node));
+    }
+
+    const auto       primSpan = bvh.getPrimitives();
+    std::vector<Pnt> prims(primSpan.begin(), primSpan.end());
+
+    const Packed adopted(pool, nodes, boxes, prims);
+
+    checkBoxes(adopted);
+
+    // The adopting constructor needs one box per node.
+    boxes.pop_back();
+
+    REQUIRE(abortsWith(
+      [&] {
+        Pool         other(hostMemoryResource());
+        const Packed bad(other, nodes, boxes, prims);
+
+        (void)bad;
+      },
+      "node boxes for"));
+  }
+}
+
 TEMPLATE_TEST_CASE("Parser::readIntoMeshSDF matches MeshSDF built directly from the same mesh",
                    "[BVH][Parser]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -2037,19 +2161,29 @@ struct TraverseFarthestFirst
   }
 };
 
-template <class T>
+template <class T, class Bvh>
 struct TraverseBoxDistance2
 {
-  Vec3T<T> m_query;
+  const Bvh* m_bvh;
+  Vec3T<T>   m_query;
 
   template <class Node>
   EBGEOMETRY_HOST_DEVICE
   T
   operator()(const Node& a_node) const noexcept
   {
-    return a_node.getDistanceToBoundingVolume2(m_query);
+    // A node does not store its box; the BVH finds it in the parent's row.
+    return m_bvh->getDistanceToBoundingVolume2(a_node, m_query);
   }
 };
+
+template <class T, class Bvh>
+EBGEOMETRY_HOST_DEVICE
+TraverseBoxDistance2<T, Bvh>
+boxDistance2(const Bvh& a_bvh, const Vec3T<T>& a_query) noexcept
+{
+  return TraverseBoxDistance2<T, Bvh>{&a_bvh, a_query};
+}
 
 /**
  * @brief Squared distance from a_query to the nearest point, found with PackedBVH::traverse().
@@ -2066,7 +2200,7 @@ customTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_
   a_bvh.traverse(TraverseNearestLeaf<T>{a_query, &best},
                  TraversePruneFarther<T>{&best},
                  TraverseFarthestFirst<T, K>{},
-                 TraverseBoxDistance2<T>{a_query});
+                 boxDistance2(a_bvh, a_query));
 
   return best;
 }
@@ -2185,7 +2319,7 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse: std::function callbacks still work, an 
   REQUIRE(leaves > 0);
 
   // An empty BVH has no root: nothing is visited, and nothing is read.
-  const Packed empty(pool, std::vector<Node>{}, std::vector<Pnt>{});
+  const Packed empty(pool, std::vector<Node>{}, std::vector<AABB>{}, std::vector<Pnt>{});
 
   bool called = false;
 
@@ -2813,13 +2947,13 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack i
     INFO("K = " << K);
 
     // a_interior interior nodes, then a final leaf: a tree a_interior + 1 levels deep.
-    const auto chain = [&box](const size_t a_interior) {
+    // The node array of the chain; every node has the same box (see boxesFor).
+    const auto chain = [](const size_t a_interior) {
       std::vector<Node> nodes(a_interior);
 
-      const auto addLeaf = [&nodes, &box]() {
+      const auto addLeaf = [&nodes]() {
         Node leaf{};
 
-        leaf.setBoundingVolume(box);
         leaf.setPrimitivesOffset(0);
         leaf.setNumPrimitives(1);
 
@@ -2829,8 +2963,6 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack i
       };
 
       for (size_t i = 0; i < a_interior; i++) {
-        nodes[i].setBoundingVolume(box);
-
         const uint32_t next = (i + 1 < a_interior) ? static_cast<uint32_t>(i + 1) : addLeaf();
 
         nodes[i].setChildOffset(next, 0);
@@ -2845,11 +2977,13 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack i
       return nodes;
     };
 
+    const auto boxesFor = [&box](const std::vector<Node>& a_nodes) { return std::vector<AABB>(a_nodes.size(), box); };
+
     const size_t limit = BVH::HostTraversalDepth;
 
     REQUIRE_FALSE(aborts([&] {
       Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, chain(limit - 1), prims);
+      const Packed bvh(pool, chain(limit - 1), boxesFor(chain(limit - 1)), prims);
 
       (void)bvh;
     }));
@@ -2857,7 +2991,7 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack i
     REQUIRE(abortsWith(
       [&] {
         Pool         pool(hostMemoryResource());
-        const Packed bvh(pool, chain(limit), prims);
+        const Packed bvh(pool, chain(limit), boxesFor(chain(limit)), prims);
 
         (void)bvh;
       },
@@ -2867,7 +3001,7 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack i
     // A tree at the host limit traverses without overflowing the stack sized for it, and visits
     // every leaf.
     Pool         pool(hostMemoryResource());
-    const Packed bvh(pool, chain(limit - 1), prims);
+    const Packed bvh(pool, chain(limit - 1), boxesFor(chain(limit - 1)), prims);
 
     size_t visits = 0;
     T      state  = T(0);
@@ -2886,7 +3020,7 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack i
     const auto deviceView = [&](const size_t a_interior) {
       return [&, a_interior] {
         Pool         hostPool(hostMemoryResource());
-        const Packed tree(hostPool, chain(a_interior), prims);
+        const Packed tree(hostPool, chain(a_interior), boxesFor(chain(a_interior)), prims);
 
         hostPool.freeze();
 
@@ -2958,25 +3092,25 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree at the host depth limit, visited deepest f
     const size_t interior = BVH::HostTraversalDepth - 1;
 
     std::vector<Node> nodes(interior);
+    std::vector<AABB> boxes(interior, chainBox);
 
-    const auto addLeaf = [&nodes](const size_t a_level, const size_t a_slot) {
+    const auto addLeaf = [&nodes, &boxes](const size_t a_level, const size_t a_slot) {
       const T    x = T(2 + a_level % 7);
       const T    y = T(2 + a_slot);
       const AABB box(Vec3(x, y, T(0)), Vec3(x + T(1), y + T(1), T(1)));
 
       Node leaf{};
 
-      leaf.setBoundingVolume(box);
       leaf.setPrimitivesOffset(0);
       leaf.setNumPrimitives(1);
 
       nodes.push_back(leaf);
+      boxes.push_back(box);
 
       return static_cast<uint32_t>(nodes.size() - 1);
     };
 
     for (size_t i = 0; i < interior; i++) {
-      nodes[i].setBoundingVolume(chainBox);
 
       const uint32_t next = (i + 1 < interior) ? static_cast<uint32_t>(i + 1) : addLeaf(i, 0);
 
@@ -2990,7 +3124,7 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree at the host depth limit, visited deepest f
     }
 
     Pool         pool(hostMemoryResource());
-    const Packed bvh(pool, nodes, prims);
+    const Packed bvh(pool, nodes, boxes, prims);
 
     const size_t numLeaves = 1 + interior * (K - 1);
 
@@ -3012,7 +3146,7 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree at the host depth limit, visited deepest f
     bvh.traverse([&order](PODSpan<const Pnt>, size_t, size_t) { order.push_back(0); },
                  [](const Node&, const T&) { return true; },
                  TraverseFarthestFirst<T, K>{},
-                 TraverseBoxDistance2<T>{query});
+                 boxDistance2(bvh, query));
 
     REQUIRE(order.size() == numLeaves);
   };
@@ -3051,7 +3185,7 @@ referencePruneTraverse(const BVH::PackedBVH<T, P, K>& a_bvh,
   std::vector<std::pair<T, size_t>> children;
 
   for (size_t k = 0; k < K; k++) {
-    const T d2 = nodes[node.getChildOffsets()[k]].getDistanceToBoundingVolume2(a_query);
+    const T d2 = a_bvh.getDistanceToBoundingVolume2(nodes[node.getChildOffsets()[k]], a_query);
 
     if (d2 <= a_best) {
       children.emplace_back(d2, k);
@@ -3102,7 +3236,7 @@ referenceTraverse(const BVH::PackedBVH<T, P, K>& a_bvh,
   for (size_t k = 0; k < K; k++) {
     const uint32_t child = node.getChildOffsets()[k];
 
-    children[k] = BVH::NodeAndKey<T>{child, nodes[child].getDistanceToBoundingVolume2(a_query)};
+    children[k] = BVH::NodeAndKey<T>{child, a_bvh.getDistanceToBoundingVolume2(nodes[child], a_query)};
   }
 
   TraverseFarthestFirst<T, K>{}(children);
@@ -3191,9 +3325,9 @@ TEMPLATE_TEST_CASE("PackedBVH: pruneTraverse and traverse visit leaves in the or
         },
         TraversePruneFarther<T>{&found},
         TraverseFarthestFirst<T, K>{},
-        TraverseBoxDistance2<T>{q});
+        boxDistance2(a_bvh, q));
 
-      referenceTraverse(a_bvh, 0U, a_bvh.getNodes()[0].getDistanceToBoundingVolume2(q), q, ref, expected);
+      referenceTraverse(a_bvh, 0U, a_bvh.getDistanceToBoundingVolume2(a_bvh.getNodes()[0], q), q, ref, expected);
 
       REQUIRE(order == expected);
       REQUIRE(found == ref);
@@ -3237,18 +3371,18 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
 
   std::vector<Node> good(K + 1);
 
-  good[0].setBoundingVolume(box);
+  // Every node gets the same box; the defects below are in the node array alone.
+  const auto boxesFor = [&box](const std::vector<Node>& a_nodes) { return std::vector<AABB>(a_nodes.size(), box); };
 
   for (size_t k = 0; k < K; k++) {
     good[0].setChildOffset(static_cast<uint32_t>(k + 1), k);
-    good[k + 1].setBoundingVolume(box);
     good[k + 1].setPrimitivesOffset(0);
     good[k + 1].setNumPrimitives(2);
   }
 
   REQUIRE_FALSE(aborts([&] {
     Pool         pool(hostMemoryResource());
-    const Packed bvh(pool, good, prims);
+    const Packed bvh(pool, good, boxesFor(good), prims);
 
     (void)bvh;
   }));
@@ -3262,7 +3396,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     REQUIRE(abortsWith(
       [&] {
         Pool         pool(hostMemoryResource());
-        const Packed bvh(pool, bad, prims);
+        const Packed bvh(pool, bad, boxesFor(bad), prims);
 
         (void)bvh;
       },
@@ -3278,7 +3412,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     REQUIRE(abortsWith(
       [&] {
         Pool         pool(hostMemoryResource());
-        const Packed bvh(pool, bad, prims);
+        const Packed bvh(pool, bad, boxesFor(bad), prims);
 
         (void)bvh;
       },
@@ -3294,7 +3428,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     REQUIRE(abortsWith(
       [&] {
         Pool         pool(hostMemoryResource());
-        const Packed bvh(pool, bad, prims);
+        const Packed bvh(pool, bad, boxesFor(bad), prims);
 
         (void)bvh;
       },
@@ -3306,7 +3440,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     REQUIRE(abortsWith(
       [&] {
         Pool         pool(hostMemoryResource());
-        const Packed bvh(pool, std::vector<Node>{}, prims);
+        const Packed bvh(pool, std::vector<Node>{}, std::vector<AABB>{}, prims);
 
         (void)bvh;
       },
@@ -3322,7 +3456,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     REQUIRE(abortsWith(
       [&] {
         Pool         pool(hostMemoryResource());
-        const Packed bvh(pool, bad, prims);
+        const Packed bvh(pool, bad, boxesFor(bad), prims);
 
         (void)bvh;
       },
@@ -3338,7 +3472,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     REQUIRE(abortsWith(
       [&] {
         Pool         pool(hostMemoryResource());
-        const Packed bvh(pool, bad, prims);
+        const Packed bvh(pool, bad, boxesFor(bad), prims);
 
         (void)bvh;
       },
@@ -3354,7 +3488,7 @@ TEST_CASE("PackedBVH: the adopt constructor rejects a malformed node array", "[B
     REQUIRE(abortsWith(
       [&] {
         Pool         pool(hostMemoryResource());
-        const Packed bvh(pool, bad, prims);
+        const Packed bvh(pool, bad, boxesFor(bad), prims);
 
         (void)bvh;
       },
@@ -3884,7 +4018,7 @@ TEMPLATE_TEST_CASE("PackedBVH: an empty BVH has the empty bounding box and visit
   using Packed = BVH::PackedBVH<T, Vec3, K>;
 
   Pool         pool(hostMemoryResource());
-  const Packed bvh(pool, std::vector<typename Packed::Node>{}, std::vector<Vec3>{});
+  const Packed bvh(pool, std::vector<typename Packed::Node>{}, std::vector<typename Packed::BV>{}, std::vector<Vec3>{});
 
   const auto box = bvh.computeBoundingVolume();
 
@@ -3913,7 +4047,8 @@ TEST_CASE("PackedBVH: getBoundingVolume on an empty BVH aborts", "[BVH][death]")
   REQUIRE(abortsWith(
     [] {
       Pool         pool(hostMemoryResource());
-      const Packed bvh(pool, std::vector<typename Packed::Node>{}, std::vector<Vec3>{});
+      const Packed bvh(
+        pool, std::vector<typename Packed::Node>{}, std::vector<typename Packed::BV>{}, std::vector<Vec3>{});
 
       volatile T sink = bvh.getBoundingVolume().getLowCorner()[0];
 
@@ -4087,8 +4222,13 @@ TEMPLATE_TEST_CASE("PackedBVH: the adopt constructor rebuilds an identical BVH f
 
   const std::vector<Node> nodes(nodeSpan.begin(), nodeSpan.end());
   const std::vector<Pnt>  prims(primSpan.begin(), primSpan.end());
+  std::vector<AABB>       boxes;
 
-  const Packed adopted(pool, nodes, prims);
+  for (const Node& node : nodes) {
+    boxes.push_back(built.getBoundingVolume(node));
+  }
+
+  const Packed adopted(pool, nodes, boxes, prims);
 
   REQUIRE(adopted.getNodes().size() == built.getNodes().size());
   REQUIRE(adopted.getPrimitives().size() == built.getPrimitives().size());

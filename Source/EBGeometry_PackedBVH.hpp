@@ -353,8 +353,9 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
 /**
  * @brief Linearised, AABB-backed BVH with SIMD-accelerated traversal.
  * @details PackedBVH is the runtime query class. It stores a flat depth-first array of
- * Node structs, a contiguous primitive list, and a per-node SoA AABB cache that enables
- * SIMD child tests.
+ * Node structs, a contiguous primitive list, one SoA row of child boxes per interior node (what the
+ * SIMD child tests read), and the root's box. Every box is stored once, in its parent's row; a node
+ * holds no box of its own.
  *
  * Instances are obtained by calling TreeBVH::pack() (same primitive type) or
  * TreeBVH::packWith<Q>(converter) (type-converting pack).
@@ -405,17 +406,14 @@ public:
 
   /**
    * @brief Compact BVH node stored in the flat node array.
-   * @details Each node holds a bounding volume, a primitive range (leaves) or child
-   * index table (interior nodes). Exposed as a public nested type so that users can
-   * write traverse() callbacks (PrunePredicate, NodeKeyFactory) that inspect nodes.
+   * @details Each node holds a primitive range (leaves) or child index table (interior nodes). It does
+   * not hold its own box: every box is stored once, in its parent's row of the SIMD box array (the
+   * root's in the BVH itself), and PackedBVH::getBoundingVolume(const Node&) finds it through the
+   * node's box slot. Exposed as a public nested type so that users can write traverse() callbacks
+   * (PrunePredicate, NodeKeyFactory) that inspect nodes.
    */
   struct Node
   {
-    /**
-     * @brief Axis-aligned bounding box for this node's subtree.
-     */
-    BV m_bv{};
-
     /**
      * @brief Index of the first primitive in the global primitive list (leaf nodes only).
      */
@@ -440,15 +438,11 @@ public:
     uint32_t m_childBoxRow{};
 
     /**
-     * @brief Set the bounding volume for this node.
-     * @param[in] a_bv Bounding volume.
+     * @brief Where this node's own box is stored: row * K + slot in the SIMD box array, the row being
+     * its parent's and the slot its position among the parent's children; RootBoxSlot for the root.
+     * @details Owned by PackedBVH, which assigns it with m_childBoxRow.
      */
-    EBGEOMETRY_HOST_DEVICE
-    inline void
-    setBoundingVolume(const BV& a_bv) noexcept
-    {
-      m_bv = a_bv;
-    }
+    uint32_t m_boxSlot{};
 
     /**
      * @brief Set the primitive offset for this leaf node.
@@ -483,17 +477,6 @@ public:
     {
       EBGEOMETRY_EXPECT(a_k < K);
       m_childOff[a_k] = a_off;
-    }
-
-    /**
-     * @brief Get the bounding volume.
-     * @return Reference to m_bv.
-     */
-    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-    inline const BV&
-    getBoundingVolume() const noexcept
-    {
-      return m_bv;
     }
 
     /**
@@ -541,6 +524,17 @@ public:
     }
 
     /**
+     * @brief Get where this node's own box is stored; see m_boxSlot.
+     * @return row * K + slot, or RootBoxSlot for the root.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline uint32_t
+    getBoxSlot() const noexcept
+    {
+      return m_boxSlot;
+    }
+
+    /**
      * @brief Return true if this is a leaf node.
      * @return True if m_numPrims > 0 (leaf), false otherwise (interior).
      */
@@ -550,35 +544,12 @@ public:
     {
       return m_numPrims > 0;
     }
-
-    /**
-     * @brief Get the distance from a_point to this node's bounding volume.
-     * @param[in] a_point Query point.
-     * @return Distance to the bounding-box surface, or zero if inside.
-     */
-    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-    inline T
-    getDistanceToBoundingVolume(const Vec3T<T>& a_point) const noexcept
-    {
-      return m_bv.getDistance(a_point);
-    }
-
-    /**
-     * @brief Get the squared distance from a_point to this node's bounding volume.
-     * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. For a caller-written
-     * scalar branch-and-bound that compares against a squared pruning bound (e.g. PointCloudBVH's
-     * seeded single-nearest search), rather than taking a square root only to square it again.
-     * pruneTraverse() itself does not use it; it tests all K children at once through the SoA cache.
-     * @param[in] a_point Query point.
-     * @return Squared distance to the bounding-box surface, or zero if inside.
-     */
-    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-    inline T
-    getDistanceToBoundingVolume2(const Vec3T<T>& a_point) const noexcept
-    {
-      return m_bv.getDistance2(a_point);
-    }
   };
+
+  /**
+   * @brief The box slot of the root, which has no parent row: its box is the BVH's own.
+   */
+  static constexpr uint32_t RootBoxSlot = UINT32_MAX;
 
   /**
    * @brief Deleted default constructor. Use TreeBVH::pack() or TreeBVH::packWith() to construct.
@@ -766,11 +737,11 @@ public:
   inline PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec);
 
   /**
-   * @brief Adopt a node array and primitive array built elsewhere.
+   * @brief Adopt a node array, its boxes and a primitive array built elsewhere.
    * @details For a specialized builder that produces the flat representation itself -- e.g.
    * PointCloudBVH, which runs its own index-based point-cloud build -- rather than going through a
    * TreeBVH or a list of (primitive, bounding volume) pairs. The arrays are copied into @p a_pool and
-   * the SoA child-AABB cache is built from them, exactly as for every other constructor.
+   * the SIMD box rows are built from the boxes, exactly as for every other constructor.
    *
    * The node array must be a depth-first pre-order flattening with the root at index 0: every
    * interior node's K children lie strictly after it and inside the array, and every leaf's
@@ -778,14 +749,20 @@ public:
    * that shape. It is checked by requireWellFormed(), always on rather than as an EBGEOMETRY_EXPECT,
    * because a malformed array would otherwise surface as an out-of-bounds read in Release; an empty
    * node array (an empty BVH) is accepted only with an empty primitive array.
-   * @param[in,out] a_pool        Pool the three arrays are reserved from; must outlive this object.
-   * @param[in]     a_linearNodes Flattened node array (copied into the pool).
+   * @param[in,out] a_pool        Pool the BVH's arrays are reserved from; must outlive this object.
+   * @param[in]     a_linearNodes Flattened node array (copied into the pool). A node's box row and box
+   * slot are assigned here, whatever the array held.
+   * @param[in]     a_nodeBoxes   The box of every node, indexed like @p a_linearNodes: a node does not
+   * store its own box, so the boxes are passed alongside. Copied into the SIMD rows and the root box.
    * @param[in]     a_primitives  Global primitive list in leaf-traversal order (copied into the pool).
    */
   EBGEOMETRY_HOST
-  inline PackedBVH(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives)
+  inline PackedBVH(Pool&                    a_pool,
+                   const std::vector<Node>& a_linearNodes,
+                   const std::vector<BV>&   a_nodeBoxes,
+                   const std::vector<P>&    a_primitives)
   {
-    this->finalize(a_pool, a_linearNodes, a_primitives);
+    this->finalize(a_pool, a_linearNodes, a_nodeBoxes, a_primitives);
   }
 
   /**
@@ -797,7 +774,7 @@ public:
 
   /**
    * @brief Copy constructor.
-   * @details Copies the descriptor only: m_linearNodes, m_primitives and m_childAabbSoA are
+   * @details Copies the descriptor only: m_linearNodes, m_primitives, m_childAabbSoA and m_rootBox are
    * PODVector handles into pool memory, so the copy resolves against the same pool storage as the
    * original rather than owning its own. Nothing is duplicated, and a refit() through either object
    * is seen by both. Use deepCopy() for genuinely independent storage.
@@ -940,6 +917,33 @@ public:
   getBoundingVolume() const noexcept;
 
   /**
+   * @brief Get the bounding volume of one of this BVH's nodes.
+   * @details A node does not store its own box. Every box but the root's is stored once, in the
+   * parent's row of the SIMD box array, and the node's box slot says where; the root's box is the
+   * BVH's own. @p a_node must be a node of this BVH, e.g. an element of getNodes() or the node a
+   * traverse() callback is given.
+   * @param[in] a_node A node of this BVH.
+   * @return The node's bounding volume.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline BV
+  getBoundingVolume(const Node& a_node) const noexcept;
+
+  /**
+   * @brief Get the squared distance from @p a_point to one of this BVH's nodes' bounding volume.
+   * @details The same box as getBoundingVolume(a_node), without assembling it. For a caller-written
+   * scalar branch-and-bound that compares against a squared pruning bound (e.g. PointCloudBVH's seeded
+   * single-nearest search), or a traverse() predicate. pruneTraverse() tests all K children at once
+   * instead.
+   * @param[in] a_node  A node of this BVH.
+   * @param[in] a_point Query point.
+   * @return Squared distance to the box, or zero if @p a_point is inside it.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  getDistanceToBoundingVolume2(const Node& a_node, const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief Compute and return the bounding volume of this BVH.
    * @details Identical to getBoundingVolume(), but returns by value under the
    * computeBoundingVolume() name other bounded objects use (BVHUnion forwards to it), and
@@ -1060,8 +1064,8 @@ public:
    * child at a higher index than its parent), a single reverse sweep over the array refits children
    * before parents with no recursion or explicit stack: each leaf's box becomes the union of its
    * primitives' boxes (recomputed via @p a_bvConstructor), and each interior node's box the union of
-   * its K children's freshly-refitted boxes. The per-node SoA AABB cache used by the SIMD traversal
-   * is rebuilt at the end, so pruneTraverse() stays consistent.
+   * its K children's freshly-refitted boxes. Each box is written where it is stored, in its parent's
+   * SIMD row (the root's in the BVH), so every traversal sees the new boxes, and nothing is allocated.
    *
    * Same use and caveats as TreeBVH::refit(): cheap per-frame maintenance for a geometry whose
    * primitives shift without migrating between leaves, and not a substitute for a rebuild once a
@@ -1086,11 +1090,16 @@ private:
    * number, or if the node array is malformed.
    * @param[in,out] a_pool        Pool to reserve from.
    * @param[in]     a_linearNodes Completed flat node array.
+   * @param[in]     a_nodeBoxes   The box of every node, indexed like @p a_linearNodes. Stored in the
+   * SIMD rows and the root box, not in the nodes.
    * @param[in]     a_primitives  Completed primitive array.
    */
   EBGEOMETRY_HOST
   inline void
-  finalize(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives);
+  finalize(Pool&                    a_pool,
+           const std::vector<Node>& a_linearNodes,
+           const std::vector<BV>&   a_nodeBoxes,
+           const std::vector<P>&    a_primitives);
 
   /**
    * @brief Flat depth-first node array.
@@ -1141,9 +1150,15 @@ private:
    */
   PODVector<ChildAABBSoA> m_childAabbSoA;
 
+  /**
+   * @brief The root's bounding volume, the one box no SIMD row holds: one element, or none for an empty
+   * BVH. In the pool like every other box, so a refit() through any copy of this BVH is seen by all.
+   */
+  PODVector<BV> m_rootBox;
+
 public:
   /**
-   * @brief The BVH's arrays as offsets into its pool: a PackedBVH minus its location.
+   * @brief The BVH's arrays as offsets into its pool, and its root box: a PackedBVH minus its location.
    */
   struct Layout
   {
@@ -1161,6 +1176,11 @@ public:
      * @brief SoA child-box rows, one per interior node.
      */
     PODVector<ChildAABBSoA> m_childAabbSoA;
+
+    /**
+     * @brief The root's bounding volume (one element, or none for an empty BVH).
+     */
+    PODVector<BV> m_rootBox;
   };
 
 private:
@@ -1290,15 +1310,36 @@ private:
   scalarChildDistance2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, size_t a_slot) noexcept;
 
   /**
-   * @brief Populate m_childAabbSoA from the completed m_linearNodes array, one row per interior node.
-   * @details Called from finalize() once m_linearNodes is fully built, and again by refit(). Assigns
-   * each interior node's Node::m_childBoxRow.
-   * @param[in,out] a_pool Pool to reserve the cache from, or nullptr to refill a cache that already
-   * exists (refit's case, where the node count cannot have changed).
+   * @brief Populate m_childAabbSoA and m_rootBox from the completed m_linearNodes array and its boxes,
+   * one row per interior node.
+   * @details Called from finalize() once m_linearNodes is fully built. Assigns each interior node's
+   * Node::m_childBoxRow and every node's Node::m_boxSlot.
+   * @param[in,out] a_pool      Pool to reserve the rows from.
+   * @param[in]     a_nodeBoxes The box of every node, indexed like m_linearNodes.
    */
   EBGEOMETRY_HOST
   inline void
-  buildSoA(Pool* a_pool);
+  buildSoA(Pool& a_pool, const std::vector<BV>& a_nodeBoxes);
+
+  /**
+   * @brief Write one child's box into a row of the SIMD box array.
+   * @param[in,out] a_soa  The row.
+   * @param[in]     a_slot Child slot, below K.
+   * @param[in]     a_bv   The box.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  setRowBox(ChildAABBSoA& a_soa, size_t a_slot, const BV& a_bv) noexcept;
+
+  /**
+   * @brief Read one child's box from a row of the SIMD box array.
+   * @param[in] a_soa  The row.
+   * @param[in] a_slot Child slot, below K.
+   * @return The box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline BV
+  rowBox(const ChildAABBSoA& a_soa, size_t a_slot) noexcept;
 };
 
 /**
