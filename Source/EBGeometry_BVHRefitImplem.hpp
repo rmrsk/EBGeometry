@@ -75,6 +75,17 @@ refitParallel(PackedBVH<T, P, K>& a_bvh, const RefitSchedule& a_schedule, const 
   static_assert(std::is_trivially_copyable_v<BVConstructor>,
                 "BVH::refitParallel: the bounding-volume constructor must be trivially copyable");
 
+  // The node count is in the layout's descriptor, so this reads no pool memory, which a device view's
+  // host code cannot reach.
+  const uint32_t numNodes     = a_bvh.layout().m_linearNodes.size();
+  const uint32_t numScheduled = a_schedule.levelBegin(a_schedule.numLevels());
+
+  EBGEOMETRY_REQUIRE(numScheduled == numNodes,
+                     "BVH::refitParallel: the schedule covers %u nodes but the BVH has %u; build the schedule "
+                     "for this BVH",
+                     unsigned(numScheduled),
+                     unsigned(numNodes));
+
   for (size_t l = 0; l < a_schedule.numLevels(); l++) {
     const uint32_t begin = a_schedule.levelBegin(l);
     const uint32_t end   = a_schedule.levelBegin(l + 1);
