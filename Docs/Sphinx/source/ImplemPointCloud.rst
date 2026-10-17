@@ -61,6 +61,18 @@ coincident points, so the tree stays shallow) and packing the ``PointAoSoA`` lea
 Surface-Area-Heuristic tree and, for near-uniform clouds, just as tight to query. ``getBVH()`` exposes
 the held ``PackedBVH`` for anything that needs the general BVH interface.
 
+``PointCloudBVH::buildParallel()`` builds a different tree with ``GPU::parallelFor()``, so in a
+CUDA or HIP translation unit its steps run as kernels on the device, and as host loops otherwise
+(see :ref:`Chap:RunningOnGPU`). It sorts the points along a Morton curve with a bitonic sort, cuts the sorted
+points into groups of ``W``, and spreads the groups evenly over the leaves of a perfect ``K``-ary
+tree, the shallowest one whose leaves hold about the target leaf size. Because the tree's shape
+depends on the point count alone, every node can work out its depth-first index, its children and
+its primitive range from its position in the tree, and one thread writes each; the boxes are then
+merged one level at a time from the leaves up. The queries are the same and give the same answers,
+but the tree can be looser for a cloud that is far from uniform, since its splits follow the curve
+rather than the points. In a CUDA or HIP build the pool must be managed memory (the kernels write it
+and the host copies the positions in); otherwise it is a host pool.
+
 Each leaf lane of a ``PointAoSoA`` group carries its point's cloud index, and a leaf scan stops at
 the group's real points (``numValid()``), so the padded lanes are never reported.
 

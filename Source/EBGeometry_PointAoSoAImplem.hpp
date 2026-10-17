@@ -35,6 +35,26 @@ PointAoSoA<T, W>::pack(const Vec3T<T>* a_positions, const uint32_t* a_pointIds, 
 
   m_positions.pack(a_positions, a_count);
 
+  this->packIds(a_pointIds, a_count);
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+void
+PointAoSoA<T, W>::packUnchecked(const Vec3T<T>* a_positions, const uint32_t* a_pointIds, uint32_t a_count) noexcept
+{
+  EBGEOMETRY_EXPECT(a_pointIds != nullptr);
+
+  m_positions.packUnchecked(a_positions, a_count);
+
+  this->packIds(a_pointIds, a_count);
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+void
+PointAoSoA<T, W>::packIds(const uint32_t* a_pointIds, uint32_t a_count) noexcept
+{
   // Same padding convention as PointSoAT::pack(): lanes count..W-1 repeat the last real entry.
   for (uint32_t j = 0; j < W; j++) {
     const uint32_t src = (j < a_count) ? j : (a_count - 1U);

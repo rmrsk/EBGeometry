@@ -914,6 +914,54 @@ PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor)
   this->buildSoA(nullptr);
 }
 
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST
+inline typename PackedBVH<T, P, K>::Layout
+PackedBVH<T, P, K>::reserveLayout(Pool&          a_pool,
+                                  const uint32_t a_numNodes,
+                                  const uint32_t a_numInterior,
+                                  const uint32_t a_numPrims)
+{
+  EBGEOMETRY_REQUIRE(a_numInterior < a_numNodes || (a_numNodes == 0 && a_numInterior == 0),
+                     "BVH::PackedBVH::reserveLayout: %u interior nodes do not fit %u nodes",
+                     unsigned(a_numInterior),
+                     unsigned(a_numNodes));
+
+  Layout layout;
+
+  layout.m_linearNodes.reserveSizedFrom(a_pool, a_numNodes);
+  layout.m_primitives.reserveSizedFrom(a_pool, a_numPrims);
+  layout.m_childAabbSoA.reserveSizedFrom(a_pool, a_numInterior);
+
+  return layout;
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline void
+PackedBVH<T, P, K>::writeChildBoxRow(const Layout& a_layout, void* a_base, const uint32_t a_node) noexcept
+{
+  const Node& node = a_layout.m_linearNodes.at(a_base, a_node);
+
+  EBGEOMETRY_EXPECT(!node.isLeaf());
+
+  ChildAABBSoA& soa = a_layout.m_childAabbSoA.at(a_base, node.getChildBoxRow());
+
+  for (size_t k = 0; k < K; k++) {
+    const BV&       bv = a_layout.m_linearNodes.at(a_base, node.getChildOffsets()[k]).getBoundingVolume();
+    const Vec3T<T>& lo = bv.getLowCorner();
+    const Vec3T<T>& hi = bv.getHighCorner();
+
+    soa.m_lo[0][k] = lo[0];
+    soa.m_lo[1][k] = lo[1];
+    soa.m_lo[2][k] = lo[2];
+
+    soa.m_hi[0][k] = hi[0];
+    soa.m_hi[1][k] = hi[1];
+    soa.m_hi[2][k] = hi[2];
+  }
+}
+
 } // namespace BVH
 
 } // namespace EBGeometry

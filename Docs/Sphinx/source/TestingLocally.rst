@@ -391,8 +391,11 @@ Test coverage
    * - ``TestPointCloudBVH``
      - :cpp:class:`PointCloudBVH`: nearest-neighbour, k-nearest-neighbour, all-points and
        closest-point queries against brute force, edge cases (padded lanes reported once even when
-       ``k`` exceeds the cloud), ``rebasedView``/``deepCopy``, device queries against the host, and
-       rejection of a cloud it cannot index, a zero leaf size, or a rebase onto too small a pool.
+       ``k`` exceeds the cloud), ``rebasedView``/``deepCopy``, device queries against the host,
+       ``buildParallel`` (every point in one leaf lane, queries against brute force over leaf sizes,
+       branching factors, widths and skewed clouds, and a device-memory build queried on the device
+       against the host-built tree), and rejection of a cloud it cannot index, a zero leaf size, or a
+       rebase onto too small a pool.
        The query functors it shares with ``TestPointCloudHashGrid`` are in
        :file:`Tests/TestPointCloudQueries.hpp`.
    * - ``TestPointCloudHashGrid``

@@ -348,9 +348,12 @@ about the library's GPU ceiling. The agreed shape of the fix:
 Nothing needs doing now to keep this open: `pruneTraverse`'s contract already says nothing about
 threads. The one thing worth adding alongside the first `[gpu]` benchmark is a coherent-query case.
 
-**Device builds.** A device-side `PointCloudBVH` build (Morton codes and a radix sort) and its
-`PointCloudHashGrid` counterpart; both already query on a device. Worth doing only with a consumer
-that rebuilds geometry on the device.
+**Device builds.** `PointCloudBVH::buildParallel()` builds a point-cloud BVH with
+`GPU::parallelFor()` (Morton codes, a bitonic sort, and a perfect K-ary tree written node by node),
+on top of `PackedBVH::reserveLayout()`/`writeChildBoxRow()`. Still open: the `PointCloudHashGrid`
+counterpart, a radix sort in place of the bitonic one (linear work rather than n log² n) once a
+consumer measures the build, and a device build of a general `PackedBVH` over
+arbitrary primitives. Worth doing only with a consumer that rebuilds geometry on the device.
 
 **The DCEL reconcile chain on a device.** Deferred deliberately. `MeshT::reconcile()`'s only
 production caller is the parser's soup-to-mesh conversion, which is host-only by design, so a device
@@ -553,7 +556,8 @@ Taken by the maintainer on 30 September 2026, and cited by number in this file.
 ### Findings still open
 
 When the audit closed, every BLOCKER was fixed, and every MAJOR finding was fixed, retired with its
-code, or kept deliberately by a decision, except parts of BVH-8, MESH-8 and PC-6.
+code, or kept deliberately by a decision, except parts of BVH-8, MESH-8 and PC-6. PC-6 was fixed
+after the audit closed.
 The MINOR and NIT findings were folded into whichever change touched the
 same file; each was checked against `dev` at 8c8f504, and the last few small ones (a missing include
 guard, an include, a blank line, stale wording) were fixed in the change that closed the audit.
@@ -564,7 +568,6 @@ the severity the audit gave each one.
 
 These extend what the library can do rather than repair what it does.
 
-* **PC-6** [MAJOR]: no `PackedBVH` is built on a device ("Device builds" above).
 * **BVH-11, device part** [MINOR]: `PackedBVH::refit` runs on the host only.
 
 #### Restructuring

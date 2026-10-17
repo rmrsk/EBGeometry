@@ -499,6 +499,14 @@ as a read-only ``PODSpan``, for a class that walks the tree with a traversal of 
 tree's depth against -- a custom traversal that keeps one entry per level, as ``traverse()`` and
 ``pruneTraverse()`` do, can size its own stack with it and inherit the same guarantee.
 
+A build that runs on a device cannot assemble its arrays on the host first, so two more members
+let it write them in place. ``reserveLayout()`` reserves the node, primitive and child-box arrays at
+their final sizes, contents unspecified, and returns their ``Layout``; the build's kernels then write
+every node, number the interior nodes' child-box rows, and call ``writeChildBoxRow()`` (callable on a
+device) for each interior node once its children's boxes are final. Nothing checks a tree written
+this way, so the build is responsible for its shape; ``PointCloudBVH::buildParallel()`` is the one
+that does it.
+
 Copy and move semantics
 ________________________
 

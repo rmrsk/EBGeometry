@@ -1075,6 +1075,39 @@ public:
   inline void
   refit(const BVConstructor& a_bvConstructor);
 
+  /**
+   * @brief Reserve the arrays of a BVH that a kernel will fill, for a build that runs on a device.
+   * @details The host builders assemble their arrays on the host and copy them in once; a parallel
+   * build instead reserves them at their final sizes here and writes them in place. Every node,
+   * primitive and child-box row then exists, with unspecified contents, until the kernels write it.
+   * The build must set every node's box, primitive range and child offsets, number the interior nodes'
+   * rows 0 to @p a_numInterior - 1 through Node::m_childBoxRow, and then call writeChildBoxRow() for
+   * every interior node once its children's boxes are final. Nothing checks the result, so the build
+   * is responsible for a well-formed tree. Pair the layout with the pool's location to use it.
+   * @param[in,out] a_pool        Pool to reserve from; a kernel writes it, so it must be device-accessible
+   *                              (managed memory) for a device build.
+   * @param[in]     a_numNodes    Number of nodes.
+   * @param[in]     a_numInterior Number of interior nodes, one child-box row each.
+   * @param[in]     a_numPrims    Number of primitives.
+   * @return The reserved layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline Layout
+  reserveLayout(Pool& a_pool, uint32_t a_numNodes, uint32_t a_numInterior, uint32_t a_numPrims);
+
+  /**
+   * @brief Write an interior node's child-box row from its children's boxes.
+   * @details The step of a parallel build (see reserveLayout()) that keeps pruneTraverse()'s SIMD
+   * rows consistent with the node boxes. Writes row Node::m_childBoxRow of node @p a_node; children of
+   * different nodes can be written concurrently, since each node owns its row.
+   * @param[in] a_layout The BVH's arrays.
+   * @param[in] a_base   Base address of the pool holding them.
+   * @param[in] a_node   Index of an interior node.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  writeChildBoxRow(const Layout& a_layout, void* a_base, uint32_t a_node) noexcept;
+
 private:
   /**
    * @brief Copy a completed host-side build into pool storage and rebuild the SoA cache.

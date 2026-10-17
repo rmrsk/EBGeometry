@@ -111,6 +111,28 @@ public:
   inline PointCloudBVH(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, std::size_t a_targetLeafSize = 16 * W);
 
   /**
+   * @brief Build a BVH over a point cloud with GPU::parallelFor(), on a device in a CUDA or HIP
+   * translation unit and in host loops otherwise.
+   * @details A different tree from the constructor's: the points are sorted along a Morton curve
+   * (a bitonic sort), cut into groups of W consecutive points, and the groups spread evenly over the
+   * leaves of a perfect K-ary tree, the shallowest one whose leaves hold about @p a_targetLeafSize
+   * points each. Every node is then written by its own thread, from its position in the tree, and
+   * the boxes are merged one level at a time, from the leaves up. The queries are the constructor's
+   * and give the same answers; the tree can be looser for a cloud far from uniform, since its splits
+   * follow the curve rather than the points. In a CUDA or HIP translation unit the pool must be both
+   * host- and device-accessible (managed memory), and a host pool otherwise; the build reserves its
+   * scratch arrays from a second pool on the same memory resource and releases them on return: 16
+   * bytes per point, rounded up to a power of two, for the sort keys.
+   * @param[in,out] a_pool       Pool the arrays are reserved from; must outlive the result.
+   * @param[in] a_positions      Point positions. At most 2^31, all finite.
+   * @param[in] a_targetLeafSize Target points per leaf, at least 1.
+   * @return The BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PointCloudBVH
+  buildParallel(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, std::size_t a_targetLeafSize = 16 * W);
+
+  /**
    * @brief Closest cloud point to an arbitrary query point.
    * @param[in] a_query Query point (need not be in the cloud).
    * @return The nearest point and its squared distance.
@@ -263,6 +285,23 @@ private:
   inline PointCloudBVH(Pool& a_pool, const BuildResult& a_build, const std::vector<Vec3T<T>>& a_positions);
 
   /**
+   * @brief Adopt arrays a parallel build wrote in place.
+   * @param[in] a_pool      Pool holding every array.
+   * @param[in] a_bvh       The BVH's arrays.
+   * @param[in] a_positions Point positions (indexed by cloud index).
+   * @param[in] a_leafOff   Per-point own-leaf group offset.
+   * @param[in] a_leafCnt   Per-point own-leaf group count.
+   * @param[in] a_order     Point indices in leaf (build) order.
+   */
+  EBGEOMETRY_HOST
+  inline PointCloudBVH(const Pool&                     a_pool,
+                       const typename Packed::Layout&  a_bvh,
+                       const PODVector<Vec3T<T>>&      a_positions,
+                       const PODVector<std::uint32_t>& a_leafOff,
+                       const PODVector<std::uint32_t>& a_leafCnt,
+                       const PODVector<std::uint32_t>& a_order) noexcept;
+
+  /**
    * @brief Reserve the cloud arrays from @p a_pool and copy the given host arrays into them.
    * @details Reserves first and resolves the base only afterwards, since a reserve can grow the pool
    * and move the block. The sources must therefore be host arrays outside @p a_pool.
@@ -363,5 +402,6 @@ static_assert(std::is_trivially_copyable_v<PointCloudBVH<double>>, "PointCloudBV
 } // namespace EBGeometry
 
 #include "EBGeometry_PointCloudBVHImplem.hpp"
+#include "EBGeometry_PointCloudBVHParallelImplem.hpp"
 
 #endif

@@ -440,6 +440,233 @@ TEMPLATE_TEST_CASE("PointCloudBVH: a rebased view answers queries on device and 
   compareCloudQueries<TestCloud<T>, T>(deviceView, cloud, points, indices, sameIndices, sameValues);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// buildParallel: the Morton-sorted perfect tree answers every query the constructor's tree does
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// The memory buildParallel() builds in: managed memory in a CUDA or HIP build, where its steps run as
+// kernels, and host memory otherwise.
+MemoryResource&
+parallelBuildResource() noexcept
+{
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  return managedMemoryResource();
+#else
+  return hostMemoryResource();
+#endif
+}
+
+// Every query of a parallel-built cloud against brute force: external closest points, self nearest
+// neighbors (which seed from the point's own leaf, so they check the per-point tables), k-nearest, and
+// that the leaf order is a permutation of the cloud.
+template <class Cloud, class T>
+void
+checkParallelBuild(const std::vector<Vec3T<T>>& a_pos, const std::size_t a_leafSize)
+{
+  const std::size_t n = a_pos.size();
+
+  INFO("points " << n << ", leaf size " << a_leafSize);
+
+  Pool pool(parallelBuildResource());
+
+  const Cloud cloud = Cloud::buildParallel(pool, a_pos, a_leafSize);
+
+  REQUIRE(cloud.numPoints() == n);
+
+  const double tol = tightMargin<T>();
+
+  // Every point lands in exactly one leaf lane.
+  std::size_t        lanes = 0;
+  std::set<uint32_t> ids;
+
+  for (const auto& group : cloud.getBVH().getPrimitives()) {
+    for (std::size_t lane = 0; lane < group.numValid(); lane++) {
+      ids.insert(group.getPointId(lane));
+      lanes++;
+    }
+  }
+
+  CHECK(lanes == n);
+  CHECK(ids.size() == n);
+
+  const std::vector<Vec3T<T>> queries = makeCloud<T>(50, 7u);
+
+  for (const auto& q : queries) {
+    const auto hit   = cloud.closestPoint(q);
+    const auto truth = bruteForce<T>(a_pos, q, 1, n);
+
+    REQUIRE(hit.index < n);
+    CHECK_THAT((a_pos[hit.index] - q).length2(), withinAbsT<T>(truth[0], tol));
+  }
+
+  constexpr std::size_t k = 3;
+
+  typename Cloud::Hit out[k];
+
+  for (uint32_t i = 0; i < n; i += 7) {
+    const std::size_t found = cloud.nearestNeighbors(i, k, out);
+    const auto        truth = bruteForce<T>(a_pos, a_pos[i], k, i);
+
+    REQUIRE(found == Math::min(k, n - 1));
+
+    for (std::size_t j = 0; j < found; j++) {
+      CHECK(out[j].index != i);
+      CHECK_THAT(out[j].distanceSquared, withinAbsT<T>(truth[j], tol));
+    }
+  }
+
+  const auto all = cloud.allNearestNeighbors(1);
+
+  REQUIRE(all.size() == n);
+
+  for (uint32_t i = 0; i < n; i += 11) {
+    if (n > 1) {
+      CHECK_THAT(all[i].distanceSquared, withinAbsT<T>(bruteForce<T>(a_pos, a_pos[i], 1, i)[0], tol));
+    }
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("PointCloudBVH::buildParallel: queries match brute force",
+                   "[PointCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // In a CUDA or HIP build the build's steps are kernels.
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const std::vector<Vec3T<T>> uniform = makeCloud<T>(2000, 20261017u);
+
+  SECTION("default branching and width, over leaf sizes from one point to the whole cloud")
+  {
+    for (const std::size_t leafSize :
+         {std::size_t{1}, std::size_t{7}, std::size_t{16 * PointSoA::DefaultWidth<T>()}, std::size_t{5000}}) {
+      checkParallelBuild<PointCloudBVH<T>, T>(uniform, leafSize);
+    }
+  }
+
+  SECTION("other branching factors and widths")
+  {
+    checkParallelBuild<PointCloudBVH<T, 2, 1>, T>(uniform, 4);
+    checkParallelBuild<PointCloudBVH<T, 3, 2>, T>(uniform, 8);
+    checkParallelBuild<PointCloudBVH<T, 8, 8>, T>(uniform, 16);
+  }
+
+  SECTION("clouds of one to a few groups")
+  {
+    for (const std::size_t n : {1, 2, 3, 5, 9, 17}) {
+      checkParallelBuild<PointCloudBVH<T>, T>(makeCloud<T>(n, 3u + static_cast<unsigned>(n)), 1);
+    }
+  }
+
+  SECTION("a cloud flat in one axis, and a cluster beside a few outliers")
+  {
+    std::vector<Vec3T<T>> flat = uniform;
+
+    for (auto& p : flat) {
+      p[2] = T(0.5);
+    }
+
+    checkParallelBuild<PointCloudBVH<T>, T>(flat, 16);
+
+    std::vector<Vec3T<T>> clustered = makeCloud<T>(1000, 11u);
+
+    for (auto& p : clustered) {
+      p = Vec3T<T>(T(0.5), T(0.5), T(0.5)) + T(1e-3) * p;
+    }
+
+    clustered.emplace_back(T(10), T(0), T(0));
+    clustered.emplace_back(T(-10), T(5), T(0));
+
+    checkParallelBuild<PointCloudBVH<T>, T>(clustered, 16);
+
+    // Wider than the largest finite value: the extent overflows unless the quantization halves first.
+    std::vector<Vec3T<T>> huge = makeCloud<T>(200, 13u);
+
+    for (auto& p : huge) {
+      p = T(0.9) * Math::Limits<T>::max() * (T(2) * p - Vec3T<T>::ones());
+    }
+
+    Pool pool(parallelBuildResource());
+
+    const PointCloudBVH<T> wide = PointCloudBVH<T>::buildParallel(pool, huge, 4);
+
+    for (uint32_t i = 0; i < huge.size(); i += 17) {
+      CHECK(wide.closestPoint(huge[i]).index == i);
+    }
+  }
+
+  SECTION("an empty cloud")
+  {
+    Pool pool(parallelBuildResource());
+
+    const PointCloudBVH<T> cloud = PointCloudBVH<T>::buildParallel(pool, {});
+
+    CHECK(cloud.numPoints() == 0);
+    CHECK_FALSE(cloud.closestPoint(Vec3T<T>(T(0), T(0), T(0))).valid());
+  }
+}
+
+TEMPLATE_TEST_CASE("PointCloudBVH::buildParallel: a build in device-accessible memory answers on device like the "
+                   "host-built tree",
+                   "[PointCloudBVH][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  // Managed memory in a GPU build, where the build's kernels write the arrays in place; in a host build,
+  // emulated device memory, and the build's steps run as host loops.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  MemoryResource& resource = managedMemoryResource();
+#else
+  MemoryResource& resource = emulatedDeviceMemoryResource();
+#endif
+
+  Pool hostPool(hostMemoryResource());
+  Pool pool(resource);
+
+  const TestCloud<T> reference(hostPool, functorTestCloud<T>(), 8);
+  const TestCloud<T> cloud = TestCloud<T>::buildParallel(pool, functorTestCloud<T>(), 8);
+
+  pool.freeze();
+
+  const TestCloud<T> deviceView = cloud.rebasedView(pool);
+
+  const std::vector<Vec3T<T>> points =
+    queryGrid<T>(Vec3T<T>(T(-0.25), T(-0.25), T(-0.25)), Vec3T<T>(T(1.25), T(1.25), T(1.25)), 10);
+  const std::vector<uint32_t> indices = allIndices(cloud.numPoints());
+
+  const auto sameIndices = [](const auto& a_device, const auto& a_host, const auto& a_queries) {
+    const std::vector<std::size_t> device = evaluateOnDevice<std::size_t>(a_device, a_queries);
+    const std::vector<std::size_t> host   = evaluateOnHost<std::size_t>(a_host, a_queries);
+
+    REQUIRE(device.size() == host.size());
+
+    for (std::size_t i = 0; i < host.size(); i++) {
+      INFO("query " << i);
+      REQUIRE(device[i] == host[i]);
+    }
+  };
+
+  const auto sameValues = [](const auto& a_device, const auto& a_host, const auto& a_queries) {
+    requireSameResults(evaluateOnDevice<T>(a_device, a_queries), evaluateOnHost<T>(a_host, a_queries));
+  };
+
+  compareCloudQueries<TestCloud<T>, T>(deviceView, reference, points, indices, sameIndices, sameValues);
+}
+
 TEST_CASE("PointCloudBVH and PointCloudHashGrid reject a cloud they cannot index", "[PointCloudBVH][death]")
 {
   using T = double;
@@ -477,6 +704,15 @@ TEST_CASE("PointCloudBVH: rejects a zero leaf size, and a rebase onto a pool too
       const PointCloudBVH<T> bvh(pool, pos, 0);
     },
     "PointCloudBVH: the target leaf size must be at least 1 (0)"));
+
+  REQUIRE(abortsWith(
+    [&pos] {
+      Pool                   pool(hostMemoryResource());
+      const PointCloudBVH<T> bvh = PointCloudBVH<T>::buildParallel(pool, pos, 0);
+
+      (void)bvh;
+    },
+    "PointCloudBVH::buildParallel: the target leaf size must be at least 1 (0)"));
 
   REQUIRE(abortsWith(
     [&pos] {
