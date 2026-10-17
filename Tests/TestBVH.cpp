@@ -4020,36 +4020,36 @@ TEST_CASE("PackedBVH: the direct builders reject an empty primitive list and a z
   // EBGEOMETRY_REQUIREs, so they abort in every build.
   REQUIRE(abortsWith(
     [] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh = Packed::buildBottomUp(pool, List{}, size_t(4));
+      Pool pool(hostMemoryResource());
+      (void)Packed::buildBottomUp(pool, List{}, size_t(4));
     },
     "PackedBVH: the SFC build needs at least one primitive"));
 
   REQUIRE(abortsWith(
     [&prims] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh = Packed::buildBottomUp(pool, prims, size_t(0));
+      Pool pool(hostMemoryResource());
+      (void)Packed::buildBottomUp(pool, prims, size_t(0));
     },
     "PackedBVH: the SFC build's target leaf size must be positive (0)"));
 
   REQUIRE(abortsWith(
     [] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh = Packed::build(pool, List{}, BVH::Construction::CentroidSplit);
+      Pool pool(hostMemoryResource());
+      (void)Packed::build(pool, List{}, BVH::Construction::CentroidSplit);
     },
     "PackedBVH: the top-down build needs at least one primitive"));
 
   REQUIRE(abortsWith(
     [] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh = Packed::buildClusterSAH(pool, List{}, BVH::ClusterSpec{});
+      Pool pool(hostMemoryResource());
+      (void)Packed::buildClusterSAH(pool, List{}, BVH::ClusterSpec{});
     },
     "PackedBVH: the ClusterSAH build needs at least one primitive"));
 
   REQUIRE(abortsWith(
     [&prims] {
-      Pool         pool(hostMemoryResource());
-      const Packed bvh = Packed::buildClusterSAH(pool, prims, BVH::ClusterSpec{0});
+      Pool pool(hostMemoryResource());
+      (void)Packed::buildClusterSAH(pool, prims, BVH::ClusterSpec{0});
     },
     "PackedBVH: ClusterSpec::maxClusterSize must be positive (0)"));
 }

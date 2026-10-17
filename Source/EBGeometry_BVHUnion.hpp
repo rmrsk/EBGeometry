@@ -136,22 +136,6 @@ struct UnionParts
   BVH::PackedBVH<T, Stored<P>, K> unbounded;
 };
 
-/**
- * @brief The leaf-size settings BVHUnion and BVHSmoothUnion use without options.
- * @details Internal helper. Reproduces the trees the unions built before the settings existed: K-1
- * primitives per leaf for the top-down methods (a node with fewer than K becomes a leaf), a target
- * of K for the space-filling curves, and the default ClusterSpec.
- * @tparam K BVH branching factor.
- * @return The default settings.
- */
-template <size_t K>
-[[nodiscard]] EBGEOMETRY_HOST
-inline BVH::ConstructionOptions
-defaultUnionOptions() noexcept
-{
-  return BVH::ConstructionOptions{K - 1, K, BVH::ClusterSpec{}};
-}
-
 } // namespace CSGDetail
 
 /**
@@ -231,7 +215,7 @@ public:
   static BVH::ConstructionOptions
   defaultConstructionOptions() noexcept
   {
-    return CSGDetail::defaultUnionOptions<K>();
+    return Root::defaultConstructionOptions();
   }
 
   /**
@@ -441,7 +425,7 @@ public:
   static BVH::ConstructionOptions
   defaultConstructionOptions() noexcept
   {
-    return CSGDetail::defaultUnionOptions<K>();
+    return Root::defaultConstructionOptions();
   }
 
   /**

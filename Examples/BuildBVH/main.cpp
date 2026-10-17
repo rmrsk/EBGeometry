@@ -102,13 +102,13 @@ runPartitionerFamily(const std::vector<Vec3>& a_positions,
 
   timer.start();
   EBGeometry::Pool packPool(EBGeometry::hostMemoryResource());
-  auto             packed = tree->pack(packPool);
+  (void)tree->pack(packPool);
   timer.stop();
   const double packTime = timer.seconds();
 
   timer.start();
   EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed direct = Packed::buildTopDown(directPool, makeFlatPrimitives(a_positions), a_partitioner, a_stopCrit);
+  (void)Packed::buildTopDown(directPool, makeFlatPrimitives(a_positions), a_partitioner, a_stopCrit);
   timer.stop();
   const double directBuildTime = timer.seconds();
 
@@ -132,14 +132,13 @@ runSFCFamily(const std::vector<Vec3>& a_positions, size_t a_targetLeafSize)
 
   timer.start();
   EBGeometry::Pool packPool(EBGeometry::hostMemoryResource());
-  auto             packed = tree->pack(packPool);
+  (void)tree->pack(packPool);
   timer.stop();
   const double packTime = timer.seconds();
 
   timer.start();
   EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed     direct =
-    Packed::template buildBottomUp<S>(directPool, makeFlatPrimitives(a_positions), a_targetLeafSize);
+  (void)Packed::template buildBottomUp<S>(directPool, makeFlatPrimitives(a_positions), a_targetLeafSize);
   timer.stop();
   const double directBuildTime = timer.seconds();
 
@@ -156,7 +155,7 @@ runClusterSAH(const std::vector<Vec3>& a_positions, size_t a_maxClusterSize)
 
   timer.start();
   EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed     direct = Packed::buildClusterSAH(
+  (void)Packed::buildClusterSAH(
     directPool, makeFlatPrimitives(a_positions), EBGeometry::BVH::ClusterSpec{a_maxClusterSize});
   timer.stop();
   const double directBuildTime = timer.seconds();
