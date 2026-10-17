@@ -209,7 +209,7 @@ MeshT<T>::sanityCheck(const std::string a_id) const
 }
 
 template <class T>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline bool
 MeshT<T>::faceLoopCloses(const uint32_t a_faceIndex, uint32_t& a_lastEdge, uint32_t& a_steps) const noexcept
 {

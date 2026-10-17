@@ -318,6 +318,22 @@ public:
   reconcile();
 
   /**
+   * @brief Walk a face's half-edge loop, bounded by the number of half-edges.
+   * @details EdgeIteratorT does not count its steps, so it would never finish on a loop that
+   * cycles without returning to its first edge, and it reads out of bounds at an edge index past
+   * the end of the edge array. This walk stops on both. reconcile() and DCEL::reconcileParallel()
+   * abort on such a loop, and sanityCheck() reports it.
+   * @param[in]  a_faceIndex Face whose loop to walk.
+   * @param[out] a_lastEdge  The edge index the walk stopped at (the face's first edge if the loop
+   * closes).
+   * @param[out] a_steps     The number of steps taken.
+   * @return True if the loop returns to the face's first edge.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  faceLoopCloses(uint32_t a_faceIndex, uint32_t& a_lastEdge, uint32_t& a_steps) const noexcept;
+
+  /**
    * @brief Flip the mesh, making all the normals change direction.
    * @note Should be called AFTER all normals have been computed.
    */
@@ -681,22 +697,6 @@ protected:
   EBGEOMETRY_HOST
   inline void
   printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string& a_id) const;
-
-  /**
-   * @brief Walk a face's half-edge loop, bounded by the number of half-edges.
-   * @details EdgeIteratorT does not count its steps, so it would never finish on a loop that
-   * cycles without returning to its first edge, and it reads out of bounds at an edge index past
-   * the end of the edge array. This walk stops on both. reconcile() aborts on such a loop and
-   * sanityCheck() reports it.
-   * @param[in]  a_faceIndex Face whose loop to walk.
-   * @param[out] a_lastEdge  The edge index the walk stopped at (the face's first edge if the loop
-   * closes).
-   * @param[out] a_steps     The number of steps taken.
-   * @return True if the loop returns to the face's first edge.
-   */
-  EBGEOMETRY_HOST
-  inline bool
-  faceLoopCloses(uint32_t a_faceIndex, uint32_t& a_lastEdge, uint32_t& a_steps) const noexcept;
 };
 } // namespace DCEL
 

@@ -4,8 +4,8 @@
 
 /**
  * @file    EBGeometry_GPUAlgorithms.hpp
- * @brief   Building blocks for builds that run with GPU::parallelFor(): a bounding-box reduction and a
- *          bitonic sort.
+ * @brief   Building blocks for builds that run with GPU::parallelFor(): a bounding-box reduction, a
+ *          bitonic sort and an exclusive prefix sum.
  * @details Each runs one or more GPU::parallelFor() launches, so it runs on the device in a CUDA or HIP
  *          translation unit and as host loops otherwise, and returns once the work is done. The arrays
  *          they read and write must be memory the launch can reach: device-accessible in a CUDA or HIP
@@ -176,6 +176,87 @@ struct BitonicPass
   }
 };
 
+/**
+ * @brief exclusiveScan(), up-sweep: a[i] += a[i - d] at the last element of every block of 2d.
+ */
+struct ScanUp
+{
+  /// @brief The values.
+  uint32_t* m_data;
+
+  /// @brief Half the block size.
+  uint32_t m_d;
+
+  /**
+   * @brief Block @p a_t.
+   * @param[in] a_t Block index.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const std::size_t a_t) const noexcept
+  {
+    const uint32_t i = (static_cast<uint32_t>(a_t) + 1) * 2 * m_d - 1;
+
+    m_data[i] += m_data[i - m_d];
+  }
+};
+
+/**
+ * @brief exclusiveScan(), between the sweeps: one thread stores the total and clears the last element.
+ */
+struct ScanClear
+{
+  /// @brief The values.
+  uint32_t* m_data;
+
+  /// @brief Where to store the total, or null.
+  uint32_t* m_total;
+
+  /// @brief Number of values.
+  uint32_t m_count;
+
+  /**
+   * @brief Store the total and clear the last element.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(std::size_t /*a_thread*/) const noexcept
+  {
+    if (m_total != nullptr) {
+      *m_total = m_data[m_count - 1];
+    }
+
+    m_data[m_count - 1] = 0;
+  }
+};
+
+/**
+ * @brief exclusiveScan(), down-sweep: swap and add within every block of 2d.
+ */
+struct ScanDown
+{
+  /// @brief The values.
+  uint32_t* m_data;
+
+  /// @brief Half the block size.
+  uint32_t m_d;
+
+  /**
+   * @brief Block @p a_t.
+   * @param[in] a_t Block index.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const std::size_t a_t) const noexcept
+  {
+    const uint32_t i    = (static_cast<uint32_t>(a_t) + 1) * 2 * m_d - 1;
+    const uint32_t left = m_data[i - m_d];
+
+    m_data[i - m_d] = m_data[i];
+    m_data[i] += left;
+  }
+};
+
 } // namespace AlgorithmsDetail
 
 /**
@@ -254,6 +335,40 @@ bitonicSort(Key* a_keys, const uint32_t a_count, const Less& a_less = Less())
     for (uint32_t j = k / 2; j > 0; j /= 2) {
       parallelFor(a_count / 2, AlgorithmsDetail::BitonicPass<Key, Less>{a_keys, a_less, k, j});
     }
+  }
+}
+
+/**
+ * @brief Replace @p a_count values by their exclusive prefix sums in place: a[i] becomes a[0] + ... +
+ * a[i - 1], and a[0] becomes 0.
+ * @details The work-efficient (Blelloch) scan: an up-sweep and a down-sweep of log2(n) passes each, every
+ * pass one GPU::parallelFor() over the blocks it combines. The sums are taken in a fixed order, so the
+ * result does not depend on thread scheduling. The values must sum to less than 2^32. Aborts, in every
+ * build, if @p a_count is not a power of two; pad with zeros.
+ * @param[in,out] a_data  The values.
+ * @param[in]     a_count Number of values: a power of two, or zero.
+ * @param[out]    a_total Where to store the sum of all the values, or null; memory the launch can write.
+ */
+EBGEOMETRY_HOST
+inline void
+exclusiveScan(uint32_t* a_data, const uint32_t a_count, uint32_t* a_total = nullptr)
+{
+  EBGEOMETRY_REQUIRE((a_count & (a_count - 1)) == 0,
+                     "GPU::exclusiveScan: the value count must be a power of two (%u)",
+                     unsigned(a_count));
+
+  if (a_count == 0) {
+    return;
+  }
+
+  for (uint32_t d = 1; d < a_count; d *= 2) {
+    parallelFor(a_count / (2 * d), AlgorithmsDetail::ScanUp{a_data, d});
+  }
+
+  parallelFor(1, AlgorithmsDetail::ScanClear{a_data, a_total, a_count});
+
+  for (uint32_t d = a_count / 2; d >= 1; d /= 2) {
+    parallelFor(a_count / (2 * d), AlgorithmsDetail::ScanDown{a_data, d});
   }
 }
 

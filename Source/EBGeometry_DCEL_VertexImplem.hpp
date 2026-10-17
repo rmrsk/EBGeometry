@@ -14,7 +14,6 @@
 // Std includes
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <vector>
 
 // Our includes
@@ -128,6 +127,38 @@ VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_this
                                              const std::vector<uint32_t>& a_faceIndices,
                                              const Mesh&                  a_mesh)
 {
+  EBGEOMETRY_EXPECT(!a_faceIndices.empty());
+
+  const VertexNormalStatus status = this->computeVertexNormalAngleWeighted(
+    a_thisVertexIndex, a_faceIndices.data(), static_cast<uint32_t>(a_faceIndices.size()), a_mesh);
+
+  // Indexing the two neighbours is an out-of-bounds read unless the face is incident on this vertex
+  // through exactly two half-edges (one incoming, one outgoing).
+  EBGEOMETRY_REQUIRE(status.m_code != VertexNormalStatus::Code::NotVisitedOnce,
+                     "DCEL::VertexT::computeVertexNormalAngleWeighted: face %u must visit vertex %u exactly once "
+                     "(found %u incident half-edges instead of 2)",
+                     unsigned(status.m_face),
+                     unsigned(a_thisVertexIndex),
+                     unsigned(status.m_found));
+
+  // A zero-length edge has no subtended angle; normalizing it would divide by zero.
+  EBGEOMETRY_REQUIRE(status.m_code != VertexNormalStatus::Code::CoincidentPositions,
+                     "DCEL::VertexT::computeVertexNormalAngleWeighted: face %u has coincident positions among "
+                     "vertices %u, %u and %u",
+                     unsigned(status.m_face),
+                     unsigned(a_thisVertexIndex),
+                     unsigned(status.m_neighbours[0]),
+                     unsigned(status.m_neighbours[1]));
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline VertexNormalStatus
+VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t  a_thisVertexIndex,
+                                             const uint32_t* a_faceIndices,
+                                             const uint32_t  a_numFaces,
+                                             const Mesh&     a_mesh) noexcept
+{
   // This routine computes the pseudonormal from pseudnormal algorithm from
   // Baerentzen and Aanes in "Signed distance computation using the angle
   // weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49). This algorithm computes
@@ -140,25 +171,21 @@ VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_this
   // angle of the face, which means the angle spanned by the incoming/outgoing
   // edges of the face that pass through this vertex.
   //
-  //
-  // The below code is more complicated than it looks. It happens because we
-  // want the two half edges that has the current vertex as a mutual vertex
-  // (i.e. the "incoming" and "outgoing" edges into this vertex). Normally we'd
-  // just iterate through edges, but if it happens that an input face is
-  // flipped, this will result in infinite iteration. Instead, the caller has
-  // given us the indices of each face connected to this vertex. We look through
-  // each face to find the endpoints of the edges that have the current vertex
-  // as the common vertex, and then compute the subtended angle between those.
-  // Sigh...
+  // The caller gives the faces touching the vertex rather than letting it walk around the vertex
+  // through pair edges: a flipped input face would make that walk never end. On each face, the two
+  // half-edges with this vertex as an endpoint give its two neighbours, and the angle between them is
+  // the weight.
+  EBGEOMETRY_EXPECT(a_numFaces > 0);
 
-  EBGEOMETRY_EXPECT(!a_faceIndices.empty());
+  VertexNormalStatus status;
 
   m_normal = Vec3::zeros();
 
   const uint32_t originVertexIndex = a_thisVertexIndex;
 
-  for (const uint32_t faceIndex : a_faceIndices) {
-    const Face& f = a_mesh.getFace(faceIndex);
+  for (uint32_t i = 0; i < a_numFaces; i++) {
+    const uint32_t faceIndex = a_faceIndices[i];
+    const Face&    f         = a_mesh.getFace(faceIndex);
 
     // A zero-area face has a zero normal (FaceT::computeNormal) and contributes nothing. Skipping it
     // here also avoids measuring an angle across one of its zero-length edges.
@@ -166,7 +193,8 @@ VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_this
       continue;
     }
 
-    std::vector<uint32_t> inoutVertices(0);
+    uint32_t neighbours[2] = {0, 0};
+    uint32_t found         = 0;
 
     for (EdgeIterator edgeIt(a_mesh, f); edgeIt.ok(); ++edgeIt) {
       const Edge& e = a_mesh.getEdge(edgeIt());
@@ -175,59 +203,52 @@ VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_this
       const uint32_t v2 = e.getNextEdge(a_mesh).getVertexIndex();
 
       if (v1 == originVertexIndex || v2 == originVertexIndex) {
-        if (v1 == originVertexIndex) {
-          inoutVertices.emplace_back(v2);
+        if (found < 2) {
+          neighbours[found] = (v1 == originVertexIndex) ? v2 : v1;
         }
-        else if (v2 == originVertexIndex) {
-          inoutVertices.emplace_back(v1);
-        }
-        else {
-          std::cerr << "VertexT<T>::computeVertexNormalAngleWeighted(): unreachable branch "
-                       "hit -- a half-edge of face f was found to have originVertexIndex as one of "
-                       "its two endpoints, but neither v1 nor v2 compares equal to it. This points "
-                       "to a corrupted or inconsistent half-edge/vertex topology (e.g. a stale "
-                       "vertex index) rather than a normal mesh-quality issue.\n";
-        }
+
+        found++;
       }
     }
 
-    // Indexing inoutVertices[0]/[1] below is an out-of-bounds read unless the face is incident on
-    // this vertex through exactly two half-edges (one incoming, one outgoing).
-    EBGEOMETRY_REQUIRE(inoutVertices.size() == 2,
-                       "DCEL::VertexT::computeVertexNormalAngleWeighted: face %u must visit vertex %u exactly once "
-                       "(found %zu incident half-edges instead of 2)",
-                       unsigned(faceIndex),
-                       unsigned(originVertexIndex),
-                       inoutVertices.size());
+    if (found != 2) {
+      status.m_code  = VertexNormalStatus::Code::NotVisitedOnce;
+      status.m_face  = faceIndex;
+      status.m_found = found;
+
+      return status;
+    }
 
     const Vec3& x0 = a_mesh.getVertex(originVertexIndex).getPosition();
-    const Vec3& x1 = a_mesh.getVertex(inoutVertices[0]).getPosition();
-    const Vec3& x2 = a_mesh.getVertex(inoutVertices[1]).getPosition();
+    const Vec3& x1 = a_mesh.getVertex(neighbours[0]).getPosition();
+    const Vec3& x2 = a_mesh.getVertex(neighbours[1]).getPosition();
 
-    // A zero-length edge has no subtended angle; normalizing it below would divide by zero.
-    EBGEOMETRY_REQUIRE(x0 != x1 && x0 != x2 && x1 != x2,
-                       "DCEL::VertexT::computeVertexNormalAngleWeighted: face %u has coincident positions among "
-                       "vertices %u, %u and %u",
-                       unsigned(faceIndex),
-                       unsigned(originVertexIndex),
-                       unsigned(inoutVertices[0]),
-                       unsigned(inoutVertices[1]));
+    if (!(x0 != x1 && x0 != x2 && x1 != x2)) {
+      status.m_code          = VertexNormalStatus::Code::CoincidentPositions;
+      status.m_face          = faceIndex;
+      status.m_neighbours[0] = neighbours[0];
+      status.m_neighbours[1] = neighbours[1];
 
-    Vec3 v1 = x1 - x0;
-    Vec3 v2 = x2 - x0;
+      return status;
+    }
 
-    v1 = v1 / v1.length();
-    v2 = v2 / v2.length();
+    Vec3 u1 = x1 - x0;
+    Vec3 u2 = x2 - x0;
+
+    u1 = u1 / u1.length();
+    u2 = u2 / u2.length();
 
     const Vec3& norm = f.getNormal();
 
     // Clamp to [-1,1] to guard against std::acos(NaN) from floating-point rounding.
-    const T alpha = std::acos(Math::clamp(v1.dot(v2), T(-1), T(1)));
+    const T alpha = std::acos(Math::clamp(u1.dot(u2), T(-1), T(1)));
 
     m_normal += alpha * norm;
   }
 
   this->normalizeNormalVector();
+
+  return status;
 }
 
 template <class T>
