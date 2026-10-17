@@ -348,9 +348,11 @@ about the library's GPU ceiling. The agreed shape of the fix:
 Nothing needs doing now to keep this open: `pruneTraverse`'s contract already says nothing about
 threads. The one thing worth adding alongside the first `[gpu]` benchmark is a coherent-query case.
 
-**Device builds.** A device-side `PointCloudBVH` build (Morton codes and a radix sort) and its
-`PointCloudHashGrid` counterpart; both already query on a device. Worth doing only with a consumer
-that rebuilds geometry on the device.
+**Device builds.** `PointCloudHashGrid::buildParallel()` builds the constructor's grid with
+`GPU::parallelFor()`, on `GPU::boundingBox()` and `GPU::bitonicSort()` (`EBGeometry_GPUAlgorithms.hpp`).
+Still open: a device-side `PointCloudBVH` build (Morton codes and a sort), and a radix sort in place
+of the bitonic one once a consumer measures the build. Worth doing only with a consumer that rebuilds
+geometry on the device.
 
 **The DCEL reconcile chain on a device.** Deferred deliberately. `MeshT::reconcile()`'s only
 production caller is the parser's soup-to-mesh conversion, which is host-only by design, so a device

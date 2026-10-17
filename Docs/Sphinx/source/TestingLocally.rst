@@ -211,7 +211,9 @@ Test coverage
        different block sizes into a reused output; a pool built in place in managed memory, with
        results written over the inputs; the aborts on mismatched sizes, on partly overlapping inputs
        and results, and on a pool that is not frozen, not device-accessible, or that the arrays do
-       not fit in; and
+       not fit in; ``GPU::bitonicSort`` in both orders over counts from 0 to 1024 and its abort on a
+       count that is not a power of two; ``GPU::boundingBox`` against a host loop across chunk
+       boundaries, and for no points; and
        ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
    * - ``TestPool``
      - ``Pool``: growth preserving earlier contents and every type's alignment, the requests too
@@ -399,8 +401,11 @@ Test coverage
      - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases (far
        queries, a lattice where many points tie on cell faces, a cloud far from the origin where the
        stopping rule's rounding slack is tightest, extreme cell sizes),
-       ``rebasedView``/``deepCopy``, device queries against the host, and rejection of a cloud it
-       cannot index, a non-positive target occupancy, or a rebase onto an unrelated pool.
+       ``rebasedView``/``deepCopy``, device queries against the host, ``buildParallel`` answering
+       every query exactly like the constructor's grid (uniform, clustered, flat and coincident
+       clouds, zero to three points, several cell sizes) and on a device from managed memory, and
+       rejection of a cloud it cannot index, a non-positive target occupancy, or a rebase onto an
+       unrelated pool.
    * - ``TestRandom``
      - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
        an empty result for a zero count.

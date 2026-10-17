@@ -147,6 +147,23 @@ struct PODVector
   }
 
   /**
+   * @brief Reserve @p a_count slots from @p a_pool and count them all as elements.
+   * @details For an array a kernel fills: the elements exist, so at() may address any of them, but
+   *          their contents are whatever the pool held until something writes them. A host
+   *          build-phase operation.
+   * @param[in,out] a_pool  Pool to reserve from (must not be frozen).
+   * @param[in]     a_count Number of elements.
+   */
+  EBGEOMETRY_HOST
+  void
+  reserveSizedFrom(Pool& a_pool, uint32_t a_count)
+  {
+    this->reserveFrom(a_pool, a_count);
+
+    m_size = a_count;
+  }
+
+  /**
    * @brief Mutable pointer to element 0 against @p a_base.
    * @param[in] a_base Base address of the pool holding this array.
    * @return Pointer to element 0.

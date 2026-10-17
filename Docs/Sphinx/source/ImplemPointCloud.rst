@@ -92,6 +92,14 @@ Like ``PointCloudBVH``, the grid keeps its arrays (positions and the two CSR arr
 passed to the constructor, is trivially copyable, and offers ``rebasedView()`` and ``deepCopy()``;
 the same queries are callable on a device, and ``allNearestNeighbors()`` stays host-only.
 
+``PointCloudHashGrid::buildParallel()`` builds the same grid, array for array, with
+``GPU::parallelFor()``: on the device in a CUDA or HIP translation unit, and in host loops otherwise
+(see :ref:`Chap:RunningOnGPU`). The cloud's box comes from an exact reduction and the cell size from
+the constructor's rule; a bitonic sort of (cell, cloud index) keys then stands in for the counting
+sort, which puts each cell's points in cloud-index order just as the counting sort does, and each
+cell finds its start with a binary search over the sorted keys. Nothing uses atomics. In a CUDA or HIP
+build the pool must be managed memory; otherwise it is a host pool.
+
 For a near-uniform cloud the grid builds faster than the BVH and queries about as fast; for a
 strongly clustered or multi-scale cloud a single global cell size is a poor fit -- a query in an
 empty region visits many empty cells -- and ``PointCloudBVH`` is the better choice. The grid is also bounded-domain (dense cells sized to the bounding box, ``O(N)``
