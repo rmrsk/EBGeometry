@@ -354,7 +354,9 @@ cannot capture a query point the way a single traversal's lambda does: each stat
 query, and the callbacks are trivially copyable functors.
 
 ``BVH::mortonOrder(points)`` gives the order to run them in: the points sorted along a Morton curve over
-their bounding box. Consecutive queries are then close together, so they descend the same branches
+their bounding box, with cubic cells sized by its longest side, so that a thin or elongated batch is not
+stretched along its short axes. A non-empty order must hold every query index exactly once, which is
+not checked. Consecutive queries are then close together, so they descend the same branches
 and read the same nodes, which on a device means less divergence within a warp and fewer memory
 transactions, and on the host means nodes and leaves still in cache. The ordered ``GPU::transform``
 overload applies the same order to any shape's query. On the host, one million ``TriMeshSDF`` queries

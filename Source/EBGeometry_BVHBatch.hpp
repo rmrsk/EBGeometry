@@ -22,9 +22,11 @@
 
 // Std includes
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 // Our includes
@@ -43,27 +45,41 @@ namespace BVH {
 
 /**
  * @brief The order of @p a_points along a Morton curve over their bounding box.
- * @details Each point is quantized to SFC::ValidBits bits per axis of its box and keyed by its Morton
- * code, ties broken by index, so the order is unique. Pass the result to pruneTraverseBatch() or to the
- * ordered GPU::transform(). Host-only: the points must be host memory, and the order is a host vector
- * the caller copies to wherever the batch runs.
- * @tparam T Precision.
- * @param[in] a_points The query points; every coordinate finite.
+ * @details Each point is quantized to SFC::ValidBits bits along the longest side of its box, with the
+ * same cell size along the other axes so that cells stay cubic in a thin or elongated batch, and keyed
+ * by its Morton code, ties broken by index, so the order is unique. Pass the result to
+ * pruneTraverseBatch() or to the ordered GPU::transform(). Host-only: the points must be host memory,
+ * and the order is a host vector the caller copies to wherever the batch runs.
+ * @tparam Point Vec3T<T> or const Vec3T<T>, for precision T.
+ * @param[in] a_points The query points; every coordinate finite (checked by EBGEOMETRY_EXPECT()).
  * @return A permutation of 0, ..., size - 1: the indices of the points in curve order.
  */
-template <class T>
+template <class Point>
 [[nodiscard]] EBGEOMETRY_HOST
 inline std::vector<uint32_t>
-mortonOrder(PODSpan<const Vec3T<T>> a_points)
+mortonOrder(PODSpan<Point> a_points)
 {
+  using T = std::remove_const_t<std::remove_reference_t<decltype(std::declval<const Point&>()[0])>>;
+
+  static_assert(std::is_same_v<std::remove_const_t<Point>, Vec3T<T>>, "BVH::mortonOrder: the points must be Vec3T");
+
   const uint32_t n = a_points.size();
 
   Vec3T<T> lo = +Vec3T<T>::max();
   Vec3T<T> hi = -Vec3T<T>::max();
 
   for (uint32_t i = 0; i < n; i++) {
+    EBGEOMETRY_EXPECT(std::isfinite(a_points[i][0]) && std::isfinite(a_points[i][1]) && std::isfinite(a_points[i][2]));
+
     lo = min(lo, a_points[i]);
     hi = max(hi, a_points[i]);
+  }
+
+  // Halved before subtracting, so that a box wider than the largest value of T has a finite extent.
+  T extent = T(0);
+
+  for (int dir = 0; dir < 3; dir++) {
+    extent = Math::max(extent, T(0.5) * hi[dir] - T(0.5) * lo[dir]);
   }
 
   constexpr T span = static_cast<T>(SFC::ValidSpan);
@@ -73,9 +89,7 @@ mortonOrder(PODSpan<const Vec3T<T>> a_points)
   for (uint32_t i = 0; i < n; i++) {
     SFC::Index cell;
 
-    // Halved before subtracting, so that a box wider than the largest value of T has a finite extent.
     for (int dir = 0; dir < 3; dir++) {
-      const T extent = T(0.5) * hi[dir] - T(0.5) * lo[dir];
       const T scaled = (extent > T(0)) ? (T(0.5) * a_points[i][dir] - T(0.5) * lo[dir]) / extent * span : T(0);
 
       cell[dir] = static_cast<unsigned int>(Math::clamp(scaled, T(0), span));
@@ -150,11 +164,14 @@ struct PruneTraverseQuery
  * trivially copyable functors with EBGEOMETRY_HOST_DEVICE call operators (a lambda is not one on a
  * device), since a copy reaches every thread; and the BVH, the points, the states and the order must
  * be memory the batch can reach: on a device, a rebasedView() of a mirror and device-accessible arrays.
- * Aborts, in every build, if the states or a non-empty order do not match the point count.
+ * Aborts, in every build, if the states or a non-empty order do not match the point count. A non-empty
+ * order must hold every query index exactly once, which is not checked: a repeated index makes two
+ * threads update the same state at once, and an index past the end reads and writes out of bounds.
  * @tparam BlockSize        Threads per block; see GPU::parallelFor().
  * @tparam T                Precision.
  * @tparam P                Primitive type.
  * @tparam K                Branching factor.
+ * @tparam Point            Vec3T<T> or const Vec3T<T>.
  * @tparam State            Search state type.
  * @tparam LeafEvaluator    Leaf callback: (State&, size_t offset, size_t count) noexcept.
  * @tparam PruneDistSquared Pruning bound: (const State&) noexcept -> T.
@@ -163,25 +180,28 @@ struct PruneTraverseQuery
  * @param[in,out] a_states     One initialized state per query, updated in place.
  * @param[in]     a_evalLeaf   Leaf callback.
  * @param[in]     a_pruneDist2 Pruning-bound callback.
- * @param[in]     a_order      The order to run the queries in (mortonOrder(), say), or empty for index
- *                             order.
+ * @param[in]     a_order      The order to run the queries in (mortonOrder(), say): a permutation of
+ *                             0, ..., size - 1, not checked. Empty for index order.
  */
 template <unsigned int BlockSize = GPU::DefaultBlockSize,
           class T,
           class P,
           size_t K,
+          class Point,
           class State,
           class LeafEvaluator,
           class PruneDistSquared>
 EBGEOMETRY_HOST
 inline void
 pruneTraverseBatch(const PackedBVH<T, P, K>& a_bvh,
-                   PODSpan<const Vec3T<T>>   a_points,
+                   PODSpan<Point>            a_points,
                    PODSpan<State>            a_states,
                    const LeafEvaluator&      a_evalLeaf,
                    const PruneDistSquared&   a_pruneDist2,
                    PODSpan<const uint32_t>   a_order = PODSpan<const uint32_t>{})
 {
+  static_assert(std::is_same_v<std::remove_const_t<Point>, Vec3T<T>>,
+                "BVH::pruneTraverseBatch: the query points must be Vec3T of the BVH's precision");
   static_assert(std::is_trivially_copyable_v<State>, "BVH::pruneTraverseBatch: the state must be trivially copyable");
   static_assert(std::is_trivially_copyable_v<LeafEvaluator>,
                 "BVH::pruneTraverseBatch: the leaf callback must be trivially copyable");

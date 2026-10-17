@@ -5367,6 +5367,32 @@ batchQueries(const size_t a_count)
   return queries;
 }
 
+// Kernel functors live at namespace scope: nvcc rejects a type defined inside a host function as a
+// kernel's template argument.
+template <class T>
+struct BatchSphereDistance
+{
+  SphereSDF<T> m_sphere;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_sphere.signedDistance(a_point);
+  }
+};
+
+template <class T>
+struct BatchIdentity
+{
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const T& a_x) const noexcept
+  {
+    return a_x;
+  }
+};
+
 } // namespace
 
 TEMPLATE_TEST_CASE("BVH::mortonOrder is a permutation along the Morton curve", "[BVH]", EBGEOMETRY_TEST_PRECISIONS)
@@ -5398,6 +5424,11 @@ TEMPLATE_TEST_CASE("BVH::mortonOrder is a permutation along the Morton curve", "
   }
 
   CHECK(curveStep < T(0.25) * givenStep);
+
+  // Writable points give the same order.
+  std::vector<Vec3T<T>> writable = queries;
+
+  CHECK(BVH::mortonOrder(PODSpan<Vec3T<T>>{writable.data(), uint32_t(writable.size())}) == order);
 
   // No points, one point, and coincident points.
   CHECK(BVH::mortonOrder(PODSpan<const Vec3T<T>>{}).empty());
@@ -5463,6 +5494,24 @@ TEMPLATE_TEST_CASE("BVH::pruneTraverseBatch gives every query what a single trav
       REQUIRE(states[q].m_best == truth[q]);
     }
   }
+
+  // Writable points are accepted as well.
+  std::vector<Vec3T<T>>      writable = queries;
+  std::vector<BatchState<T>> states(queries.size());
+
+  for (size_t q = 0; q < queries.size(); q++) {
+    states[q] = BatchState<T>{queries[q], Math::Limits<T>::max()};
+  }
+
+  BVH::pruneTraverseBatch(bvh,
+                          PODSpan<Vec3T<T>>{writable.data(), uint32_t(writable.size())},
+                          PODSpan<BatchState<T>>{states.data(), uint32_t(states.size())},
+                          BatchNearestLeaf<T>{bvh.getPrimitives()},
+                          BatchPrune<T>{});
+
+  for (size_t q = 0; q < queries.size(); q++) {
+    REQUIRE(states[q].m_best == truth[q]);
+  }
 }
 
 TEMPLATE_TEST_CASE("GPU::transform in a given order writes every result where the unordered one does",
@@ -5470,18 +5519,6 @@ TEMPLATE_TEST_CASE("GPU::transform in a given order writes every result where th
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
-
-  struct Distance
-  {
-    SphereSDF<T> m_sphere;
-
-    EBGEOMETRY_HOST_DEVICE
-    T
-    operator()(const Vec3T<T>& a_point) const noexcept
-    {
-      return m_sphere.signedDistance(a_point);
-    }
-  };
 
   // Host arrays, which only a host loop can read.
   if (GPU::enabled) {
@@ -5492,7 +5529,7 @@ TEMPLATE_TEST_CASE("GPU::transform in a given order writes every result where th
   const std::vector<uint32_t> curve =
     BVH::mortonOrder(PODSpan<const Vec3T<T>>{queries.data(), uint32_t(queries.size())});
 
-  const Distance query{SphereSDF<T>(Vec3T<T>(T(1), T(2), T(3)), T(4))};
+  const BatchSphereDistance<T> query{SphereSDF<T>(Vec3T<T>(T(1), T(2), T(3)), T(4))};
 
   std::vector<T> plain(queries.size());
   std::vector<T> ordered(queries.size());
@@ -5616,20 +5653,10 @@ TEST_CASE("Batches: mismatched sizes and overlapping arrays abort", "[BVH][death
 
   REQUIRE(abortsWith(
     [] {
-      struct Same
-      {
-        EBGEOMETRY_HOST_DEVICE
-        T
-        operator()(const T& a_x) const noexcept
-        {
-          return a_x;
-        }
-      };
-
       std::vector<T>              values(4, T(1));
       const std::vector<uint32_t> order{0, 1, 2, 3};
 
-      GPU::transform(Same{},
+      GPU::transform(BatchIdentity<T>{},
                      PODSpan<const T>{values.data(), 4},
                      PODSpan<T>{values.data(), 4},
                      PODSpan<const uint32_t>{order.data(), 4});
