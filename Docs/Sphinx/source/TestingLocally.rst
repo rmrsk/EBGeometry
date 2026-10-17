@@ -311,7 +311,9 @@ Test coverage
        exception from a callback on to the caller; and
        :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
        correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
-       brute-force scan after displacement). Also the build-time checks: a tree too deep for the
+       brute-force scan after displacement), and every :cpp:class:`BVH::TreeBVH` node's box exactly
+       the union of what it encloses, after both builds and after a refit. Also the build-time
+       checks: a tree too deep for the
        host or device traversal stack at ``K`` = 2, 4 and 16, every kind of malformed node array (a
        leaf with no primitives among them), and a partitioner that returns an empty partition, all
        rejected; a tree at the host depth limit, visited deepest first, filling the traversal stack

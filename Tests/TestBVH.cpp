@@ -1636,6 +1636,89 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
   }
 }
 
+TEMPLATE_TEST_CASE("TreeBVH: every node's box is exactly the union of its children's or primitives' boxes, "
+                   "after both builds and after refit",
+                   "[BVH][refit]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+  using Tree = BVH::TreeBVH<T, Pnt, AABB, 4>;
+
+  std::vector<std::shared_ptr<Pnt>> handles;
+  for (int i = 0; i < 200; i++) {
+    handles.emplace_back(std::make_shared<Pnt>(Pnt{Vec3(T(i % 7), T((i * 3) % 11), T((i * 5) % 13))}));
+  }
+
+  BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+  for (const auto& h : handles) {
+    primsAndBVs.emplace_back(h, AABB(h->m_pos - Vec3::ones(), h->m_pos));
+  }
+
+  // Each node's box against the union of what it encloses, computed here with the list constructor.
+  const auto checkUnions = [](const Tree& a_root) {
+    std::vector<const Tree*> stack{&a_root};
+    size_t                   numNodes = 0;
+
+    while (!stack.empty()) {
+      const Tree* node = stack.back();
+
+      stack.pop_back();
+      numNodes++;
+
+      std::vector<AABB> parts;
+      if (node->isLeaf()) {
+        parts = node->getBoundingVolumes();
+      }
+      else {
+        for (const auto& child : node->getChildren()) {
+          parts.emplace_back(child->getBoundingVolume());
+          stack.emplace_back(child.get());
+        }
+      }
+
+      const AABB expected(parts);
+
+      REQUIRE(node->getBoundingVolume().getLowCorner() == expected.getLowCorner());
+      REQUIRE(node->getBoundingVolume().getHighCorner() == expected.getHighCorner());
+    }
+
+    REQUIRE(numNodes > 1);
+  };
+
+  const auto bvConstructor = [](const Pnt& a_p) noexcept -> AABB { return AABB(a_p.m_pos - Vec3::ones(), a_p.m_pos); };
+
+  SECTION("top-down")
+  {
+    Tree tree(primsAndBVs);
+    tree.topDownSortAndPartition();
+    checkUnions(tree);
+
+    for (auto& h : handles) {
+      h->m_pos = h->m_pos * T(2) + Vec3::ones();
+    }
+
+    tree.refit(bvConstructor);
+    checkUnions(tree);
+  }
+
+  SECTION("bottom-up")
+  {
+    Tree tree(primsAndBVs);
+    tree.template bottomUpSortAndPartition<SFC::Morton>();
+    checkUnions(tree);
+
+    for (auto& h : handles) {
+      h->m_pos = -h->m_pos;
+    }
+
+    tree.refit(bvConstructor);
+    checkUnions(tree);
+  }
+}
+
 TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets whose centroids are "
                    "degenerate along one or more axes",
                    "[BVH]",
