@@ -163,6 +163,32 @@ inline void
 transform(const Query& a_query, PODSpan<In> a_in, PODSpan<Out> a_out);
 
 /**
+ * @brief The span overload, visiting the inputs in a given order: a_out[o] = a_query(a_in[o]) for
+ * o = a_order[0], a_order[1], ...
+ * @details The results land where they would without an order; only the order in which threads (on a
+ * device) or iterations (on the host) take the inputs changes. Neighbouring threads then query
+ * neighbouring points, so on a device a warp descends nearby branches of a BVH together, and on the
+ * host consecutive queries reuse the nodes and leaves still in cache. BVH::mortonOrder() gives such an
+ * order. @p a_order must hold every input index exactly once, which is not checked; its size must be
+ * the input count, which aborts with a message otherwise. Unlike the unordered overload, the results
+ * may not overwrite the inputs, since a thread could then read an input another has already replaced;
+ * the two arrays must not overlap at all.
+ * @tparam BlockSize Threads per block; see parallelFor().
+ * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
+ * const In&.
+ * @tparam In        Input type, const or not.
+ * @tparam Out       Result type: the query's result type, not const.
+ * @param[in]  a_query The query.
+ * @param[in]  a_in    The inputs, in memory the device can read.
+ * @param[out] a_out   The results, in memory the device can write; as many as there are inputs.
+ * @param[in]  a_order A permutation of the input indices, in memory the device can read.
+ */
+template <unsigned int BlockSize = DefaultBlockSize, class Query, class In, class Out>
+EBGEOMETRY_HOST
+inline void
+transform(const Query& a_query, PODSpan<In> a_in, PODSpan<Out> a_out, PODSpan<const uint32_t> a_order);
+
+/**
  * @brief Run a query on every input of a pool-resident array, writing the results into another array
  * in the same pool: out[i] = a_query(in[i]), with no allocation and no copies.
  * @details The span overload, with the memory checked first. A PODVector is an offset into a pool, so

@@ -177,6 +177,16 @@ lives, so spans over ordinary host memory (a ``std::vector``'s data, a pool in
 ``hostMemoryResource()``) compile and run in a host build but fault in a kernel. Prefer the pool
 overload whenever the data is in an EBGeometry pool.
 
+GPU::transform in a given order
+-------------------------------
+
+``GPU::transform(query, in, out, order)`` is the span overload with an order: thread ``i`` runs the query
+on input ``order[i]`` and writes result ``order[i]``, so the results land where the unordered overload
+puts them, and only which queries run side by side changes. ``BVH::mortonOrder()`` gives an order that
+puts neighbouring points in neighbouring threads (see :ref:`Chap:ImplemBVH`). The order must be a
+permutation of the input indices, in memory the device can read; the results may not overwrite the
+inputs.
+
 GPU::parallelFor
 ----------------
 

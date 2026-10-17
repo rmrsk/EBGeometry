@@ -5257,3 +5257,382 @@ TEST_CASE("Default K and W are 4, except the triangle-group width under EBGEOMET
 
   SUCCEED();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Batches: a Morton query order, pruneTraverseBatch and the ordered GPU::transform
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// A nearest-point search whose state carries its query, as a batch's state must: one leaf callback
+// serves every query of the batch.
+template <class T>
+struct BatchState
+{
+  Vec3T<T> m_query;
+  T        m_best;
+};
+
+template <class T>
+struct BatchNearestLeaf
+{
+  EBGeometry::PODSpan<const BareTestPoint<T>> m_prims;
+
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(BatchState<T>& a_state, size_t a_offset, size_t a_count) const noexcept
+  {
+    for (size_t i = 0; i < a_count; i++) {
+      a_state.m_best = EBGeometry::Math::min(a_state.m_best, (m_prims[a_offset + i].m_pos - a_state.m_query).length2());
+    }
+  }
+};
+
+template <class T>
+struct BatchPrune
+{
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const BatchState<T>& a_state) const noexcept
+  {
+    return a_state.m_best;
+  }
+};
+
+// The squared distance from each query to its nearest primitive, by brute force.
+template <class T>
+std::vector<T>
+nearestSquared(const std::vector<Vec3T<T>>& a_prims, const std::vector<Vec3T<T>>& a_queries)
+{
+  std::vector<T> best(a_queries.size(), EBGeometry::Math::Limits<T>::max());
+
+  for (size_t q = 0; q < a_queries.size(); q++) {
+    for (const auto& p : a_prims) {
+      best[q] = EBGeometry::Math::min(best[q], (p - a_queries[q]).length2());
+    }
+  }
+
+  return best;
+}
+
+// Memory both the host and a launch can reach: managed memory in a GPU build, host memory otherwise.
+EBGeometry::MemoryResource&
+batchResource() noexcept
+{
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  return EBGeometry::managedMemoryResource();
+#else
+  return EBGeometry::hostMemoryResource();
+#endif
+}
+
+// A spiral of points in a BVH, and pseudo-random queries around it.
+template <class T>
+std::vector<Vec3T<T>>
+batchSpiral()
+{
+  std::vector<Vec3T<T>> points;
+
+  for (int i = 0; i < 300; i++) {
+    const T t = T(i) * T(0.1);
+
+    points.emplace_back(std::sin(t) * t, std::cos(t) * t, T(0.3) * t);
+  }
+
+  return points;
+}
+
+template <class T>
+std::vector<Vec3T<T>>
+batchQueries(const size_t a_count)
+{
+  std::vector<Vec3T<T>> queries;
+
+  uint64_t state = 2026;
+
+  const auto next = [&state]() {
+    state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+
+    return T(double(state >> 11) / double(uint64_t(1) << 53));
+  };
+
+  for (size_t i = 0; i < a_count; i++) {
+    const T x = next();
+    const T y = next();
+    const T z = next();
+
+    queries.emplace_back(T(70) * x - T(35), T(70) * y - T(35), T(15) * z - T(3));
+  }
+
+  return queries;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("BVH::mortonOrder is a permutation along the Morton curve", "[BVH]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const std::vector<Vec3T<T>> queries = batchQueries<T>(1000);
+
+  const std::vector<uint32_t> order =
+    BVH::mortonOrder(PODSpan<const Vec3T<T>>{queries.data(), uint32_t(queries.size())});
+
+  REQUIRE(order.size() == queries.size());
+
+  std::vector<uint32_t> sorted = order;
+
+  std::sort(sorted.begin(), sorted.end());
+
+  for (uint32_t i = 0; i < sorted.size(); i++) {
+    REQUIRE(sorted[i] == i);
+  }
+
+  // Consecutive points of the order are much closer than consecutive points as given.
+  T givenStep = T(0);
+  T curveStep = T(0);
+
+  for (size_t i = 1; i < queries.size(); i++) {
+    givenStep += (queries[i] - queries[i - 1]).length();
+    curveStep += (queries[order[i]] - queries[order[i - 1]]).length();
+  }
+
+  CHECK(curveStep < T(0.25) * givenStep);
+
+  // No points, one point, and coincident points.
+  CHECK(BVH::mortonOrder(PODSpan<const Vec3T<T>>{}).empty());
+
+  const std::vector<Vec3T<T>> same(5, Vec3T<T>::ones());
+
+  CHECK(BVH::mortonOrder(PODSpan<const Vec3T<T>>{same.data(), 5}) == std::vector<uint32_t>{0, 1, 2, 3, 4});
+}
+
+TEMPLATE_TEST_CASE("BVH::pruneTraverseBatch gives every query what a single traversal gives, in any order",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Pnt  = BareTestPoint<T>;
+  using AABB = BoundingVolumes::AABBT<T>;
+
+  // Host arrays, which only a host loop can read: in a CUDA or HIP build the batch is a kernel, and the
+  // [gpu] case below covers it.
+  if (GPU::enabled) {
+    SKIP("the batch runs as a kernel in this build; see the [gpu] case");
+  }
+
+  constexpr size_t K = 4;
+
+  const std::vector<Vec3T<T>> prims   = batchSpiral<T>();
+  const std::vector<Vec3T<T>> queries = batchQueries<T>(500);
+  const std::vector<T>        truth   = nearestSquared(prims, queries);
+
+  std::vector<std::pair<Pnt, AABB>> flat;
+
+  for (const auto& p : prims) {
+    flat.emplace_back(Pnt{p}, AABB(p, p));
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const BVH::PackedBVH<T, Pnt, K> bvh(pool, flat, size_t(3));
+
+  const PODSpan<const Vec3T<T>> points{queries.data(), uint32_t(queries.size())};
+  const std::vector<uint32_t>   curve = BVH::mortonOrder(points);
+
+  for (const bool ordered : {false, true}) {
+    INFO("Morton order: " << ordered);
+
+    std::vector<BatchState<T>> states(queries.size());
+
+    for (size_t q = 0; q < queries.size(); q++) {
+      states[q] = BatchState<T>{queries[q], Math::Limits<T>::max()};
+    }
+
+    const PODSpan<const uint32_t> order =
+      ordered ? PODSpan<const uint32_t>{curve.data(), uint32_t(curve.size())} : PODSpan<const uint32_t>{};
+
+    BVH::pruneTraverseBatch(bvh,
+                            points,
+                            PODSpan<BatchState<T>>{states.data(), uint32_t(states.size())},
+                            BatchNearestLeaf<T>{bvh.getPrimitives()},
+                            BatchPrune<T>{},
+                            order);
+
+    for (size_t q = 0; q < queries.size(); q++) {
+      REQUIRE(states[q].m_best == truth[q]);
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("GPU::transform in a given order writes every result where the unordered one does",
+                   "[BVH][GPU]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  struct Distance
+  {
+    SphereSDF<T> m_sphere;
+
+    EBGEOMETRY_HOST_DEVICE
+    T
+    operator()(const Vec3T<T>& a_point) const noexcept
+    {
+      return m_sphere.signedDistance(a_point);
+    }
+  };
+
+  // Host arrays, which only a host loop can read.
+  if (GPU::enabled) {
+    SKIP("the transform runs as a kernel in this build");
+  }
+
+  const std::vector<Vec3T<T>> queries = batchQueries<T>(300);
+  const std::vector<uint32_t> curve =
+    BVH::mortonOrder(PODSpan<const Vec3T<T>>{queries.data(), uint32_t(queries.size())});
+
+  const Distance query{SphereSDF<T>(Vec3T<T>(T(1), T(2), T(3)), T(4))};
+
+  std::vector<T> plain(queries.size());
+  std::vector<T> ordered(queries.size());
+
+  GPU::transform(query,
+                 PODSpan<const Vec3T<T>>{queries.data(), uint32_t(queries.size())},
+                 PODSpan<T>{plain.data(), uint32_t(plain.size())});
+  GPU::transform(query,
+                 PODSpan<const Vec3T<T>>{queries.data(), uint32_t(queries.size())},
+                 PODSpan<T>{ordered.data(), uint32_t(ordered.size())},
+                 PODSpan<const uint32_t>{curve.data(), uint32_t(curve.size())});
+
+  CHECK(ordered == plain);
+}
+
+TEMPLATE_TEST_CASE("BVH::pruneTraverseBatch on device matches the single traversals on the host",
+                   "[BVH][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Pnt  = BareTestPoint<T>;
+  using AABB = BoundingVolumes::AABBT<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  constexpr size_t K = 4;
+
+  const std::vector<Vec3T<T>> prims   = batchSpiral<T>();
+  const std::vector<Vec3T<T>> queries = batchQueries<T>(500);
+  const std::vector<T>        truth   = nearestSquared(prims, queries);
+
+  std::vector<std::pair<Pnt, AABB>> flat;
+
+  for (const auto& p : prims) {
+    flat.emplace_back(Pnt{p}, AABB(p, p));
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const BVH::PackedBVH<T, Pnt, K> bvh(pool, flat, size_t(3));
+
+  pool.freeze();
+
+  const Pool                      devicePool = Pool::mirror(pool, deviceTestResource());
+  const BVH::PackedBVH<T, Pnt, K> deviceView = bvh.rebasedView(devicePool);
+
+  // The queries, states and order where both the host and the batch can reach them.
+  const auto n = uint32_t(queries.size());
+
+  const std::vector<uint32_t> curve = BVH::mortonOrder(PODSpan<const Vec3T<T>>{queries.data(), n});
+
+  std::vector<BatchState<T>> initial(n);
+
+  for (uint32_t q = 0; q < n; q++) {
+    initial[q] = BatchState<T>{queries[q], Math::Limits<T>::max()};
+  }
+
+  Pool shared(batchResource());
+
+  PODVector<Vec3T<T>>      points;
+  PODVector<BatchState<T>> states;
+  PODVector<uint32_t>      order;
+
+  points.reserveFrom(shared, n);
+  states.reserveFrom(shared, n);
+  order.reserveFrom(shared, n);
+
+  void* base = shared.base();
+
+  points.assign(base, queries.data(), n);
+  states.assign(base, initial.data(), n);
+  order.assign(base, curve.data(), n);
+
+  BVH::pruneTraverseBatch(deviceView,
+                          PODSpan<const Vec3T<T>>{points.data(base), n},
+                          states.bind(base),
+                          BatchNearestLeaf<T>{deviceView.getPrimitives()},
+                          BatchPrune<T>{},
+                          PODSpan<const uint32_t>{order.data(base), n});
+
+  for (uint32_t q = 0; q < n; q++) {
+    INFO("query " << q);
+    REQUIRE_THAT(states.at(base, q).m_best,
+                 withinAbsT(truth[q], tightMargin<T>() * (1.0 + static_cast<double>(truth[q]))));
+  }
+}
+
+TEST_CASE("Batches: mismatched sizes and overlapping arrays abort", "[BVH][death]")
+{
+  using T   = double;
+  using Pnt = BareTestPoint<T>;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      std::vector<std::pair<Pnt, BoundingVolumes::AABBT<T>>> flat;
+
+      for (int i = 0; i < 8; i++) {
+        const Vec3T<T> p(T(i), T(0), T(0));
+
+        flat.emplace_back(Pnt{p}, BoundingVolumes::AABBT<T>(p, p));
+      }
+
+      const BVH::PackedBVH<T, Pnt, 4> bvh(pool, flat, size_t(2));
+
+      std::vector<Vec3T<T>>      points(3, Vec3T<T>::zeros());
+      std::vector<BatchState<T>> states(2);
+
+      BVH::pruneTraverseBatch(bvh,
+                              PODSpan<const Vec3T<T>>{points.data(), 3},
+                              PODSpan<BatchState<T>>{states.data(), 2},
+                              BatchNearestLeaf<T>{bvh.getPrimitives()},
+                              BatchPrune<T>{});
+    },
+    "BVH::pruneTraverseBatch: 3 points need as many states (2)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      struct Same
+      {
+        EBGEOMETRY_HOST_DEVICE
+        T
+        operator()(const T& a_x) const noexcept
+        {
+          return a_x;
+        }
+      };
+
+      std::vector<T>              values(4, T(1));
+      const std::vector<uint32_t> order{0, 1, 2, 3};
+
+      GPU::transform(Same{},
+                     PODSpan<const T>{values.data(), 4},
+                     PODSpan<T>{values.data(), 4},
+                     PODSpan<const uint32_t>{order.data(), 4});
+    },
+    "GPU::transform: with an order, the inputs and the results must not overlap"));
+}

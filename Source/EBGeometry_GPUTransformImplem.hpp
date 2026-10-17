@@ -66,6 +66,41 @@ struct Apply
   }
 };
 
+/**
+ * @brief The functor the ordered span transform runs: a_out[o] = a_query(a_in[o]) for o = a_order[i].
+ * @tparam Query Query functor type.
+ * @tparam In    Input type, const or not.
+ * @tparam Out   Result type.
+ */
+template <class Query, class In, class Out>
+struct ApplyOrdered
+{
+  /// @brief The query.
+  Query m_query;
+
+  /// @brief The inputs.
+  In* m_in;
+
+  /// @brief The results.
+  Out* m_out;
+
+  /// @brief The order.
+  const uint32_t* m_order;
+
+  /**
+   * @brief Run the query on the i-th input in the order.
+   * @param[in] a_i Position in the order.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(std::size_t a_i) const
+  {
+    const uint32_t o = m_order[a_i];
+
+    m_out[o] = m_query(m_in[o]);
+  }
+};
+
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 
 /**
@@ -182,6 +217,36 @@ transform(const Query& a_query, const PODSpan<In> a_in, const PODSpan<Out> a_out
                      "GPU::transform: the inputs and the results must be the same array or not overlap");
 
   parallelFor<BlockSize>(a_in.size(), TransformDetail::Apply<Query, In, Out>{a_query, a_in.m_ptr, a_out.m_ptr});
+}
+
+template <unsigned int BlockSize, class Query, class In, class Out>
+inline void
+transform(const Query& a_query, const PODSpan<In> a_in, const PODSpan<Out> a_out, const PODSpan<const uint32_t> a_order)
+{
+  using Result = TransformResult<Query, std::remove_const_t<In>>;
+
+  static_assert(std::is_trivially_copyable_v<Query>, "GPU::transform: a query must be trivially copyable");
+  static_assert(!std::is_const_v<Out>, "GPU::transform: the results must be writable");
+  static_assert(std::is_same_v<Out, Result>, "GPU::transform: the results must have the query's result type");
+
+  EBGEOMETRY_REQUIRE(a_in.size() == a_out.size() && a_order.size() == a_in.size(),
+                     "GPU::transform: there must be as many results and order entries as inputs (%u inputs, %u "
+                     "results, %u order entries)",
+                     a_in.size(),
+                     a_out.size(),
+                     a_order.size());
+
+  // Out of order, a thread may write a result over an input another thread has yet to read.
+  const auto inBegin  = reinterpret_cast<std::uintptr_t>(a_in.m_ptr);
+  const auto outBegin = reinterpret_cast<std::uintptr_t>(a_out.m_ptr);
+  const auto inEnd    = inBegin + std::uintptr_t(a_in.size()) * sizeof(In);
+  const auto outEnd   = outBegin + std::uintptr_t(a_out.size()) * sizeof(Out);
+
+  EBGEOMETRY_REQUIRE(a_in.size() == 0 || inEnd <= outBegin || outEnd <= inBegin,
+                     "GPU::transform: with an order, the inputs and the results must not overlap");
+
+  parallelFor<BlockSize>(
+    a_in.size(), TransformDetail::ApplyOrdered<Query, In, Out>{a_query, a_in.m_ptr, a_out.m_ptr, a_order.m_ptr});
 }
 
 template <unsigned int BlockSize, class Query, class In, class Out>

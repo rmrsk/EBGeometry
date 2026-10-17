@@ -225,6 +225,49 @@ instantiateFunctionTemplates()
     GPU::transform(query, pool, in, out);
     (void)GPU::deviceAvailable();
     (void)GPU::memoryResource();
+
+    // A batch: the query order, the ordered transform and a batched traversal.
+    const std::vector<uint32_t> order = BVH::mortonOrder(PODSpan<const Vec3T<T>>{points.data(), 1});
+
+    GPU::transform(query,
+                   PODSpan<const Vec3T<T>>{points.data(), 1},
+                   PODSpan<T>{results.data(), 1},
+                   PODSpan<const uint32_t>{order.data(), 1});
+
+    struct State
+    {
+      Vec3T<T> m_query;
+      T        m_best;
+    };
+
+    struct Leaf
+    {
+      void
+      operator()(State& a_state, size_t /*a_offset*/, size_t /*a_count*/) const noexcept
+      {
+        a_state.m_best = T(0);
+      }
+    };
+
+    struct Bound
+    {
+      T
+      operator()(const State& a_state) const noexcept
+      {
+        return a_state.m_best;
+      }
+    };
+
+    Pool bvhPool(hostMemoryResource());
+
+    const std::vector<std::pair<Vec3T<T>, BoundingVolumes::AABBT<T>>> prims{
+      {Vec3T<T>::zeros(), BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros())}};
+
+    const BVH::PackedBVH<T, Vec3T<T>, 4> bvh(bvhPool, prims, size_t(1));
+
+    State state{Vec3T<T>::zeros(), T(1)};
+
+    BVH::pruneTraverseBatch(bvh, PODSpan<const Vec3T<T>>{points.data(), 1}, PODSpan<State>{&state, 1}, Leaf{}, Bound{});
   }
 
   // Every builder function, compiled into a tape.

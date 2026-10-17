@@ -15,6 +15,7 @@
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "Source/EBGeometry_Array.hpp"
 #include "Source/EBGeometry_BVH.hpp"
+#include "Source/EBGeometry_BVHBatch.hpp"
 #include "Source/EBGeometry_BVHBuild.hpp"
 #include "Source/EBGeometry_BVHUnion.hpp"
 #include "Source/EBGeometry_Blend.hpp"
