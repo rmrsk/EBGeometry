@@ -20,6 +20,7 @@
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_TriangleDistance.hpp"
 
 namespace EBGeometry {
 
@@ -156,45 +157,50 @@ Triangle<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T ret = Math::Limits<T>::max();
+  EBGEOMETRY_EXPECT(dot(m_vertexPositions[1] - m_vertexPositions[0], m_vertexPositions[1] - m_vertexPositions[0]) >
+                    T(0));
+  EBGEOMETRY_EXPECT(dot(m_vertexPositions[2] - m_vertexPositions[1], m_vertexPositions[2] - m_vertexPositions[1]) >
+                    T(0));
+  EBGEOMETRY_EXPECT(dot(m_vertexPositions[0] - m_vertexPositions[2], m_vertexPositions[0] - m_vertexPositions[2]) >
+                    T(0));
 
-  auto sgn = [](const T x) -> int { return (x > T(0.0)) ? 1 : -1; };
+  // The kernel reads the triangle through vertex(), normal(), vertexNormal() and edgeNormal().
+  struct Source
+  {
+    const Triangle& m_triangle;
 
-  const Vec3 v21 = m_vertexPositions[1] - m_vertexPositions[0];
-  const Vec3 v32 = m_vertexPositions[2] - m_vertexPositions[1];
-  const Vec3 v13 = m_vertexPositions[0] - m_vertexPositions[2];
+    static TriangleDistance::Vec3V<T>
+    v3(const Vec3& a_v) noexcept
+    {
+      return {a_v[0], a_v[1], a_v[2]};
+    }
 
-  EBGEOMETRY_EXPECT(dot(v21, v21) > T(0));
-  EBGEOMETRY_EXPECT(dot(v32, v32) > T(0));
-  EBGEOMETRY_EXPECT(dot(v13, v13) > T(0));
+    TriangleDistance::Vec3V<T>
+    vertex(const size_t a_k) const noexcept
+    {
+      return v3(m_triangle.m_vertexPositions[a_k]);
+    }
 
-  const Vec3 p1 = a_point - m_vertexPositions[0];
-  const Vec3 p2 = a_point - m_vertexPositions[1];
-  const Vec3 p3 = a_point - m_vertexPositions[2];
+    TriangleDistance::Vec3V<T>
+    normal() const noexcept
+    {
+      return v3(m_triangle.m_triangleNormal);
+    }
 
-  const T s0 = sgn(dot(cross(v21, m_triangleNormal), p1));
-  const T s1 = sgn(dot(cross(v32, m_triangleNormal), p2));
-  const T s2 = sgn(dot(cross(v13, m_triangleNormal), p3));
+    TriangleDistance::Vec3V<T>
+    vertexNormal(const size_t a_k) const noexcept
+    {
+      return v3(m_triangle.m_vertexNormals[a_k]);
+    }
 
-  const T t1 = dot(p1, v21) / dot(v21, v21);
-  const T t2 = dot(p2, v32) / dot(v32, v32);
-  const T t3 = dot(p3, v13) / dot(v13, v13);
+    TriangleDistance::Vec3V<T>
+    edgeNormal(const size_t a_k) const noexcept
+    {
+      return v3(m_triangle.m_edgeNormals[a_k]);
+    }
+  };
 
-  const Vec3 y1 = p1 - t1 * v21;
-  const Vec3 y2 = p2 - t2 * v32;
-  const Vec3 y3 = p3 - t3 * v13;
-
-  ret = (p1.length() > std::abs(ret)) ? ret : p1.length() * sgn(m_vertexNormals[0].dot(p1));
-  ret = (p2.length() > std::abs(ret)) ? ret : p2.length() * sgn(m_vertexNormals[1].dot(p2));
-  ret = (p3.length() > std::abs(ret)) ? ret : p3.length() * sgn(m_vertexNormals[2].dot(p3));
-
-  ret = (t1 > T(0.0) && t1 < T(1.0) && y1.length() < std::abs(ret)) ? y1.length() * sgn(m_edgeNormals[0].dot(y1)) : ret;
-  ret = (t2 > T(0.0) && t2 < T(1.0) && y2.length() < std::abs(ret)) ? y2.length() * sgn(m_edgeNormals[1].dot(y2)) : ret;
-  ret = (t3 > T(0.0) && t3 < T(1.0) && y3.length() < std::abs(ret)) ? y3.length() * sgn(m_edgeNormals[2].dot(y3)) : ret;
-
-  // With outward normals all three si are -1 for interior projections (sum=-3);
-  // with inward normals they are all +1 (sum=+3).  Check both.
-  return (std::abs(s0 + s1 + s2) >= T(2)) ? m_triangleNormal.dot(p1) : ret;
+  return TriangleDistance::signedDistance<T>(Source{*this}, Source::v3(a_point));
 }
 } // namespace EBGeometry
 

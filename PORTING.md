@@ -581,8 +581,8 @@ Taken by the maintainer on 30 September 2026, and cited by number in this file.
 ### Findings still open
 
 When the audit closed, every BLOCKER was fixed, and every MAJOR finding was fixed, retired with its
-code, or kept deliberately by a decision, except parts of MESH-8 and PC-6. BVH-8 was fixed after the
-audit closed (see "Each box stored once" under the decisions).
+code, or kept deliberately by a decision, except parts of PC-6. BVH-8 and MESH-8 were fixed after
+the audit closed (see "Each box stored once" and "One triangle kernel" under the decisions).
 The MINOR and NIT findings were folded into whichever change touched the
 same file; each was checked against `dev` at 8c8f504, and the last few small ones (a missing include
 guard, an include, a blank line, stale wording) were fixed in the change that closed the audit.
@@ -600,8 +600,6 @@ These extend what the library can do rather than repair what it does.
 
 Design and performance work that was deferred on purpose. None of it is a defect.
 
-* **MESH-8** [MAJOR]: the triangle distance kernel has six SIMD copies and three scalar paths. D3
-  kept the three mesh SDFs; the kernels were not consolidated.
 * **BVH-18** [NIT]: `computeChildDistances2()`, `TriangleSoA` and `PointSoA` choose their inline SIMD
   bodies by the ISA macros, so translation units compiled with different flags define them two ways
   and the linker keeps one. Documented under "Mixing SIMD flags in one program" in
