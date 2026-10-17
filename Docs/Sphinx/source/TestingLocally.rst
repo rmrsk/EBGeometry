@@ -311,18 +311,19 @@ Test coverage
        exception from a callback on to the caller; and
        :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
        correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
-       brute-force scan after displacement). Also the build-time checks: a tree too deep for the
-       host or device traversal stack at ``K`` = 2, 4 and 16, every kind of malformed node array (a
-       leaf with no primitives among them), and a partitioner that returns an empty partition, all
-       rejected; a tree at the host depth limit, visited deepest first, filling the traversal stack
-       to its last entry; ``traverse()`` and ``pruneTraverse()`` visiting leaves in the order of a
-       recursive depth-first search; a level resumed with exact distances never pruning a closer
-       primitive; a NaN query coordinate reaching every primitive in an unbounded search at every
-       ``K``, SIMD path or scalar; only interior
-       nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
-       extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
-       fewest power-of-``K`` leaves; a :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns,
-       built both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
+       brute-force scan after displacement), and every :cpp:class:`BVH::TreeBVH` node's box exactly
+       the union of what it encloses, after both builds and after a refit. Also the build-time
+       checks: a tree too deep for the host or device traversal stack at ``K`` = 2, 4 and 16, every
+       kind of malformed node array (a leaf with no primitives among them), and a partitioner that
+       returns an empty partition, all rejected; a tree at the host depth limit, visited deepest
+       first, filling the traversal stack to its last entry; ``traverse()`` and ``pruneTraverse()``
+       visiting leaves in the order of a recursive depth-first search; a level resumed with exact
+       distances never pruning a closer primitive; a NaN query coordinate reaching every primitive
+       in an unbounded search at every ``K``, SIMD path or scalar; only interior nodes getting a
+       SIMD child-box row; every builder on a cluster of points with a subnormal extent; the
+       bottom-up build at exact powers of ``K``, and its target leaf size choosing the fewest
+       power-of-``K`` leaves; a :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns, built
+       both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
        primitives, including far from the blend region;
