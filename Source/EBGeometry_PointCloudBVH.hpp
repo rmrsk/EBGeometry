@@ -245,6 +245,7 @@ private:
   struct BuildResult
   {
     std::vector<Node>          nodes;      ///< Flat BVH nodes in depth-first layout.
+    std::vector<AABB>          boxes;      ///< The box of every node, indexed like nodes.
     std::vector<PointGroup>    primitives; ///< Packed SoA leaf groups referenced by the leaf nodes.
     std::vector<std::uint32_t> leafOff;    ///< Per-point own-leaf group offset (for seeding).
     std::vector<std::uint32_t> leafCnt;    ///< Per-point own-leaf group count (for seeding).
