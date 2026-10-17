@@ -533,6 +533,37 @@ and small where the primitives dominate (triangles, points). Speed gains come fr
 `double` and in the point clouds, whose seeded search reads a node's box through the SIMD row it now
 shares with its siblings. Every query returned bit-identical results.
 
+### One triangle kernel
+
+MESH-8: the triangle signed distance had six hand-written SIMD copies in `TriangleSoAT` (AVX-512,
+AVX and SSE4.1, float and double) and three scalar paths (`TriangleSoAT`'s lanes and its fallback,
+and `Triangle`). It is now `TriangleDistance::signedDistance()`, one template over the lane type,
+instantiated with `float`/`double` and with `SIMD::Pack<T, N>`, thin wrappers over one register
+(`EBGeometry_SIMD.hpp`). `SIMD::NativeWidth<T, W>()` picks the widest register whose lane count
+divides `W`, so a group wider than one register now takes several, where the old code had a
+special case (8 doubles under AVX) or fell back to scalar code (4 doubles under SSE4.1, 16 floats
+under AVX). The kernel reads the triangle through an accessor at the point of use, so the loads sit
+where the hand-written code had them, and is always inlined in a host pass: GCC otherwise kept it
+out of line inside `TriMeshSDF`'s traversal and passed every register through memory.
+
+`TriMeshSDF` results are bit-identical to the old code in every build measured. Timings on the
+development VM varied by about 15% between runs, more than the differences, so the comparison below
+counts instructions instead (valgrind, `TriMeshSDF` on the armadillo, 5,000 random points; the
+group and triangle columns evaluate one group or one triangle against 200 points):
+
+| build | `TriMeshSDF` float / double | `TriangleSoAT` W = 4, float / double | `Triangle`, float / double |
+|---|---|---|---|
+| SSE4.1 | −4% / −15% | −6% / −23% | +37% / +35% |
+| AVX | −1% / −4% | −3% / −6% | +35% / +29% |
+
+`Triangle` evaluates every candidate without branches now, and with one square root instead of six;
+it is a build-time input, not a query path, and its timed runs were 2 to 40% faster under SSE4.1 and
+AVX. Valgrind cannot run AVX-512 code; there the kernel compiles to the same instruction count as
+the old path, with no stack traffic. The test that compares every width with `Triangle` skips the
+sign at points where a sign test, an edge parameter or the choice between two candidates is within
+rounding: a path that fuses a multiply and an add (Clang does, in scalar code) can decide those
+either way.
+
 ### Device stack depth
 
 The traversal stack is fixed-size, so its depth is a budget: 256 levels on the host and 32 on a
