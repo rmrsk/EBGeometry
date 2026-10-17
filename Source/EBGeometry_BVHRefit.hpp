@@ -115,6 +115,9 @@ struct RefitLevel
 {
   /**
    * @brief The BVH, a handle into the pool the refit writes.
+   * @details Mutable because parallelFor() calls a const operator(), while refitNode() is a non-const
+   * member: it writes the BVH's boxes, through the pool rather than the handle, and stays non-const so
+   * that a const BVH cannot be refitted.
    */
   mutable Bvh m_bvh;
 
@@ -153,7 +156,10 @@ struct RefitLevel
  * Each level is one GPU::parallelFor(), so in a CUDA or HIP translation unit the levels run as device
  * kernels on @p a_bvh, which must then be a rebased view of a device-accessible mirror; elsewhere they
  * run as host loops. @p a_bvConstructor runs where the refit runs, so for a device it must be
- * EBGEOMETRY_HOST_DEVICE and trivially copyable, and read only device-accessible memory.
+ * EBGEOMETRY_HOST_DEVICE and trivially copyable, and read only device-accessible memory. Aborts, in
+ * every build, if the schedule does not cover as many nodes as the BVH has: a schedule built for
+ * another BVH, or for this one before a rebuild. A device view's location does not say which pool it
+ * came from, so a schedule from a different pool of the same size is not detected.
  * @tparam T             Floating-point precision.
  * @tparam P             Primitive type.
  * @tparam K             Branching factor.
