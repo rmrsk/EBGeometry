@@ -10,8 +10,12 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
+#include <random>
 #include <utility>
+#include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -451,4 +455,155 @@ TEST_CASE("TriangleSoAT/TriangleAoSoA::pack: reject a count outside [1, W] and a
       aosoa.pack(tris.data(), 0U);
     },
     "TriangleAoSoA::pack: the triangle count must be between 1 and 4 (0)"));
+}
+
+namespace {
+
+// Random triangles with random unit pseudonormals, so the sign of a vertex or edge candidate is not
+// simply the face's, and query points near and far.
+template <class T>
+std::vector<Tri<T>>
+randomTriangles(const size_t a_count, const unsigned a_seed)
+{
+  using Vec3 = Vec3T<T>;
+
+  std::mt19937                      rng(a_seed);
+  std::uniform_real_distribution<T> u(T(-1), T(1));
+
+  const auto unit = [&]() {
+    const Vec3 v(u(rng), u(rng), u(rng) + T(2));
+
+    return v / v.length();
+  };
+
+  std::vector<Tri<T>> tris;
+  for (size_t i = 0; i < a_count; i++) {
+    const Vec3 base(T(4) * u(rng), T(4) * u(rng), T(4) * u(rng));
+
+    Tri<T> tri(Array<Vec3, 3>{base,
+                              base + Vec3(T(1) + u(rng) * T(0.5), u(rng) * T(0.3), u(rng) * T(0.3)),
+                              base + Vec3(u(rng) * T(0.3), T(1) + u(rng) * T(0.5), u(rng) * T(0.3))});
+
+    tri.setVertexNormals(Array<Vec3, 3>{unit(), unit(), unit()});
+    tri.setEdgeNormals(Array<Vec3, 3>{unit(), unit(), unit()});
+    tris.push_back(tri);
+  }
+
+  return tris;
+}
+
+// Whether every decision the kernel takes for this triangle and point is clear of rounding: each
+// sign test away from zero, each edge parameter away from 0 and 1, and the closest candidate clear of
+// the next. Paths that round differently (one fusing a multiply and an add, another not) can decide a
+// knife-edge case either way, so the comparison skips those points. Computed in double.
+template <class T>
+bool
+wellConditioned(const Tri<T>& a_tri, const Vec3T<T>& a_p)
+{
+  using V = Vec3T<double>;
+
+  const auto d3 = [](const Vec3T<T>& a_v) { return V(double(a_v[0]), double(a_v[1]), double(a_v[2])); };
+
+  const auto& vp = a_tri.getVertexPositions();
+  const auto& vn = a_tri.getVertexNormals();
+  const auto& en = a_tri.getEdgeNormals();
+
+  const V      n = d3(a_tri.getNormal());
+  const V      p = d3(a_p);
+  const double h = 1e-3;
+
+  std::vector<double> d2;
+
+  for (int k = 0; k < 3; k++) {
+    const V a = d3(vp[k]);
+    const V b = d3(vp[(k + 1) % 3]);
+    const V e = b - a;
+    const V q = p - a;
+
+    const double t = dot(q, e) / dot(e, e);
+    const V      y = q - t * e;
+
+    if (std::abs(dot(e.cross(n), q)) < h || std::abs(dot(d3(vn[k]), q)) < h || std::abs(t) < h ||
+        std::abs(t - 1.0) < h) {
+      return false;
+    }
+
+    d2.push_back(dot(q, q));
+
+    if (t > 0.0 && t < 1.0) {
+      if (std::abs(dot(d3(en[k]), y)) < h) {
+        return false;
+      }
+
+      d2.push_back(dot(y, y));
+    }
+  }
+
+  std::sort(d2.begin(), d2.end());
+
+  return d2[1] - d2[0] > h * (1.0 + d2[0]);
+}
+
+// Every lane of a width-Wd group against the Triangle it was packed from, and signedDistance()
+// against the first minimum-|value| lane, for every valid count.
+template <class T, size_t Wd>
+void
+checkAgainstTriangles()
+{
+  STATIC_REQUIRE(Wd % SIMD::NativeWidth<T, Wd>() == 0);
+
+  const auto tris = randomTriangles<T>(Wd, static_cast<unsigned>(17 + Wd));
+
+  std::mt19937                      rng(5);
+  std::uniform_real_distribution<T> u(T(-6), T(6));
+
+  for (uint32_t count = 1; count <= Wd; count++) {
+    TriangleSoAT<T, Wd> group;
+    group.pack(tris.data(), count);
+
+    for (int q = 0; q < 200; q++) {
+      const Vec3T<T> p(u(rng), u(rng), u(rng));
+
+      const auto lanes = group.signedDistances(p);
+
+      T expected = std::numeric_limits<T>::max();
+      for (uint32_t i = 0; i < count; i++) {
+        const T d = tris[i].signedDistance(p);
+
+        const double margin = tightMargin<T>() * (1.0 + static_cast<double>(std::abs(d)));
+
+        // At a knife edge only the magnitude is compared: the sign may go either way.
+        if (wellConditioned(tris[i], p)) {
+          REQUIRE_THAT(lanes[i], withinAbsT(d, margin));
+        }
+        else {
+          REQUIRE_THAT(std::abs(lanes[i]), withinAbsT(std::abs(d), margin));
+        }
+
+        if (std::abs(lanes[i]) < std::abs(expected)) {
+          expected = lanes[i];
+        }
+      }
+
+      REQUIRE(group.signedDistance(p) == expected);
+    }
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("TriangleSoAT: every SIMD width and the scalar path agree with Triangle::signedDistance, "
+                   "lane by lane, for every valid count",
+                   "[TriangleSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // 2, 4, 8 and 16 cover every register width in both precisions (whichever this build has), split
+  // into several registers where W is wider than the register; 1, and 2 floats, fit no register.
+  checkAgainstTriangles<T, 1>();
+  checkAgainstTriangles<T, 2>();
+  checkAgainstTriangles<T, 4>();
+  checkAgainstTriangles<T, 8>();
+  checkAgainstTriangles<T, 16>();
 }

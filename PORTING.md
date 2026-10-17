@@ -505,6 +505,37 @@ Measured on the same torus, through the SFC constructor:
 These are one mesh, one K and one query pattern, and a torus flatters the SFC build; the structural
 findings generalise, the specific numbers do not.
 
+### One triangle kernel
+
+MESH-8: the triangle signed distance had six hand-written SIMD copies in `TriangleSoAT` (AVX-512,
+AVX and SSE4.1, float and double) and three scalar paths (`TriangleSoAT`'s lanes and its fallback,
+and `Triangle`). It is now `TriangleDistance::signedDistance()`, one template over the lane type,
+instantiated with `float`/`double` and with `SIMD::Pack<T, N>`, thin wrappers over one register
+(`EBGeometry_SIMD.hpp`). `SIMD::NativeWidth<T, W>()` picks the widest register whose lane count
+divides `W`, so a group wider than one register now takes several, where the old code had a
+special case (8 doubles under AVX) or fell back to scalar code (4 doubles under SSE4.1, 16 floats
+under AVX). The kernel reads the triangle through an accessor at the point of use, so the loads sit
+where the hand-written code had them, and is always inlined in a host pass: GCC otherwise kept it
+out of line inside `TriMeshSDF`'s traversal and passed every register through memory.
+
+`TriMeshSDF` results are bit-identical to the old code in every build measured. Timings on the
+development VM varied by about 15% between runs, more than the differences, so the comparison below
+counts instructions instead (valgrind, `TriMeshSDF` on the armadillo, 5,000 random points; the
+group and triangle columns evaluate one group or one triangle against 200 points):
+
+| build | `TriMeshSDF` float / double | `TriangleSoAT` W = 4, float / double | `Triangle`, float / double |
+|---|---|---|---|
+| SSE4.1 | −4% / −15% | −6% / −23% | +37% / +35% |
+| AVX | −1% / −4% | −3% / −6% | +35% / +29% |
+
+`Triangle` evaluates every candidate without branches now, and with one square root instead of six;
+it is a build-time input, not a query path, and its timed runs were 2 to 40% faster under SSE4.1 and
+AVX. Valgrind cannot run AVX-512 code; there the kernel compiles to the same instruction count as
+the old path, with no stack traffic. The test that compares every width with `Triangle` skips the
+sign at points where a sign test, an edge parameter or the choice between two candidates is within
+rounding: a path that fuses a multiply and an add (Clang does, in scalar code) can decide those
+either way.
+
 ### Device stack depth
 
 The traversal stack is fixed-size, so its depth is a budget: 256 levels on the host and 32 on a
@@ -553,7 +584,8 @@ Taken by the maintainer on 30 September 2026, and cited by number in this file.
 ### Findings still open
 
 When the audit closed, every BLOCKER was fixed, and every MAJOR finding was fixed, retired with its
-code, or kept deliberately by a decision, except parts of BVH-8, MESH-8 and PC-6.
+code, or kept deliberately by a decision, except parts of BVH-8 and PC-6. MESH-8 was fixed after
+the audit closed (see "One triangle kernel" under the decisions).
 The MINOR and NIT findings were folded into whichever change touched the
 same file; each was checked against `dev` at 8c8f504, and the last few small ones (a missing include
 guard, an include, a blank line, stale wording) were fixed in the change that closed the audit.
@@ -571,8 +603,6 @@ These extend what the library can do rather than repair what it does.
 
 Design and performance work that was deferred on purpose. None of it is a defect.
 
-* **MESH-8** [MAJOR]: the triangle distance kernel has six SIMD copies and three scalar paths. D3
-  kept the three mesh SDFs; the kernels were not consolidated.
 * **BVH-8** [MAJOR]: every child box is stored twice, in its node and in the parent's SIMD row.
 * **BVH-11, host part** [MINOR]: `TreeBVH::setChildren` and `refit` build a `std::vector` for every
   box union.
