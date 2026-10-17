@@ -139,6 +139,7 @@ onEdge(const V a_t) noexcept
  */
 template <class V, class Source>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline V
 signedDistance(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
 {
