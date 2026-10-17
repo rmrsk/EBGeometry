@@ -315,8 +315,9 @@ Test coverage
        keeping every box; the adopting constructor rejecting a box count that does not match the
        nodes); :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding
        volumes correct after a moving geometry (idempotent on an unchanged cloud, queries still
-       matching a brute-force scan after displacement), and every :cpp:class:`BVH::TreeBVH` node's
-       box exactly the union of what it encloses, after both builds and after a refit. Also the
+       matching a brute-force scan after displacement), :cpp:func:`BVH::refitParallel` refitting the
+       same boxes level by level, on the host and on a device, and every :cpp:class:`BVH::TreeBVH`
+       node's box exactly the union of what it encloses, after both builds and after a refit. Also the
        build-time checks: a tree too deep for the host or device traversal stack at ``K`` = 2, 4 and
        16, every kind of malformed node array (a leaf with no primitives among them), and a
        partitioner that returns an empty partition, all rejected; a tree at the host depth limit,

@@ -625,7 +625,6 @@ the severity the audit gave each one.
 These extend what the library can do rather than repair what it does.
 
 * **PC-6** [MAJOR]: no `PackedBVH` is built on a device ("Device builds" above).
-* **BVH-11, device part** [MINOR]: `PackedBVH::refit` runs on the host only.
 
 #### Restructuring
 

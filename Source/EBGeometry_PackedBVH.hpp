@@ -1107,23 +1107,46 @@ public:
    * @details The flat-array counterpart of TreeBVH::refit(): keeps the node array, the primitive
    * array, and every leaf's primitive range exactly as they are, recomputing only the bounding
    * volumes. Because m_linearNodes is a depth-first pre-order flattening (root at index 0, every
-   * child at a higher index than its parent), a single reverse sweep over the array refits children
-   * before parents with no recursion or explicit stack: each leaf's box becomes the union of its
-   * primitives' boxes (recomputed via @p a_bvConstructor), and each interior node's box the union of
-   * its K children's freshly-refitted boxes. Each box is written where it is stored, in its parent's
-   * SIMD row (the root's in the BVH), so every traversal sees the new boxes, and nothing is allocated.
+   * child at a higher index than its parent), a single reverse sweep over the array, calling
+   * refitNode() on each node, refits children before parents with no recursion or explicit stack:
+   * each leaf's box becomes the union of its primitives' boxes (recomputed via @p a_bvConstructor),
+   * and each interior node's box the union of its K children's freshly-refitted boxes. Each box is
+   * written where it is stored, in its parent's SIMD row (the root's in the BVH), so every traversal
+   * sees the new boxes, and nothing is allocated.
+   *
+   * Callable on the host and on a device (one thread; on a rebased view of a mirrored pool). For a
+   * device, BVH::refitParallel() refits a level of the tree at a time, one thread per node.
    *
    * Same use and caveats as TreeBVH::refit(): cheap per-frame maintenance for a geometry whose
    * primitives shift without migrating between leaves, and not a substitute for a rebuild once a
    * deformation is large enough to degrade the tree. @p a_bvConstructor receives each primitive
    * (drawn from the primitive array) and must return its current bounding volume.
    *
-   * @tparam BVConstructor Callable: (const P&) -> BV, returning one primitive's current bounding volume.
+   * @tparam BVConstructor Callable: (const P&) -> BV, returning one primitive's current bounding
+   * volume; EBGEOMETRY_HOST_DEVICE to refit on a device.
    * @param[in] a_bvConstructor Bounding-volume constructor for a single primitive.
    */
   template <class BVConstructor>
+  EBGEOMETRY_HOST_DEVICE
   inline void
-  refit(const BVConstructor& a_bvConstructor);
+  refit(const BVConstructor& a_bvConstructor) noexcept;
+
+  /**
+   * @brief Refit one node, assuming its children (if any) are already refitted.
+   * @details A leaf's box becomes the union of its primitives' boxes, recomputed via
+   * @p a_bvConstructor. An interior node's box becomes the union of its children's boxes, which it
+   * reads from its own row. The box is written where it is stored, in the node's slot of its parent's
+   * row (the root's in the BVH). A node writes only its own slot and reads only the row its children
+   * wrote, so the nodes of one tree level can be refitted concurrently once the level below them is
+   * done (see BVH::refitParallel()).
+   * @tparam BVConstructor Callable: (const P&) -> BV.
+   * @param[in] a_node          Node index, below getNodes().size().
+   * @param[in] a_bvConstructor Bounding-volume constructor for a single primitive.
+   */
+  template <class BVConstructor>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  refitNode(uint32_t a_node, const BVConstructor& a_bvConstructor) noexcept;
 
 private:
   /**

@@ -280,6 +280,24 @@ instantiateFunctionTemplates()
     (void)normal(tape, Vec3T<T>::ones(), T(1.0e-3));
   }
 
+  // Level-parallel refit (a host loop in this translation unit).
+  {
+    Pool refitPool(hostMemoryResource());
+
+    std::vector<std::pair<Vec3T<T>, BoundingVolumes::AABBT<T>>> points{
+      {Vec3T<T>::zeros(), BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros())}};
+
+    BVH::PackedBVH<T, Vec3T<T>, 4> bvh(refitPool, points, size_t(1));
+
+    const BVH::RefitSchedule schedule(refitPool, bvh);
+
+    const auto box = [](const Vec3T<T>& a_p) noexcept { return BoundingVolumes::AABBT<T>(a_p, a_p); };
+
+    BVH::refitParallel(bvh, schedule, box);
+    bvh.refit(box);
+    (void)schedule.numLevels();
+  }
+
   (void)PolygonSoup<T>().convertToDCEL(meshPool);
   (void)PolygonSoup<T>().convertToTriangles();
 }
