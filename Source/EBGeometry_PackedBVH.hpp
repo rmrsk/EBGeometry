@@ -655,14 +655,49 @@ public:
   inline PackedBVH(Pool& a_pool, const TreeBVH<T, Q, BV, K>& a_tree, Converter&& a_converter);
 
   /**
-   * @brief Construct directly from a flat primitive list, without ever building a TreeBVH.
+   * @brief The leaf-size settings build() uses when it is given none.
+   * @details A top-down leaf holds at most K - 1 primitives (as DefaultLeafPredicate), a
+   * space-filling-curve build aims for K per leaf, and ClusterSAH uses the default ClusterSpec. Start
+   * from these to change one method's setting; see ConstructionOptions.
+   * @return The default options.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline BVH::ConstructionOptions
+  defaultConstructionOptions() noexcept
+  {
+    return BVH::ConstructionOptions{K - 1, K, BVH::ClusterSpec{}};
+  }
+
+  /**
+   * @brief Build directly from a flat primitive list with one of the preset methods.
+   * @details Dispatches to buildTopDown() (SAH, CentroidSplit, MidpointSplit, stopping at
+   * @c a_options.maxLeafSize primitives per leaf), buildBottomUp() (Morton, Nested, Hilbert, aiming
+   * for @c a_options.targetLeafSize) or buildClusterSAH() (@c a_options.cluster). The chosen method
+   * reads only its own field of @p a_options, and a zero setting for it aborts.
+   * @param[in,out] a_pool         Pool the packed arrays are reserved from; must outlive the result.
+   * @param[in]     a_primsAndBVs  Primitives and their bounding volumes, taken by value (must be
+   * non-empty).
+   * @param[in]     a_construction Preset construction method.
+   * @param[in]     a_options      Leaf-size settings.
+   * @return The packed BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PackedBVH
+  build(Pool&                           a_pool,
+        std::vector<std::pair<P, BV>>   a_primsAndBVs,
+        BVH::Construction               a_construction,
+        const BVH::ConstructionOptions& a_options = defaultConstructionOptions());
+
+  /**
+   * @brief Build directly from a flat primitive list along a space-filling curve, without ever
+   * building a TreeBVH.
    * @details Bypasses TreeBVH entirely: no per-node shared_ptr<TreeBVH> allocation, and no
    * per-primitive shared_ptr allocation either. Primitives are sorted along the space-filling
    * curve @p S (same normalization as TreeBVH::bottomUpSortAndPartition(), via
    * SFC::computeBins()), then split into consecutive leaves and merged bottom-up into a K-ary tree.
    *
    * Every interior node has exactly K children, and such a tree has a leaf count L with
-   * L = 1 (mod K - 1). The constructor takes the smallest such L that keeps every leaf at or below
+   * L = 1 (mod K - 1). The build takes the smallest such L that keeps every leaf at or below
    * @p a_targetLeafSize primitives, and splits the primitives as evenly as possible, so leaf sizes
    * differ by at most one. When that L would exceed the number of primitives, it takes the largest
    * such L below it instead, and leaves may then hold slightly more than the target (for example,
@@ -670,82 +705,75 @@ public:
    * a node count that is not a multiple of K, the remainder is carried up to the next level. Every
    * node has exactly one parent, so a traversal reaches each primitive exactly once.
    *
-   * @tparam S Space-filling curve type (e.g. SFC::Morton, SFC::Nested). Defaults to SFC::Morton;
-   * a constructor template's own parameters cannot be explicitly specified the way a named
-   * function template's can (constructors have no name of their own to attach a template-argument
-   * list to), so @p a_sfc is a stateless tag value purely so @p S can be deduced from it -- pass
-   * e.g. @c SFC::Nested{} to select a different curve, or omit it entirely for the default.
+   * @tparam S Space-filling curve type (e.g. SFC::Morton, SFC::Nested), given explicitly:
+   * @c PackedBVH::buildBottomUp<SFC::Nested>(pool, prims, 4). Defaults to SFC::Morton.
+   * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive the result.
    * @param[in] a_primsAndBVs   Primitives and their bounding volumes, taken by value (a sink
    * parameter the caller can std::move in) -- never requires shared_ptr-wrapping.
-   * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
    * @param[in] a_targetLeafSize Target (maximum, where the leaf-count rule above allows it) number
    * of primitives per leaf. Must be > 0.
-   * @param[in] a_sfc Unused tag value; see @p S.
+   * @return The packed BVH.
    */
   template <class S = SFC::Morton>
-  EBGEOMETRY_HOST
-  inline PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, size_t a_targetLeafSize, S a_sfc = S{});
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PackedBVH
+  buildBottomUp(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, size_t a_targetLeafSize);
 
   /**
-   * @brief Construct directly from a flat primitive list via top-down (optionally SAH) recursive
+   * @brief Build directly from a flat primitive list via top-down (optionally SAH) recursive
    * partitioning, without ever building a TreeBVH.
    * @details Reuses the existing (shared_ptr-based) Partitioner/LeafPredicate machinery --
    * BVCentroidPartitioner, BinnedSAHPartitioner, PrimitiveCentroidPartitioner, or any
    * caller-supplied one -- exactly as TreeBVH::topDownSortAndPartition() does, but writes nodes
-   * directly into m_linearNodes in depth-first pre-order as the recursion unwinds, instead of
-   * building a persistent, shared_ptr<TreeBVH>-linked tree first. Unlike the SFC-build
-   * constructor above, no relayout pass is needed here: top-down recursion visits the root before
-   * its children, matching PackedBVH's "root at index 0" invariant for free.
+   * directly into the flat node array in depth-first pre-order as the recursion unwinds, instead of
+   * building a persistent, shared_ptr<TreeBVH>-linked tree first. Unlike buildBottomUp(), no
+   * relayout pass is needed here: top-down recursion visits the root before its children, matching
+   * PackedBVH's "root at index 0" invariant for free.
    *
    * This still shared_ptr-wraps each primitive once up front (needed to reuse the existing
    * Partitioner/LeafPredicate signatures, which operate on PrimAndBVList), and a lightweight,
    * stack-local TreeBVH is constructed (and immediately discarded) at every split purely to
    * evaluate the LeafPredicate and read off its primitive list -- exactly the same primitive-handle
-   * copying TreeBVH::topDownSortAndPartition() already does at every node. What this constructor
-   * avoids is the *persistent*, heap-allocated shared_ptr<TreeBVH> node kept alive for the tree's
-   * lifetime at every level -- measured as the dominant cost of the traditional
-   * build-then-pack() path (see the "Direct construction" section of the Sphinx docs).
+   * copying TreeBVH::topDownSortAndPartition() already does at every node. What this build avoids
+   * is the *persistent*, heap-allocated shared_ptr<TreeBVH> node kept alive for the tree's lifetime
+   * at every level -- measured as the dominant cost of the traditional build-then-pack() path (see
+   * the "Direct construction" section of the Sphinx docs).
    *
+   * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive the result.
    * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink
    * parameter the caller can std::move in) -- never requires shared_ptr-wrapping by the caller.
-   * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
    * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K non-empty
-   * sub-lists (an empty one aborts; see TreeBVH::topDownSortAndPartition()). The overloads without
-   * it use BVCentroidPartitioner; pass BinnedSAHPartitioner for an SAH build.
+   * sub-lists (an empty one aborts; see TreeBVH::topDownSortAndPartition()), e.g.
+   * BinnedSAHPartitioner for an SAH build.
    * @param[in] a_stopCrit Stop function. Returns true when a node should become a leaf. The
-   * overloads without it use DefaultLeafPredicate.
+   * overload without it uses DefaultLeafPredicate.
+   * @return The packed BVH.
    */
-  EBGEOMETRY_HOST
-  inline PackedBVH(Pool&                                  a_pool,
-                   std::vector<std::pair<P, BV>>          a_primsAndBVs,
-                   const BVH::Partitioner<P, BV, K>&      a_partitioner,
-                   const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit);
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PackedBVH
+  buildTopDown(Pool&                                  a_pool,
+               std::vector<std::pair<P, BV>>          a_primsAndBVs,
+               const BVH::Partitioner<P, BV, K>&      a_partitioner,
+               const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit);
 
   /**
-   * @brief Construct directly from a primitive list, top-down, with DefaultLeafPredicate.
-   * @details Same as the four-argument constructor with @c a_stopCrit = DefaultLeafPredicate. These
-   * overloads stand in for default arguments, which would make this header depend on the
+   * @brief Build directly from a primitive list, top-down, with DefaultLeafPredicate.
+   * @details Same as the four-argument buildTopDown() with @c a_stopCrit = DefaultLeafPredicate. This
+   * overload stands in for a default argument, which would make this header depend on the
    * partitioners in EBGeometry_TreeBVH.hpp.
-   * @param[in,out] a_pool        Pool the packed arrays are reserved from; must outlive this object.
+   * @param[in,out] a_pool        Pool the packed arrays are reserved from; must outlive the result.
    * @param[in]     a_primsAndBVs Primitives and their bounding volumes.
    * @param[in]     a_partitioner Partitioning function.
+   * @return The packed BVH.
    */
-  EBGEOMETRY_HOST
-  inline PackedBVH(Pool&                             a_pool,
-                   std::vector<std::pair<P, BV>>     a_primsAndBVs,
-                   const BVH::Partitioner<P, BV, K>& a_partitioner);
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PackedBVH
+  buildTopDown(Pool&                             a_pool,
+               std::vector<std::pair<P, BV>>     a_primsAndBVs,
+               const BVH::Partitioner<P, BV, K>& a_partitioner);
 
   /**
-   * @brief Construct directly from a primitive list, top-down, with BVCentroidPartitioner and
-   * DefaultLeafPredicate.
-   * @param[in,out] a_pool        Pool the packed arrays are reserved from; must outlive this object.
-   * @param[in]     a_primsAndBVs Primitives and their bounding volumes.
-   */
-  EBGEOMETRY_HOST
-  inline PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs);
-
-  /**
-   * @brief Construct directly via ClusterSAH: cluster primitives, then SAH over the clusters.
+   * @brief Build directly via ClusterSAH: cluster primitives, then SAH over the clusters.
    * @details A single-threaded build that gets close to full-SAH tree quality at a fraction of the
    * build cost, by shrinking what SAH has to partition. In two passes, both keeping @p P by value
    * (no shared_ptr anywhere): (1) group the primitives into buckets of at most
@@ -755,15 +783,16 @@ public:
    * binned SAH top-down over the @em buckets (their bounding boxes) to build the flat node array,
    * with each leaf holding one or a few buckets' primitives. SAH thus partitions ~N/maxClusterSize
    * boxes rather than all N primitives -- the source of the speedup. Requires BV == AABBT<T>;
-   * enforced by static_assert at instantiation. Disambiguated from the SFC-build constructor by the
-   * @c ClusterSpec parameter type.
+   * enforced by static_assert at instantiation.
+   * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive the result.
    * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink parameter
    * the caller can std::move in) -- never requires shared_ptr-wrapping.
-   * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
    * @param[in] a_spec Clustering configuration (bucket size). See ClusterSpec.
+   * @return The packed BVH.
    */
-  EBGEOMETRY_HOST
-  inline PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec);
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PackedBVH
+  buildClusterSAH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec);
 
   /**
    * @brief Adopt a node array and primitive array built elsewhere.

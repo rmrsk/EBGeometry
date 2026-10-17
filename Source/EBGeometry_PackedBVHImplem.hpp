@@ -746,7 +746,7 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
                                   PruneDistSquared&& a_pruneDist2) const noexcept
 {
   // An empty BVH has no root to descend from. Nothing that builds through a TreeBVH or through the
-  // direct constructors can reach this -- they assert a non-empty primitive list and would have
+  // direct builds can reach this -- they assert a non-empty primitive list and would have
   // died long before -- but finalize() will happily produce a zero-node BVH from an empty build
   // result, which is how PointCloudBVH represents an empty cloud (it guards its own traversal the
   // same way). Guarding here rather than at each call site means the pool-backed build path cannot

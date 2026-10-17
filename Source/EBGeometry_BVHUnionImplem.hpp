@@ -23,7 +23,6 @@
 #include "EBGeometry_BVHUnion.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
-#include "EBGeometry_SFC.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -32,65 +31,6 @@ namespace EBGeometry {
  * @brief Internal helpers shared by BVHUnion and BVHSmoothUnion
  */
 namespace CSGDetail {
-
-/**
- * @brief Build the BVH over a BVH union's bounded primitives using the requested strategy.
- * @details Internal helper; not part of the public API.
- * @tparam T Floating-point precision.
- * @tparam P Primitive type.
- * @tparam K BVH branching factor.
- * @param[in,out] a_pool         Pool to reserve the BVH from.
- * @param[in]     a_primsAndBVs  Primitives and their bounded boxes (must be non-empty).
- * @param[in]     a_construction Preset construction method; every BVH::Construction value is supported.
- * @param[in]     a_options      Leaf-size settings; the chosen method reads only its own field.
- * @return The packed BVH.
- */
-template <class T, class P, size_t K>
-[[nodiscard]] EBGEOMETRY_HOST
-inline BVH::PackedBVH<T, P, K>
-buildBoundedBVH(Pool&                                                  a_pool,
-                std::vector<std::pair<P, BoundingVolumes::AABBT<T>>>&& a_primsAndBVs,
-                const BVH::Construction                                a_construction,
-                const BVH::ConstructionOptions&                        a_options)
-{
-  using BV   = BoundingVolumes::AABBT<T>;
-  using Root = BVH::PackedBVH<T, P, K>;
-
-  const size_t maxLeafSize = a_options.maxLeafSize;
-
-  const BVH::LeafPredicate<T, P, BV, K> stopCrit = [maxLeafSize](const BVH::TreeBVH<T, P, BV, K>& a_node) noexcept {
-    return a_node.getPrimitives().size() <= maxLeafSize;
-  };
-
-  switch (a_construction) {
-  case BVH::Construction::CentroidSplit: {
-    return Root(a_pool, std::move(a_primsAndBVs), BVH::BVCentroidPartitioner<T, P, BV, K>, stopCrit);
-  }
-  case BVH::Construction::MidpointSplit: {
-    return Root(a_pool, std::move(a_primsAndBVs), BVH::MidpointPartitioner<T, P, BV, K>, stopCrit);
-  }
-  case BVH::Construction::ClusterSAH: {
-    return Root(a_pool, std::move(a_primsAndBVs), a_options.cluster);
-  }
-  case BVH::Construction::Morton: {
-    return Root(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize, SFC::Morton{});
-  }
-  case BVH::Construction::Nested: {
-    return Root(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize, SFC::Nested{});
-  }
-  case BVH::Construction::Hilbert: {
-    return Root(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize, SFC::Hilbert{});
-  }
-  case BVH::Construction::SAH:
-  default: {
-    EBGEOMETRY_REQUIRE(a_construction == BVH::Construction::SAH,
-                       "BVHUnion: unknown BVH::Construction value (%d)",
-                       static_cast<int>(a_construction));
-
-    return Root(a_pool, std::move(a_primsAndBVs), BVH::BinnedSAHPartitioner<T, P, BV, K>, stopCrit);
-  }
-  }
-}
 
 /**
  * @brief Whether a bounding box is unbounded in some direction.
@@ -207,7 +147,7 @@ buildUnionParts(Pool&                                         a_pool,
     return UnionParts<T, P, K>{Root(a_pool, std::vector<Node>{}, std::vector<S>{}), unbounded};
   }
 
-  return UnionParts<T, P, K>{buildBoundedBVH<T, S, K>(a_pool, std::move(primsAndBVs), a_construction, a_options),
+  return UnionParts<T, P, K>{BVH::PackedBVH<T, S, K>::build(a_pool, std::move(primsAndBVs), a_construction, a_options),
                              unbounded};
 }
 

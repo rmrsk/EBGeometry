@@ -296,6 +296,8 @@ Test coverage
        :cpp:class:`BVH::TreeBVH`/:cpp:class:`BVH::PackedBVH` ``signedDistance`` agreement with a
        brute-force scan across every partitioning strategy (top-down with the default and SAH
        partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
+       :cpp:func:`BVH::PackedBVH::build` building the same tree as the named build for every
+       :cpp:class:`BVH::Construction` value, and rejecting a zero leaf setting;
        :cpp:class:`MeshSDF`
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
        :cpp:class:`BVH::Construction` strategy; each method's :cpp:class:`BVH::ConstructionOptions`

@@ -103,8 +103,8 @@ requireNonEmptyPartitions(const Array<List, K>& a_partitions, const size_t a_num
 /**
  * @brief Materialise a single contiguous buffer into a flat primitive array under construction.
  * @details *Appends* @p a_block to @p a_dst, so the contract holds regardless of how many times
- * it is called. When @p a_dst is still empty -- the case for PackedBVH's single-call direct,
- * converting and ClusterSpec constructors -- it takes the fast path of stealing the
+ * it is called. When @p a_dst is still empty -- the case for PackedBVH's single-call direct
+ * builds and its converting constructor -- it takes the fast path of stealing the
  * already-contiguous buffer wholesale, with no per-element move; otherwise it move-appends each
  * element.
  * @tparam P Primitive type.
@@ -127,7 +127,7 @@ appendAliased(std::vector<P>& a_dst, const std::shared_ptr<std::vector<P>>& a_bl
 /**
  * @brief Abort unless the leaf-size setting that @p a_construction reads is positive.
  * @details Each preset construction method reads one field of ConstructionOptions; this checks that
- * one, in every build. ClusterSAH's ClusterSpec is checked by the ClusterSAH constructor itself, and
+ * one, in every build. ClusterSAH's ClusterSpec is checked by PackedBVH::buildClusterSAH() itself, and
  * a value outside Construction is left to the caller's own check.
  * @param[in] a_who          Class being built, for the message.
  * @param[in] a_construction Preset construction method.
@@ -933,10 +933,10 @@ public:
    * @brief Flatten this tree into a cache-friendly PackedBVH with the same primitive type.
    * @details Requires BV == AABBT<T>; enforced by static_assert at instantiation.
    * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive the result.
-   * @return Shared pointer to the resulting PackedBVH.
+   * @return The resulting PackedBVH, a handle into @p a_pool.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  inline std::shared_ptr<PackedBVH<T, P, K>>
+  inline PackedBVH<T, P, K>
   pack(Pool& a_pool) const;
 
   /**
@@ -950,11 +950,11 @@ public:
    * @tparam Converter Callable: (PrimitiveList<P>, uint32_t offset, uint32_t count) → std::vector<Q>.
    * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive the result.
    * @param[in] a_converter Leaf-conversion function.
-   * @return Shared pointer to the resulting PackedBVH<T, Q, K>.
+   * @return The resulting PackedBVH<T, Q, K>, a handle into @p a_pool.
    */
   template <class Q, class Converter>
   [[nodiscard]] EBGEOMETRY_HOST
-  inline std::shared_ptr<PackedBVH<T, Q, K>>
+  inline PackedBVH<T, Q, K>
   packWith(Pool& a_pool, Converter&& a_converter) const;
 
 protected:
