@@ -5257,3 +5257,172 @@ TEST_CASE("Default K and W are 4, except the triangle-group width under EBGEOMET
 
   SUCCEED();
 }
+
+namespace {
+
+// A point primitive's current box, callable on a device: what refitParallel() needs.
+template <class T>
+struct PointBox
+{
+  EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  operator()(const BareTestPoint<T>& a_p) const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(a_p.m_pos, a_p.m_pos);
+  }
+};
+
+// A spiral of points packed into a BVH with target leaf size 3, and a displacement to move them by.
+template <class T, size_t K>
+BVH::PackedBVH<T, BareTestPoint<T>, K>
+refitSpiral(Pool& a_pool)
+{
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  std::vector<std::pair<BareTestPoint<T>, AABB>> flat;
+
+  for (int i = 0; i < 300; i++) {
+    const T    t = T(i) * T(0.1);
+    const Vec3 p(std::sin(t) * t, std::cos(t) * t, T(0.3) * t);
+
+    flat.emplace_back(BareTestPoint<T>{p}, AABB(p, p));
+  }
+
+  return BVH::PackedBVH<T, BareTestPoint<T>, K>(a_pool, flat, size_t(3));
+}
+
+template <class T>
+Vec3T<T>
+refitMove(const Vec3T<T>& a_p) noexcept
+{
+  return Vec3T<T>(a_p[0] * T(1.5) + T(2), a_p[2] - a_p[1], T(0.5) * a_p[0]);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("BVH::refitParallel refits the same boxes as PackedBVH::refit(), level by level, and "
+                   "queries stay exact",
+                   "[BVH][refit]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+
+  Pool sequentialPool(hostMemoryResource());
+  Pool parallelPool(hostMemoryResource());
+
+  auto sequential = refitSpiral<T, K>(sequentialPool);
+  auto parallel   = refitSpiral<T, K>(parallelPool);
+
+  const BVH::RefitSchedule schedule(parallelPool, parallel);
+
+  // Every node once, deepest level first: a level's nodes all have the same depth, so the root is the
+  // whole last level.
+  REQUIRE(schedule.numLevels() > 2);
+  REQUIRE(schedule.levelBegin(schedule.numLevels()) == parallel.getNodes().size());
+  REQUIRE(schedule.levelBegin(schedule.numLevels()) - schedule.levelBegin(schedule.numLevels() - 1) == 1);
+
+  for (auto* bvh : {&sequential, &parallel}) {
+    for (auto& p : bvh->getPrimitives()) {
+      p.m_pos = refitMove(p.m_pos);
+    }
+  }
+
+  sequential.refit(PointBox<T>{});
+  BVH::refitParallel(parallel, schedule, PointBox<T>{});
+
+  REQUIRE(sameNodes(sequential, parallel));
+
+  // The rows of child boxes the traversal prunes with: a stale row would prune the true nearest.
+  const auto points =
+    EBGeometryTestGPU::queryGrid<T>(Vec3T<T>(T(-60), T(-60), T(-60)), Vec3T<T>(T(60), T(60), T(60)), 8);
+
+  for (const auto& q : points) {
+    T brute = std::numeric_limits<T>::max();
+
+    for (const auto& p : parallel.getPrimitives()) {
+      brute = std::min(brute, (p.m_pos - q).length2());
+    }
+
+    const auto& view  = static_cast<const BVH::PackedBVH<T, BareTestPoint<T>, K>&>(parallel);
+    T           state = std::numeric_limits<T>::max();
+
+    view.pruneTraverse(q, state, NearestLeafEval<T>{view.getPrimitives(), q}, IdentityPruneDist2<T>{});
+
+    REQUIRE(state == brute);
+  }
+}
+
+TEMPLATE_TEST_CASE("BVH::refitParallel refits a BVH on device, and the device and host refits agree",
+                   "[BVH][refit][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  constexpr size_t K = 4;
+
+  Pool pool(hostMemoryResource());
+
+  auto bvh = refitSpiral<T, K>(pool);
+
+  const BVH::RefitSchedule schedule(pool, bvh);
+
+  for (auto& p : bvh.getPrimitives()) {
+    p.m_pos = refitMove(p.m_pos);
+  }
+
+  pool.freeze();
+
+  // The moved primitives travel with the mirror; the device refits its copy, the host its own.
+  Pool devicePool = Pool::mirror(pool, deviceTestResource());
+  auto deviceView = bvh.rebasedView(devicePool);
+
+  BVH::refitParallel(deviceView, schedule, PointBox<T>{});
+  bvh.refit(PointBox<T>{});
+
+  const Pool back = Pool::mirror(devicePool, hostMemoryResource());
+
+  REQUIRE(sameNodes(bvh.rebasedView(back), bvh));
+
+  const auto points = queryGrid<T>(Vec3T<T>(T(-60), T(-60), T(-60)), Vec3T<T>(T(60), T(60), T(60)), 8);
+
+  requireSameResults(evaluateOnDevice<T>(PackedBvhTraversalQuery<T, K>{deviceView}, points),
+                     evaluateOnHost<T>(PackedBvhTraversalQuery<T, K>{bvh}, points));
+}
+
+TEST_CASE("BVH::refitParallel rejects a schedule built for another BVH", "[BVH][death]")
+{
+  using T = double;
+
+  constexpr size_t K = 4;
+
+  Pool pool(hostMemoryResource());
+
+  auto bvh = refitSpiral<T, K>(pool);
+
+  std::vector<std::pair<BareTestPoint<T>, BoundingVolumes::AABBT<T>>> few;
+
+  for (int i = 0; i < 20; i++) {
+    const Vec3T<T> p(T(i), T(0), T(0));
+
+    few.emplace_back(BareTestPoint<T>{p}, BoundingVolumes::AABBT<T>(p, p));
+  }
+
+  const BVH::PackedBVH<T, BareTestPoint<T>, K> other(pool, few, size_t(3));
+  const BVH::RefitSchedule                     schedule(pool, other);
+
+  // The check compares node counts, so the two trees must differ in size for the case to mean anything.
+  REQUIRE(other.layout().m_linearNodes.size() != bvh.layout().m_linearNodes.size());
+
+  // EBGEOMETRY_REQUIRE, so it aborts in every build.
+  REQUIRE(abortsWith([&bvh, &schedule] { BVH::refitParallel(bvh, schedule, PointBox<T>{}); },
+                     "BVH::refitParallel: the schedule covers"));
+}

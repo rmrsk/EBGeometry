@@ -875,43 +875,59 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
 
 template <class T, class P, size_t K>
 template <class BVConstructor>
+EBGEOMETRY_HOST_DEVICE
 inline void
-PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor)
+PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor) noexcept
 {
   // m_linearNodes is a depth-first pre-order flattening, so every child has a higher index than its
   // parent. Sweeping the array in reverse therefore refits all of a node's children before the node
   // itself -- no recursion or explicit stack needed. Boxes are merged pairwise, so a refit (meant as
   // cheap per-frame maintenance) allocates nothing.
-  //
-  // refit() reserves nothing, so one resolution covers the whole sweep.
-  void* poolBase = this->base();
-
   for (uint32_t i = m_linearNodes.size(); i-- > 0;) {
-    Node& node = m_linearNodes.at(poolBase, i);
+    this->refitNode(i, a_bvConstructor);
+  }
+}
 
-    BV bv;
+template <class T, class P, size_t K>
+template <class BVConstructor>
+EBGEOMETRY_HOST_DEVICE
+inline void
+PackedBVH<T, P, K>::refitNode(const uint32_t a_node, const BVConstructor& a_bvConstructor) noexcept
+{
+  EBGEOMETRY_EXPECT(a_node < m_linearNodes.size());
 
-    if (node.isLeaf()) {
-      const uint32_t offset = node.getPrimitivesOffset();
-      const uint32_t count  = node.getNumPrimitives();
+  void* poolBase = this->base();
+  Node& node     = m_linearNodes.at(poolBase, a_node);
 
-      for (uint32_t p = 0; p < count; p++) {
-        bv = bv.merged(a_bvConstructor(m_primitives.at(poolBase, offset + p)));
-      }
+  BV bv;
+
+  if (node.isLeaf()) {
+    const uint32_t offset = node.getPrimitivesOffset();
+    const uint32_t count  = node.getNumPrimitives();
+
+    for (uint32_t p = 0; p < count; p++) {
+      bv = bv.merged(a_bvConstructor(m_primitives.at(poolBase, offset + p)));
     }
-    else {
-      const auto& childOffsets = node.getChildOffsets();
+  }
+  else {
+    const auto&   childOffsets = node.getChildOffsets();
+    ChildAABBSoA& row          = m_childAabbSoA.at(poolBase, node.m_childBoxRow);
 
-      for (size_t k = 0; k < K; k++) {
-        bv = bv.merged(m_linearNodes.at(poolBase, childOffsets[k]).getBoundingVolume());
+    for (size_t k = 0; k < K; k++) {
+      const BV&   child = m_linearNodes.at(poolBase, childOffsets[k]).getBoundingVolume();
+      const auto& lo    = child.getLowCorner();
+      const auto& hi    = child.getHighCorner();
+
+      for (size_t d = 0; d < 3; d++) {
+        row.m_lo[d][k] = lo[d];
+        row.m_hi[d][k] = hi[d];
       }
-    }
 
-    node.setBoundingVolume(bv);
+      bv = bv.merged(child);
+    }
   }
 
-  // Node count is unchanged, so the existing cache is refilled rather than re-reserved.
-  this->buildSoA(nullptr);
+  node.setBoundingVolume(bv);
 }
 
 } // namespace BVH
