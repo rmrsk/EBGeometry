@@ -10,6 +10,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <random>
@@ -491,6 +492,58 @@ randomTriangles(const size_t a_count, const unsigned a_seed)
   return tris;
 }
 
+// Whether every decision the kernel takes for this triangle and point is clear of rounding: each
+// sign test away from zero, each edge parameter away from 0 and 1, and the closest candidate clear of
+// the next. Paths that round differently (one fusing a multiply and an add, another not) can decide a
+// knife-edge case either way, so the comparison skips those points. Computed in double.
+template <class T>
+bool
+wellConditioned(const Tri<T>& a_tri, const Vec3T<T>& a_p)
+{
+  using V = Vec3T<double>;
+
+  const auto d3 = [](const Vec3T<T>& a_v) { return V(double(a_v[0]), double(a_v[1]), double(a_v[2])); };
+
+  const auto& vp = a_tri.getVertexPositions();
+  const auto& vn = a_tri.getVertexNormals();
+  const auto& en = a_tri.getEdgeNormals();
+
+  const V      n = d3(a_tri.getNormal());
+  const V      p = d3(a_p);
+  const double h = 1e-3;
+
+  std::vector<double> d2;
+
+  for (int k = 0; k < 3; k++) {
+    const V a = d3(vp[k]);
+    const V b = d3(vp[(k + 1) % 3]);
+    const V e = b - a;
+    const V q = p - a;
+
+    const double t = dot(q, e) / dot(e, e);
+    const V      y = q - t * e;
+
+    if (std::abs(dot(e.cross(n), q)) < h || std::abs(dot(d3(vn[k]), q)) < h || std::abs(t) < h ||
+        std::abs(t - 1.0) < h) {
+      return false;
+    }
+
+    d2.push_back(dot(q, q));
+
+    if (t > 0.0 && t < 1.0) {
+      if (std::abs(dot(d3(en[k]), y)) < h) {
+        return false;
+      }
+
+      d2.push_back(dot(y, y));
+    }
+  }
+
+  std::sort(d2.begin(), d2.end());
+
+  return d2[1] - d2[0] > h * (1.0 + d2[0]);
+}
+
 // Every lane of a width-Wd group against the Triangle it was packed from, and signedDistance()
 // against the first minimum-|value| lane, for every valid count.
 template <class T, size_t Wd>
@@ -517,7 +570,15 @@ checkAgainstTriangles()
       for (uint32_t i = 0; i < count; i++) {
         const T d = tris[i].signedDistance(p);
 
-        REQUIRE_THAT(lanes[i], withinAbsT(d, T(tightMargin<T>()) * (T(1) + std::abs(d))));
+        const double margin = tightMargin<T>() * (1.0 + static_cast<double>(std::abs(d)));
+
+        // At a knife edge only the magnitude is compared: the sign may go either way.
+        if (wellConditioned(tris[i], p)) {
+          REQUIRE_THAT(lanes[i], withinAbsT(d, margin));
+        }
+        else {
+          REQUIRE_THAT(std::abs(lanes[i]), withinAbsT(std::abs(d), margin));
+        }
 
         if (std::abs(lanes[i]) < std::abs(expected)) {
           expected = lanes[i];
