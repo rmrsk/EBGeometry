@@ -143,30 +143,30 @@ ___________________________________
 Both construction methods above build a ``TreeBVH`` first, then require a separate ``pack()``/
 ``packWith()`` call to obtain a ``PackedBVH``. For workloads with many small, cheaply-copyable
 primitives (points, particles) built and rebuilt often, the per-node ``shared_ptr<TreeBVH>``
-allocation this implies can dominate build time. ``PackedBVH`` has a constructor that skips
-``TreeBVH`` entirely:
+allocation this implies can dominate build time. ``PackedBVH`` has static build functions that skip
+``TreeBVH`` entirely, one per family of methods, each named for what it does. The first builds
+bottom-up along a space-filling curve:
 
 .. code-block:: cpp
 
-   BVH::PackedBVH<T, P, K> packed(pool, std::move(primsAndBVs), targetLeafSize);
+   const auto packed = BVH::PackedBVH<T, P, K>::buildBottomUp(pool, std::move(primsAndBVs), targetLeafSize);
 
-Every ``PackedBVH`` constructor takes the ``Pool`` its flat arrays are reserved from as its first
-argument; that pool must outlive the BVH. It takes primitives **by value**
+Every build takes the ``Pool`` its flat arrays are reserved from as its first argument; that pool
+must outlive the BVH, which each build returns by value (a handle into the pool, like every other
+``PackedBVH``). It takes primitives **by value**
 (``std::vector<std::pair<P, BV>>``, a sink parameter the caller can ``std::move`` in) rather than
 requiring a ``shared_ptr``-wrapped list, so the whole path from input to final storage is
 pointer-free.
 
-Internally, this constructor:
+Internally, ``buildBottomUp()``:
 
-#. Sorts primitives along a space-filling curve (``SFC::Morton`` by default; pass e.g.
-   ``SFC::Hilbert{}`` or ``SFC::Nested{}`` as an optional trailing argument to select another curve —
-   a constructor template's own parameters can't be explicitly named the way a regular function
-   template's can, so this is a stateless tag value purely to let the curve type be deduced).
+#. Sorts primitives along a space-filling curve (``SFC::Morton`` by default; name another as a
+   template argument, ``buildBottomUp<SFC::Hilbert>(...)``, to select it).
 #. Splits the sorted primitives into consecutive leaves of a caller-chosen **target leaf size**,
    as ``bottomUpSortAndPartition()`` does, but from a finer set of leaf counts than its powers of
    ``K``, so the leaves can sit closer to the target. Every interior
    node has exactly ``K`` children, and a tree like that has a leaf count ``L`` with
-   ``L = 1 (mod K - 1)``, so the constructor picks the smallest such ``L`` that keeps leaves within
+   ``L = 1 (mod K - 1)``, so the build picks the smallest such ``L`` that keeps leaves within
    the target (or, when that would leave a leaf empty, the largest one below it) and splits the
    primitives evenly across the leaves.
 #. Merges the leaves upward in groups of ``K``. When a level's node count is not a multiple of
@@ -176,13 +176,15 @@ Internally, this constructor:
 Since this still produces an ordinary ``PackedBVH``, every existing traversal/query facility
 (``traverse()``, ``pruneTraverse()``, the SIMD dispatch) works with it identically, unchanged.
 
-``PackedBVH`` also has a second, overloaded direct constructor covering top-down (and SAH)
-construction rather than the SFC-based one above:
+The second, ``buildTopDown()``, covers top-down (and SAH) construction rather than the SFC-based
+one above:
 
 .. code-block:: cpp
 
-   BVH::PackedBVH<T, P, K> packed(pool, std::move(primsAndBVs));                                    // top-down
-   BVH::PackedBVH<T, P, K> packed(pool, std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, AABBT<T>, K>, stopCrit); // SAH
+   using Packed = BVH::PackedBVH<T, P, K>;
+
+   const auto centroid = Packed::buildTopDown(pool, primsAndBVs, BVH::BVCentroidPartitioner<T, P, AABBT<T>, K>);
+   const auto sah      = Packed::buildTopDown(pool, primsAndBVs, BVH::BinnedSAHPartitioner<T, P, AABBT<T>, K>, stopCrit);
 
 It reuses ``TreeBVH``'s own ``Partitioner``/``LeafPredicate`` machinery unchanged (any of
 ``BVCentroidPartitioner``, ``BinnedSAHPartitioner``, ``PrimitiveCentroidPartitioner``, or a
@@ -192,21 +194,21 @@ rather than building a persistent, ``shared_ptr``-linked ``TreeBVH`` first. As f
 ``topDownSortAndPartition()``, every one of the ``K`` partitions a partitioner returns must hold at
 least one primitive: an empty one would become a leaf with no primitives, which the packed layout
 cannot represent, and it aborts the build, in every build, with a message naming the partition. Since top-down
-recursion visits the root before its children, this needs no relayout pass (unlike the SFC-build
-constructor above, where a bottom-up merge naturally produces the root last). Each split still
+recursion visits the root before its children, this needs no relayout pass (unlike
+``buildBottomUp()`` above, where a bottom-up merge naturally produces the root last). Each split still
 shared_ptr-wraps primitives once, up front (to reuse the existing ``Partitioner``/``LeafPredicate``
 signatures) and constructs one lightweight, stack-local ``TreeBVH`` per split purely to evaluate
 the stop criterion and read off its primitive list — proportionate to what
 ``topDownSortAndPartition()`` already does at every node, and immediately discarded rather than
-kept alive as part of a persistent tree. What this constructor avoids is exactly the *persistent*
+kept alive as part of a persistent tree. What this build avoids is exactly the *persistent*
 ``shared_ptr<TreeBVH>`` node allocation kept alive for the tree's lifetime, which the ``Examples/BuildBVH``
 benchmark measures as the traditional path's dominant build-time cost.
 
-A third direct constructor builds via **ClusterSAH**, a fast approximation of a full SAH tree:
+The third, ``buildClusterSAH()``, builds via **ClusterSAH**, a fast approximation of a full SAH tree:
 
 .. code-block:: cpp
 
-   BVH::PackedBVH<T, P, K> packed(pool, std::move(primsAndBVs), BVH::ClusterSpec{maxClusterSize});
+   const auto packed = BVH::PackedBVH<T, P, K>::buildClusterSAH(pool, std::move(primsAndBVs), BVH::ClusterSpec{maxClusterSize});
 
 It first groups the primitives into small, spatially-tight *clusters* (buckets of at most
 ``maxClusterSize`` primitives, formed by a cheap density-adaptive midpoint subdivision that stops
@@ -260,12 +262,22 @@ primitives:
      - bottom-up
      - The same, along a Hilbert curve.
 
+``PackedBVH::build()`` takes the same value and the leaf-size settings described below, and calls
+the matching named build: ``buildTopDown()`` for the three top-down splits, ``buildBottomUp()`` for
+the three curves, and ``buildClusterSAH()``:
+
+.. code-block:: cpp
+
+   const auto packed = BVH::PackedBVH<T, P, K>::build(pool, std::move(primsAndBVs), BVH::Construction::SAH);
+
+Without options it uses ``PackedBVH::defaultConstructionOptions()``: at most ``K - 1`` primitives
+in a top-down leaf, a target of ``K`` for the curves, and the default ``ClusterSpec``.
+
 Every one of these users accepts every value, and aborts, in every build, on a value outside the
 enum. ``MeshSDF`` and ``TriMeshSDF`` build the tree methods through a ``TreeBVH`` and ``ClusterSAH``
-through the direct ``ClusterSpec`` constructor; ``TriMeshSDF`` then regroups each leaf into SIMD
-triangle groups. The BVH unions use the direct constructors throughout. A custom partitioner or leaf
-predicate is not a preset: build a ``TreeBVH`` with it and ``pack()`` it, or use the direct top-down
-constructor.
+through ``buildClusterSAH()``; ``TriMeshSDF`` then regroups each leaf into SIMD triangle groups. The
+BVH unions call ``PackedBVH::build()``. A custom partitioner or leaf predicate is not a preset:
+build a ``TreeBVH`` with it and ``pack()`` it, or pass it to ``buildTopDown()``.
 
 .. _Sec:LeafSizes:
 
@@ -292,7 +304,7 @@ own field:
      - ``targetLeafSize``
      - The fewest leaves holding at most this many primitives each, among the leaf counts the
        builder can make (powers of ``K`` through a ``TreeBVH``; :math:`L \equiv 1 \pmod{K-1}` in
-       the direct constructor). There are never more leaves than primitives, so a target below ``K``
+       ``buildBottomUp()``). There are never more leaves than primitives, so a target below ``K``
        may be exceeded.
    * - ``ClusterSAH``
      - ``cluster``
@@ -408,8 +420,10 @@ in either precision, against the 52 (``float``) or 80 (``double``) bytes it took
 copy of its box: with the boxes no longer duplicated, the node array and the box rows together are
 about 30% (``float``) or 40% (``double``) smaller.
 
-Constructing a ``PackedBVH`` is simply a matter of flattening an already-partitioned ``TreeBVH``,
-via one of two ``TreeBVH`` member functions:
+Constructing a ``PackedBVH`` from a ``TreeBVH`` is simply a matter of flattening the
+already-partitioned tree, via one of two ``TreeBVH`` member functions. Both return the
+``PackedBVH`` by value: it is a handle into the pool, cheap to copy, and the pool is what must stay
+alive.
 
 *  ``pack()`` performs a straight flatten: the resulting ``PackedBVH<T, P, K>`` stores exactly
    the same primitive type ``P`` that the source tree held. The original tree is left untouched
@@ -450,7 +464,7 @@ duplicating them is the binding constraint, make the index itself the primitive:
 against the caller-owned array inside the leaf callback. That stores four bytes per primitive with
 no duplication, keeps the BVH trivially copyable, and needs no special support anywhere: a
 ``uint32_t`` is an ordinary primitive type, so every build path accepts it — the SFC-build,
-partitioner/SAH and ``ClusterSpec`` constructors, and ``TreeBVH::pack()`` over a
+``buildBottomUp()``, ``buildTopDown()``, ``buildClusterSAH()`` and ``build()``, and ``TreeBVH::pack()`` over a
 ``TreeBVH<T, uint32_t, AABBT<T>, K>``.
 
 The trade is locality: the query pays a scattered load per primitive instead of a contiguous one,
@@ -461,7 +475,7 @@ reasons above actually applies.
 An earlier ``BVH::IndexStorage`` policy wrapped this same pattern behind a template parameter on
 ``PackedBVH``. It was removed: ``PackedBVH<T, uint32_t, K>`` stores exactly the same four bytes per
 primitive in exactly the same layout, needs no policy machinery to do it, and — unlike the policy,
-which could only be built through the two constructors that never touch a primitive — works through
+which could only be built through the two paths that never touch a primitive — works through
 every build path including ``TreeBVH::pack()``.
 
 Pool-backed storage
@@ -471,7 +485,7 @@ ____________________
 rows and the root box -- are ``PODVector``\ s reserved from a caller-supplied ``Pool`` (see
 :ref:`Chap:MemoryModel`),
 not ``std::vector``\ s. Every construction entry point therefore takes a ``Pool&``: ``pack()``,
-``packWith()``, every direct constructor (the adopting one included), and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
+``packWith()``, every static build, the adopting constructor, and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
 which pass along the pool they already take. The pool must outlive the BVH.
 
 Construction itself still assembles the arrays in ordinary ``std::vector``\ s and copies them into

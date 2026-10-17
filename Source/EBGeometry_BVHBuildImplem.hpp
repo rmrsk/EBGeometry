@@ -151,10 +151,8 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
 
 template <class T, class P, size_t K>
 template <class S>
-inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
-                                     std::vector<std::pair<P, BV>> a_primsAndBVs,
-                                     size_t                        a_targetLeafSize,
-                                     S)
+inline PackedBVH<T, P, K>
+PackedBVH<T, P, K>::buildBottomUp(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, size_t a_targetLeafSize)
 {
   EBGEOMETRY_REQUIRE(!a_primsAndBVs.empty(), "PackedBVH: the SFC build needs at least one primitive");
   EBGEOMETRY_REQUIRE(
@@ -324,26 +322,71 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
 
   relayout(scratchRoot);
 
-  this->finalize(a_pool, nodes, boxes, prims);
+  return PackedBVH(a_pool, nodes, boxes, prims);
 }
 
 template <class T, class P, size_t K>
-inline PackedBVH<T, P, K>::PackedBVH(Pool&                             a_pool,
-                                     std::vector<std::pair<P, BV>>     a_primsAndBVs,
-                                     const BVH::Partitioner<P, BV, K>& a_partitioner)
-  : PackedBVH(a_pool, std::move(a_primsAndBVs), a_partitioner, DefaultLeafPredicate<T, P, BV, K>)
-{}
+inline PackedBVH<T, P, K>
+PackedBVH<T, P, K>::build(Pool&                           a_pool,
+                          std::vector<std::pair<P, BV>>   a_primsAndBVs,
+                          const BVH::Construction         a_construction,
+                          const BVH::ConstructionOptions& a_options)
+{
+  BVH::detail::requireLeafSetting("PackedBVH", a_construction, a_options);
+
+  const size_t maxLeafSize = a_options.maxLeafSize;
+
+  const BVH::LeafPredicate<T, P, BV, K> stopCrit = [maxLeafSize](const TreeBVH<T, P, BV, K>& a_node) noexcept {
+    return a_node.getPrimitives().size() <= maxLeafSize;
+  };
+
+  switch (a_construction) {
+  case BVH::Construction::CentroidSplit: {
+    return buildTopDown(a_pool, std::move(a_primsAndBVs), BVCentroidPartitioner<T, P, BV, K>, stopCrit);
+  }
+  case BVH::Construction::MidpointSplit: {
+    return buildTopDown(a_pool, std::move(a_primsAndBVs), MidpointPartitioner<T, P, BV, K>, stopCrit);
+  }
+  case BVH::Construction::SAH: {
+    return buildTopDown(a_pool, std::move(a_primsAndBVs), BinnedSAHPartitioner<T, P, BV, K>, stopCrit);
+  }
+  case BVH::Construction::ClusterSAH: {
+    return buildClusterSAH(a_pool, std::move(a_primsAndBVs), a_options.cluster);
+  }
+  case BVH::Construction::Morton: {
+    return buildBottomUp<SFC::Morton>(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize);
+  }
+  case BVH::Construction::Nested: {
+    return buildBottomUp<SFC::Nested>(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize);
+  }
+  case BVH::Construction::Hilbert: {
+    return buildBottomUp<SFC::Hilbert>(a_pool, std::move(a_primsAndBVs), a_options.targetLeafSize);
+  }
+  default: {
+    break;
+  }
+  }
+
+  EBGEOMETRY_REQUIRE(false, "PackedBVH: unknown BVH::Construction value (%d)", static_cast<int>(a_construction));
+
+  return buildTopDown(a_pool, std::move(a_primsAndBVs), BinnedSAHPartitioner<T, P, BV, K>, stopCrit);
+}
 
 template <class T, class P, size_t K>
-inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs)
-  : PackedBVH(a_pool, std::move(a_primsAndBVs), BVCentroidPartitioner<T, P, BV, K>, DefaultLeafPredicate<T, P, BV, K>)
-{}
+inline PackedBVH<T, P, K>
+PackedBVH<T, P, K>::buildTopDown(Pool&                             a_pool,
+                                 std::vector<std::pair<P, BV>>     a_primsAndBVs,
+                                 const BVH::Partitioner<P, BV, K>& a_partitioner)
+{
+  return buildTopDown(a_pool, std::move(a_primsAndBVs), a_partitioner, DefaultLeafPredicate<T, P, BV, K>);
+}
 
 template <class T, class P, size_t K>
-inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_pool,
-                                     std::vector<std::pair<P, BV>>          a_primsAndBVs,
-                                     const BVH::Partitioner<P, BV, K>&      a_partitioner,
-                                     const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit)
+inline PackedBVH<T, P, K>
+PackedBVH<T, P, K>::buildTopDown(Pool&                                  a_pool,
+                                 std::vector<std::pair<P, BV>>          a_primsAndBVs,
+                                 const BVH::Partitioner<P, BV, K>&      a_partitioner,
+                                 const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit)
 {
   EBGEOMETRY_REQUIRE(!a_primsAndBVs.empty(), "PackedBVH: the top-down build needs at least one primitive");
 
@@ -366,7 +409,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
   a_primsAndBVs.clear();
 
   // Recursively partition top-down, writing nodes directly into nodes in pre-order (root
-  // first) as the recursion unwinds -- unlike the SFC-build constructor above, top-down
+  // first) as the recursion unwinds -- unlike buildBottomUp() above, top-down
   // partitioning visits the root before its children, so no relayout pass is needed here. At every
   // split, a lightweight, stack-local TreeBVH ("probe") is constructed purely to evaluate
   // a_stopCrit (whose signature expects an actual TreeBVH node, matching
@@ -410,11 +453,12 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
 
   build(std::move(wrapped));
 
-  this->finalize(a_pool, nodes, boxes, prims);
+  return PackedBVH(a_pool, nodes, boxes, prims);
 }
 
 template <class T, class P, size_t K>
-inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec)
+inline PackedBVH<T, P, K>
+PackedBVH<T, P, K>::buildClusterSAH(Pool& a_pool, std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec)
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "ClusterSAH requires BV == AABBT<T>");
 
@@ -674,7 +718,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
 
   detail::appendAliased(prims, primBlock);
 
-  this->finalize(a_pool, nodes, boxes, prims);
+  return PackedBVH(a_pool, nodes, boxes, prims);
 }
 
 } // namespace BVH

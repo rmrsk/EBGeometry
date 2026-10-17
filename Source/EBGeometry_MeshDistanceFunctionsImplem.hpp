@@ -489,13 +489,12 @@ MeshSDF<T, K>::buildBVH(const Mesh&                     a_mesh,
   if (a_construction == BVH::Construction::ClusterSAH) {
     MeshDistanceFunctionsDetail::requireNonEmpty("MeshSDF", a_mesh.numFaces());
 
-    return Root(a_pool, MeshDistanceFunctionsDetail::faceIdsAndBVs<T, AABB>(a_mesh), a_options.cluster);
+    return Root::buildClusterSAH(
+      a_pool, MeshDistanceFunctionsDetail::faceIdsAndBVs<T, AABB>(a_mesh), a_options.cluster);
   }
 
-  // pack() still returns a shared_ptr; the PackedBVH it points to is a descriptor into a_pool, so
-  // copying it out is all that is needed.
-  return *EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, AABB, K>(a_mesh, a_construction, a_options)
-            ->pack(a_pool);
+  return EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, AABB, K>(a_mesh, a_construction, a_options)
+    ->pack(a_pool);
 }
 
 template <class T, size_t K>
@@ -674,10 +673,8 @@ TriMeshSDF<T, K, W>::buildBVH(const std::vector<Tri>&         a_triangles,
     return TriMeshSDF::buildClusterSAH(a_triangles, a_pool, a_options.cluster);
   }
 
-  // packWith() still returns a shared_ptr; the PackedBVH it points to is a descriptor into a_pool,
-  // so copying it out is all that is needed.
-  return *EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, AABB, K>(a_triangles, a_construction, a_options)
-            ->template packWith<TriAoSoA, Converter>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
+  return EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, AABB, K>(a_triangles, a_construction, a_options)
+    ->template packWith<TriAoSoA, Converter>(a_pool, &TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, size_t K, size_t W>
@@ -701,7 +698,7 @@ TriMeshSDF<T, K, W>::buildClusterSAH(const std::vector<Tri>& a_triangles, Pool& 
   // The tree is built over triangle indices in a scratch pool, then copied node for node with each
   // leaf's triangles regrouped into SIMD groups. Only the leaf ranges change.
   Pool          scratch(hostMemoryResource());
-  const ByIndex byIndex(scratch, std::move(indicesAndBVs), a_spec);
+  const ByIndex byIndex = ByIndex::buildClusterSAH(scratch, std::move(indicesAndBVs), a_spec);
 
   const auto indexNodes = byIndex.getNodes();
   const auto order      = byIndex.getPrimitives();

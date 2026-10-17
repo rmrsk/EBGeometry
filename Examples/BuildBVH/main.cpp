@@ -56,8 +56,8 @@ makeWrappedPrimitives(const std::vector<Vec3>& a_positions)
   return primsAndBVs;
 }
 
-// Build the flat (primitive, bounding volume) pair list PackedBVH's direct constructors want --
-// no shared_ptr anywhere, matching what those constructors are actually for.
+// Build the flat (primitive, bounding volume) pair list PackedBVH's direct builds want --
+// no shared_ptr anywhere, matching what those builds are actually for.
 std::vector<std::pair<Point, AABB>>
 makeFlatPrimitives(const std::vector<Vec3>& a_positions)
 {
@@ -73,7 +73,7 @@ makeFlatPrimitives(const std::vector<Vec3>& a_positions)
 
 // Build-time results for one strategy: treeBuildTime is TreeBVH construction + partitioning
 // alone; packTime is the additional pack() call; directBuildTime is PackedBVH's direct
-// constructor (no TreeBVH at all). treeBuildTime + packTime is the fair number to compare against
+// build (no TreeBVH at all). treeBuildTime + packTime is the fair number to compare against
 // directBuildTime, since a bare TreeBVH cannot answer queries on its own.
 struct StrategyResult
 {
@@ -83,7 +83,7 @@ struct StrategyResult
 };
 
 // Times one "partitioner family" strategy (CentroidSplit/SAH/MidpointSplit): both the TreeBVH path (build +
-// a_partitionFn, then pack()) and PackedBVH's direct top-down constructor with the same
+// a_partitionFn, then pack()) and PackedBVH::buildTopDown() with the same
 // a_partitioner/a_stopCrit.
 template <class PartitionFn, class Partitioner, class LeafPred>
 StrategyResult
@@ -108,7 +108,7 @@ runPartitionerFamily(const std::vector<Vec3>& a_positions,
 
   timer.start();
   EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed     direct(directPool, makeFlatPrimitives(a_positions), a_partitioner, a_stopCrit);
+  const Packed direct = Packed::buildTopDown(directPool, makeFlatPrimitives(a_positions), a_partitioner, a_stopCrit);
   timer.stop();
   const double directBuildTime = timer.seconds();
 
@@ -116,7 +116,7 @@ runPartitionerFamily(const std::vector<Vec3>& a_positions,
 }
 
 // Times one "SFC family" strategy (Morton/Nested/Hilbert): both the TreeBVH path
-// (bottomUpSortAndPartition<S>(), then pack()) and PackedBVH's direct SFC-build constructor with
+// (bottomUpSortAndPartition<S>(), then pack()) and PackedBVH::buildBottomUp<S>() with
 // the same curve S.
 template <class S>
 StrategyResult
@@ -138,14 +138,15 @@ runSFCFamily(const std::vector<Vec3>& a_positions, size_t a_targetLeafSize)
 
   timer.start();
   EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed     direct(directPool, makeFlatPrimitives(a_positions), a_targetLeafSize, S{});
+  const Packed     direct =
+    Packed::template buildBottomUp<S>(directPool, makeFlatPrimitives(a_positions), a_targetLeafSize);
   timer.stop();
   const double directBuildTime = timer.seconds();
 
   return {treeBuildTime, packTime, directBuildTime};
 }
 
-// Times ClusterSAH: PackedBVH's direct ClusterSAH constructor (density-adaptive clustering, then SAH
+// Times ClusterSAH: PackedBVH::buildClusterSAH() (density-adaptive clustering, then SAH
 // over the clusters). Direct-only -- there is no TreeBVH path -- so treeBuild/pack are reported as
 // "--".
 StrategyResult
@@ -155,7 +156,8 @@ runClusterSAH(const std::vector<Vec3>& a_positions, size_t a_maxClusterSize)
 
   timer.start();
   EBGeometry::Pool directPool(EBGeometry::hostMemoryResource());
-  const Packed     direct(directPool, makeFlatPrimitives(a_positions), EBGeometry::BVH::ClusterSpec{a_maxClusterSize});
+  const Packed     direct = Packed::buildClusterSAH(
+    directPool, makeFlatPrimitives(a_positions), EBGeometry::BVH::ClusterSpec{a_maxClusterSize});
   timer.stop();
   const double directBuildTime = timer.seconds();
 
@@ -169,12 +171,12 @@ main()
 {
   // Benchmark: build the same random point cloud into a BVH with every construction strategy
   // EBGeometry offers, and time each. For the top-down and space-filling-curve strategies, both the
-  // traditional TreeBVH-then-pack() path and PackedBVH's direct constructor are timed; ClusterSAH is
+  // traditional TreeBVH-then-pack() path and PackedBVH's direct builds are timed; ClusterSAH is
   // direct-only.
 
   const std::vector<size_t> sizes = {500'000};
 
-  // Target leaf size for the SFC-family direct constructors. Chosen to match K, the leaf
+  // Target leaf size for the SFC-family direct builds. Chosen to match K, the leaf
   // occupancy every strategy naturally converges to (topDownSortAndPartition()'s default
   // LeafPredicate stops once a node holds fewer than K primitives; bottomUpSortAndPartition()'s
   // leaf count likewise divides the primitives into groups of roughly K), so the comparison isn't
