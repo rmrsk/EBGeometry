@@ -111,6 +111,66 @@ public:
   inline PointCloudBVH(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, std::size_t a_targetLeafSize = 16 * W);
 
   /**
+   * @brief The object's arrays as offsets into its pool, with no location (see PoolHandle).
+   */
+  struct Layout
+  {
+    /**
+     * @brief The packed BVH over the point groups.
+     */
+    typename Packed::Layout m_bvh;
+
+    /**
+     * @brief Point positions, indexed by cloud index.
+     */
+    PODVector<Vec3T<T>> m_positions;
+
+    /**
+     * @brief Per-point own-leaf group offset.
+     */
+    PODVector<std::uint32_t> m_leafOff;
+
+    /**
+     * @brief Per-point own-leaf group count.
+     */
+    PODVector<std::uint32_t> m_leafCnt;
+
+    /**
+     * @brief Point indices in leaf (build) order.
+     */
+    PODVector<std::uint32_t> m_order;
+  };
+
+  /**
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
+   * @details How an outer pool-resident object, such as a Tape holding a PointCloudSDF, evaluates a
+   * cloud it stores as a layout. @p a_location must belong to the pool the layout was reserved from, or
+   * to a mirror of it; nothing is checked, since a device has no pool to check against.
+   * @param[in] a_layout   The arrays.
+   * @param[in] a_location Where they live.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  PointCloudBVH(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location),
+      m_bvhLayout(a_layout.m_bvh),
+      m_positions(a_layout.m_positions),
+      m_leafOff(a_layout.m_leafOff),
+      m_leafCnt(a_layout.m_leafCnt),
+      m_order(a_layout.m_order)
+  {}
+
+  /**
+   * @brief The object's arrays without its location, for storing it inside another pool-resident object.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Layout
+  layout() const noexcept
+  {
+    return Layout{m_bvhLayout, m_positions, m_leafOff, m_leafCnt, m_order};
+  }
+
+  /**
    * @brief Closest cloud point to an arbitrary query point.
    * @param[in] a_query Query point (need not be in the cloud).
    * @return The nearest point and its squared distance.

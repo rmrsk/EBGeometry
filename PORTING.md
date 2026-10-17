@@ -386,15 +386,13 @@ new backend needs no change to the interpreter.
   one), and its users are mostly Fortran and C codes. An nvc++ OpenACC application can already call
   the CUDA path.
 
-**Tape operations still open.** From the tape's design inputs (the audit's Appendix A), three were
-not built:
+**Tape operations still open.** From the tape's design inputs (the audit's Appendix A), add /
+displace (`Add`, `Displace`) and a point cloud as a leaf (`PointCloudSDF`) are built. One is open:
 
-* **Add / displace**, `v = v1 + v2`: not a distance, but what noise displacement needs.
-* **A point cloud as a leaf**: a union of N equal spheres, or unsigned distance to a sample set, is
-  `sqrt(closestPoint(q).distanceSquared) - r`, much cheaper than a BVH union over sphere primitives.
-  `PointCloudBVH` would need a `signedDistance`-shaped entry to be a tape primitive.
 * **Gradients**: whether the tape offers normals by forward-mode dual numbers over clauses (one
-  evaluation) or by finite differences (six) is undecided.
+  evaluation) or by finite differences (six) is undecided. Finite differences already work on any
+  shape through `normal()` in `EBGeometry_FunctionQueries.hpp`; dual numbers would need every
+  primitive, the mesh SDFs and user types included, to return a gradient with its value.
 
 ### Examples and integrations
 

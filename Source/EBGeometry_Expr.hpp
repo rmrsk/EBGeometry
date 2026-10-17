@@ -182,6 +182,7 @@ enum class Kind : uint8_t
   Intersection,       ///< Maximum over the children.
   SmoothUnion,        ///< Smooth minimum of the two smallest children.
   SmoothIntersection, ///< Smooth maximum of the two largest children.
+  Add,                ///< Sum of the children.
 };
 
 /**
@@ -723,6 +724,39 @@ template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
 Offset(const A& a_operand, const ExprPrecision<A> a_offset);
+
+/**
+ * @brief The sum of two objects' values, v1 + v2.
+ * @details Not a distance, and nothing bounds where its zero set lies, so its box is all of space. For
+ * a displacement of bounded size, Displace() gives the same value with a box.
+ * @tparam A Shape or Expr type.
+ * @tparam B Shape or Expr type of the same precision.
+ * @param[in] a_first  First object.
+ * @param[in] a_second Second object.
+ * @return The sum.
+ */
+template <class A, class B>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+Add(const A& a_first, const B& a_second);
+
+/**
+ * @brief Displace an object's surface by a field, v + d: noise or texture on a surface.
+ * @details @p a_amplitude bounds |d| everywhere, which nothing checks; the box is the object's grown by
+ * it, or all of space if the object's value is not a distance (another displacement, say), since such
+ * a value can be small far from its object. The result is not a distance, even for an exact object: a
+ * displacement that varies by L per unit length makes it a (1 + L)-Lipschitz function.
+ * @tparam A Shape or Expr type.
+ * @tparam B Shape or Expr type of the same precision: the displacement field.
+ * @param[in] a_operand      Object.
+ * @param[in] a_displacement Displacement field d.
+ * @param[in] a_amplitude    Bound on |d| (finite, >= 0).
+ * @return The displaced object.
+ */
+template <class A, class B>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+Displace(const A& a_operand, const B& a_displacement, const ExprPrecision<A> a_amplitude);
 
 /**
  * @brief A shell around an object's surface, |v| - delta.
