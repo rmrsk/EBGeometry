@@ -398,7 +398,7 @@ private:
     }
 
     const auto parts = CSGDetail::buildUnionParts<T, uint32_t, K>(
-      m_pool, programs, boxes, m_options.m_construction, CSGDetail::defaultUnionOptions<K>());
+      m_pool, programs, boxes, m_options.m_construction, BVH::PackedBVH<T, uint32_t, K>::defaultConstructionOptions());
 
     UnionBVH<T, K> bvh;
 

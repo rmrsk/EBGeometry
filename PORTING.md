@@ -160,7 +160,7 @@ The AMReX integrations evaluate the mesh SDFs and the BVH unions inside AMReX's 
 
 | Component | Status |
 |---|---|
-| `TreeBVH`, the partitioners, `pack`/`packWith`, `PackedBVH`'s builder constructors | Host-only **by design**: they are the builders, and static geometry builds on the host. Not a gap. |
+| `TreeBVH`, the partitioners, `pack`/`packWith`, `PackedBVH`'s static builds | Host-only **by design**: they are the builders, and static geometry builds on the host. Not a gap. |
 | Parsers (`PolygonSoup`, `Soup`), `Random`, `SimpleTimer` | Host-only by design. `Random` and `SimpleTimer` serve the examples and are not included by `EBGeometry.hpp` |
 | `Triangle<T>` (AoS) | Host-side build input for `TriangleAoSoA`; not ported, and nothing on a device needs it |
 | `SFC`, point-cloud builds, `MeshT::reconcile()` | Host-only. A device build (Morton codes and a radix sort) would be needed only to rebuild on a device; see "After the tape" |
@@ -459,7 +459,7 @@ single-threaded:
   `PackedBVH` *is* an index — three `PODVector` offsets plus a location.
 * **The tape needs nothing more.** Under the tape a union's primitive is a clause id, and
   `PackedBVH<T, uint32_t, K>` stores the same four bytes with no indirection through every
-  construction path (the SFC, partitioner/SAH and cluster constructors and `TreeBVH::pack()`).
+  construction path (the SFC, top-down and ClusterSAH builds and `TreeBVH::pack()`).
   `IndexStorage` would only have moved the indexing into the policy; `pruneTraverse` never called
   its resolver.
 * **It reads more, not less.** A leaf evaluator still needs the face's normal, centroid and
@@ -576,8 +576,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 * **BVH-8** [MAJOR]: every child box is stored twice, in its node and in the parent's SIMD row.
 * **BVH-11, host part** [MINOR]: `TreeBVH::setChildren` and `refit` build a `std::vector` for every
   box union.
-* **BVH-10** [MINOR]: `pack()`/`packWith()` return a `shared_ptr`, and some `PackedBVH`
-  constructors are chosen by tag types. This is the API D2 kept.
 * **BVH-18** [NIT]: `computeChildDistances2()`, `TriangleSoA` and `PointSoA` choose their inline SIMD
   bodies by the ISA macros, so translation units compiled with different flags define them two ways
   and the linker keeps one. Documented under "Mixing SIMD flags in one program" in
