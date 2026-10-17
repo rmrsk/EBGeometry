@@ -921,7 +921,7 @@ public:
    * @details A node does not store its own box. Every box but the root's is stored once, in the
    * parent's row of the SIMD box array, and the node's box slot says where; the root's box is the
    * BVH's own. @p a_node must be a node of this BVH, e.g. an element of getNodes() or the node a
-   * traverse() callback is given.
+   * traverse() callback is given; a node of another BVH is caught only with assertions on.
    * @param[in] a_node A node of this BVH.
    * @return The node's bounding volume.
    */
@@ -934,7 +934,8 @@ public:
    * @details The same box as getBoundingVolume(a_node), without assembling it. For a caller-written
    * scalar branch-and-bound that compares against a squared pruning bound (e.g. PointCloudBVH's seeded
    * single-nearest search), or a traverse() predicate. pruneTraverse() tests all K children at once
-   * instead.
+   * instead. @p a_node must be a node of this BVH, as for getBoundingVolume(a_node); a node of another
+   * BVH is caught only with assertions on.
    * @param[in] a_node  A node of this BVH.
    * @param[in] a_point Query point.
    * @return Squared distance to the box, or zero if @p a_point is inside it.
