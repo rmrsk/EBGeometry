@@ -62,6 +62,18 @@ public:
   pack(const Vec3T<T>* a_positions, const uint32_t* a_pointIds, uint32_t a_count) noexcept;
 
   /**
+   * @brief pack() without its always-on checks, for a build that runs on a device.
+   * @details The caller guarantees what pack() checks: non-null arrays, 1 <= a_count <= W, and finite
+   * coordinates (checked here only with assertions on).
+   * @param[in] a_positions Source position array with at least a_count elements.
+   * @param[in] a_pointIds  Source id array, same order and length as a_positions.
+   * @param[in] a_count     Number of valid (position, id) pairs to pack.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  packUnchecked(const Vec3T<T>* a_positions, const uint32_t* a_pointIds, uint32_t a_count) noexcept;
+
+  /**
    * @brief Squared unsigned distances from a_point to every one of the W lane points.
    * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches the ids. Padded
    * lanes repeat the last real point's value; see PointSoAT::getDistances2().
@@ -159,6 +171,15 @@ public:
   computeBoundingVolume() const noexcept;
 
 protected:
+  /**
+   * @brief Store the point ids, padding lanes a_count..W-1 with the last one.
+   * @param[in] a_pointIds Source id array with at least a_count elements.
+   * @param[in] a_count    Number of valid ids, 1 to W.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  packIds(const uint32_t* a_pointIds, uint32_t a_count) noexcept;
+
   /**
    * @brief The wrapped, position-only SoA block. SIMD-hot: this is all the distance queries ever
    * touch. It also holds the valid-point count.
