@@ -350,9 +350,11 @@ struct MortonKeys
 
     SFC::Index cell;
 
+    // Halved before subtracting: a float cloud spanning more than the largest float has an extent of
+    // infinity, which would give 0 or NaN here. The ratio is the same.
     for (int dir = 0; dir < 3; dir++) {
-      const T extent = hi[dir] - lo[dir];
-      const T scaled = (extent > T(0)) ? (p[dir] - lo[dir]) / extent * span : T(0);
+      const T extent = T(0.5) * hi[dir] - T(0.5) * lo[dir];
+      const T scaled = (extent > T(0)) ? (T(0.5) * p[dir] - T(0.5) * lo[dir]) / extent * span : T(0);
 
       cell[dir] = static_cast<unsigned int>(Math::clamp(scaled, T(0), span));
     }
@@ -441,7 +443,10 @@ struct PackGroups
   operator()(const std::size_t a_g) const noexcept
   {
     const uint32_t begin = static_cast<uint32_t>(a_g * W);
-    const uint32_t count = Math::min(static_cast<uint32_t>(W), m_numPoints - begin);
+
+    // Every group starts before the last point, so the count is at least 1. Saying so lets GCC see that
+    // packUnchecked() never reads lane count - 1 = UINT32_MAX, which it otherwise warns about.
+    const uint32_t count = Math::max(1U, Math::min(static_cast<uint32_t>(W), m_numPoints - begin));
 
     Array<Vec3T<T>, W> positions{};
     Array<uint32_t, W> ids{};
@@ -705,6 +710,11 @@ PointCloudBVH<T, K, W>::buildParallel(Pool&                        a_pool,
                      "PointCloudBVH::buildParallel: the pool must be host-accessible, and device-accessible as "
                      "well in a %s build (managed memory)",
                      GPU::backendName);
+
+  // The keys are padded to a power of two that is counted in 32 bits.
+  EBGEOMETRY_REQUIRE(a_positions.size() <= (std::size_t{1} << 31),
+                     "PointCloudBVH::buildParallel: at most 2^31 points (%zu)",
+                     a_positions.size());
 
   // No points: the constructor's empty BVH.
   if (a_positions.empty()) {

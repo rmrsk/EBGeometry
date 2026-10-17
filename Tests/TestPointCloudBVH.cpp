@@ -585,6 +585,21 @@ TEMPLATE_TEST_CASE("PointCloudBVH::buildParallel: queries match brute force",
     clustered.emplace_back(T(-10), T(5), T(0));
 
     checkParallelBuild<PointCloudBVH<T>, T>(clustered, 16);
+
+    // Wider than the largest finite value: the extent overflows unless the quantization halves first.
+    std::vector<Vec3T<T>> huge = makeCloud<T>(200, 13u);
+
+    for (auto& p : huge) {
+      p = T(0.9) * Math::Limits<T>::max() * (T(2) * p - Vec3T<T>::ones());
+    }
+
+    Pool pool(parallelBuildResource());
+
+    const PointCloudBVH<T> wide = PointCloudBVH<T>::buildParallel(pool, huge, 4);
+
+    for (uint32_t i = 0; i < huge.size(); i += 17) {
+      CHECK(wide.closestPoint(huge[i]).index == i);
+    }
   }
 
   SECTION("an empty cloud")

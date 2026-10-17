@@ -121,9 +121,10 @@ public:
    * and give the same answers; the tree can be looser for a cloud far from uniform, since its splits
    * follow the curve rather than the points. In a CUDA or HIP translation unit the pool must be both
    * host- and device-accessible (managed memory), and a host pool otherwise; the build reserves its
-   * scratch arrays from a second pool on the same memory resource and releases them on return.
+   * scratch arrays from a second pool on the same memory resource and releases them on return: 16
+   * bytes per point, rounded up to a power of two, for the sort keys.
    * @param[in,out] a_pool       Pool the arrays are reserved from; must outlive the result.
-   * @param[in] a_positions      Point positions. Fewer than PointCloud::InvalidIndex, all finite.
+   * @param[in] a_positions      Point positions. At most 2^31, all finite.
    * @param[in] a_targetLeafSize Target points per leaf, at least 1.
    * @return The BVH.
    */
