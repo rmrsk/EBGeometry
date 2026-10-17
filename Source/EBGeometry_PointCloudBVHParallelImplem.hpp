@@ -783,7 +783,8 @@ PointCloudBVH<T, K, W>::buildParallel(Pool&                        a_pool,
   GPU::parallelFor(1, MergeBoxes<T>{lo, hi, scratchBase});
   GPU::parallelFor(numKeys, MortonKeys<T>{positions, lo, hi, keys, base, scratchBase, numPoints});
 
-  for (uint32_t k = 2; k <= numKeys; k *= 2) {
+  // k != 0: at 2^31 keys, the last k doubles to 0 rather than past numKeys.
+  for (uint32_t k = 2; k != 0 && k <= numKeys; k *= 2) {
     for (uint32_t j = k / 2; j > 0; j /= 2) {
       GPU::parallelFor(numKeys / 2, BitonicPass{keys, scratchBase, k, j});
     }
