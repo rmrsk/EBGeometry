@@ -354,15 +354,15 @@ Still open: a device-side `PointCloudBVH` build (Morton codes and a sort), and a
 of the bitonic one once a consumer measures the build. Worth doing only with a consumer that rebuilds
 geometry on the device.
 
-**The DCEL reconcile chain on a device.** Deferred deliberately. `MeshT::reconcile()`'s only
-production caller is the parser's soup-to-mesh conversion, which is host-only by design, so a device
-`reconcile()` would have no device caller. Its hard part (a device-resident CSR vertex-to-face
-adjacency) is the same parallel-build problem as the point clouds, and is better done once, with a
-real consumer driving the design. When it happens: `FaceT::computeCentroid`/`computeNormal`/
-`computeArea` rewritten as streaming half-edge walks, then the device-resident adjacency, then the
-angle-weighted vertex pseudonormal. All three parts or none: the pseudonormal is what makes the sign
-correct, so a device `reconcile()` covering only faces would leave signs silently wrong near
-vertices and edges.
+**The DCEL reconcile chain on a device: built.** `DCEL::reconcileParallel()`
+(`EBGeometry_DCEL_ReconcileParallel.hpp`) does all three parts with `GPU::parallelFor()`:
+`FaceT::computeCentroid`/`computeNormal`/`computeArea` are streaming half-edge walks and
+device-callable, the vertex-to-face adjacency is a CSR array built from sorted (vertex, face) corner
+keys with `GPU::exclusiveScan` and `GPU::bitonicSort`, and the angle-weighted vertex pseudonormal has a
+device-callable form that reports a malformed face in a status instead of aborting. The result equals
+`MeshT::reconcile()` bit for bit (checked on the armadillo mesh as well as the test meshes). Still open:
+a device run, and a consumer that moves vertices on the device; the host still reads one status per
+face and per vertex back to report a malformed mesh.
 
 **More device backends (audit item 27).** Decided while audit item 21 removed the fictional SYCL and
 OpenACC branches. Each is a real backend or none: a memory resource, device-pass detection, the GPU

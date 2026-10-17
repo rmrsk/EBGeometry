@@ -51,11 +51,40 @@ namespace DCEL {
  * @note Every method that resolves purely through plain-value members and an
  * explicitly-supplied Mesh& (getPosition/getNormal/getOutgoingEdgeIndex/
  * getOutgoingEdge, define, setPosition/setNormal/setEdge,
- * normalizeNormalVector, flipNormal, signedDistance, unsignedDistance2) is annotated EBGEOMETRY_HOST_DEVICE. computeVertexNormalAngleWeighted()
- * takes a std::vector<uint32_t>& and aborts with a message on a malformed face, so it remains
- * EBGEOMETRY_HOST.
+ * normalizeNormalVector, flipNormal, signedDistance, unsignedDistance2) is annotated EBGEOMETRY_HOST_DEVICE. So is
+ * computeVertexNormalAngleWeighted() over a face-index array, which reports a malformed face in its
+ * returned status; its std::vector overload aborts with a message instead and stays EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision.
  */
+/**
+ * @brief What VertexT::computeVertexNormalAngleWeighted() found wrong with a face around the vertex,
+ * if anything.
+ */
+struct VertexNormalStatus
+{
+  /**
+   * @brief The kind of problem.
+   */
+  enum class Code : uint8_t
+  {
+    Ok,                  ///< Every face was usable.
+    NotVisitedOnce,      ///< A face's loop did not pass through the vertex exactly once.
+    CoincidentPositions, ///< The vertex and its two neighbours on a face are not all distinct.
+  };
+
+  /// @brief The kind of problem.
+  Code m_code = Code::Ok;
+
+  /// @brief The face it was found on.
+  uint32_t m_face = 0;
+
+  /// @brief NotVisitedOnce: the half-edges of the face touching the vertex (2 when fine).
+  uint32_t m_found = 0;
+
+  /// @brief CoincidentPositions: the vertex's neighbours on the face.
+  uint32_t m_neighbours[2] = {0, 0};
+};
+
 template <class T>
 class VertexT
 {
@@ -229,6 +258,24 @@ public:
   computeVertexNormalAngleWeighted(const uint32_t               a_thisVertexIndex,
                                    const std::vector<uint32_t>& a_faceIndices,
                                    const Mesh&                  a_mesh);
+
+  /**
+   * @brief computeVertexNormalAngleWeighted() over an array of face indices, callable on a device.
+   * @details The same normal, summed over the faces in the same order. Instead of aborting, it stops at
+   * the first malformed face and returns what it found there, leaving the normal unspecified; the
+   * std::vector overload turns that into its message.
+   * @param[in] a_thisVertexIndex This vertex's own index in the owning mesh's vertex array.
+   * @param[in] a_faceIndices     Indices of every face touching this vertex.
+   * @param[in] a_numFaces        Number of face indices (at least one).
+   * @param[in] a_mesh            Owning mesh.
+   * @return The first problem found, or VertexNormalStatus::Code::Ok.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline VertexNormalStatus
+  computeVertexNormalAngleWeighted(uint32_t        a_thisVertexIndex,
+                                   const uint32_t* a_faceIndices,
+                                   uint32_t        a_numFaces,
+                                   const Mesh&     a_mesh) noexcept;
 
   /**
    * @brief Flip the normal vector

@@ -586,3 +586,49 @@ TEST_CASE("GPU::bitonicSort: a count that is not a power of two aborts", "[GPU][
     },
     "GPU::bitonicSort: the key count must be a power of two (3)"));
 }
+
+TEST_CASE("GPU::exclusiveScan gives every exclusive prefix sum and the total", "[GPU]")
+{
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  for (const uint32_t n : {0U, 1U, 2U, 16U, 1024U}) {
+    INFO("values " << n);
+
+    Pool pool(sharedResource());
+
+    PODVector<uint32_t> values;
+    PODVector<uint32_t> total;
+
+    values.reserveSizedFrom(pool, n);
+    total.reserveSizedFrom(pool, 1);
+
+    uint32_t* data = values.data(pool.base());
+
+    std::vector<uint32_t> expected(n);
+
+    uint32_t sum = 0;
+
+    for (uint32_t i = 0; i < n; i++) {
+      data[i]     = (i * 7U) % 5U;
+      expected[i] = sum;
+      sum += data[i];
+    }
+
+    total.at(pool.base(), 0) = 12345;
+
+    GPU::exclusiveScan(data, n, total.data(pool.base()));
+
+    CHECK(std::vector<uint32_t>(data, data + n) == expected);
+    CHECK(total.at(pool.base(), 0) == (n == 0 ? 12345U : sum));
+  }
+
+  REQUIRE(abortsWith(
+    [] {
+      uint32_t values[3] = {1, 2, 3};
+
+      GPU::exclusiveScan(values, 3);
+    },
+    "GPU::exclusiveScan: the value count must be a power of two (3)"));
+}

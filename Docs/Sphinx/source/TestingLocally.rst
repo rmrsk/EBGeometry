@@ -213,7 +213,8 @@ Test coverage
        and results, and on a pool that is not frozen, not device-accessible, or that the arrays do
        not fit in; ``GPU::bitonicSort`` in both orders over counts from 0 to 1024 and its abort on a
        count that is not a power of two; ``GPU::boundingBox`` against a host loop across chunk
-       boundaries, and for no points; and
+       boundaries, and for no points; ``GPU::exclusiveScan`` against a running sum, its total, and its
+       abort on a count that is not a power of two; and
        ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
    * - ``TestPool``
      - ``Pool``: growth preserving earlier contents and every type's alignment, the requests too
@@ -260,7 +261,10 @@ Test coverage
        first edge, an index past the end) rejected by ``reconcile()`` and reported by
        ``sanityCheck``, and a face with no half-edge rejected by ``reconcile()``; ``soupToDCEL``
        rejecting a face with fewer than three vertices or an out-of-range vertex index, and
-       ``reconcilePairEdgesDCEL`` an out-of-range next edge.
+       ``reconcilePairEdgesDCEL`` an out-of-range next edge; and ``DCEL::reconcileParallel`` giving
+       every face normal, centroid and area and every edge and vertex normal exactly as
+       ``reconcile()`` does, on every test mesh after moving its vertices (and on a device from
+       managed memory), and rejecting the same malformed meshes.
    * - ``TestSFC``
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,

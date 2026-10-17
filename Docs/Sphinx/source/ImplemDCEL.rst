@@ -64,6 +64,20 @@ floating-point precision ``T``:
    or mirrored to a different address space with no pointer patching, as long as they are
    interpreted against the same mesh's arrays on the other side.
 
+*  ``DCEL::reconcileParallel(mesh, pool)``
+   (`EBGeometry_DCEL_ReconcileParallel.hpp <doxygen/html/EBGeometry__DCEL__ReconcileParallel_8hpp.html>`__)
+   is ``MeshT::reconcile()`` run with ``GPU::parallelFor()``: one thread per face, then per half-edge,
+   then per vertex, on a device in a CUDA or HIP translation unit and in host loops otherwise (see
+   :ref:`Chap:RunningOnGPU`). Use it to refresh a mesh whose vertices moved on the device. All three
+   parts run, since a reconcile of the faces alone would leave the edge and vertex pseudonormals, and
+   so the signs near them, stale. The face computations walk each face's own half-edge loop; the
+   vertex pseudonormals need the faces around each vertex, which the host collects in a list per
+   vertex and the parallel version as a CSR array: one key per face corner (vertex, face), sorted, with
+   a binary search per vertex for where its faces start. The sort lists a vertex's faces in face order,
+   as the host does, so every sum is taken in the same order and the result equals the host's bit for
+   bit. It rejects every mesh ``reconcile()`` rejects, with the same messages. The mesh must live in the
+   given pool, which in a CUDA or HIP build must be managed memory.
+
 *  ``MeshT<T>`` stores an entire DCEL mesh -- all of its vertices, half-edges, and faces --
    and provides brute-force (:math:`\mathcal{O}(N)`) distance queries, ``signedDistance()`` and
    ``unsignedDistance2()``, that scan every face directly. For anything beyond small meshes, one

@@ -49,7 +49,7 @@ FaceT<T>::define(const Vec3& a_normal, const uint32_t a_edgeIndex) noexcept
 }
 
 template <class T>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T>::reconcile(const Mesh& a_mesh)
 {
@@ -98,34 +98,53 @@ FaceT<T>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 }
 
 template <class T>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+FaceT<T>::numVertices(const Mesh& a_mesh) const noexcept
+{
+  uint32_t count = 0;
+
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    count++;
+  }
+
+  return count;
+}
+
+// computeCentroid, computeNormal and computeArea walk the half-edge loop directly, with no vertex list,
+// so that a face can be reconciled on a device. The loop visits the vertices in the order the list
+// held them, and an edge's next edge holds the following vertex (the first again after the last), so
+// the sums are taken in the same order and give the same values.
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T>::computeCentroid(const Mesh& a_mesh)
 {
   m_centroid = Vec3::zeros();
 
-  const auto vertexIndices = this->gatherVertexIndices(a_mesh);
+  uint32_t count = 0;
 
-  EBGEOMETRY_REQUIRE(!vertexIndices.empty(), "DCEL::FaceT::computeCentroid: the face has no vertices");
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    m_centroid += a_mesh.getVertex(a_mesh.getEdge(iter()).getVertexIndex()).getPosition();
 
-  for (const uint32_t v : vertexIndices) {
-    m_centroid += a_mesh.getVertex(v).getPosition();
+    count++;
   }
 
-  m_centroid = m_centroid / vertexIndices.size();
+  EBGEOMETRY_REQUIRE(count > 0, "DCEL::FaceT::computeCentroid: the face has no vertices");
+
+  m_centroid = m_centroid / T(count);
 }
 
 template <class T>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T>::computeNormal(const Mesh& a_mesh)
 {
-  const auto vertexIndices = this->gatherVertexIndices(a_mesh);
-
-  const size_t N = vertexIndices.size();
+  const uint32_t N = this->numVertices(a_mesh);
 
   // A polygon face needs at least 3 vertices to span a plane.
-  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (%zu)", N);
+  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (%u)", unsigned(N));
 
   // Newell's method: the sum of x_i cross x_(i+1) around the polygon is twice its vector area. It
   // uses every vertex, so it is robust for polygons with near-collinear consecutive vertices.
@@ -133,9 +152,10 @@ FaceT<T>::computeNormal(const Mesh& a_mesh)
 
   T longestEdge2 = T(0);
 
-  for (size_t i = 0; i < N; i++) {
-    const auto& x0 = a_mesh.getVertex(vertexIndices[i]).getPosition();
-    const auto& x1 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    const auto& edge = a_mesh.getEdge(iter());
+    const auto& x0   = a_mesh.getVertex(edge.getVertexIndex()).getPosition();
+    const auto& x1   = a_mesh.getVertex(edge.getNextEdge(a_mesh).getVertexIndex()).getPosition();
 
     m_normal += x0.cross(x1);
     longestEdge2 = Math::max(longestEdge2, (x1 - x0).length2());
@@ -186,25 +206,24 @@ FaceT<T>::computeProjectionDirections() noexcept
 }
 
 template <class T>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 FaceT<T>::computeArea(const Mesh& a_mesh)
 {
   T area = 0.0;
 
-  // This computes the area of any N-side polygon.
-  const auto   vertexIndices = this->gatherVertexIndices(a_mesh);
-  const size_t N             = vertexIndices.size();
+  const uint32_t N = this->numVertices(a_mesh);
 
-  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeArea: a face needs at least 3 vertices (%zu)", N);
+  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeArea: a face needs at least 3 vertices (%u)", unsigned(N));
 
-  // Sum over ALL N edges, including the wraparound edge from vertices[N-1] back to vertices[0] --
+  // Sum over ALL N edges, including the wraparound edge from the last vertex back to the first --
   // this is the standard cross-product/shoelace formula for a planar polygon's area relative to
   // the origin, and omitting the wraparound edge silently produces a wrong (generally too large or
   // too small) area for any polygon that doesn't happen to pass through the origin.
-  for (size_t i = 0; i < N; i++) {
-    const auto& v1 = a_mesh.getVertex(vertexIndices[i]).getPosition();
-    const auto& v2 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    const auto& edge = a_mesh.getEdge(iter());
+    const auto& v1   = a_mesh.getVertex(edge.getVertexIndex()).getPosition();
+    const auto& v2   = a_mesh.getVertex(edge.getNextEdge(a_mesh).getVertexIndex()).getPosition();
 
     area += m_normal.dot(v2.cross(v1));
   }

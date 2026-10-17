@@ -246,6 +246,21 @@ instantiateFunctionTemplates()
     Pool cloudPool(hostMemoryResource());
 
     (void)PointCloudHashGrid<T>::buildParallel(cloudPool, points);
+
+    uint32_t scanned[2] = {1, 2};
+    uint32_t sum        = 0;
+
+    GPU::exclusiveScan(scanned, 2, &sum);
+
+    // The parallel reconcile, on an empty mesh.
+    Pool           meshPool(hostMemoryResource());
+    DCEL::MeshT<T> mesh;
+
+    mesh.reserveVertices(meshPool, 0);
+    mesh.reserveEdges(meshPool, 0);
+    mesh.reserveFaces(meshPool, 0);
+
+    DCEL::reconcileParallel(mesh, meshPool);
   }
 
   // Every builder function, compiled into a tape.

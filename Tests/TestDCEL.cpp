@@ -2044,3 +2044,239 @@ TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surfac
 
   requireSameResults(afterFlip, flipped);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// reconcileParallel: the host reconcile, bit for bit, one thread per face, edge and vertex
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// The memory reconcileParallel() writes: managed memory in a CUDA or HIP build, where its steps run as
+// kernels, and host memory otherwise.
+MemoryResource&
+reconcileResource() noexcept
+{
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  return managedMemoryResource();
+#else
+  return hostMemoryResource();
+#endif
+}
+
+// Every quantity a reconcile writes, compared exactly.
+template <class T>
+void
+requireSameReconcile(const TestMesh<T>& a_parallel, const TestMesh<T>& a_host)
+{
+  REQUIRE(a_parallel.numFaces() == a_host.numFaces());
+  REQUIRE(a_parallel.numEdges() == a_host.numEdges());
+  REQUIRE(a_parallel.numVertices() == a_host.numVertices());
+
+  for (uint32_t f = 0; f < a_host.numFaces(); f++) {
+    INFO("face " << f);
+
+    const auto& p = a_parallel.getFace(f);
+    const auto& h = a_host.getFace(f);
+
+    REQUIRE(p.getNormal() == h.getNormal());
+    REQUIRE(p.getCentroid() == h.getCentroid());
+    REQUIRE(p.getArea() == h.getArea());
+  }
+
+  for (uint32_t e = 0; e < a_host.numEdges(); e++) {
+    INFO("edge " << e);
+    REQUIRE(a_parallel.getEdge(e).getNormal() == a_host.getEdge(e).getNormal());
+  }
+
+  for (uint32_t v = 0; v < a_host.numVertices(); v++) {
+    INFO("vertex " << v);
+    REQUIRE(a_parallel.getVertex(v).getNormal() == a_host.getVertex(v).getNormal());
+  }
+}
+
+// Read a mesh, copy it into a pool reconcileParallel() can write, move every vertex the same way in
+// both, and reconcile one on the host and the other in parallel.
+template <class T>
+void
+checkParallelReconcile(const std::string& a_file)
+{
+  INFO(a_file);
+
+  Pool hostPool(hostMemoryResource());
+  Pool parallelPool(reconcileResource());
+
+  TestMesh<T> host     = Parser::readIntoDCEL<T>(a_file, hostPool);
+  TestMesh<T> parallel = host.deepCopy(parallelPool);
+
+  // A rotation, a stretch and a shift, so every normal, centroid and area changes.
+  const auto move = [](const Vec3T<T>& a_x) {
+    return Vec3T<T>(
+      T(1.3) * a_x[0] - T(0.4) * a_x[1] + T(0.2), T(0.4) * a_x[0] + T(0.9) * a_x[1], T(0.7) * a_x[2] - T(1));
+  };
+
+  for (uint32_t v = 0; v < host.numVertices(); v++) {
+    host.getVertex(v).setPosition(move(host.getVertex(v).getPosition()));
+    parallel.getVertex(v).setPosition(move(parallel.getVertex(v).getPosition()));
+  }
+
+  host.reconcile();
+  DCEL::reconcileParallel(parallel, parallelPool);
+
+  requireSameReconcile(parallel, host);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("DCEL::reconcileParallel reconciles every face, edge and vertex exactly as MeshT::reconcile",
+                   "[DCEL][Mesh]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // In a CUDA or HIP build the steps are kernels.
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  // Triangles and quads, convex and concave, closed and with a sliver repaired by the reader.
+  for (const char* name : {"dodecahedron.stl",
+                           "dodecahedron.obj",
+                           "dodecahedron.ply",
+                           "dodecahedron.vtk",
+                           "cube_quads.obj",
+                           "lblock.stl",
+                           "notch.stl",
+                           "tetrahedron.stl",
+                           "tetrahedron_sliver.stl"}) {
+    checkParallelReconcile<T>(g_dataDir + "/" + name);
+  }
+
+  // An empty mesh.
+  Pool        pool(reconcileResource());
+  TestMesh<T> empty;
+
+  empty.reserveVertices(pool, 0);
+  empty.reserveEdges(pool, 0);
+  empty.reserveFaces(pool, 0);
+
+  DCEL::reconcileParallel(empty, pool);
+
+  CHECK(empty.numFaces() == 0);
+}
+
+TEMPLATE_TEST_CASE("DCEL::reconcileParallel: a mesh reconciled in device-accessible memory matches the host",
+                   "[DCEL][Mesh][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  // Managed memory in a GPU build, where the steps run as kernels; in a host build, emulated device
+  // memory, and the steps run as host loops.
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  MemoryResource& resource = managedMemoryResource();
+#else
+  MemoryResource& resource = emulatedDeviceMemoryResource();
+#endif
+
+  Pool hostPool(hostMemoryResource());
+  Pool devicePool(resource);
+
+  TestMesh<T> host   = Parser::readIntoDCEL<T>(g_dataDir + "/notch.stl", hostPool);
+  TestMesh<T> device = host.deepCopy(devicePool);
+
+  // Undo the reader's reconcile on the device copy, so nothing can come from it.
+  for (uint32_t v = 0; v < device.numVertices(); v++) {
+    device.getVertex(v).setNormal(Vec3T<T>::zeros());
+  }
+
+  DCEL::reconcileParallel(device, devicePool);
+
+  requireSameReconcile(device, host);
+}
+
+TEST_CASE("DCEL::reconcileParallel rejects what MeshT::reconcile rejects", "[DCEL][Mesh][death]")
+{
+  using T = double;
+
+  // Host meshes, which a CUDA or HIP build rejects for their pool before anything else.
+  if (GPU::enabled) {
+    SKIP("the host pool is rejected first in this build");
+  }
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      buildLinkedEdges(mesh, pool, {1, 2, 1});
+
+      DCEL::reconcileParallel(mesh, pool);
+    },
+    "DCEL::reconcileParallel: the half-edge loop of face 0 does not close (it reaches edge 1 after 3 steps"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      mesh.reserveVertices(pool, 0);
+      mesh.reserveEdges(pool, 0);
+      mesh.reserveFaces(pool, 1);
+
+      (void)mesh.addFace(pool, TestFace<T>(UINT32_MAX));
+
+      DCEL::reconcileParallel(mesh, pool);
+    },
+    "DCEL::reconcileParallel: face 0 has no half-edge"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      const std::vector<Vec3T<T>> positions = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, -1, 0}};
+      const std::vector<uint32_t> loop      = {0, 1, 2, 0, 3};
+
+      mesh.reserveVertices(pool, static_cast<uint32_t>(positions.size()));
+      mesh.reserveEdges(pool, static_cast<uint32_t>(loop.size()));
+      mesh.reserveFaces(pool, 1);
+
+      for (const auto& x : positions) {
+        (void)mesh.addVertex(pool, TestVertex<T>(x));
+      }
+
+      for (uint32_t e = 0; e < loop.size(); e++) {
+        TestEdge<T> edge(loop[e]);
+
+        edge.setNextEdge((e + 1) % static_cast<uint32_t>(loop.size()));
+        edge.setFace(0);
+
+        (void)mesh.addEdge(pool, edge);
+      }
+
+      (void)mesh.addFace(pool, TestFace<T>(0u));
+
+      DCEL::reconcileParallel(mesh, pool);
+    },
+    "DCEL::reconcileParallel: face 0 must visit vertex 0 exactly once (found 4"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      Pool        other(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      mesh.reserveVertices(pool, 0);
+      mesh.reserveEdges(pool, 0);
+      mesh.reserveFaces(pool, 0);
+
+      DCEL::reconcileParallel(mesh, other);
+    },
+    "DCEL::reconcileParallel: the pool must be the one the mesh lives in"));
+}
