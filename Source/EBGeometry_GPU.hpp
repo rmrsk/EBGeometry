@@ -107,7 +107,8 @@
 // ── Inlined host kernels ──────────────────────────────────────────────────────
 // GCC weighs a large kernel against the code around each call and may keep it out of line, which for
 // a SIMD kernel costs a round trip of every register through memory. The host pass of a kernel that
-// must be inlined is marked so; the device pass is left to its own inliner.
+// must be inlined is marked so; the device pass is left to its own inliner. Use it together with
+// `inline` (or on a function defined in its class), as GCC warns about always_inline otherwise.
 #if !defined(EBGEOMETRY_DEVICE_COMPILE) && (defined(__GNUC__) || defined(__clang__))
 /** @brief Always inline a function in a host pass (GCC and Clang); nothing in a device pass. */
 #define EBGEOMETRY_HOST_ALWAYS_INLINE __attribute__((always_inline))
