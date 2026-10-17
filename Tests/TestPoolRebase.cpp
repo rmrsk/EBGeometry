@@ -14,6 +14,7 @@
 #include <cstring>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -273,6 +274,26 @@ TEMPLATE_TEST_CASE("PoolHandle: every pool-resident class is a handle, and its l
 
   // A composite handle holds one location: MeshSDF's mesh and BVH used to carry one each.
   STATIC_REQUIRE(sizeof(TestSDF<T>) == sizeof(typename TestSDF<T>::Layout) + sizeof(PoolLocation));
+}
+
+TEMPLATE_TEST_CASE("PoolHandle: base() is const on a const handle and mutable otherwise, in every public handle",
+                   "[PoolRebase][PoolHandle]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T     = TestType;
+  using Bvh   = BVH::PackedBVH<T, uint32_t, 4>;
+  using Cloud = PointCloudBVH<T, 4, 4>;
+  using Grid  = PointCloudHashGrid<T>;
+
+  // One rule for every class that exposes base(): a const object hands out a const base, so binding
+  // its arrays gives const spans, and a mutable one a mutable base, with no cast in between.
+  STATIC_REQUIRE(std::is_same_v<decltype(std::declval<const Bvh&>().base()), const void*>);
+  STATIC_REQUIRE(std::is_same_v<decltype(std::declval<Bvh&>().base()), void*>);
+  STATIC_REQUIRE(std::is_same_v<decltype(std::declval<const Cloud&>().base()), const void*>);
+  STATIC_REQUIRE(std::is_same_v<decltype(std::declval<Cloud&>().base()), void*>);
+  STATIC_REQUIRE(std::is_same_v<decltype(std::declval<const Grid&>().base()), const void*>);
+  STATIC_REQUIRE(std::is_same_v<decltype(std::declval<Grid&>().base()), void*>);
+  STATIC_REQUIRE(std::is_same_v<decltype(std::declval<const Pool&>().base()), void*>);
 }
 
 TEMPLATE_TEST_CASE("PoolHandle: a handle rebuilt from its layout and location answers like the original",

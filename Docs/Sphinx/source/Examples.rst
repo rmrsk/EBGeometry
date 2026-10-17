@@ -67,7 +67,7 @@ tree itself lives:
    cmake --build build
    ./<Example>.ex
 
-   # GNU Make
+   # GNU Make (CXX and CXXFLAGS can be overridden too; -std=c++17 is always added)
    make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
    ./<Example>.ex
 

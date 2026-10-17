@@ -569,6 +569,19 @@ protected:
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline void*
+  base() noexcept
+  {
+    return m_location.base();
+  }
+
+  /**
+   * @brief The base address this handle's offsets resolve against, for read-only access.
+   * @details A const handle hands out a const base, so that a PODVector bound against it gives const
+   * elements (PODVector::bind and PODVector::at pick their const overload from the base's type).
+   * @return The base address.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const void*
   base() const noexcept
   {
     return m_location.base();

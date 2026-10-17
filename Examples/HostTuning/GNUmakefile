@@ -12,8 +12,13 @@ EBGEOMETRY_HOME ?= ../..
 PRECISION       ?= double
 ASSERTIONS      ?= OFF
 
-CXX      ?= g++
-CXXFLAGS ?= -std=c++17 -O3 -march=native -Wall -Wextra
+# make predefines CXX (as g++ on most systems), so `CXX ?=` would never apply: set it only when it
+# still has make's built-in value. -std=c++17 is on the compile line, not in CXXFLAGS, so that a
+# CXXFLAGS from the environment or the command line changes the optimisation and warning flags only.
+ifeq ($(origin CXX),default)
+  CXX = g++
+endif
+CXXFLAGS ?= -O3 -march=native -Wall -Wextra
 
 ifeq ($(ASSERTIONS),ON)
   CXXFLAGS += -DEBGEOMETRY_ENABLE_ASSERTIONS
@@ -22,7 +27,7 @@ endif
 TARGET := HostTuning.ex
 
 $(TARGET): main.cpp
-	$(CXX) $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@
+	$(CXX) -std=c++17 $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@
 
 .PHONY: run clean
 run: $(TARGET)

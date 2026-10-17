@@ -167,15 +167,10 @@ public:
   }
 
   /**
-   * @brief Resolve the base address every array of this object is an offset from.
-   * @return Base address of the pool block holding this object.
+   * @brief The base address this object's arrays are offsets from; see PoolHandle::base().
+   * @return The base address: const void* for a const object, void* otherwise.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const void*
-  base() const noexcept
-  {
-    return PoolHandle::base();
-  }
+  using PoolHandle::base;
 
   /**
    * @brief Produce a copy of this object that resolves against @p a_pool.

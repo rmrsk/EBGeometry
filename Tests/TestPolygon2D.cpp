@@ -31,22 +31,24 @@ allAlgorithms()
 
 // Test-only subclass that exposes FaceT's protected point-in-face test (used internally by
 // signedDistance()) so the containment algorithms can be exercised directly. MeshT stores plain
-// FaceT<T> by value (no polymorphism), so this can't be the type actually stored in a mesh's
-// face array; instead, castIsPointInsideFace() below reinterprets a real mesh-owned FaceT as this
-// subclass to call the promoted method. That's safe here because AccessibleFace adds no data
-// members and no virtual functions -- the `using` declaration only changes name visibility, so the
-// call resolves to the exact same non-virtual FaceT method on the exact same object.
+// FaceT<T> by value, so a mesh-owned face is never an AccessibleFace and must not be cast to one;
+// instead, isPointInsideFace() below copies the face into an AccessibleFace and asks the copy.
+// FaceT is a trivially copyable value type whose containment test reads only its own members and
+// the mesh passed in, so the copy gives the same answer as the original.
 template <class T>
 struct AccessibleFace : public DCEL::FaceT<T>
 {
+  explicit AccessibleFace(const DCEL::FaceT<T>& a_face) : DCEL::FaceT<T>(a_face)
+  {}
+
   using DCEL::FaceT<T>::isPointInsideFace;
 };
 
 template <class T>
 [[nodiscard]] bool
-castIsPointInsideFace(DCEL::FaceT<T>& a_face, const Vec3T<T>& a_point, const DCEL::MeshT<T>& a_mesh)
+isPointInsideFace(const DCEL::FaceT<T>& a_face, const Vec3T<T>& a_point, const DCEL::MeshT<T>& a_mesh)
 {
-  return static_cast<AccessibleFace<T>&>(a_face).isPointInsideFace(a_point, a_mesh);
+  return AccessibleFace<T>(a_face).isPointInsideFace(a_point, a_mesh);
 }
 
 // A single DCEL face wired up from a vertex list, held inside a real DCEL::MeshT so the face's
@@ -104,7 +106,7 @@ struct BuiltFace
 
     face.setInsideOutsideAlgorithm(a_algorithm);
 
-    return castIsPointInsideFace(face, a_point, m_mesh);
+    return isPointInsideFace(face, a_point, m_mesh);
   }
 };
 

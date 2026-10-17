@@ -128,16 +128,6 @@ blendTwoLargest(std::vector<T> a_values, const T a_smoothLen, Blend a_blend)
   return a_blend(a_values[n - 2], a_values[n - 1], a_smoothLen);
 }
 
-// Two independent code paths computing literally the same closed-form expression (a tape vs. the
-// formula computed by hand from the shapes, a pairwise vs. a vector overload, ...) should agree
-// up to floating-point reordering only -- no genuine approximation involved.
-template <class T>
-double
-exactMargin()
-{
-  return std::is_same_v<T, float> ? 1.0e-4 : 1.0e-12;
-}
-
 // A hand-computed closed-form expected value (SmoothMin's exact blend formula, FiniteRepetition's
 // tile folding, ...), or a "never worse than the sharp value" bound that holds by construction of
 // the blending formula, swept over many sample points.

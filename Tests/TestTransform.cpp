@@ -97,17 +97,6 @@ reflectedPoint(const Vec3T<T>& a_point, const size_t a_axis)
   return q;
 }
 
-// Two independent code paths computing literally the same closed-form expression (a tape vs. the
-// wrapped shape evaluated at the transformed point, or an analytic shape built directly at the
-// transformed position/size) should agree up to floating-point reordering only -- no genuine
-// approximation involved.
-template <class T>
-double
-exactMargin()
-{
-  return std::is_same_v<T, float> ? 1.0e-4 : 1.0e-12;
-}
-
 // A hand-computed closed-form expected value, or a partition-of-unity sum (Blur/Mollify sample
 // weights), involving a handful more floating-point operations than the "exact" comparisons.
 template <class T>

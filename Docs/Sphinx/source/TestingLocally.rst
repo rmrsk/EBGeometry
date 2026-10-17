@@ -192,8 +192,9 @@ Test coverage
        construction (a trivial default constructor, and value initialization giving zero),
        arithmetic, division by a scalar matching each component's own quotient, dot/cross products,
        length, component-wise min/max (a NaN component handled as ``Math::min``/``max`` handle it),
-       ``minDir``/``maxDir``, lexicographic ordering, scalar-left ``operator*``/``operator/`` with
-       any arithmetic scalar (and no other left operand).
+       ``clamp`` against expected values (below, inside, on and above the bounds, infinite and NaN
+       components), ``minDir``/``maxDir``, lexicographic ordering, scalar-left
+       ``operator*``/``operator/`` with any arithmetic scalar (and no other left operand).
    * - ``TestMath``
      - ``Math::min``/``max``/``clamp`` and ``Math::Limits`` against their ``std`` counterparts
        (including NaN arguments and constant evaluation), and ``Array<T, N>``: aggregate
@@ -228,9 +229,10 @@ Test coverage
        mirror rebased again onto that mirror's mirror; and the rejected cases (an unfrozen
        device-accessible pool, a device-only view used on the host), with a fake memory resource in
        place of a GPU. ``PoolHandle``: every pool-resident class is a handle and its layout holds no
-       location, a BVH union stores a mesh distance field as its layout, a composite handle carries
-       one location, and a handle rebuilt from its layout and a location (its own, or a mirror's)
-       answers exactly like the original.
+       location, ``base()`` is ``const void*`` on a const handle and ``void*`` otherwise, a BVH union
+       stores a mesh distance field as its layout, a composite handle carries one location, and a
+       handle rebuilt from its layout and a location (its own, or a mirror's) answers exactly like
+       the original.
    * - ``TestBoundingVolumes``
      - :cpp:class:`AABBT`: construction from corners and point clouds, volume, surface area, point
        distance, intersection predicate, overlapping volume; ``AABBT::merged``, the allocation-free

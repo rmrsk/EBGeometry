@@ -75,15 +75,6 @@ buildTetrahedron(Pool& a_pool)
   return mesh;
 }
 
-// A double-returning margin appropriate for comparisons that are exact by construction (unit
-// normals, symmetric distances) modulo floating-point reordering.
-template <class T>
-double
-exactMargin()
-{
-  return std::is_same_v<T, float> ? 1.0e-4 : 1.0e-12;
-}
-
 // A looser margin for comparisons that chain a few more floating-point operations (two search
 // algorithms agreeing, a near-zero surface-point SDF).
 template <class T>
