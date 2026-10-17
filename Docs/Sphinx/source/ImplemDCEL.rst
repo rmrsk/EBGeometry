@@ -76,7 +76,10 @@ floating-point precision ``T``:
    a binary search per vertex for where its faces start. The sort lists a vertex's faces in face order,
    as the host does, so every sum is taken in the same order and the result equals the host's bit for
    bit. It rejects every mesh ``reconcile()`` rejects, with the same messages. The mesh must live in the
-   given pool, which in a CUDA or HIP build must be managed memory.
+   given pool, which in a CUDA or HIP build must be managed memory. The scratch arrays, released on
+   return, take about 8 to 16 bytes per face corner for the keys (padded to a power of two), 4 per
+   corner for the face lists and a few words per face and per vertex, so the call needs room for that
+   besides the mesh. It accepts at most :math:`2^{31}` faces, vertices and face corners.
 
 *  ``MeshT<T>`` stores an entire DCEL mesh -- all of its vertices, half-edges, and faces --
    and provides brute-force (:math:`\mathcal{O}(N)`) distance queries, ``signedDistance()`` and

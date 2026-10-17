@@ -361,7 +361,10 @@ powerOfTwoAtLeast(const uint32_t a_n) noexcept
  * memory resource and are released on return. A mesh MeshT::reconcile() rejects is rejected here too,
  * with the same messages: a face with no half-edge, a half-edge loop that does not close, a face with
  * fewer than three vertices or a vertex index past the end of the vertex array, a face that visits a
- * vertex twice, and a face with coincident vertex positions. Every check aborts in every build.
+ * vertex twice, and a face with coincident vertex positions. It also rejects a mesh with more than
+ * 2^31 faces, 2^31 - 1 vertices or 2^31 face corners, the most its uint32_t scans and sort can count.
+ * Every check aborts in every build, after the faces and edges are rewritten when a vertex check
+ * fails, as with MeshT::reconcile().
  * @tparam T Precision.
  * @param[in,out] a_mesh The mesh; its faces, edges and vertices are rewritten.
  * @param[in]     a_pool The pool the mesh lives in.
@@ -383,6 +386,14 @@ reconcileParallel(MeshT<T>& a_mesh, Pool& a_pool)
   const uint32_t numFaces    = a_mesh.numFaces();
   const uint32_t numEdges    = a_mesh.numEdges();
   const uint32_t numVertices = a_mesh.numVertices();
+
+  // The scans and the sort run over power-of-two counts of uint32_t indices.
+  constexpr uint32_t maxCount = uint32_t(1) << 31;
+
+  EBGEOMETRY_REQUIRE(numFaces <= maxCount && numVertices < maxCount,
+                     "DCEL::reconcileParallel: at most 2^31 faces and 2^31 - 1 vertices (%u faces, %u vertices)",
+                     unsigned(numFaces),
+                     unsigned(numVertices));
 
   // Step 1: check the faces and count their corners. Every reservation comes before the base is
   // resolved, since a reserve can move the block.
@@ -414,9 +425,14 @@ reconcileParallel(MeshT<T>& a_mesh, Pool& a_pool)
     CheckFaces<T>{
       a_mesh, faceStatus.data(faceBase), faceDetail.data(faceBase), faceSteps.data(faceBase), offsets.data(faceBase)});
 
+  // Summed here in 64 bits, since the scan's uint32_t total would wrap on a mesh whose faces share loops.
+  uint64_t cornerSum = 0;
+
   for (uint32_t f = 0; f < numFaces; f++) {
     const FaceStatus status = faceStatus.at(faceBase, f);
     const uint32_t   detail = faceDetail.at(faceBase, f);
+
+    cornerSum += offsets.at(faceBase, f);
 
     EBGEOMETRY_REQUIRE(
       status != FaceStatus::NoHalfEdge, "DCEL::reconcileParallel: face %u has no half-edge", unsigned(f));
@@ -437,6 +453,10 @@ reconcileParallel(MeshT<T>& a_mesh, Pool& a_pool)
                        unsigned(detail),
                        unsigned(numVertices));
   }
+
+  EBGEOMETRY_REQUIRE(cornerSum <= maxCount,
+                     "DCEL::reconcileParallel: at most 2^31 face corners in all (%llu)",
+                     static_cast<unsigned long long>(cornerSum));
 
   GPU::exclusiveScan(offsets.data(faceBase), paddedFaces, total.data(faceBase));
 
