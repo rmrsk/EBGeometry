@@ -342,6 +342,28 @@ class with its own constructor.
 
 .. _Chap:BVHRefit:
 
+Batches of queries
+------------------
+
+`EBGeometry_BVHBatch.hpp <doxygen/html/EBGeometry__BVHBatch_8hpp.html>`__ runs many queries at once.
+``BVH::pruneTraverseBatch(bvh, points, states, evalLeaf, pruneDist2, order)`` runs ``pruneTraverse()``
+once per query through ``GPU::parallelFor()``: one thread per query in a CUDA or HIP translation unit,
+one loop iteration per query otherwise (see :ref:`Chap:RunningOnGPU`). Each query ends with exactly
+the state a single ``pruneTraverse()`` would give it. One leaf callback serves the whole batch, so it
+cannot capture a query point the way a single traversal's lambda does: each state carries its own
+query, and the callbacks are trivially copyable functors.
+
+``BVH::mortonOrder(points)`` gives the order to run them in: the points sorted along a Morton curve over
+their bounding box, with cubic cells sized by its longest side, so that a thin or elongated batch is not
+stretched along its short axes. A non-empty order must hold every query index exactly once, which is
+not checked. Consecutive queries are then close together, so they descend the same branches
+and read the same nodes, which on a device means less divergence within a warp and fewer memory
+transactions, and on the host means nodes and leaves still in cache. The ordered ``GPU::transform``
+overload applies the same order to any shape's query. On the host, one million ``TriMeshSDF`` queries
+against a 100,000-triangle mesh took about half as long in Morton order as in random order, and up to
+a fifth less than in grid order (cell by cell, which is already close to the curve); computing the
+order took a tenth of a second. Nothing has been measured on a device yet.
+
 Refitting for moving geometries
 -------------------------------
 

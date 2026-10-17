@@ -345,8 +345,13 @@ about the library's GPU ceiling. The agreed shape of the fix:
 * **Why after the tape and not before it.** The tape changes what a leaf evaluator is, so a batched
   traversal built earlier gets partly rebuilt anyway.
 
-Nothing needs doing now to keep this open: `pruneTraverse`'s contract already says nothing about
-threads. The one thing worth adding alongside the first `[gpu]` benchmark is a coherent-query case.
+The first step is built. `BVH::pruneTraverseBatch()` (`EBGeometry_BVHBatch.hpp`) runs the
+single-query traversal once per query through `GPU::parallelFor()`, `BVH::mortonOrder()` sorts the
+queries along a Morton curve, and an ordered `GPU::transform()` overload applies that order to any
+shape. On the host, Morton order halves the time of a million randomly ordered `TriMeshSDF` queries
+and trims up to a fifth off grid-ordered ones. Still open, in this order: measuring the batch on a
+device (coherent and random queries), then warp-cooperative traversal, stackless traversal and
+persistent threads, each only if the measurement asks for it.
 
 **Device builds.** A device-side `PointCloudBVH` build (Morton codes and a radix sort) and its
 `PointCloudHashGrid` counterpart; both already query on a device. Worth doing only with a consumer

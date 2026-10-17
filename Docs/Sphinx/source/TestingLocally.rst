@@ -322,7 +322,11 @@ Test coverage
        nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
        extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
        fewest power-of-``K`` leaves; a :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns,
-       built both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
+       built both ways and traversed; an empty BVH, whose ``getBoundingVolume()`` aborts; and the
+       batch helpers: ``BVH::mortonOrder`` a permutation along the curve, ``BVH::pruneTraverseBatch``
+       matching brute force in index and Morton order (and on a device), the ordered
+       ``GPU::transform`` matching the unordered one, and both rejecting mismatched sizes or
+       overlapping arrays.
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
        primitives, including far from the blend region;
