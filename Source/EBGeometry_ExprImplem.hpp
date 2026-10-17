@@ -729,6 +729,45 @@ Offset(const A& a_operand, const ExprPrecision<A> a_offset)
                                       q));
 }
 
+template <class A, class B>
+inline Expr<ExprPrecision<A>>
+Add(const A& a_first, const B& a_second)
+{
+  using T = ExprPrecision<A>;
+
+  static_assert(std::is_same_v<T, ExprPrecision<B>>, "Add: both operands must have the same precision");
+
+  auto node = ExprDetail::makeNode<T>(ExprDetail::Kind::Add, {toExpr(a_first), toExpr(a_second)});
+
+  node->m_boundingVolume = ExprDetail::everywhere<T>();
+  node->m_quality        = DistanceQuality::NotADistance;
+
+  return Expr<T>(std::move(node));
+}
+
+template <class A, class B>
+inline Expr<ExprPrecision<A>>
+Displace(const A& a_operand, const B& a_displacement, const ExprPrecision<A> a_amplitude)
+{
+  using T = ExprPrecision<A>;
+
+  static_assert(std::is_same_v<T, ExprPrecision<B>>, "Displace: both operands must have the same precision");
+
+  EBGEOMETRY_REQUIRE(std::isfinite(a_amplitude) && a_amplitude >= T(0),
+                     "Displace: the amplitude must be finite and non-negative (%g)",
+                     double(a_amplitude));
+
+  const Expr<T> child = toExpr(a_operand);
+
+  auto node = ExprDetail::makeNode<T>(ExprDetail::Kind::Add, {child, toExpr(a_displacement)});
+
+  // Where |d| <= a, the zero set of v + d lies where |v| <= a: within a of the object, as for Offset.
+  node->m_boundingVolume = ExprDetail::grown(child.computeBoundingVolume(), a_amplitude);
+  node->m_quality        = DistanceQuality::NotADistance;
+
+  return Expr<T>(std::move(node));
+}
+
 template <class A>
 inline Expr<ExprPrecision<A>>
 Annular(const A& a_operand, const ExprPrecision<A> a_delta)

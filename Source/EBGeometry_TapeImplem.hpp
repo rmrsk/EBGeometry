@@ -589,6 +589,16 @@ private:
 
       break;
     }
+    case Kind::Add: {
+      this->emit(a_state, a_node.m_children.front().node());
+
+      for (size_t i = 1; i < a_node.m_children.size(); i++) {
+        this->emit(a_state, a_node.m_children[i].node());
+        this->push(a_state, clause(Op::Add), -1, 0);
+      }
+
+      break;
+    }
     case Kind::SmoothUnion:
     case Kind::SmoothIntersection: {
       const bool    isUnion     = (a_node.m_kind == Kind::SmoothUnion);
@@ -889,6 +899,13 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
       nv--;
 
       values[nv - 1] = Math::max(values[nv - 1], values[nv]);
+
+      break;
+    }
+    case Op::Add: {
+      nv--;
+
+      values[nv - 1] += values[nv];
 
       break;
     }

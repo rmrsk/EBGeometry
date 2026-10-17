@@ -76,6 +76,22 @@ See the `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and
 :ref:`Chap:ExamplePointClouds` for worked usage.
 
+A point cloud as a shape
+------------------------
+
+``PointCloudSDF`` (:file:`Source/EBGeometry_PointCloudSDF.hpp`) turns a ``PointCloudBVH`` into a
+shape: the union of the balls of one radius :math:`r` around its points, whose value at
+:math:`\mathbf{x}` is :math:`|\mathbf{x} - \mathbf{c}| - r` for the closest point :math:`\mathbf{c}`,
+from one ``closestPoint()`` query. With :math:`r = 0` it is the unsigned distance to the points. It is
+much cheaper than a BVH union of ``N`` sphere primitives, since the cloud's leaves are SIMD point
+groups and no sphere needs a sub-program of its own. As for any union the value is the distance outside
+and at most the distance inside, where balls overlap, so its distance quality is ``Bound``; its box is
+the cloud's grown by :math:`r`, and an empty cloud is empty space. It holds the cloud's ``Layout`` and
+is a handle into the cloud's pool, like the mesh distance fields: a ``Tape`` lists it among its user
+primitives (:ref:`Sec:Tape`), and the cloud must live in the tape's pool. ``signedDistance()`` is
+callable on a device. See the `PointCloudSDF doxygen page
+<doxygen/html/classEBGeometry_1_1PointCloudSDF.html>`__.
+
 PointCloudHashGrid
 ------------------
 

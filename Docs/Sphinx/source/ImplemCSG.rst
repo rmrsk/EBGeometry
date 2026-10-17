@@ -174,6 +174,11 @@ The operations, described mathematically in :ref:`Chap:ConstructiveSolidGeometry
      - :math:`\max_i a_i(\mathbf{x})`
    * - ``Difference(a, b)``, ``Difference(a, list)``
      - :math:`\max(a, -\min_i b_i)`
+   * - ``Add(a, b)``
+     - :math:`a(\mathbf{x}) + b(\mathbf{x})`: not a distance, and bounded nowhere
+   * - ``Displace(a, d, amplitude)``
+     - :math:`a(\mathbf{x}) + d(\mathbf{x})`, for a displacement field :math:`d` (noise, a texture)
+       whose magnitude never exceeds ``amplitude``, which nothing checks
    * - ``SmoothUnion``, ``SmoothIntersection``, ``SmoothDifference``
      - A smooth minimum or maximum of the two extreme values, with smoothing length :math:`s` and a
        ``BlendKind`` (``Polynomial`` or ``Exponential``); a smooth difference is the smooth
@@ -195,12 +200,14 @@ quality (``getDistanceQuality()``), worked out from its operands' when it is mad
   Annular, Elongate, Blur (by :math:`\sqrt{3}d`) and Mollify (by :math:`\sqrt{3}r`) grow it; a
   repetition sweeps it over the tiles; a union merges the boxes (a smooth union grows the result by
   :math:`s/4`, or :math:`s\ln 2` for the exponential blend), an intersection intersects them, and a
-  difference keeps the first operand's. A complement covers all of space.
+  difference keeps the first operand's. A complement covers all of space, and so does ``Add``;
+  ``Displace`` grows the first operand's box by the amplitude.
 * **Distance quality.** Point maps and Complement keep the operand's quality, as do Annular and a
   growing Offset; a shrinking Offset, Elongate, Blur, Mollify and every union, intersection and
   difference give at best ``Bound``. A repetition is ``Bound`` only if the operand fits inside its
-  own tile, and ``NotADistance`` otherwise. Anything containing a ``NotADistance`` operand is
-  ``NotADistance``.
+  own tile, and ``NotADistance`` otherwise. ``Add`` and ``Displace`` are ``NotADistance``: a
+  displacement that changes by :math:`L` per unit length makes the sum :math:`(1 + L)`-Lipschitz.
+  Anything containing a ``NotADistance`` operand is ``NotADistance``.
 
 .. warning::
 
