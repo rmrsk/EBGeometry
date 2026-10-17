@@ -972,6 +972,17 @@ Each ``TriangleSoAT<T, W>`` block is likewise ``alignas``-aligned to its own SIM
 ``<float, 4>``/``<double, 4>``), and the library inserts ``static_assert`` checks that fire at
 compile time if the alignment invariant is violated.
 
+The triangle distance itself is written once, as ``TriangleDistance::signedDistance()`` in
+:file:`Source/EBGeometry_TriangleDistance.hpp`, a template over the lane type. ``Triangle``, one lane
+of a ``TriangleSoAT`` and the device path instantiate it with a plain ``float`` or ``double``; the
+SIMD path instantiates it with a ``SIMD::Pack<T, N>`` (:file:`Source/EBGeometry_SIMD.hpp`), a thin
+wrapper over one SSE4.1, AVX or AVX-512F register that supplies the arithmetic, the comparisons and
+a ``select()``. ``SIMD::NativeWidth<T, W>()`` picks ``N``: the widest register the compiler's flags
+provide whose lane count divides ``W``. A group wider than one register takes several (8 doubles
+under AVX are two 4-lane registers), and a group no register fits (``W = 2`` floats, or any width in
+a build without SIMD flags) runs the same kernel one triangle at a time. Every path therefore
+computes the same candidates in the same order, with one square root at the end.
+
 Choosing W and K explicitly
 ______________________________
 

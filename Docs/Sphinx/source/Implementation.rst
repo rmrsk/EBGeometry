@@ -35,9 +35,10 @@ components). A handful of design choices recur throughout the implementation:
   See :ref:`Chap:ImplemDCEL` and :ref:`Chap:ImplemBVH`.
 
 * **SIMD as an opt-in, compile-time-detected layer.** SIMD acceleration is implemented with
-  hand-written compiler intrinsics in three places (the SoA triangle and point blocks, and
-  ``PackedBVH``'s child-bounding-box pruning), selected at compile time from the standard
-  compiler-predefined ISA macros -- never a runtime dispatch. See
+  compiler intrinsics in three places (the SoA triangle and point blocks, and ``PackedBVH``'s
+  child-bounding-box pruning), selected at compile time from the standard compiler-predefined ISA
+  macros -- never a runtime dispatch. The triangle distance is one kernel template, instantiated
+  for a scalar and for thin wrappers over each SIMD register (``SIMD::Pack``). See
   :ref:`Chap:SIMDClasses`.
 
 * **Device-callable basics.** Scalar helpers and numeric limits (``Math::min``, ``Math::max``,

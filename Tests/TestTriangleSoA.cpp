@@ -11,7 +11,10 @@
 #include "TestGPU.hpp"
 
 #include <cmath>
+#include <limits>
+#include <random>
 #include <utility>
+#include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -451,4 +454,95 @@ TEST_CASE("TriangleSoAT/TriangleAoSoA::pack: reject a count outside [1, W] and a
       aosoa.pack(tris.data(), 0U);
     },
     "TriangleAoSoA::pack: the triangle count must be between 1 and 4 (0)"));
+}
+
+namespace {
+
+// Random triangles with random unit pseudonormals, so the sign of a vertex or edge candidate is not
+// simply the face's, and query points near and far.
+template <class T>
+std::vector<Tri<T>>
+randomTriangles(const size_t a_count, const unsigned a_seed)
+{
+  using Vec3 = Vec3T<T>;
+
+  std::mt19937                      rng(a_seed);
+  std::uniform_real_distribution<T> u(T(-1), T(1));
+
+  const auto unit = [&]() {
+    const Vec3 v(u(rng), u(rng), u(rng) + T(2));
+
+    return v / v.length();
+  };
+
+  std::vector<Tri<T>> tris;
+  for (size_t i = 0; i < a_count; i++) {
+    const Vec3 base(T(4) * u(rng), T(4) * u(rng), T(4) * u(rng));
+
+    Tri<T> tri(Array<Vec3, 3>{base,
+                              base + Vec3(T(1) + u(rng) * T(0.5), u(rng) * T(0.3), u(rng) * T(0.3)),
+                              base + Vec3(u(rng) * T(0.3), T(1) + u(rng) * T(0.5), u(rng) * T(0.3))});
+
+    tri.setVertexNormals(Array<Vec3, 3>{unit(), unit(), unit()});
+    tri.setEdgeNormals(Array<Vec3, 3>{unit(), unit(), unit()});
+    tris.push_back(tri);
+  }
+
+  return tris;
+}
+
+// Every lane of a width-Wd group against the Triangle it was packed from, and signedDistance()
+// against the first minimum-|value| lane, for every valid count.
+template <class T, size_t Wd>
+void
+checkAgainstTriangles()
+{
+  STATIC_REQUIRE(Wd % SIMD::NativeWidth<T, Wd>() == 0);
+
+  const auto tris = randomTriangles<T>(Wd, static_cast<unsigned>(17 + Wd));
+
+  std::mt19937                      rng(5);
+  std::uniform_real_distribution<T> u(T(-6), T(6));
+
+  for (uint32_t count = 1; count <= Wd; count++) {
+    TriangleSoAT<T, Wd> group;
+    group.pack(tris.data(), count);
+
+    for (int q = 0; q < 200; q++) {
+      const Vec3T<T> p(u(rng), u(rng), u(rng));
+
+      const auto lanes = group.signedDistances(p);
+
+      T expected = std::numeric_limits<T>::max();
+      for (uint32_t i = 0; i < count; i++) {
+        const T d = tris[i].signedDistance(p);
+
+        REQUIRE_THAT(lanes[i], withinAbsT(d, T(tightMargin<T>()) * (T(1) + std::abs(d))));
+
+        if (std::abs(lanes[i]) < std::abs(expected)) {
+          expected = lanes[i];
+        }
+      }
+
+      REQUIRE(group.signedDistance(p) == expected);
+    }
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("TriangleSoAT: every SIMD width and the scalar path agree with Triangle::signedDistance, "
+                   "lane by lane, for every valid count",
+                   "[TriangleSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // 2, 4, 8 and 16 cover every register width in both precisions (whichever this build has), split
+  // into several registers where W is wider than the register; 1, and 2 floats, fit no register.
+  checkAgainstTriangles<T, 1>();
+  checkAgainstTriangles<T, 2>();
+  checkAgainstTriangles<T, 4>();
+  checkAgainstTriangles<T, 8>();
+  checkAgainstTriangles<T, 16>();
 }
