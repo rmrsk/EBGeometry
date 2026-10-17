@@ -293,6 +293,7 @@ TEMPLATE_TEST_CASE("PoolHandle: base() is const on a const handle and mutable ot
   STATIC_REQUIRE(std::is_same_v<decltype(std::declval<Cloud&>().base()), void*>);
   STATIC_REQUIRE(std::is_same_v<decltype(std::declval<const Grid&>().base()), const void*>);
   STATIC_REQUIRE(std::is_same_v<decltype(std::declval<Grid&>().base()), void*>);
+  // The pool itself is not a view: it owns its block, so even a const pool hands out a mutable base.
   STATIC_REQUIRE(std::is_same_v<decltype(std::declval<const Pool&>().base()), void*>);
 }
 
