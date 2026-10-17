@@ -16,6 +16,7 @@
 #include "Source/EBGeometry_Array.hpp"
 #include "Source/EBGeometry_BVH.hpp"
 #include "Source/EBGeometry_BVHBuild.hpp"
+#include "Source/EBGeometry_BVHRefit.hpp"
 #include "Source/EBGeometry_BVHUnion.hpp"
 #include "Source/EBGeometry_Blend.hpp"
 #include "Source/EBGeometry_BoundingVolumes.hpp"
