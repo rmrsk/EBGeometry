@@ -667,7 +667,9 @@ auto DefaultLeafPredicate =
  * bottom-up build work from the bounding volumes alone. PackedBVH imposes no interface requirement
  * on P either; any further requirement comes entirely from whatever leaf-eval a caller passes to
  * PackedBVH::pruneTraverse() or PackedBVH::traverse() (see PackedBVH below).
- * @tparam BV Bounding volume type.
+ * @tparam BV Bounding volume type: constructible from a std::vector<BV> (a leaf's box, enclosing its
+ * primitives' boxes), with merged() (an interior node's box, folded from its children's without
+ * allocating) and a default-constructed empty box. AABBT is one; pack() requires it.
  * @tparam K  Tree branching factor (must be >= 2).
  */
 template <class T, class P, class BV, size_t K>
@@ -909,7 +911,8 @@ public:
    * exactly as it is, recomputing only the bounding volumes bottom-up: at every leaf, each
    * primitive's bounding volume is recomputed via @p a_bvConstructor and the leaf's node volume is
    * set to their union; at every interior node, the node volume is set to the union of its K
-   * children's (already-refitted) volumes. This is the cheap way to keep a BVH valid for a *moving*
+   * children's (already-refitted) volumes, folded with BV::merged(). Nothing is allocated: a leaf
+   * overwrites its stored per-primitive volumes in place. This is the cheap way to keep a BVH valid for a *moving*
    * geometry -- primitives that shift a little between frames without changing which leaf they
    * belong to -- avoiding a full rebuild-and-repack. Because it never re-partitions, a geometry that
    * has deformed enough for primitives to migrate across the tree will accumulate looser (lower
@@ -999,6 +1002,8 @@ protected:
 
   /**
    * @brief Set the K child nodes, converting this node from a leaf into an interior node.
+   * @details The node's box is folded from the children's boxes with BV::merged(), so nothing is
+   * allocated.
    * @param[in] a_children New child nodes.
    */
   inline void

@@ -332,16 +332,16 @@ template <class T, class P, class BV, size_t K>
 inline void
 TreeBVH<T, P, BV, K>::setChildren(const Array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children)
 {
-  std::vector<BV> boundingVolumes;
-  boundingVolumes.reserve(a_children.size());
+  BV boundingVolume;
+
   for (const auto& child : a_children) {
-    boundingVolumes.emplace_back(child->getBoundingVolume());
+    boundingVolume = boundingVolume.merged(child->getBoundingVolume());
   }
 
   m_primitives.resize(0);
   m_boundingVolumes.resize(0);
 
-  m_boundingVolume = BV(boundingVolumes);
+  m_boundingVolume = boundingVolume;
   m_children       = a_children;
   m_partitioned    = true;
 }
@@ -409,14 +409,13 @@ TreeBVH<T, P, BV, K>::refit(const BVConstructor& a_bvConstructor)
     m_boundingVolume = BV(m_boundingVolumes);
   }
   else {
-    std::vector<BV> childBoundingVolumes;
-    childBoundingVolumes.reserve(K);
+    BV boundingVolume;
 
     for (const auto& child : m_children) {
-      childBoundingVolumes.emplace_back(child->refit(a_bvConstructor));
+      boundingVolume = boundingVolume.merged(child->refit(a_bvConstructor));
     }
 
-    m_boundingVolume = BV(childBoundingVolumes);
+    m_boundingVolume = boundingVolume;
   }
 
   return m_boundingVolume;
