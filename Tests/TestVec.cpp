@@ -280,6 +280,36 @@ TEMPLATE_TEST_CASE("Vec3T: component-wise min/max (free functions)", "[Vec3T]", 
   REQUIRE(hi[2] == T(6.0));
 }
 
+TEMPLATE_TEST_CASE("Vec3T: clamp holds each component to its own bounds", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const Vec3T<T> lo(T(-1), T(0), T(2));
+  const Vec3T<T> hi(T(1), T(4), T(2));
+
+  // Below, inside and above the bounds, one component each; the z bounds coincide.
+  CHECK(clamp(Vec3T<T>(T(-3), T(1), T(5)), lo, hi) == Vec3T<T>(T(-1), T(1), T(2)));
+  CHECK(clamp(Vec3T<T>(T(0.5), T(7), T(-9)), lo, hi) == Vec3T<T>(T(0.5), T(4), T(2)));
+  CHECK(clamp(Vec3T<T>(T(3), T(-2), T(2)), lo, hi) == Vec3T<T>(T(1), T(0), T(2)));
+
+  // A component on a bound stays there, and a vector inside the box is unchanged.
+  CHECK(clamp(Vec3T<T>(T(-1), T(4), T(2)), lo, hi) == Vec3T<T>(T(-1), T(4), T(2)));
+  CHECK(clamp(Vec3T<T>(T(0.25), T(3), T(2)), lo, hi) == Vec3T<T>(T(0.25), T(3), T(2)));
+
+  // Infinite components clamp to the finite bound.
+  const T inf = Math::Limits<T>::infinity();
+  CHECK(clamp(Vec3T<T>(-inf, inf, inf), lo, hi) == Vec3T<T>(T(-1), T(4), T(2)));
+
+  // A NaN component compares false against both bounds and passes through, as with std::clamp.
+  const Vec3T<T> c = clamp(Vec3T<T>(std::numeric_limits<T>::quiet_NaN(), T(9), T(0)), lo, hi);
+  CHECK(std::isnan(c[0]));
+  CHECK(c[1] == T(4));
+  CHECK(c[2] == T(2));
+
+  // clamp is constexpr.
+  STATIC_REQUIRE(clamp(Vec3T<T>(T(5), T(-5), T(1)), Vec3T<T>::zeros(), Vec3T<T>::ones()) == Vec3T<T>(T(1), T(0), T(1)));
+}
+
 TEMPLATE_TEST_CASE("Vec3T: minDir and maxDir", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;

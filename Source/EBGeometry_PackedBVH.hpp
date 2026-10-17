@@ -892,14 +892,10 @@ public:
   }
 
   /**
-   * @brief Resolve the base address this BVH's arrays are offsets from.
-   * @details Reads through m_control on the host (so a Pool::reserve that moves the block is
-   * invisible) and through m_base on device. Exactly one of the two is set; which one is asserted.
-   * @return Base address of the pool block holding this BVH.
+   * @brief The base address this object's arrays are offsets from; see PoolHandle::base().
+   * @return The base address: const void* for a const object, void* otherwise.
    */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline const void*
-  base() const noexcept;
+  using PoolHandle::base;
 
   /**
    * @brief Produce a copy of this BVH that resolves against @p a_pool.

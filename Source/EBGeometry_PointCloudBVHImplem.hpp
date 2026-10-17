@@ -82,7 +82,7 @@ PointCloudBVH<T, K, W>::storeCloud(Pool&                             a_pool,
 
   // Resolve the base only after every reservation above: a reserve can grow the pool, which moves
   // the block and invalidates any address taken before it.
-  void* poolBase = const_cast<void*>(this->base());
+  void* poolBase = this->base();
 
   m_positions.assign(poolBase, a_positions.data(), numPoints);
   m_leafOff.assign(poolBase, a_leafOff.data(), numPoints);

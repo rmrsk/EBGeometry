@@ -827,7 +827,7 @@ Parser::readPLY(const std::string& a_filename)
           uint16_t u16;
           int8_t   i8;
           uint8_t  u8;
-        } data;
+        } data{};
 
         if (type == "float") {
           filestream.read(data.bytes, 4);
@@ -894,7 +894,7 @@ Parser::readPLY(const std::string& a_filename)
           uint16_t u16;
           int8_t   i8;
           uint8_t  u8;
-        } data;
+        } data{};
 
         int64_t value = -1;
 
@@ -1444,7 +1444,7 @@ Parser::readVTK(const std::string& a_filename)
         union {
           char  bytes[4];
           float f;
-        } data;
+        } data{};
         filestream.read(data.bytes, 4);
         std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
         return data.f;
@@ -1454,7 +1454,7 @@ Parser::readVTK(const std::string& a_filename)
         union {
           char   bytes[8];
           double d;
-        } data;
+        } data{};
         filestream.read(data.bytes, 8);
         std::reverse(data.bytes, data.bytes + 8); // Convert big-endian to little-endian
         return data.d;
@@ -1464,7 +1464,7 @@ Parser::readVTK(const std::string& a_filename)
         union {
           char    bytes[4];
           int32_t i;
-        } data;
+        } data{};
         filestream.read(data.bytes, 4);
         std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
         return data.i;
@@ -1537,7 +1537,7 @@ Parser::readVTK(const std::string& a_filename)
               union {
                 char    bytes[8];
                 int64_t val;
-              } data;
+              } data{};
               filestream.read(data.bytes, 8);
               std::reverse(data.bytes, data.bytes + 8);
               offsets.emplace_back(data.val);
@@ -1567,7 +1567,7 @@ Parser::readVTK(const std::string& a_filename)
               union {
                 char    bytes[8];
                 int64_t val;
-              } data;
+              } data{};
               if (filestream.read(data.bytes, 8)) {
                 std::reverse(data.bytes, data.bytes + 8);
                 connectivity.emplace_back(data.val);

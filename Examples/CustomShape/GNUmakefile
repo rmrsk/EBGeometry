@@ -19,15 +19,20 @@ GPU             ?= OFF
 HIP_ARCH        ?= gfx90a
 CUDA_ARCH       ?= sm_70
 
-CXX      ?= g++
-CXXFLAGS ?= -std=c++17 -O3 -march=native -Wall -Wextra
+# make predefines CXX (as g++ on most systems), so `CXX ?=` would never apply: set it only when it
+# still has make's built-in value. -std=c++17 is on the compile line, not in CXXFLAGS, so that a
+# CXXFLAGS from the environment or the command line changes the optimisation and warning flags only.
+ifeq ($(origin CXX),default)
+  CXX = g++
+endif
+CXXFLAGS ?= -O3 -march=native -Wall -Wextra
 
 ifeq ($(GPU),HIP)
   CXX      = hipcc
-  CXXFLAGS = -std=c++17 -O3 -Wall -Wextra -Wno-unused-parameter -x hip --offload-arch=$(HIP_ARCH)
+  CXXFLAGS = -O3 -Wall -Wextra -Wno-unused-parameter -x hip --offload-arch=$(HIP_ARCH)
 else ifeq ($(GPU),CUDA)
   CXX      = nvcc
-  CXXFLAGS = -std=c++17 -O3 -x cu -arch=$(CUDA_ARCH)
+  CXXFLAGS = -O3 -x cu -arch=$(CUDA_ARCH)
 else ifneq ($(GPU),OFF)
   $(error GPU must be OFF, HIP or CUDA)
 endif
@@ -39,7 +44,7 @@ endif
 TARGET := CustomShape.ex
 
 $(TARGET): main.cpp
-	$(CXX) $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@
+	$(CXX) -std=c++17 $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@
 
 .PHONY: run clean
 run: $(TARGET)

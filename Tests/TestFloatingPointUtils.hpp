@@ -15,6 +15,7 @@
 #define EBGEOMETRY_TEST_FLOATINGPOINTUTILS_HPP
 
 #include <limits>
+#include <type_traits>
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -28,6 +29,16 @@
 #define EBGEOMETRY_TEST_PRECISIONS double
 #endif
 
+// A margin for a result that is exact in exact arithmetic and differs from the expected value only by
+// floating-point reordering (a normal from axis-aligned input, a symmetric distance, an identity
+// transform): no genuine approximation is involved.
+template <class T>
+double
+exactMargin()
+{
+  return std::is_same_v<T, float> ? 1.0e-4 : 1.0e-12;
+}
+
 // A margin appropriate for a comparison that is exactly representable in either precision (e.g. a
 // normal computed from axis-aligned input, or an early-exit zero with no arithmetic involved).
 template <class T>
@@ -39,12 +50,15 @@ tightMargin()
 
 // A margin appropriate for a comparison whose expected value is only approximately zero even in
 // double (a genuine sqrt/division/trigonometric result, or the accumulated error of several such
-// operations).
+// operations). For float it is 1e4 epsilon (about 1.2e-3), ten times tightMargin(): the double
+// factor of 1e5 epsilon would give about 0.012 in float, too coarse to catch a real error in a
+// result of order one.
 template <class T>
 double
 looseMargin()
 {
-  return static_cast<double>(T(1.0e5) * std::numeric_limits<T>::epsilon());
+  return std::is_same_v<T, float> ? static_cast<double>(T(1.0e4) * std::numeric_limits<T>::epsilon())
+                                  : static_cast<double>(T(1.0e5) * std::numeric_limits<T>::epsilon());
 }
 
 // WithinAbs(double, double): wraps the explicit cast needed to pass a T target without an

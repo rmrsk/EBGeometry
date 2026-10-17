@@ -53,14 +53,6 @@ PackedBVH<T, P, K>::layout() const noexcept
 }
 
 template <class T, class P, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline const void*
-PackedBVH<T, P, K>::base() const noexcept
-{
-  return PoolHandle::base();
-}
-
-template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline PackedBVH<T, P, K>
 PackedBVH<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
@@ -135,7 +127,7 @@ PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNode
 
   // Resolve the base only after every reservation above: a reserve can grow the pool, which moves
   // the block and invalidates any address taken before it.
-  void* poolBase = const_cast<void*>(this->base());
+  void* poolBase = this->base();
 
   m_linearNodes.assign(poolBase, a_linearNodes.data(), static_cast<uint32_t>(a_linearNodes.size()));
   m_primitives.assign(poolBase, a_primitives.data(), static_cast<uint32_t>(a_primitives.size()));
@@ -169,7 +161,7 @@ PackedBVH<T, P, K>::buildSoA(Pool* a_pool)
   EBGEOMETRY_EXPECT(m_childAabbSoA.m_capacity == numInterior);
 
   // Resolved after the reservation above, for the reason given in finalize().
-  void* poolBase = const_cast<void*>(this->base());
+  void* poolBase = this->base();
 
   // Assembled host-side and copied in one shot, like the node and primitive arrays: a PODVector
   // never reallocates, so it has no way to be filled element-by-element without its final size
@@ -219,7 +211,7 @@ EBGEOMETRY_HOST_DEVICE
 inline PODSpan<P>
 PackedBVH<T, P, K>::getPrimitives() noexcept
 {
-  return m_primitives.bind(const_cast<void*>(this->base()));
+  return m_primitives.bind(this->base());
 }
 
 template <class T, class P, size_t K>
@@ -892,7 +884,7 @@ PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor)
   // cheap per-frame maintenance) allocates nothing.
   //
   // refit() reserves nothing, so one resolution covers the whole sweep.
-  void* poolBase = const_cast<void*>(this->base());
+  void* poolBase = this->base();
 
   for (uint32_t i = m_linearNodes.size(); i-- > 0;) {
     Node& node = m_linearNodes.at(poolBase, i);
