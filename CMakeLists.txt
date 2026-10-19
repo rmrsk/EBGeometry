@@ -31,6 +31,9 @@ option(EBGEOMETRY_BUILD_TESTS
 option(EBGEOMETRY_BUILD_EXAMPLES
   "Build the standalone EBGeometry examples" OFF)
 
+option(EBGEOMETRY_BUILD_PERFORMANCE
+  "Build the performance probes under Performance/ (see Performance/README.md)" OFF)
+
 option(EBGEOMETRY_ENABLE_ASSERTIONS
   "Enable EBGEOMETRY_EXPECT() runtime assertion checks" OFF)
 
@@ -200,4 +203,12 @@ if(EBGEOMETRY_BUILD_EXAMPLES)
     enable_testing()
   endif()
   add_subdirectory(Examples)
+endif()
+
+# ── Performance probes ────────────────────────────────────────────────────────
+if(EBGEOMETRY_BUILD_PERFORMANCE)
+  if(NOT EBGEOMETRY_BUILD_TESTS AND NOT EBGEOMETRY_BUILD_EXAMPLES)
+    enable_testing()
+  endif()
+  add_subdirectory(Performance)
 endif()

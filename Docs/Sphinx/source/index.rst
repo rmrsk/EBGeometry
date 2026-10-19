@@ -143,6 +143,7 @@ Contributing and testing
 
    Contributing.rst
    TestingLocally.rst
+   PerformanceTesting.rst
    ContinuousIntegration.rst
    ContributionGuidelines.rst
 

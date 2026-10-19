@@ -21,9 +21,10 @@ for embedded-boundary (EB) codes like AMReX, but is general-purpose.
 Single-word orientation: `Source/` is the library (all headers, no `.cpp`), `Tests/` is the Catch2
 unit-test suite (fetched via CMake `FetchContent`, not vendored), `Examples/` holds small
 standalone programs with no third-party dependencies (each independently buildable — see below),
-`Integrations/` holds illustrative (not CI-tested) examples coupling EBGeometry to third-party
-application codes (AMReX, Chombo), and `Docs/Sphinx/` + `Docs/doxygen.conf` are the two
-documentation systems.
+`Performance/` holds the performance probes and the comparison that every PR is vetted with (see
+"Vetting every pull request for performance" below), `Integrations/` holds illustrative (not
+CI-tested) examples coupling EBGeometry to third-party application codes (AMReX, Chombo), and
+`Docs/Sphinx/` + `Docs/doxygen.conf` are the two documentation systems.
 
 ## Cloning
 
@@ -89,6 +90,7 @@ ctest --preset examples         # run every example via ctest, several minutes i
 | `debug-san`     | Debug      | ON         | none | ON, + ASan/UBSan |
 | `release`       | Release    | OFF        | avx  | OFF |
 | `release-test`  | Release    | OFF        | avx  | ON |
+| `perf`          | Release    | OFF        | avx + `-march=native` | `Performance/` probes only |
 
 `EBGEOMETRY_SIMD` (`none|sse41|avx|avx512`) and `EBGEOMETRY_ENABLE_ASSERTIONS` are ordinary CMake
 cache variables if you need a combination not covered by a preset.
@@ -270,6 +272,122 @@ lines to group statements, so a few readability conventions are maintained by ha
   directly against an enclosing closing brace (a loop that is the last statement in its block needs
   no blank line between it and that closing brace).
 
+## Adding unit tests, examples and performance cases
+
+Three folders hold executables, each with one job: `Tests/` **verifies** (it fails when the library is
+wrong), `Examples/` **teaches** (it shows a user the calls to write and checks nothing), and
+`Performance/` **measures** (it times and compares, and checks only that answers did not change). Put
+a new program in the folder whose job it does; never make one do another's job (an example that
+asserts, a test that times, a probe that teaches).
+
+**What a change needs.** A new public class or function: unit tests, an entry in
+`Tests/InstantiateAll.cpp`, and Sphinx docs (see the docs section above). If it is a structure with a
+build or a query users call in bulk: performance cases. If it is something users need shown how to
+use (a new capability, not a new overload): an example. A new device path for existing code: a
+`[gpu]` test and a device/`hostdevice` performance case. A bug fix: a test that fails without the fix.
+
+### Unit tests (`Tests/`)
+- One file per component, `Tests/Test<Component>.cpp`, registered with `ebgeometry_add_test(...)` in
+  `Tests/CMakeLists.txt`. Add to the existing file when the component exists; a new file only for a
+  new component, with a row in the coverage table of `TestingLocally.rst`.
+- `TEMPLATE_TEST_CASE("<Class>: <behaviour in words>", "[<Class>]", EBGEOMETRY_TEST_PRECISIONS)`, not a
+  hardcoded `double`; `WithinAbs` through `tightMargin<T>()`/`looseMargin<T>()`/`withinAbsT<T>()`
+  (`TestFloatingPointUtils.hpp`). Name the behaviour, not the method ("rejects an empty cloud", not
+  "test constructor").
+- Check against an independent reference (brute force, a closed form, a hand-computed value), never
+  against the code under test run a second way.
+- A device-callable function gets a `[gpu]`-tagged case that runs it through `GPU::transform`
+  (`TestGPU.hpp`) and compares with the host; add the file to `EBGEOMETRY_GPU_TESTS` if it is new
+  there. It runs in emulation on host builds and as a real kernel in GPU builds.
+- An `EBGEOMETRY_REQUIRE` gets a death test with `abortsWith()` (`TestDeath.hpp`), matching the message.
+- Inputs: small files in `Tests/data/` (never the `common-3d-test-models` submodule, which tests must
+  not need), or meshes built in code (`TestConstructions.hpp`). Shared helpers go in a `Tests/*.hpp`.
+- Fast: the whole `ctest --preset debug` stays around 15 s in Debug. A slow case is a probe, not a test.
+
+### Examples (`Examples/`)
+- Only for something a user needs shown. One folder per topic: `main.cpp`, `CMakeLists.txt`,
+  `GNUmakefile`, `README.md`, copied from the nearest existing example so all three build routes,
+  `PRECISION`, `ASSERTIONS`, `EBGEOMETRY_HOME` and the GPU switch keep working. The folder is picked up
+  by CMake and CI automatically.
+- It also needs a page, `Docs/Sphinx/source/Example<Name>.rst`, in the Examples toctree of `index.rst`,
+  and a line in `Examples/README.md`'s reading order. Docs and headers cite examples, never tests.
+- Written to be read: the calls in the order a user writes them, with comments saying why, and printed
+  results a reader can follow. It checks nothing (that is the tests' job) and exits 0.
+- A device-capable example has the four parts in order (the query functor, the construction, host use,
+  the same query through `GPU::transform`) and skips the device part without a GPU.
+- No third-party dependencies (they go in `Integrations/`); the default input is `Examples/data/` or
+  the submodule; it runs in seconds in a Release build and within the 300 s ctest limit in Debug.
+
+### Performance cases (`Performance/`)
+The coverage rules are in "Vetting every pull request for performance" below. Mechanically:
+- New cases go in the component's probe (`Performance/<Component>/main.cpp`); a new component gets a
+  new folder with a `main.cpp` (picked up automatically) and a row in `Performance/README.md` and
+  `PerformanceTesting.rst`.
+- Each case: `suite.add("<component>/<input>/<operation>/<precision>/<host|device|hostdevice>", ...)`;
+  set up untimed, time with `measure()` (or `measureFresh()` for a build), and record `checksum()`,
+  `param()` for every code-selecting parameter, and `poolBytes()`. A device query is a trivially
+  copyable functor, timed with `measureOnDevice()`, plus a `measureHostAndDevice()` pair over Morton-
+  and randomly-ordered inputs. Give every case a `--smoke` size.
+- Run `ctest --preset perf` and one `Compare.cmake` against the base before committing; the new cases
+  show as *new*.
+
+## Vetting every pull request for performance
+
+**Claude runs a performance comparison on every pull request as soon as it is opened (draft or not),
+and again after any push that changes `Source/`, without being asked.** `Performance/` holds the
+probes (one program per component, many named cases, `component/input/operation/precision/side`) and
+`Performance/Compare.cmake`, which needs only CMake, git and a compiler; the full description is
+`Docs/Sphinx/source/PerformanceTesting.rst`.
+
+1. **Run the comparison against the PR's base**, from the repository root:
+
+   ```bash
+   cmake -DBASE=origin/<base> -DHEAD=<pr-branch> -P Performance/Compare.cmake           # host cases
+   cmake -DBASE=origin/<base> -DHEAD=<pr-branch> -DGPU=CUDA -DGPU_ARCH=86 \
+         -DCMAKE_CUDA_COMPILER=<nvcc> -P Performance/Compare.cmake                      # + device
+   ```
+
+   Add the device run whenever the PR touches code a device runs (`EBGEOMETRY_HOST_DEVICE`
+   functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). The `hostdevice` cases
+   then also report each side's time, their ratio and whether the host and device answers agree.
+   Nothing else should be running on the machine; each case runs in a fresh process, alternating
+   between the sides, pinned to one core.
+2. **Report the result to the user in the terminal** (the table and the "Run it manually" block that
+   `Compare.cmake` prints), **and carry the figures in the PR**: paste `build/perf-compare/report.md`
+   into the *Performance* section of the PR body (`.github/pull_request_template.md`), replacing an
+   older report. Every PR carries its figures, including a PR that should not change performance.
+3. **Act on the verdicts** (a change counts only outside the 95% bootstrap interval):
+   - **minor** (3% to 10% slower, or 3% to 10% more pool bytes): tell the user which cases, by how
+     much, and the likely cause if the diff shows one, and **ask whether it should be investigated
+     further** before going on.
+   - **MAJOR** (10% or more): **red-flag it**. The PR must not be merged until the regression is
+     fixed, or the user explicitly accepts it; record the reason in the PR's *Performance* section.
+   - A **differing checksum** or **host/device disagreements** are flagged whatever the timing says:
+     the sides computed different answers.
+   - Before calling something a regression, repeat the flagged cases by hand with more rounds
+     (`-DCASES='<glob>' -DROUNDS=10`); do not rerun until a noisy result passes.
+4. **CI runs a coarser version of the same comparison** (`Performance-compare` in
+   `.github/workflows/CI.yml`, host cases only, on a shared runner); a major regression there fails
+   `CI-passed`. It does not replace the local run: it is noisier and has no device.
+
+**Coverage: how wide the probes are, and when to add to them.** The probes cover each public
+structure where its cost lives: its build, its queries, and any in-place update (a refit), in both
+precisions, on the host and, where the operation runs there, on the device (plus a `hostdevice` pair
+for each device query). When a PR adds a public structure or query, or a device path for an existing
+one, **it adds the cases in the same PR** (a new folder under `Performance/` with a `main.cpp`, or
+cases in its component's probe), and the PR's comparison then lists them as *new*. Rules:
+- One operation on one input per case, at the sizes users meet (one repetition takes at least a few
+  milliseconds), with a `--smoke` size that runs in well under a second.
+- Spell out every parameter that selects code (`K`, `W`, precision, construction method) instead of
+  using the `Default*` functions, and record it with `param()`; record a `checksum()` that depends on
+  every result, and `poolBytes()` where there is a pool.
+- Add a case rather than change an existing one: a changed case cannot be compared with its past.
+- Keep the whole set to about ten minutes of `Compare.cmake` with its defaults on a desktop; a case
+  that repeats another's code path (the same kernel at another size) must have shown different
+  behaviour to earn its place.
+- Cross-library comparisons (fcpw, nanoflann, ...) do not belong here; they live in the
+  EBGeometry-benchmarks repository.
+
 ## Branching, pull requests, and other spin-offs
 
 **You are never allowed to automatically create new branches, submit pull requests, create git
@@ -288,7 +406,9 @@ the PR is no longer a draft). If a non-draft PR was already opened, convert it b
 
 When opening a PR, **always use the repository's pull-request template**
 (`.github/pull_request_template.md`) — its `# Summary` sections (`Background`, `Solution`,
-`Side-effects`, `Alternative solutions`) followed by the `Reviewer checklist`. Fill in the prose
+`Side-effects`, `Alternative solutions`, `Performance`) followed by the `Reviewer checklist`. The
+`Performance` section carries the comparison report (see "Vetting every pull request for
+performance" above). Fill in the prose
 sections (this is the "PR note") but **leave every checklist item unchecked** (`- [ ]`) — the
 checklist is for a human reviewer to complete, not you. If a PR was already opened with a body that
 does not follow this template, edit the PR body to conform to it.

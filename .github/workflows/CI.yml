@@ -266,6 +266,54 @@ jobs:
       - name: Run examples
         run: ctest --preset examples
 
+  # The performance probes (Performance/): built and run at their small --smoke sizes on every event,
+  # which checks they still compile and run; it times nothing.
+  Performance-smoke:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Performance probes (smoke run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure (perf preset, warnings as errors)
+        run: cmake --preset perf -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror"
+      - name: Build
+        run: cmake --build --preset perf --parallel 2
+      - name: Run every case at smoke size (ctest --preset perf)
+        run: ctest --preset perf
+
+  # On a pull request: the PR (merged into its base, as actions/checkout gives it) against its base,
+  # every host case run in alternation on the same runner (Performance/Compare.cmake). The table goes
+  # into the job summary; a major regression fails the job, and with it CI-passed. A shared runner is
+  # noisy, so this catches large regressions; the full comparison, device cases included, is run
+  # locally (see Docs/Sphinx/source/PerformanceTesting.rst). On a push it does nothing and succeeds,
+  # since CI-passed counts a skipped job as a failure.
+  Performance-compare:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Performance comparison against the base branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Nothing to compare on a push
+        if: github.event_name != 'pull_request'
+        run: echo "Performance comparisons run on pull requests only."
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request'
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Compare the PR with its base
+        if: github.event_name == 'pull_request'
+        run: >
+          cmake -DBASE=origin/${{ github.base_ref }} -DHEAD=HEAD -DSIDE=host -DROUNDS=3 -DREPS=3 -DCORE=1
+          -DWORK_DIR=build/perf-compare -P Performance/Compare.cmake
+      - name: Publish the comparison
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          if [ -f build/perf-compare/report.md ]; then
+            cat build/perf-compare/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   CMake-consumer:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: CMake consumer (add_subdirectory, find_package)
@@ -456,13 +504,13 @@ jobs:
           sub-packages: '["nvcc", "cudart"]'
       - name: Configure
         # Both precisions so the float instantiations of the device kernels are compiled too.
-        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON
+        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
         # with nvcc, so the device-callable surface must compile for the device. The device-test list
         # lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them, and
         # EBGeometry_GPUDeviceExamples the examples compiled for the device. No GPU is needed.
-        run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples --parallel 2
+        run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel 2
       - name: Run device-tagged tests
         # This runner has no GPU. Every [gpu] test case SKIP()s at its first statement when
         # deviceAvailable() is false (see TestGPU.hpp), so no kernel is launched and no device code
@@ -485,14 +533,14 @@ jobs:
       - name: Configure
         # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
         # Both precisions so the float instantiations of the device kernels are compiled too.
-        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON
+        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP)
         # with clang's HIP mode, so the device-callable surface must compile for the device. The
         # device-test list lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them.
         # No GPU is needed. EBGeometry_GPUDeviceExamples compiles the examples for the device in the
         # same way.
-        run: cmake --build build/hip --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples --parallel 2
+        run: cmake --build build/hip --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel 2
       - name: Configure and build optimised, with host SIMD flags
         # A HIP translation unit compiled with -mavx: clang's device pass then sees __AVX__ as well,
         # so any SIMD block in a __host__ __device__ function that is not also guarded on
@@ -514,7 +562,7 @@ jobs:
     # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
     # deliberately not listed.
     if: always()
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Performance-smoke, Performance-compare, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
     runs-on: ubuntu-latest
     steps:
       - name: Require every dependency to have succeeded

@@ -106,6 +106,24 @@ Examples-FloatPrecision
 The same as ``Examples-CMake``, but configured with ``-DEBGEOMETRY_PRECISION=float`` (a cache
 variable shared by every example's own ``CMakeLists.txt``).
 
+Performance-smoke
+~~~~~~~~~~~~~~~~~
+
+Configures with the ``perf`` preset and ``-Wall -Wextra -Werror``, builds the performance probes under
+``Performance/``, and runs every case at its small ``--smoke`` size (``ctest --preset perf``). This
+checks that the probes still compile and run; it times nothing. See :ref:`Chap:PerformanceTesting`.
+
+Performance-compare
+~~~~~~~~~~~~~~~~~~~
+
+On a pull request, runs ``Performance/Compare.cmake``: the pull request (merged into its base, as the
+checkout gives it) against its base branch, every host case in alternation on the same runner, three
+rounds of three repetitions. The comparison goes into the job summary, and a major regression (10% or
+more slower, outside the noise) fails the job. A shared runner is noisy, so this catches large
+regressions; the full comparison, device cases included, is run locally and its report carried in the
+pull request (:ref:`Chap:PerformanceTesting`). On a push the job does nothing and succeeds, since
+``CI-passed`` counts a skipped job as a failure. The GPU lanes also compile the probes for their device.
+
 CMake-consumer
 ~~~~~~~~~~~~~~
 
@@ -188,6 +206,8 @@ Dependency graph
     +-- Examples-GNUMake
     +-- Examples-CMake
     +-- Examples-FloatPrecision
+    +-- Performance-smoke
+    +-- Performance-compare
     +-- Build-documentation
     +-- Unit-Tests
     +-- Release-Test

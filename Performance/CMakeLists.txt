@@ -1,0 +1,159 @@
+# SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# The performance probes: one program per folder with a main.cpp, plus PerfCompare, which compares two
+# sets of results. Built from the project (EBGEOMETRY_BUILD_PERFORMANCE=ON, or the perf preset) or on
+# its own (cmake -S Performance -B build). See README.md and Compare.cmake.
+cmake_minimum_required(VERSION 3.16)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  project(EBGeometryPerformance CXX)
+
+  if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+  endif()
+
+  set(EBGEOMETRY_HOME "${CMAKE_CURRENT_SOURCE_DIR}/.." CACHE PATH "Path to the directory containing EBGeometry.hpp")
+  add_library(EBGeometry::EBGeometry INTERFACE IMPORTED)
+  target_include_directories(EBGeometry::EBGeometry INTERFACE "${EBGEOMETRY_HOME}")
+  target_compile_features(EBGeometry::EBGeometry INTERFACE cxx_std_17)
+
+  # On its own, the probes take the host's full instruction set, as a performance build should.
+  set(EBGEOMETRY_PERF_ARCH_FLAGS "-march=native" CACHE STRING "Architecture flags for a standalone host build")
+  enable_testing()
+else()
+  set(EBGEOMETRY_PERF_ARCH_FLAGS "" CACHE STRING "Architecture flags for a standalone host build")
+endif()
+
+set(EBGEOMETRY_PERF_SIDE "all" CACHE STRING "Which side's cases run by default: host, device or all")
+set_property(CACHE EBGEOMETRY_PERF_SIDE PROPERTY STRINGS host device all)
+
+set(EBGEOMETRY_PERF_MESH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../common-3d-test-models/data" CACHE PATH
+    "Directory holding armadillo.obj (the common-3d-test-models submodule)")
+set(EBGEOMETRY_PERF_SMOKE_MESH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/data" CACHE PATH
+    "Directory holding dodecahedron.obj, for --smoke")
+
+# The commit the probes are built from. Compare.cmake passes it for a tree exported without .git.
+if(NOT DEFINED EBGEOMETRY_PERF_GIT_SHA)
+  execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE EBGEOMETRY_PERF_GIT_SHA
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+
+  if(NOT EBGEOMETRY_PERF_GIT_SHA)
+    set(EBGEOMETRY_PERF_GIT_SHA "unknown")
+  endif()
+endif()
+
+# The same GPU switch as the examples: the project's EBGEOMETRY_ENABLE_HIP/CUDA, or, standalone,
+# EBGEOMETRY_PERF_GPU. A GPU build compiles every probe as CUDA or HIP; its device cases then run on
+# the device, and its host cases on the host.
+set(EBGEOMETRY_PERF_GPU OFF CACHE STRING "Compile the probes for a GPU when built on their own: OFF, CUDA or HIP")
+set_property(CACHE EBGEOMETRY_PERF_GPU PROPERTY STRINGS OFF CUDA HIP)
+
+if(EBGEOMETRY_ENABLE_HIP)
+  set(_perf_gpu HIP)
+elseif(EBGEOMETRY_ENABLE_CUDA)
+  set(_perf_gpu CUDA)
+else()
+  set(_perf_gpu ${EBGEOMETRY_PERF_GPU})
+endif()
+
+if(_perf_gpu STREQUAL "HIP" OR _perf_gpu STREQUAL "CUDA")
+  get_property(_perf_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
+
+  if(NOT _perf_gpu IN_LIST _perf_languages)
+    if(NOT DEFINED CMAKE_HIP_ARCHITECTURES)
+      set(CMAKE_HIP_ARCHITECTURES gfx90a)
+    endif()
+
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(CMAKE_CUDA_ARCHITECTURES 70)
+    endif()
+
+    enable_language(${_perf_gpu})
+  endif()
+elseif(NOT _perf_gpu STREQUAL "OFF")
+  message(FATAL_ERROR "EBGEOMETRY_PERF_GPU must be OFF, CUDA or HIP (got '${_perf_gpu}')")
+endif()
+
+if(_perf_gpu STREQUAL "HIP" OR _perf_gpu STREQUAL "CUDA")
+  set(_perf_gpu_build ON)
+else()
+  set(_perf_gpu_build OFF)
+endif()
+
+# Host-side vector flags for a GPU build, so that a host/device comparison does not set unvectorised
+# host code against the device (safe: the default branching factor and widths never follow the ISA).
+# HIP (clang) takes AVX2 and FMA, which every x86 host of a GPU has. nvcc cannot: with any host SIMD
+# macro set, GCC's immintrin.h pulls in the AMX headers, which nvcc's front end fails to parse (GCC 12
+# and 13 alike), so a CUDA build's host side stays scalar, as CI's CUDA lane is.
+if(_perf_gpu STREQUAL "HIP")
+  set(_perf_gpu_host_default "-mavx2;-mfma")
+else()
+  set(_perf_gpu_host_default "")
+endif()
+
+set(EBGEOMETRY_PERF_GPU_HOST_FLAGS "${_perf_gpu_host_default}" CACHE STRING "Host-side vector flags for the probes in a GPU build")
+
+# Every folder here with a main.cpp is a probe, except Compare/ (PerfCompare, below); the folders are
+# the only list.
+file(GLOB perf_mains CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*/main.cpp)
+list(REMOVE_ITEM perf_mains Compare/main.cpp)
+list(SORT perf_mains)
+
+set(EBGEOMETRY_PERF_PROBES "")
+
+foreach(perf_main IN LISTS perf_mains)
+  get_filename_component(name ${perf_main} DIRECTORY)
+  set(target Perf${name})
+
+  add_executable(${target} ${perf_main})
+  target_link_libraries(${target} PRIVATE EBGeometry::EBGeometry)
+  target_compile_definitions(${target} PRIVATE
+    EBGEOMETRY_PERF_GIT_SHA="${EBGEOMETRY_PERF_GIT_SHA}"
+    EBGEOMETRY_PERF_SIDE="${EBGEOMETRY_PERF_SIDE}"
+    EBGEOMETRY_PERF_MESH_DIR="${EBGEOMETRY_PERF_MESH_DIR}"
+    EBGEOMETRY_PERF_SMOKE_MESH_DIR="${EBGEOMETRY_PERF_SMOKE_MESH_DIR}")
+  set_target_properties(${target} PROPERTIES
+    OUTPUT_NAME ${name}
+    SUFFIX ".ex"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+
+  if(EBGEOMETRY_PERF_ARCH_FLAGS AND NOT _perf_gpu_build)
+    separate_arguments(_perf_arch UNIX_COMMAND "${EBGEOMETRY_PERF_ARCH_FLAGS}")
+    target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${_perf_arch}>)
+  endif()
+
+  # In a GPU build the host side still gets vector instructions, so that a host/device comparison
+  # does not set unvectorised host code against the device. Safe, because the default branching
+  # factor and widths never follow the ISA (see ConfigurationOptions.rst).
+  if(_perf_gpu STREQUAL "CUDA" AND EBGEOMETRY_PERF_GPU_HOST_FLAGS)
+    foreach(flag IN LISTS EBGEOMETRY_PERF_GPU_HOST_FLAGS)
+      target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${flag}>)
+    endforeach()
+  elseif(_perf_gpu STREQUAL "HIP" AND EBGEOMETRY_PERF_GPU_HOST_FLAGS)
+    target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:${EBGEOMETRY_PERF_GPU_HOST_FLAGS}>)
+  endif()
+
+  if(_perf_gpu STREQUAL "HIP" OR _perf_gpu STREQUAL "CUDA")
+    set_source_files_properties(${perf_main} PROPERTIES LANGUAGE ${_perf_gpu})
+    set_target_properties(${target} PROPERTIES ${_perf_gpu}_STANDARD 17 ${_perf_gpu}_STANDARD_REQUIRED ON)
+  endif()
+
+  # ctest only checks that every case runs, at the small --smoke sizes; it times nothing.
+  add_test(NAME ${target}-smoke COMMAND $<TARGET_FILE:${target}> --smoke)
+  set_tests_properties(${target}-smoke PROPERTIES TIMEOUT 300 LABELS "performance")
+
+  list(APPEND EBGEOMETRY_PERF_PROBES ${target})
+endforeach()
+
+# Compares two sets of results (Compare.cmake builds and calls it; see README.md).
+add_executable(PerfCompare Compare/main.cpp)
+target_compile_features(PerfCompare PRIVATE cxx_std_17)
+set_target_properties(PerfCompare PROPERTIES SUFFIX ".ex" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+
+add_custom_target(EBGeometry_Performance DEPENDS ${EBGEOMETRY_PERF_PROBES} PerfCompare)
