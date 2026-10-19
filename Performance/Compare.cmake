@@ -20,6 +20,7 @@
 #   SIDE       host, device or all                                default: host (all when GPU is set)
 #   GPU        OFF, CUDA or HIP                                   default: OFF
 #   GPU_ARCH   CMAKE_CUDA_ARCHITECTURES / CMAKE_HIP_ARCHITECTURES  default: the toolchain's
+#   CMAKE_CUDA_COMPILER / CMAKE_HIP_COMPILER  the device compiler   default: the one on the PATH
 #   CASES      glob of case names to run                          default: *
 #   ROUNDS     runs of each case per side                         default: 3
 #   REPS       timed repetitions inside each run                  default: 5
@@ -106,6 +107,11 @@ set(gpu_args -DEBGEOMETRY_PERF_GPU=${GPU})
 
 if(DEFINED GPU_ARCH AND NOT GPU STREQUAL "OFF")
   list(APPEND gpu_args -DCMAKE_${GPU}_ARCHITECTURES=${GPU_ARCH})
+endif()
+
+# The device compiler, when it is not the one on the PATH (CMAKE_CUDA_COMPILER / CMAKE_HIP_COMPILER).
+if(NOT GPU STREQUAL "OFF" AND DEFINED CMAKE_${GPU}_COMPILER)
+  list(APPEND gpu_args -DCMAKE_${GPU}_COMPILER=${CMAKE_${GPU}_COMPILER})
 endif()
 
 foreach(side base head)
@@ -226,6 +232,18 @@ if(changed_probes)
   string(APPEND notes "\nThe probes differ between the sides (each side ran its own): ${changed}\n")
 endif()
 
+set(gpu_manual "")
+
+if(NOT GPU STREQUAL "OFF")
+  if(DEFINED GPU_ARCH)
+    string(APPEND gpu_manual " -DGPU_ARCH=${GPU_ARCH}")
+  endif()
+
+  if(DEFINED CMAKE_${GPU}_COMPILER)
+    string(APPEND gpu_manual " -DCMAKE_${GPU}_COMPILER=${CMAKE_${GPU}_COMPILER}")
+  endif()
+endif()
+
 if(pin)
   set(pin_text "pinned to core ${CORE} with taskset")
 else()
@@ -237,7 +255,7 @@ Run it manually
 ---------------
 Whole comparison (${ROUNDS} rounds x ${REPS} repetitions, ${pin_text}):
 
-    cmake -DBASE=${BASE} -DHEAD=${HEAD} -DSIDE=${SIDE} -DGPU=${GPU} -DCASES='${CASES}' -DROUNDS=${ROUNDS} -DREPS=${REPS} -DWORK_DIR=${WORK_DIR} -P Performance/Compare.cmake
+    cmake -DBASE=${BASE} -DHEAD=${HEAD} -DSIDE=${SIDE} -DGPU=${GPU} -DCASES='${CASES}' -DROUNDS=${ROUNDS} -DREPS=${REPS} -DWORK_DIR=${WORK_DIR}${gpu_manual} -P Performance/Compare.cmake
 
 One case, both sides, by hand (the builds are kept under ${WORK_DIR}):
 
