@@ -22,7 +22,11 @@ folder measures it. The full description is the *Performance testing* page of th
 
 Each probe holds many cases, named `component/input/operation/precision/side`, where the side is `host`,
 `device` (the kernel alone) or `hostdevice` (the same inputs on both sides: each side's time, their
-ratio, and whether the answers agree).
+ratio, and whether the answers agree). The *Performance testing* page lists every case family with its
+input and size; `--list` prints the exact names.
+
+Probes print to the terminal and write no file (`--json > file.jsonl` keeps the results);
+`Compare.cmake` writes `base.jsonl`, `head.jsonl` and `report.md` under `build/perf-compare/`.
 
 Run a probe
 -----------

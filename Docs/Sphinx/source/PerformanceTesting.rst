@@ -42,6 +42,72 @@ inputs untimed, runs the measured operation once to warm up and then a number of
 Inputs are fixed: the point sets come from fixed seeds and the mesh is ``armadillo.obj`` from the
 ``common-3d-test-models`` submodule. A case whose input is missing is reported as skipped.
 
+What the probes measure
+-----------------------
+
+Every family below runs in ``float`` and ``double`` (the precision is the fourth part of the name), and
+its side is the last part: ``host``, ``device`` (one GPU thread per query, the kernel alone) or
+``hostdevice`` (the same inputs on both sides; see below). Sizes are the full ones; ``--smoke`` uses a
+few thousand points or the dodecahedron. ``--list`` prints the exact names.
+
+**PointCloud** (``Performance/PointCloud``): ``PointCloudBVH`` (K = 4, W = 4) and ``PointCloudHashGrid``,
+each over 500,000 points, either ``uniform`` in the unit cube or on the unit-``sphere`` surface.
+
+==============================  ====================  ===========================================================
+Family                          Sides                 Measures
+==============================  ====================  ===========================================================
+``build``                       host                  building the structure; also its pool bytes
+``all1nn``, ``all8nn``          host                  the batched k-nearest-neighbour graph (``allNearestNeighbors``)
+``closest``                     host, device          ``closestPoint`` at random points near the cloud (200,000;
+                                                      1,000,000 on the device)
+``closest-outside``             host                  ``closestPoint`` far outside the cloud (20,000 for the BVH,
+                                                      100 for the hash grid, which is slow out there)
+``neighbor``                    host, device          ``nearestNeighbor`` of every cloud point
+``neighbors8``, ``closest8``    host, device          the 8 nearest points per query, per point, in Morton order
+``*-morton``, ``*-random``      hostdevice            the queries above (262,144 external ones), both sides
+==============================  ====================  ===========================================================
+
+**Mesh** (``Performance/Mesh``): the armadillo, 99,976 triangles.
+
+==============================  ====================  ===========================================================
+Family                          Sides                 Measures
+==============================  ====================  ===========================================================
+``TriMeshSDF/w4/build``         host                  building a ``TriMeshSDF`` (K = 4, W = 4, SAH) from triangles
+``TriMeshSDF/w4/query``         host, device          signed distance at random points in the mesh's box grown 1.5
+                                                      times (100,000; 1,000,000 on the device)
+``TriMeshSDF/w4/query-*``       hostdevice            the same at 262,144 points, Morton and random order
+``TriMeshSDF/w8/...``           host (``float``)      build and query at the host-tuned width 8
+``MeshSDF/build``               host                  building a ``MeshSDF`` from an already-read DCEL mesh
+``MeshSDF/refit``               host                  10 refits of its BVH
+``MeshSDF/query``, ``query-*``  host, device,         as for ``TriMeshSDF``
+                                hostdevice
+==============================  ====================  ===========================================================
+
+**BVHUnion** (``Performance/BVHUnion``): the union of 97,336 unit spheres on a 46 × 46 × 46 lattice.
+
+==============================  ====================  ===========================================================
+Family                          Sides                 Measures
+==============================  ====================  ===========================================================
+``spheres/build``               host                  building the union's BVH
+``spheres/query``               host, device          signed distance at random points in the union's box
+                                                      (200,000; 1,000,000 on the device)
+==============================  ====================  ===========================================================
+
+Where the results go
+--------------------
+
+A probe prints to the terminal and writes no file: a table by default, or one JSON object per case with
+``--json``, which can be redirected to keep it (``PointCloud.ex --json > pointcloud.jsonl``). Each JSON
+line holds every repetition's time, the median, minimum and interquartile range, the checksum, pool
+bytes, parameters and, for a paired case, the host/device figures; the first line describes the build
+(commit, compiler, SIMD level, GPU backend, CPU).
+
+``Compare.cmake`` keeps everything under its ``WORK_DIR`` (default ``build/perf-compare``):
+``base.jsonl`` and ``head.jsonl`` (every run of every case, appended round by round), ``report.md`` (the
+comparison as Markdown, the text a pull request carries), and the two source trees and builds, so a
+case can be rerun by hand. Nothing is kept between comparisons: the next run replaces them. In CI the
+report is the job summary of ``Performance-compare``.
+
 Host and device
 ---------------
 
