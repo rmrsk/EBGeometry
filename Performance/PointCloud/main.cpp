@@ -178,14 +178,16 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, const std::string& a_
   });
 
   // Queries outside the cloud: a box five times the cloud's size, in which most points are far from
-  // every cloud point. Few of them: a hash grid searches outward cell by cell, which takes milliseconds
-  // per query out there.
+  // every cloud point. A hash grid searches outward cell by cell, which takes milliseconds per query
+  // out there, so it gets few queries; the BVH gets enough for a repetition to take milliseconds too.
+  const std::size_t outside = a_cloud == "PointCloudHashGrid" ? 100 : 20000;
+
   a_suite.add(prefix + "closest-outside/" + prec + "/host", [=](Perf::Case& c) {
     const std::size_t n      = c.size(500000, 2000);
     const auto        points = cloudPoints<T>(a_shape, n);
     const auto q = Perf::pointsInBox<T>(EBGeometry::BoundingVolumes::AABBT<T>(EBGeometry::Vec3T<T>(T(-2), T(-2), T(-2)),
                                                                               EBGeometry::Vec3T<T>(T(3), T(3), T(3))),
-                                        c.size(100, 10),
+                                        c.size(outside, 10),
                                         9u);
 
     EBGeometry::Pool             pool(EBGeometry::hostMemoryResource());

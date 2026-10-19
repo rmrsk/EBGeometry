@@ -218,13 +218,19 @@ addMeshSDF(Perf::Suite& a_suite)
     const SDF        sdf  = EBGeometry::Parser::readIntoMeshSDF<T, K>(Perf::meshFile(c.smoke()), pool);
     const auto       mesh = sdf.getMesh();
 
+    // A single refit takes a few milliseconds, too short to time steadily: each repetition does several.
+    constexpr std::size_t refits = 10;
+
     c.measure([&] {
-      sdf.getRoot().refit([&mesh](uint32_t a_face) {
-        return EBGeometry::BoundingVolumes::AABBT<T>(mesh.getFace(a_face).getAllVertexCoordinates(mesh));
-      });
+      for (std::size_t r = 0; r < refits; r++) {
+        sdf.getRoot().refit([&mesh](uint32_t a_face) {
+          return EBGeometry::BoundingVolumes::AABBT<T>(mesh.getFace(a_face).getAllVertexCoordinates(mesh));
+        });
+      }
     });
 
     c.checksum(double(sdf.computeBoundingVolume().getHighCorner()[0]));
+    c.param("refits", refits);
     params(c);
   });
 
