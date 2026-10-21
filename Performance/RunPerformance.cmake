@@ -22,7 +22,9 @@
 #   --cuda-compiler <path>  nvcc to use (CMake also honours CUDACXX); --hip-compiler likewise
 #   --reps <n>              timed repetitions per case (default 5)
 #   --rounds <n>            compare: runs of each case per side (default 3)
-#   --smoke                 run: tiny sizes, one repetition (checks the cases run)
+#   --smoke                 tiny sizes, one repetition: run checks that the cases run; compare checks
+#                           that both commits build, every case runs on both sides, the checksums
+#                           match and host/device agree, with no timing verdicts (about a minute)
 #   --core <n> | --no-pin   the core to pin to with taskset (default 2 for a host run, none with --gpu,
 #                           whose host side uses every core), or no pinning
 #   --help
@@ -153,6 +155,7 @@ if(command STREQUAL "compare")
   endif()
 
   set(GPU ${gpu})
+  set(SMOKE ${smoke})
   set(REPS ${reps})
   set(ROUNDS ${rounds})
   set(CORE ${core})

@@ -241,6 +241,7 @@ Comparing two commits
    Scripts/run-performance.sh compare origin/dev my-branch         # two commits
    Scripts/run-performance.sh compare origin/dev 'PointCloudBVH/*' --rounds 10
    Scripts/run-performance.sh compare origin/dev --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
+   Scripts/run-performance.sh compare origin/dev --smoke                   # a quick check, about a minute
 
 The first two arguments that git resolves to commits are the baseline (default ``origin/dev``) and the
 candidate (default: the working tree, uncommitted changes included); anything else is a glob. Each side
@@ -269,6 +270,14 @@ the command that repeats the comparison and those that rerun a single case by ha
      PointCloudHashGrid/uniform/build/double/host     14.3 ms     13.2 ms    -7.6%   [-55.6%, +99.1%]   +0.0%  ~
 
    Nothing flagged.
+
+A smoke comparison (``--smoke``) is a check, not a measurement: one round of one repetition at the
+``--smoke`` sizes, in about a minute, most of it building. It reports, for every case, whether it ran on
+each side, whether the two sides' checksums match and, for a pair, whether the host and device answers
+agree, and judges no timings. It fails if a case crashed, is missing or was skipped on one side, or if a
+pair's answers differ; a checksum that changed between the commits is reported but does not fail it,
+since a change to a kernel may change a result's last bits. Run it before a long comparison, or after
+changing the probes themselves.
 
 Reading the verdicts
 ^^^^^^^^^^^^^^^^^^^^

@@ -341,7 +341,8 @@ probes (one program per component, many named cases, `component/input/operation/
 `Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
 full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
-1. **Run the comparison against the PR's base**, from the repository root:
+1. **Run the comparison against the PR's base**, from the repository root (`--smoke` first gives a
+   one-minute check that both sides build and every case runs with the same answers):
 
    ```bash
    Scripts/run-performance.sh compare origin/<base> <pr-branch>                    # host cases

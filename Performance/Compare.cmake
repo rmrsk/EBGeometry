@@ -27,6 +27,9 @@
 #   CORE       core to pin to with taskset; OFF to not pin        default: 2 (OFF when GPU is set)
 #   MINOR      percent slower that asks for a look                default: 3
 #   MAJOR      percent slower that is a red flag                  default: 10
+#   SMOKE      ON: a quick check, not a measurement: one round of one repetition at the --smoke
+#              sizes; reports whether every case ran on both sides, the checksums and the host/device
+#              agreement, and no timing verdicts                   default: OFF
 #   WORK_DIR   where the trees, builds and results go             default: build/performance/compare
 #   FAIL_ON_MAJOR  exit non-zero on a major regression            default: ON
 
@@ -34,7 +37,7 @@ cmake_minimum_required(VERSION 3.16)
 
 get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
-foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;5" "MINOR;3" "MAJOR;10"
+foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;5" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
              "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON")
   list(GET pair 0 var)
   list(GET pair 1 default)
@@ -51,6 +54,11 @@ if(NOT DEFINED CORE OR "${CORE}" STREQUAL "")
   else()
     set(CORE OFF)
   endif()
+endif()
+
+if(SMOKE)
+  set(ROUNDS 1)
+  set(REPS 1)
 endif()
 
 get_filename_component(WORK_DIR "${WORK_DIR}" ABSOLUTE BASE_DIR "${REPO}")
@@ -186,6 +194,15 @@ if(njobs EQUAL 0)
   message(FATAL_ERROR "Compare.cmake: no case matches CASES=${CASES}")
 endif()
 
+set(smoke_arg "")
+
+if(SMOKE)
+  set(smoke_arg --smoke)
+endif()
+
+# Runs that crashed or exited with an error, reported with the comparison.
+set(failed "")
+
 file(WRITE "${WORK_DIR}/base.jsonl" "")
 file(WRITE "${WORK_DIR}/head.jsonl" "")
 
@@ -212,11 +229,12 @@ foreach(round RANGE 1 ${ROUNDS})
         continue()
       endif()
 
-      execute_process(COMMAND ${pin} "${exe}" --case "${name}" --side all --reps ${REPS} --json
+      execute_process(COMMAND ${pin} "${exe}" --case "${name}" --side all --reps ${REPS} --json ${smoke_arg}
                       OUTPUT_VARIABLE out RESULT_VARIABLE rc)
 
       if(NOT rc EQUAL 0)
         message(WARNING "Compare.cmake: ${side} ${probe} --case ${name} exited with ${rc}")
+        list(APPEND failed "${side}: ${name} (exit ${rc})")
       endif()
 
       file(APPEND "${WORK_DIR}/${side}.jsonl" "${out}")
@@ -227,13 +245,18 @@ endforeach()
 # ── Report ────────────────────────────────────────────────────────────────────────────────────────────
 execute_process(
   COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
-          --minor ${MINOR} --major ${MAJOR} --markdown "${WORK_DIR}/report.md"
+          --minor ${MINOR} --major ${MAJOR} --markdown "${WORK_DIR}/report.md" ${smoke_arg}
   RESULT_VARIABLE verdict)
 
 set(notes "")
 
 if(borrowed)
   string(APPEND notes "\n${borrowed}\n")
+endif()
+
+if(failed)
+  string(REPLACE ";" "\n  " failed_text "${failed}")
+  string(APPEND notes "\nThese runs failed (crashed or exited with an error):\n  ${failed_text}\n")
 endif()
 
 if(changed_probes)
@@ -256,6 +279,12 @@ endif()
 
 if(REPS EQUAL 1)
   set(reps_s "")
+endif()
+
+if(SMOKE)
+  set(what_text "a smoke check: smoke sizes, one repetition")
+else()
+  set(what_text "${ROUNDS} round${rounds_s} x ${REPS} repetition${reps_s}")
 endif()
 
 # The same comparison as one command of the front door, Scripts/run-performance.sh.
@@ -284,12 +313,16 @@ if(NOT GPU STREQUAL "OFF")
   endif()
 endif()
 
-if(NOT ROUNDS EQUAL 3)
-  string(APPEND again " --rounds ${ROUNDS}")
-endif()
+if(SMOKE)
+  string(APPEND again " --smoke")
+else()
+  if(NOT ROUNDS EQUAL 3)
+    string(APPEND again " --rounds ${ROUNDS}")
+  endif()
 
-if(NOT REPS EQUAL 5)
-  string(APPEND again " --reps ${REPS}")
+  if(NOT REPS EQUAL 5)
+    string(APPEND again " --reps ${REPS}")
+  endif()
 endif()
 
 if(CORE STREQUAL "OFF" AND GPU STREQUAL "OFF")
@@ -301,7 +334,7 @@ endif()
 set(manual "
 Run it manually
 ---------------
-The whole comparison again (${ROUNDS} round${rounds_s} x ${REPS} repetition${reps_s}, ${pin_text}):
+The whole comparison again (${what_text}, ${pin_text}):
 
     ${again}
 
@@ -321,6 +354,11 @@ Results: ${WORK_DIR}/base.jsonl and head.jsonl; this report: ${WORK_DIR}/report.
 message("${notes}${manual}")
 file(APPEND "${WORK_DIR}/report.md" "${notes}\n<details><summary>Run it manually</summary>\n\n```${manual}```\n</details>\n")
 
-if(verdict EQUAL 2 AND FAIL_ON_MAJOR)
+if(SMOKE AND (verdict EQUAL 2 OR failed))
+  message(FATAL_ERROR "Compare.cmake: the smoke comparison found a failed case, a case missing on one side, or "
+                      "host/device answers that differ (see above)")
+endif()
+
+if(NOT SMOKE AND verdict EQUAL 2 AND FAIL_ON_MAJOR)
   message(FATAL_ERROR "Compare.cmake: at least one MAJOR performance regression (see the table above)")
 endif()

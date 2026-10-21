@@ -20,6 +20,10 @@
 // differs between the sides is reported, since a change in speed is only comparable for equal answers.
 //
 //   PerfCompare.ex --base base.jsonl --head head.jsonl [--minor 3] [--major 10] [--markdown report.md]
+//                  [--smoke]
+//
+// With --smoke (results of a smoke run) it judges no timings: it reports, per case, whether it ran on
+// each side, whether the checksums match and whether a pair's host and device answers agree.
 //
 // The table goes to the terminal; --markdown also writes it as Markdown. Exit code 2 if any case is a
 // major regression, else 0. Usually run by Compare.cmake (see ../README.md).
@@ -262,6 +266,149 @@ bootstrap(const std::vector<double>& a_base, const std::vector<double>& a_head)
   return {ratios[resamples / 40], ratios[resamples - 1 - resamples / 40]};
 }
 
+// The smoke comparison: a check, not a measurement. For every case, whether it ran on each side, whether
+// the two sides' checksums match and, for a paired case, whether its host and device answers agree; no
+// timing verdicts, since a smoke run times nothing. Returns 2 if a case is missing or skipped on one
+// side or a pair's answers differ, else 0; a differing checksum is reported but does not fail, since a
+// change to a kernel may change a result's last bits.
+int
+smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
+{
+  struct SmokeRow
+  {
+    std::string name;
+    std::string base;
+    std::string head;
+    std::string checksum;
+    std::string answers;
+    std::string result;
+  };
+
+  const auto state = [](const Run& a_run, const std::string& a_name) -> std::string {
+    const auto it = a_run.cases.find(a_name);
+
+    if (it == a_run.cases.end()) {
+      return "missing";
+    }
+
+    return it->second.skipped ? "skipped" : (it->second.times.empty() ? "no result" : "ran");
+  };
+
+  std::vector<std::string> names = a_head.order;
+
+  for (const auto& n : a_base.order) {
+    if (a_head.cases.count(n) == 0) {
+      names.push_back(n);
+    }
+  }
+
+  std::vector<SmokeRow> rows;
+  int                   failures  = 0;
+  int                   checksums = 0;
+  int                   disagree  = 0;
+
+  for (const auto& name : names) {
+    SmokeRow row{name, state(a_base, name), state(a_head, name), "-", "-", "ok"};
+
+    const bool bothRan = row.base == "ran" && row.head == "ran";
+
+    if (bothRan) {
+      const Side& b = a_base.cases.at(name);
+      const Side& h = a_head.cases.at(name);
+
+      if (b.hasChecksum && h.hasChecksum) {
+        const double scale = std::max(std::abs(b.checksum), 1.0);
+
+        row.checksum = std::abs(b.checksum - h.checksum) > 1e-6 * scale ? "DIFFERS" : "same";
+
+        if (row.checksum == "DIFFERS") {
+          checksums++;
+          row.result = "check";
+        }
+      }
+
+      if (h.paired) {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "%.0f differ", h.mismatches);
+        row.answers = h.mismatches > 0.0 ? buf : "agree";
+
+        if (h.mismatches > 0.0) {
+          disagree++;
+          row.result = "FAIL";
+        }
+      }
+    }
+    else {
+      row.result = "FAIL";
+    }
+
+    if (row.result == "FAIL") {
+      failures++;
+    }
+
+    rows.push_back(row);
+  }
+
+  const auto get = [](const Run& a_run, const char* a_key) {
+    const auto it = a_run.meta.find(a_key);
+    return it == a_run.meta.end() ? std::string("?") : it->second;
+  };
+
+  char summary[256];
+  std::snprintf(summary,
+                sizeof(summary),
+                "%zu cases, %d failed or missing on a side, %d checksum differences, %d host/device disagreements",
+                rows.size(),
+                failures - disagree,
+                checksums,
+                disagree);
+
+  std::size_t width = 4;
+
+  for (const auto& r : rows) {
+    width = std::max(width, r.name.size());
+  }
+
+  std::printf("\nSmoke comparison (a check, not a measurement: no timing verdicts): %s\n", summary);
+  std::printf("  base %s, head %s\n\n", get(a_base, "git").c_str(), get(a_head, "git").c_str());
+
+  const auto line = [width](const SmokeRow& a_r) {
+    std::string out = "  " + pad(a_r.name, width, true) + "  " + pad(a_r.base, 9, true) + "  " +
+                      pad(a_r.head, 9, true) + "  " + pad(a_r.checksum, 8, true) + "  " + pad(a_r.answers, 10, true) +
+                      "  " + a_r.result;
+
+    out.erase(out.find_last_not_of(' ') + 1);
+
+    return out;
+  };
+
+  std::printf("%s\n", line(SmokeRow{"case", "base", "head", "checksum", "answers", "result"}).c_str());
+
+  for (const auto& r : rows) {
+    std::printf("%s\n", line(r).c_str());
+  }
+
+  std::printf("\n%s\n",
+              failures > 0 ? "FAILED: see the rows marked FAIL."
+                           : (checksums > 0 ? "Passed; the checksums marked DIFFERS changed between the commits."
+                                            : "Passed: every case ran on both sides with the same results."));
+
+  if (!a_markdown.empty()) {
+    std::ofstream md(a_markdown);
+
+    md << "**Smoke comparison (no timing verdicts): " << summary << "**\n\n";
+    md << "- base: " << get(a_base, "git") << "\n- head: " << get(a_head, "git") << "\n\n";
+    md << "| case | base | head | checksum | answers | result |\n|---|---|---|---|---|---|\n";
+
+    for (const auto& r : rows) {
+      md << "| `" << r.name << "` | " << r.base << " | " << r.head << " | " << r.checksum << " | " << r.answers << " | "
+         << (r.result == "FAIL" ? "**FAIL**" : r.result) << " |\n";
+    }
+  }
+
+  return failures > 0 ? 2 : 0;
+}
+
 } // namespace
 
 int
@@ -272,6 +419,7 @@ main(int argc, char** argv)
   std::string markdownFile;
   double      minor = 3.0;
   double      major = 10.0;
+  bool        smoke = false;
 
   for (int i = 1; i < argc; i++) {
     const std::string arg = argv[i];
@@ -281,6 +429,9 @@ main(int argc, char** argv)
     }
     else if (arg == "--head" && i + 1 < argc) {
       headFile = argv[++i];
+    }
+    else if (arg == "--smoke") {
+      smoke = true;
     }
     else if (arg == "--markdown" && i + 1 < argc) {
       markdownFile = argv[++i];
@@ -292,8 +443,9 @@ main(int argc, char** argv)
       major = std::atof(argv[++i]);
     }
     else {
-      std::fprintf(stderr,
-                   "usage: PerfCompare.ex --base <file> --head <file> [--minor %%] [--major %%] [--markdown <file>]\n");
+      std::fprintf(
+        stderr,
+        "usage: PerfCompare.ex --base <file> --head <file> [--minor %%] [--major %%] [--markdown <file>] [--smoke]\n");
       return 1;
     }
   }
@@ -305,6 +457,10 @@ main(int argc, char** argv)
 
   const Run base = read(baseFile);
   const Run head = read(headFile);
+
+  if (smoke) {
+    return smokeReport(base, head, markdownFile);
+  }
 
   struct Row
   {
