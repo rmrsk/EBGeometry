@@ -358,6 +358,7 @@ private:
   headers() const
   {
     std::vector<std::string> h;
+    h.reserve(m_columns.size());
 
     for (const auto& c : m_columns) {
       h.push_back(c.header);

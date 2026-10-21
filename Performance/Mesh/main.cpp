@@ -9,7 +9,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -50,18 +49,14 @@ queryPoints(const EBGeometry::BoundingVolumes::AABBT<T>& a_box, std::size_t a_n)
 }
 
 // The query cases both SDF types have: on the host and, if a_pairs, as host/device pairs.
-// a_make(pool, file) reads the mesh into an SDF; a_params records the SDF's parameters.
-template <class T, class SDF>
+// a_make(pool, file) reads the mesh into an SDF; a_params(case) records the SDF's parameters.
+template <class T, class SDF, class Make, class Params>
 void
-addQueryCases(Perf::Suite&                                              a_suite,
-              const std::string&                                        a_prefix,
-              std::function<SDF(EBGeometry::Pool&, const std::string&)> a_make,
-              std::function<void(Perf::Case&)>                          a_params,
-              bool                                                      a_pairs)
+addQueryCases(Perf::Suite& a_suite, const std::string& a_prefix, Make a_make, Params a_params, bool a_pairs)
 {
   const std::string prec = Perf::precisionName<T>();
 
-  a_suite.add(a_prefix + "query/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({a_prefix, "query", prec, "host"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
     const SDF        sdf = a_make(pool, Perf::meshFile(c.smoke()));
     const auto       q   = queryPoints<T>(sdf.computeBoundingVolume(), c.size(HostQueries, SmokeQueries));
@@ -79,22 +74,24 @@ addQueryCases(Perf::Suite&                                              a_suite,
   }
 
   for (const Perf::Order order : Perf::Orders) {
-    a_suite.add(a_prefix + "query-" + Perf::orderName(order) + "/" + prec + "/hostdevice", [=](Perf::Case& c) {
-      EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-      const SDF        sdf = a_make(pool, Perf::meshFile(c.smoke()));
-      const auto       q =
-        Perf::inOrder(order, queryPoints<T>(sdf.computeBoundingVolume(), c.size(PairQueries, SmokeQueries)));
+    a_suite.add(
+      Perf::caseName({a_prefix, std::string("query-") + Perf::orderName(order), prec, "hostdevice"}),
+      [=](Perf::Case& c) {
+        EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+        const SDF        sdf = a_make(pool, Perf::meshFile(c.smoke()));
+        const auto       q =
+          Perf::inOrder(order, queryPoints<T>(sdf.computeBoundingVolume(), c.size(PairQueries, SmokeQueries)));
 
-      const auto distances = Perf::measureHostAndDevice<T>(
-        c,
-        pool,
-        q,
-        [&](const EBGeometry::Pool& a_pool) { return Perf::SignedDistance<SDF, T>{sdf.rebasedView(a_pool)}; },
-        Perf::agreeDistance<T>);
+        const auto distances = Perf::measureHostAndDevice<T>(
+          c,
+          pool,
+          q,
+          [&](const EBGeometry::Pool& a_pool) { return Perf::SignedDistance<SDF, T>{sdf.rebasedView(a_pool)}; },
+          Perf::agreeDistance<T>);
 
-      c.checksum(Perf::checksumOf(distances));
-      a_params(c);
-    });
+        c.checksum(Perf::checksumOf(distances));
+        a_params(c);
+      });
   }
 }
 
@@ -106,7 +103,7 @@ addTriMeshSDF(Perf::Suite& a_suite)
 {
   using SDF = EBGeometry::TriMeshSDF<T, K, W>;
 
-  const std::string prefix = "TriMeshSDF/w" + std::to_string(W) + "/";
+  const std::string prefix = Perf::caseName({"TriMeshSDF", "w" + std::to_string(W)});
 
   const auto params = [](Perf::Case& c) {
     c.param("K", K);
@@ -114,7 +111,7 @@ addTriMeshSDF(Perf::Suite& a_suite)
     c.param("maxLeafGroups", MaxLeafGroups);
   };
 
-  a_suite.add(prefix + "build/" + Perf::precisionName<T>() + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "build", Perf::precisionName<T>(), "host"}), [=](Perf::Case& c) {
     const auto triangles = EBGeometry::Parser::readIntoTriangles<T>(Perf::meshFile(c.smoke()));
     const auto built     = Perf::measureBuild<SDF>(c, [&](EBGeometry::Pool& a_pool) {
       return SDF(triangles, a_pool, EBGeometry::BVH::Construction::SAH, MaxLeafGroups);
@@ -144,7 +141,7 @@ addMeshSDF(Perf::Suite& a_suite)
   using SDF  = EBGeometry::MeshSDF<T, K>;
   using Mesh = EBGeometry::DCEL::MeshT<T>;
 
-  const std::string prefix = "MeshSDF/";
+  const std::string prefix = "MeshSDF";
   const std::string prec   = Perf::precisionName<T>();
 
   const EBGeometry::BVH::ConstructionOptions options{MaxLeafFaces, 1, {}};
@@ -155,7 +152,7 @@ addMeshSDF(Perf::Suite& a_suite)
   };
 
   // The build alone: each repetition's pool has the mesh read into it, untimed.
-  a_suite.add(prefix + "build/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "build", prec, "host"}), [=](Perf::Case& c) {
     const auto built = Perf::measureBuild<SDF>(
       c,
       [&](EBGeometry::Pool& a_pool) { return EBGeometry::Parser::readIntoDCEL<T>(Perf::meshFile(c.smoke()), a_pool); },
@@ -170,7 +167,7 @@ addMeshSDF(Perf::Suite& a_suite)
 
   // Refitting the BVH to the faces' boxes. The SDF is a descriptor, so getRoot() of a const one still
   // refits the BVH in its pool.
-  a_suite.add(prefix + "refit/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "refit", prec, "host"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
     const SDF        sdf = EBGeometry::Parser::readIntoMeshSDF<T, K>(
       Perf::meshFile(c.smoke()), pool, EBGeometry::BVH::Construction::SAH, options);

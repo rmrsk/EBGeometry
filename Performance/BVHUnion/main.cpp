@@ -10,7 +10,6 @@
 
 #include <cmath>
 #include <cstddef>
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -97,16 +96,14 @@ randomCylinders(std::size_t a_n, std::vector<EBGeometry::CylinderSDF<T>>& a_shap
 // Every case for one family of objects in one precision: the union's build, its signed distance on the
 // host, and the same as host/device pairs. a_objects(n, objects) appends the family's objects for an
 // n x n x n lattice.
-template <class T, class Shape>
+template <class T, class Shape, class Objects>
 void
-addFamily(Perf::Suite&                                          a_suite,
-          const std::string&                                    a_family,
-          std::function<void(std::size_t, std::vector<Shape>&)> a_objects)
+addFamily(Perf::Suite& a_suite, const std::string& a_family, Objects a_objects)
 {
   using AABB  = EBGeometry::BoundingVolumes::AABBT<T>;
   using Union = EBGeometry::BVHUnion<T, Shape, K>;
 
-  const std::string prefix = "BVHUnion/" + a_family + "/";
+  const std::string prefix = Perf::caseName({"BVHUnion", a_family});
   const std::string prec   = Perf::precisionName<T>();
 
   // The family's objects and their boxes, recorded as the case's parameters.
@@ -133,7 +130,7 @@ addFamily(Perf::Suite&                                          a_suite,
     return std::make_pair(u, Perf::pointsInBox<T>(u.computeBoundingVolume(), a_queries, Perf::Seed::UnionQueries));
   };
 
-  a_suite.add(prefix + "build/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "build", prec, "host"}), [=](Perf::Case& c) {
     std::vector<Shape> shapes;
     std::vector<AABB>  boxes;
 
@@ -146,7 +143,7 @@ addFamily(Perf::Suite&                                          a_suite,
     c.checksum(static_cast<double>(built.object->signedDistance(Vec3<T>(T(0.5), T(0.5), T(0.5)))));
   });
 
-  a_suite.add(prefix + "query/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "query", prec, "host"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
     const auto       s = scene(c, pool, c.size(HostQueries, SmokeQueries));
     std::vector<T>   distances;
@@ -158,20 +155,21 @@ addFamily(Perf::Suite&                                          a_suite,
   });
 
   for (const Perf::Order order : Perf::Orders) {
-    a_suite.add(prefix + "query-" + Perf::orderName(order) + "/" + prec + "/hostdevice", [=](Perf::Case& c) {
-      EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-      const auto       s = scene(c, pool, c.size(PairQueries, SmokeQueries));
-      const Union&     u = s.first;
+    a_suite.add(
+      Perf::caseName({prefix, std::string("query-") + Perf::orderName(order), prec, "hostdevice"}), [=](Perf::Case& c) {
+        EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+        const auto       s = scene(c, pool, c.size(PairQueries, SmokeQueries));
+        const Union&     u = s.first;
 
-      const auto distances = Perf::measureHostAndDevice<T>(
-        c,
-        pool,
-        Perf::inOrder(order, s.second),
-        [&](const EBGeometry::Pool& a_pool) { return Perf::SignedDistance<Union, T>{u.rebasedView(a_pool)}; },
-        Perf::agreeDistance<T>);
+        const auto distances = Perf::measureHostAndDevice<T>(
+          c,
+          pool,
+          Perf::inOrder(order, s.second),
+          [&](const EBGeometry::Pool& a_pool) { return Perf::SignedDistance<Union, T>{u.rebasedView(a_pool)}; },
+          Perf::agreeDistance<T>);
 
-      c.checksum(Perf::checksumOf(distances));
-    });
+        c.checksum(Perf::checksumOf(distances));
+      });
   }
 }
 

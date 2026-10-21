@@ -147,7 +147,7 @@ public:
    * @brief Run the selected cases, or list them.
    * @return The program's exit code.
    */
-  int
+  [[nodiscard]] int
   run() const
   {
     std::vector<const Entry*> selected;

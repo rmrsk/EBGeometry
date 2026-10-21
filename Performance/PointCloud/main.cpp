@@ -214,7 +214,7 @@ template <class T, class Cloud, class Build>
 void
 addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::size_t a_farQueries, Build a_build)
 {
-  const std::string prefix = a_cloud + "/" + shapeName(a_shape) + "/";
+  const std::string prefix = Perf::caseName({a_cloud, shapeName(a_shape)});
   const std::string prec   = Perf::precisionName<T>();
   const std::string k      = std::to_string(KNearest);
 
@@ -235,7 +235,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
 
   // ── Host cases ──
 
-  a_suite.add(prefix + "build/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "build", prec, "host"}), [=](Perf::Case& c) {
     const auto p     = points(c);
     const auto built = Perf::measureBuild<Cloud>(c, [&](EBGeometry::Pool& a_pool) { return a_build(a_pool, p); });
 
@@ -244,7 +244,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
   });
 
   for (const std::size_t nn : {std::size_t(1), KNearest}) {
-    a_suite.add(prefix + "all" + std::to_string(nn) + "nn/" + prec + "/host", [=](Perf::Case& c) {
+    a_suite.add(Perf::caseName({prefix, "all" + std::to_string(nn) + "nn", prec, "host"}), [=](Perf::Case& c) {
       const auto          p = points(c);
       EBGeometry::Pool    pool(EBGeometry::hostMemoryResource());
       const Cloud         cloud = a_build(pool, p);
@@ -255,7 +255,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     });
   }
 
-  a_suite.add(prefix + "closest/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "closest", prec, "host"}), [=](Perf::Case& c) {
     const auto          p = points(c);
     const auto          q = near(c, HostQueries);
     EBGeometry::Pool    pool(EBGeometry::hostMemoryResource());
@@ -266,7 +266,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
   });
 
   // Queries far outside the cloud: in a box five times the cloud's size.
-  a_suite.add(prefix + "closest-outside/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "closest-outside", prec, "host"}), [=](Perf::Case& c) {
     const auto p = points(c);
     const auto q =
       Perf::pointsInBox<T>(Perf::cube(T(-2), T(3)), c.size(a_farQueries, SmokeFarQueries), Perf::Seed::FarQueries);
@@ -280,7 +280,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
   // Every point's nearest neighbour and its KNearest nearest, the points visited in Morton order, and the
   // KNearest closest points to queries near the cloud, also in Morton order: per point, as a device
   // thread asks (all8nn above is the batched host path).
-  a_suite.add(prefix + "neighbor/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "neighbor", prec, "host"}), [=](Perf::Case& c) {
     const auto          p = points(c);
     EBGeometry::Pool    pool(EBGeometry::hostMemoryResource());
     std::vector<Hit<T>> hits;
@@ -289,7 +289,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     c.checksum(Perf::checksumOf(hits));
   });
 
-  a_suite.add(prefix + "neighbors" + k + "/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "neighbors" + k, prec, "host"}), [=](Perf::Case& c) {
     c.param("k", KNearest);
 
     const auto            p = points(c);
@@ -300,7 +300,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     c.checksum(checksumOf(results));
   });
 
-  a_suite.add(prefix + "closest" + k + "/" + prec + "/host", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "closest" + k, prec, "host"}), [=](Perf::Case& c) {
     c.param("k", KNearest);
 
     const auto            p = points(c);
@@ -315,24 +315,25 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
   // ── Host/device pairs: the same queries on both sides ──
 
   for (const Perf::Order order : Perf::Orders) {
-    a_suite.add(prefix + "closest-" + Perf::orderName(order) + "/" + prec + "/hostdevice", [=](Perf::Case& c) {
-      const auto       p = points(c);
-      const auto       q = Perf::inOrder(order, near(c, PairQueries));
-      EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-      const Cloud      cloud = a_build(pool, p);
+    a_suite.add(Perf::caseName({prefix, std::string("closest-") + Perf::orderName(order), prec, "hostdevice"}),
+                [=](Perf::Case& c) {
+                  const auto       p = points(c);
+                  const auto       q = Perf::inOrder(order, near(c, PairQueries));
+                  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+                  const Cloud      cloud = a_build(pool, p);
 
-      const auto hits = Perf::measureHostAndDevice<Hit<T>>(
-        c,
-        pool,
-        q,
-        [&](const EBGeometry::Pool& a_pool) { return ClosestPoint<Cloud, T>{cloud.rebasedView(a_pool)}; },
-        Perf::agreeHit<T>);
+                  const auto hits = Perf::measureHostAndDevice<Hit<T>>(
+                    c,
+                    pool,
+                    q,
+                    [&](const EBGeometry::Pool& a_pool) { return ClosestPoint<Cloud, T>{cloud.rebasedView(a_pool)}; },
+                    Perf::agreeHit<T>);
 
-      c.checksum(Perf::checksumOf(hits));
-    });
+                  c.checksum(Perf::checksumOf(hits));
+                });
   }
 
-  a_suite.add(prefix + "neighbor-morton/" + prec + "/hostdevice", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "neighbor-morton", prec, "hostdevice"}), [=](Perf::Case& c) {
     const auto       p = points(c);
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
     const Cloud      cloud = a_build(pool, p);
@@ -347,7 +348,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     c.checksum(Perf::checksumOf(hits));
   });
 
-  a_suite.add(prefix + "neighbors" + k + "-morton/" + prec + "/hostdevice", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "neighbors" + k + "-morton", prec, "hostdevice"}), [=](Perf::Case& c) {
     c.param("k", KNearest);
 
     const auto       p = points(c);
@@ -364,7 +365,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     c.checksum(checksumOf(results));
   });
 
-  a_suite.add(prefix + "closest" + k + "-morton/" + prec + "/hostdevice", [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "closest" + k + "-morton", prec, "hostdevice"}), [=](Perf::Case& c) {
     c.param("k", KNearest);
 
     const auto       p = points(c);

@@ -52,7 +52,6 @@ namespace {
 
 using Perf::formatNumber;
 using Perf::formatTime;
-using Perf::Key::Case;
 
 // ── Reading ─────────────────────────────────────────────────────────────────────────────────────────
 
@@ -264,6 +263,13 @@ struct Comparison
   double                maxDiff    = 0;
   std::string           reason; // Why a side was skipped.
 
+  // The change in time, as a percentage, or "-" without times on both sides.
+  [[nodiscard]] std::string
+  change() const
+  {
+    return timed ? formatNumber("%+.1f%%", 100.0 * (headMs / baseMs - 1.0)) : "-";
+  }
+
   [[nodiscard]] bool
   flagged() const
   {
@@ -298,7 +304,7 @@ struct Comparison
                       formatNumber("%.3g", maxDiff) + ")");
     }
 
-    if (baseChecksum) {
+    if (baseChecksum && headChecksum) {
       parts.push_back("checksum differs (" + formatNumber("%.10g", *baseChecksum) + " -> " +
                       formatNumber("%.10g", *headChecksum) + ")");
     }
@@ -507,7 +513,7 @@ fullReport(const Results&     a_base,
   Perf::Table markdown = table;
 
   for (const auto& c : cases) {
-    const std::string change   = c.timed ? formatNumber("%+.1f%%", 100.0 * (c.headMs / c.baseMs - 1.0)) : "-";
+    const std::string change   = c.change();
     const std::string interval = c.timed ? "[" + formatNumber("%+.1f%%", 100.0 * (c.interval.low - 1.0)) + ", " +
                                              formatNumber("%+.1f%%", 100.0 * (c.interval.high - 1.0)) + "]"
                                          : "-";
@@ -531,13 +537,10 @@ fullReport(const Results&     a_base,
     {{"verdict", Align::Left}, {"case", Align::Left}, {"change", Align::Right}, {"note", Align::Left}});
   bool any = false;
 
-  for (std::size_t i = 0; i < cases.size(); i++) {
-    if (cases[i].flagged()) {
+  for (const auto& c : cases) {
+    if (c.flagged()) {
       any = true;
-      flagged.add({label(cases[i].outcome),
-                   cases[i].name,
-                   cases[i].timed ? formatNumber("%+.1f%%", 100.0 * (cases[i].headMs / cases[i].baseMs - 1.0)) : "-",
-                   cases[i].note()});
+      flagged.add({label(c.outcome), c.name, c.change(), c.note()});
     }
   }
 

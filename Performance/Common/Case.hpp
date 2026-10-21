@@ -15,6 +15,7 @@
 #include <chrono>
 #include <cstddef>
 #include <functional>
+#include <initializer_list>
 #include <string>
 #include <utility>
 #include <vector>
@@ -23,6 +24,27 @@
 #include "Statistics.hpp"
 
 namespace Perf {
+
+/**
+ * @brief A case name from its parts, joined with '/': group.../operation/precision/side.
+ * @param[in] a_parts The parts, from general to specific.
+ * @return The name.
+ */
+inline std::string
+caseName(std::initializer_list<std::string> a_parts)
+{
+  std::string name;
+
+  for (const auto& part : a_parts) {
+    if (!name.empty()) {
+      name += '/';
+    }
+
+    name += part;
+  }
+
+  return name;
+}
 
 /**
  * @brief A case name split into its parts: the group (the parts before the operation), the operation,
