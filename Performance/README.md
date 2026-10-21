@@ -20,9 +20,10 @@ folder measures it. The full description is the *Performance testing* page of th
 | `Common/`     | `PerfHarness.hpp`, the harness every probe uses                 |
 | `Compare/`    | `PerfCompare`, which compares two sets of results               |
 
-Each probe holds many cases, named `component/input/operation/precision/side`, where the side is `host`,
-`device` (the kernel alone) or `hostdevice` (the same inputs on both sides: each side's time, their
-ratio, and whether the answers agree). The *Performance testing* page lists every case family with its
+Each probe holds many cases, named `component/input/operation/precision/side`. A host build runs the
+`host` cases, on one core; a CUDA or HIP build runs only the `hostdevice` pairs: every device query with
+the same inputs on both sides, the host side on every core (OpenMP), giving each side's time, the
+device's speedup and whether the answers agree. The *Performance testing* page lists every case family with its
 input and size; `--list` prints the exact names.
 
 Run them
@@ -32,10 +33,10 @@ From the repository root, through one script (needs only CMake, git and a compil
 every option):
 
 ```bash
-Scripts/run-performance.sh                          # build if needed, run every case
+Scripts/run-performance.sh                          # build if needed, run every host case
 Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset: one or more globs
 Scripts/run-performance.sh list                     # the case names
-Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # + device cases
+Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # the host/device pairs
 Scripts/run-performance.sh compare origin/dev       # this tree against origin/dev
 ```
 

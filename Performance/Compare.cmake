@@ -18,14 +18,13 @@
 #   BASE       baseline commit or branch                         default: origin/dev
 #   HEAD       candidate commit or branch; WORKTREE uses the     default: HEAD
 #              working tree as it is, uncommitted changes included
-#   SIDE       host, device or all                                default: host (all when GPU is set)
 #   GPU        OFF, CUDA or HIP                                   default: OFF
 #   GPU_ARCH   CMAKE_CUDA_ARCHITECTURES / CMAKE_HIP_ARCHITECTURES  default: the toolchain's
 #   CMAKE_CUDA_COMPILER / CMAKE_HIP_COMPILER  the device compiler   default: the one on the PATH
 #   CASES      glob(s) of case names to run, a CMake list         default: *
 #   ROUNDS     runs of each case per side                         default: 3
 #   REPS       timed repetitions inside each run                  default: 5
-#   CORE       core to pin to with taskset; OFF to not pin        default: 2
+#   CORE       core to pin to with taskset; OFF to not pin        default: 2 (OFF when GPU is set)
 #   MINOR      percent slower that asks for a look                default: 3
 #   MAJOR      percent slower that is a red flag                  default: 10
 #   WORK_DIR   where the trees, builds and results go             default: build/performance/compare
@@ -35,7 +34,7 @@ cmake_minimum_required(VERSION 3.16)
 
 get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
-foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;5" "CORE;2" "MINOR;3" "MAJOR;10"
+foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;5" "MINOR;3" "MAJOR;10"
              "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON")
   list(GET pair 0 var)
   list(GET pair 1 default)
@@ -45,11 +44,12 @@ foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;
   endif()
 endforeach()
 
-if(NOT DEFINED SIDE)
+# A host comparison is pinned to one core; a GPU comparison's host side uses them all.
+if(NOT DEFINED CORE OR "${CORE}" STREQUAL "")
   if(GPU STREQUAL "OFF")
-    set(SIDE host)
+    set(CORE 2)
   else()
-    set(SIDE all)
+    set(CORE OFF)
   endif()
 endif()
 
@@ -169,7 +169,7 @@ endforeach()
 
 foreach(p IN LISTS head_probes)
   get_filename_component(probe "${p}" DIRECTORY)
-  execute_process(COMMAND "${WORK_DIR}/head-build/bin/${probe}.ex" --list --side ${SIDE} ${case_args}
+  execute_process(COMMAND "${WORK_DIR}/head-build/bin/${probe}.ex" --list --side all ${case_args}
                   OUTPUT_VARIABLE names OUTPUT_STRIP_TRAILING_WHITESPACE)
   string(REPLACE "\n" ";" names "${names}")
 
@@ -183,7 +183,7 @@ endforeach()
 list(LENGTH jobs njobs)
 
 if(njobs EQUAL 0)
-  message(FATAL_ERROR "Compare.cmake: no case matches SIDE=${SIDE} CASES=${CASES}")
+  message(FATAL_ERROR "Compare.cmake: no case matches CASES=${CASES}")
 endif()
 
 file(WRITE "${WORK_DIR}/base.jsonl" "")
@@ -284,10 +284,6 @@ if(NOT GPU STREQUAL "OFF")
   endif()
 endif()
 
-if(SIDE STREQUAL "device" OR (SIDE STREQUAL "host" AND NOT GPU STREQUAL "OFF"))
-  string(APPEND again " --${SIDE}")
-endif()
-
 if(NOT ROUNDS EQUAL 3)
   string(APPEND again " --rounds ${ROUNDS}")
 endif()
@@ -296,9 +292,9 @@ if(NOT REPS EQUAL 5)
   string(APPEND again " --reps ${REPS}")
 endif()
 
-if(CORE STREQUAL "OFF")
+if(CORE STREQUAL "OFF" AND GPU STREQUAL "OFF")
   string(APPEND again " --no-pin")
-elseif(NOT CORE EQUAL 2)
+elseif(NOT CORE STREQUAL "OFF" AND (NOT CORE EQUAL 2 OR NOT GPU STREQUAL "OFF"))
   string(APPEND again " --core ${CORE}")
 endif()
 

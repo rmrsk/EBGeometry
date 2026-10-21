@@ -304,7 +304,7 @@ jobs:
           fetch-depth: 0
       - name: Compare the PR with its base
         if: github.event_name == 'pull_request'
-        run: Scripts/run-performance.sh compare origin/${{ github.base_ref }} HEAD --host --rounds 3 --reps 3 --core 1
+        run: Scripts/run-performance.sh compare origin/${{ github.base_ref }} HEAD --rounds 3 --reps 3 --core 1
       - name: Publish the comparison
         if: always() && github.event_name == 'pull_request'
         run: |

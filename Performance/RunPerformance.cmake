@@ -17,17 +17,18 @@
 # changes included); anything else is a GLOB.
 #
 # Options:
-#   --host | --device       one side only (default: both in a GPU build; compare: host unless --gpu)
-#   --gpu cuda|hip          build the probes for a GPU
+#   --gpu cuda|hip          build the probes for a GPU: run the host/device pairs instead of the host cases
 #   --gpu-arch <arch>       CMAKE_CUDA_ARCHITECTURES / CMAKE_HIP_ARCHITECTURES (e.g. 86)
 #   --cuda-compiler <path>  nvcc to use (CMake also honours CUDACXX); --hip-compiler likewise
 #   --reps <n>              timed repetitions per case (default 5)
 #   --rounds <n>            compare: runs of each case per side (default 3)
 #   --smoke                 run: tiny sizes, one repetition (checks the cases run)
-#   --core <n> | --no-pin   the core to pin to with taskset (default 2), or no pinning
+#   --core <n> | --no-pin   the core to pin to with taskset (default 2 for a host run, none with --gpu,
+#                           whose host side uses every core), or no pinning
 #   --help
 #
-# run prints a table per probe and saves every result as JSON lines under
+# A host build runs the host cases, on one core; a GPU build runs the host/device pairs, the host side on
+# every core (OpenMP). run prints a table per probe and saves every result as JSON lines under
 # build/performance/results/<date>-<commit>.jsonl. Each probe runs in a process of its own.
 
 cmake_minimum_required(VERSION 3.16)
@@ -58,14 +59,13 @@ endfunction()
 
 set(command run)
 set(positional "")
-set(side "")
 set(gpu OFF)
 set(gpu_arch "")
 set(device_compiler "")
 set(reps 5)
 set(rounds 3)
 set(smoke OFF)
-set(core 2)
+set(core "")
 
 list(LENGTH args nargs)
 set(i 0)
@@ -79,10 +79,6 @@ while(i LESS nargs)
   elseif(a STREQUAL "--help" OR a STREQUAL "-h")
     usage()
     return()
-  elseif(a STREQUAL "--host")
-    set(side host)
-  elseif(a STREQUAL "--device")
-    set(side device)
   elseif(a STREQUAL "--smoke")
     set(smoke ON)
   elseif(a STREQUAL "--no-pin")
@@ -118,6 +114,15 @@ while(i LESS nargs)
   math(EXPR i "${i} + 1")
 endwhile()
 
+# A host run is pinned to one core; a GPU run's host side uses them all.
+if(core STREQUAL "")
+  if(gpu STREQUAL "OFF")
+    set(core 2)
+  else()
+    set(core OFF)
+  endif()
+endif()
+
 # ── compare: hand over to Compare.cmake ───────────────────────────────────────────────────────────────
 if(command STREQUAL "compare")
   set(refs "")
@@ -151,10 +156,6 @@ if(command STREQUAL "compare")
   set(REPS ${reps})
   set(ROUNDS ${rounds})
   set(CORE ${core})
-
-  if(side)
-    set(SIDE ${side})
-  endif()
 
   if(gpu_arch)
     set(GPU_ARCH ${gpu_arch})
@@ -221,13 +222,7 @@ file(GLOB probes "${build_dir}/bin/*.ex")
 list(FILTER probes EXCLUDE REGEX "/PerfCompare\\.ex$")
 list(SORT probes)
 
-set(probe_args "")
-
-if(side)
-  list(APPEND probe_args --side ${side})
-else()
-  list(APPEND probe_args --side all)
-endif()
+set(probe_args --side all)
 
 foreach(g IN LISTS positional)
   list(APPEND probe_args --case "${g}")
@@ -255,7 +250,7 @@ if(command STREQUAL "list")
 endif()
 
 if(NOT selected_probes)
-  message(FATAL_ERROR "run-performance: no case matches${positional}${side} (see 'Scripts/run-performance.sh list')")
+  message(FATAL_ERROR "run-performance: no case matches '${positional}' (see 'Scripts/run-performance.sh list')")
 endif()
 
 find_program(TASKSET taskset)

@@ -284,7 +284,7 @@ asserts, a test that times, a probe that teaches).
 `Tests/InstantiateAll.cpp`, and Sphinx docs (see the docs section above). If it is a structure with a
 build or a query users call in bulk: performance cases. If it is something users need shown how to
 use (a new capability, not a new overload): an example. A new device path for existing code: a
-`[gpu]` test and a device/`hostdevice` performance case. A bug fix: a test that fails without the fix.
+`[gpu]` test and a `hostdevice` performance pair. A bug fix: a test that fails without the fix.
 
 ### Unit tests (`Tests/`)
 - One file per component, `Tests/Test<Component>.cpp`, registered with `ebgeometry_add_test(...)` in
@@ -325,9 +325,10 @@ The coverage rules are in "Vetting every pull request for performance" below. Me
   `PerformanceTesting.rst`.
 - Each case: `suite.add("<component>/<input>/<operation>/<precision>/<host|device|hostdevice>", ...)`;
   set up untimed, time with `measure()` (or `measureFresh()` for a build), and record `checksum()`,
-  `param()` for every code-selecting parameter, and `poolBytes()`. A device query is a trivially
-  copyable functor, timed with `measureOnDevice()`, plus a `measureHostAndDevice()` pair over Morton-
-  and randomly-ordered inputs. Give every case a `--smoke` size.
+  `param()` for every code-selecting parameter, and `poolBytes()`. A query that runs on a device gets,
+  beside its `host` case, a `hostdevice` pair: a trivially copyable functor timed on both sides with
+  `measureHostAndDevice()`, over Morton- and randomly-ordered inputs. A host build keeps only `host`
+  cases and a GPU build only pairs (`Suite::add` decides). Give every case a `--smoke` size.
 - Run `ctest --preset perf` and `Scripts/run-performance.sh compare origin/<base>` before committing;
   the new cases show as *new*.
 
@@ -349,10 +350,10 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    ```
 
    Add the device run whenever the PR touches code a device runs (`EBGEOMETRY_HOST_DEVICE`
-   functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). The `hostdevice` cases
-   then also report each side's time, the device's speedup and whether the host and device answers
-   agree. Nothing else should be running on the machine; each case runs in a fresh process,
-   alternating between the sides, pinned to one core. (`Scripts/run-performance.sh` with no command
+   functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). It compares the
+   `hostdevice` pairs, which also report the host's time on every core, the device's speedup and
+   whether the host and device answers agree. Nothing else should be running on the machine; each
+   case runs in a fresh process, alternating between the sides (a host comparison pinned to one core). (`Scripts/run-performance.sh` with no command
    runs every case of the current tree, and a glob such as `'PointCloudBVH/*'` runs a subset.)
 2. **Report the result to the user in the terminal** (the table and the "Run it manually" block that
    the comparison prints), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
@@ -376,8 +377,7 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
 **Coverage: how wide the probes are, and when to add to them.** The probes cover each public
 structure where its cost lives: its build, its queries, and any in-place update (a refit), in both
-precisions, on the host and, where the operation runs there, on the device (plus a `hostdevice` pair
-for each device query). When a PR adds a public structure or query, or a device path for an existing
+precisions, on the host and, where the operation runs on a device, as a `hostdevice` pair. When a PR adds a public structure or query, or a device path for an existing
 one, **it adds the cases in the same PR** (a new folder under `Performance/` with a `main.cpp`, or
 cases in its component's probe), and the PR's comparison then lists them as *new*. Rules:
 - One operation on one input per case, at the sizes users meet (one repetition takes at least a few

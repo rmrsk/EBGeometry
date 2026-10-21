@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Performance cases for the mesh signed distance functions: TriMeshSDF and MeshSDF on the armadillo
-// mesh (the dodecahedron under --smoke), in float and double. Builds and refits run on the host; the
-// signed-distance queries also run on the device in a CUDA or HIP build. See ../README.md.
+// mesh (the dodecahedron under --smoke), in float and double. A host build runs the host cases (builds,
+// refits, signed distances); a CUDA or HIP build runs the signed distances as host/device pairs. See
+// ../README.md.
 
 #include <algorithm>
 #include <cmath>
@@ -95,21 +96,10 @@ addQueryCases(Perf::Suite&                                              a_suite,
     a_params(c);
   });
 
-  if (!a_device || !Perf::Suite::deviceRuns()) {
+  // A width wider than 4 is host-only: no pair for it.
+  if (!a_device) {
     return;
   }
-
-  a_suite.add(a_prefix + "query/" + prec + "/device", [=](Perf::Case& c) {
-    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-    const SDF        sdf = a_make(pool, Perf::meshFile(c.smoke()));
-    const auto       q   = queryPoints<T>(sdf.computeBoundingVolume(), c.size(1000000, 1000));
-
-    const auto d = Perf::measureOnDevice<T>(
-      c, pool, q, [&](const EBGeometry::Pool& a_device) { return Distance<SDF, T>{sdf.rebasedView(a_device)}; });
-
-    c.checksum(sumOf(d));
-    a_params(c);
-  });
 
   // The same points through the same query on both sides, in Morton order (as a caller querying a box
   // of cells presents them) and in random order: the speed of each side, and whether they agree.

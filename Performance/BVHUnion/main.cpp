@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Performance cases for BVHUnion: the union of about 100,000 spheres on a lattice, in float and double.
-// The build runs on the host; the union's signed distance also runs on the device in a CUDA or HIP
-// build. See ../README.md.
+// A host build runs the host cases (build, signed distance); a CUDA or HIP build runs the signed
+// distance as host/device pairs. See ../README.md.
 
+#include <algorithm>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -129,22 +131,30 @@ addPrecision(Perf::Suite& a_suite)
     c.poolBytes(pool.usedBytes());
   });
 
-  if (!Perf::Suite::deviceRuns()) {
-    return;
+  // The same points through the union on both sides, in Morton and in random order: the speed of each
+  // side, and whether they agree (a different sign, or a difference beyond a thousand ulps).
+  for (const std::string order : {"morton", "random"}) {
+    a_suite.add(prefix + "query-" + order + "/" + prec + "/hostdevice", [=](Perf::Case& c) {
+      EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+      const auto  scene = setup(c, pool, c.size(262144, 1000));
+      const auto& u     = scene.first;
+      const auto  q     = order == "morton" ? Perf::mortonOrdered(scene.second) : scene.second;
+
+      const auto agree = [](const T a_host, const T a_device) {
+        const double diff = std::abs(double(a_host) - double(a_device));
+        const double tol =
+          1000.0 * double(EBGeometry::Math::Limits<T>::epsilon()) * std::max(1.0, std::abs(double(a_host)));
+
+        return std::make_pair(diff, (a_host < T(0)) != (a_device < T(0)) || diff > tol);
+      };
+
+      const auto d = Perf::measureHostAndDevice<T>(
+        c, pool, q, [&](const EBGeometry::Pool& a_pool) { return Distance<Union, T>{u.rebasedView(a_pool)}; }, agree);
+
+      c.checksum(sumOf(d));
+    });
   }
-
-  a_suite.add(prefix + "query/" + prec + "/device", [=](Perf::Case& c) {
-    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-
-    const auto  scene = setup(c, pool, c.size(1000000, 1000));
-    const auto& u     = scene.first;
-    const auto& q     = scene.second;
-
-    const auto d = Perf::measureOnDevice<T>(
-      c, pool, q, [&](const EBGeometry::Pool& a_device) { return Distance<Union, T>{u.rebasedView(a_device)}; });
-
-    c.checksum(sumOf(d));
-  });
 }
 
 } // namespace

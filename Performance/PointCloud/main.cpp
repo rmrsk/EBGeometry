@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Performance cases for the point clouds: PointCloudBVH and PointCloudHashGrid, on points uniform in
-// the unit cube and on the unit-sphere surface, in float and double. Builds and the batch
-// all-nearest-neighbor queries run on the host; the per-point queries also run on the device in a CUDA
-// or HIP build. See ../README.md.
+// the unit cube and on the unit-sphere surface, in float and double. A host build runs the host cases
+// (builds, the batched k-nearest-neighbour graph, per-point queries); a CUDA or HIP build runs the
+// per-point queries as host/device pairs. See ../README.md.
 
 #include <algorithm>
 #include <cmath>
@@ -339,46 +339,6 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, const std::string& a_
     common(c, n);
   });
 
-  if (!Perf::Suite::deviceRuns()) {
-    return;
-  }
-
-  a_suite.add(prefix + "closest/" + prec + "/device", [=](Perf::Case& c) {
-    const std::size_t n      = c.size(500000, 2000);
-    const auto        points = cloudPoints<T>(a_shape, n);
-    const auto        q      = queries(c.size(1000000, 1000));
-
-    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-    const Cloud      cloud = a_build(pool, points);
-
-    const auto hits = Perf::measureOnDevice<Hit>(c, pool, q, [&](const EBGeometry::Pool& a_device) {
-      return ClosestPoint<Cloud, T>{cloud.rebasedView(a_device)};
-    });
-
-    c.checksum(sumOf(hits));
-    common(c, n);
-  });
-
-  a_suite.add(prefix + "neighbor/" + prec + "/device", [=](Perf::Case& c) {
-    const std::size_t n      = c.size(500000, 2000);
-    const auto        points = cloudPoints<T>(a_shape, n);
-
-    EBGeometry::Pool      pool(EBGeometry::hostMemoryResource());
-    const Cloud           cloud = a_build(pool, points);
-    std::vector<uint32_t> indices(n);
-
-    for (uint32_t i = 0; i < n; i++) {
-      indices[i] = i;
-    }
-
-    const auto hits = Perf::measureOnDevice<Hit>(c, pool, indices, [&](const EBGeometry::Pool& a_device) {
-      return NearestNeighbor<Cloud, T>{cloud.rebasedView(a_device)};
-    });
-
-    c.checksum(sumOf(hits));
-    common(c, n);
-  });
-
   // The same queries on both sides: the speed of each, and whether they agree. Equal distances to
   // different points are ties, not disagreements.
   const auto agree = [](const Hit& a_host, const Hit& a_device) {
@@ -431,9 +391,9 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, const std::string& a_
     common(c, n);
   });
 
-  // The KNearest nearest points on the device: one thread per query, each keeping its own KNearest
-  // best, queries in Morton order. There is no batched device k-NN (allNearestNeighbors is host-only),
-  // so this is what a device caller has today.
+  // The KNearest nearest points on both sides: on the device one thread per query, each keeping its
+  // own KNearest best, queries in Morton order. There is no batched device k-NN (allNearestNeighbors is
+  // host-only), so this is what a device caller has today.
   const auto agreeK = [](const KHits<T>& a_host, const KHits<T>& a_device) {
     double diff     = 0.0;
     bool   mismatch = a_host.m_count != a_device.m_count;
@@ -452,40 +412,6 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, const std::string& a_
   };
 
   const std::string k = std::to_string(KNearest);
-
-  a_suite.add(prefix + "neighbors" + k + "/" + prec + "/device", [=](Perf::Case& c) {
-    const std::size_t n       = c.size(500000, 2000);
-    const auto        points  = cloudPoints<T>(a_shape, n);
-    const auto        indices = EBGeometry::SFC::order<EBGeometry::SFC::Morton>(points);
-
-    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-    const Cloud      cloud = a_build(pool, points);
-
-    const auto results = Perf::measureOnDevice<KHits<T>>(c, pool, indices, [&](const EBGeometry::Pool& a_device) {
-      return NearestNeighbors<Cloud, T>{cloud.rebasedView(a_device)};
-    });
-
-    c.checksum(sumOf(results));
-    c.param("k", KNearest);
-    common(c, n);
-  });
-
-  a_suite.add(prefix + "closest" + k + "/" + prec + "/device", [=](Perf::Case& c) {
-    const std::size_t n      = c.size(500000, 2000);
-    const auto        points = cloudPoints<T>(a_shape, n);
-    const auto        q      = Perf::mortonOrdered(queries(c.size(1000000, 1000)));
-
-    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-    const Cloud      cloud = a_build(pool, points);
-
-    const auto results = Perf::measureOnDevice<KHits<T>>(c, pool, q, [&](const EBGeometry::Pool& a_device) {
-      return ClosestPoints<Cloud, T>{cloud.rebasedView(a_device)};
-    });
-
-    c.checksum(sumOf(results));
-    c.param("k", KNearest);
-    common(c, n);
-  });
 
   a_suite.add(prefix + "neighbors" + k + "-morton/" + prec + "/hostdevice", [=](Perf::Case& c) {
     const std::size_t n       = c.size(500000, 2000);

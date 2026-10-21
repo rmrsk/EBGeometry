@@ -99,6 +99,26 @@ endif()
 
 set(EBGEOMETRY_PERF_GPU_HOST_FLAGS "${_perf_gpu_host_default}" CACHE STRING "Host-side vector flags for the probes in a GPU build")
 
+# OpenMP for the host side of the host/device pairs, so that a GPU is compared with every CPU core
+# rather than one. On by default for CUDA, where nvcc's host compiler is the C++ compiler OpenMP was
+# found for; off by default for HIP, whose clang host side would need the LLVM OpenMP runtime rather
+# than the one found for the C++ compiler (not yet tested). Host builds run no pairs and need none.
+if(_perf_gpu STREQUAL "CUDA")
+  set(_perf_openmp_default ON)
+else()
+  set(_perf_openmp_default OFF)
+endif()
+
+option(EBGEOMETRY_PERF_OPENMP "Run the host side of the host/device pairs on every core (OpenMP)" ${_perf_openmp_default})
+
+if(EBGEOMETRY_PERF_OPENMP AND _perf_gpu_build)
+  find_package(OpenMP COMPONENTS CXX)
+
+  if(NOT OpenMP_CXX_FOUND)
+    message(STATUS "Performance: OpenMP not found; the host side of the pairs runs on one thread")
+  endif()
+endif()
+
 # Every folder here with a main.cpp is a probe, except Compare/ (PerfCompare, below); the folders are
 # the only list.
 file(GLOB perf_mains CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*/main.cpp)
@@ -137,6 +157,20 @@ foreach(perf_main IN LISTS perf_mains)
     endforeach()
   elseif(_perf_gpu STREQUAL "HIP" AND EBGEOMETRY_PERF_GPU_HOST_FLAGS)
     target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:${EBGEOMETRY_PERF_GPU_HOST_FLAGS}>)
+  endif()
+
+  if(EBGEOMETRY_PERF_OPENMP AND _perf_gpu_build AND OpenMP_CXX_FOUND)
+    separate_arguments(_perf_omp UNIX_COMMAND "${OpenMP_CXX_FLAGS}")
+
+    if(_perf_gpu STREQUAL "CUDA")
+      foreach(flag IN LISTS _perf_omp)
+        target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${flag}>)
+      endforeach()
+    else()
+      target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:${_perf_omp}>)
+    endif()
+
+    target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
   endif()
 
   if(_perf_gpu STREQUAL "HIP" OR _perf_gpu STREQUAL "CUDA")

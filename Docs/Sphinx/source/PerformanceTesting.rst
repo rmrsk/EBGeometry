@@ -29,7 +29,7 @@ What is in Performance/
 
 Each folder with a ``main.cpp`` is a *probe*: one program per component, holding many *cases*. A case is
 named from general to specific, ``component/input/operation/precision/side``, for example
-``PointCloudBVH/uniform/all1nn/double/host`` or ``MeshSDF/query/float/device``. A case sets up its
+``PointCloudBVH/uniform/all1nn/double/host`` or ``MeshSDF/query-morton/float/hostdevice``. A case sets up its
 inputs untimed, runs the measured operation once to warm up and then a number of times, and reports:
 
 * the median time, its interquartile range, and, for queries, the time per item;
@@ -46,53 +46,60 @@ Inputs are fixed: the point sets come from fixed seeds and the mesh is ``armadil
 What the probes measure
 -----------------------
 
-Every family below runs in ``float`` and ``double`` (the precision is the fourth part of the name), and
-its side is the last part: ``host``, ``device`` (one GPU thread per query, the kernel alone) or
-``hostdevice`` (the same inputs on both sides; see below). Sizes are the full ones; ``--smoke`` uses a
-few thousand points or the dodecahedron. ``--list`` prints the exact names.
+Every family below runs in ``float`` and ``double`` (the precision is the fourth part of the name). A
+host build runs the ``host`` cases; a CUDA or HIP build runs only the ``hostdevice`` pairs (the side is
+the last part of the name; see `Host and device`_). Sizes are the full ones; ``--smoke`` uses a few
+thousand points or the dodecahedron. ``Scripts/run-performance.sh list`` prints the exact names.
 
 **PointCloud** (``Performance/PointCloud``): ``PointCloudBVH`` (K = 4, W = 4) and ``PointCloudHashGrid``,
 each over 500,000 points, either ``uniform`` in the unit cube or on the unit-``sphere`` surface.
 
-==============================  ====================  ===========================================================
-Family                          Sides                 Measures
-==============================  ====================  ===========================================================
-``build``                       host                  building the structure; also its pool bytes
-``all1nn``, ``all8nn``          host                  the batched k-nearest-neighbour graph (``allNearestNeighbors``)
-``closest``                     host, device          ``closestPoint`` at random points near the cloud (200,000;
-                                                      1,000,000 on the device)
-``closest-outside``             host                  ``closestPoint`` far outside the cloud (20,000 for the BVH,
-                                                      100 for the hash grid, which is slow out there)
-``neighbor``                    host, device          ``nearestNeighbor`` of every cloud point
-``neighbors8``, ``closest8``    host, device          the 8 nearest points per query, per point, in Morton order
-``*-morton``, ``*-random``      hostdevice            the queries above (262,144 external ones), both sides
-==============================  ====================  ===========================================================
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``build``                             host   building the structure; also its pool bytes
+``all1nn``, ``all8nn``                host   the batched k-nearest-neighbour graph
+                                             (``allNearestNeighbors``)
+``closest``                           host   ``closestPoint`` at 200,000 random points near the cloud
+``closest-outside``                   host   ``closestPoint`` far outside the cloud (20,000 for the
+                                             BVH, 100 for the hash grid, which is slow out there)
+``neighbor``                          host   ``nearestNeighbor`` of every cloud point
+``neighbors8``, ``closest8``          host   the 8 nearest points, per point, in Morton order
+``closest-morton``,                   GPU    ``closestPoint`` at 262,144 points near the cloud
+``closest-random``
+``neighbor-morton``                   GPU    ``nearestNeighbor`` of every cloud point
+``neighbors8-morton``,                GPU    the 8 nearest points, per point
+``closest8-morton``
+====================================  =====  =====================================================
 
 **Mesh** (``Performance/Mesh``): the armadillo, 99,976 triangles.
 
-==============================  ====================  ===========================================================
-Family                          Sides                 Measures
-==============================  ====================  ===========================================================
-``TriMeshSDF/w4/build``         host                  building a ``TriMeshSDF`` (K = 4, W = 4, SAH) from triangles
-``TriMeshSDF/w4/query``         host, device          signed distance at random points in the mesh's box grown 1.5
-                                                      times (100,000; 1,000,000 on the device)
-``TriMeshSDF/w4/query-*``       hostdevice            the same at 262,144 points, Morton and random order
-``TriMeshSDF/w8/...``           host (``float``)      build and query at the host-tuned width 8
-``MeshSDF/build``               host                  building a ``MeshSDF`` from an already-read DCEL mesh
-``MeshSDF/refit``               host                  10 refits of its BVH
-``MeshSDF/query``, ``query-*``  host, device,         as for ``TriMeshSDF``
-                                hostdevice
-==============================  ====================  ===========================================================
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``TriMeshSDF/w4/build``               host   building a ``TriMeshSDF`` (K = 4, W = 4, SAH)
+``TriMeshSDF/w4/query``               host   signed distance at 100,000 random points in the
+                                             mesh's box grown 1.5 times
+``TriMeshSDF/w8/build``, ``query``    host   the same at the host-tuned width 8 (``float`` only)
+``TriMeshSDF/w4/query-morton``,       GPU    signed distance at 262,144 such points
+``query-random``
+``MeshSDF/build``                     host   building a ``MeshSDF`` from an already-read DCEL mesh
+``MeshSDF/refit``                     host   10 refits of its BVH
+``MeshSDF/query``                     host   as for ``TriMeshSDF``
+``MeshSDF/query-morton``,             GPU    as for ``TriMeshSDF``
+``query-random``
+====================================  =====  =====================================================
 
 **BVHUnion** (``Performance/BVHUnion``): the union of 97,336 unit spheres on a 46 × 46 × 46 lattice.
 
-==============================  ====================  ===========================================================
-Family                          Sides                 Measures
-==============================  ====================  ===========================================================
-``spheres/build``               host                  building the union's BVH
-``spheres/query``               host, device          signed distance at random points in the union's box
-                                                      (200,000; 1,000,000 on the device)
-==============================  ====================  ===========================================================
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``spheres/build``                     host   building the union's BVH
+``spheres/query``                     host   signed distance at 200,000 random points in its box
+``spheres/query-morton``,             GPU    signed distance at 262,144 such points
+``query-random``
+====================================  =====  =====================================================
 
 Where the results go
 --------------------
@@ -112,36 +119,38 @@ by hand. The next comparison replaces them. In CI the report is the job summary 
 Host and device
 ---------------
 
-A probe is a single source file that compiles for the host, for CUDA or for HIP. Queries are written as
-trivially copyable functors, as in the examples: a host case runs the functor in a loop, and a device
-case runs the same functor through ``GPU::transform()`` over arrays already in device memory, so its
-time is the kernel's alone. Device cases exist only in a CUDA or HIP build with a visible GPU. Builds and
-the batch queries run on the host; a device case is added when an operation gains a device path.
+A probe is a single source file that compiles for the host, for CUDA or for HIP, and which cases run
+depends on the build:
 
-By default both sides run in a GPU build; ``--host`` or ``--device`` selects one.
+* **A host build** runs the ``host`` cases, on one core (pinned): builds, refits, the batched queries
+  and the per-point queries, vectorised for the host. These are the host's numbers, and what a host
+  comparison judges.
+* **A CUDA or HIP build** runs only the ``hostdevice`` pairs, and only with a visible GPU: every query
+  that runs on a device, with the same inputs on both sides. Its host side is not what to read host
+  times from (in a CUDA build it is not vectorised: with any host SIMD macro set, GCC's ``immintrin.h``
+  pulls in headers that ``nvcc`` cannot parse), so host-only operations are left to the host build.
 
-Host against device
-^^^^^^^^^^^^^^^^^^^
+Queries are written as trivially copyable functors, as in the examples. In a pair, the inputs are
+divided into chunks of ``GPU::DefaultBlockSize`` consecutive points: on the device each chunk is one
+block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
+kernel's alone), and on the host the chunks are shared among OpenMP threads, one per physical core, so
+that the device is compared with the whole CPU rather than one core. (``OMP_NUM_THREADS`` overrides the
+count; a thread on every hardware thread measured no faster and made the times jump by whole scheduler
+time slices.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
+in which a caller querying a box of cells presents them, which keeps neighbouring queries in the same
+part of a tree) and, for external queries, once in random order. Besides the device time, a pair records
 
-Every device query also has a *paired* case, whose side is ``hostdevice``: the same inputs through the
-same query on both sides. The inputs are divided into chunks of ``GPU::DefaultBlockSize`` consecutive
-points, one block of threads each on the device and visited in turn on the host, so both sides walk them
-in the same order, once in Morton order (``SFC::order<SFC::Morton>``, the order in which a caller
-querying a box of cells presents its points, which keeps neighbouring queries in the same part of a tree)
-and once in random order. Besides the device time, a paired case records
-
-* ``host_ms`` and ``host_over_device``: the host's time, and the device's speedup over the host (host
-  time / device time) on this machine, which the table prints as "device N x faster";
+* ``host_ms``, ``host_threads`` and ``host_over_device``: the host's time, its thread count, and the
+  device's speedup over the host (host time / device time) on this machine;
 * ``max_diff`` and ``mismatches``: how far apart the host and device answers are, and how many inputs
   they disagree on (a different sign, or a difference beyond a thousand ulps; for the point clouds, a
   different point at a different distance, since equal distances are ties).
 
-The ratio compares one host core with a whole GPU, so it means something only on one machine, from one
-commit to the next: a change that speeds up one side and slows down the other shows as a shift in it. In
-a CUDA build the host side is compiled without vector instructions (with any host SIMD macro set, GCC's
-``immintrin.h`` pulls in headers that ``nvcc`` cannot parse), so for vectorised host times use the
-``host`` cases of a host build; a HIP build compiles its host side with AVX2 and FMA
-(``EBGEOMETRY_PERF_GPU_HOST_FLAGS``).
+The speedup is machine-specific, so it means something on one machine, from one commit to the next: a
+change that speeds up one side and slows down the other shows as a shift in it. OpenMP is on by default
+for CUDA builds (``EBGEOMETRY_PERF_OPENMP``); a HIP build's clang host side would need the LLVM OpenMP
+runtime, which is not yet tested, so it is off there unless turned on, and the host side then runs on one
+thread. A HIP build compiles its host side with AVX2 and FMA (``EBGEOMETRY_PERF_GPU_HOST_FLAGS``).
 
 Running the probes
 ------------------
@@ -152,46 +161,59 @@ compiler (``nvcc`` or ``hipcc`` for a GPU); its logic is ``Performance/RunPerfor
 
 .. code-block:: bash
 
-   Scripts/run-performance.sh                          # build if needed, run every case
+   Scripts/run-performance.sh                          # build if needed, run every host case
    Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset: one or more globs (* and ?)
    Scripts/run-performance.sh '*/double/*' --reps 10   # every double case, 10 repetitions
    Scripts/run-performance.sh list 'Mesh*'             # the case names
    Scripts/run-performance.sh --smoke                  # every case at tiny sizes: checks they run
 
-   Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
-   Scripts/run-performance.sh --gpu cuda --device 'TriMeshSDF/*'
+   Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # the pairs
+   Scripts/run-performance.sh --gpu cuda 'TriMeshSDF/*'
 
 The probes are built in Release for the host's full instruction set, incrementally, in
-``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own,
-pinned to one core when ``taskset`` is available (``--core <n>``, or ``--no-pin``). The output is one table
-per probe, grouped by component and input, with the median, its spread, the time per item and the pool
-bytes; a paired case adds the host's time, the device's speedup and whether the answers agree, and a GPU
-run ends with the device's speedup over the host for every case that ran on both sides:
+``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own.
+A host run is pinned to one core when ``taskset`` is available; a GPU run is not, since its host side
+uses every core (``--core <n>`` or ``--no-pin`` overrides either). The output is one table per probe,
+grouped by component and input. A host build shows each case's median, its spread, the time per item and
+the pool bytes:
 
 .. code-block:: text
 
    Mesh: 3 cases, 3 repetitions each
-     git 5f047b4, gcc 13.3.0, host SIMD none, GPU CUDA
-     median of the repetitions; spread = interquartile range / median
+     git 4d74917, gcc 13.3.0, GPU none
+     host side: 1 thread, SIMD avx2
+     times are medians of the repetitions; spread = interquartile range / median
 
-       operation     precision  side             median   spread    per item       pool
+       operation  precision      median   spread    per item       pool
+
+     MeshSDF
+       build      float          110 ms     1.6%                21.0 MB
+       refit      float         69.9 ms    19.3%
+       query      float          891 ms     0.8%     8.91 µs    21.0 MB
+
+A GPU build shows each pair's host and device times, the device's speedup, the device's spread and time
+per item, and whether the answers agree:
+
+.. code-block:: text
+
+   Mesh: 4 cases, 3 repetitions each
+     git 4d74917, gcc 13.3.0, GPU CUDA
+     host side: 12 threads, SIMD none (nvcc cannot compile host SIMD code)
+     host and device run the same inputs; times are medians, spread is the device's
+     interquartile range / median, per item is the device's
+
+       operation     precision        host      device   speedup   spread    per item  answers
 
      TriMeshSDF · w4
-       query         float      device          36.2 ms     4.7%     36.2 ns
-       query-morton  float      host+device     5.57 ms     5.2%     21.2 ns             device time; host 1.42 s: device 255.1x faster, answers agree
-       query-random  float      host+device     11.1 ms     0.7%     42.3 ns             device time; host 2.27 s: device 204.7x faster, answers agree
-
-   Device speedup over the host (time per item)
-       case                                          host      device   speedup
-       TriMeshSDF · w4 · query-morton · float     5.42 µs     21.2 ns    255.1x  same inputs on both sides
-       TriMeshSDF · w4 · query-random · float     8.65 µs     42.3 ns    204.7x  same inputs on both sides
+       query-morton  float          101 ms     6.10 ms     16.6x     1.7%     23.3 ns    agree
+       query-random  float          135 ms     11.0 ms     12.3x     1.8%     41.9 ns    agree
 
 CMake takes the ``nvcc`` on the ``PATH`` (or ``CUDACXX``) unless ``--cuda-compiler`` names one. CUDA
 12.0's ``nvcc`` cannot compile the library (it rejects a braced argument list in
 ``EBGeometry_TapeImplem.hpp``); pass a newer one, and the script reconfigures when the compiler changes.
 
 Under the script, each probe is an ordinary program (``build/performance/host/bin/<Probe>.ex``) taking
-``--list``, ``--case <glob>``, ``--side host|device|all``, ``--reps <n>``, ``--smoke``, ``--json`` (JSON
+``--list``, ``--case <glob>``, ``--reps <n>``, ``--smoke``, ``--json`` (JSON
 instead of the table) and ``--json-out <file>`` (the table, and the JSON appended to a file). The ``perf``
 and ``perf-cuda`` CMake presets build the same probes inside the project, which is what ``ctest --preset
 perf`` and CI's smoke run use.
@@ -213,8 +235,9 @@ changes an API the probes use updates the probes and is still compared case by c
 any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
 with the candidate's probes.) Every case then runs in a fresh process, so that one case cannot leave the
 heap or the caches in a state that favours the next, alternating between the two sides for ``--rounds``
-rounds (default 3) of ``--reps`` repetitions (default 5), pinned to one core. Without ``--gpu`` only the
-host cases are compared; with it, all of them. The comparison itself is ``Performance/Compare.cmake``,
+rounds (default 3) of ``--reps`` repetitions (default 5). A host comparison compares the host cases,
+pinned to one core; with ``--gpu`` it compares the pairs, by their device time (each with its speedup
+beside it), unpinned. The comparison itself is ``Performance/Compare.cmake``,
 whose variables (listed at its top) also set the thresholds.
 
 The report is printed to the terminal and written to ``build/performance/compare/report.md``, followed by

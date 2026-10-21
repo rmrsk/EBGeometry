@@ -42,6 +42,10 @@
 
 #include <EBGeometry.hpp>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // Set by the build (Performance/CMakeLists.txt) to the commit the program was built from.
 #ifndef EBGEOMETRY_PERF_GIT_SHA
 #define EBGEOMETRY_PERF_GIT_SHA "unknown"
@@ -96,6 +100,67 @@ gitSha()
   const char* env = std::getenv("EBGEOMETRY_PERF_GIT_SHA");
 
   return env != nullptr && *env != '\0' ? env : EBGEOMETRY_PERF_GIT_SHA;
+}
+
+/**
+ * @brief The physical cores of this machine: distinct (physical id, core id) pairs in /proc/cpuinfo.
+ * @return The count, or 0 where /proc/cpuinfo does not say.
+ */
+inline int
+physicalCores()
+{
+  std::ifstream            in("/proc/cpuinfo");
+  std::string              line;
+  std::string              package = "0";
+  std::vector<std::string> seen;
+
+  while (std::getline(in, line)) {
+    const auto colon = line.find(':');
+
+    if (colon == std::string::npos) {
+      continue;
+    }
+
+    const std::string value = colon + 2 <= line.size() ? line.substr(colon + 2) : "";
+
+    if (line.rfind("physical id", 0) == 0) {
+      package = value;
+    }
+    else if (line.rfind("core id", 0) == 0) {
+      const std::string key = package + ":" + value;
+
+      if (std::find(seen.begin(), seen.end(), key) == seen.end()) {
+        seen.push_back(key);
+      }
+    }
+  }
+
+  return static_cast<int>(seen.size());
+}
+
+/**
+ * @brief The threads the host side of a host/device pair runs on, in a build with OpenMP: as many as
+ * OMP_NUM_THREADS says if it is set, else one per physical core. A thread on every hardware thread
+ * measured no faster and made the times jump by whole scheduler time slices whenever one thread was
+ * preempted, since the loop waits for its slowest thread.
+ * @return The thread count (1 without OpenMP).
+ */
+inline int
+hostThreads()
+{
+#ifdef _OPENMP
+  const char* env = std::getenv("OMP_NUM_THREADS");
+
+  if (env != nullptr && *env != '\0') {
+    return omp_get_max_threads();
+  }
+
+  const int cores = physicalCores();
+
+  return cores > 0 ? std::min(cores, omp_get_num_procs()) : omp_get_max_threads();
+#else
+  return 1;
+#endif
 }
 
 /**
@@ -703,23 +768,26 @@ public:
       std::exit(2);
     }
 
-    if (m_side == "device" && !deviceRuns()) {
-      std::fprintf(stderr,
-                   "%s: no device cases: %s\n",
-                   m_name.c_str(),
-                   EBGeometry::GPU::enabled ? "no GPU is visible" : "this is not a CUDA or HIP build");
-    }
+    m_deviceRuns = deviceRuns();
   }
 
   /**
    * @brief Add a case. Its function runs only if the case is selected.
+   * @details Which build keeps which case: a host build keeps the host cases, and a CUDA or HIP build
+   * keeps only the host/device pairs (side hostdevice), and only with a visible GPU. In a GPU build the
+   * host side is not vectorised (nvcc cannot compile host SIMD code), so host times come from a host
+   * build, and the pairs give the device's time, its speedup over the host and the agreement check.
    * @param[in] a_name Case name, '/'-separated from general to specific (component/input/query/precision/side).
    * @param[in] a_run  The case.
    */
   void
   add(const std::string& a_name, std::function<void(Case&)> a_run)
   {
-    m_cases.emplace_back(a_name, std::move(a_run));
+    const bool paired = CaseName(a_name).side == "hostdevice";
+
+    if (EBGeometry::GPU::enabled ? (paired && m_deviceRuns) : !paired) {
+      m_cases.emplace_back(a_name, std::move(a_run));
+    }
   }
 
   /**
@@ -789,17 +857,9 @@ private:
            ",\"reps\":" + std::to_string(m_reps) + ",\"smoke\":" + (m_smoke ? "true" : "false") + "}";
   }
 
-  // One row of the speedup summary.
-  struct Speedup
-  {
-    std::string label;
-    double      hostPerItemMs;
-    double      devicePerItemMs;
-    bool        sameInputs;
-  };
-
   // The human-readable form: a banner, a column header, then the cases grouped by component and
-  // input, then the device's speedup over the host for every case that ran on both sides.
+  // input. A host build shows each host case's time; a GPU build shows each pair's host and device
+  // times, the device's speedup and whether the two sides' answers agree.
   int
   runTable() const
   {
@@ -813,39 +873,59 @@ private:
       }
     }
 
+    const bool gpu = EBGeometry::GPU::enabled;
+
     std::printf("\n%s: %zu cases, %d repetition%s each%s\n",
                 m_name.c_str(),
                 count,
                 m_reps,
                 m_reps == 1 ? "" : "s",
                 m_smoke ? " (smoke sizes: checks that cases run, times nothing)" : "");
-    std::printf("  git %s, %s, host SIMD %s, GPU %s\n",
-                gitSha().c_str(),
-                compilerName().c_str(),
-                simdLevel(),
-                EBGeometry::GPU::enabled ? EBGeometry::GPU::backendName : "none");
-    std::printf("  median of the repetitions; spread = interquartile range / median\n\n");
+    std::printf(
+      "  git %s, %s, GPU %s\n", gitSha().c_str(), compilerName().c_str(), gpu ? EBGeometry::GPU::backendName : "none");
 
-    // One row: operation, precision, side, median, spread, per item, pool, then free text, with the
-    // trailing blanks trimmed.
-    const auto row = [opWidth](const std::string& a_op,
-                               const std::string& a_precision,
-                               const std::string& a_side,
-                               const std::string& a_median,
-                               const std::string& a_spread,
-                               const std::string& a_perItem,
-                               const std::string& a_pool,
-                               const std::string& a_note) {
-      std::string line = "    " + pad(a_op, opWidth, true) + "  " + pad(a_precision, 9, true) + "  " +
-                         pad(a_side, 11, true) + "  " + pad(a_median, 10) + "  " + pad(a_spread, 7) + "  " +
-                         pad(a_perItem, 10) + "  " + pad(a_pool, 9) + (a_note.empty() ? "" : "  " + a_note);
+    if (gpu) {
+      std::printf("  host side: %d thread%s, SIMD %s%s\n",
+                  hostThreads(),
+                  hostThreads() == 1 ? "" : "s",
+                  simdLevel(),
+                  std::string(simdLevel()) == "none" ? " (nvcc cannot compile host SIMD code)" : "");
+      std::printf("  host and device run the same inputs; times are medians, spread is the device's\n"
+                  "  interquartile range / median, per item is the device's\n\n");
+    }
+    else {
+      std::printf("  host side: 1 thread, SIMD %s\n", simdLevel());
+      std::printf("  times are medians of the repetitions; spread = interquartile range / median\n\n");
+    }
+
+    if (gpu && count == 0 && !m_deviceRuns) {
+      std::printf("  No GPU is visible: a GPU build runs only host/device pairs.\n\n");
+      return 0;
+    }
+
+    // One row of right-aligned columns after the operation and precision, trailing blanks trimmed.
+    const auto row = [opWidth](const std::string&                                      a_op,
+                               const std::string&                                      a_precision,
+                               const std::vector<std::pair<std::string, std::size_t>>& a_columns) {
+      std::string line = "    " + pad(a_op, opWidth, true) + "  " + pad(a_precision, 9, true);
+
+      for (const auto& col : a_columns) {
+        line += "  " + pad(col.first, col.second);
+      }
 
       line.erase(line.find_last_not_of(' ') + 1);
       std::printf("%s\n", line.c_str());
       std::fflush(stdout);
     };
 
-    row("operation", "precision", "side", "median", "spread", "per item", "pool", "");
+    if (gpu) {
+      row("operation",
+          "precision",
+          {{"host", 10}, {"device", 10}, {"speedup", 8}, {"spread", 7}, {"per item", 10}, {"answers", 7}});
+    }
+    else {
+      row("operation", "precision", {{"median", 10}, {"spread", 7}, {"per item", 10}, {"pool", 9}});
+    }
 
     // With --json-out, the JSON goes to a file alongside the table.
     std::ofstream jsonOut;
@@ -861,11 +941,7 @@ private:
       jsonOut << this->headerJson() << "\n";
     }
 
-    std::string          group = "\x01";
-    std::vector<Speedup> speedups;
-
-    // Host per-item times, keyed by group|operation|precision, to pair with the device cases.
-    std::vector<std::pair<std::string, double>> hostPerItem;
+    std::string group = "\x01";
 
     for (const auto& c : m_cases) {
       if (!selected(c.first)) {
@@ -884,7 +960,7 @@ private:
       try {
         c.second(running);
       } catch (const std::exception& e) {
-        row(parts.operation, parts.precision, parts.side, "", "", "", "", std::string("skipped: ") + e.what());
+        row(parts.operation, parts.precision, {{std::string("skipped: ") + e.what(), 0}});
 
         if (jsonOut) {
           jsonOut << "{\"case\":" << jsonString(c.first) << ",\"skipped\":" << jsonString(e.what()) << "}\n";
@@ -898,92 +974,48 @@ private:
       }
 
       const auto [median, iqr] = running.medianAndIqr();
-      const bool   paired      = parts.side == "hostdevice";
       const auto   items       = running.items();
       const double perItem     = items > 0 ? median / double(items) : 0.0;
-      const auto   label       = parts.group + " \u00b7 " + parts.operation + " \u00b7 " + parts.precision;
-      const auto   key         = parts.group + "|" + parts.operation + "|" + parts.precision;
 
       char spread[16];
       std::snprintf(spread, sizeof(spread), "%.1f%%", median > 0.0 ? 100.0 * iqr / median : 0.0);
 
-      std::string note;
-
-      if (paired) {
-        // The median column is the device's; the host's time and the comparison follow.
+      if (gpu) {
         const double hostMs     = running.metricValue("host_ms", 0.0);
         const double mismatches = running.metricValue("mismatches", 0.0);
-        const double maxDiff    = running.metricValue("max_diff", 0.0);
 
-        char buf[160];
-        std::snprintf(buf,
-                      sizeof(buf),
-                      "device time; host %s: device %.1fx faster, ",
-                      formatTime(hostMs).c_str(),
-                      median > 0.0 ? hostMs / median : 0.0);
-        note = buf;
+        char speedup[32];
+        std::snprintf(speedup, sizeof(speedup), "%.1fx", median > 0.0 ? hostMs / median : 0.0);
+
+        std::string answers = "agree";
 
         if (mismatches > 0.0) {
-          std::snprintf(buf, sizeof(buf), "%.0f of %zu ANSWERS DIFFER (max diff %.3g)", mismatches, items, maxDiff);
-          note += buf;
+          char buf[96];
+          std::snprintf(buf,
+                        sizeof(buf),
+                        "%.0f of %zu DIFFER (max diff %.3g)",
+                        mismatches,
+                        items,
+                        running.metricValue("max_diff", 0.0));
+          answers = buf;
         }
-        else {
-          note += "answers agree";
-        }
 
-        if (items > 0) {
-          speedups.push_back({label, hostMs / double(items), perItem, true});
-        }
+        row(parts.operation,
+            parts.precision,
+            {{formatTime(hostMs), 10},
+             {formatTime(median), 10},
+             {speedup, 8},
+             {spread, 7},
+             {items > 0 ? formatTime(perItem) : "", 10},
+             {answers, 7}});
       }
-      else if (parts.side == "host" && items > 0) {
-        hostPerItem.emplace_back(key, perItem);
-      }
-      else if (parts.side == "device" && items > 0) {
-        for (const auto& h : hostPerItem) {
-          if (h.first == key) {
-            speedups.push_back({label, h.second, perItem, false});
-          }
-        }
-      }
-
-      row(parts.operation,
-          parts.precision,
-          paired ? "host+device" : parts.side,
-          formatTime(median),
-          spread,
-          items > 0 ? formatTime(perItem) : "",
-          running.poolBytesUsed() > 0 ? formatBytes(running.poolBytesUsed()) : "",
-          note);
-    }
-
-    if (!speedups.empty()) {
-      std::size_t labelWidth = 4;
-
-      for (const auto& sp : speedups) {
-        labelWidth = std::max(labelWidth, displayWidth(sp.label));
-      }
-
-      std::printf("\nDevice speedup over the host (time per item)\n");
-
-      const std::string header = "    " + pad("case", labelWidth, true) + "  " + pad("host", 10) + "  " +
-                                 pad("device", 10) + "  " + pad("speedup", 8);
-      std::printf("%s\n", header.c_str());
-
-      for (const auto& sp : speedups) {
-        char factor[32];
-        std::snprintf(
-          factor, sizeof(factor), "%.1fx", sp.devicePerItemMs > 0.0 ? sp.hostPerItemMs / sp.devicePerItemMs : 0.0);
-
-        const std::string line =
-          "    " + pad(sp.label, labelWidth, true) + "  " + pad(formatTime(sp.hostPerItemMs), 10) + "  " +
-          pad(formatTime(sp.devicePerItemMs), 10) + "  " + pad(factor, 8) + "  " +
-          (sp.sameInputs ? "same inputs on both sides" : "from the host and device cases (different sizes)");
-        std::printf("%s\n", line.c_str());
-      }
-
-      if (std::string(simdLevel()) == "none") {
-        std::printf("  The host side was compiled without SIMD (as nvcc requires), so these speedups are against\n"
-                    "  scalar host code; a host build's host cases give vectorised host times.\n");
+      else {
+        row(parts.operation,
+            parts.precision,
+            {{formatTime(median), 10},
+             {spread, 7},
+             {items > 0 ? formatTime(perItem) : "", 10},
+             {running.poolBytesUsed() > 0 ? formatBytes(running.poolBytesUsed()) : "", 9}});
       }
     }
 
@@ -1021,11 +1053,12 @@ private:
   std::vector<std::pair<std::string, std::function<void(Case&)>>> m_cases;
   std::vector<std::string>                                        m_globs;
   std::string                                                     m_jsonOut;
-  std::string                                                     m_side  = EBGEOMETRY_PERF_SIDE;
-  int                                                             m_reps  = 5;
-  bool                                                            m_smoke = false;
-  bool                                                            m_list  = false;
-  bool                                                            m_json  = false;
+  std::string                                                     m_side       = EBGEOMETRY_PERF_SIDE;
+  int                                                             m_reps       = 5;
+  bool                                                            m_smoke      = false;
+  bool                                                            m_list       = false;
+  bool                                                            m_json       = false;
+  bool                                                            m_deviceRuns = false;
 };
 
 /**
@@ -1160,11 +1193,12 @@ mortonOrdered(const std::vector<EBGeometry::Vec3T<T>>& a_points)
 /**
  * @brief A paired case: the same query over the same inputs on the host and on the device.
  * @details The inputs are divided into chunks of GPU::DefaultBlockSize consecutive inputs: on the device
- * each chunk is one block of threads, and on the host the chunks are visited in turn, so both sides walk
- * the inputs in the same order. The case's own time is the device's (the kernel alone, as for
+ * each chunk is one block of threads, and on the host the chunks are shared among the OpenMP threads
+ * (every core, in a build with OpenMP), so both sides divide the work the same way. The case's own time is the device's (the kernel alone, as for
  * measureOnDevice()); it also records
  *
  *   host_ms        the host's median time
+ *   host_threads   the threads the host side ran on
  *   host_over_device  host time / device time, on this machine
  *   max_diff       the largest difference between a host and a device result (a_agree's first value)
  *   mismatches     the number of inputs where the two disagree (a_agree's second value)
@@ -1196,11 +1230,21 @@ measureHostAndDevice(Case&                  a_case,
   const auto       n     = a_in.size();
   std::vector<Out> host(n);
 
-  const std::vector<double> hostTimes = a_case.repeat([&] {
-    constexpr std::size_t chunk = EBGeometry::GPU::DefaultBlockSize;
+  // The host side runs on every core OpenMP gives it (one thread without OpenMP), a chunk at a time,
+  // so a comparison with the whole GPU is not made against a single core. Chunks are handed out
+  // dynamically, as a GPU schedules its blocks.
+  [[maybe_unused]] const int threads = hostThreads();
 
-    for (std::size_t begin = 0; begin < n; begin += chunk) {
-      const std::size_t end = std::min(begin + chunk, n);
+  const std::vector<double> hostTimes = a_case.repeat([&] {
+    constexpr std::size_t chunk  = EBGeometry::GPU::DefaultBlockSize;
+    const auto            chunks = static_cast<std::int64_t>((n + chunk - 1) / chunk);
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(dynamic)
+#endif
+    for (std::int64_t k = 0; k < chunks; k++) {
+      const std::size_t begin = static_cast<std::size_t>(k) * chunk;
+      const std::size_t end   = std::min(begin + chunk, n);
 
       for (std::size_t i = begin; i < end; i++) {
         host[i] = query(a_in[i]);
@@ -1222,6 +1266,7 @@ measureHostAndDevice(Case&                  a_case,
   const double deviceMs = a_case.medianTime();
 
   a_case.metric("host_ms", hostMs);
+  a_case.metric("host_threads", double(hostThreads()));
   a_case.metric("host_over_device", deviceMs > 0.0 ? hostMs / deviceMs : 0.0);
   a_case.metric("max_diff", maxDiff);
   a_case.metric("mismatches", double(mismatches));
