@@ -10,9 +10,9 @@
 
 ### Performance
 
-<!-- The comparison against the base branch: paste build/perf-compare/report.md from
-     cmake -DBASE=origin/<base> -DHEAD=<this branch> -P Performance/Compare.cmake
-     (add -DGPU=CUDA if the change touches device code). Explain any minor or MAJOR verdict; a PR with
+<!-- The comparison against the base branch: paste build/performance/compare/report.md from
+     Scripts/run-performance.sh compare origin/<base> <this branch>
+     (add --gpu cuda if the change touches device code). Explain any minor or MAJOR verdict; a PR with
      an unexplained MAJOR regression is not merged. See Docs/Sphinx/source/PerformanceTesting.rst. -->
 
 ### Reviewer checklist (to be completed by a human)

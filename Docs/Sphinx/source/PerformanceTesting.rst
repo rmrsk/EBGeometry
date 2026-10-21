@@ -23,6 +23,7 @@ What is in Performance/
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVHUnion/main.cpp        BVHUnion
      Compare/main.cpp         PerfCompare: compares two sets of results
+     RunPerformance.cmake     the logic of Scripts/run-performance.sh
      Compare.cmake            builds two commits, runs both, reports
      CMakeLists.txt
 
@@ -96,17 +97,17 @@ Family                          Sides                 Measures
 Where the results go
 --------------------
 
-A probe prints to the terminal and writes no file: a table by default, or one JSON object per case with
-``--json``, which can be redirected to keep it (``PointCloud.ex --json > pointcloud.jsonl``). Each JSON
-line holds every repetition's time, the median, minimum and interquartile range, the checksum, pool
-bytes, parameters and, for a paired case, the host/device figures; the first line describes the build
-(commit, compiler, SIMD level, GPU backend, CPU).
+``Scripts/run-performance.sh`` prints a table per probe and saves every result as JSON lines in
+``build/performance/results/<date>-<commit>-<host|cuda|hip>.jsonl``, one file per run. Each JSON line
+holds every repetition's time, the median, minimum and interquartile range, the checksum, pool bytes,
+parameters and, for a paired case, the host/device figures; each probe's first line describes the build
+(commit, compiler, SIMD level, GPU backend, CPU). Results accumulate there until deleted.
 
-``Compare.cmake`` keeps everything under its ``WORK_DIR`` (default ``build/perf-compare``):
-``base.jsonl`` and ``head.jsonl`` (every run of every case, appended round by round), ``report.md`` (the
-comparison as Markdown, the text a pull request carries), and the two source trees and builds, so a
-case can be rerun by hand. Nothing is kept between comparisons: the next run replaces them. In CI the
-report is the job summary of ``Performance-compare``.
+A comparison keeps its working files under ``build/performance/compare/``: ``base.jsonl`` and
+``head.jsonl`` (every run of every case, appended round by round), ``report.md`` (the comparison as
+Markdown, the text a pull request carries), and the two source trees and builds, so a case can be rerun
+by hand. The next comparison replaces them. In CI the report is the job summary of
+``Performance-compare``.
 
 Host and device
 ---------------
@@ -117,8 +118,7 @@ case runs the same functor through ``GPU::transform()`` over arrays already in d
 time is the kernel's alone. Device cases exist only in a CUDA or HIP build with a visible GPU. Builds and
 the batch queries run on the host; a device case is added when an operation gains a device path.
 
-Which side runs is chosen with ``--side host|device|all`` on the command line, or by default with the
-CMake cache variable ``EBGEOMETRY_PERF_SIDE``.
+By default both sides run in a GPU build; ``--host`` or ``--device`` selects one.
 
 Host against device
 ^^^^^^^^^^^^^^^^^^^
@@ -130,7 +130,8 @@ in the same order, once in Morton order (``SFC::order<SFC::Morton>``, the order 
 querying a box of cells presents its points, which keeps neighbouring queries in the same part of a tree)
 and once in random order. Besides the device time, a paired case records
 
-* ``host_ms`` and ``host_over_device``: the host's time, and the ratio of the two on this machine;
+* ``host_ms`` and ``host_over_device``: the host's time, and the device's speedup over the host (host
+  time / device time) on this machine, which the table prints as "device N x faster";
 * ``max_diff`` and ``mismatches``: how far apart the host and device answers are, and how many inputs
   they disagree on (a different sign, or a difference beyond a thousand ulps; for the point clouds, a
   different point at a different distance, since equal distances are ties).
@@ -142,85 +143,95 @@ a CUDA build the host side is compiled without vector instructions (with any hos
 ``host`` cases of a host build; a HIP build compiles its host side with AVX2 and FMA
 (``EBGEOMETRY_PERF_GPU_HOST_FLAGS``).
 
-Running a probe
----------------
+Running the probes
+------------------
+
+Everything goes through one script, run from the repository root. It needs only CMake, git and a C++
+compiler (``nvcc`` or ``hipcc`` for a GPU); its logic is ``Performance/RunPerformance.cmake``, and
+``--help`` lists every option.
 
 .. code-block:: bash
 
-   cmake --preset perf                 # Release, the host's full instruction set
-   cmake --build --preset perf --parallel $(nproc)
+   Scripts/run-performance.sh                          # build if needed, run every case
+   Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset: one or more globs (* and ?)
+   Scripts/run-performance.sh '*/double/*' --reps 10   # every double case, 10 repetitions
+   Scripts/run-performance.sh list 'Mesh*'             # the case names
+   Scripts/run-performance.sh --smoke                  # every case at tiny sizes: checks they run
 
-   build/perf/Performance/bin/PointCloud.ex --list
-   build/perf/Performance/bin/PointCloud.ex --case 'PointCloudBVH/uniform/*'
-   build/perf/Performance/bin/Mesh.ex --side host --reps 10
+   Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
+   Scripts/run-performance.sh --gpu cuda --device 'TriMeshSDF/*'
 
-   ctest --preset perf                 # every case at its small --smoke size: checks, times nothing
+The probes are built in Release for the host's full instruction set, incrementally, in
+``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own,
+pinned to one core when ``taskset`` is available (``--core <n>``, or ``--no-pin``). The output is one table
+per probe, grouped by component and input, with the median, its spread, the time per item and the pool
+bytes; a paired case adds the host's time, the device's speedup and whether the answers agree, and a GPU
+run ends with the device's speedup over the host for every case that ran on both sides:
 
-For the device cases, configure with the ``perf-cuda`` preset, or build the folder on its own. Either
-takes the ``nvcc`` on the ``PATH`` unless told otherwise; CUDA 12.0's ``nvcc`` cannot compile the library
-(it rejects a braced argument list in ``EBGeometry_TapeImplem.hpp``), so with an older default pass a
-newer one, and add ``--fresh`` if the build directory has already cached the old one:
+.. code-block:: text
 
-.. code-block:: bash
+   Mesh: 3 cases, 3 repetitions each
+     git 5f047b4, gcc 13.3.0, host SIMD none, GPU CUDA
+     median of the repetitions; spread = interquartile range / median
 
-   cmake --preset perf-cuda --fresh -DCMAKE_CUDA_COMPILER=/path/to/nvcc -DCMAKE_CUDA_ARCHITECTURES=86
-   cmake --build --preset perf-cuda --parallel
+       operation     precision  side             median   spread    per item       pool
 
-On its own:
+     TriMeshSDF · w4
+       query         float      device          36.2 ms     4.7%     36.2 ns
+       query-morton  float      host+device     5.57 ms     5.2%     21.2 ns             device time; host 1.42 s: device 255.1x faster, answers agree
+       query-random  float      host+device     11.1 ms     0.7%     42.3 ns             device time; host 2.27 s: device 204.7x faster, answers agree
 
-.. code-block:: bash
+   Device speedup over the host (time per item)
+       case                                          host      device   speedup
+       TriMeshSDF · w4 · query-morton · float     5.42 µs     21.2 ns    255.1x  same inputs on both sides
+       TriMeshSDF · w4 · query-random · float     8.65 µs     42.3 ns    204.7x  same inputs on both sides
 
-   cmake -S Performance -B build/perf-cuda -DEBGEOMETRY_PERF_GPU=CUDA -DCMAKE_CUDA_ARCHITECTURES=86
-   cmake --build build/perf-cuda --parallel
-   build/perf-cuda/bin/Mesh.ex --side device
+CMake takes the ``nvcc`` on the ``PATH`` (or ``CUDACXX``) unless ``--cuda-compiler`` names one. CUDA
+12.0's ``nvcc`` cannot compile the library (it rejects a braced argument list in
+``EBGeometry_TapeImplem.hpp``); pass a newer one, and the script reconfigures when the compiler changes.
 
-Every probe takes the same options:
-
-==================  ==============================================================================
-``--list``          print the case names (those selected by ``--side`` and ``--case``) and exit
-``--case <glob>``   run only the cases matching the glob (``*`` and ``?``); may be repeated
-``--side <s>``      ``host``, ``device`` or ``all``
-``--reps <n>``      timed repetitions per case, after one untimed warm-up (default 5)
-``--smoke``         small problem sizes and one repetition
-``--json``          one JSON object per case, which ``PerfCompare`` reads
-==================  ==============================================================================
-
-``Performance/`` also builds on its own (``cmake -S Performance -B build``) against any EBGeometry tree
-(``-DEBGEOMETRY_HOME=...``), with nothing but CMake and a compiler.
+Under the script, each probe is an ordinary program (``build/performance/host/bin/<Probe>.ex``) taking
+``--list``, ``--case <glob>``, ``--side host|device|all``, ``--reps <n>``, ``--smoke``, ``--json`` (JSON
+instead of the table) and ``--json-out <file>`` (the table, and the JSON appended to a file). The ``perf``
+and ``perf-cuda`` CMake presets build the same probes inside the project, which is what ``ctest --preset
+perf`` and CI's smoke run use.
 
 Comparing two commits
 ---------------------
 
-``Performance/Compare.cmake`` compares a baseline with a candidate:
-
 .. code-block:: bash
 
-   cmake -DBASE=origin/dev -DHEAD=HEAD -P Performance/Compare.cmake          # committed work
-   cmake -DBASE=origin/dev -DHEAD=WORKTREE -P Performance/Compare.cmake      # uncommitted changes too
-   cmake -DBASE=origin/dev -DGPU=CUDA -DGPU_ARCH=86 -P Performance/Compare.cmake   # host and device
+   Scripts/run-performance.sh compare                              # the working tree against origin/dev
+   Scripts/run-performance.sh compare origin/dev my-branch         # two commits
+   Scripts/run-performance.sh compare origin/dev 'PointCloudBVH/*' --rounds 10
+   Scripts/run-performance.sh compare origin/dev --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
 
-It needs only CMake, git and a compiler. Each side is exported with ``git archive`` and built from its
-own ``Performance/`` folder, so a pull request that changes an API the probes use updates the probes and
-is still compared case by case; the report names any probe that differs between the sides. (A baseline
-from before ``Performance/`` existed is measured with the candidate's probes.) Every case then runs in a
-fresh process, so that one case cannot leave the heap or the caches in a state that favours the next,
-alternating between the two sides for ``ROUNDS`` rounds, and pinned to one core when ``taskset`` is
-available. The remaining variables are listed at the top of ``Compare.cmake``: ``CASES`` (a glob),
-``SIDE``, ``ROUNDS``, ``REPS``, ``CORE``, ``MINOR``, ``MAJOR``, ``WORK_DIR`` and ``FAIL_ON_MAJOR``.
+The first two arguments that git resolves to commits are the baseline (default ``origin/dev``) and the
+candidate (default: the working tree, uncommitted changes included); anything else is a glob. Each side
+is exported with ``git archive`` and built from its own ``Performance/`` folder, so a pull request that
+changes an API the probes use updates the probes and is still compared case by case; the report names
+any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
+with the candidate's probes.) Every case then runs in a fresh process, so that one case cannot leave the
+heap or the caches in a state that favours the next, alternating between the two sides for ``--rounds``
+rounds (default 3) of ``--reps`` repetitions (default 5), pinned to one core. Without ``--gpu`` only the
+host cases are compared; with it, all of them. The comparison itself is ``Performance/Compare.cmake``,
+whose variables (listed at its top) also set the thresholds.
 
-The report is printed to the terminal and written to ``build/perf-compare/report.md``, followed by the
-commands that repeat the comparison, or a single case, by hand:
+The report is printed to the terminal and written to ``build/performance/compare/report.md``, followed by
+the command that repeats the comparison and those that rerun a single case by hand:
 
 .. code-block:: text
 
-   Performance comparison: 0 major, 0 minor, 0 faster, 5 cases
+   Performance comparison: 0 major, 0 minor, 0 faster, 2 cases
      base 000723d (gcc 13.3.0, simd avx2, gpu host)
-     head 000723d+worktree (gcc 13.3.0, simd avx2, gpu host)
+     head 5f047b4+worktree (gcc 13.3.0, simd avx2, gpu host)
      thresholds: minor >= 3%, major >= 10% slower, and outside the 95% interval
 
-     case                                         base ms    head ms   change       95% interval     pool  verdict
-     PointCloudBVH/uniform/build/double/host       99.390    100.169    +0.8%     [+0.3%, +3.3%]    +0.0%  ~
-     PointCloudBVH/uniform/all1nn/double/host     178.727    180.705    +1.1%     [-1.2%, +2.6%]        -  ~
+     case                                                base        head   change       95% interval    pool  verdict
+     PointCloudBVH/uniform/build/double/host          99.2 ms     99.4 ms    +0.2%     [-1.6%, +2.0%]   +0.0%  ~
+     PointCloudHashGrid/uniform/build/double/host     14.3 ms     13.2 ms    -7.6%   [-55.6%, +99.1%]   +0.0%  ~
+
+   Nothing flagged.
 
 Reading the verdicts
 ^^^^^^^^^^^^^^^^^^^^
@@ -237,9 +248,9 @@ change at all:
 ==========  =========================================================================================
 
 A differing checksum is noted beside the verdict: the two sides did not compute the same answers, so the
-times may not be comparable. A paired case shows its host/device ratio, with the baseline's beside it
-when the two differ by 3% or more, and is at least ``minor`` when its host and device answers disagree
-anywhere.
+times may not be comparable. A paired case shows the device's speedup over the host, with the
+baseline's beside it when the two differ by 3% or more, and is at least ``minor`` when its host and
+device answers disagree anywhere. Flagged cases are listed again under the table.
 
 In continuous integration and in pull requests
 ----------------------------------------------
@@ -248,8 +259,8 @@ Two jobs in ``.github/workflows/CI.yml`` cover ``Performance/``:
 
 * ``Performance-smoke`` builds the probes with warnings as errors and runs every case at its smoke size,
   on every push and pull request. The GPU lanes also compile the probes for their device.
-* ``Performance-compare`` runs ``Compare.cmake`` on a pull request, against its base branch, for the host
-  cases, and puts the report in the job summary. A major regression fails the job, and with it
+* ``Performance-compare`` runs ``Scripts/run-performance.sh compare`` on a pull request, against its base
+  branch, for the host cases, and puts the report in the job summary. A major regression fails the job, and with it
   ``CI-passed``. A shared runner is noisy, so this catches large regressions; small ones, and the device
   cases, need the comparison run locally on a quiet machine.
 
@@ -276,6 +287,6 @@ Some rules of thumb:
   there is a pool.
 * Prefer a new case to changing an existing one: a changed case cannot be compared with its old
   results, and the report flags it.
-* Keep the whole set to about ten minutes for ``Compare.cmake`` with its defaults on a desktop, so it is
+* Keep the whole set to about ten minutes for a comparison with its defaults on a desktop, so it is
   run. A case that duplicates another's code path (the same kernel at another size) earns its place only
   if it has behaved differently.

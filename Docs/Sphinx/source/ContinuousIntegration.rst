@@ -116,7 +116,7 @@ checks that the probes still compile and run; it times nothing. See :ref:`Chap:P
 Performance-compare
 ~~~~~~~~~~~~~~~~~~~
 
-On a pull request, runs ``Performance/Compare.cmake``: the pull request (merged into its base, as the
+On a pull request, runs ``Scripts/run-performance.sh compare``: the pull request (merged into its base, as the
 checkout gives it) against its base branch, every host case in alternation on the same runner, three
 rounds of three repetitions. The comparison goes into the job summary, and a major regression (10% or
 more slower, outside the noise) fails the job. A shared runner is noisy, so this catches large

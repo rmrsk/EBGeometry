@@ -328,32 +328,34 @@ The coverage rules are in "Vetting every pull request for performance" below. Me
   `param()` for every code-selecting parameter, and `poolBytes()`. A device query is a trivially
   copyable functor, timed with `measureOnDevice()`, plus a `measureHostAndDevice()` pair over Morton-
   and randomly-ordered inputs. Give every case a `--smoke` size.
-- Run `ctest --preset perf` and one `Compare.cmake` against the base before committing; the new cases
-  show as *new*.
+- Run `ctest --preset perf` and `Scripts/run-performance.sh compare origin/<base>` before committing;
+  the new cases show as *new*.
 
 ## Vetting every pull request for performance
 
 **Claude runs a performance comparison on every pull request as soon as it is opened (draft or not),
 and again after any push that changes `Source/`, without being asked.** `Performance/` holds the
-probes (one program per component, many named cases, `component/input/operation/precision/side`) and
-`Performance/Compare.cmake`, which needs only CMake, git and a compiler; the full description is
-`Docs/Sphinx/source/PerformanceTesting.rst`.
+probes (one program per component, many named cases, `component/input/operation/precision/side`);
+`Scripts/run-performance.sh` is the one way in (its logic is `Performance/RunPerformance.cmake` and
+`Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
+full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
 1. **Run the comparison against the PR's base**, from the repository root:
 
    ```bash
-   cmake -DBASE=origin/<base> -DHEAD=<pr-branch> -P Performance/Compare.cmake           # host cases
-   cmake -DBASE=origin/<base> -DHEAD=<pr-branch> -DGPU=CUDA -DGPU_ARCH=86 \
-         -DCMAKE_CUDA_COMPILER=<nvcc> -P Performance/Compare.cmake                      # + device
+   Scripts/run-performance.sh compare origin/<base> <pr-branch>                    # host cases
+   Scripts/run-performance.sh compare origin/<base> <pr-branch> --gpu cuda --gpu-arch 86 \
+                              --cuda-compiler <nvcc>                               # + device
    ```
 
    Add the device run whenever the PR touches code a device runs (`EBGEOMETRY_HOST_DEVICE`
    functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). The `hostdevice` cases
-   then also report each side's time, their ratio and whether the host and device answers agree.
-   Nothing else should be running on the machine; each case runs in a fresh process, alternating
-   between the sides, pinned to one core.
+   then also report each side's time, the device's speedup and whether the host and device answers
+   agree. Nothing else should be running on the machine; each case runs in a fresh process,
+   alternating between the sides, pinned to one core. (`Scripts/run-performance.sh` with no command
+   runs every case of the current tree, and a glob such as `'PointCloudBVH/*'` runs a subset.)
 2. **Report the result to the user in the terminal** (the table and the "Run it manually" block that
-   `Compare.cmake` prints), **and carry the figures in the PR**: paste `build/perf-compare/report.md`
+   the comparison prints), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
    into the *Performance* section of the PR body (`.github/pull_request_template.md`), replacing an
    older report. Every PR carries its figures, including a PR that should not change performance.
 3. **Act on the verdicts** (a change counts only outside the 95% bootstrap interval):
@@ -365,10 +367,12 @@ probes (one program per component, many named cases, `component/input/operation/
    - A **differing checksum** or **host/device disagreements** are flagged whatever the timing says:
      the sides computed different answers.
    - Before calling something a regression, repeat the flagged cases by hand with more rounds
-     (`-DCASES='<glob>' -DROUNDS=10`); do not rerun until a noisy result passes.
+     (`Scripts/run-performance.sh compare origin/<base> <pr-branch> '<glob>' --rounds 10`); do not
+     rerun until a noisy result passes.
 4. **CI runs a coarser version of the same comparison** (`Performance-compare` in
-   `.github/workflows/CI.yml`, host cases only, on a shared runner); a major regression there fails
-   `CI-passed`. It does not replace the local run: it is noisier and has no device.
+   `.github/workflows/CI.yml`, host cases only, on a shared runner, through the same script); a major
+   regression there fails `CI-passed`. It does not replace the local run: it is noisier and has no
+   device.
 
 **Coverage: how wide the probes are, and when to add to them.** The probes cover each public
 structure where its cost lives: its build, its queries, and any in-place update (a refit), in both
@@ -382,7 +386,7 @@ cases in its component's probe), and the PR's comparison then lists them as *new
   using the `Default*` functions, and record it with `param()`; record a `checksum()` that depends on
   every result, and `poolBytes()` where there is a pool.
 - Add a case rather than change an existing one: a changed case cannot be compared with its past.
-- Keep the whole set to about ten minutes of `Compare.cmake` with its defaults on a desktop; a case
+- Keep the whole set to about ten minutes of a comparison with its defaults on a desktop; a case
   that repeats another's code path (the same kernel at another size) must have shown different
   behaviour to earn its place.
 - Cross-library comparisons (fcpw, nanoflann, ...) do not belong here; they live in the

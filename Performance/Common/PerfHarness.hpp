@@ -19,6 +19,7 @@
  *   --reps <n>       timed repetitions per case (default 5), after one untimed warm-up
  *   --smoke          small problem sizes and one repetition: checks that a case runs, times nothing
  *   --json           one JSON object per case instead of the table
+ *   --json-out <f>   print the table, and also append the JSON to file f
  *
  * This header is host code for the programs under Performance/, not part of the library.
  */
@@ -81,6 +82,20 @@ globMatch(const char* a_glob, const char* a_name) noexcept
   }
 
   return *a_name != '\0' && (*a_glob == '?' || *a_glob == *a_name) && globMatch(a_glob + 1, a_name + 1);
+}
+
+/**
+ * @brief The commit the cases measure: the environment variable EBGEOMETRY_PERF_GIT_SHA if set (the
+ * front door sets it on every run, so an incrementally rebuilt probe reports the commit it was rebuilt
+ * from), else the one the probe was configured with.
+ * @return The commit.
+ */
+inline std::string
+gitSha()
+{
+  const char* env = std::getenv("EBGEOMETRY_PERF_GIT_SHA");
+
+  return env != nullptr && *env != '\0' ? env : EBGEOMETRY_PERF_GIT_SHA;
 }
 
 /**
@@ -418,10 +433,11 @@ public:
   }
 
   /**
-   * @brief Print the case as one JSON object (the form PerfCompare reads).
+   * @brief The case as one JSON object, on one line (the form PerfCompare reads).
+   * @return The JSON text, without a newline.
    */
-  void
-  reportJson() const
+  [[nodiscard]] std::string
+  json() const
   {
     const auto [median, iqr] = this->medianAndIqr();
 
@@ -468,7 +484,16 @@ public:
       s += (i > 0 ? "," : "") + jsonString(m_params[i].first) + ":" + std::to_string(m_params[i].second);
     }
 
-    std::printf("%s}}\n", s.c_str());
+    return s + "}}";
+  }
+
+  /**
+   * @brief Print the case as one JSON object.
+   */
+  void
+  reportJson() const
+  {
+    std::printf("%s\n", this->json().c_str());
     std::fflush(stdout);
   }
 
@@ -658,6 +683,9 @@ public:
       else if (arg == "--case" && i + 1 < a_argc) {
         m_globs.emplace_back(a_argv[++i]);
       }
+      else if (arg == "--json-out" && i + 1 < a_argc) {
+        m_jsonOut = a_argv[++i];
+      }
       else if (arg == "--side" && i + 1 < a_argc) {
         m_side = a_argv[++i];
       }
@@ -712,18 +740,7 @@ public:
     }
 
     if (m_json) {
-      std::printf("{\"suite\":%s,\"git\":%s,\"compiler\":%s,\"simd\":\"%s\",\"host_tuned_defaults\":%s,"
-                  "\"gpu_backend\":\"%s\",\"side\":\"%s\",\"cpu\":%s,\"reps\":%d,\"smoke\":%s}\n",
-                  jsonString(m_name).c_str(),
-                  jsonString(EBGEOMETRY_PERF_GIT_SHA).c_str(),
-                  jsonString(compilerName()).c_str(),
-                  simdLevel(),
-                  hostTunedDefaults() ? "true" : "false",
-                  EBGeometry::GPU::backendName,
-                  m_side.c_str(),
-                  jsonString(cpuModel()).c_str(),
-                  m_reps,
-                  m_smoke ? "true" : "false");
+      std::printf("%s\n", this->headerJson().c_str());
 
       for (const auto& c : m_cases) {
         if (!selected(c.first)) {
@@ -761,6 +778,17 @@ public:
   }
 
 private:
+  // The first JSON line: what built and ran the cases.
+  [[nodiscard]] std::string
+  headerJson() const
+  {
+    return "{\"suite\":" + jsonString(m_name) + ",\"git\":" + jsonString(gitSha()) +
+           ",\"compiler\":" + jsonString(compilerName()) + ",\"simd\":\"" + simdLevel() +
+           "\",\"host_tuned_defaults\":" + (hostTunedDefaults() ? "true" : "false") + ",\"gpu_backend\":\"" +
+           EBGeometry::GPU::backendName + "\",\"side\":\"" + m_side + "\",\"cpu\":" + jsonString(cpuModel()) +
+           ",\"reps\":" + std::to_string(m_reps) + ",\"smoke\":" + (m_smoke ? "true" : "false") + "}";
+  }
+
   // One row of the speedup summary.
   struct Speedup
   {
@@ -792,7 +820,7 @@ private:
                 m_reps == 1 ? "" : "s",
                 m_smoke ? " (smoke sizes: checks that cases run, times nothing)" : "");
     std::printf("  git %s, %s, host SIMD %s, GPU %s\n",
-                EBGEOMETRY_PERF_GIT_SHA,
+                gitSha().c_str(),
                 compilerName().c_str(),
                 simdLevel(),
                 EBGeometry::GPU::enabled ? EBGeometry::GPU::backendName : "none");
@@ -819,6 +847,20 @@ private:
 
     row("operation", "precision", "side", "median", "spread", "per item", "pool", "");
 
+    // With --json-out, the JSON goes to a file alongside the table.
+    std::ofstream jsonOut;
+
+    if (!m_jsonOut.empty()) {
+      jsonOut.open(m_jsonOut, std::ios::app);
+
+      if (!jsonOut) {
+        std::fprintf(stderr, "%s: cannot write %s\n", m_name.c_str(), m_jsonOut.c_str());
+        std::exit(2);
+      }
+
+      jsonOut << this->headerJson() << "\n";
+    }
+
     std::string          group = "\x01";
     std::vector<Speedup> speedups;
 
@@ -843,7 +885,16 @@ private:
         c.second(running);
       } catch (const std::exception& e) {
         row(parts.operation, parts.precision, parts.side, "", "", "", "", std::string("skipped: ") + e.what());
+
+        if (jsonOut) {
+          jsonOut << "{\"case\":" << jsonString(c.first) << ",\"skipped\":" << jsonString(e.what()) << "}\n";
+        }
+
         continue;
+      }
+
+      if (jsonOut) {
+        jsonOut << running.json() << "\n" << std::flush;
       }
 
       const auto [median, iqr] = running.medianAndIqr();
@@ -969,6 +1020,7 @@ private:
   std::string                                                     m_name;
   std::vector<std::pair<std::string, std::function<void(Case&)>>> m_cases;
   std::vector<std::string>                                        m_globs;
+  std::string                                                     m_jsonOut;
   std::string                                                     m_side  = EBGEOMETRY_PERF_SIDE;
   int                                                             m_reps  = 5;
   bool                                                            m_smoke = false;

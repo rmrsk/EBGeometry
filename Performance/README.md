@@ -25,36 +25,25 @@ Each probe holds many cases, named `component/input/operation/precision/side`, w
 ratio, and whether the answers agree). The *Performance testing* page lists every case family with its
 input and size; `--list` prints the exact names.
 
-Probes print to the terminal and write no file (`--json > file.jsonl` keeps the results);
-`Compare.cmake` writes `base.jsonl`, `head.jsonl` and `report.md` under `build/perf-compare/`.
+Run them
+--------
 
-Run a probe
------------
-
-```bash
-cmake --preset perf && cmake --build --preset perf --parallel
-build/perf/Performance/bin/PointCloud.ex --list
-build/perf/Performance/bin/PointCloud.ex --case 'PointCloudBVH/uniform/*' --side host
-ctest --preset perf          # every case at its --smoke size: checks they run, times nothing
-```
-
-Options: `--list`, `--case <glob>`, `--side host|device|all`, `--reps <n>`, `--smoke`, `--json`.
-
-For the device cases, build as CUDA or HIP (`cmake --preset perf-cuda`; CUDA 12.0's nvcc cannot compile
-the library, so pass a newer one with `-DCMAKE_CUDA_COMPILER=...`, plus `--fresh` if the old one is
-already cached; or
-`cmake -S Performance -B build/perf-cuda -DEBGEOMETRY_PERF_GPU=CUDA -DCMAKE_CUDA_ARCHITECTURES=86`).
-The folder also builds on its own against any EBGeometry tree (`-DEBGEOMETRY_HOME=...`).
-
-Compare two commits
--------------------
+From the repository root, through one script (needs only CMake, git and a compiler; `--help` lists
+every option):
 
 ```bash
-cmake -DBASE=origin/dev -DHEAD=HEAD -P Performance/Compare.cmake        # or HEAD=WORKTREE
-cmake -DBASE=origin/dev -DGPU=CUDA -DGPU_ARCH=86 -P Performance/Compare.cmake
+Scripts/run-performance.sh                          # build if needed, run every case
+Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset: one or more globs
+Scripts/run-performance.sh list                     # the case names
+Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # + device cases
+Scripts/run-performance.sh compare origin/dev       # this tree against origin/dev
 ```
 
-Builds both sides from their own `Performance/`, runs every case in a fresh process, alternating
-between the sides, and prints the comparison (also written to `build/perf-compare/report.md`) with the
-commands to repeat it by hand. A case is **minor** at 3% slower and **MAJOR** at 10% slower, in both
-cases only outside the 95% confidence interval. The variables are listed at the top of `Compare.cmake`.
+A run prints a table per probe and saves the results to `build/performance/results/`. A comparison
+builds both sides from their own `Performance/`, runs every case in a fresh process, alternating between
+the sides, and prints the comparison (also written to `build/performance/compare/report.md`) with the
+command to repeat it. A case is **minor** at 3% slower and **MAJOR** at 10% slower, in both cases only
+outside the 95% confidence interval.
+
+CUDA 12.0's nvcc cannot compile the library; name a newer one with `--cuda-compiler`. `ctest --preset
+perf` runs every case at its `--smoke` size (checks that they run, times nothing).

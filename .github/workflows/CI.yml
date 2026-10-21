@@ -283,7 +283,7 @@ jobs:
         run: ctest --preset perf
 
   # On a pull request: the PR (merged into its base, as actions/checkout gives it) against its base,
-  # every host case run in alternation on the same runner (Performance/Compare.cmake). The table goes
+  # every host case run in alternation on the same runner (Scripts/run-performance.sh compare). The table goes
   # into the job summary; a major regression fails the job, and with it CI-passed. A shared runner is
   # noisy, so this catches large regressions; the full comparison, device cases included, is run
   # locally (see Docs/Sphinx/source/PerformanceTesting.rst). On a push it does nothing and succeeds,
@@ -304,14 +304,12 @@ jobs:
           fetch-depth: 0
       - name: Compare the PR with its base
         if: github.event_name == 'pull_request'
-        run: >
-          cmake -DBASE=origin/${{ github.base_ref }} -DHEAD=HEAD -DSIDE=host -DROUNDS=3 -DREPS=3 -DCORE=1
-          -DWORK_DIR=build/perf-compare -P Performance/Compare.cmake
+        run: Scripts/run-performance.sh compare origin/${{ github.base_ref }} HEAD --host --rounds 3 --reps 3 --core 1
       - name: Publish the comparison
         if: always() && github.event_name == 'pull_request'
         run: |
-          if [ -f build/perf-compare/report.md ]; then
-            cat build/perf-compare/report.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f build/performance/compare/report.md ]; then
+            cat build/performance/compare/report.md >> "$GITHUB_STEP_SUMMARY"
           fi
 
   CMake-consumer:

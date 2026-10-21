@@ -4,7 +4,8 @@
 
 # Compare the performance of two commits: a baseline (BASE) and a candidate (HEAD).
 #
-#   cmake [-D<VAR>=<value> ...] -P Performance/Compare.cmake
+#   Scripts/run-performance.sh compare [BASE [HEAD]] [GLOB...] [options]     (the usual way)
+#   cmake [-D<VAR>=<value> ...] -P Performance/Compare.cmake                 (what it runs)
 #
 # Needs only CMake, git and a C++ compiler (nvcc or hipcc for GPU=CUDA/HIP). Each side is exported with
 # git archive (no worktree, no new refs) and built from its own Performance/ folder in Release, for the
@@ -21,13 +22,13 @@
 #   GPU        OFF, CUDA or HIP                                   default: OFF
 #   GPU_ARCH   CMAKE_CUDA_ARCHITECTURES / CMAKE_HIP_ARCHITECTURES  default: the toolchain's
 #   CMAKE_CUDA_COMPILER / CMAKE_HIP_COMPILER  the device compiler   default: the one on the PATH
-#   CASES      glob of case names to run                          default: *
+#   CASES      glob(s) of case names to run, a CMake list         default: *
 #   ROUNDS     runs of each case per side                         default: 3
 #   REPS       timed repetitions inside each run                  default: 5
 #   CORE       core to pin to with taskset; OFF to not pin        default: 2
 #   MINOR      percent slower that asks for a look                default: 3
 #   MAJOR      percent slower that is a red flag                  default: 10
-#   WORK_DIR   where the trees, builds and results go             default: build/perf-compare
+#   WORK_DIR   where the trees, builds and results go             default: build/performance/compare
 #   FAIL_ON_MAJOR  exit non-zero on a major regression            default: ON
 
 cmake_minimum_required(VERSION 3.16)
@@ -35,7 +36,7 @@ cmake_minimum_required(VERSION 3.16)
 get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;5" "CORE;2" "MINOR;3" "MAJOR;10"
-             "WORK_DIR;${REPO}/build/perf-compare" "FAIL_ON_MAJOR;ON")
+             "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON")
   list(GET pair 0 var)
   list(GET pair 1 default)
 
@@ -159,10 +160,16 @@ if(TASKSET AND NOT CORE STREQUAL "OFF")
 endif()
 
 set(jobs "")
+set(case_args "")
+
+# CASES may hold several globs (a CMake list).
+foreach(glob IN LISTS CASES)
+  list(APPEND case_args --case "${glob}")
+endforeach()
 
 foreach(p IN LISTS head_probes)
   get_filename_component(probe "${p}" DIRECTORY)
-  execute_process(COMMAND "${WORK_DIR}/head-build/bin/${probe}.ex" --list --side ${SIDE} --case "${CASES}"
+  execute_process(COMMAND "${WORK_DIR}/head-build/bin/${probe}.ex" --list --side ${SIDE} ${case_args}
                   OUTPUT_VARIABLE names OUTPUT_STRIP_TRAILING_WHITESPACE)
   string(REPLACE "\n" ";" names "${names}")
 
@@ -234,41 +241,83 @@ if(changed_probes)
   string(APPEND notes "\nThe probes differ between the sides (each side ran its own): ${changed}\n")
 endif()
 
-set(gpu_manual "")
-
-if(NOT GPU STREQUAL "OFF")
-  if(DEFINED GPU_ARCH)
-    string(APPEND gpu_manual " -DGPU_ARCH=${GPU_ARCH}")
-  endif()
-
-  if(DEFINED CMAKE_${GPU}_COMPILER)
-    string(APPEND gpu_manual " -DCMAKE_${GPU}_COMPILER=${CMAKE_${GPU}_COMPILER}")
-  endif()
-endif()
-
 if(pin)
   set(pin_text "pinned to core ${CORE} with taskset")
 else()
   set(pin_text "not pinned")
 endif()
 
+set(rounds_s "s")
+set(reps_s "s")
+
+if(ROUNDS EQUAL 1)
+  set(rounds_s "")
+endif()
+
+if(REPS EQUAL 1)
+  set(reps_s "")
+endif()
+
+# The same comparison as one command of the front door, Scripts/run-performance.sh.
+set(again "Scripts/run-performance.sh compare ${BASE}")
+
+if(NOT HEAD STREQUAL "WORKTREE")
+  string(APPEND again " ${HEAD}")
+endif()
+
+foreach(glob IN LISTS CASES)
+  if(NOT glob STREQUAL "*")
+    string(APPEND again " '${glob}'")
+  endif()
+endforeach()
+
+if(NOT GPU STREQUAL "OFF")
+  string(TOLOWER ${GPU} gpu_lower)
+  string(APPEND again " --gpu ${gpu_lower}")
+
+  if(DEFINED GPU_ARCH)
+    string(APPEND again " --gpu-arch ${GPU_ARCH}")
+  endif()
+
+  if(DEFINED CMAKE_${GPU}_COMPILER)
+    string(APPEND again " --${gpu_lower}-compiler ${CMAKE_${GPU}_COMPILER}")
+  endif()
+endif()
+
+if(SIDE STREQUAL "device" OR (SIDE STREQUAL "host" AND NOT GPU STREQUAL "OFF"))
+  string(APPEND again " --${SIDE}")
+endif()
+
+if(NOT ROUNDS EQUAL 3)
+  string(APPEND again " --rounds ${ROUNDS}")
+endif()
+
+if(NOT REPS EQUAL 5)
+  string(APPEND again " --reps ${REPS}")
+endif()
+
+if(CORE STREQUAL "OFF")
+  string(APPEND again " --no-pin")
+elseif(NOT CORE EQUAL 2)
+  string(APPEND again " --core ${CORE}")
+endif()
+
 set(manual "
 Run it manually
 ---------------
-Whole comparison (${ROUNDS} rounds x ${REPS} repetitions, ${pin_text}):
+The whole comparison again (${ROUNDS} round${rounds_s} x ${REPS} repetition${reps_s}, ${pin_text}):
 
-    cmake -DBASE=${BASE} -DHEAD=${HEAD} -DSIDE=${SIDE} -DGPU=${GPU} -DCASES='${CASES}' -DROUNDS=${ROUNDS} -DREPS=${REPS} -DWORK_DIR=${WORK_DIR}${gpu_manual} -P Performance/Compare.cmake
+    ${again}
 
 One case, both sides, by hand (the builds are kept under ${WORK_DIR}):
 
     ${WORK_DIR}/base-build/bin/<Probe>.ex --case '<case name>' --reps 10
     ${WORK_DIR}/head-build/bin/<Probe>.ex --case '<case name>' --reps 10
 
-A probe on its own, in this tree:
+The cases in this tree, and a run of some of them:
 
-    cmake --preset perf && cmake --build --preset perf
-    build/perf/Performance/bin/<Probe>.ex --list                  # the cases
-    build/perf/Performance/bin/<Probe>.ex --case 'PointCloudBVH/*' --side host
+    Scripts/run-performance.sh list
+    Scripts/run-performance.sh 'PointCloudBVH/*'
 
 Results: ${WORK_DIR}/base.jsonl and head.jsonl; this report: ${WORK_DIR}/report.md
 ")
