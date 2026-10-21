@@ -22,7 +22,7 @@ folder measures it. The full description is the *Performance testing* page of th
 
 Each probe holds many cases, named `component/input/operation/precision/side`. A host build runs the
 `host` cases, on one core; a CUDA or HIP build runs only the `hostdevice` pairs: every device query with
-the same inputs on both sides, the host side on every core (OpenMP), giving each side's time, the
+the same inputs on both sides, the host side on every hardware thread but one (OpenMP), giving each side's time, the
 device's speedup and whether the answers agree. The *Performance testing* page lists every case family with its
 input and size; `--list` prints the exact names.
 

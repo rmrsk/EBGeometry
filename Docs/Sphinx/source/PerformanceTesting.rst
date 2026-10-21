@@ -133,10 +133,12 @@ depends on the build:
 Queries are written as trivially copyable functors, as in the examples. In a pair, the inputs are
 divided into chunks of ``GPU::DefaultBlockSize`` consecutive points: on the device each chunk is one
 block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
-kernel's alone), and on the host the chunks are shared among OpenMP threads, one per physical core, so
-that the device is compared with the whole CPU rather than one core. (``OMP_NUM_THREADS`` overrides the
-count; a thread on every hardware thread measured no faster and made the times jump by whole scheduler
-time slices.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
+kernel's alone), and on the host the chunks are shared among OpenMP threads, one on every hardware
+thread but one, so that the device is compared with the whole CPU rather than one core.
+(``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries about a quarter faster
+than one thread per core; a thread on every hardware thread, though, leaves nothing for the GPU runtime
+and the operating system, so the loop keeps losing whole scheduler ticks to a preempted thread, and one
+spare hardware thread was fastest in every case.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
 in which a caller querying a box of cells presents them, which keeps neighbouring queries in the same
 part of a tree) and, for external queries, once in random order. Besides the device time, a pair records
 
@@ -174,8 +176,8 @@ The probes are built in Release for the host's full instruction set, incremental
 ``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own.
 A host run is pinned to one core when ``taskset`` is available; a GPU run is not, since its host side
 uses every core (``--core <n>`` or ``--no-pin`` overrides either). The output is one table per probe,
-grouped by component and input. A host build shows each case's median, its spread, the time per item and
-the pool bytes:
+grouped by component and input. A host build shows each case's number of items (for queries), median,
+spread, time per item and pool bytes:
 
 .. code-block:: text
 
@@ -184,29 +186,30 @@ the pool bytes:
      host side: 1 thread, SIMD avx2
      times are medians of the repetitions; spread = interquartile range / median
 
-       operation  precision      median   spread    per item       pool
+       operation  precision      items      median   spread    per item       pool
 
      MeshSDF
-       build      float          110 ms     1.6%                21.0 MB
-       refit      float         69.9 ms    19.3%
-       query      float          891 ms     0.8%     8.91 µs    21.0 MB
+       build      float                     110 ms     1.6%                21.0 MB
+       refit      float                    69.9 ms    19.3%
+       query      float        100,000      891 ms     0.8%     8.91 µs    21.0 MB
 
-A GPU build shows each pair's host and device times, the device's speedup, the device's spread and time
-per item, and whether the answers agree:
+A GPU build shows, for each pair, the number of inputs, the host's and the device's time per item (so
+pairs of different sizes compare; the totals are in the JSON), the device's speedup, the device's spread
+and whether the answers agree:
 
 .. code-block:: text
 
-   Mesh: 4 cases, 3 repetitions each
-     git 4d74917, gcc 13.3.0, GPU CUDA
-     host side: 12 threads, SIMD none (nvcc cannot compile host SIMD code)
-     host and device run the same inputs; times are medians, spread is the device's
-     interquartile range / median, per item is the device's
+   Mesh: 2 cases, 5 repetitions each
+     git ee64b24, gcc 13.3.0, GPU CUDA
+     host side: 23 threads, SIMD none (nvcc cannot compile host SIMD code)
+     host and device run the same inputs; times per item are medians of the repetitions;
+     device spread = the device's interquartile range / median
 
-       operation     precision        host      device   speedup   spread    per item  answers
+       operation     precision      items   host/item  device/item   speedup  device spread  answers
 
      TriMeshSDF · w4
-       query-morton  float          101 ms     6.10 ms     16.6x     1.7%     23.3 ns    agree
-       query-random  float          135 ms     11.0 ms     12.3x     1.8%     41.9 ns    agree
+       query-morton  float        262,144      382 ns      23.0 ns     16.6x           5.6%    agree
+       query-random  float        262,144      497 ns      42.3 ns     11.8x           1.4%    agree
 
 CMake takes the ``nvcc`` on the ``PATH`` (or ``CUDACXX``) unless ``--cuda-compiler`` names one. CUDA
 12.0's ``nvcc`` cannot compile the library (it rejects a braced argument list in

@@ -351,7 +351,7 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
    Add the device run whenever the PR touches code a device runs (`EBGEOMETRY_HOST_DEVICE`
    functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). It compares the
-   `hostdevice` pairs, which also report the host's time on every core, the device's speedup and
+   `hostdevice` pairs, which also report the host's time on every hardware thread but one, the device's speedup and
    whether the host and device answers agree. Nothing else should be running on the machine; each
    case runs in a fresh process, alternating between the sides (a host comparison pinned to one core). (`Scripts/run-performance.sh` with no command
    runs every case of the current tree, and a glob such as `'PointCloudBVH/*'` runs a subset.)

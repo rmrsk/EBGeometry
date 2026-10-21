@@ -103,46 +103,12 @@ gitSha()
 }
 
 /**
- * @brief The physical cores of this machine: distinct (physical id, core id) pairs in /proc/cpuinfo.
- * @return The count, or 0 where /proc/cpuinfo does not say.
- */
-inline int
-physicalCores()
-{
-  std::ifstream            in("/proc/cpuinfo");
-  std::string              line;
-  std::string              package = "0";
-  std::vector<std::string> seen;
-
-  while (std::getline(in, line)) {
-    const auto colon = line.find(':');
-
-    if (colon == std::string::npos) {
-      continue;
-    }
-
-    const std::string value = colon + 2 <= line.size() ? line.substr(colon + 2) : "";
-
-    if (line.rfind("physical id", 0) == 0) {
-      package = value;
-    }
-    else if (line.rfind("core id", 0) == 0) {
-      const std::string key = package + ":" + value;
-
-      if (std::find(seen.begin(), seen.end(), key) == seen.end()) {
-        seen.push_back(key);
-      }
-    }
-  }
-
-  return static_cast<int>(seen.size());
-}
-
-/**
  * @brief The threads the host side of a host/device pair runs on, in a build with OpenMP: as many as
- * OMP_NUM_THREADS says if it is set, else one per physical core. A thread on every hardware thread
- * measured no faster and made the times jump by whole scheduler time slices whenever one thread was
- * preempted, since the loop waits for its slowest thread.
+ * OMP_NUM_THREADS says if it is set, else every hardware thread but one. Measured on a 12-core,
+ * 24-thread CPU: hyperthreads make the heavier queries about a quarter faster than one thread per
+ * core, but a thread on every hardware thread leaves nothing for the GPU runtime and the OS, so one
+ * thread keeps losing whole scheduler ticks and the loop, which waits for its slowest thread, with it;
+ * leaving one hardware thread free was fastest in every case and steady from run to run.
  * @return The thread count (1 without OpenMP).
  */
 inline int
@@ -155,9 +121,7 @@ hostThreads()
     return omp_get_max_threads();
   }
 
-  const int cores = physicalCores();
-
-  return cores > 0 ? std::min(cores, omp_get_num_procs()) : omp_get_max_threads();
+  return std::max(1, omp_get_num_procs() - 1);
 #else
   return 1;
 #endif
@@ -651,6 +615,28 @@ pad(const std::string& a_s, std::size_t a_width, bool a_left = false)
 }
 
 /**
+ * @brief A count with thousands separators (262,144).
+ * @param[in] a_count The count.
+ * @return The formatted count.
+ */
+inline std::string
+formatCount(std::size_t a_count)
+{
+  std::string digits = std::to_string(a_count);
+  std::string out;
+
+  for (std::size_t i = 0; i < digits.size(); i++) {
+    if (i > 0 && (digits.size() - i) % 3 == 0) {
+      out += ',';
+    }
+
+    out += digits[i];
+  }
+
+  return out;
+}
+
+/**
  * @brief A byte count in kB, MB or GB.
  * @param[in] a_bytes Bytes.
  * @return The formatted size.
@@ -890,8 +876,8 @@ private:
                   hostThreads() == 1 ? "" : "s",
                   simdLevel(),
                   std::string(simdLevel()) == "none" ? " (nvcc cannot compile host SIMD code)" : "");
-      std::printf("  host and device run the same inputs; times are medians, spread is the device's\n"
-                  "  interquartile range / median, per item is the device's\n\n");
+      std::printf("  host and device run the same inputs; times per item are medians of the repetitions;\n"
+                  "  device spread = the device's interquartile range / median\n\n");
     }
     else {
       std::printf("  host side: 1 thread, SIMD %s\n", simdLevel());
@@ -919,12 +905,13 @@ private:
     };
 
     if (gpu) {
-      row("operation",
-          "precision",
-          {{"host", 10}, {"device", 10}, {"speedup", 8}, {"spread", 7}, {"per item", 10}, {"answers", 7}});
+      row(
+        "operation",
+        "precision",
+        {{"items", 9}, {"host/item", 10}, {"device/item", 11}, {"speedup", 8}, {"device spread", 13}, {"answers", 7}});
     }
     else {
-      row("operation", "precision", {{"median", 10}, {"spread", 7}, {"per item", 10}, {"pool", 9}});
+      row("operation", "precision", {{"items", 9}, {"median", 10}, {"spread", 7}, {"per item", 10}, {"pool", 9}});
     }
 
     // With --json-out, the JSON goes to a file alongside the table.
@@ -1000,19 +987,23 @@ private:
           answers = buf;
         }
 
+        // Per item, so that pairs of different sizes compare; the totals are in the JSON.
+        const double n = items > 0 ? double(items) : 1.0;
+
         row(parts.operation,
             parts.precision,
-            {{formatTime(hostMs), 10},
-             {formatTime(median), 10},
+            {{items > 0 ? formatCount(items) : "", 9},
+             {formatTime(hostMs / n), 10},
+             {formatTime(median / n), 11},
              {speedup, 8},
-             {spread, 7},
-             {items > 0 ? formatTime(perItem) : "", 10},
+             {spread, 13},
              {answers, 7}});
       }
       else {
         row(parts.operation,
             parts.precision,
-            {{formatTime(median), 10},
+            {{items > 0 ? formatCount(items) : "", 9},
+             {formatTime(median), 10},
              {spread, 7},
              {items > 0 ? formatTime(perItem) : "", 10},
              {running.poolBytesUsed() > 0 ? formatBytes(running.poolBytesUsed()) : "", 9}});
