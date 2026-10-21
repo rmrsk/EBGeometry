@@ -34,13 +34,20 @@ main(int argc, char* argv[])
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
   // The mesh SDF lives in the pool; the tape refers to it there.
-  const auto t0   = Clock::now();
-  const auto mesh = EBGeometry::Parser::readIntoMeshSDF<T>(file, pool);
-  const auto t1   = Clock::now();
+  const auto t0 = Clock::now();
+  // MESH=tri reads a TriMeshSDF (SoA triangles) instead of a MeshSDF (polygons); BOXBOUND=1 steps by the
+  // distance to the tape's bounding box when farther than 0.1 from it.
+  const bool useTri   = std::getenv("MESH") != nullptr && std::string(std::getenv("MESH")) == "tri";
+  const bool boxBound = std::getenv("BOXBOUND") != nullptr && std::string(std::getenv("BOXBOUND")) == "1";
+  const auto polygons = EBGeometry::Parser::readIntoMeshSDF<T>(file, pool);
+  const auto tris     = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool);
+  const auto mesh     = polygons;
+  const auto t1       = Clock::now();
 
   // Centre the Armadillo (151 units tall, y up) and scale it to about [-1, 1].
   const EBGeometry::Expr<T> armadillo =
-    EBGeometry::Scale(EBGeometry::Translate(mesh, Vec3(T(-0.01), T(-21.43), T(0.01))), T(1) / T(75));
+    useTri ? EBGeometry::Scale(EBGeometry::Translate(tris, Vec3(T(-0.01), T(-21.43), T(0.01))), T(1) / T(75))
+           : EBGeometry::Scale(EBGeometry::Translate(polygons, Vec3(T(-0.01), T(-21.43), T(0.01))), T(1) / T(75));
 
   // A tunnel through the chest from front to back, or a rod through the body from side to side.
   const EBGeometry::Expr<T> shape =
@@ -64,7 +71,10 @@ main(int argc, char* argv[])
 
   Settings settings;
 
-  settings.floorY = T(-1.01);
+  settings.floorY   = T(-1.01);
+  settings.boxBound = boxBound;
+  settings.boxLo    = tape.computeBoundingVolume().getLowCorner();
+  settings.boxHi    = tape.computeBoundingVolume().getHighCorner();
 
   std::vector<uint32_t> pixels;
 
@@ -102,6 +112,7 @@ main(int argc, char* argv[])
 
   const auto ms = [](auto a, auto b) { return std::chrono::duration<double, std::milli>(b - a).count(); };
 
+  std::printf("[%s, box bound %s] ", useTri ? "TriMeshSDF" : "MeshSDF", boxBound ? "on" : "off");
   std::printf("%s: %zu faces read + BVH built in %.0f ms; %dx%d 2x2 SS rendered on the %s in %.0f ms -> %s\n",
               mode.c_str(),
               size_t(mesh.getMesh().numFaces()),
