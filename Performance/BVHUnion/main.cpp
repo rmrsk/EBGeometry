@@ -2,18 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Performance cases for BVHUnion: the union of about 100,000 objects on a lattice, in float and double,
-// for three families: spheres (well-filled boxes that do not overlap), capsules along the diagonal (the
-// worst case for an axis-aligned box: 5% filled, heavily overlapping) and randomly oriented finite
-// cylinders (a dearer distance and a mix of fills). A host build runs the host cases (build, signed
-// distance); a CUDA or HIP build runs the signed distance as host/device pairs. See ../README.md.
+// Performance cases for BVHUnion: unions of about 100,000 objects on a lattice, in float and double, in
+// three families: spheres (well-filled boxes that do not overlap), capsules along the diagonal (the worst
+// case for an axis-aligned box: 5% filled, heavily overlapping) and randomly oriented finite cylinders (a
+// dearer distance and a mix of fills). A host build runs the host cases (build, signed distance); a CUDA
+// or HIP build runs the signed distance as host/device pairs. See ../README.md and PerformanceTesting.rst.
 
-#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <functional>
-#include <memory>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #include <EBGeometry.hpp>
@@ -22,38 +20,83 @@
 
 namespace {
 
-// Branching factor, spelled out (see ../PointCloud/main.cpp).
+// The branching factor, spelled out (see ../PointCloud/main.cpp).
 constexpr std::size_t K = 4;
 
-template <class Union, class T>
-struct Distance
-{
-  Union m_union;
-
-  EBGEOMETRY_HOST_DEVICE
-  T
-  operator()(const EBGeometry::Vec3T<T>& a_point) const noexcept
-  {
-    return m_union.signedDistance(a_point);
-  }
-};
+// The lattice's side (46^3 = 97,336 objects) and the numbers of queries, at full and at smoke size.
+constexpr std::size_t Lattice      = 46;
+constexpr std::size_t SmokeLattice = 6;
+constexpr std::size_t HostQueries  = 200000;
+constexpr std::size_t PairQueries  = 262144;
+constexpr std::size_t SmokeQueries = 1000;
 
 template <class T>
-double
-sumOf(const std::vector<T>& a_values)
+using Vec3 = EBGeometry::Vec3T<T>;
+
+// Call a_f(i, j, k) for every point of an n x n x n lattice.
+template <class F>
+void
+forLattice(std::size_t a_n, F&& a_f)
 {
-  double s = 0.0;
-
-  for (const T v : a_values) {
-    s += double(v);
+  for (std::size_t i = 0; i < a_n; i++) {
+    for (std::size_t j = 0; j < a_n; j++) {
+      for (std::size_t k = 0; k < a_n; k++) {
+        a_f(i, j, k);
+      }
+    }
   }
-
-  return s;
 }
 
-// Every case for one family of objects, in one precision: the union's build, its signed distance on
-// the host, and (in a GPU build) the same as host/device pairs. a_objects(n, objects) appends the
-// family's objects for an n x n x n lattice.
+// Unit spheres a radius apart (spacing 3): a sphere fills about half its box (pi/6), and the boxes do not
+// overlap.
+template <class T>
+void
+spheres(std::size_t a_n, std::vector<EBGeometry::SphereSDF<T>>& a_shapes)
+{
+  forLattice(a_n, [&](std::size_t i, std::size_t j, std::size_t k) {
+    a_shapes.emplace_back(T(3) * Vec3<T>(T(i), T(j), T(k)), T(1));
+  });
+}
+
+// Capsules 3 long (tip to tip), of radius 0.2, along the diagonal (1,1,1), at spacing 1.8: the worst case
+// for an axis-aligned box. A capsule fills about 5% of its box, and every box overlaps its neighbours',
+// so a query point lies in many leaf boxes. The capsules themselves do not touch (those on one diagonal
+// are sqrt(3) * 1.8 = 3.1 apart along it).
+template <class T>
+void
+diagonalCapsules(std::size_t a_n, std::vector<EBGeometry::CapsuleSDF<T>>& a_shapes)
+{
+  const Vec3<T> half = T(1.5) / std::sqrt(T(3)) * Vec3<T>(T(1), T(1), T(1));
+
+  forLattice(a_n, [&](std::size_t i, std::size_t j, std::size_t k) {
+    const Vec3<T> center = T(1.8) * Vec3<T>(T(i), T(j), T(k));
+
+    a_shapes.emplace_back(center - half, center + half, T(0.2));
+  });
+}
+
+// Finite cylinders 3 long, of radius 0.2, in directions drawn from a fixed seed, at the same spacing: a
+// dearer distance than a capsule's (two flat caps), and a mix of box fills, as in a geometry of fibres.
+// Neighbours intersect, which a union handles; the density matches the capsules'.
+template <class T>
+void
+randomCylinders(std::size_t a_n, std::vector<EBGeometry::CylinderSDF<T>>& a_shapes)
+{
+  const auto  directions = Perf::pointsInBox<T>(Perf::cube(T(-1), T(1)), a_n * a_n * a_n, Perf::Seed::CylinderAxes);
+  std::size_t d          = 0;
+
+  forLattice(a_n, [&](std::size_t i, std::size_t j, std::size_t k) {
+    const Vec3<T> center = T(1.8) * Vec3<T>(T(i), T(j), T(k));
+    const Vec3<T> half   = T(1.5) * directions[d] / directions[d].length();
+
+    a_shapes.emplace_back(center - half, center + half, T(0.2));
+    d++;
+  });
+}
+
+// Every case for one family of objects in one precision: the union's build, its signed distance on the
+// host, and the same as host/device pairs. a_objects(n, objects) appends the family's objects for an
+// n x n x n lattice.
 template <class T, class Shape>
 void
 addFamily(Perf::Suite&                                          a_suite,
@@ -63,167 +106,72 @@ addFamily(Perf::Suite&                                          a_suite,
   using AABB  = EBGeometry::BoundingVolumes::AABBT<T>;
   using Union = EBGeometry::BVHUnion<T, Shape, K>;
 
-  const std::string prec   = std::is_same_v<T, float> ? "float" : "double";
   const std::string prefix = "BVHUnion/" + a_family + "/";
+  const std::string prec   = Perf::precisionName<T>();
 
-  // The objects and their bounding boxes.
-  const auto scene = [a_objects](std::size_t a_n, std::vector<Shape>& a_shapes, std::vector<AABB>& a_boxes) {
-    a_objects(a_n, a_shapes);
+  // The family's objects and their boxes, recorded as the case's parameters.
+  const auto objects = [=](Perf::Case& c, std::vector<Shape>& a_shapes, std::vector<AABB>& a_boxes) {
+    a_objects(c.size(Lattice, SmokeLattice), a_shapes);
 
     for (const auto& shape : a_shapes) {
       a_boxes.push_back(shape.computeBoundingVolume());
     }
+
+    c.param("objects", a_shapes.size());
+    c.param("K", K);
+  };
+
+  // The union, built in a_pool, and random points in its box.
+  const auto scene = [=](Perf::Case& c, EBGeometry::Pool& a_pool, std::size_t a_queries) {
+    std::vector<Shape> shapes;
+    std::vector<AABB>  boxes;
+
+    objects(c, shapes, boxes);
+
+    Union u(a_pool, shapes, boxes);
+
+    return std::make_pair(u, Perf::pointsInBox<T>(u.computeBoundingVolume(), a_queries, Perf::Seed::UnionQueries));
   };
 
   a_suite.add(prefix + "build/" + prec + "/host", [=](Perf::Case& c) {
     std::vector<Shape> shapes;
     std::vector<AABB>  boxes;
 
-    scene(c.size(46, 6), shapes, boxes);
+    objects(c, shapes, boxes);
 
-    std::unique_ptr<EBGeometry::Pool> pool;
-    std::unique_ptr<Union>            u;
+    const auto built =
+      Perf::measureBuild<Union>(c, [&](EBGeometry::Pool& a_pool) { return Union(a_pool, shapes, boxes); });
 
-    c.measureFresh(
-      [&] {
-        u.reset();
-        pool = std::make_unique<EBGeometry::Pool>(EBGeometry::hostMemoryResource());
-      },
-      [&] { u = std::make_unique<Union>(*pool, shapes, boxes); });
-
-    c.poolBytes(pool->usedBytes());
-    c.checksum(double(u->signedDistance(EBGeometry::Vec3T<T>(T(0.5), T(0.5), T(0.5)))));
-    c.param("objects", shapes.size());
-    c.param("K", K);
+    c.poolBytes(built.pool->usedBytes());
+    c.checksum(static_cast<double>(built.object->signedDistance(Vec3<T>(T(0.5), T(0.5), T(0.5)))));
   });
-
-  const auto setup = [=](Perf::Case& c, EBGeometry::Pool& a_pool, std::size_t a_queries) {
-    std::vector<Shape> shapes;
-    std::vector<AABB>  boxes;
-
-    scene(c.size(46, 6), shapes, boxes);
-
-    c.param("objects", shapes.size());
-    c.param("K", K);
-
-    Union u(a_pool, shapes, boxes);
-
-    return std::make_pair(u, Perf::pointsInBox<T>(u.computeBoundingVolume(), a_queries, 13u));
-  };
 
   a_suite.add(prefix + "query/" + prec + "/host", [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+    const auto       s = scene(c, pool, c.size(HostQueries, SmokeQueries));
+    std::vector<T>   distances;
 
-    // Named members, not a structured binding: C++17 does not let a lambda capture one.
-    const auto  objects = setup(c, pool, c.size(200000, 1000));
-    const auto& u       = objects.first;
-    const auto& q       = objects.second;
+    Perf::measureHostQuery(c, Perf::SignedDistance<Union, T>{s.first}, s.second, distances);
 
-    const Distance<Union, T> query{u};
-    std::vector<T>           d(q.size());
-
-    c.measure(
-      [&] {
-        for (std::size_t i = 0; i < q.size(); i++) {
-          d[i] = query(q[i]);
-        }
-      },
-      q.size());
-
-    c.checksum(sumOf(d));
+    c.checksum(Perf::checksumOf(distances));
     c.poolBytes(pool.usedBytes());
   });
 
-  // The same points through the union on both sides, in Morton and in random order: the speed of each
-  // side, and whether they agree (a different sign, or a difference beyond a thousand ulps).
-  for (const std::string order : {"morton", "random"}) {
-    a_suite.add(prefix + "query-" + order + "/" + prec + "/hostdevice", [=](Perf::Case& c) {
+  for (const Perf::Order order : Perf::Orders) {
+    a_suite.add(prefix + "query-" + Perf::orderName(order) + "/" + prec + "/hostdevice", [=](Perf::Case& c) {
       EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+      const auto       s = scene(c, pool, c.size(PairQueries, SmokeQueries));
+      const Union&     u = s.first;
 
-      const auto  objects = setup(c, pool, c.size(262144, 1000));
-      const auto& u       = objects.first;
-      const auto  q       = order == "morton" ? Perf::mortonOrdered(objects.second) : objects.second;
+      const auto distances = Perf::measureHostAndDevice<T>(
+        c,
+        pool,
+        Perf::inOrder(order, s.second),
+        [&](const EBGeometry::Pool& a_pool) { return Perf::SignedDistance<Union, T>{u.rebasedView(a_pool)}; },
+        Perf::agreeDistance<T>);
 
-      const auto agree = [](const T a_host, const T a_device) {
-        const double diff = std::abs(double(a_host) - double(a_device));
-        const double tol =
-          1000.0 * double(EBGeometry::Math::Limits<T>::epsilon()) * std::max(1.0, std::abs(double(a_host)));
-
-        return std::make_pair(diff, (a_host < T(0)) != (a_device < T(0)) || diff > tol);
-      };
-
-      const auto d = Perf::measureHostAndDevice<T>(
-        c, pool, q, [&](const EBGeometry::Pool& a_pool) { return Distance<Union, T>{u.rebasedView(a_pool)}; }, agree);
-
-      c.checksum(sumOf(d));
+      c.checksum(Perf::checksumOf(distances));
     });
-  }
-}
-
-// Unit spheres a radius apart on a lattice: a sphere fills about half its box (pi/6), and the boxes do
-// not overlap.
-template <class T>
-void
-spheres(std::size_t a_n, std::vector<EBGeometry::SphereSDF<T>>& a_shapes)
-{
-  using Vec3 = EBGeometry::Vec3T<T>;
-
-  for (std::size_t i = 0; i < a_n; i++) {
-    for (std::size_t j = 0; j < a_n; j++) {
-      for (std::size_t k = 0; k < a_n; k++) {
-        a_shapes.emplace_back(T(3) * Vec3(T(i), T(j), T(k)), T(1));
-      }
-    }
-  }
-}
-
-// Capsules 3 long (tip to tip), of radius 0.2, along the diagonal (1,1,1), on a lattice of spacing 1.8:
-// the worst case for an axis-aligned box. A capsule fills about 5% of its box, and every box overlaps
-// its neighbours', so a query point lies in many leaf boxes. The capsules themselves do not touch (those
-// on one diagonal are sqrt(3) * 1.8 = 3.1 apart along it).
-template <class T>
-void
-diagonalCapsules(std::size_t a_n, std::vector<EBGeometry::CapsuleSDF<T>>& a_shapes)
-{
-  using Vec3 = EBGeometry::Vec3T<T>;
-
-  const Vec3 half = T(1.5) / std::sqrt(T(3)) * Vec3(T(1), T(1), T(1));
-
-  for (std::size_t i = 0; i < a_n; i++) {
-    for (std::size_t j = 0; j < a_n; j++) {
-      for (std::size_t k = 0; k < a_n; k++) {
-        const Vec3 center = T(1.8) * Vec3(T(i), T(j), T(k));
-
-        a_shapes.emplace_back(center - half, center + half, T(0.2));
-      }
-    }
-  }
-}
-
-// Finite cylinders 3 long, of radius 0.2, in directions drawn from a fixed seed, on the same lattice: a
-// dearer distance than a capsule's (two flat caps), and a mix of box fills, as in a geometry of fibres.
-// Neighbours intersect, which a union handles; the density matches the capsules'.
-template <class T>
-void
-randomCylinders(std::size_t a_n, std::vector<EBGeometry::CylinderSDF<T>>& a_shapes)
-{
-  using Vec3 = EBGeometry::Vec3T<T>;
-
-  const auto directions = Perf::pointsInBox<T>(
-    EBGeometry::BoundingVolumes::AABBT<T>(Vec3(T(-1), T(-1), T(-1)), Vec3(T(1), T(1), T(1))), a_n * a_n * a_n, 21u);
-
-  std::size_t d = 0;
-
-  for (std::size_t i = 0; i < a_n; i++) {
-    for (std::size_t j = 0; j < a_n; j++) {
-      for (std::size_t k = 0; k < a_n; k++) {
-        const Vec3 center = T(1.8) * Vec3(T(i), T(j), T(k));
-        const Vec3 half   = T(1.5) * directions[d] / directions[d].length();
-
-        a_shapes.emplace_back(center - half, center + half, T(0.2));
-        d++;
-      }
-    }
   }
 }
 

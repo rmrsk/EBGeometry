@@ -32,6 +32,7 @@
 #include "Environment.hpp"
 #include "Format.hpp"
 #include "Inputs.hpp"
+#include "Probe.hpp"
 #include "Report.hpp"
 #include "Schema.hpp"
 #include "Statistics.hpp"
