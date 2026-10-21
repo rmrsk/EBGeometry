@@ -116,10 +116,9 @@ if(EBGEOMETRY_PERF_OPENMP AND _perf_gpu_build)
   endif()
 endif()
 
-# Every folder here with a main.cpp is a probe, except Compare/ (PerfCompare, below); the folders are
-# the only list.
+# Every folder here with a main.cpp is a probe; the folders are the only list. (Common/ holds the
+# harness, Tools/ PerfCompare.)
 file(GLOB perf_mains CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*/main.cpp)
-list(REMOVE_ITEM perf_mains Compare/main.cpp)
 list(SORT perf_mains)
 
 set(EBGEOMETRY_PERF_PROBES "")
@@ -182,7 +181,7 @@ foreach(perf_main IN LISTS perf_mains)
 endforeach()
 
 # Compares two sets of results (Compare.cmake builds and calls it; see README.md).
-add_executable(PerfCompare Compare/main.cpp)
+add_executable(PerfCompare Tools/PerfCompare.cpp)
 target_compile_features(PerfCompare PRIVATE cxx_std_17)
 set_target_properties(PerfCompare PROPERTIES SUFFIX ".ex" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
 

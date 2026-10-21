@@ -18,11 +18,21 @@ What is in Performance/
 .. code-block:: text
 
    Performance/
-     Common/PerfHarness.hpp   the harness: named cases, timing, checksums, output
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVHUnion/main.cpp        BVHUnion
-     Compare/main.cpp         PerfCompare: compares two sets of results
+     Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
+       Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
+       Statistics.hpp           quantiles, summaries, the bootstrap interval    (shared with PerfCompare)
+       Schema.hpp               the JSON field names, writer and reader         (shared with PerfCompare)
+       Environment.hpp          the commit, compiler, SIMD level, CPU, host threads
+       Case.hpp                 one case: its name, timing and records
+       Inputs.hpp               random points with named seeds, Morton order, the mesh files
+       Report.hpp               the table on the terminal and the JSON lines
+       Suite.hpp                the command line, which cases a build keeps, the run loop
+       Device.hpp               device timing and the host/device pairs
+       Probe.hpp                what the probes share: queries, checksums, agreement, timing helpers
+     Tools/PerfCompare.cpp    compares two sets of results
      RunPerformance.cmake     the logic of Scripts/run-performance.sh
      Compare.cmake            builds two commits, runs both, reports
      CMakeLists.txt

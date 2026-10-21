@@ -324,11 +324,15 @@ The coverage rules are in "Vetting every pull request for performance" below. Me
   new folder with a `main.cpp` (picked up automatically) and a row in `Performance/README.md` and
   `PerformanceTesting.rst`.
 - Each case: `suite.add("<component>/<input>/<operation>/<precision>/<host|device|hostdevice>", ...)`;
-  set up untimed, time with `measure()` (or `measureFresh()` for a build), and record `checksum()`,
-  `param()` for every code-selecting parameter, and `poolBytes()`. A query that runs on a device gets,
-  beside its `host` case, a `hostdevice` pair: a trivially copyable functor timed on both sides with
-  `measureHostAndDevice()`, over Morton- and randomly-ordered inputs. A host build keeps only `host`
-  cases and a GPU build only pairs (`Suite::add` decides). Give every case a `--smoke` size.
+  set up untimed, time it with the helpers in `Performance/Common/Probe.hpp` (`measureHostQuery()`,
+  `measureBuild()`) or `Case::measure()`, and record `checksum()` (`checksumOf()`), `param()` for every
+  code-selecting parameter, and `poolBytes()`. A query that runs on a device gets, beside its `host`
+  case, a `hostdevice` pair: a trivially copyable functor timed on both sides with
+  `measureHostAndDevice()` (`Common/Device.hpp`) over `Perf::Orders`, judged by `agreeDistance()`,
+  `agreeHit()` or the probe's own rule. A host build keeps only `host` cases and a GPU build only pairs
+  (`Suite::add` decides). Sizes and code-selecting parameters are named constants at the top of the
+  probe, random inputs use `Perf::pointsInBox()` with a seed from `Perf::Seed` (never the standard
+  library's distributions), and every case has a `--smoke` size.
 - Run `ctest --preset perf` and `Scripts/run-performance.sh compare origin/<base>` before committing;
   the new cases show as *new*.
 

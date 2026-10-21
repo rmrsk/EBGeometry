@@ -135,14 +135,13 @@ foreach(side base head)
   run_or_die(COMMAND ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-build" --parallel)
 endforeach()
 
-# What changed in the probes themselves, so a reader knows when the measurement changed too.
-execute_process(COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol "${base_src}/Performance/Common/PerfHarness.hpp"
-                        "${head_src}/Performance/Common/PerfHarness.hpp" RESULT_VARIABLE harness_differs)
+# What changed in the probes themselves (each probe, and the harness in Common/), so that a reader knows
+# when the measurement changed too.
 file(GLOB head_probes RELATIVE "${head_src}/Performance" "${head_src}/Performance/*/main.cpp")
-list(REMOVE_ITEM head_probes Compare/main.cpp)
+file(GLOB head_harness RELATIVE "${head_src}/Performance" "${head_src}/Performance/Common/*")
 set(changed_probes "")
 
-foreach(p IN LISTS head_probes)
+foreach(p IN LISTS head_probes head_harness)
   if(EXISTS "${base_src}/Performance/${p}")
     execute_process(COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol "${base_src}/Performance/${p}"
                             "${head_src}/Performance/${p}" RESULT_VARIABLE differs)
@@ -154,10 +153,6 @@ foreach(p IN LISTS head_probes)
     list(APPEND changed_probes "Performance/${p}")
   endif()
 endforeach()
-
-if(NOT harness_differs EQUAL 0)
-  list(APPEND changed_probes "Performance/Common/PerfHarness.hpp")
-endif()
 
 # ── Run ───────────────────────────────────────────────────────────────────────────────────────────────
 find_program(TASKSET taskset)
