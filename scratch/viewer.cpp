@@ -11,16 +11,18 @@
 //   left drag    orbit             wheel    zoom
 //   S / A / F    toggle shadows, ambient occlusion, floor
 //   G            switch between GPU and CPU rendering (GPU builds)
+//   M            Armadillo scenes: switch between ray tracing, the hybrid and sphere tracing
 //   R            reset the camera  Esc / Q  quit
 //
 // While the camera moves, frames are rendered at a quarter of the resolution without supersampling;
 // once it has been still for a moment, one full-resolution 2x2-supersampled frame replaces it.
-#include "Tracer.hpp"
+#include "RayTracer.hpp"
 
 #include <SDL.h>
 
 #include <chrono>
 #include <cstdio>
+#include <optional>
 #include <string>
 
 int
@@ -49,6 +51,13 @@ main(int argc, char* argv[])
 
   // The Armadillo (151 units tall, y up) is read into a TriMeshSDF in the pool, centred and scaled to about
   // [-1, 1], and pierced by a cylinder. Far from it, the tracer steps by the distance to the tape's box.
+  const Vec3 shift(T(-0.01), T(-21.43), T(0.01));
+  const T    scale = T(1) / T(75);
+  const bool rod   = (scene == "rod");
+  const Vec3 ca    = rod ? Vec3(-1.3, 0.25, 0.05) : Vec3(0, 0.25, -1.5);
+  const Vec3 cb    = rod ? Vec3(1.3, 0.25, 0.05) : Vec3(0, 0.25, 1.5);
+  const T    cr    = rod ? T(0.09) : T(0.16);
+
   const auto build = [&]() -> EBGeometry::Expr<T> {
     if (!isMesh) {
       return classicCSG();
@@ -56,8 +65,7 @@ main(int argc, char* argv[])
 
     const auto mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(argv[2], pool);
 
-    const EBGeometry::Expr<T> armadillo =
-      EBGeometry::Scale(EBGeometry::Translate(mesh, Vec3(T(-0.01), T(-21.43), T(0.01))), T(1) / T(75));
+    const EBGeometry::Expr<T> armadillo = EBGeometry::Scale(EBGeometry::Translate(mesh, shift), scale);
 
     home.yaw          = 200;
     home.pitch        = 12;
@@ -66,13 +74,9 @@ main(int argc, char* argv[])
     settings.floorY   = T(-1.01);
     settings.boxBound = true;
 
-    if (scene == "rod") {
-      return EBGeometry::Union(armadillo,
-                               EBGeometry::CylinderSDF<T>(Vec3(-1.3, 0.25, 0.05), Vec3(1.3, 0.25, 0.05), T(0.09)));
-    }
+    const EBGeometry::Expr<T> cylinder = EBGeometry::CylinderSDF<T>(ca, cb, cr);
 
-    return EBGeometry::Difference(armadillo,
-                                  EBGeometry::CylinderSDF<T>(Vec3(0, 0.25, -1.5), Vec3(0, 0.25, 1.5), T(0.16)));
+    return rod ? EBGeometry::Union(armadillo, cylinder) : EBGeometry::Difference(armadillo, cylinder);
   };
 
   const EBGeometry::Tape<T> tape(pool, build());
@@ -83,6 +87,31 @@ main(int argc, char* argv[])
   // The device renders a view of the same tape that resolves against a mirror of the pool in device
   // memory. In a host build GPU::memoryResource() is host memory and GPU::transform() a host loop.
   const bool haveDevice = EBGeometry::GPU::enabled && EBGeometry::GPU::deviceAvailable();
+
+  // For the Armadillo scenes, two more structures in the same pool: a BVH over the triangles for ray
+  // tracing, and a BVH over boxes covering the surface (mesh leaves of < 128 triangles, and the
+  // cylinder's box) for the hybrid, which sphere traces the tape only inside the boxes a ray enters.
+  using HybridT = RayTracer::Hybrid<EBGeometry::Tape<T>>;
+
+  std::optional<RayTracer::Mesh::BVH> meshBVH;
+  std::optional<HybridT::BoxBVH>      boxBVH;
+
+  if (isMesh) {
+    meshBVH.emplace(RayTracer::buildMesh(argv[2], pool));
+
+    std::vector<RayTracer::AABB> boxes = RayTracer::meshLeafBoxes(argv[2], 128, shift, scale, T(1e-3));
+
+    boxes.push_back(RayTracer::cylinderBox(ca, cb, cr, T(1e-3)));
+
+    std::vector<std::pair<RayTracer::AABB, RayTracer::AABB>> prims;
+
+    for (const auto& b : boxes) {
+      prims.emplace_back(b, b);
+    }
+
+    boxBVH.emplace(
+      pool, std::move(prims), EBGeometry::BVH::BinnedSAHPartitioner<T, RayTracer::AABB, RayTracer::AABB, 4>);
+  }
 
   pool.freeze();
 
@@ -136,6 +165,9 @@ main(int argc, char* argv[])
   auto lastInput = Clock::now();
   bool running   = true;
   bool useGPU    = haveDevice;
+  int  method    = isMesh ? 1 : 0; // 0 sphere tracing, 1 ray tracing, 2 hybrid.
+
+  const char* methodNames[3] = {"sphere tracing", "ray tracing", "hybrid"};
 
   while (running) {
     // Block while nothing needs drawing, so an idle viewer uses no CPU.
@@ -202,6 +234,12 @@ main(int argc, char* argv[])
 
             break;
           }
+          case SDLK_m: {
+            method = isMesh ? (method + 1) % 3 : 0;
+            moved  = true;
+
+            break;
+          }
           case SDLK_g: {
             useGPU = haveDevice && !useGPU;
             moved  = true;
@@ -244,23 +282,62 @@ main(int argc, char* argv[])
     cam.update();
 
     // A preview while the camera moves, one sharp frame once it has settled.
-    const bool hq = settled && !moved;
-    const int  w  = hq ? W : W / Preview;
-    const int  h  = hq ? H : H / Preview;
+    // Ray tracing is fast enough to stay at full resolution while moving (without supersampling).
+    const bool hq      = settled && !moved;
+    const bool fullRes = hq || method == 1;
+    const int  w       = fullRes ? W : W / Preview;
+    const int  h       = fullRes ? H : H / Preview;
+    const int  ss      = hq ? 2 : 1;
 
-    SDL_Texture* texture = hq ? full : preview;
+    SDL_Texture* texture = fullRes ? full : preview;
+
+    const std::vector<uint32_t>& indices = fullRes ? fullIndices : previewIndices;
+
+    // The display settings without the sphere tracer's box skip, and the shape alone for the hybrid.
+    Settings display = settings;
+
+    display.boxBound = false;
+
+    Settings shapeOnly = display;
+
+    shapeOnly.floor = false;
+
+    const EBGeometry::Pool& usePool = useGPU ? devicePool : pool;
+
+    const auto draw = [&](const auto& a_pixel) {
+      if (useGPU) {
+        pixels.resize(indices.size());
+
+        EBGeometry::GPU::transform(a_pixel, indices, pixels);
+      }
+      else {
+        const int n = int(indices.size());
+
+        pixels.resize(indices.size());
+
+#pragma omp parallel for schedule(dynamic, 256)
+        for (int k = 0; k < n; k++) {
+          pixels[size_t(k)] = a_pixel(uint32_t(k));
+        }
+      }
+    };
 
     const auto start = Clock::now();
 
-    if (useGPU) {
-      const Pixel<EBGeometry::Tape<T>> pixel{{deviceTape, settings}, cam, w, h, hq ? 2 : 1};
+    if (method == 1) {
+      const RayTracer::Mesh     mesh{meshBVH->rebasedView(usePool), shift, scale};
+      const RayTracer::Cylinder cyl(ca, cb, cr);
 
-      renderDevice(pixel, hq ? fullIndices : previewIndices, pixels);
+      draw(RayTracer::Pixel<RayTracer::Scene>{{mesh, cyl, rod, display}, cam, w, h, ss});
+    }
+    else if (method == 2) {
+      const HybridT hybrid{
+        boxBVH->rebasedView(usePool), Scene<EBGeometry::Tape<T>>{tape.rebasedView(usePool), shapeOnly}, display};
+
+      draw(RayTracer::Pixel<HybridT>{hybrid, cam, w, h, ss});
     }
     else {
-      const Pixel<EBGeometry::Tape<T>> pixel{{tape, settings}, cam, w, h, hq ? 2 : 1};
-
-      renderHost(pixel, pixels);
+      draw(Pixel<EBGeometry::Tape<T>>{{useGPU ? deviceTape : tape, settings}, cam, w, h, ss});
     }
 
     const double ms = std::chrono::duration<double, std::milli>(Clock::now() - start).count();
@@ -270,15 +347,16 @@ main(int argc, char* argv[])
     SDL_RenderCopy(renderer, texture, nullptr, nullptr);
     SDL_RenderPresent(renderer);
 
-    char title[160];
+    char title[200];
 
     std::snprintf(title,
                   sizeof(title),
-                  "EBGeometry viewer  |  %s  %dx%d%s  %.1f ms  |  shadows %s, AO %s, floor %s",
+                  "EBGeometry viewer  |  %s, %s  %dx%d%s  %.1f ms  |  shadows %s, AO %s, floor %s",
+                  methodNames[method],
                   useGPU ? "GPU" : "CPU",
                   w,
                   h,
-                  hq ? " (2x2 SS)" : " (preview)",
+                  hq ? " (2x2 SS)" : (fullRes ? " (moving)" : " (preview)"),
                   ms,
                   settings.shadows ? "on" : "off",
                   settings.occlusion ? "on" : "off",
