@@ -454,22 +454,24 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, const std::string& a_
   });
 }
 
-template <class T>
+// Every case for one cloud type and one point set, both precisions together.
+template <template <class> class Cloud>
 void
-addPrecision(Perf::Suite& a_suite)
+addCloud(Perf::Suite& a_suite, const std::string& a_cloud, const std::string& a_shape)
 {
-  using BVH  = EBGeometry::PointCloudBVH<T, K, W>;
-  using Grid = EBGeometry::PointCloudHashGrid<T>;
-
-  for (const std::string shape : {"uniform", "sphere"}) {
-    addCases<T, BVH>(a_suite, "PointCloudBVH", shape, [](EBGeometry::Pool& a_pool, const auto& a_points) {
-      return BVH(a_pool, a_points);
-    });
-    addCases<T, Grid>(a_suite, "PointCloudHashGrid", shape, [](EBGeometry::Pool& a_pool, const auto& a_points) {
-      return Grid(a_pool, a_points);
-    });
-  }
+  addCases<float, Cloud<float>>(a_suite, a_cloud, a_shape, [](EBGeometry::Pool& a_pool, const auto& a_points) {
+    return Cloud<float>(a_pool, a_points);
+  });
+  addCases<double, Cloud<double>>(a_suite, a_cloud, a_shape, [](EBGeometry::Pool& a_pool, const auto& a_points) {
+    return Cloud<double>(a_pool, a_points);
+  });
 }
+
+template <class T>
+using BVHCloud = EBGeometry::PointCloudBVH<T, K, W>;
+
+template <class T>
+using GridCloud = EBGeometry::PointCloudHashGrid<T>;
 
 } // namespace
 
@@ -478,8 +480,10 @@ main(int argc, char** argv)
 {
   Perf::Suite suite(argc, argv, "PointCloud");
 
-  addPrecision<float>(suite);
-  addPrecision<double>(suite);
+  for (const std::string shape : {"uniform", "sphere"}) {
+    addCloud<BVHCloud>(suite, "PointCloudBVH", shape);
+    addCloud<GridCloud>(suite, "PointCloudHashGrid", shape);
+  }
 
   return suite.run();
 }

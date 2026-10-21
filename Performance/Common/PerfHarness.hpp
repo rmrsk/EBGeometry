@@ -954,14 +954,15 @@ private:
       width += 2 + col.second;
     }
 
-    // The probe's title: a heavy rule across the table with its name and case count.
+    // The probe's title: a heavy rule across the table (at least 96 columns, so that the probes of a run
+    // line up) with its name and case count.
     {
       const std::string left  = "\u2501\u2501 " + m_name + " ";
       const std::string right = " " + std::to_string(count) + (count == 1 ? " case" : " cases") + " \u2501\u2501";
       const std::size_t used  = displayWidth(left) + displayWidth(right);
       std::string       fill;
 
-      for (std::size_t i = used; i < std::max<std::size_t>(width, used + 4); i++) {
+      for (std::size_t i = used; i < std::max<std::size_t>({width, used + 4, 96}); i++) {
         fill += "\u2501";
       }
 

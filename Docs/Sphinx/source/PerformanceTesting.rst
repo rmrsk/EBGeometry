@@ -90,14 +90,20 @@ Family                                Build  Measures
 ``query-random``
 ====================================  =====  =====================================================
 
-**BVHUnion** (``Performance/BVHUnion``): the union of 97,336 unit spheres on a 46 × 46 × 46 lattice.
+**BVHUnion** (``Performance/BVHUnion``): unions of about 100,000 objects on a 46 × 46 × 46 lattice, in
+three families. The ``spheres`` (unit spheres, spacing 3) fill about half their boxes (π/6), and the
+boxes do not overlap. The ``capsules-diagonal`` (length 3, radius 0.2, along (1, 1, 1), spacing 1.8) are
+the worst case for an axis-aligned box: each fills about 5% of it, and every box overlaps its
+neighbours', so a query point lies in many leaf boxes. The ``cylinders-random`` (finite cylinders of the
+same size and spacing, in directions drawn from a fixed seed) have a dearer distance than a capsule (two
+flat caps) and a mix of fills, as in a geometry of fibres; neighbours intersect, which a union handles.
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
 ====================================  =====  =====================================================
-``spheres/build``                     host   building the union's BVH
-``spheres/query``                     host   signed distance at 200,000 random points in its box
-``spheres/query-morton``,             GPU    signed distance at 262,144 such points
+``<family>/build``                    host   building the union's BVH
+``<family>/query``                    host   signed distance at 200,000 random points in its box
+``<family>/query-morton``,            GPU    signed distance at 262,144 such points
 ``query-random``
 ====================================  =====  =====================================================
 
@@ -149,7 +155,11 @@ part of a tree) and, for external queries, once in random order. Besides the dev
   different point at a different distance, since equal distances are ties).
 
 The speedup is machine-specific, so it means something on one machine, from one commit to the next: a
-change that speeds up one side and slows down the other shows as a shift in it. OpenMP is on by default
+change that speeds up one side and slows down the other shows as a shift in it. In a CUDA build it is
+measured against scalar host code; the host build's ``host`` cases show what vectorisation is worth on
+one core (about 3.4 times for ``TriMeshSDF`` in ``float`` on an AVX2 machine), so against a vectorised
+host the device's lead would be correspondingly smaller. In ``double`` a consumer GPU (FP64 at 1/64 of
+its FP32 rate) is little faster than the CPU's cores. OpenMP is on by default
 for CUDA builds (``EBGEOMETRY_PERF_OPENMP``); a HIP build's clang host side would need the LLVM OpenMP
 runtime, which is not yet tested, so it is off there unless turned on, and the host side then runs on one
 thread. A HIP build compiles its host side with AVX2 and FMA (``EBGEOMETRY_PERF_GPU_HOST_FLAGS``).
