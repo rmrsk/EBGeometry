@@ -345,11 +345,11 @@ public:
   }
 
   /**
-   * @brief Print the case: a table row, or one JSON object.
-   * @param[in] a_json Whether to print JSON.
+   * @brief The median of the timed repetitions and their interquartile range, in milliseconds.
+   * @return {median, IQR}.
    */
-  void
-  report(bool a_json) const
+  [[nodiscard]] std::pair<double, double>
+  medianAndIqr() const
   {
     std::vector<double> t = m_times;
     std::sort(t.begin(), t.end());
@@ -366,71 +366,109 @@ public:
       return t[lo] + (pos - double(lo)) * (t[hi] - t[lo]);
     };
 
-    const double median = quantile(0.5);
-    const double iqr    = quantile(0.75) - quantile(0.25);
+    return {quantile(0.5), quantile(0.75) - quantile(0.25)};
+  }
 
-    if (a_json) {
-      std::string s = "{\"case\":" + jsonString(m_name) + ",\"median_ms\":" + num(median) +
-                      ",\"min_ms\":" + num(t.empty() ? 0.0 : t.front()) + ",\"iqr_ms\":" + num(iqr) + ",\"times_ms\":[";
+  /**
+   * @brief The case's name.
+   * @return The name.
+   */
+  [[nodiscard]] const std::string&
+  name() const noexcept
+  {
+    return m_name;
+  }
 
-      for (std::size_t i = 0; i < m_times.size(); i++) {
-        s += (i > 0 ? "," : "") + num(m_times[i]);
+  /**
+   * @brief Items per repetition, for a per-item time (0: none).
+   * @return The count.
+   */
+  [[nodiscard]] std::size_t
+  items() const noexcept
+  {
+    return m_items;
+  }
+
+  /**
+   * @brief The pool bytes recorded with poolBytes() (0: none).
+   * @return The bytes.
+   */
+  [[nodiscard]] std::size_t
+  poolBytesUsed() const noexcept
+  {
+    return m_poolBytes;
+  }
+
+  /**
+   * @brief A metric recorded with metric().
+   * @param[in] a_key      Name.
+   * @param[in] a_fallback Value if it was not recorded.
+   * @return The value.
+   */
+  [[nodiscard]] double
+  metricValue(const std::string& a_key, double a_fallback) const
+  {
+    for (const auto& m : m_metrics) {
+      if (m.first == a_key) {
+        return m.second;
       }
-
-      s += "]";
-
-      if (m_items > 0) {
-        s += ",\"items\":" + std::to_string(m_items) + ",\"us_per_item\":" + num(1e3 * median / double(m_items));
-      }
-
-      if (m_hasChecksum) {
-        s += ",\"checksum\":" + num(m_checksum);
-      }
-
-      if (m_poolBytes > 0) {
-        s += ",\"pool_bytes\":" + std::to_string(m_poolBytes);
-      }
-
-      if (!m_metrics.empty()) {
-        s += ",\"metrics\":{";
-
-        for (std::size_t i = 0; i < m_metrics.size(); i++) {
-          s += (i > 0 ? "," : "") + jsonString(m_metrics[i].first) + ":" + num(m_metrics[i].second);
-        }
-
-        s += "}";
-      }
-
-      s += ",\"params\":{";
-
-      for (std::size_t i = 0; i < m_params.size(); i++) {
-        s += (i > 0 ? "," : "") + jsonString(m_params[i].first) + ":" + std::to_string(m_params[i].second);
-      }
-
-      std::printf("%s}}\n", s.c_str());
-    }
-    else {
-      std::printf("  %-52s %10.3f ms  (IQR %6.3f)", m_name.c_str(), median, iqr);
-
-      if (m_items > 0) {
-        std::printf("  %9.4f us/item", 1e3 * median / double(m_items));
-      }
-
-      if (m_poolBytes > 0) {
-        std::printf("  %8.2f MB", double(m_poolBytes) / 1e6);
-      }
-
-      if (m_hasChecksum) {
-        std::printf("  sum %.10g", m_checksum);
-      }
-
-      for (const auto& m : m_metrics) {
-        std::printf("  %s %.6g", m.first.c_str(), m.second);
-      }
-
-      std::printf("\n");
     }
 
+    return a_fallback;
+  }
+
+  /**
+   * @brief Print the case as one JSON object (the form PerfCompare reads).
+   */
+  void
+  reportJson() const
+  {
+    const auto [median, iqr] = this->medianAndIqr();
+
+    double minimum = 0.0;
+
+    if (!m_times.empty()) {
+      minimum = *std::min_element(m_times.begin(), m_times.end());
+    }
+
+    std::string s = "{\"case\":" + jsonString(m_name) + ",\"median_ms\":" + num(median) +
+                    ",\"min_ms\":" + num(minimum) + ",\"iqr_ms\":" + num(iqr) + ",\"times_ms\":[";
+
+    for (std::size_t i = 0; i < m_times.size(); i++) {
+      s += (i > 0 ? "," : "") + num(m_times[i]);
+    }
+
+    s += "]";
+
+    if (m_items > 0) {
+      s += ",\"items\":" + std::to_string(m_items) + ",\"us_per_item\":" + num(1e3 * median / double(m_items));
+    }
+
+    if (m_hasChecksum) {
+      s += ",\"checksum\":" + num(m_checksum);
+    }
+
+    if (m_poolBytes > 0) {
+      s += ",\"pool_bytes\":" + std::to_string(m_poolBytes);
+    }
+
+    if (!m_metrics.empty()) {
+      s += ",\"metrics\":{";
+
+      for (std::size_t i = 0; i < m_metrics.size(); i++) {
+        s += (i > 0 ? "," : "") + jsonString(m_metrics[i].first) + ":" + num(m_metrics[i].second);
+      }
+
+      s += "}";
+    }
+
+    s += ",\"params\":{";
+
+    for (std::size_t i = 0; i < m_params.size(); i++) {
+      s += (i > 0 ? "," : "") + jsonString(m_params[i].first) + ":" + std::to_string(m_params[i].second);
+    }
+
+    std::printf("%s}}\n", s.c_str());
     std::fflush(stdout);
   }
 
@@ -454,6 +492,140 @@ private:
   std::size_t                                      m_poolBytes   = 0;
   std::vector<std::pair<std::string, std::size_t>> m_params;
   std::vector<std::pair<std::string, double>>      m_metrics;
+};
+
+/**
+ * @brief A time in milliseconds, with a unit that keeps it between 1 and 1000 (ns, µs, ms or s) and
+ * three significant digits.
+ * @param[in] a_ms Milliseconds.
+ * @return The formatted time.
+ */
+inline std::string
+formatTime(double a_ms)
+{
+  const char* unit  = "ms";
+  double      value = a_ms;
+
+  if (a_ms >= 1000.0) {
+    unit  = "s";
+    value = a_ms / 1000.0;
+  }
+  else if (a_ms < 1e-3) {
+    unit  = "ns";
+    value = a_ms * 1e6;
+  }
+  else if (a_ms < 1.0) {
+    unit  = "\u00b5s";
+    value = a_ms * 1e3;
+  }
+
+  const int decimals = value < 10.0 ? 2 : (value < 100.0 ? 1 : 0);
+
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "%.*f %s", decimals, value, unit);
+
+  return buf;
+}
+
+/**
+ * @brief The width of a string in characters: UTF-8 code points, so that a unit like µs lines up.
+ * @param[in] a_s The string.
+ * @return Its width.
+ */
+inline std::size_t
+displayWidth(const std::string& a_s)
+{
+  std::size_t chars = 0;
+
+  for (const char c : a_s) {
+    chars += (static_cast<unsigned char>(c) & 0xC0) != 0x80 ? 1 : 0;
+  }
+
+  return chars;
+}
+
+/**
+ * @brief Pad a string to a width in characters.
+ * @param[in] a_s     The string.
+ * @param[in] a_width The width.
+ * @param[in] a_left  Left-align (pad on the right) rather than right-align.
+ * @return The padded string.
+ */
+inline std::string
+pad(const std::string& a_s, std::size_t a_width, bool a_left = false)
+{
+  const std::size_t chars = displayWidth(a_s);
+  const std::string fill(a_width > chars ? a_width - chars : 0, ' ');
+
+  return a_left ? a_s + fill : fill + a_s;
+}
+
+/**
+ * @brief A byte count in kB, MB or GB.
+ * @param[in] a_bytes Bytes.
+ * @return The formatted size.
+ */
+inline std::string
+formatBytes(std::size_t a_bytes)
+{
+  const double b = double(a_bytes);
+  char         buf[32];
+
+  if (b >= 1e9) {
+    std::snprintf(buf, sizeof(buf), "%.2f GB", b / 1e9);
+  }
+  else if (b >= 1e6) {
+    std::snprintf(buf, sizeof(buf), "%.1f MB", b / 1e6);
+  }
+  else {
+    std::snprintf(buf, sizeof(buf), "%.1f kB", b / 1e3);
+  }
+
+  return buf;
+}
+
+/**
+ * @brief A case name split into what the table shows: the group (everything before the operation,
+ * joined with a dot), the operation, the precision and the side.
+ */
+struct CaseName
+{
+  std::string group;
+  std::string operation;
+  std::string precision;
+  std::string side;
+
+  /**
+   * @brief Split a name of the form group.../operation/precision/side.
+   * @param[in] a_name The case name.
+   */
+  explicit CaseName(const std::string& a_name)
+  {
+    std::vector<std::string> parts;
+    std::size_t              begin = 0;
+
+    while (true) {
+      const auto slash = a_name.find('/', begin);
+
+      parts.push_back(a_name.substr(begin, slash - begin));
+
+      if (slash == std::string::npos) {
+        break;
+      }
+
+      begin = slash + 1;
+    }
+
+    const std::size_t n = parts.size();
+
+    side      = n >= 1 ? parts[n - 1] : "";
+    precision = n >= 2 ? parts[n - 2] : "";
+    operation = n >= 3 ? parts[n - 3] : "";
+
+    for (std::size_t i = 0; i + 3 < n; i++) {
+      group += (i > 0 ? " \u00b7 " : "") + parts[i];
+    }
+  }
 };
 
 /**
@@ -552,44 +724,30 @@ public:
                   jsonString(cpuModel()).c_str(),
                   m_reps,
                   m_smoke ? "true" : "false");
-    }
-    else {
-      std::printf("%s  (git %s, %s, simd %s, gpu %s, %d reps%s)\n",
-                  m_name.c_str(),
-                  EBGEOMETRY_PERF_GIT_SHA,
-                  compilerName().c_str(),
-                  simdLevel(),
-                  EBGeometry::GPU::backendName,
-                  m_reps,
-                  m_smoke ? ", smoke" : "");
-    }
 
-    for (const auto& c : m_cases) {
-      if (!selected(c.first)) {
-        continue;
-      }
+      for (const auto& c : m_cases) {
+        if (!selected(c.first)) {
+          continue;
+        }
 
-      // A case whose input is missing (the mesh submodule not checked out) is reported as skipped, so
-      // the other cases still run.
-      Case running(c.first, m_reps, m_smoke);
+        Case running(c.first, m_reps, m_smoke);
 
-      try {
-        c.second(running);
-      } catch (const std::exception& e) {
-        if (m_json) {
+        // A case whose input is missing (the mesh submodule not checked out) is reported as skipped,
+        // so the other cases still run.
+        try {
+          c.second(running);
+        } catch (const std::exception& e) {
           std::printf("{\"case\":%s,\"skipped\":%s}\n", jsonString(c.first).c_str(), jsonString(e.what()).c_str());
-        }
-        else {
-          std::printf("  %-52s skipped: %s\n", c.first.c_str(), e.what());
+          continue;
         }
 
-        continue;
+        running.reportJson();
       }
 
-      running.report(m_json);
+      return 0;
     }
 
-    return 0;
+    return this->runTable();
   }
 
   /**
@@ -603,6 +761,186 @@ public:
   }
 
 private:
+  // One row of the speedup summary.
+  struct Speedup
+  {
+    std::string label;
+    double      hostPerItemMs;
+    double      devicePerItemMs;
+    bool        sameInputs;
+  };
+
+  // The human-readable form: a banner, a column header, then the cases grouped by component and
+  // input, then the device's speedup over the host for every case that ran on both sides.
+  int
+  runTable() const
+  {
+    std::size_t opWidth = 9;
+    std::size_t count   = 0;
+
+    for (const auto& c : m_cases) {
+      if (selected(c.first)) {
+        opWidth = std::max(opWidth, CaseName(c.first).operation.size());
+        count++;
+      }
+    }
+
+    std::printf("\n%s: %zu cases, %d repetition%s each%s\n",
+                m_name.c_str(),
+                count,
+                m_reps,
+                m_reps == 1 ? "" : "s",
+                m_smoke ? " (smoke sizes: checks that cases run, times nothing)" : "");
+    std::printf("  git %s, %s, host SIMD %s, GPU %s\n",
+                EBGEOMETRY_PERF_GIT_SHA,
+                compilerName().c_str(),
+                simdLevel(),
+                EBGeometry::GPU::enabled ? EBGeometry::GPU::backendName : "none");
+    std::printf("  median of the repetitions; spread = interquartile range / median\n\n");
+
+    // One row: operation, precision, side, median, spread, per item, pool, then free text, with the
+    // trailing blanks trimmed.
+    const auto row = [opWidth](const std::string& a_op,
+                               const std::string& a_precision,
+                               const std::string& a_side,
+                               const std::string& a_median,
+                               const std::string& a_spread,
+                               const std::string& a_perItem,
+                               const std::string& a_pool,
+                               const std::string& a_note) {
+      std::string line = "    " + pad(a_op, opWidth, true) + "  " + pad(a_precision, 9, true) + "  " +
+                         pad(a_side, 11, true) + "  " + pad(a_median, 10) + "  " + pad(a_spread, 7) + "  " +
+                         pad(a_perItem, 10) + "  " + pad(a_pool, 9) + (a_note.empty() ? "" : "  " + a_note);
+
+      line.erase(line.find_last_not_of(' ') + 1);
+      std::printf("%s\n", line.c_str());
+      std::fflush(stdout);
+    };
+
+    row("operation", "precision", "side", "median", "spread", "per item", "pool", "");
+
+    std::string          group = "\x01";
+    std::vector<Speedup> speedups;
+
+    // Host per-item times, keyed by group|operation|precision, to pair with the device cases.
+    std::vector<std::pair<std::string, double>> hostPerItem;
+
+    for (const auto& c : m_cases) {
+      if (!selected(c.first)) {
+        continue;
+      }
+
+      const CaseName parts(c.first);
+
+      if (parts.group != group) {
+        group = parts.group;
+        std::printf("\n  %s\n", group.empty() ? m_name.c_str() : group.c_str());
+      }
+
+      Case running(c.first, m_reps, m_smoke);
+
+      try {
+        c.second(running);
+      } catch (const std::exception& e) {
+        row(parts.operation, parts.precision, parts.side, "", "", "", "", std::string("skipped: ") + e.what());
+        continue;
+      }
+
+      const auto [median, iqr] = running.medianAndIqr();
+      const bool   paired      = parts.side == "hostdevice";
+      const auto   items       = running.items();
+      const double perItem     = items > 0 ? median / double(items) : 0.0;
+      const auto   label       = parts.group + " \u00b7 " + parts.operation + " \u00b7 " + parts.precision;
+      const auto   key         = parts.group + "|" + parts.operation + "|" + parts.precision;
+
+      char spread[16];
+      std::snprintf(spread, sizeof(spread), "%.1f%%", median > 0.0 ? 100.0 * iqr / median : 0.0);
+
+      std::string note;
+
+      if (paired) {
+        // The median column is the device's; the host's time and the comparison follow.
+        const double hostMs     = running.metricValue("host_ms", 0.0);
+        const double mismatches = running.metricValue("mismatches", 0.0);
+        const double maxDiff    = running.metricValue("max_diff", 0.0);
+
+        char buf[160];
+        std::snprintf(buf,
+                      sizeof(buf),
+                      "device time; host %s: device %.1fx faster, ",
+                      formatTime(hostMs).c_str(),
+                      median > 0.0 ? hostMs / median : 0.0);
+        note = buf;
+
+        if (mismatches > 0.0) {
+          std::snprintf(buf, sizeof(buf), "%.0f of %zu ANSWERS DIFFER (max diff %.3g)", mismatches, items, maxDiff);
+          note += buf;
+        }
+        else {
+          note += "answers agree";
+        }
+
+        if (items > 0) {
+          speedups.push_back({label, hostMs / double(items), perItem, true});
+        }
+      }
+      else if (parts.side == "host" && items > 0) {
+        hostPerItem.emplace_back(key, perItem);
+      }
+      else if (parts.side == "device" && items > 0) {
+        for (const auto& h : hostPerItem) {
+          if (h.first == key) {
+            speedups.push_back({label, h.second, perItem, false});
+          }
+        }
+      }
+
+      row(parts.operation,
+          parts.precision,
+          paired ? "host+device" : parts.side,
+          formatTime(median),
+          spread,
+          items > 0 ? formatTime(perItem) : "",
+          running.poolBytesUsed() > 0 ? formatBytes(running.poolBytesUsed()) : "",
+          note);
+    }
+
+    if (!speedups.empty()) {
+      std::size_t labelWidth = 4;
+
+      for (const auto& sp : speedups) {
+        labelWidth = std::max(labelWidth, displayWidth(sp.label));
+      }
+
+      std::printf("\nDevice speedup over the host (time per item)\n");
+
+      const std::string header = "    " + pad("case", labelWidth, true) + "  " + pad("host", 10) + "  " +
+                                 pad("device", 10) + "  " + pad("speedup", 8);
+      std::printf("%s\n", header.c_str());
+
+      for (const auto& sp : speedups) {
+        char factor[32];
+        std::snprintf(
+          factor, sizeof(factor), "%.1fx", sp.devicePerItemMs > 0.0 ? sp.hostPerItemMs / sp.devicePerItemMs : 0.0);
+
+        const std::string line =
+          "    " + pad(sp.label, labelWidth, true) + "  " + pad(formatTime(sp.hostPerItemMs), 10) + "  " +
+          pad(formatTime(sp.devicePerItemMs), 10) + "  " + pad(factor, 8) + "  " +
+          (sp.sameInputs ? "same inputs on both sides" : "from the host and device cases (different sizes)");
+        std::printf("%s\n", line.c_str());
+      }
+
+      if (std::string(simdLevel()) == "none") {
+        std::printf("  The host side was compiled without SIMD (as nvcc requires), so these speedups are against\n"
+                    "  scalar host code; a host build's host cases give vectorised host times.\n");
+      }
+    }
+
+    std::printf("\n");
+
+    return 0;
+  }
+
   [[nodiscard]] bool
   selected(const std::string& a_name) const
   {

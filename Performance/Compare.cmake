@@ -54,12 +54,14 @@ endif()
 
 get_filename_component(WORK_DIR "${WORK_DIR}" ABSOLUTE BASE_DIR "${REPO}")
 
+# Run a command with its output captured (compiler warnings would otherwise bury the report); show
+# the output only if it fails.
 function(run_or_die)
-  execute_process(${ARGN} RESULT_VARIABLE rc)
+  execute_process(${ARGN} RESULT_VARIABLE rc OUTPUT_VARIABLE out ERROR_VARIABLE err)
 
   if(NOT rc EQUAL 0)
     string(REPLACE ";" " " cmd "${ARGN}")
-    message(FATAL_ERROR "Compare.cmake: failed (${rc}): ${cmd}")
+    message(FATAL_ERROR "Compare.cmake: failed (${rc}): ${cmd}\n${out}\n${err}")
   endif()
 endfunction()
 
@@ -120,8 +122,8 @@ foreach(side base head)
     COMMAND ${CMAKE_COMMAND} -S "${${side}_src}/Performance" -B "${WORK_DIR}/${side}-build" -DCMAKE_BUILD_TYPE=Release
             -DEBGEOMETRY_PERF_GIT_SHA=${${side}_sha} -DEBGEOMETRY_PERF_MESH_DIR=${REPO}/common-3d-test-models/data
             -DEBGEOMETRY_PERF_SMOKE_MESH_DIR=${${side}_src}/Tests/data ${gpu_args}
-    OUTPUT_QUIET)
-  run_or_die(COMMAND ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-build" --parallel OUTPUT_QUIET)
+  )
+  run_or_die(COMMAND ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-build" --parallel)
 endforeach()
 
 # What changed in the probes themselves, so a reader knows when the measurement changed too.

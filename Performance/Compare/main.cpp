@@ -173,6 +173,49 @@ read(const std::string& a_file)
   return run;
 }
 
+// A time in milliseconds with a unit that keeps it between 1 and 1000, three significant digits.
+std::string
+formatTime(double a_ms)
+{
+  const char* unit  = "ms";
+  double      value = a_ms;
+
+  if (a_ms >= 1000.0) {
+    unit  = "s";
+    value = a_ms / 1000.0;
+  }
+  else if (a_ms < 1e-3) {
+    unit  = "ns";
+    value = a_ms * 1e6;
+  }
+  else if (a_ms < 1.0) {
+    unit  = "\u00b5s";
+    value = a_ms * 1e3;
+  }
+
+  const int decimals = value < 10.0 ? 2 : (value < 100.0 ? 1 : 0);
+
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "%.*f %s", decimals, value, unit);
+
+  return buf;
+}
+
+// Pad to a width in characters (UTF-8 code points, so that the unit µs lines up).
+std::string
+pad(const std::string& a_s, std::size_t a_width, bool a_left = false)
+{
+  std::size_t chars = 0;
+
+  for (const char c : a_s) {
+    chars += (static_cast<unsigned char>(c) & 0xC0) != 0x80 ? 1 : 0;
+  }
+
+  const std::string fill(a_width > chars ? a_width - chars : 0, ' ');
+
+  return a_left ? a_s + fill : fill + a_s;
+}
+
 double
 median(std::vector<double> a_v)
 {
@@ -319,8 +362,8 @@ main(int argc, char** argv)
     const double ratio = mh / mb;
     const auto   ci    = bootstrap(b->second.times, h->second.times);
 
-    row.baseMs   = fmt("%.3f", mb);
-    row.headMs   = fmt("%.3f", mh);
+    row.baseMs   = formatTime(mb);
+    row.headMs   = formatTime(mh);
     row.change   = fmt("%+.1f%%", 100.0 * (ratio - 1.0));
     row.interval = fmt("[%+.1f%%, ", 100.0 * (ci.first - 1.0)) + fmt("%+.1f%%]", 100.0 * (ci.second - 1.0));
 
@@ -355,13 +398,13 @@ main(int argc, char** argv)
     if (h->second.paired) {
       const double rh = median(h->second.hostOverDevice);
 
-      row.note += "host/device " + fmt("%.3g", rh);
+      row.note += "device " + fmt("%.1f", rh) + "x faster than the host";
 
       if (b->second.paired) {
         const double rb = median(b->second.hostOverDevice);
 
         if (std::abs(rh / rb - 1.0) >= minor / 100.0) {
-          row.note += " (was " + fmt("%.3g", rb) + ")";
+          row.note += " (was " + fmt("%.1f", rb) + "x)";
         }
       }
 
@@ -369,7 +412,7 @@ main(int argc, char** argv)
 
       if (h->second.mismatches > 0.0) {
         severity = std::max(severity, 1);
-        row.note += fmt("%.0f", h->second.mismatches) + " host/device disagreements (max diff " +
+        row.note += fmt("%.0f", h->second.mismatches) + " host and device answers DIFFER (max diff " +
                     fmt("%.3g", h->second.maxDiff) + "); ";
       }
     }
@@ -392,6 +435,11 @@ main(int argc, char** argv)
       }
     }
 
+    // Notes are joined with "; "; drop the last separator.
+    while (!row.note.empty() && (row.note.back() == ' ' || row.note.back() == ';')) {
+      row.note.pop_back();
+    }
+
     rows.push_back(row);
   }
 
@@ -412,20 +460,45 @@ main(int argc, char** argv)
   std::printf("\nPerformance comparison: %s\n", summary.c_str());
   std::printf("  %s\n  %s\n", metaLine("base ", base).c_str(), metaLine("head ", head).c_str());
   std::printf("  thresholds: minor >= %.0f%%, major >= %.0f%% slower, and outside the 95%% interval\n\n", minor, major);
-  std::printf(
-    "  %-48s %10s %10s %8s %18s %8s  %s\n", "case", "base ms", "head ms", "change", "95% interval", "pool", "verdict");
+  std::size_t nameWidth = 4;
 
   for (const auto& r : rows) {
-    std::printf("  %-48s %10s %10s %8s %18s %8s  %s%s%s\n",
-                r.name.c_str(),
-                r.baseMs.c_str(),
-                r.headMs.c_str(),
-                r.change.c_str(),
-                r.interval.c_str(),
-                r.memory.c_str(),
-                r.verdict.c_str(),
-                r.note.empty() ? "" : "  ",
-                r.note.c_str());
+    nameWidth = std::max(nameWidth, r.name.size());
+  }
+
+  const auto line = [nameWidth](const Row& a_r) {
+    std::string out = "  " + pad(a_r.name, nameWidth, true) + "  " + pad(a_r.baseMs, 10) + "  " + pad(a_r.headMs, 10) +
+                      "  " + pad(a_r.change, 7) + "  " + pad(a_r.interval, 17) + "  " + pad(a_r.memory, 6) + "  " +
+                      pad(a_r.verdict, 7, true) + (a_r.note.empty() ? "" : "  " + a_r.note);
+
+    out.erase(out.find_last_not_of(' ') + 1);
+
+    return out;
+  };
+
+  std::printf("%s\n", line(Row{"case", "base", "head", "change", "95% interval", "pool", "verdict", ""}).c_str());
+
+  for (const auto& r : rows) {
+    std::printf("%s\n", line(r).c_str());
+  }
+
+  // The flagged cases again, so they are not lost in a long table.
+  bool flagged = false;
+
+  for (const auto& r : rows) {
+    if (r.verdict == "MAJOR" || r.verdict == "minor" || r.note.find("DIFFER") != std::string::npos ||
+        r.note.find("checksum") != std::string::npos) {
+      if (!flagged) {
+        std::printf("\nFlagged:\n");
+        flagged = true;
+      }
+
+      std::printf("  %-7s %s  %s  %s\n", r.verdict.c_str(), r.name.c_str(), r.change.c_str(), r.note.c_str());
+    }
+  }
+
+  if (!flagged) {
+    std::printf("\nNothing flagged.\n");
   }
 
   if (!markdownFile.empty()) {
@@ -436,7 +509,7 @@ main(int argc, char** argv)
     md << "- CPU: " << (head.meta.count("cpu") ? head.meta.at("cpu") : "?") << "\n";
     md << "- Thresholds: minor >= " << minor << "%, major >= " << major
        << "% slower, and outside the 95% bootstrap interval\n\n";
-    md << "| case | base ms | head ms | change | 95% interval | pool | verdict | note |\n";
+    md << "| case | base | head | change | 95% interval | pool | verdict | note |\n";
     md << "|---|---:|---:|---:|---:|---:|---|---|\n";
 
     for (const auto& r : rows) {
