@@ -26,6 +26,9 @@ namespace {
 constexpr std::size_t K             = 4;
 constexpr std::size_t MaxLeafGroups = 4;
 
+// MeshSDF's leaf size, in faces: its default (K - 1), spelled out like the rest.
+constexpr std::size_t MaxLeafFaces = K - 1;
+
 // Signed distance to an SDF: one query per point, on either side.
 template <class SDF, class T>
 struct Distance
@@ -72,7 +75,7 @@ addQueryCases(Perf::Suite&                                              a_suite,
               const std::string&                                        a_prefix,
               std::function<SDF(EBGeometry::Pool&, const std::string&)> a_make,
               std::function<void(Perf::Case&)>                          a_params,
-              bool                                                      a_device)
+              bool                                                      a_pairs)
 {
   const std::string prec = std::is_same_v<T, float> ? "float" : "double";
 
@@ -97,7 +100,7 @@ addQueryCases(Perf::Suite&                                              a_suite,
   });
 
   // A width wider than 4 is host-only: no pair for it.
-  if (!a_device) {
+  if (!a_pairs) {
     return;
   }
 
@@ -130,7 +133,7 @@ addQueryCases(Perf::Suite&                                              a_suite,
 
 template <class T, std::size_t W>
 void
-addTriMeshSDF(Perf::Suite& a_suite, bool a_device)
+addTriMeshSDF(Perf::Suite& a_suite, bool a_pairs)
 {
   using SDF = EBGeometry::TriMeshSDF<T, K, W>;
 
@@ -169,7 +172,7 @@ addTriMeshSDF(Perf::Suite& a_suite, bool a_device)
   };
 
   // A width wider than 4 is host-only (see ConfigurationOptions.rst): no device case for it.
-  addQueryCases<T, SDF>(a_suite, prefix, make, params, a_device);
+  addQueryCases<T, SDF>(a_suite, prefix, make, params, a_pairs);
 }
 
 template <class T>
@@ -182,7 +185,12 @@ addMeshSDF(Perf::Suite& a_suite)
   const std::string prec   = std::is_same_v<T, float> ? "float" : "double";
   const std::string prefix = "MeshSDF/";
 
-  const auto params = [](Perf::Case& c) { c.param("K", K); };
+  const auto params = [](Perf::Case& c) {
+    c.param("K", K);
+    c.param("maxLeafFaces", MaxLeafFaces);
+  };
+
+  const EBGeometry::BVH::ConstructionOptions options{MaxLeafFaces, 1, {}};
 
   a_suite.add(prefix + "build/" + prec + "/host", [=](Perf::Case& c) {
     std::unique_ptr<EBGeometry::Pool> pool;
@@ -196,7 +204,7 @@ addMeshSDF(Perf::Suite& a_suite)
         pool = std::make_unique<EBGeometry::Pool>(EBGeometry::hostMemoryResource());
         mesh = std::make_unique<Mesh>(EBGeometry::Parser::readIntoDCEL<T>(Perf::meshFile(c.smoke()), *pool));
       },
-      [&] { sdf = std::make_unique<SDF>(*mesh, *pool, EBGeometry::BVH::Construction::SAH); });
+      [&] { sdf = std::make_unique<SDF>(*mesh, *pool, EBGeometry::BVH::Construction::SAH, options); });
 
     c.poolBytes(pool->usedBytes());
     c.checksum(double(sdf->signedDistance(EBGeometry::Vec3T<T>(T(0), T(0), T(0)))));
@@ -205,8 +213,9 @@ addMeshSDF(Perf::Suite& a_suite)
 
   a_suite.add(prefix + "refit/" + prec + "/host", [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-    const SDF        sdf  = EBGeometry::Parser::readIntoMeshSDF<T, K>(Perf::meshFile(c.smoke()), pool);
-    const auto       mesh = sdf.getMesh();
+    const SDF        sdf = EBGeometry::Parser::readIntoMeshSDF<T, K>(
+      Perf::meshFile(c.smoke()), pool, EBGeometry::BVH::Construction::SAH, options);
+    const auto mesh = sdf.getMesh();
 
     // A single refit takes a few milliseconds, too short to time steadily: each repetition does several.
     constexpr std::size_t refits = 10;
@@ -224,9 +233,9 @@ addMeshSDF(Perf::Suite& a_suite)
     params(c);
   });
 
-  const std::function<SDF(EBGeometry::Pool&, const std::string&)> make = [](EBGeometry::Pool&  a_pool,
-                                                                            const std::string& a_file) {
-    return EBGeometry::Parser::readIntoMeshSDF<T, K>(a_file, a_pool);
+  const std::function<SDF(EBGeometry::Pool&, const std::string&)> make = [options](EBGeometry::Pool&  a_pool,
+                                                                                   const std::string& a_file) {
+    return EBGeometry::Parser::readIntoMeshSDF<T, K>(a_file, a_pool, EBGeometry::BVH::Construction::SAH, options);
   };
 
   addQueryCases<T, SDF>(a_suite, prefix, make, params, true);

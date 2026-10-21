@@ -16,7 +16,6 @@
 #include <vector>
 
 #include <EBGeometry.hpp>
-#include <Source/EBGeometry_Random.hpp>
 
 #include "../Common/PerfHarness.hpp"
 
@@ -103,12 +102,16 @@ struct NearestNeighbors
   }
 };
 
-// The cloud's points: uniform in the unit cube, or projected onto the unit sphere.
+// The cloud's points: uniform in the unit cube, or projected onto the unit sphere. Drawn with the
+// harness's generator, so that every platform and standard library draws the same points.
 template <class T>
 std::vector<EBGeometry::Vec3T<T>>
 cloudPoints(const std::string& a_shape, std::size_t a_n)
 {
-  auto points = EBGeometry::Random::samplePoints<T>(a_n, 20261019u);
+  using Vec3 = EBGeometry::Vec3T<T>;
+
+  auto points = Perf::pointsInBox<T>(
+    EBGeometry::BoundingVolumes::AABBT<T>(Vec3(T(0), T(0), T(0)), Vec3(T(1), T(1), T(1))), a_n, 20261019u);
 
   if (a_shape == "sphere") {
     for (auto& p : points) {
@@ -269,9 +272,12 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, const std::string& a_
     common(c, n);
   });
 
+  // Every point's nearest neighbour, the points visited in Morton order, as the k-nearest and the
+  // host/device cases visit them.
   a_suite.add(prefix + "neighbor/" + prec + "/host", [=](Perf::Case& c) {
-    const std::size_t n      = c.size(500000, 2000);
-    const auto        points = cloudPoints<T>(a_shape, n);
+    const std::size_t n       = c.size(500000, 2000);
+    const auto        points  = cloudPoints<T>(a_shape, n);
+    const auto        indices = EBGeometry::SFC::order<EBGeometry::SFC::Morton>(points);
 
     EBGeometry::Pool                pool(EBGeometry::hostMemoryResource());
     const NearestNeighbor<Cloud, T> query{a_build(pool, points)};
@@ -279,8 +285,8 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, const std::string& a_
 
     c.measure(
       [&] {
-        for (uint32_t i = 0; i < n; i++) {
-          hits[i] = query(i);
+        for (std::size_t i = 0; i < n; i++) {
+          hits[i] = query(indices[i]);
         }
       },
       n);

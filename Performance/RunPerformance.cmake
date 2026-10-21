@@ -229,7 +229,7 @@ file(GLOB probes "${build_dir}/bin/*.ex")
 list(FILTER probes EXCLUDE REGEX "/PerfCompare\\.ex$")
 list(SORT probes)
 
-set(probe_args --side all)
+set(probe_args "")
 
 foreach(g IN LISTS positional)
   list(APPEND probe_args --case "${g}")

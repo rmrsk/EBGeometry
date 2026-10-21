@@ -40,7 +40,8 @@ inputs untimed, runs the measured operation once to warm up and then a number of
   inheriting ``DefaultBranchingRatio`` or ``DefaultWidth``, so a change to a default changes which case
   measures it, not what an existing case means.
 
-Inputs are fixed: the point sets come from fixed seeds and the mesh is ``armadillo.obj`` from the
+Inputs are fixed: every point set comes from the harness's own generator with a fixed seed, so that
+every platform and standard library draws the same points, and the mesh is ``armadillo.obj`` from the
 ``common-3d-test-models`` submodule. A case whose input is missing is reported as skipped.
 
 What the probes measure
@@ -63,7 +64,7 @@ Family                                Build  Measures
 ``closest``                           host   ``closestPoint`` at 200,000 random points near the cloud
 ``closest-outside``                   host   ``closestPoint`` far outside the cloud (20,000 for the
                                              BVH, 100 for the hash grid, which is slow out there)
-``neighbor``                          host   ``nearestNeighbor`` of every cloud point
+``neighbor``                          host   ``nearestNeighbor`` of every cloud point, in Morton order
 ``neighbors8``, ``closest8``          host   the 8 nearest points, per point, in Morton order
 ``closest-morton``,                   GPU    ``closestPoint`` at 262,144 points near the cloud
 ``closest-random``
@@ -83,7 +84,8 @@ Family                                Build  Measures
 ``TriMeshSDF/w8/build``, ``query``    host   the same at the host-tuned width 8 (``float`` only)
 ``TriMeshSDF/w4/query-morton``,       GPU    signed distance at 262,144 such points
 ``query-random``
-``MeshSDF/build``                     host   building a ``MeshSDF`` from an already-read DCEL mesh
+``MeshSDF/build``                     host   building a ``MeshSDF`` (K = 4, at most 3 faces per leaf,
+                                             SAH) from an already-read DCEL mesh
 ``MeshSDF/refit``                     host   10 refits of its BVH
 ``MeshSDF/query``                     host   as for ``TriMeshSDF``
 ``MeshSDF/query-morton``,             GPU    as for ``TriMeshSDF``
@@ -304,16 +306,16 @@ bootstrap 95% confidence interval for the ratio. A change counts only when the i
 change at all:
 
 ==========  =========================================================================================
+``DIFFER``  a pair whose host and device answers disagree: a red flag, and its times are not comparable
 ``MAJOR``   at least 10% slower (``MAJOR``), or 10% more pool bytes: a red flag
 ``minor``   at least 3% slower (``MINOR``), or 3% more pool bytes: worth a look
-``faster``  at least 3% faster
+``faster``  at least 3% faster, and no more pool bytes
 ``~``       within the thresholds, or within the noise
 ==========  =========================================================================================
 
 A differing checksum is noted beside the verdict: the two sides did not compute the same answers, so the
 times may not be comparable. A paired case shows the device's speedup over the host, with the
-baseline's beside it when the two differ by 3% or more, and is at least ``minor`` when its host and
-device answers disagree anywhere. Flagged cases are listed again under the table.
+baseline's beside it when the two differ by 3% or more. Flagged cases are listed again under the table.
 
 In continuous integration and in pull requests
 ----------------------------------------------

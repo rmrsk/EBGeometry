@@ -26,9 +26,6 @@ else()
   set(EBGEOMETRY_PERF_ARCH_FLAGS "" CACHE STRING "Architecture flags for a standalone host build")
 endif()
 
-set(EBGEOMETRY_PERF_SIDE "all" CACHE STRING "Which side's cases run by default: host, device or all")
-set_property(CACHE EBGEOMETRY_PERF_SIDE PROPERTY STRINGS host device all)
-
 set(EBGEOMETRY_PERF_MESH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../common-3d-test-models/data" CACHE PATH
     "Directory holding armadillo.obj (the common-3d-test-models submodule)")
 set(EBGEOMETRY_PERF_SMOKE_MESH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/data" CACHE PATH
@@ -135,7 +132,6 @@ foreach(perf_main IN LISTS perf_mains)
   target_link_libraries(${target} PRIVATE EBGeometry::EBGeometry)
   target_compile_definitions(${target} PRIVATE
     EBGEOMETRY_PERF_GIT_SHA="${EBGEOMETRY_PERF_GIT_SHA}"
-    EBGEOMETRY_PERF_SIDE="${EBGEOMETRY_PERF_SIDE}"
     EBGEOMETRY_PERF_MESH_DIR="${EBGEOMETRY_PERF_MESH_DIR}"
     EBGEOMETRY_PERF_SMOKE_MESH_DIR="${EBGEOMETRY_PERF_SMOKE_MESH_DIR}")
   set_target_properties(${target} PROPERTIES

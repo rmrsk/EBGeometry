@@ -15,7 +15,6 @@
  * Command line (every program):
  *   --list           print the case names and exit
  *   --case <glob>    run only the cases matching the glob (* and ?); may be repeated
- *   --side <s>       host, device or all: which side's cases run (default: EBGEOMETRY_PERF_SIDE, else all)
  *   --reps <n>       timed repetitions per case (default 5), after one untimed warm-up
  *   --smoke          small problem sizes and one repetition: checks that a case runs, times nothing
  *   --json           one JSON object per case instead of the table
@@ -34,10 +33,10 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <exception>
 #include <fstream>
 #include <functional>
+#include <stdexcept>
 #include <string>
 #include <unistd.h>
 #include <utility>
@@ -54,19 +53,14 @@
 #define EBGEOMETRY_PERF_GIT_SHA "unknown"
 #endif
 
-// Where the meshes are. Set by the build to absolute paths; the defaults work from a program's folder.
+// Where the meshes are: absolute paths, set by the build (Performance/CMakeLists.txt). A program built
+// without them reports its mesh cases as skipped, with the reason.
 #ifndef EBGEOMETRY_PERF_MESH_DIR
-#define EBGEOMETRY_PERF_MESH_DIR "../../common-3d-test-models/data"
+#define EBGEOMETRY_PERF_MESH_DIR ""
 #endif
 
 #ifndef EBGEOMETRY_PERF_SMOKE_MESH_DIR
-#define EBGEOMETRY_PERF_SMOKE_MESH_DIR "../../Tests/data"
-#endif
-
-// The side whose cases run when --side is not given: "host", "device" or "all". Set by the build
-// (EBGEOMETRY_PERF_SIDE in Performance/CMakeLists.txt).
-#ifndef EBGEOMETRY_PERF_SIDE
-#define EBGEOMETRY_PERF_SIDE "all"
+#define EBGEOMETRY_PERF_SMOKE_MESH_DIR ""
 #endif
 
 namespace Perf {
@@ -764,6 +758,15 @@ public:
    */
   Suite(int a_argc, char** a_argv, std::string a_name) : m_name(std::move(a_name))
   {
+    // A flag's value, or a clear error when it is missing.
+    const auto value = [&](int& a_i, const std::string& a_flag) -> std::string {
+      if (a_i + 1 >= a_argc) {
+        this->fail(a_flag + " needs a value");
+      }
+
+      return a_argv[++a_i];
+    };
+
     for (int i = 1; i < a_argc; i++) {
       const std::string arg = a_argv[i];
 
@@ -777,33 +780,32 @@ public:
         m_smoke = true;
         m_reps  = 1;
       }
-      else if (arg == "--case" && i + 1 < a_argc) {
-        m_globs.emplace_back(a_argv[++i]);
-      }
       else if (arg == "--no-banner") {
         m_banner = false;
       }
-      else if (arg == "--json-out" && i + 1 < a_argc) {
-        m_jsonOut = a_argv[++i];
+      else if (arg == "--case") {
+        m_globs.push_back(value(i, arg));
       }
-      else if (arg == "--side" && i + 1 < a_argc) {
-        m_side = a_argv[++i];
+      else if (arg == "--json-out") {
+        m_jsonOut = value(i, arg);
       }
-      else if (arg == "--reps" && i + 1 < a_argc) {
-        m_reps = std::max(1, std::atoi(a_argv[++i]));
+      else if (arg == "--reps") {
+        const std::string text = value(i, arg);
+        char*             end  = nullptr;
+        const long        reps = std::strtol(text.c_str(), &end, 10);
+
+        if (end == text.c_str() || *end != '\0' || reps < 1 || reps > 1000000) {
+          this->fail("--reps needs a whole number of at least 1 (got '" + text + "')");
+        }
+
+        m_reps = static_cast<int>(reps);
       }
       else {
-        std::fprintf(stderr, "%s: unknown argument '%s'\n", m_name.c_str(), arg.c_str());
-        std::exit(2);
+        this->fail("unknown argument '" + arg + "'");
       }
     }
 
-    if (m_side != "host" && m_side != "device" && m_side != "all") {
-      std::fprintf(stderr, "%s: --side must be host, device or all (got '%s')\n", m_name.c_str(), m_side.c_str());
-      std::exit(2);
-    }
-
-    m_deviceRuns = deviceRuns();
+    m_deviceRuns = EBGeometry::GPU::enabled && EBGeometry::GPU::deviceAvailable();
   }
 
   /**
@@ -870,17 +872,15 @@ public:
     return this->runTable();
   }
 
-  /**
-   * @brief Whether device cases can run: a CUDA or HIP build with a visible device.
-   * @return True if they can.
-   */
-  [[nodiscard]] static bool
-  deviceRuns()
+private:
+  // Report a command-line error and exit.
+  [[noreturn]] void
+  fail(const std::string& a_message) const
   {
-    return EBGeometry::GPU::enabled && EBGeometry::GPU::deviceAvailable();
+    std::fprintf(stderr, "%s: %s\n", m_name.c_str(), a_message.c_str());
+    std::exit(2);
   }
 
-private:
   // The first JSON line: what built and ran the cases.
   [[nodiscard]] std::string
   headerJson() const
@@ -888,7 +888,7 @@ private:
     return "{\"suite\":" + jsonString(m_name) + ",\"git\":" + jsonString(gitSha()) +
            ",\"compiler\":" + jsonString(compilerName()) + ",\"simd\":\"" + simdLevel() +
            "\",\"host_tuned_defaults\":" + (hostTunedDefaults() ? "true" : "false") + ",\"gpu_backend\":\"" +
-           EBGeometry::GPU::backendName + "\",\"side\":\"" + m_side + "\",\"cpu\":" + jsonString(cpuModel()) +
+           EBGeometry::GPU::backendName + "\",\"cpu\":" + jsonString(cpuModel()) +
            ",\"reps\":" + std::to_string(m_reps) + ",\"smoke\":" + (m_smoke ? "true" : "false") + "}";
   }
 
@@ -1111,20 +1111,6 @@ private:
   [[nodiscard]] bool
   selected(const std::string& a_name) const
   {
-    const auto endsWith = [&a_name](const std::string& a_suffix) {
-      return a_name.size() >= a_suffix.size() &&
-             a_name.compare(a_name.size() - a_suffix.size(), a_suffix.size(), a_suffix) == 0;
-    };
-
-    // A paired host/device case needs a device, so --side device selects it too.
-    if (m_side == "host" && !endsWith("/host")) {
-      return false;
-    }
-
-    if (m_side == "device" && !endsWith("/device") && !endsWith("/hostdevice")) {
-      return false;
-    }
-
     if (m_globs.empty()) {
       return true;
     }
@@ -1137,7 +1123,6 @@ private:
   std::vector<std::pair<std::string, std::function<void(Case&)>>> m_cases;
   std::vector<std::string>                                        m_globs;
   std::string                                                     m_jsonOut;
-  std::string                                                     m_side       = EBGEOMETRY_PERF_SIDE;
   int                                                             m_reps       = 5;
   bool                                                            m_smoke      = false;
   bool                                                            m_list       = false;
@@ -1190,12 +1175,18 @@ pointsInBox(const EBGeometry::BoundingVolumes::AABBT<T>& a_box, std::size_t a_n,
  * under --smoke.
  * @param[in] a_smoke Whether this is a smoke run.
  * @return Path to the mesh.
+ * @throws std::runtime_error if the build did not say where the meshes are (the case is then skipped).
  */
 inline std::string
 meshFile(bool a_smoke)
 {
-  return a_smoke ? std::string(EBGEOMETRY_PERF_SMOKE_MESH_DIR) + "/dodecahedron.obj"
-                 : std::string(EBGEOMETRY_PERF_MESH_DIR) + "/armadillo.obj";
+  const std::string dir = a_smoke ? EBGEOMETRY_PERF_SMOKE_MESH_DIR : EBGEOMETRY_PERF_MESH_DIR;
+
+  if (dir.empty()) {
+    throw std::runtime_error("built without EBGEOMETRY_PERF_MESH_DIR; build through Performance/CMakeLists.txt");
+  }
+
+  return dir + (a_smoke ? "/dodecahedron.obj" : "/armadillo.obj");
 }
 
 /**
@@ -1279,8 +1270,8 @@ mortonOrdered(const std::vector<EBGeometry::Vec3T<T>>& a_points)
  * @brief A paired case: the same query over the same inputs on the host and on the device.
  * @details The inputs are divided into chunks of GPU::DefaultBlockSize consecutive inputs: on the device
  * each chunk is one block of threads, and on the host the chunks are shared among the OpenMP threads
- * (every core, in a build with OpenMP), so both sides divide the work the same way. The case's own time is the device's (the kernel alone, as for
- * measureOnDevice()); it also records
+ * (hostThreads()), so both sides divide the work the same way. The case's own time is the device's
+ * (the kernel alone, as for measureOnDevice()); it also records
  *
  *   host_ms        the host's median time
  *   host_threads   the threads the host side ran on
@@ -1315,8 +1306,8 @@ measureHostAndDevice(Case&                  a_case,
   const auto       n     = a_in.size();
   std::vector<Out> host(n);
 
-  // The host side runs on every core OpenMP gives it (one thread without OpenMP), a chunk at a time,
-  // so a comparison with the whole GPU is not made against a single core. Chunks are handed out
+  // The host side runs on hostThreads() threads (one without OpenMP), a chunk at a time, so that the
+  // GPU is compared with the whole CPU rather than a single core. Chunks are handed out
   // dynamically, as a GPU schedules its blocks.
   [[maybe_unused]] const int threads = hostThreads();
 

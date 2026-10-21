@@ -177,7 +177,7 @@ endforeach()
 
 foreach(p IN LISTS head_probes)
   get_filename_component(probe "${p}" DIRECTORY)
-  execute_process(COMMAND "${WORK_DIR}/head-build/bin/${probe}.ex" --list --side all ${case_args}
+  execute_process(COMMAND "${WORK_DIR}/head-build/bin/${probe}.ex" --list ${case_args}
                   OUTPUT_VARIABLE names OUTPUT_STRIP_TRAILING_WHITESPACE)
   string(REPLACE "\n" ";" names "${names}")
 
@@ -229,7 +229,7 @@ foreach(round RANGE 1 ${ROUNDS})
         continue()
       endif()
 
-      execute_process(COMMAND ${pin} "${exe}" --case "${name}" --side all --reps ${REPS} --json ${smoke_arg}
+      execute_process(COMMAND ${pin} "${exe}" --case "${name}" --reps ${REPS} --json ${smoke_arg}
                       OUTPUT_VARIABLE out RESULT_VARIABLE rc)
 
       if(NOT rc EQUAL 0)

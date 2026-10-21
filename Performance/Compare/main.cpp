@@ -7,31 +7,31 @@
 // reports the median time of each side, the ratio, a bootstrap 95% confidence interval for the ratio,
 // and a verdict:
 //
-//   major   slower by at least --major percent (default 10), with the interval above 1: red flag
-//   minor   slower by at least --minor percent (default 3), with the interval above 1: ask
+//   DIFFER  a paired case whose host and device answers disagree: red flag, times not comparable
+//   MAJOR   slower by at least --major percent (default 10), or that much more pool memory: red flag
+//   minor   slower by at least --minor percent (default 3), or that much more pool memory: ask
 //   faster  faster by at least --minor percent, with the interval below 1
 //   ~       anything else (within the thresholds, or within the noise)
 //
-// A paired host/device case (side "hostdevice") also shows its host/device time ratio, with the
-// baseline's when the two differ by --minor percent or more, and is at least minor when the host and
-// device answers disagree anywhere.
+// A slowdown counts only when the 95% interval lies above 1. Pool bytes are deterministic and judged
+// by the thresholds alone. A paired host/device case also shows the device's speedup over the host,
+// with the baseline's when the two differ by --minor percent or more. A checksum that differs between
+// the sides is reported, since a change in speed is only comparable for equal answers.
 //
-// Pool bytes are deterministic and judged by the same thresholds without an interval. A checksum that
-// differs between the sides is reported, since a change in speed is only comparable for equal answers.
-//
-//   PerfCompare.ex --base base.jsonl --head head.jsonl [--minor 3] [--major 10] [--markdown report.md]
-//                  [--smoke] [--verdict-only | --no-verdict] [--failed-runs <n>]
+//   PerfCompare.ex --base base.jsonl --head head.jsonl [--minor <percent>] [--major <percent>]
+//                  [--markdown <file>] [--smoke] [--verdict-only | --no-verdict] [--failed-runs <n>]
 //
 // Every report ends with a one-line VERDICT (green: no regression; yellow: look closer; red: do not
-// merge), coloured on a terminal, and report.md starts with it. --verdict-only prints only that line
-// (Compare.cmake uses it to end the run with it); --no-verdict leaves it out; --failed-runs counts
-// runs that crashed, which make the verdict red.
+// merge), coloured on a terminal, and the Markdown report starts with it. --verdict-only prints only
+// that line (Compare.cmake ends a run with it); --no-verdict leaves it out; --failed-runs is the number
+// of runs that crashed, which makes the verdict red.
 //
 // With --smoke (results of a smoke run) it judges no timings: it reports, per case, whether it ran on
 // each side, whether the checksums match and whether a pair's host and device answers agree.
 //
-// The table goes to the terminal; --markdown also writes it as Markdown. Exit code 2 if any case is a
-// major regression, else 0. Usually run by Compare.cmake (see ../README.md).
+// Exit code: 2 when the verdict is red (a MAJOR regression, host/device answers that differ, a crashed
+// run, or in a smoke comparison a case that failed or is missing on one side), 1 for a usage error,
+// else 0. Usually run by Compare.cmake (see ../README.md).
 
 #include <algorithm>
 #include <cmath>
@@ -247,15 +247,15 @@ bootstrap(const std::vector<double>& a_base, const std::vector<double>& a_head)
     state ^= state >> 7;
     state ^= state << 17;
 
-    return static_cast<std::size_t>(state % a_n);
+    return state % a_n;
   };
 
-  constexpr int       resamples = 2000;
-  std::vector<double> ratios(resamples);
-  std::vector<double> b(a_base.size());
-  std::vector<double> h(a_head.size());
+  constexpr std::size_t resamples = 2000;
+  std::vector<double>   ratios(resamples);
+  std::vector<double>   b(a_base.size());
+  std::vector<double>   h(a_head.size());
 
-  for (int r = 0; r < resamples; r++) {
+  for (std::size_t r = 0; r < resamples; r++) {
     for (auto& x : b) {
       x = a_base[next(a_base.size())];
     }
@@ -592,14 +592,57 @@ main(int argc, char** argv)
   int         verdictMode = VerdictAfter;
   int         failedRuns  = 0;
 
+  const auto usage = [](const std::string& a_problem) {
+    std::fprintf(stderr,
+                 "PerfCompare: %s\n"
+                 "usage: PerfCompare.ex --base <file> --head <file> [--minor <percent>] [--major <percent>]\n"
+                 "                      [--markdown <file>] [--smoke] [--verdict-only | --no-verdict]\n"
+                 "                      [--failed-runs <n>]\n",
+                 a_problem.c_str());
+    std::exit(1);
+  };
+
+  // A flag's value, or a usage error when it is missing.
+  const auto value = [&](int& a_i, const std::string& a_flag) -> std::string {
+    if (a_i + 1 >= argc) {
+      usage(a_flag + " needs a value");
+    }
+
+    return argv[++a_i];
+  };
+
+  // A non-negative number, or a usage error.
+  const auto number = [&](const std::string& a_flag, const std::string& a_text) {
+    char*        end = nullptr;
+    const double v   = std::strtod(a_text.c_str(), &end);
+
+    if (end == a_text.c_str() || *end != '\0' || !(v >= 0.0)) {
+      usage(a_flag + " needs a non-negative number (got '" + a_text + "')");
+    }
+
+    return v;
+  };
+
   for (int i = 1; i < argc; i++) {
     const std::string arg = argv[i];
 
-    if (arg == "--base" && i + 1 < argc) {
-      baseFile = argv[++i];
+    if (arg == "--base") {
+      baseFile = value(i, arg);
     }
-    else if (arg == "--head" && i + 1 < argc) {
-      headFile = argv[++i];
+    else if (arg == "--head") {
+      headFile = value(i, arg);
+    }
+    else if (arg == "--markdown") {
+      markdownFile = value(i, arg);
+    }
+    else if (arg == "--minor") {
+      minor = number(arg, value(i, arg));
+    }
+    else if (arg == "--major") {
+      major = number(arg, value(i, arg));
+    }
+    else if (arg == "--failed-runs") {
+      failedRuns = static_cast<int>(number(arg, value(i, arg)));
     }
     else if (arg == "--smoke") {
       smoke = true;
@@ -610,29 +653,13 @@ main(int argc, char** argv)
     else if (arg == "--no-verdict") {
       verdictMode = VerdictNone;
     }
-    else if (arg == "--failed-runs" && i + 1 < argc) {
-      failedRuns = std::atoi(argv[++i]);
-    }
-    else if (arg == "--markdown" && i + 1 < argc) {
-      markdownFile = argv[++i];
-    }
-    else if (arg == "--minor" && i + 1 < argc) {
-      minor = std::atof(argv[++i]);
-    }
-    else if (arg == "--major" && i + 1 < argc) {
-      major = std::atof(argv[++i]);
-    }
     else {
-      std::fprintf(
-        stderr,
-        "usage: PerfCompare.ex --base <file> --head <file> [--minor %%] [--major %%] [--markdown <file>] [--smoke]\n");
-      return 1;
+      usage("unknown argument '" + arg + "'");
     }
   }
 
   if (baseFile.empty() || headFile.empty()) {
-    std::fprintf(stderr, "PerfCompare: --base and --head are required\n");
-    return 1;
+    usage("--base and --head are required");
   }
 
   const Run base = read(baseFile);
@@ -703,7 +730,8 @@ main(int argc, char** argv)
     row.change   = fmt("%+.1f%%", 100.0 * (ratio - 1.0));
     row.interval = fmt("[%+.1f%%, ", 100.0 * (ci.first - 1.0)) + fmt("%+.1f%%]", 100.0 * (ci.second - 1.0));
 
-    int severity = 0;
+    int  severity = 0;
+    bool quicker  = false;
 
     if (ci.first > 1.0 && ratio >= 1.0 + major / 100.0) {
       severity = 2;
@@ -712,8 +740,7 @@ main(int argc, char** argv)
       severity = 1;
     }
     else if (ci.second < 1.0 && ratio <= 1.0 - minor / 100.0) {
-      row.verdict = "faster";
-      faster++;
+      quicker = true;
     }
 
     if (b->second.poolBytes > 0.0 && h->second.poolBytes > 0.0) {
@@ -747,19 +774,27 @@ main(int argc, char** argv)
       row.note += "; ";
 
       if (h->second.mismatches > 0.0) {
-        severity = std::max(severity, 1);
         row.note += fmt("%.0f", h->second.mismatches) + " host and device answers DIFFER (max diff " +
                     fmt("%.3g", h->second.maxDiff) + "); ";
       }
     }
 
-    if (severity == 2) {
+    // One verdict per case, decided once: a disagreement first (different answers make the times
+    // incomparable), then the slowest of the time and the pool bytes, else faster or unchanged.
+    if (h->second.paired && h->second.mismatches > 0.0) {
+      row.verdict = "DIFFER";
+    }
+    else if (severity == 2) {
       row.verdict = "MAJOR";
       majors++;
     }
     else if (severity == 1) {
       row.verdict = "minor";
       minors++;
+    }
+    else if (quicker) {
+      row.verdict = "faster";
+      faster++;
     }
 
     if (b->second.hasChecksum && h->second.hasChecksum) {
@@ -796,7 +831,7 @@ main(int argc, char** argv)
   int checksums     = 0;
 
   for (const auto& r : rows) {
-    disagreements += r.note.find("DIFFER") != std::string::npos ? 1 : 0;
+    disagreements += r.verdict == "DIFFER" ? 1 : 0;
     checksums += r.note.find("checksum differs") != std::string::npos ? 1 : 0;
   }
 
@@ -839,7 +874,7 @@ main(int argc, char** argv)
   bool flagged = false;
 
   for (const auto& r : rows) {
-    if (r.verdict == "MAJOR" || r.verdict == "minor" || r.note.find("DIFFER") != std::string::npos ||
+    if (r.verdict == "MAJOR" || r.verdict == "minor" || r.verdict == "DIFFER" ||
         r.note.find("checksum") != std::string::npos) {
       if (!flagged) {
         std::printf("\nFlagged:\n");
@@ -872,7 +907,9 @@ main(int argc, char** argv)
 
     for (const auto& r : rows) {
       md << "| `" << r.name << "` | " << r.baseMs << " | " << r.headMs << " | " << r.change << " | " << r.interval
-         << " | " << r.memory << " | " << (r.verdict == "MAJOR" ? "**MAJOR**" : r.verdict) << " | " << r.note << " |\n";
+         << " | " << r.memory << " | "
+         << (r.verdict == "MAJOR" || r.verdict == "DIFFER" ? "**" + r.verdict + "**" : r.verdict) << " | " << r.note
+         << " |\n";
     }
   }
 
