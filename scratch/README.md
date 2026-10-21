@@ -13,7 +13,7 @@ or CI.
 |---|---|
 | `Tracer.hpp` | Orbit camera, sphere tracer, shading (diffuse, specular, sky, soft shadow, AO), the `Pixel` functor (host and device), `classicCSG()` |
 | `render.cpp` | Writes one still image, `csg.ppm` (`./render [yaw] [pitch]`) |
-| `viewer.cpp` | SDL2 window: left-drag orbits, wheel zooms, `S`/`A`/`F` toggle shadows/AO/floor, `G` GPU/CPU, `R` reset |
+| `viewer.cpp` | SDL2 window (`./viewer`, `./viewer tunnel <armadillo.obj>`, `./viewer rod <armadillo.obj>`): left-drag orbits, wheel zooms, `S`/`A`/`F` toggle shadows/AO/floor, `G` GPU/CPU, `R` reset |
 | `armadillo.cpp` | The Armadillo (`common-3d-test-models`) pierced by a cylinder: a tunnel (`Difference`) or a rod (`Union`), rendered through `GPU::transform()`. `MESH=tri` uses a `TriMeshSDF`, `BOXBOUND=1` steps by the distance to the bounding box far from it |
 | `meshbench.cpp` | Distance evaluations per pixel, and the GPU cost of one mesh distance query near the surface, inside the box and far away (`MeshSDF`, `TriMeshSDF`, a `Tape`) |
 | `bench.cpp` | Frame times on the host (OpenMP) and through `GPU::transform()`, tape vs. a hand-written SDF (issue #210) |
