@@ -109,7 +109,10 @@ addPrecision(Perf::Suite& a_suite)
   a_suite.add(prefix + "query/" + prec + "/host", [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const auto [u, q] = setup(c, pool, c.size(200000, 1000));
+    // Named members, not a structured binding: C++17 does not let a lambda capture one.
+    const auto  scene = setup(c, pool, c.size(200000, 1000));
+    const auto& u     = scene.first;
+    const auto& q     = scene.second;
 
     const Distance<Union, T> query{u};
     std::vector<T>           d(q.size());
@@ -133,7 +136,9 @@ addPrecision(Perf::Suite& a_suite)
   a_suite.add(prefix + "query/" + prec + "/device", [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const auto [u, q] = setup(c, pool, c.size(1000000, 1000));
+    const auto  scene = setup(c, pool, c.size(1000000, 1000));
+    const auto& u     = scene.first;
+    const auto& q     = scene.second;
 
     const auto d = Perf::measureOnDevice<T>(
       c, pool, q, [&](const EBGeometry::Pool& a_device) { return Distance<Union, T>{u.rebasedView(a_device)}; });

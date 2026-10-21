@@ -40,7 +40,9 @@ ctest --preset perf          # every case at its --smoke size: checks they run, 
 
 Options: `--list`, `--case <glob>`, `--side host|device|all`, `--reps <n>`, `--smoke`, `--json`.
 
-For the device cases, build as CUDA or HIP (`cmake --preset perf-cuda`, or
+For the device cases, build as CUDA or HIP (`cmake --preset perf-cuda`; CUDA 12.0's nvcc cannot compile
+the library, so pass a newer one with `-DCMAKE_CUDA_COMPILER=...`, plus `--fresh` if the old one is
+already cached; or
 `cmake -S Performance -B build/perf-cuda -DEBGEOMETRY_PERF_GPU=CUDA -DCMAKE_CUDA_ARCHITECTURES=86`).
 The folder also builds on its own against any EBGeometry tree (`-DEBGEOMETRY_HOME=...`).
 

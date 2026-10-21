@@ -156,7 +156,17 @@ Running a probe
 
    ctest --preset perf                 # every case at its small --smoke size: checks, times nothing
 
-For the device cases, configure with the ``perf-cuda`` preset, or build the folder on its own:
+For the device cases, configure with the ``perf-cuda`` preset, or build the folder on its own. Either
+takes the ``nvcc`` on the ``PATH`` unless told otherwise; CUDA 12.0's ``nvcc`` cannot compile the library
+(it rejects a braced argument list in ``EBGeometry_TapeImplem.hpp``), so with an older default pass a
+newer one, and add ``--fresh`` if the build directory has already cached the old one:
+
+.. code-block:: bash
+
+   cmake --preset perf-cuda --fresh -DCMAKE_CUDA_COMPILER=/path/to/nvcc -DCMAKE_CUDA_ARCHITECTURES=86
+   cmake --build --preset perf-cuda --parallel
+
+On its own:
 
 .. code-block:: bash
 
