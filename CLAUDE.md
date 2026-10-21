@@ -360,7 +360,8 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    the comparison prints), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
    into the *Performance* section of the PR body (`.github/pull_request_template.md`), replacing an
    older report. Every PR carries its figures, including a PR that should not change performance.
-3. **Act on the verdicts** (a change counts only outside the 95% bootstrap interval):
+3. **Act on the verdicts** (the comparison ends with one `VERDICT:` line, green, yellow or red; a change
+   counts only outside the 95% bootstrap interval):
    - **minor** (3% to 10% slower, or 3% to 10% more pool bytes): tell the user which cases, by how
      much, and the likely cause if the diff shows one, and **ask whether it should be investigated
      further** before going on.

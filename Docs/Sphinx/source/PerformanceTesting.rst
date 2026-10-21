@@ -285,6 +285,20 @@ changing the probes themselves.
 Reading the verdicts
 ^^^^^^^^^^^^^^^^^^^^
 
+Every comparison ends with one line that answers whether there is a regression, coloured in a terminal,
+and ``report.md`` starts with the same line:
+
+.. code-block:: text
+
+   VERDICT: no regression (0 major, 0 minor across 88 cases)                                          (green)
+   VERDICT: 2 minor regressions; rerun them with --rounds 10 before deciding (see Flagged above)      (yellow)
+   VERDICT: MAJOR regression in 1 case; do not merge until it is fixed or accepted (see Flagged above) (red)
+   VERDICT (smoke): passed; all 88 cases ran on both sides with the same answers                      (green)
+
+A red verdict (a major regression, host and device answers that differ, or a run that crashed; for a
+smoke comparison, a case that failed or is missing on one side) also makes the script exit with status
+2, which is what fails ``Performance-compare`` in CI. The per-case verdicts behind it work as follows.
+
 For each case, ``PerfCompare`` takes the median time of each side over all its runs, their ratio, and a
 bootstrap 95% confidence interval for the ratio. A change counts only when the interval excludes no
 change at all:

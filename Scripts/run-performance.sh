@@ -12,4 +12,18 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-exec cmake -P Performance/RunPerformance.cmake -- "$@"
+
+status_file=build/performance/.compare-status
+rm -f "$status_file"
+
+rc=0
+cmake -P Performance/RunPerformance.cmake -- "$@" || rc=$?
+
+# A comparison writes its verdict's exit status here (2 when the verdict is red), so that it can end on
+# the verdict line rather than on a CMake error.
+if [ "$rc" -eq 0 ] && [ -f "$status_file" ]; then
+  rc=$(cat "$status_file")
+fi
+
+rm -f "$status_file"
+exit "$rc"

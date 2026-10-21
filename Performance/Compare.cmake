@@ -242,10 +242,13 @@ foreach(round RANGE 1 ${ROUNDS})
   endforeach()
 endforeach()
 
+list(LENGTH failed nfailed)
+
 # ── Report ────────────────────────────────────────────────────────────────────────────────────────────
 execute_process(
   COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
-          --minor ${MINOR} --major ${MAJOR} --markdown "${WORK_DIR}/report.md" ${smoke_arg}
+          --minor ${MINOR} --major ${MAJOR} --markdown "${WORK_DIR}/report.md" ${smoke_arg} --no-verdict
+          --failed-runs ${nfailed}
   RESULT_VARIABLE verdict)
 
 set(notes "")
@@ -354,11 +357,33 @@ Results: ${WORK_DIR}/base.jsonl and head.jsonl; this report: ${WORK_DIR}/report.
 message("${notes}${manual}")
 file(APPEND "${WORK_DIR}/report.md" "${notes}\n<details><summary>Run it manually</summary>\n\n```${manual}```\n</details>\n")
 
-if(SMOKE AND (verdict EQUAL 2 OR failed))
-  message(FATAL_ERROR "Compare.cmake: the smoke comparison found a failed case, a case missing on one side, or "
-                      "host/device answers that differ (see above)")
+# The verdict, last, so it is the line a reader sees when the run ends.
+execute_process(
+  COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
+          --minor ${MINOR} --major ${MAJOR} ${smoke_arg} --verdict-only --failed-runs ${nfailed})
+
+if(SMOKE)
+  set(failing OFF)
+
+  if(verdict EQUAL 2 OR failed)
+    set(failing ON)
+  endif()
+else()
+  set(failing OFF)
+
+  if((verdict EQUAL 2 OR failed) AND FAIL_ON_MAJOR)
+    set(failing ON)
+  endif()
 endif()
 
-if(NOT SMOKE AND verdict EQUAL 2 AND FAIL_ON_MAJOR)
-  message(FATAL_ERROR "Compare.cmake: at least one MAJOR performance regression (see the table above)")
+# Through Scripts/run-performance.sh the exit status goes to a file the script exits with, so that no
+# CMake error block follows the verdict; run on its own, a failing comparison is a CMake error.
+if(DEFINED PERF_STATUS_FILE)
+  if(failing)
+    file(WRITE "${PERF_STATUS_FILE}" "2")
+  else()
+    file(WRITE "${PERF_STATUS_FILE}" "0")
+  endif()
+elseif(failing)
+  message(FATAL_ERROR "Compare.cmake: the verdict above is red")
 endif()

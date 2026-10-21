@@ -168,6 +168,10 @@ if(command STREQUAL "compare")
     set(CMAKE_${gpu}_COMPILER "${device_compiler}")
   endif()
 
+  # The comparison's exit status, for Scripts/run-performance.sh (see Compare.cmake).
+  set(PERF_STATUS_FILE "${REPO}/build/performance/.compare-status")
+  file(REMOVE "${PERF_STATUS_FILE}")
+
   include("${CMAKE_CURRENT_LIST_DIR}/Compare.cmake")
   return()
 endif()

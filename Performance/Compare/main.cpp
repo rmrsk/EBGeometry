@@ -20,7 +20,12 @@
 // differs between the sides is reported, since a change in speed is only comparable for equal answers.
 //
 //   PerfCompare.ex --base base.jsonl --head head.jsonl [--minor 3] [--major 10] [--markdown report.md]
-//                  [--smoke]
+//                  [--smoke] [--verdict-only | --no-verdict] [--failed-runs <n>]
+//
+// Every report ends with a one-line VERDICT (green: no regression; yellow: look closer; red: do not
+// merge), coloured on a terminal, and report.md starts with it. --verdict-only prints only that line
+// (Compare.cmake uses it to end the run with it); --no-verdict leaves it out; --failed-runs counts
+// runs that crashed, which make the verdict red.
 //
 // With --smoke (results of a smoke run) it judges no timings: it reports, per case, whether it ran on
 // each side, whether the checksums match and whether a pair's host and device answers agree.
@@ -37,6 +42,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 namespace {
@@ -266,13 +272,138 @@ bootstrap(const std::vector<double>& a_base, const std::vector<double>& a_head)
   return {ratios[resamples / 40], ratios[resamples - 1 - resamples / 40]};
 }
 
+// Whether a report prints its verdict line: after the table, not at all (Compare.cmake prints it last,
+// after its own notes, with --verdict-only), or alone.
+constexpr int VerdictAfter = 0;
+constexpr int VerdictNone  = 1;
+constexpr int VerdictOnly  = 2;
+
+// The one-line answer a comparison ends with: green (no regression), yellow (look closer) or red (do
+// not merge). Coloured only on a terminal, unless NO_COLOR is set or TERM is dumb.
+struct Verdict
+{
+  int         level = 0; // 0 green, 1 yellow, 2 red
+  std::string text;
+};
+
+void
+printVerdict(const Verdict& a_verdict)
+{
+  const char* term  = std::getenv("TERM");
+  const bool  color = isatty(fileno(stdout)) != 0 && std::getenv("NO_COLOR") == nullptr &&
+                     !(term != nullptr && std::string(term) == "dumb");
+  const char* codes[] = {"\033[1;32m", "\033[1;33m", "\033[1;31m"};
+
+  if (color) {
+    std::printf("\n%s%s\033[0m\n", codes[a_verdict.level], a_verdict.text.c_str());
+  }
+  else {
+    std::printf("\n%s\n", a_verdict.text.c_str());
+  }
+
+  std::fflush(stdout);
+}
+
+// The verdict of a smoke comparison.
+Verdict
+smokeVerdict(int a_failures, int a_disagreements, int a_checksums, std::size_t a_cases, int a_failedRuns)
+{
+  char buf[256];
+
+  if (a_failedRuns > 0) {
+    std::snprintf(
+      buf, sizeof(buf), "VERDICT (smoke): FAILED: %d runs crashed or exited with an error (see above)", a_failedRuns);
+    return {2, buf};
+  }
+
+  if (a_disagreements > 0) {
+    std::snprintf(
+      buf, sizeof(buf), "VERDICT (smoke): FAILED: host and device answers differ in %d cases", a_disagreements);
+    return {2, buf};
+  }
+
+  if (a_failures > 0) {
+    std::snprintf(buf,
+                  sizeof(buf),
+                  "VERDICT (smoke): FAILED: %d cases missing or skipped on one side (rows marked FAIL)",
+                  a_failures);
+    return {2, buf};
+  }
+
+  if (a_checksums > 0) {
+    std::snprintf(buf,
+                  sizeof(buf),
+                  "VERDICT (smoke): passed, but %d checksums changed between the commits: check those answers",
+                  a_checksums);
+    return {1, buf};
+  }
+
+  std::snprintf(
+    buf, sizeof(buf), "VERDICT (smoke): passed; all %zu cases ran on both sides with the same answers", a_cases);
+  return {0, buf};
+}
+
+// The verdict of a full comparison.
+Verdict
+fullVerdict(int a_majors, int a_minors, int a_disagreements, int a_checksums, std::size_t a_cases, int a_failedRuns)
+{
+  char buf[256];
+
+  if (a_failedRuns > 0) {
+    std::snprintf(buf,
+                  sizeof(buf),
+                  "VERDICT: %d runs crashed or exited with an error (see above); fix them before judging",
+                  a_failedRuns);
+    return {2, buf};
+  }
+
+  if (a_disagreements > 0) {
+    std::snprintf(buf,
+                  sizeof(buf),
+                  "VERDICT: host and device answers differ in %d cases; investigate before merging",
+                  a_disagreements);
+    return {2, buf};
+  }
+
+  if (a_majors > 0) {
+    std::snprintf(
+      buf,
+      sizeof(buf),
+      "VERDICT: MAJOR regression in %d case%s; do not merge until it is fixed or accepted (see Flagged above)",
+      a_majors,
+      a_majors == 1 ? "" : "s");
+    return {2, buf};
+  }
+
+  if (a_minors > 0) {
+    std::snprintf(buf,
+                  sizeof(buf),
+                  "VERDICT: %d minor regression%s; rerun %s with --rounds 10 before deciding (see Flagged above)",
+                  a_minors,
+                  a_minors == 1 ? "" : "s",
+                  a_minors == 1 ? "it" : "them");
+    return {1, buf};
+  }
+
+  if (a_checksums > 0) {
+    std::snprintf(buf,
+                  sizeof(buf),
+                  "VERDICT: no regression, but %d checksums changed: check those answers (see Flagged above)",
+                  a_checksums);
+    return {1, buf};
+  }
+
+  std::snprintf(buf, sizeof(buf), "VERDICT: no regression (0 major, 0 minor across %zu cases)", a_cases);
+  return {0, buf};
+}
+
 // The smoke comparison: a check, not a measurement. For every case, whether it ran on each side, whether
 // the two sides' checksums match and, for a paired case, whether its host and device answers agree; no
 // timing verdicts, since a smoke run times nothing. Returns 2 if a case is missing or skipped on one
 // side or a pair's answers differ, else 0; a differing checksum is reported but does not fail, since a
 // change to a kernel may change a result's last bits.
 int
-smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
+smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown, int a_verdictMode, int a_failedRuns)
 {
   struct SmokeRow
   {
@@ -390,6 +521,14 @@ smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
     width = std::max(width, r.name.size());
   }
 
+  const Verdict verdict = smokeVerdict(failures - disagree, disagree, checksums, rows.size(), a_failedRuns);
+
+  if (a_verdictMode == VerdictOnly) {
+    printVerdict(verdict);
+
+    return failures > 0 || a_failedRuns > 0 ? 2 : 0;
+  }
+
   std::printf("\nSmoke comparison (a check, not a measurement: no timing verdicts): %s\n", summary);
   std::printf("  base %s, head %s\n\n", get(a_base, "git").c_str(), get(a_head, "git").c_str());
 
@@ -414,15 +553,15 @@ smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
 
   std::printf("\n* Information only: one repetition at the smoke sizes, dominated by start-up and launch overhead\n"
               "  and far from the cache and traversal behaviour of the full sizes; never judged.\n");
-  std::printf("\n%s\n",
-              failures > 0 ? "FAILED: see the rows marked FAIL."
-                           : (checksums > 0 ? "Passed; the checksums marked DIFFERS changed between the commits."
-                                            : "Passed: every case ran on both sides with the same results."));
+  if (a_verdictMode != VerdictNone) {
+    printVerdict(verdict);
+  }
 
   if (!a_markdown.empty()) {
     std::ofstream md(a_markdown);
 
-    md << "**Smoke comparison (no timing verdicts): " << summary << "**\n\n";
+    md << "**" << verdict.text << "**\n\n";
+    md << "Smoke comparison (no timing verdicts): " << summary << "\n\n";
     md << "- base: " << get(a_base, "git") << "\n- head: " << get(a_head, "git") << "\n\n";
     md << "| case | base | head | checksum | answers | result | base time* | head time* | note |\n"
        << "|---|---|---|---|---|---|---:|---:|---|\n";
@@ -436,7 +575,7 @@ smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
     md << "\n\\* Information only: one repetition at the smoke sizes, never judged.\n";
   }
 
-  return failures > 0 ? 2 : 0;
+  return failures > 0 || a_failedRuns > 0 ? 2 : 0;
 }
 
 } // namespace
@@ -447,9 +586,11 @@ main(int argc, char** argv)
   std::string baseFile;
   std::string headFile;
   std::string markdownFile;
-  double      minor = 3.0;
-  double      major = 10.0;
-  bool        smoke = false;
+  double      minor       = 3.0;
+  double      major       = 10.0;
+  bool        smoke       = false;
+  int         verdictMode = VerdictAfter;
+  int         failedRuns  = 0;
 
   for (int i = 1; i < argc; i++) {
     const std::string arg = argv[i];
@@ -462,6 +603,15 @@ main(int argc, char** argv)
     }
     else if (arg == "--smoke") {
       smoke = true;
+    }
+    else if (arg == "--verdict-only") {
+      verdictMode = VerdictOnly;
+    }
+    else if (arg == "--no-verdict") {
+      verdictMode = VerdictNone;
+    }
+    else if (arg == "--failed-runs" && i + 1 < argc) {
+      failedRuns = std::atoi(argv[++i]);
     }
     else if (arg == "--markdown" && i + 1 < argc) {
       markdownFile = argv[++i];
@@ -489,7 +639,7 @@ main(int argc, char** argv)
   const Run head = read(headFile);
 
   if (smoke) {
-    return smokeReport(base, head, markdownFile);
+    return smokeReport(base, head, markdownFile, verdictMode, failedRuns);
   }
 
   struct Row
@@ -642,6 +792,23 @@ main(int argc, char** argv)
   std::string summary = std::to_string(majors) + " major, " + std::to_string(minors) + " minor, " +
                         std::to_string(faster) + " faster, " + std::to_string(rows.size()) + " cases";
 
+  int disagreements = 0;
+  int checksums     = 0;
+
+  for (const auto& r : rows) {
+    disagreements += r.note.find("DIFFER") != std::string::npos ? 1 : 0;
+    checksums += r.note.find("checksum differs") != std::string::npos ? 1 : 0;
+  }
+
+  const Verdict verdict = fullVerdict(majors, minors, disagreements, checksums, rows.size(), failedRuns);
+  const int     code    = majors > 0 || disagreements > 0 || failedRuns > 0 ? 2 : 0;
+
+  if (verdictMode == VerdictOnly) {
+    printVerdict(verdict);
+
+    return code;
+  }
+
   // Terminal.
   std::printf("\nPerformance comparison: %s\n", summary.c_str());
   std::printf("  %s\n  %s\n", metaLine("base ", base).c_str(), metaLine("head ", head).c_str());
@@ -687,10 +854,15 @@ main(int argc, char** argv)
     std::printf("\nNothing flagged.\n");
   }
 
+  if (verdictMode != VerdictNone) {
+    printVerdict(verdict);
+  }
+
   if (!markdownFile.empty()) {
     std::ofstream md(markdownFile);
 
-    md << "**Performance comparison: " << summary << "**\n\n";
+    md << "**" << verdict.text << "**\n\n";
+    md << "Performance comparison: " << summary << "\n\n";
     md << "- " << metaLine("base: ", base) << "\n- " << metaLine("head: ", head) << "\n";
     md << "- CPU: " << (head.meta.count("cpu") ? head.meta.at("cpu") : "?") << "\n";
     md << "- Thresholds: minor >= " << minor << "%, major >= " << major
@@ -704,5 +876,5 @@ main(int argc, char** argv)
     }
   }
 
-  return majors > 0 ? 2 : 0;
+  return code;
 }
