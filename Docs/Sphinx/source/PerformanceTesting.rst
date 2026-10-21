@@ -103,7 +103,7 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 **BVHUnion** (``Performance/BVHUnion``): unions of about 100,000 objects on a 46 × 46 × 46 lattice, in
-three families. The ``spheres`` (unit spheres, spacing 3) fill about half their boxes (π/6), and the
+three families. The ``spheres`` (unit spheres, spacing 3) fill about half their boxes (:math:`\pi/6`), and the
 boxes do not overlap. The ``capsules-diagonal`` (length 3, radius 0.2, along (1, 1, 1), spacing 1.8) are
 the worst case for an axis-aligned box: each fills about 5% of it, and every box overlaps its
 neighbours', so a query point lies in many leaf boxes. The ``cylinders-random`` (finite cylinders of the
