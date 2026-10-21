@@ -58,6 +58,12 @@ struct Settings
   bool occlusion = true;
   bool floor     = true;
   T    floorY    = T(-1.2);
+
+  // Far from the shape, step by the distance to its bounding box instead (a cheaper lower bound).
+  bool boxBound  = false;
+  T    boxMargin = T(0.1);
+  Vec3 boxLo     = Vec3::zeros();
+  Vec3 boxHi     = Vec3::zeros();
 };
 
 // A shape (held by value: a Tape is a trivially copyable descriptor), lit by one directional light.
@@ -67,14 +73,43 @@ struct Scene
   Shape    m_shape;
   Settings m_settings;
 
-  // The shape, plus a floor plane that exists only in the renderer.
+  // The shape, plus a floor plane that exists only in the renderer. a_exact is false when the value is
+  // only the distance to the shape's bounding box (a cheaper lower bound, used far from the box).
+  EBGEOMETRY_HOST_DEVICE
+  T
+  sdf(const Vec3& p, bool& a_exact) const noexcept
+  {
+    T d;
+
+    a_exact = true;
+
+    if (m_settings.boxBound) {
+      const Vec3 q = max(max(m_settings.boxLo - p, p - m_settings.boxHi), Vec3::zeros());
+      const T    b = q.length();
+
+      a_exact = !(b > m_settings.boxMargin);
+      d       = a_exact ? m_shape.signedDistance(p) : b;
+    }
+    else {
+      d = m_shape.signedDistance(p);
+    }
+
+    if (m_settings.floor && p[1] - m_settings.floorY < d) {
+      a_exact = true;
+
+      return p[1] - m_settings.floorY;
+    }
+
+    return d;
+  }
+
   EBGEOMETRY_HOST_DEVICE
   T
   sdf(const Vec3& p) const noexcept
   {
-    const T d = m_shape.signedDistance(p);
+    bool exact;
 
-    return m_settings.floor ? Math::min(d, p[1] - m_settings.floorY) : d;
+    return this->sdf(p, exact);
   }
 
   // The colour of the ray from the camera through image-plane coordinates (u, v), v in [-1, 1].
@@ -146,13 +181,17 @@ struct Scene
     T t = T(0.02);
 
     for (int i = 0; i < 64 && t < T(10); i++) {
-      const T h = this->sdf(o + t * d);
+      bool    exact;
+      const T h = this->sdf(o + t * d, exact);
 
       if (h < T(1e-4)) {
         return T(0);
       }
 
-      s = Math::min(s, T(10) * h / t);
+      // The penumbra needs the true distance; a box distance only moves the ray along.
+      if (exact) {
+        s = Math::min(s, T(10) * h / t);
+      }
       t += Math::clamp(h, T(0.01), T(0.3));
     }
 
