@@ -20,6 +20,8 @@
  *   --smoke          small problem sizes and one repetition: checks that a case runs, times nothing
  *   --json           one JSON object per case instead of the table
  *   --json-out <f>   print the table, and also append the JSON to file f
+ *   --no-banner      leave out the facts every probe of a run shares (Scripts/run-performance.sh
+ *                    prints them once, from its first probe)
  *
  * This header is host code for the programs under Performance/, not part of the library.
  */
@@ -37,6 +39,7 @@
 #include <fstream>
 #include <functional>
 #include <string>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -705,6 +708,49 @@ struct CaseName
 };
 
 /**
+ * @brief Terminal styling: bold, dim and red, only when standard output is a terminal, NO_COLOR is
+ * unset and TERM is not "dumb", so piped and redirected output (logs, CI) stays plain text.
+ */
+struct Style
+{
+  bool on = isatty(fileno(stdout)) != 0 && std::getenv("NO_COLOR") == nullptr &&
+            !(std::getenv("TERM") != nullptr && std::string(std::getenv("TERM")) == "dumb");
+
+  /**
+   * @brief Bold text.
+   * @param[in] a_s The text.
+   * @return The styled text.
+   */
+  [[nodiscard]] std::string
+  bold(const std::string& a_s) const
+  {
+    return on ? "\033[1m" + a_s + "\033[0m" : a_s;
+  }
+
+  /**
+   * @brief Dimmed text.
+   * @param[in] a_s The text.
+   * @return The styled text.
+   */
+  [[nodiscard]] std::string
+  dim(const std::string& a_s) const
+  {
+    return on ? "\033[2m" + a_s + "\033[0m" : a_s;
+  }
+
+  /**
+   * @brief Red text.
+   * @param[in] a_s The text.
+   * @return The styled text.
+   */
+  [[nodiscard]] std::string
+  red(const std::string& a_s) const
+  {
+    return on ? "\033[31m" + a_s + "\033[0m" : a_s;
+  }
+};
+
+/**
  * @brief A program's set of cases and its command line.
  */
 class Suite
@@ -733,6 +779,9 @@ public:
       }
       else if (arg == "--case" && i + 1 < a_argc) {
         m_globs.emplace_back(a_argv[++i]);
+      }
+      else if (arg == "--no-banner") {
+        m_banner = false;
       }
       else if (arg == "--json-out" && i + 1 < a_argc) {
         m_jsonOut = a_argv[++i];
@@ -859,29 +908,64 @@ private:
       }
     }
 
-    const bool gpu = EBGeometry::GPU::enabled;
+    const bool  gpu = EBGeometry::GPU::enabled;
+    const Style style;
 
-    std::printf("\n%s: %zu cases, %d repetition%s each%s\n",
-                m_name.c_str(),
-                count,
-                m_reps,
-                m_reps == 1 ? "" : "s",
-                m_smoke ? " (smoke sizes: checks that cases run, times nothing)" : "");
-    std::printf(
-      "  git %s, %s, GPU %s\n", gitSha().c_str(), compilerName().c_str(), gpu ? EBGeometry::GPU::backendName : "none");
+    // The facts every probe of a run shares, printed once: Scripts/run-performance.sh passes
+    // --no-banner to every probe but the first.
+    if (m_banner) {
+      std::string facts = "EBGeometry performance \u00b7 git " + gitSha() + " \u00b7 " + compilerName() +
+                          " \u00b7 GPU " + (gpu ? EBGeometry::GPU::backendName : "none") +
+                          " \u00b7 host: " + std::to_string(gpu ? hostThreads() : 1) +
+                          (gpu && hostThreads() != 1 ? " threads" : " thread") + ", SIMD " + simdLevel();
 
-    if (gpu) {
-      std::printf("  host side: %d thread%s, SIMD %s%s\n",
-                  hostThreads(),
-                  hostThreads() == 1 ? "" : "s",
-                  simdLevel(),
-                  std::string(simdLevel()) == "none" ? " (nvcc cannot compile host SIMD code)" : "");
-      std::printf("  host and device run the same inputs; times per item are medians of the repetitions;\n"
-                  "  device spread = the device's interquartile range / median\n\n");
+      if (gpu && std::string(simdLevel()) == "none") {
+        facts += " (nvcc cannot compile host SIMD code)";
+      }
+
+      const std::string times =
+        m_reps == 1 ? "from a single repetition" : "medians of " + std::to_string(m_reps) + " repetitions";
+      std::string legend =
+        gpu ? "host and device run the same inputs; times per item are " + times : "times are " + times;
+      legend +=
+        gpu ? "; device spread = the device's interquartile range / median" : "; spread = interquartile range / median";
+
+      std::printf("\n%s\n%s\n", style.dim(facts).c_str(), style.dim(legend).c_str());
+
+      if (m_smoke) {
+        std::printf("%s\n", style.dim("smoke sizes: checks that the cases run, times nothing").c_str());
+      }
     }
-    else {
-      std::printf("  host side: 1 thread, SIMD %s\n", simdLevel());
-      std::printf("  times are medians of the repetitions; spread = interquartile range / median\n\n");
+
+    // The columns after the operation and precision.
+    const std::vector<std::pair<std::string, std::size_t>> columns =
+      gpu ? std::vector<std::pair<std::string, std::size_t>>{{"items", 9},
+                                                             {"host/item", 10},
+                                                             {"device/item", 11},
+                                                             {"speedup", 8},
+                                                             {"device spread", 13},
+                                                             {"answers", 7}}
+          : std::vector<std::pair<std::string, std::size_t>>{
+              {"items", 9}, {"median", 10}, {"spread", 7}, {"per item", 10}, {"pool", 9}};
+
+    std::size_t width = 4 + opWidth + 2 + 9;
+
+    for (const auto& col : columns) {
+      width += 2 + col.second;
+    }
+
+    // The probe's title: a heavy rule across the table with its name and case count.
+    {
+      const std::string left  = "\u2501\u2501 " + m_name + " ";
+      const std::string right = " " + std::to_string(count) + (count == 1 ? " case" : " cases") + " \u2501\u2501";
+      const std::size_t used  = displayWidth(left) + displayWidth(right);
+      std::string       fill;
+
+      for (std::size_t i = used; i < std::max<std::size_t>(width, used + 4); i++) {
+        fill += "\u2501";
+      }
+
+      std::printf("\n%s\n", style.bold(left + fill + right).c_str());
     }
 
     if (gpu && count == 0 && !m_deviceRuns) {
@@ -889,10 +973,10 @@ private:
       return 0;
     }
 
-    // One row of right-aligned columns after the operation and precision, trailing blanks trimmed.
-    const auto row = [opWidth](const std::string&                                      a_op,
-                               const std::string&                                      a_precision,
-                               const std::vector<std::pair<std::string, std::size_t>>& a_columns) {
+    // One row: the operation and precision, then the columns right-aligned, trailing blanks trimmed.
+    const auto rowText = [opWidth](const std::string&                                      a_op,
+                                   const std::string&                                      a_precision,
+                                   const std::vector<std::pair<std::string, std::size_t>>& a_columns) {
       std::string line = "    " + pad(a_op, opWidth, true) + "  " + pad(a_precision, 9, true);
 
       for (const auto& col : a_columns) {
@@ -900,19 +984,18 @@ private:
       }
 
       line.erase(line.find_last_not_of(' ') + 1);
-      std::printf("%s\n", line.c_str());
+
+      return line;
+    };
+
+    const auto row = [&rowText](const std::string&                                      a_op,
+                                const std::string&                                      a_precision,
+                                const std::vector<std::pair<std::string, std::size_t>>& a_columns) {
+      std::printf("%s\n", rowText(a_op, a_precision, a_columns).c_str());
       std::fflush(stdout);
     };
 
-    if (gpu) {
-      row(
-        "operation",
-        "precision",
-        {{"items", 9}, {"host/item", 10}, {"device/item", 11}, {"speedup", 8}, {"device spread", 13}, {"answers", 7}});
-    }
-    else {
-      row("operation", "precision", {{"items", 9}, {"median", 10}, {"spread", 7}, {"per item", 10}, {"pool", 9}});
-    }
+    std::printf("%s\n", style.dim(rowText("operation", "precision", columns)).c_str());
 
     // With --json-out, the JSON goes to a file alongside the table.
     std::ofstream jsonOut;
@@ -939,7 +1022,7 @@ private:
 
       if (parts.group != group) {
         group = parts.group;
-        std::printf("\n  %s\n", group.empty() ? m_name.c_str() : group.c_str());
+        std::printf("  %s\n", style.bold(group.empty() ? m_name : group).c_str());
       }
 
       Case running(c.first, m_reps, m_smoke);
@@ -947,7 +1030,9 @@ private:
       try {
         c.second(running);
       } catch (const std::exception& e) {
-        row(parts.operation, parts.precision, {{std::string("skipped: ") + e.what(), 0}});
+        std::printf(
+          "%s\n",
+          style.red(rowText(parts.operation, parts.precision, {{std::string("skipped: ") + e.what(), 0}})).c_str());
 
         if (jsonOut) {
           jsonOut << "{\"case\":" << jsonString(c.first) << ",\"skipped\":" << jsonString(e.what()) << "}\n";
@@ -990,14 +1075,23 @@ private:
         // Per item, so that pairs of different sizes compare; the totals are in the JSON.
         const double n = items > 0 ? double(items) : 1.0;
 
-        row(parts.operation,
-            parts.precision,
-            {{items > 0 ? formatCount(items) : "", 9},
-             {formatTime(hostMs / n), 10},
-             {formatTime(median / n), 11},
-             {speedup, 8},
-             {spread, 13},
-             {answers, 7}});
+        std::string line = rowText(parts.operation,
+                                   parts.precision,
+                                   {{items > 0 ? formatCount(items) : "", 9},
+                                    {formatTime(hostMs / n), 10},
+                                    {formatTime(median / n), 11},
+                                    {speedup, 8},
+                                    {spread, 13},
+                                    {answers, 7}});
+
+        // A disagreement in red; the answers column is the last, so it is the line's tail.
+        if (mismatches > 0.0) {
+          const auto at = line.rfind(answers);
+          line          = line.substr(0, at) + style.red(line.substr(at));
+        }
+
+        std::printf("%s\n", line.c_str());
+        std::fflush(stdout);
       }
       else {
         row(parts.operation,
@@ -1009,8 +1103,6 @@ private:
              {running.poolBytesUsed() > 0 ? formatBytes(running.poolBytesUsed()) : "", 9}});
       }
     }
-
-    std::printf("\n");
 
     return 0;
   }
@@ -1050,6 +1142,7 @@ private:
   bool                                                            m_list       = false;
   bool                                                            m_json       = false;
   bool                                                            m_deviceRuns = false;
+  bool                                                            m_banner     = true;
 };
 
 /**

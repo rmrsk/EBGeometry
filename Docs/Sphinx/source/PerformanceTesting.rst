@@ -181,13 +181,11 @@ spread, time per item and pool bytes:
 
 .. code-block:: text
 
-   Mesh: 3 cases, 3 repetitions each
-     git 4d74917, gcc 13.3.0, GPU none
-     host side: 1 thread, SIMD avx2
-     times are medians of the repetitions; spread = interquartile range / median
+   EBGeometry performance · git c2f2cdb · gcc 13.3.0 · GPU none · host: 1 thread, SIMD avx2
+   times are medians of 3 repetitions; spread = interquartile range / median
 
+   ━━ Mesh ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3 cases ━━
        operation  precision      items      median   spread    per item       pool
-
      MeshSDF
        build      float                     110 ms     1.6%                21.0 MB
        refit      float                    69.9 ms    19.3%
@@ -199,17 +197,20 @@ and whether the answers agree:
 
 .. code-block:: text
 
-   Mesh: 2 cases, 5 repetitions each
-     git ee64b24, gcc 13.3.0, GPU CUDA
-     host side: 23 threads, SIMD none (nvcc cannot compile host SIMD code)
-     host and device run the same inputs; times per item are medians of the repetitions;
-     device spread = the device's interquartile range / median
+   EBGeometry performance · git c2f2cdb · gcc 13.3.0 · GPU CUDA · host: 23 threads, SIMD none (nvcc cannot compile host SIMD code)
+   host and device run the same inputs; times per item are medians of 5 repetitions; device spread = the device's interquartile range / median
 
+   ━━ Mesh ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2 cases ━━
        operation     precision      items   host/item  device/item   speedup  device spread  answers
-
      TriMeshSDF · w4
        query-morton  float        262,144      382 ns      23.0 ns     16.6x           5.6%    agree
        query-random  float        262,144      497 ns      42.3 ns     11.8x           1.4%    agree
+
+The facts every probe shares (the commit, compiler, GPU backend, host threads and SIMD level, and how to
+read the columns) are printed once per run; each probe is then a rule with its name and number of cases,
+its column header and its groups. In a terminal, probe and group names are bold, the banner and column
+headers dimmed and host/device disagreements red; piped or redirected output, or ``NO_COLOR`` set, gives
+plain text.
 
 CMake takes the ``nvcc`` on the ``PATH`` (or ``CUDACXX``) unless ``--cuda-compiler`` names one. CUDA
 12.0's ``nvcc`` cannot compile the library (it rejects a braced argument list in

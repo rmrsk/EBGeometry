@@ -282,8 +282,13 @@ if(smoke)
   list(APPEND run_args --smoke)
 endif()
 
+# The facts every probe shares (commit, compiler, threads, how to read the columns) come once, from
+# the first probe.
+set(banner "")
+
 foreach(probe IN LISTS selected_probes)
-  execute_process(COMMAND ${pin} "${probe}" ${run_args} RESULT_VARIABLE rc)
+  execute_process(COMMAND ${pin} "${probe}" ${run_args} ${banner} RESULT_VARIABLE rc)
+  set(banner --no-banner)
 
   if(NOT rc EQUAL 0)
     get_filename_component(name "${probe}" NAME_WE)
@@ -291,4 +296,4 @@ foreach(probe IN LISTS selected_probes)
   endif()
 endforeach()
 
-message("Results: ${results}")
+message("\nResults: ${results}")
