@@ -282,6 +282,9 @@ smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
     std::string checksum;
     std::string answers;
     std::string result;
+    std::string baseTime;
+    std::string headTime;
+    std::string note;
   };
 
   const auto state = [](const Run& a_run, const std::string& a_name) -> std::string {
@@ -308,13 +311,31 @@ smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
   int                   disagree  = 0;
 
   for (const auto& name : names) {
-    SmokeRow row{name, state(a_base, name), state(a_head, name), "-", "-", "ok"};
+    SmokeRow row{name, state(a_base, name), state(a_head, name), "-", "-", "ok", "", "", ""};
 
     const bool bothRan = row.base == "ran" && row.head == "ran";
 
     if (bothRan) {
       const Side& b = a_base.cases.at(name);
       const Side& h = a_head.cases.at(name);
+
+      // The times, for information only: one repetition at the smoke sizes is no measurement (see the
+      // function comment), so they are shown, and a change of more than ten times noted, never judged.
+      const double tb = median(b.times);
+      const double th = median(h.times);
+
+      row.baseTime = formatTime(tb);
+      row.headTime = formatTime(th);
+
+      if (tb > 0.0 && th > 0.0 && (th / tb > 10.0 || tb / th > 10.0)) {
+        char buf[64];
+        std::snprintf(buf,
+                      sizeof(buf),
+                      "head %.0fx %s (information only)",
+                      th > tb ? th / tb : tb / th,
+                      th > tb ? "slower" : "faster");
+        row.note = buf;
+      }
 
       if (b.hasChecksum && h.hasChecksum) {
         const double scale = std::max(std::abs(b.checksum), 1.0);
@@ -375,19 +396,24 @@ smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
   const auto line = [width](const SmokeRow& a_r) {
     std::string out = "  " + pad(a_r.name, width, true) + "  " + pad(a_r.base, 9, true) + "  " +
                       pad(a_r.head, 9, true) + "  " + pad(a_r.checksum, 8, true) + "  " + pad(a_r.answers, 10, true) +
-                      "  " + a_r.result;
+                      "  " + pad(a_r.result, 6, true) + "  " + pad(a_r.baseTime, 10) + "  " + pad(a_r.headTime, 10) +
+                      (a_r.note.empty() ? "" : "  " + a_r.note);
 
     out.erase(out.find_last_not_of(' ') + 1);
 
     return out;
   };
 
-  std::printf("%s\n", line(SmokeRow{"case", "base", "head", "checksum", "answers", "result"}).c_str());
+  std::printf(
+    "%s\n",
+    line(SmokeRow{"case", "base", "head", "checksum", "answers", "result", "base time*", "head time*", ""}).c_str());
 
   for (const auto& r : rows) {
     std::printf("%s\n", line(r).c_str());
   }
 
+  std::printf("\n* Information only: one repetition at the smoke sizes, dominated by start-up and launch overhead\n"
+              "  and far from the cache and traversal behaviour of the full sizes; never judged.\n");
   std::printf("\n%s\n",
               failures > 0 ? "FAILED: see the rows marked FAIL."
                            : (checksums > 0 ? "Passed; the checksums marked DIFFERS changed between the commits."
@@ -398,12 +424,16 @@ smokeReport(const Run& a_base, const Run& a_head, const std::string& a_markdown)
 
     md << "**Smoke comparison (no timing verdicts): " << summary << "**\n\n";
     md << "- base: " << get(a_base, "git") << "\n- head: " << get(a_head, "git") << "\n\n";
-    md << "| case | base | head | checksum | answers | result |\n|---|---|---|---|---|---|\n";
+    md << "| case | base | head | checksum | answers | result | base time* | head time* | note |\n"
+       << "|---|---|---|---|---|---|---:|---:|---|\n";
 
     for (const auto& r : rows) {
       md << "| `" << r.name << "` | " << r.base << " | " << r.head << " | " << r.checksum << " | " << r.answers << " | "
-         << (r.result == "FAIL" ? "**FAIL**" : r.result) << " |\n";
+         << (r.result == "FAIL" ? "**FAIL**" : r.result) << " | " << r.baseTime << " | " << r.headTime << " | "
+         << r.note << " |\n";
     }
+
+    md << "\n\\* Information only: one repetition at the smoke sizes, never judged.\n";
   }
 
   return failures > 0 ? 2 : 0;

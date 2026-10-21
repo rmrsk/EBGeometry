@@ -274,7 +274,10 @@ the command that repeats the comparison and those that rerun a single case by ha
 A smoke comparison (``--smoke``) is a check, not a measurement: one round of one repetition at the
 ``--smoke`` sizes, in about a minute, most of it building. It reports, for every case, whether it ran on
 each side, whether the two sides' checksums match and, for a pair, whether the host and device answers
-agree, and judges no timings. It fails if a case crashed, is missing or was skipped on one side, or if a
+agree, and judges no timings: one repetition of microseconds of work is mostly start-up and kernel
+launch overhead, runs with everything in cache and trees of one leaf, and has no spread to tell a change
+from noise. Its times are shown for information only, with a note when a case's time changes more than
+tenfold (a case that hangs or degenerates). It fails if a case crashed, is missing or was skipped on one side, or if a
 pair's answers differ; a checksum that changed between the commits is reported but does not fail it,
 since a change to a kernel may change a result's last bits. Run it before a long comparison, or after
 changing the probes themselves.
