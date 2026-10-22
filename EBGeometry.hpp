@@ -59,6 +59,7 @@
 #include "Source/EBGeometry_TriangleAoSoA.hpp"
 #include "Source/EBGeometry_TriangleSoA.hpp"
 #include "Source/EBGeometry_Vec.hpp"
+#include "Source/EBGeometry_Viewer.hpp"
 
 /**
  * @brief Namespace containing all of EBGeometry's functionality.

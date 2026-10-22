@@ -475,3 +475,28 @@ TEMPLATE_TEST_CASE("Render: faces that lie on the shape's bounding box are seen 
   CHECK(stats.m_hits > 300U);
   CHECK(stats.m_insideHits == 0U);
 }
+
+TEMPLATE_TEST_CASE("Render: view returns at once when asked not to open a window",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+
+  // Built with or without the viewer, --no-view keeps the window shut, so this returns.
+  char                program[] = "TestRender";
+  char                noView[]  = "--no-view";
+  char*               argv[]    = {program, noView, nullptr};
+  const int           argc      = 2;
+  Render::Settings<T> settings;
+
+  Render::view(sphere, argc, argv);
+  Render::view(sphere, Render::Camera<T>::fit(sphere.computeBoundingVolume()), settings, argc, argv);
+  Render::view(sphere, sphere, Render::Camera<T>(), settings, argc, argv);
+
+  // An unbounded shape gets the default camera rather than a fit that would fail.
+  Render::view(PlaneSDF<T>(Vec3T<T>::zeros(), Vec3T<T>(T(0), T(1), T(0))), argc, argv);
+
+  SUCCEED();
+}
