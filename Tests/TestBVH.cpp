@@ -1560,7 +1560,7 @@ TEMPLATE_TEST_CASE("PackedBVH: every box is stored once, and any node's box is f
   }
 
   Pool         pool(hostMemoryResource());
-  const Packed bvh(pool, flat, size_t(4));
+  const Packed bvh = Packed::buildBottomUp(pool, flat, size_t(4));
 
   const auto sameBox = [](const AABB& a_lhs, const AABB& a_rhs) {
     return a_lhs.getLowCorner() == a_rhs.getLowCorner() && a_lhs.getHighCorner() == a_rhs.getHighCorner();
