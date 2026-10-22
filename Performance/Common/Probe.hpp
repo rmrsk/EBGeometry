@@ -274,8 +274,9 @@ struct Built
 
 /**
  * @brief Time building a structure, as the case's own time: every repetition builds it afresh in a new
- * pool, after an untimed preparation in that pool. The pool's memory is fresh pages every time (see
- * fixAllocatorPolicy()), so every repetition pays the page faults of a first build.
+ * pool, after an untimed preparation in that pool. The pool starts on fresh pages every time, and the
+ * build's temporaries reuse memory as in a real program (see fixAllocatorPolicy()), so every repetition
+ * is timed as a first build.
  * @tparam Object  The structure.
  * @tparam Prepare Callable taking EBGeometry::Pool& and returning what the build needs (untimed: reading
  * a mesh into the pool, say).

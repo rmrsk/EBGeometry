@@ -13,6 +13,7 @@
 #define EBGEOMETRY_PERF_ENVIRONMENT_HPP
 
 #include <algorithm>
+#include <climits>
 #include <cstddef>
 #include <cstdlib>
 #include <fstream>
@@ -73,34 +74,44 @@ hostThreads()
 }
 
 /**
- * @brief The size from which glibc serves an allocation with fresh pages from the system (mmap) rather
- * than from memory the process has already touched: 128 KiB, glibc's own starting value.
- */
-constexpr std::size_t MmapThreshold = 128 * 1024;
-
-/**
- * @brief Fix how large allocations are served, for the whole run, so that every build is timed alike.
- * @details glibc serves an allocation above its mmap threshold with fresh pages, which fault on first
- * use, and one below it from memory the process has already touched; and it raises the threshold as the
- * program frees large blocks. A build case makes a fresh pool every repetition, so whether that pool
- * paid the page faults depended on its size and on what was freed before it: a pool a few percent
- * smaller or larger could flip a build between the two and change its time by 15% without any change to
- * the build itself. Fixing the threshold (which also stops glibc from moving it) gives every large
- * allocation fresh pages, so every repetition pays the page faults of a first build, as a program that
- * builds its geometry once does. Elsewhere than glibc this does nothing.
+ * @brief Fix how memory is served, for the whole run, so that every build is timed alike and as a
+ * program's first build.
+ * @details By default glibc serves an allocation above a size threshold with fresh pages from the
+ * system (mmap), which fault on first use, and one below it from memory the process already touched; and
+ * it raises the threshold as the program frees large blocks. A build case makes a fresh pool every
+ * repetition, so whether a repetition paid its page faults depended on the pool's size and on what was
+ * freed before it: a pool a few percent smaller or larger could change a build's time by 15% with no
+ * change to the build. Here every allocation comes from the heap (M_MMAP_MAX = 0), so a build's
+ * temporaries reuse memory freed earlier in the same build, as in a real program, and glibc keeps freed
+ * memory (M_TRIM_THRESHOLD at its maximum) until releaseFreedMemory() returns it before each repetition,
+ * so that each repetition's pool starts on fresh pages, as a first build's does. Elsewhere than glibc
+ * this does nothing.
  * @return A description of the policy, for the run's build line (Key::Allocator).
  */
 inline std::string
 fixAllocatorPolicy()
 {
 #if defined(__GLIBC__)
-  if (mallopt(M_MMAP_THRESHOLD, static_cast<int>(MmapThreshold)) == 1) {
-    return "glibc, fresh pages from " + std::to_string(MmapThreshold / 1024) + " KiB";
+  if (mallopt(M_MMAP_MAX, 0) == 1 && mallopt(M_TRIM_THRESHOLD, INT_MAX) == 1) {
+    return "glibc, heap only, freed memory returned before each repetition";
   }
 
   return "glibc, default (mallopt failed)";
 #else
   return "system default";
+#endif
+}
+
+/**
+ * @brief Return the memory the process has freed to the system (glibc: malloc_trim), so that what is
+ * allocated next starts on fresh pages. Case calls it before every timed repetition, untimed; elsewhere
+ * than glibc it does nothing.
+ */
+inline void
+releaseFreedMemory() noexcept
+{
+#if defined(__GLIBC__)
+  malloc_trim(0);
 #endif
 }
 
