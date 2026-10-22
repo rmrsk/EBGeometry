@@ -89,6 +89,10 @@ set_target_properties(Shapes PROPERTIES
   SUFFIX ".ex"
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(Shapes PRIVATE EBGeometry::EBGeometry)
+
+# The renderer draws on std::thread; older C libraries need -pthread for it.
+find_package(Threads REQUIRED)
+target_link_libraries(Shapes PRIVATE Threads::Threads)
 target_compile_options(Shapes PRIVATE $<$<COMPILE_LANGUAGE:CXX,HIP>:-Wall -Wextra -Wno-unused-parameter>)
 
 # ---------------------------------------------------------------------------
@@ -112,4 +116,22 @@ target_compile_definitions(Shapes PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PREC
 option(EBGEOMETRY_ENABLE_ASSERTIONS "Enable EBGEOMETRY_EXPECT() runtime assertion checks" OFF)
 if(EBGEOMETRY_ENABLE_ASSERTIONS)
   target_compile_definitions(Shapes PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
+endif()
+
+# ---------------------------------------------------------------------------
+# The interactive viewer (Render::view() at the end of main()).
+#
+# OFF by default: view() then prints a line and returns. -DEBGEOMETRY_VIEWER=SDL2 opens a window on
+# the torus, which needs SDL2 (e.g. libsdl2-dev). When built from the top-level EBGeometry project, this
+# option already exists there and the EBGeometry target carries it.
+# ---------------------------------------------------------------------------
+set(EBGEOMETRY_VIEWER OFF CACHE STRING "Interactive viewer for Render::view(): OFF or SDL2")
+set_property(CACHE EBGEOMETRY_VIEWER PROPERTY STRINGS OFF SDL2)
+
+if(EBGEOMETRY_VIEWER STREQUAL "SDL2" AND CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  find_package(SDL2 REQUIRED)
+  target_compile_definitions(Shapes PRIVATE EBGEOMETRY_VIEWER_SDL2 $<$<COMPILE_LANGUAGE:CUDA>:SDL_DISABLE_IMMINTRIN_H>)
+  target_link_libraries(Shapes PRIVATE SDL2::SDL2)
+elseif(NOT EBGEOMETRY_VIEWER STREQUAL "OFF" AND NOT EBGEOMETRY_VIEWER STREQUAL "SDL2")
+  message(FATAL_ERROR "EBGEOMETRY_VIEWER must be OFF or SDL2 (got '${EBGEOMETRY_VIEWER}')")
 endif()

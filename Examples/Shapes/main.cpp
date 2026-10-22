@@ -86,7 +86,7 @@ report(const std::string& a_name, const Shape& a_shape)
 } // namespace
 
 int
-main()
+main(int argc, char* argv[])
 {
   // ── Construct the shapes ───────────────────────────────────────────────────────────────────────────
   //
@@ -182,6 +182,15 @@ main()
       std::cout << "  x = " << points[i][0] << "   distance = " << std::setw(8) << distances[i] << '\n';
     }
   }
+
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // Render::view() opens a window on any shape -- here the torus; pass any of the others instead. Drag to
+  // orbit, scroll to zoom, X cuts the shape open.
+  // The window needs SDL2: build with make VIEWER=SDL2 or cmake -DEBGEOMETRY_VIEWER=SDL2. Otherwise, with
+  // --no-view, or without a display, view() prints why and returns. A surface seen from inside the solid
+  // is drawn red.
+  EBGeometry::Render::view(torus, argc, argv);
 
   return 0;
 }

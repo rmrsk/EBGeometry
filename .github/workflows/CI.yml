@@ -249,9 +249,9 @@ jobs:
         run: ctest --preset examples
 
   # The viewer window (Render::view(), EBGEOMETRY_VIEWER=SDL2) is compiled only on request, so no
-  # other lane builds it. This one does, through CMake and GNU make, and runs what needs no display:
-  # the renderer's tests and the MeshSDF example, which with --no-view and without a display return
-  # from view() at once.
+  # other lane builds it. This one does, for the renderer's tests and every example that calls view(),
+  # through CMake and GNU make, and runs what needs no display: the renderer's tests and the MeshSDF
+  # example, which with --no-view and without a display return from view() at once.
   Viewer-SDL2:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Viewer (SDL2)
@@ -265,8 +265,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
       - name: Configure (debug preset, viewer on)
         run: cmake --preset debug -DEBGEOMETRY_VIEWER=SDL2 -DCMAKE_CXX_FLAGS=-Werror
-      - name: Build the renderer's tests, the instantiations and the MeshSDF example
-        run: cmake --build --preset debug --parallel 2 --target TestRender InstantiateAll MeshSDF
+      - name: Build the renderer's tests, the instantiations and the examples that open the viewer
+        run: cmake --build --preset debug --parallel 2 --target TestRender InstantiateAll Shapes CSG MeshSDF NestedBVH ManyObjects CustomShape
       - name: Run the renderer's tests
         run: ./build/debug/Tests/TestRender
       - name: Run the MeshSDF example (no display)
@@ -274,8 +274,14 @@ jobs:
         run: |
           ./MeshSDF.ex --no-view
           env -u DISPLAY -u WAYLAND_DISPLAY ./MeshSDF.ex
-      - name: Build the MeshSDF example with GNU make
-        run: make -C Examples/MeshSDF clean && make -C Examples/MeshSDF VIEWER=SDL2
+      - name: Build the examples that open the viewer with GNU make
+        run: |
+          set -euo pipefail
+          for main in $(grep -l 'Render::view(' Examples/*/main.cpp); do
+            dir=$(dirname "$main")
+            make -C "$dir" clean
+            make -C "$dir" VIEWER=SDL2
+          done
 
   Examples-FloatPrecision:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]

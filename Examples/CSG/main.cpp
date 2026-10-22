@@ -74,7 +74,7 @@ report(const std::string& a_name, const Tape& a_tape, const std::vector<Vec3>& a
 } // namespace
 
 int
-main()
+main(int argc, char* argv[])
 {
   // ── Describe the objects ───────────────────────────────────────────────────────────────────────────
   //
@@ -175,6 +175,15 @@ main()
       std::cout << "  x = " << points[i][0] << "   value = " << std::setw(8) << onDevice[i] << '\n';
     }
   }
+
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // Render::view() opens a window on any shape, a compiled tape included -- here the drilled part. Drag to
+  // orbit, scroll to zoom, X cuts it open, and P colours each of the tape's leaves differently.
+  // The window needs SDL2: build with make VIEWER=SDL2 or cmake -DEBGEOMETRY_VIEWER=SDL2. Otherwise, with
+  // --no-view, or without a display, view() prints why and returns. A surface seen from inside the solid
+  // is drawn red.
+  EBGeometry::Render::view(partTape, argc, argv);
 
   return 0;
 }
