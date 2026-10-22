@@ -602,8 +602,6 @@ Design and performance work that was deferred on purpose. None of it is a defect
 
 * **MESH-8** [MAJOR]: the triangle distance kernel has six SIMD copies and three scalar paths. D3
   kept the three mesh SDFs; the kernels were not consolidated.
-* **BVH-11, host part** [MINOR]: `TreeBVH::setChildren` and `refit` build a `std::vector` for every
-  box union.
 * **BVH-10** [MINOR]: `pack()`/`packWith()` return a `shared_ptr`, and some `PackedBVH`
   constructors are chosen by tag types. This is the API D2 kept.
 * **BVH-18** [NIT]: `computeChildDistances2()`, `TriangleSoA` and `PointSoA` choose their inline SIMD
