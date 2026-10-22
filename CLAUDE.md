@@ -371,8 +371,10 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
      further** before going on.
    - **MAJOR** (10% or more): **red-flag it**. The PR must not be merged until the regression is
      fixed, or the user explicitly accepts it; record the reason in the PR's *Performance* section.
-   - A **differing checksum** or **host/device disagreements** are flagged whatever the timing says:
-     the sides computed different answers.
+   - A **differing checksum** (of the values or of the points found) or **host/device disagreements**
+     are flagged whatever the timing says: the sides computed different answers.
+   - A **lost** case (ran on the base, skipped or missing on the PR) is red: find out why it no longer
+     runs before reading the timings.
    - Before calling something a regression, repeat the flagged cases by hand with more rounds
      (`Scripts/run-performance.sh compare origin/<base> <pr-branch> '<glob>' --rounds 10`); do not
      rerun until a noisy result passes.

@@ -43,16 +43,20 @@ named from general to specific, ``component/input/operation/precision/side``, fo
 inputs untimed, runs the measured operation once to warm up and then a number of times, and reports:
 
 * the median time, its interquartile range, and, for queries, the time per item;
-* a checksum of its results, so that a change in speed is only compared for equal answers;
+* a checksum of its results, so that a change in speed is only compared for equal answers (the point
+  clouds also record an exact hash of the points their queries found, since a sum of distances cannot
+  show a different point at the same distance);
 * the bytes the structure occupies in its ``Pool``, where it has one (deterministic, so it needs no
   statistics);
-* the parameters it used (branching factor, SIMD width, point count). Cases spell these out rather than
-  inheriting ``DefaultBranchingRatio`` or ``DefaultWidth``, so a change to a default changes which case
-  measures it, not what an existing case means.
+* the parameters it used (branching factor, SIMD width, leaf and cell sizes, point count). Cases spell
+  these out rather than inheriting ``DefaultBranchingRatio``, ``DefaultWidth`` or a constructor's default
+  arguments, so a change to a default changes which case measures it, not what an existing case means.
 
 Inputs are fixed: every point set comes from the harness's own generator with a fixed seed, so that
 every platform and standard library draws the same points, and the mesh is ``armadillo.obj`` from the
-``common-3d-test-models`` submodule. A case whose input is missing is reported as skipped.
+``common-3d-test-models`` submodule. A case whose input is missing, or that throws, is reported as
+skipped; a comparison in which a case ran in the baseline but not in the candidate fails (see `Reading
+the verdicts`_).
 
 What the probes measure
 -----------------------
@@ -164,7 +168,8 @@ part of a tree) and, for external queries, once in random order. Besides the dev
   device's speedup over the host (host time / device time) on this machine;
 * ``max_diff`` and ``mismatches``: how far apart the host and device answers are, and how many inputs
   they disagree on (a different sign, or a difference beyond a thousand ulps; for the point clouds, a
-  different point at a different distance, since equal distances are ties).
+  squared distance beyond a thousand ulps, whichever points were found, since equal distances to
+  different points are ties).
 
 The speedup is machine-specific, so it means something on one machine, from one commit to the next: a
 change that speeds up one side and slows down the other shows as a shift in it. In a CUDA build it is
@@ -262,7 +267,7 @@ changes an API the probes use updates the probes and is still compared case by c
 any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
 with the candidate's probes.) Every case then runs in a fresh process, so that one case cannot leave the
 heap or the caches in a state that favours the next, alternating between the two sides for ``--rounds``
-rounds (default 3) of ``--reps`` repetitions (default 5). A host comparison compares the host cases,
+rounds (default 3, at least 2) of ``--reps`` repetitions (default 5). A host comparison compares the host cases,
 pinned to one core; with ``--gpu`` it compares the pairs, by their device time (each with its speedup
 beside it), unpinned. The comparison itself is ``Performance/Compare.cmake``,
 whose variables (listed at its top) also set the thresholds.
@@ -307,15 +312,23 @@ and ``report.md`` starts with the same line:
    VERDICT: MAJOR regression in 1 case; do not merge until it is fixed or accepted (see Flagged above) (red)
    VERDICT (smoke): passed; all 88 cases ran on both sides with the same answers                      (green)
 
-A red verdict (a major regression, host and device answers that differ, or a run that crashed; for a
-smoke comparison, a case that failed or is missing on one side) also makes the script exit with status
-2, which is what fails ``Performance-compare`` in CI. The per-case verdicts behind it work as follows.
+A red verdict (a major regression, host and device answers that differ, a run that crashed, or a case
+that ran in the baseline but not in the candidate; for a smoke comparison, a case that failed or is
+missing on either side) also makes the script exit with status 2, which is what fails
+``Performance-compare`` in CI. The per-case verdicts behind it work as follows.
 
-For each case, ``PerfCompare`` takes the median time of each side over all its runs, their ratio, and a
-bootstrap 95% confidence interval for the ratio. A change counts only when the interval excludes no
-change at all:
+Each run of a case is a fresh process that times several repetitions. The repetitions of one process
+share its luck (where its memory landed, the clock speed, what else ran on the machine), so they are not
+independent measurements, and the noise that matters is the one between processes. ``PerfCompare``
+therefore reduces each run to the median of its repetitions and works with those: for each case it takes
+the median over each side's runs, their ratio, and a bootstrap 95% confidence interval for the ratio,
+resampling the runs. A change counts only when the interval excludes no change at all, and is only
+judged with at least two runs on each side. With the default three rounds, that means a change is
+flagged only when it shows in essentially every run; to confirm or rule out a small change, rerun the
+case with more rounds (``--rounds 10``).
 
 ==========  =========================================================================================
+``lost``    ran in the baseline, but was skipped or is missing in the candidate: a red flag
 ``DIFFER``  a pair whose host and device answers disagree: a red flag, and its times are not comparable
 ``MAJOR``   at least 10% slower (``MAJOR``), or 10% more pool bytes: a red flag
 ``minor``   at least 3% slower (``MINOR``), or 3% more pool bytes: worth a look
@@ -323,8 +336,8 @@ change at all:
 ``~``       within the thresholds, or within the noise
 ==========  =========================================================================================
 
-A differing checksum is noted beside the verdict: the two sides did not compute the same answers, so the
-times may not be comparable. A paired case shows the device's speedup over the host, with the
+A differing checksum, or a differing hash of the points found, is noted beside the verdict: the two
+sides did not compute the same answers, so the times may not be comparable. A paired case shows the device's speedup over the host, with the
 baseline's beside it when the two differ by 3% or more. Flagged cases are listed again under the table.
 
 In continuous integration and in pull requests
@@ -361,7 +374,7 @@ Some rules of thumb:
   record it with ``param()``; record a checksum that depends on every result, and ``poolBytes()`` where
   there is a pool.
 * Prefer a new case to changing an existing one: a changed case cannot be compared with its old
-  results, and the report flags it.
+  results (the report names the probe files that differ between the sides, not the cases).
 * Keep the whole set to about ten minutes for a comparison with its defaults on a desktop, so it is
   run. A case that duplicates another's code path (the same kernel at another size) earns its place only
   if it has behaved differently.

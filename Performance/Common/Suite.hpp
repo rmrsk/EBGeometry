@@ -127,9 +127,10 @@ public:
   /**
    * @brief Add a case; it runs only if the build keeps it and the command line selects it.
    * @details A host build keeps the host cases; a CUDA or HIP build keeps only the host/device pairs
-   * (side hostdevice), and only with a visible GPU. A GPU build's host side is not vectorised (nvcc
-   * cannot compile host SIMD code), so host times come from a host build, and the pairs give the
-   * device's time, its speedup over the host and whether the two agree.
+   * (side hostdevice), and only with a visible GPU. A GPU build's host side is not compiled as a host
+   * build is (a CUDA build's is not vectorised, since nvcc cannot compile host SIMD code; a HIP build's
+   * has AVX2 and FMA), so host times come from a host build, and the pairs give the device's time, its
+   * speedup over the host and whether the two agree.
    * @param[in] a_name The case's name, from general to specific: component/input.../operation/precision/side.
    * @param[in] a_run  The case.
    */
