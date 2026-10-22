@@ -24,7 +24,7 @@
 #   CASES      glob(s) of case names to run, a CMake list         default: *
 #   ROUNDS     runs of each case per side (at least 2)            default: 3
 #   REPS       timed repetitions inside each run                  default: 5
-#   CORE       core to pin to with taskset; OFF to not pin        default: 2 (OFF when GPU is set)
+#   CORE       core to pin to with taskset; OFF to not pin        default: 2 (with GPU: OFF, and only OFF)
 #   MINOR      percent slower that asks for a look                default: 3
 #   MAJOR      percent slower that is a red flag                  default: 10
 #   SMOKE      ON: a quick check, not a measurement: one round of one repetition at the --smoke
@@ -47,7 +47,13 @@ foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;
   endif()
 endforeach()
 
-# A host comparison is pinned to one core; a GPU comparison's host side uses them all.
+# A host comparison is pinned to one core; a GPU comparison's host side uses them all, so pinning it
+# would measure the device against one thread (OpenMP sees only the cores it may run on).
+if(NOT GPU STREQUAL "OFF" AND DEFINED CORE AND NOT "${CORE}" STREQUAL "" AND NOT CORE STREQUAL "OFF")
+  message(FATAL_ERROR "Compare.cmake: CORE cannot be set with GPU: the host side of a GPU comparison uses every "
+                      "hardware thread but one, and pinned to one core it would run on one thread")
+endif()
+
 if(NOT DEFINED CORE OR "${CORE}" STREQUAL "")
   if(GPU STREQUAL "OFF")
     set(CORE 2)

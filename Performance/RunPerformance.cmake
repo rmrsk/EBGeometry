@@ -25,8 +25,8 @@
 #   --smoke                 tiny sizes, one repetition: run checks that the cases run; compare checks
 #                           that both commits build, every case runs on both sides, the checksums
 #                           match and host/device agree, with no timing verdicts (about a minute)
-#   --core <n> | --no-pin   the core to pin to with taskset (default 2 for a host run, none with --gpu,
-#                           whose host side uses every core), or no pinning
+#   --core <n> | --no-pin   the core to pin to with taskset (default 2), or no pinning; host runs only:
+#                           a --gpu run is never pinned, since its host side uses every core
 #   --help
 #
 # A host build runs the host cases, on one core; a GPU build runs the host/device pairs, the host side on
@@ -116,7 +116,13 @@ while(i LESS nargs)
   math(EXPR i "${i} + 1")
 endwhile()
 
-# A host run is pinned to one core; a GPU run's host side uses them all.
+# A host run is pinned to one core; a GPU run's host side uses them all, so pinning it would measure the
+# device against one thread (OpenMP sees only the cores it may run on).
+if(NOT gpu STREQUAL "OFF" AND NOT core STREQUAL "" AND NOT core STREQUAL "OFF")
+  message(FATAL_ERROR "run-performance: --core cannot be combined with --gpu: the host side of a GPU run uses "
+                      "every hardware thread but one, and pinned to one core it would run on one thread")
+endif()
+
 if(core STREQUAL "")
   if(gpu STREQUAL "OFF")
     set(core 2)

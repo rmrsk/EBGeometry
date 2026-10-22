@@ -202,7 +202,7 @@ compiler (``nvcc`` or ``hipcc`` for a GPU); its logic is ``Performance/RunPerfor
 The probes are built in Release for the host's full instruction set, incrementally, in
 ``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own.
 A host run is pinned to one core when ``taskset`` is available; a GPU run is not, since its host side
-uses every hardware thread but one (``--core <n>`` or ``--no-pin`` overrides either). The output is one table per probe,
+uses every hardware thread but one (``--core <n>`` or ``--no-pin`` changes a host run's pinning; a GPU run refuses ``--core``, since pinned to one core its host side would run on one thread). The output is one table per probe,
 grouped by component and input. A host build shows each case's number of items (for queries), median,
 spread, time per item and pool bytes:
 
