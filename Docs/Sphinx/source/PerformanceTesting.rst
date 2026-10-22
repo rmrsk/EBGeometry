@@ -412,6 +412,11 @@ carried over to other code by mistake, and CI computes them from git, not from t
 check the figures themselves: the receipt records that its author ran the comparison and what it found,
 and it is trusted the way a review is trusted to have been done. It makes the local comparison a
 required, visible part of every change that needs one; it is not a proof that the numbers were measured.
+The same holds for an acceptance: CI cannot tell who wrote the reason on an ``**Accepted:**`` line.
+Git history records the commit that wrote it and the account that pushed it, which identifies an
+outside contributor, but not whether an agent working under the maintainer's account wrote it on the
+maintainer's say-so; that rests on the rule that an agent writes a reason only on the maintainer's
+explicit acceptance (``CLAUDE.md``).
 
 Two pull requests that both pass can still race: once one merges and changes the base's code, the
 other's receipt is stale. Branch protection that requires a pull request to be up to date with its base
