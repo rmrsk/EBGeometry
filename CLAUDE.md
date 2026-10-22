@@ -361,8 +361,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    case runs in a fresh process, alternating between the sides (a host comparison pinned to one core). (`Scripts/run-performance.sh` with no command
    runs every case of the current tree, and a glob such as `'PointCloudBVH/*'` runs a subset.)
    Run the host comparison on the PR branch with its code committed and `--record`: it writes the
-   PR's **performance receipt**, `Performance/Receipt/host.md`, which CI requires (see 4). It refuses
-   a smoke run, a glob, or uncommitted changes to the library or the probes.
+   PR's **performance receipt**, `Performance/receipt.md` (its host section; the device run with
+   `--record` adds a device section), which CI requires (see 4). It refuses a smoke run, a glob, or
+   uncommitted changes to the library or the probes.
 2. **Report the result to the user in the terminal** (the table and the "Run it manually" block that
    the comparison prints), **commit the receipt** to the PR branch (pushing it, like any push, needs
    the user's go-ahead), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
@@ -385,9 +386,10 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
      rerun until a noisy result passes.
 4. **CI times nothing; it checks the receipt** (`Performance-receipt` in `.github/workflows/CI.yml`,
    `Performance/CheckReceipt.cmake`, required by `CI-passed`). It fails when the PR changes the library
-   or the probes and its receipt is missing, measured other code (any later code change makes a receipt
-   stale; a later docs-only commit does not), measured an outdated base (rebase and record again), or is
-   not green and has no reason after `accepted:` (a yellow verdict, a minor regression or a changed
+   or the probes and its receipt has no host section, or when any section present (host, or a device
+   one) measured other code (any later code change makes it stale; a later docs-only commit does not),
+   measured an outdated base (rebase and record again), or is not green and has no reason after
+   `accepted:` in that section (a yellow verdict, a minor regression or a changed
    checksum, needs one too). Write an accepted reason into the receipt only when the user explicitly
    accepts that verdict, and give it as the user did.
 

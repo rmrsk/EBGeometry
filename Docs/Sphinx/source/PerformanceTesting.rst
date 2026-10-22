@@ -362,35 +362,40 @@ comparison's result is committed with the pull request as its *receipt*:
 
 .. code-block:: bash
 
-   Scripts/run-performance.sh compare origin/dev --record      # writes Performance/Receipt/host.md
-   git add Performance/Receipt/host.md && git commit -m "Performance receipt"
+   Scripts/run-performance.sh compare origin/dev --record      # writes Performance/receipt.md
+   git add Performance/receipt.md && git commit -m "Performance receipt"
 
-``--record`` writes ``Performance/Receipt/host.md`` (``cuda.md`` or ``hip.md`` with ``--gpu``): the
-verdict, the two commits compared, the machine and the comparison's table. It refuses anything that
-could not stand for the pull request: a smoke check, a subset of the cases (a glob), or a working tree
-whose library or probes have uncommitted changes.
+The receipt is one file, ``Performance/receipt.md``, with a section per comparison: the host comparison,
+which ``--record`` writes and CI requires, and, when the change touches device code, a device
+comparison, which ``--record --gpu cuda`` (or ``hip``) adds. Each section holds its verdict, the two
+commits compared, the machine and the comparison's table. ``--record`` refuses anything that could not
+stand for the pull request: a smoke check, a subset of the cases (a glob), or a working tree whose
+library or probes have uncommitted changes. Recording one section keeps the others only if they
+measured the same code against the same base, and drops them otherwise, so the file never carries a
+section that measured other code.
 
-A receipt names the code it measured by two fingerprints: hashes of git's tree entries for what a
+Each section names the code it measured by two fingerprints: hashes of git's tree entries for what a
 comparison measures, the library (``Source/``, ``EBGeometry.hpp``) and the probes (``Performance/``,
-except its ``README.md`` and the receipts). CI's ``Performance-receipt`` job
-(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for its base branch, and
-passes only when
+except its ``README.md`` and the receipt). CI's ``Performance-receipt`` job
+(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for its base branch. It
+requires the host section, checks every section present (a device section is optional, but once
+recorded it must pass like the host one), and passes only when, for each,
 
-* the pull request's code is the code the receipt measured. A receipt names the commit before the one
+* the pull request's code is the code the section measured. A receipt names the commit before the one
   that adds it, so a later commit that changes only documentation or CI keeps it valid, while any
   change to the library or the probes makes it stale. An old receipt never stands for new code: a pull
   request that changes code and keeps the receipt it inherited fails;
-* the base branch's code is the base the receipt measured. When the base branch's code moves on (another
+* the base branch's code is the base the section measured. When the base branch's code moves on (another
   pull request merged), the pull request is rebased and its comparison recorded again;
 * the verdict is green, or a yellow or red verdict is accepted: the reason is written after
-  ``accepted:`` in the receipt (a minor regression that is expected, answers that changed for a reason,
+  ``accepted:`` in that section (a minor regression that is expected, answers that changed for a reason,
   a major regression the maintainer explicitly accepts). Every verdict is recorded; only green passes
   on its own.
 
 A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
-request leaves its receipt in the base branch, so the history of ``Performance/Receipt/host.md`` is
-the performance history of the branch, one comparison per change. A device receipt is optional: CI
-reports it, and whether it is current, but does not require it.
+request leaves its receipt in the base branch, so the history of ``Performance/receipt.md`` is the
+performance history of the branch, one comparison per change. Device sections appear where a change
+was measured on a GPU; regular device measurement is left to a future nightly run.
 
 Two pull requests that both pass can still race: once one merges and changes the base's code, the
 other's receipt is stale. Branch protection that requires a pull request to be up to date with its base

@@ -25,9 +25,10 @@
 #   --smoke                 tiny sizes, one repetition: run checks that the cases run; compare checks
 #                           that both commits build, every case runs on both sides, the checksums
 #                           match and host/device agree, with no timing verdicts (about a minute)
-#   --record                compare: write the result as the performance receipt CI checks,
-#                           Performance/Receipt/<host|cuda|hip>.md, to commit with the pull request (a
-#                           full comparison of committed code only: no --smoke, no GLOB)
+#   --record                compare: write the result into the performance receipt CI checks,
+#                           Performance/receipt.md (its host section, or its device section with --gpu),
+#                           to commit with the pull request (a full comparison of committed code only:
+#                           no --smoke, no GLOB)
 #   --core <n> | --no-pin   the core to pin to with taskset (default 2), or no pinning; host runs only:
 #                           a --gpu run is never pinned, since its host side uses every core
 #   --help

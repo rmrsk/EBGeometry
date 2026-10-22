@@ -48,9 +48,10 @@ the sides, and prints the comparison (also written to `build/performance/compare
 command to repeat it. A case is **minor** at 3% slower and **MAJOR** at 10% slower, in both cases only
 outside the 95% confidence interval over the runs (fresh processes; at least two per side).
 
-CI times nothing. It checks the pull request's performance receipt, `Receipt/host.md`: the result of
-the comparison above with `--record`, committed with the pull request. It must have measured the pull
-request's code, against its base as it is now (`CheckReceipt.cmake`, `Receipt.cmake`).
+CI times nothing. It checks the pull request's performance receipt, `receipt.md`: the result of the
+comparison above with `--record` (a host section, and a device section with `--gpu`), committed with the
+pull request. Every section must have measured the pull request's code, against its base as it is now,
+and be green or accepted (`CheckReceipt.cmake`, `Receipt.cmake`).
 
 CUDA 12.0's nvcc cannot compile the library; name a newer one with `--cuda-compiler`. `ctest --preset
 perf` runs every case at its `--smoke` size (checks that they run, times nothing).

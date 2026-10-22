@@ -32,8 +32,8 @@
 #              agreement, and no timing verdicts                   default: OFF
 #   WORK_DIR   where the trees, builds and results go             default: build/performance/compare
 #   FAIL_ON_MAJOR  exit non-zero on a major regression            default: ON
-#   RECORD     ON: write the result as this tree's performance receipt,  default: OFF
-#              Performance/Receipt/<host|cuda|hip>.md (see Receipt.cmake), to commit with the pull
+#   RECORD     ON: write the result as this comparison's section of     default: OFF
+#              the performance receipt, Performance/receipt.md (see Receipt.cmake), to commit with the pull
 #              request; CI checks it. Only for a full comparison of committed code: not with SMOKE or
 #              CASES, and not while the measured paths have uncommitted changes.
 
@@ -438,13 +438,11 @@ if(NOT verdict STREQUAL verdict_again)
   message(FATAL_ERROR "Compare.cmake: PerfCompare's report and verdict calls disagree (${verdict}, ${verdict_again})")
 endif()
 
-# The receipt (RECORD): the verdict, what it measured and the report, for CheckReceipt.cmake and readers.
-# Every verdict is recorded; only a green one passes CI on its own, a yellow or red one once a reason is
-# written after "accepted:".
+# The receipt (RECORD): this comparison's section of Performance/receipt.md (Receipt.cmake), for
+# CheckReceipt.cmake and readers. Every verdict is recorded; only a green one passes CI on its own, a
+# yellow or red one once a reason is written after "accepted:".
 if(RECORD)
   file(STRINGS "${WORK_DIR}/level.txt" level LIMIT_COUNT 1)
-  set(verdict_names green yellow red)
-  list(GET verdict_names ${level} verdict_name)
 
   if(GPU STREQUAL "OFF")
     set(receipt_side host)
@@ -452,43 +450,10 @@ if(RECORD)
     string(TOLOWER ${GPU} receipt_side)
   endif()
 
-  set(receipt "${REPO}/${PERF_RECEIPT_DIR}/${receipt_side}.md")
-  string(TIMESTAMP year "%Y")
-  string(TIMESTAMP today "%Y-%m-%d")
-  string(STRIP "${notes}" notes_text)
-
-  file(MAKE_DIRECTORY "${REPO}/${PERF_RECEIPT_DIR}")
-  file(WRITE "${receipt}" "<!--
-SPDX-FileCopyrightText: ${year} Robert Marskar <robert.marskar@sintef.no>
-
-SPDX-License-Identifier: GPL-3.0-or-later
--->
-
-<!-- A performance receipt, written by Scripts/run-performance.sh compare --record and checked by CI
-     (Performance/CheckReceipt.cmake). Commit it with the pull request; do not edit it, except to accept a
-     yellow or red verdict: write the reason after \"accepted:\" below. See PerformanceTesting.rst. -->
-
-<!--receipt
-version: ${PERF_RECEIPT_VERSION}
-side: ${receipt_side}
-verdict: ${verdict_name}
-accepted:
-base: ${base_sha}
-base-fingerprint: ${base_fingerprint}
-head: ${head_sha}
-head-fingerprint: ${head_fingerprint}
-cases: ${njobs}
-rounds: ${ROUNDS}
-reps: ${REPS}
-date: ${today}
--->
-
-Performance receipt (${receipt_side}): `${head_sha}` against `${base_sha}` (${BASE}), ${today}.
-
-${report_text}
-${notes_text}
-")
-  message(STATUS "Wrote the performance receipt ${PERF_RECEIPT_DIR}/${receipt_side}.md (${verdict_name}); commit it")
+  perf_write_receipt(
+    SIDE ${receipt_side} LEVEL ${level} BASE_REF ${BASE} BASE ${base_sha} HEAD ${head_sha}
+    BASE_FINGERPRINT ${base_fingerprint} HEAD_FINGERPRINT ${head_fingerprint} CASES ${njobs} ROUNDS ${ROUNDS}
+    REPS ${REPS} REPORT "${report_text}\n${notes}")
 endif()
 
 if(SMOKE)

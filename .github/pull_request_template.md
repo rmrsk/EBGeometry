@@ -12,8 +12,8 @@
 
 <!-- The comparison against the base branch, run locally on the committed PR branch:
      Scripts/run-performance.sh compare origin/<base> --record
-     (add a --gpu cuda run if the change touches device code). Commit its receipt,
-     Performance/Receipt/host.md, which CI checks, and paste build/performance/compare/report.md here.
+     (and with --gpu cuda if the change touches device code). Commit the receipt it writes,
+     Performance/receipt.md, which CI checks, and paste build/performance/compare/report.md here.
      Only a green receipt passes CI on its own: a yellow (minor regression, changed checksum) or red
      (MAJOR) one needs its reason after "accepted:" in the receipt, a MAJOR one the maintainer's. See Docs/Sphinx/source/PerformanceTesting.rst. -->
 
