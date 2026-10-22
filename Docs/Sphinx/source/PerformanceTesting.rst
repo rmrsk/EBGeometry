@@ -61,10 +61,13 @@ the verdicts`_).
 What the probes measure
 -----------------------
 
-Every family below runs in ``float`` and ``double`` (the precision is the fourth part of the name). A
-host build runs the ``host`` cases; a CUDA or HIP build runs only the ``hostdevice`` pairs (the side is
-the last part of the name; see `Host and device`_). Sizes are the full ones; ``--smoke`` uses a few
-thousand points or the dodecahedron. ``Scripts/run-performance.sh list`` prints the exact names.
+Every family below runs in ``float`` and ``double`` unless noted (the precision is the next-to-last
+part of the name). A host build runs the ``host`` cases; a CUDA or HIP build runs only the
+``hostdevice`` pairs (the side is the last part of the name; see `Host and device`_). A query's
+operation ends in the order its inputs are presented, ``-morton`` or ``-random`` (as drawn), on both
+sides alike, so a host case and a pair with the same operation measure the same thing. Sizes are the
+full ones; ``--smoke`` uses a few thousand points or the dodecahedron. ``Scripts/run-performance.sh
+list`` prints the exact names.
 
 **PointCloud** (``Performance/PointCloud``): ``PointCloudBVH`` (K = 4, W = 4) and ``PointCloudHashGrid``,
 each over 500,000 points, either ``uniform`` in the unit cube or on the unit-``sphere`` surface.
@@ -75,11 +78,13 @@ Family                                Build  Measures
 ``build``                             host   building the structure; also its pool bytes
 ``all1nn``, ``all8nn``                host   the batched k-nearest-neighbour graph
                                              (``allNearestNeighbors``)
-``closest``                           host   ``closestPoint`` at 200,000 random points near the cloud
-``closest-outside``                   host   ``closestPoint`` far outside the cloud (20,000 for the
+``closest-random``                    host   ``closestPoint`` at 200,000 random points near the cloud,
+                                             in the order drawn
+``closest-outside-random``            host   ``closestPoint`` far outside the cloud (20,000 for the
                                              BVH, 100 for the hash grid, which is slow out there)
-``neighbor``                          host   ``nearestNeighbor`` of every cloud point, in Morton order
-``neighbors8``, ``closest8``          host   the 8 nearest points, per point, in Morton order
+``neighbor-morton``                   host   ``nearestNeighbor`` of every cloud point, in Morton order
+``neighbors8-morton``,                host   the 8 nearest points, per point, in Morton order
+``closest8-morton``
 ``closest-morton``,                   GPU    ``closestPoint`` at 262,144 points near the cloud
 ``closest-random``
 ``neighbor-morton``                   GPU    ``nearestNeighbor`` of every cloud point
@@ -93,15 +98,16 @@ Family                                Build  Measures
 Family                                Build  Measures
 ====================================  =====  =====================================================
 ``TriMeshSDF/w4/build``               host   building a ``TriMeshSDF`` (K = 4, W = 4, SAH)
-``TriMeshSDF/w4/query``               host   signed distance at 100,000 random points in the
-                                             mesh's box grown 1.5 times
-``TriMeshSDF/w8/build``, ``query``    host   the same at the host-tuned width 8 (``float`` only)
+``TriMeshSDF/w4/query-random``        host   signed distance at 100,000 random points in the
+                                             mesh's box grown 1.5 times, in the order drawn
+``TriMeshSDF/w8/build``,              host   the same at the host-tuned width 8 (``float`` only)
+``query-random``
 ``TriMeshSDF/w4/query-morton``,       GPU    signed distance at 262,144 such points
 ``query-random``
 ``MeshSDF/build``                     host   building a ``MeshSDF`` (K = 4, at most 3 faces per leaf,
                                              SAH) from an already-read DCEL mesh
 ``MeshSDF/refit``                     host   10 refits of its BVH
-``MeshSDF/query``                     host   as for ``TriMeshSDF``
+``MeshSDF/query-random``              host   as for ``TriMeshSDF``
 ``MeshSDF/query-morton``,             GPU    as for ``TriMeshSDF``
 ``query-random``
 ====================================  =====  =====================================================
@@ -118,7 +124,8 @@ flat caps) and a mix of fills, as in a geometry of fibres; neighbours intersect,
 Family                                Build  Measures
 ====================================  =====  =====================================================
 ``<family>/build``                    host   building the union's BVH
-``<family>/query``                    host   signed distance at 200,000 random points in its box
+``<family>/query-random``             host   signed distance at 200,000 random points in its box,
+                                             in the order drawn
 ``<family>/query-morton``,            GPU    signed distance at 262,144 such points
 ``query-random``
 ====================================  =====  =====================================================

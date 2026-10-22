@@ -279,7 +279,7 @@ addCases(Perf::Suite&       a_suite,
     });
   }
 
-  a_suite.add(Perf::caseName({prefix, "closest", prec, "host"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "closest-random", prec, "host"}), [=](Perf::Case& c) {
     const auto          p = points(c);
     const auto          q = near(c, HostQueries);
     EBGeometry::Pool    pool(EBGeometry::hostMemoryResource());
@@ -290,7 +290,7 @@ addCases(Perf::Suite&       a_suite,
   });
 
   // Queries far outside the cloud: in a box five times the cloud's size.
-  a_suite.add(Perf::caseName({prefix, "closest-outside", prec, "host"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "closest-outside-random", prec, "host"}), [=](Perf::Case& c) {
     const auto p = points(c);
     const auto q =
       Perf::pointsInBox<T>(Perf::cube(T(-2), T(3)), c.size(a_farQueries, SmokeFarQueries), Perf::Seed::FarQueries);
@@ -304,7 +304,7 @@ addCases(Perf::Suite&       a_suite,
   // Every point's nearest neighbour and its KNearest nearest, the points visited in Morton order, and the
   // KNearest closest points to queries near the cloud, also in Morton order: per point, as a device
   // thread asks (all8nn above is the batched host path).
-  a_suite.add(Perf::caseName({prefix, "neighbor", prec, "host"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "neighbor-morton", prec, "host"}), [=](Perf::Case& c) {
     const auto          p = points(c);
     EBGeometry::Pool    pool(EBGeometry::hostMemoryResource());
     std::vector<Hit<T>> hits;
@@ -313,7 +313,7 @@ addCases(Perf::Suite&       a_suite,
     record(c, hits);
   });
 
-  a_suite.add(Perf::caseName({prefix, "neighbors" + k, prec, "host"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "neighbors" + k + "-morton", prec, "host"}), [=](Perf::Case& c) {
     c.param("k", KNearest);
 
     const auto            p = points(c);
@@ -324,7 +324,7 @@ addCases(Perf::Suite&       a_suite,
     record(c, results);
   });
 
-  a_suite.add(Perf::caseName({prefix, "closest" + k, prec, "host"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "closest" + k + "-morton", prec, "host"}), [=](Perf::Case& c) {
     c.param("k", KNearest);
 
     const auto            p = points(c);

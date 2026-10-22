@@ -56,7 +56,7 @@ addQueryCases(Perf::Suite& a_suite, const std::string& a_prefix, Make a_make, Pa
 {
   const std::string prec = Perf::precisionName<T>();
 
-  a_suite.add(Perf::caseName({a_prefix, "query", prec, "host"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({a_prefix, "query-random", prec, "host"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
     const SDF        sdf = a_make(pool, Perf::meshFile(c.smoke()));
     const auto       q   = queryPoints<T>(sdf.computeBoundingVolume(), c.size(HostQueries, SmokeQueries));

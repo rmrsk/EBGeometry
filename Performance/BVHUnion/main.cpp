@@ -154,7 +154,7 @@ addFamily(Perf::Suite& a_suite, const std::string& a_family, Objects a_objects)
     c.checksum(static_cast<double>(built.object->signedDistance(Vec3<T>(T(0.5), T(0.5), T(0.5)))));
   });
 
-  a_suite.add(Perf::caseName({prefix, "query", prec, "host"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({prefix, "query-random", prec, "host"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
     const auto       s = scene(c, pool, c.size(HostQueries, SmokeQueries));
     std::vector<T>   distances;
