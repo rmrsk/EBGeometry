@@ -18,8 +18,8 @@ side: host
 verdict: red
 base: 5e3febe
 base-fingerprint: 866e6a5180c53f362ab3ae9e222322a43f91e901
-head: ace1f2a
-head-fingerprint: 2d8a8466a05a8e693c788e658e743a189b36d505
+head: 97348da
+head-fingerprint: 16463cbe993d1610f833c1c5ff05e8aaa19ed961
 cases: 88
 rounds: 3
 reps: 5
@@ -30,8 +30,8 @@ date: 2026-10-22
 
 **Accepted:** This PR changes how builds are timed (glibc heap only, freed memory returned before each repetition), so its base and head sides measure builds differently; the build changes are the new measurement, not the library (queries do not move). The library is identical on both sides, and the extra build time is the extra page faults of a first build, at about 0.9 us each. Accepted by the maintainer.
 
-`ace1f2a` against `5e3febe` (origin/dev), 2026-10-22.
+`97348da` against `5e3febe` (origin/dev), 2026-10-22.
 
-**VERDICT: MAJOR regression in 8 cases
+**VERDICT: MAJOR regression in 9 cases
 
 <!-- END receipt host -->
