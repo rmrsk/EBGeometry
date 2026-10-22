@@ -362,8 +362,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    runs every case of the current tree, and a glob such as `'PointCloudBVH/*'` runs a subset.)
    Run the host comparison on the PR branch with its code committed and `--record`: it writes the
    PR's **performance receipt**, `Performance/receipt.md` (its host section; the device run with
-   `--record` adds a device section), which CI requires (see 4). It refuses a smoke run, a glob, or
-   uncommitted changes to the library or the probes.
+   `--record` adds a device section), which CI requires (see 4). It refuses a smoke run, a glob,
+   uncommitted changes to the library or the probes, or a run with skipped cases (a fresh worktree needs
+   `git submodule update --init` for the mesh cases).
 2. **Report the result to the user in the terminal** (the table and the "Run it manually" block that
    the comparison prints), **commit the receipt** to the PR branch (pushing it, like any push, needs
    the user's go-ahead), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
@@ -376,7 +377,7 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
      further** before going on. A yellow receipt fails CI until fixed or accepted (see 4).
    - **MAJOR** (10% or more): **red-flag it**. The PR must not be merged until the regression is
      fixed, or the user explicitly accepts it; record the reason in the PR's *Performance* section and
-     after `accepted:` in the receipt.
+     on the receipt's `**Accepted:**` line (replacing its `-`).
    - A **differing checksum** (of the values or of the points found) or **host/device disagreements**
      are flagged whatever the timing says: the sides computed different answers.
    - A **lost** case (ran on the base, skipped or missing on the PR) is red: find out why it no longer
@@ -388,10 +389,11 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    `Performance/CheckReceipt.cmake`, required by `CI-passed`). It fails when the PR changes the library
    or the probes and its receipt has no host section, or when any section present (host, or a device
    one) measured other code (any later code change makes it stale; a later docs-only commit does not),
-   measured an outdated base (rebase and record again), or is not green and has no reason after
-   `accepted:` in that section (a yellow verdict, a minor regression or a changed
-   checksum, needs one too). Write an accepted reason into the receipt only when the user explicitly
-   accepts that verdict, and give it as the user did.
+   measured an outdated base (rebase and record again), or is not green and has no reason on its
+   `**Accepted:**` line under the section's heading (a yellow verdict, a minor regression or a changed
+   checksum, needs one too); a pass on an accepted verdict shows as a warning. Write an accepted reason
+   into the receipt only when the user explicitly accepts that verdict, and give it as the user did:
+   CI cannot tell who wrote it, and git history shows only that it was pushed from the user's account.
 
 **Coverage: how wide the probes are, and when to add to them.** The probes cover each public
 structure where its cost lives: its build, its queries, and any in-place update (a refit), in both
