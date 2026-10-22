@@ -201,7 +201,8 @@ public:
       m_settings(a_settings),
       m_eye(a_camera.eye()),
       m_up(unit(a_camera.m_up)),
-      m_light(unit(a_settings.m_light))
+      m_baseLight(unit(a_settings.m_light)),
+      m_light(m_baseLight)
   {
     a_camera.horizontal(m_first, m_second);
 
@@ -242,6 +243,23 @@ public:
   eyeInside() const noexcept
   {
     return m_object.signedDistance(m_eye) < T(0);
+  }
+
+  /**
+   * @brief Move the light a little, for one of a pixel's rays: over a pixel's rays the light then covers a
+   * small disc, as a light of some size does, which softens the edges of hard shadows.
+   * @param[in] a_dx Where the ray is in its pixel, across (0 to 1).
+   * @param[in] a_dy Where the ray is in its pixel, down (0 to 1).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  jitterLight(const T a_dx, const T a_dy) noexcept
+  {
+    const Vec3T<T> t1 = unit(cross(
+      (std::abs(m_baseLight[0]) < T(0.9)) ? Vec3T<T>(T(1), T(0), T(0)) : Vec3T<T>(T(0), T(1), T(0)), m_baseLight));
+    const Vec3T<T> t2 = cross(m_baseLight, t1);
+
+    m_light = unit(m_baseLight + T(0.04) * ((a_dx - T(0.5)) * t1 + (a_dy - T(0.5)) * t2));
   }
 
   /**
@@ -306,7 +324,12 @@ private:
   Vec3T<T> m_up;
 
   /**
-   * @brief Unit direction towards the light.
+   * @brief Unit direction towards the light, as set.
+   */
+  Vec3T<T> m_baseLight;
+
+  /**
+   * @brief Unit direction towards the light, moved a little for each ray of a pixel (see jitterLight()).
    */
   Vec3T<T> m_light;
 
@@ -427,6 +450,25 @@ private:
   inline T
   occlusion(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
+    // A shape that is ray traced: the share of four short rays, tilted around the normal, that hit it.
+    if constexpr (RayForm<Sectioned<T, S>>::available) {
+      const Vec3T<T> t1 = unit(
+        cross((std::abs(a_normal[0]) < T(0.9)) ? Vec3T<T>(T(1), T(0), T(0)) : Vec3T<T>(T(0), T(1), T(0)), a_normal));
+      const Vec3T<T> t2     = cross(a_normal, t1);
+      const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
+
+      int blocked = 0;
+
+      for (int k = 0; k < 4; k++) {
+        const T        a = T(0.5) * pi<T> * T(k);
+        const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
+
+        blocked += firstHit(m_object, RayT<T>{origin, r}, T(0), T(0.07) * m_scale, m_rays).hit() ? 1 : 0;
+      }
+
+      return T(1) - T(0.2) * T(blocked);
+    }
+
     if (m_object.getDistanceQuality() == DistanceQuality::NotADistance) {
       return T(1);
     }
@@ -776,7 +818,7 @@ EBGEOMETRY_HOST_DEVICE
 inline PixelResult
 PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
 {
-  const RenderDetail::Shader<T, S> shader(m_shape, m_camera, m_settings);
+  RenderDetail::Shader<T, S> shader(m_shape, m_camera, m_settings);
 
   PixelResult result;
 
@@ -807,6 +849,10 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
     // Screen coordinates: x from -w/h to w/h, y from -1 (bottom) to 1 (top), times tan(fov/2).
     const T x = (T(2) * (column + dx) - w) / h * tanHalf;
     const T y = (h - T(2) * (row + dy)) / h * tanHalf;
+
+    if (n > 1U) {
+      shader.jitterLight(dx, dy);
+    }
 
     colour += shader.shade(RenderDetail::unit(forward + x * right + y * up), result);
   }

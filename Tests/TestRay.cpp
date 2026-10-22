@@ -7,6 +7,7 @@
 #include "TestGPU.hpp"
 #include "TestTapeUtils.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <string>
@@ -23,6 +24,55 @@ std::string
 dodecahedron()
 {
   return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl";
+}
+
+// The unit cube [0, 1]^3 with six quadrilateral faces, in the order z = 0, z = 1, y = 0, x = 1, y = 1,
+// x = 0.
+std::string
+cube()
+{
+  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/cube_quads.obj";
+}
+
+// Where a ray first crosses the surface of the unit cube after a_tMin, worked out face by face: the
+// distance (or -1), the face in cube()'s order, and its outward normal.
+template <class T>
+T
+cubeHit(const RayT<T>& a_ray, const T a_tMin, uint32_t& a_face, Vec3T<T>& a_normal)
+{
+  // Each face: its axis, its coordinate, its index in the file.
+  const int      axes[6]   = {2, 2, 1, 0, 1, 0};
+  const T        coords[6] = {T(0), T(1), T(0), T(1), T(1), T(0)};
+  const uint32_t ids[6]    = {0, 1, 2, 3, 4, 5};
+
+  T best = T(-1);
+
+  for (int f = 0; f < 6; f++) {
+    const int a = axes[f];
+    const T   d = a_ray.m_direction[size_t(a)];
+
+    if (d == T(0)) {
+      continue;
+    }
+
+    const T        t = (coords[f] - a_ray.m_origin[size_t(a)]) / d;
+    const Vec3T<T> p = a_ray.at(t);
+
+    bool inside = t >= a_tMin;
+
+    for (int b = 0; b < 3; b++) {
+      inside = inside && (b == a || (p[size_t(b)] >= T(0) && p[size_t(b)] <= T(1)));
+    }
+
+    if (inside && (best < T(0) || t < best)) {
+      best                = t;
+      a_face              = ids[f];
+      a_normal            = Vec3T<T>::zeros();
+      a_normal[size_t(a)] = (coords[f] > T(0.5)) ? T(1) : T(-1);
+    }
+  }
+
+  return best;
 }
 
 // Rays from a ring of origins around the origin, aimed at points spread over a box around it: some
@@ -452,6 +502,85 @@ TEMPLATE_TEST_CASE("Ray: intersects tells whether a segment crosses the surface"
   CHECK(intersects(sphere, outside, outside) == HitStatus::Miss);
 }
 
+TEMPLATE_TEST_CASE("Ray: a TriMeshSDF is ray traced exactly, with the face and the side it is crossed from",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  static_assert(RayForm<TriMeshSDF<T, 4, 4>>::available, "TriMeshSDF has a ray form");
+  static_assert(!RayForm<SphereSDF<T>>::available, "SphereSDF is sphere traced");
+
+  Pool pool(hostMemoryResource());
+
+  const auto mesh = Parser::readIntoTriMeshSDF<T, 4, 4>(cube(), pool, BVH::Construction::SAH);
+
+  size_t hits   = 0;
+  size_t misses = 0;
+
+  // Rays from all around, at targets spread over and beyond the cube (shifted to its centre).
+  for (const auto& r : fanOfRays<T>(T(3))) {
+    const RayT<T> ray{r.m_origin + T(0.5) * Vec3::ones(), r.m_direction};
+
+    uint32_t   face   = 0;
+    Vec3       normal = Vec3::zeros();
+    const T    tRef   = cubeHit(ray, T(0), face, normal);
+    const auto hit    = firstHit(mesh, ray, T(0), T(100));
+
+    // Rays through an edge may name either face; they are rare among these.
+    const Vec3 p          = ray.at(std::max(tRef, T(0)));
+    int        onBoundary = 0;
+
+    for (size_t a = 0; a < 3; a++) {
+      onBoundary += (std::abs(p[a]) < T(1e-3) || std::abs(p[a] - T(1)) < T(1e-3)) ? 1 : 0;
+    }
+
+    if (onBoundary > 1) {
+      continue;
+    }
+
+    if (tRef < T(0)) {
+      CHECK(hit.m_status == HitStatus::Miss);
+
+      misses++;
+    }
+    else {
+      REQUIRE(hit.hit());
+      CHECK(hit.m_exact);
+      CHECK(hit.m_entering);
+      CHECK(hit.m_primitive == face);
+      CHECK(std::abs(hit.m_t - tRef) <= T(looseMargin<T>()) * (T(1) + tRef));
+      CHECK(std::abs(hit.m_normal.length() - T(1)) < T(1e-4));
+
+      hits++;
+    }
+  }
+
+  CHECK(hits > 50U);
+  CHECK(misses > 20U);
+
+  // From the centre, the ray leaves through the face it points at.
+  const RayT<T> out{T(0.5) * Vec3::ones(), Vec3(0, 0, 1)};
+  const auto    leave = firstHit(mesh, out, T(0), T(100));
+
+  REQUIRE(leave.hit());
+  CHECK_FALSE(leave.m_entering);
+  CHECK(leave.m_primitive == 1U);
+  CHECK_THAT(leave.m_t, Catch::Matchers::WithinAbs(0.5, looseMargin<T>()));
+
+  // The interval is respected: starting past the near face finds the far one.
+  const RayT<T> through{Vec3(T(0.5), T(0.5), T(-2)), Vec3(0, 0, 1)};
+
+  CHECK_THAT(firstHit(mesh, through, T(0), T(100)).m_t, Catch::Matchers::WithinAbs(2.0, looseMargin<T>()));
+  CHECK_THAT(firstHit(mesh, through, T(2.5), T(100)).m_t, Catch::Matchers::WithinAbs(3.0, looseMargin<T>()));
+  CHECK(firstHit(mesh, through, T(0), T(1.5)).m_status == HitStatus::Miss);
+
+  // intersects() takes the ray form too.
+  CHECK(intersects(mesh, Vec3(T(0.5), T(0.5), T(-2)), Vec3(T(0.5), T(0.5), T(5))) == HitStatus::Hit);
+  CHECK(intersects(mesh, Vec3(T(2), T(0.5), T(-2)), Vec3(T(2), T(0.5), T(5))) == HitStatus::Miss);
+}
+
 TEMPLATE_TEST_CASE("Ray: firstHit on the device matches the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -484,4 +613,18 @@ TEMPLATE_TEST_CASE("Ray: firstHit on the device matches the host", "[Ray][gpu]",
 
   requireSameResults(evaluateOnDevice<T>(HitQuery<T, Tape<T>>{view}, rays),
                      evaluateOnHost<T>(HitQuery<T, Tape<T>>{tape}, rays));
+
+  // A ray-traced mesh.
+  Pool meshPool(hostMemoryResource());
+
+  using Tri = TriMeshSDF<T, 4, 4>;
+
+  const Tri mesh = Parser::readIntoTriMeshSDF<T, 4, 4>(dodecahedron(), meshPool, BVH::Construction::SAH);
+
+  meshPool.freeze();
+
+  const Pool meshDevicePool = Pool::mirror(meshPool, deviceTestResource());
+
+  requireSameResults(evaluateOnDevice<T>(HitQuery<T, Tri>{mesh.rebasedView(meshDevicePool)}, rays),
+                     evaluateOnHost<T>(HitQuery<T, Tri>{mesh}, rays));
 }

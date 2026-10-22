@@ -72,6 +72,11 @@ namespace EBGeometry {
   template Render::Stats Render::Renderer<PREC>::renderOnDevice<Tape<PREC>>( \
     const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \
   template void Render::view<Tape<PREC>>(const Tape<PREC>&, int, char**);    \
+  template struct RayForm<TriMeshSDF<PREC, 4, 4>>;                           \
+  template HitT<PREC> firstHit<PREC, TriMeshSDF<PREC, 4, 4>>(                \
+    const TriMeshSDF<PREC, 4, 4>&, const RayT<PREC>&, PREC, PREC, const RayOptions<PREC>&) noexcept; \
+  template Render::Stats Render::Renderer<PREC>::render<TriMeshSDF<PREC, 4, 4>>( \
+    const TriMeshSDF<PREC, 4, 4>&, const Render::Camera<PREC>&, Render::Image&) const; \
                                                                                \
   /* -- File readers ------------------------------------------------------*/ \
   template class PolygonSoup<PREC>;                                          \

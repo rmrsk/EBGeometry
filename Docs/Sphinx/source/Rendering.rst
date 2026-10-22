@@ -66,15 +66,27 @@ is a cut face, and it gets a colour of its own.
 What a pixel shows
 ------------------
 
-For a pixel, the renderer casts one ray (or :math:`n \times n` rays, averaged) and, where it meets the
-surface, combines diffuse and specular light from one direction, light from the sky, a soft shadow (from
-how closely a ray towards the light passes the surface) and ambient occlusion (from how far the
-distance falls short of the distance along the normal at a few points). A floor under the shape catches
-its shadow. Surfaces can be coloured uniformly or by primitive: by the leaf of a composed expression the
-surface belongs to, or by the face of a mesh.
+For a pixel, the renderer casts one ray (or :math:`n \times n` rays, averaged, with the light moved a
+little for each, as a light of some size would be) and, where it meets the surface, combines diffuse and
+specular light from one direction, light from the sky, a shadow and ambient occlusion. A floor under the
+shape catches its shadow. Surfaces can be coloured uniformly or by primitive: by the leaf of a composed
+expression the surface belongs to, or by the face of a mesh.
 
-Sphere tracing needs a few to a few hundred distance evaluations per ray. For analytic shapes and CSG
-that is fast; for a mesh, every evaluation is a closest-face search, which makes a mesh the slowest
-case. Following rays with ray--box and ray--triangle tests instead is planned.
+For a sphere-traced shape the shadow is soft (from how closely a ray towards the light passes the
+surface) and the occlusion comes from how far the distance falls short of the distance along the normal
+at a few points. Sphere tracing needs a few to a few hundred distance evaluations per ray: fast for
+analytic shapes and CSG, but slow for a mesh, where every evaluation is a closest-face search.
+
+Ray tracing
+-----------
+
+A shape can also answer a ray directly, without a distance at all. A triangle mesh under a BVH does:
+follow the ray through the BVH, nearest box first, test the triangles in each leaf it reaches, and stop
+at boxes that begin beyond the nearest crossing found. That costs one tree traversal per ray instead of
+dozens of closest-face searches, gives the crossing exactly, and gives the normal there from the
+triangle's vertex normals. EBGeometry ray traces a shape this way whenever the shape has a *ray form*,
+and sphere traces it otherwise. For a ray-traced shape the renderer also casts its shadow and its
+occlusion with rays: one towards the light (a hard shadow, softened at the edges by the moving light),
+and four short ones tilted around the normal.
 
 :ref:`Chap:ImplemRender` describes the classes, and :ref:`Chap:ExampleMeshSDF` opens the viewer on a mesh.

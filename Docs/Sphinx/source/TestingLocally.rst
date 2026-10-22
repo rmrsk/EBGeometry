@@ -368,12 +368,16 @@ Test coverage
        the solid as a leaving crossing; the tape's leaf and the mesh distance field's face at a hit; a
        value that is not a distance stepped and bisected; a march out of steps unresolved, never a
        miss; :cpp:func:`intersects` for segments across, through, past and inside a sphere, and the
-       tape's members against the free functions; and on a device against the host.
+       tape's members against the free functions; a ``TriMeshSDF`` of a cube ray traced exactly against
+       the crossing worked out face by face (distance, face, entering or leaving, the interval); and on a
+       device against the host, for analytic shapes, a tape and a ray-traced mesh.
    * - ``TestRender``
      - The renderer: ``Camera::fit`` and ``Camera::lookAt`` placing the eye; a sphere covering the
        pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the
        camera reported inside; colouring by primitive telling two leaves apart; the section plane
-       removing one side and showing the cut face; faces lying on the bounding box seen from outside;
+       removing one side and showing the cut face; a ray-traced mesh cube cut by the plane drawn as the
+       sphere-traced box is; a cancelled render stopping before any row, on the host and the device;
+       faces lying on the bounding box seen from outside;
        ``view()`` returning at once with ``--no-view``; the rejected settings and cameras; and a device
        render against the host's.
    * - ``TestFunctionQueries``
@@ -392,7 +396,10 @@ Test coverage
        packed), per-lane ``signedDistances`` consistency, a zero normal giving a negative distance
        on the SIMD and scalar paths alike at ``W`` = 4, 8 and 16, and bounding-volume construction
        from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle face-id retrieval
-       (``signedDistance(point, uint32_t&)``) and per-lane ``getFaceId`` with padding.
+       (``signedDistance(point, uint32_t&)``) and per-lane ``getFaceId`` with padding; ``rayHit`` finding
+       the nearest triangle crossed, its lane or face id, its normal and which way the ray crosses it,
+       missing between triangles, beyond the interval and edge on, and not slipping through a shared
+       diagonal.
    * - ``TestPointSoA``
      - :cpp:class:`PointSoAT`: minimum and maximum distances and per-lane distances against the
        closest and farthest packed point, unaffected by padding, for ``W`` = 4 and 8; the bounding

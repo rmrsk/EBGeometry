@@ -1402,12 +1402,13 @@ TriangleSoAT<T, W>::rayHit(const Vec3T<T>& a_origin,
                        u * Vec3T<T>{m_vnx[1][i], m_vny[1][i], m_vnz[1][i]} +
                        v * Vec3T<T>{m_vnx[2][i], m_vny[2][i], m_vnz[2][i]};
 
+    // A triangle given no vertex normals (they are unset, at the largest value) takes its face normal.
     const Vec3T<T> face{m_nx[i], m_ny[i], m_nz[i]};
     const T        length = n.length();
 
     a_tMax     = t;
     a_lane     = i;
-    a_normal   = (length > T(0)) ? n / length : face;
+    a_normal   = (std::isfinite(length) && length > T(0)) ? n / length : face;
     a_entering = dot(face, a_direction) < T(0);
     found      = true;
   }

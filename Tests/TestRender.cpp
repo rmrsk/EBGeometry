@@ -8,8 +8,10 @@
 #include "TestGPU.hpp"
 #include "TestTapeUtils.hpp"
 
+#include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -499,4 +501,98 @@ TEMPLATE_TEST_CASE("Render: view returns at once when asked not to open a window
   Render::view(PlaneSDF<T>(Vec3T<T>::zeros(), Vec3T<T>(T(0), T(1), T(0))), argc, argv);
 
   SUCCEED();
+}
+
+TEMPLATE_TEST_CASE("Render: a ray-traced mesh cut by the section plane draws as the sphere-traced box does",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const auto mesh = Parser::readIntoTriMeshSDF<T, 4, 4>(
+    std::string(EBGEOMETRY_TEST_DATA_DIR) + "/cube_quads.obj", pool, BVH::Construction::SAH);
+  const BoxSDF<T> box(Vec3::zeros(), Vec3::ones());
+
+  constexpr uint32_t size = 40;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_section       = true;
+  settings.m_sectionPoint  = T(0.5) * Vec3::ones();
+  settings.m_sectionNormal = Vec3(T(0.3), T(0.2), T(1));
+
+  const Render::Renderer<T> renderer(settings);
+  const auto                camera = Render::Camera<T>::fit(box.computeBoundingVolume());
+
+  Render::Image traced;
+  Render::Image marched;
+
+  const auto tracedStats  = renderer.render(mesh, camera, traced);
+  const auto marchedStats = renderer.render(box, camera, marched);
+
+  // The same pixels are covered, give or take the rim.
+  const uint32_t background = marched.at(0, 0);
+
+  size_t differ = 0;
+
+  for (size_t i = 0; i < traced.m_pixels.size(); i++) {
+    differ += ((traced.m_pixels[i] == background) != (marched.m_pixels[i] == background)) ? 1 : 0;
+  }
+
+  CHECK(differ <= size_t(2 * size));
+  CHECK(tracedStats.m_hits > 300U);
+  CHECK(tracedStats.m_insideHits == 0U);
+  CHECK(marchedStats.m_insideHits == 0U);
+
+  // Through the middle of the image the camera looks at the cut face, in the cut colour on both.
+  const Channels a = channels(traced.at(size / 2, size / 2));
+  const Channels b = channels(marched.at(size / 2, size / 2));
+
+  CHECK(std::abs(a.r - b.r) <= 6);
+  CHECK(std::abs(a.g - b.g) <= 6);
+  CHECK(std::abs(a.b - b.b) <= 6);
+}
+
+TEMPLATE_TEST_CASE("Render: a cancelled render stops early and says so", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+
+  const Render::Renderer<T> renderer(plain<T>(16));
+  const auto                camera = Render::Camera<T>::fit(sphere.computeBoundingVolume());
+
+  Render::Image image;
+
+  std::atomic<bool>     cancel{false};
+  std::atomic<uint32_t> rows{0};
+
+  // Not cancelled: every row is done.
+  const auto whole = renderer.render(sphere, camera, image, cancel, &rows);
+
+  CHECK(whole.m_complete);
+  CHECK(rows == 16U);
+
+  const auto onDevice = renderer.renderOnDevice(sphere, camera, image, cancel, &rows);
+
+  CHECK(onDevice.m_complete);
+  CHECK(rows == 32U);
+
+  // Cancelled before it starts: no row is done, and the image still has its size.
+  cancel = true;
+  rows   = 0;
+
+  const auto stopped = renderer.render(sphere, camera, image, cancel, &rows);
+
+  CHECK_FALSE(stopped.m_complete);
+  CHECK(rows == 0U);
+  CHECK(image.m_pixels.size() == 256U);
+
+  const auto stoppedOnDevice = renderer.renderOnDevice(sphere, camera, image, cancel, &rows);
+
+  CHECK_FALSE(stoppedOnDevice.m_complete);
+  CHECK(rows == 0U);
 }

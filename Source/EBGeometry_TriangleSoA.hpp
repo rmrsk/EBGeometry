@@ -192,8 +192,8 @@ public:
    * @param[in]     a_tMin      Start of the interval.
    * @param[in,out] a_tMax      End of the interval; lowered to the crossing when one is found.
    * @param[out]    a_lane      Lane of the triangle crossed (set only on a crossing).
-   * @param[out]    a_normal    Unit normal there, interpolated from the vertex normals (set only on a
-   * crossing).
+   * @param[out]    a_normal    Unit normal there, interpolated from the vertex normals, or the face normal for
+   * a triangle without vertex normals (set only on a crossing).
    * @param[out]    a_entering  Whether the ray enters the object there, from the triangle's outward
    * normal (set only on a crossing).
    * @return True if a crossing in [a_tMin, a_tMax] was found.

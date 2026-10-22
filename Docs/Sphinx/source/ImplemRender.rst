@@ -48,6 +48,14 @@ Two function templates work on any shape (anything with ``signedDistance()`` and
   box diagonal, or ``m_scale``, which a shape with an unbounded box needs).
 * How a shape is marched follows its distance quality: ``Exact`` and ``Bound`` shapes are sphere traced,
   ``NotADistance`` ones stepped and bisected. A ``Tape``'s quality is read at run time.
+* A shape with a *ray form* is ray traced instead: `RayForm <doxygen/html/structEBGeometry_1_1RayForm.html>`__
+  is a trait a shape type specializes, with ``available = true`` and a ``firstHit(shape, ray, tMin, tMax)``
+  of its own, and ``firstHit()`` and ``intersects()`` use it whenever it exists (``RayOptions`` then does not
+  apply). ``TriMeshSDF`` has one: the ray follows its BVH, nearest box first, and is tested against the
+  triangles in each leaf it reaches with ``TriangleAoSoA::rayHit()`` (Möller--Trumbore), skipping boxes
+  that begin beyond the nearest crossing found. Its hits are exact (``m_exact``), name the face, and carry
+  the normal interpolated from the vertex normals in ``HitT::m_normal`` (zero for a sphere-traced hit).
+  ``MeshSDF`` and ``FlatMeshSDF`` are sphere traced.
 
 `Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ has the two queries as members,
 ``tape.firstHit(ray, tMin, tMax)`` and ``tape.intersects(a, b)``, which forward to the free functions.
@@ -88,6 +96,12 @@ The classes are in namespace ``Render``:
   ``render(shape, camera, image)`` runs on the host's threads (``Settings::m_threads``, by default one
   per hardware thread); ``renderOnDevice(deviceShape, camera, image)`` runs the same pixel functor
   through ``GPU::transform()`` on a device view of the shape, as described in :ref:`Chap:RunningOnGPU`.
+  Overloads of both take a ``std::atomic<bool>`` that another thread sets to stop the render early (between
+  rows on the host, between bands of rows on a device), and a counter of the rows done; a stopped render
+  says so in ``Stats::m_complete``.
+* A shape with a ray form is shaded with rays: a hard shadow from one ray towards the light, and ambient
+  occlusion from four short rays around the normal. Other shapes get a soft shadow and occlusion from
+  their distance.
   Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
   trivially copyable functor that reads everything it needs about the shape (its box, its scale, where
   the floor goes) from the shape itself.
@@ -103,7 +117,10 @@ overloads take a camera and settings, and a device view of the shape to render o
 scroll to zoom; S, A and F toggle shadows, ambient occlusion and the floor, P colours by primitive, X
 cuts the shape with a section plane facing the camera (the arrow keys move it), G switches between the
 GPU and the CPU, R resets the camera, and Esc or Q closes the window. While the camera moves the window
-shows a quick half-resolution frame without shadows, and the full frame once it rests.
+shows a quick preview (one ray per pixel, no shadows, at a resolution it adapts to keep each preview at a
+few tens of milliseconds). Once the camera rests it refines on a background thread -- full resolution
+without shadows, then the full settings -- and moving the camera again cancels the refinement at once, so
+the window always answers.
 
 The window needs SDL2 and is compiled only on request (see :ref:`Sec:ConfigViewer`). Without it, and
 whenever no window should open -- the program was given ``--no-view``, there is no display, or SDL

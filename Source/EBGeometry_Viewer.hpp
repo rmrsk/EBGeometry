@@ -14,7 +14,8 @@
  * shadows, ambient occlusion and the floor, P to colour by primitive, X to cut the shape with a section
  * plane facing the camera (the up and down arrow keys move it), G to switch between the GPU and the CPU
  * (when given a device view), R to reset the camera, and Esc or Q to close it. While the camera moves the
- * view is drawn at half resolution without shadows; it is drawn in full once it stops.
+ * view is drawn as a quick preview, at a resolution adapted to keep it at a few tens of milliseconds; once
+ * the camera rests it is refined on a background thread, cancelled as soon as the camera moves again.
  * @author Robert Marskar
  */
 
