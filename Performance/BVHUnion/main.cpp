@@ -19,8 +19,10 @@
 
 namespace {
 
-// The branching factor, spelled out (see ../PointCloud/main.cpp).
-constexpr std::size_t K = 4;
+// The branching factor, the construction method and the leaf size, spelled out rather than taken from
+// the defaults (see ../PointCloud/main.cpp): SAH, at most K - 1 objects per leaf (the union's default).
+constexpr std::size_t K              = 4;
+constexpr std::size_t MaxLeafObjects = K - 1;
 
 // The lattice's side (46^3 = 97,336 objects) and the numbers of queries, at full and at smoke size.
 constexpr std::size_t Lattice      = 46;
@@ -106,6 +108,8 @@ addFamily(Perf::Suite& a_suite, const std::string& a_family, Objects a_objects)
   const std::string prefix = Perf::caseName({"BVHUnion", a_family});
   const std::string prec   = Perf::precisionName<T>();
 
+  const EBGeometry::BVH::ConstructionOptions options{MaxLeafObjects, 1, {}};
+
   // The family's objects and their boxes, recorded as the case's parameters.
   const auto objects = [=](Perf::Case& c, std::vector<Shape>& a_shapes, std::vector<AABB>& a_boxes) {
     a_objects(c.size(Lattice, SmokeLattice), a_shapes);
@@ -116,7 +120,14 @@ addFamily(Perf::Suite& a_suite, const std::string& a_family, Objects a_objects)
 
     c.param("objects", a_shapes.size());
     c.param("K", K);
+    c.param("maxLeafObjects", MaxLeafObjects);
   };
+
+  // The union, built in a_pool.
+  const auto build =
+    [=](EBGeometry::Pool& a_pool, const std::vector<Shape>& a_shapes, const std::vector<AABB>& a_boxes) {
+      return Union(a_pool, a_shapes, a_boxes, EBGeometry::BVH::Construction::SAH, options);
+    };
 
   // The union, built in a_pool, and random points in its box.
   const auto scene = [=](Perf::Case& c, EBGeometry::Pool& a_pool, std::size_t a_queries) {
@@ -125,7 +136,7 @@ addFamily(Perf::Suite& a_suite, const std::string& a_family, Objects a_objects)
 
     objects(c, shapes, boxes);
 
-    Union u(a_pool, shapes, boxes);
+    const Union u = build(a_pool, shapes, boxes);
 
     return std::make_pair(u, Perf::pointsInBox<T>(u.computeBoundingVolume(), a_queries, Perf::Seed::UnionQueries));
   };
@@ -137,7 +148,7 @@ addFamily(Perf::Suite& a_suite, const std::string& a_family, Objects a_objects)
     objects(c, shapes, boxes);
 
     const auto built =
-      Perf::measureBuild<Union>(c, [&](EBGeometry::Pool& a_pool) { return Union(a_pool, shapes, boxes); });
+      Perf::measureBuild<Union>(c, [&](EBGeometry::Pool& a_pool) { return build(a_pool, shapes, boxes); });
 
     c.poolBytes(built.pool->usedBytes());
     c.checksum(static_cast<double>(built.object->signedDistance(Vec3<T>(T(0.5), T(0.5), T(0.5)))));

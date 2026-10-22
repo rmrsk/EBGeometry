@@ -22,19 +22,27 @@
 
 namespace {
 
-// The branching factor and point-group width, spelled out rather than taken from the Default*
-// functions, so that a change to those defaults shows as a change of these cases' parameters.
-constexpr std::size_t K = 4;
-constexpr std::size_t W = 4;
+// The parameters that select code, spelled out rather than taken from the Default* functions and the
+// constructors' default arguments, so that a change to those defaults shows as a change of these cases'
+// parameters: PointCloudBVH's branching factor, point-group width and target points per leaf (its
+// default, 16 W), and PointCloudHashGrid's target points per cell (its default, 1).
+constexpr std::size_t K              = 4;
+constexpr std::size_t W              = 4;
+constexpr std::size_t TargetLeafSize = 16 * W;
+constexpr std::size_t TargetPerCell  = 1;
 
 // The number of neighbours the k-nearest cases ask for.
 constexpr std::size_t KNearest = 8;
 
-// The cloud's size and the numbers of queries, at full and at smoke size.
+// The cloud's size and the numbers of queries, at full and at smoke size. Queries far outside the
+// cloud are chosen per cloud type: a hash grid answers them slowly (it searches outward cell by cell),
+// so it gets few, and every repetition takes milliseconds for either type without taking minutes.
 constexpr std::size_t CloudPoints      = 500000;
 constexpr std::size_t SmokeCloudPoints = 2000;
 constexpr std::size_t HostQueries      = 200000;
 constexpr std::size_t PairQueries      = 262144;
+constexpr std::size_t BVHFarQueries    = 20000;
+constexpr std::size_t GridFarQueries   = 100;
 constexpr std::size_t SmokeQueries     = 1000;
 constexpr std::size_t SmokeFarQueries  = 10;
 
@@ -220,13 +228,16 @@ nearQueries(Shape a_shape, std::size_t a_n)
   return q;
 }
 
-// Every case for one cloud type, point set and precision. a_build(pool, points) builds the cloud.
-// a_farQueries is the number of queries far outside the cloud, chosen per cloud type: a hash grid
-// answers them slowly (it searches outward cell by cell), so it gets few, and every repetition takes
-// milliseconds for either type without taking minutes.
-template <class T, class Cloud, class Build>
+// Every case for one cloud type, point set and precision. a_build(pool, points) builds the cloud, and
+// a_params(case) records its parameters. a_farQueries is the number of queries far outside the cloud.
+template <class T, class Cloud, class Build, class Params>
 void
-addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::size_t a_farQueries, Build a_build)
+addCases(Perf::Suite&       a_suite,
+         const std::string& a_cloud,
+         Shape              a_shape,
+         std::size_t        a_farQueries,
+         Build              a_build,
+         Params             a_params)
 {
   const std::string prefix = Perf::caseName({a_cloud, shapeName(a_shape)});
   const std::string prec   = Perf::precisionName<T>();
@@ -237,8 +248,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     const std::size_t n = c.size(CloudPoints, SmokeCloudPoints);
 
     c.param("points", n);
-    c.param("K", K);
-    c.param("W", W);
+    a_params(c);
 
     return cloudPoints<T>(a_shape, n);
   };
@@ -404,19 +414,40 @@ using BVHCloud = EBGeometry::PointCloudBVH<T, K, W>;
 template <class T>
 using GridCloud = EBGeometry::PointCloudHashGrid<T>;
 
-// Every case for one cloud type and one point set, both precisions together.
-template <template <class> class Cloud>
+// Every PointCloudBVH case for one point set, both precisions together.
 void
-addCloud(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::size_t a_farQueries)
+addBVHCloud(Perf::Suite& a_suite, Shape a_shape)
 {
   const auto build = [](EBGeometry::Pool& a_pool, const auto& a_points) {
     using T = std::decay_t<decltype(a_points[0][0])>;
 
-    return Cloud<T>(a_pool, a_points);
+    return BVHCloud<T>(a_pool, a_points, TargetLeafSize);
   };
 
-  addCases<float, Cloud<float>>(a_suite, a_cloud, a_shape, a_farQueries, build);
-  addCases<double, Cloud<double>>(a_suite, a_cloud, a_shape, a_farQueries, build);
+  const auto params = [](Perf::Case& c) {
+    c.param("K", K);
+    c.param("W", W);
+    c.param("targetLeafSize", TargetLeafSize);
+  };
+
+  addCases<float, BVHCloud<float>>(a_suite, "PointCloudBVH", a_shape, BVHFarQueries, build, params);
+  addCases<double, BVHCloud<double>>(a_suite, "PointCloudBVH", a_shape, BVHFarQueries, build, params);
+}
+
+// Every PointCloudHashGrid case for one point set, both precisions together.
+void
+addGridCloud(Perf::Suite& a_suite, Shape a_shape)
+{
+  const auto build = [](EBGeometry::Pool& a_pool, const auto& a_points) {
+    using T = std::decay_t<decltype(a_points[0][0])>;
+
+    return GridCloud<T>(a_pool, a_points, T(TargetPerCell));
+  };
+
+  const auto params = [](Perf::Case& c) { c.param("targetPerCell", TargetPerCell); };
+
+  addCases<float, GridCloud<float>>(a_suite, "PointCloudHashGrid", a_shape, GridFarQueries, build, params);
+  addCases<double, GridCloud<double>>(a_suite, "PointCloudHashGrid", a_shape, GridFarQueries, build, params);
 }
 
 } // namespace
@@ -427,8 +458,8 @@ main(int argc, char** argv)
   Perf::Suite suite(argc, argv, "PointCloud");
 
   for (const Shape shape : {Shape::Uniform, Shape::Sphere}) {
-    addCloud<BVHCloud>(suite, "PointCloudBVH", shape, 20000);
-    addCloud<GridCloud>(suite, "PointCloudHashGrid", shape, 100);
+    addBVHCloud(suite, shape);
+    addGridCloud(suite, shape);
   }
 
   return suite.run();
