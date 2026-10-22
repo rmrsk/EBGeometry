@@ -169,12 +169,12 @@ Family                                Build  Measures
 ``csg-handwritten/signedDistance``    host   the same solid written by hand (the reference)
 ``smooth/signedDistance``             host   two smooth unions of spheres, smoothly cut by a box
 ``union64/signedDistance``            host   a union of 64 spheres, through the tape's BVH union
-``sphere/signedDistance``,            host   one sphere as a one-clause tape, and called directly
-``sphere-handwritten/signedDistance``
-``sphere/signedDistance-x16``,        host   the same, evaluated 16 times per query (per device
-``sphere-handwritten/...-x16``               thread)
-``chain16/signedDistance``,           host   a union of 16 spheres evaluated clause by clause (31
-``chain16-handwritten/...``                  clauses, no BVH), and as a hand-written loop
+``sphere/signedDistance``             host   one sphere as a one-clause tape (and ``sphere-``
+                                             ``handwritten``: called directly)
+``sphere/signedDistance-x16``         host   the same, evaluated 16 times per query (per device
+                                             thread)
+``chain16/signedDistance``            host   a union of 16 spheres evaluated clause by clause (31
+                                             clauses, no BVH; and ``chain16-handwritten``: a loop)
 ``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
 ====================================  =====  =====================================================
 
