@@ -101,6 +101,30 @@ function(perf_receipt_accepted text var)
   set(${var} "${value}" PARENT_SCOPE)
 endfunction()
 
+# perf_skipped_cases(<work_dir> <var>): the cases a comparison skipped, from its base.jsonl and head.jsonl,
+# as a list of "<side>: <case> (<reason>)", each once; empty if every case ran on both sides.
+function(perf_skipped_cases work_dir var)
+  set(skipped "")
+
+  foreach(side base head)
+    set(lines "")
+
+    if(EXISTS "${work_dir}/${side}.jsonl")
+      file(STRINGS "${work_dir}/${side}.jsonl" lines REGEX "\"skipped\":")
+    endif()
+
+    foreach(line IN LISTS lines)
+      string(REGEX MATCH "\"case\":\"([^\"]*)\"" _ "${line}")
+      set(name "${CMAKE_MATCH_1}")
+      string(REGEX MATCH "\"skipped\":\"([^\"]*)\"" _ "${line}")
+      list(APPEND skipped "${side}: ${name} (${CMAKE_MATCH_1})")
+    endforeach()
+  endforeach()
+
+  list(REMOVE_DUPLICATES skipped)
+  set(${var} "${skipped}" PARENT_SCOPE)
+endfunction()
+
 # perf_write_receipt(SIDE <host|cuda|hip> LEVEL <0|1|2> BASE_REF <ref> BASE <commit> HEAD <commit>
 #                    BASE_FINGERPRINT <hash> HEAD_FINGERPRINT <hash> CASES <n> ROUNDS <n> REPS <n>
 #                    REPORT <markdown>)

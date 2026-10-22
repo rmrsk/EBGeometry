@@ -90,6 +90,13 @@ if(RECORD)
     message(FATAL_ERROR "Compare.cmake: a receipt (RECORD) needs every case, not CASES=${CASES}")
   endif()
 
+  # The mesh cases read armadillo.obj from the submodule; without it they would be skipped on both
+  # sides, and the receipt would cover less than it claims (checked again, for every case, after the run).
+  if(NOT EXISTS "${REPO}/common-3d-test-models/data/armadillo.obj")
+    message(FATAL_ERROR "Compare.cmake: a receipt (RECORD) needs the mesh cases, and common-3d-test-models is "
+                        "not checked out in ${REPO}: run git submodule update --init")
+  endif()
+
   if(HEAD STREQUAL "WORKTREE")
     perf_measured_changes(changes)
 
@@ -442,6 +449,16 @@ endif()
 # CheckReceipt.cmake and readers. Every verdict is recorded; only a green one passes CI on its own, a
 # yellow or red one once a reason replaces the "-" on its "**Accepted:**" line.
 if(RECORD)
+  # A receipt stands for every case: a case skipped on either side (a missing input, a case that threw)
+  # leaves it covering less than it claims, so none is written.
+  perf_skipped_cases("${WORK_DIR}" skipped)
+
+  if(skipped)
+    string(REPLACE ";" "\n  " skipped_text "${skipped}")
+    message(FATAL_ERROR "Compare.cmake: no receipt written: these cases were skipped, so it would not cover "
+                        "every case:\n  ${skipped_text}")
+  endif()
+
   file(STRINGS "${WORK_DIR}/level.txt" level LIMIT_COUNT 1)
 
   if(GPU STREQUAL "OFF")

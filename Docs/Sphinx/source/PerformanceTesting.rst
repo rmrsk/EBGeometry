@@ -377,8 +377,9 @@ The receipt is one file, ``Performance/receipt.md``, with a section per comparis
 which ``--record`` writes and CI requires, and, when the change touches device code, a device
 comparison, which ``--record --gpu cuda`` (or ``hip``) adds. Each section holds its verdict, the two
 commits compared, the machine and the comparison's table. ``--record`` refuses anything that could not
-stand for the pull request: a smoke check, a subset of the cases (a glob), or a working tree whose
-library or probes have uncommitted changes. Recording one section keeps the others only if they
+stand for the pull request: a smoke check, a subset of the cases (a glob), a working tree whose
+library or probes have uncommitted changes, or a run in which a case was skipped on either side (it
+checks for the ``common-3d-test-models`` submodule before building, since every mesh case needs it). Recording one section keeps the others only if they
 measured the same code against the same base, and drops them otherwise, so the file never carries a
 section that measured other code.
 

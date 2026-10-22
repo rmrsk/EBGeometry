@@ -362,8 +362,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    runs every case of the current tree, and a glob such as `'PointCloudBVH/*'` runs a subset.)
    Run the host comparison on the PR branch with its code committed and `--record`: it writes the
    PR's **performance receipt**, `Performance/receipt.md` (its host section; the device run with
-   `--record` adds a device section), which CI requires (see 4). It refuses a smoke run, a glob, or
-   uncommitted changes to the library or the probes.
+   `--record` adds a device section), which CI requires (see 4). It refuses a smoke run, a glob,
+   uncommitted changes to the library or the probes, or a run with skipped cases (a fresh worktree needs
+   `git submodule update --init` for the mesh cases).
 2. **Report the result to the user in the terminal** (the table and the "Run it manually" block that
    the comparison prints), **commit the receipt** to the PR branch (pushing it, like any push, needs
    the user's go-ahead), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
