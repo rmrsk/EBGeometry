@@ -96,6 +96,32 @@ struct HasRuntimeQuality<S, std::void_t<decltype(std::declval<const S&>().getDis
 };
 
 /**
+ * @brief Whether a shape's ray form gives the span a ray is inside it in one step (RayForm<S>::span()).
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasSpan : std::false_type
+{
+};
+
+/**
+ * @brief Whether a shape's ray form gives the span a ray is inside it in one step (RayForm<S>::span()).
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasSpan<S,
+               T,
+               std::void_t<decltype(RayForm<S>::span(
+                 std::declval<const S&>(), std::declval<const RayT<T>&>(), std::declval<T&>(), std::declval<T&>()))>>
+  : std::true_type
+{
+};
+
+/**
  * @brief A shape's distance quality: its run-time one if it has one, its static one otherwise.
  * @details Internal helper; not part of the public API.
  * @tparam S Shape type.
@@ -496,14 +522,16 @@ cylinderSpan(const RayT<T>&  a_ray,
  * @tparam N Most spans held.
  * @param[in]  a_a   One.
  * @param[in]  a_b   The other.
- * @param[out] a_out Their union.
+ * @param[out] a_out Their union (not one of the two).
  */
 template <class T, uint32_t N>
 EBGEOMETRY_HOST_DEVICE
 inline void
 unite(const RaySpans<T, N>& a_a, const RaySpans<T, N>& a_b, RaySpans<T, N>& a_out) noexcept
 {
-  RaySpans<T, N> out;
+  RaySpans<T, N>& out = a_out;
+
+  out.clear();
 
   out.m_complete = a_a.m_complete && a_b.m_complete;
   out.m_exact    = a_a.m_exact && a_b.m_exact;
@@ -538,8 +566,6 @@ unite(const RaySpans<T, N>& a_a, const RaySpans<T, N>& a_b, RaySpans<T, N>& a_ou
   if (open) {
     out.add(cur.m_in, cur.m_out, cur.m_inPrimitive, cur.m_outPrimitive);
   }
-
-  a_out = out;
 }
 
 /**
@@ -549,14 +575,16 @@ unite(const RaySpans<T, N>& a_a, const RaySpans<T, N>& a_b, RaySpans<T, N>& a_ou
  * @tparam N Most spans held.
  * @param[in]  a_a   One.
  * @param[in]  a_b   The other.
- * @param[out] a_out Their intersection.
+ * @param[out] a_out Their intersection (not one of the two).
  */
 template <class T, uint32_t N>
 EBGEOMETRY_HOST_DEVICE
 inline void
 intersect(const RaySpans<T, N>& a_a, const RaySpans<T, N>& a_b, RaySpans<T, N>& a_out) noexcept
 {
-  RaySpans<T, N> out;
+  RaySpans<T, N>& out = a_out;
+
+  out.clear();
 
   out.m_complete = a_a.m_complete && a_b.m_complete;
   out.m_exact    = a_a.m_exact && a_b.m_exact;
@@ -585,8 +613,6 @@ intersect(const RaySpans<T, N>& a_a, const RaySpans<T, N>& a_b, RaySpans<T, N>& 
       j++;
     }
   }
-
-  a_out = out;
 }
 
 /**
@@ -598,14 +624,16 @@ intersect(const RaySpans<T, N>& a_a, const RaySpans<T, N>& a_b, RaySpans<T, N>& 
  * @param[in]  a_a    The spans.
  * @param[in]  a_tMin Start of the interval.
  * @param[in]  a_tMax End of the interval.
- * @param[out] a_out  The complement.
+ * @param[out] a_out  The complement (not a_a).
  */
 template <class T, uint32_t N>
 EBGEOMETRY_HOST_DEVICE
 inline void
 complement(const RaySpans<T, N>& a_a, const T a_tMin, const T a_tMax, RaySpans<T, N>& a_out) noexcept
 {
-  RaySpans<T, N> out;
+  RaySpans<T, N>& out = a_out;
+
+  out.clear();
 
   out.m_complete = a_a.m_complete;
   out.m_exact    = a_a.m_exact;
@@ -628,8 +656,6 @@ complement(const RaySpans<T, N>& a_a, const T a_tMin, const T a_tMax, RaySpans<T
   if (start < a_tMax) {
     out.add(start, a_tMax, startId, RaySpan<T>::Open);
   }
-
-  a_out = out;
 }
 
 /**
@@ -702,6 +728,32 @@ RaySpans<T, N>::add(const T a_in, const T a_out, const uint32_t a_inPrimitive, c
   else {
     m_complete = false;
   }
+}
+
+template <class T, uint32_t N>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RaySpans<T, N>::clear() noexcept
+{
+  m_count    = 0;
+  m_complete = true;
+  m_exact    = true;
+  m_resolved = true;
+}
+
+template <class T, uint32_t N>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RaySpans<T, N>::copyFrom(const RaySpans& a_other) noexcept
+{
+  for (uint32_t i = 0; i < a_other.m_count; i++) {
+    m_spans[i] = a_other.m_spans[i];
+  }
+
+  m_count    = a_other.m_count;
+  m_complete = a_other.m_complete;
+  m_exact    = a_other.m_exact;
+  m_resolved = a_other.m_resolved;
 }
 
 template <class T>
@@ -832,39 +884,14 @@ RayForm<CapsuleSDF<T>>::firstHit(const CapsuleSDF<T>& a_shape,
                                  const T              a_tMax,
                                  const RayOptions<T>& /*a_options*/) noexcept
 {
-  // The capsule is convex, so the ray is inside it over one span: the hull of its spans through the
-  // cylinder between the centres and through the two balls.
-  const Vec3T<T>& c1 = a_shape.getCenter1();
-  const Vec3T<T>& c2 = a_shape.getCenter2();
-  const T         r  = a_shape.getRadius();
+  const Vec3T<T>& c1     = a_shape.getCenter1();
+  const Vec3T<T>& c2     = a_shape.getCenter2();
+  const T         length = (c2 - c1).length();
 
-  const T length = (c2 - c1).length();
+  T in;
+  T out;
 
-  T in  = Math::Limits<T>::infinity();
-  T out = -Math::Limits<T>::infinity();
-
-  const auto widen = [&in, &out](const T a_in, const T a_out) noexcept {
-    if (a_in <= a_out) {
-      in  = Math::min(in, a_in);
-      out = Math::max(out, a_out);
-    }
-  };
-
-  T a;
-  T b;
-
-  RayDetail::ballSpan(a_ray, c1, r, a, b);
-  widen(a, b);
-  RayDetail::ballSpan(a_ray, c2, r, a, b);
-  widen(a, b);
-
-  if (length > T(0)) {
-    Vec3T<T> nA;
-    Vec3T<T> nB;
-
-    RayDetail::cylinderSpan(a_ray, c1, c2, r, a, nA, b, nB);
-    widen(a, b);
-  }
+  span(a_shape, a_ray, in, out);
 
   if (!(in <= out)) {
     return HitT<T>();
@@ -881,6 +908,119 @@ RayForm<CapsuleSDF<T>>::firstHit(const CapsuleSDF<T>& a_shape,
   };
 
   return RayDetail::convexHit(a_ray, in, normal(a_ray.at(in)), out, normal(a_ray.at(out)), a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<PlaneSDF<T>>::span(const PlaneSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept
+{
+  const Vec3T<T>& n    = a_shape.getNormal();
+  const T         v0   = dot(a_ray.m_origin - a_shape.getPoint(), n);
+  const T         rate = dot(a_ray.m_direction, n);
+  const T         inf  = Math::Limits<T>::infinity();
+
+  if (rate == T(0)) {
+    a_in  = (v0 < T(0)) ? -inf : inf;
+    a_out = (v0 < T(0)) ? inf : -inf;
+
+    return;
+  }
+
+  const T crossing = -v0 / rate;
+
+  a_in  = (rate < T(0)) ? crossing : -inf;
+  a_out = (rate < T(0)) ? inf : crossing;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<SphereSDF<T>>::span(const SphereSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept
+{
+  RayDetail::ballSpan(a_ray, a_shape.getCenter(), a_shape.getRadius(), a_in, a_out);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<BoxSDF<T>>::span(const BoxSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept
+{
+  Vec3T<T> normalIn;
+  Vec3T<T> normalOut;
+
+  a_in  = -Math::Limits<T>::infinity();
+  a_out = Math::Limits<T>::infinity();
+
+  for (size_t axis = 0; axis < 3; axis++) {
+    RayDetail::slab(
+      a_ray, axis, a_shape.getLowCorner()[axis], a_shape.getHighCorner()[axis], a_in, normalIn, a_out, normalOut);
+  }
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<CylinderSDF<T>>::span(const CylinderSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept
+{
+  Vec3T<T> normalIn;
+  Vec3T<T> normalOut;
+
+  RayDetail::cylinderSpan(
+    a_ray, a_shape.getCenter1(), a_shape.getCenter2(), a_shape.getRadius(), a_in, normalIn, a_out, normalOut);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<InfiniteCylinderSDF<T>>::span(const InfiniteCylinderSDF<T>& a_shape,
+                                      const RayT<T>&                a_ray,
+                                      T&                            a_in,
+                                      T&                            a_out) noexcept
+{
+  Vec3T<T> axis = Vec3T<T>::zeros();
+
+  axis[a_shape.getAxis()] = T(1);
+
+  RayDetail::tubeSpan(a_ray, a_shape.getCenter(), axis, a_shape.getRadius(), a_in, a_out);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<CapsuleSDF<T>>::span(const CapsuleSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept
+{
+  // The capsule is convex, so the ray is inside it over one span: the hull of its spans through the
+  // cylinder between the centres and through the two balls.
+  const Vec3T<T>& c1 = a_shape.getCenter1();
+  const Vec3T<T>& c2 = a_shape.getCenter2();
+  const T         r  = a_shape.getRadius();
+
+  a_in  = Math::Limits<T>::infinity();
+  a_out = -Math::Limits<T>::infinity();
+
+  const auto widen = [&a_in, &a_out](const T a_lo, const T a_hi) noexcept {
+    if (a_lo <= a_hi) {
+      a_in  = Math::min(a_in, a_lo);
+      a_out = Math::max(a_out, a_hi);
+    }
+  };
+
+  T a;
+  T b;
+
+  RayDetail::ballSpan(a_ray, c1, r, a, b);
+  widen(a, b);
+  RayDetail::ballSpan(a_ray, c2, r, a, b);
+  widen(a, b);
+
+  if ((c2 - c1).length() > T(0)) {
+    Vec3T<T> nA;
+    Vec3T<T> nB;
+
+    RayDetail::cylinderSpan(a_ray, c1, c2, r, a, nA, b, nB);
+    widen(a, b);
+  }
 }
 
 template <class T, size_t K, size_t W>
@@ -1133,7 +1273,24 @@ spansOf(const S&             a_shape,
         const RayOptions<T>& a_options,
         RaySpans<T, N>&      a_spans) noexcept
 {
-  a_spans = RaySpans<T, N>();
+  a_spans.clear();
+
+  // A convex shape gives its one span at once.
+  if constexpr (HasSpan<S, T>::value) {
+    T in;
+    T out;
+
+    RayForm<S>::span(a_shape, a_ray, in, out);
+
+    const T lo = Math::max(in, a_tMin);
+    const T hi = Math::min(out, a_tMax);
+
+    if (in <= out && lo <= hi) {
+      a_spans.add(lo, hi, (in >= a_tMin) ? 0U : RaySpan<T>::Open, (out <= a_tMax) ? 0U : RaySpan<T>::Open);
+    }
+
+    return;
+  }
 
   const auto box   = a_shape.computeBoundingVolume();
   const T    scale = scaleOf(box.getLowCorner(), box.getHighCorner(), a_options);

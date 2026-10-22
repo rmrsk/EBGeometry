@@ -1,0 +1,233 @@
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+// Performance cases for Tape's signed distance (issue #210): the classic CSG solid compiled into a tape
+// and the same solid written by hand, a tape of smooth unions, and a union of many spheres evaluated
+// through a BVH, in float and double, at random points in each object's box. A host build runs the host
+// cases; a CUDA or HIP build runs them as host/device pairs, which show the gap between a tape and the
+// hand-written solid on a device. See ../README.md and PerformanceTesting.rst.
+
+#include <cstddef>
+#include <string>
+#include <vector>
+
+#include <EBGeometry.hpp>
+
+#include "../Common/PerfHarness.hpp"
+
+namespace {
+
+// Queries per case, at full and at smoke size, and the number of spheres in the union (above the tape's
+// BVH threshold, TapeOptions::m_bvhUnionThreshold, spelled out).
+constexpr std::size_t HostQueries     = 400000;
+constexpr std::size_t PairQueries     = 1048576;
+constexpr std::size_t SmokeQueries    = 1000;
+constexpr std::size_t UnionSpheres    = 64;
+constexpr std::size_t BVHUnionMinimum = 8;
+
+template <class T>
+using Vec3 = EBGeometry::Vec3T<T>;
+
+// The classic CSG solid: a cube with its corners cut by a ball, drilled through along x, y and z.
+template <class T>
+EBGeometry::Expr<T>
+classicCSG()
+{
+  const EBGeometry::Expr<T> cube = EBGeometry::BoxSDF<T>(Vec3<T>(T(-1), T(-1), T(-1)), Vec3<T>(T(1), T(1), T(1)));
+  const EBGeometry::Expr<T> ball = EBGeometry::SphereSDF<T>(Vec3<T>::zeros(), T(1.35));
+
+  std::vector<EBGeometry::Expr<T>> drills;
+
+  for (std::size_t axis = 0; axis < 3; axis++) {
+    drills.push_back(EBGeometry::InfiniteCylinderSDF<T>(Vec3<T>::zeros(), T(0.55), axis));
+  }
+
+  return EBGeometry::Difference(EBGeometry::Intersection(cube, ball), EBGeometry::Union(drills));
+}
+
+// The same solid written by hand: the reference a tape is compared with.
+template <class T>
+struct DirectCSG
+{
+  EBGeometry::BoxSDF<T>              m_box;
+  EBGeometry::SphereSDF<T>           m_ball;
+  EBGeometry::InfiniteCylinderSDF<T> m_drill0;
+  EBGeometry::InfiniteCylinderSDF<T> m_drill1;
+  EBGeometry::InfiniteCylinderSDF<T> m_drill2;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3<T>& a_point) const noexcept
+  {
+    namespace Math = EBGeometry::Math;
+
+    const T body  = Math::max(m_box.signedDistance(a_point), m_ball.signedDistance(a_point));
+    const T holes = Math::min(m_drill0.signedDistance(a_point),
+                              Math::min(m_drill1.signedDistance(a_point), m_drill2.signedDistance(a_point)));
+
+    return Math::max(body, -holes);
+  }
+
+  // Not a pool handle: rebasing changes nothing.
+  [[nodiscard]] DirectCSG
+  rebasedView(const EBGeometry::Pool& /*a_pool*/) const noexcept
+  {
+    return *this;
+  }
+};
+
+template <class T>
+DirectCSG<T>
+directCSG()
+{
+  return DirectCSG<T>{EBGeometry::BoxSDF<T>(Vec3<T>(T(-1), T(-1), T(-1)), Vec3<T>(T(1), T(1), T(1))),
+                      EBGeometry::SphereSDF<T>(Vec3<T>::zeros(), T(1.35)),
+                      EBGeometry::InfiniteCylinderSDF<T>(Vec3<T>::zeros(), T(0.55), 0),
+                      EBGeometry::InfiniteCylinderSDF<T>(Vec3<T>::zeros(), T(0.55), 1),
+                      EBGeometry::InfiniteCylinderSDF<T>(Vec3<T>::zeros(), T(0.55), 2)};
+}
+
+// A smooth object: two smooth unions of spheres, smoothly cut by a box.
+template <class T>
+EBGeometry::Expr<T>
+smoothBlobs()
+{
+  std::vector<EBGeometry::Expr<T>> blobs;
+
+  for (int i = 0; i < 6; i++) {
+    blobs.push_back(EBGeometry::SphereSDF<T>(Vec3<T>(T(0.4) * T(i % 3) - T(0.4), T(0.5) * T(i / 3), T(0)), T(0.35)));
+  }
+
+  return EBGeometry::SmoothDifference(
+    EBGeometry::SmoothUnion(blobs, T(0.15)),
+    EBGeometry::BoxSDF<T>(Vec3<T>(T(-1), T(0.3), T(-0.1)), Vec3<T>(T(1), T(0.4), T(0.1))),
+    T(0.05));
+}
+
+// UnionSpheres spheres on a 4 x 4 x 4 lattice: one union, evaluated through a BVH.
+template <class T>
+EBGeometry::Expr<T>
+manySpheres()
+{
+  std::vector<EBGeometry::Expr<T>> spheres;
+
+  for (std::size_t i = 0; i < UnionSpheres; i++) {
+    spheres.push_back(
+      EBGeometry::SphereSDF<T>(Vec3<T>(T(i % 4), T((i / 4) % 4), T(i / 16)), T(0.3) + T(0.05) * T(i % 3)));
+  }
+
+  return EBGeometry::Union(spheres);
+}
+
+// A tape's signed distance at one point, as the pairs need it.
+template <class T, class Shape>
+struct Distance
+{
+  Shape m_shape;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3<T>& a_point) const noexcept
+  {
+    return m_shape.signedDistance(a_point);
+  }
+};
+
+// Random points in a box grown by a quarter of its size on every side.
+template <class T>
+std::vector<Vec3<T>>
+pointsAround(const EBGeometry::BoundingVolumes::AABBT<T>& a_box, std::size_t a_n)
+{
+  const Vec3<T> grow = T(0.25) * (a_box.getHighCorner() - a_box.getLowCorner());
+
+  return Perf::pointsInBox<T>(
+    EBGeometry::BoundingVolumes::AABBT<T>(a_box.getLowCorner() - grow, a_box.getHighCorner() + grow),
+    a_n,
+    Perf::Seed::TapeQueries);
+}
+
+// The cases for one object: its signed distance on the host and as a host/device pair. a_make(case, pool)
+// builds it in the pool; a_box is the box its points are drawn around.
+template <class T, class Shape, class Make>
+void
+addObject(Perf::Suite&                                 a_suite,
+          const std::string&                           a_input,
+          const EBGeometry::BoundingVolumes::AABBT<T>& a_box,
+          Make                                         a_make)
+{
+  const std::string prec = Perf::precisionName<T>();
+
+  a_suite.add(Perf::caseName({"Tape", a_input, "signedDistance", prec, "host"}), [=](Perf::Case& c) {
+    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+    const Shape    shape  = a_make(c, pool);
+    const auto     points = pointsAround(a_box, c.size(HostQueries, SmokeQueries));
+    std::vector<T> distances;
+
+    Perf::measureHostQuery(c, Distance<T, Shape>{shape}, points, distances);
+
+    c.checksum(Perf::checksumOf(distances));
+    c.poolBytes(pool.usedBytes());
+  });
+
+  a_suite.add(Perf::caseName({"Tape", a_input, "signedDistance", prec, "hostdevice"}), [=](Perf::Case& c) {
+    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+    const Shape shape  = a_make(c, pool);
+    const auto  points = pointsAround(a_box, c.size(PairQueries, SmokeQueries));
+
+    const auto distances = Perf::measureHostAndDevice<T>(
+      c,
+      pool,
+      points,
+      [&](const EBGeometry::Pool& a_pool) { return Distance<T, Shape>{shape.rebasedView(a_pool)}; },
+      Perf::agreeDistance<T>);
+
+    c.checksum(Perf::checksumOf(distances));
+  });
+}
+
+template <class T>
+void
+addPrecision(Perf::Suite& a_suite)
+{
+  using Tape = EBGeometry::Tape<T>;
+  using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
+
+  EBGeometry::TapeOptions options;
+
+  options.m_bvhUnionThreshold = BVHUnionMinimum;
+
+  const auto tapeOf = [options](const EBGeometry::Expr<T>& a_expr) {
+    return [options, a_expr](Perf::Case& c, EBGeometry::Pool& a_pool) {
+      const Tape tape(a_pool, a_expr, options);
+
+      c.param("clauses", tape.getNumClauses());
+      c.param("bvhUnionMinimum", BVHUnionMinimum);
+
+      return tape;
+    };
+  };
+
+  const AABB cube(Vec3<T>(T(-1), T(-1), T(-1)), Vec3<T>(T(1), T(1), T(1)));
+
+  addObject<T, Tape>(a_suite, "csg", cube, tapeOf(classicCSG<T>()));
+  addObject<T, DirectCSG<T>>(
+    a_suite, "csg-handwritten", cube, [](Perf::Case&, EBGeometry::Pool&) { return directCSG<T>(); });
+  addObject<T, Tape>(a_suite, "smooth", smoothBlobs<T>().computeBoundingVolume(), tapeOf(smoothBlobs<T>()));
+  addObject<T, Tape>(a_suite, "union64", manySpheres<T>().computeBoundingVolume(), tapeOf(manySpheres<T>()));
+}
+
+} // namespace
+
+int
+main(int argc, char** argv)
+{
+  Perf::Suite suite(argc, argv, "Tape");
+
+  addPrecision<float>(suite);
+  addPrecision<double>(suite);
+
+  return suite.run();
+}

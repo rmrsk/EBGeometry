@@ -13,8 +13,9 @@
  * on a sign change when it is not (DistanceQuality::NotADistance). A query that cannot decide within
  * its step budget says so (HitStatus::Unresolved) instead of reporting a miss.
  *
- * A shape with a ray form of its own (see RayForm) is ray traced instead: TriMeshSDF follows the ray
- * through its BVH and intersects its triangles, which is exact and much faster than sphere tracing.
+ * A shape with a ray form of its own (see RayForm) is ray traced instead, which is exact and much faster
+ * than sphere tracing: the plane, sphere, box, cylinders and capsule in closed form, TriMeshSDF through its
+ * BVH and triangles, and Tape node by node (see Tape::firstHit()).
  * @author Robert Marskar
  */
 
@@ -218,6 +219,18 @@ struct RayForm<PlaneSDF<T>>
   static inline HitT<T>
   firstHit(
     const PlaneSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the plane: [a_in, a_out], or a_out < a_in if it misses (the whole line, not
+   * clipped to an interval). What the queries need to find every crossing at once.
+   * @param[in]  a_shape The plane.
+   * @param[in]  a_ray   Ray.
+   * @param[out] a_in    Where the ray enters (-infinity if it starts inside for good).
+   * @param[out] a_out   Where it leaves (+infinity if it never does).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  span(const PlaneSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept;
 };
 
 /**
@@ -245,6 +258,18 @@ struct RayForm<SphereSDF<T>>
   static inline HitT<T>
   firstHit(
     const SphereSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the sphere: [a_in, a_out], or a_out < a_in if it misses (the whole line, not
+   * clipped to an interval). What the queries need to find every crossing at once.
+   * @param[in]  a_shape The sphere.
+   * @param[in]  a_ray   Ray.
+   * @param[out] a_in    Where the ray enters (-infinity if it starts inside for good).
+   * @param[out] a_out   Where it leaves (+infinity if it never does).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  span(const SphereSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept;
 };
 
 /**
@@ -271,6 +296,18 @@ struct RayForm<BoxSDF<T>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   static inline HitT<T>
   firstHit(const BoxSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the box: [a_in, a_out], or a_out < a_in if it misses (the whole line, not
+   * clipped to an interval). What the queries need to find every crossing at once.
+   * @param[in]  a_shape The box.
+   * @param[in]  a_ray   Ray.
+   * @param[out] a_in    Where the ray enters (-infinity if it starts inside for good).
+   * @param[out] a_out   Where it leaves (+infinity if it never does).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  span(const BoxSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept;
 };
 
 /**
@@ -298,6 +335,18 @@ struct RayForm<CylinderSDF<T>>
   static inline HitT<T>
   firstHit(
     const CylinderSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the cylinder: [a_in, a_out], or a_out < a_in if it misses (the whole line, not
+   * clipped to an interval). What the queries need to find every crossing at once.
+   * @param[in]  a_shape The cylinder.
+   * @param[in]  a_ray   Ray.
+   * @param[out] a_in    Where the ray enters (-infinity if it starts inside for good).
+   * @param[out] a_out   Where it leaves (+infinity if it never does).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  span(const CylinderSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept;
 };
 
 /**
@@ -328,6 +377,18 @@ struct RayForm<InfiniteCylinderSDF<T>>
            T                             a_tMin,
            T                             a_tMax,
            const RayOptions<T>&          a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the cylinder: [a_in, a_out], or a_out < a_in if it misses (the whole line, not
+   * clipped to an interval). What the queries need to find every crossing at once.
+   * @param[in]  a_shape The cylinder.
+   * @param[in]  a_ray   Ray.
+   * @param[out] a_in    Where the ray enters (-infinity if it starts inside for good).
+   * @param[out] a_out   Where it leaves (+infinity if it never does).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  span(const InfiniteCylinderSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept;
 };
 
 /**
@@ -355,6 +416,18 @@ struct RayForm<CapsuleSDF<T>>
   static inline HitT<T>
   firstHit(
     const CapsuleSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the capsule: [a_in, a_out], or a_out < a_in if it misses (the whole line, not
+   * clipped to an interval). What the queries need to find every crossing at once.
+   * @param[in]  a_shape The capsule.
+   * @param[in]  a_ray   Ray.
+   * @param[out] a_in    Where the ray enters (-infinity if it starts inside for good).
+   * @param[out] a_out   Where it leaves (+infinity if it never does).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  span(const CapsuleSDF<T>& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept;
 };
 
 /**
@@ -472,6 +545,21 @@ struct RaySpans
   EBGEOMETRY_HOST_DEVICE
   inline void
   add(T a_in, T a_out, uint32_t a_inPrimitive, uint32_t a_outPrimitive) noexcept;
+
+  /**
+   * @brief Empty the set.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  clear() noexcept;
+
+  /**
+   * @brief Copy another set, only as many spans as it holds.
+   * @param[in] a_other The set.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  copyFrom(const RaySpans& a_other) noexcept;
 };
 
 /**

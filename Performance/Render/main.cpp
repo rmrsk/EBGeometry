@@ -33,6 +33,9 @@ constexpr std::uint32_t MaxSteps  = 512;
 // Image sides: camera rays for the CSG solid and for the mesh (whose rays cost about a hundred times
 // more), and the frame; each at full and at smoke size.
 constexpr std::size_t CSGSide       = 512;
+constexpr std::size_t UnionSide     = 256;
+constexpr std::size_t MixedSide     = 256;
+constexpr std::size_t UnionSpheres  = 64;
 constexpr std::size_t MeshSide      = 96;
 constexpr std::size_t FrameSide     = 192;
 constexpr std::size_t SmokeSide     = 16;
@@ -57,6 +60,37 @@ classicCSG()
   }
 
   return EBGeometry::Difference(EBGeometry::Intersection(cube, ball), EBGeometry::Union(drills));
+}
+
+// UnionSpheres spheres on a 4 x 4 x 4 lattice: one union, which the tape's ray program follows through a
+// BVH.
+template <class T>
+EBGeometry::Expr<T>
+latticeOfSpheres()
+{
+  std::vector<EBGeometry::Expr<T>> spheres;
+
+  for (std::size_t i = 0; i < UnionSpheres; i++) {
+    spheres.push_back(
+      EBGeometry::SphereSDF<T>(Vec3<T>(T(i % 4), T((i / 4) % 4), T(i / 16)), T(0.3) + T(0.05) * T(i % 3)));
+  }
+
+  return EBGeometry::Union(spheres);
+}
+
+// A box with a torus and a smooth union cut out of it: the ray program follows the box and the cut, and
+// sphere traces the torus and the smooth union (no ray form) along the ray.
+template <class T>
+EBGeometry::Expr<T>
+mixedCut()
+{
+  const auto smooth = EBGeometry::SmoothUnion(EBGeometry::SphereSDF<T>(Vec3<T>(T(1), T(0), T(0)), T(0.5)),
+                                              EBGeometry::SphereSDF<T>(Vec3<T>(T(1), T(0.6), T(0)), T(0.4)),
+                                              T(0.2));
+
+  return EBGeometry::Difference(
+    EBGeometry::BoxSDF<T>(Vec3<T>(T(-1), T(-1), T(-1)), Vec3<T>(T(1), T(1), T(1))),
+    EBGeometry::Union(EBGeometry::TorusSDF<T>(Vec3<T>(T(0), T(1), T(0)), T(0.9), T(0.25)), smooth));
 }
 
 // The rays through the pixel centres of an n x n image, from the camera Render::Camera::fit() places
@@ -248,6 +282,16 @@ addPrecision(Perf::Suite& a_suite)
 
   addFirstHit<T, EBGeometry::Tape<T>>(a_suite, "csg", CSGSide, [](Perf::Case&, EBGeometry::Pool& a_pool) {
     return EBGeometry::Tape<T>(a_pool, classicCSG<T>());
+  });
+
+  addFirstHit<T, EBGeometry::Tape<T>>(a_suite, "union64", UnionSide, [](Perf::Case& c, EBGeometry::Pool& a_pool) {
+    c.param("spheres", UnionSpheres);
+
+    return EBGeometry::Tape<T>(a_pool, latticeOfSpheres<T>());
+  });
+
+  addFirstHit<T, EBGeometry::Tape<T>>(a_suite, "mixed", MixedSide, [](Perf::Case&, EBGeometry::Pool& a_pool) {
+    return EBGeometry::Tape<T>(a_pool, mixedCut<T>());
   });
 
   addFirstHit<T, Tri>(a_suite, "mesh", MeshSide, [](Perf::Case& c, EBGeometry::Pool& a_pool) {

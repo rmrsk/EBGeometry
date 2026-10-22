@@ -22,6 +22,7 @@ What is in Performance/
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVHUnion/main.cpp        BVHUnion
      Render/main.cpp          firstHit() and the renderer
+     Tape/main.cpp            Tape's signed distance
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
        Statistics.hpp           quantiles, summaries, the bootstrap interval    (shared with PerfCompare)
@@ -146,8 +147,28 @@ Family                                Build  Measures
                                              hundred times more)
 ``csg/frame``                         host   one 192 × 192 frame on one thread: one ray per pixel,
                                              with shadows and ambient occlusion
-``csg/firstHit-camera``,              GPU    ``firstHit()`` along the same rays on both sides
-``mesh/firstHit-camera``
+``union64/firstHit``                  host   the same through a union of 64 spheres on a lattice
+                                             (a BVH union in the tape's ray program), 256 × 256
+``mixed/firstHit``                    host   the same through a box with a torus and a smooth
+                                             union cut out, which the ray program sphere traces,
+                                             256 × 256
+``<input>/firstHit-camera``           GPU    ``firstHit()`` along the same rays on both sides
+====================================  =====  =====================================================
+
+**Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
+grown by a quarter on every side), against the same solid written by hand, as issue #210 asks. On an
+RTX A4000 in single precision the tape is about 35 times slower than the hand-written solid, on one host
+core about 3 times.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``csg/signedDistance``                host   the classic CSG solid compiled into a ``Tape``, at
+                                             400,000 points
+``csg-handwritten/signedDistance``    host   the same solid written by hand (the reference)
+``smooth/signedDistance``             host   two smooth unions of spheres, smoothly cut by a box
+``union64/signedDistance``            host   a union of 64 spheres, through the tape's BVH union
+``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
 ====================================  =====  =====================================================
 
 Where the results go

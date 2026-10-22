@@ -1265,7 +1265,7 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
     const T length = dirs[np - 1].length();
 
     if (!(length > T(0))) {
-      a_out = Spans();
+      a_out.clear();
 
       return;
     }
@@ -1289,7 +1289,7 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
       Spans& out = values[nv++];
 
-      out = Spans();
+      out.clear();
 
       if (length > T(0)) {
         const RayT<T> unitRay{origins[np - 1], dirs[np - 1] / length};
@@ -1337,7 +1337,7 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
       RayDetail::complement(values[nv - 1], a_tMin, a_tMax, out);
 
-      values[nv - 1] = out;
+      values[nv - 1].copyFrom(out);
 
       break;
     }
@@ -1354,14 +1354,14 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
         RayDetail::intersect(values[nv - 1], values[nv], out);
       }
 
-      values[nv - 1] = out;
+      values[nv - 1].copyFrom(out);
 
       break;
     }
     case Op::RayUnionBVH: {
       Spans& acc = values[nv++];
 
-      acc = Spans();
+      acc.clear();
 
       if constexpr (D > 0) {
         const TapeDetail::UnionBVH<T, BranchingRatio>& parts = m_layout.m_rayUnions.at(a_base, c.m_a);
@@ -1382,7 +1382,7 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
             RayDetail::unite(acc, operand, merged);
 
-            acc = merged;
+            acc.copyFrom(merged);
           };
 
         const auto unboundedOperands = unbounded.getPrimitives();
@@ -1449,7 +1449,7 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
   EBGEOMETRY_EXPECT(nv == 1U && np == 1U);
 
-  a_spans = values[0];
+  a_spans.copyFrom(values[0]);
 }
 
 template <class T, class... UserPrimitives>
@@ -1502,7 +1502,7 @@ Tape<T, UserPrimitives...>::dispatchRayPrimitive(const uint32_t       a_type,
       else {
         EBGEOMETRY_EXPECT(false);
 
-        a_spans = Spans();
+        a_spans.clear();
       }
 
       return;
@@ -1514,7 +1514,7 @@ Tape<T, UserPrimitives...>::dispatchRayPrimitive(const uint32_t       a_type,
   else {
     EBGEOMETRY_EXPECT(false);
 
-    a_spans = Spans();
+    a_spans.clear();
   }
 }
 

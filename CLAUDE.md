@@ -536,7 +536,14 @@ does not follow this template, edit the PR body to conform to it.
   copies multiply with the depth (an optimised device compile of `TestTape` did not finish). Keep
   them out of line, and mark any new function called that way the same. A new operation needs an
   `ExprDetail::Kind`, its box and distance-quality rule in the builder,
-  clauses in `TapeDetail::Op` and a case in `Tape::evaluate`.
+  clauses in `TapeDetail::Op` and a case in `Tape::evaluate`. The tape also compiles a *ray program*
+  (`Tape::rayEvaluate<D>`, the `Ray*` ops, `Tape::firstHit()`): spans of a ray inside each node, with
+  primitives that have a `RayForm`, affine maps, complements, (BVH) unions and intersections followed
+  exactly and every other node compiled into a scalar sub-program that is sphere traced inside its box.
+  It keeps the evaluator's rules (fixed stacks, `evaluate<D>`-style depth template, out of line). A new
+  operation that a ray can follow gets a ray clause and a case in `Tape::rayEvaluate` (and in
+  `Compiler::capable`); otherwise it is sphere traced with no change. A shape gets a ray form by
+  specializing `RayForm<S>` in `EBGeometry_Ray.hpp` (`firstHit()`, and `span()` if it is convex).
 - **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
   SDF, union and tape keeps it. Code that needs the opposite sign (AMReX and Chombo read negative as
   fluid) flips it itself, in its own adapter (`return -tape.signedDistance(p);`); never put a
