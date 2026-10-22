@@ -147,19 +147,21 @@ endfunction()
 
 # perf_write_receipt(SIDE <host|cuda|hip> LEVEL <0|1|2> BASE_REF <ref> BASE <commit> HEAD <commit>
 #                    BASE_FINGERPRINT <hash> HEAD_FINGERPRINT <hash> CASES <n> ROUNDS <n> REPS <n>
-#                    REPORT <markdown>)
+#                    REPORT_FILE <path>)
 # Write SIDE's section of the receipt in the working tree. The other sections are kept only if they
 # measured the same code against the same base (both fingerprints equal), and dropped otherwise, so a
-# receipt never carries a stale section.
+# receipt never carries a stale section. The report (markdown) comes in a file: passed as an argument, a
+# ';' in it (as in a red verdict's text) would split it into a list and cut the section short.
 function(perf_write_receipt)
-  cmake_parse_arguments(R "" "SIDE;LEVEL;BASE_REF;BASE;HEAD;BASE_FINGERPRINT;HEAD_FINGERPRINT;CASES;ROUNDS;REPS;REPORT"
-                        "" ${ARGN})
+  cmake_parse_arguments(
+    R "" "SIDE;LEVEL;BASE_REF;BASE;HEAD;BASE_FINGERPRINT;HEAD_FINGERPRINT;CASES;ROUNDS;REPS;REPORT_FILE" "" ${ARGN})
 
   set(verdict_names green yellow red)
   list(GET verdict_names ${R_LEVEL} verdict)
   string(TIMESTAMP year "%Y")
   string(TIMESTAMP today "%Y-%m-%d")
-  string(STRIP "${R_REPORT}" report)
+  file(READ "${R_REPORT_FILE}" report)
+  string(STRIP "${report}" report)
 
   if(R_SIDE STREQUAL "host")
     set(title "Host comparison")

@@ -363,14 +363,17 @@ Test coverage
        managed memory evaluated on the device through its own pool; ``primitiveAt()`` against a
        brute-force pick over the leaves for unions and intersections (with and without a BVH),
        differences, smooth unions and intersections, Blur and Mollify, the depth-first numbering
-       through maps and value operations, and on a device against the host.
+       through maps and value operations, and on a device against the host; the ray query
+       (``firstHit()``) against sphere tracing the same tape: sharp CSG, maps, a BVH union, a hole,
+       mixed with sphere-traced nodes, a mesh, a tape in a tape, a deep copy, and on a device.
    * - ``TestRay``
      - :cpp:func:`firstHit` against closed forms: a sphere from outside and from inside, a box face on,
        an unbounded plane, intervals that end before or start past a crossing; a hole seen from inside
        the solid as a leaving crossing; the tape's leaf and the mesh distance field's face at a hit; a
        value that is not a distance stepped and bisected; a march out of steps unresolved, never a
        miss; :cpp:func:`intersects` for segments across, through, past and inside a sphere, and the
-       tape's members against the free functions; a ``TriMeshSDF`` of a cube ray traced exactly against
+       tape's members against the free functions; every closed-form ray form (plane, sphere, box,
+       cylinders, capsule) against sphere tracing the same shape; a ``TriMeshSDF`` of a cube ray traced exactly against
        the crossing worked out face by face (distance, face, entering or leaving, the interval); and on a
        device against the host, for analytic shapes, a tape and a ray-traced mesh.
    * - ``TestRender``

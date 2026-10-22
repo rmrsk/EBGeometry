@@ -72,21 +72,39 @@ specular light from one direction, light from the sky, a shadow and ambient occl
 shape catches its shadow. Surfaces can be coloured uniformly or by primitive: by the leaf of a composed
 expression the surface belongs to, or by the face of a mesh.
 
-For a sphere-traced shape the shadow is soft (from how closely a ray towards the light passes the
-surface) and the occlusion comes from how far the distance falls short of the distance along the normal
-at a few points. Sphere tracing needs a few to a few hundred distance evaluations per ray: fast for
-analytic shapes and CSG, but slow for a mesh, where every evaluation is a closest-face search.
+The shadow comes from one ray towards the light, softened at the edges by the light moving a little
+between a pixel's rays, and the occlusion from four short rays tilted around the normal: the share of
+them that hit the shape darkens the point.
 
 Ray tracing
 -----------
 
-A shape can also answer a ray directly, without a distance at all. A triangle mesh under a BVH does:
-follow the ray through the BVH, nearest box first, test the triangles in each leaf it reaches, and stop
-at boxes that begin beyond the nearest crossing found. That costs one tree traversal per ray instead of
-dozens of closest-face searches, gives the crossing exactly, and gives the normal there from the
-triangle's vertex normals. EBGeometry ray traces a shape this way whenever the shape has a *ray form*,
-and sphere traces it otherwise. For a ray-traced shape the renderer also casts its shadow and its
-occlusion with rays: one towards the light (a hard shadow, softened at the edges by the moving light),
-and four short ones tilted around the normal.
+Sphere tracing needs a few to a few hundred distance evaluations per ray: fast enough for a handful of
+analytic shapes, slower through a composed expression, and slow for a mesh, where every evaluation is a
+closest-face search. Many shapes can instead answer a ray directly, without a distance at all.
+
+* **Analytic shapes in closed form.** Where a ray enters and leaves a plane, a sphere, a box, a
+  cylinder or a capsule is the root of a quadratic or a slab test.
+* **A triangle mesh under a BVH.** Follow the ray through the BVH, nearest box first, test the triangles
+  in each leaf it reaches, and stop at boxes that begin beyond the nearest crossing found: one tree
+  traversal per ray instead of dozens of closest-face searches, and the normal there from the
+  triangle's vertex normals.
+
+EBGeometry ray traces a shape this way whenever the shape has a *ray form*, and sphere traces it
+otherwise.
+
+Composed objects are ray traced node by node. Along a ray, every node of the expression is described by
+its *spans*, the intervals of the ray inside it. A primitive with a ray form gives its spans from its
+crossings; a union of spans is their union, an intersection their intersection, a complement the gaps
+between them; an affine map (translation, rotation, scaling, reflection) moves the ray into the
+operand's frame, where the ray's parameter is unchanged, so the operand's spans are the node's. A union
+of many objects tests only the objects whose boxes the ray meets. A node with no ray form -- a smooth
+blend, an offset, a blur, an elongation, a repetition, a shape that cannot answer a ray -- is sphere
+traced along the ray inside its box, and its spans join the others. The object's first crossing is
+then the first end of its spans: exact, unless a sphere-traced node was crossed.
+
+:math:`\max` and :math:`\min` of distances become intersection and union of spans, so sharp CSG keeps
+its sharp edges exactly; a sphere tracer stops within its tolerance of an edge, and near-coincident
+surfaces can then make it report a sliver thinner than that tolerance.
 
 :ref:`Chap:ImplemRender` describes the classes, and :ref:`Chap:ExampleMeshSDF` opens the viewer on a mesh.

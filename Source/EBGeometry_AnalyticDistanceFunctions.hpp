@@ -153,6 +153,28 @@ public:
     return BoundingVolumes::AABBT<T>(Vec3T<T>::min(), Vec3T<T>::max());
   }
 
+  /**
+   * @brief Get the point on the plane.
+   * @return The point on the plane.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getPoint() const noexcept
+  {
+    return m_point;
+  }
+
+  /**
+   * @brief Get the unit normal of the plane.
+   * @return The unit normal of the plane.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getNormal() const noexcept
+  {
+    return m_normal;
+  }
+
 protected:
   /**
    * @brief Point on plane.
@@ -1023,6 +1045,39 @@ public:
     return BoundingVolumes::AABBT<T>(lo, hi);
   }
 
+  /**
+   * @brief Get the point on the axis.
+   * @return The point on the axis.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter() const noexcept
+  {
+    return m_center;
+  }
+
+  /**
+   * @brief Get the radius.
+   * @return The radius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius() const noexcept
+  {
+    return m_radius;
+  }
+
+  /**
+   * @brief Get the coordinate axis the cylinder runs along.
+   * @return The coordinate axis the cylinder runs along.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const size_t&
+  getAxis() const noexcept
+  {
+    return m_axis;
+  }
+
 protected:
   /**
    * @brief Center point on the cylinder axis.
@@ -1174,6 +1229,39 @@ public:
   {
     return BoundingVolumes::AABBT<T>(min(m_center1, m_center2) - m_radius * Vec3T<T>::ones(),
                                      max(m_center1, m_center2) + m_radius * Vec3T<T>::ones());
+  }
+
+  /**
+   * @brief Get the centre of the first end cap.
+   * @return The centre of the first end cap.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter1() const noexcept
+  {
+    return m_center1;
+  }
+
+  /**
+   * @brief Get the centre of the second end cap.
+   * @return The centre of the second end cap.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter2() const noexcept
+  {
+    return m_center2;
+  }
+
+  /**
+   * @brief Get the radius.
+   * @return The radius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius() const noexcept
+  {
+    return m_radius;
   }
 
 protected:

@@ -467,10 +467,13 @@ if(RECORD)
     string(TOLOWER ${GPU} receipt_side)
   endif()
 
+  # The report goes to the receipt through a file, so that a ';' in it (a red verdict has one) survives.
+  file(WRITE "${WORK_DIR}/receipt-report.md" "${report_text}\n${notes}")
+
   perf_write_receipt(
     SIDE ${receipt_side} LEVEL ${level} BASE_REF ${BASE} BASE ${base_sha} HEAD ${head_sha}
     BASE_FINGERPRINT ${base_fingerprint} HEAD_FINGERPRINT ${head_fingerprint} CASES ${njobs} ROUNDS ${ROUNDS}
-    REPS ${REPS} REPORT "${report_text}\n${notes}")
+    REPS ${REPS} REPORT_FILE "${WORK_DIR}/receipt-report.md")
 endif()
 
 if(SMOKE)

@@ -88,6 +88,10 @@ enum class Op : uint8_t
   UnionBVH,       ///< Push the minimum over the sub-programs in BVH union m_a.
   SmoothUnionBVH, ///< Push the smooth minimum of the two smallest sub-programs in BVH union m_a; smoothing
                   ///< length params[m_b], exponential blend if m_flags is 1.
+
+  RayMark, ///< No-op for the value. For a ray (Tape::firstHit()): the next m_a clauses are a subtree
+           ///< it cannot follow, sphere traced along the ray in the box at params[m_b..m_b+6), with
+           ///< distance quality m_flags.
 };
 
 /**
@@ -423,6 +427,22 @@ public:
   static constexpr uint32_t NoPrimitive = 0xFFFFFFFFU;
 
   /**
+   * @brief Spans along a ray a node holds when firstHit() follows the clauses.
+   */
+  static constexpr uint32_t RaySpanCount = 8;
+
+  /**
+   * @brief Span sets a sub-program may hold at once when firstHit() follows it; an expression that needs
+   * more is sphere traced as a whole.
+   */
+  static constexpr uint32_t RayValueStackSize = 8;
+
+  /**
+   * @brief The spans of a ray inside the object.
+   */
+  using Spans = RaySpans<T, RaySpanCount>;
+
+  /**
    * @brief The primitive types: the built-in ones, then UserPrimitives.
    */
   using Primitives = TapeDetail::Primitives<T, UserPrimitives...>;
@@ -481,6 +501,12 @@ public:
      * @brief Number of leaves in the expression, counting each occurrence.
      */
     uint32_t m_numPrimitives = 0;
+
+    /**
+     * @brief Whether firstHit() follows the clauses along a ray (see Op::RayMark), rather than sphere
+     * tracing the whole object.
+     */
+    bool m_rayable = false;
   };
 
   /**
@@ -541,10 +567,19 @@ public:
 
   /**
    * @brief The first crossing of the object's surface along a ray, entering or leaving.
-   * @details The free function firstHit() on this tape: it sphere traces where the value is a distance
-   * or a bound on one and steps and bisects where it is not (Perlin noise, say), and says when it could
-   * not decide (HitStatus::Unresolved) instead of reporting a miss. HitT::m_primitive is the leaf at the
-   * crossing (see primitiveAt()). Callable on a device like signedDistance().
+   * @details What the free function firstHit() does on a tape, through its ray form (see RayForm). The
+   * tape is ray traced: its clauses are followed along the ray, each node finding the spans of the ray
+   * inside it. A primitive with a ray form
+   * (the plane, sphere, box, cylinders, capsule, TriMeshSDF, a tape) finds them exactly; a union,
+   * intersection and complement combine their operands' spans, a BVH union only those of the operands
+   * whose boxes the ray meets, and an affine map (translation, rotation, scaling, reflection) moves the
+   * ray into its operand's frame. Any other node (smooth blends, offsets, Blur, Mollify, elongation,
+   * repetition, a primitive with no ray form) is sphere traced along the ray inside its box, stepped and
+   * bisected where its value is not a distance. An expression too deep for the ray evaluator is sphere
+   * traced as a whole. A query says when it could not decide (HitStatus::Unresolved) rather than
+   * report a miss. HitT::m_primitive is the leaf at the crossing (see primitiveAt()); HitT::m_normal is
+   * left zero, and HitT::m_exact is true when no node was sphere traced. Callable on a device like
+   * signedDistance().
    * @param[in] a_ray     Ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
    * @param[in] a_tMax    End of the interval (may be infinite).
@@ -692,6 +727,46 @@ private:
            const PoolLocation& a_location) const noexcept;
 
   /**
+   * @brief Evaluate a range of clauses that pushes one value: a sub-program, or a subtree of one.
+   * @details The body of evaluate(), inlined into it.
+   * @tparam D     How deep the clauses' own calls may still nest.
+   * @tparam Track Whether to also find the leaf that decides the value.
+   * @param[in] a_begin    First clause.
+   * @param[in] a_end      One past the last clause.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value, and its leaf if Track.
+   */
+  template <unsigned D, bool Track>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Result<Track>
+  evaluateClauses(uint32_t            a_begin,
+                  uint32_t            a_end,
+                  const Vec3T<T>&     a_point,
+                  const void*         a_base,
+                  const PoolLocation& a_location) const noexcept;
+
+  /**
+   * @brief The value of a subtree marked by Op::RayMark, which a ray query sphere traces.
+   * @details Out of line in a device pass, so that the evaluator's body is not inlined into the march.
+   * @param[in] a_begin    First clause.
+   * @param[in] a_end      One past the last clause.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  evaluateRange(uint32_t            a_begin,
+                uint32_t            a_end,
+                const Vec3T<T>&     a_point,
+                const void*         a_base,
+                const PoolLocation& a_location) const noexcept;
+
+  /**
    * @brief Evaluate a primitive, dispatching on its type index from I onwards.
    * @tparam I First type index to test.
    * @param[in] a_type     Type index.
@@ -751,6 +826,157 @@ private:
                 const PoolLocation&       a_location) const noexcept;
 
   /**
+   * @brief A subtree of clauses (one marked by Op::RayMark) seen as a shape, in a box, so that it can be
+   * sphere traced along a ray.
+   * @details Internal helper. Holds the tape by pointer: it lives only for one ray query.
+   */
+  struct Fallback
+  {
+    /**
+     * @brief The tape.
+     */
+    const Tape* m_tape;
+
+    /**
+     * @brief First clause of the subtree.
+     */
+    uint32_t m_begin;
+
+    /**
+     * @brief One past its last clause.
+     */
+    uint32_t m_end;
+
+    /**
+     * @brief The pool base.
+     */
+    const void* m_base;
+
+    /**
+     * @brief The pool location.
+     */
+    const PoolLocation* m_location;
+
+    /**
+     * @brief The sub-program's box.
+     */
+    BV m_box;
+
+    /**
+     * @brief Its distance quality.
+     */
+    DistanceQuality m_quality;
+
+    /**
+     * @brief The sub-program's value at a point.
+     * @param[in] a_point Point.
+     * @return The value.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline T
+    signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+    /**
+     * @brief The box.
+     * @return The box.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline BV
+    computeBoundingVolume() const noexcept;
+
+    /**
+     * @brief The distance quality.
+     * @return The quality.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline DistanceQuality
+    getDistanceQuality() const noexcept;
+  };
+
+  /**
+   * @brief Follow a sub-program's clauses along a ray: the spans of the ray inside its object.
+   * @details Primitives give their spans (they all have a ray form here), point maps move the ray, a
+   * negation is a complement, a minimum and a maximum are a union and an intersection, a BVH union the
+   * union of its operands whose boxes the ray meets, and a subtree marked by Op::RayMark is sphere traced
+   * along the ray inside its box.
+   * @tparam D How deep the sub-program's own calls may still nest.
+   * @param[in]  a_program  Sub-program.
+   * @param[in]  a_origin   Ray origin.
+   * @param[in]  a_dir      Ray direction (not necessarily of unit length; spans are in its units).
+   * @param[in]  a_tMin     Start of the interval.
+   * @param[in]  a_tMax     End of the interval.
+   * @param[in]  a_options  How to march the nodes that are sphere traced.
+   * @param[in]  a_base     The pool base.
+   * @param[in]  a_location The pool location.
+   * @param[out] a_spans    The spans.
+   */
+  template <unsigned D>
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  rayEvaluate(uint32_t             a_program,
+              const Vec3T<T>&      a_origin,
+              const Vec3T<T>&      a_dir,
+              T                    a_tMin,
+              T                    a_tMax,
+              const RayOptions<T>& a_options,
+              const void*          a_base,
+              const PoolLocation&  a_location,
+              Spans&               a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a primitive along a ray, dispatching on its type index from I onwards.
+   * @tparam I First type index to test.
+   * @param[in]  a_type     Type index.
+   * @param[in]  a_index    Index within the type's array.
+   * @param[in]  a_ray      Ray, with a unit direction.
+   * @param[in]  a_tMin     Start of the interval.
+   * @param[in]  a_tMax     End of the interval.
+   * @param[in]  a_options  How to march a primitive with no ray form.
+   * @param[in]  a_base     The pool base.
+   * @param[in]  a_location The pool location.
+   * @param[out] a_spans    The spans.
+   */
+  template <size_t I>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  dispatchRayPrimitive(uint32_t             a_type,
+                       uint32_t             a_index,
+                       const RayT<T>&       a_ray,
+                       T                    a_tMin,
+                       T                    a_tMax,
+                       const RayOptions<T>& a_options,
+                       const void*          a_base,
+                       const PoolLocation&  a_location,
+                       Spans&               a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a primitive along a ray.
+   * @details Out of line in a device pass, like evaluatePrimitive().
+   * @param[in]  a_type     Type index.
+   * @param[in]  a_index    Index within the type's array.
+   * @param[in]  a_ray      Ray, with a unit direction.
+   * @param[in]  a_tMin     Start of the interval.
+   * @param[in]  a_tMax     End of the interval.
+   * @param[in]  a_options  How to march a primitive with no ray form.
+   * @param[in]  a_base     The pool base.
+   * @param[in]  a_location The pool location.
+   * @param[out] a_spans    The spans.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  rayPrimitive(uint32_t             a_type,
+               uint32_t             a_index,
+               const RayT<T>&       a_ray,
+               T                    a_tMin,
+               T                    a_tMax,
+               const RayOptions<T>& a_options,
+               const void*          a_base,
+               const PoolLocation&  a_location,
+               Spans&               a_spans) const noexcept;
+
+  /**
    * @brief Reserve the staged arrays in a pool and attach to it.
    * @param[in,out] a_pool    Pool.
    * @param[in]     a_staging Staged arrays.
@@ -758,6 +984,40 @@ private:
   EBGEOMETRY_HOST
   void
   finalize(Pool& a_pool, const TapeDetail::Staging<T, BranchingRatio, Primitives>& a_staging);
+};
+
+/**
+ * @brief Tape's ray form: Tape::firstHit(), which ray traces the expression node by node.
+ * @tparam T              Floating-point precision.
+ * @tparam UserPrimitives The tape's user primitive types.
+ */
+template <class T, class... UserPrimitives>
+struct RayForm<Tape<T, UserPrimitives...>>
+{
+  /**
+   * @brief Tape has a ray form.
+   */
+  static constexpr bool available = true;
+
+  /**
+   * @brief The first crossing of the tape's object along a ray (Tape::firstHit()).
+   * @param[in] a_tape    The tape.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the nodes that are sphere traced.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(const Tape<T, UserPrimitives...>& a_tape,
+           const RayT<T>&                    a_ray,
+           T                                 a_tMin,
+           T                                 a_tMax,
+           const RayOptions<T>&              a_options) noexcept
+  {
+    return a_tape.firstHit(a_ray, a_tMin, a_tMax, a_options);
+  }
 };
 
 } // namespace EBGeometry

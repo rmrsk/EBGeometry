@@ -49,21 +49,35 @@ Two function templates work on any shape (anything with ``signedDistance()`` and
 * How a shape is marched follows its distance quality: ``Exact`` and ``Bound`` shapes are sphere traced,
   ``NotADistance`` ones stepped and bisected. A ``Tape``'s quality is read at run time.
 * A shape with a *ray form* is ray traced instead: `RayForm <doxygen/html/structEBGeometry_1_1RayForm.html>`__
-  is a trait a shape type specializes, with ``available = true`` and a ``firstHit(shape, ray, tMin, tMax)``
-  of its own, and ``firstHit()`` and ``intersects()`` use it whenever it exists (``RayOptions`` then does not
-  apply). ``TriMeshSDF`` has one: the ray follows its BVH, nearest box first, and is tested against the
-  triangles in each leaf it reaches with ``TriangleAoSoA::rayHit()`` (Möller--Trumbore), skipping boxes
-  that begin beyond the nearest crossing found. Its hits are exact (``m_exact``), name the face, and carry
-  the normal interpolated from the vertex normals in ``HitT::m_normal`` (zero for a sphere-traced hit).
-  ``MeshSDF`` and ``FlatMeshSDF`` are sphere traced.
+  is a trait a shape type specializes, with ``available = true`` and a
+  ``firstHit(shape, ray, tMin, tMax, options)`` of its own, and ``firstHit()`` and ``intersects()`` use it
+  whenever it exists (``options`` are for a ray form that sphere traces part of its shape).
+* The plane, the sphere, the box, the finite and infinite cylinders and the capsule have ray forms in
+  closed form, with outward normals in ``HitT::m_normal``. ``TriMeshSDF`` has one through its BVH: the
+  ray follows it, nearest box first, and is tested against the triangles in each leaf it reaches with
+  ``TriangleAoSoA::rayHit()`` (Möller--Trumbore), skipping boxes that begin beyond the nearest crossing
+  found; its hits name the face and carry the normal interpolated from the vertex normals. The torus,
+  the cones, the rounded shapes, Perlin noise, ``MeshSDF`` and ``FlatMeshSDF`` are sphere traced.
 
-`Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ has the two queries as members,
-``tape.firstHit(ray, tMin, tMax)`` and ``tape.intersects(a, b)``, which forward to the free functions.
-It also has ``primitiveAt(p)``: the leaf of the expression that decides the value at a point, numbered
-0, 1, ... in the order the leaves appear in the expression, depth first, each occurrence counted (a
-shape used twice is two leaves). A union or intersection takes the leaf of the operand whose value it
-takes, a smooth one that of its more extreme operand, Blur and Mollify that of their centre tap, and
-maps, offsets and complements keep their operand's. ``getNumPrimitives()`` counts the leaves.
+`Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ is ray traced too. It follows the same clauses
+it evaluates a value with along the ray, on stacks of spans instead of values (see
+:ref:`Chap:Rendering`): a primitive with a ray form gives its spans, a point map moves the ray, a
+negation is a complement, a minimum and a maximum are a union and an intersection, and a BVH union
+traverses its own BVH with ray--box tests over the operands' boxes. The compiler marks each subtree a ray
+cannot follow (a smooth blend, an offset, a blur, an elongation, a repetition, a primitive with no ray
+form) under a node it can follow with one extra clause, which the value ignores; the ray query sphere
+traces that subtree's clauses along the ray inside its box. Nothing else is stored. An expression with no
+node a ray can follow, or one needing more than ``Tape::RayValueStackSize`` span sets at once, is sphere
+traced as a whole. ``tape.firstHit(ray, tMin, tMax)`` is the tape's ray form, and ``tape.intersects(a, b)`` the
+segment test on it; ``HitT::m_primitive`` is the leaf at the crossing, ``HitT::m_exact`` is true unless
+the ray crossed a sphere-traced node, and ``HitT::m_normal`` is zero (the renderer takes the normal from
+the distance). The ray query runs on a device like the rest of the tape.
+
+The tape also has ``primitiveAt(p)``: the leaf of the expression that decides the value at a point,
+numbered 0, 1, ... in the order the leaves appear in the expression, depth first, each occurrence
+counted (a shape used twice is two leaves). A union or intersection takes the leaf of the operand whose
+value it takes, a smooth one that of its more extreme operand, Blur and Mollify that of their centre
+tap, and maps, offsets and complements keep their operand's. ``getNumPrimitives()`` counts the leaves.
 ``signedDistance()`` carries no leaf ids and is as fast as before.
 
 The renderer
@@ -98,13 +112,12 @@ The classes are in namespace ``Render``:
   through ``GPU::transform()`` on a device view of the shape, as described in :ref:`Chap:RunningOnGPU`.
   Overloads of both take a ``std::atomic<bool>`` that another thread sets to stop the render early (between
   rows on the host, between bands of rows on a device), and a counter of the rows done; a stopped render
-  says so in ``Stats::m_complete``.
-* A shape with a ray form is shaded with rays: a hard shadow from one ray towards the light, and ambient
-  occlusion from four short rays around the normal. Other shapes get a soft shadow and occlusion from
-  their distance.
-  Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
+  says so in ``Stats::m_complete``. Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
   trivially copyable functor that reads everything it needs about the shape (its box, its scale, where
   the floor goes) from the shape itself.
+* Every shape is shaded the same way, through ``firstHit()``: a shadow from one ray towards the light,
+  and ambient occlusion from four short rays around the normal. The section plane is the intersection
+  of the shape with a half-space along each ray.
 * `Stats <doxygen/html/structEBGeometry_1_1Render_1_1Stats.html>`__ reports the rays cast, those that hit
   the shape, those that hit it from inside the solid (drawn tinted red), those that were unresolved
   (drawn as misses), and whether the eye is inside the solid. The renderer prints nothing.

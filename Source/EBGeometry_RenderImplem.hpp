@@ -397,9 +397,9 @@ private:
   }
 
   /**
-   * @brief How much light reaches a point from the light's direction: 0 in full shadow, 1 in full light.
-   * @details Soft shadows from the closest approach of a ray towards the light, for values that are
-   * distances; hard shadows from firstHit() for values that are not.
+   * @brief How much light reaches a point from the light's direction: 0 in shadow, 1 in light.
+   * @details One ray towards the light (firstHit()); the light moving a little between a pixel's rays
+   * softens the edges.
    * @param[in] a_point  Point.
    * @param[in] a_normal Unit normal there.
    * @return The fraction of light.
@@ -409,35 +409,9 @@ private:
   shadow(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
+    const HitT<T>  hit    = firstHit(m_object, RayT<T>{origin, m_light}, T(0), T(2) * m_scale, m_rays);
 
-    // A shape that is ray traced casts a hard shadow, from one ray towards the light.
-    if constexpr (RayForm<Sectioned<T, S>>::available) {
-      const HitT<T> hit = firstHit(m_object, RayT<T>{origin, m_light}, T(0), T(2) * m_scale, m_rays);
-
-      return hit.hit() ? T(0) : T(1);
-    }
-
-    if (m_object.getDistanceQuality() == DistanceQuality::NotADistance) {
-      const HitT<T> hit = firstHit(m_object, RayT<T>{origin, m_light}, T(0), T(2) * m_scale, m_rays);
-
-      return hit.hit() ? T(0) : T(1);
-    }
-
-    T s = T(1);
-    T t = T(0.01) * m_scale;
-
-    for (int step = 0; step < 48 && t < T(1.5) * m_scale; step++) {
-      const T h = m_object.signedDistance(origin + t * m_light);
-
-      if (h < m_eps) {
-        return T(0);
-      }
-
-      s = Math::min(s, T(10) * h / t);
-      t += Math::clamp(h, T(0.01) * m_scale, T(0.15) * m_scale);
-    }
-
-    return Math::clamp(s, T(0), T(1));
+    return hit.hit() ? T(0) : T(1);
   }
 
   /**
@@ -450,42 +424,22 @@ private:
   inline T
   occlusion(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
-    // A shape that is ray traced: the share of four short rays, tilted around the normal, that hit it.
-    if constexpr (RayForm<Sectioned<T, S>>::available) {
-      const Vec3T<T> t1 = unit(
-        cross((std::abs(a_normal[0]) < T(0.9)) ? Vec3T<T>(T(1), T(0), T(0)) : Vec3T<T>(T(0), T(1), T(0)), a_normal));
-      const Vec3T<T> t2     = cross(a_normal, t1);
-      const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
+    // The share of four short rays, tilted around the normal, that hit the shape.
+    const Vec3T<T> t1 =
+      unit(cross((std::abs(a_normal[0]) < T(0.9)) ? Vec3T<T>(T(1), T(0), T(0)) : Vec3T<T>(T(0), T(1), T(0)), a_normal));
+    const Vec3T<T> t2     = cross(a_normal, t1);
+    const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
 
-      int blocked = 0;
+    int blocked = 0;
 
-      for (int k = 0; k < 4; k++) {
-        const T        a = T(0.5) * pi<T> * T(k);
-        const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
+    for (int k = 0; k < 4; k++) {
+      const T        a = T(0.5) * pi<T> * T(k);
+      const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
 
-        blocked += firstHit(m_object, RayT<T>{origin, r}, T(0), T(0.07) * m_scale, m_rays).hit() ? 1 : 0;
-      }
-
-      return T(1) - T(0.2) * T(blocked);
+      blocked += firstHit(m_object, RayT<T>{origin, r}, T(0), T(0.07) * m_scale, m_rays).hit() ? 1 : 0;
     }
 
-    if (m_object.getDistanceQuality() == DistanceQuality::NotADistance) {
-      return T(1);
-    }
-
-    const T step = T(0.009) * m_scale;
-
-    T occ = T(0);
-    T w   = T(1);
-
-    for (int i = 1; i <= 5; i++) {
-      const T h = step * T(i);
-
-      occ += w * (h - m_object.signedDistance(a_point + h * a_normal));
-      w *= T(0.7);
-    }
-
-    return Math::clamp(T(1) - T(0.12) * occ / step, T(0), T(1));
+    return T(1) - T(0.2) * T(blocked);
   }
 
   /**
@@ -602,15 +556,16 @@ private:
 namespace EBGeometry {
 
 /**
- * @brief The ray form of a shape cut by the section plane, for a shape that has one: the shape's ray form
- * on the part of the ray on the kept side, and a crossing on the plane where the ray passes through it
- * inside the solid.
+ * @brief The ray form of a shape cut by the section plane: the intersection of the shape with a
+ * half-space, along a ray. firstHit() on the shape (by its own ray form, or by sphere tracing) over the
+ * part of the ray on the kept side, and a crossing on the plane where the ray passes through it inside
+ * the solid.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  */
 template <class T, class S>
-struct RayForm<Render::RenderDetail::Sectioned<T, S>, std::enable_if_t<RayForm<S>::available>>
+struct RayForm<Render::RenderDetail::Sectioned<T, S>>
 {
   /**
    * @brief The cut shape has a ray form.
@@ -623,6 +578,7 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>, std::enable_if_t<RayForm<S
    * @param[in] a_ray  Ray, with a unit direction.
    * @param[in] a_tMin Start of the interval.
    * @param[in] a_tMax End of the interval.
+   * @param[in] a_options How to march the shape.
    * @return The crossing, or a miss.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -630,10 +586,11 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>, std::enable_if_t<RayForm<S
   firstHit(const Render::RenderDetail::Sectioned<T, S>& a_cut,
            const RayT<T>&                               a_ray,
            const T                                      a_tMin,
-           const T                                      a_tMax) noexcept
+           const T                                      a_tMax,
+           const RayOptions<T>&                         a_options) noexcept
   {
     if (!a_cut.m_on) {
-      return RayForm<S>::firstHit(a_cut.m_shape, a_ray, a_tMin, a_tMax);
+      return EBGeometry::firstHit(a_cut.m_shape, a_ray, a_tMin, a_tMax, a_options);
     }
 
     // The part [a, b] of the interval on the kept side of the plane.
@@ -678,7 +635,7 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>, std::enable_if_t<RayForm<S
       return onPlane(a, true);
     }
 
-    const HitT<T> hit = RayForm<S>::firstHit(a_cut.m_shape, a_ray, a, b);
+    const HitT<T> hit = EBGeometry::firstHit(a_cut.m_shape, a_ray, a, b, a_options);
 
     if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.m_shape.signedDistance(a_ray.at(b)) < T(0)) {
       return onPlane(b, false);

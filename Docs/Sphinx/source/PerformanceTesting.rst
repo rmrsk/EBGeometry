@@ -22,6 +22,7 @@ What is in Performance/
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVHUnion/main.cpp        BVHUnion
      Render/main.cpp          firstHit() and the renderer
+     Tape/main.cpp            Tape's signed distance
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
        Statistics.hpp           quantiles, summaries, the bootstrap interval    (shared with PerfCompare)
@@ -156,8 +157,35 @@ Family                                Build  Measures
                                              hundred times more)
 ``csg/frame``                         host   one 192 × 192 frame on one thread: one ray per pixel,
                                              with shadows and ambient occlusion
-``csg/firstHit-camera``,              GPU    ``firstHit()`` along the same rays on both sides
-``mesh/firstHit-camera``
+``union64/firstHit``                  host   the same through a union of 64 spheres on a lattice
+                                             (a BVH union the tape follows along each ray), 256 × 256
+``mixed/firstHit``                    host   the same through a box with a torus and a smooth
+                                             union cut out, which the tape sphere traces along the ray,
+                                             256 × 256
+``<input>/firstHit-camera``           GPU    ``firstHit()`` along the same rays on both sides
+====================================  =====  =====================================================
+
+**Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
+grown by a quarter on every side), against the same solid written by hand (issues #210 and #221). On an
+RTX A4000 in single precision the tape is about 30 times slower than the hand-written solid, on one host
+core about 3 times. The ``sphere`` and ``chain16`` cases take that gap apart: it is a fixed cost paid once
+per device thread (a copy of the tape handle, #221), not one per clause or per evaluation.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``csg/signedDistance``                host   the classic CSG solid compiled into a ``Tape``, at
+                                             400,000 points
+``csg-handwritten/signedDistance``    host   the same solid written by hand (the reference)
+``smooth/signedDistance``             host   two smooth unions of spheres, smoothly cut by a box
+``union64/signedDistance``            host   a union of 64 spheres, through the tape's BVH union
+``sphere/signedDistance``             host   one sphere as a one-clause tape (and ``sphere-``
+                                             ``handwritten``: called directly)
+``sphere/signedDistance-x16``         host   the same, evaluated 16 times per query (per device
+                                             thread)
+``chain16/signedDistance``            host   a union of 16 spheres evaluated clause by clause (31
+                                             clauses, no BVH; and ``chain16-handwritten``: a loop)
+``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
 ====================================  =====  =====================================================
 
 Where the results go
