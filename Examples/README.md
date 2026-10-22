@@ -16,6 +16,12 @@ answers. Read them in this order:
 9. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
 10. `BuildBVH`: comparing the BVH construction methods by build time.
 
+Every example that builds a shape (`Shapes`, `CSG`, `MeshSDF`, `NestedBVH`, `ManyObjects`, `CustomShape`)
+ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer (`make
+VIEWER=SDL2`, or CMake with `-DEBGEOMETRY_VIEWER=SDL2`; it needs SDL2). Otherwise, with `--no-view`, or
+without a display, `view()` prints why and returns, so the examples still run unattended (ctest passes
+`--no-view`).
+
 Every example that runs on a device has the same four parts, in this order: the query functor ("the
 code that runs on either side"), the construction of the geometry, its use on the host through plain
 calls, and the same query on a GPU.

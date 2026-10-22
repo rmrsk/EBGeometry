@@ -80,3 +80,17 @@ piece into ``GPU::memoryResource()``, and rebases both onto the copy, every mesh
 `GPU::transform <doxygen/html/EBGeometry__GPUTransform_8hpp.html>`__ then runs the query once per
 point, both levels of BVH traversal included: in a kernel in a CUDA or HIP build, and in a host loop
 otherwise. See :ref:`Sec:ExamplesGPU`.
+
+Looking at it
+-------------
+
+The example ends by opening a window on the tape that places the mesh among the spheres:
+
+.. code-block:: c++
+
+   EBGeometry::Render::view(composed, argc, argv);
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the shape open and P colours its primitives; see
+:ref:`Chap:ImplemRender`.

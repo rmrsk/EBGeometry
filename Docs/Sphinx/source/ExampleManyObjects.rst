@@ -97,3 +97,17 @@ C++ build the section runs on the host, where ``GPU::memoryResource()`` is host 
 for a device and ``GPU::transform`` is a loop, so the two times are about the same. In a GPU build
 the section uses about a million points, so that the time is the kernel's rather than the launch's;
 on the host it keeps ``numPoints``. See :ref:`Sec:ExamplesGPU` for building for a GPU.
+
+Looking at it
+-------------
+
+The example ends by opening a window on the random city, a BVH union of boxes:
+
+.. code-block:: c++
+
+   EBGeometry::Render::view(city, argc, argv);
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the shape open and P colours its primitives; see
+:ref:`Chap:ImplemRender`.

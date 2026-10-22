@@ -83,6 +83,20 @@ The grid of 64,000 query points and the results are reserved as
 memory, so the kernel reads and writes them in place with no copies. The program prints how many grid
 points lie inside the scene. A GPU build that finds no device skips this part.
 
+Looking at it
+-------------
+
+The example ends by opening a window on the octahedra around the sphere, in a tape with the user shape:
+
+.. code-block:: c++
+
+   EBGeometry::Render::view(tape, argc, argv);
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the shape open and P colours its primitives; see
+:ref:`Chap:ImplemRender`.
+
 Building and running
 --------------------
 

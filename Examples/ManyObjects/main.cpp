@@ -197,7 +197,7 @@ runOnDevice(const std::string& a_name, const Union& a_onDevice, const std::vecto
 } // namespace
 
 int
-main()
+main(int argc, char* argv[])
 {
   // ── Build the scenes ───────────────────────────────────────────────────────────────────────────────
   //
@@ -285,6 +285,15 @@ main()
     runOnDevice(
       "Random city", city.rebasedView(devicePool), randomPoints(city.computeBoundingVolume(), numDevicePoints));
   }
+
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // Render::view() opens a window on any shape, a BVH union included -- here the random city. Drag to
+  // orbit, scroll to zoom, X cuts it open.
+  // The window needs SDL2: build with make VIEWER=SDL2 or cmake -DEBGEOMETRY_VIEWER=SDL2. Otherwise, with
+  // --no-view, or without a display, view() prints why and returns. A surface seen from inside the solid
+  // is drawn red.
+  EBGeometry::Render::view(city, argc, argv);
 
   return 0;
 }

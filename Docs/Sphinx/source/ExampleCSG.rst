@@ -82,3 +82,17 @@ In a plain C++ build the same lines run on the host: ``memoryResource()`` is hos
 for a device and ``transform()`` is a loop. The program evaluates the ring along a line through the
 first copy, crossing its material and the hole drilled along y. See :ref:`Sec:ExamplesGPU` for how to
 build it for a GPU.
+
+Looking at it
+-------------
+
+The example ends by opening a window on the drilled part, compiled into a tape:
+
+.. code-block:: c++
+
+   EBGeometry::Render::view(partTape, argc, argv);
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the shape open and P colours its primitives; see
+:ref:`Chap:ImplemRender`.

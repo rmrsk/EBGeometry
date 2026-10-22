@@ -56,6 +56,20 @@ sized. Compiled as CUDA or HIP, that runs a kernel; compiled as
 plain C++, a host loop, so the section runs in both builds. A shape owns no memory, so nothing but
 the points has to reach the device. See :ref:`Chap:RunningOnGPU`.
 
+Looking at it
+-------------
+
+The example ends by opening a window on the torus:
+
+.. code-block:: c++
+
+   EBGeometry::Render::view(torus, argc, argv);
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the shape open and P colours its primitives; see
+:ref:`Chap:ImplemRender`.
+
 Building and running
 --------------------
 

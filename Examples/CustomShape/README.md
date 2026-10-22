@@ -65,12 +65,24 @@ between a host and a GPU build):
 
 **Directly with a compiler**
 
-    g++   -std=c++17 -O3 -march=native -I../.. main.cpp -o CustomShape.ex
-    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o CustomShape.ex
-    nvcc  -std=c++17 -O3 -x cu -arch=sm_80 -I../.. main.cpp -o CustomShape.ex
+    g++   -std=c++17 -O3 -march=native -I../.. main.cpp -o CustomShape.ex -pthread
+    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o CustomShape.ex -pthread
+    nvcc  -std=c++17 -O3 -x cu -arch=sm_80 -I../.. main.cpp -o CustomShape.ex -pthread
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
+
+**With the viewer**
+
+At the end the example opens a window on the scene (`EBGeometry::Render::view()`). The window needs SDL2
+(for example `libsdl2-dev`, or `brew install sdl2`) and is built only on request:
+
+    make VIEWER=SDL2
+    cmake -S . -B build -DEBGEOMETRY_VIEWER=SDL2
+
+Without it, `view()` prints a line saying how to build it and returns. Drag to orbit, scroll to zoom,
+`X` cuts the shape open, `P` colours by primitive, `Esc` closes the window. `--no-view` skips the
+window (ctest passes it), as does running without a display.
 
 Running
 -------
