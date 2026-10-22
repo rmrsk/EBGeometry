@@ -21,6 +21,7 @@ What is in Performance/
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVHUnion/main.cpp        BVHUnion
+     Render/main.cpp          firstHit() and the renderer
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
        Statistics.hpp           quantiles, summaries, the bootstrap interval    (shared with PerfCompare)
@@ -129,6 +130,24 @@ Family                                Build  Measures
                                              in the order drawn
 ``<family>/query-morton``,            GPU    signed distance at 262,144 such points
 ``query-random``
+====================================  =====  =====================================================
+
+**Render** (``Performance/Render``): ray queries along the rays through the pixel centres of an image,
+seen from the camera ``Render::Camera::fit()`` places for the shape, so that about half of them hit it.
+The ``csg`` input is the classic CSG solid (a cube intersected with a ball, drilled along x, y and z)
+compiled into a ``Tape``; the ``mesh`` input is the armadillo as a ``TriMeshSDF`` (K = 4, W = 4, SAH).
+Both are sphere traced with the default march (tolerance 1e-4 of the box diagonal, at most 512 steps).
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``csg/firstHit``                      host   ``firstHit()`` along the rays of a 512 × 512 image
+``mesh/firstHit``                     host   the same for a 96 × 96 image (a mesh ray costs about a
+                                             hundred times more)
+``csg/frame``                         host   one 192 × 192 frame on one thread: one ray per pixel,
+                                             with shadows and ambient occlusion
+``csg/firstHit-camera``,              GPU    ``firstHit()`` along the same rays on both sides
+``mesh/firstHit-camera``
 ====================================  =====  =====================================================
 
 Where the results go

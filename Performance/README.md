@@ -17,6 +17,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `PointCloud/` | `PointCloudBVH` and `PointCloudHashGrid`: builds, k-NN, queries |
 | `Mesh/`       | `TriMeshSDF` and `MeshSDF`: builds, refits, signed distances    |
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |
+| `Render/`     | `firstHit()` along camera rays (CSG tape, mesh), a rendered frame |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results               |
 
