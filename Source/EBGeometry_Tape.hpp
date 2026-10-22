@@ -67,7 +67,7 @@ namespace TapeDetail {
  */
 enum class Op : uint8_t
 {
-  Primitive,      ///< Push the value of primitive (m_type, m_a) at the top point.
+  Primitive,      ///< Push the value of primitive (m_type, m_a) at the top point; m_b is its leaf id.
   PushAffine,     ///< Push the top point mapped by the affine map at params[m_a..m_a+12).
   PushElongate,   ///< Push p - clamp(p, -h, h), h at params[m_a..m_a+3).
   PushRepeat,     ///< Push p folded into its tile; period, low and high counts at params[m_a..m_a+9).
@@ -116,7 +116,7 @@ struct Clause
   uint32_t m_a = 0;
 
   /**
-   * @brief Second operand.
+   * @brief Second operand (for Primitive, the leaf id; see Tape::primitiveAt()).
    */
   uint32_t m_b = 0;
 
@@ -164,6 +164,25 @@ struct UnionBVH
    * @brief Leaf holding the sub-programs with unbounded boxes.
    */
   typename BVH::PackedBVH<T, uint32_t, K>::Layout m_unbounded;
+};
+
+/**
+ * @brief A value together with the leaf it comes from, as the evaluator returns it when it tracks leaves.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct Tracked
+{
+  /**
+   * @brief The value.
+   */
+  T m_value;
+
+  /**
+   * @brief The leaf id that decides the value, or Tape::NoPrimitive.
+   */
+  uint32_t m_primitive;
 };
 
 /**
@@ -398,6 +417,11 @@ public:
   static constexpr uint32_t PointStackSize = 8;
 
   /**
+   * @brief The leaf id primitiveAt() returns where no leaf decides the value.
+   */
+  static constexpr uint32_t NoPrimitive = 0xFFFFFFFFU;
+
+  /**
    * @brief The primitive types: the built-in ones, then UserPrimitives.
    */
   using Primitives = TapeDetail::Primitives<T, UserPrimitives...>;
@@ -451,6 +475,11 @@ public:
      * @brief How deep sub-program calls nest from sub-program 0.
      */
     uint32_t m_callDepth = 0;
+
+    /**
+     * @brief Number of leaves in the expression, counting each occurrence.
+     */
+    uint32_t m_numPrimitives = 0;
   };
 
   /**
@@ -492,6 +521,30 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The leaf of the expression that decides the value at a point.
+   * @details Leaves are numbered 0, 1, ... in the order they appear in the expression, depth first, each
+   * occurrence counted: a shape used twice is two leaves. The leaf that decides the value is the one a
+   * union or intersection takes its value from (the smaller or the larger), the more extreme one of a
+   * smooth union or intersection, and, for Blur and Mollify, the one at the centre tap (the tap with the
+   * largest weight). Negation, offsets, maps and repetition keep their operand's leaf. Evaluates the
+   * object once, more slowly than signedDistance(); callable on a device like signedDistance().
+   * @param[in] a_point Query point.
+   * @return The leaf id, below getNumPrimitives(), or NoPrimitive if no leaf decides the value (a
+   * smooth union or intersection with no operands).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  primitiveAt(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Number of leaves in the expression, counting each occurrence (see primitiveAt()).
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumPrimitives() const noexcept;
 
   /**
    * @brief A box enclosing the object.
@@ -578,18 +631,27 @@ private:
   Layout m_layout;
 
   /**
+   * @brief What evaluate() returns: the value, or the value and its leaf when it tracks leaves.
+   * @tparam Track Whether the evaluator tracks leaves.
+   */
+  template <bool Track>
+  using Result = std::conditional_t<Track, TapeDetail::Tracked<T>, T>;
+
+  /**
    * @brief Evaluate a sub-program at a point.
-   * @tparam D How deep the sub-program's own calls may still nest.
+   * @tparam D     How deep the sub-program's own calls may still nest.
+   * @tparam Track Whether to also find the leaf that decides the value (see primitiveAt()); without it
+   * the evaluator carries no leaf ids at all.
    * @param[in] a_program  Sub-program.
    * @param[in] a_point    Point.
    * @param[in] a_base     The pool base.
    * @param[in] a_location The pool location, for pool-resident primitives and BVHs.
-   * @return The value.
+   * @return The value, and its leaf if Track.
    */
-  template <unsigned D>
+  template <unsigned D, bool Track>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
-  inline T
+  inline Result<Track>
   evaluate(const uint32_t      a_program,
            const Vec3T<T>&     a_point,
            const void*         a_base,
@@ -636,17 +698,18 @@ private:
 
   /**
    * @brief Evaluate a BVH union clause.
-   * @tparam D Call depth left for the operands.
+   * @tparam D     Call depth left for the operands.
+   * @tparam Track Whether to also find the leaf that decides the value.
    * @param[in] a_clause   The clause.
    * @param[in] a_point    Point.
    * @param[in] a_params   The parameters.
    * @param[in] a_base     The pool base.
    * @param[in] a_location The pool location.
-   * @return The union's value.
+   * @return The union's value, and its leaf if Track.
    */
-  template <unsigned D>
+  template <unsigned D, bool Track>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline T
+  inline Result<Track>
   evaluateUnion(const TapeDetail::Clause& a_clause,
                 const Vec3T<T>&           a_point,
                 const T*                  a_params,
