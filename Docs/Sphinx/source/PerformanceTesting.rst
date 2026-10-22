@@ -395,10 +395,12 @@ recorded it must pass like the host one), and passes only when, for each,
   request that changes code and keeps the receipt it inherited fails;
 * the base branch's code is the base the section measured. When the base branch's code moves on (another
   pull request merged), the pull request is rebased and its comparison recorded again;
-* the verdict is green, or a yellow or red verdict is accepted: the reason is written after
-  ``accepted:`` in that section (a minor regression that is expected, answers that changed for a reason,
-  a major regression the maintainer explicitly accepts). Every verdict is recorded; only green passes
-  on its own.
+* the verdict is green, or a yellow or red verdict is accepted: the reason replaces the ``-`` on the
+  ``**Accepted:**`` line under that section's heading (a minor regression that is expected, answers that
+  changed for a reason, a major regression the maintainer explicitly accepts), where a reader of the
+  rendered receipt sees it. Every verdict is recorded; only green passes on its own, and CI's check
+  then shows a warning with the reason rather than a plain pass. Who accepted it is in git history: the
+  commit that wrote the reason, and the account that pushed it.
 
 A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
 request leaves its receipt in the base branch, so the history of ``Performance/receipt.md`` is the

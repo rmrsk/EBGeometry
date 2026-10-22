@@ -16,8 +16,11 @@
 #   * have measured this code:     its head fingerprint is HEAD_REF's;
 #   * have measured today's base:  its base fingerprint is BASE_REF's, so a base whose code moved on
 #                                  since needs a rebase and a new comparison;
-#   * be green, or be accepted:    a yellow or red verdict passes only with a reason written after
-#                                  "accepted:".
+#   * be green, or be accepted:    a yellow or red verdict passes only with a reason on its
+#                                  "**Accepted:**" line, under the section's heading; on GitHub, the
+#                                  check then also warns, so a pass on an accepted regression shows.
+#
+# Who accepted it is in git history: the commit that wrote the reason.
 #
 # Anything else is stale or unaccepted, and fails: an old receipt never stands for new code. SUMMARY, if
 # set, is a file the result is appended to as Markdown (CI's job summary).
@@ -97,9 +100,11 @@ foreach(side IN LISTS PERF_RECEIPT_SIDES)
     continue()
   endif()
 
-  foreach(field version verdict accepted base base-fingerprint head head-fingerprint date)
+  foreach(field version verdict base base-fingerprint head head-fingerprint date)
     perf_receipt_field("${section}" ${field} r_${field})
   endforeach()
+
+  perf_receipt_accepted("${section}" r_accepted)
 
   if(side STREQUAL "host")
     set(again "${rerun}")
@@ -141,11 +146,17 @@ foreach(side IN LISTS PERF_RECEIPT_SIDES)
     endif()
 
     if(r_accepted STREQUAL "")
-      say("- **${what}**: fix it and record again, or, if it is accepted, write the reason after")
-      say("  \"accepted:\" in this section.")
+      say("- **${what}**: fix it and record again, or, if it is accepted, replace the \"-\" after")
+      say("  \"Accepted:\" under this section's heading with the reason.")
       set(passed FALSE)
     else()
       say("- ${what}, **accepted**: ${r_accepted}")
+
+      # A pass on an accepted regression shows as a warning on the check, not as a plain pass.
+      if(DEFINED ENV{GITHUB_ACTIONS})
+        execute_process(COMMAND ${CMAKE_COMMAND} -E echo
+                                "::warning title=Performance receipt (${side})::${r_verdict} verdict, accepted: ${r_accepted}")
+      endif()
     endif()
   elseif(NOT r_verdict STREQUAL "green")
     say("- **Unreadable** verdict '${r_verdict}'. Record it again: `${again}`")

@@ -18,7 +18,7 @@
 # Needs REPO (the repository's root) to be set by the includer.
 
 set(PERF_RECEIPT_FILE "Performance/receipt.md")
-set(PERF_RECEIPT_VERSION 2)
+set(PERF_RECEIPT_VERSION 3)
 set(PERF_RECEIPT_SIDES host cuda hip)
 
 # The paths a fingerprint covers, and those it leaves out (as git pathspecs).
@@ -84,6 +84,23 @@ function(perf_receipt_field text key var)
   set(${var} "${value}" PARENT_SCOPE)
 endfunction()
 
+# perf_receipt_accepted(<section> <var>): the reason a section's yellow or red verdict was accepted, from
+# its "**Accepted:**" line under the heading, where a reader of the rendered receipt sees it; empty while
+# that line holds the "-" --record writes.
+function(perf_receipt_accepted text var)
+  set(value "")
+
+  if(text MATCHES "\n\\*\\*Accepted:\\*\\*[ ]*([^\n]*)")
+    string(STRIP "${CMAKE_MATCH_1}" value)
+
+    if(value STREQUAL "-")
+      set(value "")
+    endif()
+  endif()
+
+  set(${var} "${value}" PARENT_SCOPE)
+endfunction()
+
 # perf_write_receipt(SIDE <host|cuda|hip> LEVEL <0|1|2> BASE_REF <ref> BASE <commit> HEAD <commit>
 #                    BASE_FINGERPRINT <hash> HEAD_FINGERPRINT <hash> CASES <n> ROUNDS <n> REPS <n>
 #                    REPORT <markdown>)
@@ -112,7 +129,6 @@ function(perf_write_receipt)
 version: ${PERF_RECEIPT_VERSION}
 side: ${R_SIDE}
 verdict: ${verdict}
-accepted:
 base: ${R_BASE}
 base-fingerprint: ${R_BASE_FINGERPRINT}
 head: ${R_HEAD}
@@ -124,6 +140,8 @@ date: ${today}
 -->
 
 ## ${title}: ${verdict}
+
+**Accepted:** -
 
 `${R_HEAD}` against `${R_BASE}` (${R_BASE_REF}), ${today}.
 
@@ -166,8 +184,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 <!-- Written by Scripts/run-performance.sh compare --record and checked by CI (Performance/CheckReceipt.cmake).
-     Commit it with the pull request. Do not edit it, except to accept a yellow or red verdict: write the
-     reason after \"accepted:\" in that section. See Docs/Sphinx/source/PerformanceTesting.rst. -->
+     Commit it with the pull request. Do not edit it, except to accept a yellow or red verdict: replace the
+     \"-\" after \"Accepted:\" under that section's heading with the reason; git history records who did.
+     See Docs/Sphinx/source/PerformanceTesting.rst. -->
 
 # Performance receipt
 ${sections}")

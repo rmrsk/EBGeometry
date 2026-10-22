@@ -440,7 +440,7 @@ endif()
 
 # The receipt (RECORD): this comparison's section of Performance/receipt.md (Receipt.cmake), for
 # CheckReceipt.cmake and readers. Every verdict is recorded; only a green one passes CI on its own, a
-# yellow or red one once a reason is written after "accepted:".
+# yellow or red one once a reason replaces the "-" on its "**Accepted:**" line.
 if(RECORD)
   file(STRINGS "${WORK_DIR}/level.txt" level LIMIT_COUNT 1)
 
