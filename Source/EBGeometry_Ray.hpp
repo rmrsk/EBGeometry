@@ -174,12 +174,14 @@ struct RayOptions
  *     static constexpr bool available = true;
  *
  *     EBGEOMETRY_HOST_DEVICE static HitT<T>
- *     firstHit(const MyShape& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax) noexcept;
+ *     firstHit(const MyShape& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
  *   };
  * @endcode
  * Its firstHit() returns the first crossing in [a_tMin, a_tMax], entering or leaving, with every field
- * of HitT filled in (HitT::m_exact true if the crossing is exact). TriMeshSDF has one. The second
- * template parameter is for partial specializations that depend on a condition.
+ * of HitT filled in (HitT::m_exact true if the crossing is exact); a_options says how to march, for a
+ * ray form that sphere traces part of the shape. The plane, the sphere, the box, the finite and infinite
+ * cylinders, the capsule, TriMeshSDF and Tape have one. The second template parameter is for partial
+ * specializations that depend on a condition.
  * @tparam S Shape type.
  */
 template <class S, class = void>
@@ -189,6 +191,170 @@ struct RayForm
    * @brief Whether S has a ray form.
    */
   static constexpr bool available = false;
+};
+
+/**
+ * @brief PlaneSDF's ray form: the crossing of the plane, where the ray goes from one side to the other. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<PlaneSDF<T>>
+{
+  /**
+   * @brief PlaneSDF has a ray form.
+   */
+  static constexpr bool available = true;
+
+  /**
+   * @brief The first crossing of the plane along a ray.
+   * @param[in] a_shape   The plane.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(
+    const PlaneSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+};
+
+/**
+ * @brief SphereSDF's ray form: the roots of a quadratic. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<SphereSDF<T>>
+{
+  /**
+   * @brief SphereSDF has a ray form.
+   */
+  static constexpr bool available = true;
+
+  /**
+   * @brief The first crossing of the sphere along a ray.
+   * @param[in] a_shape   The sphere.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(
+    const SphereSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+};
+
+/**
+ * @brief BoxSDF's ray form: the slab test, axis by axis. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<BoxSDF<T>>
+{
+  /**
+   * @brief BoxSDF has a ray form.
+   */
+  static constexpr bool available = true;
+
+  /**
+   * @brief The first crossing of the box along a ray.
+   * @param[in] a_shape   The box.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(const BoxSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+};
+
+/**
+ * @brief CylinderSDF's ray form: the infinite cylinder around its axis, clipped by the slab between its caps. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<CylinderSDF<T>>
+{
+  /**
+   * @brief CylinderSDF has a ray form.
+   */
+  static constexpr bool available = true;
+
+  /**
+   * @brief The first crossing of the cylinder along a ray.
+   * @param[in] a_shape   The cylinder.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(
+    const CylinderSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+};
+
+/**
+ * @brief InfiniteCylinderSDF's ray form: the roots of a quadratic, in the plane across its axis. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<InfiniteCylinderSDF<T>>
+{
+  /**
+   * @brief InfiniteCylinderSDF has a ray form.
+   */
+  static constexpr bool available = true;
+
+  /**
+   * @brief The first crossing of the cylinder along a ray.
+   * @param[in] a_shape   The cylinder.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(const InfiniteCylinderSDF<T>& a_shape,
+           const RayT<T>&                a_ray,
+           T                             a_tMin,
+           T                             a_tMax,
+           const RayOptions<T>&          a_options) noexcept;
+};
+
+/**
+ * @brief CapsuleSDF's ray form: the span of the cylinder between its centres and of the two balls at its ends, which, the capsule being convex, is one interval. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<CapsuleSDF<T>>
+{
+  /**
+   * @brief CapsuleSDF has a ray form.
+   */
+  static constexpr bool available = true;
+
+  /**
+   * @brief The first crossing of the capsule along a ray.
+   * @param[in] a_shape   The capsule.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(
+    const CapsuleSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
 };
 
 /**
@@ -209,16 +375,103 @@ struct RayForm<TriMeshSDF<T, K, W>>
 
   /**
    * @brief The first crossing of the mesh along a ray.
-   * @param[in] a_sdf  The mesh.
-   * @param[in] a_ray  Ray, with a unit direction.
-   * @param[in] a_tMin Start of the interval.
-   * @param[in] a_tMax End of the interval.
+   * @param[in] a_sdf     The mesh.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found exactly.
    * @return The crossing (face id in HitT::m_primitive, the normal interpolated from the vertex normals),
    * or a miss.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   static inline HitT<T>
-  firstHit(const TriMeshSDF<T, K, W>& a_sdf, const RayT<T>& a_ray, T a_tMin, T a_tMax) noexcept;
+  firstHit(const TriMeshSDF<T, K, W>& a_sdf,
+           const RayT<T>&             a_ray,
+           T                          a_tMin,
+           T                          a_tMax,
+           const RayOptions<T>&       a_options) noexcept;
+};
+
+/**
+ * @brief Where a ray is inside an object: from m_in to m_out, and the primitive whose surface each end is.
+ * @details Internal helper; not part of the public API. An end with primitive RaySpan::Open is where the
+ * interval the ray was traced over begins or ends, not a crossing of the surface.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RaySpan
+{
+  /**
+   * @brief The primitive id of an end that is not a crossing.
+   */
+  static constexpr uint32_t Open = 0xFFFFFFFEU;
+
+  /**
+   * @brief Where the ray enters.
+   */
+  T m_in;
+
+  /**
+   * @brief Where it leaves.
+   */
+  T m_out;
+
+  /**
+   * @brief The primitive whose surface it enters through, or Open.
+   */
+  uint32_t m_inPrimitive;
+
+  /**
+   * @brief The primitive whose surface it leaves through, or Open.
+   */
+  uint32_t m_outPrimitive;
+};
+
+/**
+ * @brief The spans of a ray inside an object, in order, at most N of them.
+ * @details Internal helper; not part of the public API. Spans beyond the N-th are dropped (m_complete
+ * false), which keeps the first crossings right.
+ * @tparam T Floating-point precision.
+ * @tparam N Most spans held.
+ */
+template <class T, uint32_t N>
+struct RaySpans
+{
+  /**
+   * @brief The spans, sorted and disjoint.
+   */
+  RaySpan<T> m_spans[N];
+
+  /**
+   * @brief How many are held.
+   */
+  uint32_t m_count = 0;
+
+  /**
+   * @brief Whether every span was held (none dropped).
+   */
+  bool m_complete = true;
+
+  /**
+   * @brief Whether every crossing was found exactly.
+   */
+  bool m_exact = true;
+
+  /**
+   * @brief Whether every march found its answer (none ran out of steps).
+   */
+  bool m_resolved = true;
+
+  /**
+   * @brief Append a span after the last one.
+   * @param[in] a_in           Where it begins.
+   * @param[in] a_out          Where it ends.
+   * @param[in] a_inPrimitive  Its first end's primitive, or RaySpan::Open.
+   * @param[in] a_outPrimitive Its last end's primitive, or RaySpan::Open.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  add(T a_in, T a_out, uint32_t a_inPrimitive, uint32_t a_outPrimitive) noexcept;
 };
 
 /**

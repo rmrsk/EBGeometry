@@ -1162,3 +1162,304 @@ TEMPLATE_TEST_CASE("Tape: primitiveAt on the device matches the host", "[Tape][g
           evaluateOnHost<uint32_t>(LeafQuery<T, Tape<T>>{tape}, points));
   }
 }
+
+namespace {
+
+// Rays from a ring of origins around a point, aimed at targets spread over a box around it.
+template <class T>
+std::vector<RayT<T>>
+raysAround(const Vec3T<T>& a_center, const T a_radius, const T a_spread)
+{
+  std::vector<RayT<T>> rays;
+
+  for (int i = 0; i < 16; i++) {
+    const T        angle = T(2) * pi<T> * T(i) / T(16);
+    const Vec3T<T> origin =
+      a_center + Vec3T<T>(a_radius * std::cos(angle), T(0.2) * a_radius * T(i % 3 - 1), a_radius * std::sin(angle));
+
+    for (int j = 0; j < 25; j++) {
+      const Vec3T<T> target =
+        a_center + a_spread * Vec3T<T>(T(0.5) * T(j % 5) - T(1), T(0.5) * T(j / 5) - T(1), T(0.2) * T(j % 3) - T(0.2));
+      const Vec3T<T> d = target - origin;
+
+      rays.push_back(RayT<T>{origin, d / d.length()});
+    }
+  }
+
+  return rays;
+}
+
+// The ray program against sphere tracing the same tape through its scalar evaluator: the same crossings
+// (to the march's tolerance, over rays that do not graze the surface), entered or left alike, and the
+// leaf the ray program names the one the value comes from just inside or outside the crossing.
+template <class T, class TapeType>
+void
+checkRayProgram(const TapeType& a_tape, const bool a_exact, const T a_radius, const T a_spread)
+{
+  const RayOptions<T> options;
+
+  const auto box   = a_tape.computeBoundingVolume();
+  const T    scale = (box.getHighCorner() - box.getLowCorner()).length();
+  const T    eps   = options.m_tolerance * scale;
+  const auto c     = box.getCentroid();
+
+  size_t hits = 0;
+
+  for (const auto& ray : raysAround(c, a_radius, a_spread)) {
+    const HitT<T> traced  = a_tape.firstHit(ray, T(0), T(100), options);
+    const HitT<T> marched = RayDetail::march(a_tape, ray, T(0), T(100), options);
+
+    REQUIRE(marched.m_status != HitStatus::Unresolved);
+
+    if (marched.hit()) {
+      // A ray that grazes the surface can go either way.
+      const T        h = T(1e-3) * scale;
+      const Vec3T<T> p = marched.m_point;
+
+      Vec3T<T> g;
+
+      for (size_t a = 0; a < 3; a++) {
+        Vec3T<T> e = Vec3T<T>::zeros();
+
+        e[a] = h;
+        g[a] = a_tape.signedDistance(p + e) - a_tape.signedDistance(p - e);
+      }
+
+      if (g.length() == T(0) || std::abs(dot(g / g.length(), ray.m_direction)) < T(0.25)) {
+        continue;
+      }
+    }
+
+    // Sphere tracing accepts a point within its tolerance of the surface, so it also "hits" where the
+    // solid along the ray is thinner than that (where two surfaces nearly meet), which the exact spans
+    // rightly do not.
+    if (marched.hit() && !traced.hit()) {
+      T deepest = Math::Limits<T>::max();
+
+      for (int k = -20; k <= 20; k++) {
+        deepest = Math::min(deepest, a_tape.signedDistance(ray.at(marched.m_t + T(k) * T(0.5) * eps)));
+      }
+
+      if (deepest > -T(2) * eps) {
+        continue;
+      }
+    }
+
+    INFO("ray " << ray.m_origin << " -> " << ray.m_direction << ": traced " << int(traced.m_status) << " at "
+                << traced.m_t << ", marched " << int(marched.m_status) << " at " << marched.m_t);
+    CHECK(traced.hit() == marched.hit());
+
+    if (traced.hit() && marched.hit()) {
+      // Exact unless the ray crossed a sphere-traced node.
+      if (a_exact) {
+        CHECK(traced.m_exact);
+      }
+      CHECK(traced.m_entering == marched.m_entering);
+      CHECK(std::abs(traced.m_t - marched.m_t) <= T(6) * eps);
+      CHECK(traced.m_primitive < a_tape.getNumPrimitives());
+
+      // Just past the crossing (inside the solid if the ray enters), the value comes from the named leaf
+      // or the surface there is shared.
+      const T        past = T(4) * eps;
+      const Vec3T<T> q    = ray.at(traced.m_t + (traced.m_entering ? past : -past));
+
+      CHECK((a_tape.primitiveAt(q) == traced.m_primitive || std::abs(a_tape.signedDistance(q)) < T(8) * eps));
+
+      hits++;
+    }
+  }
+
+  CHECK(hits > 40U);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: firstHit follows unions, intersections, complements and maps exactly",
+                   "[Tape][Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const BoxSDF<T>    cube(-Vec3::ones(), Vec3::ones());
+  const SphereSDF<T> ball(Vec3::zeros(), T(1.35));
+
+  std::vector<Expr<T>> drills;
+
+  for (size_t axis = 0; axis < 3; axis++) {
+    drills.emplace_back(InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.55), axis));
+  }
+
+  const auto part = Difference(Intersection(cube, ball), Union(drills));
+
+  const TestUtils::Compiled<T> classic(part);
+
+  checkRayProgram<T>(classic.tape(), true, T(4), T(1.2));
+
+  // Maps: the part turned, moved and scaled, and reflected.
+  const TestUtils::Compiled<T> moved(
+    Translate(Rotate(Scale(Reflect(part, 0), T(0.7)), T(30), Vec3(T(1), T(1), T(0))), Vec3(T(0.3), T(-0.2), T(0.1))));
+
+  checkRayProgram<T>(moved.tape(), true, T(4), T(1));
+
+  // A union of more objects than the BVH threshold, of different types, some overlapping.
+  std::vector<Expr<T>> objects;
+
+  for (int i = 0; i < 12; i++) {
+    const Vec3 at(T(0.8) * T(i % 4) - T(1.2), T(0.7) * T(i / 4) - T(0.7), T(0.1) * T(i % 3));
+
+    if (i % 3 == 0) {
+      objects.emplace_back(SphereSDF<T>(at, T(0.45)));
+    }
+    else if (i % 3 == 1) {
+      objects.emplace_back(BoxSDF<T>(at - T(0.35) * Vec3::ones(), at + T(0.35) * Vec3::ones()));
+    }
+    else {
+      objects.emplace_back(CapsuleSDF<T>(at - Vec3(T(0.4), T(0), T(0)), at + Vec3(T(0.4), T(0.1), T(0)), T(0.2)));
+    }
+  }
+
+  const TestUtils::Compiled<T> many(Union(objects));
+
+  CHECK(many.tape().getNumBVHUnions() == 1U);
+
+  checkRayProgram<T>(many.tape(), true, T(5), T(1.5));
+
+  // A hole: everything outside a box, inside a big sphere.
+  const TestUtils::Compiled<T> hollow(Intersection(SphereSDF<T>(Vec3::zeros(), T(2)), Complement(cube)));
+
+  checkRayProgram<T>(hollow.tape(), true, T(5), T(1.5));
+}
+
+TEMPLATE_TEST_CASE("Tape: firstHit sphere traces the nodes with no ray form, inside an expression it follows",
+                   "[Tape][Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const BoxSDF<T>   cube(-Vec3::ones(), Vec3::ones());
+  const TorusSDF<T> torus(Vec3(T(0), T(1), T(0)), T(0.9), T(0.25));
+
+  // A torus (no ray form) and a smooth union cut out of a box: the box is followed exactly, the rest
+  // sphere traced.
+  const auto smooth =
+    SmoothUnion(SphereSDF<T>(Vec3(T(1), T(0), T(0)), T(0.5)), SphereSDF<T>(Vec3(T(1), T(0.6), T(0)), T(0.4)), T(0.2));
+
+  const TestUtils::Compiled<T> mixed(Difference(cube, Union(torus, smooth)));
+
+  checkRayProgram<T>(mixed.tape(), false, T(4), T(1.2));
+
+  // Nothing with a ray form: the tape is sphere traced as a whole, as before.
+  const TestUtils::Compiled<T> marched(Offset(torus, T(0.05)));
+
+  checkRayProgram<T>(marched.tape(), false, T(4), T(1.2));
+}
+
+TEMPLATE_TEST_CASE("Tape: firstHit traces a mesh and a tape inside a tape", "[Tape][Ray]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  constexpr size_t K = BVH::DefaultBranchingRatio<T>();
+  constexpr size_t W = TriangleSoA::DefaultWidth<T>();
+
+  const auto                mesh = Parser::readIntoDCEL<T>(dodecahedron(), pool);
+  const TriMeshSDF<T, K, W> tri(mesh, pool, BVH::Construction::SAH, 4);
+
+  const Tape<T> withMesh(pool, Difference(tri, SphereSDF<T>(tri.computeBoundingVolume().getCentroid(), T(0.5))));
+
+  checkRayProgram<T>(withMesh, true, T(4), T(1));
+
+  const Tape<T>          inner(pool,
+                      Union(SphereSDF<T>(Vec3::zeros(), T(0.6)),
+                            BoxSDF<T>(Vec3(T(0.3), T(-0.4), T(-0.4)), Vec3(T(1.1), T(0.4), T(0.4)))));
+  const Tape<T, Tape<T>> outer(pool, Intersection(Rotate(inner, T(40), 2), SphereSDF<T>(Vec3::zeros(), T(1))));
+
+  checkRayProgram<T>(outer, true, T(4), T(1));
+
+  // A deep copy and a rebased view trace alike.
+  Pool other(hostMemoryResource());
+
+  const Tape<T> copy = withMesh.deepCopy(other);
+
+  CHECK(copy.getNumPrimitives() == withMesh.getNumPrimitives());
+
+  for (const auto& ray : raysAround(Vec3::zeros(), T(4), T(1))) {
+    const HitT<T> a = withMesh.firstHit(ray, T(0), T(100));
+    const HitT<T> b = copy.firstHit(ray, T(0), T(100));
+
+    CHECK(a.m_status == b.m_status);
+    CHECK(a.m_t == b.m_t);
+    CHECK(a.m_primitive == b.m_primitive);
+  }
+}
+
+namespace {
+
+// Device functor: the distance to a tape's first crossing, -1 for a miss and -2 for an unresolved query.
+template <class T, class TapeType>
+struct TapeHitQuery
+{
+  TapeType m_tape;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const RayT<T>& a_ray) const noexcept
+  {
+    const HitT<T> hit = m_tape.firstHit(a_ray, T(0), T(100));
+
+    return hit.hit() ? hit.m_t : ((hit.m_status == HitStatus::Miss) ? T(-1) : T(-2));
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: firstHit on the device matches the host", "[Tape][Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  std::vector<Expr<T>> objects;
+
+  for (int i = 0; i < 10; i++) {
+    objects.emplace_back(SphereSDF<T>(Vec3(T(0.6) * T(i % 5) - T(1.2), T(0.8) * T(i / 5) - T(0.4), T(0)), T(0.35)));
+  }
+
+  std::vector<std::pair<std::string, Tape<T>>> tapes;
+
+  tapes.emplace_back(
+    "classic",
+    Tape<T>(pool,
+            Difference(Intersection(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), SphereSDF<T>(Vec3::zeros(), T(1.35))),
+                       InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.55), 1))));
+  tapes.emplace_back("BVH union", Tape<T>(pool, Rotate(Union(objects), T(20), 1)));
+  tapes.emplace_back(
+    "with a fallback",
+    Tape<T>(pool, Union(BoxSDF<T>(-Vec3::ones(), Vec3::zeros()), TorusSDF<T>(Vec3::zeros(), T(1), T(0.2)))));
+
+  pool.freeze();
+
+  const Pool devicePool = Pool::mirror(pool, deviceTestResource());
+  const auto rays       = raysAround(Vec3::zeros(), T(4), T(1));
+
+  for (const auto& [name, tape] : tapes) {
+    INFO(name);
+
+    const Tape<T> view = tape.rebasedView(devicePool);
+
+    requireSameResults(evaluateOnDevice<T>(TapeHitQuery<T, Tape<T>>{view}, rays),
+                       evaluateOnHost<T>(TapeHitQuery<T, Tape<T>>{tape}, rays),
+                       T(1e-3));
+  }
+}

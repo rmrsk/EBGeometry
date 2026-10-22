@@ -127,6 +127,29 @@ sphereHit(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, cons
   return T(-1);
 }
 
+// A sphere with no ray form of its own, so that the queries sphere trace it.
+template <class T>
+struct MarchedSphere
+{
+  SphereSDF<T> m_sphere;
+
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_sphere.signedDistance(a_point);
+  }
+
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return m_sphere.computeBoundingVolume();
+  }
+
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+};
+
 // A sphere whose value has the right sign but is not a distance: ten times |p - c|^2 - r^2.
 template <class T>
 struct SquaredSphere
@@ -170,16 +193,17 @@ struct HitQuery
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Ray: firstHit on a sphere matches the closed form, from outside and from inside",
+TEMPLATE_TEST_CASE("Ray: firstHit sphere traces a sphere to the closed form, from outside and from inside",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const Vec3         center(T(0.1), T(-0.2), T(0.05));
-  const T            radius = T(0.8);
-  const SphereSDF<T> sphere(center, radius);
+  const Vec3             center(T(0.1), T(-0.2), T(0.05));
+  const T                radius = T(0.8);
+  const MarchedSphere<T> sphere{SphereSDF<T>(center, radius)};
+  const SphereSDF<T>     exact(center, radius);
 
   const RayOptions<T> options;
 
@@ -212,6 +236,15 @@ TEMPLATE_TEST_CASE("Ray: firstHit on a sphere matches the closed form, from outs
       CHECK(hit.m_primitive == 0U);
       CHECK(std::abs(hit.m_t - tRef) <= eps / cosine + T(looseMargin<T>()));
       CHECK(std::abs(sphere.signedDistance(hit.m_point)) <= eps);
+
+      // SphereSDF itself has a ray form: the same crossing, exactly, with its normal.
+      const HitT<T> closed = firstHit(exact, ray, T(0), T(100));
+
+      REQUIRE(closed.hit());
+      CHECK(closed.m_exact);
+      CHECK(closed.m_entering);
+      CHECK(std::abs(closed.m_t - tRef) <= T(looseMargin<T>()) * (T(1) + tRef));
+      CHECK((closed.m_normal - (closed.m_point - center) / radius).length() < T(looseMargin<T>()));
 
       hits++;
     }
@@ -449,7 +482,7 @@ TEMPLATE_TEST_CASE("Ray: a query out of steps is unresolved, never a miss", "[Ra
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+  const MarchedSphere<T> sphere{SphereSDF<T>(Vec3::zeros(), T(1))};
 
   RayOptions<T> few;
 
@@ -510,7 +543,7 @@ TEMPLATE_TEST_CASE("Ray: a TriMeshSDF is ray traced exactly, with the face and t
   using Vec3 = Vec3T<T>;
 
   static_assert(RayForm<TriMeshSDF<T, 4, 4>>::available, "TriMeshSDF has a ray form");
-  static_assert(!RayForm<SphereSDF<T>>::available, "SphereSDF is sphere traced");
+  static_assert(!RayForm<TorusSDF<T>>::available, "TorusSDF is sphere traced");
 
   Pool pool(hostMemoryResource());
 
@@ -579,6 +612,113 @@ TEMPLATE_TEST_CASE("Ray: a TriMeshSDF is ray traced exactly, with the face and t
   // intersects() takes the ray form too.
   CHECK(intersects(mesh, Vec3(T(0.5), T(0.5), T(-2)), Vec3(T(0.5), T(0.5), T(5))) == HitStatus::Hit);
   CHECK(intersects(mesh, Vec3(T(2), T(0.5), T(-2)), Vec3(T(2), T(0.5), T(5))) == HitStatus::Miss);
+}
+
+namespace {
+
+// Any shape, hiding its ray form, so that the queries sphere trace it.
+template <class S>
+struct Marched
+{
+  S m_shape;
+
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  auto
+  signedDistance(const Vec3T<ShapePrecision<S>>& a_point) const noexcept
+  {
+    return m_shape.signedDistance(a_point);
+  }
+
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  auto
+  computeBoundingVolume() const noexcept
+  {
+    return m_shape.computeBoundingVolume();
+  }
+
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+};
+
+// A shape's ray form against sphere tracing the same shape, over a fan of rays from outside and a few from
+// inside: the same crossings (within the march's tolerance, away from grazing rays), entered or left
+// alike, with normals along the distance's gradient.
+template <class T, class S>
+void
+checkRayForm(const S& a_shape, const RayOptions<T>& a_options, const Vec3T<T>& a_inside)
+{
+  static_assert(RayForm<S>::available, "the shape has a ray form");
+
+  const Marched<S> marched{a_shape};
+
+  const auto box = a_shape.computeBoundingVolume();
+  const T scale  = (a_options.m_scale > T(0)) ? a_options.m_scale : (box.getHighCorner() - box.getLowCorner()).length();
+  const T eps    = a_options.m_tolerance * scale;
+
+  std::vector<RayT<T>> rays = fanOfRays<T>(T(4));
+
+  for (const Vec3T<T>& d : {Vec3T<T>(1, 0, 0), Vec3T<T>(0, -1, 0), Vec3T<T>(T(0.6), T(0), T(0.8))}) {
+    rays.push_back(RayT<T>{a_inside, d});
+  }
+
+  size_t hits = 0;
+
+  for (const auto& ray : rays) {
+    const HitT<T> exact  = firstHit(a_shape, ray, T(0), T(20), a_options);
+    const HitT<T> traced = firstHit(marched, ray, T(0), T(20), a_options);
+
+    // Rays that only graze the surface can go either way.
+    if (exact.hit() && std::abs(dot(exact.m_normal, ray.m_direction)) < T(0.2)) {
+      continue;
+    }
+
+    REQUIRE(traced.m_status != HitStatus::Unresolved);
+    CHECK(exact.hit() == traced.hit());
+
+    if (exact.hit() && traced.hit()) {
+      CHECK(exact.m_exact);
+      CHECK(exact.m_entering == traced.m_entering);
+      CHECK(std::abs(exact.m_t - traced.m_t) <= T(6) * eps);
+      CHECK(std::abs(a_shape.signedDistance(exact.m_point)) <= T(looseMargin<T>()) * (T(1) + scale));
+      CHECK(std::abs(exact.m_normal.length() - T(1)) < T(looseMargin<T>()));
+
+      // The normal points the way the distance grows.
+      const T h = T(1e-3) * scale;
+
+      CHECK(a_shape.signedDistance(exact.m_point + h * exact.m_normal) >
+            a_shape.signedDistance(exact.m_point - h * exact.m_normal));
+
+      hits++;
+    }
+  }
+
+  CHECK(hits > 20U);
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Ray: the closed-form ray forms find the crossings sphere tracing finds",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const RayOptions<T> options;
+
+  checkRayForm(SphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.05)), T(0.8)), options, Vec3(T(0.1), T(-0.2), T(0.05)));
+  checkRayForm(BoxSDF<T>(Vec3(T(-0.7), T(-0.5), T(-0.3)), Vec3(T(0.6), T(0.4), T(0.5))), options, Vec3::zeros());
+  checkRayForm(
+    CylinderSDF<T>(Vec3(T(-0.6), T(-0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.35)), options, Vec3::zeros());
+  checkRayForm(
+    CapsuleSDF<T>(Vec3(T(-0.8), T(-0.2), T(0)), Vec3(T(0.7), T(0.3), T(0.1)), T(0.3)), options, Vec3::zeros());
+
+  // Unbounded shapes, with a length scale for the march.
+  RayOptions<T> unbounded = options;
+
+  unbounded.m_scale = T(2);
+
+  checkRayForm(InfiniteCylinderSDF<T>(Vec3(T(0.1), T(0), T(0.05)), T(0.4), 1), unbounded, Vec3(T(0.1), T(0), T(0.05)));
+  checkRayForm(PlaneSDF<T>(Vec3(T(0), T(0.2), T(0)), Vec3(T(0.2), T(1), T(0.1))), unbounded, Vec3(T(0), T(-1), T(0)));
 }
 
 TEMPLATE_TEST_CASE("Ray: firstHit on the device matches the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)

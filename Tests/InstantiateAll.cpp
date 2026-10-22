@@ -73,6 +73,14 @@ namespace EBGeometry {
     const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \
   template void Render::view<Tape<PREC>>(const Tape<PREC>&, int, char**);    \
   template struct RayForm<TriMeshSDF<PREC, 4, 4>>;                           \
+  template struct RayForm<PlaneSDF<PREC>>;                                   \
+  template struct RayForm<SphereSDF<PREC>>;                                  \
+  template struct RayForm<BoxSDF<PREC>>;                                     \
+  template struct RayForm<CylinderSDF<PREC>>;                                \
+  template struct RayForm<InfiniteCylinderSDF<PREC>>;                        \
+  template struct RayForm<CapsuleSDF<PREC>>;                                 \
+  template struct RayForm<Tape<PREC>>;                                       \
+  template struct RaySpans<PREC, 8>;                                         \
   template HitT<PREC> firstHit<PREC, TriMeshSDF<PREC, 4, 4>>(                \
     const TriMeshSDF<PREC, 4, 4>&, const RayT<PREC>&, PREC, PREC, const RayOptions<PREC>&) noexcept; \
   template Render::Stats Render::Renderer<PREC>::render<TriMeshSDF<PREC, 4, 4>>( \
