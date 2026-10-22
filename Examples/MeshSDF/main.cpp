@@ -4,7 +4,8 @@
 
 // Reading a surface mesh into a signed distance function, in each of the three representations
 // EBGeometry offers, and evaluating it on the host and, through the same query, on a GPU. The timings
-// show why the BVH-backed representations exist. See README.md.
+// show why the BVH-backed representations exist. At the end it opens a window on the mesh, if built
+// with the viewer. See README.md.
 
 #include <chrono>
 #include <cstddef>
@@ -80,7 +81,16 @@ try {
   //
   // Any watertight, orientable surface mesh in STL, PLY, VTK or OBJ. The default comes from the
   // common-3d-test-models submodule (git submodule update --init); pass another on the command line.
-  const std::string file = argc >= 2 ? std::string(argv[1]) : "../../common-3d-test-models/data/armadillo.obj";
+  // Arguments starting with -- are options (--no-view keeps the viewer shut).
+  std::string file = "../../common-3d-test-models/data/armadillo.obj";
+
+  for (int i = 1; i < argc; i++) {
+    if (std::string(argv[i]).rfind("--", 0) != 0) {
+      file = argv[i];
+
+      break;
+    }
+  }
 
   std::cout << "Reading '" << file << "'\n";
 
@@ -179,6 +189,15 @@ try {
       std::cout << "  " << points[i] << "   " << onDevice[i] << '\n';
     }
   }
+
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // Render::view() opens a window on any shape: drag to orbit, scroll to zoom, X to cut it open with a
+  // section plane, P to colour each face differently. A surface seen from inside the solid is drawn red,
+  // which is what an inverted mesh (faces wound the wrong way) looks like. The window needs SDL2: build
+  // with make VIEWER=SDL2 or cmake -DEBGEOMETRY_VIEWER=SDL2. Otherwise, with --no-view, or without a
+  // display, view() prints why and returns. The camera starts fitted to the mesh's bounding box.
+  EBGeometry::Render::view(triSDF, argc, argv);
 
   return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {
