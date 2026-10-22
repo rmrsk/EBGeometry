@@ -46,6 +46,7 @@ buildJson(const std::string& a_suite, int a_reps, bool a_smoke)
     .flag(Key::HostTunedDefaults, hostTunedDefaults())
     .text(Key::GpuBackend, EBGeometry::GPU::backendName)
     .text(Key::Cpu, cpuModel())
+    .text(Key::Allocator, allocatorPolicy())
     .count(Key::Reps, static_cast<std::size_t>(a_reps))
     .flag(Key::Smoke, a_smoke)
     .str();

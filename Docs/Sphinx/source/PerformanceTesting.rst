@@ -53,6 +53,14 @@ inputs untimed, runs the measured operation once to warm up and then a number of
   these out rather than inheriting ``DefaultBranchingRatio``, ``DefaultWidth`` or a constructor's default
   arguments, so a change to a default changes which case measures it, not what an existing case means.
 
+A build is timed the way a program builds its geometry once: every repetition builds into a new
+``Pool`` whose memory is fresh from the system, so it pays its page faults. Each probe fixes this at its
+start (on glibc, ``mallopt`` with a fixed mmap threshold, which glibc would otherwise raise as the
+program runs). Without it, whether a repetition's pool came as fresh pages or as memory already touched
+depended on its size, and a pool a few percent larger or smaller could change a build's time by 15%
+with no change to the build itself. Each run records its allocation policy, and a comparison shows each
+side's beside its commit.
+
 Inputs are fixed: every point set comes from the harness's own generator with a fixed seed, so that
 every platform and standard library draws the same points, and the mesh is ``armadillo.obj`` from the
 ``common-3d-test-models`` submodule. A case whose input is missing, or that throws, is reported as

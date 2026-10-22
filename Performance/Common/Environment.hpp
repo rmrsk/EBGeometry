@@ -13,12 +13,17 @@
 #define EBGEOMETRY_PERF_ENVIRONMENT_HPP
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include <fstream>
 #include <string>
 
 #ifdef _OPENMP
 #include <omp.h>
+#endif
+
+#if defined(__GLIBC__)
+#include <malloc.h>
 #endif
 
 // The commit the program was built from: set by the build (Performance/CMakeLists.txt).
@@ -65,6 +70,51 @@ hostThreads()
 #else
   return 1;
 #endif
+}
+
+/**
+ * @brief The size from which glibc serves an allocation with fresh pages from the system (mmap) rather
+ * than from memory the process has already touched: 128 KiB, glibc's own starting value.
+ */
+constexpr std::size_t MmapThreshold = 128 * 1024;
+
+/**
+ * @brief Fix how large allocations are served, for the whole run, so that every build is timed alike.
+ * @details glibc serves an allocation above its mmap threshold with fresh pages, which fault on first
+ * use, and one below it from memory the process has already touched; and it raises the threshold as the
+ * program frees large blocks. A build case makes a fresh pool every repetition, so whether that pool
+ * paid the page faults depended on its size and on what was freed before it: a pool a few percent
+ * smaller or larger could flip a build between the two and change its time by 15% without any change to
+ * the build itself. Fixing the threshold (which also stops glibc from moving it) gives every large
+ * allocation fresh pages, so every repetition pays the page faults of a first build, as a program that
+ * builds its geometry once does. Elsewhere than glibc this does nothing.
+ * @return A description of the policy, for the run's build line (Key::Allocator).
+ */
+inline std::string
+fixAllocatorPolicy()
+{
+#if defined(__GLIBC__)
+  if (mallopt(M_MMAP_THRESHOLD, static_cast<int>(MmapThreshold)) == 1) {
+    return "glibc, fresh pages from " + std::to_string(MmapThreshold / 1024) + " KiB";
+  }
+
+  return "glibc, default (mallopt failed)";
+#else
+  return "system default";
+#endif
+}
+
+/**
+ * @brief The allocation policy of this run: fixed by fixAllocatorPolicy() on the first call (Suite's
+ * constructor makes it, before any case allocates), and the same description on every later one.
+ * @return The description, for the run's build line.
+ */
+inline const std::string&
+allocatorPolicy()
+{
+  static const std::string policy = fixAllocatorPolicy();
+
+  return policy;
 }
 
 /**
