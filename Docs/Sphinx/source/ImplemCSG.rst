@@ -258,6 +258,9 @@ built.
   box and quality. The quality is a runtime value, so a tape used as another object's primitive
   counts as ``Bound`` there. ``getNumPrograms()``, ``getNumClauses()``, ``getNumBVHUnions()`` and
   ``getCallDepth()`` describe what was compiled.
+* **Leaves and rays.** ``primitiveAt(p)`` names the leaf of the expression that decides the value at a
+  point, and ``firstHit()`` and ``intersects()`` find where a ray or a segment crosses the surface; see
+  :ref:`Sec:RayQueries`.
 * **A pool handle.** A tape is trivially copyable and holds offsets into its pool and one location
   (see :ref:`Chap:MemoryModel`): ``rebasedView(mirror)`` evaluates it against a mirror of its pool,
   and ``deepCopy(pool)`` copies it, with every pool-resident primitive and BVH it holds, into another

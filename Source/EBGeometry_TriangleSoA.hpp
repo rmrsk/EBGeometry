@@ -182,6 +182,33 @@ public:
   signedDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief The nearest crossing of a ray with the group's triangles in an interval.
+   * @details Möller-Trumbore on each of the m_validCount triangles, in a scalar loop, with the
+   * barycentric test widened by a few units in the last place so that a ray through a shared edge or
+   * vertex hits one of its triangles rather than slipping between them. A triangle seen edge on is
+   * missed. Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
+   * @param[in]     a_origin    Ray origin.
+   * @param[in]     a_direction Ray direction (any length; t is in units of it).
+   * @param[in]     a_tMin      Start of the interval.
+   * @param[in,out] a_tMax      End of the interval; lowered to the crossing when one is found.
+   * @param[out]    a_lane      Lane of the triangle crossed (set only on a crossing).
+   * @param[out]    a_normal    Unit normal there, interpolated from the vertex normals, or the face normal for
+   * a triangle without vertex normals (set only on a crossing).
+   * @param[out]    a_entering  Whether the ray enters the object there, from the triangle's outward
+   * normal (set only on a crossing).
+   * @return True if a crossing in [a_tMin, a_tMax] was found.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  bool
+  rayHit(const Vec3T<T>& a_origin,
+         const Vec3T<T>& a_direction,
+         T               a_tMin,
+         T&              a_tMax,
+         uint32_t&       a_lane,
+         Vec3T<T>&       a_normal,
+         bool&           a_entering) const noexcept;
+
+  /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a point array (a

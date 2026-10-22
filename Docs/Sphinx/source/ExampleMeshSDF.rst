@@ -67,6 +67,25 @@ A kernel cannot read host memory, so the pool goes to the device first:
 it otherwise, so these lines run in both builds. See :ref:`Chap:MemoryModel` and
 :ref:`Chap:RunningOnGPU`.
 
+Looking at it
+-------------
+
+The example ends by opening a window on the mesh:
+
+.. code-block:: c++
+
+   EBGeometry::Render::view(triSDF, argc, argv);
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, press X to cut the mesh open and P to colour its faces. A
+surface seen from inside the solid is drawn red, which is also how a mesh whose faces are wound the
+wrong way looks from outside. ``TriMeshSDF`` is ray traced, so the window follows the mouse; see
+:ref:`Chap:ImplemRender`. In a GPU build the example passes its device view of the mesh, so the window
+renders on the GPU (G switches to the CPU and back); build in single precision
+(``PRECISION=float``) there, since many GPUs are much slower in double precision, and for the GPU's own
+architecture (for example ``CUDA_ARCH=sm_86``).
+
 Building and running
 --------------------
 
@@ -77,3 +96,4 @@ See :ref:`Chap:Building` for how to compile it, and :ref:`Sec:ExamplesGPU` for a
    cd Examples/MeshSDF
    ./MeshSDF.ex                                            # defaults to armadillo.obj
    ./MeshSDF.ex ../../common-3d-test-models/data/cow.obj   # or pick another mesh
+   ./MeshSDF.ex --no-view                                  # without the window

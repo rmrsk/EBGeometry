@@ -24,6 +24,8 @@ Main features:
 * BVH-accelerated (smooth) unions of many analytic shapes or meshes of one type that also run on a
   GPU.
 * Readers for triangulated surface meshes in STL, PLY, OBJ, and VTK format.
+* Ray queries on any shape (where a ray first crosses the surface, whether a segment crosses it), and
+  a renderer for looking at shapes, with an optional interactive window (SDL2).
 * Drop-in precision-templated for flexible usage.
 * No external dependencies -- drop ``EBGeometry.hpp`` into any C++17 project and include it.
 
@@ -90,6 +92,7 @@ Concepts
    PointCloud.rst
    Octree.rst
    CSG.rst
+   Rendering.rst
    Triangles.rst
 
 Implementation
@@ -105,6 +108,7 @@ Implementation
    RunningOnGPU.rst
    ImplemVec.rst
    ImplemCSG.rst
+   ImplemRender.rst
    ImplemDCEL.rst
    ImplemBVH.rst
    ImplemPointCloud.rst

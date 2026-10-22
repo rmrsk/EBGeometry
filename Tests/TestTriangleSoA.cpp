@@ -309,6 +309,96 @@ TEMPLATE_TEST_CASE("TriangleAoSoA::getFaceId returns each lane's face id and pad
   REQUIRE(group.getFaceId(3) == 11U); // padded -> last real triangle's face id
 }
 
+TEMPLATE_TEST_CASE("TriangleSoAT::rayHit finds the nearest triangle a ray crosses, and which way it goes",
+                   "[TriangleSoA][TriangleAoSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Four triangles in the plane z = 0, wound so that their normals point along +z, at x = 0, 3, 6, 9.
+  auto tris = fourTrianglesWithFaceIds<T>();
+
+  SoA<T>   group;
+  AoSoA<T> tagged;
+
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
+  tagged.pack(tris.data(), static_cast<uint32_t>(tris.size()));
+
+  uint32_t lane     = 99;
+  Vec3     normal   = Vec3::zeros();
+  bool     entering = false;
+
+  // Straight down onto the second triangle: against its normal, so the ray enters.
+  T tMax = T(100);
+
+  REQUIRE(group.rayHit(Vec3(T(3.25), T(0.25), T(2)), Vec3(0, 0, -1), T(0), tMax, lane, normal, entering));
+  CHECK(lane == 1U);
+  CHECK_THAT(tMax, Catch::Matchers::WithinAbs(2.0, tightMargin<T>()));
+  CHECK(entering);
+  CHECK((normal - Vec3(0, 0, 1)).length() < T(tightMargin<T>()));
+
+  // Up from below onto the first: along its normal, so the ray leaves.
+  tMax = T(100);
+
+  REQUIRE(group.rayHit(Vec3(T(0.25), T(0.25), T(-1)), Vec3(0, 0, 1), T(0), tMax, lane, normal, entering));
+  CHECK(lane == 0U);
+  CHECK_THAT(tMax, Catch::Matchers::WithinAbs(1.0, tightMargin<T>()));
+  CHECK_FALSE(entering);
+
+  // Between the triangles, beyond the interval, and parallel to their plane: no crossing, and the
+  // interval is left as it was.
+  tMax = T(100);
+
+  CHECK_FALSE(group.rayHit(Vec3(T(1.5), T(0.25), T(2)), Vec3(0, 0, -1), T(0), tMax, lane, normal, entering));
+  CHECK(tMax == T(100));
+
+  tMax = T(1.5);
+
+  CHECK_FALSE(group.rayHit(Vec3(T(3.25), T(0.25), T(2)), Vec3(0, 0, -1), T(0), tMax, lane, normal, entering));
+  CHECK_FALSE(group.rayHit(Vec3(T(-1), T(0.25), T(0)), Vec3(1, 0, 0), T(0), tMax, lane, normal, entering));
+
+  // The tagged group reports the face id instead of the lane.
+  uint32_t face = 0;
+
+  tMax = T(100);
+
+  REQUIRE(tagged.rayHit(Vec3(T(9.25), T(0.25), T(2)), Vec3(0, 0, -1), T(0), tMax, face, normal, entering));
+  CHECK(face == 13U);
+
+  // Two triangles, one above the other: the nearer one is found whatever its lane.
+  std::vector<Tri<T>> stacked;
+
+  stacked.emplace_back(Array<Vec3, 3>{Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0)});
+  stacked.emplace_back(Array<Vec3, 3>{Vec3(0, 0, 1), Vec3(1, 0, 1), Vec3(0, 1, 1)});
+
+  SoA<T> two;
+
+  two.pack(stacked.data(), 2);
+
+  tMax = T(100);
+
+  REQUIRE(two.rayHit(Vec3(T(0.2), T(0.2), T(3)), Vec3(0, 0, -1), T(0), tMax, lane, normal, entering));
+  CHECK(lane == 1U);
+  CHECK_THAT(tMax, Catch::Matchers::WithinAbs(2.0, tightMargin<T>()));
+
+  // A ray through the diagonal two triangles of a square share hits one of them.
+  std::vector<Tri<T>> square;
+
+  square.emplace_back(Array<Vec3, 3>{Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0)});
+  square.emplace_back(Array<Vec3, 3>{Vec3(0, 0, 0), Vec3(1, 1, 0), Vec3(0, 1, 0)});
+
+  SoA<T> halves;
+
+  halves.pack(square.data(), 2);
+
+  for (const T x : {T(0.25), T(0.5), T(0.75)}) {
+    tMax = T(100);
+
+    CHECK(halves.rayHit(Vec3(x, x, T(1)), Vec3(0, 0, -1), T(0), tMax, lane, normal, entering));
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Device: a host-packed TriangleAoSoA is queried in a kernel and matches the host
 // ─────────────────────────────────────────────────────────────────────────────

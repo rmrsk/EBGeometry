@@ -88,6 +88,11 @@ struct Staging
    * @brief The object's distance quality.
    */
   DistanceQuality m_quality = DistanceQuality::NotADistance;
+
+  /**
+   * @brief Leaves emitted so far; the next leaf's id.
+   */
+  uint32_t m_numPrimitives = 0;
 };
 
 /**
@@ -436,7 +441,10 @@ private:
 
       const uint32_t index = this->stage<0>(type, leaf.m_object.get());
 
-      this->push(a_state, clause(Op::Primitive, index, 0U, 0U, 0U, static_cast<uint16_t>(type)), 1, 0);
+      // Leaves are emitted in the order they appear in the expression, depth first, so this numbers them.
+      const uint32_t id = m_staging.m_numPrimitives++;
+
+      this->push(a_state, clause(Op::Primitive, index, id, 0U, 0U, static_cast<uint16_t>(type)), 1, 0);
 
       break;
     }
@@ -764,6 +772,7 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_boundingVolume = a_staging.m_boundingVolume;
   layout.m_quality        = a_staging.m_quality;
   layout.m_callDepth      = a_staging.m_depth.front();
+  layout.m_numPrimitives  = a_staging.m_numPrimitives;
 
   m_layout = layout;
 }
@@ -777,14 +786,55 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point) const noexce
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return this->template evaluate<MaxCallDepth>(0U, a_point, this->base(), this->location());
+  return this->template evaluate<MaxCallDepth, false>(0U, a_point, this->base(), this->location());
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::primitiveAt(const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+  return this->template evaluate<MaxCallDepth, true>(0U, a_point, this->base(), this->location()).m_primitive;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::firstHit(const RayT<T>&       a_ray,
+                                     const T              a_tMin,
+                                     const T              a_tMax,
+                                     const RayOptions<T>& a_options) const noexcept
+{
+  return EBGeometry::firstHit(*this, a_ray, a_tMin, a_tMax, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline HitStatus
+Tape<T, UserPrimitives...>::intersects(const Vec3T<T>&      a_from,
+                                       const Vec3T<T>&      a_to,
+                                       const RayOptions<T>& a_options) const noexcept
+{
+  return EBGeometry::intersects(*this, a_from, a_to, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::getNumPrimitives() const noexcept
+{
+  return m_layout.m_numPrimitives;
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D, bool Track>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
-inline T
+inline typename Tape<T, UserPrimitives...>::template Result<Track>
 Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
                                      const Vec3T<T>&     a_point,
                                      const void*         a_base,
@@ -799,6 +849,9 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
   T        values[ValueStackSize];
   Vec3T<T> points[PointStackSize];
 
+  // The leaf of each value, kept only when tracking: without it this array is never touched.
+  uint32_t ids[Track ? ValueStackSize : 1U];
+
   uint32_t nv = 0;
   uint32_t np = 0;
 
@@ -809,6 +862,10 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
 
     switch (c.m_op) {
     case Op::Primitive: {
+      if constexpr (Track) {
+        ids[nv] = c.m_b;
+      }
+
       values[nv++] = this->evaluatePrimitive(c.m_type, c.m_a, points[np - 1], a_base, a_location);
 
       EBGEOMETRY_EXPECT(!std::isnan(values[nv - 1]));
@@ -881,6 +938,12 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
     case Op::Min: {
       nv--;
 
+      if constexpr (Track) {
+        if (values[nv] < values[nv - 1]) {
+          ids[nv - 1] = ids[nv];
+        }
+      }
+
       values[nv - 1] = Math::min(values[nv - 1], values[nv]);
 
       break;
@@ -888,12 +951,23 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
     case Op::Max: {
       nv--;
 
+      if constexpr (Track) {
+        if (values[nv] > values[nv - 1]) {
+          ids[nv - 1] = ids[nv];
+        }
+      }
+
       values[nv - 1] = Math::max(values[nv - 1], values[nv]);
 
       break;
     }
     case Op::PairInit: {
       const T empty = (c.m_flags == 0U) ? Math::Limits<T>::infinity() : -Math::Limits<T>::infinity();
+
+      if constexpr (Track) {
+        ids[nv]      = NoPrimitive;
+        ids[nv + 1U] = NoPrimitive;
+      }
 
       values[nv++] = empty;
       values[nv++] = empty;
@@ -913,9 +987,18 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
       if (beyondA) {
         b = a;
         a = v;
+
+        if constexpr (Track) {
+          ids[nv - 1] = ids[nv - 2];
+          ids[nv - 2] = ids[nv];
+        }
       }
       else if (beyondB) {
         b = v;
+
+        if constexpr (Track) {
+          ids[nv - 1] = ids[nv];
+        }
       }
 
       break;
@@ -924,6 +1007,15 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
       const T b = values[--nv];
       const T a = values[nv - 1];
       const T s = params[c.m_a];
+
+      // The more extreme of the two decides: the smaller for a smooth minimum, the larger for a maximum.
+      if constexpr (Track) {
+        const bool max = (c.m_flags & 1U) != 0U;
+
+        if (max ? (b > a) : (b < a)) {
+          ids[nv - 1] = ids[nv];
+        }
+      }
 
       switch (c.m_flags) {
       case 0U: {
@@ -958,12 +1050,22 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
         const Vec3T<T>& x   = points[np - 1];
 
         const auto f = [this, sub, d, &x, a_base, &a_location](const int i, const int j, const int k) noexcept -> T {
-          return this->template evaluate<D - 1>(sub, x + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d), a_base, a_location);
+          return this->template evaluate<D - 1, false>(
+            sub, x + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d), a_base, a_location);
         };
 
         T value = T(0);
 
-        value += w[1] * f(0, 0, 0);
+        // The centre tap has the largest weight, and its leaf decides.
+        if constexpr (Track) {
+          const auto centre = this->template evaluate<D - 1, true>(sub, x, a_base, a_location);
+
+          value += w[1] * centre.m_value;
+          ids[nv] = centre.m_primitive;
+        }
+        else {
+          value += w[1] * f(0, 0, 0);
+        }
         value += w[2] * (f(1, 0, 0) + f(-1, 0, 0) + f(0, 1, 0) + f(0, -1, 0) + f(0, 0, 1) + f(0, 0, -1));
         value += w[3] * (f(1, 1, 0) + f(1, -1, 0) + f(-1, 1, 0) + f(-1, -1, 0));
         value += w[3] * (f(1, 0, 1) + f(1, 0, -1) + f(-1, 0, 1) + f(-1, 0, -1));
@@ -975,6 +1077,10 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
       }
       else {
         EBGEOMETRY_EXPECT(false);
+
+        if constexpr (Track) {
+          ids[nv] = NoPrimitive;
+        }
 
         values[nv++] = T(0);
       }
@@ -988,17 +1094,44 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
 
         T value = T(0);
 
-        for (uint32_t k = 0; k < c.m_c; k++) {
-          const T* tap = taps + 4U * k;
+        if constexpr (Track) {
+          // The leaf of the tap with the largest weight (the centre one, or the first of the central ones).
+          T heaviest = T(-1);
 
-          value +=
-            this->template evaluate<D - 1>(c.m_a, x - Vec3T<T>(tap[0], tap[1], tap[2]), a_base, a_location) * tap[3];
+          ids[nv] = NoPrimitive;
+
+          for (uint32_t k = 0; k < c.m_c; k++) {
+            const T* tap = taps + 4U * k;
+
+            const auto r =
+              this->template evaluate<D - 1, true>(c.m_a, x - Vec3T<T>(tap[0], tap[1], tap[2]), a_base, a_location);
+
+            value += r.m_value * tap[3];
+
+            if (tap[3] > heaviest) {
+              heaviest = tap[3];
+              ids[nv]  = r.m_primitive;
+            }
+          }
+        }
+        else {
+          for (uint32_t k = 0; k < c.m_c; k++) {
+            const T* tap = taps + 4U * k;
+
+            value +=
+              this->template evaluate<D - 1, false>(c.m_a, x - Vec3T<T>(tap[0], tap[1], tap[2]), a_base, a_location) *
+              tap[3];
+          }
         }
 
         values[nv++] = value;
       }
       else {
         EBGEOMETRY_EXPECT(false);
+
+        if constexpr (Track) {
+          ids[nv] = NoPrimitive;
+        }
 
         values[nv++] = T(0);
       }
@@ -1008,10 +1141,22 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
     case Op::UnionBVH:
     case Op::SmoothUnionBVH: {
       if constexpr (D > 0) {
-        values[nv++] = this->template evaluateUnion<D>(c, points[np - 1], params, a_base, a_location);
+        const auto r = this->template evaluateUnion<D, Track>(c, points[np - 1], params, a_base, a_location);
+
+        if constexpr (Track) {
+          ids[nv]      = r.m_primitive;
+          values[nv++] = r.m_value;
+        }
+        else {
+          values[nv++] = r;
+        }
       }
       else {
         EBGEOMETRY_EXPECT(false);
+
+        if constexpr (Track) {
+          ids[nv] = NoPrimitive;
+        }
 
         values[nv++] = T(0);
       }
@@ -1028,7 +1173,12 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
 
   EBGEOMETRY_EXPECT(nv == 1U && np == 1U);
 
-  return values[0];
+  if constexpr (Track) {
+    return TapeDetail::Tracked<T>{values[0], ids[0]};
+  }
+  else {
+    return values[0];
+  }
 }
 
 template <class T, class... UserPrimitives>
@@ -1079,9 +1229,9 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D>
+template <unsigned D, bool Track>
 EBGEOMETRY_HOST_DEVICE
-inline T
+inline typename Tape<T, UserPrimitives...>::template Result<Track>
 Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
                                           const Vec3T<T>&           a_point,
                                           const T*                  a_params,
@@ -1104,35 +1254,64 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
   // for a smooth union, as in BVHSmoothUnion.
   const bool smooth = (a_clause.m_op == TapeDetail::Op::SmoothUnionBVH);
 
-  struct Closest
+  struct Values
   {
     T a = Math::Limits<T>::infinity();
     T b = Math::Limits<T>::infinity();
   };
 
-  const auto insert = [](Closest& a_closest, const T a_value) noexcept {
-    EBGEOMETRY_EXPECT(!std::isnan(a_value));
+  // When tracking, the leaves of a and b too.
+  struct TrackedValues
+  {
+    T        a  = Math::Limits<T>::infinity();
+    T        b  = Math::Limits<T>::infinity();
+    uint32_t ia = NoPrimitive;
+    uint32_t ib = NoPrimitive;
+  };
 
-    if (a_value < a_closest.a) {
-      a_closest.b = a_closest.a;
-      a_closest.a = a_value;
+  using Closest = std::conditional_t<Track, TrackedValues, Values>;
+
+  const auto insert = [](Closest& a_closest, const Result<Track>& a_result) noexcept {
+    if constexpr (Track) {
+      const T v = a_result.m_value;
+
+      EBGEOMETRY_EXPECT(!std::isnan(v));
+
+      if (v < a_closest.a) {
+        a_closest.b  = a_closest.a;
+        a_closest.ib = a_closest.ia;
+        a_closest.a  = v;
+        a_closest.ia = a_result.m_primitive;
+      }
+      else if (v < a_closest.b) {
+        a_closest.b  = v;
+        a_closest.ib = a_result.m_primitive;
+      }
     }
-    else if (a_value < a_closest.b) {
-      a_closest.b = a_value;
+    else {
+      EBGEOMETRY_EXPECT(!std::isnan(a_result));
+
+      if (a_result < a_closest.a) {
+        a_closest.b = a_closest.a;
+        a_closest.a = a_result;
+      }
+      else if (a_result < a_closest.b) {
+        a_closest.b = a_result;
+      }
     }
   };
 
   Closest closest;
 
   for (uint32_t i = 0; i < unboundedPrograms.size(); i++) {
-    insert(closest, this->template evaluate<D - 1>(unboundedPrograms[i], a_point, a_base, a_location));
+    insert(closest, this->template evaluate<D - 1, Track>(unboundedPrograms[i], a_point, a_base, a_location));
   }
 
   const auto evalLeaf = [this, &programs, &a_point, a_base, &a_location, &insert](
                           Closest& a_closest, const size_t a_offset, const size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
       insert(a_closest,
-             this->template evaluate<D - 1>(programs[static_cast<uint32_t>(i)], a_point, a_base, a_location));
+             this->template evaluate<D - 1, Track>(programs[static_cast<uint32_t>(i)], a_point, a_base, a_location));
     }
   };
 
@@ -1144,13 +1323,22 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
 
   bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
 
-  if (!smooth) {
-    return closest.a;
+  T value = closest.a;
+
+  if (smooth) {
+    const T s = a_params[a_clause.m_b];
+
+    value =
+      (a_clause.m_flags == 0U) ? SmoothMinOp<T>{}(closest.a, closest.b, s) : ExpMinOp<T>{}(closest.a, closest.b, s);
   }
 
-  const T s = a_params[a_clause.m_b];
-
-  return (a_clause.m_flags == 0U) ? SmoothMinOp<T>{}(closest.a, closest.b, s) : ExpMinOp<T>{}(closest.a, closest.b, s);
+  // The smallest operand decides, smooth or not.
+  if constexpr (Track) {
+    return TapeDetail::Tracked<T>{value, closest.ia};
+  }
+  else {
+    return value;
+  }
 }
 
 template <class T, class... UserPrimitives>

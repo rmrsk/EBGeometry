@@ -7,7 +7,7 @@ answers. Read them in this order:
 
 1. `Shapes`: the built-in analytic shapes: constructing them, their signed distance, bounding box and distance quality.
 2. `CSG`: composing shapes with unions, intersections, differences, transforms and smooth blends, compiled into a `Tape`.
-3. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
+3. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick; then a look at it in the viewer (`Render::view()`).
 4. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
 5. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
 6. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.

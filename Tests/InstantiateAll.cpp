@@ -51,6 +51,33 @@ namespace EBGeometry {
   template class Tape<PREC>;                                                 \
   template class Tape<PREC, BVHUnion<PREC, SphereSDF<PREC>, 4>, MeshSDF<PREC, 8>>; \
                                                                                \
+  /* -- Ray queries -------------------------------------------------------*/ \
+  template struct RayT<PREC>;                                                \
+  template struct HitT<PREC>;                                                \
+  template struct RayOptions<PREC>;                                          \
+  template HitT<PREC> firstHit<PREC, SphereSDF<PREC>>(                       \
+    const SphereSDF<PREC>&, const RayT<PREC>&, PREC, PREC, const RayOptions<PREC>&) noexcept; \
+  template HitT<PREC> firstHit<PREC, Tape<PREC>>(                            \
+    const Tape<PREC>&, const RayT<PREC>&, PREC, PREC, const RayOptions<PREC>&) noexcept; \
+  template HitStatus intersects<PREC, SphereSDF<PREC>>(                      \
+    const SphereSDF<PREC>&, const Vec3T<PREC>&, const Vec3T<PREC>&, const RayOptions<PREC>&) noexcept; \
+                                                                               \
+  /* -- Renderer ----------------------------------------------------------*/ \
+  template struct Render::Camera<PREC>;                                      \
+  template struct Render::Settings<PREC>;                                    \
+  template struct Render::PixelQuery<PREC, Tape<PREC>>;                      \
+  template class Render::Renderer<PREC>;                                     \
+  template Render::Stats Render::Renderer<PREC>::render<Tape<PREC>>(         \
+    const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \
+  template Render::Stats Render::Renderer<PREC>::renderOnDevice<Tape<PREC>>( \
+    const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \
+  template void Render::view<Tape<PREC>>(const Tape<PREC>&, int, char**);    \
+  template struct RayForm<TriMeshSDF<PREC, 4, 4>>;                           \
+  template HitT<PREC> firstHit<PREC, TriMeshSDF<PREC, 4, 4>>(                \
+    const TriMeshSDF<PREC, 4, 4>&, const RayT<PREC>&, PREC, PREC, const RayOptions<PREC>&) noexcept; \
+  template Render::Stats Render::Renderer<PREC>::render<TriMeshSDF<PREC, 4, 4>>( \
+    const TriMeshSDF<PREC, 4, 4>&, const Render::Camera<PREC>&, Render::Image&) const; \
+                                                                               \
   /* -- File readers ------------------------------------------------------*/ \
   template class PolygonSoup<PREC>;                                          \
                                                                                \

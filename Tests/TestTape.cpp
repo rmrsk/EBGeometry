@@ -884,3 +884,281 @@ TEMPLATE_TEST_CASE("Tape: a tape built directly in managed memory evaluates on t
   requireSameResults(evaluateOnDevice<T>(TapeQuery<T, Tape<T, Octahedron<T>>>{view}, points),
                      evaluateOnHost<T>(TapeQuery<T, Tape<T, Octahedron<T>>>{tape}, points));
 }
+
+namespace {
+
+// Spheres of different radii spread over a box, far enough apart that most points have one clearly
+// nearest sphere.
+template <class T>
+std::vector<SphereSDF<T>>
+spreadSpheres(const int a_count)
+{
+  std::vector<SphereSDF<T>> spheres;
+
+  for (int i = 0; i < a_count; i++) {
+    const Vec3T<T> center(T(1.3) * T(i % 4) - T(2), T(1.1) * T((i / 4) % 3) - T(1), T(0.4) * T(i % 3));
+
+    spheres.emplace_back(center, T(0.2) + T(0.05) * T(i % 5));
+  }
+
+  return spheres;
+}
+
+// The index of the extreme value of the leaves at a point (the smallest, or the largest if a_max), or -1
+// when the two most extreme values are closer than a_gap, so that rounding could pick either.
+template <class T>
+int
+extremeLeaf(const std::vector<T>& a_values, const bool a_max, const T a_gap)
+{
+  int best   = 0;
+  T   second = a_max ? -Math::Limits<T>::infinity() : Math::Limits<T>::infinity();
+
+  for (size_t i = 1; i < a_values.size(); i++) {
+    const T v = a_values[i];
+    const T b = a_values[static_cast<size_t>(best)];
+
+    if (a_max ? (v > b) : (v < b)) {
+      second = b;
+      best   = static_cast<int>(i);
+    }
+    else if (a_max ? (v > second) : (v < second)) {
+      second = v;
+    }
+  }
+
+  return (std::abs(a_values[static_cast<size_t>(best)] - second) < a_gap) ? -1 : best;
+}
+
+// Device functor: the leaf that decides a tape's value at one point.
+template <class T, class TapeType>
+struct LeafQuery
+{
+  TapeType m_tape;
+
+  EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_tape.primitiveAt(a_point);
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: primitiveAt names the leaf a union or intersection takes its value from",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto spheres = spreadSpheres<T>(12);
+
+  std::vector<Expr<T>> operands(spheres.begin(), spheres.end());
+
+  TapeOptions linear;
+
+  linear.m_bvhUnionThreshold = 1000;
+
+  const TestUtils::Compiled<T> withBVH(Union(operands));
+  const TestUtils::Compiled<T> withoutBVH(Union(operands), linear);
+  const TestUtils::Compiled<T> intersection(Intersection(operands));
+
+  CHECK(withBVH.tape().getNumBVHUnions() == 1U);
+  CHECK(withoutBVH.tape().getNumBVHUnions() == 0U);
+  CHECK(withBVH.tape().getNumPrimitives() == 12U);
+
+  const auto points = EBGeometryTestGPU::queryGrid<T>(Vec3(T(-3), T(-2), T(-1)), Vec3(T(3), T(2), T(2)), 10);
+
+  size_t checked = 0;
+
+  for (const auto& p : points) {
+    std::vector<T> values;
+
+    for (const auto& s : spheres) {
+      values.push_back(s.signedDistance(p));
+    }
+
+    const int nearest  = extremeLeaf(values, false, T(looseMargin<T>()));
+    const int farthest = extremeLeaf(values, true, T(looseMargin<T>()));
+
+    if (nearest >= 0) {
+      CHECK(withBVH.tape().primitiveAt(p) == uint32_t(nearest));
+      CHECK(withoutBVH.tape().primitiveAt(p) == uint32_t(nearest));
+
+      checked++;
+    }
+    if (farthest >= 0) {
+      CHECK(intersection.tape().primitiveAt(p) == uint32_t(farthest));
+    }
+  }
+
+  CHECK(checked > points.size() / 2);
+
+  // A difference is the first operand intersected with the complement of the second: the box decides
+  // where its value is the larger, the sphere where minus its value is.
+  const BoxSDF<T>    box(Vec3(T(-1), T(-1), T(-1)), Vec3(T(1), T(1), T(1)));
+  const SphereSDF<T> ball(Vec3(T(1), T(0), T(0)), T(0.8));
+
+  const TestUtils::Compiled<T> difference(Difference(box, ball));
+
+  for (const auto& p : points) {
+    const T a = box.signedDistance(p);
+    const T b = -ball.signedDistance(p);
+
+    if (std::abs(a - b) > T(looseMargin<T>())) {
+      CHECK(difference.tape().primitiveAt(p) == ((b > a) ? 1U : 0U));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: leaves are numbered depth first, each occurrence counted, through maps and value "
+                   "operations",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // One sphere used three times, so the three leaves differ only in where they were placed. The
+  // rotation turns the sphere about its own centre, so it moves nothing.
+  const SphereSDF<T> s(Vec3::zeros(), T(0.5));
+
+  const Vec3 a(T(-3), T(0), T(0));
+  const Vec3 b(T(0), T(3), T(0));
+  const Vec3 c(T(3), T(0), T(0));
+
+  const auto expr = Union(Translate(Offset(s, T(0.1)), a),
+                          Union(Translate(Rotate(Complement(Complement(s)), T(90), 2), b),
+                                Annular(Scale(Translate(s, c / T(2)), T(2)), T(0.05))));
+
+  const TestUtils::Compiled<T> compiled(expr);
+
+  CHECK(compiled.tape().getNumPrimitives() == 3U);
+
+  CHECK(compiled.tape().primitiveAt(a) == 0U);
+  CHECK(compiled.tape().primitiveAt(b) == 1U);
+  CHECK(compiled.tape().primitiveAt(c) == 2U);
+  CHECK(compiled.tape().primitiveAt(a + Vec3(T(0), T(0), T(0.9))) == 0U);
+}
+
+TEMPLATE_TEST_CASE("Tape: primitiveAt names the more extreme operand of a smooth union or intersection",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto few  = spreadSpheres<T>(3);
+  const auto many = spreadSpheres<T>(12);
+
+  const std::vector<Expr<T>> fewOperands(few.begin(), few.end());
+  const std::vector<Expr<T>> manyOperands(many.begin(), many.end());
+
+  const TestUtils::Compiled<T> smoothUnion(SmoothUnion(fewOperands, T(0.2)));
+  const TestUtils::Compiled<T> exponential(SmoothUnion(fewOperands, T(0.2), BlendKind::Exponential));
+  const TestUtils::Compiled<T> smoothIntersection(SmoothIntersection(fewOperands, T(0.2)));
+  const TestUtils::Compiled<T> smoothUnionBVH(SmoothUnion(manyOperands, T(0.2)));
+
+  CHECK(smoothUnionBVH.tape().getNumBVHUnions() == 1U);
+
+  const auto points = EBGeometryTestGPU::queryGrid<T>(Vec3(T(-3), T(-2), T(-1)), Vec3(T(3), T(2), T(2)), 10);
+
+  for (const auto& p : points) {
+    std::vector<T> fewValues;
+    std::vector<T> manyValues;
+
+    for (const auto& s : few) {
+      fewValues.push_back(s.signedDistance(p));
+    }
+    for (const auto& s : many) {
+      manyValues.push_back(s.signedDistance(p));
+    }
+
+    const int nearest  = extremeLeaf(fewValues, false, T(looseMargin<T>()));
+    const int farthest = extremeLeaf(fewValues, true, T(looseMargin<T>()));
+    const int nearestM = extremeLeaf(manyValues, false, T(looseMargin<T>()));
+
+    if (nearest >= 0) {
+      CHECK(smoothUnion.tape().primitiveAt(p) == uint32_t(nearest));
+      CHECK(exponential.tape().primitiveAt(p) == uint32_t(nearest));
+    }
+    if (farthest >= 0) {
+      CHECK(smoothIntersection.tape().primitiveAt(p) == uint32_t(farthest));
+    }
+    if (nearestM >= 0) {
+      CHECK(smoothUnionBVH.tape().primitiveAt(p) == uint32_t(nearestM));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: Blur and Mollify take the leaf of their centre tap", "[Tape]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> left(Vec3(T(-1.5), T(0), T(0)), T(0.6));
+  const SphereSDF<T> right(Vec3(T(1.5), T(0), T(0)), T(0.6));
+
+  const TestUtils::Compiled<T> blurred(Blur(Union(left, right), T(0.1)));
+  const TestUtils::Compiled<T> mollified(Mollify(Union(left, right), T(0.1), 3));
+  const TestUtils::Compiled<T> evenMollified(Mollify(Union(left, right), T(0.1), 4));
+
+  // Well away from the plane x = 0 where the two are equally near, every tap has the same nearest
+  // sphere, so the centre tap's leaf is also the nearest sphere's.
+  for (const T x : {T(-2.5), T(-1.5), T(-0.4), T(0.4), T(1.5), T(2.5)}) {
+    const Vec3     p(x, T(0.3), T(-0.2));
+    const uint32_t expected = (x < T(0)) ? 0U : 1U;
+
+    CHECK(blurred.tape().primitiveAt(p) == expected);
+    CHECK(mollified.tape().primitiveAt(p) == expected);
+    CHECK(evenMollified.tape().primitiveAt(p) == expected);
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: primitiveAt on the device matches the host", "[Tape][gpu]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const auto few  = spreadSpheres<T>(3);
+  const auto many = spreadSpheres<T>(12);
+
+  const std::vector<Expr<T>> fewOperands(few.begin(), few.end());
+  const std::vector<Expr<T>> manyOperands(many.begin(), many.end());
+
+  const BoxSDF<T> box(Vec3(T(-1), T(-1), T(-1)), Vec3(T(1), T(1), T(1)));
+
+  std::vector<std::pair<std::string, Tape<T>>> tapes;
+
+  tapes.emplace_back("union", Tape<T>(pool, Union(fewOperands)));
+  tapes.emplace_back("BVH union", Tape<T>(pool, Union(manyOperands)));
+  tapes.emplace_back("smooth BVH union", Tape<T>(pool, SmoothUnion(manyOperands, T(0.2))));
+  tapes.emplace_back("smooth intersection", Tape<T>(pool, SmoothIntersection(fewOperands, T(0.2))));
+  tapes.emplace_back("difference", Tape<T>(pool, Difference(box, Union(fewOperands))));
+  tapes.emplace_back("blur", Tape<T>(pool, Blur(Union(fewOperands), T(0.1))));
+  tapes.emplace_back("mollify", Tape<T>(pool, Mollify(Union(fewOperands), T(0.1), 3)));
+
+  pool.freeze();
+
+  const Pool devicePool = Pool::mirror(pool, deviceTestResource());
+
+  const auto points = queryGrid<T>(Vec3(T(-3), T(-2), T(-1)), Vec3(T(3), T(2), T(2)), 10);
+
+  for (const auto& [name, tape] : tapes) {
+    INFO(name);
+
+    const Tape<T> view = tape.rebasedView(devicePool);
+
+    CHECK(evaluateOnDevice<uint32_t>(LeafQuery<T, Tape<T>>{view}, points) ==
+          evaluateOnHost<uint32_t>(LeafQuery<T, Tape<T>>{tape}, points));
+  }
+}

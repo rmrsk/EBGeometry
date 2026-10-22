@@ -48,6 +48,8 @@
 #include "Source/EBGeometry_PointSoA.hpp"
 #include "Source/EBGeometry_PolygonSoup.hpp"
 #include "Source/EBGeometry_Pool.hpp"
+#include "Source/EBGeometry_Ray.hpp"
+#include "Source/EBGeometry_Render.hpp"
 #include "Source/EBGeometry_SFC.hpp"
 #include "Source/EBGeometry_Soup.hpp"
 #include "Source/EBGeometry_StreamOperators.hpp"
@@ -57,6 +59,7 @@
 #include "Source/EBGeometry_TriangleAoSoA.hpp"
 #include "Source/EBGeometry_TriangleSoA.hpp"
 #include "Source/EBGeometry_Vec.hpp"
+#include "Source/EBGeometry_Viewer.hpp"
 
 /**
  * @brief Namespace containing all of EBGeometry's functionality.
