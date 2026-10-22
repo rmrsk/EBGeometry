@@ -54,6 +54,16 @@ inputs untimed, runs the measured operation once to warm up and then a number of
   these out rather than inheriting ``DefaultBranchingRatio``, ``DefaultWidth`` or a constructor's default
   arguments, so a change to a default changes which case measures it, not what an existing case means.
 
+A build is timed the way a program builds its geometry once. Each probe fixes how memory is served at
+its start (on glibc, with ``mallopt``): every allocation comes from the heap, so a build's temporaries
+reuse memory freed earlier in the same build, as in a real program; and before every repetition,
+untimed, the memory freed so far goes back to the system (``malloc_trim``), so that each repetition's
+pool starts on fresh pages and pays their page faults, as a first build's does. Without this, glibc
+decided by a size threshold, which it moves as the program runs, whether a repetition's pool came as
+fresh pages or as memory already touched, so a pool a few percent larger or smaller could change a
+build's time by 15% with no change to the build itself. Each run records its allocation policy, and a
+comparison shows each side's beside its commit.
+
 Inputs are fixed: every point set comes from the harness's own generator with a fixed seed, so that
 every platform and standard library draws the same points, and the mesh is ``armadillo.obj`` from the
 ``common-3d-test-models`` submodule. A case whose input is missing, or that throws, is reported as
@@ -388,8 +398,9 @@ The receipt is one file, ``Performance/receipt.md``, with a section per comparis
 which ``--record`` writes and CI requires, and, when the change touches device code, a device
 comparison, which ``--record --gpu cuda`` (or ``hip``) adds. Each section holds its verdict, the two
 commits compared, the machine and the comparison's table. ``--record`` refuses anything that could not
-stand for the pull request: a smoke check, a subset of the cases (a glob), or a working tree whose
-library or probes have uncommitted changes. Recording one section keeps the others only if they
+stand for the pull request: a smoke check, a subset of the cases (a glob), a working tree whose
+library or probes have uncommitted changes, or a run in which a case was skipped on either side (it
+checks for the ``common-3d-test-models`` submodule before building, since every mesh case needs it). Recording one section keeps the others only if they
 measured the same code against the same base, and drops them otherwise, so the file never carries a
 section that measured other code.
 
@@ -406,10 +417,13 @@ recorded it must pass like the host one), and passes only when, for each,
   request that changes code and keeps the receipt it inherited fails;
 * the base branch's code is the base the section measured. When the base branch's code moves on (another
   pull request merged), the pull request is rebased and its comparison recorded again;
-* the verdict is green, or a yellow or red verdict is accepted: the reason is written after
-  ``accepted:`` in that section (a minor regression that is expected, answers that changed for a reason,
-  a major regression the maintainer explicitly accepts). Every verdict is recorded; only green passes
-  on its own.
+* the verdict is green, or a yellow or red verdict is accepted: the reason replaces the ``-`` on the
+  ``**Accepted:**`` line under that section's heading (the reason may wrap over several lines, up to the
+  next blank line) (a minor regression that is expected, answers that
+  changed for a reason, a major regression the maintainer explicitly accepts), where a reader of the
+  rendered receipt sees it. Every verdict is recorded; only green passes on its own, and CI's check
+  then shows a warning with the reason rather than a plain pass. Who accepted it is in git history: the
+  commit that wrote the reason, and the account that pushed it.
 
 A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
 request leaves its receipt in the base branch, so the history of ``Performance/receipt.md`` is the
@@ -421,6 +435,11 @@ carried over to other code by mistake, and CI computes them from git, not from t
 check the figures themselves: the receipt records that its author ran the comparison and what it found,
 and it is trusted the way a review is trusted to have been done. It makes the local comparison a
 required, visible part of every change that needs one; it is not a proof that the numbers were measured.
+The same holds for an acceptance: CI cannot tell who wrote the reason on an ``**Accepted:**`` line.
+Git history records the commit that wrote it and the account that pushed it, which identifies an
+outside contributor, but not whether an agent working under the maintainer's account wrote it on the
+maintainer's say-so; that rests on the rule that an agent writes a reason only on the maintainer's
+explicit acceptance (``CLAUDE.md``).
 
 Two pull requests that both pass can still race: once one merges and changes the base's code, the
 other's receipt is stale. Branch protection that requires a pull request to be up to date with its base

@@ -124,7 +124,7 @@ read(const std::string& a_file)
     const JsonLine line(text);
 
     if (!line.has(Key::Case)) {
-      for (const char* key : {Key::Git, Key::Compiler, Key::Simd, Key::GpuBackend, Key::Cpu}) {
+      for (const char* key : {Key::Git, Key::Compiler, Key::Simd, Key::GpuBackend, Key::Cpu, Key::Allocator}) {
         if (line.has(key) && results.build.count(key) == 0) {
           results.build[key] = line.text(key);
         }
@@ -583,9 +583,12 @@ fullReport(const Results&     a_base,
     std::to_string(count(Outcome::Faster)) + " faster, " + std::to_string(count(Outcome::Differ)) + " differ, " +
     std::to_string(count(Outcome::Lost)) + " lost, " + Perf::counted(cases.size(), "case");
 
+  // A side's build; the allocation policy too, since one that differs between the sides changes build
+  // times on its own ("?" for probes from before it was recorded).
   const auto side = [](const char* a_label, const Results& a_r) {
     return std::string(a_label) + a_r.fact(Perf::Key::Git) + " (" + a_r.fact(Perf::Key::Compiler) + ", simd " +
-           a_r.fact(Perf::Key::Simd) + ", gpu " + a_r.fact(Perf::Key::GpuBackend) + ")";
+           a_r.fact(Perf::Key::Simd) + ", gpu " + a_r.fact(Perf::Key::GpuBackend) + ", allocator " +
+           a_r.fact(Perf::Key::Allocator) + ")";
   };
 
   const std::string thresholds = "minor >= " + formatNumber("%g", a_thresholds.minor) +

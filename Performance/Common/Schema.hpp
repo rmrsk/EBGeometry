@@ -37,6 +37,7 @@ constexpr const char* Simd              = "simd";                ///< The host S
 constexpr const char* HostTunedDefaults = "host_tuned_defaults"; ///< Whether EBGEOMETRY_HOST_TUNED_DEFAULTS was set.
 constexpr const char* GpuBackend        = "gpu_backend";         ///< host, CUDA or HIP.
 constexpr const char* Cpu               = "cpu";                 ///< The CPU model.
+constexpr const char* Allocator         = "allocator";           ///< How large allocations are served.
 constexpr const char* Reps              = "reps";                ///< Timed repetitions per case.
 constexpr const char* Smoke             = "smoke";               ///< Whether these were smoke sizes.
 
