@@ -143,8 +143,8 @@ parameters and, for a paired case, the host/device figures; each probe's first l
 A comparison keeps its working files under ``build/performance/compare/``: ``base.jsonl`` and
 ``head.jsonl`` (every run of every case, appended round by round), ``report.md`` (the comparison as
 Markdown, the text a pull request carries), and the two source trees and builds, so a case can be rerun
-by hand. The next comparison replaces them. In CI the report is the job summary of
-``Performance-compare``.
+by hand. The next comparison replaces them. With ``--record``, the comparison also writes its
+*receipt* into the source tree (see `The performance receipt`_).
 
 Host and device
 ---------------
@@ -322,8 +322,7 @@ and ``report.md`` starts with the same line:
 
 A red verdict (a major regression, host and device answers that differ, a run that crashed, or a case
 that ran in the baseline but not in the candidate; for a smoke comparison, a case that failed or is
-missing on either side) also makes the script exit with status 2, which is what fails
-``Performance-compare`` in CI. A comparison that cannot reach a verdict at all (``PerfCompare`` reports
+missing on either side) also makes the script exit with status 2. A comparison that cannot reach a verdict at all (``PerfCompare`` reports
 a usage error or an unreadable results file, or crashes) fails too, with a non-zero status of its own;
 it never ends green. The per-case verdicts behind it work as follows.
 
@@ -354,6 +353,47 @@ changed. A case whose pool bytes shrink by 3% or more is noted as such (it is ne
 paired case shows the device's speedup over the host, with the baseline's beside it when the two differ
 by 3% or more. Flagged cases are listed again under the table.
 
+The performance receipt
+-----------------------
+
+CI does not time anything: a shared runner is too noisy to judge performance, and has no GPU. What CI
+requires instead is that the comparison was run, locally, on the pull request's own code. The
+comparison's result is committed with the pull request as its *receipt*:
+
+.. code-block:: bash
+
+   Scripts/run-performance.sh compare origin/dev --record      # writes Performance/Receipt/host.md
+   git add Performance/Receipt/host.md && git commit -m "Performance receipt"
+
+``--record`` writes ``Performance/Receipt/host.md`` (``cuda.md`` or ``hip.md`` with ``--gpu``): the
+verdict, the two commits compared, the machine and the comparison's table. It refuses anything that
+could not stand for the pull request: a smoke check, a subset of the cases (a glob), or a working tree
+whose library or probes have uncommitted changes.
+
+A receipt names the code it measured by two fingerprints: hashes of git's tree entries for what a
+comparison measures, the library (``Source/``, ``EBGeometry.hpp``) and the probes (``Performance/``,
+except its ``README.md`` and the receipts). CI's ``Performance-receipt`` job
+(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for its base branch, and
+passes only when
+
+* the pull request's code is the code the receipt measured. A receipt names the commit before the one
+  that adds it, so a later commit that changes only documentation or CI keeps it valid, while any
+  change to the library or the probes makes it stale. An old receipt never stands for new code: a pull
+  request that changes code and keeps the receipt it inherited fails;
+* the base branch's code is the base the receipt measured. When the base branch's code moves on (another
+  pull request merged), the pull request is rebased and its comparison recorded again;
+* the verdict is not red, or a red verdict is accepted: the reason is written after ``accepted:`` in
+  the receipt. A yellow verdict passes, and the pull request says why.
+
+A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
+request leaves its receipt in the base branch, so the history of ``Performance/Receipt/host.md`` is
+the performance history of the branch, one comparison per change. A device receipt is optional: CI
+reports it, and whether it is current, but does not require it.
+
+Two pull requests that both pass can still race: once one merges and changes the base's code, the
+other's receipt is stale. Branch protection that requires a pull request to be up to date with its base
+before merging makes CI check it again.
+
 In continuous integration and in pull requests
 ----------------------------------------------
 
@@ -361,16 +401,13 @@ Two jobs in ``.github/workflows/CI.yml`` cover ``Performance/``:
 
 * ``Performance-smoke`` builds the probes with warnings as errors and runs every case at its smoke size,
   on every push and pull request. The GPU lanes also compile the probes for their device.
-* ``Performance-compare`` runs ``Scripts/run-performance.sh compare`` on a pull request, against its base
-  branch, for the host cases, and puts the report in the job summary. A major regression fails the job, and with it
-  ``CI-passed``. A shared runner is noisy, so this catches large regressions; small ones, and the device
-  cases, need the comparison run locally on a quiet machine.
+* ``Performance-receipt`` checks the pull request's receipt, as above, and puts the result in the job
+  summary. It builds and times nothing.
 
-Every pull request carries its performance figures, in the *Performance* section of the pull-request
-template: the report from a local comparison against the base branch, including the device cases when
-the change touches device code. A minor regression is a question for the author and the reviewer: is it
-expected, and is it worth investigating? A major regression is not merged until it is fixed or
-explicitly accepted, with the reason stated in the pull request.
+A minor regression is a question for the author and the reviewer: is it expected, and is it worth
+investigating? A major regression is not merged until it is fixed or explicitly accepted in the receipt.
+The pull request's *Performance* section shows the receipt's table, and the device comparison when the
+change touches device code.
 
 Adding cases
 ------------

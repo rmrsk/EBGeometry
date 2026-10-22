@@ -113,16 +113,16 @@ Configures with the ``perf`` preset and ``-Wall -Wextra -Werror``, builds the pe
 ``Performance/``, and runs every case at its small ``--smoke`` size (``ctest --preset perf``). This
 checks that the probes still compile and run; it times nothing. See :ref:`Chap:PerformanceTesting`.
 
-Performance-compare
+Performance-receipt
 ~~~~~~~~~~~~~~~~~~~
 
-On a pull request, runs ``Scripts/run-performance.sh compare``: the pull request (merged into its base, as the
-checkout gives it) against its base branch, every host case in alternation on the same runner, three
-rounds of three repetitions. The comparison goes into the job summary, and a major regression (10% or
-more slower, outside the noise) fails the job. A shared runner is noisy, so this catches large
-regressions; the full comparison, device cases included, is run locally and its report carried in the
-pull request (:ref:`Chap:PerformanceTesting`). On a push the job does nothing and succeeds, since
-``CI-passed`` counts a skipped job as a failure. The GPU lanes also compile the probes for their device.
+On a pull request, checks its performance receipt (``Performance/CheckReceipt.cmake``): the result of
+the full comparison its author ran locally with ``Scripts/run-performance.sh compare --record`` and
+committed. It times nothing, since a shared runner is too noisy to judge performance. It fails when the
+pull request changes the library or the probes and its receipt is missing, measured other code (stale),
+measured an outdated base, or is red without an accepted reason; see :ref:`Chap:PerformanceTesting`.
+The result goes into the job summary. On a push the job does nothing and succeeds, since ``CI-passed``
+counts a skipped job as a failure. The GPU lanes also compile the probes for their device.
 
 CMake-consumer
 ~~~~~~~~~~~~~~
@@ -207,7 +207,7 @@ Dependency graph
     +-- Examples-CMake
     +-- Examples-FloatPrecision
     +-- Performance-smoke
-    +-- Performance-compare
+    +-- Performance-receipt
     +-- Build-documentation
     +-- Unit-Tests
     +-- Release-Test

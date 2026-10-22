@@ -32,13 +32,17 @@
 #              agreement, and no timing verdicts                   default: OFF
 #   WORK_DIR   where the trees, builds and results go             default: build/performance/compare
 #   FAIL_ON_MAJOR  exit non-zero on a major regression            default: ON
+#   RECORD     ON: write the result as this tree's performance receipt,  default: OFF
+#              Performance/Receipt/<host|cuda|hip>.md (see Receipt.cmake), to commit with the pull
+#              request; CI checks it. Only for a full comparison of committed code: not with SMOKE or
+#              CASES, and not while the measured paths have uncommitted changes.
 
 cmake_minimum_required(VERSION 3.16)
 
 get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;5" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
-             "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON")
+             "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF")
   list(GET pair 0 var)
   list(GET pair 1 default)
 
@@ -72,6 +76,29 @@ elseif(ROUNDS LESS 2)
 endif()
 
 get_filename_component(WORK_DIR "${WORK_DIR}" ABSOLUTE BASE_DIR "${REPO}")
+
+include("${CMAKE_CURRENT_LIST_DIR}/Receipt.cmake")
+
+# A receipt stands for the whole suite on committed code, so it is refused before anything is built for
+# a run that could not be one.
+if(RECORD)
+  if(SMOKE)
+    message(FATAL_ERROR "Compare.cmake: a receipt (RECORD) needs a full comparison, not a smoke check")
+  endif()
+
+  if(NOT CASES STREQUAL "*")
+    message(FATAL_ERROR "Compare.cmake: a receipt (RECORD) needs every case, not CASES=${CASES}")
+  endif()
+
+  if(HEAD STREQUAL "WORKTREE")
+    perf_measured_changes(changes)
+
+    if(changes)
+      message(FATAL_ERROR "Compare.cmake: a receipt (RECORD) measures committed code; commit or stash these "
+                          "first:\n${changes}")
+    endif()
+  endif()
+endif()
 
 # Run a command with its output captured (compiler warnings would otherwise bury the report); show
 # the output only if it fails.
@@ -117,6 +144,24 @@ foreach(side base head)
   set(${side}_src "${src}")
   set(${side}_sha "${sha}")
 endforeach()
+
+# A receipt's commits and fingerprints. A working tree recorded from has no uncommitted changes in what is
+# measured (checked above), so it measures its HEAD commit, and says so.
+if(RECORD)
+  if(HEAD STREQUAL "WORKTREE")
+    set(head_commit HEAD)
+    string(REPLACE "+worktree" "" head_sha "${head_sha}")
+  else()
+    set(head_commit "${HEAD}")
+  endif()
+
+  execute_process(COMMAND git rev-parse "${BASE}^{commit}" WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE base_full
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(COMMAND git rev-parse "${head_commit}^{commit}" WORKING_DIRECTORY "${REPO}"
+                  OUTPUT_VARIABLE head_full OUTPUT_STRIP_TRAILING_WHITESPACE)
+  perf_fingerprint(${base_full} base_fingerprint)
+  perf_fingerprint(${head_full} head_fingerprint)
+endif()
 
 # A baseline from before Performance/ existed is measured with the candidate's probes.
 if(NOT EXISTS "${base_src}/Performance/CMakeLists.txt")
@@ -253,8 +298,16 @@ list(LENGTH failed nfailed)
 execute_process(
   COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
           --minor ${MINOR} --major ${MAJOR} --markdown "${WORK_DIR}/report.md" ${smoke_arg} --no-verdict
-          --failed-runs ${nfailed}
+          --failed-runs ${nfailed} --level-file "${WORK_DIR}/level.txt"
   RESULT_VARIABLE verdict)
+
+# The report as PerfCompare wrote it, before the commands to repeat it (local paths) are added: a receipt
+# carries this.
+set(report_text "")
+
+if(EXISTS "${WORK_DIR}/report.md")
+  file(READ "${WORK_DIR}/report.md" report_text)
+endif()
 
 set(notes "")
 
@@ -321,6 +374,10 @@ if(NOT GPU STREQUAL "OFF")
   endif()
 endif()
 
+if(RECORD)
+  string(APPEND again " --record")
+endif()
+
 if(SMOKE)
   string(APPEND again " --smoke")
 else()
@@ -379,6 +436,57 @@ endforeach()
 
 if(NOT verdict STREQUAL verdict_again)
   message(FATAL_ERROR "Compare.cmake: PerfCompare's report and verdict calls disagree (${verdict}, ${verdict_again})")
+endif()
+
+# The receipt (RECORD): the verdict, what it measured and the report, for CheckReceipt.cmake and readers. A
+# red verdict is recorded too; it passes CI only once a reason is written after "accepted:".
+if(RECORD)
+  file(STRINGS "${WORK_DIR}/level.txt" level LIMIT_COUNT 1)
+  list(GET "green;yellow;red" ${level} verdict_name)
+
+  if(GPU STREQUAL "OFF")
+    set(receipt_side host)
+  else()
+    string(TOLOWER ${GPU} receipt_side)
+  endif()
+
+  set(receipt "${REPO}/${PERF_RECEIPT_DIR}/${receipt_side}.md")
+  string(TIMESTAMP year "%Y")
+  string(TIMESTAMP today "%Y-%m-%d")
+  string(STRIP "${notes}" notes_text)
+
+  file(MAKE_DIRECTORY "${REPO}/${PERF_RECEIPT_DIR}")
+  file(WRITE "${receipt}" "<!--
+SPDX-FileCopyrightText: ${year} Robert Marskar <robert.marskar@sintef.no>
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+<!-- A performance receipt, written by Scripts/run-performance.sh compare --record and checked by CI
+     (Performance/CheckReceipt.cmake). Commit it with the pull request; do not edit it, except to accept a
+     red verdict: write the reason after \"accepted:\" below. See PerformanceTesting.rst. -->
+
+<!--receipt
+version: ${PERF_RECEIPT_VERSION}
+side: ${receipt_side}
+verdict: ${verdict_name}
+accepted:
+base: ${base_sha}
+base-fingerprint: ${base_fingerprint}
+head: ${head_sha}
+head-fingerprint: ${head_fingerprint}
+cases: ${njobs}
+rounds: ${ROUNDS}
+reps: ${REPS}
+date: ${today}
+-->
+
+Performance receipt (${receipt_side}): `${head_sha}` against `${base_sha}` (${BASE}), ${today}.
+
+${report_text}
+${notes_text}
+")
+  message(STATUS "Wrote the performance receipt ${PERF_RECEIPT_DIR}/${receipt_side}.md (${verdict_name}); commit it")
 endif()
 
 if(SMOKE)

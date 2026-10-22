@@ -25,6 +25,9 @@
 #   --smoke                 tiny sizes, one repetition: run checks that the cases run; compare checks
 #                           that both commits build, every case runs on both sides, the checksums
 #                           match and host/device agree, with no timing verdicts (about a minute)
+#   --record                compare: write the result as the performance receipt CI checks,
+#                           Performance/Receipt/<host|cuda|hip>.md, to commit with the pull request (a
+#                           full comparison of committed code only: no --smoke, no GLOB)
 #   --core <n> | --no-pin   the core to pin to with taskset (default 2), or no pinning; host runs only:
 #                           a --gpu run is never pinned, since its host side uses every core
 #   --help
@@ -67,6 +70,7 @@ set(device_compiler "")
 set(reps 5)
 set(rounds 3)
 set(smoke OFF)
+set(record OFF)
 set(core "")
 
 list(LENGTH args nargs)
@@ -83,6 +87,8 @@ while(i LESS nargs)
     return()
   elseif(a STREQUAL "--smoke")
     set(smoke ON)
+  elseif(a STREQUAL "--record")
+    set(record ON)
   elseif(a STREQUAL "--no-pin")
     set(core OFF)
   elseif(a MATCHES "^--(gpu|gpu-arch|cuda-compiler|hip-compiler|reps|rounds|core)$")
@@ -132,6 +138,10 @@ if(core STREQUAL "")
 endif()
 
 # ── compare: hand over to Compare.cmake ───────────────────────────────────────────────────────────────
+if(record AND NOT command STREQUAL "compare")
+  message(FATAL_ERROR "run-performance: --record writes the result of a comparison: use it with compare")
+endif()
+
 if(command STREQUAL "compare")
   set(refs "")
   set(CASES "")
@@ -162,6 +172,7 @@ if(command STREQUAL "compare")
 
   set(GPU ${gpu})
   set(SMOKE ${smoke})
+  set(RECORD ${record})
   set(REPS ${reps})
   set(ROUNDS ${rounds})
   set(CORE ${core})

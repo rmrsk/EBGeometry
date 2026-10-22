@@ -282,35 +282,31 @@ jobs:
       - name: Run every case at smoke size (ctest --preset perf)
         run: ctest --preset perf
 
-  # On a pull request: the PR (merged into its base, as actions/checkout gives it) against its base,
-  # every host case run in alternation on the same runner (Scripts/run-performance.sh compare). The table goes
-  # into the job summary; a major regression fails the job, and with it CI-passed. A shared runner is
-  # noisy, so this catches large regressions; the full comparison, device cases included, is run
-  # locally (see Docs/Sphinx/source/PerformanceTesting.rst). On a push it does nothing and succeeds,
-  # since CI-passed counts a skipped job as a failure.
-  Performance-compare:
+  # On a pull request: checks the performance receipt (Performance/Receipt/host.md), the result of the full
+  # comparison the author runs locally with Scripts/run-performance.sh compare --record. Nothing is timed
+  # here (a shared runner is too noisy to judge performance): Performance/CheckReceipt.cmake checks that
+  # the receipt measured this code, against the base branch's current code, and is not red unless
+  # accepted; a pull request that changes neither the library nor the probes needs none. The result goes
+  # into the job summary. On a push it does nothing and succeeds, since CI-passed counts a skipped job as
+  # a failure.
+  Performance-receipt:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Performance comparison against the base branch
+    name: Performance receipt
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 10
     steps:
-      - name: Nothing to compare on a push
+      - name: Nothing to check on a push
         if: github.event_name != 'pull_request'
-        run: echo "Performance comparisons run on pull requests only."
+        run: echo "Performance receipts are checked on pull requests only."
       - uses: actions/checkout@v7
         if: github.event_name == 'pull_request'
         with:
-          submodules: recursive
           fetch-depth: 0
-      - name: Compare the PR with its base
+      - name: Check the receipt against this pull request and its base
         if: github.event_name == 'pull_request'
-        run: Scripts/run-performance.sh compare origin/${{ github.base_ref }} HEAD --rounds 3 --reps 3 --core 1
-      - name: Publish the comparison
-        if: always() && github.event_name == 'pull_request'
-        run: |
-          if [ -f build/performance/compare/report.md ]; then
-            cat build/performance/compare/report.md >> "$GITHUB_STEP_SUMMARY"
-          fi
+        run: >-
+          cmake -DBASE_REF=origin/${{ github.base_ref }} -DHEAD_REF=${{ github.event.pull_request.head.sha }}
+          -DSUMMARY="$GITHUB_STEP_SUMMARY" -P Performance/CheckReceipt.cmake
 
   CMake-consumer:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -560,7 +556,7 @@ jobs:
     # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
     # deliberately not listed.
     if: always()
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Performance-smoke, Performance-compare, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
     runs-on: ubuntu-latest
     steps:
       - name: Require every dependency to have succeeded

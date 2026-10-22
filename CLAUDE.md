@@ -339,7 +339,7 @@ The coverage rules are in "Vetting every pull request for performance" below. Me
 ## Vetting every pull request for performance
 
 **Claude runs a performance comparison on every pull request as soon as it is opened (draft or not),
-and again after any push that changes `Source/`, without being asked.** `Performance/` holds the
+and again after any push that changes the library or the probes, without being asked.** `Performance/` holds the
 probes (one program per component, many named cases, `component/input/operation/precision/side`);
 `Scripts/run-performance.sh` is the one way in (its logic is `Performance/RunPerformance.cmake` and
 `Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
@@ -349,7 +349,7 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    one-minute check that both sides build and every case runs with the same answers):
 
    ```bash
-   Scripts/run-performance.sh compare origin/<base> <pr-branch>                    # host cases
+   Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt
    Scripts/run-performance.sh compare origin/<base> <pr-branch> --gpu cuda --gpu-arch 86 \
                               --cuda-compiler <nvcc>                               # + device
    ```
@@ -360,17 +360,22 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    whether the host and device answers agree. Nothing else should be running on the machine; each
    case runs in a fresh process, alternating between the sides (a host comparison pinned to one core). (`Scripts/run-performance.sh` with no command
    runs every case of the current tree, and a glob such as `'PointCloudBVH/*'` runs a subset.)
+   Run the host comparison on the PR branch with its code committed and `--record`: it writes the
+   PR's **performance receipt**, `Performance/Receipt/host.md`, which CI requires (see 4). It refuses
+   a smoke run, a glob, or uncommitted changes to the library or the probes.
 2. **Report the result to the user in the terminal** (the table and the "Run it manually" block that
-   the comparison prints), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
+   the comparison prints), **commit the receipt** to the PR branch (pushing it, like any push, needs
+   the user's go-ahead), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
    into the *Performance* section of the PR body (`.github/pull_request_template.md`), replacing an
-   older report. Every PR carries its figures, including a PR that should not change performance.
+   older report. A PR that changes neither the library nor the probes keeps the receipt it inherited.
 3. **Act on the verdicts** (the comparison ends with one `VERDICT:` line, green, yellow or red; a change
    counts only outside the 95% bootstrap interval):
    - **minor** (3% to 10% slower, or 3% to 10% more pool bytes): tell the user which cases, by how
      much, and the likely cause if the diff shows one, and **ask whether it should be investigated
      further** before going on.
    - **MAJOR** (10% or more): **red-flag it**. The PR must not be merged until the regression is
-     fixed, or the user explicitly accepts it; record the reason in the PR's *Performance* section.
+     fixed, or the user explicitly accepts it; record the reason in the PR's *Performance* section and
+     after `accepted:` in the receipt.
    - A **differing checksum** (of the values or of the points found) or **host/device disagreements**
      are flagged whatever the timing says: the sides computed different answers.
    - A **lost** case (ran on the base, skipped or missing on the PR) is red: find out why it no longer
@@ -378,10 +383,12 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    - Before calling something a regression, repeat the flagged cases by hand with more rounds
      (`Scripts/run-performance.sh compare origin/<base> <pr-branch> '<glob>' --rounds 10`); do not
      rerun until a noisy result passes.
-4. **CI runs a coarser version of the same comparison** (`Performance-compare` in
-   `.github/workflows/CI.yml`, host cases only, on a shared runner, through the same script); a major
-   regression there fails `CI-passed`. It does not replace the local run: it is noisier and has no
-   device.
+4. **CI times nothing; it checks the receipt** (`Performance-receipt` in `.github/workflows/CI.yml`,
+   `Performance/CheckReceipt.cmake`, required by `CI-passed`). It fails when the PR changes the library
+   or the probes and its receipt is missing, measured other code (any later code change makes a receipt
+   stale; a later docs-only commit does not), measured an outdated base (rebase and record again), or is
+   red without a reason after `accepted:`. Write an accepted reason into the receipt only when the user
+   explicitly accepts a MAJOR regression.
 
 **Coverage: how wide the probes are, and when to add to them.** The probes cover each public
 structure where its cost lives: its build, its queries, and any in-place update (a refit), in both

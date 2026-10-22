@@ -39,6 +39,7 @@ Scripts/run-performance.sh list                     # the case names
 Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # the host/device pairs
 Scripts/run-performance.sh compare origin/dev       # this tree against origin/dev
 Scripts/run-performance.sh compare origin/dev --smoke   # a quick check: both build, every case runs
+Scripts/run-performance.sh compare origin/dev --record  # a pull request's receipt, for CI (commit it)
 ```
 
 A run prints a table per probe and saves the results to `build/performance/results/`. A comparison
@@ -46,6 +47,10 @@ builds both sides from their own `Performance/`, runs every case in a fresh proc
 the sides, and prints the comparison (also written to `build/performance/compare/report.md`) with the
 command to repeat it. A case is **minor** at 3% slower and **MAJOR** at 10% slower, in both cases only
 outside the 95% confidence interval over the runs (fresh processes; at least two per side).
+
+CI times nothing. It checks the pull request's performance receipt, `Receipt/host.md`: the result of
+the comparison above with `--record`, committed with the pull request. It must have measured the pull
+request's code, against its base as it is now (`CheckReceipt.cmake`, `Receipt.cmake`).
 
 CUDA 12.0's nvcc cannot compile the library; name a newer one with `--cuda-compiler`. `ctest --preset
 perf` runs every case at its `--smoke` size (checks that they run, times nothing).

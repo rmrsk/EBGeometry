@@ -7,6 +7,7 @@
 //
 //   PerfCompare.ex --base base.jsonl --head head.jsonl [--minor <percent>] [--major <percent>]
 //                  [--markdown <file>] [--smoke] [--verdict-only | --no-verdict] [--failed-runs <n>]
+//                  [--level-file <file>]
 //
 // Each JSON line of a case is one run: a fresh process, timing several repetitions. Repetitions in one
 // process share its luck (memory placement, clock speed, neighbours on the machine), so they are not
@@ -35,7 +36,9 @@
 // Every report ends with one VERDICT line (green: no regression; yellow: look closer; red: do not
 // merge), coloured on a terminal, and --markdown writes the report as Markdown starting with that line.
 // --verdict-only prints only the line (Compare.cmake ends a run with it); --no-verdict leaves it out;
-// --failed-runs is the number of runs that crashed, which makes the verdict red.
+// --failed-runs is the number of runs that crashed, which makes the verdict red. --level-file writes the
+// verdict's level to a file (0 green, 1 yellow, 2 red), for a receipt (Compare.cmake RECORD), since the
+// exit code does not tell green from yellow.
 //
 // Exit code: 0 for a green or yellow verdict, 2 for a red one, 3 when it cannot judge (a usage error or
 // an unreadable file); Compare.cmake fails on anything else too (a crash). Usually run by Compare.cmake,
@@ -547,6 +550,7 @@ fullVerdict(const std::vector<Comparison>& a_cases, int a_failedRuns)
   return {0, "VERDICT: no regression (0 major, 0 minor across " + counted(a_cases.size(), "case") + ")"};
 }
 
+// The full report; returns the verdict's level (0 green, 1 yellow, 2 red).
 int
 fullReport(const Results&     a_base,
            const Results&     a_head,
@@ -562,12 +566,11 @@ fullReport(const Results&     a_base,
   }
 
   const Verdict verdict = fullVerdict(cases, a_failedRuns);
-  const int     code    = verdict.level == 2 ? 2 : 0;
 
   if (a_line == VerdictLine::Only) {
     printVerdict(verdict);
 
-    return code;
+    return verdict.level;
   }
 
   const auto count = [&cases](Outcome a_outcome) {
@@ -650,7 +653,7 @@ fullReport(const Results&     a_base,
        << markdown.markdown();
   }
 
-  return code;
+  return verdict.level;
 }
 
 // ── The smoke comparison ────────────────────────────────────────────────────────────────────────────
@@ -666,6 +669,7 @@ state(const Measurement* a_m)
   return a_m->skipped ? "skipped" : (a_m->times.empty() ? "no result" : "ran");
 }
 
+// The smoke report; returns the verdict's level (0 green, 1 yellow, 2 red).
 int
 smokeReport(
   const Results& a_base, const Results& a_head, const std::string& a_markdown, VerdictLine a_line, int a_failedRuns)
@@ -776,12 +780,10 @@ smokeReport(
                "VERDICT (smoke): passed; all " + counted(cases, "case") + " ran on both sides with the same answers"};
   }
 
-  const int code = verdict.level == 2 ? 2 : 0;
-
   if (a_line == VerdictLine::Only) {
     printVerdict(verdict);
 
-    return code;
+    return verdict.level;
   }
 
   const std::string summary = counted(cases, "case") + ", " + std::to_string(failed) +
@@ -811,7 +813,7 @@ smokeReport(
        << markdown.markdown() << "\n\\* Information only: one repetition at the smoke sizes, never judged.\n";
   }
 
-  return code;
+  return verdict.level;
 }
 
 // ── The command line ────────────────────────────────────────────────────────────────────────────────
@@ -823,7 +825,7 @@ usage(const std::string& a_problem)
                "PerfCompare: %s\n"
                "usage: PerfCompare.ex --base <file> --head <file> [--minor <percent>] [--major <percent>]\n"
                "                      [--markdown <file>] [--smoke] [--verdict-only | --no-verdict]\n"
-               "                      [--failed-runs <n>]\n",
+               "                      [--failed-runs <n>] [--level-file <file>]\n",
                a_problem.c_str());
   std::exit(3);
 }
@@ -850,6 +852,7 @@ main(int argc, char** argv)
   std::string baseFile;
   std::string headFile;
   std::string markdownFile;
+  std::string levelFile;
   Thresholds  thresholds;
   bool        smoke      = false;
   VerdictLine line       = VerdictLine::After;
@@ -882,6 +885,9 @@ main(int argc, char** argv)
     else if (arg == "--major") {
       thresholds.major = nonNegative(arg, value(i, arg));
     }
+    else if (arg == "--level-file") {
+      levelFile = value(i, arg);
+    }
     else if (arg == "--failed-runs") {
       failedRuns = static_cast<int>(nonNegative(arg, value(i, arg)));
     }
@@ -906,6 +912,17 @@ main(int argc, char** argv)
   const Results base = read(baseFile);
   const Results head = read(headFile);
 
-  return smoke ? smokeReport(base, head, markdownFile, line, failedRuns)
-               : fullReport(base, head, thresholds, markdownFile, line, failedRuns);
+  const int level = smoke ? smokeReport(base, head, markdownFile, line, failedRuns)
+                          : fullReport(base, head, thresholds, markdownFile, line, failedRuns);
+
+  if (!levelFile.empty()) {
+    std::ofstream out(levelFile);
+
+    if (!(out << level << "\n")) {
+      std::fprintf(stderr, "PerfCompare: cannot write %s\n", levelFile.c_str());
+      return 3;
+    }
+  }
+
+  return level == 2 ? 2 : 0;
 }
