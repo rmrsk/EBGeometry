@@ -59,17 +59,19 @@ Two function templates work on any shape (anything with ``signedDistance()`` and
   found; its hits name the face and carry the normal interpolated from the vertex normals. The torus,
   the cones, the rounded shapes, Perlin noise, ``MeshSDF`` and ``FlatMeshSDF`` are sphere traced.
 
-`Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ is ray traced too. Beside the clauses it
-evaluates a value with, it compiles a *ray program*: clauses that work on the spans of a ray inside each
-node (see :ref:`Chap:Rendering`). Primitives with a ray form, affine maps, complements, unions,
-intersections and BVH unions (over ray sub-programs, culled by ray--box tests) are followed exactly;
-every other node is compiled into a sub-program of ordinary clauses and sphere traced along the ray
-inside its box. An expression with no node a ray can follow, or one whose ray program needs more than
-``Tape::RayValueStackSize`` span sets at once or nests deeper than ``MaxCallDepth``, is sphere traced as
-a whole. ``tape.firstHit(ray, tMin, tMax)`` is the tape's ray form, and ``tape.intersects(a, b)`` the
+`Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ is ray traced too. It follows the same clauses
+it evaluates a value with along the ray, on stacks of spans instead of values (see
+:ref:`Chap:Rendering`): a primitive with a ray form gives its spans, a point map moves the ray, a
+negation is a complement, a minimum and a maximum are a union and an intersection, and a BVH union
+traverses its own BVH with ray--box tests over the operands' boxes. The compiler marks each subtree a ray
+cannot follow (a smooth blend, an offset, a blur, an elongation, a repetition, a primitive with no ray
+form) under a node it can follow with one extra clause, which the value ignores; the ray query sphere
+traces that subtree's clauses along the ray inside its box. Nothing else is stored. An expression with no
+node a ray can follow, or one needing more than ``Tape::RayValueStackSize`` span sets at once, is sphere
+traced as a whole. ``tape.firstHit(ray, tMin, tMax)`` is the tape's ray form, and ``tape.intersects(a, b)`` the
 segment test on it; ``HitT::m_primitive`` is the leaf at the crossing, ``HitT::m_exact`` is true unless
 the ray crossed a sphere-traced node, and ``HitT::m_normal`` is zero (the renderer takes the normal from
-the distance). The ray program runs on a device like the rest of the tape.
+the distance). The ray query runs on a device like the rest of the tape.
 
 The tape also has ``primitiveAt(p)``: the leaf of the expression that decides the value at a point,
 numbered 0, 1, ... in the order the leaves appear in the expression, depth first, each occurrence

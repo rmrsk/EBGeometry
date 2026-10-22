@@ -536,13 +536,14 @@ does not follow this template, edit the PR body to conform to it.
   copies multiply with the depth (an optimised device compile of `TestTape` did not finish). Keep
   them out of line, and mark any new function called that way the same. A new operation needs an
   `ExprDetail::Kind`, its box and distance-quality rule in the builder,
-  clauses in `TapeDetail::Op` and a case in `Tape::evaluate`. The tape also compiles a *ray program*
-  (`Tape::rayEvaluate<D>`, the `Ray*` ops, `Tape::firstHit()`): spans of a ray inside each node, with
-  primitives that have a `RayForm`, affine maps, complements, (BVH) unions and intersections followed
-  exactly and every other node compiled into a scalar sub-program that is sphere traced inside its box.
-  It keeps the evaluator's rules (fixed stacks, `evaluate<D>`-style depth template, out of line). A new
-  operation that a ray can follow gets a ray clause and a case in `Tape::rayEvaluate` (and in
-  `Compiler::capable`); otherwise it is sphere traced with no change. A shape gets a ray form by
+  clauses in `TapeDetail::Op` and a case in `Tape::evaluate`. The tape's `firstHit()` follows the *same*
+  clauses along a ray (`Tape::rayEvaluate<D>`): spans of the ray inside each node, primitives with a
+  `RayForm`, point maps, negation, min/max and BVH unions (their own BVHs, ray-box keys) followed exactly.
+  The compiler marks each subtree a ray cannot follow, under a node it can, with an `Op::RayMark` clause
+  (clause count, box, quality) that the value evaluator skips and the ray evaluator sphere traces;
+  nothing else is stored. `rayEvaluate` keeps the evaluator's rules (fixed stacks, `<D>` depth template,
+  out of line). A new operation a ray can follow gets a case in `Tape::rayEvaluate` and in
+  `Compiler::capable`; any other is marked and sphere traced with no change. A shape gets a ray form by
   specializing `RayForm<S>` in `EBGeometry_Ray.hpp` (`firstHit()`, and `span()` if it is convex).
 - **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
   SDF, union and tape keeps it. Code that needs the opposite sign (AMReX and Chombo read negative as

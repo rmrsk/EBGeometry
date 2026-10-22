@@ -148,9 +148,9 @@ Family                                Build  Measures
 ``csg/frame``                         host   one 192 × 192 frame on one thread: one ray per pixel,
                                              with shadows and ambient occlusion
 ``union64/firstHit``                  host   the same through a union of 64 spheres on a lattice
-                                             (a BVH union in the tape's ray program), 256 × 256
+                                             (a BVH union the tape follows along each ray), 256 × 256
 ``mixed/firstHit``                    host   the same through a box with a torus and a smooth
-                                             union cut out, which the ray program sphere traces,
+                                             union cut out, which the tape sphere traces along the ray,
                                              256 × 256
 ``<input>/firstHit-camera``           GPU    ``firstHit()`` along the same rays on both sides
 ====================================  =====  =====================================================

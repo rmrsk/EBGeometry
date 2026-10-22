@@ -363,7 +363,7 @@ Test coverage
        managed memory evaluated on the device through its own pool; ``primitiveAt()`` against a
        brute-force pick over the leaves for unions and intersections (with and without a BVH),
        differences, smooth unions and intersections, Blur and Mollify, the depth-first numbering
-       through maps and value operations, and on a device against the host; the ray program
+       through maps and value operations, and on a device against the host; the ray query
        (``firstHit()``) against sphere tracing the same tape: sharp CSG, maps, a BVH union, a hole,
        mixed with sphere-traced nodes, a mesh, a tape in a tape, a deep copy, and on a device.
    * - ``TestRay``
