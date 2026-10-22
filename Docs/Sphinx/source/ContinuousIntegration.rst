@@ -106,6 +106,15 @@ Examples-FloatPrecision
 The same as ``Examples-CMake``, but configured with ``-DEBGEOMETRY_PRECISION=float`` (a cache
 variable shared by every example's own ``CMakeLists.txt``).
 
+Viewer-SDL2
+~~~~~~~~~~~
+
+Installs SDL2 and configures the ``debug`` preset with ``-DEBGEOMETRY_VIEWER=SDL2`` and ``-Werror``, the
+only lane that compiles the viewer window (:ref:`Sec:ConfigViewer`). It builds and runs ``TestRender``,
+builds ``InstantiateAll``, and runs the ``MeshSDF`` example with ``--no-view`` and without a display,
+where ``view()`` returns at once; it also builds the example with ``make VIEWER=SDL2``. This job is
+required by ``CI-passed``.
+
 Performance-smoke
 ~~~~~~~~~~~~~~~~~
 
@@ -215,6 +224,7 @@ Dependency graph
     +-- GPU-CUDA                 (advisory; not required by CI-passed)
     +-- GPU-HIP
     +-- CMake-consumer
+    +-- Viewer-SDL2
          (all of the above except Static-analysis and GPU-CUDA) --> CI-passed
 
 ``Formatting``, ``Codespell``, ``Reuse``, and ``Doxygen-check`` themselves have no
