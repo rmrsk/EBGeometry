@@ -476,8 +476,9 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
 
         Mask children = 0;
 
+        // The children's boxes are read from this node's row, without loading the children.
         for (std::size_t k = 0; k < K; k++) {
-          if (bvh.getDistanceToBoundingVolume2(nodes[childOffsets[k]], a_query) < best.bound()) {
+          if (bvh.getDistanceToChildBoundingVolume2(node, k, a_query) < best.bound()) {
             children |= Mask(1) << k;
           }
         }
@@ -512,10 +513,10 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
           stackTop--;
         }
 
-        const std::uint32_t child = nodes[level.m_node].getChildOffsets()[k];
+        const Node& parent = nodes[level.m_node];
 
-        if (bvh.getDistanceToBoundingVolume2(nodes[child], a_query) < best.bound()) {
-          nodeIdx = child;
+        if (bvh.getDistanceToChildBoundingVolume2(parent, k, a_query) < best.bound()) {
+          nodeIdx = parent.getChildOffsets()[k];
           resumed = true;
         }
       }

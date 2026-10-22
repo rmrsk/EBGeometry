@@ -945,6 +945,22 @@ public:
   getDistanceToBoundingVolume2(const Node& a_node, const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief Get the squared distance from @p a_point to the bounding volume of child @p a_k of an
+   * interior node.
+   * @details The same as getDistanceToBoundingVolume2() on that child, but read from @p a_parent's
+   * row of the SIMD box array, where the child's box is stored, without loading the child node to
+   * find it. For a caller-written scalar descent that tests a node's children one at a time (e.g.
+   * PointCloudBVH's seeded single-nearest search). @p a_parent must be an interior node of this BVH.
+   * @param[in] a_parent An interior node of this BVH.
+   * @param[in] a_k      The child's position among @p a_parent's children, below K.
+   * @param[in] a_point  Query point.
+   * @return Squared distance to the child's box, or zero if @p a_point is inside it.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  getDistanceToChildBoundingVolume2(const Node& a_parent, size_t a_k, const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief Compute and return the bounding volume of this BVH.
    * @details Identical to getBoundingVolume(), but returns by value under the
    * computeBoundingVolume() name other bounded objects use (BVHUnion forwards to it), and

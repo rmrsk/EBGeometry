@@ -1604,6 +1604,17 @@ TEMPLATE_TEST_CASE("PackedBVH: every box is stored once, and any node's box is f
 
       // The same box, without assembling it: equal up to the order of the operations.
       REQUIRE_THAT(a_bvh.getDistanceToBoundingVolume2(node, q), Catch::Matchers::WithinRel(box.getDistance2(q)));
+
+      // A child's box read from this node's row is the child's own box (checked against its primitives
+      // when the child is visited).
+      if (!node.isLeaf()) {
+        for (std::size_t k = 0; k < node.getChildOffsets().size(); k++) {
+          const AABB childBox = a_bvh.getBoundingVolume(nodes[node.getChildOffsets()[k]]);
+
+          REQUIRE_THAT(a_bvh.getDistanceToChildBoundingVolume2(node, k, q),
+                       Catch::Matchers::WithinRel(childBox.getDistance2(q)));
+        }
+      }
     }
   };
 

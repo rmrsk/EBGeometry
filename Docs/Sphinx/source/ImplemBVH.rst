@@ -399,7 +399,10 @@ children's boxes form that node's row of the SIMD box array that ``pruneTraverse
 :ref:`Chap:PruneTraverse`), and the root's box, which no row holds, is stored separately in the same
 pool. Each node keeps its *box slot*, the row and position of its own box, so
 ``getBoundingVolume(node)`` returns any node's box and ``getDistanceToBoundingVolume2(node, point)``
-the squared distance to it, without assembling the box. A traversal callback that needs a node's
+the squared distance to it, without assembling the box. A descent that tests a node's children one at
+a time should use ``getDistanceToChildBoundingVolume2(parent, k, point)`` instead: it reads child
+``k``'s box straight from the parent's row, without loading the child node only to find where its box
+is. A traversal callback that needs a node's
 box, such as a node-key-factory, asks the BVH it traverses for it. A node is 32 bytes at ``K = 4``
 in either precision, against the 52 (``float``) or 80 (``double``) bytes it took while it carried a
 copy of its box: with the boxes no longer duplicated, the node array and the box rows together are

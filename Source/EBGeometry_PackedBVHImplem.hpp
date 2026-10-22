@@ -312,6 +312,20 @@ PackedBVH<T, P, K>::getDistanceToBoundingVolume2(const Node& a_node, const Vec3T
 }
 
 template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline T
+PackedBVH<T, P, K>::getDistanceToChildBoundingVolume2(const Node&     a_parent,
+                                                      size_t          a_k,
+                                                      const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(!a_parent.isLeaf());
+  EBGEOMETRY_EXPECT(a_k < K);
+  EBGEOMETRY_EXPECT(a_parent.getChildBoxRow() < m_childAabbSoA.size());
+
+  return PackedBVH::scalarChildDistance2(m_childAabbSoA.at(this->base(), a_parent.getChildBoxRow()), a_point, a_k);
+}
+
+template <class T, class P, size_t K>
 template <class NodeKey, class LeafEvaluator, class PrunePredicate, class ChildOrderer, class NodeKeyFactory>
 EBGEOMETRY_HOST_DEVICE
 inline void
