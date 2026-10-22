@@ -803,6 +803,27 @@ Tape<T, UserPrimitives...>::primitiveAt(const Vec3T<T>& a_point) const noexcept
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::firstHit(const RayT<T>&       a_ray,
+                                     const T              a_tMin,
+                                     const T              a_tMax,
+                                     const RayOptions<T>& a_options) const noexcept
+{
+  return EBGeometry::firstHit(*this, a_ray, a_tMin, a_tMax, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline HitStatus
+Tape<T, UserPrimitives...>::intersects(const Vec3T<T>&      a_from,
+                                       const Vec3T<T>&      a_to,
+                                       const RayOptions<T>& a_options) const noexcept
+{
+  return EBGeometry::intersects(*this, a_from, a_to, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getNumPrimitives() const noexcept
 {

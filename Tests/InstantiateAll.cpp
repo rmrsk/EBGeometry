@@ -51,6 +51,17 @@ namespace EBGeometry {
   template class Tape<PREC>;                                                 \
   template class Tape<PREC, BVHUnion<PREC, SphereSDF<PREC>, 4>, MeshSDF<PREC, 8>>; \
                                                                                \
+  /* -- Ray queries -------------------------------------------------------*/ \
+  template struct RayT<PREC>;                                                \
+  template struct HitT<PREC>;                                                \
+  template struct RayOptions<PREC>;                                          \
+  template HitT<PREC> firstHit<PREC, SphereSDF<PREC>>(                       \
+    const SphereSDF<PREC>&, const RayT<PREC>&, PREC, PREC, const RayOptions<PREC>&) noexcept; \
+  template HitT<PREC> firstHit<PREC, Tape<PREC>>(                            \
+    const Tape<PREC>&, const RayT<PREC>&, PREC, PREC, const RayOptions<PREC>&) noexcept; \
+  template HitStatus intersects<PREC, SphereSDF<PREC>>(                      \
+    const SphereSDF<PREC>&, const Vec3T<PREC>&, const Vec3T<PREC>&, const RayOptions<PREC>&) noexcept; \
+                                                                               \
   /* -- File readers ------------------------------------------------------*/ \
   template class PolygonSoup<PREC>;                                          \
                                                                                \

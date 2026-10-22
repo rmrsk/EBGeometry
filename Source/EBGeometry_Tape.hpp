@@ -36,6 +36,7 @@
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
+#include "EBGeometry_Ray.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -537,6 +538,39 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   primitiveAt(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The first crossing of the object's surface along a ray, entering or leaving.
+   * @details The free function firstHit() on this tape: it sphere traces where the value is a distance
+   * or a bound on one and steps and bisects where it is not (Perlin noise, say), and says when it could
+   * not decide (HitStatus::Unresolved) instead of reporting a miss. HitT::m_primitive is the leaf at the
+   * crossing (see primitiveAt()). Callable on a device like signedDistance().
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval (may be infinite).
+   * @param[in] a_options How to march.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  firstHit(const RayT<T>&       a_ray,
+           const T              a_tMin,
+           const T              a_tMax,
+           const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief Whether the segment between two points crosses the object's surface.
+   * @details The free function intersects() on this tape. Callable on a device.
+   * @param[in] a_from    One end.
+   * @param[in] a_to      The other end.
+   * @param[in] a_options How to march.
+   * @return HitStatus::Hit, HitStatus::Miss, or HitStatus::Unresolved if the march ran out of steps.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitStatus
+  intersects(const Vec3T<T>&      a_from,
+             const Vec3T<T>&      a_to,
+             const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
 
   /**
    * @brief Number of leaves in the expression, counting each occurrence (see primitiveAt()).
