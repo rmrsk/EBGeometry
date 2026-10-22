@@ -269,13 +269,15 @@ struct Cylinder
   }
 };
 
-// The scene: the mesh A and the cylinder B combined as A u B (rod) or A - B (tunnel), on a floor.
+// The scene: the mesh A and the cylinder B combined as A u B (rod) or A - B (tunnel), on a floor. With
+// m_meshOnly, the mesh alone: its first crossing, seen from either side, so open meshes render too.
 struct Scene
 {
   Mesh             m_mesh;
   Cylinder         m_cyl;
   bool             m_union;
   Tracer::Settings m_settings;
+  bool             m_meshOnly = false;
 
   // The first point along the ray, after a_tMin, where the ray enters the CSG object: walk the
   // crossings of A and B in order and track whether the ray is inside each.
@@ -283,6 +285,16 @@ struct Scene
   Crossing
   firstHit(const Vec3& o, const Vec3& d, const T a_tMin) const noexcept
   {
+    if (m_meshOnly) {
+      Crossing c = m_mesh.next(o, d, a_tMin);
+
+      if (c.valid() && dot(c.normal, d) > T(0)) {
+        c.normal = -c.normal;
+      }
+
+      return c;
+    }
+
     Crossing bIn, bOut;
 
     m_cyl.interval(o, d, bIn, bOut);
@@ -606,10 +618,12 @@ struct Hybrid
 // Boxes covering a mesh's surface: the leaves of a BVH over its triangles with fewer than a_leafSize
 // triangles each, mapped to the world as world = scale * (mesh + shift) and grown by a_margin.
 inline std::vector<AABB>
-meshLeafBoxes(
-  const std::string& a_file, const size_t a_leafSize, const Vec3& a_shift, const T a_scale, const T a_margin)
+meshLeafBoxes(const EBGeometry::PolygonSoup<T>& soup,
+              const size_t                      a_leafSize,
+              const Vec3&                       a_shift,
+              const T                           a_scale,
+              const T                           a_margin)
 {
-  const auto  soup  = EBGeometry::Parser::readIntoPolygonSoup<T>(a_file);
   const auto& verts = soup.getVertexCoordinates();
 
   std::vector<std::pair<uint32_t, AABB>> prims;
@@ -652,6 +666,13 @@ meshLeafBoxes(
   return boxes;
 }
 
+inline std::vector<AABB>
+meshLeafBoxes(
+  const std::string& a_file, const size_t a_leafSize, const Vec3& a_shift, const T a_scale, const T a_margin)
+{
+  return meshLeafBoxes(EBGeometry::Parser::readIntoPolygonSoup<T>(a_file), a_leafSize, a_shift, a_scale, a_margin);
+}
+
 // A box enclosing a capped cylinder, grown by a_margin.
 inline AABB
 cylinderBox(const Vec3& a, const Vec3& b, const T r, const T a_margin)
@@ -669,9 +690,8 @@ cylinderBox(const Vec3& a, const Vec3& b, const T r, const T a_margin)
 // The triangles of a mesh file with area-weighted vertex normals, in a PackedBVH built by binned SAH.
 // Outward orientation is checked by the sign of the enclosed volume.
 inline Mesh::BVH
-buildMesh(const std::string& a_file, EBGeometry::Pool& a_pool)
+buildMesh(const EBGeometry::PolygonSoup<T>& soup, EBGeometry::Pool& a_pool)
 {
-  const auto  soup  = EBGeometry::Parser::readIntoPolygonSoup<T>(a_file);
   const auto& verts = soup.getVertexCoordinates();
 
   std::vector<std::array<size_t, 3>> tris;
@@ -719,6 +739,12 @@ buildMesh(const std::string& a_file, EBGeometry::Pool& a_pool)
   }
 
   return Mesh::BVH(a_pool, std::move(prims), EBGeometry::BVH::BinnedSAHPartitioner<T, Tri, AABB, 4>);
+}
+
+inline Mesh::BVH
+buildMesh(const std::string& a_file, EBGeometry::Pool& a_pool)
+{
+  return buildMesh(EBGeometry::Parser::readIntoPolygonSoup<T>(a_file), a_pool);
 }
 
 } // namespace RayTracer
