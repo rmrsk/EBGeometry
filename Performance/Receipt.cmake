@@ -85,13 +85,30 @@ function(perf_receipt_field text key var)
 endfunction()
 
 # perf_receipt_accepted(<section> <var>): the reason a section's yellow or red verdict was accepted, from
-# its "**Accepted:**" line under the heading, where a reader of the rendered receipt sees it; empty while
-# that line holds the "-" --record writes.
+# its "**Accepted:**" paragraph under the heading, where a reader of the rendered receipt sees it: the
+# text after the marker up to the next blank line (or HTML comment), its lines joined with single spaces (as Markdown
+# renders a wrapped paragraph); empty while it holds the "-" --record writes.
 function(perf_receipt_accepted text var)
   set(value "")
+  set(marker "**Accepted:**")
+  string(FIND "${text}" "\n${marker}" at)
 
-  if(text MATCHES "\n\\*\\*Accepted:\\*\\*[ ]*([^\n]*)")
-    string(STRIP "${CMAKE_MATCH_1}" value)
+  if(at GREATER_EQUAL 0)
+    string(LENGTH "\n${marker}" marker_length)
+    math(EXPR from "${at} + ${marker_length}")
+    string(SUBSTRING "${text}" ${from} -1 rest)
+    # The paragraph ends at a blank line, or at the next HTML comment (the section's end marker) if the
+    # blank line was edited away.
+    foreach(boundary "\n\n" "<!--")
+      string(FIND "${rest}" "${boundary}" stop)
+
+      if(stop GREATER_EQUAL 0)
+        string(SUBSTRING "${rest}" 0 ${stop} rest)
+      endif()
+    endforeach()
+
+    string(REGEX REPLACE "[ \t\r]*\n[ \t]*" " " rest "${rest}")
+    string(STRIP "${rest}" value)
 
     if(value STREQUAL "-")
       set(value "")
@@ -113,11 +130,14 @@ function(perf_skipped_cases work_dir var)
       file(STRINGS "${work_dir}/${side}.jsonl" lines REGEX "\"skipped\":")
     endif()
 
+    # A JSON string may hold escaped characters (an exception's message quoting a path), so a value runs
+    # to the first quote that is not escaped; the escapes are then undone for the message.
     foreach(line IN LISTS lines)
-      string(REGEX MATCH "\"case\":\"([^\"]*)\"" _ "${line}")
+      string(REGEX MATCH "\"case\":\"((\\\\.|[^\"\\\\])*)\"" _ "${line}")
       set(name "${CMAKE_MATCH_1}")
-      string(REGEX MATCH "\"skipped\":\"([^\"]*)\"" _ "${line}")
-      list(APPEND skipped "${side}: ${name} (${CMAKE_MATCH_1})")
+      string(REGEX MATCH "\"skipped\":\"((\\\\.|[^\"\\\\])*)\"" _ "${line}")
+      string(REGEX REPLACE "\\\\(.)" "\\1" reason "${CMAKE_MATCH_1}")
+      list(APPEND skipped "${side}: ${name} (${reason})")
     endforeach()
   endforeach()
 

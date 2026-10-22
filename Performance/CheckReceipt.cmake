@@ -154,8 +154,12 @@ foreach(side IN LISTS PERF_RECEIPT_SIDES)
 
       # A pass on an accepted regression shows as a warning on the check, not as a plain pass.
       if(DEFINED ENV{GITHUB_ACTIONS})
-        execute_process(COMMAND ${CMAKE_COMMAND} -E echo
-                                "::warning title=Performance receipt (${side})::${r_verdict} verdict, accepted: ${r_accepted}")
+        # A workflow command's message escapes %, CR and LF; anything else is taken literally.
+        set(note "${r_verdict} verdict, accepted: ${r_accepted}")
+        string(REPLACE "%" "%25" note "${note}")
+        string(REPLACE "\r" "%0D" note "${note}")
+        string(REPLACE "\n" "%0A" note "${note}")
+        execute_process(COMMAND ${CMAKE_COMMAND} -E echo "::warning title=Performance receipt (${side})::${note}")
       endif()
     endif()
   elseif(NOT r_verdict STREQUAL "green")
