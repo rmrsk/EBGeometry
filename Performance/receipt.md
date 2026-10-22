@@ -15,7 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 version: 2
 side: host
 verdict: yellow
-accepted:
+accepted: Algorithm changed
 base: d3d6d00
 base-fingerprint: 5d486a59bfb4cdfdfbfe20bbd6c0c73f42a9e748
 head: 8cf9be2
@@ -158,7 +158,7 @@ The probes differ between the sides (each side ran its own): Performance/Render/
 version: 2
 side: cuda
 verdict: yellow
-accepted:
+accepted: Algorithm changed
 base: d3d6d00
 base-fingerprint: 5d486a59bfb4cdfdfbfe20bbd6c0c73f42a9e748
 head: 8cf9be2
