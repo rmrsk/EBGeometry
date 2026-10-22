@@ -46,7 +46,7 @@ inline PointCloudBVH<T, K, W>::PointCloudBVH(Pool&                        a_pool
                                              const BuildResult&           a_build,
                                              const std::vector<Vec3T<T>>& a_positions)
 {
-  const Packed bvh(a_pool, a_build.nodes, a_build.primitives);
+  const Packed bvh(a_pool, a_build.nodes, a_build.boxes, a_build.primitives);
 
   this->setLocation(bvh.location());
 
@@ -172,6 +172,7 @@ PointCloudBVH<T, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions, std:
   result.leafOff.assign(numPoints, 0);
   result.leafCnt.assign(numPoints, 0);
   result.nodes.reserve(numPoints > 0 ? 2 * numPoints / Math::max<std::size_t>(a_leafSize, 1) + 4 : 4);
+  result.boxes.reserve(result.nodes.capacity());
   result.primitives.reserve(numPoints / W + 4);
 
   std::vector<std::uint32_t> indices(numPoints);
@@ -266,6 +267,7 @@ PointCloudBVH<T, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions, std:
 
       const std::uint32_t nodeIndex = static_cast<std::uint32_t>(result.nodes.size());
       result.nodes.emplace_back();
+      result.boxes.emplace_back();
 
       // Make a leaf once the range is small enough -- but also never try to split a range with fewer
       // than K points, since partition() cannot produce K non-empty children from it (an empty child
@@ -305,7 +307,7 @@ PointCloudBVH<T, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions, std:
           result.leafCnt[indices[i]] = groupCount;
         }
 
-        result.nodes[nodeIndex].setBoundingVolume(AABB(boxLo, boxHi));
+        result.boxes[nodeIndex] = AABB(boxLo, boxHi);
         result.nodes[nodeIndex].setPrimitivesOffset(firstGroup);
         result.nodes[nodeIndex].setNumPrimitives(groupCount);
 
@@ -324,7 +326,7 @@ PointCloudBVH<T, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions, std:
 
       for (std::size_t k = 0; k < K; k++) {
         children[k]          = this->build(ranges[k].first, ranges[k].second);
-        const AABB& childBox = result.nodes[children[k]].getBoundingVolume();
+        const AABB& childBox = result.boxes[children[k]];
 
         boxLo = min(boxLo, childBox.getLowCorner());
         boxHi = max(boxHi, childBox.getHighCorner());
@@ -334,7 +336,7 @@ PointCloudBVH<T, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions, std:
         result.nodes[nodeIndex].setChildOffset(children[k], k); // interior: setNumPrimitives stays 0
       }
 
-      result.nodes[nodeIndex].setBoundingVolume(AABB(boxLo, boxHi));
+      result.boxes[nodeIndex] = AABB(boxLo, boxHi);
 
       return nodeIndex;
     }
@@ -449,7 +451,7 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
       return k;
     };
 
-    if (!(nodes[0].getDistanceToBoundingVolume2(a_query) < best.bound())) {
+    if (!(bvh.getDistanceToBoundingVolume2(nodes[0], a_query) < best.bound())) {
       return best.found();
     }
 
@@ -474,8 +476,9 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
 
         Mask children = 0;
 
+        // The children's boxes are read from this node's row, without loading the children.
         for (std::size_t k = 0; k < K; k++) {
-          if (nodes[childOffsets[k]].getDistanceToBoundingVolume2(a_query) < best.bound()) {
+          if (bvh.getDistanceToChildBoundingVolume2(node, k, a_query) < best.bound()) {
             children |= Mask(1) << k;
           }
         }
@@ -510,10 +513,10 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
           stackTop--;
         }
 
-        const std::uint32_t child = nodes[level.m_node].getChildOffsets()[k];
+        const Node& parent = nodes[level.m_node];
 
-        if (nodes[child].getDistanceToBoundingVolume2(a_query) < best.bound()) {
-          nodeIdx = child;
+        if (bvh.getDistanceToChildBoundingVolume2(parent, k, a_query) < best.bound()) {
+          nodeIdx = parent.getChildOffsets()[k];
           resumed = true;
         }
       }

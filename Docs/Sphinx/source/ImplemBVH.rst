@@ -350,13 +350,13 @@ place, leaving the tree topology (node hierarchy and each leaf's primitive assig
 the cheap way to keep a BVH valid for a geometry whose primitives have *moved* between frames,
 without a full rebuild-and-repack. It takes a single functor mapping one primitive to its current
 bounding volume and unions volumes bottom-up: each leaf's from its primitives, each interior node's
-from its children. ``PackedBVH::refit()`` merges the boxes pairwise, allocating nothing, and also
-rebuilds the SoA child-box rows used by the SIMD ``pruneTraverse()`` (see :ref:`Chap:PruneTraverse`)
-so queries stay consistent. Because it never
-re-partitions, a geometry that deforms enough for primitives to migrate across the tree accumulates
-looser bounding volumes over time and should periodically be rebuilt instead; see :ref:`Chap:BVH`
-for that trade-off. For the exact signatures, see the Doxygen references for `TreeBVH
-<doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ and `PackedBVH
+from its children. ``PackedBVH::refit()`` merges the boxes pairwise, allocating nothing, and writes
+each box where it is stored, in its parent's SoA child-box row that the SIMD ``pruneTraverse()``
+reads (see :ref:`Chap:PruneTraverse`), so every query and every copy of the BVH sees it. Because it
+never re-partitions, a geometry that deforms enough for primitives to migrate across the tree
+accumulates looser bounding volumes over time and should periodically be rebuilt instead; see
+:ref:`Chap:BVH` for that trade-off. For the exact signatures, see the Doxygen references for
+`TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ and `PackedBVH
 <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
 Refitting recomputes bounding volumes only, never the primitives themselves. A primitive that
@@ -388,12 +388,25 @@ volume is always ``AABBT<T>``), and internally stores two things: a flat, depth-
 nodes, and a global primitive array holding every primitive in leaf order.
 
 Each entry of the node array plays the same role a ``TreeBVH`` node plays, but stores offsets
-into the flat arrays rather than pointers to children: a bounding volume for the node's subtree,
-a primitive offset and count identifying its range in the global primitive array (used only if
-the node is a leaf), and the depth-first indices of its ``K`` children. A node is a leaf exactly
-when its primitive count is non-zero; the root node is always at index 0 of the node array. See
-`the doxygen page for PackedBVH::Node
+into the flat arrays rather than pointers to children: a primitive offset and count identifying its
+range in the global primitive array (used only if the node is a leaf), and the depth-first indices
+of its ``K`` children. A node is a leaf exactly when its primitive count is non-zero; the root node
+is always at index 0 of the node array. See `the doxygen page for PackedBVH::Node
 <doxygen/html/structEBGeometry_1_1BVH_1_1PackedBVH_1_1Node.html>`__ for the exact member list.
+
+A node does not hold its own bounding volume. Every box is stored once: an interior node's ``K``
+children's boxes form that node's row of the SIMD box array that ``pruneTraverse()`` reads (see
+:ref:`Chap:PruneTraverse`), and the root's box, which no row holds, is stored separately in the same
+pool. Each node keeps its *box slot*, the row and position of its own box, so
+``getBoundingVolume(node)`` returns any node's box and ``getDistanceToBoundingVolume2(node, point)``
+the squared distance to it, without assembling the box. A descent that tests a node's children one at
+a time should use ``getDistanceToChildBoundingVolume2(parent, k, point)`` instead: it reads child
+``k``'s box straight from the parent's row, without loading the child node only to find where its box
+is. A traversal callback that needs a node's
+box, such as a node-key-factory, asks the BVH it traverses for it. A node is 32 bytes at ``K = 4``
+in either precision, against the 52 (``float``) or 80 (``double``) bytes it took while it carried a
+copy of its box: with the boxes no longer duplicated, the node array and the box rows together are
+about 30% (``float``) or 40% (``double``) smaller.
 
 Constructing a ``PackedBVH`` is simply a matter of flattening an already-partitioned ``TreeBVH``,
 via one of two ``TreeBVH`` member functions:
@@ -454,8 +467,9 @@ every build path including ``TreeBVH::pack()``.
 Pool-backed storage
 ____________________
 
-``PackedBVH``'s three arrays -- the flat node array, the primitive array, and the SoA child-AABB
-cache -- are ``PODVector``\ s reserved from a caller-supplied ``Pool`` (see :ref:`Chap:MemoryModel`),
+``PackedBVH``'s four arrays -- the flat node array, the primitive array, the SoA child-AABB
+rows and the root box -- are ``PODVector``\ s reserved from a caller-supplied ``Pool`` (see
+:ref:`Chap:MemoryModel`),
 not ``std::vector``\ s. Every construction entry point therefore takes a ``Pool&``: ``pack()``,
 ``packWith()``, every direct constructor (the adopting one included), and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
 which pass along the pool they already take. The pool must outlive the BVH.
@@ -466,7 +480,7 @@ way to be filled incrementally without its final size fixed up front, and the no
 known until a build finishes. Growth belongs in the host-only build step; nothing that crosses to a
 device is ever built incrementally.
 
-What this buys is that a ``PackedBVH`` is trivially copyable -- three 16-byte descriptors, a control
+What this buys is that a ``PackedBVH`` is trivially copyable -- four 16-byte descriptors, a control
 block pointer, and a base pointer -- so a whole hierarchy crosses to a device as a byte copy with no
 pointer patching. ``rebasedView(Pool&)`` is the single sanctioned crossing, exactly as for
 ``DCEL::MeshT``: mirror the pool, rebase on the host, then pass the returned value to a kernel.
@@ -485,8 +499,11 @@ was ruled out because ``rebasedView()`` and ``deepCopy()`` return a ``PackedBVH`
 a derived type silently slices away the payload the leaves refer to.
 
 Three public members exist for such a class. The adopting constructor
-``PackedBVH(Pool&, const std::vector<Node>&, const std::vector<P>&)`` takes a node and primitive
-array built by some other means -- ``PointCloudBVH`` runs its own index-based build. Every
+``PackedBVH(Pool&, const std::vector<Node>&, const std::vector<BV>&, const std::vector<P>&)`` takes
+a node array, the box of every node and a primitive array built by some other means --
+``PointCloudBVH`` runs its own index-based build. The boxes go alongside the nodes because a node
+does not store its own; the constructor puts them in the box rows and assigns every node's box row
+and box slot, whatever the node array held. Every
 constructor, this one included, checks always on rather than only under assertions that the node
 array is a well-formed depth-first pre-order flattening: every child strictly after its parent and
 inside the array, every node but the root with exactly one parent, every leaf's primitives inside
@@ -627,7 +644,8 @@ on its stack, so the node-key-factory must give the same key for the same node a
 effects. One typical
 example for DCEL meshes is that the leaf-evaluator computes the distance from an input point to the
 triangles in a leaf node, whereas the node-key-factory computes the distance from the input point to
-the bounding volumes of a child node. This information is then used by the child-orderer in order to
+the bounding volumes of a child node, through the BVH's ``getDistanceToBoundingVolume2(node, point)``
+(a node does not store its box). This information is then used by the child-orderer in order to
 determine a preferred child visit pattern when descending along subtrees.
 
 Traversal algorithm
@@ -962,7 +980,9 @@ use which, the build switch, and measurements.
 The K=16/float and K=8/double paths use 512-bit-wide SIMD loads on AVX-512F and require the
 ``ChildAABBSoA`` rows to be 64-byte aligned, which is guaranteed by ``alignas(sizeof(T)*K)`` on
 the struct. Only interior nodes have children, so only they get a row: each node records its row in
-``Node::m_childBoxRow``, and the row array has one entry per interior node rather than one per node. The K=8/float and K=4/double paths use 256-bit-wide AVX loads instead (as does
+``Node::m_childBoxRow``, and the row array has one entry per interior node rather than one per node.
+The rows are also where every box but the root's is stored; a node finds its own through its box
+slot. The K=8/float and K=4/double paths use 256-bit-wide AVX loads instead (as does
 K=8/double without AVX-512F, in two passes), and K=4/float uses 128-bit SSE4.1 loads. All other
 (K, T) combinations test the children with a scalar loop over the same ``ChildAABBSoA`` cache,
 inside the same ``pruneTraverse()``.

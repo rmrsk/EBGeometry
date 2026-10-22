@@ -44,6 +44,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
   // Host-only scratch: the node count is not known until the walk finishes, and growth here costs
   // nothing because finalize() copies the result into pool storage in one shot.
   std::vector<Node> nodes;
+  std::vector<BV>   boxes; // each node's box, indexed like nodes
   std::vector<P>    prims;
 
   // Depth-first. Each call reserves a slot by index, then fills child offsets
@@ -55,7 +56,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
     const uint32_t idx = static_cast<uint32_t>(nodes.size());
 
     nodes.push_back({});
-    nodes[idx].m_bv = node.getBoundingVolume();
+    boxes.push_back(node.getBoundingVolume());
 
     if (node.isLeaf()) {
       const auto& leafPrims = node.getPrimitives();
@@ -83,7 +84,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
   };
 
   dfs(a_tree);
-  this->finalize(a_pool, nodes, prims);
+  this->finalize(a_pool, nodes, boxes, prims);
 }
 
 template <class T, class P, size_t K>
@@ -93,6 +94,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
                                      Converter&&                                                    a_converter)
 {
   std::vector<Node> nodes;
+  std::vector<BV>   boxes; // each node's box, indexed like nodes
   std::vector<P>    prims;
 
   using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
@@ -107,7 +109,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
     const uint32_t idx = static_cast<uint32_t>(nodes.size());
 
     nodes.push_back({});
-    nodes[idx].m_bv = node.getBoundingVolume();
+    boxes.push_back(node.getBoundingVolume());
 
     if (node.isLeaf()) {
       const auto&    leafPrims = node.getPrimitives();
@@ -144,7 +146,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
 
   detail::appendAliased(prims, dstStorage);
 
-  this->finalize(a_pool, nodes, prims);
+  this->finalize(a_pool, nodes, boxes, prims);
 }
 
 template <class T, class P, size_t K>
@@ -159,6 +161,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
     a_targetLeafSize > 0, "PackedBVH: the SFC build's target leaf size must be positive (%zu)", a_targetLeafSize);
 
   std::vector<Node> nodes;
+  std::vector<BV>   boxes; // each node's box, indexed like nodes
   std::vector<P>    prims;
 
   const size_t numPrimitives = a_primsAndBVs.size();
@@ -249,10 +252,12 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
   // one root. Every node is referenced by exactly one parent, so a traversal reaches each primitive
   // once. A full K-ary tree with L leaves has L + (L - 1)/(K - 1) nodes.
   std::vector<Node> scratch(numLeaves);
+  std::vector<BV>   scratchBoxes(numLeaves);
   scratch.reserve(numLeaves + (numLeaves - 1) / (K - 1));
+  scratchBoxes.reserve(scratch.capacity());
 
   for (size_t i = 0; i < numLeaves; i++) {
-    scratch[i].setBoundingVolume(leafRanges[i].bv);
+    scratchBoxes[i] = leafRanges[i].bv;
     scratch[i].setPrimitivesOffset(leafRanges[i].offset);
     scratch[i].setNumPrimitives(leafRanges[i].count);
   }
@@ -279,10 +284,10 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
       for (size_t c = 0; c < K; c++) {
         const uint32_t childIdx = levelIndices[p * K + c];
         scratch[parentIdx].setChildOffset(childIdx, c);
-        parentBV = parentBV.merged(scratch[childIdx].getBoundingVolume());
+        parentBV = parentBV.merged(scratchBoxes[childIdx]);
       }
 
-      scratch[parentIdx].setBoundingVolume(parentBV);
+      scratchBoxes.push_back(parentBV);
 
       nextLevel.push_back(parentIdx);
     }
@@ -304,6 +309,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
     const uint32_t newIdx = static_cast<uint32_t>(nodes.size());
 
     nodes.push_back(scratch[a_scratchIdx]);
+    boxes.push_back(scratchBoxes[a_scratchIdx]);
 
     if (!scratch[a_scratchIdx].isLeaf()) {
       for (size_t c = 0; c < K; c++) {
@@ -318,7 +324,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                         a_pool,
 
   relayout(scratchRoot);
 
-  this->finalize(a_pool, nodes, prims);
+  this->finalize(a_pool, nodes, boxes, prims);
 }
 
 template <class T, class P, size_t K>
@@ -342,6 +348,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
   EBGEOMETRY_REQUIRE(!a_primsAndBVs.empty(), "PackedBVH: the top-down build needs at least one primitive");
 
   std::vector<Node> nodes;
+  std::vector<BV>   boxes; // each node's box, indexed like nodes
   std::vector<P>    prims;
 
   // shared_ptr-wrap each primitive once, up front, so the existing Partitioner/LeafPredicate
@@ -369,10 +376,11 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
     const uint32_t idx = static_cast<uint32_t>(nodes.size());
 
     nodes.push_back({});
+    boxes.push_back({});
 
     const BVH::TreeBVH<T, P, BV, K> probe(a_prims);
 
-    nodes[idx].setBoundingVolume(probe.getBoundingVolume());
+    boxes[idx] = probe.getBoundingVolume();
 
     if (a_stopCrit(probe) || a_prims.size() < K) {
       const auto& leafPrims = probe.getPrimitives();
@@ -402,7 +410,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                  a_po
 
   build(std::move(wrapped));
 
-  this->finalize(a_pool, nodes, prims);
+  this->finalize(a_pool, nodes, boxes, prims);
 }
 
 template <class T, class P, size_t K>
@@ -415,6 +423,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
     a_spec.maxClusterSize > 0, "PackedBVH: ClusterSpec::maxClusterSize must be positive (%zu)", a_spec.maxClusterSize);
 
   std::vector<Node> nodes;
+  std::vector<BV>   boxes; // each node's box, indexed like nodes
   std::vector<P>    prims;
 
   const size_t maxC = a_spec.maxClusterSize;
@@ -622,6 +631,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
   std::function<uint32_t(size_t, size_t)> build = [&](size_t a_begin, size_t a_end) -> uint32_t {
     const uint32_t idx = static_cast<uint32_t>(nodes.size());
     nodes.push_back({});
+    boxes.push_back({});
 
     Vec3T<T> nlo = +Vec3T<T>::max();
     Vec3T<T> nhi = -Vec3T<T>::max();
@@ -631,7 +641,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
       nhi = max(nhi, clusters[i].bv.getHighCorner());
     }
 
-    nodes[idx].setBoundingVolume(BV(nlo, nhi));
+    boxes[idx] = BV(nlo, nhi);
 
     if (a_end - a_begin < K) {
       // Leaf: fewer than K clusters -- append their primitives to the block, contiguously.
@@ -664,7 +674,7 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool& a_pool, std::vector<std::pair<P, BV>>
 
   detail::appendAliased(prims, primBlock);
 
-  this->finalize(a_pool, nodes, prims);
+  this->finalize(a_pool, nodes, boxes, prims);
 }
 
 } // namespace BVH

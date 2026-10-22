@@ -190,21 +190,22 @@ buildUnionParts(Pool&                                         a_pool,
   }
 
   std::vector<Node> unboundedNodes;
+  std::vector<BV>   unboundedNodeBoxes;
 
   if (!unboundedPrims.empty()) {
     Node leaf;
 
-    leaf.setBoundingVolume(unboundedBox);
     leaf.setPrimitivesOffset(0U);
     leaf.setNumPrimitives(static_cast<uint32_t>(unboundedPrims.size()));
 
     unboundedNodes.push_back(leaf);
+    unboundedNodeBoxes.push_back(unboundedBox);
   }
 
-  Root unbounded(a_pool, unboundedNodes, unboundedPrims);
+  Root unbounded(a_pool, unboundedNodes, unboundedNodeBoxes, unboundedPrims);
 
   if (primsAndBVs.empty()) {
-    return UnionParts<T, P, K>{Root(a_pool, std::vector<Node>{}, std::vector<S>{}), unbounded};
+    return UnionParts<T, P, K>{Root(a_pool, std::vector<Node>{}, std::vector<BV>{}, std::vector<S>{}), unbounded};
   }
 
   return UnionParts<T, P, K>{buildBoundedBVH<T, S, K>(a_pool, std::move(primsAndBVs), a_construction, a_options),
@@ -241,6 +242,14 @@ deepCopyBVH(const BVH::PackedBVH<T, Stored<P>, K>& a_bvh, Pool& a_dstPool)
     const std::vector<Node>      nodes(nodeSpan.begin(), nodeSpan.end());
     const std::vector<Stored<P>> sourcePrims(primSpan.begin(), primSpan.end());
 
+    std::vector<typename Root::BV> boxes;
+
+    boxes.reserve(nodes.size());
+
+    for (const Node& node : nodes) {
+      boxes.push_back(a_bvh.getBoundingVolume(node));
+    }
+
     const PoolLocation location = a_bvh.location();
 
     std::vector<Stored<P>> prims;
@@ -251,7 +260,7 @@ deepCopyBVH(const BVH::PackedBVH<T, Stored<P>, K>& a_bvh, Pool& a_dstPool)
       prims.emplace_back(fromStored<P>(primitive, location).deepCopy(a_dstPool).layout());
     }
 
-    return Root(a_dstPool, nodes, prims);
+    return Root(a_dstPool, nodes, boxes, prims);
   }
   else {
     return a_bvh.deepCopy(a_dstPool);

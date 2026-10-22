@@ -41,7 +41,8 @@ inline PackedBVH<T, P, K>::PackedBVH(const Layout& a_layout, const PoolLocation&
   : PoolHandle(a_location),
     m_linearNodes(a_layout.m_linearNodes),
     m_primitives(a_layout.m_primitives),
-    m_childAabbSoA(a_layout.m_childAabbSoA)
+    m_childAabbSoA(a_layout.m_childAabbSoA),
+    m_rootBox(a_layout.m_rootBox)
 {}
 
 template <class T, class P, size_t K>
@@ -49,7 +50,7 @@ EBGEOMETRY_HOST_DEVICE
 inline typename PackedBVH<T, P, K>::Layout
 PackedBVH<T, P, K>::layout() const noexcept
 {
-  return Layout{m_linearNodes, m_primitives, m_childAabbSoA};
+  return Layout{m_linearNodes, m_primitives, m_childAabbSoA, m_rootBox};
 }
 
 template <class T, class P, size_t K>
@@ -57,8 +58,8 @@ EBGEOMETRY_HOST
 inline PackedBVH<T, P, K>
 PackedBVH<T, P, K>::rebasedView(const Pool& a_pool) const noexcept
 {
-  const uint64_t endByte =
-    Math::max(m_linearNodes.endByte(), Math::max(m_primitives.endByte(), m_childAabbSoA.endByte()));
+  const uint64_t endByte = Math::max(Math::max(m_linearNodes.endByte(), m_primitives.endByte()),
+                                     Math::max(m_childAabbSoA.endByte(), m_rootBox.endByte()));
 
   PackedBVH view = *this;
 
@@ -82,10 +83,12 @@ PackedBVH<T, P, K>::deepCopy(Pool& a_dstPool) const
   const void* srcBase = this->base();
 
   std::vector<Node> nodes(m_linearNodes.size());
+  std::vector<BV>   boxes(m_linearNodes.size());
   std::vector<P>    prims(m_primitives.size());
 
   for (uint32_t i = 0; i < m_linearNodes.size(); i++) {
     nodes[i] = m_linearNodes.at(srcBase, i);
+    boxes[i] = this->getBoundingVolume(nodes[i]);
   }
 
   for (uint32_t i = 0; i < m_primitives.size(); i++) {
@@ -94,7 +97,7 @@ PackedBVH<T, P, K>::deepCopy(Pool& a_dstPool) const
 
   PackedBVH copy(Layout{}, PoolLocation{});
 
-  copy.finalize(a_dstPool, nodes, prims);
+  copy.finalize(a_dstPool, nodes, boxes, prims);
 
   return copy;
 }
@@ -102,8 +105,16 @@ PackedBVH<T, P, K>::deepCopy(Pool& a_dstPool) const
 template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline void
-PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNodes, const std::vector<P>& a_primitives)
+PackedBVH<T, P, K>::finalize(Pool&                    a_pool,
+                             const std::vector<Node>& a_linearNodes,
+                             const std::vector<BV>&   a_nodeBoxes,
+                             const std::vector<P>&    a_primitives)
 {
+  EBGEOMETRY_REQUIRE(a_nodeBoxes.size() == a_linearNodes.size(),
+                     "BVH::PackedBVH: %zu node boxes for %zu nodes; every node needs its box",
+                     a_nodeBoxes.size(),
+                     a_linearNodes.size());
+
   // Nodes and primitives are numbered with uint32_t, and the builders store their offsets that way.
   // The final counts bound every offset a builder stored, so checking them here, first, catches an
   // offset that wrapped before the checks below misread it.
@@ -132,7 +143,7 @@ PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNode
   m_linearNodes.assign(poolBase, a_linearNodes.data(), static_cast<uint32_t>(a_linearNodes.size()));
   m_primitives.assign(poolBase, a_primitives.data(), static_cast<uint32_t>(a_primitives.size()));
 
-  this->buildSoA(&a_pool);
+  this->buildSoA(a_pool, a_nodeBoxes);
 
   // buildSoA() reserves, so re-resolve; after it nothing else moves the block. Reject here, once,
   // rather than letting pruneTraverse walk off its fixed stack later with no way to notice.
@@ -142,7 +153,7 @@ PackedBVH<T, P, K>::finalize(Pool& a_pool, const std::vector<Node>& a_linearNode
 template <class T, class P, size_t K>
 EBGEOMETRY_HOST
 inline void
-PackedBVH<T, P, K>::buildSoA(Pool* a_pool)
+PackedBVH<T, P, K>::buildSoA(Pool& a_pool, const std::vector<BV>& a_nodeBoxes)
 {
   // Only interior nodes have children, so only they get a row; a leaf, typically most of the nodes,
   // gets none.
@@ -154,19 +165,22 @@ PackedBVH<T, P, K>::buildSoA(Pool* a_pool)
     }
   }
 
-  if (a_pool != nullptr) {
-    m_childAabbSoA.reserveFrom(*a_pool, numInterior);
-  }
+  m_childAabbSoA.reserveFrom(a_pool, numInterior);
+  m_rootBox.reserveFrom(a_pool, m_linearNodes.size() > 0 ? 1U : 0U);
 
-  EBGEOMETRY_EXPECT(m_childAabbSoA.m_capacity == numInterior);
-
-  // Resolved after the reservation above, for the reason given in finalize().
+  // Resolved after the reservations above, for the reason given in finalize().
   void* poolBase = this->base();
 
   // Assembled host-side and copied in one shot, like the node and primitive arrays: a PODVector
   // never reallocates, so it has no way to be filled element-by-element without its final size
   // already fixed, and this keeps the one finalize pattern everywhere.
   std::vector<ChildAABBSoA> soaCache(numInterior);
+
+  if (m_linearNodes.size() > 0) {
+    m_rootBox.push_back(poolBase, a_nodeBoxes[0]);
+
+    m_linearNodes.at(poolBase, 0).m_boxSlot = RootBoxSlot;
+  }
 
   uint32_t row = 0;
 
@@ -177,25 +191,44 @@ PackedBVH<T, P, K>::buildSoA(Pool* a_pool)
       const auto& offsets = node.getChildOffsets();
       auto&       soa     = soaCache[row];
 
-      node.m_childBoxRow = row++;
+      node.m_childBoxRow = row;
 
       for (size_t k = 0; k < K; k++) {
-        const auto& bv = m_linearNodes.at(poolBase, offsets[k]).getBoundingVolume();
-        const auto& lo = bv.getLowCorner();
-        const auto& hi = bv.getHighCorner();
+        PackedBVH::setRowBox(soa, k, a_nodeBoxes[offsets[k]]);
 
-        soa.m_lo[0][k] = lo[0];
-        soa.m_lo[1][k] = lo[1];
-        soa.m_lo[2][k] = lo[2];
-
-        soa.m_hi[0][k] = hi[0];
-        soa.m_hi[1][k] = hi[1];
-        soa.m_hi[2][k] = hi[2];
+        // Each node is a child of exactly one interior node (requireWellFormed() checked the shape),
+        // so this assigns every non-root node's slot once.
+        m_linearNodes.at(poolBase, offsets[k]).m_boxSlot = static_cast<uint32_t>(row * K + k);
       }
+
+      row++;
     }
   }
 
   m_childAabbSoA.assign(poolBase, soaCache.data(), numInterior);
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline void
+PackedBVH<T, P, K>::setRowBox(ChildAABBSoA& a_soa, size_t a_slot, const BV& a_bv) noexcept
+{
+  const auto& lo = a_bv.getLowCorner();
+  const auto& hi = a_bv.getHighCorner();
+
+  for (size_t axis = 0; axis < 3; axis++) {
+    a_soa.m_lo[axis][a_slot] = lo[axis];
+    a_soa.m_hi[axis][a_slot] = hi[axis];
+  }
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline typename PackedBVH<T, P, K>::BV
+PackedBVH<T, P, K>::rowBox(const ChildAABBSoA& a_soa, size_t a_slot) noexcept
+{
+  return BV(Vec3T<T>(a_soa.m_lo[0][a_slot], a_soa.m_lo[1][a_slot], a_soa.m_lo[2][a_slot]),
+            Vec3T<T>(a_soa.m_hi[0][a_slot], a_soa.m_hi[1][a_slot], a_soa.m_hi[2][a_slot]));
 }
 
 template <class T, class P, size_t K>
@@ -231,7 +264,7 @@ PackedBVH<T, P, K>::getBoundingVolume() const noexcept
   EBGEOMETRY_REQUIRE(m_linearNodes.size() > 0,
                      "BVH::PackedBVH::getBoundingVolume: the BVH is empty; computeBoundingVolume() handles that");
 
-  return m_linearNodes.at(this->base(), 0).getBoundingVolume();
+  return m_rootBox.at(this->base(), 0);
 }
 
 template <class T, class P, size_t K>
@@ -239,11 +272,57 @@ EBGEOMETRY_HOST_DEVICE
 inline EBGeometry::BoundingVolumes::AABBT<T>
 PackedBVH<T, P, K>::computeBoundingVolume() const noexcept
 {
-  if (m_linearNodes.size() == 0) {
+  if (m_rootBox.size() == 0) {
     return EBGeometry::BoundingVolumes::AABBT<T>();
   }
 
-  return m_linearNodes.at(this->base(), 0).getBoundingVolume();
+  return m_rootBox.at(this->base(), 0);
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline typename PackedBVH<T, P, K>::BV
+PackedBVH<T, P, K>::getBoundingVolume(const Node& a_node) const noexcept
+{
+  const uint32_t slot = a_node.getBoxSlot();
+
+  if (slot == RootBoxSlot) {
+    return m_rootBox.at(this->base(), 0);
+  }
+
+  EBGEOMETRY_EXPECT(slot / K < m_childAabbSoA.size());
+
+  return PackedBVH::rowBox(m_childAabbSoA.at(this->base(), slot / K), slot % K);
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline T
+PackedBVH<T, P, K>::getDistanceToBoundingVolume2(const Node& a_node, const Vec3T<T>& a_point) const noexcept
+{
+  const uint32_t slot = a_node.getBoxSlot();
+
+  if (slot == RootBoxSlot) {
+    return m_rootBox.at(this->base(), 0).getDistance2(a_point);
+  }
+
+  EBGEOMETRY_EXPECT(slot / K < m_childAabbSoA.size());
+
+  return PackedBVH::scalarChildDistance2(m_childAabbSoA.at(this->base(), slot / K), a_point, slot % K);
+}
+
+template <class T, class P, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline T
+PackedBVH<T, P, K>::getDistanceToChildBoundingVolume2(const Node&     a_parent,
+                                                      size_t          a_k,
+                                                      const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(!a_parent.isLeaf());
+  EBGEOMETRY_EXPECT(a_k < K);
+  EBGEOMETRY_EXPECT(a_parent.getChildBoxRow() < m_childAabbSoA.size());
+
+  return PackedBVH::scalarChildDistance2(m_childAabbSoA.at(this->base(), a_parent.getChildBoxRow()), a_point, a_k);
 }
 
 template <class T, class P, size_t K>
@@ -880,14 +959,16 @@ PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor)
 {
   // m_linearNodes is a depth-first pre-order flattening, so every child has a higher index than its
   // parent. Sweeping the array in reverse therefore refits all of a node's children before the node
-  // itself -- no recursion or explicit stack needed. Boxes are merged pairwise, so a refit (meant as
-  // cheap per-frame maintenance) allocates nothing.
+  // itself -- no recursion or explicit stack needed. A node's box is written where it is stored, in its
+  // parent's row (the root's in m_rootBox), so an interior node reads its children's new boxes from its
+  // own row. Boxes are merged pairwise, so a refit (meant as cheap per-frame maintenance) allocates
+  // nothing.
   //
   // refit() reserves nothing, so one resolution covers the whole sweep.
   void* poolBase = this->base();
 
   for (uint32_t i = m_linearNodes.size(); i-- > 0;) {
-    Node& node = m_linearNodes.at(poolBase, i);
+    const Node& node = m_linearNodes.at(poolBase, i);
 
     BV bv;
 
@@ -900,18 +981,22 @@ PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor)
       }
     }
     else {
-      const auto& childOffsets = node.getChildOffsets();
+      const ChildAABBSoA& row = m_childAabbSoA.at(poolBase, node.getChildBoxRow());
 
       for (size_t k = 0; k < K; k++) {
-        bv = bv.merged(m_linearNodes.at(poolBase, childOffsets[k]).getBoundingVolume());
+        bv = bv.merged(PackedBVH::rowBox(row, k));
       }
     }
 
-    node.setBoundingVolume(bv);
-  }
+    const uint32_t slot = node.getBoxSlot();
 
-  // Node count is unchanged, so the existing cache is refilled rather than re-reserved.
-  this->buildSoA(nullptr);
+    if (slot == RootBoxSlot) {
+      m_rootBox.at(poolBase, 0) = bv;
+    }
+    else {
+      PackedBVH::setRowBox(m_childAabbSoA.at(poolBase, slot / K), slot % K, bv);
+    }
+  }
 }
 
 } // namespace BVH

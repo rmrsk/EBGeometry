@@ -416,6 +416,12 @@ request leaves its receipt in the base branch, so the history of ``Performance/r
 performance history of the branch, one comparison per change. Device sections appear where a change
 was measured on a GPU; regular device measurement is left to a future nightly run.
 
+What a receipt proves is limited. Its fingerprints tie it to the code it names, so it cannot be
+carried over to other code by mistake, and CI computes them from git, not from the receipt. CI cannot
+check the figures themselves: the receipt records that its author ran the comparison and what it found,
+and it is trusted the way a review is trusted to have been done. It makes the local comparison a
+required, visible part of every change that needs one; it is not a proof that the numbers were measured.
+
 Two pull requests that both pass can still race: once one merges and changes the base's code, the
 other's receipt is stale. Branch protection that requires a pull request to be up to date with its base
 before merging makes CI check it again.
