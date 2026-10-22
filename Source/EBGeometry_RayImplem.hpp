@@ -258,8 +258,8 @@ RayForm<TriMeshSDF<T, K, W>>::firstHit(const TriMeshSDF<T, K, W>& a_sdf,
 
   // A node's key is where the ray enters its box, or infinity if it misses it (or meets it only
   // beyond the nearest crossing so far, which the prune then skips).
-  const auto entry = [&a_ray, a_tMin, &best](const auto& a_node) noexcept -> T {
-    const auto& box = a_node.getBoundingVolume();
+  const auto entry = [&bvh, &a_ray, a_tMin, &best](const auto& a_node) noexcept -> T {
+    const auto box = bvh.getBoundingVolume(a_node);
 
     T t0 = a_tMin;
     T t1 = best;
