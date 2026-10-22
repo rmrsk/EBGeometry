@@ -24,6 +24,10 @@ target_include_directories(EBGeometry INTERFACE
 )
 target_compile_features(EBGeometry INTERFACE cxx_std_17)
 
+# Render::Renderer::render() runs on std::thread; older C libraries need -pthread to link it.
+find_package(Threads REQUIRED)
+target_link_libraries(EBGeometry INTERFACE Threads::Threads)
+
 # ── Options ───────────────────────────────────────────────────────────────────
 option(EBGEOMETRY_BUILD_TESTS
   "Build the EBGeometry unit-test suite (requires Catch2, fetched automatically)" OFF)
@@ -134,6 +138,8 @@ if(EBGEOMETRY_INSTALL)
   install(EXPORT EBGeometryTargets NAMESPACE EBGeometry:: DESTINATION "${EBGEOMETRY_INSTALL_CMAKEDIR}")
 
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/EBGeometryConfig.cmake"
+    "include(CMakeFindDependencyMacro)\n"
+    "find_dependency(Threads)\n"
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/EBGeometryTargets.cmake\")\n")
   write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/EBGeometryConfigVersion.cmake"
     COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT)

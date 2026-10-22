@@ -1,0 +1,857 @@
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_RenderImplem.hpp
+ * @brief  Implementation of EBGeometry_Render.hpp
+ * @author Robert Marskar
+ */
+
+#ifndef EBGEOMETRY_RENDERIMPLEM_HPP
+#define EBGEOMETRY_RENDERIMPLEM_HPP
+
+// Std includes
+#include <atomic>
+#include <cmath>
+#include <numeric>
+#include <thread>
+#include <type_traits>
+#include <vector>
+
+// Our includes
+#include "EBGeometry_Constants.hpp"
+#include "EBGeometry_GPUTransform.hpp"
+#include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
+#include "EBGeometry_Render.hpp"
+
+namespace EBGeometry::Render {
+
+namespace RenderDetail {
+
+/**
+ * @brief A vector scaled to unit length.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_v Vector (not zero).
+ * @return a_v / |a_v|.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+unit(const Vec3T<T>& a_v) noexcept
+{
+  return a_v / a_v.length();
+}
+
+/**
+ * @brief A shape cut by a half-space: what the renderer marches.
+ * @details Internal helper; not part of the public API. With the cut on, the value is the larger of the
+ * shape's and the distance to the plane (positive on the side the normal points to), which keeps the
+ * shape's distance quality.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ */
+template <class T, class S>
+struct Sectioned
+{
+  /**
+   * @brief The shape.
+   */
+  S m_shape;
+
+  /**
+   * @brief Whether the plane cuts it.
+   */
+  bool m_on;
+
+  /**
+   * @brief A point on the plane.
+   */
+  Vec3T<T> m_point;
+
+  /**
+   * @brief The plane's unit normal.
+   */
+  Vec3T<T> m_normal;
+
+  /**
+   * @brief The distance to the plane, positive on the removed side.
+   * @param[in] a_point Point.
+   * @return The distance.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  plane(const Vec3T<T>& a_point) const noexcept
+  {
+    return dot(a_point - m_point, m_normal);
+  }
+
+  /**
+   * @brief The cut shape's value.
+   * @param[in] a_point Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    const T v = m_shape.signedDistance(a_point);
+
+    return m_on ? Math::max(v, this->plane(a_point)) : v;
+  }
+
+  /**
+   * @brief The shape's box.
+   * @return The box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return m_shape.computeBoundingVolume();
+  }
+
+  /**
+   * @brief The shape's distance quality.
+   * @return The quality.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline DistanceQuality
+  getDistanceQuality() const noexcept
+  {
+    return RayDetail::qualityOf(m_shape);
+  }
+};
+
+/**
+ * @brief A colour for a primitive id: hues spread by the golden ratio, so neighbouring ids differ.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_id Primitive id.
+ * @return Linear RGB.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+palette(const uint32_t a_id) noexcept
+{
+  const T h = T(0.08) + T(0.61803398875) * T(a_id % 1024U);
+  const T f = T(6) * (h - std::floor(h));
+  const T s = T(0.55);
+  const T v = T(0.85);
+
+  // HSV to RGB, with the hue's sector picked by its integer part.
+  const int sector = static_cast<int>(f) % 6;
+  const T   frac   = f - std::floor(f);
+  const T   p      = v * (T(1) - s);
+  const T   q      = v * (T(1) - s * frac);
+  const T   t      = v * (T(1) - s * (T(1) - frac));
+
+  switch (sector) {
+  case 0:
+    return Vec3T<T>(v, t, p);
+  case 1:
+    return Vec3T<T>(q, v, p);
+  case 2:
+    return Vec3T<T>(p, v, t);
+  case 3:
+    return Vec3T<T>(p, q, v);
+  case 4:
+    return Vec3T<T>(t, p, v);
+  default:
+    return Vec3T<T>(v, p, q);
+  }
+}
+
+/**
+ * @brief Everything one pixel's rays share: the cut shape, the scene's scale, the floor, the light.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ */
+template <class T, class S>
+class Shader
+{
+public:
+  /**
+   * @brief Set up the scene for a shape, a camera and settings.
+   * @param[in] a_shape    Shape.
+   * @param[in] a_camera   Camera.
+   * @param[in] a_settings Settings.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  Shader(const S& a_shape, const Camera<T>& a_camera, const Settings<T>& a_settings) noexcept
+    : m_object{a_shape, a_settings.m_section, a_settings.m_sectionPoint, unit(a_settings.m_sectionNormal)},
+      m_settings(a_settings),
+      m_eye(a_camera.eye()),
+      m_up(unit(a_camera.m_up)),
+      m_light(unit(a_settings.m_light))
+  {
+    a_camera.horizontal(m_first, m_second);
+
+    const auto     box = a_shape.computeBoundingVolume();
+    const Vec3T<T> lo  = box.getLowCorner();
+    const Vec3T<T> hi  = box.getHighCorner();
+
+    const T    diagonal = (hi - lo).length();
+    const bool bounded  = std::isfinite(diagonal) && diagonal > T(0);
+
+    m_scale =
+      (a_settings.m_rays.m_scale > T(0)) ? a_settings.m_rays.m_scale : (bounded ? diagonal : a_camera.m_distance);
+    m_eps = a_settings.m_rays.m_tolerance * m_scale;
+    m_far = bounded ? ((m_eye - box.getCentroid()).length() + diagonal) : T(50) * m_scale;
+
+    m_rays         = a_settings.m_rays;
+    m_rays.m_scale = m_scale;
+
+    // The floor sits just under the lowest corner along the up axis.
+    T low = Math::Limits<T>::infinity();
+
+    for (int corner = 0; corner < 8; corner++) {
+      const Vec3T<T> c((corner & 1) ? hi[0] : lo[0], (corner & 2) ? hi[1] : lo[1], (corner & 4) ? hi[2] : lo[2]);
+
+      low = Math::min(low, dot(c, m_up));
+    }
+
+    m_hasFloor   = a_settings.m_floor && std::isfinite(low) && lo[0] <= hi[0];
+    m_floorLevel = low - T(0.01) * m_scale;
+  }
+
+  /**
+   * @brief Whether the eye is inside the (cut) solid.
+   * @return True if so.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  eyeInside() const noexcept
+  {
+    return m_object.signedDistance(m_eye) < T(0);
+  }
+
+  /**
+   * @brief The colour seen along one camera ray, counting what it hit.
+   * @param[in]     a_direction Unit direction from the eye.
+   * @param[in,out] a_result    Counts.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  shade(const Vec3T<T>& a_direction, PixelResult& a_result) const noexcept
+  {
+    const RayT<T> ray{m_eye, a_direction};
+    const HitT<T> hit = firstHit(m_object, ray, T(0), m_far, m_rays);
+
+    if (hit.m_status == HitStatus::Unresolved) {
+      a_result.m_unresolved++;
+    }
+
+    // Where the ray meets the floor, if it goes down towards it.
+    const T down   = dot(a_direction, m_up);
+    const T tFloor = (m_hasFloor && down < T(0)) ? (m_floorLevel - dot(m_eye, m_up)) / down : T(-1);
+
+    const bool onFloor = tFloor > T(0) && (!hit.hit() || tFloor < hit.m_t);
+
+    if (hit.hit() && !onFloor) {
+      a_result.m_hits++;
+
+      if (!hit.m_entering) {
+        a_result.m_insideHits++;
+      }
+
+      return this->shadeSurface(hit, a_direction);
+    }
+
+    if (onFloor) {
+      return this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
+    }
+
+    return this->background(a_direction);
+  }
+
+private:
+  /**
+   * @brief The cut shape.
+   */
+  Sectioned<T, S> m_object;
+
+  /**
+   * @brief The settings.
+   */
+  const Settings<T>& m_settings;
+
+  /**
+   * @brief The eye.
+   */
+  Vec3T<T> m_eye;
+
+  /**
+   * @brief Unit up axis.
+   */
+  Vec3T<T> m_up;
+
+  /**
+   * @brief Unit direction towards the light.
+   */
+  Vec3T<T> m_light;
+
+  /**
+   * @brief Horizontal unit vectors (see Camera::horizontal()).
+   */
+  Vec3T<T> m_first;
+
+  /**
+   * @brief Horizontal unit vectors (see Camera::horizontal()).
+   */
+  Vec3T<T> m_second;
+
+  /**
+   * @brief The scene's length scale.
+   */
+  T m_scale;
+
+  /**
+   * @brief The march's tolerance, as a length.
+   */
+  T m_eps;
+
+  /**
+   * @brief How far camera rays march.
+   */
+  T m_far;
+
+  /**
+   * @brief How rays march, with the scale filled in.
+   */
+  RayOptions<T> m_rays;
+
+  /**
+   * @brief Whether there is a floor.
+   */
+  bool m_hasFloor;
+
+  /**
+   * @brief Height of the floor along the up axis.
+   */
+  T m_floorLevel;
+
+  /**
+   * @brief The cut shape's unit normal at a point, from finite differences on a tetrahedron.
+   * @param[in] a_point Point.
+   * @return The normal.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  normal(const Vec3T<T>& a_point) const noexcept
+  {
+    const T        h = T(5e-4) * m_scale;
+    const Vec3T<T> a(T(1), T(-1), T(-1));
+    const Vec3T<T> b(T(-1), T(-1), T(1));
+    const Vec3T<T> c(T(-1), T(1), T(-1));
+    const Vec3T<T> d(T(1), T(1), T(1));
+
+    const Vec3T<T> g = a * m_object.signedDistance(a_point + h * a) + b * m_object.signedDistance(a_point + h * b) +
+                       c * m_object.signedDistance(a_point + h * c) + d * m_object.signedDistance(a_point + h * d);
+
+    const T length = g.length();
+
+    return (length > T(0)) ? g / length : m_up;
+  }
+
+  /**
+   * @brief How much light reaches a point from the light's direction: 0 in full shadow, 1 in full light.
+   * @details Soft shadows from the closest approach of a ray towards the light, for values that are
+   * distances; hard shadows from firstHit() for values that are not.
+   * @param[in] a_point  Point.
+   * @param[in] a_normal Unit normal there.
+   * @return The fraction of light.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  shadow(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
+  {
+    const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
+
+    if (m_object.getDistanceQuality() == DistanceQuality::NotADistance) {
+      const HitT<T> hit = firstHit(m_object, RayT<T>{origin, m_light}, T(0), T(2) * m_scale, m_rays);
+
+      return hit.hit() ? T(0) : T(1);
+    }
+
+    T s = T(1);
+    T t = T(0.01) * m_scale;
+
+    for (int step = 0; step < 96 && t < T(2) * m_scale; step++) {
+      const T h = m_object.signedDistance(origin + t * m_light);
+
+      if (h < m_eps) {
+        return T(0);
+      }
+
+      s = Math::min(s, T(10) * h / t);
+      t += Math::clamp(h, T(0.004) * m_scale, T(0.1) * m_scale);
+    }
+
+    return Math::clamp(s, T(0), T(1));
+  }
+
+  /**
+   * @brief Ambient occlusion at a point: 1 in the open, less in creases and corners.
+   * @param[in] a_point  Point.
+   * @param[in] a_normal Unit normal there.
+   * @return The occlusion factor.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  occlusion(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
+  {
+    if (m_object.getDistanceQuality() == DistanceQuality::NotADistance) {
+      return T(1);
+    }
+
+    const T step = T(0.009) * m_scale;
+
+    T occ = T(0);
+    T w   = T(1);
+
+    for (int i = 1; i <= 5; i++) {
+      const T h = step * T(i);
+
+      occ += w * (h - m_object.signedDistance(a_point + h * a_normal));
+      w *= T(0.7);
+    }
+
+    return Math::clamp(T(1) - T(0.12) * occ / step, T(0), T(1));
+  }
+
+  /**
+   * @brief The light a surface point with an albedo and a normal reflects towards the eye.
+   * @param[in] a_point     Point.
+   * @param[in] a_normal    Unit normal, towards the eye.
+   * @param[in] a_direction Unit direction of the camera ray.
+   * @param[in] a_albedo    Albedo.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  light(const Vec3T<T>& a_point,
+        const Vec3T<T>& a_normal,
+        const Vec3T<T>& a_direction,
+        const Vec3T<T>& a_albedo) const noexcept
+  {
+    const Vec3T<T> half = unit(m_light - a_direction);
+
+    const T lit  = m_settings.m_shadows ? this->shadow(a_point, a_normal) : T(1);
+    const T diff = Math::max(T(0), dot(a_normal, m_light)) * lit;
+    const T spec = std::pow(Math::max(T(0), dot(a_normal, half)), T(48)) * diff;
+    const T sky  = T(0.5) + T(0.5) * dot(a_normal, m_up);
+    const T ao   = m_settings.m_occlusion ? this->occlusion(a_point, a_normal) : T(1);
+
+    return a_albedo * (T(1.05) * diff + T(0.35) * sky * ao) + T(0.3) * spec * Vec3T<T>::ones();
+  }
+
+  /**
+   * @brief The colour of the shape's surface where a camera ray hit it.
+   * @param[in] a_hit       The hit.
+   * @param[in] a_direction Unit direction of the camera ray.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  shadeSurface(const HitT<T>& a_hit, const Vec3T<T>& a_direction) const noexcept
+  {
+    const Vec3T<T>& p = a_hit.m_point;
+
+    // A face cut by the section plane is where the plane, not the shape, gives the value.
+    const bool cut = m_object.m_on && m_object.plane(p) >= m_object.m_shape.signedDistance(p);
+
+    Vec3T<T> n = cut ? m_object.m_normal : this->normal(p);
+
+    // Light the side that faces the eye; for a surface seen from inside that is the inner side.
+    if (dot(n, a_direction) > T(0)) {
+      n = -n;
+    }
+
+    Vec3T<T> albedo = m_settings.m_colour;
+
+    if (cut) {
+      albedo = m_settings.m_cutColour;
+    }
+    else if (m_settings.m_colourBy == ColourBy::Primitive) {
+      albedo = palette<T>(RayDetail::primitiveOf(m_object.m_shape, p));
+    }
+
+    if (!a_hit.m_entering && !cut) {
+      albedo = T(0.25) * albedo + T(0.75) * m_settings.m_insideColour;
+    }
+
+    return this->light(p, n, a_direction, albedo);
+  }
+
+  /**
+   * @brief The colour of the floor where a camera ray hit it: a faint checkerboard, shadowed by the
+   * shape, fading into the background far away.
+   * @param[in] a_point     Point on the floor.
+   * @param[in] a_direction Unit direction of the camera ray.
+   * @param[in] a_t         Distance along the ray.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  shadeFloor(const Vec3T<T>& a_point, const Vec3T<T>& a_direction, const T a_t) const noexcept
+  {
+    const T cell  = m_scale / T(6);
+    const T a     = std::floor(dot(a_point, m_first) / cell);
+    const T b     = std::floor(dot(a_point, m_second) / cell);
+    const T check = (std::fmod(std::abs(a + b), T(2)) < T(0.5)) ? T(1) : T(0.9);
+
+    const Vec3T<T> lit = this->light(a_point, m_up, a_direction, check * m_settings.m_floorColour);
+
+    const T fade = std::exp(-(a_t * a_t) / (T(36) * m_scale * m_scale));
+
+    return fade * lit + (T(1) - fade) * this->background(a_direction);
+  }
+
+  /**
+   * @brief The background along a ray that hits nothing.
+   * @param[in] a_direction Unit direction.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  background(const Vec3T<T>& a_direction) const noexcept
+  {
+    if (!m_settings.m_sky) {
+      return Vec3T<T>(T(0.16), T(0.17), T(0.19));
+    }
+
+    const T s = Math::clamp(dot(a_direction, m_up), T(0), T(1));
+
+    return (T(1) - s) * Vec3T<T>(T(0.82), T(0.84), T(0.88)) + s * Vec3T<T>(T(0.32), T(0.45), T(0.66));
+  }
+};
+
+} // namespace RenderDetail
+
+template <class T>
+EBGEOMETRY_HOST
+inline Camera<T>
+Camera<T>::fit(const BoundingVolumes::AABBT<T>& a_box, const Vec3T<T>& a_up)
+{
+  const Vec3T<T> lo = a_box.getLowCorner();
+  const Vec3T<T> hi = a_box.getHighCorner();
+
+  const T diagonal = (hi - lo).length();
+
+  EBGEOMETRY_REQUIRE(std::isfinite(diagonal) && lo[0] <= hi[0] && lo[1] <= hi[1] && lo[2] <= hi[2],
+                     "Render::Camera: fit() needs a bounded, non-empty box (diagonal %g); give an unbounded "
+                     "shape's camera with lookAt() or a box of your own",
+                     double(diagonal));
+  EBGEOMETRY_REQUIRE(a_up.length() > T(0), "Render::Camera: the up axis must not be zero");
+
+  Camera camera;
+
+  camera.m_target   = T(0.5) * (lo + hi);
+  camera.m_up       = a_up;
+  camera.m_distance = Math::max(T(0.5) * diagonal, Math::Limits<T>::min()) /
+                      std::sin(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) * T(1.05);
+
+  return camera;
+}
+
+template <class T>
+EBGEOMETRY_HOST
+inline Camera<T>
+Camera<T>::lookAt(const Vec3T<T>& a_eye, const Vec3T<T>& a_target, const Vec3T<T>& a_up, const T a_fieldOfView)
+{
+  Camera camera;
+
+  camera.m_target      = a_target;
+  camera.m_up          = a_up;
+  camera.m_fieldOfView = a_fieldOfView;
+
+  const Vec3T<T> offset   = a_eye - a_target;
+  const T        distance = offset.length();
+
+  EBGEOMETRY_REQUIRE(distance > T(0), "Render::Camera: the eye must not be at the target");
+  EBGEOMETRY_REQUIRE(a_up.length() > T(0), "Render::Camera: the up axis must not be zero");
+
+  const Vec3T<T> w = offset / distance;
+  const Vec3T<T> u = RenderDetail::unit(a_up);
+
+  Vec3T<T> first;
+  Vec3T<T> second;
+
+  camera.horizontal(first, second);
+
+  const T degrees = T(180) / pi<T>;
+
+  camera.m_distance = distance;
+  camera.m_pitch    = std::asin(Math::clamp(dot(w, u), T(-1), T(1))) * degrees;
+  camera.m_yaw      = std::atan2(dot(w, first), dot(w, second)) * degrees;
+
+  EBGEOMETRY_REQUIRE(std::abs(camera.m_pitch) < T(90),
+                     "Render::Camera: the eye must not be straight above or below the target along the up "
+                     "axis (pitch %g)",
+                     double(camera.m_pitch));
+
+  return camera;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Camera<T>::horizontal(Vec3T<T>& a_first, Vec3T<T>& a_second) const noexcept
+{
+  const Vec3T<T> u = RenderDetail::unit(m_up);
+
+  // The second direction is +z made perpendicular to the up axis (or +x, if up is close to z).
+  Vec3T<T> reference(T(0), T(0), T(1));
+
+  if (std::abs(dot(reference, u)) > T(0.9)) {
+    reference = Vec3T<T>(T(1), T(0), T(0));
+  }
+
+  a_second = RenderDetail::unit(reference - dot(reference, u) * u);
+  a_first  = cross(u, a_second);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+Camera<T>::eye() const noexcept
+{
+  Vec3T<T> first;
+  Vec3T<T> second;
+
+  this->horizontal(first, second);
+
+  const T radians = pi<T> / T(180);
+  const T y       = m_yaw * radians;
+  const T p       = m_pitch * radians;
+
+  const Vec3T<T> w =
+    std::cos(p) * std::sin(y) * first + std::sin(p) * RenderDetail::unit(m_up) + std::cos(p) * std::cos(y) * second;
+
+  return m_target + m_distance * w;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Camera<T>::frame(Vec3T<T>& a_forward, Vec3T<T>& a_right, Vec3T<T>& a_up) const noexcept
+{
+  a_forward = RenderDetail::unit(m_target - this->eye());
+  a_right   = RenderDetail::unit(cross(a_forward, RenderDetail::unit(m_up)));
+  a_up      = cross(a_right, a_forward);
+}
+
+inline uint32_t
+Image::at(const uint32_t a_column, const uint32_t a_row) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_column < m_width && a_row < m_height);
+
+  return m_pixels[size_t(a_row) * size_t(m_width) + size_t(a_column)];
+}
+
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
+inline PixelResult
+PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
+{
+  const RenderDetail::Shader<T, S> shader(m_shape, m_camera, m_settings);
+
+  PixelResult result;
+
+  if (a_index == 0U) {
+    result.m_cameraInside = shader.eyeInside() ? 1U : 0U;
+  }
+
+  Vec3T<T> forward;
+  Vec3T<T> right;
+  Vec3T<T> up;
+
+  m_camera.frame(forward, right, up);
+
+  const T tanHalf = std::tan(T(0.5) * m_camera.m_fieldOfView * pi<T> / T(180));
+  const T w       = T(m_settings.m_width);
+  const T h       = T(m_settings.m_height);
+  const T column  = T(a_index % m_settings.m_width);
+  const T row     = T(a_index / m_settings.m_width);
+
+  const uint32_t n = m_settings.m_supersampling;
+
+  Vec3T<T> colour = Vec3T<T>::zeros();
+
+  for (uint32_t s = 0; s < n * n; s++) {
+    const T dx = (T(s % n) + T(0.5)) / T(n);
+    const T dy = (T(s / n) + T(0.5)) / T(n);
+
+    // Screen coordinates: x from -w/h to w/h, y from -1 (bottom) to 1 (top), times tan(fov/2).
+    const T x = (T(2) * (column + dx) - w) / h * tanHalf;
+    const T y = (h - T(2) * (row + dy)) / h * tanHalf;
+
+    colour += shader.shade(RenderDetail::unit(forward + x * right + y * up), result);
+  }
+
+  colour = colour / T(n * n);
+
+  uint32_t rgba = 0xFFU;
+
+  for (int k = 0; k < 3; k++) {
+    const T g = std::pow(Math::clamp(colour[k], T(0), T(1)), T(1) / T(2.2));
+
+    rgba |= static_cast<uint32_t>(T(255) * g + T(0.5)) << (24 - 8 * k);
+  }
+
+  result.m_rgba = rgba;
+
+  return result;
+}
+
+template <class T>
+Renderer<T>::Renderer(const Settings<T>& a_settings) noexcept : m_settings(a_settings)
+{}
+
+template <class T>
+inline Settings<T>&
+Renderer<T>::settings() noexcept
+{
+  return m_settings;
+}
+
+template <class T>
+inline const Settings<T>&
+Renderer<T>::settings() const noexcept
+{
+  return m_settings;
+}
+
+template <class T>
+inline void
+Renderer<T>::check(const Camera<T>& a_camera) const
+{
+  EBGEOMETRY_REQUIRE(m_settings.m_width > 0U && m_settings.m_height > 0U,
+                     "Render::Renderer: the image must have pixels (%u x %u)",
+                     unsigned(m_settings.m_width),
+                     unsigned(m_settings.m_height));
+  EBGEOMETRY_REQUIRE(m_settings.m_supersampling >= 1U && m_settings.m_supersampling <= 15U,
+                     "Render::Renderer: supersampling must be from 1 to 15 (%u)",
+                     unsigned(m_settings.m_supersampling));
+  EBGEOMETRY_REQUIRE(std::isfinite(a_camera.m_distance) && a_camera.m_distance > T(0),
+                     "Render::Renderer: the camera distance must be positive and finite (%g)",
+                     double(a_camera.m_distance));
+  EBGEOMETRY_REQUIRE(a_camera.m_fieldOfView > T(0) && a_camera.m_fieldOfView < T(180),
+                     "Render::Renderer: the field of view must be between 0 and 180 degrees (%g)",
+                     double(a_camera.m_fieldOfView));
+  EBGEOMETRY_REQUIRE(std::abs(a_camera.m_pitch) < T(90),
+                     "Render::Renderer: the camera pitch must be between -90 and 90 degrees (%g)",
+                     double(a_camera.m_pitch));
+  EBGEOMETRY_REQUIRE(a_camera.m_up.length() > T(0), "Render::Renderer: the camera's up axis must not be zero");
+  EBGEOMETRY_REQUIRE(m_settings.m_light.length() > T(0), "Render::Renderer: the light direction must not be zero");
+  EBGEOMETRY_REQUIRE(!m_settings.m_section || m_settings.m_sectionNormal.length() > T(0),
+                     "Render::Renderer: the section plane's normal must not be zero");
+}
+
+template <class T>
+inline Stats
+Renderer<T>::collect(const std::vector<PixelResult>& a_results, Image& a_image) const
+{
+  a_image.m_width  = m_settings.m_width;
+  a_image.m_height = m_settings.m_height;
+  a_image.m_pixels.resize(a_results.size());
+
+  Stats stats;
+
+  for (size_t i = 0; i < a_results.size(); i++) {
+    a_image.m_pixels[i] = a_results[i].m_rgba;
+
+    stats.m_hits += a_results[i].m_hits;
+    stats.m_insideHits += a_results[i].m_insideHits;
+    stats.m_unresolved += a_results[i].m_unresolved;
+  }
+
+  stats.m_rays         = uint64_t(a_results.size()) * m_settings.m_supersampling * m_settings.m_supersampling;
+  stats.m_cameraInside = !a_results.empty() && a_results.front().m_cameraInside != 0U;
+
+  return stats;
+}
+
+template <class T>
+template <class S>
+inline Stats
+Renderer<T>::render(const S& a_shape, const Camera<T>& a_camera, Image& a_image) const
+{
+  static_assert(isShape<S>, "Render::Renderer: the object to render must be a shape (see isShape)");
+
+  this->check(a_camera);
+
+  const uint32_t width  = m_settings.m_width;
+  const uint32_t height = m_settings.m_height;
+
+  const PixelQuery<T, S> query{a_shape, a_camera, m_settings};
+
+  std::vector<PixelResult> results(size_t(width) * size_t(height));
+
+  // Each thread takes the next row until none are left, so slow rows do not hold the others back.
+  std::atomic<uint32_t> next{0};
+
+  const auto work = [&query, &results, &next, width, height]() {
+    for (uint32_t row = next++; row < height; row = next++) {
+      for (uint32_t column = 0; column < width; column++) {
+        const uint32_t index = row * width + column;
+
+        results[index] = query(index);
+      }
+    }
+  };
+
+  const uint32_t hardware = std::thread::hardware_concurrency();
+  const uint32_t threads =
+    Math::min(height, (m_settings.m_threads > 0U) ? m_settings.m_threads : Math::max(1U, hardware));
+
+  std::vector<std::thread> pool;
+
+  pool.reserve(threads - 1U);
+
+  for (uint32_t i = 1; i < threads; i++) {
+    pool.emplace_back(work);
+  }
+
+  work();
+
+  for (auto& thread : pool) {
+    thread.join();
+  }
+
+  return this->collect(results, a_image);
+}
+
+template <class T>
+template <class S>
+inline Stats
+Renderer<T>::renderOnDevice(const S& a_deviceShape, const Camera<T>& a_camera, Image& a_image) const
+{
+  static_assert(isShape<S>, "Render::Renderer: the object to render must be a shape (see isShape)");
+  static_assert(std::is_trivially_copyable_v<PixelQuery<T, S>>,
+                "Render::Renderer: the shape must be trivially copyable to render it on a device");
+
+  this->check(a_camera);
+
+  const PixelQuery<T, S> query{a_deviceShape, a_camera, m_settings};
+
+  std::vector<uint32_t> indices(size_t(m_settings.m_width) * size_t(m_settings.m_height));
+
+  std::iota(indices.begin(), indices.end(), 0U);
+
+  std::vector<PixelResult> results(indices.size());
+
+  GPU::transform(query, indices, results);
+
+  return this->collect(results, a_image);
+}
+
+} // namespace EBGeometry::Render
+
+#endif

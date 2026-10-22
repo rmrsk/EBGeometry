@@ -289,9 +289,10 @@ firstHit(const S&                       a_shape,
 
   const T v0 = value(t0);
 
-  // Starting on the surface: the side the ray goes to decides which way it crosses.
+  // Starting on the surface (as the march does where a face of the object lies on its box): the ray
+  // enters if the value falls along it, and leaves if it rises.
   if (std::abs(v0) < eps) {
-    return found(t0, value(Math::min(t0 + T(2) * eps, t1)) < T(0));
+    return found(t0, value(Math::min(t0 + T(2) * eps, t1)) < v0);
   }
 
   const bool inside = v0 < T(0);
