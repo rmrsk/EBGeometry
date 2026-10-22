@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "Environment.hpp"
 #include "Schema.hpp"
 #include "Statistics.hpp"
 
@@ -365,6 +366,10 @@ private:
 
     for (int r = 0; r < m_reps; r++) {
       a_setup();
+
+      // Untimed: what the last repetition freed goes back to the system, so that a pool built in this
+      // one starts on fresh pages, as a first build's does (fixAllocatorPolicy()).
+      releaseFreedMemory();
 
       const auto start = std::chrono::steady_clock::now();
       a_body();

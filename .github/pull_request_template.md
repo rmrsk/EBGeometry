@@ -15,7 +15,7 @@
      (and with --gpu cuda if the change touches device code). Commit the receipt it writes,
      Performance/receipt.md, which CI checks, and paste build/performance/compare/report.md here.
      Only a green receipt passes CI on its own: a yellow (minor regression, changed checksum) or red
-     (MAJOR) one needs its reason after "accepted:" in the receipt, a MAJOR one the maintainer's. See Docs/Sphinx/source/PerformanceTesting.rst. -->
+     (MAJOR) one needs its reason on the receipt's "**Accepted:**" line, a MAJOR one the maintainer's. See Docs/Sphinx/source/PerformanceTesting.rst. -->
 
 ### Reviewer checklist (to be completed by a human)
 
