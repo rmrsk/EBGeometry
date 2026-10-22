@@ -104,6 +104,28 @@ TriangleAoSoA<T, W>::getFaceId(size_t a_lane) const noexcept
 }
 
 template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+bool
+TriangleAoSoA<T, W>::rayHit(const Vec3T<T>& a_origin,
+                            const Vec3T<T>& a_direction,
+                            const T         a_tMin,
+                            T&              a_tMax,
+                            uint32_t&       a_faceId,
+                            Vec3T<T>&       a_normal,
+                            bool&           a_entering) const noexcept
+{
+  uint32_t lane = 0;
+
+  if (!m_triangles.rayHit(a_origin, a_direction, a_tMin, a_tMax, lane, a_normal, a_entering)) {
+    return false;
+  }
+
+  a_faceId = m_faceIds[lane];
+
+  return true;
+}
+
+template <class T, size_t W>
 template <class BV>
 EBGEOMETRY_HOST_DEVICE
 BV

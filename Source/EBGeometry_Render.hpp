@@ -21,6 +21,7 @@
 #define EBGEOMETRY_RENDER_HPP
 
 // Std includes
+#include <atomic>
 #include <cstdint>
 #include <vector>
 
@@ -297,6 +298,11 @@ struct Stats
    * @brief Whether the eye is inside the solid: everything it sees is then seen from inside.
    */
   bool m_cameraInside = false;
+
+  /**
+   * @brief Whether every pixel was rendered: false when the render was cancelled (see Renderer::render()).
+   */
+  bool m_complete = true;
 };
 
 /**
@@ -410,6 +416,28 @@ public:
   render(const S& a_shape, const Camera<T>& a_camera, Image& a_image) const;
 
   /**
+   * @brief Render a shape on the host, stopping early when asked to (for an interactive viewer).
+   * @details As render(const S&, const Camera<T>&, Image&), but every thread checks a_cancel before each
+   * row, and the render returns soon after it is set, with Stats::m_complete false and the rows not
+   * reached left black. a_rowsDone, if given, counts the finished rows as they finish, so another thread
+   * can show the progress.
+   * @tparam S Shape type (see isShape).
+   * @param[in]  a_shape    Shape.
+   * @param[in]  a_camera   Camera.
+   * @param[out] a_image    The image, resized to the settings' size.
+   * @param[in]  a_cancel   Set (from another thread) to stop the render.
+   * @param[out] a_rowsDone Finished rows, or null.
+   * @return What the render saw.
+   */
+  template <class S>
+  inline Stats
+  render(const S&                 a_shape,
+         const Camera<T>&         a_camera,
+         Image&                   a_image,
+         const std::atomic<bool>& a_cancel,
+         std::atomic<uint32_t>*   a_rowsDone = nullptr) const;
+
+  /**
    * @brief Render a shape through GPU::transform(): in a kernel in a CUDA or HIP build, in a host loop
    * otherwise.
    * @tparam S Shape type (see isShape).
@@ -421,6 +449,27 @@ public:
   template <class S>
   inline Stats
   renderOnDevice(const S& a_deviceShape, const Camera<T>& a_camera, Image& a_image) const;
+
+  /**
+   * @brief Render a shape through GPU::transform(), stopping early when asked to.
+   * @details As renderOnDevice(const S&, const Camera<T>&, Image&), but in bands of rows, one launch each,
+   * with a_cancel checked between them: the render returns after the band under way when it is set, with
+   * Stats::m_complete false. a_rowsDone, if given, counts the finished rows.
+   * @tparam S Shape type (see isShape).
+   * @param[in]  a_deviceShape The shape, as a view valid on the device.
+   * @param[in]  a_camera      Camera.
+   * @param[out] a_image       The image, resized to the settings' size.
+   * @param[in]  a_cancel      Set (from another thread) to stop the render.
+   * @param[out] a_rowsDone    Finished rows, or null.
+   * @return What the render saw.
+   */
+  template <class S>
+  inline Stats
+  renderOnDevice(const S&                 a_deviceShape,
+                 const Camera<T>&         a_camera,
+                 Image&                   a_image,
+                 const std::atomic<bool>& a_cancel,
+                 std::atomic<uint32_t>*   a_rowsDone = nullptr) const;
 
 private:
   /**

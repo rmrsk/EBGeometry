@@ -1344,6 +1344,77 @@ TriangleSoAT<T, W>::computeBoundingVolume() const noexcept
   return BV(pts, 3 * m_validCount);
 }
 
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+bool
+TriangleSoAT<T, W>::rayHit(const Vec3T<T>& a_origin,
+                           const Vec3T<T>& a_direction,
+                           const T         a_tMin,
+                           T&              a_tMax,
+                           uint32_t&       a_lane,
+                           Vec3T<T>&       a_normal,
+                           bool&           a_entering) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_validCount >= 1U && m_validCount <= W);
+
+  // How far outside a triangle (in barycentric units) a hit still counts, so that rays through a
+  // shared edge do not slip through.
+  const T tolerance = T(16) * Math::Limits<T>::epsilon();
+
+  bool found = false;
+
+  for (uint32_t i = 0; i < m_validCount; i++) {
+    const Vec3T<T> v0{m_vx[0][i], m_vy[0][i], m_vz[0][i]};
+    const Vec3T<T> e1 = Vec3T<T>{m_vx[1][i], m_vy[1][i], m_vz[1][i]} - v0;
+    const Vec3T<T> e2 = Vec3T<T>{m_vx[2][i], m_vy[2][i], m_vz[2][i]} - v0;
+
+    const Vec3T<T> p   = a_direction.cross(e2);
+    const T        det = dot(e1, p);
+
+    // Seen edge on: no crossing to find.
+    if (det == T(0)) {
+      continue;
+    }
+
+    const T        inv = T(1) / det;
+    const Vec3T<T> s   = a_origin - v0;
+    const T        u   = dot(s, p) * inv;
+
+    if (u < -tolerance || u > T(1) + tolerance) {
+      continue;
+    }
+
+    const Vec3T<T> q = s.cross(e1);
+    const T        v = dot(a_direction, q) * inv;
+
+    if (v < -tolerance || u + v > T(1) + tolerance) {
+      continue;
+    }
+
+    const T t = dot(e2, q) * inv;
+
+    if (t < a_tMin || t > a_tMax) {
+      continue;
+    }
+
+    const T        w = T(1) - u - v;
+    const Vec3T<T> n = w * Vec3T<T>{m_vnx[0][i], m_vny[0][i], m_vnz[0][i]} +
+                       u * Vec3T<T>{m_vnx[1][i], m_vny[1][i], m_vnz[1][i]} +
+                       v * Vec3T<T>{m_vnx[2][i], m_vny[2][i], m_vnz[2][i]};
+
+    const Vec3T<T> face{m_nx[i], m_ny[i], m_nz[i]};
+    const T        length = n.length();
+
+    a_tMax     = t;
+    a_lane     = i;
+    a_normal   = (length > T(0)) ? n / length : face;
+    a_entering = dot(face, a_direction) < T(0);
+    found      = true;
+  }
+
+  return found;
+}
+
 } // namespace EBGeometry
 
 #endif

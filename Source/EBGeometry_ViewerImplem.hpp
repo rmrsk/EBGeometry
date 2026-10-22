@@ -18,8 +18,11 @@
 #include <cstring>
 
 #ifdef EBGEOMETRY_VIEWER_SDL2
+#include <atomic>
 #include <chrono>
+#include <memory>
 #include <string>
+#include <thread>
 
 // The program keeps its own main(); SDL must not replace it.
 #ifndef SDL_MAIN_HANDLED
@@ -76,8 +79,85 @@ displayAvailable() noexcept
 #ifdef EBGEOMETRY_VIEWER_SDL2
 
 /**
- * @brief The window's event loop.
+ * @brief A frame rendered on a thread of its own, so that the window keeps answering while it renders.
  * @details Internal helper; not part of the public API.
+ */
+struct Background
+{
+  /**
+   * @brief The rendering thread.
+   */
+  std::thread m_thread;
+
+  /**
+   * @brief Set to stop a host render early.
+   */
+  std::atomic<bool> m_cancel{false};
+
+  /**
+   * @brief Set by the thread when it has finished.
+   */
+  std::atomic<bool> m_done{false};
+
+  /**
+   * @brief Rows finished so far.
+   */
+  std::atomic<uint32_t> m_rows{0};
+
+  /**
+   * @brief The frame.
+   */
+  Image m_image;
+
+  /**
+   * @brief What it saw.
+   */
+  Stats m_stats;
+
+  /**
+   * @brief How long it took, in seconds.
+   */
+  double m_seconds = 0;
+
+  /**
+   * @brief Its refinement stage.
+   */
+  int m_stage = 0;
+
+  /**
+   * @brief Its height in rows.
+   */
+  uint32_t m_height = 0;
+
+  /**
+   * @brief Stop the render (a device render after the band of rows under way) and wait for the thread.
+   */
+  void
+  stop() noexcept
+  {
+    m_cancel = true;
+
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  /**
+   * @brief Waits for the thread.
+   */
+  ~Background() noexcept
+  {
+    this->stop();
+  }
+};
+
+/**
+ * @brief The window's event loop.
+ * @details Internal helper; not part of the public API. While the camera moves it draws a quick preview
+ * (one ray per pixel, no shadows), at a resolution it lowers or raises to keep each preview at a few tens
+ * of milliseconds. Once the camera rests it refines in stages on a background thread, each shown when it
+ * is done: full resolution without shadows, then the full settings. Moving the camera again cancels the
+ * refinement at once, so the window never stops answering.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape       Shape, valid on the host.
@@ -89,6 +169,8 @@ template <class T, class S>
 inline void
 run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const Settings<T>& a_settings)
 {
+  using Clock = std::chrono::steady_clock;
+
   SDL_SetMainReady();
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -130,26 +212,123 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   T sectionOffset = T(0);
 
-  bool onDevice   = a_deviceShape != nullptr && GPU::deviceAvailable();
-  bool dragging   = false;
-  bool fullFrame  = false;
-  bool warned     = false;
-  bool running    = true;
-  bool needRedraw = true;
+  // The preview's resolution, as a fraction of the window's, adapted to how long previews take.
+  T previewScale = T(0.5);
 
-  auto lastChange = std::chrono::steady_clock::now();
+  bool onDevice = a_deviceShape != nullptr && GPU::deviceAvailable();
+  bool dragging = false;
+  bool warned   = false;
+  bool running  = true;
+  bool changed  = true;
 
-  SDL_Texture* texture    = nullptr;
-  uint32_t     texWidth   = 0;
-  uint32_t     texHeight  = 0;
-  double       lastFrameS = 0;
+  // The next refinement stage to render (0: none left), and when the camera last moved.
+  int  pending    = 0;
+  auto lastChange = Clock::now();
+
+  std::unique_ptr<Background> job;
+
+  SDL_Texture* texture   = nullptr;
+  uint32_t     texWidth  = 0;
+  uint32_t     texHeight = 0;
+
+  std::string status;
+
+  // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
+  // the full settings.
+  const auto stageSettings = [&](const int a_stage) {
+    Settings<T> frame = settings;
+
+    // The section plane faces the camera through its target, moved by the arrow keys.
+    Vec3T<T> forward;
+    Vec3T<T> right;
+    Vec3T<T> up;
+
+    camera.frame(forward, right, up);
+
+    frame.m_sectionNormal = -forward;
+    frame.m_sectionPoint  = camera.m_target - sectionOffset * forward;
+
+    if (a_stage < 2) {
+      frame.m_supersampling = 1;
+      frame.m_shadows       = false;
+      frame.m_occlusion     = false;
+    }
+
+    if (a_stage == 0) {
+      frame.m_width  = Math::max(1U, static_cast<uint32_t>(T(settings.m_width) * previewScale));
+      frame.m_height = Math::max(1U, static_cast<uint32_t>(T(settings.m_height) * previewScale));
+    }
+
+    return frame;
+  };
+
+  // Whether a stage would draw anything the one before it did not.
+  const auto adds = [&](const int a_stage) {
+    return a_stage == 1 || settings.m_supersampling > 1U || settings.m_shadows || settings.m_occlusion;
+  };
+
+  // Everything a render reads is passed by value, so that a background render never sees the camera or
+  // the settings change under it.
+  const auto render =
+    [&a_shape, a_deviceShape](
+      const Settings<T>& a_frame, const Camera<T> a_view, const bool a_onDevice, Image& a_image, Background* a_job) {
+      const Renderer<T> renderer(a_frame);
+
+      if (a_onDevice && a_job != nullptr) {
+        return renderer.renderOnDevice(*a_deviceShape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      }
+      if (a_onDevice) {
+        return renderer.renderOnDevice(*a_deviceShape, a_view, a_image);
+      }
+      if (a_job != nullptr) {
+        return renderer.render(a_shape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      }
+
+      return renderer.render(a_shape, a_view, a_image);
+    };
+
+  const auto show = [&](const Image& a_image, const Stats& a_stats, const double a_seconds, const char* a_what) {
+    if (a_stats.m_cameraInside && !warned) {
+      std::printf("EBGeometry viewer: the camera is inside the solid, so what it sees is seen from inside "
+                  "(tinted red).\n");
+
+      warned = true;
+    }
+
+    if (texture == nullptr || texWidth != a_image.m_width || texHeight != a_image.m_height) {
+      if (texture != nullptr) {
+        SDL_DestroyTexture(texture);
+      }
+
+      texture   = SDL_CreateTexture(screen,
+                                  SDL_PIXELFORMAT_RGBA8888,
+                                  SDL_TEXTUREACCESS_STREAMING,
+                                  static_cast<int>(a_image.m_width),
+                                  static_cast<int>(a_image.m_height));
+      texWidth  = a_image.m_width;
+      texHeight = a_image.m_height;
+    }
+
+    SDL_UpdateTexture(texture, nullptr, a_image.m_pixels.data(), static_cast<int>(4U * a_image.m_width));
+
+    status = std::string("EBGeometry: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
+             std::to_string(int(1000.0 * a_seconds)) + " ms" +
+             ((a_stats.m_insideHits > 0U) ? ", red: seen from inside the solid" : "") +
+             ((a_stats.m_unresolved > 0U) ? ", some rays unresolved" : "");
+
+    SDL_SetWindowTitle(window, status.c_str());
+    SDL_RenderClear(screen);
+    SDL_RenderCopy(screen, texture, nullptr, nullptr);
+    SDL_RenderPresent(screen);
+  };
 
   while (running) {
     SDL_Event event;
 
-    bool changed = false;
+    // Wait a little for the first event, then take every one that is queued.
+    bool got = SDL_WaitEventTimeout(&event, 16) != 0;
 
-    while (SDL_PollEvent(&event) != 0) {
+    while (got) {
       switch (event.type) {
       case SDL_QUIT: {
         running = false;
@@ -184,7 +363,11 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       case SDL_WINDOWEVENT: {
-        needRedraw = true;
+        if (texture != nullptr) {
+          SDL_RenderClear(screen);
+          SDL_RenderCopy(screen, texture, nullptr, nullptr);
+          SDL_RenderPresent(screen);
+        }
 
         break;
       }
@@ -257,96 +440,83 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       }
+
+      got = SDL_PollEvent(&event) != 0;
     }
 
+    if (!running) {
+      break;
+    }
+
+    // The camera or the settings changed: drop any refinement, and draw a preview now.
     if (changed) {
-      lastChange = std::chrono::steady_clock::now();
-      fullFrame  = false;
-    }
-
-    // Draw a quick frame while the camera moves, and the full one once it has rested for a moment.
-    const bool resting = !dragging && std::chrono::steady_clock::now() - lastChange > std::chrono::milliseconds(150);
-
-    const bool drawQuick = changed || (needRedraw && texture == nullptr);
-    const bool drawFull  = resting && !fullFrame;
-
-    if (running && (drawQuick || drawFull)) {
-      Settings<T> frame = settings;
-
-      // The section plane faces the camera through its target, moved by the arrow keys.
-      Vec3T<T> forward;
-      Vec3T<T> right;
-      Vec3T<T> up;
-
-      camera.frame(forward, right, up);
-
-      frame.m_sectionNormal = -forward;
-      frame.m_sectionPoint  = camera.m_target - sectionOffset * forward;
-
-      if (!drawFull) {
-        frame.m_width         = Math::max(1U, settings.m_width / 2U);
-        frame.m_height        = Math::max(1U, settings.m_height / 2U);
-        frame.m_supersampling = 1;
-        frame.m_shadows       = false;
-        frame.m_occlusion     = false;
+      if (job != nullptr) {
+        job->stop();
+        job.reset();
       }
-
-      const Renderer<T> renderer(frame);
 
       Image image;
 
-      const auto start = std::chrono::steady_clock::now();
+      const auto  start   = Clock::now();
+      const Stats stats   = render(stageSettings(0), camera, onDevice, image, nullptr);
+      const auto  seconds = std::chrono::duration<double>(Clock::now() - start).count();
 
-      const Stats stats =
-        onDevice ? renderer.renderOnDevice(*a_deviceShape, camera, image) : renderer.render(a_shape, camera, image);
-
-      lastFrameS = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
-
-      if (stats.m_cameraInside && !warned) {
-        std::printf("EBGeometry viewer: the camera is inside the solid, so what it sees is seen from inside "
-                    "(tinted red).\n");
-
-        warned = true;
+      // Keep previews between about 10 and 40 ms.
+      if (seconds > 0.04 && previewScale > T(0.125)) {
+        previewScale *= T(0.5);
+      }
+      else if (seconds < 0.01 && previewScale < T(1)) {
+        previewScale = Math::min(T(1), T(2) * previewScale);
       }
 
-      if (texture == nullptr || texWidth != image.m_width || texHeight != image.m_height) {
-        if (texture != nullptr) {
-          SDL_DestroyTexture(texture);
+      show(image, stats, seconds, "preview");
+
+      changed    = false;
+      pending    = 1;
+      lastChange = Clock::now();
+    }
+
+    // Refine on a background thread once the camera has rested a moment.
+    if (job == nullptr && pending > 0 && !dragging && Clock::now() - lastChange > std::chrono::milliseconds(100)) {
+      job = std::make_unique<Background>();
+
+      Background* next = job.get();
+
+      next->m_stage  = pending;
+      next->m_height = stageSettings(pending).m_height;
+      next->m_thread = std::thread([next, render, stage = stageSettings(pending), camera, onDevice]() {
+        const auto start = Clock::now();
+
+        next->m_stats   = render(stage, camera, onDevice, next->m_image, next);
+        next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
+        next->m_done    = true;
+      });
+
+      pending = 0;
+    }
+
+    if (job != nullptr) {
+      if (job->m_done) {
+        job->stop();
+
+        if (job->m_stats.m_complete) {
+          show(job->m_image, job->m_stats, job->m_seconds, (job->m_stage == 1) ? "frame" : "full frame");
+
+          pending = (job->m_stage == 1 && adds(2)) ? 2 : 0;
         }
 
-        texture   = SDL_CreateTexture(screen,
-                                    SDL_PIXELFORMAT_RGBA8888,
-                                    SDL_TEXTUREACCESS_STREAMING,
-                                    static_cast<int>(image.m_width),
-                                    static_cast<int>(image.m_height));
-        texWidth  = image.m_width;
-        texHeight = image.m_height;
+        job.reset();
       }
+      else if (job->m_stage == 2) {
+        const uint32_t    percent = (100U * job->m_rows.load()) / Math::max(1U, job->m_height);
+        const std::string title   = status + " (refining " + std::to_string(percent) + "%)";
 
-      SDL_UpdateTexture(texture, nullptr, image.m_pixels.data(), static_cast<int>(4U * image.m_width));
-
-      const std::string title = std::string("EBGeometry: ") + (onDevice ? "GPU" : "CPU") + ", " +
-                                std::to_string(int(1000.0 * lastFrameS)) + " ms" + (drawFull ? "" : " (preview)") +
-                                ((stats.m_insideHits > 0U) ? ", red: seen from inside the solid" : "") +
-                                ((stats.m_unresolved > 0U) ? ", some rays unresolved" : "");
-
-      SDL_SetWindowTitle(window, title.c_str());
-
-      fullFrame  = drawFull;
-      needRedraw = true;
-    }
-
-    if (needRedraw && texture != nullptr) {
-      SDL_RenderClear(screen);
-      SDL_RenderCopy(screen, texture, nullptr, nullptr);
-      SDL_RenderPresent(screen);
-
-      needRedraw = false;
-    }
-    else {
-      SDL_Delay(10);
+        SDL_SetWindowTitle(window, title.c_str());
+      }
     }
   }
+
+  job.reset();
 
   if (texture != nullptr) {
     SDL_DestroyTexture(texture);

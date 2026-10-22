@@ -232,6 +232,79 @@ HitT<T>::hit() const noexcept
   return m_status == HitStatus::Hit;
 }
 
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<TriMeshSDF<T, K, W>>::firstHit(const TriMeshSDF<T, K, W>& a_sdf,
+                                       const RayT<T>&             a_ray,
+                                       const T                    a_tMin,
+                                       const T                    a_tMax) noexcept
+{
+  HitT<T> hit;
+
+  if (!(a_tMin <= a_tMax)) {
+    return hit;
+  }
+
+  using Root = typename TriMeshSDF<T, K, W>::Root;
+
+  const Root bvh = a_sdf.getRoot();
+
+  T        best     = a_tMax;
+  bool     found    = false;
+  uint32_t face     = 0;
+  bool     entering = false;
+  Vec3T<T> normal   = Vec3T<T>::zeros();
+
+  // A node's key is where the ray enters its box, or infinity if it misses it (or meets it only
+  // beyond the nearest crossing so far, which the prune then skips).
+  const auto entry = [&a_ray, a_tMin, &best](const auto& a_node) noexcept -> T {
+    const auto& box = a_node.getBoundingVolume();
+
+    T t0 = a_tMin;
+    T t1 = best;
+
+    return RayDetail::clip(box.getLowCorner(), box.getHighCorner(), a_ray, t0, t1) ? t0 : Math::Limits<T>::infinity();
+  };
+
+  const auto leaf = [&a_ray, a_tMin, &best, &found, &face, &entering, &normal](
+                      const auto& a_groups, const size_t a_offset, const size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      if (a_groups[static_cast<uint32_t>(i)].rayHit(
+            a_ray.m_origin, a_ray.m_direction, a_tMin, best, face, normal, entering)) {
+        found = true;
+      }
+    }
+  };
+
+  const auto prune = [&best](const auto& /*a_node*/, const T& a_key) noexcept -> bool { return a_key <= best; };
+
+  // The nearest box last, since the last child is visited first.
+  const auto order = [](auto& a_children) noexcept {
+    for (size_t i = 1; i < K; i++) {
+      for (size_t j = i; j > 0 && a_children[j - 1].second < a_children[j].second; j--) {
+        const auto swap   = a_children[j - 1];
+        a_children[j - 1] = a_children[j];
+        a_children[j]     = swap;
+      }
+    }
+  };
+
+  bvh.template traverse<T>(leaf, prune, order, entry);
+
+  if (found) {
+    hit.m_status    = HitStatus::Hit;
+    hit.m_t         = best;
+    hit.m_point     = a_ray.at(best);
+    hit.m_primitive = face;
+    hit.m_entering  = entering;
+    hit.m_exact     = true;
+    hit.m_normal    = normal;
+  }
+
+  return hit;
+}
+
 template <class T, class S>
 EBGEOMETRY_HOST_DEVICE
 inline HitT<T>
@@ -242,6 +315,12 @@ firstHit(const S&                       a_shape,
          const RayOptions<T>&           a_options) noexcept
 {
   EBGEOMETRY_EXPECT(std::abs(a_ray.m_direction.length() - T(1)) < T(1e-3));
+
+  if constexpr (RayForm<S>::available) {
+    (void)a_options;
+
+    return RayForm<S>::firstHit(a_shape, a_ray, a_tMin, a_tMax);
+  }
 
   const auto box = a_shape.computeBoundingVolume();
   const T    eps = a_options.m_tolerance * RayDetail::scaleOf(box.getLowCorner(), box.getHighCorner(), a_options);

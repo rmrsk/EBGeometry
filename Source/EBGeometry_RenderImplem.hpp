@@ -12,8 +12,10 @@
 #define EBGEOMETRY_RENDERIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <numeric>
 #include <thread>
 #include <type_traits>
@@ -122,6 +124,18 @@ struct Sectioned
   getDistanceQuality() const noexcept
   {
     return RayDetail::qualityOf(m_shape);
+  }
+
+  /**
+   * @brief The shape's finest element at a point (see HitT::m_primitive).
+   * @param[in] a_point Point.
+   * @return The element.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  primitiveAt(const Vec3T<T>& a_point) const noexcept
+  {
+    return RayDetail::primitiveOf(m_shape, a_point);
   }
 };
 
@@ -373,6 +387,13 @@ private:
   {
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
 
+    // A shape that is ray traced casts a hard shadow, from one ray towards the light.
+    if constexpr (RayForm<Sectioned<T, S>>::available) {
+      const HitT<T> hit = firstHit(m_object, RayT<T>{origin, m_light}, T(0), T(2) * m_scale, m_rays);
+
+      return hit.hit() ? T(0) : T(1);
+    }
+
     if (m_object.getDistanceQuality() == DistanceQuality::NotADistance) {
       const HitT<T> hit = firstHit(m_object, RayT<T>{origin, m_light}, T(0), T(2) * m_scale, m_rays);
 
@@ -382,7 +403,7 @@ private:
     T s = T(1);
     T t = T(0.01) * m_scale;
 
-    for (int step = 0; step < 96 && t < T(2) * m_scale; step++) {
+    for (int step = 0; step < 48 && t < T(1.5) * m_scale; step++) {
       const T h = m_object.signedDistance(origin + t * m_light);
 
       if (h < m_eps) {
@@ -390,7 +411,7 @@ private:
       }
 
       s = Math::min(s, T(10) * h / t);
-      t += Math::clamp(h, T(0.004) * m_scale, T(0.1) * m_scale);
+      t += Math::clamp(h, T(0.01) * m_scale, T(0.15) * m_scale);
     }
 
     return Math::clamp(s, T(0), T(1));
@@ -466,7 +487,7 @@ private:
     // A face cut by the section plane is where the plane, not the shape, gives the value.
     const bool cut = m_object.m_on && m_object.plane(p) >= m_object.m_shape.signedDistance(p);
 
-    Vec3T<T> n = cut ? m_object.m_normal : this->normal(p);
+    Vec3T<T> n = cut ? m_object.m_normal : ((a_hit.m_normal.length2() > T(0)) ? a_hit.m_normal : this->normal(p));
 
     // Light the side that faces the eye; for a surface seen from inside that is the inner side.
     if (dot(n, a_direction) > T(0)) {
@@ -479,7 +500,7 @@ private:
       albedo = m_settings.m_cutColour;
     }
     else if (m_settings.m_colourBy == ColourBy::Primitive) {
-      albedo = palette<T>(RayDetail::primitiveOf(m_object.m_shape, p));
+      albedo = palette<T>(a_hit.m_primitive);
     }
 
     if (!a_hit.m_entering && !cut) {
@@ -533,6 +554,101 @@ private:
 };
 
 } // namespace RenderDetail
+
+} // namespace EBGeometry::Render
+
+namespace EBGeometry {
+
+/**
+ * @brief The ray form of a shape cut by the section plane, for a shape that has one: the shape's ray form
+ * on the part of the ray on the kept side, and a crossing on the plane where the ray passes through it
+ * inside the solid.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ */
+template <class T, class S>
+struct RayForm<Render::RenderDetail::Sectioned<T, S>, std::enable_if_t<RayForm<S>::available>>
+{
+  /**
+   * @brief The cut shape has a ray form.
+   */
+  static constexpr bool available = true;
+
+  /**
+   * @brief The first crossing of the cut shape along a ray.
+   * @param[in] a_cut  The cut shape.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMin Start of the interval.
+   * @param[in] a_tMax End of the interval.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(const Render::RenderDetail::Sectioned<T, S>& a_cut,
+           const RayT<T>&                               a_ray,
+           const T                                      a_tMin,
+           const T                                      a_tMax) noexcept
+  {
+    if (!a_cut.m_on) {
+      return RayForm<S>::firstHit(a_cut.m_shape, a_ray, a_tMin, a_tMax);
+    }
+
+    // The part [a, b] of the interval on the kept side of the plane.
+    const T start = a_cut.plane(a_ray.at(a_tMin));
+    const T rate  = dot(a_ray.m_direction, a_cut.m_normal);
+
+    T a = a_tMin;
+    T b = a_tMax;
+
+    if (rate == T(0)) {
+      if (start > T(0)) {
+        return HitT<T>();
+      }
+    }
+    else if (rate > T(0)) {
+      b = Math::min(b, a_tMin - start / rate);
+    }
+    else {
+      a = Math::max(a, a_tMin - start / rate);
+    }
+
+    if (!(a <= b)) {
+      return HitT<T>();
+    }
+
+    // A crossing on the cut face: where the ray enters the kept side, or leaves it, inside the solid.
+    const auto onPlane = [&a_cut, &a_ray](const T a_t, const bool a_entering) noexcept {
+      HitT<T> hit;
+
+      hit.m_status    = HitStatus::Hit;
+      hit.m_t         = a_t;
+      hit.m_point     = a_ray.at(a_t);
+      hit.m_primitive = a_cut.primitiveAt(hit.m_point);
+      hit.m_entering  = a_entering;
+      hit.m_exact     = true;
+      hit.m_normal    = a_cut.m_normal;
+
+      return hit;
+    };
+
+    if (a > a_tMin && a_cut.m_shape.signedDistance(a_ray.at(a)) < T(0)) {
+      return onPlane(a, true);
+    }
+
+    const HitT<T> hit = RayForm<S>::firstHit(a_cut.m_shape, a_ray, a, b);
+
+    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.m_shape.signedDistance(a_ray.at(b)) < T(0)) {
+      return onPlane(b, false);
+    }
+
+    return hit;
+  }
+};
+
+} // namespace EBGeometry
+
+namespace EBGeometry::Render {
 
 template <class T>
 EBGEOMETRY_HOST
@@ -783,6 +899,20 @@ template <class S>
 inline Stats
 Renderer<T>::render(const S& a_shape, const Camera<T>& a_camera, Image& a_image) const
 {
+  const std::atomic<bool> never{false};
+
+  return this->render(a_shape, a_camera, a_image, never);
+}
+
+template <class T>
+template <class S>
+inline Stats
+Renderer<T>::render(const S&                 a_shape,
+                    const Camera<T>&         a_camera,
+                    Image&                   a_image,
+                    const std::atomic<bool>& a_cancel,
+                    std::atomic<uint32_t>*   a_rowsDone) const
+{
   static_assert(isShape<S>, "Render::Renderer: the object to render must be a shape (see isShape)");
 
   this->check(a_camera);
@@ -792,17 +922,29 @@ Renderer<T>::render(const S& a_shape, const Camera<T>& a_camera, Image& a_image)
 
   const PixelQuery<T, S> query{a_shape, a_camera, m_settings};
 
+  // Rows not reached by a cancelled render stay black.
   std::vector<PixelResult> results(size_t(width) * size_t(height));
 
   // Each thread takes the next row until none are left, so slow rows do not hold the others back.
   std::atomic<uint32_t> next{0};
+  std::atomic<bool>     stopped{false};
 
-  const auto work = [&query, &results, &next, width, height]() {
+  const auto work = [&query, &results, &next, &stopped, &a_cancel, a_rowsDone, width, height]() {
     for (uint32_t row = next++; row < height; row = next++) {
+      if (a_cancel.load(std::memory_order_relaxed)) {
+        stopped = true;
+
+        return;
+      }
+
       for (uint32_t column = 0; column < width; column++) {
         const uint32_t index = row * width + column;
 
         results[index] = query(index);
+      }
+
+      if (a_rowsDone != nullptr) {
+        (*a_rowsDone)++;
       }
     }
   };
@@ -825,7 +967,11 @@ Renderer<T>::render(const S& a_shape, const Camera<T>& a_camera, Image& a_image)
     thread.join();
   }
 
-  return this->collect(results, a_image);
+  Stats stats = this->collect(results, a_image);
+
+  stats.m_complete = !stopped;
+
+  return stats;
 }
 
 template <class T>
@@ -833,23 +979,69 @@ template <class S>
 inline Stats
 Renderer<T>::renderOnDevice(const S& a_deviceShape, const Camera<T>& a_camera, Image& a_image) const
 {
+  const std::atomic<bool> never{false};
+
+  return this->renderOnDevice(a_deviceShape, a_camera, a_image, never);
+}
+
+template <class T>
+template <class S>
+inline Stats
+Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
+                            const Camera<T>&         a_camera,
+                            Image&                   a_image,
+                            const std::atomic<bool>& a_cancel,
+                            std::atomic<uint32_t>*   a_rowsDone) const
+{
   static_assert(isShape<S>, "Render::Renderer: the object to render must be a shape (see isShape)");
   static_assert(std::is_trivially_copyable_v<PixelQuery<T, S>>,
                 "Render::Renderer: the shape must be trivially copyable to render it on a device");
 
   this->check(a_camera);
 
+  const uint32_t width  = m_settings.m_width;
+  const uint32_t height = m_settings.m_height;
+
   const PixelQuery<T, S> query{a_deviceShape, a_camera, m_settings};
 
-  std::vector<uint32_t> indices(size_t(m_settings.m_width) * size_t(m_settings.m_height));
+  // A launch per band of rows, so that a cancelled render stops after the band under way: 32 bands,
+  // or fewer for a small image.
+  const uint32_t band = Math::max(1U, height / 32U);
 
-  std::iota(indices.begin(), indices.end(), 0U);
+  std::vector<PixelResult> results(size_t(width) * size_t(height));
+  std::vector<uint32_t>    indices;
+  std::vector<PixelResult> part;
 
-  std::vector<PixelResult> results(indices.size());
+  bool stopped = false;
 
-  GPU::transform(query, indices, results);
+  for (uint32_t row = 0; row < height; row += band) {
+    if (a_cancel.load(std::memory_order_relaxed)) {
+      stopped = true;
 
-  return this->collect(results, a_image);
+      break;
+    }
+
+    const uint32_t rows = Math::min(band, height - row);
+
+    indices.resize(size_t(rows) * size_t(width));
+    part.resize(indices.size());
+
+    std::iota(indices.begin(), indices.end(), row * width);
+
+    GPU::transform(query, indices, part);
+
+    std::copy(part.begin(), part.end(), results.begin() + std::ptrdiff_t(size_t(row) * size_t(width)));
+
+    if (a_rowsDone != nullptr) {
+      (*a_rowsDone) += rows;
+    }
+  }
+
+  Stats stats = this->collect(results, a_image);
+
+  stats.m_complete = !stopped;
+
+  return stats;
 }
 
 } // namespace EBGeometry::Render

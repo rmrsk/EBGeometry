@@ -105,6 +105,29 @@ public:
   getFaceId(size_t a_lane) const noexcept;
 
   /**
+   * @brief The nearest crossing of a ray with the group's triangles in an interval.
+   * @details TriangleSoAT::rayHit() on the embedded triangles, reporting the face id of the triangle
+   * crossed instead of its lane.
+   * @param[in]     a_origin    Ray origin.
+   * @param[in]     a_direction Ray direction (any length; t is in units of it).
+   * @param[in]     a_tMin      Start of the interval.
+   * @param[in,out] a_tMax      End of the interval; lowered to the crossing when one is found.
+   * @param[out]    a_faceId    Face id of the triangle crossed (set only on a crossing).
+   * @param[out]    a_normal    Unit normal there, interpolated from the vertex normals.
+   * @param[out]    a_entering  Whether the ray enters the object there.
+   * @return True if a crossing in [a_tMin, a_tMax] was found.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  bool
+  rayHit(const Vec3T<T>& a_origin,
+         const Vec3T<T>& a_direction,
+         T               a_tMin,
+         T&              a_tMax,
+         uint32_t&       a_faceId,
+         Vec3T<T>&       a_normal,
+         bool&           a_entering) const noexcept;
+
+  /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
    * @details Delegates entirely to the embedded TriangleSoAT<T, W>.
    * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a point array (a
