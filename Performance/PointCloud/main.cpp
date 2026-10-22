@@ -117,19 +117,33 @@ struct NearestNeighbors
   }
 };
 
+// Record what a set of queries found: the sum of the squared distances, and the exact checksum of the
+// points.
 template <class T>
-double
-checksumOf(const std::vector<KHits<T>>& a_results)
+void
+record(Perf::Case& a_case, const std::vector<Hit<T>>& a_hits)
 {
-  double sum = 0.0;
+  a_case.checksum(Perf::checksumOf(a_hits));
+  a_case.indexChecksum(Perf::indexChecksumOf(a_hits));
+}
+
+// The same for sets of nearest points, rank by rank.
+template <class T>
+void
+record(Perf::Case& a_case, const std::vector<KHits<T>>& a_results)
+{
+  double              sum = 0.0;
+  Perf::IndexChecksum indices;
 
   for (const auto& r : a_results) {
     for (std::uint32_t j = 0; j < r.m_count; j++) {
-      sum += Perf::checksumOf(r.m_hits[j]);
+      sum += static_cast<double>(r.m_hits[j].distanceSquared);
+      indices.add(r.m_hits[j].index);
     }
   }
 
-  return sum;
+  a_case.checksum(sum);
+  a_case.indexChecksum(indices.value());
 }
 
 // Whether a host and a device set of nearest points agree: the same count and, rank by rank, the same
@@ -251,7 +265,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
       std::vector<Hit<T>> graph;
 
       c.measure([&] { graph = cloud.allNearestNeighbors(nn); }, p.size());
-      c.checksum(Perf::checksumOf(graph));
+      record(c, graph);
     });
   }
 
@@ -262,7 +276,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     std::vector<Hit<T>> hits;
 
     Perf::measureHostQuery(c, ClosestPoint<Cloud, T>{a_build(pool, p)}, q, hits);
-    c.checksum(Perf::checksumOf(hits));
+    record(c, hits);
   });
 
   // Queries far outside the cloud: in a box five times the cloud's size.
@@ -274,7 +288,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     std::vector<Hit<T>> hits;
 
     Perf::measureHostQuery(c, ClosestPoint<Cloud, T>{a_build(pool, p)}, q, hits);
-    c.checksum(Perf::checksumOf(hits));
+    record(c, hits);
   });
 
   // Every point's nearest neighbour and its KNearest nearest, the points visited in Morton order, and the
@@ -286,7 +300,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     std::vector<Hit<T>> hits;
 
     Perf::measureHostQuery(c, NearestNeighbor<Cloud, T>{a_build(pool, p)}, Perf::mortonOrder(p), hits);
-    c.checksum(Perf::checksumOf(hits));
+    record(c, hits);
   });
 
   a_suite.add(Perf::caseName({prefix, "neighbors" + k, prec, "host"}), [=](Perf::Case& c) {
@@ -297,7 +311,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     std::vector<KHits<T>> results;
 
     Perf::measureHostQuery(c, NearestNeighbors<Cloud, T>{a_build(pool, p)}, Perf::mortonOrder(p), results);
-    c.checksum(checksumOf(results));
+    record(c, results);
   });
 
   a_suite.add(Perf::caseName({prefix, "closest" + k, prec, "host"}), [=](Perf::Case& c) {
@@ -309,7 +323,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
     std::vector<KHits<T>> results;
 
     Perf::measureHostQuery(c, ClosestPoints<Cloud, T>{a_build(pool, p)}, q, results);
-    c.checksum(checksumOf(results));
+    record(c, results);
   });
 
   // ── Host/device pairs: the same queries on both sides ──
@@ -329,7 +343,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
                     [&](const EBGeometry::Pool& a_pool) { return ClosestPoint<Cloud, T>{cloud.rebasedView(a_pool)}; },
                     Perf::agreeHit<T>);
 
-                  c.checksum(Perf::checksumOf(hits));
+                  record(c, hits);
                 });
   }
 
@@ -345,7 +359,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
       [&](const EBGeometry::Pool& a_pool) { return NearestNeighbor<Cloud, T>{cloud.rebasedView(a_pool)}; },
       Perf::agreeHit<T>);
 
-    c.checksum(Perf::checksumOf(hits));
+    record(c, hits);
   });
 
   a_suite.add(Perf::caseName({prefix, "neighbors" + k + "-morton", prec, "hostdevice"}), [=](Perf::Case& c) {
@@ -362,7 +376,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
       [&](const EBGeometry::Pool& a_pool) { return NearestNeighbors<Cloud, T>{cloud.rebasedView(a_pool)}; },
       agreeKHits<T>);
 
-    c.checksum(checksumOf(results));
+    record(c, results);
   });
 
   a_suite.add(Perf::caseName({prefix, "closest" + k + "-morton", prec, "hostdevice"}), [=](Perf::Case& c) {
@@ -380,7 +394,7 @@ addCases(Perf::Suite& a_suite, const std::string& a_cloud, Shape a_shape, std::s
       [&](const EBGeometry::Pool& a_pool) { return ClosestPoints<Cloud, T>{cloud.rebasedView(a_pool)}; },
       agreeKHits<T>);
 
-    c.checksum(checksumOf(results));
+    record(c, results);
   });
 }
 

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <type_traits>
@@ -85,24 +86,11 @@ checksumOf(const std::vector<T>& a_values)
 }
 
 /**
- * @brief One point-cloud hit's part of a checksum: its squared distance, and its index scaled down so
- * that a different point at the same distance still changes the sum.
- * @tparam T Precision.
- * @param[in] a_hit The hit.
- * @return Its contribution.
- */
-template <class T>
-double
-checksumOf(const EBGeometry::PointCloud::Hit<T>& a_hit)
-{
-  return static_cast<double>(a_hit.distanceSquared) + 1e-9 * static_cast<double>(a_hit.index);
-}
-
-/**
- * @brief A checksum of point-cloud hits.
+ * @brief A checksum of point-cloud hits' distances: the sum of their squared distances. The points they
+ * found are checked separately, and exactly, by IndexChecksum.
  * @tparam T Precision.
  * @param[in] a_hits The hits.
- * @return The sum of their contributions.
+ * @return The sum.
  */
 template <class T>
 double
@@ -111,10 +99,62 @@ checksumOf(const std::vector<EBGeometry::PointCloud::Hit<T>>& a_hits)
   double sum = 0.0;
 
   for (const auto& h : a_hits) {
-    sum += checksumOf(h);
+    sum += static_cast<double>(h.distanceSquared);
   }
 
   return sum;
+}
+
+/**
+ * @brief An exact checksum of the points a set of queries found: a 64-bit FNV-style hash of their
+ * indices, in query order, so that a different point (at the same distance, or for another query)
+ * changes it. A floating-point sum cannot do this: an index small enough not to swamp the distances is
+ * below the rounding a comparison has to allow.
+ */
+class IndexChecksum
+{
+public:
+  /**
+   * @brief Add the next index.
+   * @param[in] a_index The index.
+   */
+  void
+  add(std::uint32_t a_index) noexcept
+  {
+    m_hash = (m_hash ^ a_index) * 1099511628211ULL;
+  }
+
+  /**
+   * @brief The hash.
+   * @return Its value.
+   */
+  [[nodiscard]] std::uint64_t
+  value() const noexcept
+  {
+    return m_hash;
+  }
+
+private:
+  std::uint64_t m_hash = 14695981039346656037ULL;
+};
+
+/**
+ * @brief The index checksum of point-cloud hits.
+ * @tparam T Precision.
+ * @param[in] a_hits The hits, in query order.
+ * @return The hash of their indices.
+ */
+template <class T>
+std::uint64_t
+indexChecksumOf(const std::vector<EBGeometry::PointCloud::Hit<T>>& a_hits)
+{
+  IndexChecksum sum;
+
+  for (const auto& h : a_hits) {
+    sum.add(h.index);
+  }
+
+  return sum.value();
 }
 
 /**
@@ -150,8 +190,9 @@ agreeDistance(T a_host, T a_device)
 }
 
 /**
- * @brief Whether a host and a device point-cloud hit agree: equal squared distances to different points
- * are ties, not disagreements.
+ * @brief Whether a host and a device point-cloud hit agree: their squared distances are within
+ * agreementTolerance(), whichever points they found (equal distances to different points are ties, not
+ * disagreements).
  * @tparam T Precision.
  * @param[in] a_host   The host's hit.
  * @param[in] a_device The device's hit.
@@ -164,7 +205,7 @@ agreeHit(const EBGeometry::PointCloud::Hit<T>& a_host, const EBGeometry::PointCl
   const double dh   = static_cast<double>(a_host.distanceSquared);
   const double diff = std::abs(dh - static_cast<double>(a_device.distanceSquared));
 
-  return {diff, a_host.index != a_device.index && diff > agreementTolerance<T>(dh)};
+  return {diff, diff > agreementTolerance<T>(dh)};
 }
 
 /**

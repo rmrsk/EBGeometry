@@ -41,18 +41,19 @@ constexpr const char* Reps              = "reps";                ///< Timed repe
 constexpr const char* Smoke             = "smoke";               ///< Whether these were smoke sizes.
 
 // A case line.
-constexpr const char* Case      = "case";        ///< The case's name.
-constexpr const char* Skipped   = "skipped";     ///< Why the case did not run (instead of the timings).
-constexpr const char* MedianMs  = "median_ms";   ///< Median of the repetitions, in milliseconds.
-constexpr const char* MinMs     = "min_ms";      ///< Fastest repetition, in milliseconds.
-constexpr const char* IqrMs     = "iqr_ms";      ///< Interquartile range of the repetitions.
-constexpr const char* TimesMs   = "times_ms";    ///< Every repetition, in milliseconds.
-constexpr const char* Items     = "items";       ///< Items per repetition.
-constexpr const char* UsPerItem = "us_per_item"; ///< Median time per item, in microseconds.
-constexpr const char* Checksum  = "checksum";    ///< A checksum of the results.
-constexpr const char* PoolBytes = "pool_bytes";  ///< The structure's bytes in its pool.
-constexpr const char* Metrics   = "metrics";     ///< Further numbers (below).
-constexpr const char* Params    = "params";      ///< The case's code-selecting parameters.
+constexpr const char* Case          = "case";           ///< The case's name.
+constexpr const char* Skipped       = "skipped";        ///< Why the case did not run (instead of the timings).
+constexpr const char* MedianMs      = "median_ms";      ///< Median of the repetitions, in milliseconds.
+constexpr const char* MinMs         = "min_ms";         ///< Fastest repetition, in milliseconds.
+constexpr const char* IqrMs         = "iqr_ms";         ///< Interquartile range of the repetitions.
+constexpr const char* TimesMs       = "times_ms";       ///< Every repetition, in milliseconds.
+constexpr const char* Items         = "items";          ///< Items per repetition.
+constexpr const char* UsPerItem     = "us_per_item";    ///< Median time per item, in microseconds.
+constexpr const char* Checksum      = "checksum";       ///< A checksum of the results.
+constexpr const char* IndexChecksum = "index_checksum"; ///< An exact hash of the points found, as hex text.
+constexpr const char* PoolBytes     = "pool_bytes";     ///< The structure's bytes in its pool.
+constexpr const char* Metrics       = "metrics";        ///< Further numbers (below).
+constexpr const char* Params        = "params";         ///< The case's code-selecting parameters.
 
 // Metrics of a host/device pair.
 constexpr const char* HostMs         = "host_ms";          ///< The host side's median time.

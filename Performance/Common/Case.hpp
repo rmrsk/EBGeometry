@@ -14,6 +14,8 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <initializer_list>
 #include <string>
@@ -196,6 +198,18 @@ public:
   }
 
   /**
+   * @brief Record an exact checksum of the points a set of queries found (Probe.hpp's IndexChecksum); a
+   * comparison reports any difference.
+   * @param[in] a_value The checksum.
+   */
+  void
+  indexChecksum(std::uint64_t a_value) noexcept
+  {
+    m_indexChecksum    = a_value;
+    m_hasIndexChecksum = true;
+  }
+
+  /**
    * @brief Record the bytes the measured structure occupies in its pool (Pool::usedBytes()).
    * @param[in] a_bytes Bytes.
    */
@@ -309,6 +323,13 @@ public:
       out.number(Key::Checksum, m_checksum);
     }
 
+    // As hex text, since a JSON number would lose the hash's low bits.
+    if (m_hasIndexChecksum) {
+      char hex[17];
+      std::snprintf(hex, sizeof(hex), "%016llx", static_cast<unsigned long long>(m_indexChecksum));
+      out.text(Key::IndexChecksum, hex);
+    }
+
     if (m_poolBytes > 0) {
       out.count(Key::PoolBytes, m_poolBytes);
     }
@@ -359,10 +380,12 @@ private:
   int                                              m_reps;
   bool                                             m_smoke;
   std::vector<double>                              m_times;
-  std::size_t                                      m_items       = 0;
-  double                                           m_checksum    = 0.0;
-  bool                                             m_hasChecksum = false;
-  std::size_t                                      m_poolBytes   = 0;
+  std::size_t                                      m_items            = 0;
+  double                                           m_checksum         = 0.0;
+  bool                                             m_hasChecksum      = false;
+  std::uint64_t                                    m_indexChecksum    = 0;
+  bool                                             m_hasIndexChecksum = false;
+  std::size_t                                      m_poolBytes        = 0;
   std::vector<std::pair<std::string, std::size_t>> m_params;
   std::vector<std::pair<std::string, double>>      m_metrics;
 };

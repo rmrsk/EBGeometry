@@ -25,8 +25,8 @@
 // A slowdown or speedup counts only when the interval lies above or below 1, and is judged only with
 // at least two runs on each side; pool bytes are deterministic and judged by the thresholds alone. A
 // pair also shows the device's speedup over the host, with the baseline's beside it when the two differ
-// by --minor percent or more, and a checksum that differs between the sides is noted: a change in speed
-// is only comparable for equal answers.
+// by --minor percent or more, and a checksum or a point-index checksum that differs between the sides is
+// noted: a change in speed is only comparable for equal answers.
 //
 // With --smoke (results of a smoke run) it judges no timings: per case, whether it ran on each side,
 // whether the checksums match, and whether a pair's host and device answers agree, with the times
@@ -67,6 +67,7 @@ struct Measurement
   std::vector<double>   times;         // Every repetition of every run.
   std::vector<double>   runs;          // The median of each run's repetitions.
   std::optional<double> checksum;      // From the first run.
+  std::string           indexChecksum; // From the first run; empty: not recorded.
   double                poolBytes = 0; // 0: not recorded.
   bool                  paired    = false;
   std::vector<double>   hostOverDevice; // One per run, for a pair.
@@ -153,6 +154,10 @@ read(const std::string& a_file)
       m.checksum = line.number(Key::Checksum);
     }
 
+    if (line.has(Key::IndexChecksum) && m.indexChecksum.empty()) {
+      m.indexChecksum = line.text(Key::IndexChecksum);
+    }
+
     m.poolBytes = line.number(Key::PoolBytes, m.poolBytes);
 
     if (line.has(Key::HostOverDevice)) {
@@ -186,6 +191,13 @@ bool
 checksumsDiffer(double a_base, double a_head)
 {
   return std::abs(a_base - a_head) > 1e-6 * std::max(std::abs(a_base), 1.0);
+}
+
+// Whether two sides' point-index checksums, recorded on both, differ (exactly: they are hashes).
+bool
+indicesDiffer(const Measurement& a_base, const Measurement& a_head)
+{
+  return !a_base.indexChecksum.empty() && !a_head.indexChecksum.empty() && a_base.indexChecksum != a_head.indexChecksum;
 }
 
 // Whether a case ran on a side: it has a result there, and was not skipped.
@@ -279,8 +291,9 @@ struct Comparison
   bool                  poolUp = false; // More pool bytes, beyond --minor.
   std::optional<double> baseChecksum;   // Set, with headChecksum, when the two differ.
   std::optional<double> headChecksum;
-  std::optional<double> speedup;     // A pair: the candidate's device speedup.
-  std::optional<double> baseSpeedup; // ... and the baseline's, when it differs by --minor or more.
+  bool                  indicesDiffer = false; // The point-index checksums differ.
+  std::optional<double> speedup;               // A pair: the candidate's device speedup.
+  std::optional<double> baseSpeedup;           // ... and the baseline's, when it differs by --minor or more.
   double                mismatches = 0;
   double                maxDiff    = 0;
   std::string           reason; // Why a side was skipped, or the case is lost.
@@ -296,7 +309,14 @@ struct Comparison
   flagged() const
   {
     return outcome == Outcome::Major || outcome == Outcome::Minor || outcome == Outcome::Differ ||
-           outcome == Outcome::Lost || baseChecksum;
+           outcome == Outcome::Lost || this->answersChanged();
+  }
+
+  // Whether a checksum, of the values or of the points found, changed between the sides.
+  [[nodiscard]] bool
+  answersChanged() const
+  {
+    return baseChecksum.has_value() || indicesDiffer;
   }
 
   // Whether the verdict is red.
@@ -341,6 +361,10 @@ struct Comparison
     if (baseChecksum && headChecksum) {
       parts.push_back("checksum differs (" + formatNumber("%.10g", *baseChecksum) + " -> " +
                       formatNumber("%.10g", *headChecksum) + ")");
+    }
+
+    if (indicesDiffer) {
+      parts.emplace_back("the points found differ (index checksum)");
     }
 
     std::string out;
@@ -441,6 +465,8 @@ compare(const std::string& a_name, const Measurement* a_base, const Measurement*
     c.headChecksum = a_head->checksum;
   }
 
+  c.indicesDiffer = indicesDiffer(*a_base, *a_head);
+
   // One outcome, decided once: different answers first (they make the times incomparable), then the
   // worse of the time and the pool bytes, then faster.
   if (c.mismatches > 0) {
@@ -470,7 +496,7 @@ fullVerdict(const std::vector<Comparison>& a_cases, int a_failedRuns)
   const std::size_t minor     = count([](const Comparison& c) { return c.outcome == Outcome::Minor; });
   const std::size_t differ    = count([](const Comparison& c) { return c.outcome == Outcome::Differ; });
   const std::size_t lost      = count([](const Comparison& c) { return c.outcome == Outcome::Lost; });
-  const std::size_t checksums = count([](const Comparison& c) { return c.baseChecksum.has_value(); });
+  const std::size_t checksums = count([](const Comparison& c) { return c.answersChanged(); });
 
   using Perf::counted;
 
@@ -682,7 +708,7 @@ smokeReport(
       }
 
       if (b->checksum && h->checksum) {
-        checksum = checksumsDiffer(*b->checksum, *h->checksum) ? "DIFFERS" : "same";
+        checksum = checksumsDiffer(*b->checksum, *h->checksum) || indicesDiffer(*b, *h) ? "DIFFERS" : "same";
 
         if (checksum == "DIFFERS") {
           checksums++;
