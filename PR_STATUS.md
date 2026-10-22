@@ -11,7 +11,8 @@ A portable record of this pull request's work, for a reviewer (human or agent) p
 another machine with only the repository and `gh`. Branch `claude/performance`, base `dev`.
 Remove this file before merging.
 
-Last updated 2026-10-21, at commit `ce15e17`.
+Last updated 2026-10-22, after the co-review (section 5b; commits `15b87d7`..`646c1f1` and the docs
+commit after them).
 
 1. What the PR is for
 ---------------------
@@ -36,13 +37,13 @@ then-current `dev` and compared against it.
 | Tooling | Nothing beyond CMake, git and a C++ compiler: no Python. Linux and macOS only (POSIX `isatty`, `taskset`). |
 | Entry point | `Scripts/run-performance.sh` (name chosen to avoid clashing with Linux `perf`). Full suite by default, globs for subsets. Plain runs: one process per probe. Comparisons: one process per case. |
 | Comparing | Each side builds its **own** `Performance/`; cases matched by name; the report names probes that differ. A baseline without `Performance/` borrows the candidate's. |
-| Thresholds | minor >= 3% slower, MAJOR >= 10%, both only outside a bootstrap 95% interval. Pool bytes use the thresholds alone. |
-| Verdicts | One `VERDICT:` line at the end (green / yellow / red); red exits 2 and fails CI. A minor regression is a question for the author ("investigate?"); a MAJOR one blocks merging until fixed or explicitly accepted. |
+| Thresholds | minor >= 3% slower, MAJOR >= 10%, both only outside a bootstrap 95% interval taken over the runs (fresh processes), not the repetitions; at least 2 rounds. Pool bytes use the thresholds alone. |
+| Verdicts | One `VERDICT:` line at the end (green / yellow / red); red exits 2 and fails CI. A case that ran in the baseline but is skipped or missing in the candidate is *lost*: red. A minor regression is a question for the author ("investigate?"); a MAJOR one blocks merging until fixed or explicitly accepted. |
 | CI | `Performance-smoke` and `Performance-compare` jobs, both required by `CI-passed`. CI catches large regressions; the local comparison (quiet machine, device) is authoritative. |
 | Device | Local CUDA only for device timings (no GPU CI runner). |
 | GPU builds | A host build runs `host` cases only (one pinned core, vectorised); a CUDA/HIP build runs only `hostdevice` pairs. The host side of a pair uses every hardware thread but one (OpenMP), not one core, for a fair comparison. |
 | Smoke comparisons | `compare --smoke` is a correctness check (builds, every case runs, same answers), never a timing verdict; its times are shown "for information only". |
-| Precision | Every case runs in both `float` and `double`. |
+| Precision | Every case runs in both `float` and `double`, except `TriMeshSDF/w8` (host-tuned width, `float` only). |
 | Every PR | Carries its comparison report in the PR template's *Performance* section (CLAUDE.md, "Vetting every pull request for performance"). |
 | Quality bar | Production quality: every file reviewed for documentation, structure and consistency (the audit, section 5). |
 
@@ -109,6 +110,15 @@ performance"), `Docs/Sphinx/source/{PerformanceTesting,ContinuousIntegration,ind
 | `6b29042` | clang-tidy findings (harness headers included) |
 | `8bb4f09` | Docs audit fix |
 | `ce15e17` | PDF docs build fixed (π, U+2501) |
+| `d2b6f64` | This file |
+| `15b87d7` | Co-review: lost cases red; times judged over runs |
+| `0fd2d05` | Co-review: `agreeHit` judges every distance; exact index checksum |
+| `55bd20e` | Co-review: defaulted parameters spelled out and recorded |
+| `e377c82` | Co-review: docs for the above |
+| `b44196d` | Co-review: `--smoke` wins in any order; JSON escaping |
+| `fe603fe` | Co-review: a GPU run refuses `--core` |
+| `8321d62` | Co-review: host query cases name their input order |
+| `646c1f1` | Co-review: build and refit cases checksum queries against what they built |
 
 5. The audit (b112e3f..6b29042) and how it was verified
 -------------------------------------------------------
@@ -138,6 +148,33 @@ To repeat the reference check: build a commit, run each probe with `--smoke --js
 --reps 1` for full sizes), and compare the JSON lines' `case`, `items`, `params`, `pool_bytes`,
 `checksum` and `metrics.mismatches` between commits (timings are expected to differ).
 
+5b. The co-review (2026-10-22) and what it changed
+--------------------------------------------------
+
+A second static review of the whole PR, with the maintainer deciding each finding:
+
+| Finding | Decision |
+|---|---|
+| A full comparison stayed green when a case was skipped or missing in the candidate (a case that throws is "skipped") | Red, as `lost`, like smoke |
+| The bootstrap resampled repetitions as independent; CI flagged +9.7% [+0.1%, +30.7%] on identical code | Resample runs; keep CI at 3 rounds (it now flags only consistent slowdowns; `--rounds 10` locally for small ones) |
+| `agreeHit` passed a right point with a wrong distance | Disagreement = distance difference beyond the tolerance |
+| The point-cloud checksum's `1e-9 * index` term was below PerfCompare's rounding allowance | Exact FNV-style `index_checksum`, compared exactly |
+| Leaf size, cells per point and BVHUnion's construction came from defaults; hash grid recorded K, W | Spelled out and recorded |
+| Build checksums were the point count or one distance | Untimed queries at 1,000 points (`Seed::BuildChecks`) against what was built; refit too |
+| Host case names did not say their query order | Renamed (`-random`, `-morton`) before any history exists |
+| `--gpu --core` measured the device against one host thread | Refused |
+| `--smoke` vs `--reps` order; unescaped control characters in JSON | `--smoke` always wins; strings escaped and unescaped |
+
+Verified: strict-warning builds (`-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion
+-Wold-style-cast -Werror`); every change compared against a reference recorded before it (only the
+intended checksums and parameters changed; renames changed names only); PerfCompare on doctored
+results (lost, missing, one run, consistent and one-process slowdowns, changed index checksum);
+BVH and hash grid give identical index checksums on every query and build case; full host comparison
+of `646c1f1` against `origin/dev` green (0 flagged, 88 cases); CUDA smoke comparison green (60 pairs)
+and all 40 point-cloud pairs agree at full size under the stricter rule; Sphinx HTML and PDF build.
+clang-tidy (header filter widened to `Performance/`) reports only a pre-existing false positive in
+`Report.hpp:318` (`modernize-min-max-use-initializer-list` on a call that already uses one).
+
 6. Findings and numbers (RTX 3080 Ti, CUDA 12.5; Ryzen 9 5900X, 12 cores / 24 threads)
 -------------------------------------------------------------------------------------
 
@@ -156,8 +193,10 @@ To repeat the reference check: build a commit, run each probe with `--smoke --js
 * **Threads**: 23 of 24 hardware threads was fastest everywhere; 24 lost whole scheduler ticks
   (times landing on whole milliseconds), 12 gave away the hyperthreading gain (22-27% on heavy
   queries).
-* **Noise**: with 60-88 cases at a 95% interval, an occasional false minor (or faster) is expected;
-  rerun a flagged case with `--rounds 10` before calling it a regression. Smoke times vary by up to
+* **Noise**: before the co-review, the interval treated repetitions as independent, and CI flagged a
+  false minor on identical code; it is now taken over runs, so 3 rounds flag only slowdowns seen in
+  essentially every run (a local A/A run of all 88 cases flagged nothing, with differences up to
+  -15% on identical code). Rerun a flagged or suspected case with `--rounds 10`. Smoke times vary by up to
   ±40% on identical code, which is why smoke comparisons judge no timings.
 * **Durations**: full host comparison about 10 min; CUDA comparison about 5 min; smoke comparison
   30-70 s.
@@ -165,17 +204,12 @@ To repeat the reference check: build a commit, run each probe with `--smoke --js
 7. Status and open work
 -----------------------
 
-* **CI**: no run had passed before `ce15e17`; every completed run failed in `Build-documentation`
-  (the PDF build stopped on 'π' and U+2501). On `ce15e17`, `Build-documentation` and
-  `Performance-smoke` and 20 other jobs pass; GPU HIP compile, Performance-compare, the Release build, the
-  sanitizers and clang-tidy were still running when this file was written. The HIP compile
-  of the restructured probes (audit steps 2-4) has not completed on any commit yet; it cannot be
-  built locally. Check: `gh pr checks 207`.
-* **Full host comparison** (88 cases) since the audit: not run. Run it into a separate work
-  directory (below) and replace the stale note in the PR's *Performance* section.
-* **PR description**: rewritten at `8bb4f09` to match the current design; its *Performance* section
-  carries the CUDA comparison measured at `f8a8176` (before the audit; still representative).
-* The PR is marked ready for review although CI is not yet green.
+* **CI**: all 30 checks passed on `d2b6f64` (GPU HIP compile included). The co-review commits have
+  not been through CI before this push; check `gh pr checks 207`.
+* **Full host comparison** of `646c1f1` against `origin/dev`: green, 0 flagged of 88; it is in the PR's
+  *Performance* section. The CUDA figures there are still those measured at `f8a8176`; the CUDA
+  smoke comparison of `646c1f1` passed (60 pairs).
+* The renames change case names: older result files (`build/performance/results/`) use the old names.
 * Afterwards: review #194-#203 in order (section 1). #203 sits on #201; the others on `dev`. Each
   needs rebasing onto `dev` once this merges, and #194 needs a probe update (it changes PackedBVH
   traversal APIs the probes do not call, so likely none) before its comparison.

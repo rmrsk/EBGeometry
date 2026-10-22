@@ -45,7 +45,7 @@ A run prints a table per probe and saves the results to `build/performance/resul
 builds both sides from their own `Performance/`, runs every case in a fresh process, alternating between
 the sides, and prints the comparison (also written to `build/performance/compare/report.md`) with the
 command to repeat it. A case is **minor** at 3% slower and **MAJOR** at 10% slower, in both cases only
-outside the 95% confidence interval.
+outside the 95% confidence interval over the runs (fresh processes; at least two per side).
 
 CUDA 12.0's nvcc cannot compile the library; name a newer one with `--cuda-compiler`. `ctest --preset
 perf` runs every case at its `--smoke` size (checks that they run, times nothing).

@@ -285,14 +285,14 @@ the command that repeats the comparison and those that rerun a single case by ha
 
 .. code-block:: text
 
-   Performance comparison: 0 major, 0 minor, 0 faster, 2 cases
+   Performance comparison: 0 major, 0 minor, 0 faster, 0 differ, 0 lost, 2 cases
      base 000723d (gcc 13.3.0, simd avx2, gpu host)
-     head 5f047b4+worktree (gcc 13.3.0, simd avx2, gpu host)
-     thresholds: minor >= 3%, major >= 10% slower, and outside the 95% interval
+     head 646c1f1 (gcc 13.3.0, simd avx2, gpu host)
+     thresholds: minor >= 3%, major >= 10% slower, and outside the 95% bootstrap interval over the runs
 
-     case                                                base        head   change       95% interval    pool  verdict
-     PointCloudBVH/uniform/build/double/host          99.2 ms     99.4 ms    +0.2%     [-1.6%, +2.0%]   +0.0%  ~
-     PointCloudHashGrid/uniform/build/double/host     14.3 ms     13.2 ms    -7.6%   [-55.6%, +99.1%]   +0.0%  ~
+     case                                                 base     head  change     95% interval   pool  verdict  note
+     PointCloudBVH/uniform/build/double/host           89.5 ms  89.9 ms   +0.5%   [-8.6%, +9.8%]  +0.0%  ~
+     PointCloudBVH/uniform/closest-random/double/host  93.7 ms   100 ms   +7.0%  [-7.1%, +10.2%]      -  ~
 
    Nothing flagged.
 
