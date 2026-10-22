@@ -365,7 +365,21 @@ file(APPEND "${WORK_DIR}/report.md" "${notes}\n<details><summary>Run it manually
 # The verdict, last, so it is the line a reader sees when the run ends.
 execute_process(
   COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
-          --minor ${MINOR} --major ${MAJOR} ${smoke_arg} --verdict-only --failed-runs ${nfailed})
+          --minor ${MINOR} --major ${MAJOR} ${smoke_arg} --verdict-only --failed-runs ${nfailed}
+  RESULT_VARIABLE verdict_again)
+
+# PerfCompare exits 0 (green or yellow) or 2 (red). Anything else means there is no verdict (3: it could
+# not judge, a usage error or an unreadable file; a signal's name: it crashed), which must never pass.
+# Both calls judge the same results, so they must agree.
+foreach(code IN ITEMS "${verdict}" "${verdict_again}")
+  if(NOT code MATCHES "^(0|2)$")
+    message(FATAL_ERROR "Compare.cmake: PerfCompare could not judge the results (exit '${code}'); see its message above")
+  endif()
+endforeach()
+
+if(NOT verdict STREQUAL verdict_again)
+  message(FATAL_ERROR "Compare.cmake: PerfCompare's report and verdict calls disagree (${verdict}, ${verdict_again})")
+endif()
 
 if(SMOKE)
   set(failing OFF)

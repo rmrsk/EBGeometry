@@ -323,7 +323,9 @@ and ``report.md`` starts with the same line:
 A red verdict (a major regression, host and device answers that differ, a run that crashed, or a case
 that ran in the baseline but not in the candidate; for a smoke comparison, a case that failed or is
 missing on either side) also makes the script exit with status 2, which is what fails
-``Performance-compare`` in CI. The per-case verdicts behind it work as follows.
+``Performance-compare`` in CI. A comparison that cannot reach a verdict at all (``PerfCompare`` reports
+a usage error or an unreadable results file, or crashes) fails too, with a non-zero status of its own;
+it never ends green. The per-case verdicts behind it work as follows.
 
 Each run of a case is a fresh process that times several repetitions. The repetitions of one process
 share its luck (where its memory landed, the clock speed, what else ran on the machine), so they are not
@@ -345,8 +347,12 @@ case with more rounds (``--rounds 10``).
 ==========  =========================================================================================
 
 A differing checksum, or a differing hash of the points found, is noted beside the verdict: the two
-sides did not compute the same answers, so the times may not be comparable. A paired case shows the device's speedup over the host, with the
-baseline's beside it when the two differ by 3% or more. Flagged cases are listed again under the table.
+sides did not compute the same answers, so the times may not be comparable. It is flagged and makes the
+verdict yellow (as in a smoke comparison), never red, so it does not fail CI: a change to a kernel may
+legitimately change a result's last bits, and the author says in the pull request why the answers
+changed. A case whose pool bytes shrink by 3% or more is noted as such (it is never a regression). A
+paired case shows the device's speedup over the host, with the baseline's beside it when the two differ
+by 3% or more. Flagged cases are listed again under the table.
 
 In continuous integration and in pull requests
 ----------------------------------------------

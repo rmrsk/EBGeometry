@@ -37,7 +37,8 @@
 // --verdict-only prints only the line (Compare.cmake ends a run with it); --no-verdict leaves it out;
 // --failed-runs is the number of runs that crashed, which makes the verdict red.
 //
-// Exit code: 2 when the verdict is red, 1 for a usage error, else 0. Usually run by Compare.cmake,
+// Exit code: 0 for a green or yellow verdict, 2 for a red one, 3 when it cannot judge (a usage error or
+// an unreadable file); Compare.cmake fails on anything else too (a crash). Usually run by Compare.cmake,
 // through Scripts/run-performance.sh compare (see ../README.md).
 
 #include <algorithm>
@@ -108,7 +109,7 @@ read(const std::string& a_file)
 
   if (!in) {
     std::fprintf(stderr, "PerfCompare: cannot read %s\n", a_file.c_str());
-    std::exit(1);
+    std::exit(3);
   }
 
   using namespace Perf;
@@ -288,8 +289,9 @@ struct Comparison
   double                headMs  = 0;
   Perf::Interval        interval;
   std::optional<double> poolRatio;
-  bool                  poolUp = false; // More pool bytes, beyond --minor.
-  std::optional<double> baseChecksum;   // Set, with headChecksum, when the two differ.
+  bool                  poolUp   = false; // More pool bytes, beyond --minor.
+  bool                  poolDown = false; // Fewer pool bytes, beyond --minor (noted, never a verdict).
+  std::optional<double> baseChecksum;     // Set, with headChecksum, when the two differ.
   std::optional<double> headChecksum;
   bool                  indicesDiffer = false; // The point-index checksums differ.
   std::optional<double> speedup;               // A pair: the candidate's device speedup.
@@ -341,6 +343,10 @@ struct Comparison
 
     if (poolUp) {
       parts.emplace_back("pool bytes up");
+    }
+
+    if (poolDown) {
+      parts.emplace_back("pool bytes down");
     }
 
     if (speedup) {
@@ -443,6 +449,8 @@ compare(const std::string& a_name, const Measurement* a_base, const Measurement*
       c.poolUp = true;
       severity = std::max(severity, *c.poolRatio >= major ? 2 : 1);
     }
+
+    c.poolDown = *c.poolRatio <= 2.0 - minor;
   }
 
   // A pair: the device's speedup, and whether host and device agree.
@@ -817,7 +825,7 @@ usage(const std::string& a_problem)
                "                      [--markdown <file>] [--smoke] [--verdict-only | --no-verdict]\n"
                "                      [--failed-runs <n>]\n",
                a_problem.c_str());
-  std::exit(1);
+  std::exit(3);
 }
 
 // A non-negative number, or a usage error.
