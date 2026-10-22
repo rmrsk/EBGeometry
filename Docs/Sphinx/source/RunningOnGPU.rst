@@ -187,6 +187,18 @@ aborts with a message, in every build. Use it directly for work
 indexed by an integer rather than by an input value, for example a query on each point of a cloud by
 its index. The functor writes its own results, through a span it holds.
 
+Large queries
+-------------
+
+``parallelFor`` and ``transform`` pass the query (or the functor) to the kernel by value. When the query
+calls a function that is not inlined -- a ``Tape``'s evaluator, say -- the compiler needs the query's
+address, and would copy the whole query into every thread's local memory first: for a ``Tape``, 376
+bytes per thread, which cost more than the evaluation itself (issue #221). Under CUDA 11.7 and later the
+kernel's parameter is therefore a grid constant (``EBGEOMETRY_GRID_CONSTANT``, ``__grid_constant__``),
+which the threads read in place. It needs compute capability 7.0 or later, the default architecture of
+every EBGeometry CUDA build. HIP has no such qualifier; there the macro is empty. A kernel written by
+hand (see :ref:`Chap:ExampleCustomShape`) can mark its own query parameter the same way.
+
 Block size
 ----------
 

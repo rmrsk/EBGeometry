@@ -74,13 +74,14 @@ struct Apply
  * must assume the largest block (1024) and allocate registers for it.
  * @tparam BlockSize Threads per block.
  * @tparam F         Functor type.
- * @param[in] a_f The functor, passed by value.
+ * @param[in] a_f The functor, passed by value and read in place where the compiler can (see
+ * EBGEOMETRY_GRID_CONSTANT), so that a large one is not copied to every thread's local memory.
  * @param[in] a_n Number of indices.
  */
 template <unsigned int BlockSize, class F>
 EBGEOMETRY_GLOBAL
 void
-__launch_bounds__(BlockSize) parallelForKernel(const F a_f, const std::size_t a_n)
+__launch_bounds__(BlockSize) parallelForKernel(EBGEOMETRY_GRID_CONSTANT const F a_f, const std::size_t a_n)
 {
   const std::size_t i = static_cast<std::size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
 
