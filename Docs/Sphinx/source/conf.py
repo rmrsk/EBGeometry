@@ -58,6 +58,15 @@ bibtex_bibfiles = ['references.bib']
 exclude_patterns = []
 
 
+# -- Options for LaTeX output ------------------------------------------------
+
+# pdfLaTeX has no glyph for the box-drawing rule (U+2501) the performance probes print in their
+# tables (PerformanceTesting.rst shows that output verbatim): the PDF shows it as '='. The HTML keeps
+# the output exactly.
+latex_elements = {
+    'preamble': r'\DeclareUnicodeCharacter{2501}{=}',
+}
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
