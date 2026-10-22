@@ -173,18 +173,18 @@ clip(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi, const RayT<T>& a_ray, T& a_t0, 
     else {
       const T inv = T(1) / d;
 
-      T tLo = (a_lo[dir] - o) * inv;
-      T tHi = (a_hi[dir] - o) * inv;
+      T tNear = (a_lo[dir] - o) * inv;
+      T tFar  = (a_hi[dir] - o) * inv;
 
-      if (tLo > tHi) {
-        const T swap = tLo;
+      if (tNear > tFar) {
+        const T swap = tNear;
 
-        tLo = tHi;
-        tHi = swap;
+        tNear = tFar;
+        tFar  = swap;
       }
 
-      a_t0 = Math::max(a_t0, tLo);
-      a_t1 = Math::min(a_t1, tHi);
+      a_t0 = Math::max(a_t0, tNear);
+      a_t1 = Math::min(a_t1, tFar);
     }
   }
 
