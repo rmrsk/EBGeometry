@@ -358,7 +358,24 @@ Test coverage
        with and without unbounded operands, calls nested to the limit, full value and point stacks,
        user primitive types and a tape inside a tape, each against the host; a user octahedron's
        exact values kept through rotation, translation and a BVH union; and a tape built directly in
-       managed memory evaluated on the device through its own pool.
+       managed memory evaluated on the device through its own pool; ``primitiveAt()`` against a
+       brute-force pick over the leaves for unions and intersections (with and without a BVH),
+       differences, smooth unions and intersections, Blur and Mollify, the depth-first numbering
+       through maps and value operations, and on a device against the host.
+   * - ``TestRay``
+     - :cpp:func:`firstHit` against closed forms: a sphere from outside and from inside, a box face on,
+       an unbounded plane, intervals that end before or start past a crossing; a hole seen from inside
+       the solid as a leaving crossing; the tape's leaf and the mesh distance field's face at a hit; a
+       value that is not a distance stepped and bisected; a march out of steps unresolved, never a
+       miss; :cpp:func:`intersects` for segments across, through, past and inside a sphere, and the
+       tape's members against the free functions; and on a device against the host.
+   * - ``TestRender``
+     - The renderer: ``Camera::fit`` and ``Camera::lookAt`` placing the eye; a sphere covering the
+       pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the
+       camera reported inside; colouring by primitive telling two leaves apart; the section plane
+       removing one side and showing the cut face; faces lying on the bounding box seen from outside;
+       ``view()`` returning at once with ``--no-view``; the rejected settings and cameras; and a device
+       render against the host's.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an

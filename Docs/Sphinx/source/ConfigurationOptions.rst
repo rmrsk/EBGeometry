@@ -5,7 +5,8 @@ Configuration options
 
 This page documents the configuration knobs shared by all three build methods
 (:ref:`Sec:BuildingCMake`, :ref:`Sec:BuildingGNUMake`, :ref:`Sec:BuildingDirectCompile`):
-floating-point precision, the target SIMD instruction set, and optional runtime assertions.
+floating-point precision, the target SIMD instruction set, optional runtime assertions, and the
+optional viewer window.
 
 .. contents:: On this page
    :local:
@@ -225,6 +226,33 @@ A mesh file that cannot be read is not a programming error, so the file readers 
 ``EBGeometry::Parser::ParseError`` instead of aborting; see :ref:`Chap:Parsers`. A mesh whose
 faces are oriented inconsistently or fold back onto each other can be loaded with a warning
 instead, with ``Parser::OnDefect::Warn``; see :ref:`Sec:OnDefect`.
+
+.. _Sec:ConfigViewer:
+
+The viewer window (``EBGEOMETRY_VIEWER``)
+-------------------------------------------
+
+``Render::view()`` (:ref:`Chap:ImplemRender`) opens an interactive window on a shape. The window needs
+SDL2, a third-party library, so it is compiled only on request; without it ``view()`` prints a line
+saying how to build it and returns, and nothing else in EBGeometry needs SDL2.
+
+* **CMake:** ``-DEBGEOMETRY_VIEWER=SDL2`` (default ``OFF``) finds SDL2 and gives every target of the
+  build that uses EBGeometry the window, like the other settings on this page it is not carried by an
+  installed EBGeometry. Each example's own ``CMakeLists.txt`` takes the same option when built on its own.
+* **GNU make:** ``make VIEWER=SDL2`` in an example folder, which uses ``sdl2-config``.
+* **Directly:** define ``EBGEOMETRY_VIEWER_SDL2`` and add SDL2's flags:
+
+  .. code-block:: bash
+
+     g++ -std=c++17 -O3 -DEBGEOMETRY_VIEWER_SDL2 $(sdl2-config --cflags) -I/path/to/EBGeometry main.cpp \
+         $(sdl2-config --libs) -pthread
+
+  For nvcc, also define ``SDL_DISABLE_IMMINTRIN_H``: SDL's x86 intrinsics headers do not get through it.
+
+Even with the window built, ``view()`` opens none when the program is given ``--no-view`` or there is
+no display, so programs that call it still run unattended. The renderer itself (``Render::Renderer``)
+needs no option; it draws on ``std::thread``, and the ``EBGeometry::EBGeometry`` CMake target links
+``Threads::Threads`` for it (add ``-pthread`` when compiling by hand).
 
 .. _Sec:Assertions:
 

@@ -517,7 +517,10 @@ does not follow this template, edit the PR body to conform to it.
   (`Expr`, `Union`, `Translate`, ...) in `EBGeometry_Expr.hpp`, the `Tape` that compiles and evaluates
   an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`),
   `EBGeometry_CSG.hpp` including all of them, and `operator<<` for `Vec3T`/`AABBT` in
-  `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
+  `EBGeometry_StreamOperators.hpp`. The ray queries (`firstHit()`, `intersects()`) are in
+  `EBGeometry_Ray.hpp`, the renderer (`Render::Renderer`, `Camera`, `Settings`) in `EBGeometry_Render.hpp`,
+  and `Render::view()` in `EBGeometry_Viewer.hpp`, whose SDL2 window is compiled only under
+  `EBGEOMETRY_VIEWER_SDL2` (CMake `EBGEOMETRY_VIEWER=SDL2`, make `VIEWER=SDL2`). `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
   include the split headers, so older includes keep working.
 - **Composition goes through the tape, and its evaluator must stay device-safe.** There is no
   `ImplicitFunction` or virtual CSG layer: shapes (`isShape<S>`: trivially copyable, with
