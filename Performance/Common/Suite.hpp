@@ -11,7 +11,8 @@
  *   --list           print the selected case names and exit
  *   --case <glob>    run only the cases matching the glob (* and ?); may be repeated
  *   --reps <n>       timed repetitions per case (default 5), after one untimed warm-up
- *   --smoke          small problem sizes and one repetition: checks that a case runs, times nothing
+ *   --smoke          small problem sizes and one repetition (whatever --reps says): checks that a case
+ *                    runs, times nothing
  *   --json           one JSON line per case instead of the table
  *   --json-out <f>   print the table, and also append the JSON lines to file f
  *   --no-banner      leave out what every probe of a run shares (Scripts/run-performance.sh prints it
@@ -94,7 +95,6 @@ public:
       }
       else if (arg == "--smoke") {
         m_smoke = true;
-        m_reps  = 1;
       }
       else if (arg == "--no-banner") {
         m_banner = false;
@@ -119,6 +119,11 @@ public:
       else {
         this->fail("unknown argument '" + arg + "'");
       }
+    }
+
+    // A smoke run times nothing, so it takes one repetition, wherever --reps came on the line.
+    if (m_smoke) {
+      m_reps = 1;
     }
 
     m_deviceRuns = EBGeometry::GPU::enabled && EBGeometry::GPU::deviceAvailable();

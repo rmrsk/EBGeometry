@@ -65,7 +65,8 @@ constexpr const char* Mismatches     = "mismatches";       ///< Inputs on which 
 } // namespace Key
 
 /**
- * @brief A string as a JSON string literal.
+ * @brief A string as a JSON string literal, on one line: quotes, backslashes and control characters
+ * (a newline in an exception's message, say) are escaped.
  * @param[in] a_s The string.
  * @return The quoted, escaped string.
  */
@@ -77,9 +78,22 @@ jsonString(const std::string& a_s)
   for (const char c : a_s) {
     if (c == '"' || c == '\\') {
       out += '\\';
+      out += c;
     }
-
-    out += c;
+    else if (c == '\n') {
+      out += "\\n";
+    }
+    else if (c == '\t') {
+      out += "\\t";
+    }
+    else if (static_cast<unsigned char>(c) < 0x20) {
+      char buf[7];
+      std::snprintf(buf, sizeof(buf), "\\u%04x", static_cast<unsigned>(static_cast<unsigned char>(c)));
+      out += buf;
+    }
+    else {
+      out += c;
+    }
   }
 
   return out + "\"";
@@ -241,7 +255,7 @@ public:
   /**
    * @brief A string field.
    * @param[in] a_key Name.
-   * @return Its value, unescaped, or empty if absent.
+   * @return Its value, unescaped (the escapes jsonString() writes), or empty if absent.
    */
   [[nodiscard]] std::string
   text(const char* a_key) const
@@ -255,11 +269,26 @@ public:
     std::string out;
 
     for (i++; i < m_line.size() && m_line[i] != '"'; i++) {
-      if (m_line[i] == '\\' && i + 1 < m_line.size()) {
-        i++;
+      if (m_line[i] != '\\' || i + 1 >= m_line.size()) {
+        out += m_line[i];
+        continue;
       }
 
-      out += m_line[i];
+      const char e = m_line[++i];
+
+      if (e == 'n') {
+        out += '\n';
+      }
+      else if (e == 't') {
+        out += '\t';
+      }
+      else if (e == 'u' && i + 4 < m_line.size()) {
+        out += static_cast<char>(std::strtol(m_line.substr(i + 1, 4).c_str(), nullptr, 16));
+        i += 4;
+      }
+      else {
+        out += e;
+      }
     }
 
     return out;
