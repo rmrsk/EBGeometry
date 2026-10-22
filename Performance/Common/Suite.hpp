@@ -126,6 +126,9 @@ public:
       m_reps = 1;
     }
 
+    // Before any case allocates: every build is then timed with the same allocation policy.
+    allocatorPolicy();
+
     m_deviceRuns = EBGeometry::GPU::enabled && EBGeometry::GPU::deviceAvailable();
   }
 

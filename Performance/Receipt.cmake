@@ -18,7 +18,7 @@
 # Needs REPO (the repository's root) to be set by the includer.
 
 set(PERF_RECEIPT_FILE "Performance/receipt.md")
-set(PERF_RECEIPT_VERSION 2)
+set(PERF_RECEIPT_VERSION 3)
 set(PERF_RECEIPT_SIDES host cuda hip)
 
 # The paths a fingerprint covers, and those it leaves out (as git pathspecs).
@@ -84,6 +84,67 @@ function(perf_receipt_field text key var)
   set(${var} "${value}" PARENT_SCOPE)
 endfunction()
 
+# perf_receipt_accepted(<section> <var>): the reason a section's yellow or red verdict was accepted, from
+# its "**Accepted:**" paragraph under the heading, where a reader of the rendered receipt sees it: the
+# text after the marker up to the next blank line (or HTML comment), its lines joined with single spaces (as Markdown
+# renders a wrapped paragraph); empty while it holds the "-" --record writes.
+function(perf_receipt_accepted text var)
+  set(value "")
+  set(marker "**Accepted:**")
+  string(FIND "${text}" "\n${marker}" at)
+
+  if(at GREATER_EQUAL 0)
+    string(LENGTH "\n${marker}" marker_length)
+    math(EXPR from "${at} + ${marker_length}")
+    string(SUBSTRING "${text}" ${from} -1 rest)
+    # The paragraph ends at a blank line, or at the next HTML comment (the section's end marker) if the
+    # blank line was edited away.
+    foreach(boundary "\n\n" "<!--")
+      string(FIND "${rest}" "${boundary}" stop)
+
+      if(stop GREATER_EQUAL 0)
+        string(SUBSTRING "${rest}" 0 ${stop} rest)
+      endif()
+    endforeach()
+
+    string(REGEX REPLACE "[ \t\r]*\n[ \t]*" " " rest "${rest}")
+    string(STRIP "${rest}" value)
+
+    if(value STREQUAL "-")
+      set(value "")
+    endif()
+  endif()
+
+  set(${var} "${value}" PARENT_SCOPE)
+endfunction()
+
+# perf_skipped_cases(<work_dir> <var>): the cases a comparison skipped, from its base.jsonl and head.jsonl,
+# as a list of "<side>: <case> (<reason>)", each once; empty if every case ran on both sides.
+function(perf_skipped_cases work_dir var)
+  set(skipped "")
+
+  foreach(side base head)
+    set(lines "")
+
+    if(EXISTS "${work_dir}/${side}.jsonl")
+      file(STRINGS "${work_dir}/${side}.jsonl" lines REGEX "\"skipped\":")
+    endif()
+
+    # A JSON string may hold escaped characters (an exception's message quoting a path), so a value runs
+    # to the first quote that is not escaped; the escapes are then undone for the message.
+    foreach(line IN LISTS lines)
+      string(REGEX MATCH "\"case\":\"((\\\\.|[^\"\\\\])*)\"" _ "${line}")
+      set(name "${CMAKE_MATCH_1}")
+      string(REGEX MATCH "\"skipped\":\"((\\\\.|[^\"\\\\])*)\"" _ "${line}")
+      string(REGEX REPLACE "\\\\(.)" "\\1" reason "${CMAKE_MATCH_1}")
+      list(APPEND skipped "${side}: ${name} (${reason})")
+    endforeach()
+  endforeach()
+
+  list(REMOVE_DUPLICATES skipped)
+  set(${var} "${skipped}" PARENT_SCOPE)
+endfunction()
+
 # perf_write_receipt(SIDE <host|cuda|hip> LEVEL <0|1|2> BASE_REF <ref> BASE <commit> HEAD <commit>
 #                    BASE_FINGERPRINT <hash> HEAD_FINGERPRINT <hash> CASES <n> ROUNDS <n> REPS <n>
 #                    REPORT_FILE <path>)
@@ -114,7 +175,6 @@ function(perf_write_receipt)
 version: ${PERF_RECEIPT_VERSION}
 side: ${R_SIDE}
 verdict: ${verdict}
-accepted:
 base: ${R_BASE}
 base-fingerprint: ${R_BASE_FINGERPRINT}
 head: ${R_HEAD}
@@ -126,6 +186,8 @@ date: ${today}
 -->
 
 ## ${title}: ${verdict}
+
+**Accepted:** -
 
 `${R_HEAD}` against `${R_BASE}` (${R_BASE_REF}), ${today}.
 
@@ -168,8 +230,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 <!-- Written by Scripts/run-performance.sh compare --record and checked by CI (Performance/CheckReceipt.cmake).
-     Commit it with the pull request. Do not edit it, except to accept a yellow or red verdict: write the
-     reason after \"accepted:\" in that section. See Docs/Sphinx/source/PerformanceTesting.rst. -->
+     Commit it with the pull request. Do not edit it, except to accept a yellow or red verdict: replace the
+     \"-\" after \"Accepted:\" under that section's heading with the reason; git history records who did.
+     See Docs/Sphinx/source/PerformanceTesting.rst. -->
 
 # Performance receipt
 ${sections}")
