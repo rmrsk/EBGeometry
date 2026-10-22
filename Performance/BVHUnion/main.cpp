@@ -151,7 +151,12 @@ addFamily(Perf::Suite& a_suite, const std::string& a_family, Objects a_objects)
       Perf::measureBuild<Union>(c, [&](EBGeometry::Pool& a_pool) { return build(a_pool, shapes, boxes); });
 
     c.poolBytes(built.pool->usedBytes());
-    c.checksum(static_cast<double>(built.object->signedDistance(Vec3<T>(T(0.5), T(0.5), T(0.5)))));
+
+    // What the build made, checked untimed: the signed distances at a few points in the union's box.
+    const Union& u = *built.object;
+    const auto   q = Perf::pointsInBox<T>(u.computeBoundingVolume(), Perf::BuildCheckPoints, Perf::Seed::BuildChecks);
+
+    c.checksum(Perf::checksumOf(Perf::queryAll(Perf::SignedDistance<Union, T>{u}, q)));
   });
 
   a_suite.add(Perf::caseName({prefix, "query-random", prec, "host"}), [=](Perf::Case& c) {

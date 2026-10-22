@@ -209,13 +209,13 @@ cloudPoints(Shape a_shape, std::size_t a_n)
 // shell from radius 0.95 to 1.05 (its hollow inside is no nearer the cloud than the outside is).
 template <class T>
 std::vector<Vec3<T>>
-nearQueries(Shape a_shape, std::size_t a_n)
+nearQueries(Shape a_shape, std::size_t a_n, std::uint64_t a_seed = Perf::Seed::NearQueries)
 {
   if (a_shape == Shape::Uniform) {
-    return Perf::pointsInBox<T>(Perf::cube(T(-0.05), T(1.05)), a_n, Perf::Seed::NearQueries);
+    return Perf::pointsInBox<T>(Perf::cube(T(-0.05), T(1.05)), a_n, a_seed);
   }
 
-  auto       q     = Perf::pointsInBox<T>(Perf::cube(T(-1), T(1)), a_n, Perf::Seed::NearQueries);
+  auto       q     = Perf::pointsInBox<T>(Perf::cube(T(-1), T(1)), a_n, a_seed);
   const auto radii = Perf::pointsInBox<T>(
     EBGeometry::BoundingVolumes::AABBT<T>(Vec3<T>(T(0.95), T(0), T(0)), Vec3<T>(T(1.05), T(0), T(0))),
     a_n,
@@ -264,7 +264,12 @@ addCases(Perf::Suite&       a_suite,
     const auto built = Perf::measureBuild<Cloud>(c, [&](EBGeometry::Pool& a_pool) { return a_build(a_pool, p); });
 
     c.poolBytes(built.pool->usedBytes());
-    c.checksum(static_cast<double>(built.object->numPoints()));
+
+    // What the build made, checked untimed: the closest points to a few queries near the cloud.
+    const Cloud& cloud = *built.object;
+    record(c,
+           Perf::queryAll(ClosestPoint<Cloud, T>{cloud},
+                          nearQueries<T>(a_shape, Perf::BuildCheckPoints, Perf::Seed::BuildChecks)));
   });
 
   for (const std::size_t nn : {std::size_t(1), KNearest}) {

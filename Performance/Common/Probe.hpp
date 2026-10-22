@@ -209,6 +209,34 @@ agreeHit(const EBGeometry::PointCloud::Hit<T>& a_host, const EBGeometry::PointCl
 }
 
 /**
+ * @brief The number of points at which a build or refit case queries what it built, untimed, so that its
+ * checksum depends on the structure itself rather than on its size alone (at Perf::Seed::BuildChecks).
+ */
+constexpr std::size_t BuildCheckPoints = 1000;
+
+/**
+ * @brief A query's results over a set of inputs, untimed (a build case's check of what it built).
+ * @tparam Query A callable taking const In&.
+ * @tparam In    Input type.
+ * @param[in] a_query The query.
+ * @param[in] a_in    The inputs.
+ * @return The results, one per input.
+ */
+template <class Query, class In>
+auto
+queryAll(const Query& a_query, const std::vector<In>& a_in)
+{
+  std::vector<std::decay_t<decltype(a_query(a_in[0]))>> out;
+  out.reserve(a_in.size());
+
+  for (const auto& x : a_in) {
+    out.push_back(a_query(x));
+  }
+
+  return out;
+}
+
+/**
  * @brief Time a query over a set of inputs on the host, as the case's own time.
  * @tparam Query A callable taking const In&.
  * @tparam In    Input type.

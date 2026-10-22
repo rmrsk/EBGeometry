@@ -40,12 +40,24 @@ using Vec3 = EBGeometry::Vec3T<T>;
 // near and away from the surface.
 template <class T>
 std::vector<Vec3<T>>
-queryPoints(const EBGeometry::BoundingVolumes::AABBT<T>& a_box, std::size_t a_n)
+queryPoints(const EBGeometry::BoundingVolumes::AABBT<T>& a_box,
+            std::size_t                                  a_n,
+            std::uint64_t                                a_seed = Perf::Seed::MeshQueries)
 {
   const auto c = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
   const auto h = T(0.75) * (a_box.getHighCorner() - a_box.getLowCorner());
 
-  return Perf::pointsInBox<T>(EBGeometry::BoundingVolumes::AABBT<T>(c - h, c + h), a_n, Perf::Seed::MeshQueries);
+  return Perf::pointsInBox<T>(EBGeometry::BoundingVolumes::AABBT<T>(c - h, c + h), a_n, a_seed);
+}
+
+// A checksum of what a build or refit made, checked untimed: the signed distances at a few points.
+template <class T, class SDF>
+double
+checkOf(const SDF& a_sdf)
+{
+  const auto q = queryPoints<T>(a_sdf.computeBoundingVolume(), Perf::BuildCheckPoints, Perf::Seed::BuildChecks);
+
+  return Perf::checksumOf(Perf::queryAll(Perf::SignedDistance<SDF, T>{a_sdf}, q));
 }
 
 // The query cases both SDF types have: on the host and, if a_pairs, as host/device pairs.
@@ -118,7 +130,7 @@ addTriMeshSDF(Perf::Suite& a_suite)
     });
 
     c.poolBytes(built.pool->usedBytes());
-    c.checksum(static_cast<double>(built.object->signedDistance(Vec3<T>(T(0), T(0), T(0)))));
+    c.checksum(checkOf<T>(*built.object));
     c.param("triangles", triangles.size());
     params(c);
   });
@@ -161,7 +173,7 @@ addMeshSDF(Perf::Suite& a_suite)
       });
 
     c.poolBytes(built.pool->usedBytes());
-    c.checksum(static_cast<double>(built.object->signedDistance(Vec3<T>(T(0), T(0), T(0)))));
+    c.checksum(checkOf<T>(*built.object));
     params(c);
   });
 
@@ -181,7 +193,7 @@ addMeshSDF(Perf::Suite& a_suite)
       }
     });
 
-    c.checksum(static_cast<double>(sdf.computeBoundingVolume().getHighCorner()[0]));
+    c.checksum(checkOf<T>(sdf));
     c.param("refits", Refits);
     params(c);
   });

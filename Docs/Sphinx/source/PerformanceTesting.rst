@@ -43,8 +43,9 @@ named from general to specific, ``component/input/operation/precision/side``, fo
 inputs untimed, runs the measured operation once to warm up and then a number of times, and reports:
 
 * the median time, its interquartile range, and, for queries, the time per item;
-* a checksum of its results, so that a change in speed is only compared for equal answers (the point
-  clouds also record an exact hash of the points their queries found, since a sum of distances cannot
+* a checksum of its results, so that a change in speed is only compared for equal answers (a build or
+  refit, whose result is a structure, checksums queries at 1,000 fixed points against what it built,
+  untimed; the point clouds also record an exact hash of the points their queries found, since a sum of distances cannot
   show a different point at the same distance);
 * the bytes the structure occupies in its ``Pool``, where it has one (deterministic, so it needs no
   statistics);

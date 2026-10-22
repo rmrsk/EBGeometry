@@ -44,6 +44,7 @@ constexpr std::uint64_t FarQueries   = 9;        ///< PointCloud: queries far ou
 constexpr std::uint64_t MeshQueries  = 11;       ///< Mesh: queries around the mesh.
 constexpr std::uint64_t UnionQueries = 13;       ///< BVHUnion: queries in the union's box.
 constexpr std::uint64_t CylinderAxes = 21;       ///< BVHUnion: the cylinders' directions.
+constexpr std::uint64_t BuildChecks  = 23;       ///< Every probe: where a build case checks what it built.
 
 } // namespace Seed
 
