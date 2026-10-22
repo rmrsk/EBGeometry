@@ -156,9 +156,10 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 **Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
-grown by a quarter on every side), against the same solid written by hand, as issue #210 asks. On an
-RTX A4000 in single precision the tape is about 35 times slower than the hand-written solid, on one host
-core about 3 times.
+grown by a quarter on every side), against the same solid written by hand (issues #210 and #221). On an
+RTX A4000 in single precision the tape is about 30 times slower than the hand-written solid, on one host
+core about 3 times. The ``sphere`` and ``chain16`` cases take that gap apart: it is a fixed cost paid once
+per device thread (a copy of the tape handle, #221), not one per clause or per evaluation.
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
@@ -168,6 +169,12 @@ Family                                Build  Measures
 ``csg-handwritten/signedDistance``    host   the same solid written by hand (the reference)
 ``smooth/signedDistance``             host   two smooth unions of spheres, smoothly cut by a box
 ``union64/signedDistance``            host   a union of 64 spheres, through the tape's BVH union
+``sphere/signedDistance``,            host   one sphere as a one-clause tape, and called directly
+``sphere-handwritten/signedDistance``
+``sphere/signedDistance-x16``,        host   the same, evaluated 16 times per query (per device
+``sphere-handwritten/...-x16``               thread)
+``chain16/signedDistance``,           host   a union of 16 spheres evaluated clause by clause (31
+``chain16-handwritten/...``                  clauses, no BVH), and as a hand-written loop
 ``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
 ====================================  =====  =====================================================
 
