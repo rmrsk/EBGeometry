@@ -22,7 +22,7 @@
 #   GPU_ARCH   CMAKE_CUDA_ARCHITECTURES / CMAKE_HIP_ARCHITECTURES  default: the toolchain's
 #   CMAKE_CUDA_COMPILER / CMAKE_HIP_COMPILER  the device compiler   default: the one on the PATH
 #   CASES      glob(s) of case names to run, a CMake list         default: *
-#   ROUNDS     runs of each case per side                         default: 3
+#   ROUNDS     runs of each case per side (at least 2)            default: 3
 #   REPS       timed repetitions inside each run                  default: 5
 #   CORE       core to pin to with taskset; OFF to not pin        default: 2 (OFF when GPU is set)
 #   MINOR      percent slower that asks for a look                default: 3
@@ -59,6 +59,10 @@ endif()
 if(SMOKE)
   set(ROUNDS 1)
   set(REPS 1)
+elseif(ROUNDS LESS 2)
+  # PerfCompare judges a case by its runs (fresh processes), and one run per side cannot tell a change
+  # from the noise between processes.
+  message(FATAL_ERROR "Compare.cmake: a comparison needs at least 2 rounds (got ROUNDS=${ROUNDS})")
 endif()
 
 get_filename_component(WORK_DIR "${WORK_DIR}" ABSOLUTE BASE_DIR "${REPO}")

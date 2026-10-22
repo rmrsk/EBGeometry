@@ -21,7 +21,7 @@
 #   --gpu-arch <arch>       CMAKE_CUDA_ARCHITECTURES / CMAKE_HIP_ARCHITECTURES (e.g. 86)
 #   --cuda-compiler <path>  nvcc to use (CMake also honours CUDACXX); --hip-compiler likewise
 #   --reps <n>              timed repetitions per case (default 5)
-#   --rounds <n>            compare: runs of each case per side (default 3)
+#   --rounds <n>            compare: runs of each case per side (default 3, at least 2)
 #   --smoke                 tiny sizes, one repetition: run checks that the cases run; compare checks
 #                           that both commits build, every case runs on both sides, the checksums
 #                           match and host/device agree, with no timing verdicts (about a minute)

@@ -8,19 +8,25 @@
 //   PerfCompare.ex --base base.jsonl --head head.jsonl [--minor <percent>] [--major <percent>]
 //                  [--markdown <file>] [--smoke] [--verdict-only | --no-verdict] [--failed-runs <n>]
 //
-// For every case it reports the median time of each side, their ratio, a bootstrap 95% confidence
-// interval for the ratio, the change in pool bytes, and a verdict:
+// Each JSON line of a case is one run: a fresh process, timing several repetitions. Repetitions in one
+// process share its luck (memory placement, clock speed, neighbours on the machine), so they are not
+// independent measurements; runs are. Every case is therefore judged by its runs: each run is reduced to
+// the median of its repetitions, and for every case it reports the median of those per side, their
+// ratio, a bootstrap 95% confidence interval for the ratio (the runs resampled, not the repetitions),
+// the change in pool bytes, and a verdict:
 //
+//   lost     ran in the baseline, but was skipped or is missing in the candidate: a red flag
 //   DIFFER   a pair whose host and device answers disagree: a red flag, its times not comparable
 //   MAJOR    slower by at least --major percent (default 10), or that much more pool memory: a red flag
 //   minor    slower by at least --minor percent (default 3), or that much more pool memory: ask
 //   faster   faster by at least --minor percent, and no more pool memory
 //   ~        anything else (within the thresholds, or within the noise)
 //
-// A slowdown or speedup counts only when the interval lies above or below 1; pool bytes are
-// deterministic and judged by the thresholds alone. A pair also shows the device's speedup over the
-// host, with the baseline's beside it when the two differ by --minor percent or more, and a checksum
-// that differs between the sides is noted: a change in speed is only comparable for equal answers.
+// A slowdown or speedup counts only when the interval lies above or below 1, and is judged only with
+// at least two runs on each side; pool bytes are deterministic and judged by the thresholds alone. A
+// pair also shows the device's speedup over the host, with the baseline's beside it when the two differ
+// by --minor percent or more, and a checksum that differs between the sides is noted: a change in speed
+// is only comparable for equal answers.
 //
 // With --smoke (results of a smoke run) it judges no timings: per case, whether it ran on each side,
 // whether the checksums match, and whether a pair's host and device answers agree, with the times
@@ -59,6 +65,7 @@ using Perf::formatTime;
 struct Measurement
 {
   std::vector<double>   times;         // Every repetition of every run.
+  std::vector<double>   runs;          // The median of each run's repetitions.
   std::optional<double> checksum;      // From the first run.
   double                poolBytes = 0; // 0: not recorded.
   bool                  paired    = false;
@@ -138,6 +145,10 @@ read(const std::string& a_file)
     const std::vector<double> times = line.numbers(Key::TimesMs);
     m.times.insert(m.times.end(), times.begin(), times.end());
 
+    if (!times.empty()) {
+      m.runs.push_back(Perf::median(times));
+    }
+
     if (line.has(Key::Checksum) && !m.checksum) {
       m.checksum = line.number(Key::Checksum);
     }
@@ -175,6 +186,13 @@ bool
 checksumsDiffer(double a_base, double a_head)
 {
   return std::abs(a_base - a_head) > 1e-6 * std::max(std::abs(a_base), 1.0);
+}
+
+// Whether a case ran on a side: it has a result there, and was not skipped.
+bool
+ran(const Measurement* a_m)
+{
+  return a_m != nullptr && !a_m->skipped && !a_m->times.empty();
 }
 
 // ── The verdict line ────────────────────────────────────────────────────────────────────────────────
@@ -216,6 +234,7 @@ enum class Outcome
   Minor,
   Major,
   Differ,
+  Lost,
   New,
   Removed,
   Skipped
@@ -225,6 +244,8 @@ const char*
 label(Outcome a_outcome)
 {
   switch (a_outcome) {
+  case Outcome::Lost:
+    return "lost";
   case Outcome::Faster:
     return "faster";
   case Outcome::Minor:
@@ -250,6 +271,7 @@ struct Comparison
   std::string           name;
   Outcome               outcome = Outcome::Unchanged;
   bool                  timed   = false; // Whether both sides have times.
+  bool                  judged  = false; // Whether both sides have at least two runs, so the time is judged.
   double                baseMs  = 0;
   double                headMs  = 0;
   Perf::Interval        interval;
@@ -261,7 +283,7 @@ struct Comparison
   std::optional<double> baseSpeedup; // ... and the baseline's, when it differs by --minor or more.
   double                mismatches = 0;
   double                maxDiff    = 0;
-  std::string           reason; // Why a side was skipped.
+  std::string           reason; // Why a side was skipped, or the case is lost.
 
   // The change in time, as a percentage, or "-" without times on both sides.
   [[nodiscard]] std::string
@@ -273,7 +295,15 @@ struct Comparison
   [[nodiscard]] bool
   flagged() const
   {
-    return outcome == Outcome::Major || outcome == Outcome::Minor || outcome == Outcome::Differ || baseChecksum;
+    return outcome == Outcome::Major || outcome == Outcome::Minor || outcome == Outcome::Differ ||
+           outcome == Outcome::Lost || baseChecksum;
+  }
+
+  // Whether the verdict is red.
+  [[nodiscard]] bool
+  red() const
+  {
+    return outcome == Outcome::Major || outcome == Outcome::Differ || outcome == Outcome::Lost;
   }
 
   [[nodiscard]] std::string
@@ -283,6 +313,10 @@ struct Comparison
 
     if (!reason.empty()) {
       parts.push_back(reason);
+    }
+
+    if (timed && !judged) {
+      parts.emplace_back("fewer than two runs on a side: time not judged");
     }
 
     if (poolUp) {
@@ -325,6 +359,16 @@ compare(const std::string& a_name, const Measurement* a_base, const Measurement*
   Comparison c;
   c.name = a_name;
 
+  // A case that ran in the baseline but not in the candidate is lost: whatever broke it (a missing
+  // input, an exception, a removed case) must be looked at before the comparison means anything.
+  if (ran(a_base) && !ran(a_head)) {
+    c.outcome = Outcome::Lost;
+    c.reason  = a_head == nullptr ? "missing in the candidate"
+                : a_head->skipped ? "skipped in the candidate: " + a_head->reason
+                                  : "no result in the candidate";
+    return c;
+  }
+
   if (a_base == nullptr || a_head == nullptr) {
     c.outcome = a_base == nullptr ? Outcome::New : Outcome::Removed;
     return c;
@@ -339,26 +383,31 @@ compare(const std::string& a_name, const Measurement* a_base, const Measurement*
   const double minor = 1.0 + a_thresholds.minor / 100.0;
   const double major = 1.0 + a_thresholds.major / 100.0;
 
-  // The time: the change, and its interval.
+  // The time: the change, and its interval, both over the runs (see the file comment). With one run on a
+  // side there is nothing to tell a change from the noise between processes, so the time is not judged.
   int  severity = 0;
   bool faster   = false;
 
-  if (!a_base->times.empty() && !a_head->times.empty()) {
-    c.timed    = true;
-    c.baseMs   = Perf::median(a_base->times);
-    c.headMs   = Perf::median(a_head->times);
-    c.interval = Perf::bootstrapRatio(a_base->times, a_head->times);
+  if (!a_base->runs.empty() && !a_head->runs.empty()) {
+    c.timed  = true;
+    c.judged = a_base->runs.size() >= 2 && a_head->runs.size() >= 2;
+    c.baseMs = Perf::median(a_base->runs);
+    c.headMs = Perf::median(a_head->runs);
 
-    const double ratio = c.headMs / c.baseMs;
+    if (c.judged) {
+      c.interval = Perf::bootstrapRatio(a_base->runs, a_head->runs);
 
-    if (c.interval.low > 1.0 && ratio >= major) {
-      severity = 2;
-    }
-    else if (c.interval.low > 1.0 && ratio >= minor) {
-      severity = 1;
-    }
-    else if (c.interval.high < 1.0 && ratio <= 2.0 - minor) {
-      faster = true;
+      const double ratio = c.headMs / c.baseMs;
+
+      if (c.interval.low > 1.0 && ratio >= major) {
+        severity = 2;
+      }
+      else if (c.interval.low > 1.0 && ratio >= minor) {
+        severity = 1;
+      }
+      else if (c.interval.high < 1.0 && ratio <= 2.0 - minor) {
+        faster = true;
+      }
     }
   }
 
@@ -420,6 +469,7 @@ fullVerdict(const std::vector<Comparison>& a_cases, int a_failedRuns)
   const std::size_t major     = count([](const Comparison& c) { return c.outcome == Outcome::Major; });
   const std::size_t minor     = count([](const Comparison& c) { return c.outcome == Outcome::Minor; });
   const std::size_t differ    = count([](const Comparison& c) { return c.outcome == Outcome::Differ; });
+  const std::size_t lost      = count([](const Comparison& c) { return c.outcome == Outcome::Lost; });
   const std::size_t checksums = count([](const Comparison& c) { return c.baseChecksum.has_value(); });
 
   using Perf::counted;
@@ -428,6 +478,12 @@ fullVerdict(const std::vector<Comparison>& a_cases, int a_failedRuns)
     return {2,
             "VERDICT: " + counted(static_cast<std::size_t>(a_failedRuns), "run") +
               " crashed or exited with an error (see above); fix them before judging"};
+  }
+
+  if (lost > 0) {
+    return {2,
+            "VERDICT: " + counted(lost, "case") +
+              " ran in the baseline but not in the candidate; fix them before judging (see Flagged above)"};
   }
 
   if (differ > 0) {
@@ -488,7 +544,7 @@ fullReport(const Results&     a_base,
   const std::string summary =
     std::to_string(count(Outcome::Major)) + " major, " + std::to_string(count(Outcome::Minor)) + " minor, " +
     std::to_string(count(Outcome::Faster)) + " faster, " + std::to_string(count(Outcome::Differ)) + " differ, " +
-    Perf::counted(cases.size(), "case");
+    std::to_string(count(Outcome::Lost)) + " lost, " + Perf::counted(cases.size(), "case");
 
   const auto side = [](const char* a_label, const Results& a_r) {
     return std::string(a_label) + a_r.fact(Perf::Key::Git) + " (" + a_r.fact(Perf::Key::Compiler) + ", simd " +
@@ -497,7 +553,7 @@ fullReport(const Results&     a_base,
 
   const std::string thresholds = "minor >= " + formatNumber("%g", a_thresholds.minor) +
                                  "%, major >= " + formatNumber("%g", a_thresholds.major) +
-                                 "% slower, and outside the 95% bootstrap interval";
+                                 "% slower, and outside the 95% bootstrap interval over the runs";
 
   // The table, for the terminal and for Markdown alike.
   using Perf::Align;
@@ -514,18 +570,17 @@ fullReport(const Results&     a_base,
 
   for (const auto& c : cases) {
     const std::string change   = c.change();
-    const std::string interval = c.timed ? "[" + formatNumber("%+.1f%%", 100.0 * (c.interval.low - 1.0)) + ", " +
-                                             formatNumber("%+.1f%%", 100.0 * (c.interval.high - 1.0)) + "]"
-                                         : "-";
+    const std::string interval = c.judged ? "[" + formatNumber("%+.1f%%", 100.0 * (c.interval.low - 1.0)) + ", " +
+                                              formatNumber("%+.1f%%", 100.0 * (c.interval.high - 1.0)) + "]"
+                                          : "-";
     const std::string pool     = c.poolRatio ? formatNumber("%+.1f%%", 100.0 * (*c.poolRatio - 1.0)) : "-";
     const std::string base     = c.timed ? formatTime(c.baseMs) : "-";
     const std::string head     = c.timed ? formatTime(c.headMs) : "-";
     const std::string outcome  = label(c.outcome);
-    const bool        red      = c.outcome == Outcome::Major || c.outcome == Outcome::Differ;
 
     table.add({c.name, base, head, change, interval, pool, outcome, c.note()});
     markdown.add(
-      {"`" + c.name + "`", base, head, change, interval, pool, red ? "**" + outcome + "**" : outcome, c.note()});
+      {"`" + c.name + "`", base, head, change, interval, pool, c.red() ? "**" + outcome + "**" : outcome, c.note()});
   }
 
   std::printf("\nPerformance comparison: %s\n", summary.c_str());
