@@ -399,7 +399,8 @@ recorded it must pass like the host one), and passes only when, for each,
 * the base branch's code is the base the section measured. When the base branch's code moves on (another
   pull request merged), the pull request is rebased and its comparison recorded again;
 * the verdict is green, or a yellow or red verdict is accepted: the reason replaces the ``-`` on the
-  ``**Accepted:**`` line under that section's heading (a minor regression that is expected, answers that
+  ``**Accepted:**`` line under that section's heading, on that one line (a reason continued on the next
+  line is not read) (a minor regression that is expected, answers that
   changed for a reason, a major regression the maintainer explicitly accepts), where a reader of the
   rendered receipt sees it. Every verdict is recorded; only green passes on its own, and CI's check
   then shows a warning with the reason rather than a plain pass. Who accepted it is in git history: the
