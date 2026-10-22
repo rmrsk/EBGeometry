@@ -372,7 +372,7 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    counts only outside the 95% bootstrap interval):
    - **minor** (3% to 10% slower, or 3% to 10% more pool bytes): tell the user which cases, by how
      much, and the likely cause if the diff shows one, and **ask whether it should be investigated
-     further** before going on.
+     further** before going on. A yellow receipt fails CI until fixed or accepted (see 4).
    - **MAJOR** (10% or more): **red-flag it**. The PR must not be merged until the regression is
      fixed, or the user explicitly accepts it; record the reason in the PR's *Performance* section and
      after `accepted:` in the receipt.
@@ -387,8 +387,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    `Performance/CheckReceipt.cmake`, required by `CI-passed`). It fails when the PR changes the library
    or the probes and its receipt is missing, measured other code (any later code change makes a receipt
    stale; a later docs-only commit does not), measured an outdated base (rebase and record again), or is
-   red without a reason after `accepted:`. Write an accepted reason into the receipt only when the user
-   explicitly accepts a MAJOR regression.
+   not green and has no reason after `accepted:` (a yellow verdict, a minor regression or a changed
+   checksum, needs one too). Write an accepted reason into the receipt only when the user explicitly
+   accepts that verdict, and give it as the user did.
 
 **Coverage: how wide the probes are, and when to add to them.** The probes cover each public
 structure where its cost lives: its build, its queries, and any in-place update (a refit), in both

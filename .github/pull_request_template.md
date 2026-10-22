@@ -14,8 +14,8 @@
      Scripts/run-performance.sh compare origin/<base> --record
      (add a --gpu cuda run if the change touches device code). Commit its receipt,
      Performance/Receipt/host.md, which CI checks, and paste build/performance/compare/report.md here.
-     Explain any minor or MAJOR verdict; a MAJOR one is not merged unless accepted, with the reason
-     after "accepted:" in the receipt. See Docs/Sphinx/source/PerformanceTesting.rst. -->
+     Only a green receipt passes CI on its own: a yellow (minor regression, changed checksum) or red
+     (MAJOR) one needs its reason after "accepted:" in the receipt, a MAJOR one the maintainer's. See Docs/Sphinx/source/PerformanceTesting.rst. -->
 
 ### Reviewer checklist (to be completed by a human)
 

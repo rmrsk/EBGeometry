@@ -438,11 +438,13 @@ if(NOT verdict STREQUAL verdict_again)
   message(FATAL_ERROR "Compare.cmake: PerfCompare's report and verdict calls disagree (${verdict}, ${verdict_again})")
 endif()
 
-# The receipt (RECORD): the verdict, what it measured and the report, for CheckReceipt.cmake and readers. A
-# red verdict is recorded too; it passes CI only once a reason is written after "accepted:".
+# The receipt (RECORD): the verdict, what it measured and the report, for CheckReceipt.cmake and readers.
+# Every verdict is recorded; only a green one passes CI on its own, a yellow or red one once a reason is
+# written after "accepted:".
 if(RECORD)
   file(STRINGS "${WORK_DIR}/level.txt" level LIMIT_COUNT 1)
-  list(GET "green;yellow;red" ${level} verdict_name)
+  set(verdict_names green yellow red)
+  list(GET verdict_names ${level} verdict_name)
 
   if(GPU STREQUAL "OFF")
     set(receipt_side host)
@@ -464,7 +466,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 <!-- A performance receipt, written by Scripts/run-performance.sh compare --record and checked by CI
      (Performance/CheckReceipt.cmake). Commit it with the pull request; do not edit it, except to accept a
-     red verdict: write the reason after \"accepted:\" below. See PerformanceTesting.rst. -->
+     yellow or red verdict: write the reason after \"accepted:\" below. See PerformanceTesting.rst. -->
 
 <!--receipt
 version: ${PERF_RECEIPT_VERSION}

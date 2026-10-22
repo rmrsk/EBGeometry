@@ -15,7 +15,8 @@
 #   * have measured this code:     its head fingerprint is HEAD_REF's;
 #   * have measured today's base:  its base fingerprint is BASE_REF's, so a base whose code moved on
 #                                  since needs a rebase and a new comparison;
-#   * not be red, unless accepted: a reason written after "accepted:".
+#   * be green, or be accepted:    a yellow or red verdict passes only with a reason written after
+#                                  "accepted:".
 #
 # Any other receipt is stale, and fails: an old receipt never stands for new code. Device receipts
 # (cuda.md, hip.md) are optional; they are reported, never required. SUMMARY, if set, is a file the
@@ -110,16 +111,20 @@ if(NOT r_base-fingerprint STREQUAL base_now)
   set(passed FALSE)
 endif()
 
-if(r_verdict STREQUAL "red")
+if(r_verdict STREQUAL "red" OR r_verdict STREQUAL "yellow")
+  if(r_verdict STREQUAL "red")
+    set(what "Red verdict (a major regression, answers that differ, or a case that no longer runs)")
+  else()
+    set(what "Yellow verdict (a minor regression, or a changed checksum)")
+  endif()
+
   if(r_accepted STREQUAL "")
-    say("- **Red verdict**: fix the regression and record again, or, if it is accepted, write the reason")
-    say("  after \"accepted:\" in the receipt.")
+    say("- **${what}**: fix it and record again, or, if it is accepted, write the reason after")
+    say("  \"accepted:\" in the receipt.")
     set(passed FALSE)
   else()
-    say("- Red verdict, **accepted**: ${r_accepted}")
+    say("- ${what}, **accepted**: ${r_accepted}")
   endif()
-elseif(r_verdict STREQUAL "yellow")
-  say("- Yellow verdict: a minor regression or a changed checksum; the pull request should say why.")
 elseif(NOT r_verdict STREQUAL "green")
   say("- **Unreadable** verdict '${r_verdict}'. Record a new receipt: `${rerun}`")
   set(passed FALSE)

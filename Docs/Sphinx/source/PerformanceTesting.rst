@@ -347,9 +347,9 @@ case with more rounds (``--rounds 10``).
 
 A differing checksum, or a differing hash of the points found, is noted beside the verdict: the two
 sides did not compute the same answers, so the times may not be comparable. It is flagged and makes the
-verdict yellow (as in a smoke comparison), never red, so it does not fail CI: a change to a kernel may
-legitimately change a result's last bits, and the author says in the pull request why the answers
-changed. A case whose pool bytes shrink by 3% or more is noted as such (it is never a regression). A
+verdict yellow (as in a smoke comparison), not red: a change to a kernel may legitimately change a
+result's last bits. Like any yellow verdict, it passes CI only once accepted in the receipt, with the
+reason the answers changed (see `The performance receipt`_). A case whose pool bytes shrink by 3% or more is noted as such (it is never a regression). A
 paired case shows the device's speedup over the host, with the baseline's beside it when the two differ
 by 3% or more. Flagged cases are listed again under the table.
 
@@ -382,8 +382,10 @@ passes only when
   request that changes code and keeps the receipt it inherited fails;
 * the base branch's code is the base the receipt measured. When the base branch's code moves on (another
   pull request merged), the pull request is rebased and its comparison recorded again;
-* the verdict is not red, or a red verdict is accepted: the reason is written after ``accepted:`` in
-  the receipt. A yellow verdict passes, and the pull request says why.
+* the verdict is green, or a yellow or red verdict is accepted: the reason is written after
+  ``accepted:`` in the receipt (a minor regression that is expected, answers that changed for a reason,
+  a major regression the maintainer explicitly accepts). Every verdict is recorded; only green passes
+  on its own.
 
 A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
 request leaves its receipt in the base branch, so the history of ``Performance/Receipt/host.md`` is
@@ -405,7 +407,8 @@ Two jobs in ``.github/workflows/CI.yml`` cover ``Performance/``:
   summary. It builds and times nothing.
 
 A minor regression is a question for the author and the reviewer: is it expected, and is it worth
-investigating? A major regression is not merged until it is fixed or explicitly accepted in the receipt.
+investigating? It, a changed checksum and a major regression are all merged only once fixed (and
+recorded again) or accepted in the receipt, the major one only by the maintainer's explicit decision.
 The pull request's *Performance* section shows the receipt's table, and the device comparison when the
 change touches device code.
 

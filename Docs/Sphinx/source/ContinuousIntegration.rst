@@ -120,7 +120,7 @@ On a pull request, checks its performance receipt (``Performance/CheckReceipt.cm
 the full comparison its author ran locally with ``Scripts/run-performance.sh compare --record`` and
 committed. It times nothing, since a shared runner is too noisy to judge performance. It fails when the
 pull request changes the library or the probes and its receipt is missing, measured other code (stale),
-measured an outdated base, or is red without an accepted reason; see :ref:`Chap:PerformanceTesting`.
+measured an outdated base, or is not green and has no accepted reason; see :ref:`Chap:PerformanceTesting`.
 The result goes into the job summary. On a push the job does nothing and succeeds, since ``CI-passed``
 counts a skipped job as a failure. The GPU lanes also compile the probes for their device.
 
