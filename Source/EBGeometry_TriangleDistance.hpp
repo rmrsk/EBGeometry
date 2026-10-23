@@ -76,6 +76,7 @@ cross(const Vec3V<V>& a_u, const Vec3V<V>& a_v) noexcept
 {
   return Vec3V<V>{a_u.y * a_v.z - a_u.z * a_v.y, a_u.z * a_v.x - a_u.x * a_v.z, a_u.x * a_v.y - a_u.y * a_v.x};
 }
+
 template <class V>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3V<V>

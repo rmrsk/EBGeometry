@@ -300,16 +300,16 @@ struct Pack<float, 4>
 
   // clang-format off
   /// @cond
-  friend Pack operator+(const Pack a, const Pack b) noexcept { return Pack(_mm_add_ps(a.v, b.v)); }
-  friend Pack operator-(const Pack a, const Pack b) noexcept { return Pack(_mm_sub_ps(a.v, b.v)); }
-  friend Pack operator*(const Pack a, const Pack b) noexcept { return Pack(_mm_mul_ps(a.v, b.v)); }
-  friend Pack operator/(const Pack a, const Pack b) noexcept { return Pack(_mm_div_ps(a.v, b.v)); }
-  friend MaskF4 operator<(const Pack a, const Pack b) noexcept { return MaskF4{_mm_cmplt_ps(a.v, b.v)}; }
-  friend MaskF4 operator>(const Pack a, const Pack b) noexcept { return MaskF4{_mm_cmpgt_ps(a.v, b.v)}; }
-  friend MaskF4 operator>=(const Pack a, const Pack b) noexcept { return MaskF4{_mm_cmpge_ps(a.v, b.v)}; }
-  friend Pack select(const MaskF4 m, const Pack a, const Pack b) noexcept { return Pack(_mm_blendv_ps(b.v, a.v, m.m)); }
-  friend Pack sqrt(const Pack a) noexcept { return Pack(_mm_sqrt_ps(a.v)); }
-  friend Pack abs(const Pack a) noexcept { return Pack(_mm_andnot_ps(_mm_set1_ps(-0.0F), a.v)); }
+  friend Pack operator+(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm_add_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator-(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm_sub_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator*(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm_mul_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator/(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm_div_ps(a_lhs.v, a_rhs.v)); }
+  friend MaskF4 operator<(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF4{_mm_cmplt_ps(a_lhs.v, a_rhs.v)}; }
+  friend MaskF4 operator>(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF4{_mm_cmpgt_ps(a_lhs.v, a_rhs.v)}; }
+  friend MaskF4 operator>=(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF4{_mm_cmpge_ps(a_lhs.v, a_rhs.v)}; }
+  friend Pack select(const MaskF4 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(_mm_blendv_ps(a_ifFalse.v, a_ifTrue.v, a_mask.m)); }
+  friend Pack sqrt(const Pack a_x) noexcept { return Pack(_mm_sqrt_ps(a_x.v)); }
+  friend Pack abs(const Pack a_x) noexcept { return Pack(_mm_andnot_ps(_mm_set1_ps(-0.0F), a_x.v)); }
   /// @endcond
   // clang-format on
 };
@@ -367,16 +367,16 @@ struct Pack<double, 2>
 
   // clang-format off
   /// @cond
-  friend Pack operator+(const Pack a, const Pack b) noexcept { return Pack(_mm_add_pd(a.v, b.v)); }
-  friend Pack operator-(const Pack a, const Pack b) noexcept { return Pack(_mm_sub_pd(a.v, b.v)); }
-  friend Pack operator*(const Pack a, const Pack b) noexcept { return Pack(_mm_mul_pd(a.v, b.v)); }
-  friend Pack operator/(const Pack a, const Pack b) noexcept { return Pack(_mm_div_pd(a.v, b.v)); }
-  friend MaskD2 operator<(const Pack a, const Pack b) noexcept { return MaskD2{_mm_cmplt_pd(a.v, b.v)}; }
-  friend MaskD2 operator>(const Pack a, const Pack b) noexcept { return MaskD2{_mm_cmpgt_pd(a.v, b.v)}; }
-  friend MaskD2 operator>=(const Pack a, const Pack b) noexcept { return MaskD2{_mm_cmpge_pd(a.v, b.v)}; }
-  friend Pack select(const MaskD2 m, const Pack a, const Pack b) noexcept { return Pack(_mm_blendv_pd(b.v, a.v, m.m)); }
-  friend Pack sqrt(const Pack a) noexcept { return Pack(_mm_sqrt_pd(a.v)); }
-  friend Pack abs(const Pack a) noexcept { return Pack(_mm_andnot_pd(_mm_set1_pd(-0.0), a.v)); }
+  friend Pack operator+(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm_add_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator-(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm_sub_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator*(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm_mul_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator/(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm_div_pd(a_lhs.v, a_rhs.v)); }
+  friend MaskD2 operator<(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD2{_mm_cmplt_pd(a_lhs.v, a_rhs.v)}; }
+  friend MaskD2 operator>(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD2{_mm_cmpgt_pd(a_lhs.v, a_rhs.v)}; }
+  friend MaskD2 operator>=(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD2{_mm_cmpge_pd(a_lhs.v, a_rhs.v)}; }
+  friend Pack select(const MaskD2 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(_mm_blendv_pd(a_ifFalse.v, a_ifTrue.v, a_mask.m)); }
+  friend Pack sqrt(const Pack a_x) noexcept { return Pack(_mm_sqrt_pd(a_x.v)); }
+  friend Pack abs(const Pack a_x) noexcept { return Pack(_mm_andnot_pd(_mm_set1_pd(-0.0), a_x.v)); }
   /// @endcond
   // clang-format on
 };
@@ -476,16 +476,16 @@ struct Pack<float, 8>
 
   // clang-format off
   /// @cond
-  friend Pack operator+(const Pack a, const Pack b) noexcept { return Pack(_mm256_add_ps(a.v, b.v)); }
-  friend Pack operator-(const Pack a, const Pack b) noexcept { return Pack(_mm256_sub_ps(a.v, b.v)); }
-  friend Pack operator*(const Pack a, const Pack b) noexcept { return Pack(_mm256_mul_ps(a.v, b.v)); }
-  friend Pack operator/(const Pack a, const Pack b) noexcept { return Pack(_mm256_div_ps(a.v, b.v)); }
-  friend MaskF8 operator<(const Pack a, const Pack b) noexcept { return MaskF8{_mm256_cmp_ps(a.v, b.v, _CMP_LT_OQ)}; }
-  friend MaskF8 operator>(const Pack a, const Pack b) noexcept { return MaskF8{_mm256_cmp_ps(a.v, b.v, _CMP_GT_OQ)}; }
-  friend MaskF8 operator>=(const Pack a, const Pack b) noexcept { return MaskF8{_mm256_cmp_ps(a.v, b.v, _CMP_GE_OQ)}; }
-  friend Pack select(const MaskF8 m, const Pack a, const Pack b) noexcept { return Pack(_mm256_blendv_ps(b.v, a.v, m.m)); }
-  friend Pack sqrt(const Pack a) noexcept { return Pack(_mm256_sqrt_ps(a.v)); }
-  friend Pack abs(const Pack a) noexcept { return Pack(_mm256_andnot_ps(_mm256_set1_ps(-0.0F), a.v)); }
+  friend Pack operator+(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm256_add_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator-(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm256_sub_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator*(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm256_mul_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator/(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm256_div_ps(a_lhs.v, a_rhs.v)); }
+  friend MaskF8 operator<(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF8{_mm256_cmp_ps(a_lhs.v, a_rhs.v, _CMP_LT_OQ)}; }
+  friend MaskF8 operator>(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF8{_mm256_cmp_ps(a_lhs.v, a_rhs.v, _CMP_GT_OQ)}; }
+  friend MaskF8 operator>=(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF8{_mm256_cmp_ps(a_lhs.v, a_rhs.v, _CMP_GE_OQ)}; }
+  friend Pack select(const MaskF8 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(_mm256_blendv_ps(a_ifFalse.v, a_ifTrue.v, a_mask.m)); }
+  friend Pack sqrt(const Pack a_x) noexcept { return Pack(_mm256_sqrt_ps(a_x.v)); }
+  friend Pack abs(const Pack a_x) noexcept { return Pack(_mm256_andnot_ps(_mm256_set1_ps(-0.0F), a_x.v)); }
   /// @endcond
   // clang-format on
 };
@@ -543,16 +543,16 @@ struct Pack<double, 4>
 
   // clang-format off
   /// @cond
-  friend Pack operator+(const Pack a, const Pack b) noexcept { return Pack(_mm256_add_pd(a.v, b.v)); }
-  friend Pack operator-(const Pack a, const Pack b) noexcept { return Pack(_mm256_sub_pd(a.v, b.v)); }
-  friend Pack operator*(const Pack a, const Pack b) noexcept { return Pack(_mm256_mul_pd(a.v, b.v)); }
-  friend Pack operator/(const Pack a, const Pack b) noexcept { return Pack(_mm256_div_pd(a.v, b.v)); }
-  friend MaskD4 operator<(const Pack a, const Pack b) noexcept { return MaskD4{_mm256_cmp_pd(a.v, b.v, _CMP_LT_OQ)}; }
-  friend MaskD4 operator>(const Pack a, const Pack b) noexcept { return MaskD4{_mm256_cmp_pd(a.v, b.v, _CMP_GT_OQ)}; }
-  friend MaskD4 operator>=(const Pack a, const Pack b) noexcept { return MaskD4{_mm256_cmp_pd(a.v, b.v, _CMP_GE_OQ)}; }
-  friend Pack select(const MaskD4 m, const Pack a, const Pack b) noexcept { return Pack(_mm256_blendv_pd(b.v, a.v, m.m)); }
-  friend Pack sqrt(const Pack a) noexcept { return Pack(_mm256_sqrt_pd(a.v)); }
-  friend Pack abs(const Pack a) noexcept { return Pack(_mm256_andnot_pd(_mm256_set1_pd(-0.0), a.v)); }
+  friend Pack operator+(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm256_add_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator-(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm256_sub_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator*(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm256_mul_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator/(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm256_div_pd(a_lhs.v, a_rhs.v)); }
+  friend MaskD4 operator<(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD4{_mm256_cmp_pd(a_lhs.v, a_rhs.v, _CMP_LT_OQ)}; }
+  friend MaskD4 operator>(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD4{_mm256_cmp_pd(a_lhs.v, a_rhs.v, _CMP_GT_OQ)}; }
+  friend MaskD4 operator>=(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD4{_mm256_cmp_pd(a_lhs.v, a_rhs.v, _CMP_GE_OQ)}; }
+  friend Pack select(const MaskD4 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(_mm256_blendv_pd(a_ifFalse.v, a_ifTrue.v, a_mask.m)); }
+  friend Pack sqrt(const Pack a_x) noexcept { return Pack(_mm256_sqrt_pd(a_x.v)); }
+  friend Pack abs(const Pack a_x) noexcept { return Pack(_mm256_andnot_pd(_mm256_set1_pd(-0.0), a_x.v)); }
   /// @endcond
   // clang-format on
 };
@@ -654,18 +654,18 @@ struct Pack<float, 16>
 
   // clang-format off
   /// @cond
-  friend Pack operator+(const Pack a, const Pack b) noexcept { return Pack(_mm512_add_ps(a.v, b.v)); }
-  friend Pack operator-(const Pack a, const Pack b) noexcept { return Pack(_mm512_sub_ps(a.v, b.v)); }
-  friend Pack operator*(const Pack a, const Pack b) noexcept { return Pack(_mm512_mul_ps(a.v, b.v)); }
-  friend Pack operator/(const Pack a, const Pack b) noexcept { return Pack(_mm512_div_ps(a.v, b.v)); }
-  friend MaskF16 operator<(const Pack a, const Pack b) noexcept { return MaskF16{_mm512_cmp_ps_mask(a.v, b.v, _CMP_LT_OQ)}; }
-  friend MaskF16 operator>(const Pack a, const Pack b) noexcept { return MaskF16{_mm512_cmp_ps_mask(a.v, b.v, _CMP_GT_OQ)}; }
-  friend MaskF16 operator>=(const Pack a, const Pack b) noexcept { return MaskF16{_mm512_cmp_ps_mask(a.v, b.v, _CMP_GE_OQ)}; }
-  friend Pack select(const MaskF16 m, const Pack a, const Pack b) noexcept { return Pack(_mm512_mask_blend_ps(m.m, b.v, a.v)); }
-  friend Pack sqrt(const Pack a) noexcept { return Pack(_mm512_sqrt_ps(a.v)); }
-  friend Pack abs(const Pack a) noexcept
+  friend Pack operator+(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm512_add_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator-(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm512_sub_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator*(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm512_mul_ps(a_lhs.v, a_rhs.v)); }
+  friend Pack operator/(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm512_div_ps(a_lhs.v, a_rhs.v)); }
+  friend MaskF16 operator<(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF16{_mm512_cmp_ps_mask(a_lhs.v, a_rhs.v, _CMP_LT_OQ)}; }
+  friend MaskF16 operator>(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF16{_mm512_cmp_ps_mask(a_lhs.v, a_rhs.v, _CMP_GT_OQ)}; }
+  friend MaskF16 operator>=(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF16{_mm512_cmp_ps_mask(a_lhs.v, a_rhs.v, _CMP_GE_OQ)}; }
+  friend Pack select(const MaskF16 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(_mm512_mask_blend_ps(a_mask.m, a_ifFalse.v, a_ifTrue.v)); }
+  friend Pack sqrt(const Pack a_x) noexcept { return Pack(_mm512_sqrt_ps(a_x.v)); }
+  friend Pack abs(const Pack a_x) noexcept
   {
-    return Pack(_mm512_castsi512_ps(_mm512_andnot_si512(_mm512_castps_si512(_mm512_set1_ps(-0.0F)), _mm512_castps_si512(a.v))));
+    return Pack(_mm512_castsi512_ps(_mm512_andnot_si512(_mm512_castps_si512(_mm512_set1_ps(-0.0F)), _mm512_castps_si512(a_x.v))));
   }
   /// @endcond
   // clang-format on
@@ -725,18 +725,18 @@ struct Pack<double, 8>
 
   // clang-format off
   /// @cond
-  friend Pack operator+(const Pack a, const Pack b) noexcept { return Pack(_mm512_add_pd(a.v, b.v)); }
-  friend Pack operator-(const Pack a, const Pack b) noexcept { return Pack(_mm512_sub_pd(a.v, b.v)); }
-  friend Pack operator*(const Pack a, const Pack b) noexcept { return Pack(_mm512_mul_pd(a.v, b.v)); }
-  friend Pack operator/(const Pack a, const Pack b) noexcept { return Pack(_mm512_div_pd(a.v, b.v)); }
-  friend MaskD8 operator<(const Pack a, const Pack b) noexcept { return MaskD8{_mm512_cmp_pd_mask(a.v, b.v, _CMP_LT_OQ)}; }
-  friend MaskD8 operator>(const Pack a, const Pack b) noexcept { return MaskD8{_mm512_cmp_pd_mask(a.v, b.v, _CMP_GT_OQ)}; }
-  friend MaskD8 operator>=(const Pack a, const Pack b) noexcept { return MaskD8{_mm512_cmp_pd_mask(a.v, b.v, _CMP_GE_OQ)}; }
-  friend Pack select(const MaskD8 m, const Pack a, const Pack b) noexcept { return Pack(_mm512_mask_blend_pd(m.m, b.v, a.v)); }
-  friend Pack sqrt(const Pack a) noexcept { return Pack(_mm512_sqrt_pd(a.v)); }
-  friend Pack abs(const Pack a) noexcept
+  friend Pack operator+(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm512_add_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator-(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm512_sub_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator*(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm512_mul_pd(a_lhs.v, a_rhs.v)); }
+  friend Pack operator/(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(_mm512_div_pd(a_lhs.v, a_rhs.v)); }
+  friend MaskD8 operator<(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD8{_mm512_cmp_pd_mask(a_lhs.v, a_rhs.v, _CMP_LT_OQ)}; }
+  friend MaskD8 operator>(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD8{_mm512_cmp_pd_mask(a_lhs.v, a_rhs.v, _CMP_GT_OQ)}; }
+  friend MaskD8 operator>=(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD8{_mm512_cmp_pd_mask(a_lhs.v, a_rhs.v, _CMP_GE_OQ)}; }
+  friend Pack select(const MaskD8 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(_mm512_mask_blend_pd(a_mask.m, a_ifFalse.v, a_ifTrue.v)); }
+  friend Pack sqrt(const Pack a_x) noexcept { return Pack(_mm512_sqrt_pd(a_x.v)); }
+  friend Pack abs(const Pack a_x) noexcept
   {
-    return Pack(_mm512_castsi512_pd(_mm512_andnot_si512(_mm512_castpd_si512(_mm512_set1_pd(-0.0)), _mm512_castpd_si512(a.v))));
+    return Pack(_mm512_castsi512_pd(_mm512_andnot_si512(_mm512_castpd_si512(_mm512_set1_pd(-0.0)), _mm512_castpd_si512(a_x.v))));
   }
   /// @endcond
   // clang-format on

@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <type_traits>
 
+// Our includes
 #include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"

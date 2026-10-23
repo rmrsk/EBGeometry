@@ -44,10 +44,12 @@ fourTriangles()
   using Vec3 = Vec3T<T>;
 
   std::vector<Tri<T>> tris;
+
   for (int i = 0; i < 4; i++) {
     const Vec3 base(T(3.0 * i), T(0), T(0));
     tris.emplace_back(Array<Vec3, 3>{base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
   }
+
   return tris;
 }
 
@@ -58,6 +60,7 @@ std::vector<Tri<T>>
 fourTrianglesWithFaceIds()
 {
   auto tris = fourTriangles<T>();
+
   for (size_t i = 0; i < tris.size(); i++) {
     tris[i].setFaceId(static_cast<uint32_t>(10 + i));
   }
@@ -70,12 +73,14 @@ T
 minAbsSignedDistance(const std::vector<Tri<T>>& a_tris, const Vec3T<T>& a_point)
 {
   T best = std::numeric_limits<T>::max();
+
   for (const auto& tri : a_tris) {
     const T d = tri.signedDistance(a_point);
     if (std::abs(d) < std::abs(best)) {
       best = d;
     }
   }
+
   return best;
 }
 
@@ -214,11 +219,13 @@ TEMPLATE_TEST_CASE("TriangleSoAT::computeBoundingVolume matches an AABB built di
   const auto bv = group.template computeBoundingVolume<AABB>();
 
   std::vector<Vec3> allVertices;
+
   for (const auto& tri : tris) {
     for (const auto& v : tri.getVertexPositions()) {
       allVertices.push_back(v);
     }
   }
+
   const AABB expected(allVertices);
 
   for (int i = 0; i < 3; i++) {
@@ -245,6 +252,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistances returns per-lane distances who
     // Each lane must match the corresponding individual triangle, and the min-|lane| must equal the
     // reduced signedDistance().
     T best = std::numeric_limits<T>::max();
+
     for (size_t i = 0; i < tris.size(); i++) {
       REQUIRE_THAT(perLane[i], withinAbsT(tris[i].signedDistance(p), looseMargin<T>()));
 
@@ -274,6 +282,7 @@ TEMPLATE_TEST_CASE("TriangleAoSoA::signedDistance(point, faceId) reports the clo
     // Brute-force the closest triangle (by |signed distance|) and its face id.
     T        best           = std::numeric_limits<T>::max();
     uint32_t expectedFaceId = UINT32_MAX;
+
     for (const auto& tri : tris) {
       const T d = tri.signedDistance(p);
 
@@ -477,6 +486,7 @@ randomTriangles(const size_t a_count, const unsigned a_seed)
   };
 
   std::vector<Tri<T>> tris;
+
   for (size_t i = 0; i < a_count; i++) {
     const Vec3 base(T(4) * u(rng), T(4) * u(rng), T(4) * u(rng));
 
@@ -567,6 +577,7 @@ checkAgainstTriangles()
       const auto lanes = group.signedDistances(p);
 
       T expected = std::numeric_limits<T>::max();
+
       for (uint32_t i = 0; i < count; i++) {
         const T d = tris[i].signedDistance(p);
 
