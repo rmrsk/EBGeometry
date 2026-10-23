@@ -694,6 +694,26 @@ private:
                const PoolLocation&       a_location) const noexcept;
 
   /**
+   * @brief Evaluate a Repeat clause: the minimum of its sub-program over the copies (CSGOps::repetition()).
+   * @tparam D Call depth left for the sub-program.
+   * @param[in] a_clause   The clause.
+   * @param[in] a_point    Point.
+   * @param[in] a_params   The parameters.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value.
+   */
+  template <unsigned D>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  evaluateRepeat(const TapeDetail::Clause& a_clause,
+                 const Vec3T<T>&           a_point,
+                 const T*                  a_params,
+                 const void*               a_base,
+                 const PoolLocation&       a_location) const noexcept;
+
+  /**
    * @brief Evaluate a BVH union clause.
    * @tparam D Call depth left for the operands.
    * @param[in] a_clause   The clause.

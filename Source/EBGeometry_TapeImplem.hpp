@@ -936,20 +936,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
     }
     case Op::Repeat: {
       if constexpr (D > 0) {
-        const uint32_t sub = c.m_a;
-        const T*       r   = params + c.m_b;
-
-        const CSGOps::Repetition<T> repetition{Vec3T<T>(r[0], r[1], r[2]),
-                                               Vec3T<T>(r[3], r[4], r[5]),
-                                               Vec3T<T>(r[6], r[7], r[8]),
-                                               Vec3T<T>(r[9], r[10], r[11]),
-                                               Vec3T<T>(r[12], r[13], r[14])};
-
-        const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> T {
-          return this->template evaluate<D - 1>(sub, a_x, a_base, a_location);
-        };
-
-        values[nv++] = CSGOps::repetition(repetition, points[np - 1], f);
+        values[nv++] = this->template evaluateRepeat<D>(c, points[np - 1], params, a_base, a_location);
       }
       else {
         EBGEOMETRY_EXPECT(false);
@@ -1049,6 +1036,34 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
 
     return T(0);
   }
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::evaluateRepeat(const TapeDetail::Clause& a_clause,
+                                           const Vec3T<T>&           a_point,
+                                           const T*                  a_params,
+                                           const void*               a_base,
+                                           const PoolLocation&       a_location) const noexcept
+{
+  const uint32_t sub = a_clause.m_a;
+  const T*       r   = a_params + a_clause.m_b;
+
+  const CSGOps::Repetition<T> repetition{Vec3T<T>(r[0], r[1], r[2]),
+                                         Vec3T<T>(r[3], r[4], r[5]),
+                                         Vec3T<T>(r[6], r[7], r[8]),
+                                         Vec3T<T>(r[9], r[10], r[11]),
+                                         Vec3T<T>(r[12], r[13], r[14])};
+
+  // In its own function, as evaluateBlur() is, so that the search's loops stay out of evaluateBody().
+  const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> T {
+    return this->template evaluate<D - 1>(sub, a_x, a_base, a_location);
+  };
+
+  return CSGOps::repetition(repetition, a_point, f);
 }
 
 template <class T, class... UserPrimitives>
