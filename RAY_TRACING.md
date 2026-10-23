@@ -61,7 +61,7 @@ what the review below found, and lands it first. #214–#216 are then rebuilt on
   normal: a segment overload of `firstHit()` returning `HitT`. A yes/no query (`intersects()`) can stop
   at the first crossing found instead of the nearest (any-hit early exit).
 - **R5. Marched hits carry no normal.** Fill it from the gradient where the shape has no ray form
-  (open question Q3).
+  (D9).
 - **R6. Lambdas into device code.** `march()` and the traversals pass lambdas to device code, the
   pattern nvcc 12.5 miscompiled in #217. Every ray form, the march and the packet path get a `[gpu]`
   test against the host (#214 had one).
@@ -74,41 +74,37 @@ what the review below found, and lands it first. #214–#216 are then rebuilt on
 | D2 | **`intersects()` is three-state** (`HitStatus`: Hit, Miss, Unresolved). `firstHit(shape, x0, x1)` returns the full `HitT`. | A particle must not leak through a wall because a grazing march gave up and called it a miss. |
 | D3 | **The Tape is marched in this PR**; exact clause-by-clause ray tracing comes after #224. `Tape::firstHit()`/`Tape::intersects()` exist now as members. | Marching is always correct and touches nothing inside the Tape, while #224 rewrites its operations. |
 | D4 | **First crossing only in this PR.** Every crossing along a path (`forEachHit`) comes with the span machinery in PR B. | Enough to stop a particle at a wall; the in/out sequence needs spans. |
+| D5 | **Every shape takes a packet.** BVH shapes (mesh SDFs, `BVHUnion`) walk it together; closed-form and marched shapes loop over its rays (a generic default). | Callers never need to know which shapes walk and which loop. |
+| D6 | **Packet size is a template parameter:** `RayPacket<T, N>`, N fixed at compile time, with a mask of active rays (a packet can be partly filled). Trivially copyable, fixed arrays. 4 and 8 tested and measured. | Registers on a device; the caller matches N to the coherence of its queries. |
+| D7 | **Packet layout is SoA:** origins and directions as x[N], y[N], z[N], per-ray tMin/tMax, like `TriangleSoA`. | The slab test and the triangle kernel load N rays into `SIMD::Pack` lanes directly on the host; on a device the same struct loops. |
+| D8 | **A packet query returns `Array<HitT<T>, N>`**, one ordinary `HitT` per ray, inactive lanes left as Miss. | Same result type as a single query. |
+| D9 | **Marched hits always carry a normal:** central differences of the signed distance at the hit (6 evaluations, only on a hit). | Particle reflection and shading need it. |
+| D10 | **No new closed forms in this PR** (torus, cones, rounded box/cylinder march). | They march correctly; closed forms when a probe shows they matter (the torus quartic is fragile in float). |
+| D11 | **No library launchers.** Users call `firstHit()`/`intersects()` (single or packet) in their own `GPU::transform` functor or host loop, as with `signedDistance()`; the example and the probes show both patterns. | A small API, the same pattern as every other query. |
+| D12 | **Headers: core + per component.** `EBGeometry_Ray.hpp` holds `RayT`, `HitT`, `HitStatus`, `RayOptions`, `RayForm`, `RayPacket`, the march and the free functions; each component's ray form sits next to that component (mesh SDFs, `BVHUnion`, the triangle groups, the analytic shapes). | Device code includes only what it uses; the core includes no mesh headers. |
+| D13 | **Segment queries measure t as distance from `x0`** (0 to \|x1 − x0\|): a segment is a ray from `x0` with tMax = \|x1 − x0\|. | One unit for rays and segments. |
+| D14 | **A crossing at t = 0 is a hit; a caller stepping off a surface passes a small tMin** (the segment overload takes one too). No default start offset. | Correct for a particle that is on the wall; the example shows the step-off. |
+| D15 | **Example: a new `Examples/ParticlePaths`**: particles stepping through a mesh, each step a segment query reporting crossing point, face and normal; one query per thread and packets; a device section through `GPU::transform`; its own Sphinx page. | Shows the particle use case #93 asks for. |
 
-## Open questions (interview in progress)
+## Open questions
 
-- **Q1. Packet scope.** Every shape takes a packet (BVH shapes walk it together; closed-form and
-  marched shapes loop over its rays), or only the BVH shapes? *Proposed: every shape.*
-- **Q2. Packet size.** A template parameter (`RayPacket<T, N>`, with an active mask, trivially
-  copyable, registers on a device) or one width fixed by the library per precision? *Proposed:
-  template parameter, 4 and 8 tested and measured.*
-- **Q3. Normals for marched hits.** From the gradient by central differences on every hit (6
-  evaluations, only on a hit), only when asked through `RayOptions`, or never? *Proposed: always.*
-- **Q4. Closed forms for torus, cones, rounded box and cylinder.** Now, or when a probe shows they
-  matter (they march correctly; the torus needs a quartic, fragile in float)? *Proposed: later.*
-- **Q5. Batched host/device launchers.** Besides calling `firstHit()` inside a user's own
-  `GPU::transform` functor, should the library offer a launcher over arrays of rays/segments (and
-  packets)?
-- **Q6. Header layout.** One `EBGeometry_Ray.hpp` with every specialisation, or the core types there
-  and each component's ray form next to the component (so device code includes only what it needs)?
-- **Q7. Example.** A new `Examples/ParticlePaths` (particles stepping through a mesh, reporting
-  crossing point, face and normal; device section through `GPU::transform`) or extend an existing one?
+None at present. (Q1–Q7 of the first draft were settled in the interview on 2026-10-23 as D5–D15.)
 
 ## Scope of this PR (PR A)
 
 - Core types and free functions (`firstHit`, `intersects`) for rays and for segments; any-hit early
   exit for `intersects`.
-- The march fallback, with normals (per Q3).
+- The march fallback, with normals (D9).
 - Closed-form ray forms: plane, sphere, box, cylinder, infinite cylinder, capsule.
 - BVH ray forms reusing `PackedBVH::traverse()`: `TriMeshSDF`, `MeshSDF`, `FlatMeshSDF`, `BVHUnion`.
 - The triangle ray kernel written once against `SIMD::Pack` (R1).
-- Packets (D1): `RayPacket`, a shared BVH walk, per-ray fallback for the rest.
+- Packets (D1, D5–D8): `RayPacket<T, N>` (SoA, active mask), a shared BVH walk for the BVH shapes, a per-ray loop for the rest, results as `Array<HitT<T>, N>`.
 - `Tape::firstHit()`, `Tape::intersects()` by marching (D3).
 - Per CLAUDE.md: unit tests (`TEMPLATE_TEST_CASE`, independent references: closed forms, brute force
   over all faces), `[gpu]` cases for every ray form, the march and packets; `Tests/InstantiateAll.cpp`;
   performance cases (one query per thread and packets, host and `hostdevice` pairs: mesh, BVH union,
-  analytic shape, tape march); Sphinx Concepts + Implem pages; an example with its page (Q7); the
-  receipt.
+  analytic shape, tape march); Sphinx Concepts + Implem pages; `Examples/ParticlePaths` with its page (D15);
+  the receipt.
 
 Not in this PR: exact CSG/Tape ray tracing, every crossing along a path, the renderer.
 
@@ -125,7 +121,7 @@ Not in this PR: exact CSG/Tape ray tracing, every crossing along a path, the ren
 ## Progress
 
 - [x] Branch `ray_tracing` off `dev` (8e03593), draft PR, this document.
-- [ ] Interview: Q1–Q7.
+- [x] Interview: D1–D15 (2026-10-23).
 - [ ] Core types and free functions lifted from #214/#216.
 - [ ] Segment overloads, any-hit `intersects`.
 - [ ] March normals.
