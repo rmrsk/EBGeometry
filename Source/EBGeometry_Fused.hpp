@@ -95,7 +95,8 @@ inline constexpr bool isNode = IsNode<C>::value;
  * @return The number.
  */
 template <class C>
-[[nodiscard]] constexpr uint32_t
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+constexpr uint32_t
 leavesOf() noexcept
 {
   if constexpr (isNode<C>) {
@@ -108,23 +109,22 @@ leavesOf() noexcept
 
 /**
  * @brief The number of the first leaf under operand I: the leaves of the operands before it.
- * @tparam I  Operand index.
- * @tparam Cs Operand types.
+ * @tparam I    Operand index.
+ * @tparam C    The first operand's type.
+ * @tparam Rest The others.
  * @return The number.
  */
-template <size_t I, class... Cs>
-[[nodiscard]] constexpr uint32_t
+template <size_t I, class C, class... Rest>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+constexpr uint32_t
 leafOffset() noexcept
 {
-  const uint32_t counts[] = {leavesOf<Cs>()...};
-
-  uint32_t offset = 0;
-
-  for (size_t k = 0; k < I; k++) {
-    offset += counts[k];
+  if constexpr (I == 0) {
+    return 0U;
   }
-
-  return offset;
+  else {
+    return leavesOf<C>() + leafOffset<I - 1, Rest...>();
+  }
 }
 
 /**
@@ -134,7 +134,8 @@ leafOffset() noexcept
  * @return True if it does.
  */
 template <class P, class C>
-[[nodiscard]] constexpr bool
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+constexpr bool
 hasLeaf() noexcept
 {
   if constexpr (isNode<C>) {
@@ -326,6 +327,33 @@ struct Base<true> : PoolHandle
 };
 
 /**
+ * @brief A visitor that records whether the leaf it is called with is of type P (for isPrimitive()).
+ * @details A struct rather than a lambda: nvcc treats a generic lambda's call operator as a host
+ * function where a device function calls it.
+ * @tparam P Leaf type.
+ */
+template <class P>
+struct IsLeafOf
+{
+  /**
+   * @brief Whether the leaf was a P.
+   */
+  bool m_is;
+
+  /**
+   * @brief Record whether a leaf is a P.
+   * @tparam L Leaf type.
+   */
+  template <class L>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  operator()(const L& /*a_leaf*/) noexcept
+  {
+    m_is = std::is_same_v<L, P>;
+  }
+};
+
+/**
  * @brief The operands of a node, with the location their pool-resident ones resolve against.
  * @tparam Cs Operand types.
  */
@@ -453,7 +481,8 @@ public:
    * @return True if it does.
    */
   template <class P>
-  [[nodiscard]] static constexpr bool
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static constexpr bool
   containsLeaf() noexcept
   {
     return (Detail::hasLeaf<P, Cs>() || ...);
@@ -559,12 +588,11 @@ public:
   inline bool
   isPrimitive(const PrimitiveRef<T>& a_ref) const noexcept
   {
-    bool is = false;
+    Detail::IsLeafOf<P> check{false};
 
-    this->visitPrimitive(
-      a_ref, [&is](const auto& a_leaf) noexcept { is = std::is_same_v<std::decay_t<decltype(a_leaf)>, P>; });
+    this->visitPrimitive(a_ref, check);
 
-    return is;
+    return check.m_is;
   }
 
   /**
@@ -587,7 +615,9 @@ public:
   /**
    * @brief Call a function with the leaf a reference names, as primitive<P>() returns it, whatever its
    * type.
-   * @tparam F Callable taking any of the composition's leaf types (a generic lambda, say).
+   * @tparam F Callable taking any of the composition's leaf types (a generic lambda in host code).
+   * In a CUDA or HIP translation unit, pass a functor whose call operator is EBGEOMETRY_HOST_DEVICE: the
+   * device compiler treats a lambda's call operator as a host function here.
    * @param[in] a_ref Reference from closestPrimitive().
    * @param[in] a_f   Function.
    */
@@ -701,7 +731,8 @@ private:
       constexpr uint32_t offset = Detail::leafOffset<I, Cs...>();
       constexpr uint32_t count  = Detail::leavesOf<C>();
 
-      if (a_leaf >= offset && a_leaf < offset + count) {
+      // a_leaf - offset wraps around below offset, so one comparison covers both bounds.
+      if (a_leaf - offset < count) {
         const C child = this->template operand<I>();
 
         if constexpr (Detail::isNode<C>) {
@@ -738,7 +769,7 @@ private:
     constexpr uint32_t count  = Detail::leavesOf<C>();
 
     if constexpr (I + 1 < sizeof...(Cs)) {
-      if (!(a_leaf >= offset && a_leaf < offset + count)) {
+      if (!(a_leaf - offset < count)) {
         return this->template leafAs<P, I + 1>(a_leaf);
       }
     }

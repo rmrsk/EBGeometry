@@ -604,6 +604,23 @@ TEST_CASE("Fused: rejects invalid arguments and operands from different pools", 
 
 namespace {
 
+// A visitor for visitPrimitive(): the leaf's value at a point. A struct with an EBGEOMETRY_HOST_DEVICE
+// call operator, as a CUDA or HIP translation unit needs, rather than a lambda.
+template <class T>
+struct ValueAt
+{
+  Vec3T<T> m_point;
+  T        m_value = T(0);
+
+  template <class P>
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const P& a_primitive) noexcept
+  {
+    m_value = a_primitive.signedDistance(m_point);
+  }
+};
+
 // Device functor: a fused shape's deciding leaf at a point.
 template <class T, class Shape>
 struct LeafQuery
@@ -662,7 +679,7 @@ TEMPLATE_TEST_CASE("Fused: closestPrimitive names the leaf a union, difference o
   }
 }
 
-TEMPLATE_TEST_CASE("Fused: closestPrimitive gives a Tape's leaf and local point for the same expression",
+TEMPLATE_TEST_CASE("Fused: closestPrimitive gives a Tape's leaf and local point (to rounding) for the same expression",
                    "[Fused]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -680,9 +697,9 @@ TEMPLATE_TEST_CASE("Fused: closestPrimitive gives a Tape's leaf and local point 
 
       INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
       REQUIRE(fused.m_leaf == taped.m_leaf);
-      REQUIRE(fused.m_localPoint[0] == taped.m_localPoint[0]);
-      REQUIRE(fused.m_localPoint[1] == taped.m_localPoint[1]);
-      REQUIRE(fused.m_localPoint[2] == taped.m_localPoint[2]);
+      REQUIRE_THAT(fused.m_localPoint[0], withinAbsT(taped.m_localPoint[0], tightMargin<T>()));
+      REQUIRE_THAT(fused.m_localPoint[1], withinAbsT(taped.m_localPoint[1], tightMargin<T>()));
+      REQUIRE_THAT(fused.m_localPoint[2], withinAbsT(taped.m_localPoint[2], tightMargin<T>()));
     }
   };
 
@@ -752,12 +769,11 @@ TEMPLATE_TEST_CASE("Fused: a mesh leaf of a nested composition comes back as its
       CHECK(handle.signedDistance(ref.m_localPoint) == tri.signedDistance(p));
       CHECK(handle.getClosestFace(ref.m_localPoint).faceId == tri.getClosestFace(p).faceId);
 
-      T visited = T(0);
+      ValueAt<T> visit{ref.m_localPoint};
 
-      shape.visitPrimitive(ref,
-                           [&visited, &ref](const auto& a_leaf) { visited = a_leaf.signedDistance(ref.m_localPoint); });
+      shape.visitPrimitive(ref, visit);
 
-      CHECK(visited == tri.signedDistance(p));
+      CHECK(visit.m_value == tri.signedDistance(p));
     }
     else {
       CHECK(shape.template isPrimitive<SphereSDF<T>>(ref) == (ref.m_leaf == 1U));

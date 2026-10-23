@@ -19,6 +19,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |
 | `Tape/`       | `Tape` signed distance (CSG, smooth, BVH union) against a hand-written solid |
 | `Fused/`      | Fused CSG compositions (the Tape probe's solids, a drilled mesh fused and through a tape) |
+| `ClosestPrimitive/` | `closestPrimitive()`, the deciding leaf, fused and through a tape (CSG, a drilled mesh) |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results               |
 

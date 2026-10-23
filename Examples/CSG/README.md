@@ -24,8 +24,9 @@ The program builds three objects:
 Then it builds the part again as a *fused* composition, with the functions in namespace `Fused`
 (`Fused::Difference`, `Fused::Intersection`, ...). They are the builder's operations as types: the
 C++ compiler evaluates the result as it would the same part written out by hand, with no clauses to
-interpret. The program prints the part's values both ways (the same, to rounding), the time per point of
-each, and evaluates the fused part on the device too.
+interpret. The program prints the part's values both ways (the same, to rounding) and the time per point
+of each, asks both which primitive decides the part's value at a few points (`closestPrimitive()`) and
+prints the names of those leaves, and evaluates the fused part on the device too.
 
 Building
 --------

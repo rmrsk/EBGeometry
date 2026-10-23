@@ -186,6 +186,22 @@ Family                                Build  Measures
                                              (262,144 for the drilled mesh)
 ====================================  =====  =====================================================
 
+**ClosestPrimitive** (``Performance/ClosestPrimitive``): ``closestPrimitive()``, the deciding leaf (see
+:ref:`Sec:DecidingLeaf`), of the classic CSG solid and of the drilled mesh, each fused and through a
+tape. Each query also evaluates the leaf at its local point, so that the checksum depends on both; a
+host and a device answer agree when they name the same leaf or two leaves whose values tie.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``csg/closestPrimitive``              host   the classic CSG solid, fused, at 400,000 points; and
+                                             ``csg-tape``: the same through a ``Tape``
+``drilled-mesh/closestPrimitive``     host   the drilled armadillo, fused, at 20,000 points; and
+                                             ``drilled-mesh-tape``: through a ``Tape``
+``<input>/closestPrimitive``          GPU    each of the above at 1,048,576 points on both sides
+                                             (262,144 for the drilled mesh)
+====================================  =====  =====================================================
+
 Where the results go
 --------------------
 

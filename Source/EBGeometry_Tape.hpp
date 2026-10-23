@@ -575,7 +575,9 @@ public:
   /**
    * @brief Call a function with the primitive a reference names, as primitive<P>() returns it, whatever
    * its type.
-   * @tparam F Callable taking any of the tape's primitive types (a generic lambda, say).
+   * @tparam F Callable taking any of the tape's primitive types (a generic lambda in host code).
+   * In a CUDA or HIP translation unit, pass a functor whose call operator is EBGEOMETRY_HOST_DEVICE: the
+   * device compiler treats a lambda's call operator as a host function here.
    * @param[in] a_ref Reference from closestPrimitive().
    * @param[in] a_f   Function.
    */

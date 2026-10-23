@@ -333,6 +333,53 @@ A fused composition is fixed when the program is compiled; geometry read from a 
 run time is composed with the builder and a tape. The :ref:`Chap:ExampleCSG` example builds the
 same solid both ways.
 
+.. _Sec:DecidingLeaf:
+
+The deciding leaf
+-----------------
+
+``closestPrimitive(p)``, on a tape and on a fused shape, names the leaf of the composition that decides
+its value at ``p``: the primitive whose surface the value comes from there. It returns a
+`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__: the leaf's number, and the point
+in the leaf's own frame, after the composition's maps. A tape also gives the primitive's type and index
+in its arrays. This is what boundary tagging and material ids need. For a mesh leaf, the face is then
+one query away: the mesh's own ``getClosestFace()`` at the local point.
+
+.. code-block:: c++
+
+   const PrimitiveRef<T> leaf = tape.closestPrimitive(p);
+
+   if (tape.isPrimitive<TriMeshSDF<T, 4, 4>>(leaf)) {
+     const auto mesh = tape.primitive<TriMeshSDF<T, 4, 4>>(leaf);   // the handle, resolving against the tape's pool
+     const auto face = mesh.getClosestFace(leaf.m_localPoint);
+   }
+
+* **Which leaf.**
+
+  - A union or intersection takes the leaf of the operand whose value it takes.
+  - A smooth union or intersection takes the more extreme operand's.
+  - A blur takes its centre tap's, and a mollification its heaviest tap's.
+  - A complement, offset, annulus, map, elongation or repetition takes its operand's; a repetition's
+    is the copy that wins.
+
+  For ``Difference(box, sphere)``, a point near the carved cavity gets the sphere, and a point near the
+  box's outside gets the box. This is not the geometrically nearest primitive, which could be one the
+  composition removed.
+* **Numbering.** Leaves are numbered in expression order, depth first, each occurrence counted, so a
+  tape and a fused shape of the same expression number them alike. A shape used twice is two leaves. A
+  nested composite (a tape listed as a primitive, a BVH union) is one leaf; ask it for its own leaf at
+  the local point.
+* **The primitive, by value.** ``isPrimitive<P>(ref)`` says whether the leaf is a ``P``, and
+  ``primitive<P>(ref)`` returns it: the shape, or for a pool-resident one (a mesh distance field, a BVH
+  union, a tape) its handle, rebuilt with the structure's location, so that it resolves against the
+  same pool or mirror. ``visitPrimitive(ref, f)`` calls ``f`` with it whatever its type. In a CUDA or
+  HIP translation unit, pass a functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``; the device
+  compiler treats a lambda's as a host function there.
+* **One implementation.** Both evaluate the composition as ``signedDistance()`` does, on values that
+  carry the leaf they come from (``CSGOps::Tagged``). For a tape this is a second instantiation of its
+  evaluator, compiled only where ``closestPrimitive()`` is called, so ``signedDistance()`` is compiled
+  as without it. Device-callable, like ``signedDistance()``.
+
 .. _Sec:BVHUnions:
 
 BVH-accelerated unions

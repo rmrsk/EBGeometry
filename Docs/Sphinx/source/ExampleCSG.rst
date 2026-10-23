@@ -79,6 +79,21 @@ arguments, so the drills are passed one by one. The program prints the part's va
 and fused, which are the same to rounding, and the time per point of each on the host. The fused part has no
 clauses to fetch and dispatch, and the gap is wider on a GPU.
 
+Which primitive decides the value
+---------------------------------
+
+``closestPrimitive(point)``, on the tape and on the fused part alike, returns a
+`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__ naming the leaf whose surface the
+value comes from (see :ref:`Sec:DecidingLeaf`). The leaves are numbered in expression order, so both
+number the cube 0, the ball 1 and the drills 2 to 4, and the program prints the name of the deciding
+leaf at a few points through each:
+
+.. code-block:: c++
+
+   const PrimitiveRef<T> viaTape  = partTape.closestPrimitive(p);
+   const PrimitiveRef<T> viaFused = fusedPart.closestPrimitive(p);
+   std::cout << leafNames[viaTape.m_leaf] << ' ' << leafNames[viaFused.m_leaf] << '\n';
+
 The same query on a GPU
 -----------------------
 

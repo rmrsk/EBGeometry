@@ -7,7 +7,8 @@
  * @brief  The arithmetic of each CSG operation, shared by the Tape's evaluator and the fused operations.
  * @details Internal helpers; not part of the public API. Each function computes one operation's value
  * or point the way both the Tape (EBGeometry_Tape.hpp) and the fused operations (EBGeometry_Fused.hpp)
- * do, in the same order of floating-point operations, so that the two give the same values. The
+ * do, in the same order of floating-point operations, so that the two give the same values (to
+ * rounding: a compiler may fuse a multiply and an add into one instruction in one and not the other). The
  * functions that evaluate an operand several times (blur, mollification, repetition) take it as a
  * callable from a point to a value. Everything that runs per evaluation is device-callable; the
  * functions that set up an operation's parameters run on the host.

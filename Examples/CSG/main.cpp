@@ -200,6 +200,28 @@ main()
             << " us (sum " << sum << ")\n"
             << std::setprecision(4);
 
+  // ── Which primitive decides the value ──────────────────────────────────────────────────────────────
+  //
+  // closestPrimitive(p) names the leaf whose surface the value comes from at p: a union passes on the
+  // leaf of the operand it takes, a difference the leaf of whichever object bounds the result. The leaves
+  // are numbered in expression order, so the tape and the fused part number them alike: the cube 0, the
+  // ball 1, the drills along x, y and z 2, 3 and 4. m_localPoint is the point in the leaf's own frame,
+  // where the leaf itself (primitive<P>(ref), visitPrimitive()) can be queried.
+  const char* leafNames[] = {"cube", "ball", "drill along x", "drill along y", "drill along z"};
+
+  std::cout << "\nThe primitive that decides the part's value, through the tape and fused:\n";
+
+  for (const Vec3& p : {Vec3(T(0.95), T(0.2), T(0.1)),
+                        Vec3(T(0.8), T(0.8), T(0.8)),
+                        Vec3(T(0.3), T(0.2), T(0.9)),
+                        Vec3(T(0.2), T(0.9), T(0.3))}) {
+    const EBGeometry::PrimitiveRef<T> viaTape  = partTape.closestPrimitive(p);
+    const EBGeometry::PrimitiveRef<T> viaFused = fusedPart.closestPrimitive(p);
+
+    std::cout << "  " << p << "   tape: " << leafNames[viaTape.m_leaf] << "   fused: " << leafNames[viaFused.m_leaf]
+              << '\n';
+  }
+
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
   //
   // A kernel cannot read host memory, so the pool goes to the device first:

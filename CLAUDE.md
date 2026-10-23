@@ -521,7 +521,7 @@ does not follow this template, edit the PR body to conform to it.
   BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp`, the host-only expression builder
   (`Expr`, `Union`, `Translate`, ...) in `EBGeometry_Expr.hpp`, the `Tape` that compiles and evaluates
   an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`), the fused
-  operations (`Fused::Union`, ...) in `EBGeometry_Fused.hpp`, each operation's arithmetic, shared by
+  operations (`Fused::Union`, ...) in `EBGeometry_Fused.hpp`, `PrimitiveRef` (the deciding leaf `closestPrimitive()` returns) in `EBGeometry_PrimitiveRef.hpp`, each operation's arithmetic, shared by
   the tape and the fused operations, in `EBGeometry_CSGOps.hpp`, `EBGeometry_CSG.hpp` including all of
   them, and `operator<<` for `Vec3T`/`AABBT` in
   `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
@@ -535,7 +535,12 @@ does not follow this template, edit the PR body to conform to it.
   when an operand lives in a pool). Both take each operation's arithmetic from `CSGOps`, so they give
   the same values (to rounding: the compiler may fuse multiply-adds differently in the two, so a
   Release build differs in the last bit): change an operation there, never in one of the two alone,
-  and keep `TestFused`'s comparison with the tape passing. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
+  and keep `TestFused`'s comparison with the tape passing. `CSGOps` works on a plain value or on a
+  `CSGOps::Tagged` one (for `closestPrimitive()`); keep each function's plain-`T` code written as it is
+  and put the tagged handling in `if constexpr` branches: an equivalent rewrite of the plain Blur loop
+  raised a 16-evaluation float tape kernel from 168 to 255 registers. After any change on the tape's
+  device path, compile a float kernel calling `signedDistance()` once and one calling it 16 times in a
+  loop and check `ptxas -v` still reports the registers dev's do. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
   another tape, a user type) must be listed in `UserPrimitives`. The evaluator has no recursion: a
   sub-program call (Blur, Mollify, FiniteRepetition, BVH union operands) goes through the `evaluate<D>` call-depth
   template, bounded by `Tape::MaxCallDepth`, and the value/point stacks are fixed arrays; keep it

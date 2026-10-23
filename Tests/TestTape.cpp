@@ -891,6 +891,23 @@ TEMPLATE_TEST_CASE("Tape: a tape built directly in managed memory evaluates on t
 
 namespace {
 
+// A visitor for visitPrimitive(): the leaf's value at a point. A struct with an EBGEOMETRY_HOST_DEVICE
+// call operator, as a CUDA or HIP translation unit needs, rather than a lambda.
+template <class T>
+struct ValueAt
+{
+  Vec3T<T> m_point;
+  T        m_value = T(0);
+
+  template <class P>
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const P& a_primitive) noexcept
+  {
+    m_value = a_primitive.signedDistance(m_point);
+  }
+};
+
 // Device functor: the deciding leaf at a point, and the leaf's own value at its local point.
 template <class T, class TapeType>
 struct LeafQuery
@@ -1020,9 +1037,9 @@ TEMPLATE_TEST_CASE(
             (m.m_leaf == 0U ? a : b).signedDistance(m.m_localPoint));
 
       // A repetition: the member of the nearest copy, at the point in that copy's frame.
-      T        best     = std::numeric_limits<T>::max();
-      uint32_t bestLeaf = 0;
-      Vec3     bestLocal;
+      T        best      = std::numeric_limits<T>::max();
+      uint32_t bestLeaf  = 0;
+      Vec3     bestLocal = Vec3::zeros();
 
       for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
@@ -1045,7 +1062,8 @@ TEMPLATE_TEST_CASE(
       const PrimitiveRef<T> r = tiled.closestPrimitive(p);
 
       CHECK(r.m_leaf == bestLeaf);
-      CHECK(tiled.template primitive<SphereSDF<T>>(r).signedDistance(r.m_localPoint) == best);
+      CHECK_THAT(tiled.template primitive<SphereSDF<T>>(r).signedDistance(r.m_localPoint),
+                 withinAbsT(best, tightMargin<T>()));
       CHECK_THAT(r.m_localPoint[0], withinAbsT(bestLocal[0], tightMargin<T>()));
     }
   }
@@ -1092,12 +1110,11 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive numbers each occurrence of a leaf, an
   CHECK(handle.getClosestFace(leaf.m_localPoint).faceId == tri.getClosestFace(p).faceId);
 
   // visitPrimitive passes the same primitive, whatever its type.
-  T visited = T(0);
+  ValueAt<T> visit{leaf.m_localPoint};
 
-  tape.visitPrimitive(
-    leaf, [&visited, &leaf](const auto& a_primitive) { visited = a_primitive.signedDistance(leaf.m_localPoint); });
+  tape.visitPrimitive(leaf, visit);
 
-  CHECK(visited == tri.signedDistance(p));
+  CHECK(visit.m_value == tri.signedDistance(p));
 }
 
 TEMPLATE_TEST_CASE("Tape: closestPrimitive on a device matches the host", "[Tape][gpu]", EBGEOMETRY_TEST_PRECISIONS)
