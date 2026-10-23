@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <EBGeometry.hpp>
@@ -244,7 +245,7 @@ main()
       line.emplace_back(T(-1.2) + T(0.3) * T(i), T(0.3), T(0.7));
     }
 
-    const Distance<decltype(fusedPart)> fusedQuery{fusedPart};
+    const Distance<std::decay_t<decltype(fusedPart)>> fusedQuery{fusedPart};
 
     EBGeometry::GPU::transform(fusedQuery, line, onDevice);
 

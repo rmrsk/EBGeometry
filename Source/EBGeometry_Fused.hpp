@@ -180,19 +180,7 @@ template <class... Cs>
 inline constexpr bool anyPoolHandle = (isPoolHandle<Cs> || ...);
 
 /**
- * @brief The worse of two distance qualities (Exact < Bound < NotADistance), at compile time.
- * @param[in] a_first  First quality.
- * @param[in] a_second Second quality.
- * @return The worse one.
- */
-[[nodiscard]] constexpr DistanceQuality
-worse(const DistanceQuality a_first, const DistanceQuality a_second) noexcept
-{
-  return static_cast<int>(a_first) >= static_cast<int>(a_second) ? a_first : a_second;
-}
-
-/**
- * @brief The worst distance quality among some operand types, and Bound.
+ * @brief The worst distance quality among some operand types, and Bound (Exact < Bound < NotADistance).
  * @tparam Cs Operand types.
  * @return The quality.
  */
@@ -200,9 +188,13 @@ template <class... Cs>
 [[nodiscard]] constexpr DistanceQuality
 worstAndBound() noexcept
 {
+  const DistanceQuality qualities[] = {distanceQualityOf<Cs>...};
+
   DistanceQuality q = DistanceQuality::Bound;
 
-  ((q = worse(q, distanceQualityOf<Cs>)), ...);
+  for (const DistanceQuality c : qualities) {
+    q = (static_cast<int>(c) > static_cast<int>(q)) ? c : q;
+  }
 
   return q;
 }
