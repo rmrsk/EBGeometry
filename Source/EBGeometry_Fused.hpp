@@ -923,7 +923,7 @@ struct RepetitionOp
   {
     const auto f = [&a_operands](const Vec3T<T>& a_x) noexcept -> T { return a_operands.template value<0>(a_x); };
 
-    return CSGOps::repetition(m_repetition, a_point, f);
+    return CSGOps::repetition<T>(m_repetition, a_point, f);
   }
 
   /**

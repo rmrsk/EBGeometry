@@ -1050,20 +1050,16 @@ Tape<T, UserPrimitives...>::evaluateRepeat(const TapeDetail::Clause& a_clause,
                                            const PoolLocation&       a_location) const noexcept
 {
   const uint32_t sub = a_clause.m_a;
-  const T*       r   = a_params + a_clause.m_b;
 
-  const CSGOps::Repetition<T> repetition{Vec3T<T>(r[0], r[1], r[2]),
-                                         Vec3T<T>(r[3], r[4], r[5]),
-                                         Vec3T<T>(r[6], r[7], r[8]),
-                                         Vec3T<T>(r[9], r[10], r[11]),
-                                         Vec3T<T>(r[12], r[13], r[14])};
+  // Read from the parameters as the search needs them (see CSGOps::RepetitionView).
+  const CSGOps::RepetitionView<T> repetition{a_params + a_clause.m_b};
 
   // In its own function, as evaluateBlur() is, so that the search's loops stay out of evaluateBody().
   const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> T {
     return this->template evaluate<D - 1>(sub, a_x, a_base, a_location);
   };
 
-  return CSGOps::repetition(repetition, a_point, f);
+  return CSGOps::repetition<T>(repetition, a_point, f);
 }
 
 template <class T, class... UserPrimitives>

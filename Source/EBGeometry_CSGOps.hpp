@@ -466,6 +466,143 @@ struct Repetition
    * @brief High corner of the repeated object's box.
    */
   Vec3T<T> m_boxHigh;
+
+  /**
+   * @brief Period along an axis.
+   * @param[in] a_dir Axis.
+   * @return The period.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  period(const size_t a_dir) const noexcept
+  {
+    return m_period[a_dir];
+  }
+
+  /**
+   * @brief Tiles in the decreasing direction of an axis.
+   * @param[in] a_dir Axis.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  low(const size_t a_dir) const noexcept
+  {
+    return m_low[a_dir];
+  }
+
+  /**
+   * @brief Tiles in the increasing direction of an axis.
+   * @param[in] a_dir Axis.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  high(const size_t a_dir) const noexcept
+  {
+    return m_high[a_dir];
+  }
+
+  /**
+   * @brief Low corner of the object's box along an axis.
+   * @param[in] a_dir Axis.
+   * @return The coordinate.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  boxLow(const size_t a_dir) const noexcept
+  {
+    return m_boxLow[a_dir];
+  }
+
+  /**
+   * @brief High corner of the object's box along an axis.
+   * @param[in] a_dir Axis.
+   * @return The coordinate.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  boxHigh(const size_t a_dir) const noexcept
+  {
+    return m_boxHigh[a_dir];
+  }
+};
+
+/**
+ * @brief A finite repetition read from an array of 15 parameters (period, low and high counts, the
+ * object's box corners), as the Tape stores it.
+ * @details It reads the array whenever repetition() asks, rather than copying it, so that the search
+ * keeps few values alive across the calls into the object, which a Tape's sub-program call is: copied,
+ * they made a device kernel's every function need more registers.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RepetitionView
+{
+  /**
+   * @brief The parameters.
+   */
+  const T* m_params;
+
+  /**
+   * @brief Period along an axis.
+   * @param[in] a_dir Axis.
+   * @return The period.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  period(const size_t a_dir) const noexcept
+  {
+    return m_params[a_dir];
+  }
+
+  /**
+   * @brief Tiles in the decreasing direction of an axis.
+   * @param[in] a_dir Axis.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  low(const size_t a_dir) const noexcept
+  {
+    return m_params[3 + a_dir];
+  }
+
+  /**
+   * @brief Tiles in the increasing direction of an axis.
+   * @param[in] a_dir Axis.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  high(const size_t a_dir) const noexcept
+  {
+    return m_params[6 + a_dir];
+  }
+
+  /**
+   * @brief Low corner of the object's box along an axis.
+   * @param[in] a_dir Axis.
+   * @return The coordinate.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  boxLow(const size_t a_dir) const noexcept
+  {
+    return m_params[9 + a_dir];
+  }
+
+  /**
+   * @brief High corner of the object's box along an axis.
+   * @param[in] a_dir Axis.
+   * @return The coordinate.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  boxHigh(const size_t a_dir) const noexcept
+  {
+    return m_params[12 + a_dir];
+  }
 };
 
 /**
@@ -477,70 +614,79 @@ struct Repetition
  * or a bound), and keeps the sign for any object, since a copy whose box holds the point is always
  * evaluated. An object that fits well inside its tile has few such neighbours.
  * @tparam T Floating-point precision.
+ * @tparam R The repetition's storage: Repetition<T>, or RepetitionView<T> of a parameter array.
  * @tparam F Callable from a point to the object's value.
  * @param[in] a_repetition Repetition.
  * @param[in] a_point      Query point.
  * @param[in] a_object     The object.
  * @return The value.
  */
-template <class T, class F>
+template <class T, class R, class F>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 inline T
-repetition(const Repetition<T>& a_repetition, const Vec3T<T>& a_point, const F& a_object) noexcept
+repetition(const R& a_repetition, const Vec3T<T>& a_point, const F& a_object) noexcept
 {
-  const Vec3T<T>& period = a_repetition.m_period;
-
   // The tile the point folds into.
-  Vec3T<T> home;
+  int home[3];
 
   for (size_t dir = 0; dir < 3; dir++) {
-    home[dir] =
-      std::round(Math::min(Math::max(a_point[dir] / period[dir], -a_repetition.m_low[dir]), a_repetition.m_high[dir]));
+    home[dir] = static_cast<int>(std::round(
+      Math::min(Math::max(a_point[dir] / a_repetition.period(dir), -a_repetition.low(dir)), a_repetition.high(dir))));
   }
 
-  T best = a_object(a_point - period * home);
+  T best = a_object(Vec3T<T>(a_point[0] - a_repetition.period(0) * T(home[0]),
+                             a_point[1] - a_repetition.period(1) * T(home[1]),
+                             a_point[2] - a_repetition.period(2) * T(home[2])));
 
   // The tiles whose copy's box comes within max(0, best) of the point, along each axis.
-  const T reach = Math::max(best, T(0));
-
   int first[3];
   int last[3];
 
   for (size_t dir = 0; dir < 3; dir++) {
-    const T lo = std::ceil((a_point[dir] - reach - a_repetition.m_boxHigh[dir]) / period[dir]);
-    const T hi = std::floor((a_point[dir] + reach - a_repetition.m_boxLow[dir]) / period[dir]);
+    const T reach = Math::max(best, T(0));
+    const T lo    = std::ceil((a_point[dir] - reach - a_repetition.boxHigh(dir)) / a_repetition.period(dir));
+    const T hi    = std::floor((a_point[dir] + reach - a_repetition.boxLow(dir)) / a_repetition.period(dir));
 
-    first[dir] = static_cast<int>(Math::max(lo, -a_repetition.m_low[dir]));
-    last[dir]  = static_cast<int>(Math::min(hi, a_repetition.m_high[dir]));
+    first[dir] = static_cast<int>(Math::max(lo, -a_repetition.low(dir)));
+    last[dir]  = static_cast<int>(Math::min(hi, a_repetition.high(dir)));
   }
 
-  for (int i = first[0]; i <= last[0]; i++) {
-    for (int j = first[1]; j <= last[1]; j++) {
-      for (int k = first[2]; k <= last[2]; k++) {
-        const Vec3T<T> tile(static_cast<T>(i), static_cast<T>(j), static_cast<T>(k));
+  // Nested loops over i, j and k kept their counters alive across the calls into the object, which in a
+  // Tape's sub-program raised every function of a device kernel to 255 registers (from 168); one counter,
+  // in the same order (k fastest), keeps the kernel's.
+  const int64_t ni    = last[0] - first[0] + 1;
+  const int64_t nj    = last[1] - first[1] + 1;
+  const int64_t nk    = last[2] - first[2] + 1;
+  const int64_t count = (ni > 0 && nj > 0 && nk > 0) ? ni * nj * nk : 0;
 
-        if (tile == home) {
-          continue;
-        }
+  for (int64_t n = 0; n < count; n++) {
+    const int i = first[0] + static_cast<int>(n / (nj * nk));
+    const int j = first[1] + static_cast<int>((n / nk) % nj);
+    const int k = first[2] + static_cast<int>(n % nk);
 
-        // Squared distance from the point to this copy's box; prune against the best value so far.
-        const Vec3T<T> shift = period * tile;
-        const T        bound = Math::max(best, T(0));
+    if (i == home[0] && j == home[1] && k == home[2]) {
+      continue;
+    }
 
-        T dist2 = T(0);
+    const int tile[3] = {i, j, k};
+    const T   bound   = Math::max(best, T(0));
 
-        for (size_t dir = 0; dir < 3; dir++) {
-          const T below = (a_repetition.m_boxLow[dir] + shift[dir]) - a_point[dir];
-          const T above = a_point[dir] - (a_repetition.m_boxHigh[dir] + shift[dir]);
-          const T d     = Math::max(Math::max(below, above), T(0));
+    T dist2 = T(0);
 
-          dist2 += d * d;
-        }
+    for (size_t dir = 0; dir < 3; dir++) {
+      const T shift = a_repetition.period(dir) * T(tile[dir]);
+      const T below = (a_repetition.boxLow(dir) + shift) - a_point[dir];
+      const T above = a_point[dir] - (a_repetition.boxHigh(dir) + shift);
+      const T d     = Math::max(Math::max(below, above), T(0));
 
-        if (dist2 <= bound * bound) {
-          best = Math::min(best, a_object(a_point - shift));
-        }
-      }
+      dist2 += d * d;
+    }
+
+    if (dist2 <= bound * bound) {
+      best = Math::min(best,
+                       a_object(Vec3T<T>(a_point[0] - a_repetition.period(0) * T(i),
+                                         a_point[1] - a_repetition.period(1) * T(j),
+                                         a_point[2] - a_repetition.period(2) * T(k))));
     }
   }
 
