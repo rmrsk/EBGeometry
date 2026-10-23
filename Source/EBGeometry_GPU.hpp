@@ -122,10 +122,14 @@
 // one (a member function of a query that is not inlined, such as a Tape's evaluator) makes the compiler
 // copy the whole argument to each thread's local memory first: for a Tape, 376 bytes per thread, which
 // made it about 30 times slower on a device than the same object written by hand (issue #221). CUDA
-// 11.7 and later can give the address of a __grid_constant__ parameter without the copy (compute
-// capability 7.0 and later). HIP has no such qualifier, so there the macro is empty.
-#if defined(EBGEOMETRY_CUDA) && defined(__CUDACC_VER_MAJOR__) && \
-  (__CUDACC_VER_MAJOR__ > 11 || (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ >= 7))
+// 11.7 and later can give the address of a __grid_constant__ parameter without the copy, on compute
+// capability 7.0 and later; nvcc rejects the qualifier in a device pass for an older architecture, so
+// there (__CUDA_ARCH__ below 700) the macro is empty and the parameter is copied as before. The host
+// pass and the newer device passes of the same build keep it. HIP has no such qualifier, so there the
+// macro is empty.
+#if defined(EBGEOMETRY_CUDA) && defined(__CUDACC_VER_MAJOR__) &&                              \
+  (__CUDACC_VER_MAJOR__ > 11 || (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ >= 7)) && \
+  !(defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 700)
 /** @brief Let a kernel read a const parameter in place, through its address, rather than copy it (CUDA). */
 #define EBGEOMETRY_GRID_CONSTANT __grid_constant__
 #else
