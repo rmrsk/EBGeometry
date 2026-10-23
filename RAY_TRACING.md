@@ -16,7 +16,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 Ray queries as a library feature in their own right, not a part of the renderer (#93): does a ray hit
 a scene, where first, and does the path of a particle from `x0` to `x1` cross the surface. They work
 on every shape the library can evaluate (analytic shapes, mesh SDFs, BVH unions, tapes, user shapes),
-on the host and on a device, one query per thread or a packet of queries per thread. The renderer is
+on the host and on a device, one query per call (one per thread on a device). The renderer is
 rebuilt on top of them later.
 
 Approach (the maintainer's): reuse the BVH traversals; ray trace exactly where a shape has a ray form,
@@ -38,7 +38,7 @@ what the review below found, and lands it first. #214–#216 are then rebuilt on
 | `HitStatus` three-state: Hit / Miss / Unresolved (never report "gave up" as a miss) | `EBGeometry_Ray.hpp` | as is (decision D2) |
 | `RayOptions`: tolerance and step relative to the box diagonal, step budget | `EBGeometry_Ray.hpp` | as is |
 | `RayForm<S>`: opt-in specialisable trait, `available` + static `firstHit()` (+ `span()`) | `EBGeometry_Ray.hpp` | as is |
-| `firstHit(shape, ray, tMin, tMax, options)`, `intersects(shape, a, b, options)`: any `isShape`, device-callable | `EBGeometry_Ray.hpp` | extend (segments, packets) |
+| `firstHit(shape, ray, tMin, tMax, options)`, `intersects(shape, a, b, options)`: any `isShape`, device-callable | `EBGeometry_Ray.hpp` | extend (segments) |
 | `RayDetail::march()`: sphere trace inside the box for Distance/Bound, fixed steps + bisection for NotADistance; Unresolved when out of steps | `EBGeometry_RayImplem.hpp` | as is, plus normals |
 | Closed-form ray forms + `span()`: plane, sphere, box, cylinder, infinite cylinder, capsule | `EBGeometry_RayImplem.hpp` | as is |
 | `RayForm<TriMeshSDF>`: `PackedBVH::traverse()` keyed by box entry distance, nearest child first, pruned beyond the best hit; `TriangleSoA::rayHit()` at the leaves (Möller–Trumbore) | `EBGeometry_RayImplem.hpp`, `EBGeometry_TriangleSoA*.hpp` | reuse the traversal; rewrite the leaf kernel (R1) |
@@ -63,46 +63,46 @@ what the review below found, and lands it first. #214–#216 are then rebuilt on
 - **R5. Marched hits carry no normal.** Fill it from the gradient where the shape has no ray form
   (D9).
 - **R6. Lambdas into device code.** `march()` and the traversals pass lambdas to device code, the
-  pattern nvcc 12.5 miscompiled in #217. Every ray form, the march and the packet path get a `[gpu]`
+  pattern nvcc 12.5 miscompiled in #217. Every ray form and the march get a `[gpu]`
   test against the host (#214 had one).
 
 ## Decisions
 
 | # | Decision | Reason |
 |---|---|---|
-| D1 | **Batched queries are packets sharing a walk.** One thread traces a fixed packet of N rays/segments through the BVH together: a node is visited if any active ray in the packet needs it, and the leaf tests are vectorised across the packet. Alongside the point-like kernel (one query per thread). | Coherent queries (particles in one cell, a tile of camera rays) share most of their traversal; per-ray work is the fallback as the packet diverges. |
+| D1 | ~~Batched queries are packets sharing a walk~~ **superseded by D20 (no packets).** | |
 | D2 | **`intersects()` is three-state** (`HitStatus`: Hit, Miss, Unresolved). `firstHit(shape, x0, x1)` returns the full `HitT`. | A particle must not leak through a wall because a grazing march gave up and called it a miss. |
 | D3 | **The Tape is marched in this PR**; exact clause-by-clause ray tracing comes after #224. `Tape::firstHit()`/`Tape::intersects()` exist now as members. | Marching is always correct and touches nothing inside the Tape, while #224 rewrites its operations. |
 | D4 | **First crossing only in this PR.** Every crossing along a path (`forEachHit`) comes with the span machinery in PR B. | Enough to stop a particle at a wall; the in/out sequence needs spans. |
-| D5 | **Every shape takes a packet.** BVH shapes (mesh SDFs, `BVHUnion`) walk it together; closed-form and marched shapes loop over its rays (a generic default). | Callers never need to know which shapes walk and which loop. |
-| D6 | **Packet size is a template parameter:** `RayPacket<T, N>`, N fixed at compile time, with a mask of active rays (a packet can be partly filled). Trivially copyable, fixed arrays. 4 and 8 tested and measured. | Registers on a device; the caller matches N to the coherence of its queries. |
-| D7 | **Packet layout is SoA:** origins and directions as x[N], y[N], z[N], per-ray tMin/tMax, like `TriangleSoA`. | The slab test and the triangle kernel load N rays into `SIMD::Pack` lanes directly on the host; on a device the same struct loops. |
-| D8 | **A packet query returns `Array<HitT<T>, N>`**, one ordinary `HitT` per ray, inactive lanes left as Miss. | Same result type as a single query. |
+| D5 | ~~(packets)~~ **superseded by D20.** | |
+| D6 | ~~(packets)~~ **superseded by D20.** | |
+| D7 | ~~(packets)~~ **superseded by D20.** | |
+| D8 | ~~(packets)~~ **superseded by D20.** | |
 | D9 | **Marched hits always carry a normal:** central differences of the signed distance at the hit (6 evaluations, only on a hit). | Particle reflection and shading need it. |
 | D10 | **No new closed forms in this PR** (torus, cones, rounded box/cylinder march). | They march correctly; closed forms when a probe shows they matter (the torus quartic is fragile in float). |
-| D11 | **No library launchers.** Users call `firstHit()`/`intersects()` (single or packet) in their own `GPU::transform` functor or host loop, as with `signedDistance()`; the example and the probes show both patterns. | A small API, the same pattern as every other query. |
-| D12 | **Headers: core + per component.** `EBGeometry_Ray.hpp` holds `RayT`, `HitT`, `HitStatus`, `RayOptions`, `RayForm`, `RayPacket`, the march and the free functions; each component's ray form sits next to that component (mesh SDFs, `BVHUnion`, the triangle groups, the analytic shapes). | Device code includes only what it uses; the core includes no mesh headers. |
+| D11 | **No library launchers.** Users call `firstHit()`/`intersects()` in their own `GPU::transform` functor or host loop, as with `signedDistance()`; the example and the probes show both patterns. | A small API, the same pattern as every other query. |
+| D12 | **Headers: core + per component.** `EBGeometry_Ray.hpp` holds `RayT`, `HitT`, `HitStatus`, `RayOptions`, `RayForm`, the march and the free functions; each component's ray form sits next to that component (mesh SDFs, `BVHUnion`, the triangle groups, the analytic shapes). | Device code includes only what it uses; the core includes no mesh headers. |
 | D13 | **Segment queries measure t as distance from `x0`** (0 to \|x1 − x0\|): a segment is a ray from `x0` with tMax = \|x1 − x0\|. | One unit for rays and segments. |
 | D14 | **A crossing at t = 0 is a hit; a caller stepping off a surface passes a small tMin** (the segment overload takes one too). No default start offset. | Correct for a particle that is on the wall; the example shows the step-off. |
 | D15 | ~~A new `Examples/ParticlePaths`~~ superseded by D17. | |
 | D16 | **Builds on #230's general traversal** (see *Depends on #230*). | Ray casts are a main use case; the walk is designed and measured once, for every query type. |
-| D17 | **One example, `Examples/RayTracing`, on a `TriMeshSDF`, in two parts:** the user-facing `firstHit()`/`intersects()` (single and packets), then the same hits from a hand-written `traverse()` with a `RayPacket` and the user's own leaf evaluator. | Shows the API, and how to walk the BVH yourself when the API does not fit. |
-| D18 | **One performance probe for ray tracing a `TriMeshSDF`:** the user-facing API one ray per thread, the API on packets, and a hand-rolled packet walk (`traverse()` with the probe's own leaf), host and `hostdevice`, coherent and random rays. | Shows whether the API costs anything over hand-written code. |
-| D19 | **Unit tests check known cases against an AABB unit cube** (a 12-triangle `TriMeshSDF` against the exact slab answer): axis-aligned and diagonal rays, through an edge and a corner, from inside, grazing in a face's plane, misses, segments stopping short, a crossing at t = 0, mixed packets. | Independent closed-form reference that exercises the edge and corner robustness. |
+| D17 | **One example, `Examples/RayTracing`, on a `TriMeshSDF`, in two parts:** the user-facing `firstHit()`/`intersects()`, then the same hits from a hand-written `traverse()` with a `RayQuery` and the user's own leaf evaluator. | Shows the API, and how to walk the BVH yourself when the API does not fit. |
+| D18 | **One performance probe for ray tracing a `TriMeshSDF`:** the user-facing API (one ray per thread) and a hand-rolled walk (`traverse()` with a `RayQuery` and the probe's own leaf evaluator), host and `hostdevice`, coherent and random rays. | Shows whether the API costs anything over hand-written code. |
+| D19 | **Unit tests check known cases against an AABB unit cube** (a 12-triangle `TriMeshSDF` against the exact slab answer): axis-aligned and diagonal rays, through an edge and a corner, from inside, grazing in a face's plane, misses, segments stopping short, a crossing at t = 0. | Independent closed-form reference that exercises the edge and corner robustness. |
+| D20 | **No packets** (several rays per thread sharing one walk). One query per call; many queries are the user's own loop, or one per thread in their own functor. #230 leaves room to add packets later without breaking the API. | The SIMD is already used across a node's K child boxes and a leaf's W triangles; packets only amortise node fetches for coherent rays, which particles and one-ray-per-GPU-thread are not, at the cost of lane masks in the walk and every callback. Decided 2026-10-23. |
 
 ## Depends on #230 (BVH traversal)
 
 The ray queries build on a rewritten, general `PackedBVH::traverse()` that lands first in #230 (see
-`BVH_TRAVERSAL.md` on the `bvh_traversal` branch): one walk for a single query or a packet of up to 32
-per thread, query types with a SIMD K-children test (`PointQuery`, `PointPacket`, `RayQuery`,
-`RayPacket`), order policies and per-lane bounds. `pruneTraverse()` and the old `traverse()` go.
-Consequences here:
+`BVH_TRAVERSAL.md` on the `bvh_traversal` branch): one walk for any query type with a SIMD K-children
+test (`PointQuery`, `RayQuery`, or the user's own), order policies, a state object, a leaf evaluator
+and a bound. `pruneTraverse()` and the old `traverse()` go. Consequences here:
 
-- `RayPacket` and the ray query move to #230; this PR adds `RayT`, `HitT`, `RayOptions`, `RayForm`,
-  `firstHit`/`intersects` and the ray forms on top of them.
+- `RayQuery` (the walk's ray: origin, inverse direction, tMin, slab test) lives in #230; this PR adds
+  `RayT`, `HitT`, `RayOptions`, `RayForm`, `firstHit`/`intersects` and the ray forms on top of it.
 - Every BVH ray form (`TriMeshSDF`, `MeshSDF`, `FlatMeshSDF`, `BVHUnion`) is `traverse()` with a
-  `RayQuery` or `RayPacket` and a leaf evaluator that tests the leaf's primitives; no `rayTraverse()`.
-  Section 1 and 2 of *Traversal algorithms* below describe what those calls do; the walk itself is #230's.
+  `RayQuery` and a leaf evaluator that tests the leaf's primitives; no `rayTraverse()`. Section 1 of
+  *Traversal algorithms* below describes what that call does; the walk itself is #230's.
 - This branch is rebased on #230 once it lands, before any code goes in.
 
 ## Interface (proposed, for review before implementation)
@@ -160,31 +160,11 @@ struct RayOptions
   uint32_t m_maxSteps  = 512;      // steps before a query is Unresolved
   T        m_step      = T(0.005); // fixed step * scale where the value is not a distance
 };
-
-// N rays traced together by one thread (D1, D5-D8). SoA so N rays load into SIMD lanes; trivially
-// copyable, fixed arrays. Lanes not set are inactive.
-template <class T, size_t N>
-struct RayPacket
-{
-  static_assert(N >= 1 && N <= 32, "RayPacket: N must be in [1, 32]");
-
-  Array<T, N> m_originX, m_originY, m_originZ;
-  Array<T, N> m_directionX, m_directionY, m_directionZ; // unit length
-  Array<T, N> m_tMin, m_tMax;
-  uint32_t    m_active = 0; // bit i: lane i holds a ray
-
-  void     setRay(size_t a_lane, const RayT<T>& a_ray, T a_tMin, T a_tMax);
-  void     setSegment(size_t a_lane, const Vec3T<T>& a_from, const Vec3T<T>& a_to, T a_tMin = T(0));
-  RayT<T>  ray(size_t a_lane) const;
-  bool     active(size_t a_lane) const;
-};
 ```
 
 ### Queries (free functions, any shape `S` with `isShape<S>`)
 
 ```cpp
-// --- one ray or segment per call (point-like kernel: one query per thread) ---
-
 // First crossing in [a_tMin, a_tMax], entering or leaving.
 template <class T, class S>
 HitT<T> firstHit(const S& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
@@ -204,21 +184,9 @@ HitStatus intersects(const S& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
 template <class T, class S>
 HitStatus intersects(const S& a_shape, const Vec3T<T>& a_from, const Vec3T<T>& a_to, T a_tMin = T(0),
                      const RayOptions<T>& a_options = RayOptions<T>());
-
-// --- packets (batched: N queries per thread) ---
-
-// One HitT per lane; inactive lanes are Miss (D8). BVH shapes walk the packet together; any other
-// shape loops over its lanes (D5).
-template <class T, size_t N, class S>
-Array<HitT<T>, N> firstHit(const S& a_shape, const RayPacket<T, N>& a_packet,
-                           const RayOptions<T>& a_options = RayOptions<T>());
-
-template <class T, size_t N, class S>
-Array<HitStatus, N> intersects(const S& a_shape, const RayPacket<T, N>& a_packet,
-                               const RayOptions<T>& a_options = RayOptions<T>());
 ```
 
-Use, one query per thread or a packet per thread, in the caller's own functor (D11):
+Use, one query per thread, in the caller's own functor (D11):
 
 ```cpp
 struct PathQuery // a particle's step from x0 to x1
@@ -263,7 +231,7 @@ struct Crossing
   uint32_t face;
 };
 
-// --- 1. One step per thread -------------------------------------------------------------------
+// --- One step per thread -------------------------------------------------------------------
 struct StepQuery
 {
   Wall m_wall; // a rebasedView() of the mesh: valid on the device
@@ -290,34 +258,6 @@ struct StepQuery
   }
 };
 
-// --- 2. A packet of 8 steps per thread --------------------------------------------------------
-constexpr size_t N = 8;
-
-struct StepPacket // the user's 8 steps, as one input
-{
-  Step steps[N];
-  int  count; // the last packet may be partly filled
-};
-
-struct PacketQuery
-{
-  Wall m_wall;
-
-  EBGEOMETRY_HOST_DEVICE Array<HitT<T>, N>
-  operator()(const StepPacket& a_in) const noexcept
-  {
-    RayPacket<T, N> packet;
-
-    for (int i = 0; i < a_in.count; i++) {
-      const Step& s = a_in.steps[i];
-
-      packet.setSegment(i, Vec3T<T>(s.x0[0], s.x0[1], s.x0[2]), Vec3T<T>(s.x1[0], s.x1[1], s.x1[2]));
-    }
-
-    return firstHit(m_wall, packet); // one BVH walk for all 8; lanes past count are Miss
-  }
-};
-
 int
 main()
 {
@@ -333,20 +273,13 @@ main()
 
   std::vector<Step> steps = /* the user's list */;
 
-  // 1. One step per thread: GPU::transform copies the steps over, runs StepQuery on each, and copies
+  // One step per thread: GPU::transform copies the steps over, runs StepQuery on each, and copies
   //    the results back. In a host build the same call is a host loop.
   std::vector<Crossing> crossings(steps.size());
 
   GPU::transform(StepQuery{view}, steps, crossings);
 
-  // 2. A packet per thread: group the steps (coherent steps in the same packet walk the BVH together),
-  //    then the same call.
-  std::vector<StepPacket> packets = /* steps grouped by N, e.g. in their spatial (SFC) order */;
-  std::vector<Array<HitT<T>, N>> hits(packets.size());
-
-  GPU::transform(PacketQuery{view}, packets, hits);
-
-  // 3. On the host, no device: the same functions on the host object.
+  // On the host, no device: the same functions on the host object.
   for (const Step& s : steps) {
     const HitStatus st = intersects(wall, Vec3T<T>(s.x0[0], s.x0[1], s.x0[2]), Vec3T<T>(s.x1[0], s.x1[1], s.x1[2]));
     // ...
@@ -363,84 +296,48 @@ const HitT<T> next = firstHit(m_wall, x0, x1, T(1e-9) * diagonal);
 
 The same works with a user's own vector type (with `operator[]`, or `.x/.y/.z`): only the two
 conversion lines change. With `std::vector<Vec3T<T>>` start and stop lists, the functor indexes them
-through `GPU::parallelFor` instead of taking a `Step`.
+through `GPU::parallelFor` instead of taking a `Step`. Steps in spatial (Morton) order keep
+neighbouring threads on similar paths through the BVH.
 
 ### Traversal algorithms
 
 #### 1. One ray through a BVH (`TriMeshSDF`, `MeshSDF`, `BVHUnion`)
 
-Reuses `PackedBVH::traverse()` unchanged; only its four callbacks are ray-specific. `best` is the
-nearest crossing found so far (initially the query's `tMax`).
+`PackedBVH::traverse()` from #230 with a `RayQuery`; only the state and the leaf evaluator are
+ray-specific. `best` is the nearest crossing found so far (initially the query's `tMax`).
 
 ```text
-key(node)        = entry distance of the ray into node's box over [tMin, tMax]   (slab test),
-                   +inf if it misses.  Pure: the same node always gets the same key (traverse()'s
-                   contract; #214 clipped against `best`, which changes during the walk).
-prune(node, key) = descend iff key <= best          (a box entered beyond the best crossing is skipped)
-order(children)  = sort by key, nearest LAST        (traverse() visits the last entry first)
-leaf(prims)      = for each primitive: crossing = rayTest(prim, ray, tMin, best)
-                   if crossing at t < best:  best = t, keep face id, normal, entering
+query   = RayQuery{origin, direction, tMin}  : key of a child box = where the ray enters it (slab test,
+                                               all K children in one SIMD pass), +inf if it misses
+bound   = best                               : a box entered beyond the best crossing is skipped
+order   = NearestFirst                       : a crossing found early prunes the boxes behind it
+leaf    = for each primitive: crossing = rayTest(prim, ray, tMin, best)
+          if crossing at t < best:  best = t, keep face id, normal, entering
 
-traverse(leaf, prune, order, key)    -> HitT from best (Miss if nothing below tMax)
+traverse(query, state, leaf, bound)          -> HitT from the state (Miss if nothing below tMax)
 ```
 
-- **Slab test.** `t0 = (lo - o) * invD`, `t1 = (hi - o) * invD` per axis, entry = max of the per-axis
-  minima and `tMin`, exit = min of the maxima and `tMax`; hit iff entry ≤ exit. Robust form: a zero
+- **Slab test** (in `RayQuery`). `t0 = (lo - o) * invD`, `t1 = (hi - o) * invD` per axis, entry = max
+  of the per-axis minima and `tMin`, exit = min of the maxima; hit iff entry ≤ exit. Robust form: a zero
   direction component gives ±inf, and a `0 * inf` NaN is dropped by ordering the min/max so NaN loses.
   Boxes are padded by a few ulps of their extent so a ray through a shared face or edge cannot slip
   between two neighbouring boxes.
-- **Pruning is checked when a child is popped**, so a crossing found in an earlier sibling's subtree
-  prunes the later ones (nearest-first order makes this the common case).
+- **The bound is re-read at every node**, so a crossing found in an earlier sibling's subtree prunes the
+  later ones (nearest-first order makes this the common case).
 - **Leaf tests (`rayTest`)**, exact:
   - `TriMeshSDF`: Möller–Trumbore on a group of W triangles, written once against `V` (R1): on the host
     `V = SIMD::Pack<T, W>`, all W triangles in one pass, the nearest lane with `t ∈ [tMin, best)`
     kept; on a device `V = T`, one triangle at a time. A small barycentric tolerance keeps rays through
     shared edges from slipping between triangles. Entering = `dot(direction, face normal) < 0`.
   - `MeshSDF`/`FlatMeshSDF`: ray–plane with the face's plane, then point-in-convex-polygon on the DCEL
-    face (edge-side tests). `FlatMeshSDF` has no BVH: every face is a leaf of one implicit leaf.
+    face (edge-side tests). `FlatMeshSDF` has no BVH: every face is tested.
   - `BVHUnion<T, P, K>`: `firstHit(operand, ray, max(tMin, boxEntry), min(best, boxExit))`: the
-    operand's own ray form if `P` has one, otherwise the march (3) clipped to the operand's box. This
+    operand's own ray form if `P` has one, otherwise the march (2) clipped to the operand's box. This
     is the "ray intersection where we can, sphere tracing where we can't" rule.
-- **Any-hit (`intersects`)**: the same walk, with `leaf` stopping the traversal at the first crossing
-  (prune returns false for everything afterwards). Order is then irrelevant and is left unsorted.
-- **Later, measured (R2):** the K children's slab tests read from the parent's SoA child-box row in one
-  SIMD pass at expansion, as `pruneTraverse()` does for distances; the re-test when a child is popped
-  then reads that child's slot, bit-for-bit the same value.
+- **Any-hit (`intersects`)**: the same walk with `AsStored` order (no sort), and the bound dropping to
+  -infinity at the first crossing, which ends the walk.
 
-#### 2. A packet of N rays through a BVH (D1, D5–D8)
-
-A new generic member next to `traverse()`, `PackedBVH::traversePacket()`, with the same kind of
-callbacks but a lane mask in every stack entry. `best[i]` per lane.
-
-```text
-stack = [(root, activeMask)]
-while stack not empty:
-    (node, mask) = pop
-    mask &= { i : entry_i(node) <= best[i] }      # lanes whose crossing so far is nearer drop out
-    if mask == 0: continue
-    if leaf(node):
-        for each primitive in the leaf:
-            for each lane i in mask:              # host: SIMD over the W triangles per lane
-                crossing = rayTest(prim, ray_i, tMin[i], best[i]);  update best[i], face[i], ...
-    else:
-        for each child c:  childMask[c] = { i in mask : slab(ray_i, box(c)) hits before best[i] }
-                           (one N-lane SIMD slab test per child on the host)
-        push children with childMask != 0, ordered so the child with the nearest
-        minimum entry over its lanes is popped first
-```
-
-- **Stack entry** = node index + 32-bit lane mask (`RayPacket` has N ≤ 32). Depth bound as for
-  `traverse()`, times K (all children of a level may be pushed), so it stays a fixed-size array on a
-  device.
-- **Divergence.** When lanes go different ways, each child carries only its lanes; the walk degrades
-  to per-ray work with the packet's bookkeeping, never worse than N single walks by more than the
-  mask overhead (to be measured: N = 4 and 8, coherent and random packets, in the probes).
-- **Shapes without a BVH** take the generic default: a loop over the active lanes with the single-ray
-  query.
-- **Any-hit packet:** a lane leaves the mask at its first crossing; the walk ends when the mask is
-  empty.
-
-#### 3. The march (shapes without a ray form, `Tape` in this PR)
+#### 2. The march (shapes without a ray form, `Tape` in this PR)
 
 From #214's `RayDetail::march()`, unchanged except the normal:
 
@@ -466,7 +363,7 @@ on a Hit: normal = normalize(central differences of f at the point, h = eps)   (
 - `Bound` (a lower bound on the distance, e.g. CSG intersections) is safe to sphere trace, just slower;
   a ray grazing a surface takes many small steps and may end Unresolved, which callers must handle.
 
-#### 4. Segments
+#### 3. Segments
 
 `firstHit(shape, x0, x1, tMin)` is the ray `x0 + t d`, `d = (x1 − x0)/|x1 − x0|`, over
 `[tMin, |x1 − x0|]` (D13). `intersects(shape, x0, x1)` first compares the signs of the value at the
@@ -489,17 +386,13 @@ class Tape
   HitStatus intersects(const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& = RayOptions<T>()) const;
   HitStatus intersects(const Vec3T<T>& a_from, const Vec3T<T>& a_to, T a_tMin = T(0),
                        const RayOptions<T>& = RayOptions<T>()) const;
-  template <size_t N>
-  Array<HitT<T>, N>   firstHit(const RayPacket<T, N>& a_packet, const RayOptions<T>& = RayOptions<T>()) const;
-  template <size_t N>
-  Array<HitStatus, N> intersects(const RayPacket<T, N>& a_packet, const RayOptions<T>& = RayOptions<T>()) const;
 };
 ```
 
 ### Extension point: `RayForm<S>`
 
 A shape without a specialisation is marched. A specialisation makes it ray traced; only `firstHit` is
-required, and the others have generic defaults.
+required; `intersects` is optional, with a generic default.
 
 ```cpp
 template <class S, class = void>
@@ -518,10 +411,6 @@ struct RayForm<MyShape>
 
   // Optional: any crossing, early exit (default: firstHit(...).m_status).
   static HitStatus intersects(const MyShape&, const RayT<T>&, T a_tMin, T a_tMax, const RayOptions<T>&);
-
-  // Optional: a packet in one walk (default: a loop over the lanes).
-  template <size_t N>
-  static Array<HitT<T>, N> firstHit(const MyShape&, const RayPacket<T, N>&, const RayOptions<T>&);
 };
 ```
 
@@ -530,9 +419,9 @@ Ray forms in this PR, each next to its component (D12):
 | Shape | Ray form | Header |
 |---|---|---|
 | `PlaneSDF`, `SphereSDF`, `BoxSDF`, `CylinderSDF`, `InfiniteCylinderSDF`, `CapsuleSDF` | closed form | `EBGeometry_AnalyticRayForms.hpp` |
-| `TriMeshSDF` | BVH walk (`PackedBVH::traverse()`), triangle kernel on `SIMD::Pack` at the leaves; packet walk | `EBGeometry_MeshRayForms.hpp` |
-| `MeshSDF`, `FlatMeshSDF` | BVH walk / all faces, ray–plane + point-in-convex-polygon on the DCEL faces; packet walk (`MeshSDF`) | `EBGeometry_MeshRayForms.hpp` |
-| `BVHUnion<T, P, K>` | BVH walk; at a leaf `firstHit()` on the operand (its ray form, or marched in its box); packet walk | `EBGeometry_BVHUnion.hpp` |
+| `TriMeshSDF` | BVH walk (`PackedBVH::traverse()`), triangle kernel on `SIMD::Pack` at the leaves | `EBGeometry_MeshRayForms.hpp` |
+| `MeshSDF`, `FlatMeshSDF` | BVH walk / all faces, ray–plane + point-in-convex-polygon on the DCEL faces | `EBGeometry_MeshRayForms.hpp` |
+| `BVHUnion<T, P, K>` | BVH walk; at a leaf `firstHit()` on the operand (its ray form, or marched in its box) | `EBGeometry_BVHUnion.hpp` |
 | `Tape` | marched (exact after #224) | `EBGeometry_Tape.hpp` (members) |
 | everything else | marched | — |
 
@@ -542,8 +431,7 @@ Ray forms in this PR, each next to its component (D12):
   functions. Mesh SDFs and `BVHUnion` could get members too, for symmetry.
 - **`m_primitive` for `BVHUnion`**: the operand's index in the array the union was built from (the
   union's leaf order is internal).
-- **`RayPacket` bounds**: N ≤ 32 so the active mask is one `uint32_t`.
-- **Names**: `firstHit`/`intersects` as in #214; `RayT`/`HitT`/`RayPacket` (the `...T` suffix follows
+- **Names**: `firstHit`/`intersects` as in #214; `RayT`/`HitT` (the `...T` suffix follows
   `Vec3T`/`AABBT`).
 
 ## Open questions
@@ -573,13 +461,11 @@ Ray forms in this PR, each next to its component (D12):
 - Closed-form ray forms: plane, sphere, box, cylinder, infinite cylinder, capsule.
 - BVH ray forms reusing `PackedBVH::traverse()`: `TriMeshSDF`, `MeshSDF`, `FlatMeshSDF`, `BVHUnion`.
 - The triangle ray kernel written once against `SIMD::Pack` (R1).
-- Packets (D1, D5–D8): `RayPacket<T, N>` (SoA, active mask), a shared BVH walk for the BVH shapes, a per-ray loop for the rest, results as `Array<HitT<T>, N>`.
 - `Tape::firstHit()`, `Tape::intersects()` by marching (D3).
-- Per CLAUDE.md: unit tests (`TEMPLATE_TEST_CASE`, independent references: closed forms, brute force
-  over all faces), `[gpu]` cases for every ray form, the march and packets; `Tests/InstantiateAll.cpp`;
-  performance cases (one query per thread and packets, host and `hostdevice` pairs: mesh, BVH union,
-  analytic shape, tape march); Sphinx Concepts + Implem pages; `Examples/ParticlePaths` with its page (D15);
-  the receipt.
+- Per CLAUDE.md: unit tests (`TEMPLATE_TEST_CASE`, independent references: known cases against an AABB
+  unit cube (D19), closed forms, brute force over all faces), `[gpu]` cases for every ray form and the march; `Tests/InstantiateAll.cpp`;
+  one performance probe for a `TriMeshSDF` (D18); Sphinx Concepts + Implem pages; `Examples/RayTracing`
+  with its page (D17); the receipt.
 
 Not in this PR: exact CSG/Tape ray tracing, every crossing along a path, the renderer.
 
@@ -603,7 +489,6 @@ Not in this PR: exact CSG/Tape ray tracing, every crossing along a path, the ren
 - [ ] March normals.
 - [ ] Triangle ray kernel on `SIMD::Pack`.
 - [ ] Ray forms: `MeshSDF`/`FlatMeshSDF`, `BVHUnion`.
-- [ ] Packets.
 - [ ] `Tape::firstHit()`/`intersects()`.
 - [ ] Tests (host, `[gpu]`), `InstantiateAll`.
 - [ ] Performance cases; receipt (host + CUDA).
