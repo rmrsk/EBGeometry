@@ -975,19 +975,19 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
         const T         d   = w[0];
         const Vec3T<T>& x   = points[np - 1];
 
-        const auto f = [this, sub, d, &x, a_base, &a_location](const int i, const int j, const int k) noexcept -> T {
-          return this->template evaluate<D - 1>(sub, x + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d), a_base, a_location);
-        };
-
+        // The 27 taps p + d (i, j, k); a tap m = |i| + |j| + |k| steps from the centre has weight w[1 + m].
         T value = T(0);
 
-        value += w[1] * f(0, 0, 0);
-        value += w[2] * (f(1, 0, 0) + f(-1, 0, 0) + f(0, 1, 0) + f(0, -1, 0) + f(0, 0, 1) + f(0, 0, -1));
-        value += w[3] * (f(1, 1, 0) + f(1, -1, 0) + f(-1, 1, 0) + f(-1, -1, 0));
-        value += w[3] * (f(1, 0, 1) + f(1, 0, -1) + f(-1, 0, 1) + f(-1, 0, -1));
-        value += w[3] * (f(0, 1, 1) + f(0, 1, -1) + f(0, -1, 1) + f(0, -1, -1));
-        value += w[4] * (f(1, 1, 1) + f(1, 1, -1) + f(1, -1, 1) + f(1, -1, -1));
-        value += w[4] * (f(-1, 1, 1) + f(-1, 1, -1) + f(-1, -1, 1) + f(-1, -1, -1));
+        for (int t = 0; t < 27; t++) {
+          const int i = t / 9 - 1;
+          const int j = (t / 3) % 3 - 1;
+          const int k = t % 3 - 1;
+          const int m = (i != 0) + (j != 0) + (k != 0);
+
+          const Vec3T<T> tap = x + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d);
+
+          value += w[1 + m] * this->template evaluate<D - 1>(sub, tap, a_base, a_location);
+        }
 
         values[nv++] = value;
       }

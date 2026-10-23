@@ -5532,7 +5532,24 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate and 
     const auto deviceFaces = evaluateOnDevice<int>(ClosestFaceQuery<T, SDF>{view}, points);
     const auto hostFaces   = evaluateOnHost<int>(ClosestFaceQuery<T, SDF>{a_sdf}, points);
 
-    REQUIRE(deviceFaces == hostFaces);
+    REQUIRE(deviceFaces.size() == hostFaces.size());
+
+    // Several faces tie at a point nearest a shared edge or vertex, and the device's fused
+    // multiply-adds may break the tie the other way, so a different face is accepted when it is as
+    // close as the host's.
+    for (size_t i = 0; i < points.size(); i++) {
+      if (deviceFaces[i] != hostFaces[i]) {
+        INFO("query " << i << ": device face " << deviceFaces[i] << ", host face " << hostFaces[i]);
+
+        REQUIRE(deviceFaces[i] >= 0);
+        REQUIRE(static_cast<uint32_t>(deviceFaces[i]) < mesh.numFaces());
+
+        const T own  = mesh.getFace(static_cast<uint32_t>(deviceFaces[i])).signedDistance(points[i], mesh);
+        const T host = mesh.getFace(static_cast<uint32_t>(hostFaces[i])).signedDistance(points[i], mesh);
+
+        REQUIRE_THAT(std::abs(own), withinAbsT(std::abs(host), traversalMargin<T>()));
+      }
+    }
   };
 
   check(flat);
