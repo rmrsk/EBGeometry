@@ -287,7 +287,7 @@ instantiateFunctionTemplates()
     std::vector<std::pair<Vec3T<T>, BoundingVolumes::AABBT<T>>> points{
       {Vec3T<T>::zeros(), BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros())}};
 
-    BVH::PackedBVH<T, Vec3T<T>, 4> bvh(refitPool, points, size_t(1));
+    auto bvh = BVH::PackedBVH<T, Vec3T<T>, 4>::buildBottomUp(refitPool, points, size_t(1));
 
     const BVH::RefitSchedule schedule(refitPool, bvh);
 

@@ -5606,7 +5606,7 @@ refitSpiral(Pool& a_pool)
     flat.emplace_back(BareTestPoint<T>{p}, AABB(p, p));
   }
 
-  return BVH::PackedBVH<T, BareTestPoint<T>, K>(a_pool, flat, size_t(3));
+  return BVH::PackedBVH<T, BareTestPoint<T>, K>::buildBottomUp(a_pool, flat, size_t(3));
 }
 
 template <class T>
@@ -5733,8 +5733,8 @@ TEST_CASE("BVH::refitParallel rejects a schedule built for another BVH", "[BVH][
     few.emplace_back(BareTestPoint<T>{p}, BoundingVolumes::AABBT<T>(p, p));
   }
 
-  const BVH::PackedBVH<T, BareTestPoint<T>, K> other(pool, few, size_t(3));
-  const BVH::RefitSchedule                     schedule(pool, other);
+  const auto               other = BVH::PackedBVH<T, BareTestPoint<T>, K>::buildBottomUp(pool, few, size_t(3));
+  const BVH::RefitSchedule schedule(pool, other);
 
   // The check compares node counts, so the two trees must differ in size for the case to mean anything.
   REQUIRE(other.layout().m_linearNodes.size() != bvh.layout().m_linearNodes.size());
