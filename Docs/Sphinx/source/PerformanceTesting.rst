@@ -143,9 +143,8 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 **Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
-grown by a quarter on every side), against the same solid written by hand (issues #210 and #221) and
-as a fused composition (``Fused::``, see :ref:`Chap:ImplemCSG`). The ``sphere`` and ``chain16`` cases
-take the gap between the tape and the hand-written code apart: a cost paid once per device thread
+grown by a quarter on every side), against the same solid written by hand (issues #210 and #221). The
+``sphere`` and ``chain16`` cases take a gap between the two apart: a cost paid once per device thread
 (``signedDistance-x16`` evaluates 16 times per query), and one paid per clause.
 
 ====================================  =====  =====================================================
@@ -162,11 +161,24 @@ Family                                Build  Measures
                                              thread)
 ``chain16/signedDistance``            host   a union of 16 spheres evaluated clause by clause (31
                                              clauses, no BVH; and ``chain16-handwritten``: a loop)
-``<input>-fused/signedDistance``      host   ``csg``, ``smooth`` and ``chain16`` as fused
-                                             compositions
+``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
+====================================  =====  =====================================================
+
+**Fused** (``Performance/Fused``): the Tape probe's solids as fused compositions (``Fused::``, see
+:ref:`Sec:Fused`), at the same points as the Tape probe's cases, and a mesh drilled through by a
+cylinder, fused and through a tape. They have a probe of their own because adding them to the Tape
+probe's translation unit changed how GCC inlined the tape's evaluator there, and so the timings of the
+Tape cases.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``csg/signedDistance``                host   the classic CSG solid, fused, at 400,000 points
+``smooth/signedDistance``             host   the smooth solid, fused
+``chain16/signedDistance``            host   the union of 16 spheres, fused
 ``drilled-mesh/signedDistance``       host   the armadillo (``TriMeshSDF``, K = W = 4) drilled through
-                                             by a cylinder, through a ``Tape``, at 20,000 points;
-                                             and ``drilled-mesh-fused``: as a fused composition
+                                             by a cylinder, fused, at 20,000 points; and
+                                             ``drilled-mesh-tape``: the same through a ``Tape``
 ``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
                                              (262,144 for the drilled mesh)
 ====================================  =====  =====================================================
