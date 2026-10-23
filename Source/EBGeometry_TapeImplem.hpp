@@ -970,26 +970,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
     }
     case Op::Blur: {
       if constexpr (D > 0) {
-        const uint32_t  sub = c.m_a;
-        const T*        w   = params + c.m_b;
-        const T         d   = w[0];
-        const Vec3T<T>& x   = points[np - 1];
-
-        const auto f = [this, sub, d, &x, a_base, &a_location](const int i, const int j, const int k) noexcept -> T {
-          return this->template evaluate<D - 1>(sub, x + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d), a_base, a_location);
-        };
-
-        T value = T(0);
-
-        value += w[1] * f(0, 0, 0);
-        value += w[2] * (f(1, 0, 0) + f(-1, 0, 0) + f(0, 1, 0) + f(0, -1, 0) + f(0, 0, 1) + f(0, 0, -1));
-        value += w[3] * (f(1, 1, 0) + f(1, -1, 0) + f(-1, 1, 0) + f(-1, -1, 0));
-        value += w[3] * (f(1, 0, 1) + f(1, 0, -1) + f(-1, 0, 1) + f(-1, 0, -1));
-        value += w[3] * (f(0, 1, 1) + f(0, 1, -1) + f(0, -1, 1) + f(0, -1, -1));
-        value += w[4] * (f(1, 1, 1) + f(1, 1, -1) + f(1, -1, 1) + f(1, -1, -1));
-        value += w[4] * (f(-1, 1, 1) + f(-1, 1, -1) + f(-1, -1, 1) + f(-1, -1, -1));
-
-        values[nv++] = value;
+        values[nv++] = this->template evaluateBlur<D>(c, points[np - 1], params, a_base, a_location);
       }
       else {
         EBGEOMETRY_EXPECT(false);
@@ -1113,6 +1094,42 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
 
     return T(0);
   }
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::evaluateBlur(const TapeDetail::Clause& a_clause,
+                                         const Vec3T<T>&           a_point,
+                                         const T*                  a_params,
+                                         const void*               a_base,
+                                         const PoolLocation&       a_location) const noexcept
+{
+  const uint32_t sub = a_clause.m_a;
+  const T*       w   = a_params + a_clause.m_b;
+  const T        d   = w[0];
+
+  // The 27 taps p + d (i, j, k), i, j, k in {-1, 0, 1}; a tap m = |i| + |j| + |k| steps from the centre
+  // has weight w[1 + m]. One loop, not a lambda called once per tap: in that form nvcc 12.5 placed some
+  // taps at the wrong points (issue #217). In its own function rather than in evaluateBody(): there, the
+  // loop changed how GCC inlines the primitive dispatch into the evaluator, and slowed tapes without a
+  // Blur by up to 20%.
+  T value = T(0);
+
+  for (int t = 0; t < 27; t++) {
+    const int i = t / 9 - 1;
+    const int j = (t / 3) % 3 - 1;
+    const int k = t % 3 - 1;
+    const int m = i * i + j * j + k * k;
+
+    const Vec3T<T> tap = a_point + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d);
+
+    value += w[1 + m] * this->template evaluate<D - 1>(sub, tap, a_base, a_location);
+  }
+
+  return value;
 }
 
 template <class T, class... UserPrimitives>

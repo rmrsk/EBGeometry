@@ -36,7 +36,9 @@ template <class T>
 using AoSoA = TriangleAoSoA<T, W>;
 
 // Four disjoint, well-separated triangles, spread out along x so each one is unambiguously the
-// closest for a query point placed near it.
+// closest for a query point placed near it. A triangle on its own has its face normal as the
+// pseudonormal of every vertex and edge; left unset, the pseudonormals are Vec3::max(), and the sign
+// of a point nearest a vertex or edge would come from an overflowing dot product.
 template <class T>
 std::vector<Tri<T>>
 fourTriangles()
@@ -47,7 +49,15 @@ fourTriangles()
 
   for (int i = 0; i < 4; i++) {
     const Vec3 base(T(3.0 * i), T(0), T(0));
-    tris.emplace_back(Array<Vec3, 3>{base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
+
+    Tri<T> tri(Array<Vec3, 3>{base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
+
+    const Vec3 n = tri.getNormal();
+
+    tri.setVertexNormals(Array<Vec3, 3>{n, n, n});
+    tri.setEdgeNormals(Array<Vec3, 3>{n, n, n});
+
+    tris.push_back(tri);
   }
 
   return tris;
