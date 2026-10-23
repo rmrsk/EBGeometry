@@ -14,6 +14,9 @@
 #ifndef EBGEOMETRY_TRIANGLEDISTANCE_HPP
 #define EBGEOMETRY_TRIANGLEDISTANCE_HPP
 
+// Std includes
+#include <type_traits>
+
 // Our includes
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_SIMD.hpp"
@@ -120,8 +123,11 @@ onEdge(const V a_t) noexcept
  * plane. Elsewhere it is the distance to the closest vertex or edge, signed by that feature's
  * pseudonormal. The candidates are compared by squared distance in the order vertex 0, 1, 2 and edge
  * 0, 1, 2, a later one replacing the best only when strictly closer, and there is one square root, at
- * the end. A sign test (s > 0) gives -1 at zero and at NaN. Every lane computes every candidate, so
- * the kernel has no branches.
+ * the end. A sign test (s > 0) gives -1 at zero and at NaN. For a SIMD::Pack every lane computes
+ * every candidate, so the kernel has no branches. For a scalar (a device thread, Triangle, a build
+ * without SIMD) it branches instead: it returns at once for a point projecting inside the face, and
+ * signs only the closest candidate, with the same candidates, order and arithmetic, so the result
+ * is the same.
  *
  * The triangle is read through @p a_triangle, at the point each value is needed, so that a SIMD
  * caller loads straight from its arrays into registers rather than staging the whole triangle in
@@ -169,6 +175,82 @@ signedDistance(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
 
   const auto inside = abs(s0 + s1 + s2) >= constant<V>(2);
   const V    faceD  = dot(n, p1);
+
+  if constexpr (std::is_floating_point_v<V>) {
+    // One lane can branch where a SIMD lane cannot. A point projecting inside the face needs no
+    // vertex or edge, and only the closest candidate needs its sign: on a device this skips most of
+    // the double-precision work, which bounds the kernel there.
+    if (inside) {
+      return faceD;
+    }
+
+    // The closest candidate so far: its squared distance, the vector from it to the point, and
+    // which pseudonormal signs it (0-2 vertices, 3-5 edges). An edge's closest point is computed only
+    // where the point projects onto the edge (0 < t < 1).
+    V        bestD2  = dot(p1, p1);
+    Vec3V<V> bestVec = p1;
+    int      best    = 0;
+
+    const V p2d2 = dot(p2, p2);
+
+    if (p2d2 < bestD2) {
+      bestD2  = p2d2;
+      bestVec = p2;
+      best    = 1;
+    }
+
+    const V p3d2 = dot(p3, p3);
+
+    if (p3d2 < bestD2) {
+      bestD2  = p3d2;
+      bestVec = p3;
+      best    = 2;
+    }
+
+    const V t1 = dot(p1, v21) / dot(v21, v21);
+
+    if (onEdge(t1)) {
+      const Vec3V<V> y1   = p1 - scaled(v21, t1);
+      const V        y1d2 = dot(y1, y1);
+
+      if (y1d2 < bestD2) {
+        bestD2  = y1d2;
+        bestVec = y1;
+        best    = 3;
+      }
+    }
+
+    const V t2 = dot(p2, v32) / dot(v32, v32);
+
+    if (onEdge(t2)) {
+      const Vec3V<V> y2   = p2 - scaled(v32, t2);
+      const V        y2d2 = dot(y2, y2);
+
+      if (y2d2 < bestD2) {
+        bestD2  = y2d2;
+        bestVec = y2;
+        best    = 4;
+      }
+    }
+
+    const V t3 = dot(p3, v13) / dot(v13, v13);
+
+    if (onEdge(t3)) {
+      const Vec3V<V> y3   = p3 - scaled(v13, t3);
+      const V        y3d2 = dot(y3, y3);
+
+      if (y3d2 < bestD2) {
+        bestD2  = y3d2;
+        bestVec = y3;
+        best    = 5;
+      }
+    }
+
+    const auto     k            = static_cast<size_t>(best);
+    const Vec3V<V> pseudonormal = k < 3 ? a_triangle.vertexNormal(k) : a_triangle.edgeNormal(k - 3);
+
+    return sign(dot(pseudonormal, bestVec)) * sqrt(bestD2);
+  }
 
   const V t1 = dot(p1, v21) / dot(v21, v21);
   const V t2 = dot(p2, v32) / dot(v32, v32);
