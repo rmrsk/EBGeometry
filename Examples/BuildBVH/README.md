@@ -7,7 +7,7 @@ the Morton, Nested, and Hilbert space-filling curves, and ClusterSAH -- and repo
 for each.
 
 For most strategies it times two ways of reaching a queryable `PackedBVH`: the traditional
-`TreeBVH`-then-`pack()` path, and `PackedBVH`'s direct constructor, which packs the primitives
+`TreeBVH`-then-`pack()` path, and `PackedBVH`'s direct builds, which pack the primitives
 straight into the flat, queryable layout without building a `TreeBVH` first.
 
 Building
@@ -52,5 +52,5 @@ Running
     ./BuildBVH.ex
 
 Takes no arguments. It prints a table of build times, in seconds, for every strategy (`TreeBVH`,
-`+ pack()`, and their `Total`, alongside the direct-constructor `Direct build` time). This times
+`+ pack()`, and their `Total`, alongside the direct-build `Direct build` time). This times
 *build* only, not query performance or tree quality.

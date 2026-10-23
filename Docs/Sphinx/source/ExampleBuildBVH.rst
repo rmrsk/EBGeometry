@@ -8,7 +8,7 @@ each available strategy -- top-down (centroid, SAH, and midpoint partitioners), 
 Morton, Nested, and Hilbert space-filling curves, and ClusterSAH -- and reports the build time for
 each (see :ref:`Chap:BVHConstruction`). For most strategies it times two ways of reaching a
 queryable ``PackedBVH``: the traditional ``TreeBVH``-then-``pack()`` path, and ``PackedBVH``'s direct
-constructor, which packs the primitives straight into the flat, queryable layout without building a
+builds, which pack the primitives straight into the flat, queryable layout without building a
 ``TreeBVH`` first (see :ref:`Chap:DirectSFCBuild`). It times *build* only, not query performance or
 tree quality.
 

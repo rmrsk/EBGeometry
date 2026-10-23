@@ -2144,7 +2144,7 @@ TEST_CASE("BVHUnion and BVHSmoothUnion: reject an unknown build strategy and a n
       (void)BVHUnion<double, SphereSDF<double>, 4>(
         pool, sphereRow<double>(), sphereRowBVs<double>(), static_cast<BVH::Construction>(42));
     },
-    "BVHUnion: unknown BVH::Construction value (42)"));
+    "PackedBVH: unknown BVH::Construction value (42)"));
 
   REQUIRE(abortsWith(
     [] {

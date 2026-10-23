@@ -52,7 +52,7 @@ inline TreeBVH<T, P, BV, K>::TreeBVH()
 template <class T, class P, class BV, size_t K>
 inline TreeBVH<T, P, BV, K>::TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) : TreeBVH<T, P, BV, K>()
 {
-  // Copy overload (lvalue callers, e.g. the direct top-down constructor's per-node probe): copy each
+  // Copy overload (lvalue callers, e.g. PackedBVH::buildTopDown()'s per-node probe): copy each
   // element straight into the members -- no intermediate parameter vector, no extra move pass.
   m_primitives.reserve(a_primsAndBVs.size());
   m_boundingVolumes.reserve(a_primsAndBVs.size());
@@ -422,22 +422,22 @@ TreeBVH<T, P, BV, K>::refit(const BVConstructor& a_bvConstructor)
 }
 
 template <class T, class P, class BV, size_t K>
-inline std::shared_ptr<PackedBVH<T, P, K>>
+inline PackedBVH<T, P, K>
 TreeBVH<T, P, BV, K>::pack(Pool& a_pool) const
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::pack requires BV == AABBT<T>");
 
-  return std::make_shared<PackedBVH<T, P, K>>(a_pool, *this);
+  return PackedBVH<T, P, K>(a_pool, *this);
 }
 
 template <class T, class P, class BV, size_t K>
 template <class Q, class Converter>
-inline std::shared_ptr<PackedBVH<T, Q, K>>
+inline PackedBVH<T, Q, K>
 TreeBVH<T, P, BV, K>::packWith(Pool& a_pool, Converter&& a_converter) const
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::packWith requires BV == AABBT<T>");
 
-  return std::make_shared<PackedBVH<T, Q, K>>(a_pool, *this, std::forward<Converter>(a_converter));
+  return PackedBVH<T, Q, K>(a_pool, *this, std::forward<Converter>(a_converter));
 }
 
 } // namespace BVH
