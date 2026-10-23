@@ -197,6 +197,11 @@ query type without the trait works.
 ## Progress
 
 - [x] Interview (T1–T16; packets dropped), branch `bvh_traversal` off `dev` (8e03593), draft PR, this document.
+- [x] Interface written into the headers (draft): `EBGeometry_BVHQuery.hpp` (`ChildBoxes`, order
+  policies, `QueryLanes`, `IsQuery`, `PointQuery`, `RayQuery`; placeholder bodies) and the new
+  `PackedBVH::traverse()` declared, with a draft walk in `EBGeometry_PackedBVHImplem.hpp`. The old
+  `traverse()` and `pruneTraverse()` stay until their callers move; `IsQuery` keeps the two `traverse()`
+  overloads apart meanwhile. The library builds and its 496 tests pass; the draft instantiates.
 - [ ] Interface reviewed.
 - [ ] The walk + `PointQuery`; `pruneTraverse()` callers migrated; receipt unchanged.
 - [ ] Ray type, order policies.

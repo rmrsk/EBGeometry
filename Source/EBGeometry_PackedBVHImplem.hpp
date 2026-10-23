@@ -325,8 +325,175 @@ PackedBVH<T, P, K>::getDistanceToChildBoundingVolume2(const Node&     a_parent,
   return PackedBVH::scalarChildDistance2(m_childAabbSoA.at(this->base(), a_parent.getChildBoxRow()), a_point, a_k);
 }
 
+namespace PackedBVHDetail {
+
+/**
+ * @brief Whether a child with key @p a_a is visited before one with key @p a_b, under a visit order.
+ * @details Internal helper; not part of the public API. DRAFT (#230).
+ * @tparam T     Key type.
+ * @tparam Order NearestFirst, FarthestFirst, AsStored, or a comparator (T, T) -> bool.
+ * @param[in] a_order The order.
+ * @param[in] a_a     One key.
+ * @param[in] a_b     Another key.
+ * @return True if the child keyed @p a_a goes first.
+ */
+template <class T, class Order>
+EBGEOMETRY_HOST_DEVICE
+inline bool
+visitsBefore(const Order& a_order, const T a_a, const T a_b) noexcept
+{
+  if constexpr (std::is_same_v<Order, NearestFirst>) {
+    return a_a < a_b;
+  }
+  else if constexpr (std::is_same_v<Order, FarthestFirst>) {
+    return a_a > a_b;
+  }
+  else if constexpr (std::is_same_v<Order, AsStored>) {
+    return false; // never reorder: slot order is kept
+  }
+  else {
+    return a_order(a_a, a_b);
+  }
+}
+
+} // namespace PackedBVHDetail
+
 template <class T, class P, size_t K>
-template <class NodeKey, class LeafEvaluator, class PrunePredicate, class ChildOrderer, class NodeKeyFactory>
+template <class Query, class State, class LeafEvaluator, class BoundFn, class Order, class>
+EBGEOMETRY_HOST_DEVICE
+inline void
+PackedBVH<T, P, K>::traverse(
+  const Query& a_query, State& a_state, LeafEvaluator&& a_leaf, BoundFn&& a_bound, Order a_order) const noexcept
+{
+  // DRAFT (#230): the shape of the walk, pruneTraverse() generalised to any query type and visit order.
+  // Not compiled or tested yet.
+  static_assert(QueryLanes<Query>::value == 1, "PackedBVH::traverse: one query per walk");
+  static_assert(std::is_same_v<typename Query::Scalar, T>, "PackedBVH::traverse: the query's precision must be T");
+
+  if (m_linearNodes.size() == 0) {
+    return;
+  }
+
+  // One resolution for the whole walk: a query reserves nothing, so the pool base cannot move.
+  const void* poolBase = this->base();
+
+  // The root has no parent row; the query keys its box directly. (A ray that misses the whole tree, or a
+  // point farther than the bound, ends here.)
+  if (a_query.key(m_rootBox.at(poolBase, 0)) > a_bound(a_state)) {
+    return;
+  }
+
+  constexpr size_t stackDepth = PackedBVH::traversalStackDepth();
+
+  StackEntry stack[stackDepth];
+  size_t     top = 0;
+
+  uint32_t nodeIdx = 0U;
+
+  while (true) {
+    // Visit nodeIdx, and keep descending into the first child the order gives.
+    while (true) {
+      const Node& node = m_linearNodes.at(poolBase, nodeIdx);
+
+      if (node.isLeaf()) {
+        a_leaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
+
+        break;
+      }
+
+      // The bound once per node expanded: any leaf visited before may have tightened it.
+      const T bound = a_bound(a_state);
+
+      // All K keys in one pass (the query's SIMD kernel).
+      const ChildAABBSoA& row  = m_childAabbSoA.at(poolBase, node.getChildBoxRow());
+      const Array<T, K>   keys = a_query.keys(row);
+
+      const auto& offsets = node.getChildOffsets();
+
+      // The children within the bound, sorted so that the one to visit first is LAST (it is visited
+      // now, the rest wait on the stack in the same order). Insertion sort: K is a handful, it is
+      // callable on a device, and it is stable, so equal keys keep slot order. AsStored never swaps, so
+      // its children are visited in slot order (the last slot first; reversing the fill would give
+      // first slot first -- TODO decide which "as stored" means).
+      uint8_t slots[K];
+      size_t  numSlots = 0;
+
+      for (size_t k = 0; k < K; k++) {
+        EBGEOMETRY_EXPECT(offsets[k] > nodeIdx);
+
+        if (keys[k] <= bound) {
+          size_t j = numSlots++;
+
+          while (j > 0 && PackedBVHDetail::visitsBefore(a_order, keys[slots[j - 1]], keys[k])) {
+            slots[j] = slots[j - 1];
+            j--;
+          }
+
+          slots[j] = static_cast<uint8_t>(k);
+        }
+      }
+
+      if (numSlots == 0) {
+        break;
+      }
+
+      if (numSlots > 1) {
+        EBGEOMETRY_EXPECT(top < stackDepth);
+
+        StackEntry& entry = stack[top++];
+
+        entry.m_node  = nodeIdx;
+        entry.m_count = static_cast<uint8_t>(numSlots - 1);
+
+        for (size_t i = 0; i + 1 < numSlots; i++) {
+          entry.m_slots[i] = slots[i];
+        }
+      }
+
+      nodeIdx = offsets[slots[numSlots - 1]];
+    }
+
+    // Return to the deepest level with a child still within the bound. The bound may have tightened
+    // since the level was sorted, so the next child's key is recomputed (bit for bit what keys() gave)
+    // and compared again.
+    bool resumed = false;
+
+    while (top > 0 && !resumed) {
+      StackEntry&   entry  = stack[top - 1];
+      const Node&   parent = m_linearNodes.at(poolBase, entry.m_node);
+      const uint8_t slot   = entry.m_slots[entry.m_count - 1];
+
+      const T key = a_query.key(m_childAabbSoA.at(poolBase, parent.getChildBoxRow()), size_t(slot));
+
+      if (key > a_bound(a_state)) {
+        // Under NearestFirst the rest of the level is farther still: drop it. Under any other order a
+        // later child may still be within the bound, so only this child is skipped.
+        if constexpr (std::is_same_v<Order, NearestFirst>) {
+          top--;
+        }
+        else if (--entry.m_count == 0) {
+          top--;
+        }
+
+        continue;
+      }
+
+      if (--entry.m_count == 0) {
+        top--;
+      }
+
+      nodeIdx = parent.getChildOffsets()[slot];
+      resumed = true;
+    }
+
+    if (!resumed) {
+      return;
+    }
+  }
+}
+
+template <class T, class P, size_t K>
+template <class NodeKey, class LeafEvaluator, class PrunePredicate, class ChildOrderer, class NodeKeyFactory, class>
 EBGEOMETRY_HOST_DEVICE
 inline void
 PackedBVH<T, P, K>::traverse(LeafEvaluator&&  a_leafEvaluator,
