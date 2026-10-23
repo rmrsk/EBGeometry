@@ -16,11 +16,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 version: 3
 side: host
 verdict: yellow
-base: ca218bb
-base-fingerprint: ee5de35b8fe17a5503f71bbbcab6df079f6783f4
-head: 0173868
-head-fingerprint: 15204015c7463e87f984661ed87db6a6feaa9c85
-cases: 108
+base: 8e03593
+base-fingerprint: 15204015c7463e87f984661ed87db6a6feaa9c85
+head: 4c7165a
+head-fingerprint: e82f696417f53100ce7598a10c5f88662693de2f
+cases: 118
 rounds: 3
 reps: 5
 date: 2026-10-23
@@ -28,11 +28,11 @@ date: 2026-10-23
 
 ## Host comparison: yellow
 
-**Accepted:** Generic Tape deficiencies, as already noted in issues #210, #224 and #221. At some point, the Tape will be set up as a compile-time geometry, as outlined in issue #224.
+**Accepted:** benefits outweigh drawbacks
 
-`0173868` against `ca218bb` (origin/dev), 2026-10-23.
+`4c7165a` against `8e03593` (origin/dev), 2026-10-23.
 
-**VERDICT: 2 minor regressions
+**VERDICT: 5 minor regressions
 
 <!-- END receipt host -->
 
@@ -40,23 +40,23 @@ date: 2026-10-23
 <!--receipt
 version: 3
 side: cuda
-verdict: red
-base: ca218bb
-base-fingerprint: ee5de35b8fe17a5503f71bbbcab6df079f6783f4
-head: 0173868
-head-fingerprint: 15204015c7463e87f984661ed87db6a6feaa9c85
-cases: 80
+verdict: yellow
+base: 8e03593
+base-fingerprint: 15204015c7463e87f984661ed87db6a6feaa9c85
+head: 4c7165a
+head-fingerprint: e82f696417f53100ce7598a10c5f88662693de2f
+cases: 90
 rounds: 3
 reps: 5
 date: 2026-10-23
 -->
 
-## Device comparison (CUDA): red
+## Device comparison (CUDA): yellow
 
-**Accepted:** Generic Tape deficiencies, as already noted in issues #210, #224 and #221. At some point, the Tape will be set up as a compile-time geometry, as outlined in issue #224.
+**Accepted:** benefits outweigh drawbacks
 
-`0173868` against `ca218bb` (origin/dev), 2026-10-23.
+`4c7165a` against `8e03593` (origin/dev), 2026-10-23.
 
-**VERDICT: MAJOR regression in 1 case
+**VERDICT: 3 minor regressions
 
 <!-- END receipt cuda -->
