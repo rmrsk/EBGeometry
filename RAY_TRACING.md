@@ -215,6 +215,137 @@ struct PathQuery // a particle's step from x0 to x1
 GPU::transform(PathQuery{view}, segments, hits); // host loop in a host build
 ```
 
+### Usage: a list of particle steps, start and stop positions
+
+A user holds the steps in their own type. The queries take `Vec3T<T>`; the conversion is one line in
+the functor, so the user's type needs no traits or adaptors.
+
+```cpp
+#include "EBGeometry.hpp"
+
+using namespace EBGeometry;
+using T    = double;
+using Wall = TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>;
+
+// The user's own type: one particle step from x0 to x1.
+struct Step
+{
+  double x0[3];
+  double x1[3];
+};
+
+// What the user wants back for each step.
+struct Crossing
+{
+  int      status; // 0 miss, 1 hit, 2 unresolved
+  double   t;      // distance from x0 to the wall
+  double   point[3];
+  double   normal[3];
+  uint32_t face;
+};
+
+// --- 1. One step per thread -------------------------------------------------------------------
+struct StepQuery
+{
+  Wall m_wall; // a rebasedView() of the mesh: valid on the device
+
+  EBGEOMETRY_HOST_DEVICE Crossing
+  operator()(const Step& a_step) const noexcept
+  {
+    const Vec3T<T> x0(a_step.x0[0], a_step.x0[1], a_step.x0[2]);
+    const Vec3T<T> x1(a_step.x1[0], a_step.x1[1], a_step.x1[2]);
+
+    const HitT<T> hit = firstHit(m_wall, x0, x1); // first crossing on the segment, or a miss
+
+    Crossing c{};
+    c.status = static_cast<int>(hit.m_status);
+    c.t      = hit.m_t;
+    c.face   = hit.m_primitive;
+
+    for (int d = 0; d < 3; d++) {
+      c.point[d]  = hit.m_point[d];
+      c.normal[d] = hit.m_normal[d];
+    }
+
+    return c;
+  }
+};
+
+// --- 2. A packet of 8 steps per thread --------------------------------------------------------
+constexpr size_t N = 8;
+
+struct StepPacket // the user's 8 steps, as one input
+{
+  Step steps[N];
+  int  count; // the last packet may be partly filled
+};
+
+struct PacketQuery
+{
+  Wall m_wall;
+
+  EBGEOMETRY_HOST_DEVICE Array<HitT<T>, N>
+  operator()(const StepPacket& a_in) const noexcept
+  {
+    RayPacket<T, N> packet;
+
+    for (int i = 0; i < a_in.count; i++) {
+      const Step& s = a_in.steps[i];
+
+      packet.setSegment(i, Vec3T<T>(s.x0[0], s.x0[1], s.x0[2]), Vec3T<T>(s.x1[0], s.x1[1], s.x1[2]));
+    }
+
+    return firstHit(m_wall, packet); // one BVH walk for all 8; lanes past count are Miss
+  }
+};
+
+int
+main()
+{
+  // The wall: a mesh read into a pool, frozen and mirrored to the device.
+  Pool pool(hostMemoryResource());
+
+  const Wall wall = Parser::readIntoTriMeshSDF<T>("wall.stl", pool, BVH::Construction::SAH);
+
+  pool.freeze();
+
+  const Pool devicePool = Pool::mirror(pool, GPU::memoryResource());
+  const auto view       = wall.rebasedView(devicePool);
+
+  std::vector<Step> steps = /* the user's list */;
+
+  // 1. One step per thread: GPU::transform copies the steps over, runs StepQuery on each, and copies
+  //    the results back. In a host build the same call is a host loop.
+  std::vector<Crossing> crossings(steps.size());
+
+  GPU::transform(StepQuery{view}, steps, crossings);
+
+  // 2. A packet per thread: group the steps (coherent steps in the same packet walk the BVH together),
+  //    then the same call.
+  std::vector<StepPacket> packets = /* steps grouped by N, e.g. in their spatial (SFC) order */;
+  std::vector<Array<HitT<T>, N>> hits(packets.size());
+
+  GPU::transform(PacketQuery{view}, packets, hits);
+
+  // 3. On the host, no device: the same functions on the host object.
+  for (const Step& s : steps) {
+    const HitStatus st = intersects(wall, Vec3T<T>(s.x0[0], s.x0[1], s.x0[2]), Vec3T<T>(s.x1[0], s.x1[1], s.x1[2]));
+    // ...
+  }
+}
+```
+
+A particle that hit the wall and is reflected starts its next step on the surface; it passes a small
+`tMin` so the crossing it is sitting on is not found again (D14):
+
+```cpp
+const HitT<T> next = firstHit(m_wall, x0, x1, T(1e-9) * diagonal);
+```
+
+The same works with a user's own vector type (with `operator[]`, or `.x/.y/.z`): only the two
+conversion lines change. With `std::vector<Vec3T<T>>` start and stop lists, the functor indexes them
+through `GPU::parallelFor` instead of taking a `Step`.
+
 ### Tape members (D3)
 
 The free functions cover every shape; the Tape also has them as members, as it has
