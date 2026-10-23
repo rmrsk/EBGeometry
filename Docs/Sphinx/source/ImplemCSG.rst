@@ -312,8 +312,10 @@ builder, with the same arguments and checks:
   number is part of the type. The n-ary smooth operations, whose smoothing length follows the
   operands, take them as ``Fused::operands(a, b, c)``. One operand is returned as it is.
 * **The same values.** A fused shape and a tape take each operation's arithmetic from the same
-  functions, so on the host a fused composition equals a tape of the same expression exactly; a
-  chain of maps folds into one, as in the builder.
+  functions, so a fused composition equals a tape of the same expression to rounding: the same
+  operations in the same order, though the compiler may fuse a multiply and an add into one
+  instruction in one and not the other, which changes the last bit. A chain of maps folds into one,
+  as in the builder.
 * **Boxes and quality.** ``computeBoundingVolume()`` follows the builder's rules. The distance
   quality is the static member ``distanceQuality``, so it cannot depend on run-time values and is
   at least as cautious as the builder's: an offset is a ``Bound`` whatever the sign of its distance.

@@ -371,7 +371,7 @@ Test coverage
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and
        a mollification leaving a plane as it is; a finite repetition equal to the minimum over all
        its copies, off-centre and overlapping ones included; each composition equal to a ``Tape`` of
-       the same expression exactly; boxes equal to the builder's and distance qualities at least as
+       the same expression to rounding; boxes equal to the builder's and distance qualities at least as
        cautious; a composition of mesh distance fields through a host mirror, a deep copy and a node
        rebuilt from its layout; a fused shape as a tape primitive and as a BVH union's primitive; on
        a device, an analytic composition and a drilled mesh against the host; and every rejected

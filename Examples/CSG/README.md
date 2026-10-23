@@ -24,7 +24,7 @@ The program builds three objects:
 Then it builds the part again as a *fused* composition, with the functions in namespace `Fused`
 (`Fused::Difference`, `Fused::Intersection`, ...). They are the builder's operations as types: the
 C++ compiler evaluates the result as it would the same part written out by hand, with no clauses to
-interpret. The program prints the part's values both ways (they are the same), the time per point of
+interpret. The program prints the part's values both ways (the same, to rounding), the time per point of
 each, and evaluates the fused part on the device too.
 
 Building

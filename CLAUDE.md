@@ -531,8 +531,9 @@ does not follow this template, edit the PR body to conform to it.
   type index; or, when the structure is fixed at compile time, with the `Fused::` functions into a
   `Fused::Node<Op, Operands...>`, itself a shape (a pool handle, following the wrapper rule below,
   when an operand lives in a pool). Both take each operation's arithmetic from `CSGOps`, so they give
-  the same values: change an operation there, never in one of the two alone, and keep `TestFused`'s
-  exact comparison with the tape passing. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
+  the same values (to rounding: the compiler may fuse multiply-adds differently in the two, so a
+  Release build differs in the last bit): change an operation there, never in one of the two alone,
+  and keep `TestFused`'s comparison with the tape passing. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
   another tape, a user type) must be listed in `UserPrimitives`. The evaluator has no recursion: a
   sub-program call (Blur, Mollify, FiniteRepetition, BVH union operands) goes through the `evaluate<D>` call-depth
   template, bounded by `Tape::MaxCallDepth`, and the value/point stacks are fixed arrays; keep it

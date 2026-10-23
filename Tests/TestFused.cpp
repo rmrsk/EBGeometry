@@ -4,7 +4,7 @@
 
 // Unit tests for the fused CSG operations (EBGeometry_Fused.hpp): each against an independent reference,
 // each against a Tape of the same expression (both take their arithmetic from EBGeometry_CSGOps.hpp,
-// so they agree exactly on the host), the boxes and distance qualities, pool-resident operands, use
+// so they agree to rounding: the compiler may fuse multiply-adds differently in the two), the boxes and distance qualities, pool-resident operands, use
 // inside a Tape and a BVH union, device evaluation, and every rejected argument.
 
 #include "EBGeometry.hpp"
@@ -265,13 +265,13 @@ TEMPLATE_TEST_CASE(
         }
 
         INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
-        REQUIRE(tiled.signedDistance(p) == brute);
+        REQUIRE_THAT(tiled.signedDistance(p), withinAbsT(brute, tightMargin<T>()));
       }
     }
   }
 }
 
-TEMPLATE_TEST_CASE("Fused: equals a Tape of the same expression exactly", "[Fused]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Fused: equals a Tape of the same expression, to rounding", "[Fused]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -288,7 +288,7 @@ TEMPLATE_TEST_CASE("Fused: equals a Tape of the same expression exactly", "[Fuse
 
     for (const Vec3& p : probes<T>()) {
       INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
-      REQUIRE(a_fused.signedDistance(p) == tape(p));
+      REQUIRE_THAT(a_fused.signedDistance(p), withinAbsT(tape(p), tightMargin<T>()));
     }
   };
 
@@ -411,7 +411,7 @@ TEMPLATE_TEST_CASE("Fused: a composition with a mesh SDF resolves through its po
                      linear());
 
   for (const Vec3& p : probes<T>()) {
-    REQUIRE(pieces.signedDistance(p) == tape.signedDistance(p));
+    REQUIRE_THAT(pieces.signedDistance(p), withinAbsT(tape.signedDistance(p), tightMargin<T>()));
   }
 
   // A host mirror of the pool, a deep copy into another pool, and a node rebuilt from the layout.
@@ -452,7 +452,8 @@ TEMPLATE_TEST_CASE("Fused: a fused shape is a Tape primitive and a BVH union's p
   const Tape<T, F> tape(pool, Translate(Expr<T>(block), Vec3(T(0.5), T(0), T(0))));
 
   for (const Vec3& p : probes<T>()) {
-    REQUIRE(tape.signedDistance(p) == Fused::Translate(block, Vec3(T(0.5), T(0), T(0))).signedDistance(p));
+    REQUIRE_THAT(tape.signedDistance(p),
+                 withinAbsT(Fused::Translate(block, Vec3(T(0.5), T(0), T(0))).signedDistance(p), tightMargin<T>()));
   }
 
   // Many placements of it in a BVH union, against the plain minimum.

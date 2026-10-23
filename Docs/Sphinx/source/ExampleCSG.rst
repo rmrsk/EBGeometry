@@ -76,7 +76,7 @@ nothing to interpret:
 The functions are the builder's, called qualified (``Fused::Union``, not ``Union``, which is the
 builder's and takes shapes too). Where the builder takes a ``std::vector``, they take the operands as
 arguments, so the drills are passed one by one. The program prints the part's values through its tape
-and fused, which are the same, and the time per point of each on the host. The fused part has no
+and fused, which are the same to rounding, and the time per point of each on the host. The fused part has no
 clauses to fetch and dispatch, and the gap is wider on a GPU.
 
 The same query on a GPU
