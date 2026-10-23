@@ -346,6 +346,114 @@ The same works with a user's own vector type (with `operator[]`, or `.x/.y/.z`):
 conversion lines change. With `std::vector<Vec3T<T>>` start and stop lists, the functor indexes them
 through `GPU::parallelFor` instead of taking a `Step`.
 
+### Traversal algorithms
+
+#### 1. One ray through a BVH (`TriMeshSDF`, `MeshSDF`, `BVHUnion`)
+
+Reuses `PackedBVH::traverse()` unchanged; only its four callbacks are ray-specific. `best` is the
+nearest crossing found so far (initially the query's `tMax`).
+
+```text
+key(node)        = entry distance of the ray into node's box over [tMin, tMax]   (slab test),
+                   +inf if it misses.  Pure: the same node always gets the same key (traverse()'s
+                   contract; #214 clipped against `best`, which changes during the walk).
+prune(node, key) = descend iff key <= best          (a box entered beyond the best crossing is skipped)
+order(children)  = sort by key, nearest LAST        (traverse() visits the last entry first)
+leaf(prims)      = for each primitive: crossing = rayTest(prim, ray, tMin, best)
+                   if crossing at t < best:  best = t, keep face id, normal, entering
+
+traverse(leaf, prune, order, key)    -> HitT from best (Miss if nothing below tMax)
+```
+
+- **Slab test.** `t0 = (lo - o) * invD`, `t1 = (hi - o) * invD` per axis, entry = max of the per-axis
+  minima and `tMin`, exit = min of the maxima and `tMax`; hit iff entry ≤ exit. Robust form: a zero
+  direction component gives ±inf, and a `0 * inf` NaN is dropped by ordering the min/max so NaN loses.
+  Boxes are padded by a few ulps of their extent so a ray through a shared face or edge cannot slip
+  between two neighbouring boxes.
+- **Pruning is checked when a child is popped**, so a crossing found in an earlier sibling's subtree
+  prunes the later ones (nearest-first order makes this the common case).
+- **Leaf tests (`rayTest`)**, exact:
+  - `TriMeshSDF`: Möller–Trumbore on a group of W triangles, written once against `V` (R1): on the host
+    `V = SIMD::Pack<T, W>`, all W triangles in one pass, the nearest lane with `t ∈ [tMin, best)`
+    kept; on a device `V = T`, one triangle at a time. A small barycentric tolerance keeps rays through
+    shared edges from slipping between triangles. Entering = `dot(direction, face normal) < 0`.
+  - `MeshSDF`/`FlatMeshSDF`: ray–plane with the face's plane, then point-in-convex-polygon on the DCEL
+    face (edge-side tests). `FlatMeshSDF` has no BVH: every face is a leaf of one implicit leaf.
+  - `BVHUnion<T, P, K>`: `firstHit(operand, ray, max(tMin, boxEntry), min(best, boxExit))`: the
+    operand's own ray form if `P` has one, otherwise the march (3) clipped to the operand's box. This
+    is the "ray intersection where we can, sphere tracing where we can't" rule.
+- **Any-hit (`intersects`)**: the same walk, with `leaf` stopping the traversal at the first crossing
+  (prune returns false for everything afterwards). Order is then irrelevant and is left unsorted.
+- **Later, measured (R2):** the K children's slab tests read from the parent's SoA child-box row in one
+  SIMD pass at expansion, as `pruneTraverse()` does for distances; the re-test when a child is popped
+  then reads that child's slot, bit-for-bit the same value.
+
+#### 2. A packet of N rays through a BVH (D1, D5–D8)
+
+A new generic member next to `traverse()`, `PackedBVH::traversePacket()`, with the same kind of
+callbacks but a lane mask in every stack entry. `best[i]` per lane.
+
+```text
+stack = [(root, activeMask)]
+while stack not empty:
+    (node, mask) = pop
+    mask &= { i : entry_i(node) <= best[i] }      # lanes whose crossing so far is nearer drop out
+    if mask == 0: continue
+    if leaf(node):
+        for each primitive in the leaf:
+            for each lane i in mask:              # host: SIMD over the W triangles per lane
+                crossing = rayTest(prim, ray_i, tMin[i], best[i]);  update best[i], face[i], ...
+    else:
+        for each child c:  childMask[c] = { i in mask : slab(ray_i, box(c)) hits before best[i] }
+                           (one N-lane SIMD slab test per child on the host)
+        push children with childMask != 0, ordered so the child with the nearest
+        minimum entry over its lanes is popped first
+```
+
+- **Stack entry** = node index + 32-bit lane mask (`RayPacket` has N ≤ 32). Depth bound as for
+  `traverse()`, times K (all children of a level may be pushed), so it stays a fixed-size array on a
+  device.
+- **Divergence.** When lanes go different ways, each child carries only its lanes; the walk degrades
+  to per-ray work with the packet's bookkeeping, never worse than N single walks by more than the
+  mask overhead (to be measured: N = 4 and 8, coherent and random packets, in the probes).
+- **Shapes without a BVH** take the generic default: a loop over the active lanes with the single-ray
+  query.
+- **Any-hit packet:** a lane leaves the mask at its first crossing; the walk ends when the mask is
+  empty.
+
+#### 3. The march (shapes without a ray form, `Tape` in this PR)
+
+From #214's `RayDetail::march()`, unchanged except the normal:
+
+```text
+clip [tMin, tMax] to the shape's box (padded by eps)          -> [t0, t1], or Miss
+eps = tolerance * scale;  v0 = f(ray(t0));  inside = v0 < 0
+if |v0| < eps: Hit at t0
+if quality is Distance or Bound:                               # sphere tracing
+    repeat up to maxSteps:
+        v = f(ray(t))
+        if sign(v) != sign(v0): Hit at bisect(tPrev, t)        # stepped across: refine
+        if |v| < eps:           Hit at t
+        tPrev = t;  t += |v|                                   # never steps over the surface
+        if t > t1:              Miss
+else (NotADistance):                                           # no step bound: fixed steps
+    repeat up to maxSteps:  t += step*scale;  on a sign change: Hit at bisect(tPrev, t);  t >= t1: Miss
+Unresolved (with the last t)                                   # out of steps: never a Miss
+on a Hit: normal = normalize(central differences of f at the point, h = eps)   (D9)
+          entering = !inside;  primitive = the shape's closest face / leaf if it names one
+```
+
+- Starting inside works the same way, stepping by |v| to the exit.
+- `Bound` (a lower bound on the distance, e.g. CSG intersections) is safe to sphere trace, just slower;
+  a ray grazing a surface takes many small steps and may end Unresolved, which callers must handle.
+
+#### 4. Segments
+
+`firstHit(shape, x0, x1, tMin)` is the ray `x0 + t d`, `d = (x1 − x0)/|x1 − x0|`, over
+`[tMin, |x1 − x0|]` (D13). `intersects(shape, x0, x1)` first compares the signs of the value at the
+two ends: different signs mean a crossing (Hit) without a walk; the same sign runs the any-hit walk
+(the segment may go in and out again). A zero-length segment is a Miss.
+
 ### Tape members (D3)
 
 The free functions cover every shape; the Tape also has them as members, as it has
