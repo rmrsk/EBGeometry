@@ -695,6 +695,8 @@ private:
 
   /**
    * @brief Evaluate a Repeat clause: the minimum of its sub-program over the copies (CSGOps::repetition()).
+   * @details Inline in a device pass, unlike evaluateBlur(): as a further out-of-line function between
+   * two call levels, it raised a kernel that evaluates a tape in a loop to 255 registers (from 168).
    * @tparam D Call depth left for the sub-program.
    * @param[in] a_clause   The clause.
    * @param[in] a_point    Point.
@@ -705,7 +707,6 @@ private:
    */
   template <unsigned D>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   evaluateRepeat(const TapeDetail::Clause& a_clause,
                  const Vec3T<T>&           a_point,

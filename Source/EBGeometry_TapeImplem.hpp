@@ -1041,7 +1041,6 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
 template <class T, class... UserPrimitives>
 template <unsigned D>
 EBGEOMETRY_HOST_DEVICE
-EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::evaluateRepeat(const TapeDetail::Clause& a_clause,
                                            const Vec3T<T>&           a_point,
@@ -1054,7 +1053,7 @@ Tape<T, UserPrimitives...>::evaluateRepeat(const TapeDetail::Clause& a_clause,
   // Read from the parameters as the search needs them (see CSGOps::RepetitionView).
   const CSGOps::RepetitionView<T> repetition{a_params + a_clause.m_b};
 
-  // In its own function, as evaluateBlur() is, so that the search's loops stay out of evaluateBody().
+  // A function of its own, so that the search's loops stay out of evaluateBody()'s text on the host.
   const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> T {
     return this->template evaluate<D - 1>(sub, a_x, a_base, a_location);
   };
