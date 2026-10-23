@@ -267,7 +267,11 @@ built.
   operation, primitive type and BVH union runs there; the test suite checks each against the host.
   Each call level of the evaluator is a separate function in a device compile, kept out of line so
   that the compile stays small (HIP otherwise inlines every device function, and the copies multiply
-  with every level). Because the call depth is a template parameter, a kernel reserves stack for all
+  with every level). Two things stay in place, since inlining them multiplies nothing: a tape that
+  calls no sub-program (no Blur, Mollify or BVH union) is evaluated at depth 0 inside
+  ``signedDistance()`` itself, and an analytic primitive is evaluated inside the level that reads its
+  clause. A pool-resident primitive (a mesh SDF, a BVH union, a nested tape) is evaluated out of line,
+  so that its traversal stack is not part of every level's frame. Because the call depth is a template parameter, a kernel reserves stack for all
   ``MaxCallDepth`` + 1 levels whatever the tape needs: about 5.6 KB per thread in double precision
   and 3.6 KB in single precision, measured for an AMD GPU, of which each level takes about 1.1 KB in
   double precision (its value and point stacks, a BVH union's traversal stack and saved registers).

@@ -596,8 +596,28 @@ private:
            const PoolLocation& a_location) const noexcept;
 
   /**
+   * @brief The body of evaluate(), inlined into it, and into signedDistance() for a tape that calls no
+   * sub-program (at depth 0 the evaluator calls no level below, so inlining it multiplies nothing).
+   * @tparam D How deep the sub-program's own calls may still nest.
+   * @param[in] a_program  Sub-program.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location, for pool-resident primitives and BVHs.
+   * @return The value.
+   */
+  template <unsigned D>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  evaluateBody(const uint32_t      a_program,
+               const Vec3T<T>&     a_point,
+               const void*         a_base,
+               const PoolLocation& a_location) const noexcept;
+
+  /**
    * @brief Evaluate a primitive, dispatching on its type index from I onwards.
-   * @tparam I First type index to test.
+   * @tparam I       First type index to test.
+   * @tparam Handles Whether this is the out-of-line dispatch for pool-resident primitives (see
+   * evaluateHandle()); otherwise they are handed to it.
    * @param[in] a_type     Type index.
    * @param[in] a_index    Index within the type's array.
    * @param[in] a_point    Point.
@@ -605,7 +625,7 @@ private:
    * @param[in] a_location The pool location.
    * @return The value.
    */
-  template <size_t I>
+  template <size_t I, bool Handles>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   dispatchPrimitive(const uint32_t      a_type,
@@ -615,9 +635,27 @@ private:
                     const PoolLocation& a_location) const noexcept;
 
   /**
-   * @brief Evaluate a primitive.
-   * @details Out of line in a device pass, so that the stack a primitive needs (a mesh SDF's traversal
-   * stack, say) is taken once below the deepest call rather than in every call level's frame.
+   * @brief Evaluate a primitive: an analytic shape in place, a pool-resident one through evaluateHandle().
+   * @param[in] a_type     Type index.
+   * @param[in] a_index    Index within the type's array.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  evaluatePrimitive(const uint32_t      a_type,
+                    const uint32_t      a_index,
+                    const Vec3T<T>&     a_point,
+                    const void*         a_base,
+                    const PoolLocation& a_location) const noexcept;
+
+  /**
+   * @brief Evaluate a pool-resident primitive (a mesh SDF, a BVH union, a tape).
+   * @details Out of line in a device pass, so that the stack such a primitive needs (a mesh SDF's
+   * traversal stack, say) is taken only when one is evaluated, once below the deepest call, rather than in
+   * the frame every clause is evaluated in.
    * @param[in] a_type     Type index.
    * @param[in] a_index    Index within the type's array.
    * @param[in] a_point    Point.
@@ -628,11 +666,11 @@ private:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline T
-  evaluatePrimitive(const uint32_t      a_type,
-                    const uint32_t      a_index,
-                    const Vec3T<T>&     a_point,
-                    const void*         a_base,
-                    const PoolLocation& a_location) const noexcept;
+  evaluateHandle(const uint32_t      a_type,
+                 const uint32_t      a_index,
+                 const Vec3T<T>&     a_point,
+                 const void*         a_base,
+                 const PoolLocation& a_location) const noexcept;
 
   /**
    * @brief Evaluate a BVH union clause.
