@@ -21,6 +21,7 @@
 
 // Our includes
 #include "EBGeometry_Blend.hpp"
+#include "EBGeometry_CSGOps.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_Tape.hpp"
@@ -441,20 +442,9 @@ private:
       break;
     }
     case Kind::Affine: {
-      const Affine3T<T>& m = a_node.m_map;
+      const CSGOps::AffineCoefficients<T> m = CSGOps::affineCoefficients(a_node.m_map);
 
-      const uint32_t p = this->params({m.m_row0[0],
-                                       m.m_row0[1],
-                                       m.m_row0[2],
-                                       m.m_row1[0],
-                                       m.m_row1[1],
-                                       m.m_row1[2],
-                                       m.m_row2[0],
-                                       m.m_row2[1],
-                                       m.m_row2[2],
-                                       m.m_shift[0],
-                                       m.m_shift[1],
-                                       m.m_shift[2]});
+      const uint32_t p = this->params(std::vector<T>(m.m_values, m.m_values + 12));
 
       this->push(a_state, clause(Op::PushAffine, p), 0, 1);
       this->emit(a_state, a_node.m_children.front().node());
@@ -476,6 +466,10 @@ private:
       break;
     }
     case Kind::Repeat: {
+      // The copies are evaluated as a sub-program, one call per copy the search reaches.
+      const Expr<T>&                   child = a_node.m_children.front();
+      const BoundingVolumes::AABBT<T>& box   = child.computeBoundingVolume();
+
       const uint32_t p = this->params({a_node.m_vec0[0],
                                        a_node.m_vec0[1],
                                        a_node.m_vec0[2],
@@ -484,11 +478,18 @@ private:
                                        a_node.m_vec1[2],
                                        a_node.m_vec2[0],
                                        a_node.m_vec2[1],
-                                       a_node.m_vec2[2]});
+                                       a_node.m_vec2[2],
+                                       box.getLowCorner()[0],
+                                       box.getLowCorner()[1],
+                                       box.getLowCorner()[2],
+                                       box.getHighCorner()[0],
+                                       box.getHighCorner()[1],
+                                       box.getHighCorner()[2]});
 
-      this->push(a_state, clause(Op::PushRepeat, p), 0, 1);
-      this->emit(a_state, a_node.m_children.front().node());
-      this->push(a_state, clause(Op::PopPoint), 0, -1);
+      const uint32_t sub = this->compileProgram(child.node());
+
+      this->calls(a_state, sub);
+      this->push(a_state, clause(Op::Repeat, sub, p), 1, 0);
 
       break;
     }
@@ -512,16 +513,9 @@ private:
       break;
     }
     case Kind::Blur: {
-      const T alpha = a_node.m_scalar1;
-      const T beta  = (T(1) - alpha) / T(2);
+      const CSGOps::BlurWeights<T> w = CSGOps::blurWeights(a_node.m_scalar0, a_node.m_scalar1);
 
-      // The weight of a tap m steps from the centre is alpha^(3-m) beta^m; the 27 weights sum to
-      // (alpha + 2 beta)^3 = 1.
-      const uint32_t p = this->params({a_node.m_scalar0,
-                                       std::pow(alpha, T(3)) * std::pow(beta, T(0)),
-                                       std::pow(alpha, T(2)) * std::pow(beta, T(1)),
-                                       std::pow(alpha, T(1)) * std::pow(beta, T(2)),
-                                       std::pow(alpha, T(0)) * std::pow(beta, T(3))});
+      const uint32_t p = this->params(std::vector<T>(w.m_values, w.m_values + 5));
 
       const uint32_t sub = this->compileProgram(a_node.m_children.front().node());
 
@@ -531,36 +525,22 @@ private:
       break;
     }
     case Kind::Mollify: {
-      // Sample the bump kernel max(0, 1 - |x|^2 / (2r)^2)^2 on an n x n x n grid spanning [-r, r]^3 and
-      // normalize the weights to sum to one. The kernel's support has radius 2r, so every sample, the
-      // cube's corners included, gets a positive weight.
-      const T        r  = a_node.m_scalar0;
-      const uint32_t n  = a_node.m_count;
-      const T        dX = T(2) * r / T(n - 1);
+      // The taps (offset and normalized weight) are stored, so the evaluator only sums.
+      const CSGOps::MollifyGrid<T> grid = CSGOps::mollifyGrid(a_node.m_scalar0, a_node.m_count);
+      const uint32_t               n    = grid.m_samples;
 
       std::vector<T> taps;
 
       taps.reserve(4U * n * n * n);
 
-      T sum = T(0);
-
       for (uint32_t i = 0; i < n; i++) {
         for (uint32_t j = 0; j < n; j++) {
           for (uint32_t k = 0; k < n; k++) {
-            const Vec3T<T> offset(-r + T(i) * dX, -r + T(j) * dX, -r + T(k) * dX);
+            const Vec3T<T> o = CSGOps::mollifyOffset(grid.m_radius, grid.m_spacing, i, j, k);
 
-            const T t = Math::max(T(0), T(1) - offset.length2() / (T(4) * r * r));
-            const T w = t * t;
-
-            taps.insert(taps.end(), {offset[0], offset[1], offset[2], w});
-
-            sum += w;
+            taps.insert(taps.end(), {o[0], o[1], o[2], CSGOps::mollifyWeight(o, grid.m_radius) / grid.m_sum});
           }
         }
-      }
-
-      for (size_t tap = 0; tap < taps.size(); tap += 4) {
-        taps[tap + 3] /= sum;
       }
 
       const uint32_t p   = this->params(taps);
@@ -834,38 +814,16 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       break;
     }
     case Op::PushAffine: {
-      const T*        m = params + c.m_a;
-      const Vec3T<T>& x = points[np - 1];
-
-      points[np] = Vec3T<T>(m[0] * x[0] + m[1] * x[1] + m[2] * x[2] + m[9],
-                            m[3] * x[0] + m[4] * x[1] + m[5] * x[2] + m[10],
-                            m[6] * x[0] + m[7] * x[1] + m[8] * x[2] + m[11]);
+      points[np] = CSGOps::affinePoint(params + c.m_a, points[np - 1]);
 
       np++;
 
       break;
     }
     case Op::PushElongate: {
-      const T*        h = params + c.m_a;
-      const Vec3T<T>& x = points[np - 1];
+      const T* h = params + c.m_a;
 
-      points[np] = x - clamp(x, Vec3T<T>(-h[0], -h[1], -h[2]), Vec3T<T>(h[0], h[1], h[2]));
-
-      np++;
-
-      break;
-    }
-    case Op::PushRepeat: {
-      const T*        r = params + c.m_a;
-      const Vec3T<T>& x = points[np - 1];
-
-      Vec3T<T> q;
-
-      for (size_t i = 0; i < 3; i++) {
-        q[i] = x[i] - r[i] * std::round(Math::min(Math::max(x[i] / r[i], -r[3 + i]), r[6 + i]));
-      }
-
-      points[np] = q;
+      points[np] = CSGOps::elongatePoint(Vec3T<T>(h[0], h[1], h[2]), points[np - 1]);
 
       np++;
 
@@ -911,60 +869,32 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       break;
     }
     case Op::PairInit: {
-      const T empty = (c.m_flags == 0U) ? Math::Limits<T>::infinity() : -Math::Limits<T>::infinity();
+      // The pair occupies two value slots: the most extreme value so far, then the next.
+      const CSGOps::Pair<T> pair = CSGOps::pairInit<T>(c.m_flags != 0U);
 
-      values[nv++] = empty;
-      values[nv++] = empty;
+      values[nv++] = pair.m_first;
+      values[nv++] = pair.m_second;
 
       break;
     }
     case Op::PairInsert: {
       const T v = values[--nv];
 
-      T& a = values[nv - 2];
-      T& b = values[nv - 1];
+      CSGOps::Pair<T> pair{values[nv - 2], values[nv - 1]};
 
-      // a is the most extreme value so far and b the next.
-      const bool beyondA = (c.m_flags == 0U) ? (v < a) : (v > a);
-      const bool beyondB = (c.m_flags == 0U) ? (v < b) : (v > b);
+      CSGOps::pairInsert(pair, v, c.m_flags != 0U);
 
-      if (beyondA) {
-        b = a;
-        a = v;
-      }
-      else if (beyondB) {
-        b = v;
-      }
+      values[nv - 2] = pair.m_first;
+      values[nv - 1] = pair.m_second;
 
       break;
     }
     case Op::PairBlend: {
       const T b = values[--nv];
       const T a = values[nv - 1];
-      const T s = params[c.m_a];
 
-      switch (c.m_flags) {
-      case 0U: {
-        values[nv - 1] = SmoothMinOp<T>{}(a, b, s);
-
-        break;
-      }
-      case 1U: {
-        values[nv - 1] = SmoothMaxOp<T>{}(a, b, s);
-
-        break;
-      }
-      case 2U: {
-        values[nv - 1] = ExpMinOp<T>{}(a, b, s);
-
-        break;
-      }
-      default: {
-        values[nv - 1] = ExpMaxOp<T>{}(a, b, s);
-
-        break;
-      }
-      }
+      values[nv - 1] =
+        CSGOps::pairBlend(CSGOps::Pair<T>{a, b}, params[c.m_a], (c.m_flags & 1U) != 0U, (c.m_flags & 2U) != 0U);
 
       break;
     }
@@ -995,6 +925,31 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
         }
 
         values[nv++] = value;
+      }
+      else {
+        EBGEOMETRY_EXPECT(false);
+
+        values[nv++] = T(0);
+      }
+
+      break;
+    }
+    case Op::Repeat: {
+      if constexpr (D > 0) {
+        const uint32_t sub = c.m_a;
+        const T*       r   = params + c.m_b;
+
+        const CSGOps::Repetition<T> repetition{Vec3T<T>(r[0], r[1], r[2]),
+                                               Vec3T<T>(r[3], r[4], r[5]),
+                                               Vec3T<T>(r[6], r[7], r[8]),
+                                               Vec3T<T>(r[9], r[10], r[11]),
+                                               Vec3T<T>(r[12], r[13], r[14])};
+
+        const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> T {
+          return this->template evaluate<D - 1>(sub, a_x, a_base, a_location);
+        };
+
+        values[nv++] = CSGOps::repetition(repetition, points[np - 1], f);
       }
       else {
         EBGEOMETRY_EXPECT(false);
@@ -1108,28 +1063,15 @@ Tape<T, UserPrimitives...>::evaluateBlur(const TapeDetail::Clause& a_clause,
                                          const PoolLocation&       a_location) const noexcept
 {
   const uint32_t sub = a_clause.m_a;
-  const T*       w   = a_params + a_clause.m_b;
-  const T        d   = w[0];
 
-  // The 27 taps p + d (i, j, k), i, j, k in {-1, 0, 1}; a tap m = |i| + |j| + |k| steps from the centre
-  // has weight w[1 + m]. One loop, not a lambda called once per tap: in that form nvcc 12.5 placed some
-  // taps at the wrong points (issue #217). In its own function rather than in evaluateBody(): there, the
-  // loop changed how GCC inlines the primitive dispatch into the evaluator, and slowed tapes without a
-  // Blur by up to 20%.
-  T value = T(0);
+  // In its own function rather than in evaluateBody(): there, the blur's loop (CSGOps::blur()) changed
+  // how GCC inlines the primitive dispatch into the evaluator, and slowed tapes without a Blur by up to
+  // 20%.
+  const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> T {
+    return this->template evaluate<D - 1>(sub, a_x, a_base, a_location);
+  };
 
-  for (int t = 0; t < 27; t++) {
-    const int i = t / 9 - 1;
-    const int j = (t / 3) % 3 - 1;
-    const int k = t % 3 - 1;
-    const int m = i * i + j * j + k * k;
-
-    const Vec3T<T> tap = a_point + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d);
-
-    value += w[1 + m] * this->template evaluate<D - 1>(sub, tap, a_base, a_location);
-  }
-
-  return value;
+  return CSGOps::blur(a_params + a_clause.m_b, a_point, f);
 }
 
 template <class T, class... UserPrimitives>

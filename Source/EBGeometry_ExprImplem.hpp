@@ -602,10 +602,9 @@ FiniteRepetition(const A&                       a_operand,
     node->m_vec2[dir] = std::round(a_repeatHi[dir]);
   }
 
-  // The object, swept over the tiles. Its value is a distance bound only if the object fits in its own
-  // tile; otherwise a neighbouring copy can be closer than the folded value says.
-  const BoundingVolumes::AABBT<T>& box  = child.computeBoundingVolume();
-  bool                             fits = !ExprDetail::isEmpty(box);
+  // The object, swept over the tiles. The value is the minimum over all the copies (CSGOps::repetition()),
+  // so it is a distance bound whenever the object's is.
+  const BoundingVolumes::AABBT<T>& box = child.computeBoundingVolume();
 
   Vec3T<T> lo;
   Vec3T<T> hi;
@@ -613,14 +612,10 @@ FiniteRepetition(const A&                       a_operand,
   for (size_t dir = 0; dir < 3; dir++) {
     lo[dir] = Math::max(box.getLowCorner()[dir] - a_period[dir] * node->m_vec1[dir], -Math::Limits<T>::max());
     hi[dir] = Math::min(box.getHighCorner()[dir] + a_period[dir] * node->m_vec2[dir], Math::Limits<T>::max());
-
-    fits =
-      fits && box.getLowCorner()[dir] >= -T(0.5) * a_period[dir] && box.getHighCorner()[dir] <= T(0.5) * a_period[dir];
   }
 
   node->m_boundingVolume = ExprDetail::isEmpty(box) ? box : BoundingVolumes::AABBT<T>(lo, hi);
-  node->m_quality =
-    fits ? ExprDetail::worse(child.getDistanceQuality(), DistanceQuality::Bound) : DistanceQuality::NotADistance;
+  node->m_quality        = ExprDetail::worse(child.getDistanceQuality(), DistanceQuality::Bound);
 
   return Expr<T>(std::move(node));
 }

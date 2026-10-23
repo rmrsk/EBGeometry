@@ -70,7 +70,6 @@ enum class Op : uint8_t
   Primitive,      ///< Push the value of primitive (m_type, m_a) at the top point.
   PushAffine,     ///< Push the top point mapped by the affine map at params[m_a..m_a+12).
   PushElongate,   ///< Push p - clamp(p, -h, h), h at params[m_a..m_a+3).
-  PushRepeat,     ///< Push p folded into its tile; period, low and high counts at params[m_a..m_a+9).
   PopPoint,       ///< Pop a point.
   Negate,         ///< v -> -v.
   Abs,            ///< v -> |v|.
@@ -84,6 +83,8 @@ enum class Op : uint8_t
                   ///< exponential blend if bit 1 is set; smoothing length params[m_a].
   Blur,           ///< Push the 27-tap blur of sub-program m_a; distance and weights at params[m_b..m_b+5).
   Mollify,        ///< Push sum_k w_k f(p - o_k) over m_c taps of sub-program m_a; (o_k, w_k) at params[m_b..).
+  Repeat,         ///< Push the minimum over the copies of sub-program m_a (CSGOps::repetition()); period,
+                  ///< low and high counts and the object's box at params[m_b..m_b+15).
   UnionBVH,       ///< Push the minimum over the sub-programs in BVH union m_a.
   SmoothUnionBVH, ///< Push the smooth minimum of the two smallest sub-programs in BVH union m_a; smoothing
                   ///< length params[m_b], exponential blend if m_flags is 1.
