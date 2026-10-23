@@ -143,8 +143,9 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 **Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
-grown by a quarter on every side), against the same solid written by hand (issues #210 and #221). The
-``sphere`` and ``chain16`` cases take a gap between the two apart: a cost paid once per device thread
+grown by a quarter on every side), against the same solid written by hand (issues #210 and #221) and
+as a fused composition (``Fused::``, see :ref:`Chap:ImplemCSG`). The ``sphere`` and ``chain16`` cases
+take the gap between the tape and the hand-written code apart: a cost paid once per device thread
 (``signedDistance-x16`` evaluates 16 times per query), and one paid per clause.
 
 ====================================  =====  =====================================================
@@ -161,7 +162,13 @@ Family                                Build  Measures
                                              thread)
 ``chain16/signedDistance``            host   a union of 16 spheres evaluated clause by clause (31
                                              clauses, no BVH; and ``chain16-handwritten``: a loop)
+``<input>-fused/signedDistance``      host   ``csg``, ``smooth`` and ``chain16`` as fused
+                                             compositions
+``drilled-mesh/signedDistance``       host   the armadillo (``TriMeshSDF``, K = W = 4) drilled through
+                                             by a cylinder, through a ``Tape``, at 20,000 points;
+                                             and ``drilled-mesh-fused``: as a fused composition
 ``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
+                                             (262,144 for the drilled mesh)
 ====================================  =====  =====================================================
 
 Where the results go
