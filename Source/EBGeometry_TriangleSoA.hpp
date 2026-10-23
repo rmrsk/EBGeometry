@@ -16,13 +16,11 @@
 #include <cstdint>
 #include <type_traits>
 
-#if defined(__SSE4_1__) || defined(__AVX__) || defined(__AVX512F__)
-#include <immintrin.h>
-#endif
-
 // Our includes
 #include "EBGeometry_Array.hpp"
+#include "EBGeometry_SIMD.hpp"
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_TriangleDistance.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -114,10 +112,11 @@ DefaultWidth() noexcept
 
 /**
  * @brief SoA (Structure of Arrays) layout for W triangles, enabling SIMD evaluation.
- * @details signedDistance() dispatches to a packed intrinsics path for (T,W) combinations that
- * fill a SIMD register exactly — SSE4.1 (float, W=4), AVX (float, W=8; double, W=4 or W=8), or
- * AVX-512F (float, W=16; double, W=8) — evaluating all W triangles simultaneously. Any other
- * (T,W) falls back to a scalar loop over m_validCount triangles.
+ * @details signedDistance() and signedDistances() evaluate TriangleDistance::signedDistance(), the
+ * one triangle kernel, on SIMD::NativeWidth<T, W>() lanes at a time: the widest SSE4.1, AVX or
+ * AVX-512F register the compiler's flags provide whose lane count divides W (so W = 8 doubles under
+ * AVX takes two 4-lane registers, and W = 4 doubles under SSE4.1 two 2-lane ones). Where no register
+ * fits, and in every device pass, the same kernel runs on one triangle at a time.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
  * usage is safe: PackedBVH stores groups in a Pool-backed PODVector<TriangleSoAT>, which reserves
  * each array at alignof(TriangleSoAT) inside a block aligned to PoolBaseAlign (256 bytes), and the
@@ -128,8 +127,8 @@ DefaultWidth() noexcept
  * misaligned SIMD load will crash (or silently read the wrong data on some platforms) rather than
  * failing gracefully.
  * @tparam T  Floating-point precision.
- * @tparam W  SIMD width: 4 for SSE (128-bit), 8 for AVX (256-bit float) or AVX-512F (512-bit
- * double), 16 for AVX-512F (512-bit float).
+ * @tparam W  Triangles per group. Any W works; a multiple of the register's lane count (see the
+ * details) is evaluated with SIMD.
  */
 template <class T, size_t W>
 struct TriangleSoAT
@@ -151,11 +150,9 @@ public:
 
   /**
    * @brief Evaluate signed distance from a_point to the closest triangle in this group.
-   * @details Returns the signed distance with minimum absolute value among m_validCount triangles.
-   * Dispatches to an SSE4.1 packed-float path for (T=float, W=4), to AVX packed-float for
-   * (T=float, W=8), to AVX packed-double for (T=double, W=4 or W=8), to AVX-512F for (T=float,
-   * W=16) and (T=double, W=8, preferred over AVX when available), or to a scalar fallback.
-   * Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
+   * @details Returns the signed distance with minimum absolute value among m_validCount triangles,
+   * the first such lane on a tie. The lanes are evaluated SIMD::NativeWidth<T, W>() at a time (see
+   * the class description). Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
    * @return Signed distance from a_point to the closest valid triangle, with sign determined by
    * the outward normal of the nearest feature (face, edge, or vertex).
@@ -168,9 +165,9 @@ public:
    * @brief Signed distances from a_point to every one of the W lane triangles.
    * @details The per-lane analogue of signedDistance(): signedDistance() horizontally reduces the W
    * per-triangle distances to the single minimum-|value| entry, whereas this returns all W of them so
-   * a caller can recover *which* lane won -- the piece the SIMD reduction discards. Computed with a
-   * scalar per-lane loop rather than the SIMD kernel, since it is used only by the face-id-retrieving
-   * (non-throughput) path. All W lanes are filled: padded lanes (m_validCount..W-1) repeat the last
+   * a caller can recover *which* lane won -- the piece the reduction discards. Computed with the
+   * same kernel and lane count as signedDistance(), so each lane is exactly the value
+   * signedDistance() compared. All W lanes are filled: padded lanes (m_validCount..W-1) repeat the last
    * real triangle's distance, matching pack()'s padding, so a caller iterating lanes should stop at
    * m_validCount (or de-duplicate). Requires the group to have already been packed via pack()
    * (1 <= m_validCount <= W).
@@ -196,8 +193,9 @@ public:
 protected:
   /**
    * @brief Signed distance from a_point to the single triangle stored in lane a_lane.
-   * @details The scalar per-lane kernel shared by the scalar fallback of signedDistance() and by
-   * signedDistances(). Reads only lane a_lane's coordinates/normals; performs no reduction.
+   * @details TriangleDistance::signedDistance() on one lane: the path signedDistance() and
+   * signedDistances() take where no SIMD register fits. Reads only lane a_lane's
+   * coordinates/normals; performs no reduction.
    * @param[in] a_lane  Lane index. Must satisfy 0 <= a_lane < W.
    * @param[in] a_point Query point.
    * @return Signed distance from a_point to lane a_lane's triangle, sign from its nearest feature.
@@ -205,6 +203,103 @@ protected:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   T
   signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The triangle accessor TriangleDistance::signedDistance() reads lanes [m_offset, m_offset +
+   * lanes of V) through: V = T reads one lane, V = SIMD::Pack<T, N> loads N lanes (m_offset a multiple
+   * of N, so the loads are aligned).
+   * @tparam V Scalar or pack type.
+   */
+  template <class V>
+  struct LaneSource
+  {
+    /**
+     * @brief The group.
+     */
+    const TriangleSoAT* m_group;
+
+    /**
+     * @brief First lane.
+     */
+    size_t m_offset;
+
+    /**
+     * @brief One value per lane, from the array starting at @p a_lanes.
+     * @param[in] a_lanes W values.
+     * @return The value (or pack of values) at m_offset.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    V
+    fetch(const T* a_lanes) const noexcept
+    {
+      if constexpr (std::is_same_v<V, T>) {
+        return a_lanes[m_offset];
+      }
+      else {
+        return V::load(a_lanes + m_offset);
+      }
+    }
+
+    /**
+     * @brief Vertex position.
+     * @param[in] a_k Vertex, 0 to 2.
+     * @return Its lanes.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    TriangleDistance::Vec3V<V>
+    vertex(const size_t a_k) const noexcept
+    {
+      return {fetch(m_group->m_vx[a_k]), fetch(m_group->m_vy[a_k]), fetch(m_group->m_vz[a_k])};
+    }
+
+    /**
+     * @brief Face normal.
+     * @return Its lanes.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    TriangleDistance::Vec3V<V>
+    normal() const noexcept
+    {
+      return {fetch(m_group->m_nx), fetch(m_group->m_ny), fetch(m_group->m_nz)};
+    }
+
+    /**
+     * @brief Vertex pseudonormal.
+     * @param[in] a_k Vertex, 0 to 2.
+     * @return Its lanes.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    TriangleDistance::Vec3V<V>
+    vertexNormal(const size_t a_k) const noexcept
+    {
+      return {fetch(m_group->m_vnx[a_k]), fetch(m_group->m_vny[a_k]), fetch(m_group->m_vnz[a_k])};
+    }
+
+    /**
+     * @brief Edge pseudonormal.
+     * @param[in] a_k Edge, 0 to 2.
+     * @return Its lanes.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    TriangleDistance::Vec3V<V>
+    edgeNormal(const size_t a_k) const noexcept
+    {
+      return {fetch(m_group->m_enx[a_k]), fetch(m_group->m_eny[a_k]), fetch(m_group->m_enz[a_k])};
+    }
+  };
+
+  /**
+   * @brief Signed distances to the lanes below m_validCount, @p N at a time, with SIMD::Pack<T, N>.
+   * @details Host-only: the packs exist only in a host pass. Lanes of a chunk that starts at or past
+   * m_validCount are not written.
+   * @tparam N Lane count, SIMD::NativeWidth<T, W>(); must be > 1 and divide W.
+   * @param[in]  a_point     Query point.
+   * @param[out] a_distances W values, aligned to N * sizeof(T).
+   */
+  template <size_t N>
+  EBGEOMETRY_HOST
+  void
+  signedDistancesSIMD(const Vec3T<T>& a_point, T* a_distances) const noexcept;
 
   /**
    * @brief x-coordinates of vertex positions. m_vx[i][j] = x-coord of vertex i for triangle j.

@@ -3,9 +3,11 @@
 SIMD-accelerated classes
 ==========================
 
-SIMD acceleration in EBGeometry is implemented with hand-written compiler intrinsics
+SIMD acceleration in EBGeometry is implemented with compiler intrinsics
 (``__m128``/``__m256``/``__m512`` and their ``double`` counterparts), not compiler
-auto-vectorisation. As of today it is confined to the places listed below; everything else
+auto-vectorisation. The triangle distance is one kernel template, instantiated for a scalar and for
+``SIMD::Pack``, thin wrappers over one register each (:file:`Source/EBGeometry_SIMD.hpp`); the
+point groups and the bounding-box pruning use the intrinsics directly. As of today it is confined to the places listed below; everything else
 in the library is scalar code. This is a statement about the current state of the
 implementation, not an architectural ceiling -- further classes may become SIMD-accelerated in
 the same style in the future. This page lists the SIMD-accelerated classes as they exist today,
@@ -45,13 +47,14 @@ into.
 This is the full algorithm -- classifying the
 projection of the query point against the triangle's three edge regions and interior region,
 computing the squared distance and sign for whichever region applies, per triangle -- executed
-for all :math:`W` triangles in the block *simultaneously*, one SIMD lane per triangle. The
-result is the minimum signed distance over the whole block, found with vectorised compare/blend
-instructions rather than a loop. The id-retrieving companion --
+for :math:`W` triangles at once, one SIMD lane per triangle, with vectorised compare/blend
+instructions and no branches. The lanes go through the widest register the compiler's flags provide
+whose lane count divides :math:`W` (``SIMD::NativeWidth<T, W>()``), several registers for a wider
+group, and the result is the minimum signed distance over the block. The id-retrieving companion --
 ``TriangleSoAT::signedDistances(point)`` (the per-lane array) and
-``TriangleAoSoA::signedDistance(point, uint32_t&)`` (which reports the winning lane's face id) -- instead
-takes a scalar per-lane path, since recovering *which* lane won is the one thing the SIMD horizontal
-reduction discards; it is used only by the (non-throughput) closest-triangle query.
+``TriangleAoSoA::signedDistance(point, uint32_t&)`` (which reports the winning lane's face id) -- runs
+the same lanes and returns them all, so each lane is exactly the value the minimum was taken over.
+The same kernel, on one triangle, is ``Triangle::signedDistance()`` and the path a device pass takes.
 
 **What this means in practice:** evaluating a ``TriangleSoAT<T, W>`` block costs roughly the
 same number of instructions as evaluating a *single* triangle scalar, but produces the answer

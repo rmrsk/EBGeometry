@@ -58,6 +58,8 @@ namespace EBGeometry {
   template class Triangle<PREC>;                                            \
   template struct TriangleSoAT<PREC, 4>;                                     \
   template struct TriangleAoSoA<PREC, 4>;                                    \
+  template struct TriangleSoAT<PREC, 16>;                                    \
+  template struct TriangleDistance::Vec3V<PREC>;                             \
                                                                                \
   /* -- Mesh distance functions --------------------------------------------*/\
   template class FlatMeshSDF<PREC>;                                          \
