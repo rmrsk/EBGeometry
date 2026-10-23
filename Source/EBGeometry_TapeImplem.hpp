@@ -975,14 +975,16 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
         const T         d   = w[0];
         const Vec3T<T>& x   = points[np - 1];
 
-        // The 27 taps p + d (i, j, k); a tap m = |i| + |j| + |k| steps from the centre has weight w[1 + m].
+        // The 27 taps p + d (i, j, k), i, j, k in {-1, 0, 1}; a tap m = |i| + |j| + |k| steps from the
+        // centre has weight w[1 + m]. One loop, not a lambda called once per tap: in that form nvcc 12.5
+        // placed some taps at the wrong points (issue #217).
         T value = T(0);
 
         for (int t = 0; t < 27; t++) {
           const int i = t / 9 - 1;
           const int j = (t / 3) % 3 - 1;
           const int k = t % 3 - 1;
-          const int m = (i != 0) + (j != 0) + (k != 0);
+          const int m = i * i + j * j + k * k;
 
           const Vec3T<T> tap = x + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d);
 
