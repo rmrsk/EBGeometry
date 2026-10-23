@@ -364,11 +364,23 @@ without a full rebuild-and-repack. It takes a single functor mapping one primiti
 bounding volume and unions volumes bottom-up: each leaf's from its primitives, each interior node's
 from its children. ``PackedBVH::refit()`` merges the boxes pairwise, allocating nothing, and writes
 each box where it is stored, in its parent's SoA child-box row that the SIMD ``pruneTraverse()``
-reads (see :ref:`Chap:PruneTraverse`), so every query and every copy of the BVH sees it. Because it
-never re-partitions, a geometry that deforms enough for primitives to migrate across the tree
-accumulates looser bounding volumes over time and should periodically be rebuilt instead; see
-:ref:`Chap:BVH` for that trade-off. For the exact signatures, see the Doxygen references for
-`TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ and `PackedBVH
+reads (see :ref:`Chap:PruneTraverse`), so every query and every copy of the BVH sees it. It is one
+sweep over the node array, calling ``refitNode()`` on each node from the last to the first, and it is
+callable on a device too, on one thread.
+
+To refit on a device in parallel, ``BVH::refitParallel()`` (in
+:file:`Source/EBGeometry_BVHRefit.hpp`) refits one tree level at a time, deepest first, with one
+``GPU::parallelFor()`` per level and one thread per node: a node writes only its own box, in its slot
+of its parent's row, and reads only its own row, which its children wrote, so the nodes of a level are
+independent. The order comes from a ``BVH::RefitSchedule``, built once on the host from the tree's
+shape (which a refit never changes); its node list lives in the BVH's pool, so a mirror of the pool
+carries it to the device, and one schedule serves the BVH and every rebased view of it. Build it
+before freezing the pool. In a translation unit without CUDA or HIP the levels run as host loops,
+with the same result as ``refit()``. Because it never re-partitions, a geometry that deforms enough
+for primitives to migrate across the tree accumulates looser bounding volumes over time and should
+periodically be rebuilt instead; see :ref:`Chap:BVH` for that trade-off. For the exact signatures,
+see the Doxygen references for `TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ and
+`PackedBVH
 <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
 Refitting recomputes bounding volumes only, never the primitives themselves. A primitive that
