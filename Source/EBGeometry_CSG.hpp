@@ -18,6 +18,7 @@
 #include "EBGeometry_BVHUnion.hpp"
 #include "EBGeometry_Blend.hpp"
 #include "EBGeometry_Expr.hpp"
+#include "EBGeometry_Fused.hpp"
 #include "EBGeometry_Tape.hpp"
 
 #endif

@@ -96,6 +96,23 @@ affinePoint(const T* a_coefficients, const Vec3T<T>& a_point) noexcept
 }
 
 /**
+ * @brief The point an affine map sends a query point to, from the map itself.
+ * @tparam T Floating-point precision.
+ * @param[in] a_map   Map.
+ * @param[in] a_point Query point.
+ * @return The mapped point, computed as affinePoint() computes it from the map's coefficients.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+affinePoint(const Affine3T<T>& a_map, const Vec3T<T>& a_point) noexcept
+{
+  const AffineCoefficients<T> coefficients = affineCoefficients(a_map);
+
+  return affinePoint(coefficients.m_values, a_point);
+}
+
+/**
  * @brief The point an elongation evaluates its operand at: p - clamp(p, -h, h).
  * @tparam T Floating-point precision.
  * @param[in] a_halfLengths Half-lengths h of the inserted box.

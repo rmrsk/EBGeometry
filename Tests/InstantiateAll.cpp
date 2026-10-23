@@ -280,6 +280,47 @@ instantiateFunctionTemplates()
     (void)normal(tape, Vec3T<T>::ones(), T(1.0e-3));
   }
 
+  // Every fused operation, a fused shape with a pool-resident operand, and its views and copies.
+  {
+    const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+    const BoxSDF<T>    box(-Vec3T<T>::ones(), Vec3T<T>::ones());
+
+    const auto analytic = Fused::SmoothUnion(
+      Fused::operands(Fused::Union(sphere, box),
+                      Fused::Intersection(sphere, box),
+                      Fused::Difference(sphere, box, sphere),
+                      Fused::Complement(sphere),
+                      Fused::SmoothUnion(sphere, box, T(0.1), BlendKind::Exponential),
+                      Fused::SmoothIntersection(sphere, box, T(0.1)),
+                      Fused::SmoothIntersection(Fused::operands(sphere, box, sphere), T(0.1)),
+                      Fused::SmoothDifference(sphere, box, T(0.1)),
+                      Fused::SmoothDifference(sphere, Fused::operands(box, sphere), T(0.1)),
+                      Fused::Translate(Fused::Rotate(sphere, T(30), size_t(1)), Vec3T<T>::ones()),
+                      Fused::Rotate(sphere, T(30), Vec3T<T>::ones()),
+                      Fused::Scale(Fused::Reflect(sphere, size_t(0)), T(2)),
+                      Fused::Annular(Fused::Offset(sphere, T(0.1)), T(0.1)),
+                      Fused::Elongate(sphere, Vec3T<T>::ones()),
+                      Fused::FiniteRepetition(sphere, Vec3T<T>::ones(), Vec3T<T>::ones(), Vec3T<T>::ones()),
+                      Fused::Blur(sphere, T(0.1)),
+                      Fused::Mollify(sphere, T(0.1), size_t(3))),
+      T(0.1));
+
+    (void)analytic.signedDistance(Vec3T<T>::zeros());
+    (void)analytic.computeBoundingVolume();
+    (void)analytic.rebasedView(meshPool);
+    (void)analytic.deepCopy(meshPool);
+
+    const DefaultTriMeshSDF mesh = Parser::readIntoTriMeshSDF<T>(file, meshPool);
+    const auto              hole = Fused::Difference(mesh, Fused::Translate(sphere, Vec3T<T>::ones()));
+    using Hole                   = std::decay_t<decltype(hole)>;
+
+    (void)hole.signedDistance(Vec3T<T>::zeros());
+    (void)hole.computeBoundingVolume();
+    (void)Hole(hole.layout(), hole.location()).signedDistance(Vec3T<T>::zeros());
+    (void)hole.rebasedView(meshPool);
+    (void)hole.deepCopy(meshPool);
+  }
+
   (void)PolygonSoup<T>().convertToDCEL(meshPool);
   (void)PolygonSoup<T>().convertToTriangles();
 }
