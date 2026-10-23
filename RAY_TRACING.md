@@ -204,7 +204,7 @@ Use, one query per thread or a packet per thread, in the caller's own functor (D
 ```cpp
 struct PathQuery // a particle's step from x0 to x1
 {
-  TriMeshSDF<T> m_mesh; // a rebasedView() on a device
+  TriMeshSDF<T, K, W> m_mesh; // a rebasedView() on a device
 
   EBGEOMETRY_HOST_DEVICE HitT<T> operator()(const Segment& a_s) const noexcept
   {
