@@ -86,9 +86,212 @@ what the review below found, and lands it first. #214–#216 are then rebuilt on
 | D14 | **A crossing at t = 0 is a hit; a caller stepping off a surface passes a small tMin** (the segment overload takes one too). No default start offset. | Correct for a particle that is on the wall; the example shows the step-off. |
 | D15 | **Example: a new `Examples/ParticlePaths`**: particles stepping through a mesh, each step a segment query reporting crossing point, face and normal; one query per thread and packets; a device section through `GPU::transform`; its own Sphinx page. | Shows the particle use case #93 asks for. |
 
+## Interface (proposed, for review before implementation)
+
+Declarations only; every function is `EBGEOMETRY_HOST_DEVICE`, `noexcept` and `[[nodiscard]]` unless
+said otherwise, in `namespace EBGeometry`. Comments give the contract.
+
+### Core types (`EBGeometry_Ray.hpp`)
+
+```cpp
+// The points origin + t * direction. Queries take the direction to be of unit length, so t is a
+// distance along the ray.
+template <class T>
+struct RayT
+{
+  using Scalar = T;
+
+  Vec3T<T> m_origin;
+  Vec3T<T> m_direction;
+
+  Vec3T<T> at(T a_t) const;
+};
+
+enum class HitStatus : uint8_t
+{
+  Miss,      // no crossing in the interval
+  Hit,       // a crossing; HitT says where
+  Unresolved // the query ran out of steps before it could decide; never reported as a miss
+};
+
+// Where a ray first crosses a surface, entering or leaving.
+template <class T>
+struct HitT
+{
+  HitStatus m_status    = HitStatus::Miss;
+  T         m_t         = Math::Limits<T>::infinity(); // crossing (Hit), last point reached (Unresolved)
+  Vec3T<T>  m_point     = Vec3T<T>::zeros();           // the point at m_t
+  uint32_t  m_primitive = 0;     // finest element the shape names there: a mesh's face id, a union's
+                                 // operand index, 0 otherwise
+  Vec3T<T>  m_normal    = Vec3T<T>::zeros(); // outward unit normal: from the ray form, or the gradient of
+                                             // the signed distance for a marched hit (D9)
+  bool      m_entering  = false; // the ray goes from outside to inside there
+  bool      m_exact     = false; // found in closed form, not to within RayOptions::m_tolerance
+
+  bool hit() const; // m_status == HitStatus::Hit
+};
+
+// How a query marches where a shape has no ray form. Lengths are relative to the shape's scale: the
+// diagonal of its bounding box, or m_scale if positive (1 for an unbounded box).
+template <class T>
+struct RayOptions
+{
+  T        m_tolerance = T(1e-4);  // a crossing is accepted where |value| < this * scale
+  T        m_scale     = T(0);     // 0: the box diagonal
+  uint32_t m_maxSteps  = 512;      // steps before a query is Unresolved
+  T        m_step      = T(0.005); // fixed step * scale where the value is not a distance
+};
+
+// N rays traced together by one thread (D1, D5-D8). SoA so N rays load into SIMD lanes; trivially
+// copyable, fixed arrays. Lanes not set are inactive.
+template <class T, size_t N>
+struct RayPacket
+{
+  static_assert(N >= 1 && N <= 32, "RayPacket: N must be in [1, 32]");
+
+  Array<T, N> m_originX, m_originY, m_originZ;
+  Array<T, N> m_directionX, m_directionY, m_directionZ; // unit length
+  Array<T, N> m_tMin, m_tMax;
+  uint32_t    m_active = 0; // bit i: lane i holds a ray
+
+  void     setRay(size_t a_lane, const RayT<T>& a_ray, T a_tMin, T a_tMax);
+  void     setSegment(size_t a_lane, const Vec3T<T>& a_from, const Vec3T<T>& a_to, T a_tMin = T(0));
+  RayT<T>  ray(size_t a_lane) const;
+  bool     active(size_t a_lane) const;
+};
+```
+
+### Queries (free functions, any shape `S` with `isShape<S>`)
+
+```cpp
+// --- one ray or segment per call (point-like kernel: one query per thread) ---
+
+// First crossing in [a_tMin, a_tMax], entering or leaving.
+template <class T, class S>
+HitT<T> firstHit(const S& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
+                 const RayOptions<T>& a_options = RayOptions<T>());
+
+// First crossing on the segment from a_from to a_to; m_t is the distance from a_from (D13).
+// A crossing at a_tMin is a hit; pass a small a_tMin to step off a surface (D14).
+template <class T, class S>
+HitT<T> firstHit(const S& a_shape, const Vec3T<T>& a_from, const Vec3T<T>& a_to, T a_tMin = T(0),
+                 const RayOptions<T>& a_options = RayOptions<T>());
+
+// Whether there is any crossing (D2): stops at the first crossing found, not the nearest.
+template <class T, class S>
+HitStatus intersects(const S& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
+                     const RayOptions<T>& a_options = RayOptions<T>());
+
+template <class T, class S>
+HitStatus intersects(const S& a_shape, const Vec3T<T>& a_from, const Vec3T<T>& a_to, T a_tMin = T(0),
+                     const RayOptions<T>& a_options = RayOptions<T>());
+
+// --- packets (batched: N queries per thread) ---
+
+// One HitT per lane; inactive lanes are Miss (D8). BVH shapes walk the packet together; any other
+// shape loops over its lanes (D5).
+template <class T, size_t N, class S>
+Array<HitT<T>, N> firstHit(const S& a_shape, const RayPacket<T, N>& a_packet,
+                           const RayOptions<T>& a_options = RayOptions<T>());
+
+template <class T, size_t N, class S>
+Array<HitStatus, N> intersects(const S& a_shape, const RayPacket<T, N>& a_packet,
+                               const RayOptions<T>& a_options = RayOptions<T>());
+```
+
+Use, one query per thread or a packet per thread, in the caller's own functor (D11):
+
+```cpp
+struct PathQuery // a particle's step from x0 to x1
+{
+  TriMeshSDF<T> m_mesh; // a rebasedView() on a device
+
+  EBGEOMETRY_HOST_DEVICE HitT<T> operator()(const Segment& a_s) const noexcept
+  {
+    return firstHit(m_mesh, a_s.from, a_s.to);
+  }
+};
+
+GPU::transform(PathQuery{view}, segments, hits); // host loop in a host build
+```
+
+### Tape members (D3)
+
+The free functions cover every shape; the Tape also has them as members, as it has
+`signedDistance()`. In this PR they march; after #224 they follow the clauses exactly.
+
+```cpp
+template <class T, class... UserPrimitives>
+class Tape
+{
+  // ...
+  HitT<T>   firstHit(const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& = RayOptions<T>()) const;
+  HitT<T>   firstHit(const Vec3T<T>& a_from, const Vec3T<T>& a_to, T a_tMin = T(0),
+                     const RayOptions<T>& = RayOptions<T>()) const;
+  HitStatus intersects(const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& = RayOptions<T>()) const;
+  HitStatus intersects(const Vec3T<T>& a_from, const Vec3T<T>& a_to, T a_tMin = T(0),
+                       const RayOptions<T>& = RayOptions<T>()) const;
+  template <size_t N>
+  Array<HitT<T>, N>   firstHit(const RayPacket<T, N>& a_packet, const RayOptions<T>& = RayOptions<T>()) const;
+  template <size_t N>
+  Array<HitStatus, N> intersects(const RayPacket<T, N>& a_packet, const RayOptions<T>& = RayOptions<T>()) const;
+};
+```
+
+### Extension point: `RayForm<S>`
+
+A shape without a specialisation is marched. A specialisation makes it ray traced; only `firstHit` is
+required, and the others have generic defaults.
+
+```cpp
+template <class S, class = void>
+struct RayForm
+{
+  static constexpr bool available = false;
+};
+
+template <>
+struct RayForm<MyShape>
+{
+  static constexpr bool available = true;
+
+  // Required: first crossing in [a_tMin, a_tMax], every HitT field filled.
+  static HitT<T> firstHit(const MyShape&, const RayT<T>&, T a_tMin, T a_tMax, const RayOptions<T>&);
+
+  // Optional: any crossing, early exit (default: firstHit(...).m_status).
+  static HitStatus intersects(const MyShape&, const RayT<T>&, T a_tMin, T a_tMax, const RayOptions<T>&);
+
+  // Optional: a packet in one walk (default: a loop over the lanes).
+  template <size_t N>
+  static Array<HitT<T>, N> firstHit(const MyShape&, const RayPacket<T, N>&, const RayOptions<T>&);
+};
+```
+
+Ray forms in this PR, each next to its component (D12):
+
+| Shape | Ray form | Header |
+|---|---|---|
+| `PlaneSDF`, `SphereSDF`, `BoxSDF`, `CylinderSDF`, `InfiniteCylinderSDF`, `CapsuleSDF` | closed form | `EBGeometry_AnalyticRayForms.hpp` |
+| `TriMeshSDF` | BVH walk (`PackedBVH::traverse()`), triangle kernel on `SIMD::Pack` at the leaves; packet walk | `EBGeometry_MeshRayForms.hpp` |
+| `MeshSDF`, `FlatMeshSDF` | BVH walk / all faces, ray–plane + point-in-convex-polygon on the DCEL faces; packet walk (`MeshSDF`) | `EBGeometry_MeshRayForms.hpp` |
+| `BVHUnion<T, P, K>` | BVH walk; at a leaf `firstHit()` on the operand (its ray form, or marched in its box); packet walk | `EBGeometry_BVHUnion.hpp` |
+| `Tape` | marched (exact after #224) | `EBGeometry_Tape.hpp` (members) |
+| everything else | marched | — |
+
+### Points to confirm
+
+- **Members on other shapes.** Only the Tape gets member functions; every other shape uses the free
+  functions. Mesh SDFs and `BVHUnion` could get members too, for symmetry.
+- **`m_primitive` for `BVHUnion`**: the operand's index in the array the union was built from (the
+  union's leaf order is internal).
+- **`RayPacket` bounds**: N ≤ 32 so the active mask is one `uint32_t`.
+- **Names**: `firstHit`/`intersects` as in #214; `RayT`/`HitT`/`RayPacket` (the `...T` suffix follows
+  `Vec3T`/`AABBT`).
+
 ## Open questions
 
-None at present. (Q1–Q7 of the first draft were settled in the interview on 2026-10-23 as D5–D15.)
+None besides the points to confirm above. (Q1–Q7 of the first draft were settled in the interview on
+2026-10-23 as D5–D15.)
 
 ## Scope of this PR (PR A)
 
