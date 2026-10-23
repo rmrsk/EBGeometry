@@ -684,6 +684,7 @@ private:
    */
   template <unsigned D>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   evaluateBlur(const TapeDetail::Clause& a_clause,
                const Vec3T<T>&           a_point,

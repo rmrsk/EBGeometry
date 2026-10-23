@@ -1099,6 +1099,7 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
 template <class T, class... UserPrimitives>
 template <unsigned D>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::evaluateBlur(const TapeDetail::Clause& a_clause,
                                          const Vec3T<T>&           a_point,
