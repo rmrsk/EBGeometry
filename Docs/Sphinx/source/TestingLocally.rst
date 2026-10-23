@@ -173,7 +173,8 @@ Device tests
 ---------------
 
 Every class that is callable on a GPU has a test case tagged ``[gpu]`` that evaluates its queries as
-a kernel would, over many query points, and compares each result with the host. In an ordinary host
+a kernel would, over many query points, and compares each result with the host; where several answers
+are equally right (a closest face where faces tie), the device may give any of them. In an ordinary host
 build these tests run in emulation, on host memory that reports itself device-accessible, so they
 run in every preset. Under a GPU backend the same tests launch real kernels, and they skip when no
 GPU is visible. See :ref:`Chap:ContributionGuidelines` for how to write one.
