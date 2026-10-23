@@ -192,14 +192,14 @@ Large queries
 
 ``parallelFor`` and ``transform`` pass the query (or the functor) to the kernel by value. When the query
 calls a function that is not inlined -- a ``Tape``'s evaluator, say -- the compiler needs the query's
-address, and would copy the whole query into every thread's local memory first: for a ``Tape``, 376
-bytes per thread, which cost more than the evaluation itself (issue #221). Under CUDA 11.7 and later the
-kernel's parameter is therefore a grid constant (``EBGEOMETRY_GRID_CONSTANT``, ``__grid_constant__``),
-which the threads read in place. That needs compute capability 7.0 or later, the default architecture
-of every EBGeometry CUDA build; when a build also compiles for an older architecture, the macro is
-empty in that architecture's device code, which copies the query as before. HIP has no such qualifier;
-there the macro is empty. A kernel written by hand (see :ref:`Chap:ExampleCustomShape`) can mark its
-own query parameter the same way.
+address, and would copy the whole query into every thread's local memory first: for a ``Tape``, a few
+hundred bytes per thread, which cost more than the evaluation itself (issue #221). Under CUDA 11.7 and
+later the kernel's parameter is therefore a grid constant (``EBGEOMETRY_GRID_CONSTANT``,
+``__grid_constant__``), which the threads read in place. That needs compute capability 7.0 or later, the
+default architecture of every EBGeometry CUDA build; when a build also compiles for an older
+architecture, the macro is empty in that architecture's device code, which copies the query as before.
+HIP has no such qualifier; there the macro is empty. A kernel written by hand (see
+:ref:`Chap:ExampleCustomShape`) can mark its own query parameter the same way.
 
 Block size
 ----------
