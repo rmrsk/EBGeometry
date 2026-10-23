@@ -20,6 +20,7 @@
 // Std includes
 #include <cmath>
 #include <cstdint>
+#include <type_traits>
 
 // Our includes
 #include "EBGeometry_Affine.hpp"
@@ -37,6 +38,191 @@ namespace EBGeometry {
  * @details Internal helpers; not part of the public API.
  */
 namespace CSGOps {
+
+/**
+ * @brief A value with the deciding leaf it comes from: the leaf whose surface the composed value is
+ * taken from there, and the point that leaf was evaluated at (in its own frame).
+ * @details The operations below work on a plain value T and on a Tagged<T> alike. On a Tagged<T> they
+ * compute the value as on a T and carry the tag of the operand the value comes from (see
+ * Tape::closestPrimitive() and Fused::Node::closestPrimitive()).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct Tagged
+{
+  /**
+   * @brief The value.
+   */
+  T m_value;
+
+  /**
+   * @brief The deciding leaf, as the structure numbers it (NoTag for none).
+   */
+  uint32_t m_tag;
+
+  /**
+   * @brief The point the leaf was evaluated at.
+   */
+  Vec3T<T> m_point;
+};
+
+/**
+ * @brief The tag of a value that comes from no leaf.
+ */
+inline constexpr uint32_t NoTag = 0xFFFFFFFFU;
+
+/**
+ * @brief Whether V is a tagged value.
+ * @tparam V Value type.
+ */
+template <class V>
+inline constexpr bool isTagged = false;
+
+/**
+ * @brief A Tagged<T> is a tagged value.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+inline constexpr bool isTagged<Tagged<T>> = true;
+
+/**
+ * @brief A plain value's value: itself.
+ * @tparam T Floating-point precision.
+ * @param[in] a_value Value.
+ * @return The value.
+ */
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+valueOf(const T a_value) noexcept
+{
+  return a_value;
+}
+
+/**
+ * @brief A tagged value's value.
+ * @tparam T Floating-point precision.
+ * @param[in] a_value Tagged value.
+ * @return The value.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+valueOf(const Tagged<T>& a_value) noexcept
+{
+  return a_value.m_value;
+}
+
+/**
+ * @brief A plain value replaced by another: the other.
+ * @tparam T Floating-point precision.
+ * @param[in] a_value The new value.
+ * @return The new value.
+ */
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+withValue(const T /*a_like*/, const T a_value) noexcept
+{
+  return a_value;
+}
+
+/**
+ * @brief A tagged value with its value replaced and its tag kept.
+ * @tparam T Floating-point precision.
+ * @param[in] a_like  The value whose tag is kept.
+ * @param[in] a_value The new value.
+ * @return The tagged value.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Tagged<T>
+withValue(const Tagged<T>& a_like, const T a_value) noexcept
+{
+  return Tagged<T>{a_value, a_like.m_tag, a_like.m_point};
+}
+
+/**
+ * @brief A leaf's value: the value itself, or the value tagged with the leaf and the point.
+ * @tparam V Value type (T or Tagged<T>).
+ * @tparam T Floating-point precision.
+ * @param[in] a_value The leaf's value.
+ * @param[in] a_tag   The leaf, as the structure numbers it.
+ * @param[in] a_point The point the leaf was evaluated at.
+ * @return The value.
+ */
+template <class V, class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline V
+leafValue(const T a_value, [[maybe_unused]] const uint32_t a_tag, [[maybe_unused]] const Vec3T<T>& a_point) noexcept
+{
+  if constexpr (isTagged<V>) {
+    return V{a_value, a_tag, a_point};
+  }
+  else {
+    return a_value;
+  }
+}
+
+/**
+ * @brief The smaller of two plain values (Math::min()).
+ * @tparam T Floating-point precision.
+ * @param[in] a_first  First value.
+ * @param[in] a_second Second value.
+ * @return The smaller.
+ */
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+smaller(const T a_first, const T a_second) noexcept
+{
+  return Math::min(a_first, a_second);
+}
+
+/**
+ * @brief The tagged value with the smaller value, as Math::min() picks it.
+ * @tparam T Floating-point precision.
+ * @param[in] a_first  First value.
+ * @param[in] a_second Second value.
+ * @return The smaller, with its tag.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Tagged<T>
+smaller(const Tagged<T>& a_first, const Tagged<T>& a_second) noexcept
+{
+  return (a_second.m_value < a_first.m_value) ? a_second : a_first;
+}
+
+/**
+ * @brief The larger of two plain values (Math::max()).
+ * @tparam T Floating-point precision.
+ * @param[in] a_first  First value.
+ * @param[in] a_second Second value.
+ * @return The larger.
+ */
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+larger(const T a_first, const T a_second) noexcept
+{
+  return Math::max(a_first, a_second);
+}
+
+/**
+ * @brief The tagged value with the larger value, as Math::max() picks it.
+ * @tparam T Floating-point precision.
+ * @param[in] a_first  First value.
+ * @param[in] a_second Second value.
+ * @return The larger, with its tag.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Tagged<T>
+larger(const Tagged<T>& a_first, const Tagged<T>& a_second) noexcept
+{
+  return (a_first.m_value < a_second.m_value) ? a_second : a_first;
+}
 
 /**
  * @brief An affine map's 12 coefficients: the three rows of its matrix, then its shift.
@@ -163,52 +349,66 @@ annular(const T a_value, const T a_delta) noexcept
  * @brief The two most extreme values seen so far, for an n-ary smooth union or intersection.
  * @details Only the two smallest (or largest) operands' values are blended, which differs from folding a
  * binary blend over the operands (see SmoothUnion()).
- * @tparam T Floating-point precision.
+ * @tparam V Value type (T or Tagged<T>).
  */
-template <class T>
+template <class V>
 struct Pair
 {
   /**
    * @brief The most extreme value.
    */
-  T m_first;
+  V m_first;
 
   /**
    * @brief The next.
    */
-  T m_second;
+  V m_second;
 };
 
 /**
  * @brief The empty pair: both values +inf (for the smallest) or -inf (for the largest).
- * @tparam T Floating-point precision.
+ * @tparam V Value type (T or Tagged<T>).
  * @param[in] a_largest Whether the pair tracks the largest values.
  * @return The pair.
  */
-template <class T>
+template <class V>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline Pair<T>
+inline Pair<V>
 pairInit(const bool a_largest) noexcept
 {
-  const T empty = a_largest ? -Math::Limits<T>::infinity() : Math::Limits<T>::infinity();
+  if constexpr (isTagged<V>) {
+    using T = decltype(V::m_value);
 
-  return Pair<T>{empty, empty};
+    const T empty = a_largest ? -Math::Limits<T>::infinity() : Math::Limits<T>::infinity();
+    const V tagged{empty, NoTag, Vec3T<T>::zeros()};
+
+    return Pair<V>{tagged, tagged};
+  }
+  else {
+    const V empty = a_largest ? -Math::Limits<V>::infinity() : Math::Limits<V>::infinity();
+
+    return Pair<V>{empty, empty};
+  }
 }
 
 /**
  * @brief Insert a value into a pair of extreme values.
- * @tparam T Floating-point precision.
+ * @tparam V Value type (T or Tagged<T>).
  * @param[in,out] a_pair    Pair.
  * @param[in]     a_value   Value.
  * @param[in]     a_largest Whether the pair tracks the largest values.
  */
-template <class T>
+template <class V>
 EBGEOMETRY_HOST_DEVICE
 inline void
-pairInsert(Pair<T>& a_pair, const T a_value, const bool a_largest) noexcept
+pairInsert(Pair<V>& a_pair, const V& a_value, const bool a_largest) noexcept
 {
-  const bool beyondFirst  = a_largest ? (a_value > a_pair.m_first) : (a_value < a_pair.m_first);
-  const bool beyondSecond = a_largest ? (a_value > a_pair.m_second) : (a_value < a_pair.m_second);
+  const auto value  = valueOf(a_value);
+  const auto first  = valueOf(a_pair.m_first);
+  const auto second = valueOf(a_pair.m_second);
+
+  const bool beyondFirst  = a_largest ? (value > first) : (value < first);
+  const bool beyondSecond = a_largest ? (value > second) : (value < second);
 
   if (beyondFirst) {
     a_pair.m_second = a_pair.m_first;
@@ -220,7 +420,8 @@ pairInsert(Pair<T>& a_pair, const T a_value, const bool a_largest) noexcept
 }
 
 /**
- * @brief The smooth minimum (or maximum) of a pair's two values.
+ * @brief The smooth minimum (or maximum) of a pair's two values, tagged as the more extreme one.
+ * @tparam V Value type (T or Tagged<T>).
  * @tparam T Floating-point precision.
  * @param[in] a_pair        Pair.
  * @param[in] a_smooth      Smoothing length.
@@ -229,18 +430,24 @@ pairInsert(Pair<T>& a_pair, const T a_value, const bool a_largest) noexcept
  * (SmoothMinOp/SmoothMaxOp).
  * @return The blended value.
  */
-template <class T>
+template <class V, class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline T
-pairBlend(const Pair<T>& a_pair, const T a_smooth, const bool a_largest, const bool a_exponential) noexcept
+inline V
+pairBlend(const Pair<V>& a_pair, const T a_smooth, const bool a_largest, const bool a_exponential) noexcept
 {
+  const T first  = valueOf(a_pair.m_first);
+  const T second = valueOf(a_pair.m_second);
+
+  T value;
+
   if (a_exponential) {
-    return a_largest ? ExpMaxOp<T>{}(a_pair.m_first, a_pair.m_second, a_smooth)
-                     : ExpMinOp<T>{}(a_pair.m_first, a_pair.m_second, a_smooth);
+    value = a_largest ? ExpMaxOp<T>{}(first, second, a_smooth) : ExpMinOp<T>{}(first, second, a_smooth);
+  }
+  else {
+    value = a_largest ? SmoothMaxOp<T>{}(first, second, a_smooth) : SmoothMinOp<T>{}(first, second, a_smooth);
   }
 
-  return a_largest ? SmoothMaxOp<T>{}(a_pair.m_first, a_pair.m_second, a_smooth)
-                   : SmoothMinOp<T>{}(a_pair.m_first, a_pair.m_second, a_smooth);
+  return withValue(a_pair.m_first, value);
 }
 
 /**
@@ -290,9 +497,11 @@ blurWeights(const T a_distance, const T a_alpha)
  */
 template <class T, class F>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline T
+inline auto
 blur(const T* a_weights, const Vec3T<T>& a_point, const F& a_operand) noexcept
 {
+  using V = decltype(a_operand(a_point));
+
   const T  d = a_weights[0];
   const T* w = a_weights;
 
@@ -301,18 +510,43 @@ blur(const T* a_weights, const Vec3T<T>& a_point, const F& a_operand) noexcept
   // called once per tap, nvcc 12.5 placed some taps at the wrong points (issue #217).
   T value = T(0);
 
-  for (int t = 0; t < 27; t++) {
-    const int i = t / 9 - 1;
-    const int j = (t / 3) % 3 - 1;
-    const int k = t % 3 - 1;
-    const int m = i * i + j * j + k * k;
+  if constexpr (isTagged<V>) {
+    // The same sum, carrying the centre tap's tag (the largest weight).
+    V centre{};
 
-    const Vec3T<T> tap = a_point + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d);
+    for (int t = 0; t < 27; t++) {
+      const int i = t / 9 - 1;
+      const int j = (t / 3) % 3 - 1;
+      const int k = t % 3 - 1;
+      const int m = i * i + j * j + k * k;
 
-    value += w[1 + m] * a_operand(tap);
+      const V tapValue = a_operand(a_point + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d));
+
+      value += w[1 + m] * tapValue.m_value;
+
+      if (m == 0) {
+        centre = tapValue;
+      }
+    }
+
+    return withValue(centre, value);
   }
+  else {
+    // Kept exactly as written for the plain value: holding each tap's value in a variable first made the
+    // device compiler give a kernel that evaluates a tape in a loop 255 registers instead of 168.
+    for (int t = 0; t < 27; t++) {
+      const int i = t / 9 - 1;
+      const int j = (t / 3) % 3 - 1;
+      const int k = t % 3 - 1;
+      const int m = i * i + j * j + k * k;
 
-  return value;
+      const Vec3T<T> tap = a_point + Vec3T<T>(T(i) * d, T(j) * d, T(k) * d);
+
+      value += w[1 + m] * a_operand(tap);
+    }
+
+    return value;
+  }
 }
 
 /**
@@ -417,22 +651,51 @@ mollifyGrid(const T a_radius, const uint32_t a_samples)
  */
 template <class T, class F>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline T
+inline auto
 mollify(const MollifyGrid<T>& a_grid, const Vec3T<T>& a_point, const F& a_operand) noexcept
 {
+  using V = decltype(a_operand(a_point));
+
   T value = T(0);
 
-  for (uint32_t i = 0; i < a_grid.m_samples; i++) {
-    for (uint32_t j = 0; j < a_grid.m_samples; j++) {
-      for (uint32_t k = 0; k < a_grid.m_samples; k++) {
-        const Vec3T<T> o = mollifyOffset(a_grid.m_radius, a_grid.m_spacing, i, j, k);
+  if constexpr (isTagged<V>) {
+    // The same sum, carrying the tag of the tap with the largest weight (the first, if several have it).
+    V heaviest{};
+    T heaviestWeight = -T(1);
 
-        value += a_operand(a_point - o) * (mollifyWeight(o, a_grid.m_radius) / a_grid.m_sum);
+    for (uint32_t i = 0; i < a_grid.m_samples; i++) {
+      for (uint32_t j = 0; j < a_grid.m_samples; j++) {
+        for (uint32_t k = 0; k < a_grid.m_samples; k++) {
+          const Vec3T<T> o = mollifyOffset(a_grid.m_radius, a_grid.m_spacing, i, j, k);
+          const V        f = a_operand(a_point - o);
+          const T        w = mollifyWeight(o, a_grid.m_radius) / a_grid.m_sum;
+
+          value += f.m_value * w;
+
+          if (w > heaviestWeight) {
+            heaviest       = f;
+            heaviestWeight = w;
+          }
+        }
       }
     }
-  }
 
-  return value;
+    return withValue(heaviest, value);
+  }
+  else {
+    // Kept exactly as written for the plain value (see blur()).
+    for (uint32_t i = 0; i < a_grid.m_samples; i++) {
+      for (uint32_t j = 0; j < a_grid.m_samples; j++) {
+        for (uint32_t k = 0; k < a_grid.m_samples; k++) {
+          const Vec3T<T> o = mollifyOffset(a_grid.m_radius, a_grid.m_spacing, i, j, k);
+
+          value += a_operand(a_point - o) * (mollifyWeight(o, a_grid.m_radius) / a_grid.m_sum);
+        }
+      }
+    }
+
+    return value;
+  }
 }
 
 /**
@@ -623,9 +886,11 @@ struct RepetitionView
  */
 template <class T, class R, class F>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline T
+inline auto
 repetition(const R& a_repetition, const Vec3T<T>& a_point, const F& a_object) noexcept
 {
+  using V = decltype(a_object(a_point));
+
   // The tile the point folds into.
   int home[3];
 
@@ -634,7 +899,7 @@ repetition(const R& a_repetition, const Vec3T<T>& a_point, const F& a_object) no
       Math::min(Math::max(a_point[dir] / a_repetition.period(dir), -a_repetition.low(dir)), a_repetition.high(dir))));
   }
 
-  T best = a_object(Vec3T<T>(a_point[0] - a_repetition.period(0) * T(home[0]),
+  V best = a_object(Vec3T<T>(a_point[0] - a_repetition.period(0) * T(home[0]),
                              a_point[1] - a_repetition.period(1) * T(home[1]),
                              a_point[2] - a_repetition.period(2) * T(home[2])));
 
@@ -643,7 +908,7 @@ repetition(const R& a_repetition, const Vec3T<T>& a_point, const F& a_object) no
   int last[3];
 
   for (size_t dir = 0; dir < 3; dir++) {
-    const T reach = Math::max(best, T(0));
+    const T reach = Math::max(valueOf(best), T(0));
     const T lo    = std::ceil((a_point[dir] - reach - a_repetition.boxHigh(dir)) / a_repetition.period(dir));
     const T hi    = std::floor((a_point[dir] + reach - a_repetition.boxLow(dir)) / a_repetition.period(dir));
 
@@ -669,7 +934,7 @@ repetition(const R& a_repetition, const Vec3T<T>& a_point, const F& a_object) no
     }
 
     const int tile[3] = {i, j, k};
-    const T   bound   = Math::max(best, T(0));
+    const T   bound   = Math::max(valueOf(best), T(0));
 
     T dist2 = T(0);
 
@@ -683,10 +948,10 @@ repetition(const R& a_repetition, const Vec3T<T>& a_point, const F& a_object) no
     }
 
     if (dist2 <= bound * bound) {
-      best = Math::min(best,
-                       a_object(Vec3T<T>(a_point[0] - a_repetition.period(0) * T(i),
-                                         a_point[1] - a_repetition.period(1) * T(j),
-                                         a_point[2] - a_repetition.period(2) * T(k))));
+      best = smaller(best,
+                     a_object(Vec3T<T>(a_point[0] - a_repetition.period(0) * T(i),
+                                       a_point[1] - a_repetition.period(1) * T(j),
+                                       a_point[2] - a_repetition.period(2) * T(k))));
     }
   }
 
