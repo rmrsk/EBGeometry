@@ -225,6 +225,27 @@ instantiateFunctionTemplates()
     GPU::transform(query, pool, in, out);
     (void)GPU::deviceAvailable();
     (void)GPU::memoryResource();
+
+    // The build blocks, and the parallel point-cloud builds that use them.
+    struct Descending
+    {
+      bool
+      operator()(const uint64_t a_lhs, const uint64_t a_rhs) const noexcept
+      {
+        return a_lhs > a_rhs;
+      }
+    };
+
+    std::vector<Vec3T<T>> scratch(GPU::boundingBoxScratchSize(1));
+    uint64_t              keys[2] = {2, 1};
+
+    (void)GPU::boundingBox(points.data(), 1, scratch.data());
+    GPU::bitonicSort(keys, 2);
+    GPU::bitonicSort(keys, 2, Descending{});
+
+    Pool cloudPool(hostMemoryResource());
+
+    (void)PointCloudHashGrid<T>::buildParallel(cloudPool, points);
   }
 
   // Every builder function, compiled into a tape.
