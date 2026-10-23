@@ -335,8 +335,9 @@ Test coverage
        sharp and smooth ``Union``/``Intersection``/``Difference`` expressions compiled into a tape,
        against the formulas computed by hand, with both blend kinds; the boxes and distance qualities
        of combined expressions; a union of many objects with and without the tape's BVH, with an
-       operand that is not a distance, and with unbounded operands; ``FiniteRepetition`` tiling and
-       boundary clamping. The BVH-accelerated
+       operand that is not a distance, and with unbounded operands; ``FiniteRepetition`` tiling,
+       boundary clamping, and its value being the minimum over all copies, off-centre and
+       overlapping ones included. The BVH-accelerated
        :cpp:class:`BVHUnion`/:cpp:class:`BVHSmoothUnion` over spheres (against a brute-force scan,
        for every build strategy and blend, and with each method's leaf-size setting) and over
        translated
@@ -365,6 +366,16 @@ Test coverage
        user primitive types and a tape inside a tape, each against the host; a user octahedron's
        exact values kept through rotation, translation and a BVH union; and a tape built directly in
        managed memory evaluated on the device through its own pool.
+   * - ``TestFused``
+     - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
+       exactly when an operand lives in a pool; each against its formula applied by hand, a blur and
+       a mollification leaving a plane as it is; a finite repetition equal to the minimum over all
+       its copies, off-centre and overlapping ones included; each composition equal to a ``Tape`` of
+       the same expression exactly; boxes equal to the builder's and distance qualities at least as
+       cautious; a composition of mesh distance fields through a host mirror, a deep copy and a node
+       rebuilt from its layout; a fused shape as a tape primitive and as a BVH union's primitive; on
+       a device, an analytic composition and a drilled mesh against the host; and every rejected
+       argument, operands from different pools included.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an

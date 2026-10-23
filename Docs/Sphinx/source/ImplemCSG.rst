@@ -167,7 +167,10 @@ The operations, described mathematically in :ref:`Chap:ConstructiveSolidGeometry
      - :math:`\sum_k w_k\,a(\mathbf{x} - \mathbf{o}_k)` over an :math:`n^3` grid of offsets spanning
        :math:`[-r, r]^3`, with the weights of a smooth bump kernel, normalized to sum to one
    * - ``FiniteRepetition(a, c, lo, hi)``
-     - :math:`a` at :math:`\mathbf{x}` folded into its tile: :math:`x_i - c_i\,\mathrm{round}(\mathrm{clamp}(x_i/c_i, -lo_i, hi_i))`
+     - :math:`\min_k a(\mathbf{x} - \mathbf{c} \odot \mathbf{k})` over the tiles :math:`\mathbf{k}`,
+       :math:`-lo_i \le k_i \le hi_i`: the copy in the tile :math:`\mathbf{x}` folds into
+       (:math:`k_i = \mathrm{round}(\mathrm{clamp}(x_i/c_i, -lo_i, hi_i))`) first, then only the copies
+       whose box is nearer than the value so far
    * - ``Union(a, b)``, ``Union(list)``
      - :math:`\min_i a_i(\mathbf{x})`
    * - ``Intersection(a, b)``, ``Intersection(list)``
@@ -198,9 +201,9 @@ quality (``getDistanceQuality()``), worked out from its operands' when it is mad
   difference keeps the first operand's. A complement covers all of space.
 * **Distance quality.** Point maps and Complement keep the operand's quality, as do Annular and a
   growing Offset; a shrinking Offset, Elongate, Blur, Mollify and every union, intersection and
-  difference give at best ``Bound``. A repetition is ``Bound`` only if the operand fits inside its
-  own tile, and ``NotADistance`` otherwise. Anything containing a ``NotADistance`` operand is
-  ``NotADistance``.
+  difference give at best ``Bound``, and so does a repetition, whether or not the operand fits inside
+  its tile, since it is the minimum over all the copies. Anything containing a ``NotADistance`` operand
+  is ``NotADistance``.
 
 .. warning::
 
@@ -249,8 +252,8 @@ built.
   ``NotADistance`` cannot be pruned and is evaluated operand by operand.
   `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ also chooses the BVH
   construction method.
-* **Sub-programs and limits.** Blur, Mollify and the operands of a BVH union are compiled into
-  sub-programs that their clause evaluates several times. The evaluator has no recursion: a call
+* **Sub-programs and limits.** Blur, Mollify, FiniteRepetition and the operands of a BVH union are
+  compiled into sub-programs that their clause evaluates several times. The evaluator has no recursion: a call
   depth is a template parameter, so calls nest at most ``Tape::MaxCallDepth`` (4) deep, and a
   sub-program holds at most ``ValueStackSize`` values and ``PointStackSize`` points at once. The
   constructor rejects an expression that needs more, with a message saying which limit it reached.
@@ -268,7 +271,7 @@ built.
   Each call level of the evaluator is a separate function in a device compile, kept out of line so
   that the compile stays small (HIP otherwise inlines every device function, and the copies multiply
   with every level). Two things stay in place, since inlining them multiplies nothing: a tape that
-  calls no sub-program (no Blur, Mollify or BVH union) is evaluated at depth 0 inside
+  calls no sub-program (no Blur, Mollify, repetition or BVH union) is evaluated at depth 0 inside
   ``signedDistance()`` itself, and an analytic primitive is evaluated inside the level that reads its
   clause. A pool-resident primitive (a mesh SDF, a BVH union, a nested tape) is evaluated out of line,
   so that its traversal stack is not part of every level's frame. Because the call depth is a
@@ -280,6 +283,52 @@ built.
 
 The :ref:`Chap:ExampleCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.
+
+.. _Sec:Fused:
+
+Fused composition
+-----------------
+
+A tape interprets its clauses one after another, which on a GPU costs several times what the same
+solid written out by hand does (about ten times for a few analytic shapes in ``float``; little for a
+mesh, whose traversal dominates). When the structure of a composition is known when the program is
+compiled, the functions in namespace ``Fused`` build it as types instead
+(`EBGeometry_Fused.hpp <doxygen/html/EBGeometry__Fused_8hpp.html>`__):
+
+.. code-block:: c++
+
+   const auto solid = Fused::Difference(Fused::Intersection(box, ball), drill0, drill1, drill2);
+   const T    d     = solid.signedDistance(p);
+
+Each function returns a `Fused::Node <doxygen/html/classEBGeometry_1_1Fused_1_1Node.html>`__: a
+trivially copyable shape (``isShape``) whose type spells out the whole composition, so the compiler
+inlines its evaluation as it would code written by hand. The functions are those of the expression
+builder, with the same arguments and checks:
+
+* **Names.** Call them qualified, ``Fused::Union``, not ``Union``: the builder's functions of the
+  same names take shapes too, so an unqualified call is ambiguous.
+* **Lists of operands.** Where the builder takes a ``std::vector``, a fused function takes its
+  operands as arguments (``Fused::Union(a, b, c)``, ``Fused::Difference(a, b, c)``), since their
+  number is part of the type. The n-ary smooth operations, whose smoothing length follows the
+  operands, take them as ``Fused::operands(a, b, c)``. One operand is returned as it is.
+* **The same values.** A fused shape and a tape take each operation's arithmetic from the same
+  functions, so on the host a fused composition equals a tape of the same expression exactly; a
+  chain of maps folds into one, as in the builder.
+* **Boxes and quality.** ``computeBoundingVolume()`` follows the builder's rules. The distance
+  quality is the static member ``distanceQuality``, so it cannot depend on run-time values and is
+  at least as cautious as the builder's: an offset is a ``Bound`` whatever the sign of its distance.
+* **Pool-resident operands.** A mesh distance field, a BVH union or a tape can be an operand
+  (``Fused::Difference(mesh, drill)``). The fused shape is then a pool handle itself: it stores its
+  operands' layouts and one location, offers ``rebasedView()``, ``deepCopy()``, ``layout()`` and a
+  ``(Layout, PoolLocation)`` constructor, and requires all its pool-resident operands to share one
+  pool, which must outlive it and every copy of it.
+* **With the other structures.** A fused shape is a shape like any other: a ``BVHUnion`` of many
+  copies of it, or a primitive of a tape (listed after ``T``, as any other type) that combines it
+  with what is only known at run time.
+
+A fused composition is fixed when the program is compiled; geometry read from a file or chosen at
+run time is composed with the builder and a tape. The :ref:`Chap:ExampleCSG` example builds the
+same solid both ways.
 
 .. _Sec:BVHUnions:
 

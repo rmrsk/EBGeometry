@@ -518,17 +518,23 @@ does not follow this template, edit the PR body to conform to it.
   `buildClusterSAH()`, and the constructors behind `pack()`) are host-only and include each other. The blend operators and
   BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp`, the host-only expression builder
   (`Expr`, `Union`, `Translate`, ...) in `EBGeometry_Expr.hpp`, the `Tape` that compiles and evaluates
-  an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`),
-  `EBGeometry_CSG.hpp` including all of them, and `operator<<` for `Vec3T`/`AABBT` in
+  an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`), the fused
+  operations (`Fused::Union`, ...) in `EBGeometry_Fused.hpp`, each operation's arithmetic, shared by
+  the tape and the fused operations, in `EBGeometry_CSGOps.hpp`, `EBGeometry_CSG.hpp` including all of
+  them, and `operator<<` for `Vec3T`/`AABBT` in
   `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
   include the split headers, so older includes keep working.
-- **Composition goes through the tape, and its evaluator must stay device-safe.** There is no
-  `ImplicitFunction` or virtual CSG layer: shapes (`isShape<S>`: trivially copyable, with
+- **Composition goes through the tape or the fused operations, and both must stay device-safe.**
+  There is no `ImplicitFunction` or virtual CSG layer: shapes (`isShape<S>`: trivially copyable, with
   `signedDistance()` and `computeBoundingVolume()`) are composed into an `Expr` and compiled into a
   `Tape<T, UserPrimitives...>`, which stores one pool array per primitive type and dispatches on a
-  type index. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
+  type index; or, when the structure is fixed at compile time, with the `Fused::` functions into a
+  `Fused::Node<Op, Operands...>`, itself a shape (a pool handle, following the wrapper rule below,
+  when an operand lives in a pool). Both take each operation's arithmetic from `CSGOps`, so they give
+  the same values: change an operation there, never in one of the two alone, and keep `TestFused`'s
+  exact comparison with the tape passing. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
   another tape, a user type) must be listed in `UserPrimitives`. The evaluator has no recursion: a
-  sub-program call (Blur, Mollify, BVH union operands) goes through the `evaluate<D>` call-depth
+  sub-program call (Blur, Mollify, FiniteRepetition, BVH union operands) goes through the `evaluate<D>` call-depth
   template, bounded by `Tape::MaxCallDepth`, and the value/point stacks are fixed arrays; keep it
   that way (no recursion, function pointers or virtual calls), since the device evaluator builds on
   it. `evaluate<D>` and the pool-resident primitive dispatch (`evaluateHandle`) are
@@ -538,8 +544,8 @@ does not follow this template, edit the PR body to conform to it.
   way the same. What multiplies nothing is inlined, for speed on a device (#221): the body
   `evaluateBody<D>` into `evaluate<D>`, and into `signedDistance()` for a tape of call depth 0; and an
   analytic primitive into the level that reads it. A new operation needs an `ExprDetail::Kind`, its
-  box and distance-quality rule in the builder, clauses in `TapeDetail::Op` and a case in
-  `Tape::evaluateBody`.
+  box and distance-quality rule in the builder, its arithmetic in `CSGOps`, clauses in
+  `TapeDetail::Op` and a case in `Tape::evaluateBody`, and a `Fused::` operation and function.
 - **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
   SDF, union and tape keeps it. Code that needs the opposite sign (AMReX and Chombo read negative as
   fluid) flips it itself, in its own adapter (`return -tape.signedDistance(p);`); never put a

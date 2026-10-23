@@ -5,8 +5,10 @@
 // Constructive solid geometry with the expression builder: combining analytic shapes with Union,
 // Intersection and Difference, blending them smoothly, moving them with Translate, Rotate and Scale,
 // and compiling the result into a Tape that evaluates it on the host and, through the same query, on
-// a GPU. See README.md.
+// a GPU. Then the same part as a fused composition (Fused::), which the C++ compiler evaluates as it
+// would code written by hand. See README.md.
 
+#include <chrono>
 #include <cstddef>
 #include <iomanip>
 #include <iostream>
@@ -30,20 +32,39 @@ namespace {
 // ── The code that runs on either side ────────────────────────────────────────────────────────────────
 //
 // A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
-// call operator maps one point to one result. It holds a Tape by value. A Tape owns no memory: it is a
-// descriptor of the compiled program in a Pool, so a copy is cheap and a kernel can receive it by value
-// once it describes a pool the device can read (see the last section of main()).
+// call operator maps one point to one result. It holds a shape by value: a Tape, or a fused composition.
+// A Tape owns no memory: it is a descriptor of the compiled program in a Pool, so a copy is cheap and a
+// kernel can receive it by value once it describes a pool the device can read (see the last section of
+// main()). A fused composition of analytic shapes holds its shapes themselves and needs no pool.
+template <class Shape>
 struct Distance
 {
-  Tape m_tape;
+  Shape m_shape;
 
   EBGEOMETRY_HOST_DEVICE
   T
   operator()(const Vec3& a_point) const noexcept
   {
-    return m_tape.signedDistance(a_point);
+    return m_shape.signedDistance(a_point);
   }
 };
+
+// Microseconds per evaluation of a shape over a list of points, on the host; the sum keeps the compiler
+// from skipping the work.
+template <class Shape>
+double
+timePerPoint(const Shape& a_shape, const std::vector<Vec3>& a_points, T& a_sum)
+{
+  const auto start = std::chrono::steady_clock::now();
+
+  for (const Vec3& p : a_points) {
+    a_sum += a_shape.signedDistance(p);
+  }
+
+  const auto stop = std::chrono::steady_clock::now();
+
+  return std::chrono::duration<double, std::micro>(stop - start).count() / double(a_points.size());
+}
 
 const char*
 qualityName(const EBGeometry::DistanceQuality a_quality)
@@ -88,9 +109,11 @@ main()
   const T length = T(1.5);
   const T radius = T(0.55);
 
-  const std::vector<Expr> drills{EBGeometry::CylinderSDF<T>(-length * Vec3(1, 0, 0), length * Vec3(1, 0, 0), radius),
-                                 EBGeometry::CylinderSDF<T>(-length * Vec3(0, 1, 0), length * Vec3(0, 1, 0), radius),
-                                 EBGeometry::CylinderSDF<T>(-length * Vec3(0, 0, 1), length * Vec3(0, 0, 1), radius)};
+  const EBGeometry::CylinderSDF<T> drillX(-length * Vec3(1, 0, 0), length * Vec3(1, 0, 0), radius);
+  const EBGeometry::CylinderSDF<T> drillY(-length * Vec3(0, 1, 0), length * Vec3(0, 1, 0), radius);
+  const EBGeometry::CylinderSDF<T> drillZ(-length * Vec3(0, 0, 1), length * Vec3(0, 0, 1), radius);
+
+  const std::vector<Expr> drills{drillX, drillY, drillZ};
 
   // The classic CSG tree: a cube with its corners rounded off by a ball (the intersection), and three
   // holes drilled through it (the difference). Union, Intersection and Difference also take a vector.
@@ -138,6 +161,44 @@ main()
   report("blob", blobTape, {Vec3::zeros(), Vec3(T(0), T(0.55), T(0)), Vec3(T(1.5), T(0), T(0))});
   report("ring", ringTape, {Vec3::zeros(), Vec3(T(2), T(0.3), T(0)), Vec3(T(2.4), T(0.3), T(0))});
 
+  // ── The same part, fused ───────────────────────────────────────────────────────────────────────────
+  //
+  // When the structure is known as the program is written, the functions in namespace Fused build it as
+  // types instead: the result is a shape whose type spells out the whole tree, and the C++ compiler
+  // evaluates it as it would the same solid written out by hand. The functions are the builder's, called
+  // qualified (Fused::Union, not Union, which is the builder's and takes shapes too); where the builder
+  // takes a vector, they take the operands as arguments. A fused shape's values are the tape's.
+  const auto fusedPart =
+    EBGeometry::Fused::Difference(EBGeometry::Fused::Intersection(cube, ball), drillX, drillY, drillZ);
+
+  std::cout << "\nThe part through its tape and fused:\n";
+
+  for (const Vec3& p : {Vec3::zeros(), Vec3(T(0.8), T(0.8), T(0)), Vec3(T(0.9), T(0.9), T(0.9)), Vec3(2, 0, 0)}) {
+    std::cout << "  " << p << "   tape " << std::setw(9) << partTape.signedDistance(p) << "   fused " << std::setw(9)
+              << fusedPart.signedDistance(p) << '\n';
+  }
+
+  // The tape interprets its clauses one by one; the fused part has nothing to interpret. The gap is
+  // largest on a GPU, where interpreting also costs the device its parallelism.
+  std::vector<Vec3> grid;
+
+  for (int i = 0; i < 40; i++) {
+    for (int j = 0; j < 40; j++) {
+      for (int k = 0; k < 10; k++) {
+        grid.emplace_back(T(-1.5) + T(0.075) * T(i), T(-1.5) + T(0.075) * T(j), T(-1.5) + T(0.3) * T(k));
+      }
+    }
+  }
+
+  T sum = T(0);
+
+  const double tapeTime  = timePerPoint(partTape, grid, sum);
+  const double fusedTime = timePerPoint(fusedPart, grid, sum);
+
+  std::cout << "  on the host, per point: tape " << std::setprecision(3) << tapeTime << " us, fused " << fusedTime
+            << " us (sum " << sum << ")\n"
+            << std::setprecision(4);
+
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
   //
   // A kernel cannot read host memory, so the pool goes to the device first:
@@ -156,7 +217,7 @@ main()
 
     const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource());
 
-    const Distance query{ringTape.rebasedView(devicePool)};
+    const Distance<Tape> query{ringTape.rebasedView(devicePool)};
 
     std::vector<Vec3> points;
 
@@ -173,6 +234,24 @@ main()
 
     for (std::size_t i = 0; i < points.size(); i++) {
       std::cout << "  x = " << points[i][0] << "   value = " << std::setw(8) << onDevice[i] << '\n';
+    }
+
+    // The fused part goes to the device as it is: it holds its shapes, not offsets into a pool. Along a
+    // line through it at height y = 0.3: through a hole near the middle, and through the cube's walls.
+    std::vector<Vec3> line;
+
+    for (int i = 0; i <= 8; i++) {
+      line.emplace_back(T(-1.2) + T(0.3) * T(i), T(0.3), T(0.7));
+    }
+
+    const Distance<decltype(fusedPart)> fusedQuery{fusedPart};
+
+    EBGeometry::GPU::transform(fusedQuery, line, onDevice);
+
+    std::cout << "\nThe fused part along a line at y = 0.3, z = 0.7, through GPU::transform:\n";
+
+    for (std::size_t i = 0; i < line.size(); i++) {
+      std::cout << "  x = " << line[i][0] << "   value = " << std::setw(8) << onDevice[i] << '\n';
     }
   }
 
