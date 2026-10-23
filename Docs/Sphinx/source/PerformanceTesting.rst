@@ -21,6 +21,7 @@ What is in Performance/
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVHUnion/main.cpp        BVHUnion
+     Tape/main.cpp            Tape's signed distance
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
        Statistics.hpp           quantiles, summaries, the bootstrap interval    (shared with PerfCompare)
@@ -139,6 +140,28 @@ Family                                Build  Measures
                                              in the order drawn
 ``<family>/query-morton``,            GPU    signed distance at 262,144 such points
 ``query-random``
+====================================  =====  =====================================================
+
+**Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
+grown by a quarter on every side), against the same solid written by hand (issues #210 and #221). The
+``sphere`` and ``chain16`` cases take a gap between the two apart: a cost paid once per device thread
+(``signedDistance-x16`` evaluates 16 times per query), and one paid per clause.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``csg/signedDistance``                host   the classic CSG solid compiled into a ``Tape``, at
+                                             400,000 points
+``csg-handwritten/signedDistance``    host   the same solid written by hand (the reference)
+``smooth/signedDistance``             host   two smooth unions of spheres, smoothly cut by a box
+``union64/signedDistance``            host   a union of 64 spheres, through the tape's BVH union
+``sphere/signedDistance``             host   one sphere as a one-clause tape (and ``sphere-``
+                                             ``handwritten``: called directly)
+``sphere/signedDistance-x16``         host   the same, evaluated 16 times per query (per device
+                                             thread)
+``chain16/signedDistance``            host   a union of 16 spheres evaluated clause by clause (31
+                                             clauses, no BVH; and ``chain16-handwritten``: a loop)
+``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
 ====================================  =====  =====================================================
 
 Where the results go

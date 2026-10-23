@@ -531,12 +531,15 @@ does not follow this template, edit the PR body to conform to it.
   sub-program call (Blur, Mollify, BVH union operands) goes through the `evaluate<D>` call-depth
   template, bounded by `Tape::MaxCallDepth`, and the value/point stacks are fixed arrays; keep it
   that way (no recursion, function pointers or virtual calls), since the device evaluator builds on
-  it. `evaluate<D>` and the primitive dispatch are `EBGEOMETRY_DEVICE_NOINLINE`: HIP inlines every
-  device function, and `evaluate<D>` calls the level below from many places, so fully inlined the
-  copies multiply with the depth (an optimised device compile of `TestTape` did not finish). Keep
-  them out of line, and mark any new function called that way the same. A new operation needs an
-  `ExprDetail::Kind`, its box and distance-quality rule in the builder,
-  clauses in `TapeDetail::Op` and a case in `Tape::evaluate`.
+  it. `evaluate<D>` and the pool-resident primitive dispatch (`evaluateHandle`) are
+  `EBGEOMETRY_DEVICE_NOINLINE`: HIP inlines every device function, and `evaluate<D>` calls the level
+  below from many places, so fully inlined the copies multiply with the depth (an optimised device
+  compile of `TestTape` did not finish). Keep them out of line, and mark any new function called that
+  way the same. What multiplies nothing is inlined, for speed on a device (#221): the body
+  `evaluateBody<D>` into `evaluate<D>`, and into `signedDistance()` for a tape of call depth 0; and an
+  analytic primitive into the level that reads it. A new operation needs an `ExprDetail::Kind`, its
+  box and distance-quality rule in the builder, clauses in `TapeDetail::Op` and a case in
+  `Tape::evaluateBody`.
 - **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
   SDF, union and tape keeps it. Code that needs the opposite sign (AMReX and Chombo read negative as
   fluid) flips it itself, in its own adapter (`return -tape.signedDistance(p);`); never put a

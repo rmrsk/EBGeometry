@@ -777,6 +777,12 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point) const noexce
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
+  // A tape that calls no sub-program is evaluated in place: at depth 0 the evaluator calls no level below,
+  // so inlining it cannot multiply copies (the reason evaluate<D> is out of line), and it saves the call.
+  if (m_layout.m_callDepth == 0U) {
+    return this->template evaluateBody<0>(0U, a_point, this->base(), this->location());
+  }
+
   return this->template evaluate<MaxCallDepth>(0U, a_point, this->base(), this->location());
 }
 
@@ -789,6 +795,18 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
                                      const Vec3T<T>&     a_point,
                                      const void*         a_base,
                                      const PoolLocation& a_location) const noexcept
+{
+  return this->template evaluateBody<D>(a_program, a_point, a_base, a_location);
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
+                                         const Vec3T<T>&     a_point,
+                                         const void*         a_base,
+                                         const PoolLocation& a_location) const noexcept
 {
   using TapeDetail::Op;
 
@@ -1033,7 +1051,6 @@ Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
-EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::evaluatePrimitive(const uint32_t      a_type,
                                               const uint32_t      a_index,
@@ -1041,11 +1058,24 @@ Tape<T, UserPrimitives...>::evaluatePrimitive(const uint32_t      a_type,
                                               const void*         a_base,
                                               const PoolLocation& a_location) const noexcept
 {
-  return this->template dispatchPrimitive<0>(a_type, a_index, a_point, a_base, a_location);
+  return this->template dispatchPrimitive<0, false>(a_type, a_index, a_point, a_base, a_location);
 }
 
 template <class T, class... UserPrimitives>
-template <size_t I>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::evaluateHandle(const uint32_t      a_type,
+                                           const uint32_t      a_index,
+                                           const Vec3T<T>&     a_point,
+                                           const void*         a_base,
+                                           const PoolLocation& a_location) const noexcept
+{
+  return this->template dispatchPrimitive<0, true>(a_type, a_index, a_point, a_base, a_location);
+}
+
+template <class T, class... UserPrimitives>
+template <size_t I, bool Handles>
 EBGEOMETRY_HOST_DEVICE
 inline T
 Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
@@ -1058,18 +1088,25 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
     if (a_type == I) {
       using P = typename TapeDetail::TypeAt<I, Primitives>::type;
 
-      const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_index);
-
-      // A pool-resident primitive is stored as its layout and resolves against the tape's own location.
+      // A pool-resident primitive (a mesh SDF, a BVH union, a tape) is stored as its layout and resolves
+      // against the tape's own location. It is evaluated out of line (evaluateHandle()), so that its
+      // traversal stack is not part of the frame every analytic shape is evaluated in place in.
       if constexpr (isPoolHandle<P>) {
-        return P(stored, a_location).signedDistance(a_point);
+        if constexpr (Handles) {
+          const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_index);
+
+          return P(stored, a_location).signedDistance(a_point);
+        }
+        else {
+          return this->evaluateHandle(a_type, a_index, a_point, a_base, a_location);
+        }
       }
       else {
-        return stored.signedDistance(a_point);
+        return TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_index).signedDistance(a_point);
       }
     }
 
-    return this->template dispatchPrimitive<I + 1>(a_type, a_index, a_point, a_base, a_location);
+    return this->template dispatchPrimitive<I + 1, Handles>(a_type, a_index, a_point, a_base, a_location);
   }
   else {
     EBGEOMETRY_EXPECT(false);
