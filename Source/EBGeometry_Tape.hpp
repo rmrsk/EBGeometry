@@ -78,6 +78,7 @@ enum class Op : uint8_t
   MulConstant,    ///< v -> v * params[m_a].
   Min,            ///< Pop b and a, push min(a, b).
   Max,            ///< Pop b and a, push max(a, b).
+  Add,            ///< Pop b and a, push a + b.
   PairInit,       ///< Push the empty pair of extreme values (+inf, +inf), or (-inf, -inf) if m_flags is 1.
   PairInsert,     ///< Pop v and insert it into the pair below: the two smallest, or largest if m_flags is 1.
   PairBlend,      ///< Pop the pair and push its smooth min (or max if bit 0 of m_flags is set), with the

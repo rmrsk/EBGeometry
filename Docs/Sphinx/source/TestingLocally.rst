@@ -358,11 +358,14 @@ Test coverage
        equal to the smaller distance everywhere; a union of many objects of different types matching
        brute force with and without a BVH; user primitive types, including a BVH union and a tape
        inside a tape; a handle rebuilt from its layout, a view on a mirror and a deep copy; the
-       recorded box and distance quality; an empty intersection inside a BVH union; the
+       recorded box and distance quality; an empty intersection inside a BVH union; ``Add`` and
+       ``Displace`` summing their operands, with their boxes and quality, and kept out of a BVH union;
+       ``PointCloudSDF`` against brute force, alone, in a union and translated, with its box, layout,
+       mirror view and deep copy, an empty cloud, and a rejected negative radius; the
        constructor rejecting an unknown primitive type, a mesh from another pool, and expressions
        that nest too deeply; and on a device, every primitive type and every operation, BVH unions
        with and without unbounded operands, calls nested to the limit, full value and point stacks,
-       user primitive types and a tape inside a tape, each against the host; a user octahedron's
+       user primitive types, a tape inside a tape and a point cloud as a leaf, each against the host; a user octahedron's
        exact values kept through rotation, translation and a BVH union; and a tape built directly in
        managed memory evaluated on the device through its own pool.
    * - ``TestFunctionQueries``

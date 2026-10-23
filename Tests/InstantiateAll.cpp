@@ -75,6 +75,7 @@ namespace EBGeometry {
   template struct PointCloud::Hit<PREC>;                                     \
   template class PointCloud::KBest<PREC>;                                    \
   template class PointCloudBVH<PREC>;                                        \
+  template class PointCloudSDF<PREC>;                                        \
   template class PointCloudHashGrid<PREC>;                                   \
                                                                                \
   namespace BoundingVolumes {                                                \

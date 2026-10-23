@@ -546,6 +546,164 @@ TEST_CASE("Tape: rejects an unknown primitive type, a mesh from another pool and
     "Tape: the BVH union threshold must be at least 2 (1)"));
 }
 
+TEMPLATE_TEST_CASE("Tape: Add and Displace sum their operands' values, with the boxes and quality their rules give",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const SphereSDF<T> sphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8));
+  const BoxSDF<T>    box(Vec3(T(-1), T(-0.5), T(-0.25)), Vec3(T(0.5), T(1), T(0.75)));
+  const PerlinSDF<T> perlin(T(0.5), T(2) * Vec3::ones(), T(0.5), 4);
+
+  const Expr<T> sum       = Add(sphere, box);
+  const Expr<T> displaced = Displace(sphere, perlin, T(0.25));
+
+  const Tape<T> sumTape(pool, sum);
+  const Tape<T> displacedTape(pool, displaced);
+  const Tape<T> chained(pool, Add(Add(sphere, box), Offset(sphere, T(0.5))));
+
+  for (const auto& p : probes<T>()) {
+    CHECK(sumTape.signedDistance(p) == sphere.signedDistance(p) + box.signedDistance(p));
+    CHECK(displacedTape.signedDistance(p) == sphere.signedDistance(p) + perlin.signedDistance(p));
+    CHECK_THAT(chained.signedDistance(p),
+               withinAbsT(sphere.signedDistance(p) + box.signedDistance(p) + sphere.signedDistance(p) - T(0.5),
+                          tightMargin<T>()));
+  }
+
+  // Add bounds nothing; Displace grows the object's box by the amplitude. Neither is a distance.
+  const auto sphereBox = sphere.computeBoundingVolume();
+  const auto grownBox  = displaced.computeBoundingVolume();
+
+  CHECK(sum.computeBoundingVolume().getLowCorner() == -Vec3::max());
+  CHECK(sum.computeBoundingVolume().getHighCorner() == Vec3::max());
+  CHECK(sum.getDistanceQuality() == DistanceQuality::NotADistance);
+  CHECK(displaced.getDistanceQuality() == DistanceQuality::NotADistance);
+
+  for (size_t dir = 0; dir < 3; dir++) {
+    CHECK_THAT(grownBox.getLowCorner()[dir], withinAbsT(sphereBox.getLowCorner()[dir] - T(0.25), tightMargin<T>()));
+    CHECK_THAT(grownBox.getHighCorner()[dir], withinAbsT(sphereBox.getHighCorner()[dir] + T(0.25), tightMargin<T>()));
+  }
+
+  // Displacing what is not a distance bounds nothing: its value can be small far from its object.
+  const Expr<T> twice = Displace(displaced, perlin, T(0.25));
+
+  CHECK(twice.computeBoundingVolume().getLowCorner() == -Vec3::max());
+  CHECK(twice.computeBoundingVolume().getHighCorner() == Vec3::max());
+
+  // Not a distance, so a union of displaced objects is evaluated without a BVH.
+  std::vector<Expr<T>> bumpy;
+
+  for (int i = 0; i < 20; i++) {
+    bumpy.push_back(Displace(SphereSDF<T>(Vec3(T(i), T(0), T(0)), T(0.4)), perlin, T(0.25)));
+  }
+
+  CHECK(Tape<T>(pool, Union(bumpy)).getNumBVHUnions() == 0U);
+}
+
+TEMPLATE_TEST_CASE("Tape: a point cloud as a leaf is the union of balls around its points",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  std::vector<Vec3> points;
+
+  for (int i = 0; i < 300; i++) {
+    const T t = T(0.07) * T(i);
+
+    points.emplace_back(T(0.2) * t * std::cos(t), T(0.2) * t * std::sin(t), T(0.05) * t - T(0.5));
+  }
+
+  const PointCloudBVH<T> cloud(pool, points);
+  const T                radius = T(0.15);
+
+  const PointCloudSDF<T> balls(cloud, radius);
+  const PointCloudSDF<T> unsignedDistance(cloud, T(0));
+
+  const Tape<T, PointCloudSDF<T>> tape(pool, Union(balls, SphereSDF<T>(Vec3(T(2), T(0), T(0)), T(0.5))));
+  const Tape<T, PointCloudSDF<T>> moved(pool, Translate(unsignedDistance, Vec3(T(0), T(0), T(1))));
+
+  const auto nearest = [&points](const Vec3& a_p) {
+    T best = Math::Limits<T>::max();
+
+    for (const auto& c : points) {
+      best = Math::min(best, (a_p - c).length());
+    }
+
+    return best;
+  };
+
+  for (const auto& p : probes<T>()) {
+    const T truth = nearest(p);
+
+    CHECK_THAT(balls.signedDistance(p), withinAbsT(truth - radius, tightMargin<T>()));
+    CHECK_THAT(unsignedDistance.signedDistance(p), withinAbsT(truth, tightMargin<T>()));
+    CHECK_THAT(tape.signedDistance(p),
+               withinAbsT(Math::min(truth - radius, (p - Vec3(T(2), T(0), T(0))).length() - T(0.5)), tightMargin<T>()));
+    CHECK_THAT(moved.signedDistance(p), withinAbsT(nearest(p - Vec3(T(0), T(0), T(1))), tightMargin<T>()));
+  }
+
+  // The box is the cloud's grown by the radius, and the shape is a lower bound inside.
+  const auto cloudBox = cloud.getBVH().computeBoundingVolume();
+  const auto ballsBox = balls.computeBoundingVolume();
+
+  for (size_t dir = 0; dir < 3; dir++) {
+    CHECK_THAT(ballsBox.getLowCorner()[dir], withinAbsT(cloudBox.getLowCorner()[dir] - radius, tightMargin<T>()));
+    CHECK_THAT(ballsBox.getHighCorner()[dir], withinAbsT(cloudBox.getHighCorner()[dir] + radius, tightMargin<T>()));
+  }
+
+  CHECK(distanceQualityOf<PointCloudSDF<T>> == DistanceQuality::Bound);
+
+  // A handle rebuilt from its layout, a host view and a deep copy answer alike.
+  const PointCloudSDF<T> rebuilt(balls.layout(), balls.location());
+
+  pool.freeze();
+
+  const Pool             mirror = Pool::mirror(pool, hostMemoryResource());
+  const PointCloudSDF<T> view   = balls.rebasedView(mirror);
+
+  Pool                   other(hostMemoryResource());
+  const PointCloudSDF<T> copy = balls.deepCopy(other);
+
+  for (const auto& p : probes<T>()) {
+    CHECK(rebuilt.signedDistance(p) == balls.signedDistance(p));
+    CHECK(view.signedDistance(p) == balls.signedDistance(p));
+    CHECK(copy.signedDistance(p) == balls.signedDistance(p));
+  }
+}
+
+TEST_CASE("PointCloudSDF: an empty cloud is empty space, and a negative radius is rejected", "[Tape][death]")
+{
+  using T = double;
+
+  Pool pool(hostMemoryResource());
+
+  const PointCloudBVH<T> empty(pool, std::vector<Vec3T<T>>{});
+  const PointCloudSDF<T> nothing(empty, T(0.5));
+
+  CHECK(nothing.signedDistance(Vec3T<T>::zeros()) == Math::Limits<T>::max());
+  CHECK_FALSE(nothing.computeBoundingVolume().getLowCorner()[0] <= nothing.computeBoundingVolume().getHighCorner()[0]);
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                   p(hostMemoryResource());
+      const PointCloudBVH<T> cloud(p, std::vector<Vec3T<T>>{Vec3T<T>::zeros()});
+      const PointCloudSDF<T> balls(cloud, T(-1));
+    },
+    "PointCloudSDF: the radius must be finite and non-negative (-1)"));
+
+  REQUIRE(abortsWith(
+    [] { (void)Displace(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), SphereSDF<T>(Vec3T<T>::zeros(), T(1)), T(-1)); },
+    "Displace: the amplitude must be finite and non-negative (-1)"));
+}
+
 TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation",
                    "[Tape][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -637,6 +795,8 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
       SphereSDF<T>(Vec3::zeros(), T(0.3)), Vec3(T(1), T(1), T(1)), Vec3(T(2), T(1), T(0)), Vec3(T(2), T(1), T(0))));
   exprs.emplace_back("blur", Blur(Difference(box, sphere), T(0.1)));
   exprs.emplace_back("mollify", Mollify(Intersection(box, sphere), T(0.1), 3));
+  exprs.emplace_back("add", Add(sphere, box));
+  exprs.emplace_back("displace", Displace(torus, perlin, T(1)));
 
   // Calls nested to the limit: each union of 8 operands is a BVH union whose first operand is the
   // next one in.
@@ -694,8 +854,20 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
   const OtherSphere<T> other{SphereSDF<T>(Vec3(T(0), T(1.5), T(0)), T(0.5))};
 
   const Tape<T, Union4, OtherSphere<T>> user(pool, SmoothUnion(row, Offset(other, T(0.1)), T(0.2)));
-  const Tape<T>                         inner(pool, Difference(box, sphere));
-  const Tape<T, Tape<T>>                nested(pool, Rotate(Translate(inner, Vec3::ones()), T(45), 1));
+
+  // A point cloud as a leaf: balls around a spiral of points, unioned with a box.
+  std::vector<Vec3> spiral;
+
+  for (int i = 0; i < 200; i++) {
+    const T t = T(0.1) * T(i);
+
+    spiral.emplace_back(T(0.15) * t * std::cos(t), T(0.15) * t * std::sin(t), T(0.1) * t - T(1));
+  }
+
+  const PointCloudBVH<T>          cloud(pool, spiral);
+  const Tape<T, PointCloudSDF<T>> balls(pool, Union(PointCloudSDF<T>(cloud, T(0.2)), box));
+  const Tape<T>                   inner(pool, Difference(box, sphere));
+  const Tape<T, Tape<T>>          nested(pool, Rotate(Translate(inner, Vec3::ones()), T(45), 1));
 
   CHECK(tapes[0].second.getNumClauses() == 1U);
   CHECK(tapes[unionIndex].second.getNumBVHUnions() == 1U);
@@ -725,6 +897,7 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
 
   check(user);
   check(nested);
+  check(balls);
 }
 
 namespace {
