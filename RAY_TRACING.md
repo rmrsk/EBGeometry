@@ -84,7 +84,26 @@ what the review below found, and lands it first. #214–#216 are then rebuilt on
 | D12 | **Headers: core + per component.** `EBGeometry_Ray.hpp` holds `RayT`, `HitT`, `HitStatus`, `RayOptions`, `RayForm`, `RayPacket`, the march and the free functions; each component's ray form sits next to that component (mesh SDFs, `BVHUnion`, the triangle groups, the analytic shapes). | Device code includes only what it uses; the core includes no mesh headers. |
 | D13 | **Segment queries measure t as distance from `x0`** (0 to \|x1 − x0\|): a segment is a ray from `x0` with tMax = \|x1 − x0\|. | One unit for rays and segments. |
 | D14 | **A crossing at t = 0 is a hit; a caller stepping off a surface passes a small tMin** (the segment overload takes one too). No default start offset. | Correct for a particle that is on the wall; the example shows the step-off. |
-| D15 | **Example: a new `Examples/ParticlePaths`**: particles stepping through a mesh, each step a segment query reporting crossing point, face and normal; one query per thread and packets; a device section through `GPU::transform`; its own Sphinx page. | Shows the particle use case #93 asks for. |
+| D15 | ~~A new `Examples/ParticlePaths`~~ superseded by D17. | |
+| D16 | **Builds on #230's general traversal** (see *Depends on #230*). | Ray casts are a main use case; the walk is designed and measured once, for every query type. |
+| D17 | **One example, `Examples/RayTracing`, on a `TriMeshSDF`, in two parts:** the user-facing `firstHit()`/`intersects()` (single and packets), then the same hits from a hand-written `traverse()` with a `RayPacket` and the user's own leaf evaluator. | Shows the API, and how to walk the BVH yourself when the API does not fit. |
+| D18 | **One performance probe for ray tracing a `TriMeshSDF`:** the user-facing API one ray per thread, the API on packets, and a hand-rolled packet walk (`traverse()` with the probe's own leaf), host and `hostdevice`, coherent and random rays. | Shows whether the API costs anything over hand-written code. |
+| D19 | **Unit tests check known cases against an AABB unit cube** (a 12-triangle `TriMeshSDF` against the exact slab answer): axis-aligned and diagonal rays, through an edge and a corner, from inside, grazing in a face's plane, misses, segments stopping short, a crossing at t = 0, mixed packets. | Independent closed-form reference that exercises the edge and corner robustness. |
+
+## Depends on #230 (BVH traversal)
+
+The ray queries build on a rewritten, general `PackedBVH::traverse()` that lands first in #230 (see
+`BVH_TRAVERSAL.md` on the `bvh_traversal` branch): one walk for a single query or a packet of up to 32
+per thread, query types with a SIMD K-children test (`PointQuery`, `PointPacket`, `RayQuery`,
+`RayPacket`), order policies and per-lane bounds. `pruneTraverse()` and the old `traverse()` go.
+Consequences here:
+
+- `RayPacket` and the ray query move to #230; this PR adds `RayT`, `HitT`, `RayOptions`, `RayForm`,
+  `firstHit`/`intersects` and the ray forms on top of them.
+- Every BVH ray form (`TriMeshSDF`, `MeshSDF`, `FlatMeshSDF`, `BVHUnion`) is `traverse()` with a
+  `RayQuery` or `RayPacket` and a leaf evaluator that tests the leaf's primitives; no `rayTraverse()`.
+  Section 1 and 2 of *Traversal algorithms* below describe what those calls do; the walk itself is #230's.
+- This branch is rebased on #230 once it lands, before any code goes in.
 
 ## Interface (proposed, for review before implementation)
 
@@ -529,8 +548,22 @@ Ray forms in this PR, each next to its component (D12):
 
 ## Open questions
 
-None besides the points to confirm above. (Q1–Q7 of the first draft were settled in the interview on
-2026-10-23 as D5–D15.)
+- **Tape, beyond marching.** Proposed (not decided): the Tape compiler stores one world-frame box per
+  leaf, grown by every enclosing operation that moves the surface (Offset, blends, Blur, Mollify) and
+  mapped through every enclosing transform. For min/max CSG the zero set lies inside the union of those
+  boxes, so `firstHit()` marches only where the ray is inside one of them (empty-space skipping), and a
+  user can read the boxes and build their own BVH over them. Unbounded leaves (planes, complements)
+  have infinite boxes and fall back to marching the whole interval. Touches the Tape compiler: after
+  #229 (fused CSG) lands. Exact clause-by-clause span tracing (#216) dropped from the plan unless a
+  probe calls for it.
+- **The Tape's automatic union BVH.** The maintainer is not convinced the Tape should build its own BVH
+  for large unions. Evidence (#224, #226): on the GPU in float the automatic BVH is slower than none
+  for `union64` (1.75 vs 1.56 ns), a typed `BVHUnion` as one primitive beats it on both sides (1.01 ns
+  GPU, 88 vs 97 ns CPU), and `evaluateUnion` is one of the heavy paths that set every tape kernel's
+  register budget. Without it, large unions are written as explicit `BVHUnion` primitives (or #224's
+  `AnyOf` for mixed types); CPU users of `Union(many shapes)` lose ~1.6x unless they switch. To be
+  raised on #224.
+- **`MeshSDF`/`FlatMeshSDF`/`BVHUnion` ray forms**: in this PR or a follow-up.
 
 ## Scope of this PR (PR A)
 
@@ -563,7 +596,8 @@ Not in this PR: exact CSG/Tape ray tracing, every crossing along a path, the ren
 ## Progress
 
 - [x] Branch `ray_tracing` off `dev` (8e03593), draft PR, this document.
-- [x] Interview: D1–D15 (2026-10-23).
+- [x] Interview: D1–D19 (2026-10-23).
+- [ ] #230 (BVH traversal) lands; rebase on it.
 - [ ] Core types and free functions lifted from #214/#216.
 - [ ] Segment overloads, any-hit `intersects`.
 - [ ] March normals.
