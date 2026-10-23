@@ -165,6 +165,86 @@ leafValue(const T a_value, [[maybe_unused]] const uint32_t a_tag, [[maybe_unused
 }
 
 /**
+ * @brief A value negated, its tag kept.
+ * @tparam V Value type (T or Tagged<T>).
+ * @param[in] a_value Value.
+ * @return The negated value.
+ */
+template <class V>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline V
+negated(const V& a_value) noexcept
+{
+  if constexpr (isTagged<V>) {
+    return withValue(a_value, -a_value.m_value);
+  }
+  else {
+    return -a_value;
+  }
+}
+
+/**
+ * @brief A value's magnitude, its tag kept.
+ * @tparam V Value type (T or Tagged<T>).
+ * @param[in] a_value Value.
+ * @return The magnitude.
+ */
+template <class V>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline V
+magnitude(const V& a_value) noexcept
+{
+  if constexpr (isTagged<V>) {
+    return withValue(a_value, std::abs(a_value.m_value));
+  }
+  else {
+    return std::abs(a_value);
+  }
+}
+
+/**
+ * @brief A value plus a constant, its tag kept.
+ * @tparam V Value type (T or Tagged<T>).
+ * @tparam T Floating-point precision.
+ * @param[in] a_value    Value.
+ * @param[in] a_constant Constant.
+ * @return The sum.
+ */
+template <class V, class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline V
+plus(const V& a_value, const T a_constant) noexcept
+{
+  if constexpr (isTagged<V>) {
+    return withValue(a_value, a_value.m_value + a_constant);
+  }
+  else {
+    return a_value + a_constant;
+  }
+}
+
+/**
+ * @brief A value times a constant, its tag kept.
+ * @tparam V Value type (T or Tagged<T>).
+ * @tparam T Floating-point precision.
+ * @param[in] a_value    Value.
+ * @param[in] a_constant Constant.
+ * @return The product.
+ */
+template <class V, class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline V
+times(const V& a_value, const T a_constant) noexcept
+{
+  if constexpr (isTagged<V>) {
+    return withValue(a_value, a_value.m_value * a_constant);
+  }
+  else {
+    return a_value * a_constant;
+  }
+}
+
+/**
  * @brief The smaller of two plain values (Math::min()).
  * @tparam T Floating-point precision.
  * @param[in] a_first  First value.
