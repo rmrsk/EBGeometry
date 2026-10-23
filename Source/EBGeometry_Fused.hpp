@@ -138,7 +138,7 @@ template <class P, class C>
 hasLeaf() noexcept
 {
   if constexpr (isNode<C>) {
-    return C::template containsLeaf<P>;
+    return C::template containsLeaf<P>();
   }
   else {
     return std::is_same_v<C, P>;
@@ -450,9 +450,14 @@ public:
   /**
    * @brief Whether the node has a leaf of type P under it.
    * @tparam P Leaf type.
+   * @return True if it does.
    */
   template <class P>
-  static constexpr bool containsLeaf = (Detail::hasLeaf<P, Cs>() || ...);
+  [[nodiscard]] static constexpr bool
+  containsLeaf() noexcept
+  {
+    return (Detail::hasLeaf<P, Cs>() || ...);
+  }
 
   /**
    * @brief Everything the node holds: the operation's parameters and its operands (their layouts for
@@ -574,7 +579,7 @@ public:
   inline P
   primitive(const PrimitiveRef<T>& a_ref) const noexcept
   {
-    static_assert(containsLeaf<P>, "Fused::Node::primitive: the composition has no leaf of type P");
+    static_assert(containsLeaf<P>(), "Fused::Node::primitive: the composition has no leaf of type P");
 
     return this->template leafAs<P, 0>(a_ref.m_leaf);
   }
