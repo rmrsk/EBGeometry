@@ -168,7 +168,10 @@ Family                                Build  Measures
 :ref:`Sec:Fused`), at the same points as the Tape probe's cases, and a mesh drilled through by a
 cylinder, fused and through a tape. They have a probe of their own because adding them to the Tape
 probe's translation unit changed how GCC inlined the tape's evaluator there, and so the timings of the
-Tape cases.
+Tape cases. Each fused case names its tape counterpart (``Tape/csg/...`` for ``Fused/csg/...``, and
+``drilled-mesh-tape`` for ``drilled-mesh``), and a comparison notes ``tape/fused`` beside it: the tape's
+time over the fused composition's, on that side (see `Where the results go`_). The ratio is what
+interpreting the composition through a tape costs, and it is tracked from one pull request to the next.
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
@@ -180,6 +183,24 @@ Family                                Build  Measures
                                              by a cylinder, fused, at 20,000 points; and
                                              ``drilled-mesh-tape``: the same through a ``Tape``
 ``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
+                                             (262,144 for the drilled mesh)
+====================================  =====  =====================================================
+
+**ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
+leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the
+drilled mesh. Each query also evaluates the leaf at its local point, so that the checksum depends on
+both; a host and a device answer agree when they name the same leaf or two leaves whose values tie.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``csg/closestPrimitive``              host   the classic CSG solid through a ``Tape`` (five leaves),
+                                             at 400,000 points
+``parts/closestPrimitive``            host   a scene of eight fused copies of it, each one leaf of
+                                             a ``Tape``, at 400,000 points
+``drilled-mesh/closestPrimitive``     host   the drilled armadillo through a ``Tape``, at 20,000
+                                             points
+``<input>/closestPrimitive``          GPU    each of the above at 1,048,576 points on both sides
                                              (262,144 for the drilled mesh)
 ====================================  =====  =====================================================
 
@@ -403,7 +424,10 @@ verdict yellow (as in a smoke comparison), not red: a change to a kernel may leg
 result's last bits. Like any yellow verdict, it passes CI only once accepted in the receipt, with the
 reason the answers changed (see `The performance receipt`_). A case whose pool bytes shrink by 3% or more is noted as such (it is never a regression). A
 paired case shows the device's speedup over the host, with the baseline's beside it when the two differ
-by 3% or more. Flagged cases are listed again under the table.
+by 3% or more. A case that names another with ``Case::relativeTo()`` (the same answers computed another
+way, in any probe) shows that case's time over its own, for example ``tape/fused 2.78x``, with the
+baseline's beside it when the two differ by 3% or more; it is noted, never judged. Flagged cases are
+listed again under the table.
 
 The performance receipt
 -----------------------
@@ -498,7 +522,8 @@ Some rules of thumb:
   that runs in well under a second.
 * Spell out every parameter that selects code (``K``, ``W``, the precision, the construction method) and
   record it with ``param()``; record a checksum that depends on every result, and ``poolBytes()`` where
-  there is a pool.
+  there is a pool. A case that computes the same answers as another case by other means (fused and
+  through a tape) names it with ``relativeTo()``, so that the comparison notes the ratio of their times.
 * Prefer a new case to changing an existing one: a changed case cannot be compared with its old
   results (the report names the probe files that differ between the sides, not the cases).
 * Keep the whole set to about ten minutes for a comparison with its defaults on a desktop, so it is

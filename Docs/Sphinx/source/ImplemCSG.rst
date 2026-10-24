@@ -290,8 +290,9 @@ Fused composition
 -----------------
 
 A tape interprets its clauses one after another, which on a GPU costs several times what the same
-solid written out by hand does (about ten times for a few analytic shapes in ``float``; little for a
-mesh, whose traversal dominates). When the structure of a composition is known when the program is
+solid written out by hand does (five to ten times for a few analytic shapes in ``float``; little in
+``double``, whose arithmetic dominates there, and little for a mesh, whose traversal dominates). The
+Fused probe tracks the ratio (see :ref:`Chap:PerformanceTesting`). When the structure of a composition is known when the program is
 compiled, the functions in namespace ``Fused`` build it as types instead
 (`EBGeometry_Fused.hpp <doxygen/html/EBGeometry__Fused_8hpp.html>`__):
 
@@ -331,6 +332,59 @@ builder, with the same arguments and checks:
 A fused composition is fixed when the program is compiled; geometry read from a file or chosen at
 run time is composed with the builder and a tape. The :ref:`Chap:ExampleCSG` example builds the
 same solid both ways.
+
+.. _Sec:DecidingLeaf:
+
+The deciding leaf
+-----------------
+
+A tape's ``closestPrimitive(p)`` names the leaf of the composition that decides its value at ``p``: the
+primitive whose surface the value comes from there. It returns a
+`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__: the leaf's number, the
+primitive's type and index in the tape's arrays, and the point in the leaf's own frame, after the
+composition's maps. This is what boundary tagging and material ids need. For a mesh leaf, the face is
+then one query away: the mesh's own ``getClosestFace()`` at the local point.
+
+The tape is the scene; a fused composition (see :ref:`Sec:Fused`) is one shape with one surface,
+however it is built, and has no ``closestPrimitive()``. Listed in a tape, it is one leaf. A scene is
+therefore a tape whose leaves are parts, each fused where its structure is known when compiling: the
+tape interprets only how the parts combine, evaluates each part as compiled code, and names the part
+that decides the value.
+
+.. code-block:: c++
+
+   const PrimitiveRef<T> leaf = tape.closestPrimitive(p);
+
+   if (tape.isPrimitive<TriMeshSDF<T, 4, 4>>(leaf)) {
+     const auto mesh = tape.primitive<TriMeshSDF<T, 4, 4>>(leaf);   // the handle, resolving against the tape's pool
+     const auto face = mesh.getClosestFace(leaf.m_localPoint);
+   }
+
+* **Which leaf.**
+
+  - A union or intersection takes the leaf of the operand whose value it takes.
+  - A smooth union or intersection takes the more extreme operand's.
+  - A blur takes its centre tap's, and a mollification its heaviest tap's.
+  - A complement, offset, annulus, map, elongation or repetition takes its operand's; a repetition's
+    is the copy that wins.
+
+  For ``Difference(box, sphere)``, a point near the carved cavity gets the sphere, and a point near the
+  box's outside gets the box. This is not the geometrically nearest primitive, which could be one the
+  composition removed.
+* **Numbering.** Leaves are numbered in expression order, depth first, each occurrence counted. A
+  shape used twice is two leaves. A nested composite (a fused part, a tape listed as a primitive, a BVH
+  union) is one leaf; a nested tape can be asked for its own leaf at the local point.
+* **The primitive, by value.** ``isPrimitive<P>(ref)`` says whether the leaf is a ``P`` (a type the
+  tape can hold: any other ``P`` is a compile error), and
+  ``primitive<P>(ref)`` returns it: the shape, or for a pool-resident one (a mesh distance field, a BVH
+  union, a tape) its handle, rebuilt with the tape's location, so that it resolves against the
+  same pool or mirror. ``visitPrimitive(ref, f)`` calls ``f`` with it whatever its type. In a CUDA or
+  HIP translation unit, pass a functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``; the device
+  compiler treats a lambda's as a host function there.
+* **One implementation.** The tape evaluates the composition as ``signedDistance()`` does, on values
+  that carry the leaf they come from (``CSGOps::Tagged``): a second instantiation of its evaluator,
+  compiled only where ``closestPrimitive()`` is called, so ``signedDistance()`` is compiled as without
+  it. Device-callable, like ``signedDistance()``.
 
 .. _Sec:BVHUnions:
 

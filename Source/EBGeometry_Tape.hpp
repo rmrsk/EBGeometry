@@ -36,6 +36,7 @@
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
+#include "EBGeometry_PrimitiveRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -203,6 +204,45 @@ struct TypeAt<I, TypeList<Ps...>>
    * @brief The type.
    */
   using type = std::tuple_element_t<I, std::tuple<Ps...>>;
+};
+
+/**
+ * @brief The index of type P in a TypeList (its size if P is not in it).
+ * @details Internal helper; not part of the public API.
+ * @tparam P    Type.
+ * @tparam List TypeList.
+ */
+template <class P, class List>
+struct IndexOf;
+
+/**
+ * @brief P is not in the empty list.
+ * @details Internal helper; not part of the public API.
+ * @tparam P Type.
+ */
+template <class P>
+struct IndexOf<P, TypeList<>>
+{
+  /**
+   * @brief The index: past the end.
+   */
+  static constexpr size_t value = 0;
+};
+
+/**
+ * @brief The index of P in a non-empty list.
+ * @details Internal helper; not part of the public API.
+ * @tparam P    Type.
+ * @tparam Q    The list's first type.
+ * @tparam Rest The others.
+ */
+template <class P, class Q, class... Rest>
+struct IndexOf<P, TypeList<Q, Rest...>>
+{
+  /**
+   * @brief The index.
+   */
+  static constexpr size_t value = std::is_same_v<P, Q> ? 0 : 1 + IndexOf<P, TypeList<Rest...>>::value;
 };
 
 /**
@@ -495,6 +535,58 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief The deciding leaf at a point: the primitive whose surface the value comes from there (see
+   * PrimitiveRef), with the point in its own frame.
+   * @details Evaluates the tape as signedDistance() does, carrying with each value the leaf it comes from.
+   * The leaves are numbered in expression order, depth first, each occurrence counted. A primitive that
+   * is itself a composition (a fused one, a tape, a BVH union) is one leaf: the tape is the scene, its
+   * leaves the parts. Callable on a device, like signedDistance().
+   * @param[in] a_point Query point.
+   * @return The leaf, its type and index in the tape, and the point in its frame.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PrimitiveRef<T>
+  closestPrimitive(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Whether a reference's leaf is a primitive of type P.
+   * @tparam P Primitive type (one of the tape's types).
+   * @param[in] a_ref Reference from closestPrimitive().
+   * @return True if it is.
+   */
+  template <class P>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isPrimitive(const PrimitiveRef<T>& a_ref) const noexcept;
+
+  /**
+   * @brief The primitive a reference names, by value: the shape itself, or for a pool-resident type (a
+   * mesh SDF, a BVH union, a tape) its handle, rebuilt with the tape's location, so that it resolves
+   * against the same pool (or mirror) the tape does.
+   * @tparam P Primitive type; the leaf must be one (isPrimitive<P>()).
+   * @param[in] a_ref Reference from closestPrimitive().
+   * @return The primitive.
+   */
+  template <class P>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline P
+  primitive(const PrimitiveRef<T>& a_ref) const noexcept;
+
+  /**
+   * @brief Call a function with the primitive a reference names, as primitive<P>() returns it, whatever
+   * its type.
+   * @tparam F Callable taking any of the tape's primitive types (a generic lambda in host code).
+   * In a CUDA or HIP translation unit, pass a functor whose call operator is EBGEOMETRY_HOST_DEVICE: the
+   * device compiler treats a lambda's call operator as a host function here.
+   * @param[in] a_ref Reference from closestPrimitive().
+   * @param[in] a_f   Function.
+   */
+  template <class F>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  visitPrimitive(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept;
+
+  /**
    * @brief A box enclosing the object.
    * @return The box (unbounded along directions where the object is).
    */
@@ -581,16 +673,17 @@ private:
   /**
    * @brief Evaluate a sub-program at a point.
    * @tparam D How deep the sub-program's own calls may still nest.
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
    * @param[in] a_program  Sub-program.
    * @param[in] a_point    Point.
    * @param[in] a_base     The pool base.
    * @param[in] a_location The pool location, for pool-resident primitives and BVHs.
    * @return The value.
    */
-  template <unsigned D>
+  template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
-  inline T
+  inline V
   evaluate(const uint32_t      a_program,
            const Vec3T<T>&     a_point,
            const void*         a_base,
@@ -600,19 +693,33 @@ private:
    * @brief The body of evaluate(), inlined into it, and into signedDistance() for a tape that calls no
    * sub-program (at depth 0 the evaluator calls no level below, so inlining it multiplies nothing).
    * @tparam D How deep the sub-program's own calls may still nest.
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
    * @param[in] a_program  Sub-program.
    * @param[in] a_point    Point.
    * @param[in] a_base     The pool base.
    * @param[in] a_location The pool location, for pool-resident primitives and BVHs.
    * @return The value.
    */
-  template <unsigned D>
+  template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline T
+  inline V
   evaluateBody(const uint32_t      a_program,
                const Vec3T<T>&     a_point,
                const void*         a_base,
                const PoolLocation& a_location) const noexcept;
+
+  /**
+   * @brief Call a function with the primitive a reference names, dispatching on its type index from I
+   * onwards.
+   * @tparam I First type index to test.
+   * @tparam F Callable.
+   * @param[in] a_ref Reference.
+   * @param[in] a_f   Function.
+   */
+  template <size_t I, class F>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  dispatchVisit(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept;
 
   /**
    * @brief Evaluate a primitive, dispatching on its type index from I onwards.
@@ -676,6 +783,7 @@ private:
   /**
    * @brief Evaluate a Blur clause: the weighted average of its sub-program at 27 taps around the point.
    * @tparam D Call depth left for the sub-program.
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
    * @param[in] a_clause   The clause.
    * @param[in] a_point    Point.
    * @param[in] a_params   The parameters.
@@ -683,10 +791,10 @@ private:
    * @param[in] a_location The pool location.
    * @return The blurred value.
    */
-  template <unsigned D>
+  template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
-  inline T
+  inline V
   evaluateBlur(const TapeDetail::Clause& a_clause,
                const Vec3T<T>&           a_point,
                const T*                  a_params,
@@ -698,6 +806,7 @@ private:
    * @details Inline in a device pass, unlike evaluateBlur(): as a further out-of-line function between
    * two call levels, it raised a kernel that evaluates a tape in a loop to 255 registers (from 168).
    * @tparam D Call depth left for the sub-program.
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
    * @param[in] a_clause   The clause.
    * @param[in] a_point    Point.
    * @param[in] a_params   The parameters.
@@ -705,9 +814,9 @@ private:
    * @param[in] a_location The pool location.
    * @return The value.
    */
-  template <unsigned D>
+  template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline T
+  inline V
   evaluateRepeat(const TapeDetail::Clause& a_clause,
                  const Vec3T<T>&           a_point,
                  const T*                  a_params,
@@ -717,6 +826,7 @@ private:
   /**
    * @brief Evaluate a BVH union clause.
    * @tparam D Call depth left for the operands.
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
    * @param[in] a_clause   The clause.
    * @param[in] a_point    Point.
    * @param[in] a_params   The parameters.
@@ -724,9 +834,9 @@ private:
    * @param[in] a_location The pool location.
    * @return The union's value.
    */
-  template <unsigned D>
+  template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline T
+  inline V
   evaluateUnion(const TapeDetail::Clause& a_clause,
                 const Vec3T<T>&           a_point,
                 const T*                  a_params,

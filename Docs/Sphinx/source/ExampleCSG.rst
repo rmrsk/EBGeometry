@@ -79,6 +79,29 @@ arguments, so the drills are passed one by one. The program prints the part's va
 and fused, which are the same to rounding, and the time per point of each on the host. The fused part has no
 clauses to fetch and dispatch, and the gap is wider on a GPU.
 
+Which primitive decides the value
+---------------------------------
+
+The tape's ``closestPrimitive(point)`` returns a
+`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__ naming the leaf whose surface the
+value comes from (see :ref:`Sec:DecidingLeaf`). The leaves are numbered in expression order (the cube 0,
+the ball 1, the drills 2 to 4), and the program prints the name of the deciding leaf at a few points:
+
+.. code-block:: c++
+
+   const PrimitiveRef<T> leaf = partTape.closestPrimitive(p);
+   std::cout << (leaf.m_leaf < 5 ? leafNames[leaf.m_leaf] : "no leaf") << '\n';
+
+The fused part is one shape with one surface, however it is built, so it has no ``closestPrimitive()``.
+Listed in a tape, it is one leaf: a scene is a tape whose leaves are parts, and the tape names the part
+that decides the value. The program builds a scene of two copies of the fused part and prints which one
+decides at two points:
+
+.. code-block:: c++
+
+   const Tape<T, FusedPart> scene(pool, Union(Expr<T>(fusedPart), Translate(fusedPart, Vec3(3, 0, 0))));
+   const uint32_t           part = scene.closestPrimitive(p).m_leaf;   // 0 or 1
+
 The same query on a GPU
 -----------------------
 

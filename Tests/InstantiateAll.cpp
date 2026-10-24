@@ -278,6 +278,12 @@ instantiateFunctionTemplates()
     (void)tape.rebasedView(meshPool);
     (void)tape.deepCopy(meshPool);
     (void)normal(tape, Vec3T<T>::ones(), T(1.0e-3));
+
+    const PrimitiveRef<T> leaf = tape.closestPrimitive(Vec3T<T>::zeros());
+
+    (void)tape.template isPrimitive<SphereSDF<T>>(leaf);
+    (void)tape.template primitive<SphereSDF<T>>(leaf);
+    tape.visitPrimitive(leaf, [](const auto& a_primitive) { (void)a_primitive.signedDistance(Vec3T<T>::zeros()); });
   }
 
   // Every fused operation, a fused shape with a pool-resident operand, and its views and copies.

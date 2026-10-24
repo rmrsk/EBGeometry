@@ -220,6 +220,11 @@ private:
   Staging<T, K, List>& m_staging;
 
   /**
+   * @brief The number the next primitive leaf gets (see Tape::closestPrimitive()).
+   */
+  uint32_t m_nextLeaf = 0;
+
+  /**
    * @brief Append a clause and track the stacks.
    * @param[in,out] a_state  Sub-program state.
    * @param[in]     a_clause Clause.
@@ -437,7 +442,9 @@ private:
 
       const uint32_t index = this->stage<0>(type, leaf.m_object.get());
 
-      this->push(a_state, clause(Op::Primitive, index, 0U, 0U, 0U, static_cast<uint16_t>(type)), 1, 0);
+      // The leaf's number, in expression order (the compiler visits the expression depth first, the
+      // operands of a BVH union and the sub-programs too), in the clause's otherwise unused m_b.
+      this->push(a_state, clause(Op::Primitive, index, m_nextLeaf++, 0U, 0U, static_cast<uint16_t>(type)), 1, 0);
 
       break;
     }
@@ -767,22 +774,119 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point) const noexce
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+inline PrimitiveRef<T>
+Tape<T, UserPrimitives...>::closestPrimitive(const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+  // The evaluator with tagged values: each value carries the primitive clause it comes from. This is a
+  // separate instantiation, so signedDistance() is compiled as without it.
+  using V = CSGOps::Tagged<T>;
+
+  const V value = (m_layout.m_callDepth == 0U)
+                    ? this->template evaluateBody<0, V>(0U, a_point, this->base(), this->location())
+                    : this->template evaluate<MaxCallDepth, V>(0U, a_point, this->base(), this->location());
+
+  PrimitiveRef<T> ref;
+
+  if (value.m_tag != CSGOps::NoTag) {
+    const TapeDetail::Clause& c = m_layout.m_clauses.at(this->base(), value.m_tag);
+
+    ref.m_leaf       = c.m_b;
+    ref.m_type       = c.m_type;
+    ref.m_index      = c.m_a;
+    ref.m_localPoint = value.m_point;
+  }
+
+  return ref;
+}
+
+template <class T, class... UserPrimitives>
+template <class P>
+EBGEOMETRY_HOST_DEVICE
+inline bool
+Tape<T, UserPrimitives...>::isPrimitive(const PrimitiveRef<T>& a_ref) const noexcept
+{
+  constexpr size_t I = TapeDetail::IndexOf<P, Primitives>::value;
+
+  static_assert(I < Primitives::size, "Tape::isPrimitive: P is not one of the tape's primitive types");
+
+  return a_ref.m_type == I;
+}
+
+template <class T, class... UserPrimitives>
+template <class P>
+EBGEOMETRY_HOST_DEVICE
+inline P
+Tape<T, UserPrimitives...>::primitive(const PrimitiveRef<T>& a_ref) const noexcept
+{
+  constexpr size_t I = TapeDetail::IndexOf<P, Primitives>::value;
+
+  static_assert(I < Primitives::size, "Tape::primitive: P is not one of the tape's primitive types");
+
+  EBGEOMETRY_EXPECT(a_ref.m_type == I);
+
+  const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(this->base(), a_ref.m_index);
+
+  // A pool-resident primitive is stored as its layout and resolves against the tape's own location.
+  if constexpr (isPoolHandle<P>) {
+    return P(stored, this->location());
+  }
+  else {
+    return stored;
+  }
+}
+
+template <class T, class... UserPrimitives>
+template <class F>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::visitPrimitive(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_ref.m_type < Primitives::size);
+
+  this->template dispatchVisit<0>(a_ref, a_f);
+}
+
+template <class T, class... UserPrimitives>
+template <size_t I, class F>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::dispatchVisit(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept
+{
+  if constexpr (I < Primitives::size) {
+    if (a_ref.m_type == I) {
+      using P = typename TapeDetail::TypeAt<I, Primitives>::type;
+
+      a_f(this->template primitive<P>(a_ref));
+
+      return;
+    }
+
+    this->template dispatchVisit<I + 1>(a_ref, a_f);
+  }
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D, class V>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
-inline T
+inline V
 Tape<T, UserPrimitives...>::evaluate(const uint32_t      a_program,
                                      const Vec3T<T>&     a_point,
                                      const void*         a_base,
                                      const PoolLocation& a_location) const noexcept
 {
-  return this->template evaluateBody<D>(a_program, a_point, a_base, a_location);
+  return this->template evaluateBody<D, V>(a_program, a_point, a_base, a_location);
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D>
+template <unsigned D, class V>
 EBGEOMETRY_HOST_DEVICE
-inline T
+inline V
 Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
                                          const Vec3T<T>&     a_point,
                                          const void*         a_base,
@@ -794,7 +898,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
   const TapeDetail::Clause* clauses = m_layout.m_clauses.data(a_base);
   const T*                  params  = m_layout.m_params.data(a_base);
 
-  T        values[ValueStackSize];
+  V        values[ValueStackSize];
   Vec3T<T> points[PointStackSize];
 
   uint32_t nv = 0;
@@ -807,9 +911,11 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
 
     switch (c.m_op) {
     case Op::Primitive: {
-      values[nv++] = this->evaluatePrimitive(c.m_type, c.m_a, points[np - 1], a_base, a_location);
+      // A tagged value is tagged with the clause, which names the leaf, its type and its index.
+      values[nv++] = CSGOps::leafValue<V>(
+        this->evaluatePrimitive(c.m_type, c.m_a, points[np - 1], a_base, a_location), pc, points[np - 1]);
 
-      EBGEOMETRY_EXPECT(!std::isnan(values[nv - 1]));
+      EBGEOMETRY_EXPECT(!std::isnan(CSGOps::valueOf(values[nv - 1])));
 
       break;
     }
@@ -835,42 +941,42 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       break;
     }
     case Op::Negate: {
-      values[nv - 1] = -values[nv - 1];
+      values[nv - 1] = CSGOps::negated(values[nv - 1]);
 
       break;
     }
     case Op::Abs: {
-      values[nv - 1] = std::abs(values[nv - 1]);
+      values[nv - 1] = CSGOps::magnitude(values[nv - 1]);
 
       break;
     }
     case Op::AddConstant: {
-      values[nv - 1] += params[c.m_a];
+      values[nv - 1] = CSGOps::plus(values[nv - 1], params[c.m_a]);
 
       break;
     }
     case Op::MulConstant: {
-      values[nv - 1] *= params[c.m_a];
+      values[nv - 1] = CSGOps::times(values[nv - 1], params[c.m_a]);
 
       break;
     }
     case Op::Min: {
       nv--;
 
-      values[nv - 1] = Math::min(values[nv - 1], values[nv]);
+      values[nv - 1] = CSGOps::smaller(values[nv - 1], values[nv]);
 
       break;
     }
     case Op::Max: {
       nv--;
 
-      values[nv - 1] = Math::max(values[nv - 1], values[nv]);
+      values[nv - 1] = CSGOps::larger(values[nv - 1], values[nv]);
 
       break;
     }
     case Op::PairInit: {
       // The pair occupies two value slots: the most extreme value so far, then the next.
-      const CSGOps::Pair<T> pair = CSGOps::pairInit<T>(c.m_flags != 0U);
+      const CSGOps::Pair<V> pair = CSGOps::pairInit<V>(c.m_flags != 0U);
 
       values[nv++] = pair.m_first;
       values[nv++] = pair.m_second;
@@ -878,9 +984,9 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       break;
     }
     case Op::PairInsert: {
-      const T v = values[--nv];
+      const V v = values[--nv];
 
-      CSGOps::Pair<T> pair{values[nv - 2], values[nv - 1]};
+      CSGOps::Pair<V> pair{values[nv - 2], values[nv - 1]};
 
       CSGOps::pairInsert(pair, v, c.m_flags != 0U);
 
@@ -890,22 +996,22 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       break;
     }
     case Op::PairBlend: {
-      const T b = values[--nv];
-      const T a = values[nv - 1];
+      const V b = values[--nv];
+      const V a = values[nv - 1];
 
       values[nv - 1] =
-        CSGOps::pairBlend(CSGOps::Pair<T>{a, b}, params[c.m_a], (c.m_flags & 1U) != 0U, (c.m_flags & 2U) != 0U);
+        CSGOps::pairBlend(CSGOps::Pair<V>{a, b}, params[c.m_a], (c.m_flags & 1U) != 0U, (c.m_flags & 2U) != 0U);
 
       break;
     }
     case Op::Blur: {
       if constexpr (D > 0) {
-        values[nv++] = this->template evaluateBlur<D>(c, points[np - 1], params, a_base, a_location);
+        values[nv++] = this->template evaluateBlur<D, V>(c, points[np - 1], params, a_base, a_location);
       }
       else {
         EBGEOMETRY_EXPECT(false);
 
-        values[nv++] = T(0);
+        values[nv++] = CSGOps::noLeaf<V>();
       }
 
       break;
@@ -917,31 +1023,53 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
 
         T value = T(0);
 
-        for (uint32_t k = 0; k < c.m_c; k++) {
-          const T* tap = taps + 4U * k;
+        if constexpr (CSGOps::isTagged<V>) {
+          // The same sum, tagged with the tap of the largest weight (the first, if several have it).
+          V heaviest       = CSGOps::noLeaf<V>();
+          T heaviestWeight = -T(1);
 
-          value +=
-            this->template evaluate<D - 1>(c.m_a, x - Vec3T<T>(tap[0], tap[1], tap[2]), a_base, a_location) * tap[3];
+          for (uint32_t k = 0; k < c.m_c; k++) {
+            const T* tap = taps + 4U * k;
+            const V  f =
+              this->template evaluate<D - 1, V>(c.m_a, x - Vec3T<T>(tap[0], tap[1], tap[2]), a_base, a_location);
+
+            value += f.m_value * tap[3];
+
+            if (tap[3] > heaviestWeight) {
+              heaviest       = f;
+              heaviestWeight = tap[3];
+            }
+          }
+
+          values[nv++] = CSGOps::withValue(heaviest, value);
         }
+        else {
+          for (uint32_t k = 0; k < c.m_c; k++) {
+            const T* tap = taps + 4U * k;
 
-        values[nv++] = value;
+            value +=
+              this->template evaluate<D - 1>(c.m_a, x - Vec3T<T>(tap[0], tap[1], tap[2]), a_base, a_location) * tap[3];
+          }
+
+          values[nv++] = value;
+        }
       }
       else {
         EBGEOMETRY_EXPECT(false);
 
-        values[nv++] = T(0);
+        values[nv++] = CSGOps::noLeaf<V>();
       }
 
       break;
     }
     case Op::Repeat: {
       if constexpr (D > 0) {
-        values[nv++] = this->template evaluateRepeat<D>(c, points[np - 1], params, a_base, a_location);
+        values[nv++] = this->template evaluateRepeat<D, V>(c, points[np - 1], params, a_base, a_location);
       }
       else {
         EBGEOMETRY_EXPECT(false);
 
-        values[nv++] = T(0);
+        values[nv++] = CSGOps::noLeaf<V>();
       }
 
       break;
@@ -949,12 +1077,12 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
     case Op::UnionBVH:
     case Op::SmoothUnionBVH: {
       if constexpr (D > 0) {
-        values[nv++] = this->template evaluateUnion<D>(c, points[np - 1], params, a_base, a_location);
+        values[nv++] = this->template evaluateUnion<D, V>(c, points[np - 1], params, a_base, a_location);
       }
       else {
         EBGEOMETRY_EXPECT(false);
 
-        values[nv++] = T(0);
+        values[nv++] = CSGOps::noLeaf<V>();
       }
 
       break;
@@ -1039,9 +1167,9 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D>
+template <unsigned D, class V>
 EBGEOMETRY_HOST_DEVICE
-inline T
+inline V
 Tape<T, UserPrimitives...>::evaluateRepeat(const TapeDetail::Clause& a_clause,
                                            const Vec3T<T>&           a_point,
                                            const T*                  a_params,
@@ -1054,18 +1182,18 @@ Tape<T, UserPrimitives...>::evaluateRepeat(const TapeDetail::Clause& a_clause,
   const CSGOps::RepetitionView<T> repetition{a_params + a_clause.m_b};
 
   // A function of its own, so that the search's loops stay out of evaluateBody()'s text on the host.
-  const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> T {
-    return this->template evaluate<D - 1>(sub, a_x, a_base, a_location);
+  const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> V {
+    return this->template evaluate<D - 1, V>(sub, a_x, a_base, a_location);
   };
 
   return CSGOps::repetition<T>(repetition, a_point, f);
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D>
+template <unsigned D, class V>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
-inline T
+inline V
 Tape<T, UserPrimitives...>::evaluateBlur(const TapeDetail::Clause& a_clause,
                                          const Vec3T<T>&           a_point,
                                          const T*                  a_params,
@@ -1077,17 +1205,17 @@ Tape<T, UserPrimitives...>::evaluateBlur(const TapeDetail::Clause& a_clause,
   // In its own function rather than in evaluateBody(): there, the blur's loop (CSGOps::blur()) changed
   // how GCC inlines the primitive dispatch into the evaluator, and slowed tapes without a Blur by up to
   // 20%.
-  const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> T {
-    return this->template evaluate<D - 1>(sub, a_x, a_base, a_location);
+  const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> V {
+    return this->template evaluate<D - 1, V>(sub, a_x, a_base, a_location);
   };
 
   return CSGOps::blur(a_params + a_clause.m_b, a_point, f);
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D>
+template <unsigned D, class V>
 EBGEOMETRY_HOST_DEVICE
-inline T
+inline V
 Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
                                           const Vec3T<T>&           a_point,
                                           const T*                  a_params,
@@ -1112,18 +1240,18 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
 
   struct Closest
   {
-    T a = Math::Limits<T>::infinity();
-    T b = Math::Limits<T>::infinity();
+    V a = CSGOps::pairInit<V>(false).m_first;
+    V b = CSGOps::pairInit<V>(false).m_second;
   };
 
-  const auto insert = [](Closest& a_closest, const T a_value) noexcept {
-    EBGEOMETRY_EXPECT(!std::isnan(a_value));
+  const auto insert = [](Closest& a_closest, const V& a_value) noexcept {
+    EBGEOMETRY_EXPECT(!std::isnan(CSGOps::valueOf(a_value)));
 
-    if (a_value < a_closest.a) {
+    if (CSGOps::valueOf(a_value) < CSGOps::valueOf(a_closest.a)) {
       a_closest.b = a_closest.a;
       a_closest.a = a_value;
     }
-    else if (a_value < a_closest.b) {
+    else if (CSGOps::valueOf(a_value) < CSGOps::valueOf(a_closest.b)) {
       a_closest.b = a_value;
     }
   };
@@ -1131,19 +1259,19 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
   Closest closest;
 
   for (uint32_t i = 0; i < unboundedPrograms.size(); i++) {
-    insert(closest, this->template evaluate<D - 1>(unboundedPrograms[i], a_point, a_base, a_location));
+    insert(closest, this->template evaluate<D - 1, V>(unboundedPrograms[i], a_point, a_base, a_location));
   }
 
   const auto evalLeaf = [this, &programs, &a_point, a_base, &a_location, &insert](
                           Closest& a_closest, const size_t a_offset, const size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
       insert(a_closest,
-             this->template evaluate<D - 1>(programs[static_cast<uint32_t>(i)], a_point, a_base, a_location));
+             this->template evaluate<D - 1, V>(programs[static_cast<uint32_t>(i)], a_point, a_base, a_location));
     }
   };
 
   const auto pruneDist2 = [smooth](const Closest& a_closest) noexcept -> T {
-    const T bound = Math::max(T(0), smooth ? a_closest.b : a_closest.a);
+    const T bound = Math::max(T(0), CSGOps::valueOf(smooth ? a_closest.b : a_closest.a));
 
     return bound * bound;
   };
@@ -1156,7 +1284,11 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
 
   const T s = a_params[a_clause.m_b];
 
-  return (a_clause.m_flags == 0U) ? SmoothMinOp<T>{}(closest.a, closest.b, s) : ExpMinOp<T>{}(closest.a, closest.b, s);
+  // A smooth union's value comes from the smaller operand's surface.
+  const T a = CSGOps::valueOf(closest.a);
+  const T b = CSGOps::valueOf(closest.b);
+
+  return CSGOps::withValue(closest.a, (a_clause.m_flags == 0U) ? SmoothMinOp<T>{}(a, b, s) : ExpMinOp<T>{}(a, b, s));
 }
 
 template <class T, class... UserPrimitives>

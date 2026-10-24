@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -199,6 +200,40 @@ main()
   std::cout << "  on the host, per point: tape " << std::setprecision(3) << tapeTime << " us, fused " << fusedTime
             << " us (sum " << sum << ")\n"
             << std::setprecision(4);
+
+  // ── Which primitive decides the value ──────────────────────────────────────────────────────────────
+  //
+  // A tape's closestPrimitive(p) names the leaf whose surface the value comes from at p: a union passes on
+  // the leaf of the operand it takes, a difference the leaf of whichever object bounds the result. The
+  // leaves are numbered in expression order: the cube 0, the ball 1, the drills along x, y and z 2, 3 and 4.
+  // m_localPoint is the point in the leaf's own frame, where the leaf itself (primitive<P>(ref),
+  // visitPrimitive()) can be queried. A leaf number indexes the caller's own table, so check it first: a
+  // reference may name no leaf (m_leaf == PrimitiveRef::None).
+  const char* leafNames[] = {"cube", "ball", "drill along x", "drill along y", "drill along z"};
+
+  const auto leafName = [&leafNames](const uint32_t a_leaf) { return a_leaf < 5 ? leafNames[a_leaf] : "no leaf"; };
+
+  std::cout << "\nThe primitive that decides the part's value, through its tape:\n";
+
+  for (const Vec3& p : {Vec3(T(0.95), T(0.2), T(0.1)),
+                        Vec3(T(0.8), T(0.8), T(0.8)),
+                        Vec3(T(0.3), T(0.2), T(0.9)),
+                        Vec3(T(0.2), T(0.9), T(0.3))}) {
+    std::cout << "  " << p << "   " << leafName(partTape.closestPrimitive(p).m_leaf) << '\n';
+  }
+
+  // A fused part is one shape with one surface, however it is built: in a tape it is one leaf. A scene is
+  // therefore a tape whose leaves are parts, each evaluated as compiled code; the tape names the part.
+  using FusedPart = std::decay_t<decltype(fusedPart)>;
+
+  const EBGeometry::Tape<T, FusedPart> scene(
+    pool, EBGeometry::Union(EBGeometry::Expr<T>(fusedPart), EBGeometry::Translate(fusedPart, Vec3(T(3), T(0), T(0)))));
+
+  std::cout << "\nThe part that decides a scene of two fused parts, 3 apart along x:\n";
+
+  for (const Vec3& p : {Vec3(T(0.95), T(0.2), T(0.1)), Vec3(T(3.2), T(0.2), T(0.9))}) {
+    std::cout << "  " << p << "   part " << scene.closestPrimitive(p).m_leaf << '\n';
+  }
 
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
   //
