@@ -400,16 +400,16 @@ struct Operands
     using C = typename TypeAt<I, Cs...>::type;
 
     if constexpr (CSGOps::isTagged<V>) {
-      // A fused operand numbers its own leaves from its first; any other operand is one leaf.
+      // A fused operand numbers its own leaves from its first; any other operand is one leaf. Read in
+      // place, as below: a copy of a node, which its operands are then read through, is not removed by
+      // the compiler, and made closestPrimitive() several times slower.
       constexpr uint32_t offset = leafOffset<I, Cs...>();
 
-      const C operand = CSGDetail::fromStored<C>(get<I>(m_pack), m_location);
-
-      if constexpr (isNode<C>) {
-        return operand.template evaluateValue<V>(a_point, m_leafBase + offset);
+      if constexpr (isPoolHandle<C>) {
+        return tagged(C(get<I>(m_pack), m_location), a_point, m_leafBase + offset);
       }
       else {
-        return V{operand.signedDistance(a_point), m_leafBase + offset, a_point};
+        return tagged(get<I>(m_pack), a_point, m_leafBase + offset);
       }
     }
     else if constexpr (isPoolHandle<C>) {
@@ -417,6 +417,28 @@ struct Operands
     }
     else {
       return get<I>(m_pack).signedDistance(a_point);
+    }
+  }
+
+  /**
+   * @brief An operand's tagged value: a fused node's own, or the operand's value tagged as one leaf.
+   * @tparam C Operand type.
+   * @tparam T Floating-point precision.
+   * @param[in] a_operand Operand.
+   * @param[in] a_point   Point.
+   * @param[in] a_leaf    The number of the operand's first leaf.
+   * @return The value.
+   */
+  template <class C, class T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline V
+  tagged(const C& a_operand, const Vec3T<T>& a_point, const uint32_t a_leaf) noexcept
+  {
+    if constexpr (isNode<C>) {
+      return a_operand.template evaluateValue<V>(a_point, a_leaf);
+    }
+    else {
+      return V{a_operand.signedDistance(a_point), a_leaf, a_point};
     }
   }
 

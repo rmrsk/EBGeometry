@@ -255,6 +255,28 @@ times(const V& a_value, const T a_constant) noexcept
 }
 
 /**
+ * @brief One of two tagged values, chosen field by field, so that the compiler selects without a branch:
+ * a whole-struct select compiled to a branch, which mispredicts at points where either operand may decide.
+ * @tparam T Floating-point precision.
+ * @param[in] a_second Whether to take the second.
+ * @param[in] a_first  First value.
+ * @param[in] a_other  Second value.
+ * @return The chosen value.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
+inline Tagged<T>
+select(const bool a_second, const Tagged<T>& a_first, const Tagged<T>& a_other) noexcept
+{
+  return Tagged<T>{a_second ? a_other.m_value : a_first.m_value,
+                   a_second ? a_other.m_tag : a_first.m_tag,
+                   Vec3T<T>(a_second ? a_other.m_point[0] : a_first.m_point[0],
+                            a_second ? a_other.m_point[1] : a_first.m_point[1],
+                            a_second ? a_other.m_point[2] : a_first.m_point[2])};
+}
+
+/**
  * @brief The smaller of two plain values (Math::min()).
  * @tparam T Floating-point precision.
  * @param[in] a_first  First value.
@@ -283,7 +305,7 @@ EBGEOMETRY_HOST_ALWAYS_INLINE
 inline Tagged<T>
 smaller(const Tagged<T>& a_first, const Tagged<T>& a_second) noexcept
 {
-  return (a_second.m_value < a_first.m_value) ? a_second : a_first;
+  return select(a_second.m_value < a_first.m_value, a_first, a_second);
 }
 
 /**
@@ -315,7 +337,7 @@ EBGEOMETRY_HOST_ALWAYS_INLINE
 inline Tagged<T>
 larger(const Tagged<T>& a_first, const Tagged<T>& a_second) noexcept
 {
-  return (a_first.m_value < a_second.m_value) ? a_second : a_first;
+  return select(a_first.m_value < a_second.m_value, a_first, a_second);
 }
 
 /**
