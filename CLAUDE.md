@@ -404,7 +404,9 @@ cases in its component's probe), and the PR's comparison then lists them as *new
   milliseconds), with a `--smoke` size that runs in well under a second.
 - Spell out every parameter that selects code (`K`, `W`, precision, construction method) instead of
   using the `Default*` functions, and record it with `param()`; record a `checksum()` that depends on
-  every result, and `poolBytes()` where there is a pool.
+  every result, and `poolBytes()` where there is a pool. A case computing the same answers as another
+  by other means (fused and through a tape) names it with `relativeTo()`, and the comparison notes the
+  ratio of their times (`tape/fused 2.78x`).
 - Add a case rather than change an existing one: a changed case cannot be compared with its past.
 - Keep the whole set to about ten minutes of a comparison with its defaults on a desktop; a case
   that repeats another's code path (the same kernel at another size) must have shown different

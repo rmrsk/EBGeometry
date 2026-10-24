@@ -6,9 +6,11 @@
 // classic CSG solid, a smooth solid, a chain of 16 spheres) as fused compositions, and a mesh drilled
 // through by a cylinder, fused and through a tape, in float and double, at random points around each
 // object. A host build runs the host cases; a CUDA or HIP build runs them as host/device pairs. Compare
-// with Performance/Tape, whose cases are the same solids through a tape and written by hand. They are in
-// a probe of their own because adding them to the Tape probe's translation unit changed how GCC inlines
-// the tape's evaluator there, and so the Tape cases' timings. See ../README.md and PerformanceTesting.rst.
+// with Performance/Tape, whose cases are the same solids through a tape and written by hand: each fused
+// case names its tape counterpart (Case::relativeTo()), and a comparison notes time(tape)/time(fused)
+// beside it, so that the cost of interpreting a tape is tracked. They are in a probe of their own because
+// adding them to the Tape probe's translation unit changed how GCC inlines the tape's evaluator there, and
+// so the Tape cases' timings. See ../README.md and PerformanceTesting.rst.
 
 #include <cstddef>
 #include <string>
@@ -141,6 +143,7 @@ addObject(Perf::Suite&                                 a_suite,
     c.checksum(Perf::checksumOf(distances));
     c.poolBytes(pool.usedBytes());
     c.param("repeats", R);
+    c.relativeTo(Perf::caseName({"Tape", a_input, operation, prec, "host"}), "tape/fused");
   });
 
   a_suite.add(Perf::caseName({"Fused", a_input, operation, prec, "hostdevice"}), [=](Perf::Case& c) {
@@ -158,6 +161,7 @@ addObject(Perf::Suite&                                 a_suite,
 
     c.checksum(Perf::checksumOf(distances));
     c.param("repeats", R);
+    c.relativeTo(Perf::caseName({"Tape", a_input, operation, prec, "hostdevice"}), "tape/fused");
   });
 }
 
@@ -211,6 +215,10 @@ addDrilledMesh(Perf::Suite& a_suite)
 
     c.checksum(Perf::checksumOf(distances));
     c.poolBytes(pool.usedBytes());
+
+    if constexpr (Fused) {
+      c.relativeTo(Perf::caseName({"Fused", "drilled-mesh-tape", "signedDistance", prec, "host"}), "tape/fused");
+    }
   });
 
   a_suite.add(Perf::caseName({"Fused", input, "signedDistance", prec, "hostdevice"}), [=](Perf::Case& c) {
@@ -227,6 +235,10 @@ addDrilledMesh(Perf::Suite& a_suite)
       Perf::agreeDistance<T>);
 
     c.checksum(Perf::checksumOf(distances));
+
+    if constexpr (Fused) {
+      c.relativeTo(Perf::caseName({"Fused", "drilled-mesh-tape", "signedDistance", prec, "hostdevice"}), "tape/fused");
+    }
   });
 }
 
