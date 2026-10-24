@@ -5,7 +5,8 @@ Continuous integration
 
 Every pull request targeting ``main`` or ``dev``, and every push to ``main`` or ``dev`` (so the
 merged result is checked too), triggers the CI pipeline defined in ``.github/workflows/CI.yml``, on
-GitHub-hosted ``ubuntu-latest`` runners. Together, the jobs check: code formatting
+GitHub-hosted ``ubuntu-24.04`` runners (pinned: ``ubuntu-26.04``, which ``ubuntu-latest`` became,
+has no ``clang-14`` and a Python too new for the pinned Sphinx). Together, the jobs check: code formatting
 (``clang-format``) and static analysis (``clang-tidy``, advisory); code correctness and assurance
 (the Catch2 unit-test suite, under multiple compilers, SIMD levels, and both ``float`` and
 ``double`` precision; every bundled example built and run via CMake, and a subset also via GNU Make

@@ -13,10 +13,13 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-code-format
   cancel-in-progress: true
 
+# Every job runs on ubuntu-24.04, not ubuntu-latest: ubuntu-latest became ubuntu-26.04 on 2026-10-24,
+# which has no clang-14 package and a Python too new for the pinned Sphinx 5.3.0 (it lacks imghdr).
+# Moving to 26.04 needs a newer clang in the matrix and a newer Sphinx; until then, the image is pinned.
 jobs:
   Formatting:
     name: Format source
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     strategy:
@@ -34,7 +37,7 @@ jobs:
 
   Codespell:
     name: Codespell
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
@@ -56,7 +59,7 @@ jobs:
 
   Reuse:
     name: REUSE license compliance
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
@@ -74,7 +77,7 @@ jobs:
 
   Doxygen-check:
     name: Doxygen (warnings as errors), docs rules and device contract
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -101,7 +104,7 @@ jobs:
   Static-analysis:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Static analysis (clang-tidy)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     # Advisory for now: the curated clang-tidy set still has a review backlog
     # (const-correctness, narrowing conversions, ...). Set continue-on-error to
@@ -133,7 +136,7 @@ jobs:
   Linux-GNU:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Linux-GNU (${{ matrix.comp }}, every example)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       matrix:
@@ -171,7 +174,7 @@ jobs:
   Linux-Intel:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Linux-Intel (every example)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     steps:
@@ -209,7 +212,7 @@ jobs:
   Examples-GNUMake:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Examples (GNUmakefile, every example)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -230,7 +233,7 @@ jobs:
   Examples-CMake:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Examples (CMake, debug preset, assertions on)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -251,7 +254,7 @@ jobs:
   Examples-FloatPrecision:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Examples (CMake, float precision)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -271,7 +274,7 @@ jobs:
   Performance-smoke:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Performance probes (smoke run)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -292,7 +295,7 @@ jobs:
   Performance-receipt:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Performance receipt
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Nothing to check on a push
@@ -311,7 +314,7 @@ jobs:
   CMake-consumer:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: CMake consumer (add_subdirectory, find_package)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -323,7 +326,7 @@ jobs:
   Build-documentation:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Build-documentation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -376,7 +379,7 @@ jobs:
   Unit-Tests:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Unit tests (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     strategy:
@@ -426,7 +429,7 @@ jobs:
   Release-Test:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Release build (full test + example suite)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -447,7 +450,7 @@ jobs:
   Sanitizers:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Sanitizers (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -483,7 +486,7 @@ jobs:
   GPU-CUDA:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: GPU CUDA compile
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     # Advisory: the toolkit install is a third-party action that downloads several GB and is the
     # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
@@ -516,7 +519,7 @@ jobs:
   GPU-HIP:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: GPU HIP compile
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -557,7 +560,7 @@ jobs:
     # deliberately not listed.
     if: always()
     needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Require every dependency to have succeeded
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
