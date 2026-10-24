@@ -5,7 +5,9 @@ CSG
 
 Builds objects out of analytic shapes with constructive solid geometry (see
 :ref:`Chap:ConstructiveSolidGeometry`), compiles them into a ``Tape`` (see :ref:`Sec:Tape`), and
-evaluates them on the host and through the same query on a GPU. The source is at
+evaluates them on the host and through the same query on a GPU. It then builds one of them again as a
+fused composition (see :ref:`Sec:Fused`), which the C++ compiler evaluates as it would code written by
+hand. The source is at
 :file:`Examples/CSG/main.cpp`. See :ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a
 direct compiler invocation.
 
@@ -59,6 +61,24 @@ ring has one, since it has eight operands; see :ref:`Sec:BVHUnions`), the boundi
 distance quality. An intersection or a difference of exact distances is only a lower bound on the
 distance, so all three objects report ``bound``. It then prints each object's value at a few points.
 
+The same part, fused
+--------------------
+
+When the structure of an object is known as the program is written, the functions in namespace
+``Fused`` (`EBGeometry_Fused.hpp <doxygen/html/EBGeometry__Fused_8hpp.html>`__) build it as types
+instead of an ``Expr``. The result is a shape whose type spells out the whole tree, evaluated with
+nothing to interpret:
+
+.. code-block:: c++
+
+   const auto fusedPart = Fused::Difference(Fused::Intersection(cube, ball), drillX, drillY, drillZ);
+
+The functions are the builder's, called qualified (``Fused::Union``, not ``Union``, which is the
+builder's and takes shapes too). Where the builder takes a ``std::vector``, they take the operands as
+arguments, so the drills are passed one by one. The program prints the part's values through its tape
+and fused, which are the same to rounding, and the time per point of each on the host. The fused part has no
+clauses to fetch and dispatch, and the gap is wider on a GPU.
+
 The same query on a GPU
 -----------------------
 
@@ -80,5 +100,7 @@ point and returns the values to the host:
 
 In a plain C++ build the same lines run on the host: ``memoryResource()`` is host memory standing in
 for a device and ``transform()`` is a loop. The program evaluates the ring along a line through the
-first copy, crossing its material and the hole drilled along y. See :ref:`Sec:ExamplesGPU` for how to
+first copy, crossing its material and the hole drilled along y. The query is a template over the shape
+it holds, so the fused part goes through the same ``GPU::transform()``, without a pool: it holds its
+shapes, not offsets into one. The program evaluates it along a line through its walls and a hole. See :ref:`Sec:ExamplesGPU` for how to
 build it for a GPU.

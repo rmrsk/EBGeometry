@@ -1693,17 +1693,17 @@ TEMPLATE_TEST_CASE("Expr: distance quality of a union of exact shapes and of a f
 
   REQUIRE(compiled.tape().getDistanceQuality() == DistanceQuality::Bound);
 
-  // A unit sphere fits a tile of period 2.5 but not one of period 1.5, where a neighbouring copy can be
-  // closer than the folded value says.
+  // A repetition is the minimum over all its copies, so it is a distance bound whether the unit sphere
+  // fits its tile (period 2.5) or overlaps its neighbours (period 1.5).
   const auto fits     = FiniteRepetition(a, Vec3(2.5, 2.5, 2.5), Vec3::ones(), Vec3::ones());
   const auto overlaps = FiniteRepetition(a, Vec3(1.5, 2.5, 2.5), Vec3::ones(), Vec3::ones());
 
   REQUIRE(fits.getDistanceQuality() == DistanceQuality::Bound);
-  REQUIRE(overlaps.getDistanceQuality() == DistanceQuality::NotADistance);
+  REQUIRE(overlaps.getDistanceQuality() == DistanceQuality::Bound);
 
   const Compiled<T> compiledOverlaps(overlaps);
 
-  REQUIRE(compiledOverlaps.tape().getDistanceQuality() == DistanceQuality::NotADistance);
+  REQUIRE(compiledOverlaps.tape().getDistanceQuality() == DistanceQuality::Bound);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2070,6 +2070,55 @@ TEMPLATE_TEST_CASE("FiniteRepetition: fractional repetition counts round to whol
 
   REQUIRE(two(Vec3(T(3), T(0), T(0))) > T(0));
   REQUIRE(three(Vec3(T(3), T(0), T(0))) < T(0));
+}
+
+TEMPLATE_TEST_CASE("FiniteRepetition: is the minimum over all copies, off-centre and overlapping objects included",
+                   "[CSG][FiniteRepetition]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Two copies per side along each axis, so 125 copies in all.
+  const Vec3 counts(2, 2, 2);
+
+  // An off-centre sphere that fits its tile: a point near the tile's far side is closest to the
+  // neighbouring copy, which folding into the home tile alone misses (0.75 there instead of 0.05).
+  // And a sphere wider than its tile, whose copies overlap.
+  const Sphere<T> offCentre(Vec3(T(0.4), T(0), T(0)), T(0.1));
+  const Sphere<T> overlapping(Vec3::zeros(), T(1));
+
+  const auto bruteForce = [&counts](const Sphere<T>& a_sphere, const Vec3& a_period, const Vec3& a_point) {
+    T value = std::numeric_limits<T>::max();
+
+    for (int i = -int(counts[0]); i <= int(counts[0]); i++) {
+      for (int j = -int(counts[1]); j <= int(counts[1]); j++) {
+        for (int k = -int(counts[2]); k <= int(counts[2]); k++) {
+          value = std::min(value, a_sphere.signedDistance(a_point - a_period * Vec3(T(i), T(j), T(k))));
+        }
+      }
+    }
+
+    return value;
+  };
+
+  for (const auto& [sphere, period] : {std::pair<Sphere<T>, Vec3>{offCentre, Vec3::ones()},
+                                       std::pair<Sphere<T>, Vec3>{overlapping, Vec3(T(1.5), T(1.5), T(1.5))}}) {
+    const Compiled<T> tiled(FiniteRepetition(sphere, period, counts, counts));
+
+    for (int i = -12; i <= 12; i++) {
+      for (int j = -6; j <= 6; j++) {
+        const Vec3 p(T(0.27) * T(i) - T(0.05), T(0.31) * T(j), T(0.13));
+
+        INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
+        REQUIRE_THAT(tiled(p), withinAbsT(bruteForce(sphere, period, p), exactMargin<T>()));
+      }
+    }
+  }
+
+  const Compiled<T> tiled(FiniteRepetition(offCentre, Vec3::ones(), counts, counts));
+
+  REQUIRE_THAT(tiled(Vec3(T(-0.45), T(0), T(0))), withinAbsT(T(0.05), formulaMargin<T>()));
 }
 
 TEMPLATE_TEST_CASE("FiniteRepetition: matches the base function at the hand-folded point",

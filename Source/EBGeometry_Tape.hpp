@@ -70,7 +70,6 @@ enum class Op : uint8_t
   Primitive,      ///< Push the value of primitive (m_type, m_a) at the top point.
   PushAffine,     ///< Push the top point mapped by the affine map at params[m_a..m_a+12).
   PushElongate,   ///< Push p - clamp(p, -h, h), h at params[m_a..m_a+3).
-  PushRepeat,     ///< Push p folded into its tile; period, low and high counts at params[m_a..m_a+9).
   PopPoint,       ///< Pop a point.
   Negate,         ///< v -> -v.
   Abs,            ///< v -> |v|.
@@ -84,6 +83,8 @@ enum class Op : uint8_t
                   ///< exponential blend if bit 1 is set; smoothing length params[m_a].
   Blur,           ///< Push the 27-tap blur of sub-program m_a; distance and weights at params[m_b..m_b+5).
   Mollify,        ///< Push sum_k w_k f(p - o_k) over m_c taps of sub-program m_a; (o_k, w_k) at params[m_b..).
+  Repeat,         ///< Push the minimum over the copies of sub-program m_a (CSGOps::repetition()); period,
+                  ///< low and high counts and the object's box at params[m_b..m_b+15).
   UnionBVH,       ///< Push the minimum over the sub-programs in BVH union m_a.
   SmoothUnionBVH, ///< Push the smooth minimum of the two smallest sub-programs in BVH union m_a; smoothing
                   ///< length params[m_b], exponential blend if m_flags is 1.
@@ -691,6 +692,27 @@ private:
                const T*                  a_params,
                const void*               a_base,
                const PoolLocation&       a_location) const noexcept;
+
+  /**
+   * @brief Evaluate a Repeat clause: the minimum of its sub-program over the copies (CSGOps::repetition()).
+   * @details Inline in a device pass, unlike evaluateBlur(): as a further out-of-line function between
+   * two call levels, it raised a kernel that evaluates a tape in a loop to 255 registers (from 168).
+   * @tparam D Call depth left for the sub-program.
+   * @param[in] a_clause   The clause.
+   * @param[in] a_point    Point.
+   * @param[in] a_params   The parameters.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value.
+   */
+  template <unsigned D>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  evaluateRepeat(const TapeDetail::Clause& a_clause,
+                 const Vec3T<T>&           a_point,
+                 const T*                  a_params,
+                 const void*               a_base,
+                 const PoolLocation&       a_location) const noexcept;
 
   /**
    * @brief Evaluate a BVH union clause.

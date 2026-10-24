@@ -109,3 +109,11 @@ instructions, with no virtual dispatch and no pointers, which is what lets the s
 be evaluated on a CPU and, copied as a block of memory, on a GPU. While compiling, each node's
 bounding box and how far its value can be trusted as a distance are worked out from its children's,
 and a union of many objects gets a BVH over their boxes.
+
+A composed object whose structure is known when the program is written can instead be compiled
+together with the program: each operation becomes a small type, and the composed object's type
+spells out the whole tree. The compiler then evaluates it as it would the same object written out
+by hand, with no instructions to interpret, which matters most on a GPU. Its values are the
+tape's, computed by the same arithmetic. The structure is then fixed when the program is compiled,
+so geometry chosen at run time still goes through the tape, which can hold such compiled objects as
+its leaves.

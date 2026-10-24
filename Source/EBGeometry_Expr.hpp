@@ -618,11 +618,13 @@ SmoothDifference(const A&               a_first,
 /**
  * @brief Finite repetition: copies of an object on a grid of tiles, `a_repeatLo` tiles below and
  * `a_repeatHi` tiles above the home tile along each axis.
- * @details The value at p is the object's value at p folded into its tile,
- * p_i - c_i round(clamp(p_i / c_i, -lo_i, hi_i)). It is a distance bound only if the object fits inside
- * its tile ([-c/2, c/2] along each axis); otherwise it is not a distance.
+ * @details The value is the minimum of the object's value over all its copies, so it is a distance bound
+ * whenever the object's value is one, whether or not the object fits inside its tile. The copy in the
+ * tile p folds into, p_i - c_i round(clamp(p_i / c_i, -lo_i, hi_i)), is evaluated first, and only the
+ * copies whose box comes closer to p than that value after it; an object well inside its tile has few.
+ * A Tape evaluates the copies as a sub-program, which takes one level of its call depth.
  * @tparam A Shape or Expr type.
- * @param[in] a_operand  Object to repeat, centred on the origin.
+ * @param[in] a_operand  Object to repeat; its home copy sits in the tile around the origin.
  * @param[in] a_period   Tile period along each axis (> 0).
  * @param[in] a_repeatLo Tiles in the decreasing direction of each axis (>= 0; rounded to whole tiles).
  * @param[in] a_repeatHi Tiles in the increasing direction of each axis (>= 0; rounded to whole tiles).

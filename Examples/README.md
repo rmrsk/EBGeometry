@@ -6,7 +6,7 @@ in the order you would write them, and prints results you can read. It does not 
 answers. Read them in this order:
 
 1. `Shapes`: the built-in analytic shapes: constructing them, their signed distance, bounding box and distance quality.
-2. `CSG`: composing shapes with unions, intersections, differences, transforms and smooth blends, compiled into a `Tape`.
+2. `CSG`: composing shapes with unions, intersections, differences, transforms and smooth blends, compiled into a `Tape`, and the same part as a fused composition (`Fused::`).
 3. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
 4. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
 5. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
