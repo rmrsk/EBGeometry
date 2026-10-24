@@ -538,9 +538,9 @@ public:
    * @brief The deciding leaf at a point: the primitive whose surface the value comes from there (see
    * PrimitiveRef), with the point in its own frame.
    * @details Evaluates the tape as signedDistance() does, carrying with each value the leaf it comes from.
-   * The leaves are numbered in expression order, depth first, each occurrence counted, as a fused
-   * composition of the same expression numbers them. A primitive whose type is a tape or a BVH union is
-   * one leaf. Callable on a device, like signedDistance().
+   * The leaves are numbered in expression order, depth first, each occurrence counted. A primitive that
+   * is itself a composition (a fused one, a tape, a BVH union) is one leaf: the tape is the scene, its
+   * leaves the parts. Callable on a device, like signedDistance().
    * @param[in] a_point Query point.
    * @return The leaf, its type and index in the tape, and the point in its frame.
    */

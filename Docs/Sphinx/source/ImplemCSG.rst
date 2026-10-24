@@ -338,12 +338,18 @@ same solid both ways.
 The deciding leaf
 -----------------
 
-``closestPrimitive(p)``, on a tape and on a fused shape, names the leaf of the composition that decides
-its value at ``p``: the primitive whose surface the value comes from there. It returns a
-`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__: the leaf's number, and the point
-in the leaf's own frame, after the composition's maps. A tape also gives the primitive's type and index
-in its arrays. This is what boundary tagging and material ids need. For a mesh leaf, the face is then
-one query away: the mesh's own ``getClosestFace()`` at the local point.
+A tape's ``closestPrimitive(p)`` names the leaf of the composition that decides its value at ``p``: the
+primitive whose surface the value comes from there. It returns a
+`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__: the leaf's number, the
+primitive's type and index in the tape's arrays, and the point in the leaf's own frame, after the
+composition's maps. This is what boundary tagging and material ids need. For a mesh leaf, the face is
+then one query away: the mesh's own ``getClosestFace()`` at the local point.
+
+The tape is the scene; a fused composition (see :ref:`Sec:Fused`) is one shape with one surface,
+however it is built, and has no ``closestPrimitive()``. Listed in a tape, it is one leaf. A scene is
+therefore a tape whose leaves are parts, each fused where its structure is known when compiling: the
+tape interprets only how the parts combine, evaluates each part as compiled code, and names the part
+that decides the value.
 
 .. code-block:: c++
 
@@ -365,21 +371,20 @@ one query away: the mesh's own ``getClosestFace()`` at the local point.
   For ``Difference(box, sphere)``, a point near the carved cavity gets the sphere, and a point near the
   box's outside gets the box. This is not the geometrically nearest primitive, which could be one the
   composition removed.
-* **Numbering.** Leaves are numbered in expression order, depth first, each occurrence counted, so a
-  tape and a fused shape of the same expression number them alike. A shape used twice is two leaves. A
-  nested composite (a tape listed as a primitive, a BVH union) is one leaf; ask it for its own leaf at
-  the local point.
+* **Numbering.** Leaves are numbered in expression order, depth first, each occurrence counted. A
+  shape used twice is two leaves. A nested composite (a fused part, a tape listed as a primitive, a BVH
+  union) is one leaf; a nested tape can be asked for its own leaf at the local point.
 * **The primitive, by value.** ``isPrimitive<P>(ref)`` says whether the leaf is a ``P`` (a type the
-  structure can hold: any other ``P`` is a compile error, on a tape and on a fused shape alike), and
+  tape can hold: any other ``P`` is a compile error), and
   ``primitive<P>(ref)`` returns it: the shape, or for a pool-resident one (a mesh distance field, a BVH
-  union, a tape) its handle, rebuilt with the structure's location, so that it resolves against the
+  union, a tape) its handle, rebuilt with the tape's location, so that it resolves against the
   same pool or mirror. ``visitPrimitive(ref, f)`` calls ``f`` with it whatever its type. In a CUDA or
   HIP translation unit, pass a functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``; the device
   compiler treats a lambda's as a host function there.
-* **One implementation.** Both evaluate the composition as ``signedDistance()`` does, on values that
-  carry the leaf they come from (``CSGOps::Tagged``). For a tape this is a second instantiation of its
-  evaluator, compiled only where ``closestPrimitive()`` is called, so ``signedDistance()`` is compiled
-  as without it. Device-callable, like ``signedDistance()``.
+* **One implementation.** The tape evaluates the composition as ``signedDistance()`` does, on values
+  that carry the leaf they come from (``CSGOps::Tagged``): a second instantiation of its evaluator,
+  compiled only where ``closestPrimitive()`` is called, so ``signedDistance()`` is compiled as without
+  it. Device-callable, like ``signedDistance()``.
 
 .. _Sec:BVHUnions:
 

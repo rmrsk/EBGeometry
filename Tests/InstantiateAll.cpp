@@ -325,13 +325,6 @@ instantiateFunctionTemplates()
     (void)Hole(hole.layout(), hole.location()).signedDistance(Vec3T<T>::zeros());
     (void)hole.rebasedView(meshPool);
     (void)hole.deepCopy(meshPool);
-
-    const PrimitiveRef<T> leaf = hole.closestPrimitive(Vec3T<T>::zeros());
-
-    (void)hole.template isPrimitive<DefaultTriMeshSDF>(leaf);
-    (void)hole.template primitive<DefaultTriMeshSDF>(leaf);
-    (void)analytic.closestPrimitive(Vec3T<T>::zeros());
-    hole.visitPrimitive(leaf, [](const auto& a_primitive) { (void)a_primitive.signedDistance(Vec3T<T>::zeros()); });
   }
 
   (void)PolygonSoup<T>().convertToDCEL(meshPool);

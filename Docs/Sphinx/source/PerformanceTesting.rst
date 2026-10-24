@@ -186,19 +186,20 @@ Family                                Build  Measures
                                              (262,144 for the drilled mesh)
 ====================================  =====  =====================================================
 
-**ClosestPrimitive** (``Performance/ClosestPrimitive``): ``closestPrimitive()``, the deciding leaf (see
-:ref:`Sec:DecidingLeaf`), of the classic CSG solid and of the drilled mesh, each fused and through a
-tape. Each query also evaluates the leaf at its local point, so that the checksum depends on both; a
-host and a device answer agree when they name the same leaf or two leaves whose values tie. As in the
-Fused probe, each fused case notes ``tape/fused`` beside it.
+**ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
+leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the
+drilled mesh. Each query also evaluates the leaf at its local point, so that the checksum depends on
+both; a host and a device answer agree when they name the same leaf or two leaves whose values tie.
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
 ====================================  =====  =====================================================
-``csg/closestPrimitive``              host   the classic CSG solid, fused, at 400,000 points; and
-                                             ``csg-tape``: the same through a ``Tape``
-``drilled-mesh/closestPrimitive``     host   the drilled armadillo, fused, at 20,000 points; and
-                                             ``drilled-mesh-tape``: through a ``Tape``
+``csg/closestPrimitive``              host   the classic CSG solid through a ``Tape`` (five leaves),
+                                             at 400,000 points
+``parts/closestPrimitive``            host   a scene of eight fused copies of it, each one leaf of
+                                             a ``Tape``, at 400,000 points
+``drilled-mesh/closestPrimitive``     host   the drilled armadillo through a ``Tape``, at 20,000
+                                             points
 ``<input>/closestPrimitive``          GPU    each of the above at 1,048,576 points on both sides
                                              (262,144 for the drilled mesh)
 ====================================  =====  =====================================================

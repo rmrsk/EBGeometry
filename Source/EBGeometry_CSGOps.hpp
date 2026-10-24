@@ -50,7 +50,7 @@ inline constexpr uint32_t NoTag = 0xFFFFFFFFU;
  * taken from there, and the point that leaf was evaluated at (in its own frame).
  * @details The operations below work on a plain value T and on a Tagged<T> alike. On a Tagged<T> they
  * compute the value as on a T and carry the tag of the operand the value comes from (see
- * Tape::closestPrimitive() and Fused::Node::closestPrimitive()).
+ * Tape::closestPrimitive()).
  * @tparam T Floating-point precision.
  */
 template <class T>

@@ -1117,6 +1117,53 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive numbers each occurrence of a leaf, an
   CHECK(visit.m_value == tri.signedDistance(p));
 }
 
+TEMPLATE_TEST_CASE("Tape: closestPrimitive treats a fused part as one leaf, the part a scene is made of",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A drilled part, fused: one shape with one surface, however it is built.
+  const BoxSDF<T>              cube(Vec3(T(-1), T(-1), T(-1)), Vec3(T(1), T(1), T(1)));
+  const InfiniteCylinderSDF<T> drill(Vec3::zeros(), T(0.4), 0);
+  const auto                   part = Fused::Difference(cube, drill);
+
+  using Part = std::decay_t<decltype(part)>;
+
+  const SphereSDF<T> ball(Vec3(T(2.5), T(0.1), T(-0.2)), T(0.6));
+
+  // The scene: the part (leaf 0) and a ball (leaf 1).
+  Pool                pool(hostMemoryResource());
+  const Tape<T, Part> scene(pool, Union(Expr<T>(part), Expr<T>(ball)));
+
+  size_t partLeaves = 0;
+
+  for (int i = -6; i <= 8; i++) {
+    for (int j = -3; j <= 3; j++) {
+      const Vec3 p(T(0.43) * T(i) + T(0.05), T(0.41) * T(j) - T(0.07), T(0.13));
+      const T    dPart = part.signedDistance(p);
+      const T    dBall = ball.signedDistance(p);
+
+      INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
+
+      const PrimitiveRef<T> ref = scene.closestPrimitive(p);
+
+      // The part is decided as a whole: inside its drill hole too, where its value comes from the drill.
+      REQUIRE(ref.m_leaf == ((dBall < dPart) ? 1U : 0U));
+
+      if (ref.m_leaf == 0U) {
+        partLeaves++;
+
+        REQUIRE(scene.template isPrimitive<Part>(ref));
+        CHECK(scene.template primitive<Part>(ref).signedDistance(ref.m_localPoint) == dPart);
+      }
+    }
+  }
+
+  CHECK(partLeaves > 0U);
+}
+
 TEMPLATE_TEST_CASE("Tape: closestPrimitive on a device matches the host", "[Tape][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;

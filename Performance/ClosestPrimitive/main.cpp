@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Performance cases for closestPrimitive(), the deciding leaf of a composition at a point: the classic CSG
-// solid and a mesh drilled through by a cylinder, each as a fused composition and through a Tape, in float
+// Performance cases for closestPrimitive(), the deciding leaf of a tape at a point: the classic CSG solid,
+// a scene of fused CSG parts (each one leaf of the tape) and a mesh drilled through by a cylinder, in float
 // and double, at random points around each object. Each query returns the leaf and the leaf's own value at
 // its local point (through visitPrimitive()), so that the checksum depends on both. A host build runs the
 // host cases; a CUDA or HIP build runs them as host/device pairs, which agree when they name the same leaf
-// or two leaves whose values tie. Each fused case names its tape counterpart, so that a comparison notes
-// time(tape)/time(fused) beside it. In a probe of its own, so that adding it changes no other probe's
+// or two leaves whose values tie. In a probe of its own, so that adding it changes no other probe's
 // translation unit (see Performance/Fused). See ../README.md and PerformanceTesting.rst.
 
 #include <cstddef>
@@ -30,6 +29,10 @@ constexpr std::size_t PairQueries     = 1048576;
 constexpr std::size_t SmokeQueries    = 1000;
 constexpr std::size_t MeshHostQueries = 20000;
 constexpr std::size_t MeshPairQueries = 262144;
+
+// The scene of fused parts: ScenePartsPerAxis^3 copies of the classic CSG solid, ScenePitch apart.
+constexpr std::size_t ScenePartsPerAxis = 2;
+constexpr double      ScenePitch        = 3.0;
 
 template <class T>
 using Vec3 = EBGeometry::Vec3T<T>;
@@ -136,16 +139,11 @@ pointsAround(const EBGeometry::BoundingVolumes::AABBT<T>& a_box, std::size_t a_n
 }
 
 // The cases for one composition: closestPrimitive() on the host and as a host/device pair. a_build(case,
-// pool) returns the shape and the box its points are drawn around. A fused composition names its tape
-// counterpart's input (a_tapeInput, empty for none), and a comparison notes time(tape)/time(fused).
+// pool) returns the tape and the box its points are drawn around.
 template <class T, class Build>
 void
-addComposition(Perf::Suite&       a_suite,
-               const std::string& a_input,
-               const std::string& a_tapeInput,
-               const std::size_t  a_host,
-               const std::size_t  a_pair,
-               Build              a_build)
+addComposition(
+  Perf::Suite& a_suite, const std::string& a_input, const std::size_t a_host, const std::size_t a_pair, Build a_build)
 {
   using Shape = typename std::invoke_result_t<Build, Perf::Case&, EBGeometry::Pool&>::first_type;
 
@@ -162,33 +160,24 @@ addComposition(Perf::Suite&       a_suite,
 
     c.checksum(checksumOf(hits));
     c.poolBytes(pool.usedBytes());
-
-    if (!a_tapeInput.empty()) {
-      c.relativeTo(Perf::caseName({"ClosestPrimitive", a_tapeInput, "closestPrimitive", prec, "host"}), "tape/fused");
-    }
   });
 
-  a_suite.add(
-    Perf::caseName({"ClosestPrimitive", a_input, "closestPrimitive", prec, "hostdevice"}), [=](Perf::Case& c) {
-      EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+  a_suite.add(Perf::caseName({"ClosestPrimitive", a_input, "closestPrimitive", prec, "hostdevice"}),
+              [=](Perf::Case& c) {
+                EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-      const auto made   = a_build(c, pool);
-      const auto points = pointsAround(made.second, c.size(a_pair, SmokeQueries));
+                const auto made   = a_build(c, pool);
+                const auto points = pointsAround(made.second, c.size(a_pair, SmokeQueries));
 
-      const auto hits = Perf::measureHostAndDevice<LeafHit<T>>(
-        c,
-        pool,
-        points,
-        [&](const EBGeometry::Pool& a_pool) { return Leaf<T, Shape>{made.first.rebasedView(a_pool)}; },
-        agreeLeaf<T>);
+                const auto hits = Perf::measureHostAndDevice<LeafHit<T>>(
+                  c,
+                  pool,
+                  points,
+                  [&](const EBGeometry::Pool& a_pool) { return Leaf<T, Shape>{made.first.rebasedView(a_pool)}; },
+                  agreeLeaf<T>);
 
-      c.checksum(checksumOf(hits));
-
-      if (!a_tapeInput.empty()) {
-        c.relativeTo(Perf::caseName({"ClosestPrimitive", a_tapeInput, "closestPrimitive", prec, "hostdevice"}),
-                     "tape/fused");
-      }
-    });
+                c.checksum(checksumOf(hits));
+              });
 }
 
 template <class T>
@@ -197,14 +186,12 @@ addPrecision(Perf::Suite& a_suite)
 {
   using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
   using Mesh = EBGeometry::TriMeshSDF<T, 4, 4>;
+  using Part = decltype(fusedCSG<T>());
 
   const AABB cube(Vec3<T>(T(-1), T(-1), T(-1)), Vec3<T>(T(1), T(1), T(1)));
 
-  // The classic CSG solid, fused and through a tape.
-  addComposition<T>(a_suite, "csg", "csg-tape", HostQueries, PairQueries, [cube](Perf::Case&, EBGeometry::Pool&) {
-    return std::make_pair(fusedCSG<T>(), cube);
-  });
-  addComposition<T>(a_suite, "csg-tape", "", HostQueries, PairQueries, [cube](Perf::Case& c, EBGeometry::Pool& a_pool) {
+  // The classic CSG solid through a tape: five leaves.
+  addComposition<T>(a_suite, "csg", HostQueries, PairQueries, [cube](Perf::Case& c, EBGeometry::Pool& a_pool) {
     const EBGeometry::Tape<T> tape(a_pool, classicCSG<T>());
 
     c.param("clauses", tape.getNumClauses());
@@ -212,43 +199,49 @@ addPrecision(Perf::Suite& a_suite)
     return std::make_pair(tape, cube);
   });
 
-  // The armadillo (the dodecahedron under --smoke) drilled through along x, fused and through a tape.
-  const auto drilled = [](Perf::Case& c, EBGeometry::Pool& a_pool) {
-    const Mesh    mesh = EBGeometry::Parser::readIntoTriMeshSDF<T, 4, 4>(Perf::meshFile(c.smoke()), a_pool);
-    const AABB    box  = mesh.computeBoundingVolume();
-    const Vec3<T> size = box.getHighCorner() - box.getLowCorner();
+  // A scene of ScenePartsPerAxis^3 copies of the classic solid, each fused: one leaf per part, so that the
+  // tape interprets only the union of the parts and each part is evaluated as compiled code.
+  const T    half = T(0.5) * T(ScenePitch) * T(ScenePartsPerAxis);
+  const AABB sceneBox(-half * Vec3<T>::ones(), half * Vec3<T>::ones());
 
-    c.param("K", 4);
-    c.param("W", 4);
+  addComposition<T>(a_suite, "parts", HostQueries, PairQueries, [sceneBox](Perf::Case& c, EBGeometry::Pool& a_pool) {
+    const T                          centre = T(0.5) * T(ScenePartsPerAxis - 1);
+    std::vector<EBGeometry::Expr<T>> parts;
 
-    return std::make_tuple(
-      mesh,
-      box,
-      EBGeometry::InfiniteCylinderSDF<T>(T(0.5) * (box.getLowCorner() + box.getHighCorner()), T(0.12) * size[1], 0));
-  };
+    for (std::size_t i = 0; i < ScenePartsPerAxis; i++) {
+      for (std::size_t j = 0; j < ScenePartsPerAxis; j++) {
+        for (std::size_t k = 0; k < ScenePartsPerAxis; k++) {
+          const Vec3<T> at = T(ScenePitch) * (Vec3<T>(T(i), T(j), T(k)) - centre * Vec3<T>::ones());
 
-  addComposition<T>(a_suite,
-                    "drilled-mesh",
-                    "drilled-mesh-tape",
-                    MeshHostQueries,
-                    MeshPairQueries,
-                    [drilled](Perf::Case& c, EBGeometry::Pool& a_pool) {
-                      const auto [mesh, box, drill] = drilled(c, a_pool);
+          parts.push_back(EBGeometry::Translate(EBGeometry::Expr<T>(fusedCSG<T>()), at));
+        }
+      }
+    }
 
-                      return std::make_pair(EBGeometry::Fused::Difference(mesh, drill), box);
-                    });
-  addComposition<T>(a_suite,
-                    "drilled-mesh-tape",
-                    "",
-                    MeshHostQueries,
-                    MeshPairQueries,
-                    [drilled](Perf::Case& c, EBGeometry::Pool& a_pool) {
-                      const auto [mesh, box, drill] = drilled(c, a_pool);
+    const EBGeometry::Tape<T, Part> tape(a_pool, EBGeometry::Union(parts));
 
-                      return std::make_pair(
-                        EBGeometry::Tape<T, Mesh>(a_pool, EBGeometry::Difference(EBGeometry::Expr<T>(mesh), drill)),
-                        box);
-                    });
+    c.param("parts", parts.size());
+    c.param("clauses", tape.getNumClauses());
+
+    return std::make_pair(tape, sceneBox);
+  });
+
+  // The armadillo (the dodecahedron under --smoke) drilled through along x, through a tape.
+  addComposition<T>(
+    a_suite, "drilled-mesh", MeshHostQueries, MeshPairQueries, [](Perf::Case& c, EBGeometry::Pool& a_pool) {
+      const Mesh    mesh = EBGeometry::Parser::readIntoTriMeshSDF<T, 4, 4>(Perf::meshFile(c.smoke()), a_pool);
+      const AABB    box  = mesh.computeBoundingVolume();
+      const Vec3<T> size = box.getHighCorner() - box.getLowCorner();
+
+      const EBGeometry::InfiniteCylinderSDF<T> drill(
+        T(0.5) * (box.getLowCorner() + box.getHighCorner()), T(0.12) * size[1], 0);
+
+      c.param("K", 4);
+      c.param("W", 4);
+
+      return std::make_pair(EBGeometry::Tape<T, Mesh>(a_pool, EBGeometry::Difference(EBGeometry::Expr<T>(mesh), drill)),
+                            box);
+    });
 }
 
 } // namespace

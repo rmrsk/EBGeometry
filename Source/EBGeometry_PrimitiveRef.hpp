@@ -22,17 +22,18 @@ namespace EBGeometry {
 
 /**
  * @brief The deciding leaf of a composition at a point: the primitive whose surface the composed value
- * comes from there, as Tape::closestPrimitive() and Fused::Node::closestPrimitive() report it.
+ * comes from there, as Tape::closestPrimitive() reports it.
  * @details A union or intersection takes the leaf of the operand whose value it takes; a smooth one the
  * more extreme operand's; a blur or mollification the tap with the largest weight; a complement, offset,
  * annulus, map, elongation or repetition its operand's. For Difference(box, sphere), a point near the
  * carved cavity gets the sphere and a point near the box's outside gets the box. This is the leaf that
  * decides the value, not the geometrically nearest primitive, which could be one the composition removed.
- * A nested composite (a tape listed as a primitive, a BVH union) is one leaf.
+ * A nested composite (a fused composition, which is one shape with one surface; a tape listed as a
+ * primitive; a BVH union) is one leaf.
  *
- * The structure that made the reference returns the primitive itself: isPrimitive<P>(ref),
- * primitive<P>(ref) (by value: the shape, or a pool-resident one's handle rebuilt with the structure's
- * location) and visitPrimitive(ref, f).
+ * The tape that made the reference returns the primitive itself: isPrimitive<P>(ref), primitive<P>(ref)
+ * (by value: the shape, or a pool-resident one's handle rebuilt with the tape's location) and
+ * visitPrimitive(ref, f).
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -49,13 +50,13 @@ struct PrimitiveRef
   uint32_t m_leaf = None;
 
   /**
-   * @brief For a Tape, the index of the primitive's type in the tape's type list (the built-in types,
-   * then UserPrimitives); None for a fused shape.
+   * @brief The index of the primitive's type in the tape's type list (the built-in types, then
+   * UserPrimitives).
    */
   uint32_t m_type = None;
 
   /**
-   * @brief For a Tape, the primitive's index within that type's array; None for a fused shape.
+   * @brief The primitive's index within that type's array.
    */
   uint32_t m_index = None;
 

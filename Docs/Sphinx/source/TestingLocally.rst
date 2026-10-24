@@ -369,7 +369,7 @@ Test coverage
        leaf for a difference, a union (through the BVH and operand by operand) and an intersection
        against the brute-force choice, followed through smooth blends, blurs, maps and repetitions to
        the leaf and its local point, each occurrence of a shared shape numbered, a mesh leaf returned as
-       a handle, and the device against the host.
+       a handle, a fused part as one leaf of a scene, and the device against the host.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and
@@ -379,9 +379,7 @@ Test coverage
        cautious; a composition of mesh distance fields through a host mirror, a deep copy and a node
        rebuilt from its layout; a fused shape as a tape primitive and as a BVH union's primitive; on
        a device, an analytic composition and a drilled mesh against the host; and every rejected
-       argument, operands from different pools included; ``closestPrimitive()`` against hand-computed
-       choices and against a tape of the same expression (the leaf, and the local point to rounding), a
-       nested mesh leaf through a mirror view, and the device against the host.
+       argument, operands from different pools included.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an

@@ -43,7 +43,6 @@
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Pool.hpp"
-#include "EBGeometry_PrimitiveRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -53,98 +52,11 @@ namespace EBGeometry {
  */
 namespace Fused {
 
-template <class Op, class... Cs>
-class Node;
-
 /**
  * @brief Implementation details of the fused operations.
  * @details Internal helpers; not part of the public API.
  */
 namespace Detail {
-
-/**
- * @brief Whether a type is a fused node.
- * @tparam C Type.
- */
-template <class C>
-struct IsNode : std::false_type
-{
-};
-
-/**
- * @brief A fused node is one.
- * @tparam Op Operation.
- * @tparam Cs Operand types.
- */
-template <class Op, class... Cs>
-struct IsNode<Node<Op, Cs...>> : std::true_type
-{
-};
-
-/**
- * @brief Whether a type is a fused node.
- * @tparam C Type.
- */
-template <class C>
-inline constexpr bool isNode = IsNode<C>::value;
-
-/**
- * @brief The number of leaves under an operand: a fused node's, or one for any other shape (a nested
- * composite such as a tape or a BVH union included).
- * @tparam C Operand type.
- * @return The number.
- */
-template <class C>
-[[nodiscard]] EBGEOMETRY_HOST_DEVICE
-constexpr uint32_t
-leavesOf() noexcept
-{
-  if constexpr (isNode<C>) {
-    return C::leafCount;
-  }
-  else {
-    return 1U;
-  }
-}
-
-/**
- * @brief The number of the first leaf under operand I: the leaves of the operands before it.
- * @tparam I    Operand index.
- * @tparam C    The first operand's type.
- * @tparam Rest The others.
- * @return The number.
- */
-template <size_t I, class C, class... Rest>
-[[nodiscard]] EBGEOMETRY_HOST_DEVICE
-constexpr uint32_t
-leafOffset() noexcept
-{
-  if constexpr (I == 0) {
-    return 0U;
-  }
-  else {
-    return leavesOf<C>() + leafOffset<I - 1, Rest...>();
-  }
-}
-
-/**
- * @brief Whether an operand is, or has under it, a leaf of type P.
- * @tparam P Leaf type.
- * @tparam C Operand type.
- * @return True if it does.
- */
-template <class P, class C>
-[[nodiscard]] EBGEOMETRY_HOST_DEVICE
-constexpr bool
-hasLeaf() noexcept
-{
-  if constexpr (isNode<C>) {
-    return C::template containsLeaf<P>();
-  }
-  else {
-    return std::is_same_v<C, P>;
-  }
-}
 
 /**
  * @brief The operands of a fused node, as stored: a recursive aggregate, so that it stays trivially
@@ -327,44 +239,12 @@ struct Base<true> : PoolHandle
 };
 
 /**
- * @brief A visitor that records whether the leaf it is called with is of type P (for isPrimitive()).
- * @details A struct rather than a lambda: nvcc treats a generic lambda's call operator as a host
- * function where a device function calls it.
- * @tparam P Leaf type.
- */
-template <class P>
-struct IsLeafOf
-{
-  /**
-   * @brief Whether the leaf was a P.
-   */
-  bool m_is;
-
-  /**
-   * @brief Record whether a leaf is a P.
-   * @tparam L Leaf type.
-   */
-  template <class L>
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  operator()(const L& /*a_leaf*/) noexcept
-  {
-    m_is = std::is_same_v<L, P>;
-  }
-};
-
-/**
  * @brief The operands of a node, with the location their pool-resident ones resolve against.
  * @tparam Cs Operand types.
  */
-template <class V, class... Cs>
+template <class... Cs>
 struct Operands
 {
-  /**
-   * @brief The value type the operands are evaluated to: T, or CSGOps::Tagged<T> for closestPrimitive().
-   */
-  using Value = V;
-
   /**
    * @brief The operands, as stored.
    */
@@ -374,11 +254,6 @@ struct Operands
    * @brief The node's location.
    */
   PoolLocation m_location;
-
-  /**
-   * @brief The number of the node's first leaf, for tagged values.
-   */
-  uint32_t m_leafBase;
 
   /**
    * @brief Number of operands.
@@ -394,51 +269,16 @@ struct Operands
    */
   template <size_t I, class T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline V
+  inline T
   value(const Vec3T<T>& a_point) const noexcept
   {
     using C = typename TypeAt<I, Cs...>::type;
 
-    if constexpr (CSGOps::isTagged<V>) {
-      // A fused operand numbers its own leaves from its first; any other operand is one leaf. Read in
-      // place, as below: a copy of a node, which its operands are then read through, is not removed by
-      // the compiler, and made closestPrimitive() several times slower.
-      constexpr uint32_t offset = leafOffset<I, Cs...>();
-
-      if constexpr (isPoolHandle<C>) {
-        return tagged(C(get<I>(m_pack), m_location), a_point, m_leafBase + offset);
-      }
-      else {
-        return tagged(get<I>(m_pack), a_point, m_leafBase + offset);
-      }
-    }
-    else if constexpr (isPoolHandle<C>) {
+    if constexpr (isPoolHandle<C>) {
       return C(get<I>(m_pack), m_location).signedDistance(a_point);
     }
     else {
       return get<I>(m_pack).signedDistance(a_point);
-    }
-  }
-
-  /**
-   * @brief An operand's tagged value: a fused node's own, or the operand's value tagged as one leaf.
-   * @tparam C Operand type.
-   * @tparam T Floating-point precision.
-   * @param[in] a_operand Operand.
-   * @param[in] a_point   Point.
-   * @param[in] a_leaf    The number of the operand's first leaf.
-   * @return The value.
-   */
-  template <class C, class T>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  static inline V
-  tagged(const C& a_operand, const Vec3T<T>& a_point, const uint32_t a_leaf) noexcept
-  {
-    if constexpr (isNode<C>) {
-      return a_operand.template evaluateValue<V>(a_point, a_leaf);
-    }
-    else {
-      return V{a_operand.signedDistance(a_point), a_leaf, a_point};
     }
   }
 
@@ -491,24 +331,6 @@ public:
    * @brief How far signedDistance() can be trusted as a distance (see DistanceQuality).
    */
   static constexpr DistanceQuality distanceQuality = Op::template quality<Cs...>();
-
-  /**
-   * @brief The number of leaves under the node: each operand that is not itself a fused node counts once.
-   */
-  static constexpr uint32_t leafCount = (Detail::leavesOf<Cs>() + ...);
-
-  /**
-   * @brief Whether the node has a leaf of type P under it.
-   * @tparam P Leaf type.
-   * @return True if it does.
-   */
-  template <class P>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  static constexpr bool
-  containsLeaf() noexcept
-  {
-    return (Detail::hasLeaf<P, Cs>() || ...);
-  }
 
   /**
    * @brief Everything the node holds: the operation's parameters and its operands (their layouts for
@@ -572,103 +394,7 @@ public:
   inline T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
-    return m_layout.m_op.evaluate(this->template operands<T>(0U), a_point);
-  }
-
-  /**
-   * @brief The deciding leaf at a point: the operand whose surface the value comes from there (see
-   * PrimitiveRef), with the point in its own frame.
-   * @details The leaves are numbered in expression order, depth first, each occurrence counted, as a Tape
-   * of the same expression numbers them; m_type and m_index are None. An operand that is not a fused
-   * node (a tape, a BVH union, any other shape) is one leaf. Computed by the same arithmetic as
-   * signedDistance(), carrying the leaf with each value.
-   * @param[in] a_point Query point.
-   * @return The leaf and the point in its frame.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PrimitiveRef<T>
-  closestPrimitive(const Vec3T<T>& a_point) const noexcept
-  {
-    const CSGOps::Tagged<T> value = this->template evaluateValue<CSGOps::Tagged<T>>(a_point, 0U);
-
-    PrimitiveRef<T> ref;
-
-    ref.m_leaf       = value.m_tag;
-    ref.m_localPoint = value.m_point;
-
-    return ref;
-  }
-
-  /**
-   * @brief Whether a reference's leaf is of type P.
-   * @tparam P Leaf type; the composition must have a leaf of this type (checked when compiling, as the
-   * Tape's isPrimitive() checks P against its primitive types).
-   * @param[in] a_ref Reference from closestPrimitive().
-   * @return True if it is.
-   */
-  template <class P>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline bool
-  isPrimitive(const PrimitiveRef<T>& a_ref) const noexcept
-  {
-    static_assert(containsLeaf<P>(), "Fused::Node::isPrimitive: the composition has no leaf of type P");
-
-    Detail::IsLeafOf<P> check{false};
-
-    this->visitPrimitive(a_ref, check);
-
-    return check.m_is;
-  }
-
-  /**
-   * @brief The leaf a reference names, by value: the shape, or for a pool-resident one (a mesh SDF, a
-   * BVH union, a tape) its handle, rebuilt with the node's location.
-   * @tparam P Leaf type; the leaf must be one (isPrimitive<P>()).
-   * @param[in] a_ref Reference from closestPrimitive().
-   * @return The leaf.
-   */
-  template <class P>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline P
-  primitive(const PrimitiveRef<T>& a_ref) const noexcept
-  {
-    static_assert(containsLeaf<P>(), "Fused::Node::primitive: the composition has no leaf of type P");
-
-    return this->template leafAs<P, 0>(a_ref.m_leaf);
-  }
-
-  /**
-   * @brief Call a function with the leaf a reference names, as primitive<P>() returns it, whatever its
-   * type.
-   * @tparam F Callable taking any of the composition's leaf types (a generic lambda in host code).
-   * In a CUDA or HIP translation unit, pass a functor whose call operator is EBGEOMETRY_HOST_DEVICE: the
-   * device compiler treats a lambda's call operator as a host function here.
-   * @param[in] a_ref Reference from closestPrimitive().
-   * @param[in] a_f   Function.
-   */
-  template <class F>
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  visitPrimitive(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept
-  {
-    this->template visitLeaf<0>(a_ref.m_leaf, a_f);
-  }
-
-  /**
-   * @brief The composition's value as a plain or a tagged value, its leaves numbered from a given one.
-   * @details Internal helper of the fused nodes (an enclosing node evaluates its fused operands so); use
-   * signedDistance() or closestPrimitive().
-   * @tparam V Value type: T, or CSGOps::Tagged<T>.
-   * @param[in] a_point    Point.
-   * @param[in] a_leafBase The number of the node's first leaf.
-   * @return The value.
-   */
-  template <class V>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline V
-  evaluateValue(const Vec3T<T>& a_point, const uint32_t a_leafBase) const noexcept
-  {
-    return m_layout.m_op.evaluate(this->template operands<V>(a_leafBase), a_point);
+    return m_layout.m_op.evaluate(this->operands(), a_point);
   }
 
   /**
@@ -679,7 +405,7 @@ public:
   inline BoundingVolumes::AABBT<T>
   computeBoundingVolume() const
   {
-    return m_layout.m_op.box(this->template operands<T>(0U));
+    return m_layout.m_op.box(this->operands());
   }
 
   /**
@@ -703,9 +429,6 @@ public:
   deepCopy(Pool& a_dstPool) const;
 
 private:
-  template <class Op2, class... Cs2>
-  friend class Node;
-
   /**
    * @brief Everything the node holds.
    */
@@ -715,131 +438,11 @@ private:
    * @brief The operands, with the location they resolve against.
    * @return The operands.
    */
-  template <class V>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Detail::Operands<V, Cs...>
-  operands(const uint32_t a_leafBase) const noexcept
+  inline Detail::Operands<Cs...>
+  operands() const noexcept
   {
-    return Detail::Operands<V, Cs...>{m_layout.m_operands, this->location(), a_leafBase};
-  }
-
-  /**
-   * @brief Operand I, as a shape: as stored, or a pool-resident one rebuilt with the node's location.
-   * @tparam I Operand index.
-   * @return The operand.
-   */
-  template <size_t I>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename Detail::TypeAt<I, Cs...>::type
-  operand() const noexcept
-  {
-    using C = typename Detail::TypeAt<I, Cs...>::type;
-
-    return CSGDetail::fromStored<C>(Detail::get<I>(m_layout.m_operands), this->location());
-  }
-
-  /**
-   * @brief Call a function with leaf `a_leaf` under operands I onwards.
-   * @tparam I Operand index.
-   * @tparam F Callable.
-   * @param[in] a_leaf The leaf's number within this node.
-   * @param[in] a_f    Function.
-   */
-  template <size_t I, class F>
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  visitLeaf(const uint32_t a_leaf, F& a_f) const noexcept
-  {
-    if constexpr (I < sizeof...(Cs)) {
-      using C = typename Detail::TypeAt<I, Cs...>::type;
-
-      constexpr uint32_t offset = Detail::leafOffset<I, Cs...>();
-      constexpr uint32_t count  = Detail::leavesOf<C>();
-
-      // a_leaf - offset wraps around below offset, so one comparison covers both bounds.
-      if (a_leaf - offset < count) {
-        const C child = this->template operand<I>();
-
-        if constexpr (Detail::isNode<C>) {
-          child.template visitLeaf<0>(a_leaf - offset, a_f);
-        }
-        else {
-          a_f(child);
-        }
-
-        return;
-      }
-
-      this->template visitLeaf<I + 1>(a_leaf, a_f);
-    }
-  }
-
-  /**
-   * @brief Leaf `a_leaf` under operands I onwards, as a P.
-   * @details A leaf that is not a P is a caller's error (an assertion); it then returns the first leaf of
-   * type P instead.
-   * @tparam P Leaf type.
-   * @tparam I Operand index.
-   * @param[in] a_leaf The leaf's number within this node.
-   * @return The leaf.
-   */
-  template <class P, size_t I>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline P
-  leafAs(const uint32_t a_leaf) const noexcept
-  {
-    using C = typename Detail::TypeAt<I, Cs...>::type;
-
-    constexpr uint32_t offset = Detail::leafOffset<I, Cs...>();
-    constexpr uint32_t count  = Detail::leavesOf<C>();
-
-    if constexpr (I + 1 < sizeof...(Cs)) {
-      if (!(a_leaf - offset < count)) {
-        return this->template leafAs<P, I + 1>(a_leaf);
-      }
-    }
-
-    if constexpr (Detail::hasLeaf<P, C>()) {
-      if constexpr (Detail::isNode<C>) {
-        return this->template operand<I>().template leafAs<P, 0>(a_leaf - offset);
-      }
-      else {
-        EBGEOMETRY_EXPECT(a_leaf == offset);
-
-        return this->template operand<I>();
-      }
-    }
-    else {
-      EBGEOMETRY_EXPECT(false && "Fused::Node::primitive: the leaf is not of this type");
-
-      return this->template firstLeafAs<P, 0>();
-    }
-  }
-
-  /**
-   * @brief The first leaf of type P under operands I onwards.
-   * @tparam P Leaf type.
-   * @tparam I Operand index.
-   * @return The leaf.
-   */
-  template <class P, size_t I>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline P
-  firstLeafAs() const noexcept
-  {
-    using C = typename Detail::TypeAt<I, Cs...>::type;
-
-    if constexpr (Detail::hasLeaf<P, C>()) {
-      if constexpr (Detail::isNode<C>) {
-        return this->template operand<I>().template firstLeafAs<P, 0>();
-      }
-      else {
-        return this->template operand<I>();
-      }
-    }
-    else {
-      return this->template firstLeafAs<P, I + 1>();
-    }
+    return Detail::Operands<Cs...>{m_layout.m_operands, this->location()};
   }
 };
 
@@ -872,7 +475,7 @@ struct CombineOp
    */
   template <class O, class T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
     return this->fold(a_operands, a_point, std::make_index_sequence<O::count - 1>{});
@@ -904,16 +507,16 @@ private:
    */
   template <class O, class T, size_t... Is>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   fold(const O& a_operands, const Vec3T<T>& a_point, std::index_sequence<Is...>) const noexcept
   {
-    typename O::Value value = a_operands.template value<0>(a_point);
+    T value = a_operands.template value<0>(a_point);
 
     if constexpr (IsUnion) {
-      ((value = CSGOps::smaller(value, a_operands.template value<Is + 1>(a_point))), ...);
+      ((value = Math::min(value, a_operands.template value<Is + 1>(a_point))), ...);
     }
     else {
-      ((value = CSGOps::larger(value, a_operands.template value<Is + 1>(a_point))), ...);
+      ((value = Math::max(value, a_operands.template value<Is + 1>(a_point))), ...);
     }
 
     return value;
@@ -996,7 +599,7 @@ struct SmoothCombineOp
    */
   template <class O>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
     return this->blend(a_operands, a_point, std::make_index_sequence<O::count>{});
@@ -1035,12 +638,10 @@ private:
    */
   template <class O, size_t... Is>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   blend(const O& a_operands, const Vec3T<T>& a_point, std::index_sequence<Is...>) const noexcept
   {
-    using V = typename O::Value;
-
-    CSGOps::Pair<V> pair = CSGOps::pairInit<V>(!IsUnion);
+    CSGOps::Pair<T> pair = CSGOps::pairInit<T>(!IsUnion);
 
     (CSGOps::pairInsert(pair, a_operands.template value<Is>(a_point), !IsUnion), ...);
 
@@ -1075,10 +676,10 @@ struct ComplementOp
    */
   template <class O, class T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
-    return CSGOps::negated(a_operands.template value<0>(a_point));
+    return -a_operands.template value<0>(a_point);
   }
 
   /**
@@ -1143,12 +744,12 @@ struct AffineOp
    */
   template <class O>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
-    const typename O::Value value = a_operands.template value<0>(CSGOps::affinePoint(m_map, a_point));
+    const T value = a_operands.template value<0>(CSGOps::affinePoint(m_map, a_point));
 
-    return (m_valueScale != T(1)) ? CSGOps::times(value, m_valueScale) : value;
+    return (m_valueScale != T(1)) ? value * m_valueScale : value;
   }
 
   /**
@@ -1199,7 +800,7 @@ struct ElongateOp
    */
   template <class O>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
     return a_operands.template value<0>(CSGOps::elongatePoint(m_halfLengths, a_point));
@@ -1255,16 +856,16 @@ struct ShiftOp
    */
   template <class O>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
-    const typename O::Value value = a_operands.template value<0>(a_point);
+    const T value = a_operands.template value<0>(a_point);
 
     if constexpr (IsAnnulus) {
-      return CSGOps::withValue(value, CSGOps::annular(CSGOps::valueOf(value), m_amount));
+      return CSGOps::annular(value, m_amount);
     }
     else {
-      return CSGOps::withValue(value, CSGOps::offset(CSGOps::valueOf(value), m_amount));
+      return CSGOps::offset(value, m_amount);
     }
   }
 
@@ -1317,11 +918,10 @@ struct RepetitionOp
    */
   template <class O>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
-    const auto f = [&a_operands](const Vec3T<T>& a_x) noexcept ->
-      typename O::Value { return a_operands.template value<0>(a_x); };
+    const auto f = [&a_operands](const Vec3T<T>& a_x) noexcept -> T { return a_operands.template value<0>(a_x); };
 
     return CSGOps::repetition<T>(m_repetition, a_point, f);
   }
@@ -1371,11 +971,10 @@ struct BlurOp
    */
   template <class O>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
-    const auto f = [&a_operands](const Vec3T<T>& a_x) noexcept ->
-      typename O::Value { return a_operands.template value<0>(a_x); };
+    const auto f = [&a_operands](const Vec3T<T>& a_x) noexcept -> T { return a_operands.template value<0>(a_x); };
 
     return CSGOps::blur(m_weights.m_values, a_point, f);
   }
@@ -1435,15 +1034,14 @@ struct MollifyOp
    */
   template <class O>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline typename O::Value
+  inline T
   evaluate(const O& a_operands, const Vec3T<T>& a_point) const noexcept
   {
     if (m_identity) {
       return a_operands.template value<0>(a_point);
     }
 
-    const auto f = [&a_operands](const Vec3T<T>& a_x) noexcept ->
-      typename O::Value { return a_operands.template value<0>(a_x); };
+    const auto f = [&a_operands](const Vec3T<T>& a_x) noexcept -> T { return a_operands.template value<0>(a_x); };
 
     return CSGOps::mollify(m_grid, a_point, f);
   }

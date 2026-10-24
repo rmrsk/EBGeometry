@@ -536,7 +536,8 @@ does not follow this template, edit the PR body to conform to it.
   the same values (to rounding: the compiler may fuse multiply-adds differently in the two, so a
   Release build differs in the last bit): change an operation there, never in one of the two alone,
   and keep `TestFused`'s comparison with the tape passing. `CSGOps` works on a plain value or on a
-  `CSGOps::Tagged` one (for `closestPrimitive()`); keep each function's plain-`T` code written as it is,
+  `CSGOps::Tagged` one (for the tape's `closestPrimitive()`; a fused composition is one shape with one
+  surface, a single leaf of a tape, and has none); keep each function's plain-`T` code written as it is,
   with the tagged handling in `if constexpr` branches or a `Tagged<T>` overload. An equivalent rewrite
   costs on both sides: of the plain Blur loop, a 16-evaluation float tape kernel went from 168 to 255
   registers; of `pairInsert()`/`pairBlend()` alone, GCC stopped inlining the float tape's primitive
