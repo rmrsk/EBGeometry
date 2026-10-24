@@ -28,7 +28,7 @@ date: 2026-10-24
 
 ## Host comparison: yellow
 
-**Accepted:** -
+**Accepted:** false regression
 
 `857afec` against `58a78db` (origin/dev), 2026-10-24.
 
