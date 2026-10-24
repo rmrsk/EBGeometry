@@ -18,21 +18,21 @@ side: host
 verdict: yellow
 base: 8e03593
 base-fingerprint: 15204015c7463e87f984661ed87db6a6feaa9c85
-head: 4c7165a
-head-fingerprint: e82f696417f53100ce7598a10c5f88662693de2f
+head: 9f9f57a
+head-fingerprint: 00a3c8eb2918da445723bc4331d4474b6739daa2
 cases: 118
 rounds: 3
 reps: 5
-date: 2026-10-23
+date: 2026-10-24
 -->
 
 ## Host comparison: yellow
 
-**Accepted:** benefits outweigh drawbacks
+**Accepted:** -
 
-`4c7165a` against `8e03593` (origin/dev), 2026-10-23.
+`9f9f57a` against `8e03593` (origin/dev), 2026-10-24.
 
-**VERDICT: 5 minor regressions
+**VERDICT: 3 minor regressions
 
 <!-- END receipt host -->
 
@@ -43,19 +43,19 @@ side: cuda
 verdict: yellow
 base: 8e03593
 base-fingerprint: 15204015c7463e87f984661ed87db6a6feaa9c85
-head: 4c7165a
-head-fingerprint: e82f696417f53100ce7598a10c5f88662693de2f
+head: 9f9f57a
+head-fingerprint: 00a3c8eb2918da445723bc4331d4474b6739daa2
 cases: 90
 rounds: 3
 reps: 5
-date: 2026-10-23
+date: 2026-10-24
 -->
 
 ## Device comparison (CUDA): yellow
 
-**Accepted:** benefits outweigh drawbacks
+**Accepted:** -
 
-`4c7165a` against `8e03593` (origin/dev), 2026-10-23.
+`9f9f57a` against `8e03593` (origin/dev), 2026-10-24.
 
 **VERDICT: 3 minor regressions
 

@@ -290,8 +290,9 @@ Fused composition
 -----------------
 
 A tape interprets its clauses one after another, which on a GPU costs several times what the same
-solid written out by hand does (about ten times for a few analytic shapes in ``float``; little for a
-mesh, whose traversal dominates). When the structure of a composition is known when the program is
+solid written out by hand does (five to ten times for a few analytic shapes in ``float``; little in
+``double``, whose arithmetic dominates there, and little for a mesh, whose traversal dominates). The
+Fused probe tracks the ratio (see :ref:`Chap:PerformanceTesting`). When the structure of a composition is known when the program is
 compiled, the functions in namespace ``Fused`` build it as types instead
 (`EBGeometry_Fused.hpp <doxygen/html/EBGeometry__Fused_8hpp.html>`__):
 
