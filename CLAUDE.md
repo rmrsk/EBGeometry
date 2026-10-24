@@ -536,11 +536,16 @@ does not follow this template, edit the PR body to conform to it.
   the same values (to rounding: the compiler may fuse multiply-adds differently in the two, so a
   Release build differs in the last bit): change an operation there, never in one of the two alone,
   and keep `TestFused`'s comparison with the tape passing. `CSGOps` works on a plain value or on a
-  `CSGOps::Tagged` one (for `closestPrimitive()`); keep each function's plain-`T` code written as it is
-  and put the tagged handling in `if constexpr` branches: an equivalent rewrite of the plain Blur loop
-  raised a 16-evaluation float tape kernel from 168 to 255 registers. After any change on the tape's
-  device path, compile a float kernel calling `signedDistance()` once and one calling it 16 times in a
-  loop and check `ptxas -v` still reports the registers dev's do. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
+  `CSGOps::Tagged` one (for `closestPrimitive()`); keep each function's plain-`T` code written as it is,
+  with the tagged handling in `if constexpr` branches or a `Tagged<T>` overload. An equivalent rewrite
+  costs on both sides: of the plain Blur loop, a 16-evaluation float tape kernel went from 168 to 255
+  registers; of `pairInsert()`/`pairBlend()` alone, GCC stopped inlining the float tape's primitive
+  dispatch, and host tapes without a smooth union became up to 37% slower. After any change on the
+  tape's path, compile a float kernel calling `signedDistance()` once and one calling it 16 times in a
+  loop and check `ptxas -v` still reports the registers dev's do, and compare the sizes of the host
+  evaluator's out-of-line functions (`nm -C -S` on `Performance/Tape/main.cpp` built `-O3
+  -march=native`) with the base's: a function that newly appears or changes size there moves the
+  receipt. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
   another tape, a user type) must be listed in `UserPrimitives`. The evaluator has no recursion: a
   sub-program call (Blur, Mollify, FiniteRepetition, BVH union operands) goes through the `evaluate<D>` call-depth
   template, bounded by `Tape::MaxCallDepth`, and the value/point stacks are fixed arrays; keep it

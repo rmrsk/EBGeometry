@@ -94,6 +94,7 @@ inline constexpr bool isTagged<Tagged<T>> = true;
  */
 template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline T
 valueOf(const T a_value) noexcept
 {
@@ -108,6 +109,7 @@ valueOf(const T a_value) noexcept
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline T
 valueOf(const Tagged<T>& a_value) noexcept
 {
@@ -122,6 +124,7 @@ valueOf(const Tagged<T>& a_value) noexcept
  */
 template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline T
 withValue(const T /*a_like*/, const T a_value) noexcept
 {
@@ -137,6 +140,7 @@ withValue(const T /*a_like*/, const T a_value) noexcept
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline Tagged<T>
 withValue(const Tagged<T>& a_like, const T a_value) noexcept
 {
@@ -154,6 +158,7 @@ withValue(const Tagged<T>& a_like, const T a_value) noexcept
  */
 template <class V, class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline V
 leafValue(const T a_value, [[maybe_unused]] const uint32_t a_tag, [[maybe_unused]] const Vec3T<T>& a_point) noexcept
 {
@@ -173,6 +178,7 @@ leafValue(const T a_value, [[maybe_unused]] const uint32_t a_tag, [[maybe_unused
  */
 template <class V>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline V
 negated(const V& a_value) noexcept
 {
@@ -192,6 +198,7 @@ negated(const V& a_value) noexcept
  */
 template <class V>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline V
 magnitude(const V& a_value) noexcept
 {
@@ -213,6 +220,7 @@ magnitude(const V& a_value) noexcept
  */
 template <class V, class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline V
 plus(const V& a_value, const T a_constant) noexcept
 {
@@ -234,6 +242,7 @@ plus(const V& a_value, const T a_constant) noexcept
  */
 template <class V, class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline V
 times(const V& a_value, const T a_constant) noexcept
 {
@@ -254,6 +263,7 @@ times(const V& a_value, const T a_constant) noexcept
  */
 template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline T
 smaller(const T a_first, const T a_second) noexcept
 {
@@ -269,6 +279,7 @@ smaller(const T a_first, const T a_second) noexcept
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline Tagged<T>
 smaller(const Tagged<T>& a_first, const Tagged<T>& a_second) noexcept
 {
@@ -284,6 +295,7 @@ smaller(const Tagged<T>& a_first, const Tagged<T>& a_second) noexcept
  */
 template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline T
 larger(const T a_first, const T a_second) noexcept
 {
@@ -299,6 +311,7 @@ larger(const T a_first, const T a_second) noexcept
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline Tagged<T>
 larger(const Tagged<T>& a_first, const Tagged<T>& a_second) noexcept
 {
@@ -474,19 +487,46 @@ pairInit(const bool a_largest) noexcept
 
 /**
  * @brief Insert a value into a pair of extreme values.
- * @tparam V Value type (T or Tagged<T>).
+ * @details The plain value has an overload of its own, written as it was before values could be tagged:
+ * GCC weighs a callee's body when it decides what to inline into the tape's evaluator, and a generic body
+ * changed what it inlined there (see the Blur kernel in blur()).
+ * @tparam T Floating-point precision.
  * @param[in,out] a_pair    Pair.
  * @param[in]     a_value   Value.
  * @param[in]     a_largest Whether the pair tracks the largest values.
  */
-template <class V>
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 EBGEOMETRY_HOST_DEVICE
 inline void
-pairInsert(Pair<V>& a_pair, const V& a_value, const bool a_largest) noexcept
+pairInsert(Pair<T>& a_pair, const T a_value, const bool a_largest) noexcept
 {
-  const auto value  = valueOf(a_value);
-  const auto first  = valueOf(a_pair.m_first);
-  const auto second = valueOf(a_pair.m_second);
+  const bool beyondFirst  = a_largest ? (a_value > a_pair.m_first) : (a_value < a_pair.m_first);
+  const bool beyondSecond = a_largest ? (a_value > a_pair.m_second) : (a_value < a_pair.m_second);
+
+  if (beyondFirst) {
+    a_pair.m_second = a_pair.m_first;
+    a_pair.m_first  = a_value;
+  }
+  else if (beyondSecond) {
+    a_pair.m_second = a_value;
+  }
+}
+
+/**
+ * @brief Insert a tagged value into a pair of extreme values.
+ * @tparam T Floating-point precision.
+ * @param[in,out] a_pair    Pair.
+ * @param[in]     a_value   Tagged value.
+ * @param[in]     a_largest Whether the pair tracks the largest values.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+pairInsert(Pair<Tagged<T>>& a_pair, const Tagged<T>& a_value, const bool a_largest) noexcept
+{
+  const T value  = a_value.m_value;
+  const T first  = a_pair.m_first.m_value;
+  const T second = a_pair.m_second.m_value;
 
   const bool beyondFirst  = a_largest ? (value > first) : (value < first);
   const bool beyondSecond = a_largest ? (value > second) : (value < second);
@@ -501,8 +541,8 @@ pairInsert(Pair<V>& a_pair, const V& a_value, const bool a_largest) noexcept
 }
 
 /**
- * @brief The smooth minimum (or maximum) of a pair's two values, tagged as the more extreme one.
- * @tparam V Value type (T or Tagged<T>).
+ * @brief The smooth minimum (or maximum) of a pair's two values.
+ * @details The plain value has an overload of its own, for the reason given in pairInsert().
  * @tparam T Floating-point precision.
  * @param[in] a_pair        Pair.
  * @param[in] a_smooth      Smoothing length.
@@ -511,24 +551,38 @@ pairInsert(Pair<V>& a_pair, const V& a_value, const bool a_largest) noexcept
  * (SmoothMinOp/SmoothMaxOp).
  * @return The blended value.
  */
-template <class V, class T>
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline V
-pairBlend(const Pair<V>& a_pair, const T a_smooth, const bool a_largest, const bool a_exponential) noexcept
+inline T
+pairBlend(const Pair<T>& a_pair, const T a_smooth, const bool a_largest, const bool a_exponential) noexcept
 {
-  const T first  = valueOf(a_pair.m_first);
-  const T second = valueOf(a_pair.m_second);
-
-  T value;
-
   if (a_exponential) {
-    value = a_largest ? ExpMaxOp<T>{}(first, second, a_smooth) : ExpMinOp<T>{}(first, second, a_smooth);
-  }
-  else {
-    value = a_largest ? SmoothMaxOp<T>{}(first, second, a_smooth) : SmoothMinOp<T>{}(first, second, a_smooth);
+    return a_largest ? ExpMaxOp<T>{}(a_pair.m_first, a_pair.m_second, a_smooth)
+                     : ExpMinOp<T>{}(a_pair.m_first, a_pair.m_second, a_smooth);
   }
 
-  return withValue(a_pair.m_first, value);
+  return a_largest ? SmoothMaxOp<T>{}(a_pair.m_first, a_pair.m_second, a_smooth)
+                   : SmoothMinOp<T>{}(a_pair.m_first, a_pair.m_second, a_smooth);
+}
+
+/**
+ * @brief The smooth minimum (or maximum) of a pair's two tagged values, tagged as the more extreme one.
+ * @tparam T Floating-point precision.
+ * @param[in] a_pair        Pair.
+ * @param[in] a_smooth      Smoothing length.
+ * @param[in] a_largest     Whether this is a smooth maximum.
+ * @param[in] a_exponential Whether to blend exponentially (ExpMinOp/ExpMaxOp) rather than polynomially
+ * (SmoothMinOp/SmoothMaxOp).
+ * @return The blended value.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Tagged<T>
+pairBlend(const Pair<Tagged<T>>& a_pair, const T a_smooth, const bool a_largest, const bool a_exponential) noexcept
+{
+  const Pair<T> values{a_pair.m_first.m_value, a_pair.m_second.m_value};
+
+  return withValue(a_pair.m_first, pairBlend(values, a_smooth, a_largest, a_exponential));
 }
 
 /**
