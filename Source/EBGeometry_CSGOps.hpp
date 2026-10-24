@@ -62,9 +62,12 @@ struct Tagged
   T m_value;
 
   /**
-   * @brief The deciding leaf, as the structure numbers it (NoTag for none, as a value-initialised one has).
+   * @brief The deciding leaf, as the structure numbers it (NoTag for none).
+   * @details No default member initialiser: the tape keeps a fixed stack of values, and one would
+   * write every slot of it on every evaluation (a tagged float tape on a GPU was 59% slower). A value
+   * that names no leaf is made with noLeaf().
    */
-  uint32_t m_tag = NoTag;
+  uint32_t m_tag;
 
   /**
    * @brief The point the leaf was evaluated at.
@@ -274,6 +277,27 @@ select(const bool a_second, const Tagged<T>& a_first, const Tagged<T>& a_other) 
                    Vec3T<T>(a_second ? a_other.m_point[0] : a_first.m_point[0],
                             a_second ? a_other.m_point[1] : a_first.m_point[1],
                             a_second ? a_other.m_point[2] : a_first.m_point[2])};
+}
+
+/**
+ * @brief A value that comes from no leaf: zero, tagged with NoTag.
+ * @tparam V Value type (T or Tagged<T>).
+ * @return The value.
+ */
+template <class V>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
+inline V
+noLeaf() noexcept
+{
+  if constexpr (isTagged<V>) {
+    using T = decltype(V::m_value);
+
+    return V{T(0), NoTag, Vec3T<T>::zeros()};
+  }
+  else {
+    return V(0);
+  }
 }
 
 /**
@@ -669,7 +693,7 @@ blur(const T* a_weights, const Vec3T<T>& a_point, const F& a_operand) noexcept
 
   if constexpr (isTagged<V>) {
     // The same sum, carrying the centre tap's tag (the largest weight).
-    V centre{};
+    V centre = noLeaf<V>();
 
     for (int t = 0; t < 27; t++) {
       const int i = t / 9 - 1;
@@ -817,7 +841,7 @@ mollify(const MollifyGrid<T>& a_grid, const Vec3T<T>& a_point, const F& a_operan
 
   if constexpr (isTagged<V>) {
     // The same sum, carrying the tag of the tap with the largest weight (the first, if several have it).
-    V heaviest{};
+    V heaviest       = noLeaf<V>();
     T heaviestWeight = -T(1);
 
     for (uint32_t i = 0; i < a_grid.m_samples; i++) {

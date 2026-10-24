@@ -1011,7 +1011,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       else {
         EBGEOMETRY_EXPECT(false);
 
-        values[nv++] = V{};
+        values[nv++] = CSGOps::noLeaf<V>();
       }
 
       break;
@@ -1025,7 +1025,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
 
         if constexpr (CSGOps::isTagged<V>) {
           // The same sum, tagged with the tap of the largest weight (the first, if several have it).
-          V heaviest{};
+          V heaviest       = CSGOps::noLeaf<V>();
           T heaviestWeight = -T(1);
 
           for (uint32_t k = 0; k < c.m_c; k++) {
@@ -1057,7 +1057,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       else {
         EBGEOMETRY_EXPECT(false);
 
-        values[nv++] = V{};
+        values[nv++] = CSGOps::noLeaf<V>();
       }
 
       break;
@@ -1069,7 +1069,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       else {
         EBGEOMETRY_EXPECT(false);
 
-        values[nv++] = V{};
+        values[nv++] = CSGOps::noLeaf<V>();
       }
 
       break;
@@ -1082,7 +1082,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       else {
         EBGEOMETRY_EXPECT(false);
 
-        values[nv++] = V{};
+        values[nv++] = CSGOps::noLeaf<V>();
       }
 
       break;
