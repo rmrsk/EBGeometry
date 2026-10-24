@@ -189,7 +189,8 @@ Family                                Build  Measures
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): ``closestPrimitive()``, the deciding leaf (see
 :ref:`Sec:DecidingLeaf`), of the classic CSG solid and of the drilled mesh, each fused and through a
 tape. Each query also evaluates the leaf at its local point, so that the checksum depends on both; a
-host and a device answer agree when they name the same leaf or two leaves whose values tie.
+host and a device answer agree when they name the same leaf or two leaves whose values tie. As in the
+Fused probe, each fused case notes ``tape/fused`` beside it.
 
 ====================================  =====  =====================================================
 Family                                Build  Measures

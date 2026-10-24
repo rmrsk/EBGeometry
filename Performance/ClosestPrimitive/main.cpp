@@ -7,7 +7,8 @@
 // and double, at random points around each object. Each query returns the leaf and the leaf's own value at
 // its local point (through visitPrimitive()), so that the checksum depends on both. A host build runs the
 // host cases; a CUDA or HIP build runs them as host/device pairs, which agree when they name the same leaf
-// or two leaves whose values tie. In a probe of its own, so that adding it changes no other probe's
+// or two leaves whose values tie. Each fused case names its tape counterpart, so that a comparison notes
+// time(tape)/time(fused) beside it. In a probe of its own, so that adding it changes no other probe's
 // translation unit (see Performance/Fused). See ../README.md and PerformanceTesting.rst.
 
 #include <cstddef>
@@ -135,11 +136,16 @@ pointsAround(const EBGeometry::BoundingVolumes::AABBT<T>& a_box, std::size_t a_n
 }
 
 // The cases for one composition: closestPrimitive() on the host and as a host/device pair. a_build(case,
-// pool) returns the shape and the box its points are drawn around.
+// pool) returns the shape and the box its points are drawn around. A fused composition names its tape
+// counterpart's input (a_tapeInput, empty for none), and a comparison notes time(tape)/time(fused).
 template <class T, class Build>
 void
-addComposition(
-  Perf::Suite& a_suite, const std::string& a_input, const std::size_t a_host, const std::size_t a_pair, Build a_build)
+addComposition(Perf::Suite&       a_suite,
+               const std::string& a_input,
+               const std::string& a_tapeInput,
+               const std::size_t  a_host,
+               const std::size_t  a_pair,
+               Build              a_build)
 {
   using Shape = typename std::invoke_result_t<Build, Perf::Case&, EBGeometry::Pool&>::first_type;
 
@@ -156,24 +162,33 @@ addComposition(
 
     c.checksum(checksumOf(hits));
     c.poolBytes(pool.usedBytes());
+
+    if (!a_tapeInput.empty()) {
+      c.relativeTo(Perf::caseName({"ClosestPrimitive", a_tapeInput, "closestPrimitive", prec, "host"}), "tape/fused");
+    }
   });
 
-  a_suite.add(Perf::caseName({"ClosestPrimitive", a_input, "closestPrimitive", prec, "hostdevice"}),
-              [=](Perf::Case& c) {
-                EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+  a_suite.add(
+    Perf::caseName({"ClosestPrimitive", a_input, "closestPrimitive", prec, "hostdevice"}), [=](Perf::Case& c) {
+      EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-                const auto made   = a_build(c, pool);
-                const auto points = pointsAround(made.second, c.size(a_pair, SmokeQueries));
+      const auto made   = a_build(c, pool);
+      const auto points = pointsAround(made.second, c.size(a_pair, SmokeQueries));
 
-                const auto hits = Perf::measureHostAndDevice<LeafHit<T>>(
-                  c,
-                  pool,
-                  points,
-                  [&](const EBGeometry::Pool& a_pool) { return Leaf<T, Shape>{made.first.rebasedView(a_pool)}; },
-                  agreeLeaf<T>);
+      const auto hits = Perf::measureHostAndDevice<LeafHit<T>>(
+        c,
+        pool,
+        points,
+        [&](const EBGeometry::Pool& a_pool) { return Leaf<T, Shape>{made.first.rebasedView(a_pool)}; },
+        agreeLeaf<T>);
 
-                c.checksum(checksumOf(hits));
-              });
+      c.checksum(checksumOf(hits));
+
+      if (!a_tapeInput.empty()) {
+        c.relativeTo(Perf::caseName({"ClosestPrimitive", a_tapeInput, "closestPrimitive", prec, "hostdevice"}),
+                     "tape/fused");
+      }
+    });
 }
 
 template <class T>
@@ -186,10 +201,10 @@ addPrecision(Perf::Suite& a_suite)
   const AABB cube(Vec3<T>(T(-1), T(-1), T(-1)), Vec3<T>(T(1), T(1), T(1)));
 
   // The classic CSG solid, fused and through a tape.
-  addComposition<T>(a_suite, "csg", HostQueries, PairQueries, [cube](Perf::Case&, EBGeometry::Pool&) {
+  addComposition<T>(a_suite, "csg", "csg-tape", HostQueries, PairQueries, [cube](Perf::Case&, EBGeometry::Pool&) {
     return std::make_pair(fusedCSG<T>(), cube);
   });
-  addComposition<T>(a_suite, "csg-tape", HostQueries, PairQueries, [cube](Perf::Case& c, EBGeometry::Pool& a_pool) {
+  addComposition<T>(a_suite, "csg-tape", "", HostQueries, PairQueries, [cube](Perf::Case& c, EBGeometry::Pool& a_pool) {
     const EBGeometry::Tape<T> tape(a_pool, classicCSG<T>());
 
     c.param("clauses", tape.getNumClauses());
@@ -212,19 +227,28 @@ addPrecision(Perf::Suite& a_suite)
       EBGeometry::InfiniteCylinderSDF<T>(T(0.5) * (box.getLowCorner() + box.getHighCorner()), T(0.12) * size[1], 0));
   };
 
-  addComposition<T>(
-    a_suite, "drilled-mesh", MeshHostQueries, MeshPairQueries, [drilled](Perf::Case& c, EBGeometry::Pool& a_pool) {
-      const auto [mesh, box, drill] = drilled(c, a_pool);
+  addComposition<T>(a_suite,
+                    "drilled-mesh",
+                    "drilled-mesh-tape",
+                    MeshHostQueries,
+                    MeshPairQueries,
+                    [drilled](Perf::Case& c, EBGeometry::Pool& a_pool) {
+                      const auto [mesh, box, drill] = drilled(c, a_pool);
 
-      return std::make_pair(EBGeometry::Fused::Difference(mesh, drill), box);
-    });
-  addComposition<T>(
-    a_suite, "drilled-mesh-tape", MeshHostQueries, MeshPairQueries, [drilled](Perf::Case& c, EBGeometry::Pool& a_pool) {
-      const auto [mesh, box, drill] = drilled(c, a_pool);
+                      return std::make_pair(EBGeometry::Fused::Difference(mesh, drill), box);
+                    });
+  addComposition<T>(a_suite,
+                    "drilled-mesh-tape",
+                    "",
+                    MeshHostQueries,
+                    MeshPairQueries,
+                    [drilled](Perf::Case& c, EBGeometry::Pool& a_pool) {
+                      const auto [mesh, box, drill] = drilled(c, a_pool);
 
-      return std::make_pair(EBGeometry::Tape<T, Mesh>(a_pool, EBGeometry::Difference(EBGeometry::Expr<T>(mesh), drill)),
-                            box);
-    });
+                      return std::make_pair(
+                        EBGeometry::Tape<T, Mesh>(a_pool, EBGeometry::Difference(EBGeometry::Expr<T>(mesh), drill)),
+                        box);
+                    });
 }
 
 } // namespace
