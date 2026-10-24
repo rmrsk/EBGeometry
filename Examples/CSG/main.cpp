@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -207,7 +208,11 @@ main()
   // are numbered in expression order, so the tape and the fused part number them alike: the cube 0, the
   // ball 1, the drills along x, y and z 2, 3 and 4. m_localPoint is the point in the leaf's own frame,
   // where the leaf itself (primitive<P>(ref), visitPrimitive()) can be queried.
+  // A leaf number indexes the caller's own table, so check it first: a reference may name no leaf
+  // (m_leaf == PrimitiveRef::None).
   const char* leafNames[] = {"cube", "ball", "drill along x", "drill along y", "drill along z"};
+
+  const auto leafName = [&leafNames](const uint32_t a_leaf) { return a_leaf < 5 ? leafNames[a_leaf] : "no leaf"; };
 
   std::cout << "\nThe primitive that decides the part's value, through the tape and fused:\n";
 
@@ -218,7 +223,7 @@ main()
     const EBGeometry::PrimitiveRef<T> viaTape  = partTape.closestPrimitive(p);
     const EBGeometry::PrimitiveRef<T> viaFused = fusedPart.closestPrimitive(p);
 
-    std::cout << "  " << p << "   tape: " << leafNames[viaTape.m_leaf] << "   fused: " << leafNames[viaFused.m_leaf]
+    std::cout << "  " << p << "   tape: " << leafName(viaTape.m_leaf) << "   fused: " << leafName(viaFused.m_leaf)
               << '\n';
   }
 

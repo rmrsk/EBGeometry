@@ -688,6 +688,8 @@ TEMPLATE_TEST_CASE("Fused: closestPrimitive gives a Tape's leaf and local point 
 
   const Shapes<T> s;
 
+  // The leaves must be the same, not merely tied: probes() is offset from every test shape's centre and
+  // symmetry plane, so no probe is an exact tie that a fused multiply-add on one side could break.
   const auto compare = [](const auto& a_fused, const Expr<T>& a_expr) {
     const Compiled<T> tape(a_expr, linear());
 

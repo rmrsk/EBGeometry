@@ -601,7 +601,8 @@ public:
 
   /**
    * @brief Whether a reference's leaf is of type P.
-   * @tparam P Leaf type.
+   * @tparam P Leaf type; the composition must have a leaf of this type (checked when compiling, as the
+   * Tape's isPrimitive() checks P against its primitive types).
    * @param[in] a_ref Reference from closestPrimitive().
    * @return True if it is.
    */
@@ -610,6 +611,8 @@ public:
   inline bool
   isPrimitive(const PrimitiveRef<T>& a_ref) const noexcept
   {
+    static_assert(containsLeaf<P>(), "Fused::Node::isPrimitive: the composition has no leaf of type P");
+
     Detail::IsLeafOf<P> check{false};
 
     this->visitPrimitive(a_ref, check);

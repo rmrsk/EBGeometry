@@ -41,6 +41,11 @@ namespace EBGeometry {
 namespace CSGOps {
 
 /**
+ * @brief The tag of a value that comes from no leaf.
+ */
+inline constexpr uint32_t NoTag = 0xFFFFFFFFU;
+
+/**
  * @brief A value with the deciding leaf it comes from: the leaf whose surface the composed value is
  * taken from there, and the point that leaf was evaluated at (in its own frame).
  * @details The operations below work on a plain value T and on a Tagged<T> alike. On a Tagged<T> they
@@ -57,20 +62,15 @@ struct Tagged
   T m_value;
 
   /**
-   * @brief The deciding leaf, as the structure numbers it (NoTag for none).
+   * @brief The deciding leaf, as the structure numbers it (NoTag for none, as a value-initialised one has).
    */
-  uint32_t m_tag;
+  uint32_t m_tag = NoTag;
 
   /**
    * @brief The point the leaf was evaluated at.
    */
   Vec3T<T> m_point;
 };
-
-/**
- * @brief The tag of a value that comes from no leaf.
- */
-inline constexpr uint32_t NoTag = 0xFFFFFFFFU;
 
 /**
  * @brief Whether V is a tagged value.

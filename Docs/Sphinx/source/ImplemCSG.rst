@@ -369,7 +369,8 @@ one query away: the mesh's own ``getClosestFace()`` at the local point.
   tape and a fused shape of the same expression number them alike. A shape used twice is two leaves. A
   nested composite (a tape listed as a primitive, a BVH union) is one leaf; ask it for its own leaf at
   the local point.
-* **The primitive, by value.** ``isPrimitive<P>(ref)`` says whether the leaf is a ``P``, and
+* **The primitive, by value.** ``isPrimitive<P>(ref)`` says whether the leaf is a ``P`` (a type the
+  structure can hold: any other ``P`` is a compile error, on a tape and on a fused shape alike), and
   ``primitive<P>(ref)`` returns it: the shape, or for a pool-resident one (a mesh distance field, a BVH
   union, a tape) its handle, rebuilt with the structure's location, so that it resolves against the
   same pool or mirror. ``visitPrimitive(ref, f)`` calls ``f`` with it whatever its type. In a CUDA or

@@ -521,10 +521,10 @@ does not follow this template, edit the PR body to conform to it.
   BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp`, the host-only expression builder
   (`Expr`, `Union`, `Translate`, ...) in `EBGeometry_Expr.hpp`, the `Tape` that compiles and evaluates
   an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`), the fused
-  operations (`Fused::Union`, ...) in `EBGeometry_Fused.hpp`, `PrimitiveRef` (the deciding leaf `closestPrimitive()` returns) in `EBGeometry_PrimitiveRef.hpp`, each operation's arithmetic, shared by
+  operations (`Fused::Union`, ...) in `EBGeometry_Fused.hpp`, `PrimitiveRef` (the deciding leaf
+  `closestPrimitive()` returns) in `EBGeometry_PrimitiveRef.hpp`, each operation's arithmetic, shared by
   the tape and the fused operations, in `EBGeometry_CSGOps.hpp`, `EBGeometry_CSG.hpp` including all of
-  them, and `operator<<` for `Vec3T`/`AABBT` in
-  `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
+  them, and `operator<<` for `Vec3T`/`AABBT` in `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
   include the split headers, so older includes keep working.
 - **Composition goes through the tape or the fused operations, and both must stay device-safe.**
   There is no `ImplicitFunction` or virtual CSG layer: shapes (`isShape<S>`: trivially copyable, with
