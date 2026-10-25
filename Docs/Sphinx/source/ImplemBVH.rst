@@ -654,11 +654,12 @@ where it calls your pieces marked:
    :align: center
 
    A nearest-primitive search walking a small tree (``K = 2``). The numbered events are where the walk
-   calls the pieces the search supplies, coloured by piece: the query keys the root and then both
-   children of a node in one pass (1--3), the order puts the nearer child first, the leaf callback
-   finds a primitive and so tightens the bound (4), and on the way back the waiting children are
-   compared with the bound as it is then, which prunes ``L2`` and the whole subtree under ``N2``
-   (5--6).
+   calls the pieces the search supplies, coloured by piece: the query keys the root with ``key(box)``
+   and both children of a node in one pass with ``keys(row)`` (1--3), the order puts the nearer child
+   first, the leaf callback finds a primitive and so tightens the bound (4), and on the way back the
+   query's ``key(row, k)`` recomputes each waiting child's key for the bound as it is then, which
+   prunes ``L2`` and the whole subtree under ``N2`` (5--6). The panel below shows ``visit`` refusing a
+   node that passed the bound, after adding the caller's summary of its subtree to the state (7).
 
 Three things follow from this shape:
 

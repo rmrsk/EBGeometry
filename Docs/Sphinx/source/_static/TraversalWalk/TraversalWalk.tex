@@ -1,7 +1,7 @@
 \documentclass[10pt]{article}
 \usepackage{amsmath,amsfonts,times}
 \usepackage{graphicx,color,tikz}
-\usepackage[paperwidth=17.6cm,paperheight=9.6cm,lmargin=0in,rmargin=0in,tmargin=0.in,bmargin=0.in]{geometry}
+\usepackage[paperwidth=17.6cm,paperheight=11.3cm,lmargin=0in,rmargin=0in,tmargin=0.in,bmargin=0.in]{geometry}
 \usepackage{bm}
 \usetikzlibrary{arrows.meta,shadows,positioning,calc,backgrounds}
 
@@ -90,12 +90,27 @@
   \begin{scope}[shift={(7.7,0)}]
     \node[anchor=north west, text width=8.6cm, font=\small, align=left] at (0.1,9.4) {%
       \textbf{A nearest-primitive search} (key: the squared distance from the query point to a box)\\[3pt]
-      \textbf{1}\; \textcolor{cquery}{\textbf{query}} keys the root's box; it is within the \textcolor{cbound}{\textbf{bound}} ($+\infty$: nothing found yet); \textcolor{cvisit}{\textbf{visit}} lets the walk in.\\[3pt]
-      \textbf{2}\; \textcolor{cquery}{\textbf{query}} keys \emph{both} children in one pass ($0.3$, $1.2$); both are within the \textcolor{cbound}{\textbf{bound}}; \textcolor{corder}{\textbf{order}} (nearest first) puts $N_1$ first. The walk descends into $N_1$; $N_2$ waits on the stack.\\[3pt]
-      \textbf{3}\; At $N_1$: \textcolor{cvisit}{\textbf{visit}}, then \textcolor{cquery}{\textbf{query}} keys $L_1$, $L_2$ ($0.4$, $0.9$); \textcolor{corder}{\textbf{order}} puts $L_1$ first; $L_2$ waits.\\[3pt]
+      \textbf{1}\; \textcolor{cquery}{\textbf{query}} \texttt{key(box)} keys the root's box; it is within the \textcolor{cbound}{\textbf{bound}} ($+\infty$: nothing found yet); \textcolor{cvisit}{\textbf{visit}} lets the walk in.\\[3pt]
+      \textbf{2}\; \textcolor{cquery}{\textbf{query}} \texttt{keys(row)} keys \emph{both} children in one pass ($0.3$, $1.2$); both are within the \textcolor{cbound}{\textbf{bound}}; \textcolor{corder}{\textbf{order}} (nearest first) puts $N_1$ first. The walk descends into $N_1$; $N_2$ waits on the stack.\\[3pt]
+      \textbf{3}\; At $N_1$: \textcolor{cvisit}{\textbf{visit}}, then \textcolor{cquery}{\textbf{query}} \texttt{keys(row)} keys $L_1$, $L_2$ ($0.4$, $0.9$); \textcolor{corder}{\textbf{order}} puts $L_1$ first; $L_2$ waits.\\[3pt]
       \textbf{4}\; At leaf $L_1$: \textcolor{cvisit}{\textbf{visit}}, then \textcolor{cleaf}{\textbf{leaf}} tests its primitives and finds one at $0.5$. The state changes, so the \textcolor{cbound}{\textbf{bound}} is now $0.5$.\\[3pt]
-      \textbf{5}\; Back at $N_1$'s level: $L_2$'s key is computed again ($0.9$) and compared with the \textcolor{cbound}{\textbf{bound}} \emph{as it is now}: $0.9 > 0.5$, so $L_2$ is skipped (nearest first: and the rest of the level, which are no nearer).\\[3pt]
-      \textbf{6}\; Back at the root's level: $N_2$'s key $1.2 > 0.5$: skipped with its whole subtree. The stack is empty: the walk stops, and the state holds the answer.%
+      \textbf{5}\; Back at $N_1$'s level: \textcolor{cquery}{\textbf{query}} \texttt{key(row,\,k)} computes $L_2$'s key again ($0.9$), which is compared with the \textcolor{cbound}{\textbf{bound}} \emph{as it is now}: $0.9 > 0.5$, so $L_2$ is skipped (nearest first: and the rest of the level, which are no nearer).\\[3pt]
+      \textbf{6}\; Back at the root's level: \textcolor{cquery}{\textbf{query}} \texttt{key(row,\,k)} gives $N_2$'s key again, $1.2 > 0.5$: skipped with its whole subtree. The stack is empty: the walk stops, and the state holds the answer.%
+    };
+  \end{scope}
+
+  % ── A second panel: visit refusing a node.
+  \begin{scope}[shift={(7.8,-1.25)}]
+    \draw[black!30, thick, rounded corners=4pt] (-0.15,-0.15) rectangle (9.55,1.95);
+    \node[anchor=north west, font=\small] at (0,1.88) {\textbf{\textcolor{cvisit}{visit} refusing a node} (e.g.\ a far-field summary)};
+    \node[node, draw=cvisit] (M) at (0.95,1.1) {$M$};
+    \node[pruned, minimum width=6mm, minimum height=5mm] (M1) at (0.45,0.25) {};
+    \node[pruned, minimum width=6mm, minimum height=5mm] (M2) at (1.45,0.25) {};
+    \draw[prunededge] (M) -- (M1);
+    \draw[prunededge] (M) -- (M2);
+    \node[event] at ($(M.east)+(0.32,0.12)$) {7};
+    \node[anchor=north west, text width=7.1cm, font=\scriptsize, align=left] at (2.15,1.42) {%
+      $M$'s key is within the \textcolor{cbound}{\textbf{bound}}, so the walk calls \textcolor{cvisit}{\textbf{visit}}$(\text{state}, M, \ldots)$. It adds $M$'s summary (kept by the caller, indexed by $M$'s node index) to the state and returns \texttt{false}: $M$'s subtree is never entered. \textcolor{cvisit}{\textbf{visit}} runs only for nodes that pass the bound: $L_2$ and $N_2$ above never reach it.%
     };
   \end{scope}
 
