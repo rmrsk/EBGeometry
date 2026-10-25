@@ -479,9 +479,13 @@ intersects(const S&             a_shape,
 
   const Vec3T<T> direction = span / length;
 
-  // Different signs at the two ends: the segment crosses the surface, no search needed.
-  if ((a_shape.signedDistance(a_from + a_tMin * direction) < T(0)) != (a_shape.signedDistance(a_to) < T(0))) {
-    return HitStatus::Hit;
+  // A marched shape: different signs at the two ends mean the segment crosses the surface, with no search.
+  // A shape with a ray form searches instead: its search is cheaper than two values, and exact where the
+  // sign is not (an open mesh).
+  if constexpr (!RayForm<S>::available) {
+    if ((a_shape.signedDistance(a_from + a_tMin * direction) < T(0)) != (a_shape.signedDistance(a_to) < T(0))) {
+      return HitStatus::Hit;
+    }
   }
 
   return intersects(a_shape, RayT<T>{a_from, direction}, a_tMin, length, a_options);

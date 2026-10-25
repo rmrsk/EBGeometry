@@ -37,7 +37,9 @@ namespace EBGeometry {
 
 /**
  * @brief A ray: the points origin + t * direction.
- * @details The queries take the direction to be of unit length, so that t is a distance along the ray.
+ * @details The queries take the direction to be of unit length, so that t is a distance along the ray. This is
+ * checked only with assertions on (EBGEOMETRY_EXPECT): with another length, a marched query steps the wrong
+ * distance and can step over the surface.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -160,7 +162,7 @@ struct RayOptions
 
   /**
    * @brief Step length, times the scale, where the value is not a distance (DistanceQuality::NotADistance).
-   * Features thinner than this can be missed.
+   * Features thinner than this can be missed, and a missed feature is a miss, not an unresolved query.
    */
   T m_step = T(0.005);
 };
@@ -265,9 +267,9 @@ intersects(const S&                 a_shape,
 
 /**
  * @brief Whether the segment from a_from to a_to crosses a shape's surface.
- * @details Where the shape's value has different signs at the two ends, the segment crosses the surface and
- * no search is needed; otherwise the segment is searched, since it may go in and out again. Callable on a
- * device.
+ * @details For a marched shape, where the value has different signs at the two ends the segment crosses the
+ * surface and no search is needed; otherwise the segment is searched, since it may go in and out again. A
+ * shape with a ray form is always searched. Callable on a device.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape   The shape.

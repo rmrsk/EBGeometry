@@ -50,8 +50,9 @@ leaving, as a `HitT <doxygen/html/structEBGeometry_1_1HitT.html>`__:
      - Whether the crossing was found exactly (by a ray form) rather than by marching.
 
 ``intersects()`` returns only the status, and where the shape allows it stops at the first crossing it
-finds rather than the nearest. On a segment it first compares the signs of the value at the two ends:
-different signs mean a crossing with no search at all. A crossing at ``tMin`` counts, ``tMin = 0``
+finds rather than the nearest. On a segment of a marched shape it first compares the signs of the value
+at the two ends: different signs mean a crossing with no search at all. A shape with a ray form is
+searched instead, which is cheaper and exact where the sign is not (a mesh with holes). A crossing at ``tMin`` counts, ``tMin = 0``
 included; to step off a surface, pass a small ``tMin``.
 
 ``Tape`` also has the four as members (``tape.firstHit(...)``, ``tape.intersects(...)``), which do the
@@ -138,7 +139,7 @@ difference of the value there (six evaluations, only for a crossing).
    * - ``m_step``
      - ``0.005``
      - The fixed step, times the scale, for a value that is not a distance. Features thinner than
-       this can be missed.
+       this can be missed, and such a miss is reported as ``Miss``, not ``Unresolved``.
 
 A marched ray that comes within the tolerance of the surface counts as a hit, even where it only
 grazes the surface (passes an edge without entering): conservative for a particle, which then never

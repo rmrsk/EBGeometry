@@ -392,7 +392,7 @@ Test coverage
        normal, and on 2,000 random rays at two leaf widths; each analytic ray form against its crossing
        worked by hand and against the march on random rays; a fused and a taped composition marched to
        crossings worked by hand, with the tape's deciding leaf; segments (zero length, a crossing at
-       the start, the sign shortcut); a march out of steps reported as unresolved; and on a device, a
+       the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
        ray form, the march, a fused composition, a ``TriMeshSDF`` and a tape against the host.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of

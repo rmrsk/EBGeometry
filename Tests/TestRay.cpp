@@ -521,6 +521,33 @@ TEMPLATE_TEST_CASE("Ray: segments measure from their start and count a crossing 
           HitStatus::Hit);
 }
 
+TEMPLATE_TEST_CASE("Ray: a segment out of an open mesh through its hole crosses nothing",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // The unit cube without its top face. A segment from inside it out through the missing face (at y = 0.94)
+  // to a point beside the rim crosses no triangle, although the value's sign differs at its ends: a mesh's
+  // sign is not to be trusted at a hole.
+  Pool       pool(hostMemoryResource());
+  const auto box =
+    Parser::readIntoTriMeshSDF<T, 4, 4>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/cube_open_top.obj", pool);
+
+  const Vec3 inside(T(0.5), T(0.5), T(0.4));
+  const Vec3 above(T(0.5), T(1.3), T(1.5));
+
+  REQUIRE(box.signedDistance(inside) < T(0));
+  REQUIRE(box.signedDistance(above) > T(0));
+
+  REQUIRE(intersects(box, inside, above) == HitStatus::Miss);
+  REQUIRE(firstHit(box, inside, above).m_status == HitStatus::Miss);
+
+  // Downwards it leaves through the bottom face.
+  REQUIRE(intersects(box, inside, Vec3(T(0.5), T(0.5), -T(1))) == HitStatus::Hit);
+}
+
 TEMPLATE_TEST_CASE("Ray: a march that runs out of steps is unresolved, not a miss", "[Ray]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
