@@ -18,8 +18,8 @@ side: host
 verdict: yellow
 base: 9d36e55
 base-fingerprint: df44594dbe8bca38016afd40f600a0df5cd4f090
-head: 7cdf3c2
-head-fingerprint: ae1c7bd7121bf1c8d4e55facf704b2a7ccf85c61
+head: 46ec20c
+head-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
 cases: 144
 rounds: 3
 reps: 5
@@ -28,11 +28,11 @@ date: 2026-10-25
 
 ## Host comparison: yellow
 
-**Accepted:** Watertightness fix: rays no longer slip between faces sharing an edge; the widening costs the triangle test a few percent, 20% in FP64 on the device. PointCloudHashGrid all8nn +3.3%: noise in untouched code; 10-round recheck -0.2% [-3.0%, +3.0%].
+**Accepted:** Watertightness fix: rays no longer slip between faces sharing an edge; the widening costs the triangle test a few percent, 20% in FP64 on the device.
 
-`7cdf3c2` against `9d36e55` (origin/dev), 2026-10-25.
+`46ec20c` against `9d36e55` (origin/dev), 2026-10-25.
 
-**VERDICT: 7 minor regressions
+**VERDICT: 6 minor regressions
 
 <!-- END receipt host -->
 
@@ -43,8 +43,8 @@ side: cuda
 verdict: red
 base: 9d36e55
 base-fingerprint: df44594dbe8bca38016afd40f600a0df5cd4f090
-head: 7cdf3c2
-head-fingerprint: ae1c7bd7121bf1c8d4e55facf704b2a7ccf85c61
+head: 46ec20c
+head-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
 cases: 136
 rounds: 3
 reps: 5
@@ -55,7 +55,7 @@ date: 2026-10-25
 
 **Accepted:** Watertightness fix: rays no longer slip between faces sharing an edge; the widening costs the triangle test a few percent, 20% in FP64 on the device. 2 rays graze a drill rim within the march tolerance; host and device round differently. Expected for marched rays.
 
-`7cdf3c2` against `9d36e55` (origin/dev), 2026-10-25.
+`46ec20c` against `9d36e55` (origin/dev), 2026-10-25.
 
 **VERDICT: host and device answers differ in 4 cases
 
