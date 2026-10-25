@@ -18,8 +18,8 @@ side: host
 verdict: yellow
 base: 4d0d0ac
 base-fingerprint: b994d5a15d03f7c986c18ff5975e90555d814775
-head: 1d92860
-head-fingerprint: d0c3f5bcd0b6ba766166e3788efb7c42a6e6bdd9
+head: f4b1c46
+head-fingerprint: 0ee78d5210969340a6894041b440fce47fd0195d
 cases: 130
 rounds: 3
 reps: 5
@@ -30,9 +30,9 @@ date: 2026-10-25
 
 **Accepted:** -
 
-`1d92860` against `4d0d0ac` (origin/dev), 2026-10-25.
+`f4b1c46` against `4d0d0ac` (origin/dev), 2026-10-25.
 
-**VERDICT: 1 minor regression
+**VERDICT: 3 minor regressions
 
 <!-- END receipt host -->
 
@@ -43,8 +43,8 @@ side: cuda
 verdict: yellow
 base: 4d0d0ac
 base-fingerprint: b994d5a15d03f7c986c18ff5975e90555d814775
-head: 1d92860
-head-fingerprint: d0c3f5bcd0b6ba766166e3788efb7c42a6e6bdd9
+head: f4b1c46
+head-fingerprint: 0ee78d5210969340a6894041b440fce47fd0195d
 cases: 108
 rounds: 3
 reps: 5
@@ -55,8 +55,8 @@ date: 2026-10-25
 
 **Accepted:** -
 
-`1d92860` against `4d0d0ac` (origin/dev), 2026-10-25.
+`f4b1c46` against `4d0d0ac` (origin/dev), 2026-10-25.
 
-**VERDICT: 6 minor regressions
+**VERDICT: 7 minor regressions
 
 <!-- END receipt cuda -->
