@@ -370,25 +370,27 @@ visitsBefore(
 }
 
 /**
- * @brief Whether a key means the query cannot reach the node at all: +infinity, for a floating-point key
- * (a ray that misses a box). Such a node is never entered, whatever the bound, so a bound that starts at
- * +infinity ("no bound yet") does not let a ray enter every box it misses.
- * @details Internal helper; not part of the public API. Always false for a key that is not a floating-point
- * type.
+ * @brief The bound a walk compares keys with: the caller's bound, with +infinity replaced by the largest
+ * finite value for a floating-point key.
+ * @details Internal helper; not part of the public API. A key of +infinity means the query cannot reach
+ * the node (a ray that misses a box), so it must never be entered, even under a bound of +infinity ("no
+ * bound yet"). Comparing keys with this bound keeps one comparison per child (key <= bound) and still
+ * excludes them; any finite key compares exactly as with the caller's bound. A key that is not a
+ * floating-point type is compared with the caller's bound unchanged.
  * @tparam Key Key type.
- * @param[in] a_key The key.
- * @return True if the key is +infinity.
+ * @param[in] a_bound The caller's bound.
+ * @return The bound to compare keys with.
  */
 template <class Key>
 EBGEOMETRY_HOST_DEVICE
-inline bool
-unreachable(const Key& a_key) noexcept
+inline Key
+effectiveBound(const Key& a_bound) noexcept
 {
   if constexpr (std::is_floating_point_v<Key>) {
-    return a_key == Math::Limits<Key>::infinity();
+    return (a_bound < Math::Limits<Key>::infinity()) ? a_bound : Math::Limits<Key>::max();
   }
   else {
-    return false;
+    return a_bound;
   }
 }
 
@@ -426,7 +428,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
   // key +infinity: unreachable), or a point farther than the bound, ends here.
   Key nodeKey = a_query.key(m_rootBox.at(poolBase, 0));
 
-  if (nodeKey > a_bound(a_state) || PackedBVHDetail::unreachable(nodeKey)) {
+  if (nodeKey > PackedBVHDetail::effectiveBound(a_bound(a_state))) {
     return;
   }
 
@@ -457,7 +459,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
       }
 
       // The bound once per node expanded: any leaf visited before may have tightened it.
-      const Key bound = a_bound(a_state);
+      const Key bound = PackedBVHDetail::effectiveBound(a_bound(a_state));
 
       // All K keys in one pass (the query's SIMD kernel).
       const ChildAABBSoA& row  = m_childAabbSoA.at(poolBase, node.getChildBoxRow());
@@ -474,7 +476,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
       for (size_t k = 0; k < K; k++) {
         EBGEOMETRY_EXPECT(offsets[k] > nodeIdx);
 
-        if (keys[k] <= bound && !PackedBVHDetail::unreachable(keys[k])) {
+        if (keys[k] <= bound) {
           size_t j = numSlots++;
 
           while (j > 0 && PackedBVHDetail::visitsBefore(
@@ -520,7 +522,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
 
       const Key key = a_query.key(m_childAabbSoA.at(poolBase, parent.getChildBoxRow()), size_t(slot));
 
-      if (key > a_bound(a_state) || PackedBVHDetail::unreachable(key)) {
+      if (key > PackedBVHDetail::effectiveBound(a_bound(a_state))) {
         // Under NearestFirst the rest of the level is farther still: drop it. Under any other order a
         // later child may still be within the bound, so only this child is skipped.
         if constexpr (std::is_same_v<Order, NearestFirst>) {
