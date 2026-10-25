@@ -153,15 +153,18 @@ struct FirstCrossing
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Ray: a TriMeshSDF of the unit cube crosses where the slab test says",
+TEMPLATE_TEST_CASE("Ray: every mesh SDF of the unit cube crosses where the slab test says",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
+  // The cube as triangles (12) and as its six quadrilateral faces, through a BVH and without one.
   Pool       pool(hostMemoryResource());
-  const auto cube = Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool);
+  const auto triangles = Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool);
+  const auto polygons  = Parser::readIntoMeshSDF<T, 4>(unitCube(), pool);
+  const auto flat      = Parser::readIntoFlatMeshSDF<T>(unitCube(), pool);
 
   const T inf = std::numeric_limits<T>::infinity();
 
@@ -194,60 +197,69 @@ TEMPLATE_TEST_CASE("Ray: a TriMeshSDF of the unit cube crosses where the slab te
     {"stepping off the surface", Vec3(T(0), h, T(0.4)), Vec3(1, 0, 0), T(1e-3), T(10), T(1), false},
   };
 
-  for (const Case& c : cases) {
-    INFO(c.name);
+  const auto check = [&cases, inf](const auto& cube, const char* a_kind) {
+    for (const Case& c : cases) {
+      INFO(a_kind << ": " << c.name);
 
-    const T reference = slabCrossing(c.origin, c.direction, c.tMin, c.tMax);
+      const T reference = slabCrossing(c.origin, c.direction, c.tMin, c.tMax);
 
-    // The reference agrees with the hand-written answer, so the cases are what they say.
-    REQUIRE_THAT(std::min(reference, T(100)), withinAbsT(std::min(c.t, T(100)), tightMargin<T>()));
+      // The reference agrees with the hand-written answer, so the cases are what they say.
+      REQUIRE_THAT(std::min(reference, T(100)), withinAbsT(std::min(c.t, T(100)), tightMargin<T>()));
 
-    const RayT<T> ray{c.origin, c.direction};
-    const HitT<T> hit = firstHit(cube, ray, c.tMin, c.tMax);
+      const RayT<T> ray{c.origin, c.direction};
+      const HitT<T> hit = firstHit(cube, ray, c.tMin, c.tMax);
 
-    if (c.t == inf) {
-      REQUIRE(hit.m_status == HitStatus::Miss);
-      REQUIRE(intersects(cube, ray, c.tMin, c.tMax) == HitStatus::Miss);
-    }
-    else {
-      REQUIRE(hit.m_status == HitStatus::Hit);
-      REQUIRE(hit.m_exact);
-      REQUIRE_THAT(hit.m_t, withinAbsT(c.t, tightMargin<T>()));
-      REQUIRE_THAT((hit.m_point - ray.at(c.t)).length(), withinAbsT(T(0), tightMargin<T>()));
-      REQUIRE(intersects(cube, ray, c.tMin, c.tMax) == HitStatus::Hit);
+      if (c.t == inf) {
+        REQUIRE(hit.m_status == HitStatus::Miss);
+        REQUIRE(intersects(cube, ray, c.tMin, c.tMax) == HitStatus::Miss);
+      }
+      else {
+        REQUIRE(hit.m_status == HitStatus::Hit);
+        REQUIRE(hit.m_exact);
+        REQUIRE_THAT(hit.m_t, withinAbsT(c.t, tightMargin<T>()));
+        REQUIRE_THAT((hit.m_point - ray.at(c.t)).length(), withinAbsT(T(0), tightMargin<T>()));
+        REQUIRE(intersects(cube, ray, c.tMin, c.tMax) == HitStatus::Hit);
 
-      // The normal is a face normal of the cube, its face holds the point, and the face id is that face's
-      // (the file numbers the faces -z, +z, -y, +x, +y, -x).
-      REQUIRE_THAT(hit.m_normal.length(), withinAbsT(T(1), tightMargin<T>()));
+        // The normal is a face normal of the cube, its face holds the point, and the face id is that face's
+        // (the file numbers the faces -z, +z, -y, +x, +y, -x).
+        REQUIRE_THAT(hit.m_normal.length(), withinAbsT(T(1), tightMargin<T>()));
 
-      const size_t axis = hit.m_normal.maxDir(true);
-      const T      side = hit.m_normal[axis] > T(0) ? T(1) : T(0);
+        const size_t axis = hit.m_normal.maxDir(true);
+        const T      side = hit.m_normal[axis] > T(0) ? T(1) : T(0);
 
-      REQUIRE_THAT(hit.m_point[axis], withinAbsT(side, tightMargin<T>()));
+        REQUIRE_THAT(hit.m_point[axis], withinAbsT(side, tightMargin<T>()));
 
-      const uint32_t faceOf[3][2] = {{5U, 3U}, {2U, 4U}, {0U, 1U}};
+        const uint32_t faceOf[3][2] = {{5U, 3U}, {2U, 4U}, {0U, 1U}};
 
-      REQUIRE(hit.m_primitive == faceOf[axis][size_t(side)]);
+        REQUIRE(hit.m_primitive == faceOf[axis][size_t(side)]);
 
-      // A ray starting on the surface has no "before"; only check the rest.
-      if (c.t > T(0)) {
-        REQUIRE(hit.m_entering == c.entering);
+        // A ray starting on the surface has no "before"; only check the rest.
+        if (c.t > T(0)) {
+          REQUIRE(hit.m_entering == c.entering);
+        }
       }
     }
-  }
+  };
+
+  check(triangles, "TriMeshSDF");
+  check(polygons, "MeshSDF");
+  check(flat, "FlatMeshSDF");
 }
 
-TEMPLATE_TEST_CASE("Ray: a TriMeshSDF of the unit cube agrees with the slab test on random rays",
+TEMPLATE_TEST_CASE("Ray: every mesh SDF of the unit cube agrees with the slab test on random rays",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  // Two layouts: one leaf group per SIMD register, and (W = 8) several registers per group.
+  // Triangles in two layouts (one leaf group per SIMD register, and with W = 8 several registers per
+  // group), and the quadrilateral faces through a BVH and without one.
   Pool       pool(hostMemoryResource());
-  const auto cube = Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool);
-  const auto wide = Parser::readIntoTriMeshSDF<T, 2, 8>(unitCube(), pool);
+  const auto cube     = Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool);
+  const auto wide     = Parser::readIntoTriMeshSDF<T, 2, 8>(unitCube(), pool);
+  const auto polygons = Parser::readIntoMeshSDF<T, 4>(unitCube(), pool);
+  const auto flat     = Parser::readIntoFlatMeshSDF<T>(unitCube(), pool);
 
   std::mt19937                      rng(17);
   std::uniform_real_distribution<T> uniform(-T(1), T(2));
@@ -261,8 +273,12 @@ TEMPLATE_TEST_CASE("Ray: a TriMeshSDF of the unit cube agrees with the slab test
 
     INFO("ray " << i);
 
-    for (const HitT<T>& hit : {firstHit(cube, RayT<T>{origin, direction}, T(0), T(10)),
-                               firstHit(wide, RayT<T>{origin, direction}, T(0), T(10))}) {
+    const RayT<T> ray{origin, direction};
+
+    for (const HitT<T>& hit : {firstHit(cube, ray, T(0), T(10)),
+                               firstHit(wide, ray, T(0), T(10)),
+                               firstHit(polygons, ray, T(0), T(10)),
+                               firstHit(flat, ray, T(0), T(10))}) {
       if (std::isinf(reference)) {
         REQUIRE(hit.m_status == HitStatus::Miss);
       }
@@ -531,21 +547,30 @@ TEMPLATE_TEST_CASE("Ray: a segment out of an open mesh through its hole crosses 
   // The unit cube without its top face. A segment from inside it out through the missing face (at y = 0.94)
   // to a point beside the rim crosses no triangle, although the value's sign differs at its ends: a mesh's
   // sign is not to be trusted at a hole.
+  const std::string file = std::string(EBGEOMETRY_TEST_DATA_DIR) + "/cube_open_top.obj";
+
   Pool       pool(hostMemoryResource());
-  const auto box =
-    Parser::readIntoTriMeshSDF<T, 4, 4>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/cube_open_top.obj", pool);
+  const auto triangles = Parser::readIntoTriMeshSDF<T, 4, 4>(file, pool);
+  const auto polygons  = Parser::readIntoMeshSDF<T, 4>(file, pool);
+  const auto flat      = Parser::readIntoFlatMeshSDF<T>(file, pool);
 
   const Vec3 inside(T(0.5), T(0.5), T(0.4));
   const Vec3 above(T(0.5), T(1.3), T(1.5));
 
-  REQUIRE(box.signedDistance(inside) < T(0));
-  REQUIRE(box.signedDistance(above) > T(0));
+  const auto check = [&inside, &above](const auto& box) {
+    REQUIRE(box.signedDistance(inside) < T(0));
+    REQUIRE(box.signedDistance(above) > T(0));
 
-  REQUIRE(intersects(box, inside, above) == HitStatus::Miss);
-  REQUIRE(firstHit(box, inside, above).m_status == HitStatus::Miss);
+    REQUIRE(intersects(box, inside, above) == HitStatus::Miss);
+    REQUIRE(firstHit(box, inside, above).m_status == HitStatus::Miss);
 
-  // Downwards it leaves through the bottom face.
-  REQUIRE(intersects(box, inside, Vec3(T(0.5), T(0.5), -T(1))) == HitStatus::Hit);
+    // Downwards it leaves through the bottom face.
+    REQUIRE(intersects(box, inside, Vec3(T(0.5), T(0.5), -T(1))) == HitStatus::Hit);
+  };
+
+  check(triangles);
+  check(polygons);
+  check(flat);
 }
 
 TEMPLATE_TEST_CASE("Ray: a march that runs out of steps is unresolved, not a miss", "[Ray]", EBGEOMETRY_TEST_PRECISIONS)
@@ -610,10 +635,12 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
                      evaluateOnHost<T>(FirstCrossing<T, F>{fused}, rays),
                      T(1e-3));
 
-  // A TriMeshSDF and a tape, against device mirrors of their pool.
+  // The mesh SDFs and a tape, against device mirrors of their pool.
   Pool pool(hostMemoryResource());
 
-  const auto    cube = Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool);
+  const auto    cube     = Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool);
+  const auto    polygons = Parser::readIntoMeshSDF<T, 4>(unitCube(), pool);
+  const auto    flat     = Parser::readIntoFlatMeshSDF<T>(unitCube(), pool);
   const Tape<T> tape(pool, part.expr());
 
   pool.freeze();
@@ -624,6 +651,14 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
 
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, M>{cube.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, M>{cube}, rays));
+
+  using P = std::decay_t<decltype(polygons)>;
+  using L = std::decay_t<decltype(flat)>;
+
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, P>{polygons.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, P>{polygons}, rays));
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, L>{flat.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, L>{flat}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, Tape<T>>{tape.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, Tape<T>>{tape}, rays),
                      T(1e-3));

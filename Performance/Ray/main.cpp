@@ -4,7 +4,8 @@
 
 // Performance cases for the ray queries (EBGeometry_Ray.hpp): rays cast at a TriMeshSDF, traced exactly
 // through its BVH and triangles, both through firstHit() and through a hand-written traverse() with a
-// RayQuery (what firstHit() costs over code a user writes), and intersects(); and rays cast at the classic
+// RayQuery (what firstHit() costs over code a user writes), and intersects(); the same mesh as a MeshSDF,
+// traced through its BVH and polygon faces; and rays cast at the classic
 // CSG solid, marched, as a fused composition and through a tape. Every ray starts at a random point in
 // the object's box grown to twice its size and points at the box's centre, so that rays from nearby
 // origins run side by side. A host build runs the host cases; a CUDA or HIP build runs host/device pairs
@@ -25,6 +26,9 @@ namespace {
 constexpr std::size_t K = 4;
 constexpr std::size_t W = 4;
 
+// The MeshSDF's leaf size, in faces, as in ../Mesh/main.cpp (SAH build).
+constexpr std::size_t MaxLeafFaces = K - 1;
+
 // The numbers of rays, at full and at smoke size: a mesh ray costs about a microsecond, a marched one
 // tens of signed distances.
 constexpr std::size_t MeshHostQueries    = 100000;
@@ -40,6 +44,9 @@ using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
 template <class T>
 using Mesh = EBGeometry::TriMeshSDF<T, K, W>;
+
+template <class T>
+using PolygonMesh = EBGeometry::MeshSDF<T, K>;
 
 // The ray from a_origin towards a_target.
 template <class T>
@@ -283,6 +290,40 @@ addPrecision(Perf::Suite& a_suite)
     MeshHostQueries,
     mesh,
     [](const Mesh<T>& a_mesh, const Vec3<T>& a_centre) { return Intersects<T, Mesh<T>>{a_mesh, a_centre}; },
+    Perf::agreeDistance<T>);
+
+  // The same mesh as a MeshSDF, its faces crossed as polygons (here all triangles), SAH-built.
+  const auto polygons = [](Perf::Case& c, EBGeometry::Pool& a_pool) {
+    const EBGeometry::BVH::ConstructionOptions options{MaxLeafFaces, 1, {}};
+
+    const PolygonMesh<T> m = EBGeometry::Parser::readIntoMeshSDF<T, K>(
+      Perf::meshFile(c.smoke()), a_pool, EBGeometry::BVH::Construction::SAH, options);
+
+    c.param("K", K);
+    c.param("maxLeafFaces", MaxLeafFaces);
+
+    return std::make_pair(m, m.computeBoundingVolume());
+  };
+
+  addOperation<T>(
+    a_suite,
+    "mesh-polygons",
+    "firstHit",
+    MeshHostQueries,
+    polygons,
+    [](const PolygonMesh<T>& a_mesh, const Vec3<T>& a_centre) { return FirstHit<T, PolygonMesh<T>>{a_mesh, a_centre}; },
+    Perf::agreeDistance<T>,
+    "mesh/firstHit",
+    "triangles/polygons");
+  addOperation<T>(
+    a_suite,
+    "mesh-polygons",
+    "intersects",
+    MeshHostQueries,
+    polygons,
+    [](const PolygonMesh<T>& a_mesh, const Vec3<T>& a_centre) {
+      return Intersects<T, PolygonMesh<T>>{a_mesh, a_centre};
+    },
     Perf::agreeDistance<T>);
 
   // The CSG solid, marched: fused, and through a tape.

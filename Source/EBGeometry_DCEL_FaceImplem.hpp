@@ -556,6 +556,53 @@ FaceT<T>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
+FaceT<T>::rayCrossing(
+  const Vec3& a_origin, const Vec3& a_direction, const T a_tMin, const T a_tMax, const Mesh& a_mesh) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
+
+  const T none  = Math::Limits<T>::infinity();
+  const T slope = m_normal.dot(a_direction);
+
+  // A face of zero area (zero normal) or a ray in the face's plane.
+  if (slope == T(0)) {
+    return none;
+  }
+
+  const T t = m_normal.dot(m_centroid - a_origin) / slope;
+
+  if (!(t >= a_tMin && t <= a_tMax)) {
+    return none;
+  }
+
+  const Vec3 p = a_origin + t * a_direction;
+
+  // (e x (p - v)) . n is |e| times p's signed distance from the edge's line in the plane, with one sign
+  // for every edge where p is inside (which sign depends on whether the loop runs counter-clockwise about
+  // the normal, so both are accepted). A few ulps of |e|^2 on the wrong side still count, so that a point
+  // on a shared edge is inside both faces.
+  const T widening = T(16) * Math::Limits<T>::epsilon();
+
+  bool left  = true;
+  bool right = true;
+
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    const Edge& edge = a_mesh.getEdge(iter());
+    const Vec3& v    = edge.getVertex(a_mesh).getPosition();
+    const Vec3  e    = edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition() - v;
+    const T     side = e.cross(p - v).dot(m_normal);
+    const T     tol  = widening * e.dot(e);
+
+    left  = left && side >= -tol;
+    right = right && side <= tol;
+  }
+
+  return (left || right) ? t : none;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline T
 FaceT<T>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));

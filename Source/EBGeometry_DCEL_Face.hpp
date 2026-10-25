@@ -300,6 +300,24 @@ public:
   signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept;
 
   /**
+   * @brief Where a ray crosses the face, from either side.
+   * @details The ray is a_origin + t * a_direction. The face is taken to be planar and convex, as the mesh
+   * SDFs require: the ray meets the face's plane at one t, and that point is inside the face if it is on
+   * the same side of every edge. The edge tests are widened by a few ulps of the edge's length, so that a
+   * ray through an edge or vertex shared by two faces crosses at least one of them. A ray in the face's
+   * plane, or a face of zero area, crosses nothing.
+   * @param[in] a_origin    Ray origin.
+   * @param[in] a_direction Ray direction.
+   * @param[in] a_tMin      Start of the interval.
+   * @param[in] a_tMax      End of the interval.
+   * @param[in] a_mesh      Owning mesh, used to resolve the half-edge loop.
+   * @return The distance along the ray of the crossing in [a_tMin, a_tMax], or +infinity if there is none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  rayCrossing(const Vec3& a_origin, const Vec3& a_direction, T a_tMin, T a_tMax, const Mesh& a_mesh) const noexcept;
+
+  /**
    * @brief Compute the unsigned squared distance to a point.
    * @param[in] a_x0   Point in space
    * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.

@@ -81,14 +81,21 @@ the queries march it. The library has ray forms for:
        group asks ``TriangleAoSoA::rayCrossing()``, a Möller--Trumbore test of its ``W`` triangles at
        once (`EBGeometry_MeshRayForms.hpp <doxygen/html/EBGeometry__MeshRayForms_8hpp.html>`__).
        ``intersects()`` ends the walk at the first crossing.
+   * - ``MeshSDF``
+     - The same walk over its BVH of face ids; each face asks ``DCEL::FaceT::rayCrossing()``, which
+       meets the face's plane and checks the point against every edge. The faces must be planar and
+       convex, as for the mesh's signed distance.
+   * - ``FlatMeshSDF``
+     - Every face in turn, without a BVH, as its signed distance does: for small meshes and checks.
 
 The triangle test is written once, in ``TriangleRay::crossing()``, for one triangle and for a SIMD
 pack of them, as the triangle distance is (see :ref:`Chap:SIMDClasses`): the host evaluates a leaf
 group's triangles a register at a time, a device one at a time. Its barycentric tests are widened by a
 few ulps, so that a ray through an edge or a vertex shared by two triangles crosses one of them; a ray
-lying in a triangle's plane does not cross it.
+lying in a triangle's plane does not cross it. The polygon test is widened the same way, by a few ulps
+of each edge's length.
 
-Every other shape is marched: the other analytic shapes, ``MeshSDF``, ``FlatMeshSDF``, the BVH unions,
+Every other shape is marched: the other analytic shapes, the BVH unions,
 the fused compositions, tapes and shapes of your own. The ray forms are included with their shapes'
 headers, so ``firstHit()`` on a shape is the same function in every translation unit.
 

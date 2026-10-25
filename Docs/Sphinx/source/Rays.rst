@@ -26,9 +26,9 @@ Two ways to find a crossing
 
 **Exactly.** Some geometry can be intersected with a line in closed form. A plane gives one linear
 equation in :math:`t`, a sphere or an infinite cylinder a quadratic, and a box the overlap of three
-slabs. A triangle mesh is crossed triangle by triangle, solving for the point where the ray meets each
-triangle's plane and checking that it lies inside the triangle; its BVH keeps that to the triangles
-near the ray (see :ref:`Chap:BVH`). Each node's box is keyed by the distance along the ray at which
+slabs. A mesh is crossed face by face, solving for the point where the ray meets each face's plane and
+checking that it lies inside the face (a triangle, or a planar convex polygon); its BVH keeps that to
+the faces near the ray (see :ref:`Chap:BVH`). Each node's box is keyed by the distance along the ray at which
 the ray enters it, so the walk goes nearest box first and skips every box that the ray enters beyond
 the nearest crossing found so far. The answer is exact, up to rounding.
 
