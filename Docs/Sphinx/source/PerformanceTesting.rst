@@ -452,7 +452,8 @@ case with more rounds (``--rounds 10``).
 
 ==========  =========================================================================================
 ``lost``    ran in the baseline, but was skipped or is missing in the candidate: a red flag
-``DIFFER``  a pair whose host and device answers disagree: a red flag, and its times are not comparable
+``DIFFER``  a pair whose host and device answers disagree, a new one included: a red flag, and its times
+            are not comparable
 ``MAJOR``   at least 10% slower (``MAJOR``), or 10% more pool bytes: a red flag
 ``minor``   at least 3% slower (``MINOR``), or 3% more pool bytes: worth a look
 ``faster``  at least 3% faster, and no more pool bytes
