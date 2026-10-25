@@ -826,4 +826,8 @@ static_assert(std::is_trivially_copyable_v<TriMeshSDF<double, 4, 4>>,
 
 #include "EBGeometry_MeshDistanceFunctionsImplem.hpp"
 
+// Every translation unit that sees TriMeshSDF sees its ray form too, so firstHit() on it is the same
+// function everywhere.
+#include "EBGeometry_MeshRayForms.hpp"
+
 #endif

@@ -205,6 +205,28 @@ Family                                Build  Measures
                                              (262,144 for the drilled mesh)
 ====================================  =====  =====================================================
 
+**Ray** (``Performance/Ray``): the ray queries (see :ref:`Chap:ImplemRays`). Rays start at random points
+in the object's box grown to twice its size about its centre and point at the centre, as in the BVH
+probe. The mesh is the armadillo (``TriMeshSDF``, K = W = 4), ray traced exactly; its ``firstHit`` case
+names the hand-written walk (``traverse()`` with a ``RayQuery`` and the probe's own leaf callback),
+and a comparison notes ``api/hand`` beside it: what ``firstHit()`` costs over code a user writes. The
+classic CSG solid is marched, fused and through a tape; the tape case notes ``tape/fused``. A host and
+a device marched crossing agree when both miss, or both cross within 1e-3.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``mesh/firstHit``                     host   the first crossing of each of 100,000 rays
+``mesh/firstHit-handrolled``          host   the same from a hand-written walk
+``mesh/intersects``                   host   whether each ray crosses (the walk ending at the first
+                                             crossing)
+``csg-fused/firstHit``                host   the first crossing of each of 50,000 rays with the CSG
+                                             solid, fused, marched
+``csg-tape/firstHit``                 host   the same through a ``Tape``
+``<input>/<operation>-morton``,       GPU    each of the above at 262,144 rays, in Morton and in
+``<operation>-random``                       random order
+====================================  =====  =====================================================
+
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
 leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the
 drilled mesh. Each query also evaluates the leaf at its local point, so that the checksum depends on

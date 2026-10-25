@@ -23,6 +23,7 @@
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_SIMD.hpp"
 #include "EBGeometry_TriangleDistance.hpp"
+#include "EBGeometry_TriangleRay.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 
 namespace EBGeometry {
@@ -208,6 +209,85 @@ TriangleSoAT<T, W>::signedDistances(const Vec3T<T>& a_point) const noexcept
   }
 
   return distances;
+}
+
+template <class T, size_t W>
+template <size_t N>
+EBGEOMETRY_HOST
+void
+TriangleSoAT<T, W>::rayCrossingsSIMD(
+  const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_tMin, const T a_tMax, T* a_crossings) const noexcept
+{
+  static_assert(W % N == 0, "TriangleSoAT: the SIMD lane count must divide W");
+
+  using V = SIMD::Pack<T, N>;
+
+  const TriangleDistance::Vec3V<V> origin{V(a_origin[0]), V(a_origin[1]), V(a_origin[2])};
+  const TriangleDistance::Vec3V<V> direction{V(a_direction[0]), V(a_direction[1]), V(a_direction[2])};
+
+  if constexpr (N == W) {
+    TriangleRay::crossing<V>(LaneSource<V>{this, 0}, origin, direction, V(a_tMin), V(a_tMax)).store(a_crossings);
+  }
+  else {
+    for (size_t c = 0; c < m_validCount; c += N) {
+      TriangleRay::crossing<V>(LaneSource<V>{this, c}, origin, direction, V(a_tMin), V(a_tMax)).store(a_crossings + c);
+    }
+  }
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+T
+TriangleSoAT<T, W>::rayCrossing(const Vec3T<T>& a_origin,
+                                const Vec3T<T>& a_direction,
+                                const T         a_tMin,
+                                const T         a_tMax,
+                                uint32_t&       a_lane) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_validCount >= 1U);
+  EBGEOMETRY_EXPECT(m_validCount <= W);
+
+  constexpr size_t N = SIMD::NativeWidth<T, W>();
+
+  T best = Math::Limits<T>::infinity();
+
+  if constexpr (N > 1) {
+    alignas(N * sizeof(T)) T crossings[W];
+
+    this->template rayCrossingsSIMD<N>(a_origin, a_direction, a_tMin, a_tMax, crossings);
+
+    for (uint32_t i = 0; i < m_validCount; i++) {
+      if (crossings[i] < best) {
+        best   = crossings[i];
+        a_lane = i;
+      }
+    }
+  }
+  else {
+    const TriangleDistance::Vec3V<T> origin{a_origin[0], a_origin[1], a_origin[2]};
+    const TriangleDistance::Vec3V<T> direction{a_direction[0], a_direction[1], a_direction[2]};
+
+    for (uint32_t i = 0; i < m_validCount; i++) {
+      const T t = TriangleRay::crossing<T>(LaneSource<T>{this, i}, origin, direction, a_tMin, a_tMax);
+
+      if (t < best) {
+        best   = t;
+        a_lane = i;
+      }
+    }
+  }
+
+  return best;
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+Vec3T<T>
+TriangleSoAT<T, W>::getNormal(const uint32_t a_lane) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_lane < W);
+
+  return Vec3T<T>(m_nx[a_lane], m_ny[a_lane], m_nz[a_lane]);
 }
 
 template <class T, size_t W>

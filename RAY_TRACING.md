@@ -91,6 +91,17 @@ what the review below found, and lands it first. #214–#216 are then rebuilt on
 | D19 | **Unit tests check known cases against an AABB unit cube** (a 12-triangle `TriMeshSDF` against the exact slab answer): axis-aligned and diagonal rays, through an edge and a corner, from inside, grazing in a face's plane, misses, segments stopping short, a crossing at t = 0. | Independent closed-form reference that exercises the edge and corner robustness. |
 | D20 | **No packets** (several rays per thread sharing one walk). One query per call; many queries are the user's own loop, or one per thread in their own functor. #230 leaves room to add packets later without breaking the API. | The SIMD is already used across a node's K child boxes and a leaf's W triangles; packets only amortise node fetches for coherent rays, which particles and one-ray-per-GPU-thread are not, at the cost of lane masks in the walk and every callback. Decided 2026-10-23. |
 
+### Decisions during implementation (2026-10-25)
+
+| # | Decision | Reason |
+|---|---|---|
+| D21 | **Exact ray forms only for the closed-form analytic shapes and `TriMeshSDF`**; `MeshSDF`, `FlatMeshSDF` and `BVHUnion` are marched here and get ray forms in a follow-up PR. | Lets #228 land and the renderer start. |
+| D22 | **Probe `Performance/Ray`**: `TriMeshSDF` (`firstHit`, a hand-written walk, `intersects`), and the CSG solid marched fused and through a tape; host cases and host/device pairs. | The user's request: mesh, fused CSG and tape. |
+| D23 | **A marched ray within the tolerance of the surface is a hit, even when it only grazes.** | Conservative for particles; requiring a sign change gave more host/device disagreements (slivers thinner than the tolerance). |
+| D24 | **The 2 grazing rays the device receipt flags are accepted**, not hidden by the agreement rule. | They are the real behaviour of a marched ray at a sharp edge. |
+| D25 | **The Tape's device ray gap (13x fused) is the interpreter's known arithmetic gap (#224), reported there**; nothing changes here. | Remedies are PR B, #206 and compile-time tapes. |
+| D26 | **Fused box rules made device-callable in this PR; Doxygen `DOT_GRAPH_MAX_NODES` raised to 64.** | Needed for fused device marching; the umbrella header grew past 50 nodes. |
+
 ## Depends on #230 (BVH traversal)
 
 The ray queries build on a rewritten, general `PackedBVH::traverse()` that lands first in #230 (see

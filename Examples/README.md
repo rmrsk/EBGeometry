@@ -12,10 +12,11 @@ answers. Read them in this order:
 5. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
 6. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
 7. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
-8. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
-9. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
-10. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
-11. `BuildBVH`: comparing the BVH construction methods by build time.
+8. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
+9. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
+10. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
+11. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
+12. `BuildBVH`: comparing the BVH construction methods by build time.
 
 Every example that runs on a device has the same four parts, in this order: the query functor ("the
 code that runs on either side"), the construction of the geometry, its use on the host through plain

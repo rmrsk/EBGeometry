@@ -94,6 +94,26 @@ public:
   signedDistance(const Vec3T<T>& a_point, uint32_t& a_closestFaceId) const noexcept;
 
   /**
+   * @brief Where a ray first crosses a triangle in this group, with that triangle's face id and normal.
+   * @details See TriangleSoAT::rayCrossing(). Requires the group to have already been packed via pack().
+   * @param[in]  a_origin    Ray origin.
+   * @param[in]  a_direction Ray direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[out] a_faceId    Set to the face id of the triangle crossed; unchanged if there is none.
+   * @param[out] a_normal    Set to its unit normal; unchanged if there is none.
+   * @return The distance along the ray of the crossing, or +infinity if there is none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  rayCrossing(const Vec3T<T>& a_origin,
+              const Vec3T<T>& a_direction,
+              T               a_tMin,
+              T               a_tMax,
+              uint32_t&       a_faceId,
+              Vec3T<T>&       a_normal) const noexcept;
+
+  /**
    * @brief Get the face id for one lane of this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W (padded lanes return the last real
