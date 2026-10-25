@@ -95,7 +95,10 @@ test's edge tests, are widened by the rounding error of the crossing point: a di
 the coordinates (the ray origin's and the face's), whatever the face's size or the angle of the ray.
 A ray through an edge or a vertex shared by two faces then crosses at least one of them however far it
 comes from, and a ray passing that close outside a face counts as crossing it (the safe side, as for a
-grazing marched ray). A ray lying in a face's plane does not cross it.
+grazing marched ray). A ray lying in a face's plane does not cross it. A point counted by the
+widening must also be that close to the edge's extent, not just its line, so that a sliver face is not
+crossed far beyond its ends; and the polygon test takes the side of each edge that is inside from the
+loop's own orientation.
 
 Every other shape is marched: the other analytic shapes, the BVH unions,
 the fused compositions, tapes and shapes of your own. The ray forms are included with their shapes'
