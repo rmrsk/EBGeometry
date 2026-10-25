@@ -227,6 +227,10 @@ its own `traverse()`; child boxes public; names as proposed; T17–T19).
   (`QueryDetail::pointDistances2`, `PackedBVH`'s static kernels forward to it); every `pruneTraverse()`
   caller (mesh SDFs, `BVHUnion`, `PointCloudBVH`, the Tape's unions, 32 test calls) moved to
   `traverse(PointQuery{p}, ...)`. 511/511 tests (debug), 508/508 (release-test, AVX).
+- [x] The approved interface (T17–T19): `visit` hook (`DescendAll` default, compiled away), generic
+  keys (`QueryKey`, `PointQuery`/`RayQuery` use `T`), comparators with node indices, `AsStored` first slot
+  first. 511/511 tests; a scratch check confirms nearest-point results bit-for-bit with and without a
+  visit hook, subtree skipping, stored order, `FarthestFirst` and the 4-argument comparator.
 - [ ] Receipt: distance queries unchanged.
 - [ ] Ray type, order policies.
 - [ ] Old API removed; `traverse()` callers migrated.

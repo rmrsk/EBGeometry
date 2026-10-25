@@ -328,30 +328,43 @@ PackedBVH<T, P, K>::getDistanceToChildBoundingVolume2(const Node&     a_parent,
 namespace PackedBVHDetail {
 
 /**
- * @brief Whether a child with key @p a_a is visited before one with key @p a_b, under a visit order.
- * @details Internal helper; not part of the public API. DRAFT (#230).
- * @tparam T     Key type.
- * @tparam Order NearestFirst, FarthestFirst, AsStored, or a comparator (T, T) -> bool.
+ * @brief Whether the child keyed @p a_a (node @p a_nodeA) is visited before the child keyed @p a_b
+ * (node @p a_nodeB), under a visit order.
+ * @details Internal helper; not part of the public API. A comparator may take the keys alone, or the keys
+ * with the children's node indices.
+ * @tparam Key   Key type.
+ * @tparam Order NearestFirst, FarthestFirst, AsStored, or a comparator.
  * @param[in] a_order The order.
- * @param[in] a_a     One key.
- * @param[in] a_b     Another key.
- * @return True if the child keyed @p a_a goes first.
+ * @param[in] a_a     One child's key.
+ * @param[in] a_nodeA That child's node index.
+ * @param[in] a_b     Another child's key.
+ * @param[in] a_nodeB That child's node index.
+ * @return True if the first child goes first.
  */
-template <class T, class Order>
+template <class Key, class Order>
 EBGEOMETRY_HOST_DEVICE
 inline bool
-visitsBefore(const Order& a_order, const T a_a, const T a_b) noexcept
+visitsBefore(
+  const Order& a_order, const Key& a_a, const uint32_t a_nodeA, const Key& a_b, const uint32_t a_nodeB) noexcept
 {
   if constexpr (std::is_same_v<Order, NearestFirst>) {
     return a_a < a_b;
   }
   else if constexpr (std::is_same_v<Order, FarthestFirst>) {
-    return a_a > a_b;
+    return a_b < a_a;
   }
   else if constexpr (std::is_same_v<Order, AsStored>) {
-    return false; // never reorder: slot order is kept
+    // Children arrive in slot order, so an earlier slot is always visited first.
+    return true;
+  }
+  else if constexpr (std::is_invocable_r_v<bool, const Order&, const Key&, uint32_t, const Key&, uint32_t>) {
+    return a_order(a_a, a_nodeA, a_b, a_nodeB);
   }
   else {
+    static_assert(std::is_invocable_r_v<bool, const Order&, const Key&, const Key&>,
+                  "PackedBVH::traverse: an order is NearestFirst, FarthestFirst, AsStored, or a comparator "
+                  "(keyA, keyB) -> bool or (keyA, nodeA, keyB, nodeB) -> bool");
+
     return a_order(a_a, a_b);
   }
 }
@@ -359,17 +372,25 @@ visitsBefore(const Order& a_order, const T a_a, const T a_b) noexcept
 } // namespace PackedBVHDetail
 
 template <class T, class P, size_t K>
-template <class Query, class State, class LeafEvaluator, class BoundFn, class Order, class>
+template <class Query, class State, class LeafEvaluator, class BoundFn, class VisitFn, class Order, class>
 EBGEOMETRY_HOST_DEVICE
 inline void
-PackedBVH<T, P, K>::traverse(
-  const Query& a_query, State& a_state, LeafEvaluator&& a_leaf, BoundFn&& a_bound, Order a_order) const noexcept
+PackedBVH<T, P, K>::traverse(const Query&    a_query,
+                             State&          a_state,
+                             LeafEvaluator&& a_leaf,
+                             BoundFn&&       a_bound,
+                             VisitFn&&       a_visit,
+                             Order           a_order) const noexcept
 {
-  // DRAFT (#230): the shape of the walk, pruneTraverse() generalised to any query type and visit order.
-  // Not compiled or tested yet.
   static_assert(QueryLanes<Query>::value == 1, "PackedBVH::traverse: one query per walk");
   static_assert(std::is_same_v<typename Query::Scalar, T>, "PackedBVH::traverse: the query's precision must be T");
 
+  using Key = typename QueryKey<Query>::type;
+
+  // A visit callback is called for every node entered; the default, which always descends, compiles away.
+  constexpr bool visits = !std::is_same_v<std::decay_t<VisitFn>, DescendAll>;
+
+  // An empty BVH has no root to descend from (PointCloudBVH represents an empty cloud this way).
   if (m_linearNodes.size() == 0) {
     return;
   }
@@ -377,12 +398,16 @@ PackedBVH<T, P, K>::traverse(
   // One resolution for the whole walk: a query reserves nothing, so the pool base cannot move.
   const void* poolBase = this->base();
 
-  // The root has no parent row; the query keys its box directly. (A ray that misses the whole tree, or a
-  // point farther than the bound, ends here.)
-  if (a_query.key(m_rootBox.at(poolBase, 0)) > a_bound(a_state)) {
+  // The root has no parent row; the query keys its box directly. A ray that misses the whole tree, or a
+  // point farther than the bound, ends here.
+  Key nodeKey = a_query.key(m_rootBox.at(poolBase, 0));
+
+  if (nodeKey > a_bound(a_state)) {
     return;
   }
 
+  // One entry per interior node on the path from the root, so a tree of depth D needs at most D - 1
+  // entries: the bound traversalStackDepth() gives, which every build checked the tree against.
   constexpr size_t stackDepth = PackedBVH::traversalStackDepth();
 
   StackEntry stack[stackDepth];
@@ -391,9 +416,15 @@ PackedBVH<T, P, K>::traverse(
   uint32_t nodeIdx = 0U;
 
   while (true) {
-    // Visit nodeIdx, and keep descending into the first child the order gives.
+    // Enter nodeIdx (keyed nodeKey), and keep descending into the first child the order gives.
     while (true) {
       const Node& node = m_linearNodes.at(poolBase, nodeIdx);
+
+      if constexpr (visits) {
+        if (!a_visit(a_state, nodeIdx, node, static_cast<const Key&>(nodeKey))) {
+          break;
+        }
+      }
 
       if (node.isLeaf()) {
         a_leaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
@@ -402,19 +433,17 @@ PackedBVH<T, P, K>::traverse(
       }
 
       // The bound once per node expanded: any leaf visited before may have tightened it.
-      const T bound = a_bound(a_state);
+      const Key bound = a_bound(a_state);
 
       // All K keys in one pass (the query's SIMD kernel).
       const ChildAABBSoA& row  = m_childAabbSoA.at(poolBase, node.getChildBoxRow());
-      const Array<T, K>   keys = a_query.keys(row);
+      const Array<Key, K> keys = a_query.keys(row);
 
       const auto& offsets = node.getChildOffsets();
 
-      // The children within the bound, sorted so that the one to visit first is LAST (it is visited
-      // now, the rest wait on the stack in the same order). Insertion sort: K is a handful, it is
-      // callable on a device, and it is stable, so equal keys keep slot order. AsStored never swaps, so
-      // its children are visited in slot order (the last slot first; reversing the fill would give
-      // first slot first -- TODO decide which "as stored" means).
+      // The children within the bound, sorted so that the one to visit first is last: it is visited now,
+      // and the rest wait on the stack in the same order. Insertion sort, not std::sort: K is a handful,
+      // it is callable on a device, and it is stable, so children with equal keys keep a fixed order.
       uint8_t slots[K];
       size_t  numSlots = 0;
 
@@ -424,7 +453,8 @@ PackedBVH<T, P, K>::traverse(
         if (keys[k] <= bound) {
           size_t j = numSlots++;
 
-          while (j > 0 && PackedBVHDetail::visitsBefore(a_order, keys[slots[j - 1]], keys[k])) {
+          while (j > 0 && PackedBVHDetail::visitsBefore(
+                            a_order, keys[slots[j - 1]], offsets[slots[j - 1]], keys[k], offsets[k])) {
             slots[j] = slots[j - 1];
             j--;
           }
@@ -451,6 +481,7 @@ PackedBVH<T, P, K>::traverse(
       }
 
       nodeIdx = offsets[slots[numSlots - 1]];
+      nodeKey = keys[slots[numSlots - 1]];
     }
 
     // Return to the deepest level with a child still within the bound. The bound may have tightened
@@ -463,7 +494,7 @@ PackedBVH<T, P, K>::traverse(
       const Node&   parent = m_linearNodes.at(poolBase, entry.m_node);
       const uint8_t slot   = entry.m_slots[entry.m_count - 1];
 
-      const T key = a_query.key(m_childAabbSoA.at(poolBase, parent.getChildBoxRow()), size_t(slot));
+      const Key key = a_query.key(m_childAabbSoA.at(poolBase, parent.getChildBoxRow()), size_t(slot));
 
       if (key > a_bound(a_state)) {
         // Under NearestFirst the rest of the level is farther still: drop it. Under any other order a
@@ -483,6 +514,7 @@ PackedBVH<T, P, K>::traverse(
       }
 
       nodeIdx = parent.getChildOffsets()[slot];
+      nodeKey = key;
       resumed = true;
     }
 

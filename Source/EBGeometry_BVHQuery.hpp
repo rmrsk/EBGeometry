@@ -87,11 +87,59 @@ struct FarthestFirst
 };
 
 /**
- * @brief Visit the children within the bound in the order they are stored, without sorting: for an
- * any-hit query or a search that collects every leaf it reaches, where order does not matter.
+ * @brief Visit the children within the bound in the order they are stored (first slot first), without
+ * sorting: for an any-hit query or a search that collects every leaf it reaches, where order does not
+ * matter.
  */
 struct AsStored
 {
+};
+
+/**
+ * @brief The default visit callback of PackedBVH::traverse(): enter every node that passes the bound.
+ * @details The walk recognises it and calls nothing.
+ */
+struct DescendAll
+{
+  /**
+   * @brief Always descend.
+   * @return true.
+   */
+  template <class... Args>
+  EBGEOMETRY_HOST_DEVICE
+  constexpr bool
+  operator()(Args&&...) const noexcept
+  {
+    return true;
+  }
+};
+
+/**
+ * @brief The key type of a query type: Q::Key if it declares one, else Q::Scalar.
+ * @details A key needs <= and > against the bound (of the same type), and < for NearestFirst and
+ * FarthestFirst.
+ * @tparam Q Query type.
+ */
+template <class Q, class = void>
+struct QueryKey
+{
+  /**
+   * @brief The key type.
+   */
+  using type = typename Q::Scalar;
+};
+
+/**
+ * @brief A query type that declares its key type.
+ * @tparam Q Query type.
+ */
+template <class Q>
+struct QueryKey<Q, std::void_t<typename Q::Key>>
+{
+  /**
+   * @brief The key type.
+   */
+  using type = typename Q::Key;
 };
 
 /**
@@ -169,6 +217,11 @@ struct PointQuery
   using Scalar = T;
 
   /**
+   * @brief Key type: a squared distance or a distance along the ray.
+   */
+  using Key = T;
+
+  /**
    * @brief The point.
    */
   Vec3T<T> m_point;
@@ -233,6 +286,11 @@ struct RayQuery
    * @brief Floating-point precision.
    */
   using Scalar = T;
+
+  /**
+   * @brief Key type: a squared distance or a distance along the ray.
+   */
+  using Key = T;
 
   /**
    * @brief Ray origin.

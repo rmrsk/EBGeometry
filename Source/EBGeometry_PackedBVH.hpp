@@ -1003,54 +1003,66 @@ public:
 
   /**
    * @brief Walk the tree with a query, depth first: the general traversal.
-   * @details DRAFT (bvh_traversal, #230). Replaces the four-callback traverse() and pruneTraverse()
-   * below, which are removed once every caller has moved to it.
+   * @details The caller chooses what is tracked through the tree (@p a_query: a PointQuery, a RayQuery,
+   * or a query type of their own; see EBGeometry_BVHQuery.hpp), what is remembered between leaves
+   * (@p a_state), what happens at a leaf (@p a_leaf), how near a node must be to be entered
+   * (@p a_bound), what to do with a node before entering it (@p a_visit), and the order a node's children
+   * are visited in (@p a_order). Replaces the four-callback traverse() and pruneTraverse() below, which are
+   * removed once every caller has moved to it (#230).
    *
-   * The caller chooses what is tracked through the tree (@p a_query: a PointQuery, a RayQuery, or a
-   * query type of their own; see EBGeometry_BVHQuery.hpp), what is remembered between leaves
-   * (@p a_state), what happens at a leaf (@p a_leaf), how near a node must be to be visited
-   * (@p a_bound), and in which order a node's children are visited (@p a_order).
+   * At each interior node the query gives the K children their keys in one pass (Query::keys(), SIMD on
+   * the host). A child is entered if its key is <= the bound; those are visited in the order @p a_order
+   * gives, the first at once and the rest from a stack. The bound is read again at every node, so a leaf
+   * visited anywhere earlier tightens the pruning of every node after it. When the walk returns to a
+   * level it recomputes the next child's key (Query::key(row, k), bit for bit the same) and compares it
+   * with the current bound; under NearestFirst the first child out of bound drops the rest of the level.
    *
-   * At each interior node the query gives the K children their keys in one pass (Query::keys()). A child
-   * is entered if its key is <= the bound; those are visited in the order @p a_order gives, the first at
-   * once and the rest from a stack. The bound is read again at every node, so a leaf visited anywhere
-   * earlier tightens the pruning of every node after it. When the walk returns to a level it recomputes
-   * the next child's key (Query::key(row, k), bit for bit the same) and compares it with the current
-   * bound; under NearestFirst the first child out of bound drops the rest of the level.
+   * Every node about to be entered (the root, an interior node, a leaf), once it has passed the bound, is
+   * handed to @p a_visit with its index, the node and its key. Returning false skips it and its subtree;
+   * the callback may update the state first, for instance to account for the whole subtree at once from
+   * the caller's own per-node data. The default, DescendAll, always descends and compiles away.
    *
    * The stack keeps one entry per level (the node and the order of the children still to visit), sized
    * from traversalStackDepth(), so it is a fixed array on a device. An empty BVH visits nothing.
    *
-   * One query per walk: QueryLanes<Query>::value must be 1 (room is kept for query types that carry
-   * several queries later; see BVH_TRAVERSAL.md).
+   * One query per walk: QueryLanes<Query>::value must be 1.
    * @tparam Query         Query type: keys(row), key(row, k), key(box); see BVH::PointQuery.
    * @tparam State         The caller's search state.
    * @tparam LeafEvaluator Callable as (State&, size_t offset, size_t count) -> void: scans primitives
-   * [offset, offset + count) of getPrimitives() and updates the state. The only place the state changes.
-   * @tparam BoundFn       Callable as (const State&) -> T: the current bound. A child whose key is above
-   * it is skipped; a bound below every key (e.g. -infinity) ends the walk.
-   * @tparam Order         NearestFirst (default), FarthestFirst, AsStored, or a callable (T a, T b) ->
-   * bool that is true when a child with key a is to be visited before one with key b.
+   * [offset, offset + count) of getPrimitives() and updates the state.
+   * @tparam BoundFn       Callable as (const State&) -> Key: the current bound. A child whose key is above
+   * it is not entered; a bound below every key (e.g. -infinity) ends the walk.
+   * @tparam VisitFn       Callable as (State&, uint32_t nodeIndex, const Node&, const Key&) -> bool, or
+   * DescendAll.
+   * @tparam Order         NearestFirst (default), FarthestFirst, AsStored (first slot first), or a
+   * comparator (keyA, keyB) -> bool or (keyA, nodeIndexA, keyB, nodeIndexB) -> bool, true when the first
+   * child is to be visited before the second.
    * @param[in]     a_query The query.
    * @param[in,out] a_state The search state.
    * @param[in]     a_leaf  Leaf callback.
    * @param[in]     a_bound Bound callback.
+   * @param[in]     a_visit Visit callback.
    * @param[in]     a_order Visit order.
    */
   template <class Query,
             class State,
             class LeafEvaluator,
             class BoundFn,
-            class Order = NearestFirst,
-            class       = std::enable_if_t<IsQuery<std::decay_t<Query>>::value>>
+            class VisitFn = DescendAll,
+            class Order   = NearestFirst,
+            class         = std::enable_if_t<IsQuery<std::decay_t<Query>>::value>>
   EBGEOMETRY_HOST_DEVICE
   inline void
-  traverse(const Query& a_query, State& a_state, LeafEvaluator&& a_leaf, BoundFn&& a_bound, Order a_order = Order())
-    const noexcept;
+  traverse(const Query&    a_query,
+           State&          a_state,
+           LeafEvaluator&& a_leaf,
+           BoundFn&&       a_bound,
+           VisitFn&&       a_visit = DescendAll(),
+           Order           a_order = Order()) const noexcept;
 
   /**
    * @brief Depth-first traversal with caller-supplied pruning, child order and per-node keys.
-   * @details TO BE REMOVED in #230 (T3): replaced by traverse(query, state, leaf, bound, order).
+   * @details TO BE REMOVED in #230 (T3): replaced by traverse(query, state, leaf, bound, visit, order).
    * The general traversal, for searches that pruneTraverse() cannot express (its pruning
    * bound is always the squared distance from one point to a child's box). Callable from host and
    * device code: the four callbacks are template parameters, so a device caller passes lambdas or
