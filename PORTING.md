@@ -333,7 +333,7 @@ about the library's GPU ceiling. The agreed shape of the fix, as recorded before
 > ordered `GPU::transform` are kept. What still holds below is the reasoning about divergence, Morton
 > order and measuring first.
 
-* **One API, two implementations — not a GPU-special function.** Add a batched entry point,
+* **One API, two implementations — not a GPU-special function.** *(Superseded.)* Add a batched entry point,
   `pruneTraverseBatch(PODSpan<const Vec3T<T>> points, PODSpan<State> states, ...)`, implemented
   twice: on host as a loop over queries using the existing SIMD child test, on device as a mapping
   of queries onto threads or warps. Batching earns its keep on the host too (better node-cache
