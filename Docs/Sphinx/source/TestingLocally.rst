@@ -365,7 +365,11 @@ Test coverage
        with and without unbounded operands, calls nested to the limit, full value and point stacks,
        user primitive types and a tape inside a tape, each against the host; a user octahedron's
        exact values kept through rotation, translation and a BVH union; and a tape built directly in
-       managed memory evaluated on the device through its own pool.
+       managed memory evaluated on the device through its own pool; ``closestPrimitive()``'s deciding
+       leaf for a difference, a union (through the BVH and operand by operand) and an intersection
+       against the brute-force choice, followed through smooth blends, blurs, maps and repetitions to
+       the leaf and its local point, each occurrence of a shared shape numbered, a mesh leaf returned as
+       a handle, a fused part as one leaf of a scene, and the device against the host.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

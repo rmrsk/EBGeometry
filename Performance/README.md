@@ -19,13 +19,16 @@ folder measures it. The full description is the *Performance testing* page of th
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |
 | `Tape/`       | `Tape` signed distance (CSG, smooth, BVH union) against a hand-written solid |
 | `Fused/`      | Fused CSG compositions (the Tape probe's solids, a drilled mesh fused and through a tape) |
+| `ClosestPrimitive/` | A tape's `closestPrimitive()`, the deciding leaf (CSG, a scene of fused parts, a drilled mesh) |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results               |
 
 Each probe holds many cases, named `component/input/operation/precision/side`. A host build runs the
 `host` cases, on one core; a CUDA or HIP build runs only the `hostdevice` pairs: every device query with
 the same inputs on both sides, the host side on every hardware thread but one (OpenMP), giving each side's time, the
-device's speedup and whether the answers agree. The *Performance testing* page lists every case family with its
+device's speedup and whether the answers agree. A case that names another computing the same answers
+(`Case::relativeTo()`: each `Fused` case names its tape counterpart) gets the ratio of their times in its
+note, e.g. `tape/fused 2.78x`. The *Performance testing* page lists every case family with its
 input and size; `--list` prints the exact names.
 
 Run them

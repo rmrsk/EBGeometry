@@ -117,3 +117,11 @@ by hand, with no instructions to interpret, which matters most on a GPU. Its val
 tape's, computed by the same arithmetic. The structure is then fixed when the program is compiled,
 so geometry chosen at run time still goes through the tape, which can hold such compiled objects as
 its leaves.
+
+The tape is the scene, and it can also say which of its leaves decides its value at a point: the
+primitive whose surface the value comes from there. A union passes on the leaf of the operand it takes
+the value from, a difference the leaf of whichever object bounds the result, a blend or a blur the most
+influential operand's. This is what tagging a boundary or a material needs, and it is not the same as the
+geometrically nearest primitive, which may be one the composition cut away. A compiled object is one
+shape with one surface, however it is built: in a tape it is one leaf, so a scene of compiled parts
+names the part that decides the value.

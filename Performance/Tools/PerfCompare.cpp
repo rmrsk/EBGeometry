@@ -27,7 +27,9 @@
 // at least two runs on each side; pool bytes are deterministic and judged by the thresholds alone. A
 // pair also shows the device's speedup over the host, with the baseline's beside it when the two differ
 // by --minor percent or more, and a checksum or a point-index checksum that differs between the sides is
-// noted: a change in speed is only comparable for equal answers.
+// noted: a change in speed is only comparable for equal answers. A case that names another with
+// Case::relativeTo() (the same answers computed another way) shows that case's time over its own, with the
+// baseline's beside it when the two differ by --minor percent or more; noted, never judged.
 //
 // With --smoke (results of a smoke run) it judges no timings: per case, whether it ran on each side,
 // whether the checksums match, and whether a pair's host and device answers agree, with the times
@@ -78,7 +80,9 @@ struct Measurement
   double                mismatches = 0; // The most over the runs.
   double                maxDiff    = 0;
   bool                  skipped    = false;
-  std::string           reason; // Why it was skipped.
+  std::string           reason;        // Why it was skipped.
+  std::string           relativeTo;    // A case whose time is noted relative to this one's (Case::relativeTo()).
+  std::string           relativeLabel; // How the note names that ratio.
 };
 
 // One side's results file.
@@ -163,6 +167,11 @@ read(const std::string& a_file)
     }
 
     m.poolBytes = line.number(Key::PoolBytes, m.poolBytes);
+
+    if (line.has(Key::RelativeTo)) {
+      m.relativeTo    = line.text(Key::RelativeTo);
+      m.relativeLabel = line.text(Key::RelativeLabel);
+    }
 
     if (line.has(Key::HostOverDevice)) {
       m.paired = true;
@@ -298,7 +307,10 @@ struct Comparison
   std::optional<double> headChecksum;
   bool                  indicesDiffer = false; // The point-index checksums differ.
   std::optional<double> speedup;               // A pair: the candidate's device speedup.
-  std::optional<double> baseSpeedup;           // ... and the baseline's, when it differs by --minor or more.
+  std::optional<double> relative;              // The candidate's time(relativeTo)/time(this), and its label.
+  std::optional<double> baseRelative;          // ... and the baseline's, when it differs by --minor or more.
+  std::string           relativeLabel;
+  std::optional<double> baseSpeedup; // ... and the baseline's, when it differs by --minor or more.
   double                mismatches = 0;
   double                maxDiff    = 0;
   std::string           reason; // Why a side was skipped, or the case is lost.
@@ -357,6 +369,16 @@ struct Comparison
 
       if (baseSpeedup) {
         s += " (was " + formatNumber("%.1f", *baseSpeedup) + "x)";
+      }
+
+      parts.push_back(s);
+    }
+
+    if (relative) {
+      std::string s = relativeLabel + " " + formatNumber("%.2f", *relative) + "x";
+
+      if (baseRelative) {
+        s += " (was " + formatNumber("%.2f", *baseRelative) + "x)";
       }
 
       parts.push_back(s);
@@ -496,6 +518,46 @@ compare(const std::string& a_name, const Measurement* a_base, const Measurement*
   return c;
 }
 
+// The time of the case a case names with Case::relativeTo(), over its own, on one side: the ratio of the
+// medians of the two cases' runs, or none when either has no times there.
+std::optional<double>
+relativeTime(const Results& a_results, const std::string& a_name)
+{
+  const Measurement* m = a_results.find(a_name);
+
+  if (m == nullptr || m->relativeTo.empty() || m->runs.empty()) {
+    return std::nullopt;
+  }
+
+  const Measurement* other = a_results.find(m->relativeTo);
+
+  if (other == nullptr || other->runs.empty()) {
+    return std::nullopt;
+  }
+
+  return Perf::median(other->runs) / Perf::median(m->runs);
+}
+
+// Note the candidate's relative time on a compared case, whatever its outcome (a new case too), with the
+// baseline's beside it when the two differ by --minor percent or more. Noted, never judged.
+void
+noteRelative(Comparison& a_case, const Results& a_base, const Results& a_head, const Thresholds& a_thresholds)
+{
+  a_case.relative = relativeTime(a_head, a_case.name);
+
+  if (!a_case.relative) {
+    return;
+  }
+
+  a_case.relativeLabel = a_head.find(a_case.name)->relativeLabel;
+
+  const std::optional<double> was = relativeTime(a_base, a_case.name);
+
+  if (was && std::abs(*a_case.relative / *was - 1.0) >= a_thresholds.minor / 100.0) {
+    a_case.baseRelative = was;
+  }
+}
+
 Verdict
 fullVerdict(const std::vector<Comparison>& a_cases, int a_failedRuns)
 {
@@ -563,6 +625,7 @@ fullReport(const Results&     a_base,
 
   for (const auto& name : caseNames(a_base, a_head)) {
     cases.push_back(compare(name, a_base.find(name), a_head.find(name), a_thresholds));
+    noteRelative(cases.back(), a_base, a_head, a_thresholds);
   }
 
   const Verdict verdict = fullVerdict(cases, a_failedRuns);

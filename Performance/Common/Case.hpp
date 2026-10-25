@@ -243,6 +243,22 @@ public:
   }
 
   /**
+   * @brief Report another case's time relative to this one's: the comparison notes, beside this case, the
+   * ratio time(other)/time(this) on each side, so that the cost of one way of computing the same answers
+   * over another is tracked from one pull request to the next (the Fused probe names its Tape
+   * counterparts). The other case must compute the same answers over the same inputs, and may be in
+   * another probe; the ratio is noted, never judged.
+   * @param[in] a_case  The other case's full name.
+   * @param[in] a_label How the note names the ratio ("tape/fused").
+   */
+  void
+  relativeTo(const std::string& a_case, const std::string& a_label)
+  {
+    m_relativeTo    = a_case;
+    m_relativeLabel = a_label;
+  }
+
+  /**
    * @brief The case's name.
    * @return The name.
    */
@@ -335,6 +351,10 @@ public:
       out.count(Key::PoolBytes, m_poolBytes);
     }
 
+    if (!m_relativeTo.empty()) {
+      out.text(Key::RelativeTo, m_relativeTo).text(Key::RelativeLabel, m_relativeLabel);
+    }
+
     if (!m_metrics.empty()) {
       JsonObject metrics;
 
@@ -391,6 +411,8 @@ private:
   std::uint64_t                                    m_indexChecksum    = 0;
   bool                                             m_hasIndexChecksum = false;
   std::size_t                                      m_poolBytes        = 0;
+  std::string                                      m_relativeTo;
+  std::string                                      m_relativeLabel;
   std::vector<std::pair<std::string, std::size_t>> m_params;
   std::vector<std::pair<std::string, double>>      m_metrics;
 };

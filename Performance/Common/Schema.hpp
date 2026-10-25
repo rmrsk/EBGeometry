@@ -55,6 +55,8 @@ constexpr const char* IndexChecksum = "index_checksum"; ///< An exact hash of th
 constexpr const char* PoolBytes     = "pool_bytes";     ///< The structure's bytes in its pool.
 constexpr const char* Metrics       = "metrics";        ///< Further numbers (below).
 constexpr const char* Params        = "params";         ///< The case's code-selecting parameters.
+constexpr const char* RelativeTo    = "relative_to";    ///< A case whose time is reported relative to this one's.
+constexpr const char* RelativeLabel = "relative_label"; ///< How the comparison names that ratio.
 
 // Metrics of a host/device pair.
 constexpr const char* HostMs         = "host_ms";          ///< The host side's median time.
