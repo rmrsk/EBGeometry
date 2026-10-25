@@ -196,8 +196,17 @@ repository and open a pull request. See
 test locally, what continuous integration checks, the performance comparison every pull request
 carries, and the code conventions. For GPU work, start from [PORTING.md](PORTING.md).
 
-## AI usage
+## How EBGeometry is developed
 
-EBGeometry is developed with expert-steered AI coding. The `CLAUDE.md` in this repository steers
-Claude Code, and contributions written by an AI coding agent are welcome. Every merged change is
-reviewed by a human.
+EBGeometry is human-designed, with AI-assisted implementation.
+
+* **2022 to mid-2026:** designed and written by hand.
+* **Since July 2026** (the overhaul in [#88](https://github.com/rmrsk/EBGeometry/pull/88)): the maintainer designs and decides: the architecture, the
+  APIs, the algorithms, the priorities, and every non-obvious choice. [Claude Code](https://claude.com/claude-code)
+  implements, tests, documents and measures, steered by the rules in [`CLAUDE.md`](CLAUDE.md), and
+  brings every open decision back to the maintainer.
+* **Every change,** whoever wrote it, passes the same gates: unit tests against independent
+  references, continuous integration, a performance comparison against its base, an AI review, and a
+  human review. The maintainer reviews and merges every pull request.
+
+Contributions written with an AI coding agent are welcome on the same terms.
