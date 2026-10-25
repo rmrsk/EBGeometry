@@ -6,26 +6,23 @@
 EBGeometry's user documentation
 ===============================
 
-EBGeometry is a header-only C++17 library for constructive solid geometry (CSG) with implicit
-functions. It can turn surface geometries into fast, queryable signed distance functions (SDFs),
-and manipulate them with CSG operations.
+EBGeometry is a header-only C++17 library of fast, portable geometry queries. It turns meshes,
+analytic shapes, point clouds and compositions of them into geometry you can ask questions: how far
+away is it, which surface is closest, what lies nearest. It answers them on CPUs and on GPUs, from the
+same code, with no dependencies.
 
-Main features:
+* **Geometry in:** triangle meshes (STL, PLY, OBJ, VTK) as a half-edge mesh or SIMD triangle blocks,
+  analytic shapes and your own, and point clouds.
+* **Composition:** constructive solid geometry (unions, intersections, differences, smooth blends,
+  offsets, repetitions and transforms), compiled into a tape for a scene or fused into compiled code
+  for a part, and BVH-accelerated unions of thousands of objects.
+* **Queries:** signed distance, normals and bounding boxes; the primitive that decides the value at a
+  point; closest points and nearest neighbours in point clouds.
+* **Performance:** packed BVHs with any branching factor and a choice of builds, SIMD on the host
+  (SSE to AVX-512), CUDA and HIP on the device, and a performance comparison on every change.
+* **No dependencies:** include ``EBGeometry.hpp`` in any C++17 project, in ``float`` or ``double``.
 
-* Turn surface meshes into SDFs, via a half-edge (DCEL) mesh representation or raw triangles.
-* Fast SDF evaluation using bounding volume hierarchies (BVHs).
-* Supports both pointer-based tree BVHs, and flattened SIMD-accelerated packed BVHs.
-* A library of analytic signed distance functions and implicit functions (spheres, boxes, and
-  more).
-* Transforms (translation, rotation, scaling, rounding, blending) and constructive solid geometry
-  (CSG: unions, intersections, differences, and smooth blends) of any shapes, analytic or mesh,
-  through a value-type expression builder compiled into a ``Tape``. A union of many objects is
-  evaluated with a BVH.
-* BVH-accelerated (smooth) unions of many analytic shapes or meshes of one type that also run on a
-  GPU.
-* Readers for triangulated surface meshes in STL, PLY, OBJ, and VTK format.
-* Drop-in precision-templated for flexible usage.
-* No external dependencies -- drop ``EBGeometry.hpp`` into any C++17 project and include it.
+See :ref:`Chap:Comparison` for how EBGeometry relates to other libraries.
 
 .. important::
 
@@ -72,6 +69,7 @@ Getting started
 
    ObtainingEBGeometry.rst
    Quickstart.rst
+   Comparison.rst
    Building.rst
    SIMDAcceleration.rst
    ConfigurationOptions.rst
