@@ -33,7 +33,8 @@ namespace ExprDetail {
  * @return The box.
  */
 template <class T>
-[[nodiscard]] inline BoundingVolumes::AABBT<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline BoundingVolumes::AABBT<T>
 everywhere() noexcept
 {
   return BoundingVolumes::AABBT<T>(-Vec3T<T>::max(), Vec3T<T>::max());
@@ -47,7 +48,8 @@ everywhere() noexcept
  * @return True if empty.
  */
 template <class T>
-[[nodiscard]] inline bool
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline bool
 isEmpty(const BoundingVolumes::AABBT<T>& a_box) noexcept
 {
   for (size_t dir = 0; dir < 3; dir++) {
@@ -68,7 +70,8 @@ isEmpty(const BoundingVolumes::AABBT<T>& a_box) noexcept
  * @return The grown box.
  */
 template <class T>
-[[nodiscard]] inline BoundingVolumes::AABBT<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline BoundingVolumes::AABBT<T>
 grown(const BoundingVolumes::AABBT<T>& a_box, const Vec3T<T>& a_margin) noexcept
 {
   if (isEmpty(a_box)) {
@@ -95,7 +98,8 @@ grown(const BoundingVolumes::AABBT<T>& a_box, const Vec3T<T>& a_margin) noexcept
  * @return The grown box.
  */
 template <class T>
-[[nodiscard]] inline BoundingVolumes::AABBT<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline BoundingVolumes::AABBT<T>
 grown(const BoundingVolumes::AABBT<T>& a_box, const T a_margin) noexcept
 {
   return grown(a_box, a_margin * Vec3T<T>::ones());
@@ -110,7 +114,8 @@ grown(const BoundingVolumes::AABBT<T>& a_box, const T a_margin) noexcept
  * @return The intersection.
  */
 template <class T>
-[[nodiscard]] inline BoundingVolumes::AABBT<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline BoundingVolumes::AABBT<T>
 intersected(const BoundingVolumes::AABBT<T>& a_first, const BoundingVolumes::AABBT<T>& a_second) noexcept
 {
   if (isEmpty(a_first) || isEmpty(a_second)) {

@@ -31,13 +31,14 @@ integration, the underlying geometric concepts), see the
 
 | Namespace | Contents |
 |---|---|
-| `EBGeometry` | Vectors (`Vec2T`, `Vec3T`), implicit functions, analytic shapes, CSG operators, transformations, the SDF/BVH wrapper classes (`MeshSDF`, `TriMeshSDF`, `FlatMeshSDF`), the BVH unions (`BVHUnion`, `BVHSmoothUnion`), and the queries on any function of a point (`approximateBoundingVolumeOctree`, `normal`) |
+| `EBGeometry` | Vectors (`Vec2T`, `Vec3T`), implicit functions, analytic shapes, CSG operators, transformations, the SDF/BVH wrapper classes (`MeshSDF`, `TriMeshSDF`, `FlatMeshSDF`), the BVH unions (`BVHUnion`, `BVHSmoothUnion`), the queries on any function of a point (`approximateBoundingVolumeOctree`, `normal`), and the ray queries on any shape (`RayT`, `HitT`, `firstHit`, `intersects`, `RayForm`) |
 | `EBGeometry::DCEL` | The half-edge surface mesh: `VertexT`, `EdgeT`, `FaceT`, `MeshT`, and mesh iterators |
 | `EBGeometry::BVH` | `TreeBVH`, `PackedBVH`, partitioners, traversal callback types (`LeafEvaluator`, `PrunePredicate`, `ChildOrderer`, `NodeKeyFactory`) |
 | `EBGeometry::BoundingVolumes` | `AABBT` (axis-aligned box) |
 | `EBGeometry::Random` | Random sampling utilities for the examples; not included by `EBGeometry.hpp` (include `Source/EBGeometry_Random.hpp`) |
 | `EBGeometry::SFC` | Space-filling curves (`Morton`, `Nested`, `Hilbert`), point-to-grid binning (`computeBins`), and curve ordering of points (`order`), used for bottom-up BVH construction and spatial sorting |
 | `EBGeometry::Soup` | Polygon-soup compression and soup-to-DCEL conversion |
+| `EBGeometry::TriangleRay` | The triangle ray-crossing kernel, for one triangle or a SIMD pack of them |
 | `EBGeometry::TriangleSoA` | Structure-of-arrays triangle groups used as SIMD-friendly `PackedBVH` leaves |
 | `EBGeometry::PointSoA` | True structure-of-arrays point-position groups (`PointSoAT`), for nearest-neighbor-style `PackedBVH` leaves over point clouds |
 | `EBGeometry::Parser` | File readers (STL, PLY, OBJ, VTK) that build polygon soups (`PolygonSoup`, with the files' vertex and face data), DCEL meshes, mesh SDFs, or triangle BVHs |

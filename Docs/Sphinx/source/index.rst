@@ -87,6 +87,7 @@ Concepts
    GeometryRepresentations.rst
    DCEL.rst
    BVH.rst
+   Rays.rst
    PointCloud.rst
    Octree.rst
    CSG.rst
@@ -107,6 +108,7 @@ Implementation
    ImplemCSG.rst
    ImplemDCEL.rst
    ImplemBVH.rst
+   ImplemRays.rst
    ImplemPointCloud.rst
    ImplemOctree.rst
    Parsers.rst
@@ -128,6 +130,7 @@ Examples
    ExampleManyObjects.rst
    ExamplePointClouds.rst
    ExampleBVHTraversal.rst
+   ExampleRayTracing.rst
    ExampleOctreeBoundingVolume.rst
    ExampleCustomShape.rst
    ExampleHostTuning.rst

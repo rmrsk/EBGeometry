@@ -288,7 +288,7 @@ struct Operands
    * @return The box.
    */
   template <size_t I>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline auto
   box() const
   {
@@ -401,7 +401,7 @@ public:
    * @brief The composition's bounding box, by the rules of the expression builder.
    * @return The box.
    */
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   computeBoundingVolume() const
   {
@@ -488,7 +488,7 @@ struct CombineOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline auto
   box(const O& a_operands) const
   {
@@ -530,12 +530,12 @@ private:
    * @return The box.
    */
   template <class O, size_t... Is>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline auto
   boxes(const O& a_operands, std::index_sequence<Is...>) const
   {
     using Box = decltype(a_operands.template box<0>());
-    using T   = std::decay_t<decltype(std::declval<Box>().getLowCorner()[0])>;
+    using T   = std::decay_t<decltype(a_operands.template box<0>().getLowCorner()[0])>;
 
     Box box = IsUnion ? Box() : ExprDetail::everywhere<T>();
 
@@ -613,7 +613,7 @@ struct SmoothCombineOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   box(const O& a_operands) const
   {
@@ -689,12 +689,11 @@ struct ComplementOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline auto
   box(const O& a_operands) const
   {
-    using Box = decltype(a_operands.template box<0>());
-    using T   = std::decay_t<decltype(std::declval<Box>().getLowCorner()[0])>;
+    using T = std::decay_t<decltype(a_operands.template box<0>().getLowCorner()[0])>;
 
     return ExprDetail::everywhere<T>();
   }
@@ -759,7 +758,7 @@ struct AffineOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   box(const O& a_operands) const
   {
@@ -813,7 +812,7 @@ struct ElongateOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   box(const O& a_operands) const
   {
@@ -876,7 +875,7 @@ struct ShiftOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   box(const O& a_operands) const
   {
@@ -933,7 +932,7 @@ struct RepetitionOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   box(const O& a_operands) const;
 };
@@ -986,7 +985,7 @@ struct BlurOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   box(const O& a_operands) const
   {
@@ -1053,7 +1052,7 @@ struct MollifyOp
    * @return The box.
    */
   template <class O>
-  [[nodiscard]] EBGEOMETRY_HOST
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   box(const O& a_operands) const
   {

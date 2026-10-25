@@ -96,6 +96,18 @@ namespace EBGeometry {
   template struct BVH::PointQuery<PREC>;                                     \
   template struct BVH::RayQuery<PREC>;                                       \
                                                                                \
+  /* -- Ray queries ---------------------------------------------------------*/\
+  template struct RayT<PREC>;                                                \
+  template struct HitT<PREC>;                                                \
+  template struct RayOptions<PREC>;                                          \
+  template struct RayForm<PlaneSDF<PREC>>;                                   \
+  template struct RayForm<SphereSDF<PREC>>;                                  \
+  template struct RayForm<BoxSDF<PREC>>;                                     \
+  template struct RayForm<CylinderSDF<PREC>>;                                \
+  template struct RayForm<InfiniteCylinderSDF<PREC>>;                        \
+  template struct RayForm<CapsuleSDF<PREC>>;                                 \
+  template struct RayForm<TriMeshSDF<PREC, 4, 4>>;                           \
+                                                                               \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
   template struct PODVector<PREC>;                                           \
   template struct PODSpan<PREC>;                                             \
@@ -230,6 +242,20 @@ instantiateFunctionTemplates()
     GPU::transform(query, pool, in, out);
     (void)GPU::deviceAvailable();
     (void)GPU::memoryResource();
+  }
+
+  // The ray queries on a shape with a ray form and on a marched one, for rays and for segments.
+  {
+    const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+    const TorusSDF<T>  torus(Vec3T<T>::zeros(), T(1), T(0.25));
+    const RayT<T>      ray{-T(3) * Vec3T<T>::ones(), Vec3T<T>(T(1), T(0), T(0))};
+
+    (void)firstHit(sphere, ray, T(0), T(10));
+    (void)firstHit(torus, ray, T(0), T(10));
+    (void)firstHit(torus, Vec3T<T>::zeros(), Vec3T<T>::ones());
+    (void)intersects(sphere, ray, T(0), T(10));
+    (void)intersects(torus, ray, T(0), T(10));
+    (void)intersects(torus, Vec3T<T>::zeros(), Vec3T<T>::ones());
   }
 
   // Every builder function, compiled into a tape.

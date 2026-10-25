@@ -94,6 +94,28 @@ TriangleAoSoA<T, W>::signedDistance(const Vec3T<T>& a_point, uint32_t& a_closest
 
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
+T
+TriangleAoSoA<T, W>::rayCrossing(const Vec3T<T>& a_origin,
+                                 const Vec3T<T>& a_direction,
+                                 const T         a_tMin,
+                                 const T         a_tMax,
+                                 uint32_t&       a_faceId,
+                                 Vec3T<T>&       a_normal) const noexcept
+{
+  uint32_t lane = uint32_t(W);
+
+  const T t = m_triangles.rayCrossing(a_origin, a_direction, a_tMin, a_tMax, lane);
+
+  if (lane < uint32_t(W)) {
+    a_faceId = m_faceIds[lane];
+    a_normal = m_triangles.getNormal(lane);
+  }
+
+  return t;
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 uint32_t
 TriangleAoSoA<T, W>::getFaceId(size_t a_lane) const noexcept
 {

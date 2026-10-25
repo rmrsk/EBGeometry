@@ -179,6 +179,32 @@ public:
   signedDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief Where a ray first crosses a triangle in this group.
+   * @details TriangleRay::crossing() on the m_validCount triangles, SIMD::NativeWidth<T, W>() at a time,
+   * from either side of each triangle. The nearest crossing in [a_tMin, a_tMax] wins, the first such lane
+   * on a tie. Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
+   * @param[in]  a_origin    Ray origin.
+   * @param[in]  a_direction Ray direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[out] a_lane      Set to the lane of the crossing; unchanged if there is none.
+   * @return The distance along the ray of the crossing, or +infinity if there is none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  rayCrossing(
+    const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, T a_tMin, T a_tMax, uint32_t& a_lane) const noexcept;
+
+  /**
+   * @brief The unit normal of one lane's triangle.
+   * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W.
+   * @return The face normal.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  getNormal(uint32_t a_lane) const noexcept;
+
+  /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a point array (a
@@ -300,6 +326,23 @@ protected:
   EBGEOMETRY_HOST
   void
   signedDistancesSIMD(const Vec3T<T>& a_point, T* a_distances) const noexcept;
+
+  /**
+   * @brief Ray crossings of the lanes below m_validCount, @p N at a time, with SIMD::Pack<T, N>.
+   * @details Host-only, like signedDistancesSIMD(). Lanes of a chunk that starts at or past m_validCount
+   * are not written.
+   * @tparam N Lane count, SIMD::NativeWidth<T, W>(); must be > 1 and divide W.
+   * @param[in]  a_origin    Ray origin.
+   * @param[in]  a_direction Ray direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[out] a_crossings W values, aligned to N * sizeof(T): the crossing, or +infinity.
+   */
+  template <size_t N>
+  EBGEOMETRY_HOST
+  void
+  rayCrossingsSIMD(
+    const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, T a_tMin, T a_tMax, T* a_crossings) const noexcept;
 
   /**
    * @brief x-coordinates of vertex positions. m_vx[i][j] = x-coord of vertex i for triangle j.

@@ -37,6 +37,7 @@
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_PrimitiveRef.hpp"
+#include "EBGeometry_Ray.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -547,6 +548,66 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline PrimitiveRef<T>
   closestPrimitive(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The first crossing of the object's surface along a ray, entering or leaving.
+   * @details The tape is marched (see EBGeometry_Ray.hpp); HitT::m_primitive is the deciding leaf at the
+   * crossing (see closestPrimitive()). The same as the free function firstHit(). Callable on a device.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  firstHit(const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief The first crossing of the object's surface on the segment from a_from to a_to.
+   * @details HitT::m_t is the distance from a_from. The same as the free function firstHit(). Callable on a
+   * device.
+   * @param[in] a_from    Start of the segment.
+   * @param[in] a_to      End of the segment.
+   * @param[in] a_tMin    Distance from a_from where the search starts.
+   * @param[in] a_options How to march.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  firstHit(const Vec3T<T>&      a_from,
+           const Vec3T<T>&      a_to,
+           T                    a_tMin    = T(0),
+           const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief Whether a ray crosses the object's surface in [a_tMin, a_tMax].
+   * @details The same as the free function intersects(). Callable on a device.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march.
+   * @return Hit, Miss, or Unresolved.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitStatus
+  intersects(const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief Whether the segment from a_from to a_to crosses the object's surface.
+   * @details The same as the free function intersects(). Callable on a device.
+   * @param[in] a_from    Start of the segment.
+   * @param[in] a_to      End of the segment.
+   * @param[in] a_tMin    Distance from a_from where the search starts.
+   * @param[in] a_options How to march.
+   * @return Hit, Miss, or Unresolved.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitStatus
+  intersects(const Vec3T<T>&      a_from,
+             const Vec3T<T>&      a_to,
+             T                    a_tMin    = T(0),
+             const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
 
   /**
    * @brief Whether a reference's leaf is a primitive of type P.

@@ -775,6 +775,50 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point) const noexce
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::firstHit(const RayT<T>&       a_ray,
+                                     const T              a_tMin,
+                                     const T              a_tMax,
+                                     const RayOptions<T>& a_options) const noexcept
+{
+  return EBGeometry::firstHit(*this, a_ray, a_tMin, a_tMax, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::firstHit(const Vec3T<T>&      a_from,
+                                     const Vec3T<T>&      a_to,
+                                     const T              a_tMin,
+                                     const RayOptions<T>& a_options) const noexcept
+{
+  return EBGeometry::firstHit(*this, a_from, a_to, a_tMin, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline HitStatus
+Tape<T, UserPrimitives...>::intersects(const RayT<T>&       a_ray,
+                                       const T              a_tMin,
+                                       const T              a_tMax,
+                                       const RayOptions<T>& a_options) const noexcept
+{
+  return EBGeometry::intersects(*this, a_ray, a_tMin, a_tMax, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline HitStatus
+Tape<T, UserPrimitives...>::intersects(const Vec3T<T>&      a_from,
+                                       const Vec3T<T>&      a_to,
+                                       const T              a_tMin,
+                                       const RayOptions<T>& a_options) const noexcept
+{
+  return EBGeometry::intersects(*this, a_from, a_to, a_tMin, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
 inline PrimitiveRef<T>
 Tape<T, UserPrimitives...>::closestPrimitive(const Vec3T<T>& a_point) const noexcept
 {

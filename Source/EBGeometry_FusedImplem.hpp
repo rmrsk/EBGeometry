@@ -283,6 +283,7 @@ Node<Op, Cs...>::deepCopy(Pool& a_dstPool) const
 
 template <class T>
 template <class O>
+EBGEOMETRY_HOST_DEVICE
 inline BoundingVolumes::AABBT<T>
 RepetitionOp<T>::box(const O& a_operands) const
 {
