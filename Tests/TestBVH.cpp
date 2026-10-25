@@ -2185,7 +2185,9 @@ packedBvhTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K>
   const NearestLeafEval<T>    evalLeaf{a_bvh.getPrimitives(), a_query};
   const IdentityPruneDist2<T> pruneDist2{};
 
-  a_bvh.traverse(BVH::PointQuery{a_query}, state, evalLeaf, pruneDist2);
+  // Spelled out, not BVH::PointQuery{a_query}: HIP treats a deduction guide as host-only, and this
+  // function also runs on a device.
+  a_bvh.traverse(BVH::PointQuery<T>{a_query}, state, evalLeaf, pruneDist2);
 
   // Also exercise the plain accessors so a broken base() shows up even if traversal were to pass.
   return state + T(a_bvh.getPrimitives().size()) + a_bvh.getBoundingVolume().getLowCorner().length();
@@ -6036,7 +6038,7 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse with a RayQuery runs on device and match
       REQUIRE(deviceHits[i] == hostHits[i]);
     }
     else {
-      REQUIRE_THAT(deviceHits[i], withinAbsT(hostHits[i], gpuTol<T>() * (T(1) + std::abs(hostHits[i]))));
+      REQUIRE_THAT(deviceHits[i], withinAbsT(hostHits[i], double(gpuTol<T>() * (T(1) + std::abs(hostHits[i])))));
     }
   }
 }

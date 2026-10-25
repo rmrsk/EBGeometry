@@ -719,7 +719,9 @@ Query types
 ^^^^^^^^^^^
 
 * ``BVH::PointQuery{p}`` -- the key of a box is the squared distance from ``p`` to it (0 inside it). The
-  bound is a squared distance too.
+  bound is a squared distance too. In a function that also runs on a device, write the precision out,
+  ``BVH::PointQuery<T>{p}``: HIP's compiler treats the deduction guide behind ``PointQuery{p}`` as a host
+  function.
 * ``BVH::RayQuery(origin, direction, tMin)`` -- the key of a box is the distance along the ray (unit
   direction) at which it enters the box, from ``tMin`` on, or :math:`+\infty` if it misses it. A segment
   from ``a`` to ``b`` is the ray from ``a`` towards ``b`` with the bound starting at ``|b - a|``.
