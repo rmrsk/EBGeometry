@@ -242,6 +242,7 @@ TEMPLATE_TEST_CASE("Ray: every mesh SDF of the unit cube crosses where the slab 
     {"beside", Vec3(-T(1), T(2), h), Vec3(1, 0, 0), T(0), T(10), inf, false},
     {"away", Vec3(-T(1), h, h), Vec3(-1, 0, 0), T(0), T(10), inf, false},
     {"stopping short", Vec3(-T(1), h, h), Vec3(1, 0, 0), T(0), T(0.9), inf, false},
+    {"axis-aligned, to infinity", Vec3(-T(1), T(0.3), T(0.4)), Vec3(1, 0, 0), T(0), inf, T(1), true},
     {"on the surface, t = 0", Vec3(T(0), h, T(0.4)), Vec3(1, 0, 0), T(0), T(10), T(0), true},
     {"stepping off the surface", Vec3(T(0), h, T(0.4)), Vec3(1, 0, 0), T(1e-3), T(10), T(1), false},
   };
@@ -337,6 +338,54 @@ TEMPLATE_TEST_CASE("Ray: every mesh SDF of the unit cube agrees with the slab te
       }
     }
   }
+}
+
+TEMPLATE_TEST_CASE("Ray: intersects() agrees with firstHit() on an unbounded ray that enters a leaf box and misses",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A tetrahedron's faces have boxes with much empty space in them, so many rays enter a leaf box and miss
+  // its faces. With tMax infinite, "no crossing" (+infinity) must still not count as a crossing.
+  const std::string file = std::string(EBGEOMETRY_TEST_DATA_DIR) + "/tetrahedron.stl";
+
+  Pool       pool(hostMemoryResource());
+  const auto triangles = Parser::readIntoTriMeshSDF<T, 4, 4>(file, pool);
+  const auto polygons  = Parser::readIntoMeshSDF<T, 4>(file, pool);
+  const auto flat      = Parser::readIntoFlatMeshSDF<T>(file, pool);
+
+  const auto box = polygons.computeBoundingVolume();
+  const Vec3 lo  = box.getLowCorner();
+  const Vec3 hi  = box.getHighCorner();
+  const T    inf = std::numeric_limits<T>::infinity();
+
+  std::mt19937                      rng(11);
+  std::uniform_real_distribution<T> uniform(T(0), T(1));
+
+  int misses = 0;
+
+  for (int i = 0; i < 500; i++) {
+    const Vec3 target = lo + Vec3(uniform(rng), uniform(rng), uniform(rng)) * (hi - lo);
+    const Vec3 origin = target + T(5) * Vec3(uniform(rng) - T(0.5), uniform(rng) - T(0.5), uniform(rng) - T(0.5));
+
+    const RayT<T> ray{origin, normalized(target - origin)};
+    const HitT<T> hit = firstHit(polygons, ray, T(0), inf);
+
+    INFO("ray " << i);
+
+    REQUIRE(firstHit(triangles, ray, T(0), inf).hit() == hit.hit());
+    REQUIRE(firstHit(flat, ray, T(0), inf).hit() == hit.hit());
+    REQUIRE((intersects(triangles, ray, T(0), inf) == HitStatus::Hit) == hit.hit());
+    REQUIRE((intersects(polygons, ray, T(0), inf) == HitStatus::Hit) == hit.hit());
+    REQUIRE((intersects(flat, ray, T(0), inf) == HitStatus::Hit) == hit.hit());
+
+    misses += hit.hit() ? 0 : 1;
+  }
+
+  // The rays are aimed into the box, not at the solid: many miss it.
+  REQUIRE(misses > 100);
 }
 
 TEMPLATE_TEST_CASE("Ray: no ray slips between the faces of a fine mesh far from the origin",

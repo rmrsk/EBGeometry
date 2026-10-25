@@ -306,7 +306,8 @@ RayForm<MeshSDF<T, K>>::firstHit(const MeshSDF<T, K>& a_shape,
       const uint32_t face = faceIds[static_cast<uint32_t>(i)];
       const T        t = mesh.getFace(face).rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, a_state.m_t, mesh);
 
-      if (t <= a_state.m_t) {
+      // A crossing (finite: none is +infinity, however far the interval goes) is within the nearest so far.
+      if (t < Math::Limits<T>::infinity()) {
         a_state = Nearest{t, face};
       }
     }
@@ -341,7 +342,8 @@ RayForm<MeshSDF<T, K>>::intersects(const MeshSDF<T, K>& a_shape,
     for (size_t i = a_offset; i < a_offset + a_count && !a_found; i++) {
       const auto& face = mesh.getFace(faceIds[static_cast<uint32_t>(i)]);
 
-      a_found = face.rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, a_tMax, mesh) <= a_tMax;
+      // None is +infinity, which an unbounded interval would contain.
+      a_found = face.rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, a_tMax, mesh) < Math::Limits<T>::infinity();
     }
   };
 
@@ -371,7 +373,7 @@ RayForm<FlatMeshSDF<T>>::firstHit(const FlatMeshSDF<T>& a_shape,
   for (uint32_t i = 0; i < mesh.numFaces(); i++) {
     const T t = mesh.getFace(i).rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, nearest, mesh);
 
-    if (t <= nearest) {
+    if (t < Math::Limits<T>::infinity()) {
       nearest = t;
       face    = i;
     }

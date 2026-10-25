@@ -34,8 +34,9 @@ namespace TriangleRay {
  * an edge or vertex shared by two triangles crosses at least one of them however far it comes from; a ray
  * in the triangle's plane does not cross it. A ray passing outside a triangle within that distance counts
  * as crossing it (on the safe side, as a grazing marched ray does). The triangle is read through
- * @p a_triangle, which provides vertex(k) for k = 0, 1, 2 as TriangleDistance::Vec3V<V> (see TriangleDistance::signedDistance()). For a SIMD::Pack every lane
- * computes every test, so the kernel has no branches.
+ * @p a_triangle, which provides vertex(k) for k = 0, 1, 2 as TriangleDistance::Vec3V<V> (see
+ * TriangleDistance::signedDistance()). For a SIMD::Pack every lane computes every test, so the kernel has no
+ * branches.
  * @tparam V      Scalar (float or double) or SIMD::Pack.
  * @tparam Source Triangle accessor.
  * @param[in] a_triangle  Triangle accessor.

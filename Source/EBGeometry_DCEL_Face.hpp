@@ -306,7 +306,9 @@ public:
    * the same side of every edge. The edge tests are widened by the rounding error of that point, a distance
    * of a few ulps of the coordinates and of t, so that a ray through an edge or vertex shared by two faces
    * crosses at least one of them however far it comes from. A ray in the face's
-   * plane, or a face of zero area, crosses nothing.
+   * plane, or a face of zero area, crosses nothing. The plane is the one through the face's centroid with
+   * its normal: for a face that is not quite planar, a ray nearly in it can cross at a t that differs from
+   * the vertices' by the face's deviation from planarity.
    * @param[in] a_origin    Ray origin.
    * @param[in] a_direction Ray direction.
    * @param[in] a_tMin      Start of the interval.
