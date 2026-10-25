@@ -99,7 +99,7 @@ traversalMargin()
 }
 
 // Nearest unsigned squared distance from each query point to a dodecahedron's faces, found through
-// a PackedBVH with branching factor K. Used to pin PackedBVH::pruneTraverse()'s per-ISA
+// a PackedBVH with branching factor K. Used to pin PackedBVH::traverse()'s per-ISA
 // child-distance paths against its scalar path: which of the two runs is chosen at compile time
 // from (T, K) and the compiled ISA, so varying K over a build's SIMD and non-SIMD widths runs both
 // within one binary.
@@ -149,7 +149,7 @@ nearestDist2PerQueryPoint(const DCEL::MeshT<T>&                                 
   return result;
 }
 
-// The number of primitives an unbounded pruneTraverse() reaches from a_point, through a PackedBVH with
+// The number of primitives an unbounded traverse() reaches from a_point, through a PackedBVH with
 // branching factor K over a_primsAndBVs.
 template <class T, size_t K>
 size_t
@@ -250,7 +250,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
     REQUIRE(packed.getPrimitives().size() == 36);
 
     // PackedBVH has no signedDistance() of its own -- callers build their own thin wrapper
-    // around pruneTraverse(), exactly as MeshSDF/TriMeshSDF::signedDistance() do.
+    // around traverse(), exactly as MeshSDF/TriMeshSDF::signedDistance() do.
     const auto& faces = packed.getPrimitives();
 
     for (const auto& p : queryPoints<T>()) {
@@ -296,7 +296,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   buildAndCheck("BottomUp (Nested)", [](auto& a_tree) { a_tree.template bottomUpSortAndPartition<SFC::Nested>(); });
 }
 
-TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: every compiled SIMD child-distance path agrees "
+TEMPLATE_TEST_CASE("PackedBVH::traverse with a PointQuery: every compiled SIMD child-distance path agrees "
                    "bit-for-bit with the scalar path",
                    "[BVH][Dodecahedron]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -318,7 +318,7 @@ TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: every compiled SIMD child-distance
 
   REQUIRE(primsAndBVs.size() == 36);
 
-  // pruneTraverse() dispatches its per-child box-distance computation on (T, K) and the compiled
+  // traverse() dispatches its per-child box-distance computation on (T, K) and the compiled
   // ISA: AVX-512F claims (double, K=8) and (float, K=16), AVX claims (double, K=4), (float, K=8)
   // and (double, K=8), SSE4.1 claims (float, K=4), and everything else runs the scalar loop. No K
   // value has a SIMD path in every build, and K = 3, 5, 6, 7 never have one in any build -- so
@@ -352,7 +352,7 @@ TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: every compiled SIMD child-distance
   requireAgreesWithReference("K=16", nearestDist2PerQueryPoint<T, 16>(mesh, primsAndBVs));
 }
 
-TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: a NaN query coordinate gives the same child distances on "
+TEMPLATE_TEST_CASE("PackedBVH::traverse with a PointQuery: a NaN query coordinate gives the same child distances on "
                    "every path",
                    "[BVH][Dodecahedron][regression]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1200,11 +1200,11 @@ TEMPLATE_TEST_CASE("Mesh SDFs: a zero leaf-size setting aborts when the construc
 namespace {
 
 // Bare point primitive with no signedDistance() (or any other) member at all -- used below to
-// prove that PackedBVH::pruneTraverse() imposes no interface requirement on its primitive type,
+// prove that PackedBVH::traverse() imposes no interface requirement on its primitive type,
 // unlike a caller-built signed-distance wrapper (e.g. MeshSDF/TriMeshSDF::signedDistance()),
 // which requires P::signedDistance(Vec3T<T>). Also reused by the degenerate-axis
 // bottomUpSortAndPartition test further below, whose nearest-neighbor query likewise goes
-// through pruneTraverse().
+// through traverse().
 template <class T>
 struct BareTestPoint
 {
@@ -1213,9 +1213,9 @@ struct BareTestPoint
 
 } // namespace
 
-TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: nearest-neighbor search over a primitive with no "
+TEMPLATE_TEST_CASE("PackedBVH::traverse with a PointQuery: nearest-neighbor search over a primitive with no "
                    "signedDistance() matches a brute-force scan",
-                   "[BVH][pruneTraverse]",
+                   "[BVH][traverse]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -1287,7 +1287,7 @@ TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: nearest-neighbor search over a pri
 // reintroduced quadratic would blow well past the unit-test timeout here (minutes), while the
 // linear build stays well under a second. Double only -- the append path is precision-independent,
 // and one heavy build is enough of a guard.
-TEST_CASE("PackedBVH: a large per-leaf build stays linear and correct", "[BVH][pruneTraverse][regression]")
+TEST_CASE("PackedBVH: a large per-leaf build stays linear and correct", "[BVH][traverse][regression]")
 {
   using T    = double;
   using AABB = BoundingVolumes::AABBT<T>;
@@ -1418,7 +1418,7 @@ TEMPLATE_TEST_CASE("BVH refit: TreeBVH::refit and PackedBVH::refit update boundi
   const auto& prims      = packed.getPrimitives();
   const auto  pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
 
-  // Nearest-neighbor (squared) over the packed BVH via pruneTraverse. If refit left any node volume
+  // Nearest-neighbor (squared) over the packed BVH via traverse(). If refit left any node volume
   // too small to enclose its moved primitives, pruning would wrongly discard the true nearest and
   // this would disagree with the brute-force scan below.
   const auto nearest2 = [&prims, &packed, &pruneDist2](const Vec3& a_query) noexcept -> T {
@@ -1892,7 +1892,7 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets who
       const auto& prims = packed.getPrimitives();
 
       // PackedBVH has no signedDistance() of its own -- do the nearest-neighbor search via
-      // pruneTraverse(), whose State here is the running *squared* distance to the point cloud.
+      // traverse(), whose State here is the running *squared* distance to the point cloud.
       const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
 
       for (const auto& q : queryPoints<T>()) {
@@ -2129,7 +2129,7 @@ TEMPLATE_TEST_CASE("PackedBVH: copy aliases the same pool storage; deepCopy() is
 
 namespace {
 
-// pruneTraverse() is templated on its callables rather than taking std::function, and the CUDA/HIP
+// traverse() is templated on its callables rather than taking std::function, and the CUDA/HIP
 // builds do not pass --extended-lambda, so device callers must hand it functors. These are those
 // functors. They live outside the device-only guard so the host suite compiles and exercises the
 // exact types the kernel uses -- the kernel launch itself is then the only unverified part.
@@ -2172,7 +2172,7 @@ struct IdentityPruneDist2
  * The BVH is taken by value and const, matching the device side exactly. Both halves matter: by value
  * because that is how a descriptor reaches a kernel, and const because a non-const PackedBVH
  * selects getPrimitives()'s mutable overload, whose PODSpan<P> does not convert to the functors'
- * PODSpan<const P>. A test that reaches pruneTraverse() only through a const reference exercises a
+ * PODSpan<const P>. A test that reaches traverse() only through a const reference exercises a
  * different overload than the kernel does, and so cannot catch that mismatch.
  */
 template <class T, size_t K>
@@ -2191,91 +2191,48 @@ packedBvhTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K>
   return state + T(a_bvh.getPrimitives().size()) + a_bvh.getBoundingVolume().getLowCorner().length();
 }
 
-// Functors for a nearest-point search over PackedBVH::traverse(), written as structs so the same
-// code runs on host and device. The key of a node is the squared distance from the query to its box.
+// Functors for a nearest-point search over PackedBVH::traverse(), written as structs so the same code
+// runs on host and device: the leaf scan, the bound (the best squared distance so far) and a visit
+// callback that descends everywhere and counts the nodes entered.
 template <class T>
 struct TraverseNearestLeaf
 {
-  Vec3T<T> m_query;
-  T*       m_best;
+  EBGeometry::PODSpan<const BareTestPoint<T>> m_prims;
+  Vec3T<T>                                    m_query;
 
   EBGEOMETRY_HOST_DEVICE
   void
-  operator()(EBGeometry::PODSpan<const BareTestPoint<T>> a_prims, size_t a_offset, size_t a_count) const noexcept
+  operator()(T& a_best, size_t a_offset, size_t a_count) const noexcept
   {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      const T d2 = (a_prims[static_cast<uint32_t>(i)].m_pos - m_query).length2();
+      const T d2 = (m_prims[static_cast<uint32_t>(i)].m_pos - m_query).length2();
 
-      if (d2 < *m_best) {
-        *m_best = d2;
+      if (d2 < a_best) {
+        a_best = d2;
       }
     }
   }
 };
 
 template <class T>
-struct TraversePruneFarther
+struct TraverseCountNodes
 {
-  const T* m_best;
+  uint32_t* m_count;
 
   template <class Node>
   EBGEOMETRY_HOST_DEVICE
   bool
-  operator()(const Node&, const T& a_key) const noexcept
+  operator()(T&, uint32_t, const Node&, const T&) const noexcept
   {
-    return a_key <= *m_best;
+    (*m_count)++;
+
+    return true;
   }
 };
-
-// Farthest child first, by insertion sort: std::sort is not callable in device code.
-template <class T, size_t K>
-struct TraverseFarthestFirst
-{
-  EBGEOMETRY_HOST_DEVICE
-  void
-  operator()(EBGeometry::Array<EBGeometry::BVH::NodeAndKey<T>, K>& a_children) const noexcept
-  {
-    for (size_t i = 1; i < K; i++) {
-      const EBGeometry::BVH::NodeAndKey<T> entry = a_children[i];
-
-      size_t j = i;
-
-      while (j > 0 && a_children[j - 1].second < entry.second) {
-        a_children[j] = a_children[j - 1];
-        j--;
-      }
-
-      a_children[j] = entry;
-    }
-  }
-};
-
-template <class T, class Bvh>
-struct TraverseBoxDistance2
-{
-  const Bvh* m_bvh;
-  Vec3T<T>   m_query;
-
-  template <class Node>
-  EBGEOMETRY_HOST_DEVICE
-  T
-  operator()(const Node& a_node) const noexcept
-  {
-    // A node does not store its box; the BVH finds it in the parent's row.
-    return m_bvh->getDistanceToBoundingVolume2(a_node, m_query);
-  }
-};
-
-template <class T, class Bvh>
-EBGEOMETRY_HOST_DEVICE
-TraverseBoxDistance2<T, Bvh>
-boxDistance2(const Bvh& a_bvh, const Vec3T<T>& a_query) noexcept
-{
-  return TraverseBoxDistance2<T, Bvh>{&a_bvh, a_query};
-}
 
 /**
- * @brief Squared distance from a_query to the nearest point, found with PackedBVH::traverse().
+ * @brief Squared distance from a_query to the nearest point, found with PackedBVH::traverse() using a
+ * visit callback and the FarthestFirst order (the non-default branches of the walk).
  * @details The body of the device query functor CustomTraversalQuery, factored out so the host suite
  * runs exactly the code the device runs. The BVH is taken by value and const, as a kernel receives it.
  */
@@ -2284,14 +2241,18 @@ EBGEOMETRY_HOST_DEVICE
 T
 customTraversalProbe(const EBGeometry::BVH::PackedBVH<T, BareTestPoint<T>, K> a_bvh, const Vec3T<T> a_query) noexcept
 {
-  T best = EBGeometry::Math::Limits<T>::max();
+  T        best  = EBGeometry::Math::Limits<T>::max();
+  uint32_t nodes = 0;
 
-  a_bvh.traverse(TraverseNearestLeaf<T>{a_query, &best},
-                 TraversePruneFarther<T>{&best},
-                 TraverseFarthestFirst<T, K>{},
-                 boxDistance2(a_bvh, a_query));
+  a_bvh.traverse(EBGeometry::BVH::PointQuery<T>{a_query},
+                 best,
+                 TraverseNearestLeaf<T>{a_bvh.getPrimitives(), a_query},
+                 IdentityPruneDist2<T>{},
+                 TraverseCountNodes<T>{&nodes},
+                 EBGeometry::BVH::FarthestFirst{});
 
-  return best;
+  // Every walk enters at least the root.
+  return (nodes > 0) ? best : T(-1);
 }
 
 } // namespace
@@ -2352,8 +2313,8 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse: a nearest-point search over template ca
   }
 }
 
-TEMPLATE_TEST_CASE("PackedBVH::traverse: std::function callbacks still work, an explicit key type is accepted, "
-                   "every primitive is visited once, and an empty BVH visits nothing",
+TEMPLATE_TEST_CASE("PackedBVH::traverse: with no bound every primitive is visited once, AsStored visits the leaves in "
+                   "stored order, and an empty BVH calls nothing",
                    "[BVH][traverse]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -2378,47 +2339,52 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse: std::function callbacks still work, an 
   Pool         pool(hostMemoryResource());
   const Packed bvh = Packed::build(pool, flat, BVH::Construction::CentroidSplit);
 
-  // The std::function aliases host code used before traverse() became a template.
-  std::vector<int> visits(flat.size(), 0);
+  // No bound, as stored: every primitive once, and the leaves in the order of the node array (depth-first
+  // pre-order, first slot first).
+  std::vector<int>      visits(flat.size(), 0);
+  std::vector<uint32_t> leafOrder;
+  int                   state = 0;
 
-  const BVH::PackedLeafEvaluator<Pnt> countVisits = [&visits](PODSpan<const Pnt>, size_t a_offset, size_t a_count) {
+  const auto countVisits = [&visits, &leafOrder](int&, size_t a_offset, size_t a_count) {
+    leafOrder.push_back(static_cast<uint32_t>(a_offset));
+
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
       visits[i]++;
     }
   };
 
-  const BVH::PrunePredicate<Node, int>  visitAll  = [](const Node&, const int&) { return true; };
-  const BVH::PackedChildOrderer<int, K> keepOrder = [](Array<BVH::NodeAndKey<int>, K>&) {};
-  const BVH::NodeKeyFactory<Node, int>  zeroKey   = [](const Node&) { return 0; };
+  const auto noBound = [](const int&) { return std::numeric_limits<T>::infinity(); };
 
-  bvh.traverse(countVisits, visitAll, keepOrder, zeroKey);
+  bvh.traverse(BVH::PointQuery{Vec3::zeros()}, state, countVisits, noBound, BVH::DescendAll{}, BVH::AsStored{});
 
   for (size_t i = 0; i < visits.size(); i++) {
     REQUIRE(visits[i] == 1);
   }
 
-  // An explicit key type converts the factory's result: here a double key from an int-returning factory.
-  size_t leaves = 0;
+  std::vector<uint32_t> storedOrder;
 
-  bvh.template traverse<double>([&leaves](PODSpan<const Pnt>, size_t, size_t) { leaves++; },
-                                [](const Node&, const double& a_key) { return a_key == 0.0; },
-                                [](Array<BVH::NodeAndKey<double>, K>&) {},
-                                [](const Node&) { return 0; });
+  for (const auto& node : bvh.getNodes()) {
+    if (node.isLeaf()) {
+      storedOrder.push_back(node.getPrimitivesOffset());
+    }
+  }
 
-  REQUIRE(leaves > 0);
+  REQUIRE(leafOrder == storedOrder);
 
   // An empty BVH has no root: nothing is visited, and nothing is read.
   const Packed empty(pool, std::vector<Node>{}, std::vector<AABB>{}, std::vector<Pnt>{});
 
   bool called = false;
 
-  empty.traverse([&called](PODSpan<const Pnt>, size_t, size_t) { called = true; },
-                 [&called](const Node&, const int&) { return called = true; },
-                 [&called](Array<BVH::NodeAndKey<int>, K>&) { called = true; },
-                 [&called](const Node&) {
-                   called = true;
-                   return 0;
-                 });
+  empty.traverse(
+    BVH::PointQuery{Vec3::zeros()},
+    state,
+    [&called](int&, size_t, size_t) { called = true; },
+    [&called](const int&) {
+      called = true;
+      return T(0);
+    },
+    [&called](int&, uint32_t, const Node&, const T&) { return called = true; });
 
   REQUIRE_FALSE(called);
 }
@@ -2694,7 +2660,7 @@ bruteForceNearest2(const std::vector<Vec3T<T>>& a_positions, const Vec3T<T>& a_q
   return best2;
 }
 
-// Nearest-squared-distance query via pruneTraverse(), shared by the direct-SFC-build tests below.
+// Nearest-squared-distance query via traverse(), shared by the direct-SFC-build tests below.
 // Works whether the packed primitive is the point itself or a uint32_t index into a caller-owned
 // array, since resolving a stored element back to a point is hidden behind the caller-supplied
 // evalLeaf in each test.
@@ -3085,7 +3051,7 @@ public:
 
 } // namespace
 
-TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for pruneTraverse's fixed stack is rejected at build time, at every "
+TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for traverse()'s fixed stack is rejected at build time, at every "
                    "branching factor",
                    "[BVH][death]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -3230,7 +3196,7 @@ TEMPLATE_TEST_CASE("PackedBVH: the traversal stack holds one entry per level bel
 
 TEMPLATE_TEST_CASE("PackedBVH: a tree at the host depth limit, visited deepest first, fills the traversal stack "
                    "and every leaf is visited once",
-                   "[BVH][traverse][pruneTraverse]",
+                   "[BVH][traverse][traverse]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -3294,7 +3260,7 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree at the host depth limit, visited deepest f
 
     const size_t numLeaves = 1 + interior * (K - 1);
 
-    // pruneTraverse with no bound: the chain child is nearest at every level.
+    // traverse() with no bound: the chain child is nearest at every level.
     size_t visits = 0;
     T      state  = T(0);
 
@@ -3306,15 +3272,18 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree at the host depth limit, visited deepest f
 
     REQUIRE(visits == numLeaves);
 
-    // traverse(), nearest child last, so visited first; every leaf once.
-    std::vector<uint32_t> order;
+    // The same with FarthestFirst, which never drops the rest of a level: every leaf once.
+    size_t farVisits = 0;
 
-    bvh.traverse([&order](PODSpan<const Pnt>, size_t, size_t) { order.push_back(0); },
-                 [](const Node&, const T&) { return true; },
-                 TraverseFarthestFirst<T, K>{},
-                 boxDistance2(bvh, query));
+    bvh.traverse(
+      BVH::PointQuery{query},
+      state,
+      [&farVisits](T&, size_t, size_t) noexcept { farVisits++; },
+      [](const T&) noexcept -> T { return std::numeric_limits<T>::infinity(); },
+      BVH::DescendAll{},
+      BVH::FarthestFirst{});
 
-    REQUIRE(order.size() == numLeaves);
+    REQUIRE(farVisits == numLeaves);
   };
 
   check(std::integral_constant<size_t, 2>{});
@@ -3328,11 +3297,11 @@ namespace {
 // the primitive offset of every leaf it visits.
 template <class T, class P, size_t K>
 void
-referencePruneTraverse(const BVH::PackedBVH<T, P, K>& a_bvh,
-                       const uint32_t                 a_idx,
-                       const Vec3T<T>&                a_query,
-                       T&                             a_best,
-                       std::vector<uint32_t>&         a_order)
+referenceNearestFirst(const BVH::PackedBVH<T, P, K>& a_bvh,
+                      const uint32_t                 a_idx,
+                      const Vec3T<T>&                a_query,
+                      T&                             a_best,
+                      std::vector<uint32_t>&         a_order)
 {
   const auto  nodes = a_bvh.getNodes();
   const auto& node  = nodes[a_idx];
@@ -3368,7 +3337,7 @@ referencePruneTraverse(const BVH::PackedBVH<T, P, K>& a_bvh,
       break;
     }
 
-    referencePruneTraverse(a_bvh, node.getChildOffsets()[children[i].second], a_query, a_best, a_order);
+    referenceNearestFirst(a_bvh, node.getChildOffsets()[children[i].second], a_query, a_best, a_order);
   }
 }
 
@@ -3391,41 +3360,41 @@ referenceTraverse(const BVH::PackedBVH<T, P, K>& a_bvh,
   if (node.isLeaf()) {
     a_order.push_back(node.getPrimitivesOffset());
 
-    TraverseNearestLeaf<T>{a_query,
-                           &a_best}(a_bvh.getPrimitives(), node.getPrimitivesOffset(), node.getNumPrimitives());
+    TraverseNearestLeaf<T>{a_bvh.getPrimitives(), a_query}(a_best, node.getPrimitivesOffset(), node.getNumPrimitives());
 
     return;
   }
 
-  Array<BVH::NodeAndKey<T>, K> children;
+  // The children sorted farthest first (stable insertion sort), then visited from the last, so the
+  // nearest first and equal keys in reverse slot order.
+  uint32_t child[K];
+  T        key[K];
 
   for (size_t k = 0; k < K; k++) {
-    const uint32_t child = node.getChildOffsets()[k];
+    const uint32_t c = node.getChildOffsets()[k];
+    const T        d = a_bvh.getDistanceToBoundingVolume2(nodes[c], a_query);
 
-    children[k] = BVH::NodeAndKey<T>{child, a_bvh.getDistanceToBoundingVolume2(nodes[child], a_query)};
+    size_t j = k;
+
+    while (j > 0 && key[j - 1] < d) {
+      child[j] = child[j - 1];
+      key[j]   = key[j - 1];
+      j--;
+    }
+
+    child[j] = c;
+    key[j]   = d;
   }
 
-  TraverseFarthestFirst<T, K>{}(children);
-
   for (size_t i = K; i-- > 0;) {
-    referenceTraverse(a_bvh, children[i].first, children[i].second, a_query, a_best, a_order);
+    referenceTraverse(a_bvh, child[i], key[i], a_query, a_best, a_order);
   }
 }
 
-// The branching factor of a PackedBVH type.
-template <class Packed>
-struct BranchingOf;
-
-template <class T, class P, size_t K>
-struct BranchingOf<BVH::PackedBVH<T, P, K>>
-{
-  static constexpr size_t value = K;
-};
-
 } // namespace
 
-TEMPLATE_TEST_CASE("PackedBVH: pruneTraverse and traverse visit leaves in the order of a recursive depth-first search",
-                   "[BVH][traverse][pruneTraverse]",
+TEMPLATE_TEST_CASE("PackedBVH: traverse() and traverse visit leaves in the order of a recursive depth-first search",
+                   "[BVH][traverse][traverse]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -3451,10 +3420,8 @@ TEMPLATE_TEST_CASE("PackedBVH: pruneTraverse and traverse visit leaves in the or
   }
 
   const auto check = [&](const auto& a_bvh) {
-    constexpr size_t K = BranchingOf<std::decay_t<decltype(a_bvh)>>::value;
-
     for (const auto& q : queries) {
-      // pruneTraverse
+      // NearestFirst, against the recursive reference
       std::vector<uint32_t> order;
       std::vector<uint32_t> expected;
 
@@ -3471,27 +3438,32 @@ TEMPLATE_TEST_CASE("PackedBVH: pruneTraverse and traverse visit leaves in the or
         },
         IdentityPruneDist2<T>{});
 
-      referencePruneTraverse(a_bvh, 0U, q, best, expected);
+      referenceNearestFirst(a_bvh, 0U, q, best, expected);
 
       REQUIRE(order == expected);
       REQUIRE(state == best);
 
-      // traverse
+      // traverse with a visit callback: the same leaves in the same order, every node entered reported
       order.clear();
       expected.clear();
 
       T found = std::numeric_limits<T>::max();
       T ref   = std::numeric_limits<T>::max();
 
+      uint32_t entered = 0;
+
       a_bvh.traverse(
-        [&](PODSpan<const Pnt> a_prims, size_t a_offset, size_t a_count) {
+        BVH::PointQuery{q},
+        found,
+        [&](T& a_state, size_t a_offset, size_t a_count) noexcept {
           order.push_back(static_cast<uint32_t>(a_offset));
 
-          TraverseNearestLeaf<T>{q, &found}(a_prims, a_offset, a_count);
+          TraverseNearestLeaf<T>{a_bvh.getPrimitives(), q}(a_state, a_offset, a_count);
         },
-        TraversePruneFarther<T>{&found},
-        TraverseFarthestFirst<T, K>{},
-        boxDistance2(a_bvh, q));
+        IdentityPruneDist2<T>{},
+        TraverseCountNodes<T>{&entered});
+
+      REQUIRE(entered >= order.size());
 
       referenceTraverse(a_bvh, 0U, a_bvh.getDistanceToBoundingVolume2(a_bvh.getNodes()[0], q), q, ref, expected);
 
@@ -3718,7 +3690,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: a partitioner that returns an empty parti
 }
 
 TEMPLATE_TEST_CASE("PackedBVH: a level resumed with exact distances never prunes a closer primitive",
-                   "[BVH][pruneTraverse]",
+                   "[BVH][traverse]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -3819,7 +3791,7 @@ TEMPLATE_TEST_CASE("PackedBVH: only interior nodes get a child-box row, numbered
 }
 
 TEMPLATE_TEST_CASE("BVH builders: a cluster of points whose extent is subnormal builds and queries exactly",
-                   "[BVH][pruneTraverse]",
+                   "[BVH][traverse]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;

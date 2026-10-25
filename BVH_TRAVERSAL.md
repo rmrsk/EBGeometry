@@ -238,7 +238,13 @@ its own `traverse()`; child boxes public; names as proposed; T17–T19).
   (T, K) in {float, double} × {2, 4, 8, 16} (half axis-aligned from shared grid faces) matches a brute
   force scan exactly on the scalar, SSE4.1 and AVX paths (AVX-512 compiles; no AVX-512 hardware here).
   Order policies done (T7, T19).
-- [ ] Old API removed; `traverse()` callers migrated.
+- [x] Old API removed: the four-callback `traverse()`, `pruneTraverse()`, `PackedLeafEvaluator`,
+  `PackedChildOrderer`, `NodeAndKey` and `PackedBVH`'s private distance kernels (`getDistanceTo*`
+  keep working through `QueryDetail`). `PrunePredicate`/`NodeKeyFactory` stay for `TreeBVH`. The tests
+  that used the old walk now test the new one's features (the GPU probe runs a visit hook and
+  `FarthestFirst`; no bound visits every primitive once, `AsStored` in stored order, an empty BVH
+  calls nothing; the leaf order against the recursive reference). Comments, test names and an error
+  message no longer name the removed functions. 511/511 debug, 508/508 release-test.
 - [ ] `mortonOrder()` / ordered `GPU::transform` (T13).
 - [ ] Tests (host, `[gpu]`), `InstantiateAll`.
 - [ ] Probe cases; receipt (host + CUDA).

@@ -177,8 +177,8 @@ struct QueryLanes<Q, std::void_t<decltype(Q::Lanes)>>
 
 /**
  * @brief Whether a type is a query type: it names its precision (Scalar) and keys a node's children.
- * @details What PackedBVH::traverse() requires of its first argument; used to tell the general traversal
- * from the four-callback one while both exist (DRAFT, #230).
+ * @details What PackedBVH::traverse() requires of its first argument, and checks, for a clear compile
+ * error when something else is passed.
  * @tparam Q Candidate type.
  */
 template <class Q, class = void>
@@ -201,7 +201,7 @@ struct IsQuery<Q,
 /**
  * @brief A point tracked through a BVH: the key of a box is the squared distance from the point to it
  * (0 inside it).
- * @details What pruneTraverse() was: with a squared-distance bound and NearestFirst, the walk visits
+ * @details The query of nearest-primitive searches: with a squared-distance bound and NearestFirst, the walk visits
  * exactly the boxes nearer than the nearest primitive found so far.
  *
  * The interface every query type has (the walk calls nothing else):
@@ -233,7 +233,7 @@ struct PointQuery
   /**
    * @brief The squared distances from the point to the K child boxes of a node.
    * @details SSE4.1, AVX and AVX-512 paths on the host, a scalar loop on a device (the kernel that is
-   * PackedBVH::computeChildDistances2() today, moved here).
+   * QueryDetail::pointDistances2()).
    * @tparam K Branching factor.
    * @param[in] a_row The node's child boxes.
    * @return One squared distance per child.

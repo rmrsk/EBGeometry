@@ -146,7 +146,7 @@ PackedBVH<T, P, K>::finalize(Pool&                    a_pool,
   this->buildSoA(a_pool, a_nodeBoxes);
 
   // buildSoA() reserves, so re-resolve; after it nothing else moves the block. Reject here, once,
-  // rather than letting pruneTraverse walk off its fixed stack later with no way to notice.
+  // rather than letting traverse() walk off its fixed stack later with no way to notice.
   this->requireDepthFits(this->base(), HostTraversalDepth, "host build");
 }
 
@@ -308,7 +308,7 @@ PackedBVH<T, P, K>::getDistanceToBoundingVolume2(const Node& a_node, const Vec3T
 
   EBGEOMETRY_EXPECT(slot / K < m_childAabbSoA.size());
 
-  return PackedBVH::scalarChildDistance2(m_childAabbSoA.at(this->base(), slot / K), a_point, slot % K);
+  return QueryDetail::pointDistance2(m_childAabbSoA.at(this->base(), slot / K), a_point, slot % K);
 }
 
 template <class T, class P, size_t K>
@@ -322,7 +322,7 @@ PackedBVH<T, P, K>::getDistanceToChildBoundingVolume2(const Node&     a_parent,
   EBGEOMETRY_EXPECT(a_k < K);
   EBGEOMETRY_EXPECT(a_parent.getChildBoxRow() < m_childAabbSoA.size());
 
-  return PackedBVH::scalarChildDistance2(m_childAabbSoA.at(this->base(), a_parent.getChildBoxRow()), a_point, a_k);
+  return QueryDetail::pointDistance2(m_childAabbSoA.at(this->base(), a_parent.getChildBoxRow()), a_point, a_k);
 }
 
 namespace PackedBVHDetail {
@@ -372,7 +372,7 @@ visitsBefore(
 } // namespace PackedBVHDetail
 
 template <class T, class P, size_t K>
-template <class Query, class State, class LeafEvaluator, class BoundFn, class VisitFn, class Order, class>
+template <class Query, class State, class LeafEvaluator, class BoundFn, class VisitFn, class Order>
 EBGEOMETRY_HOST_DEVICE
 inline void
 PackedBVH<T, P, K>::traverse(const Query&    a_query,
@@ -382,6 +382,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
                              VisitFn&&       a_visit,
                              Order           a_order) const noexcept
 {
+  static_assert(IsQuery<Query>::value, "PackedBVH::traverse: the first argument must be a query type (see PointQuery)");
   static_assert(QueryLanes<Query>::value == 1, "PackedBVH::traverse: one query per walk");
   static_assert(std::is_same_v<typename Query::Scalar, T>, "PackedBVH::traverse: the query's precision must be T");
 
@@ -525,108 +526,6 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
 }
 
 template <class T, class P, size_t K>
-template <class NodeKey, class LeafEvaluator, class PrunePredicate, class ChildOrderer, class NodeKeyFactory, class>
-EBGEOMETRY_HOST_DEVICE
-inline void
-PackedBVH<T, P, K>::traverse(LeafEvaluator&&  a_leafEvaluator,
-                             PrunePredicate&& a_prunePredicate,
-                             ChildOrderer&&   a_childOrderer,
-                             NodeKeyFactory&& a_nodeKeyFactory) const noexcept
-{
-  // The key type: as given, or what the node-key factory returns.
-  using Key = std::
-    conditional_t<std::is_void_v<NodeKey>, std::decay_t<std::invoke_result_t<NodeKeyFactory&, const Node&>>, NodeKey>;
-  using Entry = BVH::NodeAndKey<Key>;
-
-  // An empty BVH has no root to descend from.
-  if (m_linearNodes.size() == 0) {
-    return;
-  }
-
-  // One resolution for the whole traversal. Safe because a query performs no reservation, so the
-  // base cannot move underneath it.
-  const void* poolBase = this->base();
-
-  // One entry per interior node on the path from the root, so a tree of depth D needs at most D - 1
-  // entries -- the bound traversalStackDepth() gives, and that every build checked the tree against.
-  constexpr size_t stackDepth = PackedBVH::traversalStackDepth();
-
-  StackEntry stack[stackDepth];
-  size_t     top = 0;
-
-  Array<Entry, K> children;
-
-  uint32_t nodeIdx = 0U;
-  Key      key     = static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, 0)));
-
-  while (true) {
-    // Visit nodeIdx, and keep descending into the first child in visit order.
-    while (true) {
-      const Node& node = m_linearNodes.at(poolBase, nodeIdx);
-
-      if (!a_prunePredicate(node, key)) {
-        break;
-      }
-
-      if (node.isLeaf()) {
-        a_leafEvaluator(
-          m_primitives.bind(poolBase), size_t(node.getPrimitivesOffset()), size_t(node.getNumPrimitives()));
-
-        break;
-      }
-
-      const auto& offsets = node.getChildOffsets();
-
-      for (size_t k = 0; k < K; k++) {
-        children[k] = Entry{offsets[k], static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, offsets[k])))};
-      }
-
-      a_childOrderer(children);
-
-      // children[K - 1] is visited now and children[0] last. The others wait on the stack as slots,
-      // in the same order; their keys are computed again when they are visited.
-      EBGEOMETRY_EXPECT(top < stackDepth);
-
-      StackEntry& entry = stack[top++];
-
-      entry.m_node  = nodeIdx;
-      entry.m_count = static_cast<uint8_t>(K - 1);
-
-      for (size_t i = 0; i < K - 1; i++) {
-        size_t slot = 0;
-
-        while (slot < K && offsets[slot] != children[i].first) {
-          slot++;
-        }
-
-        EBGEOMETRY_EXPECT(slot < K);
-
-        entry.m_slots[i] = static_cast<uint8_t>(slot);
-      }
-
-      nodeIdx = children[K - 1].first;
-      key     = children[K - 1].second;
-    }
-
-    // Return to the deepest level with a child still to visit.
-    if (top == 0) {
-      return;
-    }
-
-    StackEntry& entry = stack[top - 1];
-
-    const uint8_t slot = entry.m_slots[--entry.m_count];
-
-    if (entry.m_count == 0) {
-      top--;
-    }
-
-    nodeIdx = m_linearNodes.at(poolBase, entry.m_node).getChildOffsets()[slot];
-    key     = static_cast<Key>(a_nodeKeyFactory(m_linearNodes.at(poolBase, nodeIdx)));
-  }
-}
-
-template <class T, class P, size_t K>
 inline size_t
 PackedBVH<T, P, K>::maxNodeDepth(const void* a_base) const
 {
@@ -637,7 +536,7 @@ PackedBVH<T, P, K>::maxNodeDepth(const void* a_base) const
   size_t maxDepth = 0;
 
   // (node index, depth of that node). A host-side build/mirror step, so std::vector is fine here --
-  // this is precisely the heap stack pruneTraverse itself can no longer use.
+  // this is precisely the heap stack traverse() itself can no longer use.
   std::vector<std::pair<uint32_t, size_t>> stack;
 
   stack.reserve(64);
@@ -676,7 +575,7 @@ PackedBVH<T, P, K>::requireDepthFits(const void* a_base, const size_t a_maxDepth
   EBGEOMETRY_REQUIRE(depth <= a_maxDepth,
                      "BVH::PackedBVH: %s -- the tree is %zu levels deep, more than the %zu levels a traversal stack "
                      "holds.\n"
-                     "  pruneTraverse would overflow its fixed stack, which Release builds do not detect. Rebuild "
+                     "  traverse() would overflow its fixed stack, which Release builds do not detect. Rebuild "
                      "with a larger leaf size, or a partitioner that splits more evenly, before querying this BVH.",
                      a_context,
                      depth,
@@ -744,169 +643,6 @@ PackedBVH<T, P, K>::requireWellFormed(const std::vector<Node>& a_linearNodes, co
 
   for (size_t i = 1; i < numNodes; i++) {
     EBGEOMETRY_REQUIRE(hasParent[i], "BVH::PackedBVH: node array is malformed -- node %zu has no parent", i);
-  }
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline void
-PackedBVH<T, P, K>::computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, T (&a_dist2)[K]) noexcept
-{
-  QueryDetail::pointDistances2(a_soa, a_point, a_dist2);
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline T
-PackedBVH<T, P, K>::scalarChildDistance2(const ChildAABBSoA& a_soa,
-                                         const Vec3T<T>&     a_point,
-                                         const size_t        a_slot) noexcept
-{
-  return QueryDetail::pointDistance2(a_soa, a_point, a_slot);
-}
-
-template <class T, class P, size_t K>
-EBGEOMETRY_HOST_DEVICE
-inline T
-PackedBVH<T, P, K>::childDistance2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, const size_t a_slot) noexcept
-{
-  return QueryDetail::pointDistance2InRow(a_soa, a_point, a_slot);
-}
-
-template <class T, class P, size_t K>
-template <class State, class LeafEvaluator, class PruneDistSquared>
-EBGEOMETRY_HOST_DEVICE
-inline void
-PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
-                                  State&             a_state,
-                                  LeafEvaluator&&    a_evalLeaf,
-                                  PruneDistSquared&& a_pruneDist2) const noexcept
-{
-  // An empty BVH has no root to descend from. Nothing that builds through a TreeBVH or through the
-  // direct builds can reach this -- they assert a non-empty primitive list and would have
-  // died long before -- but finalize() will happily produce a zero-node BVH from an empty build
-  // result, which is how PointCloudBVH represents an empty cloud (it guards its own traversal the
-  // same way). Guarding here rather than at each call site means the pool-backed build path cannot
-  // grow a caller that reads node 0 out of bounds, which in Release is silent.
-  if (m_linearNodes.size() == 0) {
-    return;
-  }
-
-  // One resolution for the whole traversal. Safe because a query performs no reservation, so the
-  // base cannot move underneath it.
-  const void* poolBase = this->base();
-
-  // One entry per interior node on the path from the root, so a tree of depth D needs at most D - 1
-  // entries -- the bound traversalStackDepth() gives, and that every build checked the tree against.
-  constexpr size_t stackDepth = PackedBVH::traversalStackDepth();
-
-  StackEntry stack[stackDepth];
-  size_t     top = 0;
-
-  // The root's box contains everything, so its distance is taken as zero.
-  if (T(0) > a_pruneDist2(a_state)) {
-    return;
-  }
-
-  uint32_t nodeIdx = 0U;
-
-  while (true) {
-    // Visit nodeIdx, and keep descending into the nearest child within the bound.
-    while (true) {
-      const Node& node = m_linearNodes.at(poolBase, nodeIdx);
-
-      if (node.isLeaf()) {
-        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
-
-        break;
-      }
-
-      // Read the pruning bound once per node expanded. A leaf visited anywhere earlier -- in any
-      // subtree, not just this one -- may have tightened it.
-      const T pruneDist2 = a_pruneDist2(a_state);
-
-      T dist2[K];
-
-      PackedBVH::computeChildDistances2(m_childAabbSoA.at(poolBase, node.getChildBoxRow()), a_point, dist2);
-
-      const auto& offsets = node.getChildOffsets();
-
-      // The children within the bound, sorted into descending distance order, so the nearest is last.
-      // It is visited now and the others wait on the stack in the same order, which is what makes the
-      // bound tighten quickly. Children out of bound never reach the stack.
-      //
-      // Insertion sort, not std::sort: K is a handful of elements, where insertion sort is simply
-      // faster than an introsort's setup, and std::sort is not callable from device code. It is also
-      // stable, so children whose boxes are exactly equidistant keep their child-slot order rather
-      // than an unspecified one, which keeps traversal order deterministic.
-      uint8_t slots[K];
-      size_t  numSlots = 0;
-
-      for (size_t k = 0; k < K; k++) {
-        EBGEOMETRY_EXPECT(offsets[k] > nodeIdx);
-
-        if (dist2[k] <= pruneDist2) {
-          size_t j = numSlots++;
-
-          while (j > 0 && dist2[slots[j - 1]] < dist2[k]) {
-            slots[j] = slots[j - 1];
-            j--;
-          }
-
-          slots[j] = static_cast<uint8_t>(k);
-        }
-      }
-
-      if (numSlots == 0) {
-        break;
-      }
-
-      if (numSlots > 1) {
-        EBGEOMETRY_EXPECT(top < stackDepth);
-
-        StackEntry& entry = stack[top++];
-
-        entry.m_node  = nodeIdx;
-        entry.m_count = static_cast<uint8_t>(numSlots - 1);
-
-        for (size_t i = 0; i + 1 < numSlots; i++) {
-          entry.m_slots[i] = slots[i];
-        }
-      }
-
-      nodeIdx = offsets[slots[numSlots - 1]];
-    }
-
-    // Return to the deepest level with a child still within the bound. The bound may have tightened
-    // since the level was sorted; its children wait nearest last, so the first one out of bound
-    // drops the rest of the level with it.
-    bool resumed = false;
-
-    while (top > 0 && !resumed) {
-      StackEntry&   entry  = stack[top - 1];
-      const Node&   parent = m_linearNodes.at(poolBase, entry.m_node);
-      const uint8_t slot   = entry.m_slots[entry.m_count - 1];
-
-      const T dist2 =
-        PackedBVH::childDistance2(m_childAabbSoA.at(poolBase, parent.getChildBoxRow()), a_point, size_t(slot));
-
-      if (dist2 > a_pruneDist2(a_state)) {
-        top--;
-
-        continue;
-      }
-
-      if (--entry.m_count == 0) {
-        top--;
-      }
-
-      nodeIdx = parent.getChildOffsets()[slot];
-      resumed = true;
-    }
-
-    if (!resumed) {
-      return;
-    }
   }
 }
 

@@ -44,7 +44,7 @@ namespace EBGeometry {
  * Every leaf lane carries its point's **cloud index** (its position in the input positions array),
  * and queries return that index in a PointCloud::Hit. Per-point user data lives in the caller's own
  * array, indexed by it. PointCloudHashGrid answers the same queries with the same Hit type. The
- * class hides all of pruneTraverse()/the SoA leaf kernel/the seed-from-own-leaf optimization behind
+ * class hides all of traverse()/the SoA leaf kernel/the seed-from-own-leaf optimization behind
  * a few high-level query methods.
  *
  * @note Queries come in two flavours. *External* queries (closestPoint / closestPoints) take an
@@ -192,7 +192,7 @@ public:
   /**
    * @brief The held packed BVH over the point groups.
    * @details For callers that want the general PackedBVH interface (bounding volume, a custom
-   * pruneTraverse(), ...) on top of the turnkey queries above.
+   * traverse(), ...) on top of the turnkey queries above.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE

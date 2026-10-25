@@ -65,7 +65,7 @@ pointDistance2(const ChildBoxes<T, K>& a_row, const Vec3T<T>& a_point, const siz
 
 /**
  * @brief The squared distances from a point to all K child boxes of a row: the SIMD kernel.
- * @details Internal helper; not part of the public API. Formerly PackedBVH::computeChildDistances2(),
+ * @details Internal helper; not part of the public API. Formerly PackedBVH's private computeChildDistances2(),
  * moved unchanged. Dispatches at compile time on (T, K) and the compiled ISA: AVX-512F for (double, K=8)
  * and (float, K=16), AVX for (double, K=4), (float, K=8) and (double, K=8) as two 4-wide passes, SSE4.1
  * for (float, K=4), and a scalar loop for every other combination and for device compilation. Every
