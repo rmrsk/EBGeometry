@@ -28,7 +28,7 @@ date: 2026-10-25
 
 ## Host comparison: yellow
 
-**Accepted:** -
+**Accepted:** Accepted as minor side effect of algorithm.
 
 `f4b1c46` against `4d0d0ac` (origin/dev), 2026-10-25.
 
@@ -53,7 +53,7 @@ date: 2026-10-25
 
 ## Device comparison (CUDA): yellow
 
-**Accepted:** -
+**Accepted:** Accepted as minor side effect of algorithm.
 
 `f4b1c46` against `4d0d0ac` (origin/dev), 2026-10-25.
 
