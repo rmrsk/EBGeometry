@@ -5792,6 +5792,19 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse with a RayQuery: a box the ray misses is
 
   REQUIRE(leavesReached(Vec3(T(5), T(5), T(5)), Vec3(T(1), T(0), T(0))) == 0);
   REQUIRE(leavesReached(Vec3(T(-3), T(0.4), T(0.4)), Vec3(T(1), T(0), T(0))) < numLeaves / 4);
+
+  // A NaN bound (a caller's bug) compares false with every key, so nothing below the root is entered,
+  // rather than being read as "no bound" and entering everything.
+  size_t nanLeaves = 0;
+  T      nanState  = std::numeric_limits<T>::quiet_NaN();
+
+  bvh.traverse(
+    BVH::RayQuery<T>(Vec3(T(-3), T(0.4), T(0.4)), Vec3(T(1), T(0), T(0))),
+    nanState,
+    [&nanLeaves](T&, size_t, size_t) { nanLeaves++; },
+    [](const T& a_state) { return a_state; });
+
+  REQUIRE(nanLeaves == 0);
 }
 
 TEMPLATE_TEST_CASE("PackedBVH::traverse: the visit orders, and comparators on keys and on node indices",

@@ -387,7 +387,9 @@ inline Key
 effectiveBound(const Key& a_bound) noexcept
 {
   if constexpr (std::is_floating_point_v<Key>) {
-    return (a_bound < Math::Limits<Key>::infinity()) ? a_bound : Math::Limits<Key>::max();
+    // Written so that a NaN bound stays NaN (every comparison with it false: nothing is entered), as it
+    // was before the +infinity rule.
+    return (a_bound > Math::Limits<Key>::max()) ? Math::Limits<Key>::max() : a_bound;
   }
   else {
     return a_bound;
@@ -469,7 +471,8 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
 
       // The children within the bound, sorted so that the one to visit first is last: it is visited now,
       // and the rest wait on the stack in the same order. Insertion sort, not std::sort: K is a handful,
-      // it is callable on a device, and it is stable, so children with equal keys keep a fixed order.
+      // and it is callable on a device. It is deterministic: of two children with equal keys, the later
+      // slot goes first under NearestFirst and FarthestFirst (the order pruneTraverse() had).
       uint8_t slots[K];
       size_t  numSlots = 0;
 

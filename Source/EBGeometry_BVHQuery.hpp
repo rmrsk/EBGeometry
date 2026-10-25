@@ -11,8 +11,6 @@
  * order policy gives. The library ships PointQuery (the squared distance from a point to a box) and
  * RayQuery (where a ray enters a box); a user can write their own query type with the same three
  * functions (see PointQuery for the interface).
- *
- * DRAFT (bvh_traversal, #230): declarations for review; the function bodies are placeholders.
  * @author Robert Marskar
  */
 
@@ -221,7 +219,7 @@ struct PointQuery
   using Scalar = T;
 
   /**
-   * @brief Key type: a squared distance or a distance along the ray.
+   * @brief Key type: a squared distance.
    */
   using Key = T;
 
@@ -292,7 +290,7 @@ struct RayQuery
   using Scalar = T;
 
   /**
-   * @brief Key type: a squared distance or a distance along the ray.
+   * @brief Key type: a distance along the ray.
    */
   using Key = T;
 

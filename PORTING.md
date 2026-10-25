@@ -265,7 +265,7 @@ caller's node key in every entry. They now keep one entry per level, as Ylitie, 
 compressed wide BVHs do (HPG 2017): the parent's index, the slots of its children still to visit in
 visit order (a byte each) and how many are left, 4 + K bytes rounded up to 4 (8 at K = 4). The stack
 is bounded by the depth, `D - 1` entries at any K and for any key type (31 entries, 248 bytes, on a
-device at K = 4). `pruneTraverse()` sorts a node's children nearest first, descends into the
+device at K = 4). `traverse()` (with a `PointQuery`, nearest first) sorts a node's children nearest first, descends into the
 nearest at once and, when it returns to a level, computes the next child's distance again from the
 parent's box row, through the same path that sorted it, so one comparison with the current bound
 drops the rest of the level. `traverse()` keeps the order its child orderer produced and calls the
@@ -513,7 +513,7 @@ findings generalise, the specific numbers do not.
 ### Each box stored once
 
 Until BVH-8 every box but the root's was stored twice: in its own node, and in its parent's SIMD row
-of child boxes, the copy `pruneTraverse()` reads. A node no longer holds a box. It keeps a 4-byte box
+of child boxes, the copy `traverse()`'s queries read. A node no longer holds a box. It keeps a 4-byte box
 slot (its parent's row times K, plus its position among the parent's children), and the root's box is
 a one-element array in the same pool, so a `refit()` through any copy of the BVH is seen by all. Any
 node's box is one lookup away through the BVH (`getBoundingVolume(node)`,
@@ -636,7 +636,7 @@ These extend what the library can do rather than repair what it does.
 
 Design and performance work that was deferred on purpose. None of it is a defect.
 
-* **BVH-18** [NIT]: `computeChildDistances2()`, `TriangleSoA` and `PointSoA` choose their inline SIMD
+* **BVH-18** [NIT]: `BVH::QueryDetail::pointDistances2()` (formerly `computeChildDistances2()`), `TriangleSoA` and `PointSoA` choose their inline SIMD
   bodies by the ISA macros, so translation units compiled with different flags define them two ways
   and the linker keeps one. Documented under "Mixing SIMD flags in one program" in
   `ConfigurationOptions.rst`, and unchecked: the types keep one layout, and the paths agree for

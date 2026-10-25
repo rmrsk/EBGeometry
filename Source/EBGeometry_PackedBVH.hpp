@@ -1078,7 +1078,7 @@ private:
 
   /**
    * @brief SoA layout of K children's AABBs for a single interior node: the public BVH::ChildBoxes that
-   * query types test (DRAFT, #230; formerly a private struct here).
+   * query types test (formerly a private struct here).
    */
   using ChildAABBSoA = ChildBoxes<T, K>;
 

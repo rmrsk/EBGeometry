@@ -5,8 +5,8 @@
 /**
  * @file   EBGeometry_BVHQueryImplem.hpp
  * @brief  Implementation of EBGeometry_BVHQuery.hpp.
- * @details DRAFT (bvh_traversal, #230): placeholder bodies, so the interface can be reviewed. Each says
- * what the real one will do.
+ * @details The point query's SIMD squared-distance kernel, the ray query's slab test, and the query types'
+ * member functions.
  * @author Robert Marskar
  */
 
@@ -94,7 +94,7 @@ pointDistances2(const ChildBoxes<T, K>& a_soa, const Vec3T<T>& a_point, T* a_dis
   // These appear first and return, so on -mavx512f hardware the compiler dead-code-eliminates the
   // corresponding AVX branches below.
   //
-  // Alignment: ChildAABBSoA is alignas(sizeof(T)*K), which is 64 bytes for both (K=8, T=double) and
+  // Alignment: ChildBoxes is alignas(sizeof(T)*K), which is 64 bytes for both (K=8, T=double) and
   // (K=16, T=float) -- exactly what _mm512_load_pd / _mm512_load_ps require. The static_asserts
   // catch any mismatch. The *store* into a_dist2 is unaligned (storeu), so callers need not align
   // their output buffer; on an aligned address storeu costs the same as store on every CPU that has
@@ -518,6 +518,7 @@ inline RayQuery<T>::RayQuery(const Vec3T<T>& a_origin, const Vec3T<T>& a_directi
     m_tMin(a_tMin)
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_origin[0]) && std::isfinite(a_origin[1]) && std::isfinite(a_origin[2]));
+  EBGEOMETRY_EXPECT(a_direction.length2() > T(0));
 }
 
 template <class T>
