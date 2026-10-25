@@ -55,13 +55,17 @@ queries (#228), which become ordinary users of it (a ray query, a leaf evaluator
 | T14 | **Example: `Examples/BVHTraversal`**: the general traverse with the user's own state and leaf evaluator, one query per thread, a point query (nearest primitive) and a ray query (first box hit), on a plain `PackedBVH`. | CLAUDE.md asks for an example for a new capability; the ray example (#228) then shows `firstHit()` on a `TriMeshSDF`. |
 | T15 | ~~Packets of at most 32 lanes~~ **dropped with packets (T16).** | |
 | T16 | **No packets.** One query per walk. The SIMD stays where it is today: one query against the K child boxes of a node, and (in the ray work) one ray against the W triangles of a leaf. The door for packets is left open (see *Room for packets later*). | Packets do not add SIMD (they move it from children and triangles to rays); they only amortise node fetches for coherent queries, which our main uses (particles, EB paths, GPU threads) are not. They would add lane masks to the walk, the stack and every callback. Decided 2026-10-23. |
+| T17 | **An optional `visit(state, nodeIndex, node, key) -> bool`**, called for every node the walk is about to enter (interior or leaf, the root included), after the bound check and with the freshest state; `false` means "do not descend" (the callback may update the state first). Default `DescendAll`, compiled away. | Node-aware pruning (depth, flags, normal cones, the user's own per-node data by index), interior nodes handled as a whole (far-field approximations, level of detail), counting and collecting nodes. The old `traverse()` could prune on the node; this keeps that without giving up the SIMD keys. Decided 2026-10-25. |
+| T18 | **Generic keys: `Query::Key`** (default `T`). The query computes the K keys from the parent's row in one pass, of any type (e.g. a distance with a tie-break); the bound has the same type. Requirements: `<=` and `>` against the bound, and `<` for `NearestFirst`/`FarthestFirst`. `PointQuery` and `RayQuery` use `T`. | The old `traverse()` allowed any key type; composite keys stay possible. Decided 2026-10-25. |
+| T19 | **The order comparator may see node indices**: `(keyA, keyB)` or `(keyA, nodeIndexA, keyB, nodeIndexB)`, detected at compile time. | Ordering by the user's own per-node data; the indices are free (they are in the parent). The old orderer saw the nodes. Decided 2026-10-25. |
 
 Vocabulary: a **packet** (several queries walked together by one thread) is not in this PR (T16). A
 **batch** (#202's word: many queries, one per thread) is the user's own loop or functor.
 
-## Interface (proposed, for review before implementation)
+## Interface
 
-Declarations only, in `namespace EBGeometry::BVH`, all `EBGEOMETRY_HOST_DEVICE` and `noexcept`.
+Approved 2026-10-25 (T17–T19 added after the first draft). In `namespace EBGeometry::BVH`, all
+`EBGEOMETRY_HOST_DEVICE` and `noexcept`.
 
 ### The walk
 
@@ -71,26 +75,34 @@ class PackedBVH
 {
 public:
   // Walks the tree with one query, depth first.
-  //   a_query : a query type (see "Query types"); gives each child box a key.
-  //   a_state : the caller's search state. Only a_leaf changes it.
-  //   a_leaf  : (State&, size_t offset, size_t count) -> void. Called at each leaf reached; scans
-  //             primitives [offset, offset+count) of getPrimitives().
-  //   a_bound : (const State&) -> T. The current bound, re-read at every node: a child is entered only if
-  //             its key is <= the bound. A bound below every possible key (e.g. -infinity) ends the walk
-  //             (any-hit after the first crossing).
-  //   a_order : NearestFirst (default), FarthestFirst, AsStored, or a comparator on child keys.
-  template <class Query, class State, class LeafEvaluator, class BoundFn, class Order = NearestFirst>
+  //   a_query : a query type (see "Query types"); gives the K children of a node their keys in one pass.
+  //   a_state : the caller's search state. a_leaf (and a_visit, if given) change it.
+  //   a_leaf  : (State&, size_t offset, size_t count) -> void. Called at each leaf entered; scans primitives
+  //             [offset, offset+count) of getPrimitives().
+  //   a_bound : (const State&) -> Key. The fast, monotone pruning filter, re-read at every node: a child is
+  //             entered only if its key <= the bound. Under NearestFirst the first child out of bound drops
+  //             the rest of its level. A bound below every key (e.g. -infinity) ends the walk; +infinity
+  //             switches it off.
+  //   a_visit : (State&, uint32_t nodeIndex, const Node&, const Key&) -> bool. Called for every node about
+  //             to be entered (root, interior, leaf), after the bound check; false: do not descend (the
+  //             callback may update the state first, e.g. to handle the whole subtree at once).
+  //             Default DescendAll: always true, compiled away.
+  //   a_order : NearestFirst (default), FarthestFirst, AsStored (first slot first), or a comparator
+  //             (keyA, keyB) -> bool or (keyA, nodeIndexA, keyB, nodeIndexB) -> bool: true when A is to be
+  //             visited before B.
+  template <class Query, class State, class LeafEvaluator, class BoundFn, class VisitFn = DescendAll,
+            class Order = NearestFirst>
   void traverse(const Query& a_query, State& a_state, LeafEvaluator&& a_leaf, BoundFn&& a_bound,
-                Order a_order = Order()) const noexcept;
+                VisitFn&& a_visit = DescendAll(), Order a_order = Order()) const noexcept;
 
-  // The SoA boxes of an interior node's K children, read-only, for query types (and users) that test
-  // them: m_lo[axis][child], m_hi[axis][child]. Public now; private today.
-  struct ChildBoxes;
+  // The SoA boxes of an interior node's K children, read-only, for query types: ChildBoxes<T, K>
+  // (m_lo[axis][child], m_hi[axis][child]).
 };
 
 struct NearestFirst {};
 struct FarthestFirst {};
 struct AsStored {};
+struct DescendAll { bool operator()(...) const { return true; } };
 ```
 
 ### Query types
@@ -101,18 +113,19 @@ A query type is any type with this interface (the walk calls nothing else):
 struct MyQuery
 {
   using Scalar = T;
+  using Key    = T; // optional; any type with <=, > (and < for the nearest/farthest orders); default Scalar
 
   // The keys of all K children of one node at once (the SIMD kernel): +infinity for a child the query
   // cannot reach. Called when a node is expanded; the walk compares the keys with the bound.
   template <size_t K>
-  Array<T, K> keys(const ChildBoxes<T, K>& a_row) const;
+  Array<Key, K> keys(const ChildBoxes<T, K>& a_row) const;
 
   // One child's key again, when the walk returns to its level: bit for bit what keys() gave.
   template <size_t K>
-  T key(const ChildBoxes<T, K>& a_row, size_t a_k) const;
+  Key key(const ChildBoxes<T, K>& a_row, size_t a_k) const;
 
   // The root's key (the root has no parent row).
-  T key(const AABBT<T>& a_box) const;
+  Key key(const AABBT<T>& a_box) const;
 };
 ```
 
@@ -145,7 +158,15 @@ bvh.traverse(RayQuery<T>{origin, direction, tMin}, hit,
              [](const FirstHit& s) { return s.t; });
 
 // Any hit: the bound drops to -infinity once there is a crossing; AsStored skips the sort.
-bvh.traverse(RayQuery<T>{origin, direction, tMin}, anyState, leaf, bound, AsStored{});
+bvh.traverse(RayQuery<T>{origin, direction, tMin}, anyState, leaf, bound, DescendAll{}, AsStored{});
+
+// Far field: a node far enough from the point is handled as a whole from the user's per-node summary
+// (Barnes-Hut style), anything nearer is descended into.
+bvh.traverse(PointQuery<T>{p}, sum, leaf, [](const Sum&) { return inf; },
+             [&](Sum& s, uint32_t node, const auto&, T dist2) {
+               if (farEnough(node, dist2)) { s.value += summary[node]; return false; }
+               return true;
+             });
 ```
 
 ### Room for packets later (T16)
@@ -167,11 +188,8 @@ query type without the trait works.
 
 ## Points to confirm
 
-- **`TreeBVH`** (host-only, pointer tree) keeps its own `traverse()` and `std::function` aliases; only
-  `PackedBVH`'s change. (`TreeBVH` is a build structure; nothing in the hot path uses it.)
-- **Child boxes become public** (read-only), since user query types must read them.
-- **Names**: `traverse`, `PointQuery`/`RayQuery`, `NearestFirst`/`FarthestFirst`/`AsStored`,
-  `ChildBoxes`.
+None open: settled 2026-10-25 (`AsStored` first slot first; the root gets its real key; `TreeBVH` keeps
+its own `traverse()`; child boxes public; names as proposed; T17–T19).
 
 ## Scope
 
