@@ -245,8 +245,14 @@ its own `traverse()`; child boxes public; names as proposed; T17–T19).
   `FarthestFirst`; no bound visits every primitive once, `AsStored` in stored order, an empty BVH
   calls nothing; the leaf order against the recursive reference). Comments, test names and an error
   message no longer name the removed functions. 511/511 debug, 508/508 release-test.
-- [ ] `mortonOrder()` / ordered `GPU::transform` (T13).
-- [ ] Tests (host, `[gpu]`), `InstantiateAll`.
+- [ ] `mortonOrder()` / ordered `GPU::transform` (T13): proposed to land right after #230, as its own small PR (about 800 lines with tests and docs), to keep #230 to the traversal.
+- [x] Tests: `RayQuery` against the unit cube's slab answers (13 cases incl. face planes, an edge,
+  -0 components, tMin before/inside/past; single-box and K-wide row paths agree); the ray walk
+  against brute force (K = 2, 4, 8); the visit orders and both comparator forms; the visit callback
+  accounting for whole subtrees and stopping the walk; a user query type with a composite key and no
+  `Lanes`; a `[gpu]` ray walk against the host. `InstantiateAll`: `ChildBoxes`, `PointQuery`,
+  `RayQuery` and `traverse()` with each query, a visit callback and each order. CUDA build (both
+  precisions): 29/29 traversal cases and 8/8 `[gpu]` cases pass on the RTX A4000.
 - [ ] Probe cases; receipt (host + CUDA).
 - [ ] Sphinx, Doxygen, `Examples/BVHTraversal`.
 - [ ] Delete this file.
