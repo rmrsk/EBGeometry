@@ -16,21 +16,21 @@ SPDX-License-Identifier: GPL-3.0-or-later
 version: 3
 side: host
 verdict: yellow
-base: 58a78db
-base-fingerprint: e82f696417f53100ce7598a10c5f88662693de2f
-head: 57aea1e
-head-fingerprint: b994d5a15d03f7c986c18ff5975e90555d814775
-cases: 124
+base: 4d0d0ac
+base-fingerprint: b994d5a15d03f7c986c18ff5975e90555d814775
+head: 1d92860
+head-fingerprint: d0c3f5bcd0b6ba766166e3788efb7c42a6e6bdd9
+cases: 130
 rounds: 3
 reps: 5
-date: 2026-10-24
+date: 2026-10-25
 -->
 
 ## Host comparison: yellow
 
-**Accepted:** false regression
+**Accepted:** -
 
-`57aea1e` against `58a78db` (origin/dev), 2026-10-24.
+`1d92860` against `4d0d0ac` (origin/dev), 2026-10-25.
 
 **VERDICT: 1 minor regression
 
@@ -41,22 +41,22 @@ date: 2026-10-24
 version: 3
 side: cuda
 verdict: yellow
-base: 58a78db
-base-fingerprint: e82f696417f53100ce7598a10c5f88662693de2f
-head: 57aea1e
-head-fingerprint: b994d5a15d03f7c986c18ff5975e90555d814775
-cases: 96
+base: 4d0d0ac
+base-fingerprint: b994d5a15d03f7c986c18ff5975e90555d814775
+head: 1d92860
+head-fingerprint: d0c3f5bcd0b6ba766166e3788efb7c42a6e6bdd9
+cases: 108
 rounds: 3
 reps: 5
-date: 2026-10-24
+date: 2026-10-25
 -->
 
 ## Device comparison (CUDA): yellow
 
-**Accepted:** noise; 10-round rerun -1.4%
+**Accepted:** -
 
-`57aea1e` against `58a78db` (origin/dev), 2026-10-24.
+`1d92860` against `4d0d0ac` (origin/dev), 2026-10-25.
 
-**VERDICT: 1 minor regression
+**VERDICT: 6 minor regressions
 
 <!-- END receipt cuda -->
