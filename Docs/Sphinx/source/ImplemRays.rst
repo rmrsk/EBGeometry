@@ -90,10 +90,12 @@ the queries march it. The library has ray forms for:
 
 The triangle test is written once, in ``TriangleRay::crossing()``, for one triangle and for a SIMD
 pack of them, as the triangle distance is (see :ref:`Chap:SIMDClasses`): the host evaluates a leaf
-group's triangles a register at a time, a device one at a time. Its barycentric tests are widened by a
-few ulps, so that a ray through an edge or a vertex shared by two triangles crosses one of them; a ray
-lying in a triangle's plane does not cross it. The polygon test is widened the same way, by a few ulps
-of each edge's length.
+group's triangles a register at a time, a device one at a time. Its barycentric tests, and the polygon
+test's edge tests, are widened by the rounding error of the crossing point: a distance of a few ulps of
+the coordinates (the ray origin's and the face's), whatever the face's size or the angle of the ray.
+A ray through an edge or a vertex shared by two faces then crosses at least one of them however far it
+comes from, and a ray passing that close outside a face counts as crossing it (the safe side, as for a
+grazing marched ray). A ray lying in a face's plane does not cross it.
 
 Every other shape is marched: the other analytic shapes, the BVH unions,
 the fused compositions, tapes and shapes of your own. The ray forms are included with their shapes'

@@ -303,8 +303,9 @@ public:
    * @brief Where a ray crosses the face, from either side.
    * @details The ray is a_origin + t * a_direction. The face is taken to be planar and convex, as the mesh
    * SDFs require: the ray meets the face's plane at one t, and that point is inside the face if it is on
-   * the same side of every edge. The edge tests are widened by a few ulps of the edge's length, so that a
-   * ray through an edge or vertex shared by two faces crosses at least one of them. A ray in the face's
+   * the same side of every edge. The edge tests are widened by the rounding error of that point, a distance
+   * of a few ulps of the coordinates and of t, so that a ray through an edge or vertex shared by two faces
+   * crosses at least one of them however far it comes from. A ray in the face's
    * plane, or a face of zero area, crosses nothing.
    * @param[in] a_origin    Ray origin.
    * @param[in] a_direction Ray direction.

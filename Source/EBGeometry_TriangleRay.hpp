@@ -29,11 +29,11 @@ namespace TriangleRay {
 /**
  * @brief Where a ray crosses a triangle, or one triangle per lane (Möller–Trumbore).
  * @details The ray is origin + t * direction. A crossing counts where t is in [a_tMin, a_tMax], from
- * either side of the triangle. The barycentric tests are widened by a few ulps, so that a ray through an
- * edge or vertex shared by two triangles crosses at least one of them; a ray in the triangle's plane does
- * not cross it. The widening is in barycentric units, so across a sliver triangle it is a longer distance:
- * a ray passing that close outside a sliver counts as crossing it (on the safe side, as a grazing marched
- * ray does). The triangle is read through @p a_triangle, which provides vertex(k) for k = 0, 1, 2 as
+ * either side of the triangle. The barycentric tests are widened by the rounding error of the crossing
+ * point, a distance of a few ulps of the ray origin's and the triangle's coordinates, so that a ray through
+ * an edge or vertex shared by two triangles crosses at least one of them however far it comes from; a ray
+ * in the triangle's plane does not cross it. A ray passing outside a triangle within that distance counts
+ * as crossing it (on the safe side, as a grazing marched ray does). The triangle is read through @p a_triangle, which provides vertex(k) for k = 0, 1, 2 as
  * TriangleDistance::Vec3V<V> (see TriangleDistance::signedDistance()). For a SIMD::Pack every lane
  * computes every test, so the kernel has no branches.
  * @tparam V      Scalar (float or double) or SIMD::Pack.
@@ -58,6 +58,7 @@ crossing(const Source&                     a_triangle,
   using SIMD::abs;
   using SIMD::both;
   using SIMD::select;
+  using SIMD::sqrt;
   using TriangleDistance::constant;
   using TriangleDistance::cross;
   using TriangleDistance::dot;
@@ -80,11 +81,25 @@ crossing(const Source&                     a_triangle,
   const V        v = dot(a_direction, q) * inv;
   const V        t = dot(e2, q) * inv;
 
-  // A zero det (a ray in the plane) makes u, v and t infinite or NaN, which every test below rejects.
-  const V lo = V(-T(16) * Math::Limits<T>::epsilon());
-  const V hi = constant<V>(1) - lo;
+  // The barycentric tests are widened by the rounding error of the crossing point, a distance delta of a few
+  // ulps of the coordinates, as each coordinate measures it: u by the height of vertex 1 over the edge v0-v2
+  // (twice the area over |e2|), v by that of vertex 2 over v0-v1, and 1 - u - v by that of vertex 0 over
+  // v1-v2. A point on an edge shared by two triangles is then inside both, however far the ray comes from;
+  // the widening does not grow for a ray nearly in the triangle's plane. (The edge lengths are L1 norms,
+  // which only widens a little more.) A zero det (a ray in the plane) makes u, v and t infinite or NaN,
+  // which every test below rejects.
+  const Vec3V<V> n     = cross(e1, e2);
+  const V        area2 = sqrt(dot(n, n));
+  const V        ulps  = V(T(16) * Math::Limits<T>::epsilon());
+  const V delta   = ulps * (abs(a_origin.x) + abs(a_origin.y) + abs(a_origin.z) + abs(v0.x) + abs(v0.y) + abs(v0.z));
+  const V perArea = delta / area2;
 
-  const auto inside  = both(both(u >= lo, v >= lo), hi >= u + v);
+  const V tolU = ulps + perArea * (abs(e2.x) + abs(e2.y) + abs(e2.z));
+  const V tolV = ulps + perArea * (abs(e1.x) + abs(e1.y) + abs(e1.z));
+  const V tolW = ulps + perArea * (abs(e2.x - e1.x) + abs(e2.y - e1.y) + abs(e2.z - e1.z));
+
+  const auto inside =
+    both(both(u >= constant<V>(0) - tolU, v >= constant<V>(0) - tolV), constant<V>(1) + tolW >= u + v);
   const auto inRange = both(t >= a_tMin, a_tMax >= t);
   const auto crosses = both(both(inside, inRange), abs(det) > constant<V>(0));
 

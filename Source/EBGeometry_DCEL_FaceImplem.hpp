@@ -579,9 +579,12 @@ FaceT<T>::rayCrossing(
 
   // (e x (p - v)) . n is |e| times p's signed distance from the edge's line in the plane, with one sign
   // for every edge where p is inside (which sign depends on whether the loop runs counter-clockwise about
-  // the normal, so both are accepted). A few ulps of |e|^2 on the wrong side still count, so that a point
-  // on a shared edge is inside both faces.
-  const T widening = T(16) * Math::Limits<T>::epsilon();
+  // the normal, so both are accepted). A point within the rounding error of p of the wrong side still
+  // counts, so that a point on a shared edge is inside both faces: p is rounded to a few ulps of the
+  // coordinates and of t.
+  const T ulps  = T(16) * Math::Limits<T>::epsilon();
+  const T error = ulps * (std::abs(a_origin[0]) + std::abs(a_origin[1]) + std::abs(a_origin[2]) + std::abs(p[0]) +
+                          std::abs(p[1]) + std::abs(p[2]) + std::abs(t));
 
   bool left  = true;
   bool right = true;
@@ -591,7 +594,7 @@ FaceT<T>::rayCrossing(
     const Vec3& v    = edge.getVertex(a_mesh).getPosition();
     const Vec3  e    = edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition() - v;
     const T     side = e.cross(p - v).dot(m_normal);
-    const T     tol  = widening * e.dot(e);
+    const T     tol  = ulps * e.dot(e) + error * e.length();
 
     left  = left && side >= -tol;
     right = right && side <= tol;

@@ -73,6 +73,55 @@ slabCrossing(const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_tM
   return std::numeric_limits<T>::infinity();
 }
 
+// A cube of side a_side at a_corner, each face an a_n x a_n grid of quadrilaterals, counter-clockwise seen
+// from outside: a fine mesh far from the origin, where rounding in a ray's crossing point is large next
+// to the faces.
+template <class T>
+PolygonSoup<T>
+gridCube(const Vec3T<T>& a_corner, const T a_side, const size_t a_n)
+{
+  std::vector<Vec3T<T>>            vertices;
+  std::vector<std::vector<size_t>> faces;
+
+  // Each face: a fixed axis and side, and two in-plane axes (u, v) with u x v pointing outwards.
+  struct Side
+  {
+    size_t axis;
+    T      at;
+    size_t u;
+    size_t v;
+  };
+
+  const Side sides[6] = {
+    {0, T(0), 2, 1}, {0, T(1), 1, 2}, {1, T(0), 0, 2}, {1, T(1), 2, 0}, {2, T(0), 1, 0}, {2, T(1), 0, 1}};
+
+  for (const Side& side : sides) {
+    const size_t first = vertices.size();
+
+    for (size_t j = 0; j <= a_n; j++) {
+      for (size_t i = 0; i <= a_n; i++) {
+        Vec3T<T> p;
+
+        p[side.axis] = side.at;
+        p[side.u]    = T(i) / T(a_n);
+        p[side.v]    = T(j) / T(a_n);
+
+        vertices.push_back(a_corner + a_side * p);
+      }
+    }
+
+    for (size_t j = 0; j < a_n; j++) {
+      for (size_t i = 0; i < a_n; i++) {
+        const size_t a = first + j * (a_n + 1) + i;
+
+        faces.push_back({a, a + 1, a + a_n + 2, a + a_n + 1});
+      }
+    }
+  }
+
+  return PolygonSoup<T>("grid cube", vertices, faces);
+}
+
 // A shape with no ray form, so the queries march it: what the ray forms are compared with.
 template <class T, class S>
 struct Marched
@@ -288,6 +337,75 @@ TEMPLATE_TEST_CASE("Ray: every mesh SDF of the unit cube agrees with the slab te
       }
     }
   }
+}
+
+TEMPLATE_TEST_CASE("Ray: no ray slips between the faces of a fine mesh far from the origin",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A cube of side 4 at about 100 from the origin, each face a 64 x 64 grid: faces 1/16 wide, rays from
+  // about 150 away aimed at the grid's lines and corners, where two or four faces meet. Rounding in the
+  // crossing point is then thousands of ulps of a face's size, and every ray must still hit (with
+  // tolerances of a few ulps of the face, 30 of these rays slipped through the triangles).
+  const Vec3 corner(T(100), T(98), T(101));
+  const T    side = T(4);
+  const auto soup = gridCube<T>(corner, side, 64);
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = soup.convertToDCEL(pool);
+
+  const TriMeshSDF<T, 4, 4> triangles(soup.convertToTriangles(), pool, BVH::Construction::SAH, 4);
+  const MeshSDF<T, 4>       polygons(mesh, pool, BVH::Construction::SAH);
+
+  std::mt19937                       rng(23);
+  std::uniform_real_distribution<T>  uniform(T(0), T(1));
+  std::uniform_int_distribution<int> line(0, 64);
+
+  int slippedTriangles = 0;
+  int slippedPolygons  = 0;
+
+  for (int i = 0; i < 4000; i++) {
+    // A target on a face's grid: one coordinate on a grid line, or both (a corner), the other fixed by the face.
+    const size_t axis    = size_t(i % 3);
+    const T      at      = (i % 2 == 0) ? T(0) : T(1);
+    const size_t u       = (axis + 1) % 3;
+    const size_t v       = (axis + 2) % 3;
+    const bool   corner2 = (i % 5 == 0);
+
+    Vec3 local;
+
+    local[axis] = at;
+    local[u]    = T(line(rng)) / T(64);
+    local[v]    = corner2 ? T(line(rng)) / T(64) : uniform(rng);
+
+    const Vec3 target = corner + side * local;
+
+    // From outside that face, a few units out, at an angle.
+    Vec3 out = Vec3::zeros();
+
+    out[axis] = (at > T(0)) ? T(1) : -T(1);
+
+    const Vec3 origin    = target + T(150) * out + (uniform(rng) - T(0.5)) * T(100) * Vec3::ones();
+    const Vec3 direction = normalized(target - origin);
+    const T    distance  = (target - origin).length();
+
+    const RayT<T> ray{origin, direction};
+
+    // The ray may meet another face of the cube first (it comes in at an angle), never none, and never
+    // beyond its target.
+    const auto slips = [distance, side](const HitT<T>& a_hit) {
+      return !(a_hit.hit() && a_hit.m_t <= distance + T(1e-3) * side);
+    };
+
+    slippedTriangles += slips(firstHit(triangles, ray, T(0), T(1000))) ? 1 : 0;
+    slippedPolygons += slips(firstHit(polygons, ray, T(0), T(1000))) ? 1 : 0;
+  }
+
+  CHECK(slippedTriangles == 0);
+  CHECK(slippedPolygons == 0);
 }
 
 TEMPLATE_TEST_CASE("Ray: the analytic ray forms give the closed-form crossings", "[Ray]", EBGEOMETRY_TEST_PRECISIONS)
