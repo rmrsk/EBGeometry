@@ -181,7 +181,8 @@ agreeMarched(T a_host, T a_device)
 
 // One operation on one input in one precision: the host case, and host/device pairs in each order.
 // a_build(case, pool) builds the shape in the pool and returns it with its box; a_make(shape, centre)
-// gives the query functor.
+// gives the query functor. a_relativeTo names a case computing the same answers, and the comparison notes
+// its time over this one's as a_relativeLabel.
 template <class T, class Build, class Make, class Agree>
 void
 addOperation(Perf::Suite&       a_suite,
@@ -266,7 +267,7 @@ addPrecision(Perf::Suite& a_suite)
     [](const Mesh<T>& a_mesh, const Vec3<T>& a_centre) { return FirstHit<T, Mesh<T>>{a_mesh, a_centre}; },
     Perf::agreeDistance<T>,
     "mesh/firstHit-handrolled",
-    "api/hand");
+    "hand/api");
   addOperation<T>(
     a_suite,
     "mesh",
@@ -304,7 +305,9 @@ addPrecision(Perf::Suite& a_suite)
     MarchedHostQueries,
     fused,
     [](const FusedCSG& a_shape, const Vec3<T>& a_centre) { return FirstHit<T, FusedCSG>{a_shape, a_centre}; },
-    agreeMarched<T>);
+    agreeMarched<T>,
+    "csg-tape/firstHit",
+    "tape/fused");
   addOperation<T>(
     a_suite,
     "csg-tape",
@@ -314,9 +317,7 @@ addPrecision(Perf::Suite& a_suite)
     [](const EBGeometry::Tape<T>& a_shape, const Vec3<T>& a_centre) {
       return FirstHit<T, EBGeometry::Tape<T>>{a_shape, a_centre};
     },
-    agreeMarched<T>,
-    "csg-fused/firstHit",
-    "tape/fused");
+    agreeMarched<T>);
 }
 
 } // namespace

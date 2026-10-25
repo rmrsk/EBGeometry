@@ -95,7 +95,7 @@ what the review below found, and lands it first. #214–#216 are then rebuilt on
 
 | # | Decision | Reason |
 |---|---|---|
-| D21 | **Exact ray forms only for the closed-form analytic shapes and `TriMeshSDF`**; `MeshSDF`, `FlatMeshSDF` and `BVHUnion` are marched here and get ray forms in a follow-up PR. | Lets #228 land and the renderer start. |
+| D21 | **Exact ray forms only for the closed-form analytic shapes and `TriMeshSDF`**; the rest is marched here. **Two follow-up PRs**: (1) `MeshSDF`/`FlatMeshSDF` (planar convex polygons: plane hit plus an edge test), independent; (2) PR B after #224: span maths for the fused nodes, the Tape (clause by clause, analytic ray forms at the leaves, sphere tracing only in subtrees without a form) and `BVHUnion` (overlapping operands need spans). | Lets #228 land and the renderer start. Decided 2026-10-25. |
 | D22 | **Probe `Performance/Ray`**: `TriMeshSDF` (`firstHit`, a hand-written walk, `intersects`), and the CSG solid marched fused and through a tape; host cases and host/device pairs. | The user's request: mesh, fused CSG and tape. |
 | D23 | **A marched ray within the tolerance of the surface is a hit, even when it only grazes.** | Conservative for particles; requiring a sign change gave more host/device disagreements (slivers thinner than the tolerance). |
 | D24 | **The 2 grazing rays the device receipt flags are accepted**, not hidden by the agreement rule. | They are the real behaviour of a marched ray at a sharp edge. |

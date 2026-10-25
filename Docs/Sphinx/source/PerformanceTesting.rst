@@ -209,8 +209,8 @@ Family                                Build  Measures
 in the object's box grown to twice its size about its centre and point at the centre, as in the BVH
 probe. The mesh is the armadillo (``TriMeshSDF``, K = W = 4), ray traced exactly; its ``firstHit`` case
 names the hand-written walk (``traverse()`` with a ``RayQuery`` and the probe's own leaf callback),
-and a comparison notes ``api/hand`` beside it: what ``firstHit()`` costs over code a user writes. The
-classic CSG solid is marched, fused and through a tape; the tape case notes ``tape/fused``. A host and
+and a comparison notes ``hand/api`` beside it: what ``firstHit()`` costs over code a user writes. The
+classic CSG solid is marched, fused and through a tape; the fused case notes ``tape/fused``. A host and
 a device marched crossing agree when both miss, or both cross within 1e-3.
 
 ====================================  =====  =====================================================
