@@ -260,5 +260,12 @@ its own `traverse()`; child boxes public; names as proposed; T17–T19).
   test added). Full size, one repetition, host: 1.7 µs per ray (nearest), 0.9 µs (any), 2.5 µs per
   point. CUDA smoke: all 12 pairs agree.
 - [ ] Receipt (host + CUDA): needs a quiet machine.
-- [ ] Sphinx, Doxygen, `Examples/BVHTraversal`.
+- [x] Docs: `ImplemBVH.rst`'s traversal section rewritten for the general walk (query types, state,
+  leaf, bound, visit, order; the child tests; the stack; label `Chap:PackedTraverse` replacing
+  `Chap:PruneTraverse`), the Concepts page `BVH.rst` (queries, keys, bounds, node-by-node decisions),
+  `SIMDClasses.rst`, `ImplemPointCloud.rst`, `TestingLocally.rst`'s `TestBVH` row, and the current-state
+  lines of `PORTING.md`. `Examples/BVHTraversal` (nearest ball, first ray hit with a visit callback,
+  a blocked segment, the first two on a GPU; host, float and CUDA builds run, CUDA answers match),
+  its page `ExampleBVHTraversal.rst` in the toctree, the reading order in `Examples.rst` and
+  `Examples/README.md`. Sphinx `-W`, Doxygen, codespell, check-docs and clang-format pass.
 - [ ] Delete this file.

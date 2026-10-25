@@ -127,6 +127,7 @@ Examples
    ExampleNestedBVH.rst
    ExampleManyObjects.rst
    ExamplePointClouds.rst
+   ExampleBVHTraversal.rst
    ExampleOctreeBoundingVolume.rst
    ExampleCustomShape.rst
    ExampleHostTuning.rst

@@ -146,7 +146,7 @@ queries in a kernel and compares against the host:
 | Bounding volumes | `AABBT` in `EBGeometry_BoundingVolumes.hpp` (`SphereT` retired) | #132, #133, #164 |
 | SoA/AoSoA leaves | `PointSoA`, `PointAoSoA`, `TriangleSoA`, `TriangleAoSoA` | #134 |
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
-| BVH traversal and storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`, the template `traverse`) | #145, #146, #153, #154, #161 |
+| BVH traversal and storage | `PackedBVH` (`Node`, `ChildBoxes`, the general `traverse()` with `PointQuery`/`RayQuery`, #230) | #145, #146, #153, #154, #161 |
 | Point-cloud queries | `PointCloudBVH` (holds a `PackedBVH`) and `PointCloudHashGrid` (pool-backed grid); one `PointCloud::Hit`, a shared `PointCloud::KBest`, device-callable brute-force references. Both builds stay on the host | #147, #162 |
 | Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF`; `getClosestFace` returns a `uint32_t` face id | #148, #149, #156 |
 | Analytic shapes | The twelve classes in `EBGeometry_AnalyticDistanceFunctions.hpp` (constructors stay on the host) | #151 |
@@ -323,7 +323,12 @@ buys nothing when a lane reads all K serially. None of that is measured. It is r
 layout is not mistaken for a finished design, and so nobody benchmarks it and draws a conclusion
 about the library's GPU ceiling. The agreed shape of the fix:
 
-* **One API, two implementations — not a GPU-special function.** Add a batched entry point,
+* **One API, two implementations — not a GPU-special function.** *(Superseded, 2026-10-25: #230
+  replaced `pruneTraverse()` and the four-callback `traverse()` with one general
+  `PackedBVH::traverse(query, state, leaf, bound, visit, order)`, and the maintainer chose no library
+  launcher over arrays of queries: the user organises queries one per thread in their own functor.
+  #202's `pruneTraverseBatch` was dropped; its `mortonOrder()` and ordered `GPU::transform` are kept.
+  The original plan follows.)* Add a batched entry point,
   `pruneTraverseBatch(PODSpan<const Vec3T<T>> points, PODSpan<State> states, ...)`, implemented
   twice: on host as a loop over queries using the existing SIMD child test, on device as a mapping
   of queries onto threads or warps. Batching earns its keep on the host too (better node-cache
@@ -345,7 +350,7 @@ about the library's GPU ceiling. The agreed shape of the fix:
 * **Why after the tape and not before it.** The tape changes what a leaf evaluator is, so a batched
   traversal built earlier gets partly rebuilt anyway.
 
-Nothing needs doing now to keep this open: `pruneTraverse`'s contract already says nothing about
+Nothing needs doing now to keep this open: `traverse()`'s contract already says nothing about
 threads. The one thing worth adding alongside the first `[gpu]` benchmark is a coherent-query case.
 
 **Device builds.** A device-side `PointCloudBVH` build (Morton codes and a radix sort) and its

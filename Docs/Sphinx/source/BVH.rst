@@ -143,11 +143,16 @@ For the traversal algorithm we consider the following steps:
 
    Example of BVH tree pruning.
 
-Other types of tree traversal, that do not compute a signed distance, are also possible.
-EBGeometry supports a fairly flexible approach to the tree traversal and update algorithms, so
-that the same hierarchical traversal-and-pruning idea can also be used for other operations --
-for instance, finding every facet within a specified distance of a point uses exactly the same
-principle.
+Other types of tree traversal, that do not compute a signed distance, are also possible. The same
+walk serves any *query*: whatever is tracked through the tree only has to say how far each child's
+bounding volume is from it -- its *key* -- and the walk enters the children whose keys are within the
+current *bound*, in an order the caller chooses. For a point the key is the distance to the box; for a
+ray it is the distance along the ray at which it enters the box, and a box the ray misses is never
+entered. So finding the nearest primitive, every facet within a specified distance of a point, the first
+surface a ray hits, or whether a particle's path from one point to another crosses anything are all the
+same traversal with a different query, bound and leaf test. A caller can also decide, node by node,
+not to descend at all -- because the node is flagged, too deep, or far enough to be summarised as a
+whole -- which is how far-field approximations and levels of detail use the same tree.
 
 .. warning::
 
