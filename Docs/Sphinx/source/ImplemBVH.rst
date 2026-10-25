@@ -608,63 +608,172 @@ and on a device, and the rest of this section is about it.
 ``PackedBVH::traverse()``
 _________________________
 
-``PackedBVH`` has no ``signedDistance()`` of its own and does not privilege any one query. Its
-``traverse()`` is a general depth-first walk in which the caller chooses five things:
+``PackedBVH`` has no ``signedDistance()`` of its own and does not privilege any one query. It has one
+walk, ``traverse()``, and every search in the library -- the mesh SDFs' distances and closest faces, the
+BVH unions, the point clouds' neighbour searches, the tape's large unions, the ray queries -- is a call of
+it with different pieces slotted in. A new search is written the same way: you supply the pieces, the
+library supplies the walk, on the host and on a device. See :ref:`Chap:BVH` for the idea behind it.
 
 .. code-block:: c++
 
-   bvh.traverse(query, state, leaf, bound, visit = BVH::DescendAll{}, order = BVH::NearestFirst{});
+   bvh.traverse(query, state, leaf, bound);                 // the four pieces every search needs
+   bvh.traverse(query, state, leaf, bound, visit, order);   // and the two optional ones
 
-* **The query** -- what is tracked through the tree: a ``BVH::PointQuery`` (a point; the key of a box is
-  the squared distance to it), a ``BVH::RayQuery`` (a ray from an origin, in a unit direction, from a
-  ``tMin``; the key of a box is the distance along the ray at which it enters it), or a query type of the
-  caller's own. A query type gives the ``K`` children of a node their keys in one pass, reading the
-  parent's SoA row of child boxes (``BVH::ChildBoxes``); the same child's key again, bit for bit, when
-  the walk returns to its level; and the root's key from its box. Its key type is ``Key`` if it declares
-  one (any type with ``<=``, ``>`` and, for the nearest/farthest orders, ``<``), otherwise its precision.
-  A floating-point key of :math:`+\infty` means the query cannot reach the child (a ray that misses its
-  box): such a child is never entered, whatever the bound.
-* **The state** -- whatever the search remembers between leaves: the best value so far, or richer (a
-  running best with the primitive that produced it, a list of hits). Only the leaf and visit callbacks
-  change it.
-* **The leaf callback** ``(State&, offset, count)`` -- called once per leaf reached, with the leaf's range
-  in the BVH's global primitive array (``getPrimitives()``; never a freshly allocated sub-list). It is
-  where primitives are touched.
-* **The bound** ``(const State&) -> Key`` -- read again at every node, so a leaf visited anywhere earlier
-  tightens the pruning of everything after it: a child is entered only if its key is within the bound.
-  For a nearest-primitive search it is the best squared distance so far; for a closest ray hit, the
-  nearest crossing so far; for a segment, its length. A bound below every key (:math:`-\infty`) ends the
-  walk, which is how an any-hit query stops at its first hit.
-* **The visit callback** ``(State&, nodeIndex, node, key) -> bool`` (optional) -- called for every node
-  about to be entered, the root, interior nodes and leaves, once it has passed the bound. Returning
-  ``false`` skips the node and its subtree, and the callback may update the state first. It is how a
-  caller prunes on the node itself (its depth, a flag, the caller's own per-node data indexed by
-  ``nodeIndex``), accounts for a whole subtree at once (a far-field summary, a level of detail), or
-  counts and collects nodes. The default, ``DescendAll``, compiles away.
-* **The visit order** (optional) -- ``NearestFirst`` (the default: smallest key first, which tightens a
-  nearest-type bound fastest), ``FarthestFirst``, ``AsStored`` (no sort, first slot first: for any-hit
-  and collect-everything walks), or a comparator on two children's keys, ``(keyA, keyB)``, or on their
-  keys and node indices, ``(keyA, nodeA, keyB, nodeB)``, for an order on the caller's own per-node data.
+What the walk does, and where your pieces run
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Precisely, the walk starts at the root, if its key is within the bound. At a leaf it calls the leaf
-callback. At an interior node it computes all ``K`` children's keys in one pass, keeps the children
-within the (freshly read) bound, sorts them by the order (an insertion sort: ``K`` is small, it is
-callable on a device, and it is stable), and descends into the first at once. The others wait on the
-stack, one entry for the level (see below). When the walk returns to that level it computes the next
-child's key again from the parent's row and compares it with the *current* bound: under
-``NearestFirst`` the first child out of bound drops the rest of the level, which are no nearer; under
-any other order only that child is skipped. ``PackedBVH::traverse()`` is ``noexcept``, so an exception
-from a callback ends the program; an empty ``PackedBVH`` visits nothing (it has no root, so its
-``computeBoundingVolume()`` returns the empty box and ``getBoundingVolume()``, which returns the root's
-box by reference, aborts).
+The walk is depth first, with a small fixed stack instead of recursion. In pseudocode, with the places
+where it calls your pieces marked:
 
-The callbacks are template parameters, lambdas or functors: the same call runs on the host and on a
-device. A query type, a leaf evaluator and a bound with nothing else is all a new search needs; the
-walk itself is never written again. For the exact signatures, see the Doxygen reference for
+.. code-block:: text
+
+   key = query.key(root box)                                  ← query
+   if key > bound(state): stop                                ← bound
+   node = root
+   loop:
+       if visit(state, node, key) is false: skip node        ← visit (optional)
+       else if node is a leaf:
+           leaf(state, first primitive, count)                ← leaf: the only place primitives are read
+       else:
+           b    = bound(state)                                ← bound, read fresh at every node
+           keys = query.keys(node's K child boxes)            ← query, all K children in one pass
+           kept = the children with key <= b
+           sort kept by order                                 ← order (optional; nearest first by default)
+           descend into the first of kept now; push the rest of kept for later
+           continue
+       pop the next waiting child c of the deepest level:
+           key = query.key(c's box)                           ← query, recomputed bit for bit
+           if key > bound(state):                             ← bound, read fresh again
+               skip c (and, nearest first, the rest of its level, which are no nearer)
+           else: node = c, continue
+       stop when nothing is waiting
+
+Three things follow from this shape:
+
+* **The bound is read again at every node.** A leaf you visit early tightens the pruning of every node
+  after it, in any part of the tree -- which is why visiting the most promising child first pays off.
+* **The state is yours.** The walk only passes it to your callbacks; only ``leaf`` (and ``visit``, if you
+  give one) change it, and ``bound`` reads it.
+* **Keys are compared, never stored.** A child that waits on the stack gets its key again when the walk
+  comes back to it, so the comparison sees the bound as it is *then*.
+
+The pieces you supply
+^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 13 30 22 35
+
+   * - Piece
+     - Signature
+     - Called
+     - What it is for
+   * - ``query``
+     - a query type (``BVH::PointQuery``, ``BVH::RayQuery``, or your own)
+     - at every interior node (all ``K`` children), at the root, and when a waiting child is resumed
+     - what is tracked through the tree: it gives each box a *key*, how far the box is from the query
+   * - ``state``
+     - any type, passed by reference
+     - --
+     - what the search remembers between leaves: the best value so far, the best primitive, a list of
+       hits
+   * - ``leaf``
+     - ``(State&, size_t offset, size_t count)``
+     - once per leaf reached
+     - test the leaf's primitives, ``getPrimitives()[offset .. offset + count)``, and update the state
+   * - ``bound``
+     - ``(const State&) -> Key``
+     - at every node expanded and every child resumed
+     - how far a box may be and still be entered: a box whose key is above it is skipped with its
+       whole subtree
+   * - ``visit`` (optional)
+     - ``(State&, uint32_t nodeIndex, const Node&, const Key&) -> bool``
+     - for every node about to be entered (root, interior, leaf), after the bound check
+     - decide on the node itself: return ``false`` to skip it and its subtree, after updating the
+       state if you like (prune on your own per-node data, summarise a far subtree, count nodes).
+       Default ``BVH::DescendAll``, which compiles away
+   * - ``order`` (optional)
+     - ``BVH::NearestFirst``, ``BVH::FarthestFirst``, ``BVH::AsStored``, or a comparator
+       ``(keyA, keyB) -> bool`` or ``(keyA, nodeA, keyB, nodeB) -> bool``
+     - when a node's kept children are sorted
+     - which child to visit first. ``NearestFirst`` (default) tightens a nearest-type bound fastest;
+       ``AsStored`` (first slot first, no sort) suits searches that visit everything they reach or stop
+       at the first hit
+
+The rules your pieces follow:
+
+* **They are template parameters** -- lambdas or functors, not ``std::function`` -- so the same call runs
+  in a kernel. On a device, write them as functors with ``EBGEOMETRY_HOST_DEVICE`` call operators, or as
+  lambdas inside such a function. ``traverse()`` is ``noexcept``: an exception from a callback ends the
+  program.
+* **Under** ``NearestFirst`` **the bound may only tighten** during a walk (never grow), since the walk
+  drops the rest of a level once one child is out of it. Every search that narrows in on a best answer
+  does this naturally. A search whose bound can grow should pick another order.
+* **To stop the walk**, make ``bound`` return :math:`-\infty` (below every key): an any-hit search does
+  this after its first hit.
+* **A key of** :math:`+\infty` **is never entered**, whatever the bound: a ray query gives it to a box the
+  ray misses. A bound of :math:`+\infty` therefore means "no bound yet", and a ray search can start
+  there.
+
+Query types
+^^^^^^^^^^^
+
+* ``BVH::PointQuery{p}`` -- the key of a box is the squared distance from ``p`` to it (0 inside it). The
+  bound is a squared distance too.
+* ``BVH::RayQuery(origin, direction, tMin)`` -- the key of a box is the distance along the ray (unit
+  direction) at which it enters the box, from ``tMin`` on, or :math:`+\infty` if it misses it. A segment
+  from ``a`` to ``b`` is the ray from ``a`` towards ``b`` with the bound starting at ``|b - a|``.
+* **Your own query type** -- anything with ``using Scalar = T``; ``keys(row)`` returning the ``K``
+  children's keys from the node's row of child boxes (``BVH::ChildBoxes``: ``m_lo[axis][child]``,
+  ``m_hi[axis][child]``, laid out for SIMD); ``key(row, k)`` returning one child's key, bit for bit what
+  ``keys()`` gave; and ``key(box)`` for the root. It may declare ``using Key = ...`` for a key that is not
+  a number, such as a distance with a tie-break (it needs ``<=``, ``>`` and, for the nearest/farthest
+  orders, ``<``).
+
+Recipes
+^^^^^^^
+
+The nearest primitive to a point (what the mesh SDFs and point clouds do):
+
+.. code-block:: c++
+
+   struct Best { T d2 = inf; uint32_t id = none; };
+   Best best;
+
+   bvh.traverse(BVH::PointQuery<T>{p}, best,
+                [&](Best& b, size_t offset, size_t count) {          // distance to each primitive
+                  for (size_t i = offset; i < offset + count; i++) {
+                    const T d2 = distance2(prims[i], p);
+                    if (d2 < b.d2) { b = Best{d2, uint32_t(i)}; }
+                  }
+                },
+                [](const Best& b) { return b.d2; });                 // farther boxes cannot do better
+
+The first primitive a ray hits: the same, with a ``RayQuery``, a ray--primitive test in ``leaf`` and the
+nearest hit so far as the bound. Whether *anything* is hit (a shadow ray, a blocked segment): keep a flag,
+return :math:`-\infty` from ``bound`` once it is set, and use ``AsStored``, since any hit will do:
+
+.. code-block:: c++
+
+   bool hit = false;
+
+   bvh.traverse(BVH::RayQuery<T>(a, direction), hit,
+                [&](bool& h, size_t offset, size_t count) { /* h = h || any primitive hit before |b - a| */ },
+                [&](const bool& h) { return h ? -inf : length; },
+                BVH::DescendAll{}, BVH::AsStored{});
+
+Everything within a radius ``r`` of a point: collect in ``leaf``, return ``r * r`` from ``bound`` (it
+never changes), and use ``AsStored``. A far-field approximation: in ``visit``, when a node is far enough
+for its summary (kept in your own array, indexed by ``nodeIndex``), add the summary to the state and
+return ``false``; otherwise return ``true`` and let the walk descend.
+
+The :ref:`Chap:ExampleBVHTraversal` example runs the first three in full, on the host and on a device.
+For the exact signatures, see the Doxygen reference for
 `PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__ and the `BVH namespace
-<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__ (``PointQuery``, ``RayQuery``, ``ChildBoxes``,
-``NearestFirst``, ``FarthestFirst``, ``AsStored``, ``DescendAll``). The ``BVHTraversal`` example
-(:ref:`Chap:ExampleBVHTraversal`) walks a BVH with both query types, a visit callback and an order.
+<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__.
+
+How the walk keeps to that shape -- the children's keys computed in one SIMD pass, and a stack of one
+entry per level -- is described next.
 
 **The child tests.** ``PointQuery`` computes the ``K`` squared distances in a single SIMD batch where
 the ``(K, T)`` pair has a compiled path (see :ref:`Chap:SIMDClasses` for which instructions run for

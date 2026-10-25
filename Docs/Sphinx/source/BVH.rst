@@ -143,16 +143,54 @@ For the traversal algorithm we consider the following steps:
 
    Example of BVH tree pruning.
 
-Other types of tree traversal, that do not compute a signed distance, are also possible. The same
-walk serves any *query*: whatever is tracked through the tree only has to say how far each child's
-bounding volume is from it -- its *key* -- and the walk enters the children whose keys are within the
-current *bound*, in an order the caller chooses. For a point the key is the distance to the box; for a
-ray it is the distance along the ray at which it enters the box, and a box the ray misses is never
-entered. So finding the nearest primitive, every facet within a specified distance of a point, the first
-surface a ray hits, or whether a particle's path from one point to another crosses anything are all the
-same traversal with a different query, bound and leaf test. A caller can also decide, node by node,
-not to descend at all -- because the node is flagged, too deep, or far enough to be summarised as a
-whole -- which is how far-field approximations and levels of detail use the same tree.
+One traversal for many searches
+_______________________________
+
+The example above computes a signed distance, but nothing in the walk is specific to distances. Every
+search in EBGeometry -- the distance to a mesh, the nearest point of a cloud, the first surface a ray
+hits, whether a particle's path from one point to another crosses anything -- walks the tree the same
+way, and differs only in a few pieces that the search supplies:
+
+* **A query**: what is tracked through the tree. It assigns every bounding volume a *key*, a measure of
+  how far the volume is from the query. For a point, the key is the distance to the box; for a ray, the
+  distance along the ray at which it enters the box. A box the ray misses gets an infinite key and is
+  never entered.
+* **A state**: what the search has found so far, carried through the whole walk -- the nearest distance
+  and the primitive it came from, the nearest hit along a ray, or a list of everything found.
+* **A leaf test**: what happens when the walk reaches a leaf. Here, and only here, the primitives
+  themselves are examined, and the state is updated.
+* **A bound**: read from the state, it says how far a volume may be and still be worth entering. For a
+  nearest-type search it is the best value found so far; for a ray, the nearest hit so far; for a
+  segment, its length.
+
+The walk itself is always the same:
+
+#. Start at the root, if its key is within the bound.
+#. At an interior node, compute the keys of all its children at once (the computation is vectorised
+   across the children), keep those within the bound, and order them -- nearest first, unless the
+   search asks otherwise.
+#. Descend into the first child at once; the others wait, in order, until the walk comes back to this
+   level.
+#. At a leaf, run the leaf test, which may tighten the bound.
+#. Coming back to a level, take the next waiting child, compute its key again and compare it with the
+   bound *as it is now*: a child that was worth visiting when the level was sorted may no longer be,
+   because something nearer has been found meanwhile. With nearest-first order, the first child out of
+   bound means all the rest are too.
+#. Stop when no child is waiting, or as soon as the bound drops below every possible key (an any-hit
+   search does this at its first hit).
+
+The pruning in the example above is exactly step 5: the subtree holding :math:`B` and :math:`C` is never
+entered because, by the time the walk comes back for it, the bound from :math:`A`'s triangles is smaller
+than its key.
+
+Two optional pieces widen what a search can do. A search can choose the **order** in which a node's
+children are visited -- nearest first, farthest first, as stored, or by its own rule -- and it can
+**decide on each node before entering it**, on information of its own: skip a subtree that is flagged,
+too deep or irrelevant, or account for a far subtree as a whole from a summary it keeps per node (as
+far-field approximations and levels of detail do) instead of descending into it.
+
+The walk keeps its waiting children on a small fixed-size stack, one entry per level of the tree, so it
+allocates nothing and runs unchanged on a GPU, one search per thread.
 
 .. warning::
 
