@@ -648,6 +648,18 @@ where it calls your pieces marked:
            else: node = c, continue
        stop when nothing is waiting
 
+.. _Fig:TraversalWalk:
+.. figure:: /_static/TraversalWalk.png
+   :width: 900px
+   :align: center
+
+   A nearest-primitive search walking a small tree (``K = 2``). The numbered events are where the walk
+   calls the pieces the search supplies, coloured by piece: the query keys the root and then both
+   children of a node in one pass (1--3), the order puts the nearer child first, the leaf callback
+   finds a primitive and so tightens the bound (4), and on the way back the waiting children are
+   compared with the bound as it is then, which prunes ``L2`` and the whole subtree under ``N2``
+   (5--6).
+
 Three things follow from this shape:
 
 * **The bound is read again at every node.** A leaf you visit early tightens the pruning of every node
