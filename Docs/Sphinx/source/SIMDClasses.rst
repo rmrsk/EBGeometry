@@ -56,6 +56,11 @@ group, and the result is the minimum signed distance over the block. The id-retr
 the same lanes and returns them all, so each lane is exactly the value the minimum was taken over.
 The same kernel, on one triangle, is ``Triangle::signedDistance()`` and the path a device pass takes.
 
+The ray-crossing test, ``TriangleSoAT::rayCrossing()`` (and ``TriangleAoSoA::rayCrossing()``, which
+adds the face id and normal), is vectorised the same way: ``TriangleRay::crossing()``, a Möller--Trumbore
+test written once for a scalar and for a SIMD pack, runs over the group's lanes a register at a time,
+and the nearest crossing wins (see :ref:`Chap:ImplemRays`).
+
 **What this means in practice:** evaluating a ``TriangleSoAT<T, W>`` block costs roughly the
 same number of instructions as evaluating a *single* triangle scalar, but produces the answer
 for :math:`W` of them. This is the leaf-level cost inside every ``TriMeshSDF::signedDistance()``

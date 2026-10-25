@@ -281,6 +281,10 @@ built.
   registers, which comes to a few kilobytes per thread.
   A tape listed as another tape's primitive adds its own levels on top.
 
+A tape also answers ray queries, ``tape.firstHit(...)`` and ``tape.intersects(...)``, the same as the
+free functions on any shape: it is marched, and a hit names the deciding leaf at the crossing (see
+:ref:`Chap:ImplemRays`).
+
 The :ref:`Chap:ExampleCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.
 

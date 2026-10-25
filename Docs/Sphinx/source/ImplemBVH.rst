@@ -997,6 +997,11 @@ per-lane step to recover the winning lane. A ``TriMeshSDF`` built from a triangl
 id each ``Triangle`` carries (``Triangle::setFaceId()``). See `the doxygen page for TriangleAoSoA
 <doxygen/html/structEBGeometry_1_1TriangleAoSoA.html>`__.
 
+``TriMeshSDF`` is also ray traced exactly: ``firstHit()`` and ``intersects()`` walk its BVH with a
+``BVH::RayQuery`` and test each leaf group's triangles with ``TriangleAoSoA::rayCrossing()``, reporting
+the face id and the triangle's normal. ``MeshSDF`` and ``FlatMeshSDF`` are marched. See
+:ref:`Chap:ImplemRays`.
+
 What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
 :ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
 
