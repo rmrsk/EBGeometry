@@ -209,6 +209,13 @@ struct PointQuery
 };
 
 /**
+ * @brief Deduce PointQuery's precision from its point: BVH::PointQuery{p}.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+PointQuery(Vec3T<T>) -> PointQuery<T>;
+
+/**
  * @brief A ray tracked through a BVH: the key of a box is the distance along the ray at which it enters
  * the box, or +infinity if it misses it.
  * @details The ray is origin + t * direction for t >= tMin, with a unit direction so that t is a

@@ -202,8 +202,14 @@ query type without the trait works.
   `PackedBVH::traverse()` declared, with a draft walk in `EBGeometry_PackedBVHImplem.hpp`. The old
   `traverse()` and `pruneTraverse()` stay until their callers move; `IsQuery` keeps the two `traverse()`
   overloads apart meanwhile. The library builds and its 496 tests pass; the draft instantiates.
-- [ ] Interface reviewed.
-- [ ] The walk + `PointQuery`; `pruneTraverse()` callers migrated; receipt unchanged.
+- [x] Rebased on dev after #229 and #233 (tier 1). Open points settled with the recommended defaults:
+  `AsStored` visits the first slot first; the root gets its real key; `TreeBVH` keeps its own
+  `traverse()`; child boxes public; names as proposed.
+- [x] The walk + `PointQuery`: the SIMD distance kernel moved unchanged into `BVHQueryImplem.hpp`
+  (`QueryDetail::pointDistances2`, `PackedBVH`'s static kernels forward to it); every `pruneTraverse()`
+  caller (mesh SDFs, `BVHUnion`, `PointCloudBVH`, the Tape's unions, 32 test calls) moved to
+  `traverse(PointQuery{p}, ...)`. 511/511 tests (debug), 508/508 (release-test, AVX).
+- [ ] Receipt: distance queries unchanged.
 - [ ] Ray type, order policies.
 - [ ] Old API removed; `traverse()` callers migrated.
 - [ ] `mortonOrder()` / ordered `GPU::transform` (T13).

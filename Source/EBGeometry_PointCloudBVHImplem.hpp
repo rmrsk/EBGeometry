@@ -538,7 +538,7 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
     scanLeaf(a_best, a_off, a_cnt);
   };
 
-  bvh.pruneTraverse(a_query, best, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_query}, best, evalLeaf, pruneDist2);
 
   return best.found();
 }

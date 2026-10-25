@@ -296,7 +296,7 @@ BVHUnion<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
     return bound * bound;
   };
 
-  bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -455,7 +455,7 @@ BVHSmoothUnion<T, P, K, Blend>::signedDistance(const Vec3T<T>& a_point) const no
     return bound * bound;
   };
 
-  bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
 
   return m_blend(closest.a, closest.b, m_smoothLen);
 }
