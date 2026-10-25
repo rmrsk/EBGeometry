@@ -253,6 +253,12 @@ its own `traverse()`; child boxes public; names as proposed; T17–T19).
   `Lanes`; a `[gpu]` ray walk against the host. `InstantiateAll`: `ChildBoxes`, `PointQuery`,
   `RayQuery` and `traverse()` with each query, a visit callback and each order. CUDA build (both
   precisions): 29/29 traversal cases and 8/8 `[gpu]` cases pass on the RTX A4000.
-- [ ] Probe cases; receipt (host + CUDA).
+- [x] Probe `Performance/BVH` (`PackedBVH::traverse()` itself, on the armadillo's ~100k triangle boxes):
+  `ray-nearest`, `ray-any`, `point-nearest`, both precisions, host cases and host/device pairs in
+  Morton and random order; listed in `Performance/README.md` and `PerformanceTesting.rst`. It found a
+  real defect: missed boxes (key +infinity) were entered under a +infinity bound (fixed; regression
+  test added). Full size, one repetition, host: 1.7 µs per ray (nearest), 0.9 µs (any), 2.5 µs per
+  point. CUDA smoke: all 12 pairs agree.
+- [ ] Receipt (host + CUDA): needs a quiet machine.
 - [ ] Sphinx, Doxygen, `Examples/BVHTraversal`.
 - [ ] Delete this file.
