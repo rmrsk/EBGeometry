@@ -971,7 +971,9 @@ public:
    * versions.)
    *
    * At each interior node the query gives the K children their keys in one pass (Query::keys(), SIMD on
-   * the host). A child is entered if its key is <= the bound; those are visited in the order @p a_order
+   * the host). A child is entered if its key is <= the bound and, for a floating-point key, not +infinity
+   * (which means the query cannot reach it, e.g. a ray that misses its box; so a bound that starts at
+   * +infinity does not let the walk into every box a ray misses); those are visited in the order @p a_order
    * gives, the first at once and the rest from a stack. The bound is read again at every node, so a leaf
    * visited anywhere earlier tightens the pruning of every node after it. When the walk returns to a
    * level it recomputes the next child's key (Query::key(row, k), bit for bit the same) and compares it

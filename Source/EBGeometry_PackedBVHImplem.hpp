@@ -369,6 +369,29 @@ visitsBefore(
   }
 }
 
+/**
+ * @brief Whether a key means the query cannot reach the node at all: +infinity, for a floating-point key
+ * (a ray that misses a box). Such a node is never entered, whatever the bound, so a bound that starts at
+ * +infinity ("no bound yet") does not let a ray enter every box it misses.
+ * @details Internal helper; not part of the public API. Always false for a key that is not a floating-point
+ * type.
+ * @tparam Key Key type.
+ * @param[in] a_key The key.
+ * @return True if the key is +infinity.
+ */
+template <class Key>
+EBGEOMETRY_HOST_DEVICE
+inline bool
+unreachable(const Key& a_key) noexcept
+{
+  if constexpr (std::is_floating_point_v<Key>) {
+    return a_key == Math::Limits<Key>::infinity();
+  }
+  else {
+    return false;
+  }
+}
+
 } // namespace PackedBVHDetail
 
 template <class T, class P, size_t K>
@@ -399,11 +422,11 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
   // One resolution for the whole walk: a query reserves nothing, so the pool base cannot move.
   const void* poolBase = this->base();
 
-  // The root has no parent row; the query keys its box directly. A ray that misses the whole tree, or a
-  // point farther than the bound, ends here.
+  // The root has no parent row; the query keys its box directly. A ray that misses the whole tree (its
+  // key +infinity: unreachable), or a point farther than the bound, ends here.
   Key nodeKey = a_query.key(m_rootBox.at(poolBase, 0));
 
-  if (nodeKey > a_bound(a_state)) {
+  if (nodeKey > a_bound(a_state) || PackedBVHDetail::unreachable(nodeKey)) {
     return;
   }
 
@@ -451,7 +474,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
       for (size_t k = 0; k < K; k++) {
         EBGEOMETRY_EXPECT(offsets[k] > nodeIdx);
 
-        if (keys[k] <= bound) {
+        if (keys[k] <= bound && !PackedBVHDetail::unreachable(keys[k])) {
           size_t j = numSlots++;
 
           while (j > 0 && PackedBVHDetail::visitsBefore(
@@ -497,7 +520,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
 
       const Key key = a_query.key(m_childAabbSoA.at(poolBase, parent.getChildBoxRow()), size_t(slot));
 
-      if (key > a_bound(a_state)) {
+      if (key > a_bound(a_state) || PackedBVHDetail::unreachable(key)) {
         // Under NearestFirst the rest of the level is farther still: drop it. Under any other order a
         // later child may still be within the bound, so only this child is skipped.
         if constexpr (std::is_same_v<Order, NearestFirst>) {

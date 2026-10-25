@@ -206,7 +206,7 @@ struct IsQuery<Q,
  *
  * The interface every query type has (the walk calls nothing else):
  * - keys(row): the keys of all K children of a node at once (the SIMD kernel); +infinity for a child the
- *   query cannot reach;
+ *   query cannot reach, which the walk never enters whatever the bound;
  * - key(row, k): one child's key again, bit for bit what keys() gave, for when the walk returns to a
  *   level;
  * - key(box): the root's key (the root has no parent row).

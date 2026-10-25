@@ -5757,6 +5757,43 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse with a RayQuery: the nearest box entered
   }
 }
 
+TEMPLATE_TEST_CASE("PackedBVH::traverse with a RayQuery: a box the ray misses is never entered, even with no bound",
+                   "[BVH][traverse][RayQuery]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const auto bvh = BVH::PackedBVH<T, AABB, 4>::buildBottomUp(pool, rayTestBoxes<T>(500), size_t(4));
+
+  // A missed box keys +infinity, and a bound that starts at +infinity ("none yet") must not let the walk
+  // into it: a ray past every box reaches no leaf, and a ray into the boxes reaches far fewer than all.
+  const auto leavesReached = [&](const Vec3& a_origin, const Vec3& a_direction) {
+    size_t leaves = 0;
+    T      best   = std::numeric_limits<T>::infinity();
+
+    bvh.traverse(
+      BVH::RayQuery<T>(a_origin, a_direction),
+      best,
+      [&leaves](T&, size_t, size_t) { leaves++; },
+      [](const T& a_best) { return a_best; });
+
+    return leaves;
+  };
+
+  size_t numLeaves = 0;
+
+  for (const auto& node : bvh.getNodes()) {
+    numLeaves += node.isLeaf() ? 1 : 0;
+  }
+
+  REQUIRE(leavesReached(Vec3(T(5), T(5), T(5)), Vec3(T(1), T(0), T(0))) == 0);
+  REQUIRE(leavesReached(Vec3(T(-3), T(0.4), T(0.4)), Vec3(T(1), T(0), T(0))) < numLeaves / 4);
+}
+
 TEMPLATE_TEST_CASE("PackedBVH::traverse: the visit orders, and comparators on keys and on node indices",
                    "[BVH][traverse]",
                    EBGEOMETRY_TEST_PRECISIONS)
