@@ -321,14 +321,19 @@ local memory, touched on every push and pop. `ChildAABBSoA` is also laid out for
 here: it exists so one *thread* can load K children into one SIMD register, which is a CPU idea and
 buys nothing when a lane reads all K serially. None of that is measured. It is recorded so the
 layout is not mistaken for a finished design, and so nobody benchmarks it and draws a conclusion
-about the library's GPU ceiling. The agreed shape of the fix:
+about the library's GPU ceiling. The agreed shape of the fix, as recorded before #230:
 
-* **One API, two implementations — not a GPU-special function.** *(Superseded, 2026-10-25: #230
-  replaced `pruneTraverse()` and the four-callback `traverse()` with one general
-  `PackedBVH::traverse(query, state, leaf, bound, visit, order)`, and the maintainer chose no library
-  launcher over arrays of queries: the user organises queries one per thread in their own functor.
-  #202's `pruneTraverseBatch` was dropped; its `mortonOrder()` and ordered `GPU::transform` are kept.
-  The original plan follows.)* Add a batched entry point,
+> **History, superseded by #230 (2026-10-25).** The plan below names `pruneTraverse()`,
+> `pruneTraverseBatch` and `computeChildDistances2()`, none of which exist any more. #230 replaced
+> `pruneTraverse()` and the four-callback `traverse()` with one general
+> `PackedBVH::traverse(query, state, leaf, bound, visit, order)` (a `PointQuery` gives what
+> `pruneTraverse()` did), moved the distance kernel to `BVH::QueryDetail::pointDistances2()`, and, by
+> the maintainer's choice, adds no library launcher over arrays of queries: the user runs one query
+> per thread in their own functor. #202's `pruneTraverseBatch` was dropped; its `mortonOrder()` and
+> ordered `GPU::transform` are kept. What still holds below is the reasoning about divergence, Morton
+> order and measuring first.
+
+* **One API, two implementations — not a GPU-special function.** Add a batched entry point,
   `pruneTraverseBatch(PODSpan<const Vec3T<T>> points, PODSpan<State> states, ...)`, implemented
   twice: on host as a loop over queries using the existing SIMD child test, on device as a mapping
   of queries onto threads or warps. Batching earns its keep on the host too (better node-cache
@@ -433,6 +438,10 @@ GPU motivation; it was retired later on its own terms, once no built-in class im
 
 ### One traversal loop
 
+*History: written before #230, which replaced `pruneTraverse()` with the general `traverse()` and moved
+`computeChildDistances2()` to `BVH::QueryDetail::pointDistances2()`. The single loop described here is
+that walk's ancestor.*
+
 `pruneTraverse` used to hold seven copies of the same branch-and-bound loop: six `if constexpr` SIMD
 blocks plus a scalar fallback that had no loop of its own, building four `std::function`s and
 delegating to a heap-stack `traverse()`. Compared line by line, the six SIMD blocks differed only in
@@ -465,8 +474,8 @@ single-threaded:
 * **The tape needs nothing more.** Under the tape a union's primitive is a clause id, and
   `PackedBVH<T, uint32_t, K>` stores the same four bytes with no indirection through every
   construction path (the SFC, top-down and ClusterSAH builds and `TreeBVH::pack()`).
-  `IndexStorage` would only have moved the indexing into the policy; `pruneTraverse` never called
-  its resolver.
+  `IndexStorage` would only have moved the indexing into the policy; `pruneTraverse` (now
+  `traverse()`) never called its resolver.
 * **It reads more, not less.** A leaf evaluator still needs the face's normal, centroid and
   projection axes, so it touches all 88 bytes of a `FaceT` either way; the index adds a 4-byte
   read and makes the 88-byte one scattered.
