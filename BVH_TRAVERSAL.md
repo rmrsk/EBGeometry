@@ -232,7 +232,12 @@ its own `traverse()`; child boxes public; names as proposed; T17–T19).
   first. 511/511 tests; a scratch check confirms nearest-point results bit-for-bit with and without a
   visit hook, subtree skipping, stored order, `FarthestFirst` and the 4-argument comparator.
 - [ ] Receipt: distance queries unchanged.
-- [ ] Ray type, order policies.
+- [x] `RayQuery` for real: the slab test written once against `V` (scalar or `SIMD::Pack`, lanes
+  dividing K and fitting the row alignment), NaN axes (zero direction component, origin on a face)
+  impose no constraint, the exit widened by |exit|·2γ₃ (Ize 2013). A scratch check of 4000 rays per
+  (T, K) in {float, double} × {2, 4, 8, 16} (half axis-aligned from shared grid faces) matches a brute
+  force scan exactly on the scalar, SSE4.1 and AVX paths (AVX-512 compiles; no AVX-512 hardware here).
+  Order policies done (T7, T19).
 - [ ] Old API removed; `traverse()` callers migrated.
 - [ ] `mortonOrder()` / ordered `GPU::transform` (T13).
 - [ ] Tests (host, `[gpu]`), `InstantiateAll`.

@@ -14,6 +14,7 @@
 #define EBGEOMETRY_BVHQUERYIMPLEM_HPP
 
 // Std includes
+#include <cmath>
 #include <type_traits>
 
 #if (defined(__SSE4_1__) || defined(__AVX__) || defined(__AVX512F__)) && !defined(EBGEOMETRY_DEVICE_COMPILE)
@@ -23,6 +24,7 @@
 // Our includes
 #include "EBGeometry_BVHQuery.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_SIMD.hpp"
 
 namespace EBGeometry {
 
@@ -331,6 +333,134 @@ pointDistance2InRow(const ChildBoxes<T, K>& a_row, const Vec3T<T>& a_point, cons
 #endif
 }
 
+/**
+ * @brief Where a ray enters a box (one per lane), or +infinity where it misses: the slab test.
+ * @details Internal helper; not part of the public API. Written once for a scalar (V = T) and for a
+ * SIMD::Pack (one box per lane). Per axis, t0 = (lo - o) / d and t1 = (hi - o) / d, through the inverse
+ * direction; the entry is the largest of the per-axis minima and tMin, the exit the smallest of the
+ * per-axis maxima, and the ray enters the box if entry <= exit. Two robustness rules:
+ * - An axis whose t0 or t1 is NaN (a zero direction component with the origin exactly on a face, 0 * inf)
+ *   imposes no constraint: the ray lies in that face's plane, and the box is entered, not missed.
+ * - The exit is widened by |exit| * 2 gamma(3) (Ize, "Robust BVH ray traversal", JCGT 2013), so rounding
+ *   cannot make a ray through a face or edge shared by two boxes miss both.
+ * Only subtractions, products, comparisons and selects: nothing a compiler can contract into a fused
+ * multiply-add, so the scalar and SIMD paths agree bit for bit.
+ * @tparam V Scalar or SIMD::Pack.
+ * @param[in] a_lo     Lower corner, per axis.
+ * @param[in] a_hi     Upper corner, per axis.
+ * @param[in] a_origin Ray origin, per axis.
+ * @param[in] a_inv    Inverse direction, per axis.
+ * @param[in] a_tMin   Start of the ray.
+ * @return The entry distance, or +infinity.
+ */
+template <class V>
+EBGEOMETRY_HOST_DEVICE
+inline V
+slabEntry(const V (&a_lo)[3], const V (&a_hi)[3], const V (&a_origin)[3], const V (&a_inv)[3], const V a_tMin) noexcept
+{
+  using SIMD::both;
+  using SIMD::select;
+  using S = typename SIMD::Scalar<V>::type;
+
+  const V inf = V(Math::Limits<S>::infinity());
+
+  V entry = a_tMin;
+  V exit  = inf;
+
+  for (int axis = 0; axis < 3; axis++) {
+    const V t0 = (a_lo[axis] - a_origin[axis]) * a_inv[axis];
+    const V t1 = (a_hi[axis] - a_origin[axis]) * a_inv[axis];
+
+    // t >= t is false only for NaN.
+    const auto valid = both(t0 >= t0, t1 >= t1);
+
+    const V tNear = select(t0 < t1, t0, t1);
+    const V tFar  = select(t0 < t1, t1, t0);
+
+    entry = select(both(valid, tNear > entry), tNear, entry);
+    exit  = select(both(valid, tFar < exit), tFar, exit);
+  }
+
+  // 2 gamma(3) = 6 eps / (1 - 3 eps).
+  const S eps     = Math::Limits<S>::epsilon();
+  const V widen   = V(S(6) * eps / (S(1) - S(3) * eps));
+  const V absExit = select(exit < V(S(0)), V(S(0)) - exit, exit);
+
+  exit = exit + absExit * widen;
+
+  return select(exit >= entry, entry, inf);
+}
+
+/**
+ * @brief Whether the K child boxes of a row are tested several at a time: a SIMD::Pack lane count N > 1
+ * divides K and the row's axis arrays are aligned to whole registers.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Precision.
+ * @tparam K Branching factor.
+ * @return The lane count to use (1: scalar).
+ */
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE
+constexpr size_t
+rayLanes() noexcept
+{
+  constexpr size_t N = SIMD::NativeWidth<T, K>();
+
+  return (ChildBoxes<T, K>::RowAlignment % (N * sizeof(T)) == 0) ? N : 1;
+}
+
+/**
+ * @brief Where a ray enters the K child boxes of a row: the SIMD kernel of RayQuery::keys().
+ * @details Internal helper; not part of the public API. SIMD::Pack groups of rayLanes() boxes on the
+ * host, a scalar loop on a device or where no register fits.
+ * @tparam T Precision.
+ * @tparam K Branching factor.
+ * @param[in]  a_row    The child boxes.
+ * @param[in]  a_origin Ray origin.
+ * @param[in]  a_inv    Inverse direction.
+ * @param[in]  a_tMin   Start of the ray.
+ * @param[out] a_keys   One entry distance (or +infinity) per child.
+ */
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline void
+rayEntries(
+  const ChildBoxes<T, K>& a_row, const Vec3T<T>& a_origin, const Vec3T<T>& a_inv, const T a_tMin, T* a_keys) noexcept
+{
+  constexpr size_t N = rayLanes<T, K>();
+
+  if constexpr (N > 1) {
+    using V = SIMD::Pack<T, N>;
+
+    const V o[3]   = {V(a_origin[0]), V(a_origin[1]), V(a_origin[2])};
+    const V inv[3] = {V(a_inv[0]), V(a_inv[1]), V(a_inv[2])};
+
+    alignas(N * sizeof(T)) T entries[K];
+
+    for (size_t c = 0; c < K; c += N) {
+      const V lo[3] = {V::load(a_row.m_lo[0] + c), V::load(a_row.m_lo[1] + c), V::load(a_row.m_lo[2] + c)};
+      const V hi[3] = {V::load(a_row.m_hi[0] + c), V::load(a_row.m_hi[1] + c), V::load(a_row.m_hi[2] + c)};
+
+      slabEntry<V>(lo, hi, o, inv, V(a_tMin)).store(entries + c);
+    }
+
+    for (size_t k = 0; k < K; k++) {
+      a_keys[k] = entries[k];
+    }
+  }
+  else {
+    const T o[3]   = {a_origin[0], a_origin[1], a_origin[2]};
+    const T inv[3] = {a_inv[0], a_inv[1], a_inv[2]};
+
+    for (size_t k = 0; k < K; k++) {
+      const T lo[3] = {a_row.m_lo[0][k], a_row.m_lo[1][k], a_row.m_lo[2][k]};
+      const T hi[3] = {a_row.m_hi[0][k], a_row.m_hi[1][k], a_row.m_hi[2][k]};
+
+      a_keys[k] = slabEntry<T>(lo, hi, o, inv, a_tMin);
+    }
+  }
+}
+
 } // namespace QueryDetail
 
 template <class T>
@@ -387,24 +517,18 @@ inline RayQuery<T>::RayQuery(const Vec3T<T>& a_origin, const Vec3T<T>& a_directi
     m_inverseDirection(T(1) / a_direction[0], T(1) / a_direction[1], T(1) / a_direction[2]),
     m_tMin(a_tMin)
 {
-  // TODO: EBGEOMETRY_EXPECT a finite origin and a unit direction.
+  EBGEOMETRY_EXPECT(std::isfinite(a_origin[0]) && std::isfinite(a_origin[1]) && std::isfinite(a_origin[2]));
 }
 
 template <class T>
 template <size_t K>
 EBGEOMETRY_HOST_DEVICE
 inline Array<T, K>
-RayQuery<T>::keys(const ChildBoxes<T, K>& /*a_row*/) const noexcept
+RayQuery<T>::keys(const ChildBoxes<T, K>& a_row) const noexcept
 {
-  // TODO: per axis, t0 = (lo - o) * invD and t1 = (hi - o) * invD across the K children (one SIMD
-  // register per axis on the host); entry = max(tMin, min(t0, t1) over the axes), exit = min(max(t0, t1)
-  // over the axes); key = entry if entry <= exit, else +infinity. Min/max ordered so a NaN (0 * inf)
-  // loses; boxes padded by a few ulps of their extent.
   Array<T, K> keys;
 
-  for (size_t k = 0; k < K; k++) {
-    keys[k] = Math::Limits<T>::infinity();
-  }
+  QueryDetail::rayEntries(a_row, m_origin, m_inverseDirection, m_tMin, keys.data());
 
   return keys;
 }
@@ -413,19 +537,43 @@ template <class T>
 template <size_t K>
 EBGEOMETRY_HOST_DEVICE
 inline T
-RayQuery<T>::key(const ChildBoxes<T, K>& /*a_row*/, const size_t /*a_k*/) const noexcept
+RayQuery<T>::key(const ChildBoxes<T, K>& a_row, const size_t a_k) const noexcept
 {
-  // TODO: the slab test for child a_k, bit for bit the value keys() gives it.
-  return Math::Limits<T>::infinity();
+  EBGEOMETRY_EXPECT(a_k < K);
+
+  // The same path keys() takes, so the comparison on returning to a level sees the value the level was
+  // sorted by. A device pass (and any scalar path) computes the one child.
+  if constexpr (QueryDetail::rayLanes<T, K>() > 1) {
+    T entries[K];
+
+    QueryDetail::rayEntries(a_row, m_origin, m_inverseDirection, m_tMin, entries);
+
+    return entries[a_k];
+  }
+  else {
+    const T o[3]   = {m_origin[0], m_origin[1], m_origin[2]};
+    const T inv[3] = {m_inverseDirection[0], m_inverseDirection[1], m_inverseDirection[2]};
+    const T lo[3]  = {a_row.m_lo[0][a_k], a_row.m_lo[1][a_k], a_row.m_lo[2][a_k]};
+    const T hi[3]  = {a_row.m_hi[0][a_k], a_row.m_hi[1][a_k], a_row.m_hi[2][a_k]};
+
+    return QueryDetail::slabEntry<T>(lo, hi, o, inv, m_tMin);
+  }
 }
 
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
-RayQuery<T>::key(const BoundingVolumes::AABBT<T>& /*a_box*/) const noexcept
+RayQuery<T>::key(const BoundingVolumes::AABBT<T>& a_box) const noexcept
 {
-  // TODO: the slab test for one box.
-  return Math::Limits<T>::infinity();
+  const auto& lo = a_box.getLowCorner();
+  const auto& hi = a_box.getHighCorner();
+
+  const T o[3]   = {m_origin[0], m_origin[1], m_origin[2]};
+  const T inv[3] = {m_inverseDirection[0], m_inverseDirection[1], m_inverseDirection[2]};
+  const T l[3]   = {lo[0], lo[1], lo[2]};
+  const T h[3]   = {hi[0], hi[1], hi[2]};
+
+  return QueryDetail::slabEntry<T>(l, h, o, inv, m_tMin);
 }
 
 } // namespace BVH

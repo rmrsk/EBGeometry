@@ -103,13 +103,17 @@ struct DescendAll
 {
   /**
    * @brief Always descend.
+   * @tparam Args The visit callback's argument types.
+   * @param[in] a_args The visit callback's arguments, ignored.
    * @return true.
    */
   template <class... Args>
   EBGEOMETRY_HOST_DEVICE
   constexpr bool
-  operator()(Args&&...) const noexcept
+  operator()(const Args&... a_args) const noexcept
   {
+    ((void)a_args, ...);
+
     return true;
   }
 };
