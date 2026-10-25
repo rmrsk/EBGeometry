@@ -577,17 +577,21 @@ FaceT<T>::rayCrossing(
 
   const Vec3 p = a_origin + t * a_direction;
 
-  // (e x (p - v)) . n is |e| times p's signed distance from the edge's line in the plane, with one sign
-  // for every edge where p is inside (which sign depends on whether the loop runs counter-clockwise about
-  // the normal, so both are accepted). A point within the rounding error of p of the wrong side still
-  // counts, so that a point on a shared edge is inside both faces: p is rounded to a few ulps of the
-  // coordinates and of t.
+  // (e x (p - v)) . n is |e| times p's signed distance from the edge's line in the plane, positive to the
+  // left of the edge. p is inside if it is on the inner side of every edge: the left if the loop runs
+  // counter-clockwise about the normal, the right otherwise, which the sign of the loop's area vector
+  // (accumulated about its first vertex) along the normal says. A point within the rounding error of p of
+  // the wrong side still counts, so that a point on a shared edge is inside both faces: p is rounded to a
+  // few ulps of the coordinates and of t.
   const T ulps  = T(4) * Math::Limits<T>::epsilon();
   const T error = ulps * (std::abs(a_origin[0]) + std::abs(a_origin[1]) + std::abs(a_origin[2]) + std::abs(p[0]) +
                           std::abs(p[1]) + std::abs(p[2]) + std::abs(t));
 
   bool left  = true;
   bool right = true;
+  T    area  = T(0);
+
+  const Vec3& first = a_mesh.getEdge(m_halfEdge).getVertex(a_mesh).getPosition();
 
   for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
     const Edge& edge = a_mesh.getEdge(iter());
@@ -596,11 +600,17 @@ FaceT<T>::rayCrossing(
     const T     side = e.cross(p - v).dot(m_normal);
     const T     tol  = ulps * e.dot(e) + error * (std::abs(e[0]) + std::abs(e[1]) + std::abs(e[2]));
 
-    left  = left && side >= -tol;
-    right = right && side <= tol;
+    // Within tol of the edge's line is not enough outside it: p must also be within tol of the edge's
+    // extent, or a face thinner than tol would be crossed far beyond its sharp corners.
+    const T    along  = e.dot(p - v);
+    const bool extent = along >= -tol && along <= e.dot(e) + tol;
+
+    left  = left && (side >= T(0) || (side >= -tol && extent));
+    right = right && (side <= T(0) || (side <= tol && extent));
+    area += (v - first).cross(e).dot(m_normal);
   }
 
-  return (left || right) ? t : none;
+  return (area >= T(0) ? left : right) ? t : none;
 }
 
 template <class T>

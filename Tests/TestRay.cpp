@@ -388,6 +388,36 @@ TEMPLATE_TEST_CASE("Ray: intersects() agrees with firstHit() on an unbounded ray
   REQUIRE(misses > 100);
 }
 
+TEMPLATE_TEST_CASE("Ray: a sliver face is not crossed beyond its ends", "[Ray]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // One face, 1 long and a thousand ulps wide, in the plane z = 0. A ray from far above sees the face's
+  // width as less than the rounding error of its crossing point: it may count as crossing the face beside
+  // it (the safe side), but not 4 face lengths beyond its end.
+  const T w = T(1000) * std::numeric_limits<T>::epsilon();
+
+  const PolygonSoup<T> soup(
+    "sliver", {Vec3(T(10), T(0), T(0)), Vec3(T(11), T(0), T(0)), Vec3(T(11), w, T(0))}, {{0, 1, 2}});
+
+  Pool                      pool(hostMemoryResource());
+  const auto                mesh = soup.convertToDCEL(pool, Parser::OnDefect::Warn);
+  const FlatMeshSDF<T>      polygon(mesh, pool);
+  const TriMeshSDF<T, 4, 4> triangle(soup.convertToTriangles(Parser::OnDefect::Warn), pool, BVH::Construction::SAH, 4);
+
+  const Vec3 down(T(0), T(0), -T(1));
+
+  const auto check = [&down, w](const auto& a_sliver) {
+    REQUIRE(firstHit(a_sliver, RayT<T>{Vec3(T(10.9), T(0.45) * w, T(1000)), down}, T(0), T(2000)).hit());
+    REQUIRE_FALSE(firstHit(a_sliver, RayT<T>{Vec3(T(15), T(0), T(1000)), down}, T(0), T(2000)).hit());
+    REQUIRE_FALSE(firstHit(a_sliver, RayT<T>{Vec3(T(6), T(0), T(1000)), down}, T(0), T(2000)).hit());
+  };
+
+  check(polygon);
+  check(triangle);
+}
+
 TEMPLATE_TEST_CASE("Ray: no ray slips between the faces of a fine mesh far from the origin",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)

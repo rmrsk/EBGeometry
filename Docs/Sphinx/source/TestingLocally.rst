@@ -391,7 +391,8 @@ Test coverage
        an interval stopping short, a crossing at ``t = 0`` and stepping off it), with the face and
        normal, and on 2,000 random rays (the triangles at two leaf widths); no ray slipping between the
        faces of a fine mesh far from the origin, aimed at its edges and corners;
-       ``intersects()`` agreeing with ``firstHit()`` on unbounded rays that enter a tetrahedron's leaf boxes and miss; each analytic ray form against its crossing
+       ``intersects()`` agreeing with ``firstHit()`` on unbounded rays that enter a tetrahedron's leaf boxes and miss;
+       a sliver face not crossed beyond its ends; each analytic ray form against its crossing
        worked by hand and against the march on random rays; a fused and a taped composition marched to
        crossings worked by hand, with the tape's deciding leaf; segments (zero length, a crossing at
        the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
