@@ -666,7 +666,7 @@ auto DefaultLeafPredicate =
  * that PrimitiveCentroidPartitioner calls P::getCentroid(); the other partitioners and the
  * bottom-up build work from the bounding volumes alone. PackedBVH imposes no interface requirement
  * on P either; any further requirement comes entirely from whatever leaf-eval a caller passes to
- * PackedBVH::pruneTraverse() or PackedBVH::traverse() (see PackedBVH below).
+ * PackedBVH::traverse() (see PackedBVH below).
  * @tparam BV Bounding volume type, with a constructor taking a std::vector<BV> (a leaf's box,
  * enclosing its primitives' boxes), merged() (an interior node's box, folded from its children's
  * without allocating) and a default-constructed empty box. AABBT is one; pack() requires it.

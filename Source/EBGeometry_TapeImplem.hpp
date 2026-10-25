@@ -1276,7 +1276,7 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
     return bound * bound;
   };
 
-  bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
 
   if (!smooth) {
     return closest.a;

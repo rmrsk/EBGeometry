@@ -31,6 +31,7 @@
 
 // Our includes
 #include "EBGeometry_Array.hpp"
+#include "EBGeometry_BVHQuery.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
@@ -273,23 +274,10 @@ template <class P>
 using LeafEvaluator = std::function<void(const PrimitiveList<P>& a_primitives)>;
 
 /**
- * @brief Leaf-evaluation callback for PackedBVH::traverse, as a std::function for host code.
- * @details Receives a view into the global primitive array (offset + count) rather than a
- * temporary sub-list, avoiding a heap allocation per leaf visit. PackedBVH stores its primitives
- * by value, so the array's element type is P itself. PackedBVH::traverse() takes any callable with
- * this signature; device code passes a lambda or functor instead, since std::function is host-only.
- * @tparam P Primitive type.
- * @param[in] a_primitives Global primitive array.
- * @param[in] a_offset     Index of the first primitive belonging to this leaf.
- * @param[in] a_count      Number of primitives in this leaf.
- */
-template <class P>
-using PackedLeafEvaluator = std::function<void(PODSpan<const P> a_primitives, size_t a_offset, size_t a_count)>;
-
-/**
- * @brief Node-visit predicate for BVH traversal.
- * @details Must return true to descend into the node and false to prune it.
- * @tparam NodeType Node type (TreeBVH or PackedBVH::Node).
+ * @brief Node-visit predicate for TreeBVH::traverse().
+ * @details Must return true to descend into the node and false to prune it. (PackedBVH::traverse()
+ * takes a query type and template callbacks instead.)
+ * @tparam NodeType Node type (TreeBVH).
  * @tparam NodeKey  Caller-supplied per-node key attached to each stack entry
  * (e.g. a running minimum distance).
  * @param[in] a_node Node under consideration.
@@ -312,37 +300,10 @@ template <class NodeType, class NodeKey, size_t K>
 using ChildOrderer = std::function<void(Array<std::pair<std::shared_ptr<const NodeType>, NodeKey>, K>& a_children)>;
 
 /**
- * @brief A child node of a PackedBVH together with its traversal key.
- * @details What PackedBVH::traverse() hands its child orderer, one per child. The members are named
- * like std::pair's, so an orderer written against the earlier std::pair form keeps working; it is
- * a plain struct because std::pair's assignment is not callable in device code.
- * @tparam NodeKey Per-node key attached to each stack entry.
- */
-template <class NodeKey>
-struct NodeAndKey
-{
-  uint32_t first;  ///< Index of the child node in the node array.
-  NodeKey  second; ///< The child's key, from the node-key factory.
-};
-
-/**
- * @brief Child-ordering callback for PackedBVH traversal, as a std::function for host code.
- * @details Same role as ChildOrderer but uses 32-bit node indices instead of shared_ptrs,
- * halving the stack-entry size. PackedBVH::traverse() takes any callable with this signature;
- * device code passes a lambda or functor, which must not call std::sort (an insertion sort over the
- * K children does).
- * @tparam NodeKey Per-node key attached to each stack entry.
- * @tparam K    Tree branching factor.
- * @param[in,out] a_children K (node-index, key) pairs to sort.
- */
-template <class NodeKey, size_t K>
-using PackedChildOrderer = std::function<void(Array<NodeAndKey<NodeKey>, K>& a_children)>;
-
-/**
- * @brief Node-key factory called once per node during BVH traversal.
+ * @brief Node-key factory called once per node during TreeBVH::traverse().
  * @details Produces the NodeKey value that will be passed to PrunePredicate and ChildOrderer for
  * each child of the current node.
- * @tparam NodeType Node type (TreeBVH or PackedBVH::Node).
+ * @tparam NodeType Node type (TreeBVH).
  * @tparam NodeKey  Per-node key type to produce.
  * @param[in] a_node Current node.
  * @return NodeKey value for a_node's children.
@@ -361,19 +322,20 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * TreeBVH::packWith<Q>(converter) (type-converting pack).
  *
  * PackedBVH imposes no interface requirement on P by itself -- it holds primitives opaquely and
- * only ever hands them back to a caller-supplied callback (traverse()'s LeafEvaluator, or
- * pruneTraverse()'s LeafEvaluator). Nearest-surface (signed-distance-style) queries are not a
- * PackedBVH member; callers build their own thin wrapper around pruneTraverse(), supplying
- * whatever primitive interface their own query needs.
+ * only ever hands their range back to a caller-supplied leaf callback of traverse(). Nearest-surface
+ * (signed-distance-style) queries are not a PackedBVH member; callers build their own thin wrapper
+ * around traverse() with a query type (PointQuery for a point, RayQuery for a ray, or their own),
+ * supplying whatever primitive interface their own query needs.
  *
- * SIMD paths for pruneTraverse()'s child-box test are selected at compile time via if constexpr,
- * in computeChildDistances2():
+ * The query type tests a node's K child boxes, read from the parent's SoA row in one pass. For
+ * PointQuery the SIMD paths are selected at compile time (BVH::QueryDetail::pointDistances2()):
  * - K==4,  T==float  → SSE4.1  (__m128)
  * - K==4,  T==double → AVX     (__m256d)
  * - K==8,  T==float  → AVX     (__m256)
  * - K==8,  T==double → AVX-512F (__m512d), or AVX (two __m256d passes) without AVX-512F
  * - K==16, T==float  → AVX-512F (__m512)
- * All other combinations, and device compilation, use a scalar loop.
+ * All other combinations, and device compilation, use a scalar loop. RayQuery's slab test runs on
+ * SIMD::Pack lanes where a register's width divides K.
  *
  * Primitives are stored by value, inline in the flat array: no per-primitive heap allocation and
  * no pointer chase on a leaf visit. P must therefore be a self-contained, trivially copyable value
@@ -868,7 +830,7 @@ public:
    * @brief Get the flat node array (depth-first pre-order, root at index 0).
    * @details Read-only: a node's child and primitive offsets define the tree's shape, which is fixed
    * at build time. For a class that holds a PackedBVH and walks it with its own traversal rather
-   * than through pruneTraverse() -- PointCloudBVH's seeded self-query, for instance. Same lifetime
+   * than through traverse() -- PointCloudBVH's seeded self-query, for instance. Same lifetime
    * caveat as getPrimitives(): the span must not outlive the next Pool::reserve.
    * @return Span over the node array; empty for an empty BVH.
    */
@@ -878,7 +840,7 @@ public:
 
   /**
    * @brief Traversal stack size, in entries, for the current compilation pass.
-   * @details The bound traverse() and pruneTraverse() size their stacks by: one entry per level below
+   * @details The bound traverse() sizes its stack by: one entry per level below
    * the root of a tree HostTraversalDepth levels deep in a host pass, and DeviceTraversalDepth levels
    * in a device pass. Every BVH is checked against the host depth when it is built, and against the
    * device depth when rebasedView() produces a device view, so a caller's own traversal that keeps one
@@ -962,8 +924,7 @@ public:
    * @brief Get the squared distance from @p a_point to one of this BVH's nodes' bounding volume.
    * @details The same box as getBoundingVolume(a_node), without assembling it. For a caller-written
    * scalar branch-and-bound that compares against a squared pruning bound (e.g. PointCloudBVH's seeded
-   * single-nearest search), or a traverse() predicate. pruneTraverse() tests all K children at once
-   * instead. @p a_node must be a node of this BVH, as for getBoundingVolume(a_node); a node of another
+   * single-nearest search). traverse() with a PointQuery tests all K children at once instead. @p a_node must be a node of this BVH, as for getBoundingVolume(a_node); a node of another
    * BVH is caught only with assertions on.
    * @param[in] a_node  A node of this BVH.
    * @param[in] a_point Query point.
@@ -1001,106 +962,64 @@ public:
   computeBoundingVolume() const noexcept;
 
   /**
-   * @brief Depth-first traversal with caller-supplied pruning, child order and per-node keys.
-   * @details The general traversal, for searches that pruneTraverse() cannot express (its pruning
-   * bound is always the squared distance from one point to a child's box). Callable from host and
-   * device code: the four callbacks are template parameters, so a device caller passes lambdas or
-   * functors, while host code may still pass the std::function aliases BVH::PackedLeafEvaluator,
-   * BVH::PrunePredicate, BVH::PackedChildOrderer and BVH::NodeKeyFactory. The callbacks must not
-   * throw: traverse() is noexcept, so an exception from one ends the program.
+   * @brief Walk the tree with a query, depth first: the general traversal.
+   * @details The caller chooses what is tracked through the tree (@p a_query: a PointQuery, a RayQuery,
+   * or a query type of their own; see EBGeometry_BVHQuery.hpp), what is remembered between leaves
+   * (@p a_state), what happens at a leaf (@p a_leaf), how near a node must be to be entered
+   * (@p a_bound), what to do with a node before entering it (@p a_visit), and the order a node's children
+   * are visited in (@p a_order). (It replaces the four-callback traverse() and pruneTraverse() of earlier
+   * versions.)
    *
-   * The visit is depth first, starting at the root with its key from @p a_nodeKeyFactory. At each
-   * node:
+   * At each interior node the query gives the K children their keys in one pass (Query::keys(), SIMD on
+   * the host). A child is entered if its key is <= the bound and, for a floating-point key, not +infinity
+   * (which means the query cannot reach it, e.g. a ray that misses its box; so a bound that starts at
+   * +infinity does not let the walk into every box a ray misses); those are visited in the order @p a_order
+   * gives, the first at once and the rest from a stack. The bound is read again at every node, so a leaf
+   * visited anywhere earlier tightens the pruning of every node after it. When the walk returns to a
+   * level it recomputes the next child's key (Query::key(row, k), bit for bit the same) and compares it
+   * with the current bound; under NearestFirst the first child out of bound drops the rest of the level.
    *
-   * 1. Call @p a_prunePredicate(node, key). If it returns false, the node's subtree is skipped.
-   * 2. If the node is a leaf, call @p a_leafEvaluator with the global primitive array, the leaf's
-   * primitive offset and its primitive count.
-   * 3. Otherwise give each of the K children its key from @p a_nodeKeyFactory, and let
-   * @p a_childOrderer reorder the K entries in place. The children are then visited from the last
-   * entry to the first, each subtree finished before the next child is visited.
+   * Every node about to be entered (the root, an interior node, a leaf), once it has passed the bound, is
+   * handed to @p a_visit with its index, the node and its key. Returning false skips it and its subtree;
+   * the callback may update the state first, for instance to account for the whole subtree at once from
+   * the caller's own per-node data. The default, DescendAll, always descends and compiles away.
    *
-   * The pruning test runs when a child is visited, not when its parent is expanded, so a leaf visited
-   * in between can tighten it. For a nearest-distance search, order the children farthest first.
-   * An empty BVH visits nothing.
+   * The stack keeps one entry per level (the node and the order of the children still to visit), sized
+   * from traversalStackDepth(), so it is a fixed array on a device. An empty BVH visits nothing.
    *
-   * The stack keeps one entry per level, not per child: the parent's index and the order of the
-   * children still to visit, sized from traversalStackDepth(), which every build has checked the tree
-   * against. It does not keep the keys. A child visited after its first sibling gets its key from
-   * @p a_nodeKeyFactory again, so the factory must give the same key for the same node and have no
-   * side effects, and @p a_childOrderer must only reorder the entries: a key it changes is seen only
-   * by the child visited first.
-   *
-   * @tparam NodeKey        Per-node key type. Deduced from @p a_nodeKeyFactory's return type when
-   * not given explicitly.
-   * @tparam LeafEvaluator  Callable as (PODSpan<const P> primitives, size_t offset, size_t count).
-   * @tparam PrunePredicate Callable as (const Node&, const NodeKey&) -> bool; true descends.
-   * @tparam ChildOrderer   Callable as (Array<BVH::NodeAndKey<NodeKey>, K>&); reorders in place.
-   * @tparam NodeKeyFactory Callable as (const Node&) -> NodeKey.
-   * @param[in] a_leafEvaluator  Called at each leaf that is not pruned.
-   * @param[in] a_prunePredicate Called at each node as it is popped; return false to prune it.
-   * @param[in] a_childOrderer   Reorders the K children of a node before they are visited; the last
-   * element after reordering is visited first.
-   * @param[in] a_nodeKeyFactory Produces a node's key; called for the root, for every child of every
-   * interior node that is expanded, and again for each child visited after its first sibling.
+   * One query per walk: QueryLanes<Query>::value must be 1.
+   * @tparam Query         Query type: keys(row), key(row, k), key(box); see BVH::PointQuery.
+   * @tparam State         The caller's search state.
+   * @tparam LeafEvaluator Callable as (State&, size_t offset, size_t count) -> void: scans primitives
+   * [offset, offset + count) of getPrimitives() and updates the state.
+   * @tparam BoundFn       Callable as (const State&) -> Key: the current bound. A child whose key is above
+   * it is not entered; a bound below every key (e.g. -infinity) ends the walk.
+   * @tparam VisitFn       Callable as (State&, uint32_t nodeIndex, const Node&, const Key&) -> bool, or
+   * DescendAll.
+   * @tparam Order         NearestFirst (default), FarthestFirst, AsStored (first slot first), or a
+   * comparator (keyA, keyB) -> bool or (keyA, nodeIndexA, keyB, nodeIndexB) -> bool, true when the first
+   * child is to be visited before the second.
+   * @param[in]     a_query The query.
+   * @param[in,out] a_state The search state.
+   * @param[in]     a_leaf  Leaf callback.
+   * @param[in]     a_bound Bound callback.
+   * @param[in]     a_visit Visit callback.
+   * @param[in]     a_order Visit order.
    */
-  template <class NodeKey = void, class LeafEvaluator, class PrunePredicate, class ChildOrderer, class NodeKeyFactory>
+  template <class Query,
+            class State,
+            class LeafEvaluator,
+            class BoundFn,
+            class VisitFn = DescendAll,
+            class Order   = NearestFirst>
   EBGEOMETRY_HOST_DEVICE
   inline void
-  traverse(LeafEvaluator&&  a_leafEvaluator,
-           PrunePredicate&& a_prunePredicate,
-           ChildOrderer&&   a_childOrderer,
-           NodeKeyFactory&& a_nodeKeyFactory) const noexcept;
-
-  /**
-   * @brief Generic SIMD-accelerated, distance-pruned traversal.
-   * @details Same box-pruning strategy as @c traverse() above (skip subtrees already farther than
-   * the current best; visit the closest-looking child first), but the box-vs-point distance test
-   * is vectorised across all @c K children at once (@c if @c constexpr dispatch on @c (K, T) in
-   * computeChildDistances2(); a scalar loop over the same SoA cache when no compiled ISA path
-   * matches), and the
-   * search itself is expressed through three caller-supplied pieces instead of four fixed
-   * callbacks. @c State is whatever the search remembers between leaf visits. @c LeafEvaluator is
-   * called only at leaves and is the sole place @c State may change. @c PruneDistSquared turns the
-   * *current* @c State into a squared-distance pruning bound; it is re-read fresh at every node
-   * visited (never cached), so a leaf visited anywhere earlier immediately tightens the pruning
-   * applied to nodes visited afterwards, regardless of which subtree it came from.
-   * Splitting the bound from the leaf scan like this is what lets a primitive with no notion of
-   * "signed distance" reuse the same SIMD box test -- e.g. a nearest-neighbor search can track a
-   * plain running squared distance in @c State (no @c abs(), no sqrt anywhere in the hot path),
-   * while MeshSDF::signedDistance() and TriMeshSDF::signedDistance() track a signed value and
-   * square its magnitude for the bound. Both are ordinary instantiations of this one method.
-   *
-   * The children of an expanded node within the bound are sorted nearest first, and the nearest is
-   * visited at once. The stack keeps one entry per level for the rest: the parent's index and the
-   * order of the children still to visit. When the traversal returns to that level, it computes the
-   * next child's distance again from the parent's row of child boxes and compares it with the current
-   * bound; if it is out of bound, so is every child after it, and the level is dropped.
-   *
-   * @note Only the pruning *bound* (@c PruneDistSquared) is customisable; the per-child quantity it is
-   * compared against -- Euclidean squared distance to a child's AABB -- is not, since that is the
-   * one computation vectorised uniformly across @c K children, and branch-and-bound pruning is
-   * only sound if it is a true lower bound on the distance to anything inside that box. PackedBVH
-   * also hardcodes AABBT<T> as its sole bounding volume. See
-   * https://github.com/rmrsk/EBGeometry/issues/96 for a sketch of what generalizing this would
-   * look like, if that is ever needed.
-   *
-   * @tparam State        Caller-defined running search state, carried by reference through the whole traversal.
-   * @tparam LeafEvaluator Callable: (State&, size_t offset, size_t count) noexcept -> void. Scans
-   * primitives [offset, offset+count) and updates a_state in place.
-   * @tparam PruneDistSquared    Callable: (const State&) noexcept -> T. Returns the current squared-distance
-   * pruning bound derived from a_state; a node farther than this (in squared distance) is pruned.
-   * @param[in]     a_point      Query point.
-   * @param[in,out] a_state      Running search state; mutated by a_evalLeaf, read by a_pruneDist2.
-   * @param[in]     a_evalLeaf   Leaf-visit callback.
-   * @param[in]     a_pruneDist2 Pruning-bound callback.
-   */
-  template <class State, class LeafEvaluator, class PruneDistSquared>
-  EBGEOMETRY_HOST_DEVICE
-  inline void
-  pruneTraverse(const Vec3T<T>&    a_point,
-                State&             a_state,
-                LeafEvaluator&&    a_evalLeaf,
-                PruneDistSquared&& a_pruneDist2) const noexcept;
+  traverse(const Query&    a_query,
+           State&          a_state,
+           LeafEvaluator&& a_leaf,
+           BoundFn&&       a_bound,
+           VisitFn&&       a_visit = DescendAll(),
+           Order           a_order = Order()) const noexcept;
 
   /**
    * @brief Refit every node's bounding volume in place after the primitives have moved.
@@ -1158,40 +1077,13 @@ private:
   PODVector<P> m_primitives;
 
   /**
-   * @brief Alignment of one SoA axis row, in bytes.
-   * @details A row is @c sizeof(T)*K bytes wide, and every ISA path in computeChildDistances2()
-   * loads a whole row with one aligned SIMD load, so the row wants to be aligned to its own width.
-   * That width is only a legal alignment when it is a power of two, which it is for exactly the
-   * (T, K) combinations that have a SIMD path -- 16, 32 and 64 bytes. For every other K (3, 5, 6,
-   * 7, ...) no SIMD path is compiled, nothing performs an aligned vector load on the row, and the
-   * natural alignment of T is both sufficient and legal. Asking for @c sizeof(T)*K unconditionally
-   * is what made @c PackedBVH<double, P, 3> and its odd-K siblings fail to compile at all
-   * ("requested alignment 24 is not a positive power of 2").
+   * @brief SoA layout of K children's AABBs for a single interior node: the public BVH::ChildBoxes that
+   * query types test (formerly a private struct here).
    */
-  static constexpr size_t s_soaRowAlignment =
-    (((sizeof(T) * K) & ((sizeof(T) * K) - 1)) == 0) ? (sizeof(T) * K) : alignof(T);
+  using ChildAABBSoA = ChildBoxes<T, K>;
 
   /**
-   * @brief SoA layout of K children's AABBs for a single interior node.
-   * @details m_lo[axis][child] / m_hi[axis][child] layout places each axis row in a
-   * contiguous T[K] buffer that can be loaded as a single SIMD register.
-   * Private implementation detail of PackedBVH; never exposed in any public interface.
-   */
-  struct ChildAABBSoA
-  {
-    /**
-     * @brief Lower corners: m_lo[axis][child], axis in {0,1,2}, child in {0,…,K-1}.
-     */
-    alignas(s_soaRowAlignment) T m_lo[3][K];
-
-    /**
-     * @brief Upper corners: m_hi[axis][child], axis in {0,1,2}, child in {0,…,K-1}.
-     */
-    alignas(s_soaRowAlignment) T m_hi[3][K];
-  };
-
-  /**
-   * @brief SoA child-box rows used by the SIMD traversal in pruneTraverse(): one per interior node,
+   * @brief SoA child-box rows that traverse()'s query types test: one per interior node,
    * found through Node::m_childBoxRow.
    */
   PODVector<ChildAABBSoA> m_childAabbSoA;
@@ -1231,10 +1123,10 @@ public:
 
 private:
   /**
-   * @brief One level on the traversal stack of traverse() and pruneTraverse(): 8 bytes at K = 4.
+   * @brief One level on the traversal stack of traverse(): 8 bytes at K = 4.
    * @details An interior node whose first child is being visited, and the child slots still to visit
    * after it, in visit order from the back: m_slots[m_count - 1] is next. A traversal returning to
-   * this level reads the next child's offset (and, in pruneTraverse(), its box) from the node, so the
+   * this level reads the next child's offset and its box from the node's row, so the
    * entry holds neither, and no key or distance either: those are computed again when the child is
    * visited.
    */
@@ -1281,7 +1173,7 @@ private:
   /**
    * @brief Abort if the finalized tree is deeper than @p a_maxDepth levels.
    * @details Always on, not EBGEOMETRY_EXPECT: the failure it prevents is an out-of-bounds write
-   * into pruneTraverse's fixed stack, which Release builds would otherwise perform silently. Same
+   * into traverse()'s fixed stack, which Release builds would otherwise perform silently. Same
    * reasoning, and the same shape, as Pool::reserve's moved-from check.
    * @param[in] a_base     Base address the node array resolves against.
    * @param[in] a_maxDepth Deepest allowed tree, in node levels: HostTraversalDepth or DeviceTraversalDepth.
@@ -1306,54 +1198,6 @@ private:
   EBGEOMETRY_HOST
   static inline void
   requireWellFormed(const std::vector<Node>& a_linearNodes, const size_t a_numPrimitives);
-
-  /**
-   * @brief Compute the squared distances from a query point to all K children of one interior node.
-   * @details The single vectorised kernel of pruneTraverse(), and the only part of that traversal
-   * that differs between instruction sets. Dispatches at compile time on (T, K) and the compiled
-   * ISA: AVX-512F for (double, K=8) and (float, K=16), AVX for (double, K=4), (float, K=8) and
-   * (double, K=8) as two 4-wide passes, SSE4.1 for (float, K=4), and a scalar loop for every other
-   * combination and for device compilation. Every path computes the same quantity in the same
-   * association order -- max(max(p-hi, lo-p), 0) per axis, each max taking its operands in the order
-   * of the scalar path's comparison, then dx*dx + (dy*dy + dz*dz) -- so all of them agree bit-for-bit,
-   * a NaN coordinate included (it counts as inside the box along that axis), unless the
-   * compiler contracts the scalar path's multiply and add into a fused multiply-add, which the
-   * intrinsics do not (by default Clang does within an expression, and GCC in its GNU language modes,
-   * whenever FMA is enabled, e.g. with -march=native).
-   * @param[in]  a_soa   SoA child bounding boxes for the node being expanded.
-   * @param[in]  a_point Query point.
-   * @param[out] a_dist2 Receives one squared distance per child. Needs no particular alignment --
-   * every SIMD path writes it with an unaligned store.
-   */
-  EBGEOMETRY_HOST_DEVICE
-  static inline void
-  computeChildDistances2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, T (&a_dist2)[K]) noexcept;
-
-  /**
-   * @brief The squared distance from a query point to one child's box, bit for bit the value
-   * computeChildDistances2() gives that child.
-   * @details What pruneTraverse() compares with the bound when it returns to a level, so that the
-   * comparison sees exactly the distances the level was sorted by. A device pass has only the scalar
-   * path and computes the one child; a host pass recomputes the row through the path that sorted it.
-   * @param[in] a_soa   SoA child bounding boxes of the node.
-   * @param[in] a_point Query point.
-   * @param[in] a_slot  Child slot, below K.
-   * @return Squared distance from @p a_point to child @p a_slot's box.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  static inline T
-  childDistance2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, size_t a_slot) noexcept;
-
-  /**
-   * @brief The scalar path of computeChildDistances2(), for one child.
-   * @param[in] a_soa   SoA child bounding boxes of the node.
-   * @param[in] a_point Query point.
-   * @param[in] a_slot  Child slot, below K.
-   * @return Squared distance from @p a_point to child @p a_slot's box.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  static inline T
-  scalarChildDistance2(const ChildAABBSoA& a_soa, const Vec3T<T>& a_point, size_t a_slot) noexcept;
 
   /**
    * @brief Populate m_childAabbSoA and m_rootBox from the completed m_linearNodes array and its boxes,

@@ -39,7 +39,7 @@ The template parameters shared by both are:
    calls ``getCentroid()`` (every other partitioner and the bottom-up build work from the bounding
    volumes alone), and
    ``PackedBVH`` holds primitives opaquely, handing them back only to whatever leaf-visit
-   callback a caller supplies to ``traverse()`` or ``pruneTraverse()`` (see below). Whether
+   callback a caller supplies to ``traverse()`` (see below). Whether
    ``P`` needs a ``signedDistance(Vec3T<T>)`` member (or anything else) is entirely up to that
    callback -- see ``MeshSDF``/``TriMeshSDF::signedDistance()`` in :ref:`Chap:MeshSDFClasses` for
    the signed-distance case; a callback could equally perform, say, a nearest-neighbor search over
@@ -174,7 +174,7 @@ Internally, ``buildBottomUp()``:
    so a traversal reaches each primitive exactly once.
 
 Since this still produces an ordinary ``PackedBVH``, every existing traversal/query facility
-(``traverse()``, ``pruneTraverse()``, the SIMD dispatch) works with it identically, unchanged.
+(``traverse()`` with every query type, the SIMD dispatch) works with it identically, unchanged.
 
 The second, ``buildTopDown()``, covers top-down (and SAH) construction rather than the SFC-based
 one above:
@@ -363,8 +363,8 @@ the cheap way to keep a BVH valid for a geometry whose primitives have *moved* b
 without a full rebuild-and-repack. It takes a single functor mapping one primitive to its current
 bounding volume and unions volumes bottom-up: each leaf's from its primitives, each interior node's
 from its children. ``PackedBVH::refit()`` merges the boxes pairwise, allocating nothing, and writes
-each box where it is stored, in its parent's SoA child-box row that the SIMD ``pruneTraverse()``
-reads (see :ref:`Chap:PruneTraverse`), so every query and every copy of the BVH sees it. Because it
+each box where it is stored, in its parent's SoA child-box row that ``traverse()``'s queries
+read (see :ref:`Chap:PackedTraverse`), so every query and every copy of the BVH sees it. Because it
 never re-partitions, a geometry that deforms enough for primitives to migrate across the tree
 accumulates looser bounding volumes over time and should periodically be rebuilt instead; see
 :ref:`Chap:BVH` for that trade-off. For the exact signatures, see the Doxygen references for
@@ -407,8 +407,8 @@ is always at index 0 of the node array. See `the doxygen page for PackedBVH::Nod
 <doxygen/html/structEBGeometry_1_1BVH_1_1PackedBVH_1_1Node.html>`__ for the exact member list.
 
 A node does not hold its own bounding volume. Every box is stored once: an interior node's ``K``
-children's boxes form that node's row of the SIMD box array that ``pruneTraverse()`` reads (see
-:ref:`Chap:PruneTraverse`), and the root's box, which no row holds, is stored separately in the same
+children's boxes form that node's row of the SIMD box array that ``traverse()``'s queries read (see
+:ref:`Chap:PackedTraverse`), and the root's box, which no row holds, is stored separately in the same
 pool. Each node keeps its *box slot*, the row and position of its own box, so
 ``getBoundingVolume(node)`` returns any node's box and ``getDistanceToBoundingVolume2(node, point)``
 the squared distance to it, without assembling the box. A descent that tests a node's children one at
@@ -527,8 +527,8 @@ children are all node 0, which the first check rejects. ``getNodes()`` returns t
 as a read-only ``PODSpan``, for a class that walks the tree with a traversal of its own. And
 ``traversalStackDepth()`` gives the fixed traversal-stack size for the current compilation pass
 (host or device; see :ref:`Sec:TraversalStack`), which the build and ``rebasedView()`` validate the
-tree's depth against -- a custom traversal that keeps one entry per level, as ``traverse()`` and
-``pruneTraverse()`` do, can size its own stack with it and inherit the same guarantee.
+tree's depth against -- a custom traversal that keeps one entry per level, as ``traverse()``
+does, can size its own stack with it and inherit the same guarantee.
 
 Copy and move semantics
 ________________________
@@ -596,139 +596,222 @@ primitive that owns its data *inline* whose size the outer array pays per placem
 Tree traversal
 ---------------
 
-Both ``TreeBVH`` (full BVH) and ``PackedBVH`` (flattened BVH) include routines for traversing the
-BVH with user-specified criteria. For both BVH representations, tree traversal is done through a
-single ``traverse()`` member function taking four caller-supplied callbacks, and uses a
-stack-based traversal pattern driven by those callbacks. The full type signatures for the four
-callback roles below are documented on `the BVH namespace's doxygen page
-<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__ (look for ``PrunePredicate``, ``ChildOrderer``/
-``PackedChildOrderer``, ``LeafEvaluator``/``PackedLeafEvaluator``, and ``NodeKeyFactory``).
+``TreeBVH`` and ``PackedBVH`` each have a ``traverse()`` member. ``TreeBVH::traverse()`` is a host-only
+walk over the pointer tree, driven by four callbacks (a prune predicate, a child orderer, a leaf
+evaluator and a node-key factory; see the `BVH namespace's doxygen page
+<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__); it is used while building, and an exception from one
+of its callbacks reaches the caller. ``PackedBVH::traverse()`` is the walk every query runs, on the host
+and on a device, and the rest of this section is about it.
 
-``PackedBVH::traverse()`` is callable from device code as well as from the host. Its callbacks are
-template parameters: host code may pass the ``std::function`` aliases above, while device code
-passes lambdas or functors (``std::function`` is host-only). The key type is deduced from the
-node-key factory's return type, or can be given explicitly (``bvh.template traverse<double>(...)``).
-``PackedBVH::traverse()`` is ``noexcept``, so an exception from one of its callbacks ends the
-program. ``TreeBVH::traverse()`` is host-only, and an exception from one of its callbacks reaches
-the caller.
+.. _Chap:PackedTraverse:
 
-Node visit
-__________
+``PackedBVH::traverse()``
+_________________________
 
-The *prune-predicate* callback decides, for a given node and its associated node key (see below),
-whether that node's subtree should be investigated or pruned from the traversal: it is a
-predicate taking the node and its node key, returning ``true`` to visit the subtree and
-``false`` to prune it. Typically, the node key will contain the necessary information
-that determines whether or not to visit the subtree.
+``PackedBVH`` has no ``signedDistance()`` of its own and does not privilege any one query. It has one
+walk, ``traverse()``, and every search in the library -- the mesh SDFs' distances and closest faces, the
+BVH unions, the point clouds' neighbour searches, the tape's large unions, the ray queries -- is a call of
+it with different pieces slotted in. A new search is written the same way: you supply the pieces, the
+library supplies the walk, on the host and on a device. See :ref:`Chap:BVH` for the idea behind it.
 
-Child ordering
-______________
+.. code-block:: c++
 
-If a subtree is visited in the traversal, there is a question of which of the child nodes to visit first.
-The *child-orderer* callback determines this order by letting the user sort the ``K`` children (each
-paired with its node key) in-place based on order of importance -- for ``PackedBVH`` each child
-arrives as a ``BVH::NodeAndKey`` whose ``first`` is the node index rather than a pointer, and
-``second`` its key. The orderer only reorders the entries; the children are visited from the last
-entry to the first. In device code the orderer must not call ``std::sort``; an insertion sort over
-the ``K`` children does the job. Note that a correct visitation pattern can yield large performance
-benefits. Ordering the child nodes is completely optional; the user can leave this function empty
-if it does not matter which subtrees are visited first.
+   bvh.traverse(query, state, leaf, bound);                 // the four pieces every search needs
+   bvh.traverse(query, state, leaf, bound, visit, order);   // and the two optional ones
 
-Leaf evaluation
-_______________
+What the walk does, and where your pieces run
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If a leaf node is visited in the traversal, distance or other types of queries to the geometric
-primitive(s) in the node are usually made. These are done by the *leaf-evaluator* callback. For
-``PackedBVH`` this callback receives an offset and count into the BVH's global primitive array,
-rather than a freshly-allocated sub-list, avoiding a heap allocation per leaf visit; for
-``TreeBVH`` it receives the leaf's primitive list directly. Typically, the leaf-evaluator will modify
-parameters that appear in a local scope outside of the tree traversal (e.g. updating the minimum
-distance to a DCEL mesh).
+The walk is depth first, with a small fixed stack instead of recursion. In pseudocode, with the places
+where it calls your pieces marked:
 
-Node key
-________
+.. code-block:: text
 
-During the traversal, it might be necessary to compute a per-node key that is helpful during the traversal, and this key is attached to each node that is queried.
-This key is usually, but not necessarily, equal to the distance to the nodes' bounding volumes.
-The *node-key-factory* callback produces this key for a node's children, given the node itself.
-The biggest difference between the leaf-evaluator and the node-key-factory is that the leaf-evaluator is *only*
-called on leaf nodes whereas the node-key-factory is also called for internal nodes. ``PackedBVH``
-calls it again for a child visited after its first sibling, instead of keeping every child's key
-on its stack, so the node-key-factory must give the same key for the same node and have no side
-effects. One typical
-example for DCEL meshes is that the leaf-evaluator computes the distance from an input point to the
-triangles in a leaf node, whereas the node-key-factory computes the distance from the input point to
-the bounding volumes of a child node, through the BVH's ``getDistanceToBoundingVolume2(node, point)``
-(a node does not store its box). This information is then used by the child-orderer in order to
-determine a preferred child visit pattern when descending along subtrees.
+   key = query.key(root box)                                  ← query
+   if key > bound(state): stop                                ← bound
+   node = root
+   loop:
+       if visit(state, node, key) is false: skip node        ← visit (optional)
+       else if node is a leaf:
+           leaf(state, first primitive, count)                ← leaf: the only place primitives are read
+       else:
+           b    = bound(state)                                ← bound, read fresh at every node
+           keys = query.keys(node's K child boxes)            ← query, all K children in one pass
+           kept = the children with key <= b
+           sort kept by order                                 ← order (optional; nearest first by default)
+           descend into the first of kept now; push the rest of kept for later
+           continue
+       pop the next waiting child c of the deepest level:
+           key = query.key(c's box)                           ← query, recomputed bit for bit
+           if key > bound(state):                             ← bound, read fresh again
+               skip c (and, nearest first, the rest of its level, which are no nearer)
+           else: node = c, continue
+       stop when nothing is waiting
 
-Traversal algorithm
-___________________
+.. _Fig:TraversalWalk:
+.. figure:: /_static/TraversalWalk.png
+   :width: 900px
+   :align: center
 
-``PackedBVH::traverse()`` implements this depth first with a non-recursive, fixed-size stack rather
-than recursion, sized exactly as ``pruneTraverse()``'s is (see :ref:`Sec:TraversalStack`). An empty
-``PackedBVH`` visits nothing; it has no root, so its ``computeBoundingVolume()`` returns the empty
-box and ``getBoundingVolume()``, which returns the root's box by reference, aborts. Starting at the
-root, the traversal asks the prune-predicate whether to visit a node, and if so either runs the
-leaf-evaluator (if it is a leaf) or computes the node-key-factory for each of its ``K`` children,
-lets the child-orderer reorder them, and visits the last of them at once. The others wait on the
-stack in one entry for the whole level: the node's index and the order of the children still to
-visit. The stack holds no keys, so its size does not depend on the key type. For the full API, see
-the Doxygen reference for `PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
+   A nearest-primitive search walking a small tree (``K = 2``). The numbered events are where the walk
+   calls the pieces the search supplies, coloured by piece: the query keys the root with ``key(box)``
+   and both children of a node in one pass with ``keys(row)`` (1--3), the order puts the nearer child
+   first, the leaf callback finds a primitive and so tightens the bound (4), and on the way back the
+   query's ``key(row, k)`` recomputes each waiting child's key for the bound as it is then, which
+   prunes ``L2`` and the whole subtree under ``N2`` (5--6). The panel below shows ``visit`` refusing a
+   node that passed the bound, after adding the caller's summary of its subtree to the state (7).
 
-.. _Chap:PruneTraverse:
+Three things follow from this shape:
 
-Distance-pruned traversal: ``pruneTraverse()``
-________________________________________________
+* **The bound is read again at every node.** A leaf you visit early tightens the pruning of every node
+  after it, in any part of the tree -- which is why visiting the most promising child first pays off.
+* **The state is yours.** The walk only passes it to your callbacks; only ``leaf`` (and ``visit``, if you
+  give one) change it, and ``bound`` reads it.
+* **Keys are compared, never stored.** A child that waits on the stack gets its key again when the walk
+  comes back to it, so the comparison sees the bound as it is *then*.
 
-``PackedBVH`` has no ``signedDistance()`` of its own, and does not privilege any one query.
-Alongside the generic ``traverse()`` described above, it exposes a second traversal,
-``PackedBVH::pruneTraverse()``, that implements the same "closest bounding volume first, prune
-anything already known to be farther than the best answer so far" strategy, but with two
-differences: the box-vs-point distance test is SIMD-batched across all ``K`` children at once
-(see :ref:`Chap:SIMDClasses` for exactly which instructions run for which ``(K, T)``, and the
-list-table below for the ISA-to-``K`` mapping), and -- unlike ``traverse()``'s four independent
-callbacks -- the search is expressed through exactly three cooperating pieces supplied by the
-caller:
+The pieces you supply
+^^^^^^^^^^^^^^^^^^^^^
 
-* **State** -- whatever the search needs to remember between leaf visits. Often just "the best
-  value found so far", but it can be richer (e.g. a running best paired with the primitive that
-  produced it). This is the only thing that persists across the whole traversal.
-* **Leaf-eval** -- called once per leaf, with the leaf's offset and count into the BVH's global
-  primitive array (never a freshly-allocated sub-list). It is the *only* place primitives are
-  actually touched, and the only place ``State`` is allowed to change.
-* **Pruning rule** -- called on the *current* ``State`` to produce a squared-distance bound: a
-  node farther than this (in squared distance) is skipped without being visited. It never touches
-  primitives directly, only whatever ``Leaf-eval`` has already written into ``State``.
+.. list-table::
+   :header-rows: 1
+   :widths: 13 30 22 35
 
-Precisely, the traversal starts at the root (at distance zero, so it is never pruned). At a leaf it
-calls leaf-eval once for the whole leaf. At an interior node it computes all ``K`` children's
-squared distances to the query point in a single SIMD batch, keeps the children within the
-(freshly re-evaluated) pruning bound, sorts them nearest first, and descends into the nearest at
-once. The others wait on the stack, one entry for the level (see below). When the traversal returns
-to that level, it computes the next child's distance again from the parent's row of child boxes
-and compares it with the pruning rule's *current* bound: if it is now out of bound, so is every
-child after it, which are no nearer, and the whole level is dropped.
+   * - Piece
+     - Signature
+     - Called
+     - What it is for
+   * - ``query``
+     - a query type (``BVH::PointQuery``, ``BVH::RayQuery``, or your own)
+     - at every interior node (all ``K`` children), at the root, and when a waiting child is resumed
+     - what is tracked through the tree: it gives each box a *key*, how far the box is from the query
+   * - ``state``
+     - any type, passed by reference
+     - --
+     - what the search remembers between leaves: the best value so far, the best primitive, a list of
+       hits
+   * - ``leaf``
+     - ``(State&, size_t offset, size_t count)``
+     - once per leaf reached
+     - test the leaf's primitives, ``getPrimitives()[offset .. offset + count)``, and update the state
+   * - ``bound``
+     - ``(const State&) -> Key``
+     - at every node expanded and every child resumed
+     - how far a box may be and still be entered: a box whose key is above it is skipped with its
+       whole subtree
+   * - ``visit`` (optional)
+     - ``(State&, uint32_t nodeIndex, const Node&, const Key&) -> bool``
+     - for every node about to be entered (root, interior, leaf), after the bound check
+     - decide on the node itself: return ``false`` to skip it and its subtree, after updating the
+       state if you like (prune on your own per-node data, summarise a far subtree, count nodes).
+       Default ``BVH::DescendAll``, which compiles away
+   * - ``order`` (optional)
+     - ``BVH::NearestFirst``, ``BVH::FarthestFirst``, ``BVH::AsStored``, or a comparator
+       ``(keyA, keyB) -> bool`` or ``(keyA, nodeA, keyB, nodeB) -> bool``
+     - when a node's kept children are sorted
+     - which child to visit first. ``NearestFirst`` (default) tightens a nearest-type bound fastest;
+       ``AsStored`` (first slot first, no sort) suits searches that visit everything they reach or stop
+       at the first hit
 
-There is exactly **one** such loop, and it runs whether or not the ``(K, T)`` pair in use has a
-compiled SIMD path. Only the per-child squared-distance computation differs: a vector batch when one
-of the ISA paths matches, and an ordinary scalar loop over the ``K`` children otherwise (which is
-also what device code runs). Both compute the same quantity in the same association order, and each
-vector maximum takes its operands in the order of the scalar path's comparison, so they agree
-bit-for-bit, a NaN coordinate included (it counts as inside the box along that axis, so it never
-prunes a child; a build with ``-ffast-math`` lets the compiler assume there are no NaNs, and then
-neither path promises anything for one) -- a query answered on a build with no SIMD returns exactly
-what the same query returns on an AVX-512 build, and the unit tests pin this by sweeping ``K``
-across values that do and do not have a vector path and requiring exact equality. The one exception
-is a compiler that contracts the scalar path's multiply and add into a fused multiply-add, which the
-intrinsics never do. By default Clang does so within an expression, and GCC in its GNU language
-modes (``-std=gnu++17``; EBGeometry's own CMake build uses ``-std=c++17``), whenever FMA is enabled
-(with ``-march=native`` on most current CPUs, say), and the two paths can then differ in the last
-bit. Stack handling, pruning, child ordering and leaf dispatch are shared code in every
-configuration. Because the bound is re-read from the current ``State`` at every node visited --
-never cached from the start of the traversal -- a leaf visited anywhere earlier on the stack
-immediately tightens the pruning applied to every node visited afterwards, regardless of which
-subtree it came from.
+The rules your pieces follow:
+
+* **They are template parameters** -- lambdas or functors, not ``std::function`` -- so the same call runs
+  in a kernel. On a device, write them as functors with ``EBGEOMETRY_HOST_DEVICE`` call operators, or as
+  lambdas inside such a function. ``traverse()`` is ``noexcept``: an exception from a callback ends the
+  program.
+* **Under** ``NearestFirst`` **the bound may only tighten** during a walk (never grow), since the walk
+  drops the rest of a level once one child is out of it. Every search that narrows in on a best answer
+  does this naturally. A search whose bound can grow should pick another order.
+* **To stop the walk**, make ``bound`` return :math:`-\infty` (below every key): an any-hit search does
+  this after its first hit.
+* **A key of** :math:`+\infty` **is never entered**, whatever the bound: a ray query gives it to a box the
+  ray misses. A bound of :math:`+\infty` therefore means "no bound yet", and a ray search can start
+  there.
+
+Query types
+^^^^^^^^^^^
+
+* ``BVH::PointQuery{p}`` -- the key of a box is the squared distance from ``p`` to it (0 inside it). The
+  bound is a squared distance too. In a function that also runs on a device, write the precision out,
+  ``BVH::PointQuery<T>{p}``: HIP's compiler treats the deduction guide behind ``PointQuery{p}`` as a host
+  function.
+* ``BVH::RayQuery(origin, direction, tMin)`` -- the key of a box is the distance along the ray (unit
+  direction) at which it enters the box, from ``tMin`` on, or :math:`+\infty` if it misses it. A segment
+  from ``a`` to ``b`` is the ray from ``a`` towards ``b`` with the bound starting at ``|b - a|``.
+* **Your own query type** -- anything with ``using Scalar = T``; ``keys(row)`` returning the ``K``
+  children's keys from the node's row of child boxes (``BVH::ChildBoxes``: ``m_lo[axis][child]``,
+  ``m_hi[axis][child]``, laid out for SIMD); ``key(row, k)`` returning one child's key, bit for bit what
+  ``keys()`` gave; and ``key(box)`` for the root. It may declare ``using Key = ...`` for a key that is not
+  a number, such as a distance with a tie-break (it needs ``<=``, ``>`` and, for the nearest/farthest
+  orders, ``<``).
+
+Recipes
+^^^^^^^
+
+The nearest primitive to a point (what the mesh SDFs and point clouds do):
+
+.. code-block:: c++
+
+   struct Best { T d2 = inf; uint32_t id = none; };
+   Best best;
+
+   bvh.traverse(BVH::PointQuery<T>{p}, best,
+                [&](Best& b, size_t offset, size_t count) {          // distance to each primitive
+                  for (size_t i = offset; i < offset + count; i++) {
+                    const T d2 = distance2(prims[i], p);
+                    if (d2 < b.d2) { b = Best{d2, uint32_t(i)}; }
+                  }
+                },
+                [](const Best& b) { return b.d2; });                 // farther boxes cannot do better
+
+The first primitive a ray hits: the same, with a ``RayQuery``, a ray--primitive test in ``leaf`` and the
+nearest hit so far as the bound. Whether *anything* is hit (a shadow ray, a blocked segment): keep a flag,
+return :math:`-\infty` from ``bound`` once it is set, and use ``AsStored``, since any hit will do:
+
+.. code-block:: c++
+
+   bool hit = false;
+
+   bvh.traverse(BVH::RayQuery<T>(a, direction), hit,
+                [&](bool& h, size_t offset, size_t count) { /* h = h || any primitive hit before |b - a| */ },
+                [&](const bool& h) { return h ? -inf : length; },
+                BVH::DescendAll{}, BVH::AsStored{});
+
+Everything within a radius ``r`` of a point: collect in ``leaf``, return ``r * r`` from ``bound`` (it
+never changes), and use ``AsStored``. A far-field approximation: in ``visit``, when a node is far enough
+for its summary (kept in your own array, indexed by ``nodeIndex``), add the summary to the state and
+return ``false``; otherwise return ``true`` and let the walk descend.
+
+The :ref:`Chap:ExampleBVHTraversal` example runs the first three in full, on the host and on a device.
+For the exact signatures, see the Doxygen reference for
+`PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__ and the `BVH namespace
+<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__.
+
+How the walk keeps to that shape -- the children's keys computed in one SIMD pass, and a stack of one
+entry per level -- is described next.
+
+**The child tests.** ``PointQuery`` computes the ``K`` squared distances in a single SIMD batch where
+the ``(K, T)`` pair has a compiled path (see :ref:`Chap:SIMDClasses` for which instructions run for
+which ``(K, T)``), and with an ordinary scalar loop over the children otherwise, which is also what
+device code runs. Both compute the same quantity in the same association order, and each vector
+maximum takes its operands in the order of the scalar path's comparison, so they agree bit-for-bit, a
+NaN coordinate included (it counts as inside the box along that axis, so it never prunes a child; a
+build with ``-ffast-math`` lets the compiler assume there are no NaNs, and then neither path promises
+anything for one) -- a query answered on a build with no SIMD returns exactly what the same query
+returns on an AVX-512 build, and the unit tests pin this by sweeping ``K`` across values that do and do
+not have a vector path and requiring exact equality. The one exception is a compiler that contracts
+the scalar path's multiply and add into a fused multiply-add, which the intrinsics never do. By default
+Clang does so within an expression, and GCC in its GNU language modes (``-std=gnu++17``; EBGeometry's
+own CMake build uses ``-std=c++17``), whenever FMA is enabled (with ``-march=native`` on most current
+CPUs, say), and the two paths can then differ in the last bit.
+
+``RayQuery`` runs the slab test on ``SIMD::Pack`` groups of children where a register's lanes divide
+``K``, and one child at a time on a device. It uses only subtractions, products, comparisons and
+selects, which nothing contracts, so its paths agree bit-for-bit. Two rules make it robust: an axis on
+which the ray's direction is zero and its origin lies exactly on a face's plane (where :math:`0 \cdot
+\infty` gives a NaN) imposes no constraint, so the ray is in the box along that axis rather than
+missing it; and the exit distance is widened by :math:`|t_\text{exit}| \cdot 2\gamma_3` (Ize, JCGT
+2013), so that rounding cannot make a ray through a face or edge shared by two boxes miss both.
 
 .. _Sec:TraversalStack:
 
@@ -740,9 +823,8 @@ It keeps one entry per level, not per child, as compressed wide BVH traversals d
 and Laine, HPG 2017): the index of an interior node whose children are being visited, and the
 child slots still to visit after the current one, in visit order, one byte each. That is
 :math:`4 + K` bytes rounded up to a multiple of 4: 8 bytes at ``K = 4``, in either precision and for
-any ``traverse()`` key type. No distance or key is stored; a resumed child's distance (or key) is
-computed again when it is reached, and the distance is computed exactly as it was when the level
-was sorted, so the comparison with the bound sees the same values the sort did.
+any key type. No key is stored; a resumed child's key is computed again when it is reached, exactly as
+it was when the level was sorted, so the comparison with the bound sees the same values the sort did.
 
 A level is on the stack only while one of its children is being visited and another is still to
 come, so a tree ``D`` levels deep needs at most :math:`D - 1` entries, at every ``K``:
@@ -772,18 +854,14 @@ against the device depth when ``rebasedView()`` makes it, in every build: a tree
 a message giving its depth, rather than overflowing the stack, which in Release would be a silent
 out-of-bounds write.
 
-Splitting the pruning rule apart from the leaf-eval like this is what lets a primitive with no
-notion of "signed distance" reuse the same SIMD box test: a nearest-neighbor search over a point
-cloud can track a plain running squared distance as its ``State`` (no ``abs()``, no extra
-squaring, no square root anywhere in the hot path) with a pruning rule that returns the state
-unchanged, whereas ``MeshSDF``/``TriMeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`)
-track a signed distance and square its magnitude for the bound -- both are ordinary
-instantiations of the same ``pruneTraverse()``, not special cases hardcoded into ``PackedBVH``.
-The former needs nothing more than a bare point struct with no ``signedDistance()`` member at all,
-searched for its nearest neighbor via ``pruneTraverse()`` against a running squared distance.
-
-For the exact template signature and callback contracts, see `the doxygen page for
-PackedBVH::pruneTraverse <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
+Splitting the bound from the leaf callback like this is what lets very different searches share one
+walk: a nearest-neighbor search over a point cloud tracks a plain running squared distance as its state
+(no ``abs()``, no square root in the hot path) with a bound that returns the state unchanged, whereas
+``MeshSDF``/``TriMeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`) track a signed distance and
+square its magnitude for the bound, and a closest-hit ray search tracks the nearest crossing -- all
+ordinary calls of the same ``traverse()`` with a ``PointQuery`` or a ``RayQuery``, not special cases
+in ``PackedBVH``. The first needs nothing more than a bare point struct with no ``signedDistance()``
+member at all.
 
 Traversal examples
 __________________
@@ -800,10 +878,10 @@ The DCEL mesh distance fields use a traversal pattern based on
 * When visiting a subtree, investigate the closest bounding volume first.
 * When visiting a leaf node, check if the primitives are closer than the minimum distance computed so far.
 
-``MeshSDF::signedDistance()`` implements these rules through ``pruneTraverse()`` (see
-:ref:`Chap:PruneTraverse`): its leaf-eval scans a leaf's faces and keeps the signed distance with the
-smallest magnitude seen so far, and its pruning rule prunes any node whose bounding-volume distance
-already exceeds that magnitude, while ``pruneTraverse()`` itself visits the closest child first. For
+``MeshSDF::signedDistance()`` implements these rules with ``traverse()`` and a ``PointQuery`` (see
+:ref:`Chap:PackedTraverse`): its leaf callback scans a leaf's faces and keeps the signed distance with
+the smallest magnitude seen so far, and its bound prunes any node whose bounding-volume distance
+already exceeds that magnitude, while the walk visits the closest child first. For
 the full API, see the Doxygen reference for
 `MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
 
@@ -813,10 +891,10 @@ CSG Union
 Combinations of implicit functions in EBGeometry into aggregate objects can be done by means of CSG unions.
 One such union is known as the *smooth union*, in which the transition between two objects is gradual rather than abrupt.
 
-``BVHSmoothUnion::signedDistance()`` drives the SIMD-accelerated ``pruneTraverse()`` (see
-:ref:`Chap:PruneTraverse`) with a ``State`` holding the two smallest values seen so far, ``a`` and
-``b`` (``a`` the closest, ``b`` the second-closest): the leaf-evaluator updates both as leaves are
-scanned, and the pruning rule returns ``max(0, b)`` squared -- pruning against the *second*-smallest
+``BVHSmoothUnion::signedDistance()`` walks its BVH with ``traverse()`` and a ``PointQuery`` (see
+:ref:`Chap:PackedTraverse`) with a state holding the two smallest values seen so far, ``a`` and
+``b`` (``a`` the closest, ``b`` the second-closest): the leaf callback updates both as leaves are
+scanned, and the bound returns ``max(0, b)`` squared -- pruning against the *second*-smallest
 value rather than the nearest, so a primitive that is not the single closest but still contributes to
 the blend is never pruned away. Once traversal completes, the two values are blended with the stored
 smooth-minimum operator. ``BVHUnion::signedDistance()`` is the same pattern with a single running minimum
@@ -851,12 +929,12 @@ BVH type, and supported geometry:
    * - ``MeshSDF<T, K>``
      - DCEL mesh
      - ``PackedBVH`` over face ids
-     - ``pruneTraverse()`` (SIMD when ``(K, T)`` matches a compiled ISA path)
+     - ``traverse()`` with a ``PointQuery`` (SIMD when ``(K, T)`` matches a compiled ISA path)
      - Any polygon mesh; not restricted to triangles
    * - ``TriMeshSDF<T, K, W>``
      - DCEL mesh or triangle soup
      - ``PackedBVH`` over ``TriangleAoSoA`` groups
-     - ``pruneTraverse()`` over SoA-packed leaves
+     - ``traverse()`` with a ``PointQuery``, over SoA-packed leaves
      - Triangle meshes only; highest throughput
 
 ``FlatMeshSDF`` is useful for correctness checks and tiny meshes. See `its doxygen page
@@ -875,8 +953,8 @@ gives independent storage. Copies share the pool memory, and a ``FlatMeshSDF`` s
 was when it was constructed. ``MeshSDF`` and ``TriMeshSDF`` follow the same pattern; see below.
 
 ``MeshSDF`` handles arbitrary polygon meshes; its ``signedDistance()`` builds the traversal
-criteria shown above (a leaf-eval and a pruning rule, not the full four-callback ``traverse()``
-shape) and drives them through ``PackedBVH::pruneTraverse()``, picking up SIMD node pruning
+criteria shown above (a leaf callback and a bound) and walks its BVH with ``PackedBVH::traverse()`` and
+a ``PointQuery``, picking up SIMD node pruning
 whenever ``(K, T)`` matches a compiled ISA path and testing the children with a scalar loop
 otherwise. Its BVH stores face ids, four bytes each, and every leaf test reads the face from the
 mesh; see "Primitive storage" below. See `its doxygen page
@@ -902,7 +980,7 @@ boundary condition.
 
 ``TriMeshSDF`` is the recommended default for triangle meshes: it packs triangles into
 Structure-of-Arrays groups of width ``W`` (via ``TreeBVH::packWith()``, see above) and builds the
-same kind of thin ``pruneTraverse()`` wrapper as ``MeshSDF``, over ``TriangleAoSoA<T, W>``
+same kind of thin ``traverse()`` wrapper (a ``PointQuery``) as ``MeshSDF``, over ``TriangleAoSoA<T, W>``
 leaves instead of individual faces, so that on a matching ``(K, T)`` combination each BVH leaf
 evaluates ``W`` triangles with a single SIMD register operation, and even the AABB-vs-running-best
 comparisons during descent are done on squared distances (no square root) until the very last
@@ -992,14 +1070,14 @@ use which, the build switch, and measurements.
      - 4
 
 The K=16/float and K=8/double paths use 512-bit-wide SIMD loads on AVX-512F and require the
-``ChildAABBSoA`` rows to be 64-byte aligned, which is guaranteed by ``alignas(sizeof(T)*K)`` on
+``BVH::ChildBoxes`` rows to be 64-byte aligned, which is guaranteed by ``alignas(sizeof(T)*K)`` on
 the struct. Only interior nodes have children, so only they get a row: each node records its row in
 ``Node::m_childBoxRow``, and the row array has one entry per interior node rather than one per node.
 The rows are also where every box but the root's is stored; a node finds its own through its box
 slot. The K=8/float and K=4/double paths use 256-bit-wide AVX loads instead (as does
 K=8/double without AVX-512F, in two passes), and K=4/float uses 128-bit SSE4.1 loads. All other
-(K, T) combinations test the children with a scalar loop over the same ``ChildAABBSoA`` cache,
-inside the same ``pruneTraverse()``.
+(K, T) combinations test the children with a scalar loop over the same child-box rows, inside the
+same ``traverse()``.
 
 Each ``TriangleSoAT<T, W>`` block is likewise ``alignas``-aligned to its own SIMD register width
 (64 bytes for ``<float, 16>``/``<double, 8>``, 32 bytes for ``<float, 8>``, 16 bytes for

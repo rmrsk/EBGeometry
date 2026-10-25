@@ -124,6 +124,25 @@ Family                                Build  Measures
 ``query-random``
 ====================================  =====  =====================================================
 
+**BVH** (``Performance/BVH``): ``PackedBVH::traverse()`` itself. The BVH holds the boxes of the probe
+mesh's triangles (the armadillo, about 100,000; K = 4, four boxes per leaf, built bottom up), and the leaf
+work is one box test per primitive, so the cases measure the walk: the query's child test, the sort and
+the stack. Queries start at random points in the BVH's box grown to twice its size about its centre; a
+ray points at the centre, so neighbouring origins give side-by-side rays.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``mesh-boxes/ray-nearest``            host   the nearest box each of 200,000 rays enters
+                                             (``RayQuery``, nearest first)
+``mesh-boxes/ray-any``                host   whether each ray enters any box (``AsStored``, the
+                                             walk ending at the first box)
+``mesh-boxes/point-nearest``          host   the squared distance from each of 200,000 points to the
+                                             nearest box (``PointQuery``)
+``mesh-boxes/<operation>-morton``,    GPU    the same at 262,144 queries, in Morton and in random
+``<operation>-random``                       order
+====================================  =====  =====================================================
+
 **BVHUnion** (``Performance/BVHUnion``): unions of about 100,000 objects on a 46 × 46 × 46 lattice, in
 three families. The ``spheres`` (unit spheres, spacing 3) fill about half their boxes (:math:`\pi/6`), and the
 boxes do not overlap. The ``capsules-diagonal`` (length 3, radius 0.2, along (1, 1, 1), spacing 1.8) are

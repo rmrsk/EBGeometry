@@ -378,7 +378,7 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
 
   EBGEOMETRY_EXPECT(a_seedCnt == 0 || (a_seedOff + a_seedCnt) <= groups.size());
 
-  // The running a_k-best set (ascending by distance). It is the pruneTraverse() state, so the held
+  // The running a_k-best set (ascending by distance). It is the traverse() state, so the held
   // BVH's traversal prunes off its current bound.
   using Best = PointCloud::KBest<T>;
 
@@ -414,7 +414,7 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
   if (a_seedCnt > 0 && a_k == 1) {
     // Seeded single-nearest self-query: scanning the query point's own leaf first gives a tight
     // prune bound immediately, so a plain unordered scalar DFS prunes just as hard as an ordered
-    // descent -- without paying pruneTraverse's per-interior-node child-sort and its separate
+    // descent -- without paying traverse()'s per-interior-node child-sort and its separate
     // m_childAabbSoA SIMD load. For these cheap SoA point leaves that makes the unordered DFS ~20%
     // faster. (This holds ONLY because of the seed: an unseeded search starts from an infinite bound,
     // where the near-first order is decisive.)
@@ -538,7 +538,7 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
     scanLeaf(a_best, a_off, a_cnt);
   };
 
-  bvh.pruneTraverse(a_query, best, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_query}, best, evalLeaf, pruneDist2);
 
   return best.found();
 }

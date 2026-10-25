@@ -92,6 +92,9 @@ namespace EBGeometry {
   template class BVH::TreeBVH<PREC, Vec3T<PREC>, BoundingVolumes::AABBT<PREC>, 4>; \
   template class BVH::PackedBVH<PREC, Vec3T<PREC>, 4>;                       \
   template class BVH::PackedBVH<PREC, uint32_t, 4>;                          \
+  template struct BVH::ChildBoxes<PREC, 4>;                                 \
+  template struct BVH::PointQuery<PREC>;                                     \
+  template struct BVH::RayQuery<PREC>;                                       \
                                                                                \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
   template struct PODVector<PREC>;                                           \
@@ -329,6 +332,33 @@ instantiateFunctionTemplates()
 
   (void)PolygonSoup<T>().convertToDCEL(meshPool);
   (void)PolygonSoup<T>().convertToTriangles();
+
+  // PackedBVH::traverse() is a member template: walk a BVH of points with each query type, a visit
+  // callback and each visit order.
+  {
+    using Packed = BVH::PackedBVH<T, Vec3T<T>, 4>;
+
+    std::vector<std::pair<Vec3T<T>, BoundingVolumes::AABBT<T>>> points{
+      {Vec3T<T>::zeros(), BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros())}};
+
+    Pool         bvhPool(hostMemoryResource());
+    const Packed bvh = Packed::buildBottomUp(bvhPool, points, size_t(1));
+
+    T          best  = Math::Limits<T>::infinity();
+    const auto leaf  = [](T&, size_t, size_t) noexcept {};
+    const auto bound = [](const T& a_best) noexcept { return a_best; };
+    const auto visit = [](T&, uint32_t, const typename Packed::Node&, const T&) noexcept { return true; };
+
+    const BVH::PointQuery<T> point{Vec3T<T>::zeros()};
+    const BVH::RayQuery<T>   ray(Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0)));
+
+    bvh.traverse(point, best, leaf, bound);
+    bvh.traverse(point, best, leaf, bound, visit, BVH::FarthestFirst{});
+    bvh.traverse(ray, best, leaf, bound, BVH::DescendAll{}, BVH::AsStored{});
+    bvh.traverse(ray, best, leaf, bound, visit, [](const T& a_a, const T& a_b) noexcept { return a_a < a_b; });
+    bvh.traverse(
+      ray, best, leaf, bound, visit, [](const T&, uint32_t a_a, const T&, uint32_t a_b) noexcept { return a_a < a_b; });
+  }
 }
 
 template void

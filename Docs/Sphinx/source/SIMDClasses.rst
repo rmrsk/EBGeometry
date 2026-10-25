@@ -113,27 +113,29 @@ SIMD-accelerated bounding-box pruning: ``BVH::PackedBVH<T, P, K>``
 See :ref:`Chap:BVH` for the conceptual picture of bounding volume hierarchies and tree pruning.
 
 **What it stores:** each interior node's :math:`K` children's bounding boxes, laid out as a
-*structure of arrays* (``ChildAABBSoA``: flat, ``alignas``-aligned low/high-corner coordinate
+*structure of arrays* (``BVH::ChildBoxes``: flat, ``alignas``-aligned low/high-corner coordinate
 arrays across all :math:`K` children), one row per interior node, alongside the usual index-offset
 node data. See
 :ref:`Chap:PackedBVH` for the rest of the packed representation.
 
 **What is vectorised:** the point-to-bounding-box squared-distance test used to decide which
-children to descend into (or prune) during traversal, in ``PackedBVH::pruneTraverse()``. All
+children to descend into (or prune) during traversal, in ``PackedBVH::traverse()`` with a
+``PointQuery``. All
 :math:`K` children of a node are tested against the query point in a single SIMD batch --
 one ``_mm(128\|256\|512)_load_p[sd]`` per coordinate array, then vectorised subtract/max/multiply/add
 to get all :math:`K` squared distances at once -- rather than a scalar loop over children.
 ``PackedBVH`` has no ``signedDistance()`` of its own; ``MeshSDF``/``TriMeshSDF::signedDistance()``
-each build a thin wrapper around ``pruneTraverse()``, supplying a signed-distance leaf-eval and
-pruning rule. Any caller can invoke ``pruneTraverse()`` directly with its own leaf-eval/pruning-
-rule pair to get the same SIMD node pruning over a different search (e.g. nearest-neighbor search
-over a primitive type with no ``signedDistance()`` at all). See :ref:`Chap:PruneTraverse` for the
-full callback contract and traversal algorithm.
+each build a thin wrapper around ``traverse()``, supplying a signed-distance leaf callback and
+bound. Any caller can call ``traverse()`` directly with its own leaf callback and bound to get the
+same SIMD node pruning over a different search (e.g. nearest-neighbor search over a primitive type with
+no ``signedDistance()`` at all). A ``RayQuery`` tests the children's boxes with a ray (a slab test) on
+SIMD lanes the same way. See :ref:`Chap:PackedTraverse` for the full callback contract and traversal
+algorithm.
 
 When ``(K, T)`` matches no compiled ISA path, this one step -- and only this step -- falls back to
 a scalar loop over the :math:`K` children; the surrounding traversal is the same code either way,
 and the two produce bit-identical results, a NaN coordinate included, unless the compiler contracts
-the scalar path's multiply and add into a fused multiply-add (see :ref:`Chap:PruneTraverse`).
+the scalar path's multiply and add into a fused multiply-add (see :ref:`Chap:PackedTraverse`).
 
 **What this means in practice:** the cost of deciding which subtree(s) to visit next no longer
 scales with :math:`K` the way a scalar loop would; a wider branching factor (larger :math:`K`)

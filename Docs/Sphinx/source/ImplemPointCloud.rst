@@ -53,7 +53,7 @@ PointCloudBVH
 
 ``PointCloudBVH`` is built on the :ref:`Chap:ImplemBVH` machinery: it holds a ``BVH::PackedBVH``
 over ``PointAoSoA`` leaf groups as a member, and adds two things the general path does not offer --
-a much cheaper **index-based build**, and **turnkey query methods** that hide ``pruneTraverse()``
+a much cheaper **index-based build**, and **turnkey query methods** that hide ``traverse()``
 entirely. It is built by partitioning an index permutation in place with a longest-axis midpoint
 split (falling back to a split by count where the midpoint cannot separate the points, as with
 coincident points, so the tree stays shallow) and packing the ``PointAoSoA`` leaves inline (no intermediate primitive list, no
