@@ -1230,7 +1230,7 @@ TEMPLATE_TEST_CASE("Ray: a tape with sibling BVH unions, one in a rotated frame,
   Pool          pool(hostMemoryResource());
   const Tape<T> tape(pool, Union(Union(rowA), Translate(Rotate(Union(rowB), T(90), size_t(2)), Vec3(0, 0, 3))));
 
-  const T margin = looseMargin<T>();
+  const double margin = looseMargin<T>();
 
   for (size_t k = 0; k < n; k++) {
     const T x = T(k);

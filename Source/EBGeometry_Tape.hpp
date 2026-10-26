@@ -585,7 +585,8 @@ public:
      * sub-programs come the clause ranges a ray marches (see TapeDetail::RayOp::Marched), then from
      * m_rayPrograms on each sub-program's ray program, whose clauses (TapeDetail::RayClause, stored as
      * clauses) follow the sub-programs' in m_clauses, and after those each sub-program's parent, the
-     * sub-program it was compiled for, in m_begin (UINT32_MAX for sub-program 0).
+     * sub-program it was compiled for, in m_begin (UINT32_MAX for sub-program 0; m_end unused). The ray
+     * programs begin in program order, which rayLeafHit() relies on to find a clause's by bisection.
      */
     PODVector<TapeDetail::Program> m_programs;
 

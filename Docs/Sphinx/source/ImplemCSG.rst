@@ -292,8 +292,10 @@ running its own ray program one call level down. A subtree with any other operat
 primitive without a ray form, is marched as a whole over the clauses compiled for it; a subtree that
 would hold more than ``Tape::RayStackSize`` (4) lists at once is marched too. The ray programs are
 stored in the clause and program arrays after the evaluator's, which never reads them: they add about
-one clause (16 bytes) per expression node to the tape's pool. A hit names the leaf crossed, or for a
-marched subtree the deciding leaf at the crossing.
+one clause (16 bytes) per expression node to the tape's pool, and one program entry (8 bytes) per
+sub-program, the sub-program it was compiled for. A hit names the leaf crossed, or for a marched subtree
+the deciding leaf at the crossing; the tape finds the leaf again from its clause, by bisection over
+where the ray programs begin and up those entries to the BVH union operand that holds it.
 
 The :ref:`Chap:ExampleCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.

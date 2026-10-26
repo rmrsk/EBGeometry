@@ -183,6 +183,13 @@ flatten(Staging<T, K, List>& a_staging)
     a_staging.m_flatPrograms.push_back(range);
   }
 
+  // Tape::rayLeafHit() finds a clause's ray program by bisection over where they begin, so they must begin
+  // in program order, and walks up the parents, which come after them.
+  for (uint32_t i = 1; i < numPrograms; i++) {
+    EBGEOMETRY_EXPECT(a_staging.m_flatPrograms[a_staging.m_flatRayPrograms + i - 1].m_begin <=
+                      a_staging.m_flatPrograms[a_staging.m_flatRayPrograms + i].m_begin);
+  }
+
   for (const uint32_t parent : a_staging.m_parents) {
     a_staging.m_flatPrograms.push_back(Program{parent, 0U});
   }
@@ -2039,6 +2046,8 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
         hit.m_primitive = c.m_b;
       }
       else {
+        // A Marched clause is a leaf of the trace as a whole: its subtree has no ray program, so a trace never
+        // names a clause inside it, and a hit there reports MarchedLeaf.
         const T* box = params + c.m_b;
 
         const Subtree<D> subtree{this,
