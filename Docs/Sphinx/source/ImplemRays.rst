@@ -77,7 +77,11 @@ library has ray forms for:
      - How
    * - ``PlaneSDF``, ``SphereSDF``, ``BoxSDF``, ``CylinderSDF``, ``InfiniteCylinderSDF``, ``CapsuleSDF``
      - In closed form (`EBGeometry_AnalyticRayForms.hpp
-       <doxygen/html/EBGeometry__AnalyticRayForms_8hpp.html>`__).
+       <doxygen/html/EBGeometry__AnalyticRayForms_8hpp.html>`__). The round surfaces solve their
+       quadratic without cancellation: the discriminant from the distance of the centre (axis) from the
+       ray's line, the nearer root as ``c / q``. Otherwise, in ``float``, a small ball or thin cylinder far
+       from the ray's start is hit or missed by rounding when the ray passes within about 1e-3 of its
+       radius.
    * - ``TriMeshSDF``
      - Its BVH walked with ``PackedBVH::traverse()`` and a ``BVH::RayQuery`` (see
        :ref:`Chap:PackedTraverse`), nearest box first, bounded by the nearest crossing so far; each leaf

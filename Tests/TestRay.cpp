@@ -13,6 +13,7 @@
 #include "TestGPU.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -796,6 +797,87 @@ TEMPLATE_TEST_CASE("Ray: the analytic ray forms give the closed-form crossings",
   // A miss.
   REQUIRE(firstHit(sphere, RayT<T>{Vec3(-T(3), T(2), T(0)), Vec3(1, 0, 0)}, T(0), T(10)).m_status == HitStatus::Miss);
   REQUIRE(intersects(sphere, alongX, T(0), T(1)) == HitStatus::Miss);
+}
+
+TEMPLATE_TEST_CASE("Ray: a small ball and a thin cylinder far from the ray's start are hit or missed by the exact "
+                   "distance of the ray",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Rays from the origin that pass a ball (and a cylinder) of radius 0.03, about 3 away, at 1 +- 3e-4 and
+  // 1 +- 1e-3 times the radius from its centre (axis). The reference decides from that distance, computed in
+  // double from the ray as stored: float's |oc|^2 - r^2 alone loses about 1e-3 of the radius here.
+  const T    radius = T(0.03);
+  const Vec3 centre(T(2.4), T(1.3), -T(1.1));
+
+  const SphereSDF<T>           ball(centre, radius);
+  const InfiniteCylinderSDF<T> tube(Vec3(centre[0], centre[1], T(0)), radius, 2);
+
+  const double offsets[] = {-1e-3, -3e-4, 3e-4, 1e-3};
+
+  const auto exactFrom = [](const Vec3& a_v) {
+    return std::array<double, 3>{double(a_v[0]), double(a_v[1]), double(a_v[2])};
+  };
+  const auto crossOf = [](const std::array<double, 3>& a_u, const std::array<double, 3>& a_v) {
+    return std::array<double, 3>{
+      a_u[1] * a_v[2] - a_u[2] * a_v[1], a_u[2] * a_v[0] - a_u[0] * a_v[2], a_u[0] * a_v[1] - a_u[1] * a_v[0]};
+  };
+  const auto norm = [](const std::array<double, 3>& a_v) {
+    return std::sqrt(a_v[0] * a_v[0] + a_v[1] * a_v[1] + a_v[2] * a_v[2]);
+  };
+
+  const std::array<double, 3> c = exactFrom(centre);
+
+  for (int k = 0; k < 64; k++) {
+    const double angle = 6.283185307179586 * double(k) / 64.0;
+
+    for (const double offset : offsets) {
+      const double reach = 0.03 * (1.0 + offset);
+
+      // The ball: a unit vector perpendicular to the centre, turned by the angle.
+      {
+        const std::array<double, 3> u = {
+          1.3 / std::sqrt(2.4 * 2.4 + 1.3 * 1.3), -2.4 / std::sqrt(2.4 * 2.4 + 1.3 * 1.3), 0.0};
+        const std::array<double, 3> w      = crossOf(c, u);
+        const double                wn     = norm(w);
+        const std::array<double, 3> target = {c[0] + reach * (std::cos(angle) * u[0] + std::sin(angle) * w[0] / wn),
+                                              c[1] + reach * (std::cos(angle) * u[1] + std::sin(angle) * w[1] / wn),
+                                              c[2] + reach * (std::cos(angle) * u[2] + std::sin(angle) * w[2] / wn)};
+        const double                tn     = norm(target);
+
+        const RayT<T> ray{Vec3::zeros(), Vec3(T(target[0] / tn), T(target[1] / tn), T(target[2] / tn))};
+
+        const std::array<double, 3> d    = exactFrom(ray.m_direction);
+        const double                dist = norm(crossOf(c, d)) / norm(d);
+
+        INFO("ball, angle " << angle << ", offset " << offset << ", distance/radius " << dist / 0.03);
+        REQUIRE(firstHit(ball, ray, T(0), T(10)).hit() == (dist < double(radius)));
+      }
+
+      // The cylinder along z: the ray rises as it goes, and passes the axis at the reach.
+      {
+        const std::array<double, 3> u = {
+          -1.3 / std::sqrt(2.4 * 2.4 + 1.3 * 1.3), 2.4 / std::sqrt(2.4 * 2.4 + 1.3 * 1.3), 0.0};
+        const double                side   = (k % 2 == 0) ? 1.0 : -1.0;
+        const std::array<double, 3> target = {
+          c[0] + side * reach * u[0], c[1] + side * reach * u[1], 0.5 * std::sin(angle)};
+        const double tn = norm(target);
+
+        const RayT<T> ray{Vec3::zeros(), Vec3(T(target[0] / tn), T(target[1] / tn), T(target[2] / tn))};
+
+        // The distance between the ray's line and the axis: the axis point's offset along their common normal.
+        const std::array<double, 3> d    = exactFrom(ray.m_direction);
+        const std::array<double, 3> n    = crossOf(d, {0.0, 0.0, 1.0});
+        const double                dist = std::abs(c[0] * n[0] + c[1] * n[1]) / norm(n);
+
+        INFO("cylinder, angle " << angle << ", offset " << offset << ", distance/radius " << dist / 0.03);
+        REQUIRE(firstHit(tube, ray, T(0), T(10)).hit() == (dist < double(radius)));
+      }
+    }
+  }
 }
 
 TEMPLATE_TEST_CASE("Ray: the analytic ray forms agree with the march on random rays",

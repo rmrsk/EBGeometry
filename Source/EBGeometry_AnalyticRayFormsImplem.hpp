@@ -131,7 +131,10 @@ slab(const RayT<T>& a_ray,
 
 /**
  * @brief Where a ray is inside a sphere.
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. The discriminant is the squared radius less the
+ * squared distance of the centre from the ray's line, |oc x d|^2, not b^2 - c: for a small ball far from
+ * the origin, |oc|^2 - r^2 cancels, and in float a ray passing within about 1e-3 of the radius of the
+ * surface could go either way. The nearer root is c / q, which does not cancel either.
  * @tparam T Floating-point precision.
  * @param[in]  a_ray    Ray.
  * @param[in]  a_center Centre.
@@ -145,9 +148,9 @@ inline void
 ballSpan(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, T& a_in, T& a_out) noexcept
 {
   const Vec3T<T> oc   = a_ray.m_origin - a_center;
+  const Vec3T<T> l    = cross(oc, a_ray.m_direction);
   const T        b    = dot(oc, a_ray.m_direction);
-  const T        c    = dot(oc, oc) - a_radius * a_radius;
-  const T        disc = b * b - c;
+  const T        disc = a_radius * a_radius - dot(l, l);
 
   if (disc < T(0)) {
     a_in  = Math::Limits<T>::infinity();
@@ -157,15 +160,27 @@ ballSpan(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, T& a_
   }
 
   const T root = std::sqrt(disc);
+  const T q    = -b - ((b >= T(0)) ? root : -root);
 
-  a_in  = -b - root;
-  a_out = -b + root;
+  // Both roots are zero: the ray starts on the surface, along it.
+  if (q == T(0)) {
+    a_in  = T(0);
+    a_out = T(0);
+
+    return;
+  }
+
+  const T c = dot(oc, oc) - a_radius * a_radius;
+
+  a_in  = Math::min(q, c / q);
+  a_out = Math::max(q, c / q);
 }
 
 /**
  * @brief Where a ray is inside an infinite cylinder around the line through a point along a unit axis.
  * @details Internal helper; not part of the public API. A ray along the axis is inside it everywhere or
- * nowhere.
+ * nowhere. As for a sphere (see ballSpan()), the discriminant is a r^2 - |o x d|^2 rather than b^2 - a c,
+ * and the nearer root c / q, so that a thin cylinder far from the origin does not cancel.
  * @tparam T Floating-point precision.
  * @param[in]  a_ray    Ray.
  * @param[in]  a_point  Point on the axis.
@@ -194,8 +209,9 @@ tubeSpan(
     return;
   }
 
-  const T b    = dot(o, d);
-  const T disc = b * b - a * c;
+  const Vec3T<T> l    = cross(o, d);
+  const T        b    = dot(o, d);
+  const T        disc = a * a_radius * a_radius - dot(l, l);
 
   if (disc < T(0)) {
     a_in  = Math::Limits<T>::infinity();
@@ -205,9 +221,18 @@ tubeSpan(
   }
 
   const T root = std::sqrt(disc);
+  const T q    = -b - ((b >= T(0)) ? root : -root);
 
-  a_in  = (-b - root) / a;
-  a_out = (-b + root) / a;
+  // Both roots are zero: the ray starts on the surface, along it.
+  if (q == T(0)) {
+    a_in  = T(0);
+    a_out = T(0);
+
+    return;
+  }
+
+  a_in  = Math::min(q / a, c / q);
+  a_out = Math::max(q / a, c / q);
 }
 
 /**
