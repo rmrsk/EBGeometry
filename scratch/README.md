@@ -21,6 +21,8 @@ or CI.
 | `rtarmadillo.cpp` | The Armadillo scenes rendered by sphere tracing, pure ray tracing and the hybrid (leaf sizes 8, 32, 128), with and without the tape, timed on the GPU |
 | `meshbench.cpp` | Distance evaluations per pixel, and the GPU cost of one mesh distance query near the surface, inside the box and far away (`MeshSDF`, `TriMeshSDF`, a `Tape`) |
 | `bench.cpp` | Frame times on the host (OpenMP) and through `GPU::transform()`, tape vs. a hand-written SDF (issue #210) |
+| `csganim.cpp` | The README animation: the xyzrgb dragon revealed by `Intersection`, joined to a table by `Union` and then `SmoothUnion`, and cut open by `Difference`, with a fixed camera. One tape per frame, all in one pool mirrored to the GPU once; the dragon, table and cut faces are coloured separately (a `Tint` in `Tracer.hpp`). Writes `frame_NNNN.ppm` and `captions.txt` (`./csganim <xyzrgb_dragon.obj> [width] [height] [supersampling]`, `ONLY=20,75` for just those frames) |
+| `make_csg_gif.py` | Captions those frames with each one's expression and joins them into a looping GIF with ffmpeg (`python3 make_csg_gif.py <frame folder> <out.gif> [fps]`) |
 
 ![The classic CSG solid](csg.png)
 
@@ -50,4 +52,13 @@ g++ -std=c++17 -O3 -march=native -fopenmp -I.. viewer.cpp -o viewer $(sdl2-confi
 # headers include the same intrinsics, which SDL_DISABLE_IMMINTRIN_H turns off.
 nvcc -std=c++17 -O3 -arch=sm_86 -Xcompiler -fopenmp -DSDL_DISABLE_IMMINTRIN_H $(sdl2-config --cflags) -I.. -x cu -c viewer.cpp -o viewer-gpu.o
 g++ viewer-gpu.o -o viewer-gpu $(sdl2-config --libs) -L$CUDA_HOME/lib64 -lcudart -fopenmp
+```
+
+The README animation (`Docs/Sphinx/source/_static/csg_dragon.gif` on `dev`), from an empty folder:
+
+```bash
+nvcc -std=c++17 -O3 -arch=sm_86 -Xcompiler -fopenmp -I<scratch>/.. -x cu -c <scratch>/csganim.cpp -o csganim.o
+g++ csganim.o -o csganim -L$CUDA_HOME/lib64 -lcudart -fopenmp
+./csganim <common-3d-test-models>/data/xyzrgb_dragon.obj 800 450 2
+python3 <scratch>/make_csg_gif.py . csg_dragon.gif 20
 ```

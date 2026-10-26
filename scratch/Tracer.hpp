@@ -66,12 +66,24 @@ struct Settings
   Vec3 boxHi     = Vec3::zeros();
 };
 
+// The shape's colour at a surface point: one colour everywhere unless a Tint says otherwise.
+struct NoTint
+{
+  EBGEOMETRY_HOST_DEVICE
+  Vec3
+  albedo(const Vec3&, const Vec3& a_default) const noexcept
+  {
+    return a_default;
+  }
+};
+
 // A shape (held by value: a Tape is a trivially copyable descriptor), lit by one directional light.
-template <class Shape>
+template <class Shape, class Tint = NoTint>
 struct Scene
 {
   Shape    m_shape;
   Settings m_settings;
+  Tint     m_tint;
 
   // The shape, plus a floor plane that exists only in the renderer. a_exact is false when the value is
   // only the distance to the shape's bounding box (a cheaper lower bound, used far from the box).
@@ -136,7 +148,7 @@ struct Scene
       const T ao   = m_settings.occlusion ? this->occlusion(p, n) : T(1);
 
       const bool onFloor = m_settings.floor && p[1] < m_settings.floorY + T(1e-2);
-      const Vec3 albedo  = onFloor ? Vec3(0.55, 0.56, 0.58) : Vec3(0.62, 0.20, 0.06);
+      const Vec3 albedo  = onFloor ? Vec3(0.55, 0.56, 0.58) : m_tint.albedo(p, Vec3(0.62, 0.20, 0.06));
 
       c = albedo * (T(1.1) * diff + T(0.35) * sky * ao) + T(0.45) * spec * Vec3::ones();
     }
@@ -219,10 +231,10 @@ struct Scene
 
 // One pixel of a w x h image with ss x ss supersampling, as RGBA8888: the query GPU::transform() runs
 // once per pixel index.
-template <class Shape>
+template <class Shape, class Tint = NoTint>
 struct Pixel
 {
-  Scene<Shape> m_scene;
+  Scene<Shape, Tint> m_scene;
   Orbit        m_cam;
   int          m_w;
   int          m_h;
@@ -261,9 +273,9 @@ struct Pixel
 };
 
 // Renders on the host, one OpenMP thread per row.
-template <class Shape>
+template <class Shape, class Tint>
 void
-renderHost(const Pixel<Shape>& a_pixel, std::vector<uint32_t>& a_pixels)
+renderHost(const Pixel<Shape, Tint>& a_pixel, std::vector<uint32_t>& a_pixels)
 {
   const int n = a_pixel.m_w * a_pixel.m_h;
 
@@ -277,9 +289,9 @@ renderHost(const Pixel<Shape>& a_pixel, std::vector<uint32_t>& a_pixels)
 
 // Renders through GPU::transform(): a kernel in a CUDA or HIP build, a host loop otherwise. a_indices
 // holds 0, 1, ..., w*h - 1.
-template <class Shape>
+template <class Shape, class Tint>
 void
-renderDevice(const Pixel<Shape>& a_pixel, const std::vector<uint32_t>& a_indices, std::vector<uint32_t>& a_pixels)
+renderDevice(const Pixel<Shape, Tint>& a_pixel, const std::vector<uint32_t>& a_indices, std::vector<uint32_t>& a_pixels)
 {
   a_pixels.resize(a_indices.size());
 
