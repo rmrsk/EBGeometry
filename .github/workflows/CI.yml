@@ -13,6 +13,12 @@ concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-code-format
   cancel-in-progress: true
 
+# Two tiers. A draft pull request runs the fast tier: one or two cells of each matrix, and no
+# Linux-Intel, GNUmake, float-example, clang-tidy or CUDA jobs. A pull request that is ready for
+# review (marking it ready re-runs CI) and every push to main or dev run the full matrix. On a push,
+# github.event.pull_request is absent, so `github.event.pull_request.draft` is false there too.
+# Builds and test runs use every core of the runner (4 on a public repository's standard runner).
+#
 # Every job runs on ubuntu-24.04, not ubuntu-latest: ubuntu-latest became ubuntu-26.04 on 2026-10-24,
 # which has no clang-14 package and a Python too new for the pinned Sphinx 5.3.0 (it lacks imghdr).
 # Moving to 26.04 needs a newer clang in the matrix and a newer Sphinx; until then, the image is pinned.
@@ -106,6 +112,7 @@ jobs:
     name: Static analysis (clang-tidy)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    if: ${{ !github.event.pull_request.draft }}
     # Advisory for now: the curated clang-tidy set still has a review backlog
     # (const-correctness, narrowing conversions, ...). Set continue-on-error to
     # false to make this a hard gate once that backlog has been reviewed.
@@ -140,7 +147,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        comp: [g++-11, g++-12]
+        comp: ${{ fromJSON(github.event.pull_request.draft && '["g++-12"]' || '["g++-11", "g++-12"]') }}
 
     steps:
       - uses: actions/checkout@v7
@@ -176,6 +183,7 @@ jobs:
     name: Linux-Intel (every example)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
 
     steps:
       - uses: actions/checkout@v7
@@ -214,6 +222,7 @@ jobs:
     name: Examples (GNUmakefile, every example)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -242,20 +251,21 @@ jobs:
       - name: Configure (debug preset, examples only)
         run: cmake --preset debug -DEBGEOMETRY_BUILD_TESTS=OFF -DCMAKE_CXX_FLAGS=-Werror
       - name: Build
-        run: cmake --build --preset debug --parallel 2
+        run: cmake --build --preset debug --parallel $(nproc)
       # Exercises the CMake-driven example build+run path with assertions enabled --
       # this is the path that caught the MeshSDF dangling-weak_ptr regression, and
       # neither Linux-GNU/Linux-Intel (raw compiler invocation, no CMake, no
       # assertions) nor Unit-Tests/Sanitizers (which build with examples disabled)
       # exercise it.
       - name: Run examples (ctest --preset examples)
-        run: ctest --preset examples
+        run: ctest --preset examples --parallel $(nproc)
 
   Examples-FloatPrecision:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Examples (CMake, float precision)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -265,9 +275,9 @@ jobs:
       - name: Configure (debug preset, float precision, examples only)
         run: cmake --preset debug -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_BUILD_TESTS=OFF -DCMAKE_CXX_FLAGS=-Werror
       - name: Build
-        run: cmake --build --preset debug --parallel 2
+        run: cmake --build --preset debug --parallel $(nproc)
       - name: Run examples
-        run: ctest --preset examples
+        run: ctest --preset examples --parallel $(nproc)
 
   # The performance probes (Performance/): built and run at their small --smoke sizes on every event,
   # which checks they still compile and run; it times nothing.
@@ -281,16 +291,16 @@ jobs:
       - name: Configure (perf preset, warnings as errors)
         run: cmake --preset perf -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror"
       - name: Build
-        run: cmake --build --preset perf --parallel 2
+        run: cmake --build --preset perf --parallel $(nproc)
       - name: Run every case at smoke size (ctest --preset perf)
-        run: ctest --preset perf
+        run: ctest --preset perf --parallel $(nproc)
 
-  # On a pull request: checks the performance receipt (Performance/receipt.md), the result of the full
+  # On a pull request that is ready for review: checks the performance receipt (Performance/receipt.md), the result of the full
   # comparison the author runs locally with Scripts/run-performance.sh compare --record. Nothing is timed
   # here (a shared runner is too noisy to judge performance): Performance/CheckReceipt.cmake checks that
   # the receipt measured this code, against the base branch's current code, and is green or accepted
   # (a reason on its "**Accepted:**" line, which also makes the check warn); a pull request that changes neither the library nor the probes needs none. The result goes
-  # into the job summary. On a push it does nothing and succeeds, since CI-passed counts a skipped job as
+  # into the job summary. On a push or a draft it does nothing and succeeds, since CI-passed counts a skipped job as
   # a failure.
   Performance-receipt:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -298,15 +308,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Nothing to check on a push
-        if: github.event_name != 'pull_request'
-        run: echo "Performance receipts are checked on pull requests only."
+      - name: Nothing to check on a push or a draft
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft
+        run: echo "::notice title=Performance receipt::Checked on pull requests that are ready for review only."
       - uses: actions/checkout@v7
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && !github.event.pull_request.draft
         with:
           fetch-depth: 0
       - name: Check the receipt against this pull request and its base
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && !github.event.pull_request.draft
         run: >-
           cmake -DBASE_REF=origin/${{ github.base_ref }} -DHEAD_REF=${{ github.event.pull_request.head.sha }}
           -DSUMMARY="$GITHUB_STEP_SUMMARY" -P Performance/CheckReceipt.cmake
@@ -384,9 +394,10 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix:
-        compiler: [g++-12, clang++-14]
-        simd: [none, avx, avx512]
+      matrix: >-
+        ${{ fromJSON(github.event.pull_request.draft
+        && '{"include": [{"compiler": "g++-12", "simd": "avx"}, {"compiler": "clang++-14", "simd": "none"}]}'
+        || '{"compiler": ["g++-12", "clang++-14"], "simd": ["none", "avx", "avx512"]}') }}
 
     steps:
       - uses: actions/checkout@v7
@@ -411,7 +422,7 @@ jobs:
             -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
 
       - name: Build
-        run: cmake --build --preset debug --parallel 2
+        run: cmake --build --preset debug --parallel $(nproc)
 
       - name: Run tests
         # AVX-512 is compiled unconditionally (catches ISA-specific compile errors
@@ -423,7 +434,7 @@ jobs:
           if [[ "${{ matrix.simd }}" == "avx512" ]] && ! grep -q avx512f /proc/cpuinfo; then
             echo "Runner CPU lacks AVX-512F; skipping runtime execution (compile-only verification passed)."
           else
-            ctest --preset debug
+            ctest --preset debug --parallel $(nproc)
           fi
 
   Release-Test:
@@ -443,9 +454,9 @@ jobs:
       - name: Configure (release-test preset)
         run: cmake --preset release-test -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
-        run: cmake --build --preset release-test --parallel 2
+        run: cmake --build --preset release-test --parallel $(nproc)
       - name: Run full suite (unit tests + examples)
-        run: ctest --preset release-test
+        run: ctest --preset release-test --parallel $(nproc)
 
   Sanitizers:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -454,9 +465,10 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      matrix:
-        compiler: [g++-12, clang++-14]
-        simd: [none, avx]
+      matrix: >-
+        ${{ fromJSON(github.event.pull_request.draft
+        && '{"include": [{"compiler": "g++-12", "simd": "avx"}]}'
+        || '{"compiler": ["g++-12", "clang++-14"], "simd": ["none", "avx"]}') }}
     steps:
       - uses: actions/checkout@v7
       - name: Install compiler
@@ -476,9 +488,9 @@ jobs:
             -DEBGEOMETRY_BUILD_EXAMPLES=OFF \
             -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
-        run: cmake --build --preset debug-san --parallel 2
+        run: cmake --build --preset debug-san --parallel $(nproc)
       - name: Run tests under sanitizers
-        run: ctest --preset debug-san
+        run: ctest --preset debug-san --parallel $(nproc)
         env:
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
           ASAN_OPTIONS: detect_leaks=1
@@ -488,6 +500,7 @@ jobs:
     name: GPU CUDA compile
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
     # Advisory: the toolkit install is a third-party action that downloads several GB and is the
     # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
     continue-on-error: true
@@ -507,7 +520,7 @@ jobs:
         # with nvcc, so the device-callable surface must compile for the device. The device-test list
         # lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them, and
         # EBGeometry_GPUDeviceExamples the examples compiled for the device. No GPU is needed.
-        run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel 2
+        run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel $(nproc)
       - name: Run device-tagged tests
         # This runner has no GPU. Every [gpu] test case SKIP()s at its first statement when
         # deviceAvailable() is false (see TestGPU.hpp), so no kernel is launched and no device code
@@ -527,31 +540,32 @@ jobs:
         uses: ./.github/actions/apt-install
         with:
           packages: hipcc clang-17 libamdhip64-dev rocm-device-libs-17
-      - name: Configure
+      - name: Configure and build optimised, with host SIMD flags
         # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
         # Both precisions so the float instantiations of the device kernels are compiled too.
-        run: cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
-      - name: Build
-        # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP)
-        # with clang's HIP mode, so the device-callable surface must compile for the device. The
-        # device-test list lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them.
-        # No GPU is needed. EBGeometry_GPUDeviceExamples compiles the examples for the device in the
-        # same way.
-        run: cmake --build build/hip --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel 2
-      - name: Configure and build optimised, with host SIMD flags
-        # A HIP translation unit compiled with -mavx: clang's device pass then sees __AVX__ as well,
-        # so any SIMD block in a __host__ __device__ function that is not also guarded on
-        # EBGEOMETRY_DEVICE_COMPILE fails to compile for the device. Release, so the device code is
-        # also compiled the way users build it: HIP inlines every device function, and only an
-        # optimised build shows a function whose inlined copies multiply (the tape's evaluator, before
-        # EBGEOMETRY_DEVICE_NOINLINE, took longer than this job's timeout).
+        # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP) with
+        # clang's HIP mode, so the device-callable surface must compile for the device; the
+        # device-test list lives in Tests/CMakeLists.txt, and EBGeometry_GPUDeviceTests aggregates
+        # them. EBGeometry_GPUDeviceExamples and EBGeometry_Performance compile the examples and the
+        # probes for the device in the same way. No GPU is needed.
+        # With -mavx, clang's device pass sees __AVX__ as well, so any SIMD block in a
+        # __host__ __device__ function that is not also guarded on EBGEOMETRY_DEVICE_COMPILE fails to
+        # compile for the device. Release, so the device code is also compiled the way users build it:
+        # HIP inlines every device function, and only an optimised build shows a function whose inlined
+        # copies multiply (the tape's evaluator, before EBGEOMETRY_DEVICE_NOINLINE, took longer than
+        # this job's timeout).
         run: |
-          cmake -S . -B build/hip-avx -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_SIMD=avx "-DCMAKE_HIP_FLAGS=-mavx -mfma -msse4.1"
-          cmake --build build/hip-avx --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples --parallel 2
+          cmake -S . -B build/hip-avx -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON -DEBGEOMETRY_SIMD=avx "-DCMAKE_HIP_FLAGS=-mavx -mfma -msse4.1"
+          cmake --build build/hip-avx --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel $(nproc)
       - name: Run device-tagged tests
         # See the matching step in the GPU-CUDA job above: no GPU, so every case SKIP()s before
         # launching a kernel. This checks that the binaries start and the device query is safe.
-        run: ctest --test-dir build/hip -L gpu-device --output-on-failure
+        run: ctest --test-dir build/hip-avx -L gpu-device --output-on-failure
+      - name: Configure and build unoptimised (full tier only)
+        if: ${{ !github.event.pull_request.draft }}
+        run: |
+          cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
+          cmake --build build/hip --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel $(nproc)
 
   CI-passed:
     # The single required status check. It runs even when a dependency fails or is cancelled (a
@@ -563,9 +577,20 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Require every dependency to have succeeded
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        # A job of the full tier only is skipped on a draft pull request, and that is not a failure.
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          DRAFT: ${{ github.event.pull_request.draft == true }}
         run: |
-          echo "One or more required jobs did not succeed."
-          exit 1
-      - name: All required jobs succeeded
-        run: echo "All required jobs succeeded."
+          full_only='["Linux-Intel", "Examples-GNUMake", "Examples-FloatPrecision"]'
+          failed=$(jq -r --argjson full_only "$full_only" --arg draft "$DRAFT" '
+            to_entries[]
+            | select(.value.result != "success")
+            | select(($draft == "true" and .value.result == "skipped" and (.key | IN($full_only[]))) | not)
+            | "\(.key): \(.value.result)"' <<< "$RESULTS")
+          if [[ -n "$failed" ]]; then
+            echo "These required jobs did not succeed:"
+            echo "$failed"
+            exit 1
+          fi
+          echo "All required jobs succeeded."
