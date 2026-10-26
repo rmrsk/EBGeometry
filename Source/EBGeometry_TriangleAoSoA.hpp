@@ -114,6 +114,30 @@ public:
               Vec3T<T>&       a_normal) const noexcept;
 
   /**
+   * @brief Where a ray crosses each triangle in this group.
+   * @details See TriangleSoAT::rayCrossings(); the lanes' face ids and normals are getFaceId() and
+   * getNormal(). Requires the group to have already been packed via pack().
+   * @param[in]  a_origin    Ray origin.
+   * @param[in]  a_direction Ray direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[out] a_crossings W values: each lane's crossing, or +infinity.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  rayCrossings(
+    const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, T a_tMin, T a_tMax, T* a_crossings) const noexcept;
+
+  /**
+   * @brief The unit normal of one lane's triangle.
+   * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W.
+   * @return The face normal.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  getNormal(size_t a_lane) const noexcept;
+
+  /**
    * @brief Get the face id for one lane of this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W (padded lanes return the last real

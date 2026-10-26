@@ -117,6 +117,18 @@
 #define EBGEOMETRY_HOST_ALWAYS_INLINE
 #endif
 
+// ── Out-of-line host functions ────────────────────────────────────────────────
+// GCC's choice of what to inline into a large function can change with unrelated code elsewhere in the
+// translation unit. Where a hot function must be split at a fixed point (the tape's primitive dispatch), the
+// host pass of the part beyond it is marked so; the device pass is left to its own inliner.
+#if !defined(EBGEOMETRY_DEVICE_COMPILE) && (defined(__GNUC__) || defined(__clang__))
+/** @brief Keep a function out of line in a host pass (GCC and Clang); nothing in a device pass. */
+#define EBGEOMETRY_HOST_NOINLINE __attribute__((noinline))
+#else
+/** @brief Keep a function out of line in a host pass (GCC and Clang); nothing in a device pass. */
+#define EBGEOMETRY_HOST_NOINLINE
+#endif
+
 // ── Kernel parameters read in place ───────────────────────────────────────────
 // A kernel receives its arguments in a read-only parameter space. A function that needs the address of
 // one (a member function of a query that is not inlined, such as a Tape's evaluator) makes the compiler

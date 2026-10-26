@@ -393,10 +393,16 @@ Test coverage
        faces of a fine mesh far from the origin, aimed at its edges and corners;
        ``intersects()`` agreeing with ``firstHit()`` on unbounded rays that enter a tetrahedron's leaf boxes and miss;
        a sliver face not crossed beyond its ends; each analytic ray form against its crossing
-       worked by hand and against the march on random rays; a fused and a taped composition marched to
-       crossings worked by hand, with the tape's deciding leaf; segments (zero length, a crossing at
+       worked by hand and against the march on random rays; span lists united, intersected and
+       complemented against the sets of points they cover; a fused and a taped composition traced (and
+       marched on request) to crossings worked by hand, with the tape's deciding leaf; fused compositions
+       and tapes (a BVH union, a difference, a complement, affine maps) against their values sampled
+       along rays from outside and inside, through a deep copy and a view; a row of balls with more
+       spans than a list holds, from starts along it; the three mesh SDFs, a shape with only
+       ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; segments (zero length, a crossing at
        the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
-       ray form, the march, a fused composition, the three mesh SDFs and a tape against the host.
+       ray form, the march, a fused composition, the three mesh SDFs, two tapes (one with a BVH union
+       and a difference) and a mesh in a fused difference against the host.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an

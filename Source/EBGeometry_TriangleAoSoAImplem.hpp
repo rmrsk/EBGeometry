@@ -116,6 +116,23 @@ TriangleAoSoA<T, W>::rayCrossing(const Vec3T<T>& a_origin,
 
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
+void
+TriangleAoSoA<T, W>::rayCrossings(
+  const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_tMin, const T a_tMax, T* a_crossings) const noexcept
+{
+  m_triangles.rayCrossings(a_origin, a_direction, a_tMin, a_tMax, a_crossings);
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+Vec3T<T>
+TriangleAoSoA<T, W>::getNormal(const size_t a_lane) const noexcept
+{
+  return m_triangles.getNormal(static_cast<uint32_t>(a_lane));
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 uint32_t
 TriangleAoSoA<T, W>::getFaceId(size_t a_lane) const noexcept
 {

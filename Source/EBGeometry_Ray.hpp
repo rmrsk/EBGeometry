@@ -14,8 +14,12 @@
  * within its step budget says so (HitStatus::Unresolved) instead of reporting a miss.
  *
  * A shape with a ray form (see RayForm) is ray traced instead, which is exact and much faster: the plane,
- * sphere, box, cylinders and capsule in closed form (EBGeometry_AnalyticRayForms.hpp), and the mesh SDFs
- * through their BVHs and faces (EBGeometry_MeshRayForms.hpp).
+ * sphere, box, cylinders and capsule in closed form (EBGeometry_AnalyticRayForms.hpp), the mesh SDFs
+ * through their BVHs and faces (EBGeometry_MeshRayForms.hpp), and the compositions built from them, a
+ * union, intersection, difference, complement or affine map of shapes with ray forms (the fused
+ * operations and BVHUnion in EBGeometry_CSGRayForms.hpp, and Tape): those combine where the ray is
+ * inside each operand (its spans, see RaySpansT), and march only the parts that have no ray form.
+ * RayOptions::m_march marches any shape instead.
  * @author Robert Marskar
  */
 
@@ -165,35 +169,183 @@ struct RayOptions
    * Features thinner than this can be missed, and a missed feature is a miss, not an unresolved query.
    */
   T m_step = T(0.005);
+
+  /**
+   * @brief Whether to march the shape even where it has a ray form, as a shape without one is marched: a
+   * reference to compare a ray form with, or a way round one.
+   */
+  bool m_march = false;
+};
+
+/**
+ * @brief One end of a span: where a ray enters or leaves an object.
+ * @details An end is either a crossing of the object's surface, with its outward unit normal and the
+ * primitive whose surface it is, or the end of the interval the ray was traced over (or of what is known
+ * of it; see RaySpansT), which is no crossing.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct SpanEndT
+{
+  /**
+   * @brief What an end is.
+   */
+  enum Kind : uint8_t
+  {
+    Open    = 0, ///< No crossing: an end of the interval, or of what is known.
+    Exact   = 1, ///< A crossing found exactly, by a ray form.
+    Marched = 2  ///< A crossing found by marching, to within RayOptions::m_tolerance.
+  };
+
+  /**
+   * @brief Distance along the ray.
+   */
+  T m_t;
+
+  /**
+   * @brief Outward unit normal at a crossing.
+   */
+  Vec3T<T> m_normal;
+
+  /**
+   * @brief The primitive at a crossing (see HitT::m_primitive).
+   */
+  uint32_t m_primitive;
+
+  /**
+   * @brief What the end is.
+   */
+  Kind m_kind;
+
+  /**
+   * @brief Whether the end is a crossing of the surface.
+   * @return m_kind != Open.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  crossing() const noexcept;
+};
+
+/**
+ * @brief Where a ray is inside an object over an interval [t0, t1]: its spans, in order, each from where it
+ * enters to where it leaves, complete up to a horizon.
+ * @details A span that begins before t0 begins at t0 with an Open end, and one that ends after t1 ends at
+ * t1 with an Open end. The list holds at most Capacity spans. Past that, add() drops a span and lowers the
+ * horizon to where it begins: the list is then complete only on [t0, m_horizon], and a query needing more
+ * starts again from the horizon. A shape whose ray form only finds the first crossing (see RayForm)
+ * describes the interval up to it in the same way.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RaySpansT
+{
+  /**
+   * @brief Most spans held.
+   */
+  static constexpr uint32_t Capacity = 8;
+
+  /**
+   * @brief A span: where the ray enters, and where it leaves.
+   */
+  struct Span
+  {
+    /**
+     * @brief Where the ray enters.
+     */
+    SpanEndT<T> m_in;
+
+    /**
+     * @brief Where it leaves.
+     */
+    SpanEndT<T> m_out;
+  };
+
+  /**
+   * @brief The spans, in order and disjoint.
+   */
+  Span m_spans[Capacity];
+
+  /**
+   * @brief How many are held.
+   */
+  uint32_t m_count = 0;
+
+  /**
+   * @brief The list is complete on [t0, m_horizon]: nothing about the object beyond it is known.
+   */
+  T m_horizon = Math::Limits<T>::infinity();
+
+  /**
+   * @brief Empty the list, complete up to a horizon.
+   * @param[in] a_horizon Horizon: the end of the interval, for a list that will be complete.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  reset(T a_horizon) noexcept;
+
+  /**
+   * @brief Append a span after the last one, or, if the list is full, drop it and lower the horizon to
+   * where it begins.
+   * @param[in] a_in  Where the ray enters.
+   * @param[in] a_out Where it leaves.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  add(const SpanEndT<T>& a_in, const SpanEndT<T>& a_out) noexcept;
+
+  /**
+   * @brief Append the span [a_in, a_out] cut to [a_t0, a_t1]: an end outside it (or infinite) becomes an
+   * Open end there. Nothing is added if the span misses the interval.
+   * @param[in] a_in        Where the ray enters (or -infinity); above a_out for a ray that misses.
+   * @param[in] a_inNormal  Outward normal there.
+   * @param[in] a_out       Where it leaves (or +infinity).
+   * @param[in] a_outNormal Outward normal there.
+   * @param[in] a_primitive The primitive at both ends.
+   * @param[in] a_t0        Start of the interval.
+   * @param[in] a_t1        End of the interval.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  addClipped(T               a_in,
+             const Vec3T<T>& a_inNormal,
+             T               a_out,
+             const Vec3T<T>& a_outNormal,
+             uint32_t        a_primitive,
+             T               a_t0,
+             T               a_t1) noexcept;
 };
 
 /**
  * @brief How to ray trace a shape directly, instead of marching its signed distance.
- * @details The primary template says a shape has no ray form (available is false), and the queries march
- * it. A specialisation for a shape type S says it has one:
+ * @details The primary template is empty: a shape has no ray form, and the queries march it. A
+ * specialisation for a shape type S gives it one, through the functions it defines; they are found by
+ * their signatures, so one with a wrong signature is not used:
  * @code
  *   template <class T>
  *   struct EBGeometry::RayForm<MyShape<T>>
  *   {
- *     static constexpr bool available = true;
- *
  *     EBGEOMETRY_HOST_DEVICE static HitT<T>
  *     firstHit(const MyShape<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+ *
+ *     EBGEOMETRY_HOST_DEVICE static void
+ *     spans(const MyShape<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options,
+ *           bool a_firstOnly, RaySpansT<T>& a_spans) noexcept;
  *   };
  * @endcode
- * Its firstHit() returns the first crossing in [a_tMin, a_tMax], entering or leaving, with every field of
- * HitT filled in. It may also have a static intersects() with the same arguments, returning HitStatus,
- * for a yes/no query that can stop at the first crossing it finds; otherwise intersects() calls its
- * firstHit(). The second template parameter is for partial specialisations that depend on a condition.
+ * firstHit() makes the shape a ray form: it returns the first crossing in [a_tMin, a_tMax], entering or
+ * leaving, with every field of HitT filled in. The others are optional. spans() writes where the ray is
+ * inside the object over [a_tMin, a_tMax] (see RaySpansT), which is what an intersection, difference or
+ * complement of the shape with others needs to be traced exactly; a_firstOnly says that only the first
+ * crossing is needed (the list may then stop after it, its horizon there). Without spans(), a composition
+ * finds the spans by calling firstHit() from one crossing to the next. intersects(), with firstHit()'s
+ * arguments and returning HitStatus, is a yes/no query that can stop at the first crossing it finds;
+ * without it, intersects() calls firstHit(). The second template parameter is for partial
+ * specialisations that depend on a condition.
  * @tparam S Shape type.
  */
 template <class S, class = void>
 struct RayForm
 {
-  /**
-   * @brief Whether S has a ray form.
-   */
-  static constexpr bool available = false;
 };
 
 /**
@@ -291,5 +443,6 @@ intersects(const S&             a_shape,
 } // namespace EBGeometry
 
 #include "EBGeometry_RayImplem.hpp"
+#include "EBGeometry_RaySpans.hpp"
 
 #endif

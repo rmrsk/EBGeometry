@@ -281,9 +281,19 @@ built.
   registers, which comes to a few kilobytes per thread.
   A tape listed as another tape's primitive adds its own levels on top.
 
+.. _Sec:TapeRays:
+
 A tape also answers ray queries, ``tape.firstHit(...)`` and ``tape.intersects(...)``, the same as the
-free functions on any shape: it is marched, and a hit names the deciding leaf at the crossing (see
-:ref:`Chap:ImplemRays`).
+free functions on any shape (see :ref:`Chap:ImplemRays`). Beside the clauses, the compiler writes a
+*ray program* for the tape and for each BVH union operand: its unions, intersections, complements and
+affine maps over the primitives that have ray forms, in the same order, run on a stack of span lists
+(see :ref:`Sec:RaySpans`). A BVH union walks its BVH along the ray, nearest box first, each operand
+running its own ray program one call level down. A subtree with any other operation in it, or a
+primitive without a ray form, is marched as a whole over the clauses compiled for it; a subtree that
+would hold more than ``Tape::RayStackSize`` (4) lists at once is marched too. The ray programs are
+stored in the clause and program arrays after the evaluator's, which never reads them: they add about
+one clause (16 bytes) per expression node to the tape's pool. A hit names the leaf crossed, or for a
+marched subtree the deciding leaf at the crossing.
 
 The :ref:`Chap:ExampleCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.

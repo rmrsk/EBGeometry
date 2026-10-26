@@ -20,7 +20,8 @@ folder measures it. The full description is the *Performance testing* page of th
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |
 | `Tape/`       | `Tape` signed distance (CSG, smooth, BVH union) against a hand-written solid |
 | `Fused/`      | Fused CSG compositions (the Tape probe's solids, a drilled mesh fused and through a tape) |
-| `Ray/`        | Ray queries: a `TriMeshSDF` (`firstHit()`, a hand-written walk, `intersects()`), and the CSG solid marched, fused and through a tape |
+| `Ray/`        | Ray queries: a `TriMeshSDF` (`firstHit()`, a hand-written walk, `intersects()`), a `MeshSDF`, and the CSG solid traced, fused and through a tape |
+| `RayCSG/`     | Ray tracing a composition from its parts' spans: a scene of 50 solids less 10, fused and through a tape, traced and marched |
 | `ClosestPrimitive/` | A tape's `closestPrimitive()`, the deciding leaf (CSG, a scene of fused parts, a drilled mesh) |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results               |

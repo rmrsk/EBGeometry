@@ -62,9 +62,11 @@ Ray forms
 ---------
 
 A shape is ray traced exactly when it has a *ray form*: a specialisation of
-`RayForm <doxygen/html/structEBGeometry_1_1RayForm.html>`__ for its type, with ``available = true`` and
-a static ``firstHit()`` with the arguments above (and optionally a static ``intersects()``). Otherwise
-the queries march it. The library has ray forms for:
+`RayForm <doxygen/html/structEBGeometry_1_1RayForm.html>`__ for its type with a static ``firstHit()``
+taking the arguments above. It may also have a static ``spans()``, which compositions use (see
+:ref:`Sec:RaySpans`), and a static ``intersects()``. These are found by their signatures: a ray form
+whose ``firstHit()`` has another signature is not used. Otherwise the queries march the shape. The
+library has ray forms for:
 
 .. list-table::
    :header-rows: 1
@@ -87,6 +89,15 @@ the queries march it. The library has ray forms for:
        convex, as for the mesh's signed distance.
    * - ``FlatMeshSDF``
      - Every face in turn, without a BVH, as its signed distance does: for small meshes and checks.
+   * - ``Fused::Union``, ``Fused::Intersection``, ``Fused::Difference``, ``Fused::Complement``,
+       ``Fused::Translate``, ``Rotate``, ``Scale``, ``Reflect``
+     - Their operands' spans, combined (`EBGeometry_CSGRayForms.hpp
+       <doxygen/html/EBGeometry__CSGRayForms_8hpp.html>`__). The other fused operations have no ray form.
+   * - ``BVHUnion``
+     - The union of the spans of the primitives whose boxes the ray meets, walking its BVH nearest box
+       first and leaving out the boxes beyond what the union so far is known up to.
+   * - ``Tape``
+     - Its ray program, clause by clause (see :ref:`a tape's ray program <Sec:TapeRays>`).
 
 The triangle test is written once, in ``TriangleRay::crossing()``, for one triangle and for a SIMD
 pack of them, as the triangle distance is (see :ref:`Chap:SIMDClasses`): the host evaluates a leaf
@@ -100,9 +111,9 @@ widening must also be that close to the edge's extent, not just its line, so tha
 crossed far beyond its ends; and the polygon test takes the side of each edge that is inside from the
 loop's own orientation.
 
-Every other shape is marched: the other analytic shapes, the BVH unions,
-the fused compositions, tapes and shapes of your own. The ray forms are included with their shapes'
-headers, so ``firstHit()`` on a shape is the same function in every translation unit.
+Every other shape is marched: the other analytic shapes, ``BVHSmoothUnion``, the other fused operations
+and shapes of your own without a ray form. The ray forms are included with their shapes' headers, so
+``firstHit()`` on a shape is the same function in every translation unit.
 
 To give a shape of your own a ray form, specialise ``RayForm`` in namespace ``EBGeometry``:
 
@@ -111,15 +122,54 @@ To give a shape of your own a ray form, specialise ``RayForm`` in namespace ``EB
    template <class T>
    struct EBGeometry::RayForm<MyShape<T>>
    {
-     static constexpr bool available = true;
-
      EBGEOMETRY_HOST_DEVICE static HitT<T>
      firstHit(const MyShape<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
               const RayOptions<T>& a_options) noexcept;
+
+     // Optional: where the ray is inside the shape (see below).
+     EBGEOMETRY_HOST_DEVICE static void
+     spans(const MyShape<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
+           const RayOptions<T>& a_options, bool a_firstOnly, RaySpansT<T>& a_spans) noexcept;
    };
 
 Its ``firstHit()`` returns the first crossing in ``[a_tMin, a_tMax]`` with every field of ``HitT``
-filled in.
+filled in. Without ``spans()``, an intersection, difference or complement with the shape finds its
+spans by calling ``firstHit()`` from one crossing to the next, a step (``RayOptions::m_tolerance``
+times the scale) past each.
+
+.. _Sec:RaySpans:
+
+Spans
+-----
+
+A composition is traced from its operands' spans (see :ref:`Chap:Rays`), in
+`EBGeometry_RaySpans.hpp <doxygen/html/EBGeometry__RaySpans_8hpp.html>`__. A
+`RaySpansT <doxygen/html/structEBGeometry_1_1RaySpansT.html>`__ holds the spans of one object over an
+interval, in order, at most ``RaySpansT::Capacity`` (8) of them, each a pair of
+`SpanEndT <doxygen/html/structEBGeometry_1_1SpanEndT.html>`__: a distance, and either a crossing with
+its normal, its primitive and whether it was found exactly, or an ``Open`` end, where the interval (or
+what is known) ends rather than the surface. ``m_horizon`` says how far the list is complete:
+``add()`` drops a span past the capacity and lowers the horizon to where it begins. A ``spans()`` writes
+the list over ``[a_tMin, a_tMax]``, with ``addClipped()`` for a span that may reach past the interval;
+``a_firstOnly`` says that only the first crossing is needed, and the list may then stop there, its
+horizon at it.
+
+Union, intersection and complement combine lists, complete up to the smaller horizon; an affine map
+traces its operand along the mapped ray (the distances scale by the map's stretch along it) and maps the
+normals back by the transposed matrix. A union asks its operands only for their first crossings, and
+an intersection or a complement for all their spans; each operand of a union is traced only up to what
+the union so far is known up to. The first crossing is the first crossing end in the final list that
+comes no later than its horizon. If there is none and the horizon is short of the interval's end, the
+trace starts again from the horizon, asking every operand for all its spans if it got no further. An
+operand without a ray form is marched in its own box, and crossings found that way are not exact
+(``HitT::m_exact``).
+
+A shape's convex closed forms give one span at the cost of a first crossing. A mesh SDF collects the
+nearest ``2 * Capacity + 1`` crossings along the ray in one walk of its BVH (bounded by the farthest kept,
+once full) and pairs them by the side of the face each crosses from, skipping a repeated crossing of the
+same side (a ray through an edge crosses both faces); the mesh must be closed for the pairs to mean
+inside and outside. The triangle groups report every lane's crossing for this
+(``TriangleAoSoA::rayCrossings()``).
 
 The march
 ---------
@@ -152,13 +202,18 @@ difference of the value there (six evaluations, only for a crossing).
      - ``0.005``
      - The fixed step, times the scale, for a value that is not a distance. Features thinner than
        this can be missed, and such a miss is reported as ``Miss``, not ``Unresolved``.
+   * - ``m_march``
+     - ``false``
+     - March the shape even where it has a ray form: a reference for the exact answer, or a way round
+       a ray form.
 
 A marched ray that comes within the tolerance of the surface counts as a hit, even where it only
 grazes the surface (passes an edge without entering): conservative for a particle, which then never
 slips through an edge. Whether such a ray is a hit is decided by rounding, so the host and a device
 can answer it differently.
 
-The ray forms ignore the options.
+The closed forms and the mesh SDFs ignore the options other than ``m_march``; the compositions pass
+them to the operands they march.
 
 Walking the BVH yourself
 ------------------------

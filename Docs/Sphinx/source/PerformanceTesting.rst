@@ -212,8 +212,8 @@ names the hand-written walk (``traverse()`` with a ``RayQuery`` and the probe's 
 and a comparison notes ``hand/api`` beside it: what ``firstHit()`` costs over code a user writes. The
 same mesh as a ``MeshSDF`` (K = 4, SAH, three faces per leaf) is traced through its polygon faces; its
 ``firstHit`` case names the ``TriMeshSDF`` one and notes ``triangles/polygons``. The
-classic CSG solid is marched, fused and through a tape; the fused case notes ``tape/fused``. A host and
-a device marched crossing agree when both miss, or both cross within 1e-3.
+classic CSG solid is traced from its parts' spans, fused and through a tape; the fused case notes
+``tape/fused``. A host and a device crossing agree when both miss, or both cross within 1e-3.
 
 ====================================  =====  =====================================================
 Case                                  Build  Measures
@@ -225,8 +225,25 @@ Case                                  Build  Measures
 ``mesh-polygons/firstHit``,           host   the same as a ``MeshSDF``, its faces crossed as
 ``intersects``                               polygons
 ``csg-fused/firstHit``                host   the first crossing of each of 50,000 rays with the CSG
-                                             solid, fused, marched
+                                             solid, fused, traced
 ``csg-tape/firstHit``                 host   the same through a ``Tape``
+``<input>/<operation>-morton``,       GPU    each of the above at 262,144 rays, in Morton and in
+``<operation>-random``                       random order
+====================================  =====  =====================================================
+
+**RayCSG** (``Performance/RayCSG``): ray tracing a composition from its parts' spans (see
+:ref:`Sec:RaySpans`). The scene is 25 balls and 25 boxes in :math:`[-1, 1]^3`, less 10 balls, from random
+points; the rays start as in the Ray probe. It is fused and through a tape (whose union of 50 is a BVH
+union), traced and marched (``RayOptions::m_march``); each traced case names its marched one and notes
+``marched/traced``. A host and a device crossing agree as in the Ray probe.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``scene-fused/firstHit``              host   the first crossing of each of 50,000 rays, traced
+``scene-fused/firstHit-marched``      host   the same, marched
+``scene-tape/firstHit``,              host   the same through a ``Tape``
+``firstHit-marched``
 ``<input>/<operation>-morton``,       GPU    each of the above at 262,144 rays, in Morton and in
 ``<operation>-random``                       random order
 ====================================  =====  =====================================================
