@@ -1,12 +1,3 @@
-<!-- REMOVE this banner once downstream users have migrated (target: ~2026-Q4). -->
-> [!IMPORTANT]
-> **Git history rewritten (July 2026).** EBGeometry's history was rewritten to
-> remove large binary files from old commits, so **every commit hash before this
-> date has changed**. If you pin EBGeometry as a **submodule** at an older commit,
-> follow the [migration guide](https://github.com/rmrsk/EBGeometry-legacy/releases/tag/pre-history-rewrite)
-> (old&rarr;new commit map + how to repoint). If you just clone/build the library
-> or vendor `EBGeometry.hpp`, no action is needed.
-
 # EBGeometry
 
 **Fast, portable geometry queries in a single C++ header.**
@@ -24,9 +15,9 @@ one header and compile with C++17.
 <p align="center">
    <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
    <br/>
-   <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth union and a
-   difference, rendered on a GPU. Dragon: <a href="https://graphics.stanford.edu/data/3Dscanrep/">Stanford 3D
-   Scanning Repository</a>.</sub>
+   <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth
+   union and a difference. Dragon: <a href="https://graphics.stanford.edu/data/3Dscanrep/">Stanford
+   3D Scanning Repository</a>.</sub>
 </p>
 
 ## Why EBGeometry
@@ -41,8 +32,8 @@ one header and compile with C++17.
   of builds (SAH, clustered SAH, Morton and Hilbert curves), SIMD triangle kernels, compiled CSG, and
   BVH-accelerated unions of many objects.
 * **Measured on every change.** Every pull request comes with a performance comparison against its
-  base, on the host and on a GPU, and every result is cross-checked. Unit tests check against brute
-  force and closed forms, in both precisions, under sanitizers.
+  base, on the host and on a GPU, which also checks that the answers did not change. Unit tests check
+  against brute force and closed forms, in both precisions, under sanitizers.
 * **No dependencies.** One header, C++17, `float` or `double`. Nothing to build or link.
 
 ## What it does
@@ -71,6 +62,8 @@ one header and compile with C++17.
 ## In code
 
 ```cpp
+#include <iostream>
+
 #include <EBGeometry.hpp>
 
 using namespace EBGeometry;
@@ -96,16 +89,26 @@ main()
   // A triangle mesh as a signed distance field: SIMD triangle blocks under a BVH.
   const auto mesh = Parser::readIntoTriMeshSDF<T>("armadillo.obj", pool);
 
-  // A scene: the mesh drilled through by a cylinder, next to a smooth blob, compiled into a tape.
-  const auto drill = InfiniteCylinderSDF<T>(mesh.computeBoundingVolume().getCentroid(), T(10), 0);
-  const auto blob  = SmoothUnion(SphereSDF<T>(Vec3T<T>(2, 0, 0), 0.5), SphereSDF<T>(Vec3T<T>(2.6, 0, 0), 0.4), 0.2);
+  // Place the other shapes from the mesh's bounding box: the armadillo is about 130 units across.
+  const auto     box    = mesh.computeBoundingVolume();
+  const Vec3T<T> center = box.getCentroid();
+  const Vec3T<T> beside(box.getHighCorner()[0] + T(30), center[1], center[2]);
+
+  // A scene: the mesh drilled through along x (axis 0) by a cylinder of radius 10, and beside it a
+  // smooth blob of two spheres. Compiled into a tape.
+  const auto drill = InfiniteCylinderSDF<T>(center, T(10), 0);
+  const auto big   = SphereSDF<T>(beside, T(15));
+  const auto small = SphereSDF<T>(beside + Vec3T<T>(T(20), T(0), T(0)), T(10));
+  const auto blob  = SmoothUnion(big, small, T(5));
 
   const Tape<T> scene(pool, Union(Difference(Expr<T>(mesh), drill), blob));
 
-  // Ask it anything, anywhere.
-  const Vec3T<T>        p(0.1, 0.2, 0.3);
+  // Ask it anything, anywhere: here, at a point in the blob.
+  const Vec3T<T>        p    = beside;
   const T               d    = scene.signedDistance(p);    // negative inside, positive outside
   const PrimitiveRef<T> leaf = scene.closestPrimitive(p);  // which surface decides the value
+
+  std::cout << "distance " << d << ", decided by leaf " << leaf.m_leaf << '\n';
 
   // The same query on a GPU: mirror the pool to the device and evaluate a million points in a kernel.
   std::vector<Vec3T<T>> points(1000000, p);
@@ -206,10 +209,11 @@ carries, and the code conventions. For GPU work, start from [PORTING.md](PORTING
 EBGeometry is human-designed, with AI-assisted implementation.
 
 * **2022 to mid-2026:** designed and written by hand.
-* **Since July 2026** (the overhaul in [#88](https://github.com/rmrsk/EBGeometry/pull/88)): the maintainer designs and decides: the architecture, the
-  APIs, the algorithms, the priorities, and every non-obvious choice. [Claude Code](https://claude.com/claude-code)
-  implements, tests, documents and measures, steered by the rules in [`CLAUDE.md`](CLAUDE.md), and
-  brings every open decision back to the maintainer.
+* **Since July 2026** (the overhaul in [#88](https://github.com/rmrsk/EBGeometry/pull/88)): the
+  maintainer designs and decides: the architecture, the APIs, the algorithms, the priorities, and
+  every non-obvious choice. [Claude Code](https://claude.com/claude-code) implements, tests, documents
+  and measures, steered by the rules in [`CLAUDE.md`](CLAUDE.md), and brings every open decision back
+  to the maintainer.
 * **Every change,** whoever wrote it, passes the same gates: unit tests against independent
   references, continuous integration, a performance comparison against its base, an AI review, and a
   human review. The maintainer reviews and merges every pull request.
