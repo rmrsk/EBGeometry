@@ -35,3 +35,28 @@ date: 2026-10-26
 **VERDICT: MAJOR regression in 18 cases
 
 <!-- END receipt host -->
+
+<!-- BEGIN receipt cuda -->
+<!--receipt
+version: 3
+side: cuda
+verdict: red
+base: cd92804
+base-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
+head: 0b2a062
+head-fingerprint: 6dcd8844289946e2075398743d852fff9c97a167
+cases: 152
+rounds: 3
+reps: 5
+date: 2026-10-26
+-->
+
+## Device comparison (CUDA): red
+
+**Accepted:** On the device, a small fused solid in float traces slower than dev marched it in registers (the span lists live in local memory); the Tape and larger scenes trace faster. A few float rays graze a surface tangentially; host and device round them differently. Checksums change because compositions are now traced exactly.
+
+`0b2a062` against `cd92804` (origin/dev), 2026-10-26.
+
+**VERDICT: host and device answers differ in 8 cases
+
+<!-- END receipt cuda -->
