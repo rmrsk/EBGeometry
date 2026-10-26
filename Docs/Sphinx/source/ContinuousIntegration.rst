@@ -22,6 +22,20 @@ above so branch-protection rules only need to target one required check.
    :local:
    :depth: 2
 
+Two tiers
+---------
+
+The pipeline runs in two tiers, so that a pull request under development gets its answer quickly:
+
+* A **draft** pull request runs the *fast tier*: one or two cells of each matrix, and no
+  ``Linux-Intel``, ``Examples-GNUMake``, ``Examples-FloatPrecision``, ``Static-analysis`` or ``GPU-CUDA``
+  job; ``GPU-HIP`` builds only its optimised configuration. It takes about eight minutes.
+* A pull request that is **ready for review** (marking it ready runs CI again) and every **push** to
+  ``main`` or ``dev`` run the *full tier*: every job and every matrix cell described below.
+
+The tier is chosen from ``github.event.pull_request.draft``, which is false on a push. Every build and
+test run uses all the runner's cores (four on a public repository's standard runner).
+
 Jobs overview
 ---------------
 
@@ -64,7 +78,7 @@ Static-analysis
 Runs ``clang-tidy-18`` (via ``run-clang-tidy-18``) over every ``Tests/*.cpp`` and ``Examples/*.cpp``
 translation unit, using a compile-command database exported from the ``debug`` preset built with
 ``clang++-14``. Marked ``continue-on-error: true`` (there is a known review backlog), so it is
-advisory and does not gate ``CI-passed``.
+advisory and does not gate ``CI-passed``. Full tier only.
 
 The example lanes below run every example: every folder under :file:`Examples/` with a
 ``main.cpp``. The folders are the only list of examples, which ``Examples/CMakeLists.txt`` globs the
@@ -76,7 +90,7 @@ Linux-GNU
 ~~~~~~~~~
 
 Compiles and runs every example directly with ``g++`` (one job each for ``g++-11`` and
-``g++-12``), using ``-std=c++17 -pedantic -Wall -Wextra -Werror`` plus a large set of additional
+``g++-12``; ``g++-12`` alone in the fast tier), using ``-std=c++17 -pedantic -Wall -Wextra -Werror`` plus a large set of additional
 diagnostic flags. ``-Wsign-conversion`` stays a warning (``-Wno-error=sign-conversion``), since the
 library does not pass it yet.
 
@@ -84,13 +98,13 @@ Linux-Intel
 ~~~~~~~~~~~
 
 Compiles and runs every example with Intel's ``icpx`` compiler, ``-std=c++17 -O0
--fp-model=precise -Wall -Werror`` plus additional diagnostic flags.
+-fp-model=precise -Wall -Werror`` plus additional diagnostic flags. Full tier only.
 
 Examples-GNUMake
 ~~~~~~~~~~~~~~~~
 
 Builds and runs every example via its own ``GNUmakefile`` (``make run``), with the makefile's
-default flags.
+default flags. Full tier only.
 
 Examples-CMake
 ~~~~~~~~~~~~~~
@@ -105,7 +119,7 @@ Examples-FloatPrecision
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The same as ``Examples-CMake``, but configured with ``-DEBGEOMETRY_PRECISION=float`` (a cache
-variable shared by every example's own ``CMakeLists.txt``).
+variable shared by every example's own ``CMakeLists.txt``). Full tier only.
 
 Performance-smoke
 ~~~~~~~~~~~~~~~~~
@@ -117,13 +131,13 @@ checks that the probes still compile and run; it times nothing. See :ref:`Chap:P
 Performance-receipt
 ~~~~~~~~~~~~~~~~~~~
 
-On a pull request, checks its performance receipt (``Performance/CheckReceipt.cmake``): the result of
+On a pull request that is ready for review, checks its performance receipt (``Performance/CheckReceipt.cmake``): the result of
 the full comparison its author ran locally with ``Scripts/run-performance.sh compare --record`` and
 committed. It times nothing, since a shared runner is too noisy to judge performance. It fails when the
 pull request changes the library or the probes and its receipt is missing, measured other code (stale),
 measured an outdated base, or is not green and has no accepted reason; see :ref:`Chap:PerformanceTesting`.
-The result goes into the job summary. On a push the job does nothing and succeeds, since ``CI-passed``
-counts a skipped job as a failure. The GPU lanes also compile the probes for their device.
+The result goes into the job summary. On a push or a draft the job does nothing and succeeds (on a
+draft, with a notice), since ``CI-passed`` counts a skipped job as a failure. The GPU lanes also compile the probes for their device.
 
 CMake-consumer
 ~~~~~~~~~~~~~~
@@ -147,7 +161,8 @@ Unit-Tests
 
 Configures with the ``debug`` preset (examples disabled) across a matrix of compilers
 ``{g++-12, clang++-14}`` × SIMD levels ``{none, avx, avx512}``, with
-``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, and runs ``ctest --preset debug``. The ``avx512``
+``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, and runs ``ctest --preset debug``; the fast tier runs only
+``g++-12`` with ``avx`` and ``clang++-14`` with ``none``. The ``avx512``
 configurations always compile (catching ISA-specific errors in the SIMD-accelerated code paths) but
 only actually run on a runner whose CPU supports AVX-512F.
 
@@ -163,26 +178,29 @@ Sanitizers
 
 Configures with the ``debug-san`` preset (examples disabled) across a matrix of compilers
 ``{g++-12, clang++-14}`` × SIMD levels ``{none, avx}``, with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``,
-and runs ``ctest --preset debug-san`` under AddressSanitizer and UndefinedBehaviorSanitizer.
+and runs ``ctest --preset debug-san`` under AddressSanitizer and UndefinedBehaviorSanitizer; the fast
+tier runs only ``g++-12`` with ``avx``.
 
 GPU-HIP
 ~~~~~~~
 
 Installs a HIP toolchain (``hipcc``, ``clang-17``) and compiles the unit-test files that carry a
 device block in clang's HIP mode, with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, so the
-GPU-callable code must compile for the device. It also compiles the examples for the device
-(``EBGeometry_GPUDeviceExamples``, see :ref:`Sec:ExamplesGPU`), without running them. It builds a second time, optimised (Release) and with
-host SIMD flags (``-mavx -mfma -msse4.1``), which catches a SIMD block that is not excluded from
-device compilation, and device code whose compile grows out of hand once HIP inlines every device
-function, which only an optimised build shows. The runner has no GPU, so the device-tagged tests it then runs skip before launching a
+GPU-callable code must compile for the device. It also compiles the examples
+(``EBGeometry_GPUDeviceExamples``, see :ref:`Sec:ExamplesGPU`) and the performance probes for the
+device, without running them. It builds optimised (Release) and with host SIMD flags (``-mavx -mfma
+-msse4.1``), which catches a SIMD block that is not excluded from device compilation, and device code
+whose compile grows out of hand once HIP inlines every device function, which only an optimised build
+shows; the full tier builds a second time, unoptimised. The runner has no GPU, so the device-tagged tests it then runs skip before launching a
 kernel: the step checks that the binaries start and that the device query is safe, not that device
 code gives correct results. This job is required by ``CI-passed``.
 
 GPU-CUDA
 ~~~~~~~~
 
-The same device compile with ``nvcc`` (CUDA 12.5), device examples included, without the second
-SIMD-flags build. Marked
+The same device compile with ``nvcc`` (CUDA 12.5), device examples and probes included, unoptimised
+and without SIMD flags. Full tier only. CUDA and HIP are separate jobs because they use different
+device compilers and install routes, and run side by side. Marked
 ``continue-on-error: true``, because its toolkit install is the least reliable step in the
 workflow, so it is advisory and does not gate ``CI-passed``.
 
@@ -192,7 +210,7 @@ CI-passed
 Aggregates every job above -- except the advisory ``Static-analysis`` and ``GPU-CUDA`` -- as a single
 required status check. It runs even when one of those jobs fails or is cancelled, and fails unless
 every one of them succeeded; a skipped dependency counts as a failure too, since a skipped required
-check would not block a merge. Branch-protection rules can target this job instead of each
+check would not block a merge, except a full-tier-only job skipped on a draft. Branch-protection rules can target this job instead of each
 individual job.
 
 Dependency graph
