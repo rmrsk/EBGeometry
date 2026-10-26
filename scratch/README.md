@@ -54,7 +54,7 @@ nvcc -std=c++17 -O3 -arch=sm_86 -Xcompiler -fopenmp -DSDL_DISABLE_IMMINTRIN_H $(
 g++ viewer-gpu.o -o viewer-gpu $(sdl2-config --libs) -L$CUDA_HOME/lib64 -lcudart -fopenmp
 ```
 
-The README animation (`Docs/Sphinx/source/_static/csg_dragon.gif` on `dev`), from an empty folder:
+The README animation (`Docs/Sphinx/source/_static/csg_dragon.gif`, added by #234), from an empty folder:
 
 ```bash
 nvcc -std=c++17 -O3 -arch=sm_86 -Xcompiler -fopenmp -I<scratch>/.. -x cu -c <scratch>/csganim.cpp -o csganim.o
