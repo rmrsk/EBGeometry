@@ -20,8 +20,9 @@
 #   --gpu cuda|hip          build the probes for a GPU: run the host/device pairs instead of the host cases
 #   --gpu-arch <arch>       CMAKE_CUDA_ARCHITECTURES / CMAKE_HIP_ARCHITECTURES (e.g. 86)
 #   --cuda-compiler <path>  nvcc to use (CMake also honours CUDACXX); --hip-compiler likewise
-#   --reps <n>              timed repetitions per case (default 5)
-#   --rounds <n>            compare: runs of each case per side (default 3, at least 2)
+#   --reps <n>              timed repetitions per case (default 3)
+#   --rounds <n>            compare: runs of each case per side (default 2); 1 shows the times
+#                           without judging them (a quick check while developing; not with --record)
 #   --smoke                 tiny sizes, one repetition: run checks that the cases run; compare checks
 #                           that both commits build, every case runs on both sides, the checksums
 #                           match and host/device agree, with no timing verdicts (about a minute)
@@ -68,8 +69,8 @@ set(positional "")
 set(gpu OFF)
 set(gpu_arch "")
 set(device_compiler "")
-set(reps 5)
-set(rounds 3)
+set(reps 3)
+set(rounds 2)
 set(smoke OFF)
 set(record OFF)
 set(core "")

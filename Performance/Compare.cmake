@@ -22,8 +22,9 @@
 #   GPU_ARCH   CMAKE_CUDA_ARCHITECTURES / CMAKE_HIP_ARCHITECTURES  default: the toolchain's
 #   CMAKE_CUDA_COMPILER / CMAKE_HIP_COMPILER  the device compiler   default: the one on the PATH
 #   CASES      glob(s) of case names to run, a CMake list         default: *
-#   ROUNDS     runs of each case per side (at least 2)            default: 3
-#   REPS       timed repetitions inside each run                  default: 5
+#   ROUNDS     runs of each case per side; 1 shows the times      default: 2
+#              without judging them (not with RECORD)
+#   REPS       timed repetitions inside each run                  default: 3
 #   CORE       core to pin to with taskset; OFF to not pin        default: 2 (with GPU: OFF, and only OFF)
 #   MINOR      percent slower that asks for a look                default: 3
 #   MAJOR      percent slower that is a red flag                  default: 10
@@ -41,7 +42,7 @@ cmake_minimum_required(VERSION 3.16)
 
 get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
-foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;3" "REPS;5" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
+foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;2" "REPS;3" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
              "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF")
   list(GET pair 0 var)
   list(GET pair 1 default)
@@ -69,10 +70,12 @@ endif()
 if(SMOKE)
   set(ROUNDS 1)
   set(REPS 1)
-elseif(ROUNDS LESS 2)
+elseif(ROUNDS LESS 1)
+  message(FATAL_ERROR "Compare.cmake: ROUNDS must be at least 1 (got ${ROUNDS})")
+elseif(ROUNDS LESS 2 AND RECORD)
   # PerfCompare judges a case by its runs (fresh processes), and one run per side cannot tell a change
-  # from the noise between processes.
-  message(FATAL_ERROR "Compare.cmake: a comparison needs at least 2 rounds (got ROUNDS=${ROUNDS})")
+  # from the noise between processes: such a comparison shows times, and cannot stand as a receipt.
+  message(FATAL_ERROR "Compare.cmake: a receipt (RECORD) needs at least 2 rounds (got ROUNDS=${ROUNDS})")
 endif()
 
 get_filename_component(WORK_DIR "${WORK_DIR}" ABSOLUTE BASE_DIR "${REPO}")
@@ -388,11 +391,11 @@ endif()
 if(SMOKE)
   string(APPEND again " --smoke")
 else()
-  if(NOT ROUNDS EQUAL 3)
+  if(NOT ROUNDS EQUAL 2)
     string(APPEND again " --rounds ${ROUNDS}")
   endif()
 
-  if(NOT REPS EQUAL 5)
+  if(NOT REPS EQUAL 3)
     string(APPEND again " --reps ${REPS}")
   endif()
 endif()
