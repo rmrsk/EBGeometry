@@ -18,8 +18,8 @@ side: host
 verdict: red
 base: cd92804
 base-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
-head: 3b65628
-head-fingerprint: 244f32f2eb0cd06e14f4d4be913c6e615237f54b
+head: 8d8475c
+head-fingerprint: 6dcd8844289946e2075398743d852fff9c97a167
 cases: 152
 rounds: 3
 reps: 5
@@ -30,7 +30,7 @@ date: 2026-10-26
 
 **Accepted:** Ray programs stored beside the Tape's clauses (about 16 bytes per expression node) grow its pool; compositions are now traced exactly instead of marched, which changes the CSG ray checksums.
 
-`3b65628` against `cd92804` (origin/dev), 2026-10-26.
+`8d8475c` against `cd92804` (origin/dev), 2026-10-26.
 
 **VERDICT: MAJOR regression in 18 cases
 
