@@ -146,7 +146,7 @@ queries in a kernel and compares against the host:
 | Bounding volumes | `AABBT` in `EBGeometry_BoundingVolumes.hpp` (`SphereT` retired) | #132, #133, #164 |
 | SoA/AoSoA leaves | `PointSoA`, `PointAoSoA`, `TriangleSoA`, `TriangleAoSoA` | #134 |
 | DCEL | `VertexT`, `EdgeT`, `FaceT`, `EdgeIteratorT`, `MeshT` | #137–#140 |
-| BVH traversal and storage | `PackedBVH` (`Node`, `ChildAABBSoA`, `pruneTraverse`, the template `traverse`) | #145, #146, #153, #154, #161 |
+| BVH traversal and storage | `PackedBVH` (`Node`, `ChildBoxes`, the general `traverse()` with `PointQuery`/`RayQuery`, #230) | #145, #146, #153, #154, #161 |
 | Point-cloud queries | `PointCloudBVH` (holds a `PackedBVH`) and `PointCloudHashGrid` (pool-backed grid); one `PointCloud::Hit`, a shared `PointCloud::KBest`, device-callable brute-force references. Both builds stay on the host | #147, #162 |
 | Mesh SDFs | `FlatMeshSDF`, `MeshSDF`, `TriMeshSDF`; `getClosestFace` returns a `uint32_t` face id | #148, #149, #156 |
 | Analytic shapes | The twelve classes in `EBGeometry_AnalyticDistanceFunctions.hpp` (constructors stay on the host) | #151 |
@@ -265,7 +265,7 @@ caller's node key in every entry. They now keep one entry per level, as Ylitie, 
 compressed wide BVHs do (HPG 2017): the parent's index, the slots of its children still to visit in
 visit order (a byte each) and how many are left, 4 + K bytes rounded up to 4 (8 at K = 4). The stack
 is bounded by the depth, `D - 1` entries at any K and for any key type (31 entries, 248 bytes, on a
-device at K = 4). `pruneTraverse()` sorts a node's children nearest first, descends into the
+device at K = 4). `traverse()` (with a `PointQuery`, nearest first) sorts a node's children nearest first, descends into the
 nearest at once and, when it returns to a level, computes the next child's distance again from the
 parent's box row, through the same path that sorted it, so one comparison with the current bound
 drops the rest of the level. `traverse()` keeps the order its child orderer produced and calls the
@@ -321,9 +321,19 @@ local memory, touched on every push and pop. `ChildAABBSoA` is also laid out for
 here: it exists so one *thread* can load K children into one SIMD register, which is a CPU idea and
 buys nothing when a lane reads all K serially. None of that is measured. It is recorded so the
 layout is not mistaken for a finished design, and so nobody benchmarks it and draws a conclusion
-about the library's GPU ceiling. The agreed shape of the fix:
+about the library's GPU ceiling. The agreed shape of the fix, as recorded before #230:
 
-* **One API, two implementations — not a GPU-special function.** Add a batched entry point,
+> **History, superseded by #230 (2026-10-25).** The plan below names `pruneTraverse()`,
+> `pruneTraverseBatch` and `computeChildDistances2()`, none of which exist any more. #230 replaced
+> `pruneTraverse()` and the four-callback `traverse()` with one general
+> `PackedBVH::traverse(query, state, leaf, bound, visit, order)` (a `PointQuery` gives what
+> `pruneTraverse()` did), moved the distance kernel to `BVH::QueryDetail::pointDistances2()`, and, by
+> the maintainer's choice, adds no library launcher over arrays of queries: the user runs one query
+> per thread in their own functor. #202's `pruneTraverseBatch` was dropped; its `mortonOrder()` and
+> ordered `GPU::transform` are kept. What still holds below is the reasoning about divergence, Morton
+> order and measuring first.
+
+* **One API, two implementations — not a GPU-special function.** *(Superseded.)* Add a batched entry point,
   `pruneTraverseBatch(PODSpan<const Vec3T<T>> points, PODSpan<State> states, ...)`, implemented
   twice: on host as a loop over queries using the existing SIMD child test, on device as a mapping
   of queries onto threads or warps. Batching earns its keep on the host too (better node-cache
@@ -345,7 +355,7 @@ about the library's GPU ceiling. The agreed shape of the fix:
 * **Why after the tape and not before it.** The tape changes what a leaf evaluator is, so a batched
   traversal built earlier gets partly rebuilt anyway.
 
-Nothing needs doing now to keep this open: `pruneTraverse`'s contract already says nothing about
+Nothing needs doing now to keep this open: `traverse()`'s contract already says nothing about
 threads. The one thing worth adding alongside the first `[gpu]` benchmark is a coherent-query case.
 
 **Device builds.** A device-side `PointCloudBVH` build (Morton codes and a radix sort) and its
@@ -428,6 +438,10 @@ GPU motivation; it was retired later on its own terms, once no built-in class im
 
 ### One traversal loop
 
+*History: written before #230, which replaced `pruneTraverse()` with the general `traverse()` and moved
+`computeChildDistances2()` to `BVH::QueryDetail::pointDistances2()`. The single loop described here is
+that walk's ancestor.*
+
 `pruneTraverse` used to hold seven copies of the same branch-and-bound loop: six `if constexpr` SIMD
 blocks plus a scalar fallback that had no loop of its own, building four `std::function`s and
 delegating to a heap-stack `traverse()`. Compared line by line, the six SIMD blocks differed only in
@@ -460,8 +474,8 @@ single-threaded:
 * **The tape needs nothing more.** Under the tape a union's primitive is a clause id, and
   `PackedBVH<T, uint32_t, K>` stores the same four bytes with no indirection through every
   construction path (the SFC, top-down and ClusterSAH builds and `TreeBVH::pack()`).
-  `IndexStorage` would only have moved the indexing into the policy; `pruneTraverse` never called
-  its resolver.
+  `IndexStorage` would only have moved the indexing into the policy; `pruneTraverse` (now
+  `traverse()`) never called its resolver.
 * **It reads more, not less.** A leaf evaluator still needs the face's normal, centroid and
   projection axes, so it touches all 88 bytes of a `FaceT` either way; the index adds a 4-byte
   read and makes the 88-byte one scattered.
@@ -508,7 +522,7 @@ findings generalise, the specific numbers do not.
 ### Each box stored once
 
 Until BVH-8 every box but the root's was stored twice: in its own node, and in its parent's SIMD row
-of child boxes, the copy `pruneTraverse()` reads. A node no longer holds a box. It keeps a 4-byte box
+of child boxes, the copy `traverse()`'s queries read. A node no longer holds a box. It keeps a 4-byte box
 slot (its parent's row times K, plus its position among the parent's children), and the root's box is
 a one-element array in the same pool, so a `refit()` through any copy of the BVH is seen by all. Any
 node's box is one lookup away through the BVH (`getBoundingVolume(node)`,
@@ -631,7 +645,7 @@ These extend what the library can do rather than repair what it does.
 
 Design and performance work that was deferred on purpose. None of it is a defect.
 
-* **BVH-18** [NIT]: `computeChildDistances2()`, `TriangleSoA` and `PointSoA` choose their inline SIMD
+* **BVH-18** [NIT]: `BVH::QueryDetail::pointDistances2()` (formerly `computeChildDistances2()`), `TriangleSoA` and `PointSoA` choose their inline SIMD
   bodies by the ISA macros, so translation units compiled with different flags define them two ways
   and the linker keeps one. Documented under "Mixing SIMD flags in one program" in
   `ConfigurationOptions.rst`, and unchecked: the types keep one layout, and the paths agree for

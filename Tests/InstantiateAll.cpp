@@ -92,6 +92,23 @@ namespace EBGeometry {
   template class BVH::TreeBVH<PREC, Vec3T<PREC>, BoundingVolumes::AABBT<PREC>, 4>; \
   template class BVH::PackedBVH<PREC, Vec3T<PREC>, 4>;                       \
   template class BVH::PackedBVH<PREC, uint32_t, 4>;                          \
+  template struct BVH::ChildBoxes<PREC, 4>;                                 \
+  template struct BVH::PointQuery<PREC>;                                     \
+  template struct BVH::RayQuery<PREC>;                                       \
+                                                                               \
+  /* -- Ray queries ---------------------------------------------------------*/\
+  template struct RayT<PREC>;                                                \
+  template struct HitT<PREC>;                                                \
+  template struct RayOptions<PREC>;                                          \
+  template struct RayForm<PlaneSDF<PREC>>;                                   \
+  template struct RayForm<SphereSDF<PREC>>;                                  \
+  template struct RayForm<BoxSDF<PREC>>;                                     \
+  template struct RayForm<CylinderSDF<PREC>>;                                \
+  template struct RayForm<InfiniteCylinderSDF<PREC>>;                        \
+  template struct RayForm<CapsuleSDF<PREC>>;                                 \
+  template struct RayForm<TriMeshSDF<PREC, 4, 4>>;                           \
+  template struct RayForm<MeshSDF<PREC, 4>>;                                 \
+  template struct RayForm<FlatMeshSDF<PREC>>;                                \
                                                                                \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
   template struct PODVector<PREC>;                                           \
@@ -229,6 +246,20 @@ instantiateFunctionTemplates()
     (void)GPU::memoryResource();
   }
 
+  // The ray queries on a shape with a ray form and on a marched one, for rays and for segments.
+  {
+    const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+    const TorusSDF<T>  torus(Vec3T<T>::zeros(), T(1), T(0.25));
+    const RayT<T>      ray{-T(3) * Vec3T<T>::ones(), Vec3T<T>(T(1), T(0), T(0))};
+
+    (void)firstHit(sphere, ray, T(0), T(10));
+    (void)firstHit(torus, ray, T(0), T(10));
+    (void)firstHit(torus, Vec3T<T>::zeros(), Vec3T<T>::ones());
+    (void)intersects(sphere, ray, T(0), T(10));
+    (void)intersects(torus, ray, T(0), T(10));
+    (void)intersects(torus, Vec3T<T>::zeros(), Vec3T<T>::ones());
+  }
+
   // Every builder function, compiled into a tape.
   {
     const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
@@ -329,6 +360,33 @@ instantiateFunctionTemplates()
 
   (void)PolygonSoup<T>().convertToDCEL(meshPool);
   (void)PolygonSoup<T>().convertToTriangles();
+
+  // PackedBVH::traverse() is a member template: walk a BVH of points with each query type, a visit
+  // callback and each visit order.
+  {
+    using Packed = BVH::PackedBVH<T, Vec3T<T>, 4>;
+
+    std::vector<std::pair<Vec3T<T>, BoundingVolumes::AABBT<T>>> points{
+      {Vec3T<T>::zeros(), BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros())}};
+
+    Pool         bvhPool(hostMemoryResource());
+    const Packed bvh = Packed::buildBottomUp(bvhPool, points, size_t(1));
+
+    T          best  = Math::Limits<T>::infinity();
+    const auto leaf  = [](T&, size_t, size_t) noexcept {};
+    const auto bound = [](const T& a_best) noexcept { return a_best; };
+    const auto visit = [](T&, uint32_t, const typename Packed::Node&, const T&) noexcept { return true; };
+
+    const BVH::PointQuery<T> point{Vec3T<T>::zeros()};
+    const BVH::RayQuery<T>   ray(Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0)));
+
+    bvh.traverse(point, best, leaf, bound);
+    bvh.traverse(point, best, leaf, bound, visit, BVH::FarthestFirst{});
+    bvh.traverse(ray, best, leaf, bound, BVH::DescendAll{}, BVH::AsStored{});
+    bvh.traverse(ray, best, leaf, bound, visit, [](const T& a_a, const T& a_b) noexcept { return a_a < a_b; });
+    bvh.traverse(
+      ray, best, leaf, bound, visit, [](const T&, uint32_t a_a, const T&, uint32_t a_b) noexcept { return a_a < a_b; });
+  }
 }
 
 template void

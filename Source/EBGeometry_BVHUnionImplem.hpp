@@ -286,7 +286,7 @@ BVHUnion<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  // pruneTraverse prunes a node when its squared distance to a_point exceeds this bound, and visits
+  // traverse() prunes a node when its squared distance to a_point exceeds this bound, and visits
   // children nearest-first via a SIMD child-box test. A node is kept iff its (unsigned) bounding-volume
   // distance is within max(0, minDist). When the running best is negative (a_point is inside a
   // primitive) the bound collapses to 0, so only nodes whose box contains a_point are descended into.
@@ -296,7 +296,7 @@ BVHUnion<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
     return bound * bound;
   };
 
-  bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -455,7 +455,7 @@ BVHSmoothUnion<T, P, K, Blend>::signedDistance(const Vec3T<T>& a_point) const no
     return bound * bound;
   };
 
-  bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
 
   return m_blend(closest.a, closest.b, m_smoothLen);
 }

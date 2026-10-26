@@ -13,6 +13,7 @@
 
 #include "Source/EBGeometry_Affine.hpp"
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
+#include "Source/EBGeometry_AnalyticRayForms.hpp"
 #include "Source/EBGeometry_Array.hpp"
 #include "Source/EBGeometry_BVH.hpp"
 #include "Source/EBGeometry_BVHBuild.hpp"
@@ -37,6 +38,7 @@
 #include "Source/EBGeometry_Math.hpp"
 #include "Source/EBGeometry_MemoryResource.hpp"
 #include "Source/EBGeometry_MeshDistanceFunctions.hpp"
+#include "Source/EBGeometry_MeshRayForms.hpp"
 #include "Source/EBGeometry_PODVector.hpp"
 #include "Source/EBGeometry_PackedBVH.hpp"
 #include "Source/EBGeometry_ParseError.hpp"
@@ -48,6 +50,7 @@
 #include "Source/EBGeometry_PointSoA.hpp"
 #include "Source/EBGeometry_PolygonSoup.hpp"
 #include "Source/EBGeometry_Pool.hpp"
+#include "Source/EBGeometry_Ray.hpp"
 #include "Source/EBGeometry_SFC.hpp"
 #include "Source/EBGeometry_SIMD.hpp"
 #include "Source/EBGeometry_Soup.hpp"
@@ -57,6 +60,7 @@
 #include "Source/EBGeometry_Triangle.hpp"
 #include "Source/EBGeometry_TriangleAoSoA.hpp"
 #include "Source/EBGeometry_TriangleDistance.hpp"
+#include "Source/EBGeometry_TriangleRay.hpp"
 #include "Source/EBGeometry_TriangleSoA.hpp"
 #include "Source/EBGeometry_Vec.hpp"
 

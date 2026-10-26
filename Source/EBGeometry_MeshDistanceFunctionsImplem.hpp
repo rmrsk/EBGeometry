@@ -523,7 +523,7 @@ MeshSDF<T, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
   const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
 
-  bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -563,7 +563,7 @@ MeshSDF<T, K>::getClosestFace(const Vec3T<T>& a_point) const noexcept
     return a_state.signedDistance * a_state.signedDistance;
   };
 
-  bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
 
   return closest;
 }
@@ -817,7 +817,7 @@ TriMeshSDF<T, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
   const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
 
-  bvh.pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -858,7 +858,7 @@ TriMeshSDF<T, K, W>::getClosestFace(const Vec3T<T>& a_point) const noexcept
     return a_state.signedDistance * a_state.signedDistance;
   };
 
-  bvh.pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+  bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
 
   return closest;
 }

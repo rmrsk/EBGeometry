@@ -124,6 +124,25 @@ Family                                Build  Measures
 ``query-random``
 ====================================  =====  =====================================================
 
+**BVH** (``Performance/BVH``): ``PackedBVH::traverse()`` itself. The BVH holds the boxes of the probe
+mesh's triangles (the armadillo, about 100,000; K = 4, four boxes per leaf, built bottom up), and the leaf
+work is one box test per primitive, so the cases measure the walk: the query's child test, the sort and
+the stack. Queries start at random points in the BVH's box grown to twice its size about its centre; a
+ray points at the centre, so neighbouring origins give side-by-side rays.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``mesh-boxes/ray-nearest``            host   the nearest box each of 200,000 rays enters
+                                             (``RayQuery``, nearest first)
+``mesh-boxes/ray-any``                host   whether each ray enters any box (``AsStored``, the
+                                             walk ending at the first box)
+``mesh-boxes/point-nearest``          host   the squared distance from each of 200,000 points to the
+                                             nearest box (``PointQuery``)
+``mesh-boxes/<operation>-morton``,    GPU    the same at 262,144 queries, in Morton and in random
+``<operation>-random``                       order
+====================================  =====  =====================================================
+
 **BVHUnion** (``Performance/BVHUnion``): unions of about 100,000 objects on a 46 × 46 × 46 lattice, in
 three families. The ``spheres`` (unit spheres, spacing 3) fill about half their boxes (:math:`\pi/6`), and the
 boxes do not overlap. The ``capsules-diagonal`` (length 3, radius 0.2, along (1, 1, 1), spacing 1.8) are
@@ -184,6 +203,32 @@ Family                                Build  Measures
                                              ``drilled-mesh-tape``: the same through a ``Tape``
 ``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
                                              (262,144 for the drilled mesh)
+====================================  =====  =====================================================
+
+**Ray** (``Performance/Ray``): the ray queries (see :ref:`Chap:ImplemRays`). Rays start at random points
+in the object's box grown to twice its size about its centre and point at the centre, as in the BVH
+probe. The mesh is the armadillo (``TriMeshSDF``, K = W = 4), ray traced exactly; its ``firstHit`` case
+names the hand-written walk (``traverse()`` with a ``RayQuery`` and the probe's own leaf callback),
+and a comparison notes ``hand/api`` beside it: what ``firstHit()`` costs over code a user writes. The
+same mesh as a ``MeshSDF`` (K = 4, SAH, three faces per leaf) is traced through its polygon faces; its
+``firstHit`` case names the ``TriMeshSDF`` one and notes ``triangles/polygons``. The
+classic CSG solid is marched, fused and through a tape; the fused case notes ``tape/fused``. A host and
+a device marched crossing agree when both miss, or both cross within 1e-3.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``mesh/firstHit``                     host   the first crossing of each of 100,000 rays
+``mesh/firstHit-handrolled``          host   the same from a hand-written walk
+``mesh/intersects``                   host   whether each ray crosses (the walk ending at the first
+                                             crossing)
+``mesh-polygons/firstHit``,           host   the same as a ``MeshSDF``, its faces crossed as
+``intersects``                               polygons
+``csg-fused/firstHit``                host   the first crossing of each of 50,000 rays with the CSG
+                                             solid, fused, marched
+``csg-tape/firstHit``                 host   the same through a ``Tape``
+``<input>/<operation>-morton``,       GPU    each of the above at 262,144 rays, in Morton and in
+``<operation>-random``                       random order
 ====================================  =====  =====================================================
 
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
@@ -411,7 +456,8 @@ case with more rounds (``--rounds 10``).
 
 ==========  =========================================================================================
 ``lost``    ran in the baseline, but was skipped or is missing in the candidate: a red flag
-``DIFFER``  a pair whose host and device answers disagree: a red flag, and its times are not comparable
+``DIFFER``  a pair whose host and device answers disagree, a new one included: a red flag, and its times
+            are not comparable
 ``MAJOR``   at least 10% slower (``MAJOR``), or 10% more pool bytes: a red flag
 ``minor``   at least 3% slower (``MINOR``), or 3% more pool bytes: worth a look
 ``faster``  at least 3% faster, and no more pool bytes

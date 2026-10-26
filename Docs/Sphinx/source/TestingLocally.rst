@@ -306,10 +306,15 @@ Test coverage
        and a box with a narrow notch, whose concave edges need both adjacent faces' normals) against
        an analytic inside test; ``getClosestFace`` on all three mesh SDFs naming a closest face (also
        on polygon faces, and on a device against the host); a :cpp:class:`MeshSDF` seeing its mesh
-       flipped, or moved and refitted, after the build; the template
-       :cpp:func:`BVH::PackedBVH::traverse` (a nearest-point search against brute force at K = 2, 4
-       and 8, ``std::function`` callers, an explicit key type, visit-once, an empty BVH, and the same
-       search on a device against the host); :cpp:func:`BVH::TreeBVH::traverse` passing an exception
+       flipped, or moved and refitted, after the build; :cpp:func:`BVH::PackedBVH::traverse` (a
+       nearest-point search with a visit callback and ``FarthestFirst`` against brute force at K = 2,
+       4 and 8 and on a device against the host; with no bound every primitive once and ``AsStored``
+       in stored order; an empty BVH calling nothing; ``BVH::RayQuery`` entry distances against the
+       unit cube's slab answers, including rays in a face's plane, along an edge and with -0
+       components, single-box and K-wide paths agreeing; the nearest box a ray enters against brute
+       force at K = 2, 4 and 8, and on a device; a missed box never entered under an infinite bound;
+       the visit orders and both comparator forms; a visit callback accounting for whole subtrees
+       and stopping the walk; a user query type with a composite key); :cpp:func:`BVH::TreeBVH::traverse` passing an exception
        from a callback on to the caller; and every :cpp:class:`BVH::PackedBVH` box stored once (a
        32-byte node at K = 4; any node's box, found through its box slot, equal to the union of its
        primitives or children; a refit through a copy seen by the original; deep and adopted copies
@@ -321,8 +326,8 @@ Test coverage
        build-time checks: a tree too deep for the host or device traversal stack at ``K`` = 2, 4 and
        16, every kind of malformed node array (a leaf with no primitives among them), and a
        partitioner that returns an empty partition, all rejected; a tree at the host depth limit,
-       visited deepest first, filling the traversal stack to its last entry; ``traverse()`` and
-       ``pruneTraverse()`` visiting leaves in the order of a recursive depth-first search; a level
+       visited deepest first, filling the traversal stack to its last entry; ``traverse()`` visiting
+       leaves in the order of a recursive depth-first search; a level
        resumed with exact distances never pruning a closer primitive; a NaN query coordinate reaching
        every primitive in an unbounded search at every ``K``, SIMD path or scalar; only interior
        nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
@@ -380,6 +385,18 @@ Test coverage
        rebuilt from its layout; a fused shape as a tape primitive and as a BVH union's primitive; on
        a device, an analytic composition and a drilled mesh against the host; and every rejected
        argument, operands from different pools included.
+   * - ``TestRay``
+     - The ray queries: the unit cube as a ``TriMeshSDF``, a ``MeshSDF`` and a ``FlatMeshSDF`` against a slab test (axis-aligned and diagonal
+       rays, rays through a face diagonal, an edge and a corner, from inside, in a face's plane, misses,
+       an interval stopping short, a crossing at ``t = 0`` and stepping off it), with the face and
+       normal, and on 2,000 random rays (the triangles at two leaf widths); no ray slipping between the
+       faces of a fine mesh far from the origin, aimed at its edges and corners;
+       ``intersects()`` agreeing with ``firstHit()`` on unbounded rays that enter a tetrahedron's leaf boxes and miss;
+       a sliver face not crossed beyond its ends; each analytic ray form against its crossing
+       worked by hand and against the march on random rays; a fused and a taped composition marched to
+       crossings worked by hand, with the tape's deciding leaf; segments (zero length, a crossing at
+       the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
+       ray form, the march, a fused composition, the three mesh SDFs and a tape against the host.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an

@@ -373,7 +373,7 @@ public:
 
   /**
    * @brief Find the face closest to a_point, and the signed distance to it.
-   * @details The same BVH traversal as signedDistance() (PackedBVH::pruneTraverse), keeping the
+   * @details The same BVH traversal as signedDistance() (PackedBVH::traverse() with a PointQuery), keeping the
    * winning face's id as well, so it is callable on a device too.
    * @param[in] a_point Query point. Must be finite.
    * @return The closest face's id (its index in the mesh) and signed distance. The signed distance
@@ -677,7 +677,7 @@ public:
   /**
    * @brief Find the face closest to a_point, and the signed distance to it.
    * @details The face-id-retrieving companion to signedDistance(): it drives the same SIMD-pruned
-   * BVH traversal (PackedBVH::pruneTraverse), but each visited leaf group reports the winning
+   * BVH traversal (PackedBVH::traverse() with a PointQuery), but each visited leaf group reports the winning
    * triangle's face id via TriangleAoSoA::signedDistance(point, uint32_t&) (see issue #105).
    * @param[in] a_point Query point. Must be finite.
    * @return The face id of the closest triangle and the signed distance to it. The signed distance
@@ -825,5 +825,9 @@ static_assert(std::is_trivially_copyable_v<TriMeshSDF<double, 4, 4>>,
 } // namespace EBGeometry
 
 #include "EBGeometry_MeshDistanceFunctionsImplem.hpp"
+
+// Every translation unit that sees TriMeshSDF sees its ray form too, so firstHit() on it is the same
+// function everywhere.
+#include "EBGeometry_MeshRayForms.hpp"
 
 #endif

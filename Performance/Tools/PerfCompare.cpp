@@ -17,7 +17,8 @@
 // the change in pool bytes, and a verdict:
 //
 //   lost     ran in the baseline, but was skipped or is missing in the candidate: a red flag
-//   DIFFER   a pair whose host and device answers disagree: a red flag, its times not comparable
+//   DIFFER   a pair whose host and device answers disagree, a new one included: a red flag, its times not
+//            comparable
 //   MAJOR    slower by at least --major percent (default 10), or that much more pool memory: a red flag
 //   minor    slower by at least --minor percent (default 3), or that much more pool memory: ask
 //   faster   faster by at least --minor percent, and no more pool memory
@@ -426,6 +427,15 @@ compare(const std::string& a_name, const Measurement* a_base, const Measurement*
 
   if (a_base == nullptr || a_head == nullptr) {
     c.outcome = a_base == nullptr ? Outcome::New : Outcome::Removed;
+
+    // A new pair has nothing to be compared with, but its host and device must still agree.
+    if (a_head != nullptr && !a_head->skipped && a_head->paired && a_head->mismatches > 0) {
+      c.outcome    = Outcome::Differ;
+      c.reason     = "new";
+      c.mismatches = a_head->mismatches;
+      c.maxDiff    = a_head->maxDiff;
+    }
+
     return c;
   }
 

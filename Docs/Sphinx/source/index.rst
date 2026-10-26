@@ -8,8 +8,8 @@ EBGeometry's user documentation
 
 EBGeometry is a header-only C++17 library of fast, portable geometry queries. It turns meshes,
 analytic shapes, point clouds and compositions of them into geometry you can ask questions: how far
-away is it, which surface is closest, what lies nearest. It answers them on CPUs and on GPUs, from the
-same code, with no dependencies.
+away is it, which surface is closest, where a ray hits it, what lies nearest. It answers them on CPUs
+and on GPUs, from the same code, with no dependencies.
 
 * **Geometry in:** triangle meshes (STL, PLY, OBJ, VTK) as a half-edge mesh or SIMD triangle blocks,
   analytic shapes and your own, and point clouds.
@@ -17,12 +17,10 @@ same code, with no dependencies.
   offsets, repetitions and transforms), compiled into a tape for a scene or fused into compiled code
   for a part, and BVH-accelerated unions of thousands of objects.
 * **Queries:** signed distance, normals and bounding boxes; the primitive that decides the value at a
-  point; closest points and nearest neighbours in point clouds.
+  point; ray and segment hits; closest points and nearest neighbours in point clouds.
 * **Performance:** packed BVHs with any branching factor and a choice of builds, SIMD on the host
   (SSE to AVX-512), CUDA and HIP on the device, and a performance comparison on every change.
 * **No dependencies:** include ``EBGeometry.hpp`` in any C++17 project, in ``float`` or ``double``.
-
-See :ref:`Chap:Comparison` for how EBGeometry relates to other libraries.
 
 .. important::
 
@@ -69,7 +67,6 @@ Getting started
 
    ObtainingEBGeometry.rst
    Quickstart.rst
-   Comparison.rst
    Building.rst
    SIMDAcceleration.rst
    ConfigurationOptions.rst
@@ -85,6 +82,7 @@ Concepts
    GeometryRepresentations.rst
    DCEL.rst
    BVH.rst
+   Rays.rst
    PointCloud.rst
    Octree.rst
    CSG.rst
@@ -105,6 +103,7 @@ Implementation
    ImplemCSG.rst
    ImplemDCEL.rst
    ImplemBVH.rst
+   ImplemRays.rst
    ImplemPointCloud.rst
    ImplemOctree.rst
    Parsers.rst
@@ -125,6 +124,8 @@ Examples
    ExampleNestedBVH.rst
    ExampleManyObjects.rst
    ExamplePointClouds.rst
+   ExampleBVHTraversal.rst
+   ExampleRayTracing.rst
    ExampleOctreeBoundingVolume.rst
    ExampleCustomShape.rst
    ExampleHostTuning.rst

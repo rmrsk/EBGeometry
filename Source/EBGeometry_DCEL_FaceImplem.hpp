@@ -556,6 +556,66 @@ FaceT<T>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
+FaceT<T>::rayCrossing(
+  const Vec3& a_origin, const Vec3& a_direction, const T a_tMin, const T a_tMax, const Mesh& a_mesh) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
+
+  const T none  = Math::Limits<T>::infinity();
+  const T slope = m_normal.dot(a_direction);
+
+  // A face of zero area (zero normal) or a ray in the face's plane.
+  if (slope == T(0)) {
+    return none;
+  }
+
+  const T t = m_normal.dot(m_centroid - a_origin) / slope;
+
+  if (!(t >= a_tMin && t <= a_tMax)) {
+    return none;
+  }
+
+  const Vec3 p = a_origin + t * a_direction;
+
+  // (e x (p - v)) . n is |e| times p's signed distance from the edge's line in the plane, positive to the
+  // left of the edge. p is inside if it is on the inner side of every edge: the left if the loop runs
+  // counter-clockwise about the normal, the right otherwise, which the sign of the loop's area vector
+  // (accumulated about its first vertex) along the normal says. A point within the rounding error of p of
+  // the wrong side still counts, so that a point on a shared edge is inside both faces: p is rounded to a
+  // few ulps of the coordinates and of t.
+  const T ulps  = T(4) * Math::Limits<T>::epsilon();
+  const T error = ulps * (std::abs(a_origin[0]) + std::abs(a_origin[1]) + std::abs(a_origin[2]) + std::abs(p[0]) +
+                          std::abs(p[1]) + std::abs(p[2]) + std::abs(t));
+
+  bool left  = true;
+  bool right = true;
+  T    area  = T(0);
+
+  const Vec3& first = a_mesh.getEdge(m_halfEdge).getVertex(a_mesh).getPosition();
+
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    const Edge& edge = a_mesh.getEdge(iter());
+    const Vec3& v    = edge.getVertex(a_mesh).getPosition();
+    const Vec3  e    = edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition() - v;
+    const T     side = e.cross(p - v).dot(m_normal);
+    const T     tol  = ulps * e.dot(e) + error * (std::abs(e[0]) + std::abs(e[1]) + std::abs(e[2]));
+
+    // Within tol of the edge's line is not enough outside it: p must also be within tol of the edge's
+    // extent, or a face thinner than tol would be crossed far beyond its sharp corners.
+    const T    along  = e.dot(p - v);
+    const bool extent = along >= -tol && along <= e.dot(e) + tol;
+
+    left  = left && (side >= T(0) || (side >= -tol && extent));
+    right = right && (side <= T(0) || (side <= tol && extent));
+    area += (v - first).cross(e).dot(m_normal);
+  }
+
+  return (area >= T(0) ? left : right) ? t : none;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline T
 FaceT<T>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));

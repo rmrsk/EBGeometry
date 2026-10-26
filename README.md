@@ -17,9 +17,9 @@
 [![Header-only](https://img.shields.io/badge/header--only-yes-brightgreen.svg)](EBGeometry.hpp)
 
 EBGeometry turns meshes, analytic shapes, point clouds and compositions of them into geometry you
-can ask questions: how far away is it, which surface is closest, what lies nearest. It answers them
-fast on CPUs and on GPUs, from the same code, with no dependencies: include one header and compile
-with C++17.
+can ask questions: how far away is it, which surface is closest, where a ray hits it, what lies
+nearest. It answers them fast on CPUs and on GPUs, from the same code, with no dependencies: include
+one header and compile with C++17.
 
 <p align="center">
    <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
@@ -64,6 +64,8 @@ with C++17.
 
 * Signed distance (negative inside, positive outside), normals, and bounding boxes.
 * The primitive that decides the value at a point, with the point in its own frame.
+* Ray and segment hits (`firstHit()`, `intersects()`): exact for meshes and closed-form shapes, sphere
+  traced for everything else.
 * Closest points and k nearest neighbours in point clouds.
 
 ## In code
@@ -123,14 +125,15 @@ through each part of this, one topic at a time.
 
 ## How it compares
 
-EBGeometry overlaps with several excellent libraries: TriangleMeshDistance and fcpw for mesh
-distances, libfive for functional solid modelling, nanoflann for neighbour search, Embree and OptiX
-for ray tracing, and CGAL for exact computational geometry. What it adds is the combination: every
-kind of geometry, composed freely, queried the same way on CPUs and GPUs, from one header. The
-[comparison](https://rmrsk.github.io/EBGeometry/Comparison.html) says what each library is built
-for and when it is the better choice, and the companion
-[EBGeometry-benchmarks](https://github.com/rmrsk/EBGeometry-benchmarks) repository measures
-EBGeometry beside several of them on shared tasks.
+EBGeometry overlaps with several excellent libraries:
+[TriangleMeshDistance](https://github.com/InteractiveComputerGraphics/TriangleMeshDistance) and
+[fcpw](https://github.com/rohan-sawhney/fcpw) for mesh distances, [libfive](https://libfive.com) for
+functional solid modelling, [nanoflann](https://github.com/jlblancoc/nanoflann) for neighbour search,
+[Embree](https://www.embree.org) and [OptiX](https://developer.nvidia.com/rtx/ray-tracing/optix) for
+ray tracing, and [CGAL](https://www.cgal.org) for exact computational geometry. What it adds is the
+combination: every kind of geometry, composed freely, queried the same way on CPUs and GPUs, from one
+header. [EBGeometry-benchmarks](https://github.com/rmrsk/EBGeometry-benchmarks) measures it beside
+several of them.
 
 EBGeometry was written for embedded-boundary codes such as [AMReX](https://amrex-codes.github.io)
 and [Chombo](https://commons.lbl.gov/display/chombo); [`Integrations/`](Integrations/README.md)

@@ -37,6 +37,10 @@ The examples build on each other. A new user can read them in this order:
    plain loop.
 #. :ref:`Chap:ExamplePointClouds`: closest points and nearest neighbors in a point cloud, with a
    BVH or a hash grid.
+#. :ref:`Chap:ExampleBVHTraversal`: walking a BVH with a search of your own -- the nearest object to
+   a point, the first one a ray hits, whether a segment is blocked.
+#. :ref:`Chap:ExampleRayTracing`: casting rays at a triangle mesh -- where a ray or a particle's step
+   first crosses the surface, and the same walk of the BVH written by hand.
 #. :ref:`Chap:ExampleOctreeBoundingVolume`: estimating a bounding box for a function with no
    closed-form one.
 #. :ref:`Chap:ExampleCustomShape`: a shape type of your own, and calling EBGeometry from your own
@@ -112,7 +116,8 @@ The examples show three ways of getting the geometry to the device:
 * **A mirror in device memory.** The pool is built on the host, frozen and copied to device memory in
   one piece, and the object is rebased onto the copy. This is the pattern for large geometry: mesh
   SDFs, BVH unions, tapes and point clouds (:ref:`Chap:ExampleCSG`, :ref:`Chap:ExampleMeshSDF`,
-  :ref:`Chap:ExampleNestedBVH`, :ref:`Chap:ExampleManyObjects`, :ref:`Chap:ExamplePointClouds`).
+  :ref:`Chap:ExampleNestedBVH`, :ref:`Chap:ExampleManyObjects`, :ref:`Chap:ExamplePointClouds`,
+  :ref:`Chap:ExampleBVHTraversal`, :ref:`Chap:ExampleRayTracing`).
   :ref:`Chap:ExampleManyObjects` also keeps its query points on the device, so that its device
   timing measures the kernel and not the copies.
 * **Managed memory.** The pool is built in managed memory, frozen, and the object rebased onto it:
