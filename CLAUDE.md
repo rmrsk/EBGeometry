@@ -557,9 +557,14 @@ does not follow this template, edit the PR body to conform to it.
   compile of `TestTape` did not finish). Keep them out of line, and mark any new function called that
   way the same. What multiplies nothing is inlined, for speed on a device (#221): the body
   `evaluateBody<D>` into `evaluate<D>`, and into `signedDistance()` for a tape of call depth 0; and an
-  analytic primitive into the level that reads it. A new operation needs an `ExprDetail::Kind`, its
-  box and distance-quality rule in the builder, its arithmetic in `CSGOps`, clauses in
-  `TapeDetail::Op` and a case in `Tape::evaluateBody`, and a `Fused::` operation and function.
+  analytic primitive into the level that reads it. On the host, the primitive dispatch is split at
+  `Tape::DispatchSplit` (`dispatchRest()`, `EBGEOMETRY_HOST_NOINLINE`): without the split, unrelated code
+  added to the tape's headers (the ray program compiler, #237) made GCC keep double's whole dispatch out
+  of `evaluateBody<0>`, and double tapes ran up to 28% slower. A new operation needs an `ExprDetail::Kind`,
+  its box and distance-quality rule in the builder, its arithmetic in `CSGOps`, clauses in
+  `TapeDetail::Op` and a case in `Tape::evaluateBody`, and a `Fused::` operation and function; a ray
+  marches it unless it is also given span arithmetic (`EBGeometry_RaySpans.hpp`), a `RayOp` in the
+  tape's ray program and a fused ray form (`EBGeometry_CSGRayForms.hpp`).
 - **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
   SDF, union and tape keeps it. Code that needs the opposite sign (AMReX and Chombo read negative as
   fluid) flips it itself, in its own adapter (`return -tape.signedDistance(p);`); never put a
