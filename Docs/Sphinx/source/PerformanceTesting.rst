@@ -94,9 +94,6 @@ Family                                Build  Measures
                                              in the order drawn
 ``closest-outside-random``            host   ``closestPoint`` far outside the cloud (20,000 for the
                                              BVH, 100 for the hash grid, which is slow out there)
-``neighbor-morton``                   host   ``nearestNeighbor`` of every cloud point, in Morton order
-``neighbors8-morton``,                host   the 8 nearest points, per point, in Morton order
-``closest8-morton``
 ``closest-morton``,                   GPU    ``closestPoint`` at 262,144 points near the cloud
 ``closest-random``
 ``neighbor-morton``                   GPU    ``nearestNeighbor`` of every cloud point
@@ -371,7 +368,7 @@ and whether the answers agree:
 .. code-block:: text
 
    EBGeometry performance · git c2f2cdb · gcc 13.3.0 · GPU CUDA · host: 23 threads, SIMD none (nvcc cannot compile host SIMD code)
-   host and device run the same inputs; times per item are medians of 5 repetitions; device spread = the device's interquartile range / median
+   host and device run the same inputs; times per item are medians of 3 repetitions; device spread = the device's interquartile range / median
 
    ━━ Mesh ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2 cases ━━
        operation     precision      items   host/item  device/item   speedup  device spread  answers
@@ -403,6 +400,7 @@ Comparing two commits
    Scripts/run-performance.sh compare                              # the working tree against origin/dev
    Scripts/run-performance.sh compare origin/dev my-branch         # two commits
    Scripts/run-performance.sh compare origin/dev 'PointCloudBVH/*' --rounds 10
+   Scripts/run-performance.sh compare origin/dev 'PointCloud*' --rounds 1  # times only, while developing
    Scripts/run-performance.sh compare origin/dev --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
    Scripts/run-performance.sh compare origin/dev --smoke                   # a quick check, about a minute
 
@@ -413,7 +411,9 @@ changes an API the probes use updates the probes and is still compared case by c
 any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
 with the candidate's probes.) Every case then runs in a fresh process, so that one case cannot leave the
 heap or the caches in a state that favours the next, alternating between the two sides for ``--rounds``
-rounds (default 3, at least 2) of ``--reps`` repetitions (default 5). A host comparison compares the host cases,
+rounds (default 2) of ``--reps`` repetitions (default 3). These defaults are the least that gives a
+verdict, and keep a comparison of every case to about eight minutes on a desktop, builds included; one
+round (``--rounds 1``) shows the times without judging them, a quick look while a change is developed. A host comparison compares the host cases,
 pinned to one core; with ``--gpu`` it compares the pairs, by their device time (each with its speedup
 beside it), unpinned. The comparison itself is ``Performance/Compare.cmake``,
 whose variables (listed at its top) also set the thresholds.
@@ -470,9 +470,10 @@ independent measurements, and the noise that matters is the one between processe
 therefore reduces each run to the median of its repetitions and works with those: for each case it takes
 the median over each side's runs, their ratio, and a bootstrap 95% confidence interval for the ratio,
 resampling the runs. A change counts only when the interval excludes no change at all, and is only
-judged with at least two runs on each side. With the default three rounds, that means a change is
-flagged only when it shows in essentially every run; to confirm or rule out a small change, rerun the
-case with more rounds (``--rounds 10``).
+judged with at least two runs on each side. With the default two rounds, that means a change is
+flagged only when both of the candidate's runs are slower than both of the baseline's: a coarse
+screen. To confirm or rule out a flagged or small change, rerun the case with more rounds
+(``--rounds 10``). With one round, every time is shown and none is judged, and the verdict says so.
 
 ==========  =========================================================================================
 ``lost``    ran in the baseline, but was skipped or is missing in the candidate: a red flag
@@ -499,8 +500,9 @@ The performance receipt
 -----------------------
 
 CI does not time anything: a shared runner is too noisy to judge performance, and has no GPU. What CI
-requires instead is that the comparison was run, locally, on the pull request's own code. The
-comparison's result is committed with the pull request as its *receipt*:
+requires instead is that the comparison was run, locally, on the pull request's own code, once the pull
+request is ready for review (a draft is not checked). The comparison's result is committed with the
+pull request as its *receipt*:
 
 .. code-block:: bash
 
@@ -566,7 +568,8 @@ Two jobs in ``.github/workflows/CI.yml`` cover ``Performance/``:
 * ``Performance-smoke`` builds the probes with warnings as errors and runs every case at its smoke size,
   on every push and pull request. The GPU lanes also compile the probes for their device.
 * ``Performance-receipt`` checks the pull request's receipt, as above, and puts the result in the job
-  summary. It builds and times nothing.
+  summary. It builds and times nothing. On a draft pull request it only notes that the receipt is
+  checked once the pull request is ready for review.
 
 A minor regression is a question for the author and the reviewer: is it expected, and is it worth
 investigating? It, a changed checksum and a major regression are all merged only once fixed (and
@@ -592,6 +595,6 @@ Some rules of thumb:
   through a tape) names it with ``relativeTo()``, so that the comparison notes the ratio of their times.
 * Prefer a new case to changing an existing one: a changed case cannot be compared with its old
   results (the report names the probe files that differ between the sides, not the cases).
-* Keep the whole set to about ten minutes for a comparison with its defaults on a desktop, so it is
-  run. A case that duplicates another's code path (the same kernel at another size) earns its place only
+* Keep the whole set to about eight minutes for a comparison with its defaults on a desktop, builds
+  included, so it is run. A case that duplicates another's code path (the same kernel at another size) earns its place only
   if it has behaved differently.

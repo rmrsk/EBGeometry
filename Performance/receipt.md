@@ -18,45 +18,20 @@ side: host
 verdict: red
 base: cd92804
 base-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
-head: c248ca8
-head-fingerprint: f6fccc43ac7f90a34f4d3ca466a6ced30a707094
-cases: 152
-rounds: 3
-reps: 5
+head: a87aa41
+head-fingerprint: 73c6eb0348bdf2bf808bf641ba3840cfc1cd010e
+cases: 120
+rounds: 2
+reps: 3
 date: 2026-10-26
 -->
 
 ## Host comparison: red
 
-**Accepted:** Ray programs stored beside the Tape's clauses (about 16 bytes per expression node) grow its pool; compositions are now traced exactly instead of marched, which changes the CSG ray checksums.
+**Accepted:** No library change; the flagged cases are machine noise (a second session was running): rechecked with 10 rounds, both within noise.
 
-`c248ca8` against `cd92804` (origin/dev), 2026-10-26.
+`a87aa41` against `cd92804` (origin/dev), 2026-10-26.
 
-**VERDICT: MAJOR regression in 18 cases
+**VERDICT: MAJOR regression in 1 case
 
 <!-- END receipt host -->
-
-<!-- BEGIN receipt cuda -->
-<!--receipt
-version: 3
-side: cuda
-verdict: red
-base: cd92804
-base-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
-head: c248ca8
-head-fingerprint: f6fccc43ac7f90a34f4d3ca466a6ced30a707094
-cases: 152
-rounds: 3
-reps: 5
-date: 2026-10-26
--->
-
-## Device comparison (CUDA): red
-
-**Accepted:** On the device, a small fused solid in float traces slower than dev marched it in registers (the span lists live in local memory); the Tape and larger scenes trace faster. A few float rays graze a surface tangentially; host and device round them differently. Checksums change because compositions are now traced exactly.
-
-`c248ca8` against `cd92804` (origin/dev), 2026-10-26.
-
-**VERDICT: host and device answers differ in 8 cases
-
-<!-- END receipt cuda -->

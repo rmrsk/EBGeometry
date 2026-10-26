@@ -257,9 +257,13 @@ header, `EBGeometry.hpp`, `Docs/mainpage.md` or `Docs/doxygen.conf` changes; cod
 `.clang-tidy` and `.pre-commit-config.yaml` define the static-analysis/formatting rules; CI
 (`.github/workflows/CI.yml`) runs the same hooks plus a much larger build/test matrix (multiple
 compilers, SIMD levels, precisions, sanitizers, both Debug and Release) that isn't practical to
-reproduce byte-for-byte locally. CI runs on pull requests and on pushes to `main` and `dev`. Its
+reproduce byte-for-byte locally. CI runs on pull requests and on pushes to `main` and `dev`, in two
+tiers: a draft PR runs a fast tier (one or two cells of each matrix; no Linux-Intel, GNUmake, float
+examples, clang-tidy or CUDA; HIP's Release+AVX build only; about 8 minutes), while a PR that is ready
+for review (marking it ready re-runs CI) and every push to `main`/`dev` run the full matrix. Every build
+uses all the runner's cores. Its
 `CI-passed` job, the one to require for merging, fails whenever any job it depends on fails, is
-cancelled or is skipped; `GPU-HIP` (a device compile) is one of those required jobs, while
+cancelled or is skipped (a draft's skipped full-tier jobs excepted); `GPU-HIP` (a device compile) is one of those required jobs, while
 `GPU-CUDA` and `Static-analysis` are advisory (`continue-on-error`).
 
 ## Whitespace conventions clang-format does not enforce
@@ -338,15 +342,23 @@ The coverage rules are in "Vetting every pull request for performance" below. Me
 
 ## Vetting every pull request for performance
 
-**Claude runs a performance comparison on every pull request as soon as it is opened (draft or not),
-and again after any push that changes the library or the probes, without being asked.** `Performance/` holds the
+**Claude vets every pull request for performance without being asked, in two steps.** While the PR is
+a draft, after a change to the library or the probes, it runs a quick look: one round, only the probes
+the change can affect (picked by glob), no receipt, reported in a line or two; for example
+`Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1` (a few minutes; one round
+shows times and judges none). Once the PR is ready for review (`gh pr view <n> --json isDraft`), and again
+after any later push that changes the library or the probes, it runs the full comparison and records the
+receipt, as below. No hardening in between: no extra rounds, no repeated full runs while the code still
+moves. `Performance/` holds the
 probes (one program per component, many named cases, `component/input/operation/precision/side`);
 `Scripts/run-performance.sh` is the one way in (its logic is `Performance/RunPerformance.cmake` and
 `Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
 full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
-1. **Run the comparison against the PR's base**, from the repository root (`--smoke` first gives a
-   one-minute check that both sides build and every case runs with the same answers):
+1. **Run the comparison against the PR's base**, from the repository root, once the PR is ready for
+   review (`--smoke` first gives a one-minute check that both sides build and every case runs with the
+   same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict, and take
+   about eight minutes for every case, builds included:
 
    ```bash
    Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt
@@ -386,7 +398,8 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
      (`Scripts/run-performance.sh compare origin/<base> <pr-branch> '<glob>' --rounds 10`); do not
      rerun until a noisy result passes.
 4. **CI times nothing; it checks the receipt** (`Performance-receipt` in `.github/workflows/CI.yml`,
-   `Performance/CheckReceipt.cmake`, required by `CI-passed`). It fails when the PR changes the library
+   `Performance/CheckReceipt.cmake`, required by `CI-passed`), on a PR that is ready for review (a
+   draft only gets a notice). It fails when the PR changes the library
    or the probes and its receipt has no host section, or when any section present (host, or a device
    one) measured other code (any later code change makes it stale; a later docs-only commit does not),
    measured an outdated base (rebase and record again), or is not green and has no reason on its
@@ -408,7 +421,8 @@ cases in its component's probe), and the PR's comparison then lists them as *new
   by other means (fused and through a tape) names it with `relativeTo()`, and the comparison notes the
   ratio of their times (`tape/fused 2.78x`).
 - Add a case rather than change an existing one: a changed case cannot be compared with its past.
-- Keep the whole set to about ten minutes of a comparison with its defaults on a desktop; a case
+- Keep the whole set to about eight minutes of a comparison with its defaults on a desktop, builds
+  included; a case
   that repeats another's code path (the same kernel at another size) must have shown different
   behaviour to earn its place.
 - Cross-library comparisons (fcpw, nanoflann, ...) do not belong here; they live in the

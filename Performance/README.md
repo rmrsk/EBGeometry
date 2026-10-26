@@ -45,7 +45,8 @@ Scripts/run-performance.sh                          # build if needed, run every
 Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset: one or more globs
 Scripts/run-performance.sh list                     # the case names
 Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # the host/device pairs
-Scripts/run-performance.sh compare origin/dev       # this tree against origin/dev
+Scripts/run-performance.sh compare origin/dev       # this tree against origin/dev (about 8 minutes)
+Scripts/run-performance.sh compare origin/dev 'PointCloud*' --rounds 1   # times only, while developing
 Scripts/run-performance.sh compare origin/dev --smoke   # a quick check: both build, every case runs
 Scripts/run-performance.sh compare origin/dev --record  # a pull request's receipt, for CI (commit it)
 ```
@@ -54,11 +55,14 @@ A run prints a table per probe and saves the results to `build/performance/resul
 builds both sides from their own `Performance/`, runs every case in a fresh process, alternating between
 the sides, and prints the comparison (also written to `build/performance/compare/report.md`) with the
 command to repeat it. A case is **minor** at 3% slower and **MAJOR** at 10% slower, in both cases only
-outside the 95% confidence interval over the runs (fresh processes; at least two per side).
+outside the 95% confidence interval over the runs (fresh processes; at least two per side). The defaults,
+2 rounds of 3 repetitions, are the least that gives a verdict; `--rounds 1` shows times without one,
+and `--rounds 10` on a few cases confirms or rules out a flagged change.
 
 CI times nothing. It checks the pull request's performance receipt, `receipt.md`: the result of the
 comparison above with `--record` (a host section, and a device section with `--gpu`), committed with the
-pull request. Every section must have measured the pull request's code, against its base as it is now,
+pull request, once the pull request is ready for review (a draft is not checked). Every section must
+have measured the pull request's code, against its base as it is now,
 and be green or accepted (`CheckReceipt.cmake`, `Receipt.cmake`).
 
 CUDA 12.0's nvcc cannot compile the library; name a newer one with `--cuda-compiler`. `ctest --preset

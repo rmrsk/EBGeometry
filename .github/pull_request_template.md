@@ -10,7 +10,8 @@
 
 ### Performance
 
-<!-- The comparison against the base branch, run locally on the committed PR branch:
+<!-- The comparison against the base branch, run locally on the committed PR branch once the PR is
+     ready for review (CI checks the receipt only then; about 8 minutes):
      Scripts/run-performance.sh compare origin/<base> --record
      (and with --gpu cuda if the change touches device code). Commit the receipt it writes,
      Performance/receipt.md, which CI checks, and paste build/performance/compare/report.md here.
