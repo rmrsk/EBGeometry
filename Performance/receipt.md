@@ -15,48 +15,23 @@ SPDX-License-Identifier: GPL-3.0-or-later
 <!--receipt
 version: 3
 side: host
-verdict: yellow
-base: 9d36e55
-base-fingerprint: df44594dbe8bca38016afd40f600a0df5cd4f090
-head: 46ec20c
-head-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
-cases: 144
-rounds: 3
-reps: 5
-date: 2026-10-25
+verdict: red
+base: cd92804
+base-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
+head: a87aa41
+head-fingerprint: 73c6eb0348bdf2bf808bf641ba3840cfc1cd010e
+cases: 120
+rounds: 2
+reps: 3
+date: 2026-10-26
 -->
 
-## Host comparison: yellow
+## Host comparison: red
 
-**Accepted:** Watertightness fix: rays no longer slip between faces sharing an edge; the widening costs the triangle test a few percent, 20% in FP64 on the device.
+**Accepted:** No library change; the flagged cases are machine noise (a second session was running): rechecked with 10 rounds, both within noise.
 
-`46ec20c` against `9d36e55` (origin/dev), 2026-10-25.
+`a87aa41` against `cd92804` (origin/dev), 2026-10-26.
 
-**VERDICT: 6 minor regressions
+**VERDICT: MAJOR regression in 1 case
 
 <!-- END receipt host -->
-
-<!-- BEGIN receipt cuda -->
-<!--receipt
-version: 3
-side: cuda
-verdict: red
-base: 9d36e55
-base-fingerprint: df44594dbe8bca38016afd40f600a0df5cd4f090
-head: 46ec20c
-head-fingerprint: 8796be7eaaa989420ee9fdc7626438fc4d6c35db
-cases: 136
-rounds: 3
-reps: 5
-date: 2026-10-25
--->
-
-## Device comparison (CUDA): red
-
-**Accepted:** Watertightness fix: rays no longer slip between faces sharing an edge; the widening costs the triangle test a few percent, 20% in FP64 on the device. 2 rays graze a drill rim within the march tolerance; host and device round differently. Expected for marched rays.
-
-`46ec20c` against `9d36e55` (origin/dev), 2026-10-25.
-
-**VERDICT: host and device answers differ in 4 cases
-
-<!-- END receipt cuda -->
