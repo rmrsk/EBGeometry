@@ -225,6 +225,13 @@ struct FirstHitBall
   }
 };
 
+// A ball whose ray form never decides: each firstHit() is unresolved a step past where it starts.
+template <class T>
+struct CreepingBall : FirstHitBall<T>
+{
+  T m_step;
+};
+
 // A ball whose ray form's firstHit() lacks the options argument: it is not a ray form, and the ball is marched.
 template <class T>
 struct MistypedBall : FirstHitBall<T>
@@ -385,6 +392,26 @@ struct RayForm<MistypedBall<T>>
   firstHit(const MistypedBall<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax) noexcept
   {
     return RayForm<SphereSDF<T>>::firstHit(a_shape.m_sphere, a_ray, a_tMin, a_tMax, RayOptions<T>());
+  }
+};
+
+template <class T>
+struct RayForm<CreepingBall<T>>
+{
+  EBGEOMETRY_HOST_DEVICE
+  static HitT<T>
+  firstHit(
+    const CreepingBall<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept
+  {
+    (void)a_options;
+
+    HitT<T> hit;
+
+    hit.m_status = HitStatus::Unresolved;
+    hit.m_t      = Math::min(a_tMin + a_shape.m_step, a_tMax);
+    hit.m_point  = a_ray.at(hit.m_t);
+
+    return hit;
   }
 };
 
@@ -1350,6 +1377,34 @@ TEMPLATE_TEST_CASE("Ray: a march that runs out of steps is unresolved, not a mis
 
   // With enough steps it is decided.
   REQUIRE(firstHit(sphere, grazing, T(0), T(10)).m_status != HitStatus::Unresolved);
+}
+
+TEMPLATE_TEST_CASE("Ray: a composition whose operand never decides is unresolved after its last pass",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A ray from the middle of a box, through a ball that is unresolved a step past every start: each pass of
+  // the trace gets one step further, and the trace gives up after its 64 passes, 64 steps along the ray.
+  const T               step = T(0.01);
+  const BoxSDF<T>       box(-T(5) * Vec3::ones(), T(5) * Vec3::ones());
+  const CreepingBall<T> ball{{SphereSDF<T>(Vec3::zeros(), T(3))}, step};
+  const RayT<T>         ray{Vec3::zeros(), Vec3(1, 0, 0)};
+
+  const auto fused = Fused::Intersection(box, ball);
+
+  Pool                           pool(hostMemoryResource());
+  const Tape<T, CreepingBall<T>> tape(pool, Intersection(box, ball));
+
+  for (const HitT<T>& hit : {firstHit(fused, ray, T(0), T(4)), tape.firstHit(ray, T(0), T(4))}) {
+    REQUIRE(hit.m_status == HitStatus::Unresolved);
+    REQUIRE_THAT(hit.m_t, withinAbsT(T(64) * step, looseMargin<T>()));
+  }
+
+  REQUIRE(intersects(fused, ray, T(0), T(4)) == HitStatus::Unresolved);
+  REQUIRE(intersects(tape, ray, T(0), T(4)) == HitStatus::Unresolved);
 }
 
 TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
