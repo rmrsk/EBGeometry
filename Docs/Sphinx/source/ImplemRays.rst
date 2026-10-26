@@ -34,7 +34,8 @@ leaving, as a `HitT <doxygen/html/structEBGeometry_1_1HitT.html>`__:
    * - Member
      - Meaning
    * - ``m_status``
-     - ``HitStatus::Hit``, ``Miss``, or ``Unresolved`` (a march that ran out of steps); ``hit()`` tests
+     - ``HitStatus::Hit``, ``Miss``, or ``Unresolved`` (a march that ran out of steps, or a
+       traced composition that ran out of passes); ``hit()`` tests
        for ``Hit``.
    * - ``m_t``, ``m_point``
      - The crossing's distance along the ray, and its point (for ``Unresolved``, the last point
@@ -137,6 +138,17 @@ filled in. Without ``spans()``, an intersection, difference or complement with t
 spans by calling ``firstHit()`` from one crossing to the next, a step (``RayOptions::m_tolerance``
 times the scale) past each.
 
+Since a ray form is found by its signatures, a ``firstHit()`` with a mistyped argument still compiles,
+and the shape is silently marched. Check it where the specialisation is written:
+
+.. code-block:: c++
+
+   static_assert(EBGeometry::hasRayForm<MyShape<double>, double>);
+   static_assert(EBGeometry::hasRaySpans<MyShape<double>, double>); // if it has spans()
+
+A ray form written for an earlier version, with a ``static constexpr bool available`` member, keeps
+working; the member is no longer read and can be removed.
+
 .. _Sec:RaySpans:
 
 Spans
@@ -162,9 +174,11 @@ its operand's spans in place, copying no list); an affine map traces its operand
 an intersection or a complement for all their spans; each operand of a union is traced only up to what
 the union so far is known up to. The first crossing is the first crossing end in the final list that
 comes no later than its horizon. If there is none and the horizon is short of the interval's end, the
-trace starts again from the horizon, asking every operand for all its spans if it got no further. An
-operand without a ray form is marched in its own box, and crossings found that way are not exact
-(``HitT::m_exact``).
+trace starts again from the horizon, asking every operand for all its spans if it got no further. A trace
+that has not found the crossing after 64 passes, or that makes no progress, is ``Unresolved``, like a march
+out of steps; ``intersects()`` returns that status too, so the caller decides what an undecided ray
+means. An operand without a ray form is marched in its own box, and crossings found that way are not
+exact (``HitT::m_exact``).
 
 The normal and primitive are found once, for the crossing the trace ends at. The composition follows the
 leaf its end names down to that leaf, through the affine maps above it, and calls the leaf's own

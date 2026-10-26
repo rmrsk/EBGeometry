@@ -1030,6 +1030,28 @@ private:
              const PoolLocation&  a_location) const noexcept;
 
   /**
+   * @brief The crossing near a distance along a ray on a Leaf clause's primitive (see RayDetail::leafHit()).
+   * @details Out of line on a device, like rayLeaf(): every level of rayLeafHit() calls it, and inlined, the
+   * dispatch over every primitive type was copied into each.
+   * @param[in] a_clause   The Leaf clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing on the primitive.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  primitiveLeafHit(const TapeDetail::RayClause& a_clause,
+                   const RayT<T>&               a_ray,
+                   T                            a_t,
+                   const RayOptions<T>&         a_options,
+                   const void*                  a_base,
+                   const PoolLocation&          a_location) const noexcept;
+
+  /**
    * @brief The crossing near a distance along a ray on a primitive, dispatching on its type index from I
    * onwards (see RayDetail::leafHit()).
    * @tparam I First type index to test.

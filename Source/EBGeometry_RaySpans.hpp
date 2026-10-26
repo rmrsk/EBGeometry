@@ -31,6 +31,13 @@
 
 namespace EBGeometry {
 
+// A span list is left uninitialised past m_count (zeroing it costs local-memory stores on a device), and GCC
+// cannot see that only the first m_count spans are ever read.
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 namespace RayDetail {
 
 /**
@@ -485,7 +492,8 @@ mapRay(const T* a_map, const RayT<T>& a_ray, const T a_t0, const T a_t1) noexcep
  * @brief Map an operand's list, traced along a mapped ray, back to the original ray: distances divided by
  * the scale.
  * @details Internal helper; not part of the public API. The ends of the interval map back to exactly the
- * ends of the original one, so that a list complete over the mapped interval is complete over the original.
+ * ends of the original one, so that a list complete over the mapped interval is complete over the original,
+ * and every distance stays inside it.
  * @tparam T Floating-point precision.
  * @param[in]     a_mapped The mapped ray.
  * @param[in]     a_t0     Start of the original interval.
@@ -498,14 +506,15 @@ inline void
 mapBack(const MappedRay<T>& a_mapped, const T a_t0, const T a_t1, RaySpansT<T>& a_spans) noexcept
 {
   const auto distance = [&a_mapped, a_t0, a_t1](const T a_t) noexcept -> T {
-    if (a_t == a_mapped.m_t0) {
+    if (a_t <= a_mapped.m_t0) {
       return a_t0;
     }
     if (a_t >= a_mapped.m_t1) {
       return a_t1;
     }
 
-    return a_t / a_mapped.m_scale;
+    // Rounded, the quotient can land just outside the original interval.
+    return Math::clamp(a_t / a_mapped.m_scale, a_t0, a_t1);
   };
 
   a_spans.m_horizon = distance(a_spans.m_horizon);
@@ -968,7 +977,8 @@ traceSpans(
           hit.m_entering  = (side == 0);
           hit.m_exact     = (end.m_kind == SpanEndT<T>::Exact);
 
-          // The leaf's normal faces out of the leaf; the composition's faces the way the ray crosses.
+          // The leaf's normal faces out of the leaf; the composition's faces the way the ray crosses. For a ray
+          // along the surface the dot product is rounding noise, and either orientation may come out.
           if ((dot(hit.m_normal, a_ray.m_direction) < T(0)) != hit.m_entering) {
             hit.m_normal = -hit.m_normal;
           }
@@ -1003,6 +1013,10 @@ traceSpans(
 }
 
 } // namespace RayDetail
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 } // namespace EBGeometry
 

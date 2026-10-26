@@ -2007,7 +2007,7 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
 
     if (pc == a_clause) {
       if (c.m_op == RayOp::Leaf) {
-        hit = this->template dispatchLeafHit<0>(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
+        hit = this->primitiveLeafHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
 
         hit.m_primitive = c.m_b;
       }
@@ -2095,6 +2095,20 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
   }
 
   return hit;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline HitT<T>
+Tape<T, UserPrimitives...>::primitiveLeafHit(const TapeDetail::RayClause& a_clause,
+                                             const RayT<T>&               a_ray,
+                                             const T                      a_t,
+                                             const RayOptions<T>&         a_options,
+                                             const void*                  a_base,
+                                             const PoolLocation&          a_location) const noexcept
+{
+  return this->template dispatchLeafHit<0>(a_clause, a_ray, a_t, a_options, a_base, a_location);
 }
 
 template <class T, class... UserPrimitives>

@@ -449,6 +449,26 @@ march(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, co
 
 } // namespace RayDetail
 
+/**
+ * @brief Whether a shape has a ray form: its RayForm has a static firstHit() with the signature RayForm
+ * documents. A shape without one is marched.
+ * @details A ray form is found by its signatures, so a specialisation of RayForm with a mistyped firstHit()
+ * compiles and is silently marched. Check it with `static_assert(hasRayForm<MyShape<T>, T>);`.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+inline constexpr bool hasRayForm = RayDetail::HasRayFirstHit<S, T>::value;
+
+/**
+ * @brief Whether a shape's ray form has a spans() with the signature RayForm documents, so that the
+ * compositions it is part of use its spans instead of finding them one crossing at a time.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+inline constexpr bool hasRaySpans = RayDetail::HasRaySpans<S, T>::value;
+
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>

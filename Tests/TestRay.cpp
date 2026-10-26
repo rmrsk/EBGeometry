@@ -225,6 +225,12 @@ struct FirstHitBall
   }
 };
 
+// A ball whose ray form's firstHit() lacks the options argument: it is not a ray form, and the ball is marched.
+template <class T>
+struct MistypedBall : FirstHitBall<T>
+{
+};
+
 // Where a ray is inside a line of balls along the x axis, as intervals of x: each ball's [cx - r, cx + r]
 // on the axis.
 template <class T>
@@ -371,7 +377,35 @@ struct RayForm<FirstHitBall<T>>
   }
 };
 
+template <class T>
+struct RayForm<MistypedBall<T>>
+{
+  EBGEOMETRY_HOST_DEVICE
+  static HitT<T>
+  firstHit(const MistypedBall<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax) noexcept
+  {
+    return RayForm<SphereSDF<T>>::firstHit(a_shape.m_sphere, a_ray, a_tMin, a_tMax, RayOptions<T>());
+  }
+};
+
 } // namespace EBGeometry
+
+TEMPLATE_TEST_CASE("Ray: hasRayForm and hasRaySpans tell a ray form by its signatures",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  STATIC_REQUIRE(hasRayForm<SphereSDF<T>, T>);
+  STATIC_REQUIRE(hasRaySpans<SphereSDF<T>, T>);
+  STATIC_REQUIRE(hasRayForm<FirstHitBall<T>, T>);
+  STATIC_REQUIRE_FALSE(hasRaySpans<FirstHitBall<T>, T>);
+  STATIC_REQUIRE_FALSE(hasRayForm<MistypedBall<T>, T>);
+  STATIC_REQUIRE_FALSE(hasRayForm<TorusSDF<T>, T>);
+  STATIC_REQUIRE(hasRayForm<Tape<T>, T>);
+  STATIC_REQUIRE(hasRaySpans<decltype(Fused::Union(SphereSDF<T>(), BoxSDF<T>())), T>);
+  STATIC_REQUIRE_FALSE(hasRayForm<decltype(Fused::Blur(SphereSDF<T>(), T(0.1))), T>);
+}
 
 TEMPLATE_TEST_CASE("Ray: every mesh SDF of the unit cube crosses where the slab test says",
                    "[Ray]",
@@ -1099,6 +1133,49 @@ TEMPLATE_TEST_CASE("Ray: a ray through more spans than a list holds still finds 
       REQUIRE_THAT(hit.m_t, withinAbsT(next->first - x0, looseMargin<T>()));
       REQUIRE(hit.m_entering == next->second);
     }
+  }
+}
+
+TEMPLATE_TEST_CASE("Ray: a first crossing exactly where a full list stops is found when the ray starts again there",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // 20 balls along the x axis, intersected with a half-space that starts between ball k - 1 and ball k. The
+  // row's list fills up and stops where a dropped ball enters, so for k = 8 and k = 16 the first crossing is
+  // exactly where a pass ends and the next one starts.
+  const size_t count   = 20;
+  const T      spacing = T(0.1);
+  const T      radius  = T(0.04);
+
+  std::vector<Expr<T>> row;
+
+  for (size_t i = 0; i < count; i++) {
+    row.emplace_back(SphereSDF<T>(Vec3(-T(1) + spacing * T(i), T(0), T(0)), radius));
+  }
+
+  const auto    balls = ballRow<T>(count, spacing, radius);
+  const T       x0    = -T(1.5) + T(0.003);
+  const RayT<T> ray{Vec3(x0, T(0), T(0)), Vec3(1, 0, 0)};
+
+  REQUIRE(count > 2 * RaySpansT<T>::Capacity);
+
+  for (size_t k = 1; k < count; k++) {
+    const T         cut = T(0.5) * (balls[k - 1].second + balls[k].first);
+    const BoxSDF<T> halfSpace(Vec3(cut, -T(1), -T(1)), Vec3(T(10), T(1), T(1)));
+
+    Pool          pool(hostMemoryResource());
+    const Tape<T> tape(pool, Intersection(Union(row), halfSpace));
+    const HitT<T> hit = tape.firstHit(ray, T(0), T(4));
+
+    INFO("cut before ball " << k);
+
+    REQUIRE(hit.hit());
+    REQUIRE(hit.m_exact);
+    REQUIRE(hit.m_entering);
+    REQUIRE_THAT(hit.m_t, withinAbsT(balls[k].first - x0, looseMargin<T>()));
   }
 }
 

@@ -81,7 +81,7 @@ enum class HitStatus : uint8_t
 {
   Miss,      ///< The ray does not cross the surface in the interval.
   Hit,       ///< The ray crosses the surface; HitT says where.
-  Unresolved ///< The query ran out of steps before it could decide (a ray grazing the surface, say).
+  Unresolved ///< The query ran out of steps or passes before it could decide (a ray grazing the surface, say).
 };
 
 /**
@@ -307,7 +307,7 @@ struct RaySpansT
  * @brief How to ray trace a shape directly, instead of marching its signed distance.
  * @details The primary template is empty: a shape has no ray form, and the queries march it. A
  * specialisation for a shape type S gives it one, through the functions it defines; they are found by
- * their signatures, so one with a wrong signature is not used:
+ * their signatures, so one with a wrong signature is not used (`static_assert(hasRayForm<S, T>)` checks it):
  * @code
  *   template <class T>
  *   struct EBGeometry::RayForm<MyShape<T>>
