@@ -179,9 +179,10 @@ struct RayOptions
 
 /**
  * @brief One end of a span: where a ray enters or leaves an object.
- * @details An end is either a crossing of the object's surface, with its outward unit normal and the
- * primitive whose surface it is, or the end of the interval the ray was traced over (or of what is known
- * of it; see RaySpansT), which is no crossing.
+ * @details An end is either a crossing of the object's surface, or the end of the interval the ray was
+ * traced over (or of what is known of it; see RaySpansT), which is no crossing. A crossing carries no
+ * normal, so that span lists stay small: a composition names the leaf it lies on (m_leaf), and asks that
+ * leaf for the normal once, at the crossing the trace ends at.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -203,14 +204,10 @@ struct SpanEndT
   T m_t;
 
   /**
-   * @brief Outward unit normal at a crossing.
+   * @brief Which of a composition's leaves the crossing lies on, numbered by the composition; a shape that
+   * is not a composition leaves it 0.
    */
-  Vec3T<T> m_normal;
-
-  /**
-   * @brief The primitive at a crossing (see HitT::m_primitive).
-   */
-  uint32_t m_primitive;
+  uint32_t m_leaf;
 
   /**
    * @brief What the end is.
@@ -296,23 +293,14 @@ struct RaySpansT
   /**
    * @brief Append the span [a_in, a_out] cut to [a_t0, a_t1]: an end outside it (or infinite) becomes an
    * Open end there. Nothing is added if the span misses the interval.
-   * @param[in] a_in        Where the ray enters (or -infinity); above a_out for a ray that misses.
-   * @param[in] a_inNormal  Outward normal there.
-   * @param[in] a_out       Where it leaves (or +infinity).
-   * @param[in] a_outNormal Outward normal there.
-   * @param[in] a_primitive The primitive at both ends.
-   * @param[in] a_t0        Start of the interval.
-   * @param[in] a_t1        End of the interval.
+   * @param[in] a_in  Where the ray enters (or -infinity); above a_out for a ray that misses.
+   * @param[in] a_out Where it leaves (or +infinity).
+   * @param[in] a_t0  Start of the interval.
+   * @param[in] a_t1  End of the interval.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
-  addClipped(T               a_in,
-             const Vec3T<T>& a_inNormal,
-             T               a_out,
-             const Vec3T<T>& a_outNormal,
-             uint32_t        a_primitive,
-             T               a_t0,
-             T               a_t1) noexcept;
+  addClipped(T a_in, T a_out, T a_t0, T a_t1) noexcept;
 };
 
 /**
@@ -335,7 +323,8 @@ struct RaySpansT
  * firstHit() makes the shape a ray form: it returns the first crossing in [a_tMin, a_tMax], entering or
  * leaving, with every field of HitT filled in. The others are optional. spans() writes where the ray is
  * inside the object over [a_tMin, a_tMax] (see RaySpansT), which is what an intersection, difference or
- * complement of the shape with others needs to be traced exactly; a_firstOnly says that only the first
+ * complement of the shape with others needs to be traced exactly (the ends carry no normal: the composition
+ * calls firstHit() near the crossing it ends at for that); a_firstOnly says that only the first
  * crossing is needed (the list may then stop after it, its horizon there). Without spans(), a composition
  * finds the spans by calling firstHit() from one crossing to the next. intersects(), with firstHit()'s
  * arguments and returning HitStatus, is a yes/no query that can stop at the first crossing it finds;

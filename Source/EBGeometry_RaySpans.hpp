@@ -45,7 +45,7 @@ template <class T>
 inline SpanEndT<T>
 openAt(const T a_t) noexcept
 {
-  return SpanEndT<T>{a_t, Vec3T<T>::zeros(), 0U, SpanEndT<T>::Open};
+  return SpanEndT<T>{a_t, 0U, SpanEndT<T>::Open};
 }
 
 /**
@@ -60,27 +60,7 @@ template <class T>
 inline SpanEndT<T>
 endOf(const HitT<T>& a_hit) noexcept
 {
-  return SpanEndT<T>{
-    a_hit.m_t, a_hit.m_normal, a_hit.m_primitive, a_hit.m_exact ? SpanEndT<T>::Exact : SpanEndT<T>::Marched};
-}
-
-/**
- * @brief The same end seen from the complement: its normal reversed.
- * @details Internal helper; not part of the public API.
- * @tparam T Floating-point precision.
- * @param[in] a_end The end.
- * @return The flipped end.
- */
-template <class T>
-[[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline SpanEndT<T>
-flipped(const SpanEndT<T>& a_end) noexcept
-{
-  SpanEndT<T> end = a_end;
-
-  end.m_normal = -end.m_normal;
-
-  return end;
+  return SpanEndT<T>{a_hit.m_t, 0U, a_hit.m_exact ? SpanEndT<T>::Exact : SpanEndT<T>::Marched};
 }
 
 /**
@@ -293,30 +273,81 @@ keepFirst(RaySpansT<T>& a_spans) noexcept
 }
 
 /**
- * @brief Unite a list into another, in place.
- * @details Internal helper; not part of the public API. An operand the ray is nowhere inside (the common
- * case in a union of many) only cuts the list to its horizon, with no copy.
+ * @brief Unite a list into another, in place: each of the operand's spans merged with the spans it meets,
+ * or inserted between them.
+ * @details Internal helper; not part of the public API. Complete up to the smaller horizon. No list is
+ * copied: on a device every span copied is local memory traffic, which is most of what tracing costs there.
  * @tparam T Floating-point precision.
  * @param[in,out] a_spans   The list.
  * @param[in]     a_operand The list to unite into it.
- * @param[in,out] a_scratch Scratch.
  */
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-uniteInto(RaySpansT<T>& a_spans, const RaySpansT<T>& a_operand, RaySpansT<T>& a_scratch) noexcept
+uniteInto(RaySpansT<T>& a_spans, const RaySpansT<T>& a_operand) noexcept
 {
-  if (a_operand.m_count == 0U) {
-    if (a_operand.m_horizon < a_spans.m_horizon) {
-      RayDetail::cutTo(a_operand.m_horizon, a_spans);
+  const T horizon = Math::min(a_spans.m_horizon, a_operand.m_horizon);
+
+  if (horizon < a_spans.m_horizon) {
+    RayDetail::cutTo(horizon, a_spans);
+  }
+
+  // Each of the operand's spans in turn: merged with the list's spans it meets, or inserted between them.
+  for (uint32_t k = 0; k < a_operand.m_count && a_operand.m_spans[k].m_in.m_t <= horizon; k++) {
+    typename RaySpansT<T>::Span span = RayDetail::cut(a_operand.m_spans[k], horizon);
+
+    uint32_t first = 0;
+
+    while (first < a_spans.m_count && a_spans.m_spans[first].m_out.m_t < span.m_in.m_t) {
+      first++;
     }
-  }
-  else if (a_spans.m_count == 0U && a_operand.m_horizon <= a_spans.m_horizon) {
-    RayDetail::copySpans(a_operand, a_spans);
-  }
-  else {
-    RayDetail::unite(a_spans, a_operand, a_scratch);
-    RayDetail::copySpans(a_scratch, a_spans);
+
+    // Where two ends meet, the one that is no crossing wins: the ray is inside the other span there.
+    uint32_t last = first;
+
+    while (last < a_spans.m_count && a_spans.m_spans[last].m_in.m_t <= span.m_out.m_t) {
+      const typename RaySpansT<T>::Span& other = a_spans.m_spans[last];
+
+      if (other.m_in.m_t < span.m_in.m_t || (other.m_in.m_t == span.m_in.m_t && !other.m_in.crossing())) {
+        span.m_in = other.m_in;
+      }
+      if (other.m_out.m_t > span.m_out.m_t || (other.m_out.m_t == span.m_out.m_t && !other.m_out.crossing())) {
+        span.m_out = other.m_out;
+      }
+
+      last++;
+    }
+
+    const uint32_t merged = last - first;
+
+    if (merged == 0U) {
+      // A new span: a full list keeps its first spans, and is known only up to where the dropped one begins.
+      if (a_spans.m_count == RaySpansT<T>::Capacity) {
+        if (first == a_spans.m_count) {
+          a_spans.m_horizon = Math::min(a_spans.m_horizon, span.m_in.m_t);
+
+          break;
+        }
+
+        a_spans.m_horizon = Math::min(a_spans.m_horizon, a_spans.m_spans[a_spans.m_count - 1U].m_in.m_t);
+        a_spans.m_count--;
+      }
+
+      for (uint32_t m = a_spans.m_count; m > first; m--) {
+        a_spans.m_spans[m] = a_spans.m_spans[m - 1U];
+      }
+
+      a_spans.m_count++;
+    }
+    else if (merged > 1U) {
+      for (uint32_t m = last; m < a_spans.m_count; m++) {
+        a_spans.m_spans[m - merged + 1U] = a_spans.m_spans[m];
+      }
+
+      a_spans.m_count -= merged - 1U;
+    }
+
+    a_spans.m_spans[first] = span;
   }
 }
 
@@ -344,7 +375,8 @@ intersectInto(RaySpansT<T>& a_spans, const RaySpansT<T>& a_operand, RaySpansT<T>
 }
 
 /**
- * @brief The complement of a list over [a_t0, a_t1]: where the ray is outside, with the normals reversed.
+ * @brief The complement of a list over [a_t0, a_t1]: where the ray is outside. A crossing is the same
+ * crossing seen from the other side; its normal, worked out at the end, is reversed then.
  * @details Internal helper; not part of the public API. Complete up to the list's horizon.
  * @tparam T Floating-point precision.
  * @param[in]  a_a   The list.
@@ -369,7 +401,7 @@ complement(const RaySpansT<T>& a_a, const T a_t0, RaySpansT<T>& a_out) noexcept
 
     // A span that begins at the start of the interval, inside, has no gap before it.
     if (span.m_in.crossing() && gap) {
-      a_out.add(start, flipped(span.m_in));
+      a_out.add(start, span.m_in);
     }
 
     // A span that ends where nothing more is known leaves no gap after it.
@@ -379,7 +411,7 @@ complement(const RaySpansT<T>& a_a, const T a_t0, RaySpansT<T>& a_out) noexcept
       break;
     }
 
-    start = flipped(span.m_out);
+    start = span.m_out;
   }
 
   if (gap) {
@@ -451,29 +483,20 @@ mapRay(const T* a_map, const RayT<T>& a_ray, const T a_t0, const T a_t1) noexcep
 
 /**
  * @brief Map an operand's list, traced along a mapped ray, back to the original ray: distances divided by
- * the scale, normals by the transposed matrix.
+ * the scale.
  * @details Internal helper; not part of the public API. The ends of the interval map back to exactly the
  * ends of the original one, so that a list complete over the mapped interval is complete over the original.
  * @tparam T Floating-point precision.
- * @param[in]  a_map    The map's coefficients.
- * @param[in]  a_mapped The mapped ray.
- * @param[in]  a_t0     Start of the original interval.
- * @param[in]  a_t1     End of the original interval.
- * @param[in]  a_from   The operand's list.
- * @param[out] a_to     The list along the original ray; may be a_from.
+ * @param[in]     a_mapped The mapped ray.
+ * @param[in]     a_t0     Start of the original interval.
+ * @param[in]     a_t1     End of the original interval.
+ * @param[in,out] a_spans  The operand's list, mapped in place.
  */
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-mapBack(const T*            a_map,
-        const MappedRay<T>& a_mapped,
-        const T             a_t0,
-        const T             a_t1,
-        const RaySpansT<T>& a_from,
-        RaySpansT<T>&       a_to) noexcept
+mapBack(const MappedRay<T>& a_mapped, const T a_t0, const T a_t1, RaySpansT<T>& a_spans) noexcept
 {
-  const T* m = a_map;
-
   const auto distance = [&a_mapped, a_t0, a_t1](const T a_t) noexcept -> T {
     if (a_t == a_mapped.m_t0) {
       return a_t0;
@@ -485,30 +508,72 @@ mapBack(const T*            a_map,
     return a_t / a_mapped.m_scale;
   };
 
-  const auto end = [&distance, m](const SpanEndT<T>& a_end) noexcept -> SpanEndT<T> {
-    SpanEndT<T> e = a_end;
+  a_spans.m_horizon = distance(a_spans.m_horizon);
 
-    e.m_t = distance(a_end.m_t);
+  for (uint32_t i = 0; i < a_spans.m_count; i++) {
+    a_spans.m_spans[i].m_in.m_t  = distance(a_spans.m_spans[i].m_in.m_t);
+    a_spans.m_spans[i].m_out.m_t = distance(a_spans.m_spans[i].m_out.m_t);
+  }
+}
 
-    if (a_end.crossing()) {
-      const Vec3T<T>& n = a_end.m_normal;
-      const Vec3T<T>  g(m[0] * n[0] + m[3] * n[1] + m[6] * n[2],
-                       m[1] * n[0] + m[4] * n[1] + m[7] * n[2],
-                       m[2] * n[0] + m[5] * n[1] + m[8] * n[2]);
-      const T         length = g.length();
+/**
+ * @brief A normal of the operand of an affine map, mapped back to the original frame: by the transposed
+ * matrix, and normalised.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_map    The map's coefficients.
+ * @param[in] a_normal The operand's normal.
+ * @return The normal.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+mapNormalBack(const T* a_map, const Vec3T<T>& a_normal) noexcept
+{
+  const T*        m = a_map;
+  const Vec3T<T>& n = a_normal;
+  const Vec3T<T>  g(m[0] * n[0] + m[3] * n[1] + m[6] * n[2],
+                   m[1] * n[0] + m[4] * n[1] + m[7] * n[2],
+                   m[2] * n[0] + m[5] * n[1] + m[8] * n[2]);
+  const T         length = g.length();
 
-      e.m_normal = (length > T(0)) ? g / length : g;
-    }
+  return (length > T(0)) ? g / length : g;
+}
 
-    return e;
-  };
+/**
+ * @brief Name the leaf every crossing of a list lies on.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in]     a_leaf  The leaf.
+ * @param[in,out] a_spans The list.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+nameLeaf(const uint32_t a_leaf, RaySpansT<T>& a_spans) noexcept
+{
+  for (uint32_t i = 0; i < a_spans.m_count; i++) {
+    a_spans.m_spans[i].m_in.m_leaf  = a_leaf;
+    a_spans.m_spans[i].m_out.m_leaf = a_leaf;
+  }
+}
 
-  a_to.m_count   = a_from.m_count;
-  a_to.m_horizon = distance(a_from.m_horizon);
-
-  for (uint32_t i = 0; i < a_from.m_count; i++) {
-    a_to.m_spans[i].m_in  = end(a_from.m_spans[i].m_in);
-    a_to.m_spans[i].m_out = end(a_from.m_spans[i].m_out);
+/**
+ * @brief Shift the leaves every crossing of a list names by an offset: an operand's own leaves, numbered
+ * among its composition's.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in]     a_offset The operand's first leaf.
+ * @param[in,out] a_spans  The list.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+offsetLeaves(const uint32_t a_offset, RaySpansT<T>& a_spans) noexcept
+{
+  for (uint32_t i = 0; i < a_spans.m_count; i++) {
+    a_spans.m_spans[i].m_in.m_leaf += a_offset;
+    a_spans.m_spans[i].m_out.m_leaf += a_offset;
   }
 }
 
@@ -792,24 +857,83 @@ shapeSpans(const S&             a_shape,
 }
 
 /**
+ * @brief A shape's crossing at a distance along a ray, with its normal and primitive: what a composition
+ * asks the leaf its trace ended on.
+ * @details Internal helper; not part of the public API. Calls the shape's firstHit() over a window of
+ * RayOptions::m_tolerance times its scale around a_t, and takes the crossing nearest a_t. Where rounding
+ * leaves the window empty, the normal is the shape's gradient.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape   The shape.
+ * @param[in] a_ray     The ray.
+ * @param[in] a_t       The crossing's distance.
+ * @param[in] a_options How to march.
+ * @return The crossing (its m_normal, m_primitive and m_exact).
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+leafHit(const S& a_shape, const RayT<T>& a_ray, const T a_t, const RayOptions<T>& a_options) noexcept
+{
+  const auto box   = a_shape.computeBoundingVolume();
+  const T    delta = a_options.m_tolerance * RayDetail::scaleOf(box.getLowCorner(), box.getHighCorner(), a_options);
+
+  HitT<T> nearest;
+
+  T from = a_t - delta;
+
+  // At most three crossings in the window: a ray grazing an edge may cross two faces there.
+  for (int k = 0; k < 3; k++) {
+    const HitT<T> hit = EBGeometry::firstHit(a_shape, a_ray, from, a_t + delta, a_options);
+
+    if (!hit.hit()) {
+      break;
+    }
+
+    if (!nearest.hit() || std::abs(hit.m_t - a_t) < std::abs(nearest.m_t - a_t)) {
+      nearest = hit;
+    }
+
+    if (hit.m_t >= a_t) {
+      break;
+    }
+
+    from = hit.m_t + T(1e-3) * delta;
+  }
+
+  if (!nearest.hit()) {
+    const Vec3T<T> point = a_ray.at(a_t);
+
+    nearest.m_normal    = RayDetail::gradientNormal(a_shape, point, delta);
+    nearest.m_primitive = RayDetail::primitiveOf(a_shape, point);
+  }
+
+  return nearest;
+}
+
+/**
  * @brief The first crossing of a composition along a ray, from its lists: the first crossing in the list,
  * if it comes no later than the list's horizon; otherwise the trace starts again from the horizon.
  * @details Internal helper; not part of the public API. A_trace(t0, t1, allSpans, spans) writes the
  * composition's list over [t0, t1]; allSpans asks every operand for all its spans, which a trace that
  * gets no further (its horizon at its start) is repeated with. A query that still gets no further, or
- * starts again too many times, is unresolved.
- * @tparam T     Floating-point precision.
- * @tparam Trace Callable writing the list.
- * @param[in] a_trace The trace.
- * @param[in] a_ray   The ray.
- * @param[in] a_tMin  Start of the interval.
- * @param[in] a_tMax  End of the interval.
- * @return The crossing, a miss, or an unresolved query. HitT::m_primitive is the end's primitive.
+ * starts again too many times, is unresolved. A_resolve(t, leaf) then gives the crossing's normal and
+ * primitive, from the leaf its end names.
+ * @tparam T       Floating-point precision.
+ * @tparam Trace   Callable writing the list.
+ * @tparam Resolve Callable giving the crossing on a leaf.
+ * @param[in] a_trace   The trace.
+ * @param[in] a_resolve The crossing on a leaf.
+ * @param[in] a_ray     The ray.
+ * @param[in] a_tMin    Start of the interval.
+ * @param[in] a_tMax    End of the interval.
+ * @return The crossing, a miss, or an unresolved query.
  */
-template <class T, class Trace>
+template <class T, class Trace, class Resolve>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 inline HitT<T>
-traceSpans(const Trace& a_trace, const RayT<T>& a_ray, const T a_tMin, const T a_tMax) noexcept
+traceSpans(
+  const Trace& a_trace, const Resolve& a_resolve, const RayT<T>& a_ray, const T a_tMin, const T a_tMax) noexcept
 {
   constexpr uint32_t MaxPasses = 64;
 
@@ -834,13 +958,20 @@ traceSpans(const Trace& a_trace, const RayT<T>& a_ray, const T a_tMin, const T a
         const SpanEndT<T>& end = (side == 0) ? spans.m_spans[i].m_in : spans.m_spans[i].m_out;
 
         if (end.crossing() && end.m_t >= t0 && end.m_t <= horizon) {
+          const HitT<T> leaf = a_resolve(end.m_t, end.m_leaf);
+
           hit.m_status    = HitStatus::Hit;
           hit.m_t         = end.m_t;
           hit.m_point     = a_ray.at(end.m_t);
-          hit.m_primitive = end.m_primitive;
-          hit.m_normal    = end.m_normal;
+          hit.m_primitive = leaf.m_primitive;
+          hit.m_normal    = leaf.m_normal;
           hit.m_entering  = (side == 0);
           hit.m_exact     = (end.m_kind == SpanEndT<T>::Exact);
+
+          // The leaf's normal faces out of the leaf; the composition's faces the way the ray crosses.
+          if ((dot(hit.m_normal, a_ray.m_direction) < T(0)) != hit.m_entering) {
+            hit.m_normal = -hit.m_normal;
+          }
 
           return hit;
         }

@@ -261,14 +261,9 @@ struct NearestCrossings
     T m_t;
 
     /**
-     * @brief The face's outward unit normal.
+     * @brief Whether the ray enters there: it runs against the face's outward normal.
      */
-    Vec3T<T> m_normal;
-
-    /**
-     * @brief The face's id.
-     */
-    uint32_t m_face;
+    bool m_entering;
   };
 
   /**
@@ -288,13 +283,12 @@ struct NearestCrossings
 
   /**
    * @brief Take a crossing.
-   * @param[in] a_t      Distance along the ray.
-   * @param[in] a_normal The face's outward unit normal.
-   * @param[in] a_face   The face's id.
+   * @param[in] a_t        Distance along the ray.
+   * @param[in] a_entering Whether the ray enters there.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
-  insert(const T a_t, const Vec3T<T>& a_normal, const uint32_t a_face) noexcept
+  insert(const T a_t, const bool a_entering) noexcept
   {
     if (m_count == Capacity) {
       if (!(a_t < m_crossings[Capacity - 1U].m_t)) {
@@ -312,7 +306,7 @@ struct NearestCrossings
       i--;
     }
 
-    m_crossings[i] = Crossing{a_t, a_normal, a_face};
+    m_crossings[i] = Crossing{a_t, a_entering};
 
     m_count++;
   }
@@ -330,14 +324,13 @@ struct NearestCrossings
 
   /**
    * @brief The spans: the crossings paired by the side of the face the ray crosses from.
-   * @param[in]  a_ray    The ray.
    * @param[in]  a_t0     Start of the interval.
    * @param[in]  a_inside Whether the ray is inside at a_t0; read only if there are no crossings.
    * @param[out] a_spans  The list.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
-  toSpans(const RayT<T>& a_ray, const T a_t0, const bool a_inside, RaySpansT<T>& a_spans) const noexcept
+  toSpans(const T a_t0, const bool a_inside, RaySpansT<T>& a_spans) const noexcept
   {
     const T horizon = this->horizon();
 
@@ -356,10 +349,7 @@ struct NearestCrossings
     for (uint32_t i = 0; i < m_count; i++) {
       const Crossing& c = m_crossings[i];
 
-      pairer.take(SpanEndT<T>{c.m_t, c.m_normal, c.m_face, SpanEndT<T>::Exact},
-                  dot(a_ray.m_direction, c.m_normal) < T(0),
-                  a_t0,
-                  a_spans);
+      pairer.take(SpanEndT<T>{c.m_t, 0U, SpanEndT<T>::Exact}, c.m_entering, a_t0, a_spans);
     }
 
     pairer.finish(horizon, a_spans);
@@ -599,7 +589,7 @@ RayForm<TriMeshSDF<T, K, W>>::spans(const TriMeshSDF<T, K, W>& a_shape,
 
         for (size_t lane = 0; lane < W; lane++) {
           if (t[lane] < Math::Limits<T>::infinity()) {
-            a_state.insert(t[lane], group.getNormal(lane), group.getFaceId(lane));
+            a_state.insert(t[lane], dot(a_ray.m_direction, group.getNormal(lane)) < T(0));
           }
         }
       }
@@ -609,7 +599,7 @@ RayForm<TriMeshSDF<T, K, W>>::spans(const TriMeshSDF<T, K, W>& a_shape,
 
   bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), crossings, leaf, bound);
 
-  crossings.toSpans(a_ray, a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
+  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
 }
 
 template <class T, size_t K>
@@ -645,7 +635,7 @@ RayForm<MeshSDF<T, K>>::spans(const MeshSDF<T, K>& a_shape,
       const T        t    = f.rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, a_state.horizon(), mesh);
 
       if (t < Math::Limits<T>::infinity()) {
-        a_state.insert(t, f.getNormal(), face);
+        a_state.insert(t, dot(a_ray.m_direction, f.getNormal()) < T(0));
       }
     }
   };
@@ -654,7 +644,7 @@ RayForm<MeshSDF<T, K>>::spans(const MeshSDF<T, K>& a_shape,
 
   bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), crossings, leaf, bound);
 
-  crossings.toSpans(a_ray, a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
+  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
 }
 
 template <class T>
@@ -685,11 +675,11 @@ RayForm<FlatMeshSDF<T>>::spans(const FlatMeshSDF<T>& a_shape,
     const T     t = f.rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, crossings.horizon(), mesh);
 
     if (t < Math::Limits<T>::infinity()) {
-      crossings.insert(t, f.getNormal(), i);
+      crossings.insert(t, dot(a_ray.m_direction, f.getNormal()) < T(0));
     }
   }
 
-  crossings.toSpans(a_ray, a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
+  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
 }
 
 } // namespace EBGeometry

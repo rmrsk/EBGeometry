@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 
 // Our includes
 #include "EBGeometry_AnalyticRayForms.hpp"
@@ -78,6 +79,94 @@ struct TracedExactly<AffineOp<T>> : std::true_type
 namespace RayDetail {
 
 /**
+ * @brief Whether a shape is a fused node traced from its operands' spans.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ */
+template <class S>
+struct IsTracedFused : std::false_type
+{
+};
+
+/**
+ * @brief A fused node is, if its operation is traced exactly.
+ * @tparam Op Operation.
+ * @tparam Cs Operand types.
+ */
+template <class Op, class... Cs>
+struct IsTracedFused<Fused::Node<Op, Cs...>> : Fused::Detail::TracedExactly<Op>
+{
+};
+
+/**
+ * @brief How many leaves a shape has, as a fused composition numbers the crossings of its operands: its
+ * operands' leaves for a traced fused node, and one for any other shape.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ */
+template <class S>
+struct LeafCount
+{
+  /**
+   * @brief The count.
+   */
+  static constexpr uint32_t value = 1;
+};
+
+/**
+ * @brief A fused node's leaves: its operands', one after another (one if it is not traced).
+ * @tparam Op Operation.
+ * @tparam Cs Operand types.
+ */
+template <class Op, class... Cs>
+struct LeafCount<Fused::Node<Op, Cs...>>
+{
+  /**
+   * @brief The count.
+   */
+  static constexpr uint32_t value = Fused::Detail::TracedExactly<Op>::value ? (LeafCount<Cs>::value + ...) : 1U;
+};
+
+/**
+ * @brief The first leaf of operand I among a fused node's leaves.
+ * @details Internal helper; not part of the public API. A constant, not a function: a constexpr function is
+ * host code to nvcc unless marked otherwise.
+ * @tparam I  Operand index.
+ * @tparam Cs Operand types.
+ */
+template <size_t I, class... Cs>
+struct FirstLeaf;
+
+/**
+ * @brief Operand 0's first leaf is leaf 0.
+ * @tparam C  First operand type.
+ * @tparam Cs The others.
+ */
+template <class C, class... Cs>
+struct FirstLeaf<0, C, Cs...>
+{
+  /**
+   * @brief The leaf.
+   */
+  static constexpr uint32_t value = 0;
+};
+
+/**
+ * @brief Operand I's first leaf is past the first operand's leaves.
+ * @tparam I  Operand index.
+ * @tparam C  First operand type.
+ * @tparam Cs The others.
+ */
+template <size_t I, class C, class... Cs>
+struct FirstLeaf<I, C, Cs...>
+{
+  /**
+   * @brief The leaf.
+   */
+  static constexpr uint32_t value = LeafCount<C>::value + FirstLeaf<I - 1, Cs...>::value;
+};
+
+/**
  * @brief Operand I of a fused node, as the shape it is.
  * @details Internal helper; not part of the public API.
  * @tparam I  Operand index.
@@ -97,8 +186,47 @@ fusedOperand(const Fused::Node<Op, Cs...>& a_node) noexcept
 }
 
 /**
- * @brief Fold a fused node's operands I, I + 1, ... into a list by union or intersection.
+ * @brief Operand I's list of a fused node, its crossings named among the node's leaves.
  * @details Internal helper; not part of the public API.
+ * @tparam I  Operand index.
+ * @tparam T  Floating-point precision.
+ * @tparam Op Operation.
+ * @tparam Cs Operand types.
+ * @param[in]  a_node      The node.
+ * @param[in]  a_ray       The ray.
+ * @param[in]  a_t0        Start of the interval.
+ * @param[in]  a_t1        End of the interval.
+ * @param[in]  a_options   How to march.
+ * @param[in]  a_firstOnly Whether only the first crossing is needed.
+ * @param[out] a_spans     The list.
+ */
+template <size_t I, class T, class Op, class... Cs>
+EBGEOMETRY_HOST_DEVICE
+inline void
+fusedOperandSpans(const Fused::Node<Op, Cs...>& a_node,
+                  const RayT<T>&                a_ray,
+                  const T                       a_t0,
+                  const T                       a_t1,
+                  const RayOptions<T>&          a_options,
+                  const bool                    a_firstOnly,
+                  RaySpansT<T>&                 a_spans) noexcept
+{
+  using C = typename Fused::Detail::TypeAt<I, Cs...>::type;
+
+  RayDetail::shapeSpans(RayDetail::fusedOperand<I>(a_node), a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
+
+  if constexpr (IsTracedFused<C>::value) {
+    RayDetail::offsetLeaves(FirstLeaf<I, Cs...>::value, a_spans);
+  }
+  else {
+    RayDetail::nameLeaf(FirstLeaf<I, Cs...>::value, a_spans);
+  }
+}
+
+/**
+ * @brief Fold a fused node's operands I, I + 1, ... into a list by union or intersection.
+ * @details Internal helper; not part of the public API. Each operand is traced only up to what the list
+ * so far is known up to, beyond which it can change nothing known.
  * @tparam I       First operand to fold in.
  * @tparam IsUnion Whether to unite (or intersect).
  * @tparam T       Floating-point precision.
@@ -107,12 +235,11 @@ fusedOperand(const Fused::Node<Op, Cs...>& a_node) noexcept
  * @param[in]     a_node      The node.
  * @param[in]     a_ray       The ray.
  * @param[in]     a_t0        Start of the interval.
- * @param[in]     a_t1        End of the interval.
  * @param[in]     a_options   How to march.
  * @param[in]     a_firstOnly Whether the operands need only their first crossings.
  * @param[in,out] a_spans     The list so far.
  * @param[in,out] a_operand   Scratch for an operand's list.
- * @param[in,out] a_scratch   Scratch for a combination.
+ * @param[in,out] a_scratch   Scratch for an intersection.
  */
 template <size_t I, bool IsUnion, class T, class Op, class... Cs>
 EBGEOMETRY_HOST_DEVICE
@@ -120,7 +247,6 @@ inline void
 fusedFold(const Fused::Node<Op, Cs...>& a_node,
           const RayT<T>&                a_ray,
           const T                       a_t0,
-          const T                       a_t1,
           const RayOptions<T>&          a_options,
           const bool                    a_firstOnly,
           RaySpansT<T>&                 a_spans,
@@ -128,12 +254,10 @@ fusedFold(const Fused::Node<Op, Cs...>& a_node,
           RaySpansT<T>&                 a_scratch) noexcept
 {
   if constexpr (I < sizeof...(Cs)) {
-    // Beyond what the list so far is known up to, the operand can change nothing known.
-    RayDetail::shapeSpans(
-      RayDetail::fusedOperand<I>(a_node), a_ray, a_t0, a_spans.m_horizon, a_options, a_firstOnly, a_operand);
+    RayDetail::fusedOperandSpans<I>(a_node, a_ray, a_t0, a_spans.m_horizon, a_options, a_firstOnly, a_operand);
 
     if constexpr (IsUnion) {
-      RayDetail::uniteInto(a_spans, a_operand, a_scratch);
+      RayDetail::uniteInto(a_spans, a_operand);
 
       if (a_firstOnly) {
         RayDetail::keepFirst(a_spans);
@@ -143,9 +267,81 @@ fusedFold(const Fused::Node<Op, Cs...>& a_node,
       RayDetail::intersectInto(a_spans, a_operand, a_scratch);
     }
 
-    RayDetail::fusedFold<I + 1, IsUnion>(
-      a_node, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans, a_operand, a_scratch);
+    RayDetail::fusedFold<I + 1, IsUnion>(a_node, a_ray, a_t0, a_options, a_firstOnly, a_spans, a_operand, a_scratch);
   }
+}
+
+/**
+ * @brief The crossing at a distance along a ray on one of operand I's leaves of a fused node.
+ * @details Internal helper; not part of the public API.
+ * @tparam I  Operand index.
+ * @tparam T  Floating-point precision.
+ * @tparam Op Operation.
+ * @tparam Cs Operand types.
+ * @param[in] a_node    The node.
+ * @param[in] a_ray     The ray.
+ * @param[in] a_t       The crossing's distance.
+ * @param[in] a_leaf    The leaf, among the node's.
+ * @param[in] a_options How to march.
+ * @return The crossing on the leaf.
+ */
+template <size_t I, class T, class Op, class... Cs>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+fusedOperandLeafHit(const Fused::Node<Op, Cs...>& a_node,
+                    const RayT<T>&                a_ray,
+                    const T                       a_t,
+                    const uint32_t                a_leaf,
+                    const RayOptions<T>&          a_options) noexcept
+{
+  using C = typename Fused::Detail::TypeAt<I, Cs...>::type;
+
+  if constexpr (IsTracedFused<C>::value) {
+    return RayForm<C>::leafHit(
+      RayDetail::fusedOperand<I>(a_node), a_ray, a_t, a_leaf - FirstLeaf<I, Cs...>::value, a_options);
+  }
+  else {
+    return RayDetail::leafHit(RayDetail::fusedOperand<I>(a_node), a_ray, a_t, a_options);
+  }
+}
+
+/**
+ * @brief The crossing at a distance along a ray on a leaf of a fused node: in the operand holding the leaf.
+ * @details Internal helper; not part of the public API. A fold over the operands rather than a recursion,
+ * which nvcc can leave without device code.
+ * @tparam T  Floating-point precision.
+ * @tparam Op Operation.
+ * @tparam Cs Operand types.
+ * @tparam Is Operand indices.
+ * @param[in] a_node    The node.
+ * @param[in] a_ray     The ray.
+ * @param[in] a_t       The crossing's distance.
+ * @param[in] a_leaf    The leaf, among the node's.
+ * @param[in] a_options How to march.
+ * @return The crossing on the leaf.
+ */
+template <class T, class Op, class... Cs, size_t... Is>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+fusedLeafHit(const Fused::Node<Op, Cs...>& a_node,
+             const RayT<T>&                a_ray,
+             const T                       a_t,
+             const uint32_t                a_leaf,
+             const RayOptions<T>&          a_options,
+             std::index_sequence<Is...>) noexcept
+{
+  HitT<T> hit;
+
+  const auto holds = [a_leaf](const uint32_t a_first, const uint32_t a_count) noexcept {
+    return a_leaf >= a_first && a_leaf < a_first + a_count;
+  };
+
+  (void)((holds(FirstLeaf<Is, Cs...>::value, LeafCount<typename Fused::Detail::TypeAt<Is, Cs...>::type>::value)
+            ? (hit = RayDetail::fusedOperandLeafHit<Is>(a_node, a_ray, a_t, a_leaf, a_options), true)
+            : false) ||
+         ...);
+
+  return hit;
 }
 
 } // namespace RayDetail
@@ -156,7 +352,8 @@ fusedFold(const Fused::Node<Op, Cs...>& a_node,
  * callable on a device.
  * @details A union asks its operands only for their first crossings unless the ray starts inside one, and
  * an intersection or complement asks for all their spans (see EBGeometry_RaySpans.hpp). An operand without
- * a ray form is marched in its own box. HitT::m_primitive is 0: a fused composition is one shape.
+ * a ray form is marched in its own box. The normal is the leaf's at the crossing the trace ends at, mapped
+ * back through the affine maps above it. HitT::m_primitive is 0: a fused composition is one shape.
  * @tparam Op Operation.
  * @tparam Cs Operand types.
  */
@@ -191,7 +388,11 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
         spans(a_shape, a_ray, a_t0, a_t1, a_options, !a_all, a_spans);
       };
 
-    HitT<T> hit = RayDetail::traceSpans(trace, a_ray, a_tMin, a_tMax);
+    const auto resolve = [&a_shape, &a_ray, &a_options](const T a_t, const uint32_t a_leaf) noexcept {
+      return leafHit(a_shape, a_ray, a_t, a_leaf, a_options);
+    };
+
+    HitT<T> hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
 
     hit.m_primitive = 0U;
 
@@ -199,7 +400,8 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
   }
 
   /**
-   * @brief Where a ray is inside the composition over an interval.
+   * @brief Where a ray is inside the composition over an interval, its crossings named by the leaves they
+   * lie on (depth first, see RayDetail::LeafCount).
    * @param[in]  a_shape     The composition.
    * @param[in]  a_ray       Ray, with a unit direction.
    * @param[in]  a_tMin      Start of the interval.
@@ -218,8 +420,6 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
         bool                 a_firstOnly,
         RaySpansT<T>&        a_spans) noexcept
   {
-    RaySpansT<T> operand;
-
     if constexpr (std::is_same_v<Op, Fused::UnionOp> || std::is_same_v<Op, Fused::IntersectionOp>) {
       constexpr bool isUnion = std::is_same_v<Op, Fused::UnionOp>;
 
@@ -227,27 +427,60 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
       // inside the others.
       const bool firstOnly = isUnion && a_firstOnly;
 
+      RaySpansT<T> operand;
       RaySpansT<T> scratch;
 
-      RayDetail::shapeSpans(RayDetail::fusedOperand<0>(a_shape), a_ray, a_tMin, a_tMax, a_options, firstOnly, a_spans);
+      RayDetail::fusedOperandSpans<0>(a_shape, a_ray, a_tMin, a_tMax, a_options, firstOnly, a_spans);
 
       if (firstOnly) {
         RayDetail::keepFirst(a_spans);
       }
 
-      RayDetail::fusedFold<1, isUnion>(a_shape, a_ray, a_tMin, a_tMax, a_options, firstOnly, a_spans, operand, scratch);
+      RayDetail::fusedFold<1, isUnion>(a_shape, a_ray, a_tMin, a_options, firstOnly, a_spans, operand, scratch);
     }
     else if constexpr (std::is_same_v<Op, Fused::ComplementOp>) {
-      RayDetail::shapeSpans(RayDetail::fusedOperand<0>(a_shape), a_ray, a_tMin, a_tMax, a_options, false, operand);
+      RaySpansT<T> operand;
+
+      RayDetail::fusedOperandSpans<0>(a_shape, a_ray, a_tMin, a_tMax, a_options, false, operand);
       RayDetail::complement(operand, a_tMin, a_spans);
     }
     else {
       const CSGOps::AffineCoefficients<T> map    = CSGOps::affineCoefficients(a_shape.layout().m_op.m_map);
       const RayDetail::MappedRay<T>       mapped = RayDetail::mapRay(map.m_values, a_ray, a_tMin, a_tMax);
 
-      RayDetail::shapeSpans(
-        RayDetail::fusedOperand<0>(a_shape), mapped.m_ray, mapped.m_t0, mapped.m_t1, a_options, a_firstOnly, operand);
-      RayDetail::mapBack(map.m_values, mapped, a_tMin, a_tMax, operand, a_spans);
+      RayDetail::fusedOperandSpans<0>(a_shape, mapped.m_ray, mapped.m_t0, mapped.m_t1, a_options, a_firstOnly, a_spans);
+      RayDetail::mapBack(mapped, a_tMin, a_tMax, a_spans);
+    }
+  }
+
+  /**
+   * @brief The crossing at a distance along a ray on one of the composition's leaves: its normal (outward
+   * of the leaf, in the composition's frame) and its primitive.
+   * @param[in] a_shape   The composition.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_t       The crossing's distance.
+   * @param[in] a_leaf    The leaf, as spans() names it.
+   * @param[in] a_options How to march the operands without a ray form.
+   * @return The crossing on the leaf.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  leafHit(const Node& a_shape, const RayT<T>& a_ray, T a_t, uint32_t a_leaf, const RayOptions<T>& a_options) noexcept
+  {
+    if constexpr (std::is_same_v<Op, Fused::UnionOp> || std::is_same_v<Op, Fused::IntersectionOp> ||
+                  std::is_same_v<Op, Fused::ComplementOp>) {
+      return RayDetail::fusedLeafHit(a_shape, a_ray, a_t, a_leaf, a_options, std::index_sequence_for<Cs...>{});
+    }
+    else {
+      const CSGOps::AffineCoefficients<T> map    = CSGOps::affineCoefficients(a_shape.layout().m_op.m_map);
+      const RayDetail::MappedRay<T>       mapped = RayDetail::mapRay(map.m_values, a_ray, a_t, a_t);
+
+      HitT<T> hit = RayDetail::fusedLeafHit(
+        a_shape, mapped.m_ray, mapped.m_t0, a_leaf, a_options, std::index_sequence_for<Cs...>{});
+
+      hit.m_normal = RayDetail::mapNormalBack(map.m_values, hit.m_normal);
+
+      return hit;
     }
   }
 };
@@ -286,11 +519,16 @@ struct RayForm<BVHUnion<T, P, K>>
         spans(a_shape, a_ray, a_t0, a_t1, a_options, !a_all, a_spans);
       };
 
-    return RayDetail::traceSpans(trace, a_ray, a_tMin, a_tMax);
+    const auto resolve = [&a_shape, &a_ray, &a_options](const T a_t, const uint32_t a_leaf) noexcept {
+      return leafHit(a_shape, a_ray, a_t, a_leaf, a_options);
+    };
+
+    return RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
   }
 
   /**
-   * @brief Where a ray is inside the union over an interval.
+   * @brief Where a ray is inside the union over an interval, each crossing named by its primitive: the
+   * unbounded ones first, then the BVH's, in their stored order.
    * @param[in]  a_shape     The union.
    * @param[in]  a_ray       Ray, with a unit direction.
    * @param[in]  a_tMin      Start of the interval.
@@ -314,7 +552,6 @@ struct RayForm<BVHUnion<T, P, K>>
     a_spans.reset(a_tMax);
 
     RaySpansT<T> operand;
-    RaySpansT<T> scratch;
 
     const PoolLocation location   = a_shape.location();
     const Root         bvh        = a_shape.getBVH();
@@ -323,8 +560,8 @@ struct RayForm<BVHUnion<T, P, K>>
 
     // Each primitive is traced only up to what the union so far is known up to, beyond which it can change
     // nothing known.
-    const auto add = [&a_ray, a_tMin, &a_options, a_firstOnly, &location, &operand, &scratch](
-                       RaySpansT<T>& a_union, const CSGDetail::Stored<P>& a_primitive) noexcept {
+    const auto add = [&a_ray, a_tMin, &a_options, a_firstOnly, &location, &operand](
+                       RaySpansT<T>& a_union, const CSGDetail::Stored<P>& a_primitive, const uint32_t a_leaf) noexcept {
       RayDetail::shapeSpans(CSGDetail::fromStored<P>(a_primitive, location),
                             a_ray,
                             a_tMin,
@@ -332,7 +569,8 @@ struct RayForm<BVHUnion<T, P, K>>
                             a_options,
                             a_firstOnly,
                             operand);
-      RayDetail::uniteInto(a_union, operand, scratch);
+      RayDetail::nameLeaf(a_leaf, operand);
+      RayDetail::uniteInto(a_union, operand);
 
       if (a_firstOnly) {
         RayDetail::keepFirst(a_union);
@@ -340,19 +578,50 @@ struct RayForm<BVHUnion<T, P, K>>
     };
 
     for (uint32_t i = 0; i < unbounded.size(); i++) {
-      add(a_spans, unbounded[i]);
+      add(a_spans, unbounded[i], i);
     }
 
-    const auto leaf = [&primitives, &add](RaySpansT<T>& a_union, const size_t a_offset, const size_t a_count) noexcept {
-      for (size_t i = a_offset; i < a_offset + a_count; i++) {
-        add(a_union, primitives[static_cast<uint32_t>(i)]);
-      }
-    };
+    const uint32_t numUnbounded = unbounded.size();
+
+    const auto leaf =
+      [&primitives, &add, numUnbounded](RaySpansT<T>& a_union, const size_t a_offset, const size_t a_count) noexcept {
+        for (size_t i = a_offset; i < a_offset + a_count; i++) {
+          add(a_union, primitives[static_cast<uint32_t>(i)], numUnbounded + static_cast<uint32_t>(i));
+        }
+      };
 
     // A box the ray enters beyond what the union is known up to can change nothing known.
     const auto bound = [](const RaySpansT<T>& a_union) noexcept -> T { return a_union.m_horizon; };
 
     bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), a_spans, leaf, bound);
+  }
+
+  /**
+   * @brief The crossing at a distance along a ray on one of the union's primitives.
+   * @param[in] a_shape   The union.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_t       The crossing's distance.
+   * @param[in] a_leaf    The primitive, as spans() names it.
+   * @param[in] a_options How to march primitives without a ray form.
+   * @return The crossing on the primitive.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  leafHit(const BVHUnion<T, P, K>& a_shape,
+          const RayT<T>&           a_ray,
+          T                        a_t,
+          uint32_t                 a_leaf,
+          const RayOptions<T>&     a_options) noexcept
+  {
+    const PoolLocation location  = a_shape.location();
+    const auto         unbounded = a_shape.getUnboundedPrimitives();
+
+    const auto primitives = a_shape.getBVH().getPrimitives();
+
+    const CSGDetail::Stored<P> stored =
+      (a_leaf < unbounded.size()) ? unbounded[a_leaf] : primitives[a_leaf - unbounded.size()];
+
+    return RayDetail::leafHit(CSGDetail::fromStored<P>(stored, location), a_ray, a_t, a_options);
   }
 };
 

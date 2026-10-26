@@ -501,13 +501,7 @@ RaySpansT<T>::add(const SpanEndT<T>& a_in, const SpanEndT<T>& a_out) noexcept
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline void
-RaySpansT<T>::addClipped(const T         a_in,
-                         const Vec3T<T>& a_inNormal,
-                         const T         a_out,
-                         const Vec3T<T>& a_outNormal,
-                         const uint32_t  a_primitive,
-                         const T         a_t0,
-                         const T         a_t1) noexcept
+RaySpansT<T>::addClipped(const T a_in, const T a_out, const T a_t0, const T a_t1) noexcept
 {
   if (!(a_in <= a_out) || a_out < a_t0 || a_in > a_t1) {
     return;
@@ -517,10 +511,9 @@ RaySpansT<T>::addClipped(const T         a_in,
   const bool inOpen  = a_in < a_t0 || !(a_in > -Math::Limits<T>::infinity());
   const bool outOpen = a_out > a_t1 || !(a_out < Math::Limits<T>::infinity());
 
-  const SpanEndT<T> in  = inOpen ? SpanEndT<T>{a_t0, Vec3T<T>::zeros(), 0U, SpanEndT<T>::Open}
-                                 : SpanEndT<T>{a_in, a_inNormal, a_primitive, SpanEndT<T>::Exact};
-  const SpanEndT<T> out = outOpen ? SpanEndT<T>{a_t1, Vec3T<T>::zeros(), 0U, SpanEndT<T>::Open}
-                                  : SpanEndT<T>{a_out, a_outNormal, a_primitive, SpanEndT<T>::Exact};
+  const SpanEndT<T> in = inOpen ? SpanEndT<T>{a_t0, 0U, SpanEndT<T>::Open} : SpanEndT<T>{a_in, 0U, SpanEndT<T>::Exact};
+  const SpanEndT<T> out =
+    outOpen ? SpanEndT<T>{a_t1, 0U, SpanEndT<T>::Open} : SpanEndT<T>{a_out, 0U, SpanEndT<T>::Exact};
 
   this->add(in, out);
 }

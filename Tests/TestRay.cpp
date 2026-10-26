@@ -257,6 +257,24 @@ requireSampledAgreement(
 
   if (a_hit.hit()) {
     REQUIRE_THAT(a_shape.signedDistance(a_hit.m_point), withinAbsT(T(0), 10 * looseMargin<T>()));
+
+    // The normal is the leaf's, found again from the leaf the trace ended on: it must be the gradient of the
+    // shape's value there (where the gradient is one: not on an edge between two leaves).
+    const T  h = std::is_same_v<T, float> ? T(1e-3) : T(1e-6);
+    Vec3T<T> gradient;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      Vec3T<T> step = Vec3T<T>::zeros();
+
+      step[dir] = h;
+
+      gradient[dir] =
+        (a_shape.signedDistance(a_hit.m_point + step) - a_shape.signedDistance(a_hit.m_point - step)) / (T(2) * h);
+    }
+
+    if (std::abs(gradient.length() - T(1)) < T(1e-2)) {
+      REQUIRE(dot(a_hit.m_normal, gradient / gradient.length()) > T(0.99));
+    }
   }
 
   if (!(end > T(0))) {
@@ -897,7 +915,7 @@ TEMPLATE_TEST_CASE("Ray: span lists unite, intersect and complement as the sets 
 
     for (int i = 0; i + 1 < 2 * n; i += 2) {
       if (ends[i] < ends[i + 1]) {
-        list.addClipped(ends[i], Vec3T<T>::zeros(), ends[i + 1], Vec3T<T>::zeros(), 0U, t0, t1);
+        list.addClipped(ends[i], ends[i + 1], t0, t1);
       }
     }
 

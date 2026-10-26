@@ -601,7 +601,7 @@ convexSpans(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tM
   const ConvexSpan<T> span = RayDetail::convexSpan(a_shape, a_ray);
 
   a_spans.reset(a_tMax);
-  a_spans.addClipped(span.m_in, span.m_inNormal, span.m_out, span.m_outNormal, 0U, a_tMin, a_tMax);
+  a_spans.addClipped(span.m_in, span.m_out, a_tMin, a_tMax);
 }
 
 } // namespace RayDetail

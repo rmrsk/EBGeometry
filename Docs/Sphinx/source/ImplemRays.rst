@@ -146,23 +146,34 @@ A composition is traced from its operands' spans (see :ref:`Chap:Rays`), in
 `EBGeometry_RaySpans.hpp <doxygen/html/EBGeometry__RaySpans_8hpp.html>`__. A
 `RaySpansT <doxygen/html/structEBGeometry_1_1RaySpansT.html>`__ holds the spans of one object over an
 interval, in order, at most ``RaySpansT::Capacity`` (8) of them, each a pair of
-`SpanEndT <doxygen/html/structEBGeometry_1_1SpanEndT.html>`__: a distance, and either a crossing with
-its normal, its primitive and whether it was found exactly, or an ``Open`` end, where the interval (or
-what is known) ends rather than the surface. ``m_horizon`` says how far the list is complete:
+`SpanEndT <doxygen/html/structEBGeometry_1_1SpanEndT.html>`__: a distance, the leaf of the composition
+it lies on, and whether it is a crossing found exactly, one found by marching, or an ``Open`` end, where
+the interval (or what is known) ends rather than the surface. An end carries no normal: on a device the
+lists live in each thread's local memory, and every word of a span copied or compared costs a memory
+operation there, which is most of what tracing costs. ``m_horizon`` says how far the list is complete:
 ``add()`` drops a span past the capacity and lowers the horizon to where it begins. A ``spans()`` writes
 the list over ``[a_tMin, a_tMax]``, with ``addClipped()`` for a span that may reach past the interval;
 ``a_firstOnly`` says that only the first crossing is needed, and the list may then stop there, its
 horizon at it.
 
-Union, intersection and complement combine lists, complete up to the smaller horizon; an affine map
-traces its operand along the mapped ray (the distances scale by the map's stretch along it) and maps the
-normals back by the transposed matrix. A union asks its operands only for their first crossings, and
+Union, intersection and complement combine lists, complete up to the smaller horizon (a union inserts
+its operand's spans in place, copying no list); an affine map traces its operand along the mapped ray
+(the distances scale by the map's stretch along it). A union asks its operands only for their first crossings, and
 an intersection or a complement for all their spans; each operand of a union is traced only up to what
 the union so far is known up to. The first crossing is the first crossing end in the final list that
 comes no later than its horizon. If there is none and the horizon is short of the interval's end, the
 trace starts again from the horizon, asking every operand for all its spans if it got no further. An
 operand without a ray form is marched in its own box, and crossings found that way are not exact
 (``HitT::m_exact``).
+
+The normal and primitive are found once, for the crossing the trace ends at. The composition follows the
+leaf its end names down to that leaf, through the affine maps above it, and calls the leaf's own
+``firstHit()`` over a window of ``RayOptions::m_tolerance`` times its scale around the crossing: the leaf's
+exact normal, or for a marched leaf its gradient. The normal is mapped back by the transposed matrices of
+the maps, and turned to face against the ray where it enters and along it where it leaves, which is the
+composition's outward normal whatever complements lie between. A fused composition numbers its leaves
+depth first, a BVH union by primitive, and a tape by the clause of each leaf, which it finds again by
+following its ray program, into the BVH union operand whose clauses hold it.
 
 A shape's convex closed forms give one span at the cost of a first crossing. A mesh SDF collects the
 nearest ``2 * Capacity + 1`` crossings along the ray in one walk of its BVH (bounded by the farthest kept,

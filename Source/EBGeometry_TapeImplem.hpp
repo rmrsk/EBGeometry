@@ -1696,7 +1696,11 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
     this->template rayEvaluate<MaxCallDepth>(0U, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
   };
 
-  HitT<T> hit = RayDetail::traceSpans(trace, a_ray, a_tMin, a_tMax);
+  const auto resolve = [this, &a_ray, &a_options, base, &location](const T a_t, const uint32_t a_leaf) noexcept {
+    return this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+  };
+
+  HitT<T> hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
 
   // A crossing found by marching a subtree is named by the leaf deciding the value there.
   if (hit.hit() && hit.m_primitive == MarchedLeaf) {
@@ -1716,19 +1720,9 @@ Tape<T, UserPrimitives...>::raySpans(const RayT<T>&       a_ray,
                                      const bool           a_firstOnly,
                                      RaySpansT<T>&        a_spans) const noexcept
 {
+  // As a leaf of another composition, the tape is named by it: its own leaves are not.
   this->template rayEvaluate<MaxCallDepth>(
     0U, a_ray, a_tMin, a_tMax, a_options, !a_firstOnly, this->base(), this->location(), a_spans);
-
-  const auto name = [this, &a_ray](SpanEndT<T>& a_end) noexcept {
-    if (a_end.crossing() && a_end.m_primitive == MarchedLeaf) {
-      a_end.m_primitive = this->closestPrimitive(a_ray.at(a_end.m_t)).m_leaf;
-    }
-  };
-
-  for (uint32_t i = 0; i < a_spans.m_count; i++) {
-    name(a_spans.m_spans[i].m_in);
-    name(a_spans.m_spans[i].m_out);
-  }
 }
 
 template <class T, class... UserPrimitives>
@@ -1769,7 +1763,10 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
     switch (c.m_op) {
     case RayOp::Leaf: {
-      this->rayLeaf(c, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, a_base, a_location, lists[nl++]);
+      this->rayLeaf(c, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, a_base, a_location, lists[nl]);
+
+      // A crossing is named by its leaf's clause, which rayLeafHit() finds again.
+      RayDetail::nameLeaf(pc, lists[nl++]);
 
       break;
     }
@@ -1787,17 +1784,14 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
       RayDetail::shapeSpans(subtree, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, spans);
 
-      for (uint32_t i = 0; i < spans.m_count; i++) {
-        spans.m_spans[i].m_in.m_primitive  = MarchedLeaf;
-        spans.m_spans[i].m_out.m_primitive = MarchedLeaf;
-      }
+      RayDetail::nameLeaf(pc, spans);
 
       break;
     }
     case RayOp::Union: {
       nl--;
 
-      RayDetail::uniteInto(lists[nl - 1], lists[nl], scratch);
+      RayDetail::uniteInto(lists[nl - 1], lists[nl]);
 
       if (firstOnly) {
         RayDetail::keepFirst(lists[nl - 1]);
@@ -1828,14 +1822,13 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
     case RayOp::PopAffine: {
       nr--;
 
-      RayDetail::mapBack(params + c.m_a, rays[nr], rays[nr - 1].m_t0, rays[nr - 1].m_t1, lists[nl - 1], lists[nl - 1]);
+      RayDetail::mapBack(rays[nr], rays[nr - 1].m_t0, rays[nr - 1].m_t1, lists[nl - 1]);
 
       break;
     }
     case RayOp::UnionBVH: {
       if constexpr (D > 0) {
-        this->template rayUnion<D>(
-          c, top.m_ray, top.m_t0, top.m_t1, a_options, a_all, a_base, a_location, scratch, lists[nl++]);
+        this->template rayUnion<D>(c, top.m_ray, top.m_t0, top.m_t1, a_options, a_all, a_base, a_location, lists[nl++]);
       }
       else {
         EBGEOMETRY_EXPECT(false);
@@ -1873,12 +1866,6 @@ Tape<T, UserPrimitives...>::rayLeaf(const TapeDetail::RayClause& a_clause,
                                     RaySpansT<T>&                a_spans) const noexcept
 {
   this->template dispatchRayLeaf<0>(a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
-
-  // The crossings are named by the leaf's number, as closestPrimitive() names it.
-  for (uint32_t i = 0; i < a_spans.m_count; i++) {
-    a_spans.m_spans[i].m_in.m_primitive  = a_clause.m_b;
-    a_spans.m_spans[i].m_out.m_primitive = a_clause.m_b;
-  }
 }
 
 template <class T, class... UserPrimitives>
@@ -1936,7 +1923,6 @@ Tape<T, UserPrimitives...>::rayUnion(const TapeDetail::RayClause& a_clause,
                                      const bool                   a_all,
                                      const void*                  a_base,
                                      const PoolLocation&          a_location,
-                                     RaySpansT<T>&                a_scratch,
                                      RaySpansT<T>&                a_spans) const noexcept
 {
   static_assert(D > 0, "Tape::rayUnion needs call depth left for its operands");
@@ -1958,12 +1944,12 @@ Tape<T, UserPrimitives...>::rayUnion(const TapeDetail::RayClause& a_clause,
 
   // Each operand is traced only up to what the union so far is known up to, beyond which it can change
   // nothing known.
-  const auto add = [this, &a_ray, a_t0, &a_options, a_all, firstOnly, a_base, &a_location, &operand, &a_scratch](
+  const auto add = [this, &a_ray, a_t0, &a_options, a_all, firstOnly, a_base, &a_location, &operand](
                      RaySpansT<T>& a_union, const uint32_t a_program) noexcept {
     this->template rayEvaluate<D - 1>(
       a_program, a_ray, a_t0, a_union.m_horizon, a_options, a_all, a_base, a_location, operand);
 
-    RayDetail::uniteInto(a_union, operand, a_scratch);
+    RayDetail::uniteInto(a_union, operand);
 
     if (firstOnly) {
       RayDetail::keepFirst(a_union);
@@ -1984,6 +1970,167 @@ Tape<T, UserPrimitives...>::rayUnion(const TapeDetail::RayClause& a_clause,
   const auto bound = [](const RaySpansT<T>& a_union) noexcept -> T { return a_union.m_horizon; };
 
   bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_t0), a_spans, leaf, bound);
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline HitT<T>
+Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
+                                       const RayT<T>&       a_ray,
+                                       const T              a_t,
+                                       const uint32_t       a_clause,
+                                       const RayOptions<T>& a_options,
+                                       const void*          a_base,
+                                       const PoolLocation&  a_location) const noexcept
+{
+  using TapeDetail::RayOp;
+
+  const TapeDetail::Program range   = m_layout.m_programs.at(a_base, m_layout.m_rayPrograms + a_program);
+  const TapeDetail::Clause* clauses = m_layout.m_clauses.data(a_base);
+  const T*                  params  = m_layout.m_params.data(a_base);
+
+  // The ray in each affine frame down to the leaf, and the maps that made them.
+  RayDetail::MappedRay<T> rays[PointStackSize];
+  uint32_t                maps[PointStackSize];
+
+  uint32_t nr = 0;
+
+  rays[nr++] = RayDetail::MappedRay<T>{a_ray, T(1), a_t, a_t};
+
+  HitT<T> hit;
+
+  for (uint32_t pc = range.m_begin; pc < range.m_end && !hit.hit(); pc++) {
+    const TapeDetail::RayClause    c   = TapeDetail::rayClause(clauses[pc]);
+    const RayDetail::MappedRay<T>& top = rays[nr - 1];
+
+    if (pc == a_clause) {
+      if (c.m_op == RayOp::Leaf) {
+        hit = this->template dispatchLeafHit<0>(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
+
+        hit.m_primitive = c.m_b;
+      }
+      else {
+        const T* box = params + c.m_b;
+
+        const Subtree<D> subtree{this,
+                                 c.m_a,
+                                 BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
+                                 static_cast<DistanceQuality>(c.m_c),
+                                 a_base,
+                                 a_location};
+
+        hit = RayDetail::leafHit(subtree, top.m_ray, top.m_t0, a_options);
+
+        hit.m_primitive = MarchedLeaf;
+      }
+
+      // Found even where the leaf's own search came up empty: its normal is then its gradient.
+      hit.m_status = HitStatus::Hit;
+
+      break;
+    }
+
+    switch (c.m_op) {
+    case RayOp::PushAffine: {
+      rays[nr] = RayDetail::mapRay(params + c.m_a, top.m_ray, top.m_t0, top.m_t0);
+      maps[nr] = c.m_a;
+
+      nr++;
+
+      break;
+    }
+    case RayOp::PopAffine: {
+      nr--;
+
+      break;
+    }
+    case RayOp::UnionBVH: {
+      if constexpr (D > 0) {
+        // The operands' ray programs, with those they call, are laid out in turn: the leaf is in the operand
+        // whose ray program begins last at or before it.
+        const TapeDetail::UnionBVH<T, BranchingRatio>& parts = m_layout.m_unions.at(a_base, c.m_a);
+
+        const auto unbounded = UnionRoot(parts.m_unbounded, a_location).getPrimitives();
+        const auto bounded   = UnionRoot(parts.m_bvh, a_location).getPrimitives();
+
+        uint32_t operand = UINT32_MAX;
+        uint32_t begin   = 0;
+
+        const auto consider = [this, a_base, a_clause, &operand, &begin](const uint32_t a_operand) noexcept {
+          const uint32_t b = m_layout.m_programs.at(a_base, m_layout.m_rayPrograms + a_operand).m_begin;
+
+          if (b <= a_clause && (operand == UINT32_MAX || b > begin)) {
+            operand = a_operand;
+            begin   = b;
+          }
+        };
+
+        for (uint32_t i = 0; i < unbounded.size(); i++) {
+          consider(unbounded[i]);
+        }
+
+        for (uint32_t i = 0; i < bounded.size(); i++) {
+          consider(bounded[i]);
+        }
+
+        // The union's operands all come after its own clauses: the leaf is in one if it is past them.
+        if (operand != UINT32_MAX && a_clause >= range.m_end) {
+          hit = this->template rayLeafHit<D - 1>(operand, top.m_ray, top.m_t0, a_clause, a_options, a_base, a_location);
+        }
+      }
+
+      break;
+    }
+    default: {
+      break;
+    }
+    }
+  }
+
+  // The leaf's normal, in its frame, mapped back to the program's.
+  for (uint32_t f = nr - 1; f > 0; f--) {
+    hit.m_normal = RayDetail::mapNormalBack(params + maps[f], hit.m_normal);
+  }
+
+  return hit;
+}
+
+template <class T, class... UserPrimitives>
+template <size_t I>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::dispatchLeafHit(const TapeDetail::RayClause& a_clause,
+                                            const RayT<T>&               a_ray,
+                                            const T                      a_t,
+                                            const RayOptions<T>&         a_options,
+                                            const void*                  a_base,
+                                            const PoolLocation&          a_location) const noexcept
+{
+  if constexpr (I < Primitives::size) {
+    using P = typename TapeDetail::TypeAt<I, Primitives>::type;
+
+    if constexpr (RayDetail::HasRayFirstHit<P, T>::value) {
+      if (a_clause.m_type == I) {
+        const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_clause.m_a);
+
+        if constexpr (isPoolHandle<P>) {
+          return RayDetail::leafHit(P(stored, a_location), a_ray, a_t, a_options);
+        }
+        else {
+          return RayDetail::leafHit(stored, a_ray, a_t, a_options);
+        }
+      }
+    }
+
+    return this->template dispatchLeafHit<I + 1>(a_clause, a_ray, a_t, a_options, a_base, a_location);
+  }
+  else {
+    EBGEOMETRY_EXPECT(false);
+
+    return HitT<T>();
+  }
 }
 
 template <class T, class... UserPrimitives>

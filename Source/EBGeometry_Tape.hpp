@@ -1002,7 +1002,57 @@ private:
               RaySpansT<T>&        a_spans) const noexcept;
 
   /**
-   * @brief The spans of a Leaf clause's primitive, its crossings named by the leaf's number.
+   * @brief The crossing at a distance along a ray on a leaf of a ray program, as its spans named it (by its
+   * clause): found again by following the program to the clause, through the affine maps and BVH unions
+   * above it, and asking the leaf (a marched subtree gives its gradient). The normal is the leaf's outward
+   * one, mapped back to the program's frame.
+   * @tparam D How deep the program's calls may still nest.
+   * @param[in] a_program  Sub-program whose ray program to follow.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_clause   The leaf's clause.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing, with HitT::m_primitive the leaf's number (MarchedLeaf for a marched subtree), or a
+   * miss if the clause is not reached from the program.
+   */
+  template <unsigned D>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  rayLeafHit(uint32_t             a_program,
+             const RayT<T>&       a_ray,
+             T                    a_t,
+             uint32_t             a_clause,
+             const RayOptions<T>& a_options,
+             const void*          a_base,
+             const PoolLocation&  a_location) const noexcept;
+
+  /**
+   * @brief The crossing near a distance along a ray on a primitive, dispatching on its type index from I
+   * onwards (see RayDetail::leafHit()).
+   * @tparam I First type index to test.
+   * @param[in] a_clause   The Leaf clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing on the primitive.
+   */
+  template <size_t I>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  dispatchLeafHit(const TapeDetail::RayClause& a_clause,
+                  const RayT<T>&               a_ray,
+                  T                            a_t,
+                  const RayOptions<T>&         a_options,
+                  const void*                  a_base,
+                  const PoolLocation&          a_location) const noexcept;
+
+  /**
+   * @brief The spans of a Leaf clause's primitive.
    * @param[in]  a_clause    The clause.
    * @param[in]  a_ray       The ray.
    * @param[in]  a_t0        Start of the interval.
@@ -1064,7 +1114,6 @@ private:
    * @param[in]     a_all      Whether the operands need all their spans, whatever their flags say.
    * @param[in]     a_base     The pool base.
    * @param[in]     a_location The pool location.
-   * @param[in,out] a_scratch  Scratch for a union.
    * @param[out]    a_spans    The list.
    */
   template <unsigned D>
@@ -1078,7 +1127,6 @@ private:
            bool                         a_all,
            const void*                  a_base,
            const PoolLocation&          a_location,
-           RaySpansT<T>&                a_scratch,
            RaySpansT<T>&                a_spans) const noexcept;
 
   /**
