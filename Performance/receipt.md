@@ -28,7 +28,7 @@ date: 2026-10-26
 
 ## Host comparison: red
 
-**Accepted:** -
+**Accepted:** Ray programs stored beside the Tape's clauses (about 16 bytes per expression node) grow its pool; compositions are now traced exactly instead of marched, which changes the CSG ray checksums.
 
 `3b65628` against `cd92804` (origin/dev), 2026-10-26.
 
