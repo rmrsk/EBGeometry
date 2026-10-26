@@ -1,61 +1,153 @@
-<!-- REMOVE this banner once downstream users have migrated (target: ~2026-Q4). -->
-> [!IMPORTANT]
-> **Git history rewritten (July 2026).** EBGeometry's history was rewritten to
-> remove large binary files from old commits, so **every commit hash before this
-> date has changed**. If you pin EBGeometry as a **submodule** at an older commit,
-> follow the [migration guide](https://github.com/rmrsk/EBGeometry-legacy/releases/tag/pre-history-rewrite)
-> (old&rarr;new commit map + how to repoint). If you just clone/build the library
-> or vendor `EBGeometry.hpp`, no action is needed.
+# EBGeometry
 
-## EBGeometry - a header-only C++ library for signed distance fields
+**Fast, portable geometry queries in a single C++ header.**
 
+[![CI](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml/badge.svg?branch=dev)](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml?query=branch%3Adev)
 [![Documentation](https://github.com/rmrsk/EBGeometry/actions/workflows/docs.yml/badge.svg)](https://rmrsk.github.io/EBGeometry/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Language](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
 [![Header-only](https://img.shields.io/badge/header--only-yes-brightgreen.svg)](EBGeometry.hpp)
+[![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](EBGeometry.hpp)
+[![SIMD](https://img.shields.io/badge/SIMD-SSE4.1%20%7C%20AVX%20%7C%20AVX--512-blue.svg)](https://rmrsk.github.io/EBGeometry/SIMDAcceleration.html)
+[![CUDA](https://img.shields.io/badge/GPU-CUDA-76B900.svg?logo=nvidia&logoColor=white)](https://rmrsk.github.io/EBGeometry/RunningOnGPU.html)
+[![HIP](https://img.shields.io/badge/GPU-HIP-ED1C24.svg?logo=amd&logoColor=white)](https://rmrsk.github.io/EBGeometry/RunningOnGPU.html)
 
-EBGeometry is a header-only C++17 library for constructive solid geometry (CSG) with implicit 
-functions. It can turn surface geometries into fast, queryable signed distance functions (SDFs), 
-and manipulate them with accelerated CSG operations. 
-
-Main features:
-
-* Turn surface meshes into SDFs, via a half-edge (DCEL) mesh representation or raw triangles.
-* Fast SDF evaluation using bounding volume hierarchies (BVHs).
-* Supports both pointer-based tree BVHs, and flattened SIMD-accelerated packed BVHs.
-* Generic BVH traversal, adaptable to custom queries like nearest-neighbor searches.
-* A library of analytic signed distance functions and implicit functions (spheres, boxes, and
-  more)
-* Transforms (translation, rotation, scaling, rounding, blending) and constructive solid geometry
-  (CSG: unions, intersections, differences, and smooth blends) of any shapes, analytic or mesh,
-  through a value-type expression builder compiled into a `Tape`. A union of many objects is
-  evaluated with a BVH.
-* BVH-accelerated (smooth) unions of many analytic shapes or meshes of one type that also run on a
-  GPU.
-* Ray and segment queries on any shape (`firstHit()`, `intersects()`): exact for meshes and the
-  closed-form shapes, sphere traced for everything else, on the host and on a GPU.
-* Readers for triangulated surface meshes in STL, PLY, OBJ, and VTK format.
-* Drop-in precision-templated for flexible usage.
-* No external dependencies -- drop `EBGeometry.hpp` into any C++17 project and include it. 
+EBGeometry turns meshes, analytic shapes, point clouds and compositions of them into geometry you
+can ask questions: how far away is it, which surface is closest, where a ray hits it, what lies
+nearest. It answers them fast on CPUs and on GPUs, from the same code, with no dependencies: include
+one header and compile with C++17.
 
 <p align="center">
-   <img src="Docs/Sphinx/source/_static/example_dcel.png" width="300" alt="Signed distance field from Armadillo geometry"/>
-   <img src="Docs/Sphinx/source/_static/example_spheres.png" width="300" alt="Packed bed geometry"/>
+   <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
+   <br/>
+   <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth
+   union and a difference. Dragon: Stanford 3D Scanning Repository, from
+   <a href="https://github.com/alecjacobson/common-3d-test-models">common-3d-test-models</a>.</sub>
 </p>
 
-## Documentation
+## Why EBGeometry
 
-The EBGeometry documentation is updated on every pull request and is a live document that evolves
-together with the code. There are three types of documentation available:
+* **Any geometry.** A triangle mesh read from STL, PLY, OBJ or VTK, an analytic shape, a point
+  cloud, or any composition of them is queried the same way. Drill a hole through a mesh with an
+  analytic cylinder, blend two shapes smoothly, or union ten thousand parts.
+* **Any hardware.** The same query runs on the host (SIMD from SSE to AVX-512) and on NVIDIA and AMD
+  GPUs (CUDA and HIP). Build a structure once, mirror its memory to the device, and evaluate it
+  there.
+* **Fast by construction.** Packed bounding volume hierarchies with any branching factor and a choice
+  of builds (SAH, clustered SAH, Morton and Hilbert curves), SIMD triangle kernels, compiled CSG, and
+  BVH-accelerated unions of many objects.
+* **Measured on every change.** Every pull request comes with a performance comparison against its
+  base, on the host and on a GPU, which also checks that the answers did not change. Unit tests check
+  against brute force and closed forms, in both precisions, under sanitizers.
+* **No dependencies.** One header, C++17, `float` or `double`. Nothing to build or link.
 
-* [HTML](https://rmrsk.github.io/EBGeometry/) -- The user guide: concepts, building, testing, and
-  examples.
-* [PDF](https://rmrsk.github.io/EBGeometry/ebgeometry.pdf) -- The same user guide, as
-  a single PDF.
-* [Doxygen](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html) -- The generated API
-  reference for every class and function.
+## What it does
 
-## Quickstart
+**Geometry in**
+
+* Triangle meshes, as a half-edge mesh or as SIMD triangle blocks, read from STL, PLY, OBJ and VTK.
+* Analytic shapes (spheres, boxes, cylinders, tori, planes and more) and your own.
+* Point clouds.
+
+**Composition**
+
+* Constructive solid geometry: unions, intersections, differences, smooth blends, offsets,
+  repetitions, and translations, rotations and scalings.
+* A scene compiled into a *tape* that runs on a GPU, or a part fused into compiled code.
+* BVH-accelerated unions of thousands of objects.
+
+**Queries**
+
+* Signed distance (negative inside, positive outside), normals, and bounding boxes.
+* The primitive that decides the value at a point, with the point in its own frame.
+* Ray and segment hits (`firstHit()`, `intersects()`): exact for meshes and closed-form shapes, sphere
+  traced for everything else.
+* Closest points and k nearest neighbours in point clouds.
+
+## In code
+
+```cpp
+#include <iostream>
+
+#include <EBGeometry.hpp>
+
+using namespace EBGeometry;
+using T = float;
+
+// A query, as a trivially copyable functor: the same code runs on the host and in a GPU kernel.
+struct Distance
+{
+  Tape<T> m_scene;
+
+  EBGEOMETRY_HOST_DEVICE T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_scene.signedDistance(a_point);
+  }
+};
+
+int
+main()
+{
+  Pool pool(hostMemoryResource());
+
+  // A triangle mesh as a signed distance field: SIMD triangle blocks under a BVH.
+  const auto mesh = Parser::readIntoTriMeshSDF<T>("armadillo.obj", pool);
+
+  // Place the other shapes from the mesh's bounding box: the armadillo is about 130 units across.
+  const auto     box    = mesh.computeBoundingVolume();
+  const Vec3T<T> center = box.getCentroid();
+  const Vec3T<T> beside(box.getHighCorner()[0] + T(30), center[1], center[2]);
+
+  // A scene: the mesh drilled through along x (axis 0) by a cylinder of radius 10, and beside it a
+  // smooth blob of two spheres. Compiled into a tape.
+  const auto drill = InfiniteCylinderSDF<T>(center, T(10), 0);
+  const auto big   = SphereSDF<T>(beside, T(15));
+  const auto small = SphereSDF<T>(beside + Vec3T<T>(T(20), T(0), T(0)), T(10));
+  const auto blob  = SmoothUnion(big, small, T(5));
+
+  const Tape<T> scene(pool, Union(Difference(Expr<T>(mesh), drill), blob));
+
+  // Ask it anything, anywhere: here, at a point in the blob.
+  const Vec3T<T>        p    = beside;
+  const T               d    = scene.signedDistance(p);    // negative inside, positive outside
+  const PrimitiveRef<T> leaf = scene.closestPrimitive(p);  // which surface decides the value
+
+  std::cout << "distance " << d << ", decided by leaf " << leaf.m_leaf << '\n';
+
+  // The same query on a GPU: mirror the pool to the device and evaluate a million points in a kernel.
+  std::vector<Vec3T<T>> points(1000000, p);
+  std::vector<T>        distances(points.size());
+
+  pool.freeze();
+
+  const Pool device = Pool::mirror(pool, GPU::memoryResource());
+
+  GPU::transform(Distance{scene.rebasedView(device)}, points, distances);
+}
+```
+
+Compiled as plain C++, `GPU::transform()` runs the same functor in a host loop; compiled with nvcc or
+hipcc, it runs it in a kernel. The [examples](https://rmrsk.github.io/EBGeometry/Examples.html) walk
+through each part of this, one topic at a time.
+
+## How it compares
+
+EBGeometry overlaps with several excellent libraries:
+[TriangleMeshDistance](https://github.com/InteractiveComputerGraphics/TriangleMeshDistance) and
+[fcpw](https://github.com/rohan-sawhney/fcpw) for mesh distances, [libfive](https://libfive.com) for
+functional solid modelling, [nanoflann](https://github.com/jlblancoc/nanoflann) for neighbour search,
+[Embree](https://www.embree.org) and [OptiX](https://developer.nvidia.com/rtx/ray-tracing/optix) for
+ray tracing, and [CGAL](https://www.cgal.org) for exact computational geometry. What it adds is the
+combination: every kind of geometry, composed freely, queried the same way on CPUs and GPUs, from one
+header. [EBGeometry-benchmarks](https://github.com/rmrsk/EBGeometry-benchmarks) measures it beside
+several of them.
+
+EBGeometry was written for embedded-boundary codes such as [AMReX](https://amrex-codes.github.io)
+and [Chombo](https://commons.lbl.gov/display/chombo); [`Integrations/`](Integrations/README.md)
+shows how to couple it to them. It is general-purpose.
+
+## Get started
 
 Clone the repository, including the submodule that provides the example mesh files:
 
@@ -64,8 +156,8 @@ git clone --recurse-submodules https://github.com/rmrsk/EBGeometry.git
 cd EBGeometry
 ```
 
-Build and run the `MeshSDF` example, which reads a triangulated surface mesh and
-evaluates it as a signed distance function:
+Build and run the `MeshSDF` example, which reads a triangulated surface mesh and evaluates it as a
+signed distance function:
 
 ```bash
 cd Examples/MeshSDF
@@ -73,58 +165,62 @@ g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o MeshSDF.ex
 ./MeshSDF.ex
 ```
 
-This loads `armadillo.obj` from the `common-3d-test-models` submodule by default; pass a path to
-run it on a different STL/PLY/OBJ/VTK file instead. `MeshSDF` -- like every example
-under `Examples/` -- can also be built with [CMake](https://cmake.org/) or GNU make, see
-[Examples/MeshSDF/README.md](Examples/MeshSDF/README.md) for the exact
-commands, and the [Examples](https://rmrsk.github.io/EBGeometry/Examples.html) page for the full
-list of bundled examples. 
+This loads `armadillo.obj` from the `common-3d-test-models` submodule by default; pass a path to run
+it on a different STL/PLY/OBJ/VTK file instead. Every example under `Examples/` can also be built with
+[CMake](https://cmake.org/) or GNU make (see [Examples/MeshSDF/README.md](Examples/MeshSDF/README.md)),
+and with `make GPU=CUDA` or `make GPU=HIP` for a GPU.
 
-Examples that couple EBGeometry to a third-party application code
-(AMReX, Chombo) live under [`Integrations/`](Integrations/README.md) instead -- see its README
-for an important caveat about how those are maintained.
-
-## Build and test everything
-
-The repository ships [CMake presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html)
-that build the unit-test suite and every example under `Examples/` in one step, and run them
-through `ctest`:
+To build and run the whole test suite and every example, use the
+[CMake presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html):
 
 ```bash
-cmake --preset debug                # configure: Debug, assertions on, tests + examples enabled
+cmake --preset debug                # Debug, assertions on, tests and examples
 cmake --build --preset debug --parallel $(nproc)
 
-ctest --preset debug                # unit tests only (Catch2), about 10 seconds
-ctest --preset examples --parallel $(nproc)   # every example under Examples/, several minutes in Debug mode
+ctest --preset debug                # unit tests (Catch2), about 15 seconds
+ctest --preset examples --parallel $(nproc)   # every example, several minutes in Debug
 ```
 
-`cmake --preset release-test` builds the same thing optimised (no assertions, AVX), and
-`cmake --preset debug-san` additionally enables AddressSanitizer and UndefinedBehaviorSanitizer.
 See [Contributing and testing](https://rmrsk.github.io/EBGeometry/Contributing.html) for the full
-preset table, how to run a single test file, and `Scripts/run-all-checks.sh`, which reproduces
-everything the continuous integration pipeline checks in one local command.
+preset table, the sanitizer and release builds, and `Scripts/run-all-checks.sh`, which runs everything
+the continuous integration pipeline checks in one local command.
+
+## Documentation
+
+* [User guide (HTML)](https://rmrsk.github.io/EBGeometry/): concepts, building, examples, and
+  testing.
+* [User guide (PDF)](https://rmrsk.github.io/EBGeometry/ebgeometry.pdf): the same, as one file.
+* [API reference (Doxygen)](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html): every class
+  and function.
+
+The documentation is rebuilt on every pull request and evolves with the code.
 
 ## Get help
 
-If you encounter any issues when installing or using EBGeometry, you may obtain help through:
-
-* [GitHub issues](https://github.com/rmrsk/EBGeometry/issues) -- bug reports and feature requests.
-* [GitHub discussions](https://github.com/rmrsk/EBGeometry/discussions) -- usage questions and
+* [GitHub issues](https://github.com/rmrsk/EBGeometry/issues): bug reports and feature requests.
+* [GitHub discussions](https://github.com/rmrsk/EBGeometry/discussions): usage questions and
   everything else.
 
 ## Contribute
 
-We welcome contributions to EBGeometry -- the best approach is either to reach out to us to see
-if we have time to implement a specific feature, or fork the repository and submit a pull request.
-See [Contributing and testing](https://rmrsk.github.io/EBGeometry/Contributing.html) in the user
-guide for how to build and run the test suite locally, what the continuous integration pipeline
-checks, and the code style/conventions expected of contributions. If you are contributing to the
-ongoing GPU port, start from [PORTING.md](PORTING.md) -- it covers the memory model the port is
-built on, what is and is not ported yet, and the conventions for porting a class.
+Contributions are welcome. Reach out to see whether a feature is already planned, or fork the
+repository and open a pull request. See
+[Contributing and testing](https://rmrsk.github.io/EBGeometry/Contributing.html) for how to build and
+test locally, what continuous integration checks, the performance comparison every pull request
+carries, and the code conventions. For GPU work, start from [PORTING.md](PORTING.md).
 
-## AI usage
+## How EBGeometry is developed
 
-As of 2026, we have begun to take advantage of expert-steered AI code development. A CLAUDE.md 
-lives in this project, which can be used to steer Claude code. Code contributions written by an AI 
-coding agent are thus welcome. All *merged* code, however, is always reviewed by a human before
-accepted.
+EBGeometry is human-designed, with AI-assisted implementation.
+
+* **2022 to mid-2026:** designed and written by hand.
+* **Since July 2026** (the overhaul in [#88](https://github.com/rmrsk/EBGeometry/pull/88)): the
+  maintainer designs and decides: the architecture, the APIs, the algorithms, the priorities, and
+  every non-obvious choice. [Claude Code](https://claude.com/claude-code) implements, tests, documents
+  and measures, steered by the rules in [`CLAUDE.md`](CLAUDE.md), and brings every open decision back
+  to the maintainer.
+* **Every change,** whoever wrote it, passes the same gates: unit tests against independent
+  references, continuous integration, a performance comparison against its base, an AI review, and a
+  human review. The maintainer reviews and merges every pull request.
+
+Contributions written with an AI coding agent are welcome on the same terms.
