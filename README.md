@@ -2,10 +2,15 @@
 
 **Fast, portable geometry queries in a single C++ header.**
 
+[![CI](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml/badge.svg?branch=dev)](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml?query=branch%3Adev)
 [![Documentation](https://github.com/rmrsk/EBGeometry/actions/workflows/docs.yml/badge.svg)](https://rmrsk.github.io/EBGeometry/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Language](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
 [![Header-only](https://img.shields.io/badge/header--only-yes-brightgreen.svg)](EBGeometry.hpp)
+[![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](EBGeometry.hpp)
+[![SIMD](https://img.shields.io/badge/SIMD-SSE4.1%20%7C%20AVX%20%7C%20AVX--512-blue.svg)](https://rmrsk.github.io/EBGeometry/SIMDAcceleration.html)
+[![CUDA](https://img.shields.io/badge/GPU-CUDA-76B900.svg?logo=nvidia&logoColor=white)](https://rmrsk.github.io/EBGeometry/RunningOnGPU.html)
+[![HIP](https://img.shields.io/badge/GPU-HIP-ED1C24.svg?logo=amd&logoColor=white)](https://rmrsk.github.io/EBGeometry/RunningOnGPU.html)
 
 EBGeometry turns meshes, analytic shapes, point clouds and compositions of them into geometry you
 can ask questions: how far away is it, which surface is closest, where a ray hits it, what lies
