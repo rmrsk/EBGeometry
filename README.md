@@ -21,10 +21,12 @@ can ask questions: how far away is it, which surface is closest, what lies neare
 fast on CPUs and on GPUs, from the same code, with no dependencies: include one header and compile
 with C++17.
 
-<!-- TODO once the renderer has landed: replace these two images with one rendered CSG scene. -->
 <p align="center">
-   <img src="Docs/Sphinx/source/_static/example_dcel.png" width="300" alt="Signed distance field from Armadillo geometry"/>
-   <img src="Docs/Sphinx/source/_static/example_spheres.png" width="300" alt="Packed bed geometry"/>
+   <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
+   <br/>
+   <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth union and a
+   difference, rendered on a GPU. Dragon: <a href="https://graphics.stanford.edu/data/3Dscanrep/">Stanford 3D
+   Scanning Repository</a>.</sub>
 </p>
 
 ## Why EBGeometry
