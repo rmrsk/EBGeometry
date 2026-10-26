@@ -21,8 +21,8 @@ one header and compile with C++17.
    <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
    <br/>
    <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth
-   union and a difference. Dragon: <a href="https://graphics.stanford.edu/data/3Dscanrep/">Stanford
-   3D Scanning Repository</a>.</sub>
+   union and a difference. Dragon: Stanford 3D Scanning Repository, from
+   <a href="https://github.com/alecjacobson/common-3d-test-models">common-3d-test-models</a>.</sub>
 </p>
 
 ## Why EBGeometry
