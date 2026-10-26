@@ -107,6 +107,8 @@ namespace EBGeometry {
   template struct RayForm<InfiniteCylinderSDF<PREC>>;                        \
   template struct RayForm<CapsuleSDF<PREC>>;                                 \
   template struct RayForm<TriMeshSDF<PREC, 4, 4>>;                           \
+  template struct RayForm<MeshSDF<PREC, 4>>;                                 \
+  template struct RayForm<FlatMeshSDF<PREC>>;                                \
                                                                                \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
   template struct PODVector<PREC>;                                           \

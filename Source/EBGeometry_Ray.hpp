@@ -14,8 +14,8 @@
  * within its step budget says so (HitStatus::Unresolved) instead of reporting a miss.
  *
  * A shape with a ray form (see RayForm) is ray traced instead, which is exact and much faster: the plane,
- * sphere, box, cylinders and capsule in closed form (EBGeometry_AnalyticRayForms.hpp), and TriMeshSDF
- * through its BVH and triangles (EBGeometry_MeshRayForms.hpp).
+ * sphere, box, cylinders and capsule in closed form (EBGeometry_AnalyticRayForms.hpp), and the mesh SDFs
+ * through their BVHs and faces (EBGeometry_MeshRayForms.hpp).
  * @author Robert Marskar
  */
 

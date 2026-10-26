@@ -32,8 +32,8 @@ Main features:
   evaluated with a BVH.
 * BVH-accelerated (smooth) unions of many analytic shapes or meshes of one type that also run on a
   GPU.
-* Ray and segment queries on any shape (`firstHit()`, `intersects()`): exact for triangle meshes and
-  the closed-form shapes, sphere traced for everything else, on the host and on a GPU.
+* Ray and segment queries on any shape (`firstHit()`, `intersects()`): exact for meshes and the
+  closed-form shapes, sphere traced for everything else, on the host and on a GPU.
 * Readers for triangulated surface meshes in STL, PLY, OBJ, and VTK format.
 * Drop-in precision-templated for flexible usage.
 * No external dependencies -- drop `EBGeometry.hpp` into any C++17 project and include it. 

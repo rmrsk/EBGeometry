@@ -386,14 +386,17 @@ Test coverage
        a device, an analytic composition and a drilled mesh against the host; and every rejected
        argument, operands from different pools included.
    * - ``TestRay``
-     - The ray queries: a ``TriMeshSDF`` of the unit cube against a slab test (axis-aligned and diagonal
+     - The ray queries: the unit cube as a ``TriMeshSDF``, a ``MeshSDF`` and a ``FlatMeshSDF`` against a slab test (axis-aligned and diagonal
        rays, rays through a face diagonal, an edge and a corner, from inside, in a face's plane, misses,
        an interval stopping short, a crossing at ``t = 0`` and stepping off it), with the face and
-       normal, and on 2,000 random rays at two leaf widths; each analytic ray form against its crossing
+       normal, and on 2,000 random rays (the triangles at two leaf widths); no ray slipping between the
+       faces of a fine mesh far from the origin, aimed at its edges and corners;
+       ``intersects()`` agreeing with ``firstHit()`` on unbounded rays that enter a tetrahedron's leaf boxes and miss;
+       a sliver face not crossed beyond its ends; each analytic ray form against its crossing
        worked by hand and against the march on random rays; a fused and a taped composition marched to
        crossings worked by hand, with the tape's deciding leaf; segments (zero length, a crossing at
        the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
-       ray form, the march, a fused composition, a ``TriMeshSDF`` and a tape against the host.
+       ray form, the march, a fused composition, the three mesh SDFs and a tape against the host.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
