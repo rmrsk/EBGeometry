@@ -24,6 +24,10 @@ target_include_directories(EBGeometry INTERFACE
 )
 target_compile_features(EBGeometry INTERFACE cxx_std_17)
 
+# Render::Renderer::render() runs on std::thread; older C libraries need -pthread to link it.
+find_package(Threads REQUIRED)
+target_link_libraries(EBGeometry INTERFACE Threads::Threads)
+
 # ── Options ───────────────────────────────────────────────────────────────────
 option(EBGEOMETRY_BUILD_TESTS
   "Build the EBGeometry unit-test suite (requires Catch2, fetched automatically)" OFF)
@@ -75,6 +79,23 @@ set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx512 avx sse41 none)
 # are not imposed on every project that later calls find_package(EBGeometry).
 if(EBGEOMETRY_ENABLE_ASSERTIONS)
   target_compile_definitions(EBGeometry INTERFACE $<BUILD_INTERFACE:EBGEOMETRY_ENABLE_ASSERTIONS>)
+endif()
+
+# The interactive viewer (Render::view(), EBGeometry_Viewer.hpp) needs SDL2. OFF keeps it out: view()
+# then prints a line and returns. SDL2 compiles the window into every target of this build that uses
+# EBGeometry; like the settings above it is not carried by an installed EBGeometry.
+set(EBGEOMETRY_VIEWER OFF CACHE STRING "Interactive viewer for Render::view(): OFF or SDL2")
+set_property(CACHE EBGEOMETRY_VIEWER PROPERTY STRINGS OFF SDL2)
+
+if(EBGEOMETRY_VIEWER STREQUAL "SDL2")
+  find_package(SDL2 REQUIRED)
+  target_compile_definitions(EBGeometry INTERFACE $<BUILD_INTERFACE:EBGEOMETRY_VIEWER_SDL2>)
+  target_link_libraries(EBGeometry INTERFACE $<BUILD_INTERFACE:SDL2::SDL2>)
+
+  # SDL's x86 intrinsics headers do not get through nvcc.
+  target_compile_definitions(EBGeometry INTERFACE $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:CUDA>:SDL_DISABLE_IMMINTRIN_H>>)
+elseif(NOT EBGEOMETRY_VIEWER STREQUAL "OFF")
+  message(FATAL_ERROR "EBGEOMETRY_VIEWER must be OFF or SDL2 (got '${EBGEOMETRY_VIEWER}')")
 endif()
 
 # SIMD flags are x86 host-compiler flags, so scope them to C++ compilation only ($<COMPILE_LANGUAGE:CXX>).
@@ -134,6 +155,8 @@ if(EBGEOMETRY_INSTALL)
   install(EXPORT EBGeometryTargets NAMESPACE EBGeometry:: DESTINATION "${EBGEOMETRY_INSTALL_CMAKEDIR}")
 
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/EBGeometryConfig.cmake"
+    "include(CMakeFindDependencyMacro)\n"
+    "find_dependency(Threads)\n"
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/EBGeometryTargets.cmake\")\n")
   write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/EBGeometryConfigVersion.cmake"
     COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT)

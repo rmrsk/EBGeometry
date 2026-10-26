@@ -403,6 +403,15 @@ Test coverage
        the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
        ray form, the march, a fused composition, the three mesh SDFs, two tapes (one with a BVH union
        and a difference) and a mesh in a fused difference against the host.
+   * - ``TestRender``
+     - The renderer: ``Camera::fit`` and ``Camera::lookAt`` placing the eye; a sphere covering the
+       pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the
+       camera reported inside; colouring by primitive telling two leaves apart; the section plane
+       removing one side and showing the cut face; a ray-traced mesh cube cut by the plane drawn as the
+       closed-form box is; a cancelled render stopping before any row, on the host and the device;
+       faces lying on the bounding box seen from outside;
+       ``view()`` returning at once with ``--no-view``; the rejected settings and cameras; and a device
+       render against the host's.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
