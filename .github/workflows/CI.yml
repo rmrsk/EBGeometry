@@ -566,6 +566,7 @@ jobs:
         run: |
           cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
           cmake --build build/hip --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel $(nproc)
+          ctest --test-dir build/hip -L gpu-device --output-on-failure
 
   CI-passed:
     # The single required status check. It runs even when a dependency fails or is cancelled (a
