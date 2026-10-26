@@ -66,6 +66,42 @@ struct Staging
   std::vector<std::vector<Clause>> m_programs;
 
   /**
+   * @brief The ray program of each sub-program (empty for one a ray never follows).
+   */
+  std::vector<std::vector<RayClause>> m_rayPrograms;
+
+  /**
+   * @brief The sub-program each sub-program was compiled for (UINT32_MAX for the whole object's).
+   */
+  std::vector<uint32_t> m_parents;
+
+  /**
+   * @brief The clause ranges a ray marches: sub-program, first clause and one past the last, within it.
+   */
+  std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> m_marched;
+
+  /**
+   * @brief Every clause, laid out as in the pool.
+   */
+  std::vector<Clause> m_flatClauses;
+
+  /**
+   * @brief Each sub-program's clause range, then each marched range, then each ray program's, then each
+   * sub-program's parent (in m_begin).
+   */
+  std::vector<Program> m_flatPrograms;
+
+  /**
+   * @brief How many sub-programs there are, laid out first.
+   */
+  uint32_t m_flatNumPrograms = 0;
+
+  /**
+   * @brief Where the ray program ranges begin in m_flatPrograms.
+   */
+  uint32_t m_flatRayPrograms = 0;
+
+  /**
    * @brief How deep each sub-program's calls nest.
    */
   std::vector<uint32_t> m_depth;
@@ -92,6 +128,74 @@ struct Staging
 };
 
 /**
+ * @brief Lay the compiled sub-programs, marched ranges and ray programs out one after another, as in the
+ * pool: a marched range becomes a sub-program after the compiled ones, and the ray clauses that march it
+ * name it by that index; the ray programs' clauses follow the sub-programs' clauses, and their ranges the
+ * marched ranges.
+ * @details Internal helper; not part of the public API.
+ * @tparam T    Floating-point precision.
+ * @tparam K    BVH branching factor.
+ * @tparam List TypeList of primitive types.
+ * @param[in,out] a_staging Staging.
+ */
+template <class T, size_t K, class List>
+inline void
+flatten(Staging<T, K, List>& a_staging)
+{
+  const auto numPrograms = static_cast<uint32_t>(a_staging.m_programs.size());
+
+  for (const auto& program : a_staging.m_programs) {
+    Program range;
+
+    range.m_begin = static_cast<uint32_t>(a_staging.m_flatClauses.size());
+
+    a_staging.m_flatClauses.insert(a_staging.m_flatClauses.end(), program.begin(), program.end());
+
+    range.m_end = static_cast<uint32_t>(a_staging.m_flatClauses.size());
+
+    a_staging.m_flatPrograms.push_back(range);
+  }
+
+  for (const auto& [program, begin, end] : a_staging.m_marched) {
+    const uint32_t offset = a_staging.m_flatPrograms[program].m_begin;
+
+    a_staging.m_flatPrograms.push_back(Program{offset + begin, offset + end});
+  }
+
+  a_staging.m_flatNumPrograms = numPrograms;
+  a_staging.m_flatRayPrograms = static_cast<uint32_t>(a_staging.m_flatPrograms.size());
+
+  for (const auto& program : a_staging.m_rayPrograms) {
+    Program range;
+
+    range.m_begin = static_cast<uint32_t>(a_staging.m_flatClauses.size());
+
+    for (RayClause clause : program) {
+      if (clause.m_op == RayOp::Marched) {
+        clause.m_a += numPrograms;
+      }
+
+      a_staging.m_flatClauses.push_back(stored(clause));
+    }
+
+    range.m_end = static_cast<uint32_t>(a_staging.m_flatClauses.size());
+
+    a_staging.m_flatPrograms.push_back(range);
+  }
+
+  // Tape::rayLeafHit() finds a clause's ray program by bisection over where they begin, so they must begin
+  // in program order, and walks up the parents, which come after them.
+  for (uint32_t i = 1; i < numPrograms; i++) {
+    EBGEOMETRY_EXPECT(a_staging.m_flatPrograms[a_staging.m_flatRayPrograms + i - 1].m_begin <=
+                      a_staging.m_flatPrograms[a_staging.m_flatRayPrograms + i].m_begin);
+  }
+
+  for (const uint32_t parent : a_staging.m_parents) {
+    a_staging.m_flatPrograms.push_back(Program{parent, 0U});
+  }
+}
+
+/**
  * @brief Compiles an Expr into Staging.
  * @details Internal helper; not part of the public API. Host-only; recursion over the expression tree is
  * fine here, since only the evaluator runs on a device.
@@ -109,37 +213,71 @@ public:
    * @param[in]     a_options        Compile settings.
    * @param[in]     a_valueStackSize Values a sub-program may hold.
    * @param[in]     a_pointStackSize Points a sub-program may hold.
+   * @param[in]     a_rayStackSize   Span lists a ray program may hold.
    * @param[in,out] a_staging        Where the compiled arrays go.
    */
   Compiler(Pool&                a_pool,
            const TapeOptions&   a_options,
            const uint32_t       a_valueStackSize,
            const uint32_t       a_pointStackSize,
+           const uint32_t       a_rayStackSize,
            Staging<T, K, List>& a_staging) noexcept
     : m_pool(a_pool),
       m_options(a_options),
       m_valueStackSize(a_valueStackSize),
       m_pointStackSize(a_pointStackSize),
+      m_rayStackSize(a_rayStackSize),
       m_staging(a_staging)
   {}
 
   /**
-   * @brief Compile an expression into a new sub-program.
+   * @brief Whether a ray program needs all of an expression's spans, rather than only its first crossing.
+   */
+  struct RayEmit
+  {
+    /**
+     * @brief Whether all the spans are needed.
+     */
+    bool m_all;
+
+    /**
+     * @brief Span lists on the ray stack below the expression's.
+     */
+    uint32_t m_level;
+  };
+
+  /**
+   * @brief Compile an expression into a new sub-program, and into its ray program.
    * @param[in] a_node Expression.
+   * @param[in] a_ray  For the ray program: whether all the spans are needed; null for a sub-program a ray
+   * never follows (one that a marched subtree calls).
    * @return The sub-program's index.
    */
   uint32_t
-  compileProgram(const ExprDetail::Node<T>& a_node)
+  compileProgram(const ExprDetail::Node<T>& a_node, const RayEmit* a_ray)
   {
     const auto id = static_cast<uint32_t>(m_staging.m_programs.size());
 
     m_staging.m_programs.emplace_back();
+    m_staging.m_rayPrograms.emplace_back();
+    m_staging.m_parents.push_back(m_current);
     m_staging.m_depth.push_back(0U);
+
+    const uint32_t parent = m_current;
+
+    m_current = id;
 
     // The input point is on the point stack when the sub-program starts.
     State state{id, 0U, 1U, 0U, 1U};
 
-    this->emit(state, a_node);
+    if (a_ray != nullptr) {
+      const RayEmit ray{a_ray->m_all, 0U};
+
+      this->emit(state, a_node, &ray);
+    }
+    else {
+      this->emit(state, a_node, nullptr);
+    }
 
     EBGEOMETRY_EXPECT(state.m_values == 1U && state.m_points == 1U);
 
@@ -153,6 +291,8 @@ public:
                        "sub-program, but the tape holds at most %u points",
                        unsigned(state.m_maxPoints - 1U),
                        unsigned(m_pointStackSize - 1U));
+
+    m_current = parent;
 
     return id;
   }
@@ -215,9 +355,19 @@ private:
   uint32_t m_pointStackSize;
 
   /**
+   * @brief Ray program list stack capacity.
+   */
+  uint32_t m_rayStackSize;
+
+  /**
    * @brief Output.
    */
   Staging<T, K, List>& m_staging;
+
+  /**
+   * @brief The sub-program being compiled (UINT32_MAX before the first).
+   */
+  uint32_t m_current = UINT32_MAX;
 
   /**
    * @brief The number the next primitive leaf gets (see Tape::closestPrimitive()).
@@ -379,10 +529,11 @@ private:
    * @brief Compile each operand of a union into its own sub-program and build a BVH over them.
    * @param[in,out] a_state The caller's state.
    * @param[in]     a_node  The union.
+   * @param[in]     a_ray   For the operands' ray programs, or null.
    * @return The BVH union's index.
    */
   uint32_t
-  buildUnion(State& a_state, const ExprDetail::Node<T>& a_node)
+  buildUnion(State& a_state, const ExprDetail::Node<T>& a_node, const RayEmit* a_ray)
   {
     std::vector<uint32_t>                  programs;
     std::vector<BoundingVolumes::AABBT<T>> boxes;
@@ -391,7 +542,7 @@ private:
     boxes.reserve(a_node.m_children.size());
 
     for (const auto& child : a_node.m_children) {
-      const uint32_t program = this->compileProgram(child.node());
+      const uint32_t program = this->compileProgram(child.node(), a_ray);
 
       this->calls(a_state, program);
 
@@ -417,14 +568,165 @@ private:
   }
 
   /**
-   * @brief Emit the clauses that push an expression's value at the top point.
-   * @param[in,out] a_state Sub-program state.
-   * @param[in]     a_node  Expression.
+   * @brief Whether the primitive type of index a_type, from I onwards, has a ray form.
+   * @tparam I First index to test.
+   * @param[in] a_type Type index.
+   * @return True if it has.
    */
-  void
-  emit(State& a_state, const ExprDetail::Node<T>& a_node)
+  template <size_t I>
+  [[nodiscard]] static bool
+  hasRayForm(const uint32_t a_type) noexcept
+  {
+    if constexpr (I < NumTypes) {
+      if (a_type == I) {
+        return RayDetail::HasRayFirstHit<typename TypeAt<I, List>::type, T>::value;
+      }
+
+      return hasRayForm<I + 1>(a_type);
+    }
+    else {
+      return false;
+    }
+  }
+
+  /**
+   * @brief Whether a ray program traces an expression's node exactly, from its operands' spans: a union,
+   * intersection, complement or affine map, or a primitive with a ray form. Anything else is marched.
+   * @param[in] a_node Expression.
+   * @return True if traced.
+   */
+  [[nodiscard]] static bool
+  traced(const ExprDetail::Node<T>& a_node) noexcept
   {
     using ExprDetail::Kind;
+
+    switch (a_node.m_kind) {
+    case Kind::Primitive: {
+      return hasRayForm<0>(findType<0>(a_node.m_leaf.m_type));
+    }
+    case Kind::Affine:
+    case Kind::Complement:
+    case Kind::Union:
+    case Kind::Intersection: {
+      return true;
+    }
+    default: {
+      return false;
+    }
+    }
+  }
+
+  /**
+   * @brief How many span lists a ray program holds at once to trace an expression.
+   * @param[in] a_node Expression.
+   * @return The count.
+   */
+  [[nodiscard]] uint32_t
+  raySlots(const ExprDetail::Node<T>& a_node) const noexcept
+  {
+    using ExprDetail::Kind;
+
+    if (!traced(a_node)) {
+      return 1U;
+    }
+
+    switch (a_node.m_kind) {
+    case Kind::Affine:
+    case Kind::Complement: {
+      return this->raySlots(a_node.m_children.front().node());
+    }
+    case Kind::Union:
+    case Kind::Intersection: {
+      if (a_node.m_kind == Kind::Union && this->useBVH(a_node)) {
+        return 1U;
+      }
+
+      uint32_t slots = this->raySlots(a_node.m_children.front().node());
+
+      for (size_t i = 1; i < a_node.m_children.size(); i++) {
+        slots = Math::max(slots, 1U + this->raySlots(a_node.m_children[i].node()));
+      }
+
+      return slots;
+    }
+    default: {
+      return 1U;
+    }
+    }
+  }
+
+  /**
+   * @brief Append a clause to the current sub-program's ray program.
+   * @param[in] a_state Sub-program state.
+   * @param[in] a_op    Operation.
+   * @param[in] a_ray   Whether all spans are needed.
+   * @param[in] a_a     First operand.
+   * @param[in] a_b     Second operand.
+   * @param[in] a_c     Third operand.
+   * @param[in] a_type  Primitive type.
+   */
+  void
+  pushRay(const State&   a_state,
+          const RayOp    a_op,
+          const RayEmit& a_ray,
+          const uint32_t a_a    = 0U,
+          const uint32_t a_b    = 0U,
+          const uint32_t a_c    = 0U,
+          const uint16_t a_type = 0U)
+  {
+    RayClause c;
+
+    c.m_op    = a_op;
+    c.m_flags = a_ray.m_all ? 1U : 0U;
+    c.m_type  = a_type;
+    c.m_a     = a_a;
+    c.m_b     = a_b;
+    c.m_c     = a_c;
+
+    m_staging.m_rayPrograms[a_state.m_program].push_back(c);
+  }
+
+  /**
+   * @brief Emit the clauses that push an expression's value at the top point, and, for a ray program, the
+   * ray clauses that push its spans along the top ray.
+   * @details A node a ray program does not trace (see traced()), or that would hold more span lists than
+   * Tape::RayStackSize, is emitted as usual and marched by the ray program over the clauses it emitted.
+   * @param[in,out] a_state Sub-program state.
+   * @param[in]     a_node  Expression.
+   * @param[in]     a_ray   For the ray program, or null.
+   */
+  void
+  emit(State& a_state, const ExprDetail::Node<T>& a_node, const RayEmit* a_ray)
+  {
+    using ExprDetail::Kind;
+
+    if (a_ray != nullptr && (!traced(a_node) || a_ray->m_level + this->raySlots(a_node) > m_rayStackSize)) {
+      const auto begin = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
+
+      this->emit(a_state, a_node, nullptr);
+
+      const auto end = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
+
+      const BoundingVolumes::AABBT<T>& box = a_node.m_boundingVolume;
+
+      const uint32_t p = this->params({box.getLowCorner()[0],
+                                       box.getLowCorner()[1],
+                                       box.getLowCorner()[2],
+                                       box.getHighCorner()[0],
+                                       box.getHighCorner()[1],
+                                       box.getHighCorner()[2]});
+
+      m_staging.m_marched.emplace_back(a_state.m_program, begin, end);
+
+      this->pushRay(a_state,
+                    RayOp::Marched,
+                    *a_ray,
+                    static_cast<uint32_t>(m_staging.m_marched.size() - 1),
+                    p,
+                    static_cast<uint32_t>(a_node.m_quality));
+
+      return;
+    }
 
     switch (a_node.m_kind) {
     case Kind::Primitive: {
@@ -443,7 +745,13 @@ private:
       const uint32_t index = this->stage<0>(type, leaf.m_object.get());
 
       // The leaf's number, in expression order (the compiler visits the expression depth first, the
-      // operands of a BVH union and the sub-programs too), in the clause's otherwise unused m_b.
+      // operands of a BVH union and the sub-programs too), in the value clause's otherwise unused m_b, and
+      // in the ray Leaf clause's m_b: the number closestPrimitive() reports, which a hit reports as its
+      // primitive (the spans name a leaf by its ray clause's position instead).
+      if (a_ray != nullptr) {
+        this->pushRay(a_state, RayOp::Leaf, *a_ray, index, m_nextLeaf, 0U, static_cast<uint16_t>(type));
+      }
+
       this->push(a_state, clause(Op::Primitive, index, m_nextLeaf++, 0U, 0U, static_cast<uint16_t>(type)), 1, 0);
 
       break;
@@ -454,7 +762,17 @@ private:
       const uint32_t p = this->params(std::vector<T>(m.m_values, m.m_values + 12));
 
       this->push(a_state, clause(Op::PushAffine, p), 0, 1);
-      this->emit(a_state, a_node.m_children.front().node());
+
+      if (a_ray != nullptr) {
+        this->pushRay(a_state, RayOp::PushAffine, *a_ray, p);
+      }
+
+      this->emit(a_state, a_node.m_children.front().node(), a_ray);
+
+      if (a_ray != nullptr) {
+        this->pushRay(a_state, RayOp::PopAffine, *a_ray, p);
+      }
+
       this->push(a_state, clause(Op::PopPoint), 0, -1);
 
       if (a_node.m_valueScale != T(1)) {
@@ -467,7 +785,7 @@ private:
       const uint32_t p = this->params({a_node.m_vec0[0], a_node.m_vec0[1], a_node.m_vec0[2]});
 
       this->push(a_state, clause(Op::PushElongate, p), 0, 1);
-      this->emit(a_state, a_node.m_children.front().node());
+      this->emit(a_state, a_node.m_children.front().node(), nullptr);
       this->push(a_state, clause(Op::PopPoint), 0, -1);
 
       break;
@@ -493,7 +811,7 @@ private:
                                        box.getHighCorner()[1],
                                        box.getHighCorner()[2]});
 
-      const uint32_t sub = this->compileProgram(child.node());
+      const uint32_t sub = this->compileProgram(child.node(), nullptr);
 
       this->calls(a_state, sub);
       this->push(a_state, clause(Op::Repeat, sub, p), 1, 0);
@@ -501,19 +819,29 @@ private:
       break;
     }
     case Kind::Complement: {
-      this->emit(a_state, a_node.m_children.front().node());
+      // A complement needs all its operand's spans: past its first crossing, the ray may be outside again.
+      if (a_ray != nullptr) {
+        const RayEmit all{true, a_ray->m_level};
+
+        this->emit(a_state, a_node.m_children.front().node(), &all);
+        this->pushRay(a_state, RayOp::Complement, *a_ray);
+      }
+      else {
+        this->emit(a_state, a_node.m_children.front().node(), nullptr);
+      }
+
       this->push(a_state, clause(Op::Negate), 0, 0);
 
       break;
     }
     case Kind::Offset: {
-      this->emit(a_state, a_node.m_children.front().node());
+      this->emit(a_state, a_node.m_children.front().node(), nullptr);
       this->push(a_state, clause(Op::AddConstant, this->params({-a_node.m_scalar0})), 0, 0);
 
       break;
     }
     case Kind::Annular: {
-      this->emit(a_state, a_node.m_children.front().node());
+      this->emit(a_state, a_node.m_children.front().node(), nullptr);
       this->push(a_state, clause(Op::Abs), 0, 0);
       this->push(a_state, clause(Op::AddConstant, this->params({-a_node.m_scalar0})), 0, 0);
 
@@ -524,7 +852,7 @@ private:
 
       const uint32_t p = this->params(std::vector<T>(w.m_values, w.m_values + 5));
 
-      const uint32_t sub = this->compileProgram(a_node.m_children.front().node());
+      const uint32_t sub = this->compileProgram(a_node.m_children.front().node(), nullptr);
 
       this->calls(a_state, sub);
       this->push(a_state, clause(Op::Blur, sub, p), 1, 0);
@@ -551,7 +879,7 @@ private:
       }
 
       const uint32_t p   = this->params(taps);
-      const uint32_t sub = this->compileProgram(a_node.m_children.front().node());
+      const uint32_t sub = this->compileProgram(a_node.m_children.front().node(), nullptr);
 
       this->calls(a_state, sub);
       this->push(a_state, clause(Op::Mollify, sub, p, n * n * n), 1, 0);
@@ -561,15 +889,35 @@ private:
     case Kind::Union:
     case Kind::Intersection: {
       if (a_node.m_kind == Kind::Union && this->useBVH(a_node)) {
-        this->push(a_state, clause(Op::UnionBVH, this->buildUnion(a_state, a_node)), 1, 0);
+        // The operands' sub-programs, with those they call, are numbered from first up to end.
+        const auto     first = static_cast<uint32_t>(m_staging.m_programs.size());
+        const uint32_t bvh   = this->buildUnion(a_state, a_node, a_ray);
+        const auto     end   = static_cast<uint32_t>(m_staging.m_programs.size());
+
+        if (a_ray != nullptr) {
+          this->pushRay(a_state, RayOp::UnionBVH, *a_ray, bvh, first, end);
+        }
+
+        this->push(a_state, clause(Op::UnionBVH, bvh), 1, 0);
       }
       else {
-        const Op op = (a_node.m_kind == Kind::Union) ? Op::Min : Op::Max;
+        const Op      op    = (a_node.m_kind == Kind::Union) ? Op::Min : Op::Max;
+        const RayOp   rayOp = (a_node.m_kind == Kind::Union) ? RayOp::Union : RayOp::Intersection;
+        const bool    all   = (a_ray != nullptr) && (a_ray->m_all || a_node.m_kind == Kind::Intersection);
+        const RayEmit first = {all, (a_ray != nullptr) ? a_ray->m_level : 0U};
+        const RayEmit next  = {all, first.m_level + 1U};
 
-        this->emit(a_state, a_node.m_children.front().node());
+        // An intersection needs all its operands' spans: where one ends, the ray may still be inside the
+        // others.
+        this->emit(a_state, a_node.m_children.front().node(), (a_ray != nullptr) ? &first : nullptr);
 
         for (size_t i = 1; i < a_node.m_children.size(); i++) {
-          this->emit(a_state, a_node.m_children[i].node());
+          this->emit(a_state, a_node.m_children[i].node(), (a_ray != nullptr) ? &next : nullptr);
+
+          if (a_ray != nullptr) {
+            this->pushRay(a_state, rayOp, *a_ray);
+          }
+
           this->push(a_state, clause(op), -1, 0);
         }
       }
@@ -584,7 +932,7 @@ private:
 
       if (isUnion && this->useBVH(a_node)) {
         const uint32_t s   = this->params({a_node.m_scalar0});
-        const uint32_t bvh = this->buildUnion(a_state, a_node);
+        const uint32_t bvh = this->buildUnion(a_state, a_node, nullptr);
 
         this->push(a_state, clause(Op::SmoothUnionBVH, bvh, s, 0U, exponential ? 1U : 0U), 1, 0);
       }
@@ -593,7 +941,7 @@ private:
         this->push(a_state, clause(Op::PairInit, 0U, 0U, 0U, maxFlag), 2, 0);
 
         for (const auto& child : a_node.m_children) {
-          this->emit(a_state, child.node());
+          this->emit(a_state, child.node(), nullptr);
           this->push(a_state, clause(Op::PairInsert, 0U, 0U, 0U, maxFlag), -1, 0);
         }
 
@@ -689,9 +1037,14 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   TapeDetail::Staging<T, BranchingRatio, Primitives> staging;
 
   TapeDetail::Compiler<T, BranchingRatio, Primitives> compiler(
-    a_pool, a_options, ValueStackSize, PointStackSize, staging);
+    a_pool, a_options, ValueStackSize, PointStackSize, RayStackSize, staging);
 
-  [[maybe_unused]] const uint32_t root = compiler.compileProgram(a_expr.node());
+  // The whole object is traced for its first crossing; its intersections and complements ask for more.
+  using RayEmit = typename TapeDetail::Compiler<T, BranchingRatio, Primitives>::RayEmit;
+
+  const RayEmit ray{false, 0U};
+
+  [[maybe_unused]] const uint32_t root = compiler.compileProgram(a_expr.node(), &ray);
 
   EBGEOMETRY_EXPECT(root == 0U);
 
@@ -703,6 +1056,8 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   staging.m_boundingVolume = a_expr.computeBoundingVolume();
   staging.m_quality        = a_expr.getDistanceQuality();
 
+  TapeDetail::flatten(staging);
+
   this->finalize(a_pool, staging);
 }
 
@@ -713,20 +1068,8 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
 {
   // Reserve everything first: a reserve may move the pool's block, so the base is resolved only once
   // nothing more is reserved.
-  std::vector<TapeDetail::Clause>  clauses;
-  std::vector<TapeDetail::Program> programs;
-
-  for (const auto& program : a_staging.m_programs) {
-    TapeDetail::Program range;
-
-    range.m_begin = static_cast<uint32_t>(clauses.size());
-
-    clauses.insert(clauses.end(), program.begin(), program.end());
-
-    range.m_end = static_cast<uint32_t>(clauses.size());
-
-    programs.push_back(range);
-  }
+  const std::vector<TapeDetail::Clause>&  clauses  = a_staging.m_flatClauses;
+  const std::vector<TapeDetail::Program>& programs = a_staging.m_flatPrograms;
 
   Layout layout;
 
@@ -751,6 +1094,8 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_boundingVolume = a_staging.m_boundingVolume;
   layout.m_quality        = a_staging.m_quality;
   layout.m_callDepth      = a_staging.m_depth.front();
+  layout.m_numPrograms    = a_staging.m_flatNumPrograms;
+  layout.m_rayPrograms    = a_staging.m_flatRayPrograms;
 
   m_layout = layout;
 }
@@ -1201,13 +1546,31 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
       }
     }
 
-    return this->template dispatchPrimitive<I + 1, Handles>(a_type, a_index, a_point, a_base, a_location);
+    if constexpr (!Handles && I + 1 == DispatchSplit) {
+      return this->dispatchRest(a_type, a_index, a_point, a_base, a_location);
+    }
+    else {
+      return this->template dispatchPrimitive<I + 1, Handles>(a_type, a_index, a_point, a_base, a_location);
+    }
   }
   else {
     EBGEOMETRY_EXPECT(false);
 
     return T(0);
   }
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_NOINLINE
+T
+Tape<T, UserPrimitives...>::dispatchRest(const uint32_t      a_type,
+                                         const uint32_t      a_index,
+                                         const Vec3T<T>&     a_point,
+                                         const void*         a_base,
+                                         const PoolLocation& a_location) const noexcept
+{
+  return this->template dispatchPrimitive<DispatchSplit, false>(a_type, a_index, a_point, a_base, a_location);
 }
 
 template <class T, class... UserPrimitives>
@@ -1353,10 +1716,487 @@ Tape<T, UserPrimitives...>::getDistanceQuality() const noexcept
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
+                                     const T              a_tMin,
+                                     const T              a_tMax,
+                                     const RayOptions<T>& a_options) const noexcept
+{
+  const void*        base     = this->base();
+  const PoolLocation location = this->location();
+
+  const auto trace = [this, &a_ray, &a_options, base, &location](
+                       const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
+    this->template rayEvaluate<MaxCallDepth>(0U, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
+  };
+
+  const auto resolve = [this, &a_ray, &a_options, base, &location](const T a_t, const uint32_t a_leaf) noexcept {
+    return this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+  };
+
+  HitT<T> hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
+
+  // A crossing found by marching a subtree is named by the leaf deciding the value there.
+  if (hit.hit() && hit.m_primitive == MarchedLeaf) {
+    hit.m_primitive = this->closestPrimitive(hit.m_point).m_leaf;
+  }
+
+  return hit;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::raySpans(const RayT<T>&       a_ray,
+                                     const T              a_tMin,
+                                     const T              a_tMax,
+                                     const RayOptions<T>& a_options,
+                                     const bool           a_firstOnly,
+                                     RaySpansT<T>&        a_spans) const noexcept
+{
+  // As a leaf of another composition, the tape is named by it: its own leaves are not.
+  this->template rayEvaluate<MaxCallDepth>(
+    0U, a_ray, a_tMin, a_tMax, a_options, !a_firstOnly, this->base(), this->location(), a_spans);
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline void
+Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
+                                        const RayT<T>&       a_ray,
+                                        const T              a_t0,
+                                        const T              a_t1,
+                                        const RayOptions<T>& a_options,
+                                        const bool           a_all,
+                                        const void*          a_base,
+                                        const PoolLocation&  a_location,
+                                        RaySpansT<T>&        a_spans) const noexcept
+{
+  using TapeDetail::RayOp;
+
+  const TapeDetail::Program range   = m_layout.m_programs.at(a_base, m_layout.m_rayPrograms + a_program);
+  const TapeDetail::Clause* clauses = m_layout.m_clauses.data(a_base);
+  const T*                  params  = m_layout.m_params.data(a_base);
+
+  RaySpansT<T> lists[RayStackSize];
+  RaySpansT<T> scratch;
+
+  RayDetail::MappedRay<T> rays[PointStackSize];
+
+  uint32_t nl = 0;
+  uint32_t nr = 0;
+
+  rays[nr++] = RayDetail::MappedRay<T>{a_ray, T(1), a_t0, a_t1};
+
+  for (uint32_t pc = range.m_begin; pc < range.m_end; pc++) {
+    const TapeDetail::RayClause    c         = TapeDetail::rayClause(clauses[pc]);
+    const RayDetail::MappedRay<T>& top       = rays[nr - 1];
+    const bool                     firstOnly = !a_all && (c.m_flags & 1U) == 0U;
+
+    switch (c.m_op) {
+    case RayOp::Leaf: {
+      this->rayLeaf(c, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, a_base, a_location, lists[nl]);
+
+      // A crossing is named by its leaf's clause, which rayLeafHit() finds again.
+      RayDetail::nameLeaf(pc, lists[nl++]);
+
+      break;
+    }
+    case RayOp::Marched: {
+      const T* box = params + c.m_b;
+
+      const Subtree<D> subtree{this,
+                               c.m_a,
+                               BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
+                               static_cast<DistanceQuality>(c.m_c),
+                               a_base,
+                               a_location};
+
+      RaySpansT<T>& spans = lists[nl++];
+
+      RayDetail::shapeSpans(subtree, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, spans);
+
+      RayDetail::nameLeaf(pc, spans);
+
+      break;
+    }
+    case RayOp::Union: {
+      nl--;
+
+      RayDetail::uniteInto(lists[nl - 1], lists[nl]);
+
+      if (firstOnly) {
+        RayDetail::keepFirst(lists[nl - 1]);
+      }
+
+      break;
+    }
+    case RayOp::Intersection: {
+      nl--;
+
+      RayDetail::intersectInto(lists[nl - 1], lists[nl], scratch);
+
+      break;
+    }
+    case RayOp::Complement: {
+      RayDetail::complement(lists[nl - 1], top.m_t0, scratch);
+      RayDetail::copySpans(scratch, lists[nl - 1]);
+
+      break;
+    }
+    case RayOp::PushAffine: {
+      rays[nr] = RayDetail::mapRay(params + c.m_a, top.m_ray, top.m_t0, top.m_t1);
+
+      nr++;
+
+      break;
+    }
+    case RayOp::PopAffine: {
+      nr--;
+
+      RayDetail::mapBack(rays[nr], rays[nr - 1].m_t0, rays[nr - 1].m_t1, lists[nl - 1]);
+
+      break;
+    }
+    case RayOp::UnionBVH: {
+      if constexpr (D > 0) {
+        this->template rayUnion<D>(c, top.m_ray, top.m_t0, top.m_t1, a_options, a_all, a_base, a_location, lists[nl++]);
+      }
+      else {
+        EBGEOMETRY_EXPECT(false);
+
+        lists[nl++].reset(top.m_t1);
+      }
+
+      break;
+    }
+    default: {
+      EBGEOMETRY_EXPECT(false && "Tape: unknown ray clause");
+
+      break;
+    }
+    }
+  }
+
+  EBGEOMETRY_EXPECT(nl == 1U && nr == 1U);
+
+  RayDetail::copySpans(lists[0], a_spans);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline void
+Tape<T, UserPrimitives...>::rayLeaf(const TapeDetail::RayClause& a_clause,
+                                    const RayT<T>&               a_ray,
+                                    const T                      a_t0,
+                                    const T                      a_t1,
+                                    const RayOptions<T>&         a_options,
+                                    const bool                   a_firstOnly,
+                                    const void*                  a_base,
+                                    const PoolLocation&          a_location,
+                                    RaySpansT<T>&                a_spans) const noexcept
+{
+  this->template dispatchRayLeaf<0>(a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
+}
+
+template <class T, class... UserPrimitives>
+template <size_t I>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::dispatchRayLeaf(const TapeDetail::RayClause& a_clause,
+                                            const RayT<T>&               a_ray,
+                                            const T                      a_t0,
+                                            const T                      a_t1,
+                                            const RayOptions<T>&         a_options,
+                                            const bool                   a_firstOnly,
+                                            const void*                  a_base,
+                                            const PoolLocation&          a_location,
+                                            RaySpansT<T>&                a_spans) const noexcept
+{
+  if constexpr (I < Primitives::size) {
+    using P = typename TapeDetail::TypeAt<I, Primitives>::type;
+
+    if constexpr (RayDetail::HasRayFirstHit<P, T>::value) {
+      if (a_clause.m_type == I) {
+        const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_clause.m_a);
+
+        // A pool-resident primitive is stored as its layout and resolves against the tape's own location.
+        if constexpr (isPoolHandle<P>) {
+          RayDetail::shapeSpans(P(stored, a_location), a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
+        }
+        else {
+          RayDetail::shapeSpans(stored, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
+        }
+
+        return;
+      }
+    }
+
+    this->template dispatchRayLeaf<I + 1>(
+      a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
+  }
+  else {
+    EBGEOMETRY_EXPECT(false);
+
+    a_spans.reset(a_t1);
+  }
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::rayUnion(const TapeDetail::RayClause& a_clause,
+                                     const RayT<T>&               a_ray,
+                                     const T                      a_t0,
+                                     const T                      a_t1,
+                                     const RayOptions<T>&         a_options,
+                                     const bool                   a_all,
+                                     const void*                  a_base,
+                                     const PoolLocation&          a_location,
+                                     RaySpansT<T>&                a_spans) const noexcept
+{
+  static_assert(D > 0, "Tape::rayUnion needs call depth left for its operands");
+
+  const TapeDetail::UnionBVH<T, BranchingRatio>& parts = m_layout.m_unions.at(a_base, a_clause.m_a);
+
+  const UnionRoot bvh(parts.m_bvh, a_location);
+  const UnionRoot unbounded(parts.m_unbounded, a_location);
+
+  const auto unboundedPrograms = unbounded.getPrimitives();
+  const auto programs          = bvh.getPrimitives();
+
+  a_spans.reset(a_t1);
+
+  RaySpansT<T> operand;
+
+  // Whether the union is asked only for its first crossing.
+  const bool firstOnly = !a_all && (a_clause.m_flags & 1U) == 0U;
+
+  // Each operand is traced only up to what the union so far is known up to, beyond which it can change
+  // nothing known.
+  const auto add = [this, &a_ray, a_t0, &a_options, a_all, firstOnly, a_base, &a_location, &operand](
+                     RaySpansT<T>& a_union, const uint32_t a_program) noexcept {
+    this->template rayEvaluate<D - 1>(
+      a_program, a_ray, a_t0, a_union.m_horizon, a_options, a_all, a_base, a_location, operand);
+
+    RayDetail::uniteInto(a_union, operand);
+
+    if (firstOnly) {
+      RayDetail::keepFirst(a_union);
+    }
+  };
+
+  for (uint32_t i = 0; i < unboundedPrograms.size(); i++) {
+    add(a_spans, unboundedPrograms[i]);
+  }
+
+  const auto leaf = [&programs, &add](RaySpansT<T>& a_union, const size_t a_offset, const size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      add(a_union, programs[static_cast<uint32_t>(i)]);
+    }
+  };
+
+  // A box the ray enters beyond what the union is known up to can change nothing known.
+  const auto bound = [](const RaySpansT<T>& a_union) noexcept -> T { return a_union.m_horizon; };
+
+  bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_t0), a_spans, leaf, bound);
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline HitT<T>
+Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
+                                       const RayT<T>&       a_ray,
+                                       const T              a_t,
+                                       const uint32_t       a_clause,
+                                       const RayOptions<T>& a_options,
+                                       const void*          a_base,
+                                       const PoolLocation&  a_location) const noexcept
+{
+  using TapeDetail::RayOp;
+
+  const TapeDetail::Program range   = m_layout.m_programs.at(a_base, m_layout.m_rayPrograms + a_program);
+  const TapeDetail::Clause* clauses = m_layout.m_clauses.data(a_base);
+  const T*                  params  = m_layout.m_params.data(a_base);
+
+  // The ray in each affine frame down to the leaf, and the maps that made them.
+  RayDetail::MappedRay<T> rays[PointStackSize];
+  uint32_t                maps[PointStackSize];
+
+  uint32_t nr = 0;
+
+  rays[nr++] = RayDetail::MappedRay<T>{a_ray, T(1), a_t, a_t};
+
+  HitT<T> hit;
+
+  for (uint32_t pc = range.m_begin; pc < range.m_end && !hit.hit(); pc++) {
+    const TapeDetail::RayClause    c   = TapeDetail::rayClause(clauses[pc]);
+    const RayDetail::MappedRay<T>& top = rays[nr - 1];
+
+    if (pc == a_clause) {
+      if (c.m_op == RayOp::Leaf) {
+        hit = this->primitiveLeafHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
+
+        hit.m_primitive = c.m_b;
+      }
+      else {
+        // A Marched clause is a leaf of the trace as a whole: its subtree has no ray program, so a trace never
+        // names a clause inside it, and a hit there reports MarchedLeaf.
+        const T* box = params + c.m_b;
+
+        const Subtree<D> subtree{this,
+                                 c.m_a,
+                                 BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
+                                 static_cast<DistanceQuality>(c.m_c),
+                                 a_base,
+                                 a_location};
+
+        hit = RayDetail::leafHit(subtree, top.m_ray, top.m_t0, a_options);
+
+        hit.m_primitive = MarchedLeaf;
+      }
+
+      // Found even where the leaf's own search came up empty: its normal is then its gradient.
+      hit.m_status = HitStatus::Hit;
+
+      break;
+    }
+
+    switch (c.m_op) {
+    case RayOp::PushAffine: {
+      rays[nr] = RayDetail::mapRay(params + c.m_a, top.m_ray, top.m_t0, top.m_t0);
+      maps[nr] = c.m_a;
+
+      nr++;
+
+      break;
+    }
+    case RayOp::PopAffine: {
+      nr--;
+
+      break;
+    }
+    case RayOp::UnionBVH: {
+      if constexpr (D > 0) {
+        // The operands' ray programs, with those they call, are laid out in turn (sub-programs c.m_b up to
+        // c.m_c). The leaf's own ray program is the last that begins at or before it; from there up, the
+        // sub-program compiled for this one is the operand that holds it, if it is one of this union's.
+        const uint32_t numPrograms = m_layout.m_numPrograms;
+
+        uint32_t lo = 0;
+        uint32_t hi = numPrograms;
+
+        while (hi - lo > 1U) {
+          const uint32_t mid = lo + (hi - lo) / 2U;
+
+          if (m_layout.m_programs.at(a_base, m_layout.m_rayPrograms + mid).m_begin <= a_clause) {
+            lo = mid;
+          }
+          else {
+            hi = mid;
+          }
+        }
+
+        const uint32_t parents = m_layout.m_rayPrograms + numPrograms;
+
+        uint32_t operand = lo;
+
+        while (operand != UINT32_MAX && operand != a_program) {
+          const uint32_t parent = m_layout.m_programs.at(a_base, parents + operand).m_begin;
+
+          if (parent == a_program) {
+            break;
+          }
+
+          operand = parent;
+        }
+
+        if (operand != UINT32_MAX && operand != a_program && operand >= c.m_b && operand < c.m_c) {
+          hit = this->template rayLeafHit<D - 1>(operand, top.m_ray, top.m_t0, a_clause, a_options, a_base, a_location);
+        }
+      }
+
+      break;
+    }
+    default: {
+      break;
+    }
+    }
+  }
+
+  // The trace named a leaf of this program or of the operands it calls, so the walk finds it.
+  EBGEOMETRY_EXPECT(hit.hit());
+
+  // The leaf's normal, in its frame, mapped back to the program's.
+  for (uint32_t f = nr - 1; f > 0; f--) {
+    hit.m_normal = RayDetail::mapNormalBack(params + maps[f], hit.m_normal);
+  }
+
+  return hit;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline HitT<T>
+Tape<T, UserPrimitives...>::primitiveLeafHit(const TapeDetail::RayClause& a_clause,
+                                             const RayT<T>&               a_ray,
+                                             const T                      a_t,
+                                             const RayOptions<T>&         a_options,
+                                             const void*                  a_base,
+                                             const PoolLocation&          a_location) const noexcept
+{
+  return this->template dispatchLeafHit<0>(a_clause, a_ray, a_t, a_options, a_base, a_location);
+}
+
+template <class T, class... UserPrimitives>
+template <size_t I>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::dispatchLeafHit(const TapeDetail::RayClause& a_clause,
+                                            const RayT<T>&               a_ray,
+                                            const T                      a_t,
+                                            const RayOptions<T>&         a_options,
+                                            const void*                  a_base,
+                                            const PoolLocation&          a_location) const noexcept
+{
+  if constexpr (I < Primitives::size) {
+    using P = typename TapeDetail::TypeAt<I, Primitives>::type;
+
+    if constexpr (RayDetail::HasRayFirstHit<P, T>::value) {
+      if (a_clause.m_type == I) {
+        const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_clause.m_a);
+
+        if constexpr (isPoolHandle<P>) {
+          return RayDetail::leafHit(P(stored, a_location), a_ray, a_t, a_options);
+        }
+        else {
+          return RayDetail::leafHit(stored, a_ray, a_t, a_options);
+        }
+      }
+    }
+
+    return this->template dispatchLeafHit<I + 1>(a_clause, a_ray, a_t, a_options, a_base, a_location);
+  }
+  else {
+    EBGEOMETRY_EXPECT(false);
+
+    return HitT<T>();
+  }
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getNumPrograms() const noexcept
 {
-  return m_layout.m_programs.size();
+  return m_layout.m_numPrograms;
 }
 
 template <class T, class... UserPrimitives>
@@ -1364,7 +2204,8 @@ EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getNumClauses() const noexcept
 {
-  return m_layout.m_clauses.size();
+  // The sub-programs' clauses come first, one after another; the ray programs' follow them.
+  return m_layout.m_programs.at(this->base(), m_layout.m_numPrograms - 1U).m_end;
 }
 
 template <class T, class... UserPrimitives>
@@ -1507,9 +2348,11 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     const auto params   = m_layout.m_params.bind(base);
     const auto unions   = m_layout.m_unions.bind(base);
 
-    for (const auto& range : programs) {
-      staging.m_programs.emplace_back(clauses.begin() + range.m_begin, clauses.begin() + range.m_end);
-    }
+    // The arrays are copied as they are laid out: the marched ranges overlap the sub-programs.
+    staging.m_flatClauses.assign(clauses.begin(), clauses.end());
+    staging.m_flatPrograms.assign(programs.begin(), programs.end());
+    staging.m_flatNumPrograms = m_layout.m_numPrograms;
+    staging.m_flatRayPrograms = m_layout.m_rayPrograms;
 
     staging.m_params.assign(params.begin(), params.end());
     staging.m_unions.assign(unions.begin(), unions.end());

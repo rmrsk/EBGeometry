@@ -48,5 +48,35 @@ A march also needs a budget: a ray that grazes the surface takes ever shorter st
 of steps without deciding. It then says so, rather than reporting a miss: for a particle, a miss lets
 it through the wall.
 
-Compositions of shapes (unions, intersections, differences, blends) are marched; their exact ray
-tracing, combining the spans in which each part is inside, is a planned extension.
+Compositions
+------------
+
+A composition of shapes (a union, an intersection, a difference, a complement, a translated, rotated
+or scaled shape) is traced from its parts. Along the ray, each part is inside over a few *spans*,
+stretches from where the ray enters it to where it leaves. The composition's spans follow from its
+parts' as sets of points do: a union's are where the ray is inside either part, an intersection's
+where it is inside both, a complement's the gaps between them, and a difference is an intersection with
+a complement. The first crossing is where the first of the composition's spans begins or ends. A
+translated, rotated or scaled shape is traced along the ray mapped into its own frame, and its spans
+mapped back.
+
+Take a box with a ball cut out of its middle, and a ray through both: the box's span is
+:math:`[2, 8]`, the ball's :math:`[4, 6]`, so the difference has the two spans :math:`[2, 4]` and
+:math:`[6, 8]`, and the first crossing is at 2. The ball's own first crossing, at 4, is not a crossing of
+the difference: there the ray leaves the solid. Under an intersection or a difference every span of a
+part is needed, not only its first crossing. Under a union only the first crossings are: the nearest of
+the parts' first crossings is the union's, unless the ray starts inside a part, which the spans also
+show.
+
+A part that has no exact method of its own (a blend, an offset, an elongation, a repetition), and every
+part inside it, is marched by itself, in its own bounding box: under a union only to its first
+crossing, under an intersection or a difference over the whole interval, from one crossing to the
+next. Everything else stays exact.
+
+A list of spans has a fixed size, so that it fits a device thread. A ray through more pieces than it
+holds keeps the first ones, and the list then says how far along the ray it is complete. If the first
+crossing is not found before that point, the trace starts again from there: the answer is never wrong,
+only slower for a ray through very many pieces.
+
+A query can also be asked to march any shape, composition or not: a reference to compare the exact
+answer with.

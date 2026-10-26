@@ -131,7 +131,10 @@ slab(const RayT<T>& a_ray,
 
 /**
  * @brief Where a ray is inside a sphere.
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. The discriminant is the squared radius less the
+ * squared distance of the centre from the ray's line, |oc x d|^2, not b^2 - c: for a small ball far from
+ * the origin, |oc|^2 - r^2 cancels, and in float a ray passing within about 1e-3 of the radius of the
+ * surface could go either way. The nearer root is c / q, which does not cancel either.
  * @tparam T Floating-point precision.
  * @param[in]  a_ray    Ray.
  * @param[in]  a_center Centre.
@@ -145,9 +148,9 @@ inline void
 ballSpan(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, T& a_in, T& a_out) noexcept
 {
   const Vec3T<T> oc   = a_ray.m_origin - a_center;
+  const Vec3T<T> l    = cross(oc, a_ray.m_direction);
   const T        b    = dot(oc, a_ray.m_direction);
-  const T        c    = dot(oc, oc) - a_radius * a_radius;
-  const T        disc = b * b - c;
+  const T        disc = a_radius * a_radius - dot(l, l);
 
   if (disc < T(0)) {
     a_in  = Math::Limits<T>::infinity();
@@ -157,15 +160,27 @@ ballSpan(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, T& a_
   }
 
   const T root = std::sqrt(disc);
+  const T q    = -b - ((b >= T(0)) ? root : -root);
 
-  a_in  = -b - root;
-  a_out = -b + root;
+  // Both roots are zero: the ray starts on the surface, along it.
+  if (q == T(0)) {
+    a_in  = T(0);
+    a_out = T(0);
+
+    return;
+  }
+
+  const T c = dot(oc, oc) - a_radius * a_radius;
+
+  a_in  = Math::min(q, c / q);
+  a_out = Math::max(q, c / q);
 }
 
 /**
  * @brief Where a ray is inside an infinite cylinder around the line through a point along a unit axis.
  * @details Internal helper; not part of the public API. A ray along the axis is inside it everywhere or
- * nowhere.
+ * nowhere. As for a sphere (see ballSpan()), the discriminant is a r^2 - |o x d|^2 rather than b^2 - a c,
+ * and the nearer root c / q, so that a thin cylinder far from the origin does not cancel.
  * @tparam T Floating-point precision.
  * @param[in]  a_ray    Ray.
  * @param[in]  a_point  Point on the axis.
@@ -194,8 +209,9 @@ tubeSpan(
     return;
   }
 
-  const T b    = dot(o, d);
-  const T disc = b * b - a * c;
+  const Vec3T<T> l    = cross(o, d);
+  const T        b    = dot(o, d);
+  const T        disc = a * a_radius * a_radius - dot(l, l);
 
   if (disc < T(0)) {
     a_in  = Math::Limits<T>::infinity();
@@ -205,9 +221,18 @@ tubeSpan(
   }
 
   const T root = std::sqrt(disc);
+  const T q    = -b - ((b >= T(0)) ? root : -root);
 
-  a_in  = (-b - root) / a;
-  a_out = (-b + root) / a;
+  // Both roots are zero: the ray starts on the surface, along it.
+  if (q == T(0)) {
+    a_in  = T(0);
+    a_out = T(0);
+
+    return;
+  }
+
+  a_in  = Math::min(q / a, c / q);
+  a_out = Math::max(q / a, c / q);
 }
 
 /**
@@ -347,108 +372,159 @@ capsuleSpan(const RayT<T>&  a_ray,
   }
 }
 
-} // namespace RayDetail
-
+/**
+ * @brief Where a ray is inside a convex object: from m_in to m_out (m_out below m_in for a ray that
+ * misses), with the outward normals there.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline HitT<T>
-RayForm<PlaneSDF<T>>::firstHit(const PlaneSDF<T>& a_shape,
-                               const RayT<T>&     a_ray,
-                               const T            a_tMin,
-                               const T            a_tMax,
-                               const RayOptions<T>& /*a_options*/) noexcept
+struct ConvexSpan
 {
-  // The plane's value along the ray is v0 + t * rate; the solid is where it is negative.
+  /**
+   * @brief Where the ray enters (or -infinity).
+   */
+  T m_in;
+
+  /**
+   * @brief Outward normal there.
+   */
+  Vec3T<T> m_inNormal;
+
+  /**
+   * @brief Where it leaves (or +infinity).
+   */
+  T m_out;
+
+  /**
+   * @brief Outward normal there.
+   */
+  Vec3T<T> m_outNormal;
+};
+
+/**
+ * @brief Where a ray is behind a plane (its value along the ray is v0 + t * rate; the solid is where it is
+ * negative).
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_shape The plane.
+ * @param[in] a_ray   Ray.
+ * @return The span: everywhere or nowhere for a ray along the plane.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline ConvexSpan<T>
+convexSpan(const PlaneSDF<T>& a_shape, const RayT<T>& a_ray) noexcept
+{
   const Vec3T<T>& n    = a_shape.getNormal();
   const T         v0   = dot(a_ray.m_origin - a_shape.getPoint(), n);
   const T         rate = dot(a_ray.m_direction, n);
   const T         inf  = Math::Limits<T>::infinity();
 
   if (rate == T(0)) {
-    return HitT<T>();
+    return (v0 < T(0)) ? ConvexSpan<T>{-inf, n, inf, n} : ConvexSpan<T>{inf, n, -inf, n};
   }
 
   const T crossing = -v0 / rate;
 
-  return (rate < T(0)) ? RayDetail::convexHit(a_ray, crossing, n, inf, n, a_tMin, a_tMax)
-                       : RayDetail::convexHit(a_ray, -inf, n, crossing, n, a_tMin, a_tMax);
+  return (rate < T(0)) ? ConvexSpan<T>{crossing, n, inf, n} : ConvexSpan<T>{-inf, n, crossing, n};
 }
 
+/**
+ * @brief Where a ray is inside a sphere.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_shape The sphere.
+ * @param[in] a_ray   Ray.
+ * @return The span.
+ */
 template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline HitT<T>
-RayForm<SphereSDF<T>>::firstHit(const SphereSDF<T>& a_shape,
-                                const RayT<T>&      a_ray,
-                                const T             a_tMin,
-                                const T             a_tMax,
-                                const RayOptions<T>& /*a_options*/) noexcept
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline ConvexSpan<T>
+convexSpan(const SphereSDF<T>& a_shape, const RayT<T>& a_ray) noexcept
 {
   T in;
   T out;
 
   RayDetail::ballSpan(a_ray, a_shape.getCenter(), a_shape.getRadius(), in, out);
 
-  const T r = a_shape.getRadius();
-
-  return RayDetail::convexHit(a_ray,
-                              in,
-                              (a_ray.at(in) - a_shape.getCenter()) / r,
-                              out,
-                              (a_ray.at(out) - a_shape.getCenter()) / r,
-                              a_tMin,
-                              a_tMax);
-}
-
-template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline HitT<T>
-RayForm<BoxSDF<T>>::firstHit(const BoxSDF<T>& a_shape,
-                             const RayT<T>&   a_ray,
-                             const T          a_tMin,
-                             const T          a_tMax,
-                             const RayOptions<T>& /*a_options*/) noexcept
-{
-  T        in        = -Math::Limits<T>::infinity();
-  T        out       = Math::Limits<T>::infinity();
-  Vec3T<T> normalIn  = Vec3T<T>::zeros();
-  Vec3T<T> normalOut = Vec3T<T>::zeros();
-
-  for (size_t axis = 0; axis < 3; axis++) {
-    RayDetail::slab(
-      a_ray, axis, a_shape.getLowCorner()[axis], a_shape.getHighCorner()[axis], in, normalIn, out, normalOut);
+  if (!(in <= out)) {
+    return ConvexSpan<T>{in, Vec3T<T>::zeros(), out, Vec3T<T>::zeros()};
   }
 
-  return RayDetail::convexHit(a_ray, in, normalIn, out, normalOut, a_tMin, a_tMax);
+  const T r = a_shape.getRadius();
+
+  return ConvexSpan<T>{in, (a_ray.at(in) - a_shape.getCenter()) / r, out, (a_ray.at(out) - a_shape.getCenter()) / r};
 }
 
+/**
+ * @brief Where a ray is inside a box.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_shape The box.
+ * @param[in] a_ray   Ray.
+ * @return The span.
+ */
 template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline HitT<T>
-RayForm<CylinderSDF<T>>::firstHit(const CylinderSDF<T>& a_shape,
-                                  const RayT<T>&        a_ray,
-                                  const T               a_tMin,
-                                  const T               a_tMax,
-                                  const RayOptions<T>& /*a_options*/) noexcept
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline ConvexSpan<T>
+convexSpan(const BoxSDF<T>& a_shape, const RayT<T>& a_ray) noexcept
 {
-  T        in;
-  T        out;
-  Vec3T<T> normalIn;
-  Vec3T<T> normalOut;
+  ConvexSpan<T> span{-Math::Limits<T>::infinity(), Vec3T<T>::zeros(), Math::Limits<T>::infinity(), Vec3T<T>::zeros()};
 
-  RayDetail::cylinderSpan(
-    a_ray, a_shape.getCenter1(), a_shape.getCenter2(), a_shape.getRadius(), in, normalIn, out, normalOut);
+  for (size_t axis = 0; axis < 3; axis++) {
+    RayDetail::slab(a_ray,
+                    axis,
+                    a_shape.getLowCorner()[axis],
+                    a_shape.getHighCorner()[axis],
+                    span.m_in,
+                    span.m_inNormal,
+                    span.m_out,
+                    span.m_outNormal);
+  }
 
-  return RayDetail::convexHit(a_ray, in, normalIn, out, normalOut, a_tMin, a_tMax);
+  return span;
 }
 
+/**
+ * @brief Where a ray is inside a finite cylinder.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_shape The cylinder.
+ * @param[in] a_ray   Ray.
+ * @return The span.
+ */
 template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline HitT<T>
-RayForm<InfiniteCylinderSDF<T>>::firstHit(const InfiniteCylinderSDF<T>& a_shape,
-                                          const RayT<T>&                a_ray,
-                                          const T                       a_tMin,
-                                          const T                       a_tMax,
-                                          const RayOptions<T>& /*a_options*/) noexcept
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline ConvexSpan<T>
+convexSpan(const CylinderSDF<T>& a_shape, const RayT<T>& a_ray) noexcept
+{
+  ConvexSpan<T> span;
+
+  RayDetail::cylinderSpan(a_ray,
+                          a_shape.getCenter1(),
+                          a_shape.getCenter2(),
+                          a_shape.getRadius(),
+                          span.m_in,
+                          span.m_inNormal,
+                          span.m_out,
+                          span.m_outNormal);
+
+  return span;
+}
+
+/**
+ * @brief Where a ray is inside an infinite cylinder.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_shape The cylinder.
+ * @param[in] a_ray   Ray.
+ * @return The span.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline ConvexSpan<T>
+convexSpan(const InfiniteCylinderSDF<T>& a_shape, const RayT<T>& a_ray) noexcept
 {
   Vec3T<T> axis = Vec3T<T>::zeros();
 
@@ -459,35 +535,39 @@ RayForm<InfiniteCylinderSDF<T>>::firstHit(const InfiniteCylinderSDF<T>& a_shape,
 
   RayDetail::tubeSpan(a_ray, a_shape.getCenter(), axis, a_shape.getRadius(), in, out);
 
-  return RayDetail::convexHit(a_ray,
-                              in,
-                              RayDetail::tubeNormal(a_ray.at(in), a_shape.getCenter(), axis),
-                              out,
-                              RayDetail::tubeNormal(a_ray.at(out), a_shape.getCenter(), axis),
-                              a_tMin,
-                              a_tMax);
+  if (!(in <= out)) {
+    return ConvexSpan<T>{in, Vec3T<T>::zeros(), out, Vec3T<T>::zeros()};
+  }
+
+  return ConvexSpan<T>{in,
+                       RayDetail::tubeNormal(a_ray.at(in), a_shape.getCenter(), axis),
+                       out,
+                       RayDetail::tubeNormal(a_ray.at(out), a_shape.getCenter(), axis)};
 }
 
+/**
+ * @brief Where a ray is inside a capsule.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_shape The capsule.
+ * @param[in] a_ray   Ray.
+ * @return The span.
+ */
 template <class T>
-EBGEOMETRY_HOST_DEVICE
-inline HitT<T>
-RayForm<CapsuleSDF<T>>::firstHit(const CapsuleSDF<T>& a_shape,
-                                 const RayT<T>&       a_ray,
-                                 const T              a_tMin,
-                                 const T              a_tMax,
-                                 const RayOptions<T>& /*a_options*/) noexcept
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline ConvexSpan<T>
+convexSpan(const CapsuleSDF<T>& a_shape, const RayT<T>& a_ray) noexcept
 {
   const Vec3T<T>& c1     = a_shape.getCenter1();
   const Vec3T<T>& c2     = a_shape.getCenter2();
   const T         length = (c2 - c1).length();
 
-  T in;
-  T out;
+  ConvexSpan<T> span;
 
-  RayDetail::capsuleSpan(a_ray, c1, c2, a_shape.getRadius(), in, out);
+  RayDetail::capsuleSpan(a_ray, c1, c2, a_shape.getRadius(), span.m_in, span.m_out);
 
-  if (!(in <= out)) {
-    return HitT<T>();
+  if (!(span.m_in <= span.m_out)) {
+    return span;
   }
 
   // The normal of a capsule at a surface point is away from the nearest point of its segment.
@@ -500,7 +580,211 @@ RayForm<CapsuleSDF<T>>::firstHit(const CapsuleSDF<T>& a_shape,
     return (l > T(0)) ? n / l : Vec3T<T>::zeros();
   };
 
-  return RayDetail::convexHit(a_ray, in, normal(a_ray.at(in)), out, normal(a_ray.at(out)), a_tMin, a_tMax);
+  span.m_inNormal  = normal(a_ray.at(span.m_in));
+  span.m_outNormal = normal(a_ray.at(span.m_out));
+
+  return span;
+}
+
+/**
+ * @brief The first crossing of a convex shape along a ray, from its span.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape The shape.
+ * @param[in] a_ray   Ray.
+ * @param[in] a_tMin  Start of the interval.
+ * @param[in] a_tMax  End of the interval.
+ * @return The crossing, or a miss.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+convexFirstHit(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax) noexcept
+{
+  const ConvexSpan<T> span = RayDetail::convexSpan(a_shape, a_ray);
+
+  return RayDetail::convexHit(a_ray, span.m_in, span.m_inNormal, span.m_out, span.m_outNormal, a_tMin, a_tMax);
+}
+
+/**
+ * @brief A convex shape's list over an interval: its one span, cut to the interval.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in]  a_shape The shape.
+ * @param[in]  a_ray   Ray.
+ * @param[in]  a_tMin  Start of the interval.
+ * @param[in]  a_tMax  End of the interval.
+ * @param[out] a_spans The list.
+ */
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
+inline void
+convexSpans(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, RaySpansT<T>& a_spans) noexcept
+{
+  const ConvexSpan<T> span = RayDetail::convexSpan(a_shape, a_ray);
+
+  a_spans.reset(a_tMax);
+  a_spans.addClipped(span.m_in, span.m_out, a_tMin, a_tMax);
+}
+
+} // namespace RayDetail
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<PlaneSDF<T>>::firstHit(const PlaneSDF<T>& a_shape,
+                               const RayT<T>&     a_ray,
+                               const T            a_tMin,
+                               const T            a_tMax,
+                               const RayOptions<T>& /*a_options*/) noexcept
+{
+  return RayDetail::convexFirstHit(a_shape, a_ray, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<PlaneSDF<T>>::spans(const PlaneSDF<T>& a_shape,
+                            const RayT<T>&     a_ray,
+                            const T            a_tMin,
+                            const T            a_tMax,
+                            const RayOptions<T>& /*a_options*/,
+                            const bool /*a_firstOnly*/,
+                            RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::convexSpans(a_shape, a_ray, a_tMin, a_tMax, a_spans);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<SphereSDF<T>>::firstHit(const SphereSDF<T>& a_shape,
+                                const RayT<T>&      a_ray,
+                                const T             a_tMin,
+                                const T             a_tMax,
+                                const RayOptions<T>& /*a_options*/) noexcept
+{
+  return RayDetail::convexFirstHit(a_shape, a_ray, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<SphereSDF<T>>::spans(const SphereSDF<T>& a_shape,
+                             const RayT<T>&      a_ray,
+                             const T             a_tMin,
+                             const T             a_tMax,
+                             const RayOptions<T>& /*a_options*/,
+                             const bool /*a_firstOnly*/,
+                             RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::convexSpans(a_shape, a_ray, a_tMin, a_tMax, a_spans);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<BoxSDF<T>>::firstHit(const BoxSDF<T>& a_shape,
+                             const RayT<T>&   a_ray,
+                             const T          a_tMin,
+                             const T          a_tMax,
+                             const RayOptions<T>& /*a_options*/) noexcept
+{
+  return RayDetail::convexFirstHit(a_shape, a_ray, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<BoxSDF<T>>::spans(const BoxSDF<T>& a_shape,
+                          const RayT<T>&   a_ray,
+                          const T          a_tMin,
+                          const T          a_tMax,
+                          const RayOptions<T>& /*a_options*/,
+                          const bool /*a_firstOnly*/,
+                          RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::convexSpans(a_shape, a_ray, a_tMin, a_tMax, a_spans);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<CylinderSDF<T>>::firstHit(const CylinderSDF<T>& a_shape,
+                                  const RayT<T>&        a_ray,
+                                  const T               a_tMin,
+                                  const T               a_tMax,
+                                  const RayOptions<T>& /*a_options*/) noexcept
+{
+  return RayDetail::convexFirstHit(a_shape, a_ray, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<CylinderSDF<T>>::spans(const CylinderSDF<T>& a_shape,
+                               const RayT<T>&        a_ray,
+                               const T               a_tMin,
+                               const T               a_tMax,
+                               const RayOptions<T>& /*a_options*/,
+                               const bool /*a_firstOnly*/,
+                               RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::convexSpans(a_shape, a_ray, a_tMin, a_tMax, a_spans);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<InfiniteCylinderSDF<T>>::firstHit(const InfiniteCylinderSDF<T>& a_shape,
+                                          const RayT<T>&                a_ray,
+                                          const T                       a_tMin,
+                                          const T                       a_tMax,
+                                          const RayOptions<T>& /*a_options*/) noexcept
+{
+  return RayDetail::convexFirstHit(a_shape, a_ray, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<InfiniteCylinderSDF<T>>::spans(const InfiniteCylinderSDF<T>& a_shape,
+                                       const RayT<T>&                a_ray,
+                                       const T                       a_tMin,
+                                       const T                       a_tMax,
+                                       const RayOptions<T>& /*a_options*/,
+                                       const bool /*a_firstOnly*/,
+                                       RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::convexSpans(a_shape, a_ray, a_tMin, a_tMax, a_spans);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<CapsuleSDF<T>>::firstHit(const CapsuleSDF<T>& a_shape,
+                                 const RayT<T>&       a_ray,
+                                 const T              a_tMin,
+                                 const T              a_tMax,
+                                 const RayOptions<T>& /*a_options*/) noexcept
+{
+  return RayDetail::convexFirstHit(a_shape, a_ray, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<CapsuleSDF<T>>::spans(const CapsuleSDF<T>& a_shape,
+                              const RayT<T>&       a_ray,
+                              const T              a_tMin,
+                              const T              a_tMax,
+                              const RayOptions<T>& /*a_options*/,
+                              const bool /*a_firstOnly*/,
+                              RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::convexSpans(a_shape, a_ray, a_tMin, a_tMax, a_spans);
 }
 
 } // namespace EBGeometry

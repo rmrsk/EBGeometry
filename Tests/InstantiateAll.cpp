@@ -100,6 +100,10 @@ namespace EBGeometry {
   template struct RayT<PREC>;                                                \
   template struct HitT<PREC>;                                                \
   template struct RayOptions<PREC>;                                          \
+  template struct SpanEndT<PREC>;                                            \
+  template struct RaySpansT<PREC>;                                           \
+  template struct RayForm<BVHUnion<PREC, SphereSDF<PREC>, 4>>;               \
+  template struct RayForm<Tape<PREC>>;                                       \
   template struct RayForm<PlaneSDF<PREC>>;                                   \
   template struct RayForm<SphereSDF<PREC>>;                                  \
   template struct RayForm<BoxSDF<PREC>>;                                     \
@@ -109,6 +113,10 @@ namespace EBGeometry {
   template struct RayForm<TriMeshSDF<PREC, 4, 4>>;                           \
   template struct RayForm<MeshSDF<PREC, 4>>;                                 \
   template struct RayForm<FlatMeshSDF<PREC>>;                                \
+  template struct RayForm<Fused::Node<Fused::UnionOp, SphereSDF<PREC>, BoxSDF<PREC>>>;         \
+  template struct RayForm<Fused::Node<Fused::IntersectionOp, SphereSDF<PREC>, BoxSDF<PREC>>>;  \
+  template struct RayForm<Fused::Node<Fused::ComplementOp, SphereSDF<PREC>>>;                  \
+  template struct RayForm<Fused::Node<Fused::AffineOp<PREC>, SphereSDF<PREC>>>;                \
                                                                                \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
   template struct PODVector<PREC>;                                           \
@@ -258,6 +266,27 @@ instantiateFunctionTemplates()
     (void)intersects(sphere, ray, T(0), T(10));
     (void)intersects(torus, ray, T(0), T(10));
     (void)intersects(torus, Vec3T<T>::zeros(), Vec3T<T>::ones());
+
+    // Compositions traced from their operands' spans, and marched on request.
+    const auto fused = Fused::Difference(Fused::Translate(sphere, Vec3T<T>::ones()), torus);
+
+    RayOptions<T> march;
+
+    march.m_march = true;
+
+    (void)firstHit(fused, ray, T(0), T(10));
+    (void)firstHit(fused, ray, T(0), T(10), march);
+    (void)intersects(fused, Vec3T<T>::zeros(), Vec3T<T>::ones());
+
+    Pool                                         pool(hostMemoryResource());
+    const std::vector<SphereSDF<T>>              spheres(2, sphere);
+    const std::vector<BoundingVolumes::AABBT<T>> boxes(2, sphere.computeBoundingVolume());
+    const BVHUnion<T, SphereSDF<T>, 4>           bvhUnion(pool, spheres, boxes);
+    const Tape<T>                                tape(pool, Difference(Union(sphere, torus), Complement(sphere)));
+
+    (void)firstHit(bvhUnion, ray, T(0), T(10));
+    (void)firstHit(tape, ray, T(0), T(10));
+    (void)firstHit(Fused::Union(bvhUnion, tape), ray, T(0), T(10));
   }
 
   // Every builder function, compiled into a tape.

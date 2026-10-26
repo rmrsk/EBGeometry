@@ -93,6 +93,35 @@ struct HasRuntimeQuality<S, std::void_t<decltype(std::declval<const S&>().getDis
 };
 
 /**
+ * @brief Whether a shape has a ray form: its RayForm has a static firstHit() (see RayForm).
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasRayFirstHit : std::false_type
+{
+};
+
+/**
+ * @brief A ray form with a static firstHit() returning HitT<T>.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasRayFirstHit<
+  S,
+  T,
+  std::enable_if_t<std::is_same_v<decltype(RayForm<S>::firstHit(std::declval<const S&>(),
+                                                                std::declval<const RayT<T>&>(),
+                                                                std::declval<T>(),
+                                                                std::declval<T>(),
+                                                                std::declval<const RayOptions<T>&>())),
+                                  HitT<T>>>> : std::true_type
+{
+};
+
+/**
  * @brief Whether a shape's ray form has its own intersects().
  * @details Internal helper; not part of the public API.
  * @tparam S Shape type.
@@ -104,19 +133,49 @@ struct HasRayIntersects : std::false_type
 };
 
 /**
- * @brief A ray form with a static intersects().
+ * @brief A ray form with a static intersects() returning HitStatus.
  * @tparam S Shape type.
  * @tparam T Floating-point precision.
  */
 template <class S, class T>
-struct HasRayIntersects<S,
-                        T,
-                        std::void_t<decltype(RayForm<S>::intersects(std::declval<const S&>(),
-                                                                    std::declval<const RayT<T>&>(),
-                                                                    std::declval<T>(),
-                                                                    std::declval<T>(),
-                                                                    std::declval<const RayOptions<T>&>()))>>
-  : std::true_type
+struct HasRayIntersects<
+  S,
+  T,
+  std::enable_if_t<std::is_same_v<decltype(RayForm<S>::intersects(std::declval<const S&>(),
+                                                                  std::declval<const RayT<T>&>(),
+                                                                  std::declval<T>(),
+                                                                  std::declval<T>(),
+                                                                  std::declval<const RayOptions<T>&>())),
+                                  HitStatus>>> : std::true_type
+{
+};
+
+/**
+ * @brief Whether a shape's ray form has its own spans().
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasRaySpans : std::false_type
+{
+};
+
+/**
+ * @brief A ray form with a static spans() writing a RaySpansT<T>.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasRaySpans<S,
+                   T,
+                   std::void_t<decltype(RayForm<S>::spans(std::declval<const S&>(),
+                                                          std::declval<const RayT<T>&>(),
+                                                          std::declval<T>(),
+                                                          std::declval<T>(),
+                                                          std::declval<const RayOptions<T>&>(),
+                                                          std::declval<bool>(),
+                                                          std::declval<RaySpansT<T>&>()))>> : std::true_type
 {
 };
 
@@ -390,6 +449,26 @@ march(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, co
 
 } // namespace RayDetail
 
+/**
+ * @brief Whether a shape has a ray form: its RayForm has a static firstHit() with the signature RayForm
+ * documents. A shape without one is marched.
+ * @details A ray form is found by its signatures, so a specialisation of RayForm with a mistyped firstHit()
+ * compiles and is silently marched. Check it with `static_assert(hasRayForm<MyShape<T>, T>);`.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+inline constexpr bool hasRayForm = RayDetail::HasRayFirstHit<S, T>::value;
+
+/**
+ * @brief Whether a shape's ray form has a spans() with the signature RayForm documents, so that the
+ * compositions it is part of use its spans instead of finding them one crossing at a time.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+inline constexpr bool hasRaySpans = RayDetail::HasRaySpans<S, T>::value;
+
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
@@ -406,6 +485,59 @@ HitT<T>::hit() const noexcept
   return m_status == HitStatus::Hit;
 }
 
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline bool
+SpanEndT<T>::crossing() const noexcept
+{
+  return m_kind != Open;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RaySpansT<T>::reset(const T a_horizon) noexcept
+{
+  m_count   = 0;
+  m_horizon = a_horizon;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RaySpansT<T>::add(const SpanEndT<T>& a_in, const SpanEndT<T>& a_out) noexcept
+{
+  if (m_count < Capacity) {
+    m_spans[m_count].m_in  = a_in;
+    m_spans[m_count].m_out = a_out;
+
+    m_count++;
+  }
+  else {
+    m_horizon = Math::min(m_horizon, a_in.m_t);
+  }
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RaySpansT<T>::addClipped(const T a_in, const T a_out, const T a_t0, const T a_t1) noexcept
+{
+  if (!(a_in <= a_out) || a_out < a_t0 || a_in > a_t1) {
+    return;
+  }
+
+  // An end outside the interval, or at infinity (a half-space), is no crossing in it.
+  const bool inOpen  = a_in < a_t0 || !(a_in > -Math::Limits<T>::infinity());
+  const bool outOpen = a_out > a_t1 || !(a_out < Math::Limits<T>::infinity());
+
+  const SpanEndT<T> in = inOpen ? SpanEndT<T>{a_t0, 0U, SpanEndT<T>::Open} : SpanEndT<T>{a_in, 0U, SpanEndT<T>::Exact};
+  const SpanEndT<T> out =
+    outOpen ? SpanEndT<T>{a_t1, 0U, SpanEndT<T>::Open} : SpanEndT<T>{a_out, 0U, SpanEndT<T>::Exact};
+
+  this->add(in, out);
+}
+
 template <class T, class S>
 EBGEOMETRY_HOST_DEVICE
 inline HitT<T>
@@ -417,12 +549,13 @@ firstHit(const S&                       a_shape,
 {
   EBGEOMETRY_EXPECT(std::abs(a_ray.m_direction.length() - T(1)) < T(1e-3));
 
-  if constexpr (RayForm<S>::available) {
-    return RayForm<S>::firstHit(a_shape, a_ray, a_tMin, a_tMax, a_options);
+  if constexpr (RayDetail::HasRayFirstHit<S, T>::value) {
+    if (!a_options.m_march) {
+      return RayForm<S>::firstHit(a_shape, a_ray, a_tMin, a_tMax, a_options);
+    }
   }
-  else {
-    return RayDetail::march(a_shape, a_ray, a_tMin, a_tMax, a_options);
-  }
+
+  return RayDetail::march(a_shape, a_ray, a_tMin, a_tMax, a_options);
 }
 
 template <class T, class S>
@@ -453,12 +586,13 @@ intersects(const S&                       a_shape,
            const typename RayT<T>::Scalar a_tMax,
            const RayOptions<T>&           a_options) noexcept
 {
-  if constexpr (RayForm<S>::available && RayDetail::HasRayIntersects<S, T>::value) {
-    return RayForm<S>::intersects(a_shape, a_ray, a_tMin, a_tMax, a_options);
+  if constexpr (RayDetail::HasRayFirstHit<S, T>::value && RayDetail::HasRayIntersects<S, T>::value) {
+    if (!a_options.m_march) {
+      return RayForm<S>::intersects(a_shape, a_ray, a_tMin, a_tMax, a_options);
+    }
   }
-  else {
-    return firstHit(a_shape, a_ray, a_tMin, a_tMax, a_options).m_status;
-  }
+
+  return firstHit(a_shape, a_ray, a_tMin, a_tMax, a_options).m_status;
 }
 
 template <class T, class S>
@@ -482,7 +616,7 @@ intersects(const S&             a_shape,
   // A marched shape: different signs at the two ends mean the segment crosses the surface, with no search.
   // A shape with a ray form searches instead: its search is cheaper than two values, and exact where the
   // sign is not (an open mesh).
-  if constexpr (!RayForm<S>::available) {
+  if (!RayDetail::HasRayFirstHit<S, T>::value || a_options.m_march) {
     if ((a_shape.signedDistance(a_from + a_tMin * direction) < T(0)) != (a_shape.signedDistance(a_to) < T(0))) {
       return HitStatus::Hit;
     }

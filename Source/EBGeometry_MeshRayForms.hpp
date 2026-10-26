@@ -8,7 +8,9 @@
  * (PackedBVH::traverse() with BVH::RayQuery), and its triangles crossed exactly (TriangleRay::crossing()).
  * MeshSDF: the same walk, its polygon faces crossed exactly (DCEL::FaceT::rayCrossing()). FlatMeshSDF:
  * every face, without a BVH. With this header included, firstHit() and intersects() on a mesh SDF are exact
- * instead of marched.
+ * instead of marched, and so are compositions of mesh SDFs (see EBGeometry_CSGRayForms.hpp), through
+ * spans(): the crossings along the ray, nearest first, paired into spans by the side of the face the ray
+ * crosses from. A closed mesh is needed for the spans to mean inside and outside.
  * @author Robert Marskar
  */
 
@@ -38,11 +40,6 @@ namespace EBGeometry {
 template <class T, size_t K, size_t W>
 struct RayForm<TriMeshSDF<T, K, W>>
 {
-  /**
-   * @brief TriMeshSDF has a ray form.
-   */
-  static constexpr bool available = true;
-
   /**
    * @brief The first crossing of the mesh along a ray.
    * @param[in] a_shape   The mesh.
@@ -76,6 +73,27 @@ struct RayForm<TriMeshSDF<T, K, W>>
              T                          a_tMin,
              T                          a_tMax,
              const RayOptions<T>&       a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the mesh over an interval: its crossings, nearest first, paired into spans
+   * (see RayDetail::NearestCrossings), or with a_firstOnly only the first crossing (see firstHit()).
+   * @param[in]  a_shape     The mesh.
+   * @param[in]  a_ray       Ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   Unused: the crossings are found exactly.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  spans(const TriMeshSDF<T, K, W>& a_shape,
+        const RayT<T>&             a_ray,
+        T                          a_tMin,
+        T                          a_tMax,
+        const RayOptions<T>&       a_options,
+        bool                       a_firstOnly,
+        RaySpansT<T>&              a_spans) noexcept;
 };
 
 /**
@@ -90,11 +108,6 @@ struct RayForm<TriMeshSDF<T, K, W>>
 template <class T, size_t K>
 struct RayForm<MeshSDF<T, K>>
 {
-  /**
-   * @brief MeshSDF has a ray form.
-   */
-  static constexpr bool available = true;
-
   /**
    * @brief The first crossing of the mesh along a ray.
    * @param[in] a_shape   The mesh.
@@ -122,6 +135,27 @@ struct RayForm<MeshSDF<T, K>>
   static inline HitStatus
   intersects(
     const MeshSDF<T, K>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the mesh over an interval: its crossings, nearest first, paired into spans
+   * (see RayDetail::NearestCrossings), or with a_firstOnly only the first crossing (see firstHit()).
+   * @param[in]  a_shape     The mesh.
+   * @param[in]  a_ray       Ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   Unused: the crossings are found exactly.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  spans(const MeshSDF<T, K>& a_shape,
+        const RayT<T>&       a_ray,
+        T                    a_tMin,
+        T                    a_tMax,
+        const RayOptions<T>& a_options,
+        bool                 a_firstOnly,
+        RaySpansT<T>&        a_spans) noexcept;
 };
 
 /**
@@ -132,11 +166,6 @@ struct RayForm<MeshSDF<T, K>>
 template <class T>
 struct RayForm<FlatMeshSDF<T>>
 {
-  /**
-   * @brief FlatMeshSDF has a ray form.
-   */
-  static constexpr bool available = true;
-
   /**
    * @brief The first crossing of the mesh along a ray.
    * @param[in] a_shape   The mesh.
@@ -150,6 +179,27 @@ struct RayForm<FlatMeshSDF<T>>
   static inline HitT<T>
   firstHit(
     const FlatMeshSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the mesh over an interval: its crossings, nearest first, paired into spans
+   * (see RayDetail::NearestCrossings), or with a_firstOnly only the first crossing (see firstHit()).
+   * @param[in]  a_shape     The mesh.
+   * @param[in]  a_ray       Ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   Unused: the crossings are found exactly.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  spans(const FlatMeshSDF<T>& a_shape,
+        const RayT<T>&        a_ray,
+        T                     a_tMin,
+        T                     a_tMax,
+        const RayOptions<T>&  a_options,
+        bool                  a_firstOnly,
+        RaySpansT<T>&         a_spans) noexcept;
 };
 
 namespace RayDetail {
@@ -183,6 +233,128 @@ faceHit(const RayT<T>& a_ray, const T a_t, const uint32_t a_face, const Vec3T<T>
 
   return hit;
 }
+
+/**
+ * @brief The nearest crossings of a mesh along a ray, in order, as a BVH walk finds them: at most Capacity,
+ * enough for the spans a list holds and one more.
+ * @details Internal helper; not part of the public API. Once full, a nearer crossing replaces the farthest,
+ * and the walk's bound is the farthest, so that it leaves out the boxes beyond; the crossings are then
+ * known only up to it.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct NearestCrossings
+{
+  /**
+   * @brief Most crossings held.
+   */
+  static constexpr uint32_t Capacity = 2U * RaySpansT<T>::Capacity + 1U;
+
+  /**
+   * @brief A crossing.
+   */
+  struct Crossing
+  {
+    /**
+     * @brief Distance along the ray.
+     */
+    T m_t;
+
+    /**
+     * @brief Whether the ray enters there: it runs against the face's outward normal.
+     */
+    bool m_entering;
+  };
+
+  /**
+   * @brief The crossings, nearest first.
+   */
+  Crossing m_crossings[Capacity];
+
+  /**
+   * @brief How many are held.
+   */
+  uint32_t m_count = 0;
+
+  /**
+   * @brief End of the interval.
+   */
+  T m_tMax;
+
+  /**
+   * @brief Take a crossing.
+   * @param[in] a_t        Distance along the ray.
+   * @param[in] a_entering Whether the ray enters there.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  insert(const T a_t, const bool a_entering) noexcept
+  {
+    if (m_count == Capacity) {
+      if (!(a_t < m_crossings[Capacity - 1U].m_t)) {
+        return;
+      }
+
+      m_count--;
+    }
+
+    uint32_t i = m_count;
+
+    while (i > 0 && m_crossings[i - 1U].m_t > a_t) {
+      m_crossings[i] = m_crossings[i - 1U];
+
+      i--;
+    }
+
+    m_crossings[i] = Crossing{a_t, a_entering};
+
+    m_count++;
+  }
+
+  /**
+   * @brief How far the crossings are known: the end of the interval, or the farthest held once full.
+   * @return The distance; also the walk's bound.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  horizon() const noexcept
+  {
+    return (m_count == Capacity) ? m_crossings[Capacity - 1U].m_t : m_tMax;
+  }
+
+  /**
+   * @brief The spans: the crossings paired by the side of the face the ray crosses from.
+   * @param[in]  a_t0     Start of the interval.
+   * @param[in]  a_inside Whether the ray is inside at a_t0; read only if there are no crossings.
+   * @param[out] a_spans  The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  toSpans(const T a_t0, const bool a_inside, RaySpansT<T>& a_spans) const noexcept
+  {
+    const T horizon = this->horizon();
+
+    a_spans.reset(horizon);
+
+    if (m_count == 0U) {
+      if (a_inside) {
+        a_spans.add(RayDetail::openAt(a_t0), RayDetail::openAt(horizon));
+      }
+
+      return;
+    }
+
+    CrossingPairer<T> pairer;
+
+    for (uint32_t i = 0; i < m_count; i++) {
+      const Crossing& c = m_crossings[i];
+
+      pairer.take(SpanEndT<T>{c.m_t, 0U, SpanEndT<T>::Exact}, c.m_entering, a_t0, a_spans);
+    }
+
+    pairer.finish(horizon, a_spans);
+  }
+};
 
 } // namespace RayDetail
 
@@ -380,6 +552,134 @@ RayForm<FlatMeshSDF<T>>::firstHit(const FlatMeshSDF<T>& a_shape,
   }
 
   return face == UINT32_MAX ? HitT<T>() : RayDetail::faceHit(a_ray, nearest, face, mesh.getFace(face).getNormal());
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<TriMeshSDF<T, K, W>>::spans(const TriMeshSDF<T, K, W>& a_shape,
+                                    const RayT<T>&             a_ray,
+                                    const T                    a_tMin,
+                                    const T                    a_tMax,
+                                    const RayOptions<T>&       a_options,
+                                    const bool                 a_firstOnly,
+                                    RaySpansT<T>&              a_spans) noexcept
+{
+  if (a_firstOnly) {
+    RayDetail::firstSpan(a_shape, a_ray, a_tMin, a_tMax, a_options, a_spans);
+
+    return;
+  }
+
+  RayDetail::NearestCrossings<T> crossings;
+
+  crossings.m_tMax = a_tMax;
+
+  const auto bvh    = a_shape.getRoot();
+  const auto groups = bvh.getPrimitives();
+
+  const auto leaf =
+    [&groups, &a_ray, a_tMin](RayDetail::NearestCrossings<T>& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = a_offset; i < a_offset + a_count; i++) {
+        const auto& group = groups[static_cast<uint32_t>(i)];
+
+        T t[W];
+
+        group.rayCrossings(a_ray.m_origin, a_ray.m_direction, a_tMin, a_state.horizon(), t);
+
+        for (size_t lane = 0; lane < W; lane++) {
+          if (t[lane] < Math::Limits<T>::infinity()) {
+            a_state.insert(t[lane], dot(a_ray.m_direction, group.getNormal(lane)) < T(0));
+          }
+        }
+      }
+    };
+
+  const auto bound = [](const RayDetail::NearestCrossings<T>& a_state) noexcept -> T { return a_state.horizon(); };
+
+  bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), crossings, leaf, bound);
+
+  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<MeshSDF<T, K>>::spans(const MeshSDF<T, K>& a_shape,
+                              const RayT<T>&       a_ray,
+                              const T              a_tMin,
+                              const T              a_tMax,
+                              const RayOptions<T>& a_options,
+                              const bool           a_firstOnly,
+                              RaySpansT<T>&        a_spans) noexcept
+{
+  if (a_firstOnly) {
+    RayDetail::firstSpan(a_shape, a_ray, a_tMin, a_tMax, a_options, a_spans);
+
+    return;
+  }
+
+  RayDetail::NearestCrossings<T> crossings;
+
+  crossings.m_tMax = a_tMax;
+
+  const auto bvh     = a_shape.getRoot();
+  const auto mesh    = a_shape.getMesh();
+  const auto faceIds = bvh.getPrimitives();
+
+  const auto leaf = [&faceIds, &mesh, &a_ray, a_tMin](
+                      RayDetail::NearestCrossings<T>& a_state, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      const uint32_t face = faceIds[static_cast<uint32_t>(i)];
+      const auto&    f    = mesh.getFace(face);
+      const T        t    = f.rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, a_state.horizon(), mesh);
+
+      if (t < Math::Limits<T>::infinity()) {
+        a_state.insert(t, dot(a_ray.m_direction, f.getNormal()) < T(0));
+      }
+    }
+  };
+
+  const auto bound = [](const RayDetail::NearestCrossings<T>& a_state) noexcept -> T { return a_state.horizon(); };
+
+  bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), crossings, leaf, bound);
+
+  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<FlatMeshSDF<T>>::spans(const FlatMeshSDF<T>& a_shape,
+                               const RayT<T>&        a_ray,
+                               const T               a_tMin,
+                               const T               a_tMax,
+                               const RayOptions<T>&  a_options,
+                               const bool            a_firstOnly,
+                               RaySpansT<T>&         a_spans) noexcept
+{
+  if (a_firstOnly) {
+    RayDetail::firstSpan(a_shape, a_ray, a_tMin, a_tMax, a_options, a_spans);
+
+    return;
+  }
+
+  RayDetail::NearestCrossings<T> crossings;
+
+  crossings.m_tMax = a_tMax;
+
+  const auto mesh = a_shape.getMesh();
+
+  for (uint32_t i = 0; i < mesh.numFaces(); i++) {
+    const auto& f = mesh.getFace(i);
+    const T     t = f.rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, crossings.horizon(), mesh);
+
+    if (t < Math::Limits<T>::infinity()) {
+      crossings.insert(t, dot(a_ray.m_direction, f.getNormal()) < T(0));
+    }
+  }
+
+  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
 }
 
 } // namespace EBGeometry

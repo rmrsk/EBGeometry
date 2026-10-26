@@ -60,8 +60,9 @@ one header and compile with C++17.
 
 * Signed distance (negative inside, positive outside), normals, and bounding boxes.
 * The primitive that decides the value at a point, with the point in its own frame.
-* Ray and segment hits (`firstHit()`, `intersects()`): exact for meshes and closed-form shapes, sphere
-  traced for everything else.
+* Ray and segment hits (`firstHit()`, `intersects()`): exact for meshes, closed-form shapes and their
+  unions, intersections, differences and affine maps (fused, BVH unions and tapes), sphere traced for
+  everything else.
 * Closest points and k nearest neighbours in point clouds.
 
 ## In code

@@ -12,6 +12,12 @@
  * function pointers, no exceptions); operations that evaluate a subtree several times (Blur, Mollify
  * and BVH-accelerated unions) call a sub-program through a call-depth template, so nesting is bounded
  * at compile time.
+ *
+ * Beside the clauses, the compiler writes a ray program for the tape and for each BVH union operand: the
+ * expression's unions, intersections, complements and affine maps over the primitives that have ray forms,
+ * in the same order, which Tape's ray form follows to trace the tape exactly along a ray (see
+ * EBGeometry_RaySpans.hpp). A subtree with anything else in it is marched as a whole, through its clauses.
+ * The evaluator does not read the ray programs.
  * @author Robert Marskar
  */
 
@@ -29,6 +35,7 @@
 #include "EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "EBGeometry_BVHUnion.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
+#include "EBGeometry_CSGRayForms.hpp"
 #include "EBGeometry_DistanceQuality.hpp"
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_GPU.hpp"
@@ -93,6 +100,66 @@ enum class Op : uint8_t
 };
 
 /**
+ * @brief The operations of a ray program.
+ * @details Internal helper; not part of the public API. A ray program runs its clauses in order on a stack
+ * of span lists (RaySpansT) and a stack of rays; its ray is on the ray stack when it starts, and its list
+ * is the one list left when it ends. Bit 0 of a clause's m_flags says that all its spans are needed, not
+ * only its first crossing.
+ */
+enum class RayOp : uint8_t
+{
+  Leaf,         ///< Push the spans of primitive (m_type, m_a), leaf number m_b, along the top ray.
+  Marched,      ///< Push the spans of sub-program m_a along the top ray, marched in the box at
+                ///< params[m_b..m_b+6), with distance quality m_c.
+  Union,        ///< Pop two lists and push their union.
+  Intersection, ///< Pop two lists and push their intersection.
+  Complement,   ///< Replace the top list by its complement.
+  PushAffine,   ///< Push the top ray mapped by the affine map at params[m_a..m_a+12).
+  PopAffine,    ///< Pop a ray, and map the top list back through the map at params[m_a..m_a+12).
+  UnionBVH      ///< Push the union of the spans of the sub-programs in BVH union m_a; its operands, with the
+                ///< sub-programs they call, are sub-programs m_b up to m_c.
+};
+
+/**
+ * @brief One ray program clause.
+ * @details Internal helper; not part of the public API. The meaning of each field depends on m_op.
+ */
+struct RayClause
+{
+  /**
+   * @brief Operation.
+   */
+  RayOp m_op = RayOp::Leaf;
+
+  /**
+   * @brief Operation flags.
+   */
+  uint8_t m_flags = 0;
+
+  /**
+   * @brief Primitive type index (Leaf).
+   */
+  uint16_t m_type = 0;
+
+  /**
+   * @brief First operand.
+   */
+  uint32_t m_a = 0;
+
+  /**
+   * @brief Second operand.
+   */
+  uint32_t m_b = 0;
+
+  /**
+   * @brief Third operand.
+   */
+  uint32_t m_c = 0;
+};
+
+static_assert(sizeof(RayClause) == 16, "TapeDetail::RayClause must be 16 bytes");
+
+/**
  * @brief One tape clause.
  * @details Internal helper; not part of the public API. The meaning of each field depends on m_op.
  */
@@ -130,6 +197,50 @@ struct Clause
 };
 
 static_assert(sizeof(Clause) == 16, "TapeDetail::Clause must be 16 bytes");
+
+/**
+ * @brief A ray program clause, stored in the clause array (the two have the same fields).
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_clause Ray program clause.
+ * @return The clause it is stored as.
+ */
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Clause
+stored(const RayClause& a_clause) noexcept
+{
+  Clause c;
+
+  c.m_op    = static_cast<Op>(a_clause.m_op);
+  c.m_flags = a_clause.m_flags;
+  c.m_type  = a_clause.m_type;
+  c.m_a     = a_clause.m_a;
+  c.m_b     = a_clause.m_b;
+  c.m_c     = a_clause.m_c;
+
+  return c;
+}
+
+/**
+ * @brief The ray program clause a stored clause is.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_clause Stored clause.
+ * @return The ray program clause.
+ */
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline RayClause
+rayClause(const Clause& a_clause) noexcept
+{
+  RayClause c;
+
+  c.m_op    = static_cast<RayOp>(a_clause.m_op);
+  c.m_flags = a_clause.m_flags;
+  c.m_type  = a_clause.m_type;
+  c.m_a     = a_clause.m_a;
+  c.m_b     = a_clause.m_b;
+  c.m_c     = a_clause.m_c;
+
+  return c;
+}
 
 /**
  * @brief A sub-program: a range of clauses.
@@ -440,6 +551,11 @@ public:
   static constexpr uint32_t PointStackSize = 8;
 
   /**
+   * @brief Span lists a ray program may hold at once; a subtree that would need more is marched.
+   */
+  static constexpr uint32_t RayStackSize = 4;
+
+  /**
    * @brief The primitive types: the built-in ones, then UserPrimitives.
    */
   using Primitives = TapeDetail::Primitives<T, UserPrimitives...>;
@@ -465,7 +581,12 @@ public:
     PODVector<TapeDetail::Clause> m_clauses;
 
     /**
-     * @brief Each sub-program's clause range; sub-program 0 is the whole object.
+     * @brief Each sub-program's clause range; sub-program 0 is the whole object. After the m_numPrograms
+     * sub-programs come the clause ranges a ray marches (see TapeDetail::RayOp::Marched), then from
+     * m_rayPrograms on each sub-program's ray program, whose clauses (TapeDetail::RayClause, stored as
+     * clauses) follow the sub-programs' in m_clauses, and after those each sub-program's parent, the
+     * sub-program it was compiled for, in m_begin (UINT32_MAX for sub-program 0; m_end unused). The ray
+     * programs begin in program order, which rayLeafHit() relies on to find a clause's by bisection.
      */
     PODVector<TapeDetail::Program> m_programs;
 
@@ -493,6 +614,17 @@ public:
      * @brief How deep sub-program calls nest from sub-program 0.
      */
     uint32_t m_callDepth = 0;
+
+    /**
+     * @brief How many sub-programs there are (the first entries of m_programs).
+     */
+    uint32_t m_numPrograms = 0;
+
+    /**
+     * @brief Where in m_programs the ray programs begin: sub-program i's is entry m_rayPrograms + i (an empty
+     * range for one a ray never follows).
+     */
+    uint32_t m_rayPrograms = 0;
   };
 
   /**
@@ -551,8 +683,10 @@ public:
 
   /**
    * @brief The first crossing of the object's surface along a ray, entering or leaving.
-   * @details The tape is marched (see EBGeometry_Ray.hpp); HitT::m_primitive is the deciding leaf at the
-   * crossing (see closestPrimitive()). The same as the free function firstHit(). Callable on a device.
+   * @details The tape is traced along its ray program: exactly through its unions, intersections,
+   * complements and affine maps of primitives with ray forms, and marched in the parts that have anything
+   * else (see EBGeometry_Ray.hpp). HitT::m_primitive is the leaf crossed (see closestPrimitive()). The same
+   * as the free function firstHit(). Callable on a device.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
    * @param[in] a_tMax    End of the interval.
@@ -674,7 +808,7 @@ public:
   getNumPrograms() const noexcept;
 
   /**
-   * @brief Number of clauses over all sub-programs.
+   * @brief Number of clauses over all sub-programs (the ray programs' not counted).
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -727,9 +861,298 @@ public:
 
 private:
   /**
+   * @brief Tape's ray form follows the ray programs.
+   */
+  friend struct RayForm<Tape>;
+
+  /**
+   * @brief The primitive of a crossing found by marching a subtree, which closestPrimitive() then names.
+   */
+  static constexpr uint32_t MarchedLeaf = UINT32_MAX;
+
+  /**
    * @brief The arrays.
    */
   Layout m_layout;
+
+  /**
+   * @brief A sub-program as a shape: what a ray marches where the ray program says so.
+   * @tparam D How deep the sub-program's own calls may still nest.
+   */
+  template <unsigned D>
+  struct Subtree
+  {
+    /**
+     * @brief The tape.
+     */
+    const Tape* m_tape;
+
+    /**
+     * @brief The sub-program.
+     */
+    uint32_t m_program;
+
+    /**
+     * @brief Its box.
+     */
+    BV m_box;
+
+    /**
+     * @brief Its distance quality.
+     */
+    DistanceQuality m_quality;
+
+    /**
+     * @brief The pool base.
+     */
+    const void* m_base;
+
+    /**
+     * @brief The pool location.
+     */
+    PoolLocation m_location;
+
+    /**
+     * @brief The sub-program's value.
+     * @param[in] a_point Point.
+     * @return The value.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline T
+    signedDistance(const Vec3T<T>& a_point) const noexcept
+    {
+      return m_tape->template evaluate<D>(m_program, a_point, m_base, m_location);
+    }
+
+    /**
+     * @brief Its box.
+     * @return The box.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline BV
+    computeBoundingVolume() const noexcept
+    {
+      return m_box;
+    }
+
+    /**
+     * @brief Its distance quality.
+     * @return The quality.
+     */
+    [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+    inline DistanceQuality
+    getDistanceQuality() const noexcept
+    {
+      return m_quality;
+    }
+  };
+
+  /**
+   * @brief The first crossing along a ray, from the ray program (what Tape's ray form does).
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  traceRay(const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
+
+  /**
+   * @brief Where a ray is inside the object over an interval, from the ray program.
+   * @param[in]  a_ray       The ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   How to march the parts without a ray form.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  raySpans(const RayT<T>&       a_ray,
+           T                    a_tMin,
+           T                    a_tMax,
+           const RayOptions<T>& a_options,
+           bool                 a_firstOnly,
+           RaySpansT<T>&        a_spans) const noexcept;
+
+  /**
+   * @brief Run a ray program.
+   * @tparam D How deep the program's calls may still nest.
+   * @param[in]  a_program  Sub-program whose ray program to run.
+   * @param[in]  a_ray      The ray.
+   * @param[in]  a_t0       Start of the interval.
+   * @param[in]  a_t1       End of the interval.
+   * @param[in]  a_options  How to march.
+   * @param[in]  a_all      Whether every clause needs all its spans, whatever its flags say.
+   * @param[in]  a_base     The pool base.
+   * @param[in]  a_location The pool location.
+   * @param[out] a_spans    The list.
+   */
+  template <unsigned D>
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  rayEvaluate(uint32_t             a_program,
+              const RayT<T>&       a_ray,
+              T                    a_t0,
+              T                    a_t1,
+              const RayOptions<T>& a_options,
+              bool                 a_all,
+              const void*          a_base,
+              const PoolLocation&  a_location,
+              RaySpansT<T>&        a_spans) const noexcept;
+
+  /**
+   * @brief The crossing at a distance along a ray on a leaf of a ray program, as its spans named it (by its
+   * clause): found again by following the program to the clause, through the affine maps and BVH unions
+   * above it, and asking the leaf (a marched subtree gives its gradient). The normal is the leaf's outward
+   * one, mapped back to the program's frame.
+   * @tparam D How deep the program's calls may still nest.
+   * @param[in] a_program  Sub-program whose ray program to follow.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_clause   The leaf's clause.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing, with HitT::m_primitive the leaf's number (MarchedLeaf for a marched subtree), or a
+   * miss if the clause is not reached from the program.
+   */
+  template <unsigned D>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  rayLeafHit(uint32_t             a_program,
+             const RayT<T>&       a_ray,
+             T                    a_t,
+             uint32_t             a_clause,
+             const RayOptions<T>& a_options,
+             const void*          a_base,
+             const PoolLocation&  a_location) const noexcept;
+
+  /**
+   * @brief The crossing near a distance along a ray on a Leaf clause's primitive (see RayDetail::leafHit()).
+   * @details Out of line on a device, like rayLeaf(): every level of rayLeafHit() calls it, and inlined, the
+   * dispatch over every primitive type was copied into each.
+   * @param[in] a_clause   The Leaf clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing on the primitive.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  primitiveLeafHit(const TapeDetail::RayClause& a_clause,
+                   const RayT<T>&               a_ray,
+                   T                            a_t,
+                   const RayOptions<T>&         a_options,
+                   const void*                  a_base,
+                   const PoolLocation&          a_location) const noexcept;
+
+  /**
+   * @brief The crossing near a distance along a ray on a primitive, dispatching on its type index from I
+   * onwards (see RayDetail::leafHit()).
+   * @tparam I First type index to test.
+   * @param[in] a_clause   The Leaf clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing on the primitive.
+   */
+  template <size_t I>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  dispatchLeafHit(const TapeDetail::RayClause& a_clause,
+                  const RayT<T>&               a_ray,
+                  T                            a_t,
+                  const RayOptions<T>&         a_options,
+                  const void*                  a_base,
+                  const PoolLocation&          a_location) const noexcept;
+
+  /**
+   * @brief The spans of a Leaf clause's primitive.
+   * @param[in]  a_clause    The clause.
+   * @param[in]  a_ray       The ray.
+   * @param[in]  a_t0        Start of the interval.
+   * @param[in]  a_t1        End of the interval.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[in]  a_base      The pool base.
+   * @param[in]  a_location  The pool location.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  rayLeaf(const TapeDetail::RayClause& a_clause,
+          const RayT<T>&               a_ray,
+          T                            a_t0,
+          T                            a_t1,
+          const RayOptions<T>&         a_options,
+          bool                         a_firstOnly,
+          const void*                  a_base,
+          const PoolLocation&          a_location,
+          RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a primitive, dispatching on its type index from I onwards.
+   * @tparam I First type index to test.
+   * @param[in]  a_clause    The Leaf clause.
+   * @param[in]  a_ray       The ray.
+   * @param[in]  a_t0        Start of the interval.
+   * @param[in]  a_t1        End of the interval.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[in]  a_base      The pool base.
+   * @param[in]  a_location  The pool location.
+   * @param[out] a_spans     The list.
+   */
+  template <size_t I>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  dispatchRayLeaf(const TapeDetail::RayClause& a_clause,
+                  const RayT<T>&               a_ray,
+                  T                            a_t0,
+                  T                            a_t1,
+                  const RayOptions<T>&         a_options,
+                  bool                         a_firstOnly,
+                  const void*                  a_base,
+                  const PoolLocation&          a_location,
+                  RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a BVH union clause: the union of its operands' spans, walking its BVH along the
+   * ray.
+   * @tparam D Call depth left for the operands.
+   * @param[in]     a_clause   The clause.
+   * @param[in]     a_ray      The ray.
+   * @param[in]     a_t0       Start of the interval.
+   * @param[in]     a_t1       End of the interval.
+   * @param[in]     a_options  How to march.
+   * @param[in]     a_all      Whether the operands need all their spans, whatever their flags say.
+   * @param[in]     a_base     The pool base.
+   * @param[in]     a_location The pool location.
+   * @param[out]    a_spans    The list.
+   */
+  template <unsigned D>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  rayUnion(const TapeDetail::RayClause& a_clause,
+           const RayT<T>&               a_ray,
+           T                            a_t0,
+           T                            a_t1,
+           const RayOptions<T>&         a_options,
+           bool                         a_all,
+           const void*                  a_base,
+           const PoolLocation&          a_location,
+           RaySpansT<T>&                a_spans) const noexcept;
 
   /**
    * @brief Evaluate a sub-program at a point.
@@ -802,6 +1225,31 @@ private:
                     const Vec3T<T>&     a_point,
                     const void*         a_base,
                     const PoolLocation& a_location) const noexcept;
+
+  /**
+   * @brief Where the host splits the primitive dispatch: the types from this index on are evaluated out of
+   * line (dispatchRest()), so that the common analytic shapes before it are inlined into the evaluator
+   * whatever else the translation unit holds.
+   */
+  static constexpr size_t DispatchSplit = 6;
+
+  /**
+   * @brief The primitive dispatch from DispatchSplit on, out of line in a host pass.
+   * @param[in] a_type     Type index.
+   * @param[in] a_index    Index within the type's array.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  T
+  dispatchRest(const uint32_t      a_type,
+               const uint32_t      a_index,
+               const Vec3T<T>&     a_point,
+               const void*         a_base,
+               const PoolLocation& a_location) const noexcept;
 
   /**
    * @brief Evaluate a primitive: an analytic shape in place, a pool-resident one through evaluateHandle().
@@ -912,6 +1360,58 @@ private:
   EBGEOMETRY_HOST
   void
   finalize(Pool& a_pool, const TapeDetail::Staging<T, BranchingRatio, Primitives>& a_staging);
+};
+
+/**
+ * @brief Tape's ray form: the tape traced along its ray program (see Tape::firstHit()). Callable on a device.
+ * @tparam T              Floating-point precision.
+ * @tparam UserPrimitives The tape's user primitive types.
+ */
+template <class T, class... UserPrimitives>
+struct RayForm<Tape<T, UserPrimitives...>>
+{
+  /**
+   * @brief The first crossing of the tape's object along a ray.
+   * @param[in] a_shape   The tape.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(const Tape<T, UserPrimitives...>& a_shape,
+           const RayT<T>&                    a_ray,
+           T                                 a_tMin,
+           T                                 a_tMax,
+           const RayOptions<T>&              a_options) noexcept
+  {
+    return a_shape.traceRay(a_ray, a_tMin, a_tMax, a_options);
+  }
+
+  /**
+   * @brief Where a ray is inside the tape's object over an interval.
+   * @param[in]  a_shape     The tape.
+   * @param[in]  a_ray       Ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   How to march the parts without a ray form.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  spans(const Tape<T, UserPrimitives...>& a_shape,
+        const RayT<T>&                    a_ray,
+        T                                 a_tMin,
+        T                                 a_tMax,
+        const RayOptions<T>&              a_options,
+        bool                              a_firstOnly,
+        RaySpansT<T>&                     a_spans) noexcept
+  {
+    a_shape.raySpans(a_ray, a_tMin, a_tMax, a_options, a_firstOnly, a_spans);
+  }
 };
 
 } // namespace EBGeometry

@@ -196,6 +196,22 @@ public:
     const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, T a_tMin, T a_tMax, uint32_t& a_lane) const noexcept;
 
   /**
+   * @brief Where a ray crosses each triangle in this group.
+   * @details The per-lane analogue of rayCrossing(): the same kernel and lane count, without the reduction
+   * to the nearest, so that a caller can collect every crossing. Lanes m_validCount..W-1 are +infinity.
+   * Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
+   * @param[in]  a_origin    Ray origin.
+   * @param[in]  a_direction Ray direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[out] a_crossings W values: each lane's crossing, or +infinity.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  rayCrossings(
+    const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, T a_tMin, T a_tMax, T* a_crossings) const noexcept;
+
+  /**
    * @brief The unit normal of one lane's triangle.
    * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W.
    * @return The face normal.
