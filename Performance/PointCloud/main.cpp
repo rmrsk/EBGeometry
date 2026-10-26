@@ -4,8 +4,8 @@
 
 // Performance cases for the point clouds: PointCloudBVH and PointCloudHashGrid, over 500,000 points
 // uniform in the unit cube or on the unit sphere, in float and double. A host build runs the host cases
-// (the build, the batched k-nearest-neighbour graph, per-point queries); a CUDA or HIP build runs the
-// per-point queries as host/device pairs. See ../README.md and PerformanceTesting.rst.
+// (the build, the batched nearest-neighbour graphs, closest points near and far from the cloud); a CUDA
+// or HIP build runs the per-point queries, in Morton order, as host/device pairs. See ../README.md and PerformanceTesting.rst.
 
 #include <algorithm>
 #include <cmath>
@@ -304,41 +304,6 @@ addCases(Perf::Suite&       a_suite,
 
     Perf::measureHostQuery(c, ClosestPoint<Cloud, T>{a_build(pool, p)}, q, hits);
     record(c, hits);
-  });
-
-  // Every point's nearest neighbour and its KNearest nearest, the points visited in Morton order, and the
-  // KNearest closest points to queries near the cloud, also in Morton order: per point, as a device
-  // thread asks (all8nn above is the batched host path).
-  a_suite.add(Perf::caseName({prefix, "neighbor-morton", prec, "host"}), [=](Perf::Case& c) {
-    const auto          p = points(c);
-    EBGeometry::Pool    pool(EBGeometry::hostMemoryResource());
-    std::vector<Hit<T>> hits;
-
-    Perf::measureHostQuery(c, NearestNeighbor<Cloud, T>{a_build(pool, p)}, Perf::mortonOrder(p), hits);
-    record(c, hits);
-  });
-
-  a_suite.add(Perf::caseName({prefix, "neighbors" + k + "-morton", prec, "host"}), [=](Perf::Case& c) {
-    c.param("k", KNearest);
-
-    const auto            p = points(c);
-    EBGeometry::Pool      pool(EBGeometry::hostMemoryResource());
-    std::vector<KHits<T>> results;
-
-    Perf::measureHostQuery(c, NearestNeighbors<Cloud, T>{a_build(pool, p)}, Perf::mortonOrder(p), results);
-    record(c, results);
-  });
-
-  a_suite.add(Perf::caseName({prefix, "closest" + k + "-morton", prec, "host"}), [=](Perf::Case& c) {
-    c.param("k", KNearest);
-
-    const auto            p = points(c);
-    const auto            q = Perf::mortonOrdered(near(c, PairQueries));
-    EBGeometry::Pool      pool(EBGeometry::hostMemoryResource());
-    std::vector<KHits<T>> results;
-
-    Perf::measureHostQuery(c, ClosestPoints<Cloud, T>{a_build(pool, p)}, q, results);
-    record(c, results);
   });
 
   // ── Host/device pairs: the same queries on both sides ──

@@ -580,6 +580,7 @@ fullVerdict(const std::vector<Comparison>& a_cases, int a_failedRuns)
   const std::size_t differ    = count([](const Comparison& c) { return c.outcome == Outcome::Differ; });
   const std::size_t lost      = count([](const Comparison& c) { return c.outcome == Outcome::Lost; });
   const std::size_t checksums = count([](const Comparison& c) { return c.answersChanged(); });
+  const std::size_t unjudged  = count([](const Comparison& c) { return c.timed && !c.judged; });
 
   using Perf::counted;
 
@@ -617,6 +618,13 @@ fullVerdict(const std::vector<Comparison>& a_cases, int a_failedRuns)
     return {1,
             "VERDICT: no regression, but " + counted(checksums, "checksum") +
               " changed: check those answers (see Flagged above)"};
+  }
+
+  // One run per side (--rounds 1, a development check) shows the times but cannot judge them.
+  if (unjudged > 0) {
+    return {0,
+            "VERDICT: times not judged (" + counted(unjudged, "case") +
+              " with fewer than two runs on a side); answers and pool bytes unchanged"};
   }
 
   return {0, "VERDICT: no regression (0 major, 0 minor across " + counted(a_cases.size(), "case") + ")"};
