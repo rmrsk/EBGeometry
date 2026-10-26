@@ -235,7 +235,9 @@ Case                                  Build  Measures
 :ref:`Sec:RaySpans`). The scene is 25 balls and 25 boxes in :math:`[-1, 1]^3`, less 10 balls, from random
 points; the rays start as in the Ray probe. It is fused and through a tape (whose union of 50 is a BVH
 union), traced and marched (``RayOptions::m_march``); each traced case names its marched one and notes
-``marched/traced``. A host and a device crossing agree as in the Ray probe.
+``marched/traced``. A crowd of 4,096 small balls (radii 0.02 to 0.04) in the same cube, one BVH union
+through a tape, is traced only: a hit there finds its ball among 4,096 operands. A host and a device
+crossing agree as in the Ray probe.
 
 ====================================  =====  =====================================================
 Case                                  Build  Measures
@@ -244,6 +246,7 @@ Case                                  Build  Measures
 ``scene-fused/firstHit-marched``      host   the same, marched
 ``scene-tape/firstHit``,              host   the same through a ``Tape``
 ``firstHit-marched``
+``crowd-tape/firstHit``               host   the first crossing of each of 50,000 rays with the crowd
 ``<input>/<operation>-morton``,       GPU    each of the above at 262,144 rays, in Morton and in
 ``<operation>-random``                       random order
 ====================================  =====  =====================================================

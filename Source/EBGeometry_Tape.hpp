@@ -116,7 +116,8 @@ enum class RayOp : uint8_t
   Complement,   ///< Replace the top list by its complement.
   PushAffine,   ///< Push the top ray mapped by the affine map at params[m_a..m_a+12).
   PopAffine,    ///< Pop a ray, and map the top list back through the map at params[m_a..m_a+12).
-  UnionBVH      ///< Push the union of the spans of the sub-programs in BVH union m_a.
+  UnionBVH      ///< Push the union of the spans of the sub-programs in BVH union m_a; its operands, with the
+                ///< sub-programs they call, are sub-programs m_b up to m_c.
 };
 
 /**
@@ -583,7 +584,8 @@ public:
      * @brief Each sub-program's clause range; sub-program 0 is the whole object. After the m_numPrograms
      * sub-programs come the clause ranges a ray marches (see TapeDetail::RayOp::Marched), then from
      * m_rayPrograms on each sub-program's ray program, whose clauses (TapeDetail::RayClause, stored as
-     * clauses) follow the sub-programs' in m_clauses.
+     * clauses) follow the sub-programs' in m_clauses, and after those each sub-program's parent, the
+     * sub-program it was compiled for, in m_begin (UINT32_MAX for sub-program 0).
      */
     PODVector<TapeDetail::Program> m_programs;
 

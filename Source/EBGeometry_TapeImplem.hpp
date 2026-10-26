@@ -71,6 +71,11 @@ struct Staging
   std::vector<std::vector<RayClause>> m_rayPrograms;
 
   /**
+   * @brief The sub-program each sub-program was compiled for (UINT32_MAX for the whole object's).
+   */
+  std::vector<uint32_t> m_parents;
+
+  /**
    * @brief The clause ranges a ray marches: sub-program, first clause and one past the last, within it.
    */
   std::vector<std::tuple<uint32_t, uint32_t, uint32_t>> m_marched;
@@ -81,7 +86,8 @@ struct Staging
   std::vector<Clause> m_flatClauses;
 
   /**
-   * @brief Each sub-program's clause range, then each marched range.
+   * @brief Each sub-program's clause range, then each marched range, then each ray program's, then each
+   * sub-program's parent (in m_begin).
    */
   std::vector<Program> m_flatPrograms;
 
@@ -176,6 +182,10 @@ flatten(Staging<T, K, List>& a_staging)
 
     a_staging.m_flatPrograms.push_back(range);
   }
+
+  for (const uint32_t parent : a_staging.m_parents) {
+    a_staging.m_flatPrograms.push_back(Program{parent, 0U});
+  }
 }
 
 /**
@@ -243,7 +253,12 @@ public:
 
     m_staging.m_programs.emplace_back();
     m_staging.m_rayPrograms.emplace_back();
+    m_staging.m_parents.push_back(m_current);
     m_staging.m_depth.push_back(0U);
+
+    const uint32_t parent = m_current;
+
+    m_current = id;
 
     // The input point is on the point stack when the sub-program starts.
     State state{id, 0U, 1U, 0U, 1U};
@@ -269,6 +284,8 @@ public:
                        "sub-program, but the tape holds at most %u points",
                        unsigned(state.m_maxPoints - 1U),
                        unsigned(m_pointStackSize - 1U));
+
+    m_current = parent;
 
     return id;
   }
@@ -339,6 +356,11 @@ private:
    * @brief Output.
    */
   Staging<T, K, List>& m_staging;
+
+  /**
+   * @brief The sub-program being compiled (UINT32_MAX before the first).
+   */
+  uint32_t m_current = UINT32_MAX;
 
   /**
    * @brief The number the next primitive leaf gets (see Tape::closestPrimitive()).
@@ -716,7 +738,9 @@ private:
       const uint32_t index = this->stage<0>(type, leaf.m_object.get());
 
       // The leaf's number, in expression order (the compiler visits the expression depth first, the
-      // operands of a BVH union and the sub-programs too), in the clause's otherwise unused m_b.
+      // operands of a BVH union and the sub-programs too), in the value clause's otherwise unused m_b, and
+      // in the ray Leaf clause's m_b: the number closestPrimitive() reports, which a hit reports as its
+      // primitive (the spans name a leaf by its ray clause's position instead).
       if (a_ray != nullptr) {
         this->pushRay(a_state, RayOp::Leaf, *a_ray, index, m_nextLeaf, 0U, static_cast<uint16_t>(type));
       }
@@ -858,10 +882,13 @@ private:
     case Kind::Union:
     case Kind::Intersection: {
       if (a_node.m_kind == Kind::Union && this->useBVH(a_node)) {
-        const uint32_t bvh = this->buildUnion(a_state, a_node, a_ray);
+        // The operands' sub-programs, with those they call, are numbered from first up to end.
+        const auto     first = static_cast<uint32_t>(m_staging.m_programs.size());
+        const uint32_t bvh   = this->buildUnion(a_state, a_node, a_ray);
+        const auto     end   = static_cast<uint32_t>(m_staging.m_programs.size());
 
         if (a_ray != nullptr) {
-          this->pushRay(a_state, RayOp::UnionBVH, *a_ray, bvh);
+          this->pushRay(a_state, RayOp::UnionBVH, *a_ray, bvh, first, end);
         }
 
         this->push(a_state, clause(Op::UnionBVH, bvh), 1, 0);
@@ -2048,35 +2075,40 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
     }
     case RayOp::UnionBVH: {
       if constexpr (D > 0) {
-        // The operands' ray programs, with those they call, are laid out in turn: the leaf is in the operand
-        // whose ray program begins last at or before it.
-        const TapeDetail::UnionBVH<T, BranchingRatio>& parts = m_layout.m_unions.at(a_base, c.m_a);
+        // The operands' ray programs, with those they call, are laid out in turn (sub-programs c.m_b up to
+        // c.m_c). The leaf's own ray program is the last that begins at or before it; from there up, the
+        // sub-program compiled for this one is the operand that holds it, if it is one of this union's.
+        const uint32_t numPrograms = m_layout.m_numPrograms;
 
-        const auto unbounded = UnionRoot(parts.m_unbounded, a_location).getPrimitives();
-        const auto bounded   = UnionRoot(parts.m_bvh, a_location).getPrimitives();
+        uint32_t lo = 0;
+        uint32_t hi = numPrograms;
 
-        uint32_t operand = UINT32_MAX;
-        uint32_t begin   = 0;
+        while (hi - lo > 1U) {
+          const uint32_t mid = lo + (hi - lo) / 2U;
 
-        const auto consider = [this, a_base, a_clause, &operand, &begin](const uint32_t a_operand) noexcept {
-          const uint32_t b = m_layout.m_programs.at(a_base, m_layout.m_rayPrograms + a_operand).m_begin;
-
-          if (b <= a_clause && (operand == UINT32_MAX || b > begin)) {
-            operand = a_operand;
-            begin   = b;
+          if (m_layout.m_programs.at(a_base, m_layout.m_rayPrograms + mid).m_begin <= a_clause) {
+            lo = mid;
           }
-        };
-
-        for (uint32_t i = 0; i < unbounded.size(); i++) {
-          consider(unbounded[i]);
+          else {
+            hi = mid;
+          }
         }
 
-        for (uint32_t i = 0; i < bounded.size(); i++) {
-          consider(bounded[i]);
+        const uint32_t parents = m_layout.m_rayPrograms + numPrograms;
+
+        uint32_t operand = lo;
+
+        while (operand != UINT32_MAX && operand != a_program) {
+          const uint32_t parent = m_layout.m_programs.at(a_base, parents + operand).m_begin;
+
+          if (parent == a_program) {
+            break;
+          }
+
+          operand = parent;
         }
 
-        // The union's operands all come after its own clauses: the leaf is in one if it is past them.
-        if (operand != UINT32_MAX && a_clause >= range.m_end) {
+        if (operand != UINT32_MAX && operand != a_program && operand >= c.m_b && operand < c.m_c) {
           hit = this->template rayLeafHit<D - 1>(operand, top.m_ray, top.m_t0, a_clause, a_options, a_base, a_location);
         }
       }
@@ -2088,6 +2120,9 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
     }
     }
   }
+
+  // The trace named a leaf of this program or of the operands it calls, so the walk finds it.
+  EBGEOMETRY_EXPECT(hit.hit());
 
   // The leaf's normal, in its frame, mapped back to the program's.
   for (uint32_t f = nr - 1; f > 0; f--) {

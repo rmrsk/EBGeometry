@@ -187,7 +187,9 @@ exact normal, or for a marched leaf its gradient. The normal is mapped back by t
 the maps, and turned to face against the ray where it enters and along it where it leaves, which is the
 composition's outward normal whatever complements lie between. A fused composition numbers its leaves
 depth first, a BVH union by primitive, and a tape by the clause of each leaf, which it finds again by
-following its ray program, into the BVH union operand whose clauses hold it.
+following its ray program, into the BVH union operand whose clauses hold it. That operand is found
+without visiting the others: the leaf's own ray program is found by bisection over where the ray programs
+begin, and the tape records the sub-program each was compiled for, up to the operand.
 
 A shape's convex closed forms give one span at the cost of a first crossing. A mesh SDF collects the
 nearest ``2 * Capacity + 1`` crossings along the ray in one walk of its BVH (bounded by the farthest kept,

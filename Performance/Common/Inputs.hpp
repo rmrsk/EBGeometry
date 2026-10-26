@@ -48,6 +48,7 @@ constexpr std::uint64_t BuildChecks  = 23;       ///< Every probe: where a build
 constexpr std::uint64_t TapeQueries  = 29;       ///< Tape: queries around each object.
 constexpr std::uint64_t RayOrigins   = 31;       ///< BVH, Ray, RayCSG: where the rays and point queries start.
 constexpr std::uint64_t RayScene     = 37;       ///< RayCSG: the scene's solids (and 38, their sizes).
+constexpr std::uint64_t RayCrowd     = 41;       ///< RayCSG: the crowd's balls (and 42, their radii).
 
 } // namespace Seed
 

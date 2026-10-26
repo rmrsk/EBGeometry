@@ -4,7 +4,9 @@
 
 // Performance cases for ray tracing a composition from its operands' spans (EBGeometry_RaySpans.hpp): a
 // scene of 25 balls and 25 boxes, less 10 balls, fused and through a tape (whose union of 50 is a BVH
-// union), traced and marched (RayOptions::m_march), each traced case naming its marched one. Every ray
+// union), traced and marched (RayOptions::m_march), each traced case naming its marched one; and a crowd of
+// 4096 small balls through a tape, one BVH union, traced only (a hit looks up its ball among the union's
+// operands, which must not cost a pass over all of them). Every ray
 // starts at a random point in the scene's box grown to twice its size and points at the box's centre. A
 // host build runs the host cases; a CUDA or HIP build runs host/device pairs in Morton and random order.
 // See ../README.md and PerformanceTesting.rst.
@@ -25,6 +27,10 @@ namespace {
 constexpr std::size_t NumBalls = 25;
 constexpr std::size_t NumBoxes = 25;
 constexpr std::size_t NumHoles = 10;
+
+// The crowd's balls, at full and at smoke size.
+constexpr std::size_t CrowdBalls      = 4096;
+constexpr std::size_t SmokeCrowdBalls = 64;
 
 // The numbers of rays, at full and at smoke size.
 constexpr std::size_t HostQueries  = 50000;
@@ -99,6 +105,23 @@ private:
   }
 };
 
+// The crowd: balls with centres in [-1, 1]^3 and radii in [0.02, 0.04], as one union.
+template <class T>
+EBGeometry::Expr<T>
+crowd(const std::size_t a_n)
+{
+  const auto centres = Perf::pointsInBox<T>(AABB<T>(-Vec3<T>::ones(), Vec3<T>::ones()), a_n, Perf::Seed::RayCrowd);
+  const auto sizes   = Perf::pointsInBox<T>(AABB<T>(Vec3<T>::zeros(), Vec3<T>::ones()), a_n, Perf::Seed::RayCrowd + 1);
+
+  std::vector<EBGeometry::Expr<T>> balls;
+
+  for (std::size_t i = 0; i < a_n; i++) {
+    balls.emplace_back(EBGeometry::SphereSDF<T>(centres[i], T(0.02) + T(0.02) * sizes[i][0]));
+  }
+
+  return EBGeometry::Union(balls);
+}
+
 // The ray from a_origin towards a_target.
 template <class T>
 EBGEOMETRY_HOST_DEVICE
@@ -158,10 +181,12 @@ origins(const AABB<T>& a_box, std::size_t a_n)
 }
 
 // One shape, traced or marched, in one precision: the host case, and host/device pairs in each order.
-// a_build(case, pool) builds the shape in the pool. A traced case names its marched one.
+// a_build(case, pool) builds the shape in the pool. A traced case names its marched one, if a_marched says
+// there is one.
 template <class T, class Build>
 void
-addShape(Perf::Suite& a_suite, const std::string& a_input, const bool a_march, Build a_build)
+addShape(
+  Perf::Suite& a_suite, const std::string& a_input, const bool a_march, Build a_build, const bool a_marched = true)
 {
   const std::string prec      = Perf::precisionName<T>();
   const std::string operation = a_march ? "firstHit-marched" : "firstHit";
@@ -181,7 +206,7 @@ addShape(Perf::Suite& a_suite, const std::string& a_input, const bool a_march, B
     c.poolBytes(pool.usedBytes());
     c.param("march", a_march ? 1 : 0);
 
-    if (!a_march) {
+    if (!a_march && a_marched) {
       c.relativeTo(Perf::caseName({"RayCSG", a_input, "firstHit-marched", prec, "host"}), "marched/traced");
     }
   });
@@ -209,7 +234,7 @@ addShape(Perf::Suite& a_suite, const std::string& a_input, const bool a_march, B
       c.checksum(Perf::checksumOf(out));
       c.param("march", a_march ? 1 : 0);
 
-      if (!a_march) {
+      if (!a_march && a_marched) {
         c.relativeTo(
           Perf::caseName(
             {"RayCSG", a_input, std::string("firstHit-marched-") + Perf::orderName(order), prec, "hostdevice"}),
@@ -238,6 +263,18 @@ addPrecision(Perf::Suite& a_suite)
   addShape<T>(a_suite, "scene-fused", true, fused);
   addShape<T>(a_suite, "scene-tape", false, tape);
   addShape<T>(a_suite, "scene-tape", true, tape);
+
+  const auto crowdTape = [](Perf::Case& c, EBGeometry::Pool& a_pool) {
+    const std::size_t         n = c.size(CrowdBalls, SmokeCrowdBalls);
+    const EBGeometry::Tape<T> t(a_pool, crowd<T>(n));
+
+    c.param("balls", n);
+    c.param("bvhUnions", t.getNumBVHUnions());
+
+    return t;
+  };
+
+  addShape<T>(a_suite, "crowd-tape", false, crowdTape, false);
 }
 
 } // namespace

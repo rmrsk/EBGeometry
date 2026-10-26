@@ -1206,6 +1206,58 @@ TEMPLATE_TEST_CASE("Ray: a first crossing exactly where a full list stops is fou
   }
 }
 
+TEMPLATE_TEST_CASE("Ray: a tape with sibling BVH unions, one in a rotated frame, names the leaf each ray hits",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Two rows of n balls, each row a BVH union, side by side in one program. Row A lies along the x axis. Row
+  // B is built along x from translated balls, then turned a quarter turn about z (x goes to y) and lifted
+  // to z = 3: its ball k is at (0, k, 3). Leaves are numbered in expression order, A's then B's.
+  const size_t n      = 8;
+  const T      radius = T(0.3);
+
+  std::vector<Expr<T>> rowA;
+  std::vector<Expr<T>> rowB;
+
+  for (size_t k = 0; k < n; k++) {
+    rowA.emplace_back(SphereSDF<T>(Vec3(T(k), T(0), T(0)), radius));
+    rowB.emplace_back(Translate(SphereSDF<T>(Vec3::zeros(), radius), Vec3(T(k), T(0), T(0))));
+  }
+
+  Pool          pool(hostMemoryResource());
+  const Tape<T> tape(pool, Union(Union(rowA), Translate(Rotate(Union(rowB), T(90), size_t(2)), Vec3(0, 0, 3))));
+
+  const T margin = looseMargin<T>();
+
+  for (size_t k = 0; k < n; k++) {
+    const T x = T(k);
+
+    INFO("ball " << k);
+
+    // Into A's ball k along +x, and into B's ball k along +y and along -y.
+    const HitT<T> a = tape.firstHit(RayT<T>{Vec3(x - T(0.5), T(0), T(0)), Vec3(1, 0, 0)}, T(0), T(1));
+    const HitT<T> b = tape.firstHit(RayT<T>{Vec3(T(0), x - T(0.5), T(3)), Vec3(0, 1, 0)}, T(0), T(1));
+    const HitT<T> c = tape.firstHit(RayT<T>{Vec3(T(0), x + T(0.5), T(3)), Vec3(0, -1, 0)}, T(0), T(1));
+
+    for (const HitT<T>& hit : {a, b, c}) {
+      REQUIRE(hit.hit());
+      REQUIRE(hit.m_exact);
+      REQUIRE(hit.m_entering);
+      REQUIRE_THAT(hit.m_t, withinAbsT(T(0.5) - radius, margin));
+    }
+
+    REQUIRE(a.m_primitive == k);
+    REQUIRE(b.m_primitive == n + k);
+    REQUIRE(c.m_primitive == n + k);
+    REQUIRE_THAT(dot(a.m_normal, Vec3(-1, 0, 0)), withinAbsT(T(1), margin));
+    REQUIRE_THAT(dot(b.m_normal, Vec3(0, -1, 0)), withinAbsT(T(1), margin));
+    REQUIRE_THAT(dot(c.m_normal, Vec3(0, 1, 0)), withinAbsT(T(1), margin));
+  }
+}
+
 TEMPLATE_TEST_CASE("Ray: mesh SDFs, marched parts and user shapes are traced inside compositions",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
