@@ -15,24 +15,24 @@ SPDX-License-Identifier: GPL-3.0-or-later
 <!--receipt
 version: 3
 side: host
-verdict: red
-base: 8f43bf5
-base-fingerprint: 73c6eb0348bdf2bf808bf641ba3840cfc1cd010e
-head: beea848
-head-fingerprint: 861f41a57d75a617c77888fbeccb32f342198aa4
-cases: 130
+verdict: yellow
+base: e0a6775
+base-fingerprint: 861f41a57d75a617c77888fbeccb32f342198aa4
+head: 2fe5b8c
+head-fingerprint: 7cbe8dbd0203e980bb20b3345bd0f1e8985d5f47
+cases: 134
 rounds: 2
 reps: 3
-date: 2026-10-26
+date: 2026-10-27
 -->
 
-## Host comparison: red
+## Host comparison: yellow
 
-**Accepted:** Ray programs stored beside the Tape's clauses (about 16 bytes per expression node, and 8 per sub-program) grow its pool; compositions are now traced exactly instead of marched, which changes the CSG ray checksums. closestPrimitive() on a tape whose primitives sit past the host dispatch split (fused parts, meshes, user types) is about 6% slower; a follow-up tunes the split.
+**Accepted:** Deemed immaterial.
 
-`beea848` against `8f43bf5` (origin/dev), 2026-10-26.
+`2fe5b8c` against `e0a6775` (origin/dev), 2026-10-27.
 
-**VERDICT: MAJOR regression in 18 cases
+**VERDICT: 2 minor regressions
 
 <!-- END receipt host -->
 
@@ -41,22 +41,22 @@ date: 2026-10-26
 version: 3
 side: cuda
 verdict: red
-base: 8f43bf5
-base-fingerprint: 73c6eb0348bdf2bf808bf641ba3840cfc1cd010e
-head: beea848
-head-fingerprint: 861f41a57d75a617c77888fbeccb32f342198aa4
-cases: 156
+base: e0a6775
+base-fingerprint: 861f41a57d75a617c77888fbeccb32f342198aa4
+head: 2fe5b8c
+head-fingerprint: 7cbe8dbd0203e980bb20b3345bd0f1e8985d5f47
+cases: 160
 rounds: 2
 reps: 3
-date: 2026-10-26
+date: 2026-10-27
 -->
 
 ## Device comparison (CUDA): red
 
-**Accepted:** On the device, a small fused solid in float traces slower than dev marched it in registers (the span lists live in local memory); the Tape and larger scenes trace faster. A few float rays graze a surface tangentially; host and device round them differently. Checksums change because compositions are now traced exactly.
+**Accepted:** Deemed immaterial. A few float rays graze a surface tangentially; host and device round them differently (4 of 262,144 Render pixels, as before this PR's ray changes).
 
-`beea848` against `8f43bf5` (origin/dev), 2026-10-26.
+`2fe5b8c` against `e0a6775` (origin/dev), 2026-10-27.
 
-**VERDICT: host and device answers differ in 6 cases
+**VERDICT: host and device answers differ in 7 cases
 
 <!-- END receipt cuda -->
