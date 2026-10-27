@@ -71,7 +71,7 @@ HPP
 if [ "$#" -gt 0 ]; then
   examples=("$@")
 else
-  mapfile -t examples < <(grep -l 'Render::view(' "${ROOT}"/Examples/*/main.cpp | xargs -n1 dirname | xargs -n1 basename)
+  mapfile -t examples < <(grep -l '^[[:space:]]*EBGeometry::Render::view(' "${ROOT}"/Examples/*/main.cpp | xargs -n1 dirname | xargs -n1 basename)
 fi
 
 for example in "${examples[@]}"; do

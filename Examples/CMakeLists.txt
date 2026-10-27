@@ -24,14 +24,15 @@ function(ebgeometry_add_example name)
     add_dependencies(EBGeometry_GPUDeviceExamples ${name})
   endif()
 
-  # An example that opens the viewer (Render::view()) is run with --no-view, so ctest never waits on a
-  # window, whatever the build and the display.
+  # An example that opens the viewer (a line starting with an EBGeometry::Render::view( call; a mention in
+  # a comment does not count) is run with --no-view, so ctest never waits on a window, whatever the build
+  # and the display.
   file(READ ${CMAKE_CURRENT_SOURCE_DIR}/${name}/main.cpp example_source)
-  string(FIND "${example_source}" "Render::view(" opens_viewer)
+  string(REGEX MATCH "(^|\n)[ \t]*EBGeometry::Render::view\\(" opens_viewer "${example_source}")
 
   set(example_arguments)
 
-  if(NOT opens_viewer EQUAL -1)
+  if(opens_viewer)
     set(example_arguments --no-view)
   endif()
 

@@ -296,22 +296,26 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
       - name: Configure (debug preset, viewer on)
         run: cmake --preset debug -DEBGEOMETRY_VIEWER=SDL2 -DCMAKE_CXX_FLAGS=-Werror
-      - name: Build the renderer's tests and the examples that open the viewer
+      # An example opens the viewer when a line of its main.cpp starts with the call (a mention in a comment
+      # does not count). The list is found once and reused.
+      - name: Find the examples that open the viewer
         run: |
           set -euo pipefail
-          examples=$(grep -l 'Render::view(' Examples/*/main.cpp | xargs -n1 dirname | xargs -n1 basename)
-          cmake --build --preset debug --parallel $(nproc) --target TestRender $examples
+          viewers=$(grep -l '^[[:space:]]*EBGeometry::Render::view(' Examples/*/main.cpp | xargs -n1 dirname | xargs -n1 basename | paste -sd' ')
+          echo "Examples that open the viewer: $viewers"
+          echo "VIEWER_EXAMPLES=$viewers" >> "$GITHUB_ENV"
+      - name: Build the renderer's tests and the examples that open the viewer
+        run: cmake --build --preset debug --parallel $(nproc) --target TestRender $VIEWER_EXAMPLES
       - name: Run the renderer's tests
         run: ./build/debug/Tests/TestRender
       - name: Run the examples that open the viewer (no display)
-        run: env -u DISPLAY -u WAYLAND_DISPLAY ctest --preset examples --parallel $(nproc) -R "$(grep -l 'Render::view(' Examples/*/main.cpp | xargs -n1 dirname | xargs -n1 basename | paste -sd'|')"
+        run: env -u DISPLAY -u WAYLAND_DISPLAY ctest --preset examples --parallel $(nproc) -R "^($(echo $VIEWER_EXAMPLES | tr ' ' '|'))$"
       - name: Build the examples that open the viewer with GNU make
         run: |
           set -euo pipefail
-          for main in $(grep -l 'Render::view(' Examples/*/main.cpp); do
-            dir=$(dirname "$main")
-            make -C "$dir" clean
-            make -C "$dir" VIEWER=SDL2
+          for example in $VIEWER_EXAMPLES; do
+            make -C "Examples/$example" clean
+            make -C "Examples/$example" VIEWER=SDL2
           done
 
   # The performance probes (Performance/): built and run at their small --smoke sizes on every event,
