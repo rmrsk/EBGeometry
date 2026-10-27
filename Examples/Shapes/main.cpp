@@ -86,7 +86,7 @@ report(const std::string& a_name, const Shape& a_shape)
 } // namespace
 
 int
-main()
+main(int argc, char* argv[])
 {
   // ── Construct the shapes ───────────────────────────────────────────────────────────────────────────
   //
@@ -107,13 +107,13 @@ main()
   const EBGeometry::TorusSDF<T> torus(Vec3::zeros(), T(1), T(0.1));
 
   // A capped cylinder: the centers of its two end caps, radius.
-  const EBGeometry::CylinderSDF<T> cylinder(Vec3::zeros(), Vec3::ones(), T(0.1));
+  const EBGeometry::CylinderSDF<T> cylinder(Vec3::zeros(), Vec3::ones(), T(0.25));
 
   // An infinite cylinder: a point on its axis, radius, and the Cartesian axis it runs along (2 = z).
   const EBGeometry::InfiniteCylinderSDF<T> infiniteCylinder(Vec3::zeros(), T(0.1), 2);
 
   // A capsule (a cylinder with hemispherical caps): the outer tips of its two caps, radius.
-  const EBGeometry::CapsuleSDF<T> capsule(Vec3::zeros(), Vec3::ones(), T(0.1));
+  const EBGeometry::CapsuleSDF<T> capsule(Vec3::zeros(), Vec3::ones(), T(0.25));
 
   // An infinite cone opening along -y: apex, full opening angle in degrees.
   const EBGeometry::InfiniteConeSDF<T> infiniteCone(Vec3::zeros(), T(45));
@@ -182,6 +182,25 @@ main()
       std::cout << "  x = " << points[i][0] << "   distance = " << std::setw(8) << distances[i] << '\n';
     }
   }
+
+  // ── Look at them ───────────────────────────────────────────────────────────────────────────────────
+  //
+  // The bounded shapes side by side, two rows of four. Shapes of different types are put together with the
+  // expression builder and a Tape (see the BasicCSG example); Translate moves each to its place. A window
+  // opens when built with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why
+  // and returns.
+  const std::vector<EBGeometry::Expr<T>> bounded{
+    sphere, box, torus, cylinder, capsule, cone, roundedBox, roundedCylinder};
+
+  std::vector<EBGeometry::Expr<T>> gallery;
+
+  for (std::size_t i = 0; i < bounded.size(); i++) {
+    gallery.push_back(EBGeometry::Translate(bounded[i], Vec3(T(3) * T(i % 4), T(0), T(3) * T(i / 4))));
+  }
+
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+  EBGeometry::Render::view(EBGeometry::Tape<T>(pool, EBGeometry::Union(gallery)), argc, argv);
 
   return 0;
 }

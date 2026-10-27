@@ -297,7 +297,7 @@ sub-program, the sub-program it was compiled for. A hit names the leaf crossed, 
 the deciding leaf at the crossing; the tape finds the leaf again from its clause, by bisection over
 where the ray programs begin and up those entries to the BVH union operand that holds it.
 
-The :ref:`Chap:ExampleCSG` example composes analytic shapes through a tape, and
+The :ref:`Chap:ExampleBasicCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.
 
 .. _Sec:Fused:
@@ -346,7 +346,7 @@ builder, with the same arguments and checks:
   with what is only known at run time.
 
 A fused composition is fixed when the program is compiled; geometry read from a file or chosen at
-run time is composed with the builder and a tape. The :ref:`Chap:ExampleCSG` example builds the
+run time is composed with the builder and a tape. The :ref:`Chap:ExampleFusedCSG` example builds the
 same solid both ways.
 
 .. _Sec:DecidingLeaf:

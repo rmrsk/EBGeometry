@@ -123,7 +123,11 @@ Examples
 
    Examples.rst
    ExampleShapes.rst
-   ExampleCSG.rst
+   ExampleBasicCSG.rst
+   ExampleSmoothCSG.rst
+   ExampleTransforms.rst
+   ExampleValueOperations.rst
+   ExampleFusedCSG.rst
    ExampleMeshSDF.rst
    ExampleNestedBVH.rst
    ExampleManyObjects.rst

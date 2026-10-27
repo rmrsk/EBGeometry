@@ -51,7 +51,8 @@ endfunction()
 
 # In a GPU build, the examples that can run their queries on a device are compiled as CUDA or HIP and
 # collected in this target. BuildBVH and HostTuning stay host-only: they are about the builders and the
-# host-tuned types, neither of which a device uses.
+# host-tuned types, neither of which a device uses. SmoothCSG, Transforms and ValueOperations do too: their
+# tapes reach a device as BasicCSG's does.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
   add_custom_target(EBGeometry_GPUDeviceExamples)
 endif()

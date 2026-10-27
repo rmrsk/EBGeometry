@@ -183,7 +183,7 @@ ringCenter(const int a_index)
 } // namespace
 
 int
-main()
+main(int argc, char* argv[])
 {
   std::cout << "CustomShape: a user-written octahedron in a tape\n\n";
 
@@ -288,6 +288,13 @@ main()
     std::cout << (EBGeometry::GPU::enabled ? "In our own kernel" : "In a host loop (plain C++ build)") << ": " << n
               << " grid points, " << inside << " inside the scene\n";
   }
+
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // A window on the octahedra around the sphere, a tape with a shape of your own (built with VIEWER=SDL2;
+  // otherwise, with --no-view or without a display, view() prints why and returns). Drag to orbit, scroll to
+  // zoom, X cuts it open, P colours each primitive.
+  EBGeometry::Render::view(tape, argc, argv);
 
   return 0;
 }

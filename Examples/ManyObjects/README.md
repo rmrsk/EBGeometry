@@ -52,7 +52,7 @@ This produces `./ManyObjects.ex`. Override the defaults on the command line:
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o ManyObjects.ex
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o ManyObjects.ex -pthread
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
@@ -64,9 +64,21 @@ without a visible GPU skips that part):
 
     make GPU=HIP HIP_ARCH=gfx90a                                  # or GPU=CUDA CUDA_ARCH=sm_80
     cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA
-    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o ManyObjects.ex
+    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o ManyObjects.ex -pthread
 
 See [GPU builds](https://rmrsk.github.io/EBGeometry/Examples.html#sec-examplesgpu) in the user documentation.
+
+**With the viewer**
+
+At the end the example opens a window on the random city (`EBGeometry::Render::view()`). The window needs SDL2
+(for example `libsdl2-dev`, or `brew install sdl2`) and is built only on request:
+
+    make VIEWER=SDL2
+    cmake -S . -B build -DEBGEOMETRY_VIEWER=SDL2
+
+Without it, `view()` prints a line saying how to build it and returns. Drag to orbit, scroll to zoom,
+`X` cuts the object open, `P` colours each primitive, `Esc` closes the window. `--no-view` skips the
+window (ctest passes it), as does running without a display.
 
 Running
 -------

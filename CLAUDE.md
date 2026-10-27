@@ -57,7 +57,7 @@ cd Examples/Shapes
 cmake -S . -B build && cmake --build build
 ```
 
-Every example except `BuildBVH` and `HostTuning` also takes a GPU switch (`make GPU=HIP|CUDA`, CMake
+Every example except `BuildBVH`, `HostTuning`, `SmoothCSG`, `Transforms` and `ValueOperations` also takes a GPU switch (`make GPU=HIP|CUDA`, CMake
 `-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's `EBGEOMETRY_ENABLE_HIP`/`CUDA`): the same source
 then runs its last section's query functor on the device through `GPU::transform()` (in a plain C++
 build, the same section runs as a host loop). A GPU build with no visible GPU skips the device part
@@ -319,6 +319,9 @@ use (a new capability, not a new overload): an example. A new device path for ex
   results a reader can follow. It checks nothing (that is the tests' job) and exits 0.
 - A device-capable example has the four parts in order (the query functor, the construction, host use,
   the same query through `GPU::transform`) and skips the device part without a GPU.
+- An example that builds a shape ends with `Render::view(shape, argc, argv)`, and its page shows the first
+  frame: `Scripts/render-example-figures.sh <Name>` writes `_static/example_<Name>.jpg` (tracked).
+- Terse: one topic per example, about a hundred lines of `main.cpp`; split a second topic into its own.
 - No third-party dependencies (they go in `Integrations/`); the default input is `Examples/data/` or
   the submodule; it runs in seconds in a Release build and within the 300 s ctest limit in Debug.
 

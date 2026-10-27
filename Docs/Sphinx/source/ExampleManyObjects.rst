@@ -20,6 +20,12 @@ it with CMake, GNU Make, or a direct compiler invocation.
    cd Examples/ManyObjects
    ./ManyObjects.ex
 
+.. figure:: /_static/example_ManyObjects.jpg
+   :width: 60%
+   :align: center
+
+   The random city, a BVH union of boxes.
+
 The query
 ---------
 
@@ -45,7 +51,7 @@ pool, the objects and one bounding box per object:
 The union copies the objects into the pool and builds its BVH there, so the input vectors are not
 needed afterwards. The pool must outlive the union and every copy of it. To combine objects of
 different types in one union, compose them with the expression builder instead
-(:ref:`Chap:ExampleCSG`).
+(:ref:`Chap:ExampleBasicCSG`).
 
 Using the unions on the host
 ----------------------------
@@ -97,3 +103,20 @@ C++ build the section runs on the host, where ``GPU::memoryResource()`` is host 
 for a device and ``GPU::transform`` is a loop, so the two times are about the same. In a GPU build
 the section uses about a million points, so that the time is the kernel's rather than the launch's;
 on the host it keeps ``numPoints``. See :ref:`Sec:ExamplesGPU` for building for a GPU.
+
+Looking at it
+-------------
+
+The example ends with a window on the random city. Its buildings rise along :math:`z`, so it fits the
+camera with :math:`z` up, and the floor goes under them:
+
+.. code-block:: c++
+
+   const auto camera = Render::Camera<T>::fit(city.computeBoundingVolume(), Vec3(0, 0, 1));
+
+   Render::view(city, camera, Render::Settings<T>(), argc, argv);
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the object open and P colours each primitive; see
+:ref:`Chap:ImplemRender`.

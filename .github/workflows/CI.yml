@@ -279,6 +279,41 @@ jobs:
       - name: Run examples
         run: ctest --preset examples --parallel $(nproc)
 
+  # The viewer window (Render::view(), EBGEOMETRY_VIEWER=SDL2) is compiled only on request, so no other
+  # lane builds it. This one does, for the renderer's tests and every example that calls view(), through
+  # CMake (warnings as errors) and GNU make, and runs what needs no display: the renderer's tests, and the
+  # examples with --no-view and without a display, where view() returns at once.
+  Viewer-SDL2:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Viewer (SDL2)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Install SDL2
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+      - name: Configure (debug preset, viewer on)
+        run: cmake --preset debug -DEBGEOMETRY_VIEWER=SDL2 -DCMAKE_CXX_FLAGS=-Werror
+      - name: Build the renderer's tests and the examples that open the viewer
+        run: |
+          set -euo pipefail
+          examples=$(grep -l 'Render::view(' Examples/*/main.cpp | xargs -n1 dirname | xargs -n1 basename)
+          cmake --build --preset debug --parallel $(nproc) --target TestRender $examples
+      - name: Run the renderer's tests
+        run: ./build/debug/Tests/TestRender
+      - name: Run the examples that open the viewer (no display)
+        run: env -u DISPLAY -u WAYLAND_DISPLAY ctest --preset examples --parallel $(nproc) -R "$(grep -l 'Render::view(' Examples/*/main.cpp | xargs -n1 dirname | xargs -n1 basename | paste -sd'|')"
+      - name: Build the examples that open the viewer with GNU make
+        run: |
+          set -euo pipefail
+          for main in $(grep -l 'Render::view(' Examples/*/main.cpp); do
+            dir=$(dirname "$main")
+            make -C "$dir" clean
+            make -C "$dir" VIEWER=SDL2
+          done
+
   # The performance probes (Performance/): built and run at their small --smoke sizes on every event,
   # which checks they still compile and run; it times nothing.
   Performance-smoke:
@@ -574,7 +609,7 @@ jobs:
     # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
     # deliberately not listed.
     if: always()
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Viewer-SDL2, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
     runs-on: ubuntu-24.04
     steps:
       - name: Require every dependency to have succeeded

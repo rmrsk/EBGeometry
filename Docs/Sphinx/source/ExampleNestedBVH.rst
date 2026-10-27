@@ -17,6 +17,12 @@ it with CMake, GNU Make, or a direct compiler invocation.
    ./NestedBVH.ex                       # defaults to ../data/dodecahedron.stl
    ./NestedBVH.ex path/to/mesh.stl      # place your own mesh
 
+.. figure:: /_static/example_NestedBVH.jpg
+   :width: 60%
+   :align: center
+
+   The tape that places the mesh among the spheres.
+
 Reading the mesh
 ----------------
 
@@ -80,3 +86,14 @@ piece into ``GPU::memoryResource()``, and rebases both onto the copy, every mesh
 `GPU::transform <doxygen/html/EBGeometry__GPUTransform_8hpp.html>`__ then runs the query once per
 point, both levels of BVH traversal included: in a kernel in a CUDA or HIP build, and in a host loop
 otherwise. See :ref:`Sec:ExamplesGPU`.
+
+Looking at it
+-------------
+
+The example ends with ``Render::view(composed, argc, argv)``, a window on the tape that places the mesh
+among the spheres.
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the object open and P colours each primitive; see
+:ref:`Chap:ImplemRender`.
