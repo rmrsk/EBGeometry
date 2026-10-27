@@ -78,6 +78,8 @@ each of them was a copy of a mesh's distance or of a tape's trace. They reach th
 out-of-line helpers (``RayDetail::valueAt()``, ``primitiveOf()``, ``gradientNormal()``, ``march()`` and
 ``shapeHit()``, and the renderer's ``Shader::trace()``), which took the CUDA compile of the ray tests
 from eight minutes and 13 GB to 75 seconds and 3 GB. New ray code should call the shape through them.
+``valueAt()`` still inlines an analytic shape's value (only a shape in a pool or a fused node is called
+out of line), since that small value inlined made a tape's span tracing twice as fast on a device.
 The second HIP build in
 CI is optimised, since an unoptimised build compiles such code quickly and so cannot show the
 problem.

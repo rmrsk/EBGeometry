@@ -617,8 +617,8 @@ insideAt(const S& a_shape, const Vec3T<T>& a_point) noexcept
 /**
  * @brief A shape's first crossing along a ray (firstHit()).
  * @details Internal helper; not part of the public API. What the span code and leafHit() call on an
- * operand or a leaf: out of line on a device, so that a kernel holds one copy of each shape's trace (see
- * valueAt()).
+ * operand or a leaf: out of line on a device for every shape, so that a kernel holds one copy of each
+ * shape's trace (see CalledOutOfLine).
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape   The shape.

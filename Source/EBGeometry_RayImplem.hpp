@@ -19,9 +19,15 @@
 
 // Our includes
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Ray.hpp"
 
 namespace EBGeometry {
+
+namespace Fused {
+template <class Op, class... Cs>
+class Node;
+} // namespace Fused
 
 namespace RayDetail {
 
@@ -200,12 +206,43 @@ qualityOf(const S& a_shape) noexcept
 }
 
 /**
- * @brief A shape's value at a point (its signedDistance()).
- * @details Internal helper; not part of the public API. The ray code asks a shape for its value from many
- * places (marching, bisection, normals, inside tests); kept out of line on a device, as are primitiveOf(),
- * gradientNormal(), march() and shapeHit(), so that a kernel holds one copy of a shape's distance and
- * trace. Inlined at every caller, a mesh's distance was copied dozens of times per function, and ptxas
- * took gigabytes and up to hours to compile a kernel.
+ * @brief Whether a shape is a composition: a fused node.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ */
+template <class S>
+struct IsComposition : std::false_type
+{
+};
+
+/**
+ * @brief A fused node is.
+ * @tparam Op Operation.
+ * @tparam Cs Operand types.
+ */
+template <class Op, class... Cs>
+struct IsComposition<Fused::Node<Op, Cs...>> : std::true_type
+{
+};
+
+/**
+ * @brief Whether valueAt() reaches a shape's value through an out-of-line call on a device.
+ * @details Internal helper; not part of the public API. A shape that lives in a pool (a mesh SDF, a tape, a
+ * BVH union) or a composition (a fused node) has a large distance, which the ray code would otherwise copy
+ * into every place it asks for it: a mesh's distance was copied dozens of times per march, and ptxas took
+ * gigabytes and up to hours to compile a kernel. An analytic leaf's value is small, and is inlined, as code
+ * written by hand would be (a tape's span tracing ran twice as fast on a device). Its trace is not:
+ * shapeHit() is out of line for every shape, since a leaf's trace inlined into the span code made a
+ * fused scene up to 35% slower on a device.
+ * @tparam S Shape type.
+ */
+template <class S>
+inline constexpr bool CalledOutOfLine = isPoolHandle<S> || IsComposition<S>::value;
+
+/**
+ * @brief A shape's value at a point (its signedDistance()), out of line on a device.
+ * @details Internal helper; not part of the public API. What valueAt() calls for a shape that
+ * CalledOutOfLine selects.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape The shape.
@@ -216,9 +253,34 @@ template <class T, class S>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline T
-valueAt(const S& a_shape, const Vec3T<T>& a_point) noexcept
+valueOutOfLine(const S& a_shape, const Vec3T<T>& a_point) noexcept
 {
   return a_shape.signedDistance(a_point);
+}
+
+/**
+ * @brief A shape's value at a point (its signedDistance()).
+ * @details Internal helper; not part of the public API. The ray code asks a shape for its value from many
+ * places (marching, bisection, normals, inside tests), always through here: on a device, a shape that
+ * CalledOutOfLine selects is reached through one out-of-line call (as every shape is through primitiveOf(),
+ * gradientNormal(), march() and shapeHit()), so that a kernel holds one copy of its distance and trace.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape The shape.
+ * @param[in] a_point The point.
+ * @return The value.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+valueAt(const S& a_shape, const Vec3T<T>& a_point) noexcept
+{
+  if constexpr (CalledOutOfLine<S>) {
+    return RayDetail::valueOutOfLine(a_shape, a_point);
+  }
+  else {
+    return a_shape.signedDistance(a_point);
+  }
 }
 
 /**
