@@ -1119,8 +1119,8 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
   PixelResult* buffer = results.data();
 #endif
 
-  bool     stopped = false;
-  uint32_t done    = 0;
+  bool                      stopped = false;
+  [[maybe_unused]] uint32_t done    = 0; // Rows rendered; read only by a device copy.
 
   for (uint32_t row = 0; row < height; row += band) {
     if (a_cancel.load(std::memory_order_relaxed)) {
