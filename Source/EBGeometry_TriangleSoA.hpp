@@ -179,6 +179,29 @@ public:
   signedDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief The lane nearest a point and its squared distance, without a sign.
+   * @details The first lane, of m_validCount, with the smallest TriangleDistance::unsignedDistance2(): the
+   * lane signedDistance() would pick, found without signing every lane. A nearest-triangle search keeps
+   * the best of these and signs only the winner, with signedDistanceAt().
+   * @param[in]  a_point The point.
+   * @param[out] a_d2    The lane's squared distance.
+   * @return The lane.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  nearestLane(const Vec3T<T>& a_point, T& a_d2) const noexcept;
+
+  /**
+   * @brief One lane's signed distance, bit for bit the value signedDistances() gives that lane.
+   * @param[in] a_lane  Lane, below W.
+   * @param[in] a_point The point.
+   * @return The signed distance.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistanceAt(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief Where a ray first crosses a triangle in this group.
    * @details TriangleRay::crossing() on the m_validCount triangles, SIMD::NativeWidth<T, W>() at a time,
    * from either side of each triangle. The nearest crossing in [a_tMin, a_tMax] wins, the first such lane
@@ -342,6 +365,17 @@ protected:
   EBGEOMETRY_HOST
   void
   signedDistancesSIMD(const Vec3T<T>& a_point, T* a_distances) const noexcept;
+
+  /**
+   * @brief Every lane's squared unsigned distance with SIMD packs of N lanes, as signedDistancesSIMD().
+   * @tparam N Lanes per pack.
+   * @param[in]  a_point The point.
+   * @param[out] a_d2    W squared distances (lanes at or past m_validCount unspecified).
+   */
+  template <size_t N>
+  EBGEOMETRY_HOST
+  void
+  unsignedDistances2SIMD(const Vec3T<T>& a_point, T* a_d2) const noexcept;
 
   /**
    * @brief Ray crossings of the lanes below m_validCount, @p N at a time, with SIMD::Pack<T, N>.

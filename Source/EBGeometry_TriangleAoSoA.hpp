@@ -94,6 +94,32 @@ public:
   signedDistance(const Vec3T<T>& a_point, uint32_t& a_closestFaceId) const noexcept;
 
   /**
+   * @brief The lane nearest a point and its squared unsigned distance (TriangleSoAT::nearestLane()).
+   * @param[in]  a_point The point.
+   * @param[out] a_d2    The lane's squared distance.
+   * @return The lane.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  nearestLane(const Vec3T<T>& a_point, T& a_d2) const noexcept
+  {
+    return m_triangles.nearestLane(a_point, a_d2);
+  }
+
+  /**
+   * @brief One lane's signed distance (TriangleSoAT::signedDistanceAt()).
+   * @param[in] a_lane  Lane, below W.
+   * @param[in] a_point The point.
+   * @return The signed distance.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistanceAt(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept
+  {
+    return m_triangles.signedDistanceAt(a_lane, a_point);
+  }
+
+  /**
    * @brief Where a ray first crosses a triangle in this group, with that triangle's face id and normal.
    * @details See TriangleSoAT::rayCrossing(). Requires the group to have already been packed via pack().
    * @param[in]  a_origin    Ray origin.

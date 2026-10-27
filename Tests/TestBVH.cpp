@@ -973,6 +973,45 @@ TEMPLATE_TEST_CASE("TriMeshSDF: every BVH::Construction value finds the nearest 
   }
 }
 
+TEMPLATE_TEST_CASE("TriMeshSDF: the signed distance is that of the nearest triangle, signed as every group "
+                   "signs it",
+                   "[BVH][TriMesh]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  std::mt19937 rng(23);
+
+  const auto tris    = jitteredTriangleSoup<T>(rng);
+  const auto queries = jitteredSoupQueries<T>(rng);
+
+  Pool pool(hostMemoryResource());
+
+  const TriMeshSDF<T, K, W> sdf(tris, pool, BVH::Construction::SAH, 2);
+
+  // The reference: every group's signedDistance() (each lane signed), the minimum |value| over all of
+  // them. The search compares squared unsigned distances and signs only the winning lane, so it must give
+  // the same value, sign included.
+  const auto groups = sdf.getRoot().getPrimitives();
+
+  for (const auto& q : queries) {
+    T expected = std::numeric_limits<T>::max();
+
+    for (uint32_t g = 0; g < groups.size(); g++) {
+      const T d = groups[g].signedDistance(q);
+
+      if (std::abs(d) < std::abs(expected)) {
+        expected = d;
+      }
+    }
+
+    REQUIRE_THAT(sdf.signedDistance(q), withinAbsT(expected, traversalMargin<T>()));
+  }
+}
+
 TEMPLATE_TEST_CASE("TriMeshSDF: ConstructionOptions set each construction method's leaf size",
                    "[BVH][TriMesh][Construction]",
                    EBGEOMETRY_TEST_PRECISIONS)

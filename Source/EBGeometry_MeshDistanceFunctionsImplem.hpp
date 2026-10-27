@@ -799,9 +799,16 @@ TriMeshSDF<T, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T          minDist = Math::Limits<T>::max();
-  const Root bvh     = this->getRoot();
-  const auto groups  = bvh.getPrimitives();
+  const Root bvh    = this->getRoot();
+  const auto groups = bvh.getPrimitives();
+
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+  // A device signs every triangle as it tests it. TriMeshSDF is a built-in Tape primitive, so this body is
+  // compiled into every tape's device kernels, mesh or no mesh, and ptxas's register allocation there is
+  // sensitive to it: the host's search below, inlined, capped the tape's ray kernels at 40 registers (from
+  // 168 and 255), and out of line it moved every tape kernel's allocation (some tapes 20% faster, others 19%
+  // slower). The device keeps the code its kernels were tuned with.
+  T minDist = Math::Limits<T>::max();
 
   const auto evalLeaf = [&groups, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
@@ -820,6 +827,43 @@ TriMeshSDF<T, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
   bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
 
   return minDist;
+#else
+  // The host compares squared unsigned distances and signs only the winning triangle: the pseudonormal
+  // tests and the square root are paid once per query, not once per triangle. The winner is the triangle the
+  // signed search picks (the first strictly nearest), and signedDistanceAt() signs it through the same SIMD
+  // path, so the value is the same bit for bit.
+  struct Nearest
+  {
+    T        d2    = Math::Limits<T>::max();
+    uint32_t group = 0;
+    uint32_t lane  = 0;
+  };
+
+  Nearest nearest;
+
+  const auto evalLeaf = [&groups, &a_point](Nearest& a_state, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      T              d2   = T(0);
+      const uint32_t lane = groups[static_cast<uint32_t>(i)].nearestLane(a_point, d2);
+
+      EBGEOMETRY_EXPECT(!std::isnan(d2));
+
+      if (d2 < a_state.d2) {
+        a_state = Nearest{d2, static_cast<uint32_t>(i), lane};
+      }
+    }
+  };
+
+  const auto prune = [](const Nearest& a_state) noexcept -> T { return a_state.d2; };
+
+  bvh.traverse(BVH::PointQuery<T>{a_point}, nearest, evalLeaf, prune);
+
+  if (nearest.d2 == Math::Limits<T>::max()) {
+    return Math::Limits<T>::max();
+  }
+
+  return groups[nearest.group].signedDistanceAt(nearest.lane, a_point);
+#endif
 }
 
 template <class T, size_t K, size_t W>
