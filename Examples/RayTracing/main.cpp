@@ -121,9 +121,11 @@ print(const Hit& a_hit)
 
 } // namespace
 
+// The function-try-block reports a mesh file that cannot be read, rather than letting the exception
+// terminate the program.
 int
 main(int argc, char* argv[])
-{
+try {
   // ── Build it ───────────────────────────────────────────────────────────────────────────────────────
   //
   // The mesh is read into a TriMeshSDF in a Pool, which must outlive it (and every copy of it).
@@ -216,4 +218,9 @@ main(int argc, char* argv[])
   }
 
   return 0;
+} catch (const EBGeometry::Parser::ParseError& e) {
+  std::cerr << "Cannot read the mesh: " << e.what() << '\n'
+            << "The default mesh is in the common-3d-test-models submodule: git submodule update --init\n";
+
+  return 1;
 }

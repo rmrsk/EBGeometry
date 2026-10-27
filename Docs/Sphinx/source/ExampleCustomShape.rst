@@ -12,6 +12,12 @@ your own is how an application calls EBGeometry from inside its own device loops
 The source is at :file:`Examples/CustomShape/main.cpp`. It reads from top to bottom in the
 following sections.
 
+.. figure:: /_static/example_CustomShape.jpg
+   :width: 60%
+   :align: center
+
+   The octahedra around the sphere: a tape with a shape of your own.
+
 A shape of your own
 -------------------
 
@@ -82,6 +88,17 @@ The grid of 64,000 query points and the results are reserved as
 `PODVector <doxygen/html/structEBGeometry_1_1PODVector.html>`__\ s in a second pool in the same
 memory, so the kernel reads and writes them in place with no copies. The program prints how many grid
 points lie inside the scene. A GPU build that finds no device skips this part.
+
+Looking at it
+-------------
+
+The example ends with ``Render::view(tape, argc, argv)``: the renderer draws any shape, a tape with a
+shape of your own included.
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the object open and P colours each primitive; see
+:ref:`Chap:ImplemRender`.
 
 Building and running
 --------------------

@@ -69,8 +69,17 @@ try {
   // ── Read the mesh ──────────────────────────────────────────────────────────────────────────────────
   //
   // Any watertight, orientable surface mesh in STL, PLY, VTK or OBJ. The default is a small
-  // dodecahedron in Examples/data; pass another on the command line.
-  const std::string file = argc >= 2 ? std::string(argv[1]) : "../data/dodecahedron.stl";
+  // dodecahedron in Examples/data; pass another on the command line. Arguments starting with -- are
+  // options (--no-view keeps the viewer shut).
+  std::string file = "../data/dodecahedron.stl";
+
+  for (int i = 1; i < argc; i++) {
+    if (std::string(argv[i]).rfind("--", 0) != 0) {
+      file = argv[i];
+
+      break;
+    }
+  }
 
   std::cout << "Reading '" << file << "'\n";
 
@@ -190,6 +199,13 @@ try {
                 << '\n';
     }
   }
+
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // A window on the tape that places the mesh among the spheres (built with VIEWER=SDL2; otherwise, with
+  // --no-view or without a display, view() prints why and returns). Drag to orbit, scroll to zoom, X cuts it
+  // open, P colours each primitive.
+  EBGeometry::Render::view(composed, argc, argv);
 
   return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {

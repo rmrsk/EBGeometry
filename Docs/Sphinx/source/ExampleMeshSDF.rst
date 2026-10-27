@@ -7,6 +7,12 @@ Reads a surface mesh into a signed distance function in each of the three repres
 in :ref:`Chap:MeshSDFClasses`, times them, and evaluates one on a GPU. The source is at
 :file:`Examples/MeshSDF/main.cpp`.
 
+.. figure:: /_static/example_MeshSDF.jpg
+   :width: 60%
+   :align: center
+
+   The armadillo as the viewer first shows it.
+
 The code that runs on either side
 ---------------------------------
 

@@ -1,39 +1,31 @@
 Integrations/Chombo/MeshSDF
 ---------------------------
 
-This example uses the embedded boundary grid generation from Chombo3, loading a surface mesh as an
-EBGeometry `TriMeshSDF` (a triangle mesh accelerated by a packed bounding volume hierarchy; polygon faces
-are triangulated).
-To compile this application, first install Chombo somewhere and point the CHOMBO_HOME environment variable to it.
+A surface mesh (STL, PLY, VTK or OBJ) read into a `TriMeshSDF` and handed to Chombo's `GeometryShop` as an implicit function. It mirrors the
+[`MeshSDF`](../../../Examples/MeshSDF/README.md) example.
+
+The default mesh comes from the `common-3d-test-models` git submodule: clone the repository with
+`--recurse-submodules`, or run `git submodule update --init`.
+
+EBGeometry's value is negative inside the object and the platform reads negative values as fluid, so the
+implicit function flips the sign: the fluid is around the object.
 
 Compiling
 ---------
 
-Compile (with your standard Chombo settings) using
+Install Chombo 3 with C++17 (`CXXSTD = 17` in `Make.defs.local`) and point `CHOMBO_HOME` to its `lib` folder, then:
 
-    make -s -j8 DIM=3 CXXSTD=17 main
-
-EBGeometry needs C++17, and Chombo compiles as C++11 unless told otherwise: add `CXXSTD=17` to the
-command line, or `CXXSTD = 17` to Chombo's `Make.defs.local`.
+    make -s -j8 DIM=3 OPT=HIGH main
 
 Running
 -------
 
-With MPI:
+    mpirun -np 8 ./main3d.<something>.ex examples.inputs
 
-    mpirun -np 8 main3d.<something>.ex examples.inputs
+Options (in `examples.inputs`):
 
-Input options are
+* `n_cells = <integer>`: cells along the longest side of the domain around the object, whose cells are cubes (default 128).
+* `grid_size = <integer>`: the box size (default 16).
+* `filename = <string>`: the mesh file, relative to this folder.
 
-* `filename = <string>` The mesh file (STL, PLY, VTK or OBJ). The default is the armadillo from the
-  `common-3d-test-models` submodule (`git submodule update --init`), with a path relative to this folder,
-  so run the executable from here.
-* `domain_lo = <real>`, `domain_hi = <real>` The computational domain, a cube from `domain_lo` to
-  `domain_hi` along every axis. The defaults, -125 and 125, hold the armadillo.
-* `n_cells = <integer>` For setting the number of grid cells along the coordinate directions.
-* `grid_size = <integer>` For setting the blocking factor.
-
-The mesh and its BVH are read into an `EBGeometry::Pool`. Chombo copies implicit functions, so the
-implicit function holds the `TriMeshSDF` by value and the pool by `shared_ptr`: every copy shares the one
-pool, which lives as long as the last of them. EBGeometry's signed distance is negative inside the mesh;
-the implicit function flips the sign so that the fluid is outside the mesh.
+It writes the implicit function's value in every cell to `example.hdf5`.

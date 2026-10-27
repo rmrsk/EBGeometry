@@ -215,7 +215,8 @@ try {
 
   return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {
-  std::cerr << "Cannot read the mesh: " << e.what() << '\n';
+  std::cerr << "Cannot read the mesh: " << e.what() << '\n'
+            << "The default mesh is in the common-3d-test-models submodule: git submodule update --init\n";
 
   return 1;
 }

@@ -164,7 +164,7 @@ unit(const T a_x, const T a_y, const T a_z)
   return v / v.length();
 }
 
-// The solid of the CSG example: a cube with its corners rounded by a ball, drilled along each axis.
+// The solid of the BasicCSG example: a cube with its corners rounded by a ball, drilled along each axis.
 template <class T>
 struct Part
 {

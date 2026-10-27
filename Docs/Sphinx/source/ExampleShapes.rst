@@ -7,6 +7,12 @@ The first example to read. It constructs every built-in analytic shape (see
 :ref:`Sec:AnalyticShapes`), evaluates each one, and runs one of them through ``GPU::transform``.
 The source is at :file:`Examples/Shapes/main.cpp`.
 
+.. figure:: /_static/example_Shapes.jpg
+   :width: 60%
+   :align: center
+
+   The bounded shapes, as the viewer first shows them.
+
 The code that runs on either side
 ---------------------------------
 
@@ -37,7 +43,7 @@ The program prints one row per shape, using the three calls every shape has:
 * ``distanceQuality``: whether the value is the exact Euclidean distance, a lower bound on it, or
   only a sign (`DistanceQuality <doxygen/html/EBGeometry__DistanceQuality_8hpp.html>`__). Every
   built-in shape is exact except the noise. Composition and BVH pruning depend on it; see
-  :ref:`Chap:ExampleCSG`.
+  :ref:`Chap:ExampleBasicCSG`.
 
 .. code-block:: text
 
@@ -55,6 +61,17 @@ The last section evaluates the torus at points along the :math:`x` axis with
 sized. Compiled as CUDA or HIP, that runs a kernel; compiled as
 plain C++, a host loop, so the section runs in both builds. A shape owns no memory, so nothing but
 the points has to reach the device. See :ref:`Chap:RunningOnGPU`.
+
+Looking at it
+-------------
+
+The example ends with a window on the bounded shapes side by side, compiled into one tape (see
+:ref:`Chap:ExampleBasicCSG`) with each moved to its place by ``Translate``.
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit, scroll to zoom, X cuts the object open and P colours each primitive; see
+:ref:`Chap:ImplemRender`.
 
 Building and running
 --------------------

@@ -5,103 +5,85 @@ Integrations
 
 .. important::
 
-   These examples show how EBGeometry can be integrated into a third-party application code. They
-   are not built as part of EBGeometry's continuous integration: unlike everything under
-   :ref:`Chap:Examples`, which is compiled and run on every pull request, a change to a
-   third-party platform (or to EBGeometry itself) can break them without anyone noticing. The
-   ones marked *works* below were last compiled and run against AMReX's development branch
-   and Chombo 3.2, on CPUs (the Shapes folders in October 2026, the others in September 2026). Treat them as a starting point for your own
-   integration.
+   These integrations show how EBGeometry is coupled to a third-party application code. They are not
+   built as part of EBGeometry's continuous integration: unlike everything under :ref:`Chap:Examples`,
+   which is compiled and run on every pull request, a change to a third-party platform (or to EBGeometry
+   itself) can break them without anyone noticing. All of them were last compiled and run in October 2026,
+   on CPUs, against AMReX's development branch (26.09) and Chombo 3.3. Treat them as a starting point for
+   your own integration.
 
-Each integration hands an EBGeometry signed distance function to the platform's
-embedded-boundary grid generation, which uses it to cut cells at the implicit surface. The
-geometry lives in an EBGeometry ``Pool`` (see :ref:`Chap:MemoryModel`) that must outlive every
-evaluation, and the implicit function holds the geometry's descriptors by value.
+Each integration mirrors one of the :ref:`Chap:Examples` and hands the object it builds to the platform's
+embedded-boundary grid generation as an implicit function, on a domain around the object's box with
+cubic cells. The geometry lives in an EBGeometry ``Pool`` (see :ref:`Chap:MemoryModel`) that must outlive
+every evaluation, and the implicit function holds the object by value. Several read a mesh from the ``common-3d-test-models``
+git submodule by default (see :ref:`Sec:Cloning`).
 
-Everything in EBGeometry is negative inside an object and positive outside it. A platform that
-reads the sign the other way flips it in its own implicit function, at the boundary between the two
-codes, and never by complementing the EBGeometry object. AMReX and Chombo both read negative values
-as fluid, so an integration whose fluid surrounds the object returns the negated value, and one
-whose fluid fills the object (the AMReX ``MeshSDF`` and ``PaintEB`` folders) returns it unchanged.
+Everything in EBGeometry is negative inside an object and positive outside it. AMReX and Chombo read
+negative values as fluid, so every implicit function here returns the negated value, and the fluid is
+around the object. The sign is flipped at the boundary between the two codes, never by complementing the
+EBGeometry object.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 52 15 15
+
+   * - Folder
+     - What it hands over
+     - Mirrors
+     - Platforms
+   * - :file:`Shapes`
+     - One analytic shape, a torus: the least a coupling needs.
+     - :ref:`Chap:ExampleShapes`
+     - AMReX, Chombo
+   * - :file:`BasicCSG`
+     - The classic CSG solid, compiled into a ``Tape``.
+     - :ref:`Chap:ExampleBasicCSG`
+     - AMReX, Chombo
+   * - :file:`MeshSDF`
+     - A surface mesh as a ``TriMeshSDF``.
+     - :ref:`Chap:ExampleMeshSDF`
+     - AMReX, Chombo
+   * - :file:`MeshCSG`
+     - The dragon on a table, blended by a smooth union, in a ``Tape``.
+     - :ref:`Chap:ExampleMeshCSG`
+     - AMReX, Chombo
+   * - :file:`PackedSpheres`
+     - 3,000 spheres in a cylinder, joined by a ``BVHSmoothUnion``: the fluid is between them.
+     - :ref:`Chap:ExamplePackedSpheres`
+     - AMReX, Chombo
+   * - :file:`RandomCity`
+     - A city of boxes in a ``BVHUnion``.
+     - :ref:`Chap:ExampleManyObjects`
+     - AMReX, Chombo
+   * - :file:`PaintEB`
+     - A mesh as a ``MeshSDF``, and each cut cell labelled with the id of the closest mesh face.
+     - :ref:`Chap:ExampleMeshSDF`
+     - AMReX
 
 AMReX
 ------
 
 The :file:`Integrations/AMReX/<something>` folders couple EBGeometry to
-`AMReX <https://amrex-codes.github.io/amrex/>`_'s ``EB2`` grid generation. AMReX must be
-installed separately, with the ``AMREX_HOME`` environment variable pointing to it.
+`AMReX <https://amrex-codes.github.io/amrex/>`_'s ``EB2`` grid generation and write a plot file. AMReX must
+be installed separately, with ``AMREX_HOME`` pointing to it.
 
-The implicit functions derive from ``amrex::GPUable``, so the same code runs on CPUs and, in a
-CUDA or HIP build of AMReX, on GPUs. Two ways of getting the geometry to the device are shown (see
-:ref:`Sec:BuildingGPU`):
+The implicit function derives from ``amrex::GPUable``, so the same code runs on CPUs and, in a CUDA or HIP
+build of AMReX, on GPUs. In a GPU build the pool is frozen and mirrored to device memory in one piece (see
+:ref:`Sec:BuildingGPU`), and the implicit function holds two views of the object, one of each copy; each
+compilation pass uses its own. An analytic shape is a plain value and needs no copy. A SYCL build of AMReX
+is rejected at compile time, since EBGeometry has no SYCL memory resource yet.
 
-* **A mirror in device memory** (``MeshSDF``, ``PaintEB``, ``PackedSpheres``, ``RandomCity``): the
-  pool is built on the host, frozen and mirrored to the device in one piece, and the implicit
-  function holds a host descriptor and a device descriptor of the same geometry, each compilation
-  pass using its own. Use this for large geometry: the device reads its own copy at full speed.
-* **Managed memory** (``Shapes``): the pool is built directly in managed memory, frozen, and the
-  geometry rebased onto it, which gives one descriptor that both the host and the device can use, so
-  there is no copy and the implicit function holds a single tape. The driver migrates pages between
-  host and device as they are touched, which costs nothing for a tape of a few KB but can for a large
-  mesh; on AMD MI200-class GPUs it migrates only with XNACK enabled.
-
-A SYCL build of AMReX is rejected at compile time, since EBGeometry has no SYCL memory resource yet.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 55 25
-
-   * - Folder
-     - What it shows
-     - Status
-   * - :file:`MeshSDF`
-     - A surface mesh as a ``TriMeshSDF``.
-     - Works
-   * - :file:`PaintEB`
-     - A surface mesh as a ``MeshSDF``; each cut cell is painted with the id of the mesh face
-       closest to it, from ``getClosestFace()``.
-     - Works
-   * - :file:`PackedSpheres`
-     - 8000 spheres blended by a ``BVHSmoothUnion``; ``bvh = false`` visits every sphere instead,
-       for comparison.
-     - Works
-   * - :file:`RandomCity`
-     - 2500 boxes joined by a ``BVHUnion``; ``bvh = false`` as above.
-     - Works
-   * - :file:`Shapes`
-     - The analytic shapes, some of them transformed or combined with the expression builder and
-       compiled into a ``Tape``; in a GPU build the tape lives in managed memory.
-     - Works
+A mesh's fine features can cut a cell edge more than twice, which ``EB2`` refuses unless it may cover such
+cells, so the integrations set ``eb2.cover_multiple_cuts = 1`` unless the inputs say otherwise.
 
 Chombo
 -------
 
 The :file:`Integrations/Chombo/<something>` folders couple EBGeometry to
-`Chombo <https://commons.lbl.gov/display/chombo/>`_'s embedded-boundary grid generation, in the
-same spirit as the AMReX examples above, on CPUs. Chombo must be installed separately, with the
-``CHOMBO_HOME`` environment variable pointing to it, and the examples built with ``CXXSTD=17``,
-since Chombo compiles as C++11 by default. Chombo copies implicit functions, so each holds its
-geometry by value and the pool by ``shared_ptr``: every copy shares the one pool.
+`Chombo <https://commons.lbl.gov/display/chombo/>`_'s ``GeometryShop``, on CPUs, and write the implicit
+function's value in every cell to an HDF5 file. Chombo must be installed separately, built as C++17
+(``CXXSTD = 17``; Chombo compiles as C++11 by default), with ``CHOMBO_HOME`` pointing to its :file:`lib`
+folder. The implicit function derives from ``BaseIF``; Chombo copies it, and every copy holds the same
+handle into the one pool.
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 55 25
-
-   * - Folder
-     - What it shows
-     - Status
-   * - :file:`MeshSDF`
-     - A surface mesh as a ``TriMeshSDF``.
-     - Works
-   * - :file:`PackedSpheres`
-     - 8000 spheres blended by a ``BVHSmoothUnion``.
-     - Works
-   * - :file:`RandomCity`
-     - 100 boxes joined by a ``BVHUnion``.
-     - Works
-   * - :file:`Shapes`
-     - The analytic shapes, some of them transformed with the expression builder and compiled into a
-       ``Tape``.
-     - Works
-
-See the README in each folder for exact build and run instructions.
+See the README in each folder for build and run instructions.

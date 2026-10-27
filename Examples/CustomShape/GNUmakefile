@@ -6,16 +6,19 @@
 # (ON/OFF) toggles EBGEOMETRY_EXPECT() runtime assertion checks. GPU (OFF, HIP or
 # CUDA) compiles the example for a GPU with hipcc or nvcc, so that the same run
 # also does its queries on the device (HIP_ARCH and CUDA_ARCH pick the target;
-# run `make clean` after switching). Override any of these on the command line,
-# e.g.:
+# run `make clean` after switching). VIEWER (OFF or SDL2) builds the window the
+# example opens at the end, which needs SDL2. Override any of these on
+# the command line, e.g.:
 #
 #   make PRECISION=float ASSERTIONS=ON EBGEOMETRY_HOME=/path/to/EBGeometry
 #   make GPU=HIP HIP_ARCH=gfx942
+#   make VIEWER=SDL2
 
 EBGEOMETRY_HOME ?= ../..
 PRECISION       ?= double
 ASSERTIONS      ?= OFF
 GPU             ?= OFF
+VIEWER          ?= OFF
 HIP_ARCH        ?= gfx90a
 CUDA_ARCH       ?= sm_70
 
@@ -41,10 +44,28 @@ ifeq ($(ASSERTIONS),ON)
   CXXFLAGS += -DEBGEOMETRY_ENABLE_ASSERTIONS
 endif
 
+# The renderer draws on std::thread; older C libraries need -pthread for it (nvcc takes -lpthread).
+ifeq ($(GPU),CUDA)
+  LDLIBS += -lpthread
+else
+  LDLIBS += -pthread
+endif
+
+# VIEWER=SDL2 opens a window at the end (Render::view()); it needs SDL2 and sdl2-config.
+ifeq ($(VIEWER),SDL2)
+  CXXFLAGS += -DEBGEOMETRY_VIEWER_SDL2 $(shell sdl2-config --cflags)
+  LDLIBS   += $(shell sdl2-config --libs)
+  ifeq ($(GPU),CUDA)
+    CXXFLAGS += -DSDL_DISABLE_IMMINTRIN_H
+  endif
+else ifneq ($(VIEWER),OFF)
+  $(error VIEWER must be OFF or SDL2)
+endif
+
 TARGET := CustomShape.ex
 
 $(TARGET): main.cpp
-	$(CXX) -std=c++17 $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@
+	$(CXX) -std=c++17 $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@ $(LDLIBS)
 
 .PHONY: run clean
 run: $(TARGET)

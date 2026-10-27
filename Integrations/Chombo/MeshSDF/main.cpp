@@ -1,12 +1,10 @@
-// SPDX-FileCopyrightText: 2023 Robert Marskar <robert.marskar@sintef.no>
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Std includes
-#include <memory>
-#include <string>
+// A surface mesh (STL, PLY, VTK or OBJ) read into a TriMeshSDF and handed to Chombo's GeometryShop as an
+// implicit function. See README.md and the MeshSDF example under Examples/.
 
-// Chombo includes
 #include "BRMeshRefine.H"
 #include "BaseIF.H"
 #include "DisjointBoxLayout.H"
@@ -14,76 +12,101 @@
 #include "EBCellFactory.H"
 #include "EBISLayout.H"
 #include "EBIndexSpace.H"
-#include "EBLevelDataOps.H"
 #include "GeometryShop.H"
 #include "ParmParse.H"
 
-// Our includes
 #include "EBGeometry.hpp"
 
-// EBGeometry precision, BVH branching factor and SoA width. float is enough for the EB geometry,
-// which needs only the sign of the implicit function and where it crosses the grid edges.
-using T            = float;
-constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
-constexpr size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
-using SDF          = EBGeometry::TriMeshSDF<T, K, W>;
+#include <cmath>
 
-/*!
-  @brief Chombo implicit function wrapping an EBGeometry TriMeshSDF.
-  @details Holds the TriMeshSDF by value and the Pool its storage lives in by shared_ptr: Chombo copies
-  implicit functions through newImplicitFunction(), and every copy shares the one pool, which lives as
-  long as the last of them.
-*/
-class ChomboSDF : public BaseIF
+#include <string>
+
+using T    = Real;
+using Vec3 = EBGeometry::Vec3T<T>;
+using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
+// The library's default branching factor and triangle width: the same type in every compilation pass.
+using Mesh =
+  EBGeometry::TriMeshSDF<T, EBGeometry::BVH::DefaultBranchingRatio<T>(), EBGeometry::TriangleSoA::DefaultWidth<T>()>;
+
+// Chombo's implicit function. EBGeometry's value is negative inside the object; the sign is flipped so that
+// the fluid is around the object. The object is a trivially copyable handle into a pool, which must outlive
+// every copy of this function.
+template <class S>
+class ShapeIF : public BaseIF
 {
 public:
-  ChomboSDF() = delete;
-
-  /*!
-    @brief Read a mesh into a TriMeshSDF.
-    @param[in] a_filename Mesh file (STL, PLY, VTK or OBJ).
-  */
-  explicit ChomboSDF(const std::string& a_filename)
-    : m_pool(std::make_shared<EBGeometry::Pool>(EBGeometry::hostMemoryResource())),
-      m_sdf(EBGeometry::Parser::readIntoTriMeshSDF<T, K, W>(a_filename, *m_pool))
+  explicit ShapeIF(const S& a_shape) : m_shape(a_shape)
   {}
 
-  /*!
-    @brief Chombo's implicit function definition.
-    @details EBGeometry's signed distance is negative inside the mesh. The sign is flipped so that the
-    fluid is outside the mesh.
-  */
   Real
-  value(const RealVect& a_point) const override final
+  value(const RealVect& a_point) const override
   {
-    using Vec3 = EBGeometry::Vec3T<T>;
-
-#if CH_SPACEDIM == 2
-    const Vec3 p(static_cast<T>(a_point[0]), static_cast<T>(a_point[1]), T(0));
-#else
-    const Vec3 p(static_cast<T>(a_point[0]), static_cast<T>(a_point[1]), static_cast<T>(a_point[2]));
-#endif
-
-    return -Real(m_sdf.signedDistance(p));
+    return -Real(m_shape.signedDistance(Vec3(a_point[0], a_point[1], a_point[2])));
   }
 
   BaseIF*
   newImplicitFunction() const override
   {
-    return new ChomboSDF(*this);
+    return new ShapeIF(m_shape);
   }
 
 private:
-  /*!
-    @brief Pool holding the mesh's triangles and BVH, shared by every copy of this object.
-  */
-  std::shared_ptr<EBGeometry::Pool> m_pool;
-
-  /*!
-    @brief The signed distance function, resolving against m_pool.
-  */
-  SDF m_sdf;
+  S m_shape;
 };
+
+// Build Chombo's EB from the implicit function on a domain around a box, and write the implicit
+// function's value in every cell to example.hdf5.
+template <class S>
+void
+buildEB(const S& a_shape, const int a_numCells, const int a_gridSize)
+{
+  // Cubic cells, a_numCells along the box's longest side and 10% to spare; each side's count is rounded up
+  // to a multiple of the grid size.
+  const AABB box    = a_shape.computeBoundingVolume();
+  const Vec3 centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+  const Vec3 extent = T(1.1) * (box.getHighCorner() - box.getLowCorner());
+  const Real dx     = extent[extent.maxDir(true)] / a_numCells;
+
+  IntVect  cells;
+  RealVect lo;
+
+  for (int d = 0; d < SpaceDim; d++) {
+    cells[d] = a_gridSize * int(std::ceil(extent[d] / (a_gridSize * dx)));
+    lo[d]    = centre[d] - 0.5 * dx * cells[d];
+  }
+
+  const ProblemDomain domain(IntVect::Zero, cells - IntVect::Unit);
+
+  const ShapeIF<S> implicitFunction(a_shape);
+  GeometryShop     workshop(implicitFunction, -1, dx * RealVect::Unit);
+  EBIndexSpace*    ebis = Chombo_EBIS::instance();
+  ebis->define(domain, lo, dx, workshop, a_gridSize, -1);
+
+  Vector<int> procs;
+  Vector<Box> boxes;
+  domainSplit(domain, boxes, a_gridSize, a_gridSize);
+  mortonOrdering(boxes);
+  LoadBalance(procs, boxes);
+  const DisjointBoxLayout grids(boxes, procs);
+
+  EBISLayout ebisl;
+  ebis->fillEBISLayout(ebisl, grids, domain, 1);
+
+  LevelData<EBCellFAB> data(grids, 1, IntVect::Zero, EBCellFactory(ebisl));
+
+  for (DataIterator dit(grids); dit.ok(); ++dit) {
+    FArrayBox& fab = data[dit()].getFArrayBox();
+
+    for (BoxIterator bit(fab.box()); bit.ok(); ++bit) {
+      fab(bit(), 0) = implicitFunction.value(lo + (bit() + 0.5 * RealVect::Unit) * dx);
+    }
+  }
+
+  Vector<LevelData<EBCellFAB>*> levels(1, &data);
+  writeEBAMRname(&levels, "example.hdf5");
+
+  ebis->clear();
+}
 
 int
 main(int argc, char* argv[])
@@ -91,76 +114,28 @@ main(int argc, char* argv[])
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
 #endif
+  try {
+    ParmParse pp(argc - 2, argv + 2, nullptr, argv[1]);
 
-  {
-    // Parse input file
-    char*     inFile = argv[1];
-    ParmParse pp(argc - 2, argv + 2, NULL, inFile);
+    int         n_cells   = 128;
+    int         grid_size = 16;
+    std::string filename  = "../../../common-3d-test-models/data/armadillo.obj";
 
-    int nCells   = 128;
-    int gridSize = 16;
-
-    // Mesh file and the cube that holds it. The default is the armadillo from the common-3d-test-models
-    // submodule (see the "Building and using" docs for how to fetch it); the path is relative to this
-    // example's folder, where the executable is run.
-    std::string filename = "../../../common-3d-test-models/data/armadillo.obj";
-    Real        domainLo = -125;
-    Real        domainHi = 125;
-
-    pp.query("n_cells", nCells);
-    pp.query("grid_size", gridSize);
+    pp.query("n_cells", n_cells);
+    pp.query("grid_size", grid_size);
     pp.query("filename", filename);
-    pp.query("domain_lo", domainLo);
-    pp.query("domain_hi", domainHi);
 
-    const RealVect loCorner = domainLo * RealVect::Unit;
-    const RealVect hiCorner = domainHi * RealVect::Unit;
+    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const ChomboSDF impFunc(filename);
+    const Mesh mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(filename, pool);
 
-    // Set up the Chombo EB geometry.
-    ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
-    const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
-
-    GeometryShop  workshop(impFunc, -1, dx * RealVect::Zero);
-    EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-    ebisPtr->define(domain, loCorner, dx, workshop, gridSize, -1);
-
-    // Set up the grids
-    Vector<int> procs;
-    Vector<Box> boxes;
-    domainSplit(domain, boxes, gridSize, gridSize);
-    mortonOrdering(boxes);
-    LoadBalance(procs, boxes);
-    DisjointBoxLayout dbl(boxes, procs);
-
-    // Fill the EBIS layout
-    EBISLayout ebisl;
-    ebisPtr->fillEBISLayout(ebisl, dbl, domain, 1);
-
-    // Allocate some data that we can output
-    LevelData<EBCellFAB> data(dbl, 1, IntVect::Zero, EBCellFactory(ebisl));
-
-    for (DataIterator dit(dbl); dit.ok(); ++dit) {
-      EBCellFAB& fab = data[dit()];
-      fab.setVal(0.0);
-
-      const Box region = fab.getRegion();
-
-      for (BoxIterator bit(region); bit.ok(); ++bit) {
-        const IntVect iv = bit();
-
-        const RealVect pos        = loCorner + (iv + 0.5 * RealVect::Unit) * dx;
-        fab.getFArrayBox()(iv, 0) = impFunc.value(pos);
-      }
-    }
-
-    // Write to HDF5
-    Vector<LevelData<EBCellFAB>*> amrData;
-    amrData.push_back(&data);
-    writeEBAMRname(&amrData, "example.hdf5");
+    buildEB(mesh, n_cells, grid_size);
+  } catch (const EBGeometry::Parser::ParseError& e) {
+    const std::string message =
+      std::string("Cannot read the mesh: ") + e.what() +
+      "\nThe default mesh is in the common-3d-test-models submodule: " + "git submodule update --init";
+    MayDay::Error(message.c_str());
   }
-
 #ifdef CH_MPI
   MPI_Finalize();
 #endif

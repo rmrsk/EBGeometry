@@ -123,15 +123,25 @@ Examples
 
    Examples.rst
    ExampleShapes.rst
-   ExampleCSG.rst
+   ExampleBasicCSG.rst
+   ExampleSmoothCSG.rst
+   ExampleTransforms.rst
+   ExampleRepetition.rst
+   ExampleValueOperations.rst
+   ExampleFusedCSG.rst
    ExampleMeshSDF.rst
+   ExampleMeshCSG.rst
+   ExampleShell.rst
+   ExampleMaterials.rst
    ExampleNestedBVH.rst
    ExampleManyObjects.rst
+   ExamplePackedSpheres.rst
    ExamplePointClouds.rst
    ExampleBVHTraversal.rst
    ExampleRayTracing.rst
    ExampleOctreeBoundingVolume.rst
    ExampleCustomShape.rst
+   ExampleTwist.rst
    ExampleHostTuning.rst
    ExampleBuildBVH.rst
    Integrations.rst

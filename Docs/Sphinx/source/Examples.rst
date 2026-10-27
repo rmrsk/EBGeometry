@@ -13,12 +13,24 @@ generation (`AMReX <https://amrex-codes.github.io/amrex/>`_, `Chombo
 <https://commons.lbl.gov/display/chombo/>`_) live separately under :file:`Integrations/` instead,
 and additionally require that platform to be installed — see :ref:`Chap:Integrations`.
 
+.. important::
+
+   Several examples read a mesh from the ``common-3d-test-models`` git submodule by default
+   (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleMeshCSG`, :ref:`Chap:ExampleShell`,
+   :ref:`Chap:ExampleMaterials`, :ref:`Chap:ExampleRepetition`, :ref:`Chap:ExampleTwist`,
+   :ref:`Chap:ExampleRayTracing`). Clone the repository with ``--recurse-submodules``, or run
+   ``git submodule update --init`` in it (see :ref:`Sec:Cloning`).
+
 The examples teach; the unit tests verify. An example shows the calls a user would write, in the
 order they would write them, and prints results a reader can interpret: a few distances, the
 closest point to a query, the time a BVH saves where that time is the lesson. It does not check its
 own answers against hand-worked values or brute force -- the unit tests under :file:`Tests/` do that --
-so its source is only the code you would adapt. None of the examples produce output for
-visualization. Each example folder also ships its own ``README.md`` with the exact build/run
+so its source is only the code you would adapt. Every example that builds a shape ends by opening a
+window on it with ``Render::view()`` when built with the viewer (``make VIEWER=SDL2``, see
+:ref:`Sec:ConfigViewer`), and its page shows what that window first shows
+(rendered by ``Scripts/render-example-figures.sh``); otherwise, with
+``--no-view`` or without a display, ``view()`` prints why and returns, so the examples still run
+unattended. Each example folder also ships its own ``README.md`` with the exact build/run
 commands reproduced on its page.
 
 Reading order
@@ -28,13 +40,23 @@ The examples build on each other. A new user can read them in this order:
 
 #. :ref:`Chap:ExampleShapes`: the analytic shapes, their signed distance, bounding box and distance
    quality.
-#. :ref:`Chap:ExampleCSG`: composing shapes with unions, intersections, differences, transforms and
-   smooth blends, compiled into a ``Tape``.
+#. :ref:`Chap:ExampleBasicCSG`: the classic CSG solid, with unions, intersections and differences,
+   compiled into a ``Tape``.
+#. :ref:`Chap:ExampleSmoothCSG`: smooth unions, intersections and differences, and the blend kinds.
+#. :ref:`Chap:ExampleTransforms`: one object moved, turned, scaled, mirrored and stretched.
+#. :ref:`Chap:ExampleRepetition`: many copies of a mesh from one ``FiniteRepetition``.
+#. :ref:`Chap:ExampleValueOperations`: offsets, shells, blurring and mollifying.
+#. :ref:`Chap:ExampleFusedCSG`: the classic solid as a fused composition, against the tape.
 #. :ref:`Chap:ExampleMeshSDF`: reading a surface mesh into a signed distance function, and the
    three representations to choose from.
+#. :ref:`Chap:ExampleMeshCSG`: a mesh joined to analytic shapes, the dragon on a table.
+#. :ref:`Chap:ExampleShell`: a thin shell around a mesh (Lucy), cut open.
+#. :ref:`Chap:ExampleMaterials`: which part of an object a query found, and a material table indexed by it.
 #. :ref:`Chap:ExampleNestedBVH`: a mesh placed many times, in a tape and in a BVH union of meshes.
 #. :ref:`Chap:ExampleManyObjects`: a BVH union over many primitives, and how much it saves over a
    plain loop.
+#. :ref:`Chap:ExamplePackedSpheres`: thousands of spheres at random places in a cylinder, joined by a
+   smooth BVH union.
 #. :ref:`Chap:ExamplePointClouds`: closest points and nearest neighbors in a point cloud, with a
    BVH or a hash grid.
 #. :ref:`Chap:ExampleBVHTraversal`: walking a BVH with a search of your own -- the nearest object to
@@ -45,6 +67,7 @@ The examples build on each other. A new user can read them in this order:
    closed-form one.
 #. :ref:`Chap:ExampleCustomShape`: a shape type of your own, and calling EBGeometry from your own
    kernel.
+#. :ref:`Chap:ExampleTwist`: an operation of your own, a twist, applied to a mesh.
 #. :ref:`Chap:ExampleHostTuning`: the branching factor and SIMD width tuned to the host.
 #. :ref:`Chap:ExampleBuildBVH`: comparing the BVH construction methods by build time.
 
@@ -95,7 +118,9 @@ the run directory. See :ref:`Chap:Building` for the full detail on each build me
 Running on a GPU
 ----------------
 
-Every example except ``BuildBVH`` and ``HostTuning`` builds from the same source as plain C++ (the
+Every example except ``BuildBVH``, ``HostTuning``, ``SmoothCSG``, ``Transforms``, ``ValueOperations``,
+``Repetition``, ``MeshCSG``, ``PackedSpheres``, ``Twist``, ``Shell`` and ``Materials`` builds from the same
+source as plain C++ (the
 default) or as CUDA or HIP. Its last section runs its query through ``GPU::transform`` (see
 :ref:`Chap:RunningOnGPU`): in a kernel in a GPU build, and in a host loop otherwise, so that section
 runs in every build. Pool-resident geometry is mirrored into ``GPU::memoryResource()``, which is
@@ -103,7 +128,8 @@ device memory in a GPU build and host memory standing in for it otherwise. Only 
 visible GPU skips the section, with a message. Device results agree with the host's to rounding
 rather than bit for bit, since a device compiler may fuse a multiply and an add where the host
 compiler does not. ``BuildBVH`` and ``HostTuning`` stay host-only: they are about the BVH builders
-and the host-tuned types, neither of which a device uses.
+and the host-tuned types, neither of which a device uses. The other nine are host-only too: their tapes and
+unions reach a device exactly as those of :ref:`Chap:ExampleBasicCSG` and :ref:`Chap:ExampleManyObjects` do.
 
 Each query is a small trivially copyable struct whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
 holding what it evaluates by value. :ref:`Chap:ExampleCustomShape` writes the kernel out instead, to
@@ -112,10 +138,11 @@ show how an application calls EBGeometry from its own kernels.
 The examples show three ways of getting the geometry to the device:
 
 * **Nothing to copy.** Analytic shapes are plain values, so a query holds them and goes straight to
-  the kernel (:ref:`Chap:ExampleShapes`, :ref:`Chap:ExampleOctreeBoundingVolume`).
+  the kernel (:ref:`Chap:ExampleShapes`, :ref:`Chap:ExampleFusedCSG`,
+  :ref:`Chap:ExampleOctreeBoundingVolume`).
 * **A mirror in device memory.** The pool is built on the host, frozen and copied to device memory in
   one piece, and the object is rebased onto the copy. This is the pattern for large geometry: mesh
-  SDFs, BVH unions, tapes and point clouds (:ref:`Chap:ExampleCSG`, :ref:`Chap:ExampleMeshSDF`,
+  SDFs, BVH unions, tapes and point clouds (:ref:`Chap:ExampleBasicCSG`, :ref:`Chap:ExampleMeshSDF`,
   :ref:`Chap:ExampleNestedBVH`, :ref:`Chap:ExampleManyObjects`, :ref:`Chap:ExamplePointClouds`,
   :ref:`Chap:ExampleBVHTraversal`, :ref:`Chap:ExampleRayTracing`).
   :ref:`Chap:ExampleManyObjects` also keeps its query points on the device, so that its device

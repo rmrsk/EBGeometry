@@ -197,7 +197,7 @@ runOnDevice(const std::string& a_name, const Union& a_onDevice, const std::vecto
 } // namespace
 
 int
-main()
+main(int argc, char* argv[])
 {
   // ── Build the scenes ───────────────────────────────────────────────────────────────────────────────
   //
@@ -285,6 +285,15 @@ main()
     runOnDevice(
       "Random city", city.rebasedView(devicePool), randomPoints(city.computeBoundingVolume(), numDevicePoints));
   }
+
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // A window on the random city, a BVH union of boxes (built with VIEWER=SDL2; otherwise, with --no-view or
+  // without a display, view() prints why and returns). Drag to orbit, scroll to zoom, X cuts it open, P
+  // colours each primitive. The buildings rise along z, so the camera is fitted with z up.
+  const auto camera = EBGeometry::Render::Camera<T>::fit(city.computeBoundingVolume(), Vec3(T(0), T(0), T(1)));
+
+  EBGeometry::Render::view(city, camera, EBGeometry::Render::Settings<T>(), argc, argv);
 
   return 0;
 }
