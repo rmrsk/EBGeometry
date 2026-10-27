@@ -25,6 +25,8 @@ using Vec3 = EBGeometry::Vec3T<T>;
 using Expr = EBGeometry::Expr<T>;
 using Tape = EBGeometry::Tape<T>;
 
+namespace {
+
 // Nanoseconds per evaluation over a list of points; the sum keeps the compiler from skipping the work.
 double
 nanosecondsPerPoint(const Tape& a_tape, const std::vector<Vec3>& a_points, T& a_sum)
@@ -38,6 +40,8 @@ nanosecondsPerPoint(const Tape& a_tape, const std::vector<Vec3>& a_points, T& a_
   return std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - start).count() /
          double(a_points.size());
 }
+
+} // namespace
 
 // The function-try-block reports a mesh file that cannot be read, rather than letting the exception
 // terminate the program.
