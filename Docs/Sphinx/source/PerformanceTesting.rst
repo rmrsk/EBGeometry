@@ -248,6 +248,24 @@ Case                                  Build  Measures
 ``<operation>-random``                       random order
 ====================================  =====  =====================================================
 
+**Render** (``Performance/Render``): one whole frame of the renderer (see :ref:`Chap:ImplemRender`),
+with shadows and ambient occlusion and one ray per pixel, from the camera ``Render::Camera::fit()``
+places for the shape: the classic CSG solid through a ``Tape``, and the armadillo as a ``TriMeshSDF``.
+The ray queries themselves are timed by the Ray and RayCSG probes; this measures what the renderer adds
+to them, the shadow and occlusion rays and the shading. A host and a device pixel agree when every colour
+channel is within a tenth of its range; a ray grazing the silhouette can hit on one side and miss on the
+other.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``csg/frame``, ``mesh/frame``         host   a 192 x 192 frame on one thread, through
+                                             ``Renderer::render()``
+``csg/frame``, ``mesh/frame``         GPU    the pixels of a 512 x 512 frame through
+                                             ``Render::PixelQuery``, in row order, as a device
+                                             render launches them
+====================================  =====  =====================================================
+
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
 leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the
 drilled mesh. Each query also evaluates the leaf at its local point, so that the checksum depends on

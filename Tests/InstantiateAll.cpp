@@ -117,6 +117,18 @@ namespace EBGeometry {
   template struct RayForm<Fused::Node<Fused::IntersectionOp, SphereSDF<PREC>, BoxSDF<PREC>>>;  \
   template struct RayForm<Fused::Node<Fused::ComplementOp, SphereSDF<PREC>>>;                  \
   template struct RayForm<Fused::Node<Fused::AffineOp<PREC>, SphereSDF<PREC>>>;                \
+  /* -- Renderer ----------------------------------------------------------*/ \
+  template struct Render::Camera<PREC>;                                      \
+  template struct Render::Settings<PREC>;                                    \
+  template struct Render::PixelQuery<PREC, Tape<PREC>>;                      \
+  template class Render::Renderer<PREC>;                                     \
+  template Render::Stats Render::Renderer<PREC>::render<Tape<PREC>>(         \
+    const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \
+  template Render::Stats Render::Renderer<PREC>::renderOnDevice<Tape<PREC>>( \
+    const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \
+  template void Render::view<Tape<PREC>>(const Tape<PREC>&, int, char**);    \
+  template Render::Stats Render::Renderer<PREC>::render<TriMeshSDF<PREC, 4, 4>>( \
+    const TriMeshSDF<PREC, 4, 4>&, const Render::Camera<PREC>&, Render::Image&) const; \
                                                                                \
   /* -- GPU memory foundation (POD storage) ------------------------------- */ \
   template struct PODVector<PREC>;                                           \

@@ -24,9 +24,20 @@ function(ebgeometry_add_example name)
     add_dependencies(EBGeometry_GPUDeviceExamples ${name})
   endif()
 
+  # An example that opens the viewer (Render::view()) is run with --no-view, so ctest never waits on a
+  # window, whatever the build and the display.
+  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/${name}/main.cpp example_source)
+  string(FIND "${example_source}" "Render::view(" opens_viewer)
+
+  set(example_arguments)
+
+  if(NOT opens_viewer EQUAL -1)
+    set(example_arguments --no-view)
+  endif()
+
   add_test(
     NAME    ${name}
-    COMMAND $<TARGET_FILE:${name}>
+    COMMAND $<TARGET_FILE:${name}> ${example_arguments}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${name}
   )
   # Examples load large mesh files and run in unoptimised debug builds; allow

@@ -177,6 +177,16 @@ lives, so spans over ordinary host memory (a ``std::vector``'s data, a pool in
 ``hostMemoryResource()``) compile and run in a host build but fault in a kernel. Prefer the pool
 overload whenever the data is in an EBGeometry pool.
 
+Rendering on a GPU
+------------------
+
+``Render::Renderer::renderOnDevice(deviceShape, camera, image)`` renders an image through
+``GPU::parallelFor``: one ``Render::PixelQuery`` per pixel index, with the shape passed as a view of a
+mirrored pool, exactly as for a query (:ref:`Chap:ImplemRender`). It renders the image in up to eight
+bands of rows, one launch each (so that a render can be stopped between them), into one buffer in device
+memory, copied back to the host once. ``Render::view()`` takes the same device view to render its window
+on the GPU.
+
 GPU::parallelFor
 ----------------
 

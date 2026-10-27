@@ -64,6 +64,7 @@ one header and compile with C++17.
   unions, intersections, differences and affine maps (fused, BVH unions and tapes), sphere traced for
   everything else.
 * Closest points and k nearest neighbours in point clouds.
+* A renderer for any shape, on the host or a GPU, with an optional interactive window (SDL2).
 
 ## In code
 

@@ -19,6 +19,10 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   target_include_directories(EBGeometry::EBGeometry INTERFACE "${EBGEOMETRY_HOME}")
   target_compile_features(EBGeometry::EBGeometry INTERFACE cxx_std_17)
 
+  # The renderer draws on std::thread; older C libraries need -pthread for it.
+  find_package(Threads REQUIRED)
+  target_link_libraries(EBGeometry::EBGeometry INTERFACE Threads::Threads)
+
   # On its own, the probes take the host's full instruction set, as a performance build should.
   set(EBGEOMETRY_PERF_ARCH_FLAGS "-march=native" CACHE STRING "Architecture flags for a standalone host build")
   enable_testing()

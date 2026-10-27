@@ -611,7 +611,30 @@ insideAt(const S& a_shape, const Vec3T<T>& a_point) noexcept
     }
   }
 
-  return a_shape.signedDistance(a_point) < T(0);
+  return RayDetail::valueAt(a_shape, a_point) < T(0);
+}
+
+/**
+ * @brief A shape's first crossing along a ray (firstHit()).
+ * @details Internal helper; not part of the public API. What the span code and leafHit() call on an
+ * operand or a leaf: out of line on a device for every shape, so that a kernel holds one copy of each
+ * shape's trace (see CalledOutOfLine).
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape   The shape.
+ * @param[in] a_ray     The ray, with a unit direction.
+ * @param[in] a_t0      Start of the interval.
+ * @param[in] a_t1      End of the interval.
+ * @param[in] a_options How to march.
+ * @return The crossing, a miss, or an unresolved query.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline HitT<T>
+shapeHit(const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, const RayOptions<T>& a_options) noexcept
+{
+  return EBGeometry::firstHit(a_shape, a_ray, a_t0, a_t1, a_options);
 }
 
 /**
@@ -641,7 +664,7 @@ firstSpan(const S&             a_shape,
 {
   a_spans.reset(a_t1);
 
-  const HitT<T> hit = EBGeometry::firstHit(a_shape, a_ray, a_t0, a_t1, a_options);
+  const HitT<T> hit = RayDetail::shapeHit(a_shape, a_ray, a_t0, a_t1, a_options);
 
   switch (hit.m_status) {
   case HitStatus::Hit: {
@@ -779,7 +802,7 @@ crossingSpans(const S&             a_shape,
 
   // Two crossings per span, and one more to find out the list is full.
   for (uint32_t k = 0; k < 2U * RaySpansT<T>::Capacity + 1U; k++) {
-    const HitT<T> hit = EBGeometry::firstHit(a_shape, a_ray, t, a_t1, a_options);
+    const HitT<T> hit = RayDetail::shapeHit(a_shape, a_ray, t, a_t1, a_options);
 
     if (hit.m_status == HitStatus::Miss) {
       break;
@@ -893,7 +916,7 @@ leafHit(const S& a_shape, const RayT<T>& a_ray, const T a_t, const RayOptions<T>
 
   // At most three crossings in the window: a ray grazing an edge may cross two faces there.
   for (int k = 0; k < 3; k++) {
-    const HitT<T> hit = EBGeometry::firstHit(a_shape, a_ray, from, a_t + delta, a_options);
+    const HitT<T> hit = RayDetail::shapeHit(a_shape, a_ray, from, a_t + delta, a_options);
 
     if (!hit.hit()) {
       break;
