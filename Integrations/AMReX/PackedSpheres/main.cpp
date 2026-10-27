@@ -1,97 +1,56 @@
-// SPDX-FileCopyrightText: 2023 Robert Marskar <robert.marskar@sintef.no>
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Std includes
-#include <cstdint>
-#include <random>
-#include <type_traits>
-#include <vector>
+// Spheres of random sizes at random places in a cylinder, joined by a smooth BVH union, handed to AMReX's EB2
+// grid generation as an implicit function: the fluid is the space between the spheres. The same code runs on CPUs and, in a
+// CUDA or HIP build of AMReX, on GPUs. See README.md and the PackedSpheres example under Examples/.
 
-// AMReX includes
 #include <AMReX.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
-// Our include
 #include "../../../EBGeometry.hpp"
+
+#include <random>
+#include <vector>
 
 using namespace amrex;
 
 #if defined(AMREX_USE_GPU) && !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
-#error "This example supports CPU, CUDA and HIP builds of AMReX; EBGeometry has no SYCL memory resource yet."
+#error "This integration supports CPU, CUDA and HIP builds of AMReX; EBGeometry has no SYCL memory resource yet."
 #endif
 
-// EBGeometry precision and BVH branching factor. K is the library's default, which never depends on
-// compiler flags: a CUDA/HIP build compiles this file twice (a host pass and a device pass), and the
-// union type must be identical in both.
-using T            = Real;
-constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
+using T       = Real;
+using Vec3    = EBGeometry::Vec3T<T>;
+using AABB    = EBGeometry::BoundingVolumes::AABBT<T>;
+using Sphere  = EBGeometry::SphereSDF<T>;
+using Packing = EBGeometry::BVHSmoothUnion<T, Sphere, 4, EBGeometry::SmoothMinOp<T>>;
 
-using Vec3   = EBGeometry::Vec3T<T>;
-using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
-using Sphere = EBGeometry::SphereSDF<T>;
-using Blend  = EBGeometry::SmoothMinOp<T>;
-using Union  = EBGeometry::BVHSmoothUnion<T, Sphere, K, Blend>;
-
-// The spheres sit on an M x M x M lattice with spacing Rmax + dx, so neighbours may overlap.
-constexpr int M         = 20;
-constexpr T   dx        = 0.5;
-constexpr T   Rmin      = 1;
-constexpr T   Rmax      = 6;
-constexpr T   smoothLen = 0.5 * Rmin;
-
-/*!
-  @brief AMReX implicit function for a smooth union of many spheres.
-  @details Deriving from amrex::GPUable tells AMReX's EB2::GeometryShop that it may evaluate this
-  functor inside device kernels. AMReX can still call it on the host as well, so it holds two
-  descriptors of the same union: one resolving against host memory and one against a device mirror,
-  and each compilation pass uses its own. In a CPU build both are the same host object. The class is
-  trivially copyable, which is what lets AMReX capture it by value in a kernel; the pools the
-  descriptors resolve against are owned by main() and must outlive every evaluation.
-
-  With m_useBVH false, the functor visits every sphere instead of letting the BVH skip the distant
-  ones, and blends the two smallest values just as the BVH union does. The two give the same field;
-  only the cost differs.
-*/
-class PackedSpheresIF : public amrex::GPUable
+// AMReX's implicit function. EBGeometry's value is negative inside the object and AMReX reads negative
+// values as fluid, so the sign is flipped: the fluid is around the object. Deriving from GPUable lets EB2
+// evaluate it in device kernels. It holds the object twice, as a view of the host pool and of its device
+// mirror (the same object in a CPU build), and each compilation pass uses its own.
+template <class S>
+class ShapeIF : public GPUable
 {
 public:
-  /*!
-    @brief Full constructor.
-    @param[in] a_hostUnion   Union resolving against host memory.
-    @param[in] a_deviceUnion The same union rebased onto a device mirror (a_hostUnion in a CPU build).
-    @param[in] a_useBVH      Use the BVH, or visit every sphere.
-  */
-  PackedSpheresIF(const Union& a_hostUnion, const Union& a_deviceUnion, const bool a_useBVH) noexcept
-    : m_hostUnion(a_hostUnion), m_deviceUnion(a_deviceUnion), m_useBVH(a_useBVH)
+  ShapeIF(const S& a_host, const S& a_device) noexcept : m_host(a_host), m_device(a_device)
   {}
 
-  /*!
-    @brief AMReX's implicit function definition, callable on host and device.
-    @details EBGeometry's signed distance is negative inside the spheres, and AMReX reads negative
-    values as fluid. The sign is flipped so that the fluid is the space between the spheres.
-  */
   AMREX_GPU_HOST_DEVICE
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    const Vec3 point(x, y, z);
-
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
-    const Union& smoothUnion = m_deviceUnion;
+    return -m_device.signedDistance(Vec3(x, y, z));
 #else
-    const Union& smoothUnion = m_hostUnion;
+    return -m_host.signedDistance(Vec3(x, y, z));
 #endif
-
-    return m_useBVH ? -smoothUnion.signedDistance(point) : -visitAll(smoothUnion, point);
   }
 
-  /*!
-    @brief The same implicit function for AMReX's host-only code paths.
-  */
   Real
   operator()(const RealArray& p) const noexcept
   {
@@ -99,146 +58,96 @@ public:
   }
 
 private:
-  /*!
-    @brief The smooth union without the BVH: visit every sphere and blend the two smallest values.
-    @param[in] a_union Union whose spheres to visit.
-    @param[in] a_point Query point.
-    @return The same value as a_union.signedDistance(a_point).
-  */
-  AMREX_GPU_HOST_DEVICE
-  static T
-  visitAll(const Union& a_union, const Vec3& a_point) noexcept
-  {
-    T a = EBGeometry::Math::Limits<T>::infinity();
-    T b = EBGeometry::Math::Limits<T>::infinity();
-
-    for (const Sphere& sphere : a_union.getBVH().getPrimitives()) {
-      const T d = sphere.signedDistance(a_point);
-
-      if (d < a) {
-        b = a;
-        a = d;
-      }
-      else if (d < b) {
-        b = d;
-      }
-    }
-
-    return Blend()(a, b, smoothLen);
-  }
-
-  /*!
-    @brief Union resolving against host memory.
-  */
-  Union m_hostUnion;
-
-  /*!
-    @brief Union resolving against device memory (m_hostUnion in a CPU build).
-  */
-  Union m_deviceUnion;
-
-  /*!
-    @brief Use the BVH, or visit every sphere.
-  */
-  bool m_useBVH;
+  S m_host;
+  S m_device;
 };
 
-static_assert(std::is_trivially_copyable_v<PackedSpheresIF>, "PackedSpheresIF must be trivially copyable");
+// Build AMReX's EB from the implicit function on a cubic domain around a box, and write a plot file.
+template <class S>
+void
+buildEB(const ShapeIF<S>& a_sdf, const AABB& a_box, const int a_numCells, const int a_maxGridSize)
+{
+  const Vec3 centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3 extent = a_box.getHighCorner() - a_box.getLowCorner();
+  const T    half   = T(0.55) * extent[extent.maxDir(true)];
+
+  const RealBox                    rb({AMREX_D_DECL(centre[0] - half, centre[1] - half, centre[2] - half)},
+                                      {AMREX_D_DECL(centre[0] + half, centre[1] + half, centre[2] + half)});
+  const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};
+  const Geometry                   geom(Box(IntVect(0), IntVect(a_numCells - 1)), rb, 0, periodic);
+
+  // A mesh's fine features can cut a cell edge more than twice, which EB2 refuses unless it may cover such
+  // cells; allow it unless the inputs say otherwise.
+  ParmParse eb2("eb2");
+  if (!eb2.contains("cover_multiple_cuts")) {
+    eb2.add("cover_multiple_cuts", 1);
+  }
+
+  auto gshop = EB2::makeShop(a_sdf);
+  EB2::Build(gshop, geom, 0, 0);
+
+  BoxArray grids(geom.Domain());
+  grids.maxSize(a_maxGridSize);
+  const DistributionMapping dm(grids);
+
+  const auto factory = makeEBFabFactory(geom, grids, dm, {2, 2, 2}, EBSupport::full);
+  MultiFab   mf(grids, dm, 1, 0, MFInfo(), *factory);
+
+  mf.setVal(1.0);
+  EB_WriteSingleLevelPlotfile("plt", mf, {"rho"}, geom, 0.0, 0);
+
+  // The EB index space keeps a copy of the implicit function, which must not outlive the pool.
+  EB2::IndexSpace::clear();
+}
 
 int
 main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
-
   {
-    bool use_bvh         = true;
-    int  n_cell          = 128;
-    int  max_grid_size   = 16;
-    int  num_coarsen_opt = 0;
+    int n_cell        = 128;
+    int max_grid_size = 32;
+    int num_spheres   = 3000;
 
     ParmParse pp;
-    pp.query("bvh", use_bvh);
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
-    pp.query("num_coarsen_opt", num_coarsen_opt);
+    pp.query("num_spheres", num_spheres);
 
-    // Generate the spheres and their bounding boxes. A fixed seed makes every MPI rank build the same
-    // spheres.
-    std::vector<Sphere> spheres;
-    std::vector<AABB>   boundingVolumes;
-
+    // Rejection sampling: a centre drawn in the box around a cylinder along x (radius 26, five times as
+    // long) is kept only inside the cylinder; then the radius is drawn. A fixed seed makes every MPI rank
+    // build the same packing.
+    const T                           radius = T(26);
     std::mt19937_64                   rng(0);
-    std::uniform_real_distribution<T> udist(0, 1.0);
+    std::uniform_real_distribution<T> unit(T(-1), T(1));
+    std::vector<Sphere>               spheres;
+    std::vector<AABB>                 boxes;
 
-    for (int i = 0; i < M; i++) {
-      for (int j = 0; j < M; j++) {
-        for (int k = 0; k < M; k++) {
-          const T R = Rmin + udist(rng) * (Rmax - Rmin);
+    while (int(spheres.size()) < num_spheres) {
+      const Vec3 centre = radius * Vec3(T(2.5) * unit(rng), unit(rng), unit(rng));
 
-          const Vec3 center(0.5 * dx + i * (dx + Rmax), 0.5 * dx + j * (dx + Rmax), 0.5 * dx + k * (dx + Rmax));
-
-          spheres.emplace_back(center, R);
-          boundingVolumes.emplace_back(center - R * Vec3::ones(), center + R * Vec3::ones());
-        }
+      if (centre[1] * centre[1] + centre[2] * centre[2] <= radius * radius) {
+        spheres.emplace_back(centre, T(0.6) + T(1.2) * (unit(rng) + T(1)));
+        boxes.push_back(spheres.back().computeBoundingVolume());
       }
     }
 
-    // The pools own the BVH and sphere storage the union descriptors resolve against. They are
-    // declared before, and so destroyed after, everything that evaluates the union.
-    EBGeometry::Pool hostPool(EBGeometry::hostMemoryResource());
+    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const Union hostUnion(hostPool, spheres, boundingVolumes, smoothLen);
+    const Packing packing(pool, spheres, boxes, T(1.5));
 
+    // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the object is
+    // rebased onto the mirror. The pools must outlive the EB generation.
 #if defined(AMREX_USE_GPU)
-    // Copy the finished pool to the device in one piece, then rebase the union onto the copy.
-    hostPool.freeze();
+    pool.freeze();
 
-    EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
-
-    const Union deviceUnion = hostUnion.rebasedView(devicePool);
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const ShapeIF<Packing> sdf(packing, packing.rebasedView(devicePool));
 #else
-    const Union& deviceUnion = hostUnion;
+    const ShapeIF<Packing> sdf(packing, packing);
 #endif
 
-    {
-      Geometry geom;
-      {
-        RealBox rb({-Rmax - dx, -Rmax - dx, -Rmax - dx},
-                   {M * (dx + Rmax) + dx, M * (dx + Rmax) + dx, M * (dx + Rmax) + dx});
-
-        Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
-        Geometry::Setup(&rb, 0, is_periodic.data());
-        Box domain(IntVect(0), IntVect(n_cell - 1));
-        geom.define(domain);
-      }
-
-      const PackedSpheresIF packedSpheres(hostUnion, deviceUnion, use_bvh);
-
-      auto gshop = EB2::makeShop(packedSpheres);
-
-      EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);
-
-      // Put some data
-      MultiFab mf;
-      {
-        BoxArray boxArray(geom.Domain());
-        boxArray.maxSize(max_grid_size);
-        DistributionMapping dm{boxArray};
-
-        std::unique_ptr<EBFArrayBoxFactory> factory =
-          amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
-
-        mf.define(boxArray, dm, 1, 0, MFInfo(), *factory);
-        mf.setVal(1.0);
-      }
-
-      EB_WriteSingleLevelPlotfile("plt", mf, {"rho"}, geom, 0.0, 0);
-    }
-
-    // The EB index space keeps its own copy of gshop and may evaluate it again (e.g. to build finer
-    // levels), so it must not outlive the pools. Everything that used it is gone by now.
-    EB2::IndexSpace::clear();
+    buildEB(sdf, packing.computeBoundingVolume(), n_cell, max_grid_size);
   }
-
   amrex::Finalize();
 }

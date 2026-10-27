@@ -1,228 +1,167 @@
-// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Std includes
-#include <cstdint>
-#include <string>
-#include <type_traits>
+// Painting the embedded boundary: a mesh handed to AMReX's EB2 grid generation as an implicit function, and
+// each cut cell labelled with the id of the mesh face closest to it (getClosestFace()), the index into an
+// array of per-face data such as a boundary condition or a material. The same code runs on CPUs and, in a
+// CUDA or HIP build of AMReX, on GPUs. See README.md and the MeshSDF example under Examples/.
 
-// AMReX includes
 #include <AMReX.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
-// Our include
 #include "../../../EBGeometry.hpp"
+
+#include <string>
 
 using namespace amrex;
 
 #if defined(AMREX_USE_GPU) && !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
-#error "This example supports CPU, CUDA and HIP builds of AMReX; EBGeometry has no SYCL memory resource yet."
+#error "This integration supports CPU, CUDA and HIP builds of AMReX; EBGeometry has no SYCL memory resource yet."
 #endif
 
-// EBGeometry precision and BVH branching factor. K is the library's default, which never depends on
-// compiler flags: a CUDA/HIP build compiles this file twice (a host pass and a device pass), and the
-// MeshSDF type must be identical in both. float is enough for the EB geometry; see the MeshSDF
-// integration for why.
-using T            = float;
-constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
-using SDF          = EBGeometry::MeshSDF<T, K>;
+using T    = Real;
+using Vec3 = EBGeometry::Vec3T<T>;
+using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
+// The library's default branching factor: the same type in every compilation pass.
+using Mesh = EBGeometry::MeshSDF<T, EBGeometry::BVH::DefaultBranchingRatio<T>()>;
 
-/*!
-  @brief AMReX implicit function wrapping an EBGeometry MeshSDF, which can also report the face
-  closest to a point.
-  @details Deriving from amrex::GPUable tells AMReX's EB2::GeometryShop that it may evaluate this
-  functor inside device kernels. AMReX can still call it on the host as well, so it holds two
-  descriptors of the same MeshSDF: one resolving against host memory and one against a device mirror,
-  and each compilation pass uses its own. In a CPU build both are the same host object. The class is
-  trivially copyable, which is what lets AMReX and amrex::ParallelFor capture it by value in a kernel;
-  the pools the descriptors resolve against are owned by main() and must outlive every evaluation.
-*/
-class PaintIF : public amrex::GPUable
+// AMReX's implicit function, which can also name the face closest to a point. EBGeometry's value is negative
+// inside the mesh and AMReX reads negative values as fluid, so the sign is flipped: the fluid is around the
+// mesh. Deriving from GPUable lets EB2 and ParallelFor evaluate it in device kernels. It holds the mesh twice,
+// as a view of the host pool and of its device mirror (the same object in a CPU build), and each compilation
+// pass uses its own.
+class PaintIF : public GPUable
 {
 public:
-  /*!
-    @brief Full constructor.
-    @param[in] a_hostSDF   MeshSDF resolving against host memory.
-    @param[in] a_deviceSDF The same MeshSDF rebased onto a device mirror (a_hostSDF in a CPU build).
-  */
-  PaintIF(const SDF& a_hostSDF, const SDF& a_deviceSDF) noexcept : m_hostSDF(a_hostSDF), m_deviceSDF(a_deviceSDF)
+  PaintIF(const Mesh& a_host, const Mesh& a_device) noexcept : m_host(a_host), m_device(a_device)
   {}
 
-  /*!
-    @brief AMReX's implicit function definition, callable on host and device.
-    @details EBGeometry's signed distance is negative inside the mesh; AMReX reads negative values as
-    fluid, so the fluid is inside the mesh.
-  */
   AMREX_GPU_HOST_DEVICE
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return sdf().signedDistance(point(AMREX_D_DECL(x, y, z)));
+    return -mesh().signedDistance(Vec3(x, y, z));
   }
 
-  /*!
-    @brief The same implicit function for AMReX's host-only code paths.
-  */
   Real
   operator()(const RealArray& p) const noexcept
   {
     return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
   }
 
-  /*!
-    @brief The id of the face closest to a point: its index in the mesh, which is the file's face order
-    (less any zero-area faces the reader removed).
-  */
+  // The face's index in the mesh: its position in the file, less any zero-area faces the reader removed.
   AMREX_GPU_HOST_DEVICE
-  uint32_t
-  getClosestFace(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  Real
+  closestFace(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return sdf().getClosestFace(point(AMREX_D_DECL(x, y, z))).faceId;
+    return Real(mesh().getClosestFace(Vec3(x, y, z)).faceId);
   }
 
 private:
-  /*!
-    @brief The descriptor this compilation pass resolves against.
-  */
   AMREX_GPU_HOST_DEVICE
-  const SDF&
-  sdf() const noexcept
+  const Mesh&
+  mesh() const noexcept
   {
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
-    return m_deviceSDF;
+    return m_device;
 #else
-    return m_hostSDF;
+    return m_host;
 #endif
   }
 
-  /*!
-    @brief Narrow an AMReX position to EBGeometry's precision.
-  */
-  AMREX_GPU_HOST_DEVICE
-  static EBGeometry::Vec3T<T>
-  point(AMREX_D_DECL(Real x, Real y, Real z)) noexcept
-  {
-    return EBGeometry::Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
-  }
-
-  /*!
-    @brief MeshSDF resolving against host memory.
-  */
-  SDF m_hostSDF;
-
-  /*!
-    @brief MeshSDF resolving against device memory (m_hostSDF in a CPU build).
-  */
-  SDF m_deviceSDF;
+  Mesh m_host;
+  Mesh m_device;
 };
-
-static_assert(std::is_trivially_copyable_v<PaintIF>, "PaintIF must be trivially copyable");
 
 int
 main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
-
   {
-    int n_cell          = 128;
-    int max_grid_size   = 16;
-    int num_coarsen_opt = 0;
-
-    // Mesh file (STL/PLY/VTK/OBJ). Override with 'filename=<path>' in the inputs file. The default is a
-    // small OBJ from the common-3d-test-models submodule (see the "Building and using" docs for how to
-    // fetch it); the path is relative to this example's source folder, where the executable is run.
-    std::string filename = "../../../common-3d-test-models/data/suzanne.obj";
+    int         n_cell        = 128;
+    int         max_grid_size = 32;
+    std::string filename      = "../../../common-3d-test-models/data/suzanne.obj";
 
     ParmParse pp;
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
-    pp.query("num_coarsen_opt", num_coarsen_opt);
     pp.query("filename", filename);
 
-    // The pools own the mesh and BVH storage the SDF descriptors resolve against. They are declared
-    // before, and so destroyed after, everything that evaluates the SDF.
-    EBGeometry::Pool hostPool(EBGeometry::hostMemoryResource());
+    // The default mesh is in the common-3d-test-models submodule: git submodule update --init.
+    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const SDF hostSDF = EBGeometry::Parser::readIntoMeshSDF<T, K>(filename, hostPool);
+    const Mesh mesh = EBGeometry::Parser::readIntoMeshSDF<T>(filename, pool);
 
+    // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the mesh is
+    // rebased onto the mirror. The pools must outlive the EB generation.
 #if defined(AMREX_USE_GPU)
-    // Copy the finished pool to the device in one piece, then rebase the SDF onto the copy.
-    hostPool.freeze();
+    pool.freeze();
 
-    EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
-
-    const SDF deviceSDF = hostSDF.rebasedView(devicePool);
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const PaintIF          sdf(mesh, mesh.rebasedView(devicePool));
 #else
-    const SDF& deviceSDF = hostSDF;
+    const PaintIF sdf(mesh, mesh);
 #endif
 
-    {
-      Geometry geom;
-      {
-        RealBox rb({-5, -1, 2}, {0, 4, 6}); // bounds the default suzanne mesh
+    // A cubic domain around the mesh.
+    const AABB box    = mesh.computeBoundingVolume();
+    const Vec3 centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+    const Vec3 extent = box.getHighCorner() - box.getLowCorner();
+    const T    half   = T(0.55) * extent[extent.maxDir(true)];
 
-        Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
-        Geometry::Setup(&rb, 0, is_periodic.data());
-        Box domain(IntVect(0), IntVect(n_cell - 1));
-        geom.define(domain);
-      }
+    const RealBox                    rb({AMREX_D_DECL(centre[0] - half, centre[1] - half, centre[2] - half)},
+                                        {AMREX_D_DECL(centre[0] + half, centre[1] + half, centre[2] + half)});
+    const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};
+    const Geometry                   geom(Box(IntVect(0), IntVect(n_cell - 1)), rb, 0, periodic);
 
-      const PaintIF sdf(hostSDF, deviceSDF);
-
-      // Create the EB geometry
-      auto gshop = EB2::makeShop(sdf);
-
-      EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);
-
-      // Create some data
-      BoxArray boxArray(geom.Domain());
-      boxArray.maxSize(max_grid_size);
-      DistributionMapping dm{boxArray};
-
-      std::unique_ptr<EBFArrayBoxFactory> factory =
-        amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
-
-      MultiFab mf;
-      mf.define(boxArray, dm, 1, 0, MFInfo(), *factory);
-      mf.setVal(-1.0);
-
-      const auto& ebFlags = factory->getMultiEBCellFlagFab();
-      const auto  probLo  = geom.ProbLoArray();
-      const auto  cellDx  = geom.CellSizeArray();
-
-      // Paint each cut cell with the id of the face closest to its center. Regular and covered cells
-      // keep -1.
-      for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        const auto& bx       = mfi.validbox();
-        const auto& mf_array = mf.array(mfi);
-        const auto& flags    = ebFlags[mfi].getType(bx);
-
-        if (flags == FabType::singlevalued) {
-          const auto& cellFlags = ebFlags.const_array(mfi);
-
-          amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-            if (cellFlags(i, j, k).isSingleValued()) {
-              const Real x = probLo[0] + (i + 0.5) * cellDx[0];
-              const Real y = probLo[1] + (j + 0.5) * cellDx[1];
-              const Real z = probLo[2] + (k + 0.5) * cellDx[2];
-
-              mf_array(i, j, k) = Real(sdf.getClosestFace(x, y, z));
-            }
-          });
-        }
-      }
-
-      EB_WriteSingleLevelPlotfile("plt", mf, {"facet_id"}, geom, 0.0, 0);
+    // A mesh's fine features can cut a cell edge more than twice, which EB2 refuses unless it may cover such
+    // cells; allow it unless the inputs say otherwise.
+    ParmParse eb2("eb2");
+    if (!eb2.contains("cover_multiple_cuts")) {
+      eb2.add("cover_multiple_cuts", 1);
     }
 
-    // The EB index space keeps its own copy of gshop and may evaluate it again (e.g. to build finer
-    // levels), so it must not outlive the pools. Everything that used it is gone by now.
+    auto gshop = EB2::makeShop(sdf);
+    EB2::Build(gshop, geom, 0, 0);
+
+    BoxArray grids(geom.Domain());
+    grids.maxSize(max_grid_size);
+    const DistributionMapping dm(grids);
+
+    const auto factory = makeEBFabFactory(geom, grids, dm, {2, 2, 2}, EBSupport::full);
+    MultiFab   mf(grids, dm, 1, 0, MFInfo(), *factory);
+
+    // Paint each cut cell with the id of the face closest to its centre; the other cells keep -1.
+    mf.setVal(-1.0);
+
+    const auto& flags = factory->getMultiEBCellFlagFab();
+    const auto  lo    = geom.ProbLoArray();
+    const auto  dx    = geom.CellSizeArray();
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+      const Box& bx = mfi.validbox();
+
+      if (flags[mfi].getType(bx) == FabType::singlevalued) {
+        const auto cells = flags.const_array(mfi);
+        const auto paint = mf.array(mfi);
+
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+          if (cells(i, j, k).isSingleValued()) {
+            paint(i, j, k) =
+              sdf.closestFace(lo[0] + (i + 0.5) * dx[0], lo[1] + (j + 0.5) * dx[1], lo[2] + (k + 0.5) * dx[2]);
+          }
+        });
+      }
+    }
+
+    EB_WriteSingleLevelPlotfile("plt", mf, {"face_id"}, geom, 0.0, 0);
+
+    // The EB index space keeps a copy of the implicit function, which must not outlive the pool.
     EB2::IndexSpace::clear();
   }
-
   amrex::Finalize();
 }
