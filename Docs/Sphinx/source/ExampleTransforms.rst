@@ -3,9 +3,9 @@
 Transforms
 ==========
 
-One object moved, turned, scaled, mirrored and stretched (repeating it is
-:ref:`Chap:ExampleRepetition`). A transform applies to a whole
-expression and changes where the object is, not what it is. The source is at :file:`Examples/Transforms/main.cpp`.
+One object moved, turned, scaled, mirrored and stretched (repeating it is :ref:`Chap:ExampleRepetition`). A
+transform applies to a whole expression and changes where the object is, not what it is. The source is at
+:file:`Examples/Transforms/main.cpp`.
 
 .. figure:: /_static/example_Transforms.jpg
    :width: 60%

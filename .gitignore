@@ -9,6 +9,7 @@ build
 Integrations/AMReX/*/plt*
 Integrations/AMReX/*/tmp_build_dir
 Integrations/AMReX/*/Backtrace.*
+Integrations/AMReX/Backtrace.*
 
 # Chombo build artifacts (any example under Integrations/Chombo/<name>/).
 Integrations/Chombo/*/d/**

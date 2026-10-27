@@ -3,7 +3,8 @@
 Value operations
 ================
 
-``Offset``, ``Annular``, ``Blur`` and ``Mollify`` change an object's value rather than where it is. The source is at :file:`Examples/ValueOperations/main.cpp`.
+``Offset``, ``Annular``, ``Blur`` and ``Mollify`` change an object's value rather than where it is. The
+source is at :file:`Examples/ValueOperations/main.cpp`.
 
 .. figure:: /_static/example_ValueOperations.jpg
    :width: 60%

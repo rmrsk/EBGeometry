@@ -4,7 +4,8 @@ Smooth CSG
 ==========
 
 ``SmoothUnion``, ``SmoothIntersection`` and ``SmoothDifference`` blend two objects over a length instead
-of meeting at a sharp crease (see :ref:`Chap:ConstructiveSolidGeometry`). The source is at :file:`Examples/SmoothCSG/main.cpp`.
+of meeting at a sharp crease (see :ref:`Chap:ConstructiveSolidGeometry`). The source is at
+:file:`Examples/SmoothCSG/main.cpp`.
 
 .. figure:: /_static/example_SmoothCSG.jpg
    :width: 60%

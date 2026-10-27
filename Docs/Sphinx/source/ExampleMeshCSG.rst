@@ -4,7 +4,8 @@ CSG with a mesh
 ===============
 
 A triangle mesh is a shape like any other, so the expression builder scales and moves it and joins it to
-analytic shapes. Here the xyzrgb dragon stands on a table, blended into it by a smooth union. The source is at :file:`Examples/MeshCSG/main.cpp`.
+analytic shapes. Here the xyzrgb dragon stands on a table, blended into it by a smooth union. The source
+is at :file:`Examples/MeshCSG/main.cpp`.
 
 .. figure:: /_static/example_MeshCSG.jpg
    :width: 60%
@@ -29,8 +30,8 @@ defects with a warning; see :ref:`Chap:Parsers`), scaled to 2.4 along its longes
 Joining it to the table
 -----------------------
 
-A plain ``Union`` meets the table at a sharp edge; ``SmoothUnion`` fills a fillet of about the blend length
-where the feet touch it (see :ref:`Chap:ExampleSmoothCSG`):
+A plain ``Union`` meets the table at a sharp edge; ``SmoothUnion`` fills a fillet of about the blend
+length where the feet touch it (see :ref:`Chap:ExampleSmoothCSG`):
 
 .. code-block:: c++
 

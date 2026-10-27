@@ -3,7 +3,8 @@
 Repetition
 ==========
 
-Many copies of one object on a grid with ``FiniteRepetition``; here a mesh, the happy Buddha. The source is at :file:`Examples/Repetition/main.cpp`.
+Many copies of one object on a grid with ``FiniteRepetition``; here a mesh, the happy Buddha. The source
+is at :file:`Examples/Repetition/main.cpp`.
 
 .. figure:: /_static/example_Repetition.jpg
    :width: 60%

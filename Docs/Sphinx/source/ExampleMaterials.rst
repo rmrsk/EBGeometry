@@ -39,8 +39,9 @@ materials or boundary conditions). Two queries report it:
      std::cout << materials[hit.m_primitive] << '\n';
    }
 
-A query can name no leaf (``PrimitiveRef::None``), so check the number before indexing. A mesh is one leaf;
-its faces are told apart by ``getClosestFace()`` on the mesh itself (see :ref:`Chap:ExampleMeshSDF`).
+A query can name no leaf (``PrimitiveRef::None``), so check the number before indexing. A mesh is one
+leaf; its faces are told apart by ``getClosestFace()`` on the mesh itself (see
+:ref:`Chap:ExampleMeshSDF`).
 
 The program prints the value and material at three points, and what three rays hit: the chest from in
 front, nothing straight through the bore, and the bore's wall sideways from inside it.
@@ -48,8 +49,8 @@ front, nothing straight through the bore, and the bore's wall sideways from insi
 Looking at it
 -------------
 
-``Settings::m_colourBy = ColourBy::Primitive`` colours each surface by the same ``HitT::m_primitive``, from
-the renderer's own palette, and the camera looks from low in front, where the bore shows:
+``Settings::m_colourBy = ColourBy::Primitive`` colours each surface by the same ``HitT::m_primitive``,
+from the renderer's own palette, and the camera looks from low in front, where the bore shows:
 
 .. code-block:: c++
 

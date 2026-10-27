@@ -28,11 +28,11 @@ using Tape = EBGeometry::Tape<T>;
 // ── An operation of your own ─────────────────────────────────────────────────────────────────────────
 //
 // Twisted<S> turns the shape S by m_rate radians per unit of height, about the y axis. A point p is
-// turned back by m_rate * p[1] and S is evaluated there. The map stretches lengths by at most
-// sqrt(1 + (m_rate * r)^2) at distance r from the axis. Sphere tracing and BVH pruning evaluate a shape only
-// inside its box, a square of half-width m_radius about the axis whose corners are sqrt(2) m_radius from
-// it, so dividing by that factor at the corners (m_lipschitz) keeps the value a lower bound on the
-// distance there. Like a shape of your own (the CustomShape example), it is trivially copyable, with
+// turned back by m_rate * p[1] and S is evaluated there. At distance r from the axis the map shears by
+// a = m_rate * r, which stretches lengths by at most (a + sqrt(a^2 + 4)) / 2. Sphere tracing and BVH
+// pruning evaluate a shape only inside its box, a square of half-width m_radius about the axis whose
+// corners are sqrt(2) m_radius from it, so dividing by that factor at the corners (m_lipschitz) keeps the
+// value a lower bound on the distance there. Like a shape of your own (the CustomShape example), it is trivially copyable, with
 // signedDistance(), computeBoundingVolume() and distanceQuality.
 template <class S>
 struct Twisted
@@ -40,7 +40,7 @@ struct Twisted
   S m_shape;
   T m_rate;
   T m_radius;    // The largest distance of the shape from the y axis.
-  T m_lipschitz; // sqrt(1 + 2 (m_rate * m_radius)^2), the stretch at the box's corners.
+  T m_lipschitz; // (a + sqrt(a^2 + 4)) / 2 with a = sqrt(2) m_rate m_radius: the stretch at the corners.
 
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   T
@@ -78,7 +78,9 @@ twist(const S& a_shape, const T a_rate)
   const T    z   = EBGeometry::Math::max(std::abs(lo[2]), std::abs(hi[2]));
   const T    r   = std::sqrt(x * x + z * z);
 
-  return Twisted<S>{a_shape, a_rate, r, std::sqrt(T(1) + T(2) * a_rate * a_rate * r * r)};
+  const T a = std::sqrt(T(2)) * a_rate * r;
+
+  return Twisted<S>{a_shape, a_rate, r, T(0.5) * (a + std::sqrt(a * a + T(4)))};
 }
 
 static_assert(EBGeometry::isShape<Twisted<Tape>>, "Twisted must satisfy EBGeometry's shape requirements");

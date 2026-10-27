@@ -16,8 +16,9 @@ and additionally require that platform to be installed — see :ref:`Chap:Integr
 .. important::
 
    Several examples read a mesh from the ``common-3d-test-models`` git submodule by default
-   (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleMeshCSG`, :ref:`Chap:ExampleRepetition`,
-   :ref:`Chap:ExampleRayTracing`, :ref:`Chap:ExampleTwist`, :ref:`Chap:ExampleShell`, :ref:`Chap:ExampleMaterials`). Clone the repository with ``--recurse-submodules``, or run
+   (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleMeshCSG`, :ref:`Chap:ExampleShell`,
+   :ref:`Chap:ExampleMaterials`, :ref:`Chap:ExampleRepetition`, :ref:`Chap:ExampleTwist`,
+   :ref:`Chap:ExampleRayTracing`). Clone the repository with ``--recurse-submodules``, or run
    ``git submodule update --init`` in it (see :ref:`Sec:Cloning`).
 
 The examples teach; the unit tests verify. An example shows the calls a user would write, in the
@@ -54,7 +55,8 @@ The examples build on each other. A new user can read them in this order:
 #. :ref:`Chap:ExampleNestedBVH`: a mesh placed many times, in a tape and in a BVH union of meshes.
 #. :ref:`Chap:ExampleManyObjects`: a BVH union over many primitives, and how much it saves over a
    plain loop.
-#. :ref:`Chap:ExamplePackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
+#. :ref:`Chap:ExamplePackedSpheres`: thousands of spheres at random places in a cylinder, joined by a
+   smooth BVH union.
 #. :ref:`Chap:ExamplePointClouds`: closest points and nearest neighbors in a point cloud, with a
    BVH or a hash grid.
 #. :ref:`Chap:ExampleBVHTraversal`: walking a BVH with a search of your own -- the nearest object to
@@ -126,7 +128,7 @@ device memory in a GPU build and host memory standing in for it otherwise. Only 
 visible GPU skips the section, with a message. Device results agree with the host's to rounding
 rather than bit for bit, since a device compiler may fuse a multiply and an add where the host
 compiler does not. ``BuildBVH`` and ``HostTuning`` stay host-only: they are about the BVH builders
-and the host-tuned types, neither of which a device uses. The other nine do too: their tapes and
+and the host-tuned types, neither of which a device uses. The other nine are host-only too: their tapes and
 unions reach a device exactly as those of :ref:`Chap:ExampleBasicCSG` and :ref:`Chap:ExampleManyObjects` do.
 
 Each query is a small trivially copyable struct whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
