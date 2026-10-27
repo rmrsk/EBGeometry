@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // A surface mesh (STL, PLY, VTK or OBJ) read into a TriMeshSDF and handed to Chombo's GeometryShop as an
-// implicit function. See README.md and the MeshSDF
-// example under Examples/.
+// implicit function. See README.md and the MeshSDF example under Examples/.
 
 #include "BRMeshRefine.H"
 #include "BaseIF.H"
@@ -17,6 +16,8 @@
 #include "ParmParse.H"
 
 #include "EBGeometry.hpp"
+
+#include <cmath>
 
 #include <string>
 
@@ -53,20 +54,28 @@ private:
   S m_shape;
 };
 
-// Build Chombo's EB from the implicit function on a cubic domain around a box, and write the implicit
+// Build Chombo's EB from the implicit function on a domain around a box, and write the implicit
 // function's value in every cell to example.hdf5.
 template <class S>
 void
 buildEB(const S& a_shape, const int a_numCells, const int a_gridSize)
 {
+  // Cubic cells, a_numCells along the box's longest side and 10% to spare; each side's count is rounded up
+  // to a multiple of the grid size.
   const AABB box    = a_shape.computeBoundingVolume();
   const Vec3 centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
-  const Vec3 extent = box.getHighCorner() - box.getLowCorner();
-  const T    half   = T(0.55) * extent[extent.maxDir(true)];
+  const Vec3 extent = T(1.1) * (box.getHighCorner() - box.getLowCorner());
+  const Real dx     = extent[extent.maxDir(true)] / a_numCells;
 
-  const RealVect      lo(D_DECL(centre[0] - half, centre[1] - half, centre[2] - half));
-  const Real          dx = 2 * half / a_numCells;
-  const ProblemDomain domain(IntVect::Zero, (a_numCells - 1) * IntVect::Unit);
+  IntVect  cells;
+  RealVect lo;
+
+  for (int d = 0; d < SpaceDim; d++) {
+    cells[d] = a_gridSize * int(std::ceil(extent[d] / (a_gridSize * dx)));
+    lo[d]    = centre[d] - 0.5 * dx * cells[d];
+  }
+
+  const ProblemDomain domain(IntVect::Zero, cells - IntVect::Unit);
 
   const ShapeIF<S> implicitFunction(a_shape);
   GeometryShop     workshop(implicitFunction, -1, dx * RealVect::Unit);
@@ -105,7 +114,7 @@ main(int argc, char* argv[])
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
 #endif
-  {
+  try {
     ParmParse pp(argc - 2, argv + 2, nullptr, argv[1]);
 
     int         n_cells   = 128;
@@ -116,12 +125,16 @@ main(int argc, char* argv[])
     pp.query("grid_size", grid_size);
     pp.query("filename", filename);
 
-    // The default mesh is in the common-3d-test-models submodule: git submodule update --init.
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
     const Mesh mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(filename, pool);
 
     buildEB(mesh, n_cells, grid_size);
+  } catch (const EBGeometry::Parser::ParseError& e) {
+    const std::string message =
+      std::string("Cannot read the mesh: ") + e.what() +
+      "\nThe default mesh is in the common-3d-test-models submodule: " + "git submodule update --init";
+    MayDay::Error(message.c_str());
   }
 #ifdef CH_MPI
   MPI_Finalize();

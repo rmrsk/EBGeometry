@@ -15,6 +15,7 @@
 
 #include "../../../EBGeometry.hpp"
 
+#include <cmath>
 #include <string>
 
 using namespace amrex;
@@ -54,6 +55,7 @@ public:
   }
 
   // The face's index in the mesh: its position in the file, less any zero-area faces the reader removed.
+  // Stored in a Real, it is exact up to 2^24 faces when AMReX is built in single precision.
   AMREX_GPU_HOST_DEVICE
   Real
   closestFace(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
@@ -81,7 +83,7 @@ int
 main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
-  {
+  try {
     int         n_cell        = 128;
     int         max_grid_size = 32;
     std::string filename      = "../../../common-3d-test-models/data/suzanne.obj";
@@ -91,7 +93,6 @@ main(int argc, char* argv[])
     pp.query("max_grid_size", max_grid_size);
     pp.query("filename", filename);
 
-    // The default mesh is in the common-3d-test-models submodule: git submodule update --init.
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
     const Mesh mesh = EBGeometry::Parser::readIntoMeshSDF<T>(filename, pool);
@@ -107,16 +108,25 @@ main(int argc, char* argv[])
     const PaintIF sdf(mesh, mesh);
 #endif
 
-    // A cubic domain around the mesh.
+    // Cubic cells, n_cell along the mesh's longest side and 10% to spare; each side's count is rounded up
+    // to a multiple of 8.
     const AABB box    = mesh.computeBoundingVolume();
     const Vec3 centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
-    const Vec3 extent = box.getHighCorner() - box.getLowCorner();
-    const T    half   = T(0.55) * extent[extent.maxDir(true)];
+    const Vec3 extent = T(1.1) * (box.getHighCorner() - box.getLowCorner());
+    const T    h      = extent[extent.maxDir(true)] / T(n_cell);
 
-    const RealBox                    rb({AMREX_D_DECL(centre[0] - half, centre[1] - half, centre[2] - half)},
-                                        {AMREX_D_DECL(centre[0] + half, centre[1] + half, centre[2] + half)});
+    IntVect cells;
+    RealBox rb;
+
+    for (int d = 0; d < AMREX_SPACEDIM; d++) {
+      cells[d] = 8 * int(std::ceil(extent[d] / (8 * h)));
+
+      rb.setLo(d, centre[d] - T(0.5) * h * T(cells[d]));
+      rb.setHi(d, centre[d] + T(0.5) * h * T(cells[d]));
+    }
+
     const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};
-    const Geometry                   geom(Box(IntVect(0), IntVect(n_cell - 1)), rb, 0, periodic);
+    const Geometry                   geom(Box(IntVect(0), cells - 1), rb, 0, periodic);
 
     // A mesh's fine features can cut a cell edge more than twice, which EB2 refuses unless it may cover such
     // cells; allow it unless the inputs say otherwise.
@@ -162,6 +172,9 @@ main(int argc, char* argv[])
 
     // The EB index space keeps a copy of the implicit function, which must not outlive the pool.
     EB2::IndexSpace::clear();
+  } catch (const EBGeometry::Parser::ParseError& e) {
+    amrex::Abort(std::string("Cannot read the mesh: ") + e.what() +
+                 "\nThe default mesh is in the common-3d-test-models submodule: git submodule update --init");
   }
   amrex::Finalize();
 }

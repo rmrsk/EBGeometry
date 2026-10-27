@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Transforms: one object moved, turned, scaled, mirrored and stretched with Translate, Rotate, Scale,
-// Reflect and Elongate (copies of it over a grid are the Repetition example). A transform applies to a whole expression and changes
-// where the object is, not what it is: the program prints each result's bounding box. See README.md.
+// Transforms: one object moved, turned, scaled, mirrored and stretched with Translate, Rotate, Scale, Reflect
+// and Elongate (copies of it over a grid are the Repetition example). A transform applies to a whole
+// expression and changes where the object is, not what it is: the program prints each result's bounding box.
+// See README.md.
 
 #include <iomanip>
 #include <iostream>

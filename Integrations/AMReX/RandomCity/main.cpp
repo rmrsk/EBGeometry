@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // A city of randomly sized buildings in a BVH union, handed to AMReX's EB2 grid generation as an implicit
-// function. The same code runs on CPUs and, in a
-// CUDA or HIP build of AMReX, on GPUs. See README.md and the ManyObjects example under Examples/.
+// function. The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See README.md and the
+// ManyObjects example under Examples/.
 
 #include <AMReX.H>
 #include <AMReX_EB2.H>
@@ -13,6 +13,8 @@
 #include <AMReX_PlotFileUtil.H>
 
 #include "../../../EBGeometry.hpp"
+
+#include <cmath>
 
 #include <random>
 #include <vector>
@@ -62,19 +64,29 @@ private:
   S m_device;
 };
 
-// Build AMReX's EB from the implicit function on a cubic domain around a box, and write a plot file.
+// Build AMReX's EB from the implicit function on a domain around a box, and write a plot file.
 template <class S>
 void
 buildEB(const ShapeIF<S>& a_sdf, const AABB& a_box, const int a_numCells, const int a_maxGridSize)
 {
+  // Cubic cells, a_numCells along the box's longest side and 10% to spare; each side's count is rounded up
+  // to a multiple of 8.
   const Vec3 centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
-  const Vec3 extent = a_box.getHighCorner() - a_box.getLowCorner();
-  const T    half   = T(0.55) * extent[extent.maxDir(true)];
+  const Vec3 extent = T(1.1) * (a_box.getHighCorner() - a_box.getLowCorner());
+  const T    dx     = extent[extent.maxDir(true)] / T(a_numCells);
 
-  const RealBox                    rb({AMREX_D_DECL(centre[0] - half, centre[1] - half, centre[2] - half)},
-                                      {AMREX_D_DECL(centre[0] + half, centre[1] + half, centre[2] + half)});
+  IntVect cells;
+  RealBox rb;
+
+  for (int d = 0; d < AMREX_SPACEDIM; d++) {
+    cells[d] = 8 * int(std::ceil(extent[d] / (8 * dx)));
+
+    rb.setLo(d, centre[d] - T(0.5) * dx * T(cells[d]));
+    rb.setHi(d, centre[d] + T(0.5) * dx * T(cells[d]));
+  }
+
   const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};
-  const Geometry                   geom(Box(IntVect(0), IntVect(a_numCells - 1)), rb, 0, periodic);
+  const Geometry                   geom(Box(IntVect(0), cells - 1), rb, 0, periodic);
 
   // A mesh's fine features can cut a cell edge more than twice, which EB2 refuses unless it may cover such
   // cells; allow it unless the inputs say otherwise.
@@ -107,7 +119,7 @@ main(int argc, char* argv[])
   {
     int n_cell        = 128;
     int max_grid_size = 32;
-    int lots          = 60;
+    int lots          = 20;
 
     ParmParse pp;
     pp.query("n_cell", n_cell);

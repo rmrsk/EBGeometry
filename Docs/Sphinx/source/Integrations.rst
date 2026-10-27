@@ -13,9 +13,9 @@ Integrations
    your own integration.
 
 Each integration mirrors one of the :ref:`Chap:Examples` and hands the object it builds to the platform's
-embedded-boundary grid generation as an implicit function, on a cubic domain around the object's box. The
-geometry lives in an EBGeometry ``Pool`` (see :ref:`Chap:MemoryModel`) that must outlive every evaluation,
-and the implicit function holds the object by value. Several read a mesh from the ``common-3d-test-models``
+embedded-boundary grid generation as an implicit function, on a domain around the object's box with
+cubic cells. The geometry lives in an EBGeometry ``Pool`` (see :ref:`Chap:MemoryModel`) that must outlive
+every evaluation, and the implicit function holds the object by value. Several read a mesh from the ``common-3d-test-models``
 git submodule by default (see :ref:`Sec:Cloning`).
 
 Everything in EBGeometry is negative inside an object and positive outside it. AMReX and Chombo read

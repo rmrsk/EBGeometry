@@ -38,13 +38,13 @@ known only at run time can place compiled parts, and ``closestPrimitive()`` name
 
 .. code-block:: c++
 
-   const Tape<T, Fused> scene(pool, Union(Expr<T>(fused), Translate(Rotate(fused, 45, 1), Vec3(3, 0, 0))));
+   const Tape<T, FusedSolid> scene(pool, Union(Expr<T>(fused), Translate(Rotate(fused, 45, 1), Vec3(3, 0, 0))));
 
 The same query on a GPU
 -----------------------
 
 The fused solid holds its shapes, not offsets into a pool, so it goes to the device as it is:
-``GPU::transform(Distance<Fused>{fused}, line, values)``, with nothing to mirror.
+``GPU::transform(Distance<FusedSolid>{fused}, line, values)``, with nothing to mirror.
 
 Looking at it
 -------------

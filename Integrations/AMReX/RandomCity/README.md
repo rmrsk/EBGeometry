@@ -1,7 +1,7 @@
 Integrations/AMReX/RandomCity
 -----------------------------
 
-A city of 60 x 60 randomly sized buildings (`BoxSDF`) in a `BVHUnion`, handed to AMReX's EB2 grid generation as an implicit function. It mirrors the
+A city of 20 x 20 randomly sized buildings (`BoxSDF`) in a `BVHUnion`, handed to AMReX's EB2 grid generation as an implicit function. It mirrors the
 [`ManyObjects`](../../../Examples/ManyObjects/README.md) example.
 
 The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs: the geometry's pool is mirrored to
@@ -27,8 +27,8 @@ Running
 
 Options (on the command line or in an inputs file):
 
-* `n_cell = <integer>`: cells along each direction of the cubic domain around the object (default 128).
+* `n_cell = <integer>`: cells along the longest side of the domain around the object, whose cells are cubes (default 128).
 * `max_grid_size = <integer>`: the largest box (default 32).
-* `lots = <integer>`: lots along each side of the city (default 60).
+* `lots = <integer>`: lots along each side of the city (default 20).
 
 It writes a plot file, `plt`.

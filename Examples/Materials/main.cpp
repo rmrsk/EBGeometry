@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Which part of an object a query found: the armadillo with a cylinder bored through it, and for a point or
-// a ray, which of the two surfaces the answer comes from. That id indexes a table of your own, such as
+// Which part of an object a query found: the armadillo with a cylinder bored through it, and for a point or a
+// ray, which of the two surfaces the answer comes from. That id indexes a table of your own, such as
 // materials or boundary conditions; the viewer colours by it. See README.md.
 
 #include <iomanip>

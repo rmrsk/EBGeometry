@@ -4,7 +4,7 @@ Examples/Twist
 An operation of your own: a twist about the y axis, written as a small trivially copyable struct that holds
 another shape and evaluates it at a point turned back by an angle growing with height. It twists the
 armadillo, read from a file. A twist does not keep distances, so the value is divided by the most the twist
-stretches lengths, which keeps it a lower bound on the distance (`DistanceQuality::Bound`) and keeps sphere
+stretches lengths inside the twisted box, which keeps it a lower bound on the distance (`DistanceQuality::Bound`) and keeps sphere
 tracing and BVH pruning safe. The twisted copy is listed as a user type of a `Tape` beside the original.
 
 The default mesh comes from the `common-3d-test-models` git submodule: clone the repository with

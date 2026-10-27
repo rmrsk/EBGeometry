@@ -10,8 +10,9 @@
 # found). Run it by hand after a change to an example's geometry or to the renderer; nothing runs it
 # automatically.
 #
-# Requires: a C++17 compiler (CXX, default g++) and ImageMagick's convert. MeshSDF needs the
-# common-3d-test-models submodule.
+# Requires: a C++17 compiler (CXX, default g++) and ImageMagick's convert. The examples that read a mesh
+# by default (MeshSDF, MeshCSG, Shell, Materials, Repetition, Twist) need the common-3d-test-models
+# submodule: git submodule update --init.
 #
 # Usage:
 #   Scripts/render-example-figures.sh                  # every example that calls Render::view()
@@ -41,6 +42,10 @@ view(const S& a_shape, const EBGeometry::Render::Camera<EBGeometry::ShapePrecisi
   EBGeometry::Render::Renderer<EBGeometry::ShapePrecision<S>>(a_settings).render(a_shape, a_camera, image);
 
   FILE* file = std::fopen(std::getenv("SNAPSHOT"), "wb");
+  if (file == nullptr) {
+    std::fprintf(stderr, "render-example-figures: cannot write %s\n", std::getenv("SNAPSHOT"));
+    std::exit(1);
+  }
   std::fprintf(file, "P6\n%u %u\n255\n", image.m_width, image.m_height);
   for (const uint32_t p : image.m_pixels) {
     const unsigned char rgb[3] = {(unsigned char)(p >> 24), (unsigned char)(p >> 16), (unsigned char)(p >> 8)};
@@ -58,6 +63,7 @@ view(const S& a_shape, int a_argc, char** a_argv)
                  EBGeometry::Render::Settings<T>(), a_argc, a_argv);
 }
 
+// A device view is ignored: the frame is rendered on the host.
 template <class S>
 void
 view(const S& a_shape, const S&, const EBGeometry::Render::Camera<EBGeometry::ShapePrecision<S>>& a_camera,
@@ -75,6 +81,11 @@ else
 fi
 
 for example in "${examples[@]}"; do
+  if ! grep -q '^[[:space:]]*EBGeometry::Render::view(' "${ROOT}/Examples/${example}/main.cpp" 2>/dev/null; then
+    echo "render-example-figures: Examples/${example}/main.cpp does not exist or opens no viewer" >&2
+    exit 1
+  fi
+
   echo "Rendering ${example}"
   sed 's/EBGeometry::Render::view(/Snapshot::view(/' "${ROOT}/Examples/${example}/main.cpp" > "${WORK}/${example}.cpp"
   "${CXX:-g++}" -std=c++17 -O3 -march=native -I"${ROOT}" -include "${WORK}/snapshot.hpp" \

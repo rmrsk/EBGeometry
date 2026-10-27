@@ -4,7 +4,7 @@ Examples/FusedCSG
 The solid of `BasicCSG` built with the functions in namespace `Fused` (`Fused::Difference`,
 `Fused::Intersection`): a shape whose type spells out the whole tree, which the compiler evaluates as it
 would the solid written by hand. The program compares it with the same solid through a `Tape` (values and
-time per point), uses fused parts as the leaves of a tape (`Tape<T, Fused>`), and evaluates the fused solid
+time per point), uses fused parts as the leaves of a tape (`Tape<T, FusedSolid>`), and evaluates the fused solid
 on a GPU without a pool.
 
 Building

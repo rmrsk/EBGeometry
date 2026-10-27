@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// CSG with a mesh: a triangle mesh is a shape like any other, so the expression builder moves and scales
-// it and joins it to analytic shapes. Here the xyzrgb dragon stands on a table, blended into it by a
-// smooth union. See README.md.
+// CSG with a mesh: a triangle mesh is a shape like any other, so the expression builder moves and scales it
+// and joins it to analytic shapes. Here the xyzrgb dragon stands on a table, blended into it by a smooth
+// union. See README.md.
 
 #include <iomanip>
 #include <iostream>

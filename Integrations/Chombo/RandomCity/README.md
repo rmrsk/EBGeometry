@@ -1,7 +1,7 @@
 Integrations/Chombo/RandomCity
 ------------------------------
 
-A city of 60 x 60 randomly sized buildings (`BoxSDF`) in a `BVHUnion`, handed to Chombo's `GeometryShop` as an implicit function. It mirrors the
+A city of 20 x 20 randomly sized buildings (`BoxSDF`) in a `BVHUnion`, handed to Chombo's `GeometryShop` as an implicit function. It mirrors the
 [`ManyObjects`](../../../Examples/ManyObjects/README.md) example.
 
 EBGeometry's value is negative inside the object and the platform reads negative values as fluid, so the
@@ -21,8 +21,8 @@ Running
 
 Options (in `examples.inputs`):
 
-* `n_cells = <integer>`: cells along each direction of the cubic domain around the object (default 128).
+* `n_cells = <integer>`: cells along the longest side of the domain around the object, whose cells are cubes (default 128).
 * `grid_size = <integer>`: the box size (default 16).
-* `lots = <integer>`: lots along each side of the city (default 60).
+* `lots = <integer>`: lots along each side of the city (default 20).
 
 It writes the implicit function's value in every cell to `example.hdf5`.

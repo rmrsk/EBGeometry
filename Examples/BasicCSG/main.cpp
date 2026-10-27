@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // The classic CSG solid: a cube rounded off by a ball (an intersection) and drilled through along all three
-// axes (a difference with a union of three cylinders). The expression builder describes it, a Tape
-// compiles it, and the same tape is evaluated on the host and on a GPU. See README.md.
+// axes (a difference with a union of three cylinders). The expression builder describes it, a Tape compiles
+// it, and the same tape is evaluated on the host and on a GPU. See README.md.
 
 #include <cstdint>
 #include <iomanip>

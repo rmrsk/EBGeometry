@@ -21,7 +21,7 @@ Running
 
 Options (in `examples.inputs`):
 
-* `n_cells = <integer>`: cells along each direction of the cubic domain around the object (default 128).
+* `n_cells = <integer>`: cells along the longest side of the domain around the object, whose cells are cubes (default 128).
 * `grid_size = <integer>`: the box size (default 16).
 * `num_spheres = <integer>`: the number of spheres (default 3000).
 

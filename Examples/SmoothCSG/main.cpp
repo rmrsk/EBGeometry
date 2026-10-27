@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Smooth CSG: SmoothUnion, SmoothIntersection and SmoothDifference blend two objects over a length instead
-// of meeting at a sharp crease. The program compares a sharp and a smooth union at their crease, with both
-// blend kinds, and sets each smooth object beside its sharp counterpart in the viewer. See README.md.
+// Smooth CSG: SmoothUnion, SmoothIntersection and SmoothDifference blend two objects over a length instead of
+// meeting at a sharp crease. The program compares a sharp and a smooth union at their crease, with both blend
+// kinds, and sets each smooth object beside its sharp counterpart in the viewer. See README.md.
 
 #include <cmath>
 #include <iomanip>

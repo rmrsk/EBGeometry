@@ -1,0 +1,29 @@
+Host Name: brain
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: ./MeshSDF/main3d.gnu.TEST.MPI.ex(+0x2ecda7) [0x61cc68471da7]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*) at /usr/include/x86_64-linux-gnu/bits/unistd.h:145 (discriminator 7)
+ (inlined by) amrex::BLBackTrace::print_backtrace_info(_IO_FILE*) at /home/robertm/Projects/amrex/Src/Base/AMReX_BLBackTrace.cpp:215 (discriminator 7)
+
+ 1: ./MeshSDF/main3d.gnu.TEST.MPI.ex(+0x2f24b3) [0x61cc684774b3]
+    amrex::BLBackTrace::handler(int) at /home/robertm/Projects/amrex/Src/Base/AMReX_BLBackTrace.cpp:103
+
+ 2: ./MeshSDF/main3d.gnu.TEST.MPI.ex(+0x13768) [0x61cc68198768]
+    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::~basic_string() at /usr/include/c++/13/bits/basic_string.h:804
+ (inlined by) main at /home/robertm/Projects/EBGeometry/Integrations/AMReX/MeshSDF/main.cpp:146
+
+ 3: /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca) [0x74644482a1ca]
+
+ 4: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b) [0x74644482a28b]
+
+ 5: ./MeshSDF/main3d.gnu.TEST.MPI.ex(+0x37595) [0x61cc681bc595]
+    ?? ??:0
+

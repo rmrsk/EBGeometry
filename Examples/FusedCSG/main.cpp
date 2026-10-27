@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Fused CSG: the classic solid of the BasicCSG example built with the functions in namespace Fused, whose
-// result is a shape whose type spells out the whole tree. The C++ compiler evaluates it as it would the
-// solid written out by hand, with nothing to interpret: the program compares it with the same solid
-// through a Tape, uses fused parts as the leaves of a tape, and evaluates the fused solid on a GPU with no
-// pool at all. See README.md.
+// result is a shape whose type spells out the whole tree. The C++ compiler evaluates it as it would the solid
+// written out by hand, with nothing to interpret: the program compares it with the same solid through a Tape,
+// uses fused parts as the leaves of a tape, and evaluates the fused solid on a GPU with no pool at all. See
+// README.md.
 
 #include <chrono>
 #include <iomanip>
@@ -74,7 +74,7 @@ main(int argc, char* argv[])
 
   const auto fused = EBGeometry::Fused::Difference(EBGeometry::Fused::Intersection(cube, ball), drillX, drillY, drillZ);
 
-  using Fused = std::decay_t<decltype(fused)>;
+  using FusedSolid = std::decay_t<decltype(fused)>;
 
   // ── Compare it with the tape on the host ───────────────────────────────────────────────────────────
   //
@@ -104,11 +104,11 @@ main(int argc, char* argv[])
   std::cout << std::setprecision(1) << "Per point on the host: tape " << tapeTime << " ns, fused " << fusedTime
             << " ns (sum " << sum << ")\n";
 
-  // ── Fused parts in a tape ──────────────────────────────────────────────────────────────────────────
+  // ── Fused parts in a tape ──────────────────────────────────────────────────────────────────────────────
   //
   // A fused solid is one shape with one surface: listed after T, it is one leaf of a tape, so a scene
   // known only at run time can place compiled parts. closestPrimitive() then names the part.
-  const EBGeometry::Tape<T, Fused> scene(
+  const EBGeometry::Tape<T, FusedSolid> scene(
     pool,
     EBGeometry::Union(Expr(fused), EBGeometry::Translate(EBGeometry::Rotate(fused, T(45), 1), Vec3(T(3), T(0), T(0)))));
 
@@ -131,7 +131,7 @@ main(int argc, char* argv[])
 
     std::vector<T> values(line.size());
 
-    EBGeometry::GPU::transform(Distance<Fused>{fused}, line, values);
+    EBGeometry::GPU::transform(Distance<FusedSolid>{fused}, line, values);
 
     std::cout << std::setprecision(4) << "Along a line at y = 0.3, z = 0.7, through GPU::transform ("
               << EBGeometry::GPU::backendName << "):\n";

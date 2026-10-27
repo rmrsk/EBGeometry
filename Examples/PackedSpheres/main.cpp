@@ -41,9 +41,10 @@ main(int argc, char* argv[])
 {
   // ── Build the packing ──────────────────────────────────────────────────────────────────────────────
   //
-  // Rejection sampling: draw a centre uniformly in the cylinder's box and keep it only if it lies inside
-  // the cylinder, then draw the radius. A fixed seed gives the same packing on every run. The union copies
-  // the spheres into the pool, which must outlive it.
+  // Rejection sampling: draw a centre uniformly in the cylinder's box and keep it only if it lies inside the
+  // cylinder, then draw the radius. A fixed seed gives the same packing on every run (with the same standard
+  // library, whose distributions are not specified bit for bit). The union copies the spheres into the pool,
+  // which must outlive it.
   std::mt19937_64                   rng(0);
   std::uniform_real_distribution<T> unit(T(-1), T(1));
 

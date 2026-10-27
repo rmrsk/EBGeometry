@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Value operations: Offset, Annular, Blur and Mollify change an object's value rather than where it is.
-// Offset grows or shrinks it, Annular hollows it into a shell, and Blur and Mollify average the value
-// around each point, which rounds edges and corners. The program applies each to a cube and prints its
-// value at the cube's corner and how far the value can be trusted as a distance. See README.md.
+// Offset grows or shrinks it, Annular hollows it into a shell, and Blur and Mollify average the value around
+// each point, which rounds edges and corners. The program applies each to a cube and prints its value at the
+// cube's corner and how far the value can be trusted as a distance. See README.md.
 
 #include <iomanip>
 #include <iostream>
@@ -47,7 +47,7 @@ main(int argc, char* argv[])
 
   // ── Use them on the host ───────────────────────────────────────────────────────────────────────────
   //
-  // At the cube's corner the value is 0; an offset shifts it by the offset; blurring and mollifying round
+  // At the cube's corner the value is 0; Offset(r) lowers it by r; blurring and mollifying round
   // the corner off, so the corner is outside them.
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 

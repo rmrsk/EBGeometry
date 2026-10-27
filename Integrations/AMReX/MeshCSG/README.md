@@ -30,7 +30,7 @@ Running
 
 Options (on the command line or in an inputs file):
 
-* `n_cell = <integer>`: cells along each direction of the cubic domain around the object (default 128).
+* `n_cell = <integer>`: cells along the longest side of the domain around the object, whose cells are cubes (default 128).
 * `max_grid_size = <integer>`: the largest box (default 32).
 * `filename = <string>`: the mesh file, relative to this folder.
 

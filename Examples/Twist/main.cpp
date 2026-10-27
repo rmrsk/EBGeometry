@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // An operation of your own: a twist about the y axis, written as a shape that holds another shape and
-// evaluates it at a point turned back by an angle that grows with height. Here it twists a mesh read from
-// a file. A twist does not keep distances, so the value is scaled down to stay a safe lower bound on the
+// evaluates it at a point turned back by an angle that grows with height. Here it twists a mesh read from a
+// file. A twist does not keep distances, so the value is scaled down to stay a safe lower bound on the
 // distance, and the type says so. See README.md.
 
 #include <cmath>
@@ -29,9 +29,10 @@ using Tape = EBGeometry::Tape<T>;
 //
 // Twisted<S> turns the shape S by m_rate radians per unit of height, about the y axis. A point p is
 // turned back by m_rate * p[1] and S is evaluated there. The map stretches lengths by at most
-// sqrt(1 + (m_rate * r)^2) at distance r from the axis, so dividing by that factor (m_lipschitz, for the
-// largest r in the box) keeps the value a lower bound on the distance: sphere tracing and BVH pruning stay
-// safe. Like a shape of your own (the CustomShape example), it is trivially copyable, with
+// sqrt(1 + (m_rate * r)^2) at distance r from the axis. Sphere tracing and BVH pruning evaluate a shape only
+// inside its box, a square of half-width m_radius about the axis whose corners are sqrt(2) m_radius from
+// it, so dividing by that factor at the corners (m_lipschitz) keeps the value a lower bound on the
+// distance there. Like a shape of your own (the CustomShape example), it is trivially copyable, with
 // signedDistance(), computeBoundingVolume() and distanceQuality.
 template <class S>
 struct Twisted
@@ -39,7 +40,7 @@ struct Twisted
   S m_shape;
   T m_rate;
   T m_radius;    // The largest distance of the shape from the y axis.
-  T m_lipschitz; // sqrt(1 + (m_rate * m_radius)^2).
+  T m_lipschitz; // sqrt(1 + 2 (m_rate * m_radius)^2), the stretch at the box's corners.
 
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   T
@@ -77,7 +78,7 @@ twist(const S& a_shape, const T a_rate)
   const T    z   = EBGeometry::Math::max(std::abs(lo[2]), std::abs(hi[2]));
   const T    r   = std::sqrt(x * x + z * z);
 
-  return Twisted<S>{a_shape, a_rate, r, std::sqrt(T(1) + a_rate * a_rate * r * r)};
+  return Twisted<S>{a_shape, a_rate, r, std::sqrt(T(1) + T(2) * a_rate * a_rate * r * r)};
 }
 
 static_assert(EBGeometry::isShape<Twisted<Tape>>, "Twisted must satisfy EBGeometry's shape requirements");

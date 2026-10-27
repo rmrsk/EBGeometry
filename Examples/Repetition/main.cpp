@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Repetition: many copies of one object on a grid, with FiniteRepetition; here a mesh, the happy Buddha.
-// The tape stores the object once and folds each point into the nearest copy, so its size and cost do not
-// grow with the number of copies; the program compares it with the same copies placed one by one in a
-// union. See README.md.
+// Repetition: many copies of one object on a grid, with FiniteRepetition; here a mesh, the happy Buddha. The
+// tape stores the object once and folds each point into the nearest copy, so its size and cost do not grow
+// with the number of copies; the program compares it with the same copies placed one by one in a union. See
+// README.md.
 
 #include <chrono>
 #include <iomanip>

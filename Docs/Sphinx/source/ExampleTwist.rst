@@ -31,9 +31,10 @@ its value can be trusted:
    static constexpr DistanceQuality distanceQuality = DistanceQuality::Bound;
 
 A twist is not a rigid motion: at distance :math:`r` from the axis it stretches lengths by up to
-:math:`\sqrt{1 + (kr)^2}` for a rate :math:`k`. Dividing the value by that factor, for the largest
-:math:`r` in the box, keeps it a lower bound on the distance, which is what sphere tracing (the renderer)
-and BVH pruning need.
+:math:`\sqrt{1 + (kr)^2}` for a rate :math:`k`. Sphere tracing (the renderer) and BVH pruning evaluate a shape
+only inside its box, a square of half-width :math:`R` about the axis whose corners are :math:`\sqrt{2}R`
+from it; dividing the value by the factor at the corners, :math:`\sqrt{1 + 2(kR)^2}`, keeps it a lower
+bound on the distance there, which is what they need.
 
 Using it
 --------
