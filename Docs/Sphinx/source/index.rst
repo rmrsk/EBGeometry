@@ -131,6 +131,7 @@ Examples
    ExampleFusedCSG.rst
    ExampleMeshSDF.rst
    ExampleMeshCSG.rst
+   ExampleShell.rst
    ExampleNestedBVH.rst
    ExampleManyObjects.rst
    ExamplePackedSpheres.rst
@@ -139,6 +140,7 @@ Examples
    ExampleRayTracing.rst
    ExampleOctreeBoundingVolume.rst
    ExampleCustomShape.rst
+   ExampleTwist.rst
    ExampleHostTuning.rst
    ExampleBuildBVH.rst
    Integrations.rst

@@ -17,7 +17,7 @@ and additionally require that platform to be installed — see :ref:`Chap:Integr
 
    Several examples read a mesh from the ``common-3d-test-models`` git submodule by default
    (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleMeshCSG`, :ref:`Chap:ExampleRepetition`,
-   :ref:`Chap:ExampleRayTracing`). Clone the repository with ``--recurse-submodules``, or run
+   :ref:`Chap:ExampleRayTracing`, :ref:`Chap:ExampleTwist`, :ref:`Chap:ExampleShell`). Clone the repository with ``--recurse-submodules``, or run
    ``git submodule update --init`` in it (see :ref:`Sec:Cloning`).
 
 The examples teach; the unit tests verify. An example shows the calls a user would write, in the
@@ -49,6 +49,7 @@ The examples build on each other. A new user can read them in this order:
 #. :ref:`Chap:ExampleMeshSDF`: reading a surface mesh into a signed distance function, and the
    three representations to choose from.
 #. :ref:`Chap:ExampleMeshCSG`: a mesh joined to analytic shapes, the dragon on a table.
+#. :ref:`Chap:ExampleShell`: a thin shell around a mesh (Lucy), cut open.
 #. :ref:`Chap:ExampleNestedBVH`: a mesh placed many times, in a tape and in a BVH union of meshes.
 #. :ref:`Chap:ExampleManyObjects`: a BVH union over many primitives, and how much it saves over a
    plain loop.
@@ -63,6 +64,7 @@ The examples build on each other. A new user can read them in this order:
    closed-form one.
 #. :ref:`Chap:ExampleCustomShape`: a shape type of your own, and calling EBGeometry from your own
    kernel.
+#. :ref:`Chap:ExampleTwist`: an operation of your own, a twist, applied to a mesh.
 #. :ref:`Chap:ExampleHostTuning`: the branching factor and SIMD width tuned to the host.
 #. :ref:`Chap:ExampleBuildBVH`: comparing the BVH construction methods by build time.
 
@@ -114,7 +116,7 @@ Running on a GPU
 ----------------
 
 Every example except ``BuildBVH``, ``HostTuning``, ``SmoothCSG``, ``Transforms``, ``ValueOperations``,
-``Repetition``, ``MeshCSG`` and ``PackedSpheres`` builds from the same source as plain C++ (the
+``Repetition``, ``MeshCSG``, ``PackedSpheres``, ``Twist`` and ``Shell`` builds from the same source as plain C++ (the
 default) or as CUDA or HIP. Its last section runs its query through ``GPU::transform`` (see
 :ref:`Chap:RunningOnGPU`): in a kernel in a GPU build, and in a host loop otherwise, so that section
 runs in every build. Pool-resident geometry is mirrored into ``GPU::memoryResource()``, which is
@@ -122,7 +124,7 @@ device memory in a GPU build and host memory standing in for it otherwise. Only 
 visible GPU skips the section, with a message. Device results agree with the host's to rounding
 rather than bit for bit, since a device compiler may fuse a multiply and an add where the host
 compiler does not. ``BuildBVH`` and ``HostTuning`` stay host-only: they are about the BVH builders
-and the host-tuned types, neither of which a device uses. The other six do too: their tapes and
+and the host-tuned types, neither of which a device uses. The other eight do too: their tapes and
 unions reach a device exactly as those of :ref:`Chap:ExampleBasicCSG` and :ref:`Chap:ExampleManyObjects` do.
 
 Each query is a small trivially copyable struct whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
