@@ -91,6 +91,37 @@ struct Sectioned
   }
 
   /**
+   * @brief The shape's value, uncut.
+   * @details Out of line on a device, like shapeHit(): the renderer reaches it from several places, and
+   * a copy of a mesh's or a tape's distance inlined at each made the kernels too large to compile.
+   * @param[in] a_point Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  shapeDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_shape.signedDistance(a_point);
+  }
+
+  /**
+   * @brief The shape's first crossing along a ray, uncut (firstHit()); out of line on a device.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the shape.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  shapeHit(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    return EBGeometry::firstHit(m_shape, a_ray, a_tMin, a_tMax, a_options);
+  }
+
+  /**
    * @brief The cut shape's value.
    * @param[in] a_point Point.
    * @return The value.
@@ -99,7 +130,7 @@ struct Sectioned
   inline T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
-    const T v = m_shape.signedDistance(a_point);
+    const T v = this->shapeDistance(a_point);
 
     return m_on ? Math::max(v, this->plane(a_point)) : v;
   }
@@ -190,21 +221,22 @@ class Shader
 {
 public:
   /**
-   * @brief Set up the scene for a shape, a camera and settings.
+   * @brief Set up the scene for a shape, a camera's view and settings.
    * @param[in] a_shape    Shape.
-   * @param[in] a_camera   Camera.
+   * @param[in] a_view     The camera's view.
    * @param[in] a_settings Settings.
    */
   EBGEOMETRY_HOST_DEVICE
-  Shader(const S& a_shape, const Camera<T>& a_camera, const Settings<T>& a_settings) noexcept
+  Shader(const S& a_shape, const CameraView<T>& a_view, const Settings<T>& a_settings) noexcept
     : m_object{a_shape, a_settings.m_section, a_settings.m_sectionPoint, unit(a_settings.m_sectionNormal)},
       m_settings(a_settings),
-      m_eye(a_camera.eye()),
-      m_up(unit(a_camera.m_up)),
+      m_eye(a_view.m_eye),
+      m_up(a_view.m_axis),
       m_baseLight(unit(a_settings.m_light)),
-      m_light(m_baseLight)
+      m_light(m_baseLight),
+      m_first(a_view.m_first),
+      m_second(a_view.m_second)
   {
-    a_camera.horizontal(m_first, m_second);
 
     const auto     box = a_shape.computeBoundingVolume();
     const Vec3T<T> lo  = box.getLowCorner();
@@ -213,10 +245,9 @@ public:
     const T    diagonal = (hi - lo).length();
     const bool bounded  = std::isfinite(diagonal) && diagonal > T(0);
 
-    m_scale =
-      (a_settings.m_rays.m_scale > T(0)) ? a_settings.m_rays.m_scale : (bounded ? diagonal : a_camera.m_distance);
-    m_eps = a_settings.m_rays.m_tolerance * m_scale;
-    m_far = bounded ? ((m_eye - box.getCentroid()).length() + diagonal) : T(50) * m_scale;
+    m_scale = (a_settings.m_rays.m_scale > T(0)) ? a_settings.m_rays.m_scale : (bounded ? diagonal : a_view.m_distance);
+    m_eps   = a_settings.m_rays.m_tolerance * m_scale;
+    m_far   = bounded ? ((m_eye - box.getCentroid()).length() + diagonal) : T(50) * m_scale;
 
     m_rays         = a_settings.m_rays;
     m_rays.m_scale = m_scale;
@@ -273,7 +304,7 @@ public:
   shade(const Vec3T<T>& a_direction, PixelResult& a_result) const noexcept
   {
     const RayT<T> ray{m_eye, a_direction};
-    const HitT<T> hit = firstHit(m_object, ray, T(0), m_far, m_rays);
+    const HitT<T> hit = this->trace(ray, m_far);
 
     if (hit.m_status == HitStatus::Unresolved) {
       a_result.m_unresolved++;
@@ -374,6 +405,23 @@ private:
   T m_floorLevel;
 
   /**
+   * @brief The cut shape's first crossing along a ray from its origin (firstHit()).
+   * @details Every ray the shader casts goes through here, out of line on a device: inlined at each of
+   * its callers, the shape's whole trace was copied once per ray kind and the kernels grew too large to
+   * compile.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMax How far along it to look.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  trace(const RayT<T>& a_ray, const T a_tMax) const noexcept
+  {
+    return firstHit(m_object, a_ray, T(0), a_tMax, m_rays);
+  }
+
+  /**
    * @brief The cut shape's unit normal at a point, from finite differences on a tetrahedron.
    * @param[in] a_point Point.
    * @return The normal.
@@ -409,7 +457,7 @@ private:
   shadow(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
-    const HitT<T>  hit    = firstHit(m_object, RayT<T>{origin, m_light}, T(0), T(2) * m_scale, m_rays);
+    const HitT<T>  hit    = this->trace(RayT<T>{origin, m_light}, T(2) * m_scale);
 
     return hit.hit() ? T(0) : T(1);
   }
@@ -436,7 +484,7 @@ private:
       const T        a = T(0.5) * pi<T> * T(k);
       const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
 
-      blocked += firstHit(m_object, RayT<T>{origin, r}, T(0), T(0.07) * m_scale, m_rays).hit() ? 1 : 0;
+      blocked += this->trace(RayT<T>{origin, r}, T(0.07) * m_scale).hit() ? 1 : 0;
     }
 
     return T(1) - T(0.2) * T(blocked);
@@ -481,7 +529,7 @@ private:
     const Vec3T<T>& p = a_hit.m_point;
 
     // A face cut by the section plane is where the plane, not the shape, gives the value.
-    const bool cut = m_object.m_on && m_object.plane(p) >= m_object.m_shape.signedDistance(p);
+    const bool cut = m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p);
 
     Vec3T<T> n = cut ? m_object.m_normal : ((a_hit.m_normal.length2() > T(0)) ? a_hit.m_normal : this->normal(p));
 
@@ -549,6 +597,46 @@ private:
   }
 };
 
+/**
+ * @brief One band of rows of a device render: pixel a_first + i, for every index i of the launch, into the
+ * frame's results.
+ * @details Internal helper; not part of the public API. The pixel indices come from the launch, so nothing
+ * is copied to the device but the functor.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ */
+template <class T, class S>
+struct BandOfPixels
+{
+  /**
+   * @brief The pixel functor.
+   */
+  PixelQuery<T, S> m_query;
+
+  /**
+   * @brief The frame's results, in device memory.
+   */
+  PixelResult* m_results;
+
+  /**
+   * @brief The band's first pixel.
+   */
+  uint32_t m_first;
+
+  /**
+   * @brief Shade pixel m_first + a_index.
+   * @param[in] a_index Index within the band.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  operator()(const std::size_t a_index) const noexcept
+  {
+    const auto pixel = static_cast<uint32_t>(m_first + a_index);
+
+    m_results[pixel] = m_query(pixel);
+  }
+};
+
 } // namespace RenderDetail
 
 } // namespace EBGeometry::Render
@@ -585,7 +673,7 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
            const RayOptions<T>&                         a_options) noexcept
   {
     if (!a_cut.m_on) {
-      return EBGeometry::firstHit(a_cut.m_shape, a_ray, a_tMin, a_tMax, a_options);
+      return a_cut.shapeHit(a_ray, a_tMin, a_tMax, a_options);
     }
 
     // The part [a, b] of the interval on the kept side of the plane.
@@ -626,13 +714,13 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       return hit;
     };
 
-    if (a > a_tMin && a_cut.m_shape.signedDistance(a_ray.at(a)) < T(0)) {
+    if (a > a_tMin && a_cut.shapeDistance(a_ray.at(a)) < T(0)) {
       return onPlane(a, true);
     }
 
-    const HitT<T> hit = EBGeometry::firstHit(a_cut.m_shape, a_ray, a, b, a_options);
+    const HitT<T> hit = a_cut.shapeHit(a_ray, a, b, a_options);
 
-    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.m_shape.signedDistance(a_ray.at(b)) < T(0)) {
+    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_ray.at(b)) < T(0)) {
       return onPlane(b, false);
     }
 
@@ -767,10 +855,24 @@ Image::at(const uint32_t a_column, const uint32_t a_row) const noexcept
 
 template <class T, class S>
 EBGEOMETRY_HOST_DEVICE
+inline PixelQuery<T, S>::PixelQuery(const S& a_shape, const Camera<T>& a_camera, const Settings<T>& a_settings) noexcept
+  : m_shape(a_shape), m_camera(a_camera), m_settings(a_settings)
+{
+  m_view.m_eye      = a_camera.eye();
+  m_view.m_axis     = RenderDetail::unit(a_camera.m_up);
+  m_view.m_tanHalf  = std::tan(T(0.5) * a_camera.m_fieldOfView * pi<T> / T(180));
+  m_view.m_distance = a_camera.m_distance;
+
+  a_camera.frame(m_view.m_forward, m_view.m_right, m_view.m_up);
+  a_camera.horizontal(m_view.m_first, m_view.m_second);
+}
+
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
 inline PixelResult
 PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
 {
-  RenderDetail::Shader<T, S> shader(m_shape, m_camera, m_settings);
+  RenderDetail::Shader<T, S> shader(m_shape, m_view, m_settings);
 
   PixelResult result;
 
@@ -778,13 +880,11 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
     result.m_cameraInside = shader.eyeInside() ? 1U : 0U;
   }
 
-  Vec3T<T> forward;
-  Vec3T<T> right;
-  Vec3T<T> up;
+  const Vec3T<T>& forward = m_view.m_forward;
+  const Vec3T<T>& right   = m_view.m_right;
+  const Vec3T<T>& up      = m_view.m_up;
 
-  m_camera.frame(forward, right, up);
-
-  const T tanHalf = std::tan(T(0.5) * m_camera.m_fieldOfView * pi<T> / T(180));
+  const T tanHalf = m_view.m_tanHalf;
   const T w       = T(m_settings.m_width);
   const T h       = T(m_settings.m_height);
   const T column  = T(a_index % m_settings.m_width);
@@ -1002,15 +1102,25 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
 
   const PixelQuery<T, S> query{a_deviceShape, a_camera, m_settings};
 
-  // A launch per band of rows, so that a cancelled render stops after the band under way: 32 bands,
-  // or fewer for a small image.
-  const uint32_t band = Math::max(1U, height / 32U);
+  // A launch per band of rows, so that a cancelled render stops after the band under way: 8 bands, or
+  // fewer for a small image (each launch waits for the device, tens of microseconds, so more bands cost a
+  // small frame more than they gain). The bands write into one buffer for the frame, in device memory,
+  // that is copied back once at the end.
+  const uint32_t band   = Math::max(1U, (height + 7U) / 8U);
+  const size_t   pixels = size_t(width) * size_t(height);
 
-  std::vector<PixelResult> results(size_t(width) * size_t(height));
-  std::vector<uint32_t>    indices;
-  std::vector<PixelResult> part;
+  std::vector<PixelResult> results(pixels);
 
-  bool stopped = false;
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  PixelResult* buffer = nullptr;
+
+  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&buffer), sizeof(PixelResult) * pixels));
+#else
+  PixelResult* buffer = results.data();
+#endif
+
+  bool     stopped = false;
+  uint32_t done    = 0;
 
   for (uint32_t row = 0; row < height; row += band) {
     if (a_cancel.load(std::memory_order_relaxed)) {
@@ -1021,19 +1131,20 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
 
     const uint32_t rows = Math::min(band, height - row);
 
-    indices.resize(size_t(rows) * size_t(width));
-    part.resize(indices.size());
+    GPU::parallelFor(size_t(rows) * size_t(width), RenderDetail::BandOfPixels<T, S>{query, buffer, row * width});
 
-    std::iota(indices.begin(), indices.end(), row * width);
-
-    GPU::transform(query, indices, part);
-
-    std::copy(part.begin(), part.end(), results.begin() + std::ptrdiff_t(size_t(row) * size_t(width)));
+    done += rows;
 
     if (a_rowsDone != nullptr) {
       (*a_rowsDone) += rows;
     }
   }
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  EBGEOMETRY_GPU_CHECK(
+    GPU::memcpy(results.data(), buffer, sizeof(PixelResult) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
+  EBGEOMETRY_GPU_CHECK(GPU::memFree(buffer));
+#endif
 
   Stats stats = this->collect(results, a_image);
 

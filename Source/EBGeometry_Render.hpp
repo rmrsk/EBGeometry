@@ -336,6 +336,67 @@ struct PixelResult
   uint8_t m_cameraInside = 0;
 };
 
+namespace RenderDetail {
+
+/**
+ * @brief What every pixel needs from the camera, worked out once per frame: the eye, the view's axes and
+ * the field of view's slope.
+ * @details Internal helper; not part of the public API. It depends on the camera alone, so it is computed
+ * on the host even for a device render (the shape's box, which only a device view may read there, is not
+ * in it).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct CameraView
+{
+  /**
+   * @brief The eye.
+   */
+  Vec3T<T> m_eye;
+
+  /**
+   * @brief Unit direction the camera looks in.
+   */
+  Vec3T<T> m_forward;
+
+  /**
+   * @brief Unit right of the image.
+   */
+  Vec3T<T> m_right;
+
+  /**
+   * @brief Unit up of the image.
+   */
+  Vec3T<T> m_up;
+
+  /**
+   * @brief Unit up axis of the scene.
+   */
+  Vec3T<T> m_axis;
+
+  /**
+   * @brief Horizontal unit vectors (see Camera::horizontal()).
+   */
+  Vec3T<T> m_first;
+
+  /**
+   * @brief Horizontal unit vectors (see Camera::horizontal()).
+   */
+  Vec3T<T> m_second;
+
+  /**
+   * @brief Tangent of half the vertical field of view.
+   */
+  T m_tanHalf;
+
+  /**
+   * @brief Distance from the eye to the target.
+   */
+  T m_distance;
+};
+
+} // namespace RenderDetail
+
 /**
  * @brief One pixel of a rendered image: the functor that Renderer runs once per pixel index, on the host
  * or through GPU::transform().
@@ -362,6 +423,20 @@ struct PixelQuery
    * @brief The settings.
    */
   Settings<T> m_settings;
+
+  /**
+   * @brief The camera's eye and axes, worked out once rather than per pixel.
+   */
+  RenderDetail::CameraView<T> m_view;
+
+  /**
+   * @brief The pixel functor for a shape, a camera and settings.
+   * @param[in] a_shape    The shape (a device view of it, for a device render).
+   * @param[in] a_camera   The camera.
+   * @param[in] a_settings The settings.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline PixelQuery(const S& a_shape, const Camera<T>& a_camera, const Settings<T>& a_settings) noexcept;
 
   /**
    * @brief Shade pixel a_index (row a_index / width, column a_index % width).
