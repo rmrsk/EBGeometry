@@ -3,14 +3,15 @@
 Transforms
 ==========
 
-One object moved, turned, scaled, mirrored, stretched and repeated. A transform applies to a whole
+One object moved, turned, scaled, mirrored and stretched (repeating it is
+:ref:`Chap:ExampleRepetition`). A transform applies to a whole
 expression and changes where the object is, not what it is. The source is at :file:`Examples/Transforms/main.cpp`.
 
 .. figure:: /_static/example_Transforms.jpg
    :width: 60%
    :align: center
 
-   The object as built, rotated, scaled (back row); reflected, elongated, repeated (front row).
+   The object as built, rotated, scaled, reflected and elongated.
 
 The transforms
 --------------
@@ -23,15 +24,13 @@ transform shows:
 * ``Scale(e, factor)`` scales it uniformly about the origin, which keeps a distance a distance.
 * ``Reflect(e, axis)`` mirrors it in a coordinate plane.
 * ``Elongate(e, halfLengths)`` stretches it by inserting a box at the origin.
-* ``FiniteRepetition(e, period, lo, hi)`` tiles copies over a period, ``lo`` and ``hi`` tiles to either
-  side along each axis; the copies are evaluated as one sub-program.
 
 The program prints each result's bounding box.
 
 Looking at it
 -------------
 
-``Translate`` sets the six results out in two rows, compiled into one tape. A union of this many
+``Translate`` sets the five results out in a row, compiled into one tape. A union of this many
 operands is evaluated through a BVH over their boxes (see :ref:`Sec:BVHUnions`).
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see

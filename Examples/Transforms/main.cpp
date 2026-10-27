@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Transforms: one object moved, turned, scaled, mirrored, stretched and repeated with Translate, Rotate,
-// Scale, Reflect, Elongate and FiniteRepetition. A transform applies to a whole expression and changes
+// Transforms: one object moved, turned, scaled, mirrored and stretched with Translate, Rotate, Scale,
+// Reflect and Elongate (copies of it over a grid are the Repetition example). A transform applies to a whole expression and changes
 // where the object is, not what it is: the program prints each result's bounding box. See README.md.
 
 #include <iomanip>
@@ -38,19 +38,13 @@ main(int argc, char* argv[])
   //
   // Rotate turns about a coordinate axis (0, 1, 2) or any direction, by degrees; Scale is uniform, about
   // the origin, and keeps a distance a distance; Reflect mirrors in a coordinate plane; Elongate inserts a
-  // box of the given half-lengths at the origin; FiniteRepetition tiles copies over a period, here one to
-  // either side along x and z.
+  // box of the given half-lengths at the origin.
   const std::vector<std::pair<std::string, Expr>> transformed{
     {"as built", object},
     {"Rotate 90 degrees about z", EBGeometry::Rotate(object, T(90), 2)},
     {"Scale by 0.6", EBGeometry::Scale(object, T(0.6))},
     {"Reflect in x", EBGeometry::Reflect(object, 0)},
-    {"Elongate 0.4 along x", EBGeometry::Elongate(object, Vec3(T(0.4), T(0), T(0)))},
-    {"FiniteRepetition",
-     EBGeometry::FiniteRepetition(EBGeometry::Scale(object, T(0.35)),
-                                  Vec3(T(0.6), T(1), T(0.6)),
-                                  Vec3(T(1), T(0), T(1)),
-                                  Vec3(T(1), T(0), T(1)))}};
+    {"Elongate 0.4 along x", EBGeometry::Elongate(object, Vec3(T(0.4), T(0), T(0)))}};
 
   // ── Use them on the host ───────────────────────────────────────────────────────────────────────────
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
@@ -63,14 +57,13 @@ main(int argc, char* argv[])
 
   // ── Look at them ───────────────────────────────────────────────────────────────────────────────────
   //
-  // Translate sets them out in two rows of three (built with VIEWER=SDL2; otherwise, with --no-view or without a
+  // Translate sets them out in a row (built with VIEWER=SDL2; otherwise, with --no-view or without a
   // display, view() prints why and returns). A union of this many operands is evaluated through a BVH
   // over their boxes, so a point evaluates only the objects near it.
   std::vector<Expr> row;
 
   for (std::size_t i = 0; i < transformed.size(); i++) {
-    row.push_back(
-      EBGeometry::Translate(transformed[i].second, Vec3(T(2.5) * (T(i % 3) - T(1)), T(0), T(2.5) * T(i / 3))));
+    row.push_back(EBGeometry::Translate(transformed[i].second, Vec3(T(2) * T(i) - T(4), T(0), T(0))));
   }
 
   EBGeometry::Render::view(Tape(pool, EBGeometry::Union(row)), argc, argv);

@@ -126,11 +126,14 @@ Examples
    ExampleBasicCSG.rst
    ExampleSmoothCSG.rst
    ExampleTransforms.rst
+   ExampleRepetition.rst
    ExampleValueOperations.rst
    ExampleFusedCSG.rst
    ExampleMeshSDF.rst
+   ExampleMeshCSG.rst
    ExampleNestedBVH.rst
    ExampleManyObjects.rst
+   ExamplePackedSpheres.rst
    ExamplePointClouds.rst
    ExampleBVHTraversal.rst
    ExampleRayTracing.rst

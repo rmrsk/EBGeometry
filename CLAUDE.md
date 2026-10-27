@@ -57,7 +57,8 @@ cd Examples/Shapes
 cmake -S . -B build && cmake --build build
 ```
 
-Every example except `BuildBVH`, `HostTuning`, `SmoothCSG`, `Transforms` and `ValueOperations` also takes a GPU switch (`make GPU=HIP|CUDA`, CMake
+Every example except `BuildBVH`, `HostTuning`, `SmoothCSG`, `Transforms`, `ValueOperations`, `Repetition`, `MeshCSG` and
+`PackedSpheres` also takes a GPU switch (`make GPU=HIP|CUDA`, CMake
 `-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's `EBGEOMETRY_ENABLE_HIP`/`CUDA`): the same source
 then runs its last section's query functor on the device through `GPU::transform()` (in a plain C++
 build, the same section runs as a host loop). A GPU build with no visible GPU skips the device part

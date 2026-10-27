@@ -1,8 +1,8 @@
 Examples/Transforms
 -------------------
 
-One object (a ring with a post) moved, turned, scaled, mirrored, stretched and repeated with
-`Translate`, `Rotate`, `Scale`, `Reflect`, `Elongate` and `FiniteRepetition`. A transform applies to a
+One object (a ring with a post) moved, turned, scaled, mirrored and stretched with `Translate`,
+`Rotate`, `Scale`, `Reflect` and `Elongate` (repeating it is the `Repetition` example). A transform applies to a
 whole expression; the program prints each result's bounding box, and the viewer shows them side by side.
 
 Building
