@@ -71,7 +71,14 @@ called from. That is harmless until a function calls the next one in a chain fro
 tape's evaluator calls the level below it from each Blur tap, each Mollify tap and each kind of BVH
 union, and fully inlined, the copies multiply at every level: an optimised device compile of its test
 file was stopped after ten minutes and 2.5 GB, and takes half a minute with the function out of line. Mark such a function ``EBGEOMETRY_DEVICE_NOINLINE`` (``EBGeometry_GPU.hpp``),
-which keeps it out of line in the device pass and changes nothing on the host. The second HIP build in
+which keeps it out of line in the device pass and changes nothing on the host. The ray queries are the
+other place this matters: a march, a span list or a pixel of the renderer evaluates or traces the shape
+from many places (the bisection, each way out of the march, the shadow and occlusion rays), and inlined,
+each of them was a copy of a mesh's distance or of a tape's trace. They reach the shape through a few
+out-of-line helpers (``RayDetail::valueAt()``, ``primitiveOf()``, ``gradientNormal()``, ``march()`` and
+``shapeHit()``, and the renderer's ``Shader::trace()``), which took the CUDA compile of the ray tests
+from eight minutes and 13 GB to 75 seconds and 3 GB. New ray code should call the shape through them.
+The second HIP build in
 CI is optimised, since an unoptimised build compiles such code quickly and so cannot show the
 problem.
 

@@ -41,7 +41,7 @@ The classes are in namespace ``Render``:
 * `Renderer <doxygen/html/classEBGeometry_1_1Render_1_1Renderer.html>`__ holds the settings.
   ``render(shape, camera, image)`` runs on the host's threads (``Settings::m_threads``, by default one
   per hardware thread); ``renderOnDevice(deviceShape, camera, image)`` runs the same pixel functor
-  through ``GPU::transform()`` on a device view of the shape, as described in :ref:`Chap:RunningOnGPU`.
+  through ``GPU::parallelFor()`` on a device view of the shape, as described in :ref:`Chap:RunningOnGPU`.
   Overloads of both take a ``std::atomic<bool>`` that another thread sets to stop the render early (between
   rows on the host, between bands of rows on a device), and a counter of the rows done; a stopped render
   says so in ``Stats::m_complete``. Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a

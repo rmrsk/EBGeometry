@@ -12,7 +12,7 @@
  * from within the material, or a mesh whose orientation is inverted) is tinted, so that it cannot be
  * mistaken for an outside. Each pixel is computed by PixelQuery, a trivially copyable functor callable
  * on a device, so Renderer::render() runs it on the host's threads and Renderer::renderOnDevice() runs
- * the same functor through GPU::transform(). Render::view() (EBGeometry_Viewer.hpp) shows the image in a
+ * the same functor through GPU::parallelFor(). Render::view() (EBGeometry_Viewer.hpp) shows the image in a
  * window.
  * @author Robert Marskar
  */
@@ -399,7 +399,7 @@ struct CameraView
 
 /**
  * @brief One pixel of a rendered image: the functor that Renderer runs once per pixel index, on the host
- * or through GPU::transform().
+ * or through GPU::parallelFor().
  * @details Trivially copyable when the shape is. Everything it needs about the shape (its box, its scale,
  * the floor's height) it reads from the shape itself, so it can run where only a device view of the shape
  * is valid.
@@ -513,8 +513,10 @@ public:
          std::atomic<uint32_t>*   a_rowsDone = nullptr) const;
 
   /**
-   * @brief Render a shape through GPU::transform(): in a kernel in a CUDA or HIP build, in a host loop
+   * @brief Render a shape through GPU::parallelFor(): in kernels in a CUDA or HIP build, in a host loop
    * otherwise.
+   * @details The image is rendered in bands of rows, one launch each, into one buffer in device memory,
+   * which is copied back once at the end.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_deviceShape The shape, as a view valid on the device.
    * @param[in]  a_camera      Camera.
@@ -526,9 +528,9 @@ public:
   renderOnDevice(const S& a_deviceShape, const Camera<T>& a_camera, Image& a_image) const;
 
   /**
-   * @brief Render a shape through GPU::transform(), stopping early when asked to.
-   * @details As renderOnDevice(const S&, const Camera<T>&, Image&), but in bands of rows, one launch each,
-   * with a_cancel checked between them: the render returns after the band under way when it is set, with
+   * @brief Render a shape through GPU::parallelFor(), stopping early when asked to.
+   * @details As renderOnDevice(const S&, const Camera<T>&, Image&), with a_cancel checked between the
+   * bands: the render returns after the band under way when it is set, with
    * Stats::m_complete false. a_rowsDone, if given, counts the finished rows.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_deviceShape The shape, as a view valid on the device.
