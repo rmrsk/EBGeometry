@@ -200,8 +200,30 @@ qualityOf(const S& a_shape) noexcept
 }
 
 /**
+ * @brief A shape's value at a point (its signedDistance()).
+ * @details Internal helper; not part of the public API. The ray code asks a shape for its value from many
+ * places (marching, bisection, normals, inside tests); kept out of line on a device, as are primitiveOf(),
+ * gradientNormal(), march() and shapeHit(), so that a kernel holds one copy of a shape's distance and
+ * trace. Inlined at every caller, a mesh's distance was copied dozens of times per function, and ptxas
+ * took gigabytes and up to hours to compile a kernel.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape The shape.
+ * @param[in] a_point The point.
+ * @return The value.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+valueAt(const S& a_shape, const Vec3T<T>& a_point) noexcept
+{
+  return a_shape.signedDistance(a_point);
+}
+
+/**
  * @brief The finest element a shape can name at a point (see HitT::m_primitive).
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. Out of line on a device (see valueAt()).
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape The shape.
@@ -210,6 +232,7 @@ qualityOf(const S& a_shape) noexcept
  */
 template <class T, class S>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline uint32_t
 primitiveOf(const S& a_shape, const Vec3T<T>& a_point) noexcept
 {
@@ -301,7 +324,8 @@ scaleOf(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi, const RayOptions<T>& a_optio
 /**
  * @brief The outward unit normal of a shape's surface at a point: its normalised gradient, by central
  * differences of step a_h.
- * @details Internal helper; not part of the public API. Zero where the gradient vanishes.
+ * @details Internal helper; not part of the public API. Zero where the gradient vanishes. Out of line on a
+ * device (see valueAt()).
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape The shape.
@@ -311,6 +335,7 @@ scaleOf(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi, const RayOptions<T>& a_optio
  */
 template <class T, class S>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline Vec3T<T>
 gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
 {
@@ -321,7 +346,7 @@ gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
 
     step[dir] = a_h;
 
-    gradient[dir] = a_shape.signedDistance(a_point + step) - a_shape.signedDistance(a_point - step);
+    gradient[dir] = RayDetail::valueAt(a_shape, a_point + step) - RayDetail::valueAt(a_shape, a_point - step);
   }
 
   const T length = gradient.length();
@@ -333,6 +358,8 @@ gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
  * @brief The first crossing of a shape's surface along a ray, by marching its signed distance: sphere
  * tracing where the value is a distance or a bound on one, fixed steps and bisection where it is not.
  * @details Internal helper; not part of the public API. What firstHit() does for a shape with no ray form.
+ * Out of line on a device (see valueAt()), and written so that each step (the value, bisection, the
+ * crossing's normal and primitive) is reached from one place.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape   The shape.
@@ -344,6 +371,7 @@ gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
  */
 template <class T, class S>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline HitT<T>
 march(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) noexcept
 {
@@ -364,55 +392,39 @@ march(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, co
     return hit;
   }
 
-  const auto value = [&a_shape, &a_ray](const T a_t) noexcept -> T { return a_shape.signedDistance(a_ray.at(a_t)); };
-
-  const auto found = [&a_shape, &a_ray, &hit, eps](const T a_t, const bool a_entering) noexcept -> HitT<T> {
-    hit.m_status    = HitStatus::Hit;
-    hit.m_t         = a_t;
-    hit.m_point     = a_ray.at(a_t);
-    hit.m_primitive = RayDetail::primitiveOf(a_shape, hit.m_point);
-    hit.m_normal    = RayDetail::gradientNormal(a_shape, hit.m_point, eps);
-    hit.m_entering  = a_entering;
-
-    return hit;
-  };
-
-  const auto bisect = [&value, eps](T a_a, T a_b, const bool a_inside) noexcept -> T {
-    for (int i = 0; i < 64 && a_b - a_a > eps; i++) {
-      const T mid = T(0.5) * (a_a + a_b);
-
-      if ((value(mid) < T(0)) == a_inside) {
-        a_a = mid;
-      }
-      else {
-        a_b = mid;
-      }
-    }
-
-    return T(0.5) * (a_a + a_b);
+  const auto value = [&a_shape, &a_ray](const T a_t) noexcept -> T {
+    return RayDetail::valueAt(a_shape, a_ray.at(a_t));
   };
 
   const T v0 = value(t0);
 
-  if (std::abs(v0) < eps) {
-    return found(t0, value(Math::min(t0 + T(2) * eps, t1)) < v0);
-  }
-
   const bool inside = v0 < T(0);
+
+  // The march ends on the surface at t, with the sign change between tPrev and t, or neither.
+  bool onSurface = std::abs(v0) < eps;
+  bool bracketed = false;
+  bool entering  = !inside;
 
   T t     = t0;
   T tPrev = t0;
 
-  if (RayDetail::qualityOf(a_shape) != DistanceQuality::NotADistance) {
+  if (onSurface) {
+    entering = value(Math::min(t0 + T(2) * eps, t1)) < v0;
+  }
+  else if (RayDetail::qualityOf(a_shape) != DistanceQuality::NotADistance) {
     for (uint32_t step = 0; step < a_options.m_maxSteps; step++) {
       const T v = (step == 0U) ? v0 : value(t);
 
       if ((v < T(0)) != inside) {
-        return found(bisect(tPrev, t, inside), !inside);
+        bracketed = true;
+
+        break;
       }
 
       if (std::abs(v) < eps) {
-        return found(t, !inside);
+        onSurface = true;
+
+        break;
       }
 
       tPrev = t;
@@ -431,13 +443,45 @@ march(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, co
       t     = Math::min(t + h, t1);
 
       if ((value(t) < T(0)) != inside) {
-        return found(bisect(tPrev, t, inside), !inside);
+        bracketed = true;
+
+        break;
       }
 
       if (t >= t1) {
         return hit;
       }
     }
+  }
+
+  if (bracketed) {
+    T a = tPrev;
+    T b = t;
+
+    for (int i = 0; i < 64 && b - a > eps; i++) {
+      const T mid = T(0.5) * (a + b);
+
+      if ((value(mid) < T(0)) == inside) {
+        a = mid;
+      }
+      else {
+        b = mid;
+      }
+    }
+
+    t         = T(0.5) * (a + b);
+    onSurface = true;
+  }
+
+  if (onSurface) {
+    hit.m_status    = HitStatus::Hit;
+    hit.m_t         = t;
+    hit.m_point     = a_ray.at(t);
+    hit.m_primitive = RayDetail::primitiveOf(a_shape, hit.m_point);
+    hit.m_normal    = RayDetail::gradientNormal(a_shape, hit.m_point, eps);
+    hit.m_entering  = entering;
+
+    return hit;
   }
 
   hit.m_status = HitStatus::Unresolved;
@@ -617,7 +661,8 @@ intersects(const S&             a_shape,
   // A shape with a ray form searches instead: its search is cheaper than two values, and exact where the
   // sign is not (an open mesh).
   if (!RayDetail::HasRayFirstHit<S, T>::value || a_options.m_march) {
-    if ((a_shape.signedDistance(a_from + a_tMin * direction) < T(0)) != (a_shape.signedDistance(a_to) < T(0))) {
+    if ((RayDetail::valueAt(a_shape, a_from + a_tMin * direction) < T(0)) !=
+        (RayDetail::valueAt(a_shape, a_to) < T(0))) {
       return HitStatus::Hit;
     }
   }

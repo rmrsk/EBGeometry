@@ -359,26 +359,33 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host render", "[Render
     SKIP("no GPU device available");
   }
 
-  // A fused composition, not a tape: a tape's device ray code, assertions on, takes ptxas over half an hour
-  // per pixel kernel. The Render probe's device pairs render through a tape.
-  const auto solid =
-    Fused::Difference(Fused::Intersection(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), SphereSDF<T>(Vec3::zeros(), T(1.35))),
-                      InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.5), 1));
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(
+    pool,
+    Difference(Intersection(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), SphereSDF<T>(Vec3::zeros(), T(1.35))),
+               InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.5), 1)));
+
+  pool.freeze();
+
+  const Pool    devicePool = Pool::mirror(pool, deviceTestResource());
+  const Tape<T> view       = tape.rebasedView(devicePool);
 
   Render::Settings<T> settings;
 
   settings.m_width         = 48;
   settings.m_height        = 32;
   settings.m_supersampling = 2;
+  settings.m_colourBy      = Render::ColourBy::Primitive;
 
   const Render::Renderer<T> renderer(settings);
-  const auto                camera = Render::Camera<T>::fit(solid.computeBoundingVolume());
+  const auto                camera = Render::Camera<T>::fit(tape.computeBoundingVolume());
 
   Render::Image host;
   Render::Image device;
 
-  const Render::Stats hostStats   = renderer.render(solid, camera, host);
-  const Render::Stats deviceStats = renderer.renderOnDevice(solid, camera, device);
+  const Render::Stats hostStats   = renderer.render(tape, camera, host);
+  const Render::Stats deviceStats = renderer.renderOnDevice(view, camera, device);
 
   REQUIRE(host.m_pixels.size() == device.m_pixels.size());
 
