@@ -579,6 +579,16 @@ does not follow this template, edit the PR body to conform to it.
   `TapeDetail::Op` and a case in `Tape::evaluateBody`, and a `Fused::` operation and function; a ray
   marches it unless it is also given span arithmetic (`EBGeometry_RaySpans.hpp`), a `RayOp` in the
   tape's ray program and a fused ray form (`EBGeometry_CSGRayForms.hpp`).
+- **Ray code reaches a shape through a few out-of-line helpers on a device.** `RayDetail::valueAt()`,
+  `primitiveOf()`, `gradientNormal()`, `march()` and `shapeHit()` (`EBGeometry_RayImplem.hpp`,
+  `EBGeometry_RaySpans.hpp`), and in the renderer `Shader::trace()` and `Sectioned::shapeHit()`/
+  `shapeDistance()`, are `EBGEOMETRY_DEVICE_NOINLINE` (nothing on the host). Inlined, every call site
+  copied a shape's whole distance or trace: one `march()` held about thirty copies of a mesh's distance,
+  ptxas took 8 minutes and 13 GB on `TestRay` (75 s and 2.9 GB out of line), and a Debug CUDA
+  `TestRender` did not finish in 6 hours. New ray code calls a shape through these helpers, never
+  `signedDistance()` or `firstHit()` directly at several sites, and marks any new helper called that way
+  the same. After a change to device ray or render code, time ptxas on the changed target (Debug, so
+  with assertions, which multiply its cost), not only the run.
 - **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
   SDF, union and tape keeps it. Code that needs the opposite sign (AMReX and Chombo read negative as
   fluid) flips it itself, in its own adapter (`return -tape.signedDistance(p);`); never put a
