@@ -98,7 +98,8 @@ A click (the left button, without dragging) picks the object under the cursor: a
 drilled solid's outer surface and its hole are picked apart), a fused composition's part, a union's
 member, or a mesh SDF as a whole (``primitivesAreFaces``), whose face is named too. The object is tinted
 gold (``Settings::m_highlightPrimitive``, ``AllPrimitives`` for a whole mesh) and outlined, from the object
-each pixel's first ray hit (``Image::m_primitives``), and its id, point and normal are printed; a click on
+each pixel's first ray hit (``Image::m_primitives``, filled when ``Settings::m_recordPrimitives`` asks, as the
+viewer does), and its id, point and normal are printed; a click on
 the background clears it.
 
 .. _Sec:ViewerKeys:
