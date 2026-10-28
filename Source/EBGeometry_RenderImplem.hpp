@@ -241,7 +241,9 @@ public:
                          : a_settings.m_light)),
       m_light(m_baseLight),
       m_first(a_view.m_first),
-      m_second(a_view.m_second)
+      m_second(a_view.m_second),
+      m_footprint(a_view.m_footprint),
+      m_footprintPerLength(a_view.m_footprintPerLength)
   {
 
     const auto     box = a_shape.computeBoundingVolume();
@@ -269,6 +271,14 @@ public:
 
     m_hasFloor   = a_settings.m_floor && std::isfinite(low) && lo[0] <= hi[0];
     m_floorLevel = low - T(0.01) * m_scale;
+
+    // The section plane's contour and sheet are drawn within the shape's box, a little enlarged.
+    const Vec3T<T> margin = T(0.05) * (hi - lo);
+
+    m_boxLow  = lo - margin;
+    m_boxHigh = hi + margin;
+    m_onPlane =
+      a_settings.m_section && bounded && (a_settings.m_contourWidth > T(0) || a_settings.m_sheetOpacity > T(0));
   }
 
   /**
@@ -325,6 +335,8 @@ public:
 
     const bool onFloor = tFloor > a_near && (!hit.hit() || tFloor < hit.m_t);
 
+    Vec3T<T> colour;
+
     if (hit.hit() && !onFloor) {
       a_result.m_hits++;
 
@@ -332,14 +344,23 @@ public:
         a_result.m_insideHits++;
       }
 
-      return this->shadeSurface(hit, a_direction);
+      colour = this->shadeSurface(hit, a_direction);
+    }
+    else if (onFloor) {
+      colour = this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
+    }
+    else {
+      colour = this->background(a_direction);
     }
 
-    if (onFloor) {
-      return this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
+    if (m_onPlane) {
+      // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
+      const T tFront = onFloor ? tFloor : (hit.hit() ? hit.m_t : m_far);
+
+      colour = this->drawOnPlane(ray, a_near, tFront, colour);
     }
 
-    return this->background(a_direction);
+    return colour;
   }
 
 private:
@@ -412,6 +433,31 @@ private:
    * @brief Height of the floor along the up axis.
    */
   T m_floorLevel;
+
+  /**
+   * @brief How wide a pixel is at a distance t along a camera ray: m_footprint + m_footprintPerLength t.
+   */
+  T m_footprint;
+
+  /**
+   * @brief See m_footprint.
+   */
+  T m_footprintPerLength;
+
+  /**
+   * @brief Low corner of the box the section plane's contour and sheet are drawn in.
+   */
+  Vec3T<T> m_boxLow;
+
+  /**
+   * @brief High corner of that box.
+   */
+  Vec3T<T> m_boxHigh;
+
+  /**
+   * @brief Whether to draw anything on the section plane.
+   */
+  bool m_onPlane;
 
   /**
    * @brief The cut shape's first crossing along a ray (firstHit()).
@@ -546,6 +592,8 @@ private:
 
     Vec3T<T> albedo = m_settings.m_colour;
 
+    // The cut face takes the cut colour whatever the colouring: inside a composition, the leaf that decides
+    // the value (a subtracted one, near its surface) need not be the material there.
     if (cut) {
       albedo = m_settings.m_cutColour;
     }
@@ -570,6 +618,54 @@ private:
     }
 
     return this->light(p, n, a_direction, albedo);
+  }
+
+  /**
+   * @brief What the section plane adds where a camera ray meets it in front of what the ray sees: the
+   * shape's contour, a line of constant width on screen where the shape's value is near zero, and outside
+   * the shape a faint sheet. Inside the shape the plane is the cut face, already shaded.
+   * @param[in] a_ray    The camera ray.
+   * @param[in] a_near   Where the ray starts to see.
+   * @param[in] a_tFront Where it meets what it sees.
+   * @param[in] a_colour What it sees.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  drawOnPlane(const RayT<T>& a_ray, const T a_near, const T a_tFront, const Vec3T<T>& a_colour) const noexcept
+  {
+    const T rate = dot(a_ray.m_direction, m_object.m_normal);
+
+    if (rate == T(0)) {
+      return a_colour;
+    }
+
+    const T t = -m_object.plane(a_ray.m_origin) / rate;
+
+    if (!(t > a_near && t <= a_tFront + T(4) * m_eps)) {
+      return a_colour;
+    }
+
+    const Vec3T<T> p = a_ray.at(t);
+
+    for (int k = 0; k < 3; k++) {
+      if (p[k] < m_boxLow[k] || p[k] > m_boxHigh[k]) {
+        return a_colour;
+      }
+    }
+
+    const T value = m_object.shapeDistance(p);
+    const T half  = T(0.5) * m_settings.m_contourWidth * (m_footprint + m_footprintPerLength * t);
+
+    if (std::abs(value) < half) {
+      return m_settings.m_contourColour;
+    }
+
+    if (value > T(0)) {
+      return (T(1) - m_settings.m_sheetOpacity) * a_colour + m_settings.m_sheetOpacity * m_settings.m_sheetColour;
+    }
+
+    return a_colour;
   }
 
   /**
@@ -1125,6 +1221,10 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_section", a_settings.m_section, settings.m_section);
   field("settings", "m_sectionPoint", a_settings.m_sectionPoint, settings.m_sectionPoint);
   field("settings", "m_sectionNormal", a_settings.m_sectionNormal, settings.m_sectionNormal);
+  field("settings", "m_contourWidth", a_settings.m_contourWidth, settings.m_contourWidth);
+  field("settings", "m_contourColour", a_settings.m_contourColour, settings.m_contourColour);
+  field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
+  field("settings", "m_sheetColour", a_settings.m_sheetColour, settings.m_sheetColour);
   field("settings", "m_rays.m_tolerance", a_settings.m_rays.m_tolerance, settings.m_rays.m_tolerance);
   field("settings", "m_rays.m_scale", a_settings.m_rays.m_scale, settings.m_rays.m_scale);
   field("settings", "m_rays.m_maxSteps", a_settings.m_rays.m_maxSteps, settings.m_rays.m_maxSteps);
@@ -1151,6 +1251,12 @@ inline PixelQuery<T, S>::PixelQuery(const S& a_shape, const Camera<T>& a_camera,
   m_view.m_axis     = RenderDetail::unit(a_camera.m_up);
   m_view.m_tanHalf  = std::tan(T(0.5) * a_camera.m_fieldOfView * pi<T> / T(180));
   m_view.m_distance = a_camera.m_distance;
+
+  // A pixel spans 2 tan(fov/2) / height of the view's height at unit distance.
+  const T pixel = T(2) * m_view.m_tanHalf / T(Math::max(a_settings.m_height, 1U));
+
+  m_view.m_footprint          = a_camera.m_orthographic ? a_camera.m_distance * pixel : T(0);
+  m_view.m_footprintPerLength = a_camera.m_orthographic ? T(0) : pixel;
 
   a_camera.frame(m_view.m_forward, m_view.m_right, m_view.m_up);
   a_camera.horizontal(m_view.m_first, m_view.m_second);
@@ -1264,6 +1370,12 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(std::isfinite(a_camera.m_nearClip) && a_camera.m_nearClip >= T(0),
                      "Render::Renderer: the near clip must be finite and not negative (%g)",
                      double(a_camera.m_nearClip));
+  EBGEOMETRY_REQUIRE(m_settings.m_contourWidth >= T(0) && m_settings.m_sheetOpacity >= T(0) &&
+                       m_settings.m_sheetOpacity <= T(1),
+                     "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be "
+                     "from 0 to 1 (%g, %g)",
+                     double(m_settings.m_contourWidth),
+                     double(m_settings.m_sheetOpacity));
   EBGEOMETRY_REQUIRE(m_settings.m_shininess >= T(1),
                      "Render::Renderer: the shininess must be at least 1 (%g)",
                      double(m_settings.m_shininess));

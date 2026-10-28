@@ -42,8 +42,10 @@ The classes are in namespace ``Render``:
   background), how to colour (``ColourBy::Normal``, the default, ``ColourBy::Uniform`` or
   ``ColourBy::Primitive``), the colours, the light (its direction, by default in the camera's frame so that
   it turns with the camera and lights the side in view, or in the scene with ``m_lightFromCamera`` false;
-  its intensity, the ambient level, and the highlights' strength and shininess), the section plane (``m_section``, a point and a normal; the side the normal points to is
-  removed), and the march (``RayOptions``). ``m_primitiveColours`` gives the first
+  its intensity, the ambient level, and the highlights' strength and shininess), the section plane
+  (``m_section``, a point and a normal; the side the normal points to is removed; its contour, a line
+  ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
+  box), and the march (``RayOptions``). ``m_primitiveColours`` gives the first
   ``Settings::PrimitiveColours`` (16) primitive ids colours of their own; an entry left unset, and every
   later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colours its bore steel grey).
   ``Render::toCode(camera, settings)`` writes a camera and
@@ -77,8 +79,9 @@ visible device it freezes the pool, mirrors it for as long as the window is open
 shape's ``rebasedView()`` of the copy, and otherwise renders on the host. Drag to orbit, scroll to zoom,
 and drag with the right button (or with Shift held) to move the light, which the left and right arrow
 keys also turn; S, A and F toggle shadows, ambient occlusion and the floor, P cycles the colouring (by
-normal, uniform, by primitive), X cuts the shape with a section plane facing the camera (the up and down
-arrow keys move it), O toggles the orthographic camera, 1, 2 and 3 look from the front, the side and the
+normal, uniform, by primitive), X cycles the section plane (off, as the settings give it if they turn it
+on, facing the camera, then across the x, y and z axes through the box's centre), N reverses it (removes
+the other side), the up and down arrow keys move it, O toggles the orthographic camera, 1, 2 and 3 look from the front, the side and the
 top, C prints the camera and settings as C++ (``toCode()``) to paste a view found by hand into a program,
 G switches between the GPU and the CPU, H shows or hides the overlay, R resets the camera, and Esc or Q
 closes the window. The overlay, in the top left corner, shows what the window renders and how (GPU or

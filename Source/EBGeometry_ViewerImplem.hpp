@@ -115,7 +115,8 @@ keys(const bool a_device)
                         {"S", "shadows on or off"},
                         {"A", "ambient occlusion on or off"},
                         {"F", "floor on or off"},
-                        {"X", "section plane on or off"},
+                        {"X", "section plane: off, facing the camera, across x, y, z"},
+                        {"N", "reverse the section (remove the other side)"},
                         {"Up Down", "move the section plane"}};
 
   if (a_device) {
@@ -342,7 +343,16 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   const T    diag  = (box.getHighCorner() - box.getLowCorner()).length();
   const T    scale = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
 
-  T sectionOffset = T(0);
+  // The section plane: off (0), as the settings give it (1, only when they turn it on), facing the camera
+  // through its target (2), or across the x, y or z axis through the box's centre (3 to 5); moved along its
+  // normal by an offset, and reversed (the other side removed) when flipped.
+  const bool     givenSection  = a_settings.m_section;
+  const Vec3T<T> centre        = (std::isfinite(diag) && diag > T(0)) ? box.getCentroid() : camera.m_target;
+  int            sectionMode   = givenSection ? 1 : 0;
+  bool           sectionFlip   = false;
+  T              sectionOffset = T(0);
+
+  const char* sectionNames[] = {"off", "as given", "facing the camera", "across x", "across y", "across z"};
 
   // The preview's resolution, as a fraction of the window's, adapted to how long previews take.
   T previewScale = T(0.5);
@@ -412,15 +422,33 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   const auto stageSettings = [&](const int a_stage) {
     Settings<T> frame = settings;
 
-    // The section plane faces the camera through its target, moved by the arrow keys.
     Vec3T<T> forward;
     Vec3T<T> right;
     Vec3T<T> up;
 
     camera.frame(forward, right, up);
 
-    frame.m_sectionNormal = -forward;
-    frame.m_sectionPoint  = camera.m_target - sectionOffset * forward;
+    Vec3T<T> normal = RenderDetail::unit(a_settings.m_sectionNormal);
+    Vec3T<T> point  = a_settings.m_sectionPoint;
+
+    if (sectionMode == 2) {
+      normal = -forward;
+      point  = camera.m_target;
+    }
+    else if (sectionMode >= 3) {
+      normal                  = Vec3T<T>::zeros();
+      normal[sectionMode - 3] = T(1);
+      point                   = centre;
+    }
+
+    if (sectionFlip) {
+      normal = -normal;
+    }
+
+    // The arrow keys move the plane towards the removed side, so that more of the shape shows.
+    frame.m_section       = sectionMode != 0;
+    frame.m_sectionNormal = normal;
+    frame.m_sectionPoint  = point + sectionOffset * normal;
 
     if (a_stage < 2) {
       frame.m_supersampling = 1;
@@ -547,8 +575,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         fixed(double(settings.m_light[2]), 2) + ")",
       std::string("colour   ") + colouring + ", shadows " + onOff(settings.m_shadows) + ", occlusion " +
         onOff(settings.m_occlusion) + ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky),
-      std::string("section  ") + (settings.m_section ? "on, at " + fixed(double(sectionOffset), 3) : "off") + ", " +
-        std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + " rays per pixel",
+      std::string("section  ") + sectionNames[sectionMode] +
+        ((sectionMode != 0)
+           ? std::string(sectionFlip ? ", reversed" : "") + ", moved " + fixed(double(sectionOffset), 3)
+           : std::string()) +
+        ", " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
+        " rays per pixel",
       ""};
 
     for (const Key& key : keys(a_deviceShape != nullptr)) {
@@ -725,8 +757,14 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_x: {
-          settings.m_section = !settings.m_section;
-          sectionOffset      = T(0);
+          sectionMode   = (sectionMode + 1) % 6;
+          sectionMode   = (sectionMode == 1 && !givenSection) ? 2 : sectionMode;
+          sectionOffset = T(0);
+
+          break;
+        }
+        case SDLK_n: {
+          sectionFlip = !sectionFlip;
 
           break;
         }

@@ -489,6 +489,18 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
     "Render::Renderer: the light intensity, ambient level, specular strength and checker size must not be "
     "negative"));
 
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_sheetOpacity = T(2);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be from 0 to 1 (2, 2)"));
+
   REQUIRE(
     abortsWith([] { (void)Render::Camera<T>::fit(PlaneSDF<T>(Vec3::zeros(), Vec3(0, 1, 0)).computeBoundingVolume()); },
                "Render::Camera: fit() needs a bounded, non-empty box"));
@@ -1026,6 +1038,10 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
   settings.m_specular            = T(0.6);
   settings.m_ambient             = T(0.2);
   settings.m_floorCheckerSize    = T(0.5);
+  settings.m_section             = true;
+  settings.m_sectionPoint        = Vec3(T(0.1), T(0), T(0));
+  settings.m_sectionNormal       = Vec3(T(1), T(0.2), T(0));
+  settings.m_sheetOpacity        = T(0.3);
 
   for (const bool orthographic : {false, true}) {
     auto camera = Render::Camera<T>::fit(tape.computeBoundingVolume(), Render::View::Top);
@@ -1062,4 +1078,83 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
       CHECK(std::abs(double(hostStats.m_hits) - double(deviceStats.m_hits)) <= double(hostStats.m_rays) / 100);
     }
   }
+}
+
+TEMPLATE_TEST_CASE("Render: the section plane draws the shape's contour, and a sheet outside it within the box",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  // Looking along -z with parallel rays, the half towards the camera removed: the cut face is the disc of
+  // radius 1 in the plane z = 0, and a pixel's ray meets the plane at the pixel's own (x, y).
+  Render::Camera<T> camera = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Front);
+
+  camera.m_orthographic = true;
+
+  constexpr uint32_t size = 64;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_section       = true;
+  settings.m_sectionPoint  = Vec3::zeros();
+  settings.m_sectionNormal = Vec3(T(0), T(0), T(1));
+  settings.m_contourWidth  = T(3);
+  settings.m_sheetOpacity  = T(0.5);
+  settings.m_sheetColour   = Vec3(T(0), T(0), T(1));
+
+  Render::Renderer<T> renderer(settings);
+
+  Render::Image drawn;
+
+  (void)renderer.render(sphere, camera, drawn);
+
+  renderer.settings().m_contourWidth = T(0);
+  renderer.settings().m_sheetOpacity = T(0);
+
+  Render::Image bare;
+
+  (void)renderer.render(sphere, camera, bare);
+
+  const T half  = camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+  const T pixel = T(2) * half / T(size);
+
+  size_t onContour = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const T x = -half + (T(column) + T(0.5)) * pixel;
+      const T y = half - (T(row) + T(0.5)) * pixel;
+      const T r = std::sqrt(x * x + y * y);
+
+      const Channels c = channels(drawn.at(column, row));
+
+      if (std::abs(r - T(1)) < T(0.5) * pixel) {
+        // On the contour: its colour, 0.04 of full scale before the display's gamma (59 of 255 after it).
+        CHECK(c.r + c.g + c.b < 200);
+        CHECK(drawn.at(column, row) != bare.at(column, row));
+
+        onContour++;
+      }
+      else if (r < T(1) - T(3) * pixel) {
+        // The cut face, as without the contour.
+        CHECK(drawn.at(column, row) == bare.at(column, row));
+      }
+      else if (r > T(1) + T(3) * pixel && std::abs(x) < T(1) && std::abs(y) < T(1)) {
+        // Outside the sphere but within its box: the sheet, blue over the background.
+        const Channels b = channels(bare.at(column, row));
+
+        CHECK(c.b > b.b + 40);
+      }
+      else if (std::abs(x) > T(1.2) || std::abs(y) > T(1.2)) {
+        // Beyond the enlarged box: nothing drawn.
+        CHECK(drawn.at(column, row) == bare.at(column, row));
+      }
+    }
+  }
+
+  CHECK(onContour > 20U);
 }

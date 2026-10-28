@@ -35,6 +35,12 @@ each ray it finds the part of the ray on the kept side, and traces the object ov
 the ray reaches the plane while inside the object, the plane itself is the first crossing: a cut face,
 exact, with the plane's normal, and a colour of its own.
 
+The plane also shows where it slices the object. Where a ray meets the plane before anything else, the
+object's value there says where the point lies: near zero, it is on the object's outline in the plane,
+drawn as a line of constant width on screen; outside, a faint sheet marks the plane, within the object's
+box. So a slice shows both the object's cross-section and, in front of the cut, the rest of its outline.
+Reversing the plane's normal removes the other side.
+
 What a pixel shows
 ------------------
 

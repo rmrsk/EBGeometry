@@ -343,6 +343,28 @@ struct Settings
   Vec3T<T> m_sectionNormal = Vec3T<T>(T(0), T(0), T(1));
 
   /**
+   * @brief Width in pixels of the line drawn on the section plane where it meets the shape's surface (the
+   * shape's contour in the plane); 0 draws none.
+   */
+  T m_contourWidth = T(2);
+
+  /**
+   * @brief The contour's colour.
+   */
+  Vec3T<T> m_contourColour = Vec3T<T>(T(0.04), T(0.04), T(0.05));
+
+  /**
+   * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a faint
+   * sheet that shows where the plane is (0: none, 1: opaque).
+   */
+  T m_sheetOpacity = T(0.18);
+
+  /**
+   * @brief The sheet's colour.
+   */
+  Vec3T<T> m_sheetColour = Vec3T<T>(T(0.35), T(0.55), T(0.85));
+
+  /**
    * @brief How rays march (see firstHit()). A scale of 0 takes the shape's box diagonal, or the camera
    * distance for an unbounded shape.
    */
@@ -526,6 +548,17 @@ struct CameraView
    * @brief Distance from the eye to the target.
    */
   T m_distance;
+
+  /**
+   * @brief How wide a pixel is at distance t along a camera ray: m_footprint + m_footprintPerLength t (the
+   * first for an orthographic camera, the second for a perspective one).
+   */
+  T m_footprint;
+
+  /**
+   * @brief See m_footprint.
+   */
+  T m_footprintPerLength;
 };
 
 } // namespace RenderDetail

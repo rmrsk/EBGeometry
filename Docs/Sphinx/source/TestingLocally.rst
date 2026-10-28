@@ -413,7 +413,8 @@ Test coverage
        primitive only; colouring by normal; the light, ambient, highlight and background settings (an
        unlit surface black, a background of the colour set); the floor's checkerboard off and resized;
        an orthographic camera showing a sphere as a disc of its radius; the near clip; ``Camera::fit``
-       from named views, straight along the up axis too; ``toCode()`` writing the changed fields;
+       from named views, straight along the up axis too; ``toCode()`` writing the changed fields; the
+       section plane's contour and sheet, within the box only;
        ``view()`` returning at once with ``--no-view``, the pool left unfrozen; the rejected settings and
        cameras; and device renders against the host's, with and without the new camera and colours.
    * - ``TestFunctionQueries``
