@@ -178,9 +178,65 @@ unite(const RaySpansT<T>& a_a, const RaySpansT<T>& a_b, RaySpansT<T>& a_out) noe
 }
 
 /**
+ * @brief Where a list is known to be empty from a point on: the point itself if the ray is inside there,
+ * and otherwise the start of the next span, or the list's horizon.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_spans The list.
+ * @param[in] a_t     The point, no later than the list's horizon.
+ * @return Where the list stops being known empty.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+emptyUntil(const RaySpansT<T>& a_spans, const T a_t) noexcept
+{
+  for (uint32_t i = 0; i < a_spans.m_count; i++) {
+    const typename RaySpansT<T>::Span& span = a_spans.m_spans[i];
+
+    if (span.m_in.m_t > a_t) {
+      return Math::min(span.m_in.m_t, a_spans.m_horizon);
+    }
+
+    if (span.m_out.m_t > a_t || span.m_in.m_t == a_t) {
+      return a_t;
+    }
+  }
+
+  return a_spans.m_horizon;
+}
+
+/**
+ * @brief How far the intersection of two lists is known: up to the smaller horizon, and beyond it as far as
+ * the other list is empty from there, since the intersection is empty wherever either is.
+ * @details Internal helper; not part of the public API. Where a cut removes a part, a trace that found
+ * nothing in front of the cut starts again past it, not from each crossing of the part inside it.
+ * @tparam T Floating-point precision.
+ * @param[in] a_a One list.
+ * @param[in] a_b The other.
+ * @return The intersection's horizon.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+intersectionHorizon(const RaySpansT<T>& a_a, const RaySpansT<T>& a_b) noexcept
+{
+  if (a_a.m_horizon < a_b.m_horizon) {
+    return Math::max(a_a.m_horizon, RayDetail::emptyUntil(a_b, a_a.m_horizon));
+  }
+
+  if (a_b.m_horizon < a_a.m_horizon) {
+    return Math::max(a_b.m_horizon, RayDetail::emptyUntil(a_a, a_b.m_horizon));
+  }
+
+  return a_a.m_horizon;
+}
+
+/**
  * @brief The intersection of two lists: where the ray is inside both.
- * @details Internal helper; not part of the public API. Complete up to the smaller horizon. Where two ends
- * meet, the crossing wins, since the ray crosses the other operand's surface there.
+ * @details Internal helper; not part of the public API. Its spans end at the smaller horizon, and it is
+ * complete as far as intersectionHorizon() says. Where two ends meet, the crossing wins, since the ray
+ * crosses the other operand's surface there.
  * @tparam T Floating-point precision.
  * @param[in]  a_a   One list.
  * @param[in]  a_b   The other.
@@ -193,7 +249,7 @@ intersect(const RaySpansT<T>& a_a, const RaySpansT<T>& a_b, RaySpansT<T>& a_out)
 {
   const T horizon = Math::min(a_a.m_horizon, a_b.m_horizon);
 
-  a_out.reset(horizon);
+  a_out.reset(RayDetail::intersectionHorizon(a_a, a_b));
 
   uint32_t i = 0;
   uint32_t j = 0;
@@ -372,7 +428,7 @@ inline void
 intersectInto(RaySpansT<T>& a_spans, const RaySpansT<T>& a_operand, RaySpansT<T>& a_scratch) noexcept
 {
   if (a_operand.m_count == 0U || a_spans.m_count == 0U) {
-    a_spans.reset(Math::min(a_spans.m_horizon, a_operand.m_horizon));
+    a_spans.reset(RayDetail::intersectionHorizon(a_spans, a_operand));
 
     return;
   }
@@ -886,6 +942,270 @@ shapeSpans(const S&             a_shape,
       RayDetail::crossingSpans(a_shape, a_ray, a_t0, a_t1, a_options, a_spans);
     }
   }
+}
+
+/**
+ * @brief Where a shape's value changes sign along a ray, searched one way from a point: sphere tracing by
+ * the value, which must be a distance or a bound on one, then bisection.
+ * @details Internal helper; not part of the public API. What annularSpans() marches between its operand's
+ * crossings: no normal and no primitive, which the crossing the trace ends at is given later. Out of line
+ * on a device (see valueAt()).
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in]     a_shape  The shape.
+ * @param[in]     a_ray    The ray, with a unit direction.
+ * @param[in]     a_from   Where the search starts.
+ * @param[in]     a_to     Where it ends, on either side of a_from: the search runs from a_from towards it.
+ * @param[in]     a_inside Whether the value is negative at a_from.
+ * @param[in]     a_eps    How close to zero a value counts as the crossing, and how short the bisection ends.
+ * @param[in,out] a_steps  Values the search may still ask for; what it asks for is taken off.
+ * @return A hit at the sign change (HitT::m_t only), a miss if there is none before a_to, or an unresolved
+ * query where the steps ran out.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline HitT<T>
+signChange(const S&       a_shape,
+           const RayT<T>& a_ray,
+           const T        a_from,
+           const T        a_to,
+           const bool     a_inside,
+           const T        a_eps,
+           uint32_t&      a_steps) noexcept
+{
+  const T direction = (a_to < a_from) ? T(-1) : T(1);
+  const T length    = std::abs(a_to - a_from);
+
+  const auto value = [&a_shape, &a_ray, a_from, direction](const T a_s) noexcept -> T {
+    return RayDetail::valueAt(a_shape, a_ray.at(a_from + direction * a_s));
+  };
+
+  HitT<T> hit;
+
+  // Distances from a_from: the sign changes between sPrev and s once bracketed.
+  T    s         = T(0);
+  T    sPrev     = T(0);
+  bool bracketed = false;
+
+  while (!bracketed) {
+    if (a_steps == 0U) {
+      hit.m_status = HitStatus::Unresolved;
+      hit.m_t      = a_from + direction * s;
+
+      return hit;
+    }
+
+    a_steps--;
+
+    const T v = value(s);
+
+    if ((v < T(0)) != a_inside) {
+      bracketed = true;
+    }
+    else if (std::abs(v) < a_eps) {
+      break;
+    }
+    else {
+      sPrev = s;
+      s += std::abs(v);
+
+      if (s > length) {
+        return hit;
+      }
+    }
+  }
+
+  if (bracketed) {
+    T a = sPrev;
+    T b = s;
+
+    for (int i = 0; i < 64 && b - a > a_eps; i++) {
+      const T mid = T(0.5) * (a + b);
+
+      if ((value(mid) < T(0)) == a_inside) {
+        a = mid;
+      }
+      else {
+        b = mid;
+      }
+    }
+
+    s = T(0.5) * (a + b);
+  }
+
+  hit.m_status = HitStatus::Hit;
+  hit.m_t      = a_from + direction * s;
+
+  return hit;
+}
+
+/**
+ * @brief The list of an annulus |d| - delta (a shell around its operand's surface) over an interval, up to
+ * its first crossing, from its operand's list: each of the operand's crossings is inside the shell, and the
+ * shell's surfaces are marched to from there.
+ * @details Internal helper; not part of the public API. Between two of the operand's crossings, d keeps its
+ * sign, so the shell's value is the distance to one offset surface there (or a bound on it), and it is
+ * -delta at both ends. From outside, the march towards the next crossing ends before it; from inside, it
+ * starts at a crossing, where a step at normal incidence lands on the surface. A walk that starts just inside
+ * the surface (a trace starting again from an entry) marches back from the next crossing instead. The list
+ * ends at the first crossing, its horizon there, whether or not more is needed: the trace starts again from
+ * it if it needs more (see traceSpans()), so that an annulus under an intersection only finds the crossings
+ * the trace reaches. The value must be a distance or a bound on one.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type: the annulus.
+ * @param[in]  a_shell   The annulus, whose value is |d| - delta.
+ * @param[in]  a_operand Its operand's list over the interval, all its spans.
+ * @param[in]  a_ray     The ray, with a unit direction.
+ * @param[in]  a_t0      Start of the interval.
+ * @param[in]  a_t1      End of the interval.
+ * @param[in]  a_options How to march.
+ * @param[out] a_spans   The list; not a_operand.
+ */
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
+inline void
+annularSpans(const S&             a_shell,
+             const RaySpansT<T>&  a_operand,
+             const RayT<T>&       a_ray,
+             const T              a_t0,
+             const T              a_t1,
+             const RayOptions<T>& a_options,
+             RaySpansT<T>&        a_spans) noexcept
+{
+  const T horizon = Math::max(a_t0, Math::min(a_t1, a_operand.m_horizon));
+
+  a_spans.reset(horizon);
+
+  const auto box   = a_shell.computeBoundingVolume();
+  const T    scale = RayDetail::scaleOf(box.getLowCorner(), box.getHighCorner(), a_options);
+  const T    eps   = a_options.m_tolerance * scale;
+
+  // Outside the box, the ray is outside the shell.
+  const Vec3T<T> pad = eps * Vec3T<T>::ones();
+
+  T b0 = a_t0;
+  T b1 = horizon;
+
+  if (!RayDetail::clip(box.getLowCorner() - pad, box.getHighCorner() + pad, a_ray, b0, b1)) {
+    return;
+  }
+
+  uint32_t steps = a_options.m_maxSteps;
+
+  CrossingPairer<T> pairer;
+
+  // Where the walk is, whether it is inside the shell there, and whether it is on the shell's surface (where
+  // a search would find the crossing it starts on).
+  T    a         = b0;
+  bool inside    = false;
+  bool onSurface = false;
+
+  if (b0 <= a_t0) {
+    const T v = RayDetail::valueAt(a_shell, a_ray.at(a_t0));
+
+    if (std::abs(v) < eps) {
+      // A trace starting again from the shell's surface: which side the ray goes on to.
+      inside    = RayDetail::valueAt(a_shell, a_ray.at(Math::min(a_t0 + T(2) * eps, b1))) < T(0);
+      onSurface = true;
+    }
+    else {
+      inside = v < T(0);
+    }
+  }
+
+  if (inside) {
+    pairer.m_start  = openAt(a_t0);
+    pairer.m_inside = true;
+    pairer.m_first  = false;
+  }
+
+  // The list ends at the first crossing, its horizon there: the trace starts again from it if it needs more.
+  const auto take = [&pairer, &a_spans, a_t0](const T a_t, const bool a_entering) noexcept {
+    pairer.take(SpanEndT<T>{a_t, 0U, SpanEndT<T>::Marched}, a_entering, a_t0, a_spans);
+    pairer.finish(a_t, a_spans);
+
+    a_spans.m_horizon = a_t;
+  };
+
+  const auto unresolved = [&pairer, &a_spans](const T a_t) noexcept {
+    pairer.finish(a_t, a_spans);
+
+    a_spans.m_horizon = Math::min(a_spans.m_horizon, a_t);
+  };
+
+  // A search from the surface starts a little past it.
+  const auto from = [&a, &onSurface, eps](const T a_to) noexcept -> T {
+    return onSurface ? Math::min(a + T(2) * eps, a_to) : a;
+  };
+
+  // The operand's crossings in order, then the end of the walk. The value is -delta at each crossing.
+  uint32_t span = 0;
+  int      side = 0;
+
+  while (true) {
+    T    c      = b1;
+    bool isSeed = false;
+
+    while (span < a_operand.m_count) {
+      const SpanEndT<T>& end = (side == 0) ? a_operand.m_spans[span].m_in : a_operand.m_spans[span].m_out;
+
+      side = 1 - side;
+      span += (side == 0) ? 1U : 0U;
+
+      if (end.crossing() && end.m_t > a && end.m_t < b1) {
+        c      = end.m_t;
+        isSeed = true;
+
+        break;
+      }
+    }
+
+    if (inside && onSurface && isSeed) {
+      // Just inside the surface, a step is short: march back from the crossing instead, which finds the
+      // surface where the walk is unless the ray leaves the shell before the crossing.
+      const HitT<T> back = RayDetail::signChange(a_shell, a_ray, c, a, true, eps, steps);
+
+      if (back.m_status == HitStatus::Unresolved) {
+        unresolved(a);
+
+        return;
+      }
+
+      if (!(back.hit() && back.m_t > a + T(4) * eps)) {
+        a         = c;
+        onSurface = false;
+
+        continue;
+      }
+    }
+
+    // Inside, a step lands on the surface at normal incidence; outside, the search ends before the crossing.
+    const HitT<T> hit =
+      (from(c) < c) ? RayDetail::signChange(a_shell, a_ray, from(c), c, inside, eps, steps) : HitT<T>();
+
+    if (hit.m_status == HitStatus::Unresolved) {
+      unresolved(hit.m_t);
+
+      return;
+    }
+
+    if (hit.hit()) {
+      take(hit.m_t, !inside);
+
+      return;
+    }
+
+    if (!isSeed) {
+      break;
+    }
+
+    a         = c;
+    inside    = true;
+    onSurface = false;
+  }
+
+  pairer.finish(horizon, a_spans);
 }
 
 /**

@@ -290,7 +290,10 @@ affine maps over the primitives that have ray forms, in the same order, run on a
 (see :ref:`Sec:RaySpans`). A BVH union walks its BVH along the ray, nearest box first, each operand
 running its own ray program one call level down. A subtree with any other operation in it, or a
 primitive without a ray form, is marched as a whole over the clauses compiled for it; a subtree that
-would hold more than ``Tape::RayStackSize`` (4) lists at once is marched too. The ray programs are
+would hold more than ``Tape::RayStackSize`` (4) lists at once is marched too. An annulus whose operand is
+traced exactly throughout, and whose value is a distance or a bound, is the exception: the operand's ray
+clauses push all its spans, and an ``Annular`` ray clause replaces them by the shell's, marched over the
+annulus's clauses from the operand's crossings (see :ref:`Sec:RaySpans`). The ray programs are
 stored in the clause and program arrays after the evaluator's, which never reads them: they add about
 one clause (16 bytes) per expression node to the tape's pool, and one program entry (8 bytes) per
 sub-program, the sub-program it was compiled for. A hit names the leaf crossed, or for a marched subtree

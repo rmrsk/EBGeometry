@@ -7,8 +7,9 @@
  * @brief  The ray forms (see RayForm) of compositions: the fused union, intersection, difference, complement
  * and affine maps (Fused::Node), and BVHUnion. Each traces its operands' spans along the ray (see
  * EBGeometry_RaySpans.hpp) and combines them, so that a composition of shapes with ray forms is traced
- * exactly; an operand without one is marched by itself, in its own box. The other fused operations
- * (smooth blends, offsets, elongation, repetition, blur, mollification) have no ray form, and are marched.
+ * exactly; an operand without one is marched by itself, in its own box. An annulus of an operand traced
+ * exactly throughout is marched from the operand's crossings. The other fused operations (smooth blends,
+ * offsets, elongation, repetition, blur, mollification) have no ray form, and are marched.
  * Tape's ray form, which does the same clause by clause, is in EBGeometry_Tape.hpp.
  * @author Robert Marskar
  */
@@ -95,6 +96,29 @@ struct IsTracedFused : std::false_type
  */
 template <class Op, class... Cs>
 struct IsTracedFused<Fused::Node<Op, Cs...>> : Fused::Detail::TracedExactly<Op>
+{
+};
+
+/**
+ * @brief Whether a shape is traced exactly throughout: it has a ray form, and if it is a fused node, its
+ * operation is traced exactly and so is each operand.
+ * @details Internal helper; not part of the public API. What an annulus needs of its operand to be traced
+ * from the operand's crossings: with a marched part in it, the operand's spans would each be marched.
+ * @tparam S Shape type.
+ */
+template <class S>
+struct TracedThroughout : std::bool_constant<HasRayFirstHit<S, ShapePrecision<S>>::value && !IsComposition<S>::value>
+{
+};
+
+/**
+ * @brief A fused node is, if its operation is traced exactly and so is each operand.
+ * @tparam Op Operation.
+ * @tparam Cs Operand types.
+ */
+template <class Op, class... Cs>
+struct TracedThroughout<Fused::Node<Op, Cs...>>
+  : std::bool_constant<Fused::Detail::TracedExactly<Op>::value && (TracedThroughout<Cs>::value && ...)>
 {
 };
 
@@ -482,6 +506,106 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
 
       return hit;
     }
+  }
+};
+
+/**
+ * @brief The ray form of a fused annulus (Fused::Annular) of an operand traced exactly throughout: a shell
+ * around the operand's surface, found from the operand's crossings (see RayDetail::annularSpans()).
+ * @details Each of the operand's crossings is inside the shell, and its surfaces are marched to from there,
+ * so that the operations around the annulus stay exact and only the shell itself is marched. An operand
+ * whose value is not a distance is marched as a whole. The normal is the annulus's gradient. HitT::m_primitive
+ * is 0.
+ * @tparam T Floating-point precision.
+ * @tparam C Operand type.
+ */
+template <class T, class C>
+struct RayForm<Fused::Node<Fused::ShiftOp<T, true>, C>, std::enable_if_t<RayDetail::TracedThroughout<C>::value>>
+{
+  /**
+   * @brief The node type.
+   */
+  using Node = Fused::Node<Fused::ShiftOp<T, true>, C>;
+
+  /**
+   * @brief The first crossing of the annulus along a ray.
+   * @param[in] a_shape   The annulus.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(const Node& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept
+  {
+    if (RayDetail::qualityOf(a_shape) == DistanceQuality::NotADistance) {
+      return RayDetail::march(a_shape, a_ray, a_tMin, a_tMax, a_options);
+    }
+
+    const auto trace =
+      [&a_shape, &a_ray, &a_options](const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
+        spans(a_shape, a_ray, a_t0, a_t1, a_options, !a_all, a_spans);
+      };
+
+    const auto resolve = [&a_shape, &a_ray, &a_options](const T a_t, const uint32_t) noexcept {
+      const auto box = a_shape.computeBoundingVolume();
+      const T    h   = a_options.m_tolerance * RayDetail::scaleOf(box.getLowCorner(), box.getHighCorner(), a_options);
+
+      HitT<T> hit;
+
+      hit.m_normal = RayDetail::gradientNormal(a_shape, a_ray.at(a_t), h);
+
+      return hit;
+    };
+
+    HitT<T> hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
+
+    hit.m_primitive = 0U;
+
+    return hit;
+  }
+
+  /**
+   * @brief Where a ray is inside the annulus over an interval.
+   * @param[in]  a_shape     The annulus.
+   * @param[in]  a_ray       Ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  spans(const Node&          a_shape,
+        const RayT<T>&       a_ray,
+        T                    a_tMin,
+        T                    a_tMax,
+        const RayOptions<T>& a_options,
+        bool                 a_firstOnly,
+        RaySpansT<T>&        a_spans) noexcept
+  {
+    if (RayDetail::qualityOf(a_shape) == DistanceQuality::NotADistance) {
+      RayOptions<T> marched = a_options;
+
+      marched.m_march = true;
+
+      if (a_firstOnly) {
+        RayDetail::firstSpan(a_shape, a_ray, a_tMin, a_tMax, marched, a_spans);
+      }
+      else {
+        RayDetail::crossingSpans(a_shape, a_ray, a_tMin, a_tMax, marched, a_spans);
+      }
+
+      return;
+    }
+
+    RaySpansT<T> operand;
+
+    RayDetail::shapeSpans(RayDetail::fusedOperand<0>(a_shape), a_ray, a_tMin, a_tMax, a_options, false, operand);
+    RayDetail::annularSpans(a_shape, operand, a_ray, a_tMin, a_tMax, a_options, a_spans);
   }
 };
 

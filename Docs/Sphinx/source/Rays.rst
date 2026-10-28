@@ -73,6 +73,12 @@ part inside it, is marched by itself, in its own bounding box: under a union onl
 crossing, under an intersection or a difference over the whole interval, from one crossing to the
 next. Everything else stays exact.
 
+A shell around a surface (an annulus) is between the two. Its operand is traced exactly, and each of the
+operand's crossings is inside the shell, half a wall's thickness from both of its surfaces, so the shell
+is marched only from there to its surfaces: a step or two where the ray meets the wall head on. A cut
+through the shell stays exact, and where the cut removes the shell, the trace skips the removed part
+instead of finding every wall inside it.
+
 A list of spans has a fixed size, so that it fits a device thread. A ray through more pieces than it
 holds keeps the first ones, and the list then says how far along the ray it is complete. If the first
 crossing is not found before that point, the trace starts again from there: the answer is never wrong,

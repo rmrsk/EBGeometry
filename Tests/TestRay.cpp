@@ -270,7 +270,11 @@ requireSampledAgreement(
   const T end = a_hit.hit() ? a_hit.m_t - a_skip : a_tMax;
 
   if (a_hit.hit()) {
-    REQUIRE_THAT(a_shape.signedDistance(a_hit.m_point), withinAbsT(T(0), 10 * looseMargin<T>()));
+    // A marched crossing (an annulus's) is on the surface to the march's tolerance.
+    const auto margin = 10 * looseMargin<T>();
+
+    REQUIRE_THAT(a_shape.signedDistance(a_hit.m_point),
+                 withinAbsT(T(0), a_hit.m_exact ? margin : decltype(margin)(1e-3)));
 
     // The normal is the leaf's, found again from the leaf the trace ended on: it must be the gradient of the
     // shape's value there (where the gradient is one: not on an edge between two leaves).
@@ -1028,6 +1032,58 @@ TEMPLATE_TEST_CASE("Ray: fused and taped compositions are traced to the closed-f
   }
 }
 
+TEMPLATE_TEST_CASE("Ray: an intersection is known past one list's horizon as far as the other is empty",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto list = [](const T a_horizon, std::initializer_list<std::pair<T, T>> a_spans) {
+    RaySpansT<T> spans;
+
+    spans.reset(a_horizon);
+
+    for (const auto& [in, out] : a_spans) {
+      spans.add(SpanEndT<T>{in, 0U, SpanEndT<T>::Exact}, SpanEndT<T>{out, 0U, SpanEndT<T>::Exact});
+    }
+
+    return spans;
+  };
+
+  // A part known up to 2, inside on [1, 2]; a cut that keeps only [5, 8], known up to 10. Nothing of the
+  // intersection lies before 5, whatever the part does past 2.
+  const RaySpansT<T> part = list(T(2), {{T(1), T(2)}});
+  const RaySpansT<T> keep = list(T(10), {{T(5), T(8)}});
+
+  RaySpansT<T> out;
+
+  RayDetail::intersect(part, keep, out);
+
+  REQUIRE(out.m_count == 0U);
+  REQUIRE(out.m_horizon == T(5));
+
+  RayDetail::intersect(keep, part, out);
+
+  REQUIRE(out.m_horizon == T(5));
+
+  // Where the other list is inside at the horizon, nothing past it is known.
+  const RaySpansT<T> wide = list(T(10), {{T(0.5), T(8)}});
+
+  RayDetail::intersect(part, wide, out);
+
+  REQUIRE(out.m_count == 1U);
+  REQUIRE(out.m_horizon == T(2));
+
+  // An empty list in place: known as far as the other is empty.
+  RaySpansT<T> scratch;
+  RaySpansT<T> empty = list(T(3), {});
+
+  RayDetail::intersectInto(empty, keep, scratch);
+
+  REQUIRE(empty.m_count == 0U);
+  REQUIRE(empty.m_horizon == T(5));
+}
+
 TEMPLATE_TEST_CASE("Ray: span lists unite, intersect and complement as the sets of points they cover",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1168,6 +1224,109 @@ TEMPLATE_TEST_CASE("Ray: fused compositions and tapes agree with their values sa
 
     REQUIRE(copy.firstHit(ray, T(0), tMax).m_t == hit.m_t);
     REQUIRE(view.firstHit(ray, T(0), tMax).m_t == hit.m_t);
+  }
+}
+
+TEMPLATE_TEST_CASE("Ray: an annulus is traced from its operand's crossings to its closed-form surfaces",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // A shell between radii 0.8 and 1.2 about the origin.
+  const SphereSDF<T> ball(Vec3::zeros(), T(1));
+  const T            delta = T(0.2);
+
+  const auto    fused = Fused::Annular(ball, delta);
+  const Tape<T> tape(pool, Annular(ball, delta));
+
+  const auto check = [&](const RayT<T>& a_ray, const T a_t, const bool a_entering) {
+    for (const HitT<T>& hit : {firstHit(fused, a_ray, T(0), T(6)), firstHit(tape, a_ray, T(0), T(6))}) {
+      if (a_t < T(0)) {
+        REQUIRE(hit.m_status == HitStatus::Miss);
+      }
+      else {
+        REQUIRE(hit.hit());
+        REQUIRE_FALSE(hit.m_exact);
+        REQUIRE(hit.m_entering == a_entering);
+        REQUIRE_THAT(hit.m_t, withinAbsT(a_t, T(1e-3)));
+      }
+    }
+  };
+
+  // Along x at height b: into the outer surface, whether the ray crosses the ball (b < 1) or only grazes the
+  // shell (1 < b < 1.2), and past the shell beyond it.
+  for (const T b : {T(0), T(0.5), T(0.79), T(0.9), T(1.05), T(1.1)}) {
+    check(RayT<T>{Vec3(-T(3), b, T(0)), Vec3(T(1), T(0), T(0))}, T(3) - std::sqrt(T(1.44) - b * b), true);
+  }
+
+  check(RayT<T>{Vec3(-T(3), T(1.25), T(0)), Vec3(T(1), T(0), T(0))}, -T(1), true);
+
+  // From the centre, into the inner surface; from inside the shell, out of the outer one; from inside the
+  // shell on the far side of the ball, through the hole and out of the shell beyond.
+  check(RayT<T>{Vec3::zeros(), unit(T(1), T(2), T(3))}, T(0.8), true);
+  check(RayT<T>{Vec3(T(1.1), T(0), T(0)), Vec3(T(1), T(0), T(0))}, T(0.1), false);
+  check(RayT<T>{Vec3(-T(1.1), T(0), T(0)), Vec3(T(1), T(0), T(0))}, T(0.3), false);
+
+  // Starting again from a crossing: the next one, not the same.
+  check(RayT<T>{Vec3(-T(1.2) + T(1e-2), T(0), T(0)), Vec3(T(1), T(0), T(0))}, T(0.4) - T(1e-2), false);
+}
+
+TEMPLATE_TEST_CASE("Ray: annuli cut, mapped and around a mesh agree with their values sampled along the ray",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Scene<T> scene(5);
+
+  Pool pool(hostMemoryResource());
+
+  const auto cube = Parser::readIntoMeshSDF<T, 4>(unitCube(), pool);
+
+  // Traced from the operand's crossings: cut by a ball, under a union in a rotated frame, and around a mesh;
+  // and an annulus of an offset, which is marched.
+  const Tape<T> cutTape(pool, Difference(Annular(Union(scene.balls[0], scene.boxes[0]), T(0.05)), scene.holes[0]));
+  const Tape<T> mappedTape(pool,
+                           Union(Rotate(Annular(Scale(scene.balls[1], T(1.3)), T(0.05)), T(30), 2), scene.boxes[1]));
+  const Tape<T> meshTape(pool, Difference(Annular(cube, T(0.1)), SphereSDF<T>(Vec3::zeros(), T(0.6))));
+  const Tape<T> marchedTape(pool, Annular(Offset(scene.balls[2], T(0.1)), T(0.05)));
+
+  const auto fusedCut =
+    Fused::Difference(Fused::Annular(Fused::Union(scene.balls[0], scene.boxes[0]), T(0.05)), scene.holes[0]);
+  const auto fusedMesh = Fused::Difference(Fused::Annular(cube, T(0.1)), SphereSDF<T>(Vec3::zeros(), T(0.6)));
+
+  const T tMax = T(7);
+
+  const auto check = [&](const auto& a_shape) {
+    for (const RayT<T>& ray : scene.rays) {
+      const HitT<T> hit = firstHit(a_shape, ray, T(0), tMax);
+
+      requireSampledAgreement(a_shape, ray, tMax, hit, 1000, T(1e-3));
+    }
+  };
+
+  check(cutTape);
+  check(mappedTape);
+  check(meshTape);
+  check(marchedTape);
+  check(fusedCut);
+  check(fusedMesh);
+
+  // The tape and the fused composition find the same crossings.
+  for (const RayT<T>& ray : scene.rays) {
+    const HitT<T> a = firstHit(cutTape, ray, T(0), tMax);
+    const HitT<T> b = firstHit(fusedCut, ray, T(0), tMax);
+
+    REQUIRE(a.hit() == b.hit());
+
+    if (a.hit()) {
+      REQUIRE_THAT(a.m_t, withinAbsT(b.m_t, T(1e-3)));
+    }
   }
 }
 
@@ -1591,6 +1750,8 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
   const Scene<T> scene(5);
   const Tape<T>  sceneTape(pool, Difference(Union(scene.solids()), Union(scene.drills())));
   const auto     meshDifference = Fused::Difference(polygons, SphereSDF<T>(T(0.5) * Vec3::ones(), T(0.3)));
+  const Tape<T>  shellTape(pool, Difference(Annular(polygons, T(0.1)), SphereSDF<T>(Vec3::zeros(), T(0.6))));
+  const auto     meshShell = Fused::Annular(polygons, T(0.1));
 
   pool.freeze();
 
@@ -1617,4 +1778,14 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
 
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, D>{meshDifference.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, D>{meshDifference}, rays));
+
+  // Annuli around a mesh, marched from its crossings, in a tape and fused.
+  using A = std::decay_t<decltype(meshShell)>;
+
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, Tape<T>>{shellTape.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, Tape<T>>{shellTape}, rays),
+                     T(1e-3));
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, A>{meshShell.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, A>{meshShell}, rays),
+                     T(1e-3));
 }

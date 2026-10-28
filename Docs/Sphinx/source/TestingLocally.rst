@@ -399,10 +399,15 @@ Test coverage
        and tapes (a BVH union, a difference, a complement, affine maps) against their values sampled
        along rays from outside and inside, through a deep copy and a view; a row of balls with more
        spans than a list holds, from starts along it; the three mesh SDFs, a shape with only
-       ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; segments (zero length, a crossing at
+       ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; an annulus of a ball to its
+       closed-form surfaces (from outside, grazing, from the centre, from inside the wall, starting again
+       from a crossing), and annuli cut, mapped, around a mesh and of an offset against their values sampled
+       along rays, tape against fused; an intersection known past one list's horizon where the other is
+       empty; segments (zero length, a crossing at
        the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
        ray form, the march, a fused composition, the three mesh SDFs, two tapes (one with a BVH union
-       and a difference) and a mesh in a fused difference against the host.
+       and a difference), a mesh in a fused difference and annuli around a mesh, in a tape and fused, against the
+       host.
    * - ``TestRender``
      - The renderer: ``Camera::fit`` and ``Camera::lookAt`` placing the eye; a sphere covering the
        pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the

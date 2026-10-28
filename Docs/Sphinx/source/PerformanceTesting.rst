@@ -248,6 +248,24 @@ Case                                  Build  Measures
 ``<operation>-random``                       random order
 ====================================  =====  =====================================================
 
+**RayShell** (``Performance/RayShell``): ray tracing an annulus from its operand's crossings (see
+:ref:`Sec:RaySpans`): a shell around the armadillo (a ``TriMeshSDF``, the dodecahedron under ``--smoke``),
+half as thick as 1% of its box diagonal, with the corner above its centre in :math:`x` and below it in
+:math:`z` cut away by a box, as in :ref:`Chap:ExampleShell`. The rays start in the shell's box grown to
+twice its size and point at its centre. It is through a tape (with the mesh as a user primitive type),
+traced and marched, the traced case naming the marched one, and fused. A host and a device crossing agree
+as in the Ray probe; a ray grazing the shell may come within the march's tolerance on one side only.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``armadillo-tape/firstHit``           host   the first crossing of each of 20,000 rays, traced
+``armadillo-tape/firstHit-marched``   host   the same, marched
+``armadillo-fused/firstHit``          host   the same fused, traced
+``<input>/<operation>-morton``,       GPU    each of the above at 65,536 rays, in Morton and in
+``<operation>-random``                       random order
+====================================  =====  =====================================================
+
 **Render** (``Performance/Render``): one whole frame of the renderer (see :ref:`Chap:ImplemRender`),
 with shadows and ambient occlusion and one ray per pixel, from the camera ``Render::Camera::fit()``
 places for the shape: the classic CSG solid through a ``Tape``, and the armadillo as a ``TriMeshSDF``.

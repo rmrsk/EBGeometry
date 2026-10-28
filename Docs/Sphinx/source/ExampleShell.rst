@@ -40,6 +40,9 @@ quarter towards the camera:
 The program prints the solid's and the shell's values at two points inside the statue: negative in the
 solid, positive in the shell, whose inside is now hollow.
 
+A ray traces the statue exactly, through her mesh's BVH, and marches the shell only from where it crosses
+her surface out to the shell's two surfaces; the cut by the box stays exact (see :ref:`Sec:RaySpans`).
+
 Looking at it
 -------------
 

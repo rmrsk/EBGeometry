@@ -97,7 +97,10 @@ library has ray forms for:
    * - ``Fused::Union``, ``Fused::Intersection``, ``Fused::Difference``, ``Fused::Complement``,
        ``Fused::Translate``, ``Rotate``, ``Scale``, ``Reflect``
      - Their operands' spans, combined (`EBGeometry_CSGRayForms.hpp
-       <doxygen/html/EBGeometry__CSGRayForms_8hpp.html>`__). The other fused operations have no ray form.
+       <doxygen/html/EBGeometry__CSGRayForms_8hpp.html>`__).
+   * - ``Fused::Annular`` of an operand traced exactly throughout
+     - Marched from its operand's exact crossings (see :ref:`Sec:RaySpans`); an operand whose value is not
+       a distance is marched as a whole. The other fused operations have no ray form.
    * - ``BVHUnion``
      - The union of the spans of the primitives whose boxes the ray meets, walking its BVH nearest box
        first and leaving out the boxes beyond what the union so far is known up to.
@@ -117,7 +120,7 @@ crossed far beyond its ends; and the polygon test takes the side of each edge th
 loop's own orientation.
 
 Every other shape is marched: the other analytic shapes, ``BVHSmoothUnion``, the other fused operations
-and shapes of your own without a ray form. The ray forms are included with their shapes' headers, so
+(and an annulus of an operand with a marched part) and shapes of your own without a ray form. The ray forms are included with their shapes' headers, so
 ``firstHit()`` on a shape is the same function in every translation unit.
 
 To give a shape of your own a ray form, specialise ``RayForm`` in namespace ``EBGeometry``:
@@ -182,7 +185,22 @@ trace starts again from the horizon, asking every operand for all its spans if i
 that has not found the crossing after 64 passes, or that makes no progress, is ``Unresolved``, like a march
 out of steps; ``intersects()`` returns that status too, so the caller decides what an undecided ray
 means. An operand without a ray form is marched in its own box, and crossings found that way are not
-exact (``HitT::m_exact``).
+exact (``HitT::m_exact``). An intersection is known past the smaller horizon as far as the other list is
+empty from there, since the intersection is empty wherever either list is: where a cut removes part of
+an object, a trace that finds nothing in front of the cut starts again past it, not from each crossing of
+the part inside it.
+
+An annulus :math:`|d| - \delta` (``Annular``), a shell around its operand's surface, is traced from its
+operand's list (``RayDetail::annularSpans()``): between two of the operand's crossings :math:`d` keeps its
+sign, so the shell's value there is the distance to one offset surface (or a bound on it), and it is
+:math:`-\delta` at each crossing. From outside, the march towards the next crossing ends before it; from
+inside, it starts at a crossing, where a step at normal incidence lands on the shell's surface. A walk that
+starts just inside the surface (a trace starting again from an entry) marches back from the next crossing
+instead of creeping forwards. The list ends at the shell's first crossing, its horizon there, even under an
+intersection: the trace starts again from it if it needs more. Its crossings are marched (not exact), and
+their normal is the annulus's gradient. On a mesh shell cut by a box, this is about as fast as marching the
+whole composition and three to five times faster than marching the annulus under the cut's intersection,
+which needs every crossing along the ray.
 
 The normal and primitive are found once, for the crossing the trace ends at. The composition follows the
 leaf its end names down to that leaf, through the affine maps above it, and calls the leaf's own

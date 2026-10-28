@@ -171,7 +171,7 @@ flatten(Staging<T, K, List>& a_staging)
     range.m_begin = static_cast<uint32_t>(a_staging.m_flatClauses.size());
 
     for (RayClause clause : program) {
-      if (clause.m_op == RayOp::Marched) {
+      if (clause.m_op == RayOp::Marched || clause.m_op == RayOp::Annular) {
         clause.m_a += numPrograms;
       }
 
@@ -590,8 +590,10 @@ private:
   }
 
   /**
-   * @brief Whether a ray program traces an expression's node exactly, from its operands' spans: a union,
-   * intersection, complement or affine map, or a primitive with a ray form. Anything else is marched.
+   * @brief Whether a ray program traces an expression's node from its operands' spans: a union,
+   * intersection, complement or affine map, or a primitive with a ray form, exactly; and an annulus whose
+   * value is a distance (or a bound) of an operand traced exactly throughout, from the operand's crossings.
+   * Anything else is marched.
    * @param[in] a_node Expression.
    * @return True if traced.
    */
@@ -610,10 +612,35 @@ private:
     case Kind::Intersection: {
       return true;
     }
+    case Kind::Annular: {
+      return a_node.m_quality != DistanceQuality::NotADistance && tracedThroughout(a_node.m_children.front().node());
+    }
     default: {
       return false;
     }
     }
+  }
+
+  /**
+   * @brief Whether a ray program traces an expression exactly throughout: every node of it a union,
+   * intersection, complement or affine map, or a primitive with a ray form.
+   * @param[in] a_node Expression.
+   * @return True if traced exactly throughout.
+   */
+  [[nodiscard]] static bool
+  tracedThroughout(const ExprDetail::Node<T>& a_node) noexcept
+  {
+    if (a_node.m_kind == ExprDetail::Kind::Annular || !traced(a_node)) {
+      return false;
+    }
+
+    for (const Expr<T>& child : a_node.m_children) {
+      if (!tracedThroughout(child.node())) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
@@ -632,7 +659,8 @@ private:
 
     switch (a_node.m_kind) {
     case Kind::Affine:
-    case Kind::Complement: {
+    case Kind::Complement:
+    case Kind::Annular: {
       return this->raySlots(a_node.m_children.front().node());
     }
     case Kind::Union:
@@ -841,9 +869,43 @@ private:
       break;
     }
     case Kind::Annular: {
-      this->emit(a_state, a_node.m_children.front().node(), nullptr);
+      // Traced (see traced()), the annulus is marched from its operand's crossings: the operand's ray clauses
+      // push all its spans, and the annulus's own clauses, which give its value, are marched from them.
+      const auto begin = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
+
+      if (a_ray != nullptr) {
+        const RayEmit all{true, a_ray->m_level};
+
+        this->emit(a_state, a_node.m_children.front().node(), &all);
+      }
+      else {
+        this->emit(a_state, a_node.m_children.front().node(), nullptr);
+      }
+
       this->push(a_state, clause(Op::Abs), 0, 0);
       this->push(a_state, clause(Op::AddConstant, this->params({-a_node.m_scalar0})), 0, 0);
+
+      if (a_ray != nullptr) {
+        const auto end = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
+
+        const BoundingVolumes::AABBT<T>& box = a_node.m_boundingVolume;
+
+        const uint32_t p = this->params({box.getLowCorner()[0],
+                                         box.getLowCorner()[1],
+                                         box.getLowCorner()[2],
+                                         box.getHighCorner()[0],
+                                         box.getHighCorner()[1],
+                                         box.getHighCorner()[2]});
+
+        m_staging.m_marched.emplace_back(a_state.m_program, begin, end);
+
+        this->pushRay(a_state,
+                      RayOp::Annular,
+                      *a_ray,
+                      static_cast<uint32_t>(m_staging.m_marched.size() - 1),
+                      p,
+                      static_cast<uint32_t>(a_node.m_quality));
+      }
 
       break;
     }
@@ -1872,6 +1934,24 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
       break;
     }
+    case RayOp::Annular: {
+      const T* box = params + c.m_b;
+
+      const Subtree<D> shell{this,
+                             c.m_a,
+                             BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
+                             static_cast<DistanceQuality>(c.m_c),
+                             a_base,
+                             a_location};
+
+      RayDetail::annularSpans(shell, lists[nl - 1], top.m_ray, top.m_t0, top.m_t1, a_options, scratch);
+      RayDetail::copySpans(scratch, lists[nl - 1]);
+
+      // Its crossings are named by the clause, as a marched subtree's are.
+      RayDetail::nameLeaf(pc, lists[nl - 1]);
+
+      break;
+    }
     default: {
       EBGEOMETRY_EXPECT(false && "Tape: unknown ray clause");
 
@@ -2046,8 +2126,8 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
         hit.m_primitive = c.m_b;
       }
       else {
-        // A Marched clause is a leaf of the trace as a whole: its subtree has no ray program, so a trace never
-        // names a clause inside it, and a hit there reports MarchedLeaf.
+        // A Marched or Annular clause is a leaf of the trace as a whole: a trace never names a clause inside its
+        // subtree (an annulus names its operand's crossings itself), and a hit there reports MarchedLeaf.
         const T* box = params + c.m_b;
 
         const Subtree<D> subtree{this,
@@ -2057,7 +2137,16 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
                                  a_base,
                                  a_location};
 
-        hit = RayDetail::leafHit(subtree, top.m_ray, top.m_t0, a_options);
+        if (c.m_op == RayOp::Annular) {
+          // An annulus's crossing is already on its surface, to the tolerance: only its normal is needed.
+          const T h = a_options.m_tolerance *
+                      RayDetail::scaleOf(subtree.m_box.getLowCorner(), subtree.m_box.getHighCorner(), a_options);
+
+          hit.m_normal = RayDetail::gradientNormal(subtree, top.m_ray.at(top.m_t0), h);
+        }
+        else {
+          hit = RayDetail::leafHit(subtree, top.m_ray, top.m_t0, a_options);
+        }
 
         hit.m_primitive = MarchedLeaf;
       }

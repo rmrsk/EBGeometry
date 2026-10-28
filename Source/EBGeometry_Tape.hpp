@@ -16,7 +16,8 @@
  * Beside the clauses, the compiler writes a ray program for the tape and for each BVH union operand: the
  * expression's unions, intersections, complements and affine maps over the primitives that have ray forms,
  * in the same order, which Tape's ray form follows to trace the tape exactly along a ray (see
- * EBGeometry_RaySpans.hpp). A subtree with anything else in it is marched as a whole, through its clauses.
+ * EBGeometry_RaySpans.hpp), and annuli of such subtrees, marched from their operands' crossings. A subtree
+ * with anything else in it is marched as a whole, through its clauses.
  * The evaluator does not read the ray programs.
  * @author Robert Marskar
  */
@@ -116,8 +117,11 @@ enum class RayOp : uint8_t
   Complement,   ///< Replace the top list by its complement.
   PushAffine,   ///< Push the top ray mapped by the affine map at params[m_a..m_a+12).
   PopAffine,    ///< Pop a ray, and map the top list back through the map at params[m_a..m_a+12).
-  UnionBVH      ///< Push the union of the spans of the sub-programs in BVH union m_a; its operands, with the
+  UnionBVH,     ///< Push the union of the spans of the sub-programs in BVH union m_a; its operands, with the
                 ///< sub-programs they call, are sub-programs m_b up to m_c.
+  Annular       ///< Replace the top list, an operand's (all its spans), by the list of its annulus, sub-program m_a,
+                ///< marched from the operand's crossings in the box at params[m_b..m_b+6) (see
+                ///< RayDetail::annularSpans()).
 };
 
 /**
