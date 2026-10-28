@@ -131,7 +131,10 @@ keys(const bool a_device)
       {"1, 2, 3", "Look from the front, the side, the top"},
       {"O", "Switch between perspective and orthographic"},
       {"R", "Reset the camera"},
-      {"Right drag", "Move the light"}}},
+      {"Right drag", "Move the light"},
+      {"Left, Right", "Weaker or stronger highlights"},
+      {"Shift + Left", "Broader highlights"},
+      {"Shift + Right", "Tighter highlights"}}},
     {"Rendering",
      {{"P", "Cycle the colouring: by normal, uniform, by primitive"},
       {"S", "Turn shadows on or off"},
@@ -442,7 +445,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     std::printf("\n%s\n", group.m_title);
 
     for (const Key& key : group.m_keys) {
-      std::printf("  %-13s %s\n", key.m_keys, key.m_what);
+      std::printf("  %-14s %s\n", key.m_keys, key.m_what);
     }
   }
 
@@ -700,7 +703,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
          (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " +
          fixed(double(camera.m_nearClip), 3),
        std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
-         point(settings.m_light, 2)},
+         point(settings.m_light, 2),
+       "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
+         fixed(double(settings.m_shininess), 0)},
       {std::string(colouring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
        "Supersampling " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
          " (" + std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel)",
@@ -737,7 +742,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       for (const Key& key : groups[g].m_keys) {
         char line[128];
 
-        std::snprintf(line, sizeof(line), "  %-13s %s", key.m_keys, key.m_what);
+        std::snprintf(line, sizeof(line), "  %-14s %s", key.m_keys, key.m_what);
         lines.emplace_back(line);
       }
     }
@@ -1023,6 +1028,24 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           }
           else {
             sectionOffset += (upward ? T(0.02) : T(-0.02)) * scale;
+          }
+
+          break;
+        }
+        case SDLK_LEFT:
+        case SDLK_RIGHT: {
+          // The highlights: stronger or weaker, or with Shift held, tighter or broader (the specular exponent).
+          const bool more = event.key.keysym.sym == SDLK_RIGHT;
+
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_shininess =
+              Math::clamp(more ? settings.m_shininess * T(1.5) : settings.m_shininess / T(1.5), T(2), T(512));
+          }
+          else {
+            // In steps of 0.05, kept on them so that repeated steps do not drift.
+            const T steps = std::round(settings.m_specular * T(20)) + (more ? T(1) : T(-1));
+
+            settings.m_specular = Math::clamp(steps / T(20), T(0), T(1.5));
           }
 
           break;

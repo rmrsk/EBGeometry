@@ -11,7 +11,8 @@
  * line saying why and returns at once, so a program that calls it still runs unattended.
  *
  * In the window: drag to orbit, drag with Ctrl held to pan, drag with the right button to move the light,
- * and use the wheel to zoom. Press S,
+ * and use the wheel to zoom; the left and right arrow keys make the highlights weaker or stronger, and with
+ * Shift held broader or tighter. Press S,
  * A and F to toggle shadows, ambient occlusion and the floor, Shift and Up or Down to take more or fewer
  * rays per pixel (from 1 x 1 to 8 x 8), P to cycle the colouring (by normal, uniform,
  * by primitive), X to cut the shape with a section plane across x, then y, then z (it draws the shape's
