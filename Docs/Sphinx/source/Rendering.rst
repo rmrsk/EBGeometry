@@ -33,7 +33,9 @@ To look inside an object, the renderer can cut it with a plane, removing everyth
 plane's normal :math:`\mathbf{n}` points to: the intersection of the object with a half-space. Along
 each ray it finds the part of the ray on the kept side, and traces the object over that part only. Where
 the ray reaches the plane while inside the object, the plane itself is the first crossing: a cut face,
-exact, with the plane's normal, and a colour of its own.
+exact, with the plane's normal. It is partly transparent: the ray goes on inside the object to its next
+surface (a hole, a cavity, the far wall), which shows through the face, lit without shadows, which inside
+the object would be everywhere.
 
 The plane also shows where it slices the object. Where a ray meets the plane before anything else, the
 object's value there says where the point lies: near zero, it is on the object's outline in the plane,
