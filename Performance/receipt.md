@@ -18,8 +18,8 @@ side: host
 verdict: yellow
 base: 2f03add
 base-fingerprint: f67ceadc9829a008d72ad0d2c0b7154865b793e2
-head: 98e78e6
-head-fingerprint: 9dd0dd12e1355373b5aee70afd0059b5584f1373
+head: 3544549
+head-fingerprint: 704951f9511e922b0cc01e21a2a8cd31b91101d2
 cases: 136
 rounds: 2
 reps: 3
@@ -30,7 +30,7 @@ date: 2026-10-28
 
 **Accepted:** Accept receipt as side effects of new rendering engine.
 
-`98e78e6` against `2f03add` (origin/dev), 2026-10-28.
+`3544549` against `2f03add` (origin/dev), 2026-10-28.
 
 **VERDICT: 3 minor regressions
 
@@ -43,8 +43,8 @@ side: cuda
 verdict: red
 base: 2f03add
 base-fingerprint: f67ceadc9829a008d72ad0d2c0b7154865b793e2
-head: 98e78e6
-head-fingerprint: 9dd0dd12e1355373b5aee70afd0059b5584f1373
+head: 3544549
+head-fingerprint: 704951f9511e922b0cc01e21a2a8cd31b91101d2
 cases: 162
 rounds: 2
 reps: 3
@@ -55,7 +55,7 @@ date: 2026-10-28
 
 **Accepted:** Accept receipt as side effects of new rendering engine.
 
-`98e78e6` against `2f03add` (origin/dev), 2026-10-28.
+`3544549` against `2f03add` (origin/dev), 2026-10-28.
 
 **VERDICT: host and device answers differ in 6 cases
 
