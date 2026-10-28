@@ -43,7 +43,9 @@ The classes are in namespace ``Render``:
   ``ColourBy::Primitive``), the colours, the light (its direction, by default in the camera's frame so that
   it turns with the camera and lights the side in view, or in the scene with ``m_lightFromCamera`` false;
   its intensity, the ambient level, and the highlights' strength and shininess), the section plane
-  (``m_section``, a point and a normal; the side the normal points to is removed; its contour, a line
+  (``m_section``, a point and a normal; the side the normal points to is removed; the cut face is
+  coloured by the shape's own normal there, and partly transparent, ``m_cutOpacity``, so that the shape's
+  next surface behind it shows through; its contour, a line
   ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
   box), and the march (``RayOptions``). ``m_primitiveColours`` gives the first
   ``Settings::PrimitiveColours`` (16) primitive ids colours of their own; an entry left unset, and every

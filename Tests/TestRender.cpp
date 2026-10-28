@@ -334,10 +334,13 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   CHECK(halved.at(size / 2 - size / 8, size / 2) != background);
   CHECK(whole.at(size / 2 + size / 8, size / 2) != background);
 
-  // Cut away the half towards the camera: it sees the flat cut face, in the cut colour.
+  // Cut away the half towards the camera: it sees the flat cut face. Coloured by primitive and opaque, the
+  // face takes the cut colour.
   renderer.settings().m_sectionNormal = Vec3(T(0), T(0), T(1));
   renderer.settings().m_shadows       = false;
   renderer.settings().m_occlusion     = false;
+  renderer.settings().m_colourBy      = Render::ColourBy::Primitive;
+  renderer.settings().m_cutOpacity    = T(1);
 
   (void)renderer.render(sphere, camera, opened);
 
@@ -347,6 +350,28 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   CHECK(cut.g > cut.b + 30);
   CHECK(opened.at(size / 2, size / 2) != whole.at(size / 2, size / 2));
   CHECK(opened.at(size / 2 - 3, size / 2 + 2) != background);
+
+  // Coloured by normal, the face takes the sphere's own normal, not the plane's: halfway to the right of the
+  // centre it points along +x, so the face is red there.
+  renderer.settings().m_colourBy = Render::ColourBy::Normal;
+
+  Render::Image byNormal;
+
+  (void)renderer.render(sphere, camera, byNormal);
+
+  const Channels right = channels(byNormal.at(size / 2 + size / 8, size / 2));
+
+  CHECK(right.r > right.b + 40);
+  CHECK(right.r > right.g + 40);
+
+  // Partly transparent, the far wall of the sphere shows through the face.
+  renderer.settings().m_cutOpacity = T(0.5);
+
+  Render::Image seeThrough;
+
+  (void)renderer.render(sphere, camera, seeThrough);
+
+  CHECK(seeThrough.at(size / 2 + size / 8, size / 2) != byNormal.at(size / 2 + size / 8, size / 2));
 }
 
 TEMPLATE_TEST_CASE("Render: the device render matches the host render", "[Render][gpu]", EBGEOMETRY_TEST_PRECISIONS)

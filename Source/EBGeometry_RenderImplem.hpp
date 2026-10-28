@@ -344,7 +344,24 @@ public:
         a_result.m_insideHits++;
       }
 
-      colour = this->shadeSurface(hit, a_direction);
+      // A face cut by the section plane is where the plane, not the shape, gives the value: a fill, through
+      // which the shape's next surface along the ray shows.
+      const Vec3T<T>& p = hit.m_point;
+
+      if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
+        colour = this->shadeCut(p);
+
+        if (m_settings.m_cutOpacity < T(1)) {
+          const HitT<T>  behind = this->trace(ray, hit.m_t + T(4) * m_eps, m_far);
+          const Vec3T<T> seen =
+            behind.hit() ? this->shadeSurface(behind, a_direction, false) : this->background(a_direction);
+
+          colour = m_settings.m_cutOpacity * colour + (T(1) - m_settings.m_cutOpacity) * seen;
+        }
+      }
+      else {
+        colour = this->shadeSurface(hit, a_direction, true);
+      }
     }
     else if (onFloor) {
       colour = this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
@@ -501,6 +518,30 @@ private:
   }
 
   /**
+   * @brief The uncut shape's unit normal at a point (the direction its value grows fastest), from finite
+   * differences on a tetrahedron.
+   * @param[in] a_point Point.
+   * @return The normal.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  shapeNormal(const Vec3T<T>& a_point) const noexcept
+  {
+    const T        h = T(5e-4) * m_scale;
+    const Vec3T<T> a(T(1), T(-1), T(-1));
+    const Vec3T<T> b(T(-1), T(-1), T(1));
+    const Vec3T<T> c(T(-1), T(1), T(-1));
+    const Vec3T<T> d(T(1), T(1), T(1));
+
+    const Vec3T<T> g = a * m_object.shapeDistance(a_point + h * a) + b * m_object.shapeDistance(a_point + h * b) +
+                       c * m_object.shapeDistance(a_point + h * c) + d * m_object.shapeDistance(a_point + h * d);
+
+    const T length = g.length();
+
+    return (length > T(0)) ? g / length : m_up;
+  }
+
+  /**
    * @brief How much light reaches a point from the light's direction: 0 in shadow, 1 in light.
    * @details One ray towards the light (firstHit()); the light moving a little between a pixel's rays
    * softens the edges.
@@ -574,30 +615,51 @@ private:
   }
 
   /**
-   * @brief The colour of the shape's surface where a camera ray hit it.
-   * @param[in] a_hit       The hit.
-   * @param[in] a_direction Unit direction of the camera ray.
+   * @brief The fill of the section plane's cut face at a point: coloured as a surface there would be, by
+   * the direction of the shape's own normal (the gradient of its value, not the plane's normal), and lit by
+   * it a little from either side, without shadows, so that a slice reads the same whichever way the light
+   * faces. Coloured by primitive, it takes the cut colour: inside a composition the leaf that decides the
+   * value (a subtracted one, near its surface) need not be the material there.
+   * @param[in] a_point Point on the cut face.
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Vec3T<T>
-  shadeSurface(const HitT<T>& a_hit, const Vec3T<T>& a_direction) const noexcept
+  shadeCut(const Vec3T<T>& a_point) const noexcept
   {
-    const Vec3T<T>& p = a_hit.m_point;
-
-    // A face cut by the section plane is where the plane, not the shape, gives the value.
-    const bool cut = m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p);
-
-    Vec3T<T> n = cut ? m_object.m_normal : ((a_hit.m_normal.length2() > T(0)) ? a_hit.m_normal : this->normal(p));
+    const Vec3T<T> n = this->shapeNormal(a_point);
 
     Vec3T<T> albedo = m_settings.m_colour;
 
-    // The cut face takes the cut colour whatever the colouring: inside a composition, the leaf that decides
-    // the value (a subtracted one, near its surface) need not be the material there.
-    if (cut) {
-      albedo = m_settings.m_cutColour;
+    if (m_settings.m_colourBy == ColourBy::Normal) {
+      albedo = T(0.5) * (n + Vec3T<T>::ones());
     }
     else if (m_settings.m_colourBy == ColourBy::Primitive) {
+      albedo = m_settings.m_cutColour;
+    }
+
+    return albedo * (T(0.6) + T(0.4) * std::abs(dot(n, m_light)));
+  }
+
+  /**
+   * @brief The colour of the shape's surface where a ray hit it.
+   * @param[in] a_hit       The hit.
+   * @param[in] a_direction Unit direction of the ray.
+   * @param[in] a_tint      Whether a surface seen from inside the solid is tinted (not when it is seen
+   * through the cut face, which looks into the solid on purpose).
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  shadeSurface(const HitT<T>& a_hit, const Vec3T<T>& a_direction, const bool a_tint) const noexcept
+  {
+    const Vec3T<T>& p = a_hit.m_point;
+
+    Vec3T<T> n = (a_hit.m_normal.length2() > T(0)) ? a_hit.m_normal : this->normal(p);
+
+    Vec3T<T> albedo = m_settings.m_colour;
+
+    if (m_settings.m_colourBy == ColourBy::Primitive) {
       const uint32_t id = a_hit.m_primitive;
 
       albedo = (id < Settings<T>::PrimitiveColours && m_settings.m_primitiveColours[id][0] >= T(0))
@@ -613,14 +675,8 @@ private:
       n = -n;
     }
 
-    if (!a_hit.m_entering && !cut) {
+    if (!a_hit.m_entering && a_tint) {
       albedo = T(0.25) * albedo + T(0.75) * m_settings.m_insideColour;
-    }
-
-    // The cut face is a nearly flat fill, lit a little from either side and casting no shadow, so that a
-    // slice reads the same whichever way the light and the camera face.
-    if (cut) {
-      return albedo * (T(0.75) + T(0.25) * std::abs(dot(n, m_light)));
     }
 
     return this->light(p, n, a_direction, albedo);
@@ -1222,6 +1278,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
 
   field("settings", "m_insideColour", a_settings.m_insideColour, settings.m_insideColour);
   field("settings", "m_cutColour", a_settings.m_cutColour, settings.m_cutColour);
+  field("settings", "m_cutOpacity", a_settings.m_cutOpacity, settings.m_cutOpacity);
   field("settings", "m_floorColour", a_settings.m_floorColour, settings.m_floorColour);
   field("settings", "m_lightFromCamera", a_settings.m_lightFromCamera, settings.m_lightFromCamera);
   field("settings", "m_light", a_settings.m_light, settings.m_light);
@@ -1387,6 +1444,9 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(std::isfinite(a_camera.m_nearClip) && a_camera.m_nearClip >= T(0),
                      "Render::Renderer: the near clip must be finite and not negative (%g)",
                      double(a_camera.m_nearClip));
+  EBGEOMETRY_REQUIRE(m_settings.m_cutOpacity >= T(0) && m_settings.m_cutOpacity <= T(1),
+                     "Render::Renderer: the cut face's opacity must be from 0 to 1 (%g)",
+                     double(m_settings.m_cutOpacity));
   EBGEOMETRY_REQUIRE(m_settings.m_contourWidth >= T(0) && m_settings.m_sheetOpacity >= T(0) &&
                        m_settings.m_sheetOpacity <= T(1),
                      "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be "

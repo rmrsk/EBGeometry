@@ -259,9 +259,16 @@ struct Settings
   Vec3T<T> m_insideColour = Vec3T<T>(T(0.90), T(0.08), T(0.08));
 
   /**
-   * @brief The colour of faces cut by the section plane.
+   * @brief The colour of faces cut by the section plane when colouring by primitive; otherwise a cut face
+   * is coloured as the shape's surface would be, by its own normal there or uniformly.
    */
   Vec3T<T> m_cutColour = Vec3T<T>(T(0.95), T(0.86), T(0.50));
+
+  /**
+   * @brief Opacity of the cut face (1: opaque): below 1, the shape's next surface behind it along the ray
+   * shows through, seen from inside the solid without the inside tint (cavities, bores, the far wall).
+   */
+  T m_cutOpacity = T(0.6);
 
   /**
    * @brief The floor's colour.
