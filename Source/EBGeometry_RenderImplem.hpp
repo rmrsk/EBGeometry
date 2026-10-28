@@ -410,15 +410,7 @@ public:
       const Vec3T<T>& p = hit.m_point;
 
       if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
-        colour = this->shadeCut();
-
-        if (m_settings.m_cutOpacity < T(1)) {
-          const HitT<T>  behind = this->trace(ray, hit.m_t + T(4) * m_eps, m_far);
-          const Vec3T<T> seen =
-            behind.hit() ? this->shadeSurface(behind, a_direction, false) : this->background(a_direction);
-
-          colour = m_settings.m_cutOpacity * colour + (T(1) - m_settings.m_cutOpacity) * seen;
-        }
+        colour = this->shadeCutFace(ray, hit.m_t);
       }
       else {
         colour = this->shadeSurface(hit, a_direction, true);
@@ -665,6 +657,33 @@ private:
   }
 
   /**
+   * @brief The colour of the section plane's cut face where a camera ray meets it: the fill, and through it
+   * the shape's next surface along the ray.
+   * @details Out of line on a device: inlined, this second shading of a surface (and its trace) doubled what
+   * the render kernels spill to local memory, for every pixel, section or no section.
+   * @param[in] a_ray The camera ray.
+   * @param[in] a_t   Where it meets the cut face.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline Vec3T<T>
+  shadeCutFace(const RayT<T>& a_ray, const T a_t) const noexcept
+  {
+    const Vec3T<T> fill = this->shadeCut();
+
+    if (m_settings.m_cutOpacity >= T(1)) {
+      return fill;
+    }
+
+    const HitT<T>  behind = this->trace(a_ray, a_t + T(4) * m_eps, m_far);
+    const Vec3T<T> seen =
+      behind.hit() ? this->shadeSurface(behind, a_ray.m_direction, false) : this->background(a_ray.m_direction);
+
+    return m_settings.m_cutOpacity * fill + (T(1) - m_settings.m_cutOpacity) * seen;
+  }
+
+  /**
    * @brief The fill of the section plane's cut face: coloured as a surface facing along the plane's normal
    * would be, and lit by that normal a little from either side, without shadows, so that a slice reads the
    * same whichever way the light faces. Coloured by primitive, it takes the cut colour: inside a
@@ -748,6 +767,7 @@ private:
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline Vec3T<T>
   drawOnPlane(const RayT<T>& a_ray, const T a_near, const T a_tFront, const Vec3T<T>& a_colour) const noexcept
   {
@@ -1437,17 +1457,16 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
       shader.jitterLight(dx, dy);
     }
 
-    // Perspective rays leave the eye; orthographic ones leave the plane through it, parallel, spread as far
-    // as the perspective rays are at the target.
-    if (m_camera.m_orthographic) {
-      const Vec3T<T> origin = shader.orthographicStart(m_view.m_eye + m_view.m_distance * (x * right + y * up));
+    // Perspective rays leave the eye; orthographic ones are parallel, behind the shape, spread as far as the
+    // perspective rays are at the target. One call to shade(): two (one per kind) copied its whole body into
+    // the kernel twice, and doubled what it spills.
+    const Vec3T<T> origin    = m_camera.m_orthographic
+                                 ? shader.orthographicStart(m_view.m_eye + m_view.m_distance * (x * right + y * up))
+                                 : m_view.m_eye;
+    const Vec3T<T> direction = m_camera.m_orthographic ? forward : RenderDetail::unit(forward + x * right + y * up);
+    const T        near      = m_camera.m_orthographic ? shader.nearAlong(m_camera.m_nearClip) : m_camera.m_nearClip;
 
-      colour += shader.shade(origin, forward, shader.nearAlong(m_camera.m_nearClip), result);
-    }
-    else {
-      colour +=
-        shader.shade(m_view.m_eye, RenderDetail::unit(forward + x * right + y * up), m_camera.m_nearClip, result);
-    }
+    colour += shader.shade(origin, direction, near, result);
   }
 
   colour = colour / T(n * n);
