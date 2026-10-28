@@ -1253,4 +1253,28 @@ TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the imag
 
   CHECK(at(highlighted, T(-1)) == at(plainImage, T(-1)));
   CHECK(at(highlighted, T(1)) != at(plainImage, T(1)));
+
+  // In a drilled box the hole's wall is the drill's surface: leaf 1, picked apart from the box's faces, leaf
+  // 0. The ray from (0.5, 0, 3) towards (-0.5, 0, -1) enters the hole at z = 1 and meets its wall at
+  // x = -0.3, z = -0.2; the one from (0.6, 0, 3) along -z meets the front face.
+  const TestUtils::Compiled<T> drilled(
+    Difference(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.3), 2)));
+
+  const Render::Renderer<T> centre(plain<T>(size));
+
+  const HitT<T> wall = centre.pick(drilled.tape(),
+                                   Render::Camera<T>::lookAt(Vec3(T(0.5), T(0), T(3)), Vec3(T(-0.5), T(0), T(-1))),
+                                   T(0.5) * T(size),
+                                   T(0.5) * T(size));
+  const HitT<T> face = centre.pick(drilled.tape(),
+                                   Render::Camera<T>::lookAt(Vec3(T(0.6), T(0), T(3)), Vec3(T(0.6), T(0), T(0))),
+                                   T(0.5) * T(size),
+                                   T(0.5) * T(size));
+
+  REQUIRE(wall.hit());
+  REQUIRE(face.hit());
+  CHECK(wall.m_primitive == 1U);
+  CHECK(face.m_primitive == 0U);
+  CHECK((wall.m_point - Vec3(T(-0.3), T(0), T(-0.2))).length() < T(1e-2));
+  CHECK(std::abs(face.m_point[2] - T(1)) < T(1e-2));
 }

@@ -668,7 +668,8 @@ private:
       n = -n;
     }
 
-    if (a_hit.m_primitive == m_settings.m_highlightPrimitive) {
+    if (a_hit.m_primitive == m_settings.m_highlightPrimitive ||
+        m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives) {
       albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColour;
     }
 

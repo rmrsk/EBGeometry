@@ -34,7 +34,53 @@
 #include "EBGeometry_Ray.hpp"
 #include "EBGeometry_Vec.hpp"
 
+namespace EBGeometry {
+
+template <class T>
+class FlatMeshSDF;
+
+template <class T, size_t K>
+class MeshSDF;
+
+template <class T, size_t K, size_t W>
+class TriMeshSDF;
+
+} // namespace EBGeometry
+
 namespace EBGeometry::Render {
+
+/**
+ * @brief Whether a shape's primitives (HitT::m_primitive) are the faces of one object rather than objects:
+ * true for the mesh SDFs, whose primitive is a face of the mesh; false for a Tape (its leaves), a fused
+ * composition (its parts), a BVH union (its members) and an analytic shape (itself).
+ * @tparam S Shape type.
+ */
+template <class S>
+inline constexpr bool primitivesAreFaces = false;
+
+/**
+ * @brief See primitivesAreFaces.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+inline constexpr bool primitivesAreFaces<FlatMeshSDF<T>> = true;
+
+/**
+ * @brief See primitivesAreFaces.
+ * @tparam T Floating-point precision.
+ * @tparam K Branching factor.
+ */
+template <class T, size_t K>
+inline constexpr bool primitivesAreFaces<MeshSDF<T, K>> = true;
+
+/**
+ * @brief See primitivesAreFaces.
+ * @tparam T Floating-point precision.
+ * @tparam K Branching factor.
+ * @tparam W SIMD width.
+ */
+template <class T, size_t K, size_t W>
+inline constexpr bool primitivesAreFaces<TriMeshSDF<T, K, W>> = true;
 
 /**
  * @brief How surfaces are coloured.
@@ -259,8 +305,13 @@ struct Settings
   static constexpr uint32_t NoPrimitive = 0xFFFFFFFFU;
 
   /**
+   * @brief The value of m_highlightPrimitive that highlights the whole shape.
+   */
+  static constexpr uint32_t AllPrimitives = 0xFFFFFFFEU;
+
+  /**
    * @brief A primitive to highlight (see HitT::m_primitive): its surface is tinted with m_highlightColour,
-   * whatever the colouring. NoPrimitive highlights none.
+   * whatever the colouring. NoPrimitive highlights none, AllPrimitives the whole shape.
    */
   uint32_t m_highlightPrimitive = NoPrimitive;
 

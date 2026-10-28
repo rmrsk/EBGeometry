@@ -123,36 +123,35 @@ struct KeyGroup
 inline std::vector<KeyGroup>
 keys(const bool a_device)
 {
-  std::vector<KeyGroup> groups{
-    {"Camera and light",
-     {{"Drag", "Orbit the camera"},
-      {"Ctrl + drag", "Pan the camera"},
-      {"Wheel", "Zoom"},
-      {"1, 2, 3", "Look from the front, the side, the top"},
-      {"O", "Switch between perspective and orthographic"},
-      {"R", "Reset the camera"},
-      {"Right drag", "Move the light"},
-      {"Left, Right", "Weaker or stronger highlights"},
-      {"Shift + Left", "Broader highlights"},
-      {"Shift + Right", "Tighter highlights"}}},
-    {"Rendering",
-     {{"P", "Cycle the colouring: by normal, uniform, by primitive"},
-      {"S", "Turn shadows on or off"},
-      {"A", "Turn ambient occlusion on or off"},
-      {"F", "Turn the floor on or off"},
-      {"Shift + Up", "More rays per pixel (up to 8 x 8)"},
-      {"Shift + Down", "Fewer rays per pixel (down to 1)"}}},
-    {"Section and contours",
-     {{"X", "Cut across x, then y, then z"},
-      {"Ctrl + X", "Remove the cut"},
-      {"N", "Reverse the cut (remove the other side)"},
-      {"Ctrl + wheel", "Move the plane in fine steps"},
-      {"Up, Down", "Move the plane in coarse steps"}}},
-    {"Picking", {{"Click", "Pick the primitive under the cursor (the background clears it)"}}},
-    {"Window",
-     {{"C", "Print the camera and settings as C++"},
-      {"H", "Show or hide this overlay and the axes"},
-      {"Esc, Q", "Close the window"}}}};
+  std::vector<KeyGroup> groups{{"Camera and light",
+                                {{"Drag", "Orbit the camera"},
+                                 {"Ctrl + drag", "Pan the camera"},
+                                 {"Wheel", "Zoom"},
+                                 {"1, 2, 3", "Look from the front, the side, the top"},
+                                 {"O", "Switch between perspective and orthographic"},
+                                 {"R", "Reset the camera"},
+                                 {"Right drag", "Move the light"},
+                                 {"Left, Right", "Weaker or stronger highlights"},
+                                 {"Shift + Left", "Broader highlights"},
+                                 {"Shift + Right", "Tighter highlights"}}},
+                               {"Rendering",
+                                {{"P", "Cycle the colouring: by normal, uniform, by primitive"},
+                                 {"S", "Turn shadows on or off"},
+                                 {"A", "Turn ambient occlusion on or off"},
+                                 {"F", "Turn the floor on or off"},
+                                 {"Shift + Up", "More rays per pixel (up to 8 x 8)"},
+                                 {"Shift + Down", "Fewer rays per pixel (down to 1)"}}},
+                               {"Section and contours",
+                                {{"X", "Cut across x, then y, then z"},
+                                 {"Ctrl + X", "Remove the cut"},
+                                 {"N", "Reverse the cut (remove the other side)"},
+                                 {"Ctrl + wheel", "Move the plane in fine steps"},
+                                 {"Up, Down", "Move the plane in coarse steps"}}},
+                               {"Picking", {{"Click", "Pick the object under the cursor (the background clears it)"}}},
+                               {"Window",
+                                {{"C", "Print the camera and settings as C++"},
+                                 {"H", "Show or hide this overlay and the axes"},
+                                 {"Esc, Q", "Close the window"}}}};
 
   if (a_device) {
     groups[1].m_keys.push_back({"G", "Render on the GPU or the CPU"});
@@ -717,8 +716,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
        "Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
          fixed(100.0 * double(settings.m_sheetOpacity), 0) + "% opaque, cut face " +
          fixed(100.0 * double(settings.m_cutOpacity), 0) + "% opaque"},
-      {picked ? "Primitive " + std::to_string(pick.m_primitive) + " at " + point(pick.m_point, 3) + ", normal " +
-                  point(pick.m_normal, 2)
+      {picked ? (primitivesAreFaces<S> ? "Object 0 (face " + std::to_string(pick.m_primitive) + ")"
+                                       : "Object " + std::to_string(pick.m_primitive)) +
+                  " at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
               : std::string("Nothing picked")},
       {}};
 
@@ -841,10 +841,15 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
             pick   = Renderer<T>(frame).pick(a_shape, camera, column, row);
             picked = pick.hit();
 
-            settings.m_highlightPrimitive = picked ? pick.m_primitive : Settings<T>::NoPrimitive;
+            // The object picked: a tape's leaf, a fused composition's part, a union's member; a mesh SDF is one
+            // object, whose primitive is the face picked on it.
+            if (!picked) {
+              settings.m_highlightPrimitive = Settings<T>::NoPrimitive;
+            }
+            else if (primitivesAreFaces<S>) {
+              settings.m_highlightPrimitive = Settings<T>::AllPrimitives;
 
-            if (picked) {
-              std::printf("EBGeometry viewer: picked primitive %u at (%g, %g, %g), normal (%g, %g, %g)\n",
+              std::printf("EBGeometry viewer: picked object 0, face %u, at (%g, %g, %g), normal (%g, %g, %g)\n",
                           unsigned(pick.m_primitive),
                           double(pick.m_point[0]),
                           double(pick.m_point[1]),
@@ -852,8 +857,21 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                           double(pick.m_normal[0]),
                           double(pick.m_normal[1]),
                           double(pick.m_normal[2]));
-              std::fflush(stdout);
             }
+            else {
+              settings.m_highlightPrimitive = pick.m_primitive;
+
+              std::printf("EBGeometry viewer: picked object %u at (%g, %g, %g), normal (%g, %g, %g)\n",
+                          unsigned(pick.m_primitive),
+                          double(pick.m_point[0]),
+                          double(pick.m_point[1]),
+                          double(pick.m_point[2]),
+                          double(pick.m_normal[0]),
+                          double(pick.m_normal[1]),
+                          double(pick.m_normal[2]));
+            }
+
+            std::fflush(stdout);
 
             changed = true;
           }
