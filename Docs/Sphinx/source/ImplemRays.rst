@@ -99,8 +99,9 @@ library has ray forms for:
      - Their operands' spans, combined (`EBGeometry_CSGRayForms.hpp
        <doxygen/html/EBGeometry__CSGRayForms_8hpp.html>`__).
    * - ``Fused::Annular`` of an operand traced exactly throughout
-     - Marched from its operand's exact crossings (see :ref:`Sec:RaySpans`); an operand whose value is not
-       a distance is marched as a whole. The other fused operations have no ray form.
+     - Marched from its operand's exact crossings (see :ref:`Sec:RaySpans`); an annulus whose value is not
+       a distance, or whose half-thickness is zero or less, is marched as a whole. The other fused
+       operations have no ray form.
    * - ``BVHUnion``
      - The union of the spans of the primitives whose boxes the ray meets, walking its BVH nearest box
        first and leaving out the boxes beyond what the union so far is known up to.

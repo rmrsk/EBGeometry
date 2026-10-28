@@ -291,7 +291,8 @@ affine maps over the primitives that have ray forms, in the same order, run on a
 running its own ray program one call level down. A subtree with any other operation in it, or a
 primitive without a ray form, is marched as a whole over the clauses compiled for it; a subtree that
 would hold more than ``Tape::RayStackSize`` (4) lists at once is marched too. An annulus whose operand is
-traced exactly throughout, and whose value is a distance or a bound, is the exception: the operand's ray
+traced exactly throughout, with a positive half-thickness and a value that is a distance or a bound, is
+the exception: the operand's ray
 clauses push all its spans, and a ``Marched`` ray clause marked as an annulus's replaces them by the
 shell's, marched over the annulus's clauses from the operand's crossings (see :ref:`Sec:RaySpans`). The
 ray programs are

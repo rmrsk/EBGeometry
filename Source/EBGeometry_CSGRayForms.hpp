@@ -513,8 +513,8 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
  * @brief The ray form of a fused annulus (Fused::Annular) of an operand traced exactly throughout: a shell
  * around the operand's surface, found from the operand's crossings (see RayDetail::annularSpans()).
  * @details Each of the operand's crossings is inside the shell, and its surfaces are marched to from there,
- * so that the operations around the annulus stay exact and only the shell itself is marched. An operand
- * whose value is not a distance is marched as a whole. The normal is the annulus's gradient. HitT::m_primitive
+ * so that the operations around the annulus stay exact and only the shell itself is marched. An annulus
+ * whose value is not a distance, or whose half-thickness is zero or less, is marched as a whole. The normal is the annulus's gradient. HitT::m_primitive
  * is 0.
  * @tparam T Floating-point precision.
  * @tparam C Operand type.
@@ -526,6 +526,20 @@ struct RayForm<Fused::Node<Fused::ShiftOp<T, true>, C>, std::enable_if_t<RayDeta
    * @brief The node type.
    */
   using Node = Fused::Node<Fused::ShiftOp<T, true>, C>;
+
+  /**
+   * @brief Whether the annulus is traced from its operand's crossings: its value is a distance (or a bound),
+   * and its half-thickness is positive, so that each of the operand's crossings is inside the shell.
+   * Otherwise it is marched as a whole.
+   * @param[in] a_shape The annulus.
+   * @return True if traced from the operand's crossings.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline bool
+  seeded(const Node& a_shape) noexcept
+  {
+    return RayDetail::qualityOf(a_shape) != DistanceQuality::NotADistance && a_shape.layout().m_op.m_amount > T(0);
+  }
 
   /**
    * @brief The first crossing of the annulus along a ray.
@@ -540,7 +554,7 @@ struct RayForm<Fused::Node<Fused::ShiftOp<T, true>, C>, std::enable_if_t<RayDeta
   static inline HitT<T>
   firstHit(const Node& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept
   {
-    if (RayDetail::qualityOf(a_shape) == DistanceQuality::NotADistance) {
+    if (!seeded(a_shape)) {
       return RayDetail::march(a_shape, a_ray, a_tMin, a_tMax, a_options);
     }
 
@@ -587,7 +601,7 @@ struct RayForm<Fused::Node<Fused::ShiftOp<T, true>, C>, std::enable_if_t<RayDeta
         bool                 a_firstOnly,
         RaySpansT<T>&        a_spans) noexcept
   {
-    if (RayDetail::qualityOf(a_shape) == DistanceQuality::NotADistance) {
+    if (!seeded(a_shape)) {
       RayOptions<T> marched = a_options;
 
       marched.m_march = true;

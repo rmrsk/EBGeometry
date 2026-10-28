@@ -591,8 +591,9 @@ private:
 
   /**
    * @brief Whether a ray program traces an expression's node from its operands' spans: a union,
-   * intersection, complement or affine map, or a primitive with a ray form, exactly; and an annulus whose
-   * value is a distance (or a bound) of an operand traced exactly throughout, from the operand's crossings.
+   * intersection, complement or affine map, or a primitive with a ray form, exactly; and an annulus with a
+   * positive half-thickness, whose value is a distance (or a bound), of an operand traced exactly throughout,
+   * from the operand's crossings.
    * Anything else is marched.
    * @param[in] a_node Expression.
    * @return True if traced.
@@ -613,7 +614,9 @@ private:
       return true;
     }
     case Kind::Annular: {
-      return a_node.m_quality != DistanceQuality::NotADistance && tracedThroughout(a_node.m_children.front().node());
+      // With a half-thickness of zero or less, the operand's crossings are not inside the shell.
+      return a_node.m_scalar0 > T(0) && a_node.m_quality != DistanceQuality::NotADistance &&
+             tracedThroughout(a_node.m_children.front().node());
     }
     default: {
       return false;

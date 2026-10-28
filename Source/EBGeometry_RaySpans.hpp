@@ -958,7 +958,8 @@ shapeSpans(const S&             a_shape,
  * @param[in]     a_to     Where it ends, on either side of a_from: the search runs from a_from towards it.
  * @param[in]     a_inside Whether the value is negative at a_from.
  * @param[in]     a_eps    How close to zero a value counts as the crossing, and how short the bisection ends.
- * @param[in,out] a_steps  Values the search may still ask for; what it asks for is taken off.
+ * @param[in,out] a_steps  Steps the search may still take; each step it takes is taken off (the bisection
+ *                         that ends it is not, and asks for at most 64 values).
  * @return A hit at the sign change (HitT::m_t only), a miss if there is none before a_to, or an unresolved
  * query where the steps ran out.
  */
@@ -1103,6 +1104,7 @@ annularSpans(const S&             a_shell,
     T v = RayDetail::valueAt(a_shell, a_ray.at(a));
 
     if (std::abs(v) < eps) {
+      // An operand crossing within 2 eps of the start is left behind with it: the shell is decided past it.
       a = Math::min(a + T(2) * eps, b1);
       v = RayDetail::valueAt(a_shell, a_ray.at(a));
     }

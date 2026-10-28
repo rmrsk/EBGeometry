@@ -1282,6 +1282,34 @@ TEMPLATE_TEST_CASE("Ray: an annulus is traced from its operand's crossings to it
   const auto    fusedPair = Fused::Annular(Fused::Union(ball, other), delta);
   const Tape<T> tapePair(pool, Annular(Union(ball, other), delta));
 
+  // A half-thickness of zero or less leaves the operand's crossings outside the shell: such an annulus is
+  // marched as a whole, and finds what the march finds (nothing for a negative one, which is empty).
+  for (const T thin : {-T(0.1), T(0)}) {
+    const auto    fusedThin = Fused::Annular(ball, thin);
+    const Tape<T> tapeThin(pool, Annular(ball, thin));
+
+    RayOptions<T> marching;
+
+    marching.m_march = true;
+
+    for (const T b : {T(0), T(0.5), T(0.9)}) {
+      const RayT<T> ray{Vec3(-T(3), b, T(0)), Vec3(T(1), T(0), T(0))};
+      const HitT<T> marched = firstHit(fusedThin, ray, T(0), T(6), marching);
+
+      if (thin < T(0)) {
+        REQUIRE_FALSE(marched.hit());
+      }
+
+      for (const HitT<T>& hit : {firstHit(fusedThin, ray, T(0), T(6)), firstHit(tapeThin, ray, T(0), T(6))}) {
+        REQUIRE(hit.hit() == marched.hit());
+
+        if (hit.hit()) {
+          REQUIRE_THAT(hit.m_t, withinAbsT(marched.m_t, T(1e-3)));
+        }
+      }
+    }
+  }
+
   const T       half = std::sqrt(T(1.44) - T(1.21));
   const RayT<T> graze{Vec3(-T(3), T(1.1), T(0)), Vec3(T(1), T(0), T(0))};
 
