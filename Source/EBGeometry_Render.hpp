@@ -254,6 +254,22 @@ struct Settings
   Array<Vec3T<T>, PrimitiveColours> m_primitiveColours = unsetColours();
 
   /**
+   * @brief The value of m_highlightPrimitive that highlights nothing.
+   */
+  static constexpr uint32_t NoPrimitive = 0xFFFFFFFFU;
+
+  /**
+   * @brief A primitive to highlight (see HitT::m_primitive): its surface is tinted with m_highlightColour,
+   * whatever the colouring. NoPrimitive highlights none.
+   */
+  uint32_t m_highlightPrimitive = NoPrimitive;
+
+  /**
+   * @brief The highlight's colour.
+   */
+  Vec3T<T> m_highlightColour = Vec3T<T>(T(1.0), T(0.72), T(0.10));
+
+  /**
    * @brief The colour a surface seen from inside the solid is tinted towards.
    */
   Vec3T<T> m_insideColour = Vec3T<T>(T(0.90), T(0.08), T(0.08));
@@ -725,6 +741,24 @@ public:
                  Image&                   a_image,
                  const std::atomic<bool>& a_cancel,
                  std::atomic<uint32_t>*   a_rowsDone = nullptr) const;
+
+  /**
+   * @brief What the camera sees at a point of the image: the crossing of the ray through it with the shape,
+   * cut by the section plane as the render cuts it, so that it names what a render draws there.
+   * @details For picking in a viewer: HitT::m_primitive names the primitive (a tape's leaf, a mesh's face),
+   * and the point and normal where the ray meets it. The ray is the one through the point (a_column,
+   * a_row) of an image of the settings' size, with (0, 0) the top left corner of the top left pixel; a
+   * pixel's centre is at half-integers. On the host.
+   * @tparam S Shape type (see isShape).
+   * @param[in] a_shape  Shape.
+   * @param[in] a_camera Camera.
+   * @param[in] a_column Distance from the image's left edge, in pixels.
+   * @param[in] a_row    Distance from its top edge, in pixels.
+   * @return The crossing, or a miss.
+   */
+  template <class S>
+  [[nodiscard]] inline HitT<T>
+  pick(const S& a_shape, const Camera<T>& a_camera, T a_column, T a_row) const;
 
 private:
   /**

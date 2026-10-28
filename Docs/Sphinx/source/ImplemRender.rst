@@ -50,6 +50,7 @@ The classes are in namespace ``Render``:
   box), and the march (``RayOptions``). ``m_primitiveColours`` gives the first
   ``Settings::PrimitiveColours`` (16) primitive ids colours of their own; an entry left unset, and every
   later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colours its bore steel grey).
+  ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColour``.
   ``Render::toCode(camera, settings)`` writes a camera and
   settings as C++ statements, the fields that differ from their defaults.
 * `Renderer <doxygen/html/classEBGeometry_1_1Render_1_1Renderer.html>`__ holds the settings.
@@ -58,7 +59,9 @@ The classes are in namespace ``Render``:
   through ``GPU::parallelFor()`` on a device view of the shape, as described in :ref:`Chap:RunningOnGPU`.
   Overloads of both take a ``std::atomic<bool>`` that another thread sets to stop the render early (between
   rows on the host, between bands of rows on a device), and a counter of the rows done; a stopped render
-  says so in ``Stats::m_complete``. Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
+  says so in ``Stats::m_complete``. ``pick(shape, camera, column, row)`` returns the hit (``HitT``: the
+  primitive, the point, the normal) of the ray through a point of the image, cut as the render cuts it, so
+  that it names what a render draws there. Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
   trivially copyable functor that reads everything it needs about the shape (its box, its scale, where
   the floor goes) from the shape itself.
 * Every shape is shaded the same way, through ``firstHit()``: a shadow from one ray towards the light,
@@ -87,9 +90,11 @@ off, N reverses it (removes the other side), scrolling with Ctrl held moves it i
 down arrow keys in coarse ones), O toggles the orthographic camera, 1, 2 and 3 look from the front, the
 side and the top, C prints the camera and settings as C++ (``toCode()``) to paste a view found by hand
 into a program, G switches between the GPU and the CPU, H shows or hides the overlay, R resets the camera,
-and Esc or Q closes the window. The overlay, in the top left corner, shows the frame (its size and time,
-the hits) and then, in groups (the camera and the light, rendering, the section and its contours, the
-window), each group's state and the keys that change it; the keys are also printed, in the same groups,
+and Esc or Q closes the window. A click (the left button, without dragging) picks what is under the
+cursor: it highlights the primitive, and prints its id, the point and the normal; a click on the
+background clears it. The overlay, in the top left corner, shows the frame (its size and time,
+the hits) and then, in groups (the camera and the light, rendering, the section and its contours,
+picking, the window), each group's state and the keys that change it; the keys are also printed, in the same groups,
 when the window opens. The window can be resized, and renders at its size in
 pixels.
 While the camera moves the window

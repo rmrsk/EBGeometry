@@ -1194,3 +1194,63 @@ TEMPLATE_TEST_CASE("Render: the section plane draws the shape's contour, and a s
 
   CHECK(onContour > 20U);
 }
+
+TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the image, and the highlight tints it",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Leaf 0 is the sphere on the left, leaf 1 the one on the right.
+  const TestUtils::Compiled<T> pair(
+    Union(SphereSDF<T>(Vec3(T(-1), T(0), T(0)), T(0.6)), SphereSDF<T>(Vec3(T(1), T(0), T(0)), T(0.6))));
+
+  // Orthographic along -z: the point (column, row) of the image sees (x, y) of the scene.
+  Render::Camera<T> camera = Render::Camera<T>::fit(pair.tape().computeBoundingVolume(), Render::View::Front);
+
+  camera.m_orthographic = true;
+
+  constexpr uint32_t size = 40;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_shadows   = false;
+  settings.m_occlusion = false;
+
+  const T half  = camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+  const T scale = T(size) / (T(2) * half);
+
+  const auto column = [&](const T a_x) { return (a_x - camera.m_target[0] + half) * scale; };
+  const auto row    = [&](const T a_y) { return (camera.m_target[1] + half - a_y) * scale; };
+
+  Render::Renderer<T> renderer(settings);
+
+  for (const auto& [x, leaf] : std::vector<std::pair<T, uint32_t>>{{T(-1), 0U}, {T(1), 1U}}) {
+    const HitT<T> hit = renderer.pick(pair.tape(), camera, column(x), row(T(0)));
+
+    REQUIRE(hit.hit());
+    CHECK(hit.m_primitive == leaf);
+    CHECK((hit.m_point - Vec3(x, T(0), T(0.6))).length() < T(1e-2));
+    CHECK(hit.m_normal[2] > T(0.99));
+  }
+
+  CHECK_FALSE(renderer.pick(pair.tape(), camera, T(0.5), T(0.5)).hit());
+
+  // The highlighted sphere is tinted, the other drawn as before.
+  Render::Image plainImage;
+  Render::Image highlighted;
+
+  (void)renderer.render(pair.tape(), camera, plainImage);
+
+  renderer.settings().m_highlightPrimitive = 1;
+
+  (void)renderer.render(pair.tape(), camera, highlighted);
+
+  const auto at = [&](const Render::Image& a_image, const T a_x) {
+    return a_image.at(uint32_t(column(a_x)), uint32_t(row(T(0))));
+  };
+
+  CHECK(at(highlighted, T(-1)) == at(plainImage, T(-1)));
+  CHECK(at(highlighted, T(1)) != at(plainImage, T(1)));
+}

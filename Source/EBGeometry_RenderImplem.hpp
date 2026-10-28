@@ -293,6 +293,20 @@ public:
   }
 
   /**
+   * @brief The cut shape's first crossing along a camera ray (for picking).
+   * @param[in] a_origin    Where the ray starts.
+   * @param[in] a_direction Unit direction.
+   * @param[in] a_near      Where along it to start looking.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  cast(const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_near) const noexcept
+  {
+    return this->trace(RayT<T>{a_origin, a_direction}, a_near, m_far);
+  }
+
+  /**
    * @brief Move the light a little, for one of a pixel's rays: over a pixel's rays the light then covers a
    * small disc, as a light of some size does, which softens the edges of hard shadows.
    * @param[in] a_dx Where the ray is in its pixel, across (0 to 1).
@@ -652,6 +666,10 @@ private:
     // Light the side that faces the eye; for a surface seen from inside that is the inner side.
     if (dot(n, a_direction) > T(0)) {
       n = -n;
+    }
+
+    if (a_hit.m_primitive == m_settings.m_highlightPrimitive) {
+      albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColour;
     }
 
     if (!a_hit.m_entering && a_tint) {
@@ -1255,6 +1273,8 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
     field("settings", name.c_str(), a_settings.m_primitiveColours[i], settings.m_primitiveColours[i]);
   }
 
+  field("settings", "m_highlightPrimitive", a_settings.m_highlightPrimitive, settings.m_highlightPrimitive);
+  field("settings", "m_highlightColour", a_settings.m_highlightColour, settings.m_highlightColour);
   field("settings", "m_insideColour", a_settings.m_insideColour, settings.m_insideColour);
   field("settings", "m_cutColour", a_settings.m_cutColour, settings.m_cutColour);
   field("settings", "m_cutOpacity", a_settings.m_cutOpacity, settings.m_cutOpacity);
@@ -1398,6 +1418,32 @@ inline const Settings<T>&
 Renderer<T>::settings() const noexcept
 {
   return m_settings;
+}
+
+template <class T>
+template <class S>
+inline HitT<T>
+Renderer<T>::pick(const S& a_shape, const Camera<T>& a_camera, const T a_column, const T a_row) const
+{
+  this->check(a_camera);
+
+  // The ray PixelQuery casts through the point.
+  const PixelQuery<T, S>             query(a_shape, a_camera, m_settings);
+  const RenderDetail::CameraView<T>& view = query.m_view;
+  const RenderDetail::Shader<T, S>   shader(a_shape, view, m_settings);
+
+  const T w = T(m_settings.m_width);
+  const T h = T(m_settings.m_height);
+  const T x = (T(2) * a_column - w) / h * view.m_tanHalf;
+  const T y = (h - T(2) * a_row) / h * view.m_tanHalf;
+
+  if (a_camera.m_orthographic) {
+    return shader.cast(
+      view.m_eye + view.m_distance * (x * view.m_right + y * view.m_up), view.m_forward, a_camera.m_nearClip);
+  }
+
+  return shader.cast(
+    view.m_eye, RenderDetail::unit(view.m_forward + x * view.m_right + y * view.m_up), a_camera.m_nearClip);
 }
 
 template <class T>

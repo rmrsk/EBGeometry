@@ -123,31 +123,33 @@ struct KeyGroup
 inline std::vector<KeyGroup>
 keys(const bool a_device)
 {
-  std::vector<KeyGroup> groups{{"Camera and light",
-                                {{"Drag", "Orbit the camera"},
-                                 {"Ctrl + drag", "Pan the camera"},
-                                 {"Wheel", "Zoom"},
-                                 {"1, 2, 3", "Look from the front, the side, the top"},
-                                 {"O", "Switch between perspective and orthographic"},
-                                 {"R", "Reset the camera"},
-                                 {"Right drag", "Move the light"}}},
-                               {"Rendering",
-                                {{"P", "Cycle the colouring: by normal, uniform, by primitive"},
-                                 {"S", "Turn shadows on or off"},
-                                 {"A", "Turn ambient occlusion on or off"},
-                                 {"F", "Turn the floor on or off"},
-                                 {"Shift + Up", "More rays per pixel (up to 8 x 8)"},
-                                 {"Shift + Down", "Fewer rays per pixel (down to 1)"}}},
-                               {"Section and contours",
-                                {{"X", "Cut across x, then y, then z"},
-                                 {"Ctrl + X", "Remove the cut"},
-                                 {"N", "Reverse the cut (remove the other side)"},
-                                 {"Ctrl + wheel", "Move the plane in fine steps"},
-                                 {"Up, Down", "Move the plane in coarse steps"}}},
-                               {"Window",
-                                {{"C", "Print the camera and settings as C++"},
-                                 {"H", "Show or hide this overlay and the axes"},
-                                 {"Esc, Q", "Close the window"}}}};
+  std::vector<KeyGroup> groups{
+    {"Camera and light",
+     {{"Drag", "Orbit the camera"},
+      {"Ctrl + drag", "Pan the camera"},
+      {"Wheel", "Zoom"},
+      {"1, 2, 3", "Look from the front, the side, the top"},
+      {"O", "Switch between perspective and orthographic"},
+      {"R", "Reset the camera"},
+      {"Right drag", "Move the light"}}},
+    {"Rendering",
+     {{"P", "Cycle the colouring: by normal, uniform, by primitive"},
+      {"S", "Turn shadows on or off"},
+      {"A", "Turn ambient occlusion on or off"},
+      {"F", "Turn the floor on or off"},
+      {"Shift + Up", "More rays per pixel (up to 8 x 8)"},
+      {"Shift + Down", "Fewer rays per pixel (down to 1)"}}},
+    {"Section and contours",
+     {{"X", "Cut across x, then y, then z"},
+      {"Ctrl + X", "Remove the cut"},
+      {"N", "Reverse the cut (remove the other side)"},
+      {"Ctrl + wheel", "Move the plane in fine steps"},
+      {"Up, Down", "Move the plane in coarse steps"}}},
+    {"Picking", {{"Click", "Pick the primitive under the cursor (the background clears it)"}}},
+    {"Window",
+     {{"C", "Print the camera and settings as C++"},
+      {"H", "Show or hide this overlay and the axes"},
+      {"Esc, Q", "Close the window"}}}};
 
   if (a_device) {
     groups[1].m_keys.push_back({"G", "Render on the GPU or the CPU"});
@@ -473,9 +475,17 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   bool dragging = false;
   bool panning  = false;
   bool lighting = false;
-  bool warned   = false;
-  bool running  = true;
-  bool changed  = true;
+
+  // A left click that moves the mouse less than a few pixels picks what is under it.
+  int  pressX = 0;
+  int  pressY = 0;
+  bool moved  = false;
+
+  bool    picked = false;
+  HitT<T> pick;
+  bool    warned  = false;
+  bool    running = true;
+  bool    changed = true;
 
   // The next refinement stage to render (0: none left), and when the camera last moved.
   int  pending    = 0;
@@ -681,7 +691,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                             : (settings.m_colourBy == ColourBy::Primitive) ? "Coloured by primitive"
                                                                            : "Coloured uniformly";
 
-    // Each group's state, in the order of keys(): the camera and the light, rendering, the section.
+    // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
     const std::vector<std::vector<std::string>> states{
       {"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
          fixed(double(camera.m_distance), 3),
@@ -691,8 +701,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
          fixed(double(camera.m_nearClip), 3),
        std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
          point(settings.m_light, 2)},
-      {std::string(colouring) + ", " + std::to_string(settings.m_supersampling) + " x " +
-         std::to_string(settings.m_supersampling) + " rays per pixel, on the " + (onDevice ? "GPU" : "CPU"),
+      {std::string(colouring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
+       "Supersampling " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
+         " (" + std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel)",
        std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
          ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky)},
       {std::string(sectionNames[sectionMode]) + ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
@@ -701,6 +712,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
        "Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
          fixed(100.0 * double(settings.m_sheetOpacity), 0) + "% opaque, cut face " +
          fixed(100.0 * double(settings.m_cutOpacity), 0) + "% opaque"},
+      {picked ? "Primitive " + std::to_string(pick.m_primitive) + " at " + point(pick.m_point, 3) + ", normal " +
+                  point(pick.m_normal, 2)
+              : std::string("Nothing picked")},
       {}};
 
     std::vector<std::string> lines{
@@ -796,6 +810,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         if (event.button.button == SDL_BUTTON_LEFT) {
           panning  = (SDL_GetModState() & KMOD_CTRL) != 0;
           dragging = !panning;
+          pressX   = event.button.x;
+          pressY   = event.button.y;
+          moved    = false;
         }
         else if (event.button.button == SDL_BUTTON_RIGHT) {
           lighting = true;
@@ -805,6 +822,37 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       }
       case SDL_MOUSEBUTTONUP: {
         if (event.button.button == SDL_BUTTON_LEFT) {
+          if ((dragging || panning) && !moved) {
+            // The window's point in the frame's pixels (more of them on a high-DPI display).
+            int windowWidth  = 0;
+            int windowHeight = 0;
+
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+            const Settings<T> frame  = stageSettings(2);
+            const T           column = T(event.button.x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
+            const T           row    = T(event.button.y) * T(frame.m_height) / T(Math::max(windowHeight, 1));
+
+            pick   = Renderer<T>(frame).pick(a_shape, camera, column, row);
+            picked = pick.hit();
+
+            settings.m_highlightPrimitive = picked ? pick.m_primitive : Settings<T>::NoPrimitive;
+
+            if (picked) {
+              std::printf("EBGeometry viewer: picked primitive %u at (%g, %g, %g), normal (%g, %g, %g)\n",
+                          unsigned(pick.m_primitive),
+                          double(pick.m_point[0]),
+                          double(pick.m_point[1]),
+                          double(pick.m_point[2]),
+                          double(pick.m_normal[0]),
+                          double(pick.m_normal[1]),
+                          double(pick.m_normal[2]));
+              std::fflush(stdout);
+            }
+
+            changed = true;
+          }
+
           dragging = false;
           panning  = false;
         }
@@ -815,6 +863,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       case SDL_MOUSEMOTION: {
+        moved = moved || std::abs(event.motion.x - pressX) > 3 || std::abs(event.motion.y - pressY) > 3;
+
         if (lighting) {
           turnLight(T(0.4) * T(event.motion.xrel), -T(0.4) * T(event.motion.yrel));
 
