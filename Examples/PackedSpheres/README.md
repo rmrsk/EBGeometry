@@ -42,10 +42,7 @@ This produces `./PackedSpheres.ex`. Override the defaults on the command line:
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
 
-**For a GPU**
-
-The same source also builds for a GPU, and the window (below) then renders on the device (a GPU
-build without a visible GPU renders on the host):
+**For a GPU** (the window renders on the device)
 
     make GPU=HIP HIP_ARCH=gfx90a VIEWER=SDL2                                 # or GPU=CUDA
     cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP -DEBGEOMETRY_VIEWER=SDL2   # or CUDA
@@ -60,8 +57,7 @@ SDL2 (for example `libsdl2-dev`, or `brew install sdl2`) and is built only on re
     make VIEWER=SDL2
     cmake -S . -B build -DEBGEOMETRY_VIEWER=SDL2
 
-Without it, `view()` prints a line saying how to build it and returns. Drag to orbit, scroll to zoom, `X`
-cuts the object open, `P` cycles the colouring (by normal, uniform, by primitive), `H` hides the overlay, `Esc` closes the window. `--no-view` skips the window
+Without it, `view()` prints a line saying how to build it and returns. Drag to orbit and scroll to zoom; the window lists its other keys. `--no-view` skips the window
 (ctest passes it), as does running without a display.
 
 Running

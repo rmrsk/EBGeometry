@@ -83,16 +83,16 @@ The example ends by opening a window on the mesh:
 
 .. code-block:: c++
 
-   EBGeometry::Render::view(triSDF, argc, argv);
+   EBGeometry::Render::view(triSDF, pool, argc, argv);
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit, scroll to zoom, press X to cut the mesh open, P to cycle the colouring (by
-primitive, each face differs) and H to hide the overlay. A surface seen from inside the solid is drawn
-red, which is also how a mesh whose faces are wound the wrong way looks from outside. ``TriMeshSDF`` is
-ray traced, so the window follows the mouse; see :ref:`Chap:ImplemRender`. The example passes the pool
-the mesh lives in, so in a GPU build the window renders on the GPU (G switches to the CPU and back); build
-in single precision (``PRECISION=float``) there, since many GPUs are much slower in double precision.
+and returns. Drag to orbit and scroll to zoom; the window lists its other keys (see
+:ref:`Sec:ViewerKeys`). A surface seen from inside the solid is drawn red, which is also how a mesh whose
+faces are wound the wrong way looks from outside. ``TriMeshSDF`` is ray traced, so the window follows the
+mouse; see :ref:`Chap:ImplemRender`. The example passes the pool the mesh lives in, so in a GPU build the
+window renders on the GPU (G switches to the CPU and back); build in single precision
+(``PRECISION=float``) there, since many GPUs are much slower in double precision.
 
 Building and running
 --------------------

@@ -43,13 +43,13 @@ solid, positive in the shell, whose inside is now hollow.
 Looking at it
 -------------
 
-The example ends with ``Render::view(shell, argc, argv)``, a window on the shell with its quarter cut
+The example ends with ``Render::view(shell, pool, argc, argv)``, a window on the shell with its quarter cut
 away.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit, scroll to zoom, X cuts the object open, P cycles the colouring and H hides the overlay; see
-:ref:`Chap:ImplemRender`.
+and returns. Drag to orbit and scroll to zoom; the window lists its other keys (see
+:ref:`Sec:ViewerKeys`).
 
 Building and running
 --------------------

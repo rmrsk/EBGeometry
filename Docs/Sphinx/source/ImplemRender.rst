@@ -81,32 +81,61 @@ The viewer
 overloads take a camera and settings, and a device view of the shape to render on a GPU.
 ``Render::view(shape, pool, argc, argv)`` takes instead the pool the shape lives in: in a GPU build with a
 visible device it freezes the pool, mirrors it for as long as the window is open and renders through the
-shape's ``rebasedView()`` of the copy, and otherwise renders on the host. Drag to orbit, drag with Ctrl
-held to pan, drag with the right button to move the light, and scroll to zoom; the left and right arrow
-keys make the highlights weaker or stronger (``m_specular``), and with Shift held broader or tighter
-(``m_shininess``); S, A and F toggle shadows, ambient occlusion and the floor, Shift and Up or Down take more or fewer rays
-per pixel (from 1 x 1 to 8 x 8), P
-cycles the colouring (by normal, uniform, by primitive), X cuts the shape with a section plane across x,
-then y, then z, through the box's centre (a plane the settings turn on comes first), Ctrl and X turn it
-off, N reverses it (removes the other side), scrolling with Ctrl held moves it in fine steps (the up and
-down arrow keys in coarse ones), O toggles the orthographic camera, 1, 2 and 3 look from the front, the
-side and the top, C prints the camera and settings as C++ (``toCode()``) to paste a view found by hand
-into a program, G switches between the GPU and the CPU, H shows or hides the overlay, R resets the camera,
-and Esc or Q closes the window. A click (the left button, without dragging) picks the object under the
-cursor: a tape's leaf (so that a drilled solid's outer surface and its hole are picked apart), a fused
-composition's part, a union's member, or a mesh SDF as a whole (``primitivesAreFaces``), whose face is
-named too. It tints the object gold (``Settings::m_highlightPrimitive``; ``AllPrimitives`` for a whole
-mesh) and outlines it, from the object each pixel's first ray hit (``Image::m_primitives``), and prints
-its id, the point and the normal; a click on the background clears it. The overlay, in the top left corner, shows the frame (its size and time,
-the hits) and then, in groups (the camera and the light, rendering, the section and its contours,
-picking, the window), each group's state and the keys that change it; the keys are also printed, in the same groups,
-when the window opens. The window can be resized, and renders at its size in
-pixels.
-While the camera moves the window
-shows a quick preview (one ray per pixel, no shadows, at a resolution it adapts to keep each preview at a
-few tens of milliseconds). Once the camera rests it refines on a background thread -- full resolution
-without shadows, then the full settings -- and moving the camera again cancels the refinement at once, so
-the window always answers.
+shape's ``rebasedView()`` of the copy, and otherwise renders on the host.
+
+While the camera moves the window shows a quick preview (one ray per pixel, no shadows, at a resolution
+it adapts to keep each preview at a few tens of milliseconds). Once the camera rests it refines on a
+background thread -- full resolution without shadows, then the full settings -- and moving the camera
+again cancels the refinement at once, so the window always answers. The window can be resized, and
+renders at its size in pixels.
+
+An overlay in the top left corner shows the frame (its size and time, the hits), then each group of keys
+below with the state it changes; H hides it. The axes are drawn in the bottom left corner. The keys are
+also printed, in the same groups, when the window opens.
+
+A click (the left button, without dragging) picks the object under the cursor: a tape's leaf (so that a
+drilled solid's outer surface and its hole are picked apart), a fused composition's part, a union's
+member, or a mesh SDF as a whole (``primitivesAreFaces``), whose face is named too. The object is tinted
+gold (``Settings::m_highlightPrimitive``, ``AllPrimitives`` for a whole mesh) and outlined, from the object
+each pixel's first ray hit (``Image::m_primitives``), and its id, point and normal are printed; a click on
+the background clears it.
+
+.. _Sec:ViewerKeys:
+
+.. list-table:: The viewer's keys
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Key
+     - Action
+   * - Drag, Ctrl + drag, wheel
+     - Orbit the camera, pan it, zoom.
+   * - 1, 2, 3; O; R
+     - Look from the front, the side, the top; switch between perspective and orthographic; reset the
+       camera.
+   * - Right drag
+     - Move the light.
+   * - Left, Right (Shift + Left, Right)
+     - Weaker or stronger highlights, ``m_specular`` (broader or tighter, ``m_shininess``).
+   * - P
+     - Cycle the colouring: by normal, uniform, by primitive.
+   * - S, A, F
+     - Shadows, ambient occlusion, the floor on or off.
+   * - Shift + Up, Down
+     - More or fewer rays per pixel, from 1 x 1 to 8 x 8.
+   * - G
+     - Render on the GPU or the CPU (with a device view).
+   * - X; Ctrl + X; N
+     - Cut with a section plane across x, then y, then z, through the box's centre (a plane the settings
+       turn on comes first); remove the cut; reverse it (remove the other side).
+   * - Ctrl + wheel; Up, Down
+     - Move the section plane in fine steps; in coarse ones.
+   * - Click
+     - Pick the object under the cursor (the background clears it).
+   * - C
+     - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program.
+   * - H; Esc, Q
+     - Show or hide the overlay and the axes; close the window.
 
 The window needs SDL2 and is compiled only on request (see :ref:`Sec:ConfigViewer`). Without it, and
 whenever no window should open -- the program was given ``--no-view``, there is no display, or SDL

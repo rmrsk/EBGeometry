@@ -37,8 +37,7 @@ is two levels up from this folder (`../..`) when building in place. See
 for more detail on each approach.
 
 By default each method builds plain C++, which runs the example on the host. Asked for a GPU build, the
-same source is compiled as HIP or CUDA, and the grid of queries runs in the example's own kernel; built
-with the viewer (below), the window then renders on the device too.
+same source is compiled as HIP or CUDA, and the grid of queries runs in the example's own kernel.
 
 **CMake**
 
@@ -81,8 +80,7 @@ At the end the example opens a window on the octahedra around the sphere (`EBGeo
     make VIEWER=SDL2
     cmake -S . -B build -DEBGEOMETRY_VIEWER=SDL2
 
-Without it, `view()` prints a line saying how to build it and returns. Drag to orbit, scroll to zoom,
-`X` cuts the object open, `P` cycles the colouring (by normal, uniform, by primitive), `H` hides the overlay, `Esc` closes the window. `--no-view` skips the
+Without it, `view()` prints a line saying how to build it and returns. Drag to orbit and scroll to zoom; the window lists its other keys. `--no-view` skips the
 window (ctest passes it), as does running without a display.
 
 Running
