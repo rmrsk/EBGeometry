@@ -302,6 +302,12 @@ struct Settings
   Array<Vec3T<T>, PrimitiveColours> m_primitiveColours = unsetColours();
 
   /**
+   * @brief Whether a render records each pixel's object in Image::m_primitives (for a viewer's pick
+   * outline); off, the image's m_primitives stays empty and a render stores and copies less per pixel.
+   */
+  bool m_recordPrimitives = false;
+
+  /**
    * @brief The value of m_highlightPrimitive that highlights nothing.
    */
   static constexpr uint32_t NoPrimitive = 0xFFFFFFFFU;
@@ -496,8 +502,9 @@ struct Image
   std::vector<uint32_t> m_pixels;
 
   /**
-   * @brief For each pixel, the primitive its first ray hit (HitT::m_primitive), or 0xFFFFFFFF where it hit
-   * none (the floor, the background); for outlining a picked object.
+   * @brief With Settings::m_recordPrimitives, for each pixel the primitive its first ray hit
+   * (HitT::m_primitive), or 0xFFFFFFFF where it hit none (the floor, the background), for outlining a
+   * picked object; empty otherwise.
    */
   std::vector<uint32_t> m_primitives;
 
@@ -584,6 +591,52 @@ struct PixelResult
 };
 
 namespace RenderDetail {
+
+/**
+ * @brief A pixel as a render stores it: PixelResult without the object, which is stored apart and only
+ * when asked for (Settings::m_recordPrimitives), so that a frame writes and copies 8 bytes per pixel.
+ * @details Internal helper; not part of the public API.
+ */
+struct StoredPixel
+{
+  /**
+   * @brief The pixel, 0xRRGGBBAA.
+   */
+  uint32_t m_rgba = 0;
+
+  /**
+   * @brief Of the pixel's rays, those that hit the shape.
+   */
+  uint8_t m_hits = 0;
+
+  /**
+   * @brief Of the pixel's rays, those that hit it from inside.
+   */
+  uint8_t m_insideHits = 0;
+
+  /**
+   * @brief Of the pixel's rays, those that were unresolved.
+   */
+  uint8_t m_unresolved = 0;
+
+  /**
+   * @brief Pixel 0 only: whether the eye is inside the solid.
+   */
+  uint8_t m_cameraInside = 0;
+
+  /**
+   * @brief The stored part of a pixel's result.
+   * @param[in] a_result The result.
+   * @return The stored pixel.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline StoredPixel
+  of(const PixelResult& a_result) noexcept
+  {
+    return StoredPixel{
+      a_result.m_rgba, a_result.m_hits, a_result.m_insideHits, a_result.m_unresolved, a_result.m_cameraInside};
+  }
+};
 
 /**
  * @brief What every pixel needs from the camera, worked out once per frame: the eye, the view's axes and
@@ -844,12 +897,15 @@ private:
 
   /**
    * @brief Copy per-pixel results into an image and add up the counts.
-   * @param[in]  a_results Results.
-   * @param[out] a_image   Image.
+   * @param[in]  a_results    Results.
+   * @param[in]  a_primitives Each pixel's object, or empty when not recorded.
+   * @param[out] a_image      Image.
    * @return The counts.
    */
   inline Stats
-  collect(const std::vector<PixelResult>& a_results, Image& a_image) const;
+  collect(const std::vector<RenderDetail::StoredPixel>& a_results,
+          std::vector<uint32_t>&                        a_primitives,
+          Image&                                        a_image) const;
 };
 
 } // namespace EBGeometry::Render

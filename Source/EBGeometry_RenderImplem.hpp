@@ -877,7 +877,12 @@ struct BandOfPixels
   /**
    * @brief The frame's results, in device memory.
    */
-  PixelResult* m_results;
+  StoredPixel* m_results;
+
+  /**
+   * @brief Each pixel's object, in device memory, or null when not recorded.
+   */
+  uint32_t* m_primitives;
 
   /**
    * @brief The band's first pixel.
@@ -892,9 +897,14 @@ struct BandOfPixels
   inline void
   operator()(const std::size_t a_index) const noexcept
   {
-    const auto pixel = static_cast<uint32_t>(m_first + a_index);
+    const auto        pixel  = static_cast<uint32_t>(m_first + a_index);
+    const PixelResult result = m_query(pixel);
 
-    m_results[pixel] = m_query(pixel);
+    m_results[pixel] = StoredPixel::of(result);
+
+    if (m_primitives != nullptr) {
+      m_primitives[pixel] = result.m_primitive;
+    }
   }
 };
 
@@ -1355,6 +1365,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
     field("settings", name.c_str(), a_settings.m_primitiveColours[i], settings.m_primitiveColours[i]);
   }
 
+  field("settings", "m_recordPrimitives", a_settings.m_recordPrimitives, settings.m_recordPrimitives);
   field("settings", "m_highlightPrimitive", a_settings.m_highlightPrimitive, settings.m_highlightPrimitive);
   field("settings", "m_highlightColour", a_settings.m_highlightColour, settings.m_highlightColour);
   field("settings", "m_insideColour", a_settings.m_insideColour, settings.m_insideColour);
@@ -1580,18 +1591,20 @@ Renderer<T>::check(const Camera<T>& a_camera) const
 
 template <class T>
 inline Stats
-Renderer<T>::collect(const std::vector<PixelResult>& a_results, Image& a_image) const
+Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
+                     std::vector<uint32_t>&                        a_primitives,
+                     Image&                                        a_image) const
 {
   a_image.m_width  = m_settings.m_width;
   a_image.m_height = m_settings.m_height;
   a_image.m_pixels.resize(a_results.size());
-  a_image.m_primitives.resize(a_results.size());
+  a_image.m_primitives.swap(a_primitives);
+  a_primitives.clear();
 
   Stats stats;
 
   for (size_t i = 0; i < a_results.size(); i++) {
-    a_image.m_pixels[i]     = a_results[i].m_rgba;
-    a_image.m_primitives[i] = a_results[i].m_primitive;
+    a_image.m_pixels[i] = a_results[i].m_rgba;
 
     stats.m_hits += a_results[i].m_hits;
     stats.m_insideHits += a_results[i].m_insideHits;
@@ -1633,13 +1646,14 @@ Renderer<T>::render(const S&                 a_shape,
   const PixelQuery<T, S> query{a_shape, a_camera, m_settings};
 
   // Rows not reached by a cancelled render stay black.
-  std::vector<PixelResult> results(size_t(width) * size_t(height));
+  std::vector<RenderDetail::StoredPixel> results(size_t(width) * size_t(height));
+  std::vector<uint32_t>                  primitives(m_settings.m_recordPrimitives ? results.size() : 0U, 0xFFFFFFFFU);
 
   // Each thread takes the next row until none are left, so slow rows do not hold the others back.
   std::atomic<uint32_t> next{0};
   std::atomic<bool>     stopped{false};
 
-  const auto work = [&query, &results, &next, &stopped, &a_cancel, a_rowsDone, width, height]() {
+  const auto work = [&query, &results, &primitives, &next, &stopped, &a_cancel, a_rowsDone, width, height]() {
     for (uint32_t row = next++; row < height; row = next++) {
       if (a_cancel.load(std::memory_order_relaxed)) {
         stopped = true;
@@ -1648,9 +1662,14 @@ Renderer<T>::render(const S&                 a_shape,
       }
 
       for (uint32_t column = 0; column < width; column++) {
-        const uint32_t index = row * width + column;
+        const uint32_t    index  = row * width + column;
+        const PixelResult result = query(index);
 
-        results[index] = query(index);
+        results[index] = RenderDetail::StoredPixel::of(result);
+
+        if (!primitives.empty()) {
+          primitives[index] = result.m_primitive;
+        }
       }
 
       if (a_rowsDone != nullptr) {
@@ -1677,7 +1696,7 @@ Renderer<T>::render(const S&                 a_shape,
     thread.join();
   }
 
-  Stats stats = this->collect(results, a_image);
+  Stats stats = this->collect(results, primitives, a_image);
 
   stats.m_complete = !stopped;
 
@@ -1721,14 +1740,21 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
   const uint32_t band   = Math::max(1U, (height + 7U) / 8U);
   const size_t   pixels = size_t(width) * size_t(height);
 
-  std::vector<PixelResult> results(pixels);
+  std::vector<RenderDetail::StoredPixel> results(pixels);
+  std::vector<uint32_t>                  primitives(m_settings.m_recordPrimitives ? pixels : 0U, 0xFFFFFFFFU);
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  PixelResult* buffer = nullptr;
+  RenderDetail::StoredPixel* buffer = nullptr;
+  uint32_t*                  ids    = nullptr;
 
-  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&buffer), sizeof(PixelResult) * pixels));
+  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&buffer), sizeof(RenderDetail::StoredPixel) * pixels));
+
+  if (!primitives.empty()) {
+    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&ids), sizeof(uint32_t) * pixels));
+  }
 #else
-  PixelResult* buffer = results.data();
+  RenderDetail::StoredPixel* buffer = results.data();
+  uint32_t*                  ids    = primitives.empty() ? nullptr : primitives.data();
 #endif
 
   bool                      stopped = false;
@@ -1743,7 +1769,7 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
 
     const uint32_t rows = Math::min(band, height - row);
 
-    GPU::parallelFor(size_t(rows) * size_t(width), RenderDetail::BandOfPixels<T, S>{query, buffer, row * width});
+    GPU::parallelFor(size_t(rows) * size_t(width), RenderDetail::BandOfPixels<T, S>{query, buffer, ids, row * width});
 
     done += rows;
 
@@ -1753,12 +1779,18 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
   }
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  EBGEOMETRY_GPU_CHECK(
-    GPU::memcpy(results.data(), buffer, sizeof(PixelResult) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
+  EBGEOMETRY_GPU_CHECK(GPU::memcpy(
+    results.data(), buffer, sizeof(RenderDetail::StoredPixel) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
   EBGEOMETRY_GPU_CHECK(GPU::memFree(buffer));
+
+  if (ids != nullptr) {
+    EBGEOMETRY_GPU_CHECK(
+      GPU::memcpy(primitives.data(), ids, sizeof(uint32_t) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
+    EBGEOMETRY_GPU_CHECK(GPU::memFree(ids));
+  }
 #endif
 
-  Stats stats = this->collect(results, a_image);
+  Stats stats = this->collect(results, primitives, a_image);
 
   stats.m_complete = !stopped;
 

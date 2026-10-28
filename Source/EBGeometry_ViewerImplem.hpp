@@ -460,6 +460,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   Camera<T>   camera   = a_camera;
   Settings<T> settings = a_settings;
 
+  // Each frame records its pixels' objects, for outlining a picked one.
+  settings.m_recordPrimitives = true;
+
   // The scene's length scale, for moving the section plane.
   const auto box   = a_shape.computeBoundingVolume();
   const T    diag  = (box.getHighCorner() - box.getLowCorner()).length();
@@ -1061,7 +1064,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         }
         case SDLK_c: {
           // The view as C++, to paste into a program: the camera, and the settings of the full frame.
-          std::printf("EBGeometry viewer: the current view, as C++:\n%s", toCode(camera, stageSettings(2)).c_str());
+          // The settings as the program gave them, but for what the window changed; not the viewer's own.
+          Settings<T> shown = stageSettings(2);
+
+          shown.m_recordPrimitives = a_settings.m_recordPrimitives;
+
+          std::printf("EBGeometry viewer: the current view, as C++:\n%s", toCode(camera, shown).c_str());
           std::fflush(stdout);
 
           changed = pending;

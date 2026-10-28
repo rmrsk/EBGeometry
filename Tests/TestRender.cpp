@@ -1097,6 +1097,7 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
   settings.m_sectionPoint        = Vec3(T(0.1), T(0), T(0));
   settings.m_sectionNormal       = Vec3(T(1), T(0.2), T(0));
   settings.m_sheetOpacity        = T(0.3);
+  settings.m_recordPrimitives    = true;
 
   for (const bool orthographic : {false, true}) {
     auto camera = Render::Camera<T>::fit(tape.computeBoundingVolume(), Render::View::Top);
@@ -1243,8 +1244,9 @@ TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the imag
 
   Render::Settings<T> settings = plain<T>(size);
 
-  settings.m_shadows   = false;
-  settings.m_occlusion = false;
+  settings.m_shadows          = false;
+  settings.m_occlusion        = false;
+  settings.m_recordPrimitives = true;
 
   const T half  = camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
   const T scale = T(size) / (T(2) * half);
@@ -1292,6 +1294,13 @@ TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the imag
   CHECK(objectAt(T(-1)) == 0U);
   CHECK(objectAt(T(1)) == 1U);
   CHECK(plainImage.m_primitives.front() == 0xFFFFFFFFU);
+
+  // Without m_recordPrimitives a render stores no objects.
+  Render::Image withoutObjects;
+
+  (void)Render::Renderer<T>(plain<T>(size)).render(pair.tape(), camera, withoutObjects);
+
+  CHECK(withoutObjects.m_primitives.empty());
 
   // In a drilled box the hole's wall is the drill's surface: leaf 1, picked apart from the box's faces, leaf
   // 0. The ray from (0.5, 0, 3) towards (-0.5, 0, -1) enters the hole at z = 1 and meets its wall at
