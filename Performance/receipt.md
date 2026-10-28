@@ -15,24 +15,24 @@ SPDX-License-Identifier: GPL-3.0-or-later
 <!--receipt
 version: 3
 side: host
-verdict: red
-base: e65d2ef
-base-fingerprint: 7cbe8dbd0203e980bb20b3345bd0f1e8985d5f47
-head: 717bdac
-head-fingerprint: a12d8746c21d02e1b2f4ee2d77aea8626442f95c
-cases: 138
+verdict: yellow
+base: 2f03add
+base-fingerprint: f67ceadc9829a008d72ad0d2c0b7154865b793e2
+head: a267dec
+head-fingerprint: 982609cd2764de3fe93d6b25231aae658499f04a
+cases: 136
 rounds: 2
 reps: 3
 date: 2026-10-28
 -->
 
-## Host comparison: red
+## Host comparison: yellow
 
-**Accepted:** Accepted. The flagged Tape/csg-handwritten case is noise (10 rounds: −0.8%); TriMeshSDF at width 8 is 3% slower on random queries, the cost of signing the winner through an eight-wide group; width 4, the default, is 3–6% faster.
+**Accepted:** -
 
-`717bdac` against `e65d2ef` (origin/dev), 2026-10-28.
+`a267dec` against `2f03add` (origin/dev), 2026-10-28.
 
-**VERDICT: MAJOR regression in 1 case
+**VERDICT: 3 minor regressions
 
 <!-- END receipt host -->
 
@@ -41,11 +41,11 @@ date: 2026-10-28
 version: 3
 side: cuda
 verdict: red
-base: e65d2ef
-base-fingerprint: 7cbe8dbd0203e980bb20b3345bd0f1e8985d5f47
-head: 717bdac
-head-fingerprint: a12d8746c21d02e1b2f4ee2d77aea8626442f95c
-cases: 164
+base: 2f03add
+base-fingerprint: f67ceadc9829a008d72ad0d2c0b7154865b793e2
+head: a267dec
+head-fingerprint: 982609cd2764de3fe93d6b25231aae658499f04a
+cases: 162
 rounds: 2
 reps: 3
 date: 2026-10-28
@@ -53,10 +53,10 @@ date: 2026-10-28
 
 ## Device comparison (CUDA): red
 
-**Accepted:** Accepted. Device code is unchanged (ptxas identical to dev); the 7 host/device disagreements are dev's own grazing float rays and 4 Render pixels.
+**Accepted:** -
 
-`717bdac` against `e65d2ef` (origin/dev), 2026-10-28.
+`a267dec` against `2f03add` (origin/dev), 2026-10-28.
 
-**VERDICT: host and device answers differ in 7 cases
+**VERDICT: host and device answers differ in 6 cases
 
 <!-- END receipt cuda -->
