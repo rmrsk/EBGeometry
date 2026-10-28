@@ -18,11 +18,13 @@
 #include <cstring>
 
 #ifdef EBGEOMETRY_VIEWER_SDL2
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 // The program keeps its own main(); SDL must not replace it.
 #ifndef SDL_MAIN_HANDLED
@@ -34,6 +36,10 @@
 // Our includes
 #include "EBGeometry_GPUTransform.hpp"
 #include "EBGeometry_Viewer.hpp"
+
+#ifdef EBGEOMETRY_VIEWER_SDL2
+#include "EBGeometry_ViewerFont.hpp"
+#endif
 
 namespace EBGeometry::Render {
 
@@ -76,7 +82,250 @@ displayAvailable() noexcept
 #endif
 }
 
+// The window's helpers are compiled only with the window: kept out of every other translation unit that
+// includes the library, they cannot change how the compiler inlines code there (they made GCC stop inlining
+// a tape's primitive dispatch in programs that never open a window).
 #ifdef EBGEOMETRY_VIEWER_SDL2
+
+/**
+ * @brief A key of the viewer, and what it does.
+ * @details Internal helper; not part of the public API.
+ */
+struct Key
+{
+  /**
+   * @brief The key or keys, as written for a reader.
+   */
+  const char* m_keys;
+
+  /**
+   * @brief What they do.
+   */
+  const char* m_what;
+};
+
+/**
+ * @brief A group of the viewer's keys, under a title.
+ * @details Internal helper; not part of the public API.
+ */
+struct KeyGroup
+{
+  /**
+   * @brief The title.
+   */
+  const char* m_title;
+
+  /**
+   * @brief The keys, in the order they are listed.
+   */
+  std::vector<Key> m_keys;
+};
+
+/**
+ * @brief The viewer's keys, in groups: the camera and the light, rendering, the section, and the window.
+ * @details Internal helper; not part of the public API. The overlay lists each group under its title with
+ * the state its keys change, and the terminal lists them when the window opens.
+ * @param[in] a_device Whether the window has a device view to switch to.
+ * @return The groups.
+ */
+inline std::vector<KeyGroup>
+keys(const bool a_device)
+{
+  std::vector<KeyGroup> groups{{"Camera and light",
+                                {{"Drag", "Orbit the camera"},
+                                 {"Ctrl + drag", "Pan the camera"},
+                                 {"Wheel", "Zoom"},
+                                 {"1, 2, 3", "Look from the front, the side, the top"},
+                                 {"O", "Switch between perspective and orthographic"},
+                                 {"R", "Reset the camera"},
+                                 {"Right drag", "Move the light"},
+                                 {"+, -", "Narrower or wider field of view"},
+                                 {"Double-click", "Centre the camera on the point under the cursor"},
+                                 {"Left, Right", "Weaker or stronger highlights"},
+                                 {"Shift + Left", "Broader highlights"},
+                                 {"Shift + Right", "Tighter highlights"}}},
+                               {"Rendering",
+                                {{"P", "Cycle the colouring: by normal, uniform, by primitive"},
+                                 {"S", "Turn shadows on or off"},
+                                 {"A", "Turn ambient occlusion on or off"},
+                                 {"F", "Turn the floor on or off"},
+                                 {"B", "Turn the sky on or off"},
+                                 {"Shift + Up", "More rays per pixel (up to 8 x 8)"},
+                                 {"Shift + Down", "Fewer rays per pixel (down to 1)"}}},
+                               {"Section and contours",
+                                {{"X", "Cut across x, then y, then z"},
+                                 {"Ctrl + X", "Remove the cut"},
+                                 {"N", "Reverse the cut (remove the other side)"},
+                                 {"I", "Lines of equal distance: off, as set, coarse, fine"},
+                                 {"Ctrl + wheel", "Move the plane in fine steps"},
+                                 {"Up, Down", "Move the plane in coarse steps"}}},
+                               {"Picking and measuring",
+                                {{"Click", "Pick the object under the cursor (the background clears it)"},
+                                 {"Shift + click", "Measure between two points (the background clears it)"}}},
+                               {"Window",
+                                {{"C", "Print the camera and settings as C++"},
+                                 {"W", "Save the full frame as a PPM image"},
+                                 {"H", "Show or hide this overlay and the axes"},
+                                 {"Esc, Q", "Close the window"}}}};
+
+  if (a_device) {
+    groups[1].m_keys.push_back({"G", "Render on the GPU or the CPU"});
+  }
+
+  return groups;
+}
+
+/**
+ * @brief A number with a given count of decimals.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_value    Number.
+ * @param[in] a_decimals Decimals.
+ * @return The text.
+ */
+inline std::string
+fixed(const double a_value, const int a_decimals)
+{
+  char text[64];
+
+  std::snprintf(text, sizeof(text), "%.*f", a_decimals, a_value);
+
+  // A small negative number rounds to "-0.000"; write it without the sign.
+  std::string written = text;
+
+  if (written[0] == '-' && written.find_first_of("123456789") == std::string::npos) {
+    written.erase(0, 1);
+  }
+
+  return written;
+}
+
+/**
+ * @brief Lines of text, light on a translucent dark panel, as RGBA pixels (0xRRGGBBAA, row by row).
+ * @details Internal helper; not part of the public API. Each glyph pixel becomes a_scale x a_scale pixels.
+ * Characters outside printable ASCII are left blank.
+ * @param[in]  a_lines  Lines.
+ * @param[in]  a_scale  Pixels per glyph pixel, along each axis.
+ * @param[out] a_pixels The panel.
+ * @param[out] a_width  Its width.
+ * @param[out] a_height Its height.
+ */
+inline void
+drawText(const std::vector<std::string>& a_lines,
+         const int                       a_scale,
+         std::vector<uint32_t>&          a_pixels,
+         int&                            a_width,
+         int&                            a_height)
+{
+  const int margin = 6 * a_scale;
+
+  std::size_t columns = 0;
+
+  for (const std::string& line : a_lines) {
+    columns = Math::max(columns, line.size());
+  }
+
+  a_width  = static_cast<int>(columns) * GlyphWidth * a_scale + 2 * margin;
+  a_height = static_cast<int>(a_lines.size()) * GlyphHeight * a_scale + 2 * margin;
+
+  a_pixels.assign(std::size_t(a_width) * std::size_t(a_height), 0x101418C8U);
+
+  for (std::size_t row = 0; row < a_lines.size(); row++) {
+    for (std::size_t column = 0; column < a_lines[row].size(); column++) {
+      const auto c = static_cast<unsigned char>(a_lines[row][column]);
+
+      if (c < 32U || c > 126U) {
+        continue;
+      }
+
+      const unsigned char* glyph = Glyphs[c - 32U];
+
+      for (int y = 0; y < GlyphHeight * a_scale; y++) {
+        for (int x = 0; x < GlyphWidth * a_scale; x++) {
+          if (((glyph[y / a_scale] >> (GlyphWidth - 1 - x / a_scale)) & 1U) != 0U) {
+            const int px = margin + static_cast<int>(column) * GlyphWidth * a_scale + x;
+            const int py = margin + static_cast<int>(row) * GlyphHeight * a_scale + y;
+
+            a_pixels[std::size_t(py) * std::size_t(a_width) + std::size_t(px)] = 0xF0F0F0FFU;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @brief The scene's x, y and z axes as the camera sees them, drawn from a common origin on a transparent
+ * square: x red, y green, z blue, each labelled at its tip, the axes furthest from the viewer drawn first.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in]  a_right   Unit right of the image, in the scene.
+ * @param[in]  a_up      Unit up of the image, in the scene.
+ * @param[in]  a_forward Unit direction the camera looks in.
+ * @param[in]  a_scale   Pixels per glyph pixel (the square is 96 a_scale pixels wide).
+ * @param[out] a_pixels  The square, RGBA (0xRRGGBBAA, row by row).
+ * @param[out] a_size    Its side.
+ */
+template <class T>
+inline void
+drawAxes(const Vec3T<T>&        a_right,
+         const Vec3T<T>&        a_up,
+         const Vec3T<T>&        a_forward,
+         const int              a_scale,
+         std::vector<uint32_t>& a_pixels,
+         int&                   a_size)
+{
+  a_size = 96 * a_scale;
+
+  a_pixels.assign(std::size_t(a_size) * std::size_t(a_size), 0x00000000U);
+
+  const T        centre     = T(0.5) * T(a_size);
+  const T        length     = T(30 * a_scale);
+  const uint32_t colours[3] = {0xE64646FFU, 0x50BE50FFU, 0x5A82F0FFU};
+  const char     labels[3]  = {'X', 'Y', 'Z'};
+
+  // Set a square of pixels, clipped to the image.
+  const auto stamp = [&a_pixels, a_size](const int a_x, const int a_y, const int a_half, const uint32_t a_rgba) {
+    for (int y = a_y - a_half; y <= a_y + a_half; y++) {
+      for (int x = a_x - a_half; x <= a_x + a_half; x++) {
+        if (x >= 0 && y >= 0 && x < a_size && y < a_size) {
+          a_pixels[std::size_t(y) * std::size_t(a_size) + std::size_t(x)] = a_rgba;
+        }
+      }
+    }
+  };
+
+  // The farthest axis first, so that a nearer one is drawn over it.
+  int order[3] = {0, 1, 2};
+
+  std::sort(order, order + 3, [&a_forward](const int a_a, const int a_b) { return a_forward[a_a] > a_forward[a_b]; });
+
+  for (const int axis : order) {
+    const T   dx    = a_right[axis];
+    const T   dy    = -a_up[axis];
+    const int steps = static_cast<int>(length) + 1;
+
+    for (int i = 0; i <= steps; i++) {
+      const T f = T(i) / T(steps);
+
+      stamp(
+        static_cast<int>(centre + f * length * dx), static_cast<int>(centre + f * length * dy), a_scale, colours[axis]);
+    }
+
+    // The label just past the tip, centred there.
+    const int tipX = static_cast<int>(centre + (length + T(9 * a_scale)) * dx) - GlyphWidth * a_scale / 2;
+    const int tipY = static_cast<int>(centre + (length + T(9 * a_scale)) * dy) - GlyphHeight * a_scale / 2;
+
+    const unsigned char* glyph = Glyphs[labels[axis] - 32];
+
+    for (int y = 0; y < GlyphHeight * a_scale; y++) {
+      for (int x = 0; x < GlyphWidth * a_scale; x++) {
+        if (((glyph[y / a_scale] >> (GlyphWidth - 1 - x / a_scale)) & 1U) != 0U) {
+          stamp(tipX + x, tipY + y, 0, colours[axis]);
+        }
+      }
+    }
+  }
+}
 
 /**
  * @brief A frame rendered on a thread of its own, so that the window keeps answering while it renders.
@@ -182,8 +431,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   const int width  = static_cast<int>(a_settings.m_width);
   const int height = static_cast<int>(a_settings.m_height);
 
-  SDL_Window* window =
-    SDL_CreateWindow("EBGeometry", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_RESIZABLE);
+  SDL_Window*   window = SDL_CreateWindow("EBGeometry",
+                                        SDL_WINDOWPOS_CENTERED,
+                                        SDL_WINDOWPOS_CENTERED,
+                                        width,
+                                        height,
+                                        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
   SDL_Renderer* screen = (window != nullptr) ? SDL_CreateRenderer(window, -1, 0) : nullptr;
 
   if (window == nullptr || screen == nullptr) {
@@ -198,28 +451,87 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     return;
   }
 
-  std::printf("EBGeometry viewer: drag to orbit, wheel to zoom; S shadows, A occlusion, F floor, P colour by "
-              "primitive, X section (arrows move it)%s, R reset, Esc or Q to close.\n",
-              (a_deviceShape != nullptr) ? ", G GPU/CPU" : "");
+  std::printf("EBGeometry viewer keys\n");
+
+  for (const KeyGroup& group : keys(a_deviceShape != nullptr)) {
+    std::printf("\n%s\n", group.m_title);
+
+    for (const Key& key : group.m_keys) {
+      std::printf("  %-14s %s\n", key.m_keys, key.m_what);
+    }
+  }
+
+  std::printf("\n");
+  std::fflush(stdout);
 
   Camera<T>   camera   = a_camera;
   Settings<T> settings = a_settings;
+
+  // Each frame records its pixels' objects, for outlining a picked one.
+  settings.m_recordPrimitives = true;
 
   // The scene's length scale, for moving the section plane.
   const auto box   = a_shape.computeBoundingVolume();
   const T    diag  = (box.getHighCorner() - box.getLowCorner()).length();
   const T    scale = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
 
-  T sectionOffset = T(0);
+  // The section plane: off (0), as the settings give it (1, only when they turn it on), or across the x, y
+  // or z axis through the box's centre (2 to 4); moved along its normal by an offset, and reversed (the
+  // other side removed) when flipped.
+  const bool     givenSection  = a_settings.m_section;
+  const Vec3T<T> centre        = (std::isfinite(diag) && diag > T(0)) ? box.getCentroid() : camera.m_target;
+  int            sectionMode   = givenSection ? 1 : 0;
+  bool           sectionFlip   = false;
+  T              sectionOffset = T(0);
+
+  const char* sectionNames[] = {"Off", "As given", "Across x", "Across y", "Across z"};
 
   // The preview's resolution, as a fraction of the window's, adapted to how long previews take.
   T previewScale = T(0.5);
 
   bool onDevice = a_deviceShape != nullptr && GPU::deviceAvailable();
   bool dragging = false;
-  bool warned   = false;
-  bool running  = true;
-  bool changed  = true;
+  bool panning  = false;
+  bool lighting = false;
+
+  // A left click that moves the mouse less than a few pixels picks what is under it.
+  int  pressX = 0;
+  int  pressY = 0;
+  bool moved  = false;
+
+  bool    picked = false;
+  HitT<T> pick;
+
+  // Measuring: none, one point, or two (Shift and a click marks them).
+  int      measured = 0;
+  Vec3T<T> measureA = Vec3T<T>::zeros();
+  Vec3T<T> measureB = Vec3T<T>::zeros();
+
+  // The point under the cursor on the section plane, and the shape's value there.
+  bool     cursorOn    = false;
+  Vec3T<T> cursorPoint = Vec3T<T>::zeros();
+  T        cursorValue = T(0);
+
+  // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a spacing), every
+  // 1/20 of the box's diagonal (2), every 1/50 (3).
+  const T givenIso = a_settings.m_isoSpacing;
+  int     isoMode  = (givenIso > T(0)) ? 1 : 0;
+
+  // Images saved with W, numbered from 1.
+  int saved = 0;
+
+  // What the overlay reports about the frame last shown.
+  Stats       shownStats;
+  double      shownSeconds = 0.0;
+  std::string shownWhat;
+  uint32_t    shownWidth  = 0;
+  uint32_t    shownHeight = 0;
+
+  // The frame with the picked object outlined.
+  std::vector<uint32_t> outlined;
+  bool                  warned  = false;
+  bool                  running = true;
+  bool                  changed = true;
 
   // The next refinement stage to render (0: none left), and when the camera last moved.
   int  pending    = 0;
@@ -231,22 +543,152 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   uint32_t     texWidth  = 0;
   uint32_t     texHeight = 0;
 
-  std::string status;
+  // The overlay: what the window shows and how, and the keys, drawn over the image's top left corner.
+  bool                  overlayOn     = true;
+  SDL_Texture*          overlay       = nullptr;
+  int                   overlayWidth  = 0;
+  int                   overlayHeight = 0;
+  std::vector<uint32_t> overlayPixels;
 
-  // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
-  // the full settings.
-  const auto stageSettings = [&](const int a_stage) {
-    Settings<T> frame = settings;
+  // The axis triad, in the bottom left corner; shown and hidden with the overlay.
+  SDL_Texture*          axes     = nullptr;
+  int                   axesSize = 0;
+  std::vector<uint32_t> axesPixels;
 
-    // The section plane faces the camera through its target, moved by the arrow keys.
+  // Where a point of the scene is in the window, in its pixels, as PixelQuery casts the rays; false for a point
+  // behind a perspective camera.
+  const auto project = [&](const Vec3T<T>& a_point, int& a_x, int& a_y) {
     Vec3T<T> forward;
     Vec3T<T> right;
     Vec3T<T> up;
 
     camera.frame(forward, right, up);
 
-    frame.m_sectionNormal = -forward;
-    frame.m_sectionPoint  = camera.m_target - sectionOffset * forward;
+    const Vec3T<T> relative = a_point - camera.eye();
+    const T        depth    = camera.m_orthographic ? camera.m_distance : dot(relative, forward);
+
+    // A point at or just in front of the eye would project far outside any window.
+    if (depth <= T(1e-6) * camera.m_distance) {
+      return false;
+    }
+
+    const T tanHalf = std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+    const T w       = T(settings.m_width);
+    const T h       = T(settings.m_height);
+    const T x       = dot(relative, right) / depth / tanHalf;
+    const T y       = dot(relative, up) / depth / tanHalf;
+
+    a_x = static_cast<int>(Math::clamp(T(0.5) * (x * h + w), T(-1e6), T(1e6)));
+    a_y = static_cast<int>(Math::clamp(T(0.5) * (h - y * h), T(-1e6), T(1e6)));
+
+    return true;
+  };
+
+  // Draw the image, then the overlay over it.
+  const auto present = [&]() {
+    SDL_RenderClear(screen);
+
+    if (texture != nullptr) {
+      SDL_RenderCopy(screen, texture, nullptr, nullptr);
+    }
+
+    if (overlayOn && overlay != nullptr) {
+      const SDL_Rect where{8, 8, overlayWidth, overlayHeight};
+
+      SDL_RenderCopy(screen, overlay, nullptr, &where);
+    }
+
+    if (overlayOn && axes != nullptr) {
+      int outputWidth  = 0;
+      int outputHeight = 0;
+
+      SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
+
+      const SDL_Rect where{8, outputHeight - axesSize - 8, axesSize, axesSize};
+
+      SDL_RenderCopy(screen, axes, nullptr, &where);
+    }
+
+    // The measurement, over the image: a marker at each point and a line between them.
+    if (measured > 0) {
+      int ax = 0;
+      int ay = 0;
+      int bx = 0;
+      int by = 0;
+
+      const bool seeA = project(measureA, ax, ay);
+      const bool seeB = measured > 1 && project(measureB, bx, by);
+
+      SDL_SetRenderDrawColor(screen, 255, 184, 26, 255);
+
+      if (seeA && seeB) {
+        for (int d = -1; d <= 1; d++) {
+          SDL_RenderDrawLine(screen, ax + d, ay, bx + d, by);
+          SDL_RenderDrawLine(screen, ax, ay + d, bx, by + d);
+        }
+      }
+
+      const auto mark = [&screen](const int a_x, const int a_y) {
+        const SDL_Rect marker{a_x - 4, a_y - 4, 9, 9};
+
+        SDL_RenderFillRect(screen, &marker);
+      };
+
+      if (seeA) {
+        mark(ax, ay);
+      }
+
+      if (seeB) {
+        mark(bx, by);
+      }
+
+      SDL_SetRenderDrawColor(screen, 0, 0, 0, 255);
+    }
+
+    SDL_RenderPresent(screen);
+  };
+
+  std::string status;
+
+  // Render at the window's size in pixels (more than its size in screen units on a high-DPI display), so
+  // that a larger window gets a sharper image rather than a stretched one.
+  const auto fitToWindow = [&]() {
+    int w = 0;
+    int h = 0;
+
+    if (SDL_GetRendererOutputSize(screen, &w, &h) == 0 && w > 0 && h > 0 &&
+        (uint32_t(w) != settings.m_width || uint32_t(h) != settings.m_height)) {
+      settings.m_width  = uint32_t(w);
+      settings.m_height = uint32_t(h);
+
+      changed = true;
+    }
+  };
+
+  fitToWindow();
+
+  // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
+  // the full settings.
+  const auto stageSettings = [&](const int a_stage) {
+    Settings<T> frame = settings;
+
+    Vec3T<T> normal = RenderDetail::unit(a_settings.m_sectionNormal);
+    Vec3T<T> point  = a_settings.m_sectionPoint;
+
+    if (sectionMode >= 2) {
+      normal                  = Vec3T<T>::zeros();
+      normal[sectionMode - 2] = T(1);
+      point                   = centre;
+    }
+
+    if (sectionFlip) {
+      normal = -normal;
+    }
+
+    // The arrow keys move the plane towards the removed side, so that more of the shape shows.
+    frame.m_section       = sectionMode != 0;
+    frame.m_sectionNormal = normal;
+    frame.m_sectionPoint  = point + sectionOffset * normal;
 
     if (a_stage < 2) {
       frame.m_supersampling = 1;
@@ -260,6 +702,31 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     }
 
     return frame;
+  };
+
+  // Turn the light: a_across degrees about the vertical (the image's, for a light that follows the camera; the
+  // scene's up axis otherwise), then a_up degrees towards it, stopping short of straight overhead or below.
+  const auto turnLight = [&](const T a_across, const T a_up) {
+    const Vec3T<T> k = settings.m_lightFromCamera ? Vec3T<T>(T(0), T(1), T(0)) : RenderDetail::unit(camera.m_up);
+
+    // Rodrigues' rotation of a vector about a unit axis.
+    const auto rotate = [](const Vec3T<T>& a_v, const Vec3T<T>& a_axis, const T a_degrees) {
+      const T a = a_degrees * pi<T> / T(180);
+
+      return std::cos(a) * a_v + std::sin(a) * cross(a_axis, a_v) + (T(1) - std::cos(a)) * dot(a_axis, a_v) * a_axis;
+    };
+
+    Vec3T<T> v = rotate(RenderDetail::unit(settings.m_light), k, a_across);
+
+    const Vec3T<T> side      = cross(v, k);
+    const T        elevation = std::asin(Math::clamp(dot(v, k), T(-1), T(1))) * T(180) / pi<T>;
+    const T        target    = Math::clamp(elevation + a_up, T(-85), T(85));
+
+    if (side.length() > T(0)) {
+      v = rotate(v, RenderDetail::unit(side), target - elevation);
+    }
+
+    settings.m_light = v;
   };
 
   // Whether a stage would draw anything the one before it did not.
@@ -287,6 +754,183 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       return renderer.render(a_shape, a_view, a_image);
     };
 
+  // The point under the cursor (window coordinates) on the section plane, within the shape's box, and the
+  // shape's value there: the ray PixelQuery casts through it, met with the plane.
+  const auto readCursor = [&](const int a_x, const int a_y) {
+    int windowWidth  = 0;
+    int windowHeight = 0;
+
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+    const Settings<T> frame = stageSettings(2);
+
+    Vec3T<T> forward;
+    Vec3T<T> right;
+    Vec3T<T> up;
+
+    camera.frame(forward, right, up);
+
+    const T tanHalf = std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+    const T w       = T(frame.m_width);
+    const T h       = T(frame.m_height);
+    const T column  = T(a_x) * w / T(Math::max(windowWidth, 1));
+    const T row     = T(a_y) * h / T(Math::max(windowHeight, 1));
+    const T x       = (T(2) * column - w) / h * tanHalf;
+    const T y       = (h - T(2) * row) / h * tanHalf;
+
+    const Vec3T<T> origin =
+      camera.m_orthographic ? camera.eye() + camera.m_distance * (x * right + y * up) : camera.eye();
+    const Vec3T<T> along  = camera.m_orthographic ? forward : RenderDetail::unit(forward + x * right + y * up);
+    const Vec3T<T> normal = RenderDetail::unit(frame.m_sectionNormal);
+    const T        rate   = dot(along, normal);
+
+    cursorOn = false;
+
+    if (rate != T(0)) {
+      const Vec3T<T> p = origin + (dot(frame.m_sectionPoint - origin, normal) / rate) * along;
+
+      cursorOn = std::isfinite(diag) && diag > T(0);
+
+      for (int k = 0; k < 3 && cursorOn; k++) {
+        const T margin = T(0.05) * (box.getHighCorner()[k] - box.getLowCorner()[k]);
+
+        cursorOn = p[k] >= box.getLowCorner()[k] - margin && p[k] <= box.getHighCorner()[k] + margin;
+      }
+
+      if (cursorOn) {
+        cursorPoint = p;
+        cursorValue = a_shape.signedDistance(p);
+      }
+    }
+  };
+
+  // The overlay and the axes, from the frame last shown and the window's state; redrawn without rendering
+  // when only that state changes (the point under the cursor, a measurement).
+  const auto drawOverlay = [&]() {
+    // The overlay's text, at a size that stays readable on a window with many pixels.
+    const auto percent = [](const uint64_t a_part, const uint64_t a_whole) {
+      return fixed(100.0 * double(a_part) / double(Math::max(a_whole, uint64_t(1))), 1) + "%";
+    };
+    const auto onOff = [](const bool a_on) { return a_on ? "on" : "off"; };
+    const auto point = [](const Vec3T<T>& a_v, const int a_decimals) {
+      return "(" + fixed(double(a_v[0]), a_decimals) + ", " + fixed(double(a_v[1]), a_decimals) + ", " +
+             fixed(double(a_v[2]), a_decimals) + ")";
+    };
+
+    const char* colouring = (settings.m_colourBy == ColourBy::Normal)      ? "Coloured by normal"
+                            : (settings.m_colourBy == ColourBy::Primitive) ? "Coloured by primitive"
+                                                                           : "Coloured uniformly";
+
+    // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
+    const std::vector<std::vector<std::string>> states{
+      {"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
+         fixed(double(camera.m_distance), 3),
+       "Target " + point(camera.m_target, 3),
+       "Field of view " + fixed(double(camera.m_fieldOfView), 1) + ", " +
+         (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " +
+         fixed(double(camera.m_nearClip), 3),
+       std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
+         point(settings.m_light, 2),
+       "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
+         fixed(double(settings.m_shininess), 0)},
+      {std::string(colouring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
+       "Supersampling " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
+         " (" + std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel)",
+       std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
+         ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky)},
+      {std::string(sectionNames[sectionMode]) + ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
+                                                                        ", moved " + fixed(double(sectionOffset), 3)
+                                                                    : std::string()),
+       "Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
+         fixed(100.0 * double(settings.m_sheetOpacity), 0) + "% opaque, cut face " +
+         fixed(100.0 * double(settings.m_cutOpacity), 0) + "% opaque",
+       (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
+                                      : std::string("No lines of equal distance"),
+       cursorOn ? "Under the cursor " + point(cursorPoint, 3) + ", distance " + fixed(double(cursorValue), 4)
+                : std::string("Nothing under the cursor on the plane")},
+      {picked ? (primitivesAreFaces<S> ? "Object 0 (face " + std::to_string(pick.m_primitive) + ")"
+                                       : "Object " + std::to_string(pick.m_primitive)) +
+                  " at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
+              : std::string("Nothing picked"),
+       (measured == 2) ? "Measured " + fixed(double((measureB - measureA).length()), 4) + ", along x, y, z " +
+                           point(measureB - measureA, 4)
+       : (measured == 1) ? "Measuring from " + point(measureA, 3) + "; Shift + click the second point"
+                         : std::string("Nothing measured")},
+      {}};
+
+    std::vector<std::string> lines{
+      std::string("EBGeometry viewer: ") + shownWhat + ", " + std::to_string(shownWidth) + " x " +
+        std::to_string(shownHeight) + " pixels in " + fixed(1000.0 * shownSeconds, 0) + " ms",
+      "Rays " + std::to_string(shownStats.m_rays) + ", hits " + percent(shownStats.m_hits, shownStats.m_rays) +
+        ", seen from inside " + std::to_string(shownStats.m_insideHits) + ", unresolved " +
+        std::to_string(shownStats.m_unresolved)};
+
+    const std::vector<KeyGroup> groups = keys(a_deviceShape != nullptr);
+
+    for (std::size_t g = 0; g < groups.size(); g++) {
+      lines.emplace_back("");
+      lines.emplace_back(groups[g].m_title);
+
+      for (const std::string& state : states[g]) {
+        lines.emplace_back("  " + state);
+      }
+
+      for (const Key& key : groups[g].m_keys) {
+        char line[128];
+
+        std::snprintf(line, sizeof(line), "  %-14s %s", key.m_keys, key.m_what);
+        lines.emplace_back(line);
+      }
+    }
+
+    int outputWidth  = 0;
+    int outputHeight = 0;
+
+    SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
+
+    const int scale     = Math::max(1, outputHeight / 900);
+    const int oldWidth  = overlayWidth;
+    const int oldHeight = overlayHeight;
+
+    drawText(lines, scale, overlayPixels, overlayWidth, overlayHeight);
+
+    if (overlay == nullptr || oldWidth != overlayWidth || oldHeight != overlayHeight) {
+      if (overlay != nullptr) {
+        SDL_DestroyTexture(overlay);
+      }
+
+      overlay =
+        SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, overlayWidth, overlayHeight);
+
+      SDL_SetTextureBlendMode(overlay, SDL_BLENDMODE_BLEND);
+    }
+
+    SDL_UpdateTexture(overlay, nullptr, overlayPixels.data(), 4 * overlayWidth);
+
+    // The axes as the camera of this frame sees them.
+    Vec3T<T> forward;
+    Vec3T<T> right;
+    Vec3T<T> up;
+
+    camera.frame(forward, right, up);
+
+    const int oldAxes = axesSize;
+
+    drawAxes(right, up, forward, scale, axesPixels, axesSize);
+
+    if (axes == nullptr || oldAxes != axesSize) {
+      if (axes != nullptr) {
+        SDL_DestroyTexture(axes);
+      }
+
+      axes = SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, axesSize, axesSize);
+
+      SDL_SetTextureBlendMode(axes, SDL_BLENDMODE_BLEND);
+    }
+
+    SDL_UpdateTexture(axes, nullptr, axesPixels.data(), 4 * axesSize);
+  };
+
   const auto show = [&](const Image& a_image, const Stats& a_stats, const double a_seconds, const char* a_what) {
     if (a_stats.m_cameraInside && !warned) {
       std::printf("EBGeometry viewer: the camera is inside the solid, so what it sees is seen from inside "
@@ -309,17 +953,69 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       texHeight = a_image.m_height;
     }
 
-    SDL_UpdateTexture(texture, nullptr, a_image.m_pixels.data(), static_cast<int>(4U * a_image.m_width));
+    // A picked object, tinted gold in the render, is also outlined: the pixels next to it, within two pixels,
+    // that are not part of it turn gold. A mesh SDF is one object, whatever face a pixel shows.
+    const uint32_t* pixels = a_image.m_pixels.data();
+
+    if (picked && a_image.m_primitives.size() == a_image.m_pixels.size()) {
+      const auto inside = [&](const int a_x, const int a_y) {
+        const uint32_t id = a_image.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
+
+        return primitivesAreFaces<S> ? id != 0xFFFFFFFFU : id == pick.m_primitive;
+      };
+
+      const int width  = static_cast<int>(a_image.m_width);
+      const int height = static_cast<int>(a_image.m_height);
+      const int reach  = 2;
+
+      outlined = a_image.m_pixels;
+
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          if (inside(x, y)) {
+            continue;
+          }
+
+          bool near = false;
+
+          for (int dy = -reach; dy <= reach && !near; dy++) {
+            for (int dx = -reach; dx <= reach && !near; dx++) {
+              const int u = x + dx;
+              const int v = y + dy;
+
+              near = u >= 0 && v >= 0 && u < width && v < height && inside(u, v);
+            }
+          }
+
+          if (near) {
+            outlined[std::size_t(y) * a_image.m_width + std::size_t(x)] = 0xFFB81AFFU;
+          }
+        }
+      }
+
+      pixels = outlined.data();
+    }
+
+    SDL_UpdateTexture(texture, nullptr, pixels, static_cast<int>(4U * a_image.m_width));
 
     status = std::string("EBGeometry: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
+             std::to_string(a_image.m_width) + "x" + std::to_string(a_image.m_height) + " in " +
              std::to_string(int(1000.0 * a_seconds)) + " ms" +
-             ((a_stats.m_insideHits > 0U) ? ", red: seen from inside the solid" : "") +
+             // A few grazing rays can seem to leave the solid; say so only when more than one hit in a
+             // thousand does.
+             ((a_stats.m_insideHits * 1000U > a_stats.m_hits) ? ", red: seen from inside the solid" : "") +
              ((a_stats.m_unresolved > 0U) ? ", some rays unresolved" : "");
 
     SDL_SetWindowTitle(window, status.c_str());
-    SDL_RenderClear(screen);
-    SDL_RenderCopy(screen, texture, nullptr, nullptr);
-    SDL_RenderPresent(screen);
+
+    shownStats   = a_stats;
+    shownSeconds = a_seconds;
+    shownWhat    = a_what;
+    shownWidth   = a_image.m_width;
+    shownHeight  = a_image.m_height;
+
+    drawOverlay();
+    present();
   };
 
   while (running) {
@@ -336,42 +1032,190 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       case SDL_MOUSEBUTTONDOWN: {
-        dragging = dragging || event.button.button == SDL_BUTTON_LEFT;
+        // A drag orbits the camera, or pans it with Ctrl held; a drag with the right button moves the light.
+        if (event.button.button == SDL_BUTTON_LEFT) {
+          panning  = (SDL_GetModState() & KMOD_CTRL) != 0;
+          dragging = !panning;
+          pressX   = event.button.x;
+          pressY   = event.button.y;
+          moved    = false;
+        }
+        else if (event.button.button == SDL_BUTTON_RIGHT) {
+          lighting = true;
+        }
 
         break;
       }
       case SDL_MOUSEBUTTONUP: {
-        dragging = dragging && event.button.button != SDL_BUTTON_LEFT;
+        if (event.button.button == SDL_BUTTON_LEFT) {
+          if ((dragging || panning) && !moved) {
+            // The window's point in the frame's pixels (more of them on a high-DPI display).
+            int windowWidth  = 0;
+            int windowHeight = 0;
+
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+            const Settings<T> frame  = stageSettings(2);
+            const T           column = T(event.button.x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
+            const T           row    = T(event.button.y) * T(frame.m_height) / T(Math::max(windowHeight, 1));
+
+            const HitT<T> hit = Renderer<T>(frame).pick(a_shape, camera, column, row);
+
+            // Shift and a click marks a point to measure from or to, not a pick.
+            if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
+              if (!hit.hit()) {
+                measured = 0;
+              }
+              else if (measured == 1) {
+                measureB = hit.m_point;
+                measured = 2;
+
+                std::printf("EBGeometry viewer: measured %g from (%g, %g, %g) to (%g, %g, %g)\n",
+                            double((measureB - measureA).length()),
+                            double(measureA[0]),
+                            double(measureA[1]),
+                            double(measureA[2]),
+                            double(measureB[0]),
+                            double(measureB[1]),
+                            double(measureB[2]));
+                std::fflush(stdout);
+              }
+              else {
+                measureA = hit.m_point;
+                measured = 1;
+              }
+
+              drawOverlay();
+              present();
+
+              dragging = false;
+              panning  = false;
+
+              break;
+            }
+
+            pick   = hit;
+            picked = pick.hit();
+
+            // A double-click also centres the camera on the point.
+            if (picked && event.button.clicks >= 2) {
+              camera.m_target = pick.m_point;
+            }
+
+            // The object picked: a tape's leaf, a fused composition's part, a union's member; a mesh SDF is one
+            // object, whose primitive is the face picked on it. It is tinted gold, and outlined (see show()).
+            settings.m_highlightPrimitive = !picked                 ? Settings<T>::NoPrimitive
+                                            : primitivesAreFaces<S> ? Settings<T>::AllPrimitives
+                                                                    : pick.m_primitive;
+            if (picked && primitivesAreFaces<S>) {
+              std::printf("EBGeometry viewer: picked object 0, face %u, at (%g, %g, %g), normal (%g, %g, %g)\n",
+                          unsigned(pick.m_primitive),
+                          double(pick.m_point[0]),
+                          double(pick.m_point[1]),
+                          double(pick.m_point[2]),
+                          double(pick.m_normal[0]),
+                          double(pick.m_normal[1]),
+                          double(pick.m_normal[2]));
+            }
+            else if (picked) {
+              std::printf("EBGeometry viewer: picked object %u at (%g, %g, %g), normal (%g, %g, %g)\n",
+                          unsigned(pick.m_primitive),
+                          double(pick.m_point[0]),
+                          double(pick.m_point[1]),
+                          double(pick.m_point[2]),
+                          double(pick.m_normal[0]),
+                          double(pick.m_normal[1]),
+                          double(pick.m_normal[2]));
+            }
+
+            std::fflush(stdout);
+
+            changed = true;
+          }
+
+          dragging = false;
+          panning  = false;
+        }
+        else if (event.button.button == SDL_BUTTON_RIGHT) {
+          lighting = false;
+        }
 
         break;
       }
       case SDL_MOUSEMOTION: {
-        if (dragging) {
+        moved = moved || std::abs(event.motion.x - pressX) > 3 || std::abs(event.motion.y - pressY) > 3;
+
+        if (lighting) {
+          turnLight(T(0.4) * T(event.motion.xrel), -T(0.4) * T(event.motion.yrel));
+
+          changed = true;
+        }
+        else if (panning) {
+          // Move the target so that the point under the mouse follows it: at the target's distance, the
+          // window's height spans 2 distance tan(fov / 2).
+          int windowWidth  = 0;
+          int windowHeight = 0;
+
+          SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+          Vec3T<T> forward;
+          Vec3T<T> right;
+          Vec3T<T> up;
+
+          camera.frame(forward, right, up);
+
+          const T perPixel = T(2) * camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) /
+                             T(Math::max(windowHeight, 1));
+
+          camera.m_target -= perPixel * (T(event.motion.xrel) * right - T(event.motion.yrel) * up);
+
+          changed = true;
+        }
+        else if (dragging) {
           camera.m_yaw -= T(0.4) * T(event.motion.xrel);
-          camera.m_pitch = Math::clamp(camera.m_pitch + T(0.4) * T(event.motion.yrel), T(-89), T(89));
+          camera.m_pitch = Math::clamp(camera.m_pitch + T(0.4) * T(event.motion.yrel), T(-90), T(90));
+
+          changed = true;
+        }
+        else if (sectionMode != 0) {
+          readCursor(event.motion.x, event.motion.y);
+          drawOverlay();
+          present();
+        }
+
+        break;
+      }
+      case SDL_MOUSEWHEEL: {
+        // With Ctrl held the wheel moves the section plane in fine steps; otherwise it zooms. A sideways
+        // scroll (y = 0) does neither.
+        if (event.wheel.y != 0) {
+          if ((SDL_GetModState() & KMOD_CTRL) != 0 && sectionMode != 0) {
+            sectionOffset += T(0.005) * scale * T(event.wheel.y);
+          }
+          else {
+            camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
+          }
 
           changed = true;
         }
 
         break;
       }
-      case SDL_MOUSEWHEEL: {
-        camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
-
-        changed = true;
-
-        break;
-      }
       case SDL_WINDOWEVENT: {
-        if (texture != nullptr) {
-          SDL_RenderClear(screen);
-          SDL_RenderCopy(screen, texture, nullptr, nullptr);
-          SDL_RenderPresent(screen);
+        if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+          fitToWindow();
+        }
+        else {
+          present();
         }
 
         break;
       }
       case SDL_KEYDOWN: {
+        // A key that changes nothing (H, C, a modifier on its own) keeps what earlier events in this batch
+        // changed, rather than clearing it.
+        const bool pending = changed;
+
         changed = true;
 
         switch (event.key.keysym.sym) {
@@ -397,23 +1241,166 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_p: {
-          settings.m_colourBy = (settings.m_colourBy == ColourBy::Uniform) ? ColourBy::Primitive : ColourBy::Uniform;
+          settings.m_colourBy = (settings.m_colourBy == ColourBy::Normal)    ? ColourBy::Uniform
+                                : (settings.m_colourBy == ColourBy::Uniform) ? ColourBy::Primitive
+                                                                             : ColourBy::Normal;
+
+          break;
+        }
+        case SDLK_o: {
+          camera.m_orthographic = !camera.m_orthographic;
+
+          break;
+        }
+        case SDLK_1:
+        case SDLK_2:
+        case SDLK_3: {
+          // Front, right and top: the yaw and pitch of Camera::fit()'s views, the target and distance kept.
+          const View view = (event.key.keysym.sym == SDLK_1)   ? View::Front
+                            : (event.key.keysym.sym == SDLK_2) ? View::Right
+                                                               : View::Top;
+
+          camera.m_yaw   = (view == View::Right) ? T(90) : T(0);
+          camera.m_pitch = (view == View::Top) ? T(90) : T(0);
+
+          break;
+        }
+        case SDLK_b: {
+          settings.m_sky = !settings.m_sky;
+
+          break;
+        }
+        case SDLK_PLUS:
+        case SDLK_KP_PLUS:
+        case SDLK_EQUALS:
+        case SDLK_MINUS:
+        case SDLK_KP_MINUS: {
+          // A narrower view (plus) shows less, larger; on a keyboard without a plus key, = does.
+          const bool narrower = event.key.keysym.sym != SDLK_MINUS && event.key.keysym.sym != SDLK_KP_MINUS;
+
+          camera.m_fieldOfView = Math::clamp(camera.m_fieldOfView + (narrower ? T(-5) : T(5)), T(10), T(120));
+
+          break;
+        }
+        case SDLK_i: {
+          // Off, every 1/20 of the box's diagonal, every 1/50.
+          isoMode = (isoMode + 1) % 4;
+          isoMode = (isoMode == 1 && givenIso <= T(0)) ? 2 : isoMode;
+
+          settings.m_isoSpacing = (isoMode == 0)   ? T(0)
+                                  : (isoMode == 1) ? givenIso
+                                                   : scale / ((isoMode == 2) ? T(20) : T(50));
+
+          break;
+        }
+        case SDLK_w: {
+          // The full frame at the window's size, rendered now, as a PPM image in the working directory.
+          Image             image;
+          const Settings<T> frame = stageSettings(2);
+
+          (void)render(frame, camera, onDevice, image, nullptr);
+
+          // The next name not taken, so that an earlier run's images are kept.
+          const auto taken = [](const std::string& a_name) {
+            std::FILE* existing = std::fopen(a_name.c_str(), "rb");
+
+            if (existing != nullptr) {
+              std::fclose(existing);
+            }
+
+            return existing != nullptr;
+          };
+
+          std::string file = "ebgeometry-view-" + std::to_string(++saved) + ".ppm";
+
+          while (taken(file)) {
+            file = "ebgeometry-view-" + std::to_string(++saved) + ".ppm";
+          }
+
+          if (writeImage(image, file)) {
+            std::printf("EBGeometry viewer: saved %s (%u x %u)\n", file.c_str(), image.m_width, image.m_height);
+          }
+          else {
+            std::printf("EBGeometry viewer: could not write %s\n", file.c_str());
+          }
+
+          std::fflush(stdout);
+
+          changed = pending;
+
+          break;
+        }
+        case SDLK_h: {
+          overlayOn = !overlayOn;
+          changed   = pending;
+
+          present();
+
+          break;
+        }
+        case SDLK_c: {
+          // The view as C++, to paste into a program: the camera, and the settings of the full frame.
+          // The settings as the program gave them, but for what the window changed; not the viewer's own.
+          Settings<T> shown = stageSettings(2);
+
+          shown.m_recordPrimitives = a_settings.m_recordPrimitives;
+
+          std::printf("EBGeometry viewer: the current view, as C++:\n%s", toCode(camera, shown).c_str());
+          std::fflush(stdout);
+
+          changed = pending;
 
           break;
         }
         case SDLK_x: {
-          settings.m_section = !settings.m_section;
-          sectionOffset      = T(0);
+          // X turns the plane on across x, then steps it to y, z and x again; Ctrl and X turn it off.
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            sectionMode = 0;
+          }
+          else {
+            sectionMode = (sectionMode < 2) ? 2 : 2 + (sectionMode - 1) % 3;
+          }
+
+          sectionOffset = T(0);
 
           break;
         }
-        case SDLK_UP: {
-          sectionOffset += T(0.02) * scale;
+        case SDLK_n: {
+          sectionFlip = !sectionFlip;
 
           break;
         }
+        case SDLK_UP:
         case SDLK_DOWN: {
-          sectionOffset -= T(0.02) * scale;
+          // With Shift held, more or fewer rays per pixel (1 x 1 to 8 x 8); otherwise the section plane moves
+          // in coarse steps.
+          const bool upward = event.key.keysym.sym == SDLK_UP;
+
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_supersampling =
+              upward ? Math::min(settings.m_supersampling + 1U, 8U) : Math::max(settings.m_supersampling, 2U) - 1U;
+          }
+          else {
+            sectionOffset += (upward ? T(0.02) : T(-0.02)) * scale;
+          }
+
+          break;
+        }
+        case SDLK_LEFT:
+        case SDLK_RIGHT: {
+          // The highlights: stronger or weaker, or with Shift held, tighter or broader (the specular exponent).
+          const bool more = event.key.keysym.sym == SDLK_RIGHT;
+
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_shininess =
+              Math::clamp(more ? settings.m_shininess * T(1.5) : settings.m_shininess / T(1.5), T(2), T(512));
+          }
+          else {
+            // In steps of 0.05, kept on them so that repeated steps do not drift.
+            const T steps = std::round(settings.m_specular * T(20)) + (more ? T(1) : T(-1));
+
+            settings.m_specular = Math::clamp(steps / T(20), T(0), T(1.5));
+          }
 
           break;
         }
@@ -428,7 +1415,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         default: {
-          changed = false;
+          changed = pending;
 
           break;
         }
@@ -457,7 +1444,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
       Image image;
 
-      const auto  start   = Clock::now();
+      const auto start = Clock::now();
+      // What was under the cursor may have moved with the camera or the plane; read again on the next move.
+      cursorOn = false;
+
       const Stats stats   = render(stageSettings(0), camera, onDevice, image, nullptr);
       const auto  seconds = std::chrono::duration<double>(Clock::now() - start).count();
 
@@ -477,7 +1467,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     }
 
     // Refine on a background thread once the camera has rested a moment.
-    if (job == nullptr && pending > 0 && !dragging && Clock::now() - lastChange > std::chrono::milliseconds(100)) {
+    if (job == nullptr && pending > 0 && !dragging && !panning && !lighting &&
+        Clock::now() - lastChange > std::chrono::milliseconds(100)) {
       job = std::make_unique<Background>();
 
       Background* next = job.get();
@@ -520,6 +1511,14 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   if (texture != nullptr) {
     SDL_DestroyTexture(texture);
+  }
+
+  if (overlay != nullptr) {
+    SDL_DestroyTexture(overlay);
+  }
+
+  if (axes != nullptr) {
+    SDL_DestroyTexture(axes);
   }
 
   SDL_DestroyRenderer(screen);
@@ -625,6 +1624,16 @@ view(const S&                           a_shape,
 
 template <class S>
 inline void
+view(const S& a_shape, const S& a_deviceShape, int a_argc, char** a_argv)
+{
+  using T = ShapePrecision<S>;
+
+  ViewerDetail::start<T, S>(
+    a_shape, &a_deviceShape, ViewerDetail::initialCamera<T>(a_shape), Settings<T>(), a_argc, a_argv);
+}
+
+template <class S>
+inline void
 view(const S&                           a_shape,
      const S&                           a_deviceShape,
      const Camera<ShapePrecision<S>>&   a_camera,
@@ -633,6 +1642,46 @@ view(const S&                           a_shape,
      char**                             a_argv)
 {
   ViewerDetail::start<ShapePrecision<S>, S>(a_shape, &a_deviceShape, a_camera, a_settings, a_argc, a_argv);
+}
+
+template <class S>
+inline void
+view(const S& a_shape, Pool& a_pool, int a_argc, char** a_argv)
+{
+  using T = ShapePrecision<S>;
+
+  view(a_shape, a_pool, ViewerDetail::initialCamera<T>(a_shape), Settings<T>(), a_argc, a_argv);
+}
+
+template <class S>
+inline void
+view(const S&                           a_shape,
+     Pool&                              a_pool,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     int                                a_argc,
+     char**                             a_argv)
+{
+  using T = ShapePrecision<S>;
+
+#ifdef EBGEOMETRY_VIEWER_SDL2
+  // Mirror only when a window will open on a device; the mirror lives as long as the window.
+  if (GPU::enabled && GPU::deviceAvailable() && !ViewerDetail::noViewRequested(a_argc, a_argv) &&
+      ViewerDetail::displayAvailable()) {
+    a_pool.freeze();
+
+    const Pool mirror      = Pool::mirror(a_pool, GPU::memoryResource());
+    const S    deviceShape = a_shape.rebasedView(mirror);
+
+    ViewerDetail::start<T, S>(a_shape, &deviceShape, a_camera, a_settings, a_argc, a_argv);
+
+    return;
+  }
+#endif
+
+  (void)a_pool;
+
+  ViewerDetail::start<T, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv);
 }
 
 } // namespace EBGeometry::Render

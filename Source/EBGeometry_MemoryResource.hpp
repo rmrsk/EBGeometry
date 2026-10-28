@@ -70,13 +70,11 @@ public:
   /**
    * @brief Default constructor.
    */
-  EBGEOMETRY_HOST
   MemoryResource() = default;
 
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST
   virtual ~MemoryResource() = default;
 
   /**
@@ -161,13 +159,11 @@ public:
   /**
    * @brief Default constructor.
    */
-  EBGEOMETRY_HOST
   HostMemoryResource() = default;
 
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST
   ~HostMemoryResource() override = default;
 
   /**
@@ -238,13 +234,11 @@ public:
   /**
    * @brief Default constructor.
    */
-  EBGEOMETRY_HOST
   EmulatedDeviceMemoryResource() = default;
 
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST
   ~EmulatedDeviceMemoryResource() override = default;
 
   /**
@@ -315,13 +309,11 @@ public:
   /**
    * @brief Default constructor.
    */
-  EBGEOMETRY_HOST
   DeviceMemoryResource() = default;
 
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST
   ~DeviceMemoryResource() override = default;
 
   /**
@@ -388,13 +380,11 @@ public:
   /**
    * @brief Default constructor.
    */
-  EBGEOMETRY_HOST
   ManagedMemoryResource() = default;
 
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST
   ~ManagedMemoryResource() override = default;
 
   /**
@@ -460,13 +450,11 @@ public:
   /**
    * @brief Default constructor.
    */
-  EBGEOMETRY_HOST
   PinnedMemoryResource() = default;
 
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST
   ~PinnedMemoryResource() override = default;
 
   /**
@@ -536,13 +524,11 @@ public:
   /**
    * @brief Default constructor.
    */
-  EBGEOMETRY_HOST
   MappedMemoryResource() = default;
 
   /**
    * @brief Destructor.
    */
-  EBGEOMETRY_HOST
   ~MappedMemoryResource() override = default;
 
   /**

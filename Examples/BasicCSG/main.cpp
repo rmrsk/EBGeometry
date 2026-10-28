@@ -112,7 +112,9 @@ main(int argc, char* argv[])
   //
   // A window on the solid (built with VIEWER=SDL2): drag to orbit, scroll to zoom, X cuts it open, P
   // colours each leaf. Otherwise, with --no-view or without a display, view() prints why and returns.
-  EBGeometry::Render::view(tape, argc, argv);
+  // Given the pool, view() renders on the GPU in a GPU build: it mirrors the pool as above, for as long as
+  // the window is open, and renders through the tape's view of the copy (G switches to the CPU and back).
+  EBGeometry::Render::view(tape, pool, argc, argv);
 
   return 0;
 }

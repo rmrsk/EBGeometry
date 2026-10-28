@@ -5,7 +5,8 @@
 # PRECISION selects the floating-point type (float or double). ASSERTIONS
 # (ON/OFF) toggles EBGEOMETRY_EXPECT() runtime assertion checks. GPU (OFF, HIP or
 # CUDA) compiles the example for a GPU with hipcc or nvcc, so that the same run
-# also does its queries on the device (HIP_ARCH and CUDA_ARCH pick the target;
+# does its device part there: the window renders on the device, and queries
+# through GPU::transform run there too (HIP_ARCH and CUDA_ARCH pick the target;
 # run `make clean` after switching). VIEWER (OFF or SDL2) builds the window the
 # example opens on the mesh at the end, which needs SDL2. Override any of these on
 # the command line, e.g.:
@@ -20,7 +21,8 @@ ASSERTIONS      ?= OFF
 GPU             ?= OFF
 VIEWER          ?= OFF
 HIP_ARCH        ?= gfx90a
-CUDA_ARCH       ?= sm_70
+# The GPU in this machine (nvidia-smi), so that the binary carries its machine code; sm_70 without one.
+CUDA_ARCH       ?= sm_$(or $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | grep -m1 -E '^[0-9]+\.[0-9]+$$' | tr -d .),70)
 
 # make predefines CXX (as g++ on most systems), so `CXX ?=` would never apply: set it only when it
 # still has make's built-in value. -std=c++17 is on the compile line, not in CXXFLAGS, so that a

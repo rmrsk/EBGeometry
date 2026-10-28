@@ -61,13 +61,14 @@ main(int argc, char* argv[])
   // Translate sets them out in a row (built with VIEWER=SDL2; otherwise, with --no-view or without a
   // display, view() prints why and returns). A union of this many operands is evaluated through a BVH
   // over their boxes, so a point evaluates only the objects near it.
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   std::vector<Expr> row;
 
   for (std::size_t i = 0; i < transformed.size(); i++) {
     row.push_back(EBGeometry::Translate(transformed[i].second, Vec3(T(2) * T(i) - T(4), T(0), T(0))));
   }
 
-  EBGeometry::Render::view(Tape(pool, EBGeometry::Union(row)), argc, argv);
+  EBGeometry::Render::view(Tape(pool, EBGeometry::Union(row)), pool, argc, argv);
 
   return 0;
 }

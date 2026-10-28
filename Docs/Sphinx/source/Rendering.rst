@@ -33,16 +33,34 @@ To look inside an object, the renderer can cut it with a plane, removing everyth
 plane's normal :math:`\mathbf{n}` points to: the intersection of the object with a half-space. Along
 each ray it finds the part of the ray on the kept side, and traces the object over that part only. Where
 the ray reaches the plane while inside the object, the plane itself is the first crossing: a cut face,
-exact, with the plane's normal, and a colour of its own.
+exact, with the plane's normal. It is partly transparent: the ray goes on inside the object to its next
+surface (a hole, a cavity, the far wall), which shows through the face, lit without shadows, which inside
+the object would be everywhere.
+
+The plane also shows where it slices the object. Where a ray meets the plane before anything else, the
+object's value there says where the point lies: near zero, it is on the object's outline in the plane,
+drawn as a line of constant width on screen; outside, a faint sheet marks the plane, within the object's
+box. So a slice shows both the object's cross-section and, in front of the cut, the rest of its outline.
+Lines of equal distance can be drawn as well, inside and outside: spaced like a simulation's grid, they
+show which features the grid resolves.
+Reversing the plane's normal removes the other side.
 
 What a pixel shows
 ------------------
 
 For a pixel, the renderer casts one ray (or :math:`n \times n` rays, averaged, with the light moved a
 little for each, as a light of some size would be) and, where it meets the surface, combines diffuse and
-specular light from one direction, light from the sky, a shadow and ambient occlusion. A floor under the
-shape catches its shadow. Surfaces can be coloured uniformly or by primitive: by the leaf of a composed
-expression the surface belongs to, or by the face of a mesh.
+specular light from one direction, light from the sky, a shadow and ambient occlusion. The light's
+direction is by default fixed to the camera, above and beside it, so that the side in view is lit wherever
+the camera goes; it can instead be fixed in the scene. A floor under the
+shape catches its shadow. Surfaces can be coloured by the direction of their normal (the default),
+uniformly, by primitive (by the leaf of a composed
+expression the surface belongs to, or by the face of a mesh, with colours chosen per primitive or from a
+palette).
+
+The camera looks either in perspective, every ray leaving the eye, or orthographically, the rays parallel
+and leaving a plane through the eye, so that sizes do not shrink with distance; a near clip starts every
+ray some way from the eye, so that whatever is nearer is not seen.
 
 The shadow comes from one ray towards the light, softened at the edges by the light moving a little
 between a pixel's rays, and the occlusion from four short rays tilted around the normal: the share of

@@ -64,8 +64,7 @@ SDL2 (for example `libsdl2-dev`, or `brew install sdl2`) and is built only on re
     make VIEWER=SDL2
     cmake -S . -B build -DEBGEOMETRY_VIEWER=SDL2
 
-Without it, `view()` prints a line saying how to build it and returns. Drag to orbit, scroll to zoom, `X`
-cuts the object open, `P` colours each primitive, `Esc` closes the window. `--no-view` skips the window
+Without it, `view()` prints a line saying how to build it and returns. Drag to orbit and scroll to zoom; the window lists its other keys. `--no-view` skips the window
 (ctest passes it), as does running without a display.
 
 Running

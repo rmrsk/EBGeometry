@@ -114,9 +114,9 @@ camera with :math:`z` up, and the floor goes under them:
 
    const auto camera = Render::Camera<T>::fit(city.computeBoundingVolume(), Vec3(0, 0, 1));
 
-   Render::view(city, camera, Render::Settings<T>(), argc, argv);
+   Render::view(city, pool, camera, Render::Settings<T>(), argc, argv);
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit, scroll to zoom, X cuts the object open and P colours each primitive; see
-:ref:`Chap:ImplemRender`.
+and returns. Drag to orbit and scroll to zoom; the window lists its other keys (see
+:ref:`Sec:ViewerKeys`).

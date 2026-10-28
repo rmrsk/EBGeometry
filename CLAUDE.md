@@ -57,12 +57,12 @@ cd Examples/Shapes
 cmake -S . -B build && cmake --build build
 ```
 
-Every example except `BuildBVH`, `HostTuning`, `SmoothCSG`, `Transforms`, `ValueOperations`, `Repetition`, `MeshCSG`,
-`PackedSpheres`, `Twist`, `Shell` and `Materials` also takes a GPU switch (`make GPU=HIP|CUDA`, CMake
-`-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's `EBGEOMETRY_ENABLE_HIP`/`CUDA`): the same source
-then runs its last section's query functor on the device through `GPU::transform()` (in a plain C++
-build, the same section runs as a host loop). A GPU build with no visible GPU skips the device part
-and exits 0. Examples check nothing themselves; device correctness is the `[gpu]` unit tests' job. In a GPU build of the
+Every example except `BuildBVH` and `HostTuning` also takes a GPU switch (`make GPU=HIP|CUDA`, CMake
+`-DEBGEOMETRY_EXAMPLE_GPU=HIP|CUDA`, or the project's `EBGEOMETRY_ENABLE_HIP`/`CUDA`; CUDA defaults to the
+local GPU's architecture): the same source then renders its window on the device (`Render::view(shape,
+pool, argc, argv)` mirrors the pool) and, in the examples that have one, runs its last section's query
+functor on the device through `GPU::transform()` (in a plain C++ build, the same section runs as a host
+loop). A GPU build with no visible GPU skips the device part and exits 0. Examples check nothing themselves; device correctness is the `[gpu]` unit tests' job. In a GPU build of the
 project these examples are collected in `EBGeometry_GPUDeviceExamples` (CI compiles it, without
 running it); their tests keep the `example` label.
 
@@ -318,10 +318,11 @@ use (a new capability, not a new overload): an example. A new device path for ex
   and a line in `Examples/README.md`'s reading order. Docs and headers cite examples, never tests.
 - Written to be read: the calls in the order a user writes them, with comments saying why, and printed
   results a reader can follow. It checks nothing (that is the tests' job) and exits 0.
-- A device-capable example has the four parts in order (the query functor, the construction, host use,
-  the same query through `GPU::transform`) and skips the device part without a GPU.
-- An example that builds a shape ends with `Render::view(shape, argc, argv)`, and its page shows the first
-  frame: `Scripts/render-example-figures.sh <Name>` writes `_static/example_<Name>.jpg` (tracked).
+- An example about device queries has the four parts in order (the query functor, the construction, host
+  use, the same query through `GPU::transform`) and skips the device part without a GPU.
+- An example that builds a shape ends with `Render::view(shape, pool, argc, argv)` (the pool the shape
+  lives in, so that a GPU build renders on the device; `view(shape, argc, argv)` for a shape in no pool),
+  and its page shows the first frame: `Scripts/render-example-figures.sh <Name>` writes `_static/example_<Name>.jpg` (tracked).
 - Terse: one topic per example, about a hundred lines of `main.cpp`; split a second topic into its own.
 - No third-party dependencies (they go in `Integrations/`); the default input is `Examples/data/` or
   the submodule; it runs in seconds in a Release build and within the 300 s ctest limit in Debug.

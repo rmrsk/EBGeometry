@@ -190,6 +190,17 @@ getErrorString(Error a_error) noexcept;
 [[nodiscard]] inline bool
 isShutdownError(Error a_error) noexcept;
 
+/**
+ * @brief What to do about an error that means the binary has no code this GPU can run: the binary was
+ * built for another architecture, or carries only PTX that the driver, older than the toolkit, cannot
+ * compile (@c cudaErrorUnsupportedPtxVersion or @c cudaErrorNoKernelImageForDevice under CUDA,
+ * @c hipErrorNoBinaryForGpu under HIP).
+ * @param[in] a_error Backend error code.
+ * @return A hint, starting with a line break, for those errors; an empty string otherwise.
+ */
+[[nodiscard]] inline const char*
+getErrorHint(Error a_error) noexcept;
+
 #elif defined(EBGEOMETRY_HIP)
 
 using Error      = hipError_t;
@@ -269,6 +280,15 @@ getErrorString(Error a_error) noexcept
 isShutdownError(Error a_error) noexcept
 {
   return a_error == hipErrorDeinitialized || a_error == hipErrorContextIsDestroyed;
+}
+
+[[nodiscard]] inline const char*
+getErrorHint(Error a_error) noexcept
+{
+  return (a_error == hipErrorNoBinaryForGpu)
+           ? "\n  hint: the binary has no code for this GPU; build for its architecture (--offload-arch, "
+             "HIP_ARCH or CMAKE_HIP_ARCHITECTURES)"
+           : "";
 }
 
 #elif defined(EBGEOMETRY_CUDA)
@@ -352,6 +372,16 @@ isShutdownError(Error a_error) noexcept
   return a_error == cudaErrorCudartUnloading || a_error == cudaErrorContextIsDestroyed;
 }
 
+[[nodiscard]] inline const char*
+getErrorHint(Error a_error) noexcept
+{
+  return (a_error == cudaErrorUnsupportedPtxVersion || a_error == cudaErrorNoKernelImageForDevice)
+           ? "\n  hint: the binary has no machine code for this GPU, and the driver cannot compile its PTX; "
+             "build for the GPU's architecture (-arch, CUDA_ARCH or CMAKE_CUDA_ARCHITECTURES), or update "
+             "the driver"
+           : "";
+}
+
 #endif
 
 } // namespace GPU
@@ -365,18 +395,19 @@ isShutdownError(Error a_error) noexcept
  * exception) matches the library's no-exceptions convention.
  * @param x GPU runtime API call (or any expression) yielding an EBGeometry::GPU::Error.
  */
-#define EBGEOMETRY_GPU_CHECK(x)                                                      \
-  do {                                                                               \
-    const EBGeometry::GPU::Error ebgeometry_gpu_err = (x);                           \
-    if (ebgeometry_gpu_err != EBGeometry::GPU::Success) {                            \
-      std::fprintf(stderr,                                                           \
-                   "EBGeometry GPU error: %s\n  call: %s\n  file: %s\n  line: %d\n", \
-                   EBGeometry::GPU::getErrorString(ebgeometry_gpu_err),              \
-                   #x,                                                               \
-                   __FILE__,                                                         \
-                   __LINE__);                                                        \
-      std::abort();                                                                  \
-    }                                                                                \
+#define EBGEOMETRY_GPU_CHECK(x)                                                        \
+  do {                                                                                 \
+    const EBGeometry::GPU::Error ebgeometry_gpu_err = (x);                             \
+    if (ebgeometry_gpu_err != EBGeometry::GPU::Success) {                              \
+      std::fprintf(stderr,                                                             \
+                   "EBGeometry GPU error: %s\n  call: %s\n  file: %s\n  line: %d%s\n", \
+                   EBGeometry::GPU::getErrorString(ebgeometry_gpu_err),                \
+                   #x,                                                                 \
+                   __FILE__,                                                           \
+                   __LINE__,                                                           \
+                   EBGeometry::GPU::getErrorHint(ebgeometry_gpu_err));                 \
+      std::abort();                                                                    \
+    }                                                                                  \
   } while (0)
 
 #endif // EBGEOMETRY_CUDA || EBGEOMETRY_HIP || EBGEOMETRY_DOXYGEN

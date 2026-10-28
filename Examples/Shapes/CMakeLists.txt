@@ -31,10 +31,11 @@ endif()
 # Where the device part runs.
 #
 # OFF (the default) compiles main.cpp as plain C++, which runs the example on the host. With
-# -DEBGEOMETRY_EXAMPLE_GPU=HIP or CUDA it is compiled for a GPU, and the same run also does its
-# queries on the device (EBGeometry::GPU::transform) and compares them with the host's; without a
-# visible GPU that part is skipped. The target is CMAKE_HIP_ARCHITECTURES (default gfx90a) or
-# CMAKE_CUDA_ARCHITECTURES (default 70). HIP needs CMake >= 3.21 (>= 3.28 to drive it with hipcc
+# -DEBGEOMETRY_EXAMPLE_GPU=HIP or CUDA it is compiled for a GPU, and the same run does its device part
+# there: the window renders on the device, and an example with queries through EBGeometry::GPU::transform
+# runs them there too; without a visible GPU that part stays on the host. The target is
+# CMAKE_HIP_ARCHITECTURES (default gfx90a) or CMAKE_CUDA_ARCHITECTURES (default: the GPU in this machine,
+# or 70 without one). HIP needs CMake >= 3.21 (>= 3.28 to drive it with hipcc
 # rather than clang). Inside the EBGeometry project the choice follows EBGEOMETRY_ENABLE_HIP and
 # EBGEOMETRY_ENABLE_CUDA. The language is enabled before the target is created, which takes its
 # architectures from these defaults.
@@ -59,7 +60,16 @@ if(_example_gpu STREQUAL "HIP" OR _example_gpu STREQUAL "CUDA")
     endif()
 
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-      set(CMAKE_CUDA_ARCHITECTURES 70)
+      # The GPU in this machine, so that the binary carries its machine code; 70 when none is visible.
+      execute_process(COMMAND nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+                      OUTPUT_VARIABLE _cuda_cap RESULT_VARIABLE _cuda_smi ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+      string(REGEX MATCH "^[0-9]+\\.[0-9]+" _cuda_cap "${_cuda_cap}")
+
+      if(_cuda_smi EQUAL 0 AND _cuda_cap)
+        string(REPLACE "." "" CMAKE_CUDA_ARCHITECTURES "${_cuda_cap}")
+      else()
+        set(CMAKE_CUDA_ARCHITECTURES 70)
+      endif()
     endif()
 
     enable_language(${_example_gpu})

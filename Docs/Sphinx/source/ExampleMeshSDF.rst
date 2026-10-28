@@ -38,6 +38,9 @@ PLY, VTK or OBJ works. Each of the three readers in
   fastest, and the one to pick unless you need the polygon faces themselves.
 
 An application would pick one. The pool must outlive every SDF built into it, and every copy of one.
+The example reads with ``Parser::OnDefect::Warn``, so a mesh with small defects (two faces oriented
+against each other, or an edge shared by more than two faces, as in the xyzrgb dragon) loads with a
+warning instead of being refused; the sign of the distance near such a defect is unreliable.
 
 Use it on the host
 ------------------
@@ -80,17 +83,16 @@ The example ends by opening a window on the mesh:
 
 .. code-block:: c++
 
-   EBGeometry::Render::view(triSDF, argc, argv);
+   EBGeometry::Render::view(triSDF, pool, argc, argv);
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit, scroll to zoom, press X to cut the mesh open and P to colour its faces. A
-surface seen from inside the solid is drawn red, which is also how a mesh whose faces are wound the
-wrong way looks from outside. ``TriMeshSDF`` is ray traced, so the window follows the mouse; see
-:ref:`Chap:ImplemRender`. In a GPU build the example passes its device view of the mesh, so the window
-renders on the GPU (G switches to the CPU and back); build in single precision
-(``PRECISION=float``) there, since many GPUs are much slower in double precision, and for the GPU's own
-architecture (for example ``CUDA_ARCH=sm_86``).
+and returns. Drag to orbit and scroll to zoom; the window lists its other keys (see
+:ref:`Sec:ViewerKeys`). A surface seen from inside the solid is drawn red, which is also how a mesh whose
+faces are wound the wrong way looks from outside. ``TriMeshSDF`` is ray traced, so the window follows the
+mouse; see :ref:`Chap:ImplemRender`. The example passes the pool the mesh lives in, so in a GPU build the
+window renders on the GPU (G switches to the CPU and back); build in single precision
+(``PRECISION=float``) there, since many GPUs are much slower in double precision.
 
 Building and running
 --------------------

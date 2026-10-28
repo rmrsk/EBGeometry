@@ -90,10 +90,10 @@ otherwise. See :ref:`Sec:ExamplesGPU`.
 Looking at it
 -------------
 
-The example ends with ``Render::view(composed, argc, argv)``, a window on the tape that places the mesh
+The example ends with ``Render::view(composed, pool, argc, argv)``, a window on the tape that places the mesh
 among the spheres.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit, scroll to zoom, X cuts the object open and P colours each primitive; see
-:ref:`Chap:ImplemRender`.
+and returns. Drag to orbit and scroll to zoom; the window lists its other keys (see
+:ref:`Sec:ViewerKeys`).

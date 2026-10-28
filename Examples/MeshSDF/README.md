@@ -105,25 +105,17 @@ the first point. Then it evaluates the `TriMeshSDF` at those points through
 `EBGeometry::GPU::transform`: in a kernel in a GPU build, in a host loop otherwise.
 
 Finally it opens the viewer on the `TriMeshSDF`, if built with it, and waits until the window is
-closed. Drag with the left mouse button to orbit, scroll to zoom, and press:
-
-| Key       | Does                                                                   |
-|-----------|------------------------------------------------------------------------|
-| `S` / `A` / `F` | shadows / ambient occlusion / floor on or off                    |
-| `P`       | colour each face differently                                           |
-| `X`       | cut the mesh open with a plane facing the camera; arrow keys move it  |
-| `G`       | render on the GPU or the CPU (GPU builds)                              |
-| `R`       | reset the camera                                                       |
-| `Esc`, `Q` | close the window                                                      |
+closed. Drag to orbit and scroll to zoom; the window lists its other keys (see
+[the viewer's keys](https://rmrsk.github.io/EBGeometry/ImplemRender.html#sec-viewerkeys)).
 
 A surface seen from inside the solid is drawn red: that is what the inside looks like through the
 section plane's cut, and what a mesh whose faces are wound the wrong way looks like from outside.
 The `TriMeshSDF` is ray traced (rays through its BVH, tested against its triangles), so the window
 follows the mouse: a quick preview while the camera moves, refined to the full frame once it rests.
 In a GPU build the window renders on the GPU (`G` switches to the CPU and back). Build that in single
-precision and for your GPU's architecture, since many GPUs are much slower in double precision:
+precision, since many GPUs are much slower in double precision:
 
-    make GPU=CUDA CUDA_ARCH=sm_86 VIEWER=SDL2 PRECISION=float
+    make GPU=CUDA VIEWER=SDL2 PRECISION=float
 
 `--no-view` skips the window (ctest passes it), as does running without a display:
 

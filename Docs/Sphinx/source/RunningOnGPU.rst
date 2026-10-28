@@ -185,7 +185,7 @@ Rendering on a GPU
 mirrored pool, exactly as for a query (:ref:`Chap:ImplemRender`). It renders the image in up to eight
 bands of rows, one launch each (so that a render can be stopped between them), into one buffer in device
 memory, copied back to the host once. ``Render::view()`` takes the same device view to render its window
-on the GPU.
+on the GPU, or the pool, which it then mirrors itself.
 
 GPU::parallelFor
 ----------------
@@ -206,7 +206,7 @@ address, and would copy the whole query into every thread's local memory first: 
 hundred bytes per thread, which cost more than the evaluation itself (issue #221). Under CUDA 11.7 and
 later the kernel's parameter is therefore a grid constant (``EBGEOMETRY_GRID_CONSTANT``,
 ``__grid_constant__``), which the threads read in place. That needs compute capability 7.0 or later, the
-default architecture of every EBGeometry CUDA build; when a build also compiles for an older
+oldest architecture an EBGeometry CUDA build defaults to; when a build also compiles for an older
 architecture, the macro is empty in that architecture's device code, which copies the query as before.
 HIP has no such qualifier; there the macro is empty. A kernel written by hand (see
 :ref:`Chap:ExampleCustomShape`) can mark its own query parameter the same way.

@@ -64,6 +64,7 @@ main(int argc, char* argv[])
   //
   // The three sharp objects in a row at the back, the smooth ones in front (built with VIEWER=SDL2;
   // otherwise, with --no-view or without a display, view() prints why and returns).
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   std::vector<Expr> row;
 
   for (int i = 0; i < 3; i++) {
@@ -71,7 +72,7 @@ main(int argc, char* argv[])
     row.push_back(EBGeometry::Translate(smooth[i], Vec3(T(2) * T(i - 1), T(0), T(1))));
   }
 
-  EBGeometry::Render::view(Tape(pool, EBGeometry::Union(row)), argc, argv);
+  EBGeometry::Render::view(Tape(pool, EBGeometry::Union(row)), pool, argc, argv);
 
   return 0;
 }

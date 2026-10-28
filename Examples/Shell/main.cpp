@@ -83,7 +83,8 @@ try {
   //
   // A window on the shell (built with VIEWER=SDL2; otherwise, with --no-view or without a display, view()
   // prints why and returns).
-  EBGeometry::Render::view(shell, argc, argv);
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
+  EBGeometry::Render::view(shell, pool, argc, argv);
 
   return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {

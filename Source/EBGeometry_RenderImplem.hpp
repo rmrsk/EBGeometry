@@ -16,7 +16,10 @@
 #include <atomic>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <numeric>
+#include <string>
 #include <thread>
 #include <type_traits>
 #include <vector>
@@ -232,10 +235,16 @@ public:
       m_settings(a_settings),
       m_eye(a_view.m_eye),
       m_up(a_view.m_axis),
-      m_baseLight(unit(a_settings.m_light)),
+      m_baseLight(unit(a_settings.m_lightFromCamera
+                         ? a_settings.m_light[0] * a_view.m_right + a_settings.m_light[1] * a_view.m_up -
+                             a_settings.m_light[2] * a_view.m_forward
+                         : a_settings.m_light)),
       m_light(m_baseLight),
       m_first(a_view.m_first),
-      m_second(a_view.m_second)
+      m_second(a_view.m_second),
+      m_forward(a_view.m_forward),
+      m_footprint(a_view.m_footprint),
+      m_footprintPerLength(a_view.m_footprintPerLength)
   {
 
     const auto     box = a_shape.computeBoundingVolume();
@@ -263,6 +272,32 @@ public:
 
     m_hasFloor   = a_settings.m_floor && std::isfinite(low) && lo[0] <= hi[0];
     m_floorLevel = low - T(0.01) * m_scale;
+
+    // Orthographic rays start far enough behind the plane through the eye that the whole box is in front of
+    // them, so that zooming in (the eye nearer) does not cut the shape open.
+    T behind = T(0);
+
+    if (a_view.m_orthographic && bounded) {
+      for (int corner = 0; corner < 8; corner++) {
+        const Vec3T<T> c((corner & 1) ? hi[0] : lo[0], (corner & 2) ? hi[1] : lo[1], (corner & 4) ? hi[2] : lo[2]);
+
+        behind = Math::max(behind, dot(m_eye - c, m_forward));
+      }
+
+      behind += T(0.01) * m_scale;
+    }
+
+    m_backoff = behind;
+    m_far += behind;
+
+    // The section plane's contour and sheet are drawn within the shape's box, a little enlarged.
+    const Vec3T<T> margin = T(0.05) * (hi - lo);
+
+    m_boxLow  = lo - margin;
+    m_boxHigh = hi + margin;
+    m_onPlane =
+      a_settings.m_section && bounded &&
+      (a_settings.m_contourWidth > T(0) || a_settings.m_sheetOpacity > T(0) || a_settings.m_isoSpacing > T(0));
   }
 
   /**
@@ -274,6 +309,45 @@ public:
   eyeInside() const noexcept
   {
     return m_object.signedDistance(m_eye) < T(0);
+  }
+
+  /**
+   * @brief Where an orthographic camera ray through a point of the plane through the eye starts: behind the
+   * shape's box.
+   * @param[in] a_point Point on the plane through the eye.
+   * @return The start.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  orthographicStart(const Vec3T<T>& a_point) const noexcept
+  {
+    return a_point - m_backoff * m_forward;
+  }
+
+  /**
+   * @brief Where along a camera ray seeing starts: the near clip, measured from the plane through the eye.
+   * @param[in] a_nearClip The camera's near clip.
+   * @return The distance along the ray from its start.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  nearAlong(const T a_nearClip) const noexcept
+  {
+    return (a_nearClip > T(0)) ? a_nearClip + m_backoff : T(0);
+  }
+
+  /**
+   * @brief The cut shape's first crossing along a camera ray (for picking).
+   * @param[in] a_origin    Where the ray starts.
+   * @param[in] a_direction Unit direction.
+   * @param[in] a_near      Where along it to start looking.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  cast(const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_near) const noexcept
+  {
+    return this->trace(RayT<T>{a_origin, a_direction}, a_near, m_far);
   }
 
   /**
@@ -295,16 +369,19 @@ public:
 
   /**
    * @brief The colour seen along one camera ray, counting what it hit.
-   * @param[in]     a_direction Unit direction from the eye.
+   * @param[in]     a_origin    Where the ray starts: the eye, or a point on the plane through it for an
+   * orthographic camera.
+   * @param[in]     a_direction Unit direction.
+   * @param[in]     a_near      How far along the ray it starts to see (the camera's near clip).
    * @param[in,out] a_result    Counts.
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Vec3T<T>
-  shade(const Vec3T<T>& a_direction, PixelResult& a_result) const noexcept
+  shade(const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_near, PixelResult& a_result) const noexcept
   {
-    const RayT<T> ray{m_eye, a_direction};
-    const HitT<T> hit = this->trace(ray, m_far);
+    const RayT<T> ray{a_origin, a_direction};
+    const HitT<T> hit = this->trace(ray, a_near, m_far);
 
     if (hit.m_status == HitStatus::Unresolved) {
       a_result.m_unresolved++;
@@ -312,25 +389,49 @@ public:
 
     // Where the ray meets the floor, if it goes down towards it.
     const T down   = dot(a_direction, m_up);
-    const T tFloor = (m_hasFloor && down < T(0)) ? (m_floorLevel - dot(m_eye, m_up)) / down : T(-1);
+    const T tFloor = (m_hasFloor && down < T(0)) ? (m_floorLevel - dot(a_origin, m_up)) / down : T(-1);
 
-    const bool onFloor = tFloor > T(0) && (!hit.hit() || tFloor < hit.m_t);
+    const bool onFloor = tFloor > a_near && (!hit.hit() || tFloor < hit.m_t);
+
+    Vec3T<T> colour;
 
     if (hit.hit() && !onFloor) {
       a_result.m_hits++;
+
+      if (a_result.m_primitive == 0xFFFFFFFFU) {
+        a_result.m_primitive = hit.m_primitive;
+      }
 
       if (!hit.m_entering) {
         a_result.m_insideHits++;
       }
 
-      return this->shadeSurface(hit, a_direction);
+      // A face cut by the section plane is where the plane, not the shape, gives the value: a fill, through
+      // which the shape's next surface along the ray shows.
+      const Vec3T<T>& p = hit.m_point;
+
+      if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
+        colour = this->shadeCutFace(ray, hit.m_t);
+      }
+      else {
+        colour = this->shadeSurface(hit, a_direction, true);
+      }
+    }
+    else if (onFloor) {
+      colour = this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
+    }
+    else {
+      colour = this->background(a_direction);
     }
 
-    if (onFloor) {
-      return this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
+    if (m_onPlane) {
+      // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
+      const T tFront = onFloor ? tFloor : (hit.hit() ? hit.m_t : m_far);
+
+      colour = this->drawOnPlane(ray, a_near, tFront, colour);
     }
 
-    return this->background(a_direction);
+    return colour;
   }
 
 private:
@@ -375,6 +476,16 @@ private:
   Vec3T<T> m_second;
 
   /**
+   * @brief Unit direction the camera looks in.
+   */
+  Vec3T<T> m_forward;
+
+  /**
+   * @brief How far behind the plane through the eye orthographic rays start (0 for a perspective camera).
+   */
+  T m_backoff;
+
+  /**
    * @brief The scene's length scale.
    */
   T m_scale;
@@ -405,20 +516,46 @@ private:
   T m_floorLevel;
 
   /**
-   * @brief The cut shape's first crossing along a ray from its origin (firstHit()).
+   * @brief How wide a pixel is at a distance t along a camera ray: m_footprint + m_footprintPerLength t.
+   */
+  T m_footprint;
+
+  /**
+   * @brief See m_footprint.
+   */
+  T m_footprintPerLength;
+
+  /**
+   * @brief Low corner of the box the section plane's contour and sheet are drawn in.
+   */
+  Vec3T<T> m_boxLow;
+
+  /**
+   * @brief High corner of that box.
+   */
+  Vec3T<T> m_boxHigh;
+
+  /**
+   * @brief Whether to draw anything on the section plane.
+   */
+  bool m_onPlane;
+
+  /**
+   * @brief The cut shape's first crossing along a ray (firstHit()).
    * @details Every ray the shader casts goes through here, out of line on a device: inlined at each of
    * its callers, the shape's whole trace was copied once per ray kind and the kernels grew too large to
    * compile.
    * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMin Where along it to start looking.
    * @param[in] a_tMax How far along it to look.
    * @return The crossing, or a miss.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline HitT<T>
-  trace(const RayT<T>& a_ray, const T a_tMax) const noexcept
+  trace(const RayT<T>& a_ray, const T a_tMin, const T a_tMax) const noexcept
   {
-    return firstHit(m_object, a_ray, T(0), a_tMax, m_rays);
+    return firstHit(m_object, a_ray, a_tMin, a_tMax, m_rays);
   }
 
   /**
@@ -457,7 +594,7 @@ private:
   shadow(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
-    const HitT<T>  hit    = this->trace(RayT<T>{origin, m_light}, T(2) * m_scale);
+    const HitT<T>  hit    = this->trace(RayT<T>{origin, m_light}, T(0), T(2) * m_scale);
 
     return hit.hit() ? T(0) : T(1);
   }
@@ -484,7 +621,7 @@ private:
       const T        a = T(0.5) * pi<T> * T(k);
       const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
 
-      blocked += this->trace(RayT<T>{origin, r}, T(0.07) * m_scale).hit() ? 1 : 0;
+      blocked += this->trace(RayT<T>{origin, r}, T(0), T(0.07) * m_scale).hit() ? 1 : 0;
     }
 
     return T(1) - T(0.2) * T(blocked);
@@ -496,6 +633,8 @@ private:
    * @param[in] a_normal    Unit normal, towards the eye.
    * @param[in] a_direction Unit direction of the camera ray.
    * @param[in] a_albedo    Albedo.
+   * @param[in] a_shade     Whether shadows and occlusion may darken it (not for a surface seen through the
+   * cut face, inside the solid, where they would be everywhere).
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -503,55 +642,190 @@ private:
   light(const Vec3T<T>& a_point,
         const Vec3T<T>& a_normal,
         const Vec3T<T>& a_direction,
-        const Vec3T<T>& a_albedo) const noexcept
+        const Vec3T<T>& a_albedo,
+        const bool      a_shade = true) const noexcept
   {
     const Vec3T<T> half = unit(m_light - a_direction);
 
-    const T lit  = m_settings.m_shadows ? this->shadow(a_point, a_normal) : T(1);
+    const T lit  = (a_shade && m_settings.m_shadows) ? this->shadow(a_point, a_normal) : T(1);
     const T diff = Math::max(T(0), dot(a_normal, m_light)) * lit;
-    const T spec = std::pow(Math::max(T(0), dot(a_normal, half)), T(48)) * diff;
+    const T spec = std::pow(Math::max(T(0), dot(a_normal, half)), m_settings.m_shininess) * diff;
     const T sky  = T(0.5) + T(0.5) * dot(a_normal, m_up);
-    const T ao   = m_settings.m_occlusion ? this->occlusion(a_point, a_normal) : T(1);
+    const T ao   = (a_shade && m_settings.m_occlusion) ? this->occlusion(a_point, a_normal) : T(1);
 
-    return a_albedo * (T(1.05) * diff + T(0.35) * sky * ao) + T(0.3) * spec * Vec3T<T>::ones();
+    return a_albedo * (m_settings.m_lightIntensity * diff + m_settings.m_ambient * sky * ao) +
+           m_settings.m_specular * spec * Vec3T<T>::ones();
   }
 
   /**
-   * @brief The colour of the shape's surface where a camera ray hit it.
-   * @param[in] a_hit       The hit.
-   * @param[in] a_direction Unit direction of the camera ray.
+   * @brief The colour of the section plane's cut face where a camera ray meets it: the fill, and through it
+   * the shape's next surface along the ray.
+   * @details Out of line on a device: inlined, this second shading of a surface (and its trace) doubled what
+   * the render kernels spill to local memory, for every pixel, section or no section.
+   * @param[in] a_ray The camera ray.
+   * @param[in] a_t   Where it meets the cut face.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline Vec3T<T>
+  shadeCutFace(const RayT<T>& a_ray, const T a_t) const noexcept
+  {
+    const Vec3T<T> fill = this->shadeCut();
+
+    if (m_settings.m_cutOpacity >= T(1)) {
+      return fill;
+    }
+
+    const HitT<T>  behind = this->trace(a_ray, a_t + T(4) * m_eps, m_far);
+    const Vec3T<T> seen =
+      behind.hit() ? this->shadeSurface(behind, a_ray.m_direction, false) : this->background(a_ray.m_direction);
+
+    return m_settings.m_cutOpacity * fill + (T(1) - m_settings.m_cutOpacity) * seen;
+  }
+
+  /**
+   * @brief The fill of the section plane's cut face: coloured as a surface facing along the plane's normal
+   * would be, and lit by that normal a little from either side, without shadows, so that a slice reads the
+   * same whichever way the light faces. Coloured by primitive, it takes the cut colour: inside a
+   * composition the leaf that decides the value (a subtracted one, near its surface) need not be the
+   * material there.
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Vec3T<T>
-  shadeSurface(const HitT<T>& a_hit, const Vec3T<T>& a_direction) const noexcept
+  shadeCut() const noexcept
+  {
+    const Vec3T<T>& n = m_object.m_normal;
+
+    Vec3T<T> albedo = m_settings.m_colour;
+
+    if (m_settings.m_colourBy == ColourBy::Normal) {
+      albedo = T(0.5) * (n + Vec3T<T>::ones());
+    }
+    else if (m_settings.m_colourBy == ColourBy::Primitive) {
+      albedo = m_settings.m_cutColour;
+    }
+
+    return albedo * (T(0.6) + T(0.4) * std::abs(dot(n, m_light)));
+  }
+
+  /**
+   * @brief The colour of the shape's surface where a ray hit it.
+   * @param[in] a_hit       The hit.
+   * @param[in] a_direction Unit direction of the ray.
+   * @param[in] a_tint      Whether a surface seen from inside the solid is tinted, and shadows and occlusion
+   * darken it (not when it is seen through the cut face, which looks into the solid on purpose, and where
+   * the solid around it would shadow and occlude it everywhere).
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  shadeSurface(const HitT<T>& a_hit, const Vec3T<T>& a_direction, const bool a_tint) const noexcept
   {
     const Vec3T<T>& p = a_hit.m_point;
 
-    // A face cut by the section plane is where the plane, not the shape, gives the value.
-    const bool cut = m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p);
+    Vec3T<T> n = (a_hit.m_normal.length2() > T(0)) ? a_hit.m_normal : this->normal(p);
 
-    Vec3T<T> n = cut ? m_object.m_normal : ((a_hit.m_normal.length2() > T(0)) ? a_hit.m_normal : this->normal(p));
+    Vec3T<T> albedo = m_settings.m_colour;
+
+    if (m_settings.m_colourBy == ColourBy::Primitive) {
+      const uint32_t id = a_hit.m_primitive;
+
+      albedo = (id < Settings<T>::PrimitiveColours && m_settings.m_primitiveColours[id][0] >= T(0))
+                 ? m_settings.m_primitiveColours[id]
+                 : palette<T>(id);
+    }
+    else if (m_settings.m_colourBy == ColourBy::Normal) {
+      albedo = T(0.5) * (n + Vec3T<T>::ones());
+    }
 
     // Light the side that faces the eye; for a surface seen from inside that is the inner side.
     if (dot(n, a_direction) > T(0)) {
       n = -n;
     }
 
-    Vec3T<T> albedo = m_settings.m_colour;
-
-    if (cut) {
-      albedo = m_settings.m_cutColour;
-    }
-    else if (m_settings.m_colourBy == ColourBy::Primitive) {
-      albedo = palette<T>(a_hit.m_primitive);
+    if (a_hit.m_primitive == m_settings.m_highlightPrimitive ||
+        m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives) {
+      albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColour;
     }
 
-    if (!a_hit.m_entering && !cut) {
+    if (!a_hit.m_entering && a_tint) {
       albedo = T(0.25) * albedo + T(0.75) * m_settings.m_insideColour;
     }
 
-    return this->light(p, n, a_direction, albedo);
+    return this->light(p, n, a_direction, albedo, a_tint);
+  }
+
+  /**
+   * @brief What the section plane adds where a camera ray meets it in front of what the ray sees: the
+   * shape's contour, a line of constant width on screen where the shape's value is near zero, and outside
+   * the shape a faint sheet. Inside the shape the plane is the cut face, already shaded.
+   * @param[in] a_ray    The camera ray.
+   * @param[in] a_near   Where the ray starts to see.
+   * @param[in] a_tFront Where it meets what it sees.
+   * @param[in] a_colour What it sees.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline Vec3T<T>
+  drawOnPlane(const RayT<T>& a_ray, const T a_near, const T a_tFront, const Vec3T<T>& a_colour) const noexcept
+  {
+    const T rate = dot(a_ray.m_direction, m_object.m_normal);
+
+    if (rate == T(0)) {
+      return a_colour;
+    }
+
+    const T t = -m_object.plane(a_ray.m_origin) / rate;
+
+    if (!(t > a_near && t <= a_tFront + T(4) * m_eps)) {
+      return a_colour;
+    }
+
+    const Vec3T<T> p = a_ray.at(t);
+
+    for (int k = 0; k < 3; k++) {
+      if (p[k] < m_boxLow[k] || p[k] > m_boxHigh[k]) {
+        return a_colour;
+      }
+    }
+
+    const T value = m_object.shapeDistance(p);
+    const T width = m_footprint + m_footprintPerLength * t;
+    const T half  = T(0.5) * m_settings.m_contourWidth * width;
+
+    if (std::abs(value) < half) {
+      return m_settings.m_contourColour;
+    }
+
+    // Lines of equal distance, every m_isoSpacing, thinner than the contour.
+    Vec3T<T> colour = a_colour;
+
+    if (m_settings.m_isoSpacing > T(0)) {
+      const T s = m_settings.m_isoSpacing;
+      const T r = value - s * std::floor(value / s + T(0.5));
+
+      if (std::abs(r) < T(0.5) * width) {
+        colour = T(0.4) * colour + T(0.6) * m_settings.m_isoColour;
+      }
+    }
+
+    if (value > T(0) && m_settings.m_sheetOpacity > T(0)) {
+      // The sheet's edge, a pixel and a half wide, where the plane leaves the box.
+      T edge = Math::Limits<T>::infinity();
+
+      for (int k = 0; k < 3; k++) {
+        edge = Math::min(edge, Math::min(p[k] - m_boxLow[k], m_boxHigh[k] - p[k]));
+      }
+
+      const Vec3T<T>& over = (edge < T(1.5) * width) ? m_settings.m_sheetEdgeColour : m_settings.m_sheetColour;
+
+      return (T(1) - m_settings.m_sheetOpacity) * colour + m_settings.m_sheetOpacity * over;
+    }
+
+    return colour;
   }
 
   /**
@@ -566,10 +840,10 @@ private:
   inline Vec3T<T>
   shadeFloor(const Vec3T<T>& a_point, const Vec3T<T>& a_direction, const T a_t) const noexcept
   {
-    const T cell  = m_scale / T(6);
+    const T cell  = (m_settings.m_floorCheckerSize > T(0)) ? m_settings.m_floorCheckerSize : m_scale / T(6);
     const T a     = std::floor(dot(a_point, m_first) / cell);
     const T b     = std::floor(dot(a_point, m_second) / cell);
-    const T check = (std::fmod(std::abs(a + b), T(2)) < T(0.5)) ? T(1) : T(0.9);
+    const T check = (!m_settings.m_floorChecker || std::fmod(std::abs(a + b), T(2)) < T(0.5)) ? T(1) : T(0.9);
 
     const Vec3T<T> lit = this->light(a_point, m_up, a_direction, check * m_settings.m_floorColour);
 
@@ -588,12 +862,12 @@ private:
   background(const Vec3T<T>& a_direction) const noexcept
   {
     if (!m_settings.m_sky) {
-      return Vec3T<T>(T(0.16), T(0.17), T(0.19));
+      return m_settings.m_background;
     }
 
     const T s = Math::clamp(dot(a_direction, m_up), T(0), T(1));
 
-    return (T(1) - s) * Vec3T<T>(T(0.82), T(0.84), T(0.88)) + s * Vec3T<T>(T(0.32), T(0.45), T(0.66));
+    return (T(1) - s) * m_settings.m_skyHorizon + s * m_settings.m_skyZenith;
   }
 };
 
@@ -616,7 +890,12 @@ struct BandOfPixels
   /**
    * @brief The frame's results, in device memory.
    */
-  PixelResult* m_results;
+  StoredPixel* m_results;
+
+  /**
+   * @brief Each pixel's object, in device memory, or null when not recorded.
+   */
+  uint32_t* m_primitives;
 
   /**
    * @brief The band's first pixel.
@@ -631,9 +910,14 @@ struct BandOfPixels
   inline void
   operator()(const std::size_t a_index) const noexcept
   {
-    const auto pixel = static_cast<uint32_t>(m_first + a_index);
+    const auto        pixel  = static_cast<uint32_t>(m_first + a_index);
+    const PixelResult result = m_query(pixel);
 
-    m_results[pixel] = m_query(pixel);
+    m_results[pixel] = StoredPixel::of(result);
+
+    if (m_primitives != nullptr) {
+      m_primitives[pixel] = result.m_primitive;
+    }
   }
 };
 
@@ -787,12 +1071,63 @@ Camera<T>::lookAt(const Vec3T<T>& a_eye, const Vec3T<T>& a_target, const Vec3T<T
 
   camera.m_distance = distance;
   camera.m_pitch    = std::asin(Math::clamp(dot(w, u), T(-1), T(1))) * degrees;
-  camera.m_yaw      = std::atan2(dot(w, first), dot(w, second)) * degrees;
 
-  EBGEOMETRY_REQUIRE(std::abs(camera.m_pitch) < T(90),
-                     "Render::Camera: the eye must not be straight above or below the target along the up "
-                     "axis (pitch %g)",
-                     double(camera.m_pitch));
+  // Straight along the up axis the yaw is undefined; take 0 rather than whatever rounding leaves.
+  const T across = std::sqrt(dot(w, first) * dot(w, first) + dot(w, second) * dot(w, second));
+
+  camera.m_yaw = (across > T(1e-6)) ? std::atan2(dot(w, first), dot(w, second)) * degrees : T(0);
+
+  return camera;
+}
+
+template <class T>
+EBGEOMETRY_HOST
+inline Camera<T>
+Camera<T>::fit(const BoundingVolumes::AABBT<T>& a_box, const View a_view, const Vec3T<T>& a_up)
+{
+  Camera camera = Camera::fit(a_box, a_up);
+
+  switch (a_view) {
+  case View::Front: {
+    camera.m_yaw   = T(0);
+    camera.m_pitch = T(0);
+
+    break;
+  }
+  case View::Back: {
+    camera.m_yaw   = T(180);
+    camera.m_pitch = T(0);
+
+    break;
+  }
+  case View::Right: {
+    camera.m_yaw   = T(90);
+    camera.m_pitch = T(0);
+
+    break;
+  }
+  case View::Left: {
+    camera.m_yaw   = T(-90);
+    camera.m_pitch = T(0);
+
+    break;
+  }
+  case View::Top: {
+    camera.m_yaw   = T(0);
+    camera.m_pitch = T(90);
+
+    break;
+  }
+  case View::Bottom: {
+    camera.m_yaw   = T(0);
+    camera.m_pitch = T(-90);
+
+    break;
+  }
+  default: {
+    break;
+  }
+  }
 
   return camera;
 }
@@ -840,9 +1175,277 @@ EBGEOMETRY_HOST_DEVICE
 inline void
 Camera<T>::frame(Vec3T<T>& a_forward, Vec3T<T>& a_right, Vec3T<T>& a_up) const noexcept
 {
+  Vec3T<T> first;
+  Vec3T<T> second;
+
+  this->horizontal(first, second);
+
+  // The right is horizontal and set by the yaw alone, so it stays defined looking straight along the up axis.
+  const T y = m_yaw * pi<T> / T(180);
+
   a_forward = RenderDetail::unit(m_target - this->eye());
-  a_right   = RenderDetail::unit(cross(a_forward, RenderDetail::unit(m_up)));
+  a_right   = std::cos(y) * first - std::sin(y) * second;
   a_up      = cross(a_right, a_forward);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline Array<Vec3T<T>, Settings<T>::PrimitiveColours>
+Settings<T>::unsetColours() noexcept
+{
+  Array<Vec3T<T>, PrimitiveColours> colours;
+
+  for (uint32_t i = 0; i < PrimitiveColours; i++) {
+    colours[i] = Vec3T<T>(T(-1), T(-1), T(-1));
+  }
+
+  return colours;
+}
+
+namespace RenderDetail {
+
+/**
+ * @brief A number as a C++ literal of precision T, with the fewest digits that read back as the same value.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_value Value.
+ * @return For example "T(0.25)".
+ */
+template <class T>
+EBGEOMETRY_HOST
+inline std::string
+literal(const T a_value)
+{
+  char text[64];
+
+  // Nine significant digits always read back a float, seventeen a double.
+  const int maxDigits = (sizeof(T) <= sizeof(float)) ? 9 : 17;
+
+  for (int digits = 1; digits <= maxDigits; digits++) {
+    std::snprintf(text, sizeof(text), "%.*g", digits, double(a_value));
+
+    if (T(std::strtod(text, nullptr)) == a_value) {
+      break;
+    }
+  }
+
+  return std::string("T(") + text + ")";
+}
+
+/**
+ * @brief A vector as a C++ expression of precision T.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_v Vector.
+ * @return For example "EBGeometry::Vec3T<T>(T(1), T(0), T(0))".
+ */
+template <class T>
+EBGEOMETRY_HOST
+inline std::string
+literal(const Vec3T<T>& a_v)
+{
+  return "EBGeometry::Vec3T<T>(" + literal(a_v[0]) + ", " + literal(a_v[1]) + ", " + literal(a_v[2]) + ")";
+}
+
+/**
+ * @brief A colouring as a C++ expression.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_colourBy Colouring.
+ * @return For example "EBGeometry::Render::ColourBy::Primitive".
+ */
+EBGEOMETRY_HOST
+inline std::string
+literal(const ColourBy a_colourBy)
+{
+  switch (a_colourBy) {
+  case ColourBy::Primitive: {
+    return "EBGeometry::Render::ColourBy::Primitive";
+  }
+  case ColourBy::Normal: {
+    return "EBGeometry::Render::ColourBy::Normal";
+  }
+  default: {
+    return "EBGeometry::Render::ColourBy::Uniform";
+  }
+  }
+}
+
+/**
+ * @brief A flag as a C++ literal.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_flag Flag.
+ * @return "true" or "false".
+ */
+EBGEOMETRY_HOST
+inline std::string
+literal(const bool a_flag)
+{
+  return a_flag ? "true" : "false";
+}
+
+/**
+ * @brief A count as a C++ literal.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_count Count.
+ * @return For example "960".
+ */
+EBGEOMETRY_HOST
+inline std::string
+literal(const uint32_t a_count)
+{
+  return std::to_string(a_count);
+}
+
+/**
+ * @brief Whether two vectors are equal, component by component.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_a One vector.
+ * @param[in] a_b The other.
+ * @return True if equal.
+ */
+template <class T>
+EBGEOMETRY_HOST
+inline bool
+same(const Vec3T<T>& a_a, const Vec3T<T>& a_b)
+{
+  return a_a[0] == a_b[0] && a_a[1] == a_b[1] && a_a[2] == a_b[2];
+}
+
+/**
+ * @brief Whether two values are equal.
+ * @details Internal helper; not part of the public API.
+ * @tparam V Value type.
+ * @param[in] a_a One value.
+ * @param[in] a_b The other.
+ * @return True if equal.
+ */
+template <class V>
+EBGEOMETRY_HOST
+inline bool
+same(const V& a_a, const V& a_b)
+{
+  return a_a == a_b;
+}
+
+} // namespace RenderDetail
+
+template <class T>
+EBGEOMETRY_HOST
+inline std::string
+toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
+{
+  using RenderDetail::literal;
+  using RenderDetail::same;
+
+  const Camera<T>   camera;
+  const Settings<T> settings;
+
+  std::string code = "EBGeometry::Render::Camera<T> camera;\n";
+
+  // One statement per field that differs from its default.
+  const auto field = [&code](const char* a_object, const char* a_name, const auto& a_value, const auto& a_default) {
+    if (!same(a_value, a_default)) {
+      code += std::string(a_object) + "." + a_name + " = " + literal(a_value) + ";\n";
+    }
+  };
+
+  field("camera", "m_target", a_camera.m_target, camera.m_target);
+  field("camera", "m_yaw", a_camera.m_yaw, camera.m_yaw);
+  field("camera", "m_pitch", a_camera.m_pitch, camera.m_pitch);
+  field("camera", "m_distance", a_camera.m_distance, camera.m_distance);
+  field("camera", "m_fieldOfView", a_camera.m_fieldOfView, camera.m_fieldOfView);
+  field("camera", "m_up", a_camera.m_up, camera.m_up);
+  field("camera", "m_orthographic", a_camera.m_orthographic, camera.m_orthographic);
+  field("camera", "m_nearClip", a_camera.m_nearClip, camera.m_nearClip);
+
+  code += "EBGeometry::Render::Settings<T> settings;\n";
+
+  field("settings", "m_width", a_settings.m_width, settings.m_width);
+  field("settings", "m_height", a_settings.m_height, settings.m_height);
+  field("settings", "m_supersampling", a_settings.m_supersampling, settings.m_supersampling);
+  field("settings", "m_threads", a_settings.m_threads, settings.m_threads);
+  field("settings", "m_shadows", a_settings.m_shadows, settings.m_shadows);
+  field("settings", "m_occlusion", a_settings.m_occlusion, settings.m_occlusion);
+  field("settings", "m_floor", a_settings.m_floor, settings.m_floor);
+  field("settings", "m_sky", a_settings.m_sky, settings.m_sky);
+  field("settings", "m_colourBy", a_settings.m_colourBy, settings.m_colourBy);
+  field("settings", "m_colour", a_settings.m_colour, settings.m_colour);
+
+  for (uint32_t i = 0; i < Settings<T>::PrimitiveColours; i++) {
+    const std::string name = "m_primitiveColours[" + std::to_string(i) + "]";
+
+    field("settings", name.c_str(), a_settings.m_primitiveColours[i], settings.m_primitiveColours[i]);
+  }
+
+  field("settings", "m_recordPrimitives", a_settings.m_recordPrimitives, settings.m_recordPrimitives);
+  field("settings", "m_highlightPrimitive", a_settings.m_highlightPrimitive, settings.m_highlightPrimitive);
+  field("settings", "m_highlightColour", a_settings.m_highlightColour, settings.m_highlightColour);
+  field("settings", "m_insideColour", a_settings.m_insideColour, settings.m_insideColour);
+  field("settings", "m_cutColour", a_settings.m_cutColour, settings.m_cutColour);
+  field("settings", "m_cutOpacity", a_settings.m_cutOpacity, settings.m_cutOpacity);
+  field("settings", "m_floorColour", a_settings.m_floorColour, settings.m_floorColour);
+  field("settings", "m_lightFromCamera", a_settings.m_lightFromCamera, settings.m_lightFromCamera);
+  field("settings", "m_light", a_settings.m_light, settings.m_light);
+  field("settings", "m_lightIntensity", a_settings.m_lightIntensity, settings.m_lightIntensity);
+  field("settings", "m_ambient", a_settings.m_ambient, settings.m_ambient);
+  field("settings", "m_specular", a_settings.m_specular, settings.m_specular);
+  field("settings", "m_shininess", a_settings.m_shininess, settings.m_shininess);
+  field("settings", "m_skyHorizon", a_settings.m_skyHorizon, settings.m_skyHorizon);
+  field("settings", "m_skyZenith", a_settings.m_skyZenith, settings.m_skyZenith);
+  field("settings", "m_background", a_settings.m_background, settings.m_background);
+  field("settings", "m_floorChecker", a_settings.m_floorChecker, settings.m_floorChecker);
+  field("settings", "m_floorCheckerSize", a_settings.m_floorCheckerSize, settings.m_floorCheckerSize);
+  field("settings", "m_section", a_settings.m_section, settings.m_section);
+  field("settings", "m_sectionPoint", a_settings.m_sectionPoint, settings.m_sectionPoint);
+  field("settings", "m_sectionNormal", a_settings.m_sectionNormal, settings.m_sectionNormal);
+  field("settings", "m_contourWidth", a_settings.m_contourWidth, settings.m_contourWidth);
+  field("settings", "m_contourColour", a_settings.m_contourColour, settings.m_contourColour);
+  field("settings", "m_isoSpacing", a_settings.m_isoSpacing, settings.m_isoSpacing);
+  field("settings", "m_isoColour", a_settings.m_isoColour, settings.m_isoColour);
+  field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
+  field("settings", "m_sheetColour", a_settings.m_sheetColour, settings.m_sheetColour);
+  field("settings", "m_sheetEdgeColour", a_settings.m_sheetEdgeColour, settings.m_sheetEdgeColour);
+  field("settings", "m_rays.m_tolerance", a_settings.m_rays.m_tolerance, settings.m_rays.m_tolerance);
+  field("settings", "m_rays.m_scale", a_settings.m_rays.m_scale, settings.m_rays.m_scale);
+  field("settings", "m_rays.m_maxSteps", a_settings.m_rays.m_maxSteps, settings.m_rays.m_maxSteps);
+  field("settings", "m_rays.m_step", a_settings.m_rays.m_step, settings.m_rays.m_step);
+  field("settings", "m_rays.m_march", a_settings.m_rays.m_march, settings.m_rays.m_march);
+
+  return code;
+}
+
+inline bool
+writeImage(const Image& a_image, const std::string& a_filename)
+{
+  // An image whose pixels do not fill its size is not written.
+  if (a_image.m_pixels.size() < size_t(a_image.m_width) * size_t(a_image.m_height)) {
+    return false;
+  }
+
+  FILE* file = std::fopen(a_filename.c_str(), "wb");
+
+  if (file == nullptr) {
+    return false;
+  }
+
+  bool written = std::fprintf(file, "P6\n%u %u\n255\n", unsigned(a_image.m_width), unsigned(a_image.m_height)) > 0;
+
+  std::vector<unsigned char> row(3 * size_t(a_image.m_width));
+
+  for (uint32_t r = 0; r < a_image.m_height && written; r++) {
+    for (uint32_t c = 0; c < a_image.m_width; c++) {
+      const uint32_t rgba = a_image.m_pixels[size_t(r) * a_image.m_width + c];
+
+      row[3 * size_t(c) + 0] = static_cast<unsigned char>(rgba >> 24);
+      row[3 * size_t(c) + 1] = static_cast<unsigned char>(rgba >> 16);
+      row[3 * size_t(c) + 2] = static_cast<unsigned char>(rgba >> 8);
+    }
+
+    written = std::fwrite(row.data(), 1, row.size(), file) == row.size();
+  }
+
+  return (std::fclose(file) == 0) && written;
 }
 
 inline uint32_t
@@ -862,6 +1465,13 @@ inline PixelQuery<T, S>::PixelQuery(const S& a_shape, const Camera<T>& a_camera,
   m_view.m_axis     = RenderDetail::unit(a_camera.m_up);
   m_view.m_tanHalf  = std::tan(T(0.5) * a_camera.m_fieldOfView * pi<T> / T(180));
   m_view.m_distance = a_camera.m_distance;
+
+  // A pixel spans 2 tan(fov/2) / height of the view's height at unit distance.
+  const T pixel = T(2) * m_view.m_tanHalf / T(Math::max(a_settings.m_height, 1U));
+
+  m_view.m_footprint          = a_camera.m_orthographic ? a_camera.m_distance * pixel : T(0);
+  m_view.m_footprintPerLength = a_camera.m_orthographic ? T(0) : pixel;
+  m_view.m_orthographic       = a_camera.m_orthographic;
 
   a_camera.frame(m_view.m_forward, m_view.m_right, m_view.m_up);
   a_camera.horizontal(m_view.m_first, m_view.m_second);
@@ -906,7 +1516,16 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
       shader.jitterLight(dx, dy);
     }
 
-    colour += shader.shade(RenderDetail::unit(forward + x * right + y * up), result);
+    // Perspective rays leave the eye; orthographic ones are parallel, behind the shape, spread as far as the
+    // perspective rays are at the target. One call to shade(): two (one per kind) copied its whole body into
+    // the kernel twice, and doubled what it spills.
+    const Vec3T<T> origin    = m_camera.m_orthographic
+                                 ? shader.orthographicStart(m_view.m_eye + m_view.m_distance * (x * right + y * up))
+                                 : m_view.m_eye;
+    const Vec3T<T> direction = m_camera.m_orthographic ? forward : RenderDetail::unit(forward + x * right + y * up);
+    const T        near      = m_camera.m_orthographic ? shader.nearAlong(m_camera.m_nearClip) : m_camera.m_nearClip;
+
+    colour += shader.shade(origin, direction, near, result);
   }
 
   colour = colour / T(n * n);
@@ -943,6 +1562,33 @@ Renderer<T>::settings() const noexcept
 }
 
 template <class T>
+template <class S>
+inline HitT<T>
+Renderer<T>::pick(const S& a_shape, const Camera<T>& a_camera, const T a_column, const T a_row) const
+{
+  this->check(a_camera);
+
+  // The ray PixelQuery casts through the point.
+  const PixelQuery<T, S>             query(a_shape, a_camera, m_settings);
+  const RenderDetail::CameraView<T>& view = query.m_view;
+  const RenderDetail::Shader<T, S>   shader(a_shape, view, m_settings);
+
+  const T w = T(m_settings.m_width);
+  const T h = T(m_settings.m_height);
+  const T x = (T(2) * a_column - w) / h * view.m_tanHalf;
+  const T y = (h - T(2) * a_row) / h * view.m_tanHalf;
+
+  if (a_camera.m_orthographic) {
+    return shader.cast(shader.orthographicStart(view.m_eye + view.m_distance * (x * view.m_right + y * view.m_up)),
+                       view.m_forward,
+                       shader.nearAlong(a_camera.m_nearClip));
+  }
+
+  return shader.cast(
+    view.m_eye, RenderDetail::unit(view.m_forward + x * view.m_right + y * view.m_up), a_camera.m_nearClip);
+}
+
+template <class T>
 inline void
 Renderer<T>::check(const Camera<T>& a_camera) const
 {
@@ -959,9 +1605,35 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(a_camera.m_fieldOfView > T(0) && a_camera.m_fieldOfView < T(180),
                      "Render::Renderer: the field of view must be between 0 and 180 degrees (%g)",
                      double(a_camera.m_fieldOfView));
-  EBGEOMETRY_REQUIRE(std::abs(a_camera.m_pitch) < T(90),
-                     "Render::Renderer: the camera pitch must be between -90 and 90 degrees (%g)",
+  EBGEOMETRY_REQUIRE(std::abs(a_camera.m_pitch) <= T(90),
+                     "Render::Renderer: the camera pitch must be from -90 to 90 degrees (%g)",
                      double(a_camera.m_pitch));
+  EBGEOMETRY_REQUIRE(std::isfinite(a_camera.m_nearClip) && a_camera.m_nearClip >= T(0),
+                     "Render::Renderer: the near clip must be finite and not negative (%g)",
+                     double(a_camera.m_nearClip));
+  EBGEOMETRY_REQUIRE(m_settings.m_isoSpacing >= T(0),
+                     "Render::Renderer: the iso-line spacing must not be negative (%g)",
+                     double(m_settings.m_isoSpacing));
+  EBGEOMETRY_REQUIRE(m_settings.m_cutOpacity >= T(0) && m_settings.m_cutOpacity <= T(1),
+                     "Render::Renderer: the cut face's opacity must be from 0 to 1 (%g)",
+                     double(m_settings.m_cutOpacity));
+  EBGEOMETRY_REQUIRE(m_settings.m_contourWidth >= T(0) && m_settings.m_sheetOpacity >= T(0) &&
+                       m_settings.m_sheetOpacity <= T(1),
+                     "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be "
+                     "from 0 to 1 (%g, %g)",
+                     double(m_settings.m_contourWidth),
+                     double(m_settings.m_sheetOpacity));
+  EBGEOMETRY_REQUIRE(m_settings.m_shininess >= T(1),
+                     "Render::Renderer: the shininess must be at least 1 (%g)",
+                     double(m_settings.m_shininess));
+  EBGEOMETRY_REQUIRE(m_settings.m_lightIntensity >= T(0) && m_settings.m_ambient >= T(0) &&
+                       m_settings.m_specular >= T(0) && m_settings.m_floorCheckerSize >= T(0),
+                     "Render::Renderer: the light intensity, ambient level, specular strength and checker size "
+                     "must not be negative (%g, %g, %g, %g)",
+                     double(m_settings.m_lightIntensity),
+                     double(m_settings.m_ambient),
+                     double(m_settings.m_specular),
+                     double(m_settings.m_floorCheckerSize));
   EBGEOMETRY_REQUIRE(a_camera.m_up.length() > T(0), "Render::Renderer: the camera's up axis must not be zero");
   EBGEOMETRY_REQUIRE(m_settings.m_light.length() > T(0), "Render::Renderer: the light direction must not be zero");
   EBGEOMETRY_REQUIRE(!m_settings.m_section || m_settings.m_sectionNormal.length() > T(0),
@@ -970,11 +1642,15 @@ Renderer<T>::check(const Camera<T>& a_camera) const
 
 template <class T>
 inline Stats
-Renderer<T>::collect(const std::vector<PixelResult>& a_results, Image& a_image) const
+Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
+                     std::vector<uint32_t>&                        a_primitives,
+                     Image&                                        a_image) const
 {
   a_image.m_width  = m_settings.m_width;
   a_image.m_height = m_settings.m_height;
   a_image.m_pixels.resize(a_results.size());
+  a_image.m_primitives.swap(a_primitives);
+  a_primitives.clear();
 
   Stats stats;
 
@@ -1021,13 +1697,14 @@ Renderer<T>::render(const S&                 a_shape,
   const PixelQuery<T, S> query{a_shape, a_camera, m_settings};
 
   // Rows not reached by a cancelled render stay black.
-  std::vector<PixelResult> results(size_t(width) * size_t(height));
+  std::vector<RenderDetail::StoredPixel> results(size_t(width) * size_t(height));
+  std::vector<uint32_t>                  primitives(m_settings.m_recordPrimitives ? results.size() : 0U, 0xFFFFFFFFU);
 
   // Each thread takes the next row until none are left, so slow rows do not hold the others back.
   std::atomic<uint32_t> next{0};
   std::atomic<bool>     stopped{false};
 
-  const auto work = [&query, &results, &next, &stopped, &a_cancel, a_rowsDone, width, height]() {
+  const auto work = [&query, &results, &primitives, &next, &stopped, &a_cancel, a_rowsDone, width, height]() {
     for (uint32_t row = next++; row < height; row = next++) {
       if (a_cancel.load(std::memory_order_relaxed)) {
         stopped = true;
@@ -1036,9 +1713,14 @@ Renderer<T>::render(const S&                 a_shape,
       }
 
       for (uint32_t column = 0; column < width; column++) {
-        const uint32_t index = row * width + column;
+        const uint32_t    index  = row * width + column;
+        const PixelResult result = query(index);
 
-        results[index] = query(index);
+        results[index] = RenderDetail::StoredPixel::of(result);
+
+        if (!primitives.empty()) {
+          primitives[index] = result.m_primitive;
+        }
       }
 
       if (a_rowsDone != nullptr) {
@@ -1065,7 +1747,7 @@ Renderer<T>::render(const S&                 a_shape,
     thread.join();
   }
 
-  Stats stats = this->collect(results, a_image);
+  Stats stats = this->collect(results, primitives, a_image);
 
   stats.m_complete = !stopped;
 
@@ -1109,14 +1791,21 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
   const uint32_t band   = Math::max(1U, (height + 7U) / 8U);
   const size_t   pixels = size_t(width) * size_t(height);
 
-  std::vector<PixelResult> results(pixels);
+  std::vector<RenderDetail::StoredPixel> results(pixels);
+  std::vector<uint32_t>                  primitives(m_settings.m_recordPrimitives ? pixels : 0U, 0xFFFFFFFFU);
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  PixelResult* buffer = nullptr;
+  RenderDetail::StoredPixel* buffer = nullptr;
+  uint32_t*                  ids    = nullptr;
 
-  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&buffer), sizeof(PixelResult) * pixels));
+  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&buffer), sizeof(RenderDetail::StoredPixel) * pixels));
+
+  if (!primitives.empty()) {
+    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&ids), sizeof(uint32_t) * pixels));
+  }
 #else
-  PixelResult* buffer = results.data();
+  RenderDetail::StoredPixel* buffer = results.data();
+  uint32_t*                  ids    = primitives.empty() ? nullptr : primitives.data();
 #endif
 
   bool                      stopped = false;
@@ -1131,7 +1820,7 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
 
     const uint32_t rows = Math::min(band, height - row);
 
-    GPU::parallelFor(size_t(rows) * size_t(width), RenderDetail::BandOfPixels<T, S>{query, buffer, row * width});
+    GPU::parallelFor(size_t(rows) * size_t(width), RenderDetail::BandOfPixels<T, S>{query, buffer, ids, row * width});
 
     done += rows;
 
@@ -1141,12 +1830,18 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
   }
 
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  EBGEOMETRY_GPU_CHECK(
-    GPU::memcpy(results.data(), buffer, sizeof(PixelResult) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
+  EBGEOMETRY_GPU_CHECK(GPU::memcpy(
+    results.data(), buffer, sizeof(RenderDetail::StoredPixel) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
   EBGEOMETRY_GPU_CHECK(GPU::memFree(buffer));
+
+  if (ids != nullptr) {
+    EBGEOMETRY_GPU_CHECK(
+      GPU::memcpy(primitives.data(), ids, sizeof(uint32_t) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
+    EBGEOMETRY_GPU_CHECK(GPU::memFree(ids));
+  }
 #endif
 
-  Stats stats = this->collect(results, a_image);
+  Stats stats = this->collect(results, primitives, a_image);
 
   stats.m_complete = !stopped;
 

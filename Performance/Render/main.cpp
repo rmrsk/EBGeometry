@@ -139,21 +139,27 @@ agreePixel(T a_host, T a_device)
 }
 
 // One whole frame of a shape: on one host thread through the renderer, and its pixels as a host/device
-// pair. a_make(case, pool) builds the shape in the pool.
+// pair. a_make(case, pool) builds the shape in the pool. An orthographic frame (operation
+// "frame-orthographic") casts parallel rays from a plane instead of rays from the eye.
 template <class T, class Shape, class Make>
 void
-addFrame(Perf::Suite& a_suite, const std::string& a_input, Make a_make)
+addFrame(Perf::Suite& a_suite, const std::string& a_input, Make a_make, const bool a_orthographic = false)
 {
+  const std::string operation = a_orthographic ? "frame-orthographic" : "frame";
+
   const std::string prec = Perf::precisionName<T>();
 
-  a_suite.add(Perf::caseName({"Render", a_input, "frame", prec, "host"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({"Render", a_input, operation, prec, "host"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
     const Shape       shape = a_make(c, pool);
     const std::size_t side  = c.size(HostSide, SmokeSide);
 
     const EBGeometry::Render::Renderer<T> renderer(frameSettings<T>(side));
-    const auto                            camera = EBGeometry::Render::Camera<T>::fit(shape.computeBoundingVolume());
+
+    auto camera = EBGeometry::Render::Camera<T>::fit(shape.computeBoundingVolume());
+
+    camera.m_orthographic = a_orthographic;
 
     EBGeometry::Render::Image image;
 
@@ -174,13 +180,16 @@ addFrame(Perf::Suite& a_suite, const std::string& a_input, Make a_make)
     frameParams(c, side);
   });
 
-  a_suite.add(Perf::caseName({"Render", a_input, "frame", prec, "hostdevice"}), [=](Perf::Case& c) {
+  a_suite.add(Perf::caseName({"Render", a_input, operation, prec, "hostdevice"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
     const Shape       shape    = a_make(c, pool);
     const std::size_t side     = c.size(PairSide, SmokeSide);
     const auto        settings = frameSettings<T>(side);
-    const auto        camera   = EBGeometry::Render::Camera<T>::fit(shape.computeBoundingVolume());
+
+    auto camera = EBGeometry::Render::Camera<T>::fit(shape.computeBoundingVolume());
+
+    camera.m_orthographic = a_orthographic;
 
     std::vector<std::uint32_t> indices(side * side);
 
@@ -208,8 +217,10 @@ addPrecision(Perf::Suite& a_suite)
 {
   using Tri = EBGeometry::TriMeshSDF<T, K, W>;
 
-  addFrame<T, EBGeometry::Tape<T>>(
-    a_suite, "csg", [](Perf::Case&, EBGeometry::Pool& a_pool) { return EBGeometry::Tape<T>(a_pool, classicCSG<T>()); });
+  const auto csg = [](Perf::Case&, EBGeometry::Pool& a_pool) { return EBGeometry::Tape<T>(a_pool, classicCSG<T>()); };
+
+  addFrame<T, EBGeometry::Tape<T>>(a_suite, "csg", csg);
+  addFrame<T, EBGeometry::Tape<T>>(a_suite, "csg", csg, true);
 
   addFrame<T, Tri>(a_suite, "mesh", [](Perf::Case& c, EBGeometry::Pool& a_pool) {
     c.param("K", K);

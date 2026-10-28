@@ -77,7 +77,8 @@ main(int argc, char* argv[])
   //
   // A window on the packing (built with VIEWER=SDL2; otherwise, with --no-view or without a display,
   // view() prints why and returns). X cuts it open to show the spheres inside.
-  EBGeometry::Render::view(packing, argc, argv);
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
+  EBGeometry::Render::view(packing, pool, argc, argv);
 
   return 0;
 }

@@ -44,10 +44,11 @@ Every example that runs on a device has the same four parts, in this order: the 
 code that runs on either side"), the construction of the geometry, its use on the host through plain
 calls, and the same query on a GPU.
 
-Every example except `BuildBVH`, `HostTuning`, `SmoothCSG`, `Transforms`, `ValueOperations`, `Repetition`, `MeshCSG`, `PackedSpheres`, `Twist`, `Shell` and `Materials` also builds for a GPU: `make GPU=HIP` (or `CUDA`), or
-CMake with `-DEBGEOMETRY_EXAMPLE_GPU=HIP` (or `CUDA`), compiles the same source for a device, and its last
-section then runs its query in a kernel through `EBGeometry::GPU::transform`. In a plain C++ build that
-section runs in a host loop; a GPU build without a visible GPU skips it.
+Every example except `BuildBVH` and `HostTuning` also builds for a GPU: `make GPU=HIP` (or `CUDA`), or
+CMake with `-DEBGEOMETRY_EXAMPLE_GPU=HIP` (or `CUDA`), compiles the same source for a device. Its window
+then renders on the device, and an example with a last section of queries runs them in a kernel through
+`EBGeometry::GPU::transform`. In a plain C++ build that section runs in a host loop; a GPU build without a
+visible GPU skips it and renders on the host.
 
 Examples that couple EBGeometry to a third-party application code (AMReX, Chombo) live under
 [`Integrations/`](../Integrations/README.md) at the repository root instead.

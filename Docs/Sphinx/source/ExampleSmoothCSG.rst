@@ -37,14 +37,14 @@ ones in front, all in one tape.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit, scroll to zoom, X cuts the object open and P colours each primitive; see
-:ref:`Chap:ImplemRender`.
+and returns. Drag to orbit and scroll to zoom; the window lists its other keys (see
+:ref:`Sec:ViewerKeys`).
 
 Building and running
 --------------------
 
 See :ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a direct compiler invocation.
-It runs on the host only.
+Built for a GPU (see :ref:`Sec:ExamplesGPU`), the window renders on the device.
 
 .. code-block:: bash
 
