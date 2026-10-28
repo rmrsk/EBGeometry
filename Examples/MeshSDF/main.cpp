@@ -105,9 +105,15 @@ try {
   //   TriMeshSDF:  triangles (polygons are fan-triangulated) grouped for SIMD under a BVH; usually the
   //                fastest, and the one to pick unless you need the polygon faces themselves.
   // Each reader parses the file and builds its own structure. In an application you would pick one.
-  const auto flatSDF = EBGeometry::Parser::readIntoFlatMeshSDF<T>(file, pool);
-  const auto meshSDF = EBGeometry::Parser::readIntoMeshSDF<T>(file, pool);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool, EBGeometry::BVH::Construction::SAH);
+  // OnDefect::Warn loads a mesh with small defects (two faces oriented against each other, an edge shared
+  // by more than two faces) with a warning, rather than refusing it; the sign of the distance near such a
+  // defect is unreliable.
+  constexpr auto warn = EBGeometry::Parser::OnDefect::Warn;
+  constexpr auto sah  = EBGeometry::BVH::Construction::SAH;
+
+  const auto flatSDF = EBGeometry::Parser::readIntoFlatMeshSDF<T>(file, pool, warn);
+  const auto meshSDF = EBGeometry::Parser::readIntoMeshSDF<T>(file, pool, sah, warn);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool, sah, warn);
 
   const EBGeometry::BoundingVolumes::AABBT<T> box = triSDF.computeBoundingVolume();
 

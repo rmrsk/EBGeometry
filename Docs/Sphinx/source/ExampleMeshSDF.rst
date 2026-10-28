@@ -38,6 +38,9 @@ PLY, VTK or OBJ works. Each of the three readers in
   fastest, and the one to pick unless you need the polygon faces themselves.
 
 An application would pick one. The pool must outlive every SDF built into it, and every copy of one.
+The example reads with ``Parser::OnDefect::Warn``, so a mesh with small defects (two faces oriented
+against each other, or an edge shared by more than two faces, as in the xyzrgb dragon) loads with a
+warning instead of being refused; the sign of the distance near such a defect is unreliable.
 
 Use it on the host
 ------------------
