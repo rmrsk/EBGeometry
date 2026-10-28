@@ -43,7 +43,7 @@ The classes are in namespace ``Render``:
   ``ColourBy::Primitive``), the colours, the light (its direction, by default in the camera's frame so that
   it turns with the camera and lights the side in view, or in the scene with ``m_lightFromCamera`` false;
   its intensity, the ambient level, and the highlights' strength and shininess), the section plane
-  (``m_section``, a point and a normal; the side the normal points to is removed; the cut face is
+  (``m_section``, a point and a normal; the side the normal points to is removed; ``m_isoSpacing`` draws lines of equal distance on it; the cut face is
   coloured as a surface facing along the plane's normal would be, and partly transparent, ``m_cutOpacity``, so that the shape's
   next surface behind it shows through; its contour, a line
   ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
@@ -51,7 +51,7 @@ The classes are in namespace ``Render``:
   ``Settings::PrimitiveColours`` (16) primitive ids colours of their own; an entry left unset, and every
   later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colours its bore steel grey).
   ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColour``.
-  ``Render::toCode(camera, settings)`` writes a camera and
+  ``Render::writeImage(image, file)`` writes an image as binary PPM. ``Render::toCode(camera, settings)`` writes a camera and
   settings as C++ statements, the fields that differ from their defaults.
 * `Renderer <doxygen/html/classEBGeometry_1_1Render_1_1Renderer.html>`__ holds the settings.
   ``render(shape, camera, image)`` runs on the host's threads (``Settings::m_threads``, by default one
@@ -100,7 +100,8 @@ member, or a mesh SDF as a whole (``primitivesAreFaces``), whose face is named t
 gold (``Settings::m_highlightPrimitive``, ``AllPrimitives`` for a whole mesh) and outlined, from the object
 each pixel's first ray hit (``Image::m_primitives``, filled when ``Settings::m_recordPrimitives`` asks, as the
 viewer does), and its id, point and normal are printed; a click on
-the background clears it.
+the background clears it. With a section plane on, the overlay shows the point under the cursor on the
+plane and the shape's value there; Shift and a click on two surfaces measures the distance between them.
 
 .. _Sec:ViewerKeys:
 
@@ -115,14 +116,16 @@ the background clears it.
    * - 1, 2, 3; O; R
      - Look from the front, the side, the top; switch between perspective and orthographic; reset the
        camera.
+   * - +, -; double-click
+     - A narrower or wider field of view; centre the camera on the point under the cursor.
    * - Right drag
      - Move the light.
    * - Left, Right (Shift + Left, Right)
      - Weaker or stronger highlights, ``m_specular`` (broader or tighter, ``m_shininess``).
    * - P
      - Cycle the colouring: by normal, uniform, by primitive.
-   * - S, A, F
-     - Shadows, ambient occlusion, the floor on or off.
+   * - S, A, F, B
+     - Shadows, ambient occlusion, the floor, the sky on or off.
    * - Shift + Up, Down
      - More or fewer rays per pixel, from 1 x 1 to 8 x 8.
    * - G
@@ -132,10 +135,14 @@ the background clears it.
        turn on comes first); remove the cut; reverse it (remove the other side).
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
-   * - Click
-     - Pick the object under the cursor (the background clears it).
-   * - C
-     - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program.
+   * - I
+     - Lines of equal distance on the section plane: off, every 1/20 of the box's diagonal, every 1/50.
+   * - Click; Shift + click
+     - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
+       and a line between them). On the background, either clears.
+   * - C; W
+     - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program;
+       save the full frame as a PPM image (``writeImage()``) in the working directory.
    * - H; Esc, Q
      - Show or hide the overlay and the axes; close the window.
 

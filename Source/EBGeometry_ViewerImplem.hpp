@@ -139,6 +139,8 @@ keys(const bool a_device)
                                  {"O", "Switch between perspective and orthographic"},
                                  {"R", "Reset the camera"},
                                  {"Right drag", "Move the light"},
+                                 {"+, -", "Narrower or wider field of view"},
+                                 {"Double-click", "Centre the camera on the point under the cursor"},
                                  {"Left, Right", "Weaker or stronger highlights"},
                                  {"Shift + Left", "Broader highlights"},
                                  {"Shift + Right", "Tighter highlights"}}},
@@ -147,17 +149,22 @@ keys(const bool a_device)
                                  {"S", "Turn shadows on or off"},
                                  {"A", "Turn ambient occlusion on or off"},
                                  {"F", "Turn the floor on or off"},
+                                 {"B", "Turn the sky on or off"},
                                  {"Shift + Up", "More rays per pixel (up to 8 x 8)"},
                                  {"Shift + Down", "Fewer rays per pixel (down to 1)"}}},
                                {"Section and contours",
                                 {{"X", "Cut across x, then y, then z"},
                                  {"Ctrl + X", "Remove the cut"},
                                  {"N", "Reverse the cut (remove the other side)"},
+                                 {"I", "Lines of equal distance: off, coarse, fine"},
                                  {"Ctrl + wheel", "Move the plane in fine steps"},
                                  {"Up, Down", "Move the plane in coarse steps"}}},
-                               {"Picking", {{"Click", "Pick the object under the cursor (the background clears it)"}}},
+                               {"Picking and measuring",
+                                {{"Click", "Pick the object under the cursor (the background clears it)"},
+                                 {"Shift + click", "Measure between two points (the background clears it)"}}},
                                {"Window",
                                 {{"C", "Print the camera and settings as C++"},
+                                 {"W", "Save the full frame as a PPM image"},
                                  {"H", "Show or hide this overlay and the axes"},
                                  {"Esc, Q", "Close the window"}}}};
 
@@ -495,6 +502,29 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   bool    picked = false;
   HitT<T> pick;
 
+  // Measuring: none, one point, or two (Shift and a click marks them).
+  int      measured = 0;
+  Vec3T<T> measureA = Vec3T<T>::zeros();
+  Vec3T<T> measureB = Vec3T<T>::zeros();
+
+  // The point under the cursor on the section plane, and the shape's value there.
+  bool     cursorOn    = false;
+  Vec3T<T> cursorPoint = Vec3T<T>::zeros();
+  T        cursorValue = T(0);
+
+  // Lines of equal distance on the section plane: off (0), coarse (1) or fine (2).
+  int isoMode = 0;
+
+  // Images saved with W, numbered from 1.
+  int saved = 0;
+
+  // What the overlay reports about the frame last shown.
+  Stats       shownStats;
+  double      shownSeconds = 0.0;
+  std::string shownWhat;
+  uint32_t    shownWidth  = 0;
+  uint32_t    shownHeight = 0;
+
   // The frame with the picked object outlined.
   std::vector<uint32_t> outlined;
   bool                  warned  = false;
@@ -523,6 +553,34 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   int                   axesSize = 0;
   std::vector<uint32_t> axesPixels;
 
+  // Where a point of the scene is in the window, in its pixels, as PixelQuery casts the rays; false for a point
+  // behind a perspective camera.
+  const auto project = [&](const Vec3T<T>& a_point, int& a_x, int& a_y) {
+    Vec3T<T> forward;
+    Vec3T<T> right;
+    Vec3T<T> up;
+
+    camera.frame(forward, right, up);
+
+    const Vec3T<T> relative = a_point - camera.eye();
+    const T        depth    = camera.m_orthographic ? camera.m_distance : dot(relative, forward);
+
+    if (depth <= T(0)) {
+      return false;
+    }
+
+    const T tanHalf = std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+    const T w       = T(settings.m_width);
+    const T h       = T(settings.m_height);
+    const T x       = dot(relative, right) / depth / tanHalf;
+    const T y       = dot(relative, up) / depth / tanHalf;
+
+    a_x = static_cast<int>(T(0.5) * (x * h + w));
+    a_y = static_cast<int>(T(0.5) * (h - y * h));
+
+    return true;
+  };
+
   // Draw the image, then the overlay over it.
   const auto present = [&]() {
     SDL_RenderClear(screen);
@@ -546,6 +604,42 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       const SDL_Rect where{8, outputHeight - axesSize - 8, axesSize, axesSize};
 
       SDL_RenderCopy(screen, axes, nullptr, &where);
+    }
+
+    // The measurement, over the image: a marker at each point and a line between them.
+    if (measured > 0) {
+      int ax = 0;
+      int ay = 0;
+      int bx = 0;
+      int by = 0;
+
+      const bool seeA = project(measureA, ax, ay);
+      const bool seeB = measured > 1 && project(measureB, bx, by);
+
+      SDL_SetRenderDrawColor(screen, 255, 184, 26, 255);
+
+      if (seeA && seeB) {
+        for (int d = -1; d <= 1; d++) {
+          SDL_RenderDrawLine(screen, ax + d, ay, bx + d, by);
+          SDL_RenderDrawLine(screen, ax, ay + d, bx, by + d);
+        }
+      }
+
+      const auto mark = [&screen](const int a_x, const int a_y) {
+        const SDL_Rect marker{a_x - 4, a_y - 4, 9, 9};
+
+        SDL_RenderFillRect(screen, &marker);
+      };
+
+      if (seeA) {
+        mark(ax, ay);
+      }
+
+      if (seeB) {
+        mark(bx, by);
+      }
+
+      SDL_SetRenderDrawColor(screen, 0, 0, 0, 255);
     }
 
     SDL_RenderPresent(screen);
@@ -657,6 +751,183 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       return renderer.render(a_shape, a_view, a_image);
     };
 
+  // The point under the cursor (window coordinates) on the section plane, within the shape's box, and the
+  // shape's value there: the ray PixelQuery casts through it, met with the plane.
+  const auto readCursor = [&](const int a_x, const int a_y) {
+    int windowWidth  = 0;
+    int windowHeight = 0;
+
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+    const Settings<T> frame = stageSettings(2);
+
+    Vec3T<T> forward;
+    Vec3T<T> right;
+    Vec3T<T> up;
+
+    camera.frame(forward, right, up);
+
+    const T tanHalf = std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+    const T w       = T(frame.m_width);
+    const T h       = T(frame.m_height);
+    const T column  = T(a_x) * w / T(Math::max(windowWidth, 1));
+    const T row     = T(a_y) * h / T(Math::max(windowHeight, 1));
+    const T x       = (T(2) * column - w) / h * tanHalf;
+    const T y       = (h - T(2) * row) / h * tanHalf;
+
+    const Vec3T<T> origin =
+      camera.m_orthographic ? camera.eye() + camera.m_distance * (x * right + y * up) : camera.eye();
+    const Vec3T<T> along  = camera.m_orthographic ? forward : RenderDetail::unit(forward + x * right + y * up);
+    const Vec3T<T> normal = RenderDetail::unit(frame.m_sectionNormal);
+    const T        rate   = dot(along, normal);
+
+    cursorOn = false;
+
+    if (rate != T(0)) {
+      const Vec3T<T> p = origin + (dot(frame.m_sectionPoint - origin, normal) / rate) * along;
+
+      cursorOn = std::isfinite(diag) && diag > T(0);
+
+      for (int k = 0; k < 3 && cursorOn; k++) {
+        const T margin = T(0.05) * (box.getHighCorner()[k] - box.getLowCorner()[k]);
+
+        cursorOn = p[k] >= box.getLowCorner()[k] - margin && p[k] <= box.getHighCorner()[k] + margin;
+      }
+
+      if (cursorOn) {
+        cursorPoint = p;
+        cursorValue = a_shape.signedDistance(p);
+      }
+    }
+  };
+
+  // The overlay and the axes, from the frame last shown and the window's state; redrawn without rendering
+  // when only that state changes (the point under the cursor, a measurement).
+  const auto drawOverlay = [&]() {
+    // The overlay's text, at a size that stays readable on a window with many pixels.
+    const auto percent = [](const uint64_t a_part, const uint64_t a_whole) {
+      return fixed(100.0 * double(a_part) / double(Math::max(a_whole, uint64_t(1))), 1) + "%";
+    };
+    const auto onOff = [](const bool a_on) { return a_on ? "on" : "off"; };
+    const auto point = [](const Vec3T<T>& a_v, const int a_decimals) {
+      return "(" + fixed(double(a_v[0]), a_decimals) + ", " + fixed(double(a_v[1]), a_decimals) + ", " +
+             fixed(double(a_v[2]), a_decimals) + ")";
+    };
+
+    const char* colouring = (settings.m_colourBy == ColourBy::Normal)      ? "Coloured by normal"
+                            : (settings.m_colourBy == ColourBy::Primitive) ? "Coloured by primitive"
+                                                                           : "Coloured uniformly";
+
+    // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
+    const std::vector<std::vector<std::string>> states{
+      {"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
+         fixed(double(camera.m_distance), 3),
+       "Target " + point(camera.m_target, 3),
+       "Field of view " + fixed(double(camera.m_fieldOfView), 1) + ", " +
+         (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " +
+         fixed(double(camera.m_nearClip), 3),
+       std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
+         point(settings.m_light, 2),
+       "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
+         fixed(double(settings.m_shininess), 0)},
+      {std::string(colouring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
+       "Supersampling " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
+         " (" + std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel)",
+       std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
+         ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky)},
+      {std::string(sectionNames[sectionMode]) + ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
+                                                                        ", moved " + fixed(double(sectionOffset), 3)
+                                                                    : std::string()),
+       "Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
+         fixed(100.0 * double(settings.m_sheetOpacity), 0) + "% opaque, cut face " +
+         fixed(100.0 * double(settings.m_cutOpacity), 0) + "% opaque",
+       (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
+                                      : std::string("No lines of equal distance"),
+       cursorOn ? "Under the cursor " + point(cursorPoint, 3) + ", distance " + fixed(double(cursorValue), 4)
+                : std::string("Nothing under the cursor on the plane")},
+      {picked ? (primitivesAreFaces<S> ? "Object 0 (face " + std::to_string(pick.m_primitive) + ")"
+                                       : "Object " + std::to_string(pick.m_primitive)) +
+                  " at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
+              : std::string("Nothing picked"),
+       (measured == 2) ? "Measured " + fixed(double((measureB - measureA).length()), 4) + ", along x, y, z " +
+                           point(measureB - measureA, 4)
+       : (measured == 1) ? "Measuring from " + point(measureA, 3) + "; Shift + click the second point"
+                         : std::string("Nothing measured")},
+      {}};
+
+    std::vector<std::string> lines{
+      std::string("EBGeometry viewer: ") + shownWhat + ", " + std::to_string(shownWidth) + " x " +
+        std::to_string(shownHeight) + " pixels in " + fixed(1000.0 * shownSeconds, 0) + " ms",
+      "Rays " + std::to_string(shownStats.m_rays) + ", hits " + percent(shownStats.m_hits, shownStats.m_rays) +
+        ", seen from inside " + std::to_string(shownStats.m_insideHits) + ", unresolved " +
+        std::to_string(shownStats.m_unresolved)};
+
+    const std::vector<KeyGroup> groups = keys(a_deviceShape != nullptr);
+
+    for (std::size_t g = 0; g < groups.size(); g++) {
+      lines.emplace_back("");
+      lines.emplace_back(groups[g].m_title);
+
+      for (const std::string& state : states[g]) {
+        lines.emplace_back("  " + state);
+      }
+
+      for (const Key& key : groups[g].m_keys) {
+        char line[128];
+
+        std::snprintf(line, sizeof(line), "  %-14s %s", key.m_keys, key.m_what);
+        lines.emplace_back(line);
+      }
+    }
+
+    int outputWidth  = 0;
+    int outputHeight = 0;
+
+    SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
+
+    const int scale     = Math::max(1, outputHeight / 900);
+    const int oldWidth  = overlayWidth;
+    const int oldHeight = overlayHeight;
+
+    drawText(lines, scale, overlayPixels, overlayWidth, overlayHeight);
+
+    if (overlay == nullptr || oldWidth != overlayWidth || oldHeight != overlayHeight) {
+      if (overlay != nullptr) {
+        SDL_DestroyTexture(overlay);
+      }
+
+      overlay =
+        SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, overlayWidth, overlayHeight);
+
+      SDL_SetTextureBlendMode(overlay, SDL_BLENDMODE_BLEND);
+    }
+
+    SDL_UpdateTexture(overlay, nullptr, overlayPixels.data(), 4 * overlayWidth);
+
+    // The axes as the camera of this frame sees them.
+    Vec3T<T> forward;
+    Vec3T<T> right;
+    Vec3T<T> up;
+
+    camera.frame(forward, right, up);
+
+    const int oldAxes = axesSize;
+
+    drawAxes(right, up, forward, scale, axesPixels, axesSize);
+
+    if (axes == nullptr || oldAxes != axesSize) {
+      if (axes != nullptr) {
+        SDL_DestroyTexture(axes);
+      }
+
+      axes = SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, axesSize, axesSize);
+
+      SDL_SetTextureBlendMode(axes, SDL_BLENDMODE_BLEND);
+    }
+
+    SDL_UpdateTexture(axes, nullptr, axesPixels.data(), 4 * axesSize);
+  };
+
   const auto show = [&](const Image& a_image, const Stats& a_stats, const double a_seconds, const char* a_what) {
     if (a_stats.m_cameraInside && !warned) {
       std::printf("EBGeometry viewer: the camera is inside the solid, so what it sees is seen from inside "
@@ -734,121 +1005,13 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
     SDL_SetWindowTitle(window, status.c_str());
 
-    // The overlay's text, at a size that stays readable on a window with many pixels.
-    const auto percent = [](const uint64_t a_part, const uint64_t a_whole) {
-      return fixed(100.0 * double(a_part) / double(Math::max(a_whole, uint64_t(1))), 1) + "%";
-    };
-    const auto onOff = [](const bool a_on) { return a_on ? "on" : "off"; };
-    const auto point = [](const Vec3T<T>& a_v, const int a_decimals) {
-      return "(" + fixed(double(a_v[0]), a_decimals) + ", " + fixed(double(a_v[1]), a_decimals) + ", " +
-             fixed(double(a_v[2]), a_decimals) + ")";
-    };
+    shownStats   = a_stats;
+    shownSeconds = a_seconds;
+    shownWhat    = a_what;
+    shownWidth   = a_image.m_width;
+    shownHeight  = a_image.m_height;
 
-    const char* colouring = (settings.m_colourBy == ColourBy::Normal)      ? "Coloured by normal"
-                            : (settings.m_colourBy == ColourBy::Primitive) ? "Coloured by primitive"
-                                                                           : "Coloured uniformly";
-
-    // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
-    const std::vector<std::vector<std::string>> states{
-      {"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
-         fixed(double(camera.m_distance), 3),
-       "Target " + point(camera.m_target, 3),
-       "Field of view " + fixed(double(camera.m_fieldOfView), 1) + ", " +
-         (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " +
-         fixed(double(camera.m_nearClip), 3),
-       std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
-         point(settings.m_light, 2),
-       "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
-         fixed(double(settings.m_shininess), 0)},
-      {std::string(colouring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
-       "Supersampling " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
-         " (" + std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel)",
-       std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
-         ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky)},
-      {std::string(sectionNames[sectionMode]) + ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
-                                                                        ", moved " + fixed(double(sectionOffset), 3)
-                                                                    : std::string()),
-       "Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
-         fixed(100.0 * double(settings.m_sheetOpacity), 0) + "% opaque, cut face " +
-         fixed(100.0 * double(settings.m_cutOpacity), 0) + "% opaque"},
-      {picked ? (primitivesAreFaces<S> ? "Object 0 (face " + std::to_string(pick.m_primitive) + ")"
-                                       : "Object " + std::to_string(pick.m_primitive)) +
-                  " at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
-              : std::string("Nothing picked")},
-      {}};
-
-    std::vector<std::string> lines{
-      std::string("EBGeometry viewer: ") + a_what + ", " + std::to_string(a_image.m_width) + " x " +
-        std::to_string(a_image.m_height) + " pixels in " + fixed(1000.0 * a_seconds, 0) + " ms",
-      "Rays " + std::to_string(a_stats.m_rays) + ", hits " + percent(a_stats.m_hits, a_stats.m_rays) +
-        ", seen from inside " + std::to_string(a_stats.m_insideHits) + ", unresolved " +
-        std::to_string(a_stats.m_unresolved)};
-
-    const std::vector<KeyGroup> groups = keys(a_deviceShape != nullptr);
-
-    for (std::size_t g = 0; g < groups.size(); g++) {
-      lines.emplace_back("");
-      lines.emplace_back(groups[g].m_title);
-
-      for (const std::string& state : states[g]) {
-        lines.emplace_back("  " + state);
-      }
-
-      for (const Key& key : groups[g].m_keys) {
-        char line[128];
-
-        std::snprintf(line, sizeof(line), "  %-14s %s", key.m_keys, key.m_what);
-        lines.emplace_back(line);
-      }
-    }
-
-    int outputWidth  = 0;
-    int outputHeight = 0;
-
-    SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
-
-    const int scale     = Math::max(1, outputHeight / 900);
-    const int oldWidth  = overlayWidth;
-    const int oldHeight = overlayHeight;
-
-    drawText(lines, scale, overlayPixels, overlayWidth, overlayHeight);
-
-    if (overlay == nullptr || oldWidth != overlayWidth || oldHeight != overlayHeight) {
-      if (overlay != nullptr) {
-        SDL_DestroyTexture(overlay);
-      }
-
-      overlay =
-        SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, overlayWidth, overlayHeight);
-
-      SDL_SetTextureBlendMode(overlay, SDL_BLENDMODE_BLEND);
-    }
-
-    SDL_UpdateTexture(overlay, nullptr, overlayPixels.data(), 4 * overlayWidth);
-
-    // The axes as the camera of this frame sees them.
-    Vec3T<T> forward;
-    Vec3T<T> right;
-    Vec3T<T> up;
-
-    camera.frame(forward, right, up);
-
-    const int oldAxes = axesSize;
-
-    drawAxes(right, up, forward, scale, axesPixels, axesSize);
-
-    if (axes == nullptr || oldAxes != axesSize) {
-      if (axes != nullptr) {
-        SDL_DestroyTexture(axes);
-      }
-
-      axes = SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, axesSize, axesSize);
-
-      SDL_SetTextureBlendMode(axes, SDL_BLENDMODE_BLEND);
-    }
-
-    SDL_UpdateTexture(axes, nullptr, axesPixels.data(), 4 * axesSize);
-
+    drawOverlay();
     present();
   };
 
@@ -893,8 +1056,48 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
             const T           column = T(event.button.x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
             const T           row    = T(event.button.y) * T(frame.m_height) / T(Math::max(windowHeight, 1));
 
-            pick   = Renderer<T>(frame).pick(a_shape, camera, column, row);
+            const HitT<T> hit = Renderer<T>(frame).pick(a_shape, camera, column, row);
+
+            // Shift and a click marks a point to measure from or to, not a pick.
+            if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
+              if (!hit.hit()) {
+                measured = 0;
+              }
+              else if (measured == 1) {
+                measureB = hit.m_point;
+                measured = 2;
+
+                std::printf("EBGeometry viewer: measured %g from (%g, %g, %g) to (%g, %g, %g)\n",
+                            double((measureB - measureA).length()),
+                            double(measureA[0]),
+                            double(measureA[1]),
+                            double(measureA[2]),
+                            double(measureB[0]),
+                            double(measureB[1]),
+                            double(measureB[2]));
+                std::fflush(stdout);
+              }
+              else {
+                measureA = hit.m_point;
+                measured = 1;
+              }
+
+              drawOverlay();
+              present();
+
+              dragging = false;
+              panning  = false;
+
+              break;
+            }
+
+            pick   = hit;
             picked = pick.hit();
+
+            // A double-click also centres the camera on the point.
+            if (picked && event.button.clicks >= 2) {
+              camera.m_target = pick.m_point;
+            }
 
             // The object picked: a tape's leaf, a fused composition's part, a union's member; a mesh SDF is one
             // object, whose primitive is the face picked on it. It is tinted gold, and outlined (see show()).
@@ -970,6 +1173,11 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           camera.m_pitch = Math::clamp(camera.m_pitch + T(0.4) * T(event.motion.yrel), T(-90), T(90));
 
           changed = true;
+        }
+        else if (sectionMode != 0) {
+          readCursor(event.motion.x, event.motion.y);
+          drawOverlay();
+          present();
         }
 
         break;
@@ -1051,6 +1259,52 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           camera.m_yaw   = (view == View::Right) ? T(90) : T(0);
           camera.m_pitch = (view == View::Top) ? T(90) : T(0);
+
+          break;
+        }
+        case SDLK_b: {
+          settings.m_sky = !settings.m_sky;
+
+          break;
+        }
+        case SDLK_PLUS:
+        case SDLK_KP_PLUS:
+        case SDLK_EQUALS:
+        case SDLK_MINUS:
+        case SDLK_KP_MINUS: {
+          // A narrower view (plus) shows less, larger; on a keyboard without a plus key, = does.
+          const bool narrower = event.key.keysym.sym != SDLK_MINUS && event.key.keysym.sym != SDLK_KP_MINUS;
+
+          camera.m_fieldOfView = Math::clamp(camera.m_fieldOfView + (narrower ? T(-5) : T(5)), T(10), T(120));
+
+          break;
+        }
+        case SDLK_i: {
+          // Off, every 1/20 of the box's diagonal, every 1/50.
+          isoMode               = (isoMode + 1) % 3;
+          settings.m_isoSpacing = (isoMode == 0) ? T(0) : scale / ((isoMode == 1) ? T(20) : T(50));
+
+          break;
+        }
+        case SDLK_w: {
+          // The full frame at the window's size, rendered now, as a PPM image in the working directory.
+          Image             image;
+          const Settings<T> frame = stageSettings(2);
+
+          (void)render(frame, camera, onDevice, image, nullptr);
+
+          const std::string file = "ebgeometry-view-" + std::to_string(++saved) + ".ppm";
+
+          if (writeImage(image, file)) {
+            std::printf("EBGeometry viewer: saved %s (%u x %u)\n", file.c_str(), image.m_width, image.m_height);
+          }
+          else {
+            std::printf("EBGeometry viewer: could not write %s\n", file.c_str());
+          }
+
+          std::fflush(stdout);
+
+          changed = pending;
 
           break;
         }

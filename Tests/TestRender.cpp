@@ -11,6 +11,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -1222,6 +1223,77 @@ TEMPLATE_TEST_CASE("Render: the section plane draws the shape's contour, and a s
   }
 
   CHECK(onContour > 20U);
+
+  // Lines of equal distance every 0.25: the circle of radius 0.75 inside (distance -0.25) is drawn on the
+  // cut face; between the lines the face is as before.
+  renderer.settings().m_isoSpacing = T(0.25);
+
+  Render::Image iso;
+
+  (void)renderer.render(sphere, camera, iso);
+
+  size_t onLine  = 0;
+  size_t between = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const T x = -half + (T(column) + T(0.5)) * pixel;
+      const T y = half - (T(row) + T(0.5)) * pixel;
+      const T r = std::sqrt(x * x + y * y);
+
+      if (std::abs(r - T(0.75)) < T(0.25) * pixel) {
+        CHECK(iso.at(column, row) != bare.at(column, row));
+
+        onLine++;
+      }
+      else if (std::abs(r - T(0.625)) < T(0.25) * pixel) {
+        CHECK(iso.at(column, row) == bare.at(column, row));
+
+        between++;
+      }
+    }
+  }
+
+  CHECK(onLine > 4U);
+  CHECK(between > 4U);
+}
+
+TEST_CASE("Render: writeImage() writes a binary PPM", "[Render]")
+{
+  Render::Image image;
+
+  image.m_width  = 3;
+  image.m_height = 2;
+  image.m_pixels = {0xFF0000FFU, 0x00FF00FFU, 0x0000FFFFU, 0x010203FFU, 0xFFFFFFFFU, 0x000000FFU};
+
+  const std::string file = "TestRender-writeImage.ppm";
+
+  REQUIRE(Render::writeImage(image, file));
+
+  std::FILE* in = std::fopen(file.c_str(), "rb");
+
+  REQUIRE(in != nullptr);
+
+  char header[16] = {};
+
+  REQUIRE(std::fread(header, 1, 11, in) == 11U);
+  CHECK(std::string(header, 11) == "P6\n3 2\n255\n");
+
+  unsigned char rgb[18] = {};
+
+  CHECK(std::fread(rgb, 1, 18, in) == 18U);
+  std::fclose(in);
+  std::remove(file.c_str());
+
+  CHECK(rgb[0] == 0xFF);
+  CHECK(rgb[1] == 0x00);
+  CHECK(rgb[4] == 0xFF);
+  CHECK(rgb[8] == 0xFF);
+  CHECK(rgb[9] == 0x01);
+  CHECK(rgb[10] == 0x02);
+  CHECK(rgb[11] == 0x03);
+
+  CHECK_FALSE(Render::writeImage(image, "/nonexistent-directory/image.ppm"));
 }
 
 TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the image, and the highlight tints it",

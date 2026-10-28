@@ -436,6 +436,17 @@ struct Settings
   Vec3T<T> m_contourColour = Vec3T<T>(T(0.04), T(0.04), T(0.05));
 
   /**
+   * @brief Spacing of lines of equal signed distance drawn on the section plane, inside and outside the
+   * shape (0: none). Spaced like a simulation grid, they show what the grid resolves.
+   */
+  T m_isoSpacing = T(0);
+
+  /**
+   * @brief The colour of those lines.
+   */
+  Vec3T<T> m_isoColour = Vec3T<T>(T(0.30), T(0.32), T(0.36));
+
+  /**
    * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a frosted
    * sheet that shows where the plane is, edged by a line where it meets the box (0: none, 1: opaque).
    */
@@ -517,6 +528,16 @@ struct Image
   [[nodiscard]] inline uint32_t
   at(const uint32_t a_column, const uint32_t a_row) const noexcept;
 };
+
+/**
+ * @brief Write an image to a file, as binary PPM (P6: 8 bits per channel, no alpha), which most image
+ * programs read.
+ * @param[in] a_image    Image.
+ * @param[in] a_filename File to write.
+ * @return Whether the file was written.
+ */
+[[nodiscard]] inline bool
+writeImage(const Image& a_image, const std::string& a_filename);
 
 /**
  * @brief What a render saw.

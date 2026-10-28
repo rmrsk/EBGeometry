@@ -41,17 +41,10 @@ view(const S& a_shape, const EBGeometry::Render::Camera<EBGeometry::ShapePrecisi
   EBGeometry::Render::Image image;
   EBGeometry::Render::Renderer<EBGeometry::ShapePrecision<S>>(a_settings).render(a_shape, a_camera, image);
 
-  FILE* file = std::fopen(std::getenv("SNAPSHOT"), "wb");
-  if (file == nullptr) {
+  if (!EBGeometry::Render::writeImage(image, std::getenv("SNAPSHOT"))) {
     std::fprintf(stderr, "render-example-figures: cannot write %s\n", std::getenv("SNAPSHOT"));
     std::exit(1);
   }
-  std::fprintf(file, "P6\n%u %u\n255\n", image.m_width, image.m_height);
-  for (const uint32_t p : image.m_pixels) {
-    const unsigned char rgb[3] = {(unsigned char)(p >> 24), (unsigned char)(p >> 16), (unsigned char)(p >> 8)};
-    std::fwrite(rgb, 1, 3, file);
-  }
-  std::fclose(file);
 }
 
 template <class S>

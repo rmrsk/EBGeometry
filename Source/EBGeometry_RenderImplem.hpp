@@ -296,7 +296,8 @@ public:
     m_boxLow  = lo - margin;
     m_boxHigh = hi + margin;
     m_onPlane =
-      a_settings.m_section && bounded && (a_settings.m_contourWidth > T(0) || a_settings.m_sheetOpacity > T(0));
+      a_settings.m_section && bounded &&
+      (a_settings.m_contourWidth > T(0) || a_settings.m_sheetOpacity > T(0) || a_settings.m_isoSpacing > T(0));
   }
 
   /**
@@ -799,6 +800,18 @@ private:
       return m_settings.m_contourColour;
     }
 
+    // Lines of equal distance, every m_isoSpacing, thinner than the contour.
+    Vec3T<T> colour = a_colour;
+
+    if (m_settings.m_isoSpacing > T(0)) {
+      const T s = m_settings.m_isoSpacing;
+      const T r = value - s * std::floor(value / s + T(0.5));
+
+      if (std::abs(r) < T(0.5) * width) {
+        colour = T(0.4) * colour + T(0.6) * m_settings.m_isoColour;
+      }
+    }
+
     if (value > T(0) && m_settings.m_sheetOpacity > T(0)) {
       // The sheet's edge, a pixel and a half wide, where the plane leaves the box.
       T edge = Math::Limits<T>::infinity();
@@ -809,10 +822,10 @@ private:
 
       const Vec3T<T>& over = (edge < T(1.5) * width) ? m_settings.m_sheetEdgeColour : m_settings.m_sheetColour;
 
-      return (T(1) - m_settings.m_sheetOpacity) * a_colour + m_settings.m_sheetOpacity * over;
+      return (T(1) - m_settings.m_sheetOpacity) * colour + m_settings.m_sheetOpacity * over;
     }
 
-    return a_colour;
+    return colour;
   }
 
   /**
@@ -1388,6 +1401,8 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_sectionNormal", a_settings.m_sectionNormal, settings.m_sectionNormal);
   field("settings", "m_contourWidth", a_settings.m_contourWidth, settings.m_contourWidth);
   field("settings", "m_contourColour", a_settings.m_contourColour, settings.m_contourColour);
+  field("settings", "m_isoSpacing", a_settings.m_isoSpacing, settings.m_isoSpacing);
+  field("settings", "m_isoColour", a_settings.m_isoColour, settings.m_isoColour);
   field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
   field("settings", "m_sheetColour", a_settings.m_sheetColour, settings.m_sheetColour);
   field("settings", "m_sheetEdgeColour", a_settings.m_sheetEdgeColour, settings.m_sheetEdgeColour);
@@ -1398,6 +1413,34 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_rays.m_march", a_settings.m_rays.m_march, settings.m_rays.m_march);
 
   return code;
+}
+
+inline bool
+writeImage(const Image& a_image, const std::string& a_filename)
+{
+  FILE* file = std::fopen(a_filename.c_str(), "wb");
+
+  if (file == nullptr) {
+    return false;
+  }
+
+  bool written = std::fprintf(file, "P6\n%u %u\n255\n", unsigned(a_image.m_width), unsigned(a_image.m_height)) > 0;
+
+  std::vector<unsigned char> row(3 * size_t(a_image.m_width));
+
+  for (uint32_t r = 0; r < a_image.m_height && written; r++) {
+    for (uint32_t c = 0; c < a_image.m_width; c++) {
+      const uint32_t rgba = a_image.m_pixels[size_t(r) * a_image.m_width + c];
+
+      row[3 * size_t(c) + 0] = static_cast<unsigned char>(rgba >> 24);
+      row[3 * size_t(c) + 1] = static_cast<unsigned char>(rgba >> 16);
+      row[3 * size_t(c) + 2] = static_cast<unsigned char>(rgba >> 8);
+    }
+
+    written = std::fwrite(row.data(), 1, row.size(), file) == row.size();
+  }
+
+  return (std::fclose(file) == 0) && written;
 }
 
 inline uint32_t
@@ -1563,6 +1606,9 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(std::isfinite(a_camera.m_nearClip) && a_camera.m_nearClip >= T(0),
                      "Render::Renderer: the near clip must be finite and not negative (%g)",
                      double(a_camera.m_nearClip));
+  EBGEOMETRY_REQUIRE(m_settings.m_isoSpacing >= T(0),
+                     "Render::Renderer: the iso-line spacing must not be negative (%g)",
+                     double(m_settings.m_isoSpacing));
   EBGEOMETRY_REQUIRE(m_settings.m_cutOpacity >= T(0) && m_settings.m_cutOpacity <= T(1),
                      "Render::Renderer: the cut face's opacity must be from 0 to 1 (%g)",
                      double(m_settings.m_cutOpacity));
