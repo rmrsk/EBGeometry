@@ -247,6 +247,7 @@ TEMPLATE_TEST_CASE("Render: colouring by primitive tells the leaves apart", "[Re
   settings.m_light     = Vec3(T(0), T(0), T(1));
   settings.m_shadows   = false;
   settings.m_occlusion = false;
+  settings.m_colourBy  = Render::ColourBy::Uniform;
 
   Render::Image uniform;
   Render::Image byPrimitive;
@@ -972,7 +973,7 @@ TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their de
   camera.m_target                = Vec3(T(1), T(-2.5), T(0));
   settings.m_width               = 1280;
   settings.m_shadows             = false;
-  settings.m_colourBy            = Render::ColourBy::Normal;
+  settings.m_colourBy            = Render::ColourBy::Uniform;
   settings.m_primitiveColours[3] = Vec3(T(0.5), T(0.5), T(0.5));
   settings.m_rays.m_maxSteps     = 100;
 
@@ -984,7 +985,7 @@ TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their de
         "EBGeometry::Render::Settings<T> settings;\n"
         "settings.m_width = 1280;\n"
         "settings.m_shadows = false;\n"
-        "settings.m_colourBy = EBGeometry::Render::ColourBy::Normal;\n"
+        "settings.m_colourBy = EBGeometry::Render::ColourBy::Uniform;\n"
         "settings.m_primitiveColours[3] = EBGeometry::Vec3T<T>(T(0.5), T(0.5), T(0.5));\n"
         "settings.m_rays.m_maxSteps = 100;\n");
 }

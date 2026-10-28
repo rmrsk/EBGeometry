@@ -89,7 +89,8 @@ try {
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // A window on the smooth union (built with VIEWER=SDL2; otherwise, with --no-view or without a display,
-  // view() prints why and returns). P colours the dragon and each part of the table.
+  // view() prints why and returns). P cycles the colouring; by primitive, it colours the dragon and each part
+  // of the table.
   // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   EBGeometry::Render::view(smooth, pool, argc, argv);
 

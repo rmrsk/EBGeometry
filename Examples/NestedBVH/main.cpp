@@ -204,7 +204,7 @@ try {
   //
   // A window on the tape that places the mesh among the spheres (built with VIEWER=SDL2; otherwise, with
   // --no-view or without a display, view() prints why and returns). Drag to orbit, scroll to zoom, X cuts it
-  // open, P colours each primitive.
+  // open, P cycles the colouring.
   // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   EBGeometry::Render::view(composed, pool, argc, argv);
 

@@ -234,7 +234,7 @@ struct Settings
   /**
    * @brief How surfaces are coloured.
    */
-  ColourBy m_colourBy = ColourBy::Uniform;
+  ColourBy m_colourBy = ColourBy::Normal;
 
   /**
    * @brief The surface colour for ColourBy::Uniform (linear RGB in [0, 1]).
@@ -269,9 +269,17 @@ struct Settings
   Vec3T<T> m_floorColour = Vec3T<T>(T(0.58), T(0.59), T(0.61));
 
   /**
-   * @brief Direction towards the light (need not be of unit length).
+   * @brief Whether m_light is given in the camera's frame (x to the image's right, y to its top, z towards
+   * the viewer), so that the light turns with the camera and the side in view stays lit; otherwise it is a
+   * direction in the scene.
    */
-  Vec3T<T> m_light = Vec3T<T>(T(0.55), T(0.8), T(0.35));
+  bool m_lightFromCamera = true;
+
+  /**
+   * @brief Direction towards the light (need not be of unit length): in the camera's frame with
+   * m_lightFromCamera (by default from above, to the left and in front), in the scene's otherwise.
+   */
+  Vec3T<T> m_light = Vec3T<T>(T(-0.45), T(0.75), T(0.55));
 
   /**
    * @brief How strongly the light lights a surface facing it (the diffuse term's factor).
@@ -286,13 +294,13 @@ struct Settings
   /**
    * @brief How bright the light's highlights are (0: a matte surface).
    */
-  T m_specular = T(0.3);
+  T m_specular = T(0.45);
 
   /**
    * @brief How small the light's highlights are: the specular exponent, at least 1 (larger: a shinier
    * surface).
    */
-  T m_shininess = T(48);
+  T m_shininess = T(32);
 
   /**
    * @brief The sky's colour at the horizon.

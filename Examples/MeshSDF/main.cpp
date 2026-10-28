@@ -193,8 +193,8 @@ try {
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // Render::view() opens a window on any shape: drag to orbit, scroll to zoom, X to cut it open with a
-  // section plane, P to colour each face differently. A surface seen from inside the solid is drawn red,
-  // which is what an inverted mesh (faces wound the wrong way) looks like. The window needs SDL2: build
+  // section plane, P to cycle the colouring (by primitive, each face differs). A surface seen from inside
+  // the solid is drawn red, which is what an inverted mesh (faces wound the wrong way) looks like. The window needs SDL2: build
   // with make VIEWER=SDL2 or cmake -DEBGEOMETRY_VIEWER=SDL2. Otherwise, with --no-view, or without a
   // display, view() prints why and returns. The camera starts fitted to the mesh's bounding box. Given the
   // pool, it renders on the device in a GPU build, through a view of the mesh on a mirror of the pool (G

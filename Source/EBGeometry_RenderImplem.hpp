@@ -235,7 +235,10 @@ public:
       m_settings(a_settings),
       m_eye(a_view.m_eye),
       m_up(a_view.m_axis),
-      m_baseLight(unit(a_settings.m_light)),
+      m_baseLight(unit(a_settings.m_lightFromCamera
+                         ? a_settings.m_light[0] * a_view.m_right + a_settings.m_light[1] * a_view.m_up -
+                             a_settings.m_light[2] * a_view.m_forward
+                         : a_settings.m_light)),
       m_light(m_baseLight),
       m_first(a_view.m_first),
       m_second(a_view.m_second)
@@ -1108,6 +1111,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_insideColour", a_settings.m_insideColour, settings.m_insideColour);
   field("settings", "m_cutColour", a_settings.m_cutColour, settings.m_cutColour);
   field("settings", "m_floorColour", a_settings.m_floorColour, settings.m_floorColour);
+  field("settings", "m_lightFromCamera", a_settings.m_lightFromCamera, settings.m_lightFromCamera);
   field("settings", "m_light", a_settings.m_light, settings.m_light);
   field("settings", "m_lightIntensity", a_settings.m_lightIntensity, settings.m_lightIntensity);
   field("settings", "m_ambient", a_settings.m_ambient, settings.m_ambient);

@@ -64,7 +64,7 @@ leaf left out gets the renderer's palette), and the camera looks from low in fro
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit, scroll to zoom, X cuts the object open and P cycles the colouring; see
+and returns. Drag to orbit, scroll to zoom, X cuts the object open, P cycles the colouring and H hides the overlay; see
 :ref:`Chap:ImplemRender`.
 
 Building and running

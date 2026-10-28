@@ -39,13 +39,14 @@ The classes are in namespace ``Render``:
 * `Settings <doxygen/html/structEBGeometry_1_1Render_1_1Settings.html>`__ is a plain value: the image
   size and rays per pixel, the host threads, shadows, ambient occlusion, the floor (with or without its
   checkerboard, and the checker's size) and the sky (its horizon and zenith colours, or a plain
-  background), how to colour (``ColourBy::Uniform``, ``ColourBy::Primitive`` or ``ColourBy::Normal``), the
-  colours, the light (its direction, intensity, the ambient level, and the highlights' strength and
-  shininess), the section plane (``m_section``, a point and a normal; the side the normal points to is
+  background), how to colour (``ColourBy::Normal``, the default, ``ColourBy::Uniform`` or
+  ``ColourBy::Primitive``), the colours, the light (its direction, by default in the camera's frame so that
+  it turns with the camera and lights the side in view, or in the scene with ``m_lightFromCamera`` false;
+  its intensity, the ambient level, and the highlights' strength and shininess), the section plane (``m_section``, a point and a normal; the side the normal points to is
   removed), and the march (``RayOptions``). ``m_primitiveColours`` gives the first
   ``Settings::PrimitiveColours`` (16) primitive ids colours of their own; an entry left unset, and every
-  later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colours its bore steel grey). Its
-  defaults draw the images of earlier versions. ``Render::toCode(camera, settings)`` writes a camera and
+  later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colours its bore steel grey).
+  ``Render::toCode(camera, settings)`` writes a camera and
   settings as C++ statements, the fields that differ from their defaults.
 * `Renderer <doxygen/html/classEBGeometry_1_1Render_1_1Renderer.html>`__ holds the settings.
   ``render(shape, camera, image)`` runs on the host's threads (``Settings::m_threads``, by default one
@@ -73,13 +74,17 @@ The viewer
 overloads take a camera and settings, and a device view of the shape to render on a GPU.
 ``Render::view(shape, pool, argc, argv)`` takes instead the pool the shape lives in: in a GPU build with a
 visible device it freezes the pool, mirrors it for as long as the window is open and renders through the
-shape's ``rebasedView()`` of the copy, and otherwise renders on the host. Drag to orbit,
-scroll to zoom; S, A and F toggle shadows, ambient occlusion and the floor, P cycles the colouring
-(uniform, by primitive, by normal), X cuts the shape with a section plane facing the camera (the arrow
-keys move it), O toggles the orthographic camera, 1, 2 and 3 look from the front, the side and the top, C
-prints the camera and settings as C++ (``toCode()``) to paste a view found by hand into a program, G
-switches between the GPU and the CPU, R resets the camera, and Esc or Q closes the window. The window can
-be resized, and renders at its size in pixels; its title shows the frame's size and how long it took.
+shape's ``rebasedView()`` of the copy, and otherwise renders on the host. Drag to orbit, scroll to zoom,
+and drag with the right button (or with Shift held) to move the light, which the left and right arrow
+keys also turn; S, A and F toggle shadows, ambient occlusion and the floor, P cycles the colouring (by
+normal, uniform, by primitive), X cuts the shape with a section plane facing the camera (the up and down
+arrow keys move it), O toggles the orthographic camera, 1, 2 and 3 look from the front, the side and the
+top, C prints the camera and settings as C++ (``toCode()``) to paste a view found by hand into a program,
+G switches between the GPU and the CPU, H shows or hides the overlay, R resets the camera, and Esc or Q
+closes the window. The overlay, in the top left corner, shows what the window renders and how (GPU or
+CPU, the frame's size and time, the hits, the camera, the light and the settings) and the keys, which are
+also printed, one per line, when the window opens. The window can be resized, and renders at its size in
+pixels.
 While the camera moves the window
 shows a quick preview (one ray per pixel, no shadows, at a resolution it adapts to keep each preview at a
 few tens of milliseconds). Once the camera rests it refines on a background thread -- full resolution

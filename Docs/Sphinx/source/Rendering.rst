@@ -40,10 +40,13 @@ What a pixel shows
 
 For a pixel, the renderer casts one ray (or :math:`n \times n` rays, averaged, with the light moved a
 little for each, as a light of some size would be) and, where it meets the surface, combines diffuse and
-specular light from one direction, light from the sky, a shadow and ambient occlusion. A floor under the
-shape catches its shadow. Surfaces can be coloured uniformly, by primitive (by the leaf of a composed
+specular light from one direction, light from the sky, a shadow and ambient occlusion. The light's
+direction is by default fixed to the camera, above and beside it, so that the side in view is lit wherever
+the camera goes; it can instead be fixed in the scene. A floor under the
+shape catches its shadow. Surfaces can be coloured by the direction of their normal (the default),
+uniformly, by primitive (by the leaf of a composed
 expression the surface belongs to, or by the face of a mesh, with colours chosen per primitive or from a
-palette), or by the direction of the surface's normal.
+palette).
 
 The camera looks either in perspective, every ray leaving the eye, or orthographically, the rays parallel
 and leaving a plane through the eye, so that sizes do not shrink with distance; a near clip starts every

@@ -82,7 +82,7 @@ At the end the example opens a window on the tape that places the mesh among the
     cmake -S . -B build -DEBGEOMETRY_VIEWER=SDL2
 
 Without it, `view()` prints a line saying how to build it and returns. Drag to orbit, scroll to zoom,
-`X` cuts the object open, `P` colours each primitive, `Esc` closes the window. `--no-view` skips the
+`X` cuts the object open, `P` cycles the colouring (by normal, uniform, by primitive), `H` hides the overlay, `Esc` closes the window. `--no-view` skips the
 window (ctest passes it), as does running without a display.
 
 Running

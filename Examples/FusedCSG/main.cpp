@@ -144,7 +144,7 @@ main(int argc, char* argv[])
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // The scene of two fused parts (built with VIEWER=SDL2; otherwise, with --no-view or without a display,
-  // view() prints why and returns). P colours each part.
+  // view() prints why and returns). P cycles the colouring (by primitive colours each part).
   // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   EBGeometry::Render::view(scene, pool, argc, argv);
 

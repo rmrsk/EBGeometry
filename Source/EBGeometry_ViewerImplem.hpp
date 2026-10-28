@@ -23,6 +23,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 // The program keeps its own main(); SDL must not replace it.
 #ifndef SDL_MAIN_HANDLED
@@ -34,6 +35,7 @@
 // Our includes
 #include "EBGeometry_GPUTransform.hpp"
 #include "EBGeometry_Viewer.hpp"
+#include "EBGeometry_ViewerFont.hpp"
 
 namespace EBGeometry::Render {
 
@@ -74,6 +76,128 @@ displayAvailable() noexcept
 #else
   return true;
 #endif
+}
+
+/**
+ * @brief A key of the viewer, and what it does.
+ * @details Internal helper; not part of the public API.
+ */
+struct Key
+{
+  /**
+   * @brief The key or keys, as written for a reader.
+   */
+  const char* m_keys;
+
+  /**
+   * @brief What they do.
+   */
+  const char* m_what;
+};
+
+/**
+ * @brief The viewer's keys, in the order they are listed.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_device Whether the window has a device view to switch to.
+ * @return The keys.
+ */
+inline std::vector<Key>
+keys(const bool a_device)
+{
+  std::vector<Key> list{{"drag", "orbit the camera"},
+                        {"wheel", "zoom"},
+                        {"1 2 3", "look from the front, the side, the top"},
+                        {"O", "orthographic or perspective camera"},
+                        {"R", "reset the camera"},
+                        {"right drag", "move the light (or Shift + drag)"},
+                        {"Left Right", "turn the light"},
+                        {"P", "colouring: by normal, uniform, by primitive"},
+                        {"S", "shadows on or off"},
+                        {"A", "ambient occlusion on or off"},
+                        {"F", "floor on or off"},
+                        {"X", "section plane on or off"},
+                        {"Up Down", "move the section plane"}};
+
+  if (a_device) {
+    list.push_back({"G", "render on the GPU or the CPU"});
+  }
+
+  list.push_back({"C", "print the camera and settings as C++"});
+  list.push_back({"H", "show or hide the overlay"});
+  list.push_back({"Esc Q", "close the window"});
+
+  return list;
+}
+
+/**
+ * @brief A number with a given count of decimals.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_value    Number.
+ * @param[in] a_decimals Decimals.
+ * @return The text.
+ */
+inline std::string
+fixed(const double a_value, const int a_decimals)
+{
+  char text[64];
+
+  std::snprintf(text, sizeof(text), "%.*f", a_decimals, a_value);
+
+  return text;
+}
+
+/**
+ * @brief Lines of text, light on a translucent dark panel, as RGBA pixels (0xRRGGBBAA, row by row).
+ * @details Internal helper; not part of the public API. Each glyph pixel becomes a_scale x a_scale pixels.
+ * Characters outside printable ASCII are left blank.
+ * @param[in]  a_lines  Lines.
+ * @param[in]  a_scale  Pixels per glyph pixel, along each axis.
+ * @param[out] a_pixels The panel.
+ * @param[out] a_width  Its width.
+ * @param[out] a_height Its height.
+ */
+inline void
+drawText(const std::vector<std::string>& a_lines,
+         const int                       a_scale,
+         std::vector<uint32_t>&          a_pixels,
+         int&                            a_width,
+         int&                            a_height)
+{
+  const int margin = 6 * a_scale;
+
+  std::size_t columns = 0;
+
+  for (const std::string& line : a_lines) {
+    columns = Math::max(columns, line.size());
+  }
+
+  a_width  = static_cast<int>(columns) * GlyphWidth * a_scale + 2 * margin;
+  a_height = static_cast<int>(a_lines.size()) * GlyphHeight * a_scale + 2 * margin;
+
+  a_pixels.assign(std::size_t(a_width) * std::size_t(a_height), 0x101418C8U);
+
+  for (std::size_t row = 0; row < a_lines.size(); row++) {
+    for (std::size_t column = 0; column < a_lines[row].size(); column++) {
+      const auto c = static_cast<unsigned char>(a_lines[row][column]);
+
+      if (c < 32U || c > 126U) {
+        continue;
+      }
+
+      const unsigned char* glyph = Glyphs[c - 32U];
+
+      for (int y = 0; y < GlyphHeight * a_scale; y++) {
+        for (int x = 0; x < GlyphWidth * a_scale; x++) {
+          if (((glyph[y / a_scale] >> (GlyphWidth - 1 - x / a_scale)) & 1U) != 0U) {
+            const int px = margin + static_cast<int>(column) * GlyphWidth * a_scale + x;
+            const int py = margin + static_cast<int>(row) * GlyphHeight * a_scale + y;
+
+            a_pixels[std::size_t(py) * std::size_t(a_width) + std::size_t(px)] = 0xF0F0F0FFU;
+          }
+        }
+      }
+    }
+  }
 }
 
 #ifdef EBGEOMETRY_VIEWER_SDL2
@@ -202,10 +326,13 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     return;
   }
 
-  std::printf("EBGeometry viewer: drag to orbit, wheel to zoom; S shadows, A occlusion, F floor, P colouring "
-              "(uniform, by primitive, by normal), X section (arrows move it), O orthographic, 1 2 3 front, side and "
-              "top, C print the view as C++%s, R reset, Esc or Q to close.\n",
-              (a_deviceShape != nullptr) ? ", G GPU/CPU" : "");
+  std::printf("EBGeometry viewer keys:\n");
+
+  for (const Key& key : keys(a_deviceShape != nullptr)) {
+    std::printf("  %-11s %s\n", key.m_keys, key.m_what);
+  }
+
+  std::fflush(stdout);
 
   Camera<T>   camera   = a_camera;
   Settings<T> settings = a_settings;
@@ -222,6 +349,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   bool onDevice = a_deviceShape != nullptr && GPU::deviceAvailable();
   bool dragging = false;
+  bool lighting = false;
   bool warned   = false;
   bool running  = true;
   bool changed  = true;
@@ -235,6 +363,30 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   SDL_Texture* texture   = nullptr;
   uint32_t     texWidth  = 0;
   uint32_t     texHeight = 0;
+
+  // The overlay: what the window shows and how, and the keys, drawn over the image's top left corner.
+  bool                  overlayOn     = true;
+  SDL_Texture*          overlay       = nullptr;
+  int                   overlayWidth  = 0;
+  int                   overlayHeight = 0;
+  std::vector<uint32_t> overlayPixels;
+
+  // Draw the image, then the overlay over it.
+  const auto present = [&]() {
+    SDL_RenderClear(screen);
+
+    if (texture != nullptr) {
+      SDL_RenderCopy(screen, texture, nullptr, nullptr);
+    }
+
+    if (overlayOn && overlay != nullptr) {
+      const SDL_Rect where{8, 8, overlayWidth, overlayHeight};
+
+      SDL_RenderCopy(screen, overlay, nullptr, &where);
+    }
+
+    SDL_RenderPresent(screen);
+  };
 
   std::string status;
 
@@ -282,6 +434,31 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     }
 
     return frame;
+  };
+
+  // Turn the light: a_across degrees about the vertical (the image's, for a light that follows the camera; the
+  // scene's up axis otherwise), then a_up degrees towards it, stopping short of straight overhead or below.
+  const auto turnLight = [&](const T a_across, const T a_up) {
+    const Vec3T<T> k = settings.m_lightFromCamera ? Vec3T<T>(T(0), T(1), T(0)) : RenderDetail::unit(camera.m_up);
+
+    // Rodrigues' rotation of a vector about a unit axis.
+    const auto rotate = [](const Vec3T<T>& a_v, const Vec3T<T>& a_axis, const T a_degrees) {
+      const T a = a_degrees * pi<T> / T(180);
+
+      return std::cos(a) * a_v + std::sin(a) * cross(a_axis, a_v) + (T(1) - std::cos(a)) * dot(a_axis, a_v) * a_axis;
+    };
+
+    Vec3T<T> v = rotate(RenderDetail::unit(settings.m_light), k, a_across);
+
+    const Vec3T<T> side      = cross(v, k);
+    const T        elevation = std::asin(Math::clamp(dot(v, k), T(-1), T(1))) * T(180) / pi<T>;
+    const T        target    = Math::clamp(elevation + a_up, T(-85), T(85));
+
+    if (side.length() > T(0)) {
+      v = rotate(v, RenderDetail::unit(side), target - elevation);
+    }
+
+    settings.m_light = v;
   };
 
   // Whether a stage would draw anything the one before it did not.
@@ -342,9 +519,70 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
              ((a_stats.m_unresolved > 0U) ? ", some rays unresolved" : "");
 
     SDL_SetWindowTitle(window, status.c_str());
-    SDL_RenderClear(screen);
-    SDL_RenderCopy(screen, texture, nullptr, nullptr);
-    SDL_RenderPresent(screen);
+
+    // The overlay's text, at a size that stays readable on a window with many pixels.
+    const auto percent = [](const uint64_t a_part, const uint64_t a_whole) {
+      return fixed(100.0 * double(a_part) / double(Math::max(a_whole, uint64_t(1))), 1) + "%";
+    };
+    const auto onOff = [](const bool a_on) { return a_on ? "on" : "off"; };
+
+    const char* colouring = (settings.m_colourBy == ColourBy::Normal)      ? "by normal"
+                            : (settings.m_colourBy == ColourBy::Primitive) ? "by primitive"
+                                                                           : "uniform";
+
+    std::vector<std::string> lines{
+      std::string("EBGeometry viewer: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
+        std::to_string(a_image.m_width) + " x " + std::to_string(a_image.m_height) + " in " +
+        fixed(1000.0 * a_seconds, 0) + " ms",
+      "rays " + std::to_string(a_stats.m_rays) + ", hits " + percent(a_stats.m_hits, a_stats.m_rays) +
+        ", from inside " + std::to_string(a_stats.m_insideHits) + ", unresolved " +
+        std::to_string(a_stats.m_unresolved),
+      "",
+      "camera   yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
+        fixed(double(camera.m_distance), 3),
+      "         field of view " + fixed(double(camera.m_fieldOfView), 1) + ", " +
+        (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " + fixed(double(camera.m_nearClip), 3),
+      std::string("light    ") + (settings.m_lightFromCamera ? "from the camera" : "in the scene") + ", (" +
+        fixed(double(settings.m_light[0]), 2) + ", " + fixed(double(settings.m_light[1]), 2) + ", " +
+        fixed(double(settings.m_light[2]), 2) + ")",
+      std::string("colour   ") + colouring + ", shadows " + onOff(settings.m_shadows) + ", occlusion " +
+        onOff(settings.m_occlusion) + ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky),
+      std::string("section  ") + (settings.m_section ? "on, at " + fixed(double(sectionOffset), 3) : "off") + ", " +
+        std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + " rays per pixel",
+      ""};
+
+    for (const Key& key : keys(a_deviceShape != nullptr)) {
+      char line[128];
+
+      std::snprintf(line, sizeof(line), "%-11s %s", key.m_keys, key.m_what);
+      lines.emplace_back(line);
+    }
+
+    int outputWidth  = 0;
+    int outputHeight = 0;
+
+    SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
+
+    const int scale     = Math::max(1, outputHeight / 900);
+    const int oldWidth  = overlayWidth;
+    const int oldHeight = overlayHeight;
+
+    drawText(lines, scale, overlayPixels, overlayWidth, overlayHeight);
+
+    if (overlay == nullptr || oldWidth != overlayWidth || oldHeight != overlayHeight) {
+      if (overlay != nullptr) {
+        SDL_DestroyTexture(overlay);
+      }
+
+      overlay =
+        SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, overlayWidth, overlayHeight);
+
+      SDL_SetTextureBlendMode(overlay, SDL_BLENDMODE_BLEND);
+    }
+
+    SDL_UpdateTexture(overlay, nullptr, overlayPixels.data(), 4 * overlayWidth);
+
+    present();
   };
 
   while (running) {
@@ -361,17 +599,33 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       case SDL_MOUSEBUTTONDOWN: {
-        dragging = dragging || event.button.button == SDL_BUTTON_LEFT;
+        // The right button, or the left with Shift held, moves the light; the left alone orbits the camera.
+        const bool shift = (SDL_GetModState() & KMOD_SHIFT) != 0;
+
+        if (event.button.button == SDL_BUTTON_RIGHT || (event.button.button == SDL_BUTTON_LEFT && shift)) {
+          lighting = true;
+        }
+        else if (event.button.button == SDL_BUTTON_LEFT) {
+          dragging = true;
+        }
 
         break;
       }
       case SDL_MOUSEBUTTONUP: {
-        dragging = dragging && event.button.button != SDL_BUTTON_LEFT;
+        if (event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT) {
+          dragging = false;
+          lighting = false;
+        }
 
         break;
       }
       case SDL_MOUSEMOTION: {
-        if (dragging) {
+        if (lighting) {
+          turnLight(T(0.4) * T(event.motion.xrel), -T(0.4) * T(event.motion.yrel));
+
+          changed = true;
+        }
+        else if (dragging) {
           camera.m_yaw -= T(0.4) * T(event.motion.xrel);
           camera.m_pitch = Math::clamp(camera.m_pitch + T(0.4) * T(event.motion.yrel), T(-90), T(90));
 
@@ -391,10 +645,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
           fitToWindow();
         }
-        else if (texture != nullptr) {
-          SDL_RenderClear(screen);
-          SDL_RenderCopy(screen, texture, nullptr, nullptr);
-          SDL_RenderPresent(screen);
+        else {
+          present();
         }
 
         break;
@@ -425,9 +677,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_p: {
-          settings.m_colourBy = (settings.m_colourBy == ColourBy::Uniform)     ? ColourBy::Primitive
-                                : (settings.m_colourBy == ColourBy::Primitive) ? ColourBy::Normal
-                                                                               : ColourBy::Uniform;
+          settings.m_colourBy = (settings.m_colourBy == ColourBy::Normal)    ? ColourBy::Uniform
+                                : (settings.m_colourBy == ColourBy::Uniform) ? ColourBy::Primitive
+                                                                             : ColourBy::Normal;
 
           break;
         }
@@ -446,6 +698,20 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           camera.m_yaw   = (view == View::Right) ? T(90) : T(0);
           camera.m_pitch = (view == View::Top) ? T(90) : T(0);
+
+          break;
+        }
+        case SDLK_LEFT:
+        case SDLK_RIGHT: {
+          turnLight((event.key.keysym.sym == SDLK_RIGHT) ? T(15) : T(-15), T(0));
+
+          break;
+        }
+        case SDLK_h: {
+          overlayOn = !overlayOn;
+          changed   = false;
+
+          present();
 
           break;
         }
@@ -534,7 +800,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     }
 
     // Refine on a background thread once the camera has rested a moment.
-    if (job == nullptr && pending > 0 && !dragging && Clock::now() - lastChange > std::chrono::milliseconds(100)) {
+    if (job == nullptr && pending > 0 && !dragging && !lighting &&
+        Clock::now() - lastChange > std::chrono::milliseconds(100)) {
       job = std::make_unique<Background>();
 
       Background* next = job.get();
@@ -577,6 +844,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   if (texture != nullptr) {
     SDL_DestroyTexture(texture);
+  }
+
+  if (overlay != nullptr) {
+    SDL_DestroyTexture(overlay);
   }
 
   SDL_DestroyRenderer(screen);
