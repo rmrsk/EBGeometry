@@ -617,6 +617,12 @@ private:
       albedo = T(0.25) * albedo + T(0.75) * m_settings.m_insideColour;
     }
 
+    // The cut face is a nearly flat fill, lit a little from either side and casting no shadow, so that a
+    // slice reads the same whichever way the light and the camera face.
+    if (cut) {
+      return albedo * (T(0.75) + T(0.25) * std::abs(dot(n, m_light)));
+    }
+
     return this->light(p, n, a_direction, albedo);
   }
 
@@ -655,14 +661,24 @@ private:
     }
 
     const T value = m_object.shapeDistance(p);
-    const T half  = T(0.5) * m_settings.m_contourWidth * (m_footprint + m_footprintPerLength * t);
+    const T width = m_footprint + m_footprintPerLength * t;
+    const T half  = T(0.5) * m_settings.m_contourWidth * width;
 
     if (std::abs(value) < half) {
       return m_settings.m_contourColour;
     }
 
-    if (value > T(0)) {
-      return (T(1) - m_settings.m_sheetOpacity) * a_colour + m_settings.m_sheetOpacity * m_settings.m_sheetColour;
+    if (value > T(0) && m_settings.m_sheetOpacity > T(0)) {
+      // The sheet's edge, a pixel and a half wide, where the plane leaves the box.
+      T edge = Math::Limits<T>::infinity();
+
+      for (int k = 0; k < 3; k++) {
+        edge = Math::min(edge, Math::min(p[k] - m_boxLow[k], m_boxHigh[k] - p[k]));
+      }
+
+      const Vec3T<T>& over = (edge < T(1.5) * width) ? m_settings.m_sheetEdgeColour : m_settings.m_sheetColour;
+
+      return (T(1) - m_settings.m_sheetOpacity) * a_colour + m_settings.m_sheetOpacity * over;
     }
 
     return a_colour;
@@ -1225,6 +1241,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_contourColour", a_settings.m_contourColour, settings.m_contourColour);
   field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
   field("settings", "m_sheetColour", a_settings.m_sheetColour, settings.m_sheetColour);
+  field("settings", "m_sheetEdgeColour", a_settings.m_sheetEdgeColour, settings.m_sheetEdgeColour);
   field("settings", "m_rays.m_tolerance", a_settings.m_rays.m_tolerance, settings.m_rays.m_tolerance);
   field("settings", "m_rays.m_scale", a_settings.m_rays.m_scale, settings.m_rays.m_scale);
   field("settings", "m_rays.m_maxSteps", a_settings.m_rays.m_maxSteps, settings.m_rays.m_maxSteps);

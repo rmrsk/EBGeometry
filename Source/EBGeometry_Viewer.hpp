@@ -12,7 +12,8 @@
  *
  * In the window: drag to orbit, drag with Ctrl held to pan, drag with the right button to move the light,
  * and use the wheel to zoom. Press S,
- * A and F to toggle shadows, ambient occlusion and the floor, P to cycle the colouring (by normal, uniform,
+ * A and F to toggle shadows, ambient occlusion and the floor, Shift and Up or Down to take more or fewer
+ * rays per pixel (from 1 x 1 to 8 x 8), P to cycle the colouring (by normal, uniform,
  * by primitive), X to cut the shape with a section plane across x, then y, then z (it draws the shape's
  * contour in the plane; a plane given in the settings comes first), Ctrl and X to turn it off, N to reverse
  * it (remove the other side), the wheel with Ctrl held to move it in fine steps (the up and down arrow keys

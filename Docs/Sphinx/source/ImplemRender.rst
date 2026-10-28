@@ -77,7 +77,8 @@ overloads take a camera and settings, and a device view of the shape to render o
 ``Render::view(shape, pool, argc, argv)`` takes instead the pool the shape lives in: in a GPU build with a
 visible device it freezes the pool, mirrors it for as long as the window is open and renders through the
 shape's ``rebasedView()`` of the copy, and otherwise renders on the host. Drag to orbit, drag with Ctrl
-held to pan, drag with the right button to move the light, and scroll to zoom; S, A and F toggle shadows, ambient occlusion and the floor, P
+held to pan, drag with the right button to move the light, and scroll to zoom; S, A and F toggle shadows, ambient occlusion and the floor, Shift and Up or Down take more or fewer rays
+per pixel (from 1 x 1 to 8 x 8), P
 cycles the colouring (by normal, uniform, by primitive), X cuts the shape with a section plane across x,
 then y, then z, through the box's centre (a plane the settings turn on comes first), Ctrl and X turn it
 off, N reverses it (removes the other side), scrolling with Ctrl held moves it in fine steps (the up and

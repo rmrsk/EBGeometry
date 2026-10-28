@@ -354,15 +354,20 @@ struct Settings
   Vec3T<T> m_contourColour = Vec3T<T>(T(0.04), T(0.04), T(0.05));
 
   /**
-   * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a faint
-   * sheet that shows where the plane is (0: none, 1: opaque).
+   * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a frosted
+   * sheet that shows where the plane is, edged by a line where it meets the box (0: none, 1: opaque).
    */
-  T m_sheetOpacity = T(0.18);
+  T m_sheetOpacity = T(0.35);
 
   /**
    * @brief The sheet's colour.
    */
-  Vec3T<T> m_sheetColour = Vec3T<T>(T(0.35), T(0.55), T(0.85));
+  Vec3T<T> m_sheetColour = Vec3T<T>(T(0.95), T(0.96), T(0.97));
+
+  /**
+   * @brief The colour of the sheet's edge.
+   */
+  Vec3T<T> m_sheetEdgeColour = Vec3T<T>(T(0.45), T(0.47), T(0.50));
 
   /**
    * @brief How rays march (see firstHit()). A scale of 0 takes the shape's box diagonal, or the camera

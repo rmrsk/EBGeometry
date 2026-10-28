@@ -18,6 +18,7 @@
 #include <cstring>
 
 #ifdef EBGEOMETRY_VIEWER_SDL2
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -115,6 +116,8 @@ keys(const bool a_device)
                         {"S", "shadows on or off"},
                         {"A", "ambient occlusion on or off"},
                         {"F", "floor on or off"},
+                        {"Shift Up", "more rays per pixel (supersampling, up to 8 x 8)"},
+                        {"Shift Down", "fewer rays per pixel (down to 1)"},
                         {"X", "section plane across x, then y, then z"},
                         {"Ctrl X", "section plane off"},
                         {"N", "reverse the section (remove the other side)"},
@@ -126,7 +129,7 @@ keys(const bool a_device)
   }
 
   list.push_back({"C", "print the camera and settings as C++"});
-  list.push_back({"H", "show or hide the overlay"});
+  list.push_back({"H", "show or hide the overlay and the axes"});
   list.push_back({"Esc Q", "close the window"});
 
   return list;
@@ -197,6 +200,80 @@ drawText(const std::vector<std::string>& a_lines,
 
             a_pixels[std::size_t(py) * std::size_t(a_width) + std::size_t(px)] = 0xF0F0F0FFU;
           }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @brief The scene's x, y and z axes as the camera sees them, drawn from a common origin on a transparent
+ * square: x red, y green, z blue, each labelled at its tip, the axes furthest from the viewer drawn first.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in]  a_right   Unit right of the image, in the scene.
+ * @param[in]  a_up      Unit up of the image, in the scene.
+ * @param[in]  a_forward Unit direction the camera looks in.
+ * @param[in]  a_scale   Pixels per glyph pixel (the square is 96 a_scale pixels wide).
+ * @param[out] a_pixels  The square, RGBA (0xRRGGBBAA, row by row).
+ * @param[out] a_size    Its side.
+ */
+template <class T>
+inline void
+drawAxes(const Vec3T<T>&        a_right,
+         const Vec3T<T>&        a_up,
+         const Vec3T<T>&        a_forward,
+         const int              a_scale,
+         std::vector<uint32_t>& a_pixels,
+         int&                   a_size)
+{
+  a_size = 96 * a_scale;
+
+  a_pixels.assign(std::size_t(a_size) * std::size_t(a_size), 0x00000000U);
+
+  const T        centre     = T(0.5) * T(a_size);
+  const T        length     = T(30 * a_scale);
+  const uint32_t colours[3] = {0xE64646FFU, 0x50BE50FFU, 0x5A82F0FFU};
+  const char     labels[3]  = {'X', 'Y', 'Z'};
+
+  // Set a square of pixels, clipped to the image.
+  const auto stamp = [&a_pixels, a_size](const int a_x, const int a_y, const int a_half, const uint32_t a_rgba) {
+    for (int y = a_y - a_half; y <= a_y + a_half; y++) {
+      for (int x = a_x - a_half; x <= a_x + a_half; x++) {
+        if (x >= 0 && y >= 0 && x < a_size && y < a_size) {
+          a_pixels[std::size_t(y) * std::size_t(a_size) + std::size_t(x)] = a_rgba;
+        }
+      }
+    }
+  };
+
+  // The farthest axis first, so that a nearer one is drawn over it.
+  int order[3] = {0, 1, 2};
+
+  std::sort(order, order + 3, [&a_forward](const int a_a, const int a_b) { return a_forward[a_a] > a_forward[a_b]; });
+
+  for (const int axis : order) {
+    const T   dx    = a_right[axis];
+    const T   dy    = -a_up[axis];
+    const int steps = static_cast<int>(length) + 1;
+
+    for (int i = 0; i <= steps; i++) {
+      const T f = T(i) / T(steps);
+
+      stamp(
+        static_cast<int>(centre + f * length * dx), static_cast<int>(centre + f * length * dy), a_scale, colours[axis]);
+    }
+
+    // The label just past the tip, centred there.
+    const int tipX = static_cast<int>(centre + (length + T(9 * a_scale)) * dx) - GlyphWidth * a_scale / 2;
+    const int tipY = static_cast<int>(centre + (length + T(9 * a_scale)) * dy) - GlyphHeight * a_scale / 2;
+
+    const unsigned char* glyph = Glyphs[labels[axis] - 32];
+
+    for (int y = 0; y < GlyphHeight * a_scale; y++) {
+      for (int x = 0; x < GlyphWidth * a_scale; x++) {
+        if (((glyph[y / a_scale] >> (GlyphWidth - 1 - x / a_scale)) & 1U) != 0U) {
+          stamp(tipX + x, tipY + y, 0, colours[axis]);
         }
       }
     }
@@ -384,6 +461,11 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   int                   overlayHeight = 0;
   std::vector<uint32_t> overlayPixels;
 
+  // The axis triad, in the bottom left corner; shown and hidden with the overlay.
+  SDL_Texture*          axes     = nullptr;
+  int                   axesSize = 0;
+  std::vector<uint32_t> axesPixels;
+
   // Draw the image, then the overlay over it.
   const auto present = [&]() {
     SDL_RenderClear(screen);
@@ -396,6 +478,17 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       const SDL_Rect where{8, 8, overlayWidth, overlayHeight};
 
       SDL_RenderCopy(screen, overlay, nullptr, &where);
+    }
+
+    if (overlayOn && axes != nullptr) {
+      int outputWidth  = 0;
+      int outputHeight = 0;
+
+      SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
+
+      const SDL_Rect where{8, outputHeight - axesSize - 8, axesSize, axesSize};
+
+      SDL_RenderCopy(screen, axes, nullptr, &where);
     }
 
     SDL_RenderPresent(screen);
@@ -569,13 +662,13 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         fixed(double(settings.m_light[0]), 2) + ", " + fixed(double(settings.m_light[1]), 2) + ", " +
         fixed(double(settings.m_light[2]), 2) + ")",
       std::string("colour   ") + colouring + ", shadows " + onOff(settings.m_shadows) + ", occlusion " +
-        onOff(settings.m_occlusion) + ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky),
+        onOff(settings.m_occlusion) + ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky) +
+        ", supersampling " + std::to_string(settings.m_supersampling) + " x " +
+        std::to_string(settings.m_supersampling),
       std::string("section  ") + sectionNames[sectionMode] +
         ((sectionMode != 0)
            ? std::string(sectionFlip ? ", reversed" : "") + ", moved " + fixed(double(sectionOffset), 3)
-           : std::string()) +
-        ", " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
-        " rays per pixel",
+           : std::string()),
       ""};
 
     for (const Key& key : keys(a_deviceShape != nullptr)) {
@@ -608,6 +701,29 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     }
 
     SDL_UpdateTexture(overlay, nullptr, overlayPixels.data(), 4 * overlayWidth);
+
+    // The axes as the camera of this frame sees them.
+    Vec3T<T> forward;
+    Vec3T<T> right;
+    Vec3T<T> up;
+
+    camera.frame(forward, right, up);
+
+    const int oldAxes = axesSize;
+
+    drawAxes(right, up, forward, scale, axesPixels, axesSize);
+
+    if (axes == nullptr || oldAxes != axesSize) {
+      if (axes != nullptr) {
+        SDL_DestroyTexture(axes);
+      }
+
+      axes = SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, axesSize, axesSize);
+
+      SDL_SetTextureBlendMode(axes, SDL_BLENDMODE_BLEND);
+    }
+
+    SDL_UpdateTexture(axes, nullptr, axesPixels.data(), 4 * axesSize);
 
     present();
   };
@@ -797,7 +913,17 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         }
         case SDLK_UP:
         case SDLK_DOWN: {
-          sectionOffset += ((event.key.keysym.sym == SDLK_UP) ? T(0.02) : T(-0.02)) * scale;
+          // With Shift held, more or fewer rays per pixel (1 x 1 to 8 x 8); otherwise the section plane moves
+          // in coarse steps.
+          const bool upward = event.key.keysym.sym == SDLK_UP;
+
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_supersampling =
+              upward ? Math::min(settings.m_supersampling + 1U, 8U) : Math::max(settings.m_supersampling, 2U) - 1U;
+          }
+          else {
+            sectionOffset += (upward ? T(0.02) : T(-0.02)) * scale;
+          }
 
           break;
         }
@@ -909,6 +1035,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   if (overlay != nullptr) {
     SDL_DestroyTexture(overlay);
+  }
+
+  if (axes != nullptr) {
+    SDL_DestroyTexture(axes);
   }
 
   SDL_DestroyRenderer(screen);
