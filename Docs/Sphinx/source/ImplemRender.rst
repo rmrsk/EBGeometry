@@ -87,9 +87,10 @@ off, N reverses it (removes the other side), scrolling with Ctrl held moves it i
 down arrow keys in coarse ones), O toggles the orthographic camera, 1, 2 and 3 look from the front, the
 side and the top, C prints the camera and settings as C++ (``toCode()``) to paste a view found by hand
 into a program, G switches between the GPU and the CPU, H shows or hides the overlay, R resets the camera,
-and Esc or Q closes the window. The overlay, in the top left corner, shows what the window renders and
-how (GPU or CPU, the frame's size and time, the hits, the camera, the light and the settings) and the
-keys, which are also printed, one per line, when the window opens. The window can be resized, and renders at its size in
+and Esc or Q closes the window. The overlay, in the top left corner, shows the frame (its size and time,
+the hits) and then, in groups (the camera and the light, rendering, the section and its contours, the
+window), each group's state and the keys that change it; the keys are also printed, in the same groups,
+when the window opens. The window can be resized, and renders at its size in
 pixels.
 While the camera moves the window
 shows a quick preview (one ray per pixel, no shadows, at a resolution it adapts to keep each preview at a

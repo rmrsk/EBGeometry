@@ -97,42 +97,63 @@ struct Key
 };
 
 /**
- * @brief The viewer's keys, in the order they are listed.
+ * @brief A group of the viewer's keys, under a title.
  * @details Internal helper; not part of the public API.
- * @param[in] a_device Whether the window has a device view to switch to.
- * @return The keys.
  */
-inline std::vector<Key>
+struct KeyGroup
+{
+  /**
+   * @brief The title.
+   */
+  const char* m_title;
+
+  /**
+   * @brief The keys, in the order they are listed.
+   */
+  std::vector<Key> m_keys;
+};
+
+/**
+ * @brief The viewer's keys, in groups: the camera and the light, rendering, the section, and the window.
+ * @details Internal helper; not part of the public API. The overlay lists each group under its title with
+ * the state its keys change, and the terminal lists them when the window opens.
+ * @param[in] a_device Whether the window has a device view to switch to.
+ * @return The groups.
+ */
+inline std::vector<KeyGroup>
 keys(const bool a_device)
 {
-  std::vector<Key> list{{"drag", "orbit the camera"},
-                        {"wheel", "zoom"},
-                        {"1 2 3", "look from the front, the side, the top"},
-                        {"O", "orthographic or perspective camera"},
-                        {"R", "reset the camera"},
-                        {"Ctrl drag", "pan the camera"},
-                        {"right drag", "move the light"},
-                        {"P", "colouring: by normal, uniform, by primitive"},
-                        {"S", "shadows on or off"},
-                        {"A", "ambient occlusion on or off"},
-                        {"F", "floor on or off"},
-                        {"Shift Up", "more rays per pixel (supersampling, up to 8 x 8)"},
-                        {"Shift Down", "fewer rays per pixel (down to 1)"},
-                        {"X", "section plane across x, then y, then z"},
-                        {"Ctrl X", "section plane off"},
-                        {"N", "reverse the section (remove the other side)"},
-                        {"Ctrl wheel", "move the section plane in fine steps"},
-                        {"Up Down", "move the section plane in coarse steps"}};
+  std::vector<KeyGroup> groups{{"Camera and light",
+                                {{"Drag", "Orbit the camera"},
+                                 {"Ctrl + drag", "Pan the camera"},
+                                 {"Wheel", "Zoom"},
+                                 {"1, 2, 3", "Look from the front, the side, the top"},
+                                 {"O", "Switch between perspective and orthographic"},
+                                 {"R", "Reset the camera"},
+                                 {"Right drag", "Move the light"}}},
+                               {"Rendering",
+                                {{"P", "Cycle the colouring: by normal, uniform, by primitive"},
+                                 {"S", "Turn shadows on or off"},
+                                 {"A", "Turn ambient occlusion on or off"},
+                                 {"F", "Turn the floor on or off"},
+                                 {"Shift + Up", "More rays per pixel (up to 8 x 8)"},
+                                 {"Shift + Down", "Fewer rays per pixel (down to 1)"}}},
+                               {"Section and contours",
+                                {{"X", "Cut across x, then y, then z"},
+                                 {"Ctrl + X", "Remove the cut"},
+                                 {"N", "Reverse the cut (remove the other side)"},
+                                 {"Ctrl + wheel", "Move the plane in fine steps"},
+                                 {"Up, Down", "Move the plane in coarse steps"}}},
+                               {"Window",
+                                {{"C", "Print the camera and settings as C++"},
+                                 {"H", "Show or hide this overlay and the axes"},
+                                 {"Esc, Q", "Close the window"}}}};
 
   if (a_device) {
-    list.push_back({"G", "render on the GPU or the CPU"});
+    groups[1].m_keys.push_back({"G", "Render on the GPU or the CPU"});
   }
 
-  list.push_back({"C", "print the camera and settings as C++"});
-  list.push_back({"H", "show or hide the overlay and the axes"});
-  list.push_back({"Esc Q", "close the window"});
-
-  return list;
+  return groups;
 }
 
 /**
@@ -149,7 +170,14 @@ fixed(const double a_value, const int a_decimals)
 
   std::snprintf(text, sizeof(text), "%.*f", a_decimals, a_value);
 
-  return text;
+  // A small negative number rounds to "-0.000"; write it without the sign.
+  std::string written = text;
+
+  if (written[0] == '-' && written.find_first_of("123456789") == std::string::npos) {
+    written.erase(0, 1);
+  }
+
+  return written;
 }
 
 /**
@@ -406,12 +434,17 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     return;
   }
 
-  std::printf("EBGeometry viewer keys:\n");
+  std::printf("EBGeometry viewer keys\n");
 
-  for (const Key& key : keys(a_deviceShape != nullptr)) {
-    std::printf("  %-11s %s\n", key.m_keys, key.m_what);
+  for (const KeyGroup& group : keys(a_deviceShape != nullptr)) {
+    std::printf("\n%s\n", group.m_title);
+
+    for (const Key& key : group.m_keys) {
+      std::printf("  %-13s %s\n", key.m_keys, key.m_what);
+    }
   }
 
+  std::printf("\n");
   std::fflush(stdout);
 
   Camera<T>   camera   = a_camera;
@@ -431,7 +464,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   bool           sectionFlip   = false;
   T              sectionOffset = T(0);
 
-  const char* sectionNames[] = {"off", "as given", "across x", "across y", "across z"};
+  const char* sectionNames[] = {"Off", "As given", "Across x", "Across y", "Across z"};
 
   // The preview's resolution, as a fraction of the window's, adapted to how long previews take.
   T previewScale = T(0.5);
@@ -639,43 +672,60 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       return fixed(100.0 * double(a_part) / double(Math::max(a_whole, uint64_t(1))), 1) + "%";
     };
     const auto onOff = [](const bool a_on) { return a_on ? "on" : "off"; };
+    const auto point = [](const Vec3T<T>& a_v, const int a_decimals) {
+      return "(" + fixed(double(a_v[0]), a_decimals) + ", " + fixed(double(a_v[1]), a_decimals) + ", " +
+             fixed(double(a_v[2]), a_decimals) + ")";
+    };
 
-    const char* colouring = (settings.m_colourBy == ColourBy::Normal)      ? "by normal"
-                            : (settings.m_colourBy == ColourBy::Primitive) ? "by primitive"
-                                                                           : "uniform";
+    const char* colouring = (settings.m_colourBy == ColourBy::Normal)      ? "Coloured by normal"
+                            : (settings.m_colourBy == ColourBy::Primitive) ? "Coloured by primitive"
+                                                                           : "Coloured uniformly";
+
+    // Each group's state, in the order of keys(): the camera and the light, rendering, the section.
+    const std::vector<std::vector<std::string>> states{
+      {"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
+         fixed(double(camera.m_distance), 3),
+       "Target " + point(camera.m_target, 3),
+       "Field of view " + fixed(double(camera.m_fieldOfView), 1) + ", " +
+         (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " +
+         fixed(double(camera.m_nearClip), 3),
+       std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
+         point(settings.m_light, 2)},
+      {std::string(colouring) + ", " + std::to_string(settings.m_supersampling) + " x " +
+         std::to_string(settings.m_supersampling) + " rays per pixel, on the " + (onDevice ? "GPU" : "CPU"),
+       std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
+         ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky)},
+      {std::string(sectionNames[sectionMode]) + ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
+                                                                        ", moved " + fixed(double(sectionOffset), 3)
+                                                                    : std::string()),
+       "Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
+         fixed(100.0 * double(settings.m_sheetOpacity), 0) + "% opaque, cut face " +
+         fixed(100.0 * double(settings.m_cutOpacity), 0) + "% opaque"},
+      {}};
 
     std::vector<std::string> lines{
-      std::string("EBGeometry viewer: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
-        std::to_string(a_image.m_width) + " x " + std::to_string(a_image.m_height) + " in " +
-        fixed(1000.0 * a_seconds, 0) + " ms",
-      "rays " + std::to_string(a_stats.m_rays) + ", hits " + percent(a_stats.m_hits, a_stats.m_rays) +
-        ", from inside " + std::to_string(a_stats.m_insideHits) + ", unresolved " +
-        std::to_string(a_stats.m_unresolved),
-      "",
-      "camera   yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
-        fixed(double(camera.m_distance), 3),
-      "         target (" + fixed(double(camera.m_target[0]), 3) + ", " + fixed(double(camera.m_target[1]), 3) + ", " +
-        fixed(double(camera.m_target[2]), 3) + ")",
-      "         field of view " + fixed(double(camera.m_fieldOfView), 1) + ", " +
-        (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " + fixed(double(camera.m_nearClip), 3),
-      std::string("light    ") + (settings.m_lightFromCamera ? "from the camera" : "in the scene") + ", (" +
-        fixed(double(settings.m_light[0]), 2) + ", " + fixed(double(settings.m_light[1]), 2) + ", " +
-        fixed(double(settings.m_light[2]), 2) + ")",
-      std::string("colour   ") + colouring + ", shadows " + onOff(settings.m_shadows) + ", occlusion " +
-        onOff(settings.m_occlusion) + ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky) +
-        ", supersampling " + std::to_string(settings.m_supersampling) + " x " +
-        std::to_string(settings.m_supersampling),
-      std::string("section  ") + sectionNames[sectionMode] +
-        ((sectionMode != 0)
-           ? std::string(sectionFlip ? ", reversed" : "") + ", moved " + fixed(double(sectionOffset), 3)
-           : std::string()),
-      ""};
+      std::string("EBGeometry viewer: ") + a_what + ", " + std::to_string(a_image.m_width) + " x " +
+        std::to_string(a_image.m_height) + " pixels in " + fixed(1000.0 * a_seconds, 0) + " ms",
+      "Rays " + std::to_string(a_stats.m_rays) + ", hits " + percent(a_stats.m_hits, a_stats.m_rays) +
+        ", seen from inside " + std::to_string(a_stats.m_insideHits) + ", unresolved " +
+        std::to_string(a_stats.m_unresolved)};
 
-    for (const Key& key : keys(a_deviceShape != nullptr)) {
-      char line[128];
+    const std::vector<KeyGroup> groups = keys(a_deviceShape != nullptr);
 
-      std::snprintf(line, sizeof(line), "%-11s %s", key.m_keys, key.m_what);
-      lines.emplace_back(line);
+    for (std::size_t g = 0; g < groups.size(); g++) {
+      lines.emplace_back("");
+      lines.emplace_back(groups[g].m_title);
+
+      for (const std::string& state : states[g]) {
+        lines.emplace_back("  " + state);
+      }
+
+      for (const Key& key : groups[g].m_keys) {
+        char line[128];
+
+        std::snprintf(line, sizeof(line), "  %-13s %s", key.m_keys, key.m_what);
+        lines.emplace_back(line);
+      }
     }
 
     int outputWidth  = 0;
