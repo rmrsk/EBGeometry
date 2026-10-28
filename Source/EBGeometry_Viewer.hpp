@@ -15,7 +15,9 @@
  * plane facing the camera (the up and down arrow keys move it), G to switch between the GPU and the CPU
  * (when given a device view), R to reset the camera, and Esc or Q to close it. While the camera moves the
  * view is drawn as a quick preview, at a resolution adapted to keep it at a few tens of milliseconds; once
- * the camera rests it is refined on a background thread, cancelled as soon as the camera moves again.
+ * the camera rests it is refined on a background thread, cancelled as soon as the camera moves again. The
+ * window can be resized, and renders at its size in pixels (on a high-DPI display, more pixels than its
+ * size in screen units).
  * @author Robert Marskar
  */
 
@@ -45,7 +47,8 @@ view(const S& a_shape, int a_argc, char** a_argv);
 
 /**
  * @brief Look at a shape in a window, from a given camera with given settings.
- * @details See view(const S&, int, char**). The settings' size is the window's.
+ * @details See view(const S&, int, char**). The settings' size is the window's when it opens; the window
+ * then renders at its own size in pixels, which a resize changes.
  * @tparam S Shape type (see isShape).
  * @param[in] a_shape    Shape, valid on the host.
  * @param[in] a_camera   Initial camera (R returns to it).

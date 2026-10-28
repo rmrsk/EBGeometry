@@ -182,8 +182,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   const int width  = static_cast<int>(a_settings.m_width);
   const int height = static_cast<int>(a_settings.m_height);
 
-  SDL_Window* window =
-    SDL_CreateWindow("EBGeometry", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_RESIZABLE);
+  SDL_Window*   window = SDL_CreateWindow("EBGeometry",
+                                        SDL_WINDOWPOS_CENTERED,
+                                        SDL_WINDOWPOS_CENTERED,
+                                        width,
+                                        height,
+                                        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
   SDL_Renderer* screen = (window != nullptr) ? SDL_CreateRenderer(window, -1, 0) : nullptr;
 
   if (window == nullptr || screen == nullptr) {
@@ -232,6 +236,23 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   uint32_t     texHeight = 0;
 
   std::string status;
+
+  // Render at the window's size in pixels (more than its size in screen units on a high-DPI display), so
+  // that a larger window gets a sharper image rather than a stretched one.
+  const auto fitToWindow = [&]() {
+    int w = 0;
+    int h = 0;
+
+    if (SDL_GetRendererOutputSize(screen, &w, &h) == 0 && w > 0 && h > 0 &&
+        (uint32_t(w) != settings.m_width || uint32_t(h) != settings.m_height)) {
+      settings.m_width  = uint32_t(w);
+      settings.m_height = uint32_t(h);
+
+      changed = true;
+    }
+  };
+
+  fitToWindow();
 
   // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
   // the full settings.
@@ -312,6 +333,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     SDL_UpdateTexture(texture, nullptr, a_image.m_pixels.data(), static_cast<int>(4U * a_image.m_width));
 
     status = std::string("EBGeometry: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
+             std::to_string(a_image.m_width) + "x" + std::to_string(a_image.m_height) + " in " +
              std::to_string(int(1000.0 * a_seconds)) + " ms" +
              ((a_stats.m_insideHits > 0U) ? ", red: seen from inside the solid" : "") +
              ((a_stats.m_unresolved > 0U) ? ", some rays unresolved" : "");
@@ -363,7 +385,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       case SDL_WINDOWEVENT: {
-        if (texture != nullptr) {
+        if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+          fitToWindow();
+        }
+        else if (texture != nullptr) {
           SDL_RenderClear(screen);
           SDL_RenderCopy(screen, texture, nullptr, nullptr);
           SDL_RenderPresent(screen);
