@@ -156,7 +156,7 @@ keys(const bool a_device)
                                 {{"X", "Cut across x, then y, then z"},
                                  {"Ctrl + X", "Remove the cut"},
                                  {"N", "Reverse the cut (remove the other side)"},
-                                 {"I", "Lines of equal distance: off, coarse, fine"},
+                                 {"I", "Lines of equal distance: off, as set, coarse, fine"},
                                  {"Ctrl + wheel", "Move the plane in fine steps"},
                                  {"Up, Down", "Move the plane in coarse steps"}}},
                                {"Picking and measuring",
@@ -512,8 +512,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   Vec3T<T> cursorPoint = Vec3T<T>::zeros();
   T        cursorValue = T(0);
 
-  // Lines of equal distance on the section plane: off (0), coarse (1) or fine (2).
-  // Lines of equal distance: off (0), as the settings give them (1, only when they set a spacing), every
+  // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a spacing), every
   // 1/20 of the box's diagonal (2), every 1/50 (3).
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;

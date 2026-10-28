@@ -136,7 +136,8 @@ plane and the shape's value there; Shift and a click on two surfaces measures th
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
    * - I
-     - Lines of equal distance on the section plane: off, every 1/20 of the box's diagonal, every 1/50.
+     - Lines of equal distance on the section plane: off, as the settings set them (if they do), every 1/20
+       of the box's diagonal, every 1/50.
    * - Click; Shift + click
      - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
        and a line between them). On the background, either clears.
