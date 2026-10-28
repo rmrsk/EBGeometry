@@ -294,6 +294,121 @@ signedDistance(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
   return select(inside, faceD, bestSign * sqrt(bestD2));
 }
 
+/**
+ * @brief The squared distance from a point to a triangle, without its sign: the candidates of
+ * signedDistance() (the face where the point projects inside it, else the nearest vertex or edge), none
+ * signed.
+ * @details A nearest-triangle search compares these and signs only the winner, with signedDistance() on
+ * that triangle: the six pseudonormal dot products and the square root are then paid once per query, not
+ * once per triangle. The square root of this value equals |signedDistance()| to rounding, so the winner is
+ * the triangle a search on signedDistance() picks, except where two triangles are equally near to rounding. With V a scalar, the inside case returns early, as signedDistance()'s does.
+ * @tparam V      Scalar or SIMD::Pack.
+ * @tparam Source A triangle accessor (see signedDistance()).
+ * @param[in] a_triangle The triangle(s).
+ * @param[in] a_point    The point, broadcast to every lane.
+ * @return The squared distance, one per lane.
+ */
+template <class V, class Source>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
+inline V
+unsignedDistance2(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
+{
+  using SIMD::abs;
+  using SIMD::both;
+  using SIMD::select;
+
+  const Vec3V<V> v0 = a_triangle.vertex(0);
+  const Vec3V<V> v1 = a_triangle.vertex(1);
+  const Vec3V<V> v2 = a_triangle.vertex(2);
+  const Vec3V<V> n  = a_triangle.normal();
+
+  const Vec3V<V> v21 = v1 - v0;
+  const Vec3V<V> v32 = v2 - v1;
+  const Vec3V<V> v13 = v0 - v2;
+
+  const Vec3V<V> p1 = a_point - v0;
+  const Vec3V<V> p2 = a_point - v1;
+  const Vec3V<V> p3 = a_point - v2;
+
+  const V s0 = sign(dot(cross(v21, n), p1));
+  const V s1 = sign(dot(cross(v32, n), p2));
+  const V s2 = sign(dot(cross(v13, n), p3));
+
+  const auto inside = abs(s0 + s1 + s2) >= constant<V>(2);
+  const V    faceD  = dot(n, p1);
+
+  if constexpr (std::is_floating_point_v<V>) {
+    if (inside) {
+      return faceD * faceD;
+    }
+
+    V bestD2 = dot(p1, p1);
+
+    const V p2d2 = dot(p2, p2);
+    const V p3d2 = dot(p3, p3);
+
+    bestD2 = p2d2 < bestD2 ? p2d2 : bestD2;
+    bestD2 = p3d2 < bestD2 ? p3d2 : bestD2;
+
+    const V t1 = dot(p1, v21) / dot(v21, v21);
+
+    if (onEdge(t1)) {
+      const Vec3V<V> y1   = p1 - scaled(v21, t1);
+      const V        y1d2 = dot(y1, y1);
+
+      bestD2 = y1d2 < bestD2 ? y1d2 : bestD2;
+    }
+
+    const V t2 = dot(p2, v32) / dot(v32, v32);
+
+    if (onEdge(t2)) {
+      const Vec3V<V> y2   = p2 - scaled(v32, t2);
+      const V        y2d2 = dot(y2, y2);
+
+      bestD2 = y2d2 < bestD2 ? y2d2 : bestD2;
+    }
+
+    const V t3 = dot(p3, v13) / dot(v13, v13);
+
+    if (onEdge(t3)) {
+      const Vec3V<V> y3   = p3 - scaled(v13, t3);
+      const V        y3d2 = dot(y3, y3);
+
+      bestD2 = y3d2 < bestD2 ? y3d2 : bestD2;
+    }
+
+    return bestD2;
+  }
+
+  const V t1 = dot(p1, v21) / dot(v21, v21);
+  const V t2 = dot(p2, v32) / dot(v32, v32);
+  const V t3 = dot(p3, v13) / dot(v13, v13);
+
+  const Vec3V<V> y1 = p1 - scaled(v21, t1);
+  const Vec3V<V> y2 = p2 - scaled(v32, t2);
+  const Vec3V<V> y3 = p3 - scaled(v13, t3);
+
+  V bestD2 = dot(p1, p1);
+
+  const V p2d2 = dot(p2, p2);
+  bestD2       = select(p2d2 < bestD2, p2d2, bestD2);
+
+  const V p3d2 = dot(p3, p3);
+  bestD2       = select(p3d2 < bestD2, p3d2, bestD2);
+
+  const V y1d2 = dot(y1, y1);
+  bestD2       = select(both(onEdge(t1), y1d2 < bestD2), y1d2, bestD2);
+
+  const V y2d2 = dot(y2, y2);
+  bestD2       = select(both(onEdge(t2), y2d2 < bestD2), y2d2, bestD2);
+
+  const V y3d2 = dot(y3, y3);
+  bestD2       = select(both(onEdge(t3), y3d2 < bestD2), y3d2, bestD2);
+
+  return select(inside, faceD * faceD, bestD2);
+}
+
 } // namespace TriangleDistance
 
 } // namespace EBGeometry

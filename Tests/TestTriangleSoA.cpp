@@ -386,6 +386,39 @@ struct TriangleAoSoAFaceIdQuery
   }
 };
 
+// nearestLane()'s lane, and its squared distance, as a pair of queries.
+template <class T>
+struct TriangleAoSoANearestLaneQuery
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  int
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    T d2 = T(0);
+
+    return static_cast<int>(m_group.nearestLane(a_point, d2));
+  }
+};
+
+template <class T>
+struct TriangleAoSoANearestDistance2Query
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    T d2 = T(0);
+
+    (void)m_group.nearestLane(a_point, d2);
+
+    return d2;
+  }
+};
+
 // Require two integer result lists to be identical, element by element.
 inline void
 requireSameIntegers(const std::vector<int>& a_device, const std::vector<int>& a_host)
@@ -427,6 +460,11 @@ TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
 
   requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAClosestFaceIdQuery<T>{group}, points),
                       evaluateOnHost<int>(TriangleAoSoAClosestFaceIdQuery<T>{group}, points));
+
+  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoANearestLaneQuery<T>{group}, points),
+                      evaluateOnHost<int>(TriangleAoSoANearestLaneQuery<T>{group}, points));
+  requireSameResults(evaluateOnDevice<T>(TriangleAoSoANearestDistance2Query<T>{group}, points),
+                     evaluateOnHost<T>(TriangleAoSoANearestDistance2Query<T>{group}, points));
 
   std::vector<int> lanes;
 
@@ -607,6 +645,18 @@ checkAgainstTriangles()
       }
 
       REQUIRE(group.signedDistance(p) == expected);
+
+      // nearestLane(): a lane whose |value| is the minimum, with its squared distance; signedDistanceAt()
+      // gives that lane's value bit for bit, as signedDistances() does.
+      T              d2   = T(-1);
+      const uint32_t lane = group.nearestLane(p, d2);
+
+      const double margin = tightMargin<T>() * (1.0 + static_cast<double>(std::abs(expected)));
+
+      REQUIRE(lane < count);
+      REQUIRE(group.signedDistanceAt(lane, p) == lanes[lane]);
+      REQUIRE_THAT(std::abs(lanes[lane]), withinAbsT(std::abs(expected), margin));
+      REQUIRE_THAT(std::sqrt(d2), withinAbsT(std::abs(lanes[lane]), margin));
     }
   }
 }

@@ -162,6 +162,93 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 }
 
 template <class T, size_t W>
+template <size_t N>
+EBGEOMETRY_HOST
+void
+TriangleSoAT<T, W>::unsignedDistances2SIMD(const Vec3T<T>& a_p, T* a_d2) const noexcept
+{
+  static_assert(W % N == 0, "TriangleSoAT: the SIMD lane count must divide W");
+
+  using V = SIMD::Pack<T, N>;
+
+  const TriangleDistance::Vec3V<V> point{V(a_p[0]), V(a_p[1]), V(a_p[2])};
+
+  if constexpr (N == W) {
+    TriangleDistance::unsignedDistance2<V>(LaneSource<V>{this, 0}, point).store(a_d2);
+  }
+  else {
+    for (size_t c = 0; c < m_validCount; c += N) {
+      TriangleDistance::unsignedDistance2<V>(LaneSource<V>{this, c}, point).store(a_d2 + c);
+    }
+  }
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+uint32_t
+TriangleSoAT<T, W>::nearestLane(const Vec3T<T>& a_point, T& a_d2) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_validCount >= 1U);
+  EBGEOMETRY_EXPECT(m_validCount <= W);
+
+  constexpr size_t N = SIMD::NativeWidth<T, W>();
+
+  uint32_t best = 0;
+
+  if constexpr (N > 1) {
+    alignas(N * sizeof(T)) T d2[W];
+
+    this->template unsignedDistances2SIMD<N>(a_point, d2);
+
+    a_d2 = d2[0];
+
+    for (uint32_t i = 1; i < m_validCount; i++) {
+      if (d2[i] < a_d2) {
+        a_d2 = d2[i];
+        best = i;
+      }
+    }
+  }
+  else {
+    const TriangleDistance::Vec3V<T> point{a_point[0], a_point[1], a_point[2]};
+
+    a_d2 = TriangleDistance::unsignedDistance2<T>(LaneSource<T>{this, 0}, point);
+
+    for (uint32_t i = 1; i < m_validCount; i++) {
+      const T d2 = TriangleDistance::unsignedDistance2<T>(LaneSource<T>{this, i}, point);
+
+      if (d2 < a_d2) {
+        a_d2 = d2;
+        best = i;
+      }
+    }
+  }
+
+  return best;
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+T
+TriangleSoAT<T, W>::signedDistanceAt(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_lane < m_validCount);
+
+  // Bit for bit the value signedDistances() gives the lane. Where a SIMD register fits (the host) that is
+  // the SIMD kernel, whose rounding (fused multiply-adds) can differ from the one-lane kernel's in the last
+  // place, so the whole group is evaluated; elsewhere (a device) signedDistances() is the one-lane kernel,
+  // run here on the one lane.
+  constexpr size_t N = SIMD::NativeWidth<T, W>();
+
+  if constexpr (N > 1) {
+    return this->signedDistances(a_point)[a_lane];
+  }
+  else {
+    return this->signedDistanceLane(a_lane, a_point);
+  }
+}
+
+template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
 T
 TriangleSoAT<T, W>::signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept

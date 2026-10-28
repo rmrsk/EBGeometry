@@ -857,8 +857,9 @@ out-of-bounds write.
 Splitting the bound from the leaf callback like this is what lets very different searches share one
 walk: a nearest-neighbor search over a point cloud tracks a plain running squared distance as its state
 (no ``abs()``, no square root in the hot path) with a bound that returns the state unchanged, whereas
-``MeshSDF``/``TriMeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`) track a signed distance and
-square its magnitude for the bound, and a closest-hit ray search tracks the nearest crossing -- all
+``MeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`) tracks a signed distance and squares its
+magnitude for the bound (``TriMeshSDF`` tracks a squared unsigned distance on the host and signs the
+winner at the end), and a closest-hit ray search tracks the nearest crossing -- all
 ordinary calls of the same ``traverse()`` with a ``PointQuery`` or a ``RayQuery``, not special cases
 in ``PackedBVH``. The first needs nothing more than a bare point struct with no ``signedDistance()``
 member at all.
@@ -982,9 +983,17 @@ boundary condition.
 Structure-of-Arrays groups of width ``W`` (via ``TreeBVH::packWith()``, see above) and builds the
 same kind of thin ``traverse()`` wrapper (a ``PointQuery``) as ``MeshSDF``, over ``TriangleAoSoA<T, W>``
 leaves instead of individual faces, so that on a matching ``(K, T)`` combination each BVH leaf
-evaluates ``W`` triangles with a single SIMD register operation, and even the AABB-vs-running-best
-comparisons during descent are done on squared distances (no square root) until the very last
-step. See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen
+evaluates ``W`` triangles with a single SIMD register operation. On the host the search works on squared
+unsigned distances throughout, the boxes' and the triangles' (``TriangleAoSoA::nearestLane()``, with
+``TriangleDistance::unsignedDistance2()``), and keeps the nearest group and lane; only that one triangle
+is signed, with its pseudonormal, once per query (``signedDistanceAt()``). Signing every triangle as it
+was tested cost each one six pseudonormal dot products and a square root; on a grid of queries over a
+100,000-triangle mesh, signing only the winner made a query about 1.13 times faster, with the same values
+bit for bit except at near-ties: ranking by squared distance can pick a different triangle where two are
+equally near to rounding, so there a host value may differ in the last place from a device's. A device
+still signs every triangle: ``TriMeshSDF`` is a built-in tape primitive, so its
+search is compiled into every tape's device kernels, whose register allocation it shifted (some tapes
+faster, others 19% slower). See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen
 page for TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage
 itself.
 
