@@ -354,6 +354,10 @@ public:
     if (hit.hit() && !onFloor) {
       a_result.m_hits++;
 
+      if (a_result.m_primitive == 0xFFFFFFFFU) {
+        a_result.m_primitive = hit.m_primitive;
+      }
+
       if (!hit.m_entering) {
         a_result.m_insideHits++;
       }
@@ -1503,11 +1507,13 @@ Renderer<T>::collect(const std::vector<PixelResult>& a_results, Image& a_image) 
   a_image.m_width  = m_settings.m_width;
   a_image.m_height = m_settings.m_height;
   a_image.m_pixels.resize(a_results.size());
+  a_image.m_primitives.resize(a_results.size());
 
   Stats stats;
 
   for (size_t i = 0; i < a_results.size(); i++) {
-    a_image.m_pixels[i] = a_results[i].m_rgba;
+    a_image.m_pixels[i]     = a_results[i].m_rgba;
+    a_image.m_primitives[i] = a_results[i].m_primitive;
 
     stats.m_hits += a_results[i].m_hits;
     stats.m_insideHits += a_results[i].m_insideHits;

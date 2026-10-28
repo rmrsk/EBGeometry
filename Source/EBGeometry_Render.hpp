@@ -494,6 +494,12 @@ struct Image
   std::vector<uint32_t> m_pixels;
 
   /**
+   * @brief For each pixel, the primitive its first ray hit (HitT::m_primitive), or 0xFFFFFFFF where it hit
+   * none (the floor, the background); for outlining a picked object.
+   */
+  std::vector<uint32_t> m_primitives;
+
+  /**
    * @brief One pixel.
    * @param[in] a_column Column, from the left.
    * @param[in] a_row    Row, from the top.
@@ -568,6 +574,11 @@ struct PixelResult
    * @brief Pixel 0 only: whether the eye is inside the solid.
    */
   uint8_t m_cameraInside = 0;
+
+  /**
+   * @brief The primitive the pixel's first ray hit (HitT::m_primitive), or 0xFFFFFFFF where it hit none.
+   */
+  uint32_t m_primitive = 0xFFFFFFFFU;
 };
 
 namespace RenderDetail {

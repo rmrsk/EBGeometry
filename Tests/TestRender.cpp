@@ -1111,6 +1111,15 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
 
       CHECK(different <= host.m_pixels.size() / 100);
       CHECK(hostStats.m_hits > 0U);
+
+      // The same objects under the same pixels, but for rays that graze a surface.
+      size_t otherObject = 0;
+
+      for (size_t i = 0; i < host.m_primitives.size(); i++) {
+        otherObject += (host.m_primitives[i] != device.m_primitives[i]) ? 1U : 0U;
+      }
+
+      CHECK(otherObject <= host.m_primitives.size() / 100);
       CHECK(std::abs(double(hostStats.m_hits) - double(deviceStats.m_hits)) <= double(hostStats.m_rays) / 100);
     }
   }
@@ -1253,6 +1262,17 @@ TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the imag
 
   CHECK(at(highlighted, T(-1)) == at(plainImage, T(-1)));
   CHECK(at(highlighted, T(1)) != at(plainImage, T(1)));
+
+  // The image records each pixel's object: a sphere's leaf where it is seen, none in the background.
+  REQUIRE(plainImage.m_primitives.size() == plainImage.m_pixels.size());
+
+  const auto objectAt = [&](const T a_x) {
+    return plainImage.m_primitives[std::size_t(row(T(0))) * size + std::size_t(column(a_x))];
+  };
+
+  CHECK(objectAt(T(-1)) == 0U);
+  CHECK(objectAt(T(1)) == 1U);
+  CHECK(plainImage.m_primitives.front() == 0xFFFFFFFFU);
 
   // In a drilled box the hole's wall is the drill's surface: leaf 1, picked apart from the box's faces, leaf
   // 0. The ray from (0.5, 0, 3) towards (-0.5, 0, -1) enters the hole at z = 1 and meets its wall at

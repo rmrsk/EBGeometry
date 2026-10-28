@@ -485,9 +485,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   bool    picked = false;
   HitT<T> pick;
-  bool    warned  = false;
-  bool    running = true;
-  bool    changed = true;
+
+  // The frame with the picked object outlined.
+  std::vector<uint32_t> outlined;
+  bool                  warned  = false;
+  bool                  running = true;
+  bool                  changed = true;
 
   // The next refinement stage to render (0: none left), and when the camera last moved.
   int  pending    = 0;
@@ -667,7 +670,50 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       texHeight = a_image.m_height;
     }
 
-    SDL_UpdateTexture(texture, nullptr, a_image.m_pixels.data(), static_cast<int>(4U * a_image.m_width));
+    // A picked object is outlined: the pixels next to it, within two pixels, that are not part of it turn
+    // gold, so its own colours stay as they are. A mesh SDF is one object, whatever face a pixel shows.
+    const uint32_t* pixels = a_image.m_pixels.data();
+
+    if (picked && a_image.m_primitives.size() == a_image.m_pixels.size()) {
+      const auto inside = [&](const int a_x, const int a_y) {
+        const uint32_t id = a_image.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
+
+        return primitivesAreFaces<S> ? id != 0xFFFFFFFFU : id == pick.m_primitive;
+      };
+
+      const int width  = static_cast<int>(a_image.m_width);
+      const int height = static_cast<int>(a_image.m_height);
+      const int reach  = 2;
+
+      outlined = a_image.m_pixels;
+
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          if (inside(x, y)) {
+            continue;
+          }
+
+          bool near = false;
+
+          for (int dy = -reach; dy <= reach && !near; dy++) {
+            for (int dx = -reach; dx <= reach && !near; dx++) {
+              const int u = x + dx;
+              const int v = y + dy;
+
+              near = u >= 0 && v >= 0 && u < width && v < height && inside(u, v);
+            }
+          }
+
+          if (near) {
+            outlined[std::size_t(y) * a_image.m_width + std::size_t(x)] = 0xFFB81AFFU;
+          }
+        }
+      }
+
+      pixels = outlined.data();
+    }
+
+    SDL_UpdateTexture(texture, nullptr, pixels, static_cast<int>(4U * a_image.m_width));
 
     status = std::string("EBGeometry: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
              std::to_string(a_image.m_width) + "x" + std::to_string(a_image.m_height) + " in " +
@@ -843,12 +889,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
             // The object picked: a tape's leaf, a fused composition's part, a union's member; a mesh SDF is one
             // object, whose primitive is the face picked on it.
-            if (!picked) {
-              settings.m_highlightPrimitive = Settings<T>::NoPrimitive;
-            }
-            else if (primitivesAreFaces<S>) {
-              settings.m_highlightPrimitive = Settings<T>::AllPrimitives;
-
+            if (picked && primitivesAreFaces<S>) {
               std::printf("EBGeometry viewer: picked object 0, face %u, at (%g, %g, %g), normal (%g, %g, %g)\n",
                           unsigned(pick.m_primitive),
                           double(pick.m_point[0]),
@@ -858,9 +899,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                           double(pick.m_normal[1]),
                           double(pick.m_normal[2]));
             }
-            else {
-              settings.m_highlightPrimitive = pick.m_primitive;
-
+            else if (picked) {
               std::printf("EBGeometry viewer: picked object %u at (%g, %g, %g), normal (%g, %g, %g)\n",
                           unsigned(pick.m_primitive),
                           double(pick.m_point[0]),

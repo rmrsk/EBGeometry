@@ -95,8 +95,9 @@ into a program, G switches between the GPU and the CPU, H shows or hides the ove
 and Esc or Q closes the window. A click (the left button, without dragging) picks the object under the
 cursor: a tape's leaf (so that a drilled solid's outer surface and its hole are picked apart), a fused
 composition's part, a union's member, or a mesh SDF as a whole (``primitivesAreFaces``), whose face is
-named too. It highlights the object (``Settings::AllPrimitives`` highlights a whole shape) and prints its
-id, the point and the normal; a click on the background clears it. The overlay, in the top left corner, shows the frame (its size and time,
+named too. It outlines the object in gold, leaving its colours as they are, from the object each pixel's
+first ray hit (``Image::m_primitives``), and prints its id, the point and the normal; a click on the
+background clears it. (``Settings::m_highlightPrimitive`` tints an object in the render itself.) The overlay, in the top left corner, shows the frame (its size and time,
 the hits) and then, in groups (the camera and the light, rendering, the section and its contours,
 picking, the window), each group's state and the keys that change it; the keys are also printed, in the same groups,
 when the window opens. The window can be resized, and renders at its size in
