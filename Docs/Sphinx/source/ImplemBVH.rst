@@ -857,8 +857,9 @@ out-of-bounds write.
 Splitting the bound from the leaf callback like this is what lets very different searches share one
 walk: a nearest-neighbor search over a point cloud tracks a plain running squared distance as its state
 (no ``abs()``, no square root in the hot path) with a bound that returns the state unchanged, whereas
-``MeshSDF``/``TriMeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`) track a signed distance and
-square its magnitude for the bound, and a closest-hit ray search tracks the nearest crossing -- all
+``MeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`) tracks a signed distance and squares its
+magnitude for the bound (``TriMeshSDF`` tracks a squared unsigned distance on the host and signs the
+winner at the end), and a closest-hit ray search tracks the nearest crossing -- all
 ordinary calls of the same ``traverse()`` with a ``PointQuery`` or a ``RayQuery``, not special cases
 in ``PackedBVH``. The first needs nothing more than a bare point struct with no ``signedDistance()``
 member at all.
