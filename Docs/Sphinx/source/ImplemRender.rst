@@ -81,7 +81,8 @@ The viewer
 overloads take a camera and settings, and a device view of the shape to render on a GPU.
 ``Render::view(shape, pool, argc, argv)`` takes instead the pool the shape lives in: in a GPU build with a
 visible device it freezes the pool, mirrors it for as long as the window is open and renders through the
-shape's ``rebasedView()`` of the copy, and otherwise renders on the host.
+shape's ``rebasedView()`` of the copy, and otherwise renders on the host. The pool is frozen before the
+window opens, so it stays frozen even if SDL then cannot open one.
 
 While the camera moves the window shows a quick preview (one ray per pixel, no shadows, at a resolution
 it adapts to keep each preview at a few tens of milliseconds). Once the camera rests it refines on a

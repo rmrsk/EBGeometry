@@ -924,6 +924,15 @@ TEMPLATE_TEST_CASE("Render: an orthographic camera shows a sphere as a disc of i
 
   CHECK(zoomed.m_hits == zoomed.m_rays);
   CHECK(zoomed.m_insideHits == 0U);
+
+  // The near clip is measured from the plane through the eye: 0.3 in front of it lies inside the sphere,
+  // so every ray starts seeing inside it and meets its far wall from within.
+  camera.m_nearClip = T(0.3);
+
+  const Render::Stats clipped = Render::Renderer<T>(plain<T>(size)).render(sphere, camera, image);
+
+  CHECK(clipped.m_hits == clipped.m_rays);
+  CHECK(clipped.m_insideHits == clipped.m_hits);
 }
 
 TEMPLATE_TEST_CASE("Render: the near clip hides what is nearer than it", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
