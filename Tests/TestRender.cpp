@@ -495,7 +495,17 @@ TEMPLATE_TEST_CASE("Render: view returns at once when asked not to open a window
 
   Render::view(sphere, argc, argv);
   Render::view(sphere, Render::Camera<T>::fit(sphere.computeBoundingVolume()), settings, argc, argv);
+  Render::view(sphere, sphere, argc, argv);
   Render::view(sphere, sphere, Render::Camera<T>(), settings, argc, argv);
+
+  // A shape in a pool: with the window shut, the pool is not mirrored, nor frozen.
+  Pool          pool(hostMemoryResource());
+  const Tape<T> tape(pool, Expr<T>(sphere));
+
+  Render::view(tape, pool, argc, argv);
+  Render::view(tape, pool, Render::Camera<T>(), settings, argc, argv);
+
+  CHECK_FALSE(pool.isFrozen());
 
   // An unbounded shape gets the default camera rather than a fit that would fail.
   Render::view(PlaneSDF<T>(Vec3T<T>::zeros(), Vec3T<T>(T(0), T(1), T(0))), argc, argv);

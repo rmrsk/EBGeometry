@@ -189,6 +189,7 @@ main(int argc, char* argv[])
   // expression builder and a Tape (see the BasicCSG example); Translate moves each to its place. A window
   // opens when built with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why
   // and returns.
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   const std::vector<EBGeometry::Expr<T>> bounded{
     sphere, box, torus, cylinder, capsule, cone, roundedBox, roundedCylinder};
 
@@ -200,7 +201,7 @@ main(int argc, char* argv[])
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  EBGeometry::Render::view(EBGeometry::Tape<T>(pool, EBGeometry::Union(gallery)), argc, argv);
+  EBGeometry::Render::view(EBGeometry::Tape<T>(pool, EBGeometry::Union(gallery)), pool, argc, argv);
 
   return 0;
 }

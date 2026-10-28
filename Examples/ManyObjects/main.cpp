@@ -291,9 +291,10 @@ main(int argc, char* argv[])
   // A window on the random city, a BVH union of boxes (built with VIEWER=SDL2; otherwise, with --no-view or
   // without a display, view() prints why and returns). Drag to orbit, scroll to zoom, X cuts it open, P
   // colours each primitive. The buildings rise along z, so the camera is fitted with z up.
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   const auto camera = EBGeometry::Render::Camera<T>::fit(city.computeBoundingVolume(), Vec3(T(0), T(0), T(1)));
 
-  EBGeometry::Render::view(city, camera, EBGeometry::Render::Settings<T>(), argc, argv);
+  EBGeometry::Render::view(city, pool, camera, EBGeometry::Render::Settings<T>(), argc, argv);
 
   return 0;
 }

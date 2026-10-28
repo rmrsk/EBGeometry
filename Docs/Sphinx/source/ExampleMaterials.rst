@@ -68,7 +68,7 @@ Building and running
 --------------------
 
 See :ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a direct compiler invocation.
-It runs on the host only.
+Built for a GPU (see :ref:`Sec:ExamplesGPU`), the window renders on the device.
 
 .. code-block:: bash
 

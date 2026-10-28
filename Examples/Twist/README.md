@@ -5,7 +5,8 @@ An operation of your own: a twist about the y axis, written as a small trivially
 another shape and evaluates it at a point turned back by an angle growing with height. It twists the
 armadillo, read from a file. A twist does not keep distances, so the value is divided by the most the twist
 stretches lengths inside the twisted box, which keeps it a lower bound on the distance (`DistanceQuality::Bound`) and keeps sphere
-tracing and BVH pruning safe. The twisted copy is listed as a user type of a `Tape` beside the original.
+tracing and BVH pruning safe. The window shows the twisted statue; in a GPU build it renders on the device,
+through the `rebasedView()` that `Twisted` provides.
 
 The default mesh comes from the `common-3d-test-models` git submodule: clone the repository with
 `--recurse-submodules`, or run `git submodule update --init` in it. Pass another mesh as the first
@@ -47,6 +48,16 @@ This produces `./Twist.ex`. Override the defaults on the command line:
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
+
+**For a GPU**
+
+The same source also builds for a GPU, and the window (below) then renders on the device (a GPU
+build without a visible GPU renders on the host):
+
+    make GPU=HIP HIP_ARCH=gfx90a VIEWER=SDL2                                 # or GPU=CUDA
+    cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP -DEBGEOMETRY_VIEWER=SDL2   # or CUDA
+
+See [GPU builds](https://rmrsk.github.io/EBGeometry/Examples.html#sec-examplesgpu) in the user documentation.
 
 **With the viewer**
 

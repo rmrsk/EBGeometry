@@ -10,7 +10,6 @@
 #include <chrono>
 #include <cstddef>
 #include <iostream>
-#include <optional>
 #include <random>
 #include <string>
 #include <vector>
@@ -170,18 +169,15 @@ try {
   // vector. In a plain C++ build, memoryResource() is host memory standing in for a device and transform()
   // is a host loop, so these lines also run there. The values agree with the host's to rounding, since
   // a device compiler may fuse a multiply and an add where the host compiler does not.
-  // The device copy is kept until the end of main(), for the viewer below.
-  std::optional<EBGeometry::Pool> devicePool;
-
   if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
     std::cout << "\nOn the device: skipped, no GPU is visible\n";
   }
   else {
     pool.freeze();
 
-    devicePool.emplace(EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource()));
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource());
 
-    const Distance query{triSDF.rebasedView(*devicePool)};
+    const Distance query{triSDF.rebasedView(devicePool)};
 
     std::vector<T> onDevice(points.size());
 
@@ -200,18 +196,10 @@ try {
   // section plane, P to colour each face differently. A surface seen from inside the solid is drawn red,
   // which is what an inverted mesh (faces wound the wrong way) looks like. The window needs SDL2: build
   // with make VIEWER=SDL2 or cmake -DEBGEOMETRY_VIEWER=SDL2. Otherwise, with --no-view, or without a
-  // display, view() prints why and returns. The camera starts fitted to the mesh's bounding box. In a GPU
-  // build it renders on the device, through the same device view as the query above (G switches to the
-  // CPU and back).
-  if (EBGeometry::GPU::enabled && devicePool) {
-    const auto camera = EBGeometry::Render::Camera<T>::fit(box);
-
-    EBGeometry::Render::view(
-      triSDF, triSDF.rebasedView(*devicePool), camera, EBGeometry::Render::Settings<T>(), argc, argv);
-  }
-  else {
-    EBGeometry::Render::view(triSDF, argc, argv);
-  }
+  // display, view() prints why and returns. The camera starts fitted to the mesh's bounding box. Given the
+  // pool, it renders on the device in a GPU build, through a view of the mesh on a mirror of the pool (G
+  // switches to the CPU and back).
+  EBGeometry::Render::view(triSDF, pool, argc, argv);
 
   return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {

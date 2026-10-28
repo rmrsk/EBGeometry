@@ -100,6 +100,7 @@ try {
   //
   // ColourBy::Primitive colours each surface by the leaf it belongs to, from the same HitT::m_primitive (built
   // with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why and returns).
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   EBGeometry::Render::Settings<T> settings;
   settings.m_colourBy = EBGeometry::Render::ColourBy::Primitive;
 
@@ -108,7 +109,7 @@ try {
   camera.m_yaw   = T(20);
   camera.m_pitch = T(5);
 
-  EBGeometry::Render::view(tape, camera, settings, argc, argv);
+  EBGeometry::Render::view(tape, pool, camera, settings, argc, argv);
 
   return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {

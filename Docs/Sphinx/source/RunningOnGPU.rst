@@ -185,7 +185,7 @@ Rendering on a GPU
 mirrored pool, exactly as for a query (:ref:`Chap:ImplemRender`). It renders the image in up to eight
 bands of rows, one launch each (so that a render can be stopped between them), into one buffer in device
 memory, copied back to the host once. ``Render::view()`` takes the same device view to render its window
-on the GPU.
+on the GPU, or the pool, which it then mirrors itself.
 
 GPU::parallelFor
 ----------------

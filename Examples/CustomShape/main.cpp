@@ -294,7 +294,8 @@ main(int argc, char* argv[])
   // A window on the octahedra around the sphere, a tape with a shape of your own (built with VIEWER=SDL2;
   // otherwise, with --no-view or without a display, view() prints why and returns). Drag to orbit, scroll to
   // zoom, X cuts it open, P colours each primitive.
-  EBGeometry::Render::view(tape, argc, argv);
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
+  EBGeometry::Render::view(tape, pool, argc, argv);
 
   return 0;
 }

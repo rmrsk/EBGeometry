@@ -37,7 +37,8 @@ is two levels up from this folder (`../..`) when building in place. See
 for more detail on each approach.
 
 By default each method builds plain C++, which runs the example on the host. Asked for a GPU build, the
-same source is compiled as HIP or CUDA, and the grid of queries runs in the example's own kernel.
+same source is compiled as HIP or CUDA, and the grid of queries runs in the example's own kernel; built
+with the viewer (below), the window then renders on the device too.
 
 **CMake**
 

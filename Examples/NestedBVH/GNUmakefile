@@ -5,7 +5,8 @@
 # PRECISION selects the floating-point type (float or double). ASSERTIONS
 # (ON/OFF) toggles EBGEOMETRY_EXPECT() runtime assertion checks. GPU (OFF, HIP or
 # CUDA) compiles the example for a GPU with hipcc or nvcc, so that the same run
-# also does its queries on the device (HIP_ARCH and CUDA_ARCH pick the target;
+# does its device part there: the window renders on the device, and queries
+# through GPU::transform run there too (HIP_ARCH and CUDA_ARCH pick the target;
 # run `make clean` after switching). VIEWER (OFF or SDL2) builds the window the
 # example opens at the end, which needs SDL2. Override any of these on
 # the command line, e.g.:

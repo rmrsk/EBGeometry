@@ -42,22 +42,18 @@ Using it
 --------
 
 The program prints the original's and the twisted copy's values at three heights; at :math:`y = 0` the
-twist turns nothing and the two differ only by the factor. A type of your own goes into a tape listed
-after ``T``:
-
-.. code-block:: c++
-
-   const Tape<T, Twisted<Tape<T>>> scene(pool, Union(placed, Translate(Expr<T>(twisted), Vec3(1.6, 0, 0))));
-
-A twist built into the library, with the tape's and the fused operations' arithmetic and a ray form, is
+twist turns nothing and the two differ only by the factor. Like any shape of your own, the twisted
+statue can also go into a tape, listed after ``T`` (see :ref:`Chap:ExampleCustomShape`). A twist built into the library, with the tape's and the fused operations' arithmetic and a ray form, is
 on the roadmap
 (`#241 <https://github.com/rmrsk/EBGeometry/issues/241>`__).
 
 Looking at it
 -------------
 
-The example ends with ``Render::view(scene, argc, argv)``, a window on the armadillo and its twisted
-copy. The twisted copy has no ray form, so the renderer sphere traces it, which the bound makes safe.
+The example ends with ``Render::view(twisted, pool, argc, argv)``, a window on the twisted armadillo. It
+has no ray form, so the renderer sphere traces it, which the bound makes safe. In a GPU build the window
+renders on the device, through ``rebasedView()``: ``Twisted`` gives the view of its shape onto a mirror
+of the pool, as the library's own wrappers do.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
@@ -68,7 +64,7 @@ Building and running
 --------------------
 
 See :ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a direct compiler invocation.
-It runs on the host only.
+Built for a GPU (see :ref:`Sec:ExamplesGPU`), the window renders on the device.
 
 .. code-block:: bash
 

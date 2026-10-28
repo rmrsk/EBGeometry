@@ -69,6 +69,8 @@ compares them with the host's (a GPU build without a visible GPU skips that part
     cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA
     hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o NestedBVH.ex -pthread
 
+Built with the viewer (below), the window then renders on the device too.
+
 See [GPU builds](https://rmrsk.github.io/EBGeometry/Examples.html#sec-examplesgpu) in the user documentation.
 
 **With the viewer**

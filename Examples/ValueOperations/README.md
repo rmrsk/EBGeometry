@@ -43,6 +43,16 @@ This produces `./ValueOperations.ex`. Override the defaults on the command line:
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
 
+**For a GPU**
+
+The same source also builds for a GPU, and the window (below) then renders on the device (a GPU
+build without a visible GPU renders on the host):
+
+    make GPU=HIP HIP_ARCH=gfx90a VIEWER=SDL2                                 # or GPU=CUDA
+    cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP -DEBGEOMETRY_VIEWER=SDL2   # or CUDA
+
+See [GPU builds](https://rmrsk.github.io/EBGeometry/Examples.html#sec-examplesgpu) in the user documentation.
+
 **With the viewer**
 
 At the end the example opens a window on what it built (`EBGeometry::Render::view()`). The window needs

@@ -61,7 +61,10 @@ The viewer
 ----------
 
 ``Render::view(shape, argc, argv)`` opens a window on a shape, from a camera fitted to its box;
-overloads take a camera and settings, and a device view of the shape to render on a GPU. Drag to orbit,
+overloads take a camera and settings, and a device view of the shape to render on a GPU.
+``Render::view(shape, pool, argc, argv)`` takes instead the pool the shape lives in: in a GPU build with a
+visible device it freezes the pool, mirrors it for as long as the window is open and renders through the
+shape's ``rebasedView()`` of the copy, and otherwise renders on the host. Drag to orbit,
 scroll to zoom; S, A and F toggle shadows, ambient occlusion and the floor, P colours by primitive, X
 cuts the shape with a section plane facing the camera (the arrow keys move it), G switches between the
 GPU and the CPU, R resets the camera, and Esc or Q closes the window. While the camera moves the window

@@ -118,18 +118,18 @@ the run directory. See :ref:`Chap:Building` for the full detail on each build me
 Running on a GPU
 ----------------
 
-Every example except ``BuildBVH``, ``HostTuning``, ``SmoothCSG``, ``Transforms``, ``ValueOperations``,
-``Repetition``, ``MeshCSG``, ``PackedSpheres``, ``Twist``, ``Shell`` and ``Materials`` builds from the same
-source as plain C++ (the
-default) or as CUDA or HIP. Its last section runs its query through ``GPU::transform`` (see
+Every example except ``BuildBVH`` and ``HostTuning`` builds from the same source as plain C++ (the
+default) or as CUDA or HIP. In a GPU build its window renders on the device: ``Render::view()``, given
+the pool the shape lives in, mirrors the pool for as long as the window is open and renders through the
+shape's view of the copy (G switches to the CPU and back). An example with a section of queries runs it
+through ``GPU::transform`` (see
 :ref:`Chap:RunningOnGPU`): in a kernel in a GPU build, and in a host loop otherwise, so that section
 runs in every build. Pool-resident geometry is mirrored into ``GPU::memoryResource()``, which is
 device memory in a GPU build and host memory standing in for it otherwise. Only a GPU build with no
 visible GPU skips the section, with a message. Device results agree with the host's to rounding
 rather than bit for bit, since a device compiler may fuse a multiply and an add where the host
 compiler does not. ``BuildBVH`` and ``HostTuning`` stay host-only: they are about the BVH builders
-and the host-tuned types, neither of which a device uses. The other nine are host-only too: their tapes and
-unions reach a device exactly as those of :ref:`Chap:ExampleBasicCSG` and :ref:`Chap:ExampleManyObjects` do.
+and the host-tuned types, neither of which a device uses, and open no window.
 
 Each query is a small trivially copyable struct whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
 holding what it evaluates by value. :ref:`Chap:ExampleCustomShape` writes the kernel out instead, to

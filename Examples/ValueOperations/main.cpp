@@ -67,13 +67,14 @@ main(int argc, char* argv[])
   //
   // Two rows of three (built with VIEWER=SDL2; otherwise, with --no-view or without a display, view()
   // prints why and returns).
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   std::vector<Expr> rows;
 
   for (std::size_t i = 0; i < operated.size(); i++) {
     rows.push_back(EBGeometry::Translate(operated[i].second, Vec3(T(2) * (T(i % 3) - T(1)), T(0), T(2) * T(i / 3))));
   }
 
-  EBGeometry::Render::view(Tape(pool, EBGeometry::Union(rows)), argc, argv);
+  EBGeometry::Render::view(Tape(pool, EBGeometry::Union(rows)), pool, argc, argv);
 
   return 0;
 }

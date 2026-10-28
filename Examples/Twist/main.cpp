@@ -63,6 +63,14 @@ struct Twisted
     return AABB(Vec3(-m_radius, box.getLowCorner()[1], -m_radius), Vec3(m_radius, box.getHighCorner()[1], m_radius));
   }
 
+  // The same twist of the shape's view onto another pool, a mirror of its own: how the viewer renders it on a
+  // GPU (see the BasicCSG example).
+  [[nodiscard]] Twisted
+  rebasedView(const EBGeometry::Pool& a_pool) const noexcept
+  {
+    return Twisted{m_shape.rebasedView(a_pool), m_rate, m_radius, m_lipschitz};
+  }
+
   static constexpr EBGeometry::DistanceQuality distanceQuality = EBGeometry::DistanceQuality::Bound;
 };
 
@@ -135,13 +143,10 @@ try {
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // The statue and its twisted copy side by side, in a tape: a type of your own is listed after T. A
-  // window opens when built with VIEWER=SDL2; otherwise, with --no-view or without a display, view()
-  // prints why and returns. The renderer sphere traces the twisted copy, which the bound makes safe.
-  const EBGeometry::Tape<T, Twisted<Tape>> scene(
-    pool, EBGeometry::Union(placed, EBGeometry::Translate(Expr(twisted), Vec3(T(1.6), T(0), T(0)))));
-
-  EBGeometry::Render::view(scene, argc, argv);
+  // A window opens when built with VIEWER=SDL2; otherwise, with --no-view or without a display, view()
+  // prints why and returns. The renderer sphere traces the twisted statue, which the bound makes safe. In a
+  // GPU build it renders on the device, through rebasedView() onto a mirror of the pool.
+  EBGeometry::Render::view(twisted, pool, argc, argv);
 
   return 0;
 } catch (const EBGeometry::Parser::ParseError& e) {

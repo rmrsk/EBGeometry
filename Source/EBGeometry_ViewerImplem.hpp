@@ -625,6 +625,16 @@ view(const S&                           a_shape,
 
 template <class S>
 inline void
+view(const S& a_shape, const S& a_deviceShape, int a_argc, char** a_argv)
+{
+  using T = ShapePrecision<S>;
+
+  ViewerDetail::start<T, S>(
+    a_shape, &a_deviceShape, ViewerDetail::initialCamera<T>(a_shape), Settings<T>(), a_argc, a_argv);
+}
+
+template <class S>
+inline void
 view(const S&                           a_shape,
      const S&                           a_deviceShape,
      const Camera<ShapePrecision<S>>&   a_camera,
@@ -633,6 +643,46 @@ view(const S&                           a_shape,
      char**                             a_argv)
 {
   ViewerDetail::start<ShapePrecision<S>, S>(a_shape, &a_deviceShape, a_camera, a_settings, a_argc, a_argv);
+}
+
+template <class S>
+inline void
+view(const S& a_shape, Pool& a_pool, int a_argc, char** a_argv)
+{
+  using T = ShapePrecision<S>;
+
+  view(a_shape, a_pool, ViewerDetail::initialCamera<T>(a_shape), Settings<T>(), a_argc, a_argv);
+}
+
+template <class S>
+inline void
+view(const S&                           a_shape,
+     Pool&                              a_pool,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     int                                a_argc,
+     char**                             a_argv)
+{
+  using T = ShapePrecision<S>;
+
+#ifdef EBGEOMETRY_VIEWER_SDL2
+  // Mirror only when a window will open on a device; the mirror lives as long as the window.
+  if (GPU::enabled && GPU::deviceAvailable() && !ViewerDetail::noViewRequested(a_argc, a_argv) &&
+      ViewerDetail::displayAvailable()) {
+    a_pool.freeze();
+
+    const Pool mirror      = Pool::mirror(a_pool, GPU::memoryResource());
+    const S    deviceShape = a_shape.rebasedView(mirror);
+
+    ViewerDetail::start<T, S>(a_shape, &deviceShape, a_camera, a_settings, a_argc, a_argv);
+
+    return;
+  }
+#endif
+
+  (void)a_pool;
+
+  ViewerDetail::start<T, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv);
 }
 
 } // namespace EBGeometry::Render
