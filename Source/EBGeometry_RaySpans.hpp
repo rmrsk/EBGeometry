@@ -983,10 +983,13 @@ signChange(const S&       a_shape,
 
   HitT<T> hit;
 
-  // Distances from a_from: the sign changes between sPrev and s once bracketed.
+  // Distances from a_from: the sign changes between sPrev and s once bracketed. A value within a_eps of zero
+  // is the surface only once the search has been further from one: a search starting on a surface (a trace
+  // starting again from a crossing) steps a_eps at a time until it is.
   T    s         = T(0);
   T    sPrev     = T(0);
   bool bracketed = false;
+  bool away      = false;
 
   while (!bracketed) {
     if (a_steps == 0U) {
@@ -1003,12 +1006,13 @@ signChange(const S&       a_shape,
     if ((v < T(0)) != a_inside) {
       bracketed = true;
     }
-    else if (std::abs(v) < a_eps) {
+    else if (std::abs(v) < a_eps && away) {
       break;
     }
     else {
+      away  = away || std::abs(v) >= a_eps;
       sPrev = s;
-      s += std::abs(v);
+      s += Math::max(std::abs(v), a_eps);
 
       if (s > length) {
         return hit;
@@ -1134,7 +1138,7 @@ annularSpans(const S&             a_shell,
     a_spans.m_horizon = Math::min(a_spans.m_horizon, a_t);
   };
 
-  // A search from the surface starts a little past it.
+  // A search from the surface starts a little past it: 2 eps, beyond the march's tolerance of it.
   const auto from = [&a, &onSurface, eps](const T a_to) noexcept -> T {
     return onSurface ? Math::min(a + T(2) * eps, a_to) : a;
   };
@@ -1161,9 +1165,14 @@ annularSpans(const S&             a_shell,
       }
     }
 
+    // Where the search ends: the crossing, or nearer if the ray is known to leave the shell before it.
+    T to = c;
+
     if (inside && onSurface && isSeed) {
-      // Just inside the surface, a step is short: march back from the crossing instead, which finds the
-      // surface where the walk is unless the ray leaves the shell before the crossing.
+      // Just inside the surface, a step is short: march back from the crossing instead. It finds the surface
+      // where the walk is (to within the march's tolerance, so 4 eps, twice the restart's step past it),
+      // unless the ray leaves the shell before the crossing; then the last surface before the crossing is
+      // where the ray leaves it, if it does not leave it earlier.
       const HitT<T> back = RayDetail::signChange(a_shell, a_ray, c, a, true, eps, steps);
 
       if (back.m_status == HitStatus::Unresolved) {
@@ -1178,11 +1187,18 @@ annularSpans(const S&             a_shell,
 
         continue;
       }
+
+      to = back.m_t;
     }
 
     // Inside, a step lands on the surface at normal incidence; outside, the search ends before the crossing.
-    const HitT<T> hit =
-      (from(c) < c) ? RayDetail::signChange(a_shell, a_ray, from(c), c, inside, eps, steps) : HitT<T>();
+    // A bound on the distance never steps past a sign change either.
+    HitT<T> hit = (from(to) < to) ? RayDetail::signChange(a_shell, a_ray, from(to), to, inside, eps, steps) : HitT<T>();
+
+    if (to < c && hit.m_status == HitStatus::Miss) {
+      hit.m_status = HitStatus::Hit;
+      hit.m_t      = to;
+    }
 
     if (hit.m_status == HitStatus::Unresolved) {
       unresolved(hit.m_t);

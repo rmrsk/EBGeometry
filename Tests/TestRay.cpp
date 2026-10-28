@@ -1273,6 +1273,25 @@ TEMPLATE_TEST_CASE("Ray: an annulus is traced from its operand's crossings to it
 
   // Starting again from a crossing: the next one, not the same.
   check(RayT<T>{Vec3(-T(1.2) + T(1e-2), T(0), T(0)), Vec3(T(1), T(0), T(0))}, T(0.4) - T(1e-2), false);
+
+  // Two balls' shell, and a ray grazing the first (at height 1.1, inside its shell over a chord of half
+  // length sqrt(1.2^2 - 1.1^2)) before crossing the second. Started again exactly at the entry into the
+  // first shell, the trace finds where it leaves it, well before the next crossing of the balls.
+  const SphereSDF<T> other(Vec3(T(4), T(1.1), T(0)), T(1));
+
+  const auto    fusedPair = Fused::Annular(Fused::Union(ball, other), delta);
+  const Tape<T> tapePair(pool, Annular(Union(ball, other), delta));
+
+  const T       half = std::sqrt(T(1.44) - T(1.21));
+  const RayT<T> graze{Vec3(-T(3), T(1.1), T(0)), Vec3(T(1), T(0), T(0))};
+
+  for (const HitT<T>& hit :
+       {firstHit(fusedPair, graze, T(3) - half, T(10)), firstHit(tapePair, graze, T(3) - half, T(10))}) {
+    REQUIRE(hit.hit());
+    REQUIRE_FALSE(hit.m_entering);
+    // At this incidence (the cosine is 0.4), the march's tolerance on the value is 2.5 times longer along the ray.
+    REQUIRE_THAT(hit.m_t, withinAbsT(T(3) + half, T(5e-3)));
+  }
 }
 
 TEMPLATE_TEST_CASE("Ray: annuli cut, mapped and around a mesh agree with their values sampled along the ray",
