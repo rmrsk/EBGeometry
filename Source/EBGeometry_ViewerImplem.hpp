@@ -109,16 +109,17 @@ keys(const bool a_device)
                         {"1 2 3", "look from the front, the side, the top"},
                         {"O", "orthographic or perspective camera"},
                         {"R", "reset the camera"},
-                        {"right drag", "move the light (or Shift + drag)"},
-                        {"Left Right", "turn the light"},
+                        {"Ctrl drag", "pan the camera"},
+                        {"right drag", "move the light"},
                         {"P", "colouring: by normal, uniform, by primitive"},
                         {"S", "shadows on or off"},
                         {"A", "ambient occlusion on or off"},
                         {"F", "floor on or off"},
-                        {"X", "section plane: off, facing the camera, across x, y, z"},
+                        {"X", "section plane across x, then y, then z"},
+                        {"Ctrl X", "section plane off"},
                         {"N", "reverse the section (remove the other side)"},
-                        {"Up Down", "move the section plane (Shift: in fine steps)"},
-                        {"Ctrl wheel", "move the section plane in fine steps"}};
+                        {"Ctrl wheel", "move the section plane in fine steps"},
+                        {"Up Down", "move the section plane in coarse steps"}};
 
   if (a_device) {
     list.push_back({"G", "render on the GPU or the CPU"});
@@ -344,22 +345,23 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   const T    diag  = (box.getHighCorner() - box.getLowCorner()).length();
   const T    scale = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
 
-  // The section plane: off (0), as the settings give it (1, only when they turn it on), facing the camera
-  // through its target (2), or across the x, y or z axis through the box's centre (3 to 5); moved along its
-  // normal by an offset, and reversed (the other side removed) when flipped.
+  // The section plane: off (0), as the settings give it (1, only when they turn it on), or across the x, y
+  // or z axis through the box's centre (2 to 4); moved along its normal by an offset, and reversed (the
+  // other side removed) when flipped.
   const bool     givenSection  = a_settings.m_section;
   const Vec3T<T> centre        = (std::isfinite(diag) && diag > T(0)) ? box.getCentroid() : camera.m_target;
   int            sectionMode   = givenSection ? 1 : 0;
   bool           sectionFlip   = false;
   T              sectionOffset = T(0);
 
-  const char* sectionNames[] = {"off", "as given", "facing the camera", "across x", "across y", "across z"};
+  const char* sectionNames[] = {"off", "as given", "across x", "across y", "across z"};
 
   // The preview's resolution, as a fraction of the window's, adapted to how long previews take.
   T previewScale = T(0.5);
 
   bool onDevice = a_deviceShape != nullptr && GPU::deviceAvailable();
   bool dragging = false;
+  bool panning  = false;
   bool lighting = false;
   bool warned   = false;
   bool running  = true;
@@ -423,22 +425,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   const auto stageSettings = [&](const int a_stage) {
     Settings<T> frame = settings;
 
-    Vec3T<T> forward;
-    Vec3T<T> right;
-    Vec3T<T> up;
-
-    camera.frame(forward, right, up);
-
     Vec3T<T> normal = RenderDetail::unit(a_settings.m_sectionNormal);
     Vec3T<T> point  = a_settings.m_sectionPoint;
 
-    if (sectionMode == 2) {
-      normal = -forward;
-      point  = camera.m_target;
-    }
-    else if (sectionMode >= 3) {
+    if (sectionMode >= 2) {
       normal                  = Vec3T<T>::zeros();
-      normal[sectionMode - 3] = T(1);
+      normal[sectionMode - 2] = T(1);
       point                   = centre;
     }
 
@@ -569,6 +561,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       "",
       "camera   yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
         fixed(double(camera.m_distance), 3),
+      "         target (" + fixed(double(camera.m_target[0]), 3) + ", " + fixed(double(camera.m_target[1]), 3) + ", " +
+        fixed(double(camera.m_target[2]), 3) + ")",
       "         field of view " + fixed(double(camera.m_fieldOfView), 1) + ", " +
         (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " + fixed(double(camera.m_nearClip), 3),
       std::string("light    ") + (settings.m_lightFromCamera ? "from the camera" : "in the scene") + ", (" +
@@ -632,21 +626,23 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       case SDL_MOUSEBUTTONDOWN: {
-        // The right button, or the left with Shift held, moves the light; the left alone orbits the camera.
-        const bool shift = (SDL_GetModState() & KMOD_SHIFT) != 0;
-
-        if (event.button.button == SDL_BUTTON_RIGHT || (event.button.button == SDL_BUTTON_LEFT && shift)) {
-          lighting = true;
+        // A drag orbits the camera, or pans it with Ctrl held; a drag with the right button moves the light.
+        if (event.button.button == SDL_BUTTON_LEFT) {
+          panning  = (SDL_GetModState() & KMOD_CTRL) != 0;
+          dragging = !panning;
         }
-        else if (event.button.button == SDL_BUTTON_LEFT) {
-          dragging = true;
+        else if (event.button.button == SDL_BUTTON_RIGHT) {
+          lighting = true;
         }
 
         break;
       }
       case SDL_MOUSEBUTTONUP: {
-        if (event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT) {
+        if (event.button.button == SDL_BUTTON_LEFT) {
           dragging = false;
+          panning  = false;
+        }
+        else if (event.button.button == SDL_BUTTON_RIGHT) {
           lighting = false;
         }
 
@@ -655,6 +651,27 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       case SDL_MOUSEMOTION: {
         if (lighting) {
           turnLight(T(0.4) * T(event.motion.xrel), -T(0.4) * T(event.motion.yrel));
+
+          changed = true;
+        }
+        else if (panning) {
+          // Move the target so that the point under the mouse follows it: at the target's distance, the
+          // window's height spans 2 distance tan(fov / 2).
+          int windowWidth  = 0;
+          int windowHeight = 0;
+
+          SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+          Vec3T<T> forward;
+          Vec3T<T> right;
+          Vec3T<T> up;
+
+          camera.frame(forward, right, up);
+
+          const T perPixel = T(2) * camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) /
+                             T(Math::max(windowHeight, 1));
+
+          camera.m_target -= perPixel * (T(event.motion.xrel) * right - T(event.motion.yrel) * up);
 
           changed = true;
         }
@@ -743,12 +760,6 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           break;
         }
-        case SDLK_LEFT:
-        case SDLK_RIGHT: {
-          turnLight((event.key.keysym.sym == SDLK_RIGHT) ? T(15) : T(-15), T(0));
-
-          break;
-        }
         case SDLK_h: {
           overlayOn = !overlayOn;
           changed   = false;
@@ -767,8 +778,14 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_x: {
-          sectionMode   = (sectionMode + 1) % 6;
-          sectionMode   = (sectionMode == 1 && !givenSection) ? 2 : sectionMode;
+          // X turns the plane on across x, then steps it to y, z and x again; Ctrl and X turn it off.
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            sectionMode = 0;
+          }
+          else {
+            sectionMode = (sectionMode < 2) ? 2 : 2 + (sectionMode - 1) % 3;
+          }
+
           sectionOffset = T(0);
 
           break;
@@ -780,10 +797,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         }
         case SDLK_UP:
         case SDLK_DOWN: {
-          // Coarse steps, or fine ones with Shift held, as Ctrl and the wheel make.
-          const T step = (((SDL_GetModState() & KMOD_SHIFT) != 0) ? T(0.005) : T(0.02)) * scale;
-
-          sectionOffset += (event.key.keysym.sym == SDLK_UP) ? step : -step;
+          sectionOffset += ((event.key.keysym.sym == SDLK_UP) ? T(0.02) : T(-0.02)) * scale;
 
           break;
         }
@@ -847,7 +861,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     }
 
     // Refine on a background thread once the camera has rested a moment.
-    if (job == nullptr && pending > 0 && !dragging && !lighting &&
+    if (job == nullptr && pending > 0 && !dragging && !panning && !lighting &&
         Clock::now() - lastChange > std::chrono::milliseconds(100)) {
       job = std::make_unique<Background>();
 

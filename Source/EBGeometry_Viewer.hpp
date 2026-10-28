@@ -10,15 +10,16 @@
  * window can or should open (a --no-view argument, no display, SDL failing to start), view() prints one
  * line saying why and returns at once, so a program that calls it still runs unattended.
  *
- * In the window: drag with the left button to orbit, use the wheel to zoom, and drag with the right button
- * (or the left with Shift held) to move the light, which the left and right arrow keys also turn. Press S,
+ * In the window: drag to orbit, drag with Ctrl held to pan, drag with the right button to move the light,
+ * and use the wheel to zoom. Press S,
  * A and F to toggle shadows, ambient occlusion and the floor, P to cycle the colouring (by normal, uniform,
- * by primitive), X to cycle the section plane (off, as given, facing the camera, then across the x, y and
- * z axes; it draws the shape's contour in the plane), N to reverse it (remove the other side), the up and
- * down arrow keys to move it (in fine steps with Shift held, as the wheel does with Ctrl held), O to toggle an orthographic camera, 1, 2 and 3 to look from the front, the side and the top, C
- * to print the camera and settings as C++ (see toCode()), G to switch between the GPU and the CPU (when
- * given a device view), H to show or hide the overlay, R to reset the camera, and Esc or Q to close it.
- * The overlay, in the window's top left corner, shows what the window renders and how (GPU or CPU, the
+ * by primitive), X to cut the shape with a section plane across x, then y, then z (it draws the shape's
+ * contour in the plane; a plane given in the settings comes first), Ctrl and X to turn it off, N to reverse
+ * it (remove the other side), the wheel with Ctrl held to move it in fine steps (the up and down arrow keys
+ * in coarse ones), O to toggle an orthographic camera, 1, 2 and 3 to look from the front, the side and the
+ * top, C to print the camera and settings as C++ (see toCode()), G to switch between the GPU and the CPU
+ * (when given a device view), H to show or hide the overlay, R to reset the camera, and Esc or Q to close
+ * it. The overlay, in the window's top left corner, shows what the window renders and how (GPU or CPU, the
  * frame's size and time, the hits, the camera, the light and the settings) and the keys, which are also
  * printed, one per line, when the window opens. While the camera moves the view is drawn as a quick
  * preview, at a resolution adapted to keep it at a few tens of milliseconds; once the camera rests it is

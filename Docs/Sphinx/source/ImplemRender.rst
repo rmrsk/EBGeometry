@@ -76,18 +76,17 @@ The viewer
 overloads take a camera and settings, and a device view of the shape to render on a GPU.
 ``Render::view(shape, pool, argc, argv)`` takes instead the pool the shape lives in: in a GPU build with a
 visible device it freezes the pool, mirrors it for as long as the window is open and renders through the
-shape's ``rebasedView()`` of the copy, and otherwise renders on the host. Drag to orbit, scroll to zoom,
-and drag with the right button (or with Shift held) to move the light, which the left and right arrow
-keys also turn; S, A and F toggle shadows, ambient occlusion and the floor, P cycles the colouring (by
-normal, uniform, by primitive), X cycles the section plane (off, as the settings give it if they turn it
-on, facing the camera, then across the x, y and z axes through the box's centre), N reverses it (removes
-the other side), the up and down arrow keys move it (in fine steps with Shift held, as the wheel does with
-Ctrl held), O toggles the orthographic camera, 1, 2 and 3 look from the front, the side and the
-top, C prints the camera and settings as C++ (``toCode()``) to paste a view found by hand into a program,
-G switches between the GPU and the CPU, H shows or hides the overlay, R resets the camera, and Esc or Q
-closes the window. The overlay, in the top left corner, shows what the window renders and how (GPU or
-CPU, the frame's size and time, the hits, the camera, the light and the settings) and the keys, which are
-also printed, one per line, when the window opens. The window can be resized, and renders at its size in
+shape's ``rebasedView()`` of the copy, and otherwise renders on the host. Drag to orbit, drag with Ctrl
+held to pan, drag with the right button to move the light, and scroll to zoom; S, A and F toggle shadows, ambient occlusion and the floor, P
+cycles the colouring (by normal, uniform, by primitive), X cuts the shape with a section plane across x,
+then y, then z, through the box's centre (a plane the settings turn on comes first), Ctrl and X turn it
+off, N reverses it (removes the other side), scrolling with Ctrl held moves it in fine steps (the up and
+down arrow keys in coarse ones), O toggles the orthographic camera, 1, 2 and 3 look from the front, the
+side and the top, C prints the camera and settings as C++ (``toCode()``) to paste a view found by hand
+into a program, G switches between the GPU and the CPU, H shows or hides the overlay, R resets the camera,
+and Esc or Q closes the window. The overlay, in the top left corner, shows what the window renders and
+how (GPU or CPU, the frame's size and time, the hits, the camera, the light and the settings) and the
+keys, which are also printed, one per line, when the window opens. The window can be resized, and renders at its size in
 pixels.
 While the camera moves the window
 shows a quick preview (one ray per pixel, no shadows, at a resolution it adapts to keep each preview at a
