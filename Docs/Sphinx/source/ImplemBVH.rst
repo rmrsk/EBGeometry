@@ -989,7 +989,8 @@ unsigned distances throughout, the boxes' and the triangles' (``TriangleAoSoA::n
 is signed, with its pseudonormal, once per query (``signedDistanceAt()``). Signing every triangle as it
 was tested cost each one six pseudonormal dot products and a square root; on a grid of queries over a
 100,000-triangle mesh, signing only the winner made a query about 1.13 times faster, with the same values
-bit for bit. A device still signs every triangle: ``TriMeshSDF`` is a built-in tape primitive, so its
+bit for bit. Ranking by squared distance can pick a different triangle where two are equally near to
+rounding, so there a host value may differ in the last place from a device's. A device still signs every triangle: ``TriMeshSDF`` is a built-in tape primitive, so its
 search is compiled into every tape's device kernels, whose register allocation it shifted (some tapes
 faster, others 19% slower). See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen
 page for TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage
