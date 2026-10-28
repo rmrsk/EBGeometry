@@ -11,9 +11,11 @@
  * line saying why and returns at once, so a program that calls it still runs unattended.
  *
  * In the window: drag with the left button to orbit, use the wheel to zoom, and press S, A, F to toggle
- * shadows, ambient occlusion and the floor, P to colour by primitive, X to cut the shape with a section
- * plane facing the camera (the up and down arrow keys move it), G to switch between the GPU and the CPU
- * (when given a device view), R to reset the camera, and Esc or Q to close it. While the camera moves the
+ * shadows, ambient occlusion and the floor, P to cycle the colouring (uniform, by primitive, by normal), X
+ * to cut the shape with a section plane facing the camera (the up and down arrow keys move it), O to toggle
+ * an orthographic camera, 1, 2 and 3 to look from the front, the side and the top, C to print the camera
+ * and settings as C++ (see toCode()), G to switch between the GPU and the CPU (when given a device view), R
+ * to reset the camera, and Esc or Q to close it. While the camera moves the
  * view is drawn as a quick preview, at a resolution adapted to keep it at a few tens of milliseconds; once
  * the camera rests it is refined on a background thread, cancelled as soon as the camera moves again. The
  * window can be resized, and renders at its size in pixels (on a high-DPI display, more pixels than its

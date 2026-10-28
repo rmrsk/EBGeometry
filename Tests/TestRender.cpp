@@ -406,7 +406,8 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host render", "[Render
   CHECK(std::abs(double(hostStats.m_hits) - double(deviceStats.m_hits)) <= double(hostStats.m_rays) / 100);
 }
 
-TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degenerate camera and an unbounded fit",
+TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degenerate camera, bad lighting and an "
+          "unbounded fit",
           "[Render]")
 {
   using T    = double;
@@ -442,13 +443,50 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
     [&sphere] {
       Render::Camera<T> camera;
 
-      camera.m_pitch = T(90);
+      camera.m_pitch = T(91);
 
       Render::Image image;
 
       (void)Render::Renderer<T>().render(sphere, camera, image);
     },
-    "Render::Renderer: the camera pitch must be between -90 and 90 degrees (90)"));
+    "Render::Renderer: the camera pitch must be from -90 to 90 degrees (91)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Camera<T> camera;
+
+      camera.m_nearClip = T(-1);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>().render(sphere, camera, image);
+    },
+    "Render::Renderer: the near clip must be finite and not negative (-1)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_shininess = T(0.5);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the shininess must be at least 1 (0.5)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_ambient = T(-1);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the light intensity, ambient level, specular strength and checker size must not be "
+    "negative"));
 
   REQUIRE(
     abortsWith([] { (void)Render::Camera<T>::fit(PlaneSDF<T>(Vec3::zeros(), Vec3(0, 1, 0)).computeBoundingVolume()); },
@@ -605,4 +643,422 @@ TEMPLATE_TEST_CASE("Render: a cancelled render stops early and says so", "[Rende
 
   CHECK_FALSE(stoppedOnDevice.m_complete);
   CHECK(rows == 0U);
+}
+
+TEMPLATE_TEST_CASE("Render: a primitive colour set in the table replaces the palette's for that primitive only",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Leaf 0 is the sphere on the left, leaf 1 the one on the right.
+  const TestUtils::Compiled<T> pair(
+    Union(SphereSDF<T>(Vec3(T(-1), T(0), T(0)), T(0.6)), SphereSDF<T>(Vec3(T(1), T(0), T(0)), T(0.6))));
+
+  Render::Camera<T> camera = Render::Camera<T>::fit(pair.tape().computeBoundingVolume(), Render::View::Front);
+
+  constexpr uint32_t size = 32;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_light     = Vec3(T(0), T(0), T(1));
+  settings.m_shadows   = false;
+  settings.m_occlusion = false;
+  settings.m_colourBy  = Render::ColourBy::Primitive;
+
+  Render::Image palette;
+  Render::Image table;
+
+  Render::Renderer<T> renderer(settings);
+
+  (void)renderer.render(pair.tape(), camera, palette);
+
+  renderer.settings().m_primitiveColours[0] = Vec3(T(0), T(0), T(1));
+
+  (void)renderer.render(pair.tape(), camera, table);
+
+  // The centre of each sphere along the middle row: a quarter and three quarters across.
+  const Channels left  = channels(table.at(size / 2 - size / 4, size / 2));
+  const Channels right = channels(table.at(size / 2 + size / 4, size / 2));
+
+  CHECK(left.b > left.r + 60);
+  CHECK(left.b > left.g + 60);
+  CHECK(table.at(size / 2 + size / 4, size / 2) == palette.at(size / 2 + size / 4, size / 2));
+  CHECK(right.r + right.g + right.b > 0);
+}
+
+TEMPLATE_TEST_CASE("Render: colouring by normal shows the surface's direction", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  // Looking along -z: the centre's normal is +z (blue), the left rim's -x (no red).
+  const auto camera = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Front);
+
+  constexpr uint32_t size = 32;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_light     = Vec3(T(0), T(0), T(1));
+  settings.m_shadows   = false;
+  settings.m_occlusion = false;
+  settings.m_specular  = T(0);
+  settings.m_colourBy  = Render::ColourBy::Normal;
+
+  Render::Image image;
+
+  (void)Render::Renderer<T>(settings).render(sphere, camera, image);
+
+  const Channels centre = channels(image.at(size / 2, size / 2));
+  const Channels left   = channels(image.at(size / 2 - size / 5, size / 2));
+
+  CHECK(centre.b > centre.r + 40);
+  CHECK(centre.b > centre.g + 40);
+  CHECK(left.g > left.r + 20);
+}
+
+TEMPLATE_TEST_CASE("Render: the light's intensity, the ambient level, the highlights and the background are settings",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  const auto camera = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Front);
+
+  constexpr uint32_t size = 24;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_shadows    = false;
+  settings.m_occlusion  = false;
+  settings.m_background = Vec3(T(1), T(0), T(0));
+
+  Render::Image lit;
+  Render::Image dark;
+
+  Render::Renderer<T> renderer(settings);
+
+  (void)renderer.render(sphere, camera, lit);
+
+  // With no light of any kind the surface is black; the background is the colour set.
+  renderer.settings().m_lightIntensity = T(0);
+  renderer.settings().m_ambient        = T(0);
+  renderer.settings().m_specular       = T(0);
+
+  (void)renderer.render(sphere, camera, dark);
+
+  const Channels corner = channels(dark.at(0, 0));
+  const Channels centre = channels(dark.at(size / 2, size / 2));
+
+  CHECK(corner.r == 255);
+  CHECK(corner.g == 0);
+  CHECK(corner.b == 0);
+  CHECK(centre.r + centre.g + centre.b == 0);
+
+  const Channels bright = channels(lit.at(size / 2, size / 2));
+
+  CHECK(bright.r + bright.g + bright.b > 200);
+
+  // A sky of one colour fills the background with it.
+  renderer.settings().m_sky        = true;
+  renderer.settings().m_skyHorizon = Vec3(T(0), T(1), T(0));
+  renderer.settings().m_skyZenith  = Vec3(T(0), T(1), T(0));
+
+  Render::Image sky;
+
+  (void)renderer.render(sphere, camera, sky);
+
+  const Channels green = channels(sky.at(0, 0));
+
+  CHECK(green.g == 255);
+  CHECK(green.r == 0);
+}
+
+TEMPLATE_TEST_CASE("Render: the floor's checkerboard can be turned off and resized",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  const auto camera = Render::Camera<T>::fit(sphere.computeBoundingVolume());
+
+  Render::Settings<T> settings = plain<T>(32);
+
+  settings.m_floor     = true;
+  settings.m_shadows   = false;
+  settings.m_occlusion = false;
+
+  Render::Image checked;
+  Render::Image plainFloor;
+  Render::Image larger;
+
+  Render::Renderer<T> renderer(settings);
+
+  (void)renderer.render(sphere, camera, checked);
+
+  renderer.settings().m_floorCheckerSize = T(1.7);
+
+  (void)renderer.render(sphere, camera, larger);
+
+  renderer.settings().m_floorChecker = false;
+
+  (void)renderer.render(sphere, camera, plainFloor);
+
+  CHECK(checked.m_pixels != plainFloor.m_pixels);
+  CHECK(checked.m_pixels != larger.m_pixels);
+  CHECK(larger.m_pixels != plainFloor.m_pixels);
+}
+
+TEMPLATE_TEST_CASE("Render: an orthographic camera shows a sphere as a disc of its own radius",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Vec3         center(T(0.2), T(-0.1), T(0));
+  const T            radius = T(0.7);
+  const SphereSDF<T> sphere(center, radius);
+
+  constexpr uint32_t size = 40;
+
+  Render::Camera<T> camera = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Front);
+
+  camera.m_orthographic = true;
+
+  Render::Image image;
+
+  const Render::Stats stats = Render::Renderer<T>(plain<T>(size)).render(sphere, camera, image);
+
+  // A pixel's ray runs along -z through (x, y) on the plane through the eye; the view is as tall as the
+  // perspective view at the target.
+  const T        half  = camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+  const T        pixel = T(2) * half / T(size);
+  const uint32_t bg    = image.at(0, 0);
+  size_t         hit   = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const T x = camera.m_target[0] - half + (T(column) + T(0.5)) * pixel;
+      const T y = camera.m_target[1] + half - (T(row) + T(0.5)) * pixel;
+      const T r = std::sqrt((x - center[0]) * (x - center[0]) + (y - center[1]) * (y - center[1]));
+
+      if (r < T(0.95) * radius) {
+        CHECK(image.at(column, row) != bg);
+
+        hit++;
+      }
+      else if (r > T(1.05) * radius) {
+        CHECK(image.at(column, row) == bg);
+      }
+    }
+  }
+
+  CHECK(hit > 100U);
+  CHECK(stats.m_insideHits == 0U);
+}
+
+TEMPLATE_TEST_CASE("Render: the near clip hides what is nearer than it", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  Render::Camera<T> camera = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Front);
+
+  const Render::Renderer<T> renderer(plain<T>(24));
+
+  Render::Image image;
+
+  // Clipped just past the centre, the rays through the sphere start inside it and see its far side from
+  // within.
+  camera.m_nearClip = camera.m_distance + T(0.1);
+
+  const Render::Stats inside = renderer.render(sphere, camera, image);
+
+  CHECK(inside.m_hits > 0U);
+  CHECK(inside.m_insideHits == inside.m_hits);
+
+  // Clipped beyond the sphere, nothing is seen.
+  camera.m_nearClip = camera.m_distance + T(1.5);
+
+  const Render::Stats beyond = renderer.render(sphere, camera, image);
+
+  CHECK(beyond.m_hits == 0U);
+}
+
+TEMPLATE_TEST_CASE("Render: the camera fits a box from a named view, straight along the up axis too",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const BoundingVolumes::AABBT<T> box(Vec3(T(-1), T(0), T(2)), Vec3(T(3), T(1), T(4)));
+
+  for (const Vec3& up : {Vec3(0, 1, 0), Vec3(0, 0, 1)}) {
+    const auto fitted = Render::Camera<T>::fit(box, up);
+
+    const std::vector<std::pair<Render::View, Vec3>> views{
+      {Render::View::Top, up}, {Render::View::Bottom, -up}, {Render::View::Front, Vec3::zeros()}};
+
+    for (const auto& [view, along] : views) {
+      const auto camera = Render::Camera<T>::fit(box, view, up);
+
+      // The same target and distance as the default fit, from another direction.
+      CHECK((camera.m_target - fitted.m_target).length() < T(tightMargin<T>()));
+      CHECK(camera.m_distance == fitted.m_distance);
+
+      Vec3 forward;
+      Vec3 right;
+      Vec3 screenUp;
+
+      camera.frame(forward, right, screenUp);
+
+      CHECK(std::abs(right.length() - T(1)) < T(looseMargin<T>()));
+      CHECK(std::abs(screenUp.length() - T(1)) < T(looseMargin<T>()));
+      CHECK(std::abs(dot(right, forward)) < T(looseMargin<T>()));
+      CHECK(std::abs(dot(right, up)) < T(looseMargin<T>()));
+
+      if (along.length() > T(0)) {
+        CHECK((camera.eye() - camera.m_target - camera.m_distance * along).length() <
+              T(looseMargin<T>()) * T(10) * camera.m_distance);
+        CHECK((forward + along).length() < T(looseMargin<T>()) * T(10));
+      }
+      else {
+        CHECK(std::abs(dot(forward, up)) < T(looseMargin<T>()));
+      }
+    }
+  }
+
+  // Looking straight down renders like any other view.
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  Render::Image image;
+
+  const Render::Stats stats =
+    Render::Renderer<T>(plain<T>(16))
+      .render(sphere, Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Top), image);
+
+  CHECK(stats.m_hits > 50U);
+  CHECK(stats.m_insideHits == 0U);
+}
+
+TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their defaults as C++",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  CHECK(Render::toCode(Render::Camera<T>(), Render::Settings<T>()) ==
+        "EBGeometry::Render::Camera<T> camera;\nEBGeometry::Render::Settings<T> settings;\n");
+
+  Render::Camera<T>   camera;
+  Render::Settings<T> settings;
+
+  camera.m_yaw                   = T(0.1);
+  camera.m_orthographic          = true;
+  camera.m_target                = Vec3(T(1), T(-2.5), T(0));
+  settings.m_width               = 1280;
+  settings.m_shadows             = false;
+  settings.m_colourBy            = Render::ColourBy::Normal;
+  settings.m_primitiveColours[3] = Vec3(T(0.5), T(0.5), T(0.5));
+  settings.m_rays.m_maxSteps     = 100;
+
+  CHECK(Render::toCode(camera, settings) ==
+        "EBGeometry::Render::Camera<T> camera;\n"
+        "camera.m_target = EBGeometry::Vec3T<T>(T(1), T(-2.5), T(0));\n"
+        "camera.m_yaw = T(0.1);\n"
+        "camera.m_orthographic = true;\n"
+        "EBGeometry::Render::Settings<T> settings;\n"
+        "settings.m_width = 1280;\n"
+        "settings.m_shadows = false;\n"
+        "settings.m_colourBy = EBGeometry::Render::ColourBy::Normal;\n"
+        "settings.m_primitiveColours[3] = EBGeometry::Vec3T<T>(T(0.5), T(0.5), T(0.5));\n"
+        "settings.m_rays.m_maxSteps = 100;\n");
+}
+
+TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthographic camera, a near clip, a "
+                   "primitive colour table and the surface settings",
+                   "[Render][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool,
+                     Union(Difference(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), SphereSDF<T>(Vec3::zeros(), T(1.2))),
+                           SphereSDF<T>(Vec3(T(0), T(0), T(0)), T(0.5))));
+
+  pool.freeze();
+
+  const Pool    devicePool = Pool::mirror(pool, deviceTestResource());
+  const Tape<T> view       = tape.rebasedView(devicePool);
+
+  Render::Settings<T> settings;
+
+  settings.m_width               = 40;
+  settings.m_height              = 32;
+  settings.m_supersampling       = 2;
+  settings.m_colourBy            = Render::ColourBy::Primitive;
+  settings.m_primitiveColours[1] = Vec3(T(0.2), T(0.3), T(0.9));
+  settings.m_shininess           = T(12);
+  settings.m_specular            = T(0.6);
+  settings.m_ambient             = T(0.2);
+  settings.m_floorCheckerSize    = T(0.5);
+
+  for (const bool orthographic : {false, true}) {
+    auto camera = Render::Camera<T>::fit(tape.computeBoundingVolume(), Render::View::Top);
+
+    camera.m_orthographic = orthographic;
+    camera.m_nearClip     = T(0.5) * camera.m_distance;
+
+    for (const Render::ColourBy colourBy : {Render::ColourBy::Primitive, Render::ColourBy::Normal}) {
+      settings.m_colourBy = colourBy;
+
+      const Render::Renderer<T> renderer(settings);
+
+      Render::Image host;
+      Render::Image device;
+
+      const Render::Stats hostStats   = renderer.render(tape, camera, host);
+      const Render::Stats deviceStats = renderer.renderOnDevice(view, camera, device);
+
+      REQUIRE(host.m_pixels.size() == device.m_pixels.size());
+
+      size_t different = 0;
+
+      for (size_t i = 0; i < host.m_pixels.size(); i++) {
+        const Channels a = channels(host.m_pixels[i]);
+        const Channels b = channels(device.m_pixels[i]);
+
+        if (std::abs(a.r - b.r) > 3 || std::abs(a.g - b.g) > 3 || std::abs(a.b - b.b) > 3) {
+          different++;
+        }
+      }
+
+      CHECK(different <= host.m_pixels.size() / 100);
+      CHECK(hostStats.m_hits > 0U);
+      CHECK(std::abs(double(hostStats.m_hits) - double(deviceStats.m_hits)) <= double(hostStats.m_rays) / 100);
+    }
+  }
 }

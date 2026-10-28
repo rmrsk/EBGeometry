@@ -10,7 +10,7 @@ cylinder bored through its chest. The source is at :file:`Examples/Materials/mai
    :width: 60%
    :align: center
 
-   The armadillo coloured by leaf: the bore's wall is the cylinder's.
+   The armadillo coloured by leaf, from a table of its own: the skin sand, the bore's wall (the cylinder's) steel grey.
 
 .. important::
 
@@ -49,19 +49,22 @@ front, nothing straight through the bore, and the bore's wall sideways from insi
 Looking at it
 -------------
 
-``Settings::m_colourBy = ColourBy::Primitive`` colours each surface by the same ``HitT::m_primitive``,
-from the renderer's own palette, and the camera looks from low in front, where the bore shows:
+``Settings::m_colourBy = ColourBy::Primitive`` colours each surface by the same ``HitT::m_primitive``.
+``Settings::m_primitiveColours`` gives each leaf a colour of its own, indexed like the material table (a
+leaf left out gets the renderer's palette), and the camera looks from low in front, where the bore shows:
 
 .. code-block:: c++
 
    Render::Settings<T> settings;
-   settings.m_colourBy = Render::ColourBy::Primitive;
+   settings.m_colourBy            = Render::ColourBy::Primitive;
+   settings.m_primitiveColours[0] = Vec3(0.78, 0.62, 0.42); // the skin, sand
+   settings.m_primitiveColours[1] = Vec3(0.55, 0.57, 0.60); // the bore, steel grey
 
-   Render::view(tape, camera, settings, argc, argv);
+   Render::view(tape, pool, camera, settings, argc, argv);
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit, scroll to zoom, X cuts the object open and P colours each primitive; see
+and returns. Drag to orbit, scroll to zoom, X cuts the object open and P cycles the colouring; see
 :ref:`Chap:ImplemRender`.
 
 Building and running

@@ -22,7 +22,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `Fused/`      | Fused CSG compositions (the Tape probe's solids, a drilled mesh fused and through a tape) |
 | `Ray/`        | Ray queries: a `TriMeshSDF` (`firstHit()`, a hand-written walk, `intersects()`), a `MeshSDF`, and the CSG solid traced, fused and through a tape |
 | `RayCSG/`     | Ray tracing a composition from its parts' spans: a scene of 50 solids less 10, fused and through a tape, traced and marched; a crowd of 4,096 balls through a tape |
-| `Render/`     | One frame of the renderer (shadows, ambient occlusion) of the CSG solid through a tape and of the armadillo as a `TriMeshSDF` |
+| `Render/`     | One frame of the renderer (shadows, ambient occlusion) of the CSG solid through a tape (also with an orthographic camera) and of the armadillo as a `TriMeshSDF` |
 | `ClosestPrimitive/` | A tape's `closestPrimitive()`, the deciding leaf (CSG, a scene of fused parts, a drilled mesh) |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results               |

@@ -202,8 +202,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     return;
   }
 
-  std::printf("EBGeometry viewer: drag to orbit, wheel to zoom; S shadows, A occlusion, F floor, P colour by "
-              "primitive, X section (arrows move it)%s, R reset, Esc or Q to close.\n",
+  std::printf("EBGeometry viewer: drag to orbit, wheel to zoom; S shadows, A occlusion, F floor, P colouring "
+              "(uniform, by primitive, by normal), X section (arrows move it), O orthographic, 1 2 3 front, side and "
+              "top, C print the view as C++%s, R reset, Esc or Q to close.\n",
               (a_deviceShape != nullptr) ? ", G GPU/CPU" : "");
 
   Camera<T>   camera   = a_camera;
@@ -335,7 +336,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     status = std::string("EBGeometry: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
              std::to_string(a_image.m_width) + "x" + std::to_string(a_image.m_height) + " in " +
              std::to_string(int(1000.0 * a_seconds)) + " ms" +
-             ((a_stats.m_insideHits > 0U) ? ", red: seen from inside the solid" : "") +
+             // A few grazing rays can seem to leave the solid; say so only when more than one hit in a
+             // thousand does.
+             ((a_stats.m_insideHits * 1000U > a_stats.m_hits) ? ", red: seen from inside the solid" : "") +
              ((a_stats.m_unresolved > 0U) ? ", some rays unresolved" : "");
 
     SDL_SetWindowTitle(window, status.c_str());
@@ -370,7 +373,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       case SDL_MOUSEMOTION: {
         if (dragging) {
           camera.m_yaw -= T(0.4) * T(event.motion.xrel);
-          camera.m_pitch = Math::clamp(camera.m_pitch + T(0.4) * T(event.motion.yrel), T(-89), T(89));
+          camera.m_pitch = Math::clamp(camera.m_pitch + T(0.4) * T(event.motion.yrel), T(-90), T(90));
 
           changed = true;
         }
@@ -422,7 +425,36 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_p: {
-          settings.m_colourBy = (settings.m_colourBy == ColourBy::Uniform) ? ColourBy::Primitive : ColourBy::Uniform;
+          settings.m_colourBy = (settings.m_colourBy == ColourBy::Uniform)     ? ColourBy::Primitive
+                                : (settings.m_colourBy == ColourBy::Primitive) ? ColourBy::Normal
+                                                                               : ColourBy::Uniform;
+
+          break;
+        }
+        case SDLK_o: {
+          camera.m_orthographic = !camera.m_orthographic;
+
+          break;
+        }
+        case SDLK_1:
+        case SDLK_2:
+        case SDLK_3: {
+          // Front, right and top: the yaw and pitch of Camera::fit()'s views, the target and distance kept.
+          const View view = (event.key.keysym.sym == SDLK_1)   ? View::Front
+                            : (event.key.keysym.sym == SDLK_2) ? View::Right
+                                                               : View::Top;
+
+          camera.m_yaw   = (view == View::Right) ? T(90) : T(0);
+          camera.m_pitch = (view == View::Top) ? T(90) : T(0);
+
+          break;
+        }
+        case SDLK_c: {
+          // The view as C++, to paste into a program: the camera, and the settings of the full frame.
+          std::printf("EBGeometry viewer: the current view, as C++:\n%s", toCode(camera, stageSettings(2)).c_str());
+          std::fflush(stdout);
+
+          changed = false;
 
           break;
         }

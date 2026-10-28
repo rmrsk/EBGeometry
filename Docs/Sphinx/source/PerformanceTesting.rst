@@ -264,6 +264,8 @@ Family                                Build  Measures
 ``csg/frame``, ``mesh/frame``         GPU    the pixels of a 512 x 512 frame through
                                              ``Render::PixelQuery``, in row order, as a device
                                              render launches them
+``csg/frame-orthographic``            both   the same frames of the CSG solid with an orthographic
+                                             camera (parallel rays from a plane)
 ====================================  =====  =====================================================
 
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding

@@ -23,9 +23,11 @@
 // Std includes
 #include <atomic>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_GPU.hpp"
@@ -39,15 +41,33 @@ namespace EBGeometry::Render {
  */
 enum class ColourBy : uint8_t
 {
-  Uniform,  ///< One colour (Settings::m_colour) everywhere.
-  Primitive ///< A colour per primitive: per leaf of a Tape, per face of a mesh SDF (see HitT::m_primitive).
+  Uniform,   ///< One colour (Settings::m_colour) everywhere.
+  Primitive, ///< A colour per primitive: per leaf of a Tape, per face of a mesh SDF (see HitT::m_primitive);
+             ///< Settings::m_primitiveColours, then a built-in palette.
+  Normal     ///< The surface normal's direction as a colour (each component from -1 to 1 mapped to 0 to 1).
+};
+
+/**
+ * @brief A direction to look at a box from, for Camera::fit(): along the axes of the plane perpendicular to
+ * the up axis (with the default up axis +y, Front looks from +z and Right from +x), or along the up axis.
+ */
+enum class View : uint8_t
+{
+  Front,  ///< Yaw 0, pitch 0.
+  Back,   ///< Yaw 180, pitch 0.
+  Right,  ///< Yaw 90, pitch 0.
+  Left,   ///< Yaw -90, pitch 0.
+  Top,    ///< Pitch 90: straight down the up axis.
+  Bottom, ///< Pitch -90: straight up the up axis.
+  Default ///< The default yaw (35) and pitch (25), from above at an angle.
 };
 
 /**
  * @brief A camera orbiting a target point.
  * @details The eye sits m_distance from m_target, in the direction given by m_yaw (degrees about the up
  * axis) and m_pitch (degrees above the plane perpendicular to it). With the default up axis +y, yaw 0
- * looks from +z and yaw 90 from +x. fit() aims it at a box, lookAt() places it directly.
+ * looks from +z and yaw 90 from +x. fit() aims it at a box, lookAt() places it directly. The image's right
+ * follows the yaw alone, so the camera may look straight along the up axis (pitch 90 or -90).
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -64,7 +84,7 @@ struct Camera
   T m_yaw = T(35);
 
   /**
-   * @brief Degrees above the plane perpendicular to the up axis; strictly between -90 and 90.
+   * @brief Degrees above the plane perpendicular to the up axis, from -90 to 90.
    */
   T m_pitch = T(25);
 
@@ -84,6 +104,18 @@ struct Camera
   Vec3T<T> m_up = Vec3T<T>(T(0), T(1), T(0));
 
   /**
+   * @brief Parallel rays instead of rays from the eye: no perspective, so sizes do not shrink with distance.
+   * @details The view is as tall as the perspective view is at the target (2 m_distance tan(m_fieldOfView /
+   * 2)), so switching keeps the target's size; the rays start on the plane through the eye.
+   */
+  bool m_orthographic = false;
+
+  /**
+   * @brief How far along each camera ray it starts (0: at the eye): anything nearer is not seen.
+   */
+  T m_nearClip = T(0);
+
+  /**
    * @brief A camera that sees the whole of a box, from the default direction.
    * @details Aims at the box's centre, from far enough that the sphere around the box fits the view.
    * The box must be bounded and not empty.
@@ -94,6 +126,18 @@ struct Camera
   [[nodiscard]] EBGEOMETRY_HOST
   static inline Camera
   fit(const BoundingVolumes::AABBT<T>& a_box, const Vec3T<T>& a_up = Vec3T<T>(T(0), T(1), T(0)));
+
+  /**
+   * @brief A camera that sees the whole of a box, from a given direction.
+   * @details As fit(const BoundingVolumes::AABBT<T>&, const Vec3T<T>&), from a_view.
+   * @param[in] a_box  Box.
+   * @param[in] a_view Direction to look from.
+   * @param[in] a_up   Up axis.
+   * @return The camera.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline Camera
+  fit(const BoundingVolumes::AABBT<T>& a_box, View a_view, const Vec3T<T>& a_up = Vec3T<T>(T(0), T(1), T(0)));
 
   /**
    * @brief A camera at a given eye, looking at a given point.
@@ -198,6 +242,18 @@ struct Settings
   Vec3T<T> m_colour = Vec3T<T>(T(0.80), T(0.42), T(0.18));
 
   /**
+   * @brief How many primitive colours m_primitiveColours holds.
+   */
+  static constexpr uint32_t PrimitiveColours = 16;
+
+  /**
+   * @brief Colours for ColourBy::Primitive by primitive id (linear RGB in [0, 1]): entry i colours
+   * primitive i. An entry left unset (a negative component, as all are by default), and every id from
+   * PrimitiveColours on, takes the built-in palette's colour.
+   */
+  Array<Vec3T<T>, PrimitiveColours> m_primitiveColours = unsetColours();
+
+  /**
    * @brief The colour a surface seen from inside the solid is tinted towards.
    */
   Vec3T<T> m_insideColour = Vec3T<T>(T(0.90), T(0.08), T(0.08));
@@ -216,6 +272,52 @@ struct Settings
    * @brief Direction towards the light (need not be of unit length).
    */
   Vec3T<T> m_light = Vec3T<T>(T(0.55), T(0.8), T(0.35));
+
+  /**
+   * @brief How strongly the light lights a surface facing it (the diffuse term's factor).
+   */
+  T m_lightIntensity = T(1.05);
+
+  /**
+   * @brief How much light comes from the sky, on a surface facing up (the ambient term's factor).
+   */
+  T m_ambient = T(0.35);
+
+  /**
+   * @brief How bright the light's highlights are (0: a matte surface).
+   */
+  T m_specular = T(0.3);
+
+  /**
+   * @brief How small the light's highlights are: the specular exponent, at least 1 (larger: a shinier
+   * surface).
+   */
+  T m_shininess = T(48);
+
+  /**
+   * @brief The sky's colour at the horizon.
+   */
+  Vec3T<T> m_skyHorizon = Vec3T<T>(T(0.82), T(0.84), T(0.88));
+
+  /**
+   * @brief The sky's colour straight up.
+   */
+  Vec3T<T> m_skyZenith = Vec3T<T>(T(0.32), T(0.45), T(0.66));
+
+  /**
+   * @brief The background without the sky (m_sky false).
+   */
+  Vec3T<T> m_background = Vec3T<T>(T(0.16), T(0.17), T(0.19));
+
+  /**
+   * @brief A checkerboard on the floor; a plain floor without it.
+   */
+  bool m_floorChecker = true;
+
+  /**
+   * @brief The side of the floor's checker squares; 0 takes a sixth of the scene's length scale.
+   */
+  T m_floorCheckerSize = T(0);
 
   /**
    * @brief Whether the section plane cuts the shape.
@@ -237,7 +339,30 @@ struct Settings
    * distance for an unbounded shape.
    */
   RayOptions<T> m_rays;
+
+  /**
+   * @brief Every entry of m_primitiveColours unset.
+   * @return The table.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline Array<Vec3T<T>, PrimitiveColours>
+  unsetColours() noexcept;
 };
+
+/**
+ * @brief A camera and settings as C++ statements that recreate them, for pasting a view found by hand (in
+ * Render::view(), key C prints them) into a program.
+ * @details Writes `camera.m_... = ...;` and `settings.m_... = ...;` for every field that differs from its
+ * default, after declarations of `camera` and `settings`; T is the precision's name in the code.
+ * @tparam T Floating-point precision.
+ * @param[in] a_camera   Camera.
+ * @param[in] a_settings Settings.
+ * @return The statements, one per line.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST
+inline std::string
+toCode(const Camera<T>& a_camera, const Settings<T>& a_settings);
 
 /**
  * @brief An image: width x height pixels, row by row from the top, each 0xRRGGBBAA.
