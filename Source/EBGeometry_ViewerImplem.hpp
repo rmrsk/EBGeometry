@@ -670,8 +670,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       texHeight = a_image.m_height;
     }
 
-    // A picked object is outlined: the pixels next to it, within two pixels, that are not part of it turn
-    // gold, so its own colours stay as they are. A mesh SDF is one object, whatever face a pixel shows.
+    // A picked object, tinted gold in the render, is also outlined: the pixels next to it, within two pixels,
+    // that are not part of it turn gold. A mesh SDF is one object, whatever face a pixel shows.
     const uint32_t* pixels = a_image.m_pixels.data();
 
     if (picked && a_image.m_primitives.size() == a_image.m_pixels.size()) {
@@ -888,7 +888,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
             picked = pick.hit();
 
             // The object picked: a tape's leaf, a fused composition's part, a union's member; a mesh SDF is one
-            // object, whose primitive is the face picked on it.
+            // object, whose primitive is the face picked on it. It is tinted gold, and outlined (see show()).
+            settings.m_highlightPrimitive = !picked                 ? Settings<T>::NoPrimitive
+                                            : primitivesAreFaces<S> ? Settings<T>::AllPrimitives
+                                                                    : pick.m_primitive;
             if (picked && primitivesAreFaces<S>) {
               std::printf("EBGeometry viewer: picked object 0, face %u, at (%g, %g, %g), normal (%g, %g, %g)\n",
                           unsigned(pick.m_primitive),
