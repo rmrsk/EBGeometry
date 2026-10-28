@@ -81,7 +81,8 @@ and drag with the right button (or with Shift held) to move the light, which the
 keys also turn; S, A and F toggle shadows, ambient occlusion and the floor, P cycles the colouring (by
 normal, uniform, by primitive), X cycles the section plane (off, as the settings give it if they turn it
 on, facing the camera, then across the x, y and z axes through the box's centre), N reverses it (removes
-the other side), the up and down arrow keys move it, O toggles the orthographic camera, 1, 2 and 3 look from the front, the side and the
+the other side), the up and down arrow keys move it (in fine steps with Shift held, as the wheel does with
+Ctrl held), O toggles the orthographic camera, 1, 2 and 3 look from the front, the side and the
 top, C prints the camera and settings as C++ (``toCode()``) to paste a view found by hand into a program,
 G switches between the GPU and the CPU, H shows or hides the overlay, R resets the camera, and Esc or Q
 closes the window. The overlay, in the top left corner, shows what the window renders and how (GPU or

@@ -117,7 +117,8 @@ keys(const bool a_device)
                         {"F", "floor on or off"},
                         {"X", "section plane: off, facing the camera, across x, y, z"},
                         {"N", "reverse the section (remove the other side)"},
-                        {"Up Down", "move the section plane"}};
+                        {"Up Down", "move the section plane (Shift: in fine steps)"},
+                        {"Ctrl wheel", "move the section plane in fine steps"}};
 
   if (a_device) {
     list.push_back({"G", "render on the GPU or the CPU"});
@@ -667,9 +668,18 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       case SDL_MOUSEWHEEL: {
-        camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
+        // With Ctrl held the wheel moves the section plane in fine steps; otherwise it zooms. A sideways
+        // scroll (y = 0) does neither.
+        if (event.wheel.y != 0) {
+          if ((SDL_GetModState() & KMOD_CTRL) != 0 && sectionMode != 0) {
+            sectionOffset += T(0.005) * scale * T(event.wheel.y);
+          }
+          else {
+            camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
+          }
 
-        changed = true;
+          changed = true;
+        }
 
         break;
       }
@@ -768,13 +778,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           break;
         }
-        case SDLK_UP: {
-          sectionOffset += T(0.02) * scale;
-
-          break;
-        }
+        case SDLK_UP:
         case SDLK_DOWN: {
-          sectionOffset -= T(0.02) * scale;
+          // Coarse steps, or fine ones with Shift held, as Ctrl and the wheel make.
+          const T step = (((SDL_GetModState() & KMOD_SHIFT) != 0) ? T(0.005) : T(0.02)) * scale;
+
+          sectionOffset += (event.key.keysym.sym == SDLK_UP) ? step : -step;
 
           break;
         }
