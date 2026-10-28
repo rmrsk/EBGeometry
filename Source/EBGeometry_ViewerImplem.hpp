@@ -36,7 +36,10 @@
 // Our includes
 #include "EBGeometry_GPUTransform.hpp"
 #include "EBGeometry_Viewer.hpp"
+
+#ifdef EBGEOMETRY_VIEWER_SDL2
 #include "EBGeometry_ViewerFont.hpp"
+#endif
 
 namespace EBGeometry::Render {
 
@@ -78,6 +81,11 @@ displayAvailable() noexcept
   return true;
 #endif
 }
+
+// The window's helpers are compiled only with the window: kept out of every other translation unit that
+// includes the library, they cannot change how the compiler inlines code there (they made GCC stop inlining
+// a tape's primitive dispatch in programs that never open a window).
+#ifdef EBGEOMETRY_VIEWER_SDL2
 
 /**
  * @brief A key of the viewer, and what it does.
@@ -311,8 +319,6 @@ drawAxes(const Vec3T<T>&        a_right,
     }
   }
 }
-
-#ifdef EBGEOMETRY_VIEWER_SDL2
 
 /**
  * @brief A frame rendered on a thread of its own, so that the window keeps answering while it renders.
