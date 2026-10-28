@@ -28,7 +28,7 @@ date: 2026-10-28
 
 ## Host comparison: yellow
 
-**Accepted:** -
+**Accepted:** Accept receipt as side effects of new rendering engine.
 
 `a267dec` against `2f03add` (origin/dev), 2026-10-28.
 
@@ -53,7 +53,7 @@ date: 2026-10-28
 
 ## Device comparison (CUDA): red
 
-**Accepted:** -
+**Accepted:** Accept receipt as side effects of new rendering engine.
 
 `a267dec` against `2f03add` (origin/dev), 2026-10-28.
 
