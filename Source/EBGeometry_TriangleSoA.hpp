@@ -181,7 +181,8 @@ public:
   /**
    * @brief The lane nearest a point and its squared distance, without a sign.
    * @details The first lane, of m_validCount, with the smallest TriangleDistance::unsignedDistance2(): the
-   * lane signedDistance() would pick, found without signing every lane. A nearest-triangle search keeps
+   * lane signedDistance() would pick (except where two lanes are equally near to rounding), found without
+   * signing every lane. A nearest-triangle search keeps
    * the best of these and signs only the winner, with signedDistanceAt().
    * @param[in]  a_point The point.
    * @param[out] a_d2    The lane's squared distance.
@@ -192,7 +193,8 @@ public:
   nearestLane(const Vec3T<T>& a_point, T& a_d2) const noexcept;
 
   /**
-   * @brief One lane's signed distance, bit for bit the value signedDistances() gives that lane.
+   * @brief One lane's signed distance: on the host, bit for bit the value signedDistances() gives that lane;
+   * on a device, the same to rounding.
    * @param[in] a_lane  Lane, below W.
    * @param[in] a_point The point.
    * @return The signed distance.

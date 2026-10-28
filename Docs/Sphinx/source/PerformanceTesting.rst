@@ -20,7 +20,6 @@ What is in Performance/
    Performance/
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
      Mesh/main.cpp            TriMeshSDF and MeshSDF
-     MeshGrid/main.cpp        TriMeshSDF and MeshSDF on grid queries
      BVHUnion/main.cpp        BVHUnion
      Tape/main.cpp            Tape's signed distance
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
@@ -120,23 +119,6 @@ Family                                Build  Measures
 ``MeshSDF/query-random``              host   as for ``TriMeshSDF``
 ``MeshSDF/query-morton``,             GPU    as for ``TriMeshSDF``
 ``query-random``
-====================================  =====  =====================================================
-
-**MeshGrid** (``Performance/MeshGrid``): the happy Buddha, 98,601 triangles, at the nodes of a
-:math:`48^3` grid over its box, in grid order: the protocol of Sanchez, Fryazinov and Pasko, "Efficient
-evaluation of continuous signed distance to a polygonal mesh" (SCCG 2012), at a smaller grid. Neighbouring
-queries walk nearly the same path, so the caches stay warm, unlike ``query-random``. The cases are in a
-probe of their own so that adding them cannot change how the Mesh probe's cases are compiled.
-
-====================================  =====  =====================================================
-Family                                Build  Measures
-====================================  =====  =====================================================
-``TriMeshSDF/w4/query-grid``          host   signed distance at the 110,592 grid nodes (K = 4,
-                                             W = 4, at most 4 groups per leaf, SAH)
-``TriMeshSDF/w4/query-grid``          GPU    the same, as a host/device pair
-``MeshSDF/query-grid``                host   the same for ``MeshSDF`` (K = 4, at most 3 faces per
-                                             leaf)
-``MeshSDF/query-grid``                GPU    the same, as a host/device pair
 ====================================  =====  =====================================================
 
 **BVH** (``Performance/BVH``): ``PackedBVH::traverse()`` itself. The BVH holds the boxes of the probe

@@ -829,9 +829,11 @@ TriMeshSDF<T, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
   return minDist;
 #else
   // The host compares squared unsigned distances and signs only the winning triangle: the pseudonormal
-  // tests and the square root are paid once per query, not once per triangle. The winner is the triangle the
-  // signed search picks (the first strictly nearest), and signedDistanceAt() signs it through the same SIMD
-  // path, so the value is the same bit for bit.
+  // tests and the square root are paid once per query, not once per triangle. The winner is the first strictly
+  // nearest triangle, and signedDistanceAt() signs it through the same SIMD path as the signed search, so the
+  // value is the same bit for bit except at near-ties: ranking by squared distance instead of by |signed
+  // value| can pick another triangle where two are equally near to rounding, and there the value may differ
+  // in the last place from the device's.
   struct Nearest
   {
     T        d2    = Math::Limits<T>::max();

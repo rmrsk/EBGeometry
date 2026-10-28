@@ -300,9 +300,8 @@ signedDistance(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
  * signed.
  * @details A nearest-triangle search compares these and signs only the winner, with signedDistance() on
  * that triangle: the six pseudonormal dot products and the square root are then paid once per query, not
- * once per triangle. The winner and its squared distance are the ones signedDistance() would pick, so the
- * search returns what it returned before (the square root of this value equals |signedDistance()| to
- * rounding). With V a scalar, the inside case returns early, as signedDistance()'s does.
+ * once per triangle. The square root of this value equals |signedDistance()| to rounding, so the winner is
+ * the triangle a search on signedDistance() picks, except where two triangles are equally near to rounding. With V a scalar, the inside case returns early, as signedDistance()'s does.
  * @tparam V      Scalar or SIMD::Pack.
  * @tparam Source A triangle accessor (see signedDistance()).
  * @param[in] a_triangle The triangle(s).

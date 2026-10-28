@@ -16,7 +16,6 @@ folder measures it. The full description is the *Performance testing* page of th
 |---------------|-----------------------------------------------------------------|
 | `PointCloud/` | `PointCloudBVH` and `PointCloudHashGrid`: builds, k-NN, queries |
 | `Mesh/`       | `TriMeshSDF` and `MeshSDF`: builds, refits, signed distances    |
-| `MeshGrid/`   | `TriMeshSDF` and `MeshSDF` signed distances at the nodes of a grid over the happy Buddha (the protocol of Sanchez et al., SCCG 2012) |
 | `BVH/`        | `PackedBVH::traverse()` itself: rays and points through a BVH of the mesh's triangle boxes |
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |
 | `Tape/`       | `Tape` signed distance (CSG, smooth, BVH union) against a hand-written solid |
