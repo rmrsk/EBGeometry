@@ -1418,6 +1418,11 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
 inline bool
 writeImage(const Image& a_image, const std::string& a_filename)
 {
+  // An image whose pixels do not fill its size is not written.
+  if (a_image.m_pixels.size() < size_t(a_image.m_width) * size_t(a_image.m_height)) {
+    return false;
+  }
+
   FILE* file = std::fopen(a_filename.c_str(), "wb");
 
   if (file == nullptr) {

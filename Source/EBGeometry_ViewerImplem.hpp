@@ -513,7 +513,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   T        cursorValue = T(0);
 
   // Lines of equal distance on the section plane: off (0), coarse (1) or fine (2).
-  int isoMode = 0;
+  // Lines of equal distance: off (0), as the settings give them (1, only when they set a spacing), every
+  // 1/20 of the box's diagonal (2), every 1/50 (3).
+  const T givenIso = a_settings.m_isoSpacing;
+  int     isoMode  = (givenIso > T(0)) ? 1 : 0;
 
   // Images saved with W, numbered from 1.
   int saved = 0;
@@ -565,7 +568,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     const Vec3T<T> relative = a_point - camera.eye();
     const T        depth    = camera.m_orthographic ? camera.m_distance : dot(relative, forward);
 
-    if (depth <= T(0)) {
+    // A point at or just in front of the eye would project far outside any window.
+    if (depth <= T(1e-6) * camera.m_distance) {
       return false;
     }
 
@@ -575,8 +579,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     const T x       = dot(relative, right) / depth / tanHalf;
     const T y       = dot(relative, up) / depth / tanHalf;
 
-    a_x = static_cast<int>(T(0.5) * (x * h + w));
-    a_y = static_cast<int>(T(0.5) * (h - y * h));
+    a_x = static_cast<int>(Math::clamp(T(0.5) * (x * h + w), T(-1e6), T(1e6)));
+    a_y = static_cast<int>(Math::clamp(T(0.5) * (h - y * h), T(-1e6), T(1e6)));
 
     return true;
   };
@@ -1281,8 +1285,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         }
         case SDLK_i: {
           // Off, every 1/20 of the box's diagonal, every 1/50.
-          isoMode               = (isoMode + 1) % 3;
-          settings.m_isoSpacing = (isoMode == 0) ? T(0) : scale / ((isoMode == 1) ? T(20) : T(50));
+          isoMode = (isoMode + 1) % 4;
+          isoMode = (isoMode == 1 && givenIso <= T(0)) ? 2 : isoMode;
+
+          settings.m_isoSpacing = (isoMode == 0)   ? T(0)
+                                  : (isoMode == 1) ? givenIso
+                                                   : scale / ((isoMode == 2) ? T(20) : T(50));
 
           break;
         }
@@ -1293,7 +1301,22 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           (void)render(frame, camera, onDevice, image, nullptr);
 
-          const std::string file = "ebgeometry-view-" + std::to_string(++saved) + ".ppm";
+          // The next name not taken, so that an earlier run's images are kept.
+          const auto taken = [](const std::string& a_name) {
+            std::FILE* existing = std::fopen(a_name.c_str(), "rb");
+
+            if (existing != nullptr) {
+              std::fclose(existing);
+            }
+
+            return existing != nullptr;
+          };
+
+          std::string file = "ebgeometry-view-" + std::to_string(++saved) + ".ppm";
+
+          while (taken(file)) {
+            file = "ebgeometry-view-" + std::to_string(++saved) + ".ppm";
+          }
 
           if (writeImage(image, file)) {
             std::printf("EBGeometry viewer: saved %s (%u x %u)\n", file.c_str(), image.m_width, image.m_height);
@@ -1422,7 +1445,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
       Image image;
 
-      const auto  start   = Clock::now();
+      const auto start = Clock::now();
+      // What was under the cursor may have moved with the camera or the plane; read again on the next move.
+      cursorOn = false;
+
       const Stats stats   = render(stageSettings(0), camera, onDevice, image, nullptr);
       const auto  seconds = std::chrono::duration<double>(Clock::now() - start).count();
 

@@ -534,7 +534,7 @@ struct Image
  * programs read.
  * @param[in] a_image    Image.
  * @param[in] a_filename File to write.
- * @return Whether the file was written.
+ * @return Whether the file was written (not for an image with fewer pixels than its size).
  */
 [[nodiscard]] inline bool
 writeImage(const Image& a_image, const std::string& a_filename);

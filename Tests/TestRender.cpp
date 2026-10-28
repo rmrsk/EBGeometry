@@ -538,6 +538,18 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
     },
     "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be from 0 to 1 (2, 2)"));
 
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_isoSpacing = T(-1);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the iso-line spacing must not be negative (-1)"));
+
   REQUIRE(
     abortsWith([] { (void)Render::Camera<T>::fit(PlaneSDF<T>(Vec3::zeros(), Vec3(0, 1, 0)).computeBoundingVolume()); },
                "Render::Camera: fit() needs a bounded, non-empty box"));
@@ -1099,6 +1111,7 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
   settings.m_sectionNormal       = Vec3(T(1), T(0.2), T(0));
   settings.m_sheetOpacity        = T(0.3);
   settings.m_recordPrimitives    = true;
+  settings.m_isoSpacing          = T(0.2);
 
   for (const bool orthographic : {false, true}) {
     auto camera = Render::Camera<T>::fit(tape.computeBoundingVolume(), Render::View::Top);
@@ -1294,6 +1307,10 @@ TEST_CASE("Render: writeImage() writes a binary PPM", "[Render]")
   CHECK(rgb[11] == 0x03);
 
   CHECK_FALSE(Render::writeImage(image, "/nonexistent-directory/image.ppm"));
+
+  image.m_pixels.pop_back();
+
+  CHECK_FALSE(Render::writeImage(image, file));
 }
 
 TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the image, and the highlight tints it",
