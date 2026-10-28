@@ -992,6 +992,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         break;
       }
       case SDL_KEYDOWN: {
+        // A key that changes nothing (H, C, a modifier on its own) keeps what earlier events in this batch
+        // changed, rather than clearing it.
+        const bool pending = changed;
+
         changed = true;
 
         switch (event.key.keysym.sym) {
@@ -1043,7 +1047,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         }
         case SDLK_h: {
           overlayOn = !overlayOn;
-          changed   = false;
+          changed   = pending;
 
           present();
 
@@ -1054,7 +1058,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           std::printf("EBGeometry viewer: the current view, as C++:\n%s", toCode(camera, stageSettings(2)).c_str());
           std::fflush(stdout);
 
-          changed = false;
+          changed = pending;
 
           break;
         }
@@ -1121,7 +1125,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         default: {
-          changed = false;
+          changed = pending;
 
           break;
         }

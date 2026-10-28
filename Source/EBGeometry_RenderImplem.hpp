@@ -242,6 +242,7 @@ public:
       m_light(m_baseLight),
       m_first(a_view.m_first),
       m_second(a_view.m_second),
+      m_forward(a_view.m_forward),
       m_footprint(a_view.m_footprint),
       m_footprintPerLength(a_view.m_footprintPerLength)
   {
@@ -272,6 +273,23 @@ public:
     m_hasFloor   = a_settings.m_floor && std::isfinite(low) && lo[0] <= hi[0];
     m_floorLevel = low - T(0.01) * m_scale;
 
+    // Orthographic rays start far enough behind the plane through the eye that the whole box is in front of
+    // them, so that zooming in (the eye nearer) does not cut the shape open.
+    T behind = T(0);
+
+    if (a_view.m_orthographic && bounded) {
+      for (int corner = 0; corner < 8; corner++) {
+        const Vec3T<T> c((corner & 1) ? hi[0] : lo[0], (corner & 2) ? hi[1] : lo[1], (corner & 4) ? hi[2] : lo[2]);
+
+        behind = Math::max(behind, dot(m_eye - c, m_forward));
+      }
+
+      behind += T(0.01) * m_scale;
+    }
+
+    m_backoff = behind;
+    m_far += behind;
+
     // The section plane's contour and sheet are drawn within the shape's box, a little enlarged.
     const Vec3T<T> margin = T(0.05) * (hi - lo);
 
@@ -290,6 +308,31 @@ public:
   eyeInside() const noexcept
   {
     return m_object.signedDistance(m_eye) < T(0);
+  }
+
+  /**
+   * @brief Where an orthographic camera ray through a point of the plane through the eye starts: behind the
+   * shape's box.
+   * @param[in] a_point Point on the plane through the eye.
+   * @return The start.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  orthographicStart(const Vec3T<T>& a_point) const noexcept
+  {
+    return a_point - m_backoff * m_forward;
+  }
+
+  /**
+   * @brief Where along a camera ray seeing starts: the near clip, measured from the plane through the eye.
+   * @param[in] a_nearClip The camera's near clip.
+   * @return The distance along the ray from its start.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  nearAlong(const T a_nearClip) const noexcept
+  {
+    return (a_nearClip > T(0)) ? a_nearClip + m_backoff : T(0);
   }
 
   /**
@@ -438,6 +481,16 @@ private:
    * @brief Horizontal unit vectors (see Camera::horizontal()).
    */
   Vec3T<T> m_second;
+
+  /**
+   * @brief Unit direction the camera looks in.
+   */
+  Vec3T<T> m_forward;
+
+  /**
+   * @brief How far behind the plane through the eye orthographic rays start (0 for a perspective camera).
+   */
+  T m_backoff;
 
   /**
    * @brief The scene's length scale.
@@ -975,7 +1028,11 @@ Camera<T>::lookAt(const Vec3T<T>& a_eye, const Vec3T<T>& a_target, const Vec3T<T
 
   camera.m_distance = distance;
   camera.m_pitch    = std::asin(Math::clamp(dot(w, u), T(-1), T(1))) * degrees;
-  camera.m_yaw      = std::atan2(dot(w, first), dot(w, second)) * degrees;
+
+  // Straight along the up axis the yaw is undefined; take 0 rather than whatever rounding leaves.
+  const T across = std::sqrt(dot(w, first) * dot(w, first) + dot(w, second) * dot(w, second));
+
+  camera.m_yaw = (across > T(1e-6)) ? std::atan2(dot(w, first), dot(w, second)) * degrees : T(0);
 
   return camera;
 }
@@ -1335,6 +1392,7 @@ inline PixelQuery<T, S>::PixelQuery(const S& a_shape, const Camera<T>& a_camera,
 
   m_view.m_footprint          = a_camera.m_orthographic ? a_camera.m_distance * pixel : T(0);
   m_view.m_footprintPerLength = a_camera.m_orthographic ? T(0) : pixel;
+  m_view.m_orthographic       = a_camera.m_orthographic;
 
   a_camera.frame(m_view.m_forward, m_view.m_right, m_view.m_up);
   a_camera.horizontal(m_view.m_first, m_view.m_second);
@@ -1382,9 +1440,9 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
     // Perspective rays leave the eye; orthographic ones leave the plane through it, parallel, spread as far
     // as the perspective rays are at the target.
     if (m_camera.m_orthographic) {
-      const Vec3T<T> origin = m_view.m_eye + m_view.m_distance * (x * right + y * up);
+      const Vec3T<T> origin = shader.orthographicStart(m_view.m_eye + m_view.m_distance * (x * right + y * up));
 
-      colour += shader.shade(origin, forward, m_camera.m_nearClip, result);
+      colour += shader.shade(origin, forward, shader.nearAlong(m_camera.m_nearClip), result);
     }
     else {
       colour +=
@@ -1443,8 +1501,9 @@ Renderer<T>::pick(const S& a_shape, const Camera<T>& a_camera, const T a_column,
   const T y = (h - T(2) * a_row) / h * view.m_tanHalf;
 
   if (a_camera.m_orthographic) {
-    return shader.cast(
-      view.m_eye + view.m_distance * (x * view.m_right + y * view.m_up), view.m_forward, a_camera.m_nearClip);
+    return shader.cast(shader.orthographicStart(view.m_eye + view.m_distance * (x * view.m_right + y * view.m_up)),
+                       view.m_forward,
+                       shader.nearAlong(a_camera.m_nearClip));
   }
 
   return shader.cast(

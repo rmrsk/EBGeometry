@@ -152,7 +152,9 @@ struct Camera
   /**
    * @brief Parallel rays instead of rays from the eye: no perspective, so sizes do not shrink with distance.
    * @details The view is as tall as the perspective view is at the target (2 m_distance tan(m_fieldOfView /
-   * 2)), so switching keeps the target's size; the rays start on the plane through the eye.
+   * 2)), so switching keeps the target's size, and zooming (a shorter m_distance) narrows it. The rays start
+   * behind the shape's box, so that the whole shape is seen however close the eye is; m_nearClip is
+   * measured from the plane through the eye.
    */
   bool m_orthographic = false;
 
@@ -649,6 +651,11 @@ struct CameraView
    * @brief See m_footprint.
    */
   T m_footprintPerLength;
+
+  /**
+   * @brief Whether the camera is orthographic.
+   */
+  bool m_orthographic;
 };
 
 } // namespace RenderDetail
