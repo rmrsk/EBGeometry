@@ -409,9 +409,13 @@ Test coverage
        camera reported inside; colouring by primitive telling two leaves apart; the section plane
        removing one side and showing the cut face; a ray-traced mesh cube cut by the plane drawn as the
        closed-form box is; a cancelled render stopping before any row, on the host and the device;
-       faces lying on the bounding box seen from outside;
-       ``view()`` returning at once with ``--no-view``; the rejected settings and cameras; and a device
-       render against the host's.
+       faces lying on the bounding box seen from outside; a table colour replacing the palette's for its
+       primitive only; colouring by normal; the light, ambient, highlight and background settings (an
+       unlit surface black, a background of the colour set); the floor's checkerboard off and resized;
+       an orthographic camera showing a sphere as a disc of its radius; the near clip; ``Camera::fit``
+       from named views, straight along the up axis too; ``toCode()`` writing the changed fields;
+       ``view()`` returning at once with ``--no-view``, the pool left unfrozen; the rejected settings and
+       cameras; and device renders against the host's, with and without the new camera and colours.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
