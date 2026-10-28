@@ -171,7 +171,7 @@ flatten(Staging<T, K, List>& a_staging)
     range.m_begin = static_cast<uint32_t>(a_staging.m_flatClauses.size());
 
     for (RayClause clause : program) {
-      if (clause.m_op == RayOp::Marched || clause.m_op == RayOp::Annular) {
+      if (clause.m_op == RayOp::Marched) {
         clause.m_a += numPrograms;
       }
 
@@ -870,7 +870,8 @@ private:
     }
     case Kind::Annular: {
       // Traced (see traced()), the annulus is marched from its operand's crossings: the operand's ray clauses
-      // push all its spans, and the annulus's own clauses, which give its value, are marched from them.
+      // push all its spans, and a Marched clause marked as an annulus's marches the annulus's own clauses,
+      // which give its value, from them.
       const auto begin = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
 
       if (a_ray != nullptr) {
@@ -900,11 +901,14 @@ private:
         m_staging.m_marched.emplace_back(a_state.m_program, begin, end);
 
         this->pushRay(a_state,
-                      RayOp::Annular,
+                      RayOp::Marched,
                       *a_ray,
                       static_cast<uint32_t>(m_staging.m_marched.size() - 1),
                       p,
                       static_cast<uint32_t>(a_node.m_quality));
+
+        // An annulus's: it replaces its operand's list (see TapeDetail::RayOp::Marched).
+        m_staging.m_rayPrograms[a_state.m_program].back().m_flags |= 2U;
       }
 
       break;
@@ -1867,20 +1871,15 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
       break;
     }
     case RayOp::Marched: {
-      const T* box = params + c.m_b;
+      // An annulus's replaces its operand's list; any other pushes one.
+      if ((c.m_flags & 2U) == 0U) {
+        nl++;
+      }
 
-      const Subtree<D> subtree{this,
-                               c.m_a,
-                               BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
-                               static_cast<DistanceQuality>(c.m_c),
-                               a_base,
-                               a_location};
+      this->template rayMarched<D>(
+        c, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, a_base, a_location, lists[nl - 1]);
 
-      RaySpansT<T>& spans = lists[nl++];
-
-      RayDetail::shapeSpans(subtree, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, spans);
-
-      RayDetail::nameLeaf(pc, spans);
+      RayDetail::nameLeaf(pc, lists[nl - 1]);
 
       break;
     }
@@ -1931,24 +1930,6 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
         lists[nl++].reset(top.m_t1);
       }
-
-      break;
-    }
-    case RayOp::Annular: {
-      const T* box = params + c.m_b;
-
-      const Subtree<D> shell{this,
-                             c.m_a,
-                             BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
-                             static_cast<DistanceQuality>(c.m_c),
-                             a_base,
-                             a_location};
-
-      RayDetail::annularSpans(shell, lists[nl - 1], top.m_ray, top.m_t0, top.m_t1, a_options, scratch);
-      RayDetail::copySpans(scratch, lists[nl - 1]);
-
-      // Its crossings are named by the clause, as a marched subtree's are.
-      RayDetail::nameLeaf(pc, lists[nl - 1]);
 
       break;
     }
@@ -2022,6 +2003,41 @@ Tape<T, UserPrimitives...>::dispatchRayLeaf(const TapeDetail::RayClause& a_claus
     EBGEOMETRY_EXPECT(false);
 
     a_spans.reset(a_t1);
+  }
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline void
+Tape<T, UserPrimitives...>::rayMarched(const TapeDetail::RayClause& a_clause,
+                                       const RayT<T>&               a_ray,
+                                       const T                      a_t0,
+                                       const T                      a_t1,
+                                       const RayOptions<T>&         a_options,
+                                       const bool                   a_firstOnly,
+                                       const void*                  a_base,
+                                       const PoolLocation&          a_location,
+                                       RaySpansT<T>&                a_spans) const noexcept
+{
+  const T* box = m_layout.m_params.data(a_base) + a_clause.m_b;
+
+  const Subtree<D> subtree{this,
+                           a_clause.m_a,
+                           BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
+                           static_cast<DistanceQuality>(a_clause.m_c),
+                           a_base,
+                           a_location};
+
+  if ((a_clause.m_flags & 2U) != 0U) {
+    RaySpansT<T> shell;
+
+    RayDetail::annularSpans(subtree, a_spans, a_ray, a_t0, a_t1, a_options, shell);
+    RayDetail::copySpans(shell, a_spans);
+  }
+  else {
+    RayDetail::shapeSpans(subtree, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
   }
 }
 
@@ -2126,8 +2142,8 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
         hit.m_primitive = c.m_b;
       }
       else {
-        // A Marched or Annular clause is a leaf of the trace as a whole: a trace never names a clause inside its
-        // subtree (an annulus names its operand's crossings itself), and a hit there reports MarchedLeaf.
+        // A Marched clause is a leaf of the trace as a whole: a trace never names a clause inside its subtree
+        // (an annulus's names its operand's crossings itself), and a hit there reports MarchedLeaf.
         const T* box = params + c.m_b;
 
         const Subtree<D> subtree{this,
@@ -2137,7 +2153,7 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
                                  a_base,
                                  a_location};
 
-        if (c.m_op == RayOp::Annular) {
+        if ((c.m_flags & 2U) != 0U) {
           // An annulus's crossing is already on its surface, to the tolerance: only its normal is needed.
           const T h = a_options.m_tolerance *
                       RayDetail::scaleOf(subtree.m_box.getLowCorner(), subtree.m_box.getHighCorner(), a_options);

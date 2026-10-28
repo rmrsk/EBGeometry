@@ -1046,15 +1046,14 @@ signChange(const S&       a_shape,
 
 /**
  * @brief The list of an annulus |d| - delta (a shell around its operand's surface) over an interval, up to
- * its first crossing, from its operand's list: each of the operand's crossings is inside the shell, and the
- * shell's surfaces are marched to from there.
- * @details Internal helper; not part of the public API. Between two of the operand's crossings, d keeps its
- * sign, so the shell's value is the distance to one offset surface there (or a bound on it), and it is
- * -delta at both ends. From outside, the march towards the next crossing ends before it; from inside, it
- * starts at a crossing, where a step at normal incidence lands on the surface. A walk that starts just inside
- * the surface (a trace starting again from an entry) marches back from the next crossing instead. The list
- * ends at the first crossing, its horizon there, whether or not more is needed: the trace starts again from
- * it if it needs more (see traceSpans()), so that an annulus under an intersection only finds the crossings
+ * its first crossing, from its operand's list.
+ * @details Internal helper; not part of the public API. Each of the operand's crossings is inside the shell
+ * (the value there is -delta), and between two of them d keeps its sign, so the shell's value is the
+ * distance to one offset surface there (or a bound on it). The shell is marched from the start towards the
+ * first crossing, then from each crossing towards the next: from outside, the march must find the shell
+ * before the crossing; from a crossing, a step at normal incidence lands on the surface. The list ends at
+ * the first crossing found, its horizon there, whether or not more is needed: the trace starts again from it
+ * if it needs more (see traceSpans()), so that an annulus under an intersection only finds the crossings
  * the trace reaches. The value must be a distance or a bound on one.
  * @tparam T Floating-point precision.
  * @tparam S Shape type: the annulus.
@@ -1081,42 +1080,37 @@ annularSpans(const S&             a_shell,
 
   a_spans.reset(horizon);
 
+  // Outside the box, the ray is outside the shell.
   const auto box   = a_shell.computeBoundingVolume();
   const T    scale = RayDetail::scaleOf(box.getLowCorner(), box.getHighCorner(), a_options);
   const T    eps   = a_options.m_tolerance * scale;
 
-  // Outside the box, the ray is outside the shell.
   const Vec3T<T> pad = eps * Vec3T<T>::ones();
 
-  T b0 = a_t0;
+  T a  = a_t0;
   T b1 = horizon;
 
-  if (!RayDetail::clip(box.getLowCorner() - pad, box.getHighCorner() + pad, a_ray, b0, b1)) {
+  if (!RayDetail::clip(box.getLowCorner() - pad, box.getHighCorner() + pad, a_ray, a, b1)) {
     return;
   }
 
-  uint32_t steps = a_options.m_maxSteps;
+  // Inside at the start, the list begins with a span open there. On the shell's surface (a trace starting
+  // again from a crossing), which side the ray goes on to is decided a little past it, beyond the march's
+  // tolerance, where the walk starts.
+  bool inside = false;
 
-  CrossingPairer<T> pairer;
-
-  // Where the walk is, whether it is inside the shell there, and whether it is on the shell's surface (where
-  // a search would find the crossing it starts on).
-  T    a         = b0;
-  bool inside    = false;
-  bool onSurface = false;
-
-  if (b0 <= a_t0) {
-    const T v = RayDetail::valueAt(a_shell, a_ray.at(a_t0));
+  if (a <= a_t0) {
+    T v = RayDetail::valueAt(a_shell, a_ray.at(a));
 
     if (std::abs(v) < eps) {
-      // A trace starting again from the shell's surface: which side the ray goes on to.
-      inside    = RayDetail::valueAt(a_shell, a_ray.at(Math::min(a_t0 + T(2) * eps, b1))) < T(0);
-      onSurface = true;
+      a = Math::min(a + T(2) * eps, b1);
+      v = RayDetail::valueAt(a_shell, a_ray.at(a));
     }
-    else {
-      inside = v < T(0);
-    }
+
+    inside = v < T(0);
   }
+
+  CrossingPairer<T> pairer;
 
   if (inside) {
     pairer.m_start  = openAt(a_t0);
@@ -1124,90 +1118,39 @@ annularSpans(const S&             a_shell,
     pairer.m_first  = false;
   }
 
-  // The list ends at the first crossing, its horizon there: the trace starts again from it if it needs more.
-  const auto take = [&pairer, &a_spans, a_t0](const T a_t, const bool a_entering) noexcept {
-    pairer.take(SpanEndT<T>{a_t, 0U, SpanEndT<T>::Marched}, a_entering, a_t0, a_spans);
-    pairer.finish(a_t, a_spans);
+  uint32_t steps = a_options.m_maxSteps;
+  uint32_t end   = 0;
 
-    a_spans.m_horizon = a_t;
-  };
-
-  const auto unresolved = [&pairer, &a_spans](const T a_t) noexcept {
-    pairer.finish(a_t, a_spans);
-
-    a_spans.m_horizon = Math::min(a_spans.m_horizon, a_t);
-  };
-
-  // A search from the surface starts a little past it: 2 eps, beyond the march's tolerance of it.
-  const auto from = [&a, &onSurface, eps](const T a_to) noexcept -> T {
-    return onSurface ? Math::min(a + T(2) * eps, a_to) : a;
-  };
-
-  // The operand's crossings in order, then the end of the walk. The value is -delta at each crossing.
-  uint32_t span = 0;
-  int      side = 0;
-
+  // From each point (the start, then each of the operand's crossings) to the next crossing, or to the end.
   while (true) {
     T    c      = b1;
     bool isSeed = false;
 
-    while (span < a_operand.m_count) {
-      const SpanEndT<T>& end = (side == 0) ? a_operand.m_spans[span].m_in : a_operand.m_spans[span].m_out;
+    for (; end < 2U * a_operand.m_count && !isSeed; end++) {
+      const auto&        span = a_operand.m_spans[end / 2U];
+      const SpanEndT<T>& e    = (end % 2U == 0U) ? span.m_in : span.m_out;
 
-      side = 1 - side;
-      span += (side == 0) ? 1U : 0U;
-
-      if (end.crossing() && end.m_t > a && end.m_t < b1) {
-        c      = end.m_t;
+      if (e.crossing() && e.m_t > a && e.m_t < b1) {
+        c      = e.m_t;
         isSeed = true;
-
-        break;
       }
     }
 
-    // Where the search ends: the crossing, or nearer if the ray is known to leave the shell before it.
-    T to = c;
-
-    if (inside && onSurface && isSeed) {
-      // Just inside the surface, a step is short: march back from the crossing instead. It finds the surface
-      // where the walk is (to within the march's tolerance, so 4 eps, twice the restart's step past it),
-      // unless the ray leaves the shell before the crossing; then the last surface before the crossing is
-      // where the ray leaves it, if it does not leave it earlier.
-      const HitT<T> back = RayDetail::signChange(a_shell, a_ray, c, a, true, eps, steps);
-
-      if (back.m_status == HitStatus::Unresolved) {
-        unresolved(a);
-
-        return;
-      }
-
-      if (!(back.hit() && back.m_t > a + T(4) * eps)) {
-        a         = c;
-        onSurface = false;
-
-        continue;
-      }
-
-      to = back.m_t;
-    }
-
-    // Inside, a step lands on the surface at normal incidence; outside, the search ends before the crossing.
-    // A bound on the distance never steps past a sign change either.
-    HitT<T> hit = (from(to) < to) ? RayDetail::signChange(a_shell, a_ray, from(to), to, inside, eps, steps) : HitT<T>();
-
-    if (to < c && hit.m_status == HitStatus::Miss) {
-      hit.m_status = HitStatus::Hit;
-      hit.m_t      = to;
-    }
+    const HitT<T> hit = RayDetail::signChange(a_shell, a_ray, a, c, inside, eps, steps);
 
     if (hit.m_status == HitStatus::Unresolved) {
-      unresolved(hit.m_t);
+      pairer.finish(hit.m_t, a_spans);
+
+      a_spans.m_horizon = Math::min(a_spans.m_horizon, hit.m_t);
 
       return;
     }
 
     if (hit.hit()) {
-      take(hit.m_t, !inside);
+      pairer.take(SpanEndT<T>{hit.m_t, 0U, SpanEndT<T>::Marched}, !inside, a_t0, a_spans);
+      pairer.finish(hit.m_t, a_spans);
+
+      a_spans.m_horizon = hit.m_t;
 
       return;
     }
@@ -1216,9 +1159,8 @@ annularSpans(const S&             a_shell,
       break;
     }
 
-    a         = c;
-    inside    = true;
-    onSurface = false;
+    a      = c;
+    inside = true;
   }
 
   pairer.finish(horizon, a_spans);

@@ -81,16 +81,16 @@ struct FirstHit
   }
 };
 
-// Whether a host and a device crossing agree: both miss, or both cross within the march's tolerance (twice
-// RayOptions::m_tolerance times the box diagonal, under 1e-3 here). A ray grazing the shell may come within
-// the tolerance on one side and not the other, so the agreement is the probe's to judge by its count.
+// Whether a host and a device crossing agree: both miss, or both cross within a_tolerance, the march's
+// (twice RayOptions::m_tolerance times the box diagonal; the armadillo is about 230 across). A ray grazing
+// the shell may come within the tolerance on one side and not the other, and is counted as differing.
 template <class T>
 std::pair<double, bool>
-agreeCrossing(T a_host, T a_device)
+agreeCrossing(T a_host, T a_device, double a_tolerance)
 {
   const double diff = std::abs(static_cast<double>(a_host) - static_cast<double>(a_device));
 
-  return {diff, (a_host < T(0)) != (a_device < T(0)) || diff > 1e-3};
+  return {diff, (a_host < T(0)) != (a_device < T(0)) || diff > a_tolerance};
 }
 
 // Ray origins in the box grown to twice its size about its centre.
@@ -175,12 +175,15 @@ addShape(Perf::Suite& a_suite, const std::string& a_input, const bool a_march, B
 
       using S = std::decay_t<decltype(shape)>;
 
+      const double tolerance = 2.0 * double(EBGeometry::RayOptions<T>().m_tolerance) *
+                               double((box.getHighCorner() - box.getLowCorner()).length());
+
       const auto out = Perf::measureHostAndDevice<T>(
         c,
         pool,
         q,
         [&](const EBGeometry::Pool& a_pool) { return FirstHit<T, S>{shape.rebasedView(a_pool), centre, a_march}; },
-        agreeCrossing<T>);
+        [tolerance](T a_host, T a_device) { return agreeCrossing<T>(a_host, a_device, tolerance); });
 
       c.checksum(Perf::checksumOf(out));
       c.param("march", a_march ? 1 : 0);

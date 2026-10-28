@@ -195,8 +195,8 @@ operand's list (``RayDetail::annularSpans()``): between two of the operand's cro
 sign, so the shell's value there is the distance to one offset surface (or a bound on it), and it is
 :math:`-\delta` at each crossing. From outside, the march towards the next crossing ends before it; from
 inside, it starts at a crossing, where a step at normal incidence lands on the shell's surface. A walk that
-starts just inside the surface (a trace starting again from an entry) marches back from the next crossing
-instead of creeping forwards. The list ends at the shell's first crossing, its horizon there, even under an
+starts on the shell's surface (a trace starting again from a crossing) starts a little past it, and steps
+off it before it counts a small value as the surface. The list ends at the shell's first crossing, its horizon there, even under an
 intersection: the trace starts again from it if it needs more. Its crossings are marched (not exact), and
 their normal is the annulus's gradient. On a mesh shell cut by a box, this is about as fast as marching the
 whole composition and three to five times faster than marching the annulus under the cut's intersection,

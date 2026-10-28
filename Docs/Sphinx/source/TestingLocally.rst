@@ -401,7 +401,7 @@ Test coverage
        spans than a list holds, from starts along it; the three mesh SDFs, a shape with only
        ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; an annulus of a ball to its
        closed-form surfaces (from outside, grazing, from the centre, from inside the wall, starting again
-       from a crossing), and annuli cut, mapped, around a mesh and of an offset against their values sampled
+       from a crossing, and started again at the entry into a grazed shell before another ball), and annuli cut, mapped, around a mesh and of an offset against their values sampled
        along rays, tape against fused; an intersection known past one list's horizon where the other is
        empty; segments (zero length, a crossing at
        the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a

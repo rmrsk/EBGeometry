@@ -105,23 +105,22 @@ enum class Op : uint8_t
  * @details Internal helper; not part of the public API. A ray program runs its clauses in order on a stack
  * of span lists (RaySpansT) and a stack of rays; its ray is on the ray stack when it starts, and its list
  * is the one list left when it ends. Bit 0 of a clause's m_flags says that all its spans are needed, not
- * only its first crossing.
+ * only its first crossing; bit 1 makes a Marched clause an annulus's.
  */
 enum class RayOp : uint8_t
 {
   Leaf,         ///< Push the spans of primitive (m_type, m_a), leaf number m_b, along the top ray.
   Marched,      ///< Push the spans of sub-program m_a along the top ray, marched in the box at
-                ///< params[m_b..m_b+6), with distance quality m_c.
+                ///< params[m_b..m_b+6), with distance quality m_c. With bit 1 of m_flags, sub-program m_a is an
+                ///< annulus, and its spans replace the top list, its operand's (all its spans), marched from the
+                ///< operand's crossings (see RayDetail::annularSpans()).
   Union,        ///< Pop two lists and push their union.
   Intersection, ///< Pop two lists and push their intersection.
   Complement,   ///< Replace the top list by its complement.
   PushAffine,   ///< Push the top ray mapped by the affine map at params[m_a..m_a+12).
   PopAffine,    ///< Pop a ray, and map the top list back through the map at params[m_a..m_a+12).
-  UnionBVH,     ///< Push the union of the spans of the sub-programs in BVH union m_a; its operands, with the
+  UnionBVH      ///< Push the union of the spans of the sub-programs in BVH union m_a; its operands, with the
                 ///< sub-programs they call, are sub-programs m_b up to m_c.
-  Annular       ///< Replace the top list, an operand's (all its spans), by the list of its annulus, sub-program m_a,
-                ///< marched from the operand's crossings in the box at params[m_b..m_b+6) (see
-                ///< RayDetail::annularSpans()).
 };
 
 /**
@@ -1130,6 +1129,37 @@ private:
                   const void*                  a_base,
                   const PoolLocation&          a_location,
                   RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a Marched clause: its subtree marched along the ray, or for an annulus's, its
+   * operand's list (the top one) replaced by the annulus's, marched from the operand's crossings (see
+   * RayDetail::annularSpans()).
+   * @details Out of line on a device: inlined, either march made the ray program's loop spill more for every
+   * tape.
+   * @tparam D Call depth left for the subtree.
+   * @param[in]     a_clause    The clause.
+   * @param[in]     a_ray       The ray.
+   * @param[in]     a_t0        Start of the interval.
+   * @param[in]     a_t1        End of the interval.
+   * @param[in]     a_options   How to march.
+   * @param[in]     a_firstOnly Whether only the first crossing is needed.
+   * @param[in]     a_base      The pool base.
+   * @param[in]     a_location  The pool location.
+   * @param[in,out] a_spans     The list: for an annulus's clause, its operand's list, replaced.
+   */
+  template <unsigned D>
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  rayMarched(const TapeDetail::RayClause& a_clause,
+             const RayT<T>&               a_ray,
+             T                            a_t0,
+             T                            a_t1,
+             const RayOptions<T>&         a_options,
+             bool                         a_firstOnly,
+             const void*                  a_base,
+             const PoolLocation&          a_location,
+             RaySpansT<T>&                a_spans) const noexcept;
 
   /**
    * @brief The spans of a BVH union clause: the union of its operands' spans, walking its BVH along the

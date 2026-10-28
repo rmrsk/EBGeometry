@@ -254,7 +254,8 @@ half as thick as 1% of its box diagonal, with the corner above its centre in :ma
 :math:`z` cut away by a box, as in :ref:`Chap:ExampleShell`. The rays start in the shell's box grown to
 twice its size and point at its centre. It is through a tape (with the mesh as a user primitive type),
 traced and marched, the traced case naming the marched one, and fused. A host and a device crossing agree
-as in the Ray probe; a ray grazing the shell may come within the march's tolerance on one side only.
+when both miss or both cross within twice the march's tolerance times the box diagonal; a ray grazing the
+shell may come within the tolerance on one side only, and is counted as differing.
 
 ====================================  =====  =====================================================
 Case                                  Build  Measures
