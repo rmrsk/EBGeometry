@@ -89,8 +89,7 @@ surface seen from inside the solid is drawn red, which is also how a mesh whose 
 wrong way looks from outside. ``TriMeshSDF`` is ray traced, so the window follows the mouse; see
 :ref:`Chap:ImplemRender`. In a GPU build the example passes its device view of the mesh, so the window
 renders on the GPU (G switches to the CPU and back); build in single precision
-(``PRECISION=float``) there, since many GPUs are much slower in double precision, and for the GPU's own
-architecture (for example ``CUDA_ARCH=sm_86``).
+(``PRECISION=float``) there, since many GPUs are much slower in double precision.
 
 Building and running
 --------------------

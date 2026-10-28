@@ -689,7 +689,7 @@ The `cuda` and `hip` presets compile the device-bearing tests. Compilation needs
 also runs the `[gpu]` cases in emulation, as above.
 
 ```bash
-cmake --preset cuda -DCMAKE_CUDA_ARCHITECTURES=<arch>   # match the local GPU; preset default is 70
+cmake --preset cuda                                     # the local GPU's architecture (70 without one)
 cmake --build build/cuda --target EBGeometry_GPUDeviceTests --parallel $(nproc)
 cd build/cuda && ctest -L gpu-device --output-on-failure
 ```

@@ -20,7 +20,8 @@ ASSERTIONS      ?= OFF
 GPU             ?= OFF
 VIEWER          ?= OFF
 HIP_ARCH        ?= gfx90a
-CUDA_ARCH       ?= sm_70
+# The GPU in this machine (nvidia-smi), so that the binary carries its machine code; sm_70 without one.
+CUDA_ARCH       ?= sm_$(or $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | grep -m1 -E '^[0-9]+\.[0-9]+$$' | tr -d .),70)
 
 # make predefines CXX (as g++ on most systems), so `CXX ?=` would never apply: set it only when it
 # still has make's built-in value. -std=c++17 is on the compile line, not in CXXFLAGS, so that a

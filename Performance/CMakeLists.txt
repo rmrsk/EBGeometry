@@ -72,7 +72,16 @@ if(_perf_gpu STREQUAL "HIP" OR _perf_gpu STREQUAL "CUDA")
     endif()
 
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-      set(CMAKE_CUDA_ARCHITECTURES 70)
+      # The GPU in this machine, so that the binary carries its machine code; 70 when none is visible.
+      execute_process(COMMAND nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+                      OUTPUT_VARIABLE _cuda_cap RESULT_VARIABLE _cuda_smi ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+      string(REGEX MATCH "^[0-9]+\\.[0-9]+" _cuda_cap "${_cuda_cap}")
+    
+      if(_cuda_smi EQUAL 0 AND _cuda_cap)
+        string(REPLACE "." "" CMAKE_CUDA_ARCHITECTURES "${_cuda_cap}")
+      else()
+        set(CMAKE_CUDA_ARCHITECTURES 70)
+      endif()
     endif()
 
     enable_language(${_perf_gpu})

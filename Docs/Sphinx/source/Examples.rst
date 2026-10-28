@@ -163,7 +163,13 @@ All three build methods take a GPU switch:
 
    # Direct compilation
    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o <Example>.ex
-   nvcc  -std=c++17 -O3 -x cu -arch=sm_80 -I../.. main.cpp -o <Example>.ex
+   nvcc  -std=c++17 -O3 -x cu -arch=native -I../.. main.cpp -o <Example>.ex
+
+A CUDA build is for the GPU in the machine unless told otherwise (``nvidia-smi`` names it; without one,
+compute capability 7.0). The binary then carries that GPU's machine code. A binary without it carries
+only PTX, which the driver compiles when the program starts, and a driver older than the CUDA toolkit
+refuses that (``the provided PTX was compiled with an unsupported toolchain``): build for the GPU, or
+update the driver.
 
 Built as part of the EBGeometry project with ``EBGEOMETRY_ENABLE_HIP`` or ``EBGEOMETRY_ENABLE_CUDA``,
 these examples are compiled for the device and collected in the ``EBGeometry_GPUDeviceExamples``
