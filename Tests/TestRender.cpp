@@ -372,6 +372,17 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   (void)renderer.render(sphere, camera, seeThrough);
 
   CHECK(seeThrough.at(size / 2 + size / 8, size / 2) != byNormal.at(size / 2 + size / 8, size / 2));
+
+  // What shows through is inside the solid, where shadows and occlusion would darken it everywhere: they are
+  // left out there, so the face looks the same with them on as off.
+  renderer.settings().m_shadows   = true;
+  renderer.settings().m_occlusion = true;
+
+  Render::Image shaded;
+
+  (void)renderer.render(sphere, camera, shaded);
+
+  CHECK(shaded.at(size / 2 + size / 8, size / 2) == seeThrough.at(size / 2 + size / 8, size / 2));
 }
 
 TEMPLATE_TEST_CASE("Render: the device render matches the host render", "[Render][gpu]", EBGEOMETRY_TEST_PRECISIONS)

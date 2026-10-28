@@ -569,6 +569,8 @@ private:
    * @param[in] a_normal    Unit normal, towards the eye.
    * @param[in] a_direction Unit direction of the camera ray.
    * @param[in] a_albedo    Albedo.
+   * @param[in] a_shade     Whether shadows and occlusion may darken it (not for a surface seen through the
+   * cut face, inside the solid, where they would be everywhere).
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -576,15 +578,16 @@ private:
   light(const Vec3T<T>& a_point,
         const Vec3T<T>& a_normal,
         const Vec3T<T>& a_direction,
-        const Vec3T<T>& a_albedo) const noexcept
+        const Vec3T<T>& a_albedo,
+        const bool      a_shade = true) const noexcept
   {
     const Vec3T<T> half = unit(m_light - a_direction);
 
-    const T lit  = m_settings.m_shadows ? this->shadow(a_point, a_normal) : T(1);
+    const T lit  = (a_shade && m_settings.m_shadows) ? this->shadow(a_point, a_normal) : T(1);
     const T diff = Math::max(T(0), dot(a_normal, m_light)) * lit;
     const T spec = std::pow(Math::max(T(0), dot(a_normal, half)), m_settings.m_shininess) * diff;
     const T sky  = T(0.5) + T(0.5) * dot(a_normal, m_up);
-    const T ao   = m_settings.m_occlusion ? this->occlusion(a_point, a_normal) : T(1);
+    const T ao   = (a_shade && m_settings.m_occlusion) ? this->occlusion(a_point, a_normal) : T(1);
 
     return a_albedo * (m_settings.m_lightIntensity * diff + m_settings.m_ambient * sky * ao) +
            m_settings.m_specular * spec * Vec3T<T>::ones();
@@ -620,8 +623,9 @@ private:
    * @brief The colour of the shape's surface where a ray hit it.
    * @param[in] a_hit       The hit.
    * @param[in] a_direction Unit direction of the ray.
-   * @param[in] a_tint      Whether a surface seen from inside the solid is tinted (not when it is seen
-   * through the cut face, which looks into the solid on purpose).
+   * @param[in] a_tint      Whether a surface seen from inside the solid is tinted, and shadows and occlusion
+   * darken it (not when it is seen through the cut face, which looks into the solid on purpose, and where
+   * the solid around it would shadow and occlude it everywhere).
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -654,7 +658,7 @@ private:
       albedo = T(0.25) * albedo + T(0.75) * m_settings.m_insideColour;
     }
 
-    return this->light(p, n, a_direction, albedo);
+    return this->light(p, n, a_direction, albedo, a_tint);
   }
 
   /**
