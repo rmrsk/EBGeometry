@@ -351,8 +351,7 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   CHECK(opened.at(size / 2, size / 2) != whole.at(size / 2, size / 2));
   CHECK(opened.at(size / 2 - 3, size / 2 + 2) != background);
 
-  // Coloured by normal, the face takes the sphere's own normal, not the plane's: halfway to the right of the
-  // centre it points along +x, so the face is red there.
+  // Coloured by normal, the face takes the plane's normal, +z: it is blue, and the same across the face.
   renderer.settings().m_colourBy = Render::ColourBy::Normal;
 
   Render::Image byNormal;
@@ -361,8 +360,9 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
 
   const Channels right = channels(byNormal.at(size / 2 + size / 8, size / 2));
 
-  CHECK(right.r > right.b + 40);
-  CHECK(right.r > right.g + 40);
+  CHECK(right.b > right.r + 40);
+  CHECK(right.b > right.g + 40);
+  CHECK(byNormal.at(size / 2 + size / 8, size / 2) == byNormal.at(size / 2 - size / 8, size / 2));
 
   // Partly transparent, the far wall of the sphere shows through the face.
   renderer.settings().m_cutOpacity = T(0.5);

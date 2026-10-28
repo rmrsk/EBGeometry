@@ -349,7 +349,7 @@ public:
       const Vec3T<T>& p = hit.m_point;
 
       if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
-        colour = this->shadeCut(p);
+        colour = this->shadeCut();
 
         if (m_settings.m_cutOpacity < T(1)) {
           const HitT<T>  behind = this->trace(ray, hit.m_t + T(4) * m_eps, m_far);
@@ -518,30 +518,6 @@ private:
   }
 
   /**
-   * @brief The uncut shape's unit normal at a point (the direction its value grows fastest), from finite
-   * differences on a tetrahedron.
-   * @param[in] a_point Point.
-   * @return The normal.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Vec3T<T>
-  shapeNormal(const Vec3T<T>& a_point) const noexcept
-  {
-    const T        h = T(5e-4) * m_scale;
-    const Vec3T<T> a(T(1), T(-1), T(-1));
-    const Vec3T<T> b(T(-1), T(-1), T(1));
-    const Vec3T<T> c(T(-1), T(1), T(-1));
-    const Vec3T<T> d(T(1), T(1), T(1));
-
-    const Vec3T<T> g = a * m_object.shapeDistance(a_point + h * a) + b * m_object.shapeDistance(a_point + h * b) +
-                       c * m_object.shapeDistance(a_point + h * c) + d * m_object.shapeDistance(a_point + h * d);
-
-    const T length = g.length();
-
-    return (length > T(0)) ? g / length : m_up;
-  }
-
-  /**
    * @brief How much light reaches a point from the light's direction: 0 in shadow, 1 in light.
    * @details One ray towards the light (firstHit()); the light moving a little between a pixel's rays
    * softens the edges.
@@ -615,19 +591,18 @@ private:
   }
 
   /**
-   * @brief The fill of the section plane's cut face at a point: coloured as a surface there would be, by
-   * the direction of the shape's own normal (the gradient of its value, not the plane's normal), and lit by
-   * it a little from either side, without shadows, so that a slice reads the same whichever way the light
-   * faces. Coloured by primitive, it takes the cut colour: inside a composition the leaf that decides the
-   * value (a subtracted one, near its surface) need not be the material there.
-   * @param[in] a_point Point on the cut face.
+   * @brief The fill of the section plane's cut face: coloured as a surface facing along the plane's normal
+   * would be, and lit by that normal a little from either side, without shadows, so that a slice reads the
+   * same whichever way the light faces. Coloured by primitive, it takes the cut colour: inside a
+   * composition the leaf that decides the value (a subtracted one, near its surface) need not be the
+   * material there.
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Vec3T<T>
-  shadeCut(const Vec3T<T>& a_point) const noexcept
+  shadeCut() const noexcept
   {
-    const Vec3T<T> n = this->shapeNormal(a_point);
+    const Vec3T<T>& n = m_object.m_normal;
 
     Vec3T<T> albedo = m_settings.m_colour;
 

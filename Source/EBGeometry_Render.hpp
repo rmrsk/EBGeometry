@@ -260,7 +260,7 @@ struct Settings
 
   /**
    * @brief The colour of faces cut by the section plane when colouring by primitive; otherwise a cut face
-   * is coloured as the shape's surface would be, by its own normal there or uniformly.
+   * is coloured as a surface facing along the plane's normal would be (or uniformly).
    */
   Vec3T<T> m_cutColour = Vec3T<T>(T(0.95), T(0.86), T(0.50));
 

@@ -44,7 +44,7 @@ The classes are in namespace ``Render``:
   it turns with the camera and lights the side in view, or in the scene with ``m_lightFromCamera`` false;
   its intensity, the ambient level, and the highlights' strength and shininess), the section plane
   (``m_section``, a point and a normal; the side the normal points to is removed; the cut face is
-  coloured by the shape's own normal there, and partly transparent, ``m_cutOpacity``, so that the shape's
+  coloured as a surface facing along the plane's normal would be, and partly transparent, ``m_cutOpacity``, so that the shape's
   next surface behind it shows through; its contour, a line
   ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
   box), and the march (``RayOptions``). ``m_primitiveColours`` gives the first
