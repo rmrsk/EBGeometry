@@ -1073,7 +1073,8 @@ TEMPLATE_TEST_CASE("Ray: an intersection marches an operand only where its other
     return ProbedBall<T>{SphereSDF<T>(Vec3::zeros(), T(1)), a_lo, a_hi, &count};
   };
 
-  // The tape also names the deciding leaf, numbered as written, though it marches the ball last.
+  // The tape also names the deciding leaf, numbered as written, though it marches the ball last (a fused
+  // composition is one shape, with no leaves).
   const auto check = [&](const auto&    a_fused,
                          const Expr<T>& a_expr,
                          const RayT<T>& a_ray,
@@ -1124,11 +1125,12 @@ TEMPLATE_TEST_CASE("Ray: an intersection marches an operand only where its other
 
   // Two marched balls in an intersection with two boxes, x in (-2, -1) and (1, 2): the big ball's first span
   // within the boxes, in the first box, lies outside the small ball, which holds only the second box's
-  // entry at x = 1. The trace goes on past the first box, in either order of the balls.
+  // entry at x = 1. The trace goes on past the first box, in either order of the balls, and neither ball is
+  // evaluated between the boxes.
   const BoxSDF<T> left(Vec3(-T(2), -T(0.5), -T(0.5)), Vec3(-T(1), T(0.5), T(0.5)));
   const BoxSDF<T> right(Vec3(T(1), -T(0.5), -T(0.5)), Vec3(T(2), T(0.5), T(0.5)));
-  const auto      big   = ProbedBall<T>{SphereSDF<T>(Vec3::zeros(), T(3)), T(0), T(0), &count};
-  const auto      small = ProbedBall<T>{SphereSDF<T>(Vec3(T(1.5), T(0), T(0)), T(0.8)), T(0), T(0), &count};
+  const auto      big   = ProbedBall<T>{SphereSDF<T>(Vec3::zeros(), T(3)), -T(1), T(1), &count};
+  const auto      small = ProbedBall<T>{SphereSDF<T>(Vec3(T(1.5), T(0), T(0)), T(0.8)), -T(1), T(1), &count};
   const RayT<T>   along{Vec3(-T(5), T(0), T(0)), Vec3(1, 0, 0)};
 
   check(Fused::Intersection(Fused::Union(left, right), big, small),
