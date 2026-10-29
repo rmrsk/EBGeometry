@@ -28,7 +28,7 @@ date: 2026-10-29
 
 ## Host comparison: red
 
-**Accepted:** -
+**Accepted:** The two MAJORs and four of the six minors did not hold over 10 rounds. `Tape/csg/signedDistance/float` (+4.1%) is code placement: the tape evaluator's out-of-line functions have the same sizes on both sides. `RayCSG/scene-fused/firstHit/float` (+3.3%, interval 0.0% to 8.6%) is borderline.
 
 `f396ac7` against `5619c3e` (origin/dev), 2026-10-29.
 
@@ -53,7 +53,7 @@ date: 2026-10-29
 
 ## Device comparison (CUDA): red
 
-**Accepted:** -
+**Accepted:** The two MAJORs did not hold over 10 rounds. Float tape ray kernels with no marched operand are 4–8% slower (`Render/csg/frame`, `Ray/csg-tape`, `LaunchTuning/csg-tape`). That is the cost of the branch to `rayMarchedWithin` in `rayEvaluate`'s `Marched` case: registers stay 168, and the stack frame grows by 80–128 bytes. That buys the Shell's 5× faster frame. The 6 host/device disagreements are the grazing float rays that predate #246.
 
 `f396ac7` against `5619c3e` (origin/dev), 2026-10-29.
 
