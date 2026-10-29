@@ -83,6 +83,18 @@ inline constexpr const char* backendName = "host";
 inline constexpr unsigned int DefaultBlockSize = 128;
 
 /**
+ * @brief The threads a launch asks the CUDA compiler to keep resident on each multiprocessor, at least,
+ * unless it is given another: 384, three blocks of 128, which holds a thread to at most 168 registers.
+ * @details The kernel carries it as launch bounds (a minimum number of resident blocks, rounded up). Without
+ * a minimum, the compiler picks one register budget for the whole kernel, every function it calls included,
+ * and the pick jumps with small changes to code the kernel may not even run (a tape's ray kernel once went
+ * from 255 registers to 40, spilling twice as much); given one, it uses the budget the minimum allows. Not
+ * tuned for every query: a kernel that runs best with few registers may be slower under it. 0 asks for no
+ * minimum. HIP reads a second launch bound differently, and a HIP build ignores it.
+ */
+inline constexpr unsigned int DefaultMinResidentThreads = 384;
+
+/**
  * @brief Whether a GPU is visible to the runtime.
  * @details Always false in a host build. In a CUDA or HIP build, false also when the runtime itself
  * reports an error (no driver, for instance) rather than a device count.
@@ -127,12 +139,16 @@ using TransformResult = std::decay_t<std::invoke_result_t<const Query&, const In
  * @tparam BlockSize Threads per block: a multiple of 64 (an AMD wavefront, and two NVIDIA warps), at
  * most 1024. The kernel carries it as launch bounds, so the compiler can give each thread the
  * registers that block size allows.
+ * @tparam MinResidentThreads In a CUDA build, the threads to keep resident on a multiprocessor, at least,
+ * which fixes the register budget (see DefaultMinResidentThreads); at most 2048, 0 for no minimum.
  * @tparam F         Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
  * std::size_t.
  * @param[in] a_n Number of indices.
  * @param[in] a_f The functor.
  */
-template <unsigned int BlockSize = DefaultBlockSize, class F>
+template <unsigned int BlockSize          = DefaultBlockSize,
+          unsigned int MinResidentThreads = DefaultMinResidentThreads,
+          class F>
 EBGEOMETRY_HOST
 inline void
 parallelFor(std::size_t a_n, const F& a_f);
@@ -149,6 +165,7 @@ parallelFor(std::size_t a_n, const F& a_f);
  * the two must otherwise not overlap, which aborts with a message. The query runs through
  * parallelFor(), with its requirements.
  * @tparam BlockSize Threads per block; see parallelFor().
+ * @tparam MinResidentThreads Threads to keep resident, in a CUDA build; see parallelFor().
  * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
  * const In&.
  * @tparam In        Input type, const or not.
@@ -157,7 +174,11 @@ parallelFor(std::size_t a_n, const F& a_f);
  * @param[in]  a_in    The inputs, in memory the device can read.
  * @param[out] a_out   The results, in memory the device can write; as many as there are inputs.
  */
-template <unsigned int BlockSize = DefaultBlockSize, class Query, class In, class Out>
+template <unsigned int BlockSize          = DefaultBlockSize,
+          unsigned int MinResidentThreads = DefaultMinResidentThreads,
+          class Query,
+          class In,
+          class Out>
 EBGEOMETRY_HOST
 inline void
 transform(const Query& a_query, PODSpan<In> a_in, PODSpan<Out> a_out);
@@ -178,6 +199,7 @@ transform(const Query& a_query, PODSpan<In> a_in, PODSpan<Out> a_out);
  * as for the span overload. Arrays in two different pools, or not in a pool at all, go through the
  * span overload.
  * @tparam BlockSize Threads per block; see parallelFor().
+ * @tparam MinResidentThreads Threads to keep resident, in a CUDA build; see parallelFor().
  * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
  * const In&.
  * @tparam In        Input type.
@@ -187,7 +209,11 @@ transform(const Query& a_query, PODSpan<In> a_in, PODSpan<Out> a_out);
  * @param[in] a_in    The inputs.
  * @param[in] a_out   The results' array, as many elements as a_in; its elements are written.
  */
-template <unsigned int BlockSize = DefaultBlockSize, class Query, class In, class Out>
+template <unsigned int BlockSize          = DefaultBlockSize,
+          unsigned int MinResidentThreads = DefaultMinResidentThreads,
+          class Query,
+          class In,
+          class Out>
 EBGEOMETRY_HOST
 inline void
 transform(const Query& a_query, const Pool& a_pool, const PODVector<In>& a_in, const PODVector<Out>& a_out);
@@ -203,6 +229,7 @@ transform(const Query& a_query, const Pool& a_pool, const PODVector<In>& a_in, c
  * (std::vector<bool> has no contiguous storage to copy), which is checked at compile time in both
  * builds.
  * @tparam BlockSize Threads per block; see parallelFor().
+ * @tparam MinResidentThreads Threads to keep resident, in a CUDA build; see parallelFor().
  * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
  * const In&.
  * @tparam In        Trivially copyable input type.
@@ -211,7 +238,11 @@ transform(const Query& a_query, const Pool& a_pool, const PODVector<In>& a_in, c
  * @param[in]  a_in    The inputs.
  * @param[out] a_out   The results, in input order; as many elements as a_in.
  */
-template <unsigned int BlockSize = DefaultBlockSize, class Query, class In, class Out>
+template <unsigned int BlockSize          = DefaultBlockSize,
+          unsigned int MinResidentThreads = DefaultMinResidentThreads,
+          class Query,
+          class In,
+          class Out>
 EBGEOMETRY_HOST
 inline void
 transform(const Query& a_query, const std::vector<In>& a_in, std::vector<Out>& a_out);

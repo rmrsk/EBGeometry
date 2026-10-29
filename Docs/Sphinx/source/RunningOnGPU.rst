@@ -230,5 +230,21 @@ as many registers as that block size allows rather than planning for the largest
 block size must be a positive multiple of 64 (an AMD wavefront, and two NVIDIA warps) and at most
 1024, which is checked at compile time.
 
+In a CUDA build the kernel also asks for at least 384 threads resident on each multiprocessor (three
+blocks of 128), which holds each thread to at most 168 registers. Left to itself, the CUDA compiler picks
+one register budget for a whole kernel, every function it calls included, and the pick jumps with small
+changes to code the kernel may not even run: a tape's ray kernel once went from 255 registers to 40, and
+ran up to twice as slow, after a few lines were added elsewhere in the ray code. Asking for a minimum
+fixes the budget at what that minimum allows. The minimum is the second template argument, after the
+block size, with ``GPU::DefaultMinResidentThreads`` (384) unless given; 0 asks for none:
+
+.. code-block:: c++
+
+   GPU::transform<128, 0>(query, points, distances);     // no minimum: the compiler picks the budget
+   GPU::transform<128, 768>(query, points, distances);   // at least 768 threads: at most 80 registers
+
+A query that runs best with few registers per thread, or with many, can be measured with another. HIP
+reads a second launch bound differently, and a HIP build ignores the minimum.
+
 The default of 128 has not been tuned. The best block size depends on the device and on the query,
 so measure it for your own case with the pool overload.
