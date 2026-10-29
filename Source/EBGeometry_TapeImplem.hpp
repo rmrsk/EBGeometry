@@ -1977,11 +1977,33 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
     this->template rayEvaluate<MaxCallDepth>(0U, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
   };
 
-  const auto resolve = [this, &a_ray, &a_options, base, &location](const T a_t, const uint32_t a_leaf) noexcept {
-    return this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+  // A crossing on a level set is marked, and resolved once the trace is done (see resolveLevelHit()).
+  uint32_t levelClause = 0U;
+
+  const auto resolve = [this, &a_ray, &a_options, base, &location, &levelClause](const T        a_t,
+                                                                                 const uint32_t a_leaf) noexcept {
+    const HitT<T> leafHit = this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+
+    if (leafHit.m_primitive == LevelLeaf) {
+      levelClause = a_leaf;
+    }
+
+    return leafHit;
   };
 
   HitT<T> hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
+
+  if (hit.hit() && hit.m_primitive == LevelLeaf) {
+    const HitT<T> level = this->resolveLevelHit(levelClause, a_ray, hit.m_t, a_options, base, location);
+
+    hit.m_normal    = level.m_normal;
+    hit.m_primitive = level.m_primitive;
+
+    // Outward of the composition, as traceSpans() orients a resolved normal: against the ray where it enters.
+    if ((dot(hit.m_normal, a_ray.m_direction) < T(0)) != hit.m_entering) {
+      hit.m_normal = -hit.m_normal;
+    }
+  }
 
   // A crossing found by marching a subtree is named by the leaf deciding the value there.
   if (hit.hit() && hit.m_primitive == MarchedLeaf) {
@@ -2302,7 +2324,7 @@ Tape<T, UserPrimitives...>::rayUnion(const TapeDetail::RayClause& a_clause,
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D>
+template <unsigned D, bool Level>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline HitT<T>
@@ -2335,16 +2357,23 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
     const RayDetail::MappedRay<T>& top = rays[nr - 1];
 
     if (pc == a_clause) {
-      if (c.m_op == RayOp::Leaf) {
+      if ((c.m_flags & 8U) != 0U && (c.m_op == RayOp::Leaf || c.m_op == RayOp::Marched)) {
+        // A level set's crossing: resolved only in the level-set walk (see resolveLevelHit()); its leaf number is
+        // in m_b of a Leaf clause and in m_c of a deferred one.
+        if constexpr (Level) {
+          hit = this->levelClauseHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
+
+          hit.m_primitive = (c.m_op == RayOp::Leaf) ? c.m_b : c.m_c;
+        }
+        else {
+          hit.m_t         = top.m_t0;
+          hit.m_primitive = LevelLeaf;
+        }
+      }
+      else if (c.m_op == RayOp::Leaf) {
         hit = this->primitiveLeafHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
 
         hit.m_primitive = c.m_b;
-      }
-      else if ((c.m_flags & 8U) != 0U) {
-        // A mesh's level set deferred in an intersection: its leaf number is in m_c.
-        hit = this->levelClauseHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
-
-        hit.m_primitive = c.m_c;
       }
       else {
         // A Marched clause is a leaf of the trace as a whole: its subtree has no ray program, so a trace never
@@ -2419,7 +2448,8 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
         }
 
         if (operand != UINT32_MAX && operand != a_program && operand >= c.m_b && operand < c.m_c) {
-          hit = this->template rayLeafHit<D - 1>(operand, top.m_ray, top.m_t0, a_clause, a_options, a_base, a_location);
+          hit = this->template rayLeafHit<D - 1, Level>(
+            operand, top.m_ray, top.m_t0, a_clause, a_options, a_base, a_location);
         }
       }
 
@@ -2453,10 +2483,6 @@ Tape<T, UserPrimitives...>::primitiveLeafHit(const TapeDetail::RayClause& a_clau
                                              const void*                  a_base,
                                              const PoolLocation&          a_location) const noexcept
 {
-  if ((a_clause.m_flags & 8U) != 0U) {
-    return this->levelClauseHit(a_clause, a_ray, a_t, a_options, a_base, a_location);
-  }
-
   return this->template dispatchLeafHit<0>(a_clause, a_ray, a_t, a_options, a_base, a_location);
 }
 
@@ -2640,6 +2666,21 @@ Tape<T, UserPrimitives...>::levelClauseHit(const TapeDetail::RayClause& a_clause
   });
 
   return hit;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+EBGEOMETRY_HOST_NOINLINE
+HitT<T>
+Tape<T, UserPrimitives...>::resolveLevelHit(const uint32_t       a_clause,
+                                            const RayT<T>&       a_ray,
+                                            const T              a_t,
+                                            const RayOptions<T>& a_options,
+                                            const void*          a_base,
+                                            const PoolLocation&  a_location) const noexcept
+{
+  return this->template rayLeafHit<MaxCallDepth, true>(0U, a_ray, a_t, a_clause, a_options, a_base, a_location);
 }
 
 template <class T, class... UserPrimitives>

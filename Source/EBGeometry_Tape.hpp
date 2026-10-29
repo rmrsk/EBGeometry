@@ -880,6 +880,11 @@ private:
   static constexpr uint32_t MarchedLeaf = UINT32_MAX;
 
   /**
+   * @brief The primitive of a crossing on a level-set clause before resolveLevelHit() resolves it.
+   */
+  static constexpr uint32_t LevelLeaf = UINT32_MAX - 1;
+
+  /**
    * @brief The arrays.
    */
   Layout m_layout;
@@ -1018,7 +1023,10 @@ private:
    * clause): found again by following the program to the clause, through the affine maps and BVH unions
    * above it, and asking the leaf (a marched subtree gives its gradient). The normal is the leaf's outward
    * one, mapped back to the program's frame.
-   * @tparam D How deep the program's calls may still nest.
+   * @tparam D     How deep the program's calls may still nest.
+   * @tparam Level Whether a level-set clause (bit 3, see TapeDetail::RayOp) is resolved (levelClauseHit());
+   * without, its crossing is only marked LevelLeaf, so that this walk, which plain tapes run, never reaches the
+   * level-set code (see resolveLevelHit()).
    * @param[in] a_program  Sub-program whose ray program to follow.
    * @param[in] a_ray      The ray.
    * @param[in] a_t        The crossing's distance.
@@ -1029,7 +1037,7 @@ private:
    * @return The crossing, with HitT::m_primitive the leaf's number (MarchedLeaf for a marched subtree), or a
    * miss if the clause is not reached from the program.
    */
-  template <unsigned D>
+  template <unsigned D, bool Level = false>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline HitT<T>
@@ -1214,6 +1222,30 @@ private:
                  const RayOptions<T>&         a_options,
                  const void*                  a_base,
                  const PoolLocation&          a_location) const noexcept;
+
+  /**
+   * @brief The crossing at a distance on a level-set clause, found again from the tape's top program
+   * (rayLeafHit() with its level-set resolution): what traceRay() asks once its trace ended on one. Out of line
+   * on the host and on a device: the walk plain tapes run keeps no call into level-set code, which made ptxas
+   * spill more in every tape's ray kernel.
+   * @param[in] a_clause   The clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  EBGEOMETRY_HOST_NOINLINE
+  HitT<T>
+  resolveLevelHit(uint32_t             a_clause,
+                  const RayT<T>&       a_ray,
+                  T                    a_t,
+                  const RayOptions<T>& a_options,
+                  const void*          a_base,
+                  const PoolLocation&  a_location) const noexcept;
 
   /**
    * @brief Call a_visit(primitive) with a clause's primitive (m_type, m_a) if its type, from I onwards, has
