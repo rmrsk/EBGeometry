@@ -24,6 +24,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `RayCSG/`     | Ray tracing a composition from its parts' spans: a scene of 50 solids less 10, fused and through a tape, traced and marched; a crowd of 4,096 balls through a tape |
 | `Render/`     | One frame of the renderer (shadows, ambient occlusion) of the CSG solid through a tape (also with an orthographic camera) and of the armadillo as a `TriMeshSDF` |
 | `ClosestPrimitive/` | A tape's `closestPrimitive()`, the deciding leaf (CSG, a scene of fused parts, a drilled mesh) |
+| `LaunchTuning/` | `GPU::transform()`'s launch settings (block size, minimum resident threads) on a mesh distance, a tape's rays and a point cloud; device only |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results               |
 

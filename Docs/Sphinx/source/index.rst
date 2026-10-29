@@ -143,6 +143,7 @@ Examples
    ExampleCustomShape.rst
    ExampleTwist.rst
    ExampleHostTuning.rst
+   ExampleDeviceTuning.rst
    ExampleBuildBVH.rst
    Integrations.rst
 

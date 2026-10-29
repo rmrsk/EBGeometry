@@ -286,6 +286,25 @@ Family                                Build  Measures
                                              (262,144 for the drilled mesh)
 ====================================  =====  =====================================================
 
+**LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see
+:ref:`Chap:RunningOnGPU`), the block size and the threads a CUDA kernel is asked to keep resident on a
+multiprocessor, which fixes its register budget. Three kernels whose best settings differ, each at the
+defaults (``b128-r384``) and at three other settings that name it: no minimum (``b128-r0``, the compiler
+picks the budget), a larger one (``b128-r768``, at most 80 registers) and wider blocks (``b256-r384``).
+Device only: a host build has no cases here. Every other device case records its launch settings as the
+parameters ``blockSize`` and ``minResidentThreads``.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``mesh/signedDistance-<setting>``     GPU    the armadillo's signed distance (a ``TriMeshSDF``) at
+                                             262,144 points around it, in Morton order
+``csg-tape/firstHit-<setting>``       GPU    the first crossing of 262,144 rays with the classic CSG
+                                             solid through a ``Tape``
+``cloud/closestPoint-<setting>``      GPU    the closest of a million points in a ``PointCloudBVH``
+                                             to 262,144 points around them
+====================================  =====  =====================================================
+
 Where the results go
 --------------------
 
@@ -316,8 +335,8 @@ depends on the build:
   pulls in headers that ``nvcc`` cannot parse), so host-only operations are left to the host build.
 
 Queries are written as trivially copyable functors, as in the examples. In a pair, the inputs are
-divided into chunks of ``GPU::DefaultBlockSize`` consecutive points: on the device each chunk is one
-block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
+divided into chunks of as many consecutive points as the case's block size (``GPU::DefaultBlockSize``
+unless the case gives another, as LaunchTuning's do): on the device each chunk is one block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
 kernel's alone), and on the host the chunks are shared among OpenMP threads, one on every hardware
 thread but one, so that the device is compared with the whole CPU rather than one core.
 (``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries about a quarter faster

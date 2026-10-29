@@ -37,6 +37,17 @@ checkBlockSize() noexcept
 }
 
 /**
+ * @brief Compile-time checks on a minimum of resident threads.
+ * @tparam MinResidentThreads Threads to keep resident on a multiprocessor.
+ */
+template <unsigned int MinResidentThreads>
+inline constexpr void
+checkMinResidentThreads() noexcept
+{
+  static_assert(MinResidentThreads <= 2048, "GPU: no multiprocessor keeps more than 2048 threads resident");
+}
+
+/**
  * @brief The functor the span transform runs: a_out[i] = a_query(a_in[i]).
  * @tparam Query Query functor type.
  * @tparam In    Input type, const or not.
@@ -71,17 +82,44 @@ struct Apply
 /**
  * @brief Kernel: a_f(i) for every i < a_n, one thread per index.
  * @details Launch bounds tell the compiler that no block exceeds BlockSize threads. Without them it
- * must assume the largest block (1024) and allocate registers for it.
- * @tparam BlockSize Threads per block.
- * @tparam F         Functor type.
+ * must assume the largest block (1024) and allocate registers for it. In a CUDA build they also ask for
+ * MinResidentThreads (see DefaultMinResidentThreads); parallelFor() launches parallelForKernelFree()
+ * instead when it is 0.
+ * @tparam BlockSize          Threads per block.
+ * @tparam MinResidentThreads Threads to keep resident on a multiprocessor, at least; not 0.
+ * @tparam F                  Functor type.
  * @param[in] a_f The functor, passed by value and read in place where the compiler can (see
  * EBGEOMETRY_GRID_CONSTANT), so that a large one is not copied to every thread's local memory.
+ * @param[in] a_n Number of indices.
+ */
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class F>
+EBGEOMETRY_GLOBAL
+void
+#if defined(EBGEOMETRY_CUDA)
+__launch_bounds__(BlockSize, (MinResidentThreads + BlockSize - 1) / BlockSize)
+#else
+__launch_bounds__(BlockSize)
+#endif
+  parallelForKernel(EBGEOMETRY_GRID_CONSTANT const F a_f, const std::size_t a_n)
+{
+  const std::size_t i = static_cast<std::size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+
+  if (i < a_n) {
+    a_f(i);
+  }
+}
+
+/**
+ * @brief Kernel: a_f(i) for every i < a_n, one thread per index, bounded only by its block size.
+ * @tparam BlockSize Threads per block.
+ * @tparam F         Functor type.
+ * @param[in] a_f The functor (see parallelForKernel()).
  * @param[in] a_n Number of indices.
  */
 template <unsigned int BlockSize, class F>
 EBGEOMETRY_GLOBAL
 void
-__launch_bounds__(BlockSize) parallelForKernel(EBGEOMETRY_GRID_CONSTANT const F a_f, const std::size_t a_n)
+__launch_bounds__(BlockSize) parallelForKernelFree(EBGEOMETRY_GRID_CONSTANT const F a_f, const std::size_t a_n)
 {
   const std::size_t i = static_cast<std::size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
 
@@ -116,11 +154,12 @@ memoryResource() noexcept
 #endif
 }
 
-template <unsigned int BlockSize, class F>
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class F>
 inline void
 parallelFor(const std::size_t a_n, const F& a_f)
 {
   TransformDetail::checkBlockSize<BlockSize>();
+  TransformDetail::checkMinResidentThreads<MinResidentThreads>();
 
   static_assert(std::is_trivially_copyable_v<F>, "GPU::parallelFor: a functor must be trivially copyable");
 
@@ -140,7 +179,12 @@ parallelFor(const std::size_t a_n, const F& a_f)
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
   const auto blocks = static_cast<unsigned int>((a_n + BlockSize - 1) / BlockSize);
 
-  TransformDetail::parallelForKernel<BlockSize, F><<<blocks, BlockSize>>>(a_f, a_n);
+  if constexpr (MinResidentThreads > 0) {
+    TransformDetail::parallelForKernel<BlockSize, MinResidentThreads, F><<<blocks, BlockSize>>>(a_f, a_n);
+  }
+  else {
+    TransformDetail::parallelForKernelFree<BlockSize, F><<<blocks, BlockSize>>>(a_f, a_n);
+  }
 
   EBGEOMETRY_GPU_CHECK(getLastError());
   EBGEOMETRY_GPU_CHECK(deviceSynchronize());
@@ -154,7 +198,7 @@ parallelFor(const std::size_t a_n, const F& a_f)
 #endif
 }
 
-template <unsigned int BlockSize, class Query, class In, class Out>
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class Query, class In, class Out>
 inline void
 transform(const Query& a_query, const PODSpan<In> a_in, const PODSpan<Out> a_out)
 {
@@ -182,10 +226,11 @@ transform(const Query& a_query, const PODSpan<In> a_in, const PODSpan<Out> a_out
   EBGEOMETRY_REQUIRE(a_in.size() == 0 || inPlace || disjoint,
                      "GPU::transform: the inputs and the results must be the same array or not overlap");
 
-  parallelFor<BlockSize>(a_in.size(), TransformDetail::Apply<Query, In, Out>{a_query, a_in.m_ptr, a_out.m_ptr});
+  parallelFor<BlockSize, MinResidentThreads>(a_in.size(),
+                                             TransformDetail::Apply<Query, In, Out>{a_query, a_in.m_ptr, a_out.m_ptr});
 }
 
-template <unsigned int BlockSize, class Query, class In, class Out>
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class Query, class In, class Out>
 inline void
 transform(const Query& a_query, const Pool& a_pool, const PODVector<In>& a_in, const PODVector<Out>& a_out)
 {
@@ -206,10 +251,10 @@ transform(const Query& a_query, const Pool& a_pool, const PODVector<In>& a_in, c
   // The inputs are bound against a const base, so the query sees them read-only.
   const void* const inBase = a_pool.base();
 
-  transform<BlockSize>(a_query, a_in.bind(inBase), a_out.bind(a_pool.base()));
+  transform<BlockSize, MinResidentThreads>(a_query, a_in.bind(inBase), a_out.bind(a_pool.base()));
 }
 
-template <unsigned int BlockSize, class Query, class In, class Out>
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class Query, class In, class Out>
 inline void
 transform(const Query& a_query, const std::vector<In>& a_in, std::vector<Out>& a_out)
 {
@@ -243,13 +288,14 @@ transform(const Query& a_query, const std::vector<In>& a_in, std::vector<Out>& a
   EBGEOMETRY_GPU_CHECK(memAlloc(reinterpret_cast<void**>(&out), sizeof(Out) * n));
   EBGEOMETRY_GPU_CHECK(memcpy(in, a_in.data(), sizeof(In) * n, MemcpyHostToDevice));
 
-  transform<BlockSize>(a_query, PODSpan<const In>{in, count}, PODSpan<Out>{out, count});
+  transform<BlockSize, MinResidentThreads>(a_query, PODSpan<const In>{in, count}, PODSpan<Out>{out, count});
 
   EBGEOMETRY_GPU_CHECK(memcpy(a_out.data(), out, sizeof(Out) * n, MemcpyDeviceToHost));
   EBGEOMETRY_GPU_CHECK(memFree(in));
   EBGEOMETRY_GPU_CHECK(memFree(out));
 #else
-  transform<BlockSize>(a_query, PODSpan<const In>{a_in.data(), count}, PODSpan<Out>{a_out.data(), count});
+  transform<BlockSize, MinResidentThreads>(
+    a_query, PODSpan<const In>{a_in.data(), count}, PODSpan<Out>{a_out.data(), count});
 #endif
 }
 

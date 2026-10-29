@@ -253,6 +253,7 @@ instantiateFunctionTemplates()
 
     GPU::transform(query, points, results);
     GPU::transform<256>(query, points, results);
+    GPU::transform<128, 0>(query, points, results);
     GPU::transform(query, PODSpan<const Vec3T<T>>{points.data(), 1}, PODSpan<T>{results.data(), 1});
 
     Pool                pool(emulatedDeviceMemoryResource());

@@ -69,6 +69,8 @@ The examples build on each other. A new user can read them in this order:
    kernel.
 #. :ref:`Chap:ExampleTwist`: an operation of your own, a twist, applied to a mesh.
 #. :ref:`Chap:ExampleHostTuning`: the branching factor and SIMD width tuned to the host.
+#. :ref:`Chap:ExampleDeviceTuning`: the block size and register budget of a GPU launch, tuned to the
+   query.
 #. :ref:`Chap:ExampleBuildBVH`: comparing the BVH construction methods by build time.
 
 Every example that runs on a device has the same four parts, in this order: the query functor

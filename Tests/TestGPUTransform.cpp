@@ -271,6 +271,15 @@ TEMPLATE_TEST_CASE("GPU::transform over vectors: the same results at any block s
   GPU::transform<512>(query, points, results);
   requireSameResults(results, onHost);
 
+  // No minimum of resident threads, and a large one.
+  std::fill(results.begin(), results.end(), T(0));
+  GPU::transform<128, 0>(query, points, results);
+  requireSameResults(results, onHost);
+
+  std::fill(results.begin(), results.end(), T(0));
+  GPU::transform<128, 1024>(query, points, results);
+  requireSameResults(results, onHost);
+
   const std::vector<Vec3T<T>> none;
   std::vector<T>              noResults;
 
