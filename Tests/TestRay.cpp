@@ -1240,7 +1240,7 @@ TEMPLATE_TEST_CASE("Ray: offsets and annuli of analytic shapes are traced to the
 
   REQUIRE(marched.hit());
   REQUIRE_FALSE(marched.m_exact);
-  REQUIRE_THAT(marched.m_t, withinAbsT(T(1.75), T(1e-3)));
+  REQUIRE_THAT(marched.m_t, withinAbsT(T(1.75), 1e-3));
 }
 
 TEMPLATE_TEST_CASE("Ray: offsets and annuli of meshes are traced to their faces offset by the level",
