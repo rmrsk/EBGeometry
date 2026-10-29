@@ -289,8 +289,10 @@ Why there is a minimum of resident threads
    architectures a build compiles for.
 
    The budget is a ceiling the compiler tends to fill. A kernel that needed fewer registers may then use
-   more, and fewer of its threads fit on a multiprocessor: under the default, two of the performance
-   probes' kernels went from 56 and 128 registers to 161, and ran 21% and 10% slower.
+   more, and fewer of its threads fit on a multiprocessor: under the default, rays traced through a
+   fused composition (``Fused::``) went from 56 registers to 161 and ran up to a third slower, and the
+   renderer's frame of a mesh from 128 to 161, 10% slower. Such a kernel can run better with a larger
+   minimum, or with none.
 
 Which setting is fastest
    It depends on the query, the device and the precision. Measured on one desktop GPU, ray tracing
