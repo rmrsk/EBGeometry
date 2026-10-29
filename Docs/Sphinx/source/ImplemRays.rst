@@ -180,7 +180,8 @@ the union so far is known up to. An intersection traces its operands with a ray 
 each operand without one only within the spans of the intersection so far (``RayDetail::spansWithin()``),
 up to the first span it finds where the intersection needs only its first crossing: a fused intersection
 by operand type, a tape by moving the ray clauses of a ``Marched`` operand (or of its complement) behind
-the others when it compiles. The first crossing is the first crossing end in the final list that
+the others when it compiles. Only an operand that is itself marched, or the complement of one, moves: an
+operand holding a marched part deeper (a union of a ball and a blend) is traced as written. The first crossing is the first crossing end in the final list that
 comes no later than its horizon. If there is none and the horizon is short of the interval's end, the
 trace starts again from the horizon, asking every operand for all its spans if it got no further. A trace
 that has not found the crossing after 64 passes, or that makes no progress, is ``Unresolved``, like a march

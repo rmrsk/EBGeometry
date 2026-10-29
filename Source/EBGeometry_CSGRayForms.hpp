@@ -380,7 +380,8 @@ fusedIntersect(const Fused::Node<Op, Cs...>& a_node,
         RayDetail::intersectInto(a_spans, a_operand, a_scratch);
       }
       else if constexpr (kind == 2) {
-        // All the complemented operand's spans within the list: its complement there is the same.
+        // All the complemented operand's spans within the list: its complement there is the same. The trace
+        // uses a_scratch as its scratch, which the complement then overwrites.
         RayDetail::spansWithin(RayDetail::fusedOperand<0>(RayDetail::fusedOperand<I>(a_node)),
                                a_ray,
                                a_spans,

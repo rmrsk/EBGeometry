@@ -936,6 +936,7 @@ spansWithin(const S&             a_shape,
       a_spans.m_horizon = Math::min(a_spans.m_horizon, a_piece.m_horizon);
     }
 
+    // Cut back to this span or before it: the list is known no further, so no later span can add to it.
     if (a_spans.m_horizon <= t1) {
       return;
     }

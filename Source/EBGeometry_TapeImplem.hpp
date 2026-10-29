@@ -689,6 +689,8 @@ private:
       if (i > 0 && marched(clauses)) {
         clauses[0].m_flags |= 2U;
 
+        // Only where the intersection itself may stop at its first crossing; rayEvaluate() also checks that
+        // the call asks for the first crossing only, since a tape is asked for all its spans too.
         if (clauses.size() == 1U && !a_ray.m_all) {
           clauses[0].m_flags |= 4U;
         }

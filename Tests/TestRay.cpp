@@ -1073,21 +1073,30 @@ TEMPLATE_TEST_CASE("Ray: an intersection marches an operand only where its other
     return ProbedBall<T>{SphereSDF<T>(Vec3::zeros(), T(1)), a_lo, a_hi, &count};
   };
 
-  const auto check =
-    [&](const auto& a_fused, const Expr<T>& a_expr, const RayT<T>& a_ray, const T a_t, const bool a_exact) {
-      const Tape<T, ProbedBall<T>> tape(pool, a_expr);
+  // The tape also names the deciding leaf, numbered as written, though it marches the ball last.
+  const auto check = [&](const auto&    a_fused,
+                         const Expr<T>& a_expr,
+                         const RayT<T>& a_ray,
+                         const T        a_t,
+                         const bool     a_exact,
+                         const uint32_t a_leaf) {
+    const Tape<T, ProbedBall<T>> tape(pool, a_expr);
 
-      for (int k = 0; k < 2; k++) {
-        count = 0;
+    for (int k = 0; k < 2; k++) {
+      count = 0;
 
-        const HitT<T> hit = (k == 0) ? firstHit(a_fused, a_ray, T(0), T(10)) : tape.firstHit(a_ray, T(0), T(10));
+      const HitT<T> hit = (k == 0) ? firstHit(a_fused, a_ray, T(0), T(10)) : tape.firstHit(a_ray, T(0), T(10));
 
-        REQUIRE(hit.hit());
-        REQUIRE(hit.m_exact == a_exact);
-        REQUIRE_THAT(hit.m_t, withinAbsT(a_t, T(1e-3)));
-        REQUIRE(count == 0);
+      REQUIRE(hit.hit());
+      REQUIRE(hit.m_exact == a_exact);
+      REQUIRE_THAT(hit.m_t, withinAbsT(a_t, T(1e-3)));
+      REQUIRE(count == 0);
+
+      if (k == 1) {
+        REQUIRE(hit.m_primitive == a_leaf);
       }
-    };
+    }
+  };
 
   // The ball less a box that holds x < -0.5 near the x axis.
   const BoxSDF<T> cut(Vec3(-T(4), -T(0.5), -T(0.5)), Vec3(-T(0.5), T(0.5), T(0.5)));
@@ -1096,19 +1105,44 @@ TEMPLATE_TEST_CASE("Ray: an intersection marches an operand only where its other
   // only past it, never inside the box (x in (-1, -0.5), where the ray is inside the ball).
   const RayT<T> axis{Vec3(-T(3), T(0), T(0)), Vec3(1, 0, 0)};
 
-  check(Fused::Difference(ball(-T(1.9), -T(0.55)), cut), Difference(ball(-T(1.9), -T(0.55)), cut), axis, T(2.5), true);
+  check(
+    Fused::Difference(ball(-T(1.9), -T(0.55)), cut), Difference(ball(-T(1.9), -T(0.55)), cut), axis, T(2.5), true, 1U);
 
   // Past the box, at y = 0.8: the ray enters the ball first, at x = -0.6, and it is marched no further than
   // that, not on to where the ray leaves it, at x = 0.6.
   const RayT<T> above{Vec3(-T(3), T(0.8), T(0)), Vec3(1, 0, 0)};
 
-  check(Fused::Difference(ball(-T(0.4), T(0.4)), cut), Difference(ball(-T(0.4), T(0.4)), cut), above, T(2.4), false);
+  check(
+    Fused::Difference(ball(-T(0.4), T(0.4)), cut), Difference(ball(-T(0.4), T(0.4)), cut), above, T(2.4), false, 0U);
 
   // A box less the ball, the box holding x > 0.5: the ball is marched only inside the box, where the ray
   // leaves it at x = 1.
   const BoxSDF<T> slab(Vec3(T(0.5), -T(2), -T(2)), Vec3(T(4), T(2), T(2)));
 
-  check(Fused::Difference(slab, ball(-T(1.9), T(0.45))), Difference(slab, ball(-T(1.9), T(0.45))), axis, T(4), false);
+  check(
+    Fused::Difference(slab, ball(-T(1.9), T(0.45))), Difference(slab, ball(-T(1.9), T(0.45))), axis, T(4), false, 1U);
+
+  // Two marched balls in an intersection with two boxes, x in (-2, -1) and (1, 2): the big ball's first span
+  // within the boxes, in the first box, lies outside the small ball, which holds only the second box's
+  // entry at x = 1. The trace goes on past the first box, in either order of the balls.
+  const BoxSDF<T> left(Vec3(-T(2), -T(0.5), -T(0.5)), Vec3(-T(1), T(0.5), T(0.5)));
+  const BoxSDF<T> right(Vec3(T(1), -T(0.5), -T(0.5)), Vec3(T(2), T(0.5), T(0.5)));
+  const auto      big   = ProbedBall<T>{SphereSDF<T>(Vec3::zeros(), T(3)), T(0), T(0), &count};
+  const auto      small = ProbedBall<T>{SphereSDF<T>(Vec3(T(1.5), T(0), T(0)), T(0.8)), T(0), T(0), &count};
+  const RayT<T>   along{Vec3(-T(5), T(0), T(0)), Vec3(1, 0, 0)};
+
+  check(Fused::Intersection(Fused::Union(left, right), big, small),
+        Intersection(std::vector<Expr<T>>{Union(left, right), big, small}),
+        along,
+        T(6),
+        true,
+        1U);
+  check(Fused::Intersection(Fused::Union(left, right), small, big),
+        Intersection(std::vector<Expr<T>>{Union(left, right), small, big}),
+        along,
+        T(6),
+        true,
+        1U);
 }
 
 TEMPLATE_TEST_CASE("Ray: span lists unite, intersect and complement as the sets of points they cover",
