@@ -164,7 +164,7 @@ addCase(Perf::Suite& a_suite, const std::string& a_input, const std::string& a_o
     if (!std::is_same_v<L, Default>) {
       c.relativeTo(
         Perf::caseName({"LaunchTuning", a_input, a_operation + "-" + launchName<Default>(), prec, "hostdevice"}),
-        "this/default");
+        "default/this");
     }
   });
 }
