@@ -335,8 +335,8 @@ depends on the build:
   pulls in headers that ``nvcc`` cannot parse), so host-only operations are left to the host build.
 
 Queries are written as trivially copyable functors, as in the examples. In a pair, the inputs are
-divided into chunks of ``GPU::DefaultBlockSize`` consecutive points: on the device each chunk is one
-block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
+divided into chunks of as many consecutive points as the case's block size (``GPU::DefaultBlockSize``
+unless the case gives another, as LaunchTuning's do): on the device each chunk is one block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
 kernel's alone), and on the host the chunks are shared among OpenMP threads, one on every hardware
 thread but one, so that the device is compared with the whole CPU rather than one core.
 (``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries about a quarter faster

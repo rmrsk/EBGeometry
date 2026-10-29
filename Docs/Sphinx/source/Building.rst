@@ -354,4 +354,4 @@ To run a query on many inputs without writing a kernel, write it as a trivially 
 with an ``EBGEOMETRY_HOST_DEVICE`` call operator that holds what it evaluates by value, and call
 ``GPU::transform(query, inputs, results)``. In a CUDA or HIP translation unit it runs the query in a kernel,
 and in a plain C++ build in a host loop, so one source serves both. See :ref:`Chap:RunningOnGPU` for
-what each call does, what timing it measures, and the block size.
+what each call does, what timing it measures, and the launch settings (:ref:`Sec:LaunchSettings`).
