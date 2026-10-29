@@ -27,24 +27,52 @@
 namespace Perf {
 
 /**
+ * @brief The launch settings of a device case: GPU::transform()'s block size and the threads it asks to
+ * keep resident on a multiprocessor (see GPU::DefaultMinResidentThreads), the library's defaults unless
+ * given.
+ * @tparam BlockSize          Threads per block.
+ * @tparam MinResidentThreads Threads to keep resident, at least; 0 for no minimum.
+ */
+template <unsigned int BlockSize          = EBGeometry::GPU::DefaultBlockSize,
+          unsigned int MinResidentThreads = EBGeometry::GPU::DefaultMinResidentThreads>
+struct Launch
+{
+  /**
+   * @brief Threads per block.
+   */
+  static constexpr unsigned int blockSize = BlockSize;
+
+  /**
+   * @brief Threads to keep resident, at least.
+   */
+  static constexpr unsigned int minResidentThreads = MinResidentThreads;
+};
+
+/**
  * @brief Time a query on the device over a set of inputs, the kernel alone, as the case's own time.
  * @details The structure's pool is frozen and mirrored into GPU::memoryResource() once; the inputs and
  * room for the results go into a pool of their own, mirrored the same way. a_makeQuery receives the
  * device copy of the structure's pool and returns the query (holding the structure's rebasedView()).
  * The timed call is GPU::transform() over pool-resident arrays, which allocates and copies nothing, so
- * the time is the kernel's. The results are copied back to the host, untimed.
+ * the time is the kernel's. The results are copied back to the host, untimed. The launch settings are
+ * recorded as the parameters blockSize and minResidentThreads.
  * @tparam Out       Result type.
  * @tparam In        Input type.
  * @tparam MakeQuery Callable taking const EBGeometry::Pool& and returning the query.
+ * @tparam L         Launch settings (see Launch).
  * @param[in,out] a_case          The running case.
  * @param[in,out] a_structurePool The pool the queried structure lives in; frozen here.
  * @param[in]     a_in            The inputs (fewer than 2^32).
  * @param[in]     a_makeQuery     Makes the query against a pool.
  * @return The results, on the host.
  */
-template <class Out, class In, class MakeQuery>
+template <class Out, class In, class MakeQuery, class L = Launch<>>
 std::vector<Out>
-measureOnDevice(Case& a_case, EBGeometry::Pool& a_structurePool, const std::vector<In>& a_in, MakeQuery&& a_makeQuery)
+measureOnDevice(Case&                  a_case,
+                EBGeometry::Pool&      a_structurePool,
+                const std::vector<In>& a_in,
+                MakeQuery&&            a_makeQuery,
+                L /*a_launch*/ = L{})
 {
   using EBGeometry::PODVector;
   using EBGeometry::Pool;
@@ -70,7 +98,10 @@ measureOnDevice(Case& a_case, EBGeometry::Pool& a_structurePool, const std::vect
   const Pool deviceIO        = Pool::mirror(ioPool, EBGeometry::GPU::memoryResource());
   const auto query           = a_makeQuery(deviceStructure);
 
-  a_case.measure([&] { EBGeometry::GPU::transform(query, deviceIO, in, out); }, n);
+  a_case.measure([&] { EBGeometry::GPU::transform<L::blockSize, L::minResidentThreads>(query, deviceIO, in, out); }, n);
+
+  a_case.param("blockSize", L::blockSize);
+  a_case.param("minResidentThreads", L::minResidentThreads);
 
   const Pool       back = Pool::mirror(deviceIO, EBGeometry::hostMemoryResource());
   std::vector<Out> results(n);
@@ -84,7 +115,7 @@ measureOnDevice(Case& a_case, EBGeometry::Pool& a_structurePool, const std::vect
 
 /**
  * @brief A host/device pair: the same query over the same inputs on the host and on the device.
- * @details The inputs are divided into chunks of GPU::DefaultBlockSize consecutive inputs: on the
+ * @details The inputs are divided into chunks of the launch's block size, consecutive inputs: on the
  * device each chunk is one block of threads, and on the host the chunks are shared among hostThreads()
  * OpenMP threads, so both sides divide the work the same way. The case's own time is the device's (the
  * kernel alone, as for measureOnDevice()); it also records the metrics
@@ -101,6 +132,7 @@ measureOnDevice(Case& a_case, EBGeometry::Pool& a_structurePool, const std::vect
  * @tparam MakeQuery Callable taking const EBGeometry::Pool& and returning the query against that pool.
  * @tparam Agree     Callable (const Out& host, const Out& device) returning std::pair<double, bool>: the
  * size of the difference, and whether it is a disagreement (see Probe.hpp for the usual ones).
+ * @tparam L         Launch settings on the device (see Launch).
  * @param[in,out] a_case          The running case.
  * @param[in,out] a_structurePool The pool the queried structure lives in; frozen here.
  * @param[in]     a_in            The inputs.
@@ -108,15 +140,16 @@ measureOnDevice(Case& a_case, EBGeometry::Pool& a_structurePool, const std::vect
  * @param[in]     a_agree         Compares a host and a device result.
  * @return The host results.
  */
-template <class Out, class In, class MakeQuery, class Agree>
+template <class Out, class In, class MakeQuery, class Agree, class L = Launch<>>
 std::vector<Out>
 measureHostAndDevice(Case&                  a_case,
                      EBGeometry::Pool&      a_structurePool,
                      const std::vector<In>& a_in,
                      MakeQuery&&            a_makeQuery,
-                     Agree&&                a_agree)
+                     Agree&&                a_agree,
+                     L                      a_launch = L{})
 {
-  const std::vector<Out> device = measureOnDevice<Out>(a_case, a_structurePool, a_in, a_makeQuery);
+  const std::vector<Out> device = measureOnDevice<Out>(a_case, a_structurePool, a_in, a_makeQuery, a_launch);
 
   const auto       query   = a_makeQuery(a_structurePool);
   const auto       n       = a_in.size();
@@ -126,7 +159,7 @@ measureHostAndDevice(Case&                  a_case,
   // A chunk at a time on hostThreads() threads (one without OpenMP), handed out dynamically as a GPU
   // schedules its blocks, so that the GPU is compared with the whole CPU rather than one core.
   const std::vector<double> hostTimes = a_case.repeat([&] {
-    constexpr std::size_t chunk  = EBGeometry::GPU::DefaultBlockSize;
+    constexpr std::size_t chunk  = L::blockSize;
     const auto            chunks = static_cast<std::int64_t>((n + chunk - 1) / chunk);
 
 #ifdef _OPENMP

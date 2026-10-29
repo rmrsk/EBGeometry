@@ -286,6 +286,25 @@ Family                                Build  Measures
                                              (262,144 for the drilled mesh)
 ====================================  =====  =====================================================
 
+**LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see
+:ref:`Chap:RunningOnGPU`), the block size and the threads a CUDA kernel is asked to keep resident on a
+multiprocessor, which fixes its register budget. Three kernels whose best settings differ, each at the
+defaults (``b128-r384``) and at three other settings that name it: no minimum (``b128-r0``, the compiler
+picks the budget), a larger one (``b128-r768``, at most 80 registers) and wider blocks (``b256-r384``).
+Device only: a host build has no cases here. Every other device case records its launch settings as the
+parameters ``blockSize`` and ``minResidentThreads``.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``mesh/signedDistance-<setting>``     GPU    the armadillo's signed distance (a ``TriMeshSDF``) at
+                                             262,144 points around it, in Morton order
+``csg-tape/firstHit-<setting>``       GPU    the first crossing of 262,144 rays with the classic CSG
+                                             solid through a ``Tape``
+``cloud/closestPoint-<setting>``      GPU    the closest of a million points in a ``PointCloudBVH``
+                                             to 262,144 points around them
+====================================  =====  =====================================================
+
 Where the results go
 --------------------
 

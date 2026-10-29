@@ -32,7 +32,8 @@ The reading order:
 19. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
 20. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
 21. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
-22. `BuildBVH`: comparing the BVH construction methods by build time.
+22. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
+23. `BuildBVH`: comparing the BVH construction methods by build time.
 
 Every example that builds a shape (`Shapes`, the CSG examples, `Repetition`, `MeshSDF`, `MeshCSG`, `Shell`, `Materials`, `NestedBVH`,
 `ManyObjects`, `PackedSpheres`, `CustomShape`, `Twist`) ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer

@@ -243,7 +243,8 @@ block size, with ``GPU::DefaultMinResidentThreads`` (384) unless given; 0 asks f
    GPU::transform<128, 0>(query, points, distances);     // no minimum: the compiler picks the budget
    GPU::transform<128, 768>(query, points, distances);   // at least 768 threads: at most 80 registers
 
-A query that runs best with few registers per thread, or with many, can be measured with another. HIP
+A query that runs best with few registers per thread, or with many, can be measured with another;
+:ref:`Chap:ExampleDeviceTuning` times a few settings on a sample of the queries and keeps the fastest. HIP
 reads a second launch bound differently, and a HIP build ignores the minimum.
 
 The default of 128 has not been tuned. The best block size depends on the device and on the query,
