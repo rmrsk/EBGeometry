@@ -173,7 +173,8 @@ flatten(Staging<T, K, List>& a_staging)
     range.m_begin = static_cast<uint32_t>(a_staging.m_flatClauses.size());
 
     for (RayClause clause : program) {
-      if (clause.m_op == RayOp::Marched) {
+      // A Marched clause's sub-program, though not a deferred level set's primitive (bit 3).
+      if (clause.m_op == RayOp::Marched && (clause.m_flags & 8U) == 0U) {
         clause.m_a += numPrograms;
       }
 
@@ -816,11 +817,38 @@ private:
         const size_t leaf = deferredLeaf(clauses);
 
         if (leaf < clauses.size()) {
-          clauses[leaf].m_flags |= (leaf == 1U) ? (2U | 32U) : 2U;
+          // One Marched clause holding the level set (bit 3, see TapeDetail::RayOp::Marched): the level, then the
+          // affine map it is traced through, if any; the leaf number in m_c.
+          const RayClause& level        = clauses[leaf];
+          const bool       complemented = clauses.back().m_op == RayOp::Complement;
 
-          if (clauses.back().m_op != RayOp::Complement && !a_ray.m_all) {
-            clauses[leaf].m_flags |= 4U;
+          std::vector<T> block{m_staging.m_params[level.m_c]};
+
+          if (leaf == 1U) {
+            const auto map = m_staging.m_params.begin() + static_cast<std::ptrdiff_t>(clauses[0].m_a);
+
+            block.insert(block.end(), map, map + 12);
           }
+
+          RayClause deferred = level;
+
+          deferred.m_op = RayOp::Marched;
+          deferred.m_b  = this->params(block);
+          deferred.m_c  = level.m_b;
+
+          deferred.m_flags |= (leaf == 1U) ? (2U | 32U) : 2U;
+
+          if (!complemented && !a_ray.m_all) {
+            deferred.m_flags |= 4U;
+          }
+
+          std::vector<RayClause> rewritten{deferred};
+
+          if (complemented) {
+            rewritten.push_back(clauses.back());
+          }
+
+          clauses = rewritten;
         }
       }
 
@@ -2016,21 +2044,7 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
 
     switch (c.m_op) {
     case RayOp::Leaf: {
-      // An intersection's deferred operand (bit 1, see TapeDetail::RayOp) is traced only within the spans of the
-      // operands before it, one ray level up under an affine map (bit 5).
-      const bool within = (c.m_flags & 2U) != 0U;
-
-      this->rayLeaf(c,
-                    top.m_ray,
-                    top.m_t0,
-                    top.m_t1,
-                    a_options,
-                    within ? (!a_all && (c.m_flags & 4U) != 0U) : firstOnly,
-                    a_base,
-                    a_location,
-                    lists[nl],
-                    within ? &lists[nl - 1] : nullptr,
-                    ((c.m_flags & 32U) != 0U) ? top.m_scale : T(1));
+      this->rayLeaf(c, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, a_base, a_location, lists[nl]);
 
       // A crossing is named by its leaf's clause, which rayLeafHit() finds again.
       RayDetail::nameLeaf(pc, lists[nl++]);
@@ -2139,6 +2153,13 @@ Tape<T, UserPrimitives...>::rayMarchedWithin(const TapeDetail::RayClause& a_clau
                                              const PoolLocation&          a_location,
                                              RaySpansT<T>&                a_spans) const noexcept
 {
+  // A mesh's level set deferred in an intersection (bit 3) is traced, not marched.
+  if ((a_clause.m_flags & 8U) != 0U) {
+    this->rayLevelWithin(a_clause, a_ray, a_options, a_firstOnly, a_within, a_base, a_location, a_spans);
+
+    return;
+  }
+
   const T* box = m_layout.m_params.data(a_base) + a_clause.m_b;
 
   const Subtree<D> subtree{this,
@@ -2165,12 +2186,15 @@ Tape<T, UserPrimitives...>::rayLeaf(const TapeDetail::RayClause& a_clause,
                                     const bool                   a_firstOnly,
                                     const void*                  a_base,
                                     const PoolLocation&          a_location,
-                                    RaySpansT<T>&                a_spans,
-                                    const RaySpansT<T>*          a_within,
-                                    const T                      a_scale) const noexcept
+                                    RaySpansT<T>&                a_spans) const noexcept
 {
-  this->template dispatchRayLeaf<0>(
-    a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans, a_within, a_scale);
+  if ((a_clause.m_flags & 8U) != 0U) {
+    this->rayLevelLeaf(a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
+
+    return;
+  }
+
+  this->template dispatchRayLeaf<0>(a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
 }
 
 template <class T, class... UserPrimitives>
@@ -2185,9 +2209,7 @@ Tape<T, UserPrimitives...>::dispatchRayLeaf(const TapeDetail::RayClause& a_claus
                                             const bool                   a_firstOnly,
                                             const void*                  a_base,
                                             const PoolLocation&          a_location,
-                                            RaySpansT<T>&                a_spans,
-                                            const RaySpansT<T>*          a_within,
-                                            const T                      a_scale) const noexcept
+                                            RaySpansT<T>&                a_spans) const noexcept
 {
   if constexpr (I < Primitives::size) {
     using P = typename TapeDetail::TypeAt<I, Primitives>::type;
@@ -2198,57 +2220,9 @@ Tape<T, UserPrimitives...>::dispatchRayLeaf(const TapeDetail::RayClause& a_claus
 
         // A pool-resident primitive is stored as its layout and resolves against the tape's own location.
         if constexpr (isPoolHandle<P>) {
-          const P shape(stored, a_location);
-
-          if constexpr (RayDetail::HasLevelForm<P>::value) {
-            if ((a_clause.m_flags & 8U) != 0U) {
-              if constexpr (RayDetail::IsMeshLevel<P>::value) {
-                if (a_within != nullptr) {
-                  RayDetail::levelSpansWithin(this->levelView(a_clause, shape, a_base),
-                                              a_ray,
-                                              *a_within,
-                                              a_scale,
-                                              a_options,
-                                              a_firstOnly,
-                                              a_spans);
-
-                  return;
-                }
-              }
-
-              RayDetail::levelSpans(
-                this->levelView(a_clause, shape, a_base), a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
-
-              return;
-            }
-          }
-
-          RayDetail::shapeSpans(shape, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
+          RayDetail::shapeSpans(P(stored, a_location), a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
         }
         else {
-          if constexpr (RayDetail::HasLevelForm<P>::value) {
-            if ((a_clause.m_flags & 8U) != 0U) {
-              if constexpr (RayDetail::IsMeshLevel<P>::value) {
-                if (a_within != nullptr) {
-                  RayDetail::levelSpansWithin(this->levelView(a_clause, stored, a_base),
-                                              a_ray,
-                                              *a_within,
-                                              a_scale,
-                                              a_options,
-                                              a_firstOnly,
-                                              a_spans);
-
-                  return;
-                }
-              }
-
-              RayDetail::levelSpans(
-                this->levelView(a_clause, stored, a_base), a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
-
-              return;
-            }
-          }
-
           RayDetail::shapeSpans(stored, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
         }
 
@@ -2257,7 +2231,7 @@ Tape<T, UserPrimitives...>::dispatchRayLeaf(const TapeDetail::RayClause& a_claus
     }
 
     this->template dispatchRayLeaf<I + 1>(
-      a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans, a_within, a_scale);
+      a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
   }
   else {
     EBGEOMETRY_EXPECT(false);
@@ -2366,6 +2340,12 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
 
         hit.m_primitive = c.m_b;
       }
+      else if ((c.m_flags & 8U) != 0U) {
+        // A mesh's level set deferred in an intersection: its leaf number is in m_c.
+        hit = this->levelClauseHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
+
+        hit.m_primitive = c.m_c;
+      }
       else {
         // A Marched clause is a leaf of the trace as a whole: its subtree has no ray program, so a trace never
         // names a clause inside it, and a hit there reports MarchedLeaf.
@@ -2473,6 +2453,10 @@ Tape<T, UserPrimitives...>::primitiveLeafHit(const TapeDetail::RayClause& a_clau
                                              const void*                  a_base,
                                              const PoolLocation&          a_location) const noexcept
 {
+  if ((a_clause.m_flags & 8U) != 0U) {
+    return this->levelClauseHit(a_clause, a_ray, a_t, a_options, a_base, a_location);
+  }
+
   return this->template dispatchLeafHit<0>(a_clause, a_ray, a_t, a_options, a_base, a_location);
 }
 
@@ -2495,23 +2479,9 @@ Tape<T, UserPrimitives...>::dispatchLeafHit(const TapeDetail::RayClause& a_claus
         const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_clause.m_a);
 
         if constexpr (isPoolHandle<P>) {
-          const P shape(stored, a_location);
-
-          if constexpr (RayDetail::HasLevelForm<P>::value) {
-            if ((a_clause.m_flags & 8U) != 0U) {
-              return RayDetail::levelLeafHit(this->levelView(a_clause, shape, a_base), a_ray, a_t, a_options);
-            }
-          }
-
-          return RayDetail::leafHit(shape, a_ray, a_t, a_options);
+          return RayDetail::leafHit(P(stored, a_location), a_ray, a_t, a_options);
         }
         else {
-          if constexpr (RayDetail::HasLevelForm<P>::value) {
-            if ((a_clause.m_flags & 8U) != 0U) {
-              return RayDetail::levelLeafHit(this->levelView(a_clause, stored, a_base), a_ray, a_t, a_options);
-            }
-          }
-
           return RayDetail::leafHit(stored, a_ray, a_t, a_options);
         }
       }
@@ -2527,15 +2497,149 @@ Tape<T, UserPrimitives...>::dispatchLeafHit(const TapeDetail::RayClause& a_claus
 }
 
 template <class T, class... UserPrimitives>
-template <class P>
+template <size_t I, bool MeshOnly, class Visit>
 EBGEOMETRY_HOST_DEVICE
-inline RayDetail::LevelView<P>
-Tape<T, UserPrimitives...>::levelView(const TapeDetail::RayClause& a_clause,
-                                      const P&                     a_primitive,
-                                      const void*                  a_base) const noexcept
+inline void
+Tape<T, UserPrimitives...>::visitLevelPrimitive(const TapeDetail::RayClause& a_clause,
+                                                const void*                  a_base,
+                                                const PoolLocation&          a_location,
+                                                const Visit&                 a_visit) const noexcept
 {
-  return RayDetail::LevelView<P>{
-    a_primitive, m_layout.m_params.data(a_base)[a_clause.m_c], (a_clause.m_flags & 16U) != 0U};
+  if constexpr (I < Primitives::size) {
+    using P = typename TapeDetail::TypeAt<I, Primitives>::type;
+
+    constexpr bool level = MeshOnly ? RayDetail::IsMeshLevel<P>::value : RayDetail::HasLevelForm<P>::value;
+
+    if constexpr (level) {
+      if (a_clause.m_type == I) {
+        const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_clause.m_a);
+
+        if constexpr (isPoolHandle<P>) {
+          a_visit(P(stored, a_location));
+        }
+        else {
+          a_visit(stored);
+        }
+
+        return;
+      }
+    }
+
+    this->template visitLevelPrimitive<I + 1, MeshOnly>(a_clause, a_base, a_location, a_visit);
+  }
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+EBGEOMETRY_HOST_NOINLINE
+void
+Tape<T, UserPrimitives...>::rayLevelLeaf(const TapeDetail::RayClause& a_clause,
+                                         const RayT<T>&               a_ray,
+                                         const T                      a_t0,
+                                         const T                      a_t1,
+                                         const RayOptions<T>&         a_options,
+                                         const bool                   a_firstOnly,
+                                         const void*                  a_base,
+                                         const PoolLocation&          a_location,
+                                         RaySpansT<T>&                a_spans) const noexcept
+{
+  const T    level   = m_layout.m_params.data(a_base)[a_clause.m_c];
+  const bool annulus = (a_clause.m_flags & 16U) != 0U;
+
+  a_spans.reset(a_t1);
+
+  this->template visitLevelPrimitive<0, false>(a_clause, a_base, a_location, [&](const auto& a_shape) noexcept {
+    using S = std::decay_t<decltype(a_shape)>;
+
+    RayDetail::levelSpans(
+      RayDetail::LevelView<S>{a_shape, level, annulus}, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
+  });
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+EBGEOMETRY_HOST_NOINLINE
+void
+Tape<T, UserPrimitives...>::rayLevelWithin(const TapeDetail::RayClause& a_clause,
+                                           const RayT<T>&               a_ray,
+                                           const RayOptions<T>&         a_options,
+                                           const bool                   a_firstOnly,
+                                           const RaySpansT<T>&          a_within,
+                                           const void*                  a_base,
+                                           const PoolLocation&          a_location,
+                                           RaySpansT<T>&                a_spans) const noexcept
+{
+  const T*   block   = m_layout.m_params.data(a_base) + a_clause.m_b;
+  const bool annulus = (a_clause.m_flags & 16U) != 0U;
+  const bool mapped  = (a_clause.m_flags & 32U) != 0U;
+
+  a_spans.reset(a_within.m_horizon);
+
+  this->template visitLevelPrimitive<0, true>(a_clause, a_base, a_location, [&](const auto& a_shape) noexcept {
+    using S = std::decay_t<decltype(a_shape)>;
+
+    const RayDetail::LevelView<S> view{a_shape, block[0], annulus};
+
+    if (!mapped) {
+      RayDetail::levelSpansWithin(view, a_ray, a_within, T(1), a_options, a_firstOnly, a_spans);
+
+      return;
+    }
+
+    // Traced along the ray mapped into the primitive's frame, the other operands' spans scaled into it, and the
+    // list mapped back.
+    const T t0 = (a_within.m_count > 0U) ? a_within.m_spans[0].m_in.m_t : a_within.m_horizon;
+
+    const RayDetail::MappedRay<T> m = RayDetail::mapRay(block + 1, a_ray, t0, a_within.m_horizon);
+
+    RayDetail::levelSpansWithin(view, m.m_ray, a_within, m.m_scale, a_options, a_firstOnly, a_spans);
+    RayDetail::mapBack(m, t0, a_within.m_horizon, a_spans);
+  });
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+EBGEOMETRY_HOST_NOINLINE
+HitT<T>
+Tape<T, UserPrimitives...>::levelClauseHit(const TapeDetail::RayClause& a_clause,
+                                           const RayT<T>&               a_ray,
+                                           const T                      a_t,
+                                           const RayOptions<T>&         a_options,
+                                           const void*                  a_base,
+                                           const PoolLocation&          a_location) const noexcept
+{
+  const T*   params  = m_layout.m_params.data(a_base);
+  const bool marched = a_clause.m_op == TapeDetail::RayOp::Marched;
+  const T    level   = marched ? params[a_clause.m_b] : params[a_clause.m_c];
+  const bool annulus = (a_clause.m_flags & 16U) != 0U;
+  const bool mapped  = marched && (a_clause.m_flags & 32U) != 0U;
+
+  HitT<T> hit;
+
+  this->template visitLevelPrimitive<0, false>(a_clause, a_base, a_location, [&](const auto& a_shape) noexcept {
+    using S = std::decay_t<decltype(a_shape)>;
+
+    const RayDetail::LevelView<S> view{a_shape, level, annulus};
+
+    if (!mapped) {
+      hit = RayDetail::levelLeafHit(view, a_ray, a_t, a_options);
+
+      return;
+    }
+
+    const RayDetail::MappedRay<T> m = RayDetail::mapRay(params + a_clause.m_b + 1, a_ray, a_t, a_t);
+
+    hit = RayDetail::levelLeafHit(view, m.m_ray, m.m_t0, a_options);
+
+    hit.m_t      = a_t;
+    hit.m_point  = a_ray.at(a_t);
+    hit.m_normal = RayDetail::mapNormalBack(params + a_clause.m_b + 1, hit.m_normal);
+  });
+
+  return hit;
 }
 
 template <class T, class... UserPrimitives>

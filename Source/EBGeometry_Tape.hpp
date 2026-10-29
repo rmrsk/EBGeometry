@@ -111,15 +111,15 @@ enum class RayOp : uint8_t
 {
   Leaf,         ///< Push the spans of primitive (m_type, m_a), leaf number m_b, along the top ray. With bit 3 of
                 ///< m_flags, of its level set at params[m_c] (an Offset of it, see RayDetail::LevelView); with
-                ///< bit 4 as well, of its annulus of that half-thickness. With bit 1 as well, it is an operand of an
-                ///< intersection, a mesh's level set traced only within the spans of the top list (one ray level up,
-                ///< under one affine map, with bit 5; see RayDetail::levelSpansWithin()); with bit 2, the
-                ///< intersection needs only its first crossing.
+                ///< bit 4 as well, of its annulus of that half-thickness (see rayLevelLeaf()).
   Marched,      ///< Push the spans of sub-program m_a along the top ray, marched in the box at
                 ///< params[m_b..m_b+6), with distance quality m_c. With bit 1 of m_flags, it is an operand of an
                 ///< intersection, marched only within the spans of the top list, the operands' before it (see
                 ///< RayDetail::spansWithin()); with bit 2 as well, the intersection needs only its first
-                ///< crossing.
+                ///< crossing. With bit 3, it is instead a mesh's level set deferred in an intersection (see
+                ///< RayDetail::DeferredOperand): primitive (m_type, m_a), leaf number m_c, the level at params[m_b]
+                ///< (an annulus with bit 4), and with bit 5 the affine map it is traced through at
+                ///< params[m_b+1..m_b+13) (see rayLevelWithin()).
   Union,        ///< Pop two lists and push their union.
   Intersection, ///< Pop two lists and push their intersection.
   Complement,   ///< Replace the top list by its complement.
@@ -1086,19 +1086,6 @@ private:
                   const PoolLocation&          a_location) const noexcept;
 
   /**
-   * @brief A Leaf clause's level set of its primitive (bits 3 and 4 of m_flags, the level at params[m_c]).
-   * @tparam P Primitive type.
-   * @param[in] a_clause    The clause.
-   * @param[in] a_primitive The primitive.
-   * @param[in] a_base      The pool base.
-   * @return The view.
-   */
-  template <class P>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline RayDetail::LevelView<P>
-  levelView(const TapeDetail::RayClause& a_clause, const P& a_primitive, const void* a_base) const noexcept;
-
-  /**
    * @brief The spans of a Marched clause that is an operand of an intersection: its subtree marched only within
    * the spans of the operands before it (see TapeDetail::RayOp::Marched).
    * @details Out of line on a device: inlined beside the march of any other Marched clause, it made every
@@ -1137,9 +1124,6 @@ private:
    * @param[in]  a_base      The pool base.
    * @param[in]  a_location  The pool location.
    * @param[out] a_spans     The list.
-   * @param[in]  a_within    For an intersection's deferred operand (bit 1 of m_flags), the list it is traced
-   * within: the spans of the operands before it; null otherwise.
-   * @param[in]  a_scale     Distance along a_ray per distance in a_within's frame.
    */
   EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
@@ -1152,9 +1136,103 @@ private:
           bool                         a_firstOnly,
           const void*                  a_base,
           const PoolLocation&          a_location,
-          RaySpansT<T>&                a_spans,
-          const RaySpansT<T>*          a_within,
-          T                            a_scale) const noexcept;
+          RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a Leaf clause's level set of its primitive (bit 3 of m_flags; see
+   * TapeDetail::RayOp::Leaf), out of line on the host and on a device: a tape's evaluator and leaf dispatch keep
+   * the code they have without offsets.
+   * @param[in]  a_clause    The Leaf clause.
+   * @param[in]  a_ray       The ray.
+   * @param[in]  a_t0        Start of the interval.
+   * @param[in]  a_t1        End of the interval.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[in]  a_base      The pool base.
+   * @param[in]  a_location  The pool location.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  EBGEOMETRY_HOST_NOINLINE
+  void
+  rayLevelLeaf(const TapeDetail::RayClause& a_clause,
+               const RayT<T>&               a_ray,
+               T                            a_t0,
+               T                            a_t1,
+               const RayOptions<T>&         a_options,
+               bool                         a_firstOnly,
+               const void*                  a_base,
+               const PoolLocation&          a_location,
+               RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a Marched clause holding a mesh's deferred level set (bit 3 of m_flags; see
+   * TapeDetail::RayOp::Marched): within the spans of the intersection's operands before it, through the clause's
+   * affine map (bit 5) if it has one. Out of line on the host and on a device.
+   * @param[in]  a_clause    The Marched clause.
+   * @param[in]  a_ray       The ray.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the intersection's first crossing is needed.
+   * @param[in]  a_within    The spans of the operands before it.
+   * @param[in]  a_base      The pool base.
+   * @param[in]  a_location  The pool location.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  EBGEOMETRY_HOST_NOINLINE
+  void
+  rayLevelWithin(const TapeDetail::RayClause& a_clause,
+                 const RayT<T>&               a_ray,
+                 const RayOptions<T>&         a_options,
+                 bool                         a_firstOnly,
+                 const RaySpansT<T>&          a_within,
+                 const void*                  a_base,
+                 const PoolLocation&          a_location,
+                 RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The crossing at a distance on a level-set clause's primitive (a Leaf clause with bit 3, or a Marched
+   * clause holding a deferred level set): its normal, through the clause's own affine map if it has one. Out of
+   * line on the host and on a device.
+   * @param[in] a_clause   The clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  EBGEOMETRY_HOST_NOINLINE
+  HitT<T>
+  levelClauseHit(const TapeDetail::RayClause& a_clause,
+                 const RayT<T>&               a_ray,
+                 T                            a_t,
+                 const RayOptions<T>&         a_options,
+                 const void*                  a_base,
+                 const PoolLocation&          a_location) const noexcept;
+
+  /**
+   * @brief Call a_visit(primitive) with a clause's primitive (m_type, m_a) if its type, from I onwards, has
+   * closed-form level sets (RayDetail::LevelForm; with a_meshOnly, only a mesh's, RayDetail::IsMeshLevel).
+   * @tparam I        First type index to test.
+   * @tparam MeshOnly Whether only mesh types are visited.
+   * @tparam Visit    Callback.
+   * @param[in] a_clause   The clause.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @param[in] a_visit    The callback.
+   */
+  template <size_t I, bool MeshOnly, class Visit>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  visitLevelPrimitive(const TapeDetail::RayClause& a_clause,
+                      const void*                  a_base,
+                      const PoolLocation&          a_location,
+                      const Visit&                 a_visit) const noexcept;
 
   /**
    * @brief The spans of a primitive, dispatching on its type index from I onwards.
@@ -1168,8 +1246,6 @@ private:
    * @param[in]  a_base      The pool base.
    * @param[in]  a_location  The pool location.
    * @param[out] a_spans     The list.
-   * @param[in]  a_within    For a deferred operand, the list it is traced within (see rayLeaf()); else null.
-   * @param[in]  a_scale     Distance along a_ray per distance in a_within's frame.
    */
   template <size_t I>
   EBGEOMETRY_HOST_DEVICE
@@ -1182,9 +1258,7 @@ private:
                   bool                         a_firstOnly,
                   const void*                  a_base,
                   const PoolLocation&          a_location,
-                  RaySpansT<T>&                a_spans,
-                  const RaySpansT<T>*          a_within,
-                  T                            a_scale) const noexcept;
+                  RaySpansT<T>&                a_spans) const noexcept;
 
   /**
    * @brief The spans of a BVH union clause: the union of its operands' spans, walking its BVH along the
