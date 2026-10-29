@@ -248,9 +248,9 @@ Case                                  Build  Measures
 ``<operation>-random``                       random order
 ====================================  =====  =====================================================
 
-**RayShell** (``Performance/RayShell``): ray tracing an intersection with a marched operand, which is
-marched only within its other operands' spans (see :ref:`Sec:RaySpans`): a shell (``Annular``) around the
-armadillo (a ``TriMeshSDF``, the dodecahedron under ``--smoke``), half as thick as 1% of its box diagonal,
+**RayShell** (``Performance/RayShell``): ray tracing a difference of a shell and a box, the shell traced from
+the mesh's offset faces (see :ref:`Sec:OffsetRays`), or marched only within the box's spans (see
+:ref:`Sec:RaySpans`): a shell (``Annular``) around the armadillo (a ``TriMeshSDF``, the dodecahedron under ``--smoke``), half as thick as 1% of its box diagonal,
 with the corner above its centre in :math:`x` and below it in :math:`z` cut away by a box, as in
 :ref:`Chap:ExampleShell`. The rays start in the shell's box grown to twice its size and point at its
 centre. It is through a tape (with the mesh as a user primitive type), traced and marched, the traced case
@@ -267,6 +267,28 @@ Case                                  Build  Measures
 ``<input>/<operation>-morton``,       GPU    each of the above at 65,536 rays, in Morton and in
 ``<operation>-random``                       random order
 ====================================  =====  =====================================================
+
+**RayParticles** (``Performance/RayParticles``): particles colliding with a boundary, one short step each, the
+first crossing of the boundary on it (``firstHit()`` over the step's length). Each particle starts at a random
+point outside the boundary, in its box grown by a tenth of its diagonal, and moves a hundredth of the diagonal
+in a random direction. The boundaries are a shell (``Annular``) around the armadillo (the dodecahedron under
+``--smoke``), half as thick as 1% of its box diagonal, as in :ref:`Chap:ExampleShell` but without the cut:
+through a tape (with the mesh as a user primitive type), traced from the mesh's offset faces (see
+:ref:`Sec:OffsetRays`) and marched, the traced case naming the marched one, and fused; the solid armadillo,
+for the cost of a mesh's own crossing; and a box's shell through a tape, for an analytic shape's. Host and
+device crossings agree as for RayShell.
+
+======================================  =====  =====================================================
+Case                                    Build  Measures
+======================================  =====  =====================================================
+``armadillo-shell-tape/step``           host   the crossing of each of 50,000 steps, traced
+``armadillo-shell-tape/step-marched``   host   the same, marched
+``armadillo-shell-fused/step``          host   the same fused, traced
+``armadillo/step``                      host   the same against the solid mesh
+``box-shell-tape/step``                 host   the same against a box's shell, traced
+``<input>/<operation>-morton``,         GPU    each of the above at 262,144 steps, the starts in
+``<operation>-random``                         Morton and in random order
+======================================  =====  =====================================================
 
 **Render** (``Performance/Render``): one whole frame of the renderer (see :ref:`Chap:ImplemRender`),
 with shadows and ambient occlusion and one ray per pixel, from the camera ``Render::Camera::fit()``

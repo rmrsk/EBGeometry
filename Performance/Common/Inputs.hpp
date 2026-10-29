@@ -49,6 +49,8 @@ constexpr std::uint64_t TapeQueries  = 29;       ///< Tape: queries around each 
 constexpr std::uint64_t RayOrigins   = 31;       ///< BVH, Ray, RayCSG: where the rays and point queries start.
 constexpr std::uint64_t RayScene     = 37;       ///< RayCSG: the scene's solids (and 38, their sizes).
 constexpr std::uint64_t RayCrowd     = 41;       ///< RayCSG: the crowd's balls (and 42, their radii).
+constexpr std::uint64_t Particles    = 43;       ///< RayParticles: where the particles start.
+constexpr std::uint64_t ParticleDirs = 47;       ///< RayParticles: the directions they move in.
 
 } // namespace Seed
 

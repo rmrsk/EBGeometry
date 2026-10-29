@@ -175,6 +175,19 @@ public:
   getFaceId(size_t a_lane) const noexcept;
 
   /**
+   * @brief Vertex a_vertex of the triangle in lane a_lane (padded lanes repeat the last real triangle).
+   * @param[in] a_lane   Lane index, below W.
+   * @param[in] a_vertex Vertex index, below 3.
+   * @return The vertex.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  getVertex(size_t a_lane, size_t a_vertex) const noexcept
+  {
+    return m_triangles.getVertex(a_lane, a_vertex);
+  }
+
+  /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
    * @details Delegates entirely to the embedded TriangleSoAT<T, W>.
    * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a point array (a

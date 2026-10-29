@@ -257,6 +257,19 @@ public:
   BV
   computeBoundingVolume() const noexcept;
 
+  /**
+   * @brief Vertex a_vertex of the triangle in lane a_lane.
+   * @param[in] a_lane   Lane index, below W.
+   * @param[in] a_vertex Vertex index, below 3.
+   * @return The vertex.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  getVertex(size_t a_lane, size_t a_vertex) const noexcept
+  {
+    return Vec3T<T>(m_vx[a_vertex][a_lane], m_vy[a_vertex][a_lane], m_vz[a_vertex][a_lane]);
+  }
+
 protected:
   /**
    * @brief Signed distance from a_point to the single triangle stored in lane a_lane.

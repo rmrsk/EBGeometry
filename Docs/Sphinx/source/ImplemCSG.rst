@@ -286,7 +286,8 @@ built.
 A tape also answers ray queries, ``tape.firstHit(...)`` and ``tape.intersects(...)``, the same as the
 free functions on any shape (see :ref:`Chap:ImplemRays`). Beside the clauses, the compiler writes a
 *ray program* for the tape and for each BVH union operand: its unions, intersections, complements and
-affine maps over the primitives that have ray forms, in the same order, run on a stack of span lists
+affine maps over the primitives that have ray forms, and its offsets and annuli of primitives whose level sets
+have a closed form (see :ref:`Sec:OffsetRays`), in the same order, run on a stack of span lists
 (see :ref:`Sec:RaySpans`). A BVH union walks its BVH along the ray, nearest box first, each operand
 running its own ray program one call level down. A subtree with any other operation in it, or a
 primitive without a ray form, is marched as a whole over the clauses compiled for it; a subtree that

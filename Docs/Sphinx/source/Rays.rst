@@ -68,8 +68,18 @@ part is needed, not only its first crossing. Under a union only the first crossi
 the parts' first crossings is the union's, unless the ray starts inside a part, which the spans also
 show.
 
-A part that has no exact method of its own (a blend, an offset, an elongation, a repetition), and every
-part inside it, is marched by itself, in its own bounding box: under a union only to its first
+An offset by :math:`r` keeps where an object's value is at most :math:`r`, and an annulus of half-thickness
+:math:`d` where it is between :math:`-d` and :math:`d` (see :ref:`Chap:ConstructiveSolidGeometry`). Where
+the object grown or shrunk that way has a simple form, a ray finds it exactly: a ball's, a capsule's or an
+infinite cylinder's radius grows by :math:`r`, a plane moves by it, a box shrinks or grows into a box with
+rounded edges and corners, and a mesh's surface grown by :math:`d` is the union of its faces, each grown into
+a thin slab with a rounded rim. A translation, rotation or scale between the offset and the object passes it
+on. The shell around a mesh in :ref:`Chap:ExampleShell` is traced this way, entering and leaving its wall
+exactly, with exact normals. An offset or annulus of anything else (of a composition, a finite cylinder, a
+torus, or of another offset) is marched.
+
+A part that has no exact method of its own (a blend, an offset of a composition, an elongation, a
+repetition), and every part inside it, is marched by itself, in its own bounding box: under a union only to its first
 crossing, under an intersection or a difference from one crossing to the next. An intersection or a
 difference traces its exact parts first and marches such a part only within their spans, since
 elsewhere the result is empty whatever the marched part does, and, where only the first crossing is

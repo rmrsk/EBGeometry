@@ -20,6 +20,7 @@
 #include "EBGeometry_CSGRayForms.hpp"
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_Fused.hpp"
+#include "EBGeometry_OffsetRayForms.hpp"
 #include "EBGeometry_Tape.hpp"
 
 #endif
