@@ -19,6 +19,7 @@
 #include <limits>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -219,6 +220,34 @@ struct FirstHitBall
   }
 
   EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return m_sphere.computeBoundingVolume();
+  }
+};
+
+// A ball without a ray form, so marched, that counts its evaluations at x in (m_lo, m_hi).
+template <class T>
+struct ProbedBall
+{
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  SphereSDF<T> m_sphere;
+  T            m_lo;
+  T            m_hi;
+  int*         m_count;
+
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    if (a_point[0] > m_lo && a_point[0] < m_hi) {
+      (*m_count)++;
+    }
+
+    return m_sphere.signedDistance(a_point);
+  }
+
   BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept
   {
@@ -1028,6 +1057,96 @@ TEMPLATE_TEST_CASE("Ray: fused and taped compositions are traced to the closed-f
   }
 }
 
+TEMPLATE_TEST_CASE("Ray: an intersection marches an operand only where its other operands leave it open",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  int count = 0;
+
+  // The unit ball, marched, counting its evaluations at x in (a_lo, a_hi).
+  const auto ball = [&](const T a_lo, const T a_hi) {
+    return ProbedBall<T>{SphereSDF<T>(Vec3::zeros(), T(1)), a_lo, a_hi, &count};
+  };
+
+  // The tape also names the deciding leaf, numbered as written, though it marches the ball last (a fused
+  // composition is one shape, with no leaves).
+  const auto check = [&](const auto&    a_fused,
+                         const Expr<T>& a_expr,
+                         const RayT<T>& a_ray,
+                         const T        a_t,
+                         const bool     a_exact,
+                         const uint32_t a_leaf) {
+    const Tape<T, ProbedBall<T>> tape(pool, a_expr);
+
+    for (int k = 0; k < 2; k++) {
+      count = 0;
+
+      const HitT<T> hit = (k == 0) ? firstHit(a_fused, a_ray, T(0), T(10)) : tape.firstHit(a_ray, T(0), T(10));
+
+      REQUIRE(hit.hit());
+      REQUIRE(hit.m_exact == a_exact);
+      REQUIRE_THAT(hit.m_t, withinAbsT(a_t, 1e-3));
+      REQUIRE(count == 0);
+
+      if (k == 1) {
+        REQUIRE(hit.m_primitive == a_leaf);
+      }
+    }
+  };
+
+  // The ball less a box that holds x < -0.5 near the x axis.
+  const BoxSDF<T> cut(Vec3(-T(4), -T(0.5), -T(0.5)), Vec3(-T(0.5), T(0.5), T(0.5)));
+
+  // Along the x axis from x = -3: the box decides where the ray enters, at x = -0.5, and the ball is marched
+  // only past it, never inside the box (x in (-1, -0.5), where the ray is inside the ball).
+  const RayT<T> axis{Vec3(-T(3), T(0), T(0)), Vec3(1, 0, 0)};
+
+  check(
+    Fused::Difference(ball(-T(1.9), -T(0.55)), cut), Difference(ball(-T(1.9), -T(0.55)), cut), axis, T(2.5), true, 1U);
+
+  // Past the box, at y = 0.8: the ray enters the ball first, at x = -0.6, and it is marched no further than
+  // that, not on to where the ray leaves it, at x = 0.6.
+  const RayT<T> above{Vec3(-T(3), T(0.8), T(0)), Vec3(1, 0, 0)};
+
+  check(
+    Fused::Difference(ball(-T(0.4), T(0.4)), cut), Difference(ball(-T(0.4), T(0.4)), cut), above, T(2.4), false, 0U);
+
+  // A box less the ball, the box holding x > 0.5: the ball is marched only inside the box, where the ray
+  // leaves it at x = 1.
+  const BoxSDF<T> slab(Vec3(T(0.5), -T(2), -T(2)), Vec3(T(4), T(2), T(2)));
+
+  check(
+    Fused::Difference(slab, ball(-T(1.9), T(0.45))), Difference(slab, ball(-T(1.9), T(0.45))), axis, T(4), false, 1U);
+
+  // Two marched balls in an intersection with two boxes, x in (-2, -1) and (1, 2): the big ball's first span
+  // within the boxes, in the first box, lies outside the small ball, which holds only the second box's
+  // entry at x = 1. The trace goes on past the first box, in either order of the balls, and neither ball is
+  // evaluated between the boxes.
+  const BoxSDF<T> left(Vec3(-T(2), -T(0.5), -T(0.5)), Vec3(-T(1), T(0.5), T(0.5)));
+  const BoxSDF<T> right(Vec3(T(1), -T(0.5), -T(0.5)), Vec3(T(2), T(0.5), T(0.5)));
+  const auto      big   = ProbedBall<T>{SphereSDF<T>(Vec3::zeros(), T(3)), -T(1), T(1), &count};
+  const auto      small = ProbedBall<T>{SphereSDF<T>(Vec3(T(1.5), T(0), T(0)), T(0.8)), -T(1), T(1), &count};
+  const RayT<T>   along{Vec3(-T(5), T(0), T(0)), Vec3(1, 0, 0)};
+
+  check(Fused::Intersection(Fused::Union(left, right), big, small),
+        Intersection(std::vector<Expr<T>>{Union(left, right), big, small}),
+        along,
+        T(6),
+        true,
+        1U);
+  check(Fused::Intersection(Fused::Union(left, right), small, big),
+        Intersection(std::vector<Expr<T>>{Union(left, right), small, big}),
+        along,
+        T(6),
+        true,
+        1U);
+}
+
 TEMPLATE_TEST_CASE("Ray: span lists unite, intersect and complement as the sets of points they cover",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1592,6 +1711,11 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
   const Tape<T>  sceneTape(pool, Difference(Union(scene.solids()), Union(scene.drills())));
   const auto     meshDifference = Fused::Difference(polygons, SphereSDF<T>(T(0.5) * Vec3::ones(), T(0.3)));
 
+  // A marched shell less a box, marched only where the box leaves the difference open: in a tape and fused.
+  const BoxSDF<T> corner(Vec3::zeros(), T(2) * Vec3::ones());
+  const Tape<T>   shellTape(pool, Difference(Annular(sphere, T(0.1)), corner));
+  const auto      shellFused = Fused::Difference(Fused::Annular(sphere, T(0.1)), corner);
+
   pool.freeze();
 
   const Pool device = Pool::mirror(pool, deviceTestResource());
@@ -1617,4 +1741,13 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
 
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, D>{meshDifference.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, D>{meshDifference}, rays));
+
+  using S = std::decay_t<decltype(shellFused)>;
+
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, Tape<T>>{shellTape.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, Tape<T>>{shellTape}, rays),
+                     T(1e-3));
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, S>{shellFused}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, S>{shellFused}, rays),
+                     T(1e-3));
 }

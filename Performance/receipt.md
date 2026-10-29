@@ -15,24 +15,24 @@ SPDX-License-Identifier: GPL-3.0-or-later
 <!--receipt
 version: 3
 side: host
-verdict: yellow
-base: e3253fc
-base-fingerprint: 704951f9511e922b0cc01e21a2a8cd31b91101d2
-head: 3ee0503
-head-fingerprint: 48c61b42ee97f3c8b09fc1ceffc49bc9ad4b0a98
-cases: 136
+verdict: red
+base: 5619c3e
+base-fingerprint: 48c61b42ee97f3c8b09fc1ceffc49bc9ad4b0a98
+head: f396ac7
+head-fingerprint: 8f5012d6d47a6f34df899e1edd2cefbacb28ba5c
+cases: 142
 rounds: 2
 reps: 3
 date: 2026-10-29
 -->
 
-## Host comparison: yellow
+## Host comparison: red
 
-**Accepted:** #246 changes no host code. The four Tape minors (smooth float and double, chain16 float, csg double, +3% to +6%) are code placement: with `-falign-functions=64` the base and the PR take the same time. The Ray/csg-tape/firstHit/float minor (+3.1%) did not hold over 10 rounds.
+**Accepted:** The two MAJORs and four of the six minors did not hold over 10 rounds. `Tape/csg/signedDistance/float` (+4.1%) is code placement: the tape evaluator's out-of-line functions have the same sizes on both sides. `RayCSG/scene-fused/firstHit/float` (+3.3%, interval 0.0% to 8.6%) is borderline.
 
-`3ee0503` against `e3253fc` (origin/dev), 2026-10-29.
+`f396ac7` against `5619c3e` (origin/dev), 2026-10-29.
 
-**VERDICT: 5 minor regressions
+**VERDICT: MAJOR regression in 2 cases
 
 <!-- END receipt host -->
 
@@ -41,11 +41,11 @@ date: 2026-10-29
 version: 3
 side: cuda
 verdict: red
-base: e3253fc
-base-fingerprint: 704951f9511e922b0cc01e21a2a8cd31b91101d2
-head: 3ee0503
-head-fingerprint: 48c61b42ee97f3c8b09fc1ceffc49bc9ad4b0a98
-cases: 186
+base: 5619c3e
+base-fingerprint: 48c61b42ee97f3c8b09fc1ceffc49bc9ad4b0a98
+head: f396ac7
+head-fingerprint: 8f5012d6d47a6f34df899e1edd2cefbacb28ba5c
+cases: 198
 rounds: 2
 reps: 3
 date: 2026-10-29
@@ -53,9 +53,9 @@ date: 2026-10-29
 
 ## Device comparison (CUDA): red
 
-**Accepted:** The two MAJORs, RayCSG/scene-fused/firstHit-morton/float (+21%) and Render/mesh/frame/float (+10%), are the cost of the default minimum of 384 resident threads. It lets the compiler give these kernels up to 168 registers, and it uses 161, up from 56 and 128 on the base, so fewer of their threads fit. That is the trade for fixing the register budget, which speeds up 50 cases. A caller can pick another minimum for such a kernel (Examples/DeviceTuning). The 6 host/device disagreements are one ray each, and the base gives the same answers, so they predate this PR.
+**Accepted:** The two MAJORs did not hold over 10 rounds. Float tape ray kernels with no marched operand are 4–8% slower (`Render/csg/frame`, `Ray/csg-tape`, `LaunchTuning/csg-tape`). That is the cost of the branch to `rayMarchedWithin` in `rayEvaluate`'s `Marched` case: registers stay 168, and the stack frame grows by 80–128 bytes. That buys the Shell's 5× faster frame. The 6 host/device disagreements are the grazing float rays that predate #246.
 
-`3ee0503` against `e3253fc` (origin/dev), 2026-10-29.
+`f396ac7` against `5619c3e` (origin/dev), 2026-10-29.
 
 **VERDICT: host and device answers differ in 6 cases
 

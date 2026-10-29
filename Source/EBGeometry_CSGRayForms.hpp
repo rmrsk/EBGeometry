@@ -167,6 +167,78 @@ struct FirstLeaf<I, C, Cs...>
 };
 
 /**
+ * @brief Whether an intersection marches a fused node's operand, within the spans of its other operands:
+ * 1 for an operand without a ray form, 2 for the complement of one, 0 for any other.
+ * @details Internal helper; not part of the public API.
+ * @tparam C Operand type.
+ * @tparam T Floating-point precision.
+ */
+template <class C, class T>
+struct MarchedOperand
+{
+  /**
+   * @brief The kind.
+   */
+  static constexpr int value = HasRayFirstHit<C, T>::value ? 0 : 1;
+};
+
+/**
+ * @brief The complement of an operand without a ray form is marched.
+ * @tparam D Complemented operand type.
+ * @tparam T Floating-point precision.
+ */
+template <class D, class T>
+struct MarchedOperand<Fused::Node<Fused::ComplementOp, D>, T>
+{
+  /**
+   * @brief The kind.
+   */
+  static constexpr int value = HasRayFirstHit<D, T>::value ? 0 : 2;
+};
+
+/**
+ * @brief The first of a fused node's operands an intersection does not march, which it traces first: 0 if
+ * it marches all.
+ * @details Internal helper; not part of the public API.
+ * @tparam T  Floating-point precision.
+ * @tparam Cs Operand types.
+ */
+template <class T, class... Cs>
+struct FirstTraced
+{
+  /**
+   * @brief Whether there is one.
+   */
+  static constexpr bool found = false;
+
+  /**
+   * @brief The operand.
+   */
+  static constexpr size_t value = 0;
+};
+
+/**
+ * @brief The first operand if it is not marched, and otherwise the first of the others that is not.
+ * @tparam T  Floating-point precision.
+ * @tparam C  First operand type.
+ * @tparam Cs The others.
+ */
+template <class T, class C, class... Cs>
+struct FirstTraced<T, C, Cs...>
+{
+  /**
+   * @brief Whether there is one.
+   */
+  static constexpr bool found = MarchedOperand<C, T>::value == 0 || FirstTraced<T, Cs...>::found;
+
+  /**
+   * @brief The operand.
+   */
+  static constexpr size_t value =
+    MarchedOperand<C, T>::value == 0 ? 0 : (FirstTraced<T, Cs...>::found ? 1 + FirstTraced<T, Cs...>::value : 0);
+};
+
+/**
  * @brief Operand I of a fused node, as the shape it is.
  * @details Internal helper; not part of the public API.
  * @tparam I  Operand index.
@@ -224,14 +296,13 @@ fusedOperandSpans(const Fused::Node<Op, Cs...>& a_node,
 }
 
 /**
- * @brief Fold a fused node's operands I, I + 1, ... into a list by union or intersection.
+ * @brief Unite a fused node's operands I, I + 1, ... into a list.
  * @details Internal helper; not part of the public API. Each operand is traced only up to what the list
  * so far is known up to, beyond which it can change nothing known.
- * @tparam I       First operand to fold in.
- * @tparam IsUnion Whether to unite (or intersect).
- * @tparam T       Floating-point precision.
- * @tparam Op      Operation.
- * @tparam Cs      Operand types.
+ * @tparam I  First operand to unite.
+ * @tparam T  Floating-point precision.
+ * @tparam Op Operation.
+ * @tparam Cs Operand types.
  * @param[in]     a_node      The node.
  * @param[in]     a_ray       The ray.
  * @param[in]     a_t0        Start of the interval.
@@ -239,35 +310,97 @@ fusedOperandSpans(const Fused::Node<Op, Cs...>& a_node,
  * @param[in]     a_firstOnly Whether the operands need only their first crossings.
  * @param[in,out] a_spans     The list so far.
  * @param[in,out] a_operand   Scratch for an operand's list.
- * @param[in,out] a_scratch   Scratch for an intersection.
  */
-template <size_t I, bool IsUnion, class T, class Op, class... Cs>
+template <size_t I, class T, class Op, class... Cs>
 EBGEOMETRY_HOST_DEVICE
 inline void
-fusedFold(const Fused::Node<Op, Cs...>& a_node,
-          const RayT<T>&                a_ray,
-          const T                       a_t0,
-          const RayOptions<T>&          a_options,
-          const bool                    a_firstOnly,
-          RaySpansT<T>&                 a_spans,
-          RaySpansT<T>&                 a_operand,
-          RaySpansT<T>&                 a_scratch) noexcept
+fusedUnite(const Fused::Node<Op, Cs...>& a_node,
+           const RayT<T>&                a_ray,
+           const T                       a_t0,
+           const RayOptions<T>&          a_options,
+           const bool                    a_firstOnly,
+           RaySpansT<T>&                 a_spans,
+           RaySpansT<T>&                 a_operand) noexcept
 {
   if constexpr (I < sizeof...(Cs)) {
     RayDetail::fusedOperandSpans<I>(a_node, a_ray, a_t0, a_spans.m_horizon, a_options, a_firstOnly, a_operand);
+    RayDetail::uniteInto(a_spans, a_operand);
 
-    if constexpr (IsUnion) {
-      RayDetail::uniteInto(a_spans, a_operand);
+    if (a_firstOnly) {
+      RayDetail::keepFirst(a_spans);
+    }
 
-      if (a_firstOnly) {
-        RayDetail::keepFirst(a_spans);
+    RayDetail::fusedUnite<I + 1>(a_node, a_ray, a_t0, a_options, a_firstOnly, a_spans, a_operand);
+  }
+}
+
+/**
+ * @brief Intersect a fused node's operands I, I + 1, ... other than operand Skip into a list: those it traces,
+ * or (Marched) those it marches (see MarchedOperand).
+ * @details Internal helper; not part of the public API. A traced operand is traced up to what the list so far
+ * is known up to; a marched one only within the list's spans (RayDetail::spansWithin()), and the complement
+ * of one is taken of its spans there, so the traced operands go first.
+ * @tparam I       First operand to intersect.
+ * @tparam Marched Whether to intersect the marched operands (or the traced ones).
+ * @tparam Skip    The operand the list started from.
+ * @tparam T       Floating-point precision.
+ * @tparam Op      Operation.
+ * @tparam Cs      Operand types.
+ * @param[in]     a_node      The node.
+ * @param[in]     a_ray       The ray.
+ * @param[in]     a_t0        Start of the interval.
+ * @param[in]     a_options   How to march.
+ * @param[in]     a_firstOnly Whether only the intersection's first crossing is needed.
+ * @param[in,out] a_spans     The list so far.
+ * @param[in,out] a_operand   Scratch for an operand's list.
+ * @param[in,out] a_scratch   Scratch for an intersection.
+ */
+template <size_t I, bool Marched, size_t Skip, class T, class Op, class... Cs>
+EBGEOMETRY_HOST_DEVICE
+inline void
+fusedIntersect(const Fused::Node<Op, Cs...>& a_node,
+               const RayT<T>&                a_ray,
+               const T                       a_t0,
+               const RayOptions<T>&          a_options,
+               const bool                    a_firstOnly,
+               RaySpansT<T>&                 a_spans,
+               RaySpansT<T>&                 a_operand,
+               RaySpansT<T>&                 a_scratch) noexcept
+{
+  if constexpr (I < sizeof...(Cs)) {
+    using C = typename Fused::Detail::TypeAt<I, Cs...>::type;
+
+    constexpr int kind = MarchedOperand<C, T>::value;
+
+    if constexpr (I != Skip && (kind != 0) == Marched) {
+      if constexpr (kind == 1) {
+        RayDetail::spansWithin(
+          RayDetail::fusedOperand<I>(a_node), a_ray, a_spans, a_options, a_firstOnly, a_scratch, a_operand);
+        RayDetail::nameLeaf(FirstLeaf<I, Cs...>::value, a_operand);
+        RayDetail::intersectInto(a_spans, a_operand, a_scratch);
+      }
+      else if constexpr (kind == 2) {
+        // All the complemented operand's spans within the list: its complement there is the same. The trace
+        // uses a_scratch as its scratch, which the complement then overwrites.
+        RayDetail::spansWithin(RayDetail::fusedOperand<0>(RayDetail::fusedOperand<I>(a_node)),
+                               a_ray,
+                               a_spans,
+                               a_options,
+                               false,
+                               a_scratch,
+                               a_operand);
+        RayDetail::nameLeaf(FirstLeaf<I, Cs...>::value, a_operand);
+        RayDetail::complement(a_operand, a_t0, a_scratch);
+        RayDetail::intersectInto(a_spans, a_scratch, a_operand);
+      }
+      else {
+        RayDetail::fusedOperandSpans<I>(a_node, a_ray, a_t0, a_spans.m_horizon, a_options, false, a_operand);
+        RayDetail::intersectInto(a_spans, a_operand, a_scratch);
       }
     }
-    else {
-      RayDetail::intersectInto(a_spans, a_operand, a_scratch);
-    }
 
-    RayDetail::fusedFold<I + 1, IsUnion>(a_node, a_ray, a_t0, a_options, a_firstOnly, a_spans, a_operand, a_scratch);
+    RayDetail::fusedIntersect<I + 1, Marched, Skip>(
+      a_node, a_ray, a_t0, a_options, a_firstOnly, a_spans, a_operand, a_scratch);
   }
 }
 
@@ -420,23 +553,31 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
         bool                 a_firstOnly,
         RaySpansT<T>&        a_spans) noexcept
   {
-    if constexpr (std::is_same_v<Op, Fused::UnionOp> || std::is_same_v<Op, Fused::IntersectionOp>) {
-      constexpr bool isUnion = std::is_same_v<Op, Fused::UnionOp>;
+    if constexpr (std::is_same_v<Op, Fused::UnionOp>) {
+      RaySpansT<T> operand;
 
-      // An intersection needs all of each operand's spans: where the first one ends, the ray may still be
-      // inside the others.
-      const bool firstOnly = isUnion && a_firstOnly;
+      RayDetail::fusedOperandSpans<0>(a_shape, a_ray, a_tMin, a_tMax, a_options, a_firstOnly, a_spans);
+
+      if (a_firstOnly) {
+        RayDetail::keepFirst(a_spans);
+      }
+
+      RayDetail::fusedUnite<1>(a_shape, a_ray, a_tMin, a_options, a_firstOnly, a_spans, operand);
+    }
+    else if constexpr (std::is_same_v<Op, Fused::IntersectionOp>) {
+      // An intersection needs all of each traced operand's spans: where the first one ends, the ray may still
+      // be inside the others. The marched ones go last, marched only where the others leave the intersection
+      // open.
+      constexpr size_t first = RayDetail::FirstTraced<T, Cs...>::value;
 
       RaySpansT<T> operand;
       RaySpansT<T> scratch;
 
-      RayDetail::fusedOperandSpans<0>(a_shape, a_ray, a_tMin, a_tMax, a_options, firstOnly, a_spans);
-
-      if (firstOnly) {
-        RayDetail::keepFirst(a_spans);
-      }
-
-      RayDetail::fusedFold<1, isUnion>(a_shape, a_ray, a_tMin, a_options, firstOnly, a_spans, operand, scratch);
+      RayDetail::fusedOperandSpans<first>(a_shape, a_ray, a_tMin, a_tMax, a_options, false, a_spans);
+      RayDetail::fusedIntersect<0, false, first>(
+        a_shape, a_ray, a_tMin, a_options, a_firstOnly, a_spans, operand, scratch);
+      RayDetail::fusedIntersect<0, true, first>(
+        a_shape, a_ray, a_tMin, a_options, a_firstOnly, a_spans, operand, scratch);
     }
     else if constexpr (std::is_same_v<Op, Fused::ComplementOp>) {
       RaySpansT<T> operand;

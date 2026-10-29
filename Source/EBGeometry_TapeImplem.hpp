@@ -12,7 +12,9 @@
 #define EBGEOMETRY_TAPEIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <tuple>
 #include <typeindex>
 #include <typeinfo>
@@ -656,6 +658,53 @@ private:
   }
 
   /**
+   * @brief Append an intersection's ray clauses, gathered per operand: those of the operands traced from
+   * their spans first, then those of the operands marched (a Marched clause, or its complement), each marched
+   * only within the spans of the operands before it (see TapeDetail::RayOp::Marched).
+   * @details Moving a marched operand, which holds one span list, behind the others needs no more span lists
+   * at once than their order as written.
+   * @param[in] a_state    Sub-program state.
+   * @param[in] a_operands Each operand's ray clauses, in order.
+   * @param[in] a_ray      Whether all the intersection's spans are needed.
+   */
+  void
+  orderIntersection(const State& a_state, std::vector<std::vector<RayClause>>& a_operands, const RayEmit& a_ray)
+  {
+    // A marched operand: one Marched clause, alone (it needs only the intersection's first crossing when the
+    // intersection does) or under a complement (all its spans).
+    const auto marched = [](const std::vector<RayClause>& a_clauses) {
+      return (a_clauses.size() == 1U && a_clauses[0].m_op == RayOp::Marched) ||
+             (a_clauses.size() == 2U && a_clauses[0].m_op == RayOp::Marched && a_clauses[1].m_op == RayOp::Complement);
+    };
+
+    std::stable_partition(a_operands.begin(), a_operands.end(), [&](const std::vector<RayClause>& a_clauses) {
+      return !marched(a_clauses);
+    });
+
+    std::vector<RayClause>& program = m_staging.m_rayPrograms[a_state.m_program];
+
+    for (size_t i = 0; i < a_operands.size(); i++) {
+      std::vector<RayClause>& clauses = a_operands[i];
+
+      if (i > 0 && marched(clauses)) {
+        clauses[0].m_flags |= 2U;
+
+        // Only where the intersection itself may stop at its first crossing; rayEvaluate() also checks that
+        // the call asks for the first crossing only, since a tape is asked for all its spans too.
+        if (clauses.size() == 1U && !a_ray.m_all) {
+          clauses[0].m_flags |= 4U;
+        }
+      }
+
+      program.insert(program.end(), clauses.begin(), clauses.end());
+
+      if (i > 0) {
+        this->pushRay(a_state, RayOp::Intersection, a_ray);
+      }
+    }
+  }
+
+  /**
    * @brief Append a clause to the current sub-program's ray program.
    * @param[in] a_state Sub-program state.
    * @param[in] a_op    Operation.
@@ -908,17 +957,39 @@ private:
         const RayEmit next  = {all, first.m_level + 1U};
 
         // An intersection needs all its operands' spans: where one ends, the ray may still be inside the
-        // others.
-        this->emit(a_state, a_node.m_children.front().node(), (a_ray != nullptr) ? &first : nullptr);
+        // others. Its ray clauses are gathered per operand, to be put in order once all are emitted.
+        const bool                          gather = (a_ray != nullptr) && a_node.m_kind == Kind::Intersection;
+        std::vector<std::vector<RayClause>> operands;
+
+        const auto emitOperand = [&](const ExprDetail::Node<T>& a_operand, const RayEmit* a_emit) {
+          std::vector<RayClause>& program = m_staging.m_rayPrograms[a_state.m_program];
+          const size_t            begin   = program.size();
+
+          this->emit(a_state, a_operand, a_emit);
+
+          if (gather) {
+            // Emitting may have added sub-programs, and moved the ray programs.
+            std::vector<RayClause>& emitted = m_staging.m_rayPrograms[a_state.m_program];
+
+            operands.emplace_back(emitted.begin() + static_cast<std::ptrdiff_t>(begin), emitted.end());
+            emitted.resize(begin);
+          }
+        };
+
+        emitOperand(a_node.m_children.front().node(), (a_ray != nullptr) ? &first : nullptr);
 
         for (size_t i = 1; i < a_node.m_children.size(); i++) {
-          this->emit(a_state, a_node.m_children[i].node(), (a_ray != nullptr) ? &next : nullptr);
+          emitOperand(a_node.m_children[i].node(), (a_ray != nullptr) ? &next : nullptr);
 
-          if (a_ray != nullptr) {
+          if (a_ray != nullptr && !gather) {
             this->pushRay(a_state, rayOp, *a_ray);
           }
 
           this->push(a_state, clause(op), -1, 0);
+        }
+
+        if (gather) {
+          this->orderIntersection(a_state, operands, *a_ray);
         }
       }
 
@@ -1805,18 +1876,25 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
       break;
     }
     case RayOp::Marched: {
-      const T* box = params + c.m_b;
-
-      const Subtree<D> subtree{this,
-                               c.m_a,
-                               BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
-                               static_cast<DistanceQuality>(c.m_c),
-                               a_base,
-                               a_location};
-
       RaySpansT<T>& spans = lists[nl++];
 
-      RayDetail::shapeSpans(subtree, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, spans);
+      // An intersection's operand is marched only within the spans of the operands before it.
+      if ((c.m_flags & 2U) != 0U) {
+        this->template rayMarchedWithin<D>(
+          c, top.m_ray, a_options, !a_all && (c.m_flags & 4U) != 0U, lists[nl - 2], a_base, a_location, spans);
+      }
+      else {
+        const T* box = params + c.m_b;
+
+        const Subtree<D> subtree{this,
+                                 c.m_a,
+                                 BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
+                                 static_cast<DistanceQuality>(c.m_c),
+                                 a_base,
+                                 a_location};
+
+        RayDetail::shapeSpans(subtree, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, spans);
+      }
 
       RayDetail::nameLeaf(pc, spans);
 
@@ -1883,6 +1961,34 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
   EBGEOMETRY_EXPECT(nl == 1U && nr == 1U);
 
   RayDetail::copySpans(lists[0], a_spans);
+}
+
+template <class T, class... UserPrimitives>
+template <unsigned D>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline void
+Tape<T, UserPrimitives...>::rayMarchedWithin(const TapeDetail::RayClause& a_clause,
+                                             const RayT<T>&               a_ray,
+                                             const RayOptions<T>&         a_options,
+                                             const bool                   a_firstOnly,
+                                             const RaySpansT<T>&          a_within,
+                                             const void*                  a_base,
+                                             const PoolLocation&          a_location,
+                                             RaySpansT<T>&                a_spans) const noexcept
+{
+  const T* box = m_layout.m_params.data(a_base) + a_clause.m_b;
+
+  const Subtree<D> subtree{this,
+                           a_clause.m_a,
+                           BV(Vec3T<T>(box[0], box[1], box[2]), Vec3T<T>(box[3], box[4], box[5])),
+                           static_cast<DistanceQuality>(a_clause.m_c),
+                           a_base,
+                           a_location};
+
+  RaySpansT<T> piece;
+
+  RayDetail::spansWithin(subtree, a_ray, a_within, a_options, a_firstOnly, piece, a_spans);
 }
 
 template <class T, class... UserPrimitives>
