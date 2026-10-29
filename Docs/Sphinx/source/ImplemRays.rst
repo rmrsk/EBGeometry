@@ -176,7 +176,11 @@ Union, intersection and complement combine lists, complete up to the smaller hor
 its operand's spans in place, copying no list); an affine map traces its operand along the mapped ray
 (the distances scale by the map's stretch along it). A union asks its operands only for their first crossings, and
 an intersection or a complement for all their spans; each operand of a union is traced only up to what
-the union so far is known up to. The first crossing is the first crossing end in the final list that
+the union so far is known up to. An intersection traces its operands with a ray form first, and marches
+each operand without one only within the spans of the intersection so far (``RayDetail::spansWithin()``),
+up to the first span it finds where the intersection needs only its first crossing: a fused intersection
+by operand type, a tape by moving the ray clauses of a ``Marched`` operand (or of its complement) behind
+the others when it compiles. The first crossing is the first crossing end in the final list that
 comes no later than its horizon. If there is none and the horizon is short of the interval's end, the
 trace starts again from the horizon, asking every operand for all its spans if it got no further. A trace
 that has not found the crossing after 64 passes, or that makes no progress, is ``Unresolved``, like a march

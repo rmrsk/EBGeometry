@@ -70,8 +70,11 @@ show.
 
 A part that has no exact method of its own (a blend, an offset, an elongation, a repetition), and every
 part inside it, is marched by itself, in its own bounding box: under a union only to its first
-crossing, under an intersection or a difference over the whole interval, from one crossing to the
-next. Everything else stays exact.
+crossing, under an intersection or a difference from one crossing to the next. An intersection or a
+difference traces its exact parts first and marches such a part only within their spans, since
+elsewhere the result is empty whatever the marched part does, and, where only the first crossing is
+needed, only up to the first span it finds there. In the box with a ball cut out, with the ball marched,
+the ball is marched only past the box's crossing at 2. Everything else stays exact.
 
 A list of spans has a fixed size, so that it fits a device thread. A ray through more pieces than it
 holds keeps the first ones, and the list then says how far along the ray it is complete. If the first

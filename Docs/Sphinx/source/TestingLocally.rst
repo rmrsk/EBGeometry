@@ -399,7 +399,9 @@ Test coverage
        and tapes (a BVH union, a difference, a complement, affine maps) against their values sampled
        along rays from outside and inside, through a deep copy and a view; a row of balls with more
        spans than a list holds, from starts along it; the three mesh SDFs, a shape with only
-       ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; segments (zero length, a crossing at
+       ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; a marched ball in
+       differences, fused and in a tape, evaluated only where the box leaves the difference open and only up
+       to its first crossing; segments (zero length, a crossing at
        the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
        ray form, the march, a fused composition, the three mesh SDFs, two tapes (one with a BVH union
        and a difference) and a mesh in a fused difference against the host.

@@ -889,6 +889,60 @@ shapeSpans(const S&             a_shape,
 }
 
 /**
+ * @brief A marched operand's list within another list's spans: what an intersection asks a marched operand
+ * for once its other operands are known, since outside their spans the intersection is empty whatever the
+ * operand does.
+ * @details Internal helper; not part of the public API. The operand is traced (shapeSpans()) over each span
+ * of the other list in turn, and the list is its spans there: the intersection with the other list is the
+ * same as with the operand's whole list. With a_firstOnly, it stops at the first span it finds, its horizon
+ * where that trace stopped: the intersection's first crossing comes no later. It also stops where a trace is
+ * known no further, or the list is full.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in]  a_shape     The operand.
+ * @param[in]  a_ray       The ray.
+ * @param[in]  a_within    The other list.
+ * @param[in]  a_options   How to march.
+ * @param[in]  a_firstOnly Whether only the intersection's first crossing is needed.
+ * @param[out] a_piece     Scratch for one span's trace.
+ * @param[out] a_spans     The list; not the other list.
+ */
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
+inline void
+spansWithin(const S&             a_shape,
+            const RayT<T>&       a_ray,
+            const RaySpansT<T>&  a_within,
+            const RayOptions<T>& a_options,
+            const bool           a_firstOnly,
+            RaySpansT<T>&        a_piece,
+            RaySpansT<T>&        a_spans) noexcept
+{
+  a_spans.reset(a_within.m_horizon);
+
+  for (uint32_t i = 0; i < a_within.m_count && a_within.m_spans[i].m_in.m_t <= a_within.m_horizon; i++) {
+    const T t0 = a_within.m_spans[i].m_in.m_t;
+    const T t1 = Math::min(a_within.m_spans[i].m_out.m_t, a_within.m_horizon);
+
+    RayDetail::shapeSpans(a_shape, a_ray, t0, t1, a_options, a_firstOnly, a_piece);
+
+    for (uint32_t k = 0; k < a_piece.m_count && a_piece.m_spans[k].m_in.m_t <= a_piece.m_horizon; k++) {
+      const typename RaySpansT<T>::Span span = RayDetail::cut(a_piece.m_spans[k], a_piece.m_horizon);
+
+      a_spans.add(span.m_in, span.m_out);
+    }
+
+    if (a_piece.m_horizon < t1 || (a_firstOnly && a_piece.m_count > 0U)) {
+      a_spans.m_horizon = Math::min(a_spans.m_horizon, a_piece.m_horizon);
+    }
+
+    if (a_spans.m_horizon <= t1) {
+      return;
+    }
+  }
+}
+
+/**
  * @brief A shape's crossing at a distance along a ray, with its normal and primitive: what a composition
  * asks the leaf its trace ended on.
  * @details Internal helper; not part of the public API. Calls the shape's firstHit() over a window of

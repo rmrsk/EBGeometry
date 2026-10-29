@@ -110,7 +110,10 @@ enum class RayOp : uint8_t
 {
   Leaf,         ///< Push the spans of primitive (m_type, m_a), leaf number m_b, along the top ray.
   Marched,      ///< Push the spans of sub-program m_a along the top ray, marched in the box at
-                ///< params[m_b..m_b+6), with distance quality m_c.
+                ///< params[m_b..m_b+6), with distance quality m_c. With bit 1 of m_flags, it is an operand of an
+                ///< intersection, marched only within the spans of the top list, the operands' before it (see
+                ///< RayDetail::spansWithin()); with bit 2 as well, the intersection needs only its first
+                ///< crossing.
   Union,        ///< Pop two lists and push their union.
   Intersection, ///< Pop two lists and push their intersection.
   Complement,   ///< Replace the top list by its complement.
@@ -1075,6 +1078,34 @@ private:
                   const RayOptions<T>&         a_options,
                   const void*                  a_base,
                   const PoolLocation&          a_location) const noexcept;
+
+  /**
+   * @brief The spans of a Marched clause that is an operand of an intersection: its subtree marched only within
+   * the spans of the operands before it (see TapeDetail::RayOp::Marched).
+   * @details Out of line on a device: inlined beside the march of any other Marched clause, it made every
+   * tape's ray program slower.
+   * @tparam D Call depth left for the subtree.
+   * @param[in]  a_clause    The clause.
+   * @param[in]  a_ray       The ray.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the intersection's first crossing is needed.
+   * @param[in]  a_within    The spans of the operands before it.
+   * @param[in]  a_base      The pool base.
+   * @param[in]  a_location  The pool location.
+   * @param[out] a_spans     The list.
+   */
+  template <unsigned D>
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  rayMarchedWithin(const TapeDetail::RayClause& a_clause,
+                   const RayT<T>&               a_ray,
+                   const RayOptions<T>&         a_options,
+                   bool                         a_firstOnly,
+                   const RaySpansT<T>&          a_within,
+                   const void*                  a_base,
+                   const PoolLocation&          a_location,
+                   RaySpansT<T>&                a_spans) const noexcept;
 
   /**
    * @brief The spans of a Leaf clause's primitive.
