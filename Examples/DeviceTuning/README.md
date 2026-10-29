@@ -55,5 +55,5 @@ Run from this directory so the default mesh path resolves:
 
 With no argument the example loads `armadillo.obj` from the `common-3d-test-models` submodule
 (`git submodule update --init`). It prints the time of each candidate setting over 100,000 of the
-million query points, marks the defaults, then runs the other 900,000 points with the fastest and prints
+million query points and how many times faster it is than the defaults, marks the defaults, then runs the other 900,000 points with the fastest and prints
 the first few distances. A GPU build with no visible GPU has nothing to time, and says so.

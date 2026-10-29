@@ -199,28 +199,35 @@ try {
   const In  sampleIn{all.m_ptr, static_cast<std::uint32_t>(numSample)};
   const Out sampleOut{results.m_ptr, static_cast<std::uint32_t>(numSample)};
 
-  std::cout << "\nThe tape's signed distance at " << numSample << " points (backend: " << EBGeometry::GPU::backendName
-            << "):\n\n";
-  std::cout << "  block size   resident threads   ms per launch\n";
+  constexpr std::size_t numCandidates = std::size(candidates);
 
-  std::size_t fastest = 0;
-  double      best    = 1e30;
+  double      times[numCandidates];
+  std::size_t fastest  = 0;
+  std::size_t defaults = 0;
 
-  for (std::size_t i = 0; i < std::size(candidates); i++) {
-    const double ms = timeLaunch(candidates[i], query, sampleIn, sampleOut);
+  for (std::size_t i = 0; i < numCandidates; i++) {
+    times[i] = timeLaunch(candidates[i], query, sampleIn, sampleOut);
 
-    std::cout << "  " << std::setw(10) << candidates[i].blockSize << "   " << std::setw(16)
-              << candidates[i].minResidentThreads << "   " << std::setw(13) << std::fixed << std::setprecision(3) << ms
-              << (candidates[i].minResidentThreads == EBGeometry::GPU::DefaultMinResidentThreads &&
-                      candidates[i].blockSize == EBGeometry::GPU::DefaultBlockSize
-                    ? "   (the defaults)"
-                    : "")
-              << '\n';
-
-    if (ms < best) {
-      best    = ms;
+    if (times[i] < times[fastest]) {
       fastest = i;
     }
+
+    if (candidates[i].blockSize == EBGeometry::GPU::DefaultBlockSize &&
+        candidates[i].minResidentThreads == EBGeometry::GPU::DefaultMinResidentThreads) {
+      defaults = i;
+    }
+  }
+
+  // Each setting's time, and the defaults' time divided by it: above 1 is faster than the defaults.
+  std::cout << "\nThe tape's signed distance at " << numSample << " points (backend: " << EBGeometry::GPU::backendName
+            << "):\n\n";
+  std::cout << "  block size   resident threads   ms per launch   defaults/this\n";
+
+  for (std::size_t i = 0; i < numCandidates; i++) {
+    std::cout << "  " << std::setw(10) << candidates[i].blockSize << "   " << std::setw(16)
+              << candidates[i].minResidentThreads << "   " << std::setw(13) << std::fixed << std::setprecision(3)
+              << times[i] << "   " << std::setw(12) << std::setprecision(2) << times[defaults] / times[i] << 'x'
+              << (i == defaults ? "   (the defaults)" : "") << '\n';
   }
 
   // ── Run the rest with the fastest ──────────────────────────────────────────────────────────────────
