@@ -282,7 +282,11 @@ Why there is a minimum of resident threads
    The kernel asks for blocks, not threads: the minimum, divided by the block size and rounded up. What
    differs between devices is how many threads a multiprocessor can hold at all (1,024 on Turing, 1,536
    on consumer Ampere and Ada, 2,048 on Volta, the A100 and Hopper), which bounds how much a smaller
-   budget can gain.
+   budget can gain. Those blocks must fit: when they hold more threads than the architecture being
+   compiled for can keep resident (1,024 rounded up to blocks of 384 is 1,152 threads, more than Turing
+   holds; 2,048 is more than consumer Ampere holds), ``ptxas`` warns that ``.minnctapersm will be ignored`` and the kernel gets no minimum
+   at all, as with 0. Keep the minimum, rounded up to whole blocks, within the smallest of these for the
+   architectures a build compiles for.
 
    The budget is a ceiling the compiler tends to fill. A kernel that needed fewer registers may then use
    more, and fewer of its threads fit on a multiprocessor: under the default, two of the performance
