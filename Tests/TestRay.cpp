@@ -1090,7 +1090,7 @@ TEMPLATE_TEST_CASE("Ray: an intersection marches an operand only where its other
 
       REQUIRE(hit.hit());
       REQUIRE(hit.m_exact == a_exact);
-      REQUIRE_THAT(hit.m_t, withinAbsT(a_t, T(1e-3)));
+      REQUIRE_THAT(hit.m_t, withinAbsT(a_t, 1e-3));
       REQUIRE(count == 0);
 
       if (k == 1) {
