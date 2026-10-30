@@ -240,6 +240,9 @@ built.
   branching factor, another tape, or a type of your own -- is listed after ``T``:
   ``Tape<T, BVHUnion<T, SphereSDF<T>, 4>, MyShape>``. The constructor rejects a shape whose type is
   not listed, and a pool-resident shape that lives in another pool.
+* **Features.** Code that only some tapes need is a *feature* (see :ref:`Sec:TapeFeatures`), compiled
+  only into a tape whose type lists it among the arguments after ``T``, before the user types by
+  convention: ``Tape<T, TapeFeature::ExactOffsets, MyShape>``. A plain ``Tape<T>`` compiles none.
 * **Unions of many objects.** A union or smooth union of at least
   ``TapeOptions::m_bvhUnionThreshold`` operands (8 by default) is evaluated with a BVH over the
   operands' boxes, exactly as ``BVHUnion`` and ``BVHSmoothUnion`` evaluate their primitives
@@ -286,8 +289,9 @@ built.
 A tape also answers ray queries, ``tape.firstHit(...)`` and ``tape.intersects(...)``, the same as the
 free functions on any shape (see :ref:`Chap:ImplemRays`). Beside the clauses, the compiler writes a
 *ray program* for the tape and for each BVH union operand: its unions, intersections, complements and
-affine maps over the primitives that have ray forms, in the same order, run on a stack of span lists
-(see :ref:`Sec:RaySpans`). A BVH union walks its BVH along the ray, nearest box first, each operand
+affine maps over the primitives that have ray forms, and, in a tape with ``TapeFeature::ExactOffsets``, its
+offsets and annuli of primitives whose level sets have a closed form (see :ref:`Sec:OffsetRays`), in the same
+order, run on a stack of span lists (see :ref:`Sec:RaySpans`). A BVH union walks its BVH along the ray, nearest box first, each operand
 running its own ray program one call level down. A subtree with any other operation in it, or a
 primitive without a ray form, is marched as a whole over the clauses compiled for it; a subtree that
 would hold more than ``Tape::RayStackSize`` (4) lists at once is marched too. The ray programs are
@@ -299,6 +303,27 @@ where the ray programs begin and up those entries to the BVH union operand that 
 
 The :ref:`Chap:ExampleBasicCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.
+
+.. _Sec:TapeFeatures:
+
+Tape features
+_____________
+
+Some of a tape's code is needed only by some expressions, and is compiled only into a tape whose type asks
+for it: a *feature*, listed among the tape's template arguments (`TapeFeature
+<doxygen/html/namespaceEBGeometry_1_1TapeFeature.html>`__, whose page also gives the rules for adding one).
+A tape without a feature computes the same object, by the general path, and is not slowed by the feature's
+code. The features are:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Feature
+     - What it compiles
+   * - ``ExactOffsets``
+     - Ray queries trace ``Offset`` and ``Annular`` of a primitive with closed-form level sets, or of an
+       affine map of one, exactly (see :ref:`Sec:OffsetRays`). Without it, they are marched.
 
 .. _Sec:Fused:
 

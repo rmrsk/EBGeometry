@@ -584,6 +584,18 @@ does not follow this template, edit the PR body to conform to it.
   `TapeDetail::Op` and a case in `Tape::evaluateBody`, and a `Fused::` operation and function; a ray
   marches it unless it is also given span arithmetic (`EBGeometry_RaySpans.hpp`), a `RayOp` in the
   tape's ray program and a fused ray form (`EBGeometry_CSGRayForms.hpp`).
+- **Tape code that only some expressions need is a tape feature, compiled out of every other tape.** On a
+  device, ptxas allocates registers over all the code a kernel can reach, run or not: exact offsets (#248),
+  reached from the tape's ray code behind a flag no plain tape sets, slowed plain float `firstHit` kernels by
+  10-16%. So such code is a `TapeFeature::` tag (derived from `TapeFeature::Tag`) that a tape compiles only
+  when listed, `Tape<T, TapeFeature::ExactOffsets, MyShape>`. The rules (the `TapeFeature` comment in
+  `EBGeometry_Tape.hpp`):
+  without the feature the compiler emits what it did before (the general path, e.g. a `Marched` clause), so
+  the object is the same; every place the evaluator reaches the feature's code is inside `if constexpr
+  (hasFeature<F>)`, never only a run-time flag test; a plain `Tape<T>` must compile exactly the base's code
+  (ptxas registers/stack of the float tape kernels including `firstHit`, host `nm -C -S`, no change in the
+  receipt's tape cases); tests and probes use a tape that lists it, plus one test of a tape without it. A
+  new exact ray form for an operation (a smooth union, an offset of a composition) is a feature.
 - **Ray code reaches a shape through a few out-of-line helpers on a device.** `RayDetail::valueAt()`,
   `primitiveOf()`, `gradientNormal()`, `march()` and `shapeHit()` (`EBGeometry_RayImplem.hpp`,
   `EBGeometry_RaySpans.hpp`), and in the renderer `Shader::trace()` and `Sectioned::shapeHit()`/

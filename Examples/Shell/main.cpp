@@ -20,7 +20,10 @@
 using T    = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 using Expr = EBGeometry::Expr<T>;
-using Tape = EBGeometry::Tape<T>;
+
+// TapeFeature::ExactOffsets: rays trace the shell (an Annular of the mesh) exactly instead of marching it. A
+// tape compiles a feature only when its type lists it, so tapes that need none stay lean.
+using Tape = EBGeometry::Tape<T, EBGeometry::TapeFeature::ExactOffsets>;
 
 // The function-try-block reports a mesh file that cannot be read, rather than letting the exception
 // terminate the program.

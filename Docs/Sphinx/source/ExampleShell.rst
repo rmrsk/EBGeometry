@@ -35,7 +35,13 @@ quarter towards the camera:
 
 .. code-block:: c++
 
-   const Tape<T> shell(pool, Difference(Annular(statue, T(0.5) * thickness), quarter));
+   using Tape = EBGeometry::Tape<T, EBGeometry::TapeFeature::ExactOffsets>;
+
+   const Tape shell(pool, Difference(Annular(statue, T(0.5) * thickness), quarter));
+
+The tape type lists ``TapeFeature::ExactOffsets``, so that rays trace the shell exactly (see below). A tape
+compiles such an optional feature only when its type lists it (see :ref:`Sec:TapeFeatures`), so tapes that do
+not need it are not slowed by it.
 
 The program prints the solid's and the shell's values at two points inside the statue: negative in the
 solid, positive in the shell, whose inside is now hollow.
@@ -44,7 +50,9 @@ Looking at it
 -------------
 
 The example ends with ``Render::view(shell, pool, argc, argv)``, a window on the shell with its quarter cut
-away.
+away. Its rays trace the shell exactly, from the mesh's faces offset by the wall's half-thickness, rather than
+marching its value (see :ref:`Chap:Rays`): ``Annular`` passes its half-thickness through ``Scale``,
+``Translate`` and ``Rotate`` to the mesh, divided by the scale.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why

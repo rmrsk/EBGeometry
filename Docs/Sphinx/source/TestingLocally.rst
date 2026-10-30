@@ -401,10 +401,14 @@ Test coverage
        spans than a list holds, from starts along it; the three mesh SDFs, a shape with only
        ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; a marched ball in
        differences, fused and in a tape, evaluated only where the box leaves the difference open and only up
-       to its first crossing; segments (zero length, a crossing at
+       to its first crossing; offsets and annuli of a sphere, box, capsule, plane, infinite cylinder and a
+       scaled ball, fused and in a tape, and of the three mesh SDFs (the unit cube grown, shrunk and as a wall,
+       from outside, from inside it and towards a corner), against crossings and normals worked by hand, and a
+       shell of a shell marched; segments (zero length, a crossing at
        the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
        ray form, the march, a fused composition, the three mesh SDFs, two tapes (one with a BVH union
-       and a difference) and a mesh in a fused difference against the host.
+       and a difference), a mesh in a fused difference, and offsets and annuli of the meshes and of a scaled
+       box, fused and in tapes, against the host.
    * - ``TestRender``
      - The renderer: ``Camera::fit`` and ``Camera::lookAt`` placing the eye; a sphere covering the
        pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the

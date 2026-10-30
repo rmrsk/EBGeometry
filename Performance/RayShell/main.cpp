@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Performance cases for ray tracing a difference whose first operand is marched (RayDetail::spansWithin() in
-// EBGeometry_RaySpans.hpp): a shell (Annular) around a mesh with a corner cut away by a box, as in
+// Performance cases for ray tracing a difference of a shell and a box: a shell (Annular) around a mesh, traced
+// from the mesh's offset faces (EBGeometry_OffsetRayForms.hpp) or marched only within the box's spans
+// (RayDetail::spansWithin() in EBGeometry_RaySpans.hpp), with a corner cut away by the box, as in
 // Examples/Shell, through a tape (traced, and marched with RayOptions::m_march, which the traced case names)
 // and fused. Every ray starts at a random point in the shell's box grown to twice its size and
 // points at the box's centre. A host build runs the host cases; a CUDA or HIP build runs host/device pairs
@@ -42,9 +43,10 @@ using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 template <class T>
 using Mesh = EBGeometry::TriMeshSDF<T, K, W>;
 
-// A tape with the mesh as a primitive type of its own (it is not the default TriMeshSDF in every build).
+// A tape with the mesh as a primitive type of its own (it is not the default TriMeshSDF in every build), tracing
+// offsets and annuli exactly (TapeFeature::ExactOffsets).
 template <class T>
-using MeshTape = EBGeometry::Tape<T, Mesh<T>>;
+using MeshTape = EBGeometry::Tape<T, EBGeometry::TapeFeature::ExactOffsets, Mesh<T>>;
 
 // The ray from a_origin towards a_target.
 template <class T>

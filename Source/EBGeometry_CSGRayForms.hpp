@@ -167,8 +167,21 @@ struct FirstLeaf<I, C, Cs...>
 };
 
 /**
- * @brief Whether an intersection marches a fused node's operand, within the spans of its other operands:
- * 1 for an operand without a ray form, 2 for the complement of one, 0 for any other.
+ * @brief Whether an intersection traces a fused node's operand only within the spans of its other operands,
+ * though it has a ray form: one whose spans over a whole ray cost far more than its first crossings within
+ * them (a mesh's offset or annulus, see EBGeometry_OffsetRayForms.hpp, which specialises it).
+ * @details Internal helper; not part of the public API.
+ * @tparam C Operand type.
+ */
+template <class C, class = void>
+struct DeferredOperand : std::false_type
+{
+};
+
+/**
+ * @brief Whether an intersection marches (or defers, see DeferredOperand) a fused node's operand, within the
+ * spans of its other operands: 1 for an operand without a ray form or deferred, 2 for the complement of one,
+ * 0 for any other.
  * @details Internal helper; not part of the public API.
  * @tparam C Operand type.
  * @tparam T Floating-point precision.
@@ -179,7 +192,7 @@ struct MarchedOperand
   /**
    * @brief The kind.
    */
-  static constexpr int value = HasRayFirstHit<C, T>::value ? 0 : 1;
+  static constexpr int value = (HasRayFirstHit<C, T>::value && !DeferredOperand<C>::value) ? 0 : 1;
 };
 
 /**
@@ -193,7 +206,7 @@ struct MarchedOperand<Fused::Node<Fused::ComplementOp, D>, T>
   /**
    * @brief The kind.
    */
-  static constexpr int value = HasRayFirstHit<D, T>::value ? 0 : 2;
+  static constexpr int value = (HasRayFirstHit<D, T>::value && !DeferredOperand<D>::value) ? 0 : 2;
 };
 
 /**

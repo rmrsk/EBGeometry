@@ -98,6 +98,11 @@ library has ray forms for:
        ``Fused::Translate``, ``Rotate``, ``Scale``, ``Reflect``
      - Their operands' spans, combined (`EBGeometry_CSGRayForms.hpp
        <doxygen/html/EBGeometry__CSGRayForms_8hpp.html>`__). The other fused operations have no ray form.
+   * - ``Fused::Offset``, ``Fused::Annular`` of ``PlaneSDF``, ``SphereSDF``, ``BoxSDF``,
+       ``InfiniteCylinderSDF``, ``CapsuleSDF``, ``TriMeshSDF``, ``MeshSDF``, ``FlatMeshSDF``, or of a fused
+       affine map of one
+     - The operand's level sets, see :ref:`Sec:OffsetRays` (`EBGeometry_OffsetRayForms.hpp
+       <doxygen/html/EBGeometry__OffsetRayForms_8hpp.html>`__).
    * - ``BVHUnion``
      - The union of the spans of the primitives whose boxes the ray meets, walking its BVH nearest box
        first and leaving out the boxes beyond what the union so far is known up to.
@@ -152,6 +157,46 @@ and the shape is silently marched. Check it where the specialisation is written:
 
 A ray form written for an earlier version, with a ``static constexpr bool available`` member, keeps
 working; the member is no longer read and can be removed.
+
+.. _Sec:OffsetRays:
+
+Offsets and annuli
+~~~~~~~~~~~~~~~~~~
+
+An offset by :math:`r` is the level set :math:`\{f \le r\}` of its operand's value :math:`f`, and an annulus
+of half-thickness :math:`d` is :math:`\{f \le d\}` less :math:`\{f < -d\}`. ``RayDetail::LevelView`` is such
+a level set of a shape, and its ray form traces it where ``RayDetail::LevelForm`` gives the operand's level
+sets in closed form:
+
+* A sphere, capsule or infinite cylinder of radius :math:`\rho` at level :math:`c` is the same shape of radius
+  :math:`\rho + c` (empty if that is not positive), a plane's half-space moves by :math:`c`, and a box shrinks
+  by :math:`-c` or grows by :math:`c` into a rounded box: three boxes, each grown along one axis, united with a
+  capsule along each of the twelve edges. The capsules are tested only when the ray enters or leaves the three
+  boxes' union away from a face across the axis its box grows along, which is where a ray meets an edge.
+  The quadratics take their discriminant as the analytic ray forms do. An annulus is the outer piece less the
+  inner, at most two spans.
+* A mesh's surface grown by :math:`d` is the union of its faces offset by :math:`d`: each face's slab
+  :math:`|n \cdot (x - p_0)| \le d` over the face, united with a capsule of radius :math:`d` along each edge.
+  ``RayDetail::nearestOffsetFace()`` walks the mesh's BVH (every face of a ``FlatMeshSDF``) with each box grown
+  by :math:`d` (``RayDetail::GrownRayQuery``), bounded by the nearest entry so far. A face's offset is entered
+  where the ray enters its slab, if that point lies over the face (the edge tests of
+  ``DCEL::FaceT::rayCrossing()``, on the point projected into the plane); otherwise, unless the ray's part in
+  the slab lies further than :math:`d` outside one edge's line, through the rim: each edge's capsule, if the ray
+  passes within :math:`d` of the edge's line. A ray whose start is within :math:`d` of a face starts inside,
+  and ``RayDetail::offsetFaceUnion()`` merges the offset faces' intervals into at most four disjoint spans,
+  keeping the normal where each ends; an interval beyond them lowers the list's horizon, from which the trace
+  starts again. A mesh's annulus is that union; its offset by :math:`r > 0` the mesh united with its faces
+  offset by :math:`r`, and by :math:`r < 0` the mesh less its faces offset by :math:`-r`. The entry and its normal
+  are exact.
+* A fused affine map's level set at :math:`c` is its operand's at :math:`c` divided by the map's value scale,
+  along the mapped ray.
+
+A tape with ``TapeFeature::ExactOffsets`` (``Tape<T, TapeFeature::ExactOffsets>``, see
+:ref:`Sec:TapeFeatures`) traces ``Offset`` and ``Annular`` of a primitive with a ``LevelForm`` (or of an affine
+map of one) the same way; a tape without it marches them. Its compiler passes the level down to the primitive's ``Leaf`` clause, which holds it in its
+parameters and flags (``TapeDetail::RayOp``), and the primitive is traced through its ``LevelView``. An offset
+or annulus of anything else (a composition, ``CylinderSDF``, whose grown rim is a torus, ``TorusSDF``, or
+another offset or annulus) is marched.
 
 .. _Sec:RaySpans:
 

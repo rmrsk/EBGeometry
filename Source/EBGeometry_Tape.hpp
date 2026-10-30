@@ -40,6 +40,7 @@
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_MeshDistanceFunctions.hpp"
+#include "EBGeometry_OffsetRayForms.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
@@ -65,6 +66,53 @@ struct TapeOptions
    */
   BVH::Construction m_construction = BVH::Construction::SAH;
 };
+
+/**
+ * @brief Optional tape features, listed among a Tape's template arguments: Tape<T, TapeFeature::ExactOffsets>.
+ * @details A feature is code a tape compiles only when its type asks for it. A plain Tape<T> compiles none,
+ * so its kernels are not slowed by code it never runs. Without a feature, the tape still computes the same
+ * object; the operation the feature serves takes the general path (for a ray query, marching).
+ *
+ * Why features exist: a tape's evaluator and ray code are compiled once per tape type, for any expression a
+ * tape of that type could hold, and on a device ptxas allocates registers and stack over all the code a kernel
+ * can reach, run or not. Reaching the exact-offset code from the ray code, behind a flag no plain tape sets,
+ * slowed plain float firstHit kernels by 10-16% (sm_86). So code that only some expressions need, such as a
+ * new exact ray form for an operation, is a feature, and a new feature follows these rules:
+ * - **The tape stays correct without it.** Without the feature the compiler emits what it emitted before the
+ *   feature existed (for a ray form, a RayOp::Marched clause), so a tape that does not list it computes the
+ *   same object by the general path. A feature changes speed or exactness, never which object is computed.
+ * - **The compiler decides.** TapeDetail::Compiler receives the features and emits the feature's clauses,
+ *   flags or parameters only when it is listed; clause flags a feature sets are never set otherwise.
+ * - **The evaluator compiles the feature's code only under `if constexpr (hasFeature<F>)`**, at every place it
+ *   is reached from: the clause loop, the out-of-line leaf calls, traceRay() and rayLeafHit(). A run-time test
+ *   of a flag alone is not enough: the code behind it is still in every kernel.
+ * - **A plain tape compiles exactly the code it did before.** Check that Tape<T>'s kernels are unchanged: the
+ *   ptxas register, stack and spill figures (or the SASS) of the float tape kernels (signedDistance() once
+ *   and sixteen times, and firstHit()) and the host evaluator's out-of-line function sizes (`nm -C -S` on
+ *   Performance/Tape) match the base's, and the performance comparison shows no change in the tape cases.
+ * - **Tests and probes use both.** The feature's tests use a tape that lists it, and at least one test checks
+ *   that a tape without it gives the same answer by the general path. Probe cases that measure it use a tape
+ *   that lists it; the existing tape cases keep plain tapes.
+ * - **Documented** here, as a tag with a description, and in the user documentation's list of tape features.
+ */
+namespace TapeFeature {
+
+/**
+ * @brief Base of every feature: a Tape template argument derived from it is a feature, not a primitive type.
+ */
+struct Tag
+{
+};
+
+/**
+ * @brief Ray queries trace an Offset or Annular of a primitive with closed-form level sets (or of an affine map
+ * of one) exactly, from its level sets (see RayDetail::LevelForm); without it they march it.
+ */
+struct ExactOffsets : Tag
+{
+};
+
+} // namespace TapeFeature
 
 namespace TapeDetail {
 
@@ -108,12 +156,17 @@ enum class Op : uint8_t
  */
 enum class RayOp : uint8_t
 {
-  Leaf,         ///< Push the spans of primitive (m_type, m_a), leaf number m_b, along the top ray.
+  Leaf,         ///< Push the spans of primitive (m_type, m_a), leaf number m_b, along the top ray. With bit 3 of
+                ///< m_flags, of its level set at params[m_c] (an Offset of it, see RayDetail::LevelView); with
+                ///< bit 4 as well, of its annulus of that half-thickness (see rayLevelLeaf()).
   Marched,      ///< Push the spans of sub-program m_a along the top ray, marched in the box at
                 ///< params[m_b..m_b+6), with distance quality m_c. With bit 1 of m_flags, it is an operand of an
                 ///< intersection, marched only within the spans of the top list, the operands' before it (see
                 ///< RayDetail::spansWithin()); with bit 2 as well, the intersection needs only its first
-                ///< crossing.
+                ///< crossing. With bit 3, it is instead a mesh's level set deferred in an intersection (see
+                ///< RayDetail::DeferredOperand): primitive (m_type, m_a), leaf number m_c, the level at params[m_b]
+                ///< (an annulus with bit 4), and with bit 5 the affine map it is traced through at
+                ///< params[m_b+1..m_b+13) (see rayLevelWithin()).
   Union,        ///< Pop two lists and push their union.
   Intersection, ///< Pop two lists and push their intersection.
   Complement,   ///< Replace the top list by its complement.
@@ -361,6 +414,74 @@ struct IndexOf<P, TypeList<Q, Rest...>>
 };
 
 /**
+ * @brief The concatenation of TypeLists.
+ * @details Internal helper; not part of the public API.
+ * @tparam Lists TypeLists.
+ */
+template <class... Lists>
+struct Concat
+{
+  /**
+   * @brief The concatenation.
+   */
+  using type = TypeList<>;
+};
+
+/**
+ * @brief The concatenation of TypeLists.
+ * @details Internal helper; not part of the public API.
+ * @tparam Ps   Types of the first list.
+ * @tparam Rest The other lists.
+ */
+template <class... Ps, class... Rest>
+struct Concat<TypeList<Ps...>, Rest...>
+{
+  /**
+   * @brief The concatenation.
+   */
+  using type = typename Concat<TypeList<Ps...>, typename Concat<Rest...>::type>::type;
+};
+
+/**
+ * @brief The concatenation of two TypeLists.
+ * @details Internal helper; not part of the public API.
+ * @tparam Ps Types of the first list.
+ * @tparam Qs Types of the second list.
+ */
+template <class... Ps, class... Qs>
+struct Concat<TypeList<Ps...>, TypeList<Qs...>>
+{
+  /**
+   * @brief The concatenation.
+   */
+  using type = TypeList<Ps..., Qs...>;
+};
+
+/**
+ * @brief Whether a Tape template argument is a feature (see TapeFeature).
+ * @details Internal helper; not part of the public API.
+ * @tparam A Template argument.
+ */
+template <class A>
+inline constexpr bool IsFeature = std::is_base_of_v<TapeFeature::Tag, A>;
+
+/**
+ * @brief The features among a Tape's template arguments.
+ * @details Internal helper; not part of the public API.
+ * @tparam Args Template arguments after T.
+ */
+template <class... Args>
+using FeaturesOf = typename Concat<std::conditional_t<IsFeature<Args>, TypeList<Args>, TypeList<>>...>::type;
+
+/**
+ * @brief The user primitive types among a Tape's template arguments: those that are not features.
+ * @details Internal helper; not part of the public API.
+ * @tparam Args Template arguments after T.
+ */
+template <class... Args>
+using UserTypesOf = typename Concat<std::conditional_t<IsFeature<Args>, TypeList<>, TypeList<Args>>...>::type;
+
+/**
  * @brief One pool array per primitive type, holding the type's stored form (CSGDetail::Stored).
  * @details Internal helper; not part of the public API. The empty store ends the recursion.
  * @tparam Ps Primitive types.
@@ -458,28 +579,58 @@ storeAt(PrimitiveStore<P, Ps...>& a_store) noexcept
 
 /**
  * @brief The tape's primitive types: the twelve analytic shapes, the three mesh SDFs with the default
- * branching factor and SIMD width, then the user's types.
+ * branching factor and SIMD width, then the user's types (its template arguments that are not features).
  * @details Internal helper; not part of the public API.
  * @tparam T            Floating-point precision.
- * @tparam UserPrimitives User primitive types.
+ * @tparam UserPrimitives User primitive types and features.
  */
 template <class T, class... UserPrimitives>
-using Primitives = TypeList<PlaneSDF<T>,
-                            SphereSDF<T>,
-                            BoxSDF<T>,
-                            TorusSDF<T>,
-                            CylinderSDF<T>,
-                            InfiniteCylinderSDF<T>,
-                            CapsuleSDF<T>,
-                            InfiniteConeSDF<T>,
-                            ConeSDF<T>,
-                            RoundedBoxSDF<T>,
-                            RoundedCylinderSDF<T>,
-                            PerlinSDF<T>,
-                            FlatMeshSDF<T>,
-                            MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
-                            TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>,
-                            UserPrimitives...>;
+using Primitives =
+  typename Concat<TypeList<PlaneSDF<T>,
+                           SphereSDF<T>,
+                           BoxSDF<T>,
+                           TorusSDF<T>,
+                           CylinderSDF<T>,
+                           InfiniteCylinderSDF<T>,
+                           CapsuleSDF<T>,
+                           InfiniteConeSDF<T>,
+                           ConeSDF<T>,
+                           RoundedBoxSDF<T>,
+                           RoundedCylinderSDF<T>,
+                           PerlinSDF<T>,
+                           FlatMeshSDF<T>,
+                           MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
+                           TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>>,
+                  UserTypesOf<UserPrimitives...>>::type;
+
+/**
+ * @brief Whether a tape's user primitive types are shapes of its precision.
+ * @details Internal helper; not part of the public API.
+ * @tparam T    Floating-point precision.
+ * @tparam List TypeList of the user primitive types.
+ */
+template <class T, class List>
+struct UserTypes;
+
+/**
+ * @brief Whether a tape's user primitive types are shapes of its precision.
+ * @details Internal helper; not part of the public API.
+ * @tparam T  Floating-point precision.
+ * @tparam Ps User primitive types.
+ */
+template <class T, class... Ps>
+struct UserTypes<T, TypeList<Ps...>>
+{
+  /**
+   * @brief Whether every type is a shape (see isShape).
+   */
+  static constexpr bool shapes = (isShape<Ps> && ...);
+
+  /**
+   * @brief Whether every type has precision T.
+   */
+  static constexpr bool precision = (std::is_same_v<ShapePrecision<Ps>, T> && ...);
+};
 
 /**
  * @brief Host-side arrays the compiler fills before they are reserved in the pool.
@@ -516,17 +667,34 @@ struct Staging;
  * so the value can be larger than the plain minimum, but it keeps the sign and is still a bound. Blur, Mollify and BVH unions evaluate a sub-program several times; they nest
  * at most MaxCallDepth deep, and a sub-program needs at most ValueStackSize values and PointStackSize
  * points at once; the constructor rejects an expression that needs more.
+ *
+ * Optional features (see TapeFeature) are listed among the template arguments, before the user primitive
+ * types by convention: Tape<T, TapeFeature::ExactOffsets, MyUnion>. A tape compiles only the features it
+ * lists, and without one computes the same object by the general path.
  * @tparam T              Floating-point precision.
- * @tparam UserPrimitives Additional primitive types (each a shape of precision T).
+ * @tparam UserPrimitives Additional primitive types (each a shape of precision T), and features (see TapeFeature).
  */
 template <class T, class... UserPrimitives>
 class Tape : public PoolHandle
 {
 public:
   static_assert(std::is_floating_point_v<T>, "Tape requires a floating-point type T");
-  static_assert((isShape<UserPrimitives> && ...), "Tape: every user primitive type must be a shape (see isShape)");
-  static_assert((std::is_same_v<ShapePrecision<UserPrimitives>, T> && ...),
+  static_assert(TapeDetail::UserTypes<T, TapeDetail::UserTypesOf<UserPrimitives...>>::shapes,
+                "Tape: every user primitive type must be a shape (see isShape)");
+  static_assert(TapeDetail::UserTypes<T, TapeDetail::UserTypesOf<UserPrimitives...>>::precision,
                 "Tape: every user primitive type must have the tape's precision");
+
+  /**
+   * @brief The features the tape compiles (see TapeFeature): its template arguments derived from TapeFeature::Tag.
+   */
+  using Features = TapeDetail::FeaturesOf<UserPrimitives...>;
+
+  /**
+   * @brief Whether the tape compiles feature F (see TapeFeature).
+   * @tparam F Feature.
+   */
+  template <class F>
+  static constexpr bool hasFeature = TapeDetail::IndexOf<F, Features>::value < Features::size;
 
   /**
    * @brief Bounding box type.
@@ -874,6 +1042,11 @@ private:
   static constexpr uint32_t MarchedLeaf = UINT32_MAX;
 
   /**
+   * @brief The primitive of a crossing on a level-set clause before resolveLevelHit() resolves it.
+   */
+  static constexpr uint32_t LevelLeaf = UINT32_MAX - 1;
+
+  /**
    * @brief The arrays.
    */
   Layout m_layout;
@@ -1012,7 +1185,10 @@ private:
    * clause): found again by following the program to the clause, through the affine maps and BVH unions
    * above it, and asking the leaf (a marched subtree gives its gradient). The normal is the leaf's outward
    * one, mapped back to the program's frame.
-   * @tparam D How deep the program's calls may still nest.
+   * @tparam D     How deep the program's calls may still nest.
+   * @tparam Level Whether a level-set clause (bit 3, see TapeDetail::RayOp) is resolved (levelClauseHit());
+   * without, its crossing is only marked LevelLeaf, so that this walk, which plain tapes run, never reaches the
+   * level-set code (see resolveLevelHit()).
    * @param[in] a_program  Sub-program whose ray program to follow.
    * @param[in] a_ray      The ray.
    * @param[in] a_t        The crossing's distance.
@@ -1023,7 +1199,7 @@ private:
    * @return The crossing, with HitT::m_primitive the leaf's number (MarchedLeaf for a marched subtree), or a
    * miss if the clause is not reached from the program.
    */
-  template <unsigned D>
+  template <unsigned D, bool Level = false>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline HitT<T>
@@ -1131,6 +1307,126 @@ private:
           const void*                  a_base,
           const PoolLocation&          a_location,
           RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a Leaf clause's level set of its primitive (bit 3 of m_flags; see
+   * TapeDetail::RayOp::Leaf), out of line on the host and on a device: a tape's evaluator and leaf dispatch keep
+   * the code they have without offsets.
+   * @param[in]  a_clause    The Leaf clause.
+   * @param[in]  a_ray       The ray.
+   * @param[in]  a_t0        Start of the interval.
+   * @param[in]  a_t1        End of the interval.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[in]  a_base      The pool base.
+   * @param[in]  a_location  The pool location.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  EBGEOMETRY_HOST_NOINLINE
+  void
+  rayLevelLeaf(const TapeDetail::RayClause& a_clause,
+               const RayT<T>&               a_ray,
+               T                            a_t0,
+               T                            a_t1,
+               const RayOptions<T>&         a_options,
+               bool                         a_firstOnly,
+               const void*                  a_base,
+               const PoolLocation&          a_location,
+               RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The spans of a Marched clause holding a mesh's deferred level set (bit 3 of m_flags; see
+   * TapeDetail::RayOp::Marched): within the spans of the intersection's operands before it, through the clause's
+   * affine map (bit 5) if it has one. Out of line on the host and on a device.
+   * @param[in]  a_clause    The Marched clause.
+   * @param[in]  a_ray       The ray.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the intersection's first crossing is needed.
+   * @param[in]  a_within    The spans of the operands before it.
+   * @param[in]  a_base      The pool base.
+   * @param[in]  a_location  The pool location.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  EBGEOMETRY_HOST_NOINLINE
+  void
+  rayLevelWithin(const TapeDetail::RayClause& a_clause,
+                 const RayT<T>&               a_ray,
+                 const RayOptions<T>&         a_options,
+                 bool                         a_firstOnly,
+                 const RaySpansT<T>&          a_within,
+                 const void*                  a_base,
+                 const PoolLocation&          a_location,
+                 RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The crossing at a distance on a level-set clause's primitive (a Leaf clause with bit 3, or a Marched
+   * clause holding a deferred level set): its normal, through the clause's own affine map if it has one. Out of
+   * line on the host and on a device.
+   * @param[in] a_clause   The clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  EBGEOMETRY_HOST_NOINLINE
+  HitT<T>
+  levelClauseHit(const TapeDetail::RayClause& a_clause,
+                 const RayT<T>&               a_ray,
+                 T                            a_t,
+                 const RayOptions<T>&         a_options,
+                 const void*                  a_base,
+                 const PoolLocation&          a_location) const noexcept;
+
+  /**
+   * @brief The crossing at a distance on a level-set clause, found again from the tape's top program
+   * (rayLeafHit() with its level-set resolution): what traceRay() asks once its trace ended on one. Out of line
+   * on the host and on a device: the walk plain tapes run keeps no call into level-set code, which made ptxas
+   * spill more in every tape's ray kernel.
+   * @param[in] a_clause   The clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        The crossing's distance.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  EBGEOMETRY_HOST_NOINLINE
+  HitT<T>
+  resolveLevelHit(uint32_t             a_clause,
+                  const RayT<T>&       a_ray,
+                  T                    a_t,
+                  const RayOptions<T>& a_options,
+                  const void*          a_base,
+                  const PoolLocation&  a_location) const noexcept;
+
+  /**
+   * @brief Call a_visit(primitive) with a clause's primitive (m_type, m_a) if its type, from I onwards, has
+   * closed-form level sets (RayDetail::LevelForm; with a_meshOnly, only a mesh's, RayDetail::IsMeshLevel).
+   * @tparam I        First type index to test.
+   * @tparam MeshOnly Whether only mesh types are visited.
+   * @tparam Visit    Callback.
+   * @param[in] a_clause   The clause.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @param[in] a_visit    The callback.
+   */
+  template <size_t I, bool MeshOnly, class Visit>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  visitLevelPrimitive(const TapeDetail::RayClause& a_clause,
+                      const void*                  a_base,
+                      const PoolLocation&          a_location,
+                      const Visit&                 a_visit) const noexcept;
 
   /**
    * @brief The spans of a primitive, dispatching on its type index from I onwards.
