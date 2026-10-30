@@ -356,6 +356,12 @@ instantiateFunctionTemplates()
     (void)tape.deepCopy(meshPool);
     (void)normal(tape, Vec3T<T>::ones(), T(1.0e-3));
 
+    // A tape with a feature (see TapeFeature), whose ray code compiles the feature's.
+    const Tape<T, TapeFeature::ExactOffsets> exact(meshPool, expr);
+
+    (void)exact.signedDistance(Vec3T<T>::zeros());
+    (void)exact.firstHit(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
+
     const PrimitiveRef<T> leaf = tape.closestPrimitive(Vec3T<T>::zeros());
 
     (void)tape.template isPrimitive<SphereSDF<T>>(leaf);

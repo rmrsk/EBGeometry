@@ -1159,7 +1159,8 @@ TEMPLATE_TEST_CASE("Ray: offsets and annuli of analytic shapes are traced to the
   const Vec3 x(1, 0, 0);
   const Vec3 y(0, 1, 0);
 
-  // Each crossing fused and through a tape: exact, at the closed-form distance, with the closed-form normal.
+  // Each crossing fused and through a tape with exact offsets: exact, at the closed-form distance, with the
+  // closed-form normal.
   const auto check = [&](const auto&    a_fused,
                          const Expr<T>& a_expr,
                          const Vec3&    a_from,
@@ -1167,8 +1168,8 @@ TEMPLATE_TEST_CASE("Ray: offsets and annuli of analytic shapes are traced to the
                          const T        a_t,
                          const bool     a_entering,
                          const Vec3&    a_normal) {
-    const Tape<T> tape(pool, a_expr);
-    const RayT<T> ray{a_from, a_direction};
+    const Tape<T, TapeFeature::ExactOffsets> tape(pool, a_expr);
+    const RayT<T>                            ray{a_from, a_direction};
 
     for (const HitT<T>& hit : {firstHit(a_fused, ray, T(0), T(10)), tape.firstHit(ray, T(0), T(10))}) {
       REQUIRE(hit.hit());
@@ -1235,12 +1236,20 @@ TEMPLATE_TEST_CASE("Ray: offsets and annuli of analytic shapes are traced to the
         -x);
 
   // A shell of a shell has no closed form: it is marched.
-  const Tape<T> nested(pool, Annular(Annular(ball, T(0.2)), T(0.05)));
-  const HitT<T> marched = nested.firstHit(RayT<T>{-T(3) * x, x}, T(0), T(10));
+  const Tape<T, TapeFeature::ExactOffsets> nested(pool, Annular(Annular(ball, T(0.2)), T(0.05)));
+  const HitT<T>                            marched = nested.firstHit(RayT<T>{-T(3) * x, x}, T(0), T(10));
 
   REQUIRE(marched.hit());
   REQUIRE_FALSE(marched.m_exact);
   REQUIRE_THAT(marched.m_t, withinAbsT(T(1.75), 1e-3));
+
+  // A tape without the feature marches a shell it could trace, to the same crossing.
+  const Tape<T> plain(pool, Annular(ball, T(0.1)));
+  const HitT<T> plainHit = plain.firstHit(RayT<T>{-T(3) * x, x}, T(0), T(10));
+
+  REQUIRE(plainHit.hit());
+  REQUIRE_FALSE(plainHit.m_exact);
+  REQUIRE_THAT(plainHit.m_t, withinAbsT(T(1.9), 1e-3));
 }
 
 TEMPLATE_TEST_CASE("Ray: offsets and annuli of meshes are traced to their faces offset by the level",
@@ -1271,8 +1280,8 @@ TEMPLATE_TEST_CASE("Ray: offsets and annuli of meshes are traced to their faces 
                          const T        a_t,
                          const bool     a_entering,
                          const Vec3&    a_normal) {
-    const Tape<T, TriMeshSDF<T, 4, 4>> tape(pool, a_expr);
-    const RayT<T>                      ray{a_from, a_direction};
+    const Tape<T, TapeFeature::ExactOffsets, TriMeshSDF<T, 4, 4>> tape(pool, a_expr);
+    const RayT<T>                                                 ray{a_from, a_direction};
 
     for (const HitT<T>& hit : {firstHit(a_triangles, ray, a_tMin, T(10)),
                                firstHit(a_polygons, ray, a_tMin, T(10)),
@@ -1931,13 +1940,15 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
 
   // Offsets and annuli traced from their level sets: of the meshes, in a tape and fused, and of a box under a
   // scale in a tape.
-  using M = std::decay_t<decltype(cube)>;
+  using M  = std::decay_t<decltype(cube)>;
+  using TM = Tape<T, TapeFeature::ExactOffsets, M>;
+  using TX = Tape<T, TapeFeature::ExactOffsets>;
 
-  const Tape<T, M> annulusTape(pool, Annular(cube, T(0.1)));
-  const Tape<T, M> offsetTape(pool, Offset(cube, T(-0.1)));
-  const Tape<T> boxTape(pool, Scale(Offset(BoxSDF<T>(-T(0.5) * Vec3::ones(), T(0.4) * Vec3::ones()), T(0.15)), T(1.5)));
-  const auto    annulusFused = Fused::Annular(polygons, T(0.1));
-  const auto    annulusFlat  = Fused::Annular(flat, T(0.1));
+  const TM   annulusTape(pool, Annular(cube, T(0.1)));
+  const TM   offsetTape(pool, Offset(cube, T(-0.1)));
+  const TX   boxTape(pool, Scale(Offset(BoxSDF<T>(-T(0.5) * Vec3::ones(), T(0.4) * Vec3::ones()), T(0.15)), T(1.5)));
+  const auto annulusFused = Fused::Annular(polygons, T(0.1));
+  const auto annulusFlat  = Fused::Annular(flat, T(0.1));
 
   pool.freeze();
 
@@ -1974,14 +1985,13 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
 
   using A  = std::decay_t<decltype(annulusFused)>;
   using AF = std::decay_t<decltype(annulusFlat)>;
-  using TM = Tape<T, M>;
 
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TM>{annulusTape.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, TM>{annulusTape}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TM>{offsetTape.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, TM>{offsetTape}, rays));
-  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, Tape<T>>{boxTape.rebasedView(device)}, rays),
-                     evaluateOnHost<T>(FirstCrossing<T, Tape<T>>{boxTape}, rays));
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TX>{boxTape.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, TX>{boxTape}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, A>{annulusFused.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, A>{annulusFused}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, AF>{annulusFlat.rebasedView(device)}, rays),

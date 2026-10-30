@@ -240,6 +240,9 @@ built.
   branching factor, another tape, or a type of your own -- is listed after ``T``:
   ``Tape<T, BVHUnion<T, SphereSDF<T>, 4>, MyShape>``. The constructor rejects a shape whose type is
   not listed, and a pool-resident shape that lives in another pool.
+* **Features.** Code that only some tapes need is a *feature* (see :ref:`Sec:TapeFeatures`), compiled
+  only into a tape whose type lists it among the arguments after ``T``, before the user types by
+  convention: ``Tape<T, TapeFeature::ExactOffsets, MyShape>``. A plain ``Tape<T>`` compiles none.
 * **Unions of many objects.** A union or smooth union of at least
   ``TapeOptions::m_bvhUnionThreshold`` operands (8 by default) is evaluated with a BVH over the
   operands' boxes, exactly as ``BVHUnion`` and ``BVHSmoothUnion`` evaluate their primitives
@@ -286,9 +289,9 @@ built.
 A tape also answers ray queries, ``tape.firstHit(...)`` and ``tape.intersects(...)``, the same as the
 free functions on any shape (see :ref:`Chap:ImplemRays`). Beside the clauses, the compiler writes a
 *ray program* for the tape and for each BVH union operand: its unions, intersections, complements and
-affine maps over the primitives that have ray forms, and its offsets and annuli of primitives whose level sets
-have a closed form (see :ref:`Sec:OffsetRays`), in the same order, run on a stack of span lists
-(see :ref:`Sec:RaySpans`). A BVH union walks its BVH along the ray, nearest box first, each operand
+affine maps over the primitives that have ray forms, and, in a tape with ``TapeFeature::ExactOffsets``, its
+offsets and annuli of primitives whose level sets have a closed form (see :ref:`Sec:OffsetRays`), in the same
+order, run on a stack of span lists (see :ref:`Sec:RaySpans`). A BVH union walks its BVH along the ray, nearest box first, each operand
 running its own ray program one call level down. A subtree with any other operation in it, or a
 primitive without a ray form, is marched as a whole over the clauses compiled for it; a subtree that
 would hold more than ``Tape::RayStackSize`` (4) lists at once is marched too. The ray programs are
@@ -300,6 +303,50 @@ where the ray programs begin and up those entries to the BVH union operand that 
 
 The :ref:`Chap:ExampleBasicCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.
+
+.. _Sec:TapeFeatures:
+
+Tape features
+_____________
+
+A tape's evaluator and ray code are compiled once per tape type, for any expression a tape of that type
+could hold. Code a given tape never runs still costs it on a device: ptxas allocates registers and stack
+over everything a kernel can reach, so adding a path to the tape's ray code that plain compositions never
+take slowed their ``firstHit`` kernels by 10-16% (float, sm_86). Code that only some tapes need is
+therefore a *feature*: a tag type in namespace ``TapeFeature``, derived from ``TapeFeature::Tag``, that a
+tape compiles only when its type lists it (`TapeFeature
+<doxygen/html/namespaceEBGeometry_1_1TapeFeature.html>`__). ``Tape::hasFeature<F>`` says whether it does,
+and ``Tape::Features`` lists them. The features are:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Feature
+     - What it compiles
+   * - ``ExactOffsets``
+     - Ray queries trace ``Offset`` and ``Annular`` of a primitive with closed-form level sets, or of an
+       affine map of one, exactly (see :ref:`Sec:OffsetRays`). Without it, they are marched.
+
+A new feature follows these rules:
+
+#. **The tape stays correct without it.** Without the feature, the compiler emits what it emitted before the
+   feature existed (for a ray form, a ``Marched`` clause), so a tape that does not list it computes the same
+   object by the general path. The feature changes speed or exactness, never which object is computed.
+#. **The compiler decides.** ``TapeDetail::Compiler`` receives the features and emits the feature's clauses,
+   flags or parameters only when it is listed. Clause flags a feature sets are never set otherwise.
+#. **The evaluator compiles the feature's code only under** ``if constexpr (hasFeature<F>)``, at every
+   place it is reached from: the clause loop, the out-of-line leaf calls, ``traceRay()`` and ``rayLeafHit()``.
+   A run-time test of a flag alone is not enough: the code behind it is still in every kernel.
+#. **A plain tape compiles exactly the code it did before.** After adding a feature, check that
+   ``Tape<T>``'s kernels are unchanged: the ptxas register and stack figures of the float tape kernels
+   (``signedDistance()`` once and sixteen times, and ``firstHit()``) and the host evaluator's out-of-line
+   function sizes (``nm -C -S`` on ``Performance/Tape``) match the base's, and the performance comparison
+   shows no change in the tape cases.
+#. **Tests and probes use both.** The feature's tests use a tape that lists it, and at least one test checks
+   that a tape without it still gives the same answer by the general path. Probe cases that measure it use a
+   tape that lists it; the existing tape cases keep plain tapes.
+#. **Documented here**, with a row in the table above, and on the page of the operation it serves.
 
 .. _Sec:Fused:
 

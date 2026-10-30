@@ -47,9 +47,10 @@ using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 template <class T>
 using Mesh = EBGeometry::TriMeshSDF<T, K, W>;
 
-// A tape with the mesh as a primitive type of its own (it is not the default TriMeshSDF in every build).
+// A tape with the mesh as a primitive type of its own (it is not the default TriMeshSDF in every build), tracing
+// offsets and annuli exactly (TapeFeature::ExactOffsets).
 template <class T>
-using MeshTape = EBGeometry::Tape<T, Mesh<T>>;
+using MeshTape = EBGeometry::Tape<T, EBGeometry::TapeFeature::ExactOffsets, Mesh<T>>;
 
 // One particle's step: where it starts, and its unit direction.
 template <class T>
@@ -231,7 +232,7 @@ addPrecision(Perf::Suite& a_suite)
   const auto boxShell = [](Perf::Case&, EBGeometry::Pool& a_pool) {
     const EBGeometry::BoxSDF<T> box(Vec3<T>(T(-1), T(-0.5), T(-0.25)), Vec3<T>(T(1), T(0.5), T(0.25)));
 
-    return EBGeometry::Tape<T>(a_pool, EBGeometry::Annular(box, T(0.025)));
+    return EBGeometry::Tape<T, EBGeometry::TapeFeature::ExactOffsets>(a_pool, EBGeometry::Annular(box, T(0.025)));
   };
 
   addBoundary<T>(a_suite, "armadillo-shell-tape", false, shellTape, true);

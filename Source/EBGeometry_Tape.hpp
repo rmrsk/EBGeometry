@@ -67,6 +67,32 @@ struct TapeOptions
   BVH::Construction m_construction = BVH::Construction::SAH;
 };
 
+/**
+ * @brief Optional tape features, listed among a Tape's template arguments: Tape<T, TapeFeature::ExactOffsets>.
+ * @details A feature is code a tape compiles only when its type asks for it. A plain Tape<T> compiles none,
+ * so its kernels (on a device, ptxas allocates registers over all the code a kernel can reach, run or not)
+ * are not slowed by code it never runs. Without a feature, the tape still computes the same object; the
+ * operation the feature serves takes the general path (for a ray query, marching).
+ */
+namespace TapeFeature {
+
+/**
+ * @brief Base of every feature: a Tape template argument derived from it is a feature, not a primitive type.
+ */
+struct Tag
+{
+};
+
+/**
+ * @brief Ray queries trace an Offset or Annular of a primitive with closed-form level sets (or of an affine map
+ * of one) exactly, from its level sets (see RayDetail::LevelForm); without it they march it.
+ */
+struct ExactOffsets : Tag
+{
+};
+
+} // namespace TapeFeature
+
 namespace TapeDetail {
 
 /**
@@ -367,6 +393,74 @@ struct IndexOf<P, TypeList<Q, Rest...>>
 };
 
 /**
+ * @brief The concatenation of TypeLists.
+ * @details Internal helper; not part of the public API.
+ * @tparam Lists TypeLists.
+ */
+template <class... Lists>
+struct Concat
+{
+  /**
+   * @brief The concatenation.
+   */
+  using type = TypeList<>;
+};
+
+/**
+ * @brief The concatenation of TypeLists.
+ * @details Internal helper; not part of the public API.
+ * @tparam Ps   Types of the first list.
+ * @tparam Rest The other lists.
+ */
+template <class... Ps, class... Rest>
+struct Concat<TypeList<Ps...>, Rest...>
+{
+  /**
+   * @brief The concatenation.
+   */
+  using type = typename Concat<TypeList<Ps...>, typename Concat<Rest...>::type>::type;
+};
+
+/**
+ * @brief The concatenation of two TypeLists.
+ * @details Internal helper; not part of the public API.
+ * @tparam Ps Types of the first list.
+ * @tparam Qs Types of the second list.
+ */
+template <class... Ps, class... Qs>
+struct Concat<TypeList<Ps...>, TypeList<Qs...>>
+{
+  /**
+   * @brief The concatenation.
+   */
+  using type = TypeList<Ps..., Qs...>;
+};
+
+/**
+ * @brief Whether a Tape template argument is a feature (see TapeFeature).
+ * @details Internal helper; not part of the public API.
+ * @tparam A Template argument.
+ */
+template <class A>
+inline constexpr bool IsFeature = std::is_base_of_v<TapeFeature::Tag, A>;
+
+/**
+ * @brief The features among a Tape's template arguments.
+ * @details Internal helper; not part of the public API.
+ * @tparam Args Template arguments after T.
+ */
+template <class... Args>
+using FeaturesOf = typename Concat<std::conditional_t<IsFeature<Args>, TypeList<Args>, TypeList<>>...>::type;
+
+/**
+ * @brief The user primitive types among a Tape's template arguments: those that are not features.
+ * @details Internal helper; not part of the public API.
+ * @tparam Args Template arguments after T.
+ */
+template <class... Args>
+using UserTypesOf = typename Concat<std::conditional_t<IsFeature<Args>, TypeList<>, TypeList<Args>>...>::type;
+
+/**
  * @brief One pool array per primitive type, holding the type's stored form (CSGDetail::Stored).
  * @details Internal helper; not part of the public API. The empty store ends the recursion.
  * @tparam Ps Primitive types.
@@ -464,28 +558,58 @@ storeAt(PrimitiveStore<P, Ps...>& a_store) noexcept
 
 /**
  * @brief The tape's primitive types: the twelve analytic shapes, the three mesh SDFs with the default
- * branching factor and SIMD width, then the user's types.
+ * branching factor and SIMD width, then the user's types (its template arguments that are not features).
  * @details Internal helper; not part of the public API.
  * @tparam T            Floating-point precision.
- * @tparam UserPrimitives User primitive types.
+ * @tparam UserPrimitives User primitive types and features.
  */
 template <class T, class... UserPrimitives>
-using Primitives = TypeList<PlaneSDF<T>,
-                            SphereSDF<T>,
-                            BoxSDF<T>,
-                            TorusSDF<T>,
-                            CylinderSDF<T>,
-                            InfiniteCylinderSDF<T>,
-                            CapsuleSDF<T>,
-                            InfiniteConeSDF<T>,
-                            ConeSDF<T>,
-                            RoundedBoxSDF<T>,
-                            RoundedCylinderSDF<T>,
-                            PerlinSDF<T>,
-                            FlatMeshSDF<T>,
-                            MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
-                            TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>,
-                            UserPrimitives...>;
+using Primitives =
+  typename Concat<TypeList<PlaneSDF<T>,
+                           SphereSDF<T>,
+                           BoxSDF<T>,
+                           TorusSDF<T>,
+                           CylinderSDF<T>,
+                           InfiniteCylinderSDF<T>,
+                           CapsuleSDF<T>,
+                           InfiniteConeSDF<T>,
+                           ConeSDF<T>,
+                           RoundedBoxSDF<T>,
+                           RoundedCylinderSDF<T>,
+                           PerlinSDF<T>,
+                           FlatMeshSDF<T>,
+                           MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
+                           TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>>,
+                  UserTypesOf<UserPrimitives...>>::type;
+
+/**
+ * @brief Whether a tape's user primitive types are shapes of its precision.
+ * @details Internal helper; not part of the public API.
+ * @tparam T    Floating-point precision.
+ * @tparam List TypeList of the user primitive types.
+ */
+template <class T, class List>
+struct UserTypes;
+
+/**
+ * @brief Whether a tape's user primitive types are shapes of its precision.
+ * @details Internal helper; not part of the public API.
+ * @tparam T  Floating-point precision.
+ * @tparam Ps User primitive types.
+ */
+template <class T, class... Ps>
+struct UserTypes<T, TypeList<Ps...>>
+{
+  /**
+   * @brief Whether every type is a shape (see isShape).
+   */
+  static constexpr bool shapes = (isShape<Ps> && ...);
+
+  /**
+   * @brief Whether every type has precision T.
+   */
+  static constexpr bool precision = (std::is_same_v<ShapePrecision<Ps>, T> && ...);
+};
 
 /**
  * @brief Host-side arrays the compiler fills before they are reserved in the pool.
@@ -522,17 +646,34 @@ struct Staging;
  * so the value can be larger than the plain minimum, but it keeps the sign and is still a bound. Blur, Mollify and BVH unions evaluate a sub-program several times; they nest
  * at most MaxCallDepth deep, and a sub-program needs at most ValueStackSize values and PointStackSize
  * points at once; the constructor rejects an expression that needs more.
+ *
+ * Optional features (see TapeFeature) are listed among the template arguments, before the user primitive
+ * types by convention: Tape<T, TapeFeature::ExactOffsets, MyUnion>. A tape compiles only the features it
+ * lists, and without one computes the same object by the general path.
  * @tparam T              Floating-point precision.
- * @tparam UserPrimitives Additional primitive types (each a shape of precision T).
+ * @tparam UserPrimitives Additional primitive types (each a shape of precision T), and features (see TapeFeature).
  */
 template <class T, class... UserPrimitives>
 class Tape : public PoolHandle
 {
 public:
   static_assert(std::is_floating_point_v<T>, "Tape requires a floating-point type T");
-  static_assert((isShape<UserPrimitives> && ...), "Tape: every user primitive type must be a shape (see isShape)");
-  static_assert((std::is_same_v<ShapePrecision<UserPrimitives>, T> && ...),
+  static_assert(TapeDetail::UserTypes<T, TapeDetail::UserTypesOf<UserPrimitives...>>::shapes,
+                "Tape: every user primitive type must be a shape (see isShape)");
+  static_assert(TapeDetail::UserTypes<T, TapeDetail::UserTypesOf<UserPrimitives...>>::precision,
                 "Tape: every user primitive type must have the tape's precision");
+
+  /**
+   * @brief The features the tape compiles (see TapeFeature): its template arguments derived from TapeFeature::Tag.
+   */
+  using Features = TapeDetail::FeaturesOf<UserPrimitives...>;
+
+  /**
+   * @brief Whether the tape compiles feature F (see TapeFeature).
+   * @tparam F Feature.
+   */
+  template <class F>
+  static constexpr bool hasFeature = TapeDetail::IndexOf<F, Features>::value < Features::size;
 
   /**
    * @brief Bounding box type.

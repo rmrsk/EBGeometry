@@ -43,9 +43,10 @@ using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 template <class T>
 using Mesh = EBGeometry::TriMeshSDF<T, K, W>;
 
-// A tape with the mesh as a primitive type of its own (it is not the default TriMeshSDF in every build).
+// A tape with the mesh as a primitive type of its own (it is not the default TriMeshSDF in every build), tracing
+// offsets and annuli exactly (TapeFeature::ExactOffsets).
 template <class T>
-using MeshTape = EBGeometry::Tape<T, Mesh<T>>;
+using MeshTape = EBGeometry::Tape<T, EBGeometry::TapeFeature::ExactOffsets, Mesh<T>>;
 
 // The ray from a_origin towards a_target.
 template <class T>

@@ -202,11 +202,12 @@ flatten(Staging<T, K, List>& a_staging)
  * @brief Compiles an Expr into Staging.
  * @details Internal helper; not part of the public API. Host-only; recursion over the expression tree is
  * fine here, since only the evaluator runs on a device.
- * @tparam T    Floating-point precision.
- * @tparam K    BVH branching factor.
- * @tparam List TypeList of primitive types.
+ * @tparam T        Floating-point precision.
+ * @tparam K        BVH branching factor.
+ * @tparam List     TypeList of primitive types.
+ * @tparam Features TypeList of the features compiled (see TapeFeature).
  */
-template <class T, size_t K, class List>
+template <class T, size_t K, class List, class Features>
 class Compiler
 {
 public:
@@ -680,8 +681,9 @@ private:
 
   /**
    * @brief Whether a ray program traces an expression's node exactly, from its operands' spans: a union,
-   * intersection, complement or affine map, a primitive with a ray form, or an offset or annulus of a
-   * primitive (or an affine map of one) with closed-form level sets. Anything else is marched.
+   * intersection, complement or affine map, a primitive with a ray form, or, with TapeFeature::ExactOffsets,
+   * an offset or annulus of a primitive (or an affine map of one) with closed-form level sets. Anything else
+   * is marched.
    * @param[in] a_node Expression.
    * @return True if traced.
    */
@@ -696,7 +698,8 @@ private:
     }
     case Kind::Offset:
     case Kind::Annular: {
-      return levelTraced(a_node.m_children.front().node());
+      return IndexOf<TapeFeature::ExactOffsets, Features>::value < Features::size &&
+             levelTraced(a_node.m_children.front().node());
     }
     case Kind::Affine:
     case Kind::Complement:
@@ -1283,11 +1286,11 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
 
   TapeDetail::Staging<T, BranchingRatio, Primitives> staging;
 
-  TapeDetail::Compiler<T, BranchingRatio, Primitives> compiler(
+  TapeDetail::Compiler<T, BranchingRatio, Primitives, Features> compiler(
     a_pool, a_options, ValueStackSize, PointStackSize, RayStackSize, staging);
 
   // The whole object is traced for its first crossing; its intersections and complements ask for more.
-  using RayEmit = typename TapeDetail::Compiler<T, BranchingRatio, Primitives>::RayEmit;
+  using RayEmit = typename TapeDetail::Compiler<T, BranchingRatio, Primitives, Features>::RayEmit;
 
   const RayEmit ray{false, 0U};
 
@@ -1977,32 +1980,44 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
     this->template rayEvaluate<MaxCallDepth>(0U, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
   };
 
-  // A crossing on a level set is marked, and resolved once the trace is done (see resolveLevelHit()).
-  uint32_t levelClause = 0U;
+  HitT<T> hit;
 
-  const auto resolve = [this, &a_ray, &a_options, base, &location, &levelClause](const T        a_t,
-                                                                                 const uint32_t a_leaf) noexcept {
-    const HitT<T> leafHit = this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+  if constexpr (hasFeature<TapeFeature::ExactOffsets>) {
+    // A crossing on a level set is marked, and resolved once the trace is done (see resolveLevelHit()).
+    uint32_t levelClause = 0U;
 
-    if (leafHit.m_primitive == LevelLeaf) {
-      levelClause = a_leaf;
+    const auto resolve = [this, &a_ray, &a_options, base, &location, &levelClause](const T        a_t,
+                                                                                   const uint32_t a_leaf) noexcept {
+      const HitT<T> leafHit =
+        this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+
+      if (leafHit.m_primitive == LevelLeaf) {
+        levelClause = a_leaf;
+      }
+
+      return leafHit;
+    };
+
+    hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
+
+    if (hit.hit() && hit.m_primitive == LevelLeaf) {
+      const HitT<T> level = this->resolveLevelHit(levelClause, a_ray, hit.m_t, a_options, base, location);
+
+      hit.m_normal    = level.m_normal;
+      hit.m_primitive = level.m_primitive;
+
+      // Outward of the composition, as traceSpans() orients a resolved normal: against the ray where it enters.
+      if ((dot(hit.m_normal, a_ray.m_direction) < T(0)) != hit.m_entering) {
+        hit.m_normal = -hit.m_normal;
+      }
     }
+  }
+  else {
+    const auto resolve = [this, &a_ray, &a_options, base, &location](const T a_t, const uint32_t a_leaf) noexcept {
+      return this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+    };
 
-    return leafHit;
-  };
-
-  HitT<T> hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
-
-  if (hit.hit() && hit.m_primitive == LevelLeaf) {
-    const HitT<T> level = this->resolveLevelHit(levelClause, a_ray, hit.m_t, a_options, base, location);
-
-    hit.m_normal    = level.m_normal;
-    hit.m_primitive = level.m_primitive;
-
-    // Outward of the composition, as traceSpans() orients a resolved normal: against the ray where it enters.
-    if ((dot(hit.m_normal, a_ray.m_direction) < T(0)) != hit.m_entering) {
-      hit.m_normal = -hit.m_normal;
-    }
+    hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
   }
 
   // A crossing found by marching a subtree is named by the leaf deciding the value there.
@@ -2176,10 +2191,12 @@ Tape<T, UserPrimitives...>::rayMarchedWithin(const TapeDetail::RayClause& a_clau
                                              RaySpansT<T>&                a_spans) const noexcept
 {
   // A mesh's level set deferred in an intersection (bit 3) is traced, not marched.
-  if ((a_clause.m_flags & 8U) != 0U) {
-    this->rayLevelWithin(a_clause, a_ray, a_options, a_firstOnly, a_within, a_base, a_location, a_spans);
+  if constexpr (hasFeature<TapeFeature::ExactOffsets>) {
+    if ((a_clause.m_flags & 8U) != 0U) {
+      this->rayLevelWithin(a_clause, a_ray, a_options, a_firstOnly, a_within, a_base, a_location, a_spans);
 
-    return;
+      return;
+    }
   }
 
   const T* box = m_layout.m_params.data(a_base) + a_clause.m_b;
@@ -2210,10 +2227,12 @@ Tape<T, UserPrimitives...>::rayLeaf(const TapeDetail::RayClause& a_clause,
                                     const PoolLocation&          a_location,
                                     RaySpansT<T>&                a_spans) const noexcept
 {
-  if ((a_clause.m_flags & 8U) != 0U) {
-    this->rayLevelLeaf(a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
+  if constexpr (hasFeature<TapeFeature::ExactOffsets>) {
+    if ((a_clause.m_flags & 8U) != 0U) {
+      this->rayLevelLeaf(a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
 
-    return;
+      return;
+    }
   }
 
   this->template dispatchRayLeaf<0>(a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
@@ -2357,7 +2376,8 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
     const RayDetail::MappedRay<T>& top = rays[nr - 1];
 
     if (pc == a_clause) {
-      if ((c.m_flags & 8U) != 0U && (c.m_op == RayOp::Leaf || c.m_op == RayOp::Marched)) {
+      if (hasFeature<TapeFeature::ExactOffsets> && (c.m_flags & 8U) != 0U &&
+          (c.m_op == RayOp::Leaf || c.m_op == RayOp::Marched)) {
         // A level set's crossing: resolved only in the level-set walk (see resolveLevelHit()); its leaf number is
         // in m_b of a Leaf clause and in m_c of a deferred one.
         if constexpr (Level) {

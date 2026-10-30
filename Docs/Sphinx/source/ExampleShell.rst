@@ -35,7 +35,13 @@ quarter towards the camera:
 
 .. code-block:: c++
 
-   const Tape<T> shell(pool, Difference(Annular(statue, T(0.5) * thickness), quarter));
+   using Tape = EBGeometry::Tape<T, EBGeometry::TapeFeature::ExactOffsets>;
+
+   const Tape shell(pool, Difference(Annular(statue, T(0.5) * thickness), quarter));
+
+The tape type lists ``TapeFeature::ExactOffsets``, so that rays trace the shell exactly (see below). A tape
+compiles such an optional feature only when its type lists it (see :ref:`Sec:TapeFeatures`), so tapes that do
+not need it are not slowed by it.
 
 The program prints the solid's and the shell's values at two points inside the statue: negative in the
 solid, positive in the shell, whose inside is now hollow.

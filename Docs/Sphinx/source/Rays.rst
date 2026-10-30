@@ -75,7 +75,8 @@ infinite cylinder's radius grows by :math:`r`, a plane moves by it, a box shrink
 rounded edges and corners, and a mesh's surface grown by :math:`d` is the union of its faces, each grown into
 a thin slab with a rounded rim. A translation, rotation or scale between the offset and the object passes it
 on. The shell around a mesh in :ref:`Chap:ExampleShell` is traced this way, entering and leaving its wall
-exactly, with exact normals. An offset or annulus of anything else (of a composition, a finite cylinder, a
+exactly, with exact normals. A fused composition always traces offsets this way; a tape does when it is
+asked to (it is an optional feature of the tape, see :ref:`Sec:TapeFeatures`), and otherwise marches them. An offset or annulus of anything else (of a composition, a finite cylinder, a
 torus, or of another offset) is marched.
 
 A part that has no exact method of its own (a blend, an offset of a composition, an elongation, a

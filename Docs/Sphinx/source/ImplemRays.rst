@@ -191,8 +191,9 @@ sets in closed form:
 * A fused affine map's level set at :math:`c` is its operand's at :math:`c` divided by the map's value scale,
   along the mapped ray.
 
-A tape traces ``Offset`` and ``Annular`` of a primitive with a ``LevelForm`` (or of an affine map of one) the
-same way: its compiler passes the level down to the primitive's ``Leaf`` clause, which holds it in its
+A tape with ``TapeFeature::ExactOffsets`` (``Tape<T, TapeFeature::ExactOffsets>``, see
+:ref:`Sec:TapeFeatures`) traces ``Offset`` and ``Annular`` of a primitive with a ``LevelForm`` (or of an affine
+map of one) the same way; a tape without it marches them. Its compiler passes the level down to the primitive's ``Leaf`` clause, which holds it in its
 parameters and flags (``TapeDetail::RayOp``), and the primitive is traced through its ``LevelView``. An offset
 or annulus of anything else (a composition, ``CylinderSDF``, whose grown rim is a torus, ``TorusSDF``, or
 another offset or annulus) is marched.
