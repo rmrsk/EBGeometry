@@ -80,9 +80,29 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# Render the TikZ figures (_static/<Name>/<Name>.tex -> _static/<Name>.png, git-ignored) when a build
+# starts, so that sphinx-build, make html and sphinx-autobuild all have them. The script skips figures that
+# are up to date. Without pdflatex and pdftoppm the figures are not built, and Sphinx reports each missing
+# image as usual.
+def build_figures(app):
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[3] / 'Scripts' / 'build-doc-figures.sh'
+
+    if not (shutil.which('pdflatex') and shutil.which('pdftoppm')):
+        print('build_figures: pdflatex or pdftoppm not found, figures not built')
+        return
+
+    if subprocess.run(['bash', str(script)]).returncode != 0:
+        print('build_figures: ' + str(script) + ' failed; see its output above')
+
+
 # Add CSS that fixes the sphinx_rtd_theme with equation number appearing above the equation. 
 def setup(app):
     app.add_css_file('my_theme.css')
+    app.connect('builder-inited', build_figures)
 
 numfig = True
 math_numfig = True

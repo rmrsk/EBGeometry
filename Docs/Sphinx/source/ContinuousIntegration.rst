@@ -324,7 +324,6 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
    invocation (they need system LaTeX/Doxygen/CMake tooling and take longer than
    the default hooks); use the explicit ``--hook-stage manual`` flag (with the
    specific hook id, or omit it to run all manual-stage hooks) when you want to
-   verify them locally. Run ``build-doc-figures`` before either ``sphinx-build-*``
-   hook if you changed a figure's ``.tex`` source — pre-commit runs local hooks in
-   the order they appear in the config file, so ``pre-commit run --all-files
-   --hook-stage manual`` already gets the ordering right.
+   verify them locally. The ``sphinx-build-*`` hooks render the figures themselves
+   (Sphinx runs ``Scripts/build-doc-figures.sh`` when a build starts, skipping figures
+   that are up to date), so they need no hook to run before them.

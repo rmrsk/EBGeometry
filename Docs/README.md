@@ -15,15 +15,18 @@ We use Sphinx with reStructured text for building the user documentation.
 
 Several figures in the user documentation (e.g. the DCEL and BVH diagrams) are only tracked as
 LaTeX/TikZ sources under `Sphinx/source/_static/<Name>/<Name>.tex`; the rendered PNGs are build
-artifacts and are not committed to git. Render them once (from the repository root) before
-building the HTML or PDF documentation, and again whenever a `.tex` figure source changes:
+artifacts and are not committed to git. Every Sphinx build (`make html`, `sphinx-build`,
+`sphinx-autobuild`) renders them when it starts, skipping figures whose PNG is newer than its
+source, so nothing needs to be run first. To render them by hand (from the repository root; `--force`
+rebuilds all):
 
 ```
 Scripts/build-doc-figures.sh
 ```
 
 This requires `pdflatex` (from a `texlive-latex-extra`-equivalent install) and `pdftoppm` (from
-`poppler-utils`) to be on your `PATH`.
+`poppler-utils`) to be on your `PATH`; without them the figures are not built, and Sphinx reports
+each one as a missing image.
 
 To build the documentation locally, navigate to the Sphinx subfolder and run
 
