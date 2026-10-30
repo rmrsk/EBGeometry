@@ -26,8 +26,8 @@ from the same code; SIMD paths were added on the host. Compositions are now comp
 evaluated by a small interpreter on either side, or fused into compiled code; ray queries, exact ray
 tracing of compositions, a renderer with an interactive viewer, and point clouds followed.
 
-Ideas EBGeometry builds on
---------------------------
+Inspiration and acknowledgements
+--------------------------------
 
 **libfive.** The tape is modeled on `libfive <https://libfive.com>`_, Matt Keeter's library for
 functional representations. libfive compiles an expression into a tape: a flat list of clauses that a
