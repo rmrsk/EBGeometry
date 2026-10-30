@@ -147,7 +147,7 @@ several of them.
 
 EBGeometry was written for embedded-boundary codes such as [AMReX](https://amrex-codes.github.io)
 and [Chombo](https://commons.lbl.gov/display/chombo); [`Integrations/`](Integrations/README.md)
-shows how to couple it to them. It is general-purpose.
+shows how to couple it to AMReX. It is general-purpose.
 
 ## Get started
 

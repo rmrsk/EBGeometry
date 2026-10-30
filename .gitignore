@@ -11,13 +11,6 @@ Integrations/AMReX/*/tmp_build_dir
 Integrations/AMReX/*/Backtrace.*
 Integrations/AMReX/Backtrace.*
 
-# Chombo build artifacts (any example under Integrations/Chombo/<name>/).
-Integrations/Chombo/*/d/**
-Integrations/Chombo/*/o/**
-Integrations/Chombo/*/f/**
-Integrations/Chombo/*/example.hdf5
-Integrations/Chombo/*/pout.*
-
 Docs/*
 !Docs/.nojekyll
 !Docs/Sphinx

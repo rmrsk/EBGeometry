@@ -1,8 +1,19 @@
-Integrations/AMReX/PaintEB
---------------------------
+Integrations/AMReX/Materials
+----------------------------
 
-A surface mesh as a `MeshSDF` handed to AMReX's EB2 grid generation, and each cut cell painted with the id of the mesh face closest to it (`getClosestFace()`): the index into an array of per-face data, such as a boundary condition or a material. It mirrors the
-[`MeshSDF`](../../../Examples/MeshSDF/README.md) example.
+Which part of an object each cut cell lies on. The armadillo with a cylinder bored through its chest
+(`Difference`), compiled into a `Tape`, is handed to AMReX's EB2 grid generation, and each cut cell is
+labelled twice:
+
+* with the tape's leaf closest to it (`closestPrimitive()`), in expression order: the armadillo 0, the bore 1;
+* on the armadillo, with the id of its closest mesh face (`getClosestFace()`, asked at the point in the
+  mesh's own frame that `closestPrimitive()` returns).
+
+They are the indices into tables of your own, of per-part and per-face data such as boundary conditions or
+materials. It mirrors the [`Materials`](../../../Examples/Materials/README.md) example.
+
+Where several faces are equally close (the closest point is an edge or a vertex they share), each of them is
+the closest face, and a CPU and a GPU run may name different ones.
 
 The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs: the geometry's pool is mirrored to
 device memory in one piece, and the implicit function holds a view of each copy.
@@ -34,4 +45,5 @@ Options (on the command line or in an inputs file):
 * `max_grid_size = <integer>`: the largest box (default 32).
 * `filename = <string>`: the mesh file, relative to this folder.
 
-It writes a plot file, `plt`, with each cut cell's closest face in `face_id` (-1 elsewhere).
+It writes a plot file, `plt`, with each cut cell's leaf in `leaf` and its closest face in `face_id` (-1 elsewhere,
+and in `face_id` on the bore).

@@ -23,7 +23,7 @@ unit-test suite (fetched via CMake `FetchContent`, not vendored), `Examples/` ho
 standalone programs with no third-party dependencies (each independently buildable — see below),
 `Performance/` holds the performance probes and the comparison that every PR is vetted with (see
 "Vetting every pull request for performance" below), `Integrations/` holds illustrative (not
-CI-tested) examples coupling EBGeometry to third-party application codes (AMReX, Chombo), and
+CI-tested) examples coupling EBGeometry to a third-party application code (AMReX), and
 `Docs/Sphinx/` + `Docs/doxygen.conf` are the two documentation systems.
 
 ## Cloning

@@ -27,7 +27,7 @@ described below.
 Every folder under :file:`Examples/<something>` is a pure EBGeometry example: it
 has no third-party dependencies and can be compiled with the one-liner above (see
 :ref:`Chap:Examples`).  Folders under :file:`Integrations/<Platform>/<something>` couple
-EBGeometry to a third-party application code (AMReX, Chombo) and additionally require that
+EBGeometry to a third-party application code (AMReX) and additionally require that
 platform to be installed -- see :ref:`Chap:Integrations`.
 
 See :ref:`Chap:ObtainingEBGeometry` for how to clone the repository (including the submodule
