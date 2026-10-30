@@ -161,6 +161,42 @@ empty," check for a stray `sphinx-autobuild` (or other long-running `sphinx-buil
 (`pgrep -fa sphinx`) — a forgotten one rebuilding into the same output directory in the background
 has caused exactly this before.**
 
+## What goes in the Sphinx pages, and what goes in the headers
+
+The two documentation systems have different readers, and each kind of content has one home. When text is
+in the wrong one, move it (never just delete it): a trimmed Sphinx passage's substance goes into the header
+comment at the code it describes, unless it is already there.
+
+**The Sphinx pages (`Docs/Sphinx/source/`) are a user guide.**
+- They explain concepts (what something is and why it exists, e.g. that the tape compiles an expression
+  into separate programs and why), how to use the API, and how to choose between options.
+- The `Implem*.rst` pages are an API guide per component: which classes and functions to call for what,
+  linked to their Doxygen pages, with the choices a user makes (which mesh SDF, which BVH build). Short,
+  hand-written usage snippets (`.. code-block::`) are fine; anything longer is an `Examples/` program and
+  its page (`literalinclude` stays banned).
+- No implementation details or finer algorithmic points: no internal classes or namespaces (`*Detail`),
+  clause layouts, flag bits, stack or register budgets, inlining history, step-by-step algorithms.
+- No measured numbers: no timings, speed-ups, register counts or sizes of internals. A choice is explained
+  in words (which is faster, and why), with a pointer to measuring the user's own case (the `Performance/`
+  probes, or an example such as `HostTuning` or `DeviceTuning`). Specified limits and constants of the API
+  (a maximum call depth, the largest exact face id in single precision) are facts, not measurements, and
+  stay.
+- The contributor pages (`ContributionGuidelines`, `TestingLocally`, `PerformanceTesting`,
+  `ContinuousIntegration`) follow the same rules: they state the contributor's rules and procedures; the
+  measurements and history behind a rule go in the header comment at the code the rule protects.
+
+**The Doxygen and in-file comments serve users on top and maintainers below.**
+- `@brief`, `@param`, `@tparam`, `@return` state the contract a user relies on: what it does, what it needs,
+  what it returns, which side it runs on, which pool must outlive it.
+- `@details` carries what a maintainer needs: the algorithm, invariants, device and performance constraints,
+  why the design is this way and which alternatives were ruled out, and the measurements behind a rule.
+- Plain `//` comments inside a function explain the code next to them.
+
+**No history anywhere in the documentation.** No PR or issue numbers (open or closed) in source comments or
+Sphinx pages, and no "formerly", "used to", "since #...", "replaces the old ...": a comment states what is
+true now, and why. A known gap is stated in words ("no SYCL memory resource"). History lives in git, the
+pull requests and the issues. (This file, `CLAUDE.md`, is a working guide for agents and may cite them.)
+
 ## When you change code, check whether the docs still agree with it
 
 Sphinx docs and Doxygen comments describe the code but aren't checked by the compiler, so they
