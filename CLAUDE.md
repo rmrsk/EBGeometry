@@ -479,12 +479,12 @@ once work is done: surface the option and let the user decide, do not just do it
 branch you are *already on* (once the user has asked for that work) is fine; it is the creation of
 new refs and the outward submission of PRs that always needs a green light first.
 
-**Claude develops in a git worktree, never in the main checkout.** Each branch Claude works on gets its own
+**Claude develops in a git worktree, never directly in the repository root.** Each branch Claude works on gets its own
 worktree, a sibling of the repository named after the branch (`../EBGeometry.worktrees/<branch>`, created
 with `git worktree add` and `git submodule update --init` in it, since the mesh probes and examples need
 the submodule). Creating the branch and its worktree is one spin-off, so it needs the user's agreement like
-any other. All edits, builds, tests and performance runs for that branch happen in its worktree; the main
-checkout is left as the user has it. After the branch's pull request is merged, Claude asks whether the
+any other. All edits, builds, tests and performance runs for that branch happen in its worktree; the repository
+root is left as the user has it. After the branch's pull request is merged, Claude asks whether the
 worktree should be removed, and **never removes a worktree without the user's explicit permission**.
 
 **Claude never merges a pull request, never force-pushes to `main`, and never deletes a branch** (local
