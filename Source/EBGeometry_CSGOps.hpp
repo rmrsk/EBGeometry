@@ -692,7 +692,7 @@ blur(const T* a_weights, const Vec3T<T>& a_point, const F& a_operand) noexcept
   T value = T(0);
 
   if constexpr (isTagged<V>) {
-    // The same sum, carrying the centre tap's tag (the largest weight).
+    // The same sum, carrying the centre tap's tag (the heaviest tap only for alpha >= 1/3).
     V centre = noLeaf<V>();
 
     for (int t = 0; t < 27; t++) {

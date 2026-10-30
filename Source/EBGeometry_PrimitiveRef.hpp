@@ -24,7 +24,7 @@ namespace EBGeometry {
  * @brief The deciding leaf of a composition at a point: the primitive whose surface the composed value
  * comes from there, as Tape::closestPrimitive() reports it.
  * @details A union or intersection takes the leaf of the operand whose value it takes; a smooth one the
- * more extreme operand's; a blur or mollification the tap with the largest weight; a complement, offset,
+ * more extreme operand's; a blur its centre tap's, a mollification its heaviest tap's; a complement, offset,
  * annulus, map, elongation or repetition its operand's. For Difference(box, sphere), a point near the
  * carved cavity gets the sphere and a point near the box's outside gets the box. This is the leaf that
  * decides the value, not the geometrically nearest primitive, which could be one the composition removed.
