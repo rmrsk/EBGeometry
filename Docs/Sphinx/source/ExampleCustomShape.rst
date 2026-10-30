@@ -6,8 +6,8 @@ CustomShape
 A shape of your own, composed with built-in shapes into a tape (see :ref:`Sec:Tape`), and called
 from a GPU kernel written out by hand. The other examples run their queries through
 ``GPU::transform()``, which launches a kernel for them (see :ref:`Sec:ExamplesGPU`). A kernel of
-your own is how an application calls EBGeometry from inside its own device loops: an AMReX
-``ParallelFor``, a Kokkos ``parallel_for``, or a CUDA kernel that does other work too.
+your own is how an application calls EBGeometry from inside its own device loops: a Kokkos
+``parallel_for``, or a CUDA kernel that does other work too.
 
 The source is at :file:`Examples/CustomShape/main.cpp`. It reads from top to bottom in the
 following sections.

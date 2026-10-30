@@ -250,7 +250,7 @@ protected:
  * @brief Three-dimensional vector class with arithmetic operators.
  * @details The components are reached through operator[] (index 0, 1 or 2).
  * @note Vec3T is a templated class primarily used with DCEL grids. It is always
- * 3D, i.e. independent of Chombo configuration settings. This lets one use DCEL
+ * 3D, i.e. independent of the application's spatial dimension. This lets one use DCEL
  * functionality even though the simulation might only be 2D.
  * @tparam T Floating-point precision (float or double).
  */

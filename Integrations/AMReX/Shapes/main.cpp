@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// One analytic shape, a torus, handed to AMReX's EB2 grid generation as an implicit function. The same code
-// runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See README.md and the Shapes example under
-// Examples/.
+// Analytic shapes handed to AMReX's EB2 grid generation as an implicit function: one shape, a torus, or the
+// classic CSG solid, a cube rounded by a ball and drilled along each axis, compiled into a Tape or composed at
+// compile time with the fused operations. The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on
+// GPUs. See README.md and the Shapes, BasicCSG and FusedCSG examples under Examples/.
 
 #include <AMReX.H>
 #include <AMReX_EB2.H>
@@ -15,6 +16,9 @@
 #include "../../../EBGeometry.hpp"
 
 #include <cmath>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 using namespace amrex;
 
@@ -25,6 +29,7 @@ using namespace amrex;
 using T    = Real;
 using Vec3 = EBGeometry::Vec3T<T>;
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
+using Tape = EBGeometry::Tape<T>;
 
 // AMReX's implicit function. EBGeometry's value is negative inside the object and AMReX reads negative
 // values as fluid, so the sign is flipped: the fluid is around the object. Deriving from GPUable lets EB2
@@ -112,18 +117,67 @@ main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
   {
-    int n_cell        = 128;
-    int max_grid_size = 32;
+    int         n_cell        = 128;
+    int         max_grid_size = 32;
+    std::string shape         = "csg";
 
     ParmParse pp;
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
+    pp.query("shape", shape);
 
-    // A shape is a plain value: no pool, nothing to mirror, the same object on the host and the device.
-    const EBGeometry::TorusSDF<T>          torus(Vec3::zeros(), T(1), T(0.25));
-    const ShapeIF<EBGeometry::TorusSDF<T>> sdf(torus, torus);
+    if (shape == "torus") {
+      // A shape is a plain value: no pool, nothing to mirror, the same object on the host and the device.
+      const EBGeometry::TorusSDF<T>          torus(Vec3::zeros(), T(1), T(0.25));
+      const ShapeIF<EBGeometry::TorusSDF<T>> sdf(torus, torus);
 
-    buildEB(sdf, torus.computeBoundingVolume(), n_cell, max_grid_size);
+      buildEB(sdf, torus.computeBoundingVolume(), n_cell, max_grid_size);
+    }
+    else if (shape == "csg") {
+      // A composition is compiled into a Tape, which lives in a pool.
+      const EBGeometry::BoxSDF<T>    cube(-Vec3::ones(), Vec3::ones());
+      const EBGeometry::SphereSDF<T> ball(Vec3::zeros(), T(1.35));
+
+      const std::vector<EBGeometry::Expr<T>> drills{
+        EBGeometry::CylinderSDF<T>(T(-1.5) * Vec3(1, 0, 0), T(1.5) * Vec3(1, 0, 0), T(0.55)),
+        EBGeometry::CylinderSDF<T>(T(-1.5) * Vec3(0, 1, 0), T(1.5) * Vec3(0, 1, 0), T(0.55)),
+        EBGeometry::CylinderSDF<T>(T(-1.5) * Vec3(0, 0, 1), T(1.5) * Vec3(0, 0, 1), T(0.55))};
+
+      EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+      const Tape tape(pool, EBGeometry::Difference(EBGeometry::Intersection(cube, ball), EBGeometry::Union(drills)));
+
+      // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the object is
+      // rebased onto the mirror. The pools must outlive the EB generation.
+#if defined(AMREX_USE_GPU)
+      pool.freeze();
+
+      const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+      const ShapeIF<Tape>    sdf(tape, tape.rebasedView(devicePool));
+#else
+      const ShapeIF<Tape> sdf(tape, tape);
+#endif
+
+      buildEB(sdf, tape.computeBoundingVolume(), n_cell, max_grid_size);
+    }
+    else if (shape == "fused") {
+      // The same solid composed at compile time: one shape whose type spells out the composition. It is a plain
+      // value like the torus (no pool, nothing to mirror), and needs no dispatch per operation.
+      const EBGeometry::BoxSDF<T>      cube(-Vec3::ones(), Vec3::ones());
+      const EBGeometry::SphereSDF<T>   ball(Vec3::zeros(), T(1.35));
+      const EBGeometry::CylinderSDF<T> drillX(T(-1.5) * Vec3(1, 0, 0), T(1.5) * Vec3(1, 0, 0), T(0.55));
+      const EBGeometry::CylinderSDF<T> drillY(T(-1.5) * Vec3(0, 1, 0), T(1.5) * Vec3(0, 1, 0), T(0.55));
+      const EBGeometry::CylinderSDF<T> drillZ(T(-1.5) * Vec3(0, 0, 1), T(1.5) * Vec3(0, 0, 1), T(0.55));
+
+      const auto solid =
+        EBGeometry::Fused::Difference(EBGeometry::Fused::Intersection(cube, ball), drillX, drillY, drillZ);
+      const ShapeIF<std::decay_t<decltype(solid)>> sdf(solid, solid);
+
+      buildEB(sdf, solid.computeBoundingVolume(), n_cell, max_grid_size);
+    }
+    else {
+      amrex::Abort("Unknown shape '" + shape + "': use torus, csg or fused");
+    }
   }
   amrex::Finalize();
 }

@@ -153,7 +153,7 @@ queries in a kernel and compares against the host:
 | BVH unions | `BVHUnion`, `BVHSmoothUnion` over one primitive type; `SmoothMinOp`/`SmoothMaxOp`/`ExpMinOp`/`ExpMaxOp` | #152, #164 |
 | Function queries | `approximateBoundingVolumeOctree` (an explicit-stack subdivision with no stored tree) and `normal`, in `EBGeometry_FunctionQueries.hpp`; device-callable when the function is | #164 |
 
-The AMReX integrations evaluate the mesh SDFs and the BVH unions inside AMReX's own GPU kernels
+The integrations evaluate the mesh SDFs and the BVH unions inside the application's own GPU kernels
 (#150, #165); see "Examples and integrations" below.
 
 ## What is not
@@ -235,8 +235,7 @@ through an `evaluate<D>` call-depth template instead of recursion (at most 4 dee
 union of 8 or more distance operands gets a `PackedBVH<T, uint32_t, K>` over sub-program ids, built by
 the same helper as `BVHUnion`, unbounded operands kept out of the tree. The tape is a `PoolHandle`
 (`layout()`, `rebasedView()`, `deepCopy()`). The old `CSGUnion` example came back in `Examples/` on the
-tape (since #182 split into `CSG` and `NestedBVH`), and the two `Shapes` integrations are ported and were compiled and run against AMReX and
-Chombo.
+tape (since #182 split into `CSG` and `NestedBVH`), and the `Shapes` integrations are ported.
 
 **25c is done.** A `[gpu]` case in `TestTape` evaluates tapes on a mirrored pool through the GPU
 harness and compares them with the host: every primitive type, every operation, BVH unions with and
@@ -349,7 +348,7 @@ about the library's GPU ceiling. The agreed shape of the fix, as recorded before
   kernel change at all and attacks divergence and locality together; then warp-cooperative
   traversal (one warp per query, K children one per lane, which is what would finally make the SoA
   layout pay off on a device), stackless traversal, and persistent threads with a work queue.
-  Measure a *representative* workload: the real consumers (AMReX/Chombo EB generation) evaluate
+  Measure a *representative* workload: the real consumers (EB generation in the integrations) evaluate
   points cell by cell over a grid, which is already close to Morton order, so a random-point
   benchmark would overstate divergence badly and could justify a rebuild on false evidence.
 * **Why after the tape and not before it.** The tape changes what a leaf evaluator is, so a batched
@@ -380,7 +379,7 @@ largest piece of device code, already keeps to the subset that makes them possib
 calls, no exceptions, and only trivially copyable state passed to a kernel. Keep it that way, and a
 new backend needs no change to the interpreter.
 
-* **SYCL, first.** AMReX's third backend (Intel GPUs). Device code needs no decoration, so the
+* **SYCL, first.** For Intel GPUs. Device code needs no decoration, so the
   macros stay empty. Work: a `sycl::queue`-backed memory resource (`malloc_device`/`malloc_shared`,
   `queue.memcpy` for `Pool::mirror`); device-pass detection through `__SYCL_DEVICE_ONLY__` for the
   device assertion path; the test harness and `GPU::transform` launching through `parallel_for`; a CI
@@ -389,7 +388,7 @@ new backend needs no change to the interpreter.
   (OpenMP 5.x also marks functions used in target regions implicitly); a memory resource on
   `omp_target_alloc`/`omp_target_memcpy`; device-pass detection, which OpenMP does not standardise
   (compiler macros or `declare variant`); the harness as `target teams distribute parallel for`; a CI
-  lane with an offload-capable compiler. No current user (AMReX uses CUDA, HIP and SYCL), and compiler
+  lane with an offload-capable compiler. No current user, and compiler
   support is uneven.
 * **OpenACC, declined.** Every device function and template instantiation needs an `acc routine`
   directive, C++ templates and classes are where compiler support is weakest (nvc++ is the only solid
@@ -408,12 +407,8 @@ not built:
 
 ### Examples and integrations
 
-The AMReX `MeshSDF`, `PaintEB`, `PackedSpheres` and `RandomCity` implicit functions are
-`amrex::GPUable` and hold a host and a device descriptor of the same geometry, with the pool frozen
-and mirrored in a GPU build. They were compiled and run on CPUs against AMReX's development branch
-and compiled for HIP, but have not run on a device. The Chombo `MeshSDF`, `PackedSpheres` and
-`RandomCity` hold their geometry by value and the pool by `shared_ptr`, and were compiled and run
-against Chombo 3.2 (audit item 22). Every example in `Examples/` except `BuildBVH` and `HostTuning`
+The integrations (`Integrations/`) hold a host and a device descriptor of the same geometry, with the
+pool frozen and mirrored in a GPU build, and were run on CPUs and on a GPU (#267). Every example in `Examples/` except `BuildBVH` and `HostTuning`
 also runs its queries on a device in a GPU build (#172).
 
 ## Decisions and their evidence

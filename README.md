@@ -145,9 +145,8 @@ combination: every kind of geometry, composed freely, queried the same way on CP
 header. [EBGeometry-benchmarks](https://github.com/rmrsk/EBGeometry-benchmarks) measures it beside
 several of them.
 
-EBGeometry was written for embedded-boundary codes such as [AMReX](https://amrex-codes.github.io)
-and [Chombo](https://commons.lbl.gov/display/chombo); [`Integrations/`](Integrations/README.md)
-shows how to couple it to them. It is general-purpose.
+EBGeometry was written for embedded-boundary codes; [`Integrations/`](Integrations/README.md) shows how to
+couple it to one. It is general-purpose.
 
 ## Get started
 

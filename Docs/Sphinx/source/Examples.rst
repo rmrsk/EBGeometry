@@ -9,8 +9,7 @@ dependencies.  Each one can be built directly with a compiler, with GNU Make, or
 ``CMakeLists.txt``, and a plain ``main.cpp`` compilable with a single compiler invocation).
 
 Examples that couple EBGeometry to a third-party application code's embedded-boundary grid
-generation (`AMReX <https://amrex-codes.github.io/amrex/>`_, `Chombo
-<https://commons.lbl.gov/display/chombo/>`_) live separately under :file:`Integrations/` instead,
+generation live separately under :file:`Integrations/` instead,
 and additionally require that platform to be installed — see :ref:`Chap:Integrations`.
 
 .. important::
