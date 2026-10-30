@@ -588,7 +588,8 @@ does not follow this template, edit the PR body to conform to it.
   device, ptxas allocates registers over all the code a kernel can reach, run or not: exact offsets (#248),
   reached from the tape's ray code behind a flag no plain tape sets, slowed plain float `firstHit` kernels by
   10-16%. So such code is a `TapeFeature::` tag (derived from `TapeFeature::Tag`) that a tape compiles only
-  when listed, `Tape<T, TapeFeature::ExactOffsets, MyShape>`. The rules (`ImplemCSG.rst`, "Tape features"):
+  when listed, `Tape<T, TapeFeature::ExactOffsets, MyShape>`. The rules (the `TapeFeature` comment in
+  `EBGeometry_Tape.hpp`):
   without the feature the compiler emits what it did before (the general path, e.g. a `Marched` clause), so
   the object is the same; every place the evaluator reaches the feature's code is inside `if constexpr
   (hasFeature<F>)`, never only a run-time flag test; a plain `Tape<T>` must compile exactly the base's code

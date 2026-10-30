@@ -70,9 +70,30 @@ struct TapeOptions
 /**
  * @brief Optional tape features, listed among a Tape's template arguments: Tape<T, TapeFeature::ExactOffsets>.
  * @details A feature is code a tape compiles only when its type asks for it. A plain Tape<T> compiles none,
- * so its kernels (on a device, ptxas allocates registers over all the code a kernel can reach, run or not)
- * are not slowed by code it never runs. Without a feature, the tape still computes the same object; the
- * operation the feature serves takes the general path (for a ray query, marching).
+ * so its kernels are not slowed by code it never runs. Without a feature, the tape still computes the same
+ * object; the operation the feature serves takes the general path (for a ray query, marching).
+ *
+ * Why features exist: a tape's evaluator and ray code are compiled once per tape type, for any expression a
+ * tape of that type could hold, and on a device ptxas allocates registers and stack over all the code a kernel
+ * can reach, run or not. Reaching the exact-offset code from the ray code, behind a flag no plain tape sets,
+ * slowed plain float firstHit kernels by 10-16% (sm_86). So code that only some expressions need, such as a
+ * new exact ray form for an operation, is a feature, and a new feature follows these rules:
+ * - **The tape stays correct without it.** Without the feature the compiler emits what it emitted before the
+ *   feature existed (for a ray form, a RayOp::Marched clause), so a tape that does not list it computes the
+ *   same object by the general path. A feature changes speed or exactness, never which object is computed.
+ * - **The compiler decides.** TapeDetail::Compiler receives the features and emits the feature's clauses,
+ *   flags or parameters only when it is listed; clause flags a feature sets are never set otherwise.
+ * - **The evaluator compiles the feature's code only under `if constexpr (hasFeature<F>)`**, at every place it
+ *   is reached from: the clause loop, the out-of-line leaf calls, traceRay() and rayLeafHit(). A run-time test
+ *   of a flag alone is not enough: the code behind it is still in every kernel.
+ * - **A plain tape compiles exactly the code it did before.** Check that Tape<T>'s kernels are unchanged: the
+ *   ptxas register, stack and spill figures (or the SASS) of the float tape kernels (signedDistance() once
+ *   and sixteen times, and firstHit()) and the host evaluator's out-of-line function sizes (`nm -C -S` on
+ *   Performance/Tape) match the base's, and the performance comparison shows no change in the tape cases.
+ * - **Tests and probes use both.** The feature's tests use a tape that lists it, and at least one test checks
+ *   that a tape without it gives the same answer by the general path. Probe cases that measure it use a tape
+ *   that lists it; the existing tape cases keep plain tapes.
+ * - **Documented** here, as a tag with a description, and in the user documentation's list of tape features.
  */
 namespace TapeFeature {
 

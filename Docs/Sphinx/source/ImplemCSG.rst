@@ -309,14 +309,11 @@ The :ref:`Chap:ExampleBasicCSG` example composes analytic shapes through a tape,
 Tape features
 _____________
 
-A tape's evaluator and ray code are compiled once per tape type, for any expression a tape of that type
-could hold. Code a given tape never runs still costs it on a device: ptxas allocates registers and stack
-over everything a kernel can reach, so adding a path to the tape's ray code that plain compositions never
-take slowed their ``firstHit`` kernels by 10-16% (float, sm_86). Code that only some tapes need is
-therefore a *feature*: a tag type in namespace ``TapeFeature``, derived from ``TapeFeature::Tag``, that a
-tape compiles only when its type lists it (`TapeFeature
-<doxygen/html/namespaceEBGeometry_1_1TapeFeature.html>`__). ``Tape::hasFeature<F>`` says whether it does,
-and ``Tape::Features`` lists them. The features are:
+Some of a tape's code is needed only by some expressions, and is compiled only into a tape whose type asks
+for it: a *feature*, listed among the tape's template arguments (`TapeFeature
+<doxygen/html/namespaceEBGeometry_1_1TapeFeature.html>`__, whose page also gives the rules for adding one).
+A tape without a feature computes the same object, by the general path, and is not slowed by the feature's
+code. The features are:
 
 .. list-table::
    :header-rows: 1
@@ -327,26 +324,6 @@ and ``Tape::Features`` lists them. The features are:
    * - ``ExactOffsets``
      - Ray queries trace ``Offset`` and ``Annular`` of a primitive with closed-form level sets, or of an
        affine map of one, exactly (see :ref:`Sec:OffsetRays`). Without it, they are marched.
-
-A new feature follows these rules:
-
-#. **The tape stays correct without it.** Without the feature, the compiler emits what it emitted before the
-   feature existed (for a ray form, a ``Marched`` clause), so a tape that does not list it computes the same
-   object by the general path. The feature changes speed or exactness, never which object is computed.
-#. **The compiler decides.** ``TapeDetail::Compiler`` receives the features and emits the feature's clauses,
-   flags or parameters only when it is listed. Clause flags a feature sets are never set otherwise.
-#. **The evaluator compiles the feature's code only under** ``if constexpr (hasFeature<F>)``, at every
-   place it is reached from: the clause loop, the out-of-line leaf calls, ``traceRay()`` and ``rayLeafHit()``.
-   A run-time test of a flag alone is not enough: the code behind it is still in every kernel.
-#. **A plain tape compiles exactly the code it did before.** After adding a feature, check that
-   ``Tape<T>``'s kernels are unchanged: the ptxas register and stack figures of the float tape kernels
-   (``signedDistance()`` once and sixteen times, and ``firstHit()``) and the host evaluator's out-of-line
-   function sizes (``nm -C -S`` on ``Performance/Tape``) match the base's, and the performance comparison
-   shows no change in the tape cases.
-#. **Tests and probes use both.** The feature's tests use a tape that lists it, and at least one test checks
-   that a tape without it still gives the same answer by the general path. Probe cases that measure it use a
-   tape that lists it; the existing tape cases keep plain tapes.
-#. **Documented here**, with a row in the table above, and on the page of the operation it serves.
 
 .. _Sec:Fused:
 
