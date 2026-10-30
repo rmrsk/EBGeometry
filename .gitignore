@@ -5,11 +5,11 @@
 
 build
 
-# AMReX build/run artifacts (any example under Integrations/AMReX/<name>/).
-Integrations/AMReX/*/plt*
-Integrations/AMReX/*/tmp_build_dir
-Integrations/AMReX/*/Backtrace.*
-Integrations/AMReX/Backtrace.*
+# Build/run artifacts of the integrations (any example under Integrations/<Platform>/<name>/).
+Integrations/*/*/plt*
+Integrations/*/*/tmp_build_dir
+Integrations/*/*/Backtrace.*
+Integrations/*/Backtrace.*
 
 Docs/*
 !Docs/.nojekyll

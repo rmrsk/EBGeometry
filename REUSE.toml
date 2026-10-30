@@ -57,7 +57,7 @@ path = [
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
-# Third-party integration examples (AMReX): build files and per-example
+# Third-party integration examples: build files and per-example
 # documentation. main.cpp files carry their own inline SPDX headers.
 [[annotations]]
 path = [

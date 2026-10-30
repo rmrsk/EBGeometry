@@ -9,7 +9,7 @@ receives it by value and calls it like any other function. There are two ways to
 kernel:
 
 * **Write the kernel yourself.** This is how an application uses EBGeometry inside its own device
-  loops (an AMReX ``ParallelFor``, a Chombo kernel, a Kokkos ``parallel_for``), on data that already
+  loops (a Kokkos ``parallel_for``, a CUDA kernel of its own), on data that already
   lives on the device. :ref:`Chap:ExampleCustomShape` shows such a kernel.
 * **Let EBGeometry launch it**, with ``GPU::parallelFor`` or ``GPU::transform``. These are
   conveniences for batches of queries that a program sets up itself: the examples, the tests, a
@@ -171,8 +171,8 @@ GPU::transform over spans
 
 ``GPU::transform(query, in, out)`` over two ``PODSpan`` objects (a pointer and a count) is the call
 the other two are built on. Like the pool overload it allocates and copies nothing, but a span may
-point anywhere: at managed memory, at a buffer an application already owns on the device (an AMReX
-or Kokkos array), or at a ``PODVector`` bound with ``bind()`` against a pool's base. That is also its
+point anywhere: at managed memory, at a buffer an application already owns on the device (a Kokkos
+array), or at a ``PODVector`` bound with ``bind()`` against a pool's base. That is also its
 one hazard: since a span is only a pointer and a count, ``transform`` cannot tell where its memory
 lives, so spans over ordinary host memory (a ``std::vector``'s data, a pool in
 ``hostMemoryResource()``) compile and run in a host build but fault in a kernel. Prefer the pool
@@ -328,6 +328,5 @@ The same in a kernel of your own
       evaluate<<<(n + BlockSize - 1) / BlockSize, BlockSize>>>(query, in, out, n);
 
    The grid must be launched with the block size the bound names; a larger block fails to launch.
-   Kokkos's ``LaunchBounds<MaxThreads, MinBlocks>`` takes the same two numbers; AMReX's ``ParallelFor``
-   takes only the block size (``MaxThreads``). Check what the compiler did with
+   Kokkos's ``LaunchBounds<MaxThreads, MinBlocks>`` takes the same two numbers. Check what the compiler did with
    ``-Xptxas -v``, which prints each kernel's registers and the bytes it spills.

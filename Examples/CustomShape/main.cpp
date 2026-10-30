@@ -13,8 +13,8 @@
 //
 // The other examples run their queries through EBGeometry::GPU::transform(), which launches a kernel
 // for them. This one writes that kernel out, because a kernel of your own is how an application calls
-// EBGeometry from inside its own device loops (an AMReX ParallelFor, a Kokkos parallel_for, a CUDA
-// kernel that does other work too). See README.md.
+// EBGeometry from inside its own device loops (a Kokkos parallel_for, a CUDA kernel that does
+// other work too). See README.md.
 
 #include <cstddef>
 #include <iostream>

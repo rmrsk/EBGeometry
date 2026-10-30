@@ -51,7 +51,7 @@ then renders on the device, and an example with a last section of queries runs t
 `EBGeometry::GPU::transform`. In a plain C++ build that section runs in a host loop; a GPU build without a
 visible GPU skips it and renders on the host.
 
-Examples that couple EBGeometry to a third-party application code (AMReX) live under
+Examples that couple EBGeometry to a third-party application code live under
 [`Integrations/`](../Integrations/README.md) at the repository root instead.
 
 `data/` holds the small mesh (`dodecahedron.stl`) that several examples read by default. The larger

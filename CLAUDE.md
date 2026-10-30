@@ -16,14 +16,14 @@ EBGeometry is a **header-only C++17 library** for:
 
 It has zero external dependencies at use-time: consumers just need `EBGeometry.hpp` (which
 `#include`s everything under `Source/`) on their include path and a C++17 compiler. It was written
-for embedded-boundary (EB) codes like AMReX, but is general-purpose.
+for embedded-boundary (EB) codes, but is general-purpose.
 
 Single-word orientation: `Source/` is the library (all headers, no `.cpp`), `Tests/` is the Catch2
 unit-test suite (fetched via CMake `FetchContent`, not vendored), `Examples/` holds small
 standalone programs with no third-party dependencies (each independently buildable — see below),
 `Performance/` holds the performance probes and the comparison that every PR is vetted with (see
 "Vetting every pull request for performance" below), `Integrations/` holds illustrative (not
-CI-tested) examples coupling EBGeometry to a third-party application code (AMReX), and
+CI-tested) examples coupling EBGeometry to a third-party application code, and
 `Docs/Sphinx/` + `Docs/doxygen.conf` are the two documentation systems.
 
 ## Cloning
@@ -610,7 +610,7 @@ does not follow this template, edit the PR body to conform to it.
   the same. After a change to device ray or render code, time ptxas on the changed target (Debug, so
   with assertions, which multiply its cost), not only the run.
 - **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
-  SDF, union and tape keeps it. Code that needs the opposite sign (AMReX and Chombo read negative as
+  SDF, union and tape keeps it. Code that needs the opposite sign (an EB code that reads negative as
   fluid) flips it itself, in its own adapter (`return -tape.signedDistance(p);`); never put a
   `Complement` into an EBGeometry expression to suit the consumer.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s

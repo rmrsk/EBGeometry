@@ -5,8 +5,8 @@ A shape of your own, composed with built-in shapes into a
 [`Tape`](https://rmrsk.github.io/EBGeometry/doxygen/html/classEBGeometry_1_1Tape.html), and called from a
 GPU kernel written out by hand. The other examples run their queries through
 `EBGeometry::GPU::transform()`, which launches that kernel for them; a kernel of your own is how an
-application calls EBGeometry from inside its own device loops (an AMReX `ParallelFor`, a Kokkos
-`parallel_for`, a CUDA kernel that does other work too).
+application calls EBGeometry from inside its own device loops (a Kokkos `parallel_for`, a CUDA
+kernel that does other work too).
 
 The shape is an octahedron, written in `main.cpp` as an ordinary struct. It is trivially copyable,
 with an `EBGEOMETRY_HOST_DEVICE` `signedDistance()` and `computeBoundingVolume()` and a static
