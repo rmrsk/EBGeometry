@@ -480,19 +480,51 @@ branch you are *already on* (once the user has asked for that work) is fine; it 
 new refs and the outward submission of PRs that always needs a green light first.
 
 When the user *does* ask you to open a PR, **always open it as a draft** (`gh pr create --draft`) —
-never open a PR ready for review. The user promotes it out of draft themselves when they judge it
-ready; this is also what gates the `.rst` documentation audit described above (which begins once
+never open a PR ready for review. It leaves draft only as "Human review" below says; this is also what gates the `.rst` documentation audit described above (which begins once
 the PR is no longer a draft). If a non-draft PR was already opened, convert it back with
 `gh pr ready --undo <number>`.
 
 When opening a PR, **always use the repository's pull-request template**
 (`.github/pull_request_template.md`) — its `# Summary` sections (`Background`, `Solution`,
-`Side-effects`, `Alternative solutions`, `Performance`) followed by the `Reviewer checklist`. The
+`Side-effects`, `Alternative solutions`, `Performance`, `Where to look`) followed by the `Reviewer checklist`. The
 `Performance` section carries the comparison report (see "Vetting every pull request for
 performance" above). Fill in the prose
 sections (this is the "PR note") but **leave every checklist item unchecked** (`- [ ]`) — the
 checklist is for a human reviewer to complete, not you. If a PR was already opened with a body that
 does not follow this template, edit the PR body to conform to it.
+
+## Human review
+
+A pull request is handed to the maintainer for review when all of these hold:
+- **CI's full matrix passes on the final head**, `CI-passed` included (so the receipt check passes too).
+  The draft tier is not enough: marking a PR ready starts the full run, so a hand-over waits for it.
+- **The last `@claude review` on the final head has no blocking finding**, and each finding was fixed or
+  answered.
+- **The docs agree with the code** (the audit and the rules above), and **the PR body describes the final
+  state**, with the performance report and the *Where to look* section.
+
+**Marking it ready.** Claude marks a PR ready for review (`gh pr ready`) only when the maintainer asks for
+it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the
+conditions hold.
+
+**`@claude review` rounds.** Request a review after each push that changes code or docs, and stop when a
+round has no blocking finding. Each optional suggestion is either taken or declined with a one-line reason
+in the hand-over summary. At most five rounds: if the fifth still has a blocking finding, stop and bring it
+to the maintainer.
+
+**The hand-over.**
+- The PR template's *Where to look* section: the files and places that carry the risk, what was verified
+  and how, and what was not (no HIP run, no device run, a configuration not built).
+- A short summary in the session: that the PR is ready, what changed since the maintainer last looked,
+  and what needs their decision.
+
+**The reviewer's comments.** Fix each in a new commit (never force-push over commits that were reviewed),
+reply on its thread with what changed, and leave resolving the thread to the reviewer. Then verify again
+what the change affects (the tests; a new receipt if the library or the probes changed; another
+`@claude review`) before saying the PR is ready again.
+
+**After the merge.** Claude takes no action on its own once a PR merges: the roadmap, the issues and the
+branches are the maintainer's. It may ask, in the session, whether to act on follow-ups.
 
 ## A few non-obvious things worth knowing
 
