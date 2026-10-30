@@ -6,12 +6,12 @@ This folder contains examples of coupling `EBGeometry` to a third-party applicat
 * `AMReX/` — couples `EBGeometry` signed distance functions to
   [AMReX](https://amrex-codes.github.io/amrex/)'s embedded-boundary grid generation.
 
-Each integration mirrors one or two of the native examples under [`Examples/`](../Examples/README.md) and hands
+Each integration mirrors one or more of the native examples under [`Examples/`](../Examples/README.md) and hands
 the object it builds to AMReX's embedded-boundary grid generation:
 
 | Folder | What it hands over |
 |---|---|
-| `Shapes` | One analytic shape, a torus, or the classic CSG solid in a `Tape` (`shape = torus` or `csg`). |
+| `Shapes` | One analytic shape, a torus, or the classic CSG solid, in a `Tape` or fused (`shape = torus`, `csg` or `fused`). |
 | `MeshSDF` | A surface mesh as a `TriMeshSDF`. |
 | `MeshCSG` | The dragon on a table, blended by a smooth union, in a `Tape`. |
 | `Materials` | The armadillo with a bored cylinder, in a `Tape`, and each cut cell labelled with its closest leaf and mesh face. |

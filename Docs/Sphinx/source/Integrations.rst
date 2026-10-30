@@ -12,7 +12,7 @@ Integrations
    on CPUs and on an NVIDIA GPU (CUDA), against AMReX's development branch (26.09); they have not been run
    with HIP. Treat them as a starting point for your own integration.
 
-Each integration mirrors one or two of the :ref:`Chap:Examples` and hands the object it builds to AMReX's
+Each integration mirrors one or more of the :ref:`Chap:Examples` and hands the object it builds to AMReX's
 embedded-boundary grid generation as an implicit function, on a domain around the object's box with
 cubic cells. The geometry lives in an EBGeometry ``Pool`` (see :ref:`Chap:MemoryModel`) that must outlive
 every evaluation, and the implicit function holds the object by value. Several read a mesh from the ``common-3d-test-models``
@@ -31,9 +31,9 @@ EBGeometry object.
      - What it hands over
      - Mirrors
    * - :file:`Shapes`
-     - One analytic shape, a torus (the least a coupling needs), or the classic CSG solid compiled into a
-       ``Tape`` (``shape = torus`` or ``csg``).
-     - :ref:`Chap:ExampleShapes`, :ref:`Chap:ExampleBasicCSG`
+     - One analytic shape, a torus (the least a coupling needs), or the classic CSG solid, compiled into a
+       ``Tape`` or composed with the fused operations (``shape = torus``, ``csg`` or ``fused``).
+     - :ref:`Chap:ExampleShapes`, :ref:`Chap:ExampleBasicCSG`, :ref:`Chap:ExampleFusedCSG`
    * - :file:`MeshSDF`
      - A surface mesh as a ``TriMeshSDF``.
      - :ref:`Chap:ExampleMeshSDF`

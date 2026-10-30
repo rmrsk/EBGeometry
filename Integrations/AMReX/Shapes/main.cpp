@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Analytic shapes handed to AMReX's EB2 grid generation as an implicit function: one shape, a torus, or the
-// classic CSG solid, a cube rounded by a ball and drilled along each axis, compiled into a Tape. The same code
-// runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See README.md and the Shapes and BasicCSG
-// examples under Examples/.
+// classic CSG solid, a cube rounded by a ball and drilled along each axis, compiled into a Tape or composed at
+// compile time with the fused operations. The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on
+// GPUs. See README.md and the Shapes, BasicCSG and FusedCSG examples under Examples/.
 
 #include <AMReX.H>
 #include <AMReX_EB2.H>
@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 using namespace amrex;
@@ -159,8 +160,23 @@ main(int argc, char* argv[])
 
       buildEB(sdf, tape.computeBoundingVolume(), n_cell, max_grid_size);
     }
+    else if (shape == "fused") {
+      // The same solid composed at compile time: one shape whose type spells out the composition. It is a plain
+      // value like the torus (no pool, nothing to mirror), and needs no dispatch per operation.
+      const EBGeometry::BoxSDF<T>      cube(-Vec3::ones(), Vec3::ones());
+      const EBGeometry::SphereSDF<T>   ball(Vec3::zeros(), T(1.35));
+      const EBGeometry::CylinderSDF<T> drillX(T(-1.5) * Vec3(1, 0, 0), T(1.5) * Vec3(1, 0, 0), T(0.55));
+      const EBGeometry::CylinderSDF<T> drillY(T(-1.5) * Vec3(0, 1, 0), T(1.5) * Vec3(0, 1, 0), T(0.55));
+      const EBGeometry::CylinderSDF<T> drillZ(T(-1.5) * Vec3(0, 0, 1), T(1.5) * Vec3(0, 0, 1), T(0.55));
+
+      const auto solid =
+        EBGeometry::Fused::Difference(EBGeometry::Fused::Intersection(cube, ball), drillX, drillY, drillZ);
+      const ShapeIF<std::decay_t<decltype(solid)>> sdf(solid, solid);
+
+      buildEB(sdf, solid.computeBoundingVolume(), n_cell, max_grid_size);
+    }
     else {
-      amrex::Abort("Unknown shape '" + shape + "': use torus or csg");
+      amrex::Abort("Unknown shape '" + shape + "': use torus, csg or fused");
     }
   }
   amrex::Finalize();
