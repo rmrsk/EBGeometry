@@ -15,24 +15,24 @@ SPDX-License-Identifier: GPL-3.0-or-later
 <!--receipt
 version: 3
 side: host
-verdict: red
+verdict: yellow
 base: efd0d95
 base-fingerprint: 8f5012d6d47a6f34df899e1edd2cefbacb28ba5c
-head: 91d5144
-head-fingerprint: 9a9d9d723d831df701557fd9ff00c58a5c7c327b
+head: c16d132
+head-fingerprint: 4473d6178a01cc7c1bc00dbbcf1c64262b94c98f
 cases: 152
 rounds: 2
 reps: 3
 date: 2026-10-30
 -->
 
-## Host comparison: red
+## Host comparison: yellow
 
-**Accepted:** Accept both sections.
+**Accepted:** Accept it as side-effect of unfortunate compiler inlining.
 
-`91d5144` against `efd0d95` (origin/dev), 2026-10-30.
+`c16d132` against `efd0d95` (origin/dev), 2026-10-30.
 
-**VERDICT: MAJOR regression in 1 case
+**VERDICT: 2 minor regressions
 
 <!-- END receipt host -->
 
@@ -43,8 +43,8 @@ side: cuda
 verdict: red
 base: efd0d95
 base-fingerprint: 8f5012d6d47a6f34df899e1edd2cefbacb28ba5c
-head: 91d5144
-head-fingerprint: 9a9d9d723d831df701557fd9ff00c58a5c7c327b
+head: c16d132
+head-fingerprint: 4473d6178a01cc7c1bc00dbbcf1c64262b94c98f
 cases: 218
 rounds: 2
 reps: 3
@@ -53,9 +53,9 @@ date: 2026-10-30
 
 ## Device comparison (CUDA): red
 
-**Accepted:** Accept both sections.
+**Accepted:** Just accept it.
 
-`91d5144` against `efd0d95` (origin/dev), 2026-10-30.
+`c16d132` against `efd0d95` (origin/dev), 2026-10-30.
 
 **VERDICT: host and device answers differ in 6 cases
 
