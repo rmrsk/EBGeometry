@@ -192,6 +192,10 @@ comment at the code it describes, unless it is already there.
   why the design is this way and which alternatives were ruled out, and the measurements behind a rule.
 - Plain `//` comments inside a function explain the code next to them.
 
+**American English everywhere.** Documentation, comments, examples, commit messages and pull requests are
+written in American English: color, center, behavior, neighbor, gray, optimize, vectorize, analyze, labeled,
+modeling.
+
 **No history anywhere in the documentation.** No PR or issue numbers (open or closed) in source comments or
 Sphinx pages, and no "formerly", "used to", "since #...", "replaces the old ...": a comment states what is
 true now, and why. A known gap is stated in words ("no SYCL memory resource"). History lives in git, the
