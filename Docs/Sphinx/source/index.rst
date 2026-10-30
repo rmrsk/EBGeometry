@@ -72,6 +72,7 @@ Getting started
    Building.rst
    SIMDAcceleration.rst
    ConfigurationOptions.rst
+   History.rst
 
 Concepts
 ********

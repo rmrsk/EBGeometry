@@ -193,8 +193,8 @@ comment at the code it describes, unless it is already there.
 written in American English: color, center, behavior, neighbor, gray, optimize, vectorize, analyze, labeled,
 modeling.
 
-**No history anywhere in the documentation.** No PR or issue numbers (open or closed) in source comments or
-Sphinx pages, and no "formerly", "used to", "since #...", "replaces the old ...": a comment states what is
+**No history anywhere in the documentation** (the History page, `History.rst`, excepted). No PR or issue
+numbers (open or closed) in source comments or Sphinx pages, and no "formerly", "used to", "since #...", "replaces the old ...": a comment states what is
 true now, and why. A known gap is stated in words ("no SYCL memory resource"). History lives in git, the
 pull requests and the issues. (This file, `CLAUDE.md`, is a working guide for agents and may cite them.)
 
