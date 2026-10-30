@@ -36,21 +36,16 @@ floating-point precision ``T``:
    `EdgeT <doxygen/html/classEBGeometry_1_1DCEL_1_1EdgeT.html>`__.
 
 *  ``FaceT<T>`` represents a polygon face. Besides the index of its half-edge, it also
-   stores the face normal vector, a 2D embedding of the polygon, and its centroid position: the
-   normal and 2D embedding exist because the signed distance computation needs them, and the
-   centroid is available to partitioners that split on primitive centroids
-   (``PrimitiveCentroidPartitioner``); the preset methods split on bounding-volume centroids. For the
-   full API, see the Doxygen reference for
+   stores the face normal vector, a 2D embedding of the polygon (which the signed distance
+   computation needs), its centroid and its area. For the full API, see the Doxygen reference for
    `FaceT <doxygen/html/classEBGeometry_1_1DCEL_1_1FaceT.html>`__.
 
 *  ``EdgeIteratorT<T>`` walks the half-edge loop around a face by following each edge's next-edge
-   index until it is back at the face's first edge. It does not check the loop on every step,
-   which would slow every distance query: a loop that never returns to its first edge would never
-   end, and an edge index past the end of the mesh's edges would be read out of bounds. Instead
+   index until it is back at the face's first edge. It trusts the loop to close:
    ``MeshT::reconcile()`` checks every face's loop once and aborts, in every build, on one that does
-   not close, and ``MeshT::sanityCheck()`` reports it. A mesh read from a file never has a broken
-   loop; one assembled by hand can, and must be reconciled before it is queried. For the full API,
-   see the Doxygen reference for
+   not, and ``MeshT::sanityCheck()`` reports it. A mesh read from a file never has a broken loop;
+   one assembled by hand can, and must be reconciled before it is queried. For the full API, see
+   the Doxygen reference for
    `EdgeIteratorT <doxygen/html/classEBGeometry_1_1DCEL_1_1EdgeIteratorT.html>`__.
 
 .. note::
@@ -69,7 +64,7 @@ floating-point precision ``T``:
    ``unsignedDistance2()``, that scan every face directly. For anything beyond small meshes, one
    instead wraps a
    ``MeshT<T>`` in one of the BVH-accelerated classes described in
-   :ref:`Chap:MeshSDFClasses`. ``MeshSDF`` holds the ``MeshT<T>`` descriptor by value and reads
+   :ref:`Chap:MeshSDFClasses`. ``MeshSDF`` keeps the mesh (its arrays, in the same pool) and reads
    every face it tests from it, since a face's half-edge index is only meaningful together with
    the mesh it was built from. A mesh is typically never
    constructed by hand -- it is built by a file parser reading vertices and faces from disk, see
@@ -139,7 +134,7 @@ Crossing address spaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``rebasedView(const Pool&)`` is the one sanctioned way to point a mesh at a
-`mirror <doxygen/html/classEBGeometry_1_1Pool.html#aa141bf4919e1aeb78aaee9667da8ebc3>`__ of its own
+`mirror <doxygen/html/classEBGeometry_1_1Pool.html#a1f1922525a40246fb93932f086e2756f>`__ of its own
 pool. It copies only the descriptor -- the vertex/edge/face data is whatever the mirror already
 contains -- and since every cross-reference is a byte offset, nothing needs patching on either side:
 
@@ -153,9 +148,10 @@ contains -- and since every cross-reference is a byte offset, nothing needs patc
    myKernel<<<blocks, threads>>>(deviceMesh, ...);                // ... then copy by value
 
 How the returned view resolves follows from the pool it is given, not from a separate choice by the
-caller. A device-accessible target (``Device``, ``Managed``, ``Mapped``) yields a view holding a
-plain base address, since a kernel cannot follow a host control block; such a view must not be
-dereferenced on the host. A host-only target (``Host``, ``Pinned``) yields a view holding that
+caller. A device-accessible target (``Device``, ``Managed``, ``Mapped``), which must be frozen,
+yields a view holding a plain base address, since a kernel cannot follow a host control block; the
+host may use such a view only if the memory is host-accessible (``Managed``, ``Mapped``), never for
+a ``Device`` pool. A host-only target (``Host``, ``Pinned``) yields a view holding that
 pool's control block, so it stays growth-immune exactly like the original mesh -- this is what makes
 a host-to-host mirror usable, and testable without a GPU.
 
@@ -175,26 +171,9 @@ A ``MeshT<T>`` is never queried directly for anything beyond tiny meshes -- see
 section covers only the DCEL-specific half of that integration: how a mesh's faces become BVH
 primitives in the first place.
 
-Embedding a mesh in a BVH is a matter of pairing each face id with the face's bounding volume
-and handing the resulting list to a ``TreeBVH``. Concretely,
-``MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, BV, K>`` (in
-:file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp`, the helper behind ``MeshSDF``'s
-construction) does this by:
-
-#. Building each face's bounding volume ``BV`` directly from its vertex coordinates
-   (``FaceT::getAllVertexCoordinates(mesh)``, which walks the face's half-edge loop and resolves
-   each vertex index against the owning mesh).
-#. Constructing a ``TreeBVH<T, uint32_t, BV, K>`` from the resulting
-   ``(face id, bounding volume)`` pairs.
-#. Partitioning that tree according to the requested ``BVH::Construction`` value (see
-   :ref:`Sec:BuildPresets`), where the top-down partitioners split on each face's bounding-volume
-   centroid. ``ClusterSAH`` has no ``TreeBVH`` form and is
-   built directly as a ``PackedBVH`` instead.
-
-``MeshSDF`` then packs this ``TreeBVH`` into a ``PackedBVH`` of face ids directly (``pack()``).
-``TriMeshSDF`` does not use this tree: it first extracts each face as fan-triangulated ``Triangle``
-values, builds a separate ``TreeBVH`` of triangles, and packs it into SIMD-width ``TriangleAoSoA``
-leaves with ``packWith()`` -- see :ref:`Chap:MeshSDFClasses`
-for how the two differ, and :ref:`Chap:Parsers` for the file-reading entry points that produce a
-``MeshSDF``/``TriMeshSDF`` from a mesh file directly, without driving any of the steps above by
-hand.
+``MeshSDF`` puts the mesh's faces in a BVH as they are: each primitive is a face id, bounded by the
+box around the face's vertices, and the tree is built with the requested ``BVH::Construction``
+method (see :ref:`Sec:BuildPresets`). ``TriMeshSDF`` instead cuts each face into
+``Triangle`` values and builds its BVH over SIMD-width groups of triangles, without keeping the
+mesh. See :ref:`Chap:MeshSDFClasses` for how the two differ, and :ref:`Chap:Parsers` for the
+file-reading entry points that build a ``MeshSDF``/``TriMeshSDF`` from a mesh file directly.

@@ -3,10 +3,10 @@
 Bounding volume hierarchies
 =============================
 
-Bounding volume hierarchies (BVHs) are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or implicit functions) further down in the hierarchy.
+Bounding volume hierarchies (BVHs) are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or analytic shapes) further down in the hierarchy.
 This means that every node in a BVH is associated with a *bounding volume*.
-The bounding volume can, in principle, be any type of volume; EBGeometry ships an axis-aligned
-box and a bounding sphere, among others.
+The bounding volume can, in principle, be any type of volume; EBGeometry uses axis-aligned
+bounding boxes.
 There are two types of nodes in a BVH:
 
 * **Regular/interior nodes.** These do not contain any of the primitives/objects, but store references to subtrees (aka child nodes).
@@ -22,7 +22,7 @@ Note that the bounding volume for :math:`P` encloses the bounding volumes of :ma
 
 .. _Fig:TrianglesBVH:
 .. figure:: /_static/TrianglesBVH.png
-   :width: 720px
+   :width: 70%
    :align: center
 
    Example of BVH partitioning for enclosing triangles. The regular node :math:`P` contains two leaf nodes :math:`L` and :math:`R` which contain the primitives (triangles).
@@ -94,7 +94,7 @@ leaves from a target leaf size.
 
 .. _Fig:CompactBVH:
 .. figure:: /_static/CompactBVH.png
-   :width: 240px
+   :width: 25%
    :align: center
 
    A pointer-based tree (top) and an equivalent, flattened representation of the same tree
@@ -116,7 +116,7 @@ moving geometry.
 
 The trade-off is quality rather than correctness: a refitted tree always *encloses* its primitives
 (so traversal stays correct), but because the partitioning is frozen, a geometry that deforms enough
-for primitives to drift into what used to be a neighbour's region produces increasingly loose,
+for primitives to drift into what used to be a neighbor's region produces increasingly loose,
 overlapping bounding volumes and slower queries. A periodic rebuild restores tight volumes once the
 deformation has grown large. See :ref:`Chap:ImplemBVH` for the concrete ``refit()`` member functions
 on both BVH representations.
@@ -138,7 +138,7 @@ For the traversal algorithm we consider the following steps:
 
 .. _Fig:TreePruning:
 .. figure:: /_static/TreePruning.png
-   :width: 720px
+   :width: 70%
    :align: center
 
    Example of BVH tree pruning.
@@ -163,23 +163,14 @@ way, and differs only in a few pieces that the search supplies:
   nearest-type search it is the best value found so far; for a ray, the nearest hit so far; for a
   segment, its length.
 
-The walk itself is always the same:
+The walk itself is always the same. Starting at the root, it enters only the volumes whose key is
+within the bound, nearest first unless the search asks otherwise, and runs the leaf test at every leaf
+it reaches. Because the bound is read again every time the walk comes back to a waiting child, a child
+that was worth visiting when its level was first reached may no longer be, once something nearer has
+been found. The walk stops when nothing within the bound is left, or as soon as the bound drops below
+every possible key (an any-hit search does this at its first hit).
 
-#. Start at the root, if its key is within the bound.
-#. At an interior node, compute the keys of all its children at once (the computation is vectorised
-   across the children), keep those within the bound, and order them -- nearest first, unless the
-   search asks otherwise.
-#. Descend into the first child at once; the others wait, in order, until the walk comes back to this
-   level.
-#. At a leaf, run the leaf test, which may tighten the bound.
-#. Coming back to a level, take the next waiting child, compute its key again and compare it with the
-   bound *as it is now*: a child that was worth visiting when the level was sorted may no longer be,
-   because something nearer has been found meanwhile. With nearest-first order, the first child out of
-   bound means all the rest are too.
-#. Stop when no child is waiting, or as soon as the bound drops below every possible key (an any-hit
-   search does this at its first hit).
-
-The pruning in the example above is exactly step 5: the subtree holding :math:`B` and :math:`C` is never
+The pruning in the example above is exactly this: the subtree holding :math:`B` and :math:`C` is never
 entered because, by the time the walk comes back for it, the bound from :math:`A`'s triangles is smaller
 than its key.
 
@@ -189,8 +180,7 @@ children are visited -- nearest first, farthest first, as stored, or by its own 
 too deep or irrelevant, or account for a far subtree as a whole from a summary it keeps per node (as
 far-field approximations and levels of detail do) instead of descending into it.
 
-The walk keeps its waiting children on a small fixed-size stack, one entry per level of the tree, so it
-allocates nothing and runs unchanged on a GPU, one search per thread.
+The walk allocates nothing and runs unchanged on a GPU, one search per thread.
 
 .. warning::
 

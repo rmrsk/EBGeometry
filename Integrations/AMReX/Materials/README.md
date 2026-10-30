@@ -3,7 +3,7 @@ Integrations/AMReX/Materials
 
 Which part of an object each cut cell lies on. The armadillo with a cylinder bored through its chest
 (`Difference`), compiled into a `Tape`, is handed to AMReX's EB2 grid generation, and each cut cell is
-labelled twice:
+labeled twice:
 
 * with the tape's leaf closest to it (`closestPrimitive()`), in expression order: the armadillo 0, the bore 1;
 * on the armadillo, with the id of its closest mesh face (`getClosestFace()`, asked at the point in the

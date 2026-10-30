@@ -71,7 +71,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
   // multiple of W elements) is itself a multiple of the required alignment, m_y and m_z inherit
   // SIMD-safe alignment for free from sequential, padding-free layout. Pinned here (offsetof
   // requires a complete type) so a future reordering/insertion fails to compile instead of
-  // segfaulting on a misaligned SIMD load -- mirrors TriangleSoAT::signedDistance()'s same checks.
+  // segfaulting on a misaligned SIMD load -- mirrors TriangleSoAT::signedDistancesSIMD()'s same checks.
   using SoA = PointSoAT<T, W>;
 
   static_assert(offsetof(SoA, m_y) % (W * sizeof(T)) == 0, "m_y is not SIMD-aligned");
@@ -197,8 +197,7 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
                   "PointSoAT alignment mismatch: _mm256_load_pd requires 32-byte alignment");
 
     // AVX has no 512-bit registers, so W=8 doubles is handled as two independent 256-bit (4-wide)
-    // passes -- "lo" (lanes 0-3) and "hi" (lanes 4-7) -- run in parallel, mirroring
-    // TriangleSoAT::signedDistance()'s own AVX (double, W=8) branch.
+    // passes -- "lo" (lanes 0-3) and "hi" (lanes 4-7) -- run in parallel.
     const __m256d px = _mm256_set1_pd(a_point[0]);
     const __m256d py = _mm256_set1_pd(a_point[1]);
     const __m256d pz = _mm256_set1_pd(a_point[2]);

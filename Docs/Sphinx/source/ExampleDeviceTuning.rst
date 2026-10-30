@@ -46,10 +46,9 @@ The tape's pool is mirrored to the device once, and the million points and their
 pool of their own, mirrored the same way, so that a launch over spans of that copy allocates and copies
 nothing and its time is the kernel's. Each candidate is timed on the first 100,000 points (the fastest
 of three launches, after one to warm up) and printed beside the defaults' time divided by its own, so
-that above 1 is faster than the defaults; the other 900,000 then run with the fastest. On one
-workstation GPU in single precision, for this query, 768 resident threads was a fifth to a quarter faster
-than the defaults, whatever the block size; another device, query or precision may differ, which is
-why the example measures rather than prescribes.
+that above 1 is faster than the defaults; the other 900,000 then run with the fastest. The best
+setting depends on the device, the query and the precision, which is why the example measures rather
+than prescribes.
 
 Building and running
 --------------------

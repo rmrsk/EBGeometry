@@ -81,8 +81,10 @@ clamp(const T& a_value, const T& a_lo, const T& a_hi) noexcept
 }
 
 /**
- * @brief Numeric limits, with the same member functions and meanings as std::numeric_limits.
- * @details Specialized for float, double, and the standard integer types.
+ * @brief Numeric limits, with the meanings of the std::numeric_limits members of the same names.
+ * @details Specialized for float and double (max(), lowest(), min(), epsilon(), infinity()) and for
+ * int, long, long long and their unsigned types (max(), lowest(), min()). Other types have no
+ * specialization.
  * @tparam T Arithmetic type.
  */
 template <class T>

@@ -30,11 +30,10 @@ Section planes
 --------------
 
 To look inside an object, the renderer can cut it with a plane, removing everything on the side the
-plane's normal :math:`\mathbf{n}` points to: the intersection of the object with a half-space. Along
-each ray it finds the part of the ray on the kept side, and traces the object over that part only. Where
-the ray reaches the plane while inside the object, the plane itself is the first crossing: a cut face,
-exact, with the plane's normal. It is partly transparent: the ray goes on inside the object to its next
-surface (a hole, a cavity, the far wall), which shows through the face, lit without shadows, which inside
+plane's normal :math:`\mathbf{n}` points to: the intersection of the object with a half-space. The cut
+is exact, whatever the object: where the plane passes through the object, the picture shows a cut face
+lying on the plane. The face is partly transparent (by default; its opacity is a setting): the object's
+next surface behind it (a hole, a cavity, the far wall) shows through, lit without shadows, which inside
 the object would be everywhere.
 
 The plane also shows where it slices the object. Where a ray meets the plane before anything else, the
@@ -48,23 +47,22 @@ Reversing the plane's normal removes the other side.
 What a pixel shows
 ------------------
 
-For a pixel, the renderer casts one ray (or :math:`n \times n` rays, averaged, with the light moved a
-little for each, as a light of some size would be) and, where it meets the surface, combines diffuse and
+For a pixel, the renderer casts one ray (or :math:`n \times n` rays, averaged, which also softens the
+edges of shadows) and, where it meets the surface, combines diffuse and
 specular light from one direction, light from the sky, a shadow and ambient occlusion. The light's
 direction is by default fixed to the camera, above and beside it, so that the side in view is lit wherever
 the camera goes; it can instead be fixed in the scene. A floor under the
-shape catches its shadow. Surfaces can be coloured by the direction of their normal (the default),
+shape catches its shadow. Surfaces can be colored by the direction of their normal (the default),
 uniformly, by primitive (by the leaf of a composed
-expression the surface belongs to, or by the face of a mesh, with colours chosen per primitive or from a
+expression the surface belongs to, or by the face of a mesh, with colors chosen per primitive or from a
 palette).
 
 The camera looks either in perspective, every ray leaving the eye, or orthographically, the rays parallel
 and leaving a plane through the eye, so that sizes do not shrink with distance; a near clip starts every
 ray some way from the eye, so that whatever is nearer is not seen.
 
-The shadow comes from one ray towards the light, softened at the edges by the light moving a little
-between a pixel's rays, and the occlusion from four short rays tilted around the normal: the share of
-them that hit the shape darkens the point. All of them are ray queries on the shape, like the ray from
-the eye.
+Shadows and ambient occlusion are ray queries on the shape too, like the ray from the eye, so each costs
+further rays wherever a pixel's ray meets the surface: turning them off (as the viewer does while the
+camera moves) makes a frame much quicker.
 
 :ref:`Chap:ImplemRender` describes the classes, and :ref:`Chap:ExampleMeshSDF` opens the viewer on a mesh.

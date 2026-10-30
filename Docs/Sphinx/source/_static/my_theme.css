@@ -1,5 +1,5 @@
 .wy-nav-content {
-    max-width: 960px !important;
+    max-width: 1100px !important;
 }
 
 
@@ -19,3 +19,21 @@
     margin-right: -0.7em;
 }
 /* END Fix the sphinx_rtd misplaced equation label */
+
+/* BEGIN Space between list items in the page body (not the navigation or the toctree lists) */
+.rst-content section > ul > li,
+.rst-content section > ol > li,
+.rst-content section li > ul > li,
+.rst-content section li > ol > li,
+.rst-content .admonition ul > li,
+.rst-content .admonition ol > li {
+    margin-bottom: 0.6em;
+}
+/* END Space between list items */
+
+/* BEGIN Let table cells wrap: the theme keeps every cell on one line, so a table of prose scrolls sideways */
+.wy-table-responsive table td,
+.wy-table-responsive table th {
+    white-space: normal;
+}
+/* END Let table cells wrap */

@@ -17,7 +17,7 @@ and additionally require that platform to be installed — see :ref:`Chap:Integr
    Several examples read a mesh from the ``common-3d-test-models`` git submodule by default
    (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleMeshCSG`, :ref:`Chap:ExampleShell`,
    :ref:`Chap:ExampleMaterials`, :ref:`Chap:ExampleRepetition`, :ref:`Chap:ExampleTwist`,
-   :ref:`Chap:ExampleRayTracing`). Clone the repository with ``--recurse-submodules``, or run
+   :ref:`Chap:ExampleRayTracing`, :ref:`Chap:ExampleDeviceTuning`). Clone the repository with ``--recurse-submodules``, or run
    ``git submodule update --init`` in it (see :ref:`Sec:Cloning`).
 
 The examples teach; the unit tests verify. An example shows the calls a user would write, in the
@@ -82,9 +82,10 @@ Building and running any of them
 
 Every example needs the path to the EBGeometry root — the
 directory containing ``EBGeometry.hpp`` — which is two levels up (``../..``) when building in
-place. All three build methods accept the same two overrides: ``PRECISION``/``EBGEOMETRY_PRECISION``
-(``float`` or ``double``, default ``double``) and the location of the EBGeometry tree
-itself (``EBGEOMETRY_HOME``, default ``../..``); all three also produce the binary
+place. All three build methods accept the same three overrides: ``PRECISION``/``EBGEOMETRY_PRECISION``
+(``float`` or ``double``, default ``double``), the location of the EBGeometry tree
+itself (``EBGEOMETRY_HOME``, default ``../..``), and ``ASSERTIONS``/``EBGEOMETRY_ENABLE_ASSERTIONS``
+(``ON`` or ``OFF``, default ``OFF``) for the ``EBGEOMETRY_EXPECT()`` checks; all three also produce the binary
 (``<Example>.ex``) directly in the example's own folder, regardless of where the CMake build
 tree itself lives:
 
@@ -103,7 +104,7 @@ tree itself lives:
    g++ -std=c++17 -O3 -march=native -DEBGEOMETRY_PRECISION=float -I../.. main.cpp -o <Example>.ex
    ./<Example>.ex
 
-Built on its own with CMake, an example defaults to an optimised (``Release``) build; add
+Built on its own with CMake, an example defaults to an optimized (``Release``) build; add
 ``-DCMAKE_CXX_FLAGS=-march=native`` to tune it for the local machine. Built as part of the
 EBGeometry project (see :ref:`Chap:Building`), the examples follow the project's build type and
 take their SIMD flags from ``EBGEOMETRY_SIMD``.

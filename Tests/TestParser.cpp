@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Cross-format parser behaviour: binary fixtures against their ASCII counterparts, and malformed or
+// Cross-format parser behavior: binary fixtures against their ASCII counterparts, and malformed or
 // truncated input, which must throw Parser::ParseError rather than crash or yield a partial mesh.
 
 #include "EBGeometry.hpp"
@@ -79,7 +79,7 @@ TEMPLATE_TEST_CASE("Parser: binary STL, PLY and VTK fixtures read the same mesh 
 
   Pool pool(hostMemoryResource());
 
-  // dodecahedron_binary.stl stores a colour in every facet's attribute bytes (two colours
+  // dodecahedron_binary.stl stores a color in every facet's attribute bytes (two colors
   // alternating), as some exporters do. The reader must ignore it and return every facet.
   for (const std::string ext : {"stl", "ply", "vtk"}) {
     INFO("format: " << ext);

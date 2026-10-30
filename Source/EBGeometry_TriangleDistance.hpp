@@ -4,10 +4,11 @@
 
 /**
  * @file   EBGeometry_TriangleDistance.hpp
- * @brief  The one triangle signed-distance kernel, written once for a scalar and for every SIMD::Pack.
+ * @brief  The triangle distance kernels, written once for a scalar and for every SIMD::Pack.
  * @details Triangle::signedDistance(), TriangleSoAT's lanes and TriangleSoAT's SIMD groups all call
  * TriangleDistance::signedDistance(), with V = T for one triangle and V = SIMD::Pack<T, N> for N
- * triangles at once.
+ * triangles at once. TriangleSoAT::nearestLane() calls TriangleDistance::unsignedDistance2(), its
+ * unsigned companion, the same way.
  * @author Robert Marskar
  */
 

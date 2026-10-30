@@ -7,7 +7,7 @@
 // (RayDetail::spansWithin() in EBGeometry_RaySpans.hpp), with a corner cut away by the box, as in
 // Examples/Shell, through a tape (traced, and marched with RayOptions::m_march, which the traced case names)
 // and fused. Every ray starts at a random point in the shell's box grown to twice its size and
-// points at the box's centre. A host build runs the host cases; a CUDA or HIP build runs host/device pairs
+// points at the box's center. A host build runs the host cases; a CUDA or HIP build runs host/device pairs
 // in Morton and random order. See ../README.md and PerformanceTesting.rst.
 
 #include <cmath>
@@ -95,19 +95,19 @@ agreeCrossing(T a_host, T a_device, double a_tolerance)
   return {diff, (a_host < T(0)) != (a_device < T(0)) || diff > a_tolerance};
 }
 
-// Ray origins in the box grown to twice its size about its centre.
+// Ray origins in the box grown to twice its size about its center.
 template <class T>
 std::vector<Vec3<T>>
 origins(const AABB<T>& a_box, std::size_t a_n)
 {
-  const Vec3<T> centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
-  const Vec3<T> half   = a_box.getHighCorner() - centre;
+  const Vec3<T> center = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3<T> half   = a_box.getHighCorner() - center;
 
-  return Perf::pointsInBox<T>(AABB<T>(centre - T(2) * half, centre + T(2) * half), a_n, Perf::Seed::RayOrigins);
+  return Perf::pointsInBox<T>(AABB<T>(center - T(2) * half, center + T(2) * half), a_n, Perf::Seed::RayOrigins);
 }
 
 // The mesh (the armadillo, the dodecahedron under --smoke), its shell's half-thickness, and the box cutting
-// away the corner above its centre in x and below it in z.
+// away the corner above its center in x and below it in z.
 template <class T>
 struct Shell
 {
@@ -123,12 +123,12 @@ struct Shell
     const AABB<T>  box    = mesh.computeBoundingVolume();
     const Vec3<T>& lo     = box.getLowCorner();
     const Vec3<T>& hi     = box.getHighCorner();
-    const Vec3<T>  centre = T(0.5) * (lo + hi);
+    const Vec3<T>  center = T(0.5) * (lo + hi);
     const Vec3<T>  margin = hi - lo;
 
     delta  = T(HalfThickness) * (hi - lo).length();
-    corner = EBGeometry::BoxSDF<T>(Vec3<T>(centre[0], lo[1] - margin[1], lo[2] - margin[2]),
-                                   Vec3<T>(hi[0] + margin[0], hi[1] + margin[1], centre[2]));
+    corner = EBGeometry::BoxSDF<T>(Vec3<T>(center[0], lo[1] - margin[1], lo[2] - margin[2]),
+                                   Vec3<T>(hi[0] + margin[0], hi[1] + margin[1], center[2]));
 
     a_case.param("K", K);
     a_case.param("W", W);
@@ -149,11 +149,11 @@ addShape(Perf::Suite& a_suite, const std::string& a_input, const bool a_march, B
 
     const auto     shape  = a_build(c, pool);
     const auto     box    = shape.computeBoundingVolume();
-    const Vec3<T>  centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+    const Vec3<T>  center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
     const auto     q      = origins<T>(box, c.size(HostQueries, SmokeQueries));
     std::vector<T> out;
 
-    Perf::measureHostQuery(c, FirstHit<T, std::decay_t<decltype(shape)>>{shape, centre, a_march}, q, out);
+    Perf::measureHostQuery(c, FirstHit<T, std::decay_t<decltype(shape)>>{shape, center, a_march}, q, out);
 
     c.checksum(Perf::checksumOf(out));
     c.poolBytes(pool.usedBytes());
@@ -172,7 +172,7 @@ addShape(Perf::Suite& a_suite, const std::string& a_input, const bool a_march, B
 
       const auto    shape  = a_build(c, pool);
       const auto    box    = shape.computeBoundingVolume();
-      const Vec3<T> centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+      const Vec3<T> center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
       const auto    q      = Perf::inOrder(order, origins<T>(box, c.size(PairQueries, SmokeQueries)));
 
       using S = std::decay_t<decltype(shape)>;
@@ -184,7 +184,7 @@ addShape(Perf::Suite& a_suite, const std::string& a_input, const bool a_march, B
         c,
         pool,
         q,
-        [&](const EBGeometry::Pool& a_pool) { return FirstHit<T, S>{shape.rebasedView(a_pool), centre, a_march}; },
+        [&](const EBGeometry::Pool& a_pool) { return FirstHit<T, S>{shape.rebasedView(a_pool), center, a_march}; },
         [tolerance](T a_host, T a_device) { return agreeCrossing<T>(a_host, a_device, tolerance); });
 
       c.checksum(Perf::checksumOf(out));

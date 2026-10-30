@@ -102,14 +102,14 @@ cache variables if you need a combination not covered by a preset.
 ctest --preset debug                 # ~430 unit tests (Catch2), ~15 s
 ctest --preset debug-san             # same, under AddressSanitizer + UBSan
 ctest --preset examples              # every Examples/* program, run to completion
-ctest --preset release-test          # unit tests + examples, optimised build
+ctest --preset release-test          # unit tests + examples, optimized build
 ```
 
 Test sources live in `Tests/Test*.cpp` (one file per component: `TestVec`, `TestBoundingVolumes`,
 `TestDCEL`, `TestBVH`, `TestPolygonSoup`, `TestParser`, ...); fixture files are in
 `Tests/data/`. `Tests/InstantiateAll.cpp` is a compile-only target (never run) that explicitly
 instantiates every public class template for both `float` and `double` — it exists purely so
-clang-tidy and `-Wdouble-promotion`/friends analyse both precisions; add new public classes there
+clang-tidy and `-Wdouble-promotion`/friends analyze both precisions; add new public classes there
 when you add them to the library.
 
 Most test files are written with `TEMPLATE_TEST_CASE(..., EBGEOMETRY_TEST_PRECISIONS)` (see
@@ -146,20 +146,57 @@ make html      # output: Docs/Sphinx/build/html/index.html
 make latexpdf   # requires a LaTeX toolchain
 ```
 
-Sphinx is pinned to `sphinx==5.3.0` (see `.pre-commit-config.yaml` and
-`.github/workflows/{CI,docs}.yml`) — not to a specific `sphinxcontrib-bibtex` requirement (bibtex
-only requires `Sphinx>=3.5`, no upper bound), but because **`sphinx==5.0.0` has a real internal
-crash bug**: its generic cross-reference-resolution post-transform (`ReferencesResolver`) throws
-`AttributeError: 'Text' object has no attribute 'rawsource'` while deep-copying the content node
-of a `:ref:`/`:any:` reference that has no explicit link text — a totally standard, correct usage
-pattern used throughout this doc set, not a docs bug. `5.3.0` (the last 5.x release) fixes it with
-no other observable behavior change; installing/using a different Sphinx version standalone can
-still produce stale or incompatible `Docs/Sphinx/build/` doctree caches, so stick to this pin
-rather than a system-installed Sphinx. **If a Sphinx build throws an internal error in
+Sphinx is pinned to `sphinx==9.1.1` (see `.pre-commit-config.yaml` and
+`.github/workflows/{CI,docs}.yml`), with the current `sphinx_rtd_theme` and `sphinxcontrib-bibtex`; the
+HTML and the PDF build with it without warnings. Build locally with the same version (a virtualenv with
+`pip install sphinx==9.1.1 sphinx_rtd_theme sphinxcontrib-bibtex`): another version can warn where CI does
+not, or the other way round, and a build directory left by another version can hold incompatible doctree
+caches (`rm -rf Docs/Sphinx/build` clears them). Avoid `sphinx==5.0.0`, which crashes on a `:ref:` with no
+link text. **If a Sphinx build throws an internal error in
 `sphinx.environment.collectors.toctree`, or `rm -rf Docs/Sphinx/build` fails with "Directory not
 empty," check for a stray `sphinx-autobuild` (or other long-running `sphinx-build`) process first
 (`pgrep -fa sphinx`) — a forgotten one rebuilding into the same output directory in the background
 has caused exactly this before.**
+
+## What goes in the Sphinx pages, and what goes in the headers
+
+The two documentation systems have different readers, and each kind of content has one home. When text is
+in the wrong one, move it (never just delete it): a trimmed Sphinx passage's substance goes into the header
+comment at the code it describes, unless it is already there.
+
+**The Sphinx pages (`Docs/Sphinx/source/`) are a user guide.**
+- They explain concepts (what something is and why it exists, e.g. that the tape compiles an expression
+  into separate programs and why), how to use the API, and how to choose between options.
+- The `Implem*.rst` pages are an API guide per component: which classes and functions to call for what,
+  linked to their Doxygen pages, with the choices a user makes (which mesh SDF, which BVH build). Short,
+  hand-written usage snippets (`.. code-block::`) are fine; anything longer is an `Examples/` program and
+  its page (`literalinclude` stays banned).
+- No implementation details or finer algorithmic points: no internal classes or namespaces (`*Detail`),
+  clause layouts, flag bits, stack or register budgets, inlining history, step-by-step algorithms.
+- No measured numbers: no timings, speed-ups, register counts or sizes of internals. A choice is explained
+  in words (which is faster, and why), with a pointer to measuring the user's own case (the `Performance/`
+  probes, or an example such as `HostTuning` or `DeviceTuning`). Specified limits and constants of the API
+  (a maximum call depth, a stack size whose overflow the constructor rejects, the largest exact face id in
+  single precision) are facts a user's choices depend on, not measurements, and stay.
+- The contributor pages (`ContributionGuidelines`, `TestingLocally`, `PerformanceTesting`,
+  `ContinuousIntegration`) follow the same rules: they state the contributor's rules and procedures; the
+  measurements and history behind a rule go in the header comment at the code the rule protects.
+
+**The Doxygen and in-file comments serve users on top and maintainers below.**
+- `@brief`, `@param`, `@tparam`, `@return` state the contract a user relies on: what it does, what it needs,
+  what it returns, which side it runs on, which pool must outlive it.
+- `@details` carries what a maintainer needs: the algorithm, invariants, device and performance constraints,
+  why the design is this way and which alternatives were ruled out, and the measurements behind a rule.
+- Plain `//` comments inside a function explain the code next to them.
+
+**American English everywhere.** Documentation, comments, examples, commit messages and pull requests are
+written in American English: color, center, behavior, neighbor, gray, optimize, vectorize, analyze, labeled,
+modeling.
+
+**No history anywhere in the documentation** (the History page, `History.rst`, excepted). No PR or issue
+numbers (open or closed) in source comments or Sphinx pages, and no "formerly", "used to", "since #...", "replaces the old ...": a comment states what is
+true now, and why. A known gap is stated in words ("no SYCL memory resource"). History lives in git, the
+pull requests and the issues. (This file, `CLAUDE.md`, is a working guide for agents and may cite them.)
 
 ## When you change code, check whether the docs still agree with it
 
@@ -264,7 +301,7 @@ examples, clang-tidy or CUDA; HIP's Release+AVX build only; about 8 minutes), wh
 for review (marking it ready re-runs CI) and every push to `main`/`dev` run the full matrix. Every build
 uses all the runner's cores. Its
 `CI-passed` job, the one to require for merging, fails whenever any job it depends on fails, is
-cancelled or is skipped (a draft's skipped full-tier jobs excepted); `GPU-HIP` (a device compile) is one of those required jobs, while
+canceled or is skipped (a draft's skipped full-tier jobs excepted); `GPU-HIP` (a device compile) is one of those required jobs, while
 `GPU-CUDA` and `Static-analysis` are advisory (`continue-on-error`).
 
 ## Whitespace conventions clang-format does not enforce
@@ -295,9 +332,9 @@ use (a new capability, not a new overload): an example. A new device path for ex
 - One file per component, `Tests/Test<Component>.cpp`, registered with `ebgeometry_add_test(...)` in
   `Tests/CMakeLists.txt`. Add to the existing file when the component exists; a new file only for a
   new component, with a row in the coverage table of `TestingLocally.rst`.
-- `TEMPLATE_TEST_CASE("<Class>: <behaviour in words>", "[<Class>]", EBGEOMETRY_TEST_PRECISIONS)`, not a
+- `TEMPLATE_TEST_CASE("<Class>: <behavior in words>", "[<Class>]", EBGEOMETRY_TEST_PRECISIONS)`, not a
   hardcoded `double`; `WithinAbs` through `tightMargin<T>()`/`looseMargin<T>()`/`withinAbsT<T>()`
-  (`TestFloatingPointUtils.hpp`). Name the behaviour, not the method ("rejects an empty cloud", not
+  (`TestFloatingPointUtils.hpp`). Name the behavior, not the method ("rejects an empty cloud", not
   "test constructor").
 - Check against an independent reference (brute force, a closed form, a hand-computed value), never
   against the code under test run a second way.
@@ -360,10 +397,10 @@ probes (one program per component, many named cases, `component/input/operation/
 `Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
 full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
-1. **Run the comparison against the PR's base**, from the repository root, once the PR is ready for
-   review (`--smoke` first gives a one-minute check that both sides build and every case runs with the
-   same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict, and take
-   about eight minutes for every case, builds included:
+1. **Run the comparison against the PR's base**, from the top of the branch's worktree, once the PR is
+   ready for review (`--smoke` first gives a one-minute check that both sides build and every case runs
+   with the same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict,
+   and take about eight minutes for every case, builds included:
 
    ```bash
    Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt
@@ -429,7 +466,7 @@ cases in its component's probe), and the PR's comparison then lists them as *new
 - Keep the whole set to about eight minutes of a comparison with its defaults on a desktop, builds
   included; a case
   that repeats another's code path (the same kernel at another size) must have shown different
-  behaviour to earn its place.
+  behavior to earn its place.
 - Cross-library comparisons (fcpw, nanoflann, ...) do not belong here; they live in the
   EBGeometry-benchmarks repository.
 
@@ -443,20 +480,113 @@ once work is done: surface the option and let the user decide, do not just do it
 branch you are *already on* (once the user has asked for that work) is fine; it is the creation of
 new refs and the outward submission of PRs that always needs a green light first.
 
+**Claude develops in a git worktree, never directly in the repository root.** Each branch Claude works on
+gets its own worktree, a sibling of the repository named after the branch
+(`../EBGeometry.worktrees/<branch>`, created with `git worktree add` and `git submodule update --init` in
+it, since the mesh probes and examples need the submodule). Creating the branch and its worktree is one
+spin-off, so it needs the user's agreement like any other. All edits, builds, tests and performance runs
+for that branch happen in its worktree; the repository root is left as the user has it. After the branch's
+pull request is merged, Claude asks whether the worktree should be removed, and **never removes a worktree
+without the user's explicit permission**. A session that starts in a checkout of the branch (a `@claude`
+run in CI, which checks out the pull request's branch) works in that checkout.
+
+**Claude never merges a pull request, never force-pushes to `main`, and never deletes a branch** (local
+or remote), under any circumstances, whatever it is asked or however obvious the next step looks: merging
+and deleting branches are for a human only. Force-pushing to `dev` or to a feature branch is permitted,
+with `--force-with-lease`, and never over commits that were already reviewed (see "Human review" below).
+
 When the user *does* ask you to open a PR, **always open it as a draft** (`gh pr create --draft`) —
-never open a PR ready for review. The user promotes it out of draft themselves when they judge it
-ready; this is also what gates the `.rst` documentation audit described above (which begins once
-the PR is no longer a draft). If a non-draft PR was already opened, convert it back with
+never open a PR ready for review. It leaves draft only as "Human review" below says; this is also
+what gates the `.rst` documentation audit described above (which begins once the PR is no longer a
+draft). If a non-draft PR was already opened, convert it back with
 `gh pr ready --undo <number>`.
 
 When opening a PR, **always use the repository's pull-request template**
 (`.github/pull_request_template.md`) — its `# Summary` sections (`Background`, `Solution`,
-`Side-effects`, `Alternative solutions`, `Performance`) followed by the `Reviewer checklist`. The
+`Side-effects`, `Alternative solutions`, `Performance`, `Where to look`) followed by the
+`Reviewer checklist`. The
 `Performance` section carries the comparison report (see "Vetting every pull request for
 performance" above). Fill in the prose
 sections (this is the "PR note") but **leave every checklist item unchecked** (`- [ ]`) — the
 checklist is for a human reviewer to complete, not you. If a PR was already opened with a body that
 does not follow this template, edit the PR body to conform to it.
+
+## Implementing a feature
+
+How Claude goes from a feature request ("add X", "implement #N") to a pull request ready for human
+review. The rules elsewhere in this file (branching, tests, examples, performance, documentation) still
+apply; this section sets the order and the points where Claude stops for the user.
+
+1. **The first reply is a plan, not code.** Claude restates the feature in a sentence or two, and:
+   - **proposes a branch name**: short, kebab-case, saying what the feature is (`exact-annulus`,
+     `receipt-semicolons`), off `dev`. The branch, and the worktree it is developed in, are created only
+     once the user agrees.
+   - **asks how involved the user wants to be**:
+     - *hands-off*: Claude decides (except the API, step 2), and reports at the hand-over;
+     - *checkpoints*: Claude stops for the API design and before the hand-over, and decides the rest;
+     - *close*: Claude brings every design decision, with options and a recommendation.
+   - **interviews the user where a choice changes the design** (scope, semantics, the shape of the API, a
+     trade-off), with options and a recommendation, up to four questions at a time. Anything with a
+     conventional default, or that the code answers, Claude decides and states.
+   - **proposes a split** when the feature spans several components or would make a very large pull
+     request: a sequence of pull requests, each mergeable on its own (the API and the core, then the tape,
+     then the rays, say). The user chooses.
+   - **proposes parallel agents** only where they would help (independent parts, a wide review), with the
+     split and a rough cost; by default Claude does the work itself.
+2. **The API comes first.** For a new or changed public class or function, Claude first writes the API, its
+   declarations with their Doxygen contracts and a short snippet of how a user would call it, and has it
+   approved before implementing it, at every level of involvement. Changes to internals skip this step.
+3. **The draft pull request opens early.** Once the branch has its first meaningful commit (the approved
+   API, say), Claude asks to open the draft pull request, so that CI's fast tier runs on every push. No
+   issue is created for a feature request: the pull request, filled from the template, links to the relevant
+   existing issues rather than repeating them. Claude asks whether it closes an issue, and if so writes
+   `Closes #N` in its body. That closes the issue only when `dev` is merged into `main`; after a merge into
+   `dev`, Claude may ask whether to close it by hand, and never does so on its own.
+4. **Implementing.**
+   - A test that fails without the feature is written before it, or with it.
+   - Code a device runs is built and its `[gpu]` tests run with CUDA on the local GPU, with the register
+     and compile-time checks this file asks for. Without a GPU, the pull request's *Where to look* says so.
+   - While the pull request is a draft, the quick performance look (one round, the probes the change can
+     affect) runs after each change to the library or the probes.
+   - The documentation, examples and performance cases the feature needs are part of the same pull request.
+5. **Before the hand-over**, Claude reviews its own diff (correctness, simplicity, this file's conventions)
+   before requesting `@claude review`, and then follows "Human review" below.
+
+## Human review
+
+A pull request is handed to the maintainer for review when all of these hold:
+- **CI's full matrix passes on the final head**, `CI-passed` included (so the receipt check passes too).
+  The draft tier is not enough: marking a PR ready starts the full run, so a hand-over waits for it.
+- **The last `@claude review` on the final head has no blocking finding**, and each finding was fixed or
+  answered.
+- **The docs agree with the code** (the audit and the rules above), and **the PR body describes the final
+  state**, with the performance report and the *Where to look* section.
+
+**Marking it ready.** Claude marks a PR ready for review (`gh pr ready`) only when the maintainer asks for
+it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the other
+conditions hold. When asked, Claude first makes sure the receipt measures the final code (recording it,
+which needs the maintainer's quiet-machine go, if it does not), then marks the PR ready, and hands it over
+once the full CI run that this starts has passed.
+
+**`@claude review` rounds.** Request a review after each push that changes code or docs, and stop when a
+round has no blocking finding. Each optional suggestion is either taken or declined with a one-line reason
+in the hand-over summary. At most five rounds: if the fifth still has a blocking finding, stop and bring it
+to the maintainer.
+
+**The hand-over.**
+- The PR template's *Where to look* section: the files and places that carry the risk, what was verified
+  and how, and what was not (no HIP run, no device run, a configuration not built).
+- A short summary in the session: that the PR is ready, what changed since the maintainer last looked,
+  and what needs their decision.
+
+**The reviewer's comments.** Fix each in a new commit (never force-push over commits that were reviewed),
+reply on its thread with what changed, and leave resolving the thread to the reviewer. Then verify again
+what the change affects (the tests; a new receipt if the library or the probes changed; another
+`@claude review`) before saying the PR is ready again.
+
+**After the merge.** Claude takes no action on its own once a PR merges: the roadmap, the issues and the
+branches are the maintainer's. It asks whether the branch's worktree should be removed (and removes it only
+with explicit permission), and may ask whether to act on follow-ups.
 
 ## A few non-obvious things worth knowing
 
@@ -572,7 +702,7 @@ does not follow this template, edit the PR body to conform to it.
   that way (no recursion, function pointers or virtual calls), since the device evaluator builds on
   it. `evaluate<D>` and the pool-resident primitive dispatch (`evaluateHandle`) are
   `EBGEOMETRY_DEVICE_NOINLINE`: HIP inlines every device function, and `evaluate<D>` calls the level
-  below from many places, so fully inlined the copies multiply with the depth (an optimised device
+  below from many places, so fully inlined the copies multiply with the depth (an optimized device
   compile of `TestTape` did not finish). Keep them out of line, and mark any new function called that
   way the same. What multiplies nothing is inlined, for speed on a device (#221): the body
   `evaluateBody<D>` into `evaluate<D>`, and into `signedDistance()` for a tape of call depth 0; and an

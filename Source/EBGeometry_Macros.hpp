@@ -57,7 +57,7 @@ deviceAssertionFailed(const char* a_cond, const char* a_file, const int a_line)
  *   query. It compiles to nothing unless assertions are enabled.
  * - @c EBGEOMETRY_REQUIRE for what a caller controls -- constructor arguments, sizes and counts,
  *   memory resources -- checked once, outside any query loop, where a Release build would otherwise
- *   continue into a wrong answer or undefined behaviour. Its cost is a few comparisons per object
+ *   continue into a wrong answer or undefined behavior. Its cost is a few comparisons per object
  *   built.
  *
  * The file readers do not abort on a bad file: they throw EBGeometry::Parser::ParseError.

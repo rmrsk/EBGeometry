@@ -37,7 +37,7 @@ using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 template <class T>
 using Packed = EBGeometry::BVH::PackedBVH<T, AABB<T>, K>;
 
-// A ray from a_origin towards the box's centre: rays from nearby origins run side by side, so Morton
+// A ray from a_origin towards the box's center: rays from nearby origins run side by side, so Morton
 // order gives a warp coherent rays.
 template <class T>
 EBGEOMETRY_HOST_DEVICE
@@ -170,18 +170,18 @@ buildBoxes(Perf::Case& c, EBGeometry::Pool& a_pool)
   return Packed<T>::buildBottomUp(a_pool, boxes, LeafSize);
 }
 
-// Query origins: random points in the BVH's box grown to twice its size about its centre.
+// Query origins: random points in the BVH's box grown to twice its size about its center.
 template <class T>
 std::vector<Vec3<T>>
 origins(const AABB<T>& a_box, std::size_t a_n)
 {
-  const Vec3<T> centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
-  const Vec3<T> half   = a_box.getHighCorner() - centre;
+  const Vec3<T> center = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3<T> half   = a_box.getHighCorner() - center;
 
-  return Perf::pointsInBox<T>(AABB<T>(centre - T(2) * half, centre + T(2) * half), a_n, Perf::Seed::RayOrigins);
+  return Perf::pointsInBox<T>(AABB<T>(center - T(2) * half, center + T(2) * half), a_n, Perf::Seed::RayOrigins);
 }
 
-// One operation in one precision: the host case, and host/device pairs in each order. a_make(bvh, centre)
+// One operation in one precision: the host case, and host/device pairs in each order. a_make(bvh, center)
 // gives the query functor.
 template <class T, class Make>
 void
@@ -194,11 +194,11 @@ addOperation(Perf::Suite& a_suite, const std::string& a_operation, Make a_make)
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
     const auto       bvh    = buildBoxes<T>(c, pool);
     const auto       box    = bvh.getBoundingVolume();
-    const Vec3<T>    centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+    const Vec3<T>    center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
     const auto       q      = origins<T>(box, c.size(HostQueries, SmokeQueries));
     std::vector<T>   out;
 
-    Perf::measureHostQuery(c, a_make(bvh, centre), q, out);
+    Perf::measureHostQuery(c, a_make(bvh, center), q, out);
 
     c.checksum(Perf::checksumOf(out));
     c.poolBytes(pool.usedBytes());
@@ -209,14 +209,14 @@ addOperation(Perf::Suite& a_suite, const std::string& a_operation, Make a_make)
       EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
       const auto       bvh    = buildBoxes<T>(c, pool);
       const auto       box    = bvh.getBoundingVolume();
-      const Vec3<T>    centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+      const Vec3<T>    center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
       const auto       q      = Perf::inOrder(order, origins<T>(box, c.size(PairQueries, SmokeQueries)));
 
       const auto out = Perf::measureHostAndDevice<T>(
         c,
         pool,
         q,
-        [&](const EBGeometry::Pool& a_pool) { return a_make(bvh.rebasedView(a_pool), centre); },
+        [&](const EBGeometry::Pool& a_pool) { return a_make(bvh.rebasedView(a_pool), center); },
         Perf::agreeDistance<T>);
 
       c.checksum(Perf::checksumOf(out));
@@ -228,11 +228,11 @@ template <class T>
 void
 addPrecision(Perf::Suite& a_suite)
 {
-  addOperation<T>(a_suite, "ray-nearest", [](const Packed<T>& a_bvh, const Vec3<T>& a_centre) {
-    return RayNearest<T>{a_bvh, a_centre};
+  addOperation<T>(a_suite, "ray-nearest", [](const Packed<T>& a_bvh, const Vec3<T>& a_center) {
+    return RayNearest<T>{a_bvh, a_center};
   });
   addOperation<T>(
-    a_suite, "ray-any", [](const Packed<T>& a_bvh, const Vec3<T>& a_centre) { return RayAny<T>{a_bvh, a_centre}; });
+    a_suite, "ray-any", [](const Packed<T>& a_bvh, const Vec3<T>& a_center) { return RayAny<T>{a_bvh, a_center}; });
   addOperation<T>(
     a_suite, "point-nearest", [](const Packed<T>& a_bvh, const Vec3<T>&) { return PointNearest<T>{a_bvh}; });
 }

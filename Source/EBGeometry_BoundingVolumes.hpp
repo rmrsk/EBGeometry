@@ -47,8 +47,8 @@ public:
    * @brief Default constructor. Sets lo = +∞, hi = −∞ (inverted sentinel).
    * @details The inverted state is the identity element for AABB union and also
    * ensures that any geometric query (distance, volume, intersection) fires an
-   * @c EBGEOMETRY_EXPECT assertion. Call define() or use the explicit constructor
-   * before use.
+   * @c EBGEOMETRY_EXPECT assertion when assertions are enabled. Call define() or use the explicit
+   * constructor before use.
    */
   AABBT() noexcept = default;
 
@@ -68,7 +68,7 @@ public:
 
   /**
    * @brief Construct the smallest AABB enclosing all boxes in @p a_others.
-   * @param[in] a_others Bounding boxes to enclose.
+   * @param[in] a_others Bounding boxes to enclose (must not be empty).
    */
   EBGEOMETRY_HOST
   inline AABBT(const std::vector<AABBT<T>>& a_others) noexcept;
@@ -77,7 +77,7 @@ public:
    * @brief Construct the smallest AABB enclosing a set of 3D points.
    * @details Mixed floating-point precision is allowed: @p P may differ from @p T.
    * @tparam P Floating-point precision of the input points.
-   * @param[in] a_points Set of 3D points.
+   * @param[in] a_points Set of 3D points (must not be empty).
    */
   template <class P>
   EBGEOMETRY_HOST
@@ -126,7 +126,7 @@ public:
    * @brief Fit this AABB to the smallest box enclosing @p a_points.
    * @details Mixed floating-point precision is allowed: @p P may differ from @p T.
    * @tparam P Floating-point precision of the input points.
-   * @param[in] a_points Set of 3D points.
+   * @param[in] a_points Set of 3D points (must not be empty).
    */
   template <class P>
   EBGEOMETRY_HOST
@@ -149,7 +149,7 @@ public:
   /**
    * @brief Test whether this AABB intersects @p a_other.
    * @param[in] a_other The other AABB.
-   * @return True if the two boxes overlap, false otherwise.
+   * @return True if the two boxes overlap, false otherwise. Boxes that only touch do not overlap.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline bool
@@ -253,12 +253,12 @@ public:
 
 protected:
   /**
-   * @brief Low corner of the bounding box. Initialised to +∞ (inverted sentinel).
+   * @brief Low corner of the bounding box. Initialized to +∞ (inverted sentinel).
    */
   Vec3 m_loCorner = Vec3::infinity();
 
   /**
-   * @brief High corner of the bounding box. Initialised to −∞ (inverted sentinel).
+   * @brief High corner of the bounding box. Initialized to −∞ (inverted sentinel).
    */
   Vec3 m_hiCorner = -Vec3::infinity();
 };
@@ -268,7 +268,7 @@ protected:
  * @tparam T Floating-point precision.
  * @param[in] a_u One bounding box.
  * @param[in] a_v The other bounding box.
- * @return True if the boxes intersect, false otherwise.
+ * @return True if the boxes intersect, false otherwise. Boxes that only touch do not intersect.
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE

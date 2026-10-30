@@ -387,8 +387,7 @@ inline Key
 effectiveBound(const Key& a_bound) noexcept
 {
   if constexpr (std::is_floating_point_v<Key>) {
-    // Written so that a NaN bound stays NaN (every comparison with it false: nothing is entered), as it
-    // was before the +infinity rule.
+    // Written so that a NaN bound stays NaN (every comparison with it false: nothing is entered).
     return (a_bound > Math::Limits<Key>::max()) ? Math::Limits<Key>::max() : a_bound;
   }
   else {
@@ -472,7 +471,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
       // The children within the bound, sorted so that the one to visit first is last: it is visited now,
       // and the rest wait on the stack in the same order. Insertion sort, not std::sort: K is a handful,
       // and it is callable on a device. It is deterministic: of two children with equal keys, the later
-      // slot goes first under NearestFirst and FarthestFirst (the order pruneTraverse() had).
+      // slot goes first under NearestFirst and FarthestFirst.
       uint8_t slots[K];
       size_t  numSlots = 0;
 
@@ -563,8 +562,8 @@ PackedBVH<T, P, K>::maxNodeDepth(const void* a_base) const
 
   size_t maxDepth = 0;
 
-  // (node index, depth of that node). A host-side build/mirror step, so std::vector is fine here --
-  // this is precisely the heap stack traverse() itself can no longer use.
+  // (node index, depth of that node). A host-side build/mirror step, so std::vector is fine here,
+  // unlike in traverse(), which must also run on a device.
   std::vector<std::pair<uint32_t, size_t>> stack;
 
   stack.reserve(64);

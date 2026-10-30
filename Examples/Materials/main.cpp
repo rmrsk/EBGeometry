@@ -4,7 +4,7 @@
 
 // Which part of an object a query found: the armadillo with a cylinder bored through it, and for a point or a
 // ray, which of the two surfaces the answer comes from. That id indexes a table of your own, such as
-// materials or boundary conditions; the viewer colours by it. See README.md.
+// materials or boundary conditions; the viewer colors by it. See README.md.
 
 #include <iomanip>
 #include <iostream>
@@ -98,15 +98,15 @@ try {
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // ColourBy::Primitive colours each surface by the leaf it belongs to, from the same HitT::m_primitive (built
+  // ColorBy::Primitive colors each surface by the leaf it belongs to, from the same HitT::m_primitive (built
   // with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why and returns). The
-  // table m_primitiveColours gives a leaf a colour of its own, here the skin sand and the bore steel grey;
+  // table m_primitiveColors gives a leaf a color of its own, here the skin sand and the bore steel gray;
   // a leaf not in it gets the built-in palette's. Given the pool, view() renders on the GPU in a GPU build
   // (G switches to the CPU and back).
   EBGeometry::Render::Settings<T> settings;
-  settings.m_colourBy            = EBGeometry::Render::ColourBy::Primitive;
-  settings.m_primitiveColours[0] = Vec3(T(0.78), T(0.62), T(0.42));
-  settings.m_primitiveColours[1] = Vec3(T(0.55), T(0.57), T(0.60));
+  settings.m_colorBy            = EBGeometry::Render::ColorBy::Primitive;
+  settings.m_primitiveColors[0] = Vec3(T(0.78), T(0.62), T(0.42));
+  settings.m_primitiveColors[1] = Vec3(T(0.55), T(0.57), T(0.60));
 
   // The camera looks from low in front, where the bore shows.
   auto camera    = EBGeometry::Render::Camera<T>::fit(tape.computeBoundingVolume());

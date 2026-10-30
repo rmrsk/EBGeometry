@@ -28,7 +28,7 @@ namespace EBGeometry {
  * @brief Face-id-carrying wrapper around a single TriangleSoAT<T, W>.
  * @details Structurally this is an AoSoA (Array of Structures of Arrays): TriangleSoAT<T, W> itself
  * is true SoA (one flat array per coordinate, no per-triangle structure at all), and TriangleAoSoA
- * adds exactly one more member -- an Array<uint32_t, W> of face ids -- alongside it. The two are
+ * adds an Array<uint32_t, W> of face ids (and its own count of valid lanes) alongside it. The two are
  * never merged or interleaved: the hot signedDistance(const Vec3T<T>&) query is delegated straight
  * through to the embedded TriangleSoAT and never reads m_faceIds at all, so a pure signed-distance
  * traversal over TriangleAoSoA-packed leaves touches exactly the same bytes it would touch over bare
@@ -43,8 +43,7 @@ namespace EBGeometry {
  * placement-new into externally-owned storage, or a `malloc`'d buffer -- you are responsible for
  * ensuring the memory is aligned to `alignof(TriangleAoSoA<T, W>)`.
  * @tparam T    Floating-point precision.
- * @tparam W    SIMD width; see TriangleSoAT. Defaults to TriangleSoA::DefaultWidth<T>(), matching
- * TriangleSoAT's own default.
+ * @tparam W    SIMD width; see TriangleSoAT. Defaults to TriangleSoA::DefaultWidth<T>().
  */
 template <class T, size_t W = TriangleSoA::DefaultWidth<T>()>
 struct TriangleAoSoA
@@ -82,9 +81,9 @@ public:
    * triangle's face id.
    * @details The id-retrieving analogue of signedDistance(const Vec3T<T>&): it returns the same
    * minimum-absolute-value signed distance, but also writes the winning triangle's face id to
-   * @p a_closestFaceId. Unlike the plain overload it takes the scalar per-lane path
+   * @p a_closestFaceId. Unlike the plain overload it keeps every lane's distance
    * (TriangleSoAT::signedDistances()) to recover *which* lane won, then reads that lane's id -- the
-   * extra work the throughput path deliberately avoids (see issue #105).
+   * extra work the throughput path deliberately avoids.
    * @param[in]  a_point         Query point. Must be finite.
    * @param[out] a_closestFaceId Set to the face id of the winning (minimum-|distance|) triangle.
    * @return Signed distance from a_point to the closest valid triangle.
@@ -108,7 +107,7 @@ public:
 
   /**
    * @brief One lane's signed distance (TriangleSoAT::signedDistanceAt()).
-   * @param[in] a_lane  Lane, below W.
+   * @param[in] a_lane  Lane, below the number of packed triangles.
    * @param[in] a_point The point.
    * @return The signed distance.
    */

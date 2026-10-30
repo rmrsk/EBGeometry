@@ -3,153 +3,107 @@
 SIMD-accelerated classes
 ==========================
 
-SIMD acceleration in EBGeometry is implemented with compiler intrinsics
-(``__m128``/``__m256``/``__m512`` and their ``double`` counterparts), not compiler
-auto-vectorisation. The triangle distance is one kernel template, instantiated for a scalar and for
-``SIMD::Pack``, thin wrappers over one register each (:file:`Source/EBGeometry_SIMD.hpp`); the
-point groups and the bounding-box pruning use the intrinsics directly. As of today it is confined to the places listed below; everything else
-in the library is scalar code. This is a statement about the current state of the
-implementation, not an architectural ceiling -- further classes may become SIMD-accelerated in
-the same style in the future. This page lists the SIMD-accelerated classes as they exist today,
-and explains precisely what gets vectorised in each.
+SIMD acceleration in EBGeometry is written with compiler intrinsics (SSE4.1, AVX and AVX-512F), not
+left to compiler auto-vectorization. It is confined to the three places listed below: the triangle
+groups at the leaves of a ``TriMeshSDF``, the point groups at the leaves of a ``PointCloudBVH``, and the
+bounding-box test that decides which children of a ``PackedBVH`` node a point query visits. Everything
+else in the library is scalar code. Each of the three stores its data as a *structure of arrays*
+(one aligned array per coordinate) so that one instruction works on several triangles, points or
+boxes at once. The groups are therefore over-aligned (up to 64 bytes, for AVX-512F). The library's
+own storage respects that, and a misplaced member is a compile error (a ``static_assert``); a group
+you allocate yourself, outside a pool or a ``std::vector``, must be aligned to its ``alignof``.
 
 Which version of this code a file uses is fixed when it is compiled, by the compiler's SIMD flags
 (``__SSE4_1__``, ``__AVX__``, ``__AVX512F__``). Compile every file of a program that uses EBGeometry
 with the same flags; see "Mixing SIMD flags in one program" under
-:ref:`branching factor and SIMD width <Sec:DefaultKW>` for what happens otherwise.
+:ref:`branching factor and SIMD width <Sec:DefaultKW>` for what happens otherwise. Device code always
+takes the scalar path.
 
 .. contents:: On this page
    :local:
    :depth: 1
 
-Per-triangle signed-distance evaluation: ``TriangleSoAT<T, W>`` / ``TriangleAoSoA<T, W>``
------------------------------------------------------------------------------------------
+Triangle groups: ``TriangleSoAT<T, W>`` / ``TriangleAoSoA<T, W>``
+--------------------------------------------------------------------
 
-:file:`Source/EBGeometry_TriangleSoA.hpp` / :file:`EBGeometry_TriangleSoAImplem.hpp` (and the
-face-id-carrying wrapper :file:`EBGeometry_TriangleAoSoA.hpp` /
-:file:`EBGeometry_TriangleAoSoAImplem.hpp`)
+:file:`Source/EBGeometry_TriangleSoA.hpp` and :file:`Source/EBGeometry_TriangleAoSoA.hpp`. See
+:ref:`Chap:Triangles` for why triangles are packed this way.
 
-See :ref:`Chap:Triangles` for the conceptual picture of why triangles are packed this way.
+**What it holds:** the geometry of :math:`W` triangles (vertex positions, face, vertex and edge
+normals). `TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ is geometry only;
+`TriangleAoSoA <doxygen/html/structEBGeometry_1_1TriangleAoSoA.html>`__ adds the id of the mesh face
+each triangle was cut from, stored apart from the coordinates so that a distance query reads the same
+bytes either way. It is what lets ``TriMeshSDF`` report which face is closest (``getClosestFace()``, see
+:ref:`Chap:MeshSDFClasses`) at no cost to the plain distance query.
 
-**What it stores:** the vertex positions, vertex normals, edge normals, and face normal of
-:math:`W` triangles, laid out as a *structure of arrays* (one flat, ``alignas``-aligned array
-per coordinate/component, rather than :math:`W` separate ``Triangle`` objects). ``TriangleSoAT``
-is geometry-only; ``TriangleAoSoA<T, W>`` adds a physically separate ``Array<uint32_t, W>``
-of per-triangle face ids alongside it, never interleaved with the coordinates, so the
-signed-distance kernel touches exactly the same bytes either way -- the ids are read only afterward,
-via ``getFaceId(lane)``. This is the same relationship ``PointAoSoA`` has with ``PointSoAT``
-below, and it is what lets ``TriMeshSDF`` answer "which face is closest" (see
-``getClosestFace()`` in :ref:`Chap:MeshSDFClasses`) at no cost to the throughput path. See :ref:`Chap:MeshSDFClasses` for the rest of the ``TriMeshSDF`` machinery this is packed
-into.
+**What is vectorized:** the whole signed-distance computation, ``signedDistance(point)``, for the
+:math:`W` triangles at once, one triangle per SIMD lane; the result is the signed distance of smallest
+magnitude in the group. ``signedDistances(point)`` returns every lane's value instead, and
+``TriangleAoSoA::signedDistance(point, faceId)`` also reports the winning face. The ray-crossing test,
+``rayCrossing()``, is vectorized the same way, through one kernel written for a scalar and for every
+SIMD width (`TriangleRay::crossing() <doxygen/html/namespaceEBGeometry_1_1TriangleRay.html>`__). A group of :math:`W`
+triangles then costs roughly what one triangle costs in scalar code; this is the cost of every leaf a
+``TriMeshSDF`` query visits. A :math:`W` that is not a multiple of a register's lane count is still
+correct, and evaluated one triangle at a time.
 
-**What is vectorised:** the entire closest-point-on-triangle signed-distance query,
-``TriangleSoAT::signedDistance(point)`` (and, via delegation, ``TriangleAoSoA::signedDistance(point)``).
-This is the full algorithm -- classifying the
-projection of the query point against the triangle's three edge regions and interior region,
-computing the squared distance and sign for whichever region applies, per triangle -- executed
-for :math:`W` triangles at once, one SIMD lane per triangle, with vectorised compare/blend
-instructions and no branches. The lanes go through the widest register the compiler's flags provide
-whose lane count divides :math:`W` (``SIMD::NativeWidth<T, W>()``), several registers for a wider
-group, and the result is the minimum signed distance over the block. The id-retrieving companion --
-``TriangleSoAT::signedDistances(point)`` (the per-lane array) and
-``TriangleAoSoA::signedDistance(point, uint32_t&)`` (which reports the winning lane's face id) -- runs
-the same lanes and returns them all, so each lane is exactly the value the minimum was taken over.
-The same kernel, on one triangle, is ``Triangle::signedDistance()`` and the path a device pass takes.
+**Choosing** :math:`W`: the default, ``TriangleSoA::DefaultWidth<T>()``, is 4 for both precisions and
+does not depend on compiler flags, so the type is the same in every file and on a GPU -- unless a
+host-only build defines ``EBGEOMETRY_HOST_TUNED_DEFAULTS``, which makes it the host-tuned width.
+``TriangleSoA::HostWidth<T>()`` is the width that fills one SIMD register under the compiler's flags,
+for host-only code. See :ref:`Sec:DefaultKW` for when to use which, and :ref:`Chap:MeshSDFClasses` for
+how to pass :math:`W` explicitly.
 
-The ray-crossing test, ``TriangleSoAT::rayCrossing()`` (and ``TriangleAoSoA::rayCrossing()``, which
-adds the face id and normal), is vectorised the same way: ``TriangleRay::crossing()``, a Möller--Trumbore
-test written once for a scalar and for a SIMD pack, runs over the group's lanes a register at a time,
-and the nearest crossing wins (see :ref:`Chap:ImplemRays`).
+Point groups: ``PointSoAT<T, W>`` / ``PointAoSoA<T, W>``
+----------------------------------------------------------
 
-**What this means in practice:** evaluating a ``TriangleSoAT<T, W>`` block costs roughly the
-same number of instructions as evaluating a *single* triangle scalar, but produces the answer
-for :math:`W` of them. This is the leaf-level cost inside every ``TriMeshSDF::signedDistance()``
-BVH leaf visit.
+:file:`Source/EBGeometry_PointSoA.hpp` and :file:`Source/EBGeometry_PointAoSoA.hpp`.
 
-**Choosing and tuning** :math:`W`: the default, ``EBGeometry::TriangleSoA::DefaultWidth<T>()``, is
-4 for both precisions and does not depend on compiler flags, so the type is the same in every file
-and on a GPU -- unless a host-only build defines ``EBGEOMETRY_HOST_TUNED_DEFAULTS``, which makes it
-the host-tuned width (see :ref:`Sec:DefaultKW`). ``EBGeometry::TriangleSoA::HostWidth<T>()`` is the width that fills one SIMD register
-under the compiler's flags (the macros described in :ref:`Chap:SIMDAcceleration`), for host-only
-code. See :ref:`Sec:DefaultKW` for when to use which, and :ref:`Chap:MeshSDFClasses` for the
-ISA/precision table, how to pass :math:`W` explicitly, and the data-alignment requirements.
+**What it holds:** the positions of :math:`W` points.
+`PointSoAT <doxygen/html/structEBGeometry_1_1PointSoAT.html>`__ holds positions only;
+`PointAoSoA <doxygen/html/structEBGeometry_1_1PointAoSoA.html>`__ adds each point's id (in a point
+cloud, its index in the cloud), stored apart from the positions, as ``TriangleAoSoA`` does for face ids.
+A group of fewer than :math:`W` points repeats its last point in the remaining lanes; ``numValid()``
+gives the real count.
 
-Per-point distance evaluation: ``PointSoAT<T, W>`` / ``PointAoSoA<T, W>``
---------------------------------------------------------------------------
+**What is vectorized:** the squared distance from a query point to all :math:`W` points.
+``getDistances2()`` returns all of them (what a k-nearest-neighbor search wants),
+``getMinimumDistance2()``/``getMaximumDistance2()`` the nearest and farthest (what a closest-point search
+wants), and the forms without the ``2`` take the square root. This is the leaf cost of a
+``PointCloudBVH`` search; see :ref:`Chap:ExamplePointClouds`. Only a :math:`W` that fills one register
+(or, for ``double`` under AVX, two) is vectorized -- the widths ``PointSoA::HostWidth<T>()`` gives, and
+4 ``float`` under SSE4.1 -- and any other :math:`W` is evaluated with a scalar loop.
 
-:file:`Source/EBGeometry_PointSoA.hpp` / :file:`EBGeometry_PointSoAImplem.hpp` (and the
-id-carrying wrapper :file:`EBGeometry_PointAoSoA.hpp` / :file:`EBGeometry_PointAoSoAImplem.hpp`)
+**Choosing** :math:`W`: as for the triangle groups, the default ``PointSoA::DefaultWidth<T>()`` is 4, and
+``PointSoA::HostWidth<T>()`` is the host-tuned width (see :ref:`Sec:DefaultKW`). Pass either, or any
+other width, as the last template argument. ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` does not change this
+default: wider point groups are no faster.
 
-**What it stores:** the positions of :math:`W` points, laid out as a *structure of arrays* (one
-flat, ``alignas``-aligned array per coordinate, rather than :math:`W` separate point objects).
-``PointSoAT`` is position-only; ``PointAoSoA<T, W>`` adds a physically separate
-``Array<uint32_t, W>`` of point ids (in a point cloud, each point's cloud index) alongside it, never
-interleaved with the positions, so the distance kernel touches exactly the same bytes either way --
-an id is read only afterward, via ``getPointId(lane)``. Groups of fewer than :math:`W` points pad
-their last lanes with the last point; ``numValid()`` gives the real count, so a scan that must see
-each point once stops there. ``PointAoSoA`` is the point counterpart of ``TriangleAoSoA``, which
-carries face ids the same way.
+Bounding-box pruning: ``BVH::PackedBVH<T, P, K>``
+---------------------------------------------------
 
-**What is vectorised:** the squared distance from a query point to all :math:`W` lane positions,
-computed in one SIMD batch -- one ``_mm(128\|256\|512)_load_p[sd]`` per coordinate array, then
-vectorised subtract/multiply/add for all :math:`W` lanes at once. This one kernel
-(``getDistances2()``, which returns the whole :math:`W`-lane array) backs every distance query:
-``getMinimumDistance2()`` / ``getMaximumDistance2()`` horizontally reduce the lanes to the
-nearest / farthest, and the ``*Distance()`` forms add a single ``sqrt``. The full array is what an
-all-neighbors (k-nearest-neighbor) leaf scan wants; the reduced minimum is what a closest-point leaf
-scan wants.
+:file:`Source/EBGeometry_PackedBVH.hpp`, with the queries in :file:`Source/EBGeometry_BVHQuery.hpp`.
+See :ref:`Chap:BVH` for bounding volume hierarchies and pruning, and :ref:`Chap:PackedBVH` for the
+packed representation.
 
-**What this means in practice:** evaluating the distance to a whole :math:`W`-point block costs
-roughly the same as one scalar point distance, but produces the answer for :math:`W` of them. This is
-the leaf-level cost of a point-cloud ``PackedBVH`` search -- see :ref:`Chap:ExamplePointClouds` (closest
-points and k nearest neighbors), built on the ``PointCloudBVH`` class.
+**What it holds:** the bounding boxes of each interior node's :math:`K` children, together, one row
+per node (`BVH::ChildBoxes <doxygen/html/structEBGeometry_1_1BVH_1_1ChildBoxes.html>`__).
 
-**Choosing and tuning** :math:`W`: as for ``TriangleSoA``, the default
-``EBGeometry::PointSoA::DefaultWidth<T>()`` is 4, and ``EBGeometry::PointSoA::HostWidth<T>()`` is the
-host-tuned width (see :ref:`Sec:DefaultKW`). Pass either, or any other width, explicitly as the final
-template argument. The ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` switch does not change this default:
-wider point groups measured no faster.
+**What is vectorized:** the distance from the query point to all :math:`K` child boxes of a node, the
+test that decides which children
+`PackedBVH::traverse() <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__ descends into with a
+``PointQuery``. A ``RayQuery`` tests the child boxes against a ray on SIMD lanes the same way. Every
+search built on ``traverse()`` gets this, including ``MeshSDF``/``TriMeshSDF::signedDistance()`` and a
+search with your own leaf callback (see :ref:`Chap:PackedTraverse`). For a :math:`(K, T)` pair that no
+compiled register fits, this step is a scalar loop over the children, with the same results (unless
+the compiler fuses the scalar loop's multiplies and adds).
 
-SIMD-accelerated bounding-box pruning: ``BVH::PackedBVH<T, P, K>``
------------------------------------------------------------------------
+**What this means in practice:** the cost of choosing which children to visit grows little with
+:math:`K` as long as the :math:`K` boxes fit in one SIMD batch, which is why :math:`K` has a host-tuned
+value.
 
-:file:`Source/EBGeometry_PackedBVH.hpp` / :file:`EBGeometry_PackedBVHImplem.hpp`
-
-See :ref:`Chap:BVH` for the conceptual picture of bounding volume hierarchies and tree pruning.
-
-**What it stores:** each interior node's :math:`K` children's bounding boxes, laid out as a
-*structure of arrays* (``BVH::ChildBoxes``: flat, ``alignas``-aligned low/high-corner coordinate
-arrays across all :math:`K` children), one row per interior node, alongside the usual index-offset
-node data. See
-:ref:`Chap:PackedBVH` for the rest of the packed representation.
-
-**What is vectorised:** the point-to-bounding-box squared-distance test used to decide which
-children to descend into (or prune) during traversal, in ``PackedBVH::traverse()`` with a
-``PointQuery``. All
-:math:`K` children of a node are tested against the query point in a single SIMD batch --
-one ``_mm(128\|256\|512)_load_p[sd]`` per coordinate array, then vectorised subtract/max/multiply/add
-to get all :math:`K` squared distances at once -- rather than a scalar loop over children.
-``PackedBVH`` has no ``signedDistance()`` of its own; ``MeshSDF``/``TriMeshSDF::signedDistance()``
-each build a thin wrapper around ``traverse()``, supplying a signed-distance leaf callback and
-bound. Any caller can call ``traverse()`` directly with its own leaf callback and bound to get the
-same SIMD node pruning over a different search (e.g. nearest-neighbor search over a primitive type with
-no ``signedDistance()`` at all). A ``RayQuery`` tests the children's boxes with a ray (a slab test) on
-SIMD lanes the same way. See :ref:`Chap:PackedTraverse` for the full callback contract and traversal
-algorithm.
-
-When ``(K, T)`` matches no compiled ISA path, this one step -- and only this step -- falls back to
-a scalar loop over the :math:`K` children; the surrounding traversal is the same code either way,
-and the two produce bit-identical results, a NaN coordinate included, unless the compiler contracts
-the scalar path's multiply and add into a fused multiply-add (see :ref:`Chap:PackedTraverse`).
-
-**What this means in practice:** the cost of deciding which subtree(s) to visit next no longer
-scales with :math:`K` the way a scalar loop would; a wider branching factor (larger :math:`K`)
-is close to "free" for this step as long as it still fits in one SIMD batch for the target ISA,
-which is why :math:`K` can be tuned per ISA (see below).
-
-**Choosing and tuning** :math:`K`: likewise, the default ``BVH::DefaultBranchingRatio<T>()`` is 4,
-and ``BVH::HostBranchingRatio<T>()`` is the host-tuned value, driven by the same ISA macros as
-``TriangleSoA::HostWidth<T>()`` so the two give a matching :math:`(K, W)` pair. The
-``EBGEOMETRY_HOST_TUNED_DEFAULTS`` switch does not change this default: a wider :math:`K` measured
-no faster, and :math:`K = 16` was markedly slower. See :ref:`Sec:DefaultKW` and
-:ref:`Chap:MeshSDFClasses`.
+**Choosing** :math:`K`: the default ``BVH::DefaultBranchingRatio<T>()`` is 4, and
+``BVH::HostBranchingRatio<T>()`` is the host-tuned value, chosen from the same SIMD flags as
+``TriangleSoA::HostWidth<T>()`` so that the two give a matching :math:`(K, W)` pair.
+``EBGEOMETRY_HOST_TUNED_DEFAULTS`` does not change this default: a wider :math:`K` is no faster, and
+:math:`K = 16` is markedly slower. See :ref:`Sec:DefaultKW` and :ref:`Chap:MeshSDFClasses`, and
+:ref:`Chap:ExampleHostTuning` to measure your own case.

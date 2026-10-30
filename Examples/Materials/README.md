@@ -5,8 +5,8 @@ Which part of an object a query found. The armadillo has a cylinder bored throug
 (`Difference`), and a tape numbers its leaves in expression order: the armadillo 0, the cylinder 1. That
 number indexes a table of your own (here material names; in an application, materials or boundary
 conditions). `closestPrimitive(p).m_leaf` names the leaf the value at a point comes from, and `firstHit()`
-reports the leaf a ray crossed in `HitT::m_primitive`. The viewer colours by the same id
-(`ColourBy::Primitive`), so the bore's wall shows in another colour.
+reports the leaf a ray crossed in `HitT::m_primitive`. The viewer colors by the same id
+(`ColorBy::Primitive`), so the bore's wall shows in another color.
 
 The default mesh comes from the `common-3d-test-models` git submodule: clone the repository with
 `--recurse-submodules`, or run `git submodule update --init` in it. Pass another mesh as the first

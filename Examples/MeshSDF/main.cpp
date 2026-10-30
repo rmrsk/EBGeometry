@@ -31,7 +31,7 @@ constexpr std::size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
 using TriMeshSDF = EBGeometry::TriMeshSDF<T, K, W>;
 
 // The number of random points the representations are timed over. FlatMeshSDF visits every face for
-// every point, so a few hundred points already take minutes on a large mesh in an unoptimised build.
+// every point, so a few hundred points already take minutes on a large mesh in an unoptimized build.
 constexpr std::size_t numPoints = 100;
 
 namespace {
@@ -199,7 +199,7 @@ try {
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // Render::view() opens a window on any shape: drag to orbit, scroll to zoom, X to cut it open with a
-  // section plane, P to cycle the colouring (by primitive, each face differs). A surface seen from inside
+  // section plane, P to cycle the coloring (by primitive, each face differs). A surface seen from inside
   // the solid is drawn red, which is what an inverted mesh (faces wound the wrong way) looks like. The window needs SDL2: build
   // with make VIEWER=SDL2 or cmake -DEBGEOMETRY_VIEWER=SDL2. Otherwise, with --no-view, or without a
   // display, view() prints why and returns. The camera starts fitted to the mesh's bounding box. Given the

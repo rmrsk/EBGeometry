@@ -3,8 +3,9 @@
 Running queries on a GPU
 ========================
 
-Every EBGeometry object that can be evaluated on a device (the analytic shapes, the mesh signed
-distance functions, the BVH unions, tapes, the point clouds) is a trivially copyable value. A kernel
+Every EBGeometry object that can be evaluated on a device (the analytic shapes, fused compositions,
+the mesh signed distance functions, the BVH unions, tapes, the point clouds) is a trivially copyable
+value. A kernel
 receives it by value and calls it like any other function. There are two ways to get it into a
 kernel:
 
@@ -18,6 +19,10 @@ kernel:
 This page describes the second, and ends with the launch settings (:ref:`Sec:LaunchSettings`), which
 a kernel written by hand can copy. See :ref:`Sec:BuildingGPU` for how to compile for a GPU and
 :ref:`Chap:MemoryModel` for how an object's memory reaches the device.
+
+Every query runs on a device, and the device unit tests pass on a real GPU (CUDA). The continuous
+integration compiles those tests for CUDA and HIP but has no GPU to run them on, so a device run is
+done by hand.
 
 What runs where
 ---------------
@@ -182,11 +187,9 @@ Rendering on a GPU
 ------------------
 
 ``Render::Renderer::renderOnDevice(deviceShape, camera, image)`` renders an image through
-``GPU::parallelFor``: one ``Render::PixelQuery`` per pixel index, with the shape passed as a view of a
-mirrored pool, exactly as for a query (:ref:`Chap:ImplemRender`). It renders the image in up to eight
-bands of rows, one launch each (so that a render can be stopped between them), into one buffer in device
-memory, copied back to the host once. ``Render::view()`` takes the same device view to render its window
-on the GPU, or the pool, which it then mirrors itself.
+``GPU::parallelFor``, one thread per pixel, with the shape passed as a view of a mirrored pool, exactly
+as for a query (:ref:`Chap:ImplemRender`). A render can be stopped part-way. ``Render::view()`` takes
+the same device view to render its window on the GPU, or the pool, which it then mirrors itself.
 
 GPU::parallelFor
 ----------------
@@ -201,16 +204,13 @@ its index. The functor writes its own results, through a span it holds.
 Large queries
 -------------
 
-``parallelFor`` and ``transform`` pass the query (or the functor) to the kernel by value. When the query
-calls a function that is not inlined -- a ``Tape``'s evaluator, say -- the compiler needs the query's
-address, and would copy the whole query into every thread's local memory first: for a ``Tape``, a few
-hundred bytes per thread, which cost more than the evaluation itself (issue #221). Under CUDA 11.7 and
-later the kernel's parameter is therefore a grid constant (``EBGEOMETRY_GRID_CONSTANT``,
-``__grid_constant__``), which the threads read in place. That needs compute capability 7.0 or later, the
-oldest architecture an EBGeometry CUDA build defaults to; when a build also compiles for an older
-architecture, the macro is empty in that architecture's device code, which copies the query as before.
-HIP has no such qualifier; there the macro is empty. A kernel written by hand (see
-:ref:`Chap:ExampleCustomShape`) can mark its own query parameter the same way.
+``parallelFor`` and ``transform`` pass the query (or the functor) to the kernel by value. A large
+query, such as one holding a ``Tape``, could then be copied into every thread's memory, which can cost
+more than the evaluation itself. Under CUDA 11.7 and later, on compute capability 7.0 and later, the
+kernel's parameter is instead marked ``EBGEOMETRY_GRID_CONSTANT`` (``__grid_constant__``) and the
+threads read it in place; on older CUDA architectures and under HIP the macro is empty and the query is
+copied. A kernel written by hand (see :ref:`Chap:ExampleCustomShape`) should mark its own query
+parameter the same way.
 
 .. _Sec:LaunchSettings:
 
@@ -255,9 +255,8 @@ Why the block size is a template argument
 
 Why there is a minimum of resident threads
    Left to itself, the CUDA compiler picks one register budget for a whole kernel, every function it
-   calls included, and the pick jumps with small changes to code the kernel may not even run: a tape's
-   ray kernel once went from 255 registers to 40, and ran up to twice as slow, after a few lines were
-   added elsewhere in the ray code. Asking for a minimum fixes the budget at what that minimum allows.
+   calls included, and the pick can change sharply with small changes to code the kernel may not even
+   run, and with it the speed. Asking for a minimum fixes the budget at what that minimum allows.
    A multiprocessor has 65,536 registers, shared by its resident threads and allocated a warp at a
    time, and a thread may use at most 255. Both hold on every NVIDIA GPU since Maxwell, so the budget is
    about 65,536 divided by the minimum, rounded down, whatever the device:
@@ -289,16 +288,13 @@ Why there is a minimum of resident threads
    architectures a build compiles for.
 
    The budget is a ceiling the compiler tends to fill. A kernel that needed fewer registers may then use
-   more, and fewer of its threads fit on a multiprocessor: under the default, rays traced through a
-   fused composition (``Fused::``) went from 56 registers to 161 and ran up to a third slower, and the
-   renderer's frame of a mesh from 128 to 161, 10% slower. Such a kernel can run better with a larger
+   more, and fewer of its threads fit on a multiprocessor; such a kernel can run better with a larger
    minimum, or with none.
 
 Which setting is fastest
-   It depends on the query, the device and the precision. Measured on one desktop GPU, ray tracing
-   through a tape took 2.5 times as long with no minimum as with the default, and 1.45 times as long at
-   768; a mesh's signed distance took the same time at every setting. The default has not been tuned for
-   every query, and a kernel that runs best with few registers may be slower under it. An application
+   It depends on the query, the device and the precision: a query that needs many registers (ray
+   tracing through a tape) can run much slower with no minimum, while for another (a mesh's signed
+   distance) the setting makes no difference. The default has not been tuned for every query, and a kernel that runs best with few registers may be slower under it. An application
    that launches one query many times can time a few settings on a sample of its queries at startup and
    keep the fastest, as :ref:`Chap:ExampleDeviceTuning` does. Time the pool overload, which allocates and
    copies nothing.

@@ -4,7 +4,7 @@ Integrations/AMReX/ManyObjects
 Many objects in a BVH union, handed to AMReX's EB2 grid generation as an implicit function, in one of two
 scenes:
 
-* `spheres`: 3,000 spheres of random sizes at random places in a cylinder (centres by rejection sampling),
+* `spheres`: 3,000 spheres of random sizes at random places in a cylinder (centers by rejection sampling),
   joined by a `BVHSmoothUnion`: the fluid is the space between the spheres. It mirrors the
   [`PackedSpheres`](../../../Examples/PackedSpheres/README.md) example.
 * `city`: a city of randomly sized buildings, one per lot on a grid, in a `BVHUnion`. It mirrors the

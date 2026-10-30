@@ -63,7 +63,7 @@ struct Summary
 };
 
 /**
- * @brief Summarise a set of repetitions.
+ * @brief Summarize a set of repetitions.
  * @param[in] a_values The values.
  * @return Their median, interquartile range and minimum (all 0 for no values).
  */

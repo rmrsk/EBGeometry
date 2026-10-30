@@ -91,6 +91,13 @@ HostWidth() noexcept
  * a CUDA or HIP translation unit. EBGeometry's own CMake build defines it when EBGeometry is the
  * top-level project and no GPU backend is enabled.
  *
+ * Measured (200,000 queries, best of three; TriMeshSDF on the 100k-triangle armadillo, PointCloudBVH on a
+ * 200,000-point random cloud): on AVX2 in float, W = 8 took TriMeshSDF from 0.531 s to 0.438 s, K = 8 changed
+ * nothing, and PointCloudBVH was unchanged. On an AVX-512 machine (runs varied by up to 15%): float TriMeshSDF
+ * 1.81 s, 1.85 s at W = 16, 3.51 s at K = 16; float PointCloudBVH 0.175 s, 0.220 s at W = 16, 0.386 s at
+ * K = 16; double TriMeshSDF 3.06 s, 2.62 s at W = 8, 3.95 s at K = 8; double PointCloudBVH 0.354 s, 0.352 s at
+ * W = 8, 0.380 s at K = 8. On one AVX2 core, host vectorization is worth about 3.4 times for float TriMeshSDF.
+ *
  * Usage: `size_t W = TriangleSoA::DefaultWidth<T>()` as a template-parameter default.
  * @tparam T Floating-point precision type (float or double).
  * @return 4, or HostWidth<T>() under EBGEOMETRY_HOST_TUNED_DEFAULTS.
@@ -118,8 +125,8 @@ DefaultWidth() noexcept
  * AVX takes two 4-lane registers, and W = 4 doubles under SSE4.1 two 2-lane ones). Where no register
  * fits, and in every device pass, the same kernel runs on one triangle at a time.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
- * usage is safe: PackedBVH stores groups in a Pool-backed PODVector<TriangleSoAT>, which reserves
- * each array at alignof(TriangleSoAT) inside a block aligned to PoolBaseAlign (256 bytes), and the
+ * usage is safe: PackedBVH stores groups (inside TriangleAoSoA) in a Pool-backed PODVector, which reserves
+ * each array at its element's alignment inside a block aligned to PoolBaseAlign (256 bytes), and the
  * build-time std::vector staging relies on C++17's std::allocator respecting over-alignment. If you allocate a TriangleSoAT yourself outside of that path —
  * a raw `new`, a container with a custom/pre-C++17-style allocator, placement-new into
  * externally-owned storage, or a `malloc`'d buffer — you are responsible for ensuring the memory is
@@ -140,7 +147,7 @@ public:
   /**
    * @brief Pack count triangles from tris[0..count-1] into this SoA group.
    * @details Pads lanes count..W-1 by repeating the last real triangle so that all W
-   * lanes hold valid data and SIMD loads never read uninitialised memory.
+   * lanes hold valid data and SIMD loads never read uninitialized memory.
    * @param[in] tris  Source triangle array with at least count elements. Must not be null.
    * @param[in] count Number of valid triangles to pack. Must satisfy 1 <= count <= W.
    */
@@ -195,7 +202,7 @@ public:
   /**
    * @brief One lane's signed distance: on the host, bit for bit the value signedDistances() gives that lane;
    * on a device, the same to rounding.
-   * @param[in] a_lane  Lane, below W.
+   * @param[in] a_lane  Lane, below the number of packed triangles.
    * @param[in] a_point The point.
    * @return The signed distance.
    */

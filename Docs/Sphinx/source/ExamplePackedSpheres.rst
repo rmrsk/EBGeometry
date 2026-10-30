@@ -3,7 +3,7 @@
 Packed spheres
 ==============
 
-Spheres of random sizes filling a cylinder, joined by a smooth union so that neighbours that touch merge
+Spheres of random sizes filling a cylinder, joined by a smooth union so that neighbors that touch merge
 with a fillet. The source is at :file:`Examples/PackedSpheres/main.cpp`.
 
 .. figure:: /_static/example_PackedSpheres.jpg
@@ -15,7 +15,7 @@ with a fillet. The source is at :file:`Examples/PackedSpheres/main.cpp`.
 Building the packing
 --------------------
 
-Each sphere's centre is drawn by rejection sampling: uniformly in the box around a cylinder along
+Each sphere's center is drawn by rejection sampling: uniformly in the box around a cylinder along
 :math:`x`, five times as long as its radius, and kept only if it lies inside the cylinder. Its radius is
 drawn too. A
 `BVHSmoothUnion <doxygen/html/classEBGeometry_1_1BVHSmoothUnion.html>`__ holds them in a pool and builds a

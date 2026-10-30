@@ -4,9 +4,9 @@ Overview
 ========
 
 EBGeometry is a header-only C++17 library with zero external dependencies, implemented entirely
-under the ``EBGeometry`` namespace (with sub-namespaces ``EBGeometry::DCEL``, ``EBGeometry::BVH``,
-``EBGeometry::Octree``, ``EBGeometry::SFC``, and ``EBGeometry::Parser`` for the major
-components). A handful of design choices recur throughout the implementation:
+under the ``EBGeometry`` namespace (with sub-namespaces such as ``EBGeometry::DCEL``,
+``EBGeometry::BVH``, ``EBGeometry::Fused``, ``EBGeometry::PointCloud``, ``EBGeometry::GPU``,
+``EBGeometry::Render``, ``EBGeometry::SFC`` and ``EBGeometry::Parser`` for the major components). A handful of design choices recur throughout the implementation:
 
 * **Precision templating.** Every class and function is templated on a floating-point type
   ``T`` (almost always ``float`` or ``double``). Precision is a compile-time choice: the library
@@ -37,8 +37,7 @@ components). A handful of design choices recur throughout the implementation:
 * **SIMD as an opt-in, compile-time-detected layer.** SIMD acceleration is implemented with
   compiler intrinsics in three places (the SoA triangle and point blocks, and ``PackedBVH``'s
   child-bounding-box pruning), selected at compile time from the standard compiler-predefined ISA
-  macros -- never a runtime dispatch. The triangle distance is one kernel template, instantiated
-  for a scalar and for thin wrappers over each SIMD register (``SIMD::Pack``). See
+  macros -- never a runtime dispatch. See
   :ref:`Chap:SIMDClasses`.
 
 * **Device-callable basics.** Scalar helpers and numeric limits (``Math::min``, ``Math::max``,
@@ -58,15 +57,20 @@ The remaining pages in this section cover each component in more detail:
 * :ref:`Chap:MemoryModel` -- the placement-independent ``Pool``/``PODVector`` storage foundation
   that ``DCEL::MeshT``, ``BVH::PackedBVH`` and the mesh SDFs, point clouds and BVH unions built
   from them rest on.
+* :ref:`Chap:RunningOnGPU` -- building for a GPU, mirroring a pool to the device, and running
+  queries there with ``GPU::transform``.
 * :ref:`Chap:Vector` -- the ``Vec2T``/``Vec3T`` vector types used throughout the library.
 * :ref:`Chap:ImplemCSG` -- shapes, the analytic shapes, the expression builder for transforms and
   CSG combinations, the tape that evaluates them, and the BVH unions.
 * :ref:`Chap:ImplemDCEL` -- the half-edge (DCEL) surface mesh representation.
 * :ref:`Chap:ImplemBVH` -- bounding volume hierarchy construction, traversal, and the packed
   mesh/CSG signed distance function classes built on top of it.
+* :ref:`Chap:ImplemRays` -- ray and segment queries (``firstHit()``, ``intersects()``) on every kind
+  of shape.
+* :ref:`Chap:ImplemRender` -- the renderer and the interactive viewer.
 * :ref:`Chap:ImplemOctree` -- octree subdivision for bounding-box estimates, and normals of any
   function.
-* :ref:`Chap:ImplemPointCloud` -- point-cloud BVHs and hash grids for nearest-neighbour queries.
+* :ref:`Chap:ImplemPointCloud` -- point-cloud BVHs and hash grids for nearest-neighbor queries.
 * :ref:`Chap:Parsers` -- reading surface meshes from STL/PLY/OBJ/VTK files.
-* :ref:`Chap:SIMDClasses` -- the three SIMD-accelerated classes, and exactly what is vectorised in
+* :ref:`Chap:SIMDClasses` -- the three SIMD-accelerated classes, and exactly what is vectorized in
   each.

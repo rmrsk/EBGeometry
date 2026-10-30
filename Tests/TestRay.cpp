@@ -810,7 +810,7 @@ TEMPLATE_TEST_CASE("Ray: the analytic ray forms give the closed-form crossings",
   REQUIRE_THAT(tubeHit.m_t, withinAbsT(T(3) - std::sqrt(T(0.25) - z * z), tightMargin<T>()));
   REQUIRE(firstHit(tube, alongX, T(0), T(10)).m_status == HitStatus::Miss); // Inside it all along.
 
-  // A capsule along x, with tips at x = -1 and 1 (so its cap centres are at x = -0.5 and 0.5), is entered
+  // A capsule along x, with tips at x = -1 and 1 (so its cap centers are at x = -0.5 and 0.5), is entered
   // through its hemispherical cap.
   const CapsuleSDF<T> capsule(Vec3(-T(1), T(0), T(0)), Vec3(T(1), T(0), T(0)), T(0.5));
   const HitT<T>       capsuleHit = firstHit(capsule, alongX, T(0), T(10));
@@ -837,13 +837,13 @@ TEMPLATE_TEST_CASE("Ray: a small ball and a thin cylinder far from the ray's sta
   using Vec3 = Vec3T<T>;
 
   // Rays from the origin that pass a ball (and a cylinder) of radius 0.03, about 3 away, at 1 +- 3e-4 and
-  // 1 +- 1e-3 times the radius from its centre (axis). The reference decides from that distance, computed in
+  // 1 +- 1e-3 times the radius from its center (axis). The reference decides from that distance, computed in
   // double from the ray as stored: float's |oc|^2 - r^2 alone loses about 1e-3 of the radius here.
   const T    radius = T(0.03);
-  const Vec3 centre(T(2.4), T(1.3), -T(1.1));
+  const Vec3 center(T(2.4), T(1.3), -T(1.1));
 
-  const SphereSDF<T>           ball(centre, radius);
-  const InfiniteCylinderSDF<T> tube(Vec3(centre[0], centre[1], T(0)), radius, 2);
+  const SphereSDF<T>           ball(center, radius);
+  const InfiniteCylinderSDF<T> tube(Vec3(center[0], center[1], T(0)), radius, 2);
 
   const double offsets[] = {-1e-3, -3e-4, 3e-4, 1e-3};
 
@@ -858,7 +858,7 @@ TEMPLATE_TEST_CASE("Ray: a small ball and a thin cylinder far from the ray's sta
     return std::sqrt(a_v[0] * a_v[0] + a_v[1] * a_v[1] + a_v[2] * a_v[2]);
   };
 
-  const std::array<double, 3> c = exactFrom(centre);
+  const std::array<double, 3> c = exactFrom(center);
 
   for (int k = 0; k < 64; k++) {
     const double angle = 6.283185307179586 * double(k) / 64.0;
@@ -866,7 +866,7 @@ TEMPLATE_TEST_CASE("Ray: a small ball and a thin cylinder far from the ray's sta
     for (const double offset : offsets) {
       const double reach = 0.03 * (1.0 + offset);
 
-      // The ball: a unit vector perpendicular to the centre, turned by the angle.
+      // The ball: a unit vector perpendicular to the center, turned by the angle.
       {
         const std::array<double, 3> u = {
           1.3 / std::sqrt(2.4 * 2.4 + 1.3 * 1.3), -2.4 / std::sqrt(2.4 * 2.4 + 1.3 * 1.3), 0.0};
@@ -1200,7 +1200,7 @@ TEMPLATE_TEST_CASE("Ray: offsets and annuli of analytic shapes are traced to the
         diagonal);
   check(Fused::Offset(box, -T(0.2)), Offset(box, -T(0.2)), -T(3) * x, x, T(2.2), true, -x);
 
-  // A capsule with its tips at x = -1 and 1, of radius 0.3 (its ends' centres at x = -0.7 and 0.7), grown by 0.2.
+  // A capsule with its tips at x = -1 and 1, of radius 0.3 (its ends' centers at x = -0.7 and 0.7), grown by 0.2.
   const CapsuleSDF<T> capsule(-x, x, T(0.3));
 
   check(Fused::Offset(capsule, T(0.2)), Offset(capsule, T(0.2)), -T(3) * y, y, T(2.5), true, -y);
@@ -1316,8 +1316,8 @@ TEMPLATE_TEST_CASE("Ray: offsets and annuli of meshes are traced to their faces 
   // Towards the corner at the origin along the diagonal: the ball about the corner.
   annulus(-T(2) * Vec3::ones(), diagonal, T(0), T(2) * std::sqrt(T(3)) - T(0.1), true, -diagonal);
 
-  // Grown by 0.1: entered at x = -0.1; from the centre, left at x = 1.1. Shrunk by 0.1: entered at x = 0.1;
-  // from the centre, left at x = 0.9.
+  // Grown by 0.1: entered at x = -0.1; from the center, left at x = 1.1. Shrunk by 0.1: entered at x = 0.1;
+  // from the center, left at x = 0.9.
   const auto offset = [&](const T a_r, const Vec3& a_from, const T a_t, const bool a_in, const Vec3& a_n) {
     check(Fused::Offset(triangles, a_r),
           Fused::Offset(polygons, a_r),

@@ -754,12 +754,12 @@ Elongate(const A& a_operand, const Vec3T<ExprPrecision<A>>& a_elongation);
 /**
  * @brief Blur an object: a weighted average of its values at the 27 points p + d (i, j, k), i, j, k in
  * {-1, 0, 1}.
- * @details The weights are alpha^(3-m) ((1 - alpha)/2)^m for a tap m steps from the centre, which sum to
+ * @details The weights are alpha^(3-m) ((1 - alpha)/2)^m for a tap m steps from the center, which sum to
  * one, so a 1-Lipschitz object stays 1-Lipschitz.
  * @tparam A Shape or Expr type.
  * @param[in] a_operand Object.
  * @param[in] a_blur    Blur distance d (finite, >= 0).
- * @param[in] a_alpha   Centre weight factor in [0, 1]; 1 = no blur.
+ * @param[in] a_alpha   Center weight factor in [0, 1]; 1 = no blur.
  * @return The blurred object.
  */
 template <class A>
@@ -775,7 +775,7 @@ Blur(const A& a_operand, const ExprPrecision<A> a_blur, const ExprPrecision<A> a
  * @tparam A Shape or Expr type.
  * @param[in] a_operand Object.
  * @param[in] a_dist    Mollification distance r: the half-width of the sampling cube (finite).
- * @param[in] a_samples Samples per axis n (>= 1).
+ * @param[in] a_samples Samples per axis n (between 1 and 64).
  * @return The mollified object.
  */
 template <class A>

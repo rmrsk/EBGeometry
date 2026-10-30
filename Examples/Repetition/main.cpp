@@ -67,7 +67,7 @@ try {
 
   const auto mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool);
 
-  // Scale the mesh to height 1 and stand it on y = 0, centred in x and z.
+  // Scale the mesh to height 1 and stand it on y = 0, centered in x and z.
   const Vec3 lo    = mesh.computeBoundingVolume().getLowCorner();
   const Vec3 hi    = mesh.computeBoundingVolume().getHighCorner();
   const T    scale = T(1) / (hi[1] - lo[1]);

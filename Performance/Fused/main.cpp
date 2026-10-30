@@ -9,7 +9,7 @@
 // with Performance/Tape, whose cases are the same solids through a tape and written by hand: each fused
 // case names its tape counterpart (Case::relativeTo()), and a comparison notes time(tape)/time(fused)
 // beside it, so that the cost of interpreting a tape is tracked. They are in a probe of their own because
-// adding them to the Tape probe's translation unit changed how GCC inlines the tape's evaluator there, and
+// cases added to the Tape probe's translation unit change how GCC inlines the tape's evaluator there, and
 // so the Tape cases' timings. See ../README.md and PerformanceTesting.rst.
 
 #include <cstddef>
@@ -38,7 +38,7 @@ constexpr std::size_t ChainSpheres = 16;
 template <class T>
 using Vec3 = EBGeometry::Vec3T<T>;
 
-// Sphere i of the chain: ChainSpheres spheres in a row along x, overlapping their neighbours.
+// Sphere i of the chain: ChainSpheres spheres in a row along x, overlapping their neighbors.
 template <class T>
 EBGeometry::SphereSDF<T>
 chainSphere(std::size_t a_index)

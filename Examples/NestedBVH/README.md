@@ -63,7 +63,7 @@ Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE
 **For a GPU**
 
 The same source also builds for a GPU, and the same run then repeats its queries in a kernel and
-compares them with the host's (a GPU build without a visible GPU skips that part):
+prints the device's values (a GPU build without a visible GPU skips that part):
 
     make GPU=HIP HIP_ARCH=gfx90a                                  # or GPU=CUDA CUDA_ARCH=sm_80
     cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA

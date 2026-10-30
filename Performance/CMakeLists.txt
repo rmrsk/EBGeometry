@@ -96,7 +96,7 @@ else()
   set(_perf_gpu_build OFF)
 endif()
 
-# Host-side vector flags for a GPU build, so that a host/device comparison does not set unvectorised
+# Host-side vector flags for a GPU build, so that a host/device comparison does not set unvectorized
 # host code against the device (safe: the default branching factor and widths never follow the ISA).
 # HIP (clang) takes AVX2 and FMA, which every x86 host of a GPU has. nvcc cannot: with any host SIMD
 # macro set, GCC's immintrin.h pulls in the AMX headers, which nvcc's front end fails to parse (GCC 12
@@ -157,7 +157,7 @@ foreach(perf_main IN LISTS perf_mains)
   endif()
 
   # In a GPU build the host side still gets vector instructions, so that a host/device comparison
-  # does not set unvectorised host code against the device. Safe, because the default branching
+  # does not set unvectorized host code against the device. Safe, because the default branching
   # factor and widths never follow the ISA (see ConfigurationOptions.rst).
   if(_perf_gpu STREQUAL "CUDA" AND EBGEOMETRY_PERF_GPU_HOST_FLAGS)
     foreach(flag IN LISTS EBGEOMETRY_PERF_GPU_HOST_FLAGS)

@@ -41,7 +41,7 @@ function(ebgeometry_add_example name)
     COMMAND $<TARGET_FILE:${name}> ${example_arguments}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${name}
   )
-  # Examples load large mesh files and run in unoptimised debug builds; allow
+  # Examples load large mesh files and run in unoptimized debug builds; allow
   # up to 5 minutes each, and tag them so they can be run separately from the
   # fast unit-test suite (ctest -L example).
   set_tests_properties(${name} PROPERTIES

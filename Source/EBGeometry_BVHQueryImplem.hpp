@@ -65,16 +65,18 @@ pointDistance2(const ChildBoxes<T, K>& a_row, const Vec3T<T>& a_point, const siz
 
 /**
  * @brief The squared distances from a point to all K child boxes of a row: the SIMD kernel.
- * @details Internal helper; not part of the public API. Formerly PackedBVH's private computeChildDistances2(),
- * moved unchanged. Dispatches at compile time on (T, K) and the compiled ISA: AVX-512F for (double, K=8)
- * and (float, K=16), AVX for (double, K=4), (float, K=8) and (double, K=8) as two 4-wide passes, SSE4.1
- * for (float, K=4), and a scalar loop for every other combination and for device compilation. Every
- * path computes the same quantity in the same association order, so all agree bit for bit (a NaN
- * coordinate counts as inside along that axis), unless the compiler contracts the scalar path into
- * fused multiply-adds, which the intrinsics do not.
+ * @details Internal helper; not part of the public API. Dispatches at compile time on (T, K) and the
+ * compiled ISA: AVX-512F for (double, K=8) and (float, K=16), AVX for (double, K=4), (float, K=8) and
+ * (double, K=8) as two 4-wide passes, SSE4.1 for (float, K=4), and a scalar loop for every other
+ * combination and for device compilation. Every path computes the same quantity in the same association order, so all agree bit for bit (a NaN
+ * coordinate counts as inside along that axis, so it never prunes a child; under -ffast-math the
+ * compiler may assume there are no NaNs, and then no path promises anything for one), unless the
+ * compiler contracts the scalar path into fused multiply-adds, which the intrinsics do not: Clang does
+ * so by default within an expression, and GCC in its GNU language modes (-std=gnu++17; EBGeometry's own
+ * CMake build uses -std=c++17), whenever FMA is enabled.
  * @tparam T Precision.
  * @tparam K Branching factor.
- * @param[in]  a_row   The child boxes.
+ * @param[in]  a_soa   The child boxes.
  * @param[in]  a_point The point.
  * @param[out] a_dist2 One squared distance per child; needs no alignment (unaligned stores).
  */
@@ -104,7 +106,7 @@ pointDistances2(const ChildBoxes<T, K>& a_soa, const Vec3T<T>& a_point, T* a_dis
   // with a NaN it returns b: with the operands in this order, each max is exactly the scalar path's
   // comparison below, and a NaN coordinate gives 0 for that axis on every path.
   //
-  // Recommended configurations on AVX-512 hardware:
+  // The host-tuned configurations on AVX-512 hardware (HostBranchingRatio(), TriangleSoA::HostWidth()):
   //   float  -> K=16, W=16  (one _mm512_load_ps covers all children and one leaf group)
   //   double -> K=8,  W=8   (one _mm512_load_pd covers all children; AVX-512F replaces
   //                          the 2x_mm256_load_pd emulation in the AVX fallback below)

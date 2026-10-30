@@ -160,7 +160,8 @@ public:
   /**
    * @brief Add or replace a vertex property.
    * @param[in] a_name Property name.
-   * @param[in] a_data One value per vertex. Its size must be numVertices().
+   * @param[in] a_data One value per vertex. Its size must be numVertices(); any other size aborts
+   * with a message, in every build.
    */
   void
   setVertexProperty(const std::string& a_name, std::vector<T> a_data);
@@ -168,7 +169,8 @@ public:
   /**
    * @brief Add or replace a face property.
    * @param[in] a_name Property name.
-   * @param[in] a_data One value per face. Its size must be numFacets().
+   * @param[in] a_data One value per face. Its size must be numFacets(); any other size aborts with a
+   * message, in every build.
    */
   void
   setFaceProperty(const std::string& a_name, std::vector<T> a_data);
@@ -218,8 +220,9 @@ public:
   /**
    * @brief Build flat triangles from the soup.
    * @details Builds the DCEL mesh as convertToDCEL() does, in a Pool private to this call, and cuts
-   * each face into triangles, a polygon by a fan from its first vertex. Each triangle carries the
-   * index of the mesh face it was cut from, and the mesh's edge and vertex normals.
+   * each face into triangles, a polygon by a fan from one of its vertices (the one whose smallest fan
+   * triangle is largest), and a zero-area face into none. Each triangle carries the index of the
+   * mesh face it was cut from, and the mesh's edge and vertex normals.
    * @param[in] a_onDefect As for convertToDCEL().
    * @return The triangles, by value.
    * @throws Parser::ParseError as convertToDCEL().

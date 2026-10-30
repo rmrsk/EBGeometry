@@ -31,7 +31,7 @@
 
 namespace EBGeometry {
 
-// A span list is left uninitialised past m_count (zeroing it costs local-memory stores on a device), and GCC
+// A span list is left uninitialized past m_count (zeroing it costs local-memory stores on a device), and GCC
 // cannot see that only the first m_count spans are ever read.
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -527,7 +527,7 @@ mapBack(const MappedRay<T>& a_mapped, const T a_t0, const T a_t1, RaySpansT<T>& 
 
 /**
  * @brief A normal of the operand of an affine map, mapped back to the original frame: by the transposed
- * matrix, and normalised.
+ * matrix, and normalized.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @param[in] a_map    The map's coefficients.
@@ -1004,7 +1004,7 @@ leafHit(const S& a_shape, const RayT<T>& a_ray, const T a_t, const RayOptions<T>
  * @details Internal helper; not part of the public API. A_trace(t0, t1, allSpans, spans) writes the
  * composition's list over [t0, t1]; allSpans asks every operand for all its spans, which a trace that
  * gets no further (its horizon at its start) is repeated with. A query that still gets no further, or
- * starts again too many times, is unresolved. A_resolve(t, leaf) then gives the crossing's normal and
+ * starts again too many times (64 passes), is unresolved. A_resolve(t, leaf) then gives the crossing's normal and
  * primitive, from the leaf its end names.
  * @tparam T       Floating-point precision.
  * @tparam Trace   Callable writing the list.

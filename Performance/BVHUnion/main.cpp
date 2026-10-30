@@ -60,7 +60,7 @@ spheres(std::size_t a_n, std::vector<EBGeometry::SphereSDF<T>>& a_shapes)
 }
 
 // Capsules 3 long (tip to tip), of radius 0.2, along the diagonal (1,1,1), at spacing 1.8: the worst case
-// for an axis-aligned box. A capsule fills about 5% of its box, and every box overlaps its neighbours',
+// for an axis-aligned box. A capsule fills about 5% of its box, and every box overlaps its neighbors',
 // so a query point lies in many leaf boxes. The capsules themselves do not touch (those on one diagonal
 // are sqrt(3) * 1.8 = 3.1 apart along it).
 template <class T>
@@ -77,8 +77,8 @@ diagonalCapsules(std::size_t a_n, std::vector<EBGeometry::CapsuleSDF<T>>& a_shap
 }
 
 // Finite cylinders 3 long, of radius 0.2, in directions drawn from a fixed seed, at the same spacing: a
-// dearer distance than a capsule's (two flat caps), and a mix of box fills, as in a geometry of fibres.
-// Neighbours intersect, which a union handles; the density matches the capsules'.
+// dearer distance than a capsule's (two flat caps), and a mix of box fills, as in a geometry of fibers.
+// Neighbors intersect, which a union handles; the density matches the capsules'.
 template <class T>
 void
 randomCylinders(std::size_t a_n, std::vector<EBGeometry::CylinderSDF<T>>& a_shapes)

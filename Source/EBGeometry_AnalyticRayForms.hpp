@@ -233,7 +233,7 @@ struct RayForm<InfiniteCylinderSDF<T>>
 };
 
 /**
- * @brief CapsuleSDF's ray form: the span of the cylinder between its centres and of the two balls at its ends, which, the capsule being convex, is one interval. Exact, and callable on a device.
+ * @brief CapsuleSDF's ray form: the span of the cylinder between its centers and of the two balls at its ends, which, the capsule being convex, is one interval. Exact, and callable on a device.
  * @tparam T Floating-point precision.
  */
 template <class T>

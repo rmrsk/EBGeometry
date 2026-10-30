@@ -15,7 +15,7 @@
  * section plane. An overlay lists them with what they change (H hides it), they are printed when the window
  * opens, and the user guide's table of the viewer's keys (Sec:ViewerKeys) describes them. While the camera
  * moves the view is drawn as a quick preview, at a resolution adapted to keep it at a few tens of
- * milliseconds; once the camera rests it is refined on a background thread, cancelled as soon as the
+ * milliseconds; once the camera rests it is refined on a background thread, canceled as soon as the
  * camera moves again. The window can be resized, and renders at its size in pixels (on a high-DPI display,
  * more pixels than its size in screen units).
  * @author Robert Marskar
@@ -104,11 +104,11 @@ view(const S&                           a_shape,
  * @brief Look at a shape that lives in a pool in a window, rendering on the GPU in a GPU build, from a
  * camera fitted to its box, with default settings.
  * @details See view(const S&, int, char**). In a CUDA or HIP build with a visible device, unless the window
- * is not to open (--no-view, no display), the pool is frozen (if it is not already) and mirrored into
- * GPU::memoryResource() before the window opens, the mirror kept until it closes, and the window renders
- * through a_shape.rebasedView() onto the mirror (G switches to the host and back); should SDL then fail to
- * open the window, the pool stays frozen. Otherwise the window renders on the host, and the pool is left as
- * it is.
+ * is not to open (built without EBGEOMETRY_VIEWER_SDL2, --no-view, no display), the pool is frozen (if it is
+ * not already) and mirrored into GPU::memoryResource() before the window opens, the mirror kept until it
+ * closes, and the window renders through a_shape.rebasedView() onto the mirror (G switches to the host and
+ * back); should SDL then fail to open the window, the pool stays frozen. Otherwise the window renders on the
+ * host, and the pool is left as it is.
  * @tparam S Shape type (see isShape), with rebasedView(const Pool&) (a Tape, a BVH union, a mesh SDF).
  * @param[in]     a_shape The shape, valid on the host.
  * @param[in,out] a_pool  The pool a_shape lives in.

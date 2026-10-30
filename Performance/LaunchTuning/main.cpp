@@ -113,15 +113,15 @@ csgExpr()
   return EBGeometry::Difference(EBGeometry::Intersection(cube, ball), EBGeometry::Union(drills));
 }
 
-// Random points in a box grown to twice its size about its centre, in Morton order.
+// Random points in a box grown to twice its size about its center, in Morton order.
 template <class T>
 std::vector<Vec3<T>>
 around(const AABB<T>& a_box, std::size_t a_n, std::uint64_t a_seed)
 {
-  const Vec3<T> centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
-  const Vec3<T> half   = a_box.getHighCorner() - centre;
+  const Vec3<T> center = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3<T> half   = a_box.getHighCorner() - center;
 
-  return Perf::mortonOrdered(Perf::pointsInBox<T>(AABB<T>(centre - T(2) * half, centre + T(2) * half), a_n, a_seed));
+  return Perf::mortonOrdered(Perf::pointsInBox<T>(AABB<T>(center - T(2) * half, center + T(2) * half), a_n, a_seed));
 }
 
 // Whether a host and a device crossing agree: both miss, or both cross within 1e-3 (the CSG solid is
@@ -197,7 +197,7 @@ addPrecision(Perf::Suite& a_suite)
       [m](const EBGeometry::Pool& a_on) { return Perf::SignedDistance<Mesh<T>, T>{m.rebasedView(a_on)}; });
   };
 
-  // The CSG solid through a tape, traced along rays towards its centre.
+  // The CSG solid through a tape, traced along rays towards its center.
   const auto tape = [](Perf::Case& c, EBGeometry::Pool& a_pool) {
     const EBGeometry::Tape<T> t(a_pool, csgExpr<T>());
 

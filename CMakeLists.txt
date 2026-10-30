@@ -42,7 +42,7 @@ option(EBGEOMETRY_ENABLE_ASSERTIONS
   "Enable EBGEOMETRY_EXPECT() runtime assertion checks" OFF)
 
 option(EBGEOMETRY_ENABLE_SANITIZERS
-  "Enable AddressSanitizer and UndefinedBehaviourSanitizer for tests and examples" OFF)
+  "Enable AddressSanitizer and UndefinedBehaviorSanitizer for tests and examples" OFF)
 
 # Compile flags for EBGEOMETRY_ENABLE_SANITIZERS, shared by Tests/ and Examples/. GCC additionally
 # gets its use-after-return instrumentation switched off: that check moves stack frames onto ASan's

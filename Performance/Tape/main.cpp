@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Performance cases for Tape's signed distance (issues #210, #221): the classic CSG solid compiled into a
+// Performance cases for Tape's signed distance: the classic CSG solid compiled into a
 // tape and the same solid written by hand, a tape of smooth unions, and a union of many spheres evaluated
 // through a BVH, in float and double, at random points in each object's box. Two pairs of cases take the
 // interpreter's cost apart: a single sphere as a tape and called directly (the fixed cost of one
@@ -134,7 +134,7 @@ struct DirectChain
   }
 };
 
-// Sphere i of the chain: ChainSpheres spheres in a row along x, overlapping their neighbours.
+// Sphere i of the chain: ChainSpheres spheres in a row along x, overlapping their neighbors.
 template <class T>
 EBGeometry::SphereSDF<T>
 chainSphere(std::size_t a_index)

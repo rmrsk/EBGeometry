@@ -12,8 +12,8 @@
  * from within the material, or a mesh whose orientation is inverted) is tinted, so that it cannot be
  * mistaken for an outside. Each pixel is computed by PixelQuery, a trivially copyable functor callable
  * on a device, so Renderer::render() runs it on the host's threads and Renderer::renderOnDevice() runs
- * the same functor through GPU::parallelFor(). Render::view() (EBGeometry_Viewer.hpp) shows the image in a
- * window.
+ * the same functor through GPU::parallelFor(). Render::view() (EBGeometry_Viewer.hpp) shows a shape in an
+ * interactive window, rendered this way.
  * @author Robert Marskar
  */
 
@@ -51,8 +51,9 @@ namespace EBGeometry::Render {
 
 /**
  * @brief Whether a shape's primitives (HitT::m_primitive) are the faces of one object rather than objects:
- * true for the mesh SDFs, whose primitive is a face of the mesh; false for a Tape (its leaves), a fused
- * composition (its parts), a BVH union (its members) and an analytic shape (itself).
+ * true for the mesh SDFs, whose primitive is a face of the mesh; false for every other shape: a Tape (whose
+ * primitives are its leaves), a fused composition and an analytic shape (one object, primitive 0), and a BVH
+ * union (whose hits carry what its members name: a member mesh's face, or 0).
  * @tparam S Shape type.
  */
 template <class S>
@@ -83,14 +84,14 @@ template <class T, size_t K, size_t W>
 inline constexpr bool primitivesAreFaces<TriMeshSDF<T, K, W>> = true;
 
 /**
- * @brief How surfaces are coloured.
+ * @brief How surfaces are colored.
  */
-enum class ColourBy : uint8_t
+enum class ColorBy : uint8_t
 {
-  Uniform,   ///< One colour (Settings::m_colour) everywhere.
-  Primitive, ///< A colour per primitive: per leaf of a Tape, per face of a mesh SDF (see HitT::m_primitive);
-             ///< Settings::m_primitiveColours, then a built-in palette.
-  Normal     ///< The surface normal's direction as a colour (each component from -1 to 1 mapped to 0 to 1).
+  Uniform,   ///< One color (Settings::m_color) everywhere.
+  Primitive, ///< A color per primitive: per leaf of a Tape, per face of a mesh SDF (see HitT::m_primitive);
+             ///< Settings::m_primitiveColors, then a built-in palette.
+  Normal     ///< The surface normal's direction as a color (each component from -1 to 1 mapped to 0 to 1).
 };
 
 /**
@@ -165,7 +166,7 @@ struct Camera
 
   /**
    * @brief A camera that sees the whole of a box, from the default direction.
-   * @details Aims at the box's centre, from far enough that the sphere around the box fits the view.
+   * @details Aims at the box's center, from far enough that the sphere around the box fits the view.
    * The box must be bounded and not empty.
    * @param[in] a_box Box.
    * @param[in] a_up  Up axis.
@@ -280,26 +281,26 @@ struct Settings
   bool m_sky = true;
 
   /**
-   * @brief How surfaces are coloured.
+   * @brief How surfaces are colored.
    */
-  ColourBy m_colourBy = ColourBy::Normal;
+  ColorBy m_colorBy = ColorBy::Normal;
 
   /**
-   * @brief The surface colour for ColourBy::Uniform (linear RGB in [0, 1]).
+   * @brief The surface color for ColorBy::Uniform (linear RGB in [0, 1]).
    */
-  Vec3T<T> m_colour = Vec3T<T>(T(0.80), T(0.42), T(0.18));
+  Vec3T<T> m_color = Vec3T<T>(T(0.80), T(0.42), T(0.18));
 
   /**
-   * @brief How many primitive colours m_primitiveColours holds.
+   * @brief How many primitive colors m_primitiveColors holds.
    */
-  static constexpr uint32_t PrimitiveColours = 16;
+  static constexpr uint32_t PrimitiveColors = 16;
 
   /**
-   * @brief Colours for ColourBy::Primitive by primitive id (linear RGB in [0, 1]): entry i colours
+   * @brief Colors for ColorBy::Primitive by primitive id (linear RGB in [0, 1]): entry i colors
    * primitive i. An entry left unset (a negative component, as all are by default), and every id from
-   * PrimitiveColours on, takes the built-in palette's colour.
+   * PrimitiveColors on, takes the built-in palette's color.
    */
-  Array<Vec3T<T>, PrimitiveColours> m_primitiveColours = unsetColours();
+  Array<Vec3T<T>, PrimitiveColors> m_primitiveColors = unsetColors();
 
   /**
    * @brief Whether a render records each pixel's object in Image::m_primitives (for a viewer's pick
@@ -318,26 +319,26 @@ struct Settings
   static constexpr uint32_t AllPrimitives = 0xFFFFFFFEU;
 
   /**
-   * @brief A primitive to highlight (see HitT::m_primitive): its surface is tinted with m_highlightColour,
-   * whatever the colouring. NoPrimitive highlights none, AllPrimitives the whole shape.
+   * @brief A primitive to highlight (see HitT::m_primitive): its surface is tinted with m_highlightColor,
+   * whatever the coloring. NoPrimitive highlights none, AllPrimitives the whole shape.
    */
   uint32_t m_highlightPrimitive = NoPrimitive;
 
   /**
-   * @brief The highlight's colour.
+   * @brief The highlight's color.
    */
-  Vec3T<T> m_highlightColour = Vec3T<T>(T(1.0), T(0.72), T(0.10));
+  Vec3T<T> m_highlightColor = Vec3T<T>(T(1.0), T(0.72), T(0.10));
 
   /**
-   * @brief The colour a surface seen from inside the solid is tinted towards.
+   * @brief The color a surface seen from inside the solid is tinted towards.
    */
-  Vec3T<T> m_insideColour = Vec3T<T>(T(0.90), T(0.08), T(0.08));
+  Vec3T<T> m_insideColor = Vec3T<T>(T(0.90), T(0.08), T(0.08));
 
   /**
-   * @brief The colour of faces cut by the section plane when colouring by primitive; otherwise a cut face
-   * is coloured as a surface facing along the plane's normal would be (or uniformly).
+   * @brief The color of faces cut by the section plane when coloring by primitive; otherwise a cut face
+   * is colored as a surface facing along the plane's normal would be (or uniformly).
    */
-  Vec3T<T> m_cutColour = Vec3T<T>(T(0.95), T(0.86), T(0.50));
+  Vec3T<T> m_cutColor = Vec3T<T>(T(0.95), T(0.86), T(0.50));
 
   /**
    * @brief Opacity of the cut face (1: opaque): below 1, the shape's next surface behind it along the ray
@@ -346,9 +347,9 @@ struct Settings
   T m_cutOpacity = T(0.6);
 
   /**
-   * @brief The floor's colour.
+   * @brief The floor's color.
    */
-  Vec3T<T> m_floorColour = Vec3T<T>(T(0.58), T(0.59), T(0.61));
+  Vec3T<T> m_floorColor = Vec3T<T>(T(0.58), T(0.59), T(0.61));
 
   /**
    * @brief Whether m_light is given in the camera's frame (x to the image's right, y to its top, z towards
@@ -385,12 +386,12 @@ struct Settings
   T m_shininess = T(32);
 
   /**
-   * @brief The sky's colour at the horizon.
+   * @brief The sky's color at the horizon.
    */
   Vec3T<T> m_skyHorizon = Vec3T<T>(T(0.82), T(0.84), T(0.88));
 
   /**
-   * @brief The sky's colour straight up.
+   * @brief The sky's color straight up.
    */
   Vec3T<T> m_skyZenith = Vec3T<T>(T(0.32), T(0.45), T(0.66));
 
@@ -431,9 +432,9 @@ struct Settings
   T m_contourWidth = T(2);
 
   /**
-   * @brief The contour's colour.
+   * @brief The contour's color.
    */
-  Vec3T<T> m_contourColour = Vec3T<T>(T(0.04), T(0.04), T(0.05));
+  Vec3T<T> m_contourColor = Vec3T<T>(T(0.04), T(0.04), T(0.05));
 
   /**
    * @brief Spacing of lines of equal signed distance drawn on the section plane, inside and outside the
@@ -442,9 +443,9 @@ struct Settings
   T m_isoSpacing = T(0);
 
   /**
-   * @brief The colour of those lines.
+   * @brief The color of those lines.
    */
-  Vec3T<T> m_isoColour = Vec3T<T>(T(0.30), T(0.32), T(0.36));
+  Vec3T<T> m_isoColor = Vec3T<T>(T(0.30), T(0.32), T(0.36));
 
   /**
    * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a frosted
@@ -453,14 +454,14 @@ struct Settings
   T m_sheetOpacity = T(0.35);
 
   /**
-   * @brief The sheet's colour.
+   * @brief The sheet's color.
    */
-  Vec3T<T> m_sheetColour = Vec3T<T>(T(0.95), T(0.96), T(0.97));
+  Vec3T<T> m_sheetColor = Vec3T<T>(T(0.95), T(0.96), T(0.97));
 
   /**
-   * @brief The colour of the sheet's edge.
+   * @brief The color of the sheet's edge.
    */
-  Vec3T<T> m_sheetEdgeColour = Vec3T<T>(T(0.45), T(0.47), T(0.50));
+  Vec3T<T> m_sheetEdgeColor = Vec3T<T>(T(0.45), T(0.47), T(0.50));
 
   /**
    * @brief How rays march (see firstHit()). A scale of 0 takes the shape's box diagonal, or the camera
@@ -469,12 +470,12 @@ struct Settings
   RayOptions<T> m_rays;
 
   /**
-   * @brief Every entry of m_primitiveColours unset.
+   * @brief Every entry of m_primitiveColors unset.
    * @return The table.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  static inline Array<Vec3T<T>, PrimitiveColours>
-  unsetColours() noexcept;
+  static inline Array<Vec3T<T>, PrimitiveColors>
+  unsetColors() noexcept;
 };
 
 /**
@@ -570,7 +571,7 @@ struct Stats
   bool m_cameraInside = false;
 
   /**
-   * @brief Whether every pixel was rendered: false when the render was cancelled (see Renderer::render()).
+   * @brief Whether every pixel was rendered: false when the render was canceled (see Renderer::render()).
    */
   bool m_complete = true;
 };
@@ -891,7 +892,7 @@ public:
    * @details For picking in a viewer: HitT::m_primitive names the primitive (a tape's leaf, a mesh's face),
    * and the point and normal where the ray meets it. The ray is the one through the point (a_column,
    * a_row) of an image of the settings' size, with (0, 0) the top left corner of the top left pixel; a
-   * pixel's centre is at half-integers. On the host.
+   * pixel's center is at half-integers. On the host.
    * @tparam S Shape type (see isShape).
    * @param[in] a_shape  Shape.
    * @param[in] a_camera Camera.

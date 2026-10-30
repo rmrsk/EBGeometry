@@ -46,8 +46,9 @@ Use it on the host
 ------------------
 
 The program evaluates all three at the same random points around the mesh and prints the time per
-query. The values are the same; only the number of faces visited differs, which on the 100 000-face
-armadillo makes the BVH-backed representations hundreds of times faster than the flat scan.
+query. The values are the same; only the number of faces visited differs: the flat scan visits every
+face, a BVH only the few near the point, so on a large mesh such as the armadillo the BVH-backed
+representations are far faster.
 ``getClosestFace(point)`` (`ClosestFace <doxygen/html/structEBGeometry_1_1ClosestFace.html>`__) also
 returns which face is nearest, as its index in the file, which is how to look up per-face data of
 your own.

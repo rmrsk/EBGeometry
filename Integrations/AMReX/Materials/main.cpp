@@ -4,7 +4,7 @@
 
 // Which part of an object each cut cell lies on: the armadillo with a cylinder bored through its chest,
 // compiled into a Tape and handed to AMReX's EB2 grid generation as an implicit function, and each cut cell
-// labelled with the tape's leaf closest to it (the armadillo 0, the bore 1) and, on the armadillo, with the id
+// labeled with the tape's leaf closest to it (the armadillo 0, the bore 1) and, on the armadillo, with the id
 // of its closest mesh face: the indices into tables of per-part and per-face data, such as boundary
 // conditions or materials. The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See
 // README.md and the Materials example under Examples/.
@@ -141,7 +141,7 @@ main(int argc, char* argv[])
     // Cubic cells, n_cell along the object's longest side and 10% to spare; each side's count is rounded up
     // to a multiple of 8.
     const AABB box    = tape.computeBoundingVolume();
-    const Vec3 centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+    const Vec3 center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
     const Vec3 extent = T(1.1) * (box.getHighCorner() - box.getLowCorner());
     const T    h      = extent[extent.maxDir(true)] / T(n_cell);
 
@@ -151,8 +151,8 @@ main(int argc, char* argv[])
     for (int d = 0; d < AMREX_SPACEDIM; d++) {
       cells[d] = 8 * int(std::ceil(extent[d] / (8 * h)));
 
-      rb.setLo(d, centre[d] - T(0.5) * h * T(cells[d]));
-      rb.setHi(d, centre[d] + T(0.5) * h * T(cells[d]));
+      rb.setLo(d, center[d] - T(0.5) * h * T(cells[d]));
+      rb.setHi(d, center[d] + T(0.5) * h * T(cells[d]));
     }
 
     const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};
@@ -175,7 +175,7 @@ main(int argc, char* argv[])
     const auto factory = makeEBFabFactory(geom, grids, dm, {2, 2, 2}, EBSupport::full);
     MultiFab   mf(grids, dm, 2, 0, MFInfo(), *factory);
 
-    // Label each cut cell with the leaf and the face closest to its centre; the other cells keep -1.
+    // Label each cut cell with the leaf and the face closest to its center; the other cells keep -1.
     mf.setVal(-1.0);
 
     const auto& flags = factory->getMultiEBCellFlagFab();

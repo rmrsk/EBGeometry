@@ -527,7 +527,7 @@ TEMPLATE_TEST_CASE("Blur: matches the 27-tap weighted average of the wrapped fun
   for (const T alpha : {T(0.5), T(0.8)}) {
     const Compiled<T> blurred(Blur(box, d, alpha));
 
-    // A tap m steps from the centre has weight alpha^(3-m) ((1 - alpha)/2)^m.
+    // A tap m steps from the center has weight alpha^(3-m) ((1 - alpha)/2)^m.
     const T beta = (T(1) - alpha) / T(2);
 
     for (const auto& p : samplePoints<T>()) {
@@ -623,16 +623,16 @@ struct SquaredNormSDF
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Mollify: the default kernel is non-negative and weights the centre most",
+TEMPLATE_TEST_CASE("Mollify: the default kernel is non-negative and weights the center most",
                    "[Transform][Mollify]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   // Over the sample grid in [-r, r]^3, the unweighted mean of |offset|^2 is three times the mean of
-  // the squared 1D sample positions. A kernel that peaks at the centre and decays outward pulls the
+  // the squared 1D sample positions. A kernel that peaks at the center and decays outward pulls the
   // weighted mean below that; with non-negative weights it stays positive. The old kernel (the
-  // sphere SDF |o| - r) gave the centre a negative weight and the corners the largest, pushing the
+  // sphere SDF |o| - r) gave the center a negative weight and the corners the largest, pushing the
   // mean above it.
   const T r = T(0.5);
 

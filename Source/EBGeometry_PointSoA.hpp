@@ -117,11 +117,11 @@ HostWidth() noexcept
  * externally-owned storage, or a `malloc`'d buffer -- you are responsible for ensuring the memory
  * is aligned to `alignof(PointSoAT<T, W>)`; nothing in this class enforces or checks that.
  * @tparam T Floating-point precision.
- * @tparam W SIMD width: 4 for SSE (128-bit), 8 for AVX (256-bit float) or AVX-512F (512-bit
- * double), 16 for AVX-512F (512-bit float). Defaults to PointSoA::DefaultWidth<T>(), the width
- * that fills one SIMD register exactly for T on the current target ISA -- note this default is
- * itself different for float and double (see the table above), so PointSoAT<float> and
- * PointSoAT<double> do not, in general, share a width even both left at their defaults.
+ * @tparam W Lanes per group. A host build vectorizes (float, 4) with SSE4.1, (float, 8), (double, 4) and
+ * (double, 8, as two halves) with AVX, and (float, 16) and (double, 8) with AVX-512F; any other width, and
+ * every width on a device, runs the scalar loop. Defaults to PointSoA::DefaultWidth<T>(), which is 4
+ * for both float and double in every translation unit; PointSoA::HostWidth<T>() gives the width that
+ * fills one SIMD register for T under the compiler's SIMD flags, for host-only code.
  */
 template <class T, size_t W = PointSoA::DefaultWidth<T>()>
 struct PointSoAT
@@ -133,7 +133,7 @@ public:
   /**
    * @brief Pack a_count positions from a_positions[0..a_count-1] into this SoA group.
    * @details Pads lanes a_count..W-1 by repeating the last real position so that all W lanes hold
-   * valid data and SIMD loads never read uninitialised memory.
+   * valid data and SIMD loads never read uninitialized memory.
    * @param[in] a_positions Source position array with at least a_count elements. Must not be null.
    * @param[in] a_count     Number of valid positions to pack. Must satisfy 1 <= a_count <= W.
    */
@@ -254,8 +254,8 @@ protected:
   /**
    * @brief Number of valid (non-padded) positions in this group (1..W).
    * @details Zero-initialized so that a default-constructed (not-yet-packed) group reliably fails
-   * the EBGEOMETRY_EXPECT(m_validCount >= 1) precondition in getDistance()/getDistance2()/
-   * computeBoundingVolume(), rather than reading whatever indeterminate value happened to be there.
+   * the EBGEOMETRY_EXPECT(m_validCount >= 1) precondition in getDistances2() (which every distance
+   * query goes through) and computeBoundingVolume(), rather than reading whatever indeterminate value happened to be there.
    */
   uint32_t m_validCount = 0;
 };

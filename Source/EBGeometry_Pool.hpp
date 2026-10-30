@@ -324,7 +324,7 @@ public:
    *          host -> pinned staging -> device leaves the device pool naming the original host pool,
    *          not the staging pool. That is what lets a pool-resident object built in the host pool
    *          validate a rebase onto the device pool (see @ref EBGeometry::DCEL::MeshT::rebasedView)
-   *          without having to know how many hops the block travelled.
+   *          without having to know how many hops the block traveled.
    * @return Identity of the root source pool, or 0 if this pool is not a mirror.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -398,10 +398,13 @@ public:
    *          the entire block byte-for-byte (via @c GPU::memcpy for a host/device transfer, or
    *          @c std::memcpy for a host-to-host copy), and returns the result @b frozen. Every
    *          @ref PODVector offset resolves unchanged against the new base -- this is the
-   *          host-to-device mirror (and, host-to-host, an exact independent copy).
+   *          host-to-device mirror (and, host-to-host, an exact independent copy). A device-to-host
+   *          mirror copies results back; a device-to-device mirror (neither resource host-accessible)
+   *          aborts, in every build.
    * @param[in] a_src         Source pool. Must be frozen (@c a_src.isFrozen()); an unfrozen source
    *                          aborts, in every build.
-   * @param[in] a_dstResource Destination resource for the mirrored block.
+   * @param[in] a_dstResource Destination resource for the mirrored block. Must outlive the returned
+   *                          pool.
    * @return A new, frozen pool holding a byte-identical copy of @p a_src's block.
    */
   [[nodiscard]] EBGEOMETRY_HOST

@@ -138,17 +138,17 @@ try {
   const auto box    = mesh.computeBoundingVolume();
   const Vec3 lo     = box.getLowCorner();
   const Vec3 hi     = box.getHighCorner();
-  const Vec3 centre = T(0.5) * (lo + hi);
+  const Vec3 center = T(0.5) * (lo + hi);
   const Vec3 size   = hi - lo;
 
   std::cout << "Read " << file << ": box " << lo << " to " << hi << "\n\n";
 
   // ── Use it on the host ─────────────────────────────────────────────────────────────────────────────
   //
-  // A ray from in front of the mesh towards its centre. firstHit() searches [tMin, tMax] along the ray and
+  // A ray from in front of the mesh towards its center. firstHit() searches [tMin, tMax] along the ray and
   // returns the first crossing, entering or leaving: its distance, point, the face it crosses (the face's
   // index in the file), the face's outward normal, and whether the ray enters the object there.
-  const Vec3 eye = centre - Vec3(T(0), T(0), size[2]);
+  const Vec3 eye = center - Vec3(T(0), T(0), size[2]);
   const Ray  ray{eye, Vec3(T(0), T(0), T(1))};
 
   std::cout << "A ray from " << eye << " along +z: ";
@@ -158,7 +158,7 @@ try {
   // the surface, and where? On a segment, t is the distance from its start. intersects() is the cheaper
   // question: it stops at the first crossing it finds.
   const Vec3 from = eye;
-  const Vec3 to   = centre + Vec3(T(0), T(0), size[2]);
+  const Vec3 to   = center + Vec3(T(0), T(0), size[2]);
 
   std::cout << "The step from " << from << " to " << to << ": "
             << (EBGeometry::intersects(mesh, from, to) == EBGeometry::HitStatus::Hit ? "crosses the surface"
@@ -199,7 +199,7 @@ try {
 
   const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource());
 
-  // Five rays towards the centre, from points spread across the front of the box.
+  // Five rays towards the center, from points spread across the front of the box.
   std::vector<Vec3> origins;
 
   for (int i = -2; i <= 2; i++) {
@@ -208,9 +208,9 @@ try {
 
   std::vector<Hit> hits(origins.size());
 
-  EBGeometry::GPU::transform(CastTowards{mesh.rebasedView(devicePool), centre}, origins, hits);
+  EBGeometry::GPU::transform(CastTowards{mesh.rebasedView(devicePool), center}, origins, hits);
 
-  std::cout << "Rays towards the centre through GPU::transform (backend: " << EBGeometry::GPU::backendName << "):\n";
+  std::cout << "Rays towards the center through GPU::transform (backend: " << EBGeometry::GPU::backendName << "):\n";
 
   for (std::size_t i = 0; i < origins.size(); i++) {
     std::cout << "  from " << origins[i] << ": ";

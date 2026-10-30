@@ -166,7 +166,7 @@ PackedBVH<T, P, K>::buildBottomUp(Pool& a_pool, std::vector<std::pair<P, BV>> a_
 
   // Sort primitives along the space-filling curve, exactly like
   // TreeBVH::bottomUpSortAndPartition() (same binning helper), but keeping P by value throughout
-  // -- no shared_ptr anywhere in this constructor.
+  // -- no shared_ptr anywhere in this build.
   std::vector<Vec3T<T>> centroids;
   centroids.reserve(numPrimitives);
   for (const auto& pbv : a_primsAndBVs) {
@@ -300,7 +300,7 @@ PackedBVH<T, P, K>::buildBottomUp(Pool& a_pool, std::vector<std::pair<P, BV>> a_
   const uint32_t scratchRoot = levelIndices.front();
 
   // Relay the scratch tree into nodes in depth-first pre-order (root at index 0), exactly
-  // matching the invariant the other two constructors establish.
+  // matching the invariant every other build establishes.
   nodes.reserve(scratch.size());
 
   std::function<uint32_t(uint32_t)> relayout = [&](uint32_t a_scratchIdx) -> uint32_t {
@@ -396,7 +396,7 @@ PackedBVH<T, P, K>::buildTopDown(Pool&                                  a_pool,
 
   // shared_ptr-wrap each primitive once, up front, so the existing Partitioner/LeafPredicate
   // machinery (which operates on PrimAndBVList) can be reused unchanged. This is not the cost
-  // this constructor targets -- see its doxygen comment -- only the persistent, per-node
+  // this build targets -- see its doxygen comment -- only the persistent, per-node
   // shared_ptr<TreeBVH> allocation is avoided.
   BVH::PrimAndBVList<P, BV> wrapped;
 

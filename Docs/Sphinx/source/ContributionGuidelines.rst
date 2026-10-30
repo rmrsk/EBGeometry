@@ -29,7 +29,7 @@ the same split:
 * Guard what a caller controls and what is checked once, when an object is built (positive radii,
   valid axis indices, matching array sizes, non-empty inputs, a suitable memory resource), with the
   always-on ``EBGEOMETRY_REQUIRE(cond, "Class: message", ...)``. A Release build must not carry on
-  into a wrong answer or undefined behaviour because of bad input.
+  into a wrong answer or undefined behavior because of bad input.
 * Guard internal invariants, and anything on a path that runs many times (a query, a traversal
   step), with ``EBGEOMETRY_EXPECT(cond)``, which compiles to nothing unless
   ``EBGEOMETRY_ENABLE_ASSERTIONS`` is defined. Do **not** guard invariants that the surrounding code
@@ -69,20 +69,44 @@ rules.
 HIP inlines every device function by default, so a device function is copied into every place it is
 called from. That is harmless until a function calls the next one in a chain from several places: the
 tape's evaluator calls the level below it from each Blur tap, each Mollify tap and each kind of BVH
-union, and fully inlined, the copies multiply at every level: an optimised device compile of its test
-file was stopped after ten minutes and 2.5 GB, and takes half a minute with the function out of line. Mark such a function ``EBGEOMETRY_DEVICE_NOINLINE`` (``EBGeometry_GPU.hpp``),
+union, and fully inlined, the copies multiply at every level, until an optimized device compile no
+longer finishes in reasonable time and memory. Mark such a function ``EBGEOMETRY_DEVICE_NOINLINE`` (``EBGeometry_GPU.hpp``),
 which keeps it out of line in the device pass and changes nothing on the host. The ray queries are the
 other place this matters: a march, a span list or a pixel of the renderer evaluates or traces the shape
 from many places (the bisection, each way out of the march, the shadow and occlusion rays), and inlined,
-each of them was a copy of a mesh's distance or of a tape's trace. They reach the shape through a few
-out-of-line helpers (``RayDetail::valueAt()``, ``primitiveOf()``, ``gradientNormal()``, ``march()`` and
-``shapeHit()``, and the renderer's ``Shader::trace()``), which took the CUDA compile of the ray tests
-from eight minutes and 13 GB to 75 seconds and 3 GB. New ray code should call the shape through them.
-``valueAt()`` still inlines an analytic shape's value (only a shape in a pool or a fused node is called
-out of line), since that small value inlined made a tape's span tracing twice as fast on a device.
-The second HIP build in
-CI is optimised, since an unoptimised build compiles such code quickly and so cannot show the
+each of them would be a copy of a mesh's distance or of a tape's trace, and the device compile would
+take many times longer and much more memory. They reach the shape through a few out-of-line helpers
+(``RayDetail::valueAt()``, ``primitiveOf()``, ``gradientNormal()``, ``march()`` and ``shapeHit()``, and
+the renderer's ``Shader::trace()``), so a kernel holds one copy of each. New ray code should call the
+shape through them. ``valueAt()`` inlines an analytic shape's value (only a shape in a pool or a fused
+node is called out of line), since that small value is much faster inlined on a device.
+CI's main HIP build is
+optimized (``Release``), since an unoptimized build compiles such code quickly and so cannot show the
 problem.
+
+.. _Sec:DeviceCallableClass:
+
+Making a class device-callable
+------------------------------
+
+A class that a kernel can use follows the memory model in :ref:`Chap:MemoryModel`:
+
+1. Every member is a plain value. A cross-reference is a ``uint32_t`` index into the owning container's
+   arrays (sentinel ``UINT32_MAX``), resolved by passing that owner in explicitly, never a cached
+   pointer, which is only valid in the address space that set it.
+2. Array storage is a ``PODVector`` reserved from a caller-supplied ``Pool``. Build-phase mutators take
+   the ``Pool&`` explicitly, since ``reserve()`` can move the base.
+3. ``EBGEOMETRY_HOST_DEVICE`` marks anything that resolves purely through values, indices and other
+   device-callable calls; ``EBGEOMETRY_HOST`` anything touching a ``Pool`` (including ``rebasedView()``,
+   which reads one), ``std::vector``, ``std::string``, ``std::cerr`` or ``std::map``. The rules of
+   :ref:`Sec:WritingDeviceCode` apply.
+4. ``static_assert(std::is_trivially_copyable_v<...>)`` on the class, and on any user type parameter it
+   stores in pool memory.
+5. A method returning a container (``std::vector``) that is useful on a device gets a *streaming*
+   sibling instead of an annotation, as ``FaceT::getSmallestCoordinate()``/``getHighestCoordinate()`` do.
+6. The class goes into ``Tests/InstantiateAll.cpp``, gets a ``[gpu]``-tagged test (below), and its test
+   binary goes into ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``.
+7. The Sphinx page that documents the class is updated.
 
 Adding tests
 --------------
@@ -93,12 +117,12 @@ New classes and functions should be accompanied by Catch2 tests under
 ``Catch2::Catch2WithMain``, setting the C++17 standard, and exposing
 ``EBGEOMETRY_TEST_DATA_DIR`` for any test data files placed under
 ``Tests/data/``.  See :ref:`Chap:TestingLocally` for the existing test binaries
-and what each one covers — new tests should follow the same one-binary-per-class
+and what each one covers — new tests should follow the same one-file-per-component
 convention.
 
 Adding new public classes should also be reflected in ``Tests/InstantiateAll.cpp``,
 which explicitly instantiates every public class template so that ``clang-tidy``
-and the project's warning set analyse them regardless of what the tests exercise.
+and the project's warning set analyze them regardless of what the tests exercise.
 
 A class that is callable on a GPU also gets a device test: a test case tagged ``[gpu]`` in its test
 file, whose binary is listed in ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``.

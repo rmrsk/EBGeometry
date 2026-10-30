@@ -278,7 +278,7 @@ makeSoup(const std::string&                    a_filename,
 
   if (numRemoved > 0) {
     std::cerr << "Parser - removed " << numRemoved << " degenerate (zero-area) faces from '" << a_filename
-              << "', merging T-junction fillers into their neighbours\n";
+              << "', merging T-junction fillers into their neighbors\n";
   }
 
   return soup;
@@ -381,7 +381,7 @@ Parser::readSTL(const std::string& a_filename)
 
     // An 80-byte header, a uint32 triangle count, then 50 bytes per triangle: a normal and three
     // vertices (12 float32 values) followed by a 2-byte "attribute byte count". The standard says the
-    // attribute is zero, but some exporters store a colour in it; it carries no geometry and is
+    // attribute is zero, but some exporters store a color in it; it carries no geometry and is
     // ignored. The normal is recomputed from the vertices.
     fstream.seekg(0, std::ios::end);
 

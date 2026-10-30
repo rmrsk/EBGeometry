@@ -78,7 +78,7 @@ inline constexpr const char* backendName = "host";
  * @brief The number of threads per block a launch uses unless it is given another.
  * @details Not tuned: the best block size depends on the device and on the query (a BVH traversal
  * uses many registers per thread). Pass another as the first template argument to measure it, e.g.
- * GPU::transform<256>(query, points).
+ * GPU::transform<256>(query, points, results).
  */
 inline constexpr unsigned int DefaultBlockSize = 128;
 
@@ -89,8 +89,13 @@ inline constexpr unsigned int DefaultBlockSize = 128;
  * a minimum, the compiler picks one register budget for the whole kernel, every function it calls included,
  * and the pick jumps with small changes to code the kernel may not even run (a tape's ray kernel once went
  * from 255 registers to 40, spilling twice as much); given one, it uses the budget the minimum allows. Not
- * tuned for every query: a kernel that runs best with few registers may be slower under it. 0 asks for no
- * minimum. HIP reads a second launch bound differently, and a HIP build ignores it.
+ * tuned for every query: the budget is a ceiling the compiler tends to fill, so a kernel that runs best
+ * with few registers may be slower under it (rays traced through a fused composition went from 56
+ * registers to 161 and ran up to a third slower, and the renderer's frame of a mesh from 128 to 161, 10%
+ * slower). The minimum still pays where registers matter: on one desktop GPU, ray tracing through a tape took
+ * 2.5 times as long with no minimum as at 384, and 1.45 times as long at 768, while a mesh's signed distance
+ * took the same time at every setting; DeviceTuning's mesh-minus-ball tape distance in float was a fifth to a
+ * quarter faster at 768 than at 384, whatever the block size. 0 asks for no minimum. HIP reads a second launch bound differently, and a HIP build ignores it.
  */
 inline constexpr unsigned int DefaultMinResidentThreads = 384;
 
@@ -225,7 +230,8 @@ transform(const Query& a_query, const Pool& a_pool, const PODVector<In>& a_in, c
  * into a_out and frees, so timing it includes two allocations and two copies; time the span or pool
  * overload to measure the query itself. In a host build the query runs in a loop directly on the
  * vectors. a_out is not resized: it must already hold as many elements as a_in, which aborts with a
- * message otherwise, and can be reused across calls. Neither the input nor the result may be bool
+ * message otherwise, and can be reused across calls. At most 2^32 - 1 inputs, which also aborts with a
+ * message otherwise. Neither the input nor the result may be bool
  * (std::vector<bool> has no contiguous storage to copy), which is checked at compile time in both
  * builds.
  * @tparam BlockSize Threads per block; see parallelFor().

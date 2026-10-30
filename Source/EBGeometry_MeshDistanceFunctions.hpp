@@ -58,6 +58,9 @@ struct ClosestFace
  * callable on the host and on a device. It has no virtual functions: a class with them can never be
  * passed to a kernel.
  *
+ * It visits every face, so on the 100,000-face armadillo the BVH-backed mesh SDFs are hundreds of times
+ * faster.
+ *
  * Copying a FlatMeshSDF copies descriptors only: every copy resolves against the same pool memory,
  * and the pool must outlive all of them. A FlatMeshSDF sees the mesh as it was when it was
  * constructed; build a new one after changing the mesh's size. To evaluate on a device, freeze and
@@ -226,7 +229,10 @@ static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>>, "FlatMeshSDF<do
  * @details The BVH's primitives are face ids: indices into the mesh's face array, four bytes each.
  * Every query resolves a face through the mesh, which MeshSDF holds as well, so the mesh is the only
  * copy of the geometry: flipping the mesh (DCEL::MeshT::flip()) after building flips every distance,
- * and after moving vertices, reconciling the mesh and refitting the BVH (see getRoot()) is enough.
+ * and after moving vertices, reconciling the mesh and refitting the BVH (see getRoot()) is enough. The
+ * price of four bytes per face rather than the 88 of a face copy is reading faces in mesh order rather than
+ * leaf order, which made queries on the armadillo (100k faces) about 15% slower than with copies, near the
+ * surface and away from it alike.
  * SIMD node pruning is used when T and K match an available ISA path.
  *
  * A plain value type, like FlatMeshSDF: it holds the mesh descriptor and the BVH by value, both
@@ -490,7 +496,7 @@ private:
  * Each leaf primitive is a TriangleAoSoA<T, W>: an SoA triangle block for SIMD signed-distance
  * evaluation, plus a physically separate per-lane array of face ids, the index of the mesh face each
  * triangle was cut from. The hot signedDistance() path never reads the ids; getClosestFace() does,
- * returning the closest triangle's signed distance together with its face id (see issue #105). The
+ * returning the closest triangle's signed distance together with its face id. The
  * groups are self-contained -- no reference back to a mesh -- so the packed BVH is the only thing
  * this class holds, and a mesh changed after the build is not seen.
  *
@@ -608,9 +614,9 @@ public:
    * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W. This bounds the pre-packing
    * tree's leaf size, not the packed representation directly: each leaf's triangles become their
    * own TriangleSoA group(s) during packing, with no batching across leaves, so a leaf smaller
-   * than W wastes some of its group's SIMD lanes on padding. It is an upper bound, not a target —
-   * the top-down partitioner still splits down to tighter, more selective leaves wherever the
-   * geometry warrants it. Expressing this as a count of W-sized groups (rather than a raw triangle
+   * than W wastes some of its group's SIMD lanes on padding. For the top-down methods it is an upper
+   * bound, not a target — the partitioner still splits down to tighter, more selective leaves wherever
+   * the geometry warrants it; the space-filling curves aim for it. Expressing this as a count of W-sized groups (rather than a raw triangle
    * count) makes it impossible to accidentally pick a leaf size that isn't a multiple of W. Must
    * be > 0.
    */
@@ -678,11 +684,12 @@ public:
    * @brief Find the face closest to a_point, and the signed distance to it.
    * @details The face-id-retrieving companion to signedDistance(): it drives the same SIMD-pruned
    * BVH traversal (PackedBVH::traverse() with a PointQuery), but each visited leaf group reports the winning
-   * triangle's face id via TriangleAoSoA::signedDistance(point, uint32_t&) (see issue #105).
+   * triangle's face id via TriangleAoSoA::signedDistance(point, uint32_t&).
    * @param[in] a_point Query point. Must be finite.
    * @return The face id of the closest triangle and the signed distance to it. The signed distance
-   * agrees with what signedDistance() returns for the same point up to rounding: signedDistance()
-   * reduces each leaf group with SIMD instructions, this function lane by lane.
+   * agrees with what signedDistance() returns for the same point except where two triangles are equally
+   * near to rounding: on the host, signedDistance() ranks triangles by squared unsigned distance and signs
+   * only the winner, while this function ranks them by the absolute value of their signed distances.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline ClosestFace<T>

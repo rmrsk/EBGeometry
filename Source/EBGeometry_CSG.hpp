@@ -5,9 +5,10 @@
 /**
  * @file   EBGeometry_CSG.hpp
  * @brief  Constructive solid geometry: the blend operators, the BVH unions, the expression builder
- * (Expr, Union, Intersection, Difference, Translate, ...) and the Tape that evaluates a composed object.
- * @details Includes EBGeometry_Blend.hpp, EBGeometry_BVHUnion.hpp, EBGeometry_Expr.hpp and
- * EBGeometry_Tape.hpp.
+ * (Expr, Union, Intersection, Difference, Translate, ...), the Tape that evaluates a composed object,
+ * and the fused operations (Fused::Union, ...).
+ * @details Includes EBGeometry_Blend.hpp, EBGeometry_BVHUnion.hpp, EBGeometry_CSGRayForms.hpp,
+ * EBGeometry_Expr.hpp, EBGeometry_Fused.hpp, EBGeometry_OffsetRayForms.hpp and EBGeometry_Tape.hpp.
  * @author Robert Marskar
  */
 

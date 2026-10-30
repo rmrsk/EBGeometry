@@ -106,7 +106,7 @@ traversalMargin()
 //
 // A pure minimum over the primitive set is deliberate. Its value cannot depend on the order leaves
 // are visited in, so a disagreement between two K values is a real disagreement about the computed
-// child distances (or about the pruning they drive), never a tie-break artefact of one traversal
+// child distances (or about the pruning they drive), never a tie-break artifact of one traversal
 // order versus another.
 template <class T, size_t K>
 std::vector<T>
@@ -518,7 +518,7 @@ TEMPLATE_TEST_CASE("Mesh SDFs: signs around concave edges and vertices match an 
   const MeshSDF<T, K>       packed(mesh, pool, BVH::Construction::SAH);
   const TriMeshSDF<T, K, W> tri(mesh, pool, BVH::Construction::SAH, 2);
 
-  // A grid centred on the concave edge's end point (1, 1, 1), where the concave edge, the concave
+  // A grid centered on the concave edge's end point (1, 1, 1), where the concave edge, the concave
   // vertex and the faces around them all compete for the closest feature. The grid spacing avoids
   // landing exactly on a face.
   for (const T x : sweepValues<T>(T(0.3), T(1.7), 14)) {
@@ -5952,7 +5952,7 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse: a visit callback can account for whole 
     summary[i] = subtreePrimitives(bvh, i);
   }
 
-  size_t summarised = 0;
+  size_t summarized = 0;
   size_t counted    = 0;
 
   bvh.traverse(
@@ -5963,7 +5963,7 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse: a visit callback can account for whole 
     [&](size_t& a_counted, uint32_t a_node, const Node&, const T&) {
       if (depth[a_node] == 2) {
         a_counted += summary[a_node];
-        summarised++;
+        summarized++;
 
         return false;
       }
@@ -5972,7 +5972,7 @@ TEMPLATE_TEST_CASE("PackedBVH::traverse: a visit callback can account for whole 
     });
 
   REQUIRE(counted == flat.size());
-  REQUIRE(summarised > 0);
+  REQUIRE(summarized > 0);
 
   // Refusing the root reaches nothing.
   size_t reached = 0;
@@ -6160,7 +6160,7 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: rebased copies evaluate and 
 
   Pool devicePool = Pool::mirror(pool, deviceTestResource());
 
-  // The dodecahedron is centred at the origin with vertices within 1.62 of it on each axis, so this
+  // The dodecahedron is centered at the origin with vertices within 1.62 of it on each axis, so this
   // grid covers points inside, outside, and near the surface.
   const auto points  = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-2)), Vec3T<T>(T(2), T(2), T(2)), 12);
   const auto corners = std::vector<int>{0, 1, 2, 3, 4, 5};

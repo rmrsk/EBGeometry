@@ -140,12 +140,12 @@ keys(const bool a_device)
                                  {"R", "Reset the camera"},
                                  {"Right drag", "Move the light"},
                                  {"+, -", "Narrower or wider field of view"},
-                                 {"Double-click", "Centre the camera on the point under the cursor"},
+                                 {"Double-click", "Center the camera on the point under the cursor"},
                                  {"Left, Right", "Weaker or stronger highlights"},
                                  {"Shift + Left", "Broader highlights"},
                                  {"Shift + Right", "Tighter highlights"}}},
                                {"Rendering",
-                                {{"P", "Cycle the colouring: by normal, uniform, by primitive"},
+                                {{"P", "Cycle the coloring: by normal, uniform, by primitive"},
                                  {"S", "Turn shadows on or off"},
                                  {"A", "Turn ambient occlusion on or off"},
                                  {"F", "Turn the floor on or off"},
@@ -255,7 +255,7 @@ drawText(const std::vector<std::string>& a_lines,
 
 /**
  * @brief The scene's x, y and z axes as the camera sees them, drawn from a common origin on a transparent
- * square: x red, y green, z blue, each labelled at its tip, the axes furthest from the viewer drawn first.
+ * square: x red, y green, z blue, each labeled at its tip, the axes furthest from the viewer drawn first.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @param[in]  a_right   Unit right of the image, in the scene.
@@ -278,10 +278,10 @@ drawAxes(const Vec3T<T>&        a_right,
 
   a_pixels.assign(std::size_t(a_size) * std::size_t(a_size), 0x00000000U);
 
-  const T        centre     = T(0.5) * T(a_size);
-  const T        length     = T(30 * a_scale);
-  const uint32_t colours[3] = {0xE64646FFU, 0x50BE50FFU, 0x5A82F0FFU};
-  const char     labels[3]  = {'X', 'Y', 'Z'};
+  const T        center    = T(0.5) * T(a_size);
+  const T        length    = T(30 * a_scale);
+  const uint32_t colors[3] = {0xE64646FFU, 0x50BE50FFU, 0x5A82F0FFU};
+  const char     labels[3] = {'X', 'Y', 'Z'};
 
   // Set a square of pixels, clipped to the image.
   const auto stamp = [&a_pixels, a_size](const int a_x, const int a_y, const int a_half, const uint32_t a_rgba) {
@@ -308,19 +308,19 @@ drawAxes(const Vec3T<T>&        a_right,
       const T f = T(i) / T(steps);
 
       stamp(
-        static_cast<int>(centre + f * length * dx), static_cast<int>(centre + f * length * dy), a_scale, colours[axis]);
+        static_cast<int>(center + f * length * dx), static_cast<int>(center + f * length * dy), a_scale, colors[axis]);
     }
 
-    // The label just past the tip, centred there.
-    const int tipX = static_cast<int>(centre + (length + T(9 * a_scale)) * dx) - GlyphWidth * a_scale / 2;
-    const int tipY = static_cast<int>(centre + (length + T(9 * a_scale)) * dy) - GlyphHeight * a_scale / 2;
+    // The label just past the tip, centered there.
+    const int tipX = static_cast<int>(center + (length + T(9 * a_scale)) * dx) - GlyphWidth * a_scale / 2;
+    const int tipY = static_cast<int>(center + (length + T(9 * a_scale)) * dy) - GlyphHeight * a_scale / 2;
 
     const unsigned char* glyph = Glyphs[labels[axis] - 32];
 
     for (int y = 0; y < GlyphHeight * a_scale; y++) {
       for (int x = 0; x < GlyphWidth * a_scale; x++) {
         if (((glyph[y / a_scale] >> (GlyphWidth - 1 - x / a_scale)) & 1U) != 0U) {
-          stamp(tipX + x, tipY + y, 0, colours[axis]);
+          stamp(tipX + x, tipY + y, 0, colors[axis]);
         }
       }
     }
@@ -339,7 +339,7 @@ struct Background
   std::thread m_thread;
 
   /**
-   * @brief Set to stop a host render early.
+   * @brief Set to stop the render early (a device render after the band of rows under way).
    */
   std::atomic<bool> m_cancel{false};
 
@@ -476,10 +476,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   const T    scale = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
 
   // The section plane: off (0), as the settings give it (1, only when they turn it on), or across the x, y
-  // or z axis through the box's centre (2 to 4); moved along its normal by an offset, and reversed (the
+  // or z axis through the box's center (2 to 4); moved along its normal by an offset, and reversed (the
   // other side removed) when flipped.
   const bool     givenSection  = a_settings.m_section;
-  const Vec3T<T> centre        = (std::isfinite(diag) && diag > T(0)) ? box.getCentroid() : camera.m_target;
+  const Vec3T<T> center        = (std::isfinite(diag) && diag > T(0)) ? box.getCentroid() : camera.m_target;
   int            sectionMode   = givenSection ? 1 : 0;
   bool           sectionFlip   = false;
   T              sectionOffset = T(0);
@@ -512,8 +512,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   Vec3T<T> cursorPoint = Vec3T<T>::zeros();
   T        cursorValue = T(0);
 
-  // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a spacing), every
-  // 1/20 of the box's diagonal (2), every 1/50 (3).
+  // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a
+  // spacing), every 1/20 of the box's diagonal (2), every 1/50 (3).
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;
 
@@ -678,7 +678,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     if (sectionMode >= 2) {
       normal                  = Vec3T<T>::zeros();
       normal[sectionMode - 2] = T(1);
-      point                   = centre;
+      point                   = center;
     }
 
     if (sectionFlip) {
@@ -817,9 +817,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
              fixed(double(a_v[2]), a_decimals) + ")";
     };
 
-    const char* colouring = (settings.m_colourBy == ColourBy::Normal)      ? "Coloured by normal"
-                            : (settings.m_colourBy == ColourBy::Primitive) ? "Coloured by primitive"
-                                                                           : "Coloured uniformly";
+    const char* coloring = (settings.m_colorBy == ColorBy::Normal)      ? "Colored by normal"
+                           : (settings.m_colorBy == ColorBy::Primitive) ? "Colored by primitive"
+                                                                        : "Colored uniformly";
 
     // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
     const std::vector<std::vector<std::string>> states{
@@ -833,7 +833,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
          point(settings.m_light, 2),
        "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
          fixed(double(settings.m_shininess), 0)},
-      {std::string(colouring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
+      {std::string(coloring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
        "Supersampling " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
          " (" + std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel)",
        std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
@@ -1097,13 +1097,14 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
             pick   = hit;
             picked = pick.hit();
 
-            // A double-click also centres the camera on the point.
+            // A double-click also centers the camera on the point.
             if (picked && event.button.clicks >= 2) {
               camera.m_target = pick.m_point;
             }
 
-            // The object picked: a tape's leaf, a fused composition's part, a union's member; a mesh SDF is one
-            // object, whose primitive is the face picked on it. It is tinted gold, and outlined (see show()).
+            // The object picked: a tape's leaf (any other shape names primitive 0, so the whole of it); a mesh
+            // SDF is one object, whose primitive is the face picked on it. It is tinted gold, and outlined (see
+            // show()).
             settings.m_highlightPrimitive = !picked                 ? Settings<T>::NoPrimitive
                                             : primitivesAreFaces<S> ? Settings<T>::AllPrimitives
                                                                     : pick.m_primitive;
@@ -1241,9 +1242,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_p: {
-          settings.m_colourBy = (settings.m_colourBy == ColourBy::Normal)    ? ColourBy::Uniform
-                                : (settings.m_colourBy == ColourBy::Uniform) ? ColourBy::Primitive
-                                                                             : ColourBy::Normal;
+          settings.m_colorBy = (settings.m_colorBy == ColorBy::Normal)    ? ColorBy::Uniform
+                               : (settings.m_colorBy == ColorBy::Uniform) ? ColorBy::Primitive
+                                                                          : ColorBy::Normal;
 
           break;
         }
@@ -1283,7 +1284,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_i: {
-          // Off, every 1/20 of the box's diagonal, every 1/50.
+          // Off, as the settings give them (skipped when they set no spacing), every 1/20 of the box's
+          // diagonal, every 1/50.
           isoMode = (isoMode + 1) % 4;
           isoMode = (isoMode == 1 && givenIso <= T(0)) ? 2 : isoMode;
 

@@ -35,7 +35,7 @@
       "name": "release",
       "inherits": "base",
       "displayName": "Release",
-      "description": "Optimised release build with AVX. Tests and examples disabled by default.",
+      "description": "Optimized release build with AVX. Tests and examples disabled by default.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",

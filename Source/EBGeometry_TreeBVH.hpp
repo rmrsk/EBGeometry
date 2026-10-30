@@ -8,8 +8,9 @@
  * leaf predicate, and pack()/packWith() into a PackedBVH.
  * @details The flexible host builder: TreeBVH partitions a list of (primitive, bounding volume)
  * pairs with any partitioner and leaf predicate, then packs into the device-callable PackedBVH
- * (EBGeometry_PackedBVH.hpp). PackedBVH's own constructors that partition a primitive list are in
- * EBGeometry_BVHBuild.hpp, which this header includes so that pack() works.
+ * (EBGeometry_PackedBVH.hpp). PackedBVH's static builds that partition a primitive list directly, and
+ * the constructors pack() calls, are in EBGeometry_BVHBuild.hpp, which this header includes so that
+ * pack() works.
  * @author Robert Marskar
  */
 
@@ -42,15 +43,14 @@ namespace EBGeometry {
 namespace BVH {
 
 /**
- * @brief Build-phase helpers shared by PackedBVH's constructors. Not part of the public API.
+ * @brief Build-phase helpers shared by PackedBVH's constructors and static builds. Not part of the public API.
  */
 namespace detail {
 
 /**
  * @brief Append one TreeBVH leaf's primitives to a flat primitive array under construction.
- * @details Used by PackedBVH's identity/converting pack() constructors and its partitioner
- * constructor, all of which route through a TreeBVH whose leaves hold shared_ptr<const P>; this
- * dereferences and copies each one by value. Appends to whatever @p a_dst already holds, so the
+ * @details Used by PackedBVH's identity pack() constructor and by buildTopDown(), both of which read
+ * TreeBVH leaves holding shared_ptr<const P>; this dereferences and copies each one by value. Appends to whatever @p a_dst already holds, so the
  * contract is the same no matter how many leaves are packed.
  * @tparam P Primitive type.
  * @param[in,out] a_dst       Flat primitive array under construction.
@@ -269,7 +269,7 @@ auto BVCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<Pri
 
 /**
  * @brief Internal helper: 2-way binned SAH split on the sub-range [a_begin, a_end).
- * @details Evaluates 32 bins per axis and picks the split plane that minimises
+ * @details Evaluates 32 bins per axis and picks the split plane that minimizes
  * @c SA(left)*N_left + SA(right)*N_right.  Partitions @p a_list in-place and returns
  * the split index (first element of the right group).
  * @note Requires BV == AABBT<T>: BV must support getLowCorner(), getHighCorner(),
@@ -459,12 +459,14 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
 /**
  * @brief Partitioner using binned SAH with recursive 2-way subdivision into K groups.
  * @details For each split, evaluates 32 candidate planes per axis and picks the one
- * minimising @c SA(left)*N_left + SA(right)*N_right (the standard ray-tracing SAH
+ * minimizing @c SA(left)*N_left + SA(right)*N_right (the standard ray-tracing SAH
  * cost without the traversal constant).  K groups are produced by recursively splitting
  * into std::floor(K/2) and std::ceil(K/2) subsets — exact for power-of-two K; a reasonable
  * approximation for other values.
  *
- * Recommended K values by ISA:
+ * The K whose child boxes fill one SIMD register, by ISA (what HostBranchingRatio() returns; the
+ * default K = 4, DefaultBranchingRatio(), measured as fast on the host and is the one device code can
+ * share):
  * - AVX-512F, float  → K=16 (one @c _mm512_load_ps covers all K children)
  * - AVX-512F, double → K=8  (one @c _mm512_load_pd covers all K children)
  * - AVX,      float  → K=8  (one @c _mm256_load_ps)
@@ -622,7 +624,7 @@ auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<PrimA
   // The input is taken by value; partition it in place (no working copy). MidpointKWaySplit reorders
   // it and yields K [begin, end) index ranges, which we move out (disjoint, each moved once). This
   // is the crux of the partitioner's cost: the midpoint split itself is a couple of std::partition
-  // passes, so the plumbing (copies) is what dominated before -- now eliminated.
+  // passes, so moving rather than copying the lists is what keeps it cheap.
   std::vector<std::pair<size_t, size_t>> groups;
   groups.reserve(K);
 
@@ -666,7 +668,7 @@ auto DefaultLeafPredicate =
  * that PrimitiveCentroidPartitioner calls P::getCentroid(); the other partitioners and the
  * bottom-up build work from the bounding volumes alone. PackedBVH imposes no interface requirement
  * on P either; any further requirement comes entirely from whatever leaf-eval a caller passes to
- * PackedBVH::traverse() (see PackedBVH below).
+ * PackedBVH::traverse() (see PackedBVH).
  * @tparam BV Bounding volume type, with a constructor taking a std::vector<BV> (a leaf's box,
  * enclosing its primitives' boxes), merged() (an interior node's box, folded from its children's
  * without allocating) and a default-constructed empty box. AABBT is one; pack() requires it.

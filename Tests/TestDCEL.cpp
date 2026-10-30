@@ -1264,7 +1264,7 @@ TEST_CASE("MeshT: reconciling a hand-built face that visits a vertex twice abort
   // The file readers reject such a face (Soup::containsDegeneratePolygons), so it can only be built
   // by hand. The angle-weighted vertex normal needs exactly one incoming and one outgoing half-edge
   // per face at the vertex; before this was an always-on check, a release build read past the end of
-  // the two-element neighbour list.
+  // the two-element neighbor list.
   REQUIRE(abortsWith(
     [] {
       Pool        pool(hostMemoryResource());

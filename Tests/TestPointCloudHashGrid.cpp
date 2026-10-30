@@ -303,7 +303,7 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid edge cases", "[PointCloudHashGrid]", EBGE
   {
     // The stopping rule subtracts a few ulps of |lo| + |q| + extent from each face distance. Far from
     // the origin, |lo| dominates that slack and the cell size can approach the coordinates' own
-    // rounding (in float, 1e6 is resolved to 0.0625), so a slack too small would miss neighbours here.
+    // rounding (in float, 1e6 is resolved to 0.0625), so a slack too small would miss neighbors here.
     // Half the points sit exactly on a lattice, where they tie and lie on cell faces.
     for (const double offset : {1.0e3, 1.0e5, 1.0e6}) {
       for (const double spacing : {1.0e-2, 1.0}) {

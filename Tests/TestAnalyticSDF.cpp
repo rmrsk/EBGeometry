@@ -46,13 +46,13 @@ TEMPLATE_TEST_CASE("SphereSDF: exact signed distances", "[SphereSDF]", EBGEOMETR
   REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(0.5, 0, 0)), WithinRel(T(-0.5)));
 }
 
-TEMPLATE_TEST_CASE("SphereSDF: off-centre sphere", "[SphereSDF]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("SphereSDF: off-center sphere", "[SphereSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   SphereSDF<T> sphere(Vec3T<T>(1, 2, 3), T(2.0));
 
-  // Point at centre
+  // Point at center
   REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(1, 2, 3)), WithinRel(T(-2.0)));
 
   // Point on surface along x
@@ -79,11 +79,11 @@ TEMPLATE_TEST_CASE("PlaneSDF: signed distances from xy-plane", "[PlaneSDF]", EBG
   REQUIRE_THAT(plane.signedDistance(Vec3T<T>(5, 7, 0)), WithinAbs(0.0, looseMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("PlaneSDF: non-unit normal is normalised", "[PlaneSDF]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("PlaneSDF: non-unit normal is normalized", "[PlaneSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  // Normal (1,1,0): should be normalised internally
+  // Normal (1,1,0): should be normalized internally
   const PlaneSDF<T> plane(Vec3T<T>(0, 0, 0), Vec3T<T>(2, 0, 0));
 
   // Point at (3, 0, 0): distance = 3 (along +x)
@@ -116,7 +116,7 @@ TEMPLATE_TEST_CASE("BoxSDF: axis-aligned unit box", "[BoxSDF]", EBGEOMETRY_TEST_
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CylinderSDF (defined by two end-cap centres + radius)
+// CylinderSDF (defined by two end-cap centers + radius)
 // ─────────────────────────────────────────────────────────────────────────────
 
 TEMPLATE_TEST_CASE("CylinderSDF: unit cylinder along z-axis", "[CylinderSDF]", EBGEOMETRY_TEST_PRECISIONS)
@@ -126,7 +126,7 @@ TEMPLATE_TEST_CASE("CylinderSDF: unit cylinder along z-axis", "[CylinderSDF]", E
   // Cylinder from (0,0,-1) to (0,0,1), radius 1
   const CylinderSDF<T> cyl(Vec3T<T>(0, 0, -1), Vec3T<T>(0, 0, 1), T(1.0));
 
-  // Centre of cylinder is inside
+  // Center of cylinder is inside
   REQUIRE(cyl.signedDistance(Vec3T<T>(0, 0, 0)) < T(0.0));
 
   // Point on the curved surface
@@ -147,10 +147,10 @@ TEMPLATE_TEST_CASE("TorusSDF: point on surface", "[TorusSDF]", EBGEOMETRY_TEST_P
 {
   using T = TestType;
 
-  // Torus centred at origin, its ring in the xz-plane around the y axis: major radius 2, minor radius 0.5
+  // Torus centered at origin, its ring in the xz-plane around the y axis: major radius 2, minor radius 0.5
   const TorusSDF<T> torus(Vec3T<T>(0, 0, 0), T(2.0), T(0.5));
 
-  // Points on surface: along +x and +z from the tube centre, and above the tube centre in y
+  // Points on surface: along +x and +z from the tube center, and above the tube center in y
   REQUIRE_THAT(torus.signedDistance(Vec3T<T>(2.5, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
   REQUIRE_THAT(torus.signedDistance(Vec3T<T>(0, 0, -2.5)), WithinAbs(0.0, looseMargin<T>()));
   REQUIRE_THAT(torus.signedDistance(Vec3T<T>(0, 0.5, 2)), WithinAbs(0.0, looseMargin<T>()));
@@ -271,16 +271,16 @@ TEMPLATE_TEST_CASE("RoundedBoxSDF: distances, and copies no longer share the rou
   // The default is the unit cube [-0.5, 0.5]^3, rounded.
   REQUIRE_THAT(RoundedBoxSDF<T>().signedDistance(Vec3(T(1), T(0), T(0))), WithinRel(T(0.5)));
 
-  // The outer size is the box the rounded box fits exactly: the face centres touch it, the corners
+  // The outer size is the box the rounded box fits exactly: the face centers touch it, the corners
   // are pulled in by the rounding.
   const Vec3             center(T(1), T(-2), T(3));
   const Vec3             size(T(2), T(1), T(0.6));
   const RoundedBoxSDF<T> placed(center, size, T(0.2));
 
   for (size_t d = 0; d < 3; d++) {
-    const Vec3 faceCentre = center + T(0.5) * size[d] * Vec3::unit(d);
+    const Vec3 faceCenter = center + T(0.5) * size[d] * Vec3::unit(d);
 
-    REQUIRE_THAT(placed.signedDistance(faceCentre), WithinAbs(0.0, looseMargin<T>()));
+    REQUIRE_THAT(placed.signedDistance(faceCenter), WithinAbs(0.0, looseMargin<T>()));
   }
 
   REQUIRE(placed.signedDistance(center + T(0.5) * size) > T(0));
@@ -813,7 +813,7 @@ TEMPLATE_TEST_CASE("Analytic shapes: device signedDistance matches the host",
 
   const AllShapes<T> shapes;
 
-  // The shapes are centred at (or anchored to) the origin and extend at most ~1.1 from it, so this grid
+  // The shapes are centered at (or anchored to) the origin and extend at most ~1.1 from it, so this grid
   // covers points inside, outside and near every surface, including the thin (radius 0.1) tubes.
   // PerlinSDF is a positive noise field with no surface, so it is simply sampled over the same box.
   const auto points = queryGrid<T>(Vec3T<T>(T(-1.5), T(-1.5), T(-1.5)), Vec3T<T>(T(1.5), T(1.5), T(1.5)), 15);

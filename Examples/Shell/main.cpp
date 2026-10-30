@@ -50,7 +50,7 @@ try {
   const auto mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool);
 
   // Lucy stands along z in the file: turn her about x so that she stands along y and about y so that she
-  // faces the camera (+z), then scale her to height 2 and stand her on y = 0, centred in x and z.
+  // faces the camera (+z), then scale her to height 2 and stand her on y = 0, centered in x and z.
   const Expr upright = EBGeometry::Rotate(EBGeometry::Rotate(mesh, T(-90), 0), T(180), 1);
   const auto box     = Tape(pool, upright).computeBoundingVolume();
   const Vec3 lo      = box.getLowCorner();
@@ -62,7 +62,7 @@ try {
 
   // ── Hollow it ──────────────────────────────────────────────────────────────────────────────────────
   //
-  // Annular(e, d) keeps the points within d of the surface: a wall 2d thick, centred on it, outside and
+  // Annular(e, d) keeps the points within d of the surface: a wall 2d thick, centered on it, outside and
   // inside alike. A Difference with a box then removes the quarter towards the camera, x > 0 and z > 0.
   const T thickness = T(0.02);
 

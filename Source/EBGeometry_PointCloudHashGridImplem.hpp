@@ -83,7 +83,7 @@ inline PointCloudHashGrid<T>::PointCloudHashGrid(Pool&                        a_
   // box, so a small a_targetPerCell -- or an anisotropic box (a tight cluster plus a single distant
   // outlier stretches the box along one axis while the local spacing stays tiny) -- can drive the
   // per-axis cell counts, and their product, arbitrarily large: an unbounded m_cellStart allocation,
-  // or undefined behaviour from the int() cast below overflowing. Coarsen m_h until the *actual*
+  // or undefined behavior from the int() cast below overflowing. Coarsen m_h until the *actual*
   // per-axis cell counts multiply to within a budget proportional to the point count. The counts are
   // evaluated in double so the int casts below cannot overflow, and each cube-root step shrinks the
   // product geometrically so the loop converges in a few iterations (the bound is a pure safety net).
@@ -233,7 +233,7 @@ PointCloudHashGrid<T>::cellCoord(T a_x, T a_lo, int a_n) const noexcept
   EBGEOMETRY_EXPECT(a_n >= 1);
 
   // Clamp in floating point before converting: a query far outside the grid would otherwise
-  // overflow the int conversion (undefined behaviour, and in practice a cell on the wrong side of
+  // overflow the int conversion (undefined behavior, and in practice a cell on the wrong side of
   // the grid). A NaN coordinate fails both comparisons and lands in cell 0.
   const T t = std::floor((a_x - a_lo) * m_invH);
 

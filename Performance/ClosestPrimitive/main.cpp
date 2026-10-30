@@ -205,13 +205,13 @@ addPrecision(Perf::Suite& a_suite)
   const AABB sceneBox(-half * Vec3<T>::ones(), half * Vec3<T>::ones());
 
   addComposition<T>(a_suite, "parts", HostQueries, PairQueries, [sceneBox](Perf::Case& c, EBGeometry::Pool& a_pool) {
-    const T                          centre = T(0.5) * T(ScenePartsPerAxis - 1);
+    const T                          center = T(0.5) * T(ScenePartsPerAxis - 1);
     std::vector<EBGeometry::Expr<T>> parts;
 
     for (std::size_t i = 0; i < ScenePartsPerAxis; i++) {
       for (std::size_t j = 0; j < ScenePartsPerAxis; j++) {
         for (std::size_t k = 0; k < ScenePartsPerAxis; k++) {
-          const Vec3<T> at = T(ScenePitch) * (Vec3<T>(T(i), T(j), T(k)) - centre * Vec3<T>::ones());
+          const Vec3<T> at = T(ScenePitch) * (Vec3<T>(T(i), T(j), T(k)) - center * Vec3<T>::ones());
 
           parts.push_back(EBGeometry::Translate(EBGeometry::Expr<T>(fusedCSG<T>()), at));
         }

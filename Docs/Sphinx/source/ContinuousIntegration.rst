@@ -9,8 +9,8 @@ GitHub-hosted ``ubuntu-24.04`` runners (pinned: ``ubuntu-26.04``, which ``ubuntu
 has no ``clang-14`` and a Python too new for the pinned Sphinx). Together, the jobs check: code formatting
 (``clang-format``) and static analysis (``clang-tidy``, advisory); code correctness and assurance
 (the Catch2 unit-test suite, under multiple compilers, SIMD levels, and both ``float`` and
-``double`` precision; every bundled example built and run via CMake, and a subset also via GNU Make
-and direct compiler invocation, under GCC, Clang, and Intel's ``icpx``; a small consuming project
+``double`` precision; every bundled example built and run via CMake, GNU Make and direct compiler
+invocation, under GCC, Clang, and Intel's ``icpx``; a small consuming project
 that uses EBGeometry through ``add_subdirectory`` and ``find_package``; AddressSanitizer and UndefinedBehaviorSanitizer
 runs of the same test suite; device compiles of the GPU-callable code with HIP and, advisory, CUDA);
 spelling (``codespell``); license and copyright compliance (REUSE); and the project's documentation
@@ -29,7 +29,7 @@ The pipeline runs in two tiers, so that a pull request under development gets it
 
 * A **draft** pull request runs the *fast tier*: one or two cells of each matrix, and no
   ``Linux-Intel``, ``Examples-GNUMake``, ``Examples-FloatPrecision``, ``Static-analysis`` or ``GPU-CUDA``
-  job; ``GPU-HIP`` builds only its optimised configuration. It takes about eight minutes.
+  job; ``GPU-HIP`` builds only its optimized configuration. It takes about eight minutes.
 * A pull request that is **ready for review** (marking it ready runs CI again) and every **push** to
   ``main`` or ``dev`` run the *full tier*: every job and every matrix cell described below.
 
@@ -82,9 +82,10 @@ advisory and does not gate ``CI-passed``. Full tier only.
 
 The example lanes below run every example: every folder under :file:`Examples/` with a
 ``main.cpp``. The folders are the only list of examples, which ``Examples/CMakeLists.txt`` globs the
-same way, so a new example needs no edit to CI. Each lane builds every example with warnings as
-errors, and each example exits nonzero when its results disagree with a reference (a brute-force
-scan, or distances worked out by hand).
+same way, so a new example needs no edit to CI. Each lane builds every example (all but
+``Examples-GNUMake`` with warnings as errors) and runs it to completion. An example checks nothing
+itself (the unit tests verify); a lane fails when an example does not compile, throws, or, in a build
+with assertions, trips an ``EBGEOMETRY_EXPECT()`` check.
 
 Linux-GNU
 ~~~~~~~~~
@@ -111,7 +112,7 @@ Examples-CMake
 
 Configures the top-level project with the ``debug`` preset (assertions on, ``double`` precision),
 the unit tests switched off and ``-Werror``, and runs every example via ``ctest --preset examples``.
-The examples follow the project's build type, so they run unoptimised here. This is the path that
+The examples follow the project's build type, so they run unoptimized here. This is the path that
 exercises the CMake-driven build with assertions enabled, unlike ``Linux-GNU``/``Linux-Intel`` (raw
 compiler invocation, no assertions) or ``Unit-Tests``/``Sanitizers`` (examples disabled).
 
@@ -178,7 +179,7 @@ only actually run on a runner whose CPU supports AVX-512F.
 Release-Test
 ~~~~~~~~~~~~
 
-Configures with the ``release-test`` preset (optimised, AVX, examples and tests both enabled) plus
+Configures with the ``release-test`` preset (optimized, AVX, examples and tests both enabled) plus
 ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, and runs ``ctest --preset release-test`` (the full
 unit-test and example suite).
 
@@ -197,17 +198,17 @@ Installs a HIP toolchain (``hipcc``, ``clang-17``) and compiles the unit-test fi
 device block in clang's HIP mode, with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, so the
 GPU-callable code must compile for the device. It also compiles the examples
 (``EBGeometry_GPUDeviceExamples``, see :ref:`Sec:ExamplesGPU`) and the performance probes for the
-device, without running them. It builds optimised (Release) and with host SIMD flags (``-mavx -mfma
+device, without running them. It builds optimized (Release) and with host SIMD flags (``-mavx -mfma
 -msse4.1``), which catches a SIMD block that is not excluded from device compilation, and device code
-whose compile grows out of hand once HIP inlines every device function, which only an optimised build
-shows; the full tier builds a second time, unoptimised. The runner has no GPU, so the device-tagged tests it then runs skip before launching a
+whose compile grows out of hand once HIP inlines every device function, which only an optimized build
+shows; the full tier builds a second time, unoptimized. The runner has no GPU, so the device-tagged tests it then runs skip before launching a
 kernel: the step checks that the binaries start and that the device query is safe, not that device
 code gives correct results. This job is required by ``CI-passed``.
 
 GPU-CUDA
 ~~~~~~~~
 
-The same device compile with ``nvcc`` (CUDA 12.5), device examples and probes included, unoptimised
+The same device compile with ``nvcc`` (CUDA 12.5), device examples and probes included, unoptimized
 and without SIMD flags. Full tier only. CUDA and HIP are separate jobs because they use different
 device compilers and install routes, and run side by side. Marked
 ``continue-on-error: true``, because its toolkit install is the least reliable step in the
@@ -217,7 +218,7 @@ CI-passed
 ~~~~~~~~~
 
 Aggregates every job above -- except the advisory ``Static-analysis`` and ``GPU-CUDA`` -- as a single
-required status check. It runs even when one of those jobs fails or is cancelled, and fails unless
+required status check. It runs even when one of those jobs fails or is canceled, and fails unless
 every one of them succeeded; a skipped dependency counts as a failure too, since a skipped required
 check would not block a merge, except a full-tier-only job skipped on a draft. Branch-protection rules can target this job instead of each
 individual job.
@@ -308,7 +309,7 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
   stage; runs when a ``Source/*.hpp``, a ``Tests/*.[ch]pp`` or the script itself changes.
 * **build-doc-figures** — renders the documentation figures from their
   LaTeX/TikZ sources under ``Docs/Sphinx/source/_static/`` (``stages: [manual]``;
-  requires ``pdflatex`` and ``pdftoppm`` on ``PATH``, see :ref:`Chap:Contributing`).
+  requires ``pdflatex`` and ``pdftoppm`` on ``PATH``; see ``Scripts/build-doc-figures.sh``).
 * **sphinx-build-html** — builds the Sphinx HTML docs in a managed Python virtual
   environment, with warnings treated as errors (``stages: [manual]``; run with
   ``pre-commit run sphinx-build-html --hook-stage manual``).
@@ -323,7 +324,6 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
    invocation (they need system LaTeX/Doxygen/CMake tooling and take longer than
    the default hooks); use the explicit ``--hook-stage manual`` flag (with the
    specific hook id, or omit it to run all manual-stage hooks) when you want to
-   verify them locally. Run ``build-doc-figures`` before either ``sphinx-build-*``
-   hook if you changed a figure's ``.tex`` source — pre-commit runs local hooks in
-   the order they appear in the config file, so ``pre-commit run --all-files
-   --hook-stage manual`` already gets the ordering right.
+   verify them locally. The ``sphinx-build-*`` hooks render the figures themselves
+   (Sphinx runs ``Scripts/build-doc-figures.sh`` when a build starts, skipping figures
+   that are up to date), so they need no hook to run before them.

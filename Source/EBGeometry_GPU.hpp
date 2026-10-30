@@ -8,8 +8,13 @@
  * @details This header is the single home for the thin backend-abstraction macros used by the
  * EBGeometry GPU port. It performs no allocation and pulls in no backend runtime headers; it only
  * detects which offload compiler (if any) is translating the current translation unit and expands
- * the decoration macros accordingly. On an ordinary host C++17 compiler every macro expands to
- * nothing, so annotated code is byte-for-byte identical to unannotated code.
+ * the decoration macros accordingly. On an ordinary host C++17 compiler every decoration macro
+ * expands to nothing, so annotated code is byte-for-byte identical to unannotated code.
+ *
+ * It also defines the inlining and launch macros: @ref EBGEOMETRY_DEVICE_NOINLINE (out of line in a
+ * device pass), @ref EBGEOMETRY_HOST_ALWAYS_INLINE and @ref EBGEOMETRY_HOST_NOINLINE (GCC/Clang
+ * attributes in a host pass, so these two are not empty on a host compiler), and
+ * @ref EBGEOMETRY_GRID_CONSTANT (a kernel parameter read in place, CUDA only).
  *
  * @par Decoration macros
  * - @ref EBGEOMETRY_HOST_DEVICE — callable from host and device (value types, the tape interpreter).
@@ -95,7 +100,8 @@
 // from many places is copied into each of them. A function that calls itself one level down from
 // many places (the tape's evaluate<D>) then grows as the number of call sites to the power of the
 // depth. Marking it out of line in the device pass keeps it a real call there; the host pass is left
-// to its own inliner.
+// to its own inliner. Fully inlined, an optimized HIP compile of TestTape was stopped after ten minutes and
+// 2.5 GB; with evaluate<D> out of line it takes half a minute.
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
 /** @brief Keep a function out of line in the device pass (CUDA/HIP); nothing on the host. */
 #define EBGEOMETRY_DEVICE_NOINLINE __noinline__
@@ -133,11 +139,11 @@
 // A kernel receives its arguments in a read-only parameter space. A function that needs the address of
 // one (a member function of a query that is not inlined, such as a Tape's evaluator) makes the compiler
 // copy the whole argument to each thread's local memory first: for a Tape, a few hundred bytes per
-// thread, which made it about 30 times slower on a device than the same object written by hand (issue
-// #221). CUDA 11.7 and later can give the address of a __grid_constant__ parameter without the copy, on
+// thread, which made it about 30 times slower on a device than the same object written by hand. CUDA
+// 11.7 and later can give the address of a __grid_constant__ parameter without the copy, on
 // compute capability 7.0 and later; nvcc rejects the qualifier in a device pass for an older
-// architecture, so there (__CUDA_ARCH__ below 700) the macro is empty and the parameter is copied as
-// before. The host pass and the newer device passes of the same build keep it. HIP has no such
+// architecture, so there (__CUDA_ARCH__ below 700) the macro is empty and the parameter is copied.
+// The host pass and the newer device passes of the same build keep it. HIP has no such
 // qualifier, so there the macro is empty.
 #if defined(EBGEOMETRY_CUDA) && defined(__CUDACC_VER_MAJOR__) &&                              \
   (__CUDACC_VER_MAJOR__ > 11 || (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ >= 7)) && \

@@ -7,9 +7,11 @@
  * @brief  The ray forms (see RayForm) of compositions: the fused union, intersection, difference, complement
  * and affine maps (Fused::Node), and BVHUnion. Each traces its operands' spans along the ray (see
  * EBGeometry_RaySpans.hpp) and combines them, so that a composition of shapes with ray forms is traced
- * exactly; an operand without one is marched by itself, in its own box. The other fused operations
- * (smooth blends, offsets, elongation, repetition, blur, mollification) have no ray form, and are marched.
- * Tape's ray form, which does the same clause by clause, is in EBGeometry_Tape.hpp.
+ * exactly; an operand without one is marched by itself, in its own box. The fused offset and annulus of a
+ * shape whose level sets have a closed form have their ray form in EBGeometry_OffsetRayForms.hpp. The other
+ * fused operations (smooth blends, offsets and annuli of anything else, elongation, repetition, blur,
+ * mollification) have no ray form, and are marched. Tape's ray form, which does the same clause by clause, is
+ * in EBGeometry_Tape.hpp.
  * @author Robert Marskar
  */
 
@@ -182,7 +184,9 @@ struct DeferredOperand : std::false_type
  * @brief Whether an intersection marches (or defers, see DeferredOperand) a fused node's operand, within the
  * spans of its other operands: 1 for an operand without a ray form or deferred, 2 for the complement of one,
  * 0 for any other.
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. Only an operand that is itself marched (or deferred),
+ * or the complement of one, is: an operand holding a marched part deeper (a union of a ball and a blend) has
+ * a ray form, and is traced in the order written.
  * @tparam C Operand type.
  * @tparam T Floating-point precision.
  */

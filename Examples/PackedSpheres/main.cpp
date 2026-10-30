@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Packed spheres: spheres of random sizes at random places in a cylinder, joined by a smooth union so that
-// neighbours that touch merge with a fillet. A BVHSmoothUnion evaluates it through a BVH over the spheres'
+// neighbors that touch merge with a fillet. A BVHSmoothUnion evaluates it through a BVH over the spheres'
 // boxes and blends the two nearest, so a point costs a few spheres, not all of them. See README.md.
 
 #include <iomanip>
@@ -28,7 +28,7 @@ constexpr std::size_t K = 4;
 
 using Packing = EBGeometry::BVHSmoothUnion<T, Sphere, K, EBGeometry::SmoothMinOp<T>>;
 
-// numSpheres spheres, centred in a cylinder along x of the given radius and five times as long, with radii
+// numSpheres spheres, centered in a cylinder along x of the given radius and five times as long, with radii
 // between minRadius and maxRadius; the union blends over blendLength.
 constexpr int numSpheres     = 3000;
 constexpr T   cylinderRadius = T(26);
@@ -41,7 +41,7 @@ main(int argc, char* argv[])
 {
   // ── Build the packing ──────────────────────────────────────────────────────────────────────────────
   //
-  // Rejection sampling: draw a centre uniformly in the cylinder's box and keep it only if it lies inside the
+  // Rejection sampling: draw a center uniformly in the cylinder's box and keep it only if it lies inside the
   // cylinder, then draw the radius. A fixed seed gives the same packing on every run (with the same standard
   // library, whose distributions are not specified bit for bit). The union copies the spheres into the pool,
   // which must outlive it.
@@ -70,7 +70,7 @@ main(int argc, char* argv[])
   //
   // signedDistance() is negative inside any sphere or fillet; the corner of the box is outside them all.
   std::cout << std::fixed << std::setprecision(4) << spheres.size() << " spheres, box "
-            << packing.computeBoundingVolume() << "\n  value at the centre " << packing.signedDistance(Vec3::zeros())
+            << packing.computeBoundingVolume() << "\n  value at the center " << packing.signedDistance(Vec3::zeros())
             << ", at the corner " << packing.signedDistance(packing.computeBoundingVolume().getLowCorner()) << '\n';
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────

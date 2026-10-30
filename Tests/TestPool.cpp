@@ -514,7 +514,7 @@ TEST_CASE("Pool: identities are unique and mirrorOf names the root of a chain", 
   const Pool hop2 = Pool::mirror(hop1, hostMemoryResource());
 
   // A mirror is its own pool, but every hop names the *root*, so an object built in `a` can still
-  // recognise `hop2` as a faithful copy of its own storage.
+  // recognize `hop2` as a faithful copy of its own storage.
   REQUIRE(hop1.id() != a.id());
   REQUIRE(hop2.id() != hop1.id());
   REQUIRE(hop1.mirrorOf() == a.id());

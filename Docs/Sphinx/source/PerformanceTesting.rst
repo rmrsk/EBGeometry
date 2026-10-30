@@ -20,8 +20,17 @@ What is in Performance/
    Performance/
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
      Mesh/main.cpp            TriMeshSDF and MeshSDF
+     BVH/main.cpp             PackedBVH::traverse() itself
      BVHUnion/main.cpp        BVHUnion
      Tape/main.cpp            Tape's signed distance
+     Fused/main.cpp           fused compositions (Fused::)
+     Ray/main.cpp             ray queries on meshes and compositions
+     RayCSG/main.cpp          ray tracing a composition from its parts' spans
+     RayShell/main.cpp        ray tracing a shell with a corner cut away
+     RayParticles/main.cpp    particles colliding with a boundary
+     Render/main.cpp          one frame of the renderer
+     ClosestPrimitive/main.cpp  a tape's closestPrimitive()
+     LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
        Statistics.hpp           quantiles, summaries, the bootstrap interval    (shared with PerfCompare)
@@ -36,6 +45,10 @@ What is in Performance/
      Tools/PerfCompare.cpp    compares two sets of results
      RunPerformance.cmake     the logic of Scripts/run-performance.sh
      Compare.cmake            builds two commits, runs both, reports
+     Receipt.cmake            writes the performance receipt
+     CheckReceipt.cmake       CI's check of the receipt
+     TestReceipt.cmake        checks that the receipt writer keeps a report whole
+     receipt.md               the performance receipt
      CMakeLists.txt
 
 Each folder with a ``main.cpp`` is a *probe*: one program per component, holding many *cases*. A case is
@@ -59,9 +72,9 @@ its start (on glibc, with ``mallopt``): every allocation comes from the heap, so
 reuse memory freed earlier in the same build, as in a real program; and before every repetition,
 untimed, the memory freed so far goes back to the system (``malloc_trim``), so that each repetition's
 pool starts on fresh pages and pays their page faults, as a first build's does. Without this, glibc
-decided by a size threshold, which it moves as the program runs, whether a repetition's pool came as
-fresh pages or as memory already touched, so a pool a few percent larger or smaller could change a
-build's time by 15% with no change to the build itself. Each run records its allocation policy, and a
+decides by a size threshold, which it moves as the program runs, whether a repetition's pool comes as
+fresh pages or as memory already touched, so a pool slightly larger or smaller could change a
+build's time markedly with no change to the build itself. Each run records its allocation policy, and a
 comparison shows each side's beside its commit.
 
 Inputs are fixed: every point set comes from the harness's own generator with a fixed seed, so that
@@ -88,7 +101,7 @@ each over 500,000 points, either ``uniform`` in the unit cube or on the unit-``s
 Family                                Build  Measures
 ====================================  =====  =====================================================
 ``build``                             host   building the structure; also its pool bytes
-``all1nn``, ``all8nn``                host   the batched k-nearest-neighbour graph
+``all1nn``, ``all8nn``                host   the batched k-nearest-neighbor graph
                                              (``allNearestNeighbors``)
 ``closest-random``                    host   ``closestPoint`` at 200,000 random points near the cloud,
                                              in the order drawn
@@ -124,8 +137,8 @@ Family                                Build  Measures
 **BVH** (``Performance/BVH``): ``PackedBVH::traverse()`` itself. The BVH holds the boxes of the probe
 mesh's triangles (the armadillo, about 100,000; K = 4, four boxes per leaf, built bottom up), and the leaf
 work is one box test per primitive, so the cases measure the walk: the query's child test, the sort and
-the stack. Queries start at random points in the BVH's box grown to twice its size about its centre; a
-ray points at the centre, so neighbouring origins give side-by-side rays.
+the stack. Queries start at random points in the BVH's box grown to twice its size about its center; a
+ray points at the center, so neighboring origins give side-by-side rays.
 
 ====================================  =====  =====================================================
 Case                                  Build  Measures
@@ -144,9 +157,9 @@ Case                                  Build  Measures
 three families. The ``spheres`` (unit spheres, spacing 3) fill about half their boxes (:math:`\pi/6`), and the
 boxes do not overlap. The ``capsules-diagonal`` (length 3, radius 0.2, along (1, 1, 1), spacing 1.8) are
 the worst case for an axis-aligned box: each fills about 5% of it, and every box overlaps its
-neighbours', so a query point lies in many leaf boxes. The ``cylinders-random`` (finite cylinders of the
+neighbors', so a query point lies in many leaf boxes. The ``cylinders-random`` (finite cylinders of the
 same size and spacing, in directions drawn from a fixed seed) have a dearer distance than a capsule (two
-flat caps) and a mix of fills, as in a geometry of fibres; neighbours intersect, which a union handles.
+flat caps) and a mix of fills, as in a geometry of fibers; neighbors intersect, which a union handles.
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
@@ -159,7 +172,7 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 **Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
-grown by a quarter on every side), against the same solid written by hand (issues #210 and #221). The
+grown by a quarter on every side), against the same solid written by hand. The
 ``sphere`` and ``chain16`` cases take a gap between the two apart: a cost paid once per device thread
 (``signedDistance-x16`` evaluates 16 times per query), and one paid per clause.
 
@@ -182,9 +195,8 @@ Family                                Build  Measures
 
 **Fused** (``Performance/Fused``): the Tape probe's solids as fused compositions (``Fused::``, see
 :ref:`Sec:Fused`), at the same points as the Tape probe's cases, and a mesh drilled through by a
-cylinder, fused and through a tape. They have a probe of their own because adding them to the Tape
-probe's translation unit changed how GCC inlined the tape's evaluator there, and so the timings of the
-Tape cases. Each fused case names its tape counterpart (``Tape/csg/...`` for ``Fused/csg/...``, and
+cylinder, fused and through a tape. They have a probe of their own, since cases added to a probe's
+translation unit can change how the compiler inlines that probe's existing code, and so its timings. Each fused case names its tape counterpart (``Tape/csg/...`` for ``Fused/csg/...``, and
 ``drilled-mesh-tape`` for ``drilled-mesh``), and a comparison notes ``tape/fused`` beside it: the tape's
 time over the fused composition's, on that side (see `Where the results go`_). The ratio is what
 interpreting the composition through a tape costs, and it is tracked from one pull request to the next.
@@ -203,7 +215,7 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 **Ray** (``Performance/Ray``): the ray queries (see :ref:`Chap:ImplemRays`). Rays start at random points
-in the object's box grown to twice its size about its centre and point at the centre, as in the BVH
+in the object's box grown to twice its size about its center and point at the center, as in the BVH
 probe. The mesh is the armadillo (``TriMeshSDF``, K = W = 4), ray traced exactly; its ``firstHit`` case
 names the hand-written walk (``traverse()`` with a ``RayQuery`` and the probe's own leaf callback),
 and a comparison notes ``hand/api`` beside it: what ``firstHit()`` costs over code a user writes. The
@@ -250,10 +262,10 @@ Case                                  Build  Measures
 
 **RayShell** (``Performance/RayShell``): ray tracing a difference of a shell and a box, the shell traced from
 the mesh's offset faces (see :ref:`Sec:OffsetRays`), or marched only within the box's spans (see
-:ref:`Sec:RaySpans`): a shell (``Annular``) around the armadillo (a ``TriMeshSDF``, the dodecahedron under ``--smoke``), half as thick as 1% of its box diagonal,
-with the corner above its centre in :math:`x` and below it in :math:`z` cut away by a box, as in
+:ref:`Sec:RaySpans`): a shell (``Annular``) around the armadillo (a ``TriMeshSDF``, the dodecahedron under ``--smoke``), with a half-thickness of 0.5% of its box diagonal,
+with the corner above its center in :math:`x` and below it in :math:`z` cut away by a box, as in
 :ref:`Chap:ExampleShell`. The rays start in the shell's box grown to twice its size and point at its
-centre. It is through a tape (with the mesh as a user primitive type), traced and marched, the traced case
+center. It is through a tape (with the mesh as a user primitive type), traced and marched, the traced case
 naming the marched one, and fused. A host and a device crossing agree when both miss or both cross within
 twice the march's tolerance times the box diagonal; a ray grazing the shell may come within the tolerance
 on one side only, and is counted as differing.
@@ -272,7 +284,7 @@ Case                                  Build  Measures
 first crossing of the boundary on it (``firstHit()`` over the step's length). Each particle starts at a random
 point outside the boundary, in its box grown by a tenth of its diagonal, and moves a hundredth of the diagonal
 in a random direction. The boundaries are a shell (``Annular``) around the armadillo (the dodecahedron under
-``--smoke``), half as thick as 1% of its box diagonal, as in :ref:`Chap:ExampleShell` but without the cut:
+``--smoke``), with a half-thickness of 0.5% of its box diagonal, as in :ref:`Chap:ExampleShell` but without the cut:
 through a tape (with the mesh as a user primitive type), traced from the mesh's offset faces (see
 :ref:`Sec:OffsetRays`) and marched, the traced case naming the marched one, and fused; the solid armadillo,
 for the cost of a mesh's own crossing; and a box's shell through a tape, for an analytic shape's. Host and
@@ -294,7 +306,7 @@ Case                                    Build  Measures
 with shadows and ambient occlusion and one ray per pixel, from the camera ``Render::Camera::fit()``
 places for the shape: the classic CSG solid through a ``Tape``, and the armadillo as a ``TriMeshSDF``.
 The ray queries themselves are timed by the Ray and RayCSG probes; this measures what the renderer adds
-to them, the shadow and occlusion rays and the shading. A host and a device pixel agree when every colour
+to them, the shadow and occlusion rays and the shading. A host and a device pixel agree when every color
 channel is within a tenth of its range; a ray grazing the silhouette can hit on one side and miss on the
 other.
 
@@ -369,11 +381,11 @@ A probe is a single source file that compiles for the host, for CUDA or for HIP,
 depends on the build:
 
 * **A host build** runs the ``host`` cases, on one core (pinned): builds, refits, the batched queries
-  and the per-point queries, vectorised for the host. These are the host's numbers, and what a host
+  and the per-point queries, vectorized for the host. These are the host's numbers, and what a host
   comparison judges.
 * **A CUDA or HIP build** runs only the ``hostdevice`` pairs, and only with a visible GPU: every query
   that runs on a device, with the same inputs on both sides. Its host side is not what to read host
-  times from (in a CUDA build it is not vectorised: with any host SIMD macro set, GCC's ``immintrin.h``
+  times from (in a CUDA build it is not vectorized: with any host SIMD macro set, GCC's ``immintrin.h``
   pulls in headers that ``nvcc`` cannot parse), so host-only operations are left to the host build.
 
 Queries are written as trivially copyable functors, as in the examples. In a pair, the inputs are
@@ -381,11 +393,11 @@ divided into chunks of as many consecutive points as the case's block size (``GP
 unless the case gives another, as LaunchTuning's do): on the device each chunk is one block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
 kernel's alone), and on the host the chunks are shared among OpenMP threads, one on every hardware
 thread but one, so that the device is compared with the whole CPU rather than one core.
-(``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries about a quarter faster
-than one thread per core; a thread on every hardware thread, though, leaves nothing for the GPU runtime
-and the operating system, so the loop keeps losing whole scheduler ticks to a preempted thread, and one
-spare hardware thread was fastest in every case.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
-in which a caller querying a box of cells presents them, which keeps neighbouring queries in the same
+(``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries faster than one thread
+per core; a thread on every hardware thread, though, leaves nothing for the GPU runtime and the
+operating system, so the loop keeps losing whole scheduler ticks to a preempted thread, which is why
+one hardware thread is left spare.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
+in which a caller querying a box of cells presents them, which keeps neighboring queries in the same
 part of a tree) and, for external queries, once in random order. Besides the device time, a pair records
 
 * ``host_ms``, ``host_threads`` and ``host_over_device``: the host's time, its thread count, and the
@@ -397,9 +409,8 @@ part of a tree) and, for external queries, once in random order. Besides the dev
 
 The speedup is machine-specific, so it means something on one machine, from one commit to the next: a
 change that speeds up one side and slows down the other shows as a shift in it. In a CUDA build it is
-measured against scalar host code; the host build's ``host`` cases show what vectorisation is worth on
-one core (about 3.4 times for ``TriMeshSDF`` in ``float`` on an AVX2 machine), so against a vectorised
-host the device's lead would be correspondingly smaller. In ``double`` a consumer GPU (FP64 at 1/64 of
+measured against scalar host code; the host build's ``host`` cases show what vectorization is worth on
+one core, so against a vectorized host the device's lead would be correspondingly smaller. In ``double`` a consumer GPU (FP64 at 1/64 of
 its FP32 rate) is little faster than the CPU's cores. OpenMP is on by default
 for CUDA builds (``EBGEOMETRY_PERF_OPENMP``); a HIP build's clang host side would need the LLVM OpenMP
 runtime, which is not yet tested, so it is off there unless turned on, and the host side then runs on one
@@ -492,7 +503,7 @@ is exported with ``git archive`` and built from its own ``Performance/`` folder,
 changes an API the probes use updates the probes and is still compared case by case; the report names
 any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
 with the candidate's probes.) Every case then runs in a fresh process, so that one case cannot leave the
-heap or the caches in a state that favours the next, alternating between the two sides for ``--rounds``
+heap or the caches in a state that favors the next, alternating between the two sides for ``--rounds``
 rounds (default 2) of ``--reps`` repetitions (default 3). These defaults are the least that gives a
 verdict, and keep a comparison of every case to about eight minutes on a desktop, builds included; one
 round (``--rounds 1``) shows the times without judging them, a quick look while a change is developed. A host comparison compares the host cases,
@@ -530,7 +541,7 @@ changing the probes themselves.
 Reading the verdicts
 ^^^^^^^^^^^^^^^^^^^^
 
-Every comparison ends with one line that answers whether there is a regression, coloured in a terminal,
+Every comparison ends with one line that answers whether there is a regression, colored in a terminal,
 and ``report.md`` starts with the same line:
 
 .. code-block:: text

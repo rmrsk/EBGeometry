@@ -63,7 +63,7 @@ one header and compile with C++17.
 * Ray and segment hits (`firstHit()`, `intersects()`): exact for meshes, closed-form shapes and their
   unions, intersections, differences and affine maps (fused, BVH unions and tapes), sphere traced for
   everything else.
-* Closest points and k nearest neighbours in point clouds.
+* Closest points and k nearest neighbors in point clouds.
 * A renderer for any shape, on the host or a GPU, with an optional interactive window (SDL2).
 
 ## In code
@@ -138,7 +138,7 @@ through each part of this, one topic at a time.
 EBGeometry overlaps with several excellent libraries:
 [TriangleMeshDistance](https://github.com/InteractiveComputerGraphics/TriangleMeshDistance) and
 [fcpw](https://github.com/rohan-sawhney/fcpw) for mesh distances, [libfive](https://libfive.com) for
-functional solid modelling, [nanoflann](https://github.com/jlblancoc/nanoflann) for neighbour search,
+functional solid modeling, [nanoflann](https://github.com/jlblancoc/nanoflann) for neighbor search,
 [Embree](https://www.embree.org) and [OptiX](https://developer.nvidia.com/rtx/ray-tracing/optix) for
 ray tracing, and [CGAL](https://www.cgal.org) for exact computational geometry. What it adds is the
 combination: every kind of geometry, composed freely, queried the same way on CPUs and GPUs, from one
@@ -208,15 +208,14 @@ Contributions are welcome. Reach out to see whether a feature is already planned
 repository and open a pull request. See
 [Contributing and testing](https://rmrsk.github.io/EBGeometry/Contributing.html) for how to build and
 test locally, what continuous integration checks, the performance comparison every pull request
-carries, and the code conventions. For GPU work, start from [PORTING.md](PORTING.md).
+carries, and the code conventions.
 
 ## How EBGeometry is developed
 
 EBGeometry is human-designed, with AI-assisted implementation.
 
 * **2022 to mid-2026:** designed and written by hand.
-* **Since July 2026** (the overhaul in [#88](https://github.com/rmrsk/EBGeometry/pull/88)): the
-  maintainer designs and decides: the architecture, the APIs, the algorithms, the priorities, and
+* **Since July 2026:** the maintainer designs and decides: the architecture, the APIs, the algorithms, the priorities, and
   every non-obvious choice. [Claude Code](https://claude.com/claude-code) implements, tests, documents
   and measures, steered by the rules in [`CLAUDE.md`](CLAUDE.md), and brings every open decision back
   to the maintainer.

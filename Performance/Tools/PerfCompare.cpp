@@ -10,7 +10,7 @@
 //                  [--level-file <file>]
 //
 // Each JSON line of a case is one run: a fresh process, timing several repetitions. Repetitions in one
-// process share its luck (memory placement, clock speed, neighbours on the machine), so they are not
+// process share its luck (memory placement, clock speed, neighbors on the machine), so they are not
 // independent measurements; runs are. Every case is therefore judged by its runs: each run is reduced to
 // the median of its repetitions, and for every case it reports the median of those per side, their
 // ratio, a bootstrap 95% confidence interval for the ratio (the runs resampled, not the repetitions),
@@ -37,7 +37,7 @@
 // shown for information only.
 //
 // Every report ends with one VERDICT line (green: no regression; yellow: look closer; red: do not
-// merge), coloured on a terminal, and --markdown writes the report as Markdown starting with that line.
+// merge), colored on a terminal, and --markdown writes the report as Markdown starting with that line.
 // --verdict-only prints only the line (Compare.cmake ends a run with it); --no-verdict leaves it out;
 // --failed-runs is the number of runs that crashed, which makes the verdict red. --level-file writes the
 // verdict's level to a file (0 green, 1 yellow, 2 red), for a receipt (Compare.cmake RECORD), since the
@@ -874,7 +874,7 @@ smokeReport(
                               " failed or missing on a side, " + counted(checksums, "checksum difference") + ", " +
                               counted(differ, "host/device disagreement");
   const char* const footnote = "* Information only: one repetition at the smoke sizes, dominated by start-up and "
-                               "launch overhead\n  and far from the cache and traversal behaviour of the full sizes; "
+                               "launch overhead\n  and far from the cache and traversal behavior of the full sizes; "
                                "never judged.\n";
 
   std::printf("\nSmoke comparison (a check, not a measurement: no timing verdicts): %s\n", summary.c_str());

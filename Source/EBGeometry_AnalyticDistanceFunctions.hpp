@@ -519,13 +519,13 @@ protected:
 
 /**
  * @brief Signed distance field for a torus.
- * @details The torus ring lies in the xz-plane, around an axis along y, and is centred at
- * `m_center`. The major radius `m_majorRadius` is the distance from the torus centre to the
- * centre-line of the tube; the minor radius `m_minorRadius` is the tube radius. The bounding box
+ * @details The torus ring lies in the xz-plane, around an axis along y, and is centered at
+ * `m_center`. The major radius `m_majorRadius` is the distance from the torus center to the
+ * center-line of the tube; the minor radius `m_minorRadius` is the tube radius. The bounding box
  * spans `[center ± (majorRadius + minorRadius)]` in x and z, and `[center ± minorRadius]` in y.
  * The SDF is negative inside the tube and positive outside. The minor radius must be strictly
- * less than the major radius; otherwise the tube would self-intersect at the torus centre.
- * By default the torus is centred at the origin with major radius 1 and minor radius 0.5.
+ * less than the major radius; otherwise the tube would self-intersect at the torus center.
+ * By default the torus is centered at the origin with major radius 1 and minor radius 0.5.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -716,11 +716,11 @@ protected:
 
 /**
  * @brief Signed distance field for a finite, flat-capped cylinder.
- * @details The cylinder is defined by two cap-centre positions `m_center1` and `m_center2` and a
+ * @details The cylinder is defined by two cap-center positions `m_center1` and `m_center2` and a
  * radius `m_radius`. The cylinder axis is the unit vector from `m_center1` to `m_center2`, and its
  * height (distance between the two flat caps) equals `distance(m_center1, m_center2)`. The SDF is
  * negative inside the cylinder and positive outside. By default the cylinder has radius 1 and
- * height 1, centred at the origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
+ * height 1, centered at the origin with its axis along y (cap centers at (0,-0.5,0) and (0,0.5,0)).
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -735,8 +735,8 @@ public:
   static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
 
   /**
-   * @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centred at the
-   * origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
+   * @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centered at the
+   * origin with its axis along y (cap centers at (0,-0.5,0) and (0,0.5,0)).
    */
   CylinderSDF() = default;
 
@@ -936,7 +936,7 @@ protected:
 /**
  * @brief Signed distance field for an infinitely long cylinder.
  * @details The cylinder is infinite in one coordinate direction (selected by `m_axis`: 0 = x,
- * 1 = y, 2 = z) and has a circular cross-section of radius `m_radius` centred at `m_center`
+ * 1 = y, 2 = z) and has a circular cross-section of radius `m_radius` centered at `m_center`
  * in the plane perpendicular to that axis. The SDF is the radial distance from the axis minus
  * the radius: negative inside the cylinder and positive outside. By default the cylinder has
  * radius 1, passes through the origin, and extends along y.
@@ -954,7 +954,7 @@ public:
   static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
 
   /**
-   * @brief Default constructor. Constructs an infinite cylinder of radius 1 centred at the origin
+   * @brief Default constructor. Constructs an infinite cylinder of radius 1 centered at the origin
    * with its axis along y (axis index 1).
    */
   InfiniteCylinderSDF() = default;
@@ -1103,12 +1103,12 @@ protected:
  * `distance(tip1, tip2) - 2 * radius`, and the two hemispheres each contribute a further
  * `radius` to each end.
  *
- * Internally the hemisphere centres are stored as `m_center1` and `m_center2` (inset from the
+ * Internally the hemisphere centers are stored as `m_center1` and `m_center2` (inset from the
  * tips by `radius` along the capsule axis). These are **not** the same as the tip positions
  * passed to the constructor.
  *
  * The SDF is negative inside the capsule and positive outside. By default the capsule is
- * centred at the origin, aligned along y, with tips at (0,-1,0) and (0,1,0) and radius 0.5,
+ * centered at the origin, aligned along y, with tips at (0,-1,0) and (0,1,0) and radius 0.5,
  * giving a total height of 2 and a cylindrical body of length 1.
  * @tparam T Floating-point precision.
  */
@@ -1125,14 +1125,14 @@ public:
 
   /**
    * @brief Default constructor. Constructs a capsule with tips at (0,-1,0) and (0,1,0), radius 0.5.
-   * @details Total height = 2, cylindrical body length = 1, aligned along y, centred at origin.
-   * The stored hemisphere centres are at (0,-0.5,0) and (0,0.5,0).
+   * @details Total height = 2, cylindrical body length = 1, aligned along y, centered at origin.
+   * The stored hemisphere centers are at (0,-0.5,0) and (0,0.5,0).
    */
   CapsuleSDF() = default;
 
   /**
    * @brief Full constructor.
-   * @details The hemisphere centres stored internally are derived from the tips:
+   * @details The hemisphere centers stored internally are derived from the tips:
    * `m_center1 = a_tip1 + a_radius * axis` and `m_center2 = a_tip2 - a_radius * axis`,
    * where `axis = (a_tip2 - a_tip1) / distance(a_tip1, a_tip2)`.
    * The cylindrical body length is `distance(a_tip1, a_tip2) - 2 * a_radius`, which must not be
@@ -1208,7 +1208,7 @@ public:
     const Vec3T<T> v1 = a_point - m_center1;
     const Vec3T<T> v2 = m_center2 - m_center1;
 
-    // Tips exactly two radii apart put both hemisphere centres at the same point: a sphere. Guard the
+    // Tips exactly two radii apart put both hemisphere centers at the same point: a sphere. Guard the
     // projection, which would otherwise divide zero by zero.
     const T len2 = dot(v2, v2);
 
@@ -1220,7 +1220,7 @@ public:
 
   /**
    * @brief The shape's axis-aligned bounding box.
-   * @details The two hemisphere centres plus and minus the radius along each axis.
+   * @details The two hemisphere centers plus and minus the radius along each axis.
    * @return The bounding box.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1232,8 +1232,8 @@ public:
   }
 
   /**
-   * @brief Get the centre of the first hemispherical cap.
-   * @return The centre of the first hemispherical cap.
+   * @brief Get the center of the first hemispherical cap.
+   * @return The center of the first hemispherical cap.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   const Vec3T<T>&
@@ -1243,8 +1243,8 @@ public:
   }
 
   /**
-   * @brief Get the centre of the second hemispherical cap.
-   * @return The centre of the second hemispherical cap.
+   * @brief Get the center of the second hemispherical cap.
+   * @return The center of the second hemispherical cap.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   const Vec3T<T>&
@@ -1443,7 +1443,7 @@ public:
    * @brief Full constructor.
    * @param[in] a_tip    Cone tip position.
    * @param[in] a_height Cone height (tip to base).
-   * @param[in] a_angle  Full opening angle in degrees.
+   * @param[in] a_angle  Full opening angle in degrees (must be in (0°, 180°)).
    */
   ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
   {
@@ -1702,9 +1702,12 @@ protected:
  * subtracted from a conventional SDF.
  *
  * The output of `signedDistance` is on the range `[0, m_noiseAmplitude]` for a single octave.
- * Multiple octaves sum scaled contributions: each successive octave doubles the spatial frequency
- * (controlled by `m_noisePersistence` dividing the frequency) and attenuates the amplitude by
+ * Multiple octaves sum scaled contributions: each successive octave divides the spatial frequency by
+ * `m_noisePersistence` (doubling it at the default 0.5) and multiplies the amplitude by
  * `m_noisePersistence`.
+ *
+ * The full constructor shuffles the permutation table with a std::mt19937 seeded with 0, so every
+ * PerlinSDF built with the same parameters is the same noise field; call shuffle() for another.
  *
  * @tparam T Floating-point precision.
  */
@@ -1798,7 +1801,7 @@ public:
   operator=(PerlinSDF&&) = default;
 
   /**
-   * @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude].
+   * @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude] for one octave.
    * @param[in] a_point Input point.
    * @return Octave-summed Perlin noise value scaled by m_noiseAmplitude.
    */
@@ -1827,8 +1830,8 @@ public:
 
   /**
    * @brief Shuffle the permutation table with the provided uniform random number generator.
-   * @details Reseeds the 256-entry permutation table using std::shuffle and then mirrors it
-   * into the upper 256 entries. The URNG type must satisfy the C++ UniformRandomBitGenerator
+   * @details Resets the first 256 entries of the permutation table to 0, ..., 255, permutes them with
+   * std::shuffle and then mirrors them into the upper 256 entries. The URNG type must satisfy the C++ UniformRandomBitGenerator
    * concept (e.g., std::mt19937).
    * @tparam URNG Uniform random number generator type (e.g., std::mt19937).
    * @param[in] g Uniform random number generator instance to drive the shuffle.
@@ -1878,7 +1881,8 @@ public:
 protected:
   /**
    * @brief Ken Perlin's original 256-entry permutation table.
-   * @details Used by the full constructor and shuffle() to seed m_permutationTable. Stored as a
+   * @details Copied into m_permutationTable by the full constructor, which then calls shuffle(); that
+   * resets and permutes the table, so the noise does not use Perlin's own permutation. Stored as a
    * static constexpr member so it is available to subclasses without polluting the enclosing
    * namespace.
    */
@@ -1913,8 +1917,8 @@ protected:
 
   /**
    * @brief Integer hash permutation table (512 entries: [0..255] mirrored).
-   * @details Default-constructed with all zeros (degenerate, constant-zero noise).
-   * Use the full constructor or shuffle() to populate with a real permutation.
+   * @details Filled by every constructor (the default constructor delegates to the full one) and
+   * refilled by shuffle().
    */
   Array<int, 512> m_permutationTable = {};
 
@@ -2015,7 +2019,7 @@ protected:
 
 /**
  * @brief Signed distance field for a cylinder with rounded (toroidal) edges.
- * @details The cylinder is centred at `m_center` with its axis along **y**. The constructor
+ * @details The cylinder is centered at `m_center` with its axis along **y**. The constructor
  * takes the center, the outer radius, the edge curvature radius and the total height. The curvature rounds
  * the sharp edges where the flat caps meet the cylindrical wall; the resulting shape is sometimes
  * called a "stadium of revolution" or a "pill cylinder".
@@ -2047,7 +2051,7 @@ public:
   static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
 
   /**
-   * @brief Default constructor. Constructs a rounded cylinder centred at the origin, axis along y,
+   * @brief Default constructor. Constructs a rounded cylinder centered at the origin, axis along y,
    * with outer radius 1, total height 1, and edge curvature 0.1.
    */
   RoundedCylinderSDF() = default;

@@ -4,7 +4,7 @@
 
 // Performance cases for the point clouds: PointCloudBVH and PointCloudHashGrid, over 500,000 points
 // uniform in the unit cube or on the unit sphere, in float and double. A host build runs the host cases
-// (the build, the batched nearest-neighbour graphs, closest points near and far from the cloud); a CUDA
+// (the build, the batched nearest-neighbor graphs, closest points near and far from the cloud); a CUDA
 // or HIP build runs the per-point queries, in Morton order, as host/device pairs. See ../README.md and PerformanceTesting.rst.
 
 #include <algorithm>
@@ -31,7 +31,7 @@ constexpr std::size_t W              = 4;
 constexpr std::size_t TargetLeafSize = 16 * W;
 constexpr std::size_t TargetPerCell  = 1;
 
-// The number of neighbours the k-nearest cases ask for.
+// The number of neighbors the k-nearest cases ask for.
 constexpr std::size_t KNearest = 8;
 
 // The cloud's size and the numbers of queries, at full and at smoke size. Queries far outside the

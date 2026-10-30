@@ -35,8 +35,7 @@ search from the leaf the point lives in -- a strictly cheaper search an external
 
 Both classes keep their candidates in a ``PointCloud::KBest`` set (`doxygen
 <doxygen/html/classEBGeometry_1_1PointCloud_1_1KBest.html>`__): the k nearest found so far, sorted
-in the caller's result buffer, with the k-th distance as the pruning bound. Each point is offered to
-it once per query, so it needs no de-duplication.
+in the caller's result buffer, with the k-th distance as the pruning bound.
 
 Brute-force references
 ______________________
@@ -54,19 +53,14 @@ PointCloudBVH
 ``PointCloudBVH`` is built on the :ref:`Chap:ImplemBVH` machinery: it holds a ``BVH::PackedBVH``
 over ``PointAoSoA`` leaf groups as a member, and adds two things the general path does not offer --
 a much cheaper **index-based build**, and **turnkey query methods** that hide ``traverse()``
-entirely. It is built by partitioning an index permutation in place with a longest-axis midpoint
-split (falling back to a split by count where the midpoint cannot separate the points, as with
-coincident points, so the tree stays shallow) and packing the ``PointAoSoA`` leaves inline (no intermediate primitive list, no
-``shared_ptr``, no separate packing pass), which is several times faster to build than a full
-Surface-Area-Heuristic tree and, for near-uniform clouds, just as tight to query. ``getBVH()`` exposes
-the held ``PackedBVH`` for anything that needs the general BVH interface.
+entirely. The build splits the points directly, with no intermediate primitive list, and is much
+faster than a full Surface-Area-Heuristic tree while, for near-uniform clouds, just as tight to
+query. The optional constructor argument sets the target number of points per leaf. ``getBVH()``
+exposes the held ``PackedBVH`` for anything that needs the general BVH interface.
 
-Each leaf lane of a ``PointAoSoA`` group carries its point's cloud index, and a leaf scan stops at
-the group's real points (``numValid()``), so the padded lanes are never reported.
-
-The held BVH and every cloud array (positions, the per-point seeding tables, the leaf order) are
-reserved from the one ``Pool`` passed to the constructor, so a ``PointCloudBVH`` is trivially
-copyable and crosses to a device the same way a ``PackedBVH`` does (see :ref:`Chap:MemoryModel`):
+The held BVH and every cloud array are reserved from the one ``Pool`` passed to the constructor,
+which must outlive the ``PointCloudBVH`` and every copy or view of it. A ``PointCloudBVH`` is
+therefore trivially copyable and crosses to a device the same way a ``PackedBVH`` does (see :ref:`Chap:MemoryModel`):
 mirror the pool, call ``rebasedView()``, and pass the returned value into a kernel.
 ``rebasedView()`` and ``deepCopy()`` both return a ``PointCloudBVH``. On the device,
 ``closestPoint()``, ``closestPoints()``, ``nearestNeighbor()`` and ``nearestNeighbors()`` are
@@ -80,16 +74,15 @@ PointCloudHashGrid
 ------------------
 
 ``PointCloudHashGrid`` circumvents the tree entirely and stores the cloud in a **uniform grid**.
-Points are counting-sorted into a dense array of fixed-size cells (a CSR bucket array keyed by
-integer cell coordinates) -- an ``O(N)`` build with no recursive partitioning and no tree nodes. A
+Points are counting-sorted into a dense array of fixed-size cells -- an ``O(N)`` build with no recursive partitioning and no tree nodes. A
 query is an **expanding-shell** search outward from the query point's cell (Chebyshev radius
 0, 1, 2, ...); it stops, exactly and without ever missing a neighbor, as soon as the k-th best
-distance found is closer than any unvisited cell can hold. The bound is taken at the true cell
-faces, less a few ulps for the rounding in locating a point's cell, so with the default cell size
-(~1 point/cell) the search often stops after the query's own cell and its first shell.
+distance found is closer than any unvisited cell can hold. With the default cell size (about one
+point per cell, set by the constructor's optional target points per cell) the search often stops
+after the query's own cell and its first shell.
 
-Like ``PointCloudBVH``, the grid keeps its arrays (positions and the two CSR arrays) in the ``Pool``
-passed to the constructor, is trivially copyable, and offers ``rebasedView()`` and ``deepCopy()``;
+Like ``PointCloudBVH``, the grid keeps its arrays in the ``Pool`` passed to the constructor, which
+must outlive it and every copy or view of it, is trivially copyable, and offers ``rebasedView()`` and ``deepCopy()``;
 the same queries are callable on a device, and ``allNearestNeighbors()`` stays host-only.
 
 For a near-uniform cloud the grid builds faster than the BVH and queries about as fast; for a

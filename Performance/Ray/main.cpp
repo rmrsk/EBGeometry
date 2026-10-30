@@ -7,7 +7,7 @@
 // RayQuery (what firstHit() costs over code a user writes), and intersects(); the same mesh as a MeshSDF,
 // traced through its BVH and polygon faces; and rays cast at the classic
 // CSG solid, marched, as a fused composition and through a tape. Every ray starts at a random point in
-// the object's box grown to twice its size and points at the box's centre, so that rays from nearby
+// the object's box grown to twice its size and points at the box's center, so that rays from nearby
 // origins run side by side. A host build runs the host cases; a CUDA or HIP build runs host/device pairs
 // in Morton and random order. See ../README.md and PerformanceTesting.rst.
 
@@ -164,15 +164,15 @@ csgExpr()
   return EBGeometry::Difference(EBGeometry::Intersection(cube, ball), EBGeometry::Union(drills));
 }
 
-// Ray origins: random points in a box grown to twice its size about its centre.
+// Ray origins: random points in a box grown to twice its size about its center.
 template <class T>
 std::vector<Vec3<T>>
 origins(const AABB<T>& a_box, std::size_t a_n)
 {
-  const Vec3<T> centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
-  const Vec3<T> half   = a_box.getHighCorner() - centre;
+  const Vec3<T> center = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3<T> half   = a_box.getHighCorner() - center;
 
-  return Perf::pointsInBox<T>(AABB<T>(centre - T(2) * half, centre + T(2) * half), a_n, Perf::Seed::RayOrigins);
+  return Perf::pointsInBox<T>(AABB<T>(center - T(2) * half, center + T(2) * half), a_n, Perf::Seed::RayOrigins);
 }
 
 // Whether a host and a device marched crossing agree: both miss, or both cross within twice the march's
@@ -187,7 +187,7 @@ agreeMarched(T a_host, T a_device)
 }
 
 // One operation on one input in one precision: the host case, and host/device pairs in each order.
-// a_build(case, pool) builds the shape in the pool and returns it with its box; a_make(shape, centre)
+// a_build(case, pool) builds the shape in the pool and returns it with its box; a_make(shape, center)
 // gives the query functor. a_relativeTo names a case computing the same answers, and the comparison notes
 // its time over this one's as a_relativeLabel.
 template <class T, class Build, class Make, class Agree>
@@ -208,11 +208,11 @@ addOperation(Perf::Suite&       a_suite,
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
     const auto     made   = a_build(c, pool);
-    const Vec3<T>  centre = T(0.5) * (made.second.getLowCorner() + made.second.getHighCorner());
+    const Vec3<T>  center = T(0.5) * (made.second.getLowCorner() + made.second.getHighCorner());
     const auto     q      = origins<T>(made.second, c.size(a_hostQueries, SmokeQueries));
     std::vector<T> out;
 
-    Perf::measureHostQuery(c, a_make(made.first, centre), q, out);
+    Perf::measureHostQuery(c, a_make(made.first, center), q, out);
 
     c.checksum(Perf::checksumOf(out));
     c.poolBytes(pool.usedBytes());
@@ -229,14 +229,14 @@ addOperation(Perf::Suite&       a_suite,
       EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
       const auto    made   = a_build(c, pool);
-      const Vec3<T> centre = T(0.5) * (made.second.getLowCorner() + made.second.getHighCorner());
+      const Vec3<T> center = T(0.5) * (made.second.getLowCorner() + made.second.getHighCorner());
       const auto    q      = Perf::inOrder(order, origins<T>(made.second, c.size(PairQueries, SmokeQueries)));
 
       const auto out = Perf::measureHostAndDevice<T>(
         c,
         pool,
         q,
-        [&](const EBGeometry::Pool& a_pool) { return a_make(made.first.rebasedView(a_pool), centre); },
+        [&](const EBGeometry::Pool& a_pool) { return a_make(made.first.rebasedView(a_pool), center); },
         a_agree);
 
       c.checksum(Perf::checksumOf(out));
@@ -271,7 +271,7 @@ addPrecision(Perf::Suite& a_suite)
     "firstHit",
     MeshHostQueries,
     mesh,
-    [](const Mesh<T>& a_mesh, const Vec3<T>& a_centre) { return FirstHit<T, Mesh<T>>{a_mesh, a_centre}; },
+    [](const Mesh<T>& a_mesh, const Vec3<T>& a_center) { return FirstHit<T, Mesh<T>>{a_mesh, a_center}; },
     Perf::agreeDistance<T>,
     "mesh/firstHit-handrolled",
     "hand/api");
@@ -281,7 +281,7 @@ addPrecision(Perf::Suite& a_suite)
     "firstHit-handrolled",
     MeshHostQueries,
     mesh,
-    [](const Mesh<T>& a_mesh, const Vec3<T>& a_centre) { return HandRolled<T>{a_mesh, a_centre}; },
+    [](const Mesh<T>& a_mesh, const Vec3<T>& a_center) { return HandRolled<T>{a_mesh, a_center}; },
     Perf::agreeDistance<T>);
   addOperation<T>(
     a_suite,
@@ -289,7 +289,7 @@ addPrecision(Perf::Suite& a_suite)
     "intersects",
     MeshHostQueries,
     mesh,
-    [](const Mesh<T>& a_mesh, const Vec3<T>& a_centre) { return Intersects<T, Mesh<T>>{a_mesh, a_centre}; },
+    [](const Mesh<T>& a_mesh, const Vec3<T>& a_center) { return Intersects<T, Mesh<T>>{a_mesh, a_center}; },
     Perf::agreeDistance<T>);
 
   // The same mesh as a MeshSDF, its faces crossed as polygons (here all triangles), SAH-built.
@@ -311,7 +311,7 @@ addPrecision(Perf::Suite& a_suite)
     "firstHit",
     MeshHostQueries,
     polygons,
-    [](const PolygonMesh<T>& a_mesh, const Vec3<T>& a_centre) { return FirstHit<T, PolygonMesh<T>>{a_mesh, a_centre}; },
+    [](const PolygonMesh<T>& a_mesh, const Vec3<T>& a_center) { return FirstHit<T, PolygonMesh<T>>{a_mesh, a_center}; },
     Perf::agreeDistance<T>,
     "mesh/firstHit",
     "triangles/polygons");
@@ -321,8 +321,8 @@ addPrecision(Perf::Suite& a_suite)
     "intersects",
     MeshHostQueries,
     polygons,
-    [](const PolygonMesh<T>& a_mesh, const Vec3<T>& a_centre) {
-      return Intersects<T, PolygonMesh<T>>{a_mesh, a_centre};
+    [](const PolygonMesh<T>& a_mesh, const Vec3<T>& a_center) {
+      return Intersects<T, PolygonMesh<T>>{a_mesh, a_center};
     },
     Perf::agreeDistance<T>);
 
@@ -345,7 +345,7 @@ addPrecision(Perf::Suite& a_suite)
     "firstHit",
     MarchedHostQueries,
     fused,
-    [](const FusedCSG& a_shape, const Vec3<T>& a_centre) { return FirstHit<T, FusedCSG>{a_shape, a_centre}; },
+    [](const FusedCSG& a_shape, const Vec3<T>& a_center) { return FirstHit<T, FusedCSG>{a_shape, a_center}; },
     agreeMarched<T>,
     "csg-tape/firstHit",
     "tape/fused");
@@ -355,8 +355,8 @@ addPrecision(Perf::Suite& a_suite)
     "firstHit",
     MarchedHostQueries,
     tape,
-    [](const EBGeometry::Tape<T>& a_shape, const Vec3<T>& a_centre) {
-      return FirstHit<T, EBGeometry::Tape<T>>{a_shape, a_centre};
+    [](const EBGeometry::Tape<T>& a_shape, const Vec3<T>& a_center) {
+      return FirstHit<T, EBGeometry::Tape<T>>{a_shape, a_center};
     },
     agreeMarched<T>);
 }

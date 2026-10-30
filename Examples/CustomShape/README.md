@@ -20,7 +20,7 @@ host and the device can both read. Its pool is frozen and the tape rebased onto 
 for both, and the kernel receives it by value. The query points and the results live in managed memory
 too, so the kernel reads and writes them in place. In a plain C++ build the same lines use
 `emulatedDeviceMemoryResource()`, host memory that stands in for a device, and a host loop does what each
-thread would. Managed memory suits a small object like this one, a few KB. For large geometry, mirror the
+thread would; a GPU build that finds no device uses it too, and skips the grid. Managed memory suits a small object like this one, a few KB. For large geometry, mirror the
 pool to device memory instead, as [`Examples/MeshSDF`](../MeshSDF/README.md) does: managed memory migrates
 between host and device as it is touched, and on AMD MI200-class GPUs it migrates only with XNACK enabled.
 

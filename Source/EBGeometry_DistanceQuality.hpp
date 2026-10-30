@@ -46,7 +46,8 @@ enum class DistanceQuality
  * DistanceQuality::Bound otherwise.
  * @details A type without the member is taken to be a distance bound. A user type whose value is not
  * a distance should declare `static constexpr DistanceQuality distanceQuality =
- * DistanceQuality::NotADistance;`, so that a BVH union of it reports the same.
+ * DistanceQuality::NotADistance;`, so that an expression, a fused composition or a BVH union built
+ * from it reports the same.
  * @tparam P Type to inspect.
  */
 template <class P, class = void>

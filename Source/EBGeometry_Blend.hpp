@@ -158,7 +158,7 @@ inline constexpr ExpMinOp<T> ExpMin{};
 
 /**
  * @brief The exponential smooth maximum, as a ready-made function object: `ExpMax<T>(a, b, s)`.
- * @details Callable from host and device code, for instance as a BVHSmoothUnion's Blend.
+ * @details Callable from host and device code.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -174,7 +174,7 @@ inline constexpr SmoothMinOp<T> SmoothMin{};
 
 /**
  * @brief The polynomial smooth maximum, as a ready-made function object: `SmoothMax<T>(a, b, s)`.
- * @details Callable from host and device code, for instance as a BVHSmoothUnion's Blend.
+ * @details Callable from host and device code.
  * @tparam T Floating-point precision.
  */
 template <class T>

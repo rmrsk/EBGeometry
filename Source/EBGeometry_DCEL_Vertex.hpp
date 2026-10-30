@@ -28,7 +28,7 @@ namespace EBGeometry {
 namespace DCEL {
 
 /**
- * @brief Class which represents a vertex node in a double-edge connected list
+ * @brief Class which represents a vertex node in a doubly-connected edge list
  * (DCEL).
  * @details This class is used in DCEL functionality which stores polygonal
  * surfaces in a mesh. The VertexT class has a position, a normal vector, and the
@@ -153,8 +153,8 @@ public:
 
   /**
    * @brief Move assignment operator.
-   * @details Has the same full-state-transfer semantics as the move constructor (defaulted
-   * memberwise move; see its documentation for why this must be defaulted explicitly).
+   * @details Defaulted memberwise move; equivalent to copy assignment since every member is a
+   * plain value (see the copy constructor for why it must stay defaulted).
    * @param[in, out] a_otherVertex Other vertex.
    * @return Reference to (*this).
    */
@@ -217,11 +217,11 @@ public:
    * walking each candidate face's own boundary loop, which needs no pair edges and so works
    * regardless of whether the mesh is watertight.
    * @param[in] a_mesh Owning mesh, used to resolve a_faceIndices and a_thisVertexIndex.
-   * @note This computes the normal vector using the pseudnormal algorithm from
+   * @note This computes the normal vector using the pseudonormal algorithm from
    * Baerentzen and Aanes in "Signed distance computation using the angle
    * weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49).
    * @note Every face in a_faceIndices with a non-zero normal must visit this vertex exactly once,
-   * and the vertex and its two neighbours on that face must have distinct positions. A violation
+   * and the vertex and its two neighbors on that face must have distinct positions. A violation
    * aborts with a message in every build, rather than reading out of bounds or dividing by zero.
    */
   EBGEOMETRY_HOST
@@ -300,7 +300,7 @@ public:
    * @brief Get the signed distance to this vertex
    * @param[in] a_x0 Position in space.
    * @return The returned distance is |a_x0 - m_position| and the sign is given
-   * by the sign of m_normal * |a_x0 - m_position|.
+   * by the sign of m_normal.dot(a_x0 - m_position); a dot product of zero gives a negative sign.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T

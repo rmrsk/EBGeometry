@@ -15,15 +15,30 @@ We use Sphinx with reStructured text for building the user documentation.
 
 Several figures in the user documentation (e.g. the DCEL and BVH diagrams) are only tracked as
 LaTeX/TikZ sources under `Sphinx/source/_static/<Name>/<Name>.tex`; the rendered PNGs are build
-artifacts and are not committed to git. Render them once (from the repository root) before
-building the HTML or PDF documentation, and again whenever a `.tex` figure source changes:
+artifacts and are not committed to git. Every Sphinx build (`make html`, `sphinx-build`,
+`sphinx-autobuild`) renders them when it starts, skipping figures whose PNG is newer than its
+source, so nothing needs to be run first. To render them by hand (from the repository root; `--force`
+rebuilds all):
 
 ```
 Scripts/build-doc-figures.sh
 ```
 
 This requires `pdflatex` (from a `texlive-latex-extra`-equivalent install) and `pdftoppm` (from
-`poppler-utils`) to be on your `PATH`.
+`poppler-utils`) to be on your `PATH`; without them the figures are not built, and Sphinx reports
+each one as a missing image.
+
+The documentation is built with Sphinx 9.1.1, the version CI pins. Install it, with the theme and the
+bibliography extension, in a virtual environment:
+
+```
+python3 -m venv ~/.venvs/ebgeometry-docs
+~/.venvs/ebgeometry-docs/bin/pip install sphinx==9.1.1 sphinx_rtd_theme sphinxcontrib-bibtex sphinx-autobuild
+source ~/.venvs/ebgeometry-docs/bin/activate
+```
+
+Another version can warn where CI does not, or the other way round. A build folder left by another version
+can hold incompatible caches; `rm -rf Sphinx/build` clears them.
 
 To build the documentation locally, navigate to the Sphinx subfolder and run
 
@@ -39,7 +54,8 @@ cd Sphinx
 make latexpdf
 ```
 
-for the LaTeX/PDF documentation.
+for the LaTeX/PDF documentation. While writing, `sphinx-autobuild source build/html` (from `Sphinx/`)
+rebuilds on every change and serves the result at http://127.0.0.1:8000.
 
 Source files will end up in `Sphinx/build/html` and `Sphinx/build/latex`, respectively. 
 

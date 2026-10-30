@@ -5,7 +5,7 @@
 /**
  * @file   EBGeometry_MemoryResource.hpp
  * @brief  Placement-policy layer for the GPU memory foundation: the abstract MemoryResource and
- *         its concrete host/device/managed/pinned implementations.
+ *         its concrete host, emulated device, device, managed, pinned and mapped implementations.
  * @details A @ref EBGeometry::MemoryResource is a thin, runtime-virtual allocation policy: it
  * decides @e where a block of bytes physically lives (host RAM, device memory, unified/managed
  * memory, or page-locked host memory) without the caller knowing which. Allocation is a cold,
@@ -17,11 +17,12 @@
  * it is frozen, and a view of a managed or mapped pool also answers queries on the host (see
  * @ref EBGeometry::PoolLocation).
  *
- * @ref EBGeometry::HostMemoryResource is always compiled (plain aligned host allocation). The
- * device-backed resources -- @ref EBGeometry::DeviceMemoryResource,
+ * @ref EBGeometry::HostMemoryResource (plain aligned host allocation) and
+ * @ref EBGeometry::EmulatedDeviceMemoryResource (host memory standing in for device memory in a plain
+ * C++ build) are always compiled. The device-backed resources -- @ref EBGeometry::DeviceMemoryResource,
  * @ref EBGeometry::ManagedMemoryResource, @ref EBGeometry::PinnedMemoryResource,
  * @ref EBGeometry::MappedMemoryResource -- are compiled only when an offload backend is active
- * (CUDA/HIP) or for documentation, behind the same guard used elsewhere in the GPU port, and reach
+ * (CUDA/HIP) or for documentation, behind the same guard as EBGeometry_GPURuntime.hpp, and reach
  * the backend exclusively through the backend-neutral @ref EBGeometry::GPU alias layer.
  * @author Robert Marskar
  */
@@ -90,8 +91,9 @@ public:
 
   /**
    * @brief Obtain a block of at least @p a_bytes bytes, aligned to @p a_alignment.
-   * @details Never returns null on success; on failure the implementation aborts (via
-   * @c EBGEOMETRY_GPU_CHECK / @c std::abort), matching the library's no-exceptions convention.
+   * @details Never returns null for a non-zero request; on failure the implementation aborts
+   * (@c EBGEOMETRY_REQUIRE for host memory, @c EBGEOMETRY_GPU_CHECK for memory from the GPU runtime),
+   * matching the library's no-exceptions convention.
    * @param[in] a_bytes     Number of bytes to allocate (may be zero).
    * @param[in] a_alignment Required alignment in bytes. Must be a power of two.
    * @return Pointer to the allocated block.
@@ -358,6 +360,16 @@ public:
   {
     return true;
   }
+
+  /**
+   * @brief Copy between host and device memory with the GPU runtime; see MemoryResource::copy.
+   * @details Host-to-host is a plain copy; device-to-device aborts, in every build.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
   EBGEOMETRY_HOST
   void
   copy(void*                 a_dst,
@@ -428,6 +440,16 @@ public:
   {
     return true;
   }
+
+  /**
+   * @brief Copy between host and device memory with the GPU runtime; see MemoryResource::copy.
+   * @details Host-to-host is a plain copy; device-to-device aborts, in every build.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
   EBGEOMETRY_HOST
   void
   copy(void*                 a_dst,
@@ -498,6 +520,16 @@ public:
   {
     return false;
   }
+
+  /**
+   * @brief Copy between host and device memory with the GPU runtime; see MemoryResource::copy.
+   * @details Host-to-host is a plain copy; device-to-device aborts, in every build.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
   EBGEOMETRY_HOST
   void
   copy(void*                 a_dst,
@@ -572,6 +604,16 @@ public:
   {
     return true;
   }
+
+  /**
+   * @brief Copy between host and device memory with the GPU runtime; see MemoryResource::copy.
+   * @details Host-to-host is a plain copy; device-to-device aborts, in every build.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
   EBGEOMETRY_HOST
   void
   copy(void*                 a_dst,
