@@ -479,6 +479,11 @@ once work is done: surface the option and let the user decide, do not just do it
 branch you are *already on* (once the user has asked for that work) is fine; it is the creation of
 new refs and the outward submission of PRs that always needs a green light first.
 
+**Claude never merges a pull request, never force-pushes to `main`, and never deletes a branch** (local
+or remote), under any circumstances, whatever it is asked or however obvious the next step looks: merging
+and deleting branches are for a human only. Force-pushing to `dev` or to a feature branch is permitted,
+with `--force-with-lease`, and never over commits that were already reviewed (see "Human review" below).
+
 When the user *does* ask you to open a PR, **always open it as a draft** (`gh pr create --draft`) —
 never open a PR ready for review. It leaves draft only as "Human review" below says; this is also
 what gates the `.rst` documentation audit described above (which begins once the PR is no longer a
