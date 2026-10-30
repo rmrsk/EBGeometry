@@ -397,10 +397,10 @@ probes (one program per component, many named cases, `component/input/operation/
 `Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
 full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
-1. **Run the comparison against the PR's base**, from the top of the branch's worktree, once the PR is ready for
-   review (`--smoke` first gives a one-minute check that both sides build and every case runs with the
-   same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict, and take
-   about eight minutes for every case, builds included:
+1. **Run the comparison against the PR's base**, from the top of the branch's worktree, once the PR is
+   ready for review (`--smoke` first gives a one-minute check that both sides build and every case runs
+   with the same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict,
+   and take about eight minutes for every case, builds included:
 
    ```bash
    Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt
@@ -487,7 +487,8 @@ it, since the mesh probes and examples need the submodule). Creating the branch 
 spin-off, so it needs the user's agreement like any other. All edits, builds, tests and performance runs
 for that branch happen in its worktree; the repository root is left as the user has it. After the branch's
 pull request is merged, Claude asks whether the worktree should be removed, and **never removes a worktree
-without the user's explicit permission**.
+without the user's explicit permission**. A session that starts in a checkout of the branch (a `@claude`
+run in CI, which checks out the pull request's branch) works in that checkout.
 
 **Claude never merges a pull request, never force-pushes to `main`, and never deletes a branch** (local
 or remote), under any circumstances, whatever it is asked or however obvious the next step looks: merging
