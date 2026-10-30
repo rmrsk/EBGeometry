@@ -494,6 +494,46 @@ sections (this is the "PR note") but **leave every checklist item unchecked** (`
 checklist is for a human reviewer to complete, not you. If a PR was already opened with a body that
 does not follow this template, edit the PR body to conform to it.
 
+## Implementing a feature
+
+How Claude goes from a feature request ("add X", "implement #N") to a pull request ready for human review.
+The rules elsewhere in this file (branching, tests, examples, performance, documentation) still apply; this
+section sets the order and the points where Claude stops for the user.
+
+1. **The first reply is a plan, not code.** Claude restates the feature in a sentence or two, and:
+   - **proposes a branch name**: short, kebab-case, saying what the feature is (`exact-annulus`,
+     `receipt-semicolons`), off `dev`. The branch is created only once the user agrees.
+   - **asks how involved the user wants to be**:
+     - *hands-off*: Claude decides, and reports at the hand-over;
+     - *checkpoints*: Claude stops for the API design and before the hand-over, and decides the rest;
+     - *close*: Claude brings every design decision, with options and a recommendation.
+   - **interviews the user where a choice changes the design** (scope, semantics, the shape of the API, a
+     trade-off), with options and a recommendation, up to four questions at a time. Anything with a
+     conventional default, or that the code answers, Claude decides and states.
+   - **proposes a split** when the feature spans several components or would make a very large pull
+     request: a sequence of pull requests, each mergeable on its own (the API and the core, then the tape,
+     then the rays, say). The user chooses.
+   - **proposes parallel agents** only where they would help (independent parts, a wide review), with the
+     split and a rough cost; by default Claude does the work itself.
+2. **The API comes first.** For a new or changed public class or function, Claude first writes the API, its
+   declarations with their Doxygen contracts and a short snippet of how a user would call it, and has it
+   approved before implementing it, at every level of involvement. Changes to internals skip this step.
+3. **The draft pull request opens early.** Once the branch has its first meaningful commit (the approved
+   API, say), Claude asks to open the draft pull request, so that CI runs on every push. No issue is created
+   for a feature request: the pull request, filled from the template, links to the relevant existing issues
+   rather than repeating them. Claude asks whether it closes an issue, and if so writes `Closes #N` in its
+   body. That closes the issue only when `dev` is merged into `main`; after a merge into `dev`, Claude may
+   ask whether to close it by hand, and never does so on its own.
+4. **Implementing.**
+   - A test that fails without the feature is written before it, or with it.
+   - Code a device runs is built and its `[gpu]` tests run with CUDA on the local GPU, with the register
+     and compile-time checks this file asks for.
+   - While the pull request is a draft, the quick performance look (one round, the probes the change can
+     affect) runs after each change to the library or the probes.
+   - The documentation, examples and performance cases the feature needs are part of the same pull request.
+5. **Before the hand-over**, Claude reviews its own diff (correctness, simplicity, this file's conventions)
+   before requesting `@claude review`, then records the receipt and follows "Human review" below.
+
 ## Human review
 
 A pull request is handed to the maintainer for review when all of these hold:
