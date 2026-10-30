@@ -28,7 +28,7 @@ date: 2026-10-30
 
 ## Host comparison: red
 
-**Accepted:** -
+**Accepted:** Accept as noise.
 
 `97f5b37` against `21f24b4` (origin/dev), 2026-10-30.
 
