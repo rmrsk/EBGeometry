@@ -276,9 +276,12 @@ Test coverage
        :cpp:class:`FlatMeshSDF` (brute-force) and :cpp:class:`TriMeshSDF`
        (SIMD BVH); hand-built meshes whose half-edge loop does not close (a cycle that skips the
        first edge, an index past the end) rejected by ``reconcile()`` and reported by
-       ``sanityCheck``, and a face with no half-edge rejected by ``reconcile()``; ``soupToDCEL``
-       rejecting a face with fewer than three vertices or an out-of-range vertex index, and
-       ``reconcilePairEdgesDCEL`` an out-of-range next edge.
+       ``sanityCheck``, and a face with no half-edge or a vertex index past the end rejected by
+       ``reconcile()``; ``soupToDCEL`` rejecting a face with fewer than three vertices or an
+       out-of-range vertex index, and ``reconcilePairEdgesDCEL`` an out-of-range next edge;
+       :cpp:class:`DCEL::FaceT` point-in-face containment: the winding-number, crossing-number and
+       subtended-angle algorithms, and their agreement on convex and concave (notched) polygons and on
+       a non-axis-aligned plane.
    * - ``TestSFC``
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,
@@ -428,6 +431,10 @@ Test coverage
        ray form, the march, a fused composition, the three mesh SDFs, two tapes (one with a BVH union
        and a difference), a mesh in a fused difference, and offsets and annuli of the meshes and of a scaled
        box, fused and in tapes, against the host.
+   * - ``TestIncludeFused``, ``TestIncludeBVHUnion``
+     - A file that includes only the shapes and ``EBGeometry_Fused.hpp`` (or ``EBGeometry_BVHUnion.hpp``)
+       sees the ray forms of the fused compositions, the BVH unions and the offsets, so ``firstHit()`` traces
+       them exactly, as in every other file.
    * - ``TestRender``
      - The renderer: ``Camera::fit`` and ``Camera::lookAt`` placing the eye; a sphere covering the
        pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the
@@ -449,10 +456,6 @@ Test coverage
        empty, inverted or missed initial box, a depth beyond ``MaxOctreeDepth`` rejected, and the
        same box from a shape, a tape and a lambda;
        :cpp:func:`normal` against a sphere's exact normal; and both on a device.
-   * - ``TestPolygon2D``
-     - :cpp:class:`DCEL::FaceT` point-in-face containment: winding-number/crossing-number/subtended-angle
-       algorithms, agreement between them on convex and concave (notched) polygons, and on a
-       non-axis-aligned embedding plane.
    * - ``TestTriangleSoA``
      - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the individual
        packed :cpp:class:`Triangle` instances (including padding when fewer than ``W`` triangles are

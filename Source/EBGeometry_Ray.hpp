@@ -112,8 +112,8 @@ struct HitT
 
   /**
    * @brief The finest element the shape can name at the crossing: the face of a mesh SDF, the deciding
-   * leaf of a tape (see Tape::closestPrimitive()), what its members name for a BVH union (a member mesh's
-   * face), and 0 for any other shape.
+   * leaf of a tape (see Tape::closestPrimitive()), the member of a BVH union (its place in the union's
+   * storage), and 0 for any other shape.
    */
   uint32_t m_primitive = 0;
 
@@ -154,7 +154,11 @@ template <class T>
 struct RayOptions
 {
   /**
-   * @brief A crossing is accepted where |value| is below this, times the scale.
+   * @brief The march's tolerance, times the scale.
+   * @details Marching a distance or a bound (Exact, Bound), a crossing is accepted where |value| is below it;
+   * marching a value that is not a distance (NotADistance), which only looks for a change of sign, it is the
+   * length the bisection stops at. It is also the step of the gradient that gives a marched crossing its
+   * normal, and the window in which a composition looks up which leaf was crossed.
    */
   T m_tolerance = T(1e-4);
 

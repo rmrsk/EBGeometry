@@ -169,5 +169,5 @@ A hit on a composition is the crossing of one of its parts, and reports that par
 * **Entering or leaving.** Whether the ray enters or leaves the composition, which need not be what it does
   to the part: in the figure, the ray enters the difference at 6, where it leaves the ball.
 * **Part.** A mesh names its face; a tape the primitive it crossed, or for a marched subtree the primitive
-  deciding the value at the crossing (see :ref:`Sec:DecidingLeaf`); a BVH union of meshes the face of the
-  mesh crossed; and any other shape 0. A fused composition is one shape, and names no part.
+  deciding the value at the crossing (see :ref:`Sec:DecidingLeaf`); a BVH union the member it
+  crossed; and any other shape 0. A fused composition is one shape, and names no part.

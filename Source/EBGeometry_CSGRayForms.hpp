@@ -649,8 +649,9 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
  * Exact where the primitive type has a ray form (and marched one primitive at a time otherwise), and
  * callable on a device.
  * @details Unless the ray starts inside a primitive, only the first crossings are needed, and the walk
- * stops at the first box beyond the nearest. HitT::m_primitive is what the primitive names (a mesh's face
- * id), or 0.
+ * stops at the first box beyond the nearest. HitT::m_primitive is the member crossed: its place in the
+ * union's storage (the unbounded members first, then the BVH's order), not the order the constructor was
+ * given.
  * @tparam T Floating-point precision.
  * @tparam P Primitive type.
  * @tparam K BVH branching factor.
@@ -779,10 +780,20 @@ struct RayForm<BVHUnion<T, P, K>>
     const CSGDetail::Stored<P> stored =
       (a_leaf < unbounded.size()) ? unbounded[a_leaf] : primitives[a_leaf - unbounded.size()];
 
-    return RayDetail::leafHit(CSGDetail::fromStored<P>(stored, location), a_ray, a_t, a_options);
+    // The hit names the member crossed, not what the member would name (a mesh's face): a union's parts are
+    // its members, as a tape's are its leaves.
+    HitT<T> hit = RayDetail::leafHit(CSGDetail::fromStored<P>(stored, location), a_ray, a_t, a_options);
+
+    hit.m_primitive = a_leaf;
+
+    return hit;
   }
 };
 
 } // namespace EBGeometry
+
+// The ray forms of the offsets and annuli, which build on these: whoever has the fused operations' ray forms
+// has theirs too. Included last, since that header includes this one.
+#include "EBGeometry_OffsetRayForms.hpp"
 
 #endif

@@ -620,4 +620,9 @@ private:
 
 #include "EBGeometry_BVHUnionImplem.hpp"
 
+// The ray forms, through the fused operations: firstHit() is a template, and a file that included this header
+// without them would march a BVH union that another file traces exactly, two definitions of one function.
+// Included last, after the classes they specialize for, since those headers include this one.
+#include "EBGeometry_Fused.hpp"
+
 #endif

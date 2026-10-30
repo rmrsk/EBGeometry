@@ -91,7 +91,7 @@ public:
 
   /**
    * @brief Obtain a block of at least @p a_bytes bytes, aligned to @p a_alignment.
-   * @details Never returns null for a non-zero request; on failure the implementation aborts
+   * @details Never returns null (a zero-byte request gets a block too); on failure the implementation aborts
    * (@c EBGEOMETRY_REQUIRE for host memory, @c EBGEOMETRY_GPU_CHECK for memory from the GPU runtime),
    * matching the library's no-exceptions convention.
    * @param[in] a_bytes     Number of bytes to allocate (may be zero).

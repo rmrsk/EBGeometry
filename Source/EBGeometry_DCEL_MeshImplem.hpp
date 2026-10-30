@@ -273,6 +273,22 @@ MeshT<T>::reconcile()
                        unsigned(lastEdge),
                        unsigned(steps),
                        unsigned(this->numEdges()));
+
+    // Each vertex the loop names must exist: reconcileFaces() reads them next.
+    const uint32_t start = this->getFace(faceIndex).getHalfEdgeIndex();
+    uint32_t       edge  = start;
+
+    do {
+      const uint32_t vertexIndex = this->getEdge(edge).getVertexIndex();
+
+      EBGEOMETRY_REQUIRE(vertexIndex < this->numVertices(),
+                         "DCEL::MeshT::reconcile: face %u references vertex %u, but the mesh has %u vertices",
+                         unsigned(faceIndex),
+                         unsigned(vertexIndex),
+                         unsigned(this->numVertices()));
+
+      edge = this->getEdge(edge).getNextEdgeIndex();
+    } while (edge != start);
   }
 
   this->reconcileFaces();

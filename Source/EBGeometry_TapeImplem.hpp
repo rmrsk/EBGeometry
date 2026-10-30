@@ -308,7 +308,7 @@ public:
                        unsigned(m_valueStackSize));
     EBGEOMETRY_REQUIRE(state.m_maxPoints <= m_pointStackSize,
                        "Tape: the expression nests %u point maps (Translate, Rotate, Elongate, ...) in one "
-                       "sub-program, but the tape holds at most %u points",
+                       "sub-program, but a tape allows at most %u",
                        unsigned(state.m_maxPoints - 1U),
                        unsigned(m_pointStackSize - 1U));
 
@@ -1301,7 +1301,7 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   EBGEOMETRY_EXPECT(root == 0U);
 
   EBGEOMETRY_REQUIRE(staging.m_depth.front() <= MaxCallDepth,
-                     "Tape: Blur, Mollify and BVH unions nest %u deep, but a tape allows at most %u",
+                     "Tape: Blur, Mollify, FiniteRepetition and BVH unions nest %u deep, but a tape allows at most %u",
                      unsigned(staging.m_depth.front()),
                      unsigned(MaxCallDepth));
 

@@ -516,7 +516,7 @@ TEST_CASE("Tape: rejects an unknown primitive type, a mesh from another pool and
 
       const Tape<T> tape(pool, deepBlur);
     },
-    "Tape: Blur, Mollify and BVH unions nest 5 deep, but a tape allows at most 4"));
+    "Tape: Blur, Mollify, FiniteRepetition and BVH unions nest 5 deep, but a tape allows at most 4"));
 
   REQUIRE(abortsWith(
     [&deepMaps] {
@@ -524,7 +524,8 @@ TEST_CASE("Tape: rejects an unknown primitive type, a mesh from another pool and
 
       const Tape<T> tape(pool, deepMaps);
     },
-    "Tape: the expression nests 8 point maps"));
+    "Tape: the expression nests 8 point maps (Translate, Rotate, Elongate, ...) in one sub-program, but a tape "
+    "allows at most 7"));
 
   REQUIRE(abortsWith(
     [&deepValues] {

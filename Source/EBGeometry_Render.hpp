@@ -53,7 +53,7 @@ namespace EBGeometry::Render {
  * @brief Whether a shape's primitives (HitT::m_primitive) are the faces of one object rather than objects:
  * true for the mesh SDFs, whose primitive is a face of the mesh; false for every other shape: a Tape (whose
  * primitives are its leaves), a fused composition and an analytic shape (one object, primitive 0), and a BVH
- * union (whose hits carry what its members name: a member mesh's face, or 0).
+ * union (whose primitives are its members).
  * @tparam S Shape type.
  */
 template <class S>

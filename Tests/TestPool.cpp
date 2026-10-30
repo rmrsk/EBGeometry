@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -569,6 +570,24 @@ struct PODVectorSizeQuery
     return m_vec.size();
   }
 };
+
+TEST_CASE("Memory resources: a zero-byte allocation returns a block, on the host and on the device", "[Pool][gpu]")
+{
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  for (MemoryResource* resource :
+       std::initializer_list<MemoryResource*>{&hostMemoryResource(), &deviceTestResource()}) {
+    void* block = resource->allocate(0, PoolBaseAlign);
+
+    CHECK(block != nullptr);
+
+    resource->deallocate(block, 0, PoolBaseAlign);
+  }
+}
 
 TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Pool][PODVector][gpu]")
 {
