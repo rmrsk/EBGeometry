@@ -234,7 +234,7 @@ TEMPLATE_TEST_CASE("Fused: each operation matches its formula applied by hand", 
 }
 
 TEMPLATE_TEST_CASE(
-  "Fused: a finite repetition is the minimum over all copies, off-centre and overlapping ones included",
+  "Fused: a finite repetition is the minimum over all copies, off-center and overlapping ones included",
   "[Fused]",
   EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -243,10 +243,10 @@ TEMPLATE_TEST_CASE(
 
   const Vec3 counts(2, 1, 2);
 
-  const SphereSDF<T> offCentre(Vec3(T(0.4), T(0), T(0)), T(0.1));
+  const SphereSDF<T> offCenter(Vec3(T(0.4), T(0), T(0)), T(0.1));
   const SphereSDF<T> overlapping(Vec3::zeros(), T(1));
 
-  for (const auto& [sphere, period] : {std::pair<SphereSDF<T>, Vec3>{offCentre, Vec3::ones()},
+  for (const auto& [sphere, period] : {std::pair<SphereSDF<T>, Vec3>{offCenter, Vec3::ones()},
                                        std::pair<SphereSDF<T>, Vec3>{overlapping, Vec3(T(1.5), T(1.5), T(1.5))}}) {
     const auto tiled = Fused::FiniteRepetition(sphere, period, counts, counts);
 

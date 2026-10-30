@@ -117,7 +117,7 @@ HostWidth() noexcept
  * externally-owned storage, or a `malloc`'d buffer -- you are responsible for ensuring the memory
  * is aligned to `alignof(PointSoAT<T, W>)`; nothing in this class enforces or checks that.
  * @tparam T Floating-point precision.
- * @tparam W Lanes per group. A host build vectorises (float, 4) with SSE4.1, (float, 8), (double, 4) and
+ * @tparam W Lanes per group. A host build vectorizes (float, 4) with SSE4.1, (float, 8), (double, 4) and
  * (double, 8, as two halves) with AVX, and (float, 16) and (double, 8) with AVX-512F; any other width, and
  * every width on a device, runs the scalar loop. Defaults to PointSoA::DefaultWidth<T>(), which is 4
  * for both float and double in every translation unit; PointSoA::HostWidth<T>() gives the width that
@@ -133,7 +133,7 @@ public:
   /**
    * @brief Pack a_count positions from a_positions[0..a_count-1] into this SoA group.
    * @details Pads lanes a_count..W-1 by repeating the last real position so that all W lanes hold
-   * valid data and SIMD loads never read uninitialised memory.
+   * valid data and SIMD loads never read uninitialized memory.
    * @param[in] a_positions Source position array with at least a_count elements. Must not be null.
    * @param[in] a_count     Number of valid positions to pack. Must satisfy 1 <= a_count <= W.
    */

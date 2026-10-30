@@ -72,7 +72,7 @@ buildEB(const ShapeIF<S>& a_sdf, const AABB& a_box, const int a_numCells, const 
 {
   // Cubic cells, a_numCells along the box's longest side and 10% to spare; each side's count is rounded up
   // to a multiple of 8.
-  const Vec3 centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3 center = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
   const Vec3 extent = T(1.1) * (a_box.getHighCorner() - a_box.getLowCorner());
   const T    dx     = extent[extent.maxDir(true)] / T(a_numCells);
 
@@ -82,8 +82,8 @@ buildEB(const ShapeIF<S>& a_sdf, const AABB& a_box, const int a_numCells, const 
   for (int d = 0; d < AMREX_SPACEDIM; d++) {
     cells[d] = 8 * int(std::ceil(extent[d] / (8 * dx)));
 
-    rb.setLo(d, centre[d] - T(0.5) * dx * T(cells[d]));
-    rb.setHi(d, centre[d] + T(0.5) * dx * T(cells[d]));
+    rb.setLo(d, center[d] - T(0.5) * dx * T(cells[d]));
+    rb.setHi(d, center[d] + T(0.5) * dx * T(cells[d]));
   }
 
   const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};

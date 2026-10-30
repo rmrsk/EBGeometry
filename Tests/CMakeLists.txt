@@ -44,7 +44,7 @@ function(ebgeometry_add_test name)
     $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic;-Wcast-qual;-Wcast-align;-Wnon-virtual-dtor;-Wdouble-promotion;-Woverloaded-virtual;-Wnull-dereference;-Wno-unused-parameter;-Werror>
     # GCC's -Wnull-dereference has confirmed false positives in heavily-inlined
     # shared_ptr/Vec3T template code that only surface at -O2/-O3 (Release);
-    # Clang does not warn on the same code at the same optimisation level. Not an
+    # Clang does not warn on the same code at the same optimization level. Not an
     # issue at -O0 (Debug), so only suppressed for Release-type configs.
     $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Release>>:-Wno-null-dereference>)
   # Expose the test-data directory as a compile-time string so tests can load files.
@@ -133,7 +133,7 @@ if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
 endif()
 
 # Compile-only target that explicitly instantiates every public class template so
-# clang-tidy (and the strong warning set) analyse them all regardless of what the
+# clang-tidy (and the strong warning set) analyze them all regardless of what the
 # tests exercise. Built for its compile command, never run. Add new public classes
 # to InstantiateAll.cpp so the analysis keeps full coverage.
 add_library(InstantiateAll OBJECT InstantiateAll.cpp)

@@ -52,9 +52,9 @@ edges of shadows) and, where it meets the surface, combines diffuse and
 specular light from one direction, light from the sky, a shadow and ambient occlusion. The light's
 direction is by default fixed to the camera, above and beside it, so that the side in view is lit wherever
 the camera goes; it can instead be fixed in the scene. A floor under the
-shape catches its shadow. Surfaces can be coloured by the direction of their normal (the default),
+shape catches its shadow. Surfaces can be colored by the direction of their normal (the default),
 uniformly, by primitive (by the leaf of a composed
-expression the surface belongs to, or by the face of a mesh, with colours chosen per primitive or from a
+expression the surface belongs to, or by the face of a mesh, with colors chosen per primitive or from a
 palette).
 
 The camera looks either in perspective, every ray leaving the eye, or orthographically, the rays parallel

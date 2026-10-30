@@ -102,14 +102,14 @@ cache variables if you need a combination not covered by a preset.
 ctest --preset debug                 # ~430 unit tests (Catch2), ~15 s
 ctest --preset debug-san             # same, under AddressSanitizer + UBSan
 ctest --preset examples              # every Examples/* program, run to completion
-ctest --preset release-test          # unit tests + examples, optimised build
+ctest --preset release-test          # unit tests + examples, optimized build
 ```
 
 Test sources live in `Tests/Test*.cpp` (one file per component: `TestVec`, `TestBoundingVolumes`,
 `TestDCEL`, `TestBVH`, `TestPolygonSoup`, `TestParser`, ...); fixture files are in
 `Tests/data/`. `Tests/InstantiateAll.cpp` is a compile-only target (never run) that explicitly
 instantiates every public class template for both `float` and `double` — it exists purely so
-clang-tidy and `-Wdouble-promotion`/friends analyse both precisions; add new public classes there
+clang-tidy and `-Wdouble-promotion`/friends analyze both precisions; add new public classes there
 when you add them to the library.
 
 Most test files are written with `TEMPLATE_TEST_CASE(..., EBGEOMETRY_TEST_PRECISIONS)` (see
@@ -301,7 +301,7 @@ examples, clang-tidy or CUDA; HIP's Release+AVX build only; about 8 minutes), wh
 for review (marking it ready re-runs CI) and every push to `main`/`dev` run the full matrix. Every build
 uses all the runner's cores. Its
 `CI-passed` job, the one to require for merging, fails whenever any job it depends on fails, is
-cancelled or is skipped (a draft's skipped full-tier jobs excepted); `GPU-HIP` (a device compile) is one of those required jobs, while
+canceled or is skipped (a draft's skipped full-tier jobs excepted); `GPU-HIP` (a device compile) is one of those required jobs, while
 `GPU-CUDA` and `Static-analysis` are advisory (`continue-on-error`).
 
 ## Whitespace conventions clang-format does not enforce
@@ -332,9 +332,9 @@ use (a new capability, not a new overload): an example. A new device path for ex
 - One file per component, `Tests/Test<Component>.cpp`, registered with `ebgeometry_add_test(...)` in
   `Tests/CMakeLists.txt`. Add to the existing file when the component exists; a new file only for a
   new component, with a row in the coverage table of `TestingLocally.rst`.
-- `TEMPLATE_TEST_CASE("<Class>: <behaviour in words>", "[<Class>]", EBGEOMETRY_TEST_PRECISIONS)`, not a
+- `TEMPLATE_TEST_CASE("<Class>: <behavior in words>", "[<Class>]", EBGEOMETRY_TEST_PRECISIONS)`, not a
   hardcoded `double`; `WithinAbs` through `tightMargin<T>()`/`looseMargin<T>()`/`withinAbsT<T>()`
-  (`TestFloatingPointUtils.hpp`). Name the behaviour, not the method ("rejects an empty cloud", not
+  (`TestFloatingPointUtils.hpp`). Name the behavior, not the method ("rejects an empty cloud", not
   "test constructor").
 - Check against an independent reference (brute force, a closed form, a hand-computed value), never
   against the code under test run a second way.
@@ -466,7 +466,7 @@ cases in its component's probe), and the PR's comparison then lists them as *new
 - Keep the whole set to about eight minutes of a comparison with its defaults on a desktop, builds
   included; a case
   that repeats another's code path (the same kernel at another size) must have shown different
-  behaviour to earn its place.
+  behavior to earn its place.
 - Cross-library comparisons (fcpw, nanoflann, ...) do not belong here; they live in the
   EBGeometry-benchmarks repository.
 
@@ -701,7 +701,7 @@ with explicit permission), and may ask whether to act on follow-ups.
   that way (no recursion, function pointers or virtual calls), since the device evaluator builds on
   it. `evaluate<D>` and the pool-resident primitive dispatch (`evaluateHandle`) are
   `EBGEOMETRY_DEVICE_NOINLINE`: HIP inlines every device function, and `evaluate<D>` calls the level
-  below from many places, so fully inlined the copies multiply with the depth (an optimised device
+  below from many places, so fully inlined the copies multiply with the depth (an optimized device
   compile of `TestTape` did not finish). Keep them out of line, and mark any new function called that
   way the same. What multiplies nothing is inlined, for speed on a device (#221): the body
   `evaluateBody<D>` into `evaluate<D>`, and into `signedDistance()` for a tape of call depth 0; and an

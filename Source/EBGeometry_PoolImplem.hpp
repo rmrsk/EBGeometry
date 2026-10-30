@@ -32,7 +32,7 @@ inline Pool::Pool(MemoryResource& a_resource, size_t a_initialBytes) : m_resourc
 {
   // A build pool must be host-accessible: reserve()/push_back()/grow() write through base() with the
   // host CPU. Device-resident pools are produced only by mirror() (via the private MirrorTag
-  // constructor). A host store into device memory would be silent undefined behaviour.
+  // constructor). A host store into device memory would be silent undefined behavior.
   EBGEOMETRY_REQUIRE(a_resource.isHostAccessible(),
                      "Pool: a build pool requires a host-accessible MemoryResource; a device-resident pool is "
                      "produced only by Pool::mirror");

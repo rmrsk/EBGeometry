@@ -579,7 +579,7 @@ jobs:
         uses: ./.github/actions/apt-install
         with:
           packages: hipcc clang-17 libamdhip64-dev rocm-device-libs-17
-      - name: Configure and build optimised, with host SIMD flags
+      - name: Configure and build optimized, with host SIMD flags
         # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
         # Both precisions so the float instantiations of the device kernels are compiled too.
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP) with
@@ -590,7 +590,7 @@ jobs:
         # With -mavx, clang's device pass sees __AVX__ as well, so any SIMD block in a
         # __host__ __device__ function that is not also guarded on EBGEOMETRY_DEVICE_COMPILE fails to
         # compile for the device. Release, so the device code is also compiled the way users build it:
-        # HIP inlines every device function, and only an optimised build shows a function whose inlined
+        # HIP inlines every device function, and only an optimized build shows a function whose inlined
         # copies multiply (the tape's evaluator, before EBGEOMETRY_DEVICE_NOINLINE, took longer than
         # this job's timeout).
         run: |
@@ -600,7 +600,7 @@ jobs:
         # See the matching step in the GPU-CUDA job above: no GPU, so every case SKIP()s before
         # launching a kernel. This checks that the binaries start and the device query is safe.
         run: ctest --test-dir build/hip-avx -L gpu-device --output-on-failure
-      - name: Configure and build unoptimised (full tier only)
+      - name: Configure and build unoptimized (full tier only)
         if: ${{ !github.event.pull_request.draft }}
         run: |
           cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
@@ -608,7 +608,7 @@ jobs:
           ctest --test-dir build/hip -L gpu-device --output-on-failure
 
   CI-passed:
-    # The single required status check. It runs even when a dependency fails or is cancelled (a
+    # The single required status check. It runs even when a dependency fails or is canceled (a
     # plain `needs` would skip this job, and a skipped required check does not block a merge), and
     # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
     # deliberately not listed.

@@ -253,12 +253,12 @@ public:
 
 protected:
   /**
-   * @brief Low corner of the bounding box. Initialised to +∞ (inverted sentinel).
+   * @brief Low corner of the bounding box. Initialized to +∞ (inverted sentinel).
    */
   Vec3 m_loCorner = Vec3::infinity();
 
   /**
-   * @brief High corner of the bounding box. Initialised to −∞ (inverted sentinel).
+   * @brief High corner of the bounding box. Initialized to −∞ (inverted sentinel).
    */
   Vec3 m_hiCorner = -Vec3::infinity();
 };

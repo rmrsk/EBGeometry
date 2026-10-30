@@ -74,7 +74,7 @@ Preset reference
      - ``Debug``
      - ON
      - none
-     - Unit tests + examples (labelled separately)
+     - Unit tests + examples (labeled separately)
    * - ``debug-san``
      - ``Debug``
      - ON
@@ -299,7 +299,7 @@ Test coverage
        being face ``i`` and vertex ``i`` of its DCEL mesh; ``convertToDCEL`` of an unclean soup
        leaving the soup as it was; and ``convertToTriangles`` tagging each triangle with its face.
    * - ``TestParser``
-     - Cross-format parser behaviour: binary STL (with per-facet colour attributes), PLY and VTK
+     - Cross-format parser behavior: binary STL (with per-facet color attributes), PLY and VTK
        fixtures reading the same mesh as their ASCII counterparts; missing, empty, truncated and
        corrupted files throwing ``ParseError`` with the file, line and reason; unused vertices being
        ignored; ``OnDefect::Warn`` loading inconsistently oriented and folded meshes with a warning
@@ -360,7 +360,7 @@ Test coverage
        against the formulas computed by hand, with both blend kinds; the boxes and distance qualities
        of combined expressions; a union of many objects with and without the tape's BVH, with an
        operand that is not a distance, and with unbounded operands; ``FiniteRepetition`` tiling,
-       boundary clamping, and its value being the minimum over all copies, off-centre and
+       boundary clamping, and its value being the minimum over all copies, off-center and
        overlapping ones included. The BVH-accelerated
        :cpp:class:`BVHUnion`/:cpp:class:`BVHSmoothUnion` over spheres (against a brute-force scan,
        for every build strategy and blend, and with each method's leaf-size setting) and over
@@ -398,7 +398,7 @@ Test coverage
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and
        a mollification leaving a plane as it is; a finite repetition equal to the minimum over all
-       its copies, off-centre and overlapping ones included; each composition equal to a ``Tape`` of
+       its copies, off-center and overlapping ones included; each composition equal to a ``Tape`` of
        the same expression to rounding; boxes equal to the builder's and distance qualities at least as
        cautious; a composition of mesh distance fields through a host mirror, a deep copy and a node
        rebuilt from its layout; a fused shape as a tape primitive and as a BVH union's primitive; on
@@ -431,18 +431,18 @@ Test coverage
    * - ``TestRender``
      - The renderer: ``Camera::fit`` and ``Camera::lookAt`` placing the eye; a sphere covering the
        pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the
-       camera reported inside; colouring by primitive telling two leaves apart; the section plane
+       camera reported inside; coloring by primitive telling two leaves apart; the section plane
        removing one side and showing the cut face; a ray-traced mesh cube cut by the plane drawn as the
-       closed-form box is; a cancelled render stopping before any row, on the host and the device;
-       faces lying on the bounding box seen from outside; a table colour replacing the palette's for its
-       primitive only; colouring by normal; the light, ambient, highlight and background settings (an
-       unlit surface black, a background of the colour set); the floor's checkerboard off and resized;
+       closed-form box is; a canceled render stopping before any row, on the host and the device;
+       faces lying on the bounding box seen from outside; a table color replacing the palette's for its
+       primitive only; coloring by normal; the light, ambient, highlight and background settings (an
+       unlit surface black, a background of the color set); the floor's checkerboard off and resized;
        an orthographic camera showing a sphere as a disc of its radius; the near clip; ``Camera::fit``
        from named views, straight along the up axis too; ``toCode()`` writing the changed fields; the
        section plane's contour, sheet and lines of equal distance, within the box only; ``writeImage()``
        writing a binary PPM;
        ``view()`` returning at once with ``--no-view``, the pool left unfrozen; the rejected settings and
-       cameras; and device renders against the host's, with and without the new camera and colours.
+       cameras; and device renders against the host's, with and without the new camera and colors.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
@@ -473,7 +473,7 @@ Test coverage
        (order, ties, the excluded point, the pruning bound), and the brute-force references against
        an independent scan, including self-queries, fewer points than requested, and an empty cloud.
    * - ``TestPointCloudBVH``
-     - :cpp:class:`PointCloudBVH`: nearest-neighbour, k-nearest-neighbour, all-points and
+     - :cpp:class:`PointCloudBVH`: nearest-neighbor, k-nearest-neighbor, all-points and
        closest-point queries against brute force, edge cases (padded lanes reported once even when
        ``k`` exceeds the cloud), ``rebasedView``/``deepCopy``, device queries against the host, and
        rejection of a cloud it cannot index, a zero leaf size, or a rebase onto too small a pool.
@@ -497,7 +497,7 @@ Test coverage
 above: it is a compile-only target (built by ``cmake --build``, but never run by ``ctest``)
 that explicitly instantiates every public class template for both ``float`` and ``double``.
 Its purpose is to give ``clang-tidy`` and the project's warning set (in particular
-``-Wdouble-promotion``) something to analyse for both precisions, regardless of what the
+``-Wdouble-promotion``) something to analyze for both precisions, regardless of what the
 Catch2 tests above happen to exercise -- ``float`` support would otherwise only be checked
 by whichever public classes a test happens to instantiate. See
 :ref:`Chap:ContributionGuidelines` for when to add a new class to it.

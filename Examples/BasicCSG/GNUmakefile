@@ -26,7 +26,7 @@ CUDA_ARCH       ?= sm_$(or $(shell nvidia-smi --query-gpu=compute_cap --format=c
 
 # make predefines CXX (as g++ on most systems), so `CXX ?=` would never apply: set it only when it
 # still has make's built-in value. -std=c++17 is on the compile line, not in CXXFLAGS, so that a
-# CXXFLAGS from the environment or the command line changes the optimisation and warning flags only.
+# CXXFLAGS from the environment or the command line changes the optimization and warning flags only.
 ifeq ($(origin CXX),default)
   CXX = g++
 endif

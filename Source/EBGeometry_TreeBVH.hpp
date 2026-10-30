@@ -269,7 +269,7 @@ auto BVCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> Array<Pri
 
 /**
  * @brief Internal helper: 2-way binned SAH split on the sub-range [a_begin, a_end).
- * @details Evaluates 32 bins per axis and picks the split plane that minimises
+ * @details Evaluates 32 bins per axis and picks the split plane that minimizes
  * @c SA(left)*N_left + SA(right)*N_right.  Partitions @p a_list in-place and returns
  * the split index (first element of the right group).
  * @note Requires BV == AABBT<T>: BV must support getLowCorner(), getHighCorner(),
@@ -459,7 +459,7 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
 /**
  * @brief Partitioner using binned SAH with recursive 2-way subdivision into K groups.
  * @details For each split, evaluates 32 candidate planes per axis and picks the one
- * minimising @c SA(left)*N_left + SA(right)*N_right (the standard ray-tracing SAH
+ * minimizing @c SA(left)*N_left + SA(right)*N_right (the standard ray-tracing SAH
  * cost without the traversal constant).  K groups are produced by recursively splitting
  * into std::floor(K/2) and std::ceil(K/2) subsets — exact for power-of-two K; a reasonable
  * approximation for other values.

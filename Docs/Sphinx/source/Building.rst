@@ -244,7 +244,7 @@ Replace ``g++`` with ``clang++``, ``icpx``, or another C++17-capable compiler as
    ``-O3`` is strongly recommended.
    The innermost loops (BVH traversal, SIMD triangle evaluation, and SDF queries)
    contain tight ``if constexpr`` branches and inlined intrinsics that only collapse
-   into efficient machine code with full optimisation enabled.
+   into efficient machine code with full optimization enabled.
 
 Enabling SIMD acceleration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -278,7 +278,7 @@ A typical production build targeting a modern x86-64 workstation:
 
 The ``-msse4.1`` flag is subsumed by ``-mavx`` on GCC but is harmless to include.
 On Apple Silicon (M-series) no flag is needed — the library automatically uses the
-scalar path, which remains correct though not SIMD-vectorised.
+scalar path, which remains correct though not SIMD-vectorized.
 
 .. tip::
 

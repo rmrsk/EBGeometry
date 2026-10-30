@@ -1,8 +1,8 @@
 Examples/PackedSpheres
 ----------------------
 
-3,000 spheres of random sizes at random places in a cylinder five times as long as its radius (each centre
-drawn in the cylinder's box and kept only if it lies inside), joined by a `BVHSmoothUnion`: neighbours that touch merge with a fillet. The union finds the
+3,000 spheres of random sizes at random places in a cylinder five times as long as its radius (each center
+drawn in the cylinder's box and kept only if it lies inside), joined by a `BVHSmoothUnion`: neighbors that touch merge with a fillet. The union finds the
 spheres near a point through a BVH over their boxes and blends the two nearest.
 
 Building

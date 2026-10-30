@@ -46,7 +46,7 @@ cmake --preset debug-san
 cmake --build --preset debug-san --parallel "$(nproc)"
 ctest --preset debug-san
 
-section "CMake: release-test preset -- unit tests + examples, optimised"
+section "CMake: release-test preset -- unit tests + examples, optimized"
 cmake --preset release-test
 cmake --build --preset release-test --parallel "$(nproc)"
 ctest --preset release-test

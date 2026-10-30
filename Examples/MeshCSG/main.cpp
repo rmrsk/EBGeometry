@@ -51,7 +51,7 @@ try {
 
   // ── Place it on a table ────────────────────────────────────────────────────────────────────────────
   //
-  // Scale the mesh to 2.4 along its longest side and stand it on y = 0, centred in x and z. The table is a
+  // Scale the mesh to 2.4 along its longest side and stand it on y = 0, centered in x and z. The table is a
   // rounded top, its upper face at y = 0, on four legs.
   const Vec3 lo    = mesh.computeBoundingVolume().getLowCorner();
   const Vec3 hi    = mesh.computeBoundingVolume().getHighCorner();
@@ -89,7 +89,7 @@ try {
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // A window on the smooth union (built with VIEWER=SDL2; otherwise, with --no-view or without a display,
-  // view() prints why and returns). P cycles the colouring; by primitive, it colours the dragon and each part
+  // view() prints why and returns). P cycles the coloring; by primitive, it colors the dragon and each part
   // of the table.
   // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   EBGeometry::Render::view(smooth, pool, argc, argv);

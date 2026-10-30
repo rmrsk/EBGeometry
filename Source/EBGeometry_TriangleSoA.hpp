@@ -96,7 +96,7 @@ HostWidth() noexcept
  * nothing, and PointCloudBVH was unchanged. On an AVX-512 machine (runs varied by up to 15%): float TriMeshSDF
  * 1.81 s, 1.85 s at W = 16, 3.51 s at K = 16; float PointCloudBVH 0.175 s, 0.220 s at W = 16, 0.386 s at
  * K = 16; double TriMeshSDF 3.06 s, 2.62 s at W = 8, 3.95 s at K = 8; double PointCloudBVH 0.354 s, 0.352 s at
- * W = 8, 0.380 s at K = 8. On one AVX2 core, host vectorisation is worth about 3.4 times for float TriMeshSDF.
+ * W = 8, 0.380 s at K = 8. On one AVX2 core, host vectorization is worth about 3.4 times for float TriMeshSDF.
  *
  * Usage: `size_t W = TriangleSoA::DefaultWidth<T>()` as a template-parameter default.
  * @tparam T Floating-point precision type (float or double).
@@ -147,7 +147,7 @@ public:
   /**
    * @brief Pack count triangles from tris[0..count-1] into this SoA group.
    * @details Pads lanes count..W-1 by repeating the last real triangle so that all W
-   * lanes hold valid data and SIMD loads never read uninitialised memory.
+   * lanes hold valid data and SIMD loads never read uninitialized memory.
    * @param[in] tris  Source triangle array with at least count elements. Must not be null.
    * @param[in] count Number of valid triangles to pack. Must satisfy 1 <= count <= W.
    */

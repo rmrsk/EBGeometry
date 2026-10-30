@@ -123,7 +123,7 @@ mortonOrder(const std::vector<EBGeometry::Vec3T<T>>& a_points)
 
 /**
  * @brief Points reordered along a Morton curve: the order a caller querying a grid or a box of cells
- * presents them in, which keeps neighbouring queries (a GPU warp, consecutive host iterations) in the
+ * presents them in, which keeps neighboring queries (a GPU warp, consecutive host iterations) in the
  * same part of a tree.
  * @tparam T Precision.
  * @param[in] a_points The points.
@@ -149,7 +149,7 @@ mortonOrdered(const std::vector<EBGeometry::Vec3T<T>>& a_points)
 enum class Order
 {
   Morton, ///< Along a Morton curve, as a caller querying a box of cells presents them.
-  Random  ///< As drawn: neighbouring queries anywhere in the tree.
+  Random  ///< As drawn: neighboring queries anywhere in the tree.
 };
 
 /**

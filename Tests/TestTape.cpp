@@ -1015,7 +1015,7 @@ TEMPLATE_TEST_CASE(
 
       INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
 
-      // A smooth union of three: the smallest operand; a blur: the leaf at its centre tap, the point.
+      // A smooth union of three: the smallest operand; a blur: the leaf at its center tap, the point.
       const T da = a.signedDistance(p);
       const T db = b.signedDistance(p);
       const T dc = c.signedDistance(p);

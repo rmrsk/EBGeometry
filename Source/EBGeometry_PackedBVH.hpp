@@ -55,7 +55,7 @@ namespace BVH {
  * @details Each value names the algorithm that groups the primitives; its comment says in which
  * direction the tree is built. Top-down methods split the root's primitives recursively until a
  * leaf predicate stops them; bottom-up methods sort the primitives along a space-filling curve, cut
- * the sorted list into leaves, and merge K neighbours at a time up to the root.
+ * the sorted list into leaves, and merge K neighbors at a time up to the root.
  *
  * MeshSDF, TriMeshSDF, BVHUnion and BVHSmoothUnion (and the parser functions that build them)
  * accept every value. Each of them aborts, in every build, on a value outside this list. A custom
@@ -564,7 +564,7 @@ public:
    * primitives of type P.  The most common reason for this mismatch is an SoA packing
    * step: a tree built over individual triangles (Q = Triangle<T>) can be repacked
    * into a BVH whose leaves hold SIMD-width groups (P = TriangleAoSoA<T, W>, as TriMeshSDF does), enabling
-   * vectorised distance evaluation at every leaf visit.
+   * vectorized distance evaluation at every leaf visit.
    *
    * The converter is called once per leaf of the source tree and must return a
    * @c std::vector<P> containing all target primitives for that leaf:

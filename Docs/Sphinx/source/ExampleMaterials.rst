@@ -10,7 +10,7 @@ cylinder bored through its chest. The source is at :file:`Examples/Materials/mai
    :width: 60%
    :align: center
 
-   The armadillo coloured by leaf, from a table of its own: the skin sand, the bore's wall (the cylinder's) steel grey.
+   The armadillo colored by leaf, from a table of its own: the skin sand, the bore's wall (the cylinder's) steel gray.
 
 .. important::
 
@@ -49,16 +49,16 @@ front, nothing straight through the bore, and the bore's wall sideways from insi
 Looking at it
 -------------
 
-``Settings::m_colourBy = ColourBy::Primitive`` colours each surface by the same ``HitT::m_primitive``.
-``Settings::m_primitiveColours`` gives each leaf a colour of its own, indexed like the material table (a
+``Settings::m_colorBy = ColorBy::Primitive`` colors each surface by the same ``HitT::m_primitive``.
+``Settings::m_primitiveColors`` gives each leaf a color of its own, indexed like the material table (a
 leaf left out gets the renderer's palette), and the camera looks from low in front, where the bore shows:
 
 .. code-block:: c++
 
    Render::Settings<T> settings;
-   settings.m_colourBy            = Render::ColourBy::Primitive;
-   settings.m_primitiveColours[0] = Vec3(0.78, 0.62, 0.42); // the skin, sand
-   settings.m_primitiveColours[1] = Vec3(0.55, 0.57, 0.60); // the bore, steel grey
+   settings.m_colorBy            = Render::ColorBy::Primitive;
+   settings.m_primitiveColors[0] = Vec3(0.78, 0.62, 0.42); // the skin, sand
+   settings.m_primitiveColors[1] = Vec3(0.55, 0.57, 0.60); // the bore, steel gray
 
    Render::view(tape, pool, camera, settings, argc, argv);
 

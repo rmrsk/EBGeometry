@@ -79,7 +79,7 @@ private:
 
 /**
  * @brief What a file reader does with a mesh whose faces do not form a clean, closed surface.
- * @details Covers the defects a reader can survive: neighbouring faces oriented inconsistently, an
+ * @details Covers the defects a reader can survive: neighboring faces oriented inconsistently, an
  * edge shared by three or more faces, and faces that fold back onto each other. Such a mesh loads
  * and gives correct distances, but the sign of the distance near the defect is unreliable. Faults
  * that would corrupt the half-edge mesh itself (an index out of range, a non-finite coordinate, a

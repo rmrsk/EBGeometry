@@ -213,7 +213,7 @@ buildDCELTreeBVH(const EBGeometry::DCEL::MeshT<T>& a_dcelMesh,
  * whose fan has the largest smallest triangle, so a face with straight-angle vertices (for example
  * one that received a T-junction vertex in Soup::removeDegeneratePolygons) yields no zero-area
  * triangles. A zero-area face has no interior and yields no triangles; its edges belong to its
- * neighbours as well.
+ * neighbors as well.
  *
  * The face normal is set after the vertex positions, so a mesh flipped with MeshT::flip() keeps its
  * flipped normals (setting the positions recomputes the normal from vertex order).

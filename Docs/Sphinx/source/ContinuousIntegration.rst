@@ -29,7 +29,7 @@ The pipeline runs in two tiers, so that a pull request under development gets it
 
 * A **draft** pull request runs the *fast tier*: one or two cells of each matrix, and no
   ``Linux-Intel``, ``Examples-GNUMake``, ``Examples-FloatPrecision``, ``Static-analysis`` or ``GPU-CUDA``
-  job; ``GPU-HIP`` builds only its optimised configuration. It takes about eight minutes.
+  job; ``GPU-HIP`` builds only its optimized configuration. It takes about eight minutes.
 * A pull request that is **ready for review** (marking it ready runs CI again) and every **push** to
   ``main`` or ``dev`` run the *full tier*: every job and every matrix cell described below.
 
@@ -112,7 +112,7 @@ Examples-CMake
 
 Configures the top-level project with the ``debug`` preset (assertions on, ``double`` precision),
 the unit tests switched off and ``-Werror``, and runs every example via ``ctest --preset examples``.
-The examples follow the project's build type, so they run unoptimised here. This is the path that
+The examples follow the project's build type, so they run unoptimized here. This is the path that
 exercises the CMake-driven build with assertions enabled, unlike ``Linux-GNU``/``Linux-Intel`` (raw
 compiler invocation, no assertions) or ``Unit-Tests``/``Sanitizers`` (examples disabled).
 
@@ -179,7 +179,7 @@ only actually run on a runner whose CPU supports AVX-512F.
 Release-Test
 ~~~~~~~~~~~~
 
-Configures with the ``release-test`` preset (optimised, AVX, examples and tests both enabled) plus
+Configures with the ``release-test`` preset (optimized, AVX, examples and tests both enabled) plus
 ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, and runs ``ctest --preset release-test`` (the full
 unit-test and example suite).
 
@@ -198,17 +198,17 @@ Installs a HIP toolchain (``hipcc``, ``clang-17``) and compiles the unit-test fi
 device block in clang's HIP mode, with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, so the
 GPU-callable code must compile for the device. It also compiles the examples
 (``EBGeometry_GPUDeviceExamples``, see :ref:`Sec:ExamplesGPU`) and the performance probes for the
-device, without running them. It builds optimised (Release) and with host SIMD flags (``-mavx -mfma
+device, without running them. It builds optimized (Release) and with host SIMD flags (``-mavx -mfma
 -msse4.1``), which catches a SIMD block that is not excluded from device compilation, and device code
-whose compile grows out of hand once HIP inlines every device function, which only an optimised build
-shows; the full tier builds a second time, unoptimised. The runner has no GPU, so the device-tagged tests it then runs skip before launching a
+whose compile grows out of hand once HIP inlines every device function, which only an optimized build
+shows; the full tier builds a second time, unoptimized. The runner has no GPU, so the device-tagged tests it then runs skip before launching a
 kernel: the step checks that the binaries start and that the device query is safe, not that device
 code gives correct results. This job is required by ``CI-passed``.
 
 GPU-CUDA
 ~~~~~~~~
 
-The same device compile with ``nvcc`` (CUDA 12.5), device examples and probes included, unoptimised
+The same device compile with ``nvcc`` (CUDA 12.5), device examples and probes included, unoptimized
 and without SIMD flags. Full tier only. CUDA and HIP are separate jobs because they use different
 device compilers and install routes, and run side by side. Marked
 ``continue-on-error: true``, because its toolkit install is the least reliable step in the
@@ -218,7 +218,7 @@ CI-passed
 ~~~~~~~~~
 
 Aggregates every job above -- except the advisory ``Static-analysis`` and ``GPU-CUDA`` -- as a single
-required status check. It runs even when one of those jobs fails or is cancelled, and fails unless
+required status check. It runs even when one of those jobs fails or is canceled, and fails unless
 every one of them succeeded; a skipped dependency counts as a failure too, since a skipped required
 check would not block a merge, except a full-tier-only job skipped on a draft. Branch-protection rules can target this job instead of each
 individual job.

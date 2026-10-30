@@ -63,7 +63,7 @@ TEST_CASE("HostMemoryResource: deallocate round-trips without leak", "[MemoryRes
 
 TEST_CASE("HostMemoryResource: allocate with a non-power-of-two alignment aborts", "[MemoryResource][death]")
 {
-  // An EBGEOMETRY_REQUIRE, so it aborts in every build: std::aligned_alloc's behaviour for such an
+  // An EBGEOMETRY_REQUIRE, so it aborts in every build: std::aligned_alloc's behavior for such an
   // alignment is implementation-defined, and the rounding mask below it would be wrong.
   REQUIRE(abortsWith(
     [] {

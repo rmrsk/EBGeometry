@@ -20,7 +20,7 @@ The classes are in namespace ``Render``:
 .. code-block:: c++
 
    Render::Settings<T> settings;                       // 960 x 960, 2 x 2 rays per pixel, ...
-   settings.m_colourBy = Render::ColourBy::Primitive;
+   settings.m_colorBy = Render::ColorBy::Primitive;
 
    const Render::Renderer<T> renderer(settings);
    const auto                camera = Render::Camera<T>::fit(shape.computeBoundingVolume());
@@ -38,19 +38,19 @@ The classes are in namespace ``Render``:
   (a plane, a complement) has nothing to fit; give it a camera, or fit the camera to a box of your own.
 * `Settings <doxygen/html/structEBGeometry_1_1Render_1_1Settings.html>`__ is a plain value: the image
   size and rays per pixel, the host threads, shadows, ambient occlusion, the floor (with or without its
-  checkerboard, and the checker's size) and the sky (its horizon and zenith colours, or a plain
-  background), how to colour (``ColourBy::Normal``, the default, ``ColourBy::Uniform`` or
-  ``ColourBy::Primitive``), the colours, the light (its direction, by default in the camera's frame so that
+  checkerboard, and the checker's size) and the sky (its horizon and zenith colors, or a plain
+  background), how to color (``ColorBy::Normal``, the default, ``ColorBy::Uniform`` or
+  ``ColorBy::Primitive``), the colors, the light (its direction, by default in the camera's frame so that
   it turns with the camera and lights the side in view, or in the scene with ``m_lightFromCamera`` false;
   its intensity, the ambient level, and the highlights' strength and shininess), the section plane
   (``m_section``, a point and a normal; the side the normal points to is removed; ``m_isoSpacing`` draws lines of equal distance on it; the cut face is
-  coloured as a surface facing along the plane's normal would be, and partly transparent, ``m_cutOpacity``, so that the shape's
+  colored as a surface facing along the plane's normal would be, and partly transparent, ``m_cutOpacity``, so that the shape's
   next surface behind it shows through; its contour, a line
   ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
-  box), and the march (``RayOptions``). ``m_primitiveColours`` gives the first
-  ``Settings::PrimitiveColours`` (16) primitive ids colours of their own; an entry left unset, and every
-  later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colours its bore steel grey).
-  ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColour``.
+  box), and the march (``RayOptions``). ``m_primitiveColors`` gives the first
+  ``Settings::PrimitiveColors`` (16) primitive ids colors of their own; an entry left unset, and every
+  later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colors its bore steel gray).
+  ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColor``.
   ``Render::writeImage(image, file)`` writes an image as binary PPM. ``Render::toCode(camera, settings)`` writes a camera and
   settings as C++ statements, the fields that differ from their defaults.
 * `Renderer <doxygen/html/classEBGeometry_1_1Render_1_1Renderer.html>`__ holds the settings.
@@ -66,7 +66,7 @@ The classes are in namespace ``Render``:
   the floor goes) from the shape itself.
 * Every shape is shaded the same way, through ``firstHit()`` (shadows, ambient occlusion and the section
   plane's cut included), so the renderer needs nothing of a shape beyond what makes it a shape.
-* ``HitT::m_primitive`` colours by primitive: a tape's leaf or a mesh SDF's face; any other shape (a
+* ``HitT::m_primitive`` colors by primitive: a tape's leaf or a mesh SDF's face; any other shape (a
   fused composition, an analytic shape) is one primitive, 0 (see :ref:`Chap:ImplemRays`).
 * `Stats <doxygen/html/structEBGeometry_1_1Render_1_1Stats.html>`__ reports the rays cast, those that hit
   the shape, those that hit it from inside the solid (drawn tinted red), those that were unresolved
@@ -116,13 +116,13 @@ plane and the shape's value there; Shift and a click on two surfaces measures th
      - Look from the front, the side, the top; switch between perspective and orthographic; reset the
        camera.
    * - +, -; double-click
-     - A narrower or wider field of view; centre the camera on the point under the cursor.
+     - A narrower or wider field of view; center the camera on the point under the cursor.
    * - Right drag
      - Move the light.
    * - Left, Right (Shift + Left, Right)
      - Weaker or stronger highlights, ``m_specular`` (broader or tighter, ``m_shininess``).
    * - P
-     - Cycle the colouring: by normal, uniform, by primitive.
+     - Cycle the coloring: by normal, uniform, by primitive.
    * - S, A, F, B
      - Shadows, ambient occlusion, the floor, the sky on or off.
    * - Shift + Up, Down
@@ -130,7 +130,7 @@ plane and the shape's value there; Shift and a click on two surfaces measures th
    * - G
      - Render on the GPU or the CPU (with a device view).
    * - X; Ctrl + X; N
-     - Cut with a section plane across x, then y, then z, through the box's centre (a plane the settings
+     - Cut with a section plane across x, then y, then z, through the box's center (a plane the settings
        turn on comes first); remove the cut; reverse it (remove the other side).
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.

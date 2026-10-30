@@ -41,7 +41,7 @@ EBGeometry object.
      - The dragon on a table, blended by a smooth union, in a ``Tape``.
      - :ref:`Chap:ExampleMeshCSG`
    * - :file:`Materials`
-     - The armadillo with a bored cylinder, in a ``Tape``, and each cut cell labelled with its closest leaf
+     - The armadillo with a bored cylinder, in a ``Tape``, and each cut cell labeled with its closest leaf
        (``closestPrimitive()``) and, on the mesh, its closest face (``getClosestFace()``).
      - :ref:`Chap:ExampleMaterials`
    * - :file:`ManyObjects`

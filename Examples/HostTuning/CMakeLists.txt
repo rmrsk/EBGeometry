@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(HostTuning CXX)
 
-# Built on its own, the example defaults to an optimised build. Inside the EBGeometry project it
+# Built on its own, the example defaults to an optimized build. Inside the EBGeometry project it
 # follows that project's build type, and its SIMD flags come from the EBGeometry target
 # (EBGEOMETRY_SIMD).
 set(HOSTTUNING_STANDALONE OFF)

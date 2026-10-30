@@ -72,7 +72,7 @@ runtime exist only in a CUDA or HIP build:
      - No
      - Yes
      - CUDA/HIP builds only. A host pointer dereference of a returned block is undefined
-       behaviour.
+       behavior.
    * - `ManagedMemoryResource <doxygen/html/classEBGeometry_1_1ManagedMemoryResource.html>`__
      - Yes
      - Yes
@@ -195,7 +195,7 @@ points into:
 
    auto& e = mesh.getEdge(3);       // a raw address, resolved right now
    mesh.reserveFaces(pool, n);      // may grow -- the old block is freed
-   e.setFace(7);                    // undefined behaviour: write into freed memory
+   e.setFace(7);                    // undefined behavior: write into freed memory
 
 The hazard is intermittent (a grow only happens when a request exceeds the current capacity) and its
 quiet form is worse than a crash: if the freed block is still mapped, the write lands in the

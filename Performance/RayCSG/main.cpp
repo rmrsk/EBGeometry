@@ -7,7 +7,7 @@
 // union), traced and marched (RayOptions::m_march), each traced case naming its marched one; and a crowd of
 // 4096 small balls through a tape, one BVH union, traced only (a hit looks up its ball among the union's
 // operands, which must not cost a pass over all of them). Every ray
-// starts at a random point in the scene's box grown to twice its size and points at the box's centre. A
+// starts at a random point in the scene's box grown to twice its size and points at the box's center. A
 // host build runs the host cases; a CUDA or HIP build runs host/device pairs in Morton and random order.
 // See ../README.md and PerformanceTesting.rst.
 
@@ -43,7 +43,7 @@ using Vec3 = EBGeometry::Vec3T<T>;
 template <class T>
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
-// The scene's solids, from random points: a centre in [-1, 1]^3 and a size in [0, 1]^3 each.
+// The scene's solids, from random points: a center in [-1, 1]^3 and a size in [0, 1]^3 each.
 template <class T>
 struct Scene
 {
@@ -55,20 +55,20 @@ struct Scene
   {
     const std::size_t n = NumBalls + NumBoxes + NumHoles;
 
-    const auto centres = Perf::pointsInBox<T>(AABB<T>(-Vec3<T>::ones(), Vec3<T>::ones()), n, Perf::Seed::RayScene);
+    const auto centers = Perf::pointsInBox<T>(AABB<T>(-Vec3<T>::ones(), Vec3<T>::ones()), n, Perf::Seed::RayScene);
     const auto sizes   = Perf::pointsInBox<T>(AABB<T>(Vec3<T>::zeros(), Vec3<T>::ones()), n, Perf::Seed::RayScene + 1);
 
     for (std::size_t i = 0; i < n; i++) {
       if (i < NumBalls) {
-        balls.emplace_back(centres[i], T(0.1) + T(0.15) * sizes[i][0]);
+        balls.emplace_back(centers[i], T(0.1) + T(0.15) * sizes[i][0]);
       }
       else if (i < NumBalls + NumBoxes) {
         const Vec3<T> half = T(0.08) * Vec3<T>::ones() + T(0.12) * sizes[i];
 
-        boxes.emplace_back(centres[i] - half, centres[i] + half);
+        boxes.emplace_back(centers[i] - half, centers[i] + half);
       }
       else {
-        holes.emplace_back(centres[i], T(0.15) + T(0.15) * sizes[i][0]);
+        holes.emplace_back(centers[i], T(0.15) + T(0.15) * sizes[i][0]);
       }
     }
   }
@@ -105,18 +105,18 @@ private:
   }
 };
 
-// The crowd: balls with centres in [-1, 1]^3 and radii in [0.02, 0.04], as one union.
+// The crowd: balls with centers in [-1, 1]^3 and radii in [0.02, 0.04], as one union.
 template <class T>
 EBGeometry::Expr<T>
 crowd(const std::size_t a_n)
 {
-  const auto centres = Perf::pointsInBox<T>(AABB<T>(-Vec3<T>::ones(), Vec3<T>::ones()), a_n, Perf::Seed::RayCrowd);
+  const auto centers = Perf::pointsInBox<T>(AABB<T>(-Vec3<T>::ones(), Vec3<T>::ones()), a_n, Perf::Seed::RayCrowd);
   const auto sizes   = Perf::pointsInBox<T>(AABB<T>(Vec3<T>::zeros(), Vec3<T>::ones()), a_n, Perf::Seed::RayCrowd + 1);
 
   std::vector<EBGeometry::Expr<T>> balls;
 
   for (std::size_t i = 0; i < a_n; i++) {
-    balls.emplace_back(EBGeometry::SphereSDF<T>(centres[i], T(0.02) + T(0.02) * sizes[i][0]));
+    balls.emplace_back(EBGeometry::SphereSDF<T>(centers[i], T(0.02) + T(0.02) * sizes[i][0]));
   }
 
   return EBGeometry::Union(balls);
@@ -169,15 +169,15 @@ agreeCrossing(T a_host, T a_device)
   return {diff, (a_host < T(0)) != (a_device < T(0)) || diff > 1e-3};
 }
 
-// The scene's box, its centre, and ray origins in the box grown to twice its size about the centre.
+// The scene's box, its center, and ray origins in the box grown to twice its size about the center.
 template <class T>
 std::vector<Vec3<T>>
 origins(const AABB<T>& a_box, std::size_t a_n)
 {
-  const Vec3<T> centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
-  const Vec3<T> half   = a_box.getHighCorner() - centre;
+  const Vec3<T> center = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3<T> half   = a_box.getHighCorner() - center;
 
-  return Perf::pointsInBox<T>(AABB<T>(centre - T(2) * half, centre + T(2) * half), a_n, Perf::Seed::RayOrigins);
+  return Perf::pointsInBox<T>(AABB<T>(center - T(2) * half, center + T(2) * half), a_n, Perf::Seed::RayOrigins);
 }
 
 // One shape, traced or marched, in one precision: the host case, and host/device pairs in each order.
@@ -196,11 +196,11 @@ addShape(
 
     const auto     shape  = a_build(c, pool);
     const auto     box    = shape.computeBoundingVolume();
-    const Vec3<T>  centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+    const Vec3<T>  center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
     const auto     q      = origins<T>(box, c.size(HostQueries, SmokeQueries));
     std::vector<T> out;
 
-    Perf::measureHostQuery(c, FirstHit<T, std::decay_t<decltype(shape)>>{shape, centre, a_march}, q, out);
+    Perf::measureHostQuery(c, FirstHit<T, std::decay_t<decltype(shape)>>{shape, center, a_march}, q, out);
 
     c.checksum(Perf::checksumOf(out));
     c.poolBytes(pool.usedBytes());
@@ -219,7 +219,7 @@ addShape(
 
       const auto    shape  = a_build(c, pool);
       const auto    box    = shape.computeBoundingVolume();
-      const Vec3<T> centre = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+      const Vec3<T> center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
       const auto    q      = Perf::inOrder(order, origins<T>(box, c.size(PairQueries, SmokeQueries)));
 
       using S = std::decay_t<decltype(shape)>;
@@ -228,7 +228,7 @@ addShape(
         c,
         pool,
         q,
-        [&](const EBGeometry::Pool& a_pool) { return FirstHit<T, S>{shape.rebasedView(a_pool), centre, a_march}; },
+        [&](const EBGeometry::Pool& a_pool) { return FirstHit<T, S>{shape.rebasedView(a_pool), center, a_march}; },
         agreeCrossing<T>);
 
       c.checksum(Perf::checksumOf(out));

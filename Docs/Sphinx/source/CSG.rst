@@ -80,7 +80,7 @@ Reflecting across one of the three coordinate planes (the :math:`yz`-, :math:`xz
 
 EBGeometry supports several further transformations beyond these five: offsetting (growing or
 shrinking an object by a distance), shell extraction (hollowing out a solid into a shell of a given
-thickness), elongation (stretching an object by inserting a box at its centre), finite repetition
+thickness), elongation (stretching an object by inserting a box at its center), finite repetition
 (copies of an object on a grid), and blurring and mollification (smoothing a sharp surface by locally
 averaging the function value). They are shown in :ref:`Chap:ExampleTransforms`,
 :ref:`Chap:ExampleRepetition` and :ref:`Chap:ExampleValueOperations`.
@@ -126,7 +126,7 @@ its leaves. See :ref:`Chap:ExampleFusedCSG`.
 The tape is the scene, and it can also say which of its leaves decides its value at a point: the
 primitive whose surface the value comes from there. A union passes on the leaf of the operand it takes
 the value from, a difference the leaf of whichever object bounds the result, a blend the more extreme
-operand's, a blur the centre of its samples'. This is what tagging a boundary or a material needs, and it is not the same as the
+operand's, a blur the center of its samples'. This is what tagging a boundary or a material needs, and it is not the same as the
 geometrically nearest primitive, which may be one the composition cut away. A compiled object is one
 shape with one surface, however it is built: in a tape it is one leaf, so a scene of compiled parts
 names the part that decides the value. :ref:`Chap:ClosestPrimitive` explains it, and

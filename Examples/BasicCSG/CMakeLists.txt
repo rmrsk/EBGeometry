@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(BasicCSG CXX)
 
-# Built on its own, the example defaults to an optimised build. Inside the EBGeometry project it
+# Built on its own, the example defaults to an optimized build. Inside the EBGeometry project it
 # follows that project's build type, and its SIMD flags come from the EBGeometry target
 # (EBGEOMETRY_SIMD). Add e.g. -DCMAKE_CXX_FLAGS=-march=native to tune for this machine.
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)

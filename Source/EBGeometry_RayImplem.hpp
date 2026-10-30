@@ -386,7 +386,7 @@ scaleOf(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi, const RayOptions<T>& a_optio
 }
 
 /**
- * @brief The outward unit normal of a shape's surface at a point: its normalised gradient, by central
+ * @brief The outward unit normal of a shape's surface at a point: its normalized gradient, by central
  * differences of step a_h.
  * @details Internal helper; not part of the public API. Zero where the gradient vanishes. Out of line on a
  * device (see valueAt()).

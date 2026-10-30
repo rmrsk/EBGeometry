@@ -17,7 +17,7 @@ and on GPUs, from the same code, with no dependencies.
   offsets, repetitions and transforms), compiled into a tape for a scene or fused into compiled code
   for a part, and BVH-accelerated unions of thousands of objects.
 * **Queries:** signed distance, normals and bounding boxes; the primitive that decides the value at a
-  point; ray and segment hits; closest points and nearest neighbours in point clouds.
+  point; ray and segment hits; closest points and nearest neighbors in point clouds.
 * **Looking at it:** a renderer, on the host or a GPU, for any shape, with an optional interactive
   window (SDL2).
 * **Performance:** packed BVHs with any branching factor and a choice of builds, SIMD on the host

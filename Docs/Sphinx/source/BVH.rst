@@ -116,7 +116,7 @@ moving geometry.
 
 The trade-off is quality rather than correctness: a refitted tree always *encloses* its primitives
 (so traversal stays correct), but because the partitioning is frozen, a geometry that deforms enough
-for primitives to drift into what used to be a neighbour's region produces increasingly loose,
+for primitives to drift into what used to be a neighbor's region produces increasingly loose,
 overlapping bounding volumes and slower queries. A periodic rebuild restores tight volumes once the
 deformation has grown large. See :ref:`Chap:ImplemBVH` for the concrete ``refit()`` member functions
 on both BVH representations.

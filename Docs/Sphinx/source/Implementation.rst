@@ -70,7 +70,7 @@ The remaining pages in this section cover each component in more detail:
 * :ref:`Chap:ImplemRender` -- the renderer and the interactive viewer.
 * :ref:`Chap:ImplemOctree` -- octree subdivision for bounding-box estimates, and normals of any
   function.
-* :ref:`Chap:ImplemPointCloud` -- point-cloud BVHs and hash grids for nearest-neighbour queries.
+* :ref:`Chap:ImplemPointCloud` -- point-cloud BVHs and hash grids for nearest-neighbor queries.
 * :ref:`Chap:Parsers` -- reading surface meshes from STL/PLY/OBJ/VTK files.
-* :ref:`Chap:SIMDClasses` -- the three SIMD-accelerated classes, and exactly what is vectorised in
+* :ref:`Chap:SIMDClasses` -- the three SIMD-accelerated classes, and exactly what is vectorized in
   each.

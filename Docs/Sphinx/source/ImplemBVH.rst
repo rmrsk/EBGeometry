@@ -570,7 +570,7 @@ _________________________
 
 ``PackedBVH`` has no ``signedDistance()`` of its own and does not privilege any one query. It has one
 walk, ``traverse()``, and every search in the library -- the mesh SDFs' distances and closest faces, the
-BVH unions, the point clouds' neighbour searches, the tape's large unions, the ray queries -- is a call of
+BVH unions, the point clouds' neighbor searches, the tape's large unions, the ray queries -- is a call of
 it with different pieces slotted in. A new search is written the same way: you supply the pieces, the
 library supplies the walk, on the host and on a device. See :ref:`Chap:BVH` for the idea behind it.
 
@@ -614,7 +614,7 @@ where it calls your pieces marked:
    :align: center
 
    A nearest-primitive search walking a small tree (``K = 2``). The numbered events are where the walk
-   calls the pieces the search supplies, coloured by piece: the query keys the root with ``key(box)``
+   calls the pieces the search supplies, colored by piece: the query keys the root with ``key(box)``
    and both children of a node in one pass with ``keys(row)`` (1--3), the order puts the nearer child
    first, the leaf callback finds a primitive and so tightens the bound (4), and on the way back the
    query's ``key(row, k)`` recomputes each waiting child's key for the bound as it is then, which
@@ -663,7 +663,7 @@ The pieces you supply
      - ``(State&, uint32_t nodeIndex, const Node&, const Key&) -> bool``
      - for every node about to be entered (root, interior, leaf), after the bound check
      - decide on the node itself: return ``false`` to skip it and its subtree, after updating the
-       state if you like (prune on your own per-node data, summarise a far subtree, count nodes).
+       state if you like (prune on your own per-node data, summarize a far subtree, count nodes).
        Default ``BVH::DescendAll``, which compiles away
    * - ``order`` (optional)
      - ``BVH::NearestFirst``, ``BVH::FarthestFirst``, ``BVH::AsStored``, or a comparator
@@ -926,7 +926,7 @@ The three mesh SDFs are also ray traced exactly: ``firstHit()`` and ``intersects
 triangle groups and ``DCEL::FaceT::rayCrossing()`` for ``MeshSDF``'s polygons (``FlatMeshSDF`` tests
 every face), reporting the face id and its normal. See :ref:`Chap:ImplemRays`.
 
-What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
+What is actually vectorized in ``TriMeshSDF``/``PackedBVH`` is covered in
 :ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
 
 Primitive storage: Face ids or triangles

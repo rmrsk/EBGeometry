@@ -95,7 +95,7 @@ struct AsStored
 
 /**
  * @brief The default visit callback of PackedBVH::traverse(): enter every node that passes the bound.
- * @details The walk recognises it and calls nothing.
+ * @details The walk recognizes it and calls nothing.
  */
 struct DescendAll
 {

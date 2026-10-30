@@ -156,7 +156,7 @@ instantiateFunctionTemplates()
   const std::vector<std::string> files;
 
   // GPU memory foundation: the non-template Pool/MemoryResource machinery and the PODVector
-  // build/query surface (odr-used so clang-tidy and the strong warning set analyse their bodies
+  // build/query surface (odr-used so clang-tidy and the strong warning set analyze their bodies
   // for both precisions).
   {
     HostMemoryResource& resource = hostMemoryResource();

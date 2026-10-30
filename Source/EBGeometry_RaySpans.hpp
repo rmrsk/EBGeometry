@@ -31,7 +31,7 @@
 
 namespace EBGeometry {
 
-// A span list is left uninitialised past m_count (zeroing it costs local-memory stores on a device), and GCC
+// A span list is left uninitialized past m_count (zeroing it costs local-memory stores on a device), and GCC
 // cannot see that only the first m_count spans are ever read.
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -527,7 +527,7 @@ mapBack(const MappedRay<T>& a_mapped, const T a_t0, const T a_t1, RaySpansT<T>& 
 
 /**
  * @brief A normal of the operand of an affine map, mapped back to the original frame: by the transposed
- * matrix, and normalised.
+ * matrix, and normalized.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @param[in] a_map    The map's coefficients.

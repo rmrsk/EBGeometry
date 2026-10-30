@@ -74,7 +74,7 @@ buildEB(const ShapeIF<S>& a_sdf, const AABB& a_box, const int a_numCells, const 
 {
   // Cubic cells, a_numCells along the box's longest side and 10% to spare; each side's count is rounded up
   // to a multiple of 8.
-  const Vec3 centre = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3 center = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
   const Vec3 extent = T(1.1) * (a_box.getHighCorner() - a_box.getLowCorner());
   const T    dx     = extent[extent.maxDir(true)] / T(a_numCells);
 
@@ -84,8 +84,8 @@ buildEB(const ShapeIF<S>& a_sdf, const AABB& a_box, const int a_numCells, const 
   for (int d = 0; d < AMREX_SPACEDIM; d++) {
     cells[d] = 8 * int(std::ceil(extent[d] / (8 * dx)));
 
-    rb.setLo(d, centre[d] - T(0.5) * dx * T(cells[d]));
-    rb.setHi(d, centre[d] + T(0.5) * dx * T(cells[d]));
+    rb.setLo(d, center[d] - T(0.5) * dx * T(cells[d]));
+    rb.setHi(d, center[d] + T(0.5) * dx * T(cells[d]));
   }
 
   const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};
@@ -154,7 +154,7 @@ main(int argc, char* argv[])
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
     if (scene == "spheres") {
-      // Rejection sampling: a centre drawn in the box around a cylinder along x (radius 26, five times as
+      // Rejection sampling: a center drawn in the box around a cylinder along x (radius 26, five times as
       // long) is kept only inside the cylinder; then the radius is drawn. A fixed seed makes every MPI rank
       // build the same packing.
       const T                           radius = T(26);
@@ -164,10 +164,10 @@ main(int argc, char* argv[])
       std::vector<AABB>                 boxes;
 
       while (int(spheres.size()) < num_spheres) {
-        const Vec3 centre = radius * Vec3(T(2.5) * unit(rng), unit(rng), unit(rng));
+        const Vec3 center = radius * Vec3(T(2.5) * unit(rng), unit(rng), unit(rng));
 
-        if (centre[1] * centre[1] + centre[2] * centre[2] <= radius * radius) {
-          spheres.emplace_back(centre, T(0.6) + T(1.2) * (unit(rng) + T(1)));
+        if (center[1] * center[1] + center[2] * center[2] <= radius * radius) {
+          spheres.emplace_back(center, T(0.6) + T(1.2) * (unit(rng) + T(1)));
           boxes.push_back(spheres.back().computeBoundingVolume());
         }
       }
@@ -175,7 +175,7 @@ main(int argc, char* argv[])
       handOver(pool, Packing(pool, spheres, boxes, T(1.5)), n_cell, max_grid_size);
     }
     else if (scene == "city") {
-      // One building per lot, of random width, length and height, never overlapping its neighbours. A fixed
+      // One building per lot, of random width, length and height, never overlapping its neighbors. A fixed
       // seed makes every MPI rank build the same city.
       std::mt19937_64                   rng(12345);
       std::uniform_real_distribution<T> unit(T(0), T(1));

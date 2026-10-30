@@ -118,7 +118,7 @@ struct HitT
   uint32_t m_primitive = 0;
 
   /**
-   * @brief The outward unit normal at the crossing: from the shape's ray form, or the normalised gradient of
+   * @brief The outward unit normal at the crossing: from the shape's ray form, or the normalized gradient of
    * its signed distance for a marched crossing.
    */
   Vec3T<T> m_normal = Vec3T<T>::zeros();

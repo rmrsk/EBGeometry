@@ -38,7 +38,7 @@ plain(const uint32_t a_size)
   return settings;
 }
 
-// The colour channels of a pixel.
+// The color channels of a pixel.
 struct Channels
 {
   int r;
@@ -52,7 +52,7 @@ channels(const uint32_t a_rgba)
   return Channels{int((a_rgba >> 24) & 0xFFU), int((a_rgba >> 16) & 0xFFU), int((a_rgba >> 8) & 0xFFU)};
 }
 
-// The direction of the ray through the centre of pixel (column, row), as PixelQuery computes it.
+// The direction of the ray through the center of pixel (column, row), as PixelQuery computes it.
 template <class T>
 Vec3T<T>
 pixelRay(const Render::Camera<T>& a_camera, const uint32_t a_size, const uint32_t a_column, const uint32_t a_row)
@@ -160,7 +160,7 @@ TEMPLATE_TEST_CASE("Render: a sphere covers the pixels whose rays meet it", "[Re
       const Vec3 d  = pixelRay(camera, size, column, row);
       const Vec3 oc = camera.eye() - center;
 
-      // The ray's closest approach to the centre; rays close to the rim can go either way.
+      // The ray's closest approach to the center; rays close to the rim can go either way.
       const T b       = dot(oc, d);
       const T closest = std::sqrt(Math::max(T(0), dot(oc, oc) - b * b));
 
@@ -218,7 +218,7 @@ TEMPLATE_TEST_CASE("Render: a hole seen from inside the solid is tinted, and the
   CHECK_FALSE(ballStats.m_cameraInside);
   CHECK(ballStats.m_insideHits == 0U);
 
-  // The centre pixel sees the ball's near side either way; from inside the solid it is red.
+  // The center pixel sees the ball's near side either way; from inside the solid it is red.
   const Channels tinted = channels(inside.at(size / 2, size / 2));
   const Channels plainC = channels(outside.at(size / 2, size / 2));
 
@@ -227,7 +227,7 @@ TEMPLATE_TEST_CASE("Render: a hole seen from inside the solid is tinted, and the
   CHECK(plainC.r < 2 * plainC.g);
 }
 
-TEMPLATE_TEST_CASE("Render: colouring by primitive tells the leaves apart", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Render: coloring by primitive tells the leaves apart", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -248,7 +248,7 @@ TEMPLATE_TEST_CASE("Render: colouring by primitive tells the leaves apart", "[Re
   settings.m_light     = Vec3(T(0), T(0), T(1));
   settings.m_shadows   = false;
   settings.m_occlusion = false;
-  settings.m_colourBy  = Render::ColourBy::Uniform;
+  settings.m_colorBy   = Render::ColorBy::Uniform;
 
   Render::Image uniform;
   Render::Image byPrimitive;
@@ -257,11 +257,11 @@ TEMPLATE_TEST_CASE("Render: colouring by primitive tells the leaves apart", "[Re
 
   (void)renderer.render(pair.tape(), camera, uniform);
 
-  renderer.settings().m_colourBy = Render::ColourBy::Primitive;
+  renderer.settings().m_colorBy = Render::ColorBy::Primitive;
 
   (void)renderer.render(pair.tape(), camera, byPrimitive);
 
-  // The pixels in the middle row whose rays pass closest to each sphere's centre, in the plane z = 0.
+  // The pixels in the middle row whose rays pass closest to each sphere's center, in the plane z = 0.
   uint32_t left  = 0;
   uint32_t right = 0;
   T        bestL = Math::Limits<T>::infinity();
@@ -335,12 +335,12 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   CHECK(halved.at(size / 2 - size / 8, size / 2) != background);
   CHECK(whole.at(size / 2 + size / 8, size / 2) != background);
 
-  // Cut away the half towards the camera: it sees the flat cut face. Coloured by primitive and opaque, the
-  // face takes the cut colour.
+  // Cut away the half towards the camera: it sees the flat cut face. Colored by primitive and opaque, the
+  // face takes the cut color.
   renderer.settings().m_sectionNormal = Vec3(T(0), T(0), T(1));
   renderer.settings().m_shadows       = false;
   renderer.settings().m_occlusion     = false;
-  renderer.settings().m_colourBy      = Render::ColourBy::Primitive;
+  renderer.settings().m_colorBy       = Render::ColorBy::Primitive;
   renderer.settings().m_cutOpacity    = T(1);
 
   (void)renderer.render(sphere, camera, opened);
@@ -352,8 +352,8 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   CHECK(opened.at(size / 2, size / 2) != whole.at(size / 2, size / 2));
   CHECK(opened.at(size / 2 - 3, size / 2 + 2) != background);
 
-  // Coloured by normal, the face takes the plane's normal, +z: it is blue, and the same across the face.
-  renderer.settings().m_colourBy = Render::ColourBy::Normal;
+  // Colored by normal, the face takes the plane's normal, +z: it is blue, and the same across the face.
+  renderer.settings().m_colorBy = Render::ColorBy::Normal;
 
   Render::Image byNormal;
 
@@ -414,7 +414,7 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host render", "[Render
   settings.m_width         = 48;
   settings.m_height        = 32;
   settings.m_supersampling = 2;
-  settings.m_colourBy      = Render::ColourBy::Primitive;
+  settings.m_colorBy       = Render::ColorBy::Primitive;
 
   const Render::Renderer<T> renderer(settings);
   const auto                camera = Render::Camera<T>::fit(tape.computeBoundingVolume());
@@ -657,7 +657,7 @@ TEMPLATE_TEST_CASE("Render: a ray-traced mesh cut by the section plane draws as 
   CHECK(tracedStats.m_insideHits == 0U);
   CHECK(marchedStats.m_insideHits == 0U);
 
-  // Through the middle of the image the camera looks at the cut face, in the cut colour on both.
+  // Through the middle of the image the camera looks at the cut face, in the cut color on both.
   const Channels a = channels(traced.at(size / 2, size / 2));
   const Channels b = channels(marched.at(size / 2, size / 2));
 
@@ -666,7 +666,7 @@ TEMPLATE_TEST_CASE("Render: a ray-traced mesh cut by the section plane draws as 
   CHECK(std::abs(a.b - b.b) <= 6);
 }
 
-TEMPLATE_TEST_CASE("Render: a cancelled render stops early and says so", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Render: a canceled render stops early and says so", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -680,7 +680,7 @@ TEMPLATE_TEST_CASE("Render: a cancelled render stops early and says so", "[Rende
   std::atomic<bool>     cancel{false};
   std::atomic<uint32_t> rows{0};
 
-  // Not cancelled: every row is done.
+  // Not canceled: every row is done.
   const auto whole = renderer.render(sphere, camera, image, cancel, &rows);
 
   CHECK(whole.m_complete);
@@ -691,7 +691,7 @@ TEMPLATE_TEST_CASE("Render: a cancelled render stops early and says so", "[Rende
   CHECK(onDevice.m_complete);
   CHECK(rows == 32U);
 
-  // Cancelled before it starts: no row is done, and the image still has its size.
+  // Canceled before it starts: no row is done, and the image still has its size.
   cancel = true;
   rows   = 0;
 
@@ -707,7 +707,7 @@ TEMPLATE_TEST_CASE("Render: a cancelled render stops early and says so", "[Rende
   CHECK(rows == 0U);
 }
 
-TEMPLATE_TEST_CASE("Render: a primitive colour set in the table replaces the palette's for that primitive only",
+TEMPLATE_TEST_CASE("Render: a primitive color set in the table replaces the palette's for that primitive only",
                    "[Render]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -727,7 +727,7 @@ TEMPLATE_TEST_CASE("Render: a primitive colour set in the table replaces the pal
   settings.m_light     = Vec3(T(0), T(0), T(1));
   settings.m_shadows   = false;
   settings.m_occlusion = false;
-  settings.m_colourBy  = Render::ColourBy::Primitive;
+  settings.m_colorBy   = Render::ColorBy::Primitive;
 
   Render::Image palette;
   Render::Image table;
@@ -736,11 +736,11 @@ TEMPLATE_TEST_CASE("Render: a primitive colour set in the table replaces the pal
 
   (void)renderer.render(pair.tape(), camera, palette);
 
-  renderer.settings().m_primitiveColours[0] = Vec3(T(0), T(0), T(1));
+  renderer.settings().m_primitiveColors[0] = Vec3(T(0), T(0), T(1));
 
   (void)renderer.render(pair.tape(), camera, table);
 
-  // The centre of each sphere along the middle row: a quarter and three quarters across.
+  // The center of each sphere along the middle row: a quarter and three quarters across.
   const Channels left  = channels(table.at(size / 2 - size / 4, size / 2));
   const Channels right = channels(table.at(size / 2 + size / 4, size / 2));
 
@@ -750,14 +750,14 @@ TEMPLATE_TEST_CASE("Render: a primitive colour set in the table replaces the pal
   CHECK(right.r + right.g + right.b > 0);
 }
 
-TEMPLATE_TEST_CASE("Render: colouring by normal shows the surface's direction", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Render: coloring by normal shows the surface's direction", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
   const SphereSDF<T> sphere(Vec3::zeros(), T(1));
 
-  // Looking along -z: the centre's normal is +z (blue), the left rim's -x (no red).
+  // Looking along -z: the center's normal is +z (blue), the left rim's -x (no red).
   const auto camera = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Front);
 
   constexpr uint32_t size = 32;
@@ -768,17 +768,17 @@ TEMPLATE_TEST_CASE("Render: colouring by normal shows the surface's direction", 
   settings.m_shadows   = false;
   settings.m_occlusion = false;
   settings.m_specular  = T(0);
-  settings.m_colourBy  = Render::ColourBy::Normal;
+  settings.m_colorBy   = Render::ColorBy::Normal;
 
   Render::Image image;
 
   (void)Render::Renderer<T>(settings).render(sphere, camera, image);
 
-  const Channels centre = channels(image.at(size / 2, size / 2));
+  const Channels center = channels(image.at(size / 2, size / 2));
   const Channels left   = channels(image.at(size / 2 - size / 5, size / 2));
 
-  CHECK(centre.b > centre.r + 40);
-  CHECK(centre.b > centre.g + 40);
+  CHECK(center.b > center.r + 40);
+  CHECK(center.b > center.g + 40);
   CHECK(left.g > left.r + 20);
 }
 
@@ -808,7 +808,7 @@ TEMPLATE_TEST_CASE("Render: the light's intensity, the ambient level, the highli
 
   (void)renderer.render(sphere, camera, lit);
 
-  // With no light of any kind the surface is black; the background is the colour set.
+  // With no light of any kind the surface is black; the background is the color set.
   renderer.settings().m_lightIntensity = T(0);
   renderer.settings().m_ambient        = T(0);
   renderer.settings().m_specular       = T(0);
@@ -816,18 +816,18 @@ TEMPLATE_TEST_CASE("Render: the light's intensity, the ambient level, the highli
   (void)renderer.render(sphere, camera, dark);
 
   const Channels corner = channels(dark.at(0, 0));
-  const Channels centre = channels(dark.at(size / 2, size / 2));
+  const Channels center = channels(dark.at(size / 2, size / 2));
 
   CHECK(corner.r == 255);
   CHECK(corner.g == 0);
   CHECK(corner.b == 0);
-  CHECK(centre.r + centre.g + centre.b == 0);
+  CHECK(center.r + center.g + center.b == 0);
 
   const Channels bright = channels(lit.at(size / 2, size / 2));
 
   CHECK(bright.r + bright.g + bright.b > 200);
 
-  // A sky of one colour fills the background with it.
+  // A sky of one color fills the background with it.
   renderer.settings().m_sky        = true;
   renderer.settings().m_skyHorizon = Vec3(T(0), T(1), T(0));
   renderer.settings().m_skyZenith  = Vec3(T(0), T(1), T(0));
@@ -961,7 +961,7 @@ TEMPLATE_TEST_CASE("Render: the near clip hides what is nearer than it", "[Rende
 
   Render::Image image;
 
-  // Clipped just past the centre, the rays through the sphere start inside it and see its far side from
+  // Clipped just past the center, the rays through the sphere start inside it and see its far side from
   // within.
   camera.m_nearClip = camera.m_distance + T(0.1);
 
@@ -1048,14 +1048,14 @@ TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their de
   Render::Camera<T>   camera;
   Render::Settings<T> settings;
 
-  camera.m_yaw                   = T(0.1);
-  camera.m_orthographic          = true;
-  camera.m_target                = Vec3(T(1), T(-2.5), T(0));
-  settings.m_width               = 1280;
-  settings.m_shadows             = false;
-  settings.m_colourBy            = Render::ColourBy::Uniform;
-  settings.m_primitiveColours[3] = Vec3(T(0.5), T(0.5), T(0.5));
-  settings.m_rays.m_maxSteps     = 100;
+  camera.m_yaw                  = T(0.1);
+  camera.m_orthographic         = true;
+  camera.m_target               = Vec3(T(1), T(-2.5), T(0));
+  settings.m_width              = 1280;
+  settings.m_shadows            = false;
+  settings.m_colorBy            = Render::ColorBy::Uniform;
+  settings.m_primitiveColors[3] = Vec3(T(0.5), T(0.5), T(0.5));
+  settings.m_rays.m_maxSteps    = 100;
 
   CHECK(Render::toCode(camera, settings) ==
         "EBGeometry::Render::Camera<T> camera;\n"
@@ -1065,13 +1065,13 @@ TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their de
         "EBGeometry::Render::Settings<T> settings;\n"
         "settings.m_width = 1280;\n"
         "settings.m_shadows = false;\n"
-        "settings.m_colourBy = EBGeometry::Render::ColourBy::Uniform;\n"
-        "settings.m_primitiveColours[3] = EBGeometry::Vec3T<T>(T(0.5), T(0.5), T(0.5));\n"
+        "settings.m_colorBy = EBGeometry::Render::ColorBy::Uniform;\n"
+        "settings.m_primitiveColors[3] = EBGeometry::Vec3T<T>(T(0.5), T(0.5), T(0.5));\n"
         "settings.m_rays.m_maxSteps = 100;\n");
 }
 
 TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthographic camera, a near clip, a "
-                   "primitive colour table and the surface settings",
+                   "primitive color table and the surface settings",
                    "[Render][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1097,21 +1097,21 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
 
   Render::Settings<T> settings;
 
-  settings.m_width               = 40;
-  settings.m_height              = 32;
-  settings.m_supersampling       = 2;
-  settings.m_colourBy            = Render::ColourBy::Primitive;
-  settings.m_primitiveColours[1] = Vec3(T(0.2), T(0.3), T(0.9));
-  settings.m_shininess           = T(12);
-  settings.m_specular            = T(0.6);
-  settings.m_ambient             = T(0.2);
-  settings.m_floorCheckerSize    = T(0.5);
-  settings.m_section             = true;
-  settings.m_sectionPoint        = Vec3(T(0.1), T(0), T(0));
-  settings.m_sectionNormal       = Vec3(T(1), T(0.2), T(0));
-  settings.m_sheetOpacity        = T(0.3);
-  settings.m_recordPrimitives    = true;
-  settings.m_isoSpacing          = T(0.2);
+  settings.m_width              = 40;
+  settings.m_height             = 32;
+  settings.m_supersampling      = 2;
+  settings.m_colorBy            = Render::ColorBy::Primitive;
+  settings.m_primitiveColors[1] = Vec3(T(0.2), T(0.3), T(0.9));
+  settings.m_shininess          = T(12);
+  settings.m_specular           = T(0.6);
+  settings.m_ambient            = T(0.2);
+  settings.m_floorCheckerSize   = T(0.5);
+  settings.m_section            = true;
+  settings.m_sectionPoint       = Vec3(T(0.1), T(0), T(0));
+  settings.m_sectionNormal      = Vec3(T(1), T(0.2), T(0));
+  settings.m_sheetOpacity       = T(0.3);
+  settings.m_recordPrimitives   = true;
+  settings.m_isoSpacing         = T(0.2);
 
   for (const bool orthographic : {false, true}) {
     auto camera = Render::Camera<T>::fit(tape.computeBoundingVolume(), Render::View::Top);
@@ -1119,8 +1119,8 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
     camera.m_orthographic = orthographic;
     camera.m_nearClip     = T(0.5) * camera.m_distance;
 
-    for (const Render::ColourBy colourBy : {Render::ColourBy::Primitive, Render::ColourBy::Normal}) {
-      settings.m_colourBy = colourBy;
+    for (const Render::ColorBy colorBy : {Render::ColorBy::Primitive, Render::ColorBy::Normal}) {
+      settings.m_colorBy = colorBy;
 
       const Render::Renderer<T> renderer(settings);
 
@@ -1183,7 +1183,7 @@ TEMPLATE_TEST_CASE("Render: the section plane draws the shape's contour, and a s
   settings.m_sectionNormal = Vec3(T(0), T(0), T(1));
   settings.m_contourWidth  = T(3);
   settings.m_sheetOpacity  = T(0.5);
-  settings.m_sheetColour   = Vec3(T(0), T(0), T(1));
+  settings.m_sheetColor    = Vec3(T(0), T(0), T(1));
 
   Render::Renderer<T> renderer(settings);
 
@@ -1212,7 +1212,7 @@ TEMPLATE_TEST_CASE("Render: the section plane draws the shape's contour, and a s
       const Channels c = channels(drawn.at(column, row));
 
       if (std::abs(r - T(1)) < T(0.5) * pixel) {
-        // On the contour: its colour, 0.04 of full scale before the display's gamma (59 of 255 after it).
+        // On the contour: its color, 0.04 of full scale before the display's gamma (59 of 255 after it).
         CHECK(c.r + c.g + c.b < 200);
         CHECK(drawn.at(column, row) != bare.at(column, row));
 
@@ -1397,13 +1397,13 @@ TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the imag
   const TestUtils::Compiled<T> drilled(
     Difference(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.3), 2)));
 
-  const Render::Renderer<T> centre(plain<T>(size));
+  const Render::Renderer<T> center(plain<T>(size));
 
-  const HitT<T> wall = centre.pick(drilled.tape(),
+  const HitT<T> wall = center.pick(drilled.tape(),
                                    Render::Camera<T>::lookAt(Vec3(T(0.5), T(0), T(3)), Vec3(T(-0.5), T(0), T(-1))),
                                    T(0.5) * T(size),
                                    T(0.5) * T(size));
-  const HitT<T> face = centre.pick(drilled.tape(),
+  const HitT<T> face = center.pick(drilled.tape(),
                                    Render::Camera<T>::lookAt(Vec3(T(0.6), T(0), T(3)), Vec3(T(0.6), T(0), T(0))),
                                    T(0.5) * T(size),
                                    T(0.5) * T(size));

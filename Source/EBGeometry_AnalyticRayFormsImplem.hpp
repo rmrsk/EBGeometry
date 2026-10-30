@@ -132,12 +132,12 @@ slab(const RayT<T>& a_ray,
 /**
  * @brief Where a ray is inside a sphere.
  * @details Internal helper; not part of the public API. The discriminant is the squared radius less the
- * squared distance of the centre from the ray's line, |oc x d|^2, not b^2 - c: for a small ball far from
+ * squared distance of the center from the ray's line, |oc x d|^2, not b^2 - c: for a small ball far from
  * the origin, |oc|^2 - r^2 cancels, and in float a ray passing within about 1e-3 of the radius of the
  * surface could go either way. The nearer root is c / q, which does not cancel either.
  * @tparam T Floating-point precision.
  * @param[in]  a_ray    Ray.
- * @param[in]  a_center Centre.
+ * @param[in]  a_center Center.
  * @param[in]  a_radius Radius.
  * @param[out] a_in     Where it enters.
  * @param[out] a_out    Where it leaves (below a_in if it misses).
@@ -257,12 +257,12 @@ tubeNormal(const Vec3T<T>& a_p, const Vec3T<T>& a_point, const Vec3T<T>& a_axis)
 }
 
 /**
- * @brief Where a ray is inside a finite cylinder between two centres, with the normals at its ends.
+ * @brief Where a ray is inside a finite cylinder between two centers, with the normals at its ends.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @param[in]  a_ray       Ray.
- * @param[in]  a_center1   Centre of one cap.
- * @param[in]  a_center2   Centre of the other.
+ * @param[in]  a_center1   Center of one cap.
+ * @param[in]  a_center2   Center of the other.
  * @param[in]  a_radius    Radius.
  * @param[out] a_in        Where it enters.
  * @param[out] a_inNormal  Outward normal there.
@@ -322,13 +322,13 @@ cylinderSpan(const RayT<T>&  a_ray,
 }
 
 /**
- * @brief Where a ray is inside a capsule: the hull of where it is inside the cylinder between the centres and
+ * @brief Where a ray is inside a capsule: the hull of where it is inside the cylinder between the centers and
  * the two balls at its ends, which is one span since the capsule is convex.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @param[in]  a_ray     Ray.
- * @param[in]  a_center1 Centre of one cap.
- * @param[in]  a_center2 Centre of the other.
+ * @param[in]  a_center1 Center of one cap.
+ * @param[in]  a_center2 Center of the other.
  * @param[in]  a_radius  Radius.
  * @param[out] a_in      Where it enters.
  * @param[out] a_out     Where it leaves (below a_in if it misses).
@@ -344,7 +344,7 @@ capsuleSpan(const RayT<T>&  a_ray,
             T&              a_out) noexcept
 {
   // The capsule is convex, so the ray is inside it over one span: the hull of its spans through the
-  // cylinder between the centres and through the two balls.
+  // cylinder between the centers and through the two balls.
   a_in  = Math::Limits<T>::infinity();
   a_out = -Math::Limits<T>::infinity();
 

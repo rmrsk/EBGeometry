@@ -15,7 +15,7 @@
  * section plane. An overlay lists them with what they change (H hides it), they are printed when the window
  * opens, and the user guide's table of the viewer's keys (Sec:ViewerKeys) describes them. While the camera
  * moves the view is drawn as a quick preview, at a resolution adapted to keep it at a few tens of
- * milliseconds; once the camera rests it is refined on a background thread, cancelled as soon as the
+ * milliseconds; once the camera rests it is refined on a background thread, canceled as soon as the
  * camera moves again. The window can be resized, and renders at its size in pixels (on a high-DPI display,
  * more pixels than its size in screen units).
  * @author Robert Marskar

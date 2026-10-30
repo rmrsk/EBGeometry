@@ -55,7 +55,7 @@ enum class FileType
   PLY,        ///< Polygon File Format (.ply)
   VTK,        ///< Legacy VTK polydata format (.vtk)
   OBJ,        ///< Wavefront OBJ format (.obj)
-  Unsupported ///< File type is not recognised
+  Unsupported ///< File type is not recognized
 };
 
 /**

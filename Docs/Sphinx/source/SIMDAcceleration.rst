@@ -4,12 +4,12 @@
 SIMD acceleration
 ===================
 
-EBGeometry vectorises its innermost loops with compiler intrinsics rather than relying on the
-compiler to auto-vectorise scalar code: the test of a point or a ray against the child boxes of a
+EBGeometry vectorizes its innermost loops with compiler intrinsics rather than relying on the
+compiler to auto-vectorize scalar code: the test of a point or a ray against the child boxes of a
 ``BVH::PackedBVH`` node, and the leaf computations of the triangle groups (``TriMeshSDF``) and point
-groups (``PointCloudBVH``). Everything else in the library is scalar code. Vectorising the leaves of
+groups (``PointCloudBVH``). Everything else in the library is scalar code. Vectorizing the leaves of
 another primitive type mostly requires storing the primitives in a structure-of-arrays (SoA) layout.
-:ref:`Chap:SIMDClasses` describes each of the vectorised classes.
+:ref:`Chap:SIMDClasses` describes each of the vectorized classes.
 
 How it is enabled
 -------------------

@@ -221,7 +221,7 @@ public:
    * Baerentzen and Aanes in "Signed distance computation using the angle
    * weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49).
    * @note Every face in a_faceIndices with a non-zero normal must visit this vertex exactly once,
-   * and the vertex and its two neighbours on that face must have distinct positions. A violation
+   * and the vertex and its two neighbors on that face must have distinct positions. A violation
    * aborts with a message in every build, rather than reading out of bounds or dividing by zero.
    */
   EBGEOMETRY_HOST

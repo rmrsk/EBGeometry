@@ -20,7 +20,7 @@ the composition ends at a leaf. That leaf is the one ``closestPrimitive(p)`` nam
 This is not the same as the primitive whose surface is geometrically nearest to ``p``. A composition
 removes parts of its primitives' surfaces, and the nearest primitive surface may be one of those removed
 parts, which is no longer part of the object. :numref:`Fig:ClosestPrimitive` shows a cross-section of
-``Difference(box, sphere)``, a box with a ball carved out of one side. The plane is coloured by the leaf
+``Difference(box, sphere)``, a box with a ball carved out of one side. The plane is colored by the leaf
 that decides the value: the sphere near the cavity, on both sides of its wall, and the box everywhere
 else.
 
@@ -29,7 +29,7 @@ else.
    :width: 70%
    :align: center
 
-   ``Difference(box, sphere)`` in a plane through the box's and the ball's centres, coloured by the
+   ``Difference(box, sphere)`` in a plane through the box's and the ball's centers, colored by the
    deciding leaf (the box is leaf 0, the sphere leaf 1). The dashed lines are the parts of the two
    primitives' surfaces that the difference removed. At :math:`p_1`, outside the object beside the
    ball's removed cap, the nearest primitive surface is the sphere's, but the value comes from the box,
@@ -46,7 +46,7 @@ Each operation passes on a leaf as follows:
   objects.
 * A **smooth union, intersection or difference** blends the two most extreme operands' values and takes
   the leaf of the more extreme one.
-* A **blur** takes the leaf of its centre sample, a **mollification** that of its sample with the
+* A **blur** takes the leaf of its center sample, a **mollification** that of its sample with the
   largest weight.
 * A **complement, offset, annulus, translation, rotation, scaling, reflection, elongation or repetition**
   passes on its operand's leaf. Every copy of a repeated object is the same leaf; the copy whose value
@@ -67,7 +67,7 @@ Asking for it
   depth first, counting each occurrence, so a shape used twice is two leaves. In
   ``Difference(Intersection(cube, ball), Union(drills))`` the cube is leaf 0, the ball leaf 1 and the
   three drills leaves 2 to 4. The number is the one to index a table of your own with: materials,
-  boundary conditions, colours. It is ``PrimitiveRef::None`` when the query names no leaf, so check it
+  boundary conditions, colors. It is ``PrimitiveRef::None`` when the query names no leaf, so check it
   before indexing.
 * ``m_type`` and ``m_index``: which of the tape's primitive types the leaf is, and which primitive of that
   type. They are what the accessors below use; most programs need not read them directly.
@@ -112,8 +112,8 @@ A ray query (see :ref:`Chap:Rays`) reports which part it crossed in ``HitT::m_pr
 meaning: for a tape, the leaf whose surface the ray crossed, numbered as ``closestPrimitive()`` numbers
 the leaves. Other shapes name what they can: a mesh distance
 field the id of the face crossed, a BVH union what its member names, and any other shape (an analytic
-shape, a fused composition) 0. The renderer colours by this number with
-``Render::ColourBy::Primitive``, from a table of colours of your own or a built-in palette, and a click in
+shape, a fused composition) 0. The renderer colors by this number with
+``Render::ColorBy::Primitive``, from a table of colors of your own or a built-in palette, and a click in
 the viewer picks the part under the cursor by it (see :ref:`Chap:Rendering`).
 
 On the host and on a device
@@ -134,7 +134,7 @@ Examples
 
 * :ref:`Chap:ExampleMaterials` bores a cylinder through a mesh, names each point's part with
   ``closestPrimitive()`` and each ray's with ``HitT::m_primitive``, looks it up in a table of materials,
-  and renders the object coloured by part.
+  and renders the object colored by part.
 * :ref:`Chap:ExampleBasicCSG` prints the deciding leaf at a few points of the classic CSG solid, a cube
   intersected with a ball and drilled along three axes.
 * The AMReX ``Materials`` integration (see :ref:`Chap:Integrations`) labels every cut cell with its

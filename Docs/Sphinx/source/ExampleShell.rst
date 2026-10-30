@@ -29,7 +29,7 @@ Hollowing it
 ------------
 
 ``Annular(e, d)`` keeps the points within :math:`d` of the surface (see
-:ref:`Chap:ExampleValueOperations`): a wall :math:`2d` thick centred on it, the kind of thin wall an
+:ref:`Chap:ExampleValueOperations`): a wall :math:`2d` thick centered on it, the kind of thin wall an
 embedded-boundary grid often needs from a closed surface mesh. A ``Difference`` with a box removes the
 quarter towards the camera:
 

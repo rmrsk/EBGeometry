@@ -95,7 +95,7 @@ isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vecto
  * - A zero-area triangle (three collinear vertices) is a T-junction filler: its middle vertex lies on
  *   its longest edge, and the facet across that edge has one fewer vertex than the geometry needs.
  *   The triangle is removed and its middle vertex is inserted into that facet between the longest
- *   edge's endpoints. The neighbour becomes a planar polygon with one straight-angle vertex, and the
+ *   edge's endpoints. The neighbor becomes a planar polygon with one straight-angle vertex, and the
  *   mesh stays closed. Without the repair, the triangle has no normal, and every edge and vertex
  *   pseudonormal next to it is wrong.
  * - Any other zero-area facet, and a zero-area triangle with no facet across its longest edge, is
@@ -103,7 +103,7 @@ isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vecto
  *
  * @tparam T Floating-point precision type for vertex coordinates.
  * @param[in]     a_vertices Compressed vertex coordinate list.
- * @param[in,out] a_facets   Index lists; degenerate facets are removed, and neighbours of repaired
+ * @param[in,out] a_facets   Index lists; degenerate facets are removed, and neighbors of repaired
  * T-junctions gain a vertex.
  * @return For each facet kept, its index in the original a_facets. Its size is the number kept.
  */
@@ -128,7 +128,7 @@ findRepeatedVertex(const std::vector<std::vector<size_t>>& a_facets);
  * @details Run after compress() and removeDegeneratePolygons(). Reports the first of:
  *
  * - a polygon that visits a vertex twice;
- * - an edge traversed in the same direction by two polygons. That happens when two neighbouring
+ * - an edge traversed in the same direction by two polygons. That happens when two neighboring
  *   polygons have opposite orientations, and whenever three or more polygons share an edge.
  *
  * An edge used by only one polygon (a hole in the surface) is not a defect here.

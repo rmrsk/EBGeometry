@@ -174,7 +174,7 @@ struct Sectioned
 };
 
 /**
- * @brief A colour for a primitive id: hues spread by the golden ratio, so neighbouring ids differ.
+ * @brief A color for a primitive id: hues spread by the golden ratio, so neighboring ids differ.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
  * @param[in] a_id Primitive id.
@@ -368,7 +368,7 @@ public:
   }
 
   /**
-   * @brief The colour seen along one camera ray, counting what it hit.
+   * @brief The color seen along one camera ray, counting what it hit.
    * @param[in]     a_origin    Where the ray starts: the eye, or a point on the plane through it for an
    * orthographic camera.
    * @param[in]     a_direction Unit direction.
@@ -393,7 +393,7 @@ public:
 
     const bool onFloor = tFloor > a_near && (!hit.hit() || tFloor < hit.m_t);
 
-    Vec3T<T> colour;
+    Vec3T<T> color;
 
     if (hit.hit() && !onFloor) {
       a_result.m_hits++;
@@ -411,27 +411,27 @@ public:
       const Vec3T<T>& p = hit.m_point;
 
       if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
-        colour = this->shadeCutFace(ray, hit.m_t);
+        color = this->shadeCutFace(ray, hit.m_t);
       }
       else {
-        colour = this->shadeSurface(hit, a_direction, true);
+        color = this->shadeSurface(hit, a_direction, true);
       }
     }
     else if (onFloor) {
-      colour = this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
+      color = this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
     }
     else {
-      colour = this->background(a_direction);
+      color = this->background(a_direction);
     }
 
     if (m_onPlane) {
       // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
       const T tFront = onFloor ? tFloor : (hit.hit() ? hit.m_t : m_far);
 
-      colour = this->drawOnPlane(ray, a_near, tFront, colour);
+      color = this->drawOnPlane(ray, a_near, tFront, color);
     }
 
-    return colour;
+    return color;
   }
 
 private:
@@ -658,7 +658,7 @@ private:
   }
 
   /**
-   * @brief The colour of the section plane's cut face where a camera ray meets it: the fill, and through it
+   * @brief The color of the section plane's cut face where a camera ray meets it: the fill, and through it
    * the shape's next surface along the ray.
    * @details Out of line on a device: inlined, this second shading of a surface (and its trace) doubled what
    * the render kernels spill to local memory, for every pixel, section or no section.
@@ -685,9 +685,9 @@ private:
   }
 
   /**
-   * @brief The fill of the section plane's cut face: coloured as a surface facing along the plane's normal
+   * @brief The fill of the section plane's cut face: colored as a surface facing along the plane's normal
    * would be, and lit by that normal a little from either side, without shadows, so that a slice reads the
-   * same whichever way the light faces. Coloured by primitive, it takes the cut colour: inside a
+   * same whichever way the light faces. Colored by primitive, it takes the cut color: inside a
    * composition the leaf that decides the value (a subtracted one, near its surface) need not be the
    * material there.
    * @return Linear RGB.
@@ -698,20 +698,20 @@ private:
   {
     const Vec3T<T>& n = m_object.m_normal;
 
-    Vec3T<T> albedo = m_settings.m_colour;
+    Vec3T<T> albedo = m_settings.m_color;
 
-    if (m_settings.m_colourBy == ColourBy::Normal) {
+    if (m_settings.m_colorBy == ColorBy::Normal) {
       albedo = T(0.5) * (n + Vec3T<T>::ones());
     }
-    else if (m_settings.m_colourBy == ColourBy::Primitive) {
-      albedo = m_settings.m_cutColour;
+    else if (m_settings.m_colorBy == ColorBy::Primitive) {
+      albedo = m_settings.m_cutColor;
     }
 
     return albedo * (T(0.6) + T(0.4) * std::abs(dot(n, m_light)));
   }
 
   /**
-   * @brief The colour of the shape's surface where a ray hit it.
+   * @brief The color of the shape's surface where a ray hit it.
    * @param[in] a_hit       The hit.
    * @param[in] a_direction Unit direction of the ray.
    * @param[in] a_tint      Whether a surface seen from inside the solid is tinted, and shadows and occlusion
@@ -727,16 +727,16 @@ private:
 
     Vec3T<T> n = (a_hit.m_normal.length2() > T(0)) ? a_hit.m_normal : this->normal(p);
 
-    Vec3T<T> albedo = m_settings.m_colour;
+    Vec3T<T> albedo = m_settings.m_color;
 
-    if (m_settings.m_colourBy == ColourBy::Primitive) {
+    if (m_settings.m_colorBy == ColorBy::Primitive) {
       const uint32_t id = a_hit.m_primitive;
 
-      albedo = (id < Settings<T>::PrimitiveColours && m_settings.m_primitiveColours[id][0] >= T(0))
-                 ? m_settings.m_primitiveColours[id]
+      albedo = (id < Settings<T>::PrimitiveColors && m_settings.m_primitiveColors[id][0] >= T(0))
+                 ? m_settings.m_primitiveColors[id]
                  : palette<T>(id);
     }
-    else if (m_settings.m_colourBy == ColourBy::Normal) {
+    else if (m_settings.m_colorBy == ColorBy::Normal) {
       albedo = T(0.5) * (n + Vec3T<T>::ones());
     }
 
@@ -747,11 +747,11 @@ private:
 
     if (a_hit.m_primitive == m_settings.m_highlightPrimitive ||
         m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives) {
-      albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColour;
+      albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColor;
     }
 
     if (!a_hit.m_entering && a_tint) {
-      albedo = T(0.25) * albedo + T(0.75) * m_settings.m_insideColour;
+      albedo = T(0.25) * albedo + T(0.75) * m_settings.m_insideColor;
     }
 
     return this->light(p, n, a_direction, albedo, a_tint);
@@ -764,31 +764,31 @@ private:
    * @param[in] a_ray    The camera ray.
    * @param[in] a_near   Where the ray starts to see.
    * @param[in] a_tFront Where it meets what it sees.
-   * @param[in] a_colour What it sees.
+   * @param[in] a_color What it sees.
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline Vec3T<T>
-  drawOnPlane(const RayT<T>& a_ray, const T a_near, const T a_tFront, const Vec3T<T>& a_colour) const noexcept
+  drawOnPlane(const RayT<T>& a_ray, const T a_near, const T a_tFront, const Vec3T<T>& a_color) const noexcept
   {
     const T rate = dot(a_ray.m_direction, m_object.m_normal);
 
     if (rate == T(0)) {
-      return a_colour;
+      return a_color;
     }
 
     const T t = -m_object.plane(a_ray.m_origin) / rate;
 
     if (!(t > a_near && t <= a_tFront + T(4) * m_eps)) {
-      return a_colour;
+      return a_color;
     }
 
     const Vec3T<T> p = a_ray.at(t);
 
     for (int k = 0; k < 3; k++) {
       if (p[k] < m_boxLow[k] || p[k] > m_boxHigh[k]) {
-        return a_colour;
+        return a_color;
       }
     }
 
@@ -797,18 +797,18 @@ private:
     const T half  = T(0.5) * m_settings.m_contourWidth * width;
 
     if (std::abs(value) < half) {
-      return m_settings.m_contourColour;
+      return m_settings.m_contourColor;
     }
 
     // Lines of equal distance, every m_isoSpacing, thinner than the contour.
-    Vec3T<T> colour = a_colour;
+    Vec3T<T> color = a_color;
 
     if (m_settings.m_isoSpacing > T(0)) {
       const T s = m_settings.m_isoSpacing;
       const T r = value - s * std::floor(value / s + T(0.5));
 
       if (std::abs(r) < T(0.5) * width) {
-        colour = T(0.4) * colour + T(0.6) * m_settings.m_isoColour;
+        color = T(0.4) * color + T(0.6) * m_settings.m_isoColor;
       }
     }
 
@@ -820,16 +820,16 @@ private:
         edge = Math::min(edge, Math::min(p[k] - m_boxLow[k], m_boxHigh[k] - p[k]));
       }
 
-      const Vec3T<T>& over = (edge < T(1.5) * width) ? m_settings.m_sheetEdgeColour : m_settings.m_sheetColour;
+      const Vec3T<T>& over = (edge < T(1.5) * width) ? m_settings.m_sheetEdgeColor : m_settings.m_sheetColor;
 
-      return (T(1) - m_settings.m_sheetOpacity) * colour + m_settings.m_sheetOpacity * over;
+      return (T(1) - m_settings.m_sheetOpacity) * color + m_settings.m_sheetOpacity * over;
     }
 
-    return colour;
+    return color;
   }
 
   /**
-   * @brief The colour of the floor where a camera ray hit it: a faint checkerboard, shadowed by the
+   * @brief The color of the floor where a camera ray hit it: a faint checkerboard, shadowed by the
    * shape, fading into the background far away.
    * @param[in] a_point     Point on the floor.
    * @param[in] a_direction Unit direction of the camera ray.
@@ -845,7 +845,7 @@ private:
     const T b     = std::floor(dot(a_point, m_second) / cell);
     const T check = (!m_settings.m_floorChecker || std::fmod(std::abs(a + b), T(2)) < T(0.5)) ? T(1) : T(0.9);
 
-    const Vec3T<T> lit = this->light(a_point, m_up, a_direction, check * m_settings.m_floorColour);
+    const Vec3T<T> lit = this->light(a_point, m_up, a_direction, check * m_settings.m_floorColor);
 
     const T fade = std::exp(-(a_t * a_t) / (T(36) * m_scale * m_scale));
 
@@ -1190,16 +1190,16 @@ Camera<T>::frame(Vec3T<T>& a_forward, Vec3T<T>& a_right, Vec3T<T>& a_up) const n
 
 template <class T>
 EBGEOMETRY_HOST_DEVICE
-inline Array<Vec3T<T>, Settings<T>::PrimitiveColours>
-Settings<T>::unsetColours() noexcept
+inline Array<Vec3T<T>, Settings<T>::PrimitiveColors>
+Settings<T>::unsetColors() noexcept
 {
-  Array<Vec3T<T>, PrimitiveColours> colours;
+  Array<Vec3T<T>, PrimitiveColors> colors;
 
-  for (uint32_t i = 0; i < PrimitiveColours; i++) {
-    colours[i] = Vec3T<T>(T(-1), T(-1), T(-1));
+  for (uint32_t i = 0; i < PrimitiveColors; i++) {
+    colors[i] = Vec3T<T>(T(-1), T(-1), T(-1));
   }
 
-  return colours;
+  return colors;
 }
 
 namespace RenderDetail {
@@ -1248,24 +1248,24 @@ literal(const Vec3T<T>& a_v)
 }
 
 /**
- * @brief A colouring as a C++ expression.
+ * @brief A coloring as a C++ expression.
  * @details Internal helper; not part of the public API.
- * @param[in] a_colourBy Colouring.
- * @return For example "EBGeometry::Render::ColourBy::Primitive".
+ * @param[in] a_colorBy Coloring.
+ * @return For example "EBGeometry::Render::ColorBy::Primitive".
  */
 EBGEOMETRY_HOST
 inline std::string
-literal(const ColourBy a_colourBy)
+literal(const ColorBy a_colorBy)
 {
-  switch (a_colourBy) {
-  case ColourBy::Primitive: {
-    return "EBGeometry::Render::ColourBy::Primitive";
+  switch (a_colorBy) {
+  case ColorBy::Primitive: {
+    return "EBGeometry::Render::ColorBy::Primitive";
   }
-  case ColourBy::Normal: {
-    return "EBGeometry::Render::ColourBy::Normal";
+  case ColorBy::Normal: {
+    return "EBGeometry::Render::ColorBy::Normal";
   }
   default: {
-    return "EBGeometry::Render::ColourBy::Uniform";
+    return "EBGeometry::Render::ColorBy::Uniform";
   }
   }
 }
@@ -1369,22 +1369,22 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_occlusion", a_settings.m_occlusion, settings.m_occlusion);
   field("settings", "m_floor", a_settings.m_floor, settings.m_floor);
   field("settings", "m_sky", a_settings.m_sky, settings.m_sky);
-  field("settings", "m_colourBy", a_settings.m_colourBy, settings.m_colourBy);
-  field("settings", "m_colour", a_settings.m_colour, settings.m_colour);
+  field("settings", "m_colorBy", a_settings.m_colorBy, settings.m_colorBy);
+  field("settings", "m_color", a_settings.m_color, settings.m_color);
 
-  for (uint32_t i = 0; i < Settings<T>::PrimitiveColours; i++) {
-    const std::string name = "m_primitiveColours[" + std::to_string(i) + "]";
+  for (uint32_t i = 0; i < Settings<T>::PrimitiveColors; i++) {
+    const std::string name = "m_primitiveColors[" + std::to_string(i) + "]";
 
-    field("settings", name.c_str(), a_settings.m_primitiveColours[i], settings.m_primitiveColours[i]);
+    field("settings", name.c_str(), a_settings.m_primitiveColors[i], settings.m_primitiveColors[i]);
   }
 
   field("settings", "m_recordPrimitives", a_settings.m_recordPrimitives, settings.m_recordPrimitives);
   field("settings", "m_highlightPrimitive", a_settings.m_highlightPrimitive, settings.m_highlightPrimitive);
-  field("settings", "m_highlightColour", a_settings.m_highlightColour, settings.m_highlightColour);
-  field("settings", "m_insideColour", a_settings.m_insideColour, settings.m_insideColour);
-  field("settings", "m_cutColour", a_settings.m_cutColour, settings.m_cutColour);
+  field("settings", "m_highlightColor", a_settings.m_highlightColor, settings.m_highlightColor);
+  field("settings", "m_insideColor", a_settings.m_insideColor, settings.m_insideColor);
+  field("settings", "m_cutColor", a_settings.m_cutColor, settings.m_cutColor);
   field("settings", "m_cutOpacity", a_settings.m_cutOpacity, settings.m_cutOpacity);
-  field("settings", "m_floorColour", a_settings.m_floorColour, settings.m_floorColour);
+  field("settings", "m_floorColor", a_settings.m_floorColor, settings.m_floorColor);
   field("settings", "m_lightFromCamera", a_settings.m_lightFromCamera, settings.m_lightFromCamera);
   field("settings", "m_light", a_settings.m_light, settings.m_light);
   field("settings", "m_lightIntensity", a_settings.m_lightIntensity, settings.m_lightIntensity);
@@ -1400,12 +1400,12 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_sectionPoint", a_settings.m_sectionPoint, settings.m_sectionPoint);
   field("settings", "m_sectionNormal", a_settings.m_sectionNormal, settings.m_sectionNormal);
   field("settings", "m_contourWidth", a_settings.m_contourWidth, settings.m_contourWidth);
-  field("settings", "m_contourColour", a_settings.m_contourColour, settings.m_contourColour);
+  field("settings", "m_contourColor", a_settings.m_contourColor, settings.m_contourColor);
   field("settings", "m_isoSpacing", a_settings.m_isoSpacing, settings.m_isoSpacing);
-  field("settings", "m_isoColour", a_settings.m_isoColour, settings.m_isoColour);
+  field("settings", "m_isoColor", a_settings.m_isoColor, settings.m_isoColor);
   field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
-  field("settings", "m_sheetColour", a_settings.m_sheetColour, settings.m_sheetColour);
-  field("settings", "m_sheetEdgeColour", a_settings.m_sheetEdgeColour, settings.m_sheetEdgeColour);
+  field("settings", "m_sheetColor", a_settings.m_sheetColor, settings.m_sheetColor);
+  field("settings", "m_sheetEdgeColor", a_settings.m_sheetEdgeColor, settings.m_sheetEdgeColor);
   field("settings", "m_rays.m_tolerance", a_settings.m_rays.m_tolerance, settings.m_rays.m_tolerance);
   field("settings", "m_rays.m_scale", a_settings.m_rays.m_scale, settings.m_rays.m_scale);
   field("settings", "m_rays.m_maxSteps", a_settings.m_rays.m_maxSteps, settings.m_rays.m_maxSteps);
@@ -1502,7 +1502,7 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
 
   const uint32_t n = m_settings.m_supersampling;
 
-  Vec3T<T> colour = Vec3T<T>::zeros();
+  Vec3T<T> color = Vec3T<T>::zeros();
 
   for (uint32_t s = 0; s < n * n; s++) {
     const T dx = (T(s % n) + T(0.5)) / T(n);
@@ -1525,15 +1525,15 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
     const Vec3T<T> direction = m_camera.m_orthographic ? forward : RenderDetail::unit(forward + x * right + y * up);
     const T        near      = m_camera.m_orthographic ? shader.nearAlong(m_camera.m_nearClip) : m_camera.m_nearClip;
 
-    colour += shader.shade(origin, direction, near, result);
+    color += shader.shade(origin, direction, near, result);
   }
 
-  colour = colour / T(n * n);
+  color = color / T(n * n);
 
   uint32_t rgba = 0xFFU;
 
   for (int k = 0; k < 3; k++) {
-    const T g = std::pow(Math::clamp(colour[k], T(0), T(1)), T(1) / T(2.2));
+    const T g = std::pow(Math::clamp(color[k], T(0), T(1)), T(1) / T(2.2));
 
     rgba |= static_cast<uint32_t>(T(255) * g + T(0.5)) << (24 - 8 * k);
   }
@@ -1696,7 +1696,7 @@ Renderer<T>::render(const S&                 a_shape,
 
   const PixelQuery<T, S> query{a_shape, a_camera, m_settings};
 
-  // Rows not reached by a cancelled render stay black.
+  // Rows not reached by a canceled render stay black.
   std::vector<RenderDetail::StoredPixel> results(size_t(width) * size_t(height));
   std::vector<uint32_t>                  primitives(m_settings.m_recordPrimitives ? results.size() : 0U, 0xFFFFFFFFU);
 
@@ -1784,7 +1784,7 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
 
   const PixelQuery<T, S> query{a_deviceShape, a_camera, m_settings};
 
-  // A launch per band of rows, so that a cancelled render stops after the band under way: 8 bands, or
+  // A launch per band of rows, so that a canceled render stops after the band under way: 8 bands, or
   // fewer for a small image (each launch waits for the device, tens of microseconds, so more bands cost a
   // small frame more than they gain). The bands write into one buffer for the frame, in device memory,
   // that is copied back once at the end.

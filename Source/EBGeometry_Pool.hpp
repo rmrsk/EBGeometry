@@ -324,7 +324,7 @@ public:
    *          host -> pinned staging -> device leaves the device pool naming the original host pool,
    *          not the staging pool. That is what lets a pool-resident object built in the host pool
    *          validate a rebase onto the device pool (see @ref EBGeometry::DCEL::MeshT::rebasedView)
-   *          without having to know how many hops the block travelled.
+   *          without having to know how many hops the block traveled.
    * @return Identity of the root source pool, or 0 if this pool is not a mirror.
    */
   [[nodiscard]] EBGEOMETRY_HOST

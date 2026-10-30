@@ -134,7 +134,7 @@ struct DirectChain
   }
 };
 
-// Sphere i of the chain: ChainSpheres spheres in a row along x, overlapping their neighbours.
+// Sphere i of the chain: ChainSpheres spheres in a row along x, overlapping their neighbors.
 template <class T>
 EBGeometry::SphereSDF<T>
 chainSphere(std::size_t a_index)

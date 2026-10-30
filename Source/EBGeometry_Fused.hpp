@@ -1375,7 +1375,7 @@ FiniteRepetition(const C&                        a_operand,
  * @tparam C Operand type.
  * @param[in] a_operand Operand.
  * @param[in] a_blur    Blur distance d (finite, >= 0).
- * @param[in] a_alpha   Centre weight factor in [0, 1]; 1 = no blur.
+ * @param[in] a_alpha   Center weight factor in [0, 1]; 1 = no blur.
  * @return The blurred shape.
  */
 template <class C>

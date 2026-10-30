@@ -29,7 +29,7 @@ the same split:
 * Guard what a caller controls and what is checked once, when an object is built (positive radii,
   valid axis indices, matching array sizes, non-empty inputs, a suitable memory resource), with the
   always-on ``EBGEOMETRY_REQUIRE(cond, "Class: message", ...)``. A Release build must not carry on
-  into a wrong answer or undefined behaviour because of bad input.
+  into a wrong answer or undefined behavior because of bad input.
 * Guard internal invariants, and anything on a path that runs many times (a query, a traversal
   step), with ``EBGEOMETRY_EXPECT(cond)``, which compiles to nothing unless
   ``EBGEOMETRY_ENABLE_ASSERTIONS`` is defined. Do **not** guard invariants that the surrounding code
@@ -69,7 +69,7 @@ rules.
 HIP inlines every device function by default, so a device function is copied into every place it is
 called from. That is harmless until a function calls the next one in a chain from several places: the
 tape's evaluator calls the level below it from each Blur tap, each Mollify tap and each kind of BVH
-union, and fully inlined, the copies multiply at every level, until an optimised device compile no
+union, and fully inlined, the copies multiply at every level, until an optimized device compile no
 longer finishes in reasonable time and memory. Mark such a function ``EBGEOMETRY_DEVICE_NOINLINE`` (``EBGeometry_GPU.hpp``),
 which keeps it out of line in the device pass and changes nothing on the host. The ray queries are the
 other place this matters: a march, a span list or a pixel of the renderer evaluates or traces the shape
@@ -81,7 +81,7 @@ the renderer's ``Shader::trace()``), so a kernel holds one copy of each. New ray
 shape through them. ``valueAt()`` inlines an analytic shape's value (only a shape in a pool or a fused
 node is called out of line), since that small value is much faster inlined on a device.
 CI's main HIP build is
-optimised (``Release``), since an unoptimised build compiles such code quickly and so cannot show the
+optimized (``Release``), since an unoptimized build compiles such code quickly and so cannot show the
 problem.
 
 .. _Sec:DeviceCallableClass:
@@ -122,7 +122,7 @@ convention.
 
 Adding new public classes should also be reflected in ``Tests/InstantiateAll.cpp``,
 which explicitly instantiates every public class template so that ``clang-tidy``
-and the project's warning set analyse them regardless of what the tests exercise.
+and the project's warning set analyze them regardless of what the tests exercise.
 
 A class that is callable on a GPU also gets a device test: a test case tagged ``[gpu]`` in its test
 file, whose binary is listed in ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``.

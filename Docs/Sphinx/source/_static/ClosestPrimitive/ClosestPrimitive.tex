@@ -6,11 +6,11 @@
 \usetikzlibrary{arrows.meta,calc,backgrounds,patterns}
 
 % Difference(box, sphere) in the plane z = 0: the box [-1, 1] x [-0.7, 0.7] (leaf 0) with the ball of radius
-% 0.55 centred at (1, 0) (leaf 1) carved out of its right side. The value is max(d_box, -d_sphere); the box
+% 0.55 centered at (1, 0) (leaf 1) carved out of its right side. The value is max(d_box, -d_sphere); the box
 % decides it where d_box >= -d_sphere, the sphere elsewhere. The boundary between the two regions is the
 % zero contour of -d_sphere - d_box, computed numerically on a fine grid and drawn as a polygon below.
 
-% One colour per leaf.
+% One color per leaf.
 \definecolor{cbox}{rgb}{0.10,0.35,0.80}
 \definecolor{csphere}{rgb}{0.90,0.45,0.00}
 
@@ -27,7 +27,7 @@
 \centering
 \begin{tikzpicture}[x=3.5cm, y=3.5cm]
 
-  % The plane, coloured by the deciding leaf: the box everywhere, then the sphere's region on top.
+  % The plane, colored by the deciding leaf: the box everywhere, then the sphere's region on top.
   \fill[cbox!16] (-1.3,-1.0) rectangle (1.8,1.0);
   \fill[csphere!32]
     (0.918,-0.622) -- (0.930,-0.616) -- (0.939,-0.608) -- (0.949,-0.599) -- (0.959,-0.590) -- (0.968,-0.581) -- (0.977,-0.572) -- (0.986,-0.563) --

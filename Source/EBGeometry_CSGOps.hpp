@@ -63,7 +63,7 @@ struct Tagged
 
   /**
    * @brief The deciding leaf, as the structure numbers it (NoTag for none).
-   * @details No default member initialiser: the tape keeps a fixed stack of values, and one would
+   * @details No default member initializer: the tape keeps a fixed stack of values, and one would
    * write every slot of it on every evaluation (a tagged float tape on a GPU was 59% slower). A value
    * that names no leaf is made with noLeaf().
    */
@@ -639,17 +639,17 @@ template <class T>
 struct BlurWeights
 {
   /**
-   * @brief The blur distance d, followed by the weight of a tap 0, 1, 2 and 3 steps from the centre.
+   * @brief The blur distance d, followed by the weight of a tap 0, 1, 2 and 3 steps from the center.
    */
   T m_values[5];
 };
 
 /**
- * @brief A blur's distance and weights: the weight of a tap m steps from the centre is
+ * @brief A blur's distance and weights: the weight of a tap m steps from the center is
  * alpha^(3-m) beta^m with beta = (1 - alpha)/2, and the 27 weights sum to (alpha + 2 beta)^3 = 1.
  * @tparam T Floating-point precision.
  * @param[in] a_distance Blur distance d.
- * @param[in] a_alpha    Centre weight factor alpha.
+ * @param[in] a_alpha    Center weight factor alpha.
  * @return The distance and weights.
  */
 template <class T>
@@ -686,14 +686,14 @@ blur(const T* a_weights, const Vec3T<T>& a_point, const F& a_operand) noexcept
   const T  d = a_weights[0];
   const T* w = a_weights;
 
-  // The 27 taps p + d (i, j, k), in this order; a tap m = |i| + |j| + |k| steps from the centre has weight
+  // The 27 taps p + d (i, j, k), in this order; a tap m = |i| + |j| + |k| steps from the center has weight
   // w[1 + m]. One loop that computes each tap's point itself: with the point computed in a callable
   // called once per tap, nvcc 12.5 placed some taps at the wrong points.
   T value = T(0);
 
   if constexpr (isTagged<V>) {
-    // The same sum, carrying the centre tap's tag (the heaviest tap only for alpha >= 1/3).
-    V centre = noLeaf<V>();
+    // The same sum, carrying the center tap's tag (the heaviest tap only for alpha >= 1/3).
+    V center = noLeaf<V>();
 
     for (int t = 0; t < 27; t++) {
       const int i = t / 9 - 1;
@@ -706,11 +706,11 @@ blur(const T* a_weights, const Vec3T<T>& a_point, const F& a_operand) noexcept
       value += w[1 + m] * tapValue.m_value;
 
       if (m == 0) {
-        centre = tapValue;
+        center = tapValue;
       }
     }
 
-    return withValue(centre, value);
+    return withValue(center, value);
   }
   else {
     // Kept exactly as written for the plain value: holding each tap's value in a variable first made the
@@ -1056,7 +1056,7 @@ struct RepetitionView
  * closer, so only the tiles whose copy's box comes that near are evaluated. This is the plain minimum
  * over all copies for an object whose value is at least the distance to its box outside it (a distance
  * or a bound), and keeps the sign for any object, since a copy whose box holds the point is always
- * evaluated. An object that fits well inside its tile has few such neighbours.
+ * evaluated. An object that fits well inside its tile has few such neighbors.
  * @tparam T Floating-point precision.
  * @tparam R The repetition's storage: Repetition<T>, or RepetitionView<T> of a parameter array.
  * @tparam F Callable from a point to the object's value.

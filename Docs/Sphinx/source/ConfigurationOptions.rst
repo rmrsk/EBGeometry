@@ -155,7 +155,7 @@ Always-on checks (``EBGEOMETRY_REQUIRE``)
 EBGeometry checks what a caller controls -- constructor arguments, sizes and counts, the memory
 resource a pool is built on -- with ``EBGEOMETRY_REQUIRE(cond, message...)``. These checks are on in
 every build, whether or not ``EBGEOMETRY_ENABLE_ASSERTIONS`` is defined: without them, a Release
-build given bad input would carry on into a wrong answer or undefined behaviour. Each runs once,
+build given bad input would carry on into a wrong answer or undefined behavior. Each runs once,
 when an object is built, outside any query loop, so it costs a few comparisons per object.
 
 On failure the program prints what went wrong, the failed condition, the file and the line to

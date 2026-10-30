@@ -162,7 +162,7 @@ The operations, described mathematically in :ref:`Chap:ConstructiveSolidGeometry
    * - ``Blur(a, d, alpha)``
      - A weighted average of :math:`a` at the 27 points :math:`\mathbf{x} + d(i, j, k)`,
        :math:`i, j, k \in \{-1, 0, 1\}`, with weights :math:`\alpha^{3-m}((1-\alpha)/2)^m` for a
-       point :math:`m` steps from the centre (``alpha = 1`` is no blur)
+       point :math:`m` steps from the center (``alpha = 1`` is no blur)
    * - ``Mollify(a, r, n)``
      - :math:`\sum_k w_k\,a(\mathbf{x} - \mathbf{o}_k)` over an :math:`n^3` grid of offsets spanning
        :math:`[-r, r]^3`, with the weights of a smooth bump kernel, normalized to sum to one

@@ -118,7 +118,7 @@ mesh's.
 
    If an STL file contains multiple solids (uncommon, but technically valid STL), ``readSTL``
    only reads the first one. In a binary STL, the two "attribute" bytes after each triangle are
-   ignored; some exporters store a colour there.
+   ignored; some exporters store a color there.
 
 A file that cannot be read in full is rejected rather than read in part: a partial mesh has holes,
 and a mesh with holes gives wrong signs without any other symptom. If a file is missing, has an
@@ -151,7 +151,7 @@ reads as whatever faces it still contains. A vertex that no face uses is ignored
 Loading meshes with surface defects
 ___________________________________
 
-Some meshes in the wild are not clean, closed surfaces: neighbouring faces wound in opposite
+Some meshes in the wild are not clean, closed surfaces: neighboring faces wound in opposite
 directions, an edge shared by three or more faces, or faces that fold back onto each other. Such a
 mesh still gives correct *distances*, but the *sign* of the distance near the defect is unreliable,
 so by default the readers reject it. An edge or vertex on a fold, for instance, gets a zero normal,
@@ -344,7 +344,7 @@ construct a ``PolygonSoup<T>(id, vertices, faces)`` and call ``convertToDCEL``.
   half-edge mesh, so the readers reject it whatever ``OnDefect`` says.
 * ``findTopologyDefect(facets)``, run after ``removeDegeneratePolygons`` and before ``soupToDCEL``, reports a face that visits a
   vertex twice, or an edge that two faces run along in the same direction -- which is what happens
-  when neighbouring faces are oriented inconsistently, or when three or more faces share one edge.
+  when neighboring faces are oriented inconsistently, or when three or more faces share one edge.
   Such faces cannot be joined into a half-edge mesh. An edge used by only one face (a hole) is not
   reported.
 * ``findFoldedFeature(mesh)``, run on the finished mesh, reports an edge or vertex whose

@@ -35,7 +35,7 @@ using City    = EBGeometry::BVHUnion<T, Box, K>;
 
 // Run configuration: spheresPerAxis^3 spheres, (lotsPerAxis)^2 buildings, and the number of random
 // query points. The naive union visits every object for every point, so these stay small enough for an
-// unoptimised build to finish in seconds.
+// unoptimized build to finish in seconds.
 constexpr int         spheresPerAxis = 20;
 constexpr int         lotsPerAxis    = 60;
 constexpr std::size_t numPoints      = 2000;
@@ -227,7 +227,7 @@ main(int argc, char* argv[])
   const Spheres packedSpheres(pool, spheres, sphereBoxes);
 
   // A city: one building per lot, of random width, length and height, never overlapping its
-  // neighbours. Lots are maxWidth + gap wide.
+  // neighbors. Lots are maxWidth + gap wide.
   const T maxWidth  = T(3);
   const T maxHeight = T(20);
   const T gap       = T(0.1);
@@ -290,7 +290,7 @@ main(int argc, char* argv[])
   //
   // A window on the random city, a BVH union of boxes (built with VIEWER=SDL2; otherwise, with --no-view or
   // without a display, view() prints why and returns). Drag to orbit, scroll to zoom, X cuts it open, P
-  // colours each primitive. The buildings rise along z, so the camera is fitted with z up.
+  // colors each primitive. The buildings rise along z, so the camera is fitted with z up.
   // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
   const auto camera = EBGeometry::Render::Camera<T>::fit(city.computeBoundingVolume(), Vec3(T(0), T(0), T(1)));
 

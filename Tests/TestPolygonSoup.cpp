@@ -230,7 +230,7 @@ TEMPLATE_TEST_CASE("PolygonSoup: clean() removes degenerate faces and carries th
   soup.setVertexProperty("rawIndex", rawIndex);
   soup.setFaceProperty("tag", faceTag);
 
-  const std::vector<Vec3T<T>> repairedNeighbour = {
+  const std::vector<Vec3T<T>> repairedNeighbor = {
     Vec3T<T>(0, 0, 0), Vec3T<T>(T(0.5), T(0.5), 0), Vec3T<T>(1, 1, 0), Vec3T<T>(0, 1, 0)};
 
   // The filler and the collapsed face go; the other three keep their order and their tags.
@@ -238,7 +238,7 @@ TEMPLATE_TEST_CASE("PolygonSoup: clean() removes degenerate faces and carries th
   REQUIRE(soup.numVertices() == 5);
   REQUIRE(soup.numFacets() == 3);
   CHECK(soup.getFaceProperty("tag") == std::vector<T>{T(0), T(10), T(30)});
-  CHECK(facePositions(soup, 2) == repairedNeighbour);
+  CHECK(facePositions(soup, 2) == repairedNeighbor);
 
   // A merged vertex takes its properties from the first raw vertex at its position.
   for (size_t v = 0; v < soup.numVertices(); v++) {
