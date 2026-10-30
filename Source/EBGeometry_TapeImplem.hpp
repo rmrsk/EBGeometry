@@ -821,7 +821,8 @@ private:
 
         if (leaf < clauses.size()) {
           // One Marched clause holding the level set (bit 3, see TapeDetail::RayOp::Marched): the level, then the
-          // affine map it is traced through, if any; the leaf number in m_c.
+          // affine map it is traced through, if any; the leaf number in m_c. The Leaf's own level and the map's
+          // parameters stay where they are, unused: the parameter array is only appended to.
           const RayClause& level        = clauses[leaf];
           const bool       complemented = clauses.back().m_op == RayOp::Complement;
 
@@ -2376,21 +2377,27 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
     const RayDetail::MappedRay<T>& top = rays[nr - 1];
 
     if (pc == a_clause) {
-      if (hasFeature<TapeFeature::ExactOffsets> && (c.m_flags & 8U) != 0U &&
-          (c.m_op == RayOp::Leaf || c.m_op == RayOp::Marched)) {
-        // A level set's crossing: resolved only in the level-set walk (see resolveLevelHit()); its leaf number is
-        // in m_b of a Leaf clause and in m_c of a deferred one.
-        if constexpr (Level) {
-          hit = this->levelClauseHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
+      if constexpr (hasFeature<TapeFeature::ExactOffsets>) {
+        if ((c.m_flags & 8U) != 0U && (c.m_op == RayOp::Leaf || c.m_op == RayOp::Marched)) {
+          // A level set's crossing: resolved only in the level-set walk (see resolveLevelHit()); its leaf number
+          // is in m_b of a Leaf clause and in m_c of a deferred one.
+          if constexpr (Level) {
+            hit = this->levelClauseHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
 
-          hit.m_primitive = (c.m_op == RayOp::Leaf) ? c.m_b : c.m_c;
-        }
-        else {
-          hit.m_t         = top.m_t0;
-          hit.m_primitive = LevelLeaf;
+            hit.m_primitive = (c.m_op == RayOp::Leaf) ? c.m_b : c.m_c;
+          }
+          else {
+            hit.m_t         = top.m_t0;
+            hit.m_primitive = LevelLeaf;
+          }
+
+          hit.m_status = HitStatus::Hit;
+
+          break;
         }
       }
-      else if (c.m_op == RayOp::Leaf) {
+
+      if (c.m_op == RayOp::Leaf) {
         hit = this->primitiveLeafHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
 
         hit.m_primitive = c.m_b;
