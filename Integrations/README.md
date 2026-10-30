@@ -22,7 +22,8 @@ the object it builds to AMReX's embedded-boundary grid generation:
 > run on every pull request, nothing here is built as part of `EBGeometry`'s continuous
 > integration -- doing so would require installing and maintaining a matching version of AMReX,
 > a third-party project with its own release cadence. All of them were last compiled and run in October 2026,
-> on CPUs and on an NVIDIA GPU (CUDA), against AMReX's development branch (26.09).
+> on CPUs and on an NVIDIA GPU (CUDA), against AMReX's development branch (26.09); they have not been run
+> with HIP.
 > Treat them as a starting point for your own integration.
 
 Several read a mesh from the `common-3d-test-models` git submodule by default: clone the repository with
