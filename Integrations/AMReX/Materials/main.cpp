@@ -191,7 +191,8 @@ main(int argc, char* argv[])
 
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
           if (cut(i, j, k).isSingleValued()) {
-            const Vec3 p(plo[0] + (i + 0.5) * dx[0], plo[1] + (j + 0.5) * dx[1], plo[2] + (k + 0.5) * dx[2]);
+            const Vec3 p(
+              plo[0] + (i + Real(0.5)) * dx[0], plo[1] + (j + Real(0.5)) * dx[1], plo[2] + (k + Real(0.5)) * dx[2]);
 
             sdf.label(p, labels(i, j, k, 0), labels(i, j, k, 1));
           }
