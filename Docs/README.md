@@ -28,6 +28,18 @@ This requires `pdflatex` (from a `texlive-latex-extra`-equivalent install) and `
 `poppler-utils`) to be on your `PATH`; without them the figures are not built, and Sphinx reports
 each one as a missing image.
 
+The documentation is built with Sphinx 9.1.1, the version CI pins. Install it, with the theme and the
+bibliography extension, in a virtual environment:
+
+```
+python3 -m venv ~/.venvs/ebgeometry-docs
+~/.venvs/ebgeometry-docs/bin/pip install sphinx==9.1.1 sphinx_rtd_theme sphinxcontrib-bibtex sphinx-autobuild
+source ~/.venvs/ebgeometry-docs/bin/activate
+```
+
+Another version can warn where CI does not, or the other way round. A build folder left by another version
+can hold incompatible caches; `rm -rf Sphinx/build` clears them.
+
 To build the documentation locally, navigate to the Sphinx subfolder and run
 
 ```
@@ -42,7 +54,8 @@ cd Sphinx
 make latexpdf
 ```
 
-for the LaTeX/PDF documentation.
+for the LaTeX/PDF documentation. While writing, `sphinx-autobuild source build/html` (from `Sphinx/`)
+rebuilds on every change and serves the result at http://127.0.0.1:8000.
 
 Source files will end up in `Sphinx/build/html` and `Sphinx/build/latex`, respectively. 
 

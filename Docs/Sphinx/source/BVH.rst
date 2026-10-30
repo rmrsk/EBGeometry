@@ -22,7 +22,7 @@ Note that the bounding volume for :math:`P` encloses the bounding volumes of :ma
 
 .. _Fig:TrianglesBVH:
 .. figure:: /_static/TrianglesBVH.png
-   :width: 720px
+   :width: 70%
    :align: center
 
    Example of BVH partitioning for enclosing triangles. The regular node :math:`P` contains two leaf nodes :math:`L` and :math:`R` which contain the primitives (triangles).
@@ -94,7 +94,7 @@ leaves from a target leaf size.
 
 .. _Fig:CompactBVH:
 .. figure:: /_static/CompactBVH.png
-   :width: 240px
+   :width: 25%
    :align: center
 
    A pointer-based tree (top) and an equivalent, flattened representation of the same tree
@@ -138,7 +138,7 @@ For the traversal algorithm we consider the following steps:
 
 .. _Fig:TreePruning:
 .. figure:: /_static/TreePruning.png
-   :width: 720px
+   :width: 70%
    :align: center
 
    Example of BVH tree pruning.

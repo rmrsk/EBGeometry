@@ -55,7 +55,7 @@ value. When the program ends, the one value left is the object's value at the qu
 
 .. _Fig:TapeCompile:
 .. figure:: /_static/TapeCompile.png
-   :width: 900px
+   :width: 85%
    :align: center
 
    Compiling ``Difference(Intersection(box, ball), cylinder)``. The builder writes the difference as
@@ -96,7 +96,7 @@ below the threshold, and the smooth operations) is written into the program that
 
 .. _Fig:TapeSubprograms:
 .. figure:: /_static/TapeSubprograms.png
-   :width: 900px
+   :width: 85%
    :align: center
 
    The sub-programs of ``Union(box, Blur(Union({part_1, ..., part_8}), d, alpha))``, where each part is a
@@ -143,7 +143,7 @@ waits on the stack. How much a composition needs therefore depends on its shape,
 
 .. _Fig:TapeUnionNesting:
 .. figure:: /_static/TapeUnionNesting.png
-   :width: 900px
+   :width: 85%
    :align: center
 
    The same four-way union nested on the left, nested on the right, and written as one union of a list.

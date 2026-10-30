@@ -369,7 +369,7 @@ In addition to the standard BVH node ``TreeBVH<T, P, BV, K>``, EBGeometry provid
 The ``PackedBVH`` can be automatically constructed from a ``TreeBVH`` but not vice versa.
 
 .. figure:: /_static/CompactBVH.png
-   :width: 240px
+   :width: 25%
    :align: center
 
    PackedBVH representation.
@@ -610,7 +610,7 @@ where it calls your pieces marked:
 
 .. _Fig:TraversalWalk:
 .. figure:: /_static/TraversalWalk.png
-   :width: 900px
+   :width: 85%
    :align: center
 
    A nearest-primitive search walking a small tree (``K = 2``). The numbered events are where the walk

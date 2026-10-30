@@ -64,7 +64,7 @@ A translation, rotation, reflection or scale between the offset and the object p
 around a mesh in :ref:`Chap:ExampleShell` is traced this way, entering and leaving its wall exactly.
 
 .. figure:: /_static/OffsetRays.png
-   :width: 720px
+   :width: 70%
    :align: center
 
    Offsets traced from level sets, drawn in a plane through the ray. (a) A box grown by :math:`r` is a
@@ -101,7 +101,7 @@ its parts' as sets of points do:
 The first crossing of the composition is where the first of its spans begins or ends.
 
 .. figure:: /_static/RaySpans.png
-   :width: 720px
+   :width: 70%
    :align: center
 
    A box with a ball cut out of it, along a ray. The box is inside over :math:`[2, 8]` and the ball over

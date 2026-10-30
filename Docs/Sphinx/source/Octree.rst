@@ -23,7 +23,7 @@ time into its own four grandchildren, while the rest of the tree stops after one
 
 .. _Fig:Octree:
 .. figure:: /_static/Octree.png
-   :width: 720px
+   :width: 70%
    :align: center
 
    A 2D illustration of octree-style spatial partitioning (a quadtree): the domain :math:`D` is

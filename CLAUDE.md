@@ -146,16 +146,13 @@ make html      # output: Docs/Sphinx/build/html/index.html
 make latexpdf   # requires a LaTeX toolchain
 ```
 
-Sphinx is pinned to `sphinx==5.3.0` (see `.pre-commit-config.yaml` and
-`.github/workflows/{CI,docs}.yml`) — not to a specific `sphinxcontrib-bibtex` requirement (bibtex
-only requires `Sphinx>=3.5`, no upper bound), but because **`sphinx==5.0.0` has a real internal
-crash bug**: its generic cross-reference-resolution post-transform (`ReferencesResolver`) throws
-`AttributeError: 'Text' object has no attribute 'rawsource'` while deep-copying the content node
-of a `:ref:`/`:any:` reference that has no explicit link text — a totally standard, correct usage
-pattern used throughout this doc set, not a docs bug. `5.3.0` (the last 5.x release) fixes it with
-no other observable behavior change; installing/using a different Sphinx version standalone can
-still produce stale or incompatible `Docs/Sphinx/build/` doctree caches, so stick to this pin
-rather than a system-installed Sphinx. **If a Sphinx build throws an internal error in
+Sphinx is pinned to `sphinx==9.1.1` (see `.pre-commit-config.yaml` and
+`.github/workflows/{CI,docs}.yml`), with the current `sphinx_rtd_theme` and `sphinxcontrib-bibtex`; the
+HTML and the PDF build with it without warnings. Build locally with the same version (a virtualenv with
+`pip install sphinx==9.1.1 sphinx_rtd_theme sphinxcontrib-bibtex`): another version can warn where CI does
+not, or the other way round, and a build directory left by another version can hold incompatible doctree
+caches (`rm -rf Docs/Sphinx/build` clears them). Avoid `sphinx==5.0.0`, which crashes on a `:ref:` with no
+link text. **If a Sphinx build throws an internal error in
 `sphinx.environment.collectors.toctree`, or `rm -rf Docs/Sphinx/build` fails with "Directory not
 empty," check for a stray `sphinx-autobuild` (or other long-running `sphinx-build`) process first
 (`pgrep -fa sphinx`) — a forgotten one rebuilding into the same output directory in the background

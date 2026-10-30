@@ -19,7 +19,7 @@ From the DCEL structure we can obtain all edges or vertices belonging to a singl
 
 .. _Fig:DCEL:
 .. figure:: /_static/DCEL.png
-   :width: 480px
+   :width: 45%
    :align: center
 
    DCEL mesh structure. Each half-edge stores references to next half-edge, the pair edge, and the starting vertex.
@@ -55,7 +55,7 @@ When computing the signed distance from a point :math:`\mathbf{x}` to a polygon 
 
 .. _Fig:PolygonProjection:
 .. figure:: /_static/PolygonProjection.png
-   :width: 240px
+   :width: 25%
    :align: center
 
    Possible closest-feature cases after projecting a point :math:`\mathbf{x}` to the plane of a polygon face.
@@ -123,7 +123,7 @@ where the sum runs over all faces which share :math:`v` as a vertex, and where :
 
 .. _Fig:Pseudonormal:
 .. figure:: /_static/Pseudonormal.png
-   :width: 240px
+   :width: 25%
    :align: center
 
    Edge and vertex pseudonormals.

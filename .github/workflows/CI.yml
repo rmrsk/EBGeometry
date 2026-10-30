@@ -20,8 +20,8 @@ concurrency:
 # Builds and test runs use every core of the runner (4 on a public repository's standard runner).
 #
 # Every job runs on ubuntu-24.04, not ubuntu-latest: ubuntu-latest became ubuntu-26.04 on 2026-10-24,
-# which has no clang-14 package and a Python too new for the pinned Sphinx 5.3.0 (it lacks imghdr).
-# Moving to 26.04 needs a newer clang in the matrix and a newer Sphinx; until then, the image is pinned.
+# which has no clang-14 package. Moving to 26.04 needs a newer clang in the matrix; until then, the image is
+# pinned.
 jobs:
   Formatting:
     name: Format source
@@ -389,7 +389,7 @@ jobs:
         with:
           packages: doxygen graphviz texlive texlive-latex-extra latexmk poppler-utils
       - name: Install Sphinx
-        run: python3 -m pip install sphinx==5.3.0 sphinx_rtd_theme sphinxcontrib-bibtex
+        run: python3 -m pip install sphinx==9.1.1 sphinx_rtd_theme sphinxcontrib-bibtex
 
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs

@@ -22,7 +22,7 @@ nears the surface they shrink, and the march stops where the value falls below t
 holds inside the object, stepping by the value's magnitude towards where the ray leaves.
 
 .. figure:: /_static/SphereTracing.png
-   :width: 720px
+   :width: 70%
    :align: center
 
    Marching a ray. (a) Each step is the value at the point the ray has reached, the radius of a ball that
