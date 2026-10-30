@@ -150,10 +150,16 @@ endfunction()
 #                    REPORT <markdown>)
 # Write SIDE's section of the receipt in the working tree. The other sections are kept only if they
 # measured the same code against the same base (both fingerprints equal), and dropped otherwise, so a
-# receipt never carries a stale section.
+# receipt never carries a stale section. The arguments are parsed with PARSE_ARGV, which keeps the
+# semicolons of a quoted REPORT (every yellow or red verdict has one, #227); an argument that does not
+# parse stops the run rather than being dropped.
 function(perf_write_receipt)
-  cmake_parse_arguments(R "" "SIDE;LEVEL;BASE_REF;BASE;HEAD;BASE_FINGERPRINT;HEAD_FINGERPRINT;CASES;ROUNDS;REPS;REPORT"
-                        "" ${ARGN})
+  cmake_parse_arguments(PARSE_ARGV 0 R ""
+                        "SIDE;LEVEL;BASE_REF;BASE;HEAD;BASE_FINGERPRINT;HEAD_FINGERPRINT;CASES;ROUNDS;REPS;REPORT" "")
+
+  if(R_UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR "Receipt.cmake: perf_write_receipt() got unexpected arguments: ${R_UNPARSED_ARGUMENTS}")
+  endif()
 
   set(verdict_names green yellow red)
   list(GET verdict_names ${R_LEVEL} verdict)
