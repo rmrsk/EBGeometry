@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -743,7 +744,9 @@ TEST_CASE("MeshT: reconciling a hand-built face whose half-edge loop does not cl
       (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(1, 0, 0)));
       (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(0, 1, 0)));
 
-      for (const auto& [vertex, next] : {std::pair<uint32_t, uint32_t>{0, 1}, {1, 2}, {7, 0}}) {
+      const std::initializer_list<std::pair<uint32_t, uint32_t>> edges{{0, 1}, {1, 2}, {7, 0}};
+
+      for (const auto& [vertex, next] : edges) {
         TestEdge<T> edge(vertex);
 
         edge.setNextEdge(next);
