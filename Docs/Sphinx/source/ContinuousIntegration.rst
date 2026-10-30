@@ -134,7 +134,8 @@ Performance-smoke
 
 Configures with the ``perf`` preset and ``-Wall -Wextra -Werror``, builds the performance probes under
 ``Performance/``, and runs every case at its small ``--smoke`` size (``ctest --preset perf``). This
-checks that the probes still compile and run; it times nothing. See :ref:`Chap:PerformanceTesting`.
+checks that the probes still compile and run; it times nothing. The same ``ctest`` run checks that the receipt
+writer keeps a report whole (``Performance/TestReceipt.cmake``). See :ref:`Chap:PerformanceTesting`.
 
 Performance-receipt
 ~~~~~~~~~~~~~~~~~~~

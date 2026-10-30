@@ -193,6 +193,11 @@ foreach(perf_main IN LISTS perf_mains)
   list(APPEND EBGEOMETRY_PERF_PROBES ${target})
 endforeach()
 
+# The receipt writer keeps a report whole, semicolons and all (#227).
+add_test(NAME PerfReceipt COMMAND ${CMAKE_COMMAND} -DREPO=${CMAKE_CURRENT_BINARY_DIR}/receipt-test -P
+                                  ${CMAKE_CURRENT_SOURCE_DIR}/TestReceipt.cmake)
+set_tests_properties(PerfReceipt PROPERTIES TIMEOUT 60 LABELS "performance")
+
 # Compares two sets of results (Compare.cmake builds and calls it; see README.md).
 add_executable(PerfCompare Tools/PerfCompare.cpp)
 target_compile_features(PerfCompare PRIVATE cxx_std_17)
