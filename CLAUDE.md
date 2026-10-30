@@ -179,8 +179,8 @@ comment at the code it describes, unless it is already there.
 - No measured numbers: no timings, speed-ups, register counts or sizes of internals. A choice is explained
   in words (which is faster, and why), with a pointer to measuring the user's own case (the `Performance/`
   probes, or an example such as `HostTuning` or `DeviceTuning`). Specified limits and constants of the API
-  (a maximum call depth, the largest exact face id in single precision) are facts, not measurements, and
-  stay.
+  (a maximum call depth, a stack size whose overflow the constructor rejects, the largest exact face id in
+  single precision) are facts a user's choices depend on, not measurements, and stay.
 - The contributor pages (`ContributionGuidelines`, `TestingLocally`, `PerformanceTesting`,
   `ContinuousIntegration`) follow the same rules: they state the contributor's rules and procedures; the
   measurements and history behind a rule go in the header comment at the code the rule protects.
@@ -480,8 +480,9 @@ branch you are *already on* (once the user has asked for that work) is fine; it 
 new refs and the outward submission of PRs that always needs a green light first.
 
 When the user *does* ask you to open a PR, **always open it as a draft** (`gh pr create --draft`) —
-never open a PR ready for review. It leaves draft only as "Human review" below says; this is also what gates the `.rst` documentation audit described above (which begins once
-the PR is no longer a draft). If a non-draft PR was already opened, convert it back with
+never open a PR ready for review. It leaves draft only as "Human review" below says; this is also
+what gates the `.rst` documentation audit described above (which begins once the PR is no longer a
+draft). If a non-draft PR was already opened, convert it back with
 `gh pr ready --undo <number>`.
 
 When opening a PR, **always use the repository's pull-request template**
