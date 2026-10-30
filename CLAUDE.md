@@ -479,6 +479,14 @@ once work is done: surface the option and let the user decide, do not just do it
 branch you are *already on* (once the user has asked for that work) is fine; it is the creation of
 new refs and the outward submission of PRs that always needs a green light first.
 
+**Claude develops in a git worktree, never in the main checkout.** Each branch Claude works on gets its own
+worktree, a sibling of the repository named after the branch (`../EBGeometry.worktrees/<branch>`, created
+with `git worktree add` and `git submodule update --init` in it, since the mesh probes and examples need
+the submodule). Creating the branch and its worktree is one spin-off, so it needs the user's agreement like
+any other. All edits, builds, tests and performance runs for that branch happen in its worktree; the main
+checkout is left as the user has it. After the branch's pull request is merged, Claude asks whether the
+worktree should be removed, and **never removes a worktree without the user's explicit permission**.
+
 **Claude never merges a pull request, never force-pushes to `main`, and never deletes a branch** (local
 or remote), under any circumstances, whatever it is asked or however obvious the next step looks: merging
 and deleting branches are for a human only. Force-pushing to `dev` or to a feature branch is permitted,
@@ -508,7 +516,8 @@ apply; this section sets the order and the points where Claude stops for the use
 
 1. **The first reply is a plan, not code.** Claude restates the feature in a sentence or two, and:
    - **proposes a branch name**: short, kebab-case, saying what the feature is (`exact-annulus`,
-     `receipt-semicolons`), off `dev`. The branch is created only once the user agrees.
+     `receipt-semicolons`), off `dev`. The branch, and the worktree it is developed in, are created only
+     once the user agrees.
    - **asks how involved the user wants to be**:
      - *hands-off*: Claude decides (except the API, step 2), and reports at the hand-over;
      - *checkpoints*: Claude stops for the API design and before the hand-over, and decides the rest;
@@ -573,7 +582,8 @@ what the change affects (the tests; a new receipt if the library or the probes c
 `@claude review`) before saying the PR is ready again.
 
 **After the merge.** Claude takes no action on its own once a PR merges: the roadmap, the issues and the
-branches are the maintainer's. It may ask, in the session, whether to act on follow-ups.
+branches are the maintainer's. It asks whether the branch's worktree should be removed (and removes it only
+with explicit permission), and may ask whether to act on follow-ups.
 
 ## A few non-obvious things worth knowing
 
