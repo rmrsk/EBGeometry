@@ -6,7 +6,7 @@ in the order you would write them, and prints results you can read. It does not 
 answers.
 
 **Several examples read a mesh from the `common-3d-test-models` git submodule by default** (`MeshSDF`,
-`MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `Materials`): clone the repository with `--recurse-submodules`, or run
+`MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `Materials`, `DeviceTuning`): clone the repository with `--recurse-submodules`, or run
 `git submodule update --init` in it.
 
 The reading order:
@@ -35,7 +35,8 @@ The reading order:
 22. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
 23. `BuildBVH`: comparing the BVH construction methods by build time.
 
-Every example that builds a shape (`Shapes`, the CSG examples, `Repetition`, `MeshSDF`, `MeshCSG`, `Shell`, `Materials`, `NestedBVH`,
+Every example that builds a shape (`Shapes`, `BasicCSG`, `SmoothCSG`, `Transforms`, `Repetition`,
+`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `Materials`, `NestedBVH`,
 `ManyObjects`, `PackedSpheres`, `CustomShape`, `Twist`) ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer
 (`make VIEWER=SDL2`, or CMake with `-DEBGEOMETRY_VIEWER=SDL2`; it needs SDL2). Otherwise, with `--no-view`, or
 without a display, `view()` prints why and returns, so the examples still run unattended (ctest passes
@@ -54,7 +55,7 @@ visible GPU skips it and renders on the host.
 Examples that couple EBGeometry to a third-party application code live under
 [`Integrations/`](../Integrations/README.md) at the repository root instead.
 
-`data/` holds the small mesh (`dodecahedron.stl`) that several examples read by default. The larger
-mesh files used by `MeshSDF` come from the [common-3d-test-models](https://github.com/alecjacobson/common-3d-test-models)
+`data/` holds the small mesh (`dodecahedron.stl`) that `NestedBVH` and `HostTuning` read by default. The
+larger mesh files used by the examples listed at the top come from the [common-3d-test-models](https://github.com/alecjacobson/common-3d-test-models)
 git submodule (`common-3d-test-models/`) at the repository root. Clone the repository with `--recurse-submodules` (or run
 `git submodule update --init --recursive`); see the "Building and using" documentation for details.

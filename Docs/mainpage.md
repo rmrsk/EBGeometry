@@ -2,9 +2,11 @@
 
 EBGeometry is a header-only C++17 library for
 
-1. Turning watertight and orientable surface grids into signed distance functions (SDFs).
-2. Fast evaluation of such grids using bounding volume hierarchies (BVHs).
-3. Providing fast constructive solid geometry (CSG) unions using BVHs.
+1. Turning watertight and orientable surface meshes into signed distance functions (SDFs).
+2. Fast evaluation of such meshes using bounding volume hierarchies (BVHs).
+3. Composing analytic shapes, meshes and your own shapes with transforms and constructive solid
+   geometry (CSG), including fast BVH-accelerated unions of many objects.
+4. Ray queries and rendering on any of these shapes, and running the queries on a GPU.
 
 This page is the entry point for the **Doxygen API reference**, generated directly from the
 `Source/` headers. For a narrative, example-driven introduction (installation, build-system
@@ -26,15 +28,24 @@ integration, the underlying geometric concepts), see the
   signed-distance-function classes that wrap a mesh in a BVH (or not, for `FlatMeshSDF`).
 * EBGeometry::Parser — free functions for reading STL/PLY/OBJ/VTK files directly into a DCEL
   mesh, a BVH-backed SDF, or a triangle-only SIMD BVH.
+* EBGeometry::Pool — the memory every BVH, mesh SDF and tape lives in; it must outlive the objects
+  built in it, and is what is mirrored to a GPU.
 
 ### Namespace map
 
 | Namespace | Contents |
 |---|---|
-| `EBGeometry` | Vectors (`Vec2T`, `Vec3T`), implicit functions, analytic shapes, CSG operators, transformations, the SDF/BVH wrapper classes (`MeshSDF`, `TriMeshSDF`, `FlatMeshSDF`), the BVH unions (`BVHUnion`, `BVHSmoothUnion`), the queries on any function of a point (`approximateBoundingVolumeOctree`, `normal`), and the ray queries on any shape (`RayT`, `HitT`, `firstHit`, `intersects`, `RayForm`) |
+| `EBGeometry` | Vectors (`Vec2T`, `Vec3T`), analytic shapes, the expression builder (`Expr`) and the compiled `Tape`, the pool (`Pool`) and memory resources, the SDF/BVH wrapper classes (`MeshSDF`, `TriMeshSDF`, `FlatMeshSDF`), the BVH unions (`BVHUnion`, `BVHSmoothUnion`), the queries on any function of a point (`approximateBoundingVolumeOctree`, `normal`), and the ray queries on any shape (`RayT`, `HitT`, `firstHit`, `intersects`, `RayForm`) |
 | `EBGeometry::DCEL` | The half-edge surface mesh: `VertexT`, `EdgeT`, `FaceT`, `MeshT`, and mesh iterators |
 | `EBGeometry::BVH` | `TreeBVH`, `PackedBVH`, partitioners, traversal callback types (`LeafEvaluator`, `PrunePredicate`, `ChildOrderer`, `NodeKeyFactory`) |
 | `EBGeometry::BoundingVolumes` | `AABBT` (axis-aligned box) |
+| `EBGeometry::Fused` | CSG operations whose structure is fixed at compile time (`Fused::Union`, ...), giving one shape type without a tape |
+| `EBGeometry::TapeFeature` | Opt-in tape features, listed as `Tape` template arguments (`TapeFeature::ExactOffsets`) |
+| `EBGeometry::GPU` | Running a functor on the device or the host (`GPU::parallelFor`, `GPU::transform`) |
+| `EBGeometry::Render` | The renderer (`Render::Renderer`) and the interactive viewer window (`Render::view`) |
+| `EBGeometry::PointCloud` | Point-cloud query results (`PointCloud::Hit`, `KBest`) and brute-force references, shared by `PointCloudBVH` and `PointCloudHashGrid` |
+| `EBGeometry::Math` | Host- and device-callable `min`, `max`, `clamp` and numeric limits (`Limits`) |
+| `EBGeometry::SIMD` | Thin wrappers over SSE4.1/AVX/AVX-512 registers (`Pack`) used by the SIMD kernels |
 | `EBGeometry::Random` | Random sampling utilities for the examples; not included by `EBGeometry.hpp` (include `Source/EBGeometry_Random.hpp`) |
 | `EBGeometry::SFC` | Space-filling curves (`Morton`, `Nested`, `Hilbert`), point-to-grid binning (`computeBins`), and curve ordering of points (`order`), used for bottom-up BVH construction and spatial sorting |
 | `EBGeometry::Soup` | Polygon-soup compression and soup-to-DCEL conversion |

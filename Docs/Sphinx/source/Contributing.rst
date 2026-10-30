@@ -5,16 +5,17 @@ Overview
 
 This section describes how to build and run the EBGeometry test suite locally,
 what the continuous integration (CI) pipeline checks, and the conventions
-expected of contributions.  It is split into three pages, one per topic:
+expected of contributions.  It is split into four pages, one per topic:
 
 * :ref:`Chap:TestingLocally` — building and running the Catch2 unit test suite, CMake presets,
   sanitizers, and a table of what each test binary covers.
+* :ref:`Chap:PerformanceTesting` — the performance probes, and the comparison against its base that
+  every pull request carries.
 * :ref:`Chap:ContinuousIntegration` — what the GitHub Actions CI pipeline checks on every pull
   request and every push to ``main``/``dev``, and how to reproduce those checks locally with
   ``pre-commit``.
 * :ref:`Chap:ContributionGuidelines` — code style, static and dynamic assertions, and test
   coverage expected of new code.
 
-Contributions to the ongoing GPU port have an additional starting point: ``PORTING.md`` in the
-repository root, which records the memory model the port is built on (see :ref:`Chap:MemoryModel`),
-which components are ported so far, and the conventions for making a class device-callable.
+Code that runs on a GPU follows the memory model in :ref:`Chap:MemoryModel`, and the rules in
+:ref:`Sec:WritingDeviceCode` and :ref:`Sec:DeviceCallableClass`.

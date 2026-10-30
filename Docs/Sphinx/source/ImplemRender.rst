@@ -64,12 +64,10 @@ The classes are in namespace ``Render``:
   that it names what a render draws there. Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
   trivially copyable functor that reads everything it needs about the shape (its box, its scale, where
   the floor goes) from the shape itself.
-* Every shape is shaded the same way, through ``firstHit()``: a shadow from one ray towards the light,
-  and ambient occlusion from four short rays around the normal. The section plane is the intersection
-  of the shape with a half-space along each ray: the shape is traced over the part of the ray on the
-  kept side, and the plane is the crossing where the ray reaches it inside the shape.
-* ``HitT::m_primitive`` colours by primitive: a tape's leaf, a fused composition's leaf, a mesh's face
-  (see :ref:`Chap:ImplemRays`).
+* Every shape is shaded the same way, through ``firstHit()`` (shadows, ambient occlusion and the section
+  plane's cut included), so the renderer needs nothing of a shape beyond what makes it a shape.
+* ``HitT::m_primitive`` colours by primitive: a tape's leaf or a mesh SDF's face; any other shape (a
+  fused composition, an analytic shape) is one primitive, 0 (see :ref:`Chap:ImplemRays`).
 * `Stats <doxygen/html/structEBGeometry_1_1Render_1_1Stats.html>`__ reports the rays cast, those that hit
   the shape, those that hit it from inside the solid (drawn tinted red), those that were unresolved
   (drawn as misses), and whether the eye is inside the solid. The renderer prints nothing.
@@ -95,8 +93,9 @@ below with the state it changes; H hides it. The axes are drawn in the bottom le
 also printed, in the same groups, when the window opens.
 
 A click (the left button, without dragging) picks the object under the cursor: a tape's leaf (so that a
-drilled solid's outer surface and its hole are picked apart), a fused composition's part, a union's
-member, or a mesh SDF as a whole (``primitivesAreFaces``), whose face is named too. The object is tinted
+drilled solid's outer surface and its hole are picked apart), or a mesh SDF as a whole
+(``primitivesAreFaces``), whose face is named too; any other shape, a fused composition among them, is
+picked as a whole. The object is tinted
 gold (``Settings::m_highlightPrimitive``, ``AllPrimitives`` for a whole mesh) and outlined, from the object
 each pixel's first ray hit (``Image::m_primitives``, filled when ``Settings::m_recordPrimitives`` asks, as the
 viewer does), and its id, point and normal are printed; a click on

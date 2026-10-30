@@ -3,14 +3,15 @@
 Vector types
 ============
 
-EBGeometry implements its own 2D and 3D vector types, ``Vec2T`` and ``Vec3T``. Like every other
-class in the library, both are templated on a floating-point precision ``T`` (``float`` or
+EBGeometry implements its own 2D and 3D vector types, ``Vec2T`` and ``Vec3T``. Like nearly every
+other class in the library, both are templated on a floating-point precision ``T`` (``float`` or
 ``double``), so a single header defines both precisions with no code duplication and no runtime
 precision switch.
 
 ``Vec2T`` is a two-dimensional Cartesian vector. Most of EBGeometry is written as
-three-dimensional code, but ``Vec2T`` is needed for DCEL functionality when determining whether a
-point projects onto the interior or exterior of a planar polygon, see :ref:`Chap:DCEL`. Its main
+three-dimensional code, but ``Vec2T`` is needed where a computation is reduced to two dimensions:
+for determining whether a point projects onto the interior or exterior of a planar DCEL polygon (see
+:ref:`Chap:DCEL`), and in the cross-sections of a few analytic shapes. Its main
 features are:
 
 * Element access through ``operator[]`` (indices 0, 1), plus a two-argument constructor.

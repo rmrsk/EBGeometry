@@ -27,7 +27,7 @@ debugger output), and turns on both the test suite and the examples.
    # 2. Build
    cmake --build --preset debug --parallel $(nproc)
 
-   # 3a. Run unit tests only  (about 10 s)
+   # 3a. Run unit tests only  (about 15 s)
    ctest --preset debug
 
    # 3b. Run example programs (allow several minutes in Debug mode)
@@ -35,15 +35,13 @@ debugger output), and turns on both the test suite and the examples.
 
 A successful unit-test run looks like::
 
-   100% tests passed, 0 tests failed out of 437
-   Label Time Summary:
-   unit    =   8.38 sec*proc (437 tests)
+   100% tests passed, 0 tests failed out of 566
 
 Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
 ``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
 matching whatever the CMake preset otherwise builds) -- the count above is double-only. CI
 additionally configures with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite
-under both precisions (776 tests). To do the same locally:
+under both precisions (1021 tests). To do the same locally:
 
 .. code-block:: bash
 
@@ -92,6 +90,21 @@ Preset reference
      - OFF
      - avx
      - Unit tests + examples
+   * - ``perf``
+     - ``Release``
+     - OFF
+     - avx, ``-march=native``
+     - The performance probes under ``Performance/`` only (see :ref:`Chap:PerformanceTesting`)
+   * - ``perf-cuda``
+     - ``Release``
+     - OFF
+     - none
+     - The performance probes compiled for CUDA
+   * - ``cuda`` / ``hip``
+     - ``Release``
+     - OFF
+     - none
+     - Unit tests compiled for CUDA or HIP (examples off)
 
 Manual CMake options (without presets)
 -----------------------------------------
@@ -125,6 +138,12 @@ CMake options
    * - ``EBGEOMETRY_BUILD_EXAMPLES``
      - ``OFF``
      - Build the standalone examples under ``Examples/``.
+   * - ``EBGEOMETRY_BUILD_PERFORMANCE``
+     - ``OFF``
+     - Build the performance probes under ``Performance/`` (see :ref:`Chap:PerformanceTesting`).
+   * - ``EBGEOMETRY_TEST_BOTH_PRECISIONS``
+     - ``OFF``
+     - Run every ``TEMPLATE_TEST_CASE`` under ``float`` as well as ``double``.
    * - ``EBGEOMETRY_ENABLE_ASSERTIONS``
      - ``OFF``
      - Compile with ``EBGEOMETRY_EXPECT()`` guards active. Strongly recommended

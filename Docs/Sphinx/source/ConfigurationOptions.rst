@@ -15,8 +15,8 @@ optional viewer window.
 Floating-point precision
 --------------------------
 
-Every EBGeometry class and function is templated on a floating-point type ``T``, almost
-always ``float`` or ``double``.  Precision is a **compile-time** choice, not a runtime one --
+Nearly every EBGeometry class and function is templated on a floating-point type ``T``, ``float``
+or ``double``.  Precision is a **compile-time** choice, not a runtime one --
 there is no notion of a "current" precision inside the library itself. Pick ``T`` explicitly
 when instantiating a class or calling a function template:
 
@@ -94,11 +94,12 @@ Nothing checks this. Compile every file that uses EBGeometry with the same SIMD 
 program only ever runs on CPUs that have the widest instruction set any of its files uses.
 
 **The build switch.** Defining ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` for a whole build makes
-``TriangleSoA::DefaultWidth<T>()`` return ``TriangleSoA::HostWidth<T>()``, so every ``TriMeshSDF``
-and ``readIntoTriMeshSDF`` that uses the default width evaluates a full register of triangles at
+``TriangleSoA::DefaultWidth<T>()`` return ``TriangleSoA::HostWidth<T>()``, so every
+``readIntoTriMeshSDF`` that uses the default width, and every ``TriMeshSDF`` spelled with
+``TriangleSoA::DefaultWidth<T>()``, evaluates a full register of triangles at
 once, without spelling the width into each type. It changes the triangle-group width only: the
-branching factor and the point-group width stay 4, since widening them measured no faster (table
-below). Two conditions come with it:
+branching factor and the point-group width stay 4, since widening them does not make queries faster
+(see below). Two conditions come with it:
 
 * **One set of flags for the whole build.** Every translation unit must define the macro and be
   compiled with the same SIMD flags, since the width then follows them; otherwise one spelled type
@@ -115,64 +116,12 @@ enabled, and off otherwise; asking for it together with a GPU backend is a confi
 if it wants the wider groups. A wider group also widens ``TriMeshSDF``'s leaves, which hold up to
 ``maxLeafGroups`` groups.
 
-**Measurements.** Query times in seconds (lower is better), the best of three runs: 200,000 signed
-distances to the 100k-triangle armadillo mesh (``TriMeshSDF``), and 200,000 closest points in a
-200,000-point random cloud (``PointCloudBVH``). The tuned columns widen one parameter at a time to
-the host-tuned value.
-
-.. list-table:: Query time with the default K = W = 4 and with each parameter widened
-   :widths: 30 16 12 14 14 14
-   :header-rows: 1
-
-   * - Machine and query
-     - Precision
-     - K = W = 4
-     - W tuned
-     - K tuned
-     - Both tuned
-   * - AVX2 machine, ``TriMeshSDF``
-     - ``float``
-     - 0.531
-     - **0.438** (W = 8)
-     - 0.529 (K = 8)
-     - 0.433
-   * - AVX2 machine, ``PointCloudBVH``
-     - ``float``
-     - 0.079
-     - 0.079 (W = 8)
-     - 0.083 (K = 8)
-     - 0.081
-   * - AVX-512 cloud VM, ``TriMeshSDF``
-     - ``float``
-     - 1.81
-     - 1.85 (W = 16)
-     - 3.51 (K = 16)
-     - 1.83
-   * - AVX-512 cloud VM, ``PointCloudBVH``
-     - ``float``
-     - 0.175
-     - 0.220 (W = 16)
-     - 0.386 (K = 16)
-     - 0.381
-   * - AVX-512 cloud VM, ``TriMeshSDF``
-     - ``double``
-     - 3.06
-     - 2.62 (W = 8)
-     - 3.95 (K = 8)
-     - 3.91
-   * - AVX-512 cloud VM, ``PointCloudBVH``
-     - ``double``
-     - 0.354
-     - 0.352 (W = 8)
-     - 0.380 (K = 8)
-     - 0.426
-
-On AVX2, ``double`` is not widened at all (its host-tuned value is 4), so it has no row. The
-AVX-512 machine is a shared virtual machine (an Intel Cascade Lake, which lowers its clock under
-heavy 512-bit work) whose repeated runs varied by up to 15%, so only its large differences are
-meaningful: a branching factor of 16 roughly doubled the query time, and 16-wide point groups were
-slower. The triangle-group width is the only parameter that was clearly faster anywhere (about 18%
-for ``float`` on AVX2), which is why it alone follows the switch.
+**Which parameter pays off.** A wider triangle group is the one change that makes queries clearly
+faster, and then mostly in single precision on AVX2: a ``TriMeshSDF`` leaf test then evaluates a full
+register of triangles per instruction. Widening the branching factor or the point groups does not
+make queries faster, and under AVX-512 a branching factor or point-group width of 16 makes them
+markedly slower (some CPUs also lower their clock under heavy 512-bit work, which makes measurements
+there noisy). This is why the switch widens the triangle groups alone.
 
 To measure on your own machine and mesh, run the :ref:`Chap:ExampleHostTuning` example, which
 builds a point cloud and a mesh with the portable values and with the host-tuned ones and times them.
@@ -217,7 +166,7 @@ On failure the program prints what went wrong, the failed condition, the file an
    EBGeometry::BVHUnion: need one bounding volume per primitive (4 primitives, 3 bounding volumes)
      check: (a_primitives.size() == a_boundingVolumes.size())
      file: Source/EBGeometry_BVHUnionImplem.hpp
-     line: 63
+     line: 92
 
 The message argument is a ``printf`` format string literal, starting with the class or function
 that checks, followed by its arguments, so the compiler checks the format against the arguments.

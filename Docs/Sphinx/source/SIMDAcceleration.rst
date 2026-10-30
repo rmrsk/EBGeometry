@@ -4,13 +4,12 @@
 SIMD acceleration
 ===================
 
-EBGeometry can vectorise the innermost signed-distance computation for some primitives
-using compiler intrinsics rather than relying on the compiler to auto-vectorise scalar code.
-SIMD support is also included for BVH traversal itself, in :cpp:class:`BVH::PackedBVH`.
-Everything else in the library is scalar code. However, the performance-critical parts of
-the BVH traversal are vectorized, and adding leaf-level vectorization support for new
-types of primitives is quite possible -- it mostly requires storing the primitives in a
-structure-of-arrays (SoA) layout.
+EBGeometry vectorises its innermost loops with compiler intrinsics rather than relying on the
+compiler to auto-vectorise scalar code: the test of a point or a ray against the child boxes of a
+``BVH::PackedBVH`` node, and the leaf computations of the triangle groups (``TriMeshSDF``) and point
+groups (``PointCloudBVH``). Everything else in the library is scalar code. Vectorising the leaves of
+another primitive type mostly requires storing the primitives in a structure-of-arrays (SoA) layout.
+:ref:`Chap:SIMDClasses` describes each of the vectorised classes.
 
 How it is enabled
 -------------------

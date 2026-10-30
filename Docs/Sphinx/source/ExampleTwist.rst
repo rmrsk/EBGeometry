@@ -10,7 +10,7 @@ source is at :file:`Examples/Twist/main.cpp`.
    :width: 60%
    :align: center
 
-   The armadillo and its twisted copy.
+   The twisted armadillo.
 
 .. important::
 
@@ -43,9 +43,9 @@ Using it
 
 The program prints the original's and the twisted copy's values at three heights; at :math:`y = 0` the
 twist turns nothing and the two differ only by the factor. Like any shape of your own, the twisted
-statue can also go into a tape, listed after ``T`` (see :ref:`Chap:ExampleCustomShape`). A twist built
-into the library, with the tape's and the fused operations' arithmetic and a ray form, is on the roadmap
-(`#241 <https://github.com/rmrsk/EBGeometry/issues/241>`__).
+statue can also go into a tape, listed after ``T`` (see :ref:`Chap:ExampleCustomShape`). The library
+has no built-in twist operation yet (none in the tape, the fused operations or the ray forms), which is
+why this example defines its own.
 
 Looking at it
 -------------

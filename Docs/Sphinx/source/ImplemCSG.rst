@@ -228,9 +228,7 @@ evaluates it:
 
 It stores its primitives in one pool array per primitive type and its operations as a list of
 clauses that refer to them by type and index, so evaluating it calls no virtual function and follows
-no pointer. A clause list runs on a small stack of values and a stack of points: a point map pushes
-the transformed point before its operand is evaluated, and a value operation combines the values its
-operands leave. A chain of ``Translate``, ``Rotate``, ``Reflect`` and ``Scale`` is folded into one
+no pointer, and the same tape runs on the host and on a GPU. A chain of ``Translate``, ``Rotate``, ``Reflect`` and ``Scale`` is folded into one
 affine map (`Affine3T <doxygen/html/structEBGeometry_1_1Affine3T.html>`__) when the ``Expr`` is
 built.
 
@@ -270,36 +268,23 @@ built.
   pool. The pool must outlive the tape and every copy and view of it.
 * **On a GPU.** A tape is evaluated in a kernel like any pool-backed type: freeze its pool, mirror
   it into device memory, and pass ``rebasedView(devicePool)`` to the kernel by value. Every
-  operation, primitive type and BVH union runs there; the test suite checks each against the host.
-  Each call level of the evaluator is a separate function in a device compile, kept out of line so
-  that the compile stays small (HIP otherwise inlines every device function, and the copies multiply
-  with every level). Two things stay in place, since inlining them multiplies nothing: a tape that
-  calls no sub-program (no Blur, Mollify, repetition or BVH union) is evaluated at depth 0 inside
-  ``signedDistance()`` itself, and an analytic primitive is evaluated inside the level that reads its
-  clause. A pool-resident primitive (a mesh SDF, a BVH union, a nested tape) is evaluated out of line,
-  so that its traversal stack is not part of every level's frame. Because the call depth is a
-  template parameter, a kernel reserves stack for all ``MaxCallDepth`` + 1 levels whatever the tape
-  needs, a tape evaluated at depth 0 included: ``signedDistance()`` still contains the call to the
-  full depth. Each level holds its value and point stacks, a BVH union's traversal stack and saved
-  registers, which comes to a few kilobytes per thread.
-  A tape listed as another tape's primitive adds its own levels on top.
+  operation, primitive type and BVH union runs there. A kernel that evaluates a tape reserves stack
+  for every call level, whatever the tape needs, which comes to a few kilobytes per thread; a tape
+  listed as another tape's primitive adds its own levels on top.
 
 .. _Sec:TapeRays:
 
 A tape also answers ray queries, ``tape.firstHit(...)`` and ``tape.intersects(...)``, the same as the
 free functions on any shape (see :ref:`Chap:ImplemRays`). Beside the clauses, the compiler writes a
-*ray program* for the tape and for each BVH union operand: its unions, intersections, complements and
+*ray program* for the tape and for each BVH union operand, which traces exactly, from the spans where
+the ray is inside each operand (see :ref:`Sec:RaySpans`), its unions, intersections, complements and
 affine maps over the primitives that have ray forms, and, in a tape with ``TapeFeature::ExactOffsets``, its
-offsets and annuli of primitives whose level sets have a closed form (see :ref:`Sec:OffsetRays`), in the same
-order, run on a stack of span lists (see :ref:`Sec:RaySpans`). A BVH union walks its BVH along the ray, nearest box first, each operand
-running its own ray program one call level down. A subtree with any other operation in it, or a
-primitive without a ray form, is marched as a whole over the clauses compiled for it; a subtree that
-would hold more than ``Tape::RayStackSize`` (4) lists at once is marched too. The ray programs are
-stored in the clause and program arrays after the evaluator's, which never reads them: they add about
-one clause (16 bytes) per expression node to the tape's pool, and one program entry (8 bytes) per
-sub-program, the sub-program it was compiled for. A hit names the leaf crossed, or for a marched subtree
-the deciding leaf at the crossing; the tape finds the leaf again from its clause, by bisection over
-where the ray programs begin and up those entries to the BVH union operand that holds it.
+offsets and annuli of primitives whose level sets have a closed form (see :ref:`Sec:OffsetRays`). A BVH
+union walks its BVH along the ray, nearest box first. A subtree with any other operation in it, or a
+primitive without a ray form, is marched as a whole; so is a subtree that would hold more than
+``Tape::RayStackSize`` (4) span lists at once. The ray programs add little to the tape's pool: one
+small entry per expression node. A hit names the leaf crossed (see :ref:`Sec:DecidingLeaf`), or for a marched subtree
+the deciding leaf at the crossing.
 
 The :ref:`Chap:ExampleBasicCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.
@@ -422,10 +407,9 @@ that decides the value.
   same pool or mirror. ``visitPrimitive(ref, f)`` calls ``f`` with it whatever its type. In a CUDA or
   HIP translation unit, pass a functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``; the device
   compiler treats a lambda's as a host function there.
-* **One implementation.** The tape evaluates the composition as ``signedDistance()`` does, on values
-  that carry the leaf they come from (``CSGOps::Tagged``): a second instantiation of its evaluator,
-  compiled only where ``closestPrimitive()`` is called, so ``signedDistance()`` is compiled as without
-  it. Device-callable, like ``signedDistance()``.
+* **Cost.** ``closestPrimitive()`` evaluates the composition as ``signedDistance()`` does, carrying
+  the leaf with each value; ``signedDistance()`` is compiled as without it, so a program that never
+  asks for the deciding leaf pays nothing. Device-callable, like ``signedDistance()``.
 
 .. _Sec:BVHUnions:
 

@@ -63,11 +63,8 @@ Ray forms
 ---------
 
 A shape is ray traced exactly when it has a *ray form*: a specialisation of
-`RayForm <doxygen/html/structEBGeometry_1_1RayForm.html>`__ for its type with a static ``firstHit()``
-taking the arguments above. It may also have a static ``spans()``, which compositions use (see
-:ref:`Sec:RaySpans`), and a static ``intersects()``. These are found by their signatures: a ray form
-whose ``firstHit()`` has another signature is not used. Otherwise the queries march the shape. The
-library has ray forms for:
+`RayForm <doxygen/html/structEBGeometry_1_1RayForm.html>`__ for its type. Every other shape is
+marched (see `The march`_ below). The library has ray forms for:
 
 .. list-table::
    :header-rows: 1
@@ -77,27 +74,20 @@ library has ray forms for:
      - How
    * - ``PlaneSDF``, ``SphereSDF``, ``BoxSDF``, ``CylinderSDF``, ``InfiniteCylinderSDF``, ``CapsuleSDF``
      - In closed form (`EBGeometry_AnalyticRayForms.hpp
-       <doxygen/html/EBGeometry__AnalyticRayForms_8hpp.html>`__). The round surfaces solve their
-       quadratic without cancellation: the discriminant from the distance of the centre (axis) from the
-       ray's line, the nearer root as ``c / q``. Otherwise, in ``float``, a small ball or thin cylinder far
-       from the ray's start is hit or missed by rounding when the ray passes within about 1e-3 of its
-       radius.
-   * - ``TriMeshSDF``
-     - Its BVH walked with ``PackedBVH::traverse()`` and a ``BVH::RayQuery`` (see
-       :ref:`Chap:PackedTraverse`), nearest box first, bounded by the nearest crossing so far; each leaf
-       group asks ``TriangleAoSoA::rayCrossing()``, a Möller--Trumbore test of its ``W`` triangles at
-       once (`EBGeometry_MeshRayForms.hpp <doxygen/html/EBGeometry__MeshRayForms_8hpp.html>`__).
-       ``intersects()`` ends the walk at the first crossing.
-   * - ``MeshSDF``
-     - The same walk over its BVH of face ids; each face asks ``DCEL::FaceT::rayCrossing()``, which
-       meets the face's plane and checks the point against every edge. The faces must be planar and
-       convex, as for the mesh's signed distance.
+       <doxygen/html/EBGeometry__AnalyticRayForms_8hpp.html>`__). The round surfaces are solved without
+       cancellation, so that in ``float`` too a small ball or thin cylinder far from the ray's start is not
+       hit or missed by rounding.
+   * - ``TriMeshSDF``, ``MeshSDF``
+     - Their BVH, walked nearest box first, and the faces in the boxes the ray meets
+       (`EBGeometry_MeshRayForms.hpp <doxygen/html/EBGeometry__MeshRayForms_8hpp.html>`__).
+       ``intersects()`` stops at the first crossing it finds. ``MeshSDF``'s faces must be planar and convex,
+       as for its signed distance.
    * - ``FlatMeshSDF``
      - Every face in turn, without a BVH, as its signed distance does: for small meshes and checks.
    * - ``Fused::Union``, ``Fused::Intersection``, ``Fused::Difference``, ``Fused::Complement``,
        ``Fused::Translate``, ``Rotate``, ``Scale``, ``Reflect``
-     - Their operands' spans, combined (`EBGeometry_CSGRayForms.hpp
-       <doxygen/html/EBGeometry__CSGRayForms_8hpp.html>`__). The other fused operations have no ray form.
+     - Their operands' spans, combined (see `Compositions`_; `EBGeometry_CSGRayForms.hpp
+       <doxygen/html/EBGeometry__CSGRayForms_8hpp.html>`__).
    * - ``Fused::Offset``, ``Fused::Annular`` of ``PlaneSDF``, ``SphereSDF``, ``BoxSDF``,
        ``InfiniteCylinderSDF``, ``CapsuleSDF``, ``TriMeshSDF``, ``MeshSDF``, ``FlatMeshSDF``, or of a fused
        affine map of one
@@ -105,25 +95,21 @@ library has ray forms for:
        <doxygen/html/EBGeometry__OffsetRayForms_8hpp.html>`__).
    * - ``BVHUnion``
      - The union of the spans of the primitives whose boxes the ray meets, walking its BVH nearest box
-       first and leaving out the boxes beyond what the union so far is known up to.
+       first.
    * - ``Tape``
      - Its ray program, clause by clause (see :ref:`a tape's ray program <Sec:TapeRays>`).
 
-The triangle test is written once, in ``TriangleRay::crossing()``, for one triangle and for a SIMD
-pack of them, as the triangle distance is (see :ref:`Chap:SIMDClasses`): the host evaluates a leaf
-group's triangles a register at a time, a device one at a time. Its barycentric tests, and the polygon
-test's edge tests, are widened by the rounding error of the crossing point: a distance of a few ulps of
-the coordinates (the ray origin's and the face's), whatever the face's size or the angle of the ray.
-A ray through an edge or a vertex shared by two faces then crosses at least one of them however far it
-comes from, and a ray passing that close outside a face counts as crossing it (the safe side, as for a
-grazing marched ray). A ray lying in a face's plane does not cross it. A point counted by the
-widening must also be that close to the edge's extent, not just its line, so that a sliver face is not
-crossed far beyond its ends; and the polygon test takes the side of each edge that is inside from the
-loop's own orientation.
+A mesh's face test counts a ray through an edge or a vertex shared by two faces as crossing at least one
+of them, however far the ray comes from, and a ray passing within rounding error outside a face as
+crossing it (the safe side, as for a grazing marched ray). A ray lying in a face's plane does not cross
+it.
 
 Every other shape is marched: the other analytic shapes, ``BVHSmoothUnion``, the other fused operations
-and shapes of your own without a ray form. The ray forms are included with their shapes' headers, so
-``firstHit()`` on a shape is the same function in every translation unit.
+and shapes of your own without a ray form. The ray forms of the analytic shapes and the mesh SDFs come
+with their shapes' headers. Those of the fused operations, ``BVHUnion`` and the offsets come with
+``EBGeometry_CSG.hpp`` (or ``EBGeometry.hpp``), not with ``EBGeometry_Fused.hpp`` alone: include it in
+every translation unit that ray traces a composition, so that ``firstHit()`` on it is the same function
+everywhere.
 
 To give a shape of your own a ray form, specialise ``RayForm`` in namespace ``EBGeometry``:
 
@@ -136,121 +122,77 @@ To give a shape of your own a ray form, specialise ``RayForm`` in namespace ``EB
      firstHit(const MyShape<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
               const RayOptions<T>& a_options) noexcept;
 
-     // Optional: where the ray is inside the shape (see below).
+     // Optional: where the ray is inside the shape (see Compositions below).
      EBGEOMETRY_HOST_DEVICE static void
      spans(const MyShape<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
            const RayOptions<T>& a_options, bool a_firstOnly, RaySpansT<T>& a_spans) noexcept;
    };
 
 Its ``firstHit()`` returns the first crossing in ``[a_tMin, a_tMax]`` with every field of ``HitT``
-filled in. Without ``spans()``, an intersection, difference or complement with the shape finds its
-spans by calling ``firstHit()`` from one crossing to the next, a step (``RayOptions::m_tolerance``
-times the scale) past each.
+filled in. The optional ``spans()`` writes where the ray is inside the shape (see `Compositions`_);
+without it, an intersection, difference or complement with the shape finds its spans by calling
+``firstHit()`` from one crossing to the next, which is slower. A static ``intersects()``, with
+``firstHit()``'s arguments and returning ``HitStatus``, may be added too, for a yes/no query that stops
+at the first crossing it finds.
 
-Since a ray form is found by its signatures, a ``firstHit()`` with a mistyped argument still compiles,
-and the shape is silently marched. Check it where the specialisation is written:
+The functions are found by their signatures, so a ``firstHit()`` with a mistyped argument still
+compiles, and the shape is silently marched. Check it where the specialisation is written:
 
 .. code-block:: c++
 
    static_assert(EBGeometry::hasRayForm<MyShape<double>, double>);
    static_assert(EBGeometry::hasRaySpans<MyShape<double>, double>); // if it has spans()
 
-A ray form written for an earlier version, with a ``static constexpr bool available`` member, keeps
-working; the member is no longer read and can be removed.
-
 .. _Sec:OffsetRays:
 
 Offsets and annuli
 ~~~~~~~~~~~~~~~~~~
 
-An offset by :math:`r` is the level set :math:`\{f \le r\}` of its operand's value :math:`f`, and an annulus
-of half-thickness :math:`d` is :math:`\{f \le d\}` less :math:`\{f < -d\}`. ``RayDetail::LevelView`` is such
-a level set of a shape, and its ray form traces it where ``RayDetail::LevelForm`` gives the operand's level
-sets in closed form:
+An offset or an annulus is traced exactly, with exact normals, where its operand's level sets have a
+closed form: a sphere, capsule or infinite cylinder (the radius grows or shrinks), a plane (it moves), a
+box (it shrinks, or grows into a box with rounded edges and corners), a mesh SDF (its surface grown is
+the union of its faces, each grown into a thin slab with a rounded rim), or a fused affine map of one of
+these. A fused ``Offset`` or ``Annular`` of such an operand always is. A tape is only when it lists
+``TapeFeature::ExactOffsets`` (``Tape<T, TapeFeature::ExactOffsets>``, see :ref:`Sec:TapeFeatures`);
+without it, the tape marches them.
+An offset or annulus of anything else (a composition, ``CylinderSDF``, whose grown rim is a torus,
+``TorusSDF``, or another offset or annulus) is marched.
 
-* A sphere, capsule or infinite cylinder of radius :math:`\rho` at level :math:`c` is the same shape of radius
-  :math:`\rho + c` (empty if that is not positive), a plane's half-space moves by :math:`c`, and a box shrinks
-  by :math:`-c` or grows by :math:`c` into a rounded box: three boxes, each grown along one axis, united with a
-  capsule along each of the twelve edges. The capsules are tested only when the ray enters or leaves the three
-  boxes' union away from a face across the axis its box grows along, which is where a ray meets an edge.
-  The quadratics take their discriminant as the analytic ray forms do. An annulus is the outer piece less the
-  inner, at most two spans.
-* A mesh's surface grown by :math:`d` is the union of its faces offset by :math:`d`: each face's slab
-  :math:`|n \cdot (x - p_0)| \le d` over the face, united with a capsule of radius :math:`d` along each edge.
-  ``RayDetail::nearestOffsetFace()`` walks the mesh's BVH (every face of a ``FlatMeshSDF``) with each box grown
-  by :math:`d` (``RayDetail::GrownRayQuery``), bounded by the nearest entry so far. A face's offset is entered
-  where the ray enters its slab, if that point lies over the face (the edge tests of
-  ``DCEL::FaceT::rayCrossing()``, on the point projected into the plane); otherwise, unless the ray's part in
-  the slab lies further than :math:`d` outside one edge's line, through the rim: each edge's capsule, if the ray
-  passes within :math:`d` of the edge's line. A ray whose start is within :math:`d` of a face starts inside,
-  and ``RayDetail::offsetFaceUnion()`` merges the offset faces' intervals into at most four disjoint spans,
-  keeping the normal where each ends; an interval beyond them lowers the list's horizon, from which the trace
-  starts again. A mesh's annulus is that union; its offset by :math:`r > 0` the mesh united with its faces
-  offset by :math:`r`, and by :math:`r < 0` the mesh less its faces offset by :math:`-r`. The entry and its normal
-  are exact.
-* A fused affine map's level set at :math:`c` is its operand's at :math:`c` divided by the map's value scale,
-  along the mapped ray.
-
-A tape with ``TapeFeature::ExactOffsets`` (``Tape<T, TapeFeature::ExactOffsets>``, see
-:ref:`Sec:TapeFeatures`) traces ``Offset`` and ``Annular`` of a primitive with a ``LevelForm`` (or of an affine
-map of one) the same way; a tape without it marches them. Its compiler passes the level down to the primitive's ``Leaf`` clause, which holds it in its
-parameters and flags (``TapeDetail::RayOp``), and the primitive is traced through its ``LevelView``. An offset
-or annulus of anything else (a composition, ``CylinderSDF``, whose grown rim is a torus, ``TorusSDF``, or
-another offset or annulus) is marched.
+Tracing a mesh's offset over a whole ray costs far more than finding its first crossing. Under an
+intersection or a difference, an offset or annulus of a mesh is therefore traced only within the spans of
+the other operands, as a marched operand is (see `Compositions`_).
 
 .. _Sec:RaySpans:
 
-Spans
------
+Compositions
+------------
 
-A composition is traced from its operands' spans (see :ref:`Chap:Rays`), in
-`EBGeometry_RaySpans.hpp <doxygen/html/EBGeometry__RaySpans_8hpp.html>`__. A
-`RaySpansT <doxygen/html/structEBGeometry_1_1RaySpansT.html>`__ holds the spans of one object over an
-interval, in order, at most ``RaySpansT::Capacity`` (8) of them, each a pair of
-`SpanEndT <doxygen/html/structEBGeometry_1_1SpanEndT.html>`__: a distance, the leaf of the composition
-it lies on, and whether it is a crossing found exactly, one found by marching, or an ``Open`` end, where
-the interval (or what is known) ends rather than the surface. An end carries no normal: on a device the
-lists live in each thread's local memory, and every word of a span copied or compared costs a memory
-operation there, which is most of what tracing costs. ``m_horizon`` says how far the list is complete:
-``add()`` drops a span past the capacity and lowers the horizon to where it begins. A ``spans()`` writes
-the list over ``[a_tMin, a_tMax]``, with ``addClipped()`` for a span that may reach past the interval;
-``a_firstOnly`` says that only the first crossing is needed, and the list may then stop there, its
-horizon at it.
+A composition is traced from its operands' *spans* (see :ref:`Chap:Rays`), in
+`EBGeometry_RaySpans.hpp <doxygen/html/EBGeometry__RaySpans_8hpp.html>`__. You meet them only when
+writing a ray form's ``spans()``: a `RaySpansT <doxygen/html/structEBGeometry_1_1RaySpansT.html>`__ holds
+the spans of one object over an interval, in order, each a pair of
+`SpanEndT <doxygen/html/structEBGeometry_1_1SpanEndT.html>`__ (a distance, and whether it is a crossing,
+exact or marched, or an ``Open`` end where the interval ends rather than the surface). ``addClipped()``
+adds a span that may reach past the interval. ``a_firstOnly`` says that only the first crossing is
+needed, and the list may then stop there. The list holds at most ``RaySpansT::Capacity`` (8) spans, and
+its ``m_horizon`` says how far it is complete.
 
-Union, intersection and complement combine lists, complete up to the smaller horizon (a union inserts
-its operand's spans in place, copying no list); an affine map traces its operand along the mapped ray
-(the distances scale by the map's stretch along it). A union asks its operands only for their first crossings, and
-an intersection or a complement for all their spans; each operand of a union is traced only up to what
-the union so far is known up to. An intersection traces its operands with a ray form first, and marches
-each operand without one only within the spans of the intersection so far (``RayDetail::spansWithin()``),
-up to the first span it finds where the intersection needs only its first crossing: a fused intersection
-by operand type, a tape by moving the ray clauses of a ``Marched`` operand (or of its complement) behind
-the others when it compiles. Only an operand that is itself marched, or the complement of one, moves: an
-operand holding a marched part deeper (a union of a ball and a blend) is traced as written. The first crossing is the first crossing end in the final list that
-comes no later than its horizon. If there is none and the horizon is short of the interval's end, the
-trace starts again from the horizon, asking every operand for all its spans if it got no further. A trace
-that has not found the crossing after 64 passes, or that makes no progress, is ``Unresolved``, like a march
-out of steps; ``intersects()`` returns that status too, so the caller decides what an undecided ray
-means. An operand without a ray form is marched in its own box, and crossings found that way are not
-exact (``HitT::m_exact``).
+What a user sees of this:
 
-The normal and primitive are found once, for the crossing the trace ends at. The composition follows the
-leaf its end names down to that leaf, through the affine maps above it, and calls the leaf's own
-``firstHit()`` over a window of ``RayOptions::m_tolerance`` times its scale around the crossing: the leaf's
-exact normal, or for a marched leaf its gradient. The normal is mapped back by the transposed matrices of
-the maps, and turned to face against the ray where it enters and along it where it leaves, which is the
-composition's outward normal whatever complements lie between. A fused composition numbers its leaves
-depth first, a BVH union by primitive, and a tape by the clause of each leaf, which it finds again by
-following its ray program, into the BVH union operand whose clauses hold it. That operand is found
-without visiting the others: the leaf's own ray program is found by bisection over where the ray programs
-begin, and the tape records the sub-program each was compiled for, up to the operand.
-
-A shape's convex closed forms give one span at the cost of a first crossing. A mesh SDF collects the
-nearest ``2 * Capacity + 1`` crossings along the ray in one walk of its BVH (bounded by the farthest kept,
-once full) and pairs them by the side of the face each crosses from, skipping a repeated crossing of the
-same side (a ray through an edge crosses both faces); the mesh must be closed for the pairs to mean
-inside and outside. The triangle groups report every lane's crossing for this
-(``TriangleAoSoA::rayCrossings()``).
+* A composition whose leaves all have ray forms is exact: ``HitT::m_exact`` is true, and the normal is the
+  leaf's own at the crossing, mapped through the affine maps above it and turned to point out of the
+  composition. ``HitT::m_primitive`` is 0 for a fused composition (it is one shape), the primitive for a
+  ``BVHUnion`` (a mesh's face id, or 0), and the deciding leaf for a tape.
+* An operand without a ray form is marched in its own box, and a crossing on it is not exact. Under an
+  intersection or a difference, it is marched only within the spans of the other operands, which is much
+  cheaper. That holds for an operand that is itself marched (or the complement of one); a marched part
+  deeper inside an operand (a union of a ball and a blend) is traced as written. Where you can, make the
+  marched shape a direct operand of the intersection.
+* A ray through more pieces than a list holds is traced again from where the list ends: never wrong, only
+  slower. A trace that has not decided after many passes is ``Unresolved``, like a march out of steps, and
+  ``intersects()`` returns that status too, so the caller decides what an undecided ray means.
+* A mesh SDF under an intersection or a complement must be closed for its spans to mean inside and
+  outside.
 
 The march
 ---------

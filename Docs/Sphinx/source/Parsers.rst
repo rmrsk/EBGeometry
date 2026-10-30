@@ -331,9 +331,8 @@ construct a ``PolygonSoup<T>(id, vertices, faces)`` and call ``convertToDCEL``.
   so the mesh stays closed. This matters for the sign of the distance: a zero-area face has no
   normal, and left in place it would corrupt the edge and vertex pseudonormals next to it.
 * ``soupToDCEL(mesh, pool, vertices, facets, id)`` builds the vertices, half-edges, and faces of
-  the (already-compressed) soup into the output DCEL mesh, reconciles pair edges (internally, via
-  ``reconcilePairEdgesDCEL``, which links each half-edge :math:`u \to v` to its reverse
-  :math:`v \to u`), and runs a mesh sanity check. This also computes the vertex and edge normal
+  the (already-compressed) soup into the output DCEL mesh, links each half-edge to its reverse
+  (``reconcilePairEdgesDCEL``), and runs a mesh sanity check. This also computes the vertex and edge normal
   vectors. ``mesh`` can be freshly default-constructed (``DCEL::MeshT<T> mesh;``, no ``Pool``
   needed at construction); ``soupToDCEL`` reserves its vertex/edge/half-edge storage from ``pool``
   itself, sized from ``vertices``/``facets``. ``mesh`` is attached to ``pool`` by that first reserve
@@ -343,7 +342,7 @@ construct a ``PolygonSoup<T>(id, vertices, faces)`` and call ``convertToDCEL``.
   never pass either.
 * ``findRepeatedVertex(facets)`` reports a face that visits a vertex twice. Such a face corrupts the
   half-edge mesh, so the readers reject it whatever ``OnDefect`` says.
-* ``findTopologyDefect(facets)``, run between the two steps above, reports a face that visits a
+* ``findTopologyDefect(facets)``, run after ``removeDegeneratePolygons`` and before ``soupToDCEL``, reports a face that visits a
   vertex twice, or an edge that two faces run along in the same direction -- which is what happens
   when neighbouring faces are oriented inconsistently, or when three or more faces share one edge.
   Such faces cannot be joined into a half-edge mesh. An edge used by only one face (a hole) is not

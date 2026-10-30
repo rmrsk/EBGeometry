@@ -3,8 +3,8 @@
 Memory model
 ============
 
-Underneath the DCEL mesh representation (:ref:`Chap:ImplemDCEL`), and progressively the rest of
-the library, sits a small, self-contained memory foundation: a placement policy
+Underneath the DCEL mesh representation (:ref:`Chap:ImplemDCEL`), and every other structure that
+can be mirrored to a device, sits a small, self-contained memory foundation: a placement policy
 (`MemoryResource <doxygen/html/classEBGeometry_1_1MemoryResource.html>`__), a bump-allocating
 arena over it (`Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__), and a placement-independent
 array descriptor stored inside it
@@ -24,8 +24,8 @@ use-after-grow style failure.
 Why a custom memory model?
 ---------------------------
 
-EBGeometry is header-only with no external dependencies, and one of its design goals (see the GPU
-port described throughout this section) is that the exact same data -- a DCEL mesh's vertices,
+EBGeometry is header-only with no external dependencies, and one of its design goals (see
+:ref:`Chap:RunningOnGPU`) is that the exact same data -- a DCEL mesh's vertices,
 half-edges, and faces -- can be built once on the host and then queried either on the host or on a
 CUDA/HIP device, without maintaining two separate representations. A ``std::vector``, or any
 container that stores an absolute pointer to its own data, cannot do this: a pointer that is valid
@@ -46,7 +46,8 @@ patching pass required.
 
 `MemoryResource <doxygen/html/classEBGeometry_1_1MemoryResource.html>`__ is an abstract,
 runtime-virtual placement policy: it decides *where* a block of bytes physically lives, without
-its caller needing to know which. Concrete resources are always available:
+its caller needing to know which. The concrete resources are below; the four backed by the GPU
+runtime exist only in a CUDA or HIP build:
 
 .. list-table::
    :header-rows: 1
@@ -61,6 +62,12 @@ its caller needing to know which. Concrete resources are always available:
      - No
      - Always compiled; plain aligned host allocation. Obtain the process-wide default via
        ``EBGeometry::hostMemoryResource()``.
+   * - `EmulatedDeviceMemoryResource <doxygen/html/classEBGeometry_1_1EmulatedDeviceMemoryResource.html>`__
+     - Yes
+     - Reports yes
+     - Always compiled; host memory that stands in for device memory, so code that mirrors a pool
+       and takes a ``rebasedView()`` runs unchanged in a plain C++ build. Reach it through
+       ``GPU::memoryResource()`` (:ref:`Chap:RunningOnGPU`), never hand it to a real kernel.
    * - `DeviceMemoryResource <doxygen/html/classEBGeometry_1_1DeviceMemoryResource.html>`__
      - No
      - Yes
@@ -83,7 +90,7 @@ its caller needing to know which. Concrete resources are always available:
        migration, the device reads host RAM in place over the interconnect.
 
 Allocation and deallocation are always host-only operations (memory is never obtained from device
-code, even for a device-resident resource), and every allocated block is aligned to
+code, even for a device-resident resource), and every pool block is aligned to
 ``EBGeometry::PoolBaseAlign`` (256 bytes), which is at least as strict as everything the library
 ever stores in a pool, including SIMD-width SoA blocks.
 
@@ -113,9 +120,9 @@ down; the error the runtime then returns is ignored, since the memory went with 
 
 A `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__ is a single contiguous byte block obtained
 from a ``MemoryResource``.
-`reserve(count, elemSize, alignment) <doxygen/html/classEBGeometry_1_1Pool.html#a0c1f5b771e29cce6ae10fae19b766fb7>`__
+`reserve(count, elemSize, alignment) <doxygen/html/classEBGeometry_1_1Pool.html#ae44e7faa7b42c125927dceab1e8daa89>`__
 bump-allocates a sub-region and returns its byte offset from
-`base() <doxygen/html/classEBGeometry_1_1Pool.html#a049dfaa90b3aa55a410ce19b358fc583>`__. Nothing is
+`base() <doxygen/html/classEBGeometry_1_1Pool.html#a14cf86c799ccb7bce96b9abb4fa7555d>`__. Nothing is
 ever individually freed. If the block is too small, ``reserve`` transparently grows it: it allocates
 a new, larger block (geometric doubling), ``memcpy``\ s every byte currently in use into it, and
 **frees the old block** -- so ``base()`` can change on any ``reserve()`` call. A block holds at most
@@ -150,13 +157,14 @@ it.
 ``freeze()``: the mirror precondition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`freeze() <doxygen/html/classEBGeometry_1_1Pool.html#a7c5696404d11babfad42fc7d99b37ebd>`__ seals a
+`freeze() <doxygen/html/classEBGeometry_1_1Pool.html#ae4636f50be640e46bb2a81e769ae1e5f>`__ seals a
 pool: ``reserve()`` is forbidden afterwards (it aborts in every build, see :ref:`Sec:AlwaysOnChecks`)
-and ``base()`` can no longer move. It exists for exactly one reason -- it is
-the precondition for
-`mirror() <doxygen/html/classEBGeometry_1_1Pool.html#aa141bf4919e1aeb78aaee9667da8ebc3>`__, since
-you cannot take a byte-for-byte copy of a block that might still be reallocated. Freezing is *not*
-required to query anything.
+and ``base()`` can no longer move. It is the precondition for
+`mirror() <doxygen/html/classEBGeometry_1_1Pool.html#a1f1922525a40246fb93932f086e2756f>`__, since
+you cannot take a byte-for-byte copy of a block that might still be reallocated, and for handing a
+pool built in managed or mapped memory to a device (a ``rebasedView()`` onto it, or
+``GPU::transform`` over it), since a kernel holds the base by value. Freezing is *not* required to
+query anything on the host.
 
 ``mirror(src, dstResource)`` copies a frozen source pool's entire block, byte-for-byte, into a fresh
 block from ``dstResource`` (a plain ``memcpy`` for a host-to-host copy, or a ``GPU::memcpy`` for a
@@ -171,7 +179,8 @@ pinned staging to device) preserves that identity across every hop.
 .. warning::
 
    ``freeze()`` has no inverse. Once a pool is frozen it can never be reserved into again. Since
-   freezing is only needed in order to mirror, the practical rule is simply to do it last.
+   freezing is only needed to mirror a pool or hand it to a device, the practical rule is simply to
+   do it last.
 
 .. _Sec:ResolvedAddresses:
 
@@ -285,20 +294,21 @@ memory model asks of a caller:
    on every class described here, is cheap insurance that a later change does not silently break
    the contract.
 
-Nine classes adopt this model today: ``DCEL::MeshT``, ``BVH::PackedBVH``, the mesh distance fields
-``FlatMeshSDF``, ``MeshSDF`` and ``TriMeshSDF``, ``PointCloudBVH``, ``PointCloudHashGrid``, and the
-BVH unions ``BVHUnion`` and ``BVHSmoothUnion``. Each is split into two parts:
+These classes adopt this model: ``DCEL::MeshT``, ``BVH::PackedBVH``, the mesh distance fields
+``FlatMeshSDF``, ``MeshSDF`` and ``TriMeshSDF``, ``PointCloudBVH``, ``PointCloudHashGrid``, the BVH
+unions ``BVHUnion`` and ``BVHSmoothUnion``, ``Tape``, and a fused composition (``Fused::``) with an
+operand that lives in a pool. Each is split into two parts:
 
 * a **layout**: its ``PODVector`` descriptors and plain values, that is offsets and sizes only, as
   the nested type ``Layout``;
-* a **handle**: that layout plus one location, which says where the pool is. Every one of the nine
+* a **handle**: that layout plus one location, which says where the pool is. Every one of these
   classes is a handle: it derives from
   `PoolHandle <doxygen/html/classEBGeometry_1_1PoolHandle.html>`__, which owns the single
   `PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__ (a ``PoolControl*`` for host
   resolution, a raw base for a device view, and whether that base is host-accessible) and the
   operations on it. Nothing else in the library holds a location.
 
-All nine offer ``rebasedView()`` as their single crossing point, ``deepCopy()`` for genuinely
+All of them offer ``rebasedView()`` as their single crossing point, ``deepCopy()`` for genuinely
 independent storage, ``layout()``, and a constructor taking a layout and a location. A composite
 handle holds the layouts of its parts and one location for all of them: ``MeshSDF`` holds a mesh
 layout and a BVH layout, a BVH union holds the layouts of its two BVHs, and each rebuilds a

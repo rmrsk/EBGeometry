@@ -13,9 +13,9 @@ The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``, in t
   particular.
 * :file:`Source/EBGeometry_TreeBVH.hpp` holds ``TreeBVH``, the partitioners, the default leaf
   predicate, and ``pack()``/``packWith()``. It is host-only.
-* :file:`Source/EBGeometry_BVHBuild.hpp` holds the ``PackedBVH`` constructors that build from a
-  ``TreeBVH`` or partition a primitive list directly (top-down, along a space-filling curve, or
-  ClusterSAH). It is host-only.
+* :file:`Source/EBGeometry_BVHBuild.hpp` holds the ``PackedBVH`` constructors behind ``pack()``/
+  ``packWith()`` and ``PackedBVH``'s static builds, which partition a primitive list directly
+  (``build()``, ``buildTopDown()``, ``buildBottomUp()`` and ``buildClusterSAH()``). It is host-only.
 
 The last two include each other and :file:`Source/EBGeometry_PackedBVH.hpp`, so either one gives
 the whole builder API. :file:`Source/EBGeometry_BVH.hpp` includes all three, as does
@@ -66,9 +66,9 @@ EBGeometry supports the following bounding volume, which is defined in :file:`So
 
 For full API details, see `the doxygen API <doxygen/html/namespaceEBGeometry_1_1BoundingVolumes.html>`_.
 Other types of bounding volumes can in principle be added, with the only requirement being that they conform to the same interface as ``AABBT``. Note that
-``PackedBVH`` hard-codes ``AABBT<T>`` as its bounding volume (see above), so a custom bounding
-volume can only be used with ``TreeBVH`` while building, and must still be convertible to an AABB
-before the tree is packed.
+``PackedBVH`` hard-codes ``AABBT<T>`` as its bounding volume (see above), and ``pack()``/``packWith()``
+require a ``TreeBVH`` built with ``AABBT<T>``, so a ``TreeBVH`` with a custom bounding volume cannot
+be packed.
 
 .. _Chap:BVHConstruction:
 
@@ -107,9 +107,8 @@ three do). ``BinnedSAHPartitioner`` and ``MidpointPartitioner`` both produce ``K
 recursively splitting into two (``std::floor(K/2)`` and ``std::ceil(K/2)``) halves, exact for
 power-of-two ``K``. ``BinnedSAHPartitioner`` takes an optional final template argument
 ``LongestAxisOnly`` (default ``false``); setting it ``true`` bins candidate planes on only the
-longest centroid-bounding-box axis instead of all three, cutting roughly a third of the binning
-work (measured ~20% faster SAH builds on point clouds) for a tree-quality cost that is negligible
-on near-uniform inputs. The leaf predicate takes a ``TreeBVH``
+longest centroid-bounding-box axis instead of all three, for a faster build at a tree-quality cost
+that is negligible on near-uniform inputs. The leaf predicate takes a ``TreeBVH``
 node and decides whether it should become a leaf (i.e. not be split any further); a default is
 provided, but callers are free to supply their own of either kind.
 
@@ -155,23 +154,14 @@ Every build takes the ``Pool`` its flat arrays are reserved from as its first ar
 must outlive the BVH, which each build returns by value (a handle into the pool, like every other
 ``PackedBVH``). It takes primitives **by value**
 (``std::vector<std::pair<P, BV>>``, a sink parameter the caller can ``std::move`` in) rather than
-requiring a ``shared_ptr``-wrapped list, so the whole path from input to final storage is
-pointer-free.
+requiring a ``shared_ptr``-wrapped list from the caller.
 
-Internally, ``buildBottomUp()``:
-
-#. Sorts primitives along a space-filling curve (``SFC::Morton`` by default; name another as a
-   template argument, ``buildBottomUp<SFC::Hilbert>(...)``, to select it).
-#. Splits the sorted primitives into consecutive leaves of a caller-chosen **target leaf size**,
-   as ``bottomUpSortAndPartition()`` does, but from a finer set of leaf counts than its powers of
-   ``K``, so the leaves can sit closer to the target. Every interior
-   node has exactly ``K`` children, and a tree like that has a leaf count ``L`` with
-   ``L = 1 (mod K - 1)``, so the build picks the smallest such ``L`` that keeps leaves within
-   the target (or, when that would leave a leaf empty, the largest one below it) and splits the
-   primitives evenly across the leaves.
-#. Merges the leaves upward in groups of ``K``. When a level's node count is not a multiple of
-   ``K``, the remainder is carried up to the next level unmerged. Every node has exactly one parent,
-   so a traversal reaches each primitive exactly once.
+``buildBottomUp()`` sorts the primitives along a space-filling curve (``SFC::Morton`` by default;
+name another as a template argument, ``buildBottomUp<SFC::Hilbert>(...)``, to select it), cuts the
+sorted list into consecutive leaves near a caller-chosen **target leaf size**, and merges them upward
+``K`` at a time. Unlike ``bottomUpSortAndPartition()``, whose leaf count is a power of ``K``, it
+chooses from every leaf count a full ``K``-ary tree can have (:math:`L \equiv 1 \pmod{K-1}`), so the
+leaves sit closer to the target (see :ref:`Sec:LeafSizes`).
 
 Since this still produces an ordinary ``PackedBVH``, every existing traversal/query facility
 (``traverse()`` with every query type, the SIMD dispatch) works with it identically, unchanged.
@@ -186,23 +176,15 @@ one above:
    const auto centroid = Packed::buildTopDown(pool, primsAndBVs, BVH::BVCentroidPartitioner<T, P, AABBT<T>, K>);
    const auto sah      = Packed::buildTopDown(pool, primsAndBVs, BVH::BinnedSAHPartitioner<T, P, AABBT<T>, K>, stopCrit);
 
-It reuses ``TreeBVH``'s own ``Partitioner``/``LeafPredicate`` machinery unchanged (any of
-``BVCentroidPartitioner``, ``BinnedSAHPartitioner``, ``PrimitiveCentroidPartitioner``, or a
-caller-supplied one), so it accepts the same arguments ``topDownSortAndPartition()`` does — but
-writes nodes directly into the flat node array in depth-first pre-order as the recursion unwinds,
-rather than building a persistent, ``shared_ptr``-linked ``TreeBVH`` first. As for
+It takes the same partitioners and leaf predicates as ``topDownSortAndPartition()``
+(``BVCentroidPartitioner``, ``BinnedSAHPartitioner``, ``PrimitiveCentroidPartitioner``,
+``MidpointPartitioner``, or a caller-supplied one; without a leaf predicate it uses
+``DefaultLeafPredicate``), but writes the flat node array directly rather than keeping a
+``TreeBVH`` alive for the tree's lifetime, the dominant cost of the build-then-``pack()`` path. As for
 ``topDownSortAndPartition()``, every one of the ``K`` partitions a partitioner returns must hold at
 least one primitive: an empty one would become a leaf with no primitives, which the packed layout
-cannot represent, and it aborts the build, in every build, with a message naming the partition. Since top-down
-recursion visits the root before its children, this needs no relayout pass (unlike
-``buildBottomUp()`` above, where a bottom-up merge naturally produces the root last). Each split still
-shared_ptr-wraps primitives once, up front (to reuse the existing ``Partitioner``/``LeafPredicate``
-signatures) and constructs one lightweight, stack-local ``TreeBVH`` per split purely to evaluate
-the stop criterion and read off its primitive list — proportionate to what
-``topDownSortAndPartition()`` already does at every node, and immediately discarded rather than
-kept alive as part of a persistent tree. What this build avoids is exactly the *persistent*
-``shared_ptr<TreeBVH>`` node allocation kept alive for the tree's lifetime, which the ``Examples/BuildBVH``
-benchmark measures as the traditional path's dominant build-time cost.
+cannot represent, and it aborts the build, in every build, with a message naming the partition.
+The :ref:`Chap:ExampleBuildBVH` example times the build paths against each other.
 
 The third, ``buildClusterSAH()``, builds via **ClusterSAH**, a fast approximation of a full SAH tree:
 
@@ -217,8 +199,8 @@ early), then runs binned SAH top-down over those clusters — so SAH partitions 
 a fraction of the single-threaded SAH build cost, and it stays robust across uniform, surface, and
 clustered primitive distributions (a fixed Cartesian grid, by contrast, overcrowds on non-uniform
 data). ``BVH::ClusterSpec::maxClusterSize`` trades build time (larger → fewer, cheaper SAH units)
-against query quality (larger → coarser leaves); ``Examples/BuildBVH`` benchmarks its build time
-against the other strategies.
+against query quality (larger → coarser leaves); the :ref:`Chap:ExampleBuildBVH` example times its
+build against the other strategies.
 
 .. _Sec:BuildPresets:
 
@@ -250,7 +232,7 @@ primitives:
      - Binned surface area heuristic (``BinnedSAHPartitioner``). The recommended default.
    * - ``ClusterSAH``
      - top-down
-     - Binned SAH over small spatial clusters (see above). Builds several times faster than
+     - Binned SAH over small spatial clusters (see above). Builds much faster than
        ``SAH``; a leaf holds up to ``K-1`` clusters.
    * - ``Morton``
      - bottom-up
@@ -414,11 +396,8 @@ pool. Each node keeps its *box slot*, the row and position of its own box, so
 the squared distance to it, without assembling the box. A descent that tests a node's children one at
 a time should use ``getDistanceToChildBoundingVolume2(parent, k, point)`` instead: it reads child
 ``k``'s box straight from the parent's row, without loading the child node only to find where its box
-is. A traversal callback that needs a node's
-box, such as a node-key-factory, asks the BVH it traverses for it. A node is 32 bytes at ``K = 4``
-in either precision, against the 52 (``float``) or 80 (``double``) bytes it took while it carried a
-copy of its box: with the boxes no longer duplicated, the node array and the box rows together are
-about 30% (``float``) or 40% (``double``) smaller.
+is. A traversal callback that needs a node's box, such as a ``visit`` callback, asks the BVH it
+traverses for it.
 
 Constructing a ``PackedBVH`` from a ``TreeBVH`` is simply a matter of flattening the
 already-partitioned tree, via one of two ``TreeBVH`` member functions. Both return the
@@ -447,11 +426,8 @@ because packing reorders primitives into leaf order, a leaf scan walks contiguou
 
 ``P`` must therefore be trivially copyable. That is a hard requirement, not a coincidence: it is
 what lets the whole BVH — nodes, primitives and SoA cache alike — be mirrored into a device address
-space by a plain byte copy. Until the GPU port the primitive array could instead hold
-``std::shared_ptr<const P>``; that was removed for exactly this reason, since a ``shared_ptr`` can
-never cross into a device address space and keeping it would have forced a second, permanently
-host-only primitive-array backend. See :ref:`Sec:PolymorphicPrimitives` below for the one use that
-depended on it.
+space by a plain byte copy, which a ``std::shared_ptr`` could never cross. See
+:ref:`Sec:PolymorphicPrimitives` below for what this rules out.
 
 .. _Sec:IndexedPrimitives:
 
@@ -463,20 +439,14 @@ duplicating them is the binding constraint, make the index itself the primitive:
 ``PackedBVH<T, uint32_t, K>`` over ``(index, bounding volume)`` pairs and resolve each stored index
 against the caller-owned array inside the leaf callback. That stores four bytes per primitive with
 no duplication, keeps the BVH trivially copyable, and needs no special support anywhere: a
-``uint32_t`` is an ordinary primitive type, so every build path accepts it — the SFC-build,
-``buildBottomUp()``, ``buildTopDown()``, ``buildClusterSAH()`` and ``build()``, and ``TreeBVH::pack()`` over a
+``uint32_t`` is an ordinary primitive type, so every build path accepts it — ``build()``,
+``buildBottomUp()``, ``buildTopDown()``, ``buildClusterSAH()``, and ``TreeBVH::pack()`` over a
 ``TreeBVH<T, uint32_t, AABBT<T>, K>``.
 
 The trade is locality: the query pays a scattered load per primitive instead of a contiguous one,
 and the array the indices resolve against must outlive every BVH indexing into it — an index is not
 an owner, and nothing checks that. Prefer storing the primitives themselves unless one of the two
 reasons above actually applies.
-
-An earlier ``BVH::IndexStorage`` policy wrapped this same pattern behind a template parameter on
-``PackedBVH``. It was removed: ``PackedBVH<T, uint32_t, K>`` stores exactly the same four bytes per
-primitive in exactly the same layout, needs no policy machinery to do it, and — unlike the policy,
-which could only be built through the two paths that never touch a primitive — works through
-every build path including ``TreeBVH::pack()``.
 
 Pool-backed storage
 ____________________
@@ -488,14 +458,8 @@ not ``std::vector``\ s. Every construction entry point therefore takes a ``Pool&
 ``packWith()``, every static build, the adopting constructor, and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
 which pass along the pool they already take. The pool must outlive the BVH.
 
-Construction itself still assembles the arrays in ordinary ``std::vector``\ s and copies them into
-the pool in one shot at the end. That is deliberate: a ``PODVector`` never reallocates, so it has no
-way to be filled incrementally without its final size fixed up front, and the node count is not
-known until a build finishes. Growth belongs in the host-only build step; nothing that crosses to a
-device is ever built incrementally.
-
-What this buys is that a ``PackedBVH`` is trivially copyable -- four 16-byte descriptors, a control
-block pointer, and a base pointer -- so a whole hierarchy crosses to a device as a byte copy with no
+What this buys is that a ``PackedBVH`` is trivially copyable -- four 16-byte array descriptors and
+the location of its pool -- so a whole hierarchy crosses to a device as a byte copy with no
 pointer patching. ``rebasedView(Pool&)`` is the single sanctioned crossing, exactly as for
 ``DCEL::MeshT``: mirror the pool, rebase on the host, then pass the returned value to a kernel.
 
@@ -549,7 +513,7 @@ storage-sharing question above:
    primitives by handle. (Copying a ``std::shared_ptr<TreeBVH>`` is, of course, always fine -- that
    is shared ownership of the *same* tree, not a replica.)
 *  ``PackedBVH`` allows both copying and moving, but a copy is **not** a deep copy. Its members are
-   three ``PODVector`` descriptors plus two address fields, so copying one copies offsets: the copy
+   four ``PODVector`` descriptors and its pool location, so copying one copies offsets: the copy
    resolves against the same pool memory as the original, and writing through either is visible
    through the other. That shallowness is the point -- it is what makes the type trivially copyable,
    and therefore what lets ``rebasedView()`` produce a value a kernel can consume directly. Use
@@ -569,28 +533,24 @@ ___________________________________________________
 to compile or slices the object to its static type; naming primitives by index instead
 (:ref:`Sec:IndexedPrimitives`) does not help either, since that indexes a flat array of one concrete
 type, which is meaningless when the elements are of different derived types and therefore different
-sizes. The ``shared_ptr``-based primitive array that could hold a polymorphic hierarchy has been
-removed, because a ``shared_ptr`` is not trivially copyable and so can never cross into a device
-address space.
+sizes. A ``shared_ptr`` to a polymorphic base cannot be stored either, since it is not trivially
+copyable and so can never cross into a device address space.
 
-One part of the library depended on exactly that: the BVH-accelerated CSG unions
-(:ref:`Chap:ImplemCSG`), whose primitive was once a polymorphic implicit function whose leaf
-evaluator called a virtual ``value()`` through a base pointer. They returned restricted to a single
+The BVH-accelerated CSG unions (:ref:`Chap:ImplemCSG`) are therefore restricted to a single
 primitive type: ``BVHUnion<T, P, K>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one
 type ``P`` -- analytic shapes, mesh distance fields, or other unions -- and is itself trivially
 copyable (:ref:`Sec:BVHUnions`). A union of primitives of *different* types is compiled into a tape
 (:ref:`Sec:Tape`), whose BVH holds sub-program indices and whose clauses dispatch on a primitive
 type index instead of a virtual call.
 
-Nesting a BVH inside a BVH -- a ``BVHUnion`` over several ``TriMeshSDF`` objects, say -- works
-today. The inner BVHs live in the same ``Pool`` as the outer one, and the outer union stores each
+Nesting a BVH inside a BVH -- a ``BVHUnion`` over several ``TriMeshSDF`` objects, say -- works. The inner BVHs live in the same ``Pool`` as the outer one, and the outer union stores each
 inner object as its layout and pairs it with its own pool location as it evaluates it (see
 :ref:`Chap:MemoryModel`), so the nested hierarchy mirrors to a device as one piece.
 
-Nesting itself is not the expensive part, incidentally. A ``PackedBVH`` is three ``PODVector``
-descriptors plus two address fields — 64 bytes, whatever the size of the BVH it describes — so a
-``PackedBVH`` whose primitive is another ``PackedBVH`` copies 64 bytes per inner BVH, not the inner
-BVH's contents, and the two share the pool memory those descriptors resolve against. It is only a
+Nesting itself is not the expensive part, incidentally. An inner BVH is stored as its layout, its
+four ``PODVector`` descriptors -- 64 bytes for a ``PackedBVH``, whatever the size of the BVH it
+describes -- so the outer array pays that per inner BVH, not the inner BVH's contents, and the two
+share the pool memory those descriptors resolve against. It is only a
 primitive that owns its data *inline* whose size the outer array pays per placement.
 
 Tree traversal
@@ -599,8 +559,8 @@ Tree traversal
 ``TreeBVH`` and ``PackedBVH`` each have a ``traverse()`` member. ``TreeBVH::traverse()`` is a host-only
 walk over the pointer tree, driven by four callbacks (a prune predicate, a child orderer, a leaf
 evaluator and a node-key factory; see the `BVH namespace's doxygen page
-<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__); it is used while building, and an exception from one
-of its callbacks reaches the caller. ``PackedBVH::traverse()`` is the walk every query runs, on the host
+<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__), for querying a tree before it is packed; an
+exception from one of its callbacks reaches the caller. ``PackedBVH::traverse()`` is the walk every query runs, on the host
 and on a device, and the rest of this section is about it.
 
 .. _Chap:PackedTraverse:
@@ -787,67 +747,26 @@ For the exact signatures, see the Doxygen reference for
 `PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__ and the `BVH namespace
 <doxygen/html/namespaceEBGeometry_1_1BVH.html>`__.
 
-How the walk keeps to that shape -- the children's keys computed in one SIMD pass, and a stack of one
-entry per level -- is described next.
-
-**The child tests.** ``PointQuery`` computes the ``K`` squared distances in a single SIMD batch where
-the ``(K, T)`` pair has a compiled path (see :ref:`Chap:SIMDClasses` for which instructions run for
-which ``(K, T)``), and with an ordinary scalar loop over the children otherwise, which is also what
-device code runs. Both compute the same quantity in the same association order, and each vector
-maximum takes its operands in the order of the scalar path's comparison, so they agree bit-for-bit, a
-NaN coordinate included (it counts as inside the box along that axis, so it never prunes a child; a
-build with ``-ffast-math`` lets the compiler assume there are no NaNs, and then neither path promises
-anything for one) -- a query answered on a build with no SIMD returns exactly what the same query
-returns on an AVX-512 build, and the unit tests pin this by sweeping ``K`` across values that do and do
-not have a vector path and requiring exact equality. The one exception is a compiler that contracts
-the scalar path's multiply and add into a fused multiply-add, which the intrinsics never do. By default
-Clang does so within an expression, and GCC in its GNU language modes (``-std=gnu++17``; EBGeometry's
-own CMake build uses ``-std=c++17``), whenever FMA is enabled (with ``-march=native`` on most current
-CPUs, say), and the two paths can then differ in the last bit.
-
-``RayQuery`` runs the slab test on ``SIMD::Pack`` groups of children where a register's lanes divide
-``K``, and one child at a time on a device. It uses only subtractions, products, comparisons and
-selects, which nothing contracts, so its paths agree bit-for-bit. Two rules make it robust: an axis on
-which the ray's direction is zero and its origin lies exactly on a face's plane (where :math:`0 \cdot
-\infty` gives a NaN) imposes no constraint, so the ray is in the box along that axis rather than
-missing it; and the exit distance is widened by :math:`|t_\text{exit}| \cdot 2\gamma_3` (Ize, JCGT
-2013), so that rounding cannot make a ray through a face or edge shared by two boxes miss both.
+**SIMD and the same answers everywhere.** ``PointQuery`` computes the ``K`` squared distances in a
+single SIMD batch where the ``(K, T)`` pair has a compiled path (see :ref:`Chap:SIMDClasses`), and
+with a scalar loop otherwise, which is also what device code runs; ``RayQuery`` does the same for its
+slab test. The paths agree bit for bit, so a query answered on a build with no SIMD returns what the
+same query returns on an AVX-512 build or on a device. The one exception is a compiler that contracts
+the scalar path's multiply and add into a fused multiply-add (Clang by default, and GCC in its GNU
+language modes, whenever FMA is enabled, e.g. by ``-march=native``): ``PointQuery``'s paths can then
+differ in the last bit. ``RayQuery`` is robust at the edges: a ray through a face or edge shared by
+two boxes enters at least one of them, and a ray lying in a box's face plane is not counted as
+missing it.
 
 .. _Sec:TraversalStack:
 
 The traversal stack
 ___________________
 
-The stack is a fixed-size array, so the traversal allocates nothing and runs unchanged on a device.
-It keeps one entry per level, not per child, as compressed wide BVH traversals do (Ylitie, Karras
-and Laine, HPG 2017): the index of an interior node whose children are being visited, and the
-child slots still to visit after the current one, in visit order, one byte each. That is
-:math:`4 + K` bytes rounded up to a multiple of 4: 8 bytes at ``K = 4``, in either precision and for
-any key type. No key is stored; a resumed child's key is computed again when it is reached, exactly as
-it was when the level was sorted, so the comparison with the bound sees the same values the sort did.
-
-A level is on the stack only while one of its children is being visited and another is still to
-come, so a tree ``D`` levels deep needs at most :math:`D - 1` entries, at every ``K``:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 30 20 25 25
-
-   * - Pass
-     - Depth (levels)
-     - Stack at K = 4
-     - Stack at K = 16
-   * - Host (``BVH::HostTraversalDepth``)
-     - 256
-     - 255 entries (2 KB)
-     - 255 entries (5 KB)
-   * - Device (``BVH::DeviceTraversalDepth``)
-     - 32
-     - 31 entries (248 B)
-     - 31 entries (620 B)
-
-Measured for an AMD GPU (gfx90a, clang 17, ``-O3``), a kernel evaluating one mesh SDF, BVH union or
-point-cloud query needs 272 bytes of stack per thread, down from 768 bytes with one entry per child.
+The stack is a fixed-size array, with one entry per level of the tree, so the traversal allocates
+nothing and runs unchanged on a device. That bounds the depth of a tree it can walk: 256 levels on
+the host (``BVH::HostTraversalDepth``) and 32 on a device (``BVH::DeviceTraversalDepth``, smaller since
+device stack memory is per thread), at every ``K``.
 
 Every ``PackedBVH`` is checked against the host depth when it is built, and every device view
 against the device depth when ``rebasedView()`` makes it, in every build: a tree too deep aborts with
@@ -986,14 +905,10 @@ leaves instead of individual faces, so that on a matching ``(K, T)`` combination
 evaluates ``W`` triangles with a single SIMD register operation. On the host the search works on squared
 unsigned distances throughout, the boxes' and the triangles' (``TriangleAoSoA::nearestLane()``, with
 ``TriangleDistance::unsignedDistance2()``), and keeps the nearest group and lane; only that one triangle
-is signed, with its pseudonormal, once per query (``signedDistanceAt()``). Signing every triangle as it
-was tested cost each one six pseudonormal dot products and a square root; on a grid of queries over a
-100,000-triangle mesh, signing only the winner made a query about 1.13 times faster, with the same values
-bit for bit except at near-ties: ranking by squared distance can pick a different triangle where two are
-equally near to rounding, so there a host value may differ in the last place from a device's. A device
-still signs every triangle: ``TriMeshSDF`` is a built-in tape primitive, so its
-search is compiled into every tape's device kernels, whose register allocation it shifted (some tapes
-faster, others 19% slower). See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen
+is signed, with its pseudonormal, once per query (``signedDistanceAt()``). This gives the same
+values as signing every triangle, bit for bit, except at near-ties: ranking by squared distance can
+pick a different triangle where two are equally near to rounding, so there a host value may differ in
+the last place from a device's, which still signs every triangle it tests. See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen
 page for TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage
 itself.
 
@@ -1026,9 +941,9 @@ The two classes store very different primitives:
    flips every distance, and after moving vertices, ``mesh.reconcile()`` followed by
    ``getRoot().refit()`` with each face's new bounding box brings the BVH up to date (see `the
    doxygen page for MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__). The primitive
-   array takes 4 bytes per face rather than the 88 of a face copy. The price is an indirection:
-   the faces are read in mesh order rather than leaf order, which made queries on the armadillo
-   mesh (100k faces) about 15% slower than with copies, near the surface and away from it alike.
+   array takes 4 bytes per face, far less than a copy of each face. The price is an indirection:
+   the faces are read in mesh order rather than leaf order, which makes queries somewhat slower
+   than over copies of the faces would be.
 *  ``TriMeshSDF``'s primitive is a ``TriangleAoSoA<T, W>`` group, which is fully self-contained --
    a plain aggregate of coordinate arrays plus a per-lane face-id array, with no index into
    anything else, built fresh by ``groupTrianglesIntoSoA()`` during packing. ``TriMeshSDF`` does
@@ -1052,7 +967,7 @@ in both passes of a GPU compile. The one exception is a host-only build that def
 project without a GPU backend: there ``TriangleSoA::DefaultWidth<T>()`` is the host-tuned width.
 ``BVH::HostBranchingRatio<T>()`` and ``TriangleSoA::HostWidth<T>()`` give the values that fill one
 SIMD register under the compiler's flags, for host-only code; see :ref:`Sec:DefaultKW` for when to
-use which, the build switch, and measurements.
+use which and the build switch, and :ref:`Chap:ExampleHostTuning` to measure them on your machine.
 
 .. list-table:: ``HostBranchingRatio<T>()`` and ``TriangleSoA::HostWidth<T>()`` by ISA and precision
    :widths: 25 25 25 25
@@ -1083,31 +998,9 @@ use which, the build switch, and measurements.
      - 4
      - 4
 
-The K=16/float and K=8/double paths use 512-bit-wide SIMD loads on AVX-512F and require the
-``BVH::ChildBoxes`` rows to be 64-byte aligned, which is guaranteed by ``alignas(sizeof(T)*K)`` on
-the struct. Only interior nodes have children, so only they get a row: each node records its row in
-``Node::m_childBoxRow``, and the row array has one entry per interior node rather than one per node.
-The rows are also where every box but the root's is stored; a node finds its own through its box
-slot. The K=8/float and K=4/double paths use 256-bit-wide AVX loads instead (as does
-K=8/double without AVX-512F, in two passes), and K=4/float uses 128-bit SSE4.1 loads. All other
-(K, T) combinations test the children with a scalar loop over the same child-box rows, inside the
-same ``traverse()``.
-
-Each ``TriangleSoAT<T, W>`` block is likewise ``alignas``-aligned to its own SIMD register width
-(64 bytes for ``<float, 16>``/``<double, 8>``, 32 bytes for ``<float, 8>``, 16 bytes for
-``<float, 4>``/``<double, 4>``), and the library inserts ``static_assert`` checks that fire at
-compile time if the alignment invariant is violated.
-
-The triangle distance itself is written once, as ``TriangleDistance::signedDistance()`` in
-:file:`Source/EBGeometry_TriangleDistance.hpp`, a template over the lane type. ``Triangle``, one lane
-of a ``TriangleSoAT`` and the device path instantiate it with a plain ``float`` or ``double``; the
-SIMD path instantiates it with a ``SIMD::Pack<T, N>`` (:file:`Source/EBGeometry_SIMD.hpp`), a thin
-wrapper over one SSE4.1, AVX or AVX-512F register that supplies the arithmetic, the comparisons and
-a ``select()``. ``SIMD::NativeWidth<T, W>()`` picks ``N``: the widest register the compiler's flags
-provide whose lane count divides ``W``. A group wider than one register takes several (8 doubles
-under AVX are two 4-lane registers), and a group no register fits (``W = 2`` floats, or any width in
-a build without SIMD flags) runs the same kernel one triangle at a time. Every path therefore
-computes the same candidates in the same order, with one square root at the end.
+Every other ``(K, T)`` or ``W`` still works: the children, or a triangle group, are then tested with
+narrower registers or a scalar loop, computing the same values. :ref:`Chap:SIMDClasses` describes
+which instructions run for which combination.
 
 Choosing W and K explicitly
 ______________________________
@@ -1134,6 +1027,5 @@ Rules of thumb:
   method's leaf size separately, see :ref:`Sec:LeafSizes`.
 * ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
   available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
-  a single SIMD batch, and the wider fan-out reduces tree depth — but measure: on the
-  benchmarks in :ref:`Sec:DefaultKW` it was slower, roughly doubling the query time. The traversal
-  stack hardly depends on ``K``: one entry per level, of 4 + ``K`` bytes (see :ref:`Sec:TraversalStack`).
+  a single SIMD batch, and the wider fan-out reduces tree depth — but measure it
+  (:ref:`Chap:ExampleHostTuning`): it is usually markedly slower (see :ref:`Sec:DefaultKW`).

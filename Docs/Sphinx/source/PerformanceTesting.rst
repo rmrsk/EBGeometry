@@ -20,8 +20,17 @@ What is in Performance/
    Performance/
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
      Mesh/main.cpp            TriMeshSDF and MeshSDF
+     BVH/main.cpp             PackedBVH::traverse() itself
      BVHUnion/main.cpp        BVHUnion
      Tape/main.cpp            Tape's signed distance
+     Fused/main.cpp           fused compositions (Fused::)
+     Ray/main.cpp             ray queries on meshes and compositions
+     RayCSG/main.cpp          ray tracing a composition from its parts' spans
+     RayShell/main.cpp        ray tracing a shell with a corner cut away
+     RayParticles/main.cpp    particles colliding with a boundary
+     Render/main.cpp          one frame of the renderer
+     ClosestPrimitive/main.cpp  a tape's closestPrimitive()
+     LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
        Statistics.hpp           quantiles, summaries, the bootstrap interval    (shared with PerfCompare)
@@ -36,6 +45,10 @@ What is in Performance/
      Tools/PerfCompare.cpp    compares two sets of results
      RunPerformance.cmake     the logic of Scripts/run-performance.sh
      Compare.cmake            builds two commits, runs both, reports
+     Receipt.cmake            writes the performance receipt
+     CheckReceipt.cmake       CI's check of the receipt
+     TestReceipt.cmake        checks that the receipt writer keeps a report whole
+     receipt.md               the performance receipt
      CMakeLists.txt
 
 Each folder with a ``main.cpp`` is a *probe*: one program per component, holding many *cases*. A case is
@@ -59,9 +72,9 @@ its start (on glibc, with ``mallopt``): every allocation comes from the heap, so
 reuse memory freed earlier in the same build, as in a real program; and before every repetition,
 untimed, the memory freed so far goes back to the system (``malloc_trim``), so that each repetition's
 pool starts on fresh pages and pays their page faults, as a first build's does. Without this, glibc
-decided by a size threshold, which it moves as the program runs, whether a repetition's pool came as
-fresh pages or as memory already touched, so a pool a few percent larger or smaller could change a
-build's time by 15% with no change to the build itself. Each run records its allocation policy, and a
+decides by a size threshold, which it moves as the program runs, whether a repetition's pool comes as
+fresh pages or as memory already touched, so a pool slightly larger or smaller could change a
+build's time markedly with no change to the build itself. Each run records its allocation policy, and a
 comparison shows each side's beside its commit.
 
 Inputs are fixed: every point set comes from the harness's own generator with a fixed seed, so that
@@ -159,7 +172,7 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 **Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
-grown by a quarter on every side), against the same solid written by hand (issues #210 and #221). The
+grown by a quarter on every side), against the same solid written by hand. The
 ``sphere`` and ``chain16`` cases take a gap between the two apart: a cost paid once per device thread
 (``signedDistance-x16`` evaluates 16 times per query), and one paid per clause.
 
@@ -182,9 +195,8 @@ Family                                Build  Measures
 
 **Fused** (``Performance/Fused``): the Tape probe's solids as fused compositions (``Fused::``, see
 :ref:`Sec:Fused`), at the same points as the Tape probe's cases, and a mesh drilled through by a
-cylinder, fused and through a tape. They have a probe of their own because adding them to the Tape
-probe's translation unit changed how GCC inlined the tape's evaluator there, and so the timings of the
-Tape cases. Each fused case names its tape counterpart (``Tape/csg/...`` for ``Fused/csg/...``, and
+cylinder, fused and through a tape. They have a probe of their own, since cases added to a probe's
+translation unit can change how the compiler inlines that probe's existing code, and so its timings. Each fused case names its tape counterpart (``Tape/csg/...`` for ``Fused/csg/...``, and
 ``drilled-mesh-tape`` for ``drilled-mesh``), and a comparison notes ``tape/fused`` beside it: the tape's
 time over the fused composition's, on that side (see `Where the results go`_). The ratio is what
 interpreting the composition through a tape costs, and it is tracked from one pull request to the next.
@@ -250,7 +262,7 @@ Case                                  Build  Measures
 
 **RayShell** (``Performance/RayShell``): ray tracing a difference of a shell and a box, the shell traced from
 the mesh's offset faces (see :ref:`Sec:OffsetRays`), or marched only within the box's spans (see
-:ref:`Sec:RaySpans`): a shell (``Annular``) around the armadillo (a ``TriMeshSDF``, the dodecahedron under ``--smoke``), half as thick as 1% of its box diagonal,
+:ref:`Sec:RaySpans`): a shell (``Annular``) around the armadillo (a ``TriMeshSDF``, the dodecahedron under ``--smoke``), with a half-thickness of 0.5% of its box diagonal,
 with the corner above its centre in :math:`x` and below it in :math:`z` cut away by a box, as in
 :ref:`Chap:ExampleShell`. The rays start in the shell's box grown to twice its size and point at its
 centre. It is through a tape (with the mesh as a user primitive type), traced and marched, the traced case
@@ -272,7 +284,7 @@ Case                                  Build  Measures
 first crossing of the boundary on it (``firstHit()`` over the step's length). Each particle starts at a random
 point outside the boundary, in its box grown by a tenth of its diagonal, and moves a hundredth of the diagonal
 in a random direction. The boundaries are a shell (``Annular``) around the armadillo (the dodecahedron under
-``--smoke``), half as thick as 1% of its box diagonal, as in :ref:`Chap:ExampleShell` but without the cut:
+``--smoke``), with a half-thickness of 0.5% of its box diagonal, as in :ref:`Chap:ExampleShell` but without the cut:
 through a tape (with the mesh as a user primitive type), traced from the mesh's offset faces (see
 :ref:`Sec:OffsetRays`) and marched, the traced case naming the marched one, and fused; the solid armadillo,
 for the cost of a mesh's own crossing; and a box's shell through a tape, for an analytic shape's. Host and
@@ -381,10 +393,10 @@ divided into chunks of as many consecutive points as the case's block size (``GP
 unless the case gives another, as LaunchTuning's do): on the device each chunk is one block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
 kernel's alone), and on the host the chunks are shared among OpenMP threads, one on every hardware
 thread but one, so that the device is compared with the whole CPU rather than one core.
-(``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries about a quarter faster
-than one thread per core; a thread on every hardware thread, though, leaves nothing for the GPU runtime
-and the operating system, so the loop keeps losing whole scheduler ticks to a preempted thread, and one
-spare hardware thread was fastest in every case.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
+(``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries faster than one thread
+per core; a thread on every hardware thread, though, leaves nothing for the GPU runtime and the
+operating system, so the loop keeps losing whole scheduler ticks to a preempted thread, which is why
+one hardware thread is left spare.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
 in which a caller querying a box of cells presents them, which keeps neighbouring queries in the same
 part of a tree) and, for external queries, once in random order. Besides the device time, a pair records
 
@@ -398,8 +410,7 @@ part of a tree) and, for external queries, once in random order. Besides the dev
 The speedup is machine-specific, so it means something on one machine, from one commit to the next: a
 change that speeds up one side and slows down the other shows as a shift in it. In a CUDA build it is
 measured against scalar host code; the host build's ``host`` cases show what vectorisation is worth on
-one core (about 3.4 times for ``TriMeshSDF`` in ``float`` on an AVX2 machine), so against a vectorised
-host the device's lead would be correspondingly smaller. In ``double`` a consumer GPU (FP64 at 1/64 of
+one core, so against a vectorised host the device's lead would be correspondingly smaller. In ``double`` a consumer GPU (FP64 at 1/64 of
 its FP32 rate) is little faster than the CPU's cores. OpenMP is on by default
 for CUDA builds (``EBGEOMETRY_PERF_OPENMP``); a HIP build's clang host side would need the LLVM OpenMP
 runtime, which is not yet tested, so it is off there unless turned on, and the host side then runs on one

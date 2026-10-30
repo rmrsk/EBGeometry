@@ -51,8 +51,8 @@ Looking at it
 
 The example ends with ``Render::view(shell, pool, argc, argv)``, a window on the shell with its quarter cut
 away. Its rays trace the shell exactly, from the mesh's faces offset by the wall's half-thickness, rather than
-marching its value (see :ref:`Chap:Rays`): ``Annular`` passes its half-thickness through ``Scale``,
-``Translate`` and ``Rotate`` to the mesh, divided by the scale.
+marching its value (see :ref:`Chap:Rays`); this holds through the ``Scale``, ``Translate`` and ``Rotate``
+that placed the mesh.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why

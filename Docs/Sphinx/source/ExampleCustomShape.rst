@@ -57,7 +57,7 @@ into a ``Tape<T, Octahedron<T>>``. The octahedron is listed after ``T`` because 
 type. A union of thirteen objects is evaluated with a BVH over their boxes.
 
 The tape is compiled straight into memory the device can read: managed memory
-(``managedMemoryResource()``) in a GPU build, which the host and the device can both read, and
+(``managedMemoryResource()``) in a GPU build with a device, which the host and the device can both read, and
 ``emulatedDeviceMemoryResource()``, host memory that stands in for a device, otherwise (see
 `the memory resources <doxygen/html/EBGeometry__MemoryResource_8hpp.html>`__):
 

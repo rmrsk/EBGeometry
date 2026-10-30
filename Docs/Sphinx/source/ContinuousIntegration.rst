@@ -9,8 +9,8 @@ GitHub-hosted ``ubuntu-24.04`` runners (pinned: ``ubuntu-26.04``, which ``ubuntu
 has no ``clang-14`` and a Python too new for the pinned Sphinx). Together, the jobs check: code formatting
 (``clang-format``) and static analysis (``clang-tidy``, advisory); code correctness and assurance
 (the Catch2 unit-test suite, under multiple compilers, SIMD levels, and both ``float`` and
-``double`` precision; every bundled example built and run via CMake, and a subset also via GNU Make
-and direct compiler invocation, under GCC, Clang, and Intel's ``icpx``; a small consuming project
+``double`` precision; every bundled example built and run via CMake, GNU Make and direct compiler
+invocation, under GCC, Clang, and Intel's ``icpx``; a small consuming project
 that uses EBGeometry through ``add_subdirectory`` and ``find_package``; AddressSanitizer and UndefinedBehaviorSanitizer
 runs of the same test suite; device compiles of the GPU-callable code with HIP and, advisory, CUDA);
 spelling (``codespell``); license and copyright compliance (REUSE); and the project's documentation
@@ -82,9 +82,10 @@ advisory and does not gate ``CI-passed``. Full tier only.
 
 The example lanes below run every example: every folder under :file:`Examples/` with a
 ``main.cpp``. The folders are the only list of examples, which ``Examples/CMakeLists.txt`` globs the
-same way, so a new example needs no edit to CI. Each lane builds every example with warnings as
-errors, and each example exits nonzero when its results disagree with a reference (a brute-force
-scan, or distances worked out by hand).
+same way, so a new example needs no edit to CI. Each lane builds every example (all but
+``Examples-GNUMake`` with warnings as errors) and runs it to completion. An example checks nothing
+itself (the unit tests verify); a lane fails when an example does not compile, throws, or, in a build
+with assertions, trips an ``EBGEOMETRY_EXPECT()`` check.
 
 Linux-GNU
 ~~~~~~~~~
@@ -308,7 +309,7 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
   stage; runs when a ``Source/*.hpp``, a ``Tests/*.[ch]pp`` or the script itself changes.
 * **build-doc-figures** — renders the documentation figures from their
   LaTeX/TikZ sources under ``Docs/Sphinx/source/_static/`` (``stages: [manual]``;
-  requires ``pdflatex`` and ``pdftoppm`` on ``PATH``, see :ref:`Chap:Contributing`).
+  requires ``pdflatex`` and ``pdftoppm`` on ``PATH``; see ``Scripts/build-doc-figures.sh``).
 * **sphinx-build-html** — builds the Sphinx HTML docs in a managed Python virtual
   environment, with warnings treated as errors (``stages: [manual]``; run with
   ``pre-commit run sphinx-build-html --hook-stage manual``).
