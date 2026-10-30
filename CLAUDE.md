@@ -396,7 +396,7 @@ probes (one program per component, many named cases, `component/input/operation/
 `Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
 full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
-1. **Run the comparison against the PR's base**, from the repository root, once the PR is ready for
+1. **Run the comparison against the PR's base**, from the top of the branch's worktree, once the PR is ready for
    review (`--smoke` first gives a one-minute check that both sides build and every case runs with the
    same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict, and take
    about eight minutes for every case, builds included:
