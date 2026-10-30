@@ -492,7 +492,8 @@ draft). If a non-draft PR was already opened, convert it back with
 
 When opening a PR, **always use the repository's pull-request template**
 (`.github/pull_request_template.md`) — its `# Summary` sections (`Background`, `Solution`,
-`Side-effects`, `Alternative solutions`, `Performance`, `Where to look`) followed by the `Reviewer checklist`. The
+`Side-effects`, `Alternative solutions`, `Performance`, `Where to look`) followed by the `Reviewer
+checklist`. The
 `Performance` section carries the comparison report (see "Vetting every pull request for
 performance" above). Fill in the prose
 sections (this is the "PR note") but **leave every checklist item unchecked** (`- [ ]`) — the
@@ -501,15 +502,15 @@ does not follow this template, edit the PR body to conform to it.
 
 ## Implementing a feature
 
-How Claude goes from a feature request ("add X", "implement #N") to a pull request ready for human review.
-The rules elsewhere in this file (branching, tests, examples, performance, documentation) still apply; this
-section sets the order and the points where Claude stops for the user.
+How Claude goes from a feature request ("add X", "implement #N") to a pull request ready for human
+review. The rules elsewhere in this file (branching, tests, examples, performance, documentation) still
+apply; this section sets the order and the points where Claude stops for the user.
 
 1. **The first reply is a plan, not code.** Claude restates the feature in a sentence or two, and:
    - **proposes a branch name**: short, kebab-case, saying what the feature is (`exact-annulus`,
      `receipt-semicolons`), off `dev`. The branch is created only once the user agrees.
    - **asks how involved the user wants to be**:
-     - *hands-off*: Claude decides, and reports at the hand-over;
+     - *hands-off*: Claude decides (except the API, step 2), and reports at the hand-over;
      - *checkpoints*: Claude stops for the API design and before the hand-over, and decides the rest;
      - *close*: Claude brings every design decision, with options and a recommendation.
    - **interviews the user where a choice changes the design** (scope, semantics, the shape of the API, a
@@ -524,7 +525,7 @@ section sets the order and the points where Claude stops for the user.
    declarations with their Doxygen contracts and a short snippet of how a user would call it, and has it
    approved before implementing it, at every level of involvement. Changes to internals skip this step.
 3. **The draft pull request opens early.** Once the branch has its first meaningful commit (the approved
-   API, say), Claude asks to open the draft pull request, so that CI runs on every push. No issue is created
+   API, say), Claude asks to open the draft pull request, so that CI's fast tier runs on every push. No issue is created
    for a feature request: the pull request, filled from the template, links to the relevant existing issues
    rather than repeating them. Claude asks whether it closes an issue, and if so writes `Closes #N` in its
    body. That closes the issue only when `dev` is merged into `main`; after a merge into `dev`, Claude may
@@ -532,12 +533,12 @@ section sets the order and the points where Claude stops for the user.
 4. **Implementing.**
    - A test that fails without the feature is written before it, or with it.
    - Code a device runs is built and its `[gpu]` tests run with CUDA on the local GPU, with the register
-     and compile-time checks this file asks for.
+     and compile-time checks this file asks for. Without a GPU, the pull request's *Where to look* says so.
    - While the pull request is a draft, the quick performance look (one round, the probes the change can
      affect) runs after each change to the library or the probes.
    - The documentation, examples and performance cases the feature needs are part of the same pull request.
 5. **Before the hand-over**, Claude reviews its own diff (correctness, simplicity, this file's conventions)
-   before requesting `@claude review`, then records the receipt and follows "Human review" below.
+   before requesting `@claude review`, and then follows "Human review" below.
 
 ## Human review
 
@@ -550,8 +551,10 @@ A pull request is handed to the maintainer for review when all of these hold:
   state**, with the performance report and the *Where to look* section.
 
 **Marking it ready.** Claude marks a PR ready for review (`gh pr ready`) only when the maintainer asks for
-it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the
-conditions hold.
+it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the other
+conditions hold. When asked, Claude first makes sure the receipt measures the final code (recording it,
+which needs the maintainer's quiet-machine go, if it does not), then marks the PR ready, and hands it over
+once the full CI run that this starts has passed.
 
 **`@claude review` rounds.** Request a review after each push that changes code or docs, and stop when a
 round has no blocking finding. Each optional suggestion is either taken or declined with a one-line reason
