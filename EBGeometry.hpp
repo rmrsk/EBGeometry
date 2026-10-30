@@ -70,9 +70,11 @@
 
 /**
  * @brief Namespace containing all of EBGeometry's functionality.
- * @details EBGeometry is a header-only C++17 library for implicit functions, signed distance
- *          functions, constructive solid geometry (CSG), and DCEL surface meshes. Including
- *          EBGeometry.hpp exposes every public class and free function through this namespace.
+ * @details EBGeometry is a header-only C++17 library for signed distance functions, constructive
+ *          solid geometry (CSG), DCEL surface meshes, bounding volume hierarchies, point clouds and
+ *          ray queries, on the host and on a GPU. Including EBGeometry.hpp exposes every public class
+ *          and free function through this namespace, except the Random and SimpleTimer utilities
+ *          (include EBGeometry_Random.hpp or EBGeometry_SimpleTimer.hpp for those).
  */
 namespace EBGeometry {}
 
