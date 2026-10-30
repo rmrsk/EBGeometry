@@ -5,7 +5,7 @@
 /**
  * @file   EBGeometry_Vec.hpp
  * @brief  Declaration of 2D and 3D point/vector classes with templated
- * precision. Used with DCEL tools.
+ * precision, and free functions on them.
  * @author Robert Marskar
  */
 
@@ -28,7 +28,8 @@ namespace EBGeometry {
 /**
  * @brief Two-dimensional vector class with arithmetic operators.
  * @details Like Vec3T, the components are reached through operator[] (index 0 or 1).
- * @note Vec2T is a templated class primarily used with DCEL grids.
+ * @note Vec2T is used where a computation is reduced to two dimensions: a point projected to the plane
+ * of a DCEL polygon face or a triangle, and the cross-sections of some analytic shapes.
  * @tparam T Floating-point precision (float or double).
  */
 template <typename T>
@@ -85,7 +86,7 @@ public:
   operator[](size_t i) const noexcept;
 
   /**
-   * @brief Return av vector with x = y = 0.
+   * @brief Return a vector with x = y = 0.
    * @return Zero vector (0, 0).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -94,7 +95,7 @@ public:
 
   /**
    * @brief Return a vector with x = y = 1.
-   * @return Unit vector (1, 1).
+   * @return Ones vector (1, 1).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline static constexpr Vec2T<T>
@@ -231,9 +232,8 @@ public:
   length() const noexcept;
 
   /**
-   * @brief Compute square of vector
-   * @return Returns length of vector, i.e. X[0]*X[0] +
-   * X[1]*X[1]
+   * @brief Compute squared vector length.
+   * @return Squared Euclidean length: X[0]*X[0] + X[1]*X[1].
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline constexpr T
@@ -249,9 +249,8 @@ protected:
 /**
  * @brief Three-dimensional vector class with arithmetic operators.
  * @details The components are reached through operator[] (index 0, 1 or 2).
- * @note Vec3T is a templated class primarily used with DCEL grids. It is always
- * 3D, i.e. independent of the application's spatial dimension. This lets one use DCEL
- * functionality even though the simulation might only be 2D.
+ * @note Vec3T is the point and vector type used throughout EBGeometry. It is always 3D, i.e.
+ * independent of the application's spatial dimension.
  * @tparam T Floating-point precision (float or double).
  */
 template <typename T>
@@ -272,7 +271,7 @@ public:
   /**
    * @brief Copy constructor
    * @param[in] a_u Other vector
-   * @details Sets *this = u
+   * @details Sets *this = a_u
    */
   constexpr Vec3T(const Vec3T<T>& a_u) noexcept = default;
 
@@ -471,7 +470,7 @@ public:
 
   /**
    * @brief Division operator. Returns a vector with scalar divided components
-   * @param[in] s Scalar to divided by
+   * @param[in] s Scalar to divide by
    * @return Returns a new vector with X[i] = this->X[i] / s
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -498,7 +497,7 @@ public:
 
   /**
    * @brief Vector subtraction operator.
-   * @param[in] u Vector to subtraction
+   * @param[in] u Vector to subtract
    * @return (*this), with X[i] -= u[i] for each component.
    */
   EBGEOMETRY_HOST_DEVICE

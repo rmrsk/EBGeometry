@@ -7,8 +7,8 @@
  * @brief  The flattened, device-callable bounding volume hierarchy: PackedBVH, its node layout,
  * traversals and the types shared with the builders.
  * @details Device code needs only this header. The host-side builders are TreeBVH and its
- * partitioners (EBGeometry_TreeBVH.hpp) and the PackedBVH constructors that build from a TreeBVH
- * or partition a primitive list (EBGeometry_BVHBuild.hpp). Both include this one.
+ * partitioners (EBGeometry_TreeBVH.hpp), and the PackedBVH constructors that pack a TreeBVH and the
+ * static builds that partition a primitive list (EBGeometry_BVHBuild.hpp). Both include this one.
  * @author Robert Marskar
  */
 
@@ -318,8 +318,10 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * SIMD child tests read), and the root's box. Every box is stored once, in its parent's row; a node
  * holds no box of its own.
  *
- * Instances are obtained by calling TreeBVH::pack() (same primitive type) or
- * TreeBVH::packWith<Q>(converter) (type-converting pack).
+ * Instances are built directly from a list of (primitive, bounding volume) pairs with build(),
+ * buildTopDown(), buildBottomUp() or buildClusterSAH(), by packing a TreeBVH with TreeBVH::pack() (same
+ * primitive type) or TreeBVH::packWith() (type-converting pack), or by adopting a node array built
+ * elsewhere.
  *
  * PackedBVH imposes no interface requirement on P by itself -- it holds primitives opaquely and
  * only ever hands their range back to a caller-supplied leaf callback of traverse(). Nearest-surface
@@ -371,8 +373,9 @@ public:
    * @details Each node holds a primitive range (leaves) or child index table (interior nodes). It does
    * not hold its own box: every box is stored once, in its parent's row of the SIMD box array (the
    * root's in the BVH itself), and PackedBVH::getBoundingVolume(const Node&) finds it through the
-   * node's box slot. Exposed as a public nested type so that users can write traverse() callbacks
-   * (PrunePredicate, NodeKeyFactory) that inspect nodes.
+   * node's box slot. Exposed as a public nested type so that users can write traverse() visit callbacks,
+   * or their own walks over getNodes(), that inspect nodes. A node is 32 bytes at K = 4, in either
+   * precision.
    */
   struct Node
   {
@@ -514,7 +517,8 @@ public:
   static constexpr uint32_t RootBoxSlot = UINT32_MAX;
 
   /**
-   * @brief Deleted default constructor. Use TreeBVH::pack() or TreeBVH::packWith() to construct.
+   * @brief Deleted default constructor. Use build() (or another static build), TreeBVH::pack() or
+   * TreeBVH::packWith() to construct.
    */
   PackedBVH() = delete;
 
@@ -545,8 +549,8 @@ public:
 
   /**
    * @brief Construct by packing a TreeBVH (identity primitive type).
-   * @details Walks the tree depth-first, fills m_linearNodes and m_primitives directly,
-   * then builds the SoA AABB cache. The source tree must have been built with
+   * @details Walks the tree depth-first into host-side node, box and primitive arrays, then copies
+   * them into the pool and builds the SIMD box rows (as every build does). The source tree must have been built with
    * BV == AABBT<T>; bounding volumes are reused without conversion.
    * @param[in,out] a_pool Pool the packed arrays are reserved from; must outlive this object.
    * @param[in] a_tree Source tree.
@@ -559,7 +563,7 @@ public:
    * @details The source tree holds primitives of type Q; the packed BVH holds
    * primitives of type P.  The most common reason for this mismatch is an SoA packing
    * step: a tree built over individual triangles (Q = Triangle<T>) can be repacked
-   * into a BVH whose leaves hold SIMD-width groups (P = TriangleSoAT<T,W>), enabling
+   * into a BVH whose leaves hold SIMD-width groups (P = TriangleAoSoA<T, W>, as TriMeshSDF does), enabling
    * vectorised distance evaluation at every leaf visit.
    *
    * The converter is called once per leaf of the source tree and must return a
@@ -967,8 +971,7 @@ public:
    * or a query type of their own; see EBGeometry_BVHQuery.hpp), what is remembered between leaves
    * (@p a_state), what happens at a leaf (@p a_leaf), how near a node must be to be entered
    * (@p a_bound), what to do with a node before entering it (@p a_visit), and the order a node's children
-   * are visited in (@p a_order). (It replaces the four-callback traverse() and pruneTraverse() of earlier
-   * versions.)
+   * are visited in (@p a_order).
    *
    * At each interior node the query gives the K children their keys in one pass (Query::keys(), SIMD on
    * the host). A child is entered if its key is <= the bound and, for a floating-point key, not +infinity
@@ -1078,7 +1081,7 @@ private:
 
   /**
    * @brief SoA layout of K children's AABBs for a single interior node: the public BVH::ChildBoxes that
-   * query types test (formerly a private struct here).
+   * query types test.
    */
   using ChildAABBSoA = ChildBoxes<T, K>;
 
@@ -1128,7 +1131,10 @@ private:
    * after it, in visit order from the back: m_slots[m_count - 1] is next. A traversal returning to
    * this level reads the next child's offset and its box from the node's row, so the
    * entry holds neither, and no key or distance either: those are computed again when the child is
-   * visited.
+   * visited. One entry per level rather than per child, as in compressed wide BVH traversals (Ylitie,
+   * Karras and Laine, HPG 2017): measured on an AMD GPU (gfx90a, clang 17, -O3), a kernel evaluating one
+   * mesh SDF, BVH union or point-cloud query needs 272 bytes of stack per thread, against 768 with one
+   * entry per child.
    */
   struct StackEntry
   {

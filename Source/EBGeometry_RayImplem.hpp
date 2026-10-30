@@ -242,7 +242,9 @@ inline constexpr bool CalledOutOfLine = isPoolHandle<S> || IsComposition<S>::val
 /**
  * @brief A shape's value at a point (its signedDistance()), out of line on a device.
  * @details Internal helper; not part of the public API. What valueAt() calls for a shape that
- * CalledOutOfLine selects.
+ * CalledOutOfLine selects. With the ray helpers inlined, one march() held about thirty copies of a mesh's
+ * distance, and the CUDA compile of the ray tests took eight minutes and 13 GB; out of line, 75 seconds and
+ * 3 GB.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape The shape.

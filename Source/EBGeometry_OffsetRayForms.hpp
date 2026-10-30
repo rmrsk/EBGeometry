@@ -10,8 +10,11 @@
  * instead of marching: a sphere's, a capsule's and an infinite cylinder's radius grows by the level, a plane
  * moves, a box shrinks or grows into a rounded box, and a mesh's surface grown by d is the union of its faces
  * offset by d (each face's slab over the face, with a capsule around each edge). The level passes through an
- * affine map divided by the map's value scale. RayDetail::LevelView is such a level set of a shape, and the
- * tape's ray program traces its Annular and Offset clauses through it as the fused operations do.
+ * affine map divided by the map's value scale. RayDetail::LevelView is such a level set of a shape. The fused
+ * Offset and Annular trace through it always; a tape's ray program traces its Annular and Offset clauses
+ * through it only when the tape lists TapeFeature::ExactOffsets, and marches them otherwise. An offset or
+ * annulus of anything else (a composition, CylinderSDF, whose grown rim is a torus, TorusSDF, or another
+ * offset or annulus) is marched.
  * @author Robert Marskar
  */
 

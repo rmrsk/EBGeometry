@@ -420,8 +420,8 @@ readIntoTriMeshSDF(const std::vector<std::string>& a_files,
 /**
  * @brief Read a file and return its faces as flat triangles.
  * @details readIntoPolygonSoup() followed by PolygonSoup::convertToTriangles(): each face becomes one
- * or more Triangle objects with the mesh's vertex positions and normals, a polygon by a fan from its
- * first vertex. Each triangle carries the id of the face it was cut from, as readIntoDCEL() numbers
+ * or more Triangle objects with the mesh's vertex positions and normals, a polygon by a fan from one
+ * of its vertices (the one whose smallest fan triangle is largest). Each triangle carries the id of the face it was cut from, as readIntoDCEL() numbers
  * the faces. The intermediate DCEL mesh lives in a Pool private to this call and is freed on return.
  * @tparam T    Floating-point precision.
  * @param[in] a_filename File name (.stl, .ply, .vtk or .obj).

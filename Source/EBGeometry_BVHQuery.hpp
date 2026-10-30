@@ -38,7 +38,7 @@ namespace BVH {
  * @brief The boxes of the K children of one interior node, in SoA layout: m_lo[axis][child] and
  * m_hi[axis][child], so that one axis of all K children loads as one SIMD register.
  * @details What a query type tests when PackedBVH::traverse() expands a node. Read-only for users: a
- * PackedBVH builds and refits its rows. (Formerly PackedBVH::ChildAABBSoA, private.)
+ * PackedBVH builds and refits its rows.
  * @tparam T Floating-point precision.
  * @tparam K Branching factor.
  */
@@ -52,8 +52,8 @@ struct ChildBoxes
    * is a power of two, which it is for exactly the (T, K) combinations that have a SIMD path (16, 32 and
    * 64 bytes). For every other K (3, 5, 6, 7, ...) no SIMD path is compiled, nothing performs an aligned
    * vector load on the row, and T's natural alignment is both sufficient and legal. Asking for
-   * sizeof(T) * K unconditionally made PackedBVH<double, P, 3> and its odd-K siblings fail to compile
-   * ("requested alignment 24 is not a positive power of 2").
+   * sizeof(T) * K unconditionally would make PackedBVH<double, P, 3> and its odd-K siblings fail to
+   * compile ("requested alignment 24 is not a positive power of 2").
    */
   static constexpr size_t RowAlignment =
     (((sizeof(T) * K) & ((sizeof(T) * K) - 1)) == 0) ? (sizeof(T) * K) : alignof(T);

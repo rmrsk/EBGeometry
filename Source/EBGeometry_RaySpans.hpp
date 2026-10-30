@@ -1004,7 +1004,7 @@ leafHit(const S& a_shape, const RayT<T>& a_ray, const T a_t, const RayOptions<T>
  * @details Internal helper; not part of the public API. A_trace(t0, t1, allSpans, spans) writes the
  * composition's list over [t0, t1]; allSpans asks every operand for all its spans, which a trace that
  * gets no further (its horizon at its start) is repeated with. A query that still gets no further, or
- * starts again too many times, is unresolved. A_resolve(t, leaf) then gives the crossing's normal and
+ * starts again too many times (64 passes), is unresolved. A_resolve(t, leaf) then gives the crossing's normal and
  * primitive, from the leaf its end names.
  * @tparam T       Floating-point precision.
  * @tparam Trace   Callable writing the list.

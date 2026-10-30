@@ -27,7 +27,7 @@ namespace EBGeometry {
 namespace DCEL {
 
 /**
- * @brief Class which represents a half-edge in a double-edge connected list
+ * @brief Class which represents a half-edge in a doubly-connected edge list
  * (DCEL).
  * @details This class is used in DCEL functionality which stores polygonal
  * surfaces in a mesh. The information contain in an EdgeT object contains the
@@ -135,8 +135,8 @@ public:
 
   /**
    * @brief Move assignment operator.
-   * @details Has the same full-state-transfer semantics as the move constructor (defaulted
-   * memberwise move; see its documentation for why this must be defaulted explicitly).
+   * @details Defaulted memberwise move; equivalent to copy assignment since every member is a
+   * plain value (see the copy constructor for why it must stay defaulted).
    * @param[in, out] a_otherEdge Other edge.
    * @return Reference to (*this).
    */
@@ -322,8 +322,10 @@ public:
   /**
    * @brief Compute the normal vector as the average of the face normals on
    * both sides of this edge.
+   * @details An edge with no pair edge (a hole) uses its own face's normal alone.
    * @param[in] a_mesh Owning mesh, used to resolve the face/pair-edge indices.
-   * @return Unit normal vector for this edge.
+   * @return Unit normal vector for this edge, or the zero vector if the two faces fold back onto
+   * each other (their normals cancel).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Vec3T<T>
@@ -370,7 +372,8 @@ public:
    * vertex is returned. Otherwise the sign is determined from the edge normal.
    * @param[in] a_x0   Query point.
    * @param[in] a_mesh Owning mesh, used to resolve the vertex indices.
-   * @return Signed distance; positive on the normal side of the edge.
+   * @return Signed distance; positive on the normal side of the edge (or of the closest end
+   * vertex).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T

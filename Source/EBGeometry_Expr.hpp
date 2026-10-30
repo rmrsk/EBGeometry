@@ -775,7 +775,7 @@ Blur(const A& a_operand, const ExprPrecision<A> a_blur, const ExprPrecision<A> a
  * @tparam A Shape or Expr type.
  * @param[in] a_operand Object.
  * @param[in] a_dist    Mollification distance r: the half-width of the sampling cube (finite).
- * @param[in] a_samples Samples per axis n (>= 1).
+ * @param[in] a_samples Samples per axis n (between 1 and 64).
  * @return The mollified object.
  */
 template <class A>

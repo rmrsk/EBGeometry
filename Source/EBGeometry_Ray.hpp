@@ -18,8 +18,11 @@
  * through their BVHs and faces (EBGeometry_MeshRayForms.hpp), and the compositions built from them, a
  * union, intersection, difference, complement or affine map of shapes with ray forms (the fused
  * operations and BVHUnion in EBGeometry_CSGRayForms.hpp, and Tape): those combine where the ray is
- * inside each operand (its spans, see RaySpansT), and march only the parts that have no ray form.
- * RayOptions::m_march marches any shape instead.
+ * inside each operand (its spans, see RaySpansT), and march only the parts that have no ray form. An offset
+ * or annulus of a shape whose level sets have a closed form (a plane, sphere, box, infinite cylinder, capsule
+ * or mesh SDF, or an affine map of one) is traced exactly too (EBGeometry_OffsetRayForms.hpp): always as a
+ * fused operation, and in a tape that lists TapeFeature::ExactOffsets. RayOptions::m_march marches any shape
+ * instead.
  * @author Robert Marskar
  */
 
@@ -181,8 +184,10 @@ struct RayOptions
  * @brief One end of a span: where a ray enters or leaves an object.
  * @details An end is either a crossing of the object's surface, or the end of the interval the ray was
  * traced over (or of what is known of it; see RaySpansT), which is no crossing. A crossing carries no
- * normal, so that span lists stay small: a composition names the leaf it lies on (m_leaf), and asks that
- * leaf for the normal once, at the crossing the trace ends at.
+ * normal, so that span lists stay small (on a device they live in each thread's local memory, where every
+ * word copied or compared costs a memory operation, which is most of what tracing costs): a composition
+ * names the leaf it lies on (m_leaf), and asks that leaf for the normal once, at the crossing the trace ends
+ * at.
  * @tparam T Floating-point precision.
  */
 template <class T>

@@ -1443,7 +1443,7 @@ public:
    * @brief Full constructor.
    * @param[in] a_tip    Cone tip position.
    * @param[in] a_height Cone height (tip to base).
-   * @param[in] a_angle  Full opening angle in degrees.
+   * @param[in] a_angle  Full opening angle in degrees (must be in (0°, 180°)).
    */
   ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
   {
@@ -1702,9 +1702,12 @@ protected:
  * subtracted from a conventional SDF.
  *
  * The output of `signedDistance` is on the range `[0, m_noiseAmplitude]` for a single octave.
- * Multiple octaves sum scaled contributions: each successive octave doubles the spatial frequency
- * (controlled by `m_noisePersistence` dividing the frequency) and attenuates the amplitude by
+ * Multiple octaves sum scaled contributions: each successive octave divides the spatial frequency by
+ * `m_noisePersistence` (doubling it at the default 0.5) and multiplies the amplitude by
  * `m_noisePersistence`.
+ *
+ * The full constructor shuffles the permutation table with a std::mt19937 seeded with 0, so every
+ * PerlinSDF built with the same parameters is the same noise field; call shuffle() for another.
  *
  * @tparam T Floating-point precision.
  */
@@ -1798,7 +1801,7 @@ public:
   operator=(PerlinSDF&&) = default;
 
   /**
-   * @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude].
+   * @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude] for one octave.
    * @param[in] a_point Input point.
    * @return Octave-summed Perlin noise value scaled by m_noiseAmplitude.
    */
@@ -1827,8 +1830,8 @@ public:
 
   /**
    * @brief Shuffle the permutation table with the provided uniform random number generator.
-   * @details Reseeds the 256-entry permutation table using std::shuffle and then mirrors it
-   * into the upper 256 entries. The URNG type must satisfy the C++ UniformRandomBitGenerator
+   * @details Resets the first 256 entries of the permutation table to 0, ..., 255, permutes them with
+   * std::shuffle and then mirrors them into the upper 256 entries. The URNG type must satisfy the C++ UniformRandomBitGenerator
    * concept (e.g., std::mt19937).
    * @tparam URNG Uniform random number generator type (e.g., std::mt19937).
    * @param[in] g Uniform random number generator instance to drive the shuffle.
@@ -1878,7 +1881,8 @@ public:
 protected:
   /**
    * @brief Ken Perlin's original 256-entry permutation table.
-   * @details Used by the full constructor and shuffle() to seed m_permutationTable. Stored as a
+   * @details Copied into m_permutationTable by the full constructor, which then calls shuffle(); that
+   * resets and permutes the table, so the noise does not use Perlin's own permutation. Stored as a
    * static constexpr member so it is available to subclasses without polluting the enclosing
    * namespace.
    */
@@ -1913,8 +1917,8 @@ protected:
 
   /**
    * @brief Integer hash permutation table (512 entries: [0..255] mirrored).
-   * @details Default-constructed with all zeros (degenerate, constant-zero noise).
-   * Use the full constructor or shuffle() to populate with a real permutation.
+   * @details Filled by every constructor (the default constructor delegates to the full one) and
+   * refilled by shuffle().
    */
   Array<int, 512> m_permutationTable = {};
 

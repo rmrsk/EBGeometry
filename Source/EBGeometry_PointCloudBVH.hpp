@@ -53,6 +53,9 @@ namespace EBGeometry {
  * search bound from the leaf that point lives in** (skipping that leaf during traversal) -- a
  * strictly cheaper search that an external point cannot use.
  *
+ * @note The index-based build is several times faster than a full SAH tree, and for near-uniform clouds
+ * just as tight to query.
+ *
  * @note Device portability. The held PackedBVH and every cloud array (positions, the seeding
  * tables, the leaf order) are reserved from the same Pool, and the class stores only offsets into
  * it, so a PointCloudBVH is trivially copyable. Mirror the pool, call rebasedView(), and pass the
@@ -103,9 +106,11 @@ public:
   /**
    * @brief Build a BVH over a point cloud.
    * @details A point's cloud index, which the queries report, is its position in @p a_positions.
-   * @param[in,out] a_pool       Pool the packed BVH's arrays are reserved from; must outlive this object.
+   * @param[in,out] a_pool       Pool the packed BVH and the cloud arrays are reserved from; must outlive
+   *                             this object.
    * @param[in] a_positions      Point positions. Fewer than PointCloud::InvalidIndex, all finite.
-   * @param[in] a_targetLeafSize Target points per leaf (the build stops splitting at or below it).
+   * @param[in] a_targetLeafSize Target points per leaf (the build stops splitting at or below it). Must
+   *                             be at least 1.
    */
   EBGEOMETRY_HOST
   inline PointCloudBVH(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, std::size_t a_targetLeafSize = 16 * W);
@@ -295,8 +300,8 @@ private:
 
   /**
    * @brief Run the index-based, copy-free top-down midpoint build over a point cloud.
-   * @details Static so it can run before base construction (its result is forwarded to the delegated
-   * constructor above). Partitions an index permutation in place by longest-axis midpoint and packs
+   * @details Static so it can run in the public constructor's delegation, before the object exists (its
+   * result is forwarded to the delegated constructor above). Partitions an index permutation in place by longest-axis midpoint and packs
    * the resulting leaves into PointGroup SoA groups inline.
    * @param[in] a_positions Point positions to build over.
    * @param[in] a_leafSize  Target points per leaf; the build stops splitting at or below it.

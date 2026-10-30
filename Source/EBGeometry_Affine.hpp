@@ -5,8 +5,9 @@
 /**
  * @file   EBGeometry_Affine.hpp
  * @brief  Declaration of Affine3T, an affine map of 3D space (a 3x3 matrix and a shift).
- * @details The tape folds every chain of Translate, Rotate, Reflect and Scale into one Affine3T, which
- * it applies to the query point before evaluating the transformed subtree. Device-callable.
+ * @details The expression builder and the fused operations fold every chain of Translate, Rotate,
+ * Reflect and Scale into one Affine3T, which the Tape or the fused node applies to the query point
+ * before evaluating the transformed subtree. Device-callable.
  * @author Robert Marskar
  */
 

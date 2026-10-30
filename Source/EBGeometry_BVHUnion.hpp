@@ -6,7 +6,7 @@
  * @file   EBGeometry_BVHUnion.hpp
  * @brief  BVH-accelerated unions of many primitives of one type: BVHUnion and BVHSmoothUnion.
  * @details Device-callable value types. They need the BVH builders and the blend operators, but
- * not the shared_ptr-based CSG layer in EBGeometry_CSG.hpp.
+ * not the expression builder, the Tape or the fused operations that EBGeometry_CSG.hpp also includes.
  * @author Robert Marskar
  */
 
@@ -224,7 +224,7 @@ public:
    * in it too. Must outlive this object and every copy of it.
    * @param[in]     a_primitives      Primitives (must be non-empty).
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
-   * @param[in]     a_construction           Preset construction method; every BVH::Construction value is supported.
+   * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
    * The leaf sizes are defaultConstructionOptions().
    */
   EBGEOMETRY_HOST
@@ -374,8 +374,8 @@ private:
 
 /**
  * @brief BVH-accelerated smooth union of many primitives of one type.
- * @details Uses the BVH to locate the two nearest primitives and blends their values with a
- * smooth-minimum operator, yielding C1 (or better) blending across nearby surfaces with
+ * @details Uses the BVH to find the two primitives with the smallest values and blends those values
+ * with a smooth-minimum operator, yielding C1 (or better) blending across nearby surfaces with
  * sub-linear query cost. Otherwise identical to BVHUnion: a plain, trivially copyable value type
  * whose signedDistance() is callable on the host and on a device.
  * @tparam T     Floating-point precision.
@@ -435,7 +435,7 @@ public:
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
    * @param[in]     a_smoothLen       Smoothing length (must be > 0).
    * @param[in]     a_blend           Smooth-minimum operator.
-   * @param[in]     a_construction           Preset construction method; every BVH::Construction value is supported.
+   * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
    * The leaf sizes are defaultConstructionOptions().
    */
   EBGEOMETRY_HOST
@@ -469,10 +469,10 @@ public:
 
   /**
    * @brief Evaluate the smooth union at a point.
-   * @details Finds the two nearest primitives via the BVH and blends their values. Negative when
+   * @details Finds the two smallest primitive values via the BVH and blends them. Negative when
    * inside the smooth union.
    * @param[in] a_point 3D query point.
-   * @return Smooth minimum of the values of the two closest primitives.
+   * @return Smooth minimum of the two smallest primitive values.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T

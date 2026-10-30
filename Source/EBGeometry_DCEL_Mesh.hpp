@@ -48,29 +48,28 @@ namespace DCEL {
  * which is why this class is almost always embedded into a bounding volume
  * hierarchy.
  * @note MeshT owns no resources: every member (three PODVectors, the
- * search-algorithm enum, a control-block pointer and a base pointer) is a
+ * search-algorithm enum, and the PoolLocation held by its PoolHandle base) is a
  * plain value, so MeshT is trivially copyable -- a bytewise copy is
  * meaningful in any address space, since it never needs to dereference
  * anything beyond its own bytes. This is what makes a mesh built and
  * reconciled on the host mirror-safe: its Pool can be mirrored to a device
  * and the mesh rebased onto the mirror (see rebasedView()), with zero
  * pointer patching inside the mesh itself.
- * @details A mesh resolves its PODVector offsets through whichever of two
- * pointers is set, and exactly one of them always is:
- * - m_control, the stable control block of the Pool the mesh was reserved
- *   from. Set on the first reserveVertices/Edges/Faces() call. Because the
+ * @details A mesh resolves its PODVector offsets through its PoolLocation (see
+ * PoolHandle and PoolLocation::base()), which takes one of two forms:
+ * - it follows the control block of the Pool the mesh was reserved from,
+ *   from the first reserveVertices/Edges/Faces() call on. Because the
  *   base is re-read from the control block on every access, a mesh is
  *   queryable at any point during the build, including across a
  *   Pool::reserve that grows and moves the block -- there is no freeze,
  *   and nothing to re-bind.
- * - m_base, a plain base address, set only by rebasedView() and only for a
- *   device-accessible target, since a kernel cannot follow a control block.
- * A device view therefore has m_control == nullptr and nothing else does,
- * which is what lets base() assert exactly, in both directions: a non-null
- * m_control on device means a host descriptor was copied into a kernel
- * without rebasedView(), and a null m_control on the host means either a
- * device view being dereferenced on the host or a mesh nobody ever
- * reserved into.
+ * - it holds a snapshot of a plain base address, made only by rebasedView()
+ *   and only for a device-accessible target, since a kernel cannot follow a
+ *   control block. Host code may use the snapshot only if that memory is
+ *   host-accessible (Managed, Mapped).
+ * A location that still follows a control block on a device means a host
+ * descriptor was copied into a kernel without rebasedView(), which
+ * EBGEOMETRY_EXPECT catches.
  * @warning A reference returned by getVertex()/getEdge()/getFace() is a raw
  * address resolved at the moment of the call, and Pool::reserve may
  * deallocate the block it points into (see the warning on Pool::reserve).
@@ -294,7 +293,7 @@ public:
    * @brief Set the inside/outside algorithm to use when computing the signed distance to polygon
    * faces.
    * @details Computing the signed distance to faces requires testing if a point
-   * projected to a polygo face plane falls inside or outside the polygon face.
+   * projected to a polygon face plane falls inside or outside the polygon face.
    * There are multiple algorithms to use here.
    * @param[in] a_algorithm Algorithm to use
    */
@@ -541,7 +540,7 @@ public:
    * @code
    * hostPool.freeze();
    * Pool       devicePool = Pool::mirror(hostPool, deviceMemoryResource());
-   * const Mesh deviceMesh = mesh->rebasedView(devicePool);   // rebase on the host ...
+   * const Mesh deviceMesh = mesh.rebasedView(devicePool);    // rebase on the host ...
    * myKernel<<<blocks, threads>>>(deviceMesh, ...);          // ... then copy by value
    * @endcode
    *
@@ -644,20 +643,20 @@ protected:
    * @brief Implementation of signed distance function which iterates through all
    * faces
    * @param[in] a_point 3D point
-   * @return Signed distance to the nearest face.
+   * @return Signed distance to the nearest face, or +infinity if the mesh has no faces.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   DirectSignedDistance(const Vec3& a_point) const noexcept;
 
   /**
-   * @brief Implementation of squared signed distance function which iterates
-   * through all faces.
-   * @details This first find the face with the smallest unsigned square
-   * distance, and the returns the signed distance to that face (more efficient
+   * @brief Implementation of signed distance function which iterates through all
+   * faces, comparing squared unsigned distances.
+   * @details This first finds the face with the smallest unsigned squared
+   * distance, and then returns the signed distance to that face (more efficient
    * than the other version).
    * @param[in] a_point 3D point
-   * @return Signed distance to the nearest face.
+   * @return Signed distance to the nearest face, or +infinity if the mesh has no faces.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T

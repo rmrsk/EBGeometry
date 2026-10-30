@@ -97,7 +97,8 @@ protected:
 
 /**
  * @brief Implementation of a nested index SFC.
- * @details The SFC is encoded by the code = i + j * N + k * N * N in 3D, where i,j,k are the block indices.
+ * @details The SFC is encoded by the code = i + j * N + k * N * N in 3D, where i,j,k are the block indices
+ * and N = ValidSpan + 1.
  */
 struct Nested
 {

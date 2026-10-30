@@ -9,9 +9,9 @@
  * that refer to them by type and index, so evaluating it calls no virtual function and follows no
  * pointer. It is a pool handle (see PoolHandle): trivially copyable, and evaluated against whichever
  * mirror of its pool it is rebased onto. The evaluator keeps to the device subset (no recursion, no
- * function pointers, no exceptions); operations that evaluate a subtree several times (Blur, Mollify
- * and BVH-accelerated unions) call a sub-program through a call-depth template, so nesting is bounded
- * at compile time.
+ * function pointers, no exceptions); operations that evaluate a subtree several times (Blur, Mollify,
+ * FiniteRepetition and BVH-accelerated unions) call a sub-program through a call-depth template, so nesting
+ * is bounded at compile time.
  *
  * Beside the clauses, the compiler writes a ray program for the tape and for each BVH union operand: the
  * expression's unions, intersections, complements and affine maps over the primitives that have ray forms,
@@ -84,7 +84,7 @@ struct TapeOptions
  * - **The compiler decides.** TapeDetail::Compiler receives the features and emits the feature's clauses,
  *   flags or parameters only when it is listed; clause flags a feature sets are never set otherwise.
  * - **The evaluator compiles the feature's code only under `if constexpr (hasFeature<F>)`**, at every place it
- *   is reached from: the clause loop, the out-of-line leaf calls, traceRay() and rayLeafHit(). A run-time test
+ *   is reached from (for ExactOffsets: rayLeaf(), rayMarchedWithin(), traceRay() and rayLeafHit()). A run-time test
  *   of a flag alone is not enough: the code behind it is still in every kernel.
  * - **A plain tape compiles exactly the code it did before.** Check that Tape<T>'s kernels are unchanged: the
  *   ptxas register, stack and spill figures (or the SASS) of the float tape kernels (signedDistance() once
@@ -106,7 +106,9 @@ struct Tag
 
 /**
  * @brief Ray queries trace an Offset or Annular of a primitive with closed-form level sets (or of an affine map
- * of one) exactly, from its level sets (see RayDetail::LevelForm); without it they march it.
+ * of one) exactly, from its level sets (see RayDetail::LevelForm); without it they march it. The level passes
+ * through Scale, Translate and Rotate to the primitive, divided by the map's value scale, so an annulus of a
+ * scaled mesh is still traced exactly.
  */
 struct ExactOffsets : Tag
 {
@@ -178,7 +180,8 @@ enum class RayOp : uint8_t
 
 /**
  * @brief One ray program clause.
- * @details Internal helper; not part of the public API. The meaning of each field depends on m_op.
+ * @details Internal helper; not part of the public API. The meaning of each field depends on m_op. The ray
+ * programs cost about 16 bytes per expression node of the tape's pool.
  */
 struct RayClause
 {
@@ -193,7 +196,7 @@ struct RayClause
   uint8_t m_flags = 0;
 
   /**
-   * @brief Primitive type index (Leaf).
+   * @brief Primitive type index (Leaf, and a Marched clause holding a deferred level set).
    */
   uint16_t m_type = 0;
 
@@ -664,7 +667,8 @@ struct Staging;
  * smooth union of many objects is evaluated with a BVH over their boxes, pruned as BVHUnion is, unless an
  * object is not a distance. With exact distances the value is the plain minimum; with operands that are
  * only bounds (DistanceQuality::Bound) pruning can skip an operand whose value is below its box's distance,
- * so the value can be larger than the plain minimum, but it keeps the sign and is still a bound. Blur, Mollify and BVH unions evaluate a sub-program several times; they nest
+ * so the value can be larger than the plain minimum, but it keeps the sign and is still a bound. Blur, Mollify,
+ * FiniteRepetition and BVH unions evaluate a sub-program several times; they nest
  * at most MaxCallDepth deep, and a sub-program needs at most ValueStackSize values and PointStackSize
  * points at once; the constructor rejects an expression that needs more.
  *
@@ -707,7 +711,7 @@ public:
   static constexpr size_t BranchingRatio = 4;
 
   /**
-   * @brief How deep Blur, Mollify and BVH unions may nest.
+   * @brief How deep Blur, Mollify, FiniteRepetition and BVH unions may nest.
    */
   static constexpr unsigned MaxCallDepth = 4;
 
@@ -971,7 +975,7 @@ public:
   getDistanceQuality() const noexcept;
 
   /**
-   * @brief Number of sub-programs (1 plus one per Blur, Mollify and BVH union operand).
+   * @brief Number of sub-programs (1 plus one per Blur, Mollify, FiniteRepetition and BVH union operand).
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -995,7 +999,7 @@ public:
   getNumBVHUnions() const noexcept;
 
   /**
-   * @brief How deep sub-program calls nest (0 if the tape has no Blur, Mollify or BVH union).
+   * @brief How deep sub-program calls nest (0 if the tape has no Blur, Mollify, FiniteRepetition or BVH union).
    * @return The depth.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1483,6 +1487,13 @@ private:
 
   /**
    * @brief Evaluate a sub-program at a point.
+   * @details One function per call level D, out of line in a device pass so that a device compile stays small:
+   * HIP inlines every device function, and this one calls the level below from many places, so inlined, the
+   * copies multiply with every level. Because D is a template parameter, a kernel reserves stack for all
+   * MaxCallDepth + 1 levels whatever the tape needs (a tape of depth 0 included, since signedDistance() still
+   * contains the call to the full depth): each level holds its value and point stacks, a BVH union's traversal
+   * stack and saved registers, a few kilobytes per thread in all. A tape listed as another tape's primitive adds
+   * its own levels on top.
    * @tparam D How deep the sub-program's own calls may still nest.
    * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
    * @param[in] a_program  Sub-program.

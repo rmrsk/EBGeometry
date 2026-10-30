@@ -339,7 +339,7 @@ struct Background
   std::thread m_thread;
 
   /**
-   * @brief Set to stop a host render early.
+   * @brief Set to stop the render early (a device render after the band of rows under way).
    */
   std::atomic<bool> m_cancel{false};
 
@@ -512,8 +512,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   Vec3T<T> cursorPoint = Vec3T<T>::zeros();
   T        cursorValue = T(0);
 
-  // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a spacing), every
-  // 1/20 of the box's diagonal (2), every 1/50 (3).
+  // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a
+  // spacing), every 1/20 of the box's diagonal (2), every 1/50 (3).
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;
 
@@ -1102,8 +1102,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
               camera.m_target = pick.m_point;
             }
 
-            // The object picked: a tape's leaf, a fused composition's part, a union's member; a mesh SDF is one
-            // object, whose primitive is the face picked on it. It is tinted gold, and outlined (see show()).
+            // The object picked: a tape's leaf (any other shape names primitive 0, so the whole of it); a mesh
+            // SDF is one object, whose primitive is the face picked on it. It is tinted gold, and outlined (see
+            // show()).
             settings.m_highlightPrimitive = !picked                 ? Settings<T>::NoPrimitive
                                             : primitivesAreFaces<S> ? Settings<T>::AllPrimitives
                                                                     : pick.m_primitive;
@@ -1283,7 +1284,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_i: {
-          // Off, every 1/20 of the box's diagonal, every 1/50.
+          // Off, as the settings give them (skipped when they set no spacing), every 1/20 of the box's
+          // diagonal, every 1/50.
           isoMode = (isoMode + 1) % 4;
           isoMode = (isoMode == 1 && givenIso <= T(0)) ? 2 : isoMode;
 

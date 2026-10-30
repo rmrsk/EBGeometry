@@ -688,7 +688,7 @@ blur(const T* a_weights, const Vec3T<T>& a_point, const F& a_operand) noexcept
 
   // The 27 taps p + d (i, j, k), in this order; a tap m = |i| + |j| + |k| steps from the centre has weight
   // w[1 + m]. One loop that computes each tap's point itself: with the point computed in a callable
-  // called once per tap, nvcc 12.5 placed some taps at the wrong points (issue #217).
+  // called once per tap, nvcc 12.5 placed some taps at the wrong points.
   T value = T(0);
 
   if constexpr (isTagged<V>) {

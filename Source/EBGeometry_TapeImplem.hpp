@@ -754,8 +754,9 @@ private:
 
   /**
    * @brief Append an intersection's ray clauses, gathered per operand: those of the operands traced from
-   * their spans first, then those of the operands marched (a Marched clause, or its complement), each marched
-   * only within the spans of the operands before it (see TapeDetail::RayOp::Marched).
+   * their spans first, then those of the operands marched (a Marched clause, or its complement) or holding a
+   * mesh's deferred level set (rewritten into a Marched clause with bit 3), each traced only within the spans of
+   * the operands before it (see TapeDetail::RayOp::Marched).
    * @details Moving a marched operand, which holds one span list, behind the others needs no more span lists
    * at once than their order as written.
    * @param[in] a_state    Sub-program state.

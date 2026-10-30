@@ -50,7 +50,7 @@ makePack(const S& a_first, const Rest&... a_others)
 }
 
 /**
- * @brief Call a function with each index below N, as a std::integral_constant.
+ * @brief Call a function with each index in Is, as a std::integral_constant.
  * @tparam F  Function type.
  * @tparam Is Indices.
  * @param[in] a_f Function.

@@ -12,8 +12,8 @@
  * from within the material, or a mesh whose orientation is inverted) is tinted, so that it cannot be
  * mistaken for an outside. Each pixel is computed by PixelQuery, a trivially copyable functor callable
  * on a device, so Renderer::render() runs it on the host's threads and Renderer::renderOnDevice() runs
- * the same functor through GPU::parallelFor(). Render::view() (EBGeometry_Viewer.hpp) shows the image in a
- * window.
+ * the same functor through GPU::parallelFor(). Render::view() (EBGeometry_Viewer.hpp) shows a shape in an
+ * interactive window, rendered this way.
  * @author Robert Marskar
  */
 
@@ -51,8 +51,9 @@ namespace EBGeometry::Render {
 
 /**
  * @brief Whether a shape's primitives (HitT::m_primitive) are the faces of one object rather than objects:
- * true for the mesh SDFs, whose primitive is a face of the mesh; false for a Tape (its leaves), a fused
- * composition (its parts), a BVH union (its members) and an analytic shape (itself).
+ * true for the mesh SDFs, whose primitive is a face of the mesh; false for every other shape: a Tape (whose
+ * primitives are its leaves), a fused composition and an analytic shape (one object, primitive 0), and a BVH
+ * union (whose hits carry what its members name: a member mesh's face, or 0).
  * @tparam S Shape type.
  */
 template <class S>

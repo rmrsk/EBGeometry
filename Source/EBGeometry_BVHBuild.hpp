@@ -4,10 +4,10 @@
 
 /**
  * @file   EBGeometry_BVHBuild.hpp
- * @brief  Host-side BVH construction: the PackedBVH constructors that build from a TreeBVH or
- * partition a primitive list directly (top-down, along a space-filling curve, or ClusterSAH).
- * @details Includes EBGeometry_TreeBVH.hpp, whose partitioners and leaf predicate these constructors
- * use, and EBGeometry_PackedBVH.hpp. Code that only queries a PackedBVH, device code in particular,
+ * @brief  Host-side BVH construction: the PackedBVH constructors that pack a TreeBVH, and PackedBVH's
+ * static builds that partition a primitive list directly (build(), buildTopDown(), buildBottomUp() and
+ * buildClusterSAH()).
+ * @details Includes EBGeometry_TreeBVH.hpp, whose partitioners and leaf predicate these builds use, and EBGeometry_PackedBVH.hpp. Code that only queries a PackedBVH, device code in particular,
  * can include EBGeometry_PackedBVH.hpp alone.
  * @author Robert Marskar
  */

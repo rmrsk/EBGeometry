@@ -30,7 +30,7 @@ namespace EBGeometry {
 namespace DCEL {
 
 /**
- * @brief Class which represents a polygon face in a double-edge connected list
+ * @brief Class which represents a polygon face in a doubly-connected edge list
  * (DCEL).
  * @details This class is a polygon face in a DCEL mesh. It stores the index of
  * one of the half-edges that circulate the inside of the polygon face, as well
@@ -57,7 +57,7 @@ namespace DCEL {
  * computeProjectionDirections, flipNormal, setHalfEdge/setInsideOutsideAlgorithm,
  * normalizeNormalVector, the getters, projectPointIntoFacePlane/projectPoint,
  * computeWindingNumber/computeCrossingNumber/computeSubtendedAngle, isPointInsideFace,
- * signedDistance, unsignedDistance2, getSmallestCoordinate/getHighestCoordinate) are annotated
+ * signedDistance, rayCrossing, unsignedDistance2, getSmallestCoordinate/getHighestCoordinate) are annotated
  * EBGEOMETRY_HOST_DEVICE. computeCentroid/computeNormal/computeArea (and therefore reconcile,
  * which calls all three) and gatherVertexIndices/gatherEdgeIndices/getAllVertexCoordinates all
  * materialize a std::vector, so they remain EBGEOMETRY_HOST.
@@ -168,7 +168,8 @@ public:
    * and the 2D embedding of the polygon
    * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @note "Everything" must be set before doing this, i.e. the face must be
-   * complete with half edges and there can be no dangling edges.
+   * complete with half edges and there can be no dangling edges. A face with fewer than 3 vertices
+   * aborts with a message in every build; a zero-area face gets a zero normal.
    */
   EBGEOMETRY_HOST
   inline void
@@ -442,7 +443,9 @@ protected:
   computeCentroid(const Mesh& a_mesh);
 
   /**
-   * @brief Compute the normal position of this polygon
+   * @brief Compute the unit normal vector of this polygon (Newell's method).
+   * @details A zero-area face (collinear or coincident vertices) gets a zero normal rather than a
+   * NaN. A face with fewer than 3 vertices aborts with a message in every build.
    * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    */
   EBGEOMETRY_HOST
@@ -459,6 +462,7 @@ protected:
 
   /**
    * @brief Normalize the normal vector, ensuring it has a length of 1
+   * @details A zero normal (a zero-area face) is left zero.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
