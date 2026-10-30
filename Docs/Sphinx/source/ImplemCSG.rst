@@ -226,11 +226,10 @@ evaluates it:
    const Tape<T> tape(pool, shape);           // shape is an Expr<T>, or any shape
    const T       d = tape.signedDistance(p);
 
-It stores its primitives in one pool array per primitive type and its operations as a list of
-clauses that refer to them by type and index, so evaluating it calls no virtual function and follows
-no pointer, and the same tape runs on the host and on a GPU. A chain of ``Translate``, ``Rotate``, ``Reflect`` and ``Scale`` is folded into one
-affine map (`Affine3T <doxygen/html/structEBGeometry_1_1Affine3T.html>`__) when the ``Expr`` is
-built.
+What the tape is, how an expression is compiled into it, and the limits on what one tape can hold
+are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Translate``, ``Rotate``,
+``Reflect`` and ``Scale`` is folded into one affine map
+(`Affine3T <doxygen/html/structEBGeometry_1_1Affine3T.html>`__) when the ``Expr`` is built.
 
 * **Primitive types.** The twelve analytic shapes and the three mesh distance fields
   (``FlatMeshSDF``, and ``MeshSDF`` and ``TriMeshSDF`` with the default branching factor and SIMD
@@ -253,11 +252,12 @@ built.
   ``NotADistance`` cannot be pruned and is evaluated operand by operand.
   `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ also chooses the BVH
   construction method.
-* **Sub-programs and limits.** Blur, Mollify, FiniteRepetition and the operands of a BVH union are
-  compiled into sub-programs that their clause evaluates several times. The evaluator has no recursion: a call
-  depth is a template parameter, so calls nest at most ``Tape::MaxCallDepth`` (4) deep, and a
-  sub-program holds at most ``ValueStackSize`` values and ``PointStackSize`` points at once. The
-  constructor rejects an expression that needs more, with a message saying which limit it reached.
+* **Limits.** Blur, Mollify, FiniteRepetition and the operands of a BVH union are compiled into
+  sub-programs, which nest at most ``Tape::MaxCallDepth`` (4) deep, and a sub-program holds at most
+  ``Tape::ValueStackSize`` (16) values and ``Tape::PointStackSize`` (8) points at once. The constructor
+  rejects an expression that needs more, with a message saying which limit it reached. How the shape
+  of an expression uses these limits, and how to stay within them (build unions from a list rather
+  than nesting them on the right), is in :ref:`Chap:Tape`.
 * **Metadata.** ``computeBoundingVolume()`` and ``getDistanceQuality()`` return the expression's
   box and quality. The quality is a runtime value, so a tape used as another object's primitive
   counts as ``Bound`` there. ``getNumPrograms()``, ``getNumClauses()``, ``getNumBVHUnions()`` and
@@ -269,8 +269,8 @@ built.
 * **On a GPU.** A tape is evaluated in a kernel like any pool-backed type: freeze its pool, mirror
   it into device memory, and pass ``rebasedView(devicePool)`` to the kernel by value. Every
   operation, primitive type and BVH union runs there. A kernel that evaluates a tape reserves stack
-  for every call level, whatever the tape needs, which comes to a few kilobytes per thread; a tape
-  listed as another tape's primitive adds its own levels on top.
+  for every call level, whatever the tape needs; a tape listed as another tape's primitive adds its
+  own levels on top.
 
 .. _Sec:TapeRays:
 
@@ -316,9 +316,9 @@ Fused composition
 -----------------
 
 A tape interprets its clauses one after another, which on a GPU costs several times what the same
-solid written out by hand does (five to ten times for a few analytic shapes in ``float``; little in
-``double``, whose arithmetic dominates there, and little for a mesh, whose traversal dominates). The
-Fused probe tracks the ratio (see :ref:`Chap:PerformanceTesting`). When the structure of a composition is known when the program is
+solid written out by hand does for a few analytic shapes in ``float``, and little in ``double``, whose
+arithmetic dominates there, or for a mesh, whose traversal dominates. The Fused probe measures the
+ratio (see :ref:`Chap:PerformanceTesting`). When the structure of a composition is known when the program is
 compiled, the functions in namespace ``Fused`` build it as types instead
 (`EBGeometry_Fused.hpp <doxygen/html/EBGeometry__Fused_8hpp.html>`__):
 
@@ -364,52 +364,27 @@ same solid both ways.
 The deciding leaf
 -----------------
 
-A tape's ``closestPrimitive(p)`` names the leaf of the composition that decides its value at ``p``: the
-primitive whose surface the value comes from there. It returns a
-`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__: the leaf's number, the
-primitive's type and index in the tape's arrays, and the point in the leaf's own frame, after the
-composition's maps. This is what boundary tagging and material ids need. For a mesh leaf, the face is
-then one query away: the mesh's own ``getClosestFace()`` at the local point.
-
-The tape is the scene; a fused composition (see :ref:`Sec:Fused`) is one shape with one surface,
-however it is built, and has no ``closestPrimitive()``. Listed in a tape, it is one leaf. A scene is
-therefore a tape whose leaves are parts, each fused where its structure is known when compiling: the
-tape interprets only how the parts combine, evaluates each part as compiled code, and names the part
-that decides the value.
+A tape's ``closestPrimitive(p)`` names the leaf of the composition whose surface its value at ``p``
+comes from, which is not always the geometrically nearest primitive; :ref:`Chap:ClosestPrimitive`
+explains which leaf each operation passes on and what it is for. It returns a
+`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__: the leaf's number in expression
+order (``m_leaf``, ``PrimitiveRef::None`` for none), the primitive's type and index in the tape
+(``m_type``, ``m_index``), and the point in the leaf's own frame (``m_localPoint``). The tape returns
+the primitive itself with ``isPrimitive<P>(ref)`` (any ``P`` the tape cannot hold is a compile error),
+``primitive<P>(ref)`` (the shape, or a pool-resident one's handle resolving against the tape's pool) and
+``visitPrimitive(ref, f)``. All are device-callable, like ``signedDistance()``; in a CUDA or HIP
+translation unit, pass ``visitPrimitive()`` a functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
+since the device compiler treats a lambda's as a host function there. A fused composition is one leaf
+and has no ``closestPrimitive()``.
 
 .. code-block:: c++
 
    const PrimitiveRef<T> leaf = tape.closestPrimitive(p);
 
-   if (tape.isPrimitive<TriMeshSDF<T, 4, 4>>(leaf)) {
-     const auto mesh = tape.primitive<TriMeshSDF<T, 4, 4>>(leaf);   // the handle, resolving against the tape's pool
+   if (leaf.m_leaf != PrimitiveRef<T>::None && tape.isPrimitive<TriMeshSDF<T, 4, 4>>(leaf)) {
+     const auto mesh = tape.primitive<TriMeshSDF<T, 4, 4>>(leaf);   // resolves against the tape's pool
      const auto face = mesh.getClosestFace(leaf.m_localPoint);
    }
-
-* **Which leaf.**
-
-  - A union or intersection takes the leaf of the operand whose value it takes.
-  - A smooth union or intersection takes the more extreme operand's.
-  - A blur takes its centre tap's, and a mollification its heaviest tap's.
-  - A complement, offset, annulus, map, elongation or repetition takes its operand's; a repetition's
-    is the copy that wins.
-
-  For ``Difference(box, sphere)``, a point near the carved cavity gets the sphere, and a point near the
-  box's outside gets the box. This is not the geometrically nearest primitive, which could be one the
-  composition removed.
-* **Numbering.** Leaves are numbered in expression order, depth first, each occurrence counted. A
-  shape used twice is two leaves. A nested composite (a fused part, a tape listed as a primitive, a BVH
-  union) is one leaf; a nested tape can be asked for its own leaf at the local point.
-* **The primitive, by value.** ``isPrimitive<P>(ref)`` says whether the leaf is a ``P`` (a type the
-  tape can hold: any other ``P`` is a compile error), and
-  ``primitive<P>(ref)`` returns it: the shape, or for a pool-resident one (a mesh distance field, a BVH
-  union, a tape) its handle, rebuilt with the tape's location, so that it resolves against the
-  same pool or mirror. ``visitPrimitive(ref, f)`` calls ``f`` with it whatever its type. In a CUDA or
-  HIP translation unit, pass a functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``; the device
-  compiler treats a lambda's as a host function there.
-* **Cost.** ``closestPrimitive()`` evaluates the composition as ``signedDistance()`` does, carrying
-  the leaf with each value; ``signedDistance()`` is compiled as without it, so a program that never
-  asks for the deciding leaf pays nothing. Device-callable, like ``signedDistance()``.
 
 .. _Sec:BVHUnions:
 

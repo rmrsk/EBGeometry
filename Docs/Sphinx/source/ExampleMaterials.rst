@@ -25,7 +25,7 @@ A tape numbers its leaves in expression order: in ``Difference(armadillo, bore)`
 and the cylinder leaf 1. The number indexes a table of your own (material names here; in an application,
 materials or boundary conditions). Two queries report it:
 
-* ``closestPrimitive(p).m_leaf``, the leaf the value at ``p`` comes from (see :ref:`Sec:DecidingLeaf`);
+* ``closestPrimitive(p).m_leaf``, the leaf the value at ``p`` comes from (see :ref:`Chap:ClosestPrimitive`);
 * ``firstHit(shape, ray, tMin, tMax).m_primitive``, the leaf the ray crossed, with the point and the normal
   (see :ref:`Chap:ImplemRays`).
 

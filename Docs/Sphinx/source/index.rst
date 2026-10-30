@@ -85,10 +85,14 @@ Concepts
    DCEL.rst
    BVH.rst
    Rays.rst
+   RayTracing.rst
+   SphereTracing.rst
    Rendering.rst
    PointCloud.rst
    Octree.rst
    CSG.rst
+   Tape.rst
+   ClosestPrimitive.rst
    Triangles.rst
 
 Implementation

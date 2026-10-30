@@ -42,7 +42,7 @@ A `Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ compiles the expression i
 
 An intersection or a difference of exact distances is only a lower bound on the distance, which
 ``getDistanceQuality()`` reports. ``closestPrimitive(point)`` names the leaf the value comes from (see
-:ref:`Sec:DecidingLeaf`), numbered in expression order: the cube 0, the ball 1, the drills 2 to 4.
+:ref:`Chap:ClosestPrimitive`), numbered in expression order: the cube 0, the ball 1, the drills 2 to 4.
 
 The same query on a GPU
 -----------------------

@@ -111,7 +111,9 @@ as a list of instructions referring to them. Evaluating the tape is a single loo
 instructions, with no virtual dispatch and no pointers, which is what lets the same composed object
 be evaluated on a CPU and, copied as a block of memory, on a GPU. While compiling, each node's
 bounding box and how far its value can be trusted as a distance are worked out from its children's,
-and a union of many objects gets a BVH over their boxes.
+and a union of many objects gets a BVH over their boxes. :ref:`Chap:Tape` explains how an expression
+becomes a tape, which operations compile their operand into a separate sub-program, and how the shape
+of an expression (a union nested on the left or on the right, say) uses the tape's fixed limits.
 
 A composed object whose structure is known when the program is written can instead be compiled
 together with the program: each operation becomes a small type, and the composed object's type
@@ -123,8 +125,9 @@ its leaves. See :ref:`Chap:ExampleFusedCSG`.
 
 The tape is the scene, and it can also say which of its leaves decides its value at a point: the
 primitive whose surface the value comes from there. A union passes on the leaf of the operand it takes
-the value from, a difference the leaf of whichever object bounds the result, a blend or a blur the most
-influential operand's. This is what tagging a boundary or a material needs, and it is not the same as the
+the value from, a difference the leaf of whichever object bounds the result, a blend the more extreme
+operand's, a blur the centre of its samples'. This is what tagging a boundary or a material needs, and it is not the same as the
 geometrically nearest primitive, which may be one the composition cut away. A compiled object is one
 shape with one surface, however it is built: in a tape it is one leaf, so a scene of compiled parts
-names the part that decides the value. :ref:`Chap:ExampleMaterials` uses it to look up a material.
+names the part that decides the value. :ref:`Chap:ClosestPrimitive` explains it, and
+:ref:`Chap:ExampleMaterials` uses it to look up a material.
