@@ -471,7 +471,8 @@ Under the script, each probe is an ordinary program (``build/performance/host/bi
 ``--list``, ``--case <glob>``, ``--reps <n>``, ``--smoke``, ``--json`` (JSON
 instead of the table) and ``--json-out <file>`` (the table, and the JSON appended to a file). The ``perf``
 and ``perf-cuda`` CMake presets build the same probes inside the project, which is what ``ctest --preset
-perf`` and CI's smoke run use.
+perf`` and CI's smoke run use. That ``ctest`` run also checks the receipt writer (``PerfReceipt``,
+``Performance/TestReceipt.cmake``): a yellow or red report, semicolons and all, is written whole.
 
 Comparing two commits
 ---------------------
