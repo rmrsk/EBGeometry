@@ -479,13 +479,14 @@ once work is done: surface the option and let the user decide, do not just do it
 branch you are *already on* (once the user has asked for that work) is fine; it is the creation of
 new refs and the outward submission of PRs that always needs a green light first.
 
-**Claude develops in a git worktree, never directly in the repository root.** Each branch Claude works on gets its own
-worktree, a sibling of the repository named after the branch (`../EBGeometry.worktrees/<branch>`, created
-with `git worktree add` and `git submodule update --init` in it, since the mesh probes and examples need
-the submodule). Creating the branch and its worktree is one spin-off, so it needs the user's agreement like
-any other. All edits, builds, tests and performance runs for that branch happen in its worktree; the repository
-root is left as the user has it. After the branch's pull request is merged, Claude asks whether the
-worktree should be removed, and **never removes a worktree without the user's explicit permission**.
+**Claude develops in a git worktree, never directly in the repository root.** Each branch Claude works on
+gets its own worktree, a sibling of the repository named after the branch
+(`../EBGeometry.worktrees/<branch>`, created with `git worktree add` and `git submodule update --init` in
+it, since the mesh probes and examples need the submodule). Creating the branch and its worktree is one
+spin-off, so it needs the user's agreement like any other. All edits, builds, tests and performance runs
+for that branch happen in its worktree; the repository root is left as the user has it. After the branch's
+pull request is merged, Claude asks whether the worktree should be removed, and **never removes a worktree
+without the user's explicit permission**.
 
 **Claude never merges a pull request, never force-pushes to `main`, and never deletes a branch** (local
 or remote), under any circumstances, whatever it is asked or however obvious the next step looks: merging
@@ -500,8 +501,8 @@ draft). If a non-draft PR was already opened, convert it back with
 
 When opening a PR, **always use the repository's pull-request template**
 (`.github/pull_request_template.md`) — its `# Summary` sections (`Background`, `Solution`,
-`Side-effects`, `Alternative solutions`, `Performance`, `Where to look`) followed by the `Reviewer
-checklist`. The
+`Side-effects`, `Alternative solutions`, `Performance`, `Where to look`) followed by the
+`Reviewer checklist`. The
 `Performance` section carries the comparison report (see "Vetting every pull request for
 performance" above). Fill in the prose
 sections (this is the "PR note") but **leave every checklist item unchecked** (`- [ ]`) — the
@@ -534,11 +535,11 @@ apply; this section sets the order and the points where Claude stops for the use
    declarations with their Doxygen contracts and a short snippet of how a user would call it, and has it
    approved before implementing it, at every level of involvement. Changes to internals skip this step.
 3. **The draft pull request opens early.** Once the branch has its first meaningful commit (the approved
-   API, say), Claude asks to open the draft pull request, so that CI's fast tier runs on every push. No issue is created
-   for a feature request: the pull request, filled from the template, links to the relevant existing issues
-   rather than repeating them. Claude asks whether it closes an issue, and if so writes `Closes #N` in its
-   body. That closes the issue only when `dev` is merged into `main`; after a merge into `dev`, Claude may
-   ask whether to close it by hand, and never does so on its own.
+   API, say), Claude asks to open the draft pull request, so that CI's fast tier runs on every push. No
+   issue is created for a feature request: the pull request, filled from the template, links to the relevant
+   existing issues rather than repeating them. Claude asks whether it closes an issue, and if so writes
+   `Closes #N` in its body. That closes the issue only when `dev` is merged into `main`; after a merge into
+   `dev`, Claude may ask whether to close it by hand, and never does so on its own.
 4. **Implementing.**
    - A test that fails without the feature is written before it, or with it.
    - Code a device runs is built and its `[gpu]` tests run with CUDA on the local GPU, with the register
