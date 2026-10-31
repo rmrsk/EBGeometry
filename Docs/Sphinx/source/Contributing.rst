@@ -12,7 +12,7 @@ expected of contributions.  It is split into four pages, one per topic:
 * :ref:`Chap:PerformanceTesting` — the performance probes, and the comparison against its base that
   every pull request carries.
 * :ref:`Chap:ContinuousIntegration` — what the GitHub Actions CI pipeline checks on every pull
-  request and every push to ``main``/``dev``, and how to reproduce those checks locally with
+  request and every push to ``main``, and how to reproduce those checks locally with
   ``pre-commit``.
 * :ref:`Chap:ContributionGuidelines` — code style, static and dynamic assertions, and test
   coverage expected of new code.

@@ -49,10 +49,10 @@ Scripts/run-performance.sh                          # build if needed, run every
 Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset: one or more globs
 Scripts/run-performance.sh list                     # the case names
 Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # the host/device pairs
-Scripts/run-performance.sh compare origin/dev       # this tree against origin/dev (about 8 minutes)
-Scripts/run-performance.sh compare origin/dev 'PointCloud*' --rounds 1   # times only, while developing
-Scripts/run-performance.sh compare origin/dev --smoke   # a quick check: both build, every case runs
-Scripts/run-performance.sh compare origin/dev --record  # a pull request's receipt, for CI (commit it)
+Scripts/run-performance.sh compare origin/main      # this tree against origin/main (about 8 minutes)
+Scripts/run-performance.sh compare origin/main 'PointCloud*' --rounds 1   # times only, while developing
+Scripts/run-performance.sh compare origin/main --smoke   # a quick check: both build, every case runs
+Scripts/run-performance.sh compare origin/main --record  # a pull request's receipt, for CI (commit it)
 ```
 
 A run prints a table per probe and saves the results to `build/performance/results/`. A comparison

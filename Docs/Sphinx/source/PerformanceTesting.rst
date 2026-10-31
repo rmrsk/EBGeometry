@@ -490,14 +490,14 @@ Comparing two commits
 
 .. code-block:: bash
 
-   Scripts/run-performance.sh compare                              # the working tree against origin/dev
-   Scripts/run-performance.sh compare origin/dev my-branch         # two commits
-   Scripts/run-performance.sh compare origin/dev 'PointCloudBVH/*' --rounds 10
-   Scripts/run-performance.sh compare origin/dev 'PointCloud*' --rounds 1  # times only, while developing
-   Scripts/run-performance.sh compare origin/dev --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
-   Scripts/run-performance.sh compare origin/dev --smoke                   # a quick check, about a minute
+   Scripts/run-performance.sh compare                               # the working tree against origin/main
+   Scripts/run-performance.sh compare origin/main my-branch         # two commits
+   Scripts/run-performance.sh compare origin/main 'PointCloudBVH/*' --rounds 10
+   Scripts/run-performance.sh compare origin/main 'PointCloud*' --rounds 1  # times only, while developing
+   Scripts/run-performance.sh compare origin/main --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
+   Scripts/run-performance.sh compare origin/main --smoke                   # a quick check, about a minute
 
-The first two arguments that git resolves to commits are the baseline (default ``origin/dev``) and the
+The first two arguments that git resolves to commits are the baseline (default ``origin/main``) and the
 candidate (default: the working tree, uncommitted changes included); anything else is a glob. Each side
 is exported with ``git archive`` and built from its own ``Performance/`` folder, so a pull request that
 changes an API the probes use updates the probes and is still compared case by case; the report names
@@ -599,7 +599,7 @@ pull request as its *receipt*:
 
 .. code-block:: bash
 
-   Scripts/run-performance.sh compare origin/dev --record      # writes Performance/receipt.md
+   Scripts/run-performance.sh compare origin/main --record     # writes Performance/receipt.md
    git add Performance/receipt.md && git commit -m "Performance receipt"
 
 The receipt is one file, ``Performance/receipt.md``, with a section per comparison: the host comparison,

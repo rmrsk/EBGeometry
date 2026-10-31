@@ -2,7 +2,7 @@
 
 **Fast, portable geometry queries in a single C++ header.**
 
-[![CI](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml/badge.svg?branch=dev)](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml?query=branch%3Adev)
+[![CI](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml?query=branch%3Amain)
 [![Documentation](https://github.com/rmrsk/EBGeometry/actions/workflows/docs.yml/badge.svg)](https://rmrsk.github.io/EBGeometry/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Language](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)

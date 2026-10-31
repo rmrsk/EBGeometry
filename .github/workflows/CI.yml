@@ -3,11 +3,11 @@ name: Continuous integration
 
 on:
   pull_request:
-    branches: [main, dev]
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   # Also after a merge, so the merged result (not just each PR head) is checked.
   push:
-    branches: [main, dev]
+    branches: [main]
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-code-format
@@ -15,7 +15,7 @@ concurrency:
 
 # Two tiers. A draft pull request runs the fast tier: one or two cells of each matrix, and no
 # Linux-Intel, GNUmake, float-example, clang-tidy or CUDA jobs. A pull request that is ready for
-# review (marking it ready re-runs CI) and every push to main or dev run the full matrix. On a push,
+# review (marking it ready re-runs CI) and every push to main run the full matrix. On a push,
 # github.event.pull_request is absent, so `github.event.pull_request.draft` is false there too.
 # Builds and test runs use every core of the runner (4 on a public repository's standard runner).
 #

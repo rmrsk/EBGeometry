@@ -295,10 +295,10 @@ header, `EBGeometry.hpp`, `Docs/mainpage.md` or `Docs/doxygen.conf` changes; cod
 `.clang-tidy` and `.pre-commit-config.yaml` define the static-analysis/formatting rules; CI
 (`.github/workflows/CI.yml`) runs the same hooks plus a much larger build/test matrix (multiple
 compilers, SIMD levels, precisions, sanitizers, both Debug and Release) that isn't practical to
-reproduce byte-for-byte locally. CI runs on pull requests and on pushes to `main` and `dev`, in two
+reproduce byte-for-byte locally. CI runs on pull requests and on pushes to `main`, in two
 tiers: a draft PR runs a fast tier (one or two cells of each matrix; no Linux-Intel, GNUmake, float
 examples, clang-tidy or CUDA; HIP's Release+AVX build only; about 8 minutes), while a PR that is ready
-for review (marking it ready re-runs CI) and every push to `main`/`dev` run the full matrix. Every build
+for review (marking it ready re-runs CI) and every push to `main` run the full matrix. Every build
 uses all the runner's cores. Its
 `CI-passed` job, the one to require for merging, fails whenever any job it depends on fails, is
 canceled or is skipped (a draft's skipped full-tier jobs excepted); `GPU-HIP` (a device compile) is one of those required jobs, while
@@ -492,7 +492,7 @@ run in CI, which checks out the pull request's branch) works in that checkout.
 
 **Claude never merges a pull request, never force-pushes to `main`, and never deletes a branch** (local
 or remote), under any circumstances, whatever it is asked or however obvious the next step looks: merging
-and deleting branches are for a human only. Force-pushing to `dev` or to a feature branch is permitted,
+and deleting branches are for a human only. Force-pushing to a feature branch is permitted,
 with `--force-with-lease`, and never over commits that were already reviewed (see "Human review" below).
 
 When the user *does* ask you to open a PR, **always open it as a draft** (`gh pr create --draft`) —
@@ -519,7 +519,7 @@ apply; this section sets the order and the points where Claude stops for the use
 
 1. **The first reply is a plan, not code.** Claude restates the feature in a sentence or two, and:
    - **proposes a branch name**: short, kebab-case, saying what the feature is (`exact-annulus`,
-     `receipt-semicolons`), off `dev`. The branch, and the worktree it is developed in, are created only
+     `receipt-semicolons`), off `main`. The branch, and the worktree it is developed in, are created only
      once the user agrees.
    - **asks how involved the user wants to be**:
      - *hands-off*: Claude decides (except the API, step 2), and reports at the hand-over;
@@ -540,8 +540,7 @@ apply; this section sets the order and the points where Claude stops for the use
    API, say), Claude asks to open the draft pull request, so that CI's fast tier runs on every push. No
    issue is created for a feature request: the pull request, filled from the template, links to the relevant
    existing issues rather than repeating them. Claude asks whether it closes an issue, and if so writes
-   `Closes #N` in its body. That closes the issue only when `dev` is merged into `main`; after a merge into
-   `dev`, Claude may ask whether to close it by hand, and never does so on its own.
+   `Closes #N` in its body, which closes the issue when the pull request merges into `main`.
 4. **Implementing.**
    - A test that fails without the feature is written before it, or with it.
    - Code a device runs is built and its `[gpu]` tests run with CUDA on the local GPU, with the register
@@ -693,7 +692,7 @@ with explicit permission), and may ask whether to act on follow-ups.
   registers; of `pairInsert()`/`pairBlend()` alone, GCC stopped inlining the float tape's primitive
   dispatch, and host tapes without a smooth union became up to 37% slower. After any change on the
   tape's path, compile a float kernel calling `signedDistance()` once and one calling it 16 times in a
-  loop and check `ptxas -v` still reports the registers dev's do, and compare the sizes of the host
+  loop and check `ptxas -v` still reports the registers the base's do, and compare the sizes of the host
   evaluator's out-of-line functions (`nm -C -S` on `Performance/Tape/main.cpp` built `-O3
   -march=native`) with the base's: a function that newly appears or changes size there moves the
   receipt. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
