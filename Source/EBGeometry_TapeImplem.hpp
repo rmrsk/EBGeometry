@@ -317,6 +317,51 @@ public:
     return id;
   }
 
+  /**
+   * @brief Compile a smooth union's blend zone view into a sub-program of its own, which only a ray program's
+   * Marched clause evaluates: max(u, m2 - w), u the smooth union's value, m2 its second smallest operand's and
+   * w = s + s/4 (a PairBlend clause with bit 2). Where it is negative the smooth union is inside; everywhere
+   * else the smooth union is inside exactly where the plain union is (see RayDetail::BlendZoneView).
+   * @details The operands are emitted again, their leaves numbered as they already are.
+   * @param[in] a_node The smooth union.
+   * @return The sub-program's index.
+   */
+  uint32_t
+  compileBlendZone(const ExprDetail::Node<T>& a_node)
+  {
+    const auto id = static_cast<uint32_t>(m_staging.m_programs.size());
+
+    m_staging.m_programs.emplace_back();
+    m_staging.m_rayPrograms.emplace_back();
+    m_staging.m_parents.push_back(m_current);
+    m_staging.m_depth.push_back(0U);
+
+    const uint32_t parent = m_current;
+    const uint32_t leaves = m_nextLeaf;
+
+    m_current = id;
+
+    State state{id, 0U, 1U, 0U, 1U};
+
+    this->push(state, clause(Op::PairInit, 0U, 0U, 0U, 0U), 2, 0);
+
+    for (const auto& child : a_node.m_children) {
+      this->emit(state, child.node(), nullptr);
+      this->push(state, clause(Op::PairInsert, 0U, 0U, 0U, 0U), -1, 0);
+    }
+
+    const T smooth = a_node.m_scalar0;
+
+    this->push(state, clause(Op::PairBlend, this->params({smooth, smooth + T(0.25) * smooth}), 0U, 0U, 4U), -1, 0);
+
+    EBGEOMETRY_EXPECT(state.m_values == 1U && state.m_points == 1U);
+
+    m_nextLeaf = leaves;
+    m_current  = parent;
+
+    return id;
+  }
+
 private:
   /**
    * @brief Number of primitive types.
@@ -680,15 +725,16 @@ private:
   }
 
   /**
-   * @brief Whether a ray program traces an expression's node exactly, from its operands' spans: a union,
-   * intersection, complement or affine map, a primitive with a ray form, or, with TapeFeature::ExactOffsets,
-   * an offset or annulus of a primitive (or an affine map of one) with closed-form level sets. Anything else
-   * is marched.
+   * @brief Whether a ray program traces an expression's node from its operands' spans: a union, intersection,
+   * complement or affine map, a primitive with a ray form, with TapeFeature::ExactOffsets an offset or annulus of
+   * a primitive (or an affine map of one) with closed-form level sets, and with TapeFeature::SmoothBrackets a
+   * smooth union with the polynomial blend, or a smooth intersection, not evaluated with a BVH (marched within
+   * its bracket, see emitSmoothRay()). Anything else is marched whole.
    * @param[in] a_node Expression.
    * @return True if traced.
    */
-  [[nodiscard]] static bool
-  traced(const ExprDetail::Node<T>& a_node) noexcept
+  [[nodiscard]] bool
+  traced(const ExprDetail::Node<T>& a_node) const noexcept
   {
     using ExprDetail::Kind;
 
@@ -707,10 +753,43 @@ private:
     case Kind::Intersection: {
       return true;
     }
+    case Kind::SmoothUnion: {
+      return smoothBrackets && a_node.m_blend != BlendKind::Exponential && !this->useBVH(a_node);
+    }
+    case Kind::SmoothIntersection: {
+      return smoothBrackets;
+    }
     default: {
       return false;
     }
     }
+  }
+
+  /**
+   * @brief Whether the tape lists TapeFeature::SmoothBrackets.
+   */
+  static constexpr bool smoothBrackets = IndexOf<TapeFeature::SmoothBrackets, Features>::value < Features::size;
+
+  /**
+   * @brief A rough cost of evaluating an expression: one per node, and many for a pool-resident shape (a mesh, a
+   * BVH union, another tape). Of a smooth union's operands, the costliest is left out of its blend zone.
+   * @param[in] a_node Expression.
+   * @return The cost.
+   */
+  [[nodiscard]] static uint64_t
+  cost(const ExprDetail::Node<T>& a_node) noexcept
+  {
+    if (a_node.m_kind == ExprDetail::Kind::Primitive) {
+      return (a_node.m_leaf.m_isAttachedTo != nullptr) ? 1000U : 1U;
+    }
+
+    uint64_t sum = 1U;
+
+    for (const auto& child : a_node.m_children) {
+      sum += cost(child.node());
+    }
+
+    return sum;
   }
 
   /**
@@ -745,6 +824,18 @@ private:
       }
 
       return slots;
+    }
+    case Kind::SmoothUnion:
+    case Kind::SmoothIntersection: {
+      // As a union or intersection of the operands; a union's blend zone then needs up to three lists more
+      // at once: the plain union, the zone so far and the next operand's offset.
+      uint32_t slots = this->raySlots(a_node.m_children.front().node());
+
+      for (size_t i = 1; i < a_node.m_children.size(); i++) {
+        slots = Math::max(slots, 1U + this->raySlots(a_node.m_children[i].node()));
+      }
+
+      return (a_node.m_kind == Kind::SmoothUnion) ? Math::max(slots, 3U) : slots;
     }
     default: {
       return 1U;
@@ -863,6 +954,107 @@ private:
         this->pushRay(a_state, RayOp::Intersection, a_ray);
       }
     }
+  }
+
+  /**
+   * @brief Append the ray clauses of a smooth union or intersection traced with TapeFeature::SmoothBrackets,
+   * once its operands' are emitted.
+   * @details A smooth intersection lies within the plain intersection of its operands, which orderIntersection()
+   * appends from their ray clauses, and is marched within it (a Marched clause with bit 7, replacing it). A smooth
+   * union with the polynomial blend of length s is inside wherever the plain union is, and differs from it only
+   * where its two smallest operands are both within w = s + s/4 of their surfaces: its operands' ray clauses,
+   * already appended, are the plain union, exact; its blend zone view (compileBlendZone()) is marched in the box
+   * where two operands' boxes grown by w overlap, up to what the plain union is known up to (a Marched clause with
+   * bit 6); and the two are united.
+   * @param[in] a_state    Sub-program state.
+   * @param[in] a_node     The smooth union or intersection.
+   * @param[in] a_ray      Whether all its spans are needed.
+   * @param[in] a_operands Each operand's ray clauses.
+   * @param[in] a_begin    Start of the node's value clauses.
+   * @param[in] a_end      End of the node's value clauses.
+   */
+  void
+  emitSmoothRay(const State&                         a_state,
+                const ExprDetail::Node<T>&           a_node,
+                const RayEmit&                       a_ray,
+                std::vector<std::vector<RayClause>>& a_operands,
+                const uint32_t                       a_begin,
+                const uint32_t                       a_end)
+  {
+    using ExprDetail::Kind;
+
+    const auto boxParams = [this](const BoundingVolumes::AABBT<T>& a_box) {
+      return this->params({a_box.getLowCorner()[0],
+                           a_box.getLowCorner()[1],
+                           a_box.getLowCorner()[2],
+                           a_box.getHighCorner()[0],
+                           a_box.getHighCorner()[1],
+                           a_box.getHighCorner()[2]});
+    };
+
+    if (a_node.m_kind == Kind::SmoothIntersection) {
+      // Marched within the plain intersection, which it replaces (bit 7), only up to its first crossing where the
+      // call allows.
+      this->orderIntersection(a_state, a_operands, RayEmit{true, a_ray.m_level});
+
+      m_staging.m_marched.emplace_back(a_state.m_program, a_begin, a_end);
+
+      this->pushRay(a_state,
+                    RayOp::Marched,
+                    a_ray,
+                    static_cast<uint32_t>(m_staging.m_marched.size() - 1),
+                    boxParams(a_node.m_boundingVolume),
+                    static_cast<uint32_t>(a_node.m_quality));
+
+      m_staging.m_rayPrograms[a_state.m_program].back().m_flags |= a_ray.m_all ? 128U : (128U | 4U);
+
+      return;
+    }
+
+    // The blend zone's box: where two operands' boxes, grown by w, overlap. With none, the smooth union is the plain
+    // union, whose ray clauses are already appended.
+    const T                   w    = a_node.m_scalar0 + T(0.25) * a_node.m_scalar0;
+    const Vec3T<T>            grow = w * Vec3T<T>::ones();
+    BoundingVolumes::AABBT<T> zone(Vec3T<T>::zeros(), Vec3T<T>::zeros());
+    bool                      any = false;
+
+    for (size_t i = 0; i < a_node.m_children.size(); i++) {
+      for (size_t j = i + 1; j < a_node.m_children.size(); j++) {
+        const BoundingVolumes::AABBT<T>& a = a_node.m_children[i].node().m_boundingVolume;
+        const BoundingVolumes::AABBT<T>& c = a_node.m_children[j].node().m_boundingVolume;
+
+        const Vec3T<T> lo = EBGeometry::max(a.getLowCorner(), c.getLowCorner()) - grow;
+        const Vec3T<T> hi = EBGeometry::min(a.getHighCorner(), c.getHighCorner()) + grow;
+
+        if (lo[0] <= hi[0] && lo[1] <= hi[1] && lo[2] <= hi[2]) {
+          zone = any ? BoundingVolumes::AABBT<T>(EBGeometry::min(zone.getLowCorner(), lo),
+                                                 EBGeometry::max(zone.getHighCorner(), hi))
+                     : BoundingVolumes::AABBT<T>(lo, hi);
+          any  = true;
+        }
+      }
+    }
+
+    if (!any) {
+      return;
+    }
+
+    // The blend zone view, marched in the zone's box up to what the plain union is known up to (bit 6), united
+    // with the plain union.
+    const uint32_t view = this->compileBlendZone(a_node);
+
+    m_staging.m_marched.emplace_back(view, 0U, static_cast<uint32_t>(m_staging.m_programs[view].size()));
+
+    this->pushRay(a_state,
+                  RayOp::Marched,
+                  a_ray,
+                  static_cast<uint32_t>(m_staging.m_marched.size() - 1),
+                  boxParams(zone),
+                  static_cast<uint32_t>(a_node.m_quality));
+
+    m_staging.m_rayPrograms[a_state.m_program].back().m_flags |= 64U;
+
+    this->pushRay(a_state, RayOp::Union, a_ray);
   }
 
   /**
@@ -1189,17 +1381,51 @@ private:
         this->push(a_state, clause(Op::SmoothUnionBVH, bvh, s, 0U, exponential ? 1U : 0U), 1, 0);
       }
       else {
+        const auto begin = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
+
+        // Traced (see traced()), each operand also emits its ray clauses, as a union's or an intersection's
+        // operand: the plain operation, which emitSmoothRay() then brackets the smooth one with.
+        const bool    all   = (a_ray != nullptr) && (a_ray->m_all || !isUnion);
+        const RayEmit first = {all, (a_ray != nullptr) ? a_ray->m_level : 0U};
+        const RayEmit next  = {all, first.m_level + 1U};
+
+        std::vector<std::vector<RayClause>>    operands;
+        std::vector<std::pair<size_t, size_t>> values;
+
         // Only the two extreme values are blended, so they are tracked as the operands are evaluated.
         this->push(a_state, clause(Op::PairInit, 0U, 0U, 0U, maxFlag), 2, 0);
 
-        for (const auto& child : a_node.m_children) {
-          this->emit(a_state, child.node(), nullptr);
+        for (size_t i = 0; i < a_node.m_children.size(); i++) {
+          const size_t rayBegin = m_staging.m_rayPrograms[a_state.m_program].size();
+
+          this->emit(a_state, a_node.m_children[i].node(), (a_ray != nullptr) ? ((i == 0) ? &first : &next) : nullptr);
+
+          if (a_ray != nullptr) {
+            // Emitting may have added sub-programs, and moved the ray programs.
+            std::vector<RayClause>& emitted = m_staging.m_rayPrograms[a_state.m_program];
+
+            operands.emplace_back(emitted.begin() + static_cast<std::ptrdiff_t>(rayBegin), emitted.end());
+
+            if (!isUnion) {
+              emitted.resize(rayBegin);
+            }
+            else if (i > 0) {
+              this->pushRay(a_state, RayOp::Union, first);
+            }
+          }
+
           this->push(a_state, clause(Op::PairInsert, 0U, 0U, 0U, maxFlag), -1, 0);
         }
 
         const uint8_t flags = static_cast<uint8_t>(maxFlag | (exponential ? 2U : 0U));
 
         this->push(a_state, clause(Op::PairBlend, this->params({a_node.m_scalar0}), 0U, 0U, flags), -1, 0);
+
+        if (a_ray != nullptr) {
+          const auto end = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
+
+          this->emitSmoothRay(a_state, a_node, *a_ray, operands, begin, end);
+        }
       }
 
       break;
@@ -1642,6 +1868,13 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
 
       values[nv - 1] =
         CSGOps::pairBlend(CSGOps::Pair<V>{a, b}, params[c.m_a], (c.m_flags & 1U) != 0U, (c.m_flags & 2U) != 0U);
+
+      // A smooth union's blend zone view (bit 2): no lower than the second smallest value less params[m_a + 1].
+      if constexpr (hasFeature<TapeFeature::SmoothBrackets> && std::is_same_v<V, T>) {
+        if ((c.m_flags & 4U) != 0U) {
+          values[nv - 1] = Math::max(values[nv - 1], b - params[c.m_a + 1]);
+        }
+      }
 
       break;
     }
@@ -2091,6 +2324,19 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
       break;
     }
     case RayOp::Marched: {
+      if constexpr (hasFeature<TapeFeature::SmoothBrackets>) {
+        // A smooth intersection, marched within the plain intersection on top, which it replaces (bit 7). Through
+        // the same calls as an intersection's marched operand, so that the feature adds no stack to the kernel.
+        if ((c.m_flags & 128U) != 0U) {
+          this->template rayMarchedWithin<D>(
+            c, top.m_ray, a_options, !a_all && (c.m_flags & 4U) != 0U, lists[nl - 1], a_base, a_location, scratch);
+          RayDetail::copySpans(scratch, lists[nl - 1]);
+          RayDetail::nameLeaf(pc, lists[nl - 1]);
+
+          break;
+        }
+      }
+
       RaySpansT<T>& spans = lists[nl++];
 
       // An intersection's operand is marched only within the spans of the operands before it.
@@ -2108,7 +2354,16 @@ Tape<T, UserPrimitives...>::rayEvaluate(const uint32_t       a_program,
                                  a_base,
                                  a_location};
 
-        RayDetail::shapeSpans(subtree, top.m_ray, top.m_t0, top.m_t1, a_options, firstOnly, spans);
+        T t1 = top.m_t1;
+
+        // A smooth union's blend zone view, marched only up to what the plain union below it is known up to (bit 6).
+        if constexpr (hasFeature<TapeFeature::SmoothBrackets>) {
+          if ((c.m_flags & 64U) != 0U) {
+            t1 = Math::min(t1, lists[nl - 2].m_horizon);
+          }
+        }
+
+        RayDetail::shapeSpans(subtree, top.m_ray, top.m_t0, t1, a_options, firstOnly, spans);
       }
 
       RayDetail::nameLeaf(pc, spans);

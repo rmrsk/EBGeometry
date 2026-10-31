@@ -121,286 +121,133 @@ struct IsComposition<MarchedView<S>> : std::bool_constant<CalledOutOfLine<S>>
 };
 
 /**
- * @brief Whether a shape's offsets are traced from closed-form level sets: a shape with a LevelForm, or a fused
- * union of such shapes (whose offset is the union of theirs).
- * @details Internal helper; not part of the public API.
- * @tparam S Shape type.
- */
-template <class S>
-struct TracedOffset : HasLevelForm<S>
-{
-};
-
-/**
- * @brief A fused union's offset is traced if every operand's is.
+ * @brief A fused smooth union restricted to where it can differ from the plain union of its operands: the value
+ * max(u, m2 - w), u the smooth union's and m2 its second smallest operand's, w its blend length plus how far the
+ * blend deepens (s + s/4). A polynomial blend of length s changes the minimum only where the two smallest
+ * operands are within s of each other, and changes its sign only where the smallest is within s/4 of 0: both
+ * within w. Where this value is negative, the smooth union is inside; everywhere else it is inside exactly where
+ * the plain union is.
+ * @details Internal helper; not part of the public API. A distance bound, as the maximum of two: far from either
+ * of the two nearest operands its value is large, so a march of it takes long steps, even near the other.
+ * @tparam T  Floating-point precision.
  * @tparam Cs Operand types.
  */
-template <class... Cs>
-struct TracedOffset<Fused::Node<Fused::UnionOp, Cs...>> : std::bool_constant<(TracedOffset<Cs>::value && ...)>
+template <class T, class... Cs>
+struct BlendZoneView
+{
+  /**
+   * @brief The node type.
+   */
+  using Node = Fused::Node<Fused::SmoothCombineOp<T, true>, Cs...>;
+
+  /**
+   * @brief The quality of its value: a bound at best.
+   */
+  static constexpr DistanceQuality distanceQuality = distanceQualityOf<Node>;
+
+  /**
+   * @brief The smooth union.
+   */
+  Node m_node;
+
+  /**
+   * @brief Where two operands' boxes, grown by w, overlap: the blend zone lies within it.
+   */
+  BoundingVolumes::AABBT<T> m_box;
+
+  /**
+   * @brief The value.
+   * @param[in] a_point The point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    return this->value(a_point, std::index_sequence_for<Cs...>{});
+  }
+
+  /**
+   * @brief The blend zone's box.
+   * @return The box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return m_box;
+  }
+
+private:
+  /**
+   * @brief The value, from the two smallest operands.
+   * @tparam Is Operand indices.
+   * @param[in] a_point The point.
+   * @return The value.
+   */
+  template <size_t... Is>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  value(const Vec3T<T>& a_point, std::index_sequence<Is...>) const noexcept
+  {
+    const T smooth = m_node.layout().m_op.m_smooth;
+
+    CSGOps::Pair<T> pair = CSGOps::pairInit<T>(false);
+
+    (CSGOps::pairInsert(pair, RayDetail::fusedOperand<Is>(m_node).signedDistance(a_point), false), ...);
+
+    const T blended = CSGOps::pairBlend(pair, smooth, false, false);
+
+    return Math::max(blended, pair.m_second - (smooth + RayDetail::blendDepth(smooth, false)));
+  }
+};
+
+/**
+ * @brief A blend zone view is called out of line on a device.
+ * @tparam T  Floating-point precision.
+ * @tparam Cs Operand types.
+ */
+template <class T, class... Cs>
+struct IsComposition<BlendZoneView<T, Cs...>> : std::true_type
 {
 };
 
-template <class T, class S>
-EBGEOMETRY_HOST_DEVICE
-inline void
-offsetSpans(const S&             a_shape,
-            const T              a_level,
-            const RayT<T>&       a_ray,
-            const T              a_t0,
-            const T              a_t1,
-            const RayOptions<T>& a_options,
-            const bool           a_firstOnly,
-            RaySpansT<T>&        a_spans) noexcept;
-
 /**
- * @brief Unite the offsets of a fused node's operands I, I + 1, ... into a list.
- * @details Internal helper; not part of the public API. Each operand is traced only up to what the list so far
- * is known up to.
- * @tparam I  First operand.
+ * @brief Where two of a fused node's operands' boxes, grown by a_grow, overlap: the box of each pair's overlap,
+ * united into a_box (a_any says whether there is one yet).
+ * @details Internal helper; not part of the public API.
  * @tparam T  Floating-point precision.
  * @tparam Op Operation.
  * @tparam Cs Operand types.
- * @param[in]     a_node      The node.
- * @param[in]     a_level     The offset.
- * @param[in]     a_ray       The ray.
- * @param[in]     a_t0        Start of the interval.
- * @param[in]     a_options   How to march.
- * @param[in]     a_firstOnly Whether only the first crossing is needed.
- * @param[in,out] a_spans     The list so far.
- * @param[in,out] a_operand   Scratch for an operand's list.
+ * @tparam Is Operand indices.
+ * @param[in]     a_node The node.
+ * @param[in]     a_grow How much each box is grown.
+ * @param[in,out] a_box  The box so far.
+ * @param[in,out] a_any  Whether there is one.
  */
-template <size_t I, class T, class Op, class... Cs>
+template <class T, class Op, class... Cs, size_t... Is>
 EBGEOMETRY_HOST_DEVICE
 inline void
-uniteOffsets(const Fused::Node<Op, Cs...>& a_node,
-             const T                       a_level,
-             const RayT<T>&                a_ray,
-             const T                       a_t0,
-             const RayOptions<T>&          a_options,
-             const bool                    a_firstOnly,
-             RaySpansT<T>&                 a_spans,
-             RaySpansT<T>&                 a_operand) noexcept
+pairOverlaps(const Fused::Node<Op, Cs...>& a_node,
+             const T                       a_grow,
+             BoundingVolumes::AABBT<T>&    a_box,
+             bool&                         a_any,
+             std::index_sequence<Is...>) noexcept
 {
-  if constexpr (I < sizeof...(Cs)) {
-    RayDetail::offsetSpans(
-      RayDetail::fusedOperand<I>(a_node), a_level, a_ray, a_t0, a_spans.m_horizon, a_options, a_firstOnly, a_operand);
-    RayDetail::uniteInto(a_spans, a_operand);
+  const BoundingVolumes::AABBT<T> boxes[] = {RayDetail::fusedOperand<Is>(a_node).computeBoundingVolume()...};
+  const Vec3T<T>                  grow    = a_grow * Vec3T<T>::ones();
 
-    if (a_firstOnly) {
-      RayDetail::keepFirst(a_spans);
+  for (size_t i = 0; i < sizeof...(Is); i++) {
+    for (size_t j = i + 1; j < sizeof...(Is); j++) {
+      const Vec3T<T> lo = max(boxes[i].getLowCorner(), boxes[j].getLowCorner()) - grow;
+      const Vec3T<T> hi = min(boxes[i].getHighCorner(), boxes[j].getHighCorner()) + grow;
+
+      if (lo[0] <= hi[0] && lo[1] <= hi[1] && lo[2] <= hi[2]) {
+        a_box = a_any ? BoundingVolumes::AABBT<T>(min(a_box.getLowCorner(), lo), max(a_box.getHighCorner(), hi))
+                      : BoundingVolumes::AABBT<T>(lo, hi);
+        a_any = true;
+      }
     }
-
-    RayDetail::uniteOffsets<I + 1>(a_node, a_level, a_ray, a_t0, a_options, a_firstOnly, a_spans, a_operand);
-  }
-}
-
-/**
- * @brief Where a ray is inside a shape's offset {f <= c} over an interval: from its closed-form level sets
- * where it has them (see TracedOffset), and marched otherwise. Its crossings are named leaf 0.
- * @details Internal helper; not part of the public API. A fused union's offset is the union of its operands'.
- * @tparam T Floating-point precision.
- * @tparam S Shape type.
- * @param[in]  a_shape     The shape.
- * @param[in]  a_level     The offset c.
- * @param[in]  a_ray       The ray.
- * @param[in]  a_t0        Start of the interval.
- * @param[in]  a_t1        End of the interval.
- * @param[in]  a_options   How to march.
- * @param[in]  a_firstOnly Whether only the first crossing is needed.
- * @param[out] a_spans     The list.
- */
-template <class T, class S>
-EBGEOMETRY_HOST_DEVICE
-inline void
-offsetSpans(const S&             a_shape,
-            const T              a_level,
-            const RayT<T>&       a_ray,
-            const T              a_t0,
-            const T              a_t1,
-            const RayOptions<T>& a_options,
-            const bool           a_firstOnly,
-            RaySpansT<T>&        a_spans) noexcept
-{
-  if constexpr (HasLevelForm<S>::value) {
-    RayDetail::levelSpans(LevelView<S>{a_shape, a_level, false}, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
-  }
-  else if constexpr (TracedOffset<S>::value) {
-    RaySpansT<T> operand;
-
-    RayDetail::offsetSpans(
-      RayDetail::fusedOperand<0>(a_shape), a_level, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
-
-    if (a_firstOnly) {
-      RayDetail::keepFirst(a_spans);
-    }
-
-    RayDetail::uniteOffsets<1>(a_shape, a_level, a_ray, a_t0, a_options, a_firstOnly, a_spans, operand);
-  }
-  else {
-    RayDetail::shapeSpans(MarchedView<S>{a_shape, a_level}, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_spans);
-  }
-
-  RayDetail::nameLeaf(0U, a_spans);
-}
-
-/**
- * @brief How costly a shape's offset is to trace over a whole ray: 0 from convex level sets, 1 marched, 2 from a
- * mesh's level sets (its offset faces walked along the ray).
- * @details Internal helper; not part of the public API. Of two offsets intersected, the cheaper is traced first
- * and the other only within its spans.
- * @tparam S Shape type.
- */
-template <class S>
-struct OffsetCost
-{
-  /**
-   * @brief The cost.
-   */
-  static constexpr int value = IsMeshLevel<S>::value ? 2 : (TracedOffset<S>::value ? 0 : 1);
-};
-
-/**
- * @brief The largest of some shapes' offset costs (see OffsetCost).
- * @details Internal helper; not part of the public API.
- * @tparam Cs Shape types.
- * @return The cost.
- */
-template <class... Cs>
-[[nodiscard]] constexpr int
-costliestOffset() noexcept
-{
-  int cost = 0;
-
-  ((cost = Math::max(cost, OffsetCost<Cs>::value)), ...);
-
-  return cost;
-}
-
-/**
- * @brief A fused union's offset costs what its costliest operand's does, if traced.
- * @tparam Cs Operand types.
- */
-template <class... Cs>
-struct OffsetCost<Fused::Node<Fused::UnionOp, Cs...>>
-{
-  /**
-   * @brief The cost.
-   */
-  static constexpr int value = TracedOffset<Fused::Node<Fused::UnionOp, Cs...>>::value ? costliestOffset<Cs...>() : 1;
-};
-
-/**
- * @brief Where a ray is inside a shape's offset within another list's spans: the offset traced over each of
- * them in turn (offsetSpans()), all its spans there.
- * @details Internal helper; not part of the public API. Stops where a trace is known no further.
- * @tparam T Floating-point precision.
- * @tparam S Shape type.
- * @param[in]  a_shape   The shape.
- * @param[in]  a_level   The offset.
- * @param[in]  a_ray     The ray.
- * @param[in]  a_within  The other list.
- * @param[in]  a_options How to march.
- * @param[out] a_piece   Scratch for one span's trace.
- * @param[out] a_spans   The list; not the other list.
- */
-template <class T, class S>
-EBGEOMETRY_HOST_DEVICE
-inline void
-offsetSpansWithin(const S&             a_shape,
-                  const T              a_level,
-                  const RayT<T>&       a_ray,
-                  const RaySpansT<T>&  a_within,
-                  const RayOptions<T>& a_options,
-                  RaySpansT<T>&        a_piece,
-                  RaySpansT<T>&        a_spans) noexcept
-{
-  a_spans.reset(a_within.m_horizon);
-
-  for (uint32_t i = 0; i < a_within.m_count && a_within.m_spans[i].m_in.m_t <= a_within.m_horizon; i++) {
-    const T t0 = a_within.m_spans[i].m_in.m_t;
-    const T t1 = Math::min(a_within.m_spans[i].m_out.m_t, a_within.m_horizon);
-
-    RayDetail::offsetSpans(a_shape, a_level, a_ray, t0, t1, a_options, false, a_piece);
-
-    for (uint32_t k = 0; k < a_piece.m_count && a_piece.m_spans[k].m_in.m_t <= a_piece.m_horizon; k++) {
-      const typename RaySpansT<T>::Span span = RayDetail::cut(a_piece.m_spans[k], a_piece.m_horizon);
-
-      a_spans.add(span.m_in, span.m_out);
-    }
-
-    if (a_piece.m_horizon < t1) {
-      a_spans.m_horizon = Math::min(a_spans.m_horizon, a_piece.m_horizon);
-
-      return;
-    }
-  }
-}
-
-/**
- * @brief Unite into a list where two of a fused node's operands, I and each of J, J + 1, ..., may both be within
- * a_level of their surfaces: the cheaper one's offset by a_level (see OffsetCost), intersected with the other's
- * only if that is traced from convex level sets too. A mesh's offset is not traced there: walking its faces
- * grown by the level along the ray costs more than marching the smooth operation where the cheaper offset is.
- * @details Internal helper; not part of the public API. All spans, over [a_t0, a_t1].
- * @tparam I  First operand of the pairs.
- * @tparam J  Second operand of the first pair.
- * @tparam T  Floating-point precision.
- * @tparam Op Operation.
- * @tparam Cs Operand types.
- * @param[in]     a_node    The node.
- * @param[in]     a_level   The offset.
- * @param[in]     a_ray     The ray.
- * @param[in]     a_t0      Start of the interval.
- * @param[in]     a_t1      End of the interval.
- * @param[in]     a_options How to march.
- * @param[in,out] a_zone    The list so far.
- * @param[in,out] a_pair    Scratch for a pair's list.
- * @param[in,out] a_first   Scratch for the first offset's list.
- * @param[in,out] a_piece   Scratch for one span's trace.
- */
-template <size_t I, size_t J, class T, class Op, class... Cs>
-EBGEOMETRY_HOST_DEVICE
-inline void
-uniteBlendZones(const Fused::Node<Op, Cs...>& a_node,
-                const T                       a_level,
-                const RayT<T>&                a_ray,
-                const T                       a_t0,
-                const T                       a_t1,
-                const RayOptions<T>&          a_options,
-                RaySpansT<T>&                 a_zone,
-                RaySpansT<T>&                 a_pair,
-                RaySpansT<T>&                 a_first,
-                RaySpansT<T>&                 a_piece) noexcept
-{
-  if constexpr (J < sizeof...(Cs)) {
-    using A = typename Fused::Detail::TypeAt<I, Cs...>::type;
-    using B = typename Fused::Detail::TypeAt<J, Cs...>::type;
-
-    constexpr bool   swap   = OffsetCost<B>::value < OffsetCost<A>::value;
-    constexpr size_t first  = swap ? J : I;
-    constexpr size_t second = swap ? I : J;
-
-    using Second = typename Fused::Detail::TypeAt<second, Cs...>::type;
-
-    if constexpr (OffsetCost<Second>::value == 0) {
-      RayDetail::offsetSpans(
-        RayDetail::fusedOperand<first>(a_node), a_level, a_ray, a_t0, a_t1, a_options, false, a_first);
-      RayDetail::offsetSpansWithin(
-        RayDetail::fusedOperand<second>(a_node), a_level, a_ray, a_first, a_options, a_piece, a_pair);
-    }
-    else {
-      RayDetail::offsetSpans(
-        RayDetail::fusedOperand<first>(a_node), a_level, a_ray, a_t0, a_t1, a_options, false, a_pair);
-    }
-
-    RayDetail::uniteInto(a_zone, a_pair);
-
-    RayDetail::uniteBlendZones<I, J + 1>(
-      a_node, a_level, a_ray, a_t0, a_t1, a_options, a_zone, a_pair, a_first, a_piece);
-  }
-  else if constexpr (I + 2 < sizeof...(Cs)) {
-    RayDetail::uniteBlendZones<I + 1, I + 2>(
-      a_node, a_level, a_ray, a_t0, a_t1, a_options, a_zone, a_pair, a_first, a_piece);
   }
 }
 
@@ -495,14 +342,8 @@ struct RayForm<Fused::Node<Fused::SmoothCombineOp<T, IsUnion>, Cs...>>
           RayDetail::MarchedView<Node>{a_shape, T(0)}, a_ray, a_tMin, a_tMax, a_options, a_firstOnly, a_spans);
       }
       else {
-        // The plain union, exact, then the blend zones up to what it is known up to: where two operands are both
-        // within s + s/4 of their surfaces. Outside them the smooth union is inside exactly where the plain union
-        // is; within them it is marched, and contains the plain union there too.
-        const T level = op.m_smooth + RayDetail::blendDepth(op.m_smooth, false);
-
-        RaySpansT<T> zone;
-        RaySpansT<T> first;
-
+        // The plain union, exact, united with where the smooth union is inside and may differ from it, marched
+        // up to what the plain union is known up to (see RayDetail::BlendZoneView).
         RayDetail::fusedOperandSpans<0>(a_shape, a_ray, a_tMin, a_tMax, a_options, a_firstOnly, a_spans);
 
         if (a_firstOnly) {
@@ -511,16 +352,30 @@ struct RayForm<Fused::Node<Fused::SmoothCombineOp<T, IsUnion>, Cs...>>
 
         RayDetail::fusedUnite<1>(a_shape, a_ray, a_tMin, a_options, a_firstOnly, a_spans, operand);
 
-        zone.reset(a_spans.m_horizon);
+        // The blend zone view, marched where two operands' boxes grown by w overlap, up to what the plain union is
+        // known up to (see RayDetail::BlendZoneView).
+        const T level = op.m_smooth + RayDetail::blendDepth(op.m_smooth, false);
 
-        RayDetail::uniteBlendZones<0, 1>(
-          a_shape, level, a_ray, a_tMin, a_spans.m_horizon, a_options, zone, operand, first, scratch);
-        RayDetail::spansWithin(
-          RayDetail::MarchedView<Node>{a_shape, T(0)}, a_ray, zone, a_options, a_firstOnly, scratch, operand);
-        RayDetail::uniteInto(a_spans, operand);
+        BoundingVolumes::AABBT<T> zone(Vec3T<T>::zeros(), Vec3T<T>::zeros());
 
-        if (a_firstOnly) {
-          RayDetail::keepFirst(a_spans);
+        bool any = false;
+
+        RayDetail::pairOverlaps(a_shape, level, zone, any, std::index_sequence_for<Cs...>{});
+
+        // With no overlap, the smooth union is the plain union.
+        if (any) {
+          RayDetail::shapeSpans(RayDetail::BlendZoneView<T, Cs...>{a_shape, zone},
+                                a_ray,
+                                a_tMin,
+                                a_spans.m_horizon,
+                                a_options,
+                                a_firstOnly,
+                                operand);
+          RayDetail::uniteInto(a_spans, operand);
+
+          if (a_firstOnly) {
+            RayDetail::keepFirst(a_spans);
+          }
         }
       }
     }
