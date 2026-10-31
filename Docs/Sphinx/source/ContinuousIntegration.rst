@@ -3,8 +3,8 @@
 Continuous integration
 ========================
 
-Every pull request targeting ``main``, and every push to ``main`` (so the merged result is checked
-too), triggers the CI pipeline defined in ``.github/workflows/CI.yml``, on GitHub-hosted
+Every pull request, and every push to the branch pull requests merge into (so the merged result is
+checked too), triggers the CI pipeline defined in ``.github/workflows/CI.yml``, on GitHub-hosted
 ``ubuntu-24.04`` runners (pinned: ``ubuntu-26.04``, which ``ubuntu-latest`` became,
 has no ``clang-14`` and a Python too new for the pinned Sphinx). Together, the jobs check: code formatting
 (``clang-format``) and static analysis (``clang-tidy``, advisory); code correctness and assurance
@@ -31,7 +31,7 @@ The pipeline runs in two tiers, so that a pull request under development gets it
   ``Linux-Intel``, ``Examples-GNUMake``, ``Examples-FloatPrecision``, ``Static-analysis`` or ``GPU-CUDA``
   job; ``GPU-HIP`` builds only its optimized configuration. It takes about eight minutes.
 * A pull request that is **ready for review** (marking it ready runs CI again) and every **push** to
-  ``main`` run the *full tier*: every job and every matrix cell described below.
+  that branch run the *full tier*: every job and every matrix cell described below.
 
 The tier is chosen from ``github.event.pull_request.draft``, which is false on a push. Every build and
 test run uses all the runner's cores (four on a public repository's standard runner).
