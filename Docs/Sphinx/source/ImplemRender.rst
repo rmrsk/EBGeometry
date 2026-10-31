@@ -93,7 +93,7 @@ below with the state it changes; H hides it. The axes are drawn in the bottom le
 also printed, in the same groups, when the window opens.
 
 A click (the left button, without dragging) picks the object under the cursor: a tape's leaf (so that a
-drilled solid's outer surface and its hole are picked apart), a BVH union's member, or a mesh SDF as a whole
+drilled solid's outer surface and its hole are picked apart), a member of a BVH union (not a smooth one), or a mesh SDF as a whole
 (``primitivesAreFaces``), whose face is named too; any other shape, a fused composition among them, is
 picked as a whole. The object is tinted
 gold (``Settings::m_highlightPrimitive``, ``AllPrimitives`` for a whole mesh) and outlined, from the object

@@ -111,7 +111,7 @@ Along a ray
 A ray query (see :ref:`Chap:Rays`) reports which part it crossed in ``HitT::m_primitive``, with the same
 meaning: for a tape, the leaf whose surface the ray crossed, numbered as ``closestPrimitive()`` numbers
 the leaves. Other shapes name what they can: a mesh distance
-field the id of the face crossed, a BVH union the member crossed, and any other shape (an analytic
+field the id of the face crossed, a BVH union (not a smooth one) the member crossed, and any other shape (an analytic
 shape, a fused composition) 0. The renderer colors by this number with
 ``Render::ColorBy::Primitive``, from a table of colors of your own or a built-in palette, and a click in
 the viewer picks the part under the cursor by it (see :ref:`Chap:Rendering`).

@@ -112,7 +112,7 @@ struct HitT
 
   /**
    * @brief The finest element the shape can name at the crossing: the face of a mesh SDF, the deciding
-   * leaf of a tape (see Tape::closestPrimitive()), the member of a BVH union (its place in the union's
+   * leaf of a tape (see Tape::closestPrimitive()), the member of a BVHUnion (its place in the union's
    * storage), and 0 for any other shape.
    */
   uint32_t m_primitive = 0;
