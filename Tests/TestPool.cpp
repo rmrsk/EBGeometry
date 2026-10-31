@@ -575,18 +575,21 @@ TEST_CASE("Memory resources: a zero-byte allocation returns a block, on the host
 {
   using namespace EBGeometryTestGPU;
 
+  void* hostBlock = hostMemoryResource().allocate(0, PoolBaseAlign);
+
+  CHECK(hostBlock != nullptr);
+
+  hostMemoryResource().deallocate(hostBlock, 0, PoolBaseAlign);
+
   if (!deviceAvailable()) {
     SKIP("no GPU device available");
   }
 
-  for (MemoryResource* resource :
-       std::initializer_list<MemoryResource*>{&hostMemoryResource(), &deviceTestResource()}) {
-    void* block = resource->allocate(0, PoolBaseAlign);
+  void* deviceBlock = deviceTestResource().allocate(0, PoolBaseAlign);
 
-    CHECK(block != nullptr);
+  CHECK(deviceBlock != nullptr);
 
-    resource->deallocate(block, 0, PoolBaseAlign);
-  }
+  deviceTestResource().deallocate(deviceBlock, 0, PoolBaseAlign);
 }
 
 TEST_CASE("Pool: a mirrored PODVector reads back correctly on the device", "[Pool][PODVector][gpu]")
