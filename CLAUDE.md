@@ -566,7 +566,10 @@ it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude
 conditions hold. When asked, Claude first makes sure the receipt measures the final code (recording it,
 which needs the maintainer's quiet-machine go, if it does not), then marks the PR ready, and hands it over
 once the full CI run that this starts has passed. Getting a PR ready for human review always includes
-promoting it out of draft: a PR that is still a draft has not been handed over, whatever else holds.
+promoting it out of draft: a PR that is still a draft has not been handed over, whatever else holds. It also
+includes labeling: Claude assigns the PR the labels, from the repository's existing set (`gh label list`;
+never a new one), that say what it changes (`bug`, `performance`, `gpu`, `ray tracing`, `documentation`,
+...), and the same to the issues it closes.
 
 **`@claude review` rounds.** Request a review after each push that changes code or docs, and stop when a
 round has no blocking finding. Each optional suggestion is either taken or declined with a one-line reason
