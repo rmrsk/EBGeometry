@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -131,7 +132,9 @@ measureOnDevice(Case&                  a_case,
  * @tparam In        Input type.
  * @tparam MakeQuery Callable taking const EBGeometry::Pool& and returning the query against that pool.
  * @tparam Agree     Callable (const Out& host, const Out& device) returning std::pair<double, bool>: the
- * size of the difference, and whether it is a disagreement (see Probe.hpp for the usual ones).
+ * size of the difference, and whether it is a disagreement (see Probe.hpp for the usual ones). It may also
+ * take the input, (const Out& host, const Out& device, const In& input), to judge a pair by what was asked
+ * (a ray that grazes a surface, say).
  * @tparam L         Launch settings on the device (see Launch).
  * @param[in,out] a_case          The running case.
  * @param[in,out] a_structurePool The pool the queried structure lives in; frozen here.
@@ -179,7 +182,14 @@ measureHostAndDevice(Case&                  a_case,
   std::size_t mismatches = 0;
 
   for (std::size_t i = 0; i < n; i++) {
-    const auto [diff, mismatch] = a_agree(host[i], device[i]);
+    const auto [diff, mismatch] = [&] {
+      if constexpr (std::is_invocable_v<Agree&, const Out&, const Out&, const In&>) {
+        return a_agree(host[i], device[i], a_in[i]);
+      }
+      else {
+        return a_agree(host[i], device[i]);
+      }
+    }();
 
     maxDiff = std::max(maxDiff, diff);
     mismatches += mismatch ? 1 : 0;
