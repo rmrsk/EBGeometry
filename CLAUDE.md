@@ -692,7 +692,7 @@ with explicit permission), and may ask whether to act on follow-ups.
   registers; of `pairInsert()`/`pairBlend()` alone, GCC stopped inlining the float tape's primitive
   dispatch, and host tapes without a smooth union became up to 37% slower. After any change on the
   tape's path, compile a float kernel calling `signedDistance()` once and one calling it 16 times in a
-  loop and check `ptxas -v` still reports the registers the base's do, and compare the sizes of the host
+  loop and check `ptxas -v` still reports the same registers as the base, and compare the sizes of the host
   evaluator's out-of-line functions (`nm -C -S` on `Performance/Tape/main.cpp` built `-O3
   -march=native`) with the base's: a function that newly appears or changes size there moves the
   receipt. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
