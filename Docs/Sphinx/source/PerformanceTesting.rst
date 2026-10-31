@@ -633,7 +633,8 @@ recorded it must pass like the host one), and passes only when, for each,
   then shows a warning with the reason rather than a plain pass. Who accepted it is in git history: the
   commit that wrote the reason, and the account that pushed it.
 
-A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
+A pull request that changes neither the library nor the probes needs no new receipt, and neither does one
+into a branch without the probes, which nothing can be compared against. Each merged pull
 request leaves its receipt in the base branch, so the history of ``Performance/receipt.md`` is the
 performance history of the branch, one comparison per change. Device sections appear where a change
 was measured on a GPU; regular device measurement is left to a future nightly run.

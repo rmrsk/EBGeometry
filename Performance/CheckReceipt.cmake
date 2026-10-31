@@ -9,7 +9,8 @@
 #   cmake -DBASE_REF=origin/dev -DHEAD_REF=<the pull request's head commit> -P Performance/CheckReceipt.cmake
 #
 # A pull request that changes none of what a comparison measures (see Receipt.cmake: the library and the
-# probes) needs no receipt: it passes, whatever receipt it inherited. Otherwise Performance/receipt.md at
+# probes) needs no receipt: it passes, whatever receipt it inherited. So does a pull request into a branch
+# that has no probes, since nothing can be compared against it. Otherwise Performance/receipt.md at
 # HEAD_REF must have a host section, and every section it has (host, and cuda or hip when a device
 # comparison was recorded) must
 #
@@ -73,6 +74,17 @@ perf_fingerprint(${fork} fork_now)
 
 if(head_now STREQUAL fork_now)
   say("No change to the library or the probes against ${BASE_REF}: no performance receipt is required.")
+  finish(TRUE)
+endif()
+
+# A base without probes cannot be compared against, so no receipt can stand for it, and none is required.
+# Once a branch has the probes, every pull request into it that changes what they measure needs a receipt.
+execute_process(COMMAND git ls-tree --name-only ${BASE_REF} -- Performance/ WORKING_DIRECTORY "${REPO}"
+                OUTPUT_VARIABLE base_probes OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+if(base_probes STREQUAL "")
+  say("${BASE_REF} has no performance probes, so nothing can be compared against it: no performance receipt is")
+  say("required. Every pull request into a branch that has the probes needs one.")
   finish(TRUE)
 endif()
 

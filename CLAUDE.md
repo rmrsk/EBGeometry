@@ -449,6 +449,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    checksum, needs one too); a pass on an accepted verdict shows as a warning. Write an accepted reason
    into the receipt only when the user explicitly accepts that verdict, and give it as the user did:
    CI cannot tell who wrote it, and git history shows only that it was pushed from the user's account.
+   A PR into a branch without `Performance/` needs no receipt (nothing can be compared against it): only
+   the merge of `dev` into `main` that brought the probes there (#269) met this, and the user wants every
+   later PR into `main` held to the receipt.
 
 **Coverage: how wide the probes are, and when to add to them.** The probes cover each public
 structure where its cost lives: its build, its queries, and any in-place update (a refit), in both
