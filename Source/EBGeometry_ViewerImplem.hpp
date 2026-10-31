@@ -1102,9 +1102,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
               camera.m_target = pick.m_point;
             }
 
-            // The object picked: a tape's leaf (any other shape names primitive 0, so the whole of it); a mesh
-            // SDF is one object, whose primitive is the face picked on it. It is tinted gold, and outlined (see
-            // show()).
+            // The object picked: a tape's leaf or a BVHUnion's member (any other shape names primitive 0, so the
+            // whole of it); a mesh SDF is one object, whose primitive is the face picked on it. It is tinted gold,
+            // and outlined (see show()).
             settings.m_highlightPrimitive = !picked                 ? Settings<T>::NoPrimitive
                                             : primitivesAreFaces<S> ? Settings<T>::AllPrimitives
                                                                     : pick.m_primitive;

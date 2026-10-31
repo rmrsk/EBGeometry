@@ -6,10 +6,14 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <array>
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
+#include <memory>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -725,6 +729,37 @@ TEST_CASE("MeshT: reconciling a hand-built face whose half-edge loop does not cl
       mesh.reconcile(); // must abort
     },
     "DCEL::MeshT::reconcile: face 0 has no half-edge"));
+
+  // A closed loop naming a vertex past the end of the vertex array: rejected before reconcile() reads it.
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      mesh.reserveVertices(pool, 3);
+      mesh.reserveEdges(pool, 3);
+      mesh.reserveFaces(pool, 1);
+
+      (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(0, 0, 0)));
+      (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(1, 0, 0)));
+      (void)mesh.addVertex(pool, TestVertex<T>(Vec3T<T>(0, 1, 0)));
+
+      const std::initializer_list<std::pair<uint32_t, uint32_t>> edges{{0, 1}, {1, 2}, {7, 0}};
+
+      for (const auto& [vertex, next] : edges) {
+        TestEdge<T> edge(vertex);
+
+        edge.setNextEdge(next);
+        edge.setFace(0);
+
+        (void)mesh.addEdge(pool, edge);
+      }
+
+      (void)mesh.addFace(pool, TestFace<T>(0u));
+
+      mesh.reconcile(); // must abort
+    },
+    "DCEL::MeshT::reconcile: face 0 references vertex 7, but the mesh has 3 vertices"));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2043,4 +2078,247 @@ TEMPLATE_TEST_CASE("MeshT/VertexT/EdgeT/FaceT/EdgeIteratorT: device query surfac
   }
 
   requireSameResults(afterFlip, flipped);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Point-in-face containment (FaceT): the winding-number, crossing-number and subtended-angle tests, which
+// project the face's vertices on the fly, exercised directly on small hand-built faces, including concave
+// polygons and non-axis-aligned planes that a mesh-level test would not necessarily hit, through a helper
+// that wires up a single DCEL face from a vertex list.
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+template <class T>
+std::array<DCEL::InsideOutsideAlgorithm, 3>
+allAlgorithms()
+{
+  return {DCEL::InsideOutsideAlgorithm::WindingNumber,
+          DCEL::InsideOutsideAlgorithm::CrossingNumber,
+          DCEL::InsideOutsideAlgorithm::SubtendedAngle};
+}
+
+// Test-only subclass that exposes FaceT's protected point-in-face test (used internally by
+// signedDistance()) so the containment algorithms can be exercised directly. MeshT stores plain
+// FaceT<T> by value, so a mesh-owned face is never an AccessibleFace and must not be cast to one;
+// instead, isPointInsideFace() below copies the face into an AccessibleFace and asks the copy.
+// FaceT is a trivially copyable value type whose containment test reads only its own members and
+// the mesh passed in, so the copy gives the same answer as the original.
+template <class T>
+struct AccessibleFace : public DCEL::FaceT<T>
+{
+  explicit AccessibleFace(const DCEL::FaceT<T>& a_face) : DCEL::FaceT<T>(a_face)
+  {}
+
+  using DCEL::FaceT<T>::isPointInsideFace;
+};
+
+template <class T>
+[[nodiscard]] bool
+isPointInsideFace(const DCEL::FaceT<T>& a_face, const Vec3T<T>& a_point, const DCEL::MeshT<T>& a_mesh)
+{
+  return AccessibleFace<T>(a_face).isPointInsideFace(a_point, a_mesh);
+}
+
+// A single DCEL face wired up from a vertex list, held inside a real DCEL::MeshT so the face's
+// on-the-fly (half-edge-walking, index-based) containment test can be queried against it.
+// reconcile() derives the normal, centroid, and 2D-projection axes from the geometry, matching how
+// a parsed mesh's faces are set up.
+template <class T>
+struct BuiltFace
+{
+  using Mesh   = DCEL::MeshT<T>;
+  using Vertex = DCEL::VertexT<T>;
+  using Edge   = DCEL::EdgeT<T>;
+  using Face   = DCEL::FaceT<T>;
+
+  // m_mesh's vertex/edge/face storage is reserved from m_pool, and m_mesh is bound to it (see the
+  // constructor) -- both members must stay together at a fixed address, so BuiltFace is not safe
+  // to copy or move. Every use site relies on C++17's guaranteed copy elision for prvalue returns
+  // (e.g. `return BuiltFace<T>(...)`), which needs no copy/move constructor at all.
+  Pool m_pool;
+  Mesh m_mesh;
+
+  explicit BuiltFace(const std::vector<Vec3T<T>>& a_positions) : m_pool(hostMemoryResource())
+  {
+    const uint32_t N = static_cast<uint32_t>(a_positions.size());
+
+    m_mesh.reserveVertices(m_pool, N);
+    m_mesh.reserveEdges(m_pool, N);
+    m_mesh.reserveFaces(m_pool, 1);
+
+    for (const auto& p : a_positions) {
+      m_mesh.addVertex(m_pool, Vertex(p));
+    }
+
+    for (uint32_t i = 0; i < N; i++) {
+      m_mesh.addEdge(m_pool, Edge(i)); // half-edge i starts at vertex i
+    }
+
+    for (uint32_t i = 0; i < N; i++) {
+      m_mesh.getEdge(i).setNextEdge((i + 1) % N);
+      m_mesh.getEdge(i).setFace(0);
+    }
+
+    m_mesh.addFace(m_pool, Face(0u)); // half-edge index 0
+
+    m_mesh.getFace(0).reconcile(m_mesh);
+  }
+
+  BuiltFace(const BuiltFace&) = delete;
+  BuiltFace(BuiltFace&&)      = delete;
+
+  [[nodiscard]] bool
+  isPointInside(const Vec3T<T>& a_point, DCEL::InsideOutsideAlgorithm a_algorithm)
+  {
+    auto& face = m_mesh.getFace(0);
+
+    face.setInsideOutsideAlgorithm(a_algorithm);
+
+    return isPointInsideFace(face, a_point, m_mesh);
+  }
+};
+
+// A unit square in the z=0 plane.
+template <class T>
+BuiltFace<T>
+unitSquare()
+{
+  using Vec3 = Vec3T<T>;
+
+  return BuiltFace<T>({Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0), Vec3(0, 1, 0)});
+}
+
+// An L-shaped concave hexagon in the z=0 plane: the unit square with its top-right quadrant notched
+// out. The point (0.75, 0.75, 0) sits in that notch -- inside the convex hull of the vertices, but
+// outside the actual polygon.
+template <class T>
+BuiltFace<T>
+lShape()
+{
+  using Vec3 = Vec3T<T>;
+
+  return BuiltFace<T>(
+    {Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 0.5, 0), Vec3(0.5, 0.5, 0), Vec3(0.5, 1, 0), Vec3(0, 1, 0)});
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("FaceT: a point clearly inside a square reads as inside for every algorithm",
+                   "[DCEL][Face][Polygon2D]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  BuiltFace<T> square = unitSquare<T>();
+
+  for (const auto algo : allAlgorithms<T>()) {
+    REQUIRE(square.isPointInside(Vec3(0.5, 0.5, 0), algo));
+  }
+}
+
+TEMPLATE_TEST_CASE("FaceT: a point clearly outside a square reads as outside for every algorithm",
+                   "[DCEL][Face][Polygon2D]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  BuiltFace<T> square = unitSquare<T>();
+
+  for (const auto algo : allAlgorithms<T>()) {
+    REQUIRE_FALSE(square.isPointInside(Vec3(2, 2, 0), algo));
+    REQUIRE_FALSE(square.isPointInside(Vec3(-1, 0.5, 0), algo));
+  }
+}
+
+TEMPLATE_TEST_CASE("FaceT: containment ignores the coordinate normal to the polygon's plane",
+                   "[DCEL][Face][Polygon2D]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  BuiltFace<T> square = unitSquare<T>();
+
+  // The polygon lies in z=0, but containment only depends on (x, y): the projection direction
+  // discards z, so a point "floating" well above or below the plane still reads as inside when its
+  // (x, y) projects into the square (isPointInsideFace first projects onto the plane).
+  for (const auto algo : allAlgorithms<T>()) {
+    REQUIRE(square.isPointInside(Vec3(0.5, 0.5, 100), algo));
+    REQUIRE(square.isPointInside(Vec3(0.5, 0.5, -100), algo));
+  }
+}
+
+TEMPLATE_TEST_CASE("FaceT: a concave polygon correctly excludes points in its notch, for every algorithm",
+                   "[DCEL][Face][Polygon2D]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  BuiltFace<T> lPolygon = lShape<T>();
+
+  // Inside the solid part of the L.
+  for (const auto algo : allAlgorithms<T>()) {
+    REQUIRE(lPolygon.isPointInside(Vec3(0.25, 0.25, 0), algo));
+  }
+
+  // Inside the convex hull of the vertices, but in the notched-out region: must read as outside.
+  for (const auto algo : allAlgorithms<T>()) {
+    REQUIRE_FALSE(lPolygon.isPointInside(Vec3(0.75, 0.75, 0), algo));
+  }
+
+  // Clearly outside entirely.
+  for (const auto algo : allAlgorithms<T>()) {
+    REQUIRE_FALSE(lPolygon.isPointInside(Vec3(-1, -1, 0), algo));
+  }
+}
+
+TEMPLATE_TEST_CASE("FaceT: containment works for a triangle in a non-axis-aligned plane",
+                   "[DCEL][Face][Polygon2D]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A triangle in the plane x + y + z = 3, with an oblique (but not axis-aligned) normal.
+  BuiltFace<T> triangle({Vec3(3, 0, 0), Vec3(0, 3, 0), Vec3(0, 0, 3)});
+
+  // The triangle's centroid (1, 1, 1) must project to the inside.
+  for (const auto algo : allAlgorithms<T>()) {
+    REQUIRE(triangle.isPointInside(Vec3(1, 1, 1), algo));
+  }
+
+  // A point outside the triangle but still in the same plane.
+  for (const auto algo : allAlgorithms<T>()) {
+    REQUIRE_FALSE(triangle.isPointInside(Vec3(3, 3, -3), algo));
+  }
+}
+
+TEMPLATE_TEST_CASE("FaceT: the three containment algorithms agree over a grid of query points",
+                   "[DCEL][Face][Polygon2D]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  BuiltFace<T> lPolygon = lShape<T>();
+
+  // Offset the grid so it never lands exactly on one of the L-shape's edges or vertices (all at
+  // multiples of 0.25) -- boundary points are inherently ambiguous between algorithms and aren't a
+  // meaningful place to expect exact agreement.
+  for (int i = -2; i <= 6; i++) {
+    for (int j = -2; j <= 6; j++) {
+      const Vec3 p(T(0.25 * i + 0.07), T(0.25 * j + 0.11), T(0));
+
+      const bool winding  = lPolygon.isPointInside(p, DCEL::InsideOutsideAlgorithm::WindingNumber);
+      const bool crossing = lPolygon.isPointInside(p, DCEL::InsideOutsideAlgorithm::CrossingNumber);
+      const bool subtend  = lPolygon.isPointInside(p, DCEL::InsideOutsideAlgorithm::SubtendedAngle);
+
+      REQUIRE(winding == crossing);
+      REQUIRE(winding == subtend);
+    }
+  }
 }

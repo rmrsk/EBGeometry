@@ -15,6 +15,7 @@
 
 // Std includes
 #include <cmath>
+#include <type_traits>
 
 // Our includes
 #include "EBGeometry_GPU.hpp"

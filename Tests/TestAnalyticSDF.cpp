@@ -721,7 +721,7 @@ TEST_CASE("Analytic shapes: invalid constructor arguments abort with a message",
 
       (void)cylinder;
     },
-    "CylinderSDF: the two centers must differ (1, 2, 3)"));
+    "CylinderSDF: the two centers must differ, but both are (1, 2, 3)"));
 
   REQUIRE(abortsWith(
     [] {

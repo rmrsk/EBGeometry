@@ -1403,4 +1403,9 @@ Mollify(const C& a_operand, const ShapePrecision<C> a_dist, const size_t a_sampl
 
 #include "EBGeometry_FusedImplem.hpp"
 
+// The ray forms of the fused operations and the BVH unions (and, through it, of the offsets): firstHit() is a
+// template, and a file that included this header without them would march a composition that another file
+// traces exactly, two definitions of one function. Included last, since that header includes this one.
+#include "EBGeometry_CSGRayForms.hpp"
+
 #endif

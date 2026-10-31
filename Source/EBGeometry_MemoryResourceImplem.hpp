@@ -225,7 +225,8 @@ DeviceMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 
   void* ptr = nullptr;
 
-  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(&ptr, a_bytes));
+  // A zero-byte request gets a byte, as on the host: the runtime may return null for zero bytes.
+  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(&ptr, a_bytes > 0 ? a_bytes : 1));
 
   return ptr;
 }
@@ -251,7 +252,8 @@ ManagedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 
   void* ptr = nullptr;
 
-  EBGEOMETRY_GPU_CHECK(GPU::memAllocManaged(&ptr, a_bytes));
+  // A zero-byte request gets a byte, as on the host: the runtime may return null for zero bytes.
+  EBGEOMETRY_GPU_CHECK(GPU::memAllocManaged(&ptr, a_bytes > 0 ? a_bytes : 1));
 
   return ptr;
 }
@@ -277,7 +279,8 @@ PinnedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 
   void* ptr = nullptr;
 
-  EBGEOMETRY_GPU_CHECK(GPU::memAllocHost(&ptr, a_bytes));
+  // A zero-byte request gets a byte, as on the host: the runtime may return null for zero bytes.
+  EBGEOMETRY_GPU_CHECK(GPU::memAllocHost(&ptr, a_bytes > 0 ? a_bytes : 1));
 
   return ptr;
 }
@@ -303,7 +306,8 @@ MappedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
 
   void* ptr = nullptr;
 
-  EBGEOMETRY_GPU_CHECK(GPU::memAllocHostMapped(&ptr, a_bytes));
+  // A zero-byte request gets a byte, as on the host: the runtime may return null for zero bytes.
+  EBGEOMETRY_GPU_CHECK(GPU::memAllocHostMapped(&ptr, a_bytes > 0 ? a_bytes : 1));
 
   return ptr;
 }

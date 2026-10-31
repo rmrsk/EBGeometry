@@ -1880,6 +1880,44 @@ TEMPLATE_TEST_CASE("Ray: a composition whose operand never decides is unresolved
   REQUIRE(intersects(tape, ray, T(0), T(4)) == HitStatus::Unresolved);
 }
 
+TEMPLATE_TEST_CASE("Ray: a BVH union's hit names the member it crossed", "[Ray][BVHUnion]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Three balls along x; a ray along -z through each center, and a second one off-center through the first.
+  const std::vector<SphereSDF<T>> balls{SphereSDF<T>(Vec3(T(0), T(0), T(0)), T(1)),
+                                        SphereSDF<T>(Vec3(T(3), T(0), T(0)), T(1)),
+                                        SphereSDF<T>(Vec3(T(6), T(0), T(0)), T(1))};
+
+  std::vector<BoundingVolumes::AABBT<T>> boxes;
+
+  for (const auto& ball : balls) {
+    boxes.push_back(ball.computeBoundingVolume());
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const BVHUnion<T, SphereSDF<T>, 4> scene(pool, balls, boxes);
+
+  const auto hitAt = [&scene](const T a_x, const T a_y) {
+    return firstHit(scene, RayT<T>{Vec3(a_x, a_y, T(5)), Vec3(T(0), T(0), -T(1))}, T(0), T(10));
+  };
+
+  const auto first  = hitAt(T(0), T(0));
+  const auto again  = hitAt(T(0.3), T(0.2));
+  const auto second = hitAt(T(3), T(0));
+  const auto third  = hitAt(T(6), T(0));
+
+  REQUIRE((first.hit() && again.hit() && second.hit() && third.hit()));
+
+  // A member is named by one number, whichever point on it is hit, and different members by different ones.
+  CHECK(first.m_primitive == again.m_primitive);
+  CHECK(first.m_primitive != second.m_primitive);
+  CHECK(first.m_primitive != third.m_primitive);
+  CHECK(second.m_primitive != third.m_primitive);
+}
+
 TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;

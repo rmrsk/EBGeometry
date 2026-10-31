@@ -566,7 +566,8 @@ A pull request is handed to the maintainer for review when all of these hold:
 it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the other
 conditions hold. When asked, Claude first makes sure the receipt measures the final code (recording it,
 which needs the maintainer's quiet-machine go, if it does not), then marks the PR ready, and hands it over
-once the full CI run that this starts has passed.
+once the full CI run that this starts has passed. Getting a PR ready for human review always includes
+promoting it out of draft: a PR that is still a draft has not been handed over, whatever else holds.
 
 **`@claude review` rounds.** Request a review after each push that changes code or docs, and stop when a
 round has no blocking finding. Each optional suggestion is either taken or declined with a one-line reason
