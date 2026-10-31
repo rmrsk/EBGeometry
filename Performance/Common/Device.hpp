@@ -181,18 +181,24 @@ measureHostAndDevice(Case&                  a_case,
   double      maxDiff    = 0.0;
   std::size_t mismatches = 0;
 
-  for (std::size_t i = 0; i < n; i++) {
-    const auto [diff, mismatch] = [&] {
-      if constexpr (std::is_invocable_v<Agree&, const Out&, const Out&, const In&>) {
-        return a_agree(host[i], device[i], a_in[i]);
-      }
-      else {
-        return a_agree(host[i], device[i]);
-      }
-    }();
+  // Two loops rather than one with a branch inside, so that a rule without the input compiles as it would
+  // alone: the probes' host builds compile these pairs too, and a change here moves the code layout of their
+  // timed cases.
+  if constexpr (std::is_invocable_v<Agree&, const Out&, const Out&, const In&>) {
+    for (std::size_t i = 0; i < n; i++) {
+      const auto [diff, mismatch] = a_agree(host[i], device[i], a_in[i]);
 
-    maxDiff = std::max(maxDiff, diff);
-    mismatches += mismatch ? 1 : 0;
+      maxDiff = std::max(maxDiff, diff);
+      mismatches += mismatch ? 1 : 0;
+    }
+  }
+  else {
+    for (std::size_t i = 0; i < n; i++) {
+      const auto [diff, mismatch] = a_agree(host[i], device[i]);
+
+      maxDiff = std::max(maxDiff, diff);
+      mismatches += mismatch ? 1 : 0;
+    }
   }
 
   const double hostMs   = median(hostTimes);
