@@ -246,7 +246,9 @@ points; the rays start as in the Ray probe. It is fused and through a tape (whos
 union), traced and marched (``RayOptions::m_march``); each traced case names its marched one and notes
 ``marched/traced``. A crowd of 4,096 small balls (radii 0.02 to 0.04) in the same cube, one BVH union
 through a tape, is traced only: a hit there finds its ball among 4,096 operands. A host and a device
-crossing agree as in the Ray probe.
+crossing agree as in the Ray probe, and also when the ray only grazes the surface: where a ray touches it
+without going deeper inside than the march's tolerance (a marched ray) or a rounding error (a traced one),
+one side may round to a crossing and the other to a miss, and both answers are valid.
 
 ====================================  =====  =====================================================
 Case                                  Build  Measures

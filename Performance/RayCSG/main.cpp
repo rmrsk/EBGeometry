@@ -159,15 +159,71 @@ struct FirstHit
 
 // Whether a host and a device crossing agree: both miss, or both cross within a tolerance, the march's for
 // marched rays (twice RayOptions::m_tolerance times the scene's box diagonal, under 1e-3 here) and a
-// rounding error's for traced ones.
-template <class T>
-std::pair<double, bool>
-agreeCrossing(T a_host, T a_device)
+// rounding error's for traced ones. A ray that only grazes the surface agrees whatever the two sides answer:
+// where it touches the surface without going deeper than the tolerance (the march's for a marched ray,
+// Perf::agreementTolerance() at the scene's scale for a traced one), one side's arithmetic may round to a
+// crossing and the other's to a miss (a fused multiply-add on the device, say), and both are valid answers
+// to the precision the query promises. The difference reported is still the whole difference, so a grazing
+// ray can give a large MaxDiff with no mismatch.
+template <class T, class Shape>
+struct AgreeCrossing
 {
-  const double diff = std::abs(static_cast<double>(a_host) - static_cast<double>(a_device));
+  Shape   m_shape;
+  Vec3<T> m_target;
+  bool    m_march;
 
-  return {diff, (a_host < T(0)) != (a_device < T(0)) || diff > 1e-3};
-}
+  std::pair<double, bool>
+  operator()(T a_host, T a_device, const Vec3<T>& a_origin) const
+  {
+    const double diff     = std::abs(static_cast<double>(a_host) - static_cast<double>(a_device));
+    const bool   mismatch = (a_host < T(0)) != (a_device < T(0)) || diff > 1e-3;
+
+    return {diff, mismatch && !this->grazes(a_origin, a_host, a_device)};
+  }
+
+private:
+  // Whether two answers, of which at least one is a crossing, differ only by a graze: each crossing is on
+  // the surface (within the tolerance of it), the earlier one where the ray touches it, and the ray goes no
+  // deeper than the tolerance inside before the later answer (the other crossing, or, for a miss, the end of
+  // the ray's way through the scene). Swept in steps of the shape's distance, which cannot step over a
+  // solid, and at least the tolerance.
+  bool
+  grazes(const Vec3<T>& a_origin, T a_host, T a_device) const
+  {
+    const auto   box   = m_shape.computeBoundingVolume();
+    const double scale = static_cast<double>((box.getHighCorner() - box.getLowCorner()).length());
+    const double tol   = m_march ? 2.0 * static_cast<double>(EBGeometry::RayOptions<T>{}.m_tolerance) * scale
+                                 : Perf::agreementTolerance<T>(scale);
+
+    const bool hostHits   = a_host >= T(0);
+    const bool deviceHits = a_device >= T(0);
+
+    const EBGeometry::RayT<T> ray = rayTowards(a_origin, m_target);
+
+    const auto value = [&](double t) { return static_cast<double>(m_shape.signedDistance(ray.at(static_cast<T>(t)))); };
+
+    const double far = static_cast<double>((m_target - a_origin).length()) + scale;
+    const double first =
+      (hostHits && deviceHits) ? std::min<double>(a_host, a_device) : static_cast<double>(hostHits ? a_host : a_device);
+    const double last = (hostHits && deviceHits) ? std::max<double>(a_host, a_device) : far;
+
+    if (std::abs(value(first)) > tol || (hostHits && deviceHits && std::abs(value(last)) > tol)) {
+      return false;
+    }
+
+    for (double t = 0.0; t < last - tol;) {
+      const double v = value(t);
+
+      if (v < -tol) {
+        return false;
+      }
+
+      t += std::max(std::abs(v), tol);
+    }
+
+    return true;
+  }
+};
 
 // The scene's box, its center, and ray origins in the box grown to twice its size about the center.
 template <class T>
@@ -229,7 +285,7 @@ addShape(
         pool,
         q,
         [&](const EBGeometry::Pool& a_pool) { return FirstHit<T, S>{shape.rebasedView(a_pool), center, a_march}; },
-        agreeCrossing<T>);
+        AgreeCrossing<T, S>{shape, center, a_march});
 
       c.checksum(Perf::checksumOf(out));
       c.param("march", a_march ? 1 : 0);
