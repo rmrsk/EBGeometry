@@ -5,7 +5,8 @@ Configuration options
 
 This page documents the configuration knobs shared by all three build methods
 (:ref:`Sec:BuildingCMake`, :ref:`Sec:BuildingGNUMake`, :ref:`Sec:BuildingDirectCompile`):
-floating-point precision, the target SIMD instruction set, and optional runtime assertions.
+floating-point precision, the target SIMD instruction set, optional runtime assertions, and the
+optional viewer window.
 
 .. contents:: On this page
    :local:
@@ -14,15 +15,18 @@ floating-point precision, the target SIMD instruction set, and optional runtime 
 Floating-point precision
 --------------------------
 
-Every EBGeometry class and function is templated on a floating-point type ``T``, almost
-always ``float`` or ``double``.  Precision is a **compile-time** choice, not a runtime one --
+Nearly every EBGeometry class and function is templated on a floating-point type ``T``, ``float``
+or ``double``.  Precision is a **compile-time** choice, not a runtime one --
 there is no notion of a "current" precision inside the library itself. Pick ``T`` explicitly
 when instantiating a class or calling a function template:
 
 .. code-block:: cpp
 
-   auto sdfDouble = EBGeometry::Parser::readIntoTriangleBVH<double>("bunny.ply");
-   auto sdfFloat  = EBGeometry::Parser::readIntoTriangleBVH<float>("bunny.ply");
+   EBGeometry::Pool poolDouble(EBGeometry::hostMemoryResource());
+   EBGeometry::Pool poolFloat(EBGeometry::hostMemoryResource());
+
+   auto sdfDouble = EBGeometry::Parser::readIntoTriMeshSDF<double>("bunny.ply", poolDouble);
+   auto sdfFloat  = EBGeometry::Parser::readIntoTriMeshSDF<float>("bunny.ply", poolFloat);
 
 Consuming code (including every example under :file:`Examples/`) typically reads precision from
 a preprocessor define so it can be overridden from the build system without editing source:
@@ -44,12 +48,93 @@ See :ref:`Chap:SIMDAcceleration` for a conceptual overview of SIMD acceleration 
 :ref:`Chap:SIMDClasses` for exactly which classes it applies to and what it means for each, and
 :ref:`Chap:Building` for the compiler/CMake/Makefile flags that enable it for each build method.
 
+.. _Sec:DefaultKW:
+
+Branching factor and SIMD width
+----------------------------------
+
+The BVH-backed classes take two size parameters: the branching factor ``K`` (children per BVH node)
+and, for the triangle and point groups, the SIMD width ``W`` (triangles or points evaluated together
+in one leaf group). There are two ways to choose them.
+
+**The defaults** -- ``BVH::DefaultBranchingRatio<T>()``, ``TriangleSoA::DefaultWidth<T>()`` and
+``PointSoA::DefaultWidth<T>()`` -- are 4 for ``float`` and ``double``. The class templates that have
+defaults (``PointCloudBVH``, ``PointSoAT``, ``PointAoSoA``, ``TriangleAoSoA``,
+``Parser::readIntoTriMeshSDF``) use them. Unless the build defines ``EBGEOMETRY_HOST_TUNED_DEFAULTS``
+(below), they never change, so a type spelled with them is the same type in every file: in one
+compiled with ``-mavx`` and in one compiled without, and in both passes of a CUDA or HIP compile.
+That is what lets an object be built on the host and used on a GPU.
+
+**The host-tuned values** -- ``BVH::HostBranchingRatio<T>()``, ``TriangleSoA::HostWidth<T>()`` and
+``PointSoA::HostWidth<T>()`` -- fill one SIMD register under the compiler's flags: 16 for ``float``
+and 8 for ``double`` with AVX-512F, 8 and 4 with AVX, and 4 otherwise. They can be spelled into a
+type explicitly:
+
+.. code-block:: cpp
+
+   constexpr size_t K = EBGeometry::BVH::HostBranchingRatio<T>();
+   constexpr size_t W = EBGeometry::TriangleSoA::HostWidth<T>();
+
+   auto sdf = EBGeometry::Parser::readIntoTriMeshSDF<T, K, W>("bunny.ply", pool);
+
+The rule is to use the defaults for any type that device code also uses, or that is passed between
+translation units compiled with different flags. With the host-tuned values, the same spelled type
+is a different type in two such files -- and within one CUDA or HIP compile, the host and device
+passes can disagree on its layout, which corrupts a kernel's arguments without any error.
+
+**Mixing SIMD flags in one program.** Even with the defaults, files compiled with different SIMD
+flags compile the inline SIMD code differently: the child-box distances of ``PackedBVH`` and the
+triangle and point groups each have an AVX-512, an AVX and an SSE4.1 version, and a scalar one. Each
+such inline function is then defined differently in different files, and the linker keeps one
+file's version for every caller. The types keep one layout, so objects can still be passed between
+the files, but the program can run instructions that only the other file was compiled for (an
+illegal-instruction crash on a CPU without them), or get the other file's results (the SIMD and
+scalar paths agree for finite inputs).
+Nothing checks this. Compile every file that uses EBGeometry with the same SIMD flags, unless the
+program only ever runs on CPUs that have the widest instruction set any of its files uses.
+
+**The build switch.** Defining ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` for a whole build makes
+``TriangleSoA::DefaultWidth<T>()`` return ``TriangleSoA::HostWidth<T>()``, so every
+``readIntoTriMeshSDF`` that uses the default width, and every ``TriMeshSDF`` spelled with
+``TriangleSoA::DefaultWidth<T>()``, evaluates a full register of triangles at
+once, without spelling the width into each type. It changes the triangle-group width only: the
+branching factor and the point-group width stay 4, since widening them does not make queries faster
+(see below). Two conditions come with it:
+
+* **One set of flags for the whole build.** Every translation unit must define the macro and be
+  compiled with the same SIMD flags, since the width then follows them; otherwise one spelled type
+  has two layouts, and an object built in one file is read wrongly in another. Nothing checks this
+  across translation units, so set both for the whole build, as EBGeometry's CMake option does.
+* **Host-only.** The headers refuse the macro in a CUDA or HIP translation unit (a compile error),
+  since the host and device passes of such a compile see different SIMD flags.
+
+EBGeometry's CMake build sets it through the ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` option, which is on
+when EBGeometry is the top-level project (its tests, examples and benchmarks) and no GPU backend is
+enabled, and off otherwise; asking for it together with a GPU backend is a configure error. Like
+``EBGEOMETRY_SIMD``, it is not passed on to a project that uses EBGeometry through
+``find_package``, ``add_subdirectory`` or ``FetchContent``: such a project defines the macro itself
+if it wants the wider groups. A wider group also widens ``TriMeshSDF``'s leaves, which hold up to
+``maxLeafGroups`` groups.
+
+**Which parameter pays off.** A wider triangle group is the one change that makes queries clearly
+faster, and then mostly in single precision on AVX2: a ``TriMeshSDF`` leaf test then evaluates a full
+register of triangles per instruction. Widening the branching factor or the point groups does not
+make queries faster, and under AVX-512 a branching factor or point-group width of 16 makes them
+markedly slower (some CPUs also lower their clock under heavy 512-bit work, which makes measurements
+there noisy). This is why the switch widens the triangle groups alone.
+
+To measure on your own machine and mesh, run the :ref:`Chap:ExampleHostTuning` example, which
+builds a point cloud and a mesh with the portable values and with the host-tuned ones and times them.
+Build it on its own (with ``make`` or a direct compiler invocation in its folder) rather than in
+EBGeometry's CMake build: there the switch above is on, so its "default" triangle width already is
+the host-tuned one.
+
 Compile-time assertions (``static_assert``)
 ----------------------------------------------
 
-Alongside ``EBGEOMETRY_EXPECT``, EBGeometry uses ordinary C++ ``static_assert`` throughout to
-enforce template-parameter invariants that are known at compile time -- these are always
-active and cannot be disabled, unlike ``EBGEOMETRY_EXPECT``. A violation fails the build with a
+Alongside its two runtime checks (:ref:`Sec:AlwaysOnChecks` and :ref:`Sec:Assertions`), EBGeometry
+uses ordinary C++ ``static_assert`` throughout to enforce template-parameter invariants that are
+known at compile time -- these are always active and cannot be disabled. A violation fails the build with a
 compiler error rather than misbehaving, crashing, or aborting at runtime. Examples of what is
 guarded this way:
 
@@ -59,8 +144,64 @@ guarded this way:
 * Type constraints between template parameters.
 * The SIMD data-alignment invariants described in :ref:`Chap:SIMDClasses`.
 
-See the end of this page for an example combining ``static_assert`` with ``EBGEOMETRY_EXPECT``
-in a custom class.
+See the end of this page for an example combining ``static_assert`` with the runtime checks in a
+custom class.
+
+.. _Sec:AlwaysOnChecks:
+
+Always-on checks (``EBGEOMETRY_REQUIRE``)
+--------------------------------------------
+
+EBGeometry checks what a caller controls -- constructor arguments, sizes and counts, the memory
+resource a pool is built on -- with ``EBGEOMETRY_REQUIRE(cond, message...)``. These checks are on in
+every build, whether or not ``EBGEOMETRY_ENABLE_ASSERTIONS`` is defined: without them, a Release
+build given bad input would carry on into a wrong answer or undefined behavior. Each runs once,
+when an object is built, outside any query loop, so it costs a few comparisons per object.
+
+On failure the program prints what went wrong, the failed condition, the file and the line to
+``stderr``, then calls ``std::abort()``:
+
+.. code-block:: text
+
+   EBGeometry::BVHUnion: need one bounding volume per primitive (4 primitives, 3 bounding volumes)
+     check: (a_primitives.size() == a_boundingVolumes.size())
+     file: Source/EBGeometry_BVHUnionImplem.hpp
+     line: 92
+
+The message argument is a ``printf`` format string literal, starting with the class or function
+that checks, followed by its arguments, so the compiler checks the format against the arguments.
+
+A mesh file that cannot be read is not a programming error, so the file readers throw
+``EBGeometry::Parser::ParseError`` instead of aborting; see :ref:`Chap:Parsers`. A mesh whose
+faces are oriented inconsistently or fold back onto each other can be loaded with a warning
+instead, with ``Parser::OnDefect::Warn``; see :ref:`Sec:OnDefect`.
+
+.. _Sec:ConfigViewer:
+
+The viewer window (``EBGEOMETRY_VIEWER``)
+-------------------------------------------
+
+``Render::view()`` (:ref:`Chap:ImplemRender`) opens an interactive window on a shape. The window needs
+SDL2, a third-party library, so it is compiled only on request; without it ``view()`` prints a line
+saying how to build it and returns, and nothing else in EBGeometry needs SDL2.
+
+* **CMake:** ``-DEBGEOMETRY_VIEWER=SDL2`` (default ``OFF``) finds SDL2 and gives every target of the
+  build that uses EBGeometry the window, like the other settings on this page it is not carried by an
+  installed EBGeometry. Each example's own ``CMakeLists.txt`` takes the same option when built on its own.
+* **GNU make:** ``make VIEWER=SDL2`` in an example folder, which uses ``sdl2-config``.
+* **Directly:** define ``EBGEOMETRY_VIEWER_SDL2`` and add SDL2's flags:
+
+  .. code-block:: bash
+
+     g++ -std=c++17 -O3 -DEBGEOMETRY_VIEWER_SDL2 $(sdl2-config --cflags) -I/path/to/EBGeometry main.cpp \
+         $(sdl2-config --libs) -pthread
+
+  For nvcc, also define ``SDL_DISABLE_IMMINTRIN_H``: SDL's x86 intrinsics headers do not get through it.
+
+Even with the window built, ``view()`` opens none when the program is given ``--no-view`` or there is
+no display, so programs that call it still run unattended. The renderer itself (``Render::Renderer``)
+needs no option; it draws on ``std::thread``, and the ``EBGeometry::EBGeometry`` CMake target links
+``Threads::Threads`` for it (add ``-pthread`` when compiling by hand).
 
 .. _Sec:Assertions:
 
@@ -76,25 +217,24 @@ When ``EBGEOMETRY_ENABLE_ASSERTIONS`` is **not** defined (the default):
 
 .. code-block:: cpp
 
-   #define EBGEOMETRY_EXPECT(cond) (static_cast<void>(sizeof((cond))))
+   #define EBGEOMETRY_EXPECT(cond) ((void)0)
 
-The condition is **not** evaluated: ``sizeof`` is an unevaluated context, so the
-expression is parsed (which keeps it syntax-checked, and keeps variables or
-parameters that appear only inside assertions from tripping unused-entity warnings)
-but is never executed.  Disabled assertions therefore have exactly zero runtime cost
-and cannot produce side effects, at any optimisation level — not merely once the
-optimiser eliminates a discarded branch.
+The condition is **not** evaluated at all — the macro expands to a no-op, so an
+assertion costs exactly nothing in release, including not running its predicate.
+A local variable that exists only to be asserted therefore becomes unused; mark
+such a declaration ``[[maybe_unused]]`` at its site to keep the release build
+warning-clean.
 
 When ``EBGEOMETRY_ENABLE_ASSERTIONS`` **is** defined:
 
 .. code-block:: cpp
 
-   EBGEOMETRY_EXPECT(a_normal.length() > T(0));
+   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
    // On failure:
-   // EBGeometry assertion failed: (a_normal.length() > T(0))
+   // EBGeometry assertion failed: (std::isfinite(a_point[0]))
    //   file: EBGeometry_AnalyticDistanceFunctions.hpp
-   //   line: 98
-   //   function: PlaneSDF
+   //   line: 118
+   //   function: signedDistance
 
 The program prints the failing expression, file, line, and enclosing function name
 to ``stderr``, then calls ``std::abort()``.  This produces a core dump (on POSIX
@@ -126,11 +266,14 @@ Writing your own assertions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you extend EBGeometry with new functionality classes, use ``static_assert`` to guard
-preconditions that are known at compile time (from the template parameters alone), and
-``EBGEOMETRY_EXPECT`` to guard preconditions that can only be checked at runtime (from actual
-argument values).  ``EBGEOMETRY_EXPECT`` is available in any translation unit that (directly or
-transitively) includes ``EBGeometry_Macros.hpp``, which is pulled in automatically through
-``EBGeometry.hpp``. An example combining both is given below:
+preconditions that are known at compile time (from the template parameters alone),
+``EBGEOMETRY_REQUIRE`` for argument values checked once when an object is built, and
+``EBGEOMETRY_EXPECT`` for invariants on paths that run many times, such as a signed-distance query.
+Both macros are available in any translation unit that (directly or transitively) includes
+``EBGeometry_Macros.hpp``, which is pulled in automatically through ``EBGeometry.hpp``. An example combining both is given below. Like the built-in analytic shapes
+(:ref:`Sec:AnalyticShapes`), it is a plain, trivially copyable value type with a
+``signedDistance()`` member rather than a subclass of a virtual base, so it can also be evaluated on
+a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
 
 .. code-block:: cpp
 
@@ -138,15 +281,24 @@ transitively) includes ``EBGeometry_Macros.hpp``, which is pulled in automatical
    #include <type_traits>
 
    template <class T>
-   class MySDF : public EBGeometry::SignedDistanceFunction<T>
+   class MySDF
    {
    public:
      static_assert(std::is_floating_point_v<T>, "MySDF requires a floating-point type T");
 
-     MySDF(T a_radius)
+     explicit MySDF(T a_radius) noexcept
      {
-       EBGEOMETRY_EXPECT(a_radius > T(0));
+       EBGEOMETRY_REQUIRE(a_radius > T(0), "MySDF: the radius must be positive (%g)", double(a_radius));
 
        m_radius = a_radius;
      }
+
+     [[nodiscard]] EBGEOMETRY_HOST_DEVICE T
+     signedDistance(const EBGeometry::Vec3T<T>& a_point) const noexcept
+     {
+       return a_point.length() - m_radius;
+     }
+
+   private:
+     T m_radius = T(1);
    };

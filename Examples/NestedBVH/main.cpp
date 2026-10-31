@@ -2,8 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// A mesh placed many times, two ways: shared between translated placements in a Tape alongside
+// analytic shapes, and as separate copies under a BVHUnion, which nests one BVH (over the placements)
+// above another (over each mesh's triangles). Both are evaluated on the host and, through the same
+// query, on a GPU. See README.md.
+
+#include <cstddef>
 #include <iostream>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -14,91 +19,198 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-using namespace EBGeometry;
-
 using T    = EBGEOMETRY_PRECISION;
-using Meta = short;
-
-// Branching factor for the outer union BVH. Defaults to the SIMD-optimal value for T on the
-// compiled ISA -- the same default readIntoTriangleBVH uses for the inner mesh BVHs.
-constexpr size_t K = BVH::DefaultBranchingRatio<T>();
-
 using Vec3 = EBGeometry::Vec3T<T>;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-using IF   = EBGeometry::ImplicitFunction<T>;
 
+// The BVH branching factor (K) and triangle-group width (W) that the readers use by default. A
+// TriMeshSDF with these is a built-in primitive of Tape<T>; any other must be listed as a user type.
+constexpr std::size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
+constexpr std::size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
+
+using Mesh     = EBGeometry::TriMeshSDF<T, K, W>;
+using Nested   = EBGeometry::BVHUnion<T, Mesh, K>;
+using Composed = EBGeometry::Tape<T>;
+
+namespace {
+
+// ── The code that runs on either side ────────────────────────────────────────────────────────────────
+//
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. It holds the tape and the nested union by value. Both
+// are descriptors of what they built in a Pool, so a kernel can receive them once they describe a
+// pool the device can read (see the last section of main()).
+struct Values
+{
+  T composed;
+  T nested;
+};
+
+struct BothScenes
+{
+  Composed m_composed;
+  Nested   m_nested;
+
+  EBGEOMETRY_HOST_DEVICE
+  Values
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return {m_composed.signedDistance(a_point), m_nested.signedDistance(a_point)};
+  }
+};
+
+} // namespace
+
+// The function-try-block reports a mesh file that cannot be read, rather than letting the exception
+// terminate the program.
 int
 main(int argc, char* argv[])
-{
-  // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated CSG union
-  // (BVHUnionIF) whose primitives are themselves BVH-backed mesh signed distance functions
-  // (TriMeshSDF). Each TriMeshSDF owns an inner PackedBVH over its SoA triangle groups, so a single
-  // distance query descends the outer union BVH to locate the nearby mesh(es), then descends each of
-  // those meshes' own inner BVH -- two levels of BVH traversal for one query.
+try {
+  // ── Read the mesh ──────────────────────────────────────────────────────────────────────────────────
   //
-  // The outer union stores its primitives as std::shared_ptr<const ImplicitFunction<T>> (the default
-  // SharedPtrStorage): it shares each mesh SDF by pointer rather than copying it. This is the
-  // recommended way to nest BVHs -- and nesting can recurse to any depth (a BVH of BVHs of BVHs...).
-  // See the "Storage policy" section in the user documentation of the BVH implementation for why the
-  // outer level must not use ValueStorage here: ImplicitFunction<T> is polymorphic so it
-  // cannot be stored by value at all, and even for a concrete primitive by-value storage copies each
-  // inner BVH's entire memory footprint, which becomes exceedingly expensive for large inner BVHs and
-  // compounds with nesting depth.
+  // Any watertight, orientable surface mesh in STL, PLY, VTK or OBJ. The default is a small
+  // dodecahedron in Examples/data; pass another on the command line. Arguments starting with -- are
+  // options (--no-view keeps the viewer shut).
+  std::string file = "../data/dodecahedron.stl";
 
-  // Mesh to place at several positions. Pass a path on the command line, or fall back to the
-  // dodecahedron fixture shipped in the repository (Tests/data), so this example needs no
-  // submodule. The path is relative to this example's own folder, which is the working directory
-  // when the example is run.
-  std::string file = "../../Tests/data/dodecahedron.stl";
-  if (argc >= 2) {
-    file = std::string(argv[1]);
+  for (int i = 1; i < argc; i++) {
+    if (std::string(argv[i]).rfind("--", 0) != 0) {
+      file = argv[i];
+
+      break;
+    }
+  }
+
+  std::cout << "Reading '" << file << "'\n";
+
+  // The meshes, their BVHs, the tape and the union are all reserved from this one Pool, which must
+  // outlive them and every copy of them.
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+  const Mesh mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool);
+
+  // The mesh's size sets the spacing of the placements.
+  const BV   meshBox = mesh.computeBoundingVolume();
+  const Vec3 center  = T(0.5) * (meshBox.getLowCorner() + meshBox.getHighCorner());
+  const T    size    = (meshBox.getHighCorner() - meshBox.getLowCorner()).length();
+
+  // ── One mesh, shared: a Tape ───────────────────────────────────────────────────────────────────────
+  //
+  // The expression builder describes the object: Translate(mesh, shift) places the mesh without
+  // copying it, and Union combines objects of any type, here the placed mesh and spheres. The Tape
+  // compiles the description into the pool. A union of eight or more operands is evaluated through a
+  // BVH over their bounding boxes, so a query only evaluates the objects near it.
+  std::vector<EBGeometry::Expr<T>> objects;
+
+  for (int i = 0; i < 6; i++) {
+    const Vec3 shift(T(1.5) * size * T(i), T(0), T(0));
+
+    objects.emplace_back(EBGeometry::Translate(mesh, shift));
+    objects.emplace_back(EBGeometry::SphereSDF<T>(center + shift + Vec3(T(0), T(0.75) * size, T(0)), T(0.25) * size));
+  }
+
+  const Composed composed(pool, EBGeometry::Union(objects));
+
+  std::cout << "  Tape   : 6 placements of the mesh and 6 spheres, " << composed.getNumClauses() << " clauses, "
+            << composed.getNumBVHUnions() << " BVH union\n";
+
+  // ── Many copies: a nested BVH ──────────────────────────────────────────────────────────────────────
+  //
+  // A BVHUnion holds primitives of one type by value and builds a BVH over their bounding boxes. Its
+  // primitives here are TriMeshSDFs, each with a BVH of its own over its triangles, so one query
+  // descends two levels: the outer BVH finds the placements near the point, and each of those meshes'
+  // own BVH finds the nearest triangle. Each placement is a separate mesh with its own (translated)
+  // triangles, so genuinely different meshes of the same type could be placed the same way. The first
+  // row of the 4 x 4 grid coincides with the tape's placements.
+  const auto triangles = EBGeometry::Parser::readIntoTriangles<T>(file);
+
+  std::vector<Mesh> copies;
+  std::vector<BV>   boxes;
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      const Vec3 shift(T(1.5) * size * T(i), T(0), T(1.5) * size * T(j));
+
+      auto shifted = triangles;
+
+      for (auto& triangle : shifted) {
+        auto vertices = triangle.getVertexPositions();
+
+        for (auto& v : vertices) {
+          v = v + shift;
+        }
+
+        triangle.setVertexPositions(vertices);
+      }
+
+      copies.emplace_back(shifted, pool, EBGeometry::BVH::Construction::SAH, 4);
+      boxes.push_back(copies.back().computeBoundingVolume());
+    }
+  }
+
+  const Nested nested(pool, copies, boxes);
+
+  std::cout << "  Nested : a BVH union of " << copies.size() << " copies of the mesh, each with its own BVH\n\n";
+
+  // ── Use them on the host ───────────────────────────────────────────────────────────────────────────
+  //
+  // Both are shapes: signedDistance(point) is negative inside any placement and positive outside all of
+  // them, and computeBoundingVolume() encloses every placement.
+  // The points run along the first row of placements, which both scenes share: through the center of
+  // a placement, then halfway to the next one, and so on.
+  std::vector<Vec3> points;
+
+  for (int i = 0; i <= 8; i++) {
+    points.push_back(center + Vec3(T(0.75) * size * T(i), T(0), T(0)));
+  }
+
+  std::cout << "Along the first row of placements:\n";
+
+  for (const Vec3& p : points) {
+    std::cout << "  " << p << "   tape " << composed.signedDistance(p) << "   nested " << nested.signedDistance(p)
+              << '\n';
+  }
+
+  // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
+  //
+  // The pool is frozen, mirrored in one piece into GPU::memoryResource() (device memory in a CUDA or
+  // HIP build), and the tape and the union are rebased onto the copy, every mesh with them.
+  // GPU::transform() then runs the query once per point in a kernel, both levels of BVH traversal
+  // included. In a plain C++ build the same lines run on the host. The values agree with the host's to
+  // rounding, since a device compiler may fuse a multiply and an add where the host compiler does not.
+  if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "\nOn the device: skipped, no GPU is visible\n";
   }
   else {
-    std::cout << "No mesh file given; defaulting to the in-repo dodecahedron.stl fixture.\n"
-              << "Usage: ./NestedBVH.ex <mesh-file>  (STL/PLY/VTK/OBJ, triangles only)\n";
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource());
+
+    const BothScenes query{composed.rebasedView(devicePool), nested.rebasedView(devicePool)};
+
+    std::vector<Values> onDevice(points.size());
+
+    EBGeometry::GPU::transform(query, points, onDevice);
+
+    std::cout << "\nThrough GPU::transform (backend: " << EBGeometry::GPU::backendName << "):\n";
+
+    for (std::size_t i = 0; i < points.size(); i++) {
+      std::cout << "  " << points[i] << "   tape " << onDevice[i].composed << "   nested " << onDevice[i].nested
+                << '\n';
+    }
   }
 
-  // Read the mesh directly into a BVH-backed TriMeshSDF using the library's default parameters
-  // (SIMD-optimal branching factor and SoA width, ValueStorage, SAH build). Build it *once*, then
-  // instance it at several positions below: because every placement is the same mesh, they all
-  // share this single TriMeshSDF -- its (value-stored) inner packed BVH is built and stored exactly
-  // once, and each placement is just an EBGeometry::Translate wrapper holding a shared_ptr to that
-  // same object, shared by pointer and never rebuilt or copied per placement. This is the idiomatic
-  // way to replicate one mesh across a scene. (To place genuinely different meshes instead, read one
-  // TriMeshSDF per mesh file and translate each.)
-  const auto tri   = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file);
-  const BV   triBV = tri->computeBoundingVolume();
-
-  const std::vector<Vec3> shifts = {
-    Vec3(0, 0, 0),
-    Vec3(4, 0, 0),
-    Vec3(0, 4, 0),
-    Vec3(4, 4, 0),
-    Vec3(2, 2, 4),
-  };
-
-  std::vector<std::shared_ptr<IF>> primitives;
-  std::vector<BV>                  boundingVolumes;
-  primitives.reserve(shifts.size());
-  boundingVolumes.reserve(shifts.size());
-
-  // Each placement shares the one inner mesh BVH; only its translation -- and its bounding volume
-  // for the outer union (the mesh's own AABB shifted by the same offset) -- differs.
-  for (const Vec3& shift : shifts) {
-    primitives.emplace_back(EBGeometry::Translate<T>(tri, shift));
-    boundingVolumes.emplace_back(triBV.getLowCorner() + shift, triBV.getHighCorner() + shift);
-  }
-
-  // Outer BVH: a BVH-accelerated union over the placements. This is the nested (two-level) BVH.
-  const auto nestedUnion = EBGeometry::BVHUnion<T, IF, BV, K>(primitives, boundingVolumes);
-
-  std::cout << "Built a BVH union over " << primitives.size()
-            << " placements of one BVH-backed mesh SDF (a nested, two-level BVH).\n";
-
-  // Evaluate at a few points: on a placement, between placements, and far outside everything.
-  for (const Vec3& p : {Vec3(0, 0, 0), Vec3(2, 2, 0), Vec3(20, 20, 20)}) {
-    std::cout << "value(" << p << ") = " << nestedUnion->value(p) << "\n";
-  }
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // A window on the tape that places the mesh among the spheres (built with VIEWER=SDL2; otherwise, with
+  // --no-view or without a display, view() prints why and returns). Drag to orbit, scroll to zoom, X cuts it
+  // open, P cycles the coloring.
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
+  EBGeometry::Render::view(composed, pool, argc, argv);
 
   return 0;
+} catch (const EBGeometry::Parser::ParseError& e) {
+  std::cerr << "Cannot read the mesh: " << e.what() << '\n';
+
+  return 1;
 }

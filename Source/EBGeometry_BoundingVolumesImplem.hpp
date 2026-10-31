@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_BoundingVolumesImplem.hpp
- * @brief  Inline implementations of SphereT<T> and AABBT<T>.
+ * @brief  Inline implementations of AABBT<T>.
  * @author Robert Marskar
  */
 
@@ -12,15 +12,12 @@
 #define EBGEOMETRY_BOUNDINGVOLUMESIMPLEM_HPP
 
 // Std includes
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <iostream>
 #include <vector>
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
-#include "EBGeometry_Constants.hpp"
 #include "EBGeometry_Macros.hpp"
 
 namespace EBGeometry {
@@ -28,273 +25,7 @@ namespace EBGeometry {
 namespace BoundingVolumes {
 
 template <class T>
-inline SphereT<T>::SphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept
-{
-  EBGEOMETRY_EXPECT(a_radius >= T(0));
-  EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_center[2]));
-
-  m_center = a_center;
-  m_radius = a_radius;
-}
-
-template <class T>
-SphereT<T>::SphereT(const SphereT& a_other) noexcept
-{
-  EBGEOMETRY_EXPECT(a_other.m_radius >= T(0));
-
-  m_radius = a_other.m_radius;
-  m_center = a_other.m_center;
-}
-
-template <class T>
-SphereT<T>::SphereT(const std::vector<SphereT<T>>& a_otherSpheres) noexcept
-{
-  EBGEOMETRY_EXPECT(!a_otherSpheres.empty());
-
-  // Enclosing a set of spheres is a hard problem. We approximate by constructing
-  // the AABB corners for each input sphere, then fitting a sphere to those points.
-  std::vector<Vec3T<T>> points;
-  points.reserve(2 * a_otherSpheres.size());
-
-  for (const auto& sphere : a_otherSpheres) {
-    EBGEOMETRY_EXPECT(sphere.m_radius >= T(0));
-
-    const T&        radius = sphere.getRadius();
-    const Vec3T<T>& center = sphere.getCentroid();
-
-    points.emplace_back(center + radius * Vec3T<T>::ones());
-    points.emplace_back(center - radius * Vec3T<T>::ones());
-  }
-
-  this->define(points, BuildAlgorithm::Ritter);
-}
-
-template <class T>
-template <class P>
-SphereT<T>::SphereT(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
-{
-  EBGEOMETRY_EXPECT(!a_points.empty());
-
-  this->define(a_points, a_algorithm);
-}
-
-template <class T>
-SphereT<T>::~SphereT() noexcept = default;
-
-template <class T>
-template <class P>
-inline void
-SphereT<T>::define(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
-{
-  EBGEOMETRY_EXPECT(!a_points.empty());
-
-  switch (a_algorithm) {
-  case BuildAlgorithm::Ritter: {
-    this->buildRitter(a_points);
-
-    break;
-  }
-  default: {
-    std::cerr << "SphereT::define - unsupported algorithm requested\n";
-  }
-  }
-}
-
-template <class T>
-inline bool
-SphereT<T>::intersects(const SphereT& a_other) const noexcept
-{
-  EBGEOMETRY_EXPECT(m_radius >= T(0));
-  EBGEOMETRY_EXPECT(a_other.m_radius >= T(0));
-
-  // Two spheres intersect if and only if the distance between their centres is
-  // less than the sum of their radii: |c1 - c2| < r1 + r2.
-  // Squaring both sides avoids a square root: |c1 - c2|^2 < (r1 + r2)^2.
-  const Vec3 deltaV = m_center - a_other.getCentroid();
-  const T    sumR   = m_radius + a_other.getRadius();
-
-  return deltaV.dot(deltaV) < sumR * sumR;
-}
-
-template <class T>
-inline T&
-SphereT<T>::getRadius() noexcept
-{
-  return m_radius;
-}
-
-template <class T>
-inline const T&
-SphereT<T>::getRadius() const noexcept
-{
-  return m_radius;
-}
-
-template <class T>
-inline Vec3T<T>&
-SphereT<T>::getCentroid() noexcept
-{
-  return m_center;
-}
-
-template <class T>
-inline const Vec3T<T>&
-SphereT<T>::getCentroid() const noexcept
-{
-  return m_center;
-}
-
-template <class T>
-inline T
-SphereT<T>::getOverlappingVolume(const SphereT<T>& a_other) const noexcept
-{
-  EBGEOMETRY_EXPECT(m_radius >= T(0));
-  EBGEOMETRY_EXPECT(a_other.m_radius >= T(0));
-
-  constexpr T zero = T(0);
-
-  if (!this->intersects(a_other)) {
-    return zero;
-  }
-
-  const T r1 = m_radius;
-  const T r2 = a_other.getRadius();
-  const T d  = (m_center - a_other.getCentroid()).length();
-
-  // Two spheres can intersect in one of two ways:
-  //
-  // Case 1: one sphere is entirely inside the other (d <= |r1 - r2|).
-  //   The overlapping volume equals the volume of the smaller sphere.
-  if (d <= std::abs(r1 - r2)) {
-    const T rMin = std::min(r1, r2);
-
-    return T(4.0 / 3.0) * pi<T> * rMin * rMin * rMin;
-  }
-
-  // Case 2: partial overlap (|r1 - r2| < d < r1 + r2).
-  //   The intersection is a spherical lens. Its volume is given by the standard
-  //   lens formula, which sums the two spherical cap volumes on either side of the
-  //   intersection circle. See e.g. Weisstein, "Sphere-Sphere Intersection",
-  //   MathWorld: V = pi/(12d) * (r1+r2-d)^2 * (d^2 + 2d(r1+r2) - 3(r1-r2)^2).
-  return pi<T> / (T(12) * d) * (r1 + r2 - d) * (r1 + r2 - d) *
-         (d * d + T(2) * d * (r1 + r2) - T(3) * (r1 - r2) * (r1 - r2));
-}
-
-template <class T>
-inline T
-SphereT<T>::getDistance(const Vec3& a_x0) const noexcept
-{
-  EBGEOMETRY_EXPECT(m_radius >= T(0));
-  EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-
-  // The distance from a_x0 to the sphere surface is |a_x0 - center| - radius.
-  // This is negative when a_x0 is inside the sphere; clamping to zero gives the
-  // unsigned distance, which is zero for interior points.
-  return std::max(T(0), (a_x0 - m_center).length() - m_radius);
-}
-
-template <class T>
-inline T
-SphereT<T>::getDistance2(const Vec3& a_x0) const noexcept
-{
-  EBGEOMETRY_EXPECT(m_radius >= T(0));
-  EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-
-  // A sphere's surface distance is radial (|a_x0 - center| - radius), so -- unlike AABBT -- the
-  // square root cannot be avoided; this is just the unsigned surface distance squared.
-  const T distance = std::max(T(0), (a_x0 - m_center).length() - m_radius);
-
-  return distance * distance;
-}
-
-template <class T>
-inline T
-SphereT<T>::getVolume() const noexcept
-{
-  EBGEOMETRY_EXPECT(m_radius >= T(0));
-
-  return T(4) * pi<T> * m_radius * m_radius * m_radius / T(3);
-}
-
-template <class T>
-inline T
-SphereT<T>::getArea() const noexcept
-{
-  EBGEOMETRY_EXPECT(m_radius >= T(0));
-
-  return T(4) * pi<T> * m_radius * m_radius;
-}
-
-template <class T>
-template <class P>
-inline void
-SphereT<T>::buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept
-{
-  EBGEOMETRY_EXPECT(!a_points.empty());
-
-  m_radius = T(0);
-  m_center = Vec3::zeros();
-
-  constexpr T      half = T(0.5);
-  constexpr size_t DIM  = 3;
-
-  // For each axis find the points with the minimum and maximum coordinate.
-  std::vector<Vec3> minPt(DIM, a_points[0]);
-  std::vector<Vec3> maxPt(DIM, a_points[0]);
-
-  for (size_t i = 1; i < a_points.size(); i++) {
-    for (size_t dir = 0; dir < DIM; dir++) {
-      if (a_points[i][dir] < minPt[dir][dir]) {
-        minPt[dir] = a_points[i];
-      }
-
-      if (a_points[i][dir] > maxPt[dir][dir]) {
-        maxPt[dir] = a_points[i];
-      }
-    }
-  }
-
-  // Choose the axis with the widest span as the initial diameter.
-  T    dist = T(-1);
-  Vec3 p1, p2;
-  for (size_t dir = 0; dir < DIM; dir++) {
-    const T len = (maxPt[dir] - minPt[dir]).length();
-
-    if (len > dist) {
-      dist = len;
-      p1   = minPt[dir];
-      p2   = maxPt[dir];
-    }
-  }
-
-  m_center = (p1 + p2) * half;
-  m_radius = half * (p2 - p1).length();
-
-  // Expand the sphere to include any point that lies outside.
-  for (size_t i = 0; i < a_points.size(); i++) {
-    const T excess = (a_points[i] - m_center).length() - m_radius;
-
-    if (excess > T(0)) {
-      const Vec3 v = a_points[i] - m_center;
-      p1           = a_points[i];
-      p2           = m_center - m_radius * v / v.length();
-
-      m_center = half * (p1 + p2);
-      m_radius = half * (p1 - p2).length();
-    }
-  }
-
-  // Ritter's algorithm is an approximation; grow slightly for safety.
-  m_radius *= T(1) + T(1e-2);
-}
-
-template <class T>
+EBGEOMETRY_HOST_DEVICE
 AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept
 {
   EBGEOMETRY_EXPECT(a_lo[0] <= a_hi[0]);
@@ -306,20 +37,25 @@ AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept
 }
 
 template <class T>
-AABBT<T>::AABBT(const AABBT<T>& a_other) noexcept
+EBGEOMETRY_HOST_DEVICE
+inline AABBT<T>
+AABBT<T>::merged(const AABBT<T>& a_other) const noexcept
 {
-  EBGEOMETRY_EXPECT(a_other.m_loCorner[0] <= a_other.m_hiCorner[0]);
-  EBGEOMETRY_EXPECT(a_other.m_loCorner[1] <= a_other.m_hiCorner[1]);
-  EBGEOMETRY_EXPECT(a_other.m_loCorner[2] <= a_other.m_hiCorner[2]);
+  // Set the corners directly rather than through the corner constructor, which rejects an inverted
+  // box: the union of two default (inverted) boxes is itself inverted.
+  AABBT<T> box;
 
-  m_loCorner = a_other.m_loCorner;
-  m_hiCorner = a_other.m_hiCorner;
+  box.m_loCorner = min(m_loCorner, a_other.m_loCorner);
+  box.m_hiCorner = max(m_hiCorner, a_other.m_hiCorner);
+
+  return box;
 }
 
 template <class T>
+EBGEOMETRY_HOST
 AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_others.empty());
+  EBGEOMETRY_REQUIRE(!a_others.empty(), "AABBT: cannot enclose an empty list of bounding boxes");
 
   m_loCorner = a_others.front().getLowCorner();
   m_hiCorner = a_others.front().getHighCorner();
@@ -336,33 +72,56 @@ AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others) noexcept
 
 template <class T>
 template <class P>
+EBGEOMETRY_HOST
 AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
+  EBGEOMETRY_REQUIRE(!a_points.empty(), "AABBT: cannot enclose an empty list of points");
 
   this->define(a_points);
 }
 
 template <class T>
-AABBT<T>::~AABBT() noexcept = default;
+template <class P>
+EBGEOMETRY_HOST_DEVICE
+AABBT<T>::AABBT(const Vec3T<P>* a_points, size_t a_numPoints) noexcept
+{
+  EBGEOMETRY_EXPECT(a_points != nullptr);
+  EBGEOMETRY_EXPECT(a_numPoints > 0);
+
+  this->define(a_points, a_numPoints);
+}
 
 template <class T>
 template <class P>
+EBGEOMETRY_HOST
 inline void
 AABBT<T>::define(const std::vector<Vec3T<P>>& a_points) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_points.empty());
+  EBGEOMETRY_REQUIRE(!a_points.empty(), "AABBT::define: cannot enclose an empty list of points");
 
-  m_loCorner = a_points.front();
-  m_hiCorner = a_points.front();
+  this->define(a_points.data(), a_points.size());
+}
 
-  for (const auto& p : a_points) {
-    m_loCorner = min(m_loCorner, p);
-    m_hiCorner = max(m_hiCorner, p);
+template <class T>
+template <class P>
+EBGEOMETRY_HOST_DEVICE
+inline void
+AABBT<T>::define(const Vec3T<P>* a_points, size_t a_numPoints) noexcept
+{
+  EBGEOMETRY_EXPECT(a_points != nullptr);
+  EBGEOMETRY_EXPECT(a_numPoints > 0);
+
+  m_loCorner = a_points[0];
+  m_hiCorner = a_points[0];
+
+  for (size_t i = 0; i < a_numPoints; i++) {
+    m_loCorner = min(m_loCorner, a_points[i]);
+    m_hiCorner = max(m_hiCorner, a_points[i]);
   }
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline bool
 AABBT<T>::intersects(const AABBT& a_other) const noexcept
 {
@@ -384,6 +143,7 @@ AABBT<T>::intersects(const AABBT& a_other) const noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
 AABBT<T>::getLowCorner() noexcept
 {
@@ -391,6 +151,7 @@ AABBT<T>::getLowCorner() noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
 AABBT<T>::getLowCorner() const noexcept
 {
@@ -398,6 +159,7 @@ AABBT<T>::getLowCorner() const noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
 AABBT<T>::getHighCorner() noexcept
 {
@@ -405,6 +167,7 @@ AABBT<T>::getHighCorner() noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
 AABBT<T>::getHighCorner() const noexcept
 {
@@ -412,6 +175,7 @@ AABBT<T>::getHighCorner() const noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
 AABBT<T>::getCentroid() const noexcept
 {
@@ -423,6 +187,7 @@ AABBT<T>::getCentroid() const noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T
 AABBT<T>::getOverlappingVolume(const AABBT<T>& a_other) const noexcept
 {
@@ -442,14 +207,15 @@ AABBT<T>::getOverlappingVolume(const AABBT<T>& a_other) const noexcept
   const Vec3& olo = a_other.m_loCorner;
   const Vec3& ohi = a_other.m_hiCorner;
 
-  const T dx = std::max(T(0), std::min(hi[0], ohi[0]) - std::max(lo[0], olo[0]));
-  const T dy = std::max(T(0), std::min(hi[1], ohi[1]) - std::max(lo[1], olo[1]));
-  const T dz = std::max(T(0), std::min(hi[2], ohi[2]) - std::max(lo[2], olo[2]));
+  // Per-axis overlap length as a vector: max(0, min(hi, ohi) - max(lo, olo)). The overlapping
+  // volume is the product of the three components.
+  const Vec3 overlap = max(Vec3::zeros(), min(hi, ohi) - max(lo, olo));
 
-  return dx * dy * dz;
+  return overlap[0] * overlap[1] * overlap[2];
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T
 AABBT<T>::getDistance(const Vec3& a_point) const noexcept
 {
@@ -468,14 +234,13 @@ AABBT<T>::getDistance(const Vec3& a_point) const noexcept
   // Clamping the gap vector to zero and taking its length gives the distance to the box:
   // points inside the box contribute zero on every axis, and the Euclidean norm of the
   // positive gaps gives the shortest path to the nearest corner or face otherwise.
-  const Vec3 gap(std::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
-                 std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
-                 std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
+  const Vec3 gap = max(m_loCorner - a_point, a_point - m_hiCorner);
 
   return max(Vec3::zeros(), gap).length();
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T
 AABBT<T>::getDistance2(const Vec3& a_point) const noexcept
 {
@@ -488,14 +253,13 @@ AABBT<T>::getDistance2(const Vec3& a_point) const noexcept
 
   // Same per-axis gap construction as getDistance() -- see its comment -- but squared and
   // summed directly, without ever taking a square root.
-  const Vec3 gap(std::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
-                 std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
-                 std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
+  const Vec3 gap = max(m_loCorner - a_point, a_point - m_hiCorner);
 
   return max(Vec3::zeros(), gap).length2();
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T
 AABBT<T>::getVolume() const noexcept
 {
@@ -509,6 +273,7 @@ AABBT<T>::getVolume() const noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T
 AABBT<T>::getArea() const noexcept
 {
@@ -522,28 +287,16 @@ AABBT<T>::getArea() const noexcept
 }
 
 template <class T>
-[[nodiscard]] bool
-intersects(const SphereT<T>& u, const SphereT<T>& v) noexcept
-{
-  return u.intersects(v);
-}
-
-template <class T>
-[[nodiscard]] bool
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+bool
 intersects(const AABBT<T>& u, const AABBT<T>& v) noexcept
 {
   return u.intersects(v);
 }
 
 template <class T>
-[[nodiscard]] T
-getOverlappingVolume(const SphereT<T>& u, const SphereT<T>& v) noexcept
-{
-  return u.getOverlappingVolume(v);
-}
-
-template <class T>
-[[nodiscard]] T
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+T
 getOverlappingVolume(const AABBT<T>& u, const AABBT<T>& v) noexcept
 {
   return u.getOverlappingVolume(v);

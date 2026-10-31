@@ -12,185 +12,199 @@
 #define EBGEOMETRY_DCEL_FACEIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <limits>
-#include <memory>
-#include <vector>
+#include <cstdint>
 
 // Our includes
+#include "EBGeometry_Constants.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Iterator.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
 namespace DCEL {
 
-template <class T, class Meta>
-inline FaceT<T, Meta>::FaceT(const EdgePtr& a_edge)
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline FaceT<T>::FaceT(const uint32_t a_edgeIndex)
 {
-  m_halfEdge = a_edge;
+  m_halfEdge = a_edgeIndex;
 }
 
-template <class T, class Meta>
-inline FaceT<T, Meta>::FaceT(const Face& a_otherFace)
-{
-  m_normal   = a_otherFace.m_normal;
-  m_halfEdge = a_otherFace.m_halfEdge;
-  m_centroid = a_otherFace.m_centroid;
-  m_area     = a_otherFace.m_area;
-}
-
-template <class T, class Meta>
-inline FaceT<T, Meta>&
-FaceT<T, Meta>::operator=(const Face& a_otherFace) noexcept
-{
-  if (this != &a_otherFace) {
-    m_normal   = a_otherFace.m_normal;
-    m_halfEdge = a_otherFace.m_halfEdge;
-    m_centroid = a_otherFace.m_centroid;
-    m_area     = a_otherFace.m_area;
-  }
-
-  return *this;
-}
-
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::define(const Vec3& a_normal, const EdgePtr& a_edge) noexcept
+FaceT<T>::define(const Vec3& a_normal, const uint32_t a_edgeIndex) noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[2]));
 
-  // a_edge == nullptr is valid here (e.g. a freshly-created face not yet wired into the mesh).
+  // a_edgeIndex == UINT32_MAX is valid here (e.g. a freshly-created face not yet wired into a mesh).
   m_normal   = a_normal;
-  m_halfEdge = a_edge;
+  m_halfEdge = a_edgeIndex;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST
 inline void
-FaceT<T, Meta>::reconcile()
+FaceT<T>::reconcile(const Mesh& a_mesh)
 {
-  this->computeNormal();
+  this->computeNormal(a_mesh);
   this->normalizeNormalVector();
-  this->computeCentroid();
-  this->computeArea();
-  this->computePolygon2D();
+  this->computeCentroid(a_mesh);
+  this->computeArea(a_mesh);
+  this->computeProjectionDirections();
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::flipNormal() noexcept
+FaceT<T>::flipNormal() noexcept
 {
   m_normal = -m_normal;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::setHalfEdge(const EdgePtr& a_halfEdge) noexcept
+FaceT<T>::setHalfEdge(const uint32_t a_halfEdgeIndex) noexcept
 {
-  m_halfEdge = a_halfEdge;
+  m_halfEdge = a_halfEdgeIndex;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
+FaceT<T>::normalizeNormalVector() noexcept
 {
-  m_metaData = a_metaData;
+  // A zero-area face keeps its zero normal; see computeNormal().
+  const T length = m_normal.length();
+
+  if (length > T(0)) {
+    m_normal = m_normal / length;
+  }
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::normalizeNormalVector() noexcept
+FaceT<T>::setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept
 {
-  EBGEOMETRY_EXPECT(m_normal.length() > std::numeric_limits<T>::epsilon());
-
-  m_normal = m_normal / m_normal.length();
+  m_insideOutsideAlgorithm = a_algorithm;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST
 inline void
-FaceT<T, Meta>::setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept
-{
-  m_poly2Algorithm = a_algorithm;
-}
-
-template <class T, class Meta>
-inline void
-FaceT<T, Meta>::computeCentroid()
+FaceT<T>::computeCentroid(const Mesh& a_mesh)
 {
   m_centroid = Vec3::zeros();
 
-  const auto vertices = this->gatherVertices();
+  const auto vertexIndices = this->gatherVertexIndices(a_mesh);
 
-  EBGEOMETRY_EXPECT(!vertices.empty());
+  EBGEOMETRY_REQUIRE(!vertexIndices.empty(), "DCEL::FaceT::computeCentroid: the face has no vertices");
 
-  for (const auto& v : vertices) {
-    m_centroid += v->getPosition();
+  for (const uint32_t v : vertexIndices) {
+    m_centroid += a_mesh.getVertex(v).getPosition();
   }
 
-  m_centroid = m_centroid / vertices.size();
+  m_centroid = m_centroid / vertexIndices.size();
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST
 inline void
-FaceT<T, Meta>::computeNormal()
+FaceT<T>::computeNormal(const Mesh& a_mesh)
 {
-  const auto vertices = this->gatherVertices();
+  const auto vertexIndices = this->gatherVertexIndices(a_mesh);
 
-  const size_t N = vertices.size();
+  const size_t N = vertexIndices.size();
 
   // A polygon face needs at least 3 vertices to span a plane.
-  EBGEOMETRY_EXPECT(N >= 3);
+  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (%zu)", N);
 
-  // To compute the normal vector we find three vertices in this polygon face.
-  // They span a plane, and we just compute the normal vector of that plane.
+  // Newell's method: the sum of x_i cross x_(i+1) around the polygon is twice its vector area. It
+  // uses every vertex, so it is robust for polygons with near-collinear consecutive vertices.
+  m_normal = Vec3::zeros();
+
+  T longestEdge2 = T(0);
+
   for (size_t i = 0; i < N; i++) {
-    const auto& x0 = vertices[i]->getPosition();
-    const auto& x1 = vertices[(i + 1) % N]->getPosition();
-    const auto& x2 = vertices[(i + 2) % N]->getPosition();
+    const auto& x0 = a_mesh.getVertex(vertexIndices[i]).getPosition();
+    const auto& x1 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
 
-    m_normal = (x2 - x0).cross(x2 - x1);
-
-    if (m_normal.length() > T(0.0)) {
-      break; // Found one.
-    }
+    m_normal += x0.cross(x1);
+    longestEdge2 = Math::max(longestEdge2, (x1 - x0).length2());
   }
 
-  // If every vertex triple was degenerate (collinear/coincident points), m_normal is still zero
-  // here and normalizeNormalVector() below would divide by zero.
-  EBGEOMETRY_EXPECT(m_normal.length() > std::numeric_limits<T>::epsilon());
+  // A zero-area face (collinear or coincident vertices) has no normal. It gets a zero one instead of
+  // the NaN a normalization would give: a zero normal contributes nothing to the angle-weighted
+  // vertex and edge pseudonormals around it. The parsers remove such faces before they get here
+  // (Soup::removeDegeneratePolygons); this covers meshes built by hand.
+  if (m_normal.length() <= T(64) * Math::Limits<T>::epsilon() * longestEdge2) {
+    m_normal = Vec3::zeros();
+  }
 
   this->normalizeNormalVector();
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline void
-FaceT<T, Meta>::computePolygon2D()
+FaceT<T>::computeProjectionDirections() noexcept
 {
-  m_poly2 = std::make_shared<Polygon2D<T>>(m_normal, this->getAllVertexCoordinates());
+  // A zero-area face has a zero normal and gets the x- and y-axes; they are never used, since
+  // isPointInsideFace() reports no interior for it.
+  //
+  // Drop the coordinate of the largest normal component (projecting along it maximizes the projected
+  // area), keeping the other two as the 2D x- and y-axes with m_xDir < m_yDir.
+  uint32_t ignoreDir = 0;
+
+  for (uint32_t dir = 1; dir < 3; dir++) {
+    if (std::abs(m_normal[dir]) > std::abs(m_normal[ignoreDir])) {
+      ignoreDir = dir;
+    }
+  }
+
+  m_xDir = 3;
+  m_yDir = 0;
+
+  for (uint32_t dir = 0; dir < 3; dir++) {
+    if (dir != ignoreDir) {
+      m_xDir = Math::min(m_xDir, dir);
+      m_yDir = Math::max(m_yDir, dir);
+    }
+  }
+
+  EBGEOMETRY_EXPECT(m_xDir < 3);
+  EBGEOMETRY_EXPECT(m_yDir < 3);
+  EBGEOMETRY_EXPECT(m_xDir != m_yDir);
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST
 inline void
-FaceT<T, Meta>::computeArea()
+FaceT<T>::computeArea(const Mesh& a_mesh)
 {
   T area = 0.0;
 
   // This computes the area of any N-side polygon.
-  const auto   vertices = this->gatherVertices();
-  const size_t N        = vertices.size();
+  const auto   vertexIndices = this->gatherVertexIndices(a_mesh);
+  const size_t N             = vertexIndices.size();
 
-  EBGEOMETRY_EXPECT(N >= 3);
+  EBGEOMETRY_REQUIRE(N >= 3, "DCEL::FaceT::computeArea: a face needs at least 3 vertices (%zu)", N);
 
   // Sum over ALL N edges, including the wraparound edge from vertices[N-1] back to vertices[0] --
   // this is the standard cross-product/shoelace formula for a planar polygon's area relative to
   // the origin, and omitting the wraparound edge silently produces a wrong (generally too large or
   // too small) area for any polygon that doesn't happen to pass through the origin.
   for (size_t i = 0; i < N; i++) {
-    const auto& v1 = vertices[i]->getPosition();
-    const auto& v2 = vertices[(i + 1) % N]->getPosition();
+    const auto& v1 = a_mesh.getVertex(vertexIndices[i]).getPosition();
+    const auto& v2 = a_mesh.getVertex(vertexIndices[(i + 1) % N]).getPosition();
 
     area += m_normal.dot(v2.cross(v1));
   }
@@ -198,174 +212,159 @@ FaceT<T, Meta>::computeArea()
   m_area = T(0.5) * std::abs(area);
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T&
-FaceT<T, Meta>::getArea() noexcept
+FaceT<T>::getArea() noexcept
 {
   return m_area;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline const T&
-FaceT<T, Meta>::getArea() const noexcept
+FaceT<T>::getArea() const noexcept
 {
   return m_area;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T&
-FaceT<T, Meta>::getCentroid(const size_t a_dir) noexcept
+FaceT<T>::getCentroid(const size_t a_dir) noexcept
 {
   return m_centroid[a_dir];
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline const T&
-FaceT<T, Meta>::getCentroid(const size_t a_dir) const noexcept
+FaceT<T>::getCentroid(const size_t a_dir) const noexcept
 {
   return m_centroid[a_dir];
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
-FaceT<T, Meta>::getCentroid() noexcept
+FaceT<T>::getCentroid() noexcept
 {
   return m_centroid;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
-FaceT<T, Meta>::getCentroid() const noexcept
+FaceT<T>::getCentroid() const noexcept
 {
   return m_centroid;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>&
-FaceT<T, Meta>::getNormal() noexcept
+FaceT<T>::getNormal() noexcept
 {
   return m_normal;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline const Vec3T<T>&
-FaceT<T, Meta>::getNormal() const noexcept
+FaceT<T>::getNormal() const noexcept
 {
   return m_normal;
 }
 
-template <class T, class Meta>
-inline std::shared_ptr<EdgeT<T, Meta>>
-FaceT<T, Meta>::getHalfEdge() noexcept
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+FaceT<T>::getHalfEdgeIndex() const noexcept
 {
-  return m_halfEdge.lock();
+  return m_halfEdge;
 }
 
-template <class T, class Meta>
-inline std::shared_ptr<EdgeT<T, Meta>>
-FaceT<T, Meta>::getHalfEdge() const noexcept
+template <class T>
+EBGEOMETRY_HOST
+inline std::vector<uint32_t>
+FaceT<T>::gatherVertexIndices(const Mesh& a_mesh) const
 {
-  return m_halfEdge.lock();
-}
+  std::vector<uint32_t> vertexIndices;
+  vertexIndices.reserve(3);
 
-template <class T, class Meta>
-inline Meta&
-FaceT<T, Meta>::getMetaData() noexcept
-{
-  return m_metaData;
-}
-
-template <class T, class Meta>
-inline const Meta&
-FaceT<T, Meta>::getMetaData() const noexcept
-{
-  return m_metaData;
-}
-
-template <class T, class Meta>
-inline std::vector<std::shared_ptr<VertexT<T, Meta>>>
-FaceT<T, Meta>::gatherVertices() const
-{
-  std::vector<VertexPtr> vertices;
-  vertices.reserve(3);
-
-  for (EdgeIterator iter(*this); iter.ok(); ++iter) {
-    const EdgePtr& edge = iter();
-    vertices.emplace_back(edge->getVertex());
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    vertexIndices.emplace_back(a_mesh.getEdge(iter()).getVertexIndex());
   }
 
-  return vertices;
+  return vertexIndices;
 }
 
-template <class T, class Meta>
-inline std::vector<std::shared_ptr<EdgeT<T, Meta>>>
-FaceT<T, Meta>::gatherEdges() const
+template <class T>
+EBGEOMETRY_HOST
+inline std::vector<uint32_t>
+FaceT<T>::gatherEdgeIndices(const Mesh& a_mesh) const
 {
-  std::vector<EdgePtr> edges;
-  edges.reserve(3);
+  std::vector<uint32_t> edgeIndices;
+  edgeIndices.reserve(3);
 
-  for (EdgeIterator iter(*this); iter.ok(); ++iter) {
-    const EdgePtr& edge = iter();
-
-    edges.emplace_back(edge);
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    edgeIndices.emplace_back(iter());
   }
 
-  return edges;
+  return edgeIndices;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST
 inline std::vector<Vec3T<T>>
-FaceT<T, Meta>::getAllVertexCoordinates() const
+FaceT<T>::getAllVertexCoordinates(const Mesh& a_mesh) const
 {
   std::vector<Vec3> ret;
   ret.reserve(3);
 
-  for (EdgeIterator iter(*this); iter.ok(); ++iter) {
-    const EdgePtr& edge = iter();
-
-    ret.emplace_back(edge->getVertex()->getPosition());
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    ret.emplace_back(a_mesh.getEdge(iter()).getVertex(a_mesh).getPosition());
   }
 
   return ret;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::getSmallestCoordinate() const
+FaceT<T>::getSmallestCoordinate(const Mesh& a_mesh) const noexcept
 {
-  const auto coords = this->getAllVertexCoordinates();
+  // Seeded with the most-positive vector and reduced in place, rather than seeding from a
+  // materialized coordinate list. The loop runs at least once for any face whose half-edge index is
+  // set, so the seed is then never observable in the return value. EdgeIterator does not check this:
+  // a face with an unset half-edge (UINT32_MAX) makes ok() false at once, and the seed is returned.
+  Vec3 minCoord = Vec3::max();
 
-  EBGEOMETRY_EXPECT(!coords.empty());
-
-  auto minCoord = coords.front();
-
-  for (const auto& c : coords) {
-    minCoord = min(minCoord, c);
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    minCoord = min(minCoord, a_mesh.getEdge(iter()).getVertex(a_mesh).getPosition());
   }
 
   return minCoord;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::getHighestCoordinate() const
+FaceT<T>::getHighestCoordinate(const Mesh& a_mesh) const noexcept
 {
-  const auto coords = this->getAllVertexCoordinates();
+  Vec3 maxCoord = Vec3::min();
 
-  EBGEOMETRY_EXPECT(!coords.empty());
-
-  auto maxCoord = coords.front();
-
-  for (const auto& c : coords) {
-    maxCoord = max(maxCoord, c);
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    maxCoord = max(maxCoord, a_mesh.getEdge(iter()).getVertex(a_mesh).getPosition());
   }
 
   return maxCoord;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline Vec3T<T>
-FaceT<T, Meta>::projectPointIntoFacePlane(const Vec3& a_p) const noexcept
+FaceT<T>::projectPointIntoFacePlane(const Vec3& a_p) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_p[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_p[1]));
@@ -374,65 +373,259 @@ FaceT<T, Meta>::projectPointIntoFacePlane(const Vec3& a_p) const noexcept
   return a_p - m_normal * (m_normal.dot(a_p - m_centroid));
 }
 
-template <class T, class Meta>
-inline bool
-FaceT<T, Meta>::isPointInsideFace(const Vec3& a_p) const noexcept
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline Vec2T<T>
+FaceT<T>::projectPoint(const Vec3& a_point) const noexcept
 {
-  EBGEOMETRY_EXPECT(m_poly2 != nullptr);
+  EBGEOMETRY_EXPECT(m_xDir < 3);
+  EBGEOMETRY_EXPECT(m_yDir < 3);
 
-  const Vec3 p = this->projectPointIntoFacePlane(a_p);
-
-  return m_poly2->isPointInside(p, m_poly2Algorithm);
+  return Vec2T<T>(a_point[m_xDir], a_point[m_yDir]);
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline int
+FaceT<T>::computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
+{
+  int wn = 0;
+
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    const Edge&    edge = a_mesh.getEdge(iter());
+    const Vec2T<T> P1   = this->projectPoint(edge.getVertex(a_mesh).getPosition());
+    const Vec2T<T> P2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition());
+
+    // Cross product sign of (P2-P1) x (a_point-P1), i.e. whether a_point lies to the left of the
+    // directed edge P1->P2. Inlined (rather than a local lambda) so this function stays callable
+    // from device code without requiring nvcc's --extended-lambda.
+    const T res = (P2[0] - P1[0]) * (a_point[1] - P1[1]) - (a_point[0] - P1[0]) * (P2[1] - P1[1]);
+
+    if (P1[1] <= a_point[1]) {
+      if (P2[1] > a_point[1]) {
+        if (res > T(0.)) {
+          ++wn;
+        }
+      }
+    }
+    else {
+      if (P2[1] <= a_point[1]) {
+        if (res < T(0.)) {
+          --wn;
+        }
+      }
+    }
+  }
+
+  return wn;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline size_t
+FaceT<T>::computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
+{
+  size_t cn = 0;
+
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    const Edge&    edge = a_mesh.getEdge(iter());
+    const Vec2T<T> P1   = this->projectPoint(edge.getVertex(a_mesh).getPosition());
+    const Vec2T<T> P2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition());
+
+    // clang-format off
+    const bool upwardCrossing   = (P1[1] <= a_point[1]) && (P2[1] >  a_point[1]);
+    const bool downwardCrossing = (P1[1] >  a_point[1]) && (P2[1] <= a_point[1]);
+    // clang-format on
+
+    if (upwardCrossing || downwardCrossing) {
+      // Guaranteed non-zero by construction, as in the winding/crossing convention above.
+      EBGEOMETRY_EXPECT(P2[1] != P1[1]);
+
+      const T t = (a_point[1] - P1[1]) / (P2[1] - P1[1]);
+
+      if (a_point[0] < P1[0] + t * (P2[0] - P1[0])) {
+        cn += 1;
+      }
+    }
+  }
+
+  return cn;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T
-FaceT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
+FaceT<T>::computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept
+{
+  constexpr T pi = EBGeometry::pi<T>;
+
+  T sumTheta = T(0);
+
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    const Edge&    edge = a_mesh.getEdge(iter());
+    const Vec2T<T> p1   = this->projectPoint(edge.getVertex(a_mesh).getPosition()) - a_point;
+    const Vec2T<T> p2   = this->projectPoint(edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition()) - a_point;
+
+    const T theta1 = std::atan2(p1[1], p1[0]);
+    const T theta2 = std::atan2(p2[1], p2[0]);
+
+    T dTheta = theta2 - theta1;
+
+    while (dTheta > pi) {
+      dTheta -= T(2) * pi;
+    }
+
+    while (dTheta < -pi) {
+      dTheta += T(2) * pi;
+    }
+
+    sumTheta += dTheta;
+  }
+
+  return sumTheta;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline bool
+FaceT<T>::isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_xDir < 3);
+  EBGEOMETRY_EXPECT(m_yDir < 3);
+
+  // A zero-area face has no interior and no plane to project onto; only its edges count.
+  if (m_normal.length2() == T(0)) {
+    return false;
+  }
+
+  const Vec3     pInPlane = this->projectPointIntoFacePlane(a_p);
+  const Vec2T<T> p2D      = this->projectPoint(pInPlane);
+
+  switch (m_insideOutsideAlgorithm) {
+  case InsideOutsideAlgorithm::WindingNumber: {
+    return this->computeWindingNumber(p2D, a_mesh) != 0;
+  }
+  case InsideOutsideAlgorithm::CrossingNumber: {
+    return (this->computeCrossingNumber(p2D, a_mesh) % 2) == 1;
+  }
+  case InsideOutsideAlgorithm::SubtendedAngle: {
+    constexpr T pi = EBGeometry::pi<T>;
+
+    const T sumTheta = std::abs(this->computeSubtendedAngle(p2D, a_mesh)) / (T(2) * pi);
+
+    return std::abs(sumTheta - T(1)) < T(0.5);
+  }
+  default: {
+    break;
+  }
+  }
+
+  return false;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline T
+FaceT<T>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-  EBGEOMETRY_EXPECT(!m_halfEdge.expired());
+  EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
 
-  T retval = std::numeric_limits<T>::infinity();
+  T retval = Math::Limits<T>::infinity();
 
-  const bool inside = this->isPointInsideFace(a_x0);
+  const bool inside = this->isPointInsideFace(a_x0, a_mesh);
 
   if (inside) {
     retval = m_normal.dot(a_x0 - m_centroid);
   }
   else {
-    const EdgePtr startEdge = m_halfEdge.lock();
-    EdgePtr       cur       = startEdge;
+    for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+      const Edge& cur = a_mesh.getEdge(iter());
 
-    while (true) {
-      const T curDist = cur->signedDistance(a_x0);
+      const T curDist = cur.signedDistance(a_x0, a_mesh);
 
       retval = (std::abs(curDist) < std::abs(retval)) ? curDist : retval;
-
-      cur = cur->getNextEdge();
-
-      if (cur == nullptr || cur == startEdge) {
-        break;
-      }
     }
   }
 
   return retval;
 }
 
-template <class T, class Meta>
+template <class T>
+EBGEOMETRY_HOST_DEVICE
 inline T
-FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
+FaceT<T>::rayCrossing(
+  const Vec3& a_origin, const Vec3& a_direction, const T a_tMin, const T a_tMax, const Mesh& a_mesh) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
+
+  const T none  = Math::Limits<T>::infinity();
+  const T slope = m_normal.dot(a_direction);
+
+  // A face of zero area (zero normal) or a ray in the face's plane.
+  if (slope == T(0)) {
+    return none;
+  }
+
+  const T t = m_normal.dot(m_centroid - a_origin) / slope;
+
+  if (!(t >= a_tMin && t <= a_tMax)) {
+    return none;
+  }
+
+  const Vec3 p = a_origin + t * a_direction;
+
+  // (e x (p - v)) . n is |e| times p's signed distance from the edge's line in the plane, positive to the
+  // left of the edge. p is inside if it is on the inner side of every edge: the left if the loop runs
+  // counter-clockwise about the normal, the right otherwise, which the sign of the loop's area vector
+  // (accumulated about its first vertex) along the normal says. A point within the rounding error of p of
+  // the wrong side still counts, so that a point on a shared edge is inside both faces: p is rounded to a
+  // few ulps of the coordinates and of t.
+  const T ulps  = T(4) * Math::Limits<T>::epsilon();
+  const T error = ulps * (std::abs(a_origin[0]) + std::abs(a_origin[1]) + std::abs(a_origin[2]) + std::abs(p[0]) +
+                          std::abs(p[1]) + std::abs(p[2]) + std::abs(t));
+
+  bool left  = true;
+  bool right = true;
+  T    area  = T(0);
+
+  const Vec3& first = a_mesh.getEdge(m_halfEdge).getVertex(a_mesh).getPosition();
+
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    const Edge& edge = a_mesh.getEdge(iter());
+    const Vec3& v    = edge.getVertex(a_mesh).getPosition();
+    const Vec3  e    = edge.getNextEdge(a_mesh).getVertex(a_mesh).getPosition() - v;
+    const T     side = e.cross(p - v).dot(m_normal);
+    const T     tol  = ulps * e.dot(e) + error * (std::abs(e[0]) + std::abs(e[1]) + std::abs(e[2]));
+
+    // Within tol of the edge's line is not enough outside it: p must also be within tol of the edge's
+    // extent, or a face thinner than tol would be crossed far beyond its sharp corners.
+    const T    along  = e.dot(p - v);
+    const bool extent = along >= -tol && along <= e.dot(e) + tol;
+
+    left  = left && (side >= T(0) || (side >= -tol && extent));
+    right = right && (side <= T(0) || (side <= tol && extent));
+    area += (v - first).cross(e).dot(m_normal);
+  }
+
+  return (area >= T(0) ? left : right) ? t : none;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline T
+FaceT<T>::unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-  EBGEOMETRY_EXPECT(!m_halfEdge.expired());
+  EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
 
-  T retval = std::numeric_limits<T>::infinity();
+  T retval = Math::Limits<T>::infinity();
 
-  const bool inside = this->isPointInsideFace(a_x0);
+  const bool inside = this->isPointInsideFace(a_x0, a_mesh);
 
   if (inside) {
     const T normDist = m_normal.dot(a_x0 - m_centroid);
@@ -440,19 +633,12 @@ FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
     retval = normDist * normDist;
   }
   else {
-    const EdgePtr startEdge = m_halfEdge.lock();
-    EdgePtr       cur       = startEdge;
+    for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+      const Edge& cur = a_mesh.getEdge(iter());
 
-    while (true) {
-      const T curDist2 = cur->unsignedDistance2(a_x0);
+      const T curDist2 = cur.unsignedDistance2(a_x0, a_mesh);
 
       retval = (curDist2 < retval) ? curDist2 : retval;
-
-      cur = cur->getNextEdge();
-
-      if (cur == nullptr || cur == startEdge) {
-        break;
-      }
     }
   }
 

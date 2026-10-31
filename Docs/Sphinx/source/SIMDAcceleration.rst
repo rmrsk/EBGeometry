@@ -4,20 +4,19 @@
 SIMD acceleration
 ===================
 
-EBGeometry can vectorise the innermost signed-distance computation for some primitives
-using compiler intrinsics rather than relying on the compiler to auto-vectorise scalar code.
-SIMD support is also included for BVH traversal itself, in :cpp:class:`BVH::PackedBVH`.
-Everything else in the library is scalar code. However, the performance-critical parts of
-the BVH traversal are vectorized, and adding leaf-level vectorization support for new
-types of primitives is quite possible -- it mostly requires storing the primitives in a
-structure-of-arrays (SoA) layout.
+EBGeometry vectorizes its innermost loops with compiler intrinsics rather than relying on the
+compiler to auto-vectorize scalar code: the test of a point or a ray against the child boxes of a
+``BVH::PackedBVH`` node, and the leaf computations of the triangle groups (``TriMeshSDF``) and point
+groups (``PointCloudBVH``). Everything else in the library is scalar code. Vectorizing the leaves of
+another primitive type mostly requires storing the primitives in a structure-of-arrays (SoA) layout.
+:ref:`Chap:SIMDClasses` describes each of the vectorized classes.
 
 How it is enabled
 -------------------
 
 EBGeometry detects the available SIMD instruction set at **compile time**, using the
-standard pre-defined compiler macros ``__AVX512F__``, ``__AVX__``, ``__SSE4_1__``, and
-``__FMA__`` — there is no runtime dispatch. Whichever of these macros your compiler flags
+standard pre-defined compiler macros ``__AVX512F__``, ``__AVX__`` and ``__SSE4_1__`` — there
+is no runtime dispatch. Whichever of these macros your compiler flags
 define, that is the code path compiled in.
 
 .. list-table::
@@ -28,8 +27,8 @@ define, that is the code path compiled in.
      - Compiler macro(s) required
    * - AVX-512F (recent server/HEDT CPUs)
      - ``__AVX512F__``
-   * - AVX + FMA (recommended on x86-64 since ~2013)
-     - ``__AVX__`` and ``__FMA__``
+   * - AVX (recommended on x86-64 since ~2013)
+     - ``__AVX__``
    * - SSE 4.1 (older or constrained targets)
      - ``__SSE4_1__``
    * - No SIMD (portable fallback)
@@ -41,7 +40,10 @@ for each of the three build methods.
 Under the hood
 ----------------
 
-The specific defaults this selects are the BVH branching factor ``K``, the SIMD width ``W`` for
-the SoA layout of the leaf primitives, and data alignment. How to override these factors
-explicitly is an implementation detail, documented alongside the SIMD-supported classes in
-:ref:`Chap:SIMDClasses`.
+The ISA macros select which SIMD code paths are compiled in. On their own they do not change the
+defaults: the BVH branching factor ``K`` and the SIMD width ``W`` of the leaf primitives' SoA layout
+default to 4 on every machine, so a type spelled with them is the same in every translation unit and
+on a GPU. The ISA-tuned values (``BVH::HostBranchingRatio<T>()``, ``TriangleSoA::HostWidth<T>()``,
+``PointSoA::HostWidth<T>()``) are opt-in, either spelled into a type or, for the triangle-group
+width, through the ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` build switch; see :ref:`Sec:DefaultKW`. How to pass ``K`` and ``W``
+explicitly is documented alongside the SIMD-supported classes in :ref:`Chap:SIMDClasses`.

@@ -35,7 +35,7 @@
       "name": "release",
       "inherits": "base",
       "displayName": "Release",
-      "description": "Optimised release build with AVX. Tests and examples disabled by default.",
+      "description": "Optimized release build with AVX. Tests and examples disabled by default.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",
@@ -53,13 +53,63 @@
         "EBGEOMETRY_BUILD_TESTS": "ON",
         "EBGEOMETRY_BUILD_EXAMPLES": "ON"
       }
+    },
+    {
+      "name": "perf",
+      "inherits": "release",
+      "displayName": "Release + performance probes",
+      "description": "Release build of the performance probes under Performance/, for the host's full instruction set. See Performance/README.md.",
+      "cacheVariables": {
+        "EBGEOMETRY_BUILD_PERFORMANCE": "ON",
+        "EBGEOMETRY_PERF_ARCH_FLAGS": "-march=native"
+      }
+    },
+    {
+      "name": "perf-cuda",
+      "inherits": "cuda",
+      "displayName": "CUDA + performance probes",
+      "description": "The performance probes compiled as CUDA: host cases on the host, device cases on the GPU. Requires nvcc and, to run the device cases, a GPU.",
+      "cacheVariables": {
+        "EBGEOMETRY_BUILD_TESTS": "OFF",
+        "EBGEOMETRY_BUILD_PERFORMANCE": "ON"
+      }
+    },
+    {
+      "name": "cuda",
+      "inherits": "base",
+      "displayName": "CUDA (device-portability smoke, compile-only)",
+      "description": "Release-type build that compiles the CUDA memory-foundation smoke test. Requires nvcc; no GPU is needed to compile it.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "EBGEOMETRY_ENABLE_CUDA": "ON",
+        "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",
+        "EBGEOMETRY_SIMD": "none",
+        "EBGEOMETRY_BUILD_EXAMPLES": "OFF"
+      }
+    },
+    {
+      "name": "hip",
+      "inherits": "base",
+      "displayName": "HIP (device-portability smoke, compile-only)",
+      "description": "Release-type build that compiles the HIP memory-foundation smoke test. Requires a ROCm/HIP toolchain; no GPU is needed to compile it.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "EBGEOMETRY_ENABLE_HIP": "ON",
+        "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",
+        "EBGEOMETRY_SIMD": "none",
+        "EBGEOMETRY_BUILD_EXAMPLES": "OFF"
+      }
     }
   ],
   "buildPresets": [
     { "name": "debug",        "configurePreset": "debug"        },
     { "name": "debug-san",    "configurePreset": "debug-san"    },
     { "name": "release",      "configurePreset": "release"      },
-    { "name": "release-test", "configurePreset": "release-test" }
+    { "name": "release-test", "configurePreset": "release-test" },
+    { "name": "perf",         "configurePreset": "perf"         },
+    { "name": "perf-cuda",    "configurePreset": "perf-cuda"    },
+    { "name": "cuda",         "configurePreset": "cuda"         },
+    { "name": "hip",          "configurePreset": "hip"          }
   ],
   "testPresets": [
     {
@@ -92,6 +142,14 @@
       "configurePreset": "release-test",
       "output": { "outputOnFailure": true },
       "execution": { "timeout": 120 }
+    },
+    {
+      "name": "perf",
+      "displayName": "Performance probes, smoke sizes (checks they run; times nothing)",
+      "configurePreset": "perf",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "performance" } },
+      "execution": { "timeout": 300 }
     }
   ]
 }

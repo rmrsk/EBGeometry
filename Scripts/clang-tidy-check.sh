@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Run clang-tidy over the library headers via the test/example translation units
-# (a header-only library has no .cpp of its own, so the headers are analysed
+# (a header-only library has no .cpp of its own, so the headers are analyzed
 # through the TUs that instantiate them). Used by the manual-stage clang-tidy
 # pre-commit hook and runnable directly.
 set -euo pipefail

@@ -14,7 +14,7 @@
 
 // Std includes
 #include <cstddef>
-#include <memory>
+#include <cstdint>
 #include <type_traits>
 #include <vector>
 
@@ -22,7 +22,7 @@
 #include "EBGeometry_DCEL.hpp"
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
-#include "EBGeometry_Polygon2D.hpp"
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -30,26 +30,40 @@ namespace EBGeometry {
 namespace DCEL {
 
 /**
- * @brief Class which represents a polygon face in a double-edge connected list
+ * @brief Class which represents a polygon face in a doubly-connected edge list
  * (DCEL).
- * @details This class is a polygon face in a DCEL mesh. It contains pointer
- * storage to one of the half-edges that circulate the inside of the polygon
- * face, as well as having a normal vector, a centroid, and an area. This class
- * supports signed distance computations. These computations require algorithms
- * that compute e.g. the winding number of the polygon, or the number of times a
- * ray cast passes through it. Thus, one of its central features is that it can
- * be embedded in 2D by projecting it along the cardinal direction of its normal
- * vector. To be fully consistent with a DCEL structure the class stores a
- * reference to one of its half edges, but for performance reasons it also stores
- * references to the other half edges.
+ * @details This class is a polygon face in a DCEL mesh. It stores the index of
+ * one of the half-edges that circulate the inside of the polygon face, as well
+ * as having a normal vector, a centroid, and an area. This class supports
+ * signed distance computations. These computations require algorithms that
+ * compute e.g. the winding number of the polygon, or the number of times a ray
+ * cast passes through it. Thus, one of its central features is that it can be
+ * embedded in 2D by projecting it along the cardinal direction of its normal
+ * vector.
  * @note To compute the distance from a point to the face one must determine if
  * the point projects "inside" or "outside" the polygon. There are several
  * algorithms for this, and by default this class uses a crossing number
  * algorithm.
+ * @note m_halfEdge is an index into the owning DCEL::MeshT's own edge array,
+ * resolved by passing that mesh to the accessors below (see EdgeT for why
+ * indices rather than pointers are used). Every other member is a plain value
+ * (Vec3, T, uint32_t, an enum), so FaceT itself is trivially copyable -- it can be memcpy'd
+ * or mirrored to a different address space with no pointer patching, as long
+ * as it is interpreted against the same mesh's arrays on the other side.
+ * @note A face's id is its index in the owning mesh's face array; the mesh SDFs report it from
+ * getClosestFace(). Per-face data such as a material lives in the caller's own array, indexed by it.
+ * @note Methods that stream through the half-edge loop via EdgeIterator with no allocation
+ * (define, reconcile's helpers other than computeCentroid/computeNormal/computeArea,
+ * computeProjectionDirections, flipNormal, setHalfEdge/setInsideOutsideAlgorithm,
+ * normalizeNormalVector, the getters, projectPointIntoFacePlane/projectPoint,
+ * computeWindingNumber/computeCrossingNumber/computeSubtendedAngle, isPointInsideFace,
+ * signedDistance, rayCrossing, unsignedDistance2, getSmallestCoordinate/getHighestCoordinate) are annotated
+ * EBGEOMETRY_HOST_DEVICE. computeCentroid/computeNormal/computeArea (and therefore reconcile,
+ * which calls all three) and gatherVertexIndices/gatherEdgeIndices/getAllVertexCoordinates all
+ * materialize a std::vector, so they remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
- * @tparam Meta User-defined metadata type.
  */
-template <class T, class Meta>
+template <class T>
 class FaceT
 {
   static_assert(std::is_floating_point_v<T>, "FaceT requires a floating-point T");
@@ -63,40 +77,30 @@ public:
   /**
    * @brief Alias for vertex type
    */
-  using Vertex = VertexT<T, Meta>;
+  using Vertex = VertexT<T>;
 
   /**
    * @brief Alias for edge type
    */
-  using Edge = EdgeT<T, Meta>;
+  using Edge = EdgeT<T>;
 
   /**
    * @brief Alias for face type
    */
-  using Face = FaceT<T, Meta>;
+  using Face = FaceT<T>;
 
   /**
-   * @brief Alias for vertex pointer type
+   * @brief Alias for mesh type
    */
-  using VertexPtr = std::shared_ptr<Vertex>;
-
-  /**
-   * @brief Alias for edge pointer type
-   */
-  using EdgePtr = std::shared_ptr<Edge>;
-
-  /**
-   * @brief Alias for face pointer type
-   */
-  using FacePtr = std::shared_ptr<Face>;
+  using Mesh = MeshT<T>;
 
   /**
    * @brief Alias for edge iterator
    */
-  using EdgeIterator = EdgeIteratorT<T, Meta>;
+  using EdgeIterator = EdgeIteratorT<T>;
 
   /**
-   * @brief Default constructor. Sets the half-edge to zero and the
+   * @brief Default constructor. Sets the half-edge index to the unset sentinel and the
    * inside/outside algorithm to crossing number algorithm
    */
   FaceT() = default;
@@ -104,32 +108,24 @@ public:
   /**
    * @brief Partial constructor. Calls default constructor but associates a
    * half-edge
-   * @param[in] a_edge Half-edge
+   * @param[in] a_edgeIndex Index of the half-edge in the owning mesh's edge array.
    */
-  FaceT(const EdgePtr& a_edge);
+  EBGEOMETRY_HOST_DEVICE
+  FaceT(const uint32_t a_edgeIndex);
 
   /**
    * @brief Copy constructor.
-   * @details Copies the normal vector, half-edge pointer, centroid, and area from the other face.
-   * Meta-data (m_metaData), the 2D embedding (m_poly2), and the inside/outside algorithm
-   * (m_poly2Algorithm) are deliberately NOT copied -- they default-construct instead; use
-   * setMetaData() and reconcile() afterwards if they need to be (re)populated. Rationale: m_halfEdge
-   * is a back-reference into a specific mesh's topology (same as VertexT/EdgeT's copy constructors),
-   * so copying it wholesale is not topologically meaningful in general, but is occasionally useful.
-   * m_normal, m_centroid, and m_area are plain geometric/cached values with no such concern, so they
-   * are copied like any other value. operator=(const Face&) has identical semantics.
+   * @details Defaulted memberwise copy: every member is a plain value (see the class-level note),
+   * so the copy is immediately usable for a point-in-face test against the same mesh the source
+   * face belonged to.
    * @param[in] a_otherFace Other face to copy from.
    */
-  FaceT(const Face& a_otherFace);
+  FaceT(const Face& a_otherFace) = default;
 
   /**
    * @brief Move constructor.
-   * @details Unlike the copy constructor, this transfers the entire state (including m_metaData,
-   * m_poly2, and m_poly2Algorithm) from a_otherFace, since moving relocates a single object's
-   * identity. Defaulted (memberwise move) rather than hand-written: explicitly defaulting is
-   * required here since the presence of a user-declared copy constructor would otherwise suppress
-   * the implicitly-generated move constructor. Not marked noexcept since Meta is an unconstrained
-   * template parameter whose move constructor is not guaranteed to be noexcept.
+   * @details Defaulted memberwise move; equivalent to the copy constructor since every member is a
+   * plain value.
    * @param[in, out] a_otherFace Other face.
    */
   FaceT(Face&& a_otherFace) = default;
@@ -141,17 +137,17 @@ public:
 
   /**
    * @brief Copy assignment operator.
-   * @details Has the same semantics as the copy constructor; see its documentation.
+   * @details Defaulted memberwise copy; see the copy constructor's documentation.
    * @param[in] a_otherFace Other face.
    * @return Reference to (*this).
    */
   Face&
-  operator=(const Face& a_otherFace) noexcept;
+  operator=(const Face& a_otherFace) = default;
 
   /**
    * @brief Move assignment operator.
-   * @details Has the same full-state-transfer semantics as the move constructor (defaulted
-   * memberwise move; see its documentation for why this must be defaulted explicitly).
+   * @details Defaulted memberwise move; equivalent to copy assignment since every member is a
+   * plain value.
    * @param[in, out] a_otherFace Other face.
    * @return Reference to (*this).
    */
@@ -159,21 +155,25 @@ public:
   operator=(Face&& a_otherFace) = default;
 
   /**
-   * @brief Define function which sets the normal vector and half-edge
-   * @param[in] a_normal Normal vector
-   * @param[in] a_edge   Half edge
+   * @brief Define function which sets the normal vector and half-edge index
+   * @param[in] a_normal    Normal vector
+   * @param[in] a_edgeIndex Index of the half-edge in the owning mesh's edge array.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
-  define(const Vec3& a_normal, const EdgePtr& a_edge) noexcept;
+  define(const Vec3& a_normal, const uint32_t a_edgeIndex) noexcept;
 
   /**
    * @brief Reconcile face. This will compute the normal vector, area, centroid,
    * and the 2D embedding of the polygon
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @note "Everything" must be set before doing this, i.e. the face must be
-   * complete with half edges and there can be no dangling edges.
+   * complete with half edges and there can be no dangling edges. A face with fewer than 3 vertices
+   * aborts with a message in every build; a zero-area face gets a zero normal.
    */
+  EBGEOMETRY_HOST
   inline void
-  reconcile();
+  reconcile(const Mesh& a_mesh);
 
   /**
    * @brief Compute the 2D embedding of this polygon from the current normal vector and topology,
@@ -182,70 +182,58 @@ public:
    * after manually restoring a normal vector (e.g. when deep-copying a face and preserving whatever
    * normal it had, including one set via flipNormal()) without having that normal silently
    * overwritten by a geometrically-derived one.
-   * @note The face must be complete with half edges and there can be no dangling edges.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
-  computePolygon2D();
+  computeProjectionDirections() noexcept;
 
   /**
    * @brief Flip the normal vector
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   flipNormal() noexcept;
 
   /**
-   * @brief Set the half edge
-   * @param[in] a_halfEdge Half edge
+   * @brief Set the half edge index
+   * @param[in] a_halfEdgeIndex Index of the half-edge in the owning mesh's edge array, or
+   * UINT32_MAX to mark it unset.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
-  setHalfEdge(const EdgePtr& a_halfEdge) noexcept;
-
-  /**
-   * @brief Set the meta-data.
-   * @param[in] a_metaData Meta-data.
-   */
-  inline void
-  setMetaData(const Meta& a_metaData) noexcept;
+  setHalfEdge(const uint32_t a_halfEdgeIndex) noexcept;
 
   /**
    * @brief Set the inside/outside algorithm when determining if a point projects
    * to the inside or outside of the polygon.
    * @param[in] a_algorithm Desired algorithm
-   * @note See CD_DCELAlgorithms.H for options (and CD_DCELPolyImplem.H for how
-   * the algorithms operate).
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
-  setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
+  setInsideOutsideAlgorithm(InsideOutsideAlgorithm a_algorithm) noexcept;
 
   /**
-   * @brief Get the starting half-edge.
-   * @details Returns a shared_ptr obtained by locking the internal weak_ptr (see the class-level
-   * note on ownership near m_halfEdge). Returns nullptr if the edge has been destroyed, which
-   * should not happen while the owning mesh is alive.
-   * @return Starting half-edge, or nullptr.
+   * @brief Get the index of the starting half-edge.
+   * @return Index of the half-edge in the owning mesh's edge array, or UINT32_MAX if unset.
    */
-  [[nodiscard]] inline EdgePtr
-  getHalfEdge() noexcept;
-
-  /**
-   * @brief Get the starting half-edge (const overload).
-   * @return Starting half-edge, or nullptr.
-   */
-  [[nodiscard]] inline EdgePtr
-  getHalfEdge() const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getHalfEdgeIndex() const noexcept;
 
   /**
    * @brief Get modifiable centroid
    * @return Reference to the centroid vector.
    */
-  [[nodiscard]] inline Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>&
   getCentroid() noexcept;
 
   /**
    * @brief Get immutable centroid
    * @return Const reference to the centroid vector.
    */
-  [[nodiscard]] inline const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Vec3T<T>&
   getCentroid() const noexcept;
 
   /**
@@ -253,7 +241,8 @@ public:
    * @param[in] a_dir Coordinate direction
    * @return Reference to the a_dir-th coordinate of the centroid.
    */
-  [[nodiscard]] inline T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T&
   getCentroid(const size_t a_dir) noexcept;
 
   /**
@@ -261,122 +250,152 @@ public:
    * @param[in] a_dir Coordinate direction
    * @return Const reference to the a_dir-th coordinate of the centroid.
    */
-  [[nodiscard]] inline const T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const T&
   getCentroid(const size_t a_dir) const noexcept;
 
   /**
    * @brief Get modifiable normal vector
    * @return Reference to the normal vector.
    */
-  [[nodiscard]] inline Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>&
   getNormal() noexcept;
 
   /**
    * @brief Get immutable normal vector
    * @return Const reference to the normal vector.
    */
-  [[nodiscard]] inline const Vec3T<T>&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Vec3T<T>&
   getNormal() const noexcept;
 
   /**
    * @brief Get modifiable polygon area (computed during reconcile()).
    * @return Reference to m_area.
    */
-  [[nodiscard]] inline T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T&
   getArea() noexcept;
 
   /**
    * @brief Get immutable polygon area (computed during reconcile()).
    * @return Const reference to m_area.
    */
-  [[nodiscard]] inline const T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const T&
   getArea() const noexcept;
 
   /**
-   * @brief Get meta-data
-   * @return Reference to the metadata.
-   */
-  [[nodiscard]] inline Meta&
-  getMetaData() noexcept;
-
-  /**
-   * @brief Get meta-data (const overload)
-   * @return Const reference to the metadata.
-   */
-  [[nodiscard]] inline const Meta&
-  getMetaData() const noexcept;
-
-  /**
    * @brief Compute the signed distance to a point.
-   * @param[in] a_x0 Point in space
+   * @param[in] a_x0   Point in space
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @details This algorithm operates by checking if the input point projects to
    * the inside of the polygon. If it does then the distance is just the
    * projected distance onto the polygon plane and the sign is well-defined.
    * Otherwise, we check the distance to the edges of the polygon.
    * @return Signed distance to the face; sign determined by normal direction.
    */
-  [[nodiscard]] inline T
-  signedDistance(const Vec3& a_x0) const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept;
+
+  /**
+   * @brief Where a ray crosses the face, from either side.
+   * @details The ray is a_origin + t * a_direction. The face is taken to be planar and convex, as the mesh
+   * SDFs require: the ray meets the face's plane at one t, and that point is inside the face if it is on the
+   * inner side of every edge (which side that is, the loop's orientation about the normal says). The edge
+   * tests are widened by the rounding error of that point, a distance of a few ulps of the coordinates and of
+   * t, so that a ray through an edge or vertex shared by two faces crosses at least one of them however far
+   * it comes from; a point counted that way must also be that close to the edge's extent, so that a sliver is
+   * not crossed far beyond its corners. A ray in the face's plane, or a face of zero area, crosses nothing.
+   * The plane is the one through the face's centroid with its normal: for a face that is not quite planar, a
+   * ray nearly in it can cross at a t that differs from the vertices' by the face's deviation from planarity.
+   * @param[in] a_origin    Ray origin.
+   * @param[in] a_direction Ray direction.
+   * @param[in] a_tMin      Start of the interval.
+   * @param[in] a_tMax      End of the interval.
+   * @param[in] a_mesh      Owning mesh, used to resolve the half-edge loop.
+   * @return The distance along the ray of the crossing in [a_tMin, a_tMax], or +infinity if there is none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  rayCrossing(const Vec3& a_origin, const Vec3& a_direction, T a_tMin, T a_tMax, const Mesh& a_mesh) const noexcept;
 
   /**
    * @brief Compute the unsigned squared distance to a point.
-   * @param[in] a_x0 Point in space
+   * @param[in] a_x0   Point in space
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @details This algorithm operates by checking if the input point projects to
    * the inside of the polygon. If it does then the distance is just the
    * projected distance onto the polygon plane. Otherwise, we check the distance
    * to the edges of the polygon.
    * @return Squared unsigned distance to the face.
    */
-  [[nodiscard]] inline T
-  unsignedDistance2(const Vec3& a_x0) const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  unsignedDistance2(const Vec3& a_x0, const Mesh& a_mesh) const noexcept;
 
   /**
    * @brief Return the coordinates of all the vertices on this polygon.
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @details This builds a list of all the vertex coordinates and returns it.
    * @return Vector of 3D coordinates of all vertices on this polygon.
    */
-  [[nodiscard]] inline std::vector<Vec3T<T>>
-  getAllVertexCoordinates() const;
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline std::vector<Vec3T<T>>
+  getAllVertexCoordinates(const Mesh& a_mesh) const;
 
   /**
-   * @brief Return all the vertices on this polygon
-   * @details This builds a list of all the vertices and returns it.
-   * @return Vector of shared pointers to all vertices on this polygon.
+   * @brief Return the indices of all the vertices on this polygon
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
+   * @details This builds a list of all the vertex indices and returns it.
+   * @return Vector of indices, into the owning mesh's vertex array, of all vertices on this polygon.
    */
-  [[nodiscard]] inline std::vector<VertexPtr>
-  gatherVertices() const;
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline std::vector<uint32_t>
+  gatherVertexIndices(const Mesh& a_mesh) const;
 
   /**
-   * @brief Return all the half-edges on this polygon
-   * @details This builds a list of all the edges and returns it.
-   * @return Vector of shared pointers to all half-edges on this polygon.
+   * @brief Return the indices of all the half-edges on this polygon
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
+   * @details This builds a list of all the edge indices and returns it.
+   * @return Vector of indices, into the owning mesh's edge array, of all half-edges on this polygon.
    */
-  [[nodiscard]] inline std::vector<EdgePtr>
-  gatherEdges() const;
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline std::vector<uint32_t>
+  gatherEdgeIndices(const Mesh& a_mesh) const;
 
   /**
    * @brief Get the lower-left-most coordinate of this polygon face
+   * @details Streams the half-edge loop and reduces componentwise, rather than going through
+   * getAllVertexCoordinates(), so that no std::vector is materialized and the function stays
+   * callable from device code.
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @return Lower-left-most coordinate of this polygon face.
    */
-  [[nodiscard]] inline Vec3T<T>
-  getSmallestCoordinate() const;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  getSmallestCoordinate(const Mesh& a_mesh) const noexcept;
 
   /**
    * @brief Get the upper-right-most coordinate of this polygon face
+   * @details Streams the half-edge loop and reduces componentwise, rather than going through
+   * getAllVertexCoordinates(), so that no std::vector is materialized and the function stays
+   * callable from device code.
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @return Upper-right-most coordinate of this polygon face.
    */
-  [[nodiscard]] inline Vec3T<T>
-  getHighestCoordinate() const;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  getHighestCoordinate(const Mesh& a_mesh) const noexcept;
 
 protected:
   /**
-   * @brief This polygon's half-edge. A valid face will always have this set.
-   * @details Stored as a weak_ptr: the edge is owned by the mesh's own edge list, and a plain
-   * shared_ptr here would form a reference cycle with EdgeT::m_face (and, transitively, with
-   * EdgeT::m_nextEdge/m_pairEdge and VertexT::m_outgoingEdge) that shared_ptr's reference
-   * counting can never collect.
+   * @brief This polygon's half-edge index. A valid face will always have this set.
+   * @details Index into the owning DCEL::MeshT's edge array, or UINT32_MAX if unset.
    */
-  std::weak_ptr<Edge> m_halfEdge;
+  uint32_t m_halfEdge = UINT32_MAX;
 
   /**
    * @brief Polygon face normal vector
@@ -389,50 +408,63 @@ protected:
   Vec3 m_centroid = Vec3::zeros();
 
   /**
-   * @brief Meta-data attached to this face
-   * @details Value-initialized so that every constructor leaves it in a defined state: for a
-   * fundamental Meta type (e.g. short, int), a member with no initializer and no explicit mention
-   * in a constructor's member-initializer list is left indeterminate, not zero.
-   */
-  Meta m_metaData{};
-
-  /**
    * @brief Cached polygon face area (stored by reconcile()).
    */
   T m_area{T(0)};
 
   /**
-   * @brief 2D embedding of this polygon. This is the 2D view of the current
-   * object projected along its normal vector cardinal.
+   * @brief Cartesian axis used as the 2D x-direction of this polygon's 2D embedding (stored by
+   * reconcile()). The inside/outside test projects points to 2D by keeping (m_xDir, m_yDir) and
+   * dropping the coordinate of the largest normal component.
+   * @details Defaults to the out-of-range sentinel UINT32_MAX rather than a valid axis (0-2) so that
+   * a face used before reconcile()/computeProjectionDirections() has run trips the `m_xDir < 3`
+   * assertions in projectPoint() and isPointInsideFace() instead of silently projecting onto axis 0.
    */
-  std::shared_ptr<Polygon2D<T>> m_poly2 = nullptr;
+  uint32_t m_xDir = UINT32_MAX;
+
+  /**
+   * @brief Cartesian axis used as the 2D y-direction of this polygon's 2D embedding (stored by
+   * reconcile()).
+   * @details Defaults to the out-of-range sentinel UINT32_MAX for the same reason as m_xDir.
+   */
+  uint32_t m_yDir = UINT32_MAX;
 
   /**
    * @brief Algorithm for inside/outside tests
    */
-  typename Polygon2D<T>::InsideOutsideAlgorithm m_poly2Algorithm = Polygon2D<T>::InsideOutsideAlgorithm::CrossingNumber;
+  InsideOutsideAlgorithm m_insideOutsideAlgorithm = InsideOutsideAlgorithm::CrossingNumber;
 
   /**
    * @brief Compute the centroid position of this polygon
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    */
+  EBGEOMETRY_HOST
   inline void
-  computeCentroid();
+  computeCentroid(const Mesh& a_mesh);
 
   /**
-   * @brief Compute the normal position of this polygon
+   * @brief Compute the unit normal vector of this polygon (Newell's method).
+   * @details A zero-area face (collinear or coincident vertices) gets a zero normal rather than a
+   * NaN. A face with fewer than 3 vertices aborts with a message in every build.
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    */
+  EBGEOMETRY_HOST
   inline void
-  computeNormal();
+  computeNormal(const Mesh& a_mesh);
 
   /**
    * @brief Compute the area of this polygon and cache it in m_area.
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    */
+  EBGEOMETRY_HOST
   inline void
-  computeArea();
+  computeArea(const Mesh& a_mesh);
 
   /**
    * @brief Normalize the normal vector, ensuring it has a length of 1
+   * @details A zero normal (a zero-area face) is left zero.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline void
   normalizeNormalVector() noexcept;
 
@@ -441,18 +473,67 @@ protected:
    * @param[in] a_p Point in space
    * @return Projected point in the face plane.
    */
-  [[nodiscard]] inline Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
   projectPointIntoFacePlane(const Vec3& a_p) const noexcept;
 
   /**
    * @brief Check if a point projects to inside or outside the polygon face
-   * @param[in] a_p Point in space
+   * @param[in] a_p    Point in space
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    * @return Returns true if a_p projects to inside the polygon and false
    * otherwise.
    */
-  [[nodiscard]] inline bool
-  isPointInsideFace(const Vec3& a_p) const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isPointInsideFace(const Vec3& a_p, const Mesh& a_mesh) const noexcept;
+
+  /**
+   * @brief Project a 3D point to this face's 2D embedding by dropping one coordinate.
+   * @param[in] a_point 3D point.
+   * @return The 2D point (a_point[m_xDir], a_point[m_yDir]).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec2T<T>
+  projectPoint(const Vec3& a_point) const noexcept;
+
+  /**
+   * @brief Compute the winding number of this polygon's boundary around a projected 2D point.
+   * @details Walks the face's half-edge loop, projecting each vertex on the fly.
+   * @param[in] a_point Projected 2D query point.
+   * @param[in] a_mesh  Owning mesh, used to resolve the half-edge loop.
+   * @return The winding number.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline int
+  computeWindingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept;
+
+  /**
+   * @brief Compute the crossing number of a +x ray from a projected 2D point with this polygon.
+   * @details Walks the face's half-edge loop, projecting each vertex on the fly.
+   * @param[in] a_point Projected 2D query point.
+   * @param[in] a_mesh  Owning mesh, used to resolve the half-edge loop.
+   * @return The crossing number.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline size_t
+  computeCrossingNumber(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept;
+
+  /**
+   * @brief Compute the total subtended angle of this polygon's edges around a projected 2D point.
+   * @details Walks the face's half-edge loop, projecting each vertex on the fly.
+   * @param[in] a_point Projected 2D query point.
+   * @param[in] a_mesh  Owning mesh, used to resolve the half-edge loop.
+   * @return The subtended angle (+-2*pi for an interior point, 0 for an exterior one).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  computeSubtendedAngle(const Vec2T<T>& a_point, const Mesh& a_mesh) const noexcept;
 };
+
+static_assert(std::is_trivially_copyable_v<FaceT<float>>, "FaceT<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<FaceT<double>>, "FaceT<double> must be trivially copyable");
+
 } // namespace DCEL
 
 } // namespace EBGeometry

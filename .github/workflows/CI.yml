@@ -3,17 +3,29 @@ name: Continuous integration
 
 on:
   pull_request:
-    branches : main
-    types: [push, opened, synchronize, reopened, ready_for_review]
+    branches: [main, dev]
+    types: [opened, synchronize, reopened, ready_for_review]
+  # Also after a merge, so the merged result (not just each PR head) is checked.
+  push:
+    branches: [main, dev]
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-code-format
   cancel-in-progress: true
 
+# Two tiers. A draft pull request runs the fast tier: one or two cells of each matrix, and no
+# Linux-Intel, GNUmake, float-example, clang-tidy or CUDA jobs. A pull request that is ready for
+# review (marking it ready re-runs CI) and every push to main or dev run the full matrix. On a push,
+# github.event.pull_request is absent, so `github.event.pull_request.draft` is false there too.
+# Builds and test runs use every core of the runner (4 on a public repository's standard runner).
+#
+# Every job runs on ubuntu-24.04, not ubuntu-latest: ubuntu-latest became ubuntu-26.04 on 2026-10-24,
+# which has no clang-14 package. Moving to 26.04 needs a newer clang in the matrix; until then, the image is
+# pinned.
 jobs:
   Formatting:
     name: Format source
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     strategy:
@@ -31,7 +43,7 @@ jobs:
 
   Codespell:
     name: Codespell
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
@@ -53,7 +65,7 @@ jobs:
 
   Reuse:
     name: REUSE license compliance
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
@@ -70,15 +82,15 @@ jobs:
         run: pre-commit run --show-diff-on-failure --color=always reuse --all-files
 
   Doxygen-check:
-    name: Doxygen (warnings as errors)
-    runs-on: ubuntu-latest
+    name: Doxygen (warnings as errors), docs rules and device contract
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - name: Install doxygen
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
+        uses: ./.github/actions/apt-install
+        with:
+          packages: doxygen graphviz
       # See the comment in the Codespell job above -- same reason for inlining pre-commit/action.
       - name: Install pre-commit
         run: python -m pip install pre-commit
@@ -90,12 +102,17 @@ jobs:
           key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Run doxygen-check (pre-commit hook)
         run: pre-commit run --show-diff-on-failure --color=always doxygen-check --all-files
+      - name: Run check-docs (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always check-docs --all-files
+      - name: Run check-device-math (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always check-device-math --all-files
 
   Static-analysis:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Static analysis (clang-tidy)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
+    if: ${{ !github.event.pull_request.draft }}
     # Advisory for now: the curated clang-tidy set still has a review backlog
     # (const-correctness, narrowing conversions, ...). Set continue-on-error to
     # false to make this a hard gate once that backlog has been reviewed.
@@ -105,9 +122,9 @@ jobs:
         with:
           submodules: recursive
       - name: Install clang-tidy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-tidy-18 clang-14
+        uses: ./.github/actions/apt-install
+        with:
+          packages: clang-tidy-18 clang-14
       - name: Cache Catch2 build
         uses: actions/cache@v6
         with:
@@ -121,49 +138,52 @@ jobs:
       - name: Run clang-tidy over the library headers
         run: run-clang-tidy-18 -p build/debug -quiet '(Tests/|Examples/).*\.cpp'
 
+  # The example lanes loop over every folder under Examples/ with a main.cpp, as Examples/CMakeLists.txt
+  # does: the folders are the only list of examples.
   Linux-GNU:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Linux-GNU
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: Linux-GNU (${{ matrix.comp }}, every example)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       matrix:
-        comp: [g++-11, g++-12]
-        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+        comp: ${{ fromJSON(github.event.pull_request.draft && '["g++-12"]' || '["g++-11", "g++-12"]') }}
 
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install ${{ matrix.comp }}
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ matrix.comp }}
 
-      - name: Compile examples
-        working-directory: ${{ matrix.directory }}
+      # Warnings are errors, except -Wsign-conversion, which the library does not pass yet.
+      - name: Compile and run every example, warnings as errors
         run: |
-          ${{ matrix.comp }} -std=c++17 -I../.. \
-          -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
-          -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
-          -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
-          -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
-          main.cpp
-
-      - name: Run examples
-        working-directory: ${{ matrix.directory }}
-        run: |
-          ./a.out
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+          set -euo pipefail
+          for main in Examples/*/main.cpp; do
+            dir=$(dirname "$main")
+            echo "::group::$dir"
+            (
+              cd "$dir"
+              ${{ matrix.comp }} -std=c++17 -I../.. -Werror -Wno-error=sign-conversion \
+              -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
+              -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+              -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
+              -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
+              main.cpp -o a.out
+              ./a.out
+            )
+            echo "::endgroup::"
+          done
 
   Linux-Intel:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Linux-Intel
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      matrix:
-        directory: [Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+    name: Linux-Intel (every example)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
 
     steps:
       - uses: actions/checkout@v7
@@ -177,93 +197,186 @@ jobs:
           sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
           sudo apt-get -y install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
 
-      - name: Compile examples
-        working-directory: ${{ matrix.directory }}
+      - name: Compile and run every example, warnings as errors
         run: |
+          set -eo pipefail
           source /opt/intel/oneapi/setvars.sh
-          icpx -std=c++17 -O0 -fp-model=precise -I../.. \
-          -Wall -Warray-bounds -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
-          -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
-          -Wunused-variable -Wwrite-strings -Werror \
-          main.cpp -lstdc++fs
-
-      - name: Run examples
-        working-directory: ${{ matrix.directory }}
-        run: |
-          ./a.out
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+          set -u
+          for main in Examples/*/main.cpp; do
+            dir=$(dirname "$main")
+            echo "::group::$dir"
+            (
+              cd "$dir"
+              icpx -std=c++17 -O0 -fp-model=precise -I../.. \
+              -Wall -Warray-bounds -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
+              -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
+              -Wunused-variable -Wwrite-strings -Werror \
+              main.cpp -o a.out
+              ./a.out
+            )
+            echo "::endgroup::"
+          done
 
   Examples-GNUMake:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Examples (GNUmakefile, ${{ matrix.directory }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
+    name: Examples (GNUmakefile, every example)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - name: Build and run with GNU make
-        working-directory: ${{ matrix.directory }}
-        run: make run
+      - name: Build and run every example with GNU make
+        run: |
+          set -euo pipefail
+          for main in Examples/*/main.cpp; do
+            dir=$(dirname "$main")
+            echo "::group::$dir"
+            make -C "$dir" run
+            echo "::endgroup::"
+          done
 
+  # The CMake example lanes build the examples alone (no unit tests, no Catch2), with warnings as
+  # errors.
   Examples-CMake:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Examples (CMake, debug preset, assertions on)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - name: Cache Catch2 build
-        uses: actions/cache@v6
-        with:
-          path: build/debug/_deps
-          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
-      - name: Configure (debug preset)
-        run: cmake --preset debug
+      - name: Configure (debug preset, examples only)
+        run: cmake --preset debug -DEBGEOMETRY_BUILD_TESTS=OFF -DCMAKE_CXX_FLAGS=-Werror
       - name: Build
-        run: cmake --build --preset debug --parallel 2
+        run: cmake --build --preset debug --parallel $(nproc)
       # Exercises the CMake-driven example build+run path with assertions enabled --
       # this is the path that caught the MeshSDF dangling-weak_ptr regression, and
       # neither Linux-GNU/Linux-Intel (raw compiler invocation, no CMake, no
       # assertions) nor Unit-Tests/Sanitizers (which build with examples disabled)
       # exercise it.
       - name: Run examples (ctest --preset examples)
-        run: ctest --preset examples
+        run: ctest --preset examples --parallel $(nproc)
 
   Examples-FloatPrecision:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Examples (CMake, float precision)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      # EBGEOMETRY_PRECISION is a CACHE variable shared by every example's own
+      # CMakeLists.txt, so setting it once here applies to all of them.
+      - name: Configure (debug preset, float precision, examples only)
+        run: cmake --preset debug -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_BUILD_TESTS=OFF -DCMAKE_CXX_FLAGS=-Werror
+      - name: Build
+        run: cmake --build --preset debug --parallel $(nproc)
+      - name: Run examples
+        run: ctest --preset examples --parallel $(nproc)
+
+  # The viewer window (Render::view(), EBGEOMETRY_VIEWER=SDL2) is compiled only on request, so no other
+  # lane builds it. This one does, for the renderer's tests and every example that calls view(), through
+  # CMake (warnings as errors) and GNU make, and runs what needs no display: the renderer's tests, and the
+  # examples with --no-view and without a display, where view() returns at once.
+  Viewer-SDL2:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Viewer (SDL2)
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - name: Cache Catch2 build
-        uses: actions/cache@v6
-        with:
-          path: build/debug/_deps
-          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
-      # EBGEOMETRY_PRECISION is a CACHE variable shared by every example's own
-      # CMakeLists.txt, so setting it once here applies to all of them.
-      - name: Configure (debug preset, float precision)
-        run: cmake --preset debug -DEBGEOMETRY_PRECISION=float
+      - name: Install SDL2
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+      - name: Configure (debug preset, viewer on)
+        run: cmake --preset debug -DEBGEOMETRY_VIEWER=SDL2 -DCMAKE_CXX_FLAGS=-Werror
+      # An example opens the viewer when a line of its main.cpp starts with the call (a mention in a comment
+      # does not count). The list is found once and reused.
+      - name: Find the examples that open the viewer
+        run: |
+          set -euo pipefail
+          viewers=$(grep -l '^[[:space:]]*EBGeometry::Render::view(' Examples/*/main.cpp | xargs -n1 dirname | xargs -n1 basename | paste -sd' ')
+          echo "Examples that open the viewer: $viewers"
+          echo "VIEWER_EXAMPLES=$viewers" >> "$GITHUB_ENV"
+      - name: Build the renderer's tests and the examples that open the viewer
+        run: cmake --build --preset debug --parallel $(nproc) --target TestRender $VIEWER_EXAMPLES
+      - name: Run the renderer's tests
+        run: ./build/debug/Tests/TestRender
+      - name: Run the examples that open the viewer (no display)
+        run: env -u DISPLAY -u WAYLAND_DISPLAY ctest --preset examples --parallel $(nproc) -R "^($(echo $VIEWER_EXAMPLES | tr ' ' '|'))$"
+      - name: Build the examples that open the viewer with GNU make
+        run: |
+          set -euo pipefail
+          for example in $VIEWER_EXAMPLES; do
+            make -C "Examples/$example" clean
+            make -C "Examples/$example" VIEWER=SDL2
+          done
+
+  # The performance probes (Performance/): built and run at their small --smoke sizes on every event,
+  # which checks they still compile and run; it times nothing.
+  Performance-smoke:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Performance probes (smoke run)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure (perf preset, warnings as errors)
+        run: cmake --preset perf -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror"
       - name: Build
-        run: cmake --build --preset debug --parallel 2
-      - name: Run examples
-        run: ctest --preset examples
+        run: cmake --build --preset perf --parallel $(nproc)
+      - name: Run every case at smoke size (ctest --preset perf)
+        run: ctest --preset perf --parallel $(nproc)
+
+  # On a pull request that is ready for review: checks the performance receipt (Performance/receipt.md), the result of the full
+  # comparison the author runs locally with Scripts/run-performance.sh compare --record. Nothing is timed
+  # here (a shared runner is too noisy to judge performance): Performance/CheckReceipt.cmake checks that
+  # the receipt measured this code, against the base branch's current code, and is green or accepted
+  # (a reason on its "**Accepted:**" line, which also makes the check warn); a pull request that changes neither the library nor the probes needs none. The result goes
+  # into the job summary. On a push or a draft it does nothing and succeeds, since CI-passed counts a skipped job as
+  # a failure.
+  Performance-receipt:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Performance receipt
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Nothing to check on a push or a draft
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft
+        run: echo "::notice title=Performance receipt::Checked on pull requests that are ready for review only."
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+        with:
+          fetch-depth: 0
+      - name: Check the receipt against this pull request and its base
+        if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+        run: >-
+          cmake -DBASE_REF=origin/${{ github.base_ref }} -DHEAD_REF=${{ github.event.pull_request.head.sha }}
+          -DSUMMARY="$GITHUB_STEP_SUMMARY" -P Performance/CheckReceipt.cmake
+
+  CMake-consumer:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: CMake consumer (add_subdirectory, find_package)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build a project that uses EBGeometry, both ways
+        # Checks that the EBGeometry target works for a consuming project through add_subdirectory
+        # and through install + find_package, and imposes no SIMD flags on it (D12).
+        run: Scripts/check-cmake-consumer.sh "${{ runner.temp }}/consumer"
 
   Build-documentation:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Build-documentation
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Cache pip packages
@@ -271,16 +384,12 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-sphinx-${{ hashFiles('.github/workflows/CI.yml') }}
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt install doxygen
-          sudo apt install graphviz
-          sudo apt install texlive
-          sudo apt install texlive-latex-extra
-          sudo apt install latexmk
-          sudo apt install poppler-utils
-          python3 -m pip install sphinx==5.3.0 sphinx_rtd_theme sphinxcontrib-bibtex
+      - name: Install packages
+        uses: ./.github/actions/apt-install
+        with:
+          packages: doxygen graphviz texlive texlive-latex-extra latexmk poppler-utils
+      - name: Install Sphinx
+        run: python3 -m pip install sphinx==9.1.1 sphinx_rtd_theme sphinxcontrib-bibtex
 
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs
@@ -294,8 +403,9 @@ jobs:
 
       - name: Build HTML documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx
+        # Warnings are errors: a broken :ref:/:numref: or a missing figure only ever shows up as one.
         run: |
-          make html
+          make html SPHINXOPTS="-W --keep-going"
 
       - name: Build PDF documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx
@@ -318,26 +428,23 @@ jobs:
   Unit-Tests:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Unit tests (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     strategy:
       fail-fast: false
-      matrix:
-        compiler: [g++-12, clang++-14]
-        simd: [none, avx, avx512]
+      matrix: >-
+        ${{ fromJSON(github.event.pull_request.draft
+        && '{"include": [{"compiler": "g++-12", "simd": "avx"}, {"compiler": "clang++-14", "simd": "none"}]}'
+        || '{"compiler": ["g++-12", "clang++-14"], "simd": ["none", "avx", "avx512"]}') }}
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install compiler
-        run: |
-          sudo apt-get update
-          if [[ "${{ matrix.compiler }}" == g++* ]]; then
-            sudo apt-get install -y ${{ matrix.compiler }}
-          else
-            sudo apt-get install -y clang-14
-          fi
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ startsWith(matrix.compiler, 'g++') && matrix.compiler || 'clang-14' }}
 
       - name: Cache Catch2 build
         uses: actions/cache@v6
@@ -354,7 +461,7 @@ jobs:
             -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
 
       - name: Build
-        run: cmake --build --preset debug --parallel 2
+        run: cmake --build --preset debug --parallel $(nproc)
 
       - name: Run tests
         # AVX-512 is compiled unconditionally (catches ISA-specific compile errors
@@ -366,13 +473,13 @@ jobs:
           if [[ "${{ matrix.simd }}" == "avx512" ]] && ! grep -q avx512f /proc/cpuinfo; then
             echo "Runner CPU lacks AVX-512F; skipping runtime execution (compile-only verification passed)."
           else
-            ctest --preset debug
+            ctest --preset debug --parallel $(nproc)
           fi
 
   Release-Test:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Release build (full test + example suite)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -386,30 +493,27 @@ jobs:
       - name: Configure (release-test preset)
         run: cmake --preset release-test -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
-        run: cmake --build --preset release-test --parallel 2
+        run: cmake --build --preset release-test --parallel $(nproc)
       - name: Run full suite (unit tests + examples)
-        run: ctest --preset release-test
+        run: ctest --preset release-test --parallel $(nproc)
 
   Sanitizers:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Sanitizers (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       fail-fast: false
-      matrix:
-        compiler: [g++-12, clang++-14]
-        simd: [none, avx]
+      matrix: >-
+        ${{ fromJSON(github.event.pull_request.draft
+        && '{"include": [{"compiler": "g++-12", "simd": "avx"}]}'
+        || '{"compiler": ["g++-12", "clang++-14"], "simd": ["none", "avx"]}') }}
     steps:
       - uses: actions/checkout@v7
       - name: Install compiler
-        run: |
-          sudo apt-get update
-          if [[ "${{ matrix.compiler }}" == g++* ]]; then
-            sudo apt-get install -y ${{ matrix.compiler }}
-          else
-            sudo apt-get install -y clang-14
-          fi
+        uses: ./.github/actions/apt-install
+        with:
+          packages: ${{ startsWith(matrix.compiler, 'g++') && matrix.compiler || 'clang-14' }}
       - name: Cache Catch2 build
         uses: actions/cache@v6
         with:
@@ -423,16 +527,110 @@ jobs:
             -DEBGEOMETRY_BUILD_EXAMPLES=OFF \
             -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
-        run: cmake --build --preset debug-san --parallel 2
+        run: cmake --build --preset debug-san --parallel $(nproc)
       - name: Run tests under sanitizers
-        run: ctest --preset debug-san
+        run: ctest --preset debug-san --parallel $(nproc)
         env:
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
           ASAN_OPTIONS: detect_leaks=1
 
-  CI-passed:
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
-    runs-on: ubuntu-latest
+  GPU-CUDA:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: GPU CUDA compile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
+    # Advisory: the toolkit install is a third-party action that downloads several GB and is the
+    # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
+    continue-on-error: true
     steps:
-      - name: Do nothing
+      - uses: actions/checkout@v7
+      - name: Install CUDA toolkit
+        uses: Jimver/cuda-toolkit@v0.2.19
+        with:
+          cuda: '12.5.0'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart"]'
+      - name: Configure
+        # Both precisions so the float instantiations of the device kernels are compiled too.
+        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
+      - name: Build
+        # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
+        # with nvcc, so the device-callable surface must compile for the device. The device-test list
+        # lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them, and
+        # EBGeometry_GPUDeviceExamples the examples compiled for the device. No GPU is needed.
+        run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel $(nproc)
+      - name: Run device-tagged tests
+        # This runner has no GPU. Every [gpu] test case SKIP()s at its first statement when
+        # deviceAvailable() is false (see TestGPU.hpp), so no kernel is launched and no device code
+        # runs here. What this step does check: the binaries link and start, the runtime's device
+        # query returns without crashing, and every [gpu] case is registered. "gpu-device" is the
+        # CTest label Tests/CMakeLists.txt attaches to exactly those cases.
+        run: ctest --test-dir build/cuda -L gpu-device --output-on-failure
+
+  GPU-HIP:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: GPU HIP compile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install HIP toolchain
+        uses: ./.github/actions/apt-install
+        with:
+          packages: hipcc clang-17 libamdhip64-dev rocm-device-libs-17
+      - name: Configure and build optimized, with host SIMD flags
+        # Drive HIP with clang-17 directly; CMake >= 3.28 rejects the hipcc wrapper as CMAKE_HIP_COMPILER.
+        # Both precisions so the float instantiations of the device kernels are compiled too.
+        # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_HIP) with
+        # clang's HIP mode, so the device-callable surface must compile for the device; the
+        # device-test list lives in Tests/CMakeLists.txt, and EBGeometry_GPUDeviceTests aggregates
+        # them. EBGeometry_GPUDeviceExamples and EBGeometry_Performance compile the examples and the
+        # probes for the device in the same way. No GPU is needed.
+        # With -mavx, clang's device pass sees __AVX__ as well, so any SIMD block in a
+        # __host__ __device__ function that is not also guarded on EBGEOMETRY_DEVICE_COMPILE fails to
+        # compile for the device. Release, so the device code is also compiled the way users build it:
+        # HIP inlines every device function, and only an optimized build shows a function whose inlined
+        # copies multiply (the tape's evaluator, before EBGEOMETRY_DEVICE_NOINLINE, took longer than
+        # this job's timeout).
         run: |
+          cmake -S . -B build/hip-avx -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON -DEBGEOMETRY_SIMD=avx "-DCMAKE_HIP_FLAGS=-mavx -mfma -msse4.1"
+          cmake --build build/hip-avx --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel $(nproc)
+      - name: Run device-tagged tests
+        # See the matching step in the GPU-CUDA job above: no GPU, so every case SKIP()s before
+        # launching a kernel. This checks that the binaries start and the device query is safe.
+        run: ctest --test-dir build/hip-avx -L gpu-device --output-on-failure
+      - name: Configure and build unoptimized (full tier only)
+        if: ${{ !github.event.pull_request.draft }}
+        run: |
+          cmake -S . -B build/hip -DEBGEOMETRY_ENABLE_HIP=ON -DCMAKE_HIP_COMPILER=clang++-17 -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
+          cmake --build build/hip --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel $(nproc)
+          ctest --test-dir build/hip -L gpu-device --output-on-failure
+
+  CI-passed:
+    # The single required status check. It runs even when a dependency fails or is canceled (a
+    # plain `needs` would skip this job, and a skipped required check does not block a merge), and
+    # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
+    # deliberately not listed.
+    if: always()
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Viewer-SDL2, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every dependency to have succeeded
+        # A job of the full tier only is skipped on a draft pull request, and that is not a failure.
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          DRAFT: ${{ github.event.pull_request.draft == true }}
+        run: |
+          full_only='["Linux-Intel", "Examples-GNUMake", "Examples-FloatPrecision"]'
+          failed=$(jq -r --argjson full_only "$full_only" --arg draft "$DRAFT" '
+            to_entries[]
+            | select(.value.result != "success")
+            | select(($draft == "true" and .value.result == "skipped" and (.key | IN($full_only[]))) | not)
+            | "\(.key): \(.value.result)"' <<< "$RESULTS")
+          if [[ -n "$failed" ]]; then
+            echo "These required jobs did not succeed:"
+            echo "$failed"
+            exit 1
+          fi
+          echo "All required jobs succeeded."

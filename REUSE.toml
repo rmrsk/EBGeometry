@@ -25,7 +25,6 @@ path = [
   "Scripts/CheckDocs.py",
   "Copyright.txt",
   "README.md",
-  "TODO.md",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
@@ -43,11 +42,12 @@ SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
 # Example build files and per-example documentation
-# (deliberately excludes Examples/Resources/ data and main.cpp, which are handled elsewhere)
+# (main.cpp carries its own inline header)
 [[annotations]]
 path = [
   "Examples/CMakeLists.txt",
   "Examples/README.md",
+  "Examples/data/**",
   "Examples/**/GNUmakefile",
   "Examples/**/Make.package",
   "Examples/**/*.inputs",
@@ -56,14 +56,13 @@ path = [
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
-# Third-party integration examples (AMReX, Chombo): build files and per-example
+# Third-party integration examples: build files and per-example
 # documentation. main.cpp files carry their own inline SPDX headers.
 [[annotations]]
 path = [
   "Integrations/README.md",
   "Integrations/**/GNUmakefile",
   "Integrations/**/Make.package",
-  "Integrations/**/*.inputs",
   "Integrations/**/README.md",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"

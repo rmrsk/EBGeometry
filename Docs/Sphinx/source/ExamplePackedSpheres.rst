@@ -1,16 +1,50 @@
 .. _Chap:ExamplePackedSpheres:
 
-PackedSpheres
+Packed spheres
 ==============
 
-Creates a scene of :math:`N^3` analytic spheres and combines them with two kinds of union: a
-standard union that scans every object, and a BVH-accelerated union
-(see :ref:`Chap:BVH`).  Demonstrates the algorithmic-complexity benefit of the BVH for
-closest-object queries as the object count grows.
+Spheres of random sizes filling a cylinder, joined by a smooth union so that neighbors that touch merge
+with a fillet. The source is at :file:`Examples/PackedSpheres/main.cpp`.
 
-The source for this example is at :file:`Examples/PackedSpheres/main.cpp`. See
-:ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a direct compiler
-invocation.
+.. figure:: /_static/example_PackedSpheres.jpg
+   :width: 60%
+   :align: center
+
+   3,000 spheres in a cylinder, joined by a smooth union.
+
+Building the packing
+--------------------
+
+Each sphere's center is drawn by rejection sampling: uniformly in the box around a cylinder along
+:math:`x`, five times as long as its radius, and kept only if it lies inside the cylinder. Its radius is
+drawn too. A
+`BVHSmoothUnion <doxygen/html/classEBGeometry_1_1BVHSmoothUnion.html>`__ holds them in a pool and builds a
+BVH over their boxes:
+
+.. code-block:: c++
+
+   const BVHSmoothUnion<T, SphereSDF<T>, K, SmoothMinOp<T>> packing(pool, spheres, boxes, blendLength);
+
+A point is evaluated against the spheres near it only, and the two nearest values are blended with the
+smooth minimum, so spheres within the blend length of each other merge (see :ref:`Sec:BVHUnions`). The
+program prints the number of spheres, the box and the value at two points.
+
+Looking at it
+-------------
+
+The example ends with ``Render::view(packing, pool, argc, argv)``; X cuts the cylinder open to show the
+spheres inside.
+
+The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
+:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
+and returns. Drag to orbit and scroll to zoom; the window lists its other keys (see
+:ref:`Sec:ViewerKeys`).
+
+Building and running
+--------------------
+
+See :ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a direct compiler invocation.
+Built for a GPU (see :ref:`Sec:ExamplesGPU`), the window renders on the device.
 
 .. code-block:: bash
 

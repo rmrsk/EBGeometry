@@ -8,7 +8,7 @@ A signed distance function returns, for any point in space, the distance to the 
 the mesh's surface, signed by whether the query point is inside or outside the surface. This only
 makes sense if the mesh is *watertight* (it has no holes or gaps) and *consistently oriented* (its
 triangles all wind the same way, so "inside" is unambiguous everywhere) -- see
-[Geometry representations](https://rmrsk.github.io/EBGeometry/Concepts.html) for the underlying
+[Geometry representations](https://rmrsk.github.io/EBGeometry/GeometryRepresentations.html) for the underlying
 theory.
 
 Computing that distance exactly requires checking every triangle in the mesh, which becomes slow
@@ -32,9 +32,9 @@ Building
 This example is standalone and can be built in three ways. Each needs the path
 to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
 is two levels up from this folder (`../..`) when building in place. See
-[Direct compilation](https://rmrsk.github.io/EBGeometry/BuildingDirectCompile.html),
-[Building with GNU Make](https://rmrsk.github.io/EBGeometry/BuildingGNUMake.html), and
-[Building with CMake](https://rmrsk.github.io/EBGeometry/BuildingCMake.html) in the user
+[Direct compilation](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingdirectcompile),
+[Building with GNU Make](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildinggnumake), and
+[Building with CMake](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingcmake) in the user
 documentation for more detail on each approach.
 
 **CMake**
@@ -57,10 +57,32 @@ This produces `./MeshSDF.ex`. Override the defaults on the command line:
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o MeshSDF.ex
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o MeshSDF.ex -pthread
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
+
+**For a GPU**
+
+The same source also builds for a GPU, and its last section then runs in a kernel (a GPU build
+without a visible GPU skips that part):
+
+    make GPU=HIP HIP_ARCH=gfx90a                                  # or GPU=CUDA CUDA_ARCH=sm_80
+    cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA
+    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o MeshSDF.ex
+
+See [GPU builds](https://rmrsk.github.io/EBGeometry/Examples.html#sec-examplesgpu) in the user documentation.
+
+**With the viewer**
+
+At the end the example opens a window on the mesh (`EBGeometry::Render::view()`). The window needs
+SDL2 (for example `libsdl2-dev`, or `brew install sdl2`) and is built only on request:
+
+    make VIEWER=SDL2
+    cmake -S . -B build -DEBGEOMETRY_VIEWER=SDL2
+    g++ -std=c++17 -O3 -march=native -DEBGEOMETRY_VIEWER_SDL2 $(sdl2-config --cflags) -I../.. main.cpp -o MeshSDF.ex $(sdl2-config --libs) -pthread
+
+Without it, `view()` prints a line saying how to build it and returns.
 
 Running
 -------
@@ -73,10 +95,28 @@ Run from this directory so the default mesh path resolves:
 With no argument the example loads `armadillo.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out
 (`git submodule update --init`; see
-[Introduction](https://rmrsk.github.io/EBGeometry/Introduction.html) for details). You can pass
+[Obtaining EBGeometry](https://rmrsk.github.io/EBGeometry/ObtainingEBGeometry.html) for details). You can pass
 the path to any watertight, triangulated STL/PLY/OBJ/VTK file instead.
 
-The program prints the mesh's bounding box, then the summed signed distance to 1000 random
-points and the average time per query, once for each of the three representations, followed by
-the relative speedup of the two accelerated representations over the brute-force one. All three
-sums should agree to within floating-point round-off; the program prints a warning if they don't.
+The program prints the mesh's face count and bounding box, then the time per query of each of the
+three representations over the same random points, with the speedup of the two BVH-backed ones over
+the flat scan, the values at the first few points (the same in all three), and which face is nearest
+the first point. Then it evaluates the `TriMeshSDF` at those points through
+`EBGeometry::GPU::transform`: in a kernel in a GPU build, in a host loop otherwise.
+
+Finally it opens the viewer on the `TriMeshSDF`, if built with it, and waits until the window is
+closed. Drag to orbit and scroll to zoom; the window lists its other keys (see
+[the viewer's keys](https://rmrsk.github.io/EBGeometry/ImplemRender.html#sec-viewerkeys)).
+
+A surface seen from inside the solid is drawn red: that is what the inside looks like through the
+section plane's cut, and what a mesh whose faces are wound the wrong way looks like from outside.
+The `TriMeshSDF` is ray traced (rays through its BVH, tested against its triangles), so the window
+follows the mouse: a quick preview while the camera moves, refined to the full frame once it rests.
+In a GPU build the window renders on the GPU (`G` switches to the CPU and back). Build that in single
+precision, since many GPUs are much slower in double precision:
+
+    make GPU=CUDA VIEWER=SDL2 PRECISION=float
+
+`--no-view` skips the window (ctest passes it), as does running without a display:
+
+    ./MeshSDF.ex --no-view

@@ -41,7 +41,8 @@ of the next unvisited shell -- no closer point can lie beyond that shell, so the
 resolves in the first shell or two.
 
 The grid trades adaptivity for simplicity. A single global cell size fits a **near-uniform** cloud
-best -- there, both building the grid (a counting sort) and querying it are cheaper than a tree. For
+best -- there, building the grid (a counting sort) is cheaper than building a tree, and querying it
+costs about the same. For
 a **strongly clustered or multi-scale** cloud a single cell size is a poor compromise (too coarse
 where the cloud is dense, too fine where it is sparse), and the density-adaptive hierarchy is the
 better choice.
@@ -50,7 +51,8 @@ Self queries
 ------------
 
 The all-nearest-neighbors graph is a special case worth calling out: every query point is *itself* a
-member of the cloud. A point therefore already knows which cell or leaf it lives in, so its search
-can be *seeded* from that group -- giving a tight pruning bound immediately -- and must exclude the
-point itself (otherwise it would trivially find itself at distance zero). This makes a batch of self
-queries strictly cheaper than the same number of independent external queries.
+member of the cloud, and its search must exclude the point itself (otherwise it would trivially find
+itself at distance zero). A hierarchy can also use the fact that it already knows which leaf each point
+lives in: its search can be *seeded* from that leaf, giving a tight pruning bound immediately, which
+makes the hierarchy's self queries cheaper than querying the same points from scratch. A uniform grid
+starts a self query from the point's cell, as it does any query.

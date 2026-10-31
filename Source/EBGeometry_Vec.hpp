@@ -5,7 +5,7 @@
 /**
  * @file   EBGeometry_Vec.hpp
  * @brief  Declaration of 2D and 3D point/vector classes with templated
- * precision. Used with DCEL tools.
+ * precision, and free functions on them.
  * @author Robert Marskar
  */
 
@@ -14,22 +14,22 @@
 
 // Std includes
 #include <algorithm>
-#include <array>
 #include <cstddef>
-#include <limits>
-#include <ostream>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 
 namespace EBGeometry {
 
 /**
  * @brief Two-dimensional vector class with arithmetic operators.
- * @details The class has a public-only interface. To change it's components one
- * can call the member functions, or set components directly, e.g. vec.x = 5.0
- * @note Vec2T is a templated class primarily used with DCEL grids.
+ * @details Like Vec3T, the components are reached through operator[] (index 0 or 1).
+ * @note Vec2T is used where a computation is reduced to two dimensions: a point projected to the plane
+ * of a DCEL polygon face or a triangle, and the cross-sections of some analytic shapes.
  * @tparam T Floating-point precision (float or double).
  */
 template <typename T>
@@ -38,9 +38,13 @@ class Vec2T
 public:
   static_assert(std::is_floating_point_v<T>, "Vec2T<T>: T must be a floating-point type");
   /**
-   * @brief Default constructor. Sets the vector to the zero vector.
+   * @brief Default constructor. Leaves the components uninitialized.
+   * @details Defaulted, so that Vec2T is trivially default constructible and can be the element type of
+   * a CUDA/HIP `__shared__` array, which may not have an initializer. As with a plain T, `Vec2T<T> v;`
+   * leaves v uninitialized, while value initialization (`Vec2T<T> v{};`, `Vec2T<T>()`) zeroes it, as does
+   * zeros().
    */
-  constexpr Vec2T() noexcept;
+  Vec2T() noexcept = default;
 
   /**
    * @brief Copy constructor
@@ -53,8 +57,9 @@ public:
    * @brief Full constructor
    * @param[in] a_x First vector component
    * @param[in] a_y Second vector component
-   * @details Sets this->x = a_x and this->y = a_y
+   * @details Sets X[0] = a_x and X[1] = a_y.
    */
+  EBGEOMETRY_HOST_DEVICE
   constexpr Vec2T(const T& a_x, const T& a_y) noexcept;
 
   /**
@@ -63,48 +68,61 @@ public:
   ~Vec2T() = default;
 
   /**
-   * @brief First component in the vector
+   * @brief Mutable element access.
+   * @param[in] i Component index (0 = x, 1 = y). Must be < 2.
+   * @return Reference to the i-th component.
    */
-  T x;
+  EBGEOMETRY_HOST_DEVICE
+  inline constexpr T&
+  operator[](size_t i) noexcept;
 
   /**
-   * @brief Second component in the vector
+   * @brief Const element access.
+   * @param[in] i Component index (0 = x, 1 = y). Must be < 2.
+   * @return Const reference to the i-th component.
    */
-  T y;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr const T&
+  operator[](size_t i) const noexcept;
 
   /**
-   * @brief Return av vector with x = y = 0.
+   * @brief Return a vector with x = y = 0.
    * @return Zero vector (0, 0).
    */
-  [[nodiscard]] inline static constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec2T<T>
   zeros() noexcept;
 
   /**
    * @brief Return a vector with x = y = 1.
-   * @return Unit vector (1, 1).
+   * @return Ones vector (1, 1).
    */
-  [[nodiscard]] inline static constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec2T<T>
   ones() noexcept;
 
   /**
    * @brief Return the most-negative representable vector.
-   * @return Vector with each component equal to -std::numeric_limits<T>::max().
+   * @return Vector with each component equal to -Math::Limits<T>::max().
    */
-  [[nodiscard]] inline static constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec2T<T>
   min() noexcept;
 
   /**
    * @brief Return the most-positive representable vector.
-   * @return Vector with each component equal to std::numeric_limits<T>::max().
+   * @return Vector with each component equal to Math::Limits<T>::max().
    */
-  [[nodiscard]] inline static constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec2T<T>
   max() noexcept;
 
   /**
    * @brief Return a vector with infinite components.
-   * @return Vector with each component equal to std::numeric_limits<T>::infinity().
+   * @return Vector with each component equal to Math::Limits<T>::infinity().
    */
-  [[nodiscard]] inline static constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec2T<T>
   infinity() noexcept;
 
   /**
@@ -118,40 +136,45 @@ public:
   /**
    * @brief Addition operator.
    * @param[in] a_other Other vector.
-   * @return New vector with x = this->x + a_other.x, y = this->y + a_other.y.
+   * @return New vector with x = X[0] + a_other[0], y = X[1] + a_other[1].
    */
-  [[nodiscard]] inline constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec2T<T>
   operator+(const Vec2T& a_other) const noexcept;
 
   /**
    * @brief Subtraction operator.
    * @param[in] a_other Other vector.
-   * @return New vector with x = this->x - a_other.x, y = this->y - a_other.y.
+   * @return New vector with x = X[0] - a_other[0], y = X[1] - a_other[1].
    */
-  [[nodiscard]] inline constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec2T<T>
   operator-(const Vec2T& a_other) const noexcept;
 
   /**
    * @brief Negation operator.
    * @return New Vec2T<T> with negated components.
    */
-  [[nodiscard]] inline constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec2T<T>
   operator-() const noexcept;
 
   /**
    * @brief Scalar multiplication operator.
    * @param[in] s Scalar.
-   * @return New vector with x = s*this->x, y = s*this->y.
+   * @return New vector with x = s*X[0], y = s*X[1].
    */
-  [[nodiscard]] inline constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec2T<T>
   operator*(const T& s) const noexcept;
 
   /**
    * @brief Scalar division operator.
    * @param[in] s Scalar divisor.
-   * @return New vector with x = this->x/s, y = this->y/s.
+   * @return New vector with x = X[0]/s, y = X[1]/s.
    */
-  [[nodiscard]] inline constexpr Vec2T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec2T<T>
   operator/(const T& s) const noexcept;
 
   /**
@@ -159,6 +182,7 @@ public:
    * @param[in] a_other Other vector to add.
    * @return Reference to *this after addition.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec2T<T>&
   operator+=(const Vec2T& a_other) noexcept;
 
@@ -167,6 +191,7 @@ public:
    * @param[in] a_other Other vector to subtract.
    * @return Reference to *this after subtraction.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec2T<T>&
   operator-=(const Vec2T& a_other) noexcept;
 
@@ -175,6 +200,7 @@ public:
    * @param[in] s Scalar.
    * @return Reference to *this after multiplication.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec2T<T>&
   operator*=(const T& s) noexcept;
 
@@ -183,41 +209,48 @@ public:
    * @param[in] s Scalar divisor.
    * @return Reference to *this after division.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec2T<T>&
   operator/=(const T& s) noexcept;
 
   /**
    * @brief Dot product.
    * @param[in] a_other Other vector.
-   * @return Scalar dot product: this->x*a_other.x + this->y*a_other.y.
+   * @return Scalar dot product: X[0]*a_other[0] + X[1]*a_other[1].
    */
-  [[nodiscard]] inline constexpr T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr T
   dot(const Vec2T& a_other) const noexcept;
 
   /**
    * @brief Compute length of vector
-   * @return Returns length of vector, i.e. sqrt[(this->x)*(this->x) +
-   * (this->y)*(this->y)]
+   * @details Not constexpr, since std::sqrt is not.
+   * @return Euclidean length: std::sqrt(X[0]*X[0] + X[1]*X[1]).
    */
-  [[nodiscard]] inline constexpr T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
   length() const noexcept;
 
   /**
-   * @brief Compute square of vector
-   * @return Returns length of vector, i.e. (this->x)*(this->x) +
-   * (this->y)*(this->y)
+   * @brief Compute squared vector length.
+   * @return Squared Euclidean length: X[0]*X[0] + X[1]*X[1].
    */
-  [[nodiscard]] inline constexpr T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr T
   length2() const noexcept;
+
+protected:
+  /**
+   * @brief Vector components
+   */
+  Array<T, 2> m_X;
 };
 
 /**
  * @brief Three-dimensional vector class with arithmetic operators.
- * @details The class has a public-only interface. To change it's components one
- * can call the member functions, or set components directly, e.g. vec.x = 5.0
- * @note Vec3T is a templated class primarily used with DCEL grids. It is always
- * 3D, i.e. independent of Chombo configuration settings. This lets one use DCEL
- * functionality even though the simulation might only be 2D.
+ * @details The components are reached through operator[] (index 0, 1 or 2).
+ * @note Vec3T is the point and vector type used throughout EBGeometry. It is always 3D, i.e.
+ * independent of the application's spatial dimension.
  * @tparam T Floating-point precision (float or double).
  */
 template <typename T>
@@ -227,28 +260,18 @@ public:
   static_assert(std::is_floating_point_v<T>, "Vec3T<T>: T must be a floating-point type");
 
   /**
-   * @brief Stream insertion operator.
-   * @param[in,out] os  Output stream.
-   * @param[in]     vec Vector to print.
-   * @return Reference to the output stream after insertion.
+   * @brief Default constructor. Leaves the components uninitialized.
+   * @details Defaulted, so that Vec3T is trivially default constructible and can be the element type of
+   * a CUDA/HIP `__shared__` array, which may not have an initializer. As with a plain T, `Vec3T<T> v;`
+   * leaves v uninitialized, while value initialization (`Vec3T<T> v{};`, `Vec3T<T>()`) zeroes it, as does
+   * zeros().
    */
-  friend std::ostream&
-  operator<<(std::ostream& os, const Vec3T<T>& vec)
-  {
-    os << '(' << vec[0] << ',' << vec[1] << ',' << vec[2] << ')';
-
-    return os;
-  }
-
-  /**
-   * @brief Default constructor. Sets the vector to the zero vector.
-   */
-  constexpr Vec3T() noexcept;
+  Vec3T() noexcept = default;
 
   /**
    * @brief Copy constructor
    * @param[in] a_u Other vector
-   * @details Sets *this = u
+   * @details Sets *this = a_u
    */
   constexpr Vec3T(const Vec3T<T>& a_u) noexcept = default;
 
@@ -257,8 +280,9 @@ public:
    * @param[in] a_x First vector component
    * @param[in] a_y Second vector component
    * @param[in] a_z Third vector component
-   * @details Sets this->x = a_x, this->y = a_y, and this->z = a_z
+   * @details Sets X[0] = a_x, X[1] = a_y and X[2] = a_z.
    */
+  EBGEOMETRY_HOST_DEVICE
   constexpr Vec3T(const T& a_x, const T& a_y, const T& a_z) noexcept;
 
   /**
@@ -270,14 +294,16 @@ public:
    * @brief Return a vector with x = y = z = 0.
    * @return Zero vector (0, 0, 0).
    */
-  [[nodiscard]] inline static constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec3T<T>
   zeros() noexcept;
 
   /**
    * @brief Return a vector with x = y = z = 1.
    * @return Ones vector (1, 1, 1).
    */
-  [[nodiscard]] inline static constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec3T<T>
   ones() noexcept;
 
   /**
@@ -285,28 +311,32 @@ public:
    * @param[in] a_dir Axis index (0 = x, 1 = y, 2 = z).
    * @return Basis vector e_{a_dir} with a 1 in position a_dir and 0 elsewhere.
    */
-  [[nodiscard]] inline static constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec3T<T>
   unit(const size_t a_dir) noexcept;
 
   /**
    * @brief Return the most-negative representable vector.
-   * @return Vector with each component equal to -std::numeric_limits<T>::max().
+   * @return Vector with each component equal to -Math::Limits<T>::max().
    */
-  [[nodiscard]] inline static constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec3T<T>
   min() noexcept;
 
   /**
    * @brief Return the most-positive representable vector.
-   * @return Vector with each component equal to std::numeric_limits<T>::max().
+   * @return Vector with each component equal to Math::Limits<T>::max().
    */
-  [[nodiscard]] inline static constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec3T<T>
   max() noexcept;
 
   /**
    * @brief Return a vector with infinite components.
-   * @return Vector with each component equal to std::numeric_limits<T>::infinity().
+   * @return Vector with each component equal to Math::Limits<T>::infinity().
    */
-  [[nodiscard]] inline static constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static constexpr Vec3T<T>
   infinity() noexcept;
 
   /**
@@ -317,7 +347,8 @@ public:
    * @param[in] u Other vector.
    * @return True if (*this) is lexicographically less than u.
    */
-  [[nodiscard]] inline constexpr bool
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr bool
   lessLX(const Vec3T<T>& u) const noexcept;
 
   /**
@@ -325,6 +356,7 @@ public:
    * @param[in] i Component index (0 = x, 1 = y, 2 = z). Must be < 3.
    * @return Reference to the i-th component.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr T&
   operator[](size_t i) noexcept;
 
@@ -333,7 +365,8 @@ public:
    * @param[in] i Component index (0 = x, 1 = y, 2 = z). Must be < 3.
    * @return Const reference to the i-th component.
    */
-  [[nodiscard]] inline constexpr const T&
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr const T&
   operator[](size_t i) const noexcept;
 
   /**
@@ -341,7 +374,8 @@ public:
    * @param[in] u Other vector.
    * @return True if all three components are equal.
    */
-  [[nodiscard]] inline constexpr bool
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr bool
   operator==(const Vec3T<T>& u) const noexcept;
 
   /**
@@ -349,51 +383,28 @@ public:
    * @param[in] u Other vector.
    * @return True if any component differs.
    */
-  [[nodiscard]] inline constexpr bool
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr bool
   operator!=(const Vec3T<T>& u) const noexcept;
 
   /**
-   * @brief "Smaller than" operator.
-   * @details Returns true if this->x < u.x AND this->y < u.y AND this->z < u.z
-   * and false otherwise
-   * @param[in] u Other vector
-   * @return True if all three components of *this are strictly less than the
-   * corresponding components of u, false otherwise.
+   * @name Deleted ordering operators
+   * @brief Vec3T has no ordering operators.
+   * @details These once meant "every component less (greater, ...) than", which is not a strict weak
+   * ordering: two different vectors can each fail to be less than the other, so std::set, std::map and
+   * std::sort built on them silently merge or misorder distinct vectors. Compare components
+   * explicitly, or use lessLX() for a lexicographic ordering.
    */
-  [[nodiscard]] inline constexpr bool
-  operator<(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Greater than" operator.
-   * @details Returns true if this->x > u.x AND this->y > u.y AND this->z > u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are strictly greater than the
-   * corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] inline constexpr bool
-  operator>(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Smaller or equal to" operator.
-   * @details Returns true if this->x <= u.x AND this->y <= u.y AND this->z <=
-   * u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are less than or equal to the
-   * corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] inline constexpr bool
-  operator<=(const Vec3T<T>& u) const noexcept;
-
-  /**
-   * @brief "Greater or equal to" operator.
-   * @details Returns true if this->x >= u.x AND this->y >= u.y AND this->z >=
-   * u.z
-   * @param[in] u Other vector
-   * @return True if all three components of *this are greater than or equal to
-   * the corresponding components of u, false otherwise.
-   */
-  [[nodiscard]] inline constexpr bool
-  operator>=(const Vec3T<T>& u) const noexcept;
+  ///@{
+  bool
+  operator<(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator>(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator<=(const Vec3T<T>& u) const noexcept = delete;
+  bool
+  operator>=(const Vec3T<T>& u) const noexcept = delete;
+  ///@}
 
   /**
    * @brief Assignment operator.
@@ -408,29 +419,33 @@ public:
    * @param[in] u Other vector.
    * @return New vector with X[i] = this->X[i] + u[i] for each component.
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   operator+(const Vec3T<T>& u) const noexcept;
 
   /**
    * @brief Subtraction operator. Returns a new vector with subtracted components
-   * @return Returns a new vector with x = this->x - u.x and so on.
+   * @return New vector with X[i] = this->X[i] - u[i] for each component.
    * @param[in] u Other vector
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   operator-(const Vec3T<T>& u) const noexcept;
 
   /**
    * @brief Identity operator.
    * @return Copy of this vector (unary plus, component-wise identity).
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   operator+() const noexcept;
 
   /**
    * @brief Negation operator.
    * @return New vector with each component negated.
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   operator-() const noexcept;
 
   /**
@@ -439,7 +454,8 @@ public:
    * @param[in] s Scalar to multiply by
    * @return Returns a new vector with X[i] = this->X[i] * s
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   operator*(const T& s) const noexcept;
 
   /**
@@ -448,15 +464,17 @@ public:
    * @return Returns a new vector with X[i] = this->X[i] * s[i] for each
    * component.
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   operator*(const Vec3T<T>& s) const noexcept;
 
   /**
    * @brief Division operator. Returns a vector with scalar divided components
-   * @param[in] s Scalar to divided by
+   * @param[in] s Scalar to divide by
    * @return Returns a new vector with X[i] = this->X[i] / s
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   operator/(const T& s) const noexcept;
 
   /**
@@ -464,42 +482,43 @@ public:
    * @param[in] v Other vector
    * @return Returns a new vector with X[i] = this->X[i]/v[i] for each component.
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   operator/(const Vec3T<T>& v) const noexcept;
 
   /**
    * @brief Vector addition operator.
    * @param[in] u Vector to add
-   * @return Returns (*this) with incremented components, e.g. this->X[0] =
-   * this->X[0] + u.X[0]
+   * @return (*this), with X[i] += u[i] for each component.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
   operator+=(const Vec3T<T>& u) noexcept;
 
   /**
    * @brief Vector subtraction operator.
-   * @param[in] u Vector to subtraction
-   * @return Returns (*this) with subtracted components, e.g. this->X[0] =
-   * this->X[0] - u.X[0]
+   * @param[in] u Vector to subtract
+   * @return (*this), with X[i] -= u[i] for each component.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
   operator-=(const Vec3T<T>& u) noexcept;
 
   /**
    * @brief Vector multiplication operator.
    * @param[in] s Scalar to multiply by
-   * @return Returns (*this) with multiplied components, e.g. this->X[0] =
-   * this->X[0] * s
+   * @return (*this), with X[i] *= s for each component.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
   operator*=(const T& s) noexcept;
 
   /**
-   * @brief Vector division operator.
+   * @brief In-place scalar division operator.
    * @param[in] s Scalar to divide by
-   * @return Returns (*this) with multiplied components, e.g. this->X[0] =
-   * this->X[0] / s
+   * @return (*this), with X[i] /= s for each component.
    */
+  EBGEOMETRY_HOST_DEVICE
   inline constexpr Vec3T<T>&
   operator/=(const T& s) noexcept;
 
@@ -508,7 +527,8 @@ public:
    * @param[in] u Other vector.
    * @return Cross product (*this) × u.
    */
-  [[nodiscard]] inline constexpr Vec3T<T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr Vec3T<T>
   cross(const Vec3T<T>& u) const noexcept;
 
   /**
@@ -516,7 +536,8 @@ public:
    * @param[in] u Other vector.
    * @return Scalar dot product (*this) · u.
    */
-  [[nodiscard]] inline constexpr T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr T
   dot(const Vec3T<T>& u) const noexcept;
 
   /**
@@ -524,7 +545,8 @@ public:
    * @param[in] a_doAbs If true, compare |X[i]| instead of X[i].
    * @return Index (0, 1, or 2) of the component with the smallest value (or magnitude).
    */
-  [[nodiscard]] inline size_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline size_t
   minDir(const bool a_doAbs) const noexcept;
 
   /**
@@ -534,73 +556,87 @@ public:
    * values.
    * @return Direction with the biggest component
    */
-  [[nodiscard]] inline size_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline size_t
   maxDir(const bool a_doAbs) const noexcept;
 
   /**
    * @brief Compute vector length.
+   * @details Not constexpr, since std::sqrt is not.
    * @return Euclidean length: std::sqrt(X[0]*X[0] + X[1]*X[1] + X[2]*X[2]).
    */
-  [[nodiscard]] inline constexpr T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
   length() const noexcept;
 
   /**
    * @brief Compute squared vector length.
    * @return Squared Euclidean length: X[0]*X[0] + X[1]*X[1] + X[2]*X[2].
    */
-  [[nodiscard]] inline constexpr T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline constexpr T
   length2() const noexcept;
 
 protected:
   /**
    * @brief Vector components
    */
-  std::array<T, 3> m_X;
+  Array<T, 3> m_X;
 };
 
 /**
  * @brief Scalar-left multiplication: s * vec.
- * @tparam T Floating-point precision.
+ * @tparam R Arithmetic type of the scalar (e.g. 2.0 * Vec2T<float>); it is converted to T first.
+ * @tparam T Floating-point precision of the vector.
  * @param[in] s       Scalar multiplier.
  * @param[in] a_other Vector.
- * @return New vector with x = s*a_other.x, y = s*a_other.y.
+ * @return New vector with x = T(s)*a_other[0], y = T(s)*a_other[1].
  */
-template <typename T>
-[[nodiscard]] inline constexpr Vec2T<T>
-operator*(const T& s, const Vec2T<T>& a_other) noexcept;
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr Vec2T<T>
+operator*(const R& s, const Vec2T<T>& a_other) noexcept;
 
 /**
  * @brief Component-wise scalar-left division: s / vec.
- * @details Returns a new vector where each component i is s / a_other[i].
- * @tparam T Floating-point precision.
+ * @details Returns a new vector where each component i is T(s) / a_other[i].
+ * @tparam R Arithmetic type of the scalar numerator; it is converted to T first.
+ * @tparam T Floating-point precision of the vector.
  * @param[in] s       Scalar numerator.
  * @param[in] a_other Vector whose components are the denominators.
- * @return New vector with x = s/a_other.x, y = s/a_other.y.
+ * @return New vector with x = T(s)/a_other[0], y = T(s)/a_other[1].
  */
-template <typename T>
-[[nodiscard]] inline constexpr Vec2T<T>
-operator/(const T& s, const Vec2T<T>& a_other) noexcept;
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr Vec2T<T>
+operator/(const R& s, const Vec2T<T>& a_other) noexcept;
 
 /**
  * @brief Component-wise minimum of two vectors.
+ * @details Each component is Math::min of the two: the first vector's component when they compare
+ * equal or either is NaN, like std::min.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
- * @return New vector with x = std::min(u.x, v.x), y = std::min(u.y, v.y).
+ * @return New vector with x = min(u[0], v[0]), y = min(u[1], v[1]).
  */
 template <typename T>
-[[nodiscard]] inline Vec2T<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec2T<T>
 min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
 /**
  * @brief Component-wise maximum of two vectors.
+ * @details Each component is Math::max of the two: the first vector's component when they compare
+ * equal or either is NaN, like std::max.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
- * @return New vector with x = std::max(u.x, v.x), y = std::max(u.y, v.y).
+ * @return New vector with x = max(u[0], v[0]), y = max(u[1], v[1]).
  */
 template <typename T>
-[[nodiscard]] inline Vec2T<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec2T<T>
 max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
 /**
@@ -611,75 +647,74 @@ max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
  * @return Scalar dot product u · v.
  */
 template <typename T>
-[[nodiscard]] inline T
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
 dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
 /**
  * @brief Euclidean length of a 2D vector.
  * @tparam T Floating-point precision.
  * @param[in] v Vector.
- * @return std::sqrt(v.x*v.x + v.y*v.y).
+ * @return std::sqrt(v[0]*v[0] + v[1]*v[1]).
  */
 template <typename T>
-[[nodiscard]] inline T
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
 length(const Vec2T<T>& v) noexcept;
 
 /**
  * @brief Scalar-left multiplication: s * vec.
- * @tparam R Type of scalar (may differ from T, e.g. int * Vec3T<double>).
+ * @tparam R Arithmetic type of the scalar (e.g. 2 * Vec3T<double>); it is converted to T first.
  * @tparam T Floating-point precision of the vector.
  * @param[in] s Scalar multiplier.
  * @param[in] u Vector.
- * @return New vector with X[i] = s * u[i].
+ * @return New vector with X[i] = T(s) * u[i].
  */
-template <class R, typename T>
-[[nodiscard]] inline constexpr Vec3T<T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr Vec3T<T>
 operator*(const R& s, const Vec3T<T>& u) noexcept;
 
 /**
- * @brief Component-wise multiplication of two vectors.
- * @tparam T Floating-point precision.
- * @param[in] u First vector.
- * @param[in] v Second vector.
- * @return New vector with X[i] = u[i] * v[i].
- */
-template <typename T>
-[[nodiscard]] inline constexpr Vec3T<T>
-operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
-
-/**
  * @brief Component-wise scalar-left division: s / vec.
- * @details Returns a new vector where each component i is s / u[i].
- * @tparam R Type of scalar numerator.
+ * @details Returns a new vector where each component i is T(s) / u[i].
+ * @tparam R Arithmetic type of the scalar numerator; it is converted to T first.
  * @tparam T Floating-point precision of the vector.
  * @param[in] s Scalar numerator.
  * @param[in] u Vector whose components are the denominators.
- * @return New vector with X[i] = s / u[i].
+ * @return New vector with X[i] = T(s) / u[i].
  */
-template <class R, typename T>
-[[nodiscard]] inline constexpr Vec3T<T>
+template <class R, typename T, std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr Vec3T<T>
 operator/(const R& s, const Vec3T<T>& u) noexcept;
 
 /**
  * @brief Component-wise minimum of two 3D vectors.
+ * @details Each component is Math::min of the two: the first vector's component when they compare
+ * equal or either is NaN, like std::min.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
- * @return New vector with X[i] = std::min(u[i], v[i]).
+ * @return New vector with X[i] = min(u[i], v[i]).
  */
 template <typename T>
-[[nodiscard]] inline constexpr Vec3T<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr Vec3T<T>
 min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /**
  * @brief Component-wise maximum of two 3D vectors.
+ * @details Each component is Math::max of the two: the first vector's component when they compare
+ * equal or either is NaN, like std::max.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.
  * @param[in] v Second vector.
- * @return New vector with X[i] = std::max(u[i], v[i]).
+ * @return New vector with X[i] = max(u[i], v[i]).
  */
 template <typename T>
-[[nodiscard]] inline constexpr Vec3T<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr Vec3T<T>
 max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /**
@@ -688,10 +723,11 @@ max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
  * @param[in] v  Vector to be clamped.
  * @param[in] lo Component-wise lower bound.
  * @param[in] hi Component-wise upper bound.
- * @return New vector with X[i] = std::clamp(v[i], lo[i], hi[i]).
+ * @return New vector with X[i] = clamp(v[i], lo[i], hi[i]).
  */
 template <typename T>
-[[nodiscard]] inline constexpr Vec3T<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr Vec3T<T>
 clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi) noexcept;
 
 /**
@@ -702,7 +738,8 @@ clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi) noexcept;
  * @return Scalar dot product u · v.
  */
 template <typename T>
-[[nodiscard]] inline constexpr T
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr T
 dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /**
@@ -713,7 +750,8 @@ dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
  * @return Cross product u × v.
  */
 template <typename T>
-[[nodiscard]] inline constexpr Vec3T<T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline constexpr Vec3T<T>
 cross(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /**
@@ -723,8 +761,22 @@ cross(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
  * @return std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]).
  */
 template <typename T>
-[[nodiscard]] inline constexpr T
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
 length(const Vec3T<T>& v) noexcept;
+
+static_assert(std::is_trivially_copyable_v<Vec2T<float>>, "Vec2T<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<Vec2T<double>>, "Vec2T<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<Vec3T<float>>, "Vec3T<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<Vec3T<double>>, "Vec3T<double> must be trivially copyable");
+static_assert(std::is_trivially_default_constructible_v<Vec2T<float>>,
+              "Vec2T<float> must be trivially default constructible");
+static_assert(std::is_trivially_default_constructible_v<Vec2T<double>>,
+              "Vec2T<double> must be trivially default constructible");
+static_assert(std::is_trivially_default_constructible_v<Vec3T<float>>,
+              "Vec3T<float> must be trivially default constructible");
+static_assert(std::is_trivially_default_constructible_v<Vec3T<double>>,
+              "Vec3T<double> must be trivially default constructible");
 
 } // namespace EBGeometry
 

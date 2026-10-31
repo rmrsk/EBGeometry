@@ -8,10 +8,20 @@
  * @author Robert Marskar
  */
 
+#ifndef EBGEOMETRY_HPP
+#define EBGEOMETRY_HPP
+
+#include "Source/EBGeometry_Affine.hpp"
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
+#include "Source/EBGeometry_AnalyticRayForms.hpp"
+#include "Source/EBGeometry_Array.hpp"
 #include "Source/EBGeometry_BVH.hpp"
+#include "Source/EBGeometry_BVHBuild.hpp"
+#include "Source/EBGeometry_BVHUnion.hpp"
+#include "Source/EBGeometry_Blend.hpp"
 #include "Source/EBGeometry_BoundingVolumes.hpp"
 #include "Source/EBGeometry_CSG.hpp"
+#include "Source/EBGeometry_CSGRayForms.hpp"
 #include "Source/EBGeometry_Constants.hpp"
 #include "Source/EBGeometry_DCEL.hpp"
 #include "Source/EBGeometry_DCEL_Edge.hpp"
@@ -19,35 +29,53 @@
 #include "Source/EBGeometry_DCEL_Iterator.hpp"
 #include "Source/EBGeometry_DCEL_Mesh.hpp"
 #include "Source/EBGeometry_DCEL_Vertex.hpp"
-#include "Source/EBGeometry_ImplicitFunction.hpp"
+#include "Source/EBGeometry_DistanceQuality.hpp"
+#include "Source/EBGeometry_Expr.hpp"
+#include "Source/EBGeometry_FunctionQueries.hpp"
+#include "Source/EBGeometry_GPU.hpp"
+#include "Source/EBGeometry_GPURuntime.hpp"
+#include "Source/EBGeometry_GPUTransform.hpp"
 #include "Source/EBGeometry_Macros.hpp"
+#include "Source/EBGeometry_Math.hpp"
+#include "Source/EBGeometry_MemoryResource.hpp"
 #include "Source/EBGeometry_MeshDistanceFunctions.hpp"
-#include "Source/EBGeometry_OBJ.hpp"
-#include "Source/EBGeometry_Octree.hpp"
-#include "Source/EBGeometry_PLY.hpp"
+#include "Source/EBGeometry_MeshRayForms.hpp"
+#include "Source/EBGeometry_PODVector.hpp"
+#include "Source/EBGeometry_PackedBVH.hpp"
+#include "Source/EBGeometry_ParseError.hpp"
 #include "Source/EBGeometry_Parser.hpp"
 #include "Source/EBGeometry_PointAoSoA.hpp"
+#include "Source/EBGeometry_PointCloud.hpp"
 #include "Source/EBGeometry_PointCloudBVH.hpp"
 #include "Source/EBGeometry_PointCloudHashGrid.hpp"
 #include "Source/EBGeometry_PointSoA.hpp"
-#include "Source/EBGeometry_Polygon2D.hpp"
-#include "Source/EBGeometry_Random.hpp"
+#include "Source/EBGeometry_PolygonSoup.hpp"
+#include "Source/EBGeometry_Pool.hpp"
+#include "Source/EBGeometry_Ray.hpp"
+#include "Source/EBGeometry_RaySpans.hpp"
+#include "Source/EBGeometry_Render.hpp"
 #include "Source/EBGeometry_SFC.hpp"
-#include "Source/EBGeometry_STL.hpp"
-#include "Source/EBGeometry_SignedDistanceFunction.hpp"
-#include "Source/EBGeometry_SimpleTimer.hpp"
+#include "Source/EBGeometry_SIMD.hpp"
 #include "Source/EBGeometry_Soup.hpp"
-#include "Source/EBGeometry_Transform.hpp"
+#include "Source/EBGeometry_StreamOperators.hpp"
+#include "Source/EBGeometry_Tape.hpp"
+#include "Source/EBGeometry_TreeBVH.hpp"
 #include "Source/EBGeometry_Triangle.hpp"
 #include "Source/EBGeometry_TriangleAoSoA.hpp"
+#include "Source/EBGeometry_TriangleDistance.hpp"
+#include "Source/EBGeometry_TriangleRay.hpp"
 #include "Source/EBGeometry_TriangleSoA.hpp"
-#include "Source/EBGeometry_VTK.hpp"
 #include "Source/EBGeometry_Vec.hpp"
+#include "Source/EBGeometry_Viewer.hpp"
 
 /**
  * @brief Namespace containing all of EBGeometry's functionality.
- * @details EBGeometry is a header-only C++17 library for implicit functions, signed distance
- *          functions, constructive solid geometry (CSG), and DCEL surface meshes. Including
- *          EBGeometry.hpp exposes every public class and free function through this namespace.
+ * @details EBGeometry is a header-only C++17 library for signed distance functions, constructive
+ *          solid geometry (CSG), DCEL surface meshes, bounding volume hierarchies, point clouds and
+ *          ray queries, on the host and on a GPU. Including EBGeometry.hpp exposes every public class
+ *          and free function through this namespace, except the Random and SimpleTimer utilities
+ *          (include EBGeometry_Random.hpp or EBGeometry_SimpleTimer.hpp for those).
  */
 namespace EBGeometry {}
+
+#endif

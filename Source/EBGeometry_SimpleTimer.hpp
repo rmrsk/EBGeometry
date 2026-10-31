@@ -33,7 +33,7 @@ public:
   using TimePoint = Clock::time_point;
 
   /**
-   * @brief Constructor. Immediately calls start() followed by stop() to initialise both
+   * @brief Constructor. Immediately calls start() followed by stop() to initialize both
    * time points to the current instant, leaving the timer in a valid state with
    * approximately zero elapsed time.
    */

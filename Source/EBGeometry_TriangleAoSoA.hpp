@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_TriangleAoSoA.hpp
- * @brief  Declaration of a metadata-carrying wrapper around TriangleSoAT.
+ * @brief  Declaration of a face-id-carrying wrapper around TriangleSoAT.
  * @author Robert Marskar
  */
 
@@ -12,12 +12,12 @@
 #define EBGEOMETRY_TRIANGLEAOSOA_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -25,29 +25,27 @@
 namespace EBGeometry {
 
 /**
- * @brief Metadata-carrying wrapper around a single TriangleSoAT<T, W>.
+ * @brief Face-id-carrying wrapper around a single TriangleSoAT<T, W>.
  * @details Structurally this is an AoSoA (Array of Structures of Arrays): TriangleSoAT<T, W> itself
  * is true SoA (one flat array per coordinate, no per-triangle structure at all), and TriangleAoSoA
- * adds exactly one more member -- a std::array<Meta, W> -- alongside it. The two are never merged or
- * interleaved: the hot signedDistance(const Vec3T<T>&) query is delegated straight through to the
- * embedded TriangleSoAT and never reads m_metaData at all, so a pure signed-distance traversal over
- * TriangleAoSoA-packed leaves touches exactly the same bytes it would touch over bare
- * TriangleSoAT-packed leaves. The metadata is read only afterward, once a query already knows which
- * lane (and therefore which triangle) it cares about, via getMetaData() or the metadata-reporting
- * signedDistance(point, Meta&) overload -- so a caller can recover which triangle (and its metadata)
- * is closest at no cost to the throughput signedDistance() path.
+ * adds an Array<uint32_t, W> of face ids (and its own count of valid lanes) alongside it. The two are
+ * never merged or interleaved: the hot signedDistance(const Vec3T<T>&) query is delegated straight
+ * through to the embedded TriangleSoAT and never reads m_faceIds at all, so a pure signed-distance
+ * traversal over TriangleAoSoA-packed leaves touches exactly the same bytes it would touch over bare
+ * TriangleSoAT-packed leaves. The face ids are read only afterward, once a query already knows which
+ * lane (and therefore which triangle) it cares about, via getFaceId() or the id-reporting
+ * signedDistance(point, uint32_t&) overload -- so a caller can recover which face is closest at no
+ * cost to the throughput signedDistance() path.
  * @warning Inherits the embedded TriangleSoAT's over-alignment (up to 64 bytes, for AVX-512F). The
- * library's own usage (PackedBVH storing groups inside a std::vector<TriangleAoSoA>) is safe: C++17
- * mandates that std::allocator respect over-alignment. If you allocate a TriangleAoSoA yourself
+ * library's own usage (PackedBVH storing groups in a Pool-backed PODVector<TriangleAoSoA>, reserved
+ * at alignof(TriangleAoSoA) inside a PoolBaseAlign-aligned block) is safe. If you allocate a TriangleAoSoA yourself
  * outside of that path -- a raw `new`, a container with a custom/pre-C++17-style allocator,
  * placement-new into externally-owned storage, or a `malloc`'d buffer -- you are responsible for
- * ensuring the memory is aligned to `alignof(TriangleAoSoA<T, Meta, W>)`.
+ * ensuring the memory is aligned to `alignof(TriangleAoSoA<T, W>)`.
  * @tparam T    Floating-point precision.
- * @tparam Meta Per-triangle user metadata type stored with each triangle.
- * @tparam W    SIMD width; see TriangleSoAT. Defaults to TriangleSoA::DefaultWidth<T>(), matching
- * TriangleSoAT's own default.
+ * @tparam W    SIMD width; see TriangleSoAT. Defaults to TriangleSoA::DefaultWidth<T>().
  */
-template <class T, class Meta, size_t W = TriangleSoA::DefaultWidth<T>()>
+template <class T, size_t W = TriangleSoA::DefaultWidth<T>()>
 struct TriangleAoSoA
 {
   static_assert(W > 0, "W must be positive");
@@ -57,59 +55,147 @@ public:
   /**
    * @brief Pack a_count triangles from a_triangles[0..a_count-1] into this group.
    * @details Pads lanes a_count..W-1 by repeating the last real triangle (its coordinates *and* its
-   * metadata), matching TriangleSoAT::pack()'s own padding convention, so all W lanes hold valid
-   * data. The coordinates go into the embedded TriangleSoAT; each triangle's metadata (via
-   * Triangle::getMetaData()) goes into the parallel m_metaData array.
+   * face id), matching TriangleSoAT::pack()'s own padding convention, so all W lanes hold valid
+   * data. The coordinates go into the embedded TriangleSoAT; each triangle's face id (via
+   * Triangle::getFaceId()) goes into the parallel m_faceIds array.
    * @param[in] a_triangles Source triangle array with at least a_count elements. Must not be null.
    * @param[in] a_count     Number of valid triangles to pack. Must satisfy 1 <= a_count <= W.
    */
+  EBGEOMETRY_HOST
   void
-  pack(const Triangle<T, Meta>* a_triangles, uint32_t a_count) noexcept;
+  pack(const Triangle<T>* a_triangles, uint32_t a_count) noexcept;
 
   /**
    * @brief Evaluate signed distance from a_point to the closest triangle in this group.
-   * @details Delegates entirely to the embedded TriangleSoAT<T, W>; never touches m_metaData, so the
-   * metadata array adds no cost to this hot (SIMD) path. See TriangleSoAT::signedDistance().
+   * @details Delegates entirely to the embedded TriangleSoAT<T, W>; never touches m_faceIds, so the
+   * id array adds no cost to this hot (SIMD) path. See TriangleSoAT::signedDistance().
    * @param[in] a_point Query point. Must be finite.
    * @return Signed distance from a_point to the closest valid triangle.
    */
-  [[nodiscard]] T
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Evaluate signed distance from a_point to the closest triangle *and* report that
-   * triangle's metadata.
-   * @details The metadata-retrieving analogue of signedDistance(const Vec3T<T>&): it returns the
-   * same minimum-absolute-value signed distance, but also writes the winning triangle's metadata to
-   * @p a_closestMeta. Unlike the plain overload it takes the scalar per-lane path
-   * (TriangleSoAT::signedDistances()) to recover *which* lane won, then reads that lane's metadata --
-   * the extra work the throughput path deliberately avoids (see issue #105).
-   * @param[in]  a_point       Query point. Must be finite.
-   * @param[out] a_closestMeta Set to the metadata of the winning (minimum-|distance|) triangle.
+   * triangle's face id.
+   * @details The id-retrieving analogue of signedDistance(const Vec3T<T>&): it returns the same
+   * minimum-absolute-value signed distance, but also writes the winning triangle's face id to
+   * @p a_closestFaceId. Unlike the plain overload it keeps every lane's distance
+   * (TriangleSoAT::signedDistances()) to recover *which* lane won, then reads that lane's id -- the
+   * extra work the throughput path deliberately avoids.
+   * @param[in]  a_point         Query point. Must be finite.
+   * @param[out] a_closestFaceId Set to the face id of the winning (minimum-|distance|) triangle.
    * @return Signed distance from a_point to the closest valid triangle.
    */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point, Meta& a_closestMeta) const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point, uint32_t& a_closestFaceId) const noexcept;
 
   /**
-   * @brief Get the metadata for one lane of this group.
+   * @brief The lane nearest a point and its squared unsigned distance (TriangleSoAT::nearestLane()).
+   * @param[in]  a_point The point.
+   * @param[out] a_d2    The lane's squared distance.
+   * @return The lane.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  nearestLane(const Vec3T<T>& a_point, T& a_d2) const noexcept
+  {
+    return m_triangles.nearestLane(a_point, a_d2);
+  }
+
+  /**
+   * @brief One lane's signed distance (TriangleSoAT::signedDistanceAt()).
+   * @param[in] a_lane  Lane, below the number of packed triangles.
+   * @param[in] a_point The point.
+   * @return The signed distance.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistanceAt(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept
+  {
+    return m_triangles.signedDistanceAt(a_lane, a_point);
+  }
+
+  /**
+   * @brief Where a ray first crosses a triangle in this group, with that triangle's face id and normal.
+   * @details See TriangleSoAT::rayCrossing(). Requires the group to have already been packed via pack().
+   * @param[in]  a_origin    Ray origin.
+   * @param[in]  a_direction Ray direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[out] a_faceId    Set to the face id of the triangle crossed; unchanged if there is none.
+   * @param[out] a_normal    Set to its unit normal; unchanged if there is none.
+   * @return The distance along the ray of the crossing, or +infinity if there is none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  rayCrossing(const Vec3T<T>& a_origin,
+              const Vec3T<T>& a_direction,
+              T               a_tMin,
+              T               a_tMax,
+              uint32_t&       a_faceId,
+              Vec3T<T>&       a_normal) const noexcept;
+
+  /**
+   * @brief Where a ray crosses each triangle in this group.
+   * @details See TriangleSoAT::rayCrossings(); the lanes' face ids and normals are getFaceId() and
+   * getNormal(). Requires the group to have already been packed via pack().
+   * @param[in]  a_origin    Ray origin.
+   * @param[in]  a_direction Ray direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[out] a_crossings W values: each lane's crossing, or +infinity.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  rayCrossings(
+    const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, T a_tMin, T a_tMax, T* a_crossings) const noexcept;
+
+  /**
+   * @brief The unit normal of one lane's triangle.
+   * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W.
+   * @return The face normal.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  getNormal(size_t a_lane) const noexcept;
+
+  /**
+   * @brief Get the face id for one lane of this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W (padded lanes return the last real
-   * triangle's metadata -- see pack()).
-   * @return Metadata for the triangle at a_lane.
+   * triangle's id -- see pack()).
+   * @return Face id of the triangle at a_lane.
    */
-  [[nodiscard]] const Meta&
-  getMetaData(size_t a_lane) const noexcept;
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getFaceId(size_t a_lane) const noexcept;
+
+  /**
+   * @brief Vertex a_vertex of the triangle in lane a_lane (padded lanes repeat the last real triangle).
+   * @param[in] a_lane   Lane index, below W.
+   * @param[in] a_vertex Vertex index, below 3.
+   * @return The vertex.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  getVertex(size_t a_lane, size_t a_vertex) const noexcept
+  {
+    return m_triangles.getVertex(a_lane, a_vertex);
+  }
 
   /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
    * @details Delegates entirely to the embedded TriangleSoAT<T, W>.
-   * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a
-   * std::vector<Vec3T<T>> of vertex positions.
+   * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a point array (a
+   * Vec3T<T> pointer and a count).
    * @return Bounding volume enclosing all vertices of the valid triangles.
    */
   template <class BV>
-  [[nodiscard]] BV
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BV
   computeBoundingVolume() const noexcept;
 
 protected:
@@ -119,21 +205,24 @@ protected:
   TriangleSoAT<T, W> m_triangles;
 
   /**
-   * @brief Per-lane metadata, physically separate from m_triangles. m_metaData[j] = metadata of
+   * @brief Per-lane face ids, physically separate from m_triangles. m_faceIds[j] = face id of
    * triangle j. Never read by signedDistance(const Vec3T<T>&).
    */
-  std::array<Meta, W> m_metaData;
+  Array<uint32_t, W> m_faceIds;
 
   /**
    * @brief Number of valid (non-padded) triangles in this group (1..W).
    * @details Zero-initialized so that a default-constructed (not-yet-packed) group reliably fails
-   * the EBGEOMETRY_EXPECT(m_validCount >= 1) precondition in getMetaData()/signedDistance(point,
-   * Meta&), rather than reading whatever indeterminate value happened to be there. (The plain
+   * the EBGEOMETRY_EXPECT(m_validCount >= 1) precondition in getFaceId()/signedDistance(point,
+   * uint32_t&), rather than reading whatever indeterminate value happened to be there. (The plain
    * signedDistance() gets the same protection for free from the embedded TriangleSoAT's own
    * m_validCount.)
    */
   uint32_t m_validCount = 0;
 };
+
+static_assert(std::is_trivially_copyable_v<TriangleAoSoA<float>>, "TriangleAoSoA<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TriangleAoSoA<double>>, "TriangleAoSoA<double> must be trivially copyable");
 
 } // namespace EBGeometry
 

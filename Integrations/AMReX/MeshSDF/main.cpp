@@ -1,143 +1,150 @@
-// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// AMReX includes
+// A surface mesh (STL, PLY, VTK or OBJ) read into a TriMeshSDF and handed to AMReX's EB2 grid generation as
+// an implicit function. The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See
+// README.md and the MeshSDF example under Examples/.
+
 #include <AMReX.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
-// Our include
 #include "../../../EBGeometry.hpp"
+
+#include <cmath>
+
+#include <string>
 
 using namespace amrex;
 
-/*!
-  @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It
-  is templated as T, Meta BV, K which indicate the EBGeometry precision, triangle meta-data,
-  bounding volume, and tree degree.
-*/
-template <class T, class Meta, class BV, size_t K>
-class AMReXSDF
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_CUDA) && !defined(AMREX_USE_HIP)
+#error "This integration supports CPU, CUDA and HIP builds of AMReX; EBGeometry has no SYCL memory resource yet."
+#endif
+
+using T    = Real;
+using Vec3 = EBGeometry::Vec3T<T>;
+using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
+// The library's default branching factor and triangle width: the same type in every compilation pass.
+using Mesh =
+  EBGeometry::TriMeshSDF<T, EBGeometry::BVH::DefaultBranchingRatio<T>(), EBGeometry::TriangleSoA::DefaultWidth<T>()>;
+
+// AMReX's implicit function. EBGeometry's value is negative inside the object and AMReX reads negative
+// values as fluid, so the sign is flipped: the fluid is around the object. Deriving from GPUable lets EB2
+// evaluate it in device kernels. It holds the object twice, as a view of the host pool and of its device
+// mirror (the same object in a CPU build), and each compilation pass uses its own.
+template <class S>
+class ShapeIF : public GPUable
 {
 public:
-  /*!
-    @brief Full constructor.
-    @param[in] a_filename File name. Must be an STL file.
-    @param[in] a_use_bvh  If true, accelerate with a BVH; otherwise query the raw mesh.
-  */
-  AMReXSDF(const std::string a_filename, const bool a_use_bvh)
-  {
-    if (a_use_bvh) {
-      m_sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(a_filename);
-    }
-    else {
-      m_sdf = EBGeometry::Parser::readIntoMesh<T, Meta>(a_filename);
-    }
-  }
+  ShapeIF(const S& a_host, const S& a_device) noexcept : m_host(a_host), m_device(a_device)
+  {}
 
-  /*!
-    @brief Copy constructor.
-  */
-  AMReXSDF(const AMReXSDF& a_other) = default;
-
-  /*!
-    @brief AMReX's implicit function definition.
-  */
+  AMREX_GPU_HOST_DEVICE
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return m_sdf->value(EBGeometry::Vec3T<T>(x, y, z));
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+    return -m_device.signedDistance(Vec3(x, y, z));
+#else
+    return -m_host.signedDistance(Vec3(x, y, z));
+#endif
   }
 
-  /*!
-    @brief Also an AMReX implicit function implementation
-  */
-  inline Real
+  Real
   operator()(const RealArray& p) const noexcept
   {
     return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
   }
 
-protected:
-  /*!
-    @brief Signed distance function (BVH-accelerated or flat mesh).
-  */
-  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_sdf;
+private:
+  S m_host;
+  S m_device;
 };
+
+// Build AMReX's EB from the implicit function on a domain around a box, and write a plot file.
+template <class S>
+void
+buildEB(const ShapeIF<S>& a_sdf, const AABB& a_box, const int a_numCells, const int a_maxGridSize)
+{
+  // Cubic cells, a_numCells along the box's longest side and 10% to spare; each side's count is rounded up
+  // to a multiple of 8.
+  const Vec3 center = T(0.5) * (a_box.getLowCorner() + a_box.getHighCorner());
+  const Vec3 extent = T(1.1) * (a_box.getHighCorner() - a_box.getLowCorner());
+  const T    dx     = extent[extent.maxDir(true)] / T(a_numCells);
+
+  IntVect cells;
+  RealBox rb;
+
+  for (int d = 0; d < AMREX_SPACEDIM; d++) {
+    cells[d] = 8 * int(std::ceil(extent[d] / (8 * dx)));
+
+    rb.setLo(d, center[d] - T(0.5) * dx * T(cells[d]));
+    rb.setHi(d, center[d] + T(0.5) * dx * T(cells[d]));
+  }
+
+  const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};
+  const Geometry                   geom(Box(IntVect(0), cells - 1), rb, 0, periodic);
+
+  // A mesh's fine features can cut a cell edge more than twice, which EB2 refuses unless it may cover such
+  // cells; allow it unless the inputs say otherwise.
+  ParmParse eb2("eb2");
+  if (!eb2.contains("cover_multiple_cuts")) {
+    eb2.add("cover_multiple_cuts", 1);
+  }
+
+  auto gshop = EB2::makeShop(a_sdf);
+  EB2::Build(gshop, geom, 0, 0);
+
+  BoxArray grids(geom.Domain());
+  grids.maxSize(a_maxGridSize);
+  const DistributionMapping dm(grids);
+
+  const auto factory = makeEBFabFactory(geom, grids, dm, {2, 2, 2}, EBSupport::full);
+  MultiFab   mf(grids, dm, 1, 0, MFInfo(), *factory);
+
+  mf.setVal(1.0);
+  EB_WriteSingleLevelPlotfile("plt", mf, {"rho"}, geom, 0.0, 0);
+
+  // The EB index space keeps a copy of the implicit function, which must not outlive the pool.
+  EB2::IndexSpace::clear();
+}
 
 int
 main(int argc, char* argv[])
 {
-
   amrex::Initialize(argc, argv);
+  try {
+    int         n_cell        = 128;
+    int         max_grid_size = 32;
+    std::string filename      = "../../../common-3d-test-models/data/armadillo.obj";
 
-  {
-    int  n_cell          = 128;
-    int  max_grid_size   = 16;
-    int  which_geom      = 0;
-    int  num_coarsen_opt = 4;
-    bool use_bvh         = true;
-
-    std::string filename;
-
-    // read parameters
     ParmParse pp;
-    pp.query("use_bvh", use_bvh);
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
-    pp.query("which_geom", which_geom);
-    pp.query("num_coarsen_opt", num_coarsen_opt);
+    pp.query("filename", filename);
 
-    Geometry geom;
-    {
-      // Mesh file (STL/PLY/VTK/OBJ). Override with 'filename=<path>' in the inputs file. The default is an OBJ
-      // from the common-3d-test-models submodule (see the "Building and using" docs for how to fetch it); the
-      // path is relative to this example's source folder, where the executable is run.
-      filename = "../../common-3d-test-models/data/armadillo.obj";
-      pp.query("filename", filename);
+    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-      RealBox rb({-100, -75, -100}, {100, 125, 100}); // bounds the default armadillo mesh
+    const Mesh mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(filename, pool);
 
-      Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
-      Geometry::Setup(&rb, 0, is_periodic.data());
-      Box domain(IntVect(0), IntVect(n_cell - 1));
-      geom.define(domain);
-    }
+    // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the object is
+    // rebased onto the mirror. The pools must outlive the EB generation.
+#if defined(AMREX_USE_GPU)
+    pool.freeze();
 
-    // Create our signed distance function. K is the tree degree while T is the
-    // EBGeometry precision.
-    constexpr int K = 4;
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
+    const ShapeIF<Mesh>    sdf(mesh, mesh.rebasedView(devicePool));
+#else
+    const ShapeIF<Mesh> sdf(mesh, mesh);
+#endif
 
-    using T    = float;
-    using Meta = EBGeometry::DCEL::DefaultMetaData;
-    using Vec3 = EBGeometry::Vec3T<T>;
-    using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-
-    AMReXSDF<T, Meta, BV, K> sdf(filename, use_bvh);
-
-    auto gshop = EB2::makeShop(sdf);
-
-    EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);
-
-    // Put some data
-    MultiFab mf;
-    {
-      BoxArray boxArray(geom.Domain());
-      boxArray.maxSize(max_grid_size);
-      DistributionMapping dm{boxArray};
-
-      std::unique_ptr<EBFArrayBoxFactory> factory =
-        amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
-
-      mf.define(boxArray, dm, 1, 0, MFInfo(), *factory);
-      mf.setVal(1.0);
-    }
-
-    EB_WriteSingleLevelPlotfile("plt", mf, {"rho"}, geom, 0.0, 0);
+    buildEB(sdf, mesh.computeBoundingVolume(), n_cell, max_grid_size);
+  } catch (const EBGeometry::Parser::ParseError& e) {
+    amrex::Abort(std::string("Cannot read the mesh: ") + e.what() +
+                 "\nThe default mesh is in the common-3d-test-models submodule: git submodule update --init");
   }
-
   amrex::Finalize();
 }

@@ -19,7 +19,7 @@ From the DCEL structure we can obtain all edges or vertices belonging to a singl
 
 .. _Fig:DCEL:
 .. figure:: /_static/DCEL.png
-   :width: 480px
+   :width: 45%
    :align: center
 
    DCEL mesh structure. Each half-edge stores references to next half-edge, the pair edge, and the starting vertex.
@@ -55,7 +55,7 @@ When computing the signed distance from a point :math:`\mathbf{x}` to a polygon 
 
 .. _Fig:PolygonProjection:
 .. figure:: /_static/PolygonProjection.png
-   :width: 240px
+   :width: 25%
    :align: center
 
    Possible closest-feature cases after projecting a point :math:`\mathbf{x}` to the plane of a polygon face.
@@ -110,20 +110,20 @@ For both edges and vertices we use the pseudonormals from :cite:`1407857`:
 
 .. math::
 
-   \mathbf{n}_{e} = \frac{1}{2}\left(\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right).
+   \mathbf{n}_{e} = \frac{\mathbf{n}_{f} + \mathbf{n}_{f^\prime}}{\left|\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right|},
 
 where :math:`f` and :math:`f^\prime` are the two faces connecting the edge.
 The vertex pseudonormal is given by
 
 .. math::
 
-  \mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\right|},
+  \mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\mathbf{n}_{f_i}\right|},
 
 where the sum runs over all faces which share :math:`v` as a vertex, and where :math:`\alpha_i` is the subtended angle of the face :math:`f_i`, see :numref:`Fig:Pseudonormal`.
 
 .. _Fig:Pseudonormal:
 .. figure:: /_static/Pseudonormal.png
-   :width: 240px
+   :width: 25%
    :align: center
 
    Edge and vertex pseudonormals.

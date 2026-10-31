@@ -1,30 +1,27 @@
 Examples/NestedBVH
 ------------------
 
-This folder shows how to build a *nested* bounding volume hierarchy (BVH): an outer,
-BVH-accelerated CSG union whose primitives are themselves BVH-backed mesh signed distance
-functions.
+This folder shows how to place one surface mesh many times, in the two ways EBGeometry offers.
 
-The mesh is loaded once into a `TriMeshSDF`, which stores the mesh triangles in its own inner
-`PackedBVH`. That single mesh SDF is then instanced at several positions -- each placement is a
-`Translate` wrapper holding a shared pointer to the *same* `TriMeshSDF` -- and the placements are
-combined with `BVHUnion`, which builds an *outer* `PackedBVH` over them. A single distance query
-therefore descends two levels of BVH: first the outer union hierarchy, to find which placement (or
-placements) is near the query point, then the mesh's own inner hierarchy, to find the nearest
-triangle. The union's value is the minimum signed distance over all placements -- negative inside
-any of them, positive outside all of them.
+**Shared, in a `Tape`.** The mesh is read once into a `TriMeshSDF`. The expression builder places it
+with `Translate(mesh, shift)`, which refers to the mesh rather than copying it, and combines the
+placements with analytic spheres in a `Union`. A `Tape` compiles the expression into the pool. With
+eight or more operands, the tape evaluates the union through a BVH over their bounding boxes, so a
+query only evaluates the objects near it. This is the way to mix a mesh with shapes of other types.
 
-The outer union stores its primitives as `std::shared_ptr<const ImplicitFunction<T>>` (the default
-`SharedPtrStorage`), so it *shares* each placement by pointer rather than copying it -- and because
-the placements all point at one `TriMeshSDF`, the inner packed BVH is built and stored just once.
-This is the recommended way to nest BVHs. See the "Storage policy" section of the
-[BVH implementation](https://rmrsk.github.io/EBGeometry/ImplemBVH.html) documentation for why the
-outer level should not use `ValueStorage` here: it would deep-copy every inner BVH, and because the
-union primitive is the polymorphic base `ImplicitFunction<T>` it cannot be stored by value at all.
+**Copied, under a nested BVH.** The mesh's triangles are read once, and each placement gets its own
+translated copy, built into its own `TriMeshSDF` with its own *inner* BVH over its triangles.
+`BVHUnion` builds an *outer* BVH over the placements. One distance query descends two levels: the
+outer hierarchy finds the placements near the point, and each of those meshes' own hierarchy finds
+the nearest triangle. A union holds primitives of one C++ type, so every placement is a `TriMeshSDF`
+with the same parameters; placing genuinely different meshes works the same way.
 
-By default the example uses the small `dodecahedron.stl` fixture shipped in the repository
-(`Tests/data/`), so it needs no submodule. Pass a different triangle mesh (STL/PLY/VTK/OBJ) on the
-command line to place copies of your own geometry instead.
+Both are shapes: negative inside any placement, positive outside all of them. Both are also plain
+values describing what they built in one `Pool`, so the whole scene, meshes included, is mirrored to
+a GPU in one piece and evaluated there.
+
+By default the example uses the small `dodecahedron.stl` in `Examples/data/`, so it needs no
+submodule. Pass a different mesh (STL/PLY/VTK/OBJ) on the command line to place your own geometry.
 
 Building
 --------
@@ -32,9 +29,9 @@ Building
 This example is standalone and can be built in three ways. Each needs the path
 to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
 is two levels up from this folder (`../..`) when building in place. See
-[Direct compilation](https://rmrsk.github.io/EBGeometry/BuildingDirectCompile.html),
-[Building with GNU Make](https://rmrsk.github.io/EBGeometry/BuildingGNUMake.html), and
-[Building with CMake](https://rmrsk.github.io/EBGeometry/BuildingCMake.html) in the user
+[Direct compilation](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingdirectcompile),
+[Building with GNU Make](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildinggnumake), and
+[Building with CMake](https://rmrsk.github.io/EBGeometry/Building.html#sec-buildingcmake) in the user
 documentation for more detail on each approach.
 
 **CMake**
@@ -58,16 +55,41 @@ This produces `./NestedBVH.ex`. Override the defaults on the command line:
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o NestedBVH.ex
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o NestedBVH.ex -pthread
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
 
+**For a GPU**
+
+The same source also builds for a GPU, and the same run then repeats its queries in a kernel and
+prints the device's values (a GPU build without a visible GPU skips that part):
+
+    make GPU=HIP HIP_ARCH=gfx90a                                  # or GPU=CUDA CUDA_ARCH=sm_80
+    cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP              # or CUDA
+    hipcc -std=c++17 -O3 -x hip --offload-arch=gfx90a -I../.. main.cpp -o NestedBVH.ex -pthread
+
+See [GPU builds](https://rmrsk.github.io/EBGeometry/Examples.html#sec-examplesgpu) in the user documentation.
+
+**With the viewer**
+
+At the end the example opens a window on the tape that places the mesh among the spheres (`EBGeometry::Render::view()`). The window needs SDL2
+(for example `libsdl2-dev`, or `brew install sdl2`) and is built only on request:
+
+    make VIEWER=SDL2
+    cmake -S . -B build -DEBGEOMETRY_VIEWER=SDL2
+
+Without it, `view()` prints a line saying how to build it and returns. Drag to orbit and scroll to zoom; the window lists its other keys. `--no-view` skips the
+window (ctest passes it), as does running without a display.
+
 Running
 -------
 
-    ./NestedBVH.ex                       # uses ../../Tests/data/dodecahedron.stl
-    ./NestedBVH.ex path/to/mesh.stl      # uses your own triangle mesh
+    ./NestedBVH.ex                       # uses ../data/dodecahedron.stl
+    ./NestedBVH.ex path/to/mesh.stl      # uses your own mesh
 
-The program prints the number of mesh copies combined and evaluates the nested union's signed
-distance at a few sample points (inside a copy, between copies, and far outside everything).
+The program prints what it built (the tape's clause count and BVH union, and the number of copies
+under the nested union), then the signed distance of both scenes at points along the first row of
+placements: through the center of a placement, then halfway to the next, and so on. The last
+section evaluates the same points through `GPU::transform()`: in a kernel in a CUDA or HIP build,
+and in a host loop otherwise.

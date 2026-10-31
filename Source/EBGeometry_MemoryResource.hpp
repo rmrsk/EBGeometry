@@ -1,0 +1,676 @@
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_MemoryResource.hpp
+ * @brief  Placement-policy layer for the GPU memory foundation: the abstract MemoryResource and
+ *         its concrete host, emulated device, device, managed, pinned and mapped implementations.
+ * @details A @ref EBGeometry::MemoryResource is a thin, runtime-virtual allocation policy: it
+ * decides @e where a block of bytes physically lives (host RAM, device memory, unified/managed
+ * memory, or page-locked host memory) without the caller knowing which. Allocation is a cold,
+ * once-per-build operation, so the virtual dispatch cost is irrelevant and the runtime-swappable
+ * placement is the whole point: the same POD scene structure (see @ref EBGeometry::Pool and
+ * @ref EBGeometry::PODVector) can be built into a host resource for a CPU query, or mirrored into a
+ * device resource for a kernel. Managed and mapped blocks are reachable from both sides: an object
+ * built directly in a managed pool reaches a kernel through @c rebasedView() onto that same pool once
+ * it is frozen, and a view of a managed or mapped pool also answers queries on the host (see
+ * @ref EBGeometry::PoolLocation).
+ *
+ * @ref EBGeometry::HostMemoryResource (plain aligned host allocation) and
+ * @ref EBGeometry::EmulatedDeviceMemoryResource (host memory standing in for device memory in a plain
+ * C++ build) are always compiled. The device-backed resources -- @ref EBGeometry::DeviceMemoryResource,
+ * @ref EBGeometry::ManagedMemoryResource, @ref EBGeometry::PinnedMemoryResource,
+ * @ref EBGeometry::MappedMemoryResource -- are compiled only when an offload backend is active
+ * (CUDA/HIP) or for documentation, behind the same guard as EBGeometry_GPURuntime.hpp, and reach
+ * the backend exclusively through the backend-neutral @ref EBGeometry::GPU alias layer.
+ * @author Robert Marskar
+ */
+
+#ifndef EBGEOMETRY_MEMORYRESOURCE_HPP
+#define EBGEOMETRY_MEMORYRESOURCE_HPP
+
+// Std includes
+#include <cstddef>
+
+// Our includes
+#include "EBGeometry_GPU.hpp"
+#include "EBGeometry_GPURuntime.hpp"
+#include "EBGeometry_Macros.hpp"
+
+namespace EBGeometry {
+
+/**
+ * @brief Block-base alignment for every @ref Pool, in bytes.
+ * @details 256 matches the @c cudaMalloc / @c hipMalloc base-address guarantee and is >= the
+ * natural alignment of every type the library stores in a pool (including the 64-byte-aligned SoA
+ * child-AABB blocks), so @c base() + (an @c alignof(T)-aligned offset) is always correctly aligned,
+ * and stays so after a grow (the new block is also 256-aligned) and after a mirror (a device base
+ * is >= 256-aligned). Defined here, in the placement layer, so both @ref Pool and the device
+ * @ref MemoryResource allocators reference a single source of truth.
+ */
+inline constexpr size_t PoolBaseAlign = 256;
+
+/**
+ * @brief Abstract placement policy: allocates and frees raw, correctly-aligned byte blocks.
+ * @details Runtime-virtual so that placement (host/device/managed/pinned) is a runtime choice.
+ * Allocation and deallocation are host-only operations -- memory is never obtained from device
+ * code. The @c (bytes, alignment) pair is passed back to @ref deallocate (the @c std::pmr
+ * convention), so a resource built on @c std::aligned_alloc / @c free needs no size bookkeeping.
+ *
+ * The type is deliberately non-copyable: a resource's identity matters (two pools over the same
+ * resource share a placement), and copying an allocator has no meaning.
+ *
+ * @note This is one of the two deliberately non-trivial types of the memory foundation (it owns a
+ * vtable); everything stored @e inside a @ref Pool is trivially copyable POD, but the resource and
+ * the pool themselves are not, so no @c std::is_trivially_copyable_v static_assert applies here.
+ */
+class MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  MemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  virtual ~MemoryResource() = default;
+
+  /**
+   * @brief Copy constructor. Deleted: a resource's identity is meaningful and non-copyable.
+   */
+  MemoryResource(const MemoryResource&) = delete;
+
+  /**
+   * @brief Copy assignment. Deleted: a resource's identity is meaningful and non-copyable.
+   */
+  MemoryResource&
+  operator=(const MemoryResource&) = delete;
+
+  /**
+   * @brief Obtain a block of at least @p a_bytes bytes, aligned to @p a_alignment.
+   * @details Never returns null (a zero-byte request gets a block too); on failure the implementation aborts
+   * (@c EBGEOMETRY_REQUIRE for host memory, @c EBGEOMETRY_GPU_CHECK for memory from the GPU runtime),
+   * matching the library's no-exceptions convention.
+   * @param[in] a_bytes     Number of bytes to allocate (may be zero).
+   * @param[in] a_alignment Required alignment in bytes. Must be a power of two.
+   * @return Pointer to the allocated block.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  virtual void*
+  allocate(size_t a_bytes, size_t a_alignment) = 0;
+
+  /**
+   * @brief Release a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Pointer previously returned by @ref allocate (null is a no-op).
+   * @param[in] a_bytes     The same byte count passed to the matching @ref allocate call.
+   * @param[in] a_alignment The same alignment passed to the matching @ref allocate call.
+   */
+  EBGEOMETRY_HOST
+  virtual void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept = 0;
+
+  /**
+   * @brief Whether a plain host pointer dereference / @c std::memcpy is valid on returned blocks.
+   * @return True if returned blocks are host-accessible.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  virtual bool
+  isHostAccessible() const noexcept = 0;
+
+  /**
+   * @brief Whether a device kernel may dereference returned blocks.
+   * @return True if returned blocks are device-accessible.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  virtual bool
+  isDeviceAccessible() const noexcept = 0;
+
+  /**
+   * @brief Copy a block between memory from two resources, one of which is this one.
+   * @details Pool::mirror calls this on whichever of its two resources is not host-accessible (or on
+   * the destination's, if both are). This implementation copies between host-accessible blocks and
+   * aborts for any other pair. The device resources override it with the GPU runtime's copy. That
+   * keeps every backend-specific call inside classes that exist only in translation units compiled
+   * with a GPU backend, so Pool::mirror compiles to the same code in every translation unit.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
+  EBGEOMETRY_HOST
+  virtual void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept;
+};
+
+/**
+ * @brief Host memory resource: plain aligned allocation in host RAM (@c std::aligned_alloc /
+ * @c free family).
+ * @details Always compiled, on every backend. Blocks are host-accessible and not device-accessible.
+ */
+class HostMemoryResource final : public MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  HostMemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  ~HostMemoryResource() override = default;
+
+  /**
+   * @brief Allocate an aligned block of host memory.
+   * @param[in] a_bytes     Number of bytes to allocate.
+   * @param[in] a_alignment Required alignment in bytes (power of two).
+   * @return Pointer to the allocated host block (never null on success).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override;
+
+  /**
+   * @brief Free a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Pointer to free (null is a no-op).
+   * @param[in] a_bytes     Unused (host free needs no size).
+   * @param[in] a_alignment Unused (host free needs no alignment).
+   */
+  EBGEOMETRY_HOST
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
+
+  /**
+   * @brief Host blocks are host-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief Host blocks are not device-accessible.
+   * @return Always false.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return false;
+  }
+};
+
+/**
+ * @brief Process-wide default host memory resource.
+ * @details Returns a reference to a @ref HostMemoryResource created on first use and never
+ * destroyed, so a Pool with static storage can still free its block at program exit.
+ * @return Reference to the shared host resource.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+HostMemoryResource&
+hostMemoryResource() noexcept;
+
+/**
+ * @brief Host memory that stands in for device memory: host RAM that reports itself device-accessible.
+ * @details Always compiled, on every backend. A pool mirrored into it is a host copy, but a
+ * rebasedView() onto that copy takes the device-view path (a snapshot of the location, no control
+ * block), exactly as it would onto a mirror in device memory. Code that mirrors, rebases and runs a
+ * query through GPU::transform() therefore runs unchanged in a plain C++ build, where GPU::transform()
+ * is a host loop. Use it through GPU::memoryResource(), which picks device memory in a CUDA or HIP
+ * build and this resource otherwise. Never hand memory from it to a real kernel: it is host memory.
+ */
+class EmulatedDeviceMemoryResource final : public MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  EmulatedDeviceMemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  ~EmulatedDeviceMemoryResource() override = default;
+
+  /**
+   * @brief Allocate an aligned block of host memory.
+   * @param[in] a_bytes     Number of bytes to allocate.
+   * @param[in] a_alignment Required alignment in bytes (power of two).
+   * @return Pointer to the allocated host block (never null on success).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override;
+
+  /**
+   * @brief Free a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Pointer to free (null is a no-op).
+   * @param[in] a_bytes     Size passed to @ref allocate.
+   * @param[in] a_alignment Alignment passed to @ref allocate.
+   */
+  EBGEOMETRY_HOST
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
+
+  /**
+   * @brief The blocks are host memory.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief The blocks report themselves device-accessible, which is what makes them stand in for
+   * device memory.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+};
+
+/**
+ * @brief Process-wide emulated device memory resource.
+ * @details Created on first use and never destroyed, for the reason given in hostMemoryResource().
+ * @return Reference to the shared emulated device resource.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+EmulatedDeviceMemoryResource&
+emulatedDeviceMemoryResource() noexcept;
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) || defined(EBGEOMETRY_DOXYGEN)
+
+/**
+ * @brief Device memory resource: raw device allocation (@c GPU::memAlloc / @c GPU::memFree).
+ * @details Compiled only under an offload backend (CUDA/HIP) or for documentation. Blocks are
+ * device-accessible and not host-accessible: a host pointer dereference of a returned block is
+ * undefined. The backend allocator already returns a base aligned to at least
+ * @ref EBGeometry::PoolBaseAlign, so the requested alignment is only validated, not enforced.
+ */
+class DeviceMemoryResource final : public MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  DeviceMemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  ~DeviceMemoryResource() override = default;
+
+  /**
+   * @brief Allocate a block of device memory.
+   * @param[in] a_bytes     Number of bytes to allocate.
+   * @param[in] a_alignment Required alignment (validated to be <= @ref PoolBaseAlign; the backend
+   *                        base already satisfies it).
+   * @return Device pointer to the allocated block (never null on success; aborts on failure).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override;
+
+  /**
+   * @brief Free a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Device pointer to free (null is a no-op).
+   * @param[in] a_bytes     Unused.
+   * @param[in] a_alignment Unused.
+   */
+  EBGEOMETRY_HOST
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
+
+  /**
+   * @brief Device blocks are not host-accessible.
+   * @return Always false.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return false;
+  }
+
+  /**
+   * @brief Device blocks are device-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief Copy between host and device memory with the GPU runtime; see MemoryResource::copy.
+   * @details Host-to-host is a plain copy; device-to-device aborts, in every build.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
+};
+
+/**
+ * @brief Managed (unified) memory resource: one allocation reachable from host and device
+ *        (@c GPU::memAllocManaged / @c GPU::memFree).
+ * @details Compiled only under an offload backend (CUDA/HIP) or for documentation. Blocks are both
+ * host- and device-accessible: the same base pointer can be dereferenced by the CPU and passed to
+ * a kernel, at the cost of driver-managed page migration.
+ */
+class ManagedMemoryResource final : public MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  ManagedMemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  ~ManagedMemoryResource() override = default;
+
+  /**
+   * @brief Allocate a block of managed (unified) memory.
+   * @param[in] a_bytes     Number of bytes to allocate.
+   * @param[in] a_alignment Required alignment (validated to be <= @ref PoolBaseAlign).
+   * @return Managed pointer to the allocated block (never null on success; aborts on failure).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override;
+
+  /**
+   * @brief Free a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Managed pointer to free (null is a no-op).
+   * @param[in] a_bytes     Unused.
+   * @param[in] a_alignment Unused.
+   */
+  EBGEOMETRY_HOST
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
+
+  /**
+   * @brief Managed blocks are host-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief Managed blocks are device-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief Copy between host and device memory with the GPU runtime; see MemoryResource::copy.
+   * @details Host-to-host is a plain copy; device-to-device aborts, in every build.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
+};
+
+/**
+ * @brief Pinned (page-locked) host memory resource: fast host-to-device staging
+ *        (@c GPU::memAllocHost / @c GPU::memFreeHost).
+ * @details Compiled only under an offload backend (CUDA/HIP) or for documentation. Blocks are
+ * host-accessible and not device-accessible; being page-locked, they support faster and
+ * asynchronous transfers to a device than ordinary pageable host memory.
+ */
+class PinnedMemoryResource final : public MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  PinnedMemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  ~PinnedMemoryResource() override = default;
+
+  /**
+   * @brief Allocate a block of page-locked host memory.
+   * @param[in] a_bytes     Number of bytes to allocate.
+   * @param[in] a_alignment Required alignment (validated to be <= @ref PoolBaseAlign).
+   * @return Host pointer to the pinned block (never null on success; aborts on failure).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override;
+
+  /**
+   * @brief Free a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Host pointer to free (null is a no-op).
+   * @param[in] a_bytes     Unused.
+   * @param[in] a_alignment Unused.
+   */
+  EBGEOMETRY_HOST
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
+
+  /**
+   * @brief Pinned blocks are host-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief Pinned blocks are not device-accessible.
+   * @return Always false.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return false;
+  }
+
+  /**
+   * @brief Copy between host and device memory with the GPU runtime; see MemoryResource::copy.
+   * @details Host-to-host is a plain copy; device-to-device aborts, in every build.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
+};
+
+/**
+ * @brief Mapped (zero-copy) pinned host memory resource: page-locked host memory also mapped into
+ *        the device address space (@c GPU::memAllocHostMapped / @c GPU::memFreeHost).
+ * @details Compiled only under an offload backend (CUDA/HIP) or for documentation. Blocks are both
+ * host- and device-accessible: the same base pointer is dereferenced by the CPU and by a kernel,
+ * which reaches it over the host/device interconnect on each access. Unlike @ref
+ * ManagedMemoryResource there is @e no page migration -- the block stays in host RAM and the device
+ * reads it in place, which suits small or write-once/streamed data rather than hot, reused data.
+ * Requires unified virtual addressing (all 64-bit CUDA; HIP under HSA) so the host pointer is
+ * directly valid on the device.
+ */
+class MappedMemoryResource final : public MemoryResource
+{
+public:
+  /**
+   * @brief Default constructor.
+   */
+  MappedMemoryResource() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  ~MappedMemoryResource() override = default;
+
+  /**
+   * @brief Allocate a block of mapped (zero-copy) pinned host memory.
+   * @param[in] a_bytes     Number of bytes to allocate.
+   * @param[in] a_alignment Required alignment (validated to be <= @ref PoolBaseAlign).
+   * @return Host pointer to the mapped block (never null on success; aborts on failure).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override;
+
+  /**
+   * @brief Free a block previously returned by @ref allocate.
+   * @param[in] a_ptr       Host pointer to free (null is a no-op).
+   * @param[in] a_bytes     Unused.
+   * @param[in] a_alignment Unused.
+   */
+  EBGEOMETRY_HOST
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override;
+
+  /**
+   * @brief Mapped blocks are host-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief Mapped blocks are device-accessible.
+   * @return Always true.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+
+  /**
+   * @brief Copy between host and device memory with the GPU runtime; see MemoryResource::copy.
+   * @details Host-to-host is a plain copy; device-to-device aborts, in every build.
+   * @param[out] a_dst         Destination block.
+   * @param[in]  a_dstResource Resource that allocated a_dst.
+   * @param[in]  a_src         Source block.
+   * @param[in]  a_srcResource Resource that allocated a_src.
+   * @param[in]  a_bytes       Number of bytes to copy.
+   */
+  EBGEOMETRY_HOST
+  void
+  copy(void*                 a_dst,
+       const MemoryResource& a_dstResource,
+       const void*           a_src,
+       const MemoryResource& a_srcResource,
+       size_t                a_bytes) const noexcept override;
+};
+
+/**
+ * @brief Process-wide default device memory resource.
+ * @details Returns a reference to a @ref DeviceMemoryResource created on first use and never destroyed,
+ * so a Pool with static storage can still free its block at program exit. A free that fails because
+ * the GPU runtime has already shut down (GPU::isShutdownError()) is not an error.
+ * @return Reference to the shared device resource.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+DeviceMemoryResource&
+deviceMemoryResource() noexcept;
+
+/**
+ * @brief Process-wide default managed (unified) memory resource.
+ * @details Returns a reference to a @ref ManagedMemoryResource created on first use and never destroyed,
+ * so a Pool with static storage can still free its block at program exit. A free that fails because
+ * the GPU runtime has already shut down (GPU::isShutdownError()) is not an error.
+ * @return Reference to the shared managed resource.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+ManagedMemoryResource&
+managedMemoryResource() noexcept;
+
+/**
+ * @brief Process-wide default pinned (page-locked) host memory resource.
+ * @details Returns a reference to a @ref PinnedMemoryResource created on first use and never destroyed,
+ * so a Pool with static storage can still free its block at program exit. A free that fails because
+ * the GPU runtime has already shut down (GPU::isShutdownError()) is not an error.
+ * @return Reference to the shared pinned resource.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+PinnedMemoryResource&
+pinnedMemoryResource() noexcept;
+
+/**
+ * @brief Process-wide default mapped (zero-copy) pinned host memory resource.
+ * @details Returns a reference to a @ref MappedMemoryResource created on first use and never destroyed,
+ * so a Pool with static storage can still free its block at program exit. A free that fails because
+ * the GPU runtime has already shut down (GPU::isShutdownError()) is not an error.
+ * @return Reference to the shared mapped resource.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+MappedMemoryResource&
+mappedMemoryResource() noexcept;
+
+#endif // EBGEOMETRY_CUDA || EBGEOMETRY_HIP || EBGEOMETRY_DOXYGEN
+
+} // namespace EBGeometry
+
+#include "EBGeometry_MemoryResourceImplem.hpp"
+
+#endif // EBGEOMETRY_MEMORYRESOURCE_HPP

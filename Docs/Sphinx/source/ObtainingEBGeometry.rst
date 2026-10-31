@@ -34,8 +34,8 @@ directory (each example is run from its own source folder), for example:
 
    ./a.out ../../common-3d-test-models/data/armadillo.obj
 
-Running an example with no argument falls back to a default mesh from the submodule, so
-the submodule must be checked out for the examples to run.
+Run with no argument, such an example falls back to a default mesh from the submodule, so
+the submodule must be checked out for it to run (see :ref:`Chap:Examples` for which examples read one).
 
 .. note::
 

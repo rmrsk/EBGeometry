@@ -12,6 +12,7 @@
 #define EBGEOMETRY_PARSERIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -27,13 +28,14 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Parser.hpp"
 #include "EBGeometry_Soup.hpp"
 
 namespace EBGeometry {
 
 inline Parser::FileType
-Parser::getFileType(const std::string& a_filename) noexcept
+Parser::getFileType(const std::string& a_filename)
 {
   auto ft = Parser::FileType::Unsupported;
 
@@ -56,7 +58,7 @@ Parser::getFileType(const std::string& a_filename) noexcept
 }
 
 inline static Parser::Encoding
-Parser::getFileEncoding(const std::string& a_filename) noexcept
+Parser::getFileEncoding(const std::string& a_filename)
 {
   Parser::Encoding encoding = Parser::Encoding::Unknown;
 
@@ -81,9 +83,6 @@ Parser::getFileEncoding(const std::string& a_filename) noexcept
       else {
         encoding = Parser::Encoding::Binary;
       }
-    }
-    else {
-      std::cerr << "Parser::getFileEncoding -- could not open file '" + a_filename + "'\n";
     }
 
     break;
@@ -114,9 +113,6 @@ Parser::getFileEncoding(const std::string& a_filename) noexcept
         encoding = Parser::Encoding::Binary;
       }
     }
-    else {
-      std::cerr << "Parser::getFileEncoding -- could not open file '" + a_filename + "'\n";
-    }
 
     break;
   }
@@ -143,9 +139,6 @@ Parser::getFileEncoding(const std::string& a_filename) noexcept
         encoding = Parser::Encoding::Binary;
       }
     }
-    else {
-      std::cerr << "Parser::getFileEncoding -- could not open file '" + a_filename + "'\n";
-    }
 
     break;
   }
@@ -156,8 +149,6 @@ Parser::getFileEncoding(const std::string& a_filename) noexcept
     break;
   }
   default: {
-    std::cerr << "Parser::getFileEncoding - file type unsupported for '" + a_filename + "'\n";
-
     break;
   }
   }
@@ -165,218 +156,324 @@ Parser::getFileEncoding(const std::string& a_filename) noexcept
   return encoding;
 }
 
+namespace ParserDetail {
+
+/**
+ * @brief Open a file for reading, or throw.
+ * @param[in] a_filename File to open.
+ * @param[in] a_mode     Open mode.
+ * @return The open stream.
+ * @throws Parser::ParseError if the file cannot be opened.
+ */
+inline std::ifstream
+open(const std::string& a_filename, const std::ios::openmode a_mode = std::ios::in)
+{
+  std::ifstream stream(a_filename, a_mode);
+
+  if (!stream.is_open()) {
+    throw Parser::ParseError(a_filename, 0, "cannot open the file");
+  }
+
+  return stream;
+}
+
+/**
+ * @brief Throw for a file whose encoding could not be determined.
+ * @param[in] a_filename File being read.
+ * @throws Parser::ParseError always.
+ */
+[[noreturn]] inline void
+unknownEncoding(const std::string& a_filename)
+{
+  throw Parser::ParseError(a_filename, 0, "cannot determine whether the file is ASCII or binary");
+}
+
+/**
+ * @brief Parse a non-negative count from a header token, or throw.
+ * @param[in] a_token    Token to parse.
+ * @param[in] a_filename File being read.
+ * @param[in] a_line     Line the token is on.
+ * @param[in] a_what     What the count counts, for the message.
+ * @return The count.
+ * @throws Parser::ParseError if the token is not a non-negative integer.
+ */
+inline size_t
+parseCount(const std::string& a_token, const std::string& a_filename, const size_t a_line, const char* a_what)
+{
+  size_t count    = 0;
+  size_t consumed = 0;
+
+  try {
+    count = std::stoull(a_token, &consumed);
+  } catch (const std::logic_error&) {
+    consumed = 0;
+  }
+
+  if (a_token.empty() || consumed != a_token.size() || a_token[0] == '-') {
+    throw Parser::ParseError(
+      a_filename, a_line, std::string("the ") + a_what + " count '" + a_token + "' is not a number");
+  }
+
+  return count;
+}
+
+/**
+ * @brief How many elements to reserve for a count read from a file header.
+ * @details A corrupted header can declare any count; reserving it outright could throw
+ * std::bad_alloc before the reader notices the file is too short. Reserving at most about a million
+ * elements keeps the common case fast, and larger meshes simply grow.
+ * @param[in] a_declared Count declared by the file.
+ * @return The number of elements to reserve.
+ */
+inline size_t
+reserveHint(const size_t a_declared) noexcept
+{
+  return Math::min(a_declared, size_t(1) << 20);
+}
+
+/**
+ * @brief Assemble what a reader read into a clean PolygonSoup.
+ * @details A property with the wrong number of values (a VTK file whose CELL_DATA also covers lines
+ * or vertices, say) cannot be aligned with the faces or vertices, and is dropped with a warning.
+ * @tparam T Floating-point precision.
+ * @param[in] a_filename         File read, the soup's identifier.
+ * @param[in] a_vertices         Vertex coordinates, as read.
+ * @param[in] a_facets           Faces, as read.
+ * @param[in] a_vertexProperties Per-vertex properties, as read.
+ * @param[in] a_faceProperties   Per-face properties, as read.
+ * @return The soup, cleaned (see PolygonSoup::clean()).
+ * @throws Parser::ParseError if the soup fails Soup::isValid().
+ */
 template <typename T>
-[[nodiscard]] STL<T>
+PolygonSoup<T>
+makeSoup(const std::string&                    a_filename,
+         std::vector<Vec3T<T>>                 a_vertices,
+         std::vector<std::vector<size_t>>      a_facets,
+         std::map<std::string, std::vector<T>> a_vertexProperties,
+         std::map<std::string, std::vector<T>> a_faceProperties)
+{
+  PolygonSoup<T> soup(a_filename, std::move(a_vertices), std::move(a_facets));
+
+  for (auto& property : a_vertexProperties) {
+    if (property.second.size() == soup.numVertices()) {
+      soup.setVertexProperty(property.first, std::move(property.second));
+    }
+    else {
+      std::cerr << "Parser - warning: '" << a_filename << "': skipping vertex property '" << property.first
+                << "', which has " << property.second.size() << " values for " << soup.numVertices() << " vertices\n";
+    }
+  }
+
+  for (auto& property : a_faceProperties) {
+    if (property.second.size() == soup.numFacets()) {
+      soup.setFaceProperty(property.first, std::move(property.second));
+    }
+    else {
+      std::cerr << "Parser - warning: '" << a_filename << "': skipping face property '" << property.first
+                << "', which has " << property.second.size() << " values for " << soup.numFacets() << " faces\n";
+    }
+  }
+
+  const size_t numRemoved = soup.clean();
+
+  if (numRemoved > 0) {
+    std::cerr << "Parser - removed " << numRemoved << " degenerate (zero-area) faces from '" << a_filename
+              << "', merging T-junction fillers into their neighbors\n";
+  }
+
+  return soup;
+}
+
+} // namespace ParserDetail
+
+template <typename T>
+[[nodiscard]] PolygonSoup<T>
 Parser::readSTL(const std::string& a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
-  STL<T> stl(a_filename);
 
-  // Storage for vertices and facets from the STL object. Note that we do not care about the triangle normals when
-  // reading the file since they are always recalculated within EBGeometry.
-  std::vector<Vec3T<T>>&            vertices = stl.getVertexCoordinates();
-  std::vector<std::vector<size_t>>& facets   = stl.getFacets();
-
-  vertices.resize(0);
-  facets.resize(0);
+  // Storage for vertices and facets. Note that we do not care about the triangle normals when reading the file
+  // since they are always recalculated within EBGeometry.
+  std::vector<Vec3T<T>>            vertices;
+  std::vector<std::vector<size_t>> facets;
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
 
   switch (encoding) {
   case Parser::Encoding::ASCII: {
+    std::ifstream filestream = ParserDetail::open(a_filename);
 
-    std::vector<std::string> fileContents;
+    // One pass over the lines: a 'facet' line starts a new facet, 'vertex' lines add to the current
+    // facet, and 'endsolid' ends the solid. Blank lines, 'outer loop'/'endloop'/'endfacet', and
+    // anything before 'solid' are ignored. Only the first solid in the file is read. A file that ends
+    // before 'endsolid' is rejected: it is almost certainly truncated, and a partial mesh would give
+    // wrong signs silently.
+    bool        inSolid    = false;
+    bool        inFacet    = false;
+    bool        complete   = false;
+    size_t      lineNumber = 0;
+    std::string line;
 
-    size_t curLine    = 0;
-    size_t solidBegin = -1;
-    size_t solidEnd   = -1;
+    while (std::getline(filestream, line)) {
+      lineNumber++;
 
-    std::ifstream     filestream(a_filename);
-    std::stringstream ss;
-    std::string       str;
-    std::string       line;
+      std::stringstream sstream(line);
+      std::string       keyword;
 
-    if (filestream.is_open()) {
+      sstream >> keyword;
 
-      // Figure out where to begin reading and where to stop reading
-      while (std::getline(filestream, line)) {
-        fileContents.emplace_back(line);
-
-        std::string       str;
-        std::stringstream sstream(line);
-        sstream >> str;
-
-        if (str == "solid") {
-          solidBegin = curLine;
-        }
-        else if (str == "endsolid") {
-          solidEnd = curLine;
-
-          break;
-        }
-
-        curLine++;
+      if (keyword == "solid") {
+        inSolid = true;
       }
+      else if (!inSolid) {
+        continue;
+      }
+      else if (keyword == "endsolid") {
+        complete = true;
 
-      for (size_t line = solidBegin + 1; line < solidEnd; line++) {
-        ss = std::stringstream(fileContents[line]);
-
-        ss >> str;
-
-        if (str == "facet") {
-          facets.emplace_back();
-        }
-        else if (str == "vertex") {
-          T x;
-          T y;
-          T z;
-
-          ss >> x >> y >> z;
-
-          vertices.emplace_back(Vec3T<T>(x, y, z));
-          facets.back().emplace_back(vertices.size() - 1);
+        break;
+      }
+      else if (keyword == "facet") {
+        if (inFacet) {
+          throw ParseError(a_filename, lineNumber, "a facet starts before the previous one has ended");
         }
 
-        if (facets.back().size() > 100) {
-          std::cerr << "EBGeometry::readSTL (ASCII) -- unbounded facet detected in file '" + a_filename + "'\n";
+        facets.emplace_back();
 
-          break;
+        inFacet = true;
+      }
+      else if (keyword == "endfacet") {
+        // A facet with more vertices is usually the sign of a damaged 'endfacet' line, after which the
+        // next facet's vertices were read into this one.
+        if (!inFacet || facets.back().size() != 3) {
+          throw ParseError(a_filename,
+                           lineNumber,
+                           "the facet ending here has " + std::to_string(inFacet ? facets.back().size() : 0) +
+                             " vertices; an STL facet has exactly 3");
         }
+
+        inFacet = false;
+      }
+      else if (keyword == "vertex" && inFacet) {
+        T x;
+        T y;
+        T z;
+
+        sstream >> x >> y >> z;
+
+        if (sstream.fail()) {
+          throw ParseError(a_filename, lineNumber, "malformed vertex line '" + line + "'");
+        }
+
+        vertices.emplace_back(Vec3T<T>(x, y, z));
+        facets.back().emplace_back(vertices.size() - 1);
       }
     }
-    else {
-      std::cerr << "Parser::readSTL -- Error! Could not open ASCII file " + a_filename + "\n";
+
+    if (!complete && !facets.empty()) {
+      throw ParseError(a_filename, lineNumber, "the file ends without 'endsolid'; it is probably truncated");
     }
 
     break;
   }
   case Parser::Encoding::Binary: {
-    std::ifstream fstream(a_filename);
+    std::ifstream fstream = ParserDetail::open(a_filename, std::ios::in | std::ios::binary);
 
-    if (fstream.is_open()) {
+    // An 80-byte header, a uint32 triangle count, then 50 bytes per triangle: a normal and three
+    // vertices (12 float32 values) followed by a 2-byte "attribute byte count". The standard says the
+    // attribute is zero, but some exporters store a color in it; it carries no geometry and is
+    // ignored. The normal is recomputed from the vertices.
+    fstream.seekg(0, std::ios::end);
 
-      // Read STL header and discard that info rightaway.
-      char header[80];
-      fstream.read(header, 80);
+    const std::streamoff fileSize = fstream.tellg();
 
-      // Read the number of triangles
-      char tmp[4];
-      fstream.read(tmp, 4);
-      uint32_t numTriangles;
-      memcpy(&numTriangles, &tmp, 4);
+    fstream.seekg(0, std::ios::beg);
 
-      using VertexList = std::vector<Vec3T<T>>;
-      using FacetList  = std::vector<std::vector<size_t>>;
+    char header[80];
+    char countBytes[4];
 
-      std::map<uint16_t, std::pair<VertexList, FacetList>> verticesAndFacets;
+    fstream.read(header, 80);
+    fstream.read(countBytes, 4);
 
-      // Read triangles into raw vertices and facets.
-      char normal[12];
-      char v1[12];
-      char v2[12];
-      char v3[12];
-      char att[2];
+    if (!fstream) {
+      throw ParseError(a_filename, 0, "the binary file is too short to hold an STL header");
+    }
 
-      float x;
-      float y;
-      float z;
+    uint32_t numTriangles;
+    std::memcpy(&numTriangles, countBytes, 4);
 
-      uint16_t id;
+    const std::streamoff expectedSize = 84 + 50 * static_cast<std::streamoff>(numTriangles);
 
-      for (size_t i = 0; i < numTriangles; i++) {
-        fstream.read(normal, 12);
-        fstream.read(v1, 12);
-        fstream.read(v2, 12);
-        fstream.read(v3, 12);
-        fstream.read(att, 2);
+    if (fileSize < expectedSize) {
+      throw ParseError(a_filename,
+                       0,
+                       "the binary file declares " + std::to_string(numTriangles) + " triangles but is truncated (" +
+                         std::to_string(fileSize) + " bytes, expected " + std::to_string(expectedSize) + ")");
+    }
 
-        char* ptr = nullptr;
+    vertices.reserve(3 * static_cast<size_t>(numTriangles));
+    facets.reserve(numTriangles);
 
-        Vec3T<T> v[3];
+    char record[50];
 
-        ptr = v1;
-        memcpy(&x, ptr, 4);
-        ptr += 4;
-        memcpy(&y, ptr, 4);
-        ptr += 4;
-        memcpy(&z, ptr, 4);
-        v[0] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
+    for (uint32_t i = 0; i < numTriangles; i++) {
+      fstream.read(record, 50);
 
-        ptr = v2;
-        memcpy(&x, ptr, 4);
-        ptr += 4;
-        memcpy(&y, ptr, 4);
-        ptr += 4;
-        memcpy(&z, ptr, 4);
-        v[1] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
+      std::vector<size_t> facet;
 
-        ptr = v3;
-        memcpy(&x, ptr, 4);
-        ptr += 4;
-        memcpy(&y, ptr, 4);
-        ptr += 4;
-        memcpy(&z, ptr, 4);
-        v[2] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
+      for (int v = 0; v < 3; v++) {
+        float xyz[3];
 
-        memcpy(&id, &att, 2);
+        std::memcpy(xyz, record + 12 * (v + 1), 12);
 
-        if (verticesAndFacets.find(id) == verticesAndFacets.end()) {
-          verticesAndFacets.emplace(id, std::make_pair(VertexList(), FacetList()));
-        }
-
-        auto& objectVertices = verticesAndFacets.at(id).first;
-        auto& objectFacets   = verticesAndFacets.at(id).second;
-
-        // Insert a new facet.
-        std::vector<size_t> curFacet;
-        for (auto& j : v) {
-          objectVertices.emplace_back(j);
-          curFacet.emplace_back(objectVertices.size() - 1);
-        }
-
-        objectFacets.emplace_back(curFacet);
+        vertices.emplace_back(Vec3T<T>(static_cast<T>(xyz[0]), static_cast<T>(xyz[1]), static_cast<T>(xyz[2])));
+        facet.emplace_back(vertices.size() - 1);
       }
 
-      vertices = verticesAndFacets.begin()->second.first;
-      facets   = verticesAndFacets.begin()->second.second;
+      facets.emplace_back(std::move(facet));
     }
-    else {
-      std::cerr << "Parser::readSTL -- Error! Could not open binary file " + a_filename + "\n";
+
+    if (!fstream) {
+      throw ParseError(a_filename, 0, "cannot read the binary file");
     }
 
     break;
   }
   default: {
-    std::cerr << "Parser::readSTL(std::string) -- logic bust. Unknown encoding\n";
-
-    break;
+    // Either the file does not exist or its first bytes were unreadable.
+    ParserDetail::open(a_filename, std::ios::in | std::ios::binary);
+    ParserDetail::unknownEncoding(a_filename);
   }
   }
 
-  return stl;
+  return ParserDetail::makeSoup<T>(a_filename, std::move(vertices), std::move(facets), {}, {});
 }
 
 template <typename T>
-[[nodiscard]] std::vector<STL<T>>
+[[nodiscard]] std::vector<PolygonSoup<T>>
 Parser::readSTL(const std::vector<std::string>& a_filenames)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
-  std::vector<STL<T>> stl;
+  std::vector<PolygonSoup<T>> soups;
 
-  stl.reserve(a_filenames.size());
+  soups.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
-    stl.emplace_back(Parser::readSTL<T>(f));
+    soups.emplace_back(Parser::readSTL<T>(f));
   }
 
-  return stl;
+  return soups;
 }
 
 template <typename T>
-[[nodiscard]] PLY<T>
+[[nodiscard]] PolygonSoup<T>
 Parser::readPLY(const std::string& a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
-  PLY<T> ply(a_filename);
+
+  std::vector<Vec3T<T>>                 vertices;
+  std::vector<std::vector<size_t>>      facets;
+  std::map<std::string, std::vector<T>> vertexProperties;
+  std::map<std::string, std::vector<T>> faceProperties;
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
 
@@ -387,6 +484,7 @@ Parser::readPLY(const std::string& a_filename)
     if (filestream.is_open()) {
       std::string line;
       std::string str1, str2, str3;
+      size_t      lineNumber = 0;
 
       // Storage for header information
       size_t numVertices = 0;
@@ -403,6 +501,8 @@ Parser::readPLY(const std::string& a_filename)
 
       // Parse header
       while (std::getline(filestream, line)) {
+        lineNumber++;
+
         std::stringstream sstream(line);
         sstream >> str1;
 
@@ -410,12 +510,12 @@ Parser::readPLY(const std::string& a_filename)
           sstream >> str2 >> str3;
 
           if (str2 == "vertex") {
-            numVertices             = std::stoull(str3);
+            numVertices             = ParserDetail::parseCount(str3, a_filename, lineNumber, "vertex");
             readingVertexProperties = true;
             readingFaceProperties   = false;
           }
           else if (str2 == "face") {
-            numFaces                = std::stoull(str3);
+            numFaces                = ParserDetail::parseCount(str3, a_filename, lineNumber, "face");
             readingVertexProperties = false;
             readingFaceProperties   = true;
           }
@@ -460,17 +560,13 @@ Parser::readPLY(const std::string& a_filename)
         }
       }
 
-      // Get references to the PLY data members
-      std::vector<Vec3T<T>>&            vertices = ply.getVertexCoordinates();
-      std::vector<std::vector<size_t>>& facets   = ply.getFacets();
-
       // Initialize property storage
       std::map<std::string, std::vector<T>> vertexProps;
       std::map<std::string, std::vector<T>> faceProps;
 
       for (const auto& propName : vertexPropertyNames) {
         vertexProps[propName] = std::vector<T>();
-        vertexProps[propName].reserve(numVertices);
+        vertexProps[propName].reserve(ParserDetail::reserveHint(numVertices));
       }
 
       for (const auto& propName : facePropertyNames) {
@@ -484,12 +580,12 @@ Parser::readPLY(const std::string& a_filename)
         }
         if (!isList) {
           faceProps[propName] = std::vector<T>();
-          faceProps[propName].reserve(numFaces);
+          faceProps[propName].reserve(ParserDetail::reserveHint(numFaces));
         }
       }
 
-      vertices.reserve(numVertices);
-      facets.reserve(numFaces);
+      vertices.reserve(ParserDetail::reserveHint(numVertices));
+      facets.reserve(ParserDetail::reserveHint(numFaces));
 
       // Find indices of x, y, z properties
       int xIndex = -1, yIndex = -1, zIndex = -1;
@@ -505,9 +601,14 @@ Parser::readPLY(const std::string& a_filename)
         }
       }
 
+      // A record that is missing or cannot be parsed means a truncated or corrupted file.
+      bool malformed = false;
+
       // Read vertex data
-      for (size_t v = 0; v < numVertices; v++) {
+      for (size_t v = 0; v < numVertices && !malformed; v++) {
         std::getline(filestream, line);
+        lineNumber++;
+
         std::stringstream sstream(line);
 
         T              x = 0, y = 0, z = 0;
@@ -529,6 +630,8 @@ Parser::readPLY(const std::string& a_filename)
           }
         }
 
+        malformed = malformed || !filestream || sstream.fail();
+
         vertices.emplace_back(Vec3T<T>(x, y, z));
 
         // Store all vertex properties
@@ -538,8 +641,10 @@ Parser::readPLY(const std::string& a_filename)
       }
 
       // Read face data
-      for (size_t f = 0; f < numFaces; f++) {
+      for (size_t f = 0; f < numFaces && !malformed; f++) {
         std::getline(filestream, line);
+        lineNumber++;
+
         std::stringstream sstream(line);
 
         std::vector<T>      scalarPropValues;
@@ -548,8 +653,15 @@ Parser::readPLY(const std::string& a_filename)
         for (size_t i = 0; i < facePropertyNames.size(); i++) {
           if (facePropertyTypes[i] == "list") {
             // Read list property (typically vertex_indices or similar)
-            size_t numIndices;
+            size_t numIndices = 0;
             sstream >> numIndices;
+
+            // A face cannot have more corners than the file has vertices.
+            if (sstream.fail() || numIndices > numVertices) {
+              malformed = true;
+
+              break;
+            }
 
             faceIndices.resize(numIndices);
             for (size_t j = 0; j < numIndices; j++) {
@@ -564,6 +676,12 @@ Parser::readPLY(const std::string& a_filename)
           }
         }
 
+        malformed = malformed || !filestream || sstream.fail();
+
+        if (malformed) {
+          break;
+        }
+
         facets.emplace_back(faceIndices);
 
         // Store scalar face properties
@@ -576,23 +694,31 @@ Parser::readPLY(const std::string& a_filename)
         }
       }
 
-      // Copy properties to PLY object using the setter methods, skipping x/y/z coordinates
+      if (malformed) {
+        throw ParseError(a_filename,
+                         lineNumber,
+                         "the file is truncated or corrupted: the header declares " + std::to_string(numVertices) +
+                           " vertices and " + std::to_string(numFaces) +
+                           " faces, and this record is missing or unreadable");
+      }
+
+      // Keep the properties, skipping the x/y/z coordinates
       for (const auto& propName : vertexPropertyNames) {
         if (propName != "x" && propName != "y" && propName != "z") {
-          ply.setVertexProperties(propName, vertexProps[propName]);
+          vertexProperties[propName] = std::move(vertexProps[propName]);
         }
       }
 
       for (const auto& propName : facePropertyNames) {
         if (faceProps.find(propName) != faceProps.end()) {
-          ply.setFaceProperties(propName, faceProps[propName]);
+          faceProperties[propName] = std::move(faceProps[propName]);
         }
       }
 
       filestream.close();
     }
     else {
-      std::cerr << "Parser::readPLY -- Error! Could not open ASCII file " + a_filename + "\n";
+      throw ParseError(a_filename, 0, "cannot open the file");
     }
 
     break;
@@ -603,6 +729,7 @@ Parser::readPLY(const std::string& a_filename)
     if (filestream.is_open()) {
       std::string line;
       std::string str1, str2, str3;
+      size_t      lineNumber = 0;
 
       // Storage for header information
       size_t numVertices    = 0;
@@ -622,6 +749,8 @@ Parser::readPLY(const std::string& a_filename)
 
       // Parse header (ASCII part)
       while (std::getline(filestream, line)) {
+        lineNumber++;
+
         std::stringstream sstream(line);
         sstream >> str1;
 
@@ -635,12 +764,12 @@ Parser::readPLY(const std::string& a_filename)
           sstream >> str2 >> str3;
 
           if (str2 == "vertex") {
-            numVertices             = std::stoull(str3);
+            numVertices             = ParserDetail::parseCount(str3, a_filename, lineNumber, "vertex");
             readingVertexProperties = true;
             readingFaceProperties   = false;
           }
           else if (str2 == "face") {
-            numFaces                = std::stoull(str3);
+            numFaces                = ParserDetail::parseCount(str3, a_filename, lineNumber, "face");
             readingVertexProperties = false;
             readingFaceProperties   = true;
           }
@@ -698,7 +827,7 @@ Parser::readPLY(const std::string& a_filename)
           uint16_t u16;
           int8_t   i8;
           uint8_t  u8;
-        } data;
+        } data{};
 
         if (type == "float") {
           filestream.read(data.bytes, 4);
@@ -753,14 +882,56 @@ Parser::readPLY(const std::string& a_filename)
         return 0;
       };
 
-      // Helper lambda to read size_t value (for list counts)
+      // Helper lambda to read a list count or vertex index. These are read as integers, never through
+      // T: a float T cannot represent every index above 2^24. A negative value, or a floating-point
+      // list type, is corrupt data and maps to SIZE_MAX, which the count and index checks reject.
       auto readBinarySizeT = [&](const std::string& type) -> size_t {
-        return static_cast<size_t>(readBinaryValue(type));
-      };
+        union {
+          char     bytes[4];
+          int32_t  i32;
+          uint32_t u32;
+          int16_t  i16;
+          uint16_t u16;
+          int8_t   i8;
+          uint8_t  u8;
+        } data{};
 
-      // Get references to the PLY data members
-      std::vector<Vec3T<T>>&            vertices = ply.getVertexCoordinates();
-      std::vector<std::vector<size_t>>& facets   = ply.getFacets();
+        int64_t value = -1;
+
+        const auto readSwapped = [&](const std::streamsize a_bytes) {
+          filestream.read(data.bytes, a_bytes);
+          if (!isLittleEndian) {
+            std::reverse(data.bytes, data.bytes + a_bytes);
+          }
+        };
+
+        if (type == "int" || type == "int32") {
+          readSwapped(4);
+          value = data.i32;
+        }
+        else if (type == "uint" || type == "uint32") {
+          readSwapped(4);
+          value = data.u32;
+        }
+        else if (type == "short" || type == "int16") {
+          readSwapped(2);
+          value = data.i16;
+        }
+        else if (type == "ushort" || type == "uint16") {
+          readSwapped(2);
+          value = data.u16;
+        }
+        else if (type == "char" || type == "int8") {
+          readSwapped(1);
+          value = data.i8;
+        }
+        else if (type == "uchar" || type == "uint8") {
+          readSwapped(1);
+          value = data.u8;
+        }
+
+        return value < 0 ? Math::Limits<size_t>::max() : static_cast<size_t>(value);
+      };
 
       // Initialize property storage
       std::map<std::string, std::vector<T>> vertexProps;
@@ -768,18 +939,18 @@ Parser::readPLY(const std::string& a_filename)
 
       for (const auto& propName : vertexPropertyNames) {
         vertexProps[propName] = std::vector<T>();
-        vertexProps[propName].reserve(numVertices);
+        vertexProps[propName].reserve(ParserDetail::reserveHint(numVertices));
       }
 
       for (size_t i = 0; i < facePropertyNames.size(); i++) {
         if (facePropertyTypes[i] != "list") {
           faceProps[facePropertyNames[i]] = std::vector<T>();
-          faceProps[facePropertyNames[i]].reserve(numFaces);
+          faceProps[facePropertyNames[i]].reserve(ParserDetail::reserveHint(numFaces));
         }
       }
 
-      vertices.reserve(numVertices);
-      facets.reserve(numFaces);
+      vertices.reserve(ParserDetail::reserveHint(numVertices));
+      facets.reserve(ParserDetail::reserveHint(numFaces));
 
       // Find indices of x, y, z properties
       int xIndex = -1, yIndex = -1, zIndex = -1;
@@ -796,7 +967,7 @@ Parser::readPLY(const std::string& a_filename)
       }
 
       // Read binary vertex data
-      for (size_t v = 0; v < numVertices; v++) {
+      for (size_t v = 0; v < numVertices && filestream; v++) {
         T              x = 0, y = 0, z = 0;
         std::vector<T> propValues(vertexPropertyNames.size());
 
@@ -823,8 +994,11 @@ Parser::readPLY(const std::string& a_filename)
         }
       }
 
+      // A face cannot have more corners than the file has vertices; a larger count means corrupted data.
+      bool malformed = !filestream;
+
       // Read binary face data
-      for (size_t f = 0; f < numFaces; f++) {
+      for (size_t f = 0; f < numFaces && !malformed; f++) {
         std::vector<T>      scalarPropValues;
         std::vector<size_t> faceIndices;
 
@@ -832,6 +1006,12 @@ Parser::readPLY(const std::string& a_filename)
           if (facePropertyTypes[i] == "list") {
             // Read list property
             const size_t numIndices = readBinarySizeT(faceListSizeTypes[i]);
+
+            if (!filestream || numIndices > numVertices) {
+              malformed = true;
+
+              break;
+            }
 
             faceIndices.resize(numIndices);
             for (size_t j = 0; j < numIndices; j++) {
@@ -843,6 +1023,12 @@ Parser::readPLY(const std::string& a_filename)
             T value = readBinaryValue(facePropertyTypes[i]);
             scalarPropValues.emplace_back(value);
           }
+        }
+
+        malformed = malformed || !filestream;
+
+        if (malformed) {
+          break;
         }
 
         facets.emplace_back(faceIndices);
@@ -857,58 +1043,69 @@ Parser::readPLY(const std::string& a_filename)
         }
       }
 
-      // Copy properties to PLY object using the setter methods, skipping x/y/z coordinates
+      if (malformed) {
+        throw ParseError(a_filename,
+                         0,
+                         "the binary file is truncated or corrupted: the header declares " +
+                           std::to_string(numVertices) + " vertices and " + std::to_string(numFaces) + " faces");
+      }
+
+      // Keep the properties, skipping the x/y/z coordinates
       for (const auto& propName : vertexPropertyNames) {
         if (propName != "x" && propName != "y" && propName != "z") {
-          ply.setVertexProperties(propName, vertexProps[propName]);
+          vertexProperties[propName] = std::move(vertexProps[propName]);
         }
       }
 
       for (const auto& propName : facePropertyNames) {
         if (faceProps.find(propName) != faceProps.end()) {
-          ply.setFaceProperties(propName, faceProps[propName]);
+          faceProperties[propName] = std::move(faceProps[propName]);
         }
       }
 
       filestream.close();
     }
     else {
-      std::cerr << "Parser::readPLY -- Error! Could not open binary file " + a_filename + "\n";
+      throw ParseError(a_filename, 0, "cannot open the file");
     }
 
     break;
   }
   default: {
-    std::cerr << "Parser::readPLY(std::string) -- logic bust. Unknown encoding\n";
-
-    break;
+    ParserDetail::open(a_filename, std::ios::in | std::ios::binary);
+    ParserDetail::unknownEncoding(a_filename);
   }
   }
 
-  return ply;
+  return ParserDetail::makeSoup<T>(
+    a_filename, std::move(vertices), std::move(facets), std::move(vertexProperties), std::move(faceProperties));
 }
 
 template <typename T>
-[[nodiscard]] std::vector<PLY<T>>
+[[nodiscard]] std::vector<PolygonSoup<T>>
 Parser::readPLY(const std::vector<std::string>& a_filenames)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
-  std::vector<PLY<T>> ply;
+  std::vector<PolygonSoup<T>> soups;
 
-  ply.reserve(a_filenames.size());
+  soups.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
-    ply.emplace_back(Parser::readPLY<T>(f));
+    soups.emplace_back(Parser::readPLY<T>(f));
   }
 
-  return ply;
+  return soups;
 }
 
 template <typename T>
-[[nodiscard]] VTK<T>
+[[nodiscard]] PolygonSoup<T>
 Parser::readVTK(const std::string& a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
-  VTK<T> vtk(a_filename);
+
+  std::vector<Vec3T<T>>                 vertices;
+  std::vector<std::vector<size_t>>      facets;
+  std::map<std::string, std::vector<T>> vertexProperties;
+  std::map<std::string, std::vector<T>> faceProperties;
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
 
@@ -925,14 +1122,15 @@ Parser::readVTK(const std::string& a_filename)
       std::getline(filestream, line); // Format (ASCII or BINARY)
       std::getline(filestream, line); // Dataset type (should be POLYDATA)
 
-      std::vector<Vec3T<T>>&            vertices = vtk.getVertexCoordinates();
-      std::vector<std::vector<size_t>>& facets   = vtk.getFacets();
-
       size_t numPoints   = 0;
       size_t numPolygons = 0;
 
+      // A section that is shorter than it declares, or that cannot be parsed, means a truncated or
+      // corrupted file.
+      bool malformed = false;
+
       // Read POINTS section
-      while (std::getline(filestream, line)) {
+      while (!malformed && std::getline(filestream, line)) {
         std::stringstream sstream(line);
         std::string       keyword;
         sstream >> keyword;
@@ -941,11 +1139,21 @@ Parser::readVTK(const std::string& a_filename)
           std::string dataType;
           sstream >> numPoints >> dataType;
 
-          vertices.reserve(numPoints);
+          vertices.reserve(ParserDetail::reserveHint(numPoints));
 
           for (size_t i = 0; i < numPoints; i++) {
-            T x, y, z;
+            T x = T(0);
+            T y = T(0);
+            T z = T(0);
+
             filestream >> x >> y >> z;
+
+            if (!filestream) {
+              malformed = true;
+
+              break;
+            }
+
             vertices.emplace_back(Vec3T<T>(x, y, z));
           }
           std::getline(filestream, line); // Consume rest of line after last point
@@ -954,7 +1162,7 @@ Parser::readVTK(const std::string& a_filename)
           size_t listSize;
           sstream >> numPolygons >> listSize;
 
-          facets.reserve(numPolygons);
+          facets.reserve(ParserDetail::reserveHint(numPolygons));
 
           // Check if this is the modern format with OFFSETS/CONNECTIVITY
           const std::streampos pos = filestream.tellg();
@@ -967,7 +1175,7 @@ Parser::readVTK(const std::string& a_filename)
           if (nextKeyword == "OFFSETS") {
             // Modern VTK format with OFFSETS and CONNECTIVITY
             std::vector<size_t> offsets;
-            offsets.reserve(numPolygons);
+            offsets.reserve(ParserDetail::reserveHint(numPolygons));
 
             // Read offsets - should be exactly numPolygons values
             size_t offset;
@@ -978,15 +1186,21 @@ Parser::readVTK(const std::string& a_filename)
               offsets.emplace_back(offset);
             }
 
+            if (offsets.size() != numPolygons) {
+              malformed = true;
+
+              break;
+            }
+
             // Skip to CONNECTIVITY keyword - it should be on the next line after offsets
             // Since we used >> to read offsets, we may be in the middle of a line
             // Use getline repeatedly until we find CONNECTIVITY
             bool foundConnectivity = false;
             while (std::getline(filestream, line)) {
               std::stringstream ss(line);
-              std::string       keyword;
-              ss >> keyword;
-              if (keyword == "CONNECTIVITY") {
+              std::string       token;
+              ss >> token;
+              if (token == "CONNECTIVITY") {
                 foundConnectivity = true;
                 break;
               }
@@ -995,7 +1209,7 @@ Parser::readVTK(const std::string& a_filename)
             }
 
             if (!foundConnectivity) {
-              std::cerr << "Parser::readVTK - Warning: CONNECTIVITY keyword not found after OFFSETS\n";
+              throw ParseError(a_filename, 0, "the POLYGONS section has OFFSETS but no CONNECTIVITY");
             }
 
             // Read all connectivity values until we can't read anymore
@@ -1036,13 +1250,27 @@ Parser::readVTK(const std::string& a_filename)
             filestream.seekg(pos);
 
             for (size_t i = 0; i < numPolygons; i++) {
-              size_t numIndices;
+              size_t numIndices = 0;
               filestream >> numIndices;
+
+              // A polygon cannot have more corners than there are points.
+              if (!filestream || numIndices > Math::max(numPoints, vertices.size())) {
+                malformed = true;
+
+                break;
+              }
 
               std::vector<size_t> faceIndices(numIndices);
               for (size_t j = 0; j < numIndices; j++) {
                 filestream >> faceIndices[j];
               }
+
+              if (!filestream) {
+                malformed = true;
+
+                break;
+              }
+
               facets.emplace_back(faceIndices);
             }
             std::getline(filestream, line); // Consume rest of line
@@ -1072,7 +1300,7 @@ Parser::readVTK(const std::string& a_filename)
               std::getline(filestream, line);
 
               std::vector<T> scalarData;
-              scalarData.reserve(numData);
+              scalarData.reserve(ParserDetail::reserveHint(numData));
 
               for (size_t i = 0; i < numData; i++) {
                 T value;
@@ -1087,7 +1315,7 @@ Parser::readVTK(const std::string& a_filename)
               }
               std::getline(filestream, line); // Consume rest of line
 
-              vtk.setPointDataScalars(arrayName, scalarData);
+              vertexProperties[arrayName] = std::move(scalarData);
             }
             else if (dataKeyword == "FIELD") {
               // Skip FIELD arrays within POINT_DATA
@@ -1136,7 +1364,7 @@ Parser::readVTK(const std::string& a_filename)
               std::getline(filestream, line);
 
               std::vector<T> scalarData;
-              scalarData.reserve(numData);
+              scalarData.reserve(ParserDetail::reserveHint(numData));
 
               for (size_t i = 0; i < numData; i++) {
                 T value;
@@ -1151,7 +1379,7 @@ Parser::readVTK(const std::string& a_filename)
               }
               std::getline(filestream, line); // Consume rest of line
 
-              vtk.setCellDataScalars(arrayName, scalarData);
+              faceProperties[arrayName] = std::move(scalarData);
             }
             else if (dataKeyword == "FIELD") {
               // Skip FIELD arrays within CELL_DATA
@@ -1179,10 +1407,18 @@ Parser::readVTK(const std::string& a_filename)
         }
       }
 
+      if (malformed || vertices.size() != numPoints) {
+        throw ParseError(a_filename,
+                         0,
+                         "the file is truncated or corrupted: it declares " + std::to_string(numPoints) +
+                           " points and " + std::to_string(numPolygons) +
+                           " polygons, and a section is missing or unreadable");
+      }
+
       filestream.close();
     }
     else {
-      std::cerr << "Parser::readVTK -- Error! Could not open ASCII file " + a_filename + "\n";
+      throw ParseError(a_filename, 0, "cannot open the file");
     }
 
     break;
@@ -1199,9 +1435,6 @@ Parser::readVTK(const std::string& a_filename)
       std::getline(filestream, line); // Format (should be BINARY)
       std::getline(filestream, line); // Dataset type (should be POLYDATA)
 
-      std::vector<Vec3T<T>>&            vertices = vtk.getVertexCoordinates();
-      std::vector<std::vector<size_t>>& facets   = vtk.getFacets();
-
       size_t numPoints   = 0;
       size_t numPolygons = 0;
 
@@ -1211,7 +1444,7 @@ Parser::readVTK(const std::string& a_filename)
         union {
           char  bytes[4];
           float f;
-        } data;
+        } data{};
         filestream.read(data.bytes, 4);
         std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
         return data.f;
@@ -1221,7 +1454,7 @@ Parser::readVTK(const std::string& a_filename)
         union {
           char   bytes[8];
           double d;
-        } data;
+        } data{};
         filestream.read(data.bytes, 8);
         std::reverse(data.bytes, data.bytes + 8); // Convert big-endian to little-endian
         return data.d;
@@ -1231,14 +1464,18 @@ Parser::readVTK(const std::string& a_filename)
         union {
           char    bytes[4];
           int32_t i;
-        } data;
+        } data{};
         filestream.read(data.bytes, 4);
         std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
         return data.i;
       };
 
+      // A section that is shorter than it declares, or that cannot be parsed, means a truncated or
+      // corrupted file.
+      bool malformed = false;
+
       // Read sections - they are still labeled in ASCII
-      while (std::getline(filestream, line)) {
+      while (!malformed && std::getline(filestream, line)) {
         std::stringstream sstream(line);
         std::string       keyword;
         sstream >> keyword;
@@ -1247,7 +1484,7 @@ Parser::readVTK(const std::string& a_filename)
           std::string dataType;
           sstream >> numPoints >> dataType;
 
-          vertices.reserve(numPoints);
+          vertices.reserve(ParserDetail::reserveHint(numPoints));
 
           // After this line, data is binary
           if (dataType == "float") {
@@ -1266,12 +1503,18 @@ Parser::readVTK(const std::string& a_filename)
               vertices.emplace_back(Vec3T<T>(x, y, z));
             }
           }
+
+          if (!filestream) {
+            malformed = true;
+
+            break;
+          }
         }
         else if (keyword == "POLYGONS") {
           size_t listSize;
           sstream >> numPolygons >> listSize;
 
-          facets.reserve(numPolygons);
+          facets.reserve(ParserDetail::reserveHint(numPolygons));
 
           // Check if this is the modern format with OFFSETS/CONNECTIVITY
           const std::streampos pos = filestream.tellg();
@@ -1287,14 +1530,14 @@ Parser::readVTK(const std::string& a_filename)
             checkStream >> offsetType;
 
             std::vector<int64_t> offsets;
-            offsets.reserve(numPolygons);
+            offsets.reserve(ParserDetail::reserveHint(numPolygons));
 
             // Read binary offsets (typically int64) - exactly numPolygons values
             for (size_t i = 0; i < numPolygons; i++) {
               union {
                 char    bytes[8];
                 int64_t val;
-              } data;
+              } data{};
               filestream.read(data.bytes, 8);
               std::reverse(data.bytes, data.bytes + 8);
               offsets.emplace_back(data.val);
@@ -1318,13 +1561,13 @@ Parser::readVTK(const std::string& a_filename)
             const size_t estimatedConnSize = listSize;
 
             std::vector<int64_t> connectivity;
-            connectivity.reserve(estimatedConnSize);
+            connectivity.reserve(ParserDetail::reserveHint(estimatedConnSize));
 
             for (size_t i = 0; i < estimatedConnSize; i++) {
               union {
                 char    bytes[8];
                 int64_t val;
-              } data;
+              } data{};
               if (filestream.read(data.bytes, 8)) {
                 std::reverse(data.bytes, data.bytes + 8);
                 connectivity.emplace_back(data.val);
@@ -1362,13 +1605,28 @@ Parser::readVTK(const std::string& a_filename)
             for (size_t i = 0; i < numPolygons; i++) {
               const int32_t numIndices = readBinaryInt();
 
+              // A polygon cannot have more corners than there are points.
+              if (!filestream || numIndices < 0 ||
+                  static_cast<size_t>(numIndices) > Math::max(numPoints, vertices.size())) {
+                malformed = true;
+
+                break;
+              }
+
               std::vector<size_t> faceIndices;
-              faceIndices.reserve(numIndices);
+              faceIndices.reserve(ParserDetail::reserveHint(numIndices));
 
               for (int32_t j = 0; j < numIndices; j++) {
                 const int32_t idx = readBinaryInt();
                 faceIndices.emplace_back(static_cast<size_t>(idx));
               }
+
+              if (!filestream) {
+                malformed = true;
+
+                break;
+              }
+
               facets.emplace_back(faceIndices);
             }
           }
@@ -1396,7 +1654,7 @@ Parser::readVTK(const std::string& a_filename)
               std::getline(filestream, line);
 
               std::vector<T> scalarData;
-              scalarData.reserve(numData);
+              scalarData.reserve(ParserDetail::reserveHint(numData));
 
               // Read binary scalar data
               if (dataType == "float") {
@@ -1433,7 +1691,7 @@ Parser::readVTK(const std::string& a_filename)
                 }
               }
 
-              vtk.setPointDataScalars(arrayName, scalarData);
+              vertexProperties[arrayName] = std::move(scalarData);
             }
             else if (dataKeyword == "VECTORS" || dataKeyword == "NORMALS") {
               std::string arrayName, dataType;
@@ -1458,11 +1716,11 @@ Parser::readVTK(const std::string& a_filename)
                 if (dataType == "float") {
                   if (numComponents == 1) {
                     std::vector<T> scalarData;
-                    scalarData.reserve(numTuples);
+                    scalarData.reserve(ParserDetail::reserveHint(numTuples));
                     for (size_t i = 0; i < numTuples; i++) {
                       scalarData.emplace_back(static_cast<T>(readBinaryFloat()));
                     }
-                    vtk.setPointDataScalars(arrayName, scalarData);
+                    vertexProperties[arrayName] = std::move(scalarData);
                   }
                   else {
                     filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 4), std::ios_base::cur);
@@ -1471,11 +1729,11 @@ Parser::readVTK(const std::string& a_filename)
                 else if (dataType == "double") {
                   if (numComponents == 1) {
                     std::vector<T> scalarData;
-                    scalarData.reserve(numTuples);
+                    scalarData.reserve(ParserDetail::reserveHint(numTuples));
                     for (size_t i = 0; i < numTuples; i++) {
                       scalarData.emplace_back(static_cast<T>(readBinaryDouble()));
                     }
-                    vtk.setPointDataScalars(arrayName, scalarData);
+                    vertexProperties[arrayName] = std::move(scalarData);
                   }
                   else {
                     filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 8), std::ios_base::cur);
@@ -1484,11 +1742,11 @@ Parser::readVTK(const std::string& a_filename)
                 else if (dataType == "int") {
                   if (numComponents == 1) {
                     std::vector<T> scalarData;
-                    scalarData.reserve(numTuples);
+                    scalarData.reserve(ParserDetail::reserveHint(numTuples));
                     for (size_t i = 0; i < numTuples; i++) {
                       scalarData.emplace_back(static_cast<T>(readBinaryInt()));
                     }
-                    vtk.setPointDataScalars(arrayName, scalarData);
+                    vertexProperties[arrayName] = std::move(scalarData);
                   }
                   else {
                     filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 4), std::ios_base::cur);
@@ -1541,7 +1799,7 @@ Parser::readVTK(const std::string& a_filename)
               std::getline(filestream, line);
 
               std::vector<T> scalarData;
-              scalarData.reserve(numData);
+              scalarData.reserve(ParserDetail::reserveHint(numData));
 
               // Read binary scalar data
               if (dataType == "float") {
@@ -1578,7 +1836,7 @@ Parser::readVTK(const std::string& a_filename)
                 }
               }
 
-              vtk.setCellDataScalars(arrayName, scalarData);
+              faceProperties[arrayName] = std::move(scalarData);
             }
             else if (dataKeyword == "FIELD") {
               std::string fieldName;
@@ -1625,71 +1883,81 @@ Parser::readVTK(const std::string& a_filename)
         }
       }
 
+      if (malformed || vertices.size() != numPoints) {
+        throw ParseError(a_filename,
+                         0,
+                         "the binary file is truncated or corrupted: it declares " + std::to_string(numPoints) +
+                           " points and " + std::to_string(numPolygons) + " polygons");
+      }
+
       filestream.close();
     }
     else {
-      std::cerr << "Parser::readVTK -- Error! Could not open binary file " + a_filename + "\n";
+      throw ParseError(a_filename, 0, "cannot open the file");
     }
 
     break;
   }
   default: {
-    std::cerr << "Parser::readVTK(std::string) -- logic bust. Unknown encoding\n";
-
-    break;
+    ParserDetail::open(a_filename, std::ios::in | std::ios::binary);
+    ParserDetail::unknownEncoding(a_filename);
   }
   }
 
-  return vtk;
+  return ParserDetail::makeSoup<T>(
+    a_filename, std::move(vertices), std::move(facets), std::move(vertexProperties), std::move(faceProperties));
 }
 
 template <typename T>
-[[nodiscard]] std::vector<VTK<T>>
+[[nodiscard]] std::vector<PolygonSoup<T>>
 Parser::readVTK(const std::vector<std::string>& a_filenames)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
-  std::vector<VTK<T>> vtk;
+  std::vector<PolygonSoup<T>> soups;
 
-  vtk.reserve(a_filenames.size());
+  soups.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
-    vtk.emplace_back(Parser::readVTK<T>(f));
+    soups.emplace_back(Parser::readVTK<T>(f));
   }
 
-  return vtk;
+  return soups;
 }
 
 template <typename T>
-[[nodiscard]] OBJ<T>
+[[nodiscard]] PolygonSoup<T>
 Parser::readOBJ(const std::string& a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readOBJ requires T to be a floating-point type");
-  OBJ<T> obj(a_filename);
 
   // OBJ stores a single global vertex table; faces reference it by (1-based) index. Texture/normal indices are
   // discarded since EBGeometry recomputes vertex normals when building the DCEL mesh.
-  std::vector<Vec3T<T>>&            vertices = obj.getVertexCoordinates();
-  std::vector<std::vector<size_t>>& facets   = obj.getFacets();
+  std::vector<Vec3T<T>>            vertices;
+  std::vector<std::vector<size_t>> facets;
 
-  vertices.resize(0);
-  facets.resize(0);
+  std::ifstream filestream = ParserDetail::open(a_filename);
 
-  std::ifstream filestream(a_filename);
-
-  if (filestream.is_open()) {
+  {
     std::string line;
+    size_t      lineNumber = 0;
 
     while (std::getline(filestream, line)) {
+      lineNumber++;
+
       std::stringstream sstream(line);
       std::string       keyword;
       sstream >> keyword;
 
       if (keyword == "v") {
         // Vertex record: v x y z [w]. The optional w coordinate is ignored.
-        T x;
-        T y;
-        T z;
+        T x = T(0);
+        T y = T(0);
+        T z = T(0);
 
         sstream >> x >> y >> z;
+
+        if (sstream.fail()) {
+          throw ParseError(a_filename, lineNumber, "malformed vertex line '" + line + "'");
+        }
 
         vertices.emplace_back(Vec3T<T>(x, y, z));
       }
@@ -1700,13 +1968,19 @@ Parser::readOBJ(const std::string& a_filename)
         std::string         token;
 
         while (sstream >> token) {
+          // Some exporters end a face line with a comment.
+          if (token[0] == '#') {
+            break;
+          }
+
           std::stringstream tokstream(token.substr(0, token.find('/')));
 
           long idx = 0;
           tokstream >> idx;
 
-          if (tokstream.fail()) {
-            continue;
+          // OBJ indices start at 1, so 0 is as invalid as a token that is not a number.
+          if (tokstream.fail() || idx == 0) {
+            throw ParseError(a_filename, lineNumber, "malformed face index '" + token + "'");
           }
 
           if (idx > 0) {
@@ -1725,226 +1999,240 @@ Parser::readOBJ(const std::string& a_filename)
       // All other records (vt, vn, vp, g, o, s, usemtl, mtllib, '#' comments, blank lines) are ignored.
     }
   }
-  else {
-    std::cerr << "Parser::readOBJ -- Error! Could not open file " + a_filename + "\n";
-  }
 
-  return obj;
+  return ParserDetail::makeSoup<T>(a_filename, std::move(vertices), std::move(facets), {}, {});
 }
 
 template <typename T>
-[[nodiscard]] std::vector<OBJ<T>>
+[[nodiscard]] std::vector<PolygonSoup<T>>
 Parser::readOBJ(const std::vector<std::string>& a_filenames)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readOBJ requires T to be a floating-point type");
-  std::vector<OBJ<T>> obj;
+  std::vector<PolygonSoup<T>> soups;
 
-  obj.reserve(a_filenames.size());
+  soups.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
-    obj.emplace_back(Parser::readOBJ<T>(f));
+    soups.emplace_back(Parser::readOBJ<T>(f));
   }
 
-  return obj;
+  return soups;
 }
 
-template <typename T, typename Meta>
-[[nodiscard]] inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-Parser::readIntoDCEL(const std::string a_filename)
+template <typename T>
+[[nodiscard]] inline PolygonSoup<T>
+Parser::readIntoPolygonSoup(const std::string& a_filename)
 {
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoDCEL requires T to be a floating-point type");
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoPolygonSoup requires T to be a floating-point type");
 
-  const auto ft = Parser::getFileType(a_filename);
-
-  switch (ft) {
+  switch (Parser::getFileType(a_filename)) {
   case Parser::FileType::STL: {
-    const STL<T> stl = readSTL<T>(a_filename);
-
-    mesh = stl.template convertToDCEL<Meta>();
-
-    break;
+    return Parser::readSTL<T>(a_filename);
   }
   case Parser::FileType::PLY: {
-    const PLY<T> ply = readPLY<T>(a_filename);
-
-    mesh = ply.template convertToDCEL<Meta>();
-
-    break;
+    return Parser::readPLY<T>(a_filename);
   }
   case Parser::FileType::VTK: {
-    const VTK<T> vtk = readVTK<T>(a_filename);
-
-    mesh = vtk.template convertToDCEL<Meta>();
-
-    break;
+    return Parser::readVTK<T>(a_filename);
   }
   case Parser::FileType::OBJ: {
-    const OBJ<T> obj = readOBJ<T>(a_filename);
-
-    mesh = obj.template convertToDCEL<Meta>();
-
-    break;
-  }
-  case Parser::FileType::Unsupported: {
-    std::cerr << "Parser::read - file type unsupported for '" + a_filename + "'\n";
-
-    break;
+    return Parser::readOBJ<T>(a_filename);
   }
   default: {
-    std::cerr << "Parser::read - logic bust\n";
-
-    break;
+    throw ParseError(a_filename, 0, "unsupported file type; the extension must be .stl, .ply, .vtk or .obj");
   }
   }
-
-  return mesh;
 }
 
-template <typename T, typename Meta>
-[[nodiscard]] inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
-Parser::readIntoDCEL(const std::vector<std::string>& a_files)
+template <typename T>
+[[nodiscard]] inline std::vector<PolygonSoup<T>>
+Parser::readIntoPolygonSoup(const std::vector<std::string>& a_files)
 {
-  std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>> objects;
+  std::vector<PolygonSoup<T>> soups;
 
-  objects.reserve(a_files.size());
+  soups.reserve(a_files.size());
   for (const auto& file : a_files) {
-    objects.emplace_back(Parser::readIntoDCEL<T, Meta>(file));
+    soups.emplace_back(Parser::readIntoPolygonSoup<T>(file));
   }
 
-  return objects;
+  return soups;
 }
 
-template <typename T, typename Meta>
-[[nodiscard]] inline std::shared_ptr<FlatMeshSDF<T, Meta>>
-Parser::readIntoMesh(const std::string a_filename)
+template <typename T>
+[[nodiscard]] inline EBGeometry::DCEL::MeshT<T>
+Parser::readIntoDCEL(const std::string& a_filename, Pool& a_pool, const OnDefect a_onDefect)
 {
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
-
-  return std::make_shared<FlatMeshSDF<T, Meta>>(mesh);
+  return Parser::readIntoPolygonSoup<T>(a_filename).convertToDCEL(a_pool, a_onDefect);
 }
 
-template <typename T, typename Meta>
-[[nodiscard]] inline std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
-Parser::readIntoMesh(const std::vector<std::string>& a_files)
+template <typename T>
+[[nodiscard]] inline std::vector<EBGeometry::DCEL::MeshT<T>>
+Parser::readIntoDCEL(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefect a_onDefect)
 {
-  std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>> implicitFunctions;
+  std::vector<EBGeometry::DCEL::MeshT<T>> meshes;
 
-  implicitFunctions.reserve(a_files.size());
+  meshes.reserve(a_files.size());
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoMesh<T, Meta>(file));
+    meshes.emplace_back(Parser::readIntoDCEL<T>(file, a_pool, a_onDefect));
   }
 
-  return implicitFunctions;
+  return meshes;
 }
 
-template <typename T, typename Meta>
-[[nodiscard]] std::vector<std::shared_ptr<Triangle<T, Meta>>>
-Parser::readIntoTriangles(const std::string a_filename)
+template <typename T>
+[[nodiscard]] inline FlatMeshSDF<T>
+Parser::readIntoFlatMeshSDF(const std::string& a_filename, Pool& a_pool, const OnDefect a_onDefect)
 {
-  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
+  const auto mesh = Parser::readIntoDCEL<T>(a_filename, a_pool, a_onDefect);
 
-  std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
-
-  bool onlyTriangles = true;
-
-  for (const auto& f : mesh->getFaces()) {
-    const auto normal   = f->getNormal();
-    const auto vertices = f->gatherVertices();
-    const auto edges    = f->gatherEdges();
-
-    if (vertices.size() != 3) {
-      onlyTriangles = false;
-    }
-
-    // Create the triangle
-    auto tri = std::make_shared<Triangle<T, Meta>>();
-
-    tri->setNormal(normal);
-    tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
-    tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
-    tri->setEdgeNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
-
-    triangles.emplace_back(tri);
-  }
-
-  if (!onlyTriangles) {
-    std::cerr << "Parser::readIntoTriangles -- file '" + a_filename + "' is not composed of only triangles!" << "\n";
-  }
-
-  return triangles;
+  return FlatMeshSDF<T>(mesh, a_pool);
 }
 
-template <typename T, typename Meta>
-[[nodiscard]] std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-Parser::readIntoTriangles(const std::vector<std::string>& a_files)
+template <typename T>
+[[nodiscard]] inline std::vector<FlatMeshSDF<T>>
+Parser::readIntoFlatMeshSDF(const std::vector<std::string>& a_files, Pool& a_pool, const OnDefect a_onDefect)
 {
-  std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>> triangles;
+  std::vector<FlatMeshSDF<T>> sdfs;
+
+  sdfs.reserve(a_files.size());
+  for (const auto& file : a_files) {
+    sdfs.emplace_back(Parser::readIntoFlatMeshSDF<T>(file, a_pool, a_onDefect));
+  }
+
+  return sdfs;
+}
+
+template <typename T, size_t K>
+[[nodiscard]] inline MeshSDF<T, K>
+Parser::readIntoMeshSDF(const std::string&      a_filename,
+                        Pool&                   a_pool,
+                        const BVH::Construction a_construction,
+                        const OnDefect          a_onDefect)
+{
+  return Parser::readIntoMeshSDF<T, K>(
+    a_filename, a_pool, a_construction, MeshSDF<T, K>::defaultConstructionOptions(), a_onDefect);
+}
+
+template <typename T, size_t K>
+[[nodiscard]] inline MeshSDF<T, K>
+Parser::readIntoMeshSDF(const std::string&              a_filename,
+                        Pool&                           a_pool,
+                        const BVH::Construction         a_construction,
+                        const BVH::ConstructionOptions& a_options,
+                        const OnDefect                  a_onDefect)
+{
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoMeshSDF requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoMeshSDF requires K > 0");
+
+  const auto mesh = Parser::readIntoDCEL<T>(a_filename, a_pool, a_onDefect);
+
+  return MeshSDF<T, K>(mesh, a_pool, a_construction, a_options);
+}
+
+template <typename T, size_t K>
+[[nodiscard]] inline std::vector<MeshSDF<T, K>>
+Parser::readIntoMeshSDF(const std::vector<std::string>& a_files,
+                        Pool&                           a_pool,
+                        const BVH::Construction         a_construction,
+                        const OnDefect                  a_onDefect)
+{
+  return Parser::readIntoMeshSDF<T, K>(
+    a_files, a_pool, a_construction, MeshSDF<T, K>::defaultConstructionOptions(), a_onDefect);
+}
+
+template <typename T, size_t K>
+[[nodiscard]] inline std::vector<MeshSDF<T, K>>
+Parser::readIntoMeshSDF(const std::vector<std::string>& a_files,
+                        Pool&                           a_pool,
+                        const BVH::Construction         a_construction,
+                        const BVH::ConstructionOptions& a_options,
+                        const OnDefect                  a_onDefect)
+{
+  std::vector<MeshSDF<T, K>> sdfs;
+
+  sdfs.reserve(a_files.size());
+  for (const auto& file : a_files) {
+    sdfs.emplace_back(Parser::readIntoMeshSDF<T, K>(file, a_pool, a_construction, a_options, a_onDefect));
+  }
+
+  return sdfs;
+}
+
+template <typename T, size_t K, size_t W>
+[[nodiscard]] inline TriMeshSDF<T, K, W>
+Parser::readIntoTriMeshSDF(const std::string&      a_filename,
+                           Pool&                   a_pool,
+                           const BVH::Construction a_construction,
+                           const OnDefect          a_onDefect)
+{
+  return Parser::readIntoTriMeshSDF<T, K, W>(
+    a_filename, a_pool, a_construction, TriMeshSDF<T, K, W>::defaultConstructionOptions(4), a_onDefect);
+}
+
+template <typename T, size_t K, size_t W>
+[[nodiscard]] inline TriMeshSDF<T, K, W>
+Parser::readIntoTriMeshSDF(const std::string&              a_filename,
+                           Pool&                           a_pool,
+                           const BVH::Construction         a_construction,
+                           const BVH::ConstructionOptions& a_options,
+                           const OnDefect                  a_onDefect)
+{
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriMeshSDF requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoTriMeshSDF requires K > 0");
+  static_assert(W > 0, "Parser::readIntoTriMeshSDF requires W > 0");
+
+  const auto triangles = Parser::readIntoTriangles<T>(a_filename, a_onDefect);
+
+  return TriMeshSDF<T, K, W>(triangles, a_pool, a_construction, a_options);
+}
+
+template <typename T, size_t K, size_t W>
+[[nodiscard]] inline std::vector<TriMeshSDF<T, K, W>>
+Parser::readIntoTriMeshSDF(const std::vector<std::string>& a_files,
+                           Pool&                           a_pool,
+                           const BVH::Construction         a_construction,
+                           const OnDefect                  a_onDefect)
+{
+  return Parser::readIntoTriMeshSDF<T, K, W>(
+    a_files, a_pool, a_construction, TriMeshSDF<T, K, W>::defaultConstructionOptions(4), a_onDefect);
+}
+
+template <typename T, size_t K, size_t W>
+[[nodiscard]] inline std::vector<TriMeshSDF<T, K, W>>
+Parser::readIntoTriMeshSDF(const std::vector<std::string>& a_files,
+                           Pool&                           a_pool,
+                           const BVH::Construction         a_construction,
+                           const BVH::ConstructionOptions& a_options,
+                           const OnDefect                  a_onDefect)
+{
+  std::vector<TriMeshSDF<T, K, W>> sdfs;
+
+  sdfs.reserve(a_files.size());
+  for (const auto& file : a_files) {
+    sdfs.emplace_back(Parser::readIntoTriMeshSDF<T, K, W>(file, a_pool, a_construction, a_options, a_onDefect));
+  }
+
+  return sdfs;
+}
+
+template <typename T>
+[[nodiscard]] inline std::vector<Triangle<T>>
+Parser::readIntoTriangles(const std::string& a_filename, const OnDefect a_onDefect)
+{
+  return Parser::readIntoPolygonSoup<T>(a_filename).convertToTriangles(a_onDefect);
+}
+
+template <typename T>
+[[nodiscard]] inline std::vector<std::vector<Triangle<T>>>
+Parser::readIntoTriangles(const std::vector<std::string>& a_files, const OnDefect a_onDefect)
+{
+  std::vector<std::vector<Triangle<T>>> triangles;
 
   triangles.reserve(a_files.size());
   for (const auto& file : a_files) {
-    triangles.emplace_back(Parser::readIntoTriangles<T, Meta>(file));
+    triangles.emplace_back(Parser::readIntoTriangles<T>(file, a_onDefect));
   }
 
   return triangles;
-}
-
-template <typename T, typename Meta, size_t K, size_t W, class StoragePolicy>
-[[nodiscard]] inline std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>
-Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafGroups, const BVH::Build a_build)
-{
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
-  static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
-  static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
-  const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
-
-  return std::make_shared<TriMeshSDF<T, Meta, K, W, StoragePolicy>>(mesh, a_build, a_maxLeafGroups);
-}
-
-template <typename T, typename Meta, size_t K, size_t W, class StoragePolicy>
-[[nodiscard]] inline std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>>
-Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
-                            const size_t                    a_maxLeafGroups,
-                            const BVH::Build                a_build)
-{
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
-  static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
-  static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
-  std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>> implicitFunctions;
-
-  implicitFunctions.reserve(a_files.size());
-  for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(
-      Parser::readIntoTriangleBVH<T, Meta, K, W, StoragePolicy>(file, a_maxLeafGroups, a_build));
-  }
-
-  return implicitFunctions;
-}
-
-template <typename T, typename Meta, size_t K>
-[[nodiscard]] inline std::shared_ptr<MeshSDF<T, Meta, K>>
-Parser::readIntoPackedBVH(const std::string a_filename, const BVH::Build a_build)
-{
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
-  static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
-
-  return std::make_shared<MeshSDF<T, Meta, K>>(mesh, a_build);
-}
-
-template <typename T, typename Meta, size_t K>
-[[nodiscard]] inline std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
-Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_build)
-{
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
-  static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
-  std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>> implicitFunctions;
-
-  implicitFunctions.reserve(a_files.size());
-  for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoPackedBVH<T, Meta, K>(file, a_build));
-  }
-
-  return implicitFunctions;
 }
 
 } // namespace EBGeometry

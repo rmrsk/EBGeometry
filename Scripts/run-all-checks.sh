@@ -19,7 +19,7 @@ section() {
   echo "==================================================================="
 }
 
-section "pre-commit: default-stage hooks (clang-format, reuse, codespell, doxygen-check)"
+section "pre-commit: default-stage hooks (clang-format, reuse, codespell, doxygen-check, check-docs)"
 pre-commit run --all-files
 
 # Force a clean slate for the Sphinx output directory before rebuilding: a stray
@@ -30,7 +30,7 @@ pre-commit run --all-files
 # sphinx.environment.collectors.toctree, check for and kill any such process first.
 rm -rf Docs/Sphinx/build
 
-section "pre-commit: manual-stage hooks (clang-tidy, build-tests, check-docs, doc figures/build)"
+section "pre-commit: manual-stage hooks (clang-tidy, build-tests, doc figures/build)"
 pre-commit run --all-files --hook-stage manual
 
 section "CMake: debug preset -- unit tests"
@@ -46,7 +46,7 @@ cmake --preset debug-san
 cmake --build --preset debug-san --parallel "$(nproc)"
 ctest --preset debug-san
 
-section "CMake: release-test preset -- unit tests + examples, optimised"
+section "CMake: release-test preset -- unit tests + examples, optimized"
 cmake --preset release-test
 cmake --build --preset release-test --parallel "$(nproc)"
 ctest --preset release-test

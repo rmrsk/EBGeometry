@@ -27,7 +27,7 @@ debugger output), and turns on both the test suite and the examples.
    # 2. Build
    cmake --build --preset debug --parallel $(nproc)
 
-   # 3a. Run unit tests only  (< 1 s)
+   # 3a. Run unit tests only  (about 15 s)
    ctest --preset debug
 
    # 3b. Run example programs (allow several minutes in Debug mode)
@@ -35,15 +35,13 @@ debugger output), and turns on both the test suite and the examples.
 
 A successful unit-test run looks like::
 
-   100% tests passed, 0 tests failed out of 220
-   Label Time Summary:
-   unit    =   1.43 sec*proc (220 tests)
+   100% tests passed, 0 tests failed out of 566
 
 Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
 ``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
 matching whatever the CMake preset otherwise builds) -- the count above is double-only. CI
 additionally configures with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite
-under both precisions (422 tests). To do the same locally:
+under both precisions (1021 tests). To do the same locally:
 
 .. code-block:: bash
 
@@ -76,7 +74,7 @@ Preset reference
      - ``Debug``
      - ON
      - none
-     - Unit tests + examples (labelled separately)
+     - Unit tests + examples (labeled separately)
    * - ``debug-san``
      - ``Debug``
      - ON
@@ -92,6 +90,21 @@ Preset reference
      - OFF
      - avx
      - Unit tests + examples
+   * - ``perf``
+     - ``Release``
+     - OFF
+     - avx, ``-march=native``
+     - The performance probes under ``Performance/`` only (see :ref:`Chap:PerformanceTesting`)
+   * - ``perf-cuda``
+     - ``Release``
+     - OFF
+     - none
+     - The performance probes compiled for CUDA
+   * - ``cuda`` / ``hip``
+     - ``Release``
+     - OFF
+     - none
+     - Unit tests compiled for CUDA or HIP (examples off)
 
 Manual CMake options (without presets)
 -----------------------------------------
@@ -125,6 +138,12 @@ CMake options
    * - ``EBGEOMETRY_BUILD_EXAMPLES``
      - ``OFF``
      - Build the standalone examples under ``Examples/``.
+   * - ``EBGEOMETRY_BUILD_PERFORMANCE``
+     - ``OFF``
+     - Build the performance probes under ``Performance/`` (see :ref:`Chap:PerformanceTesting`).
+   * - ``EBGEOMETRY_TEST_BOTH_PRECISIONS``
+     - ``OFF``
+     - Run every ``TEMPLATE_TEST_CASE`` under ``float`` as well as ``double``.
    * - ``EBGEOMETRY_ENABLE_ASSERTIONS``
      - ``OFF``
      - Compile with ``EBGEOMETRY_EXPECT()`` guards active. Strongly recommended
@@ -132,12 +151,20 @@ CMake options
        message rather than silently producing wrong results.
    * - ``EBGEOMETRY_ENABLE_SANITIZERS``
      - ``OFF``
-     - Add ``-fsanitize=address,undefined`` to tests and examples.
+     - Add ``-fsanitize=address,undefined`` to tests and examples. Under GCC this also adds
+       ``--param=asan-use-after-return=0``: GCC places use-after-return-checked stack frames in
+       32-byte-aligned slots while still emitting 64-byte-aligned AVX-512 spills, which faults on an
+       AVX-512 host in correct code. Clang keeps the use-after-return check.
    * - ``EBGEOMETRY_SIMD``
-     - ``avx``
+     - ``avx`` (``none`` when another project includes EBGeometry)
      - ``avx512`` enables ``-mavx512f -mavx2 -mavx -mfma -msse4.1``; ``avx``
        enables ``-mavx -mfma -msse4.1``; ``sse41`` enables ``-msse4.1``;
        ``none`` uses the scalar fallback.
+   * - ``EBGEOMETRY_HOST_TUNED_DEFAULTS``
+     - ``ON`` (``OFF`` with a GPU backend, or when another project includes EBGeometry)
+     - The default triangle-group width ``TriangleSoA::DefaultWidth<T>()`` becomes the host-tuned
+       width for these SIMD flags (8 for ``float`` with ``avx``). Cannot be combined with
+       ``EBGEOMETRY_ENABLE_CUDA`` or ``EBGEOMETRY_ENABLE_HIP``. See :ref:`Sec:DefaultKW`.
 
 Selecting individual tests
 -----------------------------
@@ -158,6 +185,19 @@ Catch2 test cases are registered with CTest so you can filter by name or tag:
    ./Tests/TestVec --list-tests
    ./Tests/TestAnalyticSDF "[SphereSDF]"
 
+   # Run only the device tests
+   ./Tests/TestBVH "[gpu]"
+
+Device tests
+---------------
+
+Every class that is callable on a GPU has a test case tagged ``[gpu]`` that evaluates its queries as
+a kernel would, over many query points, and compares each result with the host; where several answers
+are equally right (a closest face where faces tie), the device may give any of them. In an ordinary host
+build these tests run in emulation, on host memory that reports itself device-accessible, so they
+run in every preset. Under a GPU backend the same tests launch real kernels, and they skip when no
+GPU is visible. See :ref:`Chap:ContributionGuidelines` for how to write one.
+
 Test coverage
 ---------------
 
@@ -168,84 +208,289 @@ Test coverage
    * - Test binary
      - What is covered
    * - ``TestVec``
-     - :cpp:class:`Vec2T` and :cpp:class:`Vec3T`: construction, arithmetic,
-       dot/cross products, length, component-wise min/max, ``minDir``/``maxDir``,
-       lexicographic ordering, scalar-over-vector ``operator/``.
+     - :cpp:class:`Vec2T` and :cpp:class:`Vec3T`: component access through ``operator[]`` only,
+       construction (a trivial default constructor, and value initialization giving zero),
+       arithmetic, division by a scalar matching each component's own quotient, dot/cross products,
+       length, component-wise min/max (a NaN component handled as ``Math::min``/``max`` handle it),
+       ``clamp`` against expected values (below, inside, on and above the bounds, infinite and NaN
+       components), ``minDir``/``maxDir``, lexicographic ordering, scalar-left
+       ``operator*``/``operator/`` with any arithmetic scalar (and no other left operand).
+   * - ``TestMath``
+     - ``Math::min``/``max``/``clamp`` and ``Math::Limits`` against their ``std`` counterparts
+       (including NaN arguments and constant evaluation), and ``Array<T, N>``: aggregate
+       initialization, trivial copyability, iteration, sorting, ``fill``, comparison.
+   * - ``TestMemoryResource``
+     - ``HostMemoryResource``: aligned, writeable allocations, round-trip deallocation, the
+       accessibility flags, rejection of a non-power-of-two alignment, the process-wide
+       ``hostMemoryResource()`` instance, and a ``Pool`` with static storage freeing its block at
+       program exit.
+   * - ``TestGPUTransform``
+     - ``GPU::parallelFor`` and ``GPU::transform``: every index run exactly once at several block
+       sizes and counts (including a partial last block) and the abort beyond a grid's capacity; the
+       span and pool overloads over inputs and results in a mirrored pool; the vector overload at
+       different block sizes, and with no and with a large minimum of resident threads, into a reused output; a pool built in place in managed memory, with
+       results written over the inputs; the aborts on mismatched sizes, on partly overlapping inputs
+       and results, and on a pool that is not frozen, not device-accessible, or that the arrays do
+       not fit in; and
+       ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
+   * - ``TestPool``
+     - ``Pool``: growth preserving earlier contents and every type's alignment, the requests too
+       large for a block, which abort, ``freeze`` and the reservations it then rejects, moves
+       (including the control block surviving a vector reallocation), mirroring onto a non-host
+       resource, pool identities, and a mirrored ``PODVector`` read back on the device.
+   * - ``TestPODVector``
+     - ``PODVector``/``PODSpan``: the 16-byte trivially copyable layout, ``reserveFrom``/
+       ``push_back``/``assign``/``bind`` round trips, element alignment, and the aborts on writing
+       past capacity or reading out of range.
+   * - ``TestPoolRebase``
+     - ``Pool::mirror`` and ``PoolLocation``: offsets resolving identically against a mirrored block;
+       a view onto a managed (host- and device-accessible) mirror answering queries on the host; an
+       object built directly in managed memory rebased onto its own frozen pool; a view of a staging
+       mirror rebased again onto that mirror's mirror; and the rejected cases (an unfrozen
+       device-accessible pool, a device-only view used on the host), with a fake memory resource in
+       place of a GPU. ``PoolHandle``: every pool-resident class is a handle and its layout holds no
+       location, ``base()`` is ``const void*`` on a const handle and ``void*`` otherwise, a BVH union
+       stores a mesh distance field as its layout, a composite handle carries one location, and a
+       handle rebuilt from its layout and a location (its own, or a mirror's) answers exactly like
+       the original.
    * - ``TestBoundingVolumes``
-     - :cpp:class:`AABBT` and :cpp:class:`SphereT`: construction from
-       corners and point clouds, volume, surface area, point distance,
-       intersection predicate, overlapping volume.
+     - :cpp:class:`AABBT`: construction from corners and point clouds, volume, surface area, point
+       distance, intersection predicate, overlapping volume; ``AABBT::merged``, the allocation-free
+       union, with the default (empty) box as its identity; and the same queries on a device.
    * - ``TestAnalyticSDF``
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
-       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`; CSG
-       :cpp:func:`Union`, :cpp:func:`Intersection`, :cpp:func:`Complement`.
+       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF`,
+       :cpp:class:`RoundedCylinderSDF` distances; the y-axis orientation of the torus and both
+       cones, and the rounded box fitting its outer size; every exact shape (all but
+       :cpp:class:`PerlinSDF`) checked as a true signed distance function at random points (unit
+       gradient, a step back along the gradient lands on the surface, 1-Lipschitz); every shape's
+       ``computeBoundingVolume()`` against its worked-out box, and its surface inside that box at
+       random points; the ``distanceQuality`` of every shape, mesh distance field and BVH union;
+       the capsule's sphere limit and Perlin's defaults; every analytic shape is a trivially
+       copyable, non-polymorphic value type; the device ``signedDistance()`` and
+       ``computeBoundingVolume()`` of all twelve shapes match the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
        correctness for :cpp:class:`FlatMeshSDF`; agreement between
        :cpp:class:`FlatMeshSDF` (brute-force) and :cpp:class:`TriMeshSDF`
-       (SIMD BVH).
+       (SIMD BVH); hand-built meshes whose half-edge loop does not close (a cycle that skips the
+       first edge, an index past the end) rejected by ``reconcile()`` and reported by
+       ``sanityCheck``, and a face with no half-edge or a vertex index past the end rejected by
+       ``reconcile()``; ``soupToDCEL`` rejecting a face with fewer than three vertices or an
+       out-of-range vertex index, and ``reconcilePairEdgesDCEL`` an out-of-range next edge;
+       :cpp:class:`DCEL::FaceT` point-in-face containment: the winding-number, crossing-number and
+       subtended-angle algorithms, and their agreement on convex and concave (notched) polygons and on
+       a non-axis-aligned plane.
    * - ``TestSFC``
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,
        monotonicity along one axis, injectivity, ``ValidSpan`` boundary
-       regression, and (for Hilbert) the consecutive-code adjacency property.
+       regression, and (for Hilbert) the consecutive-code adjacency property; ``computeBins``
+       binning into cubic cells (a flat cloud keeps a thin slab of bins), and coincident points or a
+       vanishing extent giving bin 0.
    * - ``TestTriangle``
      - :cpp:class:`Triangle`: face normal from vertex ordering, and
        signed-distance correctness for points closest to the face interior,
        an edge, and a vertex.
-   * - ``TestSTL``
-     - :cpp:class:`STL`: construction, copy/move semantics; ``Parser::readSTL``
-       reading raw vertex/facet data from a test file; round-trip through
-       ``convertToDCEL`` into a valid, watertight mesh.
-   * - ``TestPLY``
-     - :cpp:class:`PLY`: construction, copy/move semantics; named
-       vertex/face property storage and retrieval (including the
-       out-of-range-name error path); round-trip through ``convertToDCEL``.
-   * - ``TestOBJ``
-     - :cpp:class:`OBJ`: construction, copy/move semantics; round-trip
-       through ``convertToDCEL`` into a valid, watertight mesh.
-   * - ``TestVTK``
-     - :cpp:class:`VTK`: construction, copy/move semantics; named
-       point-data/cell-data scalar array storage and retrieval (including the
-       out-of-range-name error path); round-trip through ``convertToDCEL``.
+   * - ``TestPolygonSoup``
+     - :cpp:class:`PolygonSoup`: named vertex and face properties (an unknown name throwing, a
+       property of the wrong size rejected); ``clean()`` merging duplicate vertices, removing
+       degenerate faces and repairing a T-junction, carrying the properties along (a merged vertex
+       keeping the first one's values), and changing nothing when run again; an index out of range or
+       a non-finite coordinate throwing ``ParseError``; face ``i`` and vertex ``i`` of a clean soup
+       being face ``i`` and vertex ``i`` of its DCEL mesh; ``convertToDCEL`` of an unclean soup
+       leaving the soup as it was; and ``convertToTriangles`` tagging each triangle with its face.
+   * - ``TestParser``
+     - Cross-format parser behavior: binary STL (with per-facet color attributes), PLY and VTK
+       fixtures reading the same mesh as their ASCII counterparts; missing, empty, truncated and
+       corrupted files throwing ``ParseError`` with the file, line and reason; unused vertices being
+       ignored; ``OnDefect::Warn`` loading inconsistently oriented and folded meshes with a warning
+       (distances keep their magnitude), while a face that visits a vertex twice still throws; every
+       reader returning a clean soup, and ``readIntoPolygonSoup`` choosing the reader by extension;
+       PLY and VTK properties staying aligned with the face ids all three mesh SDFs report after a
+       degenerate face and a duplicate vertex are removed, and a VTK array that cannot be aligned
+       being dropped with a warning; the readers taking :cpp:class:`BVH::ConstructionOptions`
+       building what the constructors build; and mesh distance functions and BVH unions refusing to
+       build from no faces.
    * - ``TestBVH``
      - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
        supported formats, used to verify: identical topology/geometry across formats;
        :cpp:class:`BVH::TreeBVH`/:cpp:class:`BVH::PackedBVH` ``signedDistance`` agreement with a
        brute-force scan across every partitioning strategy (top-down with the default and SAH
        partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
-       :cpp:class:`MeshSDF`
+       :cpp:func:`BVH::PackedBVH::build` building the same tree as the named build for every
+       :cpp:class:`BVH::Construction` value, and rejecting a zero leaf setting; :cpp:class:`MeshSDF`
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
-       :cpp:class:`BVH::Build` strategy; :cpp:func:`MeshSDF::getClosestFaces` ordering; and
-       :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
-       correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
-       brute-force scan after displacement).
+       :cpp:class:`BVH::Construction` strategy; each method's :cpp:class:`BVH::ConstructionOptions`
+       leaf-size setting honoured by both mesh SDFs (the defaults reproducing the constructors
+       without options, and a zero setting rejected); signs on two concave meshes (an L-shaped prism
+       and a box with a narrow notch, whose concave edges need both adjacent faces' normals) against
+       an analytic inside test; ``getClosestFace`` on all three mesh SDFs naming a closest face (also
+       on polygon faces, and on a device against the host); a :cpp:class:`MeshSDF` seeing its mesh
+       flipped, or moved and refitted, after the build; :cpp:func:`BVH::PackedBVH::traverse` (a
+       nearest-point search with a visit callback and ``FarthestFirst`` against brute force at K = 2,
+       4 and 8 and on a device against the host; with no bound every primitive once and ``AsStored``
+       in stored order; an empty BVH calling nothing; ``BVH::RayQuery`` entry distances against the
+       unit cube's slab answers, including rays in a face's plane, along an edge and with -0
+       components, single-box and K-wide paths agreeing; the nearest box a ray enters against brute
+       force at K = 2, 4 and 8, and on a device; a missed box never entered under an infinite bound;
+       the visit orders and both comparator forms; a visit callback accounting for whole subtrees
+       and stopping the walk; a user query type with a composite key); :cpp:func:`BVH::TreeBVH::traverse` passing an exception
+       from a callback on to the caller; and every :cpp:class:`BVH::PackedBVH` box stored once (a
+       32-byte node at K = 4; any node's box, found through its box slot, equal to the union of its
+       primitives or children; a refit through a copy seen by the original; deep and adopted copies
+       keeping every box; the adopting constructor rejecting a box count that does not match the
+       nodes); :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding
+       volumes correct after a moving geometry (idempotent on an unchanged cloud, queries still
+       matching a brute-force scan after displacement), and every :cpp:class:`BVH::TreeBVH` node's
+       box exactly the union of what it encloses, after both builds and after a refit. Also the
+       build-time checks: a tree too deep for the host or device traversal stack at ``K`` = 2, 4 and
+       16, every kind of malformed node array (a leaf with no primitives among them), and a
+       partitioner that returns an empty partition, all rejected; a tree at the host depth limit,
+       visited deepest first, filling the traversal stack to its last entry; ``traverse()`` visiting
+       leaves in the order of a recursive depth-first search; a level
+       resumed with exact distances never pruning a closer primitive; a NaN query coordinate reaching
+       every primitive in an unbounded search at every ``K``, SIMD path or scalar; only interior
+       nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
+       extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
+       fewest power-of-``K`` leaves; a :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns,
+       built both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
    * - ``TestCSG``
-     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin` blending primitives;
-       sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`
-       (and their BVH-accelerated counterparts); :cpp:class:`FiniteRepetitionIF` tiling and
-       boundary clamping.
+     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
+       primitives, including far from the blend region;
+       sharp and smooth ``Union``/``Intersection``/``Difference`` expressions compiled into a tape,
+       against the formulas computed by hand, with both blend kinds; the boxes and distance qualities
+       of combined expressions; a union of many objects with and without the tape's BVH, with an
+       operand that is not a distance, and with unbounded operands; ``FiniteRepetition`` tiling,
+       boundary clamping, and its value being the minimum over all copies, off-center and
+       overlapping ones included. The BVH-accelerated
+       :cpp:class:`BVHUnion`/:cpp:class:`BVHSmoothUnion` over spheres (against a brute-force scan,
+       for every build strategy and blend, and with each method's leaf-size setting) and over
+       translated
+       ``TriMeshSDF`` objects, including a union of unions; primitives whose values are not
+       distances keeping the union's sign; primitives with unbounded boxes (infinite cylinders and
+       cones, alone and mixed with spheres) kept out of the BVH and matching brute force for every
+       build strategy, through host-mirror, deep and nested copies; host-mirror and deep copies of a
+       mesh union evaluated after the source pool is destroyed; device results of the unions
+       against the host.
    * - ``TestTransform``
-     - :cpp:class:`ComplementIF`, :cpp:class:`TranslateIF`, :cpp:class:`RotateIF`,
-       :cpp:class:`ScaleIF`, :cpp:class:`OffsetIF`, :cpp:class:`AnnularIF`, :cpp:class:`BlurIF`,
-       :cpp:class:`MollifyIF`, :cpp:class:`ElongateIF`, :cpp:class:`ReflectIF`: each transform's
-       free-function/class-constructor equivalence, and correctness against a hand-computable
-       expected value.
-   * - ``TestOctree``
-     - :cpp:class:`Octree::Node`: depth-first/breadth-first construction, traversal pruning and
-       custom sort order; :cpp:func:`ImplicitFunction::approximateBoundingVolumeOctree`
-       correctness (tightening bound with depth, degenerate/non-intersecting input fallback).
-   * - ``TestPolygon2D``
-     - :cpp:class:`Polygon2D`: winding-number/crossing-number/subtended-angle containment
-       algorithms, agreement between them on convex and concave (notched) polygons, and on a
-       non-axis-aligned embedding plane.
+     - The point-map and value transforms of the expression builder (``Complement``, ``Translate``,
+       ``Rotate`` about a coordinate axis and about any direction, ``Scale``, ``Offset``,
+       ``Annular``, ``Blur``, ``Mollify``, ``Elongate``, ``Reflect``), compiled into a tape: each
+       against its formula applied by hand and against an equivalent shape built directly; chains of
+       maps folded into one; transformed boxes; and every rejected argument.
+   * - ``TestTape``
+     - :cpp:class:`Tape` itself: a trivially copyable pool handle and a shape; every analytic shape
+       evaluating exactly as the shape; a mesh distance field (all three kinds) unioned with a sphere
+       equal to the smaller distance everywhere; a union of many objects of different types matching
+       brute force with and without a BVH; user primitive types, including a BVH union and a tape
+       inside a tape; a handle rebuilt from its layout, a view on a mirror and a deep copy; the
+       recorded box and distance quality; an empty intersection inside a BVH union; the
+       constructor rejecting an unknown primitive type, a mesh from another pool, and expressions
+       that nest too deeply; and on a device, every primitive type and every operation, BVH unions
+       with and without unbounded operands, calls nested to the limit, full value and point stacks,
+       user primitive types and a tape inside a tape, each against the host; a user octahedron's
+       exact values kept through rotation, translation and a BVH union; and a tape built directly in
+       managed memory evaluated on the device through its own pool; ``closestPrimitive()``'s deciding
+       leaf for a difference, a union (through the BVH and operand by operand) and an intersection
+       against the brute-force choice, followed through smooth blends, blurs, maps and repetitions to
+       the leaf and its local point, each occurrence of a shared shape numbered, a mesh leaf returned as
+       a handle, a fused part as one leaf of a scene, and the device against the host.
+   * - ``TestFused``
+     - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
+       exactly when an operand lives in a pool; each against its formula applied by hand, a blur and
+       a mollification leaving a plane as it is; a finite repetition equal to the minimum over all
+       its copies, off-center and overlapping ones included; each composition equal to a ``Tape`` of
+       the same expression to rounding; boxes equal to the builder's and distance qualities at least as
+       cautious; a composition of mesh distance fields through a host mirror, a deep copy and a node
+       rebuilt from its layout; a fused shape as a tape primitive and as a BVH union's primitive; on
+       a device, an analytic composition and a drilled mesh against the host; and every rejected
+       argument, operands from different pools included.
+   * - ``TestRay``
+     - The ray queries: the unit cube as a ``TriMeshSDF``, a ``MeshSDF`` and a ``FlatMeshSDF`` against a slab test (axis-aligned and diagonal
+       rays, rays through a face diagonal, an edge and a corner, from inside, in a face's plane, misses,
+       an interval stopping short, a crossing at ``t = 0`` and stepping off it), with the face and
+       normal, and on 2,000 random rays (the triangles at two leaf widths); no ray slipping between the
+       faces of a fine mesh far from the origin, aimed at its edges and corners;
+       ``intersects()`` agreeing with ``firstHit()`` on unbounded rays that enter a tetrahedron's leaf boxes and miss;
+       a sliver face not crossed beyond its ends; each analytic ray form against its crossing
+       worked by hand and against the march on random rays; span lists united, intersected and
+       complemented against the sets of points they cover; a fused and a taped composition traced (and
+       marched on request) to crossings worked by hand, with the tape's deciding leaf; fused compositions
+       and tapes (a BVH union, a difference, a complement, affine maps) against their values sampled
+       along rays from outside and inside, through a deep copy and a view; a row of balls with more
+       spans than a list holds, from starts along it; the three mesh SDFs, a shape with only
+       ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; a marched ball in
+       differences, fused and in a tape, evaluated only where the box leaves the difference open and only up
+       to its first crossing; offsets and annuli of a sphere, box, capsule, plane, infinite cylinder and a
+       scaled ball, fused and in a tape, and of the three mesh SDFs (the unit cube grown, shrunk and as a wall,
+       from outside, from inside it and towards a corner), against crossings and normals worked by hand, and a
+       shell of a shell marched; segments (zero length, a crossing at
+       the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
+       ray form, the march, a fused composition, the three mesh SDFs, two tapes (one with a BVH union
+       and a difference), a mesh in a fused difference, and offsets and annuli of the meshes and of a scaled
+       box, fused and in tapes, against the host.
+   * - ``TestIncludeFused``, ``TestIncludeBVHUnion``
+     - A file that includes only the shapes and ``EBGeometry_Fused.hpp`` (or ``EBGeometry_BVHUnion.hpp``)
+       sees the ray forms of the fused compositions, the BVH unions and the offsets, so ``firstHit()`` traces
+       them exactly, as in every other file.
+   * - ``TestRender``
+     - The renderer: ``Camera::fit`` and ``Camera::lookAt`` placing the eye; a sphere covering the
+       pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the
+       camera reported inside; coloring by primitive telling two leaves apart; the section plane
+       removing one side and showing the cut face; a ray-traced mesh cube cut by the plane drawn as the
+       closed-form box is; a canceled render stopping before any row, on the host and the device;
+       faces lying on the bounding box seen from outside; a table color replacing the palette's for its
+       primitive only; coloring by normal; the light, ambient, highlight and background settings (an
+       unlit surface black, a background of the color set); the floor's checkerboard off and resized;
+       an orthographic camera showing a sphere as a disc of its radius; the near clip; ``Camera::fit``
+       from named views, straight along the up axis too; ``toCode()`` writing the changed fields; the
+       section plane's contour, sheet and lines of equal distance, within the box only; ``writeImage()``
+       writing a binary PPM;
+       ``view()`` returning at once with ``--no-view``, the pool left unfrozen; the rejected settings and
+       cameras; and device renders against the host's, with and without the new camera and colors.
+   * - ``TestFunctionQueries``
+     - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
+       a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
+       empty, inverted or missed initial box, a depth beyond ``MaxOctreeDepth`` rejected, and the
+       same box from a shape, a tape and a lambda;
+       :cpp:func:`normal` against a sphere's exact normal; and both on a device.
    * - ``TestTriangleSoA``
-     - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the
-       individual packed :cpp:class:`Triangle` instances (including padding when fewer than
-       ``W`` triangles are packed), per-lane ``signedDistances`` consistency, and bounding-volume
-       construction from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle metadata
-       retrieval (``signedDistance(point, Meta&)``) and per-lane ``getMetaData`` with padding.
+     - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the individual
+       packed :cpp:class:`Triangle` instances (including padding when fewer than ``W`` triangles are
+       packed), per-lane ``signedDistances`` consistency, a zero normal giving a negative distance
+       on the SIMD and scalar paths alike at ``W`` = 4, 8 and 16, and bounding-volume construction
+       from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle face-id retrieval
+       (``signedDistance(point, uint32_t&)``) and per-lane ``getFaceId`` with padding.
+   * - ``TestPointSoA``
+     - :cpp:class:`PointSoAT`: minimum and maximum distances and per-lane distances against the
+       closest and farthest packed point, unaffected by padding, for ``W`` = 4 and 8; the bounding
+       volume of the packed points; the default width; and rejection of a bad count or a null array.
+   * - ``TestPointAoSoA``
+     - :cpp:class:`PointAoSoA`: distances agreeing exactly with a plain ``PointSoAT``, per-lane
+       point ids with padding and the valid-point count, the bounding volume, the default width,
+       rejection of bad input, and the device query surface against the host.
+   * - ``TestPointCloud``
+     - ``PointCloud::Hit`` (a default one is a miss, unlike cloud index 0), ``PointCloud::KBest``
+       (order, ties, the excluded point, the pruning bound), and the brute-force references against
+       an independent scan, including self-queries, fewer points than requested, and an empty cloud.
+   * - ``TestPointCloudBVH``
+     - :cpp:class:`PointCloudBVH`: nearest-neighbor, k-nearest-neighbor, all-points and
+       closest-point queries against brute force, edge cases (padded lanes reported once even when
+       ``k`` exceeds the cloud), ``rebasedView``/``deepCopy``, device queries against the host, and
+       rejection of a cloud it cannot index, a zero leaf size, or a rebase onto too small a pool.
+       The query functors it shares with ``TestPointCloudHashGrid`` are in
+       :file:`Tests/TestPointCloudQueries.hpp`.
+   * - ``TestPointCloudHashGrid``
+     - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases (far
+       queries, a lattice where many points tie on cell faces, a cloud far from the origin where the
+       stopping rule's rounding slack is tightest, extreme cell sizes),
+       ``rebasedView``/``deepCopy``, device queries against the host, and rejection of a cloud it
+       cannot index, a non-positive target occupancy, or a rebase onto an unrelated pool.
+   * - ``TestRandom``
+     - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
+       an empty result for a zero count.
    * - ``TestSimpleTimer``
      - ``SimpleTimer``: near-zero elapsed time on construction, measured duration against a
        requested sleep, restart-on-``start()`` semantics, and relative ordering of two
@@ -255,7 +500,7 @@ Test coverage
 above: it is a compile-only target (built by ``cmake --build``, but never run by ``ctest``)
 that explicitly instantiates every public class template for both ``float`` and ``double``.
 Its purpose is to give ``clang-tidy`` and the project's warning set (in particular
-``-Wdouble-promotion``) something to analyse for both precisions, regardless of what the
+``-Wdouble-promotion``) something to analyze for both precisions, regardless of what the
 Catch2 tests above happen to exercise -- ``float`` support would otherwise only be checked
 by whichever public classes a test happens to instantiate. See
 :ref:`Chap:ContributionGuidelines` for when to add a new class to it.

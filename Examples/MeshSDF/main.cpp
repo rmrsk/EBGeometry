@@ -2,10 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// Reading a surface mesh into a signed distance function, in each of the three representations
+// EBGeometry offers, and evaluating it on the host and, through the same query, on a GPU. The timings
+// show why the BVH-backed representations exist. At the end it opens a window on the mesh, if built
+// with the viewer. See README.md.
+
 #include <chrono>
+#include <cstddef>
+#include <iostream>
 #include <random>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #include <EBGeometry.hpp>
@@ -15,122 +21,196 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-using namespace EBGeometry;
-using namespace EBGeometry::DCEL;
-
-// Degree of bounding volume hierarchies. We use a 4-ary tree here, where each
-// regular node has four children.
-constexpr int K = 4;
-
 using T    = EBGEOMETRY_PRECISION;
-using Meta = short;
-using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
 
+// The BVH branching factor (K) and triangle-group width (W) that the readers use by default.
+constexpr std::size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
+constexpr std::size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
+
+using TriMeshSDF = EBGeometry::TriMeshSDF<T, K, W>;
+
+// The number of random points the representations are timed over. FlatMeshSDF visits every face for
+// every point, so a few hundred points already take minutes on a large mesh in an unoptimized build.
+constexpr std::size_t numPoints = 100;
+
+namespace {
+
+// ── The code that runs on either side ────────────────────────────────────────────────────────────────
+//
+// A query for EBGeometry::GPU::transform(): a trivially copyable functor whose EBGEOMETRY_HOST_DEVICE
+// call operator maps one point to one result. It holds a mesh SDF by value. A MeshSDF owns no memory:
+// it is a descriptor of the mesh and BVH in a Pool, so a copy is cheap and a kernel can receive it by
+// value once it describes a pool the device can read (see the last section of main()).
+struct Distance
+{
+  TriMeshSDF m_sdf;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return m_sdf.signedDistance(a_point);
+  }
+};
+
+// Microseconds per point for evaluating an SDF at every point.
+template <class SDF>
+T
+timePerPoint(const SDF& a_sdf, const std::vector<Vec3>& a_points, std::vector<T>& a_distances)
+{
+  const auto start = std::chrono::steady_clock::now();
+
+  for (std::size_t i = 0; i < a_points.size(); i++) {
+    a_distances[i] = a_sdf.signedDistance(a_points[i]);
+  }
+
+  const std::chrono::duration<T, std::micro> elapsed = std::chrono::steady_clock::now() - start;
+
+  return elapsed.count() / T(a_points.size());
+}
+
+} // namespace
+
+// The function-try-block reports a mesh file that cannot be read, rather than letting the exception
+// terminate the program.
 int
 main(int argc, char* argv[])
-{
-  // Path to a surface mesh (STL/PLY/VTK/OBJ). Pass one on the command line, e.g.
-  //   ./a.out ../../common-3d-test-models/data/cow.obj
-  // Paths are resolved relative to the run directory (this example's source folder when run via ctest).
+try {
+  // ── Read the mesh ──────────────────────────────────────────────────────────────────────────────────
+  //
+  // Any watertight, orientable surface mesh in STL, PLY, VTK or OBJ. The default comes from the
+  // common-3d-test-models submodule (git submodule update --init); pass another on the command line.
+  // Arguments starting with -- are options (--no-view keeps the viewer shut).
   std::string file = "../../common-3d-test-models/data/armadillo.obj";
 
-  if (argc == 2) {
-    file = std::string(argv[1]);
+  for (int i = 1; i < argc; i++) {
+    if (std::string(argv[i]).rfind("--", 0) != 0) {
+      file = argv[i];
+
+      break;
+    }
+  }
+
+  std::cout << "Reading '" << file << "'\n";
+
+  // Everything the SDFs refer to (vertices, faces, BVH nodes) lives in one Pool. The SDFs are
+  // descriptors into it, so the pool must outlive them and every copy of them. Keeping it in main()'s
+  // scope does.
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+  // Three representations of the same surface:
+  //   FlatMeshSDF: the half-edge mesh with no acceleration; every query visits every face.
+  //   MeshSDF:     the half-edge mesh under a BVH; any planar convex polygon faces.
+  //   TriMeshSDF:  triangles (polygons are fan-triangulated) grouped for SIMD under a BVH; usually the
+  //                fastest, and the one to pick unless you need the polygon faces themselves.
+  // Each reader parses the file and builds its own structure. In an application you would pick one.
+  // OnDefect::Warn loads a mesh with small defects (two faces oriented against each other, an edge shared
+  // by more than two faces) with a warning, rather than refusing it; the sign of the distance near such a
+  // defect is unreliable.
+  constexpr auto warn = EBGeometry::Parser::OnDefect::Warn;
+  constexpr auto sah  = EBGeometry::BVH::Construction::SAH;
+
+  const auto flatSDF = EBGeometry::Parser::readIntoFlatMeshSDF<T>(file, pool, warn);
+  const auto meshSDF = EBGeometry::Parser::readIntoMeshSDF<T>(file, pool, sah, warn);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool, sah, warn);
+
+  const EBGeometry::BoundingVolumes::AABBT<T> box = triSDF.computeBoundingVolume();
+
+  std::cout << "  Faces        : " << meshSDF.getMesh().numFaces() << '\n';
+  std::cout << "  Bounding box : " << box.getLowCorner() << " to " << box.getHighCorner() << "\n\n";
+
+  // ── Use it on the host ─────────────────────────────────────────────────────────────────────────────
+  //
+  // Random points in a box three times the size of the mesh's, with the mesh at its center: most lie
+  // outside, some inside. A fixed seed gives the same points on every run.
+  const Vec3 lo    = box.getLowCorner();
+  const Vec3 delta = box.getHighCorner() - lo;
+
+  std::mt19937_64                   rng(12345);
+  std::uniform_real_distribution<T> unit(T(0), T(1));
+  std::vector<Vec3>                 points;
+
+  for (std::size_t i = 0; i < numPoints; i++) {
+    points.emplace_back(lo - delta + T(3) * delta * Vec3(unit(rng), unit(rng), unit(rng)));
+  }
+
+  // signedDistance(point) is negative inside the mesh and positive outside. The three representations
+  // give the same values; they differ only in how many faces they visit to find them.
+  std::vector<T> flat(numPoints);
+  std::vector<T> mesh(numPoints);
+  std::vector<T> tri(numPoints);
+
+  const T flatTime = timePerPoint(flatSDF, points, flat);
+  const T meshTime = timePerPoint(meshSDF, points, mesh);
+  const T triTime  = timePerPoint(triSDF, points, tri);
+
+  std::cout << "Time per query over " << numPoints << " points:\n";
+  std::cout << "  FlatMeshSDF : " << flatTime << " us\n";
+  std::cout << "  MeshSDF     : " << meshTime << " us (" << flatTime / meshTime << "x faster)\n";
+  std::cout << "  TriMeshSDF  : " << triTime << " us (" << flatTime / triTime << "x faster)\n\n";
+
+  std::cout << "The first few points:\n";
+
+  for (std::size_t i = 0; i < 4; i++) {
+    std::cout << "  " << points[i] << "   FlatMeshSDF " << flat[i] << "   MeshSDF " << mesh[i] << "   TriMeshSDF "
+              << tri[i] << '\n';
+  }
+
+  // getClosestFace() also says which face is nearest: its index in the order the file lists the faces,
+  // which is how to look up per-face data of your own.
+  const EBGeometry::ClosestFace<T> nearest = triSDF.getClosestFace(points[0]);
+
+  std::cout << "  The face nearest the first point is face " << nearest.faceId << ", at distance "
+            << nearest.signedDistance << "\n";
+
+  // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
+  //
+  // A kernel cannot read host memory, so the pool goes to the device first:
+  //   1. freeze() the pool, so that nothing can be added to it and its block stays where it is;
+  //   2. Pool::mirror() copies the whole block, every mesh and BVH in it, in one piece into
+  //      GPU::memoryResource() (device memory in a CUDA or HIP build);
+  //   3. rebasedView() gives a descriptor of the same SDF that resolves against the copy.
+  // GPU::transform() then runs the query once per point in a kernel and writes the results into a host
+  // vector. In a plain C++ build, memoryResource() is host memory standing in for a device and transform()
+  // is a host loop, so these lines also run there. The values agree with the host's to rounding, since
+  // a device compiler may fuse a multiply and an add where the host compiler does not.
+  if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "\nOn the device: skipped, no GPU is visible\n";
   }
   else {
-    std::cout << "No mesh file given; defaulting to '" << file << "'.\n"
-              << "Usage: ./a.out <path-to-mesh>, e.g. a .obj from the common-3d-test-models submodule "
-                 "(see the Building and using page in the docs for how to fetch it).\n";
+    pool.freeze();
+
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource());
+
+    const Distance query{triSDF.rebasedView(devicePool)};
+
+    std::vector<T> onDevice(points.size());
+
+    EBGeometry::GPU::transform(query, points, onDevice);
+
+    std::cout << "\nTriMeshSDF through GPU::transform (backend: " << EBGeometry::GPU::backendName << "):\n";
+
+    for (std::size_t i = 0; i < 4; i++) {
+      std::cout << "  " << points[i] << "   " << onDevice[i] << '\n';
+    }
   }
 
-  // Three representations of the same object:
-  //   dcelSDF  – FlatMeshSDF: O(N) brute-force over all faces.
-  //   meshSDF  – MeshSDF: PackedBVH over DCEL faces (any polygon, SIMD traversal).
-  //   triSDF   – TriMeshSDF: PackedBVH over SoA triangle groups (triangles only, SIMD leaf eval).
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // Note that this reads the mesh and builds the BVH tree independently for each
-  // representation. There are converters that avoid this, but users will almost always
-  // only use one of these representations.
-  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
-  const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file, 4, BVH::Build::SAH);
-
-  // Sample some random points around the object.
-  constexpr size_t Nsamp = 1000;
-
-  Vec3 lo = Vec3::infinity();
-  Vec3 hi = -Vec3::infinity();
-
-  for (const auto& v : dcelSDF->getMesh()->getAllVertexCoordinates()) {
-    lo = min(lo, v);
-    hi = max(hi, v);
-  }
-  const Vec3 delta = hi - lo;
-
-  std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
-
-  std::uniform_real_distribution<T> dist(0.0, 1.0);
-  std::vector<Vec3>                 ranPoints;
-
-  for (size_t i = 0; i < Nsamp; i++) {
-    ranPoints.emplace_back(3 * (lo + delta * Vec3(dist(rng), dist(rng), dist(rng))));
-  }
-
-  // Compute sum of distances to the random points and time each representation.
-  T dcelSum = 0.0;
-  T meshSum = 0.0;
-  T triSum  = 0.0;
-
-  const auto t0 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
-    dcelSum += dcelSDF->signedDistance(x);
-  }
-  const auto t1 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
-    meshSum += meshSDF->signedDistance(x);
-  }
-  const auto t2 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
-    triSum += triSDF->signedDistance(x);
-  }
-  const auto t3 = std::chrono::high_resolution_clock::now();
-
-  const std::chrono::duration<T, std::micro> dcelTime = t1 - t0;
-  const std::chrono::duration<T, std::micro> meshTime = t2 - t1;
-  const std::chrono::duration<T, std::micro> triTime  = t3 - t2;
-
-  // Summing Nsamp signed distances in a different order (brute-force scan vs. BVH traversal)
-  // is not bit-for-bit reproducible -- floating-point addition isn't associative -- so compare
-  // the two sums with a relative tolerance rather than requiring exact agreement. float needs a
-  // looser tolerance than double: accumulating Nsamp terms in a different order can land right
-  // at float's own ~1.19e-7 epsilon (observed relative diff ~1.2e-7 on the armadillo mesh, which
-  // a flat 1e-7 tolerance flagged as a mismatch).
-  constexpr T relativeTolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-7);
-
-  bool    mismatch  = false;
-  const T meshScale = std::max(std::abs(dcelSum), std::abs(meshSum));
-  if (std::abs(meshSum - dcelSum) > relativeTolerance * std::max(meshScale, T(1.0))) {
-    std::cerr << "MeshSDF did not give same distance as FlatMeshSDF! Diff = " << meshSum - dcelSum << "\n";
-    mismatch = true;
-  }
-  const T triScale = std::max(std::abs(dcelSum), std::abs(triSum));
-  if (std::abs(triSum - dcelSum) > relativeTolerance * std::max(triScale, T(1.0))) {
-    std::cerr << "TriMeshSDF did not give same distance as FlatMeshSDF! Diff = " << triSum - dcelSum << "\n";
-    mismatch = true;
-  }
-  if (mismatch) {
-    return 1;
-  }
-
-  // clang-format off
-  std::cout << "Bounding box = " << lo << "\t" << hi << "\n";
-  std::cout << "Accumulated distance and time using FlatMeshSDF           = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using MeshSDF (PackedBVH)   = " << meshSum << ", which took " << meshTime.count() / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using TriMeshSDF (PackedBVH)= " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";
-  std::cout << "Relative speedup MeshSDF vs FlatMeshSDF                   = " << dcelTime.count() / meshTime.count() << "\n";
-  std::cout << "Relative speedup TriMeshSDF vs FlatMeshSDF                = " << dcelTime.count() / triTime.count()  << "\n";
-  // clang-format on
+  // Render::view() opens a window on any shape: drag to orbit, scroll to zoom, X to cut it open with a
+  // section plane, P to cycle the coloring (by primitive, each face differs). A surface seen from inside
+  // the solid is drawn red, which is what an inverted mesh (faces wound the wrong way) looks like. The window needs SDL2: build
+  // with make VIEWER=SDL2 or cmake -DEBGEOMETRY_VIEWER=SDL2. Otherwise, with --no-view, or without a
+  // display, view() prints why and returns. The camera starts fitted to the mesh's bounding box. Given the
+  // pool, it renders on the device in a GPU build, through a view of the mesh on a mirror of the pool (G
+  // switches to the CPU and back).
+  EBGeometry::Render::view(triSDF, pool, argc, argv);
 
   return 0;
+} catch (const EBGeometry::Parser::ParseError& e) {
+  std::cerr << "Cannot read the mesh: " << e.what() << '\n'
+            << "The default mesh is in the common-3d-test-models submodule: git submodule update --init\n";
+
+  return 1;
 }

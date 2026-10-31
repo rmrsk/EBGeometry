@@ -1,13 +1,15 @@
-// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <chrono>
-#include <cmath>
+// Packed spheres: spheres of random sizes at random places in a cylinder, joined by a smooth union so that
+// neighbors that touch merge with a fillet. A BVHSmoothUnion evaluates it through a BVH over the spheres'
+// boxes and blends the two nearest, so a point costs a few spheres, not all of them. See README.md.
+
+#include <iomanip>
+#include <iostream>
 #include <random>
-#include <string>
-#include <thread>
-#include <type_traits>
+#include <vector>
 
 #include <EBGeometry.hpp>
 
@@ -16,138 +18,67 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-// Declare our precision.
-using T = EBGEOMETRY_PRECISION;
-
-// Aliases for cutting down on typing.
-using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
+using T      = EBGEOMETRY_PRECISION;
 using Vec3   = EBGeometry::Vec3T<T>;
-using SDF    = EBGeometry::SignedDistanceFunction<T>;
+using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Sphere = EBGeometry::SphereSDF<T>;
 
-using namespace std::chrono_literals;
+// The BVH branching factor, spelled out, and the smooth minimum that blends the two nearest spheres.
+constexpr std::size_t K = 4;
+
+using Packing = EBGeometry::BVHSmoothUnion<T, Sphere, K, EBGeometry::SmoothMinOp<T>>;
+
+// numSpheres spheres, centered in a cylinder along x of the given radius and five times as long, with radii
+// between minRadius and maxRadius; the union blends over blendLength.
+constexpr int numSpheres     = 3000;
+constexpr T   cylinderRadius = T(26);
+constexpr T   minRadius      = T(0.6);
+constexpr T   maxRadius      = T(3);
+constexpr T   blendLength    = T(1.5);
 
 int
-main()
+main(int argc, char* argv[])
 {
-  // Tree branching factor
-  constexpr int K = 4;
+  // ── Build the packing ──────────────────────────────────────────────────────────────────────────────
+  //
+  // Rejection sampling: draw a center uniformly in the cylinder's box and keep it only if it lies inside the
+  // cylinder, then draw the radius. A fixed seed gives the same packing on every run (with the same standard
+  // library, whose distributions are not specified bit for bit). The union copies the spheres into the pool,
+  // which must outlive it.
+  std::mt19937_64                   rng(0);
+  std::uniform_real_distribution<T> unit(T(-1), T(1));
 
-  // Make a sphere array consisting of about M^3 spheres.
-  std::vector<std::shared_ptr<Sphere>> spheres;
-  std::vector<AABB>                    boundingVolumes;
+  std::vector<Sphere> spheres;
+  std::vector<AABB>   boxes;
 
-  constexpr T   radius = 1.0;
-  constexpr int M      = 80;
-  constexpr int Nsamp  = 1000;
-  constexpr T   delta  = radius;
+  while (spheres.size() < numSpheres) {
+    const Vec3 center = cylinderRadius * Vec3(T(2.5) * unit(rng), unit(rng), unit(rng));
 
-  for (int i = 0; i < M; i++) {
-    for (int j = 0; j < M; j++) {
-      for (int k = 0; k < M; k++) {
+    if (center[1] * center[1] + center[2] * center[2] <= cylinderRadius * cylinderRadius) {
+      const T radius = minRadius + T(0.5) * (unit(rng) + T(1)) * (maxRadius - minRadius);
 
-        const T x = i * (delta + 2 * radius);
-        const T y = j * (delta + 2 * radius);
-        const T z = k * (delta + 2 * radius);
-
-        const Vec3 center(x, y, z);
-        const Vec3 lo = center - radius * Vec3::ones();
-        const Vec3 hi = center + radius * Vec3::ones();
-
-        spheres.emplace_back(std::make_shared<Sphere>(center, radius));
-        boundingVolumes.emplace_back(lo, hi);
-      }
+      spheres.emplace_back(center, radius);
+      boxes.push_back(spheres.back().computeBoundingVolume());
     }
   }
 
-  // Make a standard union of these spheres. This is the union object which
-  // iterates through each and every object in the scene.
-  auto slowUnion = EBGeometry::Union<T, Sphere>(spheres);
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  // Make a fast (BVH-accelerated) union from the same spheres and their precomputed
-  // bounding volumes above: the BVH lets a query skip most of the spheres whose bounding
-  // box is nowhere near the query point.
-  std::cout << "Partitioning " << spheres.size() << " spheres\n" << '\n';
-  const EBGeometry::BVHUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
+  const Packing packing(pool, spheres, boxes, blendLength);
 
-  // A third representation: rather than storing all M^3 spheres explicitly, tile a single
-  // sphere periodically. A query point is folded into its nearest tile before evaluating the
-  // sphere, so this needs neither a list of spheres nor a search structure -- just the tile
-  // period (center-to-center spacing) and how many tiles to repeat along the increasing
-  // direction of each axis (0 in the decreasing direction, since the packed lattice above
-  // only extends in the positive octant).
-  auto sph         = std::make_shared<Sphere>(Vec3::zeros(), radius);
-  auto sphereArray = EBGeometry::FiniteRepetition<T, Sphere>(
-    sph, (delta + 2 * radius) * Vec3::ones(), Vec3::zeros(), 80.0 * Vec3::ones());
+  // ── Use it on the host ─────────────────────────────────────────────────────────────────────────────
+  //
+  // signedDistance() is negative inside any sphere or fillet; the corner of the box is outside them all.
+  std::cout << std::fixed << std::setprecision(4) << spheres.size() << " spheres, box "
+            << packing.computeBoundingVolume() << "\n  value at the center " << packing.signedDistance(Vec3::zeros())
+            << ", at the corner " << packing.signedDistance(packing.computeBoundingVolume().getLowCorner()) << '\n';
 
-  // Create some samples in the bounding box of the BVH
-  std::cout << "Sampling distance fields... \n" << '\n';
-  std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
-  std::uniform_real_distribution<T> dist(0.0, 1.0);
-
-  const AABB& bv = fastUnion.getBoundingVolume();
-  const Vec3& lo = bv.getLowCorner();
-  const Vec3& hi = bv.getHighCorner();
-
-  std::vector<Vec3> randomPositions;
-  for (size_t i = 0; i < Nsamp; i++) {
-    const T x = lo[0] + dist(rng) * (hi[0] - lo[0]);
-    const T y = lo[1] + dist(rng) * (hi[1] - lo[1]);
-    const T z = lo[2] + dist(rng) * (hi[2] - lo[2]);
-
-    randomPositions.emplace_back(x, y, z);
-  }
-
-  // Time the results, using the standard union, the optimized union, and the finite repetition.
-  std::chrono::duration<T, std::micro> slowTime(0.0);
-  std::chrono::duration<T, std::micro> fastTime(0.0);
-  std::chrono::duration<T, std::micro> arrayTime(0.0);
-
-  T sumSlow  = 0.0;
-  T sumFast  = 0.0;
-  T sumArray = 0.0;
-
-  const auto t1 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : randomPositions) {
-    sumSlow += slowUnion->value(x);
-  }
-  const auto t2 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : randomPositions) {
-    sumFast += fastUnion.value(x);
-  }
-  const auto t3 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : randomPositions) {
-    sumArray += sphereArray->value(x);
-  }
-  const auto t4 = std::chrono::high_resolution_clock::now();
-
-  // Summing Nsamp values in a different order (naive scan vs. BVH traversal vs. finite-repetition
-  // folding) is not bit-for-bit reproducible -- floating-point addition isn't associative -- so
-  // compare the sums with a relative tolerance rather than requiring exact agreement. float needs
-  // a looser tolerance than double: accumulating Nsamp terms in a different order can land right
-  // at float's own ~1.19e-7 epsilon, which a flat 1e-7 tolerance intermittently flags as a
-  // mismatch (observed in CI).
-  constexpr T relativeTolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-7);
-
-  const T fastScale  = std::max(std::abs(sumSlow), std::abs(sumFast));
-  const T arrayScale = std::max(std::abs(sumSlow), std::abs(sumArray));
-
-  if (std::abs(sumSlow - sumFast) > relativeTolerance * std::max(fastScale, T(1.0)) ||
-      std::abs(sumSlow - sumArray) > relativeTolerance * std::max(arrayScale, T(1.0))) {
-    std::cerr << "Got wrong distance!" << '\n';
-
-    return 2;
-  }
-
-  slowTime += (t2 - t1);
-  fastTime += (t3 - t2);
-  arrayTime += (t4 - t3);
-
-  std::cout << "Time using slow union (us)   = " << slowTime.count() / Nsamp << "\n";
-  std::cout << "Time using fast union (us)   = " << fastTime.count() / Nsamp << "\n";
-  std::cout << "Time using sphere array (us) = " << arrayTime.count() / Nsamp << "\n\n";
-  std::cout << "BVH speedup over naive       = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
-  std::cout << "BVH penalty over optimal     = " << (1.0 * fastTime.count()) / (1.0 * arrayTime.count()) << "\n";
+  // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
+  //
+  // A window on the packing (built with VIEWER=SDL2; otherwise, with --no-view or without a display,
+  // view() prints why and returns). X cuts it open to show the spheres inside.
+  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
+  EBGeometry::Render::view(packing, pool, argc, argv);
 
   return 0;
 }

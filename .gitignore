@@ -5,15 +5,11 @@
 
 build
 
-# AMReX build/run artifacts (any example under Integrations/AMReX/<name>/).
-Integrations/AMReX/*/plt*
-Integrations/AMReX/*/tmp_build_dir
-Integrations/AMReX/*/Backtrace.*
-
-# Chombo build artifacts (any example under Integrations/Chombo/<name>/).
-Integrations/Chombo/*/d/**
-Integrations/Chombo/*/o/**
-Integrations/Chombo/*/f/**
+# Build/run artifacts of the integrations (any example under Integrations/<Platform>/<name>/).
+Integrations/*/*/plt*
+Integrations/*/*/tmp_build_dir
+Integrations/*/*/Backtrace.*
+Integrations/*/Backtrace.*
 
 Docs/*
 !Docs/.nojekyll
@@ -34,3 +30,4 @@ Docs/Sphinx/source/_static/**/*.png
 
 # Local clang-tidy capture (not part of the project)
 /clang-tidy.log
+__pycache__/

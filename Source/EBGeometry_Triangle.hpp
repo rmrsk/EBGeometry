@@ -12,10 +12,11 @@
 #define EBGEOMETRY_TRIANGLE_HPP
 
 // Std includes
-#include <array>
+#include <cstdint>
 #include <type_traits>
 
 // Our includes
+#include "EBGeometry_Array.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -29,9 +30,9 @@ namespace EBGeometry {
  * This class assumes that the vertices are organized with the right-hand rule. I.e., edges are enumerated
  * as follows:
  *
+ * Edge 0 points from vertex 0 to vertex 1
  * Edge 1 points from vertex 1 to vertex 2
- * Edge 2 points from vertex 2 to vertex 3
- * Edge 3 points from vertex 3 to vertex 0
+ * Edge 2 points from vertex 2 to vertex 0
  *
  * This class can compute its own normal vector from the vertex positions, and the triangle orientation
  * is then implicitly given by the vertex order.
@@ -40,10 +41,13 @@ namespace EBGeometry {
  * "inside" or "outside" of the triangle. If the query point projects to the inside of the triangle, the
  * distance is simply the projected distance onto the triangle plane. If it projects to the outside of
  * the triangle, we check the distance against the triangle edges and vertices.
+ *
+ * A triangle also carries a face id: the index of the mesh face it was cut from (see
+ * Parser::readIntoTriangles and TriMeshSDF), or any id the caller assigns. It plays no part in the
+ * distance computation; TriMeshSDF::getClosestFace() reports it.
  * @tparam T    Floating-point precision.
- * @tparam Meta User-defined metadata type stored with the triangle.
  */
-template <class T, class Meta>
+template <class T>
 class Triangle
 {
   static_assert(std::is_floating_point_v<T>, "T must be a floating-point type");
@@ -80,7 +84,7 @@ public:
    * @brief Full constructor.
    * @param[in] a_vertexPositions Triangle vertex positions.
    */
-  Triangle(const std::array<Vec3, 3>& a_vertexPositions) noexcept;
+  Triangle(const Array<Vec3, 3>& a_vertexPositions) noexcept;
 
   /**
    * @brief Destructor (does nothing).
@@ -114,39 +118,41 @@ public:
   /**
    * @brief Set the triangle vertex positions
    * @details Also recomputes the triangle face normal from the new vertex positions (see
-   * computeNormal). The three vertices must not be collinear (or coincident), or the
-   * face normal is undefined.
+   * computeNormal). If the three vertices are collinear or coincident the normal is set to zero:
+   * such a triangle has no interior, and its signed distance is not meaningful.
    * @param[in] a_vertexPositions Vertex positions. Each component must be finite.
    */
   void
-  setVertexPositions(const std::array<Vec3, 3>& a_vertexPositions) noexcept;
+  setVertexPositions(const Array<Vec3, 3>& a_vertexPositions) noexcept;
 
   /**
    * @brief Set the triangle vertex normals
-   * @param[in] a_vertexNormals Vertex normals. Each must be finite and unit length.
+   * @param[in] a_vertexNormals Vertex normals. Each must be finite and unit length, or zero for a vertex
+   * on a fold (a mesh loaded with Parser::OnDefect::Warn can have one).
    */
   void
-  setVertexNormals(const std::array<Vec3, 3>& a_vertexNormals) noexcept;
+  setVertexNormals(const Array<Vec3, 3>& a_vertexNormals) noexcept;
 
   /**
    * @brief Set the triangle edge normals
-   * @param[in] a_edgeNormals Edge normals. Each must be finite and unit length.
+   * @param[in] a_edgeNormals Edge normals. Each must be finite and unit length, or zero for an edge on
+   * a fold (a mesh loaded with Parser::OnDefect::Warn can have one).
    */
   void
-  setEdgeNormals(const std::array<Vec3, 3>& a_edgeNormals) noexcept;
+  setEdgeNormals(const Array<Vec3, 3>& a_edgeNormals) noexcept;
 
   /**
-   * @brief Set the triangle meta-data
-   * @param[in] a_metaData Triangle metadata.
+   * @brief Set the face id.
+   * @param[in] a_faceId Id of the face this triangle belongs to.
    */
   void
-  setMetaData(const Meta& a_metaData) noexcept;
+  setFaceId(const uint32_t a_faceId) noexcept;
 
   /**
    * @brief Compute the triangle normal vector.
    * @details This computes the normal vector from two of the triangle edges, using the
-   * right-hand rule and vertex ordering to infer the normal vector. The three vertices
-   * must not be collinear (or coincident): a zero-area triangle has an undefined face normal.
+   * right-hand rule and vertex ordering to infer the normal vector. A zero-area triangle (collinear
+   * or coincident vertices) gets a zero normal.
    */
   void
   computeNormal() noexcept;
@@ -166,7 +172,7 @@ public:
    * Use setVertexPositions instead.
    * @return m_vertexPositions
    */
-  [[nodiscard]] const std::array<Vec3, 3>&
+  [[nodiscard]] const Array<Vec3, 3>&
   getVertexPositions() const noexcept;
 
   /**
@@ -174,7 +180,7 @@ public:
    * @details Const-only; use setVertexNormals to update.
    * @return m_vertexNormals
    */
-  [[nodiscard]] const std::array<Vec3, 3>&
+  [[nodiscard]] const Array<Vec3, 3>&
   getVertexNormals() const noexcept;
 
   /**
@@ -182,16 +188,15 @@ public:
    * @details Const-only; use setEdgeNormals to update.
    * @return m_edgeNormals
    */
-  [[nodiscard]] const std::array<Vec3, 3>&
+  [[nodiscard]] const Array<Vec3, 3>&
   getEdgeNormals() const noexcept;
 
   /**
-   * @brief Get the triangle meta-data
-   * @details Const-only; use setMetaData to update.
-   * @return m_metaData
+   * @brief Get the face id.
+   * @return m_faceId
    */
-  [[nodiscard]] const Meta&
-  getMetaData() const noexcept;
+  [[nodiscard]] uint32_t
+  getFaceId() const noexcept;
 
   /**
    * @brief Compute the signed distance from the input point x to the triangle.
@@ -212,22 +217,22 @@ protected:
   /**
    * @brief Triangle vertex positions
    */
-  std::array<Vec3, 3> m_vertexPositions{Vec3::max(), Vec3::max(), Vec3::max()};
+  Array<Vec3, 3> m_vertexPositions{Vec3::max(), Vec3::max(), Vec3::max()};
 
   /**
    * @brief Triangle vertex normals
    */
-  std::array<Vec3, 3> m_vertexNormals{Vec3::max(), Vec3::max(), Vec3::max()};
+  Array<Vec3, 3> m_vertexNormals{Vec3::max(), Vec3::max(), Vec3::max()};
 
   /**
    * @brief Triangle edge normals
    */
-  std::array<Vec3, 3> m_edgeNormals{Vec3::max(), Vec3::max(), Vec3::max()};
+  Array<Vec3, 3> m_edgeNormals{Vec3::max(), Vec3::max(), Vec3::max()};
 
   /**
-   * @brief Triangle meta-data normals
+   * @brief Id of the face this triangle belongs to, UINT32_MAX if unset.
    */
-  Meta m_metaData;
+  uint32_t m_faceId = UINT32_MAX;
 };
 } // namespace EBGeometry
 

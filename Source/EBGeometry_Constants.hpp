@@ -15,7 +15,7 @@ namespace EBGeometry {
 
 /**
  * @brief The mathematical constant π, typed as T.
- * @details Defined to 20 significant digits, which covers the full precision of both
+ * @details Defined to 21 significant digits, which covers the full precision of both
  * @c float (7 significant digits) and @c long double (18--21 significant digits).
  * @tparam T Floating-point type.
  */

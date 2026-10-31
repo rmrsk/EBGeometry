@@ -3,26 +3,29 @@
 Vector types
 ============
 
-EBGeometry implements its own 2D and 3D vector types, ``Vec2T`` and ``Vec3T``. Like every other
-class in the library, both are templated on a floating-point precision ``T`` (``float`` or
+EBGeometry implements its own 2D and 3D vector types, ``Vec2T`` and ``Vec3T``. Like nearly every
+other class in the library, both are templated on a floating-point precision ``T`` (``float`` or
 ``double``), so a single header defines both precisions with no code duplication and no runtime
 precision switch.
 
 ``Vec2T`` is a two-dimensional Cartesian vector. Most of EBGeometry is written as
-three-dimensional code, but ``Vec2T`` is needed for DCEL functionality when determining whether a
-point projects onto the interior or exterior of a planar polygon, see :ref:`Chap:DCEL`. Its main
+three-dimensional code, but ``Vec2T`` is needed where a computation is reduced to two dimensions:
+for determining whether a point projects onto the interior or exterior of a planar DCEL polygon (see
+:ref:`Chap:DCEL`), and in the cross-sections of a few analytic shapes. Its main
 features are:
 
-* Public ``x``/``y`` components, settable either directly or through a two-argument constructor.
+* Element access through ``operator[]`` (indices 0, 1), plus a two-argument constructor.
 * Named static factories for common vectors: ``zeros()``, ``ones()``, ``min()``, ``max()``, and
   ``infinity()``.
 * The usual arithmetic operators (``+``, ``-``, unary ``-``, scalar ``*``/``/``, and their
   in-place ``+=``/``-=``/``*=``/``/=`` counterparts), plus a scalar-left multiplication and
-  division as free functions.
+  division as free functions, which take a scalar of any arithmetic type (``2.0 * u`` with a
+  ``Vec2T<float>`` ``u``) and convert it to ``T`` first.
 * ``dot``, ``length``, and ``length2`` member functions, mirrored by free-function equivalents
-  (``dot``, ``length``) and free-function component-wise ``min``/``max``.
+  (``dot``, ``length``) and free-function component-wise ``min``/``max``. ``length`` is not
+  ``constexpr``, since it calls ``std::sqrt``.
 
-``Vec3T`` is a three-dimensional Cartesian vector, likewise templated on precision ``T``. Unlike
+``Vec3T`` is a three-dimensional Cartesian vector, likewise templated on precision ``T``. As in
 ``Vec2T``, its components are stored internally and reached only through ``operator[]`` (mutable
 and const overloads), not as public named fields. Its main features are:
 
@@ -30,14 +33,23 @@ and const overloads), not as public named fields. Its main features are:
 * Named static factories: ``zeros()``, ``ones()``, ``unit(dir)`` (a basis vector along a given
   axis), ``min()``, ``max()``, and ``infinity()``.
 * The usual arithmetic operators, including both scalar and component-wise ``*``/``/``, and their
-  in-place counterparts, plus a scalar-left multiplication/division as free functions.
+  in-place counterparts, plus a scalar-left multiplication/division as free functions that take
+  any arithmetic scalar, as for ``Vec2T``.
 * ``cross`` and ``dot`` products, mirrored by free-function equivalents, plus free-function
   component-wise ``min``, ``max``, and ``clamp``.
-* Full comparison support: ``==``, ``!=``, componentwise ``<``/``>``/``<=``/``>=``, and a
-  lexicographic ``lessLX`` for use in ordered containers.
+* Equality ``==``/``!=``, and a lexicographic ``lessLX`` for use in ordered containers. The ordering
+  operators ``<``, ``>``, ``<=`` and ``>=`` are deleted: a component-wise comparison is not a strict
+  weak ordering.
 * ``minDir``/``maxDir`` to find the index of the smallest/largest component (optionally by
   magnitude), and ``length``/``length2``.
-* A stream insertion operator (``operator<<``) for printing.
+* A stream insertion operator (``operator<<``) for printing, in :file:`Source/EBGeometry_StreamOperators.hpp`
+  (with those for the bounding volumes), so that :file:`EBGeometry_Vec.hpp` does not include
+  ``<ostream>``. ``EBGeometry.hpp`` includes it.
+
+Both types are trivially default constructible, like a plain ``T``: ``Vec3T<T> v;`` leaves the
+components uninitialized, while ``Vec3T<T> v{};``, ``Vec3T<T>()`` and ``Vec3T<T>::zeros()`` give the
+zero vector (and the same for ``Vec2T``). A defaulted constructor is what lets either type be the
+element type of a CUDA/HIP ``__shared__`` array, which may not have an initializer.
 
 For the full API -- every constructor, operator, and free function -- see the Doxygen reference
 for `Vec2T <doxygen/html/classEBGeometry_1_1Vec2T.html>`__ and

@@ -1,0 +1,366 @@
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_MemoryResourceImplem.hpp
+ * @brief  Implementation of EBGeometry_MemoryResource.hpp
+ * @author Robert Marskar
+ */
+
+#ifndef EBGEOMETRY_MEMORYRESOURCEIMPLEM_HPP
+#define EBGEOMETRY_MEMORYRESOURCEIMPLEM_HPP
+
+// Std includes
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+// Our includes
+#include "EBGeometry_GPU.hpp"
+#include "EBGeometry_GPURuntime.hpp"
+#include "EBGeometry_Macros.hpp"
+#include "EBGeometry_MemoryResource.hpp"
+
+namespace EBGeometry {
+
+inline void*
+HostMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+{
+  EBGEOMETRY_REQUIRE(a_alignment > 0 && (a_alignment & (a_alignment - 1)) == 0,
+                     "HostMemoryResource::allocate: the alignment must be a power of two (%zu)",
+                     a_alignment);
+
+  // std::aligned_alloc requires the size to be a multiple of the alignment, and a zero-byte
+  // request is implementation-defined, so round the byte count up to a non-zero multiple.
+  size_t rounded = (a_bytes + a_alignment - 1) & ~(a_alignment - 1);
+
+  if (rounded == 0) {
+    rounded = a_alignment;
+  }
+
+  void* ptr = std::aligned_alloc(a_alignment, rounded);
+
+  // Always on, as the declaration promises: a Release build would otherwise carry on with a null
+  // base, and every later write would land at nullptr + offset.
+  EBGEOMETRY_REQUIRE(ptr != nullptr, "HostMemoryResource::allocate: out of memory (%zu bytes)", rounded);
+
+  return ptr;
+}
+
+inline void
+HostMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept
+{
+  (void)a_bytes;
+  (void)a_alignment;
+
+  std::free(a_ptr);
+}
+
+inline HostMemoryResource&
+hostMemoryResource() noexcept
+{
+  // Created once and never destroyed. A Pool with static storage can be destroyed at exit after a
+  // function-local static resource would be (static destructors run in reverse order of
+  // construction, and the resource is often first used after the Pool was constructed); its
+  // destructor would then call deallocate() on a destroyed object. The resource holds no state, so
+  // the one object leaked at exit costs nothing.
+  static HostMemoryResource* const s_resource = new HostMemoryResource();
+
+  return *s_resource;
+}
+
+inline void*
+EmulatedDeviceMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+{
+  return hostMemoryResource().allocate(a_bytes, a_alignment);
+}
+
+inline void
+EmulatedDeviceMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept
+{
+  hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+}
+
+inline EmulatedDeviceMemoryResource&
+emulatedDeviceMemoryResource() noexcept
+{
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static EmulatedDeviceMemoryResource* const s_resource = new EmulatedDeviceMemoryResource();
+
+  return *s_resource;
+}
+
+inline void
+MemoryResource::copy(void*                 a_dst,
+                     const MemoryResource& a_dstResource,
+                     const void*           a_src,
+                     const MemoryResource& a_srcResource,
+                     size_t                a_bytes) const noexcept
+{
+  // Only a device resource can hand out non-host memory, and every device resource overrides this.
+  // Continuing would leave the destination uninitialized.
+  EBGEOMETRY_REQUIRE(a_dstResource.isHostAccessible() && a_srcResource.isHostAccessible(),
+                     "MemoryResource::copy: copying to or from non-host memory needs a device resource");
+
+  std::memcpy(a_dst, a_src, a_bytes);
+}
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP) || defined(EBGEOMETRY_DOXYGEN)
+
+namespace MemoryResourceDetail {
+
+/**
+ * @brief Copy between host and device memory with the GPU runtime; shared by the device resources.
+ * @param[out] a_dst         Destination block.
+ * @param[in]  a_dstResource Resource that allocated a_dst.
+ * @param[in]  a_src         Source block.
+ * @param[in]  a_srcResource Resource that allocated a_src.
+ * @param[in]  a_bytes       Number of bytes to copy.
+ */
+inline void
+gpuCopy(void*                 a_dst,
+        const MemoryResource& a_dstResource,
+        const void*           a_src,
+        const MemoryResource& a_srcResource,
+        size_t                a_bytes) noexcept
+{
+  const bool dstHost = a_dstResource.isHostAccessible();
+  const bool srcHost = a_srcResource.isHostAccessible();
+
+  // Device-to-device is out of scope for the mirror (the foundation only builds on host and uploads
+  // once); the alias layer exposes no device-to-device direction. Continuing would leave the
+  // destination block uncopied.
+  EBGEOMETRY_REQUIRE(dstHost || srcHost, "MemoryResource::copy: device-to-device copies are not supported");
+
+  if (dstHost && srcHost) {
+    std::memcpy(a_dst, a_src, a_bytes);
+  }
+  else if (srcHost) {
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyHostToDevice));
+  }
+  else {
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyDeviceToHost));
+  }
+}
+
+/**
+ * @brief Check the result of a GPU free (device, managed, pinned or mapped memory), accepting the
+ * errors of a runtime that has shut down.
+ * @details A Pool with static storage is destroyed at program exit, possibly after the GPU runtime
+ * has already torn itself down (CUDA's own exit handler can run first). Its free then fails with
+ * GPU::isShutdownError(), and the memory went with the runtime, so that is not an error. Any other
+ * failure aborts, as EBGEOMETRY_GPU_CHECK does.
+ * @param[in] a_error Result of the free.
+ * @param[in] a_call  The call, for the message.
+ */
+inline void
+checkFree(const GPU::Error a_error, const char* a_call) noexcept
+{
+  if (a_error == GPU::Success || GPU::isShutdownError(a_error)) {
+    return;
+  }
+
+  std::fprintf(stderr,
+               "EBGeometry GPU error: %s\n  call: %s\n  file: %s\n  line: %d\n",
+               GPU::getErrorString(a_error),
+               a_call,
+               __FILE__,
+               __LINE__);
+  std::abort();
+}
+
+} // namespace MemoryResourceDetail
+
+inline void
+DeviceMemoryResource::copy(void*                 a_dst,
+                           const MemoryResource& a_dstResource,
+                           const void*           a_src,
+                           const MemoryResource& a_srcResource,
+                           size_t                a_bytes) const noexcept
+{
+  MemoryResourceDetail::gpuCopy(a_dst, a_dstResource, a_src, a_srcResource, a_bytes);
+}
+
+inline void
+ManagedMemoryResource::copy(void*                 a_dst,
+                            const MemoryResource& a_dstResource,
+                            const void*           a_src,
+                            const MemoryResource& a_srcResource,
+                            size_t                a_bytes) const noexcept
+{
+  MemoryResourceDetail::gpuCopy(a_dst, a_dstResource, a_src, a_srcResource, a_bytes);
+}
+
+inline void
+PinnedMemoryResource::copy(void*                 a_dst,
+                           const MemoryResource& a_dstResource,
+                           const void*           a_src,
+                           const MemoryResource& a_srcResource,
+                           size_t                a_bytes) const noexcept
+{
+  MemoryResourceDetail::gpuCopy(a_dst, a_dstResource, a_src, a_srcResource, a_bytes);
+}
+
+inline void
+MappedMemoryResource::copy(void*                 a_dst,
+                           const MemoryResource& a_dstResource,
+                           const void*           a_src,
+                           const MemoryResource& a_srcResource,
+                           size_t                a_bytes) const noexcept
+{
+  MemoryResourceDetail::gpuCopy(a_dst, a_dstResource, a_src, a_srcResource, a_bytes);
+}
+
+inline void*
+DeviceMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+{
+  // The backend allocator already returns a base aligned to >= PoolBaseAlign (256), so we only
+  // validate that no larger alignment was requested rather than enforce it. See PoolBaseAlign.
+  EBGEOMETRY_REQUIRE(a_alignment <= PoolBaseAlign,
+                     "DeviceMemoryResource::allocate: the alignment must not exceed %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
+
+  void* ptr = nullptr;
+
+  // A zero-byte request gets a byte, as on the host: the runtime may return null for zero bytes.
+  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(&ptr, a_bytes > 0 ? a_bytes : 1));
+
+  return ptr;
+}
+
+inline void
+DeviceMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept
+{
+  (void)a_bytes;
+  (void)a_alignment;
+
+  if (a_ptr != nullptr) {
+    MemoryResourceDetail::checkFree(GPU::memFree(a_ptr), "GPU::memFree(a_ptr)");
+  }
+}
+
+inline void*
+ManagedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+{
+  EBGEOMETRY_REQUIRE(a_alignment <= PoolBaseAlign,
+                     "ManagedMemoryResource::allocate: the alignment must not exceed %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
+
+  void* ptr = nullptr;
+
+  // A zero-byte request gets a byte, as on the host: the runtime may return null for zero bytes.
+  EBGEOMETRY_GPU_CHECK(GPU::memAllocManaged(&ptr, a_bytes > 0 ? a_bytes : 1));
+
+  return ptr;
+}
+
+inline void
+ManagedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept
+{
+  (void)a_bytes;
+  (void)a_alignment;
+
+  if (a_ptr != nullptr) {
+    MemoryResourceDetail::checkFree(GPU::memFree(a_ptr), "GPU::memFree(a_ptr)");
+  }
+}
+
+inline void*
+PinnedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+{
+  EBGEOMETRY_REQUIRE(a_alignment <= PoolBaseAlign,
+                     "PinnedMemoryResource::allocate: the alignment must not exceed %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
+
+  void* ptr = nullptr;
+
+  // A zero-byte request gets a byte, as on the host: the runtime may return null for zero bytes.
+  EBGEOMETRY_GPU_CHECK(GPU::memAllocHost(&ptr, a_bytes > 0 ? a_bytes : 1));
+
+  return ptr;
+}
+
+inline void
+PinnedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept
+{
+  (void)a_bytes;
+  (void)a_alignment;
+
+  if (a_ptr != nullptr) {
+    MemoryResourceDetail::checkFree(GPU::memFreeHost(a_ptr), "GPU::memFreeHost(a_ptr)");
+  }
+}
+
+inline void*
+MappedMemoryResource::allocate(size_t a_bytes, size_t a_alignment)
+{
+  EBGEOMETRY_REQUIRE(a_alignment <= PoolBaseAlign,
+                     "MappedMemoryResource::allocate: the alignment must not exceed %zu (%zu)",
+                     PoolBaseAlign,
+                     a_alignment);
+
+  void* ptr = nullptr;
+
+  // A zero-byte request gets a byte, as on the host: the runtime may return null for zero bytes.
+  EBGEOMETRY_GPU_CHECK(GPU::memAllocHostMapped(&ptr, a_bytes > 0 ? a_bytes : 1));
+
+  return ptr;
+}
+
+inline void
+MappedMemoryResource::deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept
+{
+  (void)a_bytes;
+  (void)a_alignment;
+
+  if (a_ptr != nullptr) {
+    MemoryResourceDetail::checkFree(GPU::memFreeHost(a_ptr), "GPU::memFreeHost(a_ptr)");
+  }
+}
+
+inline DeviceMemoryResource&
+deviceMemoryResource() noexcept
+{
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static DeviceMemoryResource* const s_resource = new DeviceMemoryResource();
+
+  return *s_resource;
+}
+
+inline ManagedMemoryResource&
+managedMemoryResource() noexcept
+{
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static ManagedMemoryResource* const s_resource = new ManagedMemoryResource();
+
+  return *s_resource;
+}
+
+inline PinnedMemoryResource&
+pinnedMemoryResource() noexcept
+{
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static PinnedMemoryResource* const s_resource = new PinnedMemoryResource();
+
+  return *s_resource;
+}
+
+inline MappedMemoryResource&
+mappedMemoryResource() noexcept
+{
+  // Created once and never destroyed, for the reason given in hostMemoryResource().
+  static MappedMemoryResource* const s_resource = new MappedMemoryResource();
+
+  return *s_resource;
+}
+
+#endif // EBGEOMETRY_CUDA || EBGEOMETRY_HIP || EBGEOMETRY_DOXYGEN
+
+} // namespace EBGeometry
+
+#endif // EBGEOMETRY_MEMORYRESOURCEIMPLEM_HPP

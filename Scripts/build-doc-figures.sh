@@ -7,13 +7,17 @@
 # The figures live under Docs/Sphinx/source/_static/<Name>/<Name>.tex. Only the
 # .tex source is tracked in git; the rendered PNG (Docs/Sphinx/source/_static/<Name>.png,
 # referenced directly by the RST files via ".. figure:: /_static/<Name>.png") is a build
-# artifact and is git-ignored. Run this script before building the Sphinx HTML/PDF docs,
-# whether locally, in the pre-commit hook, or in CI.
+# artifact and is git-ignored. Sphinx runs this script itself when a build starts (see the
+# builder-inited hook in Docs/Sphinx/source/conf.py), so sphinx-build, make html and
+# sphinx-autobuild all get the figures; the pre-commit hook and CI also run it directly.
+#
+# A figure whose PNG is newer than its .tex source is skipped, so a repeated build (or
+# sphinx-autobuild, which watches the source folder) does not rewrite it. --force rebuilds all.
 #
 # Requires: pdflatex (texlive-latex-extra or similar) and pdftoppm (poppler-utils).
 #
 # Usage:
-#   Scripts/build-doc-figures.sh
+#   Scripts/build-doc-figures.sh [--force]
 
 set -euo pipefail
 
@@ -21,6 +25,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STATIC_DIR="${REPO_ROOT}/Docs/Sphinx/source/_static"
 DPI=300
+
+FORCE=0
+if [[ "${1:-}" == "--force" ]]; then
+  FORCE=1
+fi
 
 for tool in pdflatex pdftoppm; do
   if ! command -v "${tool}" >/dev/null 2>&1; then
@@ -52,6 +61,11 @@ for tex_file in "${tex_files[@]}"; do
   name="$(basename "${tex_file}" .tex)"
   pdf_file="${fig_dir}/${name}.pdf"
   png_target="${STATIC_DIR}/${name}.png"
+
+  if [[ ${FORCE} -eq 0 && -f "${png_target}" && "${png_target}" -nt "${tex_file}" ]]; then
+    echo "  - ${name} (up to date)"
+    continue
+  fi
 
   echo "  - ${name}"
 

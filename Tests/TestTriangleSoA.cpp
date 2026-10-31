@@ -6,7 +6,16 @@
 // directly against the individual Triangle::signedDistance() values it's built from.
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <random>
+#include <utility>
+#include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -16,7 +25,7 @@ using namespace EBGeometry;
 namespace {
 
 template <class T>
-using Tri = Triangle<T, short>;
+using Tri = Triangle<T>;
 
 constexpr size_t W = 4;
 
@@ -24,10 +33,12 @@ template <class T>
 using SoA = TriangleSoAT<T, W>;
 
 template <class T>
-using AoSoA = TriangleAoSoA<T, short, W>;
+using AoSoA = TriangleAoSoA<T, W>;
 
 // Four disjoint, well-separated triangles, spread out along x so each one is unambiguously the
-// closest for a query point placed near it.
+// closest for a query point placed near it. A triangle on its own has its face normal as the
+// pseudonormal of every vertex and edge; left unset, the pseudonormals are Vec3::max(), and the sign
+// of a point nearest a vertex or edge would come from an overflowing dot product.
 template <class T>
 std::vector<Tri<T>>
 fourTriangles()
@@ -35,22 +46,33 @@ fourTriangles()
   using Vec3 = Vec3T<T>;
 
   std::vector<Tri<T>> tris;
+
   for (int i = 0; i < 4; i++) {
     const Vec3 base(T(3.0 * i), T(0), T(0));
-    tris.emplace_back(std::array<Vec3, 3>{base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
+
+    Tri<T> tri(Array<Vec3, 3>{base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
+
+    const Vec3 n = tri.getNormal();
+
+    tri.setVertexNormals(Array<Vec3, 3>{n, n, n});
+    tri.setEdgeNormals(Array<Vec3, 3>{n, n, n});
+
+    tris.push_back(tri);
   }
+
   return tris;
 }
 
-// The same four triangles, each tagged with a distinct metadata value (10, 11, 12, 13) so a
-// closest-triangle query's returned metadata can be checked against the known closest triangle.
+// The same four triangles, each tagged with a distinct face id (10, 11, 12, 13) so a
+// closest-triangle query's returned id can be checked against the known closest triangle.
 template <class T>
 std::vector<Tri<T>>
-fourTrianglesWithMeta()
+fourTrianglesWithFaceIds()
 {
   auto tris = fourTriangles<T>();
+
   for (size_t i = 0; i < tris.size(); i++) {
-    tris[i].setMetaData(static_cast<short>(10 + i));
+    tris[i].setFaceId(static_cast<uint32_t>(10 + i));
   }
 
   return tris;
@@ -61,12 +83,14 @@ T
 minAbsSignedDistance(const std::vector<Tri<T>>& a_tris, const Vec3T<T>& a_point)
 {
   T best = std::numeric_limits<T>::max();
+
   for (const auto& tri : a_tris) {
     const T d = tri.signedDistance(a_point);
     if (std::abs(d) < std::abs(best)) {
       best = d;
     }
   }
+
   return best;
 }
 
@@ -98,7 +122,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance matches the minimum-|distance| 
   REQUIRE(tris.size() == W);
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(minAbsSignedDistance<T>(tris, p), looseMargin<T>()));
@@ -115,7 +139,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance is unaffected by padding when c
   tris.resize(2); // Pack only the first 2 of the 4 disjoint triangles; lanes 2 and 3 get padded.
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(minAbsSignedDistance<T>(tris, p), looseMargin<T>()));
@@ -132,10 +156,59 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance handles a single packed triangl
   tris.resize(1);
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), 1);
+  group.pack(tris.data(), 1);
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(tris.front().signedDistance(p), looseMargin<T>()));
+  }
+}
+
+namespace {
+
+// One triangle at width Width: the SIMD signedDistance() against the scalar Triangle and the group's
+// per-lane signedDistances(), which runs the scalar lane code.
+template <class T, size_t Width>
+void
+checkZeroNormalSigns(const Tri<T>& a_tri, const Vec3T<T>& a_point, const T a_expected)
+{
+  TriangleSoAT<T, Width> group;
+  group.pack(&a_tri, 1U);
+
+  CHECK_THAT(a_tri.signedDistance(a_point), withinAbsT(a_expected, looseMargin<T>()));
+  CHECK_THAT(group.signedDistances(a_point)[0], withinAbsT(a_expected, looseMargin<T>()));
+  CHECK_THAT(group.signedDistance(a_point), withinAbsT(a_expected, looseMargin<T>()));
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance treats a zero normal as negative on every path",
+                   "[TriangleSoA][regression]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A triangle on a fold has zero vertex and edge normals (Soup::findFoldedFeature), and a zero normal
+  // is documented to count as negative. Its dot product with an offset is a signed zero: -0 when every
+  // component of the offset is negative, +0 otherwise. The SIMD kernels used to copy that sign bit,
+  // returning +|d| for a +0, while the scalar paths return -|d| for both.
+  Tri<T> tri(Array<Vec3, 3>{Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0)});
+
+  tri.setVertexNormals(Array<Vec3, 3>{Vec3::zeros(), Vec3::zeros(), Vec3::zeros()});
+  tri.setEdgeNormals(Array<Vec3, 3>{Vec3::zeros(), Vec3::zeros(), Vec3::zeros()});
+
+  // Closest to vertex 0, at distance 1.5, above and below the plane: a +0 and a -0 dot product.
+  const Vec3 aboveVertex(T(-1), T(-1), T(0.5));
+  const Vec3 belowVertex(T(-1), T(-1), T(-0.5));
+  // Closest to the edge from vertex 0 to vertex 1, at distance sqrt(1.25): a +0 dot product.
+  const Vec3 nearEdge(T(0.5), T(-1), T(0.5));
+
+  for (const auto& [point, expected] : {std::pair<Vec3, T>{aboveVertex, T(-1.5)},
+                                        std::pair<Vec3, T>{belowVertex, T(-1.5)},
+                                        std::pair<Vec3, T>{nearEdge, -std::sqrt(T(1.25))}}) {
+    checkZeroNormalSigns<T, 4>(tri, point, expected);
+    checkZeroNormalSigns<T, 8>(tri, point, expected);
+    checkZeroNormalSigns<T, 16>(tri, point, expected);
   }
 }
 
@@ -151,16 +224,18 @@ TEMPLATE_TEST_CASE("TriangleSoAT::computeBoundingVolume matches an AABB built di
   const auto tris = fourTriangles<T>();
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   const auto bv = group.template computeBoundingVolume<AABB>();
 
   std::vector<Vec3> allVertices;
+
   for (const auto& tri : tris) {
     for (const auto& v : tri.getVertexPositions()) {
       allVertices.push_back(v);
     }
   }
+
   const AABB expected(allVertices);
 
   for (int i = 0; i < 3; i++) {
@@ -179,14 +254,15 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistances returns per-lane distances who
   const auto tris = fourTriangles<T>();
 
   SoA<T> group;
-  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
-    const std::array<T, W> perLane = group.signedDistances(p);
+    const Array<T, W> perLane = group.signedDistances(p);
 
     // Each lane must match the corresponding individual triangle, and the min-|lane| must equal the
     // reduced signedDistance().
     T best = std::numeric_limits<T>::max();
+
     for (size_t i = 0; i < tris.size(); i++) {
       REQUIRE_THAT(perLane[i], withinAbsT(tris[i].signedDistance(p), looseMargin<T>()));
 
@@ -199,58 +275,406 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistances returns per-lane distances who
   }
 }
 
-TEMPLATE_TEST_CASE("TriangleAoSoA::signedDistance(point, meta) reports the closest triangle's "
-                   "metadata and matches the plain overload",
+TEMPLATE_TEST_CASE("TriangleAoSoA::signedDistance(point, faceId) reports the closest triangle's "
+                   "face id and matches the plain overload",
                    "[TriangleSoA][TriangleAoSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  const auto tris = fourTrianglesWithMeta<T>();
+  const auto tris = fourTrianglesWithFaceIds<T>();
   REQUIRE(tris.size() == W);
 
   AoSoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
   for (const auto& p : queryPoints<T>()) {
-    // Brute-force the closest triangle (by |signed distance|) and its metadata.
-    T     best         = std::numeric_limits<T>::max();
-    short expectedMeta = -1;
+    // Brute-force the closest triangle (by |signed distance|) and its face id.
+    T        best           = std::numeric_limits<T>::max();
+    uint32_t expectedFaceId = UINT32_MAX;
+
     for (const auto& tri : tris) {
       const T d = tri.signedDistance(p);
 
       if (std::abs(d) < std::abs(best)) {
-        best         = d;
-        expectedMeta = tri.getMetaData();
+        best           = d;
+        expectedFaceId = tri.getFaceId();
       }
     }
 
-    short   meta = -1;
-    const T d    = group.signedDistance(p, meta);
+    uint32_t faceId = UINT32_MAX;
+    const T  d      = group.signedDistance(p, faceId);
 
     REQUIRE_THAT(d, withinAbsT(best, looseMargin<T>()));
-    REQUIRE(meta == expectedMeta);
+    REQUIRE(faceId == expectedFaceId);
 
-    // The plain overload (hot path) must agree with the metadata-reporting one.
+    // The plain overload (hot path) must agree with the id-reporting one.
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(best, looseMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("TriangleAoSoA::getMetaData returns each lane's metadata and pads with the last "
+TEMPLATE_TEST_CASE("TriangleAoSoA::getFaceId returns each lane's face id and pads with the last "
                    "real triangle",
                    "[TriangleSoA][TriangleAoSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  auto tris = fourTrianglesWithMeta<T>();
+  auto tris = fourTrianglesWithFaceIds<T>();
   tris.resize(2); // Pack only the first 2; lanes 2 and 3 are padded with the last real triangle.
 
   AoSoA<T> group;
   group.pack(tris.data(), 2);
 
-  REQUIRE(group.getMetaData(0) == short(10));
-  REQUIRE(group.getMetaData(1) == short(11));
-  REQUIRE(group.getMetaData(2) == short(11)); // padded -> last real triangle's metadata
-  REQUIRE(group.getMetaData(3) == short(11)); // padded -> last real triangle's metadata
+  REQUIRE(group.getFaceId(0) == 10U);
+  REQUIRE(group.getFaceId(1) == 11U);
+  REQUIRE(group.getFaceId(2) == 11U); // padded -> last real triangle's face id
+  REQUIRE(group.getFaceId(3) == 11U); // padded -> last real triangle's face id
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Device: a host-packed TriangleAoSoA is queried in a kernel and matches the host
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The signed distance from a query point to the group, which is held by value. With m_withFaceId,
+// it comes from the overload that also reports the closest triangle's face id.
+template <class T>
+struct TriangleAoSoADistanceQuery
+{
+  AoSoA<T> m_group;
+  bool     m_withFaceId;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    uint32_t closestFaceId = 0;
+
+    return m_withFaceId ? m_group.signedDistance(a_point, closestFaceId) : m_group.signedDistance(a_point);
+  }
+};
+
+// The closest triangle's face id, as reported by signedDistance(point, faceId).
+template <class T>
+struct TriangleAoSoAClosestFaceIdQuery
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  int
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    uint32_t closestFaceId = 0;
+
+    (void)m_group.signedDistance(a_point, closestFaceId);
+
+    return static_cast<int>(closestFaceId);
+  }
+};
+
+// The face id of lane i % W.
+template <class T>
+struct TriangleAoSoAFaceIdQuery
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  int
+  operator()(const int& a_i) const noexcept
+  {
+    return static_cast<int>(m_group.getFaceId(static_cast<size_t>(a_i) % W));
+  }
+};
+
+// nearestLane()'s lane, and its squared distance, as a pair of queries.
+template <class T>
+struct TriangleAoSoANearestLaneQuery
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  int
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    T d2 = T(0);
+
+    return static_cast<int>(m_group.nearestLane(a_point, d2));
+  }
+};
+
+template <class T>
+struct TriangleAoSoANearestDistance2Query
+{
+  AoSoA<T> m_group;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    T d2 = T(0);
+
+    (void)m_group.nearestLane(a_point, d2);
+
+    return d2;
+  }
+};
+
+// Require two integer result lists to be identical, element by element.
+inline void
+requireSameIntegers(const std::vector<int>& a_device, const std::vector<int>& a_host)
+{
+  REQUIRE(a_device.size() == a_host.size());
+
+  for (size_t i = 0; i < a_host.size(); i++) {
+    INFO("query " << i);
+    REQUIRE(a_device[i] == a_host[i]);
+  }
+}
+
+TEMPLATE_TEST_CASE("TriangleAoSoA: device query surface matches the host",
+                   "[TriangleAoSoA][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const auto tris = fourTrianglesWithFaceIds<T>();
+
+  AoSoA<T> group;
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
+
+  // The triangles lie in the z = 0 plane at x in [0, 10]; the grid surrounds all of them on both
+  // sides of the plane, so each one is the closest for some queries and both signs occur.
+  const auto points = queryGrid<T>(Vec3T<T>(T(-2), T(-2), T(-1.5)), Vec3T<T>(T(12), T(3), T(1.5)), 10);
+
+  for (const bool withFaceId : {false, true}) {
+    INFO("with face id: " << withFaceId);
+    requireSameResults(evaluateOnDevice<T>(TriangleAoSoADistanceQuery<T>{group, withFaceId}, points),
+                       evaluateOnHost<T>(TriangleAoSoADistanceQuery<T>{group, withFaceId}, points));
+  }
+
+  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAClosestFaceIdQuery<T>{group}, points),
+                      evaluateOnHost<int>(TriangleAoSoAClosestFaceIdQuery<T>{group}, points));
+
+  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoANearestLaneQuery<T>{group}, points),
+                      evaluateOnHost<int>(TriangleAoSoANearestLaneQuery<T>{group}, points));
+  requireSameResults(evaluateOnDevice<T>(TriangleAoSoANearestDistance2Query<T>{group}, points),
+                     evaluateOnHost<T>(TriangleAoSoANearestDistance2Query<T>{group}, points));
+
+  std::vector<int> lanes;
+
+  for (int i = 0; i < 256; i++) {
+    lanes.push_back(i);
+  }
+
+  requireSameIntegers(evaluateOnDevice<int>(TriangleAoSoAFaceIdQuery<T>{group}, lanes),
+                      evaluateOnHost<int>(TriangleAoSoAFaceIdQuery<T>{group}, lanes));
+}
+
+TEST_CASE("TriangleSoAT/TriangleAoSoA::pack: reject a count outside [1, W] and a null array",
+          "[TriangleSoA][TriangleAoSoA][death]")
+{
+  using T = double;
+
+  // EBGEOMETRY_REQUIREs, so they abort in every build. The count is checked before any triangle is
+  // read, so the fixture needs no more than W triangles even for the count of W + 1.
+  const std::vector<Tri<T>> tris = fourTriangles<T>();
+
+  REQUIRE(abortsWith(
+    [&tris] {
+      SoA<T> soa;
+      soa.pack(tris.data(), 0U);
+    },
+    "TriangleSoAT::pack: the triangle count must be between 1 and 4 (0)"));
+
+  REQUIRE(abortsWith(
+    [&tris] {
+      SoA<T> soa;
+      soa.pack(tris.data(), static_cast<uint32_t>(W + 1));
+    },
+    "TriangleSoAT::pack: the triangle count must be between 1 and 4 (5)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      SoA<T> soa;
+      soa.pack(static_cast<const Tri<T>*>(nullptr), 1U);
+    },
+    "TriangleSoAT::pack: the triangle array must not be null"));
+
+  REQUIRE(abortsWith(
+    [&tris] {
+      AoSoA<T> aosoa;
+      aosoa.pack(tris.data(), 0U);
+    },
+    "TriangleAoSoA::pack: the triangle count must be between 1 and 4 (0)"));
+}
+
+namespace {
+
+// Random triangles with random unit pseudonormals, so the sign of a vertex or edge candidate is not
+// simply the face's, and query points near and far.
+template <class T>
+std::vector<Tri<T>>
+randomTriangles(const size_t a_count, const unsigned a_seed)
+{
+  using Vec3 = Vec3T<T>;
+
+  std::mt19937                      rng(a_seed);
+  std::uniform_real_distribution<T> u(T(-1), T(1));
+
+  const auto unit = [&]() {
+    const Vec3 v(u(rng), u(rng), u(rng) + T(2));
+
+    return v / v.length();
+  };
+
+  std::vector<Tri<T>> tris;
+
+  for (size_t i = 0; i < a_count; i++) {
+    const Vec3 base(T(4) * u(rng), T(4) * u(rng), T(4) * u(rng));
+
+    Tri<T> tri(Array<Vec3, 3>{base,
+                              base + Vec3(T(1) + u(rng) * T(0.5), u(rng) * T(0.3), u(rng) * T(0.3)),
+                              base + Vec3(u(rng) * T(0.3), T(1) + u(rng) * T(0.5), u(rng) * T(0.3))});
+
+    tri.setVertexNormals(Array<Vec3, 3>{unit(), unit(), unit()});
+    tri.setEdgeNormals(Array<Vec3, 3>{unit(), unit(), unit()});
+    tris.push_back(tri);
+  }
+
+  return tris;
+}
+
+// Whether every decision the kernel takes for this triangle and point is clear of rounding: each
+// sign test away from zero, each edge parameter away from 0 and 1, and the closest candidate clear of
+// the next. Paths that round differently (one fusing a multiply and an add, another not) can decide a
+// knife-edge case either way, so the comparison skips those points. Computed in double.
+template <class T>
+bool
+wellConditioned(const Tri<T>& a_tri, const Vec3T<T>& a_p)
+{
+  using V = Vec3T<double>;
+
+  const auto d3 = [](const Vec3T<T>& a_v) { return V(double(a_v[0]), double(a_v[1]), double(a_v[2])); };
+
+  const auto& vp = a_tri.getVertexPositions();
+  const auto& vn = a_tri.getVertexNormals();
+  const auto& en = a_tri.getEdgeNormals();
+
+  const V      n = d3(a_tri.getNormal());
+  const V      p = d3(a_p);
+  const double h = 1e-3;
+
+  std::vector<double> d2;
+
+  for (int k = 0; k < 3; k++) {
+    const V a = d3(vp[k]);
+    const V b = d3(vp[(k + 1) % 3]);
+    const V e = b - a;
+    const V q = p - a;
+
+    const double t = dot(q, e) / dot(e, e);
+    const V      y = q - t * e;
+
+    if (std::abs(dot(e.cross(n), q)) < h || std::abs(dot(d3(vn[k]), q)) < h || std::abs(t) < h ||
+        std::abs(t - 1.0) < h) {
+      return false;
+    }
+
+    d2.push_back(dot(q, q));
+
+    if (t > 0.0 && t < 1.0) {
+      if (std::abs(dot(d3(en[k]), y)) < h) {
+        return false;
+      }
+
+      d2.push_back(dot(y, y));
+    }
+  }
+
+  std::sort(d2.begin(), d2.end());
+
+  return d2[1] - d2[0] > h * (1.0 + d2[0]);
+}
+
+// Every lane of a width-Wd group against the Triangle it was packed from, and signedDistance()
+// against the first minimum-|value| lane, for every valid count.
+template <class T, size_t Wd>
+void
+checkAgainstTriangles()
+{
+  STATIC_REQUIRE(Wd % SIMD::NativeWidth<T, Wd>() == 0);
+
+  const auto tris = randomTriangles<T>(Wd, static_cast<unsigned>(17 + Wd));
+
+  std::mt19937                      rng(5);
+  std::uniform_real_distribution<T> u(T(-6), T(6));
+
+  for (uint32_t count = 1; count <= Wd; count++) {
+    TriangleSoAT<T, Wd> group;
+    group.pack(tris.data(), count);
+
+    for (int q = 0; q < 200; q++) {
+      const Vec3T<T> p(u(rng), u(rng), u(rng));
+
+      const auto lanes = group.signedDistances(p);
+
+      T expected = std::numeric_limits<T>::max();
+
+      for (uint32_t i = 0; i < count; i++) {
+        const T d = tris[i].signedDistance(p);
+
+        const double margin = tightMargin<T>() * (1.0 + static_cast<double>(std::abs(d)));
+
+        // At a knife edge only the magnitude is compared: the sign may go either way.
+        if (wellConditioned(tris[i], p)) {
+          REQUIRE_THAT(lanes[i], withinAbsT(d, margin));
+        }
+        else {
+          REQUIRE_THAT(std::abs(lanes[i]), withinAbsT(std::abs(d), margin));
+        }
+
+        if (std::abs(lanes[i]) < std::abs(expected)) {
+          expected = lanes[i];
+        }
+      }
+
+      REQUIRE(group.signedDistance(p) == expected);
+
+      // nearestLane(): a lane whose |value| is the minimum, with its squared distance; signedDistanceAt()
+      // gives that lane's value bit for bit, as signedDistances() does.
+      T              d2   = T(-1);
+      const uint32_t lane = group.nearestLane(p, d2);
+
+      const double margin = tightMargin<T>() * (1.0 + static_cast<double>(std::abs(expected)));
+
+      REQUIRE(lane < count);
+      REQUIRE(group.signedDistanceAt(lane, p) == lanes[lane]);
+      REQUIRE_THAT(std::abs(lanes[lane]), withinAbsT(std::abs(expected), margin));
+      REQUIRE_THAT(std::sqrt(d2), withinAbsT(std::abs(lanes[lane]), margin));
+    }
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("TriangleSoAT: every SIMD width and the scalar path agree with Triangle::signedDistance, "
+                   "lane by lane, for every valid count",
+                   "[TriangleSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // 2, 4, 8 and 16 cover every register width in both precisions (whichever this build has), split
+  // into several registers where W is wider than the register; 1, and 2 floats, fit no register.
+  checkAgainstTriangles<T, 1>();
+  checkAgainstTriangles<T, 2>();
+  checkAgainstTriangles<T, 4>();
+  checkAgainstTriangles<T, 8>();
+  checkAgainstTriangles<T, 16>();
 }
