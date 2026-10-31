@@ -163,7 +163,8 @@ struct FirstHit
 // where it touches the surface without going deeper than the tolerance (the march's for a marched ray,
 // Perf::agreementTolerance() at the scene's scale for a traced one), one side's arithmetic may round to a
 // crossing and the other's to a miss (a fused multiply-add on the device, say), and both are valid answers
-// to the precision the query promises.
+// to the precision the query promises. The difference reported is still the whole difference, so a grazing
+// ray can give a large MaxDiff with no mismatch.
 template <class T, class Shape>
 struct AgreeCrossing
 {
@@ -181,11 +182,11 @@ struct AgreeCrossing
   }
 
 private:
-  // Whether two answers, of which at least one is a crossing, differ only by a graze: the earlier crossing
-  // is where the ray touches the surface (within the tolerance of it), and the ray goes no deeper than the
-  // tolerance inside before the later answer (the other crossing, or, for a miss, the end of the ray's way
-  // through the scene). Swept in steps of the shape's distance, which cannot step over a solid, and at
-  // least the tolerance.
+  // Whether two answers, of which at least one is a crossing, differ only by a graze: each crossing is on
+  // the surface (within the tolerance of it), the earlier one where the ray touches it, and the ray goes no
+  // deeper than the tolerance inside before the later answer (the other crossing, or, for a miss, the end of
+  // the ray's way through the scene). Swept in steps of the shape's distance, which cannot step over a
+  // solid, and at least the tolerance.
   bool
   grazes(const Vec3<T>& a_origin, T a_host, T a_device) const
   {
@@ -206,7 +207,7 @@ private:
       (hostHits && deviceHits) ? std::min<double>(a_host, a_device) : static_cast<double>(hostHits ? a_host : a_device);
     const double last = (hostHits && deviceHits) ? std::max<double>(a_host, a_device) : far;
 
-    if (std::abs(value(first)) > tol) {
+    if (std::abs(value(first)) > tol || (hostHits && deviceHits && std::abs(value(last)) > tol)) {
       return false;
     }
 
