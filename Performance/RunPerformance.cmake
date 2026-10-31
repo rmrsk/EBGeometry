@@ -13,7 +13,7 @@
 #
 # With no GLOB, every case runs. A GLOB (* and ?) selects cases by name, for example
 # 'PointCloudBVH/*' or '*/double/*'; several may be given. For compare, an argument that git resolves
-# to a commit is BASE (default origin/dev) and then HEAD (default: the working tree, uncommitted
+# to a commit is BASE (default origin/main) and then HEAD (default: the working tree, uncommitted
 # changes included); anything else is a GLOB.
 #
 # Options:
@@ -161,7 +161,7 @@ if(command STREQUAL "compare")
   endforeach()
 
   list(LENGTH refs nrefs)
-  set(BASE origin/dev)
+  set(BASE origin/main)
   set(HEAD WORKTREE)
 
   if(nrefs GREATER_EQUAL 1)

@@ -15,7 +15,7 @@
 # is printed and written to <WORK_DIR>/report.md together with the commands to repeat it by hand.
 #
 # Variables (all optional):
-#   BASE       baseline commit or branch                         default: origin/dev
+#   BASE       baseline commit or branch                         default: origin/main
 #   HEAD       candidate commit or branch; WORKTREE uses the     default: HEAD
 #              working tree as it is, uncommitted changes included
 #   GPU        OFF, CUDA or HIP                                   default: OFF
@@ -42,7 +42,7 @@ cmake_minimum_required(VERSION 3.16)
 
 get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
-foreach(pair "BASE;origin/dev" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;2" "REPS;3" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
+foreach(pair "BASE;origin/main" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;2" "REPS;3" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
              "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF")
   list(GET pair 0 var)
   list(GET pair 1 default)

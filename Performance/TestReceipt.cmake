@@ -26,7 +26,7 @@ set(report "**VERDICT: 2 minor regressions; rerun them with --rounds 10 before d
 
 foreach(side host cuda)
   perf_write_receipt(
-    SIDE ${side} LEVEL 1 BASE_REF origin/dev BASE aaaaaaa HEAD bbbbbbb BASE_FINGERPRINT 1111 HEAD_FINGERPRINT 2222
+    SIDE ${side} LEVEL 1 BASE_REF origin/main BASE aaaaaaa HEAD bbbbbbb BASE_FINGERPRINT 1111 HEAD_FINGERPRINT 2222
     CASES 2 ROUNDS 2 REPS 3 REPORT "${report}\nThese runs failed: x; y\n")
 endforeach()
 

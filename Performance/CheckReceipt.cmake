@@ -6,7 +6,7 @@
 # current base, and that its verdicts may be merged. Run by CI's Performance-receipt job; it needs only
 # CMake and git (with the base branch and the pull request's history fetched).
 #
-#   cmake -DBASE_REF=origin/dev -DHEAD_REF=<the pull request's head commit> -P Performance/CheckReceipt.cmake
+#   cmake -DBASE_REF=origin/main -DHEAD_REF=<the pull request's head commit> -P Performance/CheckReceipt.cmake
 #
 # A pull request that changes none of what a comparison measures (see Receipt.cmake: the library and the
 # probes) needs no receipt: it passes, whatever receipt it inherited. Otherwise Performance/receipt.md at

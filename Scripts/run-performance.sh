@@ -8,7 +8,7 @@
 #
 #   Scripts/run-performance.sh                          # every case
 #   Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset
-#   Scripts/run-performance.sh compare origin/dev       # this tree against origin/dev
+#   Scripts/run-performance.sh compare origin/main      # this tree against origin/main
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
