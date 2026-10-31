@@ -114,6 +114,21 @@ struct ExactOffsets : Tag
 {
 };
 
+/**
+ * @brief Ray queries trace a smooth union, intersection or difference through its bracket, and march it only
+ * within the bracket's spans; without it they march it whole. A smooth union lies within the union of its
+ * operands' offsets by the most the blend deepens (s/4 polynomial, s ln 2 exponential), traced from their level
+ * sets as ExactOffsets traces an Offset (an operand without closed-form level sets has its offset marched); a
+ * smooth intersection or difference lies within the plain intersection or difference of its operands. A
+ * crossing is still found by marching (HitT::m_exact is false). Listing it alone is enough: an Offset elsewhere
+ * in the expression is traced exactly only if ExactOffsets is listed too.
+ * @details BVH smooth unions (BVHSmoothUnion, and a smooth union the tape builds into a BVH union) are still
+ * marched whole.
+ */
+struct SmoothBrackets : Tag
+{
+};
+
 } // namespace TapeFeature
 
 namespace TapeDetail {
