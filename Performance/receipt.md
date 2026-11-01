@@ -28,7 +28,7 @@ date: 2026-11-01
 
 ## Host comparison: yellow
 
-**Accepted:** -
+**Accepted:** Accept as noise.
 
 `e1f44f2` against `3db951f` (origin/main), 2026-11-01.
 
@@ -230,7 +230,7 @@ date: 2026-11-01
 
 ## Device comparison (CUDA): yellow
 
-**Accepted:** -
+**Accepted:** Accept as noise.
 
 `e1f44f2` against `3db951f` (origin/main), 2026-11-01.
 
