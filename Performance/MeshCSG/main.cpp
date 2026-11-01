@@ -3,12 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Performance cases for a mesh in a composition, as in Examples/MeshCSG: the armadillo standing on a table (a
-// rounded box on four cylinders), joined by a plain union through a tape, and by a smooth union through a plain
-// tape (marched), through a tape listing TapeFeature::SmoothBrackets (the plain union traced, the blend zone
-// marched; EBGeometry_SmoothRayForms.hpp) and fused. Each is timed as ray queries (every ray starts at a random
-// point in the scene's box grown to twice its size and points at the box's center) and as whole frames of the
-// renderer, with shadows and ambient occlusion. The tape with the feature names the plain tape (marched/traced),
-// and the fused smooth union names the tape with the feature (tape/fused). A host build runs the host cases
+// rounded box on four cylinders), joined by a plain union through a tape, and by a smooth union through a tape
+// (marched whole) and fused (the plain union traced, the blend zone marched; EBGeometry_SmoothRayForms.hpp). Each
+// is timed as ray queries (every ray starts at a random point in the scene's box grown to twice its size and
+// points at the box's center) and as whole frames of the renderer, with shadows and ambient occlusion. The fused
+// smooth union names the tape's (tape/fused). A host build runs the host cases
 // (frames on one thread); a CUDA or HIP build runs host/device pairs, the rays in Morton and random order. The
 // plain union's frame is the device render kernel of a tape holding a mesh, whose speed has flipped with
 // unrelated changes before. See ../README.md and PerformanceTesting.rst.
@@ -63,10 +62,9 @@ using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 template <class T>
 using Mesh = EBGeometry::TriMeshSDF<T, K, W>;
 
-// A tape with the mesh as a primitive type of its own (it is not the default TriMeshSDF in every build), and
-// the given tape features.
-template <class T, class... Features>
-using MeshTape = EBGeometry::Tape<T, Features..., Mesh<T>>;
+// A tape with the mesh as a primitive type of its own (it is not the default TriMeshSDF in every build).
+template <class T>
+using MeshTape = EBGeometry::Tape<T, Mesh<T>>;
 
 // The mesh (the armadillo, the dodecahedron under --smoke) placed on the table, and the table's parts.
 template <class T>
@@ -542,18 +540,9 @@ addPrecision(Perf::Suite& a_suite)
 
   addShape<T>(
     a_suite,
-    "smooth-brackets-tape",
-    [](Perf::Case& c, EBGeometry::Pool& a_pool) {
-      return MeshTape<T, EBGeometry::TapeFeature::SmoothBrackets>(a_pool, Scene<T>(c, a_pool).expr(true));
-    },
-    "smooth-tape",
-    "marched/traced");
-
-  addShape<T>(
-    a_suite,
     "smooth-fused",
     [](Perf::Case& c, EBGeometry::Pool& a_pool) { return Scene<T>(c, a_pool).fused(); },
-    "smooth-brackets-tape",
+    "smooth-tape",
     "tape/fused");
 }
 

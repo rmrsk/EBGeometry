@@ -14,8 +14,8 @@
  * by w, overlap, and only up to what the plain union is known up to; the two are united. An exponential blend
  * differs from the plain union everywhere and is marched whole. A smooth intersection only raises its operands'
  * maximum, so it lies within their plain intersection, traced exactly, and is marched within its spans. The fused
- * SmoothUnion, SmoothIntersection and SmoothDifference trace this way always; a tape's ray program only when the
- * tape lists TapeFeature::SmoothBrackets.
+ * SmoothUnion, SmoothIntersection and SmoothDifference trace this way; a tape marches its smooth operations
+ * whole.
  * @author Robert Marskar
  */
 

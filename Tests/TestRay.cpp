@@ -6,8 +6,8 @@
 // against a slab test written here, the analytic ray forms against hand-computed crossings and against the
 // march, the span arithmetic against sets of points, compositions (fused, BVH unions and tapes, with mesh
 // SDFs, marched parts and user shapes) against hand-computed crossings and against their values sampled
-// along the ray, smooth unions and intersections (fused, and through tapes with and without
-// TapeFeature::SmoothBrackets), segments, an unresolved march, and device evaluation.
+// along the ray, smooth unions and intersections (fused, and marched through a tape), segments, an unresolved
+// march, and device evaluation.
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
@@ -1521,8 +1521,8 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
   const Vec3 x(1, 0, 0);
   const Vec3 y(0, 1, 0);
 
-  // Each crossing fused and through a tape with the feature, exact where the plain operation decides it, and through
-  // a plain tape, which marches the whole blend.
+  // Each crossing fused, exact where the plain operation decides it, and through a tape, which marches the whole
+  // blend.
   const auto check = [&](const auto&    a_fused,
                          const Expr<T>& a_expr,
                          const RayT<T>& a_ray,
@@ -1530,15 +1530,13 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
                          const Vec3&    a_normal,
                          const bool     a_exact,
                          const bool     a_entering = true) {
-    const Tape<T, TapeFeature::SmoothBrackets> traced(pool, a_expr);
-    const Tape<T>                              plain(pool, a_expr);
+    const Tape<T> plain(pool, a_expr);
 
-    const HitT<T> hits[] = {
-      firstHit(a_fused, a_ray, T(0), T(10)), traced.firstHit(a_ray, T(0), T(10)), plain.firstHit(a_ray, T(0), T(10))};
+    const HitT<T> hits[] = {firstHit(a_fused, a_ray, T(0), T(10)), plain.firstHit(a_ray, T(0), T(10))};
 
     for (const HitT<T>& hit : hits) {
       REQUIRE(hit.hit());
-      REQUIRE(hit.m_exact == (a_exact && &hit != &hits[2]));
+      REQUIRE(hit.m_exact == (a_exact && &hit == &hits[0]));
       REQUIRE(hit.m_entering == a_entering);
       // A march finds a crossing to within a few times its tolerance, 1e-4 of the shape's box diagonal.
       REQUIRE_THAT(hit.m_t, withinAbsT(a_t, hit.m_exact ? looseMargin<T>() : 3e-3));
@@ -1580,7 +1578,7 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
         true);
 
   // The exponential blend deepens equal values by s ln 2, and changes the plain union everywhere: it is marched
-  // whole, with the feature or without.
+  // whole.
   const T deep = T(0.5) + T(0.2) * std::log(T(2));
 
   check(Fused::SmoothUnion(left, right, T(0.2), BlendKind::Exponential),
@@ -1606,26 +1604,18 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
   // the march's tolerance, so its value is small rather than zero.
   const Scene<T> scene(7);
 
-  const std::vector<Expr<T>> balls(scene.balls.begin(), scene.balls.end());
-  const std::vector<Expr<T>> boxes(scene.boxes.begin(), scene.boxes.end());
-
-  using F = TapeFeature::SmoothBrackets;
-
-  const Tape<T, F> ballTape(pool, SmoothUnion(balls, T(0.2)));
-  const Tape<T, F> drilledTape(pool, SmoothDifference(SmoothUnion(boxes, T(0.2)), Union(scene.drills()), T(0.1)));
-  const Tape<T, F> cutTape(pool, SmoothIntersection(SmoothUnion(balls, T(0.3)), Union(boxes), T(0.1)));
-
   const auto fusedBalls =
     Fused::SmoothUnion(Fused::operands(scene.balls[0], scene.balls[1], scene.balls[2], scene.balls[3]), T(0.2));
   const auto fusedDrilled =
     Fused::SmoothDifference(Fused::SmoothUnion(Fused::operands(scene.boxes[0], scene.boxes[1], scene.boxes[2]), T(0.2)),
                             Fused::operands(scene.holes[0], scene.holes[1]),
                             T(0.1));
+  const auto fusedCut =
+    Fused::SmoothIntersection(fusedBalls, Fused::Union(scene.boxes[0], scene.boxes[1], scene.boxes[2]), T(0.1));
 
   // A ball blended into a half-space below it: the plane's box is unbounded, the blend zone's is the ball's grown.
   const PlaneSDF<T>  floor(-T(0.5) * Vec3(0, 1, 0), Vec3(0, 1, 0));
   const SphereSDF<T> ball(Vec3::zeros(), T(0.4));
-  const Tape<T, F>   floorTape(pool, SmoothUnion(floor, ball, T(0.3)));
   const auto         fusedFloor = Fused::SmoothUnion(floor, ball, T(0.3));
 
   const T tMax = T(7);
@@ -1650,12 +1640,9 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
     }
   };
 
-  sampled(ballTape);
-  sampled(drilledTape);
-  sampled(cutTape);
   sampled(fusedBalls);
+  sampled(fusedCut);
   sampled(fusedDrilled);
-  sampled(floorTape);
   sampled(fusedFloor);
 }
 
@@ -2140,16 +2127,7 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
   const auto annulusFused = Fused::Annular(polygons, T(0.1));
   const auto annulusFlat  = Fused::Annular(flat, T(0.1));
 
-  // Smooth unions and intersections traced as the plain operation and marched where the blend changes it: of the
-  // mesh and a ball in a tape and fused, and of analytic shapes in a tape.
-  using TSM = Tape<T, TapeFeature::SmoothBrackets, M>;
-  using TS  = Tape<T, TapeFeature::SmoothBrackets>;
-
-  const TSM  smoothMeshTape(pool, SmoothUnion(cube, SphereSDF<T>(Vec3(T(1.1), T(0.5), T(0.5)), T(0.3)), T(0.2)));
-  const TS   smoothTape(pool,
-                      SmoothDifference(SmoothUnion(sphere, BoxSDF<T>(Vec3::zeros(), Vec3::ones()), T(0.3)),
-                                       SphereSDF<T>(-T(0.5) * Vec3::ones(), T(0.4)),
-                                       T(0.1)));
+  // A smooth union of the mesh and a ball, traced as the plain union and marched where the blend changes it.
   const auto smoothFused = Fused::SmoothUnion(polygons, SphereSDF<T>(Vec3(T(1.1), T(0.5), T(0.5)), T(0.3)), T(0.2));
 
   pool.freeze();
@@ -2201,12 +2179,6 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
 
   using SF = std::decay_t<decltype(smoothFused)>;
 
-  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TSM>{smoothMeshTape.rebasedView(device)}, rays),
-                     evaluateOnHost<T>(FirstCrossing<T, TSM>{smoothMeshTape}, rays),
-                     T(1e-3));
-  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TS>{smoothTape.rebasedView(device)}, rays),
-                     evaluateOnHost<T>(FirstCrossing<T, TS>{smoothTape}, rays),
-                     T(1e-3));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, SF>{smoothFused.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, SF>{smoothFused}, rays),
                      T(1e-3));

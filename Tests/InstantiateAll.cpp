@@ -367,10 +367,6 @@ instantiateFunctionTemplates()
     (void)exact.signedDistance(Vec3T<T>::zeros());
     (void)exact.firstHit(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
 
-    const Tape<T, TapeFeature::SmoothBrackets> smooth(meshPool, expr);
-
-    (void)smooth.firstHit(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
-
     const PrimitiveRef<T> leaf = tape.closestPrimitive(Vec3T<T>::zeros());
 
     (void)tape.template isPrimitive<SphereSDF<T>>(leaf);

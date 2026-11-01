@@ -132,20 +132,21 @@ Smooth unions and intersections
 
 A smooth union blends its operands only near where they meet: with the polynomial blend of length
 :math:`s`, it is inside wherever the plain union is, and differs from it only where its two nearest operands
-are both within :math:`s + s/4` of their surfaces. A ray therefore traces the plain union exactly, from its
-operands, and marches the smooth union only in that blend zone, inside the box where two operands' boxes,
-grown by :math:`s + s/4`, overlap. A ray that passes far from where the operands meet, such as one that hits a
-mesh standing on a table away from its feet, finds its crossing on the plain union without marching. The exponential
-blend changes the plain union everywhere, if only slightly, and is marched whole.
+are both within :math:`s + s/4` of their surfaces. A ray through a fused smooth union (see :ref:`Sec:Fused`)
+therefore traces the plain union exactly, from its operands, and marches the smooth union only in that blend
+zone, inside the box where two operands' boxes, grown by :math:`s + s/4`, overlap. A ray that passes far from
+where the operands meet, such as one that hits a mesh standing on a table away from its feet, finds its
+crossing on the plain union without marching. The exponential blend changes the plain union everywhere, if only
+slightly, and is marched whole.
 
 A smooth intersection or difference only removes material from the plain intersection or difference, so it
-lies within it: a ray traces the plain operation exactly and marches the smooth one only within its spans.
+lies within it: a ray through a fused one traces the plain operation exactly and marches the smooth one only
+within its spans.
 
-A crossing found in a marched part is found to the march's tolerance, and is not exact. A fused smooth union,
-intersection or difference is always traced this way. A tape is when its type asks for it, by listing
-``TapeFeature::SmoothBrackets`` (see :ref:`Sec:TapeFeatures`), and otherwise marches each smooth union or
-intersection whole. A smooth union of so many operands that the tape evaluates it with a BVH, and
-``BVHSmoothUnion``, are marched whole.
+A crossing found in a marched part is found to the march's tolerance, and is not exact. A tape marches each smooth union or intersection whole, as do
+``BVHSmoothUnion`` and a fused smooth union with the exponential blend; where a smooth union of a few expensive
+operands is ray traced or rendered often, writing it with the ``Fused`` functions (see :ref:`Sec:Fused`) is
+the faster choice.
 
 .. _Sec:RayMarchedParts:
 

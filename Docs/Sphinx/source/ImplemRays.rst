@@ -106,9 +106,8 @@ marched (see :ref:`Chap:SphereTracing`). The library has ray forms for:
        first.
    * - ``Tape``
      - Its ray program, clause by clause (see :ref:`a tape's ray program <Sec:TapeRays>`). Its ``Offset``
-       and ``Annular`` of the shapes above are traced only in a ``Tape<T, TapeFeature::ExactOffsets>``, and
-       its smooth unions and intersections as the fused ones are only in a
-       ``Tape<T, TapeFeature::SmoothBrackets>`` (see :ref:`Sec:TapeFeatures`); otherwise they are marched.
+       and ``Annular`` of the shapes above are traced only in a ``Tape<T, TapeFeature::ExactOffsets>``
+       (see :ref:`Sec:TapeFeatures`), and marched otherwise. Its smooth unions and intersections are marched.
 
 Every other shape is marched: the other analytic shapes, ``BVHSmoothUnion``, the other fused operations
 and shapes of your own without a ray form. The ray forms of the analytic shapes and the mesh SDFs come
