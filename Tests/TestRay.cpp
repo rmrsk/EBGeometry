@@ -1559,6 +1559,22 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
   check(
     Fused::SmoothUnion(left, right, s), SmoothUnion(left, right, s), RayT<T>{T(0.1) * y, y}, T(0.15), y, false, false);
 
+  // From the left ball's center along the axis: the plain union is left at x = -0.1, but the blend fills the gap
+  // (equal values 0.1 there, deepened by 0.15), so the ray stays inside across the neck and through the right ball,
+  // leaving it at x = 1.1. The plain union's first exit bounds the blend zone's march; the march must go on past it.
+  {
+    const auto    blended = Fused::SmoothUnion(left, right, s);
+    const Tape<T> plain(pool, SmoothUnion(left, right, s));
+    const RayT<T> ray{-T(0.6) * x, x};
+
+    for (const HitT<T>& hit : {firstHit(blended, ray, T(0), T(10)), plain.firstHit(ray, T(0), T(10))}) {
+      REQUIRE(hit.hit());
+      REQUIRE_FALSE(hit.m_entering);
+      REQUIRE_THAT(hit.m_t, withinAbsT(T(1.7), hit.m_exact ? looseMargin<T>() : 3e-3));
+      REQUIRE(dot(hit.m_normal, x) > T(0.99));
+    }
+  }
+
   // A third ball far from the others: only the first pair's boxes overlap, so only their neck is marched, and the
   // third ball is met exactly.
   const SphereSDF<T> far(Vec3(T(0), T(0), T(5)), T(0.5));
