@@ -1622,6 +1622,12 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
                             Fused::operands(scene.holes[0], scene.holes[1]),
                             T(0.1));
 
+  // A ball blended into a half-space below it: the plane's box is unbounded, the blend zone's is the ball's grown.
+  const PlaneSDF<T>  floor(-T(0.5) * Vec3(0, 1, 0), Vec3(0, 1, 0));
+  const SphereSDF<T> ball(Vec3::zeros(), T(0.4));
+  const Tape<T, F>   floorTape(pool, SmoothUnion(floor, ball, T(0.3)));
+  const auto         fusedFloor = Fused::SmoothUnion(floor, ball, T(0.3));
+
   const T tMax = T(7);
 
   const auto sampled = [&](const auto& a_shape) {
@@ -1649,6 +1655,8 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
   sampled(cutTape);
   sampled(fusedBalls);
   sampled(fusedDrilled);
+  sampled(floorTape);
+  sampled(fusedFloor);
 }
 
 TEMPLATE_TEST_CASE("Ray: a ray through more spans than a list holds still finds its first crossing",

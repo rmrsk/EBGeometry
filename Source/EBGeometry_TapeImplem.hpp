@@ -322,9 +322,11 @@ public:
    * Marched clause evaluates: max(u, m2 - w), u the smooth union's value, m2 its second smallest operand's and
    * w = s + s/4 (a PairBlend clause with bit 2). Where it is negative the smooth union is inside; everywhere
    * else the smooth union is inside exactly where the plain union is (see RayDetail::BlendZoneView).
-   * @details The operands are emitted again, their leaves numbered as they already are, and without ray clauses:
-   * each smooth union enclosing an expression adds one more copy of its value clauses, so nested smooth unions
-   * grow the tape with their depth times their size.
+   * @details The operands are emitted again, without ray clauses, and their primitives staged again: each smooth
+   * union enclosing an expression adds one more copy of its value clauses and of its primitives in the pool, so
+   * nested smooth unions grow the tape with their depth times their size. The view's leaves take numbers past the
+   * expression's, and the counter is restored afterwards; nothing reads them, since a marched crossing names the
+   * view's leaf by the Marched clause, not by the view's own.
    * @param[in] a_node The smooth union.
    * @return The sub-program's index.
    */
