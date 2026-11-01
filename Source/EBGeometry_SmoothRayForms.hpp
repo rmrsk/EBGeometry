@@ -4,15 +4,18 @@
 
 /**
  * @file   EBGeometry_SmoothRayForms.hpp
- * @brief  Ray forms of smooth unions and intersections: marched only within a bracket traced exactly.
- * @details A smooth union deepens its operands' minimum by at most d (s/4 for the polynomial blend, s ln 2 for
- * the exponential one), so it lies within the union of its operands' offsets by d, its bracket: outside it,
- * every operand's value exceeds d and the blend's exceeds 0. A smooth intersection only raises its operands'
- * maximum, so it lies within their plain intersection. A ray traces the bracket (an operand's offset from its
- * level sets, see EBGeometry_OffsetRayForms.hpp, through unions of such operands, and marched otherwise),
- * misses exactly where it misses the bracket, and marches the smooth operation only within the bracket's spans.
- * The fused SmoothUnion, SmoothIntersection and SmoothDifference trace this way always; a tape's ray program
- * only when the tape lists TapeFeature::SmoothBrackets.
+ * @brief  Ray forms of smooth unions and intersections: traced exactly where they cannot differ from the plain
+ *         operation, and marched only where they can.
+ * @details A smooth union with the polynomial blend of length s changes its operands' minimum only where the two
+ * smallest are within s of each other, and changes its sign only where the smallest is within s/4 of 0. So it is
+ * inside wherever the plain union is, and differs from it only in its blend zone, where the two smallest operands
+ * are both within w = s + s/4 of their surfaces. A ray traces the plain union exactly from its operands' spans,
+ * and marches the blend zone view (RayDetail::BlendZoneView) only inside the box where two operands' boxes, grown
+ * by w, overlap, and only up to what the plain union is known up to; the two are united. An exponential blend
+ * differs from the plain union everywhere and is marched whole. A smooth intersection only raises its operands'
+ * maximum, so it lies within their plain intersection, traced exactly, and is marched within its spans. The fused
+ * SmoothUnion, SmoothIntersection and SmoothDifference trace this way always; a tape's ray program only when the
+ * tape lists TapeFeature::SmoothBrackets.
  * @author Robert Marskar
  */
 
@@ -55,10 +58,9 @@ blendDepth(const T a_smooth, const bool a_exponential) noexcept
 }
 
 /**
- * @brief A shape seen only through its value, with no ray form: what a smooth operation is marched as within
- * its bracket, and an operand's offset where it has no closed-form level sets.
- * @details Internal helper; not part of the public API. Its value is the shape's less a level, and its box
- * the shape's grown by the level.
+ * @brief A shape seen only through its value, with no ray form: what a smooth operation is marched as where it
+ * may differ from the plain operation.
+ * @details Internal helper; not part of the public API. Its value and box are the shape's.
  * @tparam S Shape type.
  */
 template <class S>
@@ -80,12 +82,7 @@ struct MarchedView
   S m_shape;
 
   /**
-   * @brief The level subtracted from its value: 0 for the shape itself, d for its offset by d.
-   */
-  T m_level;
-
-  /**
-   * @brief The value: f - c.
+   * @brief The shape's value.
    * @param[in] a_point The point.
    * @return The value.
    */
@@ -93,21 +90,18 @@ struct MarchedView
   inline T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
-    return m_shape.signedDistance(a_point) - m_level;
+    return m_shape.signedDistance(a_point);
   }
 
   /**
-   * @brief The shape's box, grown by the level.
+   * @brief The shape's box.
    * @return The box.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept
   {
-    const BoundingVolumes::AABBT<T> box  = m_shape.computeBoundingVolume();
-    const Vec3T<T>                  grow = Math::max(m_level, T(0)) * Vec3T<T>::ones();
-
-    return BoundingVolumes::AABBT<T>(box.getLowCorner() - grow, box.getHighCorner() + grow);
+    return m_shape.computeBoundingVolume();
   }
 };
 
@@ -255,12 +249,14 @@ pairOverlaps(const Fused::Node<Op, Cs...>& a_node,
 
 /**
  * @brief The ray form of a fused smooth union, intersection or difference (an intersection with a complement):
- * marched within its bracket, which is traced exactly where its operands allow. Callable on a device.
- * @details The bracket of a smooth union is the union of its operands' offsets by RayDetail::blendDepth(), that
- * of a smooth intersection the plain intersection of its operands (see EBGeometry_SmoothRayForms.hpp). The
- * operation is marched over each of the bracket's spans in turn (RayDetail::spansWithin()), so a crossing is
- * found to within RayOptions::m_tolerance (HitT::m_exact is false), and a ray that misses the bracket misses
- * exactly. HitT::m_primitive is 0: a fused composition is one shape.
+ * the plain operation traced exactly where its operands allow, and the smooth one marched only where it may
+ * differ from it. Callable on a device.
+ * @details A polynomial smooth union is its plain union, united with its blend zone view marched in the box where
+ * two operands' grown boxes overlap; an exponential one is marched whole. A smooth intersection is marched over
+ * each span of the plain intersection in turn (RayDetail::spansWithin()). See EBGeometry_SmoothRayForms.hpp. A
+ * crossing in a marched part is found to within RayOptions::m_tolerance (HitT::m_exact is false), and a ray that
+ * misses the plain operation and the blend zone misses exactly. HitT::m_primitive is 0: a fused composition is
+ * one shape.
  * @tparam T       Floating-point precision.
  * @tparam IsUnion Whether this is a union.
  * @tparam Cs      Operand types.
@@ -298,7 +294,7 @@ struct RayForm<Fused::Node<Fused::SmoothCombineOp<T, IsUnion>, Cs...>>
 
       HitT<T> hit;
 
-      hit.m_normal = RayDetail::gradientNormal(RayDetail::MarchedView<Node>{a_shape, T(0)}, a_ray.at(a_t), h);
+      hit.m_normal = RayDetail::gradientNormal(RayDetail::MarchedView<Node>{a_shape}, a_ray.at(a_t), h);
 
       return hit;
     };
@@ -311,7 +307,8 @@ struct RayForm<Fused::Node<Fused::SmoothCombineOp<T, IsUnion>, Cs...>>
   }
 
   /**
-   * @brief Where a ray is inside over an interval: the operation marched within the bracket's spans.
+   * @brief Where a ray is inside over an interval: the plain operation traced, and the smooth one marched where it
+   * may differ from it.
    * @param[in]  a_shape     The node.
    * @param[in]  a_ray       Ray, with a unit direction.
    * @param[in]  a_tMin      Start of the interval.
@@ -339,7 +336,7 @@ struct RayForm<Fused::Node<Fused::SmoothCombineOp<T, IsUnion>, Cs...>>
       if (op.m_exponential) {
         // An exponential blend differs from the plain union everywhere, if only slightly: marched whole.
         RayDetail::shapeSpans(
-          RayDetail::MarchedView<Node>{a_shape, T(0)}, a_ray, a_tMin, a_tMax, a_options, a_firstOnly, a_spans);
+          RayDetail::MarchedView<Node>{a_shape}, a_ray, a_tMin, a_tMax, a_options, a_firstOnly, a_spans);
       }
       else {
         // The plain union, exact, united with where the smooth union is inside and may differ from it, marched
@@ -391,7 +388,7 @@ struct RayForm<Fused::Node<Fused::SmoothCombineOp<T, IsUnion>, Cs...>>
       RayDetail::fusedIntersect<0, false, first>(a_shape, a_ray, a_tMin, a_options, false, bracket, operand, scratch);
       RayDetail::fusedIntersect<0, true, first>(a_shape, a_ray, a_tMin, a_options, false, bracket, operand, scratch);
       RayDetail::spansWithin(
-        RayDetail::MarchedView<Node>{a_shape, T(0)}, a_ray, bracket, a_options, a_firstOnly, scratch, a_spans);
+        RayDetail::MarchedView<Node>{a_shape}, a_ray, bracket, a_options, a_firstOnly, scratch, a_spans);
     }
 
     RayDetail::nameLeaf(0U, a_spans);

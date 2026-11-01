@@ -728,8 +728,9 @@ private:
    * @brief Whether a ray program traces an expression's node from its operands' spans: a union, intersection,
    * complement or affine map, a primitive with a ray form, with TapeFeature::ExactOffsets an offset or annulus of
    * a primitive (or an affine map of one) with closed-form level sets, and with TapeFeature::SmoothBrackets a
-   * smooth union with the polynomial blend, or a smooth intersection, not evaluated with a BVH (marched within
-   * its bracket, see emitSmoothRay()). Anything else is marched whole.
+   * smooth union with the polynomial blend, or a smooth intersection, not evaluated with a BVH (the plain operation
+   * traced, the smooth one marched only where it may differ from it, see emitSmoothRay()). Anything else is marched
+   * whole.
    * @param[in] a_node Expression.
    * @return True if traced.
    */
@@ -771,28 +772,6 @@ private:
   static constexpr bool smoothBrackets = IndexOf<TapeFeature::SmoothBrackets, Features>::value < Features::size;
 
   /**
-   * @brief A rough cost of evaluating an expression: one per node, and many for a pool-resident shape (a mesh, a
-   * BVH union, another tape). Of a smooth union's operands, the costliest is left out of its blend zone.
-   * @param[in] a_node Expression.
-   * @return The cost.
-   */
-  [[nodiscard]] static uint64_t
-  cost(const ExprDetail::Node<T>& a_node) noexcept
-  {
-    if (a_node.m_kind == ExprDetail::Kind::Primitive) {
-      return (a_node.m_leaf.m_isAttachedTo != nullptr) ? 1000U : 1U;
-    }
-
-    uint64_t sum = 1U;
-
-    for (const auto& child : a_node.m_children) {
-      sum += cost(child.node());
-    }
-
-    return sum;
-  }
-
-  /**
    * @brief How many span lists a ray program holds at once to trace an expression.
    * @param[in] a_node Expression.
    * @return The count.
@@ -827,15 +806,15 @@ private:
     }
     case Kind::SmoothUnion:
     case Kind::SmoothIntersection: {
-      // As a union or intersection of the operands; a union's blend zone then needs up to three lists more
-      // at once: the plain union, the zone so far and the next operand's offset.
+      // As a union or intersection of the operands; a union's blend zone is then marched into a list above the
+      // plain union's.
       uint32_t slots = this->raySlots(a_node.m_children.front().node());
 
       for (size_t i = 1; i < a_node.m_children.size(); i++) {
         slots = Math::max(slots, 1U + this->raySlots(a_node.m_children[i].node()));
       }
 
-      return (a_node.m_kind == Kind::SmoothUnion) ? Math::max(slots, 3U) : slots;
+      return (a_node.m_kind == Kind::SmoothUnion) ? Math::max(slots, 2U) : slots;
     }
     default: {
       return 1U;

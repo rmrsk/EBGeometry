@@ -115,15 +115,18 @@ struct ExactOffsets : Tag
 };
 
 /**
- * @brief Ray queries trace a smooth union, intersection or difference through its bracket, and march it only
- * within the bracket's spans; without it they march it whole. A smooth union lies within the union of its
- * operands' offsets by the most the blend deepens (s/4 polynomial, s ln 2 exponential), traced from their level
- * sets as ExactOffsets traces an Offset (an operand without closed-form level sets has its offset marched); a
- * smooth intersection or difference lies within the plain intersection or difference of its operands. A
- * crossing is still found by marching (HitT::m_exact is false). Listing it alone is enough: an Offset elsewhere
- * in the expression is traced exactly only if ExactOffsets is listed too.
+ * @brief Ray queries trace a smooth union, intersection or difference exactly where it cannot differ from the
+ * plain operation, and march it only where it can; without it they march it whole. A smooth union with the
+ * polynomial blend of length s is inside wherever its plain union is, and differs from it only where its two
+ * nearest operands are both within s + s/4 of their surfaces: the plain union is traced from its operands, and
+ * only that blend zone is marched, in the box where two operands' boxes grown by s + s/4 overlap. A smooth
+ * intersection or difference lies within the plain intersection or difference of its operands, traced exactly,
+ * and is marched only within it. An exponential smooth union is still marched whole. A crossing in a marched part
+ * is found to within RayOptions::m_tolerance (HitT::m_exact is false). Listing it alone is enough: an Offset
+ * elsewhere in the expression is traced exactly only if ExactOffsets is listed too.
  * @details BVH smooth unions (BVHSmoothUnion, and a smooth union the tape builds into a BVH union) are still
- * marched whole.
+ * marched whole. The blend zone is a sub-program of its own (TapeDetail::Compiler::compileBlendZone()), evaluated
+ * only by the ray program's Marched clause; see EBGeometry_SmoothRayForms.hpp.
  */
 struct SmoothBrackets : Tag
 {

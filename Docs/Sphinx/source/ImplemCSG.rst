@@ -309,6 +309,10 @@ code. The features are:
    * - ``ExactOffsets``
      - Ray queries trace ``Offset`` and ``Annular`` of a primitive with closed-form level sets, or of an
        affine map of one, exactly (see :ref:`Sec:OffsetRays`). Without it, they are marched.
+   * - ``SmoothBrackets``
+     - Ray queries trace a smooth union (with the polynomial blend) or a smooth intersection or difference
+       as the plain operation, and march it only where the blend may change it (see :ref:`Sec:SmoothRays`).
+       Without it, they are marched whole.
 
 .. _Sec:Fused:
 
