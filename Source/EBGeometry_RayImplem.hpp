@@ -391,7 +391,9 @@ scaleOf(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi, const RayOptions<T>& a_optio
  * @details Internal helper; not part of the public API. Zero where the gradient vanishes. Out of line on a
  * device (see valueAt()). The values at the four corners a_h (±1, ±1, ±1) with an even number of minus signs,
  * each times its offset, sum to 4 a_h times the gradient: four values of the shape, where central differences
- * take six. On a marched crossing of a mesh, those values are most of what the crossing costs after the march.
+ * take six. The error is first order in a_h (the curvature terms do not cancel, as they do in central
+ * differences), small at a_h of the march's tolerance. On a marched
+ * crossing of a mesh, those values are most of what the crossing costs after the march.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape The shape.
@@ -429,8 +431,7 @@ gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
  * and kind (see endOf()), so the span code marches with a_resolve false: the normal (four values of the shape,
  * see gradientNormal()) and the primitive (one more search) would be thrown away at every crossing. A run-time
  * flag rather than a template parameter: a second instantiation of the march per shape type slowed marched
- * tapes holding a mesh by 13-54% on a device (RayShell, RayParticles), where one copy with a branch was
- * faster than before.
+ * tapes holding a mesh by 13-54% on a device (RayShell, RayParticles) against one copy with a branch.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape   The shape.

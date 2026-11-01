@@ -1528,7 +1528,8 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
                          const RayT<T>& a_ray,
                          const T        a_t,
                          const Vec3&    a_normal,
-                         const bool     a_exact) {
+                         const bool     a_exact,
+                         const bool     a_entering = true) {
     const Tape<T, TapeFeature::SmoothBrackets> traced(pool, a_expr);
     const Tape<T>                              plain(pool, a_expr);
 
@@ -1538,8 +1539,9 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
     for (const HitT<T>& hit : hits) {
       REQUIRE(hit.hit());
       REQUIRE(hit.m_exact == (a_exact && &hit != &hits[2]));
-      REQUIRE(hit.m_entering);
-      REQUIRE_THAT(hit.m_t, withinAbsT(a_t, 1e-3));
+      REQUIRE(hit.m_entering == a_entering);
+      // A march finds a crossing to within a few times its tolerance, 1e-4 of the shape's box diagonal.
+      REQUIRE_THAT(hit.m_t, withinAbsT(a_t, hit.m_exact ? looseMargin<T>() : 3e-3));
       REQUIRE(dot(hit.m_normal, a_normal) > T(0.99));
     }
   };
@@ -1554,6 +1556,39 @@ TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain
 
   // Along the axis, the ray meets the left ball where the blend changes nothing.
   check(Fused::SmoothUnion(left, right, s), SmoothUnion(left, right, s), RayT<T>{-T(3) * x, x}, T(1.9), -x, true);
+
+  // From inside the neck, outside both balls: the ray leaves the blend at y = 0.25.
+  check(
+    Fused::SmoothUnion(left, right, s), SmoothUnion(left, right, s), RayT<T>{T(0.1) * y, y}, T(0.15), y, false, false);
+
+  // A third ball far from the others: only the first pair's boxes overlap, so only their neck is marched, and the
+  // third ball is met exactly.
+  const SphereSDF<T> far(Vec3(T(0), T(0), T(5)), T(0.5));
+  const Vec3         z(0, 0, 1);
+
+  check(Fused::SmoothUnion(Fused::operands(left, right, far), s),
+        SmoothUnion(std::vector<Expr<T>>{left, right, far}, s),
+        RayT<T>{-T(3) * y, y},
+        T(2.75),
+        -y,
+        false);
+  check(Fused::SmoothUnion(Fused::operands(left, right, far), s),
+        SmoothUnion(std::vector<Expr<T>>{left, right, far}, s),
+        RayT<T>{T(8) * z, -z},
+        T(2.5),
+        z,
+        true);
+
+  // The exponential blend deepens equal values by s ln 2, and changes the plain union everywhere: it is marched
+  // whole, with the feature or without.
+  const T deep = T(0.5) + T(0.2) * std::log(T(2));
+
+  check(Fused::SmoothUnion(left, right, T(0.2), BlendKind::Exponential),
+        SmoothUnion(left, right, T(0.2), BlendKind::Exponential),
+        RayT<T>{-T(3) * y, y},
+        T(3) - std::sqrt(deep * deep - T(0.36)),
+        -y,
+        false);
 
   // Two balls of radius 0.5 overlapping by 0.4, smoothly intersected over 0.4: midway the blend raises both values by
   // 0.1, so the surface is where |p - c| = 0.4, at y = sqrt(0.07), inside the plain intersection's y = 0.4.
