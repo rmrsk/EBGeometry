@@ -17,11 +17,15 @@ ray, with :math:`\mathbf{d}` of unit length so that :math:`t` is a distance, whe
 :math:`\mathbf{a}` to :math:`\mathbf{b}` is the ray from :math:`\mathbf{a}` towards :math:`\mathbf{b}`
 over :math:`[0, |\mathbf{b} - \mathbf{a}|]`, so that :math:`t` is the distance from :math:`\mathbf{a}`.
 
-EBGeometry asks it in two ways, both on any shape and both callable on a device (see
+EBGeometry asks it in three ways, all on any shape and all callable on a device (see
 :ref:`Chap:ImplemRays`):
 
 * ``firstHit()`` finds the *first* crossing in the interval, whichever way the ray goes through it: a
   ray that starts inside the object reports where it leaves.
+* ``firstCrossing()`` finds the same crossing, but reports only where it is and which way the ray goes
+  through it, not the surface's normal or which part was crossed. It is the one to use when the point is
+  all that matters (cutting a cell's edges, a particle's collision distance), since finding the normal
+  can cost as much again as finding the crossing.
 * ``intersects()`` asks only *whether* the ray crosses, and where the shape allows it stops at the first
   crossing it comes across instead of searching for the nearest.
 

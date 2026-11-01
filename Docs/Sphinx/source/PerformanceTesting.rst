@@ -26,6 +26,7 @@ What is in Performance/
      Fused/main.cpp           fused compositions (Fused::)
      Ray/main.cpp             ray queries on meshes and compositions
      RayCSG/main.cpp          ray tracing a composition from its parts' spans
+     RayCrossing/main.cpp     the first crossing without its normal (firstCrossing())
      RayShell/main.cpp        ray tracing a shell with a corner cut away
      RayParticles/main.cpp    particles colliding with a boundary
      Render/main.cpp          one frame of the renderer
@@ -347,6 +348,24 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 The inputs are ``union-tape``, ``smooth-tape`` and ``smooth-fused``.
+
+**RayCrossing** (``Performance/RayCrossing``): ``firstCrossing()``, the first crossing without its normal or
+primitive, against ``firstHit()`` on the same rays. The mesh and the CSG tape take the Ray probe's rays, and
+name its ``firstHit`` cases (``hit/crossing``). Two tapes holding the armadillo (the dodecahedron under
+``--smoke``), where the normal costs the most, are timed both ways here: the mesh drilled through its center
+along each axis, traced exactly, and the mesh smoothly joined to a ball at the top of its box, marched.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``<input>/firstCrossing``             host   the first crossing of each ray, without its normal
+``<input>/firstHit``                  host   the same rays through ``firstHit()``, where the Ray
+                                             probe has no such case
+``<input>/<operation>-morton``,       GPU    the same, in Morton and in random order
+``<operation>-random``
+====================================  =====  =====================================================
+
+The inputs are ``mesh``, ``csg-tape``, ``drilled-mesh-tape`` and ``smooth-mesh-tape``.
 
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
 leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the
