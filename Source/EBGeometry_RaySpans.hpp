@@ -641,9 +641,10 @@ shapeHit(const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, con
  * @brief A shape's first crossing along a ray, for a span list: its distance, kind and whether the ray enters
  * there.
  * @details Internal helper; not part of the public API. A span end keeps nothing else (see endOf()), so a
- * marched shape is marched without its normal and primitive (RayDetail::march() with a_resolve false). A
- * shape with a ray form is traced by it (shapeHit()), normal included: a ray form's normal costs little next
- * to its trace.
+ * shape without a ray form is marched without its normal and primitive (RayDetail::march() with a_resolve
+ * false). A shape with a ray form goes through shapeHit() as it is, normal included, also when the options
+ * force a march: a second call into the march from here, for those shapes, changed ptxas's allocation of the
+ * traced path, and exactly traced mesh shells in double ran 8% slower on a device (RayShell, sm_86).
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape   The shape.
@@ -659,12 +660,11 @@ inline HitT<T>
 spanHit(const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, const RayOptions<T>& a_options) noexcept
 {
   if constexpr (HasRayFirstHit<S, T>::value) {
-    if (!a_options.m_march) {
-      return RayDetail::shapeHit(a_shape, a_ray, a_t0, a_t1, a_options);
-    }
+    return RayDetail::shapeHit(a_shape, a_ray, a_t0, a_t1, a_options);
   }
-
-  return RayDetail::march(a_shape, a_ray, a_t0, a_t1, a_options, false);
+  else {
+    return RayDetail::march(a_shape, a_ray, a_t0, a_t1, a_options, false);
+  }
 }
 
 /**
