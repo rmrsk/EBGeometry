@@ -125,6 +125,31 @@ struct Sectioned
   }
 
   /**
+   * @brief The shape's first crossing along a ray, uncut, without its normal and primitive (firstCrossing());
+   * out of line on a device.
+   * @details A shape whose ray form has firstCrossing(), or that is marched, goes through firstCrossing(), which
+   * reaches the out-of-line helpers firstHit() reaches (a tape's ray program, the march). Any other ray form is
+   * traced by shapeHit(), so that a kernel holds one copy of its trace; its normal costs little next to it.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the shape.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline CrossingT<T>
+  shapeCrossing(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    if constexpr (RayDetail::HasRayFirstCrossing<S, T>::value || !RayDetail::HasRayFirstHit<S, T>::value) {
+      return EBGeometry::firstCrossing(m_shape, a_ray, a_tMin, a_tMax, a_options);
+    }
+    else {
+      return RayDetail::crossingOf(this->shapeHit(a_ray, a_tMin, a_tMax, a_options));
+    }
+  }
+
+  /**
    * @brief The cut shape's value.
    * @param[in] a_point Point.
    * @return The value.
@@ -559,6 +584,23 @@ private:
   }
 
   /**
+   * @brief Whether the cut shape blocks a ray (firstCrossing()): what shadow and occlusion rays ask, which need
+   * no normal or primitive.
+   * @details Out of line on a device, as trace() is.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMin Where along it to start looking.
+   * @param[in] a_tMax How far along it to look.
+   * @return Whether it crosses the cut shape's surface there.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline bool
+  occluded(const RayT<T>& a_ray, const T a_tMin, const T a_tMax) const noexcept
+  {
+    return firstCrossing(m_object, a_ray, a_tMin, a_tMax, m_rays).hit();
+  }
+
+  /**
    * @brief The cut shape's unit normal at a point, from finite differences on a tetrahedron.
    * @param[in] a_point Point.
    * @return The normal.
@@ -583,7 +625,7 @@ private:
 
   /**
    * @brief How much light reaches a point from the light's direction: 0 in shadow, 1 in light.
-   * @details One ray towards the light (firstHit()); the light moving a little between a pixel's rays
+   * @details One ray towards the light (occluded()); the light moving a little between a pixel's rays
    * softens the edges.
    * @param[in] a_point  Point.
    * @param[in] a_normal Unit normal there.
@@ -594,9 +636,8 @@ private:
   shadow(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
-    const HitT<T>  hit    = this->trace(RayT<T>{origin, m_light}, T(0), T(2) * m_scale);
 
-    return hit.hit() ? T(0) : T(1);
+    return this->occluded(RayT<T>{origin, m_light}, T(0), T(2) * m_scale) ? T(0) : T(1);
   }
 
   /**
@@ -621,7 +662,7 @@ private:
       const T        a = T(0.5) * pi<T> * T(k);
       const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
 
-      blocked += this->trace(RayT<T>{origin, r}, T(0), T(0.07) * m_scale).hit() ? 1 : 0;
+      blocked += this->occluded(RayT<T>{origin, r}, T(0), T(0.07) * m_scale) ? 1 : 0;
     }
 
     return T(1) - T(0.2) * T(blocked);
@@ -1009,6 +1050,76 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
     }
 
     return hit;
+  }
+
+  /**
+   * @brief The first crossing of the cut shape along a ray, without its normal and primitive: firstHit()'s
+   * search, through the shape's firstCrossing().
+   * @param[in] a_cut  The cut shape.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMin Start of the interval.
+   * @param[in] a_tMax End of the interval.
+   * @param[in] a_options How to march the shape.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline CrossingT<T>
+  firstCrossing(const Render::RenderDetail::Sectioned<T, S>& a_cut,
+                const RayT<T>&                               a_ray,
+                const T                                      a_tMin,
+                const T                                      a_tMax,
+                const RayOptions<T>&                         a_options) noexcept
+  {
+    if (!a_cut.m_on) {
+      return a_cut.shapeCrossing(a_ray, a_tMin, a_tMax, a_options);
+    }
+
+    // The part [a, b] of the interval on the kept side of the plane, as firstHit() finds it.
+    const T start = a_cut.plane(a_ray.at(a_tMin));
+    const T rate  = dot(a_ray.m_direction, a_cut.m_normal);
+
+    T a = a_tMin;
+    T b = a_tMax;
+
+    if (rate == T(0)) {
+      if (start > T(0)) {
+        return CrossingT<T>();
+      }
+    }
+    else if (rate > T(0)) {
+      b = Math::min(b, a_tMin - start / rate);
+    }
+    else {
+      a = Math::max(a, a_tMin - start / rate);
+    }
+
+    if (!(a <= b)) {
+      return CrossingT<T>();
+    }
+
+    const auto onPlane = [&a_ray](const T a_t, const bool a_entering) noexcept {
+      CrossingT<T> crossing;
+
+      crossing.m_status   = HitStatus::Hit;
+      crossing.m_t        = a_t;
+      crossing.m_point    = a_ray.at(a_t);
+      crossing.m_entering = a_entering;
+      crossing.m_exact    = true;
+
+      return crossing;
+    };
+
+    if (a > a_tMin && a_cut.shapeDistance(a_ray.at(a)) < T(0)) {
+      return onPlane(a, true);
+    }
+
+    const CrossingT<T> crossing = a_cut.shapeCrossing(a_ray, a, b, a_options);
+
+    if (crossing.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_ray.at(b)) < T(0)) {
+      return onPlane(b, false);
+    }
+
+    return crossing;
   }
 };
 

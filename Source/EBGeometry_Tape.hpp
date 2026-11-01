@@ -1729,6 +1729,32 @@ struct RayForm<Tape<T, UserPrimitives...>>
   }
 
   /**
+   * @brief The first crossing of the tape's object along a ray, without the normal or primitive there: the trace
+   * of firstHit() without asking the leaf it ends on.
+   * @param[in] a_shape   The tape.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline CrossingT<T>
+  firstCrossing(const Tape<T, UserPrimitives...>& a_shape,
+                const RayT<T>&                    a_ray,
+                T                                 a_tMin,
+                T                                 a_tMax,
+                const RayOptions<T>&              a_options) noexcept
+  {
+    const auto trace =
+      [&a_shape, &a_ray, &a_options](const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
+        a_shape.raySpans(a_ray, a_t0, a_t1, a_options, !a_all, a_spans);
+      };
+
+    return RayDetail::traceCrossing(trace, a_ray, a_tMin, a_tMax);
+  }
+
+  /**
    * @brief Where a ray is inside the tape's object over an interval.
    * @param[in]  a_shape     The tape.
    * @param[in]  a_ray       Ray, with a unit direction.

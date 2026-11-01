@@ -307,6 +307,28 @@ struct RayForm<Fused::Node<Fused::SmoothCombineOp<T, IsUnion>, Cs...>>
   }
 
   /**
+   * @brief The first crossing of the node along a ray, without the normal or primitive there: the trace of
+   * firstHit() without asking the leaf it ends on.
+   * @param[in] a_shape   The node.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline CrossingT<T>
+  firstCrossing(const Node& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept
+  {
+    const auto trace =
+      [&a_shape, &a_ray, &a_options](const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
+        spans(a_shape, a_ray, a_t0, a_t1, a_options, !a_all, a_spans);
+      };
+
+    return RayDetail::traceCrossing(trace, a_ray, a_tMin, a_tMax);
+  }
+
+  /**
    * @brief Where a ray is inside over an interval: the plain operation traced, and the smooth one marched where it
    * may differ from it.
    * @param[in]  a_shape     The node.

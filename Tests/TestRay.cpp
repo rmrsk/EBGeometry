@@ -6,7 +6,7 @@
 // against a slab test written here, the analytic ray forms against hand-computed crossings and against the
 // march, the span arithmetic against sets of points, compositions (fused, BVH unions and tapes, with mesh
 // SDFs, marched parts and user shapes) against hand-computed crossings and against their values sampled
-// along the ray, smooth unions and intersections (fused, and marched through a tape), segments, an unresolved
+// along the ray, firstCrossing() on every kind of shape, smooth unions and intersections (fused, and marched through a tape), segments, an unresolved
 // march, and device evaluation.
 
 #include "EBGeometry.hpp"
@@ -202,6 +202,22 @@ struct FirstCrossing
     const HitT<T> hit = firstHit(m_shape, a_ray, T(0), T(10));
 
     return hit.hit() ? hit.m_t : -T(1);
+  }
+};
+
+// The distance to the first crossing by firstCrossing(), or -1 for none: comparable between host and device.
+template <class T, class Shape>
+struct CrossingDistance
+{
+  Shape m_shape;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const RayT<T>& a_ray) const noexcept
+  {
+    const CrossingT<T> crossing = firstCrossing(m_shape, a_ray, T(0), T(10));
+
+    return crossing.hit() ? crossing.m_t : -T(1);
   }
 };
 
@@ -1910,6 +1926,122 @@ TEMPLATE_TEST_CASE("Ray: mesh SDFs, marched parts and user shapes are traced ins
   }
 }
 
+TEMPLATE_TEST_CASE("Ray: firstCrossing() finds the crossing, its point and side, of every kind of shape",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const Vec3 x(1, 0, 0);
+
+  // Each crossing at its closed-form distance, with its point and side; exact unless marched.
+  const auto check =
+    [&](const auto& a_shape, const RayT<T>& a_ray, const T a_t, const bool a_entering, const bool a_exact) {
+      const CrossingT<T> c = firstCrossing(a_shape, a_ray, T(0), T(10));
+
+      REQUIRE(c.hit());
+      REQUIRE(c.m_exact == a_exact);
+      REQUIRE(c.m_entering == a_entering);
+      REQUIRE_THAT(c.m_t, withinAbsT(a_t, a_exact ? looseMargin<T>() : 1e-3));
+      REQUIRE_THAT((c.m_point - a_ray.at(a_t)).length(), withinAbsT(T(0), a_exact ? looseMargin<T>() : 1e-3));
+    };
+
+  // The unit ball: entered at x = -1 from outside, left at x = 1 from its center; traced, and marched.
+  const SphereSDF<T> ball(Vec3::zeros(), T(1));
+
+  check(ball, RayT<T>{-T(3) * x, x}, T(2), true, true);
+  check(ball, RayT<T>{Vec3::zeros(), x}, T(1), false, true);
+  check(Marched<T, SphereSDF<T>>{ball}, RayT<T>{-T(3) * x, x}, T(2), true, false);
+
+  // A box with a ball cut out of its middle, fused, through a tape and as a BVH union of the box alone: from the
+  // middle, the ray enters the solid at the ball, x = 0.5.
+  const BoxSDF<T>    box(-Vec3::ones(), Vec3::ones());
+  const SphereSDF<T> hole(Vec3::zeros(), T(0.5));
+  const Tape<T>      tape(pool, Difference(box, hole));
+
+  check(Fused::Difference(box, hole), RayT<T>{Vec3::zeros(), x}, T(0.5), true, true);
+  check(tape, RayT<T>{Vec3::zeros(), x}, T(0.5), true, true);
+  check(tape, RayT<T>{-T(3) * x, x}, T(2), true, true);
+
+  const std::vector<BoxSDF<T>>                 boxes{box};
+  const std::vector<BoundingVolumes::AABBT<T>> boxBoxes{box.computeBoundingVolume()};
+  const BVHUnion<T, BoxSDF<T>, 4>              bvhUnion(pool, boxes, boxBoxes);
+
+  check(bvhUnion, RayT<T>{-T(3) * x, x}, T(2), true, true);
+
+  // A smooth union of two balls 0.2 apart, blended over 0.6: its neck, at y = 0.25, where the plain union has no
+  // surface, is marched.
+  const Vec3 y(0, 1, 0);
+
+  check(Fused::SmoothUnion(SphereSDF<T>(-T(0.6) * x, T(0.5)), SphereSDF<T>(T(0.6) * x, T(0.5)), T(0.6)),
+        RayT<T>{-T(3) * y, y},
+        T(2.75),
+        true,
+        false);
+
+  // Segments: measured from their start; one that stops short, and one of zero length, miss.
+  const CrossingT<T> through = firstCrossing(ball, -T(3) * x, T(3) * x);
+
+  REQUIRE(through.hit());
+  REQUIRE_THAT(through.m_t, withinAbsT(T(2), looseMargin<T>()));
+  REQUIRE_FALSE(firstCrossing(ball, -T(3) * x, -T(2) * x).hit());
+  REQUIRE_FALSE(firstCrossing(ball, x, x).hit());
+  REQUIRE_FALSE(firstCrossing(tape, RayT<T>{T(3) * Vec3::ones(), Vec3::ones() / std::sqrt(T(3))}, T(0), T(10)).hit());
+
+  // The unit cube as a mesh, on random rays: where the slab test says.
+  const auto cube = Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool);
+
+  std::mt19937                      rng(11);
+  std::uniform_real_distribution<T> u(-T(1), T(1));
+
+  for (int i = 0; i < 200; i++) {
+    const Vec3 from      = T(0.5) * Vec3::ones() + T(2) * Vec3(u(rng), u(rng), u(rng));
+    const Vec3 direction = unit(u(rng), u(rng), u(rng));
+    const T    expected  = slabCrossing(from, direction, T(0), T(10));
+    const auto c         = firstCrossing(cube, RayT<T>{from, direction}, T(0), T(10));
+
+    REQUIRE(c.hit() == (expected < T(10)));
+
+    if (c.hit()) {
+      REQUIRE(c.m_exact);
+      REQUIRE_THAT(c.m_t, withinAbsT(expected, looseMargin<T>()));
+    }
+  }
+
+  // Random rays through compositions of the scene, against the values sampled along them.
+  const Scene<T> scene(13);
+  const Tape<T>  sceneTape(pool, Difference(Union(scene.solids()), Union(scene.drills())));
+  const auto     fusedScene = Fused::Difference(
+    Fused::Union(scene.balls[0], scene.balls[1], scene.boxes[0], scene.boxes[1]), scene.holes[0], scene.holes[1]);
+
+  const auto sampled = [&](const auto& a_shape) {
+    for (const RayT<T>& ray : scene.rays) {
+      const CrossingT<T> c = firstCrossing(a_shape, ray, T(0), T(7));
+
+      REQUIRE(c.m_status != HitStatus::Unresolved);
+
+      const T    end    = c.hit() ? c.m_t - T(1e-3) : T(7);
+      const bool inside = a_shape.signedDistance(ray.at(T(0))) < T(0);
+
+      if (c.hit()) {
+        REQUIRE(c.m_exact);
+        REQUIRE_THAT(a_shape.signedDistance(c.m_point), withinAbsT(T(0), 10 * looseMargin<T>()));
+        REQUIRE(c.m_entering == !inside);
+      }
+
+      for (size_t k = 1; k <= 1000 && end > T(0); k++) {
+        REQUIRE((a_shape.signedDistance(ray.at(end * T(k) / T(1000))) < T(0)) == inside);
+      }
+    }
+  };
+
+  sampled(sceneTape);
+  sampled(fusedScene);
+}
+
 TEMPLATE_TEST_CASE("Ray: segments measure from their start and count a crossing at it",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -2111,6 +2243,15 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, F>{fused}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, F>{fused}, rays));
 
+  // The same crossings without their normals.
+  requireSameResults(evaluateOnDevice<T>(CrossingDistance<T, SphereSDF<T>>{sphere}, rays),
+                     evaluateOnHost<T>(CrossingDistance<T, SphereSDF<T>>{sphere}, rays));
+  requireSameResults(evaluateOnDevice<T>(CrossingDistance<T, Marched<T, SphereSDF<T>>>{{sphere}}, rays),
+                     evaluateOnHost<T>(CrossingDistance<T, Marched<T, SphereSDF<T>>>{{sphere}}, rays),
+                     T(1e-3));
+  requireSameResults(evaluateOnDevice<T>(CrossingDistance<T, F>{fused}, rays),
+                     evaluateOnHost<T>(CrossingDistance<T, F>{fused}, rays));
+
   // The mesh SDFs and a tape, against device mirrors of their pool.
   Pool pool(hostMemoryResource());
 
@@ -2162,6 +2303,10 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
                      evaluateOnHost<T>(FirstCrossing<T, L>{flat}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, Tape<T>>{tape.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, Tape<T>>{tape}, rays));
+  requireSameResults(evaluateOnDevice<T>(CrossingDistance<T, Tape<T>>{tape.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(CrossingDistance<T, Tape<T>>{tape}, rays));
+  requireSameResults(evaluateOnDevice<T>(CrossingDistance<T, M>{cube.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(CrossingDistance<T, M>{cube}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, Tape<T>>{sceneTape.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, Tape<T>>{sceneTape}, rays));
 
