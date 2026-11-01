@@ -2284,4 +2284,8 @@ private:
 
 } // namespace EBGeometry
 
+// The ray forms of the smooth unions and intersections, which build on these: whoever has the offsets' ray forms
+// has theirs too. Included last, since that header includes this one.
+#include "EBGeometry_SmoothRayForms.hpp"
+
 #endif

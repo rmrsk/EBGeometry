@@ -740,7 +740,11 @@ with explicit permission), and may ask whether to act on follow-ups.
   ptxas took 8 minutes and 13 GB on `TestRay` (75 s and 2.9 GB out of line), and a Debug CUDA
   `TestRender` did not finish in 6 hours. New ray code calls a shape through these helpers, never
   `signedDistance()` or `firstHit()` directly at several sites, and marks any new helper called that way
-  the same. After a change to device ray or render code, time ptxas on the changed target (Debug, so
+  the same. Span-list code takes a shape's first crossing from `RayDetail::spanHit()`, which marches a shape without
+  a ray form with `march()`'s `a_resolve` false (a span end keeps no normal or primitive, so they are not
+  computed); keep that a run-time flag: as a template parameter it made a second copy of the march per shape
+  type, and marched tapes holding a mesh ran 13-54% slower on a device. A shape with a ray form goes through
+  `shapeHit()` only: a second call into the march for it made traced double mesh shells 8% slower on a device. After a change to device ray or render code, time ptxas on the changed target (Debug, so
   with assertions, which multiply its cost), not only the run.
 - **Sign convention: negative inside, positive outside, everywhere in EBGeometry.** Every shape, mesh
   SDF, union and tape keeps it. Code that needs the opposite sign (an EB code that reads negative as

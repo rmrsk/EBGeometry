@@ -96,13 +96,18 @@ marched (see :ref:`Chap:SphereTracing`). The library has ray forms for:
        affine map of one
      - The operand's level sets, see :ref:`Sec:OffsetRays` (`EBGeometry_OffsetRayForms.hpp
        <doxygen/html/EBGeometry__OffsetRayForms_8hpp.html>`__).
+   * - ``Fused::SmoothUnion``, ``Fused::SmoothIntersection``, ``Fused::SmoothDifference``
+     - The plain operation from the operands' spans, and the smooth one marched only where it may differ
+       from it, see :ref:`Sec:SmoothRays` (`EBGeometry_SmoothRayForms.hpp
+       <doxygen/html/EBGeometry__SmoothRayForms_8hpp.html>`__). A smooth union with the exponential blend is
+       marched whole.
    * - ``BVHUnion``
      - The union of the spans of the primitives whose boxes the ray meets, walking its BVH nearest box
        first.
    * - ``Tape``
      - Its ray program, clause by clause (see :ref:`a tape's ray program <Sec:TapeRays>`). Its ``Offset``
        and ``Annular`` of the shapes above are traced only in a ``Tape<T, TapeFeature::ExactOffsets>``
-       (see :ref:`Sec:TapeFeatures`), and marched otherwise.
+       (see :ref:`Sec:TapeFeatures`), and marched otherwise. Its smooth unions and intersections are marched.
 
 Every other shape is marched: the other analytic shapes, ``BVHSmoothUnion``, the other fused operations
 and shapes of your own without a ray form. The ray forms of the analytic shapes and the mesh SDFs come

@@ -6,7 +6,8 @@
 // against a slab test written here, the analytic ray forms against hand-computed crossings and against the
 // march, the span arithmetic against sets of points, compositions (fused, BVH unions and tapes, with mesh
 // SDFs, marched parts and user shapes) against hand-computed crossings and against their values sampled
-// along the ray, segments, an unresolved march, and device evaluation.
+// along the ray, smooth unions and intersections (fused, and marched through a tape), segments, an unresolved
+// march, and device evaluation.
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
@@ -1507,6 +1508,160 @@ TEMPLATE_TEST_CASE("Ray: fused compositions and tapes agree with their values sa
   }
 }
 
+TEMPLATE_TEST_CASE("Ray: smooth unions and intersections are traced as the plain operation and marched where the "
+                   "blend changes it",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const Vec3 x(1, 0, 0);
+  const Vec3 y(0, 1, 0);
+
+  // Each crossing fused, exact where the plain operation decides it, and through a tape, which marches the whole
+  // blend.
+  const auto check = [&](const auto&    a_fused,
+                         const Expr<T>& a_expr,
+                         const RayT<T>& a_ray,
+                         const T        a_t,
+                         const Vec3&    a_normal,
+                         const bool     a_exact,
+                         const bool     a_entering = true) {
+    const Tape<T> plain(pool, a_expr);
+
+    const HitT<T> hits[] = {firstHit(a_fused, a_ray, T(0), T(10)), plain.firstHit(a_ray, T(0), T(10))};
+
+    for (const HitT<T>& hit : hits) {
+      REQUIRE(hit.hit());
+      REQUIRE(hit.m_exact == (a_exact && &hit == &hits[0]));
+      REQUIRE(hit.m_entering == a_entering);
+      // A march finds a crossing to within a few times its tolerance, 1e-4 of the shape's box diagonal.
+      REQUIRE_THAT(hit.m_t, withinAbsT(a_t, hit.m_exact ? looseMargin<T>() : 3e-3));
+      REQUIRE(dot(hit.m_normal, a_normal) > T(0.99));
+    }
+  };
+
+  // Two balls of radius 0.5, 0.2 apart, blended over 0.6. Midway between them both values are equal, and the blend
+  // deepens them by 0.6/4: the neck's surface is where |p - c| = 0.65, at y = 0.25, where the plain union has none.
+  const SphereSDF<T> left(-T(0.6) * x, T(0.5));
+  const SphereSDF<T> right(T(0.6) * x, T(0.5));
+  const T            s = T(0.6);
+
+  check(Fused::SmoothUnion(left, right, s), SmoothUnion(left, right, s), RayT<T>{-T(3) * y, y}, T(2.75), -y, false);
+
+  // Along the axis, the ray meets the left ball where the blend changes nothing.
+  check(Fused::SmoothUnion(left, right, s), SmoothUnion(left, right, s), RayT<T>{-T(3) * x, x}, T(1.9), -x, true);
+
+  // From inside the neck, outside both balls: the ray leaves the blend at y = 0.25.
+  check(
+    Fused::SmoothUnion(left, right, s), SmoothUnion(left, right, s), RayT<T>{T(0.1) * y, y}, T(0.15), y, false, false);
+
+  // From the left ball's center along the axis: the plain union is left at x = -0.1, but the blend fills the gap
+  // (equal values 0.1 there, deepened by 0.15), so the ray stays inside across the neck and through the right ball,
+  // leaving it at x = 1.1. The plain union's first exit bounds the blend zone's march; the march must go on past it.
+  {
+    const auto    blended = Fused::SmoothUnion(left, right, s);
+    const Tape<T> plain(pool, SmoothUnion(left, right, s));
+    const RayT<T> ray{-T(0.6) * x, x};
+
+    for (const HitT<T>& hit : {firstHit(blended, ray, T(0), T(10)), plain.firstHit(ray, T(0), T(10))}) {
+      REQUIRE(hit.hit());
+      REQUIRE_FALSE(hit.m_entering);
+      REQUIRE_THAT(hit.m_t, withinAbsT(T(1.7), hit.m_exact ? looseMargin<T>() : 3e-3));
+      REQUIRE(dot(hit.m_normal, x) > T(0.99));
+    }
+  }
+
+  // A third ball far from the others: only the first pair's boxes overlap, so only their neck is marched, and the
+  // third ball is met exactly.
+  const SphereSDF<T> far(Vec3(T(0), T(0), T(5)), T(0.5));
+  const Vec3         z(0, 0, 1);
+
+  check(Fused::SmoothUnion(Fused::operands(left, right, far), s),
+        SmoothUnion(std::vector<Expr<T>>{left, right, far}, s),
+        RayT<T>{-T(3) * y, y},
+        T(2.75),
+        -y,
+        false);
+  check(Fused::SmoothUnion(Fused::operands(left, right, far), s),
+        SmoothUnion(std::vector<Expr<T>>{left, right, far}, s),
+        RayT<T>{T(8) * z, -z},
+        T(2.5),
+        z,
+        true);
+
+  // The exponential blend deepens equal values by s ln 2, and changes the plain union everywhere: it is marched
+  // whole.
+  const T deep = T(0.5) + T(0.2) * std::log(T(2));
+
+  check(Fused::SmoothUnion(left, right, T(0.2), BlendKind::Exponential),
+        SmoothUnion(left, right, T(0.2), BlendKind::Exponential),
+        RayT<T>{-T(3) * y, y},
+        T(3) - std::sqrt(deep * deep - T(0.36)),
+        -y,
+        false);
+
+  // Two balls of radius 0.5 overlapping by 0.4, smoothly intersected over 0.4: midway the blend raises both values by
+  // 0.1, so the surface is where |p - c| = 0.4, at y = sqrt(0.07), inside the plain intersection's y = 0.4.
+  const SphereSDF<T> a(-T(0.3) * x, T(0.5));
+  const SphereSDF<T> b(T(0.3) * x, T(0.5));
+
+  check(Fused::SmoothIntersection(a, b, T(0.4)),
+        SmoothIntersection(a, b, T(0.4)),
+        RayT<T>{-T(3) * y, y},
+        T(3) - std::sqrt(T(0.07)),
+        -y,
+        false);
+
+  // Random rays through blends of the scene, against the values sampled along them. A marched crossing is found to
+  // the march's tolerance, so its value is small rather than zero.
+  const Scene<T> scene(7);
+
+  const auto fusedBalls =
+    Fused::SmoothUnion(Fused::operands(scene.balls[0], scene.balls[1], scene.balls[2], scene.balls[3]), T(0.2));
+  const auto fusedDrilled =
+    Fused::SmoothDifference(Fused::SmoothUnion(Fused::operands(scene.boxes[0], scene.boxes[1], scene.boxes[2]), T(0.2)),
+                            Fused::operands(scene.holes[0], scene.holes[1]),
+                            T(0.1));
+  const auto fusedCut =
+    Fused::SmoothIntersection(fusedBalls, Fused::Union(scene.boxes[0], scene.boxes[1], scene.boxes[2]), T(0.1));
+
+  // A ball blended into a half-space below it: the plane's box is unbounded, the blend zone's is the ball's grown.
+  const PlaneSDF<T>  floor(-T(0.5) * Vec3(0, 1, 0), Vec3(0, 1, 0));
+  const SphereSDF<T> ball(Vec3::zeros(), T(0.4));
+  const auto         fusedFloor = Fused::SmoothUnion(floor, ball, T(0.3));
+
+  const T tMax = T(7);
+
+  const auto sampled = [&](const auto& a_shape) {
+    for (const RayT<T>& ray : scene.rays) {
+      const HitT<T> hit = firstHit(a_shape, ray, T(0), tMax);
+
+      REQUIRE(hit.m_status != HitStatus::Unresolved);
+
+      const T    end    = hit.hit() ? hit.m_t - T(1e-3) : tMax;
+      const bool inside = a_shape.signedDistance(ray.at(T(0))) < T(0);
+
+      if (hit.hit()) {
+        REQUIRE_THAT(a_shape.signedDistance(hit.m_point), withinAbsT(T(0), 1e-3));
+        REQUIRE(hit.m_entering == !inside);
+      }
+
+      for (size_t k = 1; k <= 1000 && end > T(0); k++) {
+        REQUIRE((a_shape.signedDistance(ray.at(end * T(k) / T(1000))) < T(0)) == inside);
+      }
+    }
+  };
+
+  sampled(fusedBalls);
+  sampled(fusedCut);
+  sampled(fusedDrilled);
+  sampled(fusedFloor);
+}
+
 TEMPLATE_TEST_CASE("Ray: a ray through more spans than a list holds still finds its first crossing",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1988,6 +2143,9 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
   const auto annulusFused = Fused::Annular(polygons, T(0.1));
   const auto annulusFlat  = Fused::Annular(flat, T(0.1));
 
+  // A smooth union of the mesh and a ball, traced as the plain union and marched where the blend changes it.
+  const auto smoothFused = Fused::SmoothUnion(polygons, SphereSDF<T>(Vec3(T(1.1), T(0.5), T(0.5)), T(0.3)), T(0.2));
+
   pool.freeze();
 
   const Pool device = Pool::mirror(pool, deviceTestResource());
@@ -2034,4 +2192,10 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
                      evaluateOnHost<T>(FirstCrossing<T, A>{annulusFused}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, AF>{annulusFlat.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, AF>{annulusFlat}, rays));
+
+  using SF = std::decay_t<decltype(smoothFused)>;
+
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, SF>{smoothFused.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, SF>{smoothFused}, rays),
+                     T(1e-3));
 }

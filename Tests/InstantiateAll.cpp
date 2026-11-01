@@ -295,6 +295,11 @@ instantiateFunctionTemplates()
     (void)firstHit(fused, ray, T(0), T(10), march);
     (void)intersects(fused, Vec3T<T>::zeros(), Vec3T<T>::ones());
 
+    // Smooth compositions traced as the plain operation and marched where the blend changes it.
+    (void)firstHit(Fused::SmoothUnion(sphere, torus, T(0.1)), ray, T(0), T(10));
+    (void)firstHit(Fused::SmoothIntersection(sphere, torus, T(0.1)), ray, T(0), T(10));
+    (void)firstHit(Fused::SmoothDifference(sphere, torus, T(0.1)), ray, T(0), T(10));
+
     Pool                                         pool(hostMemoryResource());
     const std::vector<SphereSDF<T>>              spheres(2, sphere);
     const std::vector<BoundingVolumes::AABBT<T>> boxes(2, sphere.computeBoundingVolume());

@@ -638,7 +638,37 @@ shapeHit(const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, con
 }
 
 /**
- * @brief The list up to a shape's first crossing, from firstHit(): a span from it if the ray enters there,
+ * @brief A shape's first crossing along a ray, for a span list: its distance, kind and whether the ray enters
+ * there.
+ * @details Internal helper; not part of the public API. A span end keeps nothing else (see endOf()), so a
+ * shape without a ray form is marched without its normal and primitive (RayDetail::march() with a_resolve
+ * false). A shape with a ray form goes through shapeHit() as it is, normal included, also when the options
+ * force a march: a second call into the march from here, for those shapes, changed ptxas's allocation of the
+ * traced path, and exactly traced mesh shells in double ran 8% slower on a device (RayShell, sm_86).
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape   The shape.
+ * @param[in] a_ray     The ray, with a unit direction.
+ * @param[in] a_t0      Start of the interval.
+ * @param[in] a_t1      End of the interval.
+ * @param[in] a_options How to march.
+ * @return The crossing, a miss, or an unresolved query.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+spanHit(const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, const RayOptions<T>& a_options) noexcept
+{
+  if constexpr (HasRayFirstHit<S, T>::value) {
+    return RayDetail::shapeHit(a_shape, a_ray, a_t0, a_t1, a_options);
+  }
+  else {
+    return RayDetail::march(a_shape, a_ray, a_t0, a_t1, a_options, false);
+  }
+}
+
+/**
+ * @brief The list up to a shape's first crossing, from spanHit(): a span from it if the ray enters there,
  * or to it if the ray starts inside; the horizon there.
  * @details Internal helper; not part of the public API. Where the ray crosses nothing, the list is the
  * whole interval if the ray is inside throughout, and empty otherwise. An unresolved query leaves the
@@ -664,7 +694,7 @@ firstSpan(const S&             a_shape,
 {
   a_spans.reset(a_t1);
 
-  const HitT<T> hit = RayDetail::shapeHit(a_shape, a_ray, a_t0, a_t1, a_options);
+  const HitT<T> hit = RayDetail::spanHit(a_shape, a_ray, a_t0, a_t1, a_options);
 
   switch (hit.m_status) {
   case HitStatus::Hit: {
@@ -767,7 +797,7 @@ struct CrossingPairer
 };
 
 /**
- * @brief Every span of a shape over an interval, from firstHit() called from one crossing to the next.
+ * @brief Every span of a shape over an interval, from spanHit() called from one crossing to the next.
  * @details Internal helper; not part of the public API. What a shape without spans() (see RayForm) gives an
  * intersection or a complement: each search starts a step (RayOptions::m_tolerance, times the scale) past
  * the last crossing.
@@ -802,7 +832,7 @@ crossingSpans(const S&             a_shape,
 
   // Two crossings per span, and one more to find out the list is full.
   for (uint32_t k = 0; k < 2U * RaySpansT<T>::Capacity + 1U; k++) {
-    const HitT<T> hit = RayDetail::shapeHit(a_shape, a_ray, t, a_t1, a_options);
+    const HitT<T> hit = RayDetail::spanHit(a_shape, a_ray, t, a_t1, a_options);
 
     if (hit.m_status == HitStatus::Miss) {
       break;
@@ -852,7 +882,7 @@ crossingSpans(const S&             a_shape,
 
 /**
  * @brief A shape's list over an interval: from its ray form's spans() if it has one, and otherwise from
- * firstHit(), up to the first crossing (firstSpan()) or from crossing to crossing (crossingSpans()).
+ * spanHit(), up to the first crossing (firstSpan()) or from crossing to crossing (crossingSpans()).
  * @details Internal helper; not part of the public API. What a composition asks of each operand.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.

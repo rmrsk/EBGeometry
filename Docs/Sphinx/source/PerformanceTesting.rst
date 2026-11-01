@@ -29,6 +29,7 @@ What is in Performance/
      RayShell/main.cpp        ray tracing a shell with a corner cut away
      RayParticles/main.cpp    particles colliding with a boundary
      Render/main.cpp          one frame of the renderer
+     MeshCSG/main.cpp         a mesh in plain and smooth unions: rays and frames
      ClosestPrimitive/main.cpp  a tape's closestPrimitive()
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
@@ -323,6 +324,29 @@ Family                                Build  Measures
 ``csg/frame-orthographic``            both   the same frames of the CSG solid with an orthographic
                                              camera (parallel rays from a plane)
 ====================================  =====  =====================================================
+
+**MeshCSG** (``Performance/MeshCSG``): a mesh in a composition, as in :ref:`Chap:ExampleMeshCSG`: the armadillo
+(a ``TriMeshSDF``, the dodecahedron under ``--smoke``) scaled to 2.4 along its longest side and standing on a
+table (a rounded box on four cylinders). Three ways of joining them: the plain union through a tape; the
+smooth union (blend length 0.3) through a tape, which marches it; and the smooth union fused, which traces the
+plain union and marches only where the blend can change it (see :ref:`Sec:SmoothRays`). Each tape holds the mesh
+as a user primitive type. The fused case names the tape's (``tape/fused``). Each is
+timed as ray queries, with the rays and the agreement rule of RayCSG, and as whole frames of the renderer, as in
+Render. The plain union's frame is the device render kernel of a tape that holds a mesh.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``<input>/firstHit``                  host   the first crossing of each of 20,000 rays
+``<input>/frame``                     host   a 128 x 128 frame on one thread, through
+                                             ``Renderer::render()``
+``<input>/firstHit-morton``,          GPU    the rays at 65,536, in Morton and in random order
+``firstHit-random``
+``<input>/frame``                     GPU    the pixels of a 512 x 512 frame through
+                                             ``Render::PixelQuery``, in row order
+====================================  =====  =====================================================
+
+The inputs are ``union-tape``, ``smooth-tape`` and ``smooth-fused``.
 
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
 leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the
