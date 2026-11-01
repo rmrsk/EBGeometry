@@ -339,7 +339,7 @@ struct Background
   std::thread m_thread;
 
   /**
-   * @brief Set to stop the render early (a device render after the band of rows under way).
+   * @brief Set to stop the render early.
    */
   std::atomic<bool> m_cancel{false};
 
@@ -379,7 +379,7 @@ struct Background
   uint32_t m_height = 0;
 
   /**
-   * @brief Stop the render (a device render after the band of rows under way) and wait for the thread.
+   * @brief Stop the render and wait for the thread.
    */
   void
   stop() noexcept

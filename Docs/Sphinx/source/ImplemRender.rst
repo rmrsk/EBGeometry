@@ -57,9 +57,9 @@ The classes are in namespace ``Render``:
   ``render(shape, camera, image)`` runs on the host's threads (``Settings::m_threads``, by default one
   per hardware thread); ``renderOnDevice(deviceShape, camera, image)`` runs the same pixel functor
   through ``GPU::parallelFor()`` on a device view of the shape, as described in :ref:`Chap:RunningOnGPU`.
-  Overloads of both take a ``std::atomic<bool>`` that another thread sets to stop the render early (between
-  rows on the host, between bands of rows on a device), and a counter of the rows done; a stopped render
-  says so in ``Stats::m_complete``. ``pick(shape, camera, column, row)`` returns the hit (``HitT``: the
+  Overloads of both take a ``std::atomic<bool>`` that another thread sets to stop the render early (before
+  the next row on the host, before the next pixel on a device), and a counter of the rows done; a stopped
+  render says so in ``Stats::m_complete``. ``pick(shape, camera, column, row)`` returns the hit (``HitT``: the
   primitive, the point, the normal) of the ray through a point of the image, cut as the render cuts it, so
   that it names what a render draws there. Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
   trivially copyable functor that reads everything it needs about the shape (its box, its scale, where
