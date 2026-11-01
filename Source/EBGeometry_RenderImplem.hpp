@@ -1910,9 +1910,9 @@ Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
     // there; while this thread waits for the launch, another passes the flag on and the progress back. The
     // mapped pointer is passed to the kernel as it is, which unified virtual addressing (every 64-bit CUDA
     // and HIP platform) allows. Whether a pixel skipped its work, which says whether the render completed,
-    // and the count of rows are in device memory. Reading the flag
-    // for every pixel is most of what this costs over a render that cannot be canceled: on an RTX 3080, about
-    // 4 ms of a 37 ms frame of a cheap scene at 1024 x 1024 pixels, and 1 ms of a 9 ms one at 256 x 256.
+    // and the count of rows are in device memory. Reading the flag for every pixel is most of what this
+    // costs over a render that cannot be canceled: on an RTX 3080, about 4 ms of a 37 ms frame of a cheap
+    // scene at 1024 x 1024 pixels, and 1 ms of a 9 ms one at 256 x 256.
     uint32_t* mapped = nullptr; // The cancel flag, then the progress.
     uint32_t* counts = nullptr; // Whether a pixel skipped its work, then the rows.
 
