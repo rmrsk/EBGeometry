@@ -707,8 +707,8 @@ TEMPLATE_TEST_CASE("Render: a canceled render stops early and says so", "[Render
   CHECK(rows == 0U);
 }
 
-TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the cancel flag is set, and count each "
-                   "finished row once",
+TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the cancel flag is set, say so, and count "
+                   "each row once",
                    "[Render]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -725,11 +725,12 @@ TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the ca
   std::vector<uint32_t>                          primitives(64, 0U);
 
   uint32_t          cancel   = 0U;
+  uint32_t          skipped  = 0U;
   uint32_t          rows     = 0U;
   volatile uint32_t progress = 0U;
 
   const Render::RenderDetail::FrameOfPixels<T, SphereSDF<T>> frame{
-    query, results.data(), primitives.data(), &cancel, &rows, &progress, 0U, 8U};
+    query, results.data(), primitives.data(), &cancel, &skipped, &rows, &progress, 0U, 8U};
 
   // Not canceled: every pixel is shaded as the plain query shades it, and each row counted once, by its last pixel.
   for (size_t i = 0; i < 64; i++) {
@@ -738,15 +739,23 @@ TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the ca
 
   CHECK(rows == 8U);
   CHECK(progress == 8U);
+  CHECK(skipped == 0U);
 
   for (uint32_t i = 0; i < 64; i++) {
     CHECK(results[i].m_rgba == query(i).m_rgba);
     CHECK(primitives[i] == query(i).m_primitive);
   }
 
-  // Canceled: no pixel is shaded or counted, and each is left black with no object.
+  // Canceled after a row's last pixel but before its others: the skipped pixels say the render stopped, though
+  // the row was counted.
   cancel = 1U;
 
+  frame(0);
+
+  CHECK(skipped == 1U);
+  CHECK(results[0].m_rgba == 0U);
+
+  // Canceled: no pixel is shaded or counted, and each is left black with no object.
   for (size_t i = 0; i < 64; i++) {
     frame(i);
   }

@@ -869,8 +869,8 @@ public:
    * @brief Render a shape through GPU::parallelFor(), stopping early when asked to.
    * @details As renderOnDevice(const S&, const Camera<T>&, Image&), but the device's threads check a_cancel
    * before each pixel, and the render returns soon after it is set, with Stats::m_complete false and the
-   * pixels not reached left black. a_rowsDone, if given, counts the finished rows as they finish, so another
-   * thread can show the progress. The flag reaches the device, and the count the host, through a thread the
+   * pixels not reached left black. a_rowsDone, if given, counts the rows as they finish, so another thread can
+   * show the progress (a row counts once its last pixel is done, possibly before some of its others). The flag reaches the device, and the count the host, through a thread the
    * render starts and memory both can read.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_deviceShape The shape, as a view valid on the device.
