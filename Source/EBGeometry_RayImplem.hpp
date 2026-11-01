@@ -386,10 +386,12 @@ scaleOf(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi, const RayOptions<T>& a_optio
 }
 
 /**
- * @brief The outward unit normal of a shape's surface at a point: its normalized gradient, by central
+ * @brief The outward unit normal of a shape's surface at a point: its normalized gradient, by tetrahedral
  * differences of step a_h.
  * @details Internal helper; not part of the public API. Zero where the gradient vanishes. Out of line on a
- * device (see valueAt()).
+ * device (see valueAt()). The values at the four corners a_h (±1, ±1, ±1) with an even number of minus signs,
+ * each times its offset, sum to 4 a_h times the gradient: four values of the shape, where central differences
+ * take six. On a marched crossing of a mesh, those values are most of what the crossing costs after the march.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape The shape.
@@ -405,12 +407,12 @@ gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
 {
   Vec3T<T> gradient = Vec3T<T>::zeros();
 
-  for (size_t dir = 0; dir < 3; dir++) {
-    Vec3T<T> step = Vec3T<T>::zeros();
+  for (int corner = 0; corner < 4; corner++) {
+    const Vec3T<T> offset((corner == 0 || corner == 3) ? T(1) : T(-1),
+                          (corner >= 2) ? T(1) : T(-1),
+                          (corner == 1 || corner == 3) ? T(1) : T(-1));
 
-    step[dir] = a_h;
-
-    gradient[dir] = RayDetail::valueAt(a_shape, a_point + step) - RayDetail::valueAt(a_shape, a_point - step);
+    gradient += RayDetail::valueAt(a_shape, a_point + a_h * offset) * offset;
   }
 
   const T length = gradient.length();
@@ -423,7 +425,12 @@ gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
  * tracing where the value is a distance or a bound on one, fixed steps and bisection where it is not.
  * @details Internal helper; not part of the public API. What firstHit() does for a shape with no ray form.
  * Out of line on a device (see valueAt()), and written so that each step (the value, bisection, the
- * crossing's normal and primitive) is reached from one place.
+ * crossing's normal and primitive) is reached from one place. A span list keeps only a crossing's distance
+ * and kind (see endOf()), so the span code marches with a_resolve false: the normal (four values of the shape,
+ * see gradientNormal()) and the primitive (one more search) would be thrown away at every crossing. A run-time
+ * flag rather than a template parameter: a second instantiation of the march per shape type slowed marched
+ * tapes holding a mesh by 13-54% on a device (RayShell, RayParticles), where one copy with a branch was
+ * faster than before.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape   The shape.
@@ -431,13 +438,20 @@ gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
  * @param[in] a_tMin    Start of the interval.
  * @param[in] a_tMax    End of the interval.
  * @param[in] a_options How to march.
+ * @param[in] a_resolve Whether to give a crossing its normal and primitive; without them, they are left as
+ * HitT's defaults.
  * @return The crossing, a miss, or an unresolved query.
  */
 template <class T, class S>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline HitT<T>
-march(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) noexcept
+march(const S&             a_shape,
+      const RayT<T>&       a_ray,
+      const T              a_tMin,
+      const T              a_tMax,
+      const RayOptions<T>& a_options,
+      const bool           a_resolve = true) noexcept
 {
   EBGEOMETRY_EXPECT(std::abs(a_ray.m_direction.length() - T(1)) < T(1e-3));
 
@@ -538,12 +552,15 @@ march(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, co
   }
 
   if (onSurface) {
-    hit.m_status    = HitStatus::Hit;
-    hit.m_t         = t;
-    hit.m_point     = a_ray.at(t);
-    hit.m_primitive = RayDetail::primitiveOf(a_shape, hit.m_point);
-    hit.m_normal    = RayDetail::gradientNormal(a_shape, hit.m_point, eps);
-    hit.m_entering  = entering;
+    hit.m_status   = HitStatus::Hit;
+    hit.m_t        = t;
+    hit.m_point    = a_ray.at(t);
+    hit.m_entering = entering;
+
+    if (a_resolve) {
+      hit.m_primitive = RayDetail::primitiveOf(a_shape, hit.m_point);
+      hit.m_normal    = RayDetail::gradientNormal(a_shape, hit.m_point, eps);
+    }
 
     return hit;
   }
