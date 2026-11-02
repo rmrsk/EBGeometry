@@ -144,8 +144,8 @@ plane and the shape's value there; Shift and a click on two surfaces measures th
 M cycles the views. T makes the picked surface see-through (or opaque again), so that what is behind or
 inside it can be picked and looked at; Shift + T makes every surface opaque. V fills the picked object's inside
 (a mesh SDF's whole solid). Shift and the wheel step through the surfaces under the cursor, front to back:
-each is picked in turn, and those in front of it are seen through while stepping; a click keeps the one
-stepped to. R puts the camera, the light and the picked, see-through and filled surfaces back as the window
+each is picked in turn, and those in front of it are seen through while stepping (for a mesh SDF, whose
+primitives are its faces, only the faces under the cursor); a click keeps the one stepped to. R puts the camera, the light and the picked, see-through and filled surfaces back as the window
 opened with them.
 
 .. _Sec:ViewerKeys:

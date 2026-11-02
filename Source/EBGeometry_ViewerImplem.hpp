@@ -1272,8 +1272,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         // scroll (y = 0) does neither.
         if (event.wheel.y != 0) {
           if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
-            // Shift and the wheel step through the surfaces under the cursor, front to back (towards the user,
-            // back to front), picking each in turn and seeing through those in front of it.
+            // Shift and the wheel step through the surfaces under the cursor: the first step picks the nearest,
+            // rolling down steps deeper, rolling up back towards the eye. Each is picked in turn, and the primitives
+            // in front of it are seen through; for a mesh SDF, whose primitives are its faces, only the faces under
+            // the cursor.
             int windowWidth  = 0;
             int windowHeight = 0;
             int mouseX       = 0;
