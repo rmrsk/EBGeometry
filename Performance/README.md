@@ -26,6 +26,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `RayParticles/` | Particles colliding with a boundary, one short step each: the armadillo's shell through a tape (traced and marched) and fused, the solid armadillo, and a box's shell |
 | `Render/`     | One frame of the renderer (shadows, ambient occlusion) of the CSG solid through a tape (also with an orthographic camera) and of the armadillo as a `TriMeshSDF` |
 | `MeshCSG/`    | A mesh standing on a table, joined by a plain union through a tape and by a smooth union through a tape and fused: rays and renderer frames |
+| `RayCrossing/` | `firstCrossing()`, the first crossing without its normal, against `firstHit()`: a mesh, a CSG tape, and tapes holding a mesh (drilled, traced; smoothly joined to a ball, marched) |
 | `ClosestPrimitive/` | A tape's `closestPrimitive()`, the deciding leaf (CSG, a scene of fused parts, a drilled mesh) |
 | `LaunchTuning/` | `GPU::transform()`'s launch settings (block size, minimum resident threads) on a mesh distance, a tape's rays and a point cloud; device only |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |

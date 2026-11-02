@@ -293,6 +293,9 @@ instantiateFunctionTemplates()
 
     (void)firstHit(fused, ray, T(0), T(10));
     (void)firstHit(fused, ray, T(0), T(10), march);
+    (void)firstCrossing(fused, ray, T(0), T(10));
+    (void)firstCrossing(fused, ray, T(0), T(10), march);
+    (void)firstCrossing(sphere, Vec3T<T>::zeros(), Vec3T<T>::ones());
     (void)intersects(fused, Vec3T<T>::zeros(), Vec3T<T>::ones());
 
     // Smooth compositions traced as the plain operation and marched where the blend changes it.
@@ -308,6 +311,8 @@ instantiateFunctionTemplates()
 
     (void)firstHit(bvhUnion, ray, T(0), T(10));
     (void)firstHit(tape, ray, T(0), T(10));
+    (void)firstCrossing(tape, ray, T(0), T(10));
+    (void)firstCrossing(bvhUnion, ray, T(0), T(10));
     (void)firstHit(Fused::Union(bvhUnion, tape), ray, T(0), T(10));
   }
 

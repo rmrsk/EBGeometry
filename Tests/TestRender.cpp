@@ -707,6 +707,68 @@ TEMPLATE_TEST_CASE("Render: a canceled render stops early and says so", "[Render
   CHECK(rows == 0U);
 }
 
+TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the cancel flag is set, say so, and count "
+                   "each row once",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const SphereSDF<T> sphere(Vec3T<T>::zeros(), T(1));
+
+  const Render::Settings<T> settings = plain<T>(8);
+  const auto                camera   = Render::Camera<T>::fit(sphere.computeBoundingVolume());
+
+  const Render::PixelQuery<T, SphereSDF<T>> query{sphere, camera, settings};
+
+  std::vector<Render::RenderDetail::StoredPixel> results(64);
+  std::vector<uint32_t>                          primitives(64, 0U);
+
+  uint32_t          cancel   = 0U;
+  uint32_t          skipped  = 0U;
+  uint32_t          rows     = 0U;
+  volatile uint32_t progress = 0U;
+
+  const Render::RenderDetail::FrameOfPixels<T, SphereSDF<T>> frame{
+    query, results.data(), primitives.data(), &cancel, &skipped, &rows, &progress, 0U, 8U};
+
+  // Not canceled: every pixel is shaded as the plain query shades it, and each row counted once, by its last pixel.
+  for (size_t i = 0; i < 64; i++) {
+    frame(i);
+  }
+
+  CHECK(rows == 8U);
+  CHECK(progress == 8U);
+  CHECK(skipped == 0U);
+
+  for (uint32_t i = 0; i < 64; i++) {
+    CHECK(results[i].m_rgba == query(i).m_rgba);
+    CHECK(primitives[i] == query(i).m_primitive);
+  }
+
+  // Canceled after a row's last pixel but before its others: the skipped pixels say the render stopped, though
+  // the row was counted.
+  cancel = 1U;
+
+  frame(0);
+
+  CHECK(skipped == 1U);
+  CHECK(results[0].m_rgba == 0U);
+
+  // Canceled: no pixel is shaded or counted, and each is left black with no object.
+  for (size_t i = 0; i < 64; i++) {
+    frame(i);
+  }
+
+  CHECK(rows == 8U);
+
+  for (size_t i = 0; i < 64; i++) {
+    CHECK(results[i].m_rgba == 0U);
+    CHECK(results[i].m_hits == 0U);
+    CHECK(primitives[i] == 0xFFFFFFFFU);
+  }
+}
+
 TEMPLATE_TEST_CASE("Render: a primitive color set in the table replaces the palette's for that primitive only",
                    "[Render]",
                    EBGEOMETRY_TEST_PRECISIONS)

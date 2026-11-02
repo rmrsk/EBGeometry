@@ -144,6 +144,52 @@ struct HitT
 };
 
 /**
+ * @brief Where a ray first crosses a surface, without the normal or the primitive there: what firstCrossing()
+ * returns.
+ * @details For callers that need only the point, such as a cut-cell code cutting cell edges or a particle code
+ * finding a collision distance. Its fields mean what HitT's of the same names do.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct CrossingT
+{
+  /**
+   * @brief Whether the ray crosses the surface.
+   */
+  HitStatus m_status = HitStatus::Miss;
+
+  /**
+   * @brief Distance along the ray: of the crossing for a hit, of the last point reached for an unresolved
+   * query, and infinity for a miss.
+   */
+  T m_t = Math::Limits<T>::infinity();
+
+  /**
+   * @brief The point at m_t (for a hit or an unresolved query).
+   */
+  Vec3T<T> m_point = Vec3T<T>::zeros();
+
+  /**
+   * @brief Whether the ray enters the object there (it was outside just before), rather than leaving it.
+   */
+  bool m_entering = false;
+
+  /**
+   * @brief Whether the crossing is exact (found by a ray form), rather than found to within
+   * RayOptions::m_tolerance by marching.
+   */
+  bool m_exact = false;
+
+  /**
+   * @brief Whether the ray crosses the surface.
+   * @return m_status == HitStatus::Hit.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  hit() const noexcept;
+};
+
+/**
  * @brief How a query marches, where a shape has no ray form.
  * @details Lengths are relative to the shape's scale: the diagonal of its bounding box, or m_scale if that
  * is positive. A shape whose box is unbounded (a plane, a complement) has no diagonal; give it a scale, or
@@ -328,6 +374,10 @@ struct RaySpansT
  *     EBGEOMETRY_HOST_DEVICE static void
  *     spans(const MyShape<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options,
  *           bool a_firstOnly, RaySpansT<T>& a_spans) noexcept;
+ *
+ *     EBGEOMETRY_HOST_DEVICE static CrossingT<T>
+ *     firstCrossing(const MyShape<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax,
+ *                   const RayOptions<T>& a_options) noexcept;
  *   };
  * @endcode
  * firstHit() makes the shape a ray form: it returns the first crossing in [a_tMin, a_tMax], entering or
@@ -338,8 +388,10 @@ struct RaySpansT
  * crossing is needed (the list may then stop after it, its horizon there). Without spans(), a composition
  * finds the spans by calling firstHit() from one crossing to the next. intersects(), with firstHit()'s
  * arguments and returning HitStatus, is a yes/no query that can stop at the first crossing it finds;
- * without it, intersects() calls firstHit(). The second template parameter is for partial
- * specialisations that depend on a condition.
+ * without it, intersects() calls firstCrossing(). firstCrossing(), with firstHit()'s arguments and returning
+ * CrossingT, is the first crossing without its normal and primitive, for a shape that finds those only after
+ * the crossing (a composition, which asks the leaf it crossed); without it, firstCrossing() calls firstHit().
+ * The second template parameter is for partial specialisations that depend on a condition.
  * @tparam S Shape type.
  */
 template <class S, class = void>
@@ -438,6 +490,54 @@ intersects(const S&             a_shape,
            const Vec3T<T>&      a_to,
            T                    a_tMin    = T(0),
            const RayOptions<T>& a_options = RayOptions<T>()) noexcept;
+
+/**
+ * @brief The first crossing of a shape's surface along a ray, as firstHit() finds it, without the normal or the
+ * primitive there.
+ * @details For a caller that needs only where the ray crosses: it skips what firstHit() spends on the normal and
+ * the primitive after finding the crossing (for a marched shape, the gradient and a search; for a tape or a
+ * fused composition, a second trace of the leaf it crossed). Searches [a_tMin, a_tMax] as firstHit() does, and
+ * finds the same crossing. Callable on a device.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape   The shape.
+ * @param[in] a_ray     The ray, with a unit direction.
+ * @param[in] a_tMin    Start of the interval.
+ * @param[in] a_tMax    End of the interval.
+ * @param[in] a_options How to march.
+ * @return The crossing, a miss, or an unresolved query.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline CrossingT<T>
+firstCrossing(const S&                 a_shape,
+              const RayT<T>&           a_ray,
+              typename RayT<T>::Scalar a_tMin,
+              typename RayT<T>::Scalar a_tMax,
+              const RayOptions<T>&     a_options = RayOptions<T>()) noexcept;
+
+/**
+ * @brief The first crossing of a shape's surface on the segment from a_from to a_to, without the normal or the
+ * primitive there.
+ * @details The ray from a_from towards a_to, over [a_tMin, |a_to - a_from|]: CrossingT::m_t is the distance from
+ * a_from, as for the segment firstHit(). A segment of zero length is a miss. Callable on a device.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape   The shape.
+ * @param[in] a_from    Start of the segment.
+ * @param[in] a_to      End of the segment.
+ * @param[in] a_tMin    Distance from a_from where the search starts.
+ * @param[in] a_options How to march.
+ * @return The crossing, a miss, or an unresolved query.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline CrossingT<T>
+firstCrossing(const S&             a_shape,
+              const Vec3T<T>&      a_from,
+              const Vec3T<T>&      a_to,
+              T                    a_tMin    = T(0),
+              const RayOptions<T>& a_options = RayOptions<T>()) noexcept;
 
 } // namespace EBGeometry
 

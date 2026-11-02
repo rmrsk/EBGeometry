@@ -49,6 +49,9 @@ if(NOT DEFINED EBGEOMETRY_PERF_GIT_SHA)
   endif()
 endif()
 
+# Every function aligned to a cache line, so that a probe's time does not depend on where its code lands.
+include(${CMAKE_CURRENT_SOURCE_DIR}/AlignFunctions.cmake)
+
 # The same GPU switch as the examples: the project's EBGEOMETRY_ENABLE_HIP/CUDA, or, standalone,
 # EBGEOMETRY_PERF_GPU. A GPU build compiles every probe as CUDA or HIP; its device cases then run on
 # the device, and its host cases on the host.

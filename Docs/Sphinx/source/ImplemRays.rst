@@ -12,15 +12,17 @@ next to the shapes they trace.
 The queries
 -----------
 
-Four free functions take any shape (see :ref:`Chap:ImplemCSG` for what a shape is) and are callable on
+Six free functions take any shape (see :ref:`Chap:ImplemCSG` for what a shape is) and are callable on
 a device:
 
 .. code-block:: c++
 
-   HitT<T>   firstHit  (shape, RayT<T>{origin, direction}, tMin, tMax, options = {});
-   HitT<T>   firstHit  (shape, from, to, tMin = 0, options = {});
-   HitStatus intersects(shape, RayT<T>{origin, direction}, tMin, tMax, options = {});
-   HitStatus intersects(shape, from, to, tMin = 0, options = {});
+   HitT<T>      firstHit     (shape, RayT<T>{origin, direction}, tMin, tMax, options = {});
+   HitT<T>      firstHit     (shape, from, to, tMin = 0, options = {});
+   CrossingT<T> firstCrossing(shape, RayT<T>{origin, direction}, tMin, tMax, options = {});
+   CrossingT<T> firstCrossing(shape, from, to, tMin = 0, options = {});
+   HitStatus    intersects   (shape, RayT<T>{origin, direction}, tMin, tMax, options = {});
+   HitStatus    intersects   (shape, from, to, tMin = 0, options = {});
 
 `RayT <doxygen/html/structEBGeometry_1_1RayT.html>`__ is an origin and a direction, which must be of
 unit length so that ``t`` is a distance. A segment from ``from`` to ``to`` is the ray from ``from``
@@ -53,6 +55,25 @@ leaving, as a `HitT <doxygen/html/structEBGeometry_1_1HitT.html>`__:
    * - ``m_exact``
      - Whether the crossing was found exactly (by a ray form) rather than by marching.
 
+``firstCrossing()`` finds the crossing ``firstHit()`` finds and returns it as a `CrossingT
+<doxygen/html/structEBGeometry_1_1CrossingT.html>`__: ``m_status``, ``m_t``, ``m_point``, ``m_entering`` and
+``m_exact``, as above, without the normal or the primitive. Those are what a crossing costs after it is
+found: for a marched shape, the gradient of its value and a search for the part; for a tape or a fused
+composition, a second trace of the leaf the ray crossed. A code that only cuts cell edges or measures how
+far a particle travels should call it:
+
+.. code-block:: c++
+
+   const CrossingT<T> c = firstCrossing(tape, edgeStart, edgeEnd);
+
+   if (c.hit()) {
+     cutFraction = c.m_t / edgeLength;   // where the edge is cut
+     wetSide     = c.m_entering ? 0 : 1; // which end lies outside
+   }
+
+For a mesh SDF or an analytic shape queried on its own, the normal comes almost free with the crossing,
+and the two cost about the same.
+
 ``intersects()`` returns only the status, and where the shape allows it stops at the first crossing it
 finds rather than the nearest. On a segment of a marched shape it first compares the signs of the value
 at the two ends: different signs mean a crossing with no search at all. A shape with a ray form is
@@ -61,8 +82,8 @@ searched instead, which is cheaper and exact where the sign is not (a mesh with 
 shape, more than its tolerance; see :ref:`Chap:SphereTracing`). An ``Unresolved`` query is returned as
 such by ``intersects()`` too, so the caller decides what an undecided ray means.
 
-``Tape`` also has the four as members (``tape.firstHit(...)``, ``tape.intersects(...)``), which do the
-same.
+``Tape`` also has ``firstHit()`` and ``intersects()`` as members (``tape.firstHit(...)``,
+``tape.intersects(...)``), which do the same; ``firstCrossing()`` is a free function only.
 
 Ray forms
 ---------
@@ -141,6 +162,9 @@ filled in. The optional ``spans()`` writes where the ray is inside the shape; wi
 intersection, difference or complement with the shape finds its spans by calling ``firstHit()`` from one
 crossing to the next, which is slower. A static ``intersects()``, with ``firstHit()``'s arguments and
 returning ``HitStatus``, may be added too, for a yes/no query that stops at the first crossing it finds.
+A static ``firstCrossing()``, with the same arguments and returning ``CrossingT``, is for a shape that
+finds its normal only after the crossing, at a cost of its own (as a composition does); without it,
+``firstCrossing()`` calls ``firstHit()`` and drops the normal.
 
 The functions are found by their signatures, so a ``firstHit()`` with a mistyped argument still
 compiles, and the shape is silently marched. Check it where the specialisation is written:

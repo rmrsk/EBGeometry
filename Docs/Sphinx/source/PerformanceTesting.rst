@@ -26,6 +26,7 @@ What is in Performance/
      Fused/main.cpp           fused compositions (Fused::)
      Ray/main.cpp             ray queries on meshes and compositions
      RayCSG/main.cpp          ray tracing a composition from its parts' spans
+     RayCrossing/main.cpp     the first crossing without its normal (firstCrossing())
      RayShell/main.cpp        ray tracing a shell with a corner cut away
      RayParticles/main.cpp    particles colliding with a boundary
      Render/main.cpp          one frame of the renderer
@@ -348,6 +349,24 @@ Family                                Build  Measures
 
 The inputs are ``union-tape``, ``smooth-tape`` and ``smooth-fused``.
 
+**RayCrossing** (``Performance/RayCrossing``): ``firstCrossing()``, the first crossing without its normal or
+primitive, against ``firstHit()`` on the same rays, both timed in this probe (the comparison notes
+``hit/crossing``): the armadillo (the dodecahedron under ``--smoke``), the CSG solid through a tape, and two tapes
+holding the mesh, where the normal costs the most: the mesh drilled through its center along each axis, traced
+exactly, and the mesh smoothly joined to a ball at the top of its box, marched.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``<input>/firstCrossing``             host   the first crossing of each ray, without its normal
+``<input>/firstHit``                  host   the same rays through ``firstHit()``, where the Ray
+                                             probe has no such case
+``<input>/<operation>-morton``,       GPU    the same, in Morton and in random order
+``<operation>-random``
+====================================  =====  =====================================================
+
+The inputs are ``mesh``, ``csg-tape``, ``drilled-mesh-tape`` and ``smooth-mesh-tape``.
+
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
 leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the
 drilled mesh. Each query also evaluates the leaf at its local point, so that the checksum depends on
@@ -460,7 +479,8 @@ compiler (``nvcc`` or ``hipcc`` for a GPU); its logic is ``Performance/RunPerfor
    Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # the pairs
    Scripts/run-performance.sh --gpu cuda 'TriMeshSDF/*'
 
-The probes are built in Release for the host's full instruction set, incrementally, in
+The probes are built in Release for the host's full instruction set, with every function aligned to a cache
+line under GCC and Clang (``Performance/AlignFunctions.cmake``), incrementally, in
 ``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own.
 A host run is pinned to one core when ``taskset`` is available; a GPU run is not, since its host side
 uses every hardware thread but one (``--core <n>`` or ``--no-pin`` changes a host run's pinning; a GPU run refuses ``--core``, since pinned to one core its host side would run on one thread). The output is one table per probe,
@@ -529,8 +549,10 @@ candidate (default: the working tree, uncommitted changes included); anything el
 is exported with ``git archive`` and built from its own ``Performance/`` folder, so a pull request that
 changes an API the probes use updates the probes and is still compared case by case; the report names
 any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
-with the candidate's probes.) Every case then runs in a fresh process, so that one case cannot leave the
-heap or the caches in a state that favors the next, alternating between the two sides for ``--rounds``
+with the candidate's probes.) Both sides are built with the candidate's function alignment, so that code
+added anywhere in a probe cannot change the time of unchanged code by moving it across a cache line.
+Every case then runs in a fresh process, so that one case cannot leave the heap or the caches in a state
+that favors the next, alternating between the two sides for ``--rounds``
 rounds (default 2) of ``--reps`` repetitions (default 3). These defaults are the least that gives a
 verdict, and keep a comparison of every case to about eight minutes on a desktop, builds included; one
 round (``--rounds 1``) shows the times without judging them, a quick look while a change is developed. A host comparison compares the host cases,

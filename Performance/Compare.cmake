@@ -190,12 +190,15 @@ if(NOT GPU STREQUAL "OFF" AND DEFINED CMAKE_${GPU}_COMPILER)
   list(APPEND gpu_args -DCMAKE_${GPU}_COMPILER=${CMAKE_${GPU}_COMPILER})
 endif()
 
+# Both sides are built with the candidate's function alignment (AlignFunctions.cmake), injected into each
+# configure so that it holds for a baseline whose own probes predate it.
 foreach(side base head)
   message(STATUS "Building ${side} (${${side}_sha}) ...")
   run_or_die(
     COMMAND ${CMAKE_COMMAND} -S "${${side}_src}/Performance" -B "${WORK_DIR}/${side}-build" -DCMAKE_BUILD_TYPE=Release
             -DEBGEOMETRY_PERF_GIT_SHA=${${side}_sha} -DEBGEOMETRY_PERF_MESH_DIR=${REPO}/common-3d-test-models/data
-            -DEBGEOMETRY_PERF_SMOKE_MESH_DIR=${${side}_src}/Tests/data ${gpu_args}
+            -DEBGEOMETRY_PERF_SMOKE_MESH_DIR=${${side}_src}/Tests/data
+            -DCMAKE_PROJECT_INCLUDE=${head_src}/Performance/AlignFunctions.cmake ${gpu_args}
   )
   run_or_die(COMMAND ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-build" --parallel)
 endforeach()

@@ -853,8 +853,8 @@ public:
   /**
    * @brief Render a shape through GPU::parallelFor(): in kernels in a CUDA or HIP build, in a host loop
    * otherwise.
-   * @details The image is rendered in bands of rows, one launch each, into one buffer in device memory,
-   * which is copied back once at the end.
+   * @details The image is rendered in one launch, into one buffer in device memory, which is copied back
+   * once at the end.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_deviceShape The shape, as a view valid on the device.
    * @param[in]  a_camera      Camera.
@@ -867,9 +867,11 @@ public:
 
   /**
    * @brief Render a shape through GPU::parallelFor(), stopping early when asked to.
-   * @details As renderOnDevice(const S&, const Camera<T>&, Image&), with a_cancel checked between the
-   * bands: the render returns after the band under way when it is set, with
-   * Stats::m_complete false. a_rowsDone, if given, counts the finished rows.
+   * @details As renderOnDevice(const S&, const Camera<T>&, Image&), but the device's threads check a_cancel
+   * before each pixel, and the render returns soon after it is set, with Stats::m_complete false and the
+   * pixels not reached left black. a_rowsDone, if given, counts the rows as they finish, so another thread can
+   * show the progress (a row counts once its last pixel is done, possibly before some of its others). The flag
+   * reaches the device, and the count the host, through a thread the render starts and memory both can read.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_deviceShape The shape, as a view valid on the device.
    * @param[in]  a_camera      Camera.
@@ -928,6 +930,24 @@ private:
   collect(const std::vector<RenderDetail::StoredPixel>& a_results,
           std::vector<uint32_t>&                        a_primitives,
           Image&                                        a_image) const;
+
+  /**
+   * @brief Render a shape through GPU::parallelFor(), stopping early when asked to, if it can be.
+   * @tparam S Shape type (see isShape).
+   * @param[in]  a_deviceShape The shape, as a view valid on the device.
+   * @param[in]  a_camera      Camera.
+   * @param[out] a_image       The image, resized to the settings' size.
+   * @param[in]  a_cancel      Set (from another thread) to stop the render, or null when it cannot be stopped.
+   * @param[out] a_rowsDone    Finished rows, or null.
+   * @return What the render saw.
+   */
+  template <class S>
+  inline Stats
+  renderFrameOnDevice(const S&                 a_deviceShape,
+                      const Camera<T>&         a_camera,
+                      Image&                   a_image,
+                      const std::atomic<bool>* a_cancel,
+                      std::atomic<uint32_t>*   a_rowsDone) const;
 };
 
 } // namespace EBGeometry::Render

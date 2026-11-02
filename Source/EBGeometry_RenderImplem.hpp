@@ -14,10 +14,13 @@
 // Std includes
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <mutex>
 #include <numeric>
 #include <string>
 #include <thread>
@@ -872,15 +875,39 @@ private:
 };
 
 /**
- * @brief One band of rows of a device render: pixel a_first + i, for every index i of the launch, into the
- * frame's results.
+ * @brief Count a finished row of a device render: atomically on a device, where the frame's threads add to
+ * one counter; a plain increment on the host, where a render's rows are counted one launch at a time.
+ * @details Internal helper; not part of the public API.
+ * @param[in,out] a_rows The counter.
+ * @return The count with this row.
+ */
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+countRow(uint32_t* a_rows) noexcept
+{
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+  return atomicAdd(a_rows, 1U) + 1U;
+#else
+  return ++(*a_rows);
+#endif
+}
+
+/**
+ * @brief The pixels of a device render: pixel a_first + i, for every index i of the launch, into the frame's
+ * results, or none of them once the render is canceled.
  * @details Internal helper; not part of the public API. The pixel indices come from the launch, so nothing
- * is copied to the device but the functor.
+ * is copied to the device but the functor. A device render is one launch over the whole frame; a canceled
+ * one has its threads read m_cancel, a flag in host memory mapped into the device's (written by the host
+ * while the kernel runs), and skip their pixel once it is set, leaving it black and setting m_skipped,
+ * which says whether the render completed. Each row's last pixel counts the row, in m_rows (device
+ * memory) and in m_progress (the mapped memory, for the host to show while the kernel runs). The threads of
+ * a row run in no set order, so the count is progress only: a row may be counted before all of its pixels
+ * are done.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  */
 template <class T, class S>
-struct BandOfPixels
+struct FrameOfPixels
 {
   /**
    * @brief The pixel functor.
@@ -898,25 +925,73 @@ struct BandOfPixels
   uint32_t* m_primitives;
 
   /**
-   * @brief The band's first pixel.
+   * @brief Nonzero once the render is canceled, or null when it cannot be.
+   */
+  const volatile uint32_t* m_cancel;
+
+  /**
+   * @brief Set to nonzero by a pixel that skips its work, in device memory, or null when the render cannot be
+   * canceled.
+   */
+  uint32_t* m_skipped;
+
+  /**
+   * @brief The rows whose last pixel is done, in device memory, or null when not counted.
+   */
+  uint32_t* m_rows;
+
+  /**
+   * @brief The finished rows, as last written, in mapped host memory, or null when not shown.
+   */
+  volatile uint32_t* m_progress;
+
+  /**
+   * @brief The launch's first pixel.
    */
   uint32_t m_first;
 
   /**
+   * @brief Pixels per row.
+   */
+  uint32_t m_width;
+
+  /**
    * @brief Shade pixel m_first + a_index.
-   * @param[in] a_index Index within the band.
+   * @param[in] a_index Index within the launch.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
   operator()(const std::size_t a_index) const noexcept
   {
-    const auto        pixel  = static_cast<uint32_t>(m_first + a_index);
+    const auto pixel = static_cast<uint32_t>(m_first + a_index);
+
+    if (m_cancel != nullptr && *m_cancel != 0U) {
+      m_results[pixel] = StoredPixel{};
+      *m_skipped       = 1U;
+
+      if (m_primitives != nullptr) {
+        m_primitives[pixel] = 0xFFFFFFFFU;
+      }
+
+      return;
+    }
+
     const PixelResult result = m_query(pixel);
 
     m_results[pixel] = StoredPixel::of(result);
 
     if (m_primitives != nullptr) {
       m_primitives[pixel] = result.m_primitive;
+    }
+
+    if (m_rows != nullptr && pixel % m_width == m_width - 1U) {
+      const uint32_t rows = countRow(m_rows);
+
+      // The host keeps the largest count it reads, since writes from different threads may arrive out of
+      // order.
+      if (m_progress != nullptr) {
+        *m_progress = rows;
+      }
     }
   }
 };
@@ -1759,9 +1834,7 @@ template <class S>
 inline Stats
 Renderer<T>::renderOnDevice(const S& a_deviceShape, const Camera<T>& a_camera, Image& a_image) const
 {
-  const std::atomic<bool> never{false};
-
-  return this->renderOnDevice(a_deviceShape, a_camera, a_image, never);
+  return this->renderFrameOnDevice(a_deviceShape, a_camera, a_image, nullptr, nullptr);
 }
 
 template <class T>
@@ -1773,6 +1846,18 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
                             const std::atomic<bool>& a_cancel,
                             std::atomic<uint32_t>*   a_rowsDone) const
 {
+  return this->renderFrameOnDevice(a_deviceShape, a_camera, a_image, &a_cancel, a_rowsDone);
+}
+
+template <class T>
+template <class S>
+inline Stats
+Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
+                                 const Camera<T>&         a_camera,
+                                 Image&                   a_image,
+                                 const std::atomic<bool>* a_cancel,
+                                 std::atomic<uint32_t>*   a_rowsDone) const
+{
   static_assert(isShape<S>, "Render::Renderer: the object to render must be a shape (see isShape)");
   static_assert(std::is_trivially_copyable_v<PixelQuery<T, S>>,
                 "Render::Renderer: the shape must be trivially copyable to render it on a device");
@@ -1781,63 +1866,166 @@ Renderer<T>::renderOnDevice(const S&                 a_deviceShape,
 
   const uint32_t width  = m_settings.m_width;
   const uint32_t height = m_settings.m_height;
+  const size_t   pixels = size_t(width) * size_t(height);
 
   const PixelQuery<T, S> query{a_deviceShape, a_camera, m_settings};
 
-  // A launch per band of rows, so that a canceled render stops after the band under way: 8 bands, or
-  // fewer for a small image (each launch waits for the device, tens of microseconds, so more bands cost a
-  // small frame more than they gain). The bands write into one buffer for the frame, in device memory,
-  // that is copied back once at the end.
-  const uint32_t band   = Math::max(1U, (height + 7U) / 8U);
-  const size_t   pixels = size_t(width) * size_t(height);
-
+  // Pixels not reached by a canceled render stay black.
   std::vector<RenderDetail::StoredPixel> results(pixels);
   std::vector<uint32_t>                  primitives(m_settings.m_recordPrimitives ? pixels : 0U, 0xFFFFFFFFU);
 
+  bool stopped = false;
+
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  // One launch over the whole frame, into one buffer in device memory that is copied back once at the end.
+  // A launch per band of rows, checking the cancel flag between them, waits for each band's slowest block
+  // and leaves the device partly idle at its end: 8 bands took 1.6-2 times as long as one launch. Row-major
+  // pixel order measured fastest (tiles, shuffled segments and shuffled pixels were all slower).
   RenderDetail::StoredPixel* buffer = nullptr;
   uint32_t*                  ids    = nullptr;
 
-  EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&buffer), sizeof(RenderDetail::StoredPixel) * pixels));
+  RenderDetail::FrameOfPixels<T, S> frame{query, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0U, width};
 
-  if (!primitives.empty()) {
-    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&ids), sizeof(uint32_t) * pixels));
+  const bool launch = (a_cancel == nullptr) || !a_cancel->load(std::memory_order_relaxed);
+
+  if (launch) {
+    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&buffer), sizeof(RenderDetail::StoredPixel) * pixels));
+
+    if (!primitives.empty()) {
+      EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&ids), sizeof(uint32_t) * pixels));
+    }
+
+    frame.m_results    = buffer;
+    frame.m_primitives = ids;
+  }
+
+  if (a_cancel == nullptr) {
+    GPU::parallelFor(pixels, frame);
+  }
+  else if (!launch) {
+    stopped = true;
+  }
+  else {
+    // The kernel reads the cancel flag from host memory mapped into the device's, and writes its progress
+    // there; while this thread waits for the launch, another passes the flag on and the progress back. The
+    // mapped pointer is passed to the kernel as it is, which unified virtual addressing (every 64-bit CUDA
+    // and HIP platform) allows. Whether a pixel skipped its work, which says whether the render completed,
+    // and the count of rows are in device memory. Reading the flag for every pixel is most of what this
+    // costs over a render that cannot be canceled: on an RTX 3080, about 4 ms of a 37 ms frame of a cheap
+    // scene at 1024 x 1024 pixels, and 1 ms of a 9 ms one at 256 x 256.
+    uint32_t* mapped = nullptr; // The cancel flag, then the progress.
+    uint32_t* counts = nullptr; // Whether a pixel skipped its work, then the rows.
+
+    const uint32_t zeros[2] = {0U, 0U};
+
+    EBGEOMETRY_GPU_CHECK(GPU::memAllocHostMapped(reinterpret_cast<void**>(&mapped), 2U * sizeof(uint32_t)));
+    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&counts), 2U * sizeof(uint32_t)));
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(counts, zeros, 2U * sizeof(uint32_t), GPU::MemcpyHostToDevice));
+
+    volatile uint32_t* const flag     = mapped;
+    volatile uint32_t* const progress = mapped + 1;
+
+    *flag     = 0U;
+    *progress = 0U;
+
+    frame.m_cancel   = flag;
+    frame.m_skipped  = counts;
+    frame.m_rows     = counts + 1;
+    frame.m_progress = progress;
+
+    std::mutex              mutex;
+    std::condition_variable wake;
+    bool                    finished = false;
+    uint32_t                shown    = 0; // Rows added to a_rowsDone.
+
+    const auto report = [a_rowsDone, &shown](const uint32_t a_rows) {
+      if (a_rows > shown) {
+        if (a_rowsDone != nullptr) {
+          (*a_rowsDone) += a_rows - shown;
+        }
+
+        shown = a_rows;
+      }
+    };
+
+    std::thread relay([&]() {
+      std::unique_lock<std::mutex> lock(mutex);
+
+      while (!finished) {
+        if (a_cancel->load(std::memory_order_relaxed)) {
+          *flag = 1U;
+        }
+
+        report(*progress);
+
+        wake.wait_for(lock, std::chrono::milliseconds(1));
+      }
+    });
+
+    GPU::parallelFor(pixels, frame);
+
+    {
+      const std::lock_guard<std::mutex> lock(mutex);
+
+      finished = true;
+    }
+
+    wake.notify_one();
+    relay.join();
+
+    uint32_t done[2] = {0U, 0U};
+
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(done, counts, 2U * sizeof(uint32_t), GPU::MemcpyDeviceToHost));
+    EBGEOMETRY_GPU_CHECK(GPU::memFree(counts));
+    EBGEOMETRY_GPU_CHECK(GPU::memFreeHost(mapped));
+
+    report(done[1]);
+
+    stopped = done[0] != 0U;
+  }
+
+  if (launch) {
+    EBGEOMETRY_GPU_CHECK(
+      GPU::memcpy(results.data(), buffer, sizeof(RenderDetail::StoredPixel) * pixels, GPU::MemcpyDeviceToHost));
+    EBGEOMETRY_GPU_CHECK(GPU::memFree(buffer));
+
+    if (ids != nullptr) {
+      EBGEOMETRY_GPU_CHECK(GPU::memcpy(primitives.data(), ids, sizeof(uint32_t) * pixels, GPU::MemcpyDeviceToHost));
+      EBGEOMETRY_GPU_CHECK(GPU::memFree(ids));
+    }
   }
 #else
-  RenderDetail::StoredPixel* buffer = results.data();
-  uint32_t*                  ids    = primitives.empty() ? nullptr : primitives.data();
-#endif
+  // A host loop: one launch over the frame, or, when the render can be canceled, one per row, with the flag
+  // checked between them.
+  RenderDetail::FrameOfPixels<T, S> frame{query,
+                                          results.data(),
+                                          primitives.empty() ? nullptr : primitives.data(),
+                                          nullptr,
+                                          nullptr,
+                                          nullptr,
+                                          nullptr,
+                                          0U,
+                                          width};
 
-  bool                      stopped = false;
-  [[maybe_unused]] uint32_t done    = 0; // Rows rendered; read only by a device copy.
-
-  for (uint32_t row = 0; row < height; row += band) {
-    if (a_cancel.load(std::memory_order_relaxed)) {
-      stopped = true;
-
-      break;
-    }
-
-    const uint32_t rows = Math::min(band, height - row);
-
-    GPU::parallelFor(size_t(rows) * size_t(width), RenderDetail::BandOfPixels<T, S>{query, buffer, ids, row * width});
-
-    done += rows;
-
-    if (a_rowsDone != nullptr) {
-      (*a_rowsDone) += rows;
-    }
+  if (a_cancel == nullptr) {
+    GPU::parallelFor(pixels, frame);
   }
+  else {
+    for (uint32_t row = 0; row < height; row++) {
+      if (a_cancel->load(std::memory_order_relaxed)) {
+        stopped = true;
 
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  EBGEOMETRY_GPU_CHECK(GPU::memcpy(
-    results.data(), buffer, sizeof(RenderDetail::StoredPixel) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
-  EBGEOMETRY_GPU_CHECK(GPU::memFree(buffer));
+        break;
+      }
 
-  if (ids != nullptr) {
-    EBGEOMETRY_GPU_CHECK(
-      GPU::memcpy(primitives.data(), ids, sizeof(uint32_t) * size_t(done) * size_t(width), GPU::MemcpyDeviceToHost));
-    EBGEOMETRY_GPU_CHECK(GPU::memFree(ids));
+      frame.m_first = row * width;
+
+      GPU::parallelFor(width, frame);
+
+      if (a_rowsDone != nullptr) {
+        (*a_rowsDone)++;
+      }
+    }
   }
 #endif
 

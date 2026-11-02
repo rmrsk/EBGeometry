@@ -157,6 +157,58 @@ struct HasRayIntersects<
 };
 
 /**
+ * @brief Whether a shape's ray form has its own firstCrossing().
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasRayFirstCrossing : std::false_type
+{
+};
+
+/**
+ * @brief A ray form with a static firstCrossing() returning CrossingT<T>.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasRayFirstCrossing<
+  S,
+  T,
+  std::enable_if_t<std::is_same_v<decltype(RayForm<S>::firstCrossing(std::declval<const S&>(),
+                                                                     std::declval<const RayT<T>&>(),
+                                                                     std::declval<T>(),
+                                                                     std::declval<T>(),
+                                                                     std::declval<const RayOptions<T>&>())),
+                                  CrossingT<T>>>> : std::true_type
+{
+};
+
+/**
+ * @brief A hit without its normal and primitive.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_hit The hit.
+ * @return The crossing.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline CrossingT<T>
+crossingOf(const HitT<T>& a_hit) noexcept
+{
+  CrossingT<T> crossing;
+
+  crossing.m_status   = a_hit.m_status;
+  crossing.m_t        = a_hit.m_t;
+  crossing.m_point    = a_hit.m_point;
+  crossing.m_entering = a_hit.m_entering;
+  crossing.m_exact    = a_hit.m_exact;
+
+  return crossing;
+}
+
+/**
  * @brief Whether a shape's ray form has its own spans().
  * @details Internal helper; not part of the public API.
  * @tparam S Shape type.
@@ -614,6 +666,14 @@ HitT<T>::hit() const noexcept
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline bool
+CrossingT<T>::hit() const noexcept
+{
+  return m_status == HitStatus::Hit;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline bool
 SpanEndT<T>::crossing() const noexcept
 {
   return m_kind != Open;
@@ -718,7 +778,8 @@ intersects(const S&                       a_shape,
     }
   }
 
-  return firstHit(a_shape, a_ray, a_tMin, a_tMax, a_options).m_status;
+  // Only the status is needed: no normal or primitive (see firstCrossing()).
+  return firstCrossing(a_shape, a_ray, a_tMin, a_tMax, a_options).m_status;
 }
 
 template <class T, class S>
@@ -750,6 +811,50 @@ intersects(const S&             a_shape,
   }
 
   return intersects(a_shape, RayT<T>{a_from, direction}, a_tMin, length, a_options);
+}
+
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
+inline CrossingT<T>
+firstCrossing(const S&                       a_shape,
+              const RayT<T>&                 a_ray,
+              const typename RayT<T>::Scalar a_tMin,
+              const typename RayT<T>::Scalar a_tMax,
+              const RayOptions<T>&           a_options) noexcept
+{
+  EBGEOMETRY_EXPECT(std::abs(a_ray.m_direction.length() - T(1)) < T(1e-3));
+
+  if constexpr (RayDetail::HasRayFirstHit<S, T>::value) {
+    if (!a_options.m_march) {
+      if constexpr (RayDetail::HasRayFirstCrossing<S, T>::value) {
+        return RayForm<S>::firstCrossing(a_shape, a_ray, a_tMin, a_tMax, a_options);
+      }
+      else {
+        return RayDetail::crossingOf(RayForm<S>::firstHit(a_shape, a_ray, a_tMin, a_tMax, a_options));
+      }
+    }
+  }
+
+  return RayDetail::crossingOf(RayDetail::march(a_shape, a_ray, a_tMin, a_tMax, a_options, false));
+}
+
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
+inline CrossingT<T>
+firstCrossing(const S&             a_shape,
+              const Vec3T<T>&      a_from,
+              const Vec3T<T>&      a_to,
+              const T              a_tMin,
+              const RayOptions<T>& a_options) noexcept
+{
+  const Vec3T<T> span   = a_to - a_from;
+  const T        length = span.length();
+
+  if (!(length > T(0))) {
+    return CrossingT<T>();
+  }
+
+  return firstCrossing(a_shape, RayT<T>{a_from, span / length}, a_tMin, length, a_options);
 }
 
 } // namespace EBGeometry

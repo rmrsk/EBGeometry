@@ -1120,6 +1120,28 @@ traceSpans(
   return hit;
 }
 
+/**
+ * @brief The first crossing of a composition along a ray, from its lists, without asking the leaf it lies on
+ * for its normal and primitive: traceSpans() without the resolve. What a composition's firstCrossing() is.
+ * @details Internal helper; not part of the public API.
+ * @tparam T     Floating-point precision.
+ * @tparam Trace Callable writing the list (see traceSpans()).
+ * @param[in] a_trace The trace.
+ * @param[in] a_ray   The ray.
+ * @param[in] a_tMin  Start of the interval.
+ * @param[in] a_tMax  End of the interval.
+ * @return The crossing, a miss, or an unresolved query.
+ */
+template <class T, class Trace>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline CrossingT<T>
+traceCrossing(const Trace& a_trace, const RayT<T>& a_ray, const T a_tMin, const T a_tMax) noexcept
+{
+  const auto none = [](const T, const uint32_t) noexcept { return HitT<T>(); };
+
+  return RayDetail::crossingOf(RayDetail::traceSpans(a_trace, none, a_ray, a_tMin, a_tMax));
+}
+
 } // namespace RayDetail
 
 #if defined(__GNUC__) && !defined(__clang__)
