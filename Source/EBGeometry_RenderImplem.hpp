@@ -2450,50 +2450,82 @@ Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
   if (timed) {
     // Each pixel holds its cost (0 where a canceled render did not reach it): colored on a log scale over the
     // frame's costs without the cheapest and the dearest hundredth of its pixels, which a thread interrupted
-    // mid-ray (a whole row of slow pixels on the host) would otherwise stretch the scale with.
-    std::vector<uint32_t> costs;
+    // mid-ray (a whole row of slow pixels on the host) would otherwise stretch the scale with. The costs are put in
+    // buckets of a sixteenth of a doubling, from their bits alone, so that this pass, run on the host after a
+    // device render too, takes no sort and no logarithm per pixel: one pass to count, one to color.
+    constexpr uint32_t PerDoubling = 16;
+    constexpr uint32_t Buckets     = 32 * PerDoubling;
 
-    costs.reserve(a_image.m_pixels.size());
+    // The highest set bit of a cost, and its bucket: that bit and the four below it.
+    const auto highestBit = [](uint32_t a_cost) noexcept {
+      uint32_t exponent = 0;
+
+      for (uint32_t shift = 16; shift > 0; shift /= 2) {
+        if ((a_cost >> shift) != 0U) {
+          a_cost >>= shift;
+          exponent += shift;
+        }
+      }
+
+      return exponent;
+    };
+
+    const auto bucketOf = [&highestBit](const uint32_t a_cost) noexcept {
+      const uint32_t exponent = highestBit(a_cost);
+      const uint32_t fraction =
+        (exponent >= 4U) ? (a_cost >> (exponent - 4U)) & 15U : (a_cost << (4U - exponent)) & 15U;
+
+      return exponent * PerDoubling + fraction;
+    };
+
+    std::vector<uint64_t> counts(Buckets, 0U);
+
+    uint64_t total = 0;
 
     for (const uint32_t cost : a_image.m_pixels) {
       if (cost != 0U) {
-        costs.push_back(cost);
+        counts[bucketOf(cost)]++;
+        total++;
       }
     }
 
-    uint32_t low  = 1U;
-    uint32_t high = 1U;
+    // The buckets of the cheapest and the dearest pixel kept, a hundredth of the pixels cut from either end.
+    const uint64_t cut  = total / 100U;
+    uint32_t       low  = 0;
+    uint32_t       high = Buckets - 1U;
 
-    if (!costs.empty()) {
-      const std::size_t cut = costs.size() / 100U;
-
-      std::nth_element(costs.begin(), costs.begin() + std::ptrdiff_t(cut), costs.end());
-      low = costs[cut];
-
-      std::nth_element(costs.begin(), costs.end() - std::ptrdiff_t(cut + 1U), costs.end());
-      high = costs[costs.size() - cut - 1U];
+    for (uint64_t below = 0; low < Buckets - 1U && below + counts[low] <= cut; low++) {
+      below += counts[low];
     }
 
-    const double span = (high > low) ? std::log(double(high) / double(low)) : 1.0;
+    for (uint64_t above = 0; high > low && above + counts[high] <= cut; high--) {
+      above += counts[high];
+    }
 
-    for (uint32_t& pixel : a_image.m_pixels) {
-      if (pixel == 0U) {
-        continue;
-      }
+    std::vector<uint32_t> colors(Buckets);
 
-      const Vec3T<double> c = RenderDetail::ramp<double>(std::log(double(pixel) / double(low)) / span);
+    for (uint32_t b = 0; b < Buckets; b++) {
+      const double        where = (high > low) ? (double(b) - double(low)) / double(high - low) : 0.0;
+      const Vec3T<double> c     = RenderDetail::ramp<double>(where);
 
-      uint32_t rgba = 0xFFU;
+      colors[b] = 0xFFU;
 
       for (int k = 0; k < 3; k++) {
-        rgba |= static_cast<uint32_t>(255.0 * c[k] + 0.5) << (24 - 8 * k);
+        colors[b] |= static_cast<uint32_t>(255.0 * c[k] + 0.5) << (24 - 8 * k);
       }
-
-      pixel = rgba;
     }
 
-    stats.m_costLow  = costs.empty() ? 0.0 : double(low) / a_perNanosecond;
-    stats.m_costHigh = costs.empty() ? 0.0 : double(high) / a_perNanosecond;
+    for (uint32_t& pixel : a_image.m_pixels) {
+      if (pixel != 0U) {
+        pixel = colors[bucketOf(pixel)];
+      }
+    }
+
+    // A bucket's cost is that of its lower end: 2^(b / 16).
+    const auto costOf = [](const uint32_t a_bucket) { return std::exp2(double(a_bucket) / double(PerDoubling)); };
+
+    stats.m_costLow  = (total == 0U) ? 0.0 : costOf(low) / a_perNanosecond;
+    stats.m_costHigh = (total == 0U) ? 0.0 : costOf(high) / a_perNanosecond;
   }
 
   return stats;
