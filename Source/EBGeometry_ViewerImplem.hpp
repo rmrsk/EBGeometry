@@ -492,6 +492,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   const char* sectionNames[] = {"Off", "As given", "Across x", "Across y", "Across z"};
 
+  // The views, in the order of ViewMode, for the overlay and the window's title.
+  const char* viewNames[] = {
+    "Shaded view", "Depth view", "X-ray view", "Cost of firstHit() per pixel", "Cost of firstCrossing() per pixel"};
+
   // The preview's resolution, as a fraction of the window's, adapted to how long previews take.
   T previewScale = T(0.5);
 
@@ -846,9 +850,6 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                            : (settings.m_colorBy == ColorBy::Primitive) ? "Colored by primitive"
                                                                         : "Colored uniformly";
 
-    const char* viewNames[] = {
-      "Shaded view", "Depth view", "X-ray view", "Cost of firstHit() per pixel", "Cost of firstCrossing() per pixel"};
-
     const bool costView = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
 
     // A time in nanoseconds, in the unit that keeps it short.
@@ -1062,9 +1063,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
     SDL_UpdateTexture(texture, nullptr, pixels, static_cast<int>(4U * a_image.m_width));
 
-    status = std::string("EBGeometry: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
-             std::to_string(a_image.m_width) + "x" + std::to_string(a_image.m_height) + " in " +
-             std::to_string(int(1000.0 * a_seconds)) + " ms" +
+    status = std::string("EBGeometry: ") + viewNames[static_cast<int>(settings.m_viewMode)] + ", " +
+             (onDevice ? "GPU" : "CPU") + ", " + a_what + " " + std::to_string(a_image.m_width) + "x" +
+             std::to_string(a_image.m_height) + " in " + std::to_string(int(1000.0 * a_seconds)) + " ms" +
              // A few grazing rays can seem to leave the solid; say so only when more than one hit in a
              // thousand does.
              ((a_stats.m_insideHits * 1000U > a_stats.m_hits) ? ", red: seen from inside the solid" : "") +
