@@ -576,8 +576,9 @@ struct WriteNodes
       const uint32_t lo    = build.m_lo + g * static_cast<uint32_t>(W);
       const uint32_t valid = Math::min(static_cast<uint32_t>(W), build.m_hi - lo);
 
-      Vec3T<T> positions[W];
-      uint32_t ids[W];
+      // Zeroed, so that an optimizer that cannot see valid >= 1 reads nothing uninitialized.
+      Array<Vec3T<T>, W> positions{};
+      Array<uint32_t, W> ids{};
 
       for (uint32_t j = 0; j < valid; j++) {
         const uint32_t index = m_keys[lo + j].m_index;
@@ -591,7 +592,7 @@ struct WriteNodes
         m_order[lo + j]    = index;
       }
 
-      m_primitives[first + g].packUnchecked(positions, ids, valid);
+      m_primitives[first + g].packUnchecked(positions.data(), ids.data(), valid);
     }
   }
 };
@@ -755,7 +756,8 @@ PointCloudBVH<T, K, W>::shape(
 
   this->run(1, RootNode{nodes, a_numPoints});
 
-  uint32_t numInterior = 0;
+  // Read only by the check against the row count below, so unused with assertions off.
+  [[maybe_unused]] uint32_t numInterior = 0;
 
   while (true) {
     const uint32_t begin = levels[levels.size() - 2];

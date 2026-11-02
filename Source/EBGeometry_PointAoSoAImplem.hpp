@@ -17,6 +17,7 @@
 
 #include "EBGeometry_Array.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PointAoSoA.hpp"
 
 namespace EBGeometry {
@@ -55,9 +56,12 @@ EBGEOMETRY_HOST_DEVICE
 void
 PointAoSoA<T, W>::packIds(const uint32_t* a_pointIds, uint32_t a_count) noexcept
 {
-  // Same padding convention as PointSoAT::pack(): lanes count..W-1 repeat the last real entry.
+  // Same padding convention as PointSoAT::pack(): lanes count..W-1 repeat the last real entry. The last index is
+  // clamped at 0 so that an optimizer that cannot see a_count >= 1 finds no out-of-bounds subscript.
+  const uint32_t last = (a_count > 0U) ? a_count - 1U : 0U;
+
   for (uint32_t j = 0; j < W; j++) {
-    const uint32_t src = (j < a_count) ? j : (a_count - 1U);
+    const uint32_t src = Math::min(j, last);
 
     m_pointIds[j] = a_pointIds[src];
   }

@@ -62,8 +62,11 @@ PointSoAT<T, W>::packUnchecked(const Vec3T<T>* a_positions, uint32_t a_count) no
 
   m_validCount = a_count;
 
+  // Lanes count..W-1 repeat the last real point; the last index is clamped at 0, as in PointAoSoA::packIds().
+  const uint32_t last = (a_count > 0U) ? a_count - 1U : 0U;
+
   for (uint32_t j = 0; j < W; j++) {
-    const uint32_t src = (j < a_count) ? j : (a_count - 1U);
+    const uint32_t src = Math::min(j, last);
 
     const auto& pos = a_positions[src];
 
