@@ -375,6 +375,41 @@ TEST_CASE("Pool: mirror hands the copy to the non-host resource", "[Pool]")
   REQUIRE(hostMirror.usedBytes() == host.usedBytes());
 }
 
+TEST_CASE("Pool: a pool in memory the host cannot read grows through its resource, keeping its contents", "[Pool]")
+{
+  FakeDeviceResource device;
+
+  Pool pool(device);
+
+  const size_t offset = pool.reserve(1, sizeof(int), alignof(int));
+
+  // The fake's memory is host memory, so the test can write it directly; a kernel would on a device.
+  *static_cast<int*>(static_cast<void*>(static_cast<char*>(pool.base()) + offset)) = 7;
+
+  const size_t before = pool.capacityBytes();
+
+  (void)pool.reserve(4 * before, 1, 1);
+
+  REQUIRE(pool.capacityBytes() > before);
+  REQUIRE(device.m_copies == 1);
+  REQUIRE(*static_cast<const int*>(static_cast<const void*>(static_cast<const char*>(pool.base()) + offset)) == 7);
+}
+
+TEST_CASE("Pool: a structure built on the host refuses a pool in memory the host cannot read", "[Pool][death]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      FakeDeviceResource device;
+      Pool               pool(device);
+
+      const Tape<double> tape(pool, SphereSDF<double>(Vec3T<double>::zeros(), 1.0));
+
+      (void)tape;
+    },
+    "Tape: the pool's memory must be host-accessible, since it is built on the host; a pool in device memory holds "
+    "only structures built there (PointCloudHashGrid::build()), or mirror a host pool"));
+}
+
 TEST_CASE("Pool: move construction transfers ownership and empties the source", "[Pool]")
 {
   Pool source(hostMemoryResource(), 512);

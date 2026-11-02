@@ -9,8 +9,8 @@
  * @details Each runs one or more GPU::parallelFor() launches, so it runs on the device in a CUDA or HIP
  *          translation unit and as host loops otherwise, and returns once the work is done. The arrays
  *          they read and write must be memory the launch can reach: device-accessible in a CUDA or HIP
- *          build, and host memory otherwise. They use no atomics, so their results do not depend on
- *          thread scheduling.
+ *          build (device memory will do), and host memory otherwise. They use no atomics, so their results
+ *          do not depend on thread scheduling.
  * @author  Robert Marskar
  */
 
@@ -25,6 +25,7 @@
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_GPURuntime.hpp"
 #include "EBGeometry_GPUTransform.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
@@ -58,14 +59,38 @@ boundingBoxScratchSize(const uint32_t a_count) noexcept
 namespace AlgorithmsDetail {
 
 /**
- * @brief boundingBox(), pass 1: the box of each chunk of points.
+ * @brief boundingBox()'s source for an array of points.
  * @tparam T Precision.
  */
 template <class T>
-struct ChunkBox
+struct FromPointer
 {
   /// @brief The points.
   const Vec3T<T>* m_points;
+
+  /**
+   * @brief Point @p a_i.
+   * @param[in] a_i Index.
+   * @return The point.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  operator()(const uint32_t a_i) const noexcept
+  {
+    return m_points[a_i];
+  }
+};
+
+/**
+ * @brief boundingBox(), pass 1: the box of each chunk of points.
+ * @tparam T      Precision.
+ * @tparam Source Where the points come from: a trivially copyable functor returning point i.
+ */
+template <class T, class Source>
+struct ChunkBox
+{
+  /// @brief The points.
+  Source m_points;
 
   /// @brief Chunk corners: lower corner of chunk c at 2c, upper at 2c + 1.
   Vec3T<T>* m_corners;
@@ -88,8 +113,10 @@ struct ChunkBox
     Vec3T<T> hi = -Vec3T<T>::max();
 
     for (uint32_t i = begin; i < end; i++) {
-      lo = min(lo, m_points[i]);
-      hi = max(hi, m_points[i]);
+      const Vec3T<T> p = m_points(i);
+
+      lo = min(lo, p);
+      hi = max(hi, p);
     }
 
     m_corners[2 * a_c]     = lo;
@@ -200,15 +227,52 @@ struct Ascending
 };
 
 /**
- * @brief The smallest box holding every point: one box per chunk of BoundingBoxChunk points, then one
- * thread merging them.
- * @details The minimum and maximum are exact, so the box is the one a host loop over the points finds.
- * The result is read back through @p a_scratch, which must therefore also be host-accessible (managed
- * memory in a CUDA or HIP build).
- * @tparam T Precision.
+ * @brief The smallest box holding every point, from a source of points: one box per chunk of BoundingBoxChunk
+ * points, then one thread merging them.
+ * @details The minimum and maximum are exact, so the box is the one a host loop over the points finds. The source
+ * is any trivially copyable functor whose const call operator returns point i, callable where the launches run.
+ * The result is copied back from @p a_scratch to the host (from device memory in a CUDA or HIP build).
+ * @tparam T      Precision.
+ * @tparam Source Source type.
  * @param[in]  a_points  The points.
  * @param[in]  a_count   Number of points.
- * @param[out] a_scratch boundingBoxScratchSize(a_count) elements of scratch.
+ * @param[out] a_scratch boundingBoxScratchSize(a_count) elements of scratch, which the launches can write.
+ * @return The box; the empty box for no points.
+ */
+template <class T, class Source>
+[[nodiscard]] EBGEOMETRY_HOST
+inline BoundingVolumes::AABBT<T>
+boundingBoxOf(const Source& a_points, const uint32_t a_count, Vec3T<T>* a_scratch)
+{
+  static_assert(std::is_trivially_copyable_v<Source>, "GPU::boundingBoxOf: the source must be trivially copyable");
+
+  if (a_count == 0) {
+    return BoundingVolumes::AABBT<T>();
+  }
+
+  const uint32_t chunks = boundingBoxScratchSize(a_count) / 2;
+
+  parallelFor(chunks, AlgorithmsDetail::ChunkBox<T, Source>{a_points, a_scratch, a_count});
+  parallelFor(1, AlgorithmsDetail::MergeChunks<T>{a_scratch, chunks});
+
+  Vec3T<T> corners[2];
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  EBGEOMETRY_GPU_CHECK(GPU::memcpy(corners, a_scratch, sizeof(corners), GPU::MemcpyDeviceToHost));
+#else
+  corners[0] = a_scratch[0];
+  corners[1] = a_scratch[1];
+#endif
+
+  return BoundingVolumes::AABBT<T>(corners[0], corners[1]);
+}
+
+/**
+ * @brief The smallest box holding an array of points; see boundingBoxOf().
+ * @tparam T Precision.
+ * @param[in]  a_points  The points, which the launches can read.
+ * @param[in]  a_count   Number of points.
+ * @param[out] a_scratch boundingBoxScratchSize(a_count) elements of scratch, which the launches can write.
  * @return The box; the empty box for no points.
  */
 template <class T>
@@ -216,16 +280,7 @@ template <class T>
 inline BoundingVolumes::AABBT<T>
 boundingBox(const Vec3T<T>* a_points, const uint32_t a_count, Vec3T<T>* a_scratch)
 {
-  if (a_count == 0) {
-    return BoundingVolumes::AABBT<T>();
-  }
-
-  const uint32_t chunks = boundingBoxScratchSize(a_count) / 2;
-
-  parallelFor(chunks, AlgorithmsDetail::ChunkBox<T>{a_points, a_scratch, a_count});
-  parallelFor(1, AlgorithmsDetail::MergeChunks<T>{a_scratch, chunks});
-
-  return BoundingVolumes::AABBT<T>(a_scratch[0], a_scratch[1]);
+  return boundingBoxOf(AlgorithmsDetail::FromPointer<T>{a_points}, a_count, a_scratch);
 }
 
 /**

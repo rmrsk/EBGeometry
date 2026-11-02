@@ -81,6 +81,11 @@ inline constexpr MemcpyKind MemcpyHostToDevice = 1;
 inline constexpr MemcpyKind MemcpyDeviceToHost = 2;
 
 /**
+ * @brief Device-to-device copy direction (@c cudaMemcpyDeviceToDevice / @c hipMemcpyDeviceToDevice).
+ */
+inline constexpr MemcpyKind MemcpyDeviceToDevice = 3;
+
+/**
  * @brief Allocate device memory (@c cudaMalloc / @c hipMalloc).
  * @param[out] a_devicePtr Receives the device pointer to the allocation.
  * @param[in]  a_numBytes  Number of bytes to allocate.
@@ -261,9 +266,10 @@ using Error      = hipError_t;
 using MemcpyKind = hipMemcpyKind;
 using Stream     = hipStream_t;
 
-inline constexpr Error      Success            = hipSuccess;
-inline constexpr MemcpyKind MemcpyHostToDevice = hipMemcpyHostToDevice;
-inline constexpr MemcpyKind MemcpyDeviceToHost = hipMemcpyDeviceToHost;
+inline constexpr Error      Success              = hipSuccess;
+inline constexpr MemcpyKind MemcpyHostToDevice   = hipMemcpyHostToDevice;
+inline constexpr MemcpyKind MemcpyDeviceToHost   = hipMemcpyDeviceToHost;
+inline constexpr MemcpyKind MemcpyDeviceToDevice = hipMemcpyDeviceToDevice;
 
 [[nodiscard]] inline Error
 memAlloc(void** a_devicePtr, size_t a_numBytes) noexcept
@@ -385,9 +391,10 @@ using Error      = cudaError_t;
 using MemcpyKind = cudaMemcpyKind;
 using Stream     = cudaStream_t;
 
-inline constexpr Error      Success            = cudaSuccess;
-inline constexpr MemcpyKind MemcpyHostToDevice = cudaMemcpyHostToDevice;
-inline constexpr MemcpyKind MemcpyDeviceToHost = cudaMemcpyDeviceToHost;
+inline constexpr Error      Success              = cudaSuccess;
+inline constexpr MemcpyKind MemcpyHostToDevice   = cudaMemcpyHostToDevice;
+inline constexpr MemcpyKind MemcpyDeviceToHost   = cudaMemcpyDeviceToHost;
+inline constexpr MemcpyKind MemcpyDeviceToDevice = cudaMemcpyDeviceToDevice;
 
 [[nodiscard]] inline Error
 memAlloc(void** a_devicePtr, size_t a_numBytes) noexcept

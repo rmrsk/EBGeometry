@@ -488,11 +488,13 @@ Test coverage
      - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases (far
        queries, a lattice where many points tie on cell faces, a cloud far from the origin where the
        stopping rule's rounding slack is tightest, extreme cell sizes),
-       ``rebasedView``/``deepCopy``, device queries against the host, ``buildParallel`` answering
-       every query exactly like the constructor's grid (uniform, clustered, flat and coincident
-       clouds, zero to three points, several cell sizes) and on a device from managed memory, and
-       rejection of a cloud it cannot index, a non-positive target occupancy, or a rebase onto an
-       unrelated pool.
+       ``rebasedView``/``deepCopy``, device queries against the host, ``build`` in device-accessible
+       memory answering every query exactly like the host's grid (uniform, clustered, flat and coincident
+       clouds, zero to three points, several cell sizes) and on a device from device memory, positions read
+       through a source (separate arrays in another precision, ``FromArray``), ``rebuild`` matching a fresh
+       build on a frozen pool (more, moved, fewer and no points) and coarsening its cells when its box needs
+       more than it has, and rejection of a cloud it cannot index, a non-positive target occupancy, a rebuild
+       past its room, or a rebase onto an unrelated pool.
    * - ``TestRandom``
      - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
        an empty result for a zero count.

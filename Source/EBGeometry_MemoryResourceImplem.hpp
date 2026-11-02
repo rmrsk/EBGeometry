@@ -129,13 +129,12 @@ gpuCopy(void*                 a_dst,
   const bool dstHost = a_dstResource.isHostAccessible();
   const bool srcHost = a_srcResource.isHostAccessible();
 
-  // Device-to-device is out of scope for the mirror (the foundation only builds on host and uploads
-  // once); the alias layer exposes no device-to-device direction. Continuing would leave the
-  // destination block uncopied.
-  EBGEOMETRY_REQUIRE(dstHost || srcHost, "MemoryResource::copy: device-to-device copies are not supported");
-
+  // Device to device: a pool in device memory that grows, or a mirror of one into device memory.
   if (dstHost && srcHost) {
     std::memcpy(a_dst, a_src, a_bytes);
+  }
+  else if (!dstHost && !srcHost) {
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyDeviceToDevice));
   }
   else if (srcHost) {
     EBGEOMETRY_GPU_CHECK(GPU::memcpy(a_dst, a_src, a_bytes, GPU::MemcpyHostToDevice));

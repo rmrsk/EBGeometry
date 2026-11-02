@@ -19,6 +19,7 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
@@ -32,9 +33,13 @@ namespace EBGeometry {
  * @brief A uniform spatial grid specialized for point clouds, with a fast build and turnkey queries.
  * @details PointCloudHashGrid answers the same nearest-neighbor / closest-point queries as
  * PointCloudBVH, with the same PointCloud::Hit result and the same query methods and accessors, so
- * the two are interchangeable -- but it circumvents the tree entirely. Points are counting-sorted
- * into a dense grid of cells (a CSR bucket array keyed by integer cell coordinates), which is an O(N)
- * build with no recursive partitioning and no tree nodes.
+ * the two are interchangeable -- but it circumvents the tree entirely. Points are sorted into a dense
+ * grid of cells (a CSR bucket array keyed by integer cell coordinates), with no recursive partitioning
+ * and no tree nodes: on the host by a counting sort, an O(N) build; in device-accessible memory by a
+ * bitonic sort of (cell, cloud index) keys through GPU::parallelFor(), which needs no atomics, so the
+ * grid does not depend on thread scheduling and is the host's, array for array. The grid keeps its own
+ * copy of the positions in cell order, so a cell's points are read from consecutive memory, and a map
+ * from each cloud index to its slot.
  *
  * Queries use an **expanding-shell** search: starting from the query point's cell, cells are visited
  * shell by shell (Chebyshev radius 0, 1, 2, ...). The search stops as soon as the k-th best distance
@@ -52,10 +57,11 @@ namespace EBGeometry {
  * the grid serves only point queries: neither exposes a signed distance or bounding volume, so
  * neither can be composed as a primitive inside an outer BVH/CSG.
  *
- * @note Device portability. Every array (positions and the two CSR arrays) is reserved from one
- * Pool, and the class stores only offsets into it, so a PointCloudHashGrid is trivially copyable.
- * Mirror the pool, call rebasedView(), and pass the returned value into a kernel; every query that
- * answers through a caller-supplied buffer (closestPoint(s), nearestNeighbor(s)) is device-callable.
+ * @note Device portability. Every array (the positions, the two CSR arrays, the slot map, and the
+ * scratch of a build in device-accessible memory) is reserved from one Pool, and the class stores only
+ * offsets into it, so a PointCloudHashGrid is trivially copyable. Build into device memory, or mirror a
+ * host pool; call rebasedView() and pass the returned value into a kernel; every query that answers
+ * through a caller-supplied buffer (closestPoint(s), nearestNeighbor(s)) is device-callable.
  * allNearestNeighbors() returns a std::vector and stays host-only.
  *
  * @tparam T Floating-point precision.
@@ -72,16 +78,7 @@ public:
   using Hit = PointCloud::Hit<T>;
 
   /**
-   * @brief No default construction -- a point cloud is required.
-   */
-  PointCloudHashGrid() = delete;
-
-  /**
-   * @brief Build a uniform grid over a point cloud.
-   * @details The cell size is derived from @p a_targetPerCell: cells are sized so that, at the cloud's
-   * average density, each holds about that many points. ~1 point/cell is the query-time sweet spot;
-   * larger values shrink the grid (less memory) at the cost of bigger per-cell scans. A point's cloud
-   * index, which the queries report, is its position in @p a_positions.
+   * @brief Build a uniform grid over a point cloud: build(a_pool, a_positions, a_targetPerCell).
    * @param[in,out] a_pool          Pool the grid's arrays are reserved from; must outlive this object.
    * @param[in]     a_positions     Point positions. Fewer than PointCloud::InvalidIndex, all finite.
    * @param[in]     a_targetPerCell Target average points per cell (sets the cell size). Must be > 0.
@@ -90,44 +87,101 @@ public:
   inline PointCloudHashGrid(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, T a_targetPerCell = T(1));
 
   /**
-   * @brief Build the same grid with GPU::parallelFor(), on a device in a CUDA or HIP translation unit
-   * and in host loops otherwise.
-   * @details The grid and its arrays are the constructor's, element for element: the cloud's box comes
-   * from an exact reduction, the cell size from the same rule, and the points are put in cell order by
-   * a bitonic sort of (cell, cloud index) keys rather than by a counting sort, which orders each cell's
-   * points by cloud index just as the counting sort does. Each cell then finds where its points start
-   * with a binary search over the sorted keys. Nothing uses atomics, so the result does not depend on
-   * thread scheduling. In a CUDA or HIP translation unit the pool must be both host- and
-   * device-accessible (managed memory), and a host pool otherwise; the scratch arrays (a copy of the
-   * positions and 8 bytes per point, rounded up to a power of two, for the keys) come from a second pool
-   * on the same memory resource and are released on return.
-   * @param[in,out] a_pool          Pool the grid's arrays are reserved from; must outlive the result.
+   * @brief Build a uniform grid over a point cloud, where the pool's memory is.
+   * @details The cell size is derived from @p a_targetPerCell: cells are sized so that, at the cloud's
+   * average density, each holds about that many points. ~1 point/cell is the query-time sweet spot;
+   * larger values shrink the grid (less memory) at the cost of bigger per-cell scans. A point's cloud
+   * index, which the queries report, is its index in @p a_source. The grid stores its own copy of the
+   * positions, in cell order.
+   *
+   * The build runs where the pool's memory is. In device-accessible memory (device or managed memory in a
+   * CUDA or HIP build; emulated device memory in a host build) it runs through GPU::parallelFor(): kernels in a
+   * CUDA or HIP translation unit, which read @p a_source on the device, and host loops otherwise. In host
+   * memory it runs on the host, which reads @p a_source there. Both give the same grid, array for array.
+   * Freeze the pool and take rebasedView() to query a grid in device memory in a kernel.
+   *
+   * @p a_maxPoints reserves room for rebuild() with up to that many points: the arrays, cells for that many
+   * points (the most the cell-size rule gives), and the build's scratch, so that rebuild() reserves nothing
+   * and works on a frozen pool.
+   * @tparam Source A source of positions: a trivially copyable type whose const call operator takes a cloud
+   * index (uint32_t) and returns that point's Vec3T<T>; see PointCloud::FromArray.
+   * @param[in,out] a_pool          Pool the grid's arrays are reserved from; must outlive the grid.
+   * @param[in]     a_source    The positions.
+   * @param[in]     a_numPoints     Number of points. At most 2^31, all finite.
+   * @param[in]     a_targetPerCell Target average points per cell (sets the cell size). Must be > 0.
+   * @param[in]     a_maxPoints     Most points a rebuild() may have; 0 (or fewer than a_numPoints) leaves room
+   *                                for a_numPoints, in the cells this build needs.
+   * @return The grid.
+   */
+  template <class Source>
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PointCloudHashGrid
+  build(Pool& a_pool, const Source& a_source, uint32_t a_numPoints, T a_targetPerCell = T(1), uint32_t a_maxPoints = 0);
+
+  /**
+   * @brief Build a uniform grid over points on the host, where the pool's memory is; see the build() above.
+   * @details For a pool in device memory, the positions are first copied to scratch there.
+   * @param[in,out] a_pool          Pool the grid's arrays are reserved from; must outlive the grid.
    * @param[in]     a_positions     Point positions. At most 2^31, all finite.
    * @param[in]     a_targetPerCell Target average points per cell (sets the cell size). Must be > 0.
+   * @param[in]     a_maxPoints     Most points a rebuild() may have (see the build() above).
    * @return The grid.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   static inline PointCloudHashGrid
-  buildParallel(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, T a_targetPerCell = T(1));
+  build(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, T a_targetPerCell = T(1), uint32_t a_maxPoints = 0);
 
   /**
-   * @brief buildParallel(): the sort key of every point, (cell << 32) | cloud index, and padding keys
-   * that sort last. Defined in EBGeometry_PointCloudHashGridParallelImplem.hpp.
+   * @brief Build the grid again, in the arrays build() reserved, from new positions.
+   * @details The same grid as a new build() from these positions, with nothing reserved: it runs where the build
+   * did, and works on a frozen pool. More points than maxPoints() is rejected. If the cloud's box would need more
+   * cells than were reserved, the cells are made larger until it does not. A view taken with rebasedView() before
+   * the rebuild still describes the old grid (its cell size and counts): take a new one, which copies nothing. Call
+   * it on the grid build() returned, not on a view.
+   * @tparam Source A source of positions, as for build().
+   * @param[in] a_source    The positions.
+   * @param[in] a_numPoints     Number of points, at most maxPoints(). All finite.
+   * @param[in] a_targetPerCell Target average points per cell. Must be > 0.
+   */
+  template <class Source>
+  EBGEOMETRY_HOST
+  inline void
+  rebuild(const Source& a_source, uint32_t a_numPoints, T a_targetPerCell = T(1));
+
+  /**
+   * @brief The most points rebuild() can take.
+   * @return The reserved point count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  maxPoints() const noexcept
+  {
+    return m_positions.m_capacity;
+  }
+
+  /**
+   * @brief A build through GPU::parallelFor(): the sort key of every point, (cell << 32) | cloud index, and
+   * padding keys that sort last. Defined in EBGeometry_PointCloudHashGridBuildImplem.hpp.
    * @details Internal; not part of the public API. The three functors are public only because nvcc
    * rejects a private nested type as the template argument of a kernel; as nested types they can still
    * use the grid's private cell arithmetic.
+   * @tparam Source The positions' source.
    */
+  template <class Source>
   struct CellKeys;
 
   /**
-   * @brief buildParallel(): where each cell's points start in the sorted keys.
+   * @brief A build through GPU::parallelFor(): where each cell's points start in the sorted keys.
    */
   struct CellStarts;
 
   /**
-   * @brief buildParallel(): the cloud indices in cell order, from the sorted keys.
+   * @brief A build through GPU::parallelFor(): each slot's cloud index and position, in cell order, and each
+   * point's slot.
+   * @tparam Source The positions' source.
    */
-  struct CellPoints;
+  template <class Source>
+  struct CellGather;
 
   /**
    * @brief Closest cloud point to an arbitrary query point.
@@ -203,7 +257,9 @@ public:
   {
     EBGEOMETRY_EXPECT(a_index < m_positions.size());
 
-    return m_positions.at(this->base(), a_index);
+    const void* base = this->base();
+
+    return m_positions.at(base, m_slotOf.at(base, a_index));
   }
 
   /**
@@ -226,7 +282,9 @@ public:
   /**
    * @brief Duplicate this object's storage into @p a_dstPool.
    * @details The copy constructor copies descriptors only, leaving both objects resolving against
-   * the same pool memory. This is the operation that gives genuinely independent storage.
+   * the same pool memory. This is the operation that gives genuinely independent storage. On the host: both
+   * pools' memory must be host-accessible. The copy has room for its own points only, so rebuild() it within that,
+   * and it builds on the host.
    * @param[in,out] a_dstPool Pool to reserve the copy's arrays from.
    * @return A PointCloudHashGrid with the same cells and cloud, backed by @p a_dstPool.
    */
@@ -236,36 +294,43 @@ public:
 
 private:
   /**
-   * @brief Reserve the grid's arrays from @p a_pool and copy the given host arrays into them.
-   * @details Reserves first and resolves the base only afterwards, since a reserve can grow the pool
-   * and move the block. The sources must therefore be host arrays outside @p a_pool.
-   * @param[in,out] a_pool       Pool to reserve from.
-   * @param[in]     a_positions  Point positions (indexed by cloud index).
-   * @param[in]     a_cellStart  CSR offsets, one per cell plus one.
-   * @param[in]     a_cellPoints Cloud indices sorted by cell.
+   * @brief An empty grid, to be reserved and filled.
+   */
+  PointCloudHashGrid() noexcept = default;
+
+  /**
+   * @brief Reserve the grid's arrays from @p a_pool.
+   * @param[in,out] a_pool      Pool to reserve from (not frozen).
+   * @param[in]     a_maxPoints Points to make room for.
+   * @param[in]     a_maxCells  Cells to make room for.
    */
   EBGEOMETRY_HOST
   inline void
-  storeArrays(Pool&                             a_pool,
-              const std::vector<Vec3T<T>>&      a_positions,
-              const std::vector<std::uint32_t>& a_cellStart,
-              const std::vector<std::uint32_t>& a_cellPoints);
+  reserveArrays(Pool& a_pool, uint32_t a_maxPoints, uint32_t a_maxCells);
 
   /**
-   * @brief An empty grid shaped for a cloud with box [a_lo, a_hi]: what buildParallel() fills in.
-   * @param[in] a_lo            Lower corner of the cloud's box.
-   * @param[in] a_hi            Upper corner of the cloud's box.
-   * @param[in] a_numPoints     Number of points.
-   * @param[in] a_targetPerCell Target average points per cell (> 0).
+   * @brief The box of a cloud, where the build runs.
+   * @tparam Source The positions' source.
+   * @param[in] a_source The positions.
+   * @param[in] a_numPoints  Number of points.
+   * @return The box; zeros for no points.
    */
+  template <class Source>
   EBGEOMETRY_HOST
-  inline PointCloudHashGrid(const Vec3T<T>& a_lo,
-                            const Vec3T<T>& a_hi,
-                            std::size_t     a_numPoints,
-                            T               a_targetPerCell) noexcept
-  {
-    this->setShape(a_lo, a_hi, a_numPoints, a_targetPerCell);
-  }
+  inline BoundingVolumes::AABBT<T>
+  boxOf(const Source& a_source, uint32_t a_numPoints);
+
+  /**
+   * @brief Fill the reserved arrays for a cloud, the grid shaped for it: the counting sort on the host, or the
+   * sort of cell keys through GPU::parallelFor().
+   * @tparam Source The positions' source.
+   * @param[in] a_source The positions.
+   * @param[in] a_numPoints  Number of points.
+   */
+  template <class Source>
+  EBGEOMETRY_HOST
+  inline void
+  fill(const Source& a_source, uint32_t a_numPoints);
 
   /**
    * @brief Set the grid's corner, cell size and dimensions for a cloud with box [a_lo, a_hi].
@@ -276,10 +341,15 @@ private:
    * @param[in] a_hi            Upper corner of the cloud's box.
    * @param[in] a_numPoints     Number of points.
    * @param[in] a_targetPerCell Target average points per cell (> 0).
+   * @param[in] a_cellCap       Most cells, if fewer than the rule's own budget (the cells a rebuild has room for).
    */
   EBGEOMETRY_HOST
   inline void
-  setShape(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi, std::size_t a_numPoints, T a_targetPerCell) noexcept;
+  setShape(const Vec3T<T>& a_lo,
+           const Vec3T<T>& a_hi,
+           std::size_t     a_numPoints,
+           T               a_targetPerCell,
+           std::size_t     a_cellCap = Math::Limits<std::size_t>::max()) noexcept;
 
   /**
    * @brief Number of cells.
@@ -337,19 +407,39 @@ private:
   query(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out, uint32_t a_exclude) const noexcept;
 
   /**
-   * @brief Point positions, indexed by cloud index.
+   * @brief Point positions in cell order: slot s holds point m_cellPoints[s].
    */
   PODVector<Vec3T<T>> m_positions;
 
   /**
-   * @brief CSR offsets, size nCells + 1.
+   * @brief CSR offsets into the slots, size nCells + 1.
    */
   PODVector<std::uint32_t> m_cellStart;
 
   /**
-   * @brief Cloud indices sorted by cell, size numPoints().
+   * @brief Each slot's cloud index, size numPoints().
    */
   PODVector<std::uint32_t> m_cellPoints;
+
+  /**
+   * @brief Each point's slot, by cloud index, size numPoints().
+   */
+  PODVector<std::uint32_t> m_slotOf;
+
+  /**
+   * @brief A build through GPU::parallelFor(): the cell keys, a power of two of them; empty for a grid in host memory.
+   */
+  PODVector<std::uint64_t> m_keys;
+
+  /**
+   * @brief A build through GPU::parallelFor(): the box reduction's scratch; empty for a grid in host memory.
+   */
+  PODVector<Vec3T<T>> m_boxScratch;
+
+  /**
+   * @brief Whether the grid builds through GPU::parallelFor() (its pool's memory is device-accessible).
+   */
+  bool m_parallel = false;
 
   /**
    * @brief Lower corner of the grid (cloud bounding-box minimum).
@@ -383,7 +473,7 @@ static_assert(std::is_trivially_copyable_v<PointCloudHashGrid<double>>,
 
 } // namespace EBGeometry
 
+#include "EBGeometry_PointCloudHashGridBuildImplem.hpp"
 #include "EBGeometry_PointCloudHashGridImplem.hpp"
-#include "EBGeometry_PointCloudHashGridParallelImplem.hpp"
 
 #endif

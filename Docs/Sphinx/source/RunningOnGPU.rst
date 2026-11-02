@@ -207,11 +207,11 @@ Building blocks for builds
 `EBGeometry_GPUAlgorithms.hpp <doxygen/html/EBGeometry__GPUAlgorithms_8hpp.html>`__ adds two
 algorithms on top of ``GPU::parallelFor``, for building a structure where its data lives:
 ``GPU::boundingBox(points, n, scratch)``, the exact box of ``n`` points (one box per chunk, then one
-thread merging them), and ``GPU::bitonicSort(keys, n, less)``, an in-place sort of a power-of-two
-count of keys (pad the rest with keys that sort last). Neither uses atomics, so the results do not
-depend on thread scheduling. The arrays must be memory the launch can reach, and ``boundingBox``
-reads its result back through the scratch array, so in a CUDA or HIP build that is managed memory.
-``PointCloudHashGrid::buildParallel()`` builds on both (:ref:`Chap:ImplemPointCloud`).
+thread merging them; ``GPU::boundingBoxOf(source, n, scratch)`` reads the points from a source, as
+``PointCloudHashGrid::build()`` takes them), and ``GPU::bitonicSort(keys, n, less)``, an in-place sort of a
+power-of-two count of keys (pad the rest with keys that sort last). Neither uses atomics, so the results do not
+depend on thread scheduling. The arrays must be memory the launch can reach, device memory in a CUDA or HIP build.
+``PointCloudHashGrid::build()`` builds on both when its pool is in device memory (:ref:`Chap:ImplemPointCloud`).
 
 Large queries
 -------------

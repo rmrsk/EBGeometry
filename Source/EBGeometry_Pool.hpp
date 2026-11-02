@@ -145,13 +145,18 @@ struct PoolLocation
   /**
    * @brief Start following a pool, as the descriptor's first reservation from it does.
    * @details Aborts, in every build, if the location already follows a different pool: all of a
-   * descriptor's arrays resolve against one base, so they must come from one pool.
-   * @param[in] a_pool Pool to follow.
-   * @param[in] a_who  Name of the descriptor class, for the message.
+   * descriptor's arrays resolve against one base, so they must come from one pool. Aborts too if the pool's
+   * memory is not host-accessible, unless @p a_deviceWritten says the descriptor's arrays are written on the
+   * device: every builder that writes them from the host attaches before it writes, so this is where a pool in
+   * device memory is refused.
+   * @param[in] a_pool          Pool to follow.
+   * @param[in] a_who           Name of the descriptor class, for the message.
+   * @param[in] a_deviceWritten Whether the descriptor's arrays are written on the device (a build through
+   *                            GPU::parallelFor() into device memory).
    */
   EBGEOMETRY_HOST
   inline void
-  attach(const Pool& a_pool, const char* a_who) noexcept;
+  attach(const Pool& a_pool, const char* a_who, bool a_deviceWritten = false) noexcept;
 
   /**
    * @brief The location of the same arrays in another pool of the same mirror chain.
@@ -184,9 +189,11 @@ class Pool
 public:
   /**
    * @brief Construct an empty pool over @p a_resource, optionally pre-reserving a block.
-   * @details Aborts, in every build, if @p a_resource is not host-accessible or if
-   *          @p a_initialBytes is more than a block can hold (the largest multiple of
-   *          @ref PoolBaseAlign a @c size_t holds).
+   * @details Aborts, in every build, if @p a_initialBytes is more than a block can hold (the largest
+   *          multiple of @ref PoolBaseAlign a @c size_t holds). The resource may be one the host cannot read
+   *          (device memory): reserving and growing never read the block on the host, but only structures
+   *          built on the device can then be built in the pool (see PoolLocation::attach()), and arrays of
+   *          your own in it are for kernels to write.
    * @param[in] a_resource     Memory resource that backs every allocation of this pool. Must
    *                           outlive the pool.
    * @param[in] a_initialBytes If non-zero, the initial block byte capacity to reserve up front
@@ -592,14 +599,15 @@ protected:
 
   /**
    * @brief Follow @p a_pool, as the first reservation does; see PoolLocation::attach().
-   * @param[in] a_pool Pool to follow.
-   * @param[in] a_who  Name of the handle class, for the message.
+   * @param[in] a_pool          Pool to follow.
+   * @param[in] a_who           Name of the handle class, for the message.
+   * @param[in] a_deviceWritten Whether the handle's arrays are written on the device.
    */
   EBGEOMETRY_HOST
   inline void
-  attach(const Pool& a_pool, const char* a_who) noexcept
+  attach(const Pool& a_pool, const char* a_who, const bool a_deviceWritten = false) noexcept
   {
-    m_location.attach(a_pool, a_who);
+    m_location.attach(a_pool, a_who, a_deviceWritten);
   }
 
   /**

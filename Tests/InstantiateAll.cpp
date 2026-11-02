@@ -289,9 +289,17 @@ instantiateFunctionTemplates()
     GPU::bitonicSort(keys, 2);
     GPU::bitonicSort(keys, 2, Descending{});
 
+    // Both builds: on the host, and through GPU::parallelFor() (emulated device memory); and a rebuild.
     Pool cloudPool(hostMemoryResource());
+    Pool parallelPool(emulatedDeviceMemoryResource());
 
-    (void)PointCloudHashGrid<T>::buildParallel(cloudPool, points);
+    PointCloudHashGrid<T> grid = PointCloudHashGrid<T>::build(cloudPool, points, T(1), 4);
+
+    (void)PointCloudHashGrid<T>::build(parallelPool, PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
+
+    grid.rebuild(PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
+    (void)grid.maxPoints();
+    (void)GPU::boundingBoxOf<T>(PointCloud::FromArray<T>{points.data()}, 1, scratch.data());
   }
 
   // The ray queries on a shape with a ray form and on a marched one, for rays and for segments.

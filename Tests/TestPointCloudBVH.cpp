@@ -460,7 +460,7 @@ TEST_CASE("PointCloudBVH and PointCloudHashGrid reject a cloud they cannot index
       Pool                        pool(hostMemoryResource());
       const PointCloudHashGrid<T> grid(pool, bad);
     },
-    "PointCloudHashGrid: point 1 of 2 has a non-finite coordinate"));
+    "PointCloudHashGrid::build: point 1 of 2 has a non-finite coordinate"));
 }
 
 TEST_CASE("PointCloudBVH: rejects a zero leaf size, and a rebase onto a pool too small to hold it",
