@@ -104,8 +104,9 @@ enum class ViewMode : uint8_t
   Shaded,      ///< Lit surfaces, colored by Settings::m_colorBy.
   Depth,       ///< How far from the eye the first surface is, near (bright) to far (dark) across the shape's box.
   XRay,        ///< Gray, each ray dimmed by every surface it crosses: the more surfaces behind a pixel, the darker.
-  CostHit,     ///< How long each camera ray's firstHit() took, on a log scale over the frame (see Stats::m_costLow).
-  CostCrossing ///< How long each camera ray's firstCrossing() took, on the same kind of scale.
+  CostHit,     ///< How long each pixel's firstHit() took, one ray through its center (Settings::m_supersampling
+               ///< ignored), on a log scale over the frame (see Stats::m_costLow).
+  CostCrossing ///< How long each pixel's firstCrossing() took, as CostHit.
 };
 
 /**
@@ -654,9 +655,12 @@ struct Stats
   bool m_complete = true;
 
   /**
-   * @brief In ViewMode::CostHit and ViewMode::CostCrossing, the time in nanoseconds of a pixel (summed over its
-   * rays) that takes the darkest color: the cheapest but for the frame's cheapest hundredth of pixels, which take it
-   * too. On a device, clock cycles counted at the device's reported clock rate (which the device may not run at).
+   * @brief In ViewMode::CostHit and ViewMode::CostCrossing, the time in nanoseconds of a pixel's ray (one per
+   * pixel) that takes the darkest color: the cheapest but for the frame's cheapest hundredth of pixels, which take it
+   * too. On the host a pixel's time is its rays' own. On a device it is the time that passed while its thread
+   * traced them (clock cycles at the device's reported clock rate): the threads of a warp step together, so it
+   * includes waiting for the warp's slowest ray, and the time the device spent on other warps, so that it is
+   * longer than the rays' cost, and alike across each warp's pixels (blocks of 32 along a row).
    */
   double m_costLow = 0.0;
 

@@ -1648,6 +1648,17 @@ TEMPLATE_TEST_CASE("Render: the cost views color each pixel from the frame's che
 
     CHECK(stats.m_hits == shaded.m_hits);
     CHECK(stats.m_insideHits == shaded.m_insideHits);
+
+    // One ray per pixel, whatever the supersampling.
+    Render::Settings<T> supersampled = settings;
+
+    supersampled.m_supersampling = 3;
+
+    Render::Image       image3;
+    const Render::Stats once = Render::Renderer<T>(supersampled).render(drilled.tape(), camera, image3);
+
+    CHECK(once.m_rays == uint64_t(size) * size);
+    CHECK(once.m_hits == shaded.m_hits);
     CHECK(stats.m_costLow > 0.0);
     CHECK(stats.m_costHigh >= stats.m_costLow);
 

@@ -752,7 +752,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   // Whether a stage would draw anything the one before it did not.
   const auto adds = [&](const int a_stage) {
-    return a_stage == 1 || settings.m_supersampling > 1U || settings.m_shadows || settings.m_occlusion;
+    const bool timed = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
+
+    // A cost view traces one ray per pixel, unshaded: the full settings add nothing to it.
+    return a_stage == 1 || (!timed && (settings.m_supersampling > 1U || settings.m_shadows || settings.m_occlusion));
   };
 
   // Everything a render reads is passed by value, so that a background render never sees the camera or
@@ -847,10 +850,18 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
     const bool costView = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
 
-    const std::string view = std::string(viewNames[static_cast<int>(settings.m_viewMode)]) +
-                             (costView ? ", " + fixed(shownStats.m_costLow, 0) + " to " +
-                                           fixed(shownStats.m_costHigh, 0) + " ns (dark to bright)"
-                                       : std::string());
+    // A time in nanoseconds, in the unit that keeps it short.
+    const auto duration = [](const double a_ns) {
+      return (a_ns >= 1e6)   ? fixed(1e-6 * a_ns, 1) + " ms"
+             : (a_ns >= 1e3) ? fixed(1e-3 * a_ns, 1) + " us"
+                             : fixed(a_ns, 0) + " ns";
+    };
+
+    const std::string view =
+      std::string(viewNames[static_cast<int>(settings.m_viewMode)]) +
+      (costView ? ", " + duration(shownStats.m_costLow) + " to " + duration(shownStats.m_costHigh) +
+                    " (dark to bright)" + (onDevice ? ", elapsed on the GPU, waits included" : "")
+                : std::string());
 
     // The primitives seen through, and the part filled.
     std::string hidden;

@@ -529,26 +529,46 @@ public:
     }
 
     if (mode == ViewMode::XRay) {
-      // White light, dimmed at every surface the ray crosses but a hidden one.
+      // White light, dimmed at every surface the ray crosses but a hidden one. Each surface costs a query from
+      // the last: without hidden primitives, one that finds only the crossing, not its normal and primitive.
+      const bool hiding = m_settings.hidesAny();
+
       T light = T(1);
       T t     = a_near;
 
       for (uint32_t k = 0; k < Renderer<T>::MaxCrossings; k++) {
-        const HitT<T> hit = this->trace(ray, t, m_far);
+        bool hit  = false;
+        bool dims = true;
+        T    at   = t;
 
-        if (k == 0) {
-          this->count(hit.m_status, hit.m_entering, a_result);
+        if (hiding) {
+          const HitT<T> found = this->trace(ray, t, m_far);
+
+          if (k == 0) {
+            this->count(found.m_status, found.m_entering, a_result);
+          }
+
+          hit  = found.hit();
+          dims = !m_settings.hides(found.m_primitive);
+          at   = found.m_t;
+        }
+        else {
+          const CrossingT<T> found = this->crossing(ray, t, m_far);
+
+          if (k == 0) {
+            this->count(found.m_status, found.m_entering, a_result);
+          }
+
+          hit = found.hit();
+          at  = found.m_t;
         }
 
-        if (!hit.hit()) {
+        if (!hit) {
           break;
         }
 
-        if (!m_settings.hides(hit.m_primitive)) {
-          light *= T(1) - m_settings.m_xrayOpacity;
-        }
-
-        t = hit.m_t + T(4) * m_eps;
+        light *= dims ? T(1) - m_settings.m_xrayOpacity : T(1);
+        t = at + T(4) * m_eps;
       }
 
       return light * Vec3T<T>::ones();
@@ -2159,7 +2179,9 @@ struct InspectQuery
     const T column = T(a_index % settings.m_width);
     const T row    = T(a_index / settings.m_width);
 
-    const uint32_t n = settings.m_supersampling;
+    // A cost view times one ray per pixel, through its center.
+    const bool     timed = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
+    const uint32_t n     = timed ? 1U : settings.m_supersampling;
 
     Vec3T<T> color = Vec3T<T>::zeros();
     uint64_t cost  = 0U;
@@ -2187,7 +2209,7 @@ struct InspectQuery
       color += shader.inspect(origin, direction, near, result, cost);
     }
 
-    if (settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing) {
+    if (timed) {
       result.m_rgba = static_cast<uint32_t>(Math::clamp(cost, uint64_t(1), uint64_t(0xFFFFFFFFU)));
 
       return result;
@@ -2419,10 +2441,13 @@ Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
     stats.m_unresolved += a_results[i].m_unresolved;
   }
 
-  stats.m_rays         = uint64_t(a_results.size()) * m_settings.m_supersampling * m_settings.m_supersampling;
+  const bool     timed = m_settings.m_viewMode == ViewMode::CostHit || m_settings.m_viewMode == ViewMode::CostCrossing;
+  const uint64_t n     = timed ? 1U : m_settings.m_supersampling;
+
+  stats.m_rays         = uint64_t(a_results.size()) * n * n;
   stats.m_cameraInside = !a_results.empty() && a_results.front().m_cameraInside != 0U;
 
-  if (m_settings.m_viewMode == ViewMode::CostHit || m_settings.m_viewMode == ViewMode::CostCrossing) {
+  if (timed) {
     // Each pixel holds its cost (0 where a canceled render did not reach it): colored on a log scale over the
     // frame's costs without the cheapest and the dearest hundredth of its pixels, which a thread interrupted
     // mid-ray (a whole row of slow pixels on the host) would otherwise stretch the scale with.

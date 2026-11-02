@@ -80,8 +80,11 @@ The classes are in namespace ``Render``:
   the shape, those that hit it from inside the solid (drawn tinted red), those that were unresolved
   (drawn as misses), and whether the eye is inside the solid; in a cost view, the times in nanoseconds the
   darkest and the brightest colors stand for (``m_costLow``, ``m_costHigh``; the frame's cheapest and dearest
-  hundredth of pixels are clamped to them, so that a few interrupted rays do not stretch the scale). On a device
-  the times are clock cycles at the device's reported clock rate. The renderer prints nothing.
+  hundredth of pixels are clamped to them, so that a few interrupted rays do not stretch the scale). On the host
+  a pixel's time is its rays' own. On a device it is the time that passed while its thread traced them: the
+  threads of a warp step together, so a pixel waits for the slowest ray of its warp (the picture shows blocks of
+  32 pixels along a row), and the device also runs other warps meanwhile, so the times are longer than the rays'
+  cost; they still show which parts of a shape are slow. The renderer prints nothing.
 
 The viewer
 ----------

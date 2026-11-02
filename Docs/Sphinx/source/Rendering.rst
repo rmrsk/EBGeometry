@@ -74,11 +74,13 @@ Besides the shaded picture, the renderer has views that show what shading hides:
   (far) across the shape's box. It needs only the crossing point, not the normal.
 * **X-ray** is gray: each ray starts white and is dimmed by every surface it crosses, all the way through
   the scene, so cavities, internal walls and parts hidden behind others show as darker regions.
-* **Cost** colors each pixel by how long its ray's query took, from dark (fast) to bright (slow), on a log
+* **Cost** colors each pixel by how long the query for one ray through its center took, from dark (fast) to
+  bright (slow), on a log
   scale over the frame. There are two: the cost of finding the first hit with its normal and primitive,
   and the cost of finding only where the ray crosses the surface (see :ref:`Chap:Rays`); comparing them
   shows where a shape spends its time on the normal. Only the camera's rays are timed, without shadows or
-  lighting. The times are wall-clock, so they include whatever else the machine was doing; they show where
+  lighting. The times are wall-clock, so they include whatever else the machine was doing, and on a GPU,
+  where threads trace in groups that wait for their slowest ray, the time a pixel waited too; they show where
   a shape is expensive, not a benchmark (see :ref:`Chap:PerformanceTesting` for measuring).
 
 Any surface can also be made **see-through**: a camera ray that meets it goes on as if it were not there,
