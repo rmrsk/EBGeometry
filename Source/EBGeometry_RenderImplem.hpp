@@ -530,7 +530,8 @@ public:
 
     if (mode == ViewMode::XRay) {
       // On black, every surface the ray crosses but a hidden one glows faintly, more where it is seen edge-on, with a
-      // modest highlight from the light, and lets through 1 - m_xrayOpacity of what lies behind it.
+      // modest highlight from the light, and lets through 1 - m_xrayOpacity of what lies behind it. The highlighted
+      // primitive glows in its color; the first surface is recorded, for outlining a picked object.
       const Vec3T<T> half = unit(m_light - a_direction);
 
       Vec3T<T> color   = Vec3T<T>::zeros();
@@ -554,7 +555,16 @@ public:
           const T        glow   = m_settings.m_xrayOpacity * (T(0.3) + T(0.7) * (T(1) - facing));
           const T shine = T(0.5) * m_settings.m_specular * std::pow(std::abs(dot(n, half)), m_settings.m_shininess);
 
-          color += through * (glow + m_settings.m_xrayOpacity * shine) * Vec3T<T>::ones();
+          const bool highlighted = hit.m_primitive == m_settings.m_highlightPrimitive ||
+                                   m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives;
+
+          const Vec3T<T> tint = highlighted ? T(2) * m_settings.m_highlightColor : Vec3T<T>::ones();
+
+          if (a_result.m_primitive == 0xFFFFFFFFU) {
+            a_result.m_primitive = hit.m_primitive;
+          }
+
+          color += through * (glow * tint + m_settings.m_xrayOpacity * shine * Vec3T<T>::ones());
           through *= T(1) - m_settings.m_xrayOpacity;
         }
 

@@ -1614,9 +1614,21 @@ TEMPLATE_TEST_CASE("Render: the x-ray view shows every surface a ray crosses but
 
   CHECK(std::abs(channels(image.at(size / 2, size / 2)).r - gray(2)) <= 2);
 
+  // The highlighted sphere glows in the highlight's color, and the image records the first surface's object.
+  renderer.settings().m_hidden[0]          = Render::Settings<T>::NoPrimitive;
+  renderer.settings().m_recordPrimitives   = true;
+  renderer.settings().m_highlightPrimitive = 1U;
+
+  (void)renderer.render(pair.tape(), camera, image);
+
+  const Channels tinted = channels(image.at(size / 2, size / 2));
+
+  CHECK(tinted.r != tinted.b);
+  CHECK(image.m_primitives[(size / 2) * size + size / 2] == 0U);
+
   // Highlights brighten it.
-  renderer.settings().m_hidden[0] = Render::Settings<T>::NoPrimitive;
-  renderer.settings().m_specular  = T(0.45);
+  renderer.settings().m_highlightPrimitive = Render::Settings<T>::NoPrimitive;
+  renderer.settings().m_specular           = T(0.45);
 
   (void)renderer.render(pair.tape(), camera, image);
 
