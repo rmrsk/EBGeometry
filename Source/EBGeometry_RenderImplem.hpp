@@ -418,6 +418,8 @@ public:
   /**
    * @brief Every crossing of the cut shape along a camera ray, nearest first, hidden primitives included (for
    * picking through depth).
+   * @details Each search starts 4 tolerances past the last crossing, so two crossings closer than that (a sheet
+   * thinner than it) count as one; as in visible(), partInside() and the x-ray view.
    * @param[in]  a_origin    Where the ray starts.
    * @param[in]  a_direction Unit direction.
    * @param[in]  a_near      Where along it to start looking.
@@ -744,6 +746,8 @@ private:
    * @brief How long a camera ray is inside the filled part (Settings::m_volumePrimitive), from a_near to the far
    * end, followed from crossing to crossing: a stretch inside the solid is the part's when the ray enters it through
    * the part's surface.
+   * @details A part thinner than 4 tolerances along the ray can be stepped over (see castAll()), and the stretch
+   * then runs on to the next crossing.
    * @param[in] a_ray  The camera ray.
    * @param[in] a_near Where along it to start.
    * @return The length.
@@ -2771,6 +2775,7 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
       }
     };
 
+    // EBGEOMETRY_GPU_CHECK aborts, never throws, so a failed copy here ends the program rather than this thread.
     std::thread relay([&]() {
       std::unique_lock<std::mutex> lock(mutex);
 

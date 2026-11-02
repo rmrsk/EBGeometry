@@ -102,7 +102,8 @@ enum class ColorBy : uint8_t
 enum class ViewMode : uint8_t
 {
   Shaded,      ///< Lit surfaces, colored by Settings::m_colorBy.
-  Depth,       ///< How far from the eye the first surface is, near (bright) to far (dark) across the shape's box.
+  Depth,       ///< How far from the eye the first surface is, near (bright) to far (dark) across the shape's box;
+               ///< the shape alone, cut by the section plane, without the floor or the plane's contour and sheet.
   XRay,        ///< On black, every surface a ray crosses glows faintly (more seen edge-on), with modest highlights.
   CostHit,     ///< How long each pixel's firstHit() took, one ray through its center (Settings::m_supersampling
                ///< ignored), on a log scale over the frame (see Stats::m_costLow).
@@ -265,7 +266,7 @@ struct Settings
   uint32_t m_height = 960;
 
   /**
-   * @brief Rays per pixel along each axis (n x n per pixel), from 1 to 15.
+   * @brief Rays per pixel along each axis (n x n per pixel), from 1 to 15; the cost views trace one.
    */
   uint32_t m_supersampling = 2;
 
