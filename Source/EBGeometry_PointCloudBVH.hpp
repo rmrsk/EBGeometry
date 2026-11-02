@@ -4,7 +4,7 @@
 
 /**
  * @file    EBGeometry_PointCloudBVH.hpp
- * @brief   A point-cloud BVH built on PackedBVH: fast index-based build and high-level
+ * @brief   A point-cloud BVH built on PackedBVH: a linear BVH built where its pool is, and high-level
  *          nearest-neighbor / closest-point queries.
  * @author  Robert Marskar
  */
@@ -124,12 +124,16 @@ struct BuildNode
  * 5. The child-box rows (one per interior node, in depth-first order), and each leaf's groups of W
  *    points (in depth-first order), placed by two exclusive scans over the nodes in depth-first order.
  * 6. Every node written by its own thread: its children's depth-first indices, its row, its children's
- *    boxes into that row, its box slot; a leaf packs its groups and writes each of its points' leaf
- *    tables. Then the positions in cloud-index order and the leaf order of the points.
+ *    boxes into that row, its box slot; a leaf also packs its groups and writes, for each of its
+ *    points, the position (by cloud index), the leaf tables and the point's place in the leaf order.
  *
- * A median-free split is what makes the tree the same on every side, and cheap to build on a device;
- * with the quota, queries measured within about 10% of a top-down midpoint build's (faster on uniform
- * clouds, slower on a sphere's surface), the same tree whether built on the host or a device.
+ * A cut that needs no median or sort of its range is what makes the tree the same on every side, and
+ * cheap to build on a device. The alternatives: a top-down longest-axis midpoint build, the reference
+ * below, partitions each range around a coordinate and has no cheap device form; spreading the Morton-sorted points evenly over
+ * a perfect K-ary tree queried 1.2-8.6x slower than it (500,000 points, host and an RTX 3080); a
+ * prototype of these radix cuts with a quarter-share quota per binary cut queried within about 10% of
+ * it (faster on a uniform cube, slower on a sphere's surface). A half-share quota cost about 10% more
+ * on the sphere.
  *
  * Every leaf lane carries its point's **cloud index** (its position in the input positions array),
  * and queries return that index in a PointCloud::Hit. Per-point user data lives in the caller's own

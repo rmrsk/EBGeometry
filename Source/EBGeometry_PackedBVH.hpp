@@ -733,9 +733,8 @@ public:
 
   /**
    * @brief Adopt a node array, its boxes and a primitive array built elsewhere.
-   * @details For a specialized builder that produces the flat representation itself -- e.g.
-   * PointCloudBVH, which runs its own index-based point-cloud build -- rather than going through a
-   * TreeBVH or a list of (primitive, bounding volume) pairs. The arrays are copied into @p a_pool and
+   * @details For a specialized builder that produces the flat representation itself, rather than
+   * going through a TreeBVH or a list of (primitive, bounding volume) pairs. The arrays are copied into @p a_pool and
    * the SIMD box rows are built from the boxes, exactly as for every other constructor.
    *
    * The node array must be a depth-first pre-order flattening with the root at index 0: every

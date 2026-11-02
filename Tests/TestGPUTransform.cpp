@@ -543,6 +543,44 @@ TEST_CASE("GPU::bitonicSort sorts any power-of-two count of keys", "[GPU]")
   }
 }
 
+TEST_CASE("GPU::exclusiveScan gives every value's exclusive prefix sum, and the total", "[GPU]")
+{
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  constexpr uint32_t chunk = GPU::ScanChunk;
+
+  // Counts across the chunk boundaries, and none.
+  for (const uint32_t n : {0U, 1U, chunk - 1U, chunk, chunk + 1U, 5U * chunk + 3U}) {
+    INFO("values " << n);
+
+    Pool pool(sharedResource());
+
+    PODVector<uint32_t> values;
+    PODVector<uint32_t> scratch;
+
+    values.reserveSizedFrom(pool, n);
+    scratch.reserveSizedFrom(pool, GPU::exclusiveScanScratchSize(n));
+
+    uint32_t* data = values.data(pool.base());
+
+    std::vector<uint32_t> expected(n);
+    uint32_t              sum = 0;
+
+    for (uint32_t i = 0; i < n; i++) {
+      data[i]     = (i * 7U) % 5U;
+      expected[i] = sum;
+      sum += data[i];
+    }
+
+    const uint32_t total = GPU::exclusiveScan(data, n, scratch.data(pool.base()));
+
+    CHECK(total == sum);
+    CHECK(std::vector<uint32_t>(data, data + n) == expected);
+  }
+}
+
 TEST_CASE("GPU::boundingBox is the exact box of the points", "[GPU]")
 {
   if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {

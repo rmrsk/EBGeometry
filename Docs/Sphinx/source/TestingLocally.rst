@@ -232,7 +232,8 @@ Test coverage
        results written over the inputs; the aborts on mismatched sizes, on partly overlapping inputs
        and results, and on a pool that is not frozen, not device-accessible, or that the arrays do
        not fit in; ``GPU::bitonicSort`` in both orders over counts from 0 to 1024 and its abort on a
-       count that is not a power of two; ``GPU::boundingBox`` against a host loop across chunk
+       count that is not a power of two; ``GPU::exclusiveScan`` against a host prefix sum across chunk
+       boundaries, and for no values; ``GPU::boundingBox`` against a host loop across chunk
        boundaries, and for no points; and
        ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
    * - ``TestPool``

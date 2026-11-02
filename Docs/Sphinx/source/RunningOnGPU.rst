@@ -208,8 +208,8 @@ Building blocks for builds
 algorithms on top of ``GPU::parallelFor``, for building a structure where its data lives:
 ``GPU::boundingBox(points, n, scratch)``, the exact box of ``n`` points (one box per chunk, then one
 thread merging them; ``GPU::boundingBoxOf(source, n, scratch)`` reads the points from a source, as
-``PointCloudHashGrid::build()`` takes them), and ``GPU::bitonicSort(keys, n, less)``, an in-place sort of a
-power-of-two count of keys (pad the rest with keys that sort last), and ``GPU::exclusiveScan(values, n, scratch)``,
+``PointCloudHashGrid::build()`` takes them); ``GPU::bitonicSort(keys, n, less)``, an in-place sort of a
+power-of-two count of keys (pad the rest with keys that sort last); and ``GPU::exclusiveScan(values, n, scratch)``,
 which replaces ``n`` counts by their exclusive prefix sums in place and returns their total on the host. None uses
 atomics, so the results do not depend on thread scheduling. The arrays must be memory the launch can reach, device
 memory in a CUDA or HIP build. ``PointCloudHashGrid::build()`` and ``PointCloudBVH::build()`` build on them when
