@@ -350,10 +350,10 @@ Family                                Build  Measures
 The inputs are ``union-tape``, ``smooth-tape`` and ``smooth-fused``.
 
 **RayCrossing** (``Performance/RayCrossing``): ``firstCrossing()``, the first crossing without its normal or
-primitive, against ``firstHit()`` on the same rays. The mesh and the CSG tape take the Ray probe's rays, and
-name its ``firstHit`` cases (``hit/crossing``). Two tapes holding the armadillo (the dodecahedron under
-``--smoke``), where the normal costs the most, are timed both ways here: the mesh drilled through its center
-along each axis, traced exactly, and the mesh smoothly joined to a ball at the top of its box, marched.
+primitive, against ``firstHit()`` on the same rays, both timed in this probe (the comparison notes
+``hit/crossing``): the armadillo (the dodecahedron under ``--smoke``), the CSG solid through a tape, and two tapes
+holding the mesh, where the normal costs the most: the mesh drilled through its center along each axis, traced
+exactly, and the mesh smoothly joined to a ball at the top of its box, marched.
 
 ====================================  =====  =====================================================
 Family                                Build  Measures

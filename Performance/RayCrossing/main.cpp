@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Performance cases for firstCrossing() (EBGeometry_Ray.hpp): the first crossing without its normal or
-// primitive, against firstHit() on the same rays. The mesh and the CSG tape take the Ray probe's rays and sizes,
-// and name its firstHit cases (hit/crossing); two tapes holding the mesh, where the normal costs most, are
-// timed both ways here: the mesh drilled along three axes, traced exactly (firstHit() traces the leaf it ends on
-// again for its normal), and the mesh smoothly joined to a ball, marched (firstHit() takes the gradient). Every
+// primitive, against firstHit() on the same rays, both timed here (hit/crossing): the mesh, the CSG solid
+// through a tape, and two tapes holding the mesh, where the normal costs most: the mesh drilled along three axes,
+// traced exactly (firstHit() traces the leaf it ends on again for its normal), and the mesh smoothly joined to a
+// ball, marched (firstHit() takes the gradient). The firstHit() cases repeat code paths the Ray probe times, but
+// a ratio across two probes compares two binaries and ray counts too: the CSG tape's firstCrossing() measured
+// 0.89x the Ray probe's firstHit(), and 1.12x its own firstHit() on the same rays in one binary. Every
 // ray starts at a random point in the object's box grown to twice its size and points at the box's center. A
 // host build runs the host cases; a CUDA or HIP build runs host/device pairs in Morton and random order. See
 // ../README.md and PerformanceTesting.rst.
@@ -223,13 +225,22 @@ addPrecision(Perf::Suite& a_suite)
   addOperation<T>(
     a_suite,
     "mesh",
+    "firstHit",
+    MeshHostQueries,
+    PairQueries,
+    mesh,
+    [](const Mesh<T>& a_mesh, const Vec3<T>& a_center) { return FirstHit<T, Mesh<T>>{a_mesh, a_center}; },
+    Perf::agreeDistance<T>);
+  addOperation<T>(
+    a_suite,
+    "mesh",
     "firstCrossing",
     MeshHostQueries,
     PairQueries,
     mesh,
     [](const Mesh<T>& a_mesh, const Vec3<T>& a_center) { return FirstCrossing<T, Mesh<T>>{a_mesh, a_center}; },
     Perf::agreeDistance<T>,
-    "Ray/mesh/firstHit",
+    "RayCrossing/mesh/firstHit",
     "hit/crossing");
 
   // The CSG solid through a tape.
@@ -242,6 +253,17 @@ addPrecision(Perf::Suite& a_suite)
   addOperation<T>(
     a_suite,
     "csg-tape",
+    "firstHit",
+    MarchedHostQueries,
+    PairQueries,
+    csg,
+    [](const EBGeometry::Tape<T>& a_shape, const Vec3<T>& a_center) {
+      return FirstHit<T, EBGeometry::Tape<T>>{a_shape, a_center};
+    },
+    Perf::agreeDistance<T>);
+  addOperation<T>(
+    a_suite,
+    "csg-tape",
     "firstCrossing",
     MarchedHostQueries,
     PairQueries,
@@ -250,7 +272,7 @@ addPrecision(Perf::Suite& a_suite)
       return FirstCrossing<T, EBGeometry::Tape<T>>{a_shape, a_center};
     },
     Perf::agreeDistance<T>,
-    "Ray/csg-tape/firstHit",
+    "RayCrossing/csg-tape/firstHit",
     "hit/crossing");
 
   // The mesh drilled through its center along each axis, through a tape: traced exactly.
