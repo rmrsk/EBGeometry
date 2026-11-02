@@ -157,6 +157,16 @@ memcpy(void* a_dst, const void* a_src, size_t a_numBytes, MemcpyKind a_kind) noe
 getDeviceCount(int* a_count) noexcept;
 
 /**
+ * @brief Get the current device's clock rate, the rate at which @c clock64() counts in a kernel
+ * (@c cudaDeviceGetAttribute with @c cudaDevAttrClockRate / @c hipDeviceGetAttribute with
+ * @c hipDeviceAttributeClockRate).
+ * @param[out] a_kiloHertz Receives the clock rate in kHz.
+ * @return Backend error code (@ref Success on success).
+ */
+[[nodiscard]] inline Error
+getClockRate(int* a_kiloHertz) noexcept;
+
+/**
  * @brief Get and clear the last runtime error (@c cudaGetLastError / @c hipGetLastError).
  * @return Backend error code (@ref Success if no error is pending).
  */
@@ -259,6 +269,15 @@ getDeviceCount(int* a_count) noexcept
 }
 
 [[nodiscard]] inline Error
+getClockRate(int* a_kiloHertz) noexcept
+{
+  int        device = 0;
+  const auto error  = hipGetDevice(&device);
+
+  return (error != hipSuccess) ? error : hipDeviceGetAttribute(a_kiloHertz, hipDeviceAttributeClockRate, device);
+}
+
+[[nodiscard]] inline Error
 getLastError() noexcept
 {
   return hipGetLastError();
@@ -346,6 +365,15 @@ memcpy(void* a_dst, const void* a_src, size_t a_numBytes, MemcpyKind a_kind) noe
 getDeviceCount(int* a_count) noexcept
 {
   return cudaGetDeviceCount(a_count);
+}
+
+[[nodiscard]] inline Error
+getClockRate(int* a_kiloHertz) noexcept
+{
+  int        device = 0;
+  const auto error  = cudaGetDevice(&device);
+
+  return (error != cudaSuccess) ? error : cudaDeviceGetAttribute(a_kiloHertz, cudaDevAttrClockRate, device);
 }
 
 [[nodiscard]] inline Error

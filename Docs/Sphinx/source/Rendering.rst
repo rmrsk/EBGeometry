@@ -65,4 +65,28 @@ Shadows and ambient occlusion are ray queries on the shape too, like the ray fro
 further rays wherever a pixel's ray meets the surface: turning them off (as the viewer does while the
 camera moves) makes a frame much quicker.
 
+Other views
+-----------
+
+Besides the shaded picture, the renderer has views that show what shading hides:
+
+* **Depth** colors each pixel by how far from the eye the first surface is, from bright (near) to dark
+  (far) across the shape's box. It needs only the crossing point, not the normal.
+* **X-ray** is gray: each ray starts white and is dimmed by every surface it crosses, all the way through
+  the scene, so cavities, internal walls and parts hidden behind others show as darker regions.
+* **Cost** colors each pixel by how long its ray's query took, from dark (fast) to bright (slow), on a log
+  scale over the frame. There are two: the cost of finding the first hit with its normal and primitive,
+  and the cost of finding only where the ray crosses the surface (see :ref:`Chap:Rays`); comparing them
+  shows where a shape spends its time on the normal. Only the camera's rays are timed, without shadows or
+  lighting. The times are wall-clock, so they include whatever else the machine was doing; they show where
+  a shape is expensive, not a benchmark (see :ref:`Chap:PerformanceTesting` for measuring).
+
+Any surface can also be made **see-through**: a camera ray that meets it goes on as if it were not there,
+and the surface behind it is drawn as if seen from outside. Only the picture changes: shadows, ambient
+occlusion and what is inside the solid are those of the whole shape. And a part's inside can be **filled**
+with a translucent color, wherever it lies along a ray, in front of or behind what is seen: an electrode
+inside a dielectric, say. A stretch of a ray inside the solid counts as the part's when the ray enters it
+through that part's surface, so where parts of a union overlap, the overlap counts as the part the ray
+entered first.
+
 :ref:`Chap:ImplemRender` describes the classes, and :ref:`Chap:ExampleMeshSDF` opens the viewer on a mesh.

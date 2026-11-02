@@ -10,10 +10,12 @@
  * direction, light from the sky, soft shadows and ambient occlusion, a floor under the shape, and a
  * section plane that cuts the shape open. A surface the camera sees from inside the solid (a hole seen
  * from within the material, or a mesh whose orientation is inverted) is tinted, so that it cannot be
- * mistaken for an outside. Each pixel is computed by PixelQuery, a trivially copyable functor callable
- * on a device, so Renderer::render() runs it on the host's threads and Renderer::renderOnDevice() runs
- * the same functor through GPU::parallelFor(). Render::view() (EBGeometry_Viewer.hpp) shows a shape in an
- * interactive window, rendered this way.
+ * mistaken for an outside. Other views (ViewMode) show the depth, an x-ray of every surface, or the
+ * cost of each camera ray; chosen primitives can be seen through, and a part's inside filled. Each pixel is
+ * computed by a trivially copyable functor callable on a device (PixelQuery for the shaded view), so
+ * Renderer::render() runs it on the host's threads and Renderer::renderOnDevice() runs the same functor
+ * through GPU::parallelFor(). Render::view() (EBGeometry_Viewer.hpp) shows a shape in an interactive window,
+ * rendered this way.
  * @author Robert Marskar
  */
 
@@ -92,6 +94,18 @@ enum class ColorBy : uint8_t
   Primitive, ///< A color per primitive: per leaf of a Tape, per face of a mesh SDF (see HitT::m_primitive);
              ///< Settings::m_primitiveColors, then a built-in palette.
   Normal     ///< The surface normal's direction as a color (each component from -1 to 1 mapped to 0 to 1).
+};
+
+/**
+ * @brief What a render shows at each pixel.
+ */
+enum class ViewMode : uint8_t
+{
+  Shaded,      ///< Lit surfaces, colored by Settings::m_colorBy.
+  Depth,       ///< How far from the eye the first surface is, near (bright) to far (dark) across the shape's box.
+  XRay,        ///< Gray, each ray dimmed by every surface it crosses: the more surfaces behind a pixel, the darker.
+  CostHit,     ///< How long each camera ray's firstHit() took, on a log scale over the frame (see Stats::m_costLow).
+  CostCrossing ///< How long each camera ray's firstCrossing() took, on the same kind of scale.
 };
 
 /**
@@ -470,12 +484,76 @@ struct Settings
   RayOptions<T> m_rays;
 
   /**
+   * @brief What the render shows.
+   */
+  ViewMode m_viewMode = ViewMode::Shaded;
+
+  /**
+   * @brief In ViewMode::XRay, how much of a ray's light each surface it crosses takes, from 0 to 1.
+   */
+  T m_xrayOpacity = T(0.25);
+
+  /**
+   * @brief How many primitives m_hidden holds.
+   */
+  static constexpr uint32_t HiddenPrimitives = 8;
+
+  /**
+   * @brief Primitives to see through (see HitT::m_primitive): a camera ray that meets one goes on as if it were
+   * not there, and the surface behind it is shaded as one seen from outside. The geometry is unchanged: shadows,
+   * occlusion and the solid's inside are those of the whole shape. NoPrimitive marks an unused entry.
+   */
+  Array<uint32_t, HiddenPrimitives> m_hidden = noneHidden();
+
+  /**
+   * @brief A part (see HitT::m_primitive) whose inside is filled with m_volumeColor wherever it lies along a
+   * camera ray, in front of or behind the surface seen; NoPrimitive fills none, AllPrimitives the whole solid. A
+   * stretch inside the solid is counted as the part's when the ray enters it through that part's surface.
+   */
+  uint32_t m_volumePrimitive = NoPrimitive;
+
+  /**
+   * @brief The fill's color.
+   */
+  Vec3T<T> m_volumeColor = Vec3T<T>(T(0.10), T(0.75), T(1.0));
+
+  /**
+   * @brief The fill's opacity where the part is thickest along a ray, from 0 to 1.
+   */
+  T m_volumeOpacity = T(0.7);
+
+  /**
    * @brief Every entry of m_primitiveColors unset.
    * @return The table.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   static inline Array<Vec3T<T>, PrimitiveColors>
   unsetColors() noexcept;
+
+  /**
+   * @brief Every entry of m_hidden unused.
+   * @return The table.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline Array<uint32_t, HiddenPrimitives>
+  noneHidden() noexcept;
+
+  /**
+   * @brief Whether a primitive is in m_hidden.
+   * @param[in] a_primitive Primitive.
+   * @return True if it is hidden.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  hides(uint32_t a_primitive) const noexcept;
+
+  /**
+   * @brief Whether anything is hidden.
+   * @return True if any entry of m_hidden is used.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  hidesAny() const noexcept;
 };
 
 /**
@@ -574,6 +652,19 @@ struct Stats
    * @brief Whether every pixel was rendered: false when the render was canceled (see Renderer::render()).
    */
   bool m_complete = true;
+
+  /**
+   * @brief In ViewMode::CostHit and ViewMode::CostCrossing, the time in nanoseconds of a pixel (summed over its
+   * rays) that takes the darkest color: the cheapest but for the frame's cheapest hundredth of pixels, which take it
+   * too. On a device, clock cycles counted at the device's reported clock rate (which the device may not run at).
+   */
+  double m_costLow = 0.0;
+
+  /**
+   * @brief The time in nanoseconds of a pixel that takes the brightest color: the dearest but for the frame's
+   * dearest hundredth, which take it too.
+   */
+  double m_costHigh = 0.0;
 };
 
 /**
@@ -736,9 +827,10 @@ struct CameraView
 } // namespace RenderDetail
 
 /**
- * @brief One pixel of a rendered image: the functor that Renderer runs once per pixel index, on the host
- * or through GPU::parallelFor().
- * @details Trivially copyable when the shape is. Everything it needs about the shape (its box, its scale,
+ * @brief One pixel of a rendered image in the shaded view: the functor that Renderer runs once per pixel index,
+ * on the host or through GPU::parallelFor(), for ViewMode::Shaded with nothing hidden or filled.
+ * @details It ignores Settings::m_viewMode, m_hidden and m_volumePrimitive: the renderer runs another functor
+ * for those, so that the shaded view's kernel holds none of their code. Trivially copyable when the shape is. Everything it needs about the shape (its box, its scale,
  * the floor's height) it reads from the shape itself, so it can run where only a device view of the shape
  * is valid.
  * @tparam T Floating-point precision.
@@ -906,6 +998,28 @@ public:
   [[nodiscard]] inline HitT<T>
   pick(const S& a_shape, const Camera<T>& a_camera, T a_column, T a_row) const;
 
+  /**
+   * @brief Every crossing of the shape under a point of the image, front to back, cut by the section plane as
+   * the render cuts it: what a viewer steps through to pick a surface behind others.
+   * @details The ray is pick()'s; hidden primitives (Settings::m_hidden) are listed too. At most MaxCrossings
+   * crossings are listed. On the host.
+   * @tparam S Shape type (see isShape).
+   * @param[in] a_shape  Shape.
+   * @param[in] a_camera Camera.
+   * @param[in] a_column Distance from the image's left edge, in pixels.
+   * @param[in] a_row    Distance from its top edge, in pixels.
+   * @return The crossings, nearest first; empty where the ray meets nothing.
+   */
+  template <class S>
+  [[nodiscard]] inline std::vector<HitT<T>>
+  pickAll(const S& a_shape, const Camera<T>& a_camera, T a_column, T a_row) const;
+
+  /**
+   * @brief The most crossings one ray follows: in pickAll(), and in the views that look past the first surface
+   * (ViewMode::XRay, see-through primitives, a filled part).
+   */
+  static constexpr uint32_t MaxCrossings = 64;
+
 private:
   /**
    * @brief The settings.
@@ -920,16 +1034,43 @@ private:
   check(const Camera<T>& a_camera) const;
 
   /**
-   * @brief Copy per-pixel results into an image and add up the counts.
+   * @brief Whether the settings need more than the shaded view's functor (PixelQuery): another view, a hidden
+   * primitive or a filled part.
+   * @return True if so.
+   */
+  [[nodiscard]] inline bool
+  inspecting() const noexcept;
+
+  /**
+   * @brief Copy per-pixel results into an image and add up the counts; in a cost view, turn each pixel's cost
+   * into its color.
    * @param[in]  a_results    Results.
    * @param[in]  a_primitives Each pixel's object, or empty when not recorded.
    * @param[out] a_image      Image.
+   * @param[in]  a_perNanosecond How many of the costs' units make a nanosecond (clock cycles on a device).
    * @return The counts.
    */
   inline Stats
   collect(const std::vector<RenderDetail::StoredPixel>& a_results,
           std::vector<uint32_t>&                        a_primitives,
-          Image&                                        a_image) const;
+          Image&                                        a_image,
+          double                                        a_perNanosecond) const;
+
+  /**
+   * @brief Render with a pixel functor on the host's threads.
+   * @tparam Q Pixel functor type.
+   * @param[in]  a_query    The pixel functor.
+   * @param[out] a_image    The image, resized to the settings' size.
+   * @param[in]  a_cancel   Set (from another thread) to stop the render.
+   * @param[out] a_rowsDone Finished rows, or null.
+   * @return What the render saw.
+   */
+  template <class Q>
+  inline Stats
+  renderOnHost(const Q&                 a_query,
+               Image&                   a_image,
+               const std::atomic<bool>& a_cancel,
+               std::atomic<uint32_t>*   a_rowsDone) const;
 
   /**
    * @brief Render a shape through GPU::parallelFor(), stopping early when asked to, if it can be.
@@ -948,6 +1089,22 @@ private:
                       Image&                   a_image,
                       const std::atomic<bool>* a_cancel,
                       std::atomic<uint32_t>*   a_rowsDone) const;
+
+  /**
+   * @brief Render with a pixel functor through GPU::parallelFor(), stopping early when asked to, if it can be.
+   * @tparam Q Pixel functor type.
+   * @param[in]  a_query    The pixel functor, holding a view of the shape valid on the device.
+   * @param[out] a_image    The image, resized to the settings' size.
+   * @param[in]  a_cancel   Set (from another thread) to stop the render, or null when it cannot be stopped.
+   * @param[out] a_rowsDone Finished rows, or null.
+   * @return What the render saw.
+   */
+  template <class Q>
+  inline Stats
+  renderFrameWith(const Q&                 a_query,
+                  Image&                   a_image,
+                  const std::atomic<bool>* a_cancel,
+                  std::atomic<uint32_t>*   a_rowsDone) const;
 };
 
 } // namespace EBGeometry::Render
