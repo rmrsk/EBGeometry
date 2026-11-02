@@ -142,10 +142,9 @@ the background clears it. With a section plane on, the overlay shows the point u
 plane and the shape's value there; Shift and a click on two surfaces measures the distance between them.
 
 M cycles the views, Shift + M backwards. T makes the picked surface see-through (or opaque again), so that what is behind or
-inside it can be picked and looked at; Shift + T makes every surface opaque. V fills the picked object's inside
-(a mesh SDF's whole solid). Shift and the wheel step through the surfaces under the cursor, front to back:
+inside it can be picked and looked at; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
 each is picked in turn, and those in front of it are seen through while stepping (for a mesh SDF, whose
-primitives are its faces, only the faces under the cursor); a click keeps the one stepped to. R puts the camera, the light and the picked, see-through and filled surfaces back as the window
+primitives are its faces, only the faces under the cursor); a click keeps the one stepped to. R puts the camera, the light and the picked and see-through surfaces back as the window
 opened with them.
 
 .. _Sec:ViewerKeys:
@@ -190,9 +189,8 @@ opened with them.
        and a line between them). On the background, either clears.
    * - Shift + wheel
      - Step through the surfaces under the cursor, front to back, seeing through those in front.
-   * - T; Shift + T; V
-     - See through the picked surface, or make it opaque again; make every surface opaque; fill the picked
-       object's inside, or stop filling it.
+   * - T; Shift + T
+     - See through the picked surface, or make it opaque again; make every surface opaque.
    * - C; W
      - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program;
        save the full frame as a PPM image (``writeImage()``) in the working directory.

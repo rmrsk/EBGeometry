@@ -166,7 +166,6 @@ keys(const bool a_device)
                                  {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
                                  {"T", "See through the picked surface, or make it opaque again"},
                                  {"Shift + T", "Make every surface opaque again"},
-                                 {"V", "Fill the picked object's inside, or stop filling it"},
                                  {"Shift + click", "Measure between two points (the background clears it)"}}},
                                {"Window",
                                 {{"C", "Print the camera and settings as C++"},
@@ -865,7 +864,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                     " (dark to bright)" + (onDevice ? ", elapsed on the GPU, waits included" : "")
                 : std::string());
 
-    // The primitives seen through, and the part filled.
+    // The primitives seen through.
     std::string hidden;
 
     for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives; i++) {
@@ -875,10 +874,6 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     }
 
     const std::string object = primitivesAreFaces<S> ? "face" : "object";
-    const std::string filled = (settings.m_volumePrimitive == Settings<T>::NoPrimitive) ? std::string("Nothing filled")
-                               : (settings.m_volumePrimitive == Settings<T>::AllPrimitives)
-                                 ? std::string("Filled: the whole solid")
-                                 : "Filled: object " + std::to_string(settings.m_volumePrimitive);
 
     // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
     const std::vector<std::vector<std::string>> states{
@@ -913,7 +908,6 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                   " at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
               : std::string("Nothing picked"),
        hidden.empty() ? std::string("Every surface opaque") : "Seen through: " + object + " " + hidden,
-       filled,
        depthHits.empty() ? std::string("Not stepping through surfaces")
                          : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
                              " under the cursor",
@@ -1590,23 +1584,6 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
               picked                        = false;
               settings.m_highlightPrimitive = Settings<T>::NoPrimitive;
             }
-          }
-          else {
-            changed = pending;
-          }
-
-          break;
-        }
-        case SDLK_v: {
-          // A mesh SDF is one object: its inside is filled whatever face was picked.
-          const uint32_t part = primitivesAreFaces<S> ? Settings<T>::AllPrimitives : pick.m_primitive;
-
-          if (settings.m_volumePrimitive != Settings<T>::NoPrimitive &&
-              (!picked || settings.m_volumePrimitive == part)) {
-            settings.m_volumePrimitive = Settings<T>::NoPrimitive;
-          }
-          else if (picked) {
-            settings.m_volumePrimitive = part;
           }
           else {
             changed = pending;
