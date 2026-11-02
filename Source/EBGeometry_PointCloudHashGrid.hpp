@@ -97,7 +97,10 @@ public:
    * The build runs where the pool's memory is. In device-accessible memory (device or managed memory in a
    * CUDA or HIP build; emulated device memory in a host build) it runs through GPU::parallelFor(): kernels in a
    * CUDA or HIP translation unit, which read @p a_source on the device, and host loops otherwise. In host
-   * memory it runs on the host, which reads @p a_source there. Both give the same grid, array for array.
+   * memory it runs on the host, which reads @p a_source there. Both give the same grid, array for array. The host
+   * reads each point from the source three times (for the box, and twice for the sort), so an expensive source pays
+   * that. A point with a non-finite coordinate is rejected: on the host by its index, through GPU::parallelFor()
+   * only as "a point", since the launches report no more than that the box is not finite.
    * Freeze the pool and take rebasedView() to query a grid in device memory in a kernel.
    *
    * @p a_maxPoints reserves room for rebuild() with up to that many points: the arrays, cells for that many
