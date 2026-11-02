@@ -480,7 +480,7 @@ compiler (``nvcc`` or ``hipcc`` for a GPU); its logic is ``Performance/RunPerfor
    Scripts/run-performance.sh --gpu cuda 'TriMeshSDF/*'
 
 The probes are built in Release for the host's full instruction set, with every function aligned to a cache
-line (``Performance/AlignFunctions.cmake``), incrementally, in
+line under GCC and Clang (``Performance/AlignFunctions.cmake``), incrementally, in
 ``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own.
 A host run is pinned to one core when ``taskset`` is available; a GPU run is not, since its host side
 uses every hardware thread but one (``--core <n>`` or ``--no-pin`` changes a host run's pinning; a GPU run refuses ``--core``, since pinned to one core its host side would run on one thread). The output is one table per probe,
@@ -550,8 +550,9 @@ is exported with ``git archive`` and built from its own ``Performance/`` folder,
 changes an API the probes use updates the probes and is still compared case by case; the report names
 any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
 with the candidate's probes.) Both sides are built with the candidate's function alignment, so that code
-added anywhere in a probe cannot change the time of unchanged code by moving it across a cache line. Every case then runs in a fresh process, so that one case cannot leave the
-heap or the caches in a state that favors the next, alternating between the two sides for ``--rounds``
+added anywhere in a probe cannot change the time of unchanged code by moving it across a cache line.
+Every case then runs in a fresh process, so that one case cannot leave the heap or the caches in a state
+that favors the next, alternating between the two sides for ``--rounds``
 rounds (default 2) of ``--reps`` repetitions (default 3). These defaults are the least that gives a
 verdict, and keep a comparison of every case to about eight minutes on a desktop, builds included; one
 round (``--rounds 1``) shows the times without judging them, a quick look while a change is developed. A host comparison compares the host cases,
