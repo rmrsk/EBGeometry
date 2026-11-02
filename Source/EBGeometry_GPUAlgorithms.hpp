@@ -18,6 +18,7 @@
 #define EBGEOMETRY_GPUALGORITHMS_HPP
 
 // Std includes
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -112,11 +113,20 @@ struct ChunkBox
     Vec3T<T> lo = +Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
 
+    bool finite = true;
+
     for (uint32_t i = begin; i < end; i++) {
       const Vec3T<T> p = m_points(i);
 
+      finite = finite && std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]);
+
       lo = min(lo, p);
       hi = max(hi, p);
+    }
+
+    // A chunk with a non-finite point marks its box with a lower corner of -infinity, which the merge keeps.
+    if (!finite) {
+      lo[0] = -Math::Limits<T>::infinity();
     }
 
     m_corners[2 * a_c]     = lo;
@@ -125,7 +135,8 @@ struct ChunkBox
 };
 
 /**
- * @brief boundingBox(), pass 2: one thread merges the chunk boxes into chunk 0's.
+ * @brief boundingBox(), pass 2: one thread merges the chunk boxes into chunk 0's. One thread is enough at the sizes
+ * the builds see (a few thousand chunks); a cloud near the 2^31-point limit would want a tree of merges.
  * @tparam T Precision.
  */
 template <class T>
@@ -231,7 +242,8 @@ struct Ascending
  * points, then one thread merging them.
  * @details The minimum and maximum are exact, so the box is the one a host loop over the points finds. The source
  * is any trivially copyable functor whose const call operator returns point i, callable where the launches run.
- * The result is copied back from @p a_scratch to the host (from device memory in a CUDA or HIP build).
+ * The result is copied back from @p a_scratch to the host (from device memory in a CUDA or HIP build). If a point
+ * has a non-finite coordinate, a corner of the box is not finite: check it, since the launches check nothing else.
  * @tparam T      Precision.
  * @tparam Source Source type.
  * @param[in]  a_points  The points.

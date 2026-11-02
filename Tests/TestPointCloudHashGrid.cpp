@@ -890,6 +890,29 @@ TEST_CASE("PointCloudHashGrid: rejects a non-positive target occupancy, and a re
     },
     "PointCloudHashGrid::rebuild: 3 points, but the grid has room for 2 (see build()'s a_maxPoints)"));
 
+  // A point that is not finite, from a source: on the host, and through GPU::parallelFor() (emulated device
+  // memory, in a host build, where the launches can read the host array), which finds it from the box.
+  const std::vector<Vec3T<T>> bad = {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(Math::Limits<T>::infinity(), T(0), T(0))};
+
+  REQUIRE(abortsWith(
+    [&pos, &bad] {
+      Pool                  pool(hostMemoryResource());
+      PointCloudHashGrid<T> grid(pool, pos);
+
+      grid.rebuild(PointCloud::FromArray<T>{bad.data()}, 2U);
+    },
+    "PointCloudHashGrid::rebuild: point 1 of 2 has a non-finite coordinate"));
+
+  if (!GPU::enabled) {
+    REQUIRE(abortsWith(
+      [&bad] {
+        Pool pool(emulatedDeviceMemoryResource());
+
+        (void)PointCloudHashGrid<T>::build(pool, PointCloud::FromArray<T>{bad.data()}, 2U);
+      },
+      "PointCloudHashGrid::build: a point has a non-finite coordinate"));
+  }
+
   REQUIRE(abortsWith(
     [&pos] {
       Pool                        pool(hostMemoryResource());

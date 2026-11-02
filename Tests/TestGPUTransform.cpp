@@ -585,6 +585,63 @@ TEST_CASE("GPU::boundingBox is the exact box of the points", "[GPU]")
   CHECK_FALSE(empty.getLowCorner()[0] <= empty.getHighCorner()[0]);
 }
 
+namespace {
+
+// A source of points for GPU::boundingBoxOf(): point i, computed from its index in arithmetic that is exact in
+// double (so the host and a device agree to the last bit), with one point at infinity if asked for.
+struct Spiral
+{
+  uint32_t m_infinite;
+
+  EBGEOMETRY_HOST_DEVICE
+  Vec3T<double>
+  operator()(const uint32_t a_i) const noexcept
+  {
+    const double x = (a_i == m_infinite) ? Math::Limits<double>::infinity() : 0.5 * double(a_i % 97) - double(a_i % 13);
+
+    return Vec3T<double>(x, double((a_i * 37U) % 101U), 0.25 * double(a_i) - 7.0);
+  }
+};
+
+} // namespace
+
+TEST_CASE("GPU::boundingBoxOf is the exact box of the points a source gives, and not finite if one is not", "[GPU]")
+{
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  using Vec3 = Vec3T<double>;
+
+  for (const uint32_t n : {1U, 255U, 256U, 257U, 3000U}) {
+    INFO("points " << n);
+
+    Pool pool(sharedResource());
+
+    PODVector<Vec3> scratch;
+
+    scratch.reserveSizedFrom(pool, GPU::boundingBoxScratchSize(n));
+
+    Vec3 lo = Vec3::max();
+    Vec3 hi = -Vec3::max();
+
+    for (uint32_t i = 0; i < n; i++) {
+      lo = min(lo, Spiral{n}(i));
+      hi = max(hi, Spiral{n}(i));
+    }
+
+    const auto box = GPU::boundingBoxOf<double>(Spiral{n}, n, scratch.data(pool.base()));
+
+    CHECK(box.getLowCorner() == lo);
+    CHECK(box.getHighCorner() == hi);
+
+    // A point at infinity, in the last chunk: the box is not finite.
+    const auto infinite = GPU::boundingBoxOf<double>(Spiral{n - 1}, n, scratch.data(pool.base()));
+
+    CHECK_FALSE((std::isfinite(infinite.getLowCorner()[0]) && std::isfinite(infinite.getHighCorner()[0])));
+  }
+}
+
 TEST_CASE("GPU::bitonicSort: a count that is not a power of two aborts", "[GPU][death]")
 {
   REQUIRE(abortsWith(

@@ -214,7 +214,7 @@ PointCloudHashGrid<T>::build(
     grid.m_boxScratch.reserveSizedFrom(a_pool, GPU::boundingBoxScratchSize(room));
   }
 
-  const BoundingVolumes::AABBT<T> box = grid.boxOf(a_source, a_numPoints);
+  const BoundingVolumes::AABBT<T> box = grid.boxOf(a_source, a_numPoints, "PointCloudHashGrid::build");
 
   grid.setShape(box.getLowCorner(), box.getHighCorner(), a_numPoints, a_targetPerCell);
 
@@ -287,7 +287,7 @@ PointCloudHashGrid<T>::rebuild(const Source& a_source, const uint32_t a_numPoint
                      unsigned(a_numPoints),
                      unsigned(this->maxPoints()));
 
-  const BoundingVolumes::AABBT<T> box = this->boxOf(a_source, a_numPoints);
+  const BoundingVolumes::AABBT<T> box = this->boxOf(a_source, a_numPoints, "PointCloudHashGrid::rebuild");
 
   this->setShape(box.getLowCorner(), box.getHighCorner(), a_numPoints, a_targetPerCell, m_cellStart.m_capacity - 1U);
   this->fill(a_source, a_numPoints);
@@ -310,14 +310,25 @@ template <class T>
 template <class Source>
 EBGEOMETRY_HOST
 inline BoundingVolumes::AABBT<T>
-PointCloudHashGrid<T>::boxOf(const Source& a_source, const uint32_t a_numPoints)
+PointCloudHashGrid<T>::boxOf(const Source& a_source, const uint32_t a_numPoints, const char* a_who)
 {
   if (a_numPoints == 0) {
     return BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros());
   }
 
   if (m_parallel) {
-    return GPU::boundingBoxOf<T>(a_source, a_numPoints, m_boxScratch.data(PoolHandle::base()));
+    const BoundingVolumes::AABBT<T> box =
+      GPU::boundingBoxOf<T>(a_source, a_numPoints, m_boxScratch.data(PoolHandle::base()));
+
+    const Vec3T<T>& lo = box.getLowCorner();
+    const Vec3T<T>& hi = box.getHighCorner();
+
+    EBGEOMETRY_REQUIRE(std::isfinite(lo[0]) && std::isfinite(lo[1]) && std::isfinite(lo[2]) && std::isfinite(hi[0]) &&
+                         std::isfinite(hi[1]) && std::isfinite(hi[2]),
+                       "%s: a point has a non-finite coordinate",
+                       a_who);
+
+    return box;
   }
 
   // On the host. Every coordinate must be finite, or the cell computations break.
@@ -328,7 +339,8 @@ PointCloudHashGrid<T>::boxOf(const Source& a_source, const uint32_t a_numPoints)
     const Vec3T<T> p = a_source(i);
 
     EBGEOMETRY_REQUIRE(std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]),
-                       "PointCloudHashGrid::build: point %u of %u has a non-finite coordinate",
+                       "%s: point %u of %u has a non-finite coordinate",
+                       a_who,
                        unsigned(i),
                        unsigned(a_numPoints));
 
@@ -373,19 +385,17 @@ PointCloudHashGrid<T>::fill(const Source& a_source, const uint32_t a_numPoints)
     return;
   }
 
-  // Counting sort: histogram, prefix sum (the cell starts), then a stable scatter in cloud-index order.
+  // Counting sort, allocating nothing: a histogram one cell up, the prefix sum (each cell's start), a stable
+  // scatter in cloud-index order that uses the starts as cursors (leaving each cell's start at the next one's),
+  // and a shift back by one cell.
   uint32_t* cellStart = m_cellStart.data(base);
 
   for (uint32_t cell = 0; cell <= numCells; cell++) {
     cellStart[cell] = 0;
   }
 
-  std::vector<uint32_t> cellOf(a_numPoints);
-
   for (uint32_t i = 0; i < a_numPoints; i++) {
-    cellOf[i] = static_cast<uint32_t>(this->cellIndexOf(a_source(i)));
-
-    cellStart[cellOf[i] + 1]++;
+    cellStart[this->cellIndexOf(a_source(i)) + 1]++;
   }
 
   for (uint32_t cell = 0; cell < numCells; cell++) {
@@ -395,19 +405,24 @@ PointCloudHashGrid<T>::fill(const Source& a_source, const uint32_t a_numPoints)
   // The total must equal the point count if every point was put in exactly one (in-range) cell.
   EBGEOMETRY_EXPECT(cellStart[numCells] == a_numPoints);
 
-  std::vector<uint32_t> cursor(cellStart, cellStart + numCells);
-
   Vec3T<T>* positions  = m_positions.data(base);
   uint32_t* cellPoints = m_cellPoints.data(base);
   uint32_t* slotOf     = m_slotOf.data(base);
 
   for (uint32_t i = 0; i < a_numPoints; i++) {
-    const uint32_t slot = cursor[cellOf[i]]++;
+    const Vec3T<T> p    = a_source(i);
+    const uint32_t slot = cellStart[this->cellIndexOf(p)]++;
 
     cellPoints[slot] = i;
     slotOf[i]        = slot;
-    positions[slot]  = a_source(i);
+    positions[slot]  = p;
   }
+
+  for (uint32_t cell = numCells; cell > 0; cell--) {
+    cellStart[cell] = cellStart[cell - 1];
+  }
+
+  cellStart[0] = 0;
 }
 
 } // namespace EBGeometry

@@ -135,7 +135,10 @@ public:
    * @brief Build the grid again, in the arrays build() reserved, from new positions.
    * @details The same grid as a new build() from these positions, with nothing reserved: it runs where the build
    * did, and works on a frozen pool. More points than maxPoints() is rejected. If the cloud's box would need more
-   * cells than were reserved, the cells are made larger until it does not. A view taken with rebasedView() before
+   * cells than were reserved, the cells are made larger until it does not; queries stay exact, only slower. A grid
+   * built with room for more points (build()'s a_maxPoints) has room for the most cells its points can need; one
+   * built without has the cells of its first build only. A point with a non-finite coordinate is rejected, as in
+   * build(). A view taken with rebasedView() before
    * the rebuild still describes the old grid (its cell size and counts): take a new one, which copies nothing. Call
    * it on the grid build() returned, not on a view.
    * @tparam Source A source of positions, as for build().
@@ -313,12 +316,13 @@ private:
    * @tparam Source The positions' source.
    * @param[in] a_source The positions.
    * @param[in] a_numPoints  Number of points.
+   * @param[in] a_who        The calling function, for the message when a point is not finite.
    * @return The box; zeros for no points.
    */
   template <class Source>
   EBGEOMETRY_HOST
   inline BoundingVolumes::AABBT<T>
-  boxOf(const Source& a_source, uint32_t a_numPoints);
+  boxOf(const Source& a_source, uint32_t a_numPoints, const char* a_who);
 
   /**
    * @brief Fill the reserved arrays for a cloud, the grid shaped for it: the counting sort on the host, or the
