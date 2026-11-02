@@ -90,8 +90,8 @@ The classes are in namespace ``Render``:
 The cost views on the host and on a device
 ------------------------------------------
 
-The figures show the scene of :ref:`Chap:ExampleMaterials` in the two cost views, rendered on the host (left)
-and on a GPU (right). On the host each pixel's time is its own ray's, so the picture shows where the work is:
+The figures show a mesh, the xyzrgb dragon of :ref:`Chap:ExampleMeshCSG` as a ``TriMeshSDF``, in the two cost
+views, rendered on the host (left) and on a GPU (right). On the host each pixel's time is its own ray's, so the picture shows where the work is:
 the mesh's surface, and the boxes of its BVH, which a ray costs more to enter. On a GPU a pixel's time is how
 long its thread was busy: the 32 threads of a warp trace together, so each pixel shows the slowest ray of its
 warp (blocks of 32 pixels along a row), and every ray waits on memory far longer than on a CPU core, which the

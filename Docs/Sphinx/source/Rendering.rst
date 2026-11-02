@@ -84,6 +84,12 @@ Besides the shaded picture, the renderer has views that show what shading hides:
   where threads trace in groups that wait for their slowest ray, the time a pixel waited too; they show where
   a shape is expensive, not a benchmark (see :ref:`Chap:PerformanceTesting` for measuring).
 
+.. figure:: _static/render_views.jpg
+   :width: 100%
+   :align: center
+
+   A mesh in the shaded view, the depth view and the x-ray view.
+
 Any surface can also be made **see-through**: a camera ray that meets it goes on as if it were not there,
 and the surface behind it is drawn as if seen from outside. Only the picture changes: shadows, ambient
 occlusion and what is inside the solid are those of the whole shape. And a part's inside can be **filled**
