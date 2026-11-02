@@ -85,25 +85,20 @@ The classes are in namespace ``Render``:
   a pixel's time is its rays' own. On a device it is the time that passed while its thread traced them: the
   threads of a warp step together, so a pixel waits for the slowest ray of its warp (the picture shows blocks of
   32 pixels along a row), and the device also runs other warps meanwhile, so the times are longer than the rays'
-  cost; they still show which parts of a shape are slow (see the figures below). The renderer prints nothing.
+  cost; they still show which parts of a shape are slow (see the figure below). The renderer prints nothing.
 
 The cost views on the host and on a device
 ------------------------------------------
 
-The figures show a mesh, the xyzrgb dragon of :ref:`Chap:ExampleMeshCSG` as a ``TriMeshSDF``, in the two cost
-views, rendered on the host (left) and on a GPU (right). On the host each pixel's time is its own ray's, so the picture shows where the work is:
+The figure shows a mesh, the xyzrgb dragon of :ref:`Chap:ExampleMeshCSG` as a ``TriMeshSDF``, in the cost view
+of ``firstCrossing()``, rendered on the host (left) and on a GPU (right); the cost view of ``firstHit()`` looks
+alike. On the host each pixel's time is its own ray's, so the picture shows where the work is:
 the mesh's surface, and the boxes of its BVH, which a ray costs more to enter. On a GPU a pixel's time is how
 long its thread was busy: the 32 threads of a warp trace together, so each pixel shows the slowest ray of its
 warp (blocks of 32 pixels along a row), and every ray waits on memory far longer than on a CPU core, which the
 device makes up for by tracing tens of thousands of rays at once. The two scales differ: the colors compare
 pixels within a frame, not the host with the device. For a device's throughput, compare frame times, or time
 your own queries with the ``Performance/`` probes (see :ref:`Chap:PerformanceTesting`).
-
-.. figure:: _static/render_cost_firstHit.jpg
-   :width: 90%
-   :align: center
-
-   The cost of ``firstHit()`` per pixel, on the host (left) and on a GPU (right).
 
 .. figure:: _static/render_cost_firstCrossing.jpg
    :width: 90%
