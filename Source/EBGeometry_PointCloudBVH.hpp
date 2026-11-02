@@ -208,8 +208,12 @@ public:
    * times (for the box, its key, its leaf's box and its group), so an expensive source pays that. A
    * point with a non-finite coordinate is rejected: on the host by its index, through
    * GPU::parallelFor() only as "a point". A tree deeper than the traversal stack allows (BVH::HostTraversalDepth
-   * on the host, BVH::DeviceTraversalDepth through GPU::parallelFor()) is rejected; only a cloud of
-   * many points packed far closer than its extent comes near either. Freeze the pool and take
+   * on the host, BVH::DeviceTraversalDepth through GPU::parallelFor()) aborts the build, as every
+   * EBGEOMETRY_REQUIRE does; only a cloud of many points packed far closer than its extent comes near
+   * either. A larger a_targetLeafSize makes the tree shallower, and a host build allows the deeper tree.
+   * The quota of each cut (see the class) only bounds a child at about (3K + 1) / (4K) of its parent,
+   * which does not keep every cloud of 2^31 points within 32 levels; Morton cuts of real clouds are
+   * close to halves. Freeze the pool and take
    * rebasedView() to query a BVH in device memory in a kernel.
    *
    * The scratch arrays (the keys, the box, the build's nodes and two scans' values) are reserved from
@@ -255,10 +259,12 @@ public:
 
   /**
    * @brief Build the BVH again, in the arrays build() reserved, from new positions.
-   * @details The same tree as a new build() from these positions with the same target leaf size, with
-   * nothing reserved: it runs where the build did, and works on a frozen pool. Needs room reserved by
-   * build()'s a_maxPoints; more points than maxPoints() is rejected, and so is a non-finite point or a
-   * tree too deep, as in build(). A view taken with rebasedView() before the rebuild still describes
+   * @details The same tree as a new build() from these positions with the same target leaf size,
+   * reserving nothing in the pool: it runs where the build did, and works on a frozen pool (the host keeps
+   * one small vector of level offsets). Needs room reserved by
+   * build()'s a_maxPoints; more points than maxPoints() is rejected, and a non-finite point or a tree
+   * too deep aborts, as in build(): a code that rebuilds every step meets this only if its cloud becomes
+   * that clustered. A view taken with rebasedView() before the rebuild still describes
    * the old tree (its array sizes): take a new one, which copies nothing. Call it on the BVH build()
    * returned, not on a view or a deepCopy().
    * @tparam Source A source of positions, as for build().

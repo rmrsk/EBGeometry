@@ -77,10 +77,10 @@ otherwise, from a *source* of positions, and the constructor is shorthand for it
 tree, so a BVH built on a device and mirrored to the host answers there as one built on the host. A query
 reports a point by its index in the source.
 
-``rebuild()`` builds the tree again from new positions, in place, reserving nothing, so it works on a frozen
-pool. It needs room, which ``build()`` reserves only when its last argument gives the most points a rebuild may
-have: then the arrays are sized for any cloud of that many points, however clustered, which is larger than a
-single build needs. Without it the BVH holds just what its cloud uses, and ``rebuild()`` is refused:
+``rebuild()`` builds the tree again from new positions, in place, reserving nothing in the pool, so it works on
+a frozen pool. It needs room, which ``build()`` reserves only when its last argument gives the most points a
+rebuild may have: then the arrays are sized for any cloud of that many points, however clustered, which is larger
+than a single build needs. Without it the BVH holds just what its cloud uses, and ``rebuild()`` is refused:
 
 .. code-block:: c++
 
@@ -92,9 +92,11 @@ single build needs. Without it the BVH holds just what its cloud uses, and ``reb
    bvh.rebuild(MySource{...}, n);                                                  // after the points move
    const auto view = bvh.rebasedView(pool);                                        // for the next kernel
 
-A tree deeper than the traversal stack allows is rejected: by ``build()`` for the side it runs on, and by
-``rebasedView()`` for a device. Only a cloud of many points packed far closer together than its extent comes
-near that limit.
+A tree deeper than the traversal stack allows (``BVH::DeviceTraversalDepth`` levels on a device,
+``BVH::HostTraversalDepth`` on the host) aborts the program: in ``build()`` or ``rebuild()`` for the side it runs
+on, and in ``rebasedView()`` for a device. Only a cloud of many points packed far closer together than its extent
+comes near that limit, but a code that rebuilds every step can meet it once its points cluster that far. A larger
+target leaf size makes the tree shallower, and a build on the host allows a deeper one.
 
 See the `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and
