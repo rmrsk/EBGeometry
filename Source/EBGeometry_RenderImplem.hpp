@@ -128,6 +128,23 @@ struct Sectioned
   }
 
   /**
+   * @brief The shape's first crossing along a ray without its normal, uncut (firstCrossing()); out of line on a
+   * device.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the shape.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline CrossingT<T>
+  shapeCrossing(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    return EBGeometry::firstCrossing(m_shape, a_ray, a_tMin, a_tMax, a_options);
+  }
+
+  /**
    * @brief The cut shape's value.
    * @param[in] a_point Point.
    * @return The value.
@@ -214,6 +231,49 @@ palette(const uint32_t a_id) noexcept
   default:
     return Vec3T<T>(v, p, q);
   }
+}
+
+/**
+ * @brief A color ramp from dark to bright (dark purple, red, orange, pale yellow), as the depth and cost views
+ * use it.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_s Where on the ramp, from 0 (dark) to 1 (bright); clamped.
+ * @return Display RGB in [0, 1] (gamma-encoded).
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+ramp(const T a_s) noexcept
+{
+  const Vec3T<T> stops[5] = {Vec3T<T>(T(0.05), T(0.03), T(0.15)),
+                             Vec3T<T>(T(0.40), T(0.07), T(0.43)),
+                             Vec3T<T>(T(0.78), T(0.22), T(0.33)),
+                             Vec3T<T>(T(0.98), T(0.55), T(0.15)),
+                             Vec3T<T>(T(0.99), T(0.95), T(0.70))};
+
+  const T   s = T(4) * Math::clamp(a_s, T(0), T(1));
+  const int i = Math::min(static_cast<int>(s), 3);
+  const T   f = s - T(i);
+
+  return (T(1) - f) * stops[i] + f * stops[i + 1];
+}
+
+/**
+ * @brief A time stamp for the cost views: the clock cycle counter on a device, nanoseconds on the host.
+ * @details Internal helper; not part of the public API.
+ * @return The time stamp.
+ */
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline uint64_t
+timeStamp() noexcept
+{
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+  return static_cast<uint64_t>(clock64());
+#else
+  return static_cast<uint64_t>(
+    std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+#endif
 }
 
 /**
@@ -350,7 +410,40 @@ public:
   inline HitT<T>
   cast(const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_near) const noexcept
   {
-    return this->trace(RayT<T>{a_origin, a_direction}, a_near, m_far);
+    bool through = false;
+
+    return this->visible(RayT<T>{a_origin, a_direction}, a_near, through);
+  }
+
+  /**
+   * @brief Every crossing of the cut shape along a camera ray, nearest first, hidden primitives included (for
+   * picking through depth).
+   * @details Each search starts 4 tolerances past the last crossing, so two crossings closer than that (a sheet
+   * thinner than it) count as one; as in visible(), partInside() and the x-ray view.
+   * @param[in]  a_origin    Where the ray starts.
+   * @param[in]  a_direction Unit direction.
+   * @param[in]  a_near      Where along it to start looking.
+   * @param[out] a_hits      The crossings, at most Renderer<T>::MaxCrossings, appended.
+   */
+  EBGEOMETRY_HOST
+  inline void
+  castAll(const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_near, std::vector<HitT<T>>& a_hits) const
+  {
+    const RayT<T> ray{a_origin, a_direction};
+
+    T t = a_near;
+
+    for (uint32_t k = 0; k < Renderer<T>::MaxCrossings; k++) {
+      const HitT<T> hit = this->trace(ray, t, m_far);
+
+      if (!hit.hit()) {
+        break;
+      }
+
+      a_hits.push_back(hit);
+
+      t = hit.m_t + T(4) * m_eps;
+    }
   }
 
   /**
@@ -386,58 +479,358 @@ public:
     const RayT<T> ray{a_origin, a_direction};
     const HitT<T> hit = this->trace(ray, a_near, m_far);
 
-    if (hit.m_status == HitStatus::Unresolved) {
-      a_result.m_unresolved++;
-    }
+    return this->shadeHit(ray, a_near, hit, a_result);
+  }
 
-    // Where the ray meets the floor, if it goes down towards it.
-    const T down   = dot(a_direction, m_up);
-    const T tFloor = (m_hasFloor && down < T(0)) ? (m_floorLevel - dot(a_origin, m_up)) / down : T(-1);
+  /**
+   * @brief What one camera ray shows in the views other than the plain shaded one (see ViewMode), with hidden
+   * primitives seen through and a part's inside filled; counts what it hit.
+   * @param[in]     a_origin    Where the ray starts: the eye, or a point on the plane through it for an
+   * orthographic camera.
+   * @param[in]     a_direction Unit direction.
+   * @param[in]     a_near      How far along the ray it starts to see (the camera's near clip).
+   * @param[in,out] a_result    Counts.
+   * @param[in,out] a_cost      In a cost view, the time the ray's query took is added here.
+   * @return Linear RGB (black in a cost view, whose color comes from the frame's costs).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  inspect(const Vec3T<T>& a_origin,
+          const Vec3T<T>& a_direction,
+          const T         a_near,
+          PixelResult&    a_result,
+          uint64_t&       a_cost) const noexcept
+  {
+    const RayT<T>  ray{a_origin, a_direction};
+    const ViewMode mode = m_settings.m_viewMode;
 
-    const bool onFloor = tFloor > a_near && (!hit.hit() || tFloor < hit.m_t);
+    if (mode == ViewMode::CostHit) {
+      const uint64_t start = timeStamp();
+      const HitT<T>  hit   = this->trace(ray, a_near, m_far);
 
-    Vec3T<T> color;
+      a_cost += timeStamp() - start;
 
-    if (hit.hit() && !onFloor) {
-      a_result.m_hits++;
+      this->count(hit.m_status, hit.m_entering, a_result);
 
-      if (a_result.m_primitive == 0xFFFFFFFFU) {
+      if (hit.hit() && a_result.m_primitive == 0xFFFFFFFFU) {
         a_result.m_primitive = hit.m_primitive;
       }
 
-      if (!hit.m_entering) {
-        a_result.m_insideHits++;
+      return Vec3T<T>::zeros();
+    }
+
+    if (mode == ViewMode::CostCrossing) {
+      const uint64_t     start    = timeStamp();
+      const CrossingT<T> crossing = this->crossing(ray, a_near, m_far);
+
+      a_cost += timeStamp() - start;
+
+      this->count(crossing.m_status, crossing.m_entering, a_result);
+
+      return Vec3T<T>::zeros();
+    }
+
+    if (mode == ViewMode::XRay) {
+      // On black, every surface the ray crosses but a hidden one glows faintly, more where it is seen edge-on, with a
+      // modest highlight from the light, and lets through 1 - m_xrayOpacity of what lies behind it. The highlighted
+      // primitive glows in its color; the first surface is recorded, for outlining a picked object.
+      const Vec3T<T> half = unit(m_light - a_direction);
+
+      Vec3T<T> color   = Vec3T<T>::zeros();
+      T        through = T(1);
+      T        t       = a_near;
+
+      for (uint32_t k = 0; k < Renderer<T>::MaxCrossings && through > T(1e-3); k++) {
+        const HitT<T> hit = this->trace(ray, t, m_far);
+
+        if (k == 0) {
+          this->count(hit.m_status, hit.m_entering, a_result);
+        }
+
+        if (!hit.hit()) {
+          break;
+        }
+
+        if (!m_settings.hides(hit.m_primitive)) {
+          const Vec3T<T> n      = (hit.m_normal.length2() > T(0)) ? hit.m_normal : this->normal(hit.m_point);
+          const T        facing = std::abs(dot(n, a_direction));
+          const T        glow   = m_settings.m_xrayOpacity * (T(0.3) + T(0.7) * (T(1) - facing));
+          const T shine = T(0.5) * m_settings.m_specular * std::pow(std::abs(dot(n, half)), m_settings.m_shininess);
+
+          const bool highlighted = hit.m_primitive == m_settings.m_highlightPrimitive ||
+                                   m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives;
+
+          const Vec3T<T> tint = highlighted ? T(2) * m_settings.m_highlightColor : Vec3T<T>::ones();
+
+          if (a_result.m_primitive == 0xFFFFFFFFU) {
+            a_result.m_primitive = hit.m_primitive;
+          }
+
+          color += through * (glow * tint + m_settings.m_xrayOpacity * shine * Vec3T<T>::ones());
+          through *= T(1) - m_settings.m_xrayOpacity;
+        }
+
+        t = hit.m_t + T(4) * m_eps;
       }
 
-      // A face cut by the section plane is where the plane, not the shape, gives the value: a fill, through
-      // which the shape's next surface along the ray shows.
-      const Vec3T<T>& p = hit.m_point;
+      return color;
+    }
 
-      if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
-        color = this->shadeCutFace(ray, hit.m_t);
+    if (mode == ViewMode::Depth) {
+      Vec3T<T> point;
+      bool     seen = false;
+
+      if (m_settings.hidesAny()) {
+        bool          through = false;
+        const HitT<T> hit     = this->visible(ray, a_near, through);
+
+        this->count(hit.m_status, hit.m_entering, a_result);
+
+        seen  = hit.hit();
+        point = hit.m_point;
       }
       else {
-        color = this->shadeSurface(hit, a_direction, true);
+        const CrossingT<T> crossing = this->crossing(ray, a_near, m_far);
+
+        this->count(crossing.m_status, crossing.m_entering, a_result);
+
+        seen  = crossing.hit();
+        point = crossing.m_point;
       }
+
+      return seen ? this->depthColor(point) : this->background(a_direction);
     }
-    else if (onFloor) {
-      color = this->shadeFloor(ray.at(tFloor), a_direction, tFloor);
+
+    // The shaded view, looking through hidden primitives.
+    bool          through = false;
+    const HitT<T> hit     = this->visible(ray, a_near, through);
+
+    Vec3T<T> color;
+
+    if (through && hit.hit()) {
+      // Seen through a hidden surface, a surface is shaded as one seen from outside: from inside the solid, it is
+      // the inside of what was hidden.
+      HitT<T> seen = hit;
+
+      seen.m_entering = true;
+
+      color = this->shadeHit(ray, a_near, seen, a_result);
     }
     else {
-      color = this->background(a_direction);
+      color = this->shadeHit(ray, a_near, hit, a_result);
     }
 
-    if (m_onPlane) {
-      // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
-      const T tFront = onFloor ? tFloor : (hit.hit() ? hit.m_t : m_far);
+    if (m_settings.m_volumePrimitive != Settings<T>::NoPrimitive) {
+      // Opaque within about a tenth of the scene's scale.
+      const T alpha = m_settings.m_volumeOpacity * (T(1) - std::exp(-T(10) / m_scale * this->partInside(ray, a_near)));
 
-      color = this->drawOnPlane(ray, a_near, tFront, color);
+      color = (T(1) - alpha) * color + alpha * m_settings.m_volumeColor;
     }
 
     return color;
   }
 
 private:
+  /**
+   * @brief The color seen along a camera ray where it found a crossing (or none), counting what it hit.
+   * @param[in]     a_ray    The camera ray.
+   * @param[in]     a_near   How far along the ray it starts to see.
+   * @param[in]     a_hit    What it hit.
+   * @param[in,out] a_result Counts.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  shadeHit(const RayT<T>& a_ray, const T a_near, const HitT<T>& a_hit, PixelResult& a_result) const noexcept
+  {
+    const Vec3T<T>& direction = a_ray.m_direction;
+
+    if (a_hit.m_status == HitStatus::Unresolved) {
+      a_result.m_unresolved++;
+    }
+
+    // Where the ray meets the floor, if it goes down towards it.
+    const T down   = dot(direction, m_up);
+    const T tFloor = (m_hasFloor && down < T(0)) ? (m_floorLevel - dot(a_ray.m_origin, m_up)) / down : T(-1);
+
+    const bool onFloor = tFloor > a_near && (!a_hit.hit() || tFloor < a_hit.m_t);
+
+    Vec3T<T> color;
+
+    if (a_hit.hit() && !onFloor) {
+      a_result.m_hits++;
+
+      if (a_result.m_primitive == 0xFFFFFFFFU) {
+        a_result.m_primitive = a_hit.m_primitive;
+      }
+
+      if (!a_hit.m_entering) {
+        a_result.m_insideHits++;
+      }
+
+      // A face cut by the section plane is where the plane, not the shape, gives the value: a fill, through
+      // which the shape's next surface along the ray shows.
+      const Vec3T<T>& p = a_hit.m_point;
+
+      if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
+        color = this->shadeCutFace(a_ray, a_hit.m_t);
+      }
+      else {
+        color = this->shadeSurface(a_hit, direction, true);
+      }
+    }
+    else if (onFloor) {
+      color = this->shadeFloor(a_ray.at(tFloor), direction, tFloor);
+    }
+    else {
+      color = this->background(direction);
+    }
+
+    if (m_onPlane) {
+      // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
+      const T tFront = onFloor ? tFloor : (a_hit.hit() ? a_hit.m_t : m_far);
+
+      color = this->drawOnPlane(a_ray, a_near, tFront, color);
+    }
+
+    return color;
+  }
+
+  /**
+   * @brief Count a camera ray's crossing (for the views that do not shade it).
+   * @param[in]     a_status   What the query found.
+   * @param[in]     a_entering Whether a crossing enters the solid.
+   * @param[in,out] a_result   Counts.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  count(const HitStatus a_status, const bool a_entering, PixelResult& a_result) noexcept
+  {
+    if (a_status == HitStatus::Unresolved) {
+      a_result.m_unresolved++;
+    }
+    else if (a_status == HitStatus::Hit) {
+      a_result.m_hits++;
+
+      if (!a_entering) {
+        a_result.m_insideHits++;
+      }
+    }
+  }
+
+  /**
+   * @brief The first crossing along a camera ray that is not on a hidden primitive (Settings::m_hidden).
+   * @param[in]  a_ray     The camera ray.
+   * @param[in]  a_near    Where along it to start looking.
+   * @param[out] a_through Whether the ray passed through a hidden primitive first.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  visible(const RayT<T>& a_ray, const T a_near, bool& a_through) const noexcept
+  {
+    T t = a_near;
+
+    HitT<T> hit = this->trace(a_ray, t, m_far);
+
+    for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
+      a_through = true;
+      t         = hit.m_t + T(4) * m_eps;
+      hit       = this->trace(a_ray, t, m_far);
+    }
+
+    return hit;
+  }
+
+  /**
+   * @brief How long a camera ray is inside the filled part (Settings::m_volumePrimitive), from a_near to the far
+   * end, followed from crossing to crossing: a stretch inside the solid is the part's when the ray enters it through
+   * the part's surface.
+   * @details A part thinner than 4 tolerances along the ray can be stepped over (see castAll()), and the stretch
+   * then runs on to the next crossing.
+   * @param[in] a_ray  The camera ray.
+   * @param[in] a_near Where along it to start.
+   * @return The length.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  partInside(const RayT<T>& a_ray, const T a_near) const noexcept
+  {
+    const uint32_t filled = m_settings.m_volumePrimitive;
+
+    // A ray that starts inside is inside the part there.
+    const Vec3T<T> start = a_ray.at(a_near);
+
+    bool in     = m_object.signedDistance(start) < T(0);
+    bool mine   = in && (filled == Settings<T>::AllPrimitives || m_object.primitiveAt(start) == filled);
+    T    from   = a_near;
+    T    t      = a_near;
+    T    length = T(0);
+
+    for (uint32_t k = 0; k < Renderer<T>::MaxCrossings; k++) {
+      const HitT<T> hit = this->trace(a_ray, t, m_far);
+
+      if (!hit.hit()) {
+        break;
+      }
+
+      if (hit.m_entering) {
+        in   = true;
+        mine = filled == Settings<T>::AllPrimitives || hit.m_primitive == filled;
+        from = hit.m_t;
+      }
+      else if (in) {
+        length += mine ? hit.m_t - from : T(0);
+        in = false;
+      }
+
+      t = hit.m_t + T(4) * m_eps;
+    }
+
+    if (in && mine) {
+      length += m_far - from;
+    }
+
+    return length;
+  }
+
+  /**
+   * @brief The depth view's color of a point: by its distance from the eye along the view, from the nearest to
+   * the farthest corner of the shape's box (bright to dark).
+   * @param[in] a_point Point.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  depthColor(const Vec3T<T>& a_point) const noexcept
+  {
+    T lo = Math::Limits<T>::infinity();
+    T hi = -Math::Limits<T>::infinity();
+
+    for (int corner = 0; corner < 8; corner++) {
+      const Vec3T<T> c((corner & 1) ? m_boxHigh[0] : m_boxLow[0],
+                       (corner & 2) ? m_boxHigh[1] : m_boxLow[1],
+                       (corner & 4) ? m_boxHigh[2] : m_boxLow[2]);
+
+      const T d = dot(c - m_eye, m_forward);
+
+      lo = Math::min(lo, d);
+      hi = Math::max(hi, d);
+    }
+
+    lo = Math::max(lo, T(0));
+
+    if (!(std::isfinite(lo) && std::isfinite(hi) && hi > lo)) {
+      lo = T(0);
+      hi = m_far;
+    }
+
+    const Vec3T<T> c = ramp<T>(T(1) - (dot(a_point - m_eye, m_forward) - lo) / (hi - lo));
+
+    // The ramp is in display colors; the pixel's gamma encoding undoes this.
+    return Vec3T<T>(std::pow(c[0], T(2.2)), std::pow(c[1], T(2.2)), std::pow(c[2], T(2.2)));
+  }
+
   /**
    * @brief The cut shape.
    */
@@ -559,6 +952,22 @@ private:
   trace(const RayT<T>& a_ray, const T a_tMin, const T a_tMax) const noexcept
   {
     return firstHit(m_object, a_ray, a_tMin, a_tMax, m_rays);
+  }
+
+  /**
+   * @brief The cut shape's first crossing along a ray, without its normal (firstCrossing()); out of line on a
+   * device, like trace().
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMin Where along it to start looking.
+   * @param[in] a_tMax How far along it to look.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline CrossingT<T>
+  crossing(const RayT<T>& a_ray, const T a_tMin, const T a_tMax) const noexcept
+  {
+    return firstCrossing(m_object, a_ray, a_tMin, a_tMax, m_rays);
   }
 
   /**
@@ -897,22 +1306,21 @@ countRow(uint32_t* a_rows) noexcept
  * results, or none of them once the render is canceled.
  * @details Internal helper; not part of the public API. The pixel indices come from the launch, so nothing
  * is copied to the device but the functor. A device render is one launch over the whole frame; a canceled
- * one has its threads read m_cancel, a flag in host memory mapped into the device's (written by the host
- * while the kernel runs), and skip their pixel once it is set, leaving it black and setting m_skipped,
- * which says whether the render completed. Each row's last pixel counts the row, in m_rows (device
- * memory) and in m_progress (the mapped memory, for the host to show while the kernel runs). The threads of
+ * one has its threads read m_cancel, a flag in device memory (copied there by the host while the kernel runs),
+ * and skip their pixel once it is set, leaving it black and setting m_skipped, which says whether the render
+ * completed. Each row's last pixel counts the row, in m_rows (device memory) and in m_progress (host memory
+ * mapped into the device's, for the host to show while the kernel runs). The threads of
  * a row run in no set order, so the count is progress only: a row may be counted before all of its pixels
  * are done.
- * @tparam T Floating-point precision.
- * @tparam S Shape type.
+ * @tparam Q Pixel functor type: PixelQuery for the shaded view, InspectQuery for the others.
  */
-template <class T, class S>
+template <class Q>
 struct FrameOfPixels
 {
   /**
    * @brief The pixel functor.
    */
-  PixelQuery<T, S> m_query;
+  Q m_query;
 
   /**
    * @brief The frame's results, in device memory.
@@ -1084,6 +1492,76 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
     }
 
     return hit;
+  }
+
+  /**
+   * @brief The first crossing of the cut shape along a ray, without its normal and primitive: as firstHit(), with
+   * the shape's firstCrossing().
+   * @param[in] a_cut  The cut shape.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMin Start of the interval.
+   * @param[in] a_tMax End of the interval.
+   * @param[in] a_options How to march the shape.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline CrossingT<T>
+  firstCrossing(const Render::RenderDetail::Sectioned<T, S>& a_cut,
+                const RayT<T>&                               a_ray,
+                const T                                      a_tMin,
+                const T                                      a_tMax,
+                const RayOptions<T>&                         a_options) noexcept
+  {
+    if (!a_cut.m_on) {
+      return a_cut.shapeCrossing(a_ray, a_tMin, a_tMax, a_options);
+    }
+
+    // The part [a, b] of the interval on the kept side of the plane, as in firstHit().
+    const T start = a_cut.plane(a_ray.at(a_tMin));
+    const T rate  = dot(a_ray.m_direction, a_cut.m_normal);
+
+    T a = a_tMin;
+    T b = a_tMax;
+
+    if (rate == T(0)) {
+      if (start > T(0)) {
+        return CrossingT<T>();
+      }
+    }
+    else if (rate > T(0)) {
+      b = Math::min(b, a_tMin - start / rate);
+    }
+    else {
+      a = Math::max(a, a_tMin - start / rate);
+    }
+
+    if (!(a <= b)) {
+      return CrossingT<T>();
+    }
+
+    const auto onPlane = [&a_ray](const T a_t, const bool a_entering) noexcept {
+      CrossingT<T> crossing;
+
+      crossing.m_status   = HitStatus::Hit;
+      crossing.m_t        = a_t;
+      crossing.m_point    = a_ray.at(a_t);
+      crossing.m_entering = a_entering;
+      crossing.m_exact    = true;
+
+      return crossing;
+    };
+
+    if (a > a_tMin && a_cut.shapeDistance(a_ray.at(a)) < T(0)) {
+      return onPlane(a, true);
+    }
+
+    const CrossingT<T> crossing = a_cut.shapeCrossing(a_ray, a, b, a_options);
+
+    if (crossing.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_ray.at(b)) < T(0)) {
+      return onPlane(b, false);
+    }
+
+    return crossing;
   }
 };
 
@@ -1346,6 +1824,35 @@ literal(const ColorBy a_colorBy)
 }
 
 /**
+ * @brief A view mode as a C++ literal.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_mode View mode.
+ * @return The enumerator's qualified name.
+ */
+EBGEOMETRY_HOST
+inline std::string
+literal(const ViewMode a_mode)
+{
+  switch (a_mode) {
+  case ViewMode::Depth: {
+    return "EBGeometry::Render::ViewMode::Depth";
+  }
+  case ViewMode::XRay: {
+    return "EBGeometry::Render::ViewMode::XRay";
+  }
+  case ViewMode::CostHit: {
+    return "EBGeometry::Render::ViewMode::CostHit";
+  }
+  case ViewMode::CostCrossing: {
+    return "EBGeometry::Render::ViewMode::CostCrossing";
+  }
+  default: {
+    return "EBGeometry::Render::ViewMode::Shaded";
+  }
+  }
+}
+
+/**
  * @brief A flag as a C++ literal.
  * @details Internal helper; not part of the public API.
  * @param[in] a_flag Flag.
@@ -1486,6 +1993,18 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_rays.m_maxSteps", a_settings.m_rays.m_maxSteps, settings.m_rays.m_maxSteps);
   field("settings", "m_rays.m_step", a_settings.m_rays.m_step, settings.m_rays.m_step);
   field("settings", "m_rays.m_march", a_settings.m_rays.m_march, settings.m_rays.m_march);
+  field("settings", "m_viewMode", a_settings.m_viewMode, settings.m_viewMode);
+  field("settings", "m_xrayOpacity", a_settings.m_xrayOpacity, settings.m_xrayOpacity);
+
+  for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives; i++) {
+    const std::string name = "m_hidden[" + std::to_string(i) + "]";
+
+    field("settings", name.c_str(), a_settings.m_hidden[i], settings.m_hidden[i]);
+  }
+
+  field("settings", "m_volumePrimitive", a_settings.m_volumePrimitive, settings.m_volumePrimitive);
+  field("settings", "m_volumeColor", a_settings.m_volumeColor, settings.m_volumeColor);
+  field("settings", "m_volumeOpacity", a_settings.m_volumeOpacity, settings.m_volumeOpacity);
 
   return code;
 }
@@ -1618,6 +2137,148 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
   return result;
 }
 
+namespace RenderDetail {
+
+/**
+ * @brief One pixel of a rendered image in the views PixelQuery does not draw: the views other than the shaded one
+ * (see ViewMode), and the shaded view with hidden primitives or a filled part.
+ * @details Internal helper; not part of the public API. A functor of its own, so that the shaded view's kernel
+ * holds none of this code: on a device, every function a kernel can reach takes part in its register allocation,
+ * run or not. In a cost view, the pixel's m_rgba holds its cost (at least 1; 0 is a pixel a canceled render did
+ * not reach), which Renderer turns into a color once the frame's range is known.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ */
+template <class T, class S>
+struct InspectQuery
+{
+  /**
+   * @brief The shape, the camera and the settings, as the shaded view's functor holds them.
+   */
+  PixelQuery<T, S> m_base;
+
+  /**
+   * @brief Draw pixel a_index (row a_index / width, column a_index % width).
+   * @param[in] a_index Pixel index.
+   * @return The pixel.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline PixelResult
+  operator()(const uint32_t& a_index) const noexcept
+  {
+    const CameraView<T>& view     = m_base.m_view;
+    const Settings<T>&   settings = m_base.m_settings;
+    const Camera<T>&     camera   = m_base.m_camera;
+
+    Shader<T, S> shader(m_base.m_shape, view, settings);
+
+    PixelResult result;
+
+    if (a_index == 0U) {
+      result.m_cameraInside = shader.eyeInside() ? 1U : 0U;
+    }
+
+    const T w      = T(settings.m_width);
+    const T h      = T(settings.m_height);
+    const T column = T(a_index % settings.m_width);
+    const T row    = T(a_index / settings.m_width);
+
+    // A cost view times one ray per pixel, through its center.
+    const bool     timed = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
+    const uint32_t n     = timed ? 1U : settings.m_supersampling;
+
+    Vec3T<T> color = Vec3T<T>::zeros();
+    uint64_t cost  = 0U;
+
+    for (uint32_t s = 0; s < n * n; s++) {
+      const T dx = (T(s % n) + T(0.5)) / T(n);
+      const T dy = (T(s / n) + T(0.5)) / T(n);
+
+      // The rays PixelQuery casts.
+      const T x = (T(2) * (column + dx) - w) / h * view.m_tanHalf;
+      const T y = (h - T(2) * (row + dy)) / h * view.m_tanHalf;
+
+      if (n > 1U) {
+        shader.jitterLight(dx, dy);
+      }
+
+      const Vec3T<T> origin =
+        camera.m_orthographic
+          ? shader.orthographicStart(view.m_eye + view.m_distance * (x * view.m_right + y * view.m_up))
+          : view.m_eye;
+      const Vec3T<T> direction =
+        camera.m_orthographic ? view.m_forward : unit(view.m_forward + x * view.m_right + y * view.m_up);
+      const T near = camera.m_orthographic ? shader.nearAlong(camera.m_nearClip) : camera.m_nearClip;
+
+      color += shader.inspect(origin, direction, near, result, cost);
+    }
+
+    if (timed) {
+      result.m_rgba = static_cast<uint32_t>(Math::clamp(cost, uint64_t(1), uint64_t(0xFFFFFFFFU)));
+
+      return result;
+    }
+
+    color = color / T(n * n);
+
+    uint32_t rgba = 0xFFU;
+
+    for (int k = 0; k < 3; k++) {
+      const T g = std::pow(Math::clamp(color[k], T(0), T(1)), T(1) / T(2.2));
+
+      rgba |= static_cast<uint32_t>(T(255) * g + T(0.5)) << (24 - 8 * k);
+    }
+
+    result.m_rgba = rgba;
+
+    return result;
+  }
+};
+
+} // namespace RenderDetail
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline Array<uint32_t, Settings<T>::HiddenPrimitives>
+Settings<T>::noneHidden() noexcept
+{
+  Array<uint32_t, HiddenPrimitives> hidden;
+
+  for (uint32_t i = 0; i < HiddenPrimitives; i++) {
+    hidden[i] = NoPrimitive;
+  }
+
+  return hidden;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline bool
+Settings<T>::hides(const uint32_t a_primitive) const noexcept
+{
+  bool hidden = false;
+
+  for (uint32_t i = 0; i < HiddenPrimitives; i++) {
+    hidden = hidden || (a_primitive != NoPrimitive && m_hidden[i] == a_primitive);
+  }
+
+  return hidden;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline bool
+Settings<T>::hidesAny() const noexcept
+{
+  bool any = false;
+
+  for (uint32_t i = 0; i < HiddenPrimitives; i++) {
+    any = any || m_hidden[i] != NoPrimitive;
+  }
+
+  return any;
+}
+
 template <class T>
 Renderer<T>::Renderer(const Settings<T>& a_settings) noexcept : m_settings(a_settings)
 {}
@@ -1661,6 +2322,47 @@ Renderer<T>::pick(const S& a_shape, const Camera<T>& a_camera, const T a_column,
 
   return shader.cast(
     view.m_eye, RenderDetail::unit(view.m_forward + x * view.m_right + y * view.m_up), a_camera.m_nearClip);
+}
+
+template <class T>
+template <class S>
+inline std::vector<HitT<T>>
+Renderer<T>::pickAll(const S& a_shape, const Camera<T>& a_camera, const T a_column, const T a_row) const
+{
+  this->check(a_camera);
+
+  // pick()'s ray.
+  const PixelQuery<T, S>             query(a_shape, a_camera, m_settings);
+  const RenderDetail::CameraView<T>& view = query.m_view;
+  const RenderDetail::Shader<T, S>   shader(a_shape, view, m_settings);
+
+  const T w = T(m_settings.m_width);
+  const T h = T(m_settings.m_height);
+  const T x = (T(2) * a_column - w) / h * view.m_tanHalf;
+  const T y = (h - T(2) * a_row) / h * view.m_tanHalf;
+
+  std::vector<HitT<T>> hits;
+
+  if (a_camera.m_orthographic) {
+    shader.castAll(shader.orthographicStart(view.m_eye + view.m_distance * (x * view.m_right + y * view.m_up)),
+                   view.m_forward,
+                   shader.nearAlong(a_camera.m_nearClip),
+                   hits);
+  }
+  else {
+    shader.castAll(
+      view.m_eye, RenderDetail::unit(view.m_forward + x * view.m_right + y * view.m_up), a_camera.m_nearClip, hits);
+  }
+
+  return hits;
+}
+
+template <class T>
+inline bool
+Renderer<T>::inspecting() const noexcept
+{
+  return m_settings.m_viewMode != ViewMode::Shaded || m_settings.hidesAny() ||
+         m_settings.m_volumePrimitive != Settings<T>::NoPrimitive;
 }
 
 template <class T>
@@ -1713,13 +2415,19 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(m_settings.m_light.length() > T(0), "Render::Renderer: the light direction must not be zero");
   EBGEOMETRY_REQUIRE(!m_settings.m_section || m_settings.m_sectionNormal.length() > T(0),
                      "Render::Renderer: the section plane's normal must not be zero");
+  EBGEOMETRY_REQUIRE(m_settings.m_xrayOpacity >= T(0) && m_settings.m_xrayOpacity <= T(1) &&
+                       m_settings.m_volumeOpacity >= T(0) && m_settings.m_volumeOpacity <= T(1),
+                     "Render::Renderer: the x-ray's and the fill's opacities must be from 0 to 1 (%g, %g)",
+                     double(m_settings.m_xrayOpacity),
+                     double(m_settings.m_volumeOpacity));
 }
 
 template <class T>
 inline Stats
 Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
                      std::vector<uint32_t>&                        a_primitives,
-                     Image&                                        a_image) const
+                     Image&                                        a_image,
+                     const double                                  a_perNanosecond) const
 {
   a_image.m_width  = m_settings.m_width;
   a_image.m_height = m_settings.m_height;
@@ -1737,8 +2445,92 @@ Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
     stats.m_unresolved += a_results[i].m_unresolved;
   }
 
-  stats.m_rays         = uint64_t(a_results.size()) * m_settings.m_supersampling * m_settings.m_supersampling;
+  const bool     timed = m_settings.m_viewMode == ViewMode::CostHit || m_settings.m_viewMode == ViewMode::CostCrossing;
+  const uint64_t n     = timed ? 1U : m_settings.m_supersampling;
+
+  stats.m_rays         = uint64_t(a_results.size()) * n * n;
   stats.m_cameraInside = !a_results.empty() && a_results.front().m_cameraInside != 0U;
+
+  if (timed) {
+    // Each pixel holds its cost (0 where a canceled render did not reach it): colored on a log scale over the
+    // frame's costs without the cheapest and the dearest hundredth of its pixels, which a thread interrupted
+    // mid-ray (a whole row of slow pixels on the host) would otherwise stretch the scale with. The costs are put in
+    // buckets of a sixteenth of a doubling, from their bits alone, so that this pass, run on the host after a
+    // device render too, takes no sort and no logarithm per pixel: one pass to count, one to color.
+    constexpr uint32_t PerDoubling = 16;
+    constexpr uint32_t Buckets     = 32 * PerDoubling;
+
+    // The highest set bit of a cost, and its bucket: that bit and the four below it.
+    const auto highestBit = [](uint32_t a_cost) noexcept {
+      uint32_t exponent = 0;
+
+      for (uint32_t shift = 16; shift > 0; shift /= 2) {
+        if ((a_cost >> shift) != 0U) {
+          a_cost >>= shift;
+          exponent += shift;
+        }
+      }
+
+      return exponent;
+    };
+
+    const auto bucketOf = [&highestBit](const uint32_t a_cost) noexcept {
+      const uint32_t exponent = highestBit(a_cost);
+      const uint32_t fraction =
+        (exponent >= 4U) ? (a_cost >> (exponent - 4U)) & 15U : (a_cost << (4U - exponent)) & 15U;
+
+      return exponent * PerDoubling + fraction;
+    };
+
+    std::vector<uint64_t> counts(Buckets, 0U);
+
+    uint64_t total = 0;
+
+    for (const uint32_t cost : a_image.m_pixels) {
+      if (cost != 0U) {
+        counts[bucketOf(cost)]++;
+        total++;
+      }
+    }
+
+    // The buckets of the cheapest and the dearest pixel kept, a hundredth of the pixels cut from either end.
+    const uint64_t cut  = total / 100U;
+    uint32_t       low  = 0;
+    uint32_t       high = Buckets - 1U;
+
+    for (uint64_t below = 0; low < Buckets - 1U && below + counts[low] <= cut; low++) {
+      below += counts[low];
+    }
+
+    for (uint64_t above = 0; high > low && above + counts[high] <= cut; high--) {
+      above += counts[high];
+    }
+
+    std::vector<uint32_t> colors(Buckets);
+
+    for (uint32_t b = 0; b < Buckets; b++) {
+      const double        where = (high > low) ? (double(b) - double(low)) / double(high - low) : 0.0;
+      const Vec3T<double> c     = RenderDetail::ramp<double>(where);
+
+      colors[b] = 0xFFU;
+
+      for (int k = 0; k < 3; k++) {
+        colors[b] |= static_cast<uint32_t>(255.0 * c[k] + 0.5) << (24 - 8 * k);
+      }
+    }
+
+    for (uint32_t& pixel : a_image.m_pixels) {
+      if (pixel != 0U) {
+        pixel = colors[bucketOf(pixel)];
+      }
+    }
+
+    // A bucket's cost is that of its lower end: 2^(b / 16).
+    const auto costOf = [](const uint32_t a_bucket) { return std::exp2(double(a_bucket) / double(PerDoubling)); };
+
+    stats.m_costLow  = (total == 0U) ? 0.0 : costOf(low) / a_perNanosecond;
+    stats.m_costHigh = (total == 0U) ? 0.0 : costOf(high) / a_perNanosecond;
+  }
 
   return stats;
 }
@@ -1766,10 +2558,27 @@ Renderer<T>::render(const S&                 a_shape,
 
   this->check(a_camera);
 
+  const PixelQuery<T, S> query{a_shape, a_camera, m_settings};
+
+  if (this->inspecting()) {
+    return this->renderOnHost(RenderDetail::InspectQuery<T, S>{query}, a_image, a_cancel, a_rowsDone);
+  }
+
+  return this->renderOnHost(query, a_image, a_cancel, a_rowsDone);
+}
+
+template <class T>
+template <class Q>
+inline Stats
+Renderer<T>::renderOnHost(const Q&                 a_query,
+                          Image&                   a_image,
+                          const std::atomic<bool>& a_cancel,
+                          std::atomic<uint32_t>*   a_rowsDone) const
+{
   const uint32_t width  = m_settings.m_width;
   const uint32_t height = m_settings.m_height;
 
-  const PixelQuery<T, S> query{a_shape, a_camera, m_settings};
+  const Q& query = a_query;
 
   // Rows not reached by a canceled render stay black.
   std::vector<RenderDetail::StoredPixel> results(size_t(width) * size_t(height));
@@ -1822,7 +2631,7 @@ Renderer<T>::render(const S&                 a_shape,
     thread.join();
   }
 
-  Stats stats = this->collect(results, primitives, a_image);
+  Stats stats = this->collect(results, primitives, a_image, 1.0);
 
   stats.m_complete = !stopped;
 
@@ -1864,11 +2673,28 @@ Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
 
   this->check(a_camera);
 
+  const PixelQuery<T, S> query{a_deviceShape, a_camera, m_settings};
+
+  if (this->inspecting()) {
+    return this->renderFrameWith(RenderDetail::InspectQuery<T, S>{query}, a_image, a_cancel, a_rowsDone);
+  }
+
+  return this->renderFrameWith(query, a_image, a_cancel, a_rowsDone);
+}
+
+template <class T>
+template <class Q>
+inline Stats
+Renderer<T>::renderFrameWith(const Q&                 a_query,
+                             Image&                   a_image,
+                             const std::atomic<bool>* a_cancel,
+                             std::atomic<uint32_t>*   a_rowsDone) const
+{
   const uint32_t width  = m_settings.m_width;
   const uint32_t height = m_settings.m_height;
   const size_t   pixels = size_t(width) * size_t(height);
 
-  const PixelQuery<T, S> query{a_deviceShape, a_camera, m_settings};
+  const Q& query = a_query;
 
   // Pixels not reached by a canceled render stay black.
   std::vector<RenderDetail::StoredPixel> results(pixels);
@@ -1884,7 +2710,7 @@ Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
   RenderDetail::StoredPixel* buffer = nullptr;
   uint32_t*                  ids    = nullptr;
 
-  RenderDetail::FrameOfPixels<T, S> frame{query, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0U, width};
+  RenderDetail::FrameOfPixels<Q> frame{query, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0U, width};
 
   const bool launch = (a_cancel == nullptr) || !a_cancel->load(std::memory_order_relaxed);
 
@@ -1906,29 +2732,30 @@ Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
     stopped = true;
   }
   else {
-    // The kernel reads the cancel flag from host memory mapped into the device's, and writes its progress
-    // there; while this thread waits for the launch, another passes the flag on and the progress back. The
-    // mapped pointer is passed to the kernel as it is, which unified virtual addressing (every 64-bit CUDA
-    // and HIP platform) allows. Whether a pixel skipped its work, which says whether the render completed,
-    // and the count of rows are in device memory. Reading the flag for every pixel is most of what this
-    // costs over a render that cannot be canceled: on an RTX 3080, about 4 ms of a 37 ms frame of a cheap
-    // scene at 1024 x 1024 pixels, and 1 ms of a 9 ms one at 256 x 256.
-    uint32_t* mapped = nullptr; // The cancel flag, then the progress.
-    uint32_t* counts = nullptr; // Whether a pixel skipped its work, then the rows.
+    // While this thread waits for the launch, another passes the cancel flag to the device and the progress
+    // back. The kernel reads the flag from device memory, where that thread copies it on a stream of its own,
+    // which runs alongside the kernel; read from host memory mapped into the device's, the flag cost every pixel
+    // a read across the bus, about 10 ms of a 7 ms frame (RTX 3080, 960 x 960 pixels). The kernel writes the
+    // progress, once a row, to that mapped memory, passed to it as it is, which unified virtual addressing
+    // (every 64-bit CUDA and HIP platform) allows. Whether a pixel skipped its work, which says whether the
+    // render completed, and the count of rows are in device memory too.
+    uint32_t*   mapped = nullptr; // The progress, then a 1 to copy to the device's flag.
+    uint32_t*   counts = nullptr; // Whether a pixel skipped its work, the rows, the cancel flag.
+    GPU::Stream stream = nullptr;
 
-    const uint32_t zeros[2] = {0U, 0U};
+    const uint32_t zeros[3] = {0U, 0U, 0U};
 
     EBGEOMETRY_GPU_CHECK(GPU::memAllocHostMapped(reinterpret_cast<void**>(&mapped), 2U * sizeof(uint32_t)));
-    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&counts), 2U * sizeof(uint32_t)));
-    EBGEOMETRY_GPU_CHECK(GPU::memcpy(counts, zeros, 2U * sizeof(uint32_t), GPU::MemcpyHostToDevice));
+    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&counts), 3U * sizeof(uint32_t)));
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(counts, zeros, 3U * sizeof(uint32_t), GPU::MemcpyHostToDevice));
+    EBGEOMETRY_GPU_CHECK(GPU::streamCreateNonBlocking(&stream));
 
-    volatile uint32_t* const flag     = mapped;
-    volatile uint32_t* const progress = mapped + 1;
+    volatile uint32_t* const progress = mapped;
 
-    *flag     = 0U;
     *progress = 0U;
+    mapped[1] = 1U;
 
-    frame.m_cancel   = flag;
+    frame.m_cancel   = counts + 2;
     frame.m_skipped  = counts;
     frame.m_rows     = counts + 1;
     frame.m_progress = progress;
@@ -1948,12 +2775,18 @@ Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
       }
     };
 
+    // EBGEOMETRY_GPU_CHECK aborts, never throws, so a failed copy here ends the program rather than this thread.
     std::thread relay([&]() {
       std::unique_lock<std::mutex> lock(mutex);
 
+      bool sent = false;
+
       while (!finished) {
-        if (a_cancel->load(std::memory_order_relaxed)) {
-          *flag = 1U;
+        if (!sent && a_cancel->load(std::memory_order_relaxed)) {
+          EBGEOMETRY_GPU_CHECK(
+            GPU::memcpyAsync(counts + 2, mapped + 1, sizeof(uint32_t), GPU::MemcpyHostToDevice, stream));
+
+          sent = true;
         }
 
         report(*progress);
@@ -1975,6 +2808,8 @@ Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
 
     uint32_t done[2] = {0U, 0U};
 
+    EBGEOMETRY_GPU_CHECK(GPU::streamSynchronize(stream));
+    EBGEOMETRY_GPU_CHECK(GPU::streamDestroy(stream));
     EBGEOMETRY_GPU_CHECK(GPU::memcpy(done, counts, 2U * sizeof(uint32_t), GPU::MemcpyDeviceToHost));
     EBGEOMETRY_GPU_CHECK(GPU::memFree(counts));
     EBGEOMETRY_GPU_CHECK(GPU::memFreeHost(mapped));
@@ -1997,15 +2832,15 @@ Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
 #else
   // A host loop: one launch over the frame, or, when the render can be canceled, one per row, with the flag
   // checked between them.
-  RenderDetail::FrameOfPixels<T, S> frame{query,
-                                          results.data(),
-                                          primitives.empty() ? nullptr : primitives.data(),
-                                          nullptr,
-                                          nullptr,
-                                          nullptr,
-                                          nullptr,
-                                          0U,
-                                          width};
+  RenderDetail::FrameOfPixels<Q> frame{query,
+                                       results.data(),
+                                       primitives.empty() ? nullptr : primitives.data(),
+                                       nullptr,
+                                       nullptr,
+                                       nullptr,
+                                       nullptr,
+                                       0U,
+                                       width};
 
   if (a_cancel == nullptr) {
     GPU::parallelFor(pixels, frame);
@@ -2029,7 +2864,20 @@ Renderer<T>::renderFrameOnDevice(const S&                 a_deviceShape,
   }
 #endif
 
-  Stats stats = this->collect(results, primitives, a_image);
+  // A device counts clock cycles: at its clock rate in kHz, a millionth of that many make a nanosecond.
+  double perNanosecond = 1.0;
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  if (m_settings.m_viewMode == ViewMode::CostHit || m_settings.m_viewMode == ViewMode::CostCrossing) {
+    int kiloHertz = 0;
+
+    EBGEOMETRY_GPU_CHECK(GPU::getClockRate(&kiloHertz));
+
+    perNanosecond = (kiloHertz > 0) ? 1e-6 * double(kiloHertz) : 1.0;
+  }
+#endif
+
+  Stats stats = this->collect(results, primitives, a_image, perNanosecond);
 
   stats.m_complete = !stopped;
 

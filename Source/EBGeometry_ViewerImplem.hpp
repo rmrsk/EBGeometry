@@ -137,7 +137,7 @@ keys(const bool a_device)
                                  {"Wheel", "Zoom"},
                                  {"1, 2, 3", "Look from the front, the side, the top"},
                                  {"O", "Switch between perspective and orthographic"},
-                                 {"R", "Reset the camera"},
+                                 {"R", "Reset the camera, the light and the picked surfaces"},
                                  {"Right drag", "Move the light"},
                                  {"+, -", "Narrower or wider field of view"},
                                  {"Double-click", "Center the camera on the point under the cursor"},
@@ -145,7 +145,9 @@ keys(const bool a_device)
                                  {"Shift + Left", "Broader highlights"},
                                  {"Shift + Right", "Tighter highlights"}}},
                                {"Rendering",
-                                {{"P", "Cycle the coloring: by normal, uniform, by primitive"},
+                                {{"M", "Cycle the view: shaded, depth, x-ray, cost of firstHit(), of firstCrossing()"},
+                                 {"Shift + M", "Cycle the view backwards"},
+                                 {"P", "Cycle the coloring: by normal, uniform, by primitive"},
                                  {"S", "Turn shadows on or off"},
                                  {"A", "Turn ambient occlusion on or off"},
                                  {"F", "Turn the floor on or off"},
@@ -161,6 +163,9 @@ keys(const bool a_device)
                                  {"Up, Down", "Move the plane in coarse steps"}}},
                                {"Picking and measuring",
                                 {{"Click", "Pick the object under the cursor (the background clears it)"},
+                                 {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
+                                 {"T", "See through the picked surface, or make it opaque again"},
+                                 {"Shift + T", "Make every surface opaque again"},
                                  {"Shift + click", "Measure between two points (the background clears it)"}}},
                                {"Window",
                                 {{"C", "Print the camera and settings as C++"},
@@ -486,6 +491,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   const char* sectionNames[] = {"Off", "As given", "Across x", "Across y", "Across z"};
 
+  // The views, in the order of ViewMode, for the overlay and the window's title.
+  const char* viewNames[] = {
+    "Shaded view", "Depth view", "X-ray view", "Cost of firstHit() per pixel", "Cost of firstCrossing() per pixel"};
+
   // The preview's resolution, as a fraction of the window's, adapted to how long previews take.
   T previewScale = T(0.5);
 
@@ -501,6 +510,12 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   bool    picked = false;
   HitT<T> pick;
+
+  // Stepping through the surfaces under the cursor (Shift + wheel): the crossings there, front to back, the one
+  // picked, and the primitives in front of it, seen through while stepping (a click ends it).
+  std::vector<HitT<T>>  depthHits;
+  std::size_t           depthIndex = 0;
+  std::vector<uint32_t> depthHidden;
 
   // Measuring: none, one point, or two (Shift and a click marks them).
   int      measured = 0;
@@ -690,6 +705,16 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     frame.m_sectionNormal = normal;
     frame.m_sectionPoint  = point + sectionOffset * normal;
 
+    // While stepping through the surfaces under the cursor, those in front of the one picked are seen through, in
+    // the entries of m_hidden left free.
+    std::size_t next = 0;
+
+    for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives && next < depthHidden.size(); i++) {
+      if (frame.m_hidden[i] == Settings<T>::NoPrimitive) {
+        frame.m_hidden[i] = depthHidden[next++];
+      }
+    }
+
     if (a_stage < 2) {
       frame.m_supersampling = 1;
       frame.m_shadows       = false;
@@ -731,7 +756,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   // Whether a stage would draw anything the one before it did not.
   const auto adds = [&](const int a_stage) {
-    return a_stage == 1 || settings.m_supersampling > 1U || settings.m_shadows || settings.m_occlusion;
+    const bool timed = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
+
+    // A cost view traces one ray per pixel, unshaded: the full settings add nothing to it.
+    return a_stage == 1 || (!timed && (settings.m_supersampling > 1U || settings.m_shadows || settings.m_occlusion));
   };
 
   // Everything a render reads is passed by value, so that a background render never sees the camera or
@@ -821,6 +849,32 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                            : (settings.m_colorBy == ColorBy::Primitive) ? "Colored by primitive"
                                                                         : "Colored uniformly";
 
+    const bool costView = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
+
+    // A time in nanoseconds, in the unit that keeps it short.
+    const auto duration = [](const double a_ns) {
+      return (a_ns >= 1e6)   ? fixed(1e-6 * a_ns, 1) + " ms"
+             : (a_ns >= 1e3) ? fixed(1e-3 * a_ns, 1) + " us"
+                             : fixed(a_ns, 0) + " ns";
+    };
+
+    const std::string view =
+      std::string(viewNames[static_cast<int>(settings.m_viewMode)]) +
+      (costView ? ", " + duration(shownStats.m_costLow) + " to " + duration(shownStats.m_costHigh) +
+                    " (dark to bright)" + (onDevice ? ", elapsed on the GPU, waits included" : "")
+                : std::string());
+
+    // The primitives seen through.
+    std::string hidden;
+
+    for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives; i++) {
+      if (settings.m_hidden[i] != Settings<T>::NoPrimitive) {
+        hidden += (hidden.empty() ? "" : ", ") + std::to_string(settings.m_hidden[i]);
+      }
+    }
+
+    const std::string object = primitivesAreFaces<S> ? "face" : "object";
+
     // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
     const std::vector<std::vector<std::string>> states{
       {"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
@@ -833,7 +887,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
          point(settings.m_light, 2),
        "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
          fixed(double(settings.m_shininess), 0)},
-      {std::string(coloring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
+      {view,
+       std::string(coloring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
        "Supersampling " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
          " (" + std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel)",
        std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
@@ -852,6 +907,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                                        : "Object " + std::to_string(pick.m_primitive)) +
                   " at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
               : std::string("Nothing picked"),
+       hidden.empty() ? std::string("Every surface opaque") : "Seen through: " + object + " " + hidden,
+       depthHits.empty() ? std::string("Not stepping through surfaces")
+                         : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
+                             " under the cursor",
        (measured == 2) ? "Measured " + fixed(double((measureB - measureA).length()), 4) + ", along x, y, z " +
                            point(measureB - measureA, 4)
        : (measured == 1) ? "Measuring from " + point(measureA, 3) + "; Shift + click the second point"
@@ -998,9 +1057,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
     SDL_UpdateTexture(texture, nullptr, pixels, static_cast<int>(4U * a_image.m_width));
 
-    status = std::string("EBGeometry: ") + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
-             std::to_string(a_image.m_width) + "x" + std::to_string(a_image.m_height) + " in " +
-             std::to_string(int(1000.0 * a_seconds)) + " ms" +
+    status = std::string("EBGeometry: ") + viewNames[static_cast<int>(settings.m_viewMode)] + ", " +
+             (onDevice ? "GPU" : "CPU") + ", " + a_what + " " + std::to_string(a_image.m_width) + "x" +
+             std::to_string(a_image.m_height) + " in " + std::to_string(int(1000.0 * a_seconds)) + " ms" +
              // A few grazing rays can seem to leave the solid; say so only when more than one hit in a
              // thousand does.
              ((a_stats.m_insideHits * 1000U > a_stats.m_hits) ? ", red: seen from inside the solid" : "") +
@@ -1094,6 +1153,18 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
               break;
             }
 
+            // A click while stepping through surfaces keeps the one stepped to, and stops stepping.
+            if (!depthHits.empty()) {
+              depthHits.clear();
+              depthHidden.clear();
+
+              dragging = false;
+              panning  = false;
+              changed  = true;
+
+              break;
+            }
+
             pick   = hit;
             picked = pick.hit();
 
@@ -1152,6 +1223,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           changed = true;
         }
         else if (panning) {
+          depthHits.clear();
+          depthHidden.clear();
+
           // Move the target so that the point under the mouse follows it: at the target's distance, the
           // window's height spans 2 distance tan(fov / 2).
           int windowWidth  = 0;
@@ -1173,6 +1247,9 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           changed = true;
         }
         else if (dragging) {
+          depthHits.clear();
+          depthHidden.clear();
+
           camera.m_yaw -= T(0.4) * T(event.motion.xrel);
           camera.m_pitch = Math::clamp(camera.m_pitch + T(0.4) * T(event.motion.yrel), T(-90), T(90));
 
@@ -1190,11 +1267,64 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         // With Ctrl held the wheel moves the section plane in fine steps; otherwise it zooms. A sideways
         // scroll (y = 0) does neither.
         if (event.wheel.y != 0) {
-          if ((SDL_GetModState() & KMOD_CTRL) != 0 && sectionMode != 0) {
+          if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
+            // Shift and the wheel step through the surfaces under the cursor: the first step picks the nearest,
+            // rolling down steps deeper, rolling up back towards the eye. Each is picked in turn, and the primitives
+            // in front of it are seen through; for a mesh SDF, whose primitives are its faces, only the faces under
+            // the cursor.
+            int windowWidth  = 0;
+            int windowHeight = 0;
+            int mouseX       = 0;
+            int mouseY       = 0;
+
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            Settings<T> frame = stageSettings(2);
+
+            // The surfaces are listed as the user's settings show them, without those stepped past.
+            frame.m_hidden = settings.m_hidden;
+
+            const T column = T(mouseX) * T(frame.m_width) / T(Math::max(windowWidth, 1));
+            const T row    = T(mouseY) * T(frame.m_height) / T(Math::max(windowHeight, 1));
+
+            if (depthHits.empty()) {
+              depthHits  = Renderer<T>(frame).pickAll(a_shape, camera, column, row);
+              depthIndex = 0;
+            }
+            else if (event.wheel.y < 0 && depthIndex + 1 < depthHits.size()) {
+              depthIndex++;
+            }
+            else if (event.wheel.y > 0 && depthIndex > 0) {
+              depthIndex--;
+            }
+
+            depthHidden.clear();
+
+            if (!depthHits.empty()) {
+              pick   = depthHits[depthIndex];
+              picked = true;
+
+              settings.m_highlightPrimitive = primitivesAreFaces<S> ? Settings<T>::AllPrimitives : pick.m_primitive;
+
+              for (std::size_t i = 0; i < depthIndex; i++) {
+                const uint32_t id = depthHits[i].m_primitive;
+
+                if (id != pick.m_primitive &&
+                    std::find(depthHidden.begin(), depthHidden.end(), id) == depthHidden.end()) {
+                  depthHidden.push_back(id);
+                }
+              }
+            }
+          }
+          else if ((SDL_GetModState() & KMOD_CTRL) != 0 && sectionMode != 0) {
             sectionOffset += T(0.005) * scale * T(event.wheel.y);
           }
           else {
             camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
+
+            depthHits.clear();
+            depthHidden.clear();
           }
 
           changed = true;
@@ -1411,8 +1541,67 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           break;
         }
+        case SDLK_m: {
+          // M steps forward through the five views, Shift and M back.
+          const int step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? 4 : 1;
+
+          settings.m_viewMode = static_cast<ViewMode>((static_cast<int>(settings.m_viewMode) + step) % 5);
+
+          break;
+        }
+        case SDLK_t: {
+          // Shift and T make every surface opaque again; T alone toggles the picked surface.
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives; i++) {
+              settings.m_hidden[i] = Settings<T>::NoPrimitive;
+            }
+          }
+          else if (picked) {
+            const uint32_t id = pick.m_primitive;
+
+            uint32_t* slot = nullptr;
+            bool      was  = false;
+
+            for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives; i++) {
+              if (settings.m_hidden[i] == id) {
+                settings.m_hidden[i] = Settings<T>::NoPrimitive;
+                was                  = true;
+              }
+              else if (slot == nullptr && settings.m_hidden[i] == Settings<T>::NoPrimitive) {
+                slot = &settings.m_hidden[i];
+              }
+            }
+
+            if (!was && slot == nullptr) {
+              std::printf("EBGeometry viewer: at most %u surfaces can be seen through; Shift + T shows them all.\n",
+                          unsigned(Settings<T>::HiddenPrimitives));
+              std::fflush(stdout);
+            }
+            else if (!was) {
+              *slot = id;
+
+              // What is seen through is no longer picked.
+              picked                        = false;
+              settings.m_highlightPrimitive = Settings<T>::NoPrimitive;
+            }
+          }
+          else {
+            changed = pending;
+          }
+
+          break;
+        }
         case SDLK_r: {
-          camera = a_camera;
+          // The camera, the light and the picked surfaces, as the window opened with them.
+          camera                        = a_camera;
+          settings.m_light              = a_settings.m_light;
+          settings.m_hidden             = a_settings.m_hidden;
+          settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
+          settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
+          picked                        = false;
+
+          depthHits.clear();
+          depthHidden.clear();
 
           break;
         }

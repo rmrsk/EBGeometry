@@ -127,6 +127,8 @@ namespace EBGeometry {
   template Render::Stats Render::Renderer<PREC>::renderOnDevice<Tape<PREC>>( \
     const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \
   template void Render::view<Tape<PREC>>(const Tape<PREC>&, int, char**);    \
+  template std::vector<HitT<PREC>> Render::Renderer<PREC>::pickAll<Tape<PREC>>( \
+    const Tape<PREC>&, const Render::Camera<PREC>&, PREC, PREC) const;       \
   template void Render::view<Tape<PREC>>(const Tape<PREC>&, const Tape<PREC>&, int, char**); \
   template HitT<PREC> Render::Renderer<PREC>::pick<Tape<PREC>>(const Tape<PREC>&, const Render::Camera<PREC>&, PREC, PREC) const; \
   template void Render::view<Tape<PREC>>(const Tape<PREC>&, Pool&, int, char**); \

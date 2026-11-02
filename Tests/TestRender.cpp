@@ -8,6 +8,7 @@
 #include "TestGPU.hpp"
 #include "TestTapeUtils.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -550,6 +551,18 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
     },
     "Render::Renderer: the iso-line spacing must not be negative (-1)"));
 
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_volumeOpacity = T(1.5);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the x-ray's and the fill's opacities must be from 0 to 1 (0.25, 1.5)"));
+
   REQUIRE(
     abortsWith([] { (void)Render::Camera<T>::fit(PlaneSDF<T>(Vec3::zeros(), Vec3(0, 1, 0)).computeBoundingVolume()); },
                "Render::Camera: fit() needs a bounded, non-empty box"));
@@ -729,7 +742,7 @@ TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the ca
   uint32_t          rows     = 0U;
   volatile uint32_t progress = 0U;
 
-  const Render::RenderDetail::FrameOfPixels<T, SphereSDF<T>> frame{
+  const Render::RenderDetail::FrameOfPixels<Render::PixelQuery<T, SphereSDF<T>>> frame{
     query, results.data(), primitives.data(), &cancel, &skipped, &rows, &progress, 0U, 8U};
 
   // Not canceled: every pixel is shaded as the plain query shades it, and each row counted once, by its last pixel.
@@ -1118,6 +1131,8 @@ TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their de
   settings.m_colorBy            = Render::ColorBy::Uniform;
   settings.m_primitiveColors[3] = Vec3(T(0.5), T(0.5), T(0.5));
   settings.m_rays.m_maxSteps    = 100;
+  settings.m_viewMode           = Render::ViewMode::XRay;
+  settings.m_hidden[1]          = 7;
 
   CHECK(Render::toCode(camera, settings) ==
         "EBGeometry::Render::Camera<T> camera;\n"
@@ -1129,7 +1144,9 @@ TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their de
         "settings.m_shadows = false;\n"
         "settings.m_colorBy = EBGeometry::Render::ColorBy::Uniform;\n"
         "settings.m_primitiveColors[3] = EBGeometry::Vec3T<T>(T(0.5), T(0.5), T(0.5));\n"
-        "settings.m_rays.m_maxSteps = 100;\n");
+        "settings.m_rays.m_maxSteps = 100;\n"
+        "settings.m_viewMode = EBGeometry::Render::ViewMode::XRay;\n"
+        "settings.m_hidden[1] = 7;\n");
 }
 
 TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthographic camera, a near clip, a "
@@ -1476,4 +1493,462 @@ TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the imag
   CHECK(face.m_primitive == 0U);
   CHECK((wall.m_point - Vec3(T(-0.3), T(0), T(-0.2))).length() < T(1e-2));
   CHECK(std::abs(face.m_point[2] - T(1)) < T(1e-2));
+}
+
+namespace {
+
+// Two spheres of radius 0.6 on the z axis, leaf 0 in front (z = 1) and leaf 1 behind (z = -1), looked at
+// orthographically along -z, so that the image's center sees both.
+template <class T>
+Render::Camera<T>
+frontView(const BoundingVolumes::AABBT<T>& a_box)
+{
+  Render::Camera<T> camera = Render::Camera<T>::fit(a_box, Render::View::Front);
+
+  camera.m_orthographic = true;
+
+  return camera;
+}
+
+template <class T>
+Expr<T>
+twoSpheresAlongZ()
+{
+  return Union(SphereSDF<T>(Vec3T<T>(T(0), T(0), T(1)), T(0.6)), SphereSDF<T>(Vec3T<T>(T(0), T(0), T(-1)), T(0.6)));
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Render: the depth view is brightest where the surface is nearest, and shows the background "
+                   "elsewhere",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  const Render::Camera<T> camera = frontView(sphere.computeBoundingVolume());
+
+  constexpr uint32_t size = 41;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_viewMode = Render::ViewMode::Depth;
+
+  Render::Image image;
+
+  const Render::Stats stats = Render::Renderer<T>(settings).render(sphere, camera, image);
+
+  const auto brightness = [&image](const uint32_t a_column) {
+    const Channels c = channels(image.at(a_column, size / 2));
+
+    return c.r + c.g + c.b;
+  };
+
+  // Along the middle row, from the sphere's center (nearest) out towards its rim (farther), and the background.
+  CHECK(brightness(size / 2) > brightness(size / 2 + 6));
+  CHECK(brightness(size / 2 + 6) > brightness(size / 2 + 10));
+  Render::Image shaded;
+
+  (void)Render::Renderer<T>(plain<T>(size)).render(sphere, camera, shaded);
+
+  CHECK(image.at(0, 0) == shaded.at(0, 0));
+  CHECK(stats.m_hits > 0U);
+  CHECK(stats.m_insideHits == 0U);
+}
+
+TEMPLATE_TEST_CASE("Render: the x-ray view shows every surface a ray crosses but a hidden one, on black",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Two spheres along the view: the center ray crosses four surfaces head-on, a ray past them none.
+  const TestUtils::Compiled<T> pair(twoSpheresAlongZ<T>());
+
+  const Render::Camera<T> camera = frontView(pair.tape().computeBoundingVolume());
+
+  constexpr uint32_t size = 21;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_viewMode    = Render::ViewMode::XRay;
+  settings.m_xrayOpacity = T(0.25);
+  settings.m_specular    = T(0);
+
+  Render::Renderer<T> renderer(settings);
+
+  // Without highlights, a surface seen head-on glows 0.3 of the opacity, and each lets 0.75 of what is behind it
+  // through: n surfaces show 0.075 (1 + 0.75 + ... + 0.75^(n - 1)), gray, gamma encoded.
+  const auto gray = [](const int a_surfaces) {
+    T sum = T(0);
+
+    for (int i = 0; i < a_surfaces; i++) {
+      sum += T(0.075) * std::pow(T(0.75), T(i));
+    }
+
+    return int(T(255) * std::pow(sum, T(1) / T(2.2)) + T(0.5));
+  };
+
+  Render::Image image;
+
+  const Render::Stats stats = renderer.render(pair.tape(), camera, image);
+
+  const Channels center = channels(image.at(size / 2, size / 2));
+  const Channels corner = channels(image.at(0, 0));
+
+  CHECK(std::abs(center.r - gray(4)) <= 2);
+  CHECK(center.r == center.g);
+  CHECK(center.g == center.b);
+  CHECK(corner.r == 0);
+  CHECK(corner.g == 0);
+  CHECK(corner.b == 0);
+  CHECK(stats.m_hits > 0U);
+
+  // The front sphere hidden, the center ray shows the back one alone.
+  renderer.settings().m_hidden[0] = 0U;
+
+  (void)renderer.render(pair.tape(), camera, image);
+
+  CHECK(std::abs(channels(image.at(size / 2, size / 2)).r - gray(2)) <= 2);
+
+  // The highlighted sphere glows in the highlight's color, and the image records the first surface's object.
+  renderer.settings().m_hidden[0]          = Render::Settings<T>::NoPrimitive;
+  renderer.settings().m_recordPrimitives   = true;
+  renderer.settings().m_highlightPrimitive = 1U;
+
+  (void)renderer.render(pair.tape(), camera, image);
+
+  const Channels tinted = channels(image.at(size / 2, size / 2));
+
+  CHECK(tinted.r != tinted.b);
+  CHECK(image.m_primitives[(size / 2) * size + size / 2] == 0U);
+
+  // Highlights brighten it.
+  renderer.settings().m_highlightPrimitive = Render::Settings<T>::NoPrimitive;
+  renderer.settings().m_specular           = T(0.45);
+
+  (void)renderer.render(pair.tape(), camera, image);
+
+  CHECK(channels(image.at(size / 2, size / 2)).r > center.r);
+}
+
+TEMPLATE_TEST_CASE("Render: the cost views color each pixel from the frame's cheapest to its dearest, and count its "
+                   "hits",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const TestUtils::Compiled<T> drilled(
+    Difference(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.3), 2)));
+
+  const Render::Camera<T> camera = Render::Camera<T>::fit(drilled.tape().computeBoundingVolume());
+
+  constexpr uint32_t size = 24;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  Render::Image shadedImage;
+
+  const Render::Stats shaded = Render::Renderer<T>(settings).render(drilled.tape(), camera, shadedImage);
+
+  const Vec3T<double> darkest   = Render::RenderDetail::ramp<double>(0.0);
+  const Vec3T<double> brightest = Render::RenderDetail::ramp<double>(1.0);
+
+  const auto rgba = [](const Vec3T<double>& a_c) {
+    uint32_t value = 0xFFU;
+
+    for (int k = 0; k < 3; k++) {
+      value |= static_cast<uint32_t>(255.0 * a_c[k] + 0.5) << (24 - 8 * k);
+    }
+
+    return value;
+  };
+
+  for (const Render::ViewMode mode : {Render::ViewMode::CostHit, Render::ViewMode::CostCrossing}) {
+    settings.m_viewMode = mode;
+
+    Render::Image image;
+
+    const Render::Stats stats = Render::Renderer<T>(settings).render(drilled.tape(), camera, image);
+
+    CHECK(stats.m_hits == shaded.m_hits);
+    CHECK(stats.m_insideHits == shaded.m_insideHits);
+
+    // One ray per pixel, whatever the supersampling.
+    Render::Settings<T> supersampled = settings;
+
+    supersampled.m_supersampling = 3;
+
+    Render::Image       image3;
+    const Render::Stats once = Render::Renderer<T>(supersampled).render(drilled.tape(), camera, image3);
+
+    CHECK(once.m_rays == uint64_t(size) * size);
+    CHECK(once.m_hits == shaded.m_hits);
+    CHECK(stats.m_costLow > 0.0);
+    CHECK(stats.m_costHigh >= stats.m_costLow);
+
+    // The cheapest pixel takes the ramp's darkest color, the dearest its brightest, and every other pixel lies
+    // on the ramp between them.
+    CHECK(std::count(image.m_pixels.begin(), image.m_pixels.end(), rgba(darkest)) >= 1);
+
+    if (stats.m_costHigh > stats.m_costLow) {
+      CHECK(std::count(image.m_pixels.begin(), image.m_pixels.end(), rgba(brightest)) >= 1);
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Render: a hidden primitive is seen through, in the image and in picking",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const TestUtils::Compiled<T> pair(twoSpheresAlongZ<T>());
+
+  const Render::Camera<T> camera = frontView(pair.tape().computeBoundingVolume());
+
+  constexpr uint32_t size = 21;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_recordPrimitives = true;
+  settings.m_colorBy          = Render::ColorBy::Primitive;
+
+  Render::Renderer<T> renderer(settings);
+
+  const T middle = T(0.5) * T(size);
+
+  REQUIRE(renderer.pick(pair.tape(), camera, middle, middle).m_primitive == 0U);
+
+  Render::Image before;
+
+  (void)renderer.render(pair.tape(), camera, before);
+
+  renderer.settings().m_hidden[3] = 0U;
+
+  Render::Image after;
+
+  const Render::Stats stats = renderer.render(pair.tape(), camera, after);
+
+  const HitT<T> behind = renderer.pick(pair.tape(), camera, middle, middle);
+
+  REQUIRE(behind.hit());
+  CHECK(behind.m_primitive == 1U);
+  CHECK(std::abs(behind.m_point[2] - T(-0.4)) < T(1e-2));
+  CHECK(after.m_primitives[(size / 2) * size + size / 2] == 1U);
+  CHECK(after.at(size / 2, size / 2) != before.at(size / 2, size / 2));
+  CHECK(stats.m_insideHits == 0U);
+
+  // Hiding the other one too leaves the background.
+  renderer.settings().m_hidden[5] = 1U;
+
+  CHECK_FALSE(renderer.pick(pair.tape(), camera, middle, middle).hit());
+}
+
+TEMPLATE_TEST_CASE("Render: a surface seen through a hidden one is shaded as seen from outside",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A box (leaf 0) with a spherical cavity (leaf 1): with the box hidden, the center ray passes through its front
+  // face into the material and meets the cavity's wall from inside the solid.
+  const TestUtils::Compiled<T> hollow(
+    Difference(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), SphereSDF<T>(Vec3::zeros(), T(0.5))));
+
+  const Render::Camera<T> camera = frontView(hollow.tape().computeBoundingVolume());
+
+  constexpr uint32_t size = 21;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_recordPrimitives = true;
+  settings.m_hidden[0]        = 0U;
+
+  Render::Image image;
+
+  const Render::Stats stats = Render::Renderer<T>(settings).render(hollow.tape(), camera, image);
+
+  CHECK(image.m_primitives[(size / 2) * size + size / 2] == 1U);
+  CHECK(stats.m_insideHits == 0U);
+}
+
+TEMPLATE_TEST_CASE("Render: a filled part tints the pixels whose rays pass through it, in front or behind",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const TestUtils::Compiled<T> pair(
+    Union(SphereSDF<T>(Vec3(T(-1), T(0), T(0)), T(0.6)), SphereSDF<T>(Vec3(T(1), T(0), T(0)), T(0.6))));
+
+  const Render::Camera<T> camera = frontView(pair.tape().computeBoundingVolume());
+
+  constexpr uint32_t size = 40;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_colorBy = Render::ColorBy::Uniform;
+
+  Render::Renderer<T> renderer(settings);
+
+  Render::Image plainImage;
+  Render::Image filled;
+
+  (void)renderer.render(pair.tape(), camera, plainImage);
+
+  renderer.settings().m_volumePrimitive = 1U;
+
+  (void)renderer.render(pair.tape(), camera, filled);
+
+  const T half  = camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+  const T scale = T(size) / (T(2) * half);
+
+  const auto at = [&](const Render::Image& a_image, const T a_x) {
+    return a_image.at(uint32_t((a_x - camera.m_target[0] + half) * scale), size / 2);
+  };
+
+  CHECK(at(filled, T(-1)) == at(plainImage, T(-1)));
+  CHECK(at(filled, T(1)) != at(plainImage, T(1)));
+  CHECK(channels(at(filled, T(1))).b > channels(at(plainImage, T(1))).b);
+  CHECK(filled.at(0, 0) == plainImage.at(0, 0));
+
+  // The back sphere of two along the view, filled, shows through the front one.
+  const TestUtils::Compiled<T> aligned(twoSpheresAlongZ<T>());
+
+  const Render::Camera<T> front = frontView(aligned.tape().computeBoundingVolume());
+
+  Render::Renderer<T> behind(plain<T>(size));
+
+  Render::Image unfilled;
+  Render::Image backFilled;
+
+  (void)behind.render(aligned.tape(), front, unfilled);
+
+  behind.settings().m_volumePrimitive = 1U;
+
+  (void)behind.render(aligned.tape(), front, backFilled);
+
+  CHECK(backFilled.at(size / 2, size / 2) != unfilled.at(size / 2, size / 2));
+}
+
+TEMPLATE_TEST_CASE("Render: pickAll() lists every crossing under a point, front to back",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const TestUtils::Compiled<T> pair(twoSpheresAlongZ<T>());
+
+  const Render::Camera<T> camera = frontView(pair.tape().computeBoundingVolume());
+
+  constexpr uint32_t size = 21;
+
+  Render::Renderer<T> renderer(plain<T>(size));
+
+  // Hidden primitives are listed too.
+  renderer.settings().m_hidden[0] = 0U;
+
+  const T middle = T(0.5) * T(size);
+
+  const std::vector<HitT<T>> hits = renderer.pickAll(pair.tape(), camera, middle, middle);
+
+  REQUIRE(hits.size() == 4U);
+
+  const T        z[4]        = {T(1.6), T(0.4), T(-0.4), T(-1.6)};
+  const uint32_t leaf[4]     = {0U, 0U, 1U, 1U};
+  const bool     entering[4] = {true, false, true, false};
+
+  for (size_t i = 0; i < 4; i++) {
+    CHECK(std::abs(hits[i].m_point[2] - z[i]) < T(1e-2));
+    CHECK(hits[i].m_primitive == leaf[i]);
+    CHECK(hits[i].m_entering == entering[i]);
+  }
+
+  CHECK(renderer.pickAll(pair.tape(), camera, T(0.5), T(0.5)).empty());
+}
+
+TEMPLATE_TEST_CASE("Render: the device render matches the host's in the depth and x-ray views, and with a hidden "
+                   "primitive and a filled part",
+                   "[Render][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(
+    pool, Difference(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), SphereSDF<T>(Vec3(T(0.2), T(0), T(0)), T(0.6))));
+
+  pool.freeze();
+
+  const Pool    devicePool = Pool::mirror(pool, deviceTestResource());
+  const Tape<T> view       = tape.rebasedView(devicePool);
+
+  const auto camera = Render::Camera<T>::fit(tape.computeBoundingVolume());
+
+  Render::Settings<T> base;
+
+  base.m_width         = 40;
+  base.m_height        = 32;
+  base.m_supersampling = 1;
+
+  std::vector<Render::Settings<T>> cases(4, base);
+
+  cases[0].m_viewMode        = Render::ViewMode::Depth;
+  cases[1].m_viewMode        = Render::ViewMode::XRay;
+  cases[2].m_hidden[0]       = 0U;
+  cases[3].m_volumePrimitive = 1U;
+
+  for (const Render::Settings<T>& settings : cases) {
+    const Render::Renderer<T> renderer(settings);
+
+    Render::Image host;
+    Render::Image device;
+
+    const Render::Stats hostStats   = renderer.render(tape, camera, host);
+    const Render::Stats deviceStats = renderer.renderOnDevice(view, camera, device);
+
+    REQUIRE(host.m_pixels.size() == device.m_pixels.size());
+
+    size_t different = 0;
+
+    for (size_t i = 0; i < host.m_pixels.size(); i++) {
+      const Channels a = channels(host.m_pixels[i]);
+      const Channels b = channels(device.m_pixels[i]);
+
+      if (std::abs(a.r - b.r) > 3 || std::abs(a.g - b.g) > 3 || std::abs(a.b - b.b) > 3) {
+        different++;
+      }
+    }
+
+    CHECK(different <= host.m_pixels.size() / 50);
+    CHECK(std::abs(double(hostStats.m_hits) - double(deviceStats.m_hits)) <= double(hostStats.m_rays) / 50);
+  }
+
+  // A cost view renders on the device too, in clock cycles.
+  Render::Settings<T> cost = base;
+
+  cost.m_viewMode = Render::ViewMode::CostCrossing;
+
+  Render::Image image;
+
+  const Render::Stats stats = Render::Renderer<T>(cost).renderOnDevice(view, camera, image);
+
+  CHECK(stats.m_costLow > 0.0);
+  CHECK(stats.m_costHigh >= stats.m_costLow);
 }

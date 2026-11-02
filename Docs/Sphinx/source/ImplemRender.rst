@@ -6,7 +6,8 @@ The renderer and the viewer
 The renderer is in `EBGeometry_Render.hpp <doxygen/html/EBGeometry__Render_8hpp.html>`__ and the window
 in `EBGeometry_Viewer.hpp <doxygen/html/EBGeometry__Viewer_8hpp.html>`__; ``EBGeometry.hpp`` includes
 both. Every ray it casts is a ``firstHit()`` on the shape (see :ref:`Chap:ImplemRays`), so it renders any
-shape, exactly where the shape has a ray form. :ref:`Chap:Rendering` describes the method.
+shape, exactly where the shape has a ray form; the depth view and the cost of ``firstCrossing()`` use
+``firstCrossing()``. :ref:`Chap:Rendering` describes the method.
 
 .. contents:: On this page
    :local:
@@ -50,7 +51,12 @@ The classes are in namespace ``Render``:
   box), and the march (``RayOptions``). ``m_primitiveColors`` gives the first
   ``Settings::PrimitiveColors`` (16) primitive ids colors of their own; an entry left unset, and every
   later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colors its bore steel gray).
-  ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColor``.
+  ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColor``. ``m_viewMode`` picks the
+  view (``ViewMode::Shaded``, the default, ``Depth``, ``XRay``, ``CostHit`` or ``CostCrossing``; see
+  :ref:`Chap:Rendering`), and ``m_xrayOpacity`` how opaque each surface is in an x-ray (its highlights follow ``m_specular`` and
+  ``m_shininess``). ``m_hidden`` lists up to
+  ``Settings::HiddenPrimitives`` (8) primitives to see through, and ``m_volumePrimitive`` a part whose inside is
+  filled with ``m_volumeColor`` at ``m_volumeOpacity`` (``AllPrimitives`` fills the whole solid).
   ``Render::writeImage(image, file)`` writes an image as binary PPM. ``Render::toCode(camera, settings)`` writes a camera and
   settings as C++ statements, the fields that differ from their defaults.
 * `Renderer <doxygen/html/classEBGeometry_1_1Render_1_1Renderer.html>`__ holds the settings.
@@ -61,16 +67,44 @@ The classes are in namespace ``Render``:
   the next row on the host, before the next pixel on a device), and a counter of the rows done; a stopped
   render says so in ``Stats::m_complete``. ``pick(shape, camera, column, row)`` returns the hit (``HitT``: the
   primitive, the point, the normal) of the ray through a point of the image, cut as the render cuts it, so
-  that it names what a render draws there. Each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
+  that it names what a render draws there, looking through hidden primitives; ``pickAll()`` lists every
+  crossing under the point, front to back, hidden ones included (at most ``Renderer::MaxCrossings``). In the
+  shaded view each pixel is `PixelQuery <doxygen/html/structEBGeometry_1_1Render_1_1PixelQuery.html>`__, a
   trivially copyable functor that reads everything it needs about the shape (its box, its scale, where
-  the floor goes) from the shape itself.
+  the floor goes) from the shape itself; the other views, and a shaded view with hidden or filled parts, use
+  another such functor, so the shaded view's compiled code carries none of theirs.
 * Every shape is shaded the same way, through ``firstHit()`` (shadows, ambient occlusion and the section
   plane's cut included), so the renderer needs nothing of a shape beyond what makes it a shape.
 * ``HitT::m_primitive`` colors by primitive: a tape's leaf or a mesh SDF's face; any other shape (a
   fused composition, an analytic shape) is one primitive, 0 (see :ref:`Chap:ImplemRays`).
 * `Stats <doxygen/html/structEBGeometry_1_1Render_1_1Stats.html>`__ reports the rays cast, those that hit
   the shape, those that hit it from inside the solid (drawn tinted red), those that were unresolved
-  (drawn as misses), and whether the eye is inside the solid. The renderer prints nothing.
+  (drawn as misses), and whether the eye is inside the solid; in a cost view, the times in nanoseconds the
+  darkest and the brightest colors stand for (``m_costLow``, ``m_costHigh``; the frame's cheapest and dearest
+  hundredth of pixels are clamped to them, so that a few interrupted rays do not stretch the scale). On the host
+  a pixel's time is its rays' own. On a device it is the time that passed while its thread traced them: the
+  threads of a warp step together, so a pixel waits for the slowest ray of its warp (the picture shows blocks of
+  32 pixels along a row), and the device also runs other warps meanwhile, so the times are longer than the rays'
+  cost; they still show which parts of a shape are slow (see the figure below). The renderer prints nothing.
+
+The cost views on the host and on a device
+------------------------------------------
+
+The figure shows a mesh, the xyzrgb dragon of :ref:`Chap:ExampleMeshCSG` as a ``TriMeshSDF``, in the cost view
+of ``firstCrossing()``, rendered on the host (left) and on a GPU (right); the cost view of ``firstHit()`` looks
+alike. On the host each pixel's time is its own ray's, so the picture shows where the work is:
+the mesh's surface, and the boxes of its BVH, which a ray costs more to enter. On a GPU a pixel's time is how
+long its thread was busy: the 32 threads of a warp trace together, so each pixel shows the slowest ray of its
+warp (blocks of 32 pixels along a row), and every ray waits on memory far longer than on a CPU core, which the
+device makes up for by tracing tens of thousands of rays at once. The two scales differ: the colors compare
+pixels within a frame, not the host with the device. For a device's throughput, compare frame times, or time
+your own queries with the ``Performance/`` probes (see :ref:`Chap:PerformanceTesting`).
+
+.. figure:: _static/render_cost_firstCrossing.jpg
+   :width: 90%
+   :align: center
+
+   The cost of ``firstCrossing()`` per pixel, on the host (left) and on a GPU (right).
 
 The viewer
 ----------
@@ -102,6 +136,12 @@ viewer does), and its id, point and normal are printed; a click on
 the background clears it. With a section plane on, the overlay shows the point under the cursor on the
 plane and the shape's value there; Shift and a click on two surfaces measures the distance between them.
 
+M cycles the views, Shift + M backwards. T makes the picked surface see-through (or opaque again), so that what is behind or
+inside it can be picked and looked at; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
+each is picked in turn, and those in front of it are seen through while stepping (for a mesh SDF, whose
+primitives are its faces, only the faces under the cursor); a click keeps the one stepped to. R puts the camera, the light and the picked and see-through surfaces back as the window
+opened with them.
+
 .. _Sec:ViewerKeys:
 
 .. list-table:: The viewer's keys
@@ -114,13 +154,15 @@ plane and the shape's value there; Shift and a click on two surfaces measures th
      - Orbit the camera, pan it, zoom.
    * - 1, 2, 3; O; R
      - Look from the front, the side, the top; switch between perspective and orthographic; reset the
-       camera.
+       camera, the light and the picked surfaces.
    * - +, -; double-click
      - A narrower or wider field of view; center the camera on the point under the cursor.
    * - Right drag
      - Move the light.
    * - Left, Right (Shift + Left, Right)
      - Weaker or stronger highlights, ``m_specular`` (broader or tighter, ``m_shininess``).
+   * - M; Shift + M
+     - Cycle the view: shaded, depth, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards.
    * - P
      - Cycle the coloring: by normal, uniform, by primitive.
    * - S, A, F, B
@@ -140,6 +182,10 @@ plane and the shape's value there; Shift and a click on two surfaces measures th
    * - Click; Shift + click
      - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
        and a line between them). On the background, either clears.
+   * - Shift + wheel
+     - Step through the surfaces under the cursor, front to back, seeing through those in front.
+   * - T; Shift + T
+     - See through the picked surface, or make it opaque again; make every surface opaque.
    * - C; W
      - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program;
        save the full frame as a PPM image (``writeImage()``) in the working directory.
