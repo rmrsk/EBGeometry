@@ -1302,10 +1302,10 @@ countRow(uint32_t* a_rows) noexcept
  * results, or none of them once the render is canceled.
  * @details Internal helper; not part of the public API. The pixel indices come from the launch, so nothing
  * is copied to the device but the functor. A device render is one launch over the whole frame; a canceled
- * one has its threads read m_cancel, a flag in host memory mapped into the device's (written by the host
- * while the kernel runs), and skip their pixel once it is set, leaving it black and setting m_skipped,
- * which says whether the render completed. Each row's last pixel counts the row, in m_rows (device
- * memory) and in m_progress (the mapped memory, for the host to show while the kernel runs). The threads of
+ * one has its threads read m_cancel, a flag in device memory (copied there by the host while the kernel runs),
+ * and skip their pixel once it is set, leaving it black and setting m_skipped, which says whether the render
+ * completed. Each row's last pixel counts the row, in m_rows (device memory) and in m_progress (host memory
+ * mapped into the device's, for the host to show while the kernel runs). The threads of
  * a row run in no set order, so the count is progress only: a row may be counted before all of its pixels
  * are done.
  * @tparam Q Pixel functor type: PixelQuery for the shaded view, InspectQuery for the others.
@@ -2728,29 +2728,30 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
     stopped = true;
   }
   else {
-    // The kernel reads the cancel flag from host memory mapped into the device's, and writes its progress
-    // there; while this thread waits for the launch, another passes the flag on and the progress back. The
-    // mapped pointer is passed to the kernel as it is, which unified virtual addressing (every 64-bit CUDA
-    // and HIP platform) allows. Whether a pixel skipped its work, which says whether the render completed,
-    // and the count of rows are in device memory. Reading the flag for every pixel is most of what this
-    // costs over a render that cannot be canceled: on an RTX 3080, about 4 ms of a 37 ms frame of a cheap
-    // scene at 1024 x 1024 pixels, and 1 ms of a 9 ms one at 256 x 256.
-    uint32_t* mapped = nullptr; // The cancel flag, then the progress.
-    uint32_t* counts = nullptr; // Whether a pixel skipped its work, then the rows.
+    // While this thread waits for the launch, another passes the cancel flag to the device and the progress
+    // back. The kernel reads the flag from device memory, where that thread copies it on a stream of its own,
+    // which runs alongside the kernel; read from host memory mapped into the device's, the flag cost every pixel
+    // a read across the bus, about 10 ms of a 7 ms frame (RTX 3080, 960 x 960 pixels). The kernel writes the
+    // progress, once a row, to that mapped memory, passed to it as it is, which unified virtual addressing
+    // (every 64-bit CUDA and HIP platform) allows. Whether a pixel skipped its work, which says whether the
+    // render completed, and the count of rows are in device memory too.
+    uint32_t*   mapped = nullptr; // The progress, then a 1 to copy to the device's flag.
+    uint32_t*   counts = nullptr; // Whether a pixel skipped its work, the rows, the cancel flag.
+    GPU::Stream stream = nullptr;
 
-    const uint32_t zeros[2] = {0U, 0U};
+    const uint32_t zeros[3] = {0U, 0U, 0U};
 
     EBGEOMETRY_GPU_CHECK(GPU::memAllocHostMapped(reinterpret_cast<void**>(&mapped), 2U * sizeof(uint32_t)));
-    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&counts), 2U * sizeof(uint32_t)));
-    EBGEOMETRY_GPU_CHECK(GPU::memcpy(counts, zeros, 2U * sizeof(uint32_t), GPU::MemcpyHostToDevice));
+    EBGEOMETRY_GPU_CHECK(GPU::memAlloc(reinterpret_cast<void**>(&counts), 3U * sizeof(uint32_t)));
+    EBGEOMETRY_GPU_CHECK(GPU::memcpy(counts, zeros, 3U * sizeof(uint32_t), GPU::MemcpyHostToDevice));
+    EBGEOMETRY_GPU_CHECK(GPU::streamCreateNonBlocking(&stream));
 
-    volatile uint32_t* const flag     = mapped;
-    volatile uint32_t* const progress = mapped + 1;
+    volatile uint32_t* const progress = mapped;
 
-    *flag     = 0U;
     *progress = 0U;
+    mapped[1] = 1U;
 
-    frame.m_cancel   = flag;
+    frame.m_cancel   = counts + 2;
     frame.m_skipped  = counts;
     frame.m_rows     = counts + 1;
     frame.m_progress = progress;
@@ -2773,9 +2774,14 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
     std::thread relay([&]() {
       std::unique_lock<std::mutex> lock(mutex);
 
+      bool sent = false;
+
       while (!finished) {
-        if (a_cancel->load(std::memory_order_relaxed)) {
-          *flag = 1U;
+        if (!sent && a_cancel->load(std::memory_order_relaxed)) {
+          EBGEOMETRY_GPU_CHECK(
+            GPU::memcpyAsync(counts + 2, mapped + 1, sizeof(uint32_t), GPU::MemcpyHostToDevice, stream));
+
+          sent = true;
         }
 
         report(*progress);
@@ -2797,6 +2803,8 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
 
     uint32_t done[2] = {0U, 0U};
 
+    EBGEOMETRY_GPU_CHECK(GPU::streamSynchronize(stream));
+    EBGEOMETRY_GPU_CHECK(GPU::streamDestroy(stream));
     EBGEOMETRY_GPU_CHECK(GPU::memcpy(done, counts, 2U * sizeof(uint32_t), GPU::MemcpyDeviceToHost));
     EBGEOMETRY_GPU_CHECK(GPU::memFree(counts));
     EBGEOMETRY_GPU_CHECK(GPU::memFreeHost(mapped));

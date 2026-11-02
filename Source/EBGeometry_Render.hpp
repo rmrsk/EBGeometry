@@ -967,7 +967,7 @@ public:
    * before each pixel, and the render returns soon after it is set, with Stats::m_complete false and the
    * pixels not reached left black. a_rowsDone, if given, counts the rows as they finish, so another thread can
    * show the progress (a row counts once its last pixel is done, possibly before some of its others). The flag
-   * reaches the device, and the count the host, through a thread the render starts and memory both can read.
+   * reaches the device, and the count the host, through a thread the render starts, while the kernel runs.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_deviceShape The shape, as a view valid on the device.
    * @param[in]  a_camera      Camera.

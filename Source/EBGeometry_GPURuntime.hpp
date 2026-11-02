@@ -157,6 +157,50 @@ memcpy(void* a_dst, const void* a_src, size_t a_numBytes, MemcpyKind a_kind) noe
 getDeviceCount(int* a_count) noexcept;
 
 /**
+ * @brief A stream of device work (@c cudaStream_t / @c hipStream_t).
+ */
+using Stream = void*;
+
+/**
+ * @brief Create a stream that runs alongside the default stream rather than waiting for its work (@c
+ * cudaStreamCreateWithFlags / @c hipStreamCreateWithFlags with the non-blocking flag), for a copy made while a kernel
+ * on the default stream runs. Destroy it with @ref streamDestroy.
+ * @param[out] a_stream Receives the stream.
+ * @return Backend error code (@ref Success on success).
+ */
+[[nodiscard]] inline Error
+streamCreateNonBlocking(Stream* a_stream) noexcept;
+
+/**
+ * @brief Destroy a stream (@c cudaStreamDestroy / @c hipStreamDestroy).
+ * @param[in] a_stream The stream.
+ * @return Backend error code (@ref Success on success).
+ */
+[[nodiscard]] inline Error
+streamDestroy(Stream a_stream) noexcept;
+
+/**
+ * @brief Wait until a stream's work is done (@c cudaStreamSynchronize / @c hipStreamSynchronize).
+ * @param[in] a_stream The stream.
+ * @return Backend error code (@ref Success on success).
+ */
+[[nodiscard]] inline Error
+streamSynchronize(Stream a_stream) noexcept;
+
+/**
+ * @brief Copy memory between host and device on a stream, returning before the copy is done (@c cudaMemcpyAsync /
+ * @c hipMemcpyAsync); from pinned host memory, it does not wait for the host either.
+ * @param[out] a_dst      Destination pointer (host or device, per @p a_kind).
+ * @param[in]  a_src      Source pointer (host or device, per @p a_kind).
+ * @param[in]  a_numBytes Number of bytes to copy.
+ * @param[in]  a_kind     Copy direction.
+ * @param[in]  a_stream   The stream.
+ * @return Backend error code (@ref Success on success).
+ */
+[[nodiscard]] inline Error
+memcpyAsync(void* a_dst, const void* a_src, size_t a_numBytes, MemcpyKind a_kind, Stream a_stream) noexcept;
+
+/**
  * @brief Get the current device's clock rate, the rate at which @c clock64() counts in a kernel
  * (@c cudaDeviceGetAttribute with @c cudaDevAttrClockRate / @c hipDeviceGetAttribute with
  * @c hipDeviceAttributeClockRate).
@@ -215,6 +259,7 @@ getErrorHint(Error a_error) noexcept;
 
 using Error      = hipError_t;
 using MemcpyKind = hipMemcpyKind;
+using Stream     = hipStream_t;
 
 inline constexpr Error      Success            = hipSuccess;
 inline constexpr MemcpyKind MemcpyHostToDevice = hipMemcpyHostToDevice;
@@ -269,6 +314,30 @@ getDeviceCount(int* a_count) noexcept
 }
 
 [[nodiscard]] inline Error
+streamCreateNonBlocking(Stream* a_stream) noexcept
+{
+  return hipStreamCreateWithFlags(a_stream, hipStreamNonBlocking);
+}
+
+[[nodiscard]] inline Error
+streamDestroy(Stream a_stream) noexcept
+{
+  return hipStreamDestroy(a_stream);
+}
+
+[[nodiscard]] inline Error
+streamSynchronize(Stream a_stream) noexcept
+{
+  return hipStreamSynchronize(a_stream);
+}
+
+[[nodiscard]] inline Error
+memcpyAsync(void* a_dst, const void* a_src, size_t a_numBytes, MemcpyKind a_kind, Stream a_stream) noexcept
+{
+  return hipMemcpyAsync(a_dst, a_src, a_numBytes, a_kind, a_stream);
+}
+
+[[nodiscard]] inline Error
 getClockRate(int* a_kiloHertz) noexcept
 {
   int        device = 0;
@@ -314,6 +383,7 @@ getErrorHint(Error a_error) noexcept
 
 using Error      = cudaError_t;
 using MemcpyKind = cudaMemcpyKind;
+using Stream     = cudaStream_t;
 
 inline constexpr Error      Success            = cudaSuccess;
 inline constexpr MemcpyKind MemcpyHostToDevice = cudaMemcpyHostToDevice;
@@ -365,6 +435,30 @@ memcpy(void* a_dst, const void* a_src, size_t a_numBytes, MemcpyKind a_kind) noe
 getDeviceCount(int* a_count) noexcept
 {
   return cudaGetDeviceCount(a_count);
+}
+
+[[nodiscard]] inline Error
+streamCreateNonBlocking(Stream* a_stream) noexcept
+{
+  return cudaStreamCreateWithFlags(a_stream, cudaStreamNonBlocking);
+}
+
+[[nodiscard]] inline Error
+streamDestroy(Stream a_stream) noexcept
+{
+  return cudaStreamDestroy(a_stream);
+}
+
+[[nodiscard]] inline Error
+streamSynchronize(Stream a_stream) noexcept
+{
+  return cudaStreamSynchronize(a_stream);
+}
+
+[[nodiscard]] inline Error
+memcpyAsync(void* a_dst, const void* a_src, size_t a_numBytes, MemcpyKind a_kind, Stream a_stream) noexcept
+{
+  return cudaMemcpyAsync(a_dst, a_src, a_numBytes, a_kind, a_stream);
 }
 
 [[nodiscard]] inline Error
