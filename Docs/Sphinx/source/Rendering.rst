@@ -72,8 +72,9 @@ Besides the shaded picture, the renderer has views that show what shading hides:
 
 * **Depth** colors each pixel by how far from the eye the first surface is, from bright (near) to dark
   (far) across the shape's box. It needs only the crossing point, not the normal.
-* **X-ray** is gray: each ray starts white and is dimmed by every surface it crosses, all the way through
-  the scene, so cavities, internal walls and parts hidden behind others show as darker regions.
+* **X-ray** shows every surface a ray crosses, all the way through the scene, on a black background: each
+  glows faintly, more where it is seen edge-on, with modest highlights from the light, and partly hides what
+  lies behind it, so cavities, internal walls and parts hidden behind others show through as outlines.
 * **Cost** colors each pixel by how long the query for one ray through its center took, from dark (fast) to
   bright (slow), on a log
   scale over the frame. There are two: the cost of finding the first hit with its normal and primitive,

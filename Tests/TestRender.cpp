@@ -1559,13 +1559,13 @@ TEMPLATE_TEST_CASE("Render: the depth view is brightest where the surface is nea
   CHECK(stats.m_insideHits == 0U);
 }
 
-TEMPLATE_TEST_CASE("Render: the x-ray view is gray, dimmed by every surface a ray crosses but a hidden one",
+TEMPLATE_TEST_CASE("Render: the x-ray view shows every surface a ray crosses but a hidden one, on black",
                    "[Render]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
-  // Two spheres along the view: the center ray crosses four surfaces, a ray past them none.
+  // Two spheres along the view: the center ray crosses four surfaces head-on, a ray past them none.
   const TestUtils::Compiled<T> pair(twoSpheresAlongZ<T>());
 
   const Render::Camera<T> camera = frontView(pair.tape().computeBoundingVolume());
@@ -1576,12 +1576,20 @@ TEMPLATE_TEST_CASE("Render: the x-ray view is gray, dimmed by every surface a ra
 
   settings.m_viewMode    = Render::ViewMode::XRay;
   settings.m_xrayOpacity = T(0.25);
+  settings.m_specular    = T(0);
 
   Render::Renderer<T> renderer(settings);
 
-  // A ray dimmed by n surfaces shows 0.75^n of white, gamma encoded.
+  // Without highlights, a surface seen head-on glows 0.3 of the opacity, and each lets 0.75 of what is behind it
+  // through: n surfaces show 0.075 (1 + 0.75 + ... + 0.75^(n - 1)), gray, gamma encoded.
   const auto gray = [](const int a_surfaces) {
-    return int(T(255) * std::pow(std::pow(T(0.75), T(a_surfaces)), T(1) / T(2.2)) + T(0.5));
+    T sum = T(0);
+
+    for (int i = 0; i < a_surfaces; i++) {
+      sum += T(0.075) * std::pow(T(0.75), T(i));
+    }
+
+    return int(T(255) * std::pow(sum, T(1) / T(2.2)) + T(0.5));
   };
 
   Render::Image image;
@@ -1591,18 +1599,28 @@ TEMPLATE_TEST_CASE("Render: the x-ray view is gray, dimmed by every surface a ra
   const Channels center = channels(image.at(size / 2, size / 2));
   const Channels corner = channels(image.at(0, 0));
 
-  CHECK(std::abs(center.r - gray(4)) <= 1);
+  CHECK(std::abs(center.r - gray(4)) <= 2);
   CHECK(center.r == center.g);
   CHECK(center.g == center.b);
-  CHECK(corner.r == 255);
+  CHECK(corner.r == 0);
+  CHECK(corner.g == 0);
+  CHECK(corner.b == 0);
   CHECK(stats.m_hits > 0U);
 
-  // The front sphere hidden, the center ray is dimmed by the back one alone.
+  // The front sphere hidden, the center ray shows the back one alone.
   renderer.settings().m_hidden[0] = 0U;
 
   (void)renderer.render(pair.tape(), camera, image);
 
-  CHECK(std::abs(channels(image.at(size / 2, size / 2)).r - gray(2)) <= 1);
+  CHECK(std::abs(channels(image.at(size / 2, size / 2)).r - gray(2)) <= 2);
+
+  // Highlights brighten it.
+  renderer.settings().m_hidden[0] = Render::Settings<T>::NoPrimitive;
+  renderer.settings().m_specular  = T(0.45);
+
+  (void)renderer.render(pair.tape(), camera, image);
+
+  CHECK(channels(image.at(size / 2, size / 2)).r > center.r);
 }
 
 TEMPLATE_TEST_CASE("Render: the cost views color each pixel from the frame's cheapest to its dearest, and count its "

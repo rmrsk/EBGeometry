@@ -103,7 +103,7 @@ enum class ViewMode : uint8_t
 {
   Shaded,      ///< Lit surfaces, colored by Settings::m_colorBy.
   Depth,       ///< How far from the eye the first surface is, near (bright) to far (dark) across the shape's box.
-  XRay,        ///< Gray, each ray dimmed by every surface it crosses: the more surfaces behind a pixel, the darker.
+  XRay,        ///< On black, every surface a ray crosses glows faintly (more seen edge-on), with modest highlights.
   CostHit,     ///< How long each pixel's firstHit() took, one ray through its center (Settings::m_supersampling
                ///< ignored), on a log scale over the frame (see Stats::m_costLow).
   CostCrossing ///< How long each pixel's firstCrossing() took, as CostHit.
@@ -490,7 +490,8 @@ struct Settings
   ViewMode m_viewMode = ViewMode::Shaded;
 
   /**
-   * @brief In ViewMode::XRay, how much of a ray's light each surface it crosses takes, from 0 to 1.
+   * @brief In ViewMode::XRay, how opaque each surface a ray crosses is, from 0 to 1: how brightly it glows, and how
+   * much of what lies behind it it hides. Its highlights follow m_specular and m_shininess, at half strength.
    */
   T m_xrayOpacity = T(0.25);
 

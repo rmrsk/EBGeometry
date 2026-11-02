@@ -53,7 +53,8 @@ The classes are in namespace ``Render``:
   later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colors its bore steel gray).
   ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColor``. ``m_viewMode`` picks the
   view (``ViewMode::Shaded``, the default, ``Depth``, ``XRay``, ``CostHit`` or ``CostCrossing``; see
-  :ref:`Chap:Rendering`), and ``m_xrayOpacity`` how much each surface dims an x-ray. ``m_hidden`` lists up to
+  :ref:`Chap:Rendering`), and ``m_xrayOpacity`` how opaque each surface is in an x-ray (its highlights follow ``m_specular`` and
+  ``m_shininess``). ``m_hidden`` lists up to
   ``Settings::HiddenPrimitives`` (8) primitives to see through, and ``m_volumePrimitive`` a part whose inside is
   filled with ``m_volumeColor`` at ``m_volumeOpacity`` (``AllPrimitives`` fills the whole solid).
   ``Render::writeImage(image, file)`` writes an image as binary PPM. ``Render::toCode(camera, settings)`` writes a camera and

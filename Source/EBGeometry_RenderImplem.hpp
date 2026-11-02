@@ -529,49 +529,39 @@ public:
     }
 
     if (mode == ViewMode::XRay) {
-      // White light, dimmed at every surface the ray crosses but a hidden one. Each surface costs a query from
-      // the last: without hidden primitives, one that finds only the crossing, not its normal and primitive.
-      const bool hiding = m_settings.hidesAny();
+      // On black, every surface the ray crosses but a hidden one glows faintly, more where it is seen edge-on, with a
+      // modest highlight from the light, and lets through 1 - m_xrayOpacity of what lies behind it.
+      const Vec3T<T> half = unit(m_light - a_direction);
 
-      T light = T(1);
-      T t     = a_near;
+      Vec3T<T> color   = Vec3T<T>::zeros();
+      T        through = T(1);
+      T        t       = a_near;
 
-      for (uint32_t k = 0; k < Renderer<T>::MaxCrossings; k++) {
-        bool hit  = false;
-        bool dims = true;
-        T    at   = t;
+      for (uint32_t k = 0; k < Renderer<T>::MaxCrossings && through > T(1e-3); k++) {
+        const HitT<T> hit = this->trace(ray, t, m_far);
 
-        if (hiding) {
-          const HitT<T> found = this->trace(ray, t, m_far);
-
-          if (k == 0) {
-            this->count(found.m_status, found.m_entering, a_result);
-          }
-
-          hit  = found.hit();
-          dims = !m_settings.hides(found.m_primitive);
-          at   = found.m_t;
-        }
-        else {
-          const CrossingT<T> found = this->crossing(ray, t, m_far);
-
-          if (k == 0) {
-            this->count(found.m_status, found.m_entering, a_result);
-          }
-
-          hit = found.hit();
-          at  = found.m_t;
+        if (k == 0) {
+          this->count(hit.m_status, hit.m_entering, a_result);
         }
 
-        if (!hit) {
+        if (!hit.hit()) {
           break;
         }
 
-        light *= dims ? T(1) - m_settings.m_xrayOpacity : T(1);
-        t = at + T(4) * m_eps;
+        if (!m_settings.hides(hit.m_primitive)) {
+          const Vec3T<T> n      = (hit.m_normal.length2() > T(0)) ? hit.m_normal : this->normal(hit.m_point);
+          const T        facing = std::abs(dot(n, a_direction));
+          const T        glow   = m_settings.m_xrayOpacity * (T(0.3) + T(0.7) * (T(1) - facing));
+          const T shine = T(0.5) * m_settings.m_specular * std::pow(std::abs(dot(n, half)), m_settings.m_shininess);
+
+          color += through * (glow + m_settings.m_xrayOpacity * shine) * Vec3T<T>::ones();
+          through *= T(1) - m_settings.m_xrayOpacity;
+        }
+
+        t = hit.m_t + T(4) * m_eps;
       }
 
-      return light * Vec3T<T>::ones();
+      return color;
     }
 
     if (mode == ViewMode::Depth) {
