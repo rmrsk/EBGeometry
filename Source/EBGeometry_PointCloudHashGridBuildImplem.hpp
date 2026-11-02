@@ -235,13 +235,21 @@ PointCloudHashGrid<T>::build(Pool&                        a_pool,
                              const T                      a_targetPerCell,
                              const uint32_t               a_maxPoints)
 {
-  PointCloudDetail::requireValidCloud("PointCloudHashGrid::build", a_positions);
+  EBGEOMETRY_REQUIRE(a_positions.size() < std::size_t(PointCloud::InvalidIndex),
+                     "PointCloudHashGrid::build: too many points for 32-bit indices (%zu points, limit %zu)",
+                     a_positions.size(),
+                     std::size_t(PointCloud::InvalidIndex) - 1);
 
   const auto numPoints = static_cast<uint32_t>(a_positions.size());
 
-  // A build on the host reads the vector, and so does one through GPU::parallelFor() in a host build (in
-  // emulated device memory). A kernel cannot: the positions go to scratch in the pool's memory first, released
-  // on return.
+  // A build on the host checks every point is finite as it finds the box. A build through
+  // GPU::parallelFor() checks nothing as it goes, so the points are checked here first.
+  if (a_pool.resource().isDeviceAccessible()) {
+    PointCloudDetail::requireValidCloud("PointCloudHashGrid::build", a_positions);
+  }
+
+  // So does one through GPU::parallelFor() in a host build (in emulated device memory). A kernel cannot read the
+  // vector: the positions go to scratch in the pool's memory first, released on return.
   if (!a_pool.resource().isDeviceAccessible() || !GPU::enabled) {
     return build(a_pool, PointCloud::FromArray<T>{a_positions.data()}, numPoints, a_targetPerCell, a_maxPoints);
   }
