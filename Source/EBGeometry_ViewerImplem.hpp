@@ -146,6 +146,7 @@ keys(const bool a_device)
                                  {"Shift + Right", "Tighter highlights"}}},
                                {"Rendering",
                                 {{"M", "Cycle the view: shaded, depth, x-ray, cost of firstHit(), of firstCrossing()"},
+                                 {"Shift + M", "Cycle the view backwards"},
                                  {"P", "Cycle the coloring: by normal, uniform, by primitive"},
                                  {"S", "Turn shadows on or off"},
                                  {"A", "Turn ambient occlusion on or off"},
@@ -1546,7 +1547,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_m: {
-          settings.m_viewMode = static_cast<ViewMode>((static_cast<int>(settings.m_viewMode) + 1) % 5);
+          // M steps forward through the five views, Shift and M back.
+          const int step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? 4 : 1;
+
+          settings.m_viewMode = static_cast<ViewMode>((static_cast<int>(settings.m_viewMode) + step) % 5);
 
           break;
         }

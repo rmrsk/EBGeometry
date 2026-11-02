@@ -141,7 +141,7 @@ viewer does), and its id, point and normal are printed; a click on
 the background clears it. With a section plane on, the overlay shows the point under the cursor on the
 plane and the shape's value there; Shift and a click on two surfaces measures the distance between them.
 
-M cycles the views. T makes the picked surface see-through (or opaque again), so that what is behind or
+M cycles the views, Shift + M backwards. T makes the picked surface see-through (or opaque again), so that what is behind or
 inside it can be picked and looked at; Shift + T makes every surface opaque. V fills the picked object's inside
 (a mesh SDF's whole solid). Shift and the wheel step through the surfaces under the cursor, front to back:
 each is picked in turn, and those in front of it are seen through while stepping (for a mesh SDF, whose
@@ -167,8 +167,8 @@ opened with them.
      - Move the light.
    * - Left, Right (Shift + Left, Right)
      - Weaker or stronger highlights, ``m_specular`` (broader or tighter, ``m_shininess``).
-   * - M
-     - Cycle the view: shaded, depth, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``.
+   * - M; Shift + M
+     - Cycle the view: shaded, depth, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards.
    * - P
      - Cycle the coloring: by normal, uniform, by primitive.
    * - S, A, F, B
