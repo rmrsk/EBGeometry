@@ -300,6 +300,19 @@ instantiateFunctionTemplates()
     grid.rebuild(PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
     (void)grid.maxPoints();
     (void)GPU::boundingBoxOf<T>(PointCloud::FromArray<T>{points.data()}, 1, scratch.data());
+
+    // The same for PointCloudBVH, and the exclusive scan its build uses.
+    PointCloudBVH<T> bvh = PointCloudBVH<T>::build(cloudPool, points, 16, 4);
+
+    (void)PointCloudBVH<T>::build(parallelPool, PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
+
+    bvh.rebuild(PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
+    (void)bvh.maxPoints();
+
+    std::vector<uint32_t> values(3, 1);
+    std::vector<uint32_t> sums(GPU::exclusiveScanScratchSize(3));
+
+    (void)GPU::exclusiveScan(values.data(), 3, sums.data());
   }
 
   // The ray queries on a shape with a ray form and on a marched one, for rays and for segments.

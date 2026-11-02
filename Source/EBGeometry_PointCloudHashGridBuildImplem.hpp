@@ -139,25 +139,6 @@ struct PointCloudHashGrid<T>::CellGather
 namespace PointCloudDetail {
 
 /**
- * @brief The smallest power of two at least @p a_n, and 0 for 0: how many cell keys a build sorts.
- * @details Internal helper; not part of the public API.
- * @param[in] a_n Number of points, at most 2^31.
- * @return The key count.
- */
-[[nodiscard]] EBGEOMETRY_HOST
-inline uint32_t
-keyCount(const uint32_t a_n) noexcept
-{
-  uint32_t n = (a_n == 0) ? 0 : 1;
-
-  while (n < a_n) {
-    n *= 2;
-  }
-
-  return n;
-}
-
-/**
  * @brief The most cells PointCloudHashGrid's cell-size rule gives a cloud of @p a_numPoints points.
  * @details Internal helper; not part of the public API. setShape() caps its cells at this budget.
  * @param[in] a_numPoints Number of points.
@@ -312,43 +293,9 @@ EBGEOMETRY_HOST
 inline BoundingVolumes::AABBT<T>
 PointCloudHashGrid<T>::boxOf(const Source& a_source, const uint32_t a_numPoints, const char* a_who)
 {
-  if (a_numPoints == 0) {
-    return BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros());
-  }
+  Vec3T<T>* scratch = m_parallel ? m_boxScratch.data(PoolHandle::base()) : nullptr;
 
-  if (m_parallel) {
-    const BoundingVolumes::AABBT<T> box =
-      GPU::boundingBoxOf<T>(a_source, a_numPoints, m_boxScratch.data(PoolHandle::base()));
-
-    const Vec3T<T>& lo = box.getLowCorner();
-    const Vec3T<T>& hi = box.getHighCorner();
-
-    EBGEOMETRY_REQUIRE(std::isfinite(lo[0]) && std::isfinite(lo[1]) && std::isfinite(lo[2]) && std::isfinite(hi[0]) &&
-                         std::isfinite(hi[1]) && std::isfinite(hi[2]),
-                       "%s: a point has a non-finite coordinate",
-                       a_who);
-
-    return box;
-  }
-
-  // On the host. Every coordinate must be finite, or the cell computations break.
-  Vec3T<T> lo = +Vec3T<T>::max();
-  Vec3T<T> hi = -Vec3T<T>::max();
-
-  for (uint32_t i = 0; i < a_numPoints; i++) {
-    const Vec3T<T> p = a_source(i);
-
-    EBGEOMETRY_REQUIRE(std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]),
-                       "%s: point %u of %u has a non-finite coordinate",
-                       a_who,
-                       unsigned(i),
-                       unsigned(a_numPoints));
-
-    lo = min(lo, p);
-    hi = max(hi, p);
-  }
-
-  return BoundingVolumes::AABBT<T>(lo, hi);
+  return PointCloudDetail::boxOf<T>(a_source, a_numPoints, m_parallel, scratch, a_who);
 }
 
 template <class T>

@@ -4,8 +4,8 @@
 
 /**
  * @file    EBGeometry_GPUAlgorithms.hpp
- * @brief   Building blocks for builds that run with GPU::parallelFor(): a bounding-box reduction and a
- *          bitonic sort.
+ * @brief   Building blocks for builds that run with GPU::parallelFor(): a bounding-box reduction, a bitonic
+ *          sort and an exclusive scan.
  * @details Each runs one or more GPU::parallelFor() launches, so it runs on the device in a CUDA or HIP
  *          translation unit and as host loops otherwise, and returns once the work is done. The arrays
  *          they read and write must be memory the launch can reach: device-accessible in a CUDA or HIP
@@ -35,6 +35,23 @@
 namespace EBGeometry {
 
 namespace GPU {
+
+/**
+ * @brief Values per chunk in exclusiveScan()'s passes.
+ */
+inline constexpr uint32_t ScanChunk = 256;
+
+/**
+ * @brief Scratch elements exclusiveScan() needs for @p a_count values: one per chunk, and one for the total.
+ * @param[in] a_count Number of values.
+ * @return The scratch size, in uint32_t elements.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+inline uint32_t
+exclusiveScanScratchSize(const uint32_t a_count) noexcept
+{
+  return (a_count + ScanChunk - 1) / ScanChunk + 1U;
+}
 
 /**
  * @brief Points per chunk in boundingBox()'s first pass.
@@ -214,6 +231,108 @@ struct BitonicPass
   }
 };
 
+/**
+ * @brief exclusiveScan(), pass 1: the sum of each chunk of values.
+ */
+struct ChunkSums
+{
+  /// @brief The values.
+  const uint32_t* m_values;
+
+  /// @brief Chunk sums, one per chunk.
+  uint32_t* m_sums;
+
+  /// @brief Number of values.
+  uint32_t m_count;
+
+  /**
+   * @brief Sum of chunk @p a_c.
+   * @param[in] a_c Chunk.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const std::size_t a_c) const noexcept
+  {
+    const uint32_t begin = static_cast<uint32_t>(a_c) * ScanChunk;
+    const uint32_t end   = Math::min(m_count, begin + ScanChunk);
+
+    uint32_t sum = 0;
+
+    for (uint32_t i = begin; i < end; i++) {
+      sum += m_values[i];
+    }
+
+    m_sums[a_c] = sum;
+  }
+};
+
+/**
+ * @brief exclusiveScan(), pass 2: one thread turns the chunk sums into each chunk's offset, and the total after them.
+ */
+struct ScanSums
+{
+  /// @brief Chunk sums in, chunk offsets out; one more entry receives the total.
+  uint32_t* m_sums;
+
+  /// @brief Number of chunks.
+  uint32_t m_chunks;
+
+  /**
+   * @brief Scan the chunk sums.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(std::size_t /*a_thread*/) const noexcept
+  {
+    uint32_t running = 0;
+
+    for (uint32_t c = 0; c < m_chunks; c++) {
+      const uint32_t sum = m_sums[c];
+
+      m_sums[c] = running;
+      running += sum;
+    }
+
+    m_sums[m_chunks] = running;
+  }
+};
+
+/**
+ * @brief exclusiveScan(), pass 3: each chunk's values replaced by their exclusive prefix sums.
+ */
+struct ScanChunks
+{
+  /// @brief The values, in place.
+  uint32_t* m_values;
+
+  /// @brief Each chunk's offset.
+  const uint32_t* m_offsets;
+
+  /// @brief Number of values.
+  uint32_t m_count;
+
+  /**
+   * @brief Scan chunk @p a_c.
+   * @param[in] a_c Chunk.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const std::size_t a_c) const noexcept
+  {
+    const uint32_t begin = static_cast<uint32_t>(a_c) * ScanChunk;
+    const uint32_t end   = Math::min(m_count, begin + ScanChunk);
+
+    uint32_t running = m_offsets[a_c];
+
+    for (uint32_t i = begin; i < end; i++) {
+      const uint32_t value = m_values[i];
+
+      m_values[i] = running;
+      running += value;
+    }
+  }
+};
+
 } // namespace AlgorithmsDetail
 
 /**
@@ -322,6 +441,42 @@ bitonicSort(Key* a_keys, const uint32_t a_count, const Less& a_less = Less())
       parallelFor(a_count / 2, AlgorithmsDetail::BitonicPass<Key, Less>{a_keys, a_less, k, j});
     }
   }
+}
+
+/**
+ * @brief Replace @p a_count values by their exclusive prefix sums, in place, and return their total: one sum per
+ * chunk of ScanChunk values, one thread scanning the sums, then each chunk scanned from its offset.
+ * @details Integer sums in a fixed order, so the result does not depend on thread scheduling. The values and the
+ * scratch must be memory the launches can reach; the total is copied back to the host (from device memory in a
+ * CUDA or HIP build).
+ * @param[in,out] a_values  The values.
+ * @param[in]     a_count   Number of values.
+ * @param[out]    a_scratch exclusiveScanScratchSize(a_count) elements of scratch, which the launches can write.
+ * @return The sum of the values.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+inline uint32_t
+exclusiveScan(uint32_t* a_values, const uint32_t a_count, uint32_t* a_scratch)
+{
+  if (a_count == 0) {
+    return 0;
+  }
+
+  const uint32_t chunks = exclusiveScanScratchSize(a_count) - 1U;
+
+  parallelFor(chunks, AlgorithmsDetail::ChunkSums{a_values, a_scratch, a_count});
+  parallelFor(1, AlgorithmsDetail::ScanSums{a_scratch, chunks});
+  parallelFor(chunks, AlgorithmsDetail::ScanChunks{a_values, a_scratch, a_count});
+
+  uint32_t total = 0;
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  EBGEOMETRY_GPU_CHECK(GPU::memcpy(&total, a_scratch + chunks, sizeof(total), GPU::MemcpyDeviceToHost));
+#else
+  total = a_scratch[chunks];
+#endif
+
+  return total;
 }
 
 } // namespace GPU

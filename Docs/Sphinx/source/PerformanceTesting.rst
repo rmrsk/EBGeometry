@@ -19,6 +19,7 @@ What is in Performance/
 
    Performance/
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
+     PointCloudBVHBuild/      PointCloudBVH's build and rebuild where its pool is
      PointCloudHashGridBuild/ PointCloudHashGrid's build and rebuild where its pool is
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVH/main.cpp             PackedBVH::traverse() itself
@@ -116,6 +117,12 @@ Family                                Build  Measures
 ``neighbors8-morton``,                GPU    the 8 nearest points, per point
 ``closest8-morton``
 ====================================  =====  =====================================================
+
+**PointCloudBVHBuild** (``Performance/PointCloudBVHBuild``): ``PointCloudBVH``'s ``build()`` and ``rebuild()``
+over the same 500,000 ``uniform`` points, at ``K`` = ``W`` = 4 and 64 points per leaf, with the same cases as
+PointCloudHashGridBuild below: a ``rebuild`` on the host, and a ``build`` and a ``rebuild`` on the GPU against the
+host's. A BVH with room for a rebuild holds arrays sized for any cloud of its size, so the rebuild cases' pool
+bytes are larger than the one-off build's.
 
 **PointCloudHashGridBuild** (``Performance/PointCloudHashGridBuild``): ``PointCloudHashGrid``'s ``build()`` and
 ``rebuild()`` over the PointCloud probe's 500,000 ``uniform`` points, at one point per cell. A rebuild alternates

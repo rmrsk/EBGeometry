@@ -52,11 +52,13 @@ PointCloudBVH
 
 ``PointCloudBVH`` is built on the :ref:`Chap:ImplemBVH` machinery: it holds a ``BVH::PackedBVH``
 over ``PointAoSoA`` leaf groups as a member, and adds two things the general path does not offer --
-a much cheaper **index-based build**, and **turnkey query methods** that hide ``traverse()``
-entirely. The build splits the points directly, with no intermediate primitive list, and is much
-faster than a full Surface-Area-Heuristic tree while, for near-uniform clouds, just as tight to
-query. The optional constructor argument sets the target number of points per leaf. ``getBVH()``
-exposes the held ``PackedBVH`` for anything that needs the general BVH interface.
+a much cheaper **build straight from the points**, and **turnkey query methods** that hide ``traverse()``
+entirely. The tree is a *linear BVH*: the points are ordered along a Morton (Z-order) curve, and each node's
+points are split where that order crosses from one half of space to the other. There is no intermediate
+primitive list and no search for the best split, so the build is much faster than a full Surface-Area-Heuristic
+tree, and for near-uniform clouds about as tight to query. The optional constructor argument sets the target
+number of points per leaf. ``getBVH()`` exposes the held ``PackedBVH`` for anything that needs the general BVH
+interface.
 
 The held BVH and every cloud array are reserved from the one ``Pool`` passed to the constructor,
 which must outlive the ``PointCloudBVH`` and every copy or view of it. A ``PointCloudBVH`` is
@@ -65,6 +67,34 @@ mirror the pool, call ``rebasedView()``, and pass the returned value into a kern
 ``rebasedView()`` and ``deepCopy()`` both return a ``PointCloudBVH``. On the device,
 ``closestPoint()``, ``closestPoints()``, ``nearestNeighbor()`` and ``nearestNeighbors()`` are
 callable; ``allNearestNeighbors()`` returns a ``std::vector`` and stays host-only.
+
+Building where the BVH lives
+____________________________
+
+``PointCloudBVH::build()`` builds the BVH where its pool's memory is, exactly as
+``PointCloudHashGrid::build()`` does (below): on the device for a pool in device memory, on the host
+otherwise, from a *source* of positions, and the constructor is shorthand for it. Every side builds the same
+tree, so a BVH built on a device and mirrored to the host answers there as one built on the host. A query
+reports a point by its index in the source.
+
+``rebuild()`` builds the tree again from new positions, in place, reserving nothing, so it works on a frozen
+pool. It needs room, which ``build()`` reserves only when its last argument gives the most points a rebuild may
+have: then the arrays are sized for any cloud of that many points, however clustered, which is larger than a
+single build needs. Without it the BVH holds just what its cloud uses, and ``rebuild()`` is refused:
+
+.. code-block:: c++
+
+   EBGeometry::Pool pool(EBGeometry::GPU::memoryResource());
+
+   auto bvh = PointCloudBVH<T>::build(pool, MySource{...}, n, 16 * W, maxPoints);   // once
+   pool.freeze();
+
+   bvh.rebuild(MySource{...}, n);                                                  // after the points move
+   const auto view = bvh.rebasedView(pool);                                        // for the next kernel
+
+A tree deeper than the traversal stack allows is rejected: by ``build()`` for the side it runs on, and by
+``rebasedView()`` for a device. Only a cloud of many points packed far closer together than its extent comes
+near that limit.
 
 See the `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and

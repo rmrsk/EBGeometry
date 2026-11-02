@@ -15,6 +15,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | Folder        | What it measures                                                |
 |---------------|-----------------------------------------------------------------|
 | `PointCloud/` | `PointCloudBVH` and `PointCloudHashGrid`: builds, k-NN, queries |
+| `PointCloudBVHBuild/` | `PointCloudBVH`'s `build()` and `rebuild()` where its pool is: in place on the host, and in device memory |
 | `PointCloudHashGridBuild/` | `PointCloudHashGrid`'s `build()` and `rebuild()` where its pool is: in place on the host, and in device memory |
 | `Mesh/`       | `TriMeshSDF` and `MeshSDF`: builds, refits, signed distances    |
 | `BVH/`        | `PackedBVH::traverse()` itself: rays and points through a BVH of the mesh's triangle boxes |

@@ -204,14 +204,16 @@ its index. The functor writes its own results, through a span it holds.
 Building blocks for builds
 --------------------------
 
-`EBGeometry_GPUAlgorithms.hpp <doxygen/html/EBGeometry__GPUAlgorithms_8hpp.html>`__ adds two
+`EBGeometry_GPUAlgorithms.hpp <doxygen/html/EBGeometry__GPUAlgorithms_8hpp.html>`__ adds three
 algorithms on top of ``GPU::parallelFor``, for building a structure where its data lives:
 ``GPU::boundingBox(points, n, scratch)``, the exact box of ``n`` points (one box per chunk, then one
 thread merging them; ``GPU::boundingBoxOf(source, n, scratch)`` reads the points from a source, as
 ``PointCloudHashGrid::build()`` takes them), and ``GPU::bitonicSort(keys, n, less)``, an in-place sort of a
-power-of-two count of keys (pad the rest with keys that sort last). Neither uses atomics, so the results do not
-depend on thread scheduling. The arrays must be memory the launch can reach, device memory in a CUDA or HIP build.
-``PointCloudHashGrid::build()`` builds on both when its pool is in device memory (:ref:`Chap:ImplemPointCloud`).
+power-of-two count of keys (pad the rest with keys that sort last), and ``GPU::exclusiveScan(values, n, scratch)``,
+which replaces ``n`` counts by their exclusive prefix sums in place and returns their total on the host. None uses
+atomics, so the results do not depend on thread scheduling. The arrays must be memory the launch can reach, device
+memory in a CUDA or HIP build. ``PointCloudHashGrid::build()`` and ``PointCloudBVH::build()`` build on them when
+their pool is in device memory (:ref:`Chap:ImplemPointCloud`).
 
 Large queries
 -------------

@@ -30,6 +30,7 @@
 namespace EBGeometry {
 namespace SFC {
 
+EBGEOMETRY_HOST_DEVICE
 inline uint64_t
 Morton::encode(const Index& a_point) noexcept
 {
@@ -43,14 +44,15 @@ Morton::encode(const Index& a_point) noexcept
   const uint_fast32_t y = a_point[1];
   const uint_fast32_t z = a_point[2];
 
+  // The masks as literals rather than Mask_64[], so that a device pass needs no copy of the array.
   auto PartBy3 = [](const uint_fast32_t a) -> uint64_t {
-    uint64_t b = a & Mask_64[0];
+    uint64_t b = a & uint64_t{0x1fffff};
 
-    b = (b | b << 32) & Mask_64[1];
-    b = (b | b << 16) & Mask_64[2];
-    b = (b | b << 8) & Mask_64[3];
-    b = (b | b << 4) & Mask_64[4];
-    b = (b | b << 2) & Mask_64[5];
+    b = (b | b << 32) & uint64_t{0x1f00000000ffff};
+    b = (b | b << 16) & uint64_t{0x1f0000ff0000ff};
+    b = (b | b << 8) & uint64_t{0x100f00f00f00f00f};
+    b = (b | b << 4) & uint64_t{0x10c30c30c30c30c3};
+    b = (b | b << 2) & uint64_t{0x1249249249249249};
 
     return b;
   };
