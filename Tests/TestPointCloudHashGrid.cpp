@@ -857,6 +857,12 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid::build in device memory answers on device
   };
 
   compareCloudQueries<Grid, T>(deviceView, reference, points, indices, sameIndices, sameValues);
+
+  // Mirrored back to the host, the grid built in device memory answers there as the host's grid does.
+  const Pool onHost   = Pool::mirror(pool, hostMemoryResource());
+  const Grid hostView = grid.rebasedView(onHost);
+
+  requireSameAnswers(hostView, reference);
 }
 
 TEST_CASE("PointCloudHashGrid: rejects a non-positive target occupancy, and a rebase onto a pool too small "
