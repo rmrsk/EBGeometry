@@ -28,31 +28,17 @@ namespace EBGeometry {
 
 template <class T>
 EBGEOMETRY_HOST
-inline PointCloudHashGrid<T>::PointCloudHashGrid(Pool&                        a_pool,
-                                                 const std::vector<Vec3T<T>>& a_positions,
-                                                 T                            a_targetPerCell)
+inline void
+PointCloudHashGrid<T>::setShape(const Vec3T<T>&   a_lo,
+                                const Vec3T<T>&   a_hi,
+                                const std::size_t a_numPoints,
+                                const T           a_targetPerCell,
+                                const std::size_t a_cellCap) noexcept
 {
-  static_assert(std::is_floating_point_v<T>, "PointCloudHashGrid requires a floating-point type T");
+  const std::size_t numPoints = a_numPoints;
 
-  // Cloud indices are stored as uint32_t in the CSR arrays (m_cellStart / m_cellPoints), so the cloud
-  // must fit that width; every coordinate must also be finite, or the cell computations below break.
-  PointCloudDetail::requireValidCloud("PointCloudHashGrid", a_positions);
-
-  EBGEOMETRY_REQUIRE(a_targetPerCell > T(0),
-                     "PointCloudHashGrid: the target points per cell must be positive (%g)",
-                     double(a_targetPerCell));
-
-  const std::size_t numPoints = a_positions.size();
-
-  // Bounding box of the cloud. requireValidCloud() has already rejected non-finite input, which would
-  // poison the min/max reductions and every cell computation downstream.
-  m_lo        = +Vec3T<T>::max();
-  Vec3T<T> hi = -Vec3T<T>::max();
-
-  for (const auto& p : a_positions) {
-    m_lo = min(m_lo, p);
-    hi   = max(hi, p);
-  }
+  m_lo        = a_lo;
+  Vec3T<T> hi = a_hi;
 
   if (numPoints == 0) {
     m_lo = Vec3T<T>::zeros();
@@ -89,8 +75,9 @@ inline PointCloudHashGrid<T>::PointCloudHashGrid(Pool&                        a_
   // product geometrically so the loop converges in a few iterations (the bound is a pure safety net).
   // The budget is also capped to INT_MAX so no single axis dimension can overflow int. Coarsening
   // changes only grid resolution, never query results (the query is exact for any cell size).
-  const std::size_t maxCells =
-    Math::min(std::size_t(64) + std::size_t(8) * numPoints, std::size_t(Math::Limits<int>::max()));
+  // A rebuild also stays within the cells it has room for.
+  const std::size_t maxCells = Math::min(
+    Math::min(std::size_t(64) + std::size_t(8) * numPoints, std::size_t(Math::Limits<int>::max())), a_cellCap);
 
   const auto predictedCells = [&]() noexcept -> double {
     const double dx = std::floor(double(hi[0] - m_lo[0]) * double(m_invH)) + 1.0;
@@ -121,63 +108,7 @@ inline PointCloudHashGrid<T>::PointCloudHashGrid(Pool&                        a_
   m_nz = Math::max(1, int(std::floor(double(hi[2] - m_lo[2]) * double(m_invH)) + 1.0));
 
   EBGEOMETRY_EXPECT(m_nx >= 1 && m_ny >= 1 && m_nz >= 1);
-
-  const std::size_t nCells = std::size_t(m_nx) * std::size_t(m_ny) * std::size_t(m_nz);
-
-  EBGEOMETRY_EXPECT(nCells >= 1);
-  EBGEOMETRY_EXPECT(nCells <= maxCells);
-
-  // Counting sort: histogram -> prefix sum (cellStart) -> scatter cloud indices into cell order.
-  std::vector<std::uint32_t> cellStart(nCells + 1, 0);
-
-  for (std::size_t i = 0; i < numPoints; i++) {
-    cellStart[cellIndexOf(a_positions[i]) + 1]++;
-  }
-
-  for (std::size_t cell = 0; cell < nCells; cell++) {
-    cellStart[cell + 1] += cellStart[cell];
-  }
-
-  // Prefix sum leaves cellStart[nCells] holding the total; it must equal the point count if every
-  // point was bucketed into exactly one (in-range) cell.
-  EBGEOMETRY_EXPECT(std::size_t(cellStart[nCells]) == numPoints);
-
-  std::vector<std::uint32_t> cellPoints(numPoints);
-  std::vector<std::uint32_t> cursor(cellStart.begin(), cellStart.end() - 1);
-
-  for (std::size_t i = 0; i < numPoints; i++) {
-    cellPoints[cursor[cellIndexOf(a_positions[i])]++] = std::uint32_t(i);
-  }
-
-  this->storeArrays(a_pool, a_positions, cellStart, cellPoints);
-}
-
-template <class T>
-EBGEOMETRY_HOST
-inline void
-PointCloudHashGrid<T>::storeArrays(Pool&                             a_pool,
-                                   const std::vector<Vec3T<T>>&      a_positions,
-                                   const std::vector<std::uint32_t>& a_cellStart,
-                                   const std::vector<std::uint32_t>& a_cellPoints)
-{
-  this->attach(a_pool, "PointCloudHashGrid");
-
-  const auto numPoints = static_cast<std::uint32_t>(a_positions.size());
-  const auto numStarts = static_cast<std::uint32_t>(a_cellStart.size());
-
-  EBGEOMETRY_EXPECT(a_cellPoints.size() == a_positions.size());
-
-  m_positions.reserveFrom(a_pool, numPoints);
-  m_cellStart.reserveFrom(a_pool, numStarts);
-  m_cellPoints.reserveFrom(a_pool, numPoints);
-
-  // Resolve the base only after every reservation above: a reserve can grow the pool, which moves
-  // the block and invalidates any address taken before it.
-  void* poolBase = PoolHandle::base();
-
-  m_positions.assign(poolBase, a_positions.data(), numPoints);
-  m_cellStart.assign(poolBase, a_cellStart.data(), numStarts);
-  m_cellPoints.assign(poolBase, a_cellPoints.data(), numPoints);
+  EBGEOMETRY_EXPECT(this->numCells() <= maxCells);
 }
 
 template <class T>
@@ -185,7 +116,9 @@ EBGEOMETRY_HOST
 inline PointCloudHashGrid<T>
 PointCloudHashGrid<T>::rebasedView(const Pool& a_pool) const noexcept
 {
-  const uint64_t endByte = Math::max(m_positions.endByte(), Math::max(m_cellStart.endByte(), m_cellPoints.endByte()));
+  const uint64_t endByte = Math::max(Math::max(Math::max(m_positions.endByte(), m_cellStart.endByte()),
+                                               Math::max(m_cellPoints.endByte(), m_slotOf.endByte())),
+                                     Math::max(m_keys.endByte(), m_boxScratch.endByte()));
 
   PointCloudHashGrid view = *this;
 
@@ -200,16 +133,19 @@ inline PointCloudHashGrid<T>
 PointCloudHashGrid<T>::deepCopy(Pool& a_dstPool) const
 {
   // Read everything out before reserving anything: a_dstPool may be this object's own pool, and a
-  // reserve there can move the block under any address taken from it.
+  // reserve there can move the block under any address taken from it. The cells are read by slot, so
+  // the copy holds the same arrays in the same order.
   const void* srcBase = this->base();
 
   const PODSpan<const Vec3T<T>>      positions  = m_positions.bind(srcBase);
   const PODSpan<const std::uint32_t> cellStart  = m_cellStart.bind(srcBase);
   const PODSpan<const std::uint32_t> cellPoints = m_cellPoints.bind(srcBase);
+  const PODSpan<const std::uint32_t> slotOf     = m_slotOf.bind(srcBase);
 
   const std::vector<Vec3T<T>>      hostPositions(positions.begin(), positions.end());
   const std::vector<std::uint32_t> hostCellStart(cellStart.begin(), cellStart.end());
   const std::vector<std::uint32_t> hostCellPoints(cellPoints.begin(), cellPoints.end());
+  const std::vector<std::uint32_t> hostSlotOf(slotOf.begin(), slotOf.end());
 
   PointCloudHashGrid copy = *this;
 
@@ -218,8 +154,20 @@ PointCloudHashGrid<T>::deepCopy(Pool& a_dstPool) const
   copy.m_positions  = PODVector<Vec3T<T>>{};
   copy.m_cellStart  = PODVector<std::uint32_t>{};
   copy.m_cellPoints = PODVector<std::uint32_t>{};
+  copy.m_slotOf     = PODVector<std::uint32_t>{};
+  copy.m_keys       = PODVector<std::uint64_t>{};
+  copy.m_boxScratch = PODVector<Vec3T<T>>{};
+  copy.m_parallel   = false;
 
-  copy.storeArrays(a_dstPool, hostPositions, hostCellStart, hostCellPoints);
+  copy.reserveArrays(
+    a_dstPool, static_cast<uint32_t>(hostPositions.size()), static_cast<uint32_t>(hostCellStart.size()) - 1U);
+
+  void* dstBase = copy.base();
+
+  copy.m_positions.assign(dstBase, hostPositions.data(), static_cast<uint32_t>(hostPositions.size()));
+  copy.m_cellStart.assign(dstBase, hostCellStart.data(), static_cast<uint32_t>(hostCellStart.size()));
+  copy.m_cellPoints.assign(dstBase, hostCellPoints.data(), static_cast<uint32_t>(hostCellPoints.size()));
+  copy.m_slotOf.assign(dstBase, hostSlotOf.data(), static_cast<uint32_t>(hostSlotOf.size()));
 
   return copy;
 }
@@ -328,10 +276,9 @@ PointCloudHashGrid<T>::query(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_ou
           const std::uint32_t begin = cellStart[static_cast<std::uint32_t>(cid)];
           const std::uint32_t end   = cellStart[static_cast<std::uint32_t>(cid + 1)];
 
+          // A cell's points sit in consecutive slots, positions and cloud indices alike.
           for (std::uint32_t s = begin; s < end; s++) {
-            const std::uint32_t p = cellPoints[s];
-
-            best.insert((positions[p] - a_query).length2(), p);
+            best.insert((positions[s] - a_query).length2(), cellPoints[s]);
           }
         }
       }
@@ -443,11 +390,16 @@ PointCloudHashGrid<T>::allNearestNeighbors(std::size_t a_k) const
   std::vector<Hit> result(numPoints * a_k);
 
   // Process points in cell (spatial) order -- consecutive queries touch nearby cells, staying hot in
-  // cache. m_cellPoints already holds the cloud indices in cell order.
-  for (const std::uint32_t p : m_cellPoints.bind(poolBase)) {
+  // cache. The slots are in cell order.
+  const PODSpan<const Vec3T<T>>      positions  = m_positions.bind(poolBase);
+  const PODSpan<const std::uint32_t> cellPoints = m_cellPoints.bind(poolBase);
+
+  for (std::uint32_t s = 0; s < static_cast<std::uint32_t>(numPoints); s++) {
+    const std::uint32_t p = cellPoints[s];
+
     EBGEOMETRY_EXPECT(std::size_t(p) < numPoints);
 
-    this->query(m_positions.at(poolBase, p), a_k, &result[std::size_t(p) * a_k], p);
+    this->query(positions[s], a_k, &result[std::size_t(p) * a_k], p);
   }
 
   return result;

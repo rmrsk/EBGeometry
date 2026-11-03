@@ -271,6 +271,48 @@ instantiateFunctionTemplates()
     GPU::transform(query, pool, in, out);
     (void)GPU::deviceAvailable();
     (void)GPU::memoryResource();
+
+    // The build blocks, and the parallel point-cloud builds that use them.
+    struct Descending
+    {
+      bool
+      operator()(const uint64_t a_lhs, const uint64_t a_rhs) const noexcept
+      {
+        return a_lhs > a_rhs;
+      }
+    };
+
+    std::vector<Vec3T<T>> scratch(GPU::boundingBoxScratchSize(1));
+    uint64_t              keys[2] = {2, 1};
+
+    (void)GPU::boundingBox(points.data(), 1, scratch.data());
+    GPU::bitonicSort(keys, 2);
+    GPU::bitonicSort(keys, 2, Descending{});
+
+    // Both builds: on the host, and through GPU::parallelFor() (emulated device memory); and a rebuild.
+    Pool cloudPool(hostMemoryResource());
+    Pool parallelPool(emulatedDeviceMemoryResource());
+
+    PointCloudHashGrid<T> grid = PointCloudHashGrid<T>::build(cloudPool, points, T(1), 4);
+
+    (void)PointCloudHashGrid<T>::build(parallelPool, PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
+
+    grid.rebuild(PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
+    (void)grid.maxPoints();
+    (void)GPU::boundingBoxOf<T>(PointCloud::FromArray<T>{points.data()}, 1, scratch.data());
+
+    // The same for PointCloudBVH, and the exclusive scan its build uses.
+    PointCloudBVH<T> bvh = PointCloudBVH<T>::build(cloudPool, points, 16, 4);
+
+    (void)PointCloudBVH<T>::build(parallelPool, PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
+
+    bvh.rebuild(PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
+    (void)bvh.maxPoints();
+
+    std::vector<uint32_t> values(3, 1);
+    std::vector<uint32_t> sums(GPU::exclusiveScanScratchSize(3));
+
+    (void)GPU::exclusiveScan(values.data(), 3, sums.data());
   }
 
   // The ray queries on a shape with a ray form and on a marched one, for rays and for segments.

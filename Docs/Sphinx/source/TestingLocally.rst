@@ -231,7 +231,10 @@ Test coverage
        different block sizes, and with no and with a large minimum of resident threads, into a reused output; a pool built in place in managed memory, with
        results written over the inputs; the aborts on mismatched sizes, on partly overlapping inputs
        and results, and on a pool that is not frozen, not device-accessible, or that the arrays do
-       not fit in; and
+       not fit in; ``GPU::bitonicSort`` in both orders over counts from 0 to 1024 and its abort on a
+       count that is not a power of two; ``GPU::exclusiveScan`` against a host prefix sum across chunk
+       boundaries, and for no values; ``GPU::boundingBox`` against a host loop across chunk
+       boundaries, and for no points; and
        ``GPU::memoryResource()``/``EmulatedDeviceMemoryResource``.
    * - ``TestPool``
      - ``Pool``: growth preserving earlier contents and every type's alignment, the requests too
@@ -478,16 +481,26 @@ Test coverage
    * - ``TestPointCloudBVH``
      - :cpp:class:`PointCloudBVH`: nearest-neighbor, k-nearest-neighbor, all-points and
        closest-point queries against brute force, edge cases (padded lanes reported once even when
-       ``k`` exceeds the cloud), ``rebasedView``/``deepCopy``, device queries against the host, and
-       rejection of a cloud it cannot index, a zero leaf size, or a rebase onto too small a pool.
+       ``k`` exceeds the cloud), ``rebasedView``/``deepCopy``, device queries against the host,
+       ``build()`` in device-accessible memory giving the host's tree array for array (over leaf
+       sizes, branching factors, widths and skewed clouds), positions read through a source,
+       ``rebuild()`` on a frozen pool (the tree of a fresh build, nothing reserved, the least
+       balanced cloud included), a device-memory build queried on the device and mirrored back, and
+       rejection of a cloud it cannot index, a zero leaf size, a rebuild without room, or a rebase
+       onto a pool that is not its own.
        The query functors it shares with ``TestPointCloudHashGrid`` are in
        :file:`Tests/TestPointCloudQueries.hpp`.
    * - ``TestPointCloudHashGrid``
      - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases (far
        queries, a lattice where many points tie on cell faces, a cloud far from the origin where the
        stopping rule's rounding slack is tightest, extreme cell sizes),
-       ``rebasedView``/``deepCopy``, device queries against the host, and rejection of a cloud it
-       cannot index, a non-positive target occupancy, or a rebase onto an unrelated pool.
+       ``rebasedView``/``deepCopy``, device queries against the host, ``build`` in device-accessible
+       memory answering every query exactly like the host's grid (uniform, clustered, flat and coincident
+       clouds, zero to three points, several cell sizes) and on a device from device memory, positions read
+       through a source (separate arrays in another precision, ``FromArray``), ``rebuild`` matching a fresh
+       build on a frozen pool (more, moved, fewer and no points) and coarsening its cells when its box needs
+       more than it has, and rejection of a cloud it cannot index, a non-positive target occupancy, a rebuild
+       past its room, or a rebase onto an unrelated pool.
    * - ``TestRandom``
      - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
        an empty result for a zero count.

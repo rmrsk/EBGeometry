@@ -12,10 +12,9 @@
 #define EBGEOMETRY_POINTCLOUDBVHIMPLEM_HPP
 
 // Std includes
-#include <algorithm>
 #include <cmath>
-#include <numeric>
-#include <utility>
+#include <cstdint>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_Array.hpp"
@@ -31,63 +30,8 @@ EBGEOMETRY_HOST
 inline PointCloudBVH<T, K, W>::PointCloudBVH(Pool&                        a_pool,
                                              const std::vector<Vec3T<T>>& a_positions,
                                              std::size_t                  a_targetLeafSize)
-  : PointCloudBVH(a_pool, buildTree(a_positions, a_targetLeafSize), a_positions)
 {
-  static_assert(std::is_floating_point_v<T>, "PointCloudBVH requires a floating-point type T");
-  static_assert(K >= 2, "PointCloudBVH requires a branching factor K >= 2");
-  static_assert(W >= 1, "PointCloudBVH requires a SIMD width W >= 1");
-
-  // a_targetLeafSize is checked by buildTree(), before the build uses it.
-}
-
-template <class T, size_t K, size_t W>
-EBGEOMETRY_HOST
-inline PointCloudBVH<T, K, W>::PointCloudBVH(Pool&                        a_pool,
-                                             const BuildResult&           a_build,
-                                             const std::vector<Vec3T<T>>& a_positions)
-{
-  const Packed bvh(a_pool, a_build.nodes, a_build.boxes, a_build.primitives);
-
-  this->setLocation(bvh.location());
-
-  m_bvhLayout = bvh.layout();
-
-  this->storeCloud(a_pool, a_positions, a_build.leafOff, a_build.leafCnt, a_build.order);
-}
-
-template <class T, size_t K, size_t W>
-EBGEOMETRY_HOST
-inline void
-PointCloudBVH<T, K, W>::storeCloud(Pool&                             a_pool,
-                                   const std::vector<Vec3T<T>>&      a_positions,
-                                   const std::vector<std::uint32_t>& a_leafOff,
-                                   const std::vector<std::uint32_t>& a_leafCnt,
-                                   const std::vector<std::uint32_t>& a_order)
-{
-  // Every array must come from the pool the BVH was built in: they all resolve against its base.
-  EBGEOMETRY_EXPECT(this->isAttachedTo(a_pool));
-
-  PointCloudDetail::requireValidCloud("PointCloudBVH", a_positions);
-
-  EBGEOMETRY_EXPECT(a_leafOff.size() == a_positions.size());
-  EBGEOMETRY_EXPECT(a_leafCnt.size() == a_positions.size());
-  EBGEOMETRY_EXPECT(a_order.size() == a_positions.size());
-
-  const auto numPoints = static_cast<std::uint32_t>(a_positions.size());
-
-  m_positions.reserveFrom(a_pool, numPoints);
-  m_leafOff.reserveFrom(a_pool, numPoints);
-  m_leafCnt.reserveFrom(a_pool, numPoints);
-  m_order.reserveFrom(a_pool, numPoints);
-
-  // Resolve the base only after every reservation above: a reserve can grow the pool, which moves
-  // the block and invalidates any address taken before it.
-  void* poolBase = this->base();
-
-  m_positions.assign(poolBase, a_positions.data(), numPoints);
-  m_leafOff.assign(poolBase, a_leafOff.data(), numPoints);
-  m_leafCnt.assign(poolBase, a_leafCnt.data(), numPoints);
-  m_order.assign(poolBase, a_order.data(), numPoints);
+  *this = build(a_pool, a_positions, a_targetLeafSize);
 }
 
 template <class T, size_t K, size_t W>
@@ -106,20 +50,45 @@ EBGEOMETRY_HOST
 inline PointCloudBVH<T, K, W>
 PointCloudBVH<T, K, W>::rebasedView(const Pool& a_pool) const noexcept
 {
-  // The BVH checks its own arrays; these are the cloud's, which live in the same pool.
-  const size_t poolBytes = a_pool.usedBytes();
+  const auto end = [](const auto&... a_arrays) noexcept {
+    uint64_t byte = 0;
 
-  EBGEOMETRY_REQUIRE(m_positions.endByte() <= poolBytes && m_leafOff.endByte() <= poolBytes &&
-                       m_leafCnt.endByte() <= poolBytes && m_order.endByte() <= poolBytes,
-                     "PointCloudBVH::rebasedView: the cloud's arrays must fit inside the pool (the pool holds %zu "
-                     "bytes)",
-                     poolBytes);
+    ((byte = Math::max(byte, a_arrays.endByte())), ...);
+
+    return byte;
+  };
+
+  const uint64_t endByte = Math::max(end(m_bvhLayout.m_linearNodes,
+                                         m_bvhLayout.m_primitives,
+                                         m_bvhLayout.m_childAabbSoA,
+                                         m_bvhLayout.m_rootBox,
+                                         m_positions,
+                                         m_leafOff,
+                                         m_leafCnt,
+                                         m_order),
+                                     end(m_scratch.m_keys,
+                                         m_scratch.m_box,
+                                         m_scratch.m_nodes,
+                                         m_scratch.m_boxes,
+                                         m_scratch.m_rows,
+                                         m_scratch.m_groups,
+                                         m_scratch.m_scan));
 
   // Every array is a pool-relative offset, identical in any mirror of the pool, so only the location
-  // changes. Rebasing the BVH computes it, and checks the BVH's arrays and depth on the way.
+  // changes.
   PointCloudBVH view = *this;
 
-  view.setLocation(this->getBVH().rebasedView(a_pool).location());
+  view.setLocation(this->rebasedLocation(a_pool, endByte, "PointCloudBVH"));
+
+  // A snapshot is what a kernel receives, and the device traversal stack is smaller than the host's. The
+  // depth is the build's, so this reads nothing from a pool that may be in device memory.
+  if (view.location().m_control == nullptr) {
+    EBGEOMETRY_REQUIRE(m_depth <= BVH::DeviceTraversalDepth,
+                       "PointCloudBVH::rebasedView: the tree is %u levels deep, more than a device traversal "
+                       "allows (%zu)",
+                       unsigned(m_depth),
+                       BVH::DeviceTraversalDepth);
+  }
 
   return view;
 }
@@ -133,225 +102,44 @@ PointCloudBVH<T, K, W>::deepCopy(Pool& a_dstPool) const
   // reserve there can move the block under any address taken from it.
   const void* srcBase = this->base();
 
-  const std::vector<Vec3T<T>>      positions = toHost(m_positions, srcBase);
-  const std::vector<std::uint32_t> leafOff   = toHost(m_leafOff, srcBase);
-  const std::vector<std::uint32_t> leafCnt   = toHost(m_leafCnt, srcBase);
-  const std::vector<std::uint32_t> order     = toHost(m_order, srcBase);
+  const auto nodes     = toHost(m_bvhLayout.m_linearNodes, srcBase);
+  const auto groups    = toHost(m_bvhLayout.m_primitives, srcBase);
+  const auto rows      = toHost(m_bvhLayout.m_childAabbSoA, srcBase);
+  const auto rootBox   = toHost(m_bvhLayout.m_rootBox, srcBase);
+  const auto positions = toHost(m_positions, srcBase);
+  const auto leafOff   = toHost(m_leafOff, srcBase);
+  const auto leafCnt   = toHost(m_leafCnt, srcBase);
+  const auto order     = toHost(m_order, srcBase);
 
-  const Packed bvh = this->getBVH().deepCopy(a_dstPool);
+  const auto numPoints = static_cast<std::uint32_t>(positions.size());
 
   PointCloudBVH copy = *this;
 
-  copy.setLocation(bvh.location());
+  copy.setLocation(PoolLocation{});
 
-  copy.m_bvhLayout = bvh.layout();
+  copy.m_scratch   = Scratch{};
+  copy.m_maxPoints = 0;
+  copy.m_parallel  = false;
 
-  copy.storeCloud(a_dstPool, positions, leafOff, leafCnt, order);
+  copy.reserveArrays(a_dstPool,
+                     Sizes{static_cast<std::uint32_t>(nodes.size()),
+                           static_cast<std::uint32_t>(rows.size()),
+                           static_cast<std::uint32_t>(groups.size())},
+                     numPoints);
+
+  // Resolve the base only after every reservation above.
+  void* base = copy.base();
+
+  copy.m_bvhLayout.m_linearNodes.assign(base, nodes.data(), static_cast<std::uint32_t>(nodes.size()));
+  copy.m_bvhLayout.m_primitives.assign(base, groups.data(), static_cast<std::uint32_t>(groups.size()));
+  copy.m_bvhLayout.m_childAabbSoA.assign(base, rows.data(), static_cast<std::uint32_t>(rows.size()));
+  copy.m_bvhLayout.m_rootBox.assign(base, rootBox.data(), static_cast<std::uint32_t>(rootBox.size()));
+  copy.m_positions.assign(base, positions.data(), numPoints);
+  copy.m_leafOff.assign(base, leafOff.data(), numPoints);
+  copy.m_leafCnt.assign(base, leafCnt.data(), numPoints);
+  copy.m_order.assign(base, order.data(), numPoints);
 
   return copy;
-}
-
-template <class T, size_t K, size_t W>
-EBGEOMETRY_HOST
-inline typename PointCloudBVH<T, K, W>::BuildResult
-PointCloudBVH<T, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions, std::size_t a_leafSize)
-{
-  static_assert(std::is_floating_point_v<T>, "PointCloudBVH::buildTree requires a floating-point type T");
-  static_assert(K >= 2, "PointCloudBVH::buildTree requires a branching factor K >= 2");
-  static_assert(W >= 1, "PointCloudBVH::buildTree requires a SIMD width W >= 1");
-
-  // Before anything is sized from it: the build stores uint32 indices.
-  PointCloudDetail::requireValidCloud("PointCloudBVH", a_positions);
-
-  EBGEOMETRY_REQUIRE(a_leafSize >= 1, "PointCloudBVH: the target leaf size must be at least 1 (%zu)", a_leafSize);
-
-  const std::size_t numPoints = a_positions.size();
-
-  BuildResult result;
-
-  result.leafOff.assign(numPoints, 0);
-  result.leafCnt.assign(numPoints, 0);
-  result.nodes.reserve(numPoints > 0 ? 2 * numPoints / Math::max<std::size_t>(a_leafSize, 1) + 4 : 4);
-  result.boxes.reserve(result.nodes.capacity());
-  result.primitives.reserve(numPoints / W + 4);
-
-  std::vector<std::uint32_t> indices(numPoints);
-  std::iota(indices.begin(), indices.end(), std::uint32_t{0});
-
-  // Recursion over index ranges [lo, hi) of `indices`. All partitioning is in place on `indices`;
-  // leaves pack their points into PointGroups inline. Kept in a local struct so the recursive calls
-  // do not thread every argument.
-  struct Builder
-  {
-    const std::vector<Vec3T<T>>& positions;
-    std::vector<std::uint32_t>&  indices;
-    BuildResult&                 result;
-    const std::size_t            leafSize;
-
-    // Recursively split indices[lo, hi) into a_numParts index ranges by longest-axis midpoint (in
-    // place), appending each final range to a_ranges.
-    void
-    partition(std::uint32_t                                         a_lo,
-              std::uint32_t                                         a_hi,
-              int                                                   a_numParts,
-              std::vector<std::pair<std::uint32_t, std::uint32_t>>& a_ranges)
-    {
-      EBGEOMETRY_EXPECT(a_lo <= a_hi);
-      EBGEOMETRY_EXPECT(a_numParts >= 1);
-
-      if (a_numParts <= 1 || a_hi <= a_lo) {
-        a_ranges.emplace_back(a_lo, a_hi);
-
-        return;
-      }
-
-      // Bounding box of the points currently in this range -- split along its longest axis.
-      Vec3T<T> rangeLo = +Vec3T<T>::max();
-      Vec3T<T> rangeHi = -Vec3T<T>::max();
-
-      for (std::uint32_t i = a_lo; i < a_hi; i++) {
-        const Vec3T<T>& p = positions[indices[i]];
-
-        rangeLo = min(rangeLo, p);
-        rangeHi = max(rangeHi, p);
-      }
-
-      const int axis       = (rangeHi - rangeLo).maxDir(true);
-      const T   splitCoord = T(0.5) * (rangeLo[axis] + rangeHi[axis]);
-
-      EBGEOMETRY_EXPECT(axis >= 0 && axis < 3);
-
-      const auto splitIter = std::partition(
-        indices.begin() + a_lo, indices.begin() + a_hi, [this, axis, splitCoord](std::uint32_t a_id) noexcept {
-          return positions[a_id][axis] < splitCoord;
-        });
-
-      std::uint32_t splitIndex = static_cast<std::uint32_t>(splitIter - indices.begin());
-
-      const int leftParts  = a_numParts / 2;
-      const int rightParts = a_numParts - leftParts;
-
-      // The midpoint can leave one side with fewer points than its share of leaves: points that
-      // coincide along the axis never separate, and a tight cluster beside a few outliers puts
-      // nearly everything on one side. Clamping alone would then peel off only a few points per
-      // level, and the tree depth would grow linearly with the cluster size. Split by count instead
-      // (an object median along the same axis), which keeps the depth logarithmic.
-      if (splitIndex < a_lo + leftParts || splitIndex > a_hi - rightParts) {
-        const std::uint64_t count = a_hi - a_lo;
-
-        splitIndex = a_lo + static_cast<std::uint32_t>(count * static_cast<std::uint64_t>(leftParts) /
-                                                       static_cast<std::uint64_t>(a_numParts));
-
-        std::nth_element(indices.begin() + a_lo,
-                         indices.begin() + splitIndex,
-                         indices.begin() + a_hi,
-                         [this, axis](std::uint32_t a_lhs, std::uint32_t a_rhs) noexcept {
-                           return positions[a_lhs][axis] < positions[a_rhs][axis];
-                         });
-      }
-
-      // Keep each half populated enough to yield its share of non-empty leaves.
-      splitIndex = Math::max<std::uint32_t>(a_lo + leftParts, Math::min<std::uint32_t>(a_hi - rightParts, splitIndex));
-
-      EBGEOMETRY_EXPECT(splitIndex >= a_lo && splitIndex <= a_hi);
-
-      partition(a_lo, splitIndex, leftParts, a_ranges);
-      partition(splitIndex, a_hi, rightParts, a_ranges);
-    }
-
-    // Build the subtree over indices[lo, hi); returns its node index. Fills node bbox bottom-up.
-    std::uint32_t
-    build(std::uint32_t a_lo, std::uint32_t a_hi)
-    {
-      EBGEOMETRY_EXPECT(a_hi > a_lo);
-
-      const std::uint32_t nodeIndex = static_cast<std::uint32_t>(result.nodes.size());
-      result.nodes.emplace_back();
-      result.boxes.emplace_back();
-
-      // Make a leaf once the range is small enough -- but also never try to split a range with fewer
-      // than K points, since partition() cannot produce K non-empty children from it (an empty child
-      // would become a malformed 0-primitive leaf with an inverted bounding volume). With the default
-      // leaf size (16*W >> K) this never binds; it only matters for very small targetLeafSize.
-      if (a_hi - a_lo <= Math::max<std::size_t>(leafSize, K)) {
-        const std::uint32_t firstGroup = static_cast<std::uint32_t>(result.primitives.size());
-
-        Vec3T<T> boxLo = +Vec3T<T>::max();
-        Vec3T<T> boxHi = -Vec3T<T>::max();
-
-        for (std::uint32_t groupStart = a_lo; groupStart < a_hi; groupStart += static_cast<std::uint32_t>(W)) {
-          const std::uint32_t count = Math::min<std::uint32_t>(static_cast<std::uint32_t>(W), a_hi - groupStart);
-
-          EBGEOMETRY_EXPECT(count >= 1 && count <= W);
-
-          Array<Vec3T<T>, W>      groupPositions;
-          Array<std::uint32_t, W> groupIds;
-
-          for (std::uint32_t j = 0; j < count; j++) {
-            groupPositions[j] = positions[indices[groupStart + j]];
-            groupIds[j]       = indices[groupStart + j];
-
-            boxLo = min(boxLo, groupPositions[j]);
-            boxHi = max(boxHi, groupPositions[j]);
-          }
-
-          PointGroup group;
-          group.pack(groupPositions.data(), groupIds.data(), count);
-          result.primitives.push_back(group);
-        }
-
-        const std::uint32_t groupCount = static_cast<std::uint32_t>(result.primitives.size()) - firstGroup;
-
-        for (std::uint32_t i = a_lo; i < a_hi; i++) {
-          result.leafOff[indices[i]] = firstGroup;
-          result.leafCnt[indices[i]] = groupCount;
-        }
-
-        result.boxes[nodeIndex] = AABB(boxLo, boxHi);
-        result.nodes[nodeIndex].setPrimitivesOffset(firstGroup);
-        result.nodes[nodeIndex].setNumPrimitives(groupCount);
-
-        return nodeIndex;
-      }
-
-      std::vector<std::pair<std::uint32_t, std::uint32_t>> ranges;
-      ranges.reserve(K);
-      this->partition(a_lo, a_hi, static_cast<int>(K), ranges);
-
-      EBGEOMETRY_EXPECT(ranges.size() == K);
-
-      Vec3T<T>                boxLo = +Vec3T<T>::max();
-      Vec3T<T>                boxHi = -Vec3T<T>::max();
-      Array<std::uint32_t, K> children;
-
-      for (std::size_t k = 0; k < K; k++) {
-        children[k]          = this->build(ranges[k].first, ranges[k].second);
-        const AABB& childBox = result.boxes[children[k]];
-
-        boxLo = min(boxLo, childBox.getLowCorner());
-        boxHi = max(boxHi, childBox.getHighCorner());
-      }
-
-      for (std::size_t k = 0; k < K; k++) {
-        result.nodes[nodeIndex].setChildOffset(children[k], k); // interior: setNumPrimitives stays 0
-      }
-
-      result.boxes[nodeIndex] = AABB(boxLo, boxHi);
-
-      return nodeIndex;
-    }
-  };
-
-  if (numPoints > 0) {
-    Builder builder{a_positions, indices, result, Math::max<std::size_t>(a_leafSize, 1)};
-    builder.build(0, static_cast<std::uint32_t>(numPoints));
-  }
-
-  // After the build, `indices` is the point permutation in leaf (depth-first) order -- spatially
-  // coherent for free. Keep it so batch queries can iterate in that order without re-sorting.
-  result.order = std::move(indices);
-
-  return result;
 }
 
 template <class T, size_t K, size_t W>

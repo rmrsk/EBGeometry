@@ -80,6 +80,28 @@ enum class CloudQuery
 constexpr std::size_t g_cloudK = 3;
 
 /**
+ * @brief The cloud point nearest a_point by brute force over position(i) for every cloud index i (the structures
+ * need not store the positions in cloud-index order), never reporting a_exclude.
+ */
+template <class Cloud, class T>
+EBGEOMETRY_HOST_DEVICE
+PointCloud::Hit<T>
+bruteForceHit(const Cloud& a_cloud, const Vec3T<T>& a_point, const uint32_t a_exclude) noexcept
+{
+  PointCloud::Hit<T> best;
+
+  for (uint32_t i = 0; i < uint32_t(a_cloud.numPoints()); i++) {
+    const T d = (a_cloud.position(i) - a_point).length2();
+
+    if (i != a_exclude && d < best.distanceSquared) {
+      best = PointCloud::Hit<T>{i, d};
+    }
+  }
+
+  return best;
+}
+
+/**
  * @brief One hit of a query at an arbitrary point: the nearest, or the a_rank-th nearest (0 = nearest)
  * for ClosestPoints. A self query, or a rank past the hits found, gives an invalid Hit.
  */
@@ -94,7 +116,7 @@ cloudHit(const Cloud& a_cloud, const CloudQuery a_query, const std::size_t a_ran
   case CloudQuery::ClosestPoint:
     return a_cloud.closestPoint(a_point);
   case CloudQuery::ClosestPointBruteForce:
-    return PointCloud::closestPointBruteForce(&a_cloud.position(0), uint32_t(a_cloud.numPoints()), a_point);
+    return bruteForceHit(a_cloud, a_point, PointCloud::InvalidIndex);
   case CloudQuery::ClosestPoints:
     return (a_rank < a_cloud.closestPoints(a_point, g_cloudK, out)) ? out[a_rank] : PointCloud::Hit<T>{};
   default:
@@ -117,8 +139,7 @@ cloudHit(const Cloud& a_cloud, const CloudQuery a_query, const std::size_t a_ran
   case CloudQuery::NearestNeighbor:
     return a_cloud.nearestNeighbor(a_point);
   case CloudQuery::NearestNeighborBruteForce:
-    return PointCloud::closestPointBruteForce(
-      &a_cloud.position(0), uint32_t(a_cloud.numPoints()), a_cloud.position(a_point), a_point);
+    return bruteForceHit(a_cloud, a_cloud.position(a_point), a_point);
   case CloudQuery::NearestNeighbors:
     return (a_rank < a_cloud.nearestNeighbors(a_point, g_cloudK, out)) ? out[a_rank] : PointCloud::Hit<T>{};
   default:

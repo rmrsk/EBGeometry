@@ -19,6 +19,8 @@ What is in Performance/
 
    Performance/
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
+     PointCloudBVHBuild/      PointCloudBVH's build and rebuild where its pool is
+     PointCloudHashGridBuild/ PointCloudHashGrid's build and rebuild where its pool is
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVH/main.cpp             PackedBVH::traverse() itself
      BVHUnion/main.cpp        BVHUnion
@@ -114,6 +116,28 @@ Family                                Build  Measures
 ``neighbor-morton``                   GPU    ``nearestNeighbor`` of every cloud point
 ``neighbors8-morton``,                GPU    the 8 nearest points, per point
 ``closest8-morton``
+====================================  =====  =====================================================
+
+**PointCloudBVHBuild** (``Performance/PointCloudBVHBuild``): ``PointCloudBVH``'s ``build()`` and ``rebuild()``
+over the same 500,000 ``uniform`` points, at ``K`` = ``W`` = 4 and 64 points per leaf, with the same cases as
+PointCloudHashGridBuild below: a ``rebuild`` on the host, and a ``build`` and a ``rebuild`` on the GPU against the
+host's. A BVH with room for a rebuild holds arrays sized for any cloud of its size, so the rebuild cases' pool
+bytes are larger than the one-off build's.
+
+**PointCloudHashGridBuild** (``Performance/PointCloudHashGridBuild``): ``PointCloudHashGrid``'s ``build()`` and
+``rebuild()`` over the PointCloud probe's 500,000 ``uniform`` points, at one point per cell. A rebuild alternates
+between the points and the same points shifted and stretched, so that each finds a new box. The GPU cases compare
+the two sides' grids by their closest points at the build checks' queries.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``rebuild``                           host   a rebuild in place, nothing reserved (the host's
+                                             one-off build is PointCloud's ``build``)
+``build``                             GPU    a one-off build in device memory, from positions there,
+                                             against the host's build in host memory
+``rebuild``                           GPU    a rebuild in place in device memory, against the host's
+                                             rebuild in host memory
 ====================================  =====  =====================================================
 
 **Mesh** (``Performance/Mesh``): the armadillo, 99,976 triangles.

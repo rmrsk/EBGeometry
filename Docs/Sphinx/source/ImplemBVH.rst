@@ -478,8 +478,8 @@ a derived type silently slices away the payload the leaves refer to.
 
 Three public members exist for such a class. The adopting constructor
 ``PackedBVH(Pool&, const std::vector<Node>&, const std::vector<BV>&, const std::vector<P>&)`` takes
-a node array, the box of every node and a primitive array built by some other means --
-``PointCloudBVH`` runs its own index-based build. The boxes go alongside the nodes because a node
+a node array, the box of every node and a primitive array built by some other means, such as a
+builder of your own that produces the flat arrays directly. The boxes go alongside the nodes because a node
 does not store its own; the constructor puts them in the box rows and assigns every node's box row
 and box slot, whatever the node array held. Every
 constructor, this one included, checks always on rather than only under assertions that the node

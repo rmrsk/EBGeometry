@@ -17,6 +17,7 @@
 
 // Our includes
 #include "EBGeometry_Array.hpp"
+#include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -75,7 +76,8 @@ struct Morton
    * @param[in] a_point 3D grid index to encode. Each component must be <= ValidSpan.
    * @return 64-bit Morton code for a_point.
    */
-  [[nodiscard]] inline static uint64_t
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline static uint64_t
   encode(const Index& a_point) noexcept;
 
   /**

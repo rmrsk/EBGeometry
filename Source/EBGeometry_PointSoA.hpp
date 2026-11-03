@@ -142,6 +142,17 @@ public:
   pack(const Vec3T<T>* a_positions, uint32_t a_count) noexcept;
 
   /**
+   * @brief pack() without its always-on checks, for a build that runs on a device.
+   * @details The caller guarantees what pack() checks: a non-null array, 1 <= a_count <= W, and finite
+   * coordinates (checked here only with assertions on).
+   * @param[in] a_positions Source position array with at least a_count elements.
+   * @param[in] a_count     Number of valid positions to pack.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  packUnchecked(const Vec3T<T>* a_positions, uint32_t a_count) noexcept;
+
+  /**
    * @brief Squared unsigned distances from a_point to every one of the W lane positions.
    * @details This is the group's one SIMD kernel; every other distance query is a wrapper over it.
    * Squared, so sqrt-free -- prefer it (and getMinimumDistance2()/getMaximumDistance2()) whenever the

@@ -30,13 +30,9 @@ namespace EBGeometry {
 
 inline Pool::Pool(MemoryResource& a_resource, size_t a_initialBytes) : m_resource(&a_resource), m_control(makeControl())
 {
-  // A build pool must be host-accessible: reserve()/push_back()/grow() write through base() with the
-  // host CPU. Device-resident pools are produced only by mirror() (via the private MirrorTag
-  // constructor). A host store into device memory would be silent undefined behavior.
-  EBGEOMETRY_REQUIRE(a_resource.isHostAccessible(),
-                     "Pool: a build pool requires a host-accessible MemoryResource; a device-resident pool is "
-                     "produced only by Pool::mirror");
-
+  // A pool may be in memory the host cannot read (device memory): reserve() and grow() never touch the
+  // block's contents through a host pointer, and the structures whose builders write it from the host
+  // refuse such a pool when they first attach to it (see PoolLocation::attach()).
   // Rounding a larger request up to the base alignment would wrap to a tiny block.
   EBGEOMETRY_REQUIRE(a_initialBytes <= s_maxBytes,
                      "Pool: an initial block of %zu bytes is more than a pool block can hold",
@@ -146,8 +142,6 @@ Pool::reserve(size_t a_count, size_t a_elemSize, size_t a_alignment)
 inline void
 Pool::grow(size_t a_need)
 {
-  EBGEOMETRY_EXPECT(m_resource->isHostAccessible()); // device blocks are never grown
-
   EBGEOMETRY_EXPECT(a_need <= s_maxBytes); // reserve() checked it
 
   // Doubling only while it stays within s_maxBytes; nearer the limit the block grows to exactly
@@ -167,7 +161,14 @@ Pool::grow(size_t a_need)
   void* newBase = m_resource->allocate(newCap, PoolBaseAlign);
 
   if (m_control->m_base != nullptr) {
-    std::memcpy(newBase, m_control->m_base, m_size);
+    // A block in memory the host cannot read is copied by its resource (a device-to-device copy).
+    if (m_size > 0 && m_resource->isHostAccessible()) {
+      std::memcpy(newBase, m_control->m_base, m_size);
+    }
+    else if (m_size > 0) {
+      m_resource->copy(newBase, *m_resource, m_control->m_base, *m_resource, m_size);
+    }
+
     m_resource->deallocate(m_control->m_base, m_capacity, PoolBaseAlign);
   }
 
@@ -232,10 +233,17 @@ PoolLocation::isAttachedTo(const Pool& a_pool) const noexcept
 }
 
 inline void
-PoolLocation::attach(const Pool& a_pool, const char* a_who) noexcept
+PoolLocation::attach(const Pool& a_pool, const char* a_who, const bool a_deviceWritten) noexcept
 {
   EBGEOMETRY_REQUIRE(m_control == nullptr || m_control == a_pool.control(),
                      "%s: all of its arrays must be reserved from the same Pool",
+                     a_who);
+
+  // A builder that writes its arrays from the host needs memory the host can write; only a build that writes
+  // them on the device takes a pool in device memory.
+  EBGEOMETRY_REQUIRE(a_deviceWritten || a_pool.resource().isHostAccessible(),
+                     "%s: the pool's memory must be host-accessible, since it is built on the host; a pool in device "
+                     "memory holds only structures built there (PointCloudHashGrid::build()), or mirror a host pool",
                      a_who);
 
   m_control        = a_pool.control();

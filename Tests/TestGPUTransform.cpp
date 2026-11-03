@@ -7,6 +7,7 @@
 #include "TestGPU.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -474,4 +475,218 @@ TEST_CASE("GPU::transform over spans: inputs and results that partly overlap abo
       GPU::transform(Twice<double>{}, PODSpan<const double>{values.data(), 4}, PODSpan<double>{values.data() + 1, 4});
     },
     "GPU::transform: the inputs and the results must be the same array or not overlap"));
+}
+
+namespace {
+
+// Memory both the host and a launch can reach: managed memory in a GPU build, host memory otherwise.
+MemoryResource&
+sharedResource() noexcept
+{
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  return managedMemoryResource();
+#else
+  return hostMemoryResource();
+#endif
+}
+
+// A descending order, at namespace scope so that a kernel may be instantiated on it.
+struct Descending
+{
+  EBGEOMETRY_HOST_DEVICE
+  bool
+  operator()(const uint64_t a_lhs, const uint64_t a_rhs) const noexcept
+  {
+    return a_lhs > a_rhs;
+  }
+};
+
+} // namespace
+
+TEST_CASE("GPU::bitonicSort sorts any power-of-two count of keys", "[GPU]")
+{
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  for (const uint32_t n : {0U, 1U, 2U, 8U, 1024U}) {
+    INFO("keys " << n);
+
+    Pool pool(sharedResource());
+
+    PODVector<uint64_t> keys;
+
+    keys.reserveSizedFrom(pool, n);
+
+    uint64_t* data = keys.data(pool.base());
+
+    // A fixed pseudo-random sequence, with repeats.
+    uint64_t state = 12345;
+
+    for (uint32_t i = 0; i < n; i++) {
+      state   = state * 6364136223846793005ULL + 1442695040888963407ULL;
+      data[i] = state >> 54;
+    }
+
+    std::vector<uint64_t> expected(data, data + n);
+
+    std::sort(expected.begin(), expected.end());
+
+    GPU::bitonicSort(data, n);
+
+    CHECK(std::vector<uint64_t>(data, data + n) == expected);
+
+    // And descending, through the order functor.
+    GPU::bitonicSort(data, n, Descending{});
+
+    CHECK(std::vector<uint64_t>(data, data + n) == std::vector<uint64_t>(expected.rbegin(), expected.rend()));
+  }
+}
+
+TEST_CASE("GPU::exclusiveScan gives every value's exclusive prefix sum, and the total", "[GPU]")
+{
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  constexpr uint32_t chunk = GPU::ScanChunk;
+
+  // Counts across the chunk boundaries, and none.
+  for (const uint32_t n : {0U, 1U, chunk - 1U, chunk, chunk + 1U, 5U * chunk + 3U}) {
+    INFO("values " << n);
+
+    Pool pool(sharedResource());
+
+    PODVector<uint32_t> values;
+    PODVector<uint32_t> scratch;
+
+    values.reserveSizedFrom(pool, n);
+    scratch.reserveSizedFrom(pool, GPU::exclusiveScanScratchSize(n));
+
+    uint32_t* data = values.data(pool.base());
+
+    std::vector<uint32_t> expected(n);
+    uint32_t              sum = 0;
+
+    for (uint32_t i = 0; i < n; i++) {
+      data[i]     = (i * 7U) % 5U;
+      expected[i] = sum;
+      sum += data[i];
+    }
+
+    const uint32_t total = GPU::exclusiveScan(data, n, scratch.data(pool.base()));
+
+    CHECK(total == sum);
+    CHECK(std::vector<uint32_t>(data, data + n) == expected);
+  }
+}
+
+TEST_CASE("GPU::boundingBox is the exact box of the points", "[GPU]")
+{
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  using Vec3 = Vec3T<double>;
+
+  for (const uint32_t n : {1U, 255U, 256U, 257U, 3000U}) {
+    INFO("points " << n);
+
+    Pool pool(sharedResource());
+
+    PODVector<Vec3> points;
+    PODVector<Vec3> scratch;
+
+    points.reserveSizedFrom(pool, n);
+    scratch.reserveSizedFrom(pool, GPU::boundingBoxScratchSize(n));
+
+    Vec3* data = points.data(pool.base());
+
+    Vec3 lo = Vec3::max();
+    Vec3 hi = -Vec3::max();
+
+    for (uint32_t i = 0; i < n; i++) {
+      data[i] = Vec3(std::sin(0.1 * i) * i, std::cos(0.3 * i), 0.01 * i - 7.0);
+      lo      = min(lo, data[i]);
+      hi      = max(hi, data[i]);
+    }
+
+    const auto box = GPU::boundingBox(static_cast<const Vec3*>(data), n, scratch.data(pool.base()));
+
+    CHECK(box.getLowCorner() == lo);
+    CHECK(box.getHighCorner() == hi);
+  }
+
+  // No points: the empty box.
+  const auto empty = GPU::boundingBox<double>(nullptr, 0, nullptr);
+
+  CHECK_FALSE(empty.getLowCorner()[0] <= empty.getHighCorner()[0]);
+}
+
+namespace {
+
+// A source of points for GPU::boundingBoxOf(): point i, computed from its index in arithmetic that is exact in
+// double (so the host and a device agree to the last bit), with one point at infinity if asked for.
+struct Spiral
+{
+  uint32_t m_infinite;
+
+  EBGEOMETRY_HOST_DEVICE
+  Vec3T<double>
+  operator()(const uint32_t a_i) const noexcept
+  {
+    const double x = (a_i == m_infinite) ? Math::Limits<double>::infinity() : 0.5 * double(a_i % 97) - double(a_i % 13);
+
+    return Vec3T<double>(x, double((a_i * 37U) % 101U), 0.25 * double(a_i) - 7.0);
+  }
+};
+
+} // namespace
+
+TEST_CASE("GPU::boundingBoxOf is the exact box of the points a source gives, and not finite if one is not", "[GPU]")
+{
+  if (GPU::enabled && !EBGeometryTestGPU::deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  using Vec3 = Vec3T<double>;
+
+  for (const uint32_t n : {1U, 255U, 256U, 257U, 3000U}) {
+    INFO("points " << n);
+
+    Pool pool(sharedResource());
+
+    PODVector<Vec3> scratch;
+
+    scratch.reserveSizedFrom(pool, GPU::boundingBoxScratchSize(n));
+
+    Vec3 lo = Vec3::max();
+    Vec3 hi = -Vec3::max();
+
+    for (uint32_t i = 0; i < n; i++) {
+      lo = min(lo, Spiral{n}(i));
+      hi = max(hi, Spiral{n}(i));
+    }
+
+    const auto box = GPU::boundingBoxOf<double>(Spiral{n}, n, scratch.data(pool.base()));
+
+    CHECK(box.getLowCorner() == lo);
+    CHECK(box.getHighCorner() == hi);
+
+    // A point at infinity, in the last chunk: the box is not finite.
+    const auto infinite = GPU::boundingBoxOf<double>(Spiral{n - 1}, n, scratch.data(pool.base()));
+
+    CHECK_FALSE((std::isfinite(infinite.getLowCorner()[0]) && std::isfinite(infinite.getHighCorner()[0])));
+  }
+}
+
+TEST_CASE("GPU::bitonicSort: a count that is not a power of two aborts", "[GPU][death]")
+{
+  REQUIRE(abortsWith(
+    [] {
+      uint64_t keys[3] = {3, 1, 2};
+
+      GPU::bitonicSort(keys, 3);
+    },
+    "GPU::bitonicSort: the key count must be a power of two (3)"));
 }

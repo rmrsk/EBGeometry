@@ -4,7 +4,7 @@
 
 /**
  * @file    EBGeometry_PointCloudBVH.hpp
- * @brief   A point-cloud BVH built on PackedBVH: fast index-based build and high-level
+ * @brief   A point-cloud BVH built on PackedBVH: a linear BVH built where its pool is, and high-level
  *          nearest-neighbor / closest-point queries.
  * @author  Robert Marskar
  */
@@ -26,20 +26,114 @@
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_PointAoSoA.hpp"
 #include "EBGeometry_PointCloud.hpp"
+#include "EBGeometry_PointCloudDetail.hpp"
 #include "EBGeometry_PointSoA.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
+namespace PointCloudDetail {
+
+/**
+ * @brief A point's sort key in a PointCloudBVH build: its Morton code, ties broken by its cloud index.
+ * @details Internal; not part of the public API.
+ */
+struct MortonKey
+{
+  /// @brief The Morton code of the point's cell.
+  uint64_t m_code;
+
+  /// @brief The point's cloud index.
+  uint32_t m_index;
+
+  /**
+   * @brief Whether this key sorts before @p a_other: by code, then by cloud index.
+   * @param[in] a_other The other key.
+   * @return True if this key comes first.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  operator<(const MortonKey& a_other) const noexcept
+  {
+    return m_code < a_other.m_code || (m_code == a_other.m_code && m_index < a_other.m_index);
+  }
+};
+
+/**
+ * @brief One node of a PointCloudBVH build, in breadth-first order.
+ * @details Internal; not part of the public API.
+ */
+struct BuildNode
+{
+  /// @brief First of the node's points, in sorted order.
+  uint32_t m_lo;
+
+  /// @brief One past the node's last point, in sorted order.
+  uint32_t m_hi;
+
+  /// @brief The parent's breadth-first index (0 for the root).
+  uint32_t m_parent;
+
+  /// @brief The node's position among its parent's children.
+  uint32_t m_slot;
+
+  /// @brief The first child's breadth-first index (interior nodes).
+  uint32_t m_firstChild;
+
+  /// @brief Nodes in the node's subtree, itself included.
+  uint32_t m_subtree;
+
+  /// @brief The node's index in the depth-first node array.
+  uint32_t m_depthFirst;
+};
+
+} // namespace PointCloudDetail
+
 /**
  * @brief A BVH over a point cloud, with a fast build and turnkey queries.
  * @details Holds a PackedBVH over SoA point groups (rather than deriving from one) together with
- * the cloud data the queries need. Unlike the general PackedBVH constructors (which take a list of pre-made primitives and
- * partition it via SAH/Midpoint/SFC), PointCloudBVH is built directly from a raw point cloud. It
- * uses an index-based, copy-free top-down build (partition an index permutation in place by
- * longest-axis midpoint, pack leaves into PointAoSoA<T, W> groups inline), which is far cheaper than
- * the general path and produces a tree just as tight for near-uniform clouds.
+ * the cloud data the queries need. Unlike the general PackedBVH builds (which take a list of
+ * pre-made primitives and partition it via SAH/Midpoint/SFC), PointCloudBVH is built directly from a
+ * raw point cloud, as a linear BVH: the points sorted along a Morton curve, and every node's range of
+ * them cut where their codes first differ. build() runs it where the pool's memory is, on a device
+ * included, and every side gives the same tree, array for array.
+ *
+ * The build, step by step (EBGeometry_PointCloudBVHBuildImplem.hpp):
+ *
+ * 1. The cloud's box, every coordinate checked finite.
+ * 2. Each point's key: its 63-bit Morton code over the box, its longest side scaled to the code's span,
+ *    and its cloud index, which breaks ties. The keys are sorted (std::sort on the host, a bitonic sort
+ *    through GPU::parallelFor()); the keys are distinct, so both give one order.
+ * 3. The tree is grown one level at a time, breadth first. A node holds a range of the sorted points;
+ *    one of at most max(a_targetLeafSize, K) points is a leaf, and any other is cut into K ranges, its
+ *    children. The K ranges come from K - 1 binary cuts, made as a midpoint build makes them (the
+ *    first cut gives K/2 of the parts to the left): a range is cut at the first point whose code has
+ *    the highest bit where the range's first and last codes differ set, its points so far left of the
+ *    Morton curve's split plane, or at its middle when every code is equal. Each cut keeps at least
+ *    floor(n / (4K)) points (and one) per part on either side, n the node's size: a cut further out is
+ *    moved in to that quota. The quota bounds the depth (a child holds at most about (3K + 1) / (4K)
+ *    of its parent) and the node count (every leaf below an interior node holds at least
+ *    floor((max(a_targetLeafSize, K) + 1) / (4K)) points), which is what lets build() reserve room
+ *    for a rebuild of any cloud of a given size. Each level is one launch: a node's children go at
+ *    the next level's offset plus K times its rank among the level's interior nodes (an exclusive
+ *    scan).
+ * 4. Each node's subtree size, the levels from the deepest up, with each node's box; then each node's
+ *    depth-first index, from the root down. The node array is in depth-first order, and its leaves
+ *    are in the sorted points' order.
+ * 5. The child-box rows (one per interior node, in depth-first order), and each leaf's groups of W
+ *    points (in depth-first order), placed by two exclusive scans over the nodes in depth-first order.
+ * 6. Every node written by its own thread: its children's depth-first indices, its row, its children's
+ *    boxes into that row, its box slot; a leaf also packs its groups and writes, for each of its
+ *    points, the position (by cloud index), the leaf tables and the point's place in the leaf order.
+ *
+ * A cut that needs no median or sort of its range is what makes the tree the same on every side, and
+ * cheap to build on a device. The alternatives: a top-down longest-axis midpoint build, the reference
+ * below, partitions each range around a coordinate and has no cheap device form; spreading the Morton-sorted points evenly over
+ * a perfect K-ary tree queried 1.2-8.6x slower than it (500,000 points, host and an RTX 3080); a
+ * prototype of these radix cuts with a quarter-share quota per binary cut queried within about 10% of
+ * it (faster on a uniform cube, slower on a sphere's surface). A half-share quota cost about 10% more
+ * on the sphere.
  *
  * Every leaf lane carries its point's **cloud index** (its position in the input positions array),
  * and queries return that index in a PointCloud::Hit. Per-point user data lives in the caller's own
@@ -52,9 +146,6 @@ namespace EBGeometry {
  * the batch allNearestNeighbors(), take a point already in the cloud and additionally **seed the
  * search bound from the leaf that point lives in** (skipping that leaf during traversal) -- a
  * strictly cheaper search that an external point cannot use.
- *
- * @note The index-based build is several times faster than a full SAH tree, and for near-uniform clouds
- * just as tight to query.
  *
  * @note Device portability. The held PackedBVH and every cloud array (positions, the seeding
  * tables, the leaf order) are reserved from the same Pool, and the class stores only offsets into
@@ -99,21 +190,106 @@ public:
   using Hit = PointCloud::Hit<T>;
 
   /**
-   * @brief No default construction -- a point cloud is required.
-   */
-  PointCloudBVH() = delete;
-
-  /**
-   * @brief Build a BVH over a point cloud.
+   * @brief Build a BVH over a point cloud on the host: shorthand for build(a_pool, a_positions, a_targetLeafSize).
    * @details A point's cloud index, which the queries report, is its position in @p a_positions.
    * @param[in,out] a_pool       Pool the packed BVH and the cloud arrays are reserved from; must outlive
    *                             this object.
-   * @param[in] a_positions      Point positions. Fewer than PointCloud::InvalidIndex, all finite.
-   * @param[in] a_targetLeafSize Target points per leaf (the build stops splitting at or below it). Must
-   *                             be at least 1.
+   * @param[in] a_positions      Point positions. At most 2^31, all finite.
+   * @param[in] a_targetLeafSize Target points per leaf (a node of at most max(a_targetLeafSize, K) points
+   *                             is a leaf). Must be at least 1.
    */
   EBGEOMETRY_HOST
   inline PointCloudBVH(Pool& a_pool, const std::vector<Vec3T<T>>& a_positions, std::size_t a_targetLeafSize = 16 * W);
+
+  /**
+   * @brief Build a BVH over a point cloud, where the pool's memory is.
+   * @details A point's cloud index, which the queries report, is the index the source is called with.
+   * The build (see the class) runs where the pool's memory is. In device-accessible memory (device or
+   * managed memory in a CUDA or HIP build; emulated device memory in a host build) it runs through
+   * GPU::parallelFor(): kernels in a CUDA or HIP translation unit, which read @p a_source on the
+   * device, and host loops otherwise. In host memory it runs on the host, which reads @p a_source
+   * there. Both give the same tree, array for array. The build reads each point from the source four
+   * times (for the box, its key, its leaf's box and its group), so an expensive source pays that. A
+   * point with a non-finite coordinate is rejected: on the host by its index, through
+   * GPU::parallelFor() only as "a point". A tree deeper than the traversal stack allows (BVH::HostTraversalDepth
+   * on the host, BVH::DeviceTraversalDepth through GPU::parallelFor()) aborts the build, as every
+   * EBGEOMETRY_REQUIRE does; only a cloud of many points packed far closer than its extent comes near
+   * either. A larger a_targetLeafSize makes the tree shallower, and a host build allows the deeper tree.
+   * The quota of each cut (see the class) only bounds a child at about (3K + 1) / (4K) of its parent,
+   * which does not keep every cloud of 2^31 points within 32 levels; Morton cuts of real clouds are
+   * close to halves. Freeze the pool and take
+   * rebasedView() to query a BVH in device memory in a kernel.
+   *
+   * The scratch arrays (the keys, the box, the build's nodes and two scans' values) are reserved from
+   * a second pool on the same memory resource and released on return, and the BVH's arrays at the
+   * sizes this cloud needs, unless @p a_maxPoints is given: then the arrays are reserved at the
+   * largest sizes any cloud of that many points can need (more than a uniform cloud uses), and
+   * the scratch in the BVH's pool too, so that rebuild() reserves nothing and works on a frozen pool.
+   * @tparam Source A source of positions: a trivially copyable type whose const call operator takes a
+   * cloud index (uint32_t) and returns that point's Vec3T<T>; see PointCloud::FromArray.
+   * @param[in,out] a_pool           Pool the BVH's arrays are reserved from; must outlive the BVH.
+   * @param[in]     a_source         The positions.
+   * @param[in]     a_numPoints      Number of points. At most 2^31, all finite.
+   * @param[in]     a_targetLeafSize Target points per leaf (a node of at most max(a_targetLeafSize, K)
+   *                                 points is a leaf). Must be at least 1.
+   * @param[in]     a_maxPoints      Most points a rebuild() may have; 0 for no rebuild(), and the arrays
+   *                                 this cloud needs only. At least a_numPoints otherwise.
+   * @return The BVH.
+   */
+  template <class Source>
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PointCloudBVH
+  build(Pool&         a_pool,
+        const Source& a_source,
+        uint32_t      a_numPoints,
+        std::size_t   a_targetLeafSize = 16 * W,
+        uint32_t      a_maxPoints      = 0);
+
+  /**
+   * @brief Build a BVH over points on the host, where the pool's memory is; see the build() above.
+   * @details For a pool in device memory, the positions are first copied to scratch there.
+   * @param[in,out] a_pool           Pool the BVH's arrays are reserved from; must outlive the BVH.
+   * @param[in]     a_positions      Point positions. At most 2^31, all finite.
+   * @param[in]     a_targetLeafSize Target points per leaf. Must be at least 1.
+   * @param[in]     a_maxPoints      Most points a rebuild() may have (see the build() above).
+   * @return The BVH.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline PointCloudBVH
+  build(Pool&                        a_pool,
+        const std::vector<Vec3T<T>>& a_positions,
+        std::size_t                  a_targetLeafSize = 16 * W,
+        uint32_t                     a_maxPoints      = 0);
+
+  /**
+   * @brief Build the BVH again, in the arrays build() reserved, from new positions.
+   * @details The same tree as a new build() from these positions with the same target leaf size,
+   * reserving nothing in the pool: it runs where the build did, and works on a frozen pool (the host keeps
+   * one small vector of level offsets). Needs room reserved by
+   * build()'s a_maxPoints; more points than maxPoints() is rejected, and a non-finite point or a tree
+   * too deep aborts, as in build(): a code that rebuilds every step meets this only if its cloud becomes
+   * that clustered. A view taken with rebasedView() before the rebuild still describes
+   * the old tree (its array sizes): take a new one, which copies nothing. Call it on the BVH build()
+   * returned, not on a view or a deepCopy().
+   * @tparam Source A source of positions, as for build().
+   * @param[in] a_source    The positions.
+   * @param[in] a_numPoints Number of points, at most maxPoints(). All finite.
+   */
+  template <class Source>
+  EBGEOMETRY_HOST
+  inline void
+  rebuild(const Source& a_source, uint32_t a_numPoints);
+
+  /**
+   * @brief The most points rebuild() can take.
+   * @return build()'s a_maxPoints; 0 for a BVH built without room for a rebuild.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  maxPoints() const noexcept
+  {
+    return m_maxPoints;
+  }
 
   /**
    * @brief Closest cloud point to an arbitrary query point.
@@ -217,7 +393,8 @@ public:
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Same contract as PackedBVH::rebasedView(): mirror the pool first, then rebase, then
    * copy the returned value into a kernel. The BVH and the cloud arrays are offsets into one pool,
-   * so rebasing the one location rebases everything.
+   * so rebasing the one location rebases everything. A snapshot for a kernel is rejected for a tree
+   * deeper than BVH::DeviceTraversalDepth.
    *
    * @code
    * Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());
@@ -234,7 +411,10 @@ public:
   /**
    * @brief Duplicate this object's storage into @p a_dstPool.
    * @details The copy constructor copies descriptors only, leaving both objects resolving against
-   * the same pool memory. This is the operation that gives genuinely independent storage.
+   * the same pool memory. This is the operation that gives genuinely independent storage. It reads
+   * this object's arrays on the host, so their pool must be host-accessible (mirror a pool in device
+   * memory to the host first), and @p a_dstPool must be a host pool. The copy holds the arrays at the
+   * sizes the tree uses, with no room for a rebuild().
    * @param[in,out] a_dstPool Pool to reserve the copy's arrays from.
    * @return A PointCloudBVH with the same tree and cloud, backed by @p a_dstPool.
    */
@@ -244,47 +424,137 @@ public:
 
 private:
   /**
-   * @brief The arrays produced by the index-based build, copied into pool storage by the delegated
-   * constructor.
+   * @brief An empty BVH, to be reserved and filled.
    */
-  struct BuildResult
+  PointCloudBVH() noexcept = default;
+
+  /**
+   * @brief The scratch arrays of a build: in the BVH's pool for a BVH with room for a rebuild(), and in a
+   * pool of their own, released after the build, otherwise.
+   */
+  struct Scratch
   {
-    std::vector<Node>          nodes;      ///< Flat BVH nodes in depth-first layout.
-    std::vector<AABB>          boxes;      ///< The box of every node, indexed like nodes.
-    std::vector<PointGroup>    primitives; ///< Packed SoA leaf groups referenced by the leaf nodes.
-    std::vector<std::uint32_t> leafOff;    ///< Per-point own-leaf group offset (for seeding).
-    std::vector<std::uint32_t> leafCnt;    ///< Per-point own-leaf group count (for seeding).
-    std::vector<std::uint32_t> order;      ///< Point indices in leaf (build) order -- spatially coherent.
+    /// @brief The points' sort keys, a power of two of them (the padding sorts last).
+    PODVector<PointCloudDetail::MortonKey> m_keys;
+
+    /// @brief GPU::boundingBoxOf()'s scratch.
+    PODVector<Vec3T<T>> m_box;
+
+    /// @brief The build's nodes, in breadth-first order.
+    PODVector<PointCloudDetail::BuildNode> m_nodes;
+
+    /// @brief Each build node's box, indexed like m_nodes.
+    PODVector<AABB> m_boxes;
+
+    /// @brief A level's interior flags, scanned into ranks; then, by depth-first index, each interior node's
+    /// row.
+    PODVector<std::uint32_t> m_rows;
+
+    /// @brief By depth-first index, each leaf's first group.
+    PODVector<std::uint32_t> m_groups;
+
+    /// @brief GPU::exclusiveScan()'s scratch.
+    PODVector<std::uint32_t> m_scan;
   };
 
   /**
-   * @brief Delegated-to constructor: adopt a completed build result and retain the cloud data.
-   * @details Hands the BVH arrays of a_build to the held PackedBVH, then copies the point positions
-   * and per-point seeding tables into the same pool.
-   * @param[in,out] a_pool      Pool every array is reserved from; must outlive this object.
-   * @param[in]     a_build     Completed index-based build result.
-   * @param[in]     a_positions Point positions (indexed by cloud index).
+   * @brief The largest array sizes any cloud of a given size can need; see the class's build steps.
    */
-  EBGEOMETRY_HOST
-  inline PointCloudBVH(Pool& a_pool, const BuildResult& a_build, const std::vector<Vec3T<T>>& a_positions);
+  struct Sizes
+  {
+    /// @brief Nodes.
+    std::uint32_t m_nodes;
+
+    /// @brief Interior nodes, one child-box row each.
+    std::uint32_t m_interior;
+
+    /// @brief Point groups.
+    std::uint32_t m_groups;
+  };
 
   /**
-   * @brief Reserve the cloud arrays from @p a_pool and copy the given host arrays into them.
-   * @details Reserves first and resolves the base only afterwards, since a reserve can grow the pool
-   * and move the block. The sources must therefore be host arrays outside @p a_pool.
-   * @param[in,out] a_pool      Pool to reserve from; must be the pool the held BVH was built in.
-   * @param[in]     a_positions Point positions (indexed by cloud index).
-   * @param[in]     a_leafOff   Per-point own-leaf group offset.
-   * @param[in]     a_leafCnt   Per-point own-leaf group count.
-   * @param[in]     a_order     Point indices in leaf (build) order.
+   * @brief Bounds on the array sizes of a build over @p a_numPoints points.
+   * @param[in] a_numPoints Number of points.
+   * @param[in] a_leafSize  The largest leaf, max(a_targetLeafSize, K).
+   * @return The bounds.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline Sizes
+  sizesFor(uint32_t a_numPoints, uint32_t a_leafSize) noexcept;
+
+  /**
+   * @brief Reserve a build's scratch from @p a_pool, for up to @p a_numPoints points.
+   * @param[in,out] a_pool      Pool to reserve from.
+   * @param[in]     a_numPoints Most points.
+   * @param[in]     a_leafSize  The largest leaf.
+   * @return The scratch arrays.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static inline Scratch
+  reserveScratch(Pool& a_pool, uint32_t a_numPoints, uint32_t a_leafSize);
+
+  /**
+   * @brief Reserve the BVH's and the cloud's arrays from @p a_pool.
+   * @param[in,out] a_pool      Pool to reserve from; this object is attached to it.
+   * @param[in]     a_sizes     Array sizes.
+   * @param[in]     a_numPoints Number of points.
    */
   EBGEOMETRY_HOST
   inline void
-  storeCloud(Pool&                             a_pool,
-             const std::vector<Vec3T<T>>&      a_positions,
-             const std::vector<std::uint32_t>& a_leafOff,
-             const std::vector<std::uint32_t>& a_leafCnt,
-             const std::vector<std::uint32_t>& a_order);
+  reserveArrays(Pool& a_pool, const Sizes& a_sizes, uint32_t a_numPoints);
+
+  /**
+   * @brief Build steps 1 to 5 (see the class): the box, the sorted keys, the tree's levels, the subtree
+   * sizes, boxes and depth-first indices, and the scans that place the rows and the groups.
+   * @tparam Source The positions' source.
+   * @param[in] a_scratch   The scratch arrays.
+   * @param[in] a_base      Base address of the scratch arrays' pool.
+   * @param[in] a_source    The positions.
+   * @param[in] a_numPoints Number of points.
+   * @param[in] a_who       The calling function, for the messages.
+   * @return The tree's array sizes.
+   */
+  template <class Source>
+  EBGEOMETRY_HOST
+  inline Sizes
+  shape(const Scratch& a_scratch, void* a_base, const Source& a_source, uint32_t a_numPoints, const char* a_who);
+
+  /**
+   * @brief Build step 6 (see the class): write the arrays reserved for the tree shape() gave.
+   * @tparam Source The positions' source.
+   * @param[in] a_scratch   The scratch arrays, as shape() left them.
+   * @param[in] a_base      Base address of the scratch arrays' pool.
+   * @param[in] a_sizes     The tree's array sizes.
+   * @param[in] a_source    The positions.
+   * @param[in] a_numPoints Number of points.
+   */
+  template <class Source>
+  EBGEOMETRY_HOST
+  inline void
+  write(const Scratch& a_scratch, void* a_base, const Sizes& a_sizes, const Source& a_source, uint32_t a_numPoints);
+
+  /**
+   * @brief Run a build step: through GPU::parallelFor() for a build there, and in a host loop otherwise.
+   * @tparam F The step's functor.
+   * @param[in] a_count Number of indices.
+   * @param[in] a_f     The functor.
+   */
+  template <class F>
+  EBGEOMETRY_HOST
+  inline void
+  run(std::size_t a_count, const F& a_f) const;
+
+  /**
+   * @brief An exclusive scan, where the build runs; see GPU::exclusiveScan().
+   * @param[in,out] a_values  The values.
+   * @param[in]     a_count   Number of values.
+   * @param[out]    a_scratch GPU::exclusiveScanScratchSize(a_count) elements, for a build through
+   *                          GPU::parallelFor().
+   * @return The values' sum.
+   */
+  EBGEOMETRY_HOST
+  inline std::uint32_t
+  scan(std::uint32_t* a_values, std::uint32_t a_count, std::uint32_t* a_scratch) const;
 
   /**
    * @brief Copy one pool-resident array back into a host std::vector.
@@ -297,19 +567,6 @@ private:
   [[nodiscard]] EBGEOMETRY_HOST
   static inline std::vector<U>
   toHost(const PODVector<U>& a_array, const void* a_base);
-
-  /**
-   * @brief Run the index-based, copy-free top-down midpoint build over a point cloud.
-   * @details Static so it can run in the public constructor's delegation, before the object exists (its
-   * result is forwarded to the delegated constructor above). Partitions an index permutation in place by longest-axis midpoint and packs
-   * the resulting leaves into PointGroup SoA groups inline.
-   * @param[in] a_positions Point positions to build over.
-   * @param[in] a_leafSize  Target points per leaf; the build stops splitting at or below it.
-   * @return The completed build result (nodes, packed leaves, and per-point seeding tables).
-   */
-  EBGEOMETRY_HOST
-  static inline BuildResult
-  buildTree(const std::vector<Vec3T<T>>& a_positions, std::size_t a_leafSize);
 
   /**
    * @brief The shared query core: fill the a_k nearest to a_query into a_out.
@@ -357,6 +614,31 @@ private:
    * allNearestNeighbors needn't recompute a space-filling-curve sort per call.
    */
   PODVector<std::uint32_t> m_order;
+
+  /**
+   * @brief The scratch arrays a rebuild() uses; empty for a BVH without room for one.
+   */
+  Scratch m_scratch;
+
+  /**
+   * @brief build()'s a_maxPoints: the most points a rebuild() can take, 0 for none.
+   */
+  std::uint32_t m_maxPoints = 0;
+
+  /**
+   * @brief The largest leaf, max(a_targetLeafSize, K): a node of more points is cut.
+   */
+  std::uint32_t m_leafSize = 0;
+
+  /**
+   * @brief The tree's depth in node levels (the root is level 1), 0 for an empty cloud.
+   */
+  std::uint32_t m_depth = 0;
+
+  /**
+   * @brief Whether the build runs through GPU::parallelFor() (the pool's memory is device-accessible).
+   */
+  bool m_parallel = false;
 };
 
 /**
@@ -368,6 +650,7 @@ static_assert(std::is_trivially_copyable_v<PointCloudBVH<double>>, "PointCloudBV
 
 } // namespace EBGeometry
 
+#include "EBGeometry_PointCloudBVHBuildImplem.hpp"
 #include "EBGeometry_PointCloudBVHImplem.hpp"
 
 #endif

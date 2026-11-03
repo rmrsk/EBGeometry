@@ -52,11 +52,13 @@ PointCloudBVH
 
 ``PointCloudBVH`` is built on the :ref:`Chap:ImplemBVH` machinery: it holds a ``BVH::PackedBVH``
 over ``PointAoSoA`` leaf groups as a member, and adds two things the general path does not offer --
-a much cheaper **index-based build**, and **turnkey query methods** that hide ``traverse()``
-entirely. The build splits the points directly, with no intermediate primitive list, and is much
-faster than a full Surface-Area-Heuristic tree while, for near-uniform clouds, just as tight to
-query. The optional constructor argument sets the target number of points per leaf. ``getBVH()``
-exposes the held ``PackedBVH`` for anything that needs the general BVH interface.
+a much cheaper **build straight from the points**, and **turnkey query methods** that hide ``traverse()``
+entirely. The tree is a *linear BVH*: the points are ordered along a Morton (Z-order) curve, and each node's
+points are split where that order crosses from one half of space to the other. There is no intermediate
+primitive list and no search for the best split, so the build is much faster than a full Surface-Area-Heuristic
+tree, and for near-uniform clouds about as tight to query. The optional constructor argument sets the target
+number of points per leaf. ``getBVH()`` exposes the held ``PackedBVH`` for anything that needs the general BVH
+interface.
 
 The held BVH and every cloud array are reserved from the one ``Pool`` passed to the constructor,
 which must outlive the ``PointCloudBVH`` and every copy or view of it. A ``PointCloudBVH`` is
@@ -66,6 +68,36 @@ mirror the pool, call ``rebasedView()``, and pass the returned value into a kern
 ``closestPoint()``, ``closestPoints()``, ``nearestNeighbor()`` and ``nearestNeighbors()`` are
 callable; ``allNearestNeighbors()`` returns a ``std::vector`` and stays host-only.
 
+Building where the BVH lives
+____________________________
+
+``PointCloudBVH::build()`` builds the BVH where its pool's memory is, exactly as
+``PointCloudHashGrid::build()`` does (below): on the device for a pool in device memory, on the host
+otherwise, from a *source* of positions, and the constructor is shorthand for it. Every side builds the same
+tree, so a BVH built on a device and mirrored to the host answers there as one built on the host. A query
+reports a point by its index in the source.
+
+``rebuild()`` builds the tree again from new positions, in place, reserving nothing in the pool, so it works on
+a frozen pool. It needs room, which ``build()`` reserves only when its last argument gives the most points a
+rebuild may have: then the arrays are sized for any cloud of that many points, however clustered, which is larger
+than a single build needs. Without it the BVH holds just what its cloud uses, and ``rebuild()`` is refused:
+
+.. code-block:: c++
+
+   EBGeometry::Pool pool(EBGeometry::GPU::memoryResource());
+
+   auto bvh = PointCloudBVH<T>::build(pool, MySource{...}, n, 16 * W, maxPoints);   // once
+   pool.freeze();
+
+   bvh.rebuild(MySource{...}, n);                                                  // after the points move
+   const auto view = bvh.rebasedView(pool);                                        // for the next kernel
+
+A tree deeper than the traversal stack allows (``BVH::DeviceTraversalDepth`` levels on a device,
+``BVH::HostTraversalDepth`` on the host) aborts the program: in ``build()`` or ``rebuild()`` for the side it runs
+on, and in ``rebasedView()`` for a device. Only a cloud of many points packed far closer together than its extent
+comes near that limit, but a code that rebuilds every step can meet it once its points cluster that far. A larger
+target leaf size makes the tree shallower, and a build on the host allows a deeper one.
+
 See the `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and
 :ref:`Chap:ExamplePointClouds` for worked usage.
@@ -74,7 +106,8 @@ PointCloudHashGrid
 ------------------
 
 ``PointCloudHashGrid`` circumvents the tree entirely and stores the cloud in a **uniform grid**.
-Points are counting-sorted into a dense array of fixed-size cells -- an ``O(N)`` build with no recursive partitioning and no tree nodes. A
+Points are sorted into a dense array of fixed-size cells: a build with no recursive partitioning and no tree
+nodes, linear in the number of points on the host. A
 query is an **expanding-shell** search outward from the query point's cell (Chebyshev radius
 0, 1, 2, ...); it stops, exactly and without ever missing a neighbor, as soon as the k-th best
 distance found is closer than any unvisited cell can hold. With the default cell size (about one
@@ -84,6 +117,37 @@ after the query's own cell and its first shell.
 Like ``PointCloudBVH``, the grid keeps its arrays in the ``Pool`` passed to the constructor, which
 must outlive it and every copy or view of it, is trivially copyable, and offers ``rebasedView()`` and ``deepCopy()``;
 the same queries are callable on a device, and ``allNearestNeighbors()`` stays host-only.
+
+Building where the grid lives
+_____________________________
+
+``PointCloudHashGrid::build()`` builds the grid where its pool's memory is. In device memory (a pool on
+``GPU::memoryResource()`` in a CUDA or HIP build), the build runs on the device; in host memory, on the host.
+Both give the same grid. The constructor is shorthand for ``build()`` from a ``std::vector`` of positions.
+
+The positions come from a *source*: any trivially copyable struct whose call operator takes a point's index and
+returns its ``Vec3T``, callable where the build runs. A source reads the points wherever and however the
+program keeps them (one array per coordinate, a struct per particle, another precision), and
+``PointCloud::FromArray`` reads a plain array of ``Vec3T``. The grid keeps its own copy of the positions, in cell
+order, so a query reads a cell's points from consecutive memory. A query reports a point by its index in the
+source, as always.
+
+``rebuild()`` builds the grid again from new positions, in the arrays ``build()`` reserved, so it reserves and
+copies nothing and works on a frozen pool; that suits points that move, such as particles. ``build()``'s last
+argument gives the most points a rebuild may have. A view taken before a rebuild describes the old grid, so take
+a new one after it:
+
+.. code-block:: c++
+
+   EBGeometry::Pool pool(EBGeometry::GPU::memoryResource());
+
+   auto grid = PointCloudHashGrid<T>::build(pool, MySource{...}, n, T(1), maxPoints);   // once
+   pool.freeze();
+
+   grid.rebuild(MySource{...}, n);                                                     // after the points move
+   const auto view = grid.rebasedView(pool);                                           // for the next kernel
+
+:ref:`Chap:ExampleParticleNeighbors` does this every time step, with the particles on the device.
 
 For a near-uniform cloud the grid builds faster than the BVH and queries about as fast; for a
 strongly clustered or multi-scale cloud a single global cell size is a poor fit -- a query in an

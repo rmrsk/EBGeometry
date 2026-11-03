@@ -214,6 +214,35 @@ closestPointBruteForce(const Vec3T<T>* a_positions,
   return hit;
 }
 
+/**
+ * @brief A source of point positions for the builds that take one (PointCloudHashGrid::build()): an array of
+ * Vec3T, read as it is.
+ * @details A source is any trivially copyable type with a const call operator that takes a cloud index and returns
+ * that point's position, callable where the build runs (on a device, for a build into device memory). Write one for
+ * data in another layout: separate x, y and z arrays, a struct per particle, another precision.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct FromArray
+{
+  /**
+   * @brief The positions, indexed by cloud index.
+   */
+  const Vec3T<T>* m_positions = nullptr;
+
+  /**
+   * @brief Position of a point.
+   * @param[in] a_index Cloud index.
+   * @return The position.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  operator()(const uint32_t a_index) const noexcept
+  {
+    return m_positions[a_index];
+  }
+};
+
 } // namespace PointCloud
 
 } // namespace EBGeometry

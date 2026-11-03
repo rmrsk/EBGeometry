@@ -49,12 +49,28 @@ PointSoAT<T, W>::pack(const Vec3T<T>* a_positions, uint32_t a_count) noexcept
                        double(p[2]));
   }
 
+  this->packUnchecked(a_positions, a_count);
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+void
+PointSoAT<T, W>::packUnchecked(const Vec3T<T>* a_positions, uint32_t a_count) noexcept
+{
+  EBGEOMETRY_EXPECT(a_positions != nullptr);
+  EBGEOMETRY_EXPECT(a_count >= 1U && a_count <= W);
+
   m_validCount = a_count;
 
+  // Lanes count..W-1 repeat the last real point; the last index is clamped at 0, as in PointAoSoA::packIds().
+  const uint32_t last = (a_count > 0U) ? a_count - 1U : 0U;
+
   for (uint32_t j = 0; j < W; j++) {
-    const uint32_t src = (j < a_count) ? j : (a_count - 1U);
+    const uint32_t src = Math::min(j, last);
 
     const auto& pos = a_positions[src];
+
+    EBGEOMETRY_EXPECT(std::isfinite(pos[0]) && std::isfinite(pos[1]) && std::isfinite(pos[2]));
 
     m_x[j] = pos[0];
     m_y[j] = pos[1];

@@ -142,6 +142,7 @@ Examples
    ExampleManyObjects.rst
    ExamplePackedSpheres.rst
    ExamplePointClouds.rst
+   ExampleParticleNeighbors.rst
    ExampleBVHTraversal.rst
    ExampleRayTracing.rst
    ExampleOctreeBoundingVolume.rst

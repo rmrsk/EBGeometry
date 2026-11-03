@@ -182,6 +182,19 @@ pinned staging to device) preserves that identity across every hop.
    freezing is only needed to mirror a pool or hand it to a device, the practical rule is simply to
    do it last.
 
+A pool in device memory
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Most structures are built on the host, which writes their arrays, so their pool must be memory the host can write;
+the device gets them as a mirror. A structure built *on the device* can instead go straight into a pool in device
+memory (``Pool pool(GPU::memoryResource())``): ``PointCloudHashGrid::build()`` and ``PointCloudBVH::build()`` write
+their arrays with kernels, so the points never pass through the host. Reserving from such a pool works as for any
+other (growing it copies the block on the device), and arrays of your own in it are for your kernels to fill. Any structure built on the host refuses
+such a pool when it is built, with a message saying so. Freeze the pool before handing a view of it to a kernel, as
+for any pool. A frozen pool in device memory can be mirrored to the host (``Pool::mirror(pool, hostMemoryResource())``)
+like any other, and a ``rebasedView()`` onto the copy is the same structure on the host, as it was at the copy.
+:ref:`Chap:ExampleParticleNeighbors` keeps both its particles and its grid in device memory.
+
 .. _Sec:ResolvedAddresses:
 
 Resolved addresses do not survive a ``reserve``
