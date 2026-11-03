@@ -257,8 +257,20 @@ EBGEOMETRY_HOST
 inline void
 MeshT<T>::reconcile()
 {
-  // Everything below walks the faces' half-edge loops with EdgeIteratorT, which never finishes on a
-  // loop that does not close; checked here once rather than on every step of every query.
+  this->checkFaceLoops();
+
+  this->reconcileFaces();
+  this->reconcileEdges();
+  this->reconcileVertices();
+}
+
+template <class T>
+EBGEOMETRY_HOST
+inline void
+MeshT<T>::checkFaceLoops() const
+{
+  // reconcile() and every query walk the faces' half-edge loops with EdgeIteratorT, which never finishes
+  // on a loop that does not close; checked here once rather than on every step of every query.
   for (uint32_t faceIndex = 0; faceIndex < this->numFaces(); faceIndex++) {
     uint32_t lastEdge = 0;
     uint32_t steps    = 0;
@@ -290,10 +302,6 @@ MeshT<T>::reconcile()
       edge = this->getEdge(edge).getNextEdgeIndex();
     } while (edge != start);
   }
-
-  this->reconcileFaces();
-  this->reconcileEdges();
-  this->reconcileVertices();
 }
 
 template <class T>
@@ -445,7 +453,7 @@ MeshT<T>::numFaces() const noexcept
 }
 
 template <class T>
-EBGEOMETRY_HOST
+EBGEOMETRY_HOST_DEVICE
 inline void
 MeshT<T>::reconcileFaces() noexcept
 {

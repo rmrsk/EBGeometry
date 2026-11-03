@@ -22,6 +22,7 @@ What is in Performance/
      PointCloudBVHBuild/      PointCloudBVH's build and rebuild where its pool is
      PointCloudHashGridBuild/ PointCloudHashGrid's build and rebuild where its pool is
      Mesh/main.cpp            TriMeshSDF and MeshSDF
+     MeshReconcile/main.cpp   reconciling a moved DCEL mesh where its pool is
      BVH/main.cpp             PackedBVH::traverse() itself
      BVHRefit/main.cpp        refitting a PackedBVH where its pool is
      BVHUnion/main.cpp        BVHUnion
@@ -192,6 +193,19 @@ Case                                  Build  Measures
                                              sweep)
 ``uniform/refit``                     GPU    10 refits in device memory, a launch per tree level,
                                              against the host's in host memory
+====================================  =====  =====================================================
+
+**MeshReconcile** (``Performance/MeshReconcile``): reconciling the armadillo mesh after its vertices were
+stretched. A repetition is 4 reconciles. ``reconcile-scheduled`` notes its time relative to ``reconcile``.
+The GPU case compares every vertex normal and face area on the two sides.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``armadillo/reconcile``               host   ``MeshT::reconcile()``
+``armadillo/reconcile-scheduled``     host   ``DCEL::reconcile()`` in a host pool, from a schedule
+``armadillo/reconcile-scheduled``     GPU    ``DCEL::reconcile()`` in device memory, against the
+                                             host's in host memory
 ====================================  =====  =====================================================
 
 **BVHUnion** (``Performance/BVHUnion``): unions of about 100,000 objects on a 46 × 46 × 46 lattice, in

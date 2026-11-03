@@ -53,13 +53,13 @@ namespace DCEL {
  * @note A face's id is its index in the owning mesh's face array; the mesh SDFs report it from
  * getClosestFace(). Per-face data such as a material lives in the caller's own array, indexed by it.
  * @note Methods that stream through the half-edge loop via EdgeIterator with no allocation
- * (define, reconcile's helpers other than computeCentroid/computeNormal/computeArea,
+ * (define, reconcile and its helpers computeCentroid/computeNormal/computeArea/
  * computeProjectionDirections, flipNormal, setHalfEdge/setInsideOutsideAlgorithm,
  * normalizeNormalVector, the getters, projectPointIntoFacePlane/projectPoint,
  * computeWindingNumber/computeCrossingNumber/computeSubtendedAngle, isPointInsideFace,
  * signedDistance, rayCrossing, unsignedDistance2, getSmallestCoordinate/getHighestCoordinate) are annotated
- * EBGEOMETRY_HOST_DEVICE. computeCentroid/computeNormal/computeArea (and therefore reconcile,
- * which calls all three) and gatherVertexIndices/gatherEdgeIndices/getAllVertexCoordinates all
+ * EBGEOMETRY_HOST_DEVICE, so a face can be reconciled on a device (see
+ * DCEL::reconcile()). gatherVertexIndices/gatherEdgeIndices/getAllVertexCoordinates
  * materialize a std::vector, so they remain EBGEOMETRY_HOST.
  * @tparam T    Floating-point precision type.
  */
@@ -171,9 +171,18 @@ public:
    * complete with half edges and there can be no dangling edges. A face with fewer than 3 vertices
    * aborts with a message in every build; a zero-area face gets a zero normal.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   reconcile(const Mesh& a_mesh);
+
+  /**
+   * @brief Number of vertices on this face's half-edge loop.
+   * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
+   * @return The vertex count; 0 for a face with no half-edge.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  numVertices(const Mesh& a_mesh) const noexcept;
 
   /**
    * @brief Compute the 2D embedding of this polygon from the current normal vector and topology,
@@ -438,7 +447,7 @@ protected:
    * @brief Compute the centroid position of this polygon
    * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   computeCentroid(const Mesh& a_mesh);
 
@@ -448,7 +457,7 @@ protected:
    * NaN. A face with fewer than 3 vertices aborts with a message in every build.
    * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   computeNormal(const Mesh& a_mesh);
 
@@ -456,7 +465,7 @@ protected:
    * @brief Compute the area of this polygon and cache it in m_area.
    * @param[in] a_mesh Owning mesh, used to resolve the half-edge loop.
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   computeArea(const Mesh& a_mesh);
 

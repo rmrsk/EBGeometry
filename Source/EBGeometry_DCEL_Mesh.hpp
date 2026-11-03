@@ -34,6 +34,8 @@ namespace EBGeometry {
 
 namespace DCEL {
 
+class ReconcileSchedule;
+
 /**
  * @brief Mesh class which stores a full DCEL mesh (with signed distance
  * functions)
@@ -81,7 +83,7 @@ namespace DCEL {
  * live Pool in hand.
  * @note Everything that resolves purely through base(), the PODVectors, and VertexT/EdgeT/FaceT
  * methods that are themselves EBGEOMETRY_HOST_DEVICE (getVertex/getEdge/getFace, numVertices/
- * numEdges/numFaces, setSearchAlgorithm, setInsideOutsideAlgorithm, reconcileEdges,
+ * numEdges/numFaces, setSearchAlgorithm, setInsideOutsideAlgorithm, reconcileFaces, reconcileEdges,
  * flipFaceNormals/flipEdgeNormals/flipVertexNormals, flip, DirectSignedDistance/
  * DirectSignedDistance2, every signedDistance overload, unsignedDistance2) is annotated
  * EBGEOMETRY_HOST_DEVICE -- signedDistance's algorithm-selecting switch deliberately relies on
@@ -89,10 +91,10 @@ namespace DCEL {
  * stays device-callable; see the implementation. The rest stays EBGEOMETRY_HOST because it touches a
  * Pool directly (rebasedView, deepCopy, reserveVertices/Edges/Faces, addVertex/Edge/Face), returns a
  * host container (getAllVertexCoordinates), logs diagnostics to std::cerr (sanityCheck and its
- * incrementWarning/printWarnings helpers), or delegates to a VertexT/EdgeT/FaceT method that itself
- * allocates a std::vector or can log a diagnostic the same way (reconcileFaces calls FaceT::reconcile;
- * reconcileVertices builds a transient per-vertex face list and aborts with a message on a face
- * that visits a vertex twice) -- reconcile/reconcileFaces/reconcileVertices therefore remain EBGEOMETRY_HOST.
+ * incrementWarning/printWarnings helpers), or builds a host container (reconcileVertices builds a
+ * transient per-vertex face list and aborts with a message on a face that visits a vertex twice) --
+ * reconcile/reconcileVertices therefore remain EBGEOMETRY_HOST. DCEL::reconcile() reconciles a mesh
+ * on a device, from a DCEL::ReconcileSchedule that stores the face lists once.
  * @tparam T    Floating-point precision type.
  */
 template <class T>
@@ -598,7 +600,7 @@ protected:
    * @brief Function which computes internal things for the polygon faces.
    * @note This calls DCEL::FaceT<T>::reconcile()
    */
-  EBGEOMETRY_HOST
+  EBGEOMETRY_HOST_DEVICE
   inline void
   reconcileFaces() noexcept;
 
@@ -696,6 +698,20 @@ protected:
   EBGEOMETRY_HOST
   inline bool
   faceLoopCloses(uint32_t a_faceIndex, uint32_t& a_lastEdge, uint32_t& a_steps) const noexcept;
+
+  /**
+   * @brief Check every face's half-edge loop, aborting with a message in every build: the face has a
+   * half-edge, its loop closes, and every vertex it names exists.
+   * @details What reconcile() checks before it walks the loops, shared with DCEL::ReconcileSchedule.
+   */
+  EBGEOMETRY_HOST
+  inline void
+  checkFaceLoops() const;
+
+  /**
+   * @brief DCEL::ReconcileSchedule checks the topology as reconcile() does.
+   */
+  friend class ReconcileSchedule;
 };
 } // namespace DCEL
 

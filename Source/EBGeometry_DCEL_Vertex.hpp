@@ -13,6 +13,7 @@
 #define EBGEOMETRY_DCEL_VERTEX_HPP
 
 // Std includes
+#include <cmath>
 #include <cstdint>
 #include <type_traits>
 #include <vector>
@@ -21,6 +22,7 @@
 #include "EBGeometry_DCEL.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -339,6 +341,43 @@ protected:
 
 static_assert(std::is_trivially_copyable_v<VertexT<float>>, "VertexT<float> must be trivially copyable");
 static_assert(std::is_trivially_copyable_v<VertexT<double>>, "VertexT<double> must be trivially copyable");
+
+/**
+ * @brief Helpers shared by VertexT::computeVertexNormalAngleWeighted() and DCEL::reconcile().
+ * @details Internal; not part of the public API.
+ */
+namespace VertexDetail {
+
+/**
+ * @brief One face's term in a vertex's angle-weighted pseudonormal: the face's normal weighted by the angle
+ * the face subtends at the vertex.
+ * @details The host's reconcile and DCEL::reconcile() both take their terms from here, so that their
+ * arithmetic cannot drift apart. The positions must be distinct.
+ * @tparam T Floating-point precision.
+ * @param[in] a_x0     The vertex's position.
+ * @param[in] a_x1     The position of the vertex before it on the face.
+ * @param[in] a_x2     The position of the vertex after it on the face.
+ * @param[in] a_normal The face's normal.
+ * @return The angle at @p a_x0 between the edges to @p a_x1 and @p a_x2, times @p a_normal.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+angleWeightedTerm(const Vec3T<T>& a_x0, const Vec3T<T>& a_x1, const Vec3T<T>& a_x2, const Vec3T<T>& a_normal) noexcept
+{
+  Vec3T<T> v1 = a_x1 - a_x0;
+  Vec3T<T> v2 = a_x2 - a_x0;
+
+  v1 = v1 / v1.length();
+  v2 = v2 / v2.length();
+
+  // Clamp to [-1,1] to guard against std::acos(NaN) from floating-point rounding.
+  const T alpha = std::acos(Math::clamp(v1.dot(v2), T(-1), T(1)));
+
+  return alpha * a_normal;
+}
+
+} // namespace VertexDetail
 
 } // namespace DCEL
 

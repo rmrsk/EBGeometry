@@ -400,7 +400,8 @@ public:
    * });
    * @endcode
    * This is enough because the BVH stores face ids and reads the faces from the mesh. A deformation
-   * large enough to degrade the tree still calls for a rebuild.
+   * large enough to degrade the tree still calls for a rebuild. For a mesh that moves in device memory,
+   * DCEL::reconcile() and BVH::refit() do the same where the pool is.
    * @return The packed BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
