@@ -49,16 +49,9 @@ ReconcileSchedule::ReconcileSchedule(Pool& a_pool, const MeshT<T>& a_mesh)
   std::vector<uint32_t> cornerBegin(m_numVertices + 1, 0);
 
   for (uint32_t f = 0; f < m_numFaces; f++) {
-    uint32_t count = 0;
-
     for (EdgeIteratorT<T> iter(a_mesh, a_mesh.getFace(f)); iter.ok(); ++iter) {
       cornerBegin[a_mesh.getEdge(iter()).getVertexIndex() + 1]++;
-
-      count++;
     }
-
-    EBGEOMETRY_REQUIRE(
-      count >= 3, "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (%u)", unsigned(count));
   }
 
   for (uint32_t v = 0; v < m_numVertices; v++) {

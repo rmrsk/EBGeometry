@@ -112,9 +112,8 @@ FaceT<T>::numVertices(const Mesh& a_mesh) const noexcept
 }
 
 // computeCentroid, computeNormal and computeArea walk the half-edge loop directly, with no vertex list,
-// so that a face can be reconciled on a device. The loop visits the vertices in the order the list
-// held them, and an edge's next edge holds the following vertex (the first again after the last), so
-// the sums are taken in the same order and give the same values.
+// so that a face can be reconciled on a device. The loop visits the vertices in face order, and an
+// edge's next edge holds the following vertex, wrapping to the first after the last.
 
 template <class T>
 EBGEOMETRY_HOST_DEVICE

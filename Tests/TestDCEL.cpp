@@ -1289,7 +1289,7 @@ TEST_CASE("MeshT: reconciling a hand-built face with fewer than 3 vertices abort
 
       mesh.reconcile(); // must abort
     },
-    "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (2)"));
+    "DCEL::MeshT::reconcile: face 0 has 2 vertices; a face needs at least 3"));
 }
 
 TEST_CASE("MeshT: reconciling a hand-built face that visits a vertex twice aborts", "[DCEL][Mesh][death]")

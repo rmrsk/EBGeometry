@@ -701,7 +701,7 @@ protected:
 
   /**
    * @brief Check every face's half-edge loop, aborting with a message in every build: the face has a
-   * half-edge, its loop closes, and every vertex it names exists.
+   * half-edge, its loop closes, has at least three vertices, and every vertex it names exists.
    * @details What reconcile() checks before it walks the loops, shared with DCEL::ReconcileSchedule.
    */
   EBGEOMETRY_HOST

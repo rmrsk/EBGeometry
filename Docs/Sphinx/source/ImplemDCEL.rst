@@ -170,9 +170,9 @@ pseudonormals, must be reconciled again before the mesh is queried. ``MeshT::rec
 host, checking the mesh's topology and finding the faces around each vertex on every call. To reconcile a
 mesh whose vertices move in device memory, or to reconcile one often on the host, use
 ``DCEL::reconcile(pool, mesh, schedule)`` (``EBGeometry_DCEL_Reconcile.hpp``). It reconciles the copy of
-the mesh in ``pool``, the mesh's own pool or any mirror of it, and runs where that pool's memory is: on a
-device-accessible pool, in parallel with a thread per face, edge and vertex; on a host pool, in host loops,
-faster than ``MeshT::reconcile()`` and with the same values.
+the mesh in ``pool``, the mesh's own pool or any mirror of it, and runs where that pool's memory is: in
+parallel on a device-accessible pool; on a host pool, in host loops, faster than ``MeshT::reconcile()`` and
+with the same values.
 
 What moving vertices never changes, the topology and which faces touch each vertex, is checked and stored
 once by a
@@ -199,8 +199,8 @@ does building it for a mesh with a broken topology, with ``MeshT::reconcile()``'
    }
 
 How the vertices move is up to you: your own kernels, another library, ``GPU::parallelFor()``, or a copy
-from the host. Nothing comes back to the host in the loop: the mesh, and the mesh SDF over it, are queried
-in device memory. The rules:
+from the host. Nothing but a status word comes back to the host in the loop: the mesh, and the mesh SDF over
+it, are queried in device memory. The rules:
 
 * **The moves must be finished.** ``DCEL::reconcile()`` launches its passes on the default stream and
   returns once they are done; synchronize work on a stream that does not synchronize with the default one

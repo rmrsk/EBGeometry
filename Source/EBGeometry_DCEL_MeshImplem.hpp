@@ -286,6 +286,12 @@ MeshT<T>::checkFaceLoops() const
                        unsigned(steps),
                        unsigned(this->numEdges()));
 
+    // A closed loop of fewer than three half-edges cannot span a plane.
+    EBGEOMETRY_REQUIRE(steps >= 3,
+                       "DCEL::MeshT::reconcile: face %u has %u vertices; a face needs at least 3",
+                       unsigned(faceIndex),
+                       unsigned(steps));
+
     // Each vertex the loop names must exist: reconcileFaces() reads them next.
     const uint32_t start = this->getFace(faceIndex).getHalfEdgeIndex();
     uint32_t       edge  = start;

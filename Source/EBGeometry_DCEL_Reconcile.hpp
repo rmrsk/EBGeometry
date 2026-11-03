@@ -62,7 +62,9 @@ struct Corner
  * the mesh is built and before its pool is frozen: its arrays are reserved from the mesh's pool, so a mirror of
  * the pool carries them along, and one schedule serves the mesh in its own pool and in every mirror of it.
  * Moving vertices never changes which faces touch a vertex, so a schedule is built once; a mesh whose vertices,
- * half-edges or faces are added, removed or relinked needs a new one.
+ * half-edges or faces are added, removed or relinked needs a new one. The schedule belongs to the mesh in that pool
+ * and its mirrors: a deepCopy() of the mesh into another pool needs its own schedule, and the pool must outlive
+ * the schedule as it does the mesh.
  *
  * The constructor checks the topology as MeshT::reconcile() does, with its messages (every face has a
  * half-edge, its loop closes, has at least three vertices, names existing vertices and visits each of them
@@ -165,7 +167,9 @@ private:
  * Aborts, in every build, on a schedule built in a pool of another mirror chain or for another mesh, and on the
  * geometry MeshT::reconcile() aborts on, with its message: a vertex and its two neighbors on a face (of
  * non-zero area) with coincident positions. The status word the vertex pass sets is read back after the passes
- * (4 bytes from a device), and only when it is set is the pool mirrored to the host to find the vertex.
+ * (4 bytes from a device), and only when it is set is the vertex found on the host (in place when the host can
+ * read the pool, in a host mirror otherwise). With several such vertices, the message names the first in vertex
+ * order, as MeshT::reconcile() does, whatever order the device's threads found them in.
  * @tparam T Floating-point precision.
  * @param[in,out] a_pool     The pool whose copy of the mesh is reconciled: the mesh's own pool or a mirror.
  * @param[in]     a_mesh     The mesh, as built (a handle to its own pool).
