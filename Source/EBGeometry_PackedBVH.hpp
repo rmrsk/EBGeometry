@@ -221,6 +221,14 @@ template <class T, class P, size_t K>
 class PackedBVH;
 
 /**
+ * @brief Implementation details of refit() and RefitSchedule (EBGeometry_BVHRefit.hpp).
+ */
+namespace RefitDetail {
+template <class Bvh, class BVConstructor>
+struct Level;
+} // namespace RefitDetail
+
+/**
  * @brief Convenience alias for a (primitive, bounding-volume) pair.
  * @tparam P  Primitive type.
  * @tparam BV Bounding volume type.
@@ -1047,6 +1055,29 @@ public:
   refit(const BVConstructor& a_bvConstructor);
 
 private:
+  /**
+   * @brief The per-level functor of BVH::refit(), which calls refitNode().
+   */
+  template <class Bvh, class BVConstructor>
+  friend struct RefitDetail::Level;
+
+  /**
+   * @brief Refit one node whose children are already refitted: the step refit() repeats over every node.
+   * @details A leaf's box becomes the union of its primitives' boxes, an interior node's the union of
+   * its K children's boxes, read from its own row. The box is written where it is stored, in the
+   * parent's row (the root's in m_rootBox). A node writes only its own box and reads only its own
+   * primitives and row, so the nodes of one tree level can be refitted at the same time
+   * (BVH::refit()).
+   * @tparam BVConstructor Callable: (const P&) -> BV.
+   * @param[in] a_base          The pool base the BVH resolves against.
+   * @param[in] a_node          Index of the node.
+   * @param[in] a_bvConstructor Bounding-volume constructor for a single primitive.
+   */
+  template <class BVConstructor>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  refitNode(void* a_base, uint32_t a_node, const BVConstructor& a_bvConstructor) const;
+
   /**
    * @brief Copy a completed host-side build into pool storage and rebuild the SoA cache.
    * @details The single finalize path shared by every constructor. Each of them assembles the node

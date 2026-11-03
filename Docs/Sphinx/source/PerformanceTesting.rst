@@ -23,6 +23,7 @@ What is in Performance/
      PointCloudHashGridBuild/ PointCloudHashGrid's build and rebuild where its pool is
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      BVH/main.cpp             PackedBVH::traverse() itself
+     BVHRefit/main.cpp        refitting a PackedBVH where its pool is
      BVHUnion/main.cpp        BVHUnion
      Tape/main.cpp            Tape's signed distance
      Fused/main.cpp           fused compositions (Fused::)
@@ -177,6 +178,20 @@ Case                                  Build  Measures
                                              nearest box (``PointQuery``)
 ``mesh-boxes/<operation>-morton``,    GPU    the same at 262,144 queries, in Morton and in random
 ``<operation>-random``                       order
+====================================  =====  =====================================================
+
+**BVHRefit** (``Performance/BVHRefit``): ``BVH::refit()`` of a BVH of 1,000,000 point ids (K = 4, four per
+leaf, built bottom up), whose points are kept in the pool, uniform in the unit cube. A repetition is 10
+refits, alternating between the points and the same points shifted and stretched. The GPU case compares
+every node's box on the two sides.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``uniform/refit``                     host   10 refits in a host pool (``PackedBVH::refit()``'s
+                                             sweep)
+``uniform/refit``                     GPU    10 refits in device memory, a launch per tree level,
+                                             against the host's in host memory
 ====================================  =====  =====================================================
 
 **BVHUnion** (``Performance/BVHUnion``): unions of about 100,000 objects on a 46 × 46 × 46 lattice, in

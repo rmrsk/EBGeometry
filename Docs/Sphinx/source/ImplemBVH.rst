@@ -360,6 +360,53 @@ caches data derived from the geometry has to be brought up to date some other wa
 mesh itself, and refitting its BVH (through ``getRoot()``) then updates the boxes. ``TriMeshSDF``'s
 triangles are copies taken at build time, so after moving vertices it has to be rebuilt.
 
+Refitting where the pool is, on a device included
+_________________________________________________
+
+``PackedBVH::refit()`` is one sweep on the host. To refit a BVH whose primitives move in device memory,
+use ``BVH::refit(pool, bvh, schedule, boxOf)`` (``EBGeometry_BVHRefit.hpp``). It refits the copy of the
+BVH in ``pool``, the BVH's own pool or any mirror of it, and runs where that pool's memory is: on a
+device-accessible pool, one tree level at a time with a thread per node; on a host pool, the same sweep
+as ``PackedBVH::refit()``. Both give the same boxes.
+
+A level-by-level refit needs the BVH's nodes grouped by depth, which a
+`BVH::RefitSchedule <doxygen/html/classEBGeometry_1_1BVH_1_1RefitSchedule.html>`__ holds. It is opt-in,
+for the BVHs you refit this way, and built once on the host from the tree's shape, which a refit never
+changes. Build it after the BVH and before freezing the pool: its node list (4 bytes per node) is stored
+in the BVH's pool, so mirroring the pool carries it to the device. Building it on a frozen pool aborts.
+
+.. code-block:: c++
+
+   auto bvh = BVH::PackedBVH<T, uint32_t, K>::buildBottomUp(pool, primitives, leafSize);
+
+   BVH::RefitSchedule schedule(pool, bvh);   // after the build, before the freeze
+   pool.freeze();
+
+   Pool devicePool = Pool::mirror(pool, GPU::memoryResource());
+
+   for (int step = 0; step < numSteps; step++) {
+     moveMyPrimitives(devicePool);                                  // your own kernels
+     BVH::refit(devicePool, bvh, schedule, CurrentBox{devicePool});  // your box functor
+   }
+
+How the primitives move is up to you: your own kernels, another library, ``GPU::parallelFor()``, or a
+copy from the host. ``BVH::refit()`` only calls your box functor once per primitive, so the primitives
+can live in your own device arrays (a BVH of ids, as a ``MeshSDF``'s) or in the BVH's primitive array.
+Two rules apply:
+
+* **The moves must be finished.** ``BVH::refit()`` launches its levels on the default stream and returns
+  once the boxes are done; synchronize work on a stream that does not synchronize with the default one
+  before calling it.
+* **The tree's shape stays.** Move the primitives, but do not add, remove or reorder them; that, or a
+  deformation large enough to make the tree loose, calls for a rebuild (and a new schedule).
+
+On a device, the box functor runs in the kernels: it must be trivially copyable and
+``EBGEOMETRY_HOST_DEVICE``, and read only memory the device can reach. In a CUDA or HIP translation unit
+it must be ``EBGEOMETRY_HOST_DEVICE`` whatever the pool, since the kernels are compiled for it. A
+schedule built for another BVH, or in a pool of another mirror chain, is refused. For the exact
+signatures, see the Doxygen reference for the
+`BVH namespace <doxygen/html/namespaceEBGeometry_1_1BVH.html>`__.
+
 .. _Chap:PackedBVH:
 
 PackedBVH

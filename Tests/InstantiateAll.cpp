@@ -493,6 +493,29 @@ instantiateFunctionTemplates()
     bvh.traverse(
       ray, best, leaf, bound, visit, [](const T&, uint32_t a_a, const T&, uint32_t a_b) noexcept { return a_a < a_b; });
   }
+
+  // A refit by tree level, through a schedule, on a host pool (the sweep) and on an emulated device pool
+  // (the levels, as host loops in this translation unit).
+  {
+    using Packed = BVH::PackedBVH<T, Vec3T<T>, 4>;
+
+    std::vector<std::pair<Vec3T<T>, BoundingVolumes::AABBT<T>>> points{
+      {Vec3T<T>::zeros(), BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros())}};
+
+    Pool         refitPool(hostMemoryResource());
+    const Packed bvh = Packed::buildBottomUp(refitPool, points, size_t(1));
+
+    const BVH::RefitSchedule schedule(refitPool, bvh);
+
+    refitPool.freeze();
+
+    Pool       devicePool = Pool::mirror(refitPool, GPU::memoryResource());
+    const auto box        = [](const Vec3T<T>& a_p) noexcept { return BoundingVolumes::AABBT<T>(a_p, a_p); };
+
+    BVH::refit(refitPool, bvh, schedule, box);
+    BVH::refit(devicePool, bvh, schedule, box);
+    (void)schedule.numLevels();
+  }
 }
 
 template void

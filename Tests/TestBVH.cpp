@@ -6237,3 +6237,283 @@ TEST_CASE("Default K and W are 4, except the triangle-group width under EBGEOMET
 
   SUCCEED();
 }
+
+namespace {
+
+// The box of point a_id, read from a point array the caller keeps in a pool: what a BVH of ids reads
+// in BVH::refit().
+template <class T>
+struct PointBoxById
+{
+  const Vec3T<T>* m_points;
+
+  EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  operator()(const uint32_t a_id) const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(m_points[a_id], m_points[a_id]);
+  }
+};
+
+// The caller's own kernel: moves every point by its own amount, so that no two leaves move alike.
+template <class T>
+struct MovePoints
+{
+  Vec3T<T>* m_points;
+
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const std::size_t a_i) const noexcept
+  {
+    const T s = T(0.01) * T(a_i % 17);
+
+    m_points[a_i] += Vec3T<T>(T(1) + s, T(-0.5) - s, T(2) * s);
+  }
+};
+
+// A BVH of point ids over a_numPoints points of a curve, with the points in a_points, both in a_pool.
+template <class T, size_t K>
+BVH::PackedBVH<T, uint32_t, K>
+pointIdBVH(Pool& a_pool, PODVector<Vec3T<T>>& a_points, const uint32_t a_numPoints)
+{
+  using AABB = BoundingVolumes::AABBT<T>;
+
+  std::vector<std::pair<uint32_t, AABB>> flat;
+
+  a_points.reserveSizedFrom(a_pool, a_numPoints);
+
+  for (uint32_t i = 0; i < a_numPoints; i++) {
+    const T        t = T(0.1) * T(i);
+    const Vec3T<T> p(std::sin(t) * t, std::cos(T(1.3) * t) * t, T(0.05) * T(i % 23));
+
+    a_points.at(a_pool.base(), i) = p;
+
+    flat.emplace_back(i, AABB(p, p));
+  }
+
+  return BVH::PackedBVH<T, uint32_t, K>::buildBottomUp(a_pool, flat, size_t(4));
+}
+
+// Every node's box must be exactly the union of its subtree's point boxes (unions of min and max are
+// exact, so the comparison is too), and the nearest point found through the BVH that of a brute-force
+// scan.
+template <class T, size_t K>
+void
+requireTightAndQueryable(const BVH::PackedBVH<T, uint32_t, K>& a_bvh, const std::vector<Vec3T<T>>& a_points)
+{
+  using AABB = BoundingVolumes::AABBT<T>;
+
+  const auto nodes = a_bvh.getNodes();
+  const auto prims = a_bvh.getPrimitives();
+
+  std::vector<AABB> expected(nodes.size());
+
+  for (uint32_t i = static_cast<uint32_t>(nodes.size()); i-- > 0;) {
+    AABB bv;
+
+    if (nodes[i].isLeaf()) {
+      for (uint32_t p = 0; p < nodes[i].getNumPrimitives(); p++) {
+        const auto& x = a_points[prims[nodes[i].getPrimitivesOffset() + p]];
+
+        bv = bv.merged(AABB(x, x));
+      }
+    }
+    else {
+      for (const uint32_t child : nodes[i].getChildOffsets()) {
+        bv = bv.merged(expected[child]);
+      }
+    }
+
+    expected[i] = bv;
+
+    const AABB got = a_bvh.getBoundingVolume(nodes[i]);
+
+    for (int d = 0; d < 3; d++) {
+      REQUIRE(got.getLowCorner()[d] == bv.getLowCorner()[d]);
+      REQUIRE(got.getHighCorner()[d] == bv.getHighCorner()[d]);
+    }
+  }
+
+  for (const auto& q : queryPoints<T>()) {
+    T state = std::numeric_limits<T>::max();
+
+    const auto evalLeaf = [&](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        a_state = std::min(a_state, (a_points[prims[a_offset + i]] - q).length2());
+      }
+    };
+
+    a_bvh.traverse(BVH::PointQuery{q}, state, evalLeaf, [](const T& a_state) noexcept -> T { return a_state; });
+
+    T brute = std::numeric_limits<T>::max();
+
+    for (const auto& x : a_points) {
+      brute = std::min(brute, (x - q).length2());
+    }
+
+    REQUIRE(state == brute);
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("BVH::refit: refits a BVH in its host pool to the boxes of the moved primitives",
+                   "[BVH][refit]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t   K = 4;
+  constexpr uint32_t N = 2000;
+
+  Pool pool(hostMemoryResource());
+
+  PODVector<Vec3T<T>> points;
+
+  const auto bvh = pointIdBVH<T, K>(pool, points, N);
+
+  const BVH::RefitSchedule schedule(pool, bvh);
+
+  pool.freeze();
+
+  // Five levels or more: the depth grouping is exercised, not a single leaf.
+  REQUIRE(schedule.numLevels() >= 5);
+
+  for (uint32_t i = 0; i < N; i++) {
+    MovePoints<T>{points.data(pool.base())}(i);
+  }
+
+  BVH::refit(pool, bvh, schedule, PointBoxById<T>{points.data(pool.base())});
+
+  const Vec3T<T>* moved = points.data(pool.base());
+
+  requireTightAndQueryable<T, K>(bvh, std::vector<Vec3T<T>>(moved, moved + N));
+}
+
+TEMPLATE_TEST_CASE("BVH::refit: refits a mirrored BVH a level at a time on the device, after the caller's own "
+                   "kernel moved the primitives, to the host refit's boxes",
+                   "[BVH][refit][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  constexpr size_t   K = 4;
+  constexpr uint32_t N = 5000;
+
+  Pool pool(hostMemoryResource());
+
+  PODVector<Vec3T<T>> points;
+
+  const auto bvh = pointIdBVH<T, K>(pool, points, N);
+
+  const BVH::RefitSchedule schedule(pool, bvh);
+
+  pool.freeze();
+
+  Pool devicePool = Pool::mirror(pool, deviceTestResource());
+
+  // The caller's kernel moves the points in device memory; BVH::refit() then reads them there.
+  GPU::parallelFor(N, MovePoints<T>{points.data(devicePool.base())});
+
+  BVH::refit(devicePool, bvh, schedule, PointBoxById<T>{points.data(devicePool.base())});
+
+  // The same move and refit on the host give the reference: PackedBVH::refit()'s sweep.
+  for (uint32_t i = 0; i < N; i++) {
+    MovePoints<T>{points.data(pool.base())}(i);
+  }
+
+  auto hostBVH = bvh;
+
+  hostBVH.refit(PointBoxById<T>{points.data(pool.base())});
+
+  const Pool back     = Pool::mirror(devicePool, hostMemoryResource());
+  const auto backView = bvh.rebasedView(back);
+  const auto nodes    = bvh.getNodes();
+
+  for (uint32_t i = 0; i < nodes.size(); i++) {
+    const auto got  = backView.getBoundingVolume(backView.getNodes()[i]);
+    const auto want = hostBVH.getBoundingVolume(nodes[i]);
+
+    for (int d = 0; d < 3; d++) {
+      REQUIRE(got.getLowCorner()[d] == want.getLowCorner()[d]);
+      REQUIRE(got.getHighCorner()[d] == want.getHighCorner()[d]);
+    }
+  }
+
+  const Vec3T<T>* moved = points.data(back.base());
+
+  requireTightAndQueryable<T, K>(backView, std::vector<Vec3T<T>>(moved, moved + N));
+}
+
+TEMPLATE_TEST_CASE("BVH::refit: a schedule built on a frozen pool, for another BVH or in another pool aborts",
+                   "[BVH][refit]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+
+  using Box = PointBoxById<T>;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                pool(hostMemoryResource());
+      PODVector<Vec3T<T>> points;
+      const auto          bvh = pointIdBVH<T, K>(pool, points, 100);
+
+      pool.freeze();
+
+      const BVH::RefitSchedule schedule(pool, bvh);
+
+      (void)schedule;
+    },
+    "BVH::RefitSchedule: the pool is frozen; build the schedule after the BVH and before freezing the pool"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                pool(hostMemoryResource());
+      Pool                other(hostMemoryResource());
+      PODVector<Vec3T<T>> points;
+      const auto          bvh = pointIdBVH<T, K>(pool, points, 100);
+
+      const BVH::RefitSchedule schedule(other, bvh);
+
+      (void)schedule;
+    },
+    "BVH::RefitSchedule: the pool must be the one the BVH lives in"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                pool(hostMemoryResource());
+      PODVector<Vec3T<T>> points;
+      PODVector<Vec3T<T>> morePoints;
+      const auto          bvh   = pointIdBVH<T, K>(pool, points, 100);
+      const auto          other = pointIdBVH<T, K>(pool, morePoints, 300);
+
+      const BVH::RefitSchedule schedule(pool, other);
+
+      BVH::refit(pool, bvh, schedule, Box{points.data(pool.base())});
+    },
+    "BVH::refit: the schedule covers"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                pool(hostMemoryResource());
+      Pool                other(hostMemoryResource());
+      PODVector<Vec3T<T>> points;
+      PODVector<Vec3T<T>> otherPoints;
+      const auto          bvh      = pointIdBVH<T, K>(pool, points, 100);
+      const auto          otherBVH = pointIdBVH<T, K>(other, otherPoints, 100);
+
+      const BVH::RefitSchedule schedule(other, otherBVH);
+
+      BVH::refit(pool, bvh, schedule, Box{points.data(pool.base())});
+    },
+    "BVH::refit: the schedule was built in a pool of another mirror chain; build it in the BVH's pool"));
+}

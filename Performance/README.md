@@ -19,6 +19,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `PointCloudHashGridBuild/` | `PointCloudHashGrid`'s `build()` and `rebuild()` where its pool is: in place on the host, and in device memory |
 | `Mesh/`       | `TriMeshSDF` and `MeshSDF`: builds, refits, signed distances    |
 | `BVH/`        | `PackedBVH::traverse()` itself: rays and points through a BVH of the mesh's triangle boxes |
+| `BVHRefit/`   | `BVH::refit()` where its pool is: the host's sweep, and a launch per tree level in device memory |
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |
 | `Tape/`       | `Tape` signed distance (CSG, smooth, BVH union) against a hand-written solid |
 | `Fused/`      | Fused CSG compositions (the Tape probe's solids, a drilled mesh fused and through a tape) |
