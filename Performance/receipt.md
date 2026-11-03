@@ -28,7 +28,7 @@ date: 2026-11-02
 
 ## Host comparison: red
 
-**Accepted:** The maintainer, for the PointCloudBVH sphere queries: "Accept as worth the side effect"; and for the PointCloudHashGrid build: "I accept the slower build".
+**Accepted:** The maintainer, for the PointCloudBVH sphere queries: "Accept as worth the side effect"; and for the PointCloudHashGrid build: "I accept the slower build"; and for the PointCloudBVH index checksums that differ only in ties between equally distant points: "Accept".
 
 `40bd6b6` against `ba83c75` (origin/main), 2026-11-02.
 
@@ -250,7 +250,7 @@ date: 2026-11-02
 
 ## Device comparison (CUDA): red
 
-**Accepted:** The maintainer, for the PointCloudBVH sphere queries: "Yes, the slowdown is intentional due to consolidation of build algorithms".
+**Accepted:** The maintainer, for the PointCloudBVH sphere queries: "Yes, the slowdown is intentional due to consolidation of build algorithms"; for the PointCloudBVH index checksums that differ only in ties between equally distant points: "Accept"; and for PointCloudBVH/sphere/neighbors8-morton/float: "Accept as regression due to change of algorithm".
 
 `40bd6b6` against `ba83c75` (origin/main), 2026-11-02.
 
