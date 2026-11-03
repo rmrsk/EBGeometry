@@ -680,43 +680,52 @@ PackedBVH<T, P, K>::refit(const BVConstructor& a_bvConstructor)
 {
   // m_linearNodes is a depth-first pre-order flattening, so every child has a higher index than its
   // parent. Sweeping the array in reverse therefore refits all of a node's children before the node
-  // itself -- no recursion or explicit stack needed. A node's box is written where it is stored, in its
-  // parent's row (the root's in m_rootBox), so an interior node reads its children's new boxes from its
-  // own row. Boxes are merged pairwise, so a refit (meant as cheap per-frame maintenance) allocates
-  // nothing.
+  // itself -- no recursion or explicit stack needed. Boxes are merged pairwise, so a refit (meant as
+  // cheap per-frame maintenance) allocates nothing.
   //
   // refit() reserves nothing, so one resolution covers the whole sweep.
   void* poolBase = this->base();
 
   for (uint32_t i = m_linearNodes.size(); i-- > 0;) {
-    const Node& node = m_linearNodes.at(poolBase, i);
+    this->refitNode(poolBase, i, a_bvConstructor);
+  }
+}
 
-    BV bv;
+template <class T, class P, size_t K>
+template <class BVConstructor>
+EBGEOMETRY_HOST_DEVICE
+inline void
+PackedBVH<T, P, K>::refitNode(void* a_base, const uint32_t a_node, const BVConstructor& a_bvConstructor) const
+{
+  // A node's box is written where it is stored, in its parent's row (the root's in m_rootBox), so an
+  // interior node reads its children's new boxes from its own row.
+  const Node& node = m_linearNodes.at(a_base, a_node);
 
-    if (node.isLeaf()) {
-      const uint32_t offset = node.getPrimitivesOffset();
-      const uint32_t count  = node.getNumPrimitives();
+  BV bv;
 
-      for (uint32_t p = 0; p < count; p++) {
-        bv = bv.merged(a_bvConstructor(m_primitives.at(poolBase, offset + p)));
-      }
+  if (node.isLeaf()) {
+    const uint32_t offset = node.getPrimitivesOffset();
+    const uint32_t count  = node.getNumPrimitives();
+
+    for (uint32_t p = 0; p < count; p++) {
+      bv = bv.merged(a_bvConstructor(m_primitives.at(a_base, offset + p)));
     }
-    else {
-      const ChildAABBSoA& row = m_childAabbSoA.at(poolBase, node.getChildBoxRow());
+  }
+  else {
+    const ChildAABBSoA& row = m_childAabbSoA.at(a_base, node.getChildBoxRow());
 
-      for (size_t k = 0; k < K; k++) {
-        bv = bv.merged(PackedBVH::rowBox(row, k));
-      }
+    for (size_t k = 0; k < K; k++) {
+      bv = bv.merged(PackedBVH::rowBox(row, k));
     }
+  }
 
-    const uint32_t slot = node.getBoxSlot();
+  const uint32_t slot = node.getBoxSlot();
 
-    if (slot == RootBoxSlot) {
-      m_rootBox.at(poolBase, 0) = bv;
-    }
-    else {
-      PackedBVH::setRowBox(m_childAabbSoA.at(poolBase, slot / K), slot % K, bv);
-    }
+  if (slot == RootBoxSlot) {
+    m_rootBox.at(a_base, 0) = bv;
+  }
+  else {
+    PackedBVH::setRowBox(m_childAabbSoA.at(a_base, slot / K), slot % K, bv);
   }
 }
 

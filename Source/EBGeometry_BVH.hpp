@@ -5,7 +5,7 @@
 /**
  * @file   EBGeometry_BVH.hpp
  * @brief  Bounding volume hierarchies: everything in EBGeometry_PackedBVH.hpp,
- * EBGeometry_TreeBVH.hpp and EBGeometry_BVHBuild.hpp.
+ * EBGeometry_TreeBVH.hpp, EBGeometry_BVHBuild.hpp and EBGeometry_BVHRefit.hpp.
  * @details Kept so that code including this header keeps compiling. Device code that only queries
  * a PackedBVH can include EBGeometry_PackedBVH.hpp alone.
  * @author Robert Marskar
@@ -15,6 +15,7 @@
 #define EBGEOMETRY_BVH_HPP
 
 #include "EBGeometry_BVHBuild.hpp"
+#include "EBGeometry_BVHRefit.hpp"
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_TreeBVH.hpp"
 
