@@ -59,7 +59,9 @@ ReconcileSchedule::ReconcileSchedule(Pool& a_pool, const MeshT<T>& a_mesh)
   }
 
   // Every corner, a vertex's faces in face order, with the vertex's two neighbors in the order a walk of the
-  // face's loop from its half-edge finds them: VertexT::computeVertexNormalAngleWeighted()'s order.
+  // face's loop from its half-edge finds them: VertexT::computeVertexNormalAngleWeighted()'s order. Each corner
+  // walks its face's loop again, so a face of n vertices costs n^2 steps: nothing for triangles and quads, and
+  // paid once, when the schedule is built.
   std::vector<ReconcileDetail::Corner> corners(cornerBegin[m_numVertices]);
   std::vector<uint32_t>                next(cornerBegin.begin(), cornerBegin.end() - 1);
 

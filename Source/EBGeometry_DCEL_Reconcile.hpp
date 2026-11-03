@@ -162,6 +162,8 @@ private:
  *
  * How the vertices were moved is the caller's business (any kernel, any library, a copy from the host), as long
  * as that work has finished: the passes run on the default stream, and reconcile() returns once they are done.
+ * One reconcile at a time per schedule and pool: the passes share the schedule's status word in that pool, so two
+ * reconciles of the same pool's mesh running at once (from two host threads, say) would race on it.
  * A mesh SDF over the mesh also needs its BVH refitted (BVH::refit()) before it is queried again.
  *
  * Aborts, in every build, on a schedule built in a pool of another mirror chain or for another mesh, and on the
