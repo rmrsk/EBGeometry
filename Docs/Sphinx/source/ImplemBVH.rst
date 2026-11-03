@@ -403,7 +403,8 @@ Two rules apply:
 On a device, the box functor runs in the kernels: it must be trivially copyable and
 ``EBGEOMETRY_HOST_DEVICE``, and read only memory the device can reach. In a CUDA or HIP translation unit
 it must be ``EBGEOMETRY_HOST_DEVICE`` whatever the pool, since the kernels are compiled for it. A
-schedule built for another BVH, or in a pool of another mirror chain, is refused. For the exact
+schedule built for another BVH (another BVH of the same pool included, or this one before a rebuild), or in a
+pool of another mirror chain, is refused. For the exact
 signatures, see the Doxygen reference for the
 `BVH namespace <doxygen/html/namespaceEBGeometry_1_1BVH.html>`__.
 

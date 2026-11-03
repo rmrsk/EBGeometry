@@ -6451,7 +6451,8 @@ TEMPLATE_TEST_CASE("BVH::refit: refits a mirrored BVH a level at a time on the d
   requireTightAndQueryable<T, K>(backView, std::vector<Vec3T<T>>(moved, moved + N));
 }
 
-TEMPLATE_TEST_CASE("BVH::refit: a schedule built on a frozen pool, for another BVH or in another pool aborts",
+TEMPLATE_TEST_CASE("BVH::refit: a schedule built on a frozen pool, for another BVH (of another size or the same) or in "
+                   "another pool aborts",
                    "[BVH][refit]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -6501,6 +6502,21 @@ TEMPLATE_TEST_CASE("BVH::refit: a schedule built on a frozen pool, for another B
       BVH::refit(pool, bvh, schedule, Box{points.data(pool.base())});
     },
     "BVH::refit: the schedule covers"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool                pool(hostMemoryResource());
+      PODVector<Vec3T<T>> points;
+      PODVector<Vec3T<T>> samePoints;
+      const auto          bvh  = pointIdBVH<T, K>(pool, points, 100);
+      const auto          twin = pointIdBVH<T, K>(pool, samePoints, 100);
+
+      const BVH::RefitSchedule schedule(pool, twin);
+
+      BVH::refit(pool, bvh, schedule, Box{points.data(pool.base())});
+    },
+    "BVH::refit: the schedule was built for another BVH in this pool, or for this one before a rebuild; build the "
+    "schedule for this BVH"));
 
   REQUIRE(abortsWith(
     [] {

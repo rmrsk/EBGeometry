@@ -103,6 +103,13 @@ private:
    * of another mirror chain.
    */
   uint64_t m_rootId = 0;
+
+  /**
+   * @brief Where the BVH's node array starts in the pool. Every array of a pool has its own offset and
+   * a mirror keeps them, so with m_rootId it names the one BVH the schedule was built for: another BVH
+   * of the same size in the same pool, or the same BVH rebuilt there, has another offset.
+   */
+  uint64_t m_nodesOffset = 0;
 };
 
 /**
@@ -127,9 +134,9 @@ private:
  * boxes are done. Work on a stream that does not synchronize with the default stream must be
  * synchronized first.
  *
- * Aborts, in every build, on a schedule built in a pool of another mirror chain or for a BVH with a
- * different node count, and, through PackedBVH::rebasedView(), when @p a_bvh does not fit in @p a_pool.
- * Two BVHs of the same node count in one pool are not told apart.
+ * Aborts, in every build, on a schedule built in a pool of another mirror chain or for another BVH (one
+ * with a different node count, or another BVH of the pool, or this one rebuilt), and, through
+ * PackedBVH::rebasedView(), when @p a_bvh does not fit in @p a_pool.
  * @tparam T             Floating-point precision.
  * @tparam P             Primitive type.
  * @tparam K             Branching factor.

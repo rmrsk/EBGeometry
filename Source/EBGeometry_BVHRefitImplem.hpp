@@ -27,7 +27,8 @@ RefitSchedule::RefitSchedule(Pool& a_pool, const PackedBVH<T, P, K>& a_bvh)
                      "BVH::RefitSchedule: the pool is frozen; build the schedule after the BVH and before freezing "
                      "the pool");
 
-  m_rootId = a_pool.rootId();
+  m_rootId      = a_pool.rootId();
+  m_nodesOffset = a_bvh.layout().m_linearNodes.m_offset;
 
   // Depth of every node: the array is a depth-first pre-order flattening, so a forward sweep sees every
   // parent before its children. The node span is read here, before the reserve below can move the block.
@@ -93,6 +94,9 @@ refit(Pool&                     a_pool,
                      "BVH::refit: the schedule covers %u nodes but the BVH has %u; build the schedule for this BVH",
                      unsigned(numScheduled),
                      unsigned(numNodes));
+  EBGEOMETRY_REQUIRE(a_schedule.m_nodesOffset == a_bvh.layout().m_linearNodes.m_offset,
+                     "BVH::refit: the schedule was built for another BVH in this pool, or for this one before a "
+                     "rebuild; build the schedule for this BVH");
 
   PackedBVH<T, P, K> view = a_bvh.rebasedView(a_pool);
 

@@ -349,8 +349,8 @@ Test coverage
        matching a brute-force scan after displacement); :cpp:func:`BVH::refit` through a
        :cpp:class:`BVH::RefitSchedule` making every box exactly the union of what it encloses, on a host
        pool and level by level on a device after the caller's own kernel moved the points (the same
-       boxes as the host's sweep), and refusing a frozen pool, a schedule for another BVH and one from
-       another pool; and every :cpp:class:`BVH::TreeBVH` node's
+       boxes as the host's sweep), and refusing a frozen pool, a schedule for another BVH (of the same
+       size in the same pool too) and one from another pool; and every :cpp:class:`BVH::TreeBVH` node's
        box exactly the union of what it encloses, after both builds and after a refit. Also the
        build-time checks: a tree too deep for the host or device traversal stack at ``K`` = 2, 4 and
        16, every kind of malformed node array (a leaf with no primitives among them), and a
