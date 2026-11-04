@@ -51,6 +51,7 @@ constexpr std::uint64_t RayScene     = 37;       ///< RayCSG: the scene's solids
 constexpr std::uint64_t RayCrowd     = 41;       ///< RayCSG: the crowd's balls (and 42, their radii).
 constexpr std::uint64_t Particles    = 43;       ///< RayParticles: where the particles start.
 constexpr std::uint64_t ParticleDirs = 47;       ///< RayParticles: the directions they move in.
+constexpr std::uint64_t SphereRadii  = 53;       ///< SphereCloudBVH: the spheres' radii.
 
 } // namespace Seed
 

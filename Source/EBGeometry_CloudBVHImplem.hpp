@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file    EBGeometry_PointCloudBVHBuildImplem.hpp
- * @brief   Implementation of PointCloudBVH::build() and rebuild(): a linear BVH over Morton-sorted points, built
- *          in host loops or through GPU::parallelFor().
+ * @file    EBGeometry_CloudBVHImplem.hpp
+ * @brief   Implementation of EBGeometry_CloudBVH.hpp: the build of PointCloudBVH and SphereCloudBVH, a linear BVH
+ *          over Morton-sorted primitive centers, in host loops or through GPU::parallelFor().
  * @author  Robert Marskar
  */
 
-#ifndef EBGEOMETRY_POINTCLOUDBVHBUILDIMPLEM_HPP
-#define EBGEOMETRY_POINTCLOUDBVHBUILDIMPLEM_HPP
+#ifndef EBGEOMETRY_CLOUDBVHIMPLEM_HPP
+#define EBGEOMETRY_CLOUDBVHIMPLEM_HPP
 
 // Std includes
 #include <algorithm>
@@ -19,12 +19,12 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_CloudBVH.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_GPUAlgorithms.hpp"
 #include "EBGeometry_GPUTransform.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_MemoryResource.hpp"
-#include "EBGeometry_PointCloudBVH.hpp"
 #include "EBGeometry_PointCloudDetail.hpp"
 #include "EBGeometry_SFC.hpp"
 
@@ -163,14 +163,15 @@ splitRange(const MortonKey* a_keys, const uint32_t a_lo, const uint32_t a_hi, Ar
 }
 
 /**
- * @brief Build step 2: each point's key, and padding keys that sort last.
+ * @brief Build step 2: each primitive's key, at its center, and padding keys that sort last.
  * @tparam T      Floating-point precision.
- * @tparam Source The positions' source.
+ * @tparam Prim   The primitive type.
+ * @tparam Source The primitives' source.
  */
-template <class T, class Source>
+template <class T, class Prim, class Source>
 struct MortonKeys
 {
-  /// @brief The positions.
+  /// @brief The primitives.
   Source m_source;
 
   /// @brief Half the cloud box's lower corner.
@@ -201,7 +202,7 @@ struct MortonKeys
       return;
     }
 
-    const Vec3T<T> p = m_source(i);
+    const Vec3T<T> p = Prim::center(m_source(i));
 
     SFC::Index cell;
 
@@ -330,12 +331,13 @@ struct SplitEmit
  * @brief Build step 4, for one level from the deepest up: each node's subtree size and box.
  * @tparam T      Floating-point precision.
  * @tparam K      Branching factor.
- * @tparam Source The positions' source.
+ * @tparam Prim   The primitive type.
+ * @tparam Source The primitives' source.
  */
-template <class T, size_t K, class Source>
+template <class T, size_t K, class Prim, class Source>
 struct SubtreeUp
 {
-  /// @brief The positions.
+  /// @brief The primitives.
   Source m_source;
 
   /// @brief The sorted keys.
@@ -366,10 +368,7 @@ struct SubtreeUp
 
     if (node.m_firstChild == NoChildren) {
       for (uint32_t j = node.m_lo; j < node.m_hi; j++) {
-        const Vec3T<T> p = m_source(m_keys[j].m_index);
-
-        lo = min(lo, p);
-        hi = max(hi, p);
+        Prim::grow(lo, hi, m_source(m_keys[j].m_index));
       }
 
       node.m_subtree = 1;
@@ -468,19 +467,23 @@ struct MarkDepthFirst
 
 /**
  * @brief Build step 6: write every node of the packed BVH, its row and its box slot; a leaf also packs its groups
- * and writes its points' leaf tables, positions and order.
+ * and writes its primitives' leaf tables, the primitives and their order.
  * @tparam T      Floating-point precision.
  * @tparam K      Branching factor.
- * @tparam W      Points per group.
- * @tparam Source The positions' source.
+ * @tparam W      Primitives per group.
+ * @tparam Prim   The primitive type.
+ * @tparam Source The primitives' source.
  */
-template <class T, size_t K, size_t W, class Source>
+template <class T, size_t K, size_t W, class Prim, class Source>
 struct WriteNodes
 {
-  /// @brief The packed BVH.
-  using Packed = BVH::PackedBVH<T, PointAoSoA<T, W>, K>;
+  /// @brief The primitive.
+  using Item = typename Prim::Item;
 
-  /// @brief The positions.
+  /// @brief The packed BVH.
+  using Packed = BVH::PackedBVH<T, typename Prim::Group, K>;
+
+  /// @brief The primitives.
   Source m_source;
 
   /// @brief The sorted keys.
@@ -507,16 +510,16 @@ struct WriteNodes
   /// @brief The root box.
   BoundingVolumes::AABBT<T>* m_rootBox;
 
-  /// @brief The point groups.
-  PointAoSoA<T, W>* m_primitives;
+  /// @brief The groups.
+  typename Prim::Group* m_primitives;
 
-  /// @brief Positions, by cloud index.
-  Vec3T<T>* m_positions;
+  /// @brief The primitives, by cloud index.
+  Item* m_items;
 
-  /// @brief Each point's leaf's first group, by cloud index.
+  /// @brief Each primitive's leaf's first group, by cloud index.
   uint32_t* m_leafOff;
 
-  /// @brief Each point's leaf's group count, by cloud index.
+  /// @brief Each primitive's leaf's group count, by cloud index.
   uint32_t* m_leafCnt;
 
   /// @brief Cloud indices in leaf order.
@@ -577,43 +580,42 @@ struct WriteNodes
       const uint32_t valid = Math::min(static_cast<uint32_t>(W), build.m_hi - lo);
 
       // Zeroed, so that an optimizer that cannot see valid >= 1 reads nothing uninitialized.
-      Array<Vec3T<T>, W> positions{};
+      Array<Item, W>     items{};
       Array<uint32_t, W> ids{};
 
       for (uint32_t j = 0; j < valid; j++) {
         const uint32_t index = m_keys[lo + j].m_index;
 
-        ids[j]       = index;
-        positions[j] = m_source(index);
+        ids[j]   = index;
+        items[j] = m_source(index);
 
-        m_positions[index] = positions[j];
-        m_leafOff[index]   = first;
-        m_leafCnt[index]   = count;
-        m_order[lo + j]    = index;
+        m_items[index]   = items[j];
+        m_leafOff[index] = first;
+        m_leafCnt[index] = count;
+        m_order[lo + j]  = index;
       }
 
-      m_primitives[first + g].packUnchecked(positions.data(), ids.data(), valid);
+      m_primitives[first + g].packUnchecked(items.data(), ids.data(), valid);
     }
   }
 };
 
-} // namespace PointCloudDetail
-
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 EBGEOMETRY_HOST
-inline typename PointCloudBVH<T, K, W>::Sizes
-PointCloudBVH<T, K, W>::sizesFor(const uint32_t a_numPoints, const uint32_t a_leafSize) noexcept
+inline typename CloudBVH<T, K, W, Prim>::Sizes
+CloudBVH<T, K, W, Prim>::sizesFor(const uint32_t a_numItems, const uint32_t a_leafSize, const char* a_who) noexcept
 {
-  if (a_numPoints == 0) {
+  if (a_numItems == 0) {
     return Sizes{0, 0, 0};
   }
 
-  if (a_numPoints <= a_leafSize) {
-    return Sizes{1, 0, (a_numPoints + static_cast<uint32_t>(W) - 1U) / static_cast<uint32_t>(W)};
+  if (a_numItems <= a_leafSize) {
+    return Sizes{1, 0, (a_numItems + static_cast<uint32_t>(W) - 1U) / static_cast<uint32_t>(W)};
   }
 
-  // Every leaf is the child of a cut node, of more than a_leafSize points, so it holds at least its quota of them.
-  const uint64_t n        = a_numPoints;
+  // Every leaf is the child of a cut node, of more than a_leafSize primitives, so it holds at least its quota of
+  // them.
+  const uint64_t n        = a_numItems;
   const uint64_t quota    = Math::max(uint64_t{1}, (uint64_t(a_leafSize) + 1U) / uint64_t(4 * K));
   const uint64_t leaves   = n / quota;
   const uint64_t interior = (leaves - 1U) / uint64_t(K - 1);
@@ -622,23 +624,28 @@ PointCloudBVH<T, K, W>::sizesFor(const uint32_t a_numPoints, const uint32_t a_le
   const uint64_t groups   = (n + used * uint64_t(W - 1)) / uint64_t(W);
 
   EBGEOMETRY_REQUIRE(nodes <= UINT32_MAX && groups <= UINT32_MAX,
-                     "PointCloudBVH::build: %u points may need more nodes than 32-bit indices count",
-                     unsigned(a_numPoints));
+                     "%s: %u %s may need more nodes than 32-bit indices count",
+                     a_who,
+                     unsigned(a_numItems),
+                     Prim::Plural);
 
   return Sizes{static_cast<uint32_t>(nodes), static_cast<uint32_t>(interior), static_cast<uint32_t>(groups)};
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 EBGEOMETRY_HOST
-inline typename PointCloudBVH<T, K, W>::Scratch
-PointCloudBVH<T, K, W>::reserveScratch(Pool& a_pool, const uint32_t a_numPoints, const uint32_t a_leafSize)
+inline typename CloudBVH<T, K, W, Prim>::Scratch
+CloudBVH<T, K, W, Prim>::reserveScratch(Pool&          a_pool,
+                                        const uint32_t a_numItems,
+                                        const uint32_t a_leafSize,
+                                        const char*    a_who)
 {
-  const Sizes sizes = sizesFor(a_numPoints, a_leafSize);
+  const Sizes sizes = sizesFor(a_numItems, a_leafSize, a_who);
 
   Scratch scratch;
 
-  scratch.m_keys.reserveSizedFrom(a_pool, PointCloudDetail::keyCount(a_numPoints));
-  scratch.m_box.reserveSizedFrom(a_pool, GPU::boundingBoxScratchSize(a_numPoints));
+  scratch.m_keys.reserveSizedFrom(a_pool, keyCount(a_numItems));
+  scratch.m_box.reserveSizedFrom(a_pool, GPU::boundingBoxScratchSize(a_numItems));
   scratch.m_nodes.reserveSizedFrom(a_pool, sizes.m_nodes);
   scratch.m_boxes.reserveSizedFrom(a_pool, sizes.m_nodes);
   scratch.m_rows.reserveSizedFrom(a_pool, sizes.m_nodes);
@@ -648,29 +655,29 @@ PointCloudBVH<T, K, W>::reserveScratch(Pool& a_pool, const uint32_t a_numPoints,
   return scratch;
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 EBGEOMETRY_HOST
 inline void
-PointCloudBVH<T, K, W>::reserveArrays(Pool& a_pool, const Sizes& a_sizes, const uint32_t a_numPoints)
+CloudBVH<T, K, W, Prim>::reserveArrays(Pool& a_pool, const Sizes& a_sizes, const uint32_t a_numItems)
 {
-  this->attach(a_pool, "PointCloudBVH", m_parallel);
+  this->attach(a_pool, Prim::ClassName, m_parallel);
 
   m_bvhLayout.m_linearNodes.reserveSizedFrom(a_pool, a_sizes.m_nodes);
   m_bvhLayout.m_primitives.reserveSizedFrom(a_pool, a_sizes.m_groups);
   m_bvhLayout.m_childAabbSoA.reserveSizedFrom(a_pool, a_sizes.m_interior);
   m_bvhLayout.m_rootBox.reserveSizedFrom(a_pool, a_sizes.m_nodes > 0 ? 1U : 0U);
 
-  m_positions.reserveSizedFrom(a_pool, a_numPoints);
-  m_leafOff.reserveSizedFrom(a_pool, a_numPoints);
-  m_leafCnt.reserveSizedFrom(a_pool, a_numPoints);
-  m_order.reserveSizedFrom(a_pool, a_numPoints);
+  m_items.reserveSizedFrom(a_pool, a_numItems);
+  m_leafOff.reserveSizedFrom(a_pool, a_numItems);
+  m_leafCnt.reserveSizedFrom(a_pool, a_numItems);
+  m_order.reserveSizedFrom(a_pool, a_numItems);
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 template <class F>
 EBGEOMETRY_HOST
 inline void
-PointCloudBVH<T, K, W>::run(const std::size_t a_count, const F& a_f) const
+CloudBVH<T, K, W, Prim>::run(const std::size_t a_count, const F& a_f) const
 {
   if (m_parallel) {
     GPU::parallelFor(a_count, a_f);
@@ -683,10 +690,10 @@ PointCloudBVH<T, K, W>::run(const std::size_t a_count, const F& a_f) const
   }
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 EBGEOMETRY_HOST
 inline std::uint32_t
-PointCloudBVH<T, K, W>::scan(std::uint32_t* a_values, const std::uint32_t a_count, std::uint32_t* a_scratch) const
+CloudBVH<T, K, W, Prim>::scan(std::uint32_t* a_values, const std::uint32_t a_count, std::uint32_t* a_scratch) const
 {
   if (m_parallel) {
     return GPU::exclusiveScan(a_values, a_count, a_scratch);
@@ -704,21 +711,41 @@ PointCloudBVH<T, K, W>::scan(std::uint32_t* a_values, const std::uint32_t a_coun
   return sum;
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
+template <class U>
+EBGEOMETRY_HOST
+inline std::vector<U>
+CloudBVH<T, K, W, Prim>::toHost(const PODVector<U>& a_array, const void* a_base)
+{
+  const U* first = a_array.data(a_base);
+
+  return std::vector<U>(first, first + a_array.size());
+}
+
+template <class T, size_t K, size_t W, class Prim>
 template <class Source>
 EBGEOMETRY_HOST
-inline typename PointCloudBVH<T, K, W>::Sizes
-PointCloudBVH<T, K, W>::shape(
-  const Scratch& a_scratch, void* a_base, const Source& a_source, const uint32_t a_numPoints, const char* a_who)
+inline typename CloudBVH<T, K, W, Prim>::Sizes
+CloudBVH<T, K, W, Prim>::shape(
+  const Scratch& a_scratch, void* a_base, const Source& a_source, const uint32_t a_numItems, const char* a_who)
 {
-  using namespace PointCloudDetail;
+  // Step 1: the box of the centers, every coordinate checked, and what else the primitive needs checked.
+  Vec3T<T>* boxScratch = a_scratch.m_box.data(a_base);
 
-  // Step 1: the box, every coordinate checked.
-  const AABB box = PointCloudDetail::boxOf<T>(a_source, a_numPoints, m_parallel, a_scratch.m_box.data(a_base), a_who);
+  Prim::requireValidWhereBuilt(a_source, a_numItems, m_parallel, boxScratch, a_who);
+
+  AABB box;
+
+  if constexpr (std::is_same_v<Item, Vec3T<T>>) {
+    box = boxOf<T>(a_source, a_numItems, m_parallel, boxScratch, a_who, Prim::Singular);
+  }
+  else {
+    box = boxOf<T>(Centers<Prim, Source>{a_source}, a_numItems, m_parallel, boxScratch, a_who, Prim::Singular);
+  }
 
   m_depth = 0;
 
-  if (a_numPoints == 0) {
+  if (a_numItems == 0) {
     return Sizes{0, 0, 0};
   }
 
@@ -732,20 +759,20 @@ PointCloudBVH<T, K, W>::shape(
   const uint32_t capacity = a_scratch.m_nodes.size();
 
   // Step 2: the keys, sorted. GPU::bitonicSort() sorts a power of two of them, the padding last; the host sorts
-  // the points' only. The keys are distinct, so both give one order.
+  // the primitives' only. The keys are distinct, so both give one order.
   const Vec3T<T> halfLo = T(0.5) * box.getLowCorner();
   const Vec3T<T> extent = T(0.5) * box.getHighCorner() - halfLo;
   const T        side   = Math::max(extent[0], Math::max(extent[1], extent[2]));
   const T        scale  = (side > T(0)) ? T(SFC::ValidSpan) / side : T(0);
-  const uint32_t count  = m_parallel ? keyCount(a_numPoints) : a_numPoints;
+  const uint32_t count  = m_parallel ? keyCount(a_numItems) : a_numItems;
 
-  this->run(count, MortonKeys<T, Source>{a_source, halfLo, scale, keys, a_numPoints});
+  this->run(count, MortonKeys<T, Prim, Source>{a_source, halfLo, scale, keys, a_numItems});
 
   if (m_parallel) {
     GPU::bitonicSort(keys, count);
   }
   else {
-    std::sort(keys, keys + a_numPoints);
+    std::sort(keys, keys + a_numItems);
   }
 
   // Step 3: the levels, breadth first. Each is [begin, end) of the node array, and its cut nodes' children are the
@@ -754,7 +781,7 @@ PointCloudBVH<T, K, W>::shape(
 
   std::vector<uint32_t> levels{0, 1};
 
-  this->run(1, RootNode{nodes, a_numPoints});
+  this->run(1, RootNode{nodes, a_numItems});
 
   // Read only by the check against the row count below, so unused with assertions off.
   [[maybe_unused]] uint32_t numInterior = 0;
@@ -768,7 +795,7 @@ PointCloudBVH<T, K, W>::shape(
     const uint32_t cut = this->scan(rows + begin, end - begin, scans);
 
     // The cut nodes' children are one level deeper. sizesFor() bounds the node count of every cloud of this many
-    // points; the check costs one comparison per level, and guards the scratch a wrong bound would overrun.
+    // primitives; the check costs one comparison per level, and guards the scratch a wrong bound would overrun.
     EBGEOMETRY_REQUIRE(cut == 0 || levels.size() <= maxDepth,
                        "%s: the tree would be more than %zu levels deep, more than its traversal allows",
                        a_who,
@@ -796,7 +823,7 @@ PointCloudBVH<T, K, W>::shape(
   for (std::size_t level = levels.size() - 1; level > 0; level--) {
     const uint32_t begin = levels[level - 1];
 
-    this->run(levels[level] - begin, SubtreeUp<T, K, Source>{a_source, keys, nodes, boxes, begin});
+    this->run(levels[level] - begin, SubtreeUp<T, K, Prim, Source>{a_source, keys, nodes, boxes, begin});
   }
 
   for (std::size_t level = 1; level < levels.size(); level++) {
@@ -816,177 +843,268 @@ PointCloudBVH<T, K, W>::shape(
   return Sizes{numNodes, numRows, numGroups};
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 template <class Source>
 EBGEOMETRY_HOST
 inline void
-PointCloudBVH<T, K, W>::write(
-  const Scratch& a_scratch, void* a_base, const Sizes& a_sizes, const Source& a_source, const uint32_t a_numPoints)
+CloudBVH<T, K, W, Prim>::write(
+  const Scratch& a_scratch, void* a_base, const Sizes& a_sizes, const Source& a_source, const uint32_t a_numItems)
 {
   EBGEOMETRY_EXPECT(a_sizes.m_nodes <= m_bvhLayout.m_linearNodes.m_capacity);
   EBGEOMETRY_EXPECT(a_sizes.m_groups <= m_bvhLayout.m_primitives.m_capacity);
   EBGEOMETRY_EXPECT(a_sizes.m_interior <= m_bvhLayout.m_childAabbSoA.m_capacity);
-  EBGEOMETRY_EXPECT(a_numPoints <= m_positions.m_capacity);
+  EBGEOMETRY_EXPECT(a_numItems <= m_items.m_capacity);
 
   m_bvhLayout.m_linearNodes.m_size  = a_sizes.m_nodes;
   m_bvhLayout.m_primitives.m_size   = a_sizes.m_groups;
   m_bvhLayout.m_childAabbSoA.m_size = a_sizes.m_interior;
   m_bvhLayout.m_rootBox.m_size      = a_sizes.m_nodes > 0 ? 1U : 0U;
 
-  m_positions.m_size = a_numPoints;
-  m_leafOff.m_size   = a_numPoints;
-  m_leafCnt.m_size   = a_numPoints;
-  m_order.m_size     = a_numPoints;
+  m_items.m_size   = a_numItems;
+  m_leafOff.m_size = a_numItems;
+  m_leafCnt.m_size = a_numItems;
+  m_order.m_size   = a_numItems;
 
   void* base = PoolHandle::base();
 
   this->run(a_sizes.m_nodes,
-            PointCloudDetail::WriteNodes<T, K, W, Source>{a_source,
-                                                          a_scratch.m_keys.data(a_base),
-                                                          a_scratch.m_nodes.data(a_base),
-                                                          a_scratch.m_boxes.data(a_base),
-                                                          a_scratch.m_rows.data(a_base),
-                                                          a_scratch.m_groups.data(a_base),
-                                                          m_bvhLayout.m_linearNodes.data(base),
-                                                          m_bvhLayout.m_childAabbSoA.data(base),
-                                                          m_bvhLayout.m_rootBox.data(base),
-                                                          m_bvhLayout.m_primitives.data(base),
-                                                          m_positions.data(base),
-                                                          m_leafOff.data(base),
-                                                          m_leafCnt.data(base),
-                                                          m_order.data(base)});
+            WriteNodes<T, K, W, Prim, Source>{a_source,
+                                              a_scratch.m_keys.data(a_base),
+                                              a_scratch.m_nodes.data(a_base),
+                                              a_scratch.m_boxes.data(a_base),
+                                              a_scratch.m_rows.data(a_base),
+                                              a_scratch.m_groups.data(a_base),
+                                              m_bvhLayout.m_linearNodes.data(base),
+                                              m_bvhLayout.m_childAabbSoA.data(base),
+                                              m_bvhLayout.m_rootBox.data(base),
+                                              m_bvhLayout.m_primitives.data(base),
+                                              m_items.data(base),
+                                              m_leafOff.data(base),
+                                              m_leafCnt.data(base),
+                                              m_order.data(base)});
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 template <class Source>
 EBGEOMETRY_HOST
-inline PointCloudBVH<T, K, W>
-PointCloudBVH<T, K, W>::build(Pool&             a_pool,
-                              const Source&     a_source,
-                              const uint32_t    a_numPoints,
-                              const std::size_t a_targetLeafSize,
-                              const uint32_t    a_maxPoints)
+inline void
+CloudBVH<T, K, W, Prim>::initialize(Pool&             a_pool,
+                                    const Source&     a_source,
+                                    const uint32_t    a_numItems,
+                                    const std::size_t a_targetLeafSize,
+                                    const uint32_t    a_maxItems,
+                                    const char*       a_who)
 {
-  static_assert(std::is_floating_point_v<T>, "PointCloudBVH requires a floating-point type T");
-  static_assert(K >= 2, "PointCloudBVH requires a branching factor K >= 2");
-  static_assert(W >= 1, "PointCloudBVH requires a SIMD width W >= 1");
-  static_assert(std::is_trivially_copyable_v<Source>,
-                "PointCloudBVH::build: the source of positions must be trivially copyable");
-
   EBGEOMETRY_REQUIRE(
-    a_targetLeafSize >= 1, "PointCloudBVH::build: the target leaf size must be at least 1 (%zu)", a_targetLeafSize);
+    a_targetLeafSize >= 1, "%s: the target leaf size must be at least 1 (%zu)", a_who, a_targetLeafSize);
 
   // The keys are padded to a power of two that is counted in 32 bits.
-  const uint32_t room = Math::max(a_numPoints, a_maxPoints);
+  const uint32_t room = Math::max(a_numItems, a_maxItems);
 
-  EBGEOMETRY_REQUIRE(room <= (uint32_t{1} << 31), "PointCloudBVH::build: at most 2^31 points (%u)", unsigned(room));
-  EBGEOMETRY_REQUIRE(a_maxPoints == 0 || a_maxPoints >= a_numPoints,
-                     "PointCloudBVH::build: room for %u points in a rebuild, fewer than the %u built",
-                     unsigned(a_maxPoints),
-                     unsigned(a_numPoints));
+  EBGEOMETRY_REQUIRE(room <= (uint32_t{1} << 31), "%s: at most 2^31 %s (%u)", a_who, Prim::Plural, unsigned(room));
+  EBGEOMETRY_REQUIRE(a_maxItems == 0 || a_maxItems >= a_numItems,
+                     "%s: room for %u %s in a rebuild, fewer than the %u built",
+                     a_who,
+                     unsigned(a_maxItems),
+                     Prim::Plural,
+                     unsigned(a_numItems));
 
-  PointCloudBVH bvh;
+  m_parallel = a_pool.resource().isDeviceAccessible();
+  m_maxItems = a_maxItems;
+  m_leafSize = static_cast<uint32_t>(Math::min(a_targetLeafSize, std::size_t(UINT32_MAX - 1)));
+  m_leafSize = Math::max(m_leafSize, static_cast<uint32_t>(K));
 
-  bvh.m_parallel  = a_pool.resource().isDeviceAccessible();
-  bvh.m_maxPoints = a_maxPoints;
-  bvh.m_leafSize  = static_cast<uint32_t>(Math::min(a_targetLeafSize, std::size_t(UINT32_MAX - 1)));
-  bvh.m_leafSize  = Math::max(bvh.m_leafSize, static_cast<uint32_t>(K));
-
-  if (a_maxPoints > 0) {
-    // Room for a rebuild: the arrays at the sizes any cloud of that many points can need, and the scratch with
-    // them, so that rebuild() reserves nothing.
-    bvh.reserveArrays(a_pool, sizesFor(a_maxPoints, bvh.m_leafSize), a_maxPoints);
-    bvh.m_scratch = reserveScratch(a_pool, a_maxPoints, bvh.m_leafSize);
+  if (a_maxItems > 0) {
+    // Room for a rebuild: the arrays at the sizes any cloud of that many primitives can need, and the scratch with
+    // them, so that a rebuild reserves nothing.
+    this->reserveArrays(a_pool, sizesFor(a_maxItems, m_leafSize, a_who), a_maxItems);
+    m_scratch = reserveScratch(a_pool, a_maxItems, m_leafSize, a_who);
 
     // Resolved after every reservation above: a reserve can move the block.
-    void* base = bvh.base();
+    void* base = PoolHandle::base();
 
-    const Sizes sizes = bvh.shape(bvh.m_scratch, base, a_source, a_numPoints, "PointCloudBVH::build");
+    const Sizes sizes = this->shape(m_scratch, base, a_source, a_numItems, a_who);
 
-    bvh.write(bvh.m_scratch, base, sizes, a_source, a_numPoints);
+    this->write(m_scratch, base, sizes, a_source, a_numItems);
 
-    return bvh;
+    return;
   }
 
   // The scratch in a pool of its own, released on return, and the arrays at the sizes the tree needs.
   Pool scratchPool(a_pool.resource());
 
-  const Scratch scratch = reserveScratch(scratchPool, a_numPoints, bvh.m_leafSize);
+  const Scratch scratch = reserveScratch(scratchPool, a_numItems, m_leafSize, a_who);
   void*         base    = scratchPool.base();
 
-  const Sizes sizes = bvh.shape(scratch, base, a_source, a_numPoints, "PointCloudBVH::build");
+  const Sizes sizes = this->shape(scratch, base, a_source, a_numItems, a_who);
 
-  bvh.reserveArrays(a_pool, sizes, a_numPoints);
-  bvh.write(scratch, base, sizes, a_source, a_numPoints);
-
-  return bvh;
+  this->reserveArrays(a_pool, sizes, a_numItems);
+  this->write(scratch, base, sizes, a_source, a_numItems);
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 EBGEOMETRY_HOST
-inline PointCloudBVH<T, K, W>
-PointCloudBVH<T, K, W>::build(Pool&                        a_pool,
-                              const std::vector<Vec3T<T>>& a_positions,
-                              const std::size_t            a_targetLeafSize,
-                              const uint32_t               a_maxPoints)
+inline void
+CloudBVH<T, K, W, Prim>::initialize(Pool&                    a_pool,
+                                    const std::vector<Item>& a_items,
+                                    const std::size_t        a_targetLeafSize,
+                                    const uint32_t           a_maxItems,
+                                    const char*              a_who)
 {
-  EBGEOMETRY_REQUIRE(a_positions.size() < std::size_t(PointCloud::InvalidIndex),
-                     "PointCloudBVH::build: too many points for 32-bit indices (%zu points, limit %zu)",
-                     a_positions.size(),
+  EBGEOMETRY_REQUIRE(a_items.size() < std::size_t(PointCloud::InvalidIndex),
+                     "%s: too many %s for 32-bit indices (%zu %s, limit %zu)",
+                     a_who,
+                     Prim::Plural,
+                     a_items.size(),
+                     Prim::Plural,
                      std::size_t(PointCloud::InvalidIndex) - 1);
 
-  const auto numPoints = static_cast<uint32_t>(a_positions.size());
+  const auto numItems = static_cast<uint32_t>(a_items.size());
 
-  // A build on the host checks every point is finite as it finds the box. A build through
-  // GPU::parallelFor() reports only that some point is not, so the points are checked here first.
+  using FromArray = typename Prim::FromArray;
+
+  // A build on the host checks every primitive as it finds the box. A build through GPU::parallelFor() reports
+  // only that some primitive is not valid, so the primitives are checked here first.
   if (a_pool.resource().isDeviceAccessible()) {
-    PointCloudDetail::requireValidCloud("PointCloudBVH::build", a_positions);
+    Prim::requireValid(a_who, a_items);
   }
 
   // So does one through GPU::parallelFor() in a host build (in emulated device memory). A kernel cannot read the
-  // vector: the positions go to scratch in the pool's memory first, released on return.
+  // vector: the primitives go to scratch in the pool's memory first, released on return.
   if (!a_pool.resource().isDeviceAccessible() || !GPU::enabled) {
-    return build(a_pool, PointCloud::FromArray<T>{a_positions.data()}, numPoints, a_targetLeafSize, a_maxPoints);
+    this->initialize(a_pool, FromArray{a_items.data()}, numItems, a_targetLeafSize, a_maxItems, a_who);
+
+    return;
   }
 
   Pool scratch(a_pool.resource());
 
-  PODVector<Vec3T<T>> positions;
+  PODVector<Item> items;
 
-  positions.reserveSizedFrom(scratch, numPoints);
+  items.reserveSizedFrom(scratch, numItems);
 
-  Vec3T<T>* data = positions.data(scratch.base());
+  Item* data = items.data(scratch.base());
 
-  if (numPoints > 0) {
+  if (numItems > 0) {
     a_pool.resource().copy(
-      data, a_pool.resource(), a_positions.data(), hostMemoryResource(), sizeof(Vec3T<T>) * std::size_t(numPoints));
+      data, a_pool.resource(), a_items.data(), hostMemoryResource(), sizeof(Item) * std::size_t(numItems));
   }
 
-  return build(a_pool, PointCloud::FromArray<T>{data}, numPoints, a_targetLeafSize, a_maxPoints);
+  this->initialize(a_pool, FromArray{data}, numItems, a_targetLeafSize, a_maxItems, a_who);
 }
 
-template <class T, size_t K, size_t W>
+template <class T, size_t K, size_t W, class Prim>
 template <class Source>
 EBGEOMETRY_HOST
 inline void
-PointCloudBVH<T, K, W>::rebuild(const Source& a_source, const uint32_t a_numPoints)
+CloudBVH<T, K, W, Prim>::reinitialize(const Source& a_source, const uint32_t a_numItems, const char* a_who)
 {
-  static_assert(std::is_trivially_copyable_v<Source>,
-                "PointCloudBVH::rebuild: the source of positions must be trivially copyable");
-
-  EBGEOMETRY_REQUIRE(m_maxPoints > 0,
-                     "PointCloudBVH::rebuild: the BVH has no room for a rebuild (see build()'s a_maxPoints)");
-  EBGEOMETRY_REQUIRE(a_numPoints <= m_maxPoints,
-                     "PointCloudBVH::rebuild: %u points, but the BVH has room for %u (see build()'s a_maxPoints)",
-                     unsigned(a_numPoints),
-                     unsigned(m_maxPoints));
+  EBGEOMETRY_REQUIRE(
+    m_maxItems > 0, "%s: the BVH has no room for a rebuild (see build()'s %s)", a_who, Prim::MaxParameter);
+  EBGEOMETRY_REQUIRE(a_numItems <= m_maxItems,
+                     "%s: %u %s, but the BVH has room for %u (see build()'s %s)",
+                     a_who,
+                     unsigned(a_numItems),
+                     Prim::Plural,
+                     unsigned(m_maxItems),
+                     Prim::MaxParameter);
 
   void* base = PoolHandle::base();
 
-  const Sizes sizes = this->shape(m_scratch, base, a_source, a_numPoints, "PointCloudBVH::rebuild");
+  const Sizes sizes = this->shape(m_scratch, base, a_source, a_numItems, a_who);
 
-  this->write(m_scratch, base, sizes, a_source, a_numPoints);
+  this->write(m_scratch, base, sizes, a_source, a_numItems);
 }
+
+template <class T, size_t K, size_t W, class Prim>
+EBGEOMETRY_HOST
+inline void
+CloudBVH<T, K, W, Prim>::rebase(const Pool& a_pool) noexcept
+{
+  const auto end = [](const auto&... a_arrays) noexcept {
+    uint64_t byte = 0;
+
+    ((byte = Math::max(byte, a_arrays.endByte())), ...);
+
+    return byte;
+  };
+
+  const uint64_t endByte = Math::max(end(m_bvhLayout.m_linearNodes,
+                                         m_bvhLayout.m_primitives,
+                                         m_bvhLayout.m_childAabbSoA,
+                                         m_bvhLayout.m_rootBox,
+                                         m_items,
+                                         m_leafOff,
+                                         m_leafCnt,
+                                         m_order),
+                                     end(m_scratch.m_keys,
+                                         m_scratch.m_box,
+                                         m_scratch.m_nodes,
+                                         m_scratch.m_boxes,
+                                         m_scratch.m_rows,
+                                         m_scratch.m_groups,
+                                         m_scratch.m_scan));
+
+  // Every array is a pool-relative offset, identical in any mirror of the pool, so only the location changes.
+  this->setLocation(this->rebasedLocation(a_pool, endByte, Prim::ClassName));
+
+  // A snapshot is what a kernel receives, and the device traversal stack is smaller than the host's. The depth is
+  // the build's, so this reads nothing from a pool that may be in device memory.
+  if (this->location().m_control == nullptr) {
+    EBGEOMETRY_REQUIRE(m_depth <= BVH::DeviceTraversalDepth,
+                       "%s::rebasedView: the tree is %u levels deep, more than a device traversal allows (%zu)",
+                       Prim::ClassName,
+                       unsigned(m_depth),
+                       BVH::DeviceTraversalDepth);
+  }
+}
+
+template <class T, size_t K, size_t W, class Prim>
+EBGEOMETRY_HOST
+inline void
+CloudBVH<T, K, W, Prim>::copyInto(CloudBVH& a_copy, Pool& a_dstPool) const
+{
+  // Read everything out before reserving anything: a_dstPool may be this object's own pool, and a reserve there can
+  // move the block under any address taken from it.
+  const void* srcBase = this->base();
+
+  const auto nodes   = toHost(m_bvhLayout.m_linearNodes, srcBase);
+  const auto groups  = toHost(m_bvhLayout.m_primitives, srcBase);
+  const auto rows    = toHost(m_bvhLayout.m_childAabbSoA, srcBase);
+  const auto rootBox = toHost(m_bvhLayout.m_rootBox, srcBase);
+  const auto items   = toHost(m_items, srcBase);
+  const auto leafOff = toHost(m_leafOff, srcBase);
+  const auto leafCnt = toHost(m_leafCnt, srcBase);
+  const auto order   = toHost(m_order, srcBase);
+
+  const auto numItems = static_cast<std::uint32_t>(items.size());
+
+  a_copy.setLocation(PoolLocation{});
+
+  a_copy.m_scratch  = Scratch{};
+  a_copy.m_maxItems = 0;
+  a_copy.m_parallel = false;
+
+  a_copy.reserveArrays(a_dstPool,
+                       Sizes{static_cast<std::uint32_t>(nodes.size()),
+                             static_cast<std::uint32_t>(rows.size()),
+                             static_cast<std::uint32_t>(groups.size())},
+                       numItems);
+
+  // Resolve the base only after every reservation above.
+  void* base = a_copy.base();
+
+  a_copy.m_bvhLayout.m_linearNodes.assign(base, nodes.data(), static_cast<std::uint32_t>(nodes.size()));
+  a_copy.m_bvhLayout.m_primitives.assign(base, groups.data(), static_cast<std::uint32_t>(groups.size()));
+  a_copy.m_bvhLayout.m_childAabbSoA.assign(base, rows.data(), static_cast<std::uint32_t>(rows.size()));
+  a_copy.m_bvhLayout.m_rootBox.assign(base, rootBox.data(), static_cast<std::uint32_t>(rootBox.size()));
+  a_copy.m_items.assign(base, items.data(), numItems);
+  a_copy.m_leafOff.assign(base, leafOff.data(), numItems);
+  a_copy.m_leafCnt.assign(base, leafCnt.data(), numItems);
+  a_copy.m_order.assign(base, order.data(), numItems);
+}
+
+} // namespace PointCloudDetail
 
 } // namespace EBGeometry
 

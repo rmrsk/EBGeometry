@@ -27,18 +27,19 @@ The reading order:
 14. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
 15. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
 16. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
-17. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
-18. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
-19. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
-20. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
-21. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
-22. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
-23. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
-24. `BuildBVH`: comparing the BVH construction methods by build time.
+17. `SphereClouds`: particles of differing sizes, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`.
+18. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
+19. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
+20. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
+21. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
+22. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
+23. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
+24. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
+25. `BuildBVH`: comparing the BVH construction methods by build time.
 
 Every example that builds a shape (`Shapes`, `BasicCSG`, `SmoothCSG`, `Transforms`, `Repetition`,
 `ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `Materials`, `NestedBVH`,
-`ManyObjects`, `PackedSpheres`, `CustomShape`, `Twist`) ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer
+`ManyObjects`, `PackedSpheres`, `SphereClouds`, `CustomShape`, `Twist`) ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer
 (`make VIEWER=SDL2`, or CMake with `-DEBGEOMETRY_VIEWER=SDL2`; it needs SDL2). Otherwise, with `--no-view`, or
 without a display, `view()` prints why and returns, so the examples still run unattended (ctest passes
 `--no-view`).

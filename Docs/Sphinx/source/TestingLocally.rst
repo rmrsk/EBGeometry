@@ -510,6 +510,13 @@ Test coverage
        build on a frozen pool (more, moved, fewer and no points) and coarsening its cells when its box needs
        more than it has, and rejection of a cloud it cannot index, a non-positive target occupancy, a rebuild
        past its room, or a rebase onto an unrelated pool.
+   * - ``TestSphereCloudBVH``
+     - :cpp:class:`SphereCloudBVH` and its leaf group ``SphereAoSoA``: the signed distance and the closest sphere
+       against brute force (inside and outside the spheres), ties to the lower index, radius-0 spheres against
+       ``PointCloudBVH``, an empty cloud, the box, the same tree from centers and radii kept apart, ``rebuild()``
+       on a frozen pool (the tree of a fresh build, nothing reserved), ``rebasedView``/``deepCopy``, device
+       queries against the host, a device-memory build giving the host's tree, and rejection of a negative or
+       non-finite radius, a non-finite center, mismatched centers and radii, and a rebuild without room.
    * - ``TestRandom``
      - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
        an empty result for a zero count.

@@ -10,7 +10,8 @@ cloud: ``PointCloudBVH`` (:file:`Source/EBGeometry_PointCloudBVH.hpp`) and ``Poi
 ``closestPoint`` / ``closestPoints`` / ``nearestNeighbor`` / ``nearestNeighbors`` /
 ``allNearestNeighbors`` -- return the same result type, and can be queried on a GPU. They differ in
 the spatial acceleration structure they build: a hierarchical tree, or a uniform grid. See
-:ref:`Chap:PointCloud` for the conceptual picture and the trade-off between the two.
+:ref:`Chap:PointCloud` for the conceptual picture and the trade-off between the two. A third class,
+``SphereCloudBVH`` (`below <#spherecloudbvh>`__), holds spheres of differing radii and answers for their surfaces.
 
 Results and cloud indices
 -------------------------
@@ -159,3 +160,36 @@ composed as a primitive inside an outer BVH union or a tape: neither provides a
 See the `PointCloudHashGrid doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudHashGrid.html>`__ for the full interface, and
 :ref:`Chap:ExamplePointClouds`, which runs the same queries through both classes.
+
+SphereCloudBVH
+--------------
+
+``SphereCloudBVH`` (:file:`Source/EBGeometry_SphereCloudBVH.hpp`) holds spheres of differing radii -- polydisperse
+particles -- and answers questions about their surfaces rather than their centers: ``signedDistance(p)``, the
+smallest :math:`|p - c| - r` over the spheres, and ``closestSphere(p)``, the sphere that gives it, as a
+``SphereCloud::Hit<T>`` (`doxygen <doxygen/html/structEBGeometry_1_1SphereCloud_1_1Hit.html>`__): the sphere's
+cloud index and the *signed* distance to its surface, negative inside it. Of two spheres at the same distance,
+the one with the lower index is reported. The distance is exact outside the spheres; inside, where spheres overlap,
+it is the depth below the deepest sphere's surface, a lower bound on the distance to the union's surface (as for a
+CSG ``Union`` of the spheres). With ``computeBoundingVolume()`` it makes the cloud a shape, which the viewer
+renders; it is not a tape primitive or a BVH-union primitive. For spheres of one radius, ``PointCloudBVH`` over
+the centers gives the same distance, less the radius.
+
+The tree is ``PointCloudBVH``'s, over the spheres' centers, with every box grown to hold its spheres whole, and
+everything said above of ``PointCloudBVH`` holds for it: the pool must outlive it, it crosses to a device through
+``rebasedView()``, where its queries are callable, and ``build()`` and ``rebuild()`` run where the pool's memory
+is. The spheres come from a *source*: ``SphereCloud::FromArray`` reads one array of ``SphereCloud::Sphere``
+(a center and a radius), and ``SphereCloud::FromCentersAndRadii`` joins a source of centers to a source of radii,
+for a program that keeps them apart (``PointCloud::FromArray`` and ``SphereCloud::FromRadii`` read plain
+arrays). The host constructors take either form:
+
+.. code-block:: c++
+
+   const SphereCloudBVH<T> cloud(pool, centers, radii);   // or (pool, spheres)
+
+   const T   d   = cloud.signedDistance(p);                // < 0 inside a sphere
+   const Hit hit = cloud.closestSphere(p);                 // hit.index, hit.distance
+
+A radius of 0 is a point; a negative or non-finite radius, or a non-finite center, is refused. See the
+`SphereCloudBVH doxygen page <doxygen/html/classEBGeometry_1_1SphereCloudBVH.html>`__ for the full interface, and
+:ref:`Chap:ExampleSphereClouds` for worked usage.

@@ -56,3 +56,12 @@ itself at distance zero). A hierarchy can also use the fact that it already know
 lives in: its search can be *seeded* from that leaf, giving a tight pruning bound immediately, which
 makes the hierarchy's self queries cheaper than querying the same points from scratch. A uniform grid
 starts a self query from the point's cell, as it does any query.
+
+Clouds of spheres
+-----------------
+
+Give each point a radius and the cloud becomes a set of spheres -- particles of differing sizes -- with a surface,
+an inside and a signed distance: the smallest :math:`|p - c_i| - r_i` over the spheres, negative inside one. The
+same hierarchy serves it, built over the spheres' centers, with each node's bounding volume grown to hold its
+spheres whole. Where spheres overlap, the value inside is the depth below the deepest sphere's surface, which can be
+less than the distance to the union's surface, as for any union of shapes (see :ref:`Chap:ConstructiveSolidGeometry`).

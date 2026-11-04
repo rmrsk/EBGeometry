@@ -99,12 +99,18 @@ keyCount(const uint32_t a_n) noexcept
  * @param[in] a_scratch   GPU::boundingBoxScratchSize(a_numPoints) elements the launches can write, for a build
  *                        through GPU::parallelFor(); unused otherwise.
  * @param[in] a_who       The calling function, for the message when a point is not finite.
+ * @param[in] a_noun      What a point is called in that message ("point", or "sphere" for a box of centers).
  * @return The box; zeros for no points.
  */
 template <class T, class Source>
 [[nodiscard]] EBGEOMETRY_HOST
 inline BoundingVolumes::AABBT<T>
-boxOf(const Source& a_source, const uint32_t a_numPoints, const bool a_parallel, Vec3T<T>* a_scratch, const char* a_who)
+boxOf(const Source&  a_source,
+      const uint32_t a_numPoints,
+      const bool     a_parallel,
+      Vec3T<T>*      a_scratch,
+      const char*    a_who,
+      const char*    a_noun = "point")
 {
   if (a_numPoints == 0) {
     return BoundingVolumes::AABBT<T>(Vec3T<T>::zeros(), Vec3T<T>::zeros());
@@ -118,8 +124,9 @@ boxOf(const Source& a_source, const uint32_t a_numPoints, const bool a_parallel,
 
     EBGEOMETRY_REQUIRE(std::isfinite(lo[0]) && std::isfinite(lo[1]) && std::isfinite(lo[2]) && std::isfinite(hi[0]) &&
                          std::isfinite(hi[1]) && std::isfinite(hi[2]),
-                       "%s: a point has a non-finite coordinate",
-                       a_who);
+                       "%s: a %s has a non-finite coordinate",
+                       a_who,
+                       a_noun);
 
     return box;
   }
@@ -131,8 +138,9 @@ boxOf(const Source& a_source, const uint32_t a_numPoints, const bool a_parallel,
     const Vec3T<T> p = a_source(i);
 
     EBGEOMETRY_REQUIRE(std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]),
-                       "%s: point %u of %u has a non-finite coordinate",
+                       "%s: %s %u of %u has a non-finite coordinate",
                        a_who,
+                       a_noun,
                        unsigned(i),
                        unsigned(a_numPoints));
 
