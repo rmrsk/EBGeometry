@@ -54,10 +54,11 @@ struct ContactForce
     Vec3       force  = Vec3::zeros();
 
     m_cloud.forEachContact(a_index, gap, [this, &center, &force](const Hit& a_contact) {
-      const Vec3 apart = center - m_cloud.sphere(a_contact.index).m_center;
+      const Vec3 apart  = center - m_cloud.sphere(a_contact.index).m_center;
+      const T    length = apart.length();
 
-      if (a_contact.distance < T(0) && apart.length() > T(0)) {
-        force += (-a_contact.distance / apart.length()) * apart;
+      if (a_contact.distance < T(0) && length > T(0)) {
+        force += (-a_contact.distance / length) * apart;
       }
     });
 

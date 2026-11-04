@@ -8,6 +8,7 @@
 // host; a CUDA or HIP build runs it as a host/device pair. The cases live apart from Performance/SphereCloudBVH so
 // that they cannot move the inlining of its cases. See ../README.md and PerformanceTesting.rst.
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>

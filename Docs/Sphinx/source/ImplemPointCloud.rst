@@ -194,7 +194,7 @@ arrays). The host constructors take either form:
 A radius of 0 is a point; a negative or non-finite radius, or a non-finite center, is refused.
 
 The *contacts* of sphere i are the spheres j whose separation, :math:`|c_i - c_j| - (r_i + r_j)`, is less than a
-gap: with a gap of 0 the spheres i touches or overlaps, with a larger one also those nearly touching it.
+gap: with a gap of 0 the spheres that overlap it, with a small positive gap also those that touch or nearly touch it.
 ``forEachContact(i, gap, visit)`` calls ``visit`` once for each, with a ``SphereCloud::Hit<T>`` holding the other
 sphere's index and the separation (negative when they overlap), in no set order. Contacts are mutual: j is a
 contact of i exactly when i is one of j, at the same separation. A second form takes any sphere, in the cloud or

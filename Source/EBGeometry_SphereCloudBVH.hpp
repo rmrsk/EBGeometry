@@ -397,8 +397,9 @@ public:
    * @tparam Visit A callable taking const Hit&: the other sphere's cloud index, and the separation as its distance
    * (negative when the two overlap). Must not throw. Device-callable when the query runs on a device.
    * @param[in] a_index Cloud index of the sphere, less than numSpheres() (checked only with assertions on).
-   * @param[in] a_gap   Largest separation counted as a contact, not included. Must be finite. 0 counts touching
-   *                    and overlapping spheres; a negative gap counts only overlaps deeper than |a_gap|.
+   * @param[in] a_gap   Largest separation counted as a contact, not included. Must be finite. 0 counts spheres
+   *                    that overlap; a small positive gap also counts those that touch or nearly touch, and a
+   *                    negative gap only overlaps deeper than |a_gap|.
    * @param[in] a_visit Called once per contact.
    */
   template <class Visit>
@@ -415,7 +416,8 @@ public:
    *                      assertions on).
    * @param[in] a_gap     Largest separation counted as a contact, not included. Must be finite.
    * @param[in] a_visit   Called once per contact.
-   * @param[in] a_exclude A cloud index to skip; SphereCloud::InvalidIndex for none.
+   * @param[in] a_exclude A cloud index to skip; SphereCloud::InvalidIndex for none (a sphere of the cloud is then
+   *                      its own contact, at minus twice its radius).
    */
   template <class Visit>
   EBGEOMETRY_HOST_DEVICE

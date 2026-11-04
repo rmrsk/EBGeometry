@@ -662,17 +662,17 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: contacts are mutual, with the same separatio
 
   for (uint32_t i = 0; i < n; i++) {
     for (const auto& contact : contacts[i]) {
-      bool back = false;
+      std::size_t back = 0;
 
       for (const auto& other : contacts[contact.index]) {
         if (other.index == i) {
-          back = true;
+          back++;
 
           CHECK(other.distance == contact.distance);
         }
       }
 
-      CHECK(back);
+      CHECK(back == 1);
     }
   }
 }
@@ -711,6 +711,17 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: contacts stay mutual when the radii span ord
     }
 
     CHECK(found > 0);
+
+    // Some contact joins a large sphere to a much smaller one, where the rounding the pad covers is largest.
+    bool unequal = false;
+
+    for (uint32_t i = 0; i < n; i++) {
+      for (const auto& contact : contacts[i]) {
+        unequal = unequal || spheres[i].m_radius > T(100) * spheres[contact.index].m_radius;
+      }
+    }
+
+    CHECK(unequal);
 
     for (uint32_t i = 0; i < n; i++) {
       for (const auto& contact : contacts[i]) {
