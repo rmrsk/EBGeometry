@@ -152,6 +152,10 @@ struct SpherePrimitive
    * @details The centers are checked with the box of the centers. Through GPU::parallelFor(), the smallest radius
    * and whether every radius is finite come from GPU::boundingBoxOf(), and a bad one is reported as "a sphere"; on
    * the host, it is reported by its index.
+   *
+   * One of three checks of a sphere, each for one way in: this one for every build from a source, where the build
+   * runs; requireValid() for a host array headed to a build through GPU::parallelFor(), so that a bad sphere is
+   * still named by its index; and SphereAoSoA::pack() for a group packed by hand.
    * @tparam Source The spheres' source.
    * @param[in] a_source    The spheres.
    * @param[in] a_numItems  Number of spheres.
@@ -368,7 +372,7 @@ public:
 
   /**
    * @brief Signed distance to the union of the spheres: min_i(|p - c_i| - r_i); see the class.
-   * @param[in] a_point Query point.
+   * @param[in] a_point Query point. Must be finite (checked only with assertions on).
    * @return The signed distance, negative inside a sphere; Math::Limits<T>::max() for an empty cloud.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -378,7 +382,7 @@ public:
   /**
    * @brief The sphere whose surface is nearest to a point, in the signed sense of signedDistance().
    * @details Ties go to the lower cloud index.
-   * @param[in] a_point Query point.
+   * @param[in] a_point Query point. Must be finite (checked only with assertions on).
    * @return The sphere's cloud index and the signed distance to its surface; a miss for an empty cloud.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
