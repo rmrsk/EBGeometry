@@ -11,6 +11,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -402,6 +403,39 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: equal spheres tie to the lower index, a radi
     CHECK(cloud.closestSphere(spheres[40].m_center + Vec3T<T>(T(0.001), T(0), T(0))).index == 40);
   }
 
+  SECTION("a tie across leaves goes to the lower index, also when its leaf is visited last")
+  {
+    // Eight spheres at the corners of a cube around the query point, all at the same distance from it (each
+    // coordinate differs by exactly 1/4). The keys tie too, so the leaves are visited in Morton order, and index 0
+    // is the corner Morton order puts last.
+    const Vec3T<T> query(T(0.5), T(0.5), T(0.5));
+
+    std::vector<SphereCloud::Sphere<T>> spheres(8);
+
+    for (int corner = 0; corner < 8; corner++) {
+      const T x = (corner & 4) ? T(0.25) : T(0.75);
+      const T y = (corner & 2) ? T(0.25) : T(0.75);
+      const T z = (corner & 1) ? T(0.25) : T(0.75);
+
+      spheres[static_cast<std::size_t>(corner)] = {Vec3T<T>(x, y, z), T(0.1)};
+    }
+
+    const SphereCloudBVH<T> cloud(pool, spheres, 1);
+
+    CHECK(cloud.closestSphere(query).index == 0);
+  }
+
+  SECTION("of many equal spheres in many leaves, the lowest index is the closest")
+  {
+    const std::vector<SphereCloud::Sphere<T>> spheres(
+      64, SphereCloud::Sphere<T>{Vec3T<T>(T(0.3), T(0.6), T(0.2)), T(0.05)});
+
+    const SphereCloudBVH<T> cloud(pool, spheres, 4);
+
+    CHECK(cloud.closestSphere(spheres[0].m_center).index == 0);
+    CHECK(cloud.closestSphere(spheres[0].m_center + Vec3T<T>(T(0.01), T(0), T(0))).index == 0);
+  }
+
   SECTION("spheres of radius 0 give the distance to the closest point")
   {
     std::vector<SphereCloud::Sphere<T>> spheres = makeSpheres<T>(400, 3u);
@@ -428,6 +462,40 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: equal spheres tie to the lower index, a radi
     CHECK(cloud.numSpheres() == 0);
     CHECK_FALSE(cloud.closestSphere(Vec3T<T>(T(0), T(0), T(0))).valid());
     CHECK(cloud.signedDistance(Vec3T<T>(T(0), T(0), T(0))) == Math::Limits<T>::max());
+  }
+}
+
+TEMPLATE_TEST_CASE("SphereCloudBVH: other branching factors and widths, and partly filled groups, match brute force",
+                   "[SphereCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Fewer spheres than a group holds, and counts that are not a multiple of it, so that queries read padded lanes
+  // of real leaves.
+  const auto check = [](auto a_tag, const std::size_t a_n) {
+    using Cloud = typename decltype(a_tag)::type;
+
+    const std::vector<SphereCloud::Sphere<T>> spheres = makeSpheres<T>(a_n, 31u + unsigned(a_n));
+
+    Pool pool(hostMemoryResource());
+
+    const Cloud cloud(pool, spheres, 3);
+
+    for (const auto& query : makeQueries<T>(200, 7u)) {
+      const T    truth = bruteForceDistance(spheres, query);
+      const auto hit   = cloud.closestSphere(query);
+
+      REQUIRE(hit.index < a_n);
+      CHECK_THAT(hit.distance, withinAbsT<T>(truth, tightMargin<T>()));
+      CHECK_THAT(sphereDistance(spheres[hit.index], query), withinAbsT<T>(truth, tightMargin<T>()));
+    }
+  };
+
+  for (const std::size_t n : {std::size_t(1), std::size_t(2), std::size_t(5), std::size_t(13), std::size_t(301)}) {
+    check(std::common_type<SphereCloudBVH<T, 4, 4>>{}, n);
+    check(std::common_type<SphereCloudBVH<T, 2, 8>>{}, n);
+    check(std::common_type<SphereCloudBVH<T, 8, 2>>{}, n);
   }
 }
 
@@ -686,5 +754,20 @@ TEST_CASE("SphereCloudBVH: rejects a sphere it cannot build over, mismatched cen
         (void)cloud;
       },
       "SphereCloudBVH::build: a sphere has a non-finite coordinate"));
+
+    for (const T radius : {std::numeric_limits<T>::infinity(), std::numeric_limits<T>::quiet_NaN()}) {
+      const std::vector<SphereCloud::Sphere<T>> badRadius = {{Vec3T<T>(T(0), T(0), T(0)), T(1)},
+                                                             {Vec3T<T>(T(1), T(0), T(0)), radius}};
+
+      REQUIRE(abortsWith(
+        [&badRadius] {
+          Pool                    pool(emulatedDeviceMemoryResource());
+          const SphereCloudBVH<T> cloud =
+            SphereCloudBVH<T>::build(pool, SphereCloud::FromArray<T>{badRadius.data()}, 2U);
+
+          (void)cloud;
+        },
+        "SphereCloudBVH::build: a sphere has a non-finite or negative radius"));
+    }
   }
 }
