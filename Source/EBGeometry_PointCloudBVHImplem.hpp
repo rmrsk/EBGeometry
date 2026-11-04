@@ -177,16 +177,23 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
     return 0;
   }
 
-  // Each point is in exactly one group, and the scan stops at the group's real points (the padded
-  // lanes repeat the last one), so every point is offered once and the set needs no de-duplication.
+  // Each point is in exactly one group, and the scan skips the lanes past the group's real points (the
+  // padded lanes repeat the last one), so every point is offered once and the set needs no de-duplication.
+  //
+  // The lane loop has the constant bound W, with the padding test inside it, so that the compiler unrolls
+  // it and keeps the group's distances in registers. With the bound numValid, nvcc kept them in local
+  // memory (a store and a reload per group visited): the device queries ran 9-26% slower in float
+  // (closest point, the nearest other point, 8 nearest; 262,144 queries, RTX 3080) and 0-2% in double.
   const auto scanLeaf = [&groups, &a_query](Best& a_best, std::size_t a_off, std::size_t a_cnt) noexcept {
     for (std::size_t g = 0; g < a_cnt; g++) {
       const PointGroup&   group     = groups[static_cast<std::uint32_t>(a_off + g)];
       const Array<T, W>   distances = group.getDistances2(a_query);
       const std::uint32_t numValid  = group.numValid();
 
-      for (std::uint32_t lane = 0; lane < numValid; lane++) {
-        a_best.insert(distances[lane], group.getPointId(lane));
+      for (std::uint32_t lane = 0; lane < W; lane++) {
+        if (lane < numValid) {
+          a_best.insert(distances[lane], group.getPointId(lane));
+        }
       }
     }
   };
