@@ -395,7 +395,7 @@ public:
    * @details The visits come in no set order, one per contacting sphere. The separation is computed the same way
    * from both sides, so j is a contact of i exactly when i is a contact of j, with the same separation.
    * @tparam Visit A callable taking const Hit&: the other sphere's cloud index, and the separation as its distance
-   * (negative when the two overlap). Device-callable when the query runs on a device.
+   * (negative when the two overlap). Must not throw. Device-callable when the query runs on a device.
    * @param[in] a_index Cloud index of the sphere, less than numSpheres() (checked only with assertions on).
    * @param[in] a_gap   Largest separation counted as a contact, not included. Must be finite. 0 counts touching
    *                    and overlapping spheres; a negative gap counts only overlaps deeper than |a_gap|.

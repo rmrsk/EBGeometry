@@ -677,6 +677,71 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: contacts are mutual, with the same separatio
   }
 }
 
+TEMPLATE_TEST_CASE("SphereCloudBVH: contacts stay mutual when the radii span orders of magnitude",
+                   "[SphereCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr std::size_t n = 600;
+
+  // Centers in [0, 10]^3, radii from 0.001 to 1 spread evenly over their logarithm: a few large spheres among many
+  // small ones, where the boxes' rounding scales with the large radii.
+  std::mt19937                      rng(83u);
+  std::uniform_real_distribution<T> unit(T(0), T(1));
+
+  std::vector<SphereCloud::Sphere<T>> spheres(n);
+
+  for (auto& sphere : spheres) {
+    sphere.m_center = T(10) * Vec3T<T>(unit(rng), unit(rng), unit(rng));
+    sphere.m_radius = std::pow(T(10), T(-3) + T(3) * unit(rng));
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const SphereCloudBVH<T> cloud(pool, spheres, 4);
+
+  for (const T gap : {T(0), T(0.05)}) {
+    std::vector<std::vector<SphereCloud::Hit<T>>> contacts(n);
+    std::size_t                                   found = 0;
+
+    for (uint32_t i = 0; i < n; i++) {
+      contacts[i] = contactsOf(cloud, i, gap);
+      found += contacts[i].size();
+    }
+
+    CHECK(found > 0);
+
+    for (uint32_t i = 0; i < n; i++) {
+      for (const auto& contact : contacts[i]) {
+        std::size_t back = 0;
+
+        for (const auto& other : contacts[contact.index]) {
+          if (other.index == i) {
+            back++;
+
+            CHECK(other.distance == contact.distance);
+          }
+        }
+
+        CHECK(back == 1);
+      }
+
+      for (uint32_t j = 0; j < n; j++) {
+        if (j != i && separation(spheres[i], spheres[j]) < gap - static_cast<T>(looseMargin<T>())) {
+          bool seen = false;
+
+          for (const auto& contact : contacts[i]) {
+            seen = seen || contact.index == j;
+          }
+
+          CHECK(seen);
+        }
+      }
+    }
+  }
+}
+
 TEMPLATE_TEST_CASE("SphereCloudBVH: forEachContact of a sphere outside the cloud, with an index to skip",
                    "[SphereCloudBVH]",
                    EBGEOMETRY_TEST_PRECISIONS)

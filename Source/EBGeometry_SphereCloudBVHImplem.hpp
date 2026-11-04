@@ -213,6 +213,8 @@ SphereCloudBVH<T, K, W>::forEachContact(const uint32_t a_index, const T a_gap, V
 {
   EBGEOMETRY_EXPECT(a_index < m_items.size());
 
+  // The visitor is passed on as an lvalue, not forwarded: it is called once per contact, and a visitor that adds
+  // up (a count, a force) must be the caller's own object.
   this->forEachContact(this->sphere(a_index), a_gap, a_visit, a_index);
 }
 
@@ -267,11 +269,21 @@ SphereCloudBVH<T, K, W>::forEachContact(const Sphere&  a_sphere,
   // order stored. With r + gap <= 0, only the boxes holding the center are.
   //
   // In floating point a box corner c_j + r_j can round inward, and the box's key has rounding of its own, so the
-  // reach is padded by a few ulps of the coordinates' size. Without the pad, a pair whose separation is within
-  // rounding of the gap could be pruned from one side and found from the other, and contacts would not be
-  // mutual. The leaf test is exact, so the pad only enters a box more now and then; it finds no extra contact.
-  const T scale =
-    Math::max(Math::max(std::abs(center[0]), std::abs(center[1])), std::abs(center[2])) + radius + std::abs(a_gap);
+  // reach is padded by a few ulps of the coordinates' size: the query sphere's, and the root box's, which holds
+  // every c_j + r_j. Without the pad, a pair whose separation is within rounding of the gap could be pruned from
+  // one side and found from the other, and contacts would not be mutual. The leaf test is exact, so the pad only
+  // enters a box more now and then; it finds no extra contact.
+  const AABB     root = bvh.computeBoundingVolume();
+  const Vec3T<T> lo   = root.getLowCorner();
+  const Vec3T<T> hi   = root.getHighCorner();
+
+  T largest = T(0);
+
+  for (std::size_t d = 0; d < 3; d++) {
+    largest = Math::max(largest, Math::max(Math::max(std::abs(lo[d]), std::abs(hi[d])), std::abs(center[d])));
+  }
+
+  const T scale = largest + radius + std::abs(a_gap);
   const T reach = Math::max(T(0), radius + a_gap) + T(16) * Math::Limits<T>::epsilon() * scale;
 
   const auto bound = [reach](const auto&) noexcept -> T { return reach * reach; };
