@@ -63,8 +63,5 @@ Clouds of spheres
 Give each point a radius and the cloud becomes a set of spheres -- particles of differing sizes -- with a surface,
 an inside and a signed distance: the smallest :math:`|p - c_i| - r_i` over the spheres, negative inside one. The
 same hierarchy serves it, built over the spheres' centers, with each node's bounding volume grown to hold its
-spheres whole: a query prunes a subtree whose bounding volume is farther than the best signed distance found so
-far, and once the query point is inside a sphere, only the subtrees whose bounding volumes contain it. Where
-spheres overlap, the value inside is the depth below the deepest sphere's surface, which can be less than the
-distance to the union's surface, as for any union of shapes (see :ref:`Chap:ConstructiveSolidGeometry`).
-
+spheres whole. Where spheres overlap, the value inside is the depth below the deepest sphere's surface, which can be
+less than the distance to the union's surface, as for any union of shapes (see :ref:`Chap:ConstructiveSolidGeometry`).
