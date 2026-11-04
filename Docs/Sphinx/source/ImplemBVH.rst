@@ -357,7 +357,8 @@ Refitting recomputes bounding volumes only, never the primitives themselves. A p
 caches data derived from the geometry has to be brought up to date some other way. ``MeshSDF``
 (:ref:`Chap:MeshSDFClasses`) stores face ids, not faces, so after moving the mesh's vertices,
 ``mesh.reconcile()`` recomputes the faces' cached normals, centroids and projection axes in the
-mesh itself, and refitting its BVH (through ``getRoot()``) then updates the boxes. ``TriMeshSDF``'s
+mesh itself, and refitting its BVH (through ``getRoot()``) then updates the boxes. On a device, the mesh
+is reconciled with ``DCEL::reconcile()`` (:ref:`Sec:ReconcileWherePool`). ``TriMeshSDF``'s
 triangles are copies taken at build time, so after moving vertices it has to be rebuilt.
 
 Refitting where the pool is, on a device included

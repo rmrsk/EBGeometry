@@ -160,6 +160,63 @@ a host-to-host mirror usable, and testable without a GPU.
 which catches the realistic mistakes: the wrong pool, or a pool mirrored before the mesh's last
 ``reserve``. These checks are ``EBGEOMETRY_REQUIRE``\s, so they run in every build.
 
+.. _Sec:ReconcileWherePool:
+
+Reconciling a moved mesh where its pool is
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After a mesh's vertices move, its faces' normals, centroids and areas, and the edge and vertex
+pseudonormals, must be reconciled again before the mesh is queried. ``MeshT::reconcile()`` does that on the
+host, checking the mesh's topology and finding the faces around each vertex on every call. To reconcile a
+mesh whose vertices move in device memory, or to reconcile one often on the host, use
+``DCEL::reconcile(pool, mesh, schedule)`` (``EBGeometry_DCEL_Reconcile.hpp``). It reconciles the copy of
+the mesh in ``pool``, the mesh's own pool or any mirror of it, and runs where that pool's memory is: in
+parallel on a device-accessible pool; on a host pool, in host loops, faster than ``MeshT::reconcile()`` and
+with the same values.
+
+What moving vertices never changes, the topology and which faces touch each vertex, is checked and stored
+once by a
+`DCEL::ReconcileSchedule <doxygen/html/classEBGeometry_1_1DCEL_1_1ReconcileSchedule.html>`__. It is opt-in,
+for the meshes you reconcile this way. Build it after the mesh and before freezing the pool: it is stored in
+the mesh's pool, so mirroring the pool carries it to the device. Building it on a frozen pool aborts, and so
+does building it for a mesh with a broken topology, with ``MeshT::reconcile()``'s messages.
+
+.. code-block:: c++
+
+   auto sdf = Parser::readIntoMeshSDF<T>(file, pool);
+   const auto mesh = sdf.getMesh();
+
+   DCEL::ReconcileSchedule reconcileSchedule(pool, mesh);   // after the build, before the freeze
+   BVH::RefitSchedule      refitSchedule(pool, sdf.getRoot());
+   pool.freeze();
+
+   Pool devicePool = Pool::mirror(pool, GPU::memoryResource());
+
+   for (int step = 0; step < numSteps; step++) {
+     moveMyVertices(devicePool);                              // your own kernels
+     DCEL::reconcile(devicePool, mesh, reconcileSchedule);
+     BVH::refit(devicePool, sdf.getRoot(), refitSchedule, FaceBox{devicePool});
+   }
+
+How the vertices move is up to you: your own kernels, another library, ``GPU::parallelFor()``, or a copy
+from the host. Nothing but a status word comes back to the host in the loop: the mesh, and the mesh SDF over
+it, are queried in device memory. The rules:
+
+* **The moves must be finished.** ``DCEL::reconcile()`` launches its passes on the default stream and
+  returns once they are done; synchronize work on a stream that does not synchronize with the default one
+  before calling it.
+* **The topology stays.** Move vertices, but do not add, remove or relink vertices, edges or faces; that
+  calls for a new mesh (and a new schedule).
+* **A mesh SDF needs its BVH refitted too**, with ``BVH::refit()`` (:ref:`Chap:ImplemBVH`), before it is
+  queried again.
+
+On a device the values agree with the host's to rounding, not bit for bit: device compilers fuse multiplies
+and adds, and the device's math functions round differently in the last place. Moved vertices that leave a
+vertex and its two neighbors on a face at the same position abort, with ``MeshT::reconcile()``'s message,
+as on the host. A schedule built for another mesh, or in a pool of another mirror chain, is refused. For
+the exact signatures, see the Doxygen reference for the
+`DCEL namespace <doxygen/html/namespaceEBGeometry_1_1DCEL.html>`__.
+
 .. _Chap:BVHIntegration:
 
 BVH integration

@@ -516,6 +516,22 @@ instantiateFunctionTemplates()
     BVH::refit(devicePool, bvh, schedule, box);
     (void)schedule.numLevels();
   }
+
+  // A reconcile through a schedule, on a host pool and on an emulated device pool (the passes, as host loops in
+  // this translation unit).
+  {
+    Pool                 reconcilePool(hostMemoryResource());
+    const DCEL::MeshT<T> mesh = Parser::readIntoDCEL<T>(std::string("mesh.stl"), reconcilePool);
+
+    const DCEL::ReconcileSchedule schedule(reconcilePool, mesh);
+
+    reconcilePool.freeze();
+
+    Pool devicePool = Pool::mirror(reconcilePool, GPU::memoryResource());
+
+    DCEL::reconcile(reconcilePool, mesh, schedule);
+    DCEL::reconcile(devicePool, mesh, schedule);
+  }
 }
 
 template void

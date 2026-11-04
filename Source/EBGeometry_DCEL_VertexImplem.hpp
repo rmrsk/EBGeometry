@@ -213,18 +213,7 @@ VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_this
                        unsigned(inoutVertices[0]),
                        unsigned(inoutVertices[1]));
 
-    Vec3 v1 = x1 - x0;
-    Vec3 v2 = x2 - x0;
-
-    v1 = v1 / v1.length();
-    v2 = v2 / v2.length();
-
-    const Vec3& norm = f.getNormal();
-
-    // Clamp to [-1,1] to guard against std::acos(NaN) from floating-point rounding.
-    const T alpha = std::acos(Math::clamp(v1.dot(v2), T(-1), T(1)));
-
-    m_normal += alpha * norm;
+    m_normal += VertexDetail::angleWeightedTerm(x0, x1, x2, f.getNormal());
   }
 
   this->normalizeNormalVector();

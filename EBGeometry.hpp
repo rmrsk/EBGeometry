@@ -29,6 +29,7 @@
 #include "Source/EBGeometry_DCEL_Face.hpp"
 #include "Source/EBGeometry_DCEL_Iterator.hpp"
 #include "Source/EBGeometry_DCEL_Mesh.hpp"
+#include "Source/EBGeometry_DCEL_Reconcile.hpp"
 #include "Source/EBGeometry_DCEL_Vertex.hpp"
 #include "Source/EBGeometry_DistanceQuality.hpp"
 #include "Source/EBGeometry_Expr.hpp"

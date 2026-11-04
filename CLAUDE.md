@@ -671,7 +671,8 @@ with explicit permission), and may ask whether to act on follow-ups.
   (`PackedBVH`'s static builds: `build()`, `buildTopDown()`, `buildBottomUp()`,
   `buildClusterSAH()`, and the constructors behind `pack()`) are host-only and include each other;
   `EBGeometry_BVHRefit.hpp` holds `BVH::refit()` (a refit where the pool is, level by level on a
-  device) and its opt-in `RefitSchedule`. The blend operators and
+  device) and its opt-in `RefitSchedule`, and `EBGeometry_DCEL_Reconcile.hpp` holds `DCEL::reconcile()` (a
+  reconcile of a moved mesh where the pool is) and its opt-in `ReconcileSchedule`. The blend operators and
   BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp`, the host-only expression builder
   (`Expr`, `Union`, `Translate`, ...) in `EBGeometry_Expr.hpp`, the `Tape` that compiles and evaluates
   an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`), the fused

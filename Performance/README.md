@@ -18,6 +18,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `PointCloudBVHBuild/` | `PointCloudBVH`'s `build()` and `rebuild()` where its pool is: in place on the host, and in device memory |
 | `PointCloudHashGridBuild/` | `PointCloudHashGrid`'s `build()` and `rebuild()` where its pool is: in place on the host, and in device memory |
 | `Mesh/`       | `TriMeshSDF` and `MeshSDF`: builds, refits, signed distances    |
+| `MeshReconcile/` | Reconciling a moved DCEL mesh: `MeshT::reconcile()`, and `DCEL::reconcile()` where its pool is, in host loops and in device memory |
 | `BVH/`        | `PackedBVH::traverse()` itself: rays and points through a BVH of the mesh's triangle boxes |
 | `BVHRefit/`   | `BVH::refit()` where its pool is: the host's sweep, and a launch per tree level in device memory |
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |

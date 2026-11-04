@@ -284,7 +284,12 @@ Test coverage
        out-of-range vertex index, and ``reconcilePairEdgesDCEL`` an out-of-range next edge;
        :cpp:class:`DCEL::FaceT` point-in-face containment: the winding-number, crossing-number and
        subtended-angle algorithms, and their agreement on convex and concave (notched) polygons and on
-       a non-axis-aligned plane.
+       a non-axis-aligned plane; a small face far from the origin keeping its normal in single
+       precision; ``DCEL::reconcile()`` after the vertices moved: ``MeshT::reconcile()``'s values byte
+       for byte in a host pool on ten test meshes, a stretched cube's areas and normals, the host's
+       values to within a margin after a device kernel moved the vertices (``[gpu]``), and the
+       schedule's and the reconcile's aborts (frozen or wrong pool, broken topology, another mesh,
+       coincident positions).
    * - ``TestSFC``
      - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,

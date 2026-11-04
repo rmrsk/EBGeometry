@@ -1289,7 +1289,7 @@ TEST_CASE("MeshT: reconciling a hand-built face with fewer than 3 vertices abort
 
       mesh.reconcile(); // must abort
     },
-    "DCEL::FaceT::computeNormal: a face needs at least 3 vertices (2)"));
+    "DCEL::MeshT::reconcile: face 0 has 2 vertices; a face needs at least 3"));
 }
 
 TEST_CASE("MeshT: reconciling a hand-built face that visits a vertex twice aborts", "[DCEL][Mesh][death]")
@@ -2320,5 +2320,441 @@ TEMPLATE_TEST_CASE("FaceT: the three containment algorithms agree over a grid of
       REQUIRE(winding == crossing);
       REQUIRE(winding == subtend);
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DCEL::reconcile: a mesh whose vertices moved, reconciled where its pool is
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// Moves every vertex: a rotation about z, a stretch and a shift, so every normal, centroid and area changes.
+template <class T>
+struct MoveVertices
+{
+  mutable TestMesh<T> m_mesh;
+
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const std::size_t a_i) const noexcept
+  {
+    auto&          vertex = m_mesh.getVertex(static_cast<uint32_t>(a_i));
+    const Vec3T<T> x      = vertex.getPosition();
+
+    vertex.setPosition(
+      Vec3T<T>(T(1.3) * x[0] - T(0.4) * x[1] + T(0.2), T(0.4) * x[0] + T(0.9) * x[1], T(0.7) * x[2] - T(1)));
+  }
+};
+
+template <class T>
+void
+moveOnHost(const TestMesh<T>& a_mesh)
+{
+  const MoveVertices<T> move{a_mesh};
+
+  for (uint32_t v = 0; v < a_mesh.numVertices(); v++) {
+    move(v);
+  }
+}
+
+// Every quantity a reconcile writes, compared exactly.
+template <class T>
+void
+requireSameReconcile(const TestMesh<T>& a_got, const TestMesh<T>& a_want)
+{
+  for (uint32_t f = 0; f < a_want.numFaces(); f++) {
+    INFO("face " << f);
+
+    REQUIRE(a_got.getFace(f).getNormal() == a_want.getFace(f).getNormal());
+    REQUIRE(a_got.getFace(f).getCentroid() == a_want.getFace(f).getCentroid());
+    REQUIRE(a_got.getFace(f).getArea() == a_want.getFace(f).getArea());
+  }
+
+  for (uint32_t e = 0; e < a_want.numEdges(); e++) {
+    INFO("edge " << e);
+
+    REQUIRE(a_got.getEdge(e).getNormal() == a_want.getEdge(e).getNormal());
+  }
+
+  for (uint32_t v = 0; v < a_want.numVertices(); v++) {
+    INFO("vertex " << v);
+
+    REQUIRE(a_got.getVertex(v).getNormal() == a_want.getVertex(v).getNormal());
+  }
+}
+
+// The same, to within a margin: a device fuses multiplies and adds, and its std::acos differs in the last bits.
+template <class T>
+void
+requireCloseReconcile(const TestMesh<T>& a_got, const TestMesh<T>& a_want)
+{
+  const auto requireClose = [](const Vec3T<T>& a_a, const Vec3T<T>& a_b) {
+    for (size_t d = 0; d < 3; d++) {
+      REQUIRE_THAT(a_a[d], withinAbsT(a_b[d], tightMargin<T>()));
+    }
+  };
+
+  for (uint32_t f = 0; f < a_want.numFaces(); f++) {
+    INFO("face " << f);
+
+    requireClose(a_got.getFace(f).getNormal(), a_want.getFace(f).getNormal());
+    requireClose(a_got.getFace(f).getCentroid(), a_want.getFace(f).getCentroid());
+    REQUIRE_THAT(a_got.getFace(f).getArea(), withinAbsT(a_want.getFace(f).getArea(), tightMargin<T>()));
+  }
+
+  for (uint32_t e = 0; e < a_want.numEdges(); e++) {
+    INFO("edge " << e);
+
+    requireClose(a_got.getEdge(e).getNormal(), a_want.getEdge(e).getNormal());
+  }
+
+  for (uint32_t v = 0; v < a_want.numVertices(); v++) {
+    INFO("vertex " << v);
+
+    requireClose(a_got.getVertex(v).getNormal(), a_want.getVertex(v).getNormal());
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("DCEL::reconcile: a host pool's mesh, after its vertices moved, gets MeshT::reconcile()'s values "
+                   "byte for byte",
+                   "[DCEL][Mesh][reconcile]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Triangles and quads, convex and concave, closed and open, and a sliver repaired by the reader.
+  for (const char* name : {"dodecahedron.stl",
+                           "dodecahedron.obj",
+                           "dodecahedron.ply",
+                           "dodecahedron.vtk",
+                           "cube_quads.obj",
+                           "cube_open_top.obj",
+                           "lblock.stl",
+                           "notch.stl",
+                           "tetrahedron.stl",
+                           "tetrahedron_sliver.stl"}) {
+    INFO(name);
+
+    Pool pool(hostMemoryResource());
+
+    const TestMesh<T>             mesh = Parser::readIntoDCEL<T>(g_dataDir + "/" + name, pool);
+    const DCEL::ReconcileSchedule schedule(pool, mesh);
+
+    pool.freeze();
+
+    Pool reference = Pool::mirror(pool, hostMemoryResource());
+
+    TestMesh<T> want = mesh.rebasedView(reference);
+
+    moveOnHost(want);
+    want.reconcile();
+
+    moveOnHost(mesh);
+    DCEL::reconcile(pool, mesh, schedule);
+
+    requireSameReconcile(mesh, want);
+  }
+}
+
+TEMPLATE_TEST_CASE("DCEL::reconcile: a stretched cube gets its face areas, axis normals and corner normals",
+                   "[DCEL][Mesh][reconcile]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  TestMesh<T>                   mesh = Parser::readIntoDCEL<T>(g_dataDir + "/cube_quads.obj", pool);
+  const DCEL::ReconcileSchedule schedule(pool, mesh);
+
+  // The unit cube stretched to 2 x 3 x 4: every angle stays a right angle.
+  for (uint32_t v = 0; v < mesh.numVertices(); v++) {
+    const Vec3T<T> x = mesh.getVertex(v).getPosition();
+
+    mesh.getVertex(v).setPosition(Vec3T<T>(T(2) * x[0], T(3) * x[1], T(4) * x[2]));
+  }
+
+  DCEL::reconcile(pool, mesh, schedule);
+
+  for (uint32_t f = 0; f < mesh.numFaces(); f++) {
+    const auto& face = mesh.getFace(f);
+    const auto& n    = face.getNormal();
+
+    // The axis the normal points along, and the area of the face across it.
+    size_t axis = 0;
+
+    for (size_t d = 1; d < 3; d++) {
+      axis = (std::abs(n[d]) > std::abs(n[axis])) ? d : axis;
+    }
+
+    const T areas[3] = {T(12), T(8), T(6)};
+
+    REQUIRE_THAT(std::abs(n[axis]), withinAbsT(T(1), tightMargin<T>()));
+    REQUIRE_THAT(face.getArea(), withinAbsT(areas[axis], tightMargin<T>()));
+  }
+
+  // Each corner's normal points out along the diagonal, whatever the stretch.
+  const T s = T(1) / std::sqrt(T(3));
+
+  for (uint32_t v = 0; v < mesh.numVertices(); v++) {
+    const Vec3T<T>& x = mesh.getVertex(v).getPosition();
+    const Vec3T<T>& n = mesh.getVertex(v).getNormal();
+
+    for (size_t d = 0; d < 3; d++) {
+      REQUIRE_THAT(n[d], withinAbsT((x[d] > T(0)) ? s : -s, tightMargin<T>()));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("DCEL::reconcile: a mirrored mesh, after the caller's own kernel moved its vertices, is reconciled "
+                   "on the device to the host's values",
+                   "[DCEL][Mesh][reconcile][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  for (const char* name : {"dodecahedron.stl", "cube_quads.obj", "cube_open_top.obj", "notch.stl"}) {
+    INFO(name);
+
+    Pool pool(hostMemoryResource());
+
+    TestMesh<T>                   mesh = Parser::readIntoDCEL<T>(g_dataDir + "/" + name, pool);
+    const DCEL::ReconcileSchedule schedule(pool, mesh);
+
+    pool.freeze();
+
+    Pool devicePool = Pool::mirror(pool, deviceTestResource());
+
+    // The caller's kernel moves the vertices in device memory; DCEL::reconcile() then reads them there.
+    GPU::parallelFor(mesh.numVertices(), MoveVertices<T>{mesh.rebasedView(devicePool)});
+
+    DCEL::reconcile(devicePool, mesh, schedule);
+
+    moveOnHost(mesh);
+    mesh.reconcile();
+
+    const Pool back = Pool::mirror(devicePool, hostMemoryResource());
+
+    requireCloseReconcile(mesh.rebasedView(back), mesh);
+  }
+}
+
+TEMPLATE_TEST_CASE("DCEL::reconcile: a small face far from the origin keeps its normal",
+                   "[DCEL][Mesh][regression]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A right triangle with legs of 0.1, a thousand units from the origin. With the Newell sums taken over absolute
+  // positions, each term was of the order of 1e6 while the sum was of the order of 1e-2: in single precision the
+  // normal came out wrong in its first digit.
+  const Vec3T<T> origin(T(1000), T(-700), T(1200));
+
+  Pool        pool(hostMemoryResource());
+  TestMesh<T> mesh;
+
+  mesh.reserveVertices(pool, 3);
+  mesh.reserveEdges(pool, 3);
+  mesh.reserveFaces(pool, 1);
+
+  (void)mesh.addVertex(pool, TestVertex<T>(origin));
+  (void)mesh.addVertex(pool, TestVertex<T>(origin + Vec3T<T>(T(0.1), T(0), T(0))));
+  (void)mesh.addVertex(pool, TestVertex<T>(origin + Vec3T<T>(T(0), T(0.1), T(0))));
+
+  for (uint32_t e = 0; e < 3; e++) {
+    TestEdge<T> edge(e);
+
+    edge.setNextEdge((e + 1) % 3);
+    edge.setFace(0);
+
+    (void)mesh.addEdge(pool, edge);
+  }
+
+  (void)mesh.addFace(pool, TestFace<T>(0u));
+
+  mesh.reconcile();
+
+  const auto& face = mesh.getFace(0);
+
+  // The triangle lies in a plane z = const, so its normal is +z exactly; its legs are rounded where they were stored
+  // (to about 6e-5 in single precision), which the area's margin allows for.
+  REQUIRE_THAT(face.getNormal()[0], withinAbsT(T(0), looseMargin<T>()));
+  REQUIRE_THAT(face.getNormal()[1], withinAbsT(T(0), looseMargin<T>()));
+  REQUIRE_THAT(face.getNormal()[2], withinAbsT(T(1), looseMargin<T>()));
+  REQUIRE_THAT(face.getArea(), withinAbsT(T(0.005), 2e-5));
+}
+
+TEMPLATE_TEST_CASE("DCEL::ReconcileSchedule and DCEL::reconcile reject a frozen or wrong pool, another mesh, bad "
+                   "topology and coincident positions",
+                   "[DCEL][Mesh][reconcile][death]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto tetrahedron = [](Pool& a_pool) { return Parser::readIntoDCEL<T>(g_dataDir + "/tetrahedron.stl", a_pool); };
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool pool(hostMemoryResource());
+
+      const auto mesh = tetrahedron(pool);
+
+      pool.freeze();
+
+      (void)DCEL::ReconcileSchedule(pool, mesh);
+    },
+    "DCEL::ReconcileSchedule: the pool is frozen; build the schedule after the mesh and before freezing the pool"));
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool pool(hostMemoryResource());
+      Pool other(hostMemoryResource());
+
+      const auto mesh = tetrahedron(pool);
+
+      (void)DCEL::ReconcileSchedule(other, mesh);
+    },
+    "DCEL::ReconcileSchedule: the pool must be the one the mesh lives in"));
+
+  // The topology checks, with MeshT::reconcile()'s messages.
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      buildLinkedEdges(mesh, pool, {1, 2, 1});
+
+      (void)DCEL::ReconcileSchedule(pool, mesh);
+    },
+    "DCEL::MeshT::reconcile: the half-edge loop of face 0 does not close (it reaches edge 1 after 3 steps"));
+
+  // A loop 0 -> 1 -> 2 -> 0 -> 3 visits vertex 0 twice.
+  REQUIRE(abortsWith(
+    [] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh;
+
+      const std::vector<Vec3T<T>> positions = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, -1, 0}};
+      const std::vector<uint32_t> loop      = {0, 1, 2, 0, 3};
+
+      mesh.reserveVertices(pool, static_cast<uint32_t>(positions.size()));
+      mesh.reserveEdges(pool, static_cast<uint32_t>(loop.size()));
+      mesh.reserveFaces(pool, 1);
+
+      for (const auto& x : positions) {
+        (void)mesh.addVertex(pool, TestVertex<T>(x));
+      }
+
+      for (uint32_t e = 0; e < loop.size(); e++) {
+        TestEdge<T> edge(loop[e]);
+
+        edge.setNextEdge((e + 1) % static_cast<uint32_t>(loop.size()));
+        edge.setFace(0);
+
+        (void)mesh.addEdge(pool, edge);
+      }
+
+      (void)mesh.addFace(pool, TestFace<T>(0u));
+
+      (void)DCEL::ReconcileSchedule(pool, mesh);
+    },
+    "DCEL::VertexT::computeVertexNormalAngleWeighted: face 0 must visit vertex 0 exactly once (found 4 incident "
+    "half-edges instead of 2)"));
+
+  // A schedule from another mirror chain, of another size, or of another mesh of the same size in the pool.
+  REQUIRE(abortsWith(
+    [&] {
+      Pool pool(hostMemoryResource());
+      Pool other(hostMemoryResource());
+
+      const auto mesh      = tetrahedron(pool);
+      const auto otherMesh = tetrahedron(other);
+
+      const DCEL::ReconcileSchedule schedule(other, otherMesh);
+
+      DCEL::reconcile(pool, mesh, schedule);
+    },
+    "DCEL::reconcile: the schedule was built in a pool of another mirror chain; build it in the mesh's pool"));
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool pool(hostMemoryResource());
+
+      const auto mesh = tetrahedron(pool);
+      const auto cube = Parser::readIntoDCEL<T>(g_dataDir + "/cube_quads.obj", pool);
+
+      const DCEL::ReconcileSchedule schedule(pool, cube);
+
+      DCEL::reconcile(pool, mesh, schedule);
+    },
+    "DCEL::reconcile: the schedule covers 8 vertices, 24 half-edges and 6 faces but the mesh has 4, 12 and 4; build "
+    "the schedule for this mesh"));
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool pool(hostMemoryResource());
+
+      const auto mesh = tetrahedron(pool);
+      const auto twin = tetrahedron(pool);
+
+      const DCEL::ReconcileSchedule schedule(pool, twin);
+
+      DCEL::reconcile(pool, mesh, schedule);
+    },
+    "DCEL::reconcile: the schedule was built for another mesh in this pool; build the schedule for this mesh"));
+
+  // Coincident positions in the mesh's own pool, not frozen: found in place.
+  REQUIRE(abortsWith(
+    [&] {
+      Pool        pool(hostMemoryResource());
+      TestMesh<T> mesh = Parser::readIntoDCEL<T>(g_dataDir + "/cube_quads.obj", pool);
+
+      const DCEL::ReconcileSchedule schedule(pool, mesh);
+
+      mesh.getVertex(1).setPosition(mesh.getVertex(0).getPosition());
+
+      DCEL::reconcile(pool, mesh, schedule);
+    },
+    "DCEL::VertexT::computeVertexNormalAngleWeighted: face 2 has coincident positions among vertices 0, 4 and 1"));
+
+  // Coincident positions after a move, on a host pool and on a device-accessible one. The death tests run in a
+  // forked child, where a CUDA or HIP context does not survive, so the device-accessible pool is the emulated one of
+  // a host build.
+  for (const bool device : {false, true}) {
+    if (device && GPU::enabled) {
+      continue;
+    }
+
+    REQUIRE(abortsWith(
+      [&] {
+        Pool pool(hostMemoryResource());
+
+        const auto mesh = Parser::readIntoDCEL<T>(g_dataDir + "/cube_quads.obj", pool);
+
+        const DCEL::ReconcileSchedule schedule(pool, mesh);
+
+        pool.freeze();
+
+        // Vertex 1 onto vertex 0, in a host copy, which the pool reconciled is mirrored from. MeshT::reconcile()
+        // reports the same face and vertices.
+        Pool        moved = Pool::mirror(pool, hostMemoryResource());
+        TestMesh<T> view  = mesh.rebasedView(moved);
+
+        view.getVertex(1).setPosition(view.getVertex(0).getPosition());
+
+        Pool target = Pool::mirror(moved, device ? EBGeometryTestGPU::deviceTestResource() : hostMemoryResource());
+
+        DCEL::reconcile(target, mesh, schedule);
+      },
+      "DCEL::VertexT::computeVertexNormalAngleWeighted: face 2 has coincident positions among vertices 0, 4 and 1"));
   }
 }
