@@ -75,6 +75,19 @@ public:
   getSignedDistances(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief Separations between a sphere and every one of the W lane spheres, |c - c_j| - (r + r_j).
+   * @details Negative where the two overlap. The radii are summed before they are subtracted, so the separation
+   * of two spheres is the same whichever of them is in the group. Padded lanes repeat the last real sphere's
+   * value.
+   * @param[in] a_center The sphere's center. Must be finite.
+   * @param[in] a_radius The sphere's radius. Must be finite.
+   * @return Per-lane separations, one per W lanes.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Array<T, W>
+  getSeparations(const Vec3T<T>& a_center, T a_radius) const noexcept;
+
+  /**
    * @brief Get the id of the sphere in one lane of this group.
    * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W (padded lanes return the last real
    * sphere's id; see pack()).

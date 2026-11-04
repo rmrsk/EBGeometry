@@ -60,6 +60,8 @@ The examples build on each other. A new user can read them in this order:
    BVH or a hash grid.
 #. :ref:`Chap:ExampleSphereClouds`: particles of differing sizes, the signed distance to their union and
    the closest particle.
+#. :ref:`Chap:ExampleParticleContacts`: the contacts between particles of differing sizes, a contact list,
+   and a contact force per particle on a GPU.
 #. :ref:`Chap:ExampleBVHTraversal`: walking a BVH with a search of your own -- the nearest object to
    a point, the first one a ray hits, whether a segment is blocked.
 #. :ref:`Chap:ExampleRayTracing`: casting rays at a triangle mesh -- where a ray or a particle's step

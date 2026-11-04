@@ -22,6 +22,7 @@ What is in Performance/
      PointCloudBVHBuild/      PointCloudBVH's build and rebuild where its pool is
      PointCloudHashGridBuild/ PointCloudHashGrid's build and rebuild where its pool is
      SphereCloudBVH/main.cpp  SphereCloudBVH: its build and rebuild, and the closest sphere
+     SphereContacts/main.cpp  SphereCloudBVH's contacts between spheres
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      MeshReconcile/main.cpp   reconciling a moved DCEL mesh where its pool is
      BVH/main.cpp             PackedBVH::traverse() itself
@@ -161,6 +162,18 @@ Family                                Build  Measures
                                              against the host's build in host memory
 ``rebuild``                           GPU    a rebuild in place in device memory, against the host's
                                              rebuild in host memory
+====================================  =====  =====================================================
+
+**SphereContacts** (``Performance/SphereContacts``): the same 500,000 spheres and BVH as ``SphereCloudBVH``. Each
+query is one particle: its contacts within a gap of 0.004 (``forEachContact``), counted, and the force of those it
+overlaps, summed. The particles are taken in Morton order of their centers, as a particle code keeps them.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``force-morton``                      host   every particle's contacts and contact force
+``force-morton``                      GPU    the same, one particle per thread, against the host on
+                                             every hardware thread but one
 ====================================  =====  =====================================================
 
 **Mesh** (``Performance/Mesh``): the armadillo, 99,976 triangles.

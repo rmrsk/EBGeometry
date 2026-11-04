@@ -11,7 +11,8 @@ cloud: ``PointCloudBVH`` (:file:`Source/EBGeometry_PointCloudBVH.hpp`) and ``Poi
 ``allNearestNeighbors`` -- return the same result type, and can be queried on a GPU. They differ in
 the spatial acceleration structure they build: a hierarchical tree, or a uniform grid. See
 :ref:`Chap:PointCloud` for the conceptual picture and the trade-off between the two. A third class,
-``SphereCloudBVH`` (`below <#spherecloudbvh>`__), holds spheres of differing radii and answers for their surfaces.
+``SphereCloudBVH`` (`below <#spherecloudbvh>`__), holds spheres of differing radii and answers for their surfaces
+and for the contacts between them.
 
 Results and cloud indices
 -------------------------
@@ -190,6 +191,25 @@ arrays). The host constructors take either form:
    const T   d   = cloud.signedDistance(p);                // < 0 inside a sphere
    const Hit hit = cloud.closestSphere(p);                 // hit.index, hit.distance
 
-A radius of 0 is a point; a negative or non-finite radius, or a non-finite center, is refused. See the
-`SphereCloudBVH doxygen page <doxygen/html/classEBGeometry_1_1SphereCloudBVH.html>`__ for the full interface, and
-:ref:`Chap:ExampleSphereClouds` for worked usage.
+A radius of 0 is a point; a negative or non-finite radius, or a non-finite center, is refused.
+
+The *contacts* of sphere i are the spheres j whose separation, :math:`|c_i - c_j| - (r_i + r_j)`, is less than a
+gap: with a gap of 0 the spheres i touches or overlaps, with a larger one also those nearly touching it.
+``forEachContact(i, gap, visit)`` calls ``visit`` once for each, with a ``SphereCloud::Hit<T>`` holding the other
+sphere's index and the separation (negative when they overlap), in no set order. Contacts are mutual: j is a
+contact of i exactly when i is one of j, at the same separation. A second form takes any sphere, in the cloud or
+not, and an index to skip, to ask what a new particle would touch. Both are callable on a device, so a contact
+force is one thread per particle adding up its own contacts, with no list and no atomics:
+
+.. code-block:: c++
+
+   cloud.forEachContact(i, gap, [&](const SphereCloud::Hit<T>& c) {
+     // c.index: the other particle; c.distance: the separation
+   });
+
+A list of every particle's contacts is built from it in three steps: count each particle's contacts, add up the
+counts into where each row starts (``GPU::exclusiveScan()`` on a device), and fill the rows;
+:ref:`Chap:ExampleParticleContacts` builds one.
+
+See the `SphereCloudBVH doxygen page <doxygen/html/classEBGeometry_1_1SphereCloudBVH.html>`__ for the full
+interface, and :ref:`Chap:ExampleSphereClouds` and :ref:`Chap:ExampleParticleContacts` for worked usage.
