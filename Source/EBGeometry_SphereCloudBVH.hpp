@@ -13,6 +13,7 @@
 #define EBGEOMETRY_SPHERECLOUDBVH_HPP
 
 // Std includes
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -20,6 +21,8 @@
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
+#include "EBGeometry_CloudBVH.hpp"
+#include "EBGeometry_GPUAlgorithms.hpp"
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_SphereAoSoA.hpp"
@@ -27,6 +30,176 @@
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
+
+namespace PointCloudDetail {
+
+/**
+ * @brief A source of points that are a sphere's radius in every coordinate: GPU::boundingBoxOf() over it finds the
+ * smallest radius and whether every radius is finite.
+ * @details Internal; not part of the public API.
+ * @tparam T      Floating-point precision.
+ * @tparam Source The spheres' source.
+ */
+template <class T, class Source>
+struct RadiiAsPoints
+{
+  /// @brief The spheres.
+  Source m_source;
+
+  /**
+   * @brief The radius of a sphere, in every coordinate.
+   * @param[in] a_index Cloud index.
+   * @return The point.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  operator()(const uint32_t a_index) const noexcept
+  {
+    const T radius = m_source(a_index).m_radius;
+
+    return Vec3T<T>(radius, radius, radius);
+  }
+};
+
+/**
+ * @brief The primitive of SphereCloudBVH: a sphere, keyed at its center and packed into SphereAoSoA groups; see
+ * PointPrimitive.
+ * @details Internal; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam W Spheres per group.
+ */
+template <class T, size_t W>
+struct SpherePrimitive
+{
+  /// @brief What the source returns: a sphere.
+  using Item = SphereCloud::Sphere<T>;
+
+  /// @brief The leaf group.
+  using Group = SphereAoSoA<T, W>;
+
+  /// @brief The source reading an array of primitives.
+  using FromArray = SphereCloud::FromArray<T>;
+
+  /// @brief The class built over these primitives, for the messages.
+  static constexpr const char* ClassName = "SphereCloudBVH";
+
+  /// @brief One primitive, for the messages.
+  static constexpr const char* Singular = "sphere";
+
+  /// @brief Primitives, for the messages.
+  static constexpr const char* Plural = "spheres";
+
+  /// @brief build()'s parameter giving the room for a rebuild, for the messages.
+  static constexpr const char* MaxParameter = "a_maxSpheres";
+
+  /**
+   * @brief The point a sphere's Morton key is taken at.
+   * @param[in] a_item The sphere.
+   * @return Its center.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline const Vec3T<T>&
+  center(const Item& a_item) noexcept
+  {
+    return a_item.m_center;
+  }
+
+  /**
+   * @brief Grow a box to hold a sphere.
+   * @param[in,out] a_lo   The box's lower corner.
+   * @param[in,out] a_hi   The box's upper corner.
+   * @param[in]     a_item The sphere.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  grow(Vec3T<T>& a_lo, Vec3T<T>& a_hi, const Item& a_item) noexcept
+  {
+    const Vec3T<T> radius = a_item.m_radius * Vec3T<T>::ones();
+
+    a_lo = min(a_lo, a_item.m_center - radius);
+    a_hi = max(a_hi, a_item.m_center + radius);
+  }
+
+  /**
+   * @brief Abort with a message unless the spheres of a host array can be built over: a finite center, and a
+   * finite radius of at least 0.
+   * @param[in] a_who   The calling function, for the message.
+   * @param[in] a_items The spheres.
+   */
+  EBGEOMETRY_HOST
+  static inline void
+  requireValid(const char* a_who, const std::vector<Item>& a_items) noexcept
+  {
+    for (std::size_t i = 0; i < a_items.size(); i++) {
+      const Item& sphere = a_items[i];
+
+      EBGEOMETRY_REQUIRE(std::isfinite(sphere.m_center[0]) && std::isfinite(sphere.m_center[1]) &&
+                           std::isfinite(sphere.m_center[2]),
+                         "%s: sphere %zu of %zu has a non-finite coordinate",
+                         a_who,
+                         i,
+                         a_items.size());
+      EBGEOMETRY_REQUIRE(std::isfinite(sphere.m_radius) && sphere.m_radius >= T(0),
+                         "%s: sphere %zu of %zu has a non-finite or negative radius",
+                         a_who,
+                         i,
+                         a_items.size());
+    }
+  }
+
+  /**
+   * @brief Check every radius, where the build runs: finite, and at least 0.
+   * @details The centers are checked with the box of the centers. Through GPU::parallelFor(), the smallest radius
+   * and whether every radius is finite come from GPU::boundingBoxOf(), and a bad one is reported as "a sphere"; on
+   * the host, it is reported by its index.
+   * @tparam Source The spheres' source.
+   * @param[in] a_source    The spheres.
+   * @param[in] a_numItems  Number of spheres.
+   * @param[in] a_parallel  Whether the build runs through GPU::parallelFor().
+   * @param[in] a_scratch   GPU::boundingBoxScratchSize(a_numItems) elements, for a build through
+   *                        GPU::parallelFor().
+   * @param[in] a_who       The calling function, for the message.
+   */
+  template <class Source>
+  EBGEOMETRY_HOST
+  static inline void
+  requireValidWhereBuilt(const Source&  a_source,
+                         const uint32_t a_numItems,
+                         const bool     a_parallel,
+                         Vec3T<T>*      a_scratch,
+                         const char*    a_who) noexcept
+  {
+    if (a_numItems == 0) {
+      return;
+    }
+
+    if (a_parallel) {
+      const BoundingVolumes::AABBT<T> box =
+        GPU::boundingBoxOf<T>(RadiiAsPoints<T, Source>{a_source}, a_numItems, a_scratch);
+
+      const T smallest = box.getLowCorner()[0];
+      const T largest  = box.getHighCorner()[0];
+
+      EBGEOMETRY_REQUIRE(std::isfinite(smallest) && std::isfinite(largest) && smallest >= T(0),
+                         "%s: a sphere has a non-finite or negative radius",
+                         a_who);
+
+      return;
+    }
+
+    for (uint32_t i = 0; i < a_numItems; i++) {
+      const T radius = a_source(i).m_radius;
+
+      EBGEOMETRY_REQUIRE(std::isfinite(radius) && radius >= T(0),
+                         "%s: sphere %u of %u has a non-finite or negative radius",
+                         a_who,
+                         unsigned(i),
+                         unsigned(a_numItems));
+    }
+  }
+};
+
+} // namespace PointCloudDetail
 
 /**
  * @brief A BVH over spheres of differing radii (polydisperse particles), with the signed distance to their
@@ -52,7 +225,7 @@ namespace EBGeometry {
  * @tparam W Spheres per SoA leaf group. Defaults to PointSoA::DefaultWidth<T>().
  */
 template <class T, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = PointSoA::DefaultWidth<T>()>
-class SphereCloudBVH : public PoolHandle
+class SphereCloudBVH : public PointCloudDetail::CloudBVH<T, K, W, PointCloudDetail::SpherePrimitive<T, W>>
 {
 public:
   /**
@@ -264,8 +437,39 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   inline SphereCloudBVH
   deepCopy(Pool& a_dstPool) const;
+
+  /**
+   * @brief The base address this object's arrays are offsets from; see PoolHandle::base().
+   * @return The base address: const void* for a const object, void* otherwise.
+   */
+  using PoolHandle::base;
+
+private:
+  /**
+   * @brief The build and its state.
+   */
+  using Base = PointCloudDetail::CloudBVH<T, K, W, PointCloudDetail::SpherePrimitive<T, W>>;
+
+  using Base::m_bvhLayout;
+  using Base::m_items;
+  using Base::m_maxItems;
+
+  /**
+   * @brief An empty BVH, to be reserved and filled.
+   */
+  SphereCloudBVH() noexcept = default;
 };
 
+/**
+ * @brief A SphereCloudBVH must be trivially copyable, as a PointCloudBVH must: a rebasedView() is byte-copied into a
+ * device address space with no pointer patching.
+ */
+static_assert(std::is_trivially_copyable_v<SphereCloudBVH<float>>, "SphereCloudBVH<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<SphereCloudBVH<double>>,
+              "SphereCloudBVH<double> must be trivially copyable");
+
 } // namespace EBGeometry
+
+#include "EBGeometry_SphereCloudBVHImplem.hpp"
 
 #endif

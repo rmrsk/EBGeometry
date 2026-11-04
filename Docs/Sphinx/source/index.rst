@@ -143,6 +143,7 @@ Examples
    ExamplePackedSpheres.rst
    ExamplePointClouds.rst
    ExampleParticleNeighbors.rst
+   ExampleSphereClouds.rst
    ExampleBVHTraversal.rst
    ExampleRayTracing.rst
    ExampleOctreeBoundingVolume.rst

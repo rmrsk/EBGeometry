@@ -21,6 +21,7 @@ What is in Performance/
      PointCloud/main.cpp      PointCloudBVH and PointCloudHashGrid
      PointCloudBVHBuild/      PointCloudBVH's build and rebuild where its pool is
      PointCloudHashGridBuild/ PointCloudHashGrid's build and rebuild where its pool is
+     SphereCloudBVH/main.cpp  SphereCloudBVH: its build and rebuild, and the closest sphere
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      MeshReconcile/main.cpp   reconciling a moved DCEL mesh where its pool is
      BVH/main.cpp             PackedBVH::traverse() itself
@@ -137,6 +138,26 @@ Family                                Build  Measures
 ``rebuild``                           host   a rebuild in place, nothing reserved (the host's
                                              one-off build is PointCloud's ``build``)
 ``build``                             GPU    a one-off build in device memory, from positions there,
+                                             against the host's build in host memory
+``rebuild``                           GPU    a rebuild in place in device memory, against the host's
+                                             rebuild in host memory
+====================================  =====  =====================================================
+
+**SphereCloudBVH** (``Performance/SphereCloudBVH``): ``SphereCloudBVH`` (K = 4, W = 4, 64 spheres per leaf) over
+500,000 ``polydisperse`` spheres, centers uniform in the unit cube and radii uniform in [0.002, 0.006]. A rebuild
+alternates between the spheres and the same spheres moved and grown. The closest-sphere queries are drawn in and
+around the cloud, some inside a sphere.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``build``                             host   building the BVH; also its pool bytes
+``rebuild``                           host   a rebuild in place, nothing reserved
+``closest-random``                    host   ``closestSphere`` at 200,000 random points, in the order
+                                             drawn
+``closest-morton``,                   GPU    ``closestSphere`` at 262,144 such points
+``closest-random``
+``build``                             GPU    a one-off build in device memory, from spheres there,
                                              against the host's build in host memory
 ``rebuild``                           GPU    a rebuild in place in device memory, against the host's
                                              rebuild in host memory

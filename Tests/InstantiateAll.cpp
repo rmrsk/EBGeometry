@@ -76,6 +76,12 @@ namespace EBGeometry {
   template class PointCloud::KBest<PREC>;                                    \
   template class PointCloudBVH<PREC>;                                        \
   template class PointCloudHashGrid<PREC>;                                   \
+  template struct SphereAoSoA<PREC>;                                         \
+  template struct SphereCloud::Sphere<PREC>;                                 \
+  template struct SphereCloud::Hit<PREC>;                                    \
+  template struct SphereCloud::FromArray<PREC>;                              \
+  template struct SphereCloud::FromRadii<PREC>;                              \
+  template class SphereCloudBVH<PREC>;                                       \
                                                                                \
   namespace BoundingVolumes {                                                \
   template class AABBT<PREC>;                                                \
@@ -308,6 +314,23 @@ instantiateFunctionTemplates()
 
     bvh.rebuild(PointCloud::FromArray<T>{points.data()}, uint32_t(points.size()));
     (void)bvh.maxPoints();
+
+    // The same for SphereCloudBVH, from one array of spheres and from centers and radii kept apart.
+    const std::vector<SphereCloud::Sphere<T>> spheres = {{points[0], T(1)}};
+    const std::vector<T>                      radii   = {T(1)};
+
+    using CentersAndRadii = SphereCloud::FromCentersAndRadii<T, PointCloud::FromArray<T>, SphereCloud::FromRadii<T>>;
+
+    SphereCloudBVH<T> spheresBVH = SphereCloudBVH<T>::build(cloudPool, spheres, 16, 4);
+
+    (void)SphereCloudBVH<T>::build(cloudPool, points, radii);
+    (void)SphereCloudBVH<T>::build(
+      parallelPool,
+      CentersAndRadii{PointCloud::FromArray<T>{points.data()}, SphereCloud::FromRadii<T>{radii.data()}},
+      1U);
+
+    spheresBVH.rebuild(SphereCloud::FromArray<T>{spheres.data()}, 1U);
+    (void)spheresBVH.maxSpheres();
 
     std::vector<uint32_t> values(3, 1);
     std::vector<uint32_t> sums(GPU::exclusiveScanScratchSize(3));

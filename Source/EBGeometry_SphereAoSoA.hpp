@@ -122,4 +122,6 @@ static_assert(std::is_trivially_copyable_v<SphereAoSoA<double>>, "SphereAoSoA<do
 
 } // namespace EBGeometry
 
+#include "EBGeometry_SphereAoSoAImplem.hpp"
+
 #endif
