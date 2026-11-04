@@ -14,6 +14,7 @@
 // Std includes
 #include <cmath>
 #include <cstdint>
+#include <type_traits>
 #include <vector>
 
 // Our includes
@@ -35,14 +36,53 @@ inline PointCloudBVH<T, K, W>::PointCloudBVH(Pool&                        a_pool
 }
 
 template <class T, size_t K, size_t W>
-template <class U>
+template <class Source>
 EBGEOMETRY_HOST
-inline std::vector<U>
-PointCloudBVH<T, K, W>::toHost(const PODVector<U>& a_array, const void* a_base)
+inline PointCloudBVH<T, K, W>
+PointCloudBVH<T, K, W>::build(Pool&             a_pool,
+                              const Source&     a_source,
+                              const uint32_t    a_numPoints,
+                              const std::size_t a_targetLeafSize,
+                              const uint32_t    a_maxPoints)
 {
-  const U* first = a_array.data(a_base);
+  static_assert(std::is_floating_point_v<T>, "PointCloudBVH requires a floating-point type T");
+  static_assert(K >= 2, "PointCloudBVH requires a branching factor K >= 2");
+  static_assert(W >= 1, "PointCloudBVH requires a SIMD width W >= 1");
+  static_assert(std::is_trivially_copyable_v<Source>,
+                "PointCloudBVH::build: the source of positions must be trivially copyable");
 
-  return std::vector<U>(first, first + a_array.size());
+  PointCloudBVH bvh;
+
+  bvh.initialize(a_pool, a_source, a_numPoints, a_targetLeafSize, a_maxPoints, "PointCloudBVH::build");
+
+  return bvh;
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST
+inline PointCloudBVH<T, K, W>
+PointCloudBVH<T, K, W>::build(Pool&                        a_pool,
+                              const std::vector<Vec3T<T>>& a_positions,
+                              const std::size_t            a_targetLeafSize,
+                              const uint32_t               a_maxPoints)
+{
+  PointCloudBVH bvh;
+
+  bvh.initialize(a_pool, a_positions, a_targetLeafSize, a_maxPoints, "PointCloudBVH::build");
+
+  return bvh;
+}
+
+template <class T, size_t K, size_t W>
+template <class Source>
+EBGEOMETRY_HOST
+inline void
+PointCloudBVH<T, K, W>::rebuild(const Source& a_source, const uint32_t a_numPoints)
+{
+  static_assert(std::is_trivially_copyable_v<Source>,
+                "PointCloudBVH::rebuild: the source of positions must be trivially copyable");
+
+  this->reinitialize(a_source, a_numPoints, "PointCloudBVH::rebuild");
 }
 
 template <class T, size_t K, size_t W>
@@ -50,45 +90,9 @@ EBGEOMETRY_HOST
 inline PointCloudBVH<T, K, W>
 PointCloudBVH<T, K, W>::rebasedView(const Pool& a_pool) const noexcept
 {
-  const auto end = [](const auto&... a_arrays) noexcept {
-    uint64_t byte = 0;
-
-    ((byte = Math::max(byte, a_arrays.endByte())), ...);
-
-    return byte;
-  };
-
-  const uint64_t endByte = Math::max(end(m_bvhLayout.m_linearNodes,
-                                         m_bvhLayout.m_primitives,
-                                         m_bvhLayout.m_childAabbSoA,
-                                         m_bvhLayout.m_rootBox,
-                                         m_positions,
-                                         m_leafOff,
-                                         m_leafCnt,
-                                         m_order),
-                                     end(m_scratch.m_keys,
-                                         m_scratch.m_box,
-                                         m_scratch.m_nodes,
-                                         m_scratch.m_boxes,
-                                         m_scratch.m_rows,
-                                         m_scratch.m_groups,
-                                         m_scratch.m_scan));
-
-  // Every array is a pool-relative offset, identical in any mirror of the pool, so only the location
-  // changes.
   PointCloudBVH view = *this;
 
-  view.setLocation(this->rebasedLocation(a_pool, endByte, "PointCloudBVH"));
-
-  // A snapshot is what a kernel receives, and the device traversal stack is smaller than the host's. The
-  // depth is the build's, so this reads nothing from a pool that may be in device memory.
-  if (view.location().m_control == nullptr) {
-    EBGEOMETRY_REQUIRE(m_depth <= BVH::DeviceTraversalDepth,
-                       "PointCloudBVH::rebasedView: the tree is %u levels deep, more than a device traversal "
-                       "allows (%zu)",
-                       unsigned(m_depth),
-                       BVH::DeviceTraversalDepth);
-  }
+  view.rebase(a_pool);
 
   return view;
 }
@@ -98,46 +102,9 @@ EBGEOMETRY_HOST
 inline PointCloudBVH<T, K, W>
 PointCloudBVH<T, K, W>::deepCopy(Pool& a_dstPool) const
 {
-  // Read everything out before reserving anything: a_dstPool may be this object's own pool, and a
-  // reserve there can move the block under any address taken from it.
-  const void* srcBase = this->base();
-
-  const auto nodes     = toHost(m_bvhLayout.m_linearNodes, srcBase);
-  const auto groups    = toHost(m_bvhLayout.m_primitives, srcBase);
-  const auto rows      = toHost(m_bvhLayout.m_childAabbSoA, srcBase);
-  const auto rootBox   = toHost(m_bvhLayout.m_rootBox, srcBase);
-  const auto positions = toHost(m_positions, srcBase);
-  const auto leafOff   = toHost(m_leafOff, srcBase);
-  const auto leafCnt   = toHost(m_leafCnt, srcBase);
-  const auto order     = toHost(m_order, srcBase);
-
-  const auto numPoints = static_cast<std::uint32_t>(positions.size());
-
   PointCloudBVH copy = *this;
 
-  copy.setLocation(PoolLocation{});
-
-  copy.m_scratch   = Scratch{};
-  copy.m_maxPoints = 0;
-  copy.m_parallel  = false;
-
-  copy.reserveArrays(a_dstPool,
-                     Sizes{static_cast<std::uint32_t>(nodes.size()),
-                           static_cast<std::uint32_t>(rows.size()),
-                           static_cast<std::uint32_t>(groups.size())},
-                     numPoints);
-
-  // Resolve the base only after every reservation above.
-  void* base = copy.base();
-
-  copy.m_bvhLayout.m_linearNodes.assign(base, nodes.data(), static_cast<std::uint32_t>(nodes.size()));
-  copy.m_bvhLayout.m_primitives.assign(base, groups.data(), static_cast<std::uint32_t>(groups.size()));
-  copy.m_bvhLayout.m_childAabbSoA.assign(base, rows.data(), static_cast<std::uint32_t>(rows.size()));
-  copy.m_bvhLayout.m_rootBox.assign(base, rootBox.data(), static_cast<std::uint32_t>(rootBox.size()));
-  copy.m_positions.assign(base, positions.data(), numPoints);
-  copy.m_leafOff.assign(base, leafOff.data(), numPoints);
-  copy.m_leafCnt.assign(base, leafCnt.data(), numPoints);
-  copy.m_order.assign(base, order.data(), numPoints);
+  this->copyInto(copy, a_dstPool);
 
   return copy;
 }
@@ -157,7 +124,7 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
   EBGEOMETRY_EXPECT(std::isfinite(a_query[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_query[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_query[2]));
-  EBGEOMETRY_EXPECT(a_exclude == PointCloud::InvalidIndex || a_exclude < m_positions.size());
+  EBGEOMETRY_EXPECT(a_exclude == PointCloud::InvalidIndex || a_exclude < m_items.size());
 
   // Resolved once per query: a query reserves nothing, so the pool block cannot move under them.
   const Packed                    bvh    = this->getBVH();
@@ -366,18 +333,14 @@ EBGEOMETRY_HOST_DEVICE
 inline typename PointCloudBVH<T, K, W>::Hit
 PointCloudBVH<T, K, W>::nearestNeighbor(uint32_t a_point) const noexcept
 {
-  EBGEOMETRY_EXPECT(a_point < m_positions.size());
+  EBGEOMETRY_EXPECT(a_point < m_items.size());
 
   const void* poolBase = this->base();
 
   Hit hit;
 
-  this->query(m_positions.at(poolBase, a_point),
-              1,
-              &hit,
-              a_point,
-              m_leafOff.at(poolBase, a_point),
-              m_leafCnt.at(poolBase, a_point));
+  this->query(
+    m_items.at(poolBase, a_point), 1, &hit, a_point, m_leafOff.at(poolBase, a_point), m_leafCnt.at(poolBase, a_point));
 
   return hit;
 }
@@ -387,13 +350,13 @@ EBGEOMETRY_HOST_DEVICE
 inline std::size_t
 PointCloudBVH<T, K, W>::nearestNeighbors(uint32_t a_point, std::size_t a_k, Hit* a_out) const noexcept
 {
-  EBGEOMETRY_EXPECT(a_point < m_positions.size());
+  EBGEOMETRY_EXPECT(a_point < m_items.size());
   EBGEOMETRY_EXPECT(a_k >= 1);
   EBGEOMETRY_EXPECT(a_out != nullptr);
 
   const void* poolBase = this->base();
 
-  return this->query(m_positions.at(poolBase, a_point),
+  return this->query(m_items.at(poolBase, a_point),
                      a_k,
                      a_out,
                      a_point,
@@ -408,7 +371,7 @@ PointCloudBVH<T, K, W>::allNearestNeighbors(std::size_t a_k) const
 {
   EBGEOMETRY_EXPECT(a_k >= 1);
 
-  const std::size_t numPoints = m_positions.size();
+  const std::size_t numPoints = m_items.size();
   const void*       poolBase  = this->base();
 
   std::vector<Hit> result(numPoints * a_k);
@@ -420,7 +383,7 @@ PointCloudBVH<T, K, W>::allNearestNeighbors(std::size_t a_k) const
   for (const std::uint32_t p : m_order.bind(poolBase)) {
     EBGEOMETRY_EXPECT(p < numPoints);
 
-    this->query(m_positions.at(poolBase, p),
+    this->query(m_items.at(poolBase, p),
                 a_k,
                 &result[std::size_t(p) * a_k],
                 p,

@@ -118,6 +118,27 @@ TEMPLATE_TEST_CASE("PointAoSoA: getPointId returns each lane's own id, the padde
   REQUIRE(group.numValid() == 2U);
 }
 
+TEMPLATE_TEST_CASE("PointAoSoA: getPosition returns each lane's own position, and the padded point's for padding "
+                   "lanes",
+                   "[PointAoSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  auto positions = fourPositions<T>();
+  auto pointIds  = fourPointIds<T>();
+  positions.resize(3); // Pack only the first 3; lane 3 gets padded.
+  pointIds.resize(3);
+
+  AoSoA<T> group;
+  group.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
+
+  REQUIRE(group.getPosition(0) == positions[0]);
+  REQUIRE(group.getPosition(1) == positions[1]);
+  REQUIRE(group.getPosition(2) == positions[2]);
+  REQUIRE(group.getPosition(3) == positions[2]); // Padded: repeats the last real point.
+}
+
 TEMPLATE_TEST_CASE("PointAoSoA: getMinimumDistance/getMinimumDistance2 unaffected by padding when count < W",
                    "[PointAoSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)

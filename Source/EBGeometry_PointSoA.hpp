@@ -246,6 +246,20 @@ public:
     return m_validCount;
   }
 
+  /**
+   * @brief The position in one lane.
+   * @param[in] a_lane Lane index, 0 <= a_lane < W (a padded lane repeats the last real position).
+   * @return The position.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  getPosition(size_t a_lane) const noexcept
+  {
+    EBGEOMETRY_EXPECT(a_lane < W);
+
+    return Vec3T<T>(m_x[a_lane], m_y[a_lane], m_z[a_lane]);
+  }
+
 protected:
   /**
    * @brief x-coordinates of point positions. m_x[j] = x-coord of point j.

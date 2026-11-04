@@ -148,6 +148,18 @@ public:
   getPointId(size_t a_lane) const noexcept;
 
   /**
+   * @brief Get the position of the point in one lane of this group.
+   * @param[in] a_lane Lane index, 0 <= a_lane < W (padded lanes return the last real point's position).
+   * @return The position of the point at a_lane.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  getPosition(size_t a_lane) const noexcept
+  {
+    return m_positions.getPosition(a_lane);
+  }
+
+  /**
    * @brief Number of real (non-padded) points in this group.
    * @return The count passed to pack(), 1..W (0 before pack()).
    */
