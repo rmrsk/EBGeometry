@@ -265,7 +265,14 @@ SphereCloudBVH<T, K, W>::forEachContact(const Sphere&  a_sphere,
   // A sphere j in contact has |c - c_j| - r_j < r + gap, and its box holds it whole, so the box is within
   // r + gap of the center (or holds the center). The bound is fixed, so every box within it is entered, in the
   // order stored. With r + gap <= 0, only the boxes holding the center are.
-  const T reach = Math::max(T(0), radius + a_gap);
+  //
+  // In floating point a box corner c_j + r_j can round inward, and the box's key has rounding of its own, so the
+  // reach is padded by a few ulps of the coordinates' size. Without the pad, a pair whose separation is within
+  // rounding of the gap could be pruned from one side and found from the other, and contacts would not be
+  // mutual. The leaf test is exact, so the pad only enters a box more now and then; it finds no extra contact.
+  const T scale =
+    Math::max(Math::max(std::abs(center[0]), std::abs(center[1])), std::abs(center[2])) + radius + std::abs(a_gap);
+  const T reach = Math::max(T(0), radius + a_gap) + T(16) * Math::Limits<T>::epsilon() * scale;
 
   const auto bound = [reach](const auto&) noexcept -> T { return reach * reach; };
 
