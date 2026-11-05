@@ -80,6 +80,8 @@ struct Repulsion
   }
 };
 
+namespace {
+
 // Keeps a particle in the cylinder: its center at least its radius from the wall and from both ends.
 void
 keepInside(Vec3& a_center, const T a_radius)
@@ -94,6 +96,8 @@ keepInside(Vec3& a_center, const T a_radius)
 
   a_center[1] = std::clamp(a_center[1], a_radius, cylHeight - a_radius);
 }
+
+} // namespace
 
 int
 main(int argc, char* argv[])
