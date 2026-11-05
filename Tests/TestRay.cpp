@@ -1064,6 +1064,55 @@ TEMPLATE_TEST_CASE("Ray: a tube's spans are its wall before and after the hollow
   }
 }
 
+TEMPLATE_TEST_CASE("Ray: compositions of the shapes with exact ray forms are traced exactly, in a tape and fused",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const EllipsoidSDF<T>    ellipsoid(Vec3(T(0.1), T(0), -T(0.2)), Vec3(T(0.5), T(0.3), T(0.4)));
+  const CappedConeSDF<T>   cone(Vec3(-T(0.8), -T(0.5), T(0)), Vec3(-T(0.2), T(0.6), T(0.1)), T(0.5), T(0.1));
+  const PolygonPrismSDF<T> prism(Vec3(T(0.2), -T(0.8), T(0)), Vec3(T(0.3), T(0.8), T(0.2)), T(0.4), 6U, Vec3::unit(0));
+  const TubeSDF<T>         tube(Vec3(-T(0.9), T(0), -T(0.6)), Vec3(T(0.9), T(0), -T(0.5)), T(0.15), T(0.3));
+  const CutSphereSDF<T>    dome(Vec3(T(0), T(0.4), T(0.5)), T(0.5), T(0.1));
+  const WedgeSDF<T>        wedge(Vec3(T(0), T(0.9), T(0)), T(100));
+
+  const auto fused = Fused::Intersection(Fused::Difference(Fused::Union(cone, prism, tube, dome), ellipsoid), wedge);
+
+  Pool          pool(hostMemoryResource());
+  const Tape<T> tape(pool,
+                     Intersection(Difference(Union(std::vector<Expr<T>>{cone, prism, tube, dome}), ellipsoid), wedge));
+
+  std::mt19937                      rng(17);
+  std::uniform_real_distribution<T> uniform(-T(1), T(1));
+
+  int hits = 0;
+
+  for (int i = 0; i < 400; i++) {
+    const Vec3    origin = T(3) * normalized(Vec3(uniform(rng), uniform(rng), uniform(rng)));
+    const Vec3    target = T(0.6) * Vec3(uniform(rng), uniform(rng), uniform(rng));
+    const RayT<T> ray{origin, normalized(target - origin)};
+
+    const HitT<T> viaFused = firstHit(fused, ray, T(0), T(10));
+    const HitT<T> viaTape  = tape.firstHit(ray, T(0), T(10));
+
+    INFO("ray " << i << " from " << origin);
+    REQUIRE(viaTape.m_status == viaFused.m_status);
+
+    if (viaFused.hit()) {
+      REQUIRE(viaFused.m_exact);
+      REQUIRE(viaTape.m_exact);
+      REQUIRE_THAT(viaTape.m_t, withinAbsT(viaFused.m_t, looseMargin<T>()));
+      REQUIRE_THAT(std::abs(fused.signedDistance(viaFused.m_point)), withinAbsT(T(0), 1e-3));
+
+      hits++;
+    }
+  }
+
+  REQUIRE(hits > 50);
+}
+
 TEMPLATE_TEST_CASE("Ray: fused and taped compositions are traced to the closed-form crossings, and marched on request",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)

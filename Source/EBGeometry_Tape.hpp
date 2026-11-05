@@ -581,8 +581,10 @@ storeAt(PrimitiveStore<P, Ps...>& a_store) noexcept
 }
 
 /**
- * @brief The tape's primitive types: the twelve analytic shapes, the three mesh SDFs with the default
- * branching factor and SIMD width, then the user's types (its template arguments that are not features).
+ * @brief The tape's primitive types: twelve analytic shapes (PlaneSDF to PerlinSDF), the three mesh SDFs with the
+ * default branching factor and SIMD width, nine more analytic shapes (EllipsoidSDF to WedgeSDF), then the user's
+ * types (its template arguments that are not features). On the host, every type from Tape::DispatchSplit on is
+ * dispatched out of line.
  * @details Internal helper; not part of the public API.
  * @tparam T            Floating-point precision.
  * @tparam UserPrimitives User primitive types and features.
@@ -603,7 +605,16 @@ using Primitives =
                            PerlinSDF<T>,
                            FlatMeshSDF<T>,
                            MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
-                           TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>>,
+                           TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>,
+                           EllipsoidSDF<T>,
+                           CappedConeSDF<T>,
+                           RoundConeSDF<T>,
+                           PolygonPrismSDF<T>,
+                           TubeSDF<T>,
+                           CappedTorusSDF<T>,
+                           CutSphereSDF<T>,
+                           CutHollowSphereSDF<T>,
+                           WedgeSDF<T>>,
                   UserTypesOf<UserPrimitives...>>::type;
 
 /**
