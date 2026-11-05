@@ -90,6 +90,20 @@ SphereAoSoA<T, W>::getSignedDistances(const Vec3T<T>& a_point) const noexcept
 
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
+Array<T, W>
+SphereAoSoA<T, W>::getSeparations(const Vec3T<T>& a_center, const T a_radius) const noexcept
+{
+  Array<T, W> separations = m_centers.getDistances(a_center);
+
+  for (size_t j = 0; j < W; j++) {
+    separations[j] -= a_radius + m_radii[j];
+  }
+
+  return separations;
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 uint32_t
 SphereAoSoA<T, W>::getSphereId(size_t a_lane) const noexcept
 {

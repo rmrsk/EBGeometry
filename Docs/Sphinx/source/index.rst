@@ -144,6 +144,7 @@ Examples
    ExamplePointClouds.rst
    ExampleParticleNeighbors.rst
    ExampleSphereClouds.rst
+   ExampleParticleContacts.rst
    ExampleBVHTraversal.rst
    ExampleRayTracing.rst
    ExampleOctreeBoundingVolume.rst

@@ -65,3 +65,7 @@ an inside and a signed distance: the smallest :math:`|p - c_i| - r_i` over the s
 same hierarchy serves it, built over the spheres' centers, with each node's bounding volume grown to hold its
 spheres whole. Where spheres overlap, the value inside is the depth below the deepest sphere's surface, which can be
 less than the distance to the union's surface, as for any union of shapes (see :ref:`Chap:ConstructiveSolidGeometry`).
+
+Spheres also touch one another. The *contacts* of a particle are the particles whose surfaces are closer to its
+own than a gap, or overlap it: the pairs a particle code computes its contact forces from at every step. They are
+found with the same hierarchy, from the particle's own sphere grown by the gap.

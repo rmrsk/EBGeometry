@@ -332,6 +332,15 @@ instantiateFunctionTemplates()
     spheresBVH.rebuild(SphereCloud::FromArray<T>{spheres.data()}, 1U);
     (void)spheresBVH.maxSpheres();
 
+    // And its contact queries, by index and for any sphere.
+    T separations = T(0);
+
+    spheresBVH.forEachContact(
+      0U, T(0), [&separations](const SphereCloud::Hit<T>& a_hit) { separations += a_hit.distance; });
+    spheresBVH.forEachContact(
+      spheres[0], T(0), [&separations](const SphereCloud::Hit<T>& a_hit) { separations += a_hit.distance; });
+    (void)separations;
+
     std::vector<uint32_t> values(3, 1);
     std::vector<uint32_t> sums(GPU::exclusiveScanScratchSize(3));
 

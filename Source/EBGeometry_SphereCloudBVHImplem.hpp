@@ -206,6 +206,92 @@ SphereCloudBVH<T, K, W>::closestSphere(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, size_t K, size_t W>
+template <class Visit>
+EBGEOMETRY_HOST_DEVICE
+inline void
+SphereCloudBVH<T, K, W>::forEachContact(const uint32_t a_index, const T a_gap, Visit&& a_visit) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_index < m_items.size());
+
+  // The visitor is passed on as an lvalue, not forwarded: it is called once per contact, and a visitor that adds
+  // up (a count, a force) must be the caller's own object.
+  this->forEachContact(this->sphere(a_index), a_gap, a_visit, a_index);
+}
+
+template <class T, size_t K, size_t W>
+template <class Visit>
+EBGEOMETRY_HOST_DEVICE
+inline void
+SphereCloudBVH<T, K, W>::forEachContact(const Sphere&  a_sphere,
+                                        const T        a_gap,
+                                        Visit&&        a_visit,
+                                        const uint32_t a_exclude) const noexcept
+{
+  EBGEOMETRY_EXPECT(std::isfinite(a_sphere.m_center[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_sphere.m_center[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_sphere.m_center[2]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_sphere.m_radius) && a_sphere.m_radius >= T(0));
+  EBGEOMETRY_EXPECT(std::isfinite(a_gap));
+
+  const Packed                     bvh    = this->getBVH();
+  const PODSpan<const SphereGroup> groups = bvh.getPrimitives();
+
+  // An empty cloud has no nodes, and the traversal would read the root.
+  if (bvh.getNodes().size() == 0) {
+    return;
+  }
+
+  const Vec3T<T>& center = a_sphere.m_center;
+  const T         radius = a_sphere.m_radius;
+
+  // As in closestSphere(), the lane loop has the constant bound W with the padding test inside it.
+  const auto evalLeaf =
+    [&groups, &center, radius, a_gap, a_exclude](auto& a_state, std::size_t a_off, std::size_t a_cnt) noexcept {
+      for (std::size_t g = 0; g < a_cnt; g++) {
+        const SphereGroup&  group       = groups[static_cast<std::uint32_t>(a_off + g)];
+        const Array<T, W>   separations = group.getSeparations(center, radius);
+        const std::uint32_t numValid    = group.numValid();
+
+        for (std::uint32_t lane = 0; lane < W; lane++) {
+          if (lane < numValid && separations[lane] < a_gap) {
+            const std::uint32_t index = group.getSphereId(lane);
+
+            if (index != a_exclude) {
+              a_state(Hit{index, separations[lane]});
+            }
+          }
+        }
+      }
+    };
+
+  // A sphere j in contact has |c - c_j| - r_j < r + gap, and its box holds it whole, so the box is within
+  // r + gap of the center (or holds the center). The bound is fixed, so every box within it is entered, in the
+  // order stored. With r + gap <= 0, only the boxes holding the center are.
+  //
+  // In floating point a box corner c_j + r_j can round inward, and the box's key has rounding of its own, so the
+  // reach is padded by a few ulps of the coordinates' size: the query sphere's, and the root box's, which holds
+  // every c_j + r_j. Without the pad, a pair whose separation is within rounding of the gap could be pruned from
+  // one side and found from the other, and contacts would not be mutual. The leaf test is exact, so the pad only
+  // enters a box more now and then; it finds no extra contact.
+  const AABB     root = bvh.computeBoundingVolume();
+  const Vec3T<T> lo   = root.getLowCorner();
+  const Vec3T<T> hi   = root.getHighCorner();
+
+  T largest = T(0);
+
+  for (std::size_t d = 0; d < 3; d++) {
+    largest = Math::max(largest, Math::max(Math::max(std::abs(lo[d]), std::abs(hi[d])), std::abs(center[d])));
+  }
+
+  const T scale = largest + radius + std::abs(a_gap);
+  const T reach = Math::max(T(0), radius + a_gap) + T(16) * Math::Limits<T>::epsilon() * scale;
+
+  const auto bound = [reach](const auto&) noexcept -> T { return reach * reach; };
+
+  bvh.traverse(BVH::PointQuery<T>{center}, a_visit, evalLeaf, bound, BVH::DescendAll{}, BVH::AsStored{});
+}
+
+template <class T, size_t K, size_t W>
 EBGEOMETRY_HOST_DEVICE
 inline typename SphereCloudBVH<T, K, W>::AABB
 SphereCloudBVH<T, K, W>::computeBoundingVolume() const noexcept

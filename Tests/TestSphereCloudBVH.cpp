@@ -115,6 +115,69 @@ struct SignedDistance
   }
 };
 
+// The separation of two spheres, the oracle's own arithmetic: |c_a - c_b| - (r_a + r_b).
+template <class T>
+T
+separation(const SphereCloud::Sphere<T>& a_a, const SphereCloud::Sphere<T>& a_b)
+{
+  return sphereDistance(SphereCloud::Sphere<T>{a_b.m_center, a_a.m_radius + a_b.m_radius}, a_a.m_center);
+}
+
+// One sphere's contacts as forEachContact() reports them, in visiting order.
+template <class T, class Cloud>
+std::vector<SphereCloud::Hit<T>>
+contactsOf(const Cloud& a_cloud, const uint32_t a_index, const T a_gap)
+{
+  std::vector<SphereCloud::Hit<T>> contacts;
+
+  a_cloud.forEachContact(a_index, a_gap, [&contacts](const SphereCloud::Hit<T>& a_hit) { contacts.push_back(a_hit); });
+
+  return contacts;
+}
+
+// A sphere's contact count and the sum of (index + 1) over them, for a device kernel: an exact fingerprint of
+// which spheres were found.
+template <class T>
+struct ContactFingerprint
+{
+  SphereCloudBVH<T> m_cloud;
+  T                 m_gap;
+
+  EBGEOMETRY_HOST_DEVICE
+  std::uint64_t
+  operator()(const uint32_t a_index) const noexcept
+  {
+    std::uint64_t count = 0;
+    std::uint64_t sum   = 0;
+
+    m_cloud.forEachContact(a_index, m_gap, [&count, &sum](const SphereCloud::Hit<T>& a_hit) {
+      count += 1;
+      sum += a_hit.index + 1U;
+    });
+
+    return (count << 40U) + sum;
+  }
+};
+
+// A sphere's summed separation over its contacts, for a device kernel.
+template <class T>
+struct ContactSeparationSum
+{
+  SphereCloudBVH<T> m_cloud;
+  T                 m_gap;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const uint32_t a_index) const noexcept
+  {
+    T sum = T(0);
+
+    m_cloud.forEachContact(a_index, m_gap, [&sum](const SphereCloud::Hit<T>& a_hit) { sum += a_hit.distance; });
+
+    return sum;
+  }
+};
+
 // Memory a build through GPU::parallelFor() writes and the host reads: managed memory in a CUDA or HIP build, where
 // the build's steps run as kernels, and emulated device memory otherwise, where they run as host loops.
 MemoryResource&
@@ -220,6 +283,26 @@ TEMPLATE_TEST_CASE("SphereAoSoA: signed distances, ids and the box of a packed g
     CHECK_THAT(distances[1], withinAbsT<T>(T(2.5), tightMargin<T>()));
     CHECK_THAT(distances[2], withinAbsT<T>(T(4), tightMargin<T>()));
     CHECK_THAT(distances[3], withinAbsT<T>(T(4), tightMargin<T>()));
+  }
+
+  SECTION("each lane's separation from a sphere is |c - c_j| - (r + r_j), the same from either side")
+  {
+    const Array<T, W> separations = group.getSeparations(Vec3T<T>(T(0), T(0), T(0)), T(0.25));
+
+    CHECK_THAT(separations[0], withinAbsT<T>(T(-1.25), tightMargin<T>()));
+    CHECK_THAT(separations[1], withinAbsT<T>(T(2.25), tightMargin<T>()));
+    CHECK_THAT(separations[2], withinAbsT<T>(T(3.75), tightMargin<T>()));
+    CHECK_THAT(separations[3], withinAbsT<T>(T(3.75), tightMargin<T>()));
+
+    // Lane 1 seen from a group holding the query sphere instead.
+    const std::vector<SphereCloud::Sphere<T>> other    = {{Vec3T<T>(T(0), T(0), T(0)), T(0.25)}};
+    const std::vector<uint32_t>               otherIds = {0};
+
+    SphereAoSoA<T, W> otherGroup;
+
+    otherGroup.pack(other.data(), otherIds.data(), 1);
+
+    CHECK(otherGroup.getSeparations(spheres[1].m_center, spheres[1].m_radius)[0] == separations[1]);
   }
 
   SECTION("each lane carries its sphere's id, and the padded lane the last one")
@@ -497,6 +580,334 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: other branching factors and widths, and part
     check(std::common_type<SphereCloudBVH<T, 2, 8>>{}, n);
     check(std::common_type<SphereCloudBVH<T, 8, 2>>{}, n);
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// forEachContact(): contacts between spheres
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("SphereCloudBVH: forEachContact finds every sphere within the gap, once, as brute force does",
+                   "[SphereCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr std::size_t n = 600;
+
+  const std::vector<SphereCloud::Sphere<T>> spheres = makeSpheres<T>(n, 77u);
+
+  Pool pool(hostMemoryResource());
+
+  const SphereCloudBVH<T> cloud(pool, spheres, 8);
+
+  // Pairs whose separation is within the margin of the gap may go either way with rounding; every other pair
+  // must be found exactly when its separation is below the gap.
+  const T margin = looseMargin<T>();
+
+  for (const T gap : {T(0), T(0.02), T(-0.01)}) {
+    std::size_t found = 0;
+
+    for (uint32_t i = 0; i < n; i++) {
+      std::vector<SphereCloud::Hit<T>> contacts = contactsOf(cloud, i, gap);
+      std::vector<bool>                seen(n, false);
+
+      for (const auto& contact : contacts) {
+        REQUIRE(contact.index < n);
+        REQUIRE(contact.index != i);
+        REQUIRE_FALSE(seen[contact.index]);
+
+        seen[contact.index] = true;
+
+        const T truth = separation(spheres[i], spheres[contact.index]);
+
+        CHECK_THAT(contact.distance, withinAbsT<T>(truth, looseMargin<T>()));
+        CHECK(contact.distance < gap);
+      }
+
+      for (uint32_t j = 0; j < n; j++) {
+        if (j != i && separation(spheres[i], spheres[j]) < gap - margin) {
+          CHECK(seen[j]);
+        }
+      }
+
+      found += contacts.size();
+    }
+
+    // Each gap finds some contacts, so the comparison is not empty.
+    CHECK(found > 0);
+  }
+}
+
+TEMPLATE_TEST_CASE("SphereCloudBVH: contacts are mutual, with the same separation from either side",
+                   "[SphereCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr std::size_t n = 500;
+
+  const std::vector<SphereCloud::Sphere<T>> spheres = makeSpheres<T>(n, 78u);
+
+  Pool pool(hostMemoryResource());
+
+  const SphereCloudBVH<T> cloud(pool, spheres, 4);
+
+  const T gap = T(0.01);
+
+  std::vector<std::vector<SphereCloud::Hit<T>>> contacts(n);
+
+  for (uint32_t i = 0; i < n; i++) {
+    contacts[i] = contactsOf(cloud, i, gap);
+  }
+
+  for (uint32_t i = 0; i < n; i++) {
+    for (const auto& contact : contacts[i]) {
+      std::size_t back = 0;
+
+      for (const auto& other : contacts[contact.index]) {
+        if (other.index == i) {
+          back++;
+
+          CHECK(other.distance == contact.distance);
+        }
+      }
+
+      CHECK(back == 1);
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("SphereCloudBVH: contacts stay mutual when the radii span orders of magnitude",
+                   "[SphereCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr std::size_t n = 600;
+
+  // Centers in [0, 10]^3, radii from 0.001 to 1 spread evenly over their logarithm: a few large spheres among many
+  // small ones, where the boxes' rounding scales with the large radii.
+  std::mt19937                      rng(83u);
+  std::uniform_real_distribution<T> unit(T(0), T(1));
+
+  std::vector<SphereCloud::Sphere<T>> spheres(n);
+
+  for (auto& sphere : spheres) {
+    sphere.m_center = T(10) * Vec3T<T>(unit(rng), unit(rng), unit(rng));
+    sphere.m_radius = std::pow(T(10), T(-3) + T(3) * unit(rng));
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const SphereCloudBVH<T> cloud(pool, spheres, 4);
+
+  for (const T gap : {T(0), T(0.05)}) {
+    std::vector<std::vector<SphereCloud::Hit<T>>> contacts(n);
+    std::size_t                                   found = 0;
+
+    for (uint32_t i = 0; i < n; i++) {
+      contacts[i] = contactsOf(cloud, i, gap);
+      found += contacts[i].size();
+    }
+
+    CHECK(found > 0);
+
+    // Some contact joins a large sphere to a much smaller one, where the rounding the pad covers is largest.
+    bool unequal = false;
+
+    for (uint32_t i = 0; i < n; i++) {
+      for (const auto& contact : contacts[i]) {
+        unequal = unequal || spheres[i].m_radius > T(100) * spheres[contact.index].m_radius;
+      }
+    }
+
+    CHECK(unequal);
+
+    for (uint32_t i = 0; i < n; i++) {
+      for (const auto& contact : contacts[i]) {
+        std::size_t back = 0;
+
+        for (const auto& other : contacts[contact.index]) {
+          if (other.index == i) {
+            back++;
+
+            CHECK(other.distance == contact.distance);
+          }
+        }
+
+        CHECK(back == 1);
+      }
+
+      for (uint32_t j = 0; j < n; j++) {
+        if (j != i && separation(spheres[i], spheres[j]) < gap - static_cast<T>(looseMargin<T>())) {
+          bool seen = false;
+
+          for (const auto& contact : contacts[i]) {
+            seen = seen || contact.index == j;
+          }
+
+          CHECK(seen);
+        }
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("SphereCloudBVH: forEachContact of a sphere outside the cloud, with an index to skip",
+                   "[SphereCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr std::size_t n = 400;
+
+  const std::vector<SphereCloud::Sphere<T>> spheres = makeSpheres<T>(n, 79u);
+
+  Pool pool(hostMemoryResource());
+
+  const SphereCloudBVH<T> cloud(pool, spheres);
+
+  const T margin = looseMargin<T>();
+
+  SECTION("a probe sphere's contacts match brute force")
+  {
+    for (const auto& center : makeQueries<T>(50, 80u)) {
+      const SphereCloud::Sphere<T> probe{center, T(0.03)};
+
+      std::vector<bool> seen(n, false);
+
+      cloud.forEachContact(probe, T(0), [&](const SphereCloud::Hit<T>& a_hit) {
+        REQUIRE_FALSE(seen[a_hit.index]);
+
+        seen[a_hit.index] = true;
+
+        CHECK_THAT(a_hit.distance, withinAbsT<T>(separation(probe, spheres[a_hit.index]), looseMargin<T>()));
+      });
+
+      for (uint32_t j = 0; j < n; j++) {
+        if (separation(probe, spheres[j]) < -margin) {
+          CHECK(seen[j]);
+        }
+      }
+    }
+  }
+
+  SECTION("the sphere itself, passed as a probe and skipped by index, gives the index form's contacts")
+  {
+    for (uint32_t i = 0; i < n; i += 37) {
+      std::vector<SphereCloud::Hit<T>> asProbe;
+
+      cloud.forEachContact(
+        spheres[i], T(0.02), [&asProbe](const SphereCloud::Hit<T>& a_hit) { asProbe.push_back(a_hit); }, i);
+
+      const std::vector<SphereCloud::Hit<T>> byIndex = contactsOf(cloud, i, T(0.02));
+
+      REQUIRE(asProbe.size() == byIndex.size());
+
+      for (std::size_t k = 0; k < asProbe.size(); k++) {
+        CHECK(asProbe[k].index == byIndex[k].index);
+        CHECK(asProbe[k].distance == byIndex[k].distance);
+      }
+    }
+  }
+
+  SECTION("without the index to skip, a sphere of the cloud is its own contact, at minus twice its radius")
+  {
+    bool self = false;
+
+    cloud.forEachContact(spheres[5], T(0), [&self, &spheres](const SphereCloud::Hit<T>& a_hit) {
+      if (a_hit.index == 5) {
+        self = true;
+
+        CHECK_THAT(a_hit.distance, withinAbsT<T>(T(-2) * spheres[5].m_radius, tightMargin<T>()));
+      }
+    });
+
+    CHECK(self);
+  }
+}
+
+TEMPLATE_TEST_CASE("SphereCloudBVH: forEachContact in a cloud of one sphere, of touching spheres, and an empty one",
+                   "[SphereCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  SECTION("one sphere has no contacts")
+  {
+    const SphereCloudBVH<T> cloud(pool, std::vector<SphereCloud::Sphere<T>>{{Vec3T<T>(T(0), T(0), T(0)), T(1)}});
+
+    CHECK(contactsOf(cloud, 0, T(10)).empty());
+  }
+
+  SECTION("touching spheres are a contact with a gap above 0, and not with a gap of 0")
+  {
+    // Exact in both precisions: the centers 3 apart, the radii 1 and 2.
+    const SphereCloudBVH<T> cloud(
+      pool,
+      std::vector<SphereCloud::Sphere<T>>{{Vec3T<T>(T(0), T(0), T(0)), T(1)}, {Vec3T<T>(T(3), T(0), T(0)), T(2)}});
+
+    CHECK(contactsOf(cloud, 0, T(0)).empty());
+
+    const auto contacts = contactsOf(cloud, 0, T(0.5));
+
+    REQUIRE(contacts.size() == 1);
+    CHECK(contacts[0].index == 1);
+    CHECK(contacts[0].distance == T(0));
+  }
+
+  SECTION("an empty cloud visits nothing")
+  {
+    const SphereCloudBVH<T> cloud(pool, std::vector<SphereCloud::Sphere<T>>{});
+
+    bool visited = false;
+
+    cloud.forEachContact(
+      SphereCloud::Sphere<T>{Vec3T<T>(T(0), T(0), T(0)), T(1)}, T(1), [&visited](const auto&) { visited = true; });
+
+    CHECK_FALSE(visited);
+  }
+}
+
+TEMPLATE_TEST_CASE("SphereCloudBVH: forEachContact on device matches the host",
+                   "[SphereCloudBVH][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  constexpr uint32_t n = 900;
+
+  Pool pool(hostMemoryResource());
+
+  const SphereCloudBVH<T> cloud(pool, makeSpheres<T>(n, 81u), 8);
+
+  pool.freeze();
+
+  Pool                    devicePool = Pool::mirror(pool, deviceTestResource());
+  const SphereCloudBVH<T> deviceView = cloud.rebasedView(devicePool);
+
+  std::vector<uint32_t> indices(n);
+
+  for (uint32_t i = 0; i < n; i++) {
+    indices[i] = i;
+  }
+
+  const T gap = T(0.01);
+
+  // Which spheres were found must match exactly, the separations to the device's rounding.
+  REQUIRE(evaluateOnDevice<std::uint64_t>(ContactFingerprint<T>{deviceView, gap}, indices) ==
+          evaluateOnHost<std::uint64_t>(ContactFingerprint<T>{cloud, gap}, indices));
+
+  requireSameResults(evaluateOnDevice<T>(ContactSeparationSum<T>{deviceView, gap}, indices),
+                     evaluateOnHost<T>(ContactSeparationSum<T>{cloud, gap}, indices));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

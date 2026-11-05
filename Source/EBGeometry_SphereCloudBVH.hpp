@@ -207,7 +207,7 @@ struct SpherePrimitive
 
 /**
  * @brief A BVH over spheres of differing radii (polydisperse particles), with the signed distance to their
- * union and the closest sphere.
+ * union, the closest sphere, and the contacts between spheres.
  * @details A shape: signedDistance() and computeBoundingVolume(), negative inside a sphere. The distance is
  * min_i(|p - c_i| - r_i) over the spheres: exact outside their union, and inside it a bound in magnitude (where
  * spheres overlap, the union's surface can be farther than every sphere's own), as for a Union of the
@@ -217,12 +217,12 @@ struct SpherePrimitive
  * The build is PointCloudBVH's linear build (see there), over the centers: the Morton keys and cuts come
  * from the centers, and every box is grown by its spheres' radii. It runs where the pool's memory is, on a
  * device included, and every side gives the same tree. The leaves are SphereAoSoA groups carrying each
- * sphere's **cloud index**, which closestSphere() reports.
+ * sphere's **cloud index**, which closestSphere() and forEachContact() report.
  *
  * @note Device portability, as for PointCloudBVH: the packed BVH and the cloud's arrays are reserved from
  * one Pool and the class stores only offsets into it, so it is trivially copyable. Freeze and mirror the
- * pool, call rebasedView(), and pass the value into a kernel; signedDistance(), closestSphere() and
- * computeBoundingVolume() are device-callable. The pool must outlive the BVH and every copy of it.
+ * pool, call rebasedView(), and pass the value into a kernel; signedDistance(), closestSphere(),
+ * forEachContact() and computeBoundingVolume() are device-callable. The pool must outlive the BVH and every copy of it.
  *
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>().
@@ -388,6 +388,44 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Hit
   closestSphere(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Visit every sphere in contact with sphere a_index: each sphere j != a_index whose separation
+   * |c_i - c_j| - (r_i + r_j) is less than a_gap.
+   * @details The visits come in no set order, one per contacting sphere. The separation is computed the same way
+   * from both sides, so j is a contact of i exactly when i is a contact of j, with the same separation.
+   * @tparam Visit A callable taking const Hit&: the other sphere's cloud index, and the separation as its distance
+   * (negative when the two overlap). Must not throw. Device-callable when the query runs on a device.
+   * @param[in] a_index Cloud index of the sphere, less than numSpheres() (checked only with assertions on).
+   * @param[in] a_gap   Largest separation counted as a contact, not included. Must be finite. 0 counts spheres
+   *                    that overlap; a small positive gap also counts those that touch or nearly touch, and a
+   *                    negative gap only overlaps deeper than |a_gap|.
+   * @param[in] a_visit Called once per contact.
+   */
+  template <class Visit>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  forEachContact(uint32_t a_index, T a_gap, Visit&& a_visit) const noexcept;
+
+  /**
+   * @brief Visit every sphere of the cloud in contact with a sphere given by its center and radius, which need
+   * not be in the cloud (to test where a new particle fits, say).
+   * @details As the overload above, with a_sphere in place of sphere a_index, and skipping a_exclude.
+   * @tparam Visit As above.
+   * @param[in] a_sphere  The sphere: a finite center, and a finite radius of at least 0 (checked only with
+   *                      assertions on).
+   * @param[in] a_gap     Largest separation counted as a contact, not included. Must be finite.
+   * @param[in] a_visit   Called once per contact.
+   * @param[in] a_exclude A cloud index to skip; SphereCloud::InvalidIndex for none (a sphere of the cloud is then
+   *                      its own contact, at minus twice its radius).
+   */
+  template <class Visit>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  forEachContact(const Sphere& a_sphere,
+                 T             a_gap,
+                 Visit&&       a_visit,
+                 uint32_t      a_exclude = SphereCloud::InvalidIndex) const noexcept;
 
   /**
    * @brief The box of all the spheres.
