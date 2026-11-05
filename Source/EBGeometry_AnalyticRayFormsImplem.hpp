@@ -34,9 +34,8 @@ namespace RayDetail {
  * @param[in] a_tMin      Start of the interval.
  * @param[in] a_tMax      End of the interval.
  * @return The crossing, or a miss.
- * @details Always inlined on the host, as are ballSpan() and tubeSpan(): several ray forms call each, and a tape
- * instantiates them all, so left to itself GCC keeps them out of line, and a fused composition's trace pays a call
- * per leaf (a fused CSG solid traced 20-35% slower).
+ * @details Always inlined on the host: every ray form of a convex shape calls it, and a tape instantiates them
+ * all, so left to itself GCC keeps it out of line, and a fused composition's trace pays a call per leaf.
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -148,7 +147,6 @@ slab(const RayT<T>& a_ray,
  */
 template <class T>
 EBGEOMETRY_HOST_DEVICE
-EBGEOMETRY_HOST_ALWAYS_INLINE
 inline void
 ballSpan(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, T& a_in, T& a_out) noexcept
 {
@@ -196,7 +194,6 @@ ballSpan(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, T& a_
  */
 template <class T>
 EBGEOMETRY_HOST_DEVICE
-EBGEOMETRY_HOST_ALWAYS_INLINE
 inline void
 tubeSpan(
   const RayT<T>& a_ray, const Vec3T<T>& a_point, const Vec3T<T>& a_axis, const T a_radius, T& a_in, T& a_out) noexcept
