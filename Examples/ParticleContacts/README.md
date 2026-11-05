@@ -1,9 +1,10 @@
 Examples/ParticleContacts
 -------------------------
 
-3,000 particles of differing sizes in the unit cube, in a `SphereCloudBVH`, and their contacts: for each particle,
-the particles it overlaps or comes within a gap of, through `forEachContact()`. It lists one particle's contacts,
-builds a contact list in arrays of the program's own, and sums a contact force per particle through
+3,000 particles of differing sizes packed in a cylinder, in a `SphereCloudBVH`, and their contacts: for each
+particle, the particles that come within a gap of it, through `forEachContact()`. Seeded at random, the particles
+are pushed apart a round at a time, with a `rebuild()` after each, until none overlap. It then lists one particle's
+contacts, builds a contact list in arrays of the program's own, and sums a near-contact force per particle through
 `GPU::transform`.
 
 Building
@@ -66,5 +67,5 @@ Running
 
     ./ParticleContacts.ex
 
-It prints particle 0's contacts and their separations, the number of contacts in the list, and the contact force
-on a few particles from `GPU::transform`.
+It prints the overlapping pairs every ten rounds until none are left, particle 0's contacts and their separations,
+the number of contacts in the list, and the near-contact force on a few particles from `GPU::transform`.
