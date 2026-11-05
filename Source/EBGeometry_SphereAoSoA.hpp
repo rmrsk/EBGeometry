@@ -91,9 +91,9 @@ public:
    * @brief Where a ray runs through each of the W lane spheres: the distances along it at which it enters and
    * leaves the sphere.
    * @details Over the whole line: an entry or exit may be negative, behind the origin. Computed as SphereSDF's ray
-   * form computes them, so a sphere of the group is crossed where the same sphere alone is, to rounding. A ray that misses a
-   * sphere gets an entry of +infinity and an exit of -infinity, as do padded lanes; one that only touches it gets
-   * an entry equal to its exit.
+   * form computes them, so a sphere of the group is crossed where the same sphere alone is, to rounding. A ray that
+   * misses a sphere gets an entry of +infinity and an exit of -infinity, as do padded lanes; one that only touches
+   * it gets an entry equal to its exit.
    * @param[in]  a_origin    Ray origin. Must be finite.
    * @param[in]  a_direction Ray direction, of unit length.
    * @param[out] a_entry     Per-lane entry distances.

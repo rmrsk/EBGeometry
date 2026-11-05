@@ -223,7 +223,8 @@ struct SpherePrimitive
  * @note Device portability, as for PointCloudBVH: the packed BVH and the cloud's arrays are reserved from
  * one Pool and the class stores only offsets into it, so it is trivially copyable. Freeze and mirror the
  * pool, call rebasedView(), and pass the value into a kernel; signedDistance(), closestSphere(),
- * forEachContact(), computeBoundingVolume() and the ray form are device-callable. The pool must outlive the BVH and every copy of it.
+ * forEachContact(), computeBoundingVolume() and the ray form are device-callable. The pool must outlive the BVH
+ * and every copy of it.
  *
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>().

@@ -137,8 +137,8 @@ marched (see :ref:`Chap:SphereTracing`). The library has ray forms for:
 
 Every other shape is marched: the other analytic shapes, ``BVHSmoothUnion``, the other fused operations
 and shapes of your own without a ray form. The ray forms of the analytic shapes, the mesh SDFs and
-``SphereCloudBVH`` come with their shapes' headers. Those of the fused operations, ``BVHUnion`` and the offsets come with
-``EBGeometry_CSG.hpp`` (or ``EBGeometry.hpp``), not with ``EBGeometry_Fused.hpp`` alone: include it in
+``SphereCloudBVH`` come with their shapes' headers. Those of the fused operations, ``BVHUnion`` and the offsets
+come with ``EBGeometry_CSG.hpp`` (or ``EBGeometry.hpp``), not with ``EBGeometry_Fused.hpp`` alone: include it in
 every translation unit that ray traces a composition, so that ``firstHit()`` on it is the same function
 everywhere.
 
