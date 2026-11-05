@@ -50,8 +50,8 @@ struct PrimitiveRef
   uint32_t m_leaf = None;
 
   /**
-   * @brief The index of the primitive's type in the tape's type list (the built-in types, then
-   * UserPrimitives).
+   * @brief The index of the primitive's type in the tape's type list: the first fifteen built-in types
+   * (PlaneSDF to the mesh SDFs), then UserPrimitives, then the other built-in types (EllipsoidSDF to WedgeSDF).
    */
   uint32_t m_type = None;
 

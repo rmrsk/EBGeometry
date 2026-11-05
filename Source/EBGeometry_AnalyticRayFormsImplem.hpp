@@ -34,9 +34,12 @@ namespace RayDetail {
  * @param[in] a_tMin      Start of the interval.
  * @param[in] a_tMax      End of the interval.
  * @return The crossing, or a miss.
+ * @details Always inlined on the host: every ray form of a convex shape calls it, and a tape instantiates them
+ * all, so left to itself GCC keeps it out of line, and a fused composition's trace pays a call per leaf.
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline HitT<T>
 convexHit(const RayT<T>&  a_ray,
           const T         a_in,
