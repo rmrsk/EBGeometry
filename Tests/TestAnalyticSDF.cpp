@@ -413,7 +413,23 @@ TEMPLATE_TEST_CASE("EllipsoidSDF: a sphere when the radii agree, and the brute-f
     }
   }
 
-  for (const auto& p : randomPoints<T>(T(2), 40)) {
+  // Random points, some on the coordinate planes and axes, where the closest point is found by the
+  // algorithm's planar cases.
+  std::vector<Vec3> points = randomPoints<T>(T(2), 56);
+
+  for (size_t i = 0; i < points.size(); i++) {
+    for (size_t d = 0; d < 3; d++) {
+      if (((i % 8) >> d) & 1U) {
+        points[i][d] = T(0);
+      }
+    }
+
+    if (i % 3 == 0) {
+      points[i] *= T(0.3);
+    }
+  }
+
+  for (const auto& p : points) {
     T nearest = std::numeric_limits<T>::max();
 
     for (const auto& s : surface) {
