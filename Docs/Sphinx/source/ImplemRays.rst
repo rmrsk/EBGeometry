@@ -48,8 +48,9 @@ leaving, as a `HitT <doxygen/html/structEBGeometry_1_1HitT.html>`__:
    * - ``m_entering``
      - Whether the ray enters the object there, rather than leaving it.
    * - ``m_primitive``
-     - The finest part the shape can name: the face of a mesh SDF (its index in the file), the
-       deciding leaf of a tape (``Tape::closestPrimitive()``), the member crossed for a ``BVHUnion``
+     - The finest part the shape can name: the face of a mesh SDF (its index in the file), the sphere crossed
+       for a ``SphereCloudBVH`` (its cloud index), the deciding leaf of a tape (``Tape::closestPrimitive()``),
+       the member crossed for a ``BVHUnion``
        (its place in the union's storage, not the order given to the constructor), and 0 for any other shape (see
        :ref:`Sec:RayTracedHits`).
    * - ``m_exact``
@@ -108,6 +109,10 @@ marched (see :ref:`Chap:SphereTracing`). The library has ray forms for:
        as for its signed distance.
    * - ``FlatMeshSDF``
      - Every face in turn, without a BVH, as its signed distance does: for small meshes and checks.
+   * - ``SphereCloudBVH``
+     - Its BVH, walked nearest box first, and the union of the spans of the spheres the ray passes through,
+       so that where spheres overlap only the surface of their union is crossed
+       (`EBGeometry_SphereCloudRayForm.hpp <doxygen/html/EBGeometry__SphereCloudRayForm_8hpp.html>`__).
    * - ``Fused::Union``, ``Fused::Intersection``, ``Fused::Difference``, ``Fused::Complement``,
        ``Fused::Translate``, ``Rotate``, ``Scale``, ``Reflect``
      - Their operands' spans, combined (see :ref:`Sec:RaySpans`; `EBGeometry_CSGRayForms.hpp
@@ -131,8 +136,8 @@ marched (see :ref:`Chap:SphereTracing`). The library has ray forms for:
        (see :ref:`Sec:TapeFeatures`), and marched otherwise. Its smooth unions and intersections are marched.
 
 Every other shape is marched: the other analytic shapes, ``BVHSmoothUnion``, the other fused operations
-and shapes of your own without a ray form. The ray forms of the analytic shapes and the mesh SDFs come
-with their shapes' headers. Those of the fused operations, ``BVHUnion`` and the offsets come with
+and shapes of your own without a ray form. The ray forms of the analytic shapes, the mesh SDFs and
+``SphereCloudBVH`` come with their shapes' headers. Those of the fused operations, ``BVHUnion`` and the offsets come with
 ``EBGeometry_CSG.hpp`` (or ``EBGeometry.hpp``), not with ``EBGeometry_Fused.hpp`` alone: include it in
 every translation unit that ray traces a composition, so that ``firstHit()`` on it is the same function
 everywhere.

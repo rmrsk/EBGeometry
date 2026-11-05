@@ -59,7 +59,7 @@ The examples build on each other. A new user can read them in this order:
 #. :ref:`Chap:ExamplePointClouds`: closest points and nearest neighbors in a point cloud, with a
    BVH or a hash grid.
 #. :ref:`Chap:ExampleSphereClouds`: particles of differing sizes, the signed distance to their union and
-   the closest particle.
+   the closest particle; the cloud in a tape, cut out of a block, and a ray through both.
 #. :ref:`Chap:ExampleParticleContacts`: particles of differing sizes pushed apart in a cylinder until none
    overlap, rebuilding the cloud each round; their contacts, a contact list, and a near-contact force per particle
    on a GPU.

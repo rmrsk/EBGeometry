@@ -114,7 +114,8 @@ the ray leaves the solid. Under an intersection or a difference every span of a 
 its first crossing. Under a union only the first crossings are: the nearest of the parts' first crossings
 is the union's, unless the ray starts inside a part, which the spans also show. A union of many shapes in
 a BVH (see :ref:`Sec:BVHUnions`) walks its BVH along the ray, nearest box first, as a mesh does, and stops
-at the first box beyond the nearest crossing.
+at the first box beyond the nearest crossing; so does a cloud of spheres, whose spheres overlap as a union's
+members may.
 
 A list of spans has a fixed size, so that it fits a device thread. A ray through more pieces than it holds
 keeps the first ones, and the list then says how far along the ray it is complete. If the first crossing

@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Particles of differing sizes: the signed distance to their union and the particle closest to a point, through
-// a SphereCloudBVH built from the particles' centers and radii, kept in arrays of the program's own. The last part
-// asks the same on a GPU. See README.md.
+// a SphereCloudBVH built from the particles' centers and radii, kept in arrays of the program's own; the cloud in a
+// tape, cut out of a block, and a ray through both. The last part asks the closest particle on a GPU. See README.md.
 
 #include <cstddef>
 #include <cstdint>
@@ -23,6 +23,9 @@
 using T     = EBGEOMETRY_PRECISION;
 using Vec3  = EBGeometry::Vec3T<T>;
 using Cloud = EBGeometry::SphereCloudBVH<T>;
+
+// A tape that can hold a cloud: its type is listed among the tape's primitives, as a mesh SDF's would be.
+using Block = EBGeometry::Tape<T, Cloud>;
 
 // What a query reports for the particle it finds: its index in the arrays the cloud was built from, and the signed
 // distance to its surface (negative inside it).
@@ -96,6 +99,21 @@ main(int argc, char* argv[])
   std::cout << "  at particle 0's center: " << cloud.signedDistance(centers[0]) << " (its radius is " << radii[0]
             << ")\n";
 
+  // ── The cloud in a tape ────────────────────────────────────────────────────────────────────────────
+  //
+  // The cloud is a shape, and takes part in CSG through a tape: here a block with the particles cut out of it.
+  // The tape lives in the cloud's pool. A ray crosses the cloud exactly, through its BVH, and reports the particle
+  // it meets; through the tape it is just as exact, and meets the block's surface wherever no particle cuts it.
+  const EBGeometry::BoxSDF<T> box(Vec3(T(0.1), T(0.1), T(0.1)), Vec3(T(0.9), T(0.9), T(0.9)));
+  const Block                 block(pool, EBGeometry::Difference(EBGeometry::Expr<T>(box), EBGeometry::Expr<T>(cloud)));
+
+  const EBGeometry::RayT<T> ray{Vec3(T(0.5), T(0.5), T(-1)), Vec3(T(0), T(0), T(1))};
+  const EBGeometry::HitT<T> particleHit = EBGeometry::firstHit(cloud, ray, T(0), T(3));
+  const EBGeometry::HitT<T> blockHit    = EBGeometry::firstHit(block, ray, T(0), T(3));
+
+  std::cout << "A ray up the z axis through (0.5, 0.5) meets particle " << particleHit.m_primitive
+            << " at z = " << particleHit.m_point[2] << ", and the block at z = " << blockHit.m_point[2] << '\n';
+
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
   //
   // Freeze the pool, mirror it in one piece into GPU::memoryResource() (device memory in a CUDA or HIP build), and
@@ -123,9 +141,10 @@ main(int argc, char* argv[])
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // A window on the particles (built with VIEWER=SDL2; otherwise, with --no-view or without a display, view()
-  // prints why and returns). X cuts the cloud open. Given the pool, view() renders on the GPU in a GPU build.
-  EBGeometry::Render::view(cloud, pool, argc, argv);
+  // A window on the block (built with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints
+  // why and returns). X cuts it open. Given the pool, view() renders on the GPU in a GPU build, tracing the cloud
+  // exactly there too.
+  EBGeometry::Render::view(block, pool, argc, argv);
 
   return 0;
 }

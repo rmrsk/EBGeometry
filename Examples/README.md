@@ -27,7 +27,7 @@ The reading order:
 14. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
 15. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
 16. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
-17. `SphereClouds`: particles of differing sizes, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`.
+17. `SphereClouds`: particles of differing sizes, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cloud in a tape, cut out of a block, and a ray through both.
 18. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
 19. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
 20. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.

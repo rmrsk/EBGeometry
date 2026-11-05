@@ -207,12 +207,13 @@ struct SpherePrimitive
 
 /**
  * @brief A BVH over spheres of differing radii (polydisperse particles), with the signed distance to their
- * union, the closest sphere, and the contacts between spheres.
+ * union, the closest sphere, the contacts between spheres, and exact rays.
  * @details A shape: signedDistance() and computeBoundingVolume(), negative inside a sphere. The distance is
  * min_i(|p - c_i| - r_i) over the spheres: exact outside their union, and inside it a bound in magnitude (where
  * spheres overlap, the union's surface can be farther than every sphere's own), as for a Union of the
- * spheres. Spheres of one radius need no SphereCloudBVH: the distance from a PointCloudBVH of the centers,
- * less the radius, is the same.
+ * spheres. Rays cross the union exactly (RayForm<SphereCloudBVH>, in EBGeometry_SphereCloudRayForm.hpp), and a
+ * tape takes the cloud as a primitive, stored as its Layout. Spheres of one radius need no SphereCloudBVH: the
+ * distance from a PointCloudBVH of the centers, less the radius, is the same.
  *
  * The build is PointCloudBVH's linear build (see there), over the centers: the Morton keys and cuts come
  * from the centers, and every box is grown by its spheres' radii. It runs where the pool's memory is, on a
@@ -222,7 +223,7 @@ struct SpherePrimitive
  * @note Device portability, as for PointCloudBVH: the packed BVH and the cloud's arrays are reserved from
  * one Pool and the class stores only offsets into it, so it is trivially copyable. Freeze and mirror the
  * pool, call rebasedView(), and pass the value into a kernel; signedDistance(), closestSphere(),
- * forEachContact() and computeBoundingVolume() are device-callable. The pool must outlive the BVH and every copy of it.
+ * forEachContact(), computeBoundingVolume() and the ray form are device-callable. The pool must outlive the BVH and every copy of it.
  *
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>().

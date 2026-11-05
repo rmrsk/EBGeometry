@@ -173,8 +173,8 @@ cloud index and the *signed* distance to its surface, negative inside it. Of two
 the one with the lower index is reported. The distance is exact outside the spheres; inside, where spheres overlap,
 it is the depth below the deepest sphere's surface, a lower bound on the distance to the union's surface (as for a
 CSG ``Union`` of the spheres). With ``computeBoundingVolume()`` it makes the cloud a shape, which the viewer
-renders; it is not a tape primitive or a BVH-union primitive. For spheres of one radius, ``PointCloudBVH`` over
-the centers gives the same distance, less the radius.
+renders and a tape takes as a primitive (below). For spheres of one radius, ``PointCloudBVH`` over the centers
+gives the same distance, less the radius.
 
 The tree is ``PointCloudBVH``'s, over the spheres' centers, with every box grown to hold its spheres whole, and
 everything said above of ``PointCloudBVH`` holds for it: the pool must outlive it, it crosses to a device through
@@ -211,6 +211,18 @@ force is one thread per particle adding up its own contacts, with no list and no
 A list of every particle's contacts is built from it in three steps: count each particle's contacts, add up the
 counts into where each row starts (``GPU::exclusiveScan()`` on a device), and fill the rows;
 :ref:`Chap:ExampleParticleContacts` builds one.
+
+Rays cross the cloud exactly (see :ref:`Chap:ImplemRays`): ``firstHit()`` walks its BVH along the ray and reports
+the sphere crossed by its cloud index, in ``HitT::m_primitive``. Where spheres overlap, a ray crosses only the
+surface of their union, and a ray starting inside a sphere leaves where no sphere holds it any more. The viewer
+traces the cloud the same way, on a device included.
+
+The cloud is a tape primitive, as a mesh SDF is (see :ref:`Chap:ImplemCSG`): list its type among the tape's
+primitives, build the tape in the cloud's pool, and the cloud takes part in CSG, traced exactly there too:
+
+.. code-block:: c++
+
+   const Tape<T, SphereCloudBVH<T>> block(pool, Difference(Expr<T>(box), Expr<T>(cloud)));
 
 See the `SphereCloudBVH doxygen page <doxygen/html/classEBGeometry_1_1SphereCloudBVH.html>`__ for the full
 interface, and :ref:`Chap:ExampleSphereClouds` and :ref:`Chap:ExampleParticleContacts` for worked usage.
